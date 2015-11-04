@@ -130,13 +130,13 @@ int main(int argc, char *argv[])
 
     t = cycle_time() - t;
     double mean = 0;
-    for (int i = 0; i < total_threads; i++) {
+    for (i = 0; i < total_threads; i++) {
         mean += ((double) times[i] / totaltest);
     }
     mean /= total_threads;
 
     double std = 0;
-    for (int i = 0; i < total_threads; i++) {
+    for (i = 0; i < total_threads; i++) {
         std += ((mean - (double) times[i] / totaltest) *
         (mean - (double) times[i] / totaltest));
     }

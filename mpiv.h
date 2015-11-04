@@ -13,11 +13,11 @@ void MPIV_Recv(void* buffer, int size, int rank, int tag) {
             s.wait();
             return;
         } else {
-            buf = tbl[tag];
+            local_buf = tbl[tag];
         }
     }
     memcpy(buffer, local_buf, size);
-    free(buf);
+    free(local_buf);
     tbl.erase(tag);
 }
 
@@ -36,7 +36,7 @@ inline void MPIV_Progress() {
         int size = 0;
         MPI_Get_count(&stat, MPI_BYTE, &size);
         void* buf = std::malloc(size);
-        MPI_Recv(buf, size, MPI_BYTE, stat.MPI_SOURCE, tag, 
+        MPI_Recv(buf, size, MPI_BYTE, stat.MPI_SOURCE, tag,
                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
         if (!tbl.insert(tag, buf)) {
@@ -51,7 +51,7 @@ inline void MPIV_Progress() {
         }
     } else {
         MPIV_Request* fsync = (MPIV_Request*) sync;
-        MPI_Recv(fsync->buffer, fsync->size, MPI_BYTE, 1, tag, 
+        MPI_Recv(fsync->buffer, fsync->size, MPI_BYTE, 1, tag,
                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         fsync->signal();
         tbl.erase(tag);

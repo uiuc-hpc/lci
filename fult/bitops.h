@@ -21,7 +21,7 @@ static inline void sync_clear_bit(long nr, volatile unsigned long *addr) {
 }
 
 static inline unsigned long find_first_set(unsigned long word) {
-    asm("rep bsf %1,%0"
+    asm("rep; bsf %1,%0"
             : "=r" (word)
             : "rm" (word));
     return word;
