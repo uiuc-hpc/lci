@@ -3,7 +3,7 @@ TARGET = yield wait abt_yield abt_wait fibo abt_fibo fair comm_order comm_reorde
     abt_fair abx_comm2_reorder abx_comm2_order
 
 GXX = mpicxx
-CXXFLAGS = -g3 -O3 -Wall -Wextra -I../
+CXXFLAGS = -g3 -O3 -Wall -Wextra -I../fult -I../
 LDFLAGS = -lboost_context -lboost_coroutine -lpthread -labt -lm
 
 BOOST_INC = /usr/include/boost

@@ -33,8 +33,8 @@ double *start, *end;
 
 #include "abt_sync.h"
 
-typedef ABT_sync MPIX_Request;
-#include "mpix.h"
+typedef ABT_sync MPIV_Request;
+#include "mpiv.h"
 
 volatile int total = 0;
 thread_local void* buffer = NULL;
@@ -46,7 +46,7 @@ void thread_func(void *arg)
         buffer = malloc(SIZE);
     }
     start[myid] = MPI_Wtime();
-    MPIX_Recv(buffer, SIZE, 1, myid);
+    MPIV_Recv(buffer, SIZE, 1, myid);
     end[myid] = MPI_Wtime();
 }
 
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 
         std::thread comm_thread([&stop_comm] {
             while (!stop_comm) {
-                MPIX_Progress();
+                MPIV_Progress();
             }
         });
 
@@ -127,7 +127,6 @@ int main(int argc, char *argv[])
             }
             if (time >= SKIP)
                 times += max - min;
-            MPI_Barrier(MPI_COMM_WORLD);
         }
         stop_comm = true;
         comm_thread.join();
@@ -137,12 +136,11 @@ int main(int argc, char *argv[])
         int time;
         void* buf = malloc(SIZE);
         for (time = 0; time < TOTAL + SKIP; time ++) {
-            for (i = num_threads * num_xstreams - 1; i>=0; i--) {
+            MPI_Barrier(MPI_COMM_WORLD);
+            for (i = 0; i < num_threads * num_xstreams; i++) {
                 // size_t tid = i * num_threads + j + 1;
                 MPI_Send(buf, SIZE, MPI_BYTE, 0, i, MPI_COMM_WORLD); 
             }
-            MPI_Barrier(MPI_COMM_WORLD);
-            MPI_Barrier(MPI_COMM_WORLD);
         }
         // printf("%f\n", (MPI_Wtime() - s) * 1e6 / TOTAL / num_xstreams / num_threads);
     }

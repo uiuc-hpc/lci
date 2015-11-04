@@ -1,23 +1,27 @@
-#ifndef MPIX_H_
-#define MPIX_H_
+#ifndef MPIV_H_
+#define MPIV_H_
 
 #include <libcuckoo/cuckoohash_map.hh>
 
 cuckoohash_map<int, void*> tbl;
 
-void MPIX_Recv(void* buffer, int size, int rank, int tag) {
-    MPIX_Request s(buffer, size, rank, tag);
-    if (!tbl.insert(tag, (void*) &s)) {
-        void* buf = tbl[tag];
-        memcpy(buffer, buf, size);
-        free(buf);
-        tbl.erase(tag);
-    } else {
-        s.wait();
+void MPIV_Recv(void* buffer, int size, int rank, int tag) {
+    void* local_buf;
+    if (!tbl.find(tag, local_buf)) {
+        MPIV_Request s(buffer, size, rank, tag);
+        if (tbl.insert(tag, (void*) &s)) {
+            s.wait();
+            return;
+        } else {
+            buf = tbl[tag];
+        }
     }
+    memcpy(buffer, local_buf, size);
+    free(buf);
+    tbl.erase(tag);
 }
 
-inline void MPIX_Progress() {
+inline void MPIV_Progress() {
     MPI_Status stat;
     int flag = 0;
     MPI_Iprobe(1, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, &stat);
@@ -36,7 +40,7 @@ inline void MPIX_Progress() {
                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
         if (!tbl.insert(tag, buf)) {
-            MPIX_Request* fsync = (MPIX_Request*) (void*) tbl[tag];
+            MPIV_Request* fsync = (MPIV_Request*) (void*) tbl[tag];
             memcpy(fsync->buffer, buf, size);
             fsync->signal();
             free(buf);
@@ -46,7 +50,7 @@ inline void MPIX_Progress() {
             // by the thread.
         }
     } else {
-        MPIX_Request* fsync = (MPIX_Request*) sync;
+        MPIV_Request* fsync = (MPIV_Request*) sync;
         MPI_Recv(fsync->buffer, fsync->size, MPI_BYTE, 1, tag, 
                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         fsync->signal();

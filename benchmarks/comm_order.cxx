@@ -9,9 +9,9 @@
 
 #include "fult.h"
 
-typedef fult_sync MPIX_Request;
+typedef fult_sync MPIV_Request;
 
-#include "mpix.h"
+#include "mpiv.h"
 #include "comm_queue.h"
 #include "comm_exp.h"
 
@@ -26,7 +26,7 @@ void wait_comm(intptr_t i) {
         buffer = malloc(SIZE);
     }
     start[i] = MPI_Wtime();
-    MPIX_Recv(buffer, SIZE, 1, i);
+    MPIV_Recv(buffer, SIZE, 1, i);
     end[i] = MPI_Wtime();
 }
 
@@ -34,7 +34,7 @@ int main(int argc, char** args) {
     int provide;
     MPI_Init_thread(&argc, &args, MPI_THREAD_MULTIPLE, &provide);
     if (argc < 3) {
-        printf("%s <nworker> <nthreads>", args[0]);
+        printf("%s <nworker> <nthreads> <SIZE>\n", args[0]);
         return -1;
     }
 
@@ -55,7 +55,7 @@ int main(int argc, char** args) {
         // start the comm threads
         std::thread comm_thread([&stop_comm] {
             while (!stop_comm) {
-                MPIX_Progress();
+                MPIV_Progress();
             }
         });
         w = new worker[nworker];
