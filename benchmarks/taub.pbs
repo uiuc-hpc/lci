@@ -1,0 +1,14 @@
+#!/bin/bash
+#PBS -q cse
+#PBS -W group_list=cs_snir
+#PBS -l nodes=2:ppn=12
+#PBS -l walltime=00:20:00
+#PBS -o results/${PBS_JOBID%%.*}.txt
+#PBS -e errors/${PBS_JOBID%%.*}.txt
+#PBS -N pingpong
+#PBS -V
+cd ${PBS_O_WORKDIR}
+
+./test_abx_comm2.sh 0
+./test_abx_comm2.sh 64
+./test_abx_comm2.sh 2048

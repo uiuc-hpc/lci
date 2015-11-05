@@ -9,8 +9,8 @@
 
 #include "rdmax.h"
 
-#define SHORT (16*1024)
-#define PACKET_SIZE (SHORT + sizeof(mpiv_packet_header))
+#define PACKET_SIZE 4096
+#define SHORT (PACKET_SIZE - sizeof(mpiv_packet_header))
 #define NSBUF 1024
 #define NRBUF 1024
 
@@ -19,8 +19,13 @@ using rdmax::device_cq;
 using rdmax::device_memory;
 using rdmax::connection;
 
+enum mpiv_packet_type {
+    SEND_SHORT, RECV_SHORT
+};
+
 // TODO(danghvu): can we piggypack this in the IMM field and drop the header?
 struct mpiv_packet_header {
+    mpiv_packet_type type;
     int from;
     int tag;
 };
@@ -43,7 +48,6 @@ struct buffer {
 };
 
 struct mpiv {
-    cuckoohash_map<int, void*> tbl;
     int me;
     device_ctx* dev_ctx;
     device_cq dev_scq;
@@ -52,6 +56,7 @@ struct mpiv {
     device_memory rbuf;
     buffer* sbuf_alloc;
     buffer* rbuf_alloc;
+    cuckoohash_map<int, void*> tbl;
     vector<connection> conn;
     vector<mpiv_packet*> prepost;
     boost::lockfree::queue<mpiv_packet*, boost::lockfree::capacity<512>> squeue;
@@ -59,15 +64,14 @@ struct mpiv {
 
 static mpiv MPIV;
 
-inline void post_packet(mpiv_packet* p) {
+inline void mpiv_post_recv(mpiv_packet* p) {
+    assert(p->header.type == RECV_SHORT && "something wrong");
     MPIV.dev_ctx->post_srq_recv((void*) p,
         &(p->buffer), SHORT, MPIV.rbuf.lkey());
 }
 
 inline void MPIV_Init(int &argc, char**& args) {
-    int provide;
-    MPI_Init_thread(&argc, &args, MPI_THREAD_MULTIPLE, &provide);
-    assert(provide == MPI_THREAD_MULTIPLE);
+    MPI_Init(&argc, &args);
 
     std::vector<rdmax::device> devs = rdmax::device::get_devices();
     assert(devs.size() > 0 && "Unable to find any ibv device");
@@ -96,14 +100,20 @@ inline void MPIV_Init(int &argc, char**& args) {
         MPIV.conn.emplace_back(&MPIV.dev_scq, &MPIV.dev_rcq, MPIV.dev_ctx, &MPIV.sbuf, i);
     }
 
-    // PREPOST recv.
+    // PREPOST recv and allocate send queue.
     for (int i = 0; i < 255; i++) {
         MPIV.prepost.emplace_back((mpiv_packet*) MPIV.rbuf_alloc->allocate());
-        post_packet(MPIV.prepost[i]);
+        MPIV.prepost[i]->header.type = RECV_SHORT;
+        mpiv_post_recv(MPIV.prepost[i]);
+
         mpiv_packet* packet = (mpiv_packet*) MPIV.sbuf_alloc->allocate();
+        packet->header.type = SEND_SHORT;
         packet->header.from = rank;
-        MPIV.squeue.push(packet);
+
+        assert(MPIV.squeue.push(packet));
     }
+
+    MPI_Barrier(MPI_COMM_WORLD);
 }
 
 inline void MPIV_Finalize() {
@@ -112,7 +122,8 @@ inline void MPIV_Finalize() {
 
 inline void MPIV_Send(void* buffer, int size, int rank, int tag) {
     mpiv_packet* packet;
-    assert(MPIV.squeue.pop(packet));
+    while(!MPIV.squeue.pop(packet)) {}
+
     packet->header.tag = tag;
     if (((size_t) size) <= SHORT) {
         // This is a short message, we send them immediately and do not yield
@@ -137,46 +148,57 @@ inline void MPIV_Recv2(void* buffer, int size, int rank, int tag) {
             local_buf = MPIV.tbl[tag];
         }
     }
-    mpiv_packet* packet = (mpiv_packet*) local_buf;
+    mpiv_packet* p_ctx = (mpiv_packet*) local_buf;
+    mpiv_packet* packet = (mpiv_packet*) p_ctx->buffer;
     memcpy(buffer, packet->buffer, size);
     MPIV.tbl.erase(tag);
+    mpiv_post_recv(p_ctx);
+}
 
-    post_packet(packet);
+inline void mpiv_recv_short(mpiv_packet* p_ctx, const ibv_wc& wc) {
+    mpiv_packet* p = (mpiv_packet*) &(p_ctx->buffer);
+    uint32_t recv_size = wc.byte_len - sizeof(mpiv_packet_header);
+
+    int tag = p->header.tag;
+    // printf("RECV size %d tag %d ctx %p pointer %p\n", recv_size, tag, p_ctx, p);
+
+    void *sync = NULL;
+    MPIV_Request* fsync = NULL;
+    if (!MPIV.tbl.find(tag, sync)) {
+        if (MPIV.tbl.insert(tag, (void*) p_ctx)) {
+            // This will be handle by the thread,
+            // so we return right away.
+            return;
+        }
+        fsync = (MPIV_Request*) (void*) MPIV.tbl[tag];
+    } else {
+        fsync = (MPIV_Request*) sync;
+    }
+
+    memcpy(fsync->buffer, p->buffer, recv_size);
+    fsync->signal();
+    MPIV.tbl.erase(tag);
+    mpiv_post_recv(p_ctx);
 }
 
 inline void MPIV_Progress() {
     MPIV.dev_rcq.poll_once([](const ibv_wc& wc) {
         mpiv_packet* p_ctx = (mpiv_packet*) wc.wr_id;
-        mpiv_packet* p = (mpiv_packet*) &(p_ctx->buffer);
-        uint32_t recv_size = wc.byte_len - sizeof(mpiv_packet_header);
-
-        int tag = p->header.tag;
-        // printf("RECV size %d tag %d ctx %p pointer %p\n", recv_size, tag, p_ctx, p);
-
-        void *sync = NULL;
-        MPIV_Request* fsync = NULL;
-        if (!MPIV.tbl.find(tag, sync)) {
-            if (MPIV.tbl.insert(tag, (void*) p)) {
-                // This will be handle by the thread,
-                // so we return right away.
-                return;
-            }
-            fsync = (MPIV_Request*) (void*) MPIV.tbl[tag];
+        if (p_ctx->header.type == RECV_SHORT) {
+            mpiv_recv_short(p_ctx, wc);
         } else {
-            fsync = (MPIV_Request*) sync;
+            assert(0 && "Invalid packet or not implemented");
         }
-        memcpy(fsync->buffer, p->buffer, recv_size);
-        fsync->signal();
-        MPIV.tbl.erase(tag);
-
-        // Return this to the queue.
-        post_packet(p_ctx);
     });
 
     MPIV.dev_scq.poll_once([](const ibv_wc& wc) {
         mpiv_packet* packet = (mpiv_packet*) wc.wr_id;
         // Return this free packet to the queue.
-        assert(MPIV.squeue.push(packet));
+        if (packet->header.type == SEND_SHORT) {
+            assert(MPIV.squeue.push(packet));
+        } else {
+            assert(0 && "Invalid packet or not implemented");
+        }
     });
 }
 

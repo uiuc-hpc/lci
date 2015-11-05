@@ -17,7 +17,7 @@ typedef fult_sync MPIV_Request;
 
 #if 0
 #undef TOTAL
-#define TOTAL 1
+#define TOTAL 10
 #undef SKIP
 #define SKIP 0
 #endif
@@ -72,7 +72,8 @@ int main(int argc, char** args) {
 
         double times = 0;
         for (int t = 0; t < TOTAL + SKIP; t++) {
-            MPI_Barrier(MPI_COMM_WORLD);
+            // MPI_Barrier(MPI_COMM_WORLD);
+            MPI_Send(0, 0, MPI_BYTE, 1, 0, MPI_COMM_WORLD);
             for (int i = 0; i < total_threads; i++) {
                 w[i % nworker].fult_new(i / nworker, wait_comm, i);
             }
@@ -99,8 +100,9 @@ int main(int argc, char** args) {
         for (int t = 0; t < TOTAL + SKIP; t++) {
             if (t == SKIP)
                 t1 = MPI_Wtime();
+            MPI_Recv(0, 0, MPI_BYTE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-            MPI_Barrier(MPI_COMM_WORLD);
+            // MPI_Barrier(MPI_COMM_WORLD);
             for (int i = 0; i < total_threads; i++) {
                 MPIV_Send(buf, SIZE, 0, i);
             }
