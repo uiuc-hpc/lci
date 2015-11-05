@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 
         std::thread comm_thread([&stop_comm] {
             while (!stop_comm) {
-                MPIV_Progress();
+                MPI_Progress();
             }
         });
 

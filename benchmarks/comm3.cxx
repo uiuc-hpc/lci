@@ -15,6 +15,13 @@ typedef fult_sync MPIV_Request;
 #include "comm_queue.h"
 #include "comm_exp.h"
 
+#if 0
+#undef TOTAL
+#define TOTAL 1
+#undef SKIP
+#define SKIP 0
+#endif
+
 double* start, *end;
 worker* w;
 
@@ -26,13 +33,13 @@ void wait_comm(intptr_t i) {
         buffer = malloc(SIZE);
     }
     start[i] = MPI_Wtime();
-    MPIV_Recv(buffer, SIZE, 1, i);
+    MPIV_Recv2(buffer, SIZE, 1, i);
     end[i] = MPI_Wtime();
 }
 
 int main(int argc, char** args) {
-    int provide;
-    MPI_Init_thread(&argc, &args, MPI_THREAD_MULTIPLE, &provide);
+    MPIV_Init(argc, args);
+
     if (argc < 3) {
         printf("%s <nworker> <nthreads>", args[0]);
         return -1;
@@ -50,14 +57,14 @@ int main(int argc, char** args) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     volatile bool stop_comm = false;
+    // start the comm threads
+    std::thread comm_thread([&stop_comm] {
+        while (!stop_comm) {
+            MPIV_Progress();
+        }
+    });
 
     if (rank == 0) {
-        // start the comm threads
-        std::thread comm_thread([&stop_comm] {
-            while (!stop_comm) {
-                MPI_Progress();
-            }
-        });
         w = new worker[nworker];
         for (int i = 0; i < nworker; i++) {
             w[i].start();
@@ -85,8 +92,6 @@ int main(int argc, char** args) {
             w[i].stop();
         }
 
-        stop_comm = true;
-        comm_thread.join();
         printf("%f\n", times * 1e6 / TOTAL / total_threads);
     } else {
         double t1 = 0;
@@ -97,12 +102,16 @@ int main(int argc, char** args) {
 
             MPI_Barrier(MPI_COMM_WORLD);
             for (int i = 0; i < total_threads; i++) {
-                MPI_Send(buf, SIZE, MPI_BYTE, 0, i, MPI_COMM_WORLD);
+                MPIV_Send(buf, SIZE, 0, i);
             }
         }
         t1 = MPI_Wtime() - t1;
         // printf("Send time: %f\n", t1 * 1e6 / TOTAL / total_threads);
     }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    stop_comm = true;
+    comm_thread.join();
 
 #if 0
     if (rank == 0) {
@@ -122,7 +131,7 @@ int main(int argc, char** args) {
         printf("%f\t%f\t%f\n", mean + std, mean - std, mean);
     }
 #endif
-    MPI_Finalize();
+    MPIV_Finalize();
 
     return 0;
 }

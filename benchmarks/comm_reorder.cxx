@@ -58,7 +58,7 @@ int main(int argc, char** args) {
         // start the comm threads
         std::thread comm_thread([&stop_comm] {
             while (!stop_comm) {
-                MPIV_Progress();
+                MPI_Progress();
             }
         });
         w = new worker[nworker];

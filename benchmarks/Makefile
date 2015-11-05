@@ -3,7 +3,7 @@ TARGET = yield wait abt_yield abt_wait fibo abt_fibo fair comm_order comm_reorde
     abt_fair abx_comm2_reorder abx_comm2_order
 
 GXX = mpicxx
-CXXFLAGS = -g3 -O3 -Wall -Wextra -I../fult -I../
+CXXFLAGS = -g -O3 -Wall -Wextra -I../fult -I../
 
 LDFLAGS = -lpthread -lm
 
@@ -16,7 +16,9 @@ BOOST_LIB = /usr/local/boost/1.58.0/lib -lboost_context \
 ABT_INC = $(HOME)/Softwares/argo/include
 ABT_LIB = $(HOME)/Softwares/argo/lib -labt
 
-CXXFLAGS += -I$(BOOST_INC) -I$(ABT_INC) -I$(CUCKOO_INC)
+RDMAX_INC = ../rdmax/include
+
+CXXFLAGS += -I$(BOOST_INC) -I$(ABT_INC) -I$(CUCKOO_INC) -I$(RDMAX_INC)
 LDFLAGS += -L$(BOOST_LIB) -L$(ABT_LIB)
 
 all: $(TARGET)

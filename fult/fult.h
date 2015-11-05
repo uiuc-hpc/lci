@@ -8,8 +8,8 @@
 
 #define DEBUG(x)
 
-#define likely(x)       __builtin_expect((x),1)
-#define unlikely(x)     __builtin_expect((x),0)
+#define xlikely(x)       __builtin_expect((x),1)
+#define xunlikely(x)     __builtin_expect((x),0)
 
 #define fult_yield() {\
     ((fult*) t_ctx)->yield();\
@@ -213,7 +213,7 @@ void worker::wfunc(worker* w) {
     uint8_t count = 0;
     volatile unsigned long &mask = w->mask_[0];
 
-    while (unlikely(!w->is_stop())) {
+    while (xunlikely(!w->is_stop())) {
         while (count++ != 0) {
             if (mask > 0) {
                 loop_sched_all(mask, 0);
@@ -240,7 +240,7 @@ class fult_sync {
     inline void signal() {
         parent_->schedule(id_);
     }
-    
+
     void* buffer;
     int size;
     int rank;
