@@ -11,8 +11,8 @@
 
 #define PACKET_SIZE 4096
 #define SHORT (PACKET_SIZE - sizeof(mpiv_packet_header))
-#define NSBUF 1024
-#define NRBUF 1024
+#define NSBUF 512
+#define NRBUF 512
 
 using rdmax::device_ctx;
 using rdmax::device_cq;
@@ -59,7 +59,7 @@ struct mpiv {
     cuckoohash_map<int, void*> tbl;
     vector<connection> conn;
     vector<mpiv_packet*> prepost;
-    boost::lockfree::queue<mpiv_packet*, boost::lockfree::capacity<512>> squeue;
+    boost::lockfree::queue<mpiv_packet*, boost::lockfree::capacity<NSBUF>> squeue;
 };
 
 static mpiv MPIV;
@@ -101,15 +101,16 @@ inline void MPIV_Init(int &argc, char**& args) {
     }
 
     // PREPOST recv and allocate send queue.
-    for (int i = 0; i < 255; i++) {
+    for (int i = 0; i < NRBUF; i++) {
         MPIV.prepost.emplace_back((mpiv_packet*) MPIV.rbuf_alloc->allocate());
         MPIV.prepost[i]->header.type = RECV_SHORT;
         mpiv_post_recv(MPIV.prepost[i]);
+    }
 
+    for (int i = 0; i < NSBUF; i++) {
         mpiv_packet* packet = (mpiv_packet*) MPIV.sbuf_alloc->allocate();
         packet->header.type = SEND_SHORT;
         packet->header.from = rank;
-
         assert(MPIV.squeue.push(packet));
     }
 
@@ -122,7 +123,10 @@ inline void MPIV_Finalize() {
 
 inline void MPIV_Send(void* buffer, int size, int rank, int tag) {
     mpiv_packet* packet;
-    while(!MPIV.squeue.pop(packet)) {}
+    uint8_t count = 0;
+    while(!MPIV.squeue.pop(packet)) {
+        if (++count == 0) sched_yield();
+    }
 
     packet->header.tag = tag;
     if (((size_t) size) <= SHORT) {
