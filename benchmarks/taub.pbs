@@ -2,13 +2,28 @@
 #PBS -q cse
 #PBS -W group_list=cs_snir
 #PBS -l nodes=2:ppn=12
-#PBS -l walltime=00:20:00
+#PBS -l walltime=00:40:00
 #PBS -o results/${PBS_JOBID%%.*}.txt
 #PBS -e errors/${PBS_JOBID%%.*}.txt
 #PBS -N pingpong
 #PBS -V
 cd ${PBS_O_WORKDIR}
 
-./test_abx_comm2.sh 0
-./test_abx_comm2.sh 64
-./test_abx_comm2.sh 2048
+export MV2_IBA_EAGER_THRESHOLD=4096
+export MV2_VBUF_TOTAL_SIZE=4096
+
+#./test_abx_comm2.sh 0
+#./test_abx_comm2.sh 64
+#./test_abx_comm2.sh 2048
+
+./test_abx_comm2.sh 16384
+./test_abx_comm2.sh 1048576
+
+#mpiexec -n 2 -ppn 1 valgrind --tool=callgrind --fair-sched=yes --dump-instr=yes ./comm3 1 64 64
+#mpiexec -n 2 -ppn 1 ./comm 1 64 32768
+#mpiexec -n 2 -ppn 1 ./comm3 1 64 32768
+
+#mpiexec -n 2 -ppn 1 ./comm 1 64 256000
+#mpiexec -n 2 -ppn 1 ./comm3 1 64 256000
+
+

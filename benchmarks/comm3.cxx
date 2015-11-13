@@ -17,7 +17,7 @@ typedef fult_sync MPIV_Request;
 
 #if 0
 #undef TOTAL
-#define TOTAL 10
+#define TOTAL 20
 #undef SKIP
 #define SKIP 0
 #endif

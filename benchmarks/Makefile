@@ -4,7 +4,7 @@ TARGET = yield wait abt_yield abt_wait fibo abt_fibo fair comm_order comm_reorde
     comm3\
 
 GXX = mpicxx
-CXXFLAGS = -g -O3 -Wall -Wextra -I../fult -I../
+CXXFLAGS = -g3 -O3 -Wall -Wextra -I../fult -I../
 
 LDFLAGS = -lpthread -lm
 
