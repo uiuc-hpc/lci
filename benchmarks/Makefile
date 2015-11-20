@@ -1,7 +1,6 @@
 TARGET = yield wait abt_yield abt_wait fibo abt_fibo fair \
     comm abx_comm abx_comm2 abx_comm_order abx_comm_reorder \
-    abt_fair abx_comm2_reorder abx_comm2_order\
-    comm3\
+    abt_fair comm3 comm4 abx_comm4 abx_comm42
 
 GXX = mpicxx
 CXXFLAGS = -g3 -O3 -Wall -Wextra -I../fult -I../
