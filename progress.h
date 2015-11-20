@@ -1,22 +1,132 @@
 #ifndef PROGRESS_H_
 #define PROGRESS_H_
 
+#ifndef USING_ABT
+inline void mpiv_recv_recv_ready(mpiv_packet* p_ctx, mpiv_packet* p) {
+    // printf("sending: %p %d t: %p %d sz: %d\n", p->rdz.src_addr, p->rdz.lkey, p->rdz.tgt_addr,
+    //    p->rdz.rkey, p->rdz.size);
+    int tag = p->rdz.idx;
+    void* buf;
+    // printf("GETTING... %p %d\n", (void*) p->rdz.tgt_addr, p->rdz.rkey);
+
+    if (!MPIV.rdztbl.find(tag, buf)) {
+        if (MPIV.rdztbl.insert(tag, p_ctx)) {
+            // handle by thread.
+            return;
+        }
+        buf = MPIV.rdztbl[tag];
+    }
+
+    // Else, thread win, we handle.
+    MPIV_Request* s = (MPIV_Request*) buf;
+    p_ctx->header.type = SEND_READY_FIN;
+
+    MPIV.conn[p->header.from].write_rdma_signal(s->buffer, s->dm.lkey(),
+        (void*) p->rdz.tgt_addr, p->rdz.rkey, p->rdz.size, p_ctx,
+        p->rdz.idx);
+}
+
+inline void mpiv_recv_recv_ready_finalize(int tag) {
+    // Now data is already ready in the buffer.
+    void *sync = NULL;
+    MPIV_Request* fsync = NULL;
+    MPIV.tbl.find(tag, sync);
+    fsync = (MPIV_Request*) sync;
+    fsync->dm.finalize();
+    MPIV.tbl.erase(tag);
+    fsync->signal();
+}
+
+inline void mpiv_recv_inline(mpiv_packet* p_ctx, const ibv_wc& wc) {
+    uint32_t recv_size = wc.byte_len;
+    int tag = wc.imm_data;
+    void *sync = NULL;
+    MPIV_Request* fsync = NULL;
+    if (!MPIV.tbl.find(tag, sync)) {
+        if (MPIV.tbl.insert(tag, (void*) p_ctx)) {
+            // This will be handle by the thread,
+            // so we return right away.
+            return;
+        }
+        fsync = (MPIV_Request*) (void*) MPIV.tbl[tag];
+    } else {
+        fsync = (MPIV_Request*) sync;
+    }
+    memcpy(fsync->buffer, p_ctx->egr.buffer, recv_size);
+    MPIV.tbl.erase(tag);
+    assert(MPIV.squeue.push(p_ctx));
+    fsync->signal();
+}
+
+inline void mpiv_recv_short(mpiv_packet* p_ctx,
+        mpiv_packet* p, const ibv_wc& wc) {
+    uint32_t recv_size = wc.byte_len - sizeof(mpiv_packet_header);
+    int tag = p->header.tag;
+    // printf("RECV size %d tag %d ctx %p pointer %p\n", recv_size, tag, p_ctx, p);
+
+    void *sync = NULL;
+    MPIV_Request* fsync = NULL;
+    if (!MPIV.tbl.find(tag, sync)) {
+        if (MPIV.tbl.insert(tag, (void*) p_ctx)) {
+            // This will be handle by the thread,
+            // so we return right away.
+            return;
+        }
+        fsync = (MPIV_Request*) (void*) MPIV.tbl[tag];
+    } else {
+        fsync = (MPIV_Request*) sync;
+    }
+
+    memcpy(fsync->buffer, p->egr.buffer, recv_size);
+    MPIV.tbl.erase(tag);
+    assert(MPIV.squeue.push(p_ctx));
+    fsync->signal();
+}
+
+inline void mpiv_recv_send_ready(mpiv_packet* p_ctx, mpiv_packet* p) {
+    int tag = p->header.tag;
+    void *sync = NULL;
+    MPIV_Request* fsync = NULL;
+    if (!MPIV.tbl.find(tag, sync)) {
+        if (MPIV.tbl.insert(tag, (void*) p_ctx)) {
+            // This will be handle by the thread,
+            // so we return right away.
+            return;
+        }
+        fsync = (MPIV_Request*) (void*) MPIV.tbl[tag];
+    } else {
+        fsync = (MPIV_Request*) sync;
+    }
+    mpiv_send_recv_ready(p_ctx, fsync);
+}
+
+inline void done_rdz_send(mpiv_packet* packet) {
+    mpiv_packet* p = (mpiv_packet*) packet->egr.buffer;
+    int tag = p->rdz.idx;
+    void* buf = MPIV.rdztbl[tag];
+    MPIV_Request* s = (MPIV_Request*) buf;
+    MPIV.rdztbl.erase(tag);
+    s->dm.finalize();
+    s->signal();
+}
+
 inline void MPIV_Progress() {
     // Poll recv queue.
     MPIV.dev_rcq.poll_once([](const ibv_wc& wc) {
+        mpiv_packet* p_ctx = (mpiv_packet*) wc.wr_id;
         if (wc.opcode == IBV_WC_RECV_RDMA_WITH_IMM) {
             // FIXME: how do I get the rank ? From qpn probably ?
             // And how do I know this is the RECV_READY ?
             int tag = (int) wc.imm_data & 0xffffffff;
-            mpiv_packet* p_ctx = (mpiv_packet*) wc.wr_id;
-            mpiv_recv_recv_ready_finalize(p_ctx, tag);
+            mpiv_recv_recv_ready_finalize(tag);
+            // return the packet.
+            assert(MPIV.squeue.push(p_ctx));
         } else if (wc.imm_data != (uint32_t)-1) {
             // This is INLINE.
-            mpiv_packet* p_ctx = (mpiv_packet*) wc.wr_id;
             mpiv_recv_inline(p_ctx, wc);
         } else {
-            mpiv_packet* p_ctx = (mpiv_packet*) wc.wr_id;
-            mpiv_packet* p = (mpiv_packet*) &(p_ctx->egr.buffer);
+            // Other cases.
+            mpiv_packet* p = (mpiv_packet*) p_ctx->egr.buffer;
             if (p->header.type == SEND_SHORT) {
                 // Return true if we need to return this p_ctx.
                 mpiv_recv_short(p_ctx, p, wc);
@@ -28,6 +138,8 @@ inline void MPIV_Progress() {
                 assert(0 && "Invalid packet or not implemented");
             }
         }
+        // Post back a recv, as we have just consumed one.
+        mpiv_post_recv(get_freesbuf());
     });
 
     // Poll send queue.
@@ -37,22 +149,24 @@ inline void MPIV_Progress() {
             return;
         }
         mpiv_packet* packet = (mpiv_packet*) wc.wr_id;
-        // Return this free packet to the queue.
         if (packet->header.type == SEND_SHORT) {
-            assert(MPIV.squeue.push(packet));
+            // done.
         } else if (packet->header.type == SEND_READY) {
-            assert(MPIV.squeue.push(packet));
+            // expecting RECV_READY next.
         } else if (packet->header.type == RECV_READY) {
-            // Done sending the tgt_addr, return the packet.
-            mpiv_post_recv(packet);
+            // expecting RDMA next.
         } else if (packet->header.type == SEND_READY_FIN) {
-            // finished rdz protocol for send.
-            mpiv_post_recv(packet);
+            done_rdz_send(packet);
+            // done rdz send.
         } else {
             assert(0 && "Invalid packet or not implemented");
         }
+
+        // Return the packet, as we have just used one.
+        assert(MPIV.squeue.push(packet));
     });
 }
+#endif
 
 inline void MPI_Progress() {
     MPI_Status stat;

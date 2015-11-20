@@ -27,7 +27,7 @@ int compare (const void * a, const void * b) { return (*(long*) a - *(long*) b);
 
 int main(int argc, char** args) {
     if (argc < 2) {
-        printf("Usage %s <num_workers> <num_threads>\n", args[0]); 
+        printf("Usage %s <num_workers> <num_threads>\n", args[0]);
     }
     int nworker = atoi(args[1]);
     int num_threads = atoi(args[2]);
@@ -46,10 +46,10 @@ int main(int argc, char** args) {
     long x = cycle_time();
     for (int tt = 0; tt < TOTAL; tt++) {
         for (int i = 0; i < num_threads * nworker; i++) {
-            w[i % nworker].fult_new(i / nworker, f1, i);
+            w[i % nworker].spawn(f1, i);
         }
         for (int i = 0; i < num_threads * nworker; i++) {
-            w[i % nworker].fult_join(i / nworker);
+            w[i % nworker].join(i / nworker);
         }
     }
     long y = cycle_time() - x;

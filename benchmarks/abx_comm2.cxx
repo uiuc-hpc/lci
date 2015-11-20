@@ -33,6 +33,7 @@ double *start, *end;
 
 #include "abt_sync.h"
 
+#define USING_ABT
 typedef ABT_sync MPIV_Request;
 #include "mpiv.h"
 
@@ -139,13 +140,13 @@ int main(int argc, char *argv[])
             MPI_Barrier(MPI_COMM_WORLD);
             for (i = 0; i < num_threads * num_xstreams; i++) {
                 // size_t tid = i * num_threads + j + 1;
-                MPI_Send(buf, SIZE, MPI_BYTE, 0, i, MPI_COMM_WORLD); 
+                MPI_Send(buf, SIZE, MPI_BYTE, 0, i, MPI_COMM_WORLD);
             }
         }
         // printf("%f\n", (MPI_Wtime() - s) * 1e6 / TOTAL / num_xstreams / num_threads);
     }
 
-    if (rank == 0) 
+    if (rank == 0)
         /* Free Execution Streams */
         for (i = 1; i < num_xstreams; i++) {
             ret = ABT_xstream_free(&xstreams[i]);

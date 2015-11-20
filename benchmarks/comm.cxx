@@ -63,17 +63,19 @@ int main(int argc, char** args) {
             w[i].start();
         }
 
+        int* threads = new int[total_threads];
+
         double times = 0;
         for (int t = 0; t < TOTAL + SKIP; t++) {
             MPI_Barrier(MPI_COMM_WORLD);
             for (int i = 0; i < total_threads; i++) {
-                w[i % nworker].fult_new(i / nworker, wait_comm, i);
+                threads[i] = w[i % nworker].spawn(wait_comm, i);
             }
 
             double min = 2e9;
             double max = 0;
             for (int i = 0; i < total_threads; i++) {
-                w[i % nworker].fult_join(i / nworker);
+                w[i % nworker].join(threads[i]);
                 min = std::min(start[i], min);
                 max = std::max(end[i], max);
             }
@@ -84,6 +86,8 @@ int main(int argc, char** args) {
         for (int i = 0; i < nworker; i++) {
             w[i].stop();
         }
+
+        delete[] threads;
 
         stop_comm = true;
         comm_thread.join();

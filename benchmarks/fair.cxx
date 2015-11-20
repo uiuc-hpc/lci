@@ -48,11 +48,11 @@ int main(int argc, char** args) {
     for (int tt = 0; tt < TOTAL; tt++) {
         data = false;
         spawned = false;
-        w[0].fult_new(0, fair, 0);
+        w[0].spawn_to(0, fair, 0);
         while (!spawned) {};
-        w[0].fult_new(63, fair, 1);
-        w[0].fult_join(0);
-        w[0].fult_join(1);
+        w[0].spawn_to(63, fair, 1);
+        w[0].join(0);
+        w[0].join(63);
     }
     printf("RESULT: %f\n", (double)(cycle_time() - x) / TOTAL);
     fflush(stdout);

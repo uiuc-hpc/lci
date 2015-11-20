@@ -2,12 +2,12 @@
 #define COMMON_H_
 // static double timing = 0;
 
-#define PACKET_SIZE 4096
+#define PACKET_SIZE (128*1024)
 #define SHORT (PACKET_SIZE - sizeof(mpiv_packet_header))
 #define INLINE 512
 
-#define NSBUF 512
-#define NRBUF 512
+#define NSBUF 64
+#define NPREPOST 16
 
 using rdmax::device_ctx;
 using rdmax::device_cq;
@@ -34,8 +34,6 @@ struct mpiv_packet {
         } egr;
         struct {
             uint32_t idx;
-            uintptr_t src_addr;
-            uint32_t lkey;
             uintptr_t tgt_addr;
             uint32_t rkey;
             uint32_t size;
@@ -61,17 +59,33 @@ struct mpiv {
     device_cq dev_scq;
     device_cq dev_rcq;
     device_memory sbuf;
-    device_memory rbuf;
     pinned_pool * sbuf_alloc;
-    pinned_pool * rbuf_alloc;
     cuckoohash_map<int, void*> tbl;
+    cuckoohash_map<int, void*> rdztbl;
     vector<connection> conn;
     vector<mpiv_packet*> prepost;
     boost::lockfree::queue<mpiv_packet*, boost::lockfree::capacity<NSBUF>> squeue;
+
+    ~mpiv() {
+        sbuf.finalize();
+        delete dev_ctx;
+        delete sbuf_alloc;
+    }
 };
 
 thread_local cuckoohash_map<void*, device_memory*> pinned;
 
 static mpiv MPIV;
+
+#ifndef USING_ABT
+mpiv_packet* get_freesbuf() {
+    uint8_t count = 0;
+    mpiv_packet* packet;
+    while(!MPIV.squeue.pop(packet)) {
+        if (++count == 0) fult_yield();
+    }
+    return packet;
+}
+#endif
 
 #endif

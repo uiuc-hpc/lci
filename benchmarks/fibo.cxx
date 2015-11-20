@@ -27,12 +27,10 @@ void ffibo(intptr_t i) {
     if (i <= 1) {
         fibo[i] = i;
     } else {
-        int s1 = slot.fetch_add(1);
-        int s2 = slot.fetch_add(1);
-        w[0].fult_new(s1, ffibo, i - 1);
-        w[0].fult_new(s2, ffibo, i - 2);
-        w[0].fult_join(s1);
-        w[0].fult_join(s2);
+        int s1 = w[0].spawn(ffibo, i - 1);
+        int s2 = w[0].spawn(ffibo, i - 2);
+        w[0].join(s1);
+        w[0].join(s2);
         fibo[i] = fibo[i - 1] + fibo[i - 2];
     }
 }
@@ -53,10 +51,9 @@ int main(int argc, char** args) {
     }
     long x = cycle_time();
     for (int tt = 0; tt < TOTAL; tt++) {
-        slot = 1;
         memset(fibo, 0, sizeof(long) * number);
-        w[0].fult_new(0, ffibo, number);
-        w[0].fult_join(0);
+        int id = w[0].spawn(ffibo, number);
+        w[0].join(id);
     }
     printf("RESULT: %lu %f\n", fibo[number], (double)(cycle_time() - x) / TOTAL);
     fflush(stdout);

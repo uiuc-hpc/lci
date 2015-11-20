@@ -33,19 +33,18 @@ double *start, *end;
 
 #include "abt_sync.h"
 
+#define USING_ABT
 typedef ABT_sync MPIV_Request;
 #include "mpiv.h"
 
-std::atomic<int> total;
-thread_local void* buffer = NULL;
+volatile int total = 0;
+
+void* alldata;
 
 void thread_func(void *arg)
 {
     size_t myid = (size_t) arg;
-    if (buffer == NULL) {
-        buffer = malloc(SIZE);
-    }
-    total += 1;
+    void* buffer = (void*) ((uintptr_t) alldata + SIZE * myid);
     start[myid] = MPI_Wtime();
     MPIV_Recv(buffer, SIZE, 1, myid);
     end[myid] = MPI_Wtime();
@@ -62,7 +61,6 @@ int main(int argc, char *argv[])
 
     int num_xstreams = atoi(argv[1]);
     int num_threads = atoi(argv[2]);
-    SIZE = atoi(argv[3]);
 
     ABT_xstream *xstreams;
     xstreams = (ABT_xstream *)malloc(sizeof(ABT_xstream) * (num_xstreams + 1));
@@ -78,6 +76,7 @@ int main(int argc, char *argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     if (rank == 0) {
+        alldata = malloc(1 * 1024 * 1024 * num_threads*num_xstreams);
         /* Create Execution Streams */
         // ret = ABT_xstream_self(&xstreams[0]);
         for (i = 1; i < num_xstreams + 1; i++) {
@@ -91,71 +90,73 @@ int main(int argc, char *argv[])
 
     }
 
-    ABT_thread thread[num_threads * num_xstreams];
 
-    if (rank == 0) {
-        volatile bool stop_comm = false;
+    volatile bool stop_comm = false;
 
-        std::thread comm_thread([&stop_comm] {
-            while (!stop_comm) {
-                MPI_Progress();
-            }
-        });
-
-        double times = 0;
-        int time;
-        for (time = 0; time < TOTAL + SKIP; time ++) {
-            /* Create threads */
-            total = 0;
-            for (i = 0; i < num_threads * num_xstreams; i++) {
-                // size_t tid = i * num_threads + j + 1;
-                ret = ABT_thread_create(pools[i % num_xstreams + 1],
-                        thread_func, (void*) (size_t) i, ABT_THREAD_ATTR_NULL,
-                        &thread[i]);
-            }
-
-            while (total != num_threads * num_xstreams) {}
-            MPI_Barrier(MPI_COMM_WORLD);
-
-
-            /* Switch to other user level threads */
-            // ABT_thread_yield();
-
-            double min = 2e9;
-            double max = 0;
-            /* Join Execution Streams */
-            for (i = 0; i < num_threads * num_xstreams; i++) {
-                ABT_thread_join(thread[i]);
-                min = std::min(start[i], min);
-                max = std::max(end[i], max);
-            }
-            if (time >= SKIP)
-                times += max - min;
-            MPI_Barrier(MPI_COMM_WORLD);
+    std::thread comm_thread([&stop_comm] {
+        while (!stop_comm) {
+            MPI_Progress();
         }
-        stop_comm = true;
-        comm_thread.join();
+    });
 
-        printf("%f\n", times * 1e6 / TOTAL / num_threads / num_xstreams);
-    } else {
-        int time;
-        void* buf = malloc(SIZE);
-        for (time = 0; time < TOTAL + SKIP; time ++) {
-            MPI_Barrier(MPI_COMM_WORLD);
-            for (i = num_threads * num_xstreams - 1; i>=0; i--) {
-                // size_t tid = i * num_threads + j + 1;
-                MPI_Send(buf, SIZE, MPI_BYTE, 0, i, MPI_COMM_WORLD); 
+    int total_threads = num_xstreams * num_threads;
+    ABT_thread thread[total_threads];
+
+    for (SIZE=1; SIZE<=1*1024*1024; SIZE<<=1) {
+        if (rank == 0) {
+            double times = 0;
+            int time;
+            for (time = 0; time < TOTAL + SKIP; time ++) {
+                MPI_Barrier(MPI_COMM_WORLD);
+                /* Create threads */
+                for (i = 0; i < total_threads; i++) {
+                    // size_t tid = i * num_threads + j + 1;
+                    ret = ABT_thread_create(pools[i % num_xstreams + 1],
+                            thread_func, (void*) (size_t) i, ABT_THREAD_ATTR_NULL,
+                            &thread[i]);
+                }
+
+
+                /* Switch to other user level threads */
+                // ABT_thread_yield();
+
+                double min = 2e9;
+                double max = 0;
+                /* Join Execution Streams */
+                for (i = 0; i < total_threads; i++) {
+                    ABT_thread_join(thread[i]);
+                    min = std::min(start[i], min);
+                    max = std::max(end[i], max);
+                }
+                if (time >= SKIP)
+                    times += max - min;
             }
-            MPI_Barrier(MPI_COMM_WORLD);
+            printf("[%d] %f\n", SIZE, times * 1e6 / TOTAL / total_threads);
+        } else {
+            int time;
+            void* buf = malloc(SIZE);
+            for (time = 0; time < TOTAL + SKIP; time ++) {
+                MPI_Barrier(MPI_COMM_WORLD);
+                for (i = 0; i < num_threads * num_xstreams; i++) {
+                    // size_t tid = i * num_threads + j + 1;
+                    MPI_Send(buf, SIZE, MPI_BYTE, 0, i, MPI_COMM_WORLD);
+                }
+            }
+            free(buf);
+            // printf("%f\n", (MPI_Wtime() - s) * 1e6 / TOTAL / num_xstreams / num_threads);
         }
-        // printf("%f\n", (MPI_Wtime() - s) * 1e6 / TOTAL / num_xstreams / num_threads);
     }
 
-    if (rank == 0) 
+    stop_comm = true;
+    comm_thread.join();
+
+    if (rank == 0) {
         /* Free Execution Streams */
         for (i = 1; i < num_xstreams; i++) {
             ret = ABT_xstream_free(&xstreams[i]);
         }
+        free(alldata);
+    }
 
     ABT_finalize();
     /* Finalize */

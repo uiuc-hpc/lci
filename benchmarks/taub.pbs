@@ -9,15 +9,33 @@
 #PBS -V
 cd ${PBS_O_WORKDIR}
 
-export MV2_IBA_EAGER_THRESHOLD=4096
-export MV2_VBUF_TOTAL_SIZE=4096
+#export MV2_IBA_EAGER_THRESHOLD=131072
+#export MV2_VBUF_TOTAL_SIZE=131072
+
+#export ABT_ENV_THREAD_STACKSIZE=16384
+export ABT_ENV_SET_AFFINITY=0
+
+export MV2_ENABLE_AFFINITY=0
+export MPICH_ASYNC_PROGRESS=0
 
 #./test_abx_comm2.sh 0
 #./test_abx_comm2.sh 64
 #./test_abx_comm2.sh 2048
 
-./test_abx_comm2.sh 16384
-./test_abx_comm2.sh 1048576
+#./test_abx_comm2.sh 16384
+#./test_abx_comm2.sh 1048576
+#MV2_PREPOST_DEPTH=16
+
+mpiexec -n 2 -ppn 1 ./comm4 4 64
+#mpiexec -n 2 -ppn 1 ./abx_comm42 4 64
+#mpiexec -n 2 -ppn 1 ./abx_comm4 4 64
+
+mpiexec -n 2 -ppn 1 ./comm4 8 64
+#mpiexec -n 2 -ppn 1 ./abx_comm42 8 64
+#mpiexec -n 2 -ppn 1 ./abx_comm4 8 64
+
+mpiexec -n 2 -ppn 1 ~/project-cse/osu-micro-benchmarks-4.4.1/mpi/pt2pt/osu_latency
+
 
 #mpiexec -n 2 -ppn 1 valgrind --tool=callgrind --fair-sched=yes --dump-instr=yes ./comm3 1 64 64
 #mpiexec -n 2 -ppn 1 ./comm 1 64 32768

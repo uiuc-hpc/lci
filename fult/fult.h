@@ -4,7 +4,10 @@
 #include <atomic>
 #include <boost/context/all.hpp>
 #include <boost/coroutine/standard_stack_allocator.hpp>
+#include <boost/lockfree/queue.hpp>
+
 #include "bitops.h"
+#include "rdmax.h"
 
 #define DEBUG(x)
 
@@ -12,7 +15,8 @@
 #define xunlikely(x)     __builtin_expect((x),0)
 
 #define fult_yield() {\
-    ((fult*) t_ctx)->yield();\
+    if (t_ctx != NULL) ((fult*) t_ctx)->yield();\
+    else sched_yield();\
 }
 
 #define fult_wait() { ((fult*)t_ctx)->wait(); }
@@ -74,10 +78,10 @@ static standard_stack_allocator allocator;
 class fult : public fctx {
  public:
     fult() : state_(INVALID) {
+        allocator.allocate(stack, STACK_SIZE);
     }
 
     inline void set(ffunc myfunc, intptr_t data) {
-        allocator.allocate(stack, STACK_SIZE);
         myfunc_ = myfunc;
         data_ = data;
         state_ = CREATED;
@@ -128,18 +132,36 @@ class worker : fctx {
  public:
     worker() {
         stop_ = false;
-        for (int i = 0 ; i < NMASK; i++) mask_[i] = 0;
+
+        // Reset all mask.
+        for (int i = 0; i < NMASK; i++)
+            mask_[i] = 0;
+
+        // Add all free slot.
+        for (int i = 0; i < (int) (NMASK * WORDSIZE); i++)
+            fqueue.push(i);
     }
 
-    inline void fult_new(const int id, ffunc f, intptr_t data) {
-        // add it to the fult.
-        lwt_[id].set(f, data);
-        // make it schedable.
-        DEBUG( printf("new %d\n", id); )
-        schedule(id);
+    inline int spawn(ffunc f, intptr_t data) {
+        int id = -1;
+        while (!fqueue.pop(id)) {
+            fult_yield();
+        }
+        fult_new(id, f, data);
+        return id;
     }
 
-    inline void fult_join(int id) {
+    inline int spawn_to(int tid, ffunc f, intptr_t data) {
+        int id = -1;
+        while (fqueue.pop(id)) {
+            if (id == tid) break;
+            fqueue.push(id);
+        }
+        fult_new(id, f, data);
+        return id;
+    }
+
+    inline void join(int id) {
         while (lwt_[id].state() != INVALID) {
             if (t_ctx != NULL && lwt_[id].state() == CREATED) {
                 // we directly schedule it here to avoid going back to scheduler.
@@ -156,6 +178,7 @@ class worker : fctx {
                 myid = saved_id;
             }
         }
+        assert(fqueue.push(id));
     }
 
     inline void set_state(const int id, fult_state state) {
@@ -185,11 +208,24 @@ class worker : fctx {
 
     static void wfunc(worker*);
 
+ protected:
+    inline void fult_new(const int id, ffunc f, intptr_t data) {
+        // add it to the fult.
+        lwt_[id].set(f, data);
+
+        // make it schedable.
+        schedule(id);
+    }
+
+
  private:
     volatile unsigned long mask_[NMASK];
     volatile bool stop_;
     fult lwt_[WORDSIZE * NMASK];
     std::thread w_;
+
+    // TODO(danghvu): this is temporary, but it is most generic.
+    boost::lockfree::queue<int, boost::lockfree::capacity<WORDSIZE * NMASK>> fqueue;
 };
 
 #define SYNC_THRESHOLD 255
@@ -230,21 +266,36 @@ class fult_sync {
 
         id_ = myid;
         ctx_ = static_cast<fult*>(t_ctx);
-        parent_ = reinterpret_cast<worker*>(ctx_->parent());
+        if (ctx_ != NULL)
+            parent_ = reinterpret_cast<worker*>(ctx_->parent());
+        else
+            parent_ = NULL;
+        flag = false;
     };
 
     inline void wait() {
-        ctx_->wait();
+        if ((ctx_) == NULL) {
+            while (!flag) {};
+        }
+        else {
+            ctx_->wait();
+        }
     }
 
     inline void signal() {
-        parent_->schedule(id_);
+        if (parent_ == NULL) {
+            flag = true;
+        } else {
+            parent_->schedule(id_);
+        }
     }
 
     void* buffer;
+    rdmax::device_memory dm;
     int size;
     int rank;
     int tag;
+    volatile bool flag;
 
  private:
     fult* ctx_;

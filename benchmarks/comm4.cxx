@@ -26,12 +26,12 @@ double* start, *end;
 worker* w;
 
 static int SIZE = 1;
-thread_local void* buffer = NULL;
+// thread_local void* buffer = NULL;
+
+void* alldata;
 
 void wait_comm(intptr_t i) {
-    if (buffer == NULL) {
-        buffer = malloc(SIZE);
-    }
+    void* buffer = (void*) ((uintptr_t) alldata + SIZE * myid);
     start[i] = MPI_Wtime();
     MPIV_Recv2(buffer, SIZE, 1, i);
     end[i] = MPI_Wtime();
@@ -47,7 +47,7 @@ int main(int argc, char** args) {
 
     int nworker = atoi(args[1]);
     int nthreads = atoi(args[2]);
-    SIZE = atoi(args[3]);
+    // SIZE = atoi(args[3]);
 
     int total_threads = nworker * nthreads;
     start = (double *) std::malloc(total_threads * sizeof(double));
@@ -64,56 +64,69 @@ int main(int argc, char** args) {
         }
     });
 
+    int* threads = (int*) malloc(sizeof(int) * total_threads);
     if (rank == 0) {
         w = new worker[nworker];
         for (int i = 0; i < nworker; i++) {
             w[i].start();
         }
+    }
 
-        double times = 0;
-        for (int t = 0; t < TOTAL + SKIP; t++) {
-            // MPI_Barrier(MPI_COMM_WORLD);
-            MPI_Send(0, 0, MPI_BYTE, 1, 0, MPI_COMM_WORLD);
-            for (int i = 0; i < total_threads; i++) {
-                w[i % nworker].spawn(wait_comm, i);
+    if (rank == 0)
+        alldata = malloc(1*1024*1024*total_threads);
+
+    for (SIZE=1; SIZE<=1*1024*1024; SIZE<<=1) {
+        if (rank == 0) {
+            double times = 0;
+            for (int t = 0; t < TOTAL + SKIP; t++) {
+                // MPI_Barrier(MPI_COMM_WORLD);
+                MPI_Send(0, 0, MPI_BYTE, 1, 0, MPI_COMM_WORLD);
+                for (int i = 0; i < total_threads; i++) {
+                    threads[i] = w[i % nworker].spawn(wait_comm, i);
+                }
+
+                double min = 2e9;
+                double max = 0;
+                for (int i = 0; i < total_threads; i++) {
+                    w[i % nworker].join(threads[i]);
+                    min = std::min(start[i], min);
+                    max = std::max(end[i], max);
+                }
+                if (t >= SKIP)
+                    times += (max - min);
             }
 
-            double min = 2e9;
-            double max = 0;
-            for (int i = 0; i < total_threads; i++) {
-                w[i % nworker].join(i / nworker);
-                min = std::min(start[i], min);
-                max = std::max(end[i], max);
+            printf("[%d] %f\n", SIZE, times * 1e6 / TOTAL / total_threads);
+        } else {
+            double t1 = 0;
+            void* buf = malloc(SIZE);
+            for (int t = 0; t < TOTAL + SKIP; t++) {
+                if (t == SKIP)
+                    t1 = MPI_Wtime();
+                MPI_Recv(0, 0, MPI_BYTE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+                // MPI_Barrier(MPI_COMM_WORLD);
+                for (int i = 0; i < total_threads; i++) {
+                    MPIV_Send(buf, SIZE, 0, i);
+                }
             }
-            if (t >= SKIP)
-                times += (max - min);
+            t1 = MPI_Wtime() - t1;
+            free(buf);
+            // printf("Send time: %f\n", t1 * 1e6 / TOTAL / total_threads);
         }
 
+        MPI_Barrier(MPI_COMM_WORLD);
+    }
+    stop_comm = true;
+    comm_thread.join();
+
+    if ( rank == 0 ) {
         for (int i = 0; i < nworker; i++) {
             w[i].stop();
         }
-
-        printf("%f\n", times * 1e6 / TOTAL / total_threads);
-    } else {
-        double t1 = 0;
-        void* buf = malloc(SIZE);
-        for (int t = 0; t < TOTAL + SKIP; t++) {
-            if (t == SKIP)
-                t1 = MPI_Wtime();
-            MPI_Recv(0, 0, MPI_BYTE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-            // MPI_Barrier(MPI_COMM_WORLD);
-            for (int i = 0; i < total_threads; i++) {
-                MPIV_Send(buf, SIZE, 0, i);
-            }
-        }
-        t1 = MPI_Wtime() - t1;
-        // printf("Send time: %f\n", t1 * 1e6 / TOTAL / total_threads);
+        free(alldata);
     }
 
-    MPI_Barrier(MPI_COMM_WORLD);
-    stop_comm = true;
-    comm_thread.join();
 
 #if 0
     if (rank == 0) {

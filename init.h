@@ -3,7 +3,7 @@
 
 inline void mpiv_post_recv(mpiv_packet* p) {
     MPIV.dev_ctx->post_srq_recv((void*) p,
-        &(p->egr.buffer), SHORT, MPIV.rbuf.lkey());
+        &(p->egr.buffer), SHORT, MPIV.sbuf.lkey());
 }
 
 inline void MPIV_Init(int &argc, char**& args) {
@@ -22,10 +22,7 @@ inline void MPIV_Init(int &argc, char**& args) {
 
     // These are pinned memory.
     MPIV.sbuf = std::move(MPIV.dev_ctx->create_memory(PACKET_SIZE * NSBUF, mr_flags));
-    MPIV.rbuf = std::move(MPIV.dev_ctx->create_memory(PACKET_SIZE * NRBUF, mr_flags));
-
     MPIV.sbuf_alloc = new pinned_pool(MPIV.sbuf.ptr());
-    MPIV.rbuf_alloc = new pinned_pool(MPIV.rbuf.ptr());
 
     int rank, size;
 
@@ -38,14 +35,14 @@ inline void MPIV_Init(int &argc, char**& args) {
         MPIV.conn.emplace_back(&MPIV.dev_scq, &MPIV.dev_rcq, MPIV.dev_ctx, &MPIV.sbuf, i);
     }
 
-    // PREPOST recv and allocate send queue.
-    for (int i = 0; i < NRBUF; i++) {
-        MPIV.prepost.emplace_back((mpiv_packet*) MPIV.rbuf_alloc->allocate());
+    /* PREPOST recv and allocate send queue. */
+    for (int i = 0; i < NPREPOST; i++) {
+        MPIV.prepost.emplace_back((mpiv_packet*) MPIV.sbuf_alloc->allocate());
         MPIV.prepost[i]->header.type = RECV_SHORT;
         mpiv_post_recv(MPIV.prepost[i]);
     }
 
-    for (int i = 0; i < NSBUF; i++) {
+    for (int i = 0; i < NSBUF - NPREPOST; i++) {
         mpiv_packet* packet = (mpiv_packet*) MPIV.sbuf_alloc->allocate();
         packet->header.type = SEND_SHORT;
         packet->header.from = rank;
