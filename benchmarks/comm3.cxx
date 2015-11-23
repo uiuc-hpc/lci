@@ -26,15 +26,13 @@ double* start, *end;
 worker* w;
 
 static int SIZE = 1;
-thread_local void* buffer = NULL;
 
 void wait_comm(intptr_t i) {
-    if (buffer == NULL) {
-        buffer = malloc(SIZE);
-    }
+    void* buffer = mpiv_malloc(SIZE);
     start[i] = MPI_Wtime();
     MPIV_Recv2(buffer, SIZE, 1, i);
     end[i] = MPI_Wtime();
+    mpiv_free(buffer);
 }
 
 int main(int argc, char** args) {
@@ -50,8 +48,8 @@ int main(int argc, char** args) {
     SIZE = atoi(args[3]);
 
     int total_threads = nworker * nthreads;
-    start = (double *) std::malloc(total_threads * sizeof(double));
-    end = (double *) std::malloc(total_threads * sizeof(double));
+    start = (double *) malloc(total_threads * sizeof(double));
+    end = (double *) malloc(total_threads * sizeof(double));
 
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -72,10 +70,10 @@ int main(int argc, char** args) {
 
         double times = 0;
         for (int t = 0; t < TOTAL + SKIP; t++) {
-            // MPI_Barrier(MPI_COMM_WORLD);
+            MPIV_Flush();
             MPI_Send(0, 0, MPI_BYTE, 1, 0, MPI_COMM_WORLD);
             for (int i = 0; i < total_threads; i++) {
-                w[i % nworker].spawn(wait_comm, i);
+                w[i % nworker].spawn_to(i / nworker, wait_comm, i);
             }
 
             double min = 2e9;
@@ -96,13 +94,12 @@ int main(int argc, char** args) {
         printf("%f\n", times * 1e6 / TOTAL / total_threads);
     } else {
         double t1 = 0;
-        void* buf = malloc(SIZE);
+        void* buf = mpiv_malloc(SIZE);
         for (int t = 0; t < TOTAL + SKIP; t++) {
             if (t == SKIP)
                 t1 = MPI_Wtime();
+            MPIV_Flush();
             MPI_Recv(0, 0, MPI_BYTE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-            // MPI_Barrier(MPI_COMM_WORLD);
             for (int i = 0; i < total_threads; i++) {
                 MPIV_Send(buf, SIZE, 0, i);
             }

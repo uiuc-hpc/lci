@@ -4,14 +4,11 @@
 #ifndef USING_ABT
 
 void mpiv_send_recv_ready(mpiv_packet* p, MPIV_Request* req) {
-    // Makes sense to do it here, we are overlapping with other recv.
-    req->dm = MPIV.dev_ctx->attach_memory(req->buffer, req->size,
-        IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_REMOTE_READ);
-
     // Need to write them back, setup as a RECV_READY.
     p->rdz.idx = req->tag; // make a pair of tag and rank perhaps ?
     p->rdz.tgt_addr = (uintptr_t) req->buffer;
-    p->rdz.rkey = req->dm.rkey();
+    p->rdz.rkey = MPIV.heap.rkey();
+    p->rdz.size = req->size;
 
     p->header.from = MPIV.me;
     p->header.type = RECV_READY;
@@ -23,16 +20,15 @@ void mpiv_send_recv_ready(mpiv_packet* p, MPIV_Request* req) {
 }
 
 inline void MPIV_Recv2(void* buffer, int size, int rank, int tag) {
+    MPIV.pending++;
     void* local_buf;
     MPIV_Request s(buffer, size, rank, tag);
-    // Note that we do not attach the buffer here, since it will block progress
-    // of other recv, only when recving a send_recv we are ready to do any hard
-    // work because we know that we are going to make progress.
 
     // Find if the message has arrived, if not go and make a request.
     if (!MPIV.tbl.find(tag, local_buf)) {
         if (MPIV.tbl.insert(tag, (void*) &s)) {
             s.wait();
+            MPIV.pending--;
             return;
         } else {
             local_buf = MPIV.tbl[tag];
@@ -43,16 +39,17 @@ inline void MPIV_Recv2(void* buffer, int size, int rank, int tag) {
     mpiv_packet* p_ctx = (mpiv_packet*) local_buf;
     if ((size_t) size <= INLINE) {
         // This is a INLINE, copy buffer.
-        memcpy(buffer, p_ctx->egr.buffer, size);
+        std::memcpy(buffer, p_ctx->egr.buffer, size);
         MPIV.tbl.erase(tag);
         assert(MPIV.squeue.push(p_ctx));
+        MPIV.pending--;
         return;
     } else if ((size_t) size <= SHORT) {
         // This is a SHORT.
         // Parse the buffer.
         mpiv_packet* packet = (mpiv_packet*) p_ctx->egr.buffer;
         // Message has arrived, go and copy the message.
-        memcpy(buffer, packet->egr.buffer, size);
+        std::memcpy(buffer, packet->egr.buffer, size);
         MPIV.tbl.erase(tag);
         assert(MPIV.squeue.push(p_ctx));
     } else {
@@ -63,6 +60,7 @@ inline void MPIV_Recv2(void* buffer, int size, int rank, int tag) {
         MPIV.tbl[tag] = (void*) &s;
         s.wait();
     }
+    MPIV.pending--;
 }
 #endif
 
@@ -77,7 +75,7 @@ void MPIV_Recv(void* buffer, int size, int rank, int tag) {
             local_buf = MPIV.tbl[tag];
         }
     }
-    memcpy(buffer, local_buf, size);
+    std::memcpy(buffer, local_buf, size);
     free(local_buf);
     MPIV.tbl.erase(tag);
 }

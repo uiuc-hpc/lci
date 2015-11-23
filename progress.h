@@ -20,8 +20,8 @@ inline void mpiv_recv_recv_ready(mpiv_packet* p_ctx, mpiv_packet* p) {
     // Else, thread win, we handle.
     MPIV_Request* s = (MPIV_Request*) buf;
     p_ctx->header.type = SEND_READY_FIN;
-
-    MPIV.conn[p->header.from].write_rdma_signal(s->buffer, s->dm.lkey(),
+    
+    MPIV.conn[p->header.from].write_rdma_signal(s->buffer, MPIV.heap.lkey(),
         (void*) p->rdz.tgt_addr, p->rdz.rkey, p->rdz.size, p_ctx,
         p->rdz.idx);
 }
@@ -32,7 +32,6 @@ inline void mpiv_recv_recv_ready_finalize(int tag) {
     MPIV_Request* fsync = NULL;
     MPIV.tbl.find(tag, sync);
     fsync = (MPIV_Request*) sync;
-    fsync->dm.finalize();
     MPIV.tbl.erase(tag);
     fsync->signal();
 }
@@ -77,7 +76,8 @@ inline void mpiv_recv_short(mpiv_packet* p_ctx,
         fsync = (MPIV_Request*) sync;
     }
 
-    memcpy(fsync->buffer, p->egr.buffer, recv_size);
+    std::memcpy(fsync->buffer, p->egr.buffer, recv_size);
+
     MPIV.tbl.erase(tag);
     assert(MPIV.squeue.push(p_ctx));
     fsync->signal();
@@ -106,7 +106,6 @@ inline void done_rdz_send(mpiv_packet* packet) {
     void* buf = MPIV.rdztbl[tag];
     MPIV_Request* s = (MPIV_Request*) buf;
     MPIV.rdztbl.erase(tag);
-    s->dm.finalize();
     s->signal();
 }
 

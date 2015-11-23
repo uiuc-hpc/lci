@@ -4,6 +4,7 @@
 #ifndef USING_ABT
 
 inline void MPIV_Send(void* buffer, int size, int rank, int tag) {
+    MPIV.pending++;
 
     if ((size_t) size <= INLINE) {
         // This can be inline, no need to copy them, but need to put in IMM.
@@ -11,6 +12,7 @@ inline void MPIV_Send(void* buffer, int size, int rank, int tag) {
         MPIV.conn[rank].write_send((void*) buffer, (size_t) size,
                 MPIV.sbuf.lkey(), 0, imm);
         // Done here.
+        MPIV.pending--;
         return;
     }
 
@@ -44,13 +46,10 @@ inline void MPIV_Send(void* buffer, int size, int rank, int tag) {
         void* matching;
         MPIV_Request s(buffer, size, rank, tag);
 
-        // Attach the buffer.
-        s.dm = MPIV.dev_ctx->attach_memory(buffer, size,
-                    IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_REMOTE_READ);
-
         if (!MPIV.rdztbl.find(tag, matching)) {
             if (MPIV.rdztbl.insert(tag, (void*) &s)) {
                 s.wait();
+                MPIV.pending--;
                 return;
             }
             matching = MPIV.rdztbl[tag];
@@ -64,13 +63,15 @@ inline void MPIV_Send(void* buffer, int size, int rank, int tag) {
         MPIV.rdztbl.update(tag, (void*) &s);
 
         // Write a RDMA.
-        MPIV.conn[packet->header.from].write_rdma_signal(buffer, s.dm.lkey(),
+        MPIV.conn[packet->header.from].write_rdma_signal(buffer, MPIV.heap.lkey(),
                 (void*) packet->rdz.tgt_addr, packet->rdz.rkey, size,
                 p_ctx, packet->rdz.idx);
 
         // Needs to wait, since buffer is not available until message is sent.
         s.wait();
     }
+
+    MPIV.pending--;
 }
 #endif
 

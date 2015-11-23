@@ -3,9 +3,14 @@
 
 #include <mpi.h>
 #include <libcuckoo/cuckoohash_map.hh>
+
+#include <boost/lockfree/queue.hpp>
+#include <boost/interprocess/managed_external_buffer.hpp>
+#include <boost/interprocess/creation_tags.hpp>
+
 #include <vector>
 #include <atomic>
-#include <boost/lockfree/queue.hpp>
+
 #include <stdlib.h>
 #include <malloc.h>
 #include <unistd.h>

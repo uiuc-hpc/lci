@@ -31,7 +31,7 @@ static int SIZE = 1;
 void* alldata;
 
 void wait_comm(intptr_t i) {
-    void* buffer = (void*) ((uintptr_t) alldata + SIZE * myid);
+    void* buffer = (void*) ((uintptr_t) alldata + SIZE * i);
     start[i] = MPI_Wtime();
     MPIV_Recv2(buffer, SIZE, 1, i);
     end[i] = MPI_Wtime();
@@ -50,8 +50,8 @@ int main(int argc, char** args) {
     // SIZE = atoi(args[3]);
 
     int total_threads = nworker * nthreads;
-    start = (double *) std::malloc(total_threads * sizeof(double));
-    end = (double *) std::malloc(total_threads * sizeof(double));
+    start = (double *) malloc(total_threads * sizeof(double));
+    end = (double *) malloc(total_threads * sizeof(double));
 
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -72,10 +72,13 @@ int main(int argc, char** args) {
         }
     }
 
-    if (rank == 0)
-        alldata = malloc(1*1024*1024*total_threads);
+    if (rank == 0) {
+        alldata = mpiv_malloc((size_t) 4*1024*1024*total_threads);
+    } else {
+        alldata = mpiv_malloc(SIZE);
+    }
 
-    for (SIZE=1; SIZE<=1*1024*1024; SIZE<<=1) {
+    for (SIZE=1; SIZE<=4*1024*1024; SIZE<<=1) {
         if (rank == 0) {
             double times = 0;
             for (int t = 0; t < TOTAL + SKIP; t++) {
@@ -99,7 +102,7 @@ int main(int argc, char** args) {
             printf("[%d] %f\n", SIZE, times * 1e6 / TOTAL / total_threads);
         } else {
             double t1 = 0;
-            void* buf = malloc(SIZE);
+            void* buf = mpiv_malloc(SIZE);
             for (int t = 0; t < TOTAL + SKIP; t++) {
                 if (t == SKIP)
                     t1 = MPI_Wtime();
@@ -107,11 +110,11 @@ int main(int argc, char** args) {
 
                 // MPI_Barrier(MPI_COMM_WORLD);
                 for (int i = 0; i < total_threads; i++) {
-                    MPIV_Send(buf, SIZE, 0, i);
+                    MPIV_Send(alldata, SIZE, 0, i);
                 }
             }
             t1 = MPI_Wtime() - t1;
-            free(buf);
+            mpiv_free(buf);
             // printf("Send time: %f\n", t1 * 1e6 / TOTAL / total_threads);
         }
 
@@ -124,7 +127,7 @@ int main(int argc, char** args) {
         for (int i = 0; i < nworker; i++) {
             w[i].stop();
         }
-        free(alldata);
+        mpiv_free(alldata);
     }
 
 

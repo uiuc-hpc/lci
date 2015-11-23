@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     if (argc > 2) num_threads = atoi(argv[2]);
 
     int total_threads = num_threads * num_xstreams;
-    times = malloc(sizeof(long) * total_threads);
+    times = (long*) malloc(sizeof(long) * total_threads);
     memset(times, 0, sizeof(long) * total_threads);
 
     ABT_xstream *xstreams;
@@ -74,8 +74,8 @@ int main(int argc, char *argv[])
 
     ABT_thread thread[num_threads * num_xstreams];
 
-    mutex = malloc(num_threads * num_xstreams * sizeof(ABT_mutex));
-    cond = malloc(num_threads * num_xstreams * sizeof(ABT_cond));
+    mutex = (ABT_mutex*) malloc(num_threads * num_xstreams * sizeof(ABT_mutex));
+    cond = (ABT_cond*) malloc(num_threads * num_xstreams * sizeof(ABT_cond));
 
     for (i = 0; i < num_threads * num_xstreams; i++) {
         /* Create a mutex */

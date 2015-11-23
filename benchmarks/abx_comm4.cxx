@@ -46,9 +46,9 @@ void thread_func(void *arg)
 
 int main(int argc, char *argv[])
 {
+    ABT_init(argc, argv);
     int provide;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provide);
-    ABT_init(argc, argv);
 
     int i = 0;
     int ret = 0;
@@ -85,9 +85,9 @@ int main(int argc, char *argv[])
     int total_threads = num_threads * num_xstreams;
 
     ABT_thread thread[total_threads];
-    if (rank == 0) alldata = malloc(1 * 1024 * 1024 * total_threads);
+    if (rank == 0) alldata = malloc((size_t) 4 * 1024 * 1024 * total_threads);
 
-    for (SIZE=1; SIZE<=1*1024*1024; SIZE<<=1) {
+    for (SIZE=1; SIZE<=4*1024*1024; SIZE<<=1) {
         if (rank == 0) {
             double times = 0;
             int time;

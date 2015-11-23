@@ -48,9 +48,9 @@ void thread_func(void *arg)
 
 int main(int argc, char *argv[])
 {
+    ABT_init(argc, argv);
     int provide;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provide);
-    ABT_init(argc, argv);
 
     int i = 0;
     int ret = 0;

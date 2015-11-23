@@ -12,7 +12,7 @@ inline void MPIV_Init(int &argc, char**& args) {
     std::vector<rdmax::device> devs = rdmax::device::get_devices();
     assert(devs.size() > 0 && "Unable to find any ibv device");
 
-    MPIV.dev_ctx = new device_ctx(devs[0]);
+    MPIV.dev_ctx = new device_ctx(devs.back());
     MPIV.dev_scq = std::move(MPIV.dev_ctx->create_cq(64*1024));
     MPIV.dev_rcq = std::move(MPIV.dev_ctx->create_cq(64*1024));
 
@@ -21,9 +21,14 @@ inline void MPIV_Init(int &argc, char**& args) {
         IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
 
     // These are pinned memory.
-    MPIV.sbuf = std::move(MPIV.dev_ctx->create_memory(PACKET_SIZE * NSBUF, mr_flags));
+    void* buf = std::malloc(PACKET_SIZE * NSBUF * 2);
+    MPIV.sbuf = std::move(MPIV.dev_ctx->attach_memory(buf, PACKET_SIZE * NSBUF, mr_flags));
     MPIV.sbuf_alloc = new pinned_pool(MPIV.sbuf.ptr());
 
+    MPIV.heap = MPIV.dev_ctx->create_memory((size_t) HEAP_SIZE, mr_flags);
+    MPIV.heap_segment = std::move(mbuffer(create_only, MPIV.heap.ptr(), (size_t) HEAP_SIZE));
+
+    // Initialize connection.
     int rank, size;
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);

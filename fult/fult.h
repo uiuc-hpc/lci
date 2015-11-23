@@ -2,8 +2,6 @@
 #define _FULT_H_
 
 #include <atomic>
-#include <boost/context/all.hpp>
-#include <boost/coroutine/standard_stack_allocator.hpp>
 #include <boost/lockfree/queue.hpp>
 
 #include "bitops.h"
@@ -27,33 +25,34 @@
 
 #define MEMFENCE asm volatile ("" : : : "memory")
 
-using boost::context::fcontext_t;
-using boost::context::make_fcontext;
-using boost::context::jump_fcontext;
-using boost::coroutines::standard_stack_allocator;
-using boost::coroutines::stack_context;
-
 typedef void(*ffunc)(intptr_t);
 static void fwrapper(intptr_t);
 
 class fctx;
 
-thread_local fctx* t_ctx = NULL;
-thread_local int myid;
+__thread fctx* t_ctx = NULL;
+__thread int myid;
+
+typedef void* fcontext_t;
+
+extern "C" {
+  fcontext_t make_fcontext(void *sp, size_t size, void (*thread_func)(intptr_t));
+  void *jump_fcontext(fcontext_t *old, fcontext_t, intptr_t arg, int preserve_fpu);
+}
 
 class fctx {
  public:
     inline void swap(fctx* to) {
         t_ctx = to;
         to->parent_ = this;
-        DEBUG( printf("%p --> %p\n", this, to); )
-        jump_fcontext(&(this->myctx_), to->myctx_, (intptr_t) to);
+        DEBUG( printf("%p --> %p\n", this->myctx_, to->myctx_); )
+        jump_fcontext(&(this->myctx_), to->myctx_, (intptr_t) to, 0);
     }
 
     inline void swapret() {
         t_ctx = parent_;
         DEBUG( printf("%p --> %p\n", this, parent_); )
-        jump_fcontext(&(this->myctx_), parent_->myctx_, (intptr_t) parent_);
+        jump_fcontext(&(this->myctx_), parent_->myctx_, (intptr_t) parent_, 0);
     }
 
     inline fctx* parent() {
@@ -73,19 +72,17 @@ enum fult_state {
     BLOCKED
 };
 
-static standard_stack_allocator allocator;
-
 class fult : public fctx {
  public:
     fult() : state_(INVALID) {
-        allocator.allocate(stack, STACK_SIZE);
+      stack = malloc(STACK_SIZE);
     }
 
     inline void set(ffunc myfunc, intptr_t data) {
         myfunc_ = myfunc;
         data_ = data;
         state_ = CREATED;
-        myctx_ = make_fcontext(stack.sp, stack.size, fwrapper);
+        myctx_ = make_fcontext((void*) ((uintptr_t) stack + STACK_SIZE), STACK_SIZE, fwrapper);
     }
 
     inline void yield() {
@@ -116,12 +113,11 @@ class fult : public fctx {
     using fctx::swap;
 
  private:
-    stack_context stack;
+    void* stack;
     ffunc myfunc_;
     intptr_t data_;
     volatile fult_state state_;
-    int8_t __pad__[8];
-};
+} __attribute__ ((aligned (8)));
 
 static void fwrapper(intptr_t f) {
     fult* ff = (fult*) f;
@@ -131,6 +127,9 @@ static void fwrapper(intptr_t f) {
 class worker : fctx {
  public:
     worker() {
+        // allocator.allocate(stack, STACK_SIZE);
+        // stack = malloc(STACK_SIZE);
+        // myctx_ = make_fcontext(stack, STACK_SIZE, fwrapper);
         stop_ = false;
 
         // Reset all mask.
@@ -223,6 +222,7 @@ class worker : fctx {
     volatile bool stop_;
     fult lwt_[WORDSIZE * NMASK];
     std::thread w_;
+    void* stack;
 
     // TODO(danghvu): this is temporary, but it is most generic.
     boost::lockfree::queue<int, boost::lockfree::capacity<WORDSIZE * NMASK>> fqueue;
@@ -291,7 +291,6 @@ class fult_sync {
     }
 
     void* buffer;
-    rdmax::device_memory dm;
     int size;
     int rank;
     int tag;
@@ -302,4 +301,5 @@ class fult_sync {
     worker* parent_;
     int id_;
 };
+
 #endif

@@ -1,13 +1,16 @@
 #ifndef COMMON_H_
 #define COMMON_H_
-// static double timing = 0;
 
-#define PACKET_SIZE (128*1024)
+using namespace boost::interprocess;
+
+#define PACKET_SIZE (32*1024)
 #define SHORT (PACKET_SIZE - sizeof(mpiv_packet_header))
 #define INLINE 512
 
 #define NSBUF 64
 #define NPREPOST 16
+
+#define HEAP_SIZE 4*1024*1024*1024
 
 using rdmax::device_ctx;
 using rdmax::device_cq;
@@ -53,18 +56,26 @@ struct pinned_pool {
     }
 };
 
+typedef basic_managed_external_buffer< char,rbtree_best_fit< mutex_family >,iset_index > mbuffer;
+
 struct mpiv {
     int me;
     device_ctx* dev_ctx;
     device_cq dev_scq;
     device_cq dev_rcq;
     device_memory sbuf;
+
+    device_memory heap;
+    mbuffer heap_segment;
+
     pinned_pool * sbuf_alloc;
     cuckoohash_map<int, void*> tbl;
     cuckoohash_map<int, void*> rdztbl;
+
     vector<connection> conn;
     vector<mpiv_packet*> prepost;
     boost::lockfree::queue<mpiv_packet*, boost::lockfree::capacity<NSBUF>> squeue;
+    std::atomic<int> pending;
 
     ~mpiv() {
         sbuf.finalize();
@@ -72,8 +83,6 @@ struct mpiv {
         delete sbuf_alloc;
     }
 };
-
-thread_local cuckoohash_map<void*, device_memory*> pinned;
 
 static mpiv MPIV;
 
@@ -86,6 +95,21 @@ mpiv_packet* get_freesbuf() {
     }
     return packet;
 }
+
+void MPIV_Flush() {
+    while (MPIV.pending) {};
+}
+
+void* mpiv_malloc(size_t size) {
+    return (void*) MPIV.heap_segment.allocate(size);
+}
+
+void mpiv_free(void* ptr) {
+    // printf("DEALLOCATE %p\n", ptr);
+    MPIV.heap_segment.deallocate(ptr);
+    // printf("DEALLOCATE OK %p\n", ptr);
+}
+
 #endif
 
 #endif
