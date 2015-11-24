@@ -23,6 +23,7 @@ inline void MPIV_Send(void* buffer, int size, int rank, int tag) {
         // This is a short message, we send them immediately and do not yield
         // or create a request for it.
 
+        packet->header.from = MPIV.me;
         packet->header.tag = tag;
         packet->header.type = SEND_SHORT;
 
@@ -33,6 +34,7 @@ inline void MPIV_Send(void* buffer, int size, int rank, int tag) {
                 MPIV.sbuf.lkey(), (void*) packet);
     } else {
         // This is rdz protocol, we notify the reciever with a ready_send.
+        packet->header.from = MPIV.me;
         packet->header.tag = tag;
         packet->header.type = SEND_READY;
         MPIV.conn[rank].write_send((void*) packet,
@@ -45,14 +47,15 @@ inline void MPIV_Send(void* buffer, int size, int rank, int tag) {
         // Now check our hash table to see if we find any matching.
         void* matching;
         MPIV_Request s(buffer, size, rank, tag);
+        mpiv_key key = mpiv_make_key(rank, tag);
 
-        if (!MPIV.rdztbl.find(tag, matching)) {
-            if (MPIV.rdztbl.insert(tag, (void*) &s)) {
+        if (!MPIV.rdztbl.find(key, matching)) {
+            if (MPIV.rdztbl.insert(key, (void*) &s)) {
                 s.wait();
                 MPIV.pending--;
                 return;
             }
-            matching = MPIV.rdztbl[tag];
+            matching = MPIV.rdztbl[key];
         }
 
         mpiv_packet* p_ctx = (mpiv_packet*) matching;
@@ -60,12 +63,13 @@ inline void MPIV_Send(void* buffer, int size, int rank, int tag) {
         packet = (mpiv_packet*) p_ctx->egr.buffer;
 
         // Update the table, store the request.
-        MPIV.rdztbl.update(tag, (void*) &s);
+        MPIV.rdztbl.update(key, (void*) &s);
+        // printf("write rdma %d %d\n", rank, tag);
 
         // Write a RDMA.
-        MPIV.conn[packet->header.from].write_rdma_signal(buffer, MPIV.heap.lkey(),
+        MPIV.conn[rank].write_rdma_signal(buffer, MPIV.heap.lkey(),
                 (void*) packet->rdz.tgt_addr, packet->rdz.rkey, size,
-                p_ctx, packet->rdz.idx);
+                p_ctx, (uint32_t) tag);
 
         // Needs to wait, since buffer is not available until message is sent.
         s.wait();

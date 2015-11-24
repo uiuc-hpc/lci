@@ -57,6 +57,7 @@ struct pinned_pool {
 };
 
 typedef basic_managed_external_buffer< char,rbtree_best_fit< mutex_family >,iset_index > mbuffer;
+typedef uint64_t mpiv_key;
 
 struct mpiv {
     int me;
@@ -69,8 +70,8 @@ struct mpiv {
     mbuffer heap_segment;
 
     pinned_pool * sbuf_alloc;
-    cuckoohash_map<int, void*> tbl;
-    cuckoohash_map<int, void*> rdztbl;
+    cuckoohash_map<mpiv_key, void*> tbl; // 32-bit rank | 32-bit tag
+    cuckoohash_map<uint64_t, void*> rdztbl; // 32-bit rank | 32-bit tag
 
     vector<connection> conn;
     vector<mpiv_packet*> prepost;
@@ -105,9 +106,12 @@ void* mpiv_malloc(size_t size) {
 }
 
 void mpiv_free(void* ptr) {
-    // printf("DEALLOCATE %p\n", ptr);
     MPIV.heap_segment.deallocate(ptr);
-    // printf("DEALLOCATE OK %p\n", ptr);
+}
+
+
+inline mpiv_key mpiv_make_key(int rank, int tag) {
+    return ((uint64_t) rank << 32) | tag;
 }
 
 #endif
