@@ -52,6 +52,7 @@ inline void MPIV_Send(void* buffer, int size, int rank, int tag) {
         if (!MPIV.rdztbl.find(key, matching)) {
             if (MPIV.rdztbl.insert(key, (void*) &s)) {
                 s.wait();
+                MPIV.rdztbl.erase(key);
                 MPIV.pending--;
                 return;
             }
@@ -60,7 +61,7 @@ inline void MPIV_Send(void* buffer, int size, int rank, int tag) {
 
         mpiv_packet* p_ctx = (mpiv_packet*) matching;
         p_ctx->header.type = SEND_READY_FIN;
-        packet = (mpiv_packet*) p_ctx->egr.buffer;
+        packet = (mpiv_packet*) p_ctx;
 
         // Update the table, store the request.
         MPIV.rdztbl.update(key, (void*) &s);
@@ -73,6 +74,7 @@ inline void MPIV_Send(void* buffer, int size, int rank, int tag) {
 
         // Needs to wait, since buffer is not available until message is sent.
         s.wait();
+        MPIV.rdztbl.erase(key);
     }
 
     MPIV.pending--;

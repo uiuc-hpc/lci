@@ -29,6 +29,7 @@ inline void MPIV_Recv2(void* buffer, int size, int rank, int tag) {
     if (!MPIV.tbl.find(key, local_buf)) {
         if (MPIV.tbl.insert(key, (void*) &s)) {
             s.wait();
+            MPIV.tbl.erase(key);
             MPIV.pending--;
             return;
         } else {
@@ -40,7 +41,7 @@ inline void MPIV_Recv2(void* buffer, int size, int rank, int tag) {
     mpiv_packet* p_ctx = (mpiv_packet*) local_buf;
     if ((size_t) size <= INLINE) {
         // This is a INLINE, copy buffer.
-        std::memcpy(buffer, p_ctx->egr.buffer, size);
+        std::memcpy(buffer, (void*) p_ctx, size);
         MPIV.tbl.erase(key);
         assert(MPIV.squeue.push(p_ctx));
         MPIV.pending--;
@@ -48,7 +49,7 @@ inline void MPIV_Recv2(void* buffer, int size, int rank, int tag) {
     } else if ((size_t) size <= SHORT) {
         // This is a SHORT.
         // Parse the buffer.
-        mpiv_packet* packet = (mpiv_packet*) p_ctx->egr.buffer;
+        mpiv_packet* packet = (mpiv_packet*) p_ctx;
         // Message has arrived, go and copy the message.
         std::memcpy(buffer, packet->egr.buffer, size);
         MPIV.tbl.erase(key);
@@ -60,6 +61,7 @@ inline void MPIV_Recv2(void* buffer, int size, int rank, int tag) {
         mpiv_send_recv_ready(p_ctx, &s);
         // Then update the table, so that once this is done, we know who to wake.
         s.wait();
+        MPIV.tbl.erase(key);
     }
     MPIV.pending--;
 }

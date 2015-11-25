@@ -114,6 +114,8 @@ inline mpiv_key mpiv_make_key(int rank, int tag) {
     return ((uint64_t) rank << 32) | tag;
 }
 
+static double timing = 0;
+
 #endif
 
 #endif

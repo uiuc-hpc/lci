@@ -2,8 +2,7 @@
 #define INIT_H_
 
 inline void mpiv_post_recv(mpiv_packet* p) {
-    MPIV.dev_ctx->post_srq_recv((void*) p,
-        &(p->egr.buffer), SHORT, MPIV.sbuf.lkey());
+    MPIV.dev_ctx->post_srq_recv((void*) p, (void*) p, SHORT, MPIV.sbuf.lkey());
 }
 
 inline void MPIV_Init(int &argc, char**& args) {
