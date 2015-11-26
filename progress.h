@@ -3,37 +3,19 @@
 
 #ifndef USING_ABT
 inline void mpiv_recv_recv_ready(mpiv_packet* p) {
-    // printf("sending: %p %d t: %p %d sz: %d\n", p->rdz.src_addr, p->rdz.lkey, p->rdz.tgt_addr,
-    //    p->rdz.rkey, p->rdz.size);
     int rank = p->header.from;
     int tag = p->header.tag;
-    // printf("%d recv RECV_READY FROM %d %d\n", MPIV.me, rank, tag);
     mpiv_key key = mpiv_make_key(rank, tag);
-
-    void* buf;
-    if (!MPIV.rdztbl.find(key, buf)) {
-        if (MPIV.rdztbl.insert(key, p)) {
-            // handle by thread.
-            return;
-        }
-        buf = MPIV.rdztbl[key];
-    }
-
-    // Else, thread win, we handle.
-    MPIV_Request* s = (MPIV_Request*) buf;
+    MPIV_Request* s = (MPIV_Request*) (void*) MPIV.rdztbl[key];
     p->header.type = SEND_READY_FIN;
-    // printf("write rdma %d %d\n", rank, tag);
-
     MPIV.conn[rank].write_rdma_signal(s->buffer, MPIV.heap.lkey(),
         (void*) p->rdz.tgt_addr, p->rdz.rkey, p->rdz.size, p, (uint32_t) tag);
 }
 
 inline void mpiv_recv_recv_ready_finalize(const mpiv_key& key) {
     // Now data is already ready in the buffer.
-    void *sync = NULL;
-    MPIV_Request* fsync = NULL;
-    sync = MPIV.tbl[key];
-    fsync = (MPIV_Request*) sync;
+    MPIV_Request* fsync = (MPIV_Request*) (void*) MPIV.tbl[key];
+    MPIV.tbl.erase(key);
     fsync->signal();
 }
 
@@ -56,8 +38,9 @@ inline void mpiv_recv_inline(mpiv_packet* p_ctx, const ibv_wc& wc) {
         fsync = (MPIV_Request*) sync;
     }
     memcpy(fsync->buffer, (void*) p_ctx, recv_size);
+    MPIV.tbl.erase(key);
     fsync->signal();
-    assert(MPIV.squeue.push(p_ctx));
+    mpiv_post_recv(p_ctx);
 }
 
 inline void mpiv_recv_short(mpiv_packet* p, const ibv_wc& wc) {
@@ -80,45 +63,42 @@ inline void mpiv_recv_short(mpiv_packet* p, const ibv_wc& wc) {
     }
 
     std::memcpy(fsync->buffer, p->egr.buffer, recv_size);
+    MPIV.tbl.erase(key);
     fsync->signal();
-    assert(MPIV.squeue.push(p));
+    p->header.type = FREE;
 }
 
 inline void mpiv_recv_send_ready(mpiv_packet* p) {
     int rank = p->header.from;
     int tag = p->header.tag;
-    // printf("%d recv from %d %d\n", MPIV.me, rank, tag);
-
+    // printf("%d recv SEND_READY from %d %d\n", MPIV.me, rank, tag);
     mpiv_key key = mpiv_make_key(rank, tag);
-    void *sync = NULL;
-    MPIV_Request* fsync = NULL;
-    if (!MPIV.tbl.find(key, sync)) {
+    void* buffer;
+
+    if (!MPIV.tbl.find(key, buffer)) {
         if (MPIV.tbl.insert(key, (void*) p)) {
             // This will be handle by the thread,
             // so we return right away.
             return;
         }
-        fsync = (MPIV_Request*) (void*) MPIV.tbl[key];
-    } else {
-        fsync = (MPIV_Request*) sync;
+        buffer = MPIV.tbl[key];
     }
+    MPIV_Request* fsync = (MPIV_Request*) buffer;
     mpiv_send_recv_ready(p, fsync);
 }
 
 inline void mpiv_done_rdz_send(mpiv_packet* p) {
     int tag = p->header.tag;
     int rank = p->header.from;
-    // printf("%d FININSH RDMA TO %d %d", MPIV.me, rank, tag);
     mpiv_key key = mpiv_make_key(rank, tag);
-    void* buf = MPIV.rdztbl[key];
-    MPIV_Request* s = (MPIV_Request*) buf;
+    MPIV_Request* s = (MPIV_Request*) (void*) MPIV.rdztbl[key];
+    MPIV.rdztbl.erase(key);
     s->signal();
 }
 
 inline void MPIV_Progress() {
     // Poll recv queue.
     MPIV.dev_rcq.poll_once([](const ibv_wc& wc) {
-        timing -= MPI_Wtime();
         mpiv_packet* p_ctx = (mpiv_packet*) wc.wr_id;
         if (wc.opcode == IBV_WC_RECV_RDMA_WITH_IMM) {
             // FIXME(danghvu): is there any other protocol that uses RDMA_WITH_IMM ?
@@ -126,11 +106,11 @@ inline void MPIV_Progress() {
             int rank = (int) MPIV.dev_ctx->get_rank(wc.qp_num);
             // printf("%d recv rdma %d %d\n", MPIV.me, rank, tag);
             mpiv_recv_recv_ready_finalize(mpiv_make_key(rank, tag));
-            // return the packet.
-            assert(MPIV.squeue.push(p_ctx));
+            p_ctx->header.type = FREE;
         } else if (wc.imm_data != (uint32_t)-1) {
-            // This is INLINE.
+            // This is INLINE, we do not have header to check in some cases.
             mpiv_recv_inline(p_ctx, wc);
+            return;
         } else {
             const auto& type = p_ctx->header.type;
             // Other cases.
@@ -145,30 +125,31 @@ inline void MPIV_Progress() {
             }
         }
         // Post back a recv, as we have just consumed one.
-        mpiv_post_recv(get_freesbuf());
-        timing += MPI_Wtime();
+        if (p_ctx->header.type == FREE)
+            mpiv_post_recv(p_ctx);
+        else
+            mpiv_post_recv(get_freesbuf());
     });
 
     // Poll send queue.
     MPIV.dev_scq.poll_once([](const ibv_wc& wc) {
-        timing -= MPI_Wtime();
-        if (wc.wr_id == 0) {
-            // This is an INLINE, do nothing.
+        mpiv_packet* packet = (mpiv_packet*) wc.wr_id;
+        if (!packet) {
+            // This is done, just return.
             return;
         }
-        mpiv_packet* packet = (mpiv_packet*) wc.wr_id;
         const auto& type = packet->header.type;
-        if (type == SEND_SHORT || type == SEND_READY || type == RECV_READY) {
-            // done.
+        if (type == SEND_READY) {
+        } else if (type == SEND_SHORT) {
+            // do nothing.
         } else if (type == SEND_READY_FIN) {
+            timing += MPI_Wtime();
             mpiv_done_rdz_send(packet);
-            // done rdz send.
         } else {
             assert(0 && "Invalid packet or not implemented");
         }
-        // Return the packet, as we have just used one.
         assert(MPIV.squeue.push(packet));
-        timing += MPI_Wtime();
+        // Return the packet, as we have just used one.
     });
 }
 #endif

@@ -5,18 +5,13 @@
 
 void mpiv_send_recv_ready(mpiv_packet* p, MPIV_Request* req) {
     // Need to write them back, setup as a RECV_READY.
-    p->rdz.tgt_addr = (uintptr_t) req->buffer;
-    p->rdz.rkey = MPIV.heap.rkey();
-    p->rdz.size = req->size;
-
-    p->header.from = MPIV.me;
-    p->header.tag = req->tag;
-    p->header.type = RECV_READY;
+    p->header = {RECV_READY, MPIV.me, req->tag};
+    p->rdz = {(uintptr_t) req->buffer, MPIV.heap.rkey(), (uint32_t) req->size};
 
     MPIV.conn[req->rank].write_send((void*) p,
             sizeof(mpiv_packet_header) + sizeof(p->rdz),
-            MPIV.sbuf.lkey(),
-            p);
+            MPIV.sbuf.lkey(), 0);
+    assert(MPIV.squeue.push(p));
 }
 
 inline void MPIV_Recv2(void* buffer, int size, int rank, int tag) {
@@ -29,7 +24,6 @@ inline void MPIV_Recv2(void* buffer, int size, int rank, int tag) {
     if (!MPIV.tbl.find(key, local_buf)) {
         if (MPIV.tbl.insert(key, (void*) &s)) {
             s.wait();
-            MPIV.tbl.erase(key);
             MPIV.pending--;
             return;
         } else {
@@ -43,7 +37,7 @@ inline void MPIV_Recv2(void* buffer, int size, int rank, int tag) {
         // This is a INLINE, copy buffer.
         std::memcpy(buffer, (void*) p_ctx, size);
         MPIV.tbl.erase(key);
-        assert(MPIV.squeue.push(p_ctx));
+        mpiv_post_recv(p_ctx);
         MPIV.pending--;
         return;
     } else if ((size_t) size <= SHORT) {
@@ -57,11 +51,10 @@ inline void MPIV_Recv2(void* buffer, int size, int rank, int tag) {
     } else {
         // This is a rdz.
         // Send RECV_READY.
-        MPIV.tbl[key] = (void*) &s;
+        MPIV.tbl.update(key, (void*) &s);
         mpiv_send_recv_ready(p_ctx, &s);
         // Then update the table, so that once this is done, we know who to wake.
         s.wait();
-        MPIV.tbl.erase(key);
     }
     MPIV.pending--;
 }

@@ -2,7 +2,7 @@
 #define INIT_H_
 
 inline void mpiv_post_recv(mpiv_packet* p) {
-    MPIV.dev_ctx->post_srq_recv((void*) p, (void*) p, SHORT, MPIV.sbuf.lkey());
+    MPIV.dev_ctx->post_srq_recv((void*) p, (void*) p, sizeof(mpiv_packet), MPIV.sbuf.lkey());
 }
 
 inline void MPIV_Init(int &argc, char**& args) {
@@ -20,8 +20,8 @@ inline void MPIV_Init(int &argc, char**& args) {
         IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
 
     // These are pinned memory.
-    void* buf = std::malloc(PACKET_SIZE * NSBUF * 2);
-    MPIV.sbuf = std::move(MPIV.dev_ctx->attach_memory(buf, PACKET_SIZE * NSBUF, mr_flags));
+    void* buf = std::malloc(sizeof(mpiv_packet) * NSBUF * 2);
+    MPIV.sbuf = std::move(MPIV.dev_ctx->attach_memory(buf, sizeof(mpiv_packet) * NSBUF * 2, mr_flags));
     MPIV.sbuf_alloc = new pinned_pool(MPIV.sbuf.ptr());
 
     MPIV.heap = MPIV.dev_ctx->create_memory((size_t) HEAP_SIZE, mr_flags);

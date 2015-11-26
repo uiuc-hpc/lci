@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <mpi.h>
 
+// #define CHECK_RESULT
+
 #include "fult.h"
 
 typedef fult_sync MPIV_Request;
@@ -31,10 +33,20 @@ static int SIZE = 1;
 void* alldata;
 
 void wait_comm(intptr_t i) {
-    void* buffer = (void*) ((uintptr_t) alldata + SIZE * i);
+    char* buffer = (char*) ((uintptr_t) alldata + SIZE * i);
+
+#ifdef CHECK_RESULT
+    memset(buffer, 'A', SIZE);
+#endif
+
     start[i] = MPI_Wtime();
     MPIV_Recv2(buffer, SIZE, 1, i);
+    // MPIV_Send(buffer, SIZE, 1, i);
     end[i] = MPI_Wtime();
+
+#ifdef CHECK_RESULT
+    for (int j = 0 ; j < SIZE; j++) assert(buffer[j] == 'B');
+#endif
 }
 
 int main(int argc, char** args) {
@@ -72,15 +84,12 @@ int main(int argc, char** args) {
         }
     }
 
-    if (rank == 0) {
-        alldata = mpiv_malloc((size_t) 4*1024*1024*total_threads);
-    } else {
-        alldata = mpiv_malloc(SIZE);
-    }
+    alldata = mpiv_malloc((size_t) 4*1024*1024*total_threads);
 
     for (SIZE=1; SIZE<=4*1024*1024; SIZE<<=1) {
         if (rank == 0) {
             double times = 0;
+            timing = 0;
             for (int t = 0; t < TOTAL + SKIP; t++) {
                 // MPI_Barrier(MPI_COMM_WORLD);
                 MPI_Send(0, 0, MPI_BYTE, 1, 0, MPI_COMM_WORLD);
@@ -95,26 +104,31 @@ int main(int argc, char** args) {
                     min = std::min(start[i], min);
                     max = std::max(end[i], max);
                 }
+
                 if (t >= SKIP)
                     times += (max - min);
             }
 
-            printf("[%d] %f\n", SIZE, times * 1e6 / TOTAL / total_threads);
+            printf("[%d] %f %f\n", SIZE, times * 1e6 / TOTAL / total_threads, timing * 1e6 / TOTAL/ total_threads);
         } else {
             double t1 = 0;
-            void* buf = mpiv_malloc(SIZE);
             for (int t = 0; t < TOTAL + SKIP; t++) {
                 if (t == SKIP)
                     t1 = MPI_Wtime();
-                MPI_Recv(0, 0, MPI_BYTE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+                MPI_Recv(0, 0, MPI_BYTE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 // MPI_Barrier(MPI_COMM_WORLD);
                 for (int i = 0; i < total_threads; i++) {
-                    MPIV_Send(alldata, SIZE, 0, i);
+                    char* buf = (char*) ((uintptr_t) alldata + SIZE * i);
+#ifdef CHECK_RESULT
+            memset(buf, 'B', SIZE);
+#endif
+                    MPIV_Send(buf, SIZE, 0, i);
+                    // MPIV_Recv2(buf, SIZE, 0, i);
                 }
             }
             t1 = MPI_Wtime() - t1;
-            mpiv_free(buf);
+            // printf("\t\t [%d] %f\n", SIZE, timing * 1e6 / TOTAL / total_threads);
             // printf("Send time: %f\n", t1 * 1e6 / TOTAL / total_threads);
         }
 

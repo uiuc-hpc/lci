@@ -18,7 +18,7 @@ using rdmax::device_memory;
 using rdmax::connection;
 
 enum mpiv_packet_type {
-    SEND_SHORT, RECV_SHORT,
+    FREE, SEND_SHORT, RECV_SHORT,
     SEND_READY, RECV_READY,
     SEND_READY_FIN
 };
@@ -36,7 +36,6 @@ struct mpiv_packet {
             char buffer[SHORT];
         } egr;
         struct {
-            uint32_t idx;
             uintptr_t tgt_addr;
             uint32_t rkey;
             uint32_t size;
@@ -51,7 +50,7 @@ struct pinned_pool {
     std::atomic<size_t> last;
 
     void* allocate() {
-        ptrdiff_t diff = (ptrdiff_t) (last.fetch_add(1) * PACKET_SIZE);
+        ptrdiff_t diff = (ptrdiff_t) (last.fetch_add(1) * sizeof(mpiv_packet));
         return (void*) (ptr + diff);
     }
 };
