@@ -8,7 +8,7 @@
 #define NSBUF 32
 #define NPREPOST 16
 
-#define HEAP_SIZE 4*1024*1024*1024
+#define HEAP_SIZE 1*1024*1024*1024
 
 using rdmax::device_ctx;
 using rdmax::device_cq;
@@ -59,6 +59,12 @@ typedef boost::interprocess::basic_managed_external_buffer< char,
      boost::interprocess::iset_index > mbuffer;
 typedef uint64_t mpiv_key;
 
+#ifndef QTHREAD
+typedef cuckoohash_map<mpiv_key, void*> mpiv_hash_tbl;
+#else
+typedef qt_dictionary* mpiv_hash_tbl;
+#endif
+
 struct mpiv {
     int me;
     device_ctx* dev_ctx;
@@ -71,7 +77,7 @@ struct mpiv {
     device_memory heap;
     mbuffer heap_segment;
 
-    cuckoohash_map<mpiv_key, void*> tbl; // 32-bit rank | 32-bit tag
+    mpiv_hash_tbl tbl; // 32-bit rank | 32-bit tag
 
     vector<connection> conn;
     boost::lockfree::stack<mpiv_packet*, boost::lockfree::capacity<NSBUF>> squeue;
@@ -85,6 +91,25 @@ struct mpiv {
 };
 
 static mpiv MPIV;
+
+inline void mpiv_tbl_init() {
+}
+
+inline bool mpiv_tbl_find(const mpiv_key& key, void*& value) {
+    return MPIV.tbl.find(key, value);
+}
+
+inline bool mpiv_tbl_insert(const mpiv_key& key, void* value) {
+    return MPIV.tbl.insert(key, value);
+}
+
+inline bool mpiv_tbl_update(const mpiv_key& key, void* value) {
+    return MPIV.tbl.update(key, value);
+}
+
+inline void mpiv_tbl_erase(const mpiv_key& key) {
+    MPIV.tbl.erase(key);
+}
 
 #ifndef USING_ABT
 mpiv_packet* get_freesbuf() {
@@ -104,8 +129,7 @@ void mpiv_free(void* ptr) {
     MPIV.heap_segment.deallocate(ptr);
 }
 
-
-inline mpiv_key mpiv_make_key(int rank, int tag) {
+constexpr mpiv_key mpiv_make_key(const int& rank, const int& tag) {
     return ((uint64_t) rank << 32) | tag;
 }
 
@@ -120,15 +144,13 @@ static double timing = 0;
 
 void mpiv_send_recv_ready(uintptr_t idx, MPIV_Request* req) {
     // Need to write them back, setup as a RECV_READY.
-    mpiv_packet* p = get_freesbuf();
+    char data[64];
+    mpiv_packet* p = (mpiv_packet*) data;
     p->header = {RECV_READY, MPIV.me, req->tag};
     p->rdz = {idx, (uintptr_t) req->buffer, MPIV.heap.rkey(), (uint32_t) req->size};
 
     // printf("SEND RECV_READY %p %d %d\n", req->buffer, MPIV.heap.rkey(), req->size);
-    MPIV.conn[req->rank].write_send((void*) p,
-            sizeof(mpiv_packet_header) + sizeof(p->rdz),
-            0, 0);
-    MPIV.squeue.push(p);
+    MPIV.conn[req->rank].write_send((void*) p, 64, 0, 0);
 }
 
 #endif

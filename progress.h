@@ -5,15 +5,17 @@
 void mpiv_recv_recv_ready(mpiv_packet* p) {
     MPIV_Request* s = (MPIV_Request*) p->rdz.idx;
     p->header = {SEND_READY_FIN, MPIV.me, s->tag};
-    MPIV.conn[s->rank].write_rdma_signal(s->buffer, MPIV.heap.lkey(),
-        (void*) p->rdz.tgt_addr, p->rdz.rkey, s->size, 0, (uint32_t) s->tag);
+    MPIV.conn[s->rank].write_rdma(s->buffer, MPIV.heap.lkey(),
+        (void*) p->rdz.tgt_addr, p->rdz.rkey, s->size, 0);
     MPIV.conn[s->rank].write_send(p, sizeof(p->header), 0, (void*) p);
 }
 
 void mpiv_recv_recv_ready_finalize(const mpiv_key& key) {
     // Now data is already ready in the buffer.
-    MPIV_Request* fsync = (MPIV_Request*) (void*) MPIV.tbl[key];
-    MPIV.tbl.erase(key);
+    void* sync;
+    mpiv_tbl_find(key, sync);
+    MPIV_Request* fsync = (MPIV_Request*) sync;
+    mpiv_tbl_erase(key);
     fsync->signal();
 }
 
@@ -25,18 +27,18 @@ void mpiv_recv_inline(mpiv_packet* p_ctx, const ibv_wc& wc) {
 
     void *sync = NULL;
     MPIV_Request* fsync = NULL;
-    if (!MPIV.tbl.find(key, sync)) {
-        if (MPIV.tbl.insert(key, (void*) p_ctx)) {
+    if (!mpiv_tbl_find(key, sync)) {
+        if (mpiv_tbl_insert(key, (void*) p_ctx)) {
             // This will be handle by the thread,
             // so we return right away.
             return;
         }
-        fsync = (MPIV_Request*) (void*) MPIV.tbl[key];
-    } else {
-        fsync = (MPIV_Request*) sync;
+        mpiv_tbl_find(key, sync);
     }
+
+    fsync = (MPIV_Request*) sync;
     memcpy(fsync->buffer, (void*) p_ctx, recv_size);
-    MPIV.tbl.erase(key);
+    mpiv_tbl_erase(key);
     fsync->signal();
     mpiv_post_recv(p_ctx);
 }
@@ -49,19 +51,18 @@ void mpiv_recv_short(mpiv_packet* p, const ibv_wc& wc) {
 
     void *sync = NULL;
     MPIV_Request* fsync = NULL;
-    if (!MPIV.tbl.find(key, sync)) {
-        if (MPIV.tbl.insert(key, (void*) p)) {
+    if (!mpiv_tbl_find(key, sync)) {
+        if (mpiv_tbl_insert(key, (void*) p)) {
             // This will be handle by the thread,
             // so we return right away.
             return;
         }
-        fsync = (MPIV_Request*) (void*) MPIV.tbl[key];
-    } else {
-        fsync = (MPIV_Request*) sync;
+        mpiv_tbl_find(key, sync);
     }
 
+    fsync = (MPIV_Request*) sync;
     std::memcpy(fsync->buffer, p->egr.buffer, recv_size);
-    MPIV.tbl.erase(key);
+    mpiv_tbl_erase(key);
     fsync->signal();
     mpiv_post_recv(p);
 }
@@ -71,13 +72,13 @@ void mpiv_recv_send_ready(mpiv_packet* p) {
     int tag = p->header.tag;
     mpiv_key key = mpiv_make_key(rank, tag);
     void* buffer;
-    if (!MPIV.tbl.find(key, buffer)) {
-        if (MPIV.tbl.insert(key, (void*) p->rdz.idx)) {
+    if (!mpiv_tbl_find(key, buffer)) {
+        if (mpiv_tbl_insert(key, (void*) p->rdz.idx)) {
             // This will be handle by the thread,
             // so we return right away.
             return;
         }
-        buffer = MPIV.tbl[key];
+        mpiv_tbl_find(key, buffer);
     }
     MPIV_Request* fsync = (MPIV_Request*) buffer;
     mpiv_send_recv_ready(p->rdz.idx, fsync);
@@ -153,7 +154,7 @@ inline void MPI_Progress() {
     mpiv_key key = mpiv_make_key(1, tag);
 
     void *sync = NULL;
-    if (!MPIV.tbl.find(key, sync)) {
+    if (!mpiv_tbl_find(key, sync)) {
         // unmatched recv, allocate a buffer for it and continue.
         int size = 0;
         MPI_Get_count(&stat, MPI_BYTE, &size);
@@ -161,11 +162,12 @@ inline void MPI_Progress() {
         MPI_Recv(buf, size, MPI_BYTE, stat.MPI_SOURCE, tag,
                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-        if (!MPIV.tbl.insert(key, buf)) {
-            MPIV_Request* fsync = (MPIV_Request*) (void*) MPIV.tbl[key];
+        if (!mpiv_tbl_insert(key, buf)) {
+            mpiv_tbl_find(key, buf);
+            MPIV_Request* fsync = (MPIV_Request*) buf;
             memcpy(fsync->buffer, buf, size);
             free(buf);
-            MPIV.tbl.erase(key);
+            mpiv_tbl_erase(key);
             fsync->signal();
         } else {
             // this branch is handle
@@ -175,7 +177,7 @@ inline void MPI_Progress() {
         MPIV_Request* fsync = (MPIV_Request*) sync;
         MPI_Recv(fsync->buffer, fsync->size, MPI_BYTE, 1, tag,
                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPIV.tbl.erase(key);
+        mpiv_tbl_erase(key);
         fsync->signal();
     }
 }

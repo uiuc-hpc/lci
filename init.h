@@ -10,6 +10,8 @@ inline void mpiv_post_recv(mpiv_packet* p) {
 inline void MPIV_Init(int &argc, char**& args) {
     MPI_Init(&argc, &args);
 
+    mpiv_tbl_init();
+
     std::vector<rdmax::device> devs = rdmax::device::get_devices();
     assert(devs.size() > 0 && "Unable to find any ibv device");
 

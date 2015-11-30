@@ -26,19 +26,16 @@ void MPIV_Send(void* buffer, int size, int rank, int tag) {
                 (size_t) size + sizeof(mpiv_packet_header),
                 MPIV.sbuf.lkey(), (void*) packet);
     } else {
-        mpiv_packet *p = get_freesbuf();
+        char data[64];
+        mpiv_packet *p = (mpiv_packet*) data;
         MPIV_Request s(buffer, size, rank, tag);
         // char data[sizeof(mpiv_packet_header) + sizeof(p->rdz)];
 
         p->header = {SEND_READY, MPIV.me, tag};
         p->rdz.idx = (uintptr_t) &s;
-        // mpiv_key key = mpiv_make_key(rank, tag);
-        // MPIV.rdztbl.insert(key, (void*) &s);
 
         // This is rdz protocol, we notify the reciever with a ready_send.
-        MPIV.conn[rank].write_send((void*) p,
-                sizeof(p->rdz) + sizeof(mpiv_packet_header), 0, 0);
-        MPIV.squeue.push(p);
+        MPIV.conn[rank].write_send((void*) p, 64, 0, 0);
         // printf("WAIT RECV %p\n", &s);
         // Wait until got recv_ready.
         s.wait();
