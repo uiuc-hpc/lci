@@ -3,6 +3,8 @@
 
 #include <sys/mman.h>
 
+static void mpiv_progress_init();
+
 inline void mpiv_post_recv(mpiv_packet* p) {
     MPIV.dev_ctx->post_srq_recv((void*) p, (void*) p, sizeof(mpiv_packet), MPIV.sbuf.lkey());
 }
@@ -57,6 +59,8 @@ inline void MPIV_Init(int &argc, char**& args) {
         packet->header.from = rank;
         MPIV.squeue.push(packet);
     }
+
+    mpiv_progress_init();
 
     MPI_Barrier(MPI_COMM_WORLD);
 }

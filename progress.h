@@ -8,15 +8,18 @@ void mpiv_recv_recv_ready(mpiv_packet* p) {
     MPIV.conn[s->rank].write_rdma(s->buffer, MPIV.heap.lkey(),
         (void*) p->rdz.tgt_addr, p->rdz.rkey, s->size, 0);
     MPIV.conn[s->rank].write_send(p, sizeof(p->header), 0, (void*) p);
+    mpiv_post_recv(p);
 }
 
-void mpiv_recv_recv_ready_finalize(const mpiv_key& key) {
+void mpiv_recv_recv_ready_finalize(mpiv_packet* p_ctx) {
     // Now data is already ready in the buffer.
+    mpiv_key key = mpiv_make_key(p_ctx->header.from, p_ctx->header.tag);
     void* sync;
     mpiv_tbl_find(key, sync);
     MPIV_Request* fsync = (MPIV_Request*) sync;
     mpiv_tbl_erase(key);
     fsync->signal();
+    mpiv_post_recv(p_ctx);
 }
 
 void mpiv_recv_inline(mpiv_packet* p_ctx, const ibv_wc& wc) {
@@ -43,8 +46,7 @@ void mpiv_recv_inline(mpiv_packet* p_ctx, const ibv_wc& wc) {
     mpiv_post_recv(p_ctx);
 }
 
-void mpiv_recv_short(mpiv_packet* p, const ibv_wc& wc) {
-    uint32_t recv_size = wc.byte_len - sizeof(mpiv_packet_header);
+void mpiv_recv_short(mpiv_packet* p) {
     int rank = p->header.from;
     int tag = p->header.tag;
     mpiv_key key = mpiv_make_key(rank, tag);
@@ -61,7 +63,7 @@ void mpiv_recv_short(mpiv_packet* p, const ibv_wc& wc) {
     }
 
     fsync = (MPIV_Request*) sync;
-    std::memcpy(fsync->buffer, p->egr.buffer, recv_size);
+    std::memcpy(fsync->buffer, p->egr.buffer, fsync->size);
     mpiv_tbl_erase(key);
     fsync->signal();
     mpiv_post_recv(p);
@@ -70,10 +72,13 @@ void mpiv_recv_short(mpiv_packet* p, const ibv_wc& wc) {
 void mpiv_recv_send_ready(mpiv_packet* p) {
     int rank = p->header.from;
     int tag = p->header.tag;
+    uintptr_t idx = p->rdz.idx;
+    mpiv_post_recv(p);
+
     mpiv_key key = mpiv_make_key(rank, tag);
     void* buffer;
     if (!mpiv_tbl_find(key, buffer)) {
-        if (mpiv_tbl_insert(key, (void*) p->rdz.idx)) {
+        if (mpiv_tbl_insert(key, (void*) idx)) {
             // This will be handle by the thread,
             // so we return right away.
             return;
@@ -81,7 +86,7 @@ void mpiv_recv_send_ready(mpiv_packet* p) {
         mpiv_tbl_find(key, buffer);
     }
     MPIV_Request* fsync = (MPIV_Request*) buffer;
-    mpiv_send_recv_ready(p->rdz.idx, fsync);
+    mpiv_send_recv_ready(idx, fsync);
 }
 
 void mpiv_done_rdz_send(mpiv_packet* p) {
@@ -89,38 +94,34 @@ void mpiv_done_rdz_send(mpiv_packet* p) {
     s->signal();
 }
 
+typedef void(*p_ctx_handler)(mpiv_packet* p_ctx);
+static p_ctx_handler handle[8];
+
+static void mpiv_progress_init() {
+  handle[SEND_SHORT] = mpiv_recv_short;
+  handle[SEND_READY] = mpiv_recv_send_ready;
+  handle[RECV_READY] = mpiv_recv_recv_ready;
+  handle[SEND_READY_FIN] = mpiv_recv_recv_ready_finalize;
+}
+ 
 template<int poll>
 inline void mpiv_serve(const ibv_wc& wc) {
     mpiv_packet* p_ctx = (mpiv_packet*) wc.wr_id;
     if (poll & 0x1) {
-        if (wc.opcode == IBV_WC_RECV) {
+        if (xlikely(wc.opcode == IBV_WC_RECV)) {
             if (wc.imm_data != (uint32_t)-1) {
                 // This is INLINE, we do not have header to check in some cases.
                 mpiv_recv_inline(p_ctx, wc);
                 return;
             } else {
                 const auto& type = p_ctx->header.type;
-                // Other cases.
-                if (type == SEND_SHORT) {
-                    mpiv_recv_short(p_ctx, wc);
-                } else if (type == SEND_READY) {
-                    mpiv_recv_send_ready(p_ctx);
-                    mpiv_post_recv(p_ctx);
-                } else if (type == RECV_READY) {
-                    mpiv_recv_recv_ready(p_ctx);
-                    mpiv_post_recv(p_ctx);
-                } else if (type == SEND_READY_FIN) {
-                    mpiv_recv_recv_ready_finalize(mpiv_make_key(p_ctx->header.from, p_ctx->header.tag));
-                    mpiv_post_recv(p_ctx);
-                } else {
-                    assert(0 && "Invalid packet or not implemented");
-                }
+                handle[type](p_ctx);
             }
         }
     }
 
     if (poll & 0x2) {
-        if (wc.opcode == IBV_WC_SEND) {
+        if (xlikely(wc.opcode == IBV_WC_SEND)) {
             // Nothing to process, return.
             if (!p_ctx) return;
             const auto& type = p_ctx->header.type;
