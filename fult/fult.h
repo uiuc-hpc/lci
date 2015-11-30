@@ -2,7 +2,8 @@
 #define _FULT_H_
 
 #include <atomic>
-#include <boost/lockfree/queue.hpp>
+#include <boost/lockfree/stack.hpp>
+#include <sys/mman.h>
 
 #include "bitops.h"
 #include "rdmax.h"
@@ -19,7 +20,7 @@
 
 #define fult_wait() { ((fult*)t_ctx)->wait(); }
 
-#define STACK_SIZE (2*8192)
+#define STACK_SIZE (4096)
 #define NMASK 1
 #define WORDSIZE (8 * sizeof(long))
 
@@ -75,13 +76,13 @@ enum fult_state {
 class fult : public fctx {
  public:
     fult() : state_(INVALID) {
-      stack = malloc(STACK_SIZE);
     }
 
     inline void set(ffunc myfunc, intptr_t data) {
         myfunc_ = myfunc;
         data_ = data;
         state_ = CREATED;
+        stack = std::malloc(STACK_SIZE);
         myctx_ = make_fcontext((void*) ((uintptr_t) stack + STACK_SIZE), STACK_SIZE, fwrapper);
     }
 
@@ -97,6 +98,7 @@ class fult : public fctx {
 
     inline void run() {
         (*this->myfunc_)(this->data_);
+        std::free(stack);
         // when finish, needs to swap back to the parent.
         this->state_ = INVALID;
         this->swapret();
@@ -135,6 +137,7 @@ class worker : fctx {
         // Reset all mask.
         for (int i = 0; i < NMASK; i++)
             mask_[i] = 0;
+        mlock((const void*) mask_, NMASK * WORDSIZE);
 
         // Add all free slot.
         for (int i = 0; i < (int) (NMASK * WORDSIZE); i++)
@@ -177,7 +180,7 @@ class worker : fctx {
                 myid = saved_id;
             }
         }
-        assert(fqueue.push(id));
+        fqueue.push(id);
     }
 
     inline void set_state(const int id, fult_state state) {
@@ -225,10 +228,8 @@ class worker : fctx {
     void* stack;
 
     // TODO(danghvu): this is temporary, but it is most generic.
-    boost::lockfree::queue<int, boost::lockfree::capacity<WORDSIZE * NMASK>> fqueue;
+    boost::lockfree::stack<uint8_t, boost::lockfree::capacity<WORDSIZE * NMASK>> fqueue;
 };
-
-#define SYNC_THRESHOLD 255
 
 #define doschedule(i) { \
     myid = i * WORDSIZE + id;\
@@ -255,15 +256,13 @@ void worker::wfunc(worker* w) {
                 loop_sched_all(mask, 0);
             }
         }
+        sched_yield();
     }
 }
 
 class fult_sync {
  public:
-    inline fult_sync(
-        void* buffer_, int size_, int rank_, int tag_) :
-        buffer(buffer_), size(size_), rank(rank_), tag(tag_) {
-
+    inline void init() {
         id_ = myid;
         ctx_ = static_cast<fult*>(t_ctx);
         if (ctx_ != NULL)
@@ -271,6 +270,16 @@ class fult_sync {
         else
             parent_ = NULL;
         flag = false;
+    }
+
+    inline fult_sync() {
+        init();
+    };
+
+    inline fult_sync(
+        void* buffer_, int size_, int rank_, int tag_) :
+          buffer(buffer_), size(size_), rank(rank_), tag(tag_) {
+        init();
     };
 
     inline void wait() {
@@ -280,6 +289,7 @@ class fult_sync {
         else {
             ctx_->wait();
         }
+        flag = false;
     }
 
     inline void signal() {
@@ -300,6 +310,6 @@ class fult_sync {
     fult* ctx_;
     worker* parent_;
     int id_;
-};
+} __attribute__ ((aligned));
 
 #endif

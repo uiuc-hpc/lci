@@ -1,6 +1,8 @@
 #ifndef INIT_H_
 #define INIT_H_
 
+#include <sys/mman.h>
+
 inline void mpiv_post_recv(mpiv_packet* p) {
     MPIV.dev_ctx->post_srq_recv((void*) p, (void*) p, sizeof(mpiv_packet), MPIV.sbuf.lkey());
 }
@@ -21,11 +23,14 @@ inline void MPIV_Init(int &argc, char**& args) {
 
     // These are pinned memory.
     void* buf = std::malloc(sizeof(mpiv_packet) * NSBUF * 2);
+    mlock(buf, sizeof(mpiv_packet) * NSBUF * 2);
     MPIV.sbuf = std::move(MPIV.dev_ctx->attach_memory(buf, sizeof(mpiv_packet) * NSBUF * 2, mr_flags));
     MPIV.sbuf_alloc = new pinned_pool(MPIV.sbuf.ptr());
 
     MPIV.heap = MPIV.dev_ctx->create_memory((size_t) HEAP_SIZE, mr_flags);
-    MPIV.heap_segment = std::move(mbuffer(create_only, MPIV.heap.ptr(), (size_t) HEAP_SIZE));
+    MPIV.heap_segment = std::move(mbuffer(
+        boost::interprocess::create_only, MPIV.heap.ptr(), (size_t) HEAP_SIZE));
+    mlock(MPIV.heap.ptr(), (size_t) HEAP_SIZE);
 
     // Initialize connection.
     int rank, size;
@@ -41,16 +46,14 @@ inline void MPIV_Init(int &argc, char**& args) {
 
     /* PREPOST recv and allocate send queue. */
     for (int i = 0; i < NPREPOST; i++) {
-        MPIV.prepost.emplace_back((mpiv_packet*) MPIV.sbuf_alloc->allocate());
-        MPIV.prepost[i]->header.type = RECV_SHORT;
-        mpiv_post_recv(MPIV.prepost[i]);
+        mpiv_post_recv((mpiv_packet*) MPIV.sbuf_alloc->allocate());
     }
 
     for (int i = 0; i < NSBUF - NPREPOST; i++) {
         mpiv_packet* packet = (mpiv_packet*) MPIV.sbuf_alloc->allocate();
         packet->header.type = SEND_SHORT;
         packet->header.from = rank;
-        assert(MPIV.squeue.push(packet));
+        MPIV.squeue.push(packet);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
