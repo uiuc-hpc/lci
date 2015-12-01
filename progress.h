@@ -3,21 +3,17 @@
 
 #ifndef USING_ABT
 void mpiv_recv_recv_ready(mpiv_packet* p) {
-    MPIV_Request* s = (MPIV_Request*) p->rdz.idx;
+    MPIV_Request* s = (MPIV_Request*) p->rdz.sreq;
     p->header = {SEND_READY_FIN, MPIV.me, s->tag};
     MPIV.conn[s->rank].write_rdma(s->buffer, MPIV.heap.lkey(),
         (void*) p->rdz.tgt_addr, p->rdz.rkey, s->size, 0);
-    MPIV.conn[s->rank].write_send(p, sizeof(p->header), 0, (void*) p);
+    MPIV.conn[s->rank].write_send(p, sizeof(p->header) + sizeof(p->rdz), 0, (void*) p);
     mpiv_post_recv(p);
 }
 
-void mpiv_recv_recv_ready_finalize(mpiv_packet* p_ctx) {
+void mpiv_recv_send_ready_fin(mpiv_packet* p_ctx) {
     // Now data is already ready in the buffer.
-    mpiv_key key = mpiv_make_key(p_ctx->header.from, p_ctx->header.tag);
-    mpiv_value value;
-    mpiv_tbl_find(key, value);
-    MPIV_Request* fsync = value.request;
-    mpiv_tbl_erase(key);
+    MPIV_Request* fsync = (MPIV_Request*) p_ctx->rdz.rreq;
     fsync->signal();
     mpiv_post_recv(p_ctx);
 }
@@ -40,7 +36,7 @@ void mpiv_recv_inline(mpiv_packet* p_ctx, const ibv_wc& wc) {
 
     MPIV_Request* fsync = value.request;
     memcpy(fsync->buffer, (void*) p_ctx, recv_size);
-    mpiv_tbl_erase(key);
+    // mpiv_tbl_erase(key);
     fsync->signal();
     mpiv_post_recv(p_ctx);
 }
@@ -63,14 +59,14 @@ void mpiv_recv_short(mpiv_packet* p) {
 
     MPIV_Request* fsync = value.request;
     std::memcpy(fsync->buffer, p->egr.buffer, fsync->size);
-    mpiv_tbl_erase(key);
+    // mpiv_tbl_erase(key);
     fsync->signal();
     mpiv_post_recv(p);
 }
 
 void mpiv_recv_send_ready(mpiv_packet* p) {
     mpiv_value remote_val;
-    remote_val.request = (MPIV_Request*) p->rdz.idx;
+    remote_val.request = (MPIV_Request*) p->rdz.sreq;
 
     mpiv_key key = mpiv_make_key(p->header.from, p->header.tag);
     mpiv_post_recv(p);
@@ -89,7 +85,7 @@ void mpiv_recv_send_ready(mpiv_packet* p) {
 }
 
 inline void mpiv_done_rdz_send(mpiv_packet* p) {
-    MPIV_Request* s = (MPIV_Request*) p->rdz.idx;
+    MPIV_Request* s = (MPIV_Request*) p->rdz.sreq;
     s->signal();
 }
 
@@ -97,10 +93,10 @@ typedef void(*p_ctx_handler)(mpiv_packet* p_ctx);
 static p_ctx_handler handle[4];
 
 static void mpiv_progress_init() {
-  handle[SEND_SHORT] = mpiv_recv_short;
-  handle[SEND_READY] = mpiv_recv_send_ready;
-  handle[RECV_READY] = mpiv_recv_recv_ready;
-  handle[SEND_READY_FIN] = mpiv_recv_recv_ready_finalize;
+    handle[SEND_SHORT] = mpiv_recv_short;
+    handle[SEND_READY] = mpiv_recv_send_ready;
+    handle[RECV_READY] = mpiv_recv_recv_ready;
+    handle[SEND_READY_FIN] = mpiv_recv_send_ready_fin;
 }
 
 inline void mpiv_serve_recv(const ibv_wc& wc) {

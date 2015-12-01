@@ -63,10 +63,10 @@ inline void MPIV_Init(int &argc, char**& args) {
     mpiv_progress_init();
 
     MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Finalize();
 }
 
 inline void MPIV_Finalize() {
-    MPI_Finalize();
 }
 
 #endif

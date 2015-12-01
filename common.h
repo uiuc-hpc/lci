@@ -33,7 +33,8 @@ struct mpiv_packet {
             char buffer[SHORT];
         } egr;
         struct {
-            uintptr_t idx;
+            uintptr_t sreq;
+            uintptr_t rreq;
             uintptr_t tgt_addr;
             uint32_t rkey;
             uint32_t size;
@@ -116,6 +117,15 @@ inline void mpiv_tbl_erase(const mpiv_key& key) {
     MPIV.tbl.erase(key);
 }
 
+using namespace std::chrono;
+
+inline double MPIV_Wtime() {
+    return duration_cast<duration<double> >(
+        high_resolution_clock::now().time_since_epoch()).count();
+}
+
+static double timing = 0;
+
 #ifndef USING_ABT
 mpiv_packet* get_freesbuf() {
     uint8_t count = 0;
@@ -138,24 +148,14 @@ constexpr mpiv_key mpiv_make_key(const int& rank, const int& tag) {
     return ((uint64_t) rank << 32) | tag;
 }
 
-using namespace std::chrono;
-
-inline double MPIV_Wtime() {
-    return duration_cast<duration<double> >(
-        high_resolution_clock::now().time_since_epoch()).count();
-}
-
-static double timing = 0;
-
-inline void mpiv_send_recv_ready(MPIV_Request* remote_req, MPIV_Request* req) {
+inline void mpiv_send_recv_ready(MPIV_Request* sreq, MPIV_Request* rreq) {
     // Need to write them back, setup as a RECV_READY.
     char data[64];
     mpiv_packet* p = (mpiv_packet*) data;
-    p->header = {RECV_READY, MPIV.me, req->tag};
-    p->rdz = {(uintptr_t) remote_req, (uintptr_t) req->buffer, MPIV.heap.rkey(), (uint32_t) req->size};
-
+    p->header = {RECV_READY, MPIV.me, rreq->tag};
+    p->rdz = {(uintptr_t) sreq, (uintptr_t) rreq, (uintptr_t) rreq->buffer, MPIV.heap.rkey(), (uint32_t) rreq->size};
     // printf("SEND RECV_READY %p %d %d\n", req->buffer, MPIV.heap.rkey(), req->size);
-    MPIV.conn[req->rank].write_send((void*) p, 64, 0, 0);
+    MPIV.conn[rreq->rank].write_send((void*) p, 64, 0, 0);
 }
 
 #endif

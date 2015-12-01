@@ -15,6 +15,7 @@ void MPIV_Recv2(void* buffer, int size, int rank, int tag) {
     if (!mpiv_tbl_find(key, value)) {
         if (mpiv_tbl_insert(key, value)) {
             s.wait();
+            mpiv_tbl_erase(key);
             return;
         }
         mpiv_tbl_find(key, value);
@@ -39,11 +40,9 @@ void MPIV_Recv2(void* buffer, int size, int rank, int tag) {
         // This is a rdz.
         // Send RECV_READY.
         MPIV_Request* remote_req = value.request;
-        value.request = &s;
-        mpiv_tbl_update(key, value);
         mpiv_send_recv_ready(remote_req, &s);
-        // Then update the table, so that once this is done, we know who to wake.
         s.wait();
+        mpiv_tbl_erase(key);
     }
 }
 #endif
