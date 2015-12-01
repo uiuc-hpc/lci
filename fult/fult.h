@@ -20,7 +20,7 @@
 
 #define fult_wait() { ((fult*)t_ctx)->wait(); }
 
-#define STACK_SIZE (4096)
+#define F_STACK_SIZE (2048)
 #define NMASK 1
 #define WORDSIZE (8 * sizeof(long))
 
@@ -75,15 +75,19 @@ enum fult_state {
 
 class fult : public fctx {
  public:
-    fult() : state_(INVALID) {
+    fult() : state_(INVALID), stack(NULL) {
+    }
+
+    ~fult() {
+        if (stack != NULL) std::free(stack);
     }
 
     inline void set(ffunc myfunc, intptr_t data) {
+        if (stack == NULL) stack = std::malloc(F_STACK_SIZE);
         myfunc_ = myfunc;
         data_ = data;
         state_ = CREATED;
-        stack = std::malloc(STACK_SIZE);
-        myctx_ = make_fcontext((void*) ((uintptr_t) stack + STACK_SIZE), STACK_SIZE, fwrapper);
+        myctx_ = make_fcontext((void*) ((uintptr_t) stack + F_STACK_SIZE), F_STACK_SIZE, fwrapper);
     }
 
     inline void yield() {
@@ -98,7 +102,6 @@ class fult : public fctx {
 
     inline void run() {
         (*this->myfunc_)(this->data_);
-        std::free(stack);
         // when finish, needs to swap back to the parent.
         this->state_ = INVALID;
         this->swapret();
@@ -115,10 +118,11 @@ class fult : public fctx {
     using fctx::swap;
 
  private:
-    void* stack;
     ffunc myfunc_;
     intptr_t data_;
     volatile fult_state state_;
+    void* stack;
+
 } __attribute__ ((aligned (8)));
 
 static void fwrapper(intptr_t f) {
@@ -129,9 +133,9 @@ static void fwrapper(intptr_t f) {
 class worker : fctx {
  public:
     worker() {
-        // allocator.allocate(stack, STACK_SIZE);
-        // stack = malloc(STACK_SIZE);
-        // myctx_ = make_fcontext(stack, STACK_SIZE, fwrapper);
+        // allocator.allocate(stack, F_STACK_SIZE);
+        // stack = malloc(F_STACK_SIZE);
+        // myctx_ = make_fcontext(stack, F_STACK_SIZE, fwrapper);
         stop_ = false;
 
         // Reset all mask.

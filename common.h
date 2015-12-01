@@ -16,8 +16,7 @@ using rdmax::device_memory;
 using rdmax::connection;
 
 enum mpiv_packet_type {
-    SEND_SHORT, 
-    SEND_READY, RECV_READY,
+    SEND_SHORT, SEND_READY, RECV_READY,
     SEND_READY_FIN
 };
 
@@ -57,10 +56,16 @@ struct pinned_pool {
 typedef boost::interprocess::basic_managed_external_buffer< char,
      boost::interprocess::rbtree_best_fit< boost::interprocess::mutex_family >,
      boost::interprocess::iset_index > mbuffer;
+
 typedef uint64_t mpiv_key;
 
+union mpiv_value {
+    mpiv_packet* packet;
+    MPIV_Request* request;
+};
+
 #ifndef QTHREAD
-typedef cuckoohash_map<mpiv_key, void*> mpiv_hash_tbl;
+typedef cuckoohash_map<mpiv_key, mpiv_value> mpiv_hash_tbl;
 #else
 typedef qt_dictionary* mpiv_hash_tbl;
 #endif
@@ -95,15 +100,15 @@ static mpiv MPIV;
 inline void mpiv_tbl_init() {
 }
 
-inline bool mpiv_tbl_find(const mpiv_key& key, void*& value) {
+inline bool mpiv_tbl_find(const mpiv_key& key, mpiv_value& value) {
     return MPIV.tbl.find(key, value);
 }
 
-inline bool mpiv_tbl_insert(const mpiv_key& key, void* value) {
+inline bool mpiv_tbl_insert(const mpiv_key& key, mpiv_value value) {
     return MPIV.tbl.insert(key, value);
 }
 
-inline bool mpiv_tbl_update(const mpiv_key& key, void* value) {
+inline bool mpiv_tbl_update(const mpiv_key& key, mpiv_value value) {
     return MPIV.tbl.update(key, value);
 }
 
@@ -142,12 +147,12 @@ inline double MPIV_Wtime() {
 
 static double timing = 0;
 
-void mpiv_send_recv_ready(uintptr_t idx, MPIV_Request* req) {
+inline void mpiv_send_recv_ready(MPIV_Request* remote_req, MPIV_Request* req) {
     // Need to write them back, setup as a RECV_READY.
     char data[64];
     mpiv_packet* p = (mpiv_packet*) data;
     p->header = {RECV_READY, MPIV.me, req->tag};
-    p->rdz = {idx, (uintptr_t) req->buffer, MPIV.heap.rkey(), (uint32_t) req->size};
+    p->rdz = {(uintptr_t) remote_req, (uintptr_t) req->buffer, MPIV.heap.rkey(), (uint32_t) req->size};
 
     // printf("SEND RECV_READY %p %d %d\n", req->buffer, MPIV.heap.rkey(), req->size);
     MPIV.conn[req->rank].write_send((void*) p, 64, 0, 0);
