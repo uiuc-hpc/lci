@@ -8,7 +8,7 @@
 #define NSBUF 32
 #define NPREPOST 16
 
-#define HEAP_SIZE 1*1024*1024*1024
+#define HEAP_SIZE 64*1024*1024
 
 using rdmax::device_ctx;
 using rdmax::device_cq;
@@ -65,11 +65,9 @@ union mpiv_value {
     MPIV_Request* request;
 };
 
-#ifndef QTHREAD
 typedef cuckoohash_map<mpiv_key, mpiv_value> mpiv_hash_tbl;
-#else
-typedef qt_dictionary* mpiv_hash_tbl;
-#endif
+
+class mpiv_server;
 
 struct mpiv {
     int me;
@@ -87,6 +85,8 @@ struct mpiv {
 
     vector<connection> conn;
     boost::lockfree::stack<mpiv_packet*, boost::lockfree::capacity<NSBUF>> squeue;
+
+    mpiv_server *server;
 
     ~mpiv() {
         sbuf.finalize();
@@ -117,17 +117,13 @@ inline void mpiv_tbl_erase(const mpiv_key& key) {
     MPIV.tbl.erase(key);
 }
 
-using namespace std::chrono;
-
-inline double MPIV_Wtime() {
+double MPIV_Wtime() {
+    using namespace std::chrono;
     return duration_cast<duration<double> >(
         high_resolution_clock::now().time_since_epoch()).count();
 }
 
-static double timing = 0;
-
-#ifndef USING_ABT
-mpiv_packet* get_freesbuf() {
+mpiv_packet* mpiv_getpacket() {
     uint8_t count = 0;
     mpiv_packet* packet;
     while(!MPIV.squeue.pop(packet)) {
@@ -148,16 +144,13 @@ constexpr mpiv_key mpiv_make_key(const int& rank, const int& tag) {
     return ((uint64_t) rank << 32) | tag;
 }
 
-inline void mpiv_send_recv_ready(MPIV_Request* sreq, MPIV_Request* rreq) {
+void mpiv_send_recv_ready(MPIV_Request* sreq, MPIV_Request* rreq) {
     // Need to write them back, setup as a RECV_READY.
     char data[64];
     mpiv_packet* p = (mpiv_packet*) data;
     p->header = {RECV_READY, MPIV.me, rreq->tag};
     p->rdz = {(uintptr_t) sreq, (uintptr_t) rreq, (uintptr_t) rreq->buffer, MPIV.heap.rkey(), (uint32_t) rreq->size};
-    // printf("SEND RECV_READY %p %d %d\n", req->buffer, MPIV.heap.rkey(), req->size);
     MPIV.conn[rreq->rank].write_send((void*) p, 64, 0, 0);
 }
-
-#endif
 
 #endif

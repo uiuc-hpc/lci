@@ -1,8 +1,6 @@
 #ifndef SEND_H_
 #define SEND_H_
 
-#ifndef USING_ABT
-
 void MPIV_Send(void* buffer, int size, int rank, int tag) {
     if ((size_t) size <= INLINE) {
         // This can be inline, no need to copy them, but need to put in IMM.
@@ -15,7 +13,7 @@ void MPIV_Send(void* buffer, int size, int rank, int tag) {
 
     // First we need a packet, as we don't want to register.
     if ((size_t) size <= SHORT) {
-        mpiv_packet* packet = get_freesbuf();
+        mpiv_packet* packet = mpiv_getpacket();
         packet->header = {SEND_SHORT, MPIV.me, tag};
         // This is a short message, we send them immediately and do not yield
         // or create a request for it.
@@ -40,6 +38,5 @@ void MPIV_Send(void* buffer, int size, int rank, int tag) {
         s.wait();
     }
 }
-#endif
 
 #endif

@@ -18,6 +18,7 @@
 #include "rdmax.h"
 #include "common.h"
 
+#include "server.h"
 #include "init.h"
 #include "progress.h"
 #include "recv.h"
