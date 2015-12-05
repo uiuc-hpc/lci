@@ -11,7 +11,7 @@ class mpiv_server {
     mpiv_server() : stop_(false), done_init_(false) {
     }
 
-    void init() {
+    inline void init() {
         std::vector<rdmax::device> devs = rdmax::device::get_devices();
         assert(devs.size() > 0 && "Unable to find any ibv device");
 
@@ -55,30 +55,36 @@ class mpiv_server {
             packet->header.from = rank;
             MPIV.squeue.push(packet);
         }
-
-        MPI_Barrier(MPI_COMM_WORLD);
         done_init_ = true;
+#if 0
+        eventSetP = PAPI_NULL;
+#endif
     }
 
-    void serve() {
-        this->init();
-
+    inline void serve() {
         poll_thread_ = std::thread([this] {
+#if 0 
+            PAPI_create_eventset(&eventSetP);
+            PAPI_add_event(eventSetP, PAPI_L1_DCM);
+            PAPI_add_event(eventSetP, PAPI_L2_DCM);
+            PAPI_add_event(eventSetP, PAPI_L3_TCM);
+            PAPI_start(eventSetP);
+#endif
             uint8_t freq = 0;
+
             while (1) {
                 while (MPIV_Progress()) {};
                 if (freq++ == 0) {
                     if (this->stop_) break;
                 }
             }
+#if 0
+            PAPI_stop(eventSetP, t1_valueP);
+#endif
         });
-
-        while (!done_init_) {
-            sched_yield();
-        }
     }
 
-    void finalize() {
+    inline void finalize() {
         stop_ = true;
         poll_thread_.join();
     }

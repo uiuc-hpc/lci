@@ -1,15 +1,67 @@
 #ifndef COMMON_H_
 #define COMMON_H_
 
-#define PACKET_SIZE (16*1024)
-#define SHORT (PACKET_SIZE - sizeof(mpiv_packet_header))
-#define INLINE 512
+#include "config.h"
 
-#define NSBUF 32
-#define NPREPOST 16
+/** Setup hash table */
+typedef uint64_t mpiv_key;
+struct mpiv_packet;
+struct MPIV_Request;
 
-#define HEAP_SIZE 64*1024*1024
+union mpiv_value {
+    void* v;
+    mpiv_packet* packet;
+    MPIV_Request* request;
+};
 
+#ifdef USE_LF
+extern "C" {
+    #include "lf_hash.h"
+}
+typedef qt_hash mpiv_hash_tbl;
+#endif
+
+#ifdef USE_ARRAY
+typedef mpiv_value* mpiv_hash_tbl;
+#endif
+
+#ifdef USE_COCK
+#include <libcuckoo/cuckoohash_map.hh>
+struct my_hash {
+  size_t operator()(uint64_t __x) const { return __x; }
+};
+
+typedef cuckoohash_map<mpiv_key, mpiv_value, my_hash> mpiv_hash_tbl;
+#endif
+
+constexpr mpiv_key mpiv_make_key(const int& rank, const int& tag) {
+    return ((uint64_t) rank << 32) | tag;
+}
+
+#ifdef USE_TIMING
+/** Setup timing */
+static double tbl_timing;
+static double signal_timing;
+static double memcpy_timing;
+static double wake_timing;
+static double post_timing;
+static double misc_timing;
+static double poll_timing;
+static double rdma_timing;
+
+static int eventSetP;
+static long long t_valueP[3], t0_valueP[3], t1_valueP[3];
+
+#define startt(x) { x -= MPIV_Wtime(); }
+#define stopt(x) { x += MPIV_Wtime(); }
+#define resett(x) { x = 0; }
+#else
+#define startt(x) {}
+#define stopt(x) {}
+#define resett(x) {}
+#endif
+
+/** Setup struct and RDMAX */
 using rdmax::device_ctx;
 using rdmax::device_cq;
 using rdmax::device_memory;
@@ -40,7 +92,7 @@ struct mpiv_packet {
             uint32_t size;
         } rdz;
     };
-} __attribute__ ((aligned));
+} __attribute__ ((aligned(64)));
 
 struct pinned_pool {
     pinned_pool(void* ptr_) : ptr((uintptr_t) ptr_), last(0) {}
@@ -55,17 +107,9 @@ struct pinned_pool {
 };
 
 typedef boost::interprocess::basic_managed_external_buffer< char,
-     boost::interprocess::rbtree_best_fit< boost::interprocess::mutex_family >,
+     boost::interprocess::rbtree_best_fit< boost::interprocess::mutex_family,
+        void*, 64>,
      boost::interprocess::iset_index > mbuffer;
-
-typedef uint64_t mpiv_key;
-
-union mpiv_value {
-    mpiv_packet* packet;
-    MPIV_Request* request;
-};
-
-typedef cuckoohash_map<mpiv_key, mpiv_value> mpiv_hash_tbl;
 
 class mpiv_server;
 
@@ -94,28 +138,9 @@ struct mpiv {
         delete dev_ctx;
         delete sbuf_alloc;
     }
-};
+} __attribute__ ((aligned(64)));
 
 static mpiv MPIV;
-
-inline void mpiv_tbl_init() {
-}
-
-inline bool mpiv_tbl_find(const mpiv_key& key, mpiv_value& value) {
-    return MPIV.tbl.find(key, value);
-}
-
-inline bool mpiv_tbl_insert(const mpiv_key& key, mpiv_value value) {
-    return MPIV.tbl.insert(key, value);
-}
-
-inline bool mpiv_tbl_update(const mpiv_key& key, mpiv_value value) {
-    return MPIV.tbl.update(key, value);
-}
-
-inline void mpiv_tbl_erase(const mpiv_key& key) {
-    MPIV.tbl.erase(key);
-}
 
 double MPIV_Wtime() {
     using namespace std::chrono;
@@ -133,15 +158,11 @@ mpiv_packet* mpiv_getpacket() {
 }
 
 void* mpiv_malloc(size_t size) {
-    return (void*) MPIV.heap_segment.allocate(size);
+    return MPIV.heap_segment.allocate((size_t) size);
 }
 
 void mpiv_free(void* ptr) {
     MPIV.heap_segment.deallocate(ptr);
-}
-
-constexpr mpiv_key mpiv_make_key(const int& rank, const int& tag) {
-    return ((uint64_t) rank << 32) | tag;
 }
 
 void mpiv_send_recv_ready(MPIV_Request* sreq, MPIV_Request* rreq) {
@@ -149,7 +170,8 @@ void mpiv_send_recv_ready(MPIV_Request* sreq, MPIV_Request* rreq) {
     char data[64];
     mpiv_packet* p = (mpiv_packet*) data;
     p->header = {RECV_READY, MPIV.me, rreq->tag};
-    p->rdz = {(uintptr_t) sreq, (uintptr_t) rreq, (uintptr_t) rreq->buffer, MPIV.heap.rkey(), (uint32_t) rreq->size};
+    p->rdz = {(uintptr_t) sreq, (uintptr_t) rreq,
+        (uintptr_t) rreq->buffer, MPIV.heap.rkey(), (uint32_t) rreq->size};
     MPIV.conn[rreq->rank].write_send((void*) p, 64, 0, 0);
 }
 

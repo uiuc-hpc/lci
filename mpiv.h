@@ -2,8 +2,6 @@
 #define MPIV_H_
 
 #include <mpi.h>
-#include <libcuckoo/cuckoohash_map.hh>
-
 #include <boost/lockfree/stack.hpp>
 #include <boost/interprocess/managed_external_buffer.hpp>
 #include <boost/interprocess/creation_tags.hpp>
@@ -16,7 +14,9 @@
 #include <unistd.h>
 
 #include "rdmax.h"
+#include "request.h"
 #include "common.h"
+#include "hashtbl.h"
 
 #include "server.h"
 #include "init.h"
