@@ -3,6 +3,8 @@
 
 #include "config.h"
 
+#define ALIGNED64(x) (((x)+63)/64*64)
+
 /** Setup hash table */
 typedef uint64_t mpiv_key;
 struct mpiv_packet;
@@ -22,7 +24,8 @@ typedef qt_hash mpiv_hash_tbl;
 #endif
 
 #ifdef USE_ARRAY
-typedef mpiv_value* mpiv_hash_tbl;
+struct hash_val;
+typedef hash_val* mpiv_hash_tbl;
 #endif
 
 #ifdef USE_COCK
@@ -35,7 +38,7 @@ typedef cuckoohash_map<mpiv_key, mpiv_value, my_hash> mpiv_hash_tbl;
 #endif
 
 constexpr mpiv_key mpiv_make_key(const int& rank, const int& tag) {
-    return ((uint64_t) rank << 32) | tag;
+    return (((uint64_t) rank << 32) | tag);
 }
 
 #ifdef USE_TIMING
@@ -76,12 +79,13 @@ struct mpiv_packet_header {
     mpiv_packet_type type;
     int from;
     int tag;
-} __attribute__ ((aligned));
+} __attribute__((aligned(8)));
 
 struct mpiv_packet {
     mpiv_packet_header header;
     union {
         struct {
+            char __padding__[64 - sizeof(mpiv_packet_header)];
             char buffer[SHORT];
         } egr;
         struct {
@@ -151,8 +155,9 @@ double MPIV_Wtime() {
 mpiv_packet* mpiv_getpacket() {
     uint8_t count = 0;
     mpiv_packet* packet;
-    while(!MPIV.squeue.pop(packet)) {
-        if (++count == 0) fult_yield();
+    if (!MPIV.squeue.pop(packet)) {
+        fprintf(stderr, "[%d] Fatal error, not enough buffer, consider increasing concurrency level, current %d\n", MPIV.me, MAX_CONCURRENCY);
+        exit(1);
     }
     return packet;
 }

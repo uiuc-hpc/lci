@@ -20,7 +20,7 @@
 
 #define fult_wait() { ((fult*)t_ctx)->wait(); }
 
-#define F_STACK_SIZE (2048)
+#define F_STACK_SIZE (8192)
 #define NMASK 1
 #define WORDSIZE (8 * sizeof(long))
 
@@ -271,49 +271,41 @@ class fult_sync {
         ctx_ = static_cast<fult*>(t_ctx);
         if (ctx_ != NULL)
             parent_ = reinterpret_cast<worker*>(ctx_->parent());
-        else
+        else {
             parent_ = NULL;
-        flag = false;
+            flag_ = false;
+        }
     }
 
     inline fult_sync() {
         init();
     };
 
-    inline fult_sync(
-        void* buffer_, int size_, int rank_, int tag_) :
-          buffer(buffer_), size(size_), rank(rank_), tag(tag_) {
-        init();
-    };
-
     inline void wait() {
         if ((ctx_) == NULL) {
-            while (!flag) {};
+            while (!flag_) {};
+            flag_ = false;
         }
         else {
             ctx_->wait();
         }
-        flag = false;
     }
 
     inline void signal() {
         if (parent_ == NULL) {
-            flag = true;
+            flag_ = true;
         } else {
             parent_->schedule(id_);
         }
     }
 
-    void* buffer;
-    int size;
-    int rank;
-    int tag;
-    volatile bool flag;
+    volatile bool flag_;
 
  private:
     fult* ctx_;
     worker* parent_;
     int id_;
+
 } __attribute__ ((aligned));
 
 #endif

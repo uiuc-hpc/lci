@@ -24,7 +24,7 @@ void mpiv_recv_send_ready_fin(mpiv_packet* p_ctx) {
 void mpiv_recv_inline(mpiv_packet* p_ctx, const ibv_wc& wc) {
     startt(misc_timing);
     const uint32_t recv_size = wc.byte_len;
-    const int tag = wc.imm_data;
+    const int tag = wc.imm_data + 1;
     const int rank = MPIV.dev_ctx->get_rank(wc.qp_num);
     const mpiv_key key = mpiv_make_key(rank, tag);
     mpiv_value value;
@@ -32,10 +32,13 @@ void mpiv_recv_inline(mpiv_packet* p_ctx, const ibv_wc& wc) {
     stopt(misc_timing);
 
     startt(tbl_timing)
-    mpiv_value in_val = mpiv_tbl_insert(key, value);
+    auto in_val = mpiv_tbl_insert(key, value).first;
     stopt(tbl_timing)
 
     if (in_val.v == value.v) {
+        startt(post_timing)
+        mpiv_post_recv(mpiv_getpacket());
+        stopt(post_timing)
         // This will be handle by the thread,
         // so we return right away.
         return;
@@ -44,11 +47,15 @@ void mpiv_recv_inline(mpiv_packet* p_ctx, const ibv_wc& wc) {
     startt(memcpy_timing)
     memcpy(req->buffer, (void*) p_ctx, recv_size);
     stopt(memcpy_timing)
+
     startt(signal_timing)
     startt(wake_timing);
     req->sync.signal();
     stopt(signal_timing)
+
+    startt(post_timing)
     mpiv_post_recv(p_ctx);
+    stopt(post_timing)
 }
 
 void mpiv_recv_short(mpiv_packet* p) {
@@ -61,23 +68,31 @@ void mpiv_recv_short(mpiv_packet* p) {
     stopt(misc_timing);
 
     startt(tbl_timing)
-    mpiv_value in_val = mpiv_tbl_insert(key, value);
+    auto in_val = mpiv_tbl_insert(key, value).first;
     stopt(tbl_timing)
 
     if (value.v == in_val.v) {
+        startt(post_timing)
+        mpiv_post_recv(mpiv_getpacket());
+        stopt(post_timing)
         // This will be handle by the thread,
         // so we return right away.
         return;
     }
     MPIV_Request* req = in_val.request;
+
     startt(memcpy_timing)
     memcpy(req->buffer, p->egr.buffer, req->size);
     stopt(memcpy_timing)
+
     startt(signal_timing)
     startt(wake_timing)
     req->sync.signal();
     stopt(signal_timing)
+
+    startt(post_timing)
     mpiv_post_recv(p);
+    stopt(post_timing)
 }
 
 void mpiv_recv_send_ready(mpiv_packet* p) {
@@ -88,7 +103,7 @@ void mpiv_recv_send_ready(mpiv_packet* p) {
     mpiv_post_recv(p);
 
     startt(tbl_timing)
-    mpiv_value value = mpiv_tbl_insert(key, remote_val);
+    auto value = mpiv_tbl_insert(key, remote_val).first;
     stopt(tbl_timing)
 
     if (value.v == remote_val.v) {
@@ -118,11 +133,14 @@ static void mpiv_progress_init() {
 
 inline void mpiv_serve_recv(const ibv_wc& wc) {
     mpiv_packet* p_ctx = (mpiv_packet*) wc.wr_id;
-    if (wc.imm_data != (uint32_t)-1) {
+#if 0
+    if (wc.byte_len <= INLINE && wc.imm_data != 0) {
         // This is INLINE, we do not have header to check in some cases.
         mpiv_recv_inline(p_ctx, wc);
         return;
-    } else {
+    } else
+#endif
+    {
         const auto& type = p_ctx->header.type;
         handle[type](p_ctx);
     }
@@ -164,47 +182,5 @@ inline bool MPIV_Progress() {
 #endif
     return ret;
 }
-
-#if 0
-inline void MPI_Progress() {
-    MPI_Status stat;
-    int flag = 0;
-    MPI_Iprobe(1, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, &stat);
-
-    // nothing.
-    if (!flag) return;
-
-    int tag = stat.MPI_TAG;
-    mpiv_key key = mpiv_make_key(1, tag);
-
-    void *sync = NULL;
-    if (!mpiv_tbl_find(key, sync)) {
-        // unmatched recv, allocate a buffer for it and continue.
-        int size = 0;
-        MPI_Get_count(&stat, MPI_BYTE, &size);
-        void* buf = std::malloc(size);
-        MPI_Recv(buf, size, MPI_BYTE, stat.MPI_SOURCE, tag,
-                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-        if (!mpiv_tbl_insert(key, buf)) {
-            mpiv_tbl_find(key, buf);
-            MPIV_Request* req = (MPIV_Request*) buf;
-            memcpy(req->buffer, buf, size);
-            free(buf);
-            mpiv_tbl_erase(key);
-            req->signal();
-        } else {
-            // this branch is handle
-            // by the thread.
-        }
-    } else {
-        MPIV_Request* req = (MPIV_Request*) sync;
-        MPI_Recv(req->buffer, req->size, MPI_BYTE, 1, tag,
-                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        mpiv_tbl_erase(key);
-        req->signal();
-    }
-}
-#endif
 
 #endif
