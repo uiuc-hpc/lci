@@ -20,7 +20,6 @@
 
 #include "server.h"
 #include "init.h"
-#include "progress.h"
 #include "recv.h"
 #include "send.h"
 

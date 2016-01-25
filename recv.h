@@ -15,9 +15,8 @@ void MPIV_Recv(void* buffer, size_t size, int rank, int tag) {
         // RDNZ protocol, use SEND + WAIT.
         startt(misc_timing);
         char data[64];
-        mpiv_packet* p = (mpiv_packet*) data;
-        p->header = {RECV_READY, MPIV.me, tag};
-        p->rdz = {0, (uintptr_t) &s, (uintptr_t) buffer, MPIV.heap.rkey(), (uint32_t) size};
+        mpiv_packet* p = MPIV.pk_mgr.get_packet(data, RECV_READY, MPIV.me, tag);
+        p->rdz = {0, (uintptr_t) &s, (uintptr_t) buffer, MPIV.heap_rkey, (uint32_t) size};
         MPIV_Send(data, 64, rank, 1 << 31 | tag);
         MPIV_Wait(s);
         stopt(misc_timing);
@@ -26,7 +25,7 @@ void MPIV_Recv(void* buffer, size_t size, int rank, int tag) {
 
     // Find if the message has arrived, if not go and make a request.
     startt(tbl_timing)
-    auto p = mpiv_tbl_insert(key, value);
+    auto p = MPIV.tbl.insert(key, value);
     auto in_val = p.first;
     stopt(tbl_timing)
 
@@ -43,12 +42,12 @@ void MPIV_Recv(void* buffer, size_t size, int rank, int tag) {
         stopt(memcpy_timing);
         // Push here because the commthread must have posted a different one.
         startt(post_timing);
-        if (!MPIV.squeue.push(p_ctx)) { exit(-1); }
+        MPIV.pk_mgr.new_packet(p_ctx);
         stopt(post_timing);
     }
 
     startt(tbl_timing)
-    mpiv_tbl_erase(key, p.second);
+    MPIV.tbl.erase(key, p.second);
     stopt(tbl_timing)
 }
 
