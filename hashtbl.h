@@ -9,6 +9,8 @@
 using std::pair;
 using std::make_pair;
 
+struct mpiv_packet;
+
 union mpiv_value {
   void* v;
   mpiv_packet* packet;

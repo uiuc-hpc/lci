@@ -2,53 +2,30 @@
 #define SERVER_H_
 
 #include <thread>
-#include "progress.h"
+#include "packet_manager.h"
 
+void mpiv_serve_recv(const ibv_wc& wc);
+void mpiv_serve_send(const ibv_wc& wc);
 void mpiv_post_recv(mpiv_packet*);
 
-typedef void(*p_ctx_handler)(mpiv_packet* p_ctx);
-static p_ctx_handler handle[4];
+struct pinned_pool {
+    pinned_pool(void* ptr_) : ptr((uintptr_t) ptr_), last(0) {}
 
-static void mpiv_progress_init() {
-    handle[SEND_SHORT] = mpiv_recv_short;
-    handle[SEND_READY] = mpiv_recv_send_ready;
-    handle[RECV_READY] = mpiv_recv_recv_ready;
-    handle[SEND_READY_FIN] = mpiv_recv_send_ready_fin;
-}
+    uintptr_t ptr;
+    std::atomic<size_t> last;
 
-inline void mpiv_serve_recv(const ibv_wc& wc) {
-    mpiv_packet* p_ctx = (mpiv_packet*) wc.wr_id;
-#if 0
-    if (wc.byte_len <= INLINE && wc.imm_data != 0) {
-        // This is INLINE, we do not have header to check in some cases.
-        mpiv_recv_inline(p_ctx, wc);
-        return;
-    } else
-#endif
-    {
-        const auto& type = p_ctx->header.type;
-        handle[type](p_ctx);
+    void* allocate() {
+        ptrdiff_t diff = (ptrdiff_t) (last.fetch_add(1) * sizeof(mpiv_packet));
+        return (void*) (ptr + diff);
     }
-}
-
-inline void mpiv_serve_send(const ibv_wc& wc) {
-    // Nothing to process, return.
-    mpiv_packet* p_ctx = (mpiv_packet*) wc.wr_id;
-    if (!p_ctx) return;
-    const auto& type = p_ctx->header.type;
-    if (type == SEND_READY_FIN) {
-        mpiv_done_rdz_send(p_ctx);
-    } else {
-        MPIV.pk_mgr.new_packet(p_ctx);
-    }
-}
+};
 
 class mpiv_server {
  public:
     mpiv_server() : stop_(false), done_init_(false) {
     }
 
-    inline void init() {
+    inline void init(mpiv_ctx& ctx, packet_manager& pk_mgr, int& rank, int& size) {
         std::vector<rdmax::device> devs = rdmax::device::get_devices();
         assert(devs.size() > 0 && "Unable to find any ibv device");
 
@@ -62,26 +39,21 @@ class mpiv_server {
 
         // These are pinned memory.
         sbuf_ = dev_ctx_->create_memory(sizeof(mpiv_packet) * NSBUF, mr_flags);
-        MPIV.sbuf_lkey = sbuf_.lkey();
+        ctx.sbuf_lkey = sbuf_.lkey();
 
         sbuf_alloc_ = new pinned_pool(sbuf_.ptr());
         heap_ = dev_ctx_->create_memory((size_t) HEAP_SIZE, mr_flags);
 
-        MPIV.heap_rkey = heap_.rkey();
-        MPIV.heap_lkey = heap_.lkey();
-        MPIV.heap_segment = std::move(mbuffer(
+        ctx.heap_rkey = heap_.rkey();
+        ctx.heap_lkey = heap_.lkey();
+        ctx.heap_segment = std::move(mbuffer(
                     boost::interprocess::create_only, heap_.ptr(), (size_t) HEAP_SIZE));
-
-        // Initialize connection.
-        int rank, size;
 
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
         MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-        MPIV.me = rank;
-
         for (int i = 0; i < size; i++) {
-            MPIV.conn.emplace_back(&dev_scq_, &dev_rcq_, dev_ctx_, &sbuf_, i);
+            ctx.conn.emplace_back(&dev_scq_, &dev_rcq_, dev_ctx_, &sbuf_, i);
         }
 
         /* PREPOST recv and allocate send queue. */
@@ -91,7 +63,7 @@ class mpiv_server {
 
         for (int i = 0; i < NSBUF - NPREPOST; i++) {
             mpiv_packet* packet = (mpiv_packet*) sbuf_alloc_->allocate();
-            MPIV.pk_mgr.new_packet(packet);
+            pk_mgr.new_packet(packet);
         }
         done_init_ = true;
 #if 0

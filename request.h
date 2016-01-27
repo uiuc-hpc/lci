@@ -14,8 +14,6 @@ struct MPIV_Request {
     int tag;
 } __attribute__ ((aligned (64)));
 
-bool MPIV_Progress();
-
 inline void MPIV_Wait(MPIV_Request& req) {
     req.sync.wait();
 }

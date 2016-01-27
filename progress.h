@@ -1,15 +1,17 @@
 #ifndef PROGRESS_H_
 #define PROGRESS_H_
 
+#include "mpiv.h"
+
 void mpiv_post_recv(mpiv_packet*);
 
 void mpiv_recv_recv_ready(mpiv_packet* p) {
     MPIV_Request* s = (MPIV_Request*) p->rdz.sreq;
-    MPIV.conn[s->rank].write_rdma(s->buffer, MPIV.heap_lkey,
+    MPIV.ctx.conn[s->rank].write_rdma(s->buffer, MPIV.ctx.heap_lkey,
         (void*) p->rdz.tgt_addr, p->rdz.rkey, s->size, 0);
 
     p->header = {SEND_READY_FIN, MPIV.me, s->tag};
-    MPIV.conn[s->rank].write_send(p, 64, 0, (void*) p);
+    MPIV.ctx.conn[s->rank].write_send(p, 64, 0, (void*) p);
     mpiv_post_recv(p);
 }
 
@@ -121,10 +123,43 @@ void mpiv_recv_send_ready(mpiv_packet* p) {
     mpiv_send_recv_ready(remote_val.request, req);
 }
 
-inline void mpiv_done_rdz_send(mpiv_packet* p) {
-    stopt(rdma_timing);
-    MPIV_Request* req = (MPIV_Request*) p->rdz.sreq;
-    req->sync.signal();
+typedef void(*p_ctx_handler)(mpiv_packet* p_ctx);
+static p_ctx_handler handle[4];
+
+static void mpiv_progress_init() {
+    handle[SEND_SHORT] = mpiv_recv_short;
+    handle[SEND_READY] = mpiv_recv_send_ready;
+    handle[RECV_READY] = mpiv_recv_recv_ready;
+    handle[SEND_READY_FIN] = mpiv_recv_send_ready_fin;
+}
+
+inline void mpiv_serve_recv(const ibv_wc& wc) {
+    mpiv_packet* p_ctx = (mpiv_packet*) wc.wr_id;
+#if 0
+    if (wc.byte_len <= INLINE && wc.imm_data != 0) {
+        // This is INLINE, we do not have header to check in some cases.
+        mpiv_recv_inline(p_ctx, wc);
+        return;
+    } else
+#endif
+    {
+        const auto& type = p_ctx->header.type;
+        handle[type](p_ctx);
+    }
+}
+
+inline void mpiv_serve_send(const ibv_wc& wc) {
+    // Nothing to process, return.
+    mpiv_packet* p_ctx = (mpiv_packet*) wc.wr_id;
+    if (!p_ctx) return;
+    const auto& type = p_ctx->header.type;
+    if (type == SEND_READY_FIN) {
+        MPIV_Request* req = (MPIV_Request*) p_ctx->rdz.sreq;
+        req->sync.signal();
+        stopt(rdma_timing);
+    } else {
+        MPIV.pk_mgr.new_packet(p_ctx);
+    }
 }
 
 #endif

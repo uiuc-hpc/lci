@@ -9,9 +9,9 @@ void MPIV_Send(void* buffer, size_t size, int rank, int tag) {
         // or create a request for it.
         // Copy the buffer.
         memcpy(packet->egr.buffer, buffer, size);
-        MPIV.conn[rank].write_send((void*) packet,
+        MPIV.ctx.conn[rank].write_send((void*) packet,
                 ALIGNED64((size_t) size + sizeof(mpiv_packet_header)),
-                MPIV.sbuf_lkey, (void*) packet);
+                MPIV.ctx.sbuf_lkey, (void*) packet);
     } else {
         char data[64];
         MPIV_Request s(buffer, size, rank, tag);
@@ -19,9 +19,9 @@ void MPIV_Send(void* buffer, size_t size, int rank, int tag) {
         startt(rdma_timing);
         mpiv_packet* p = MPIV.pk_mgr.get_packet(data, SEND_READY_FIN, MPIV.me, tag);
         p->rdz.sreq = (uintptr_t) &s;
-        MPIV.conn[rank].write_rdma(buffer, MPIV.heap_lkey,
+        MPIV.ctx.conn[rank].write_rdma(buffer, MPIV.ctx.heap_lkey,
             (void*) p->rdz.tgt_addr, p->rdz.rkey, size, p);
-        MPIV.conn[rank].write_send(p, 64, 0, 0);
+        MPIV.ctx.conn[rank].write_send(p, 64, 0, 0);
         MPIV_Wait(s);
     }
 }
