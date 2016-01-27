@@ -6,25 +6,22 @@
 
 class cock_hashtbl : base_hashtbl {
  public:
-  void init() override {
-  }
+  void init() override {}
 
-  pair<value_type, hint_type> insert(const key_type& key, const value_type& value) override {
+  pair<value_type, hint_type> insert(const key_type& key,
+                                     const value_type& value) override {
     value_type ret = value;
-    tbl_.upsert(key, [&ret](mpiv_value& v){
-        ret.v = v.v;
-    }, value);
+    tbl_.upsert(key, [&ret](mpiv_value& v) { ret.v = v.v; }, value);
     return make_pair(ret, 0);
-
   }
 
   void erase(const key_type& key, hint_type t) override {
-    (void) t;
+    (void)t;
     tbl_.erase(key);
   }
 
-  private:
-    cuckoohash_map<mpiv_key, mpiv_value> tbl_;
+ private:
+  cuckoohash_map<mpiv_key, mpiv_value> tbl_;
 };
 
 #endif

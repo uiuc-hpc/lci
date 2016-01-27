@@ -7,39 +7,27 @@
 
 #define ADDR (*(volatile long *)addr)
 static inline void sync_set_bit(long nr, volatile unsigned long *addr) {
-    asm volatile(LOCKPREFIX "bts %1,%0"
-            : "+m" (ADDR)
-            : "Ir" (nr)
-            : "memory");
+  asm volatile(LOCKPREFIX "bts %1,%0" : "+m"(ADDR) : "Ir"(nr) : "memory");
 }
 
 static inline void sync_clear_bit(long nr, volatile unsigned long *addr) {
-    asm volatile(LOCKPREFIX "btr %1,%0"
-            : "+m" (ADDR)
-            : "Ir" (nr)
-            : "memory");
+  asm volatile(LOCKPREFIX "btr %1,%0" : "+m"(ADDR) : "Ir"(nr) : "memory");
 }
 
 static inline unsigned long find_first_set(unsigned long word) {
-    asm("rep; bsf %1,%0"
-            : "=r" (word)
-            : "rm" (word));
-    return word;
+  asm("rep; bsf %1,%0" : "=r"(word) : "rm"(word));
+  return word;
 }
 
 static inline unsigned long find_last_set(unsigned long word) {
-    asm("bsr %1,%0"
-            : "=r" (word)
-            : "rm" (word));
-    return word;
+  asm("bsr %1,%0" : "=r"(word) : "rm"(word));
+  return word;
 }
 
-static inline unsigned long exchange(unsigned long word, volatile unsigned long *addr) {
-    asm("xchgq %0,%1"
-        : "=r" (word)
-        : "m" (ADDR), "0" (word)
-        : "memory");
-    return word;
+static inline unsigned long exchange(unsigned long word,
+                                     volatile unsigned long *addr) {
+  asm("xchgq %0,%1" : "=r"(word) : "m"(ADDR), "0"(word) : "memory");
+  return word;
 }
 
 #endif

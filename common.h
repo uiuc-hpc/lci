@@ -4,7 +4,7 @@
 #include "config.h"
 #include <stdexcept>
 
-#define ALIGNED64(x) (((x)+63)/64*64)
+#define ALIGNED64(x) (((x) + 63) / 64 * 64)
 
 /** Setup hash table */
 typedef uint64_t mpiv_key;
@@ -12,7 +12,7 @@ struct mpiv_packet;
 struct MPIV_Request;
 
 constexpr mpiv_key mpiv_make_key(const int& rank, const int& tag) {
-    return (((uint64_t) rank << 32) | tag);
+  return (((uint64_t)rank << 32) | tag);
 }
 
 #ifdef USE_TIMING
@@ -29,15 +29,23 @@ static double rdma_timing;
 static int eventSetP;
 static long long t_valueP[3], t0_valueP[3], t1_valueP[3];
 
-#define initt(x) { double x = 0; }
-#define startt(x) { x -= MPIV_Wtime(); }
-#define stopt(x) { x += MPIV_Wtime(); }
-#define resett(x) { x = 0; }
+#define initt(x) \
+  { double x = 0; }
+#define startt(x) \
+  { x -= MPIV_Wtime(); }
+#define stopt(x) \
+  { x += MPIV_Wtime(); }
+#define resett(x) \
+  { x = 0; }
 #else
-#define initt(x) {}
-#define startt(x) {}
-#define stopt(x) {}
-#define resett(x) {}
+#define initt(x) \
+  {}
+#define startt(x) \
+  {}
+#define stopt(x) \
+  {}
+#define resett(x) \
+  {}
 #endif
 
 /** Setup struct and RDMAX */
@@ -46,10 +54,9 @@ using rdmax::device_cq;
 using rdmax::device_memory;
 using rdmax::connection;
 
-typedef boost::interprocess::basic_managed_external_buffer< char,
-     boost::interprocess::rbtree_best_fit< boost::interprocess::mutex_family,
-        void*, 64>,
-     boost::interprocess::iset_index > mbuffer;
-
+typedef boost::interprocess::basic_managed_external_buffer<
+    char, boost::interprocess::rbtree_best_fit<
+              boost::interprocess::mutex_family, void*, 64>,
+    boost::interprocess::iset_index> mbuffer;
 
 #endif

@@ -2,20 +2,16 @@
 #define REQUEST_H_
 
 struct MPIV_Request {
+  inline MPIV_Request(void* buffer_, int size_, int rank_, int tag_)
+      : buffer(buffer_), size(size_), rank(rank_), tag(tag_){};
 
-   inline MPIV_Request(void* buffer_, int size_, int rank_, int tag_) :
-          buffer(buffer_), size(size_), rank(rank_), tag(tag_) {
-    };
+  fult_sync sync;
+  void* buffer;
+  int size;
+  int rank;
+  int tag;
+} __attribute__((aligned(64)));
 
-    fult_sync sync;
-    void* buffer;
-    int size;
-    int rank;
-    int tag;
-} __attribute__ ((aligned (64)));
-
-inline void MPIV_Wait(MPIV_Request& req) {
-    req.sync.wait();
-}
+inline void MPIV_Wait(MPIV_Request& req) { req.sync.wait(); }
 
 #endif

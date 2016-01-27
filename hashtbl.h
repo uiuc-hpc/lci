@@ -24,8 +24,9 @@ class base_hashtbl {
   typedef int hint_type;
 
   virtual void init() = 0;
-  virtual pair<value_type, hint_type> insert(const key_type& key, const value_type& value) = 0;
-  virtual void erase(const key_type& key, hint_type t) = 0; 
+  virtual pair<value_type, hint_type> insert(const key_type& key,
+                                             const value_type& value) = 0;
+  virtual void erase(const key_type& key, hint_type t) = 0;
 };
 
 #ifdef USE_LF
