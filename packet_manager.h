@@ -9,12 +9,10 @@ struct mpiv_packet_header {
   int tag;
 } __attribute__((aligned(8)));
 
-struct mpiv_packet {
-  mpiv_packet_header header;
+struct mpiv_packet_content {
   union {
-    struct {
-      char buffer[SHORT];
-    } egr;
+    char buffer[SHORT];
+    // For rdz.
     struct {
       uintptr_t sreq;
       uintptr_t rreq;
@@ -23,14 +21,56 @@ struct mpiv_packet {
       uint32_t size;
     } rdz;
   };
+};
+
+class mpiv_packet {
+ public:
+  mpiv_packet() {}
+  mpiv_packet_header header;
+
+  inline void set_bytes(void* bytes, const size_t& size) {
+    memcpy(content.buffer, bytes, size);
+  }
+
+  inline char* buffer() {
+    return content.buffer;
+  }
+
+  inline void set_sreq(const uintptr_t& sreq) {
+    content.rdz.sreq = sreq;
+  }
+
+  inline uintptr_t rdz_tgt_addr() {
+    return content.rdz.tgt_addr;
+  }
+
+  inline uintptr_t rdz_sreq() {
+    return content.rdz.sreq;
+  }
+
+  inline uintptr_t rdz_rreq() {
+    return content.rdz.rreq;
+  }
+
+  inline uintptr_t rdz_rkey() {
+    return content.rdz.rkey;
+  }
+  
+  inline void set_rdz(uintptr_t sreq, uintptr_t rreq, uintptr_t tgt_addr,
+    uint32_t rkey, uint32_t size ) {
+    content.rdz = {sreq, rreq, tgt_addr, rkey, size};
+  }
+
+ private:
+  mpiv_packet_content content;
 } __attribute__((aligned(64)));
 
 class packet_manager final {
  public:
   inline mpiv_packet* get_packet() {
     mpiv_packet* packet;
-    if (!squeue_.pop(packet)) {
-      throw new std::runtime_error(
+    if (!pool_.pop(packet)) {
+      throw new packet_error(
           "Not enough buffer, consider increasing concurrency level");
     }
     return packet;
@@ -39,27 +79,31 @@ class packet_manager final {
   inline mpiv_packet* get_packet(mpiv_packet_type packet_type, int rank,
                                  int tag) {
     mpiv_packet* packet = get_packet();
-    packet->header = {packet_type, rank, tag};
+    packet->header.type = packet_type;
+    packet->header.from = rank;
+    packet->header.tag = tag;
     return packet;
   }
 
   inline mpiv_packet* get_packet(char buf[], mpiv_packet_type packet_type,
                                  int rank, int tag) {
     mpiv_packet* packet = reinterpret_cast<mpiv_packet*>(buf);
-    packet->header = {packet_type, rank, tag};
+    packet->header.type = packet_type;
+    packet->header.from = rank;
+    packet->header.tag = tag;
     return packet;
   }
 
   inline void new_packet(mpiv_packet* packet) {
-    if (!squeue_.push(packet)) {
-      throw new std::runtime_error(
+    if (!pool_.push(packet)) {
+      throw new packet_error(
           "Fatal error, insert more than possible packets into manager");
     }
   }
 
  private:
   boost::lockfree::stack<mpiv_packet*, boost::lockfree::capacity<NSBUF>>
-      squeue_;
+      pool_;
 };
 
 #endif

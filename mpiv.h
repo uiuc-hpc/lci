@@ -13,6 +13,9 @@
 #include <malloc.h>
 #include <unistd.h>
 
+#include "fult.h"
+
+#include "except.h"
 #include "rdmax.h"
 #include "request.h"
 #include "hashtbl.h"
@@ -33,6 +36,7 @@ struct mpiv_ctx {
 struct mpiv {
   int me;
   int size;
+  vector<worker> w;
 
   mpiv_ctx ctx;
   packet_manager pk_mgr;
@@ -60,8 +64,8 @@ void mpiv_send_recv_ready(MPIV_Request* sreq, MPIV_Request* rreq) {
   // Need to write them back, setup as a RECV_READY.
   char data[64];
   mpiv_packet* p = MPIV.pk_mgr.get_packet(data, RECV_READY, MPIV.me, rreq->tag);
-  p->rdz = {(uintptr_t)sreq, (uintptr_t)rreq, (uintptr_t)rreq->buffer,
-            MPIV.ctx.heap_rkey, (uint32_t)rreq->size};
+  p->set_rdz((uintptr_t)sreq, (uintptr_t)rreq, (uintptr_t)rreq->buffer,
+            MPIV.ctx.heap_rkey, (uint32_t)rreq->size);
   MPIV.ctx.conn[rreq->rank].write_send((void*)p, 64, 0, 0);
 }
 

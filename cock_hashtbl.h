@@ -21,7 +21,7 @@ class cock_hashtbl : base_hashtbl {
   }
 
  private:
-  cuckoohash_map<mpiv_key, mpiv_value> tbl_;
+  cuckoohash_map<key_type, value_type> tbl_;
 };
 
 #endif

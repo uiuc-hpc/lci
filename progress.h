@@ -6,19 +6,22 @@
 void mpiv_post_recv(mpiv_packet*);
 
 void mpiv_recv_recv_ready(mpiv_packet* p) {
-  MPIV_Request* s = (MPIV_Request*)p->rdz.sreq;
+  MPIV_Request* s = (MPIV_Request*)p->rdz_sreq();
   MPIV.ctx.conn[s->rank].write_rdma(s->buffer, MPIV.ctx.heap_lkey,
-                                    (void*)p->rdz.tgt_addr, p->rdz.rkey,
+                                    (void*)p->rdz_tgt_addr(), p->rdz_rkey(),
                                     s->size, 0);
 
-  p->header = {SEND_READY_FIN, MPIV.me, s->tag};
+  p->header.type = SEND_READY_FIN;
+  p->header.from = MPIV.me;
+  p->header.tag = s->tag;
+
   MPIV.ctx.conn[s->rank].write_send(p, 64, 0, (void*)p);
   mpiv_post_recv(p);
 }
 
 void mpiv_recv_send_ready_fin(mpiv_packet* p_ctx) {
   // Now data is already ready in the buffer.
-  MPIV_Request* req = (MPIV_Request*)p_ctx->rdz.rreq;
+  MPIV_Request* req = (MPIV_Request*)p_ctx->rdz_rreq();
   startt(signal_timing) startt(wake_timing) req->sync.signal();
   stopt(signal_timing) mpiv_post_recv(p_ctx);
 }
@@ -85,19 +88,22 @@ void mpiv_recv_short(mpiv_packet* p) {
   }
   MPIV_Request* req = in_val.request;
 
-  startt(memcpy_timing) memcpy(req->buffer, p->egr.buffer, req->size);
-  stopt(memcpy_timing)
+  startt(memcpy_timing);
+  memcpy(req->buffer, p->buffer(), req->size);
+  stopt(memcpy_timing);
 
-      startt(signal_timing) startt(wake_timing) req->sync.signal();
-  stopt(signal_timing)
+  startt(signal_timing) startt(wake_timing);
+  req->sync.signal();
+  stopt(signal_timing);
 
-      startt(post_timing) mpiv_post_recv(p);
-  stopt(post_timing)
+  startt(post_timing);
+  mpiv_post_recv(p);
+  stopt(post_timing);
 }
 
 void mpiv_recv_send_ready(mpiv_packet* p) {
   mpiv_value remote_val;
-  remote_val.request = (MPIV_Request*)p->rdz.sreq;
+  remote_val.request = (MPIV_Request*)p->rdz_sreq();
 
   mpiv_key key = mpiv_make_key(p->header.from, p->header.tag);
   mpiv_post_recv(p);
@@ -145,7 +151,7 @@ inline void mpiv_serve_send(const ibv_wc& wc) {
   if (!p_ctx) return;
   const auto& type = p_ctx->header.type;
   if (type == SEND_READY_FIN) {
-    MPIV_Request* req = (MPIV_Request*)p_ctx->rdz.sreq;
+    MPIV_Request* req = (MPIV_Request*)p_ctx->rdz_sreq();
     req->sync.signal();
     stopt(rdma_timing);
   } else {

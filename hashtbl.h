@@ -21,7 +21,7 @@ class base_hashtbl {
  public:
   typedef uint64_t key_type;
   typedef mpiv_value value_type;
-  typedef int hint_type;
+  typedef uintptr_t hint_type;
 
   virtual void init() = 0;
   virtual pair<value_type, hint_type> insert(const key_type& key,

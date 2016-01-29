@@ -29,8 +29,7 @@ static double rdma_timing;
 static int eventSetP;
 static long long t_valueP[3], t0_valueP[3], t1_valueP[3];
 
-#define initt(x) \
-  { double x = 0; }
+#define initt(x) double x = 0;
 #define startt(x) \
   { x -= MPIV_Wtime(); }
 #define stopt(x) \

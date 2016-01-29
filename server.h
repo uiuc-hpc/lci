@@ -8,6 +8,8 @@ void mpiv_serve_recv(const ibv_wc& wc);
 void mpiv_serve_send(const ibv_wc& wc);
 void mpiv_post_recv(mpiv_packet*);
 
+double MPIV_Wtime();
+
 struct pinned_pool {
   pinned_pool(void* ptr_) : ptr((uintptr_t)ptr_), last(0) {}
 
@@ -63,6 +65,7 @@ class mpiv_server {
 
     for (int i = 0; i < NSBUF - NPREPOST; i++) {
       mpiv_packet* packet = (mpiv_packet*)sbuf_alloc_->allocate();
+      assert((uintptr_t) packet % 64 == 0);
       pk_mgr.new_packet(packet);
     }
     done_init_ = true;
