@@ -65,7 +65,7 @@ void mpiv_send_recv_ready(MPIV_Request* sreq, MPIV_Request* rreq) {
   char data[64];
   mpiv_packet* p = MPIV.pk_mgr.get_packet(data, RECV_READY, MPIV.me, rreq->tag);
   p->set_rdz((uintptr_t)sreq, (uintptr_t)rreq, (uintptr_t)rreq->buffer,
-            MPIV.ctx.heap_rkey, (uint32_t)rreq->size);
+             MPIV.ctx.heap_rkey, (uint32_t)rreq->size);
   MPIV.ctx.conn[rreq->rank].write_send((void*)p, 64, 0, 0);
 }
 

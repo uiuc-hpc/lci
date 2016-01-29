@@ -16,7 +16,7 @@ void MPIV_Recv(void* buffer, size_t size, int rank, int tag) {
     char data[64];
     mpiv_packet* p = MPIV.pk_mgr.get_packet(data, RECV_READY, MPIV.me, tag);
     p->set_rdz(0, (uintptr_t)&s, (uintptr_t)buffer, MPIV.ctx.heap_rkey,
-              (uint32_t)size);
+               (uint32_t)size);
     MPIV_Send(data, 64, rank, 1 << 31 | tag);
     MPIV_Wait(s);
     stopt(misc_timing);

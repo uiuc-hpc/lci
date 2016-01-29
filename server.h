@@ -65,7 +65,7 @@ class mpiv_server {
 
     for (int i = 0; i < NSBUF - NPREPOST; i++) {
       mpiv_packet* packet = (mpiv_packet*)sbuf_alloc_->allocate();
-      assert((uintptr_t) packet % 64 == 0);
+      assert((uintptr_t)packet % 64 == 0);
       pk_mgr.new_packet(packet);
     }
     done_init_ = true;

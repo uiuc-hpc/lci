@@ -32,32 +32,20 @@ class mpiv_packet {
     memcpy(content.buffer, bytes, size);
   }
 
-  inline char* buffer() {
-    return content.buffer;
-  }
+  inline char* buffer() { return content.buffer; }
 
-  inline void set_sreq(const uintptr_t& sreq) {
-    content.rdz.sreq = sreq;
-  }
+  inline void set_sreq(const uintptr_t& sreq) { content.rdz.sreq = sreq; }
 
-  inline uintptr_t rdz_tgt_addr() {
-    return content.rdz.tgt_addr;
-  }
+  inline uintptr_t rdz_tgt_addr() { return content.rdz.tgt_addr; }
 
-  inline uintptr_t rdz_sreq() {
-    return content.rdz.sreq;
-  }
+  inline uintptr_t rdz_sreq() { return content.rdz.sreq; }
 
-  inline uintptr_t rdz_rreq() {
-    return content.rdz.rreq;
-  }
+  inline uintptr_t rdz_rreq() { return content.rdz.rreq; }
 
-  inline uintptr_t rdz_rkey() {
-    return content.rdz.rkey;
-  }
-  
+  inline uintptr_t rdz_rkey() { return content.rdz.rkey; }
+
   inline void set_rdz(uintptr_t sreq, uintptr_t rreq, uintptr_t tgt_addr,
-    uint32_t rkey, uint32_t size ) {
+                      uint32_t rkey, uint32_t size) {
     content.rdz = {sreq, rreq, tgt_addr, rkey, size};
   }
 
@@ -102,8 +90,7 @@ class packet_manager final {
   }
 
  private:
-  boost::lockfree::stack<mpiv_packet*, boost::lockfree::capacity<NSBUF>>
-      pool_;
+  boost::lockfree::stack<mpiv_packet*, boost::lockfree::capacity<NSBUF>> pool_;
 };
 
 #endif
