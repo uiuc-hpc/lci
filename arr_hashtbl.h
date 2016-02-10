@@ -46,18 +46,13 @@ struct hash_val {
   }
 
   inline void clear() {
-    entry.tag = EMPTY;
-    entry.val = 0;
-  }
-
-  inline void set(uint64_t tag, void* val) {
-    entry.tag = tag;
-    entry.val = val;
+    entry = {EMPTY, 0};
   }
 
   inline void lock() {
     while (control.locked.test_and_set(std::memory_order_acquire)) {
-      ;
+      // Recommended to do this to reduce branch prediction trash.
+      asm volatile("pause\n": : :"memory");
     }
   }
 
@@ -95,7 +90,6 @@ class arr_hashtbl : base_hashtbl {
     uint32_t hash = myhash(key);
     int bucket = hash * TBL_WIDTH;
     int checked_slot = 0;
-    int tried = 0;
 
     auto& master = tbl_[bucket];
     auto* hcontrol = &tbl_[bucket]; 
@@ -103,7 +97,7 @@ class arr_hashtbl : base_hashtbl {
     hash_val* empty_hentry = NULL;
 
     master.lock();
-    while (tried < 4) {
+    while (1) {
       auto tag = hentry->entry.tag;
       // If the key is the same as tag, someone has inserted it.
       if (tag == key) {
@@ -130,20 +124,18 @@ class arr_hashtbl : base_hashtbl {
             hcontrol = hcontrol->control.next;
             empty_hentry = hcontrol + 1;
           }
-          empty_hentry->set(key, value.v);
-          master.unlock();
-          return make_pair(ret, (uintptr_t) empty_hentry);
+          break;
         } else {
           // Otherwise, moving on.
           hcontrol = hcontrol->control.next;
           hentry = hcontrol + 1;
-          tried += 1;
           checked_slot = 0;
         }
       }
     }
+    empty_hentry->entry = {key, value.v};
     master.unlock();
-    throw new hash_table_error("Too many extra slot in the hash table");
+    return make_pair(ret, (uintptr_t) empty_hentry);
   }
 
   void erase(const key_type& key, hint_type hint) override {

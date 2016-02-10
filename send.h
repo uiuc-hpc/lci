@@ -16,6 +16,7 @@ void MPIV_Send(void* buffer, size_t size, int rank, int tag) {
     char data[64];
     MPIV_Request s(buffer, size, rank, tag);
     MPIV_Recv(data, 64, rank, 1 << 31 | tag);
+
     startt(rdma_timing);
     mpiv_packet* p = MPIV.pk_mgr.get_packet(data, SEND_READY_FIN, MPIV.me, tag);
     p->set_sreq((uintptr_t) &s);

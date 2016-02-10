@@ -7,6 +7,8 @@
 
 #include "bitops.h"
 #include "rdmax.h"
+#include "affinity.h"
+#include "profiler.h"
 
 #define DEBUG(x)
 
@@ -24,8 +26,9 @@
 #define fult_wait() \
   { ((fult*)t_ctx)->wait(); }
 
-#define F_STACK_SIZE (8192)
-#define NMASK 1
+#define F_STACK_SIZE (4096)
+#define MAIN_STACK_SIZE (16*1024)
+#define NMASK 2
 #define WORDSIZE (8 * sizeof(long))
 
 #define MEMFENCE asm volatile("" : : : "memory")
@@ -42,8 +45,7 @@ typedef void* fcontext_t;
 
 extern "C" {
 fcontext_t make_fcontext(void* sp, size_t size, void (*thread_func)(intptr_t));
-void* jump_fcontext(fcontext_t* old, fcontext_t, intptr_t arg,
-                    int preserve_fpu);
+void* jump_fcontext(fcontext_t* old, fcontext_t, intptr_t arg);
 }
 
 class fctx {
@@ -52,13 +54,13 @@ class fctx {
     t_ctx = to;
     to->parent_ = this;
     DEBUG(printf("%p --> %p\n", this->myctx_, to->myctx_);)
-    jump_fcontext(&(this->myctx_), to->myctx_, (intptr_t)to, 0);
+    jump_fcontext(&(this->myctx_), to->myctx_, (intptr_t)to);
   }
 
-  inline void swapret() {
+  inline void ret() {
     t_ctx = parent_;
     DEBUG(printf("%p --> %p\n", this, parent_);)
-    jump_fcontext(&(this->myctx_), parent_->myctx_, (intptr_t)parent_, 0);
+    jump_fcontext(&(this->myctx_), parent_->myctx_, (intptr_t)parent_);
   }
 
   inline fctx* parent() { return parent_; }
@@ -84,35 +86,37 @@ class fult : public fctx {
     if (stack != NULL) std::free(stack);
   }
 
-  inline void set(ffunc myfunc, intptr_t data) {
-    if (stack == NULL) stack = std::malloc(F_STACK_SIZE);
+  inline void set(ffunc myfunc, intptr_t data, size_t stack_size) {
+    if (stack == NULL) stack = std::malloc(stack_size);
     myfunc_ = myfunc;
     data_ = data;
     state_ = CREATED;
-    myctx_ = make_fcontext((void*)((uintptr_t)stack + F_STACK_SIZE),
+    myctx_ = make_fcontext((void*)((uintptr_t)stack + stack_size),
                            F_STACK_SIZE, fwrapper);
   }
 
   inline void yield() {
     state_ = YIELD;
-    this->swapret();
+    this->ret();
   }
 
   inline void wait() {
     state_ = BLOCKED;
-    this->swapret();
+    this->ret();
   }
 
   inline void run() {
     (*this->myfunc_)(this->data_);
     // when finish, needs to swap back to the parent.
     this->state_ = INVALID;
-    this->swapret();
+    this->ret();
   }
 
   inline void set_state(fult_state s) { state_ = s; }
 
   inline fult_state state() { return state_; }
+
+  inline bool is_done() { return state_ == INVALID; }
 
   using fctx::swap;
 
@@ -139,33 +143,34 @@ class worker : fctx {
 
     // Reset all mask.
     for (int i = 0; i < NMASK; i++) mask_[i] = 0;
-    mlock((const void*)mask_, NMASK * WORDSIZE);
 
     // Add all free slot.
-    for (int i = 0; i < (int)(NMASK * WORDSIZE); i++) fqueue.push(i);
+    for (int i = (int)(NMASK * WORDSIZE)-1; i>=0; i--) fqueue.push(i);
   }
 
-  inline int spawn(ffunc f, intptr_t data) {
+  inline int spawn(ffunc f, intptr_t data, size_t stack_size = F_STACK_SIZE) {
     int id = -1;
     while (!fqueue.pop(id)) {
       fult_yield();
     }
-    fult_new(id, f, data);
+    fult_new(id, f, data, stack_size);
     return id;
   }
 
-  inline int spawn_to(int tid, ffunc f, intptr_t data) {
+  inline int spawn_to(int tid, ffunc f, intptr_t data, size_t stack_size = F_STACK_SIZE) {
     int id = -1;
     while (fqueue.pop(id)) {
       if (id == tid) break;
       fqueue.push(id);
     }
-    fult_new(id, f, data);
+    fult_new(id, f, data, stack_size);
     return id;
   }
 
   inline void join(int id) {
-    while (lwt_[id].state() != INVALID) {
+    while (!lwt_[id].is_done()) {
+        fult_yield();
+#if 0
       if (t_ctx != NULL && lwt_[id].state() == CREATED) {
         // we directly schedule it here to avoid going back to scheduler.
         deschedule(id);
@@ -180,6 +185,7 @@ class worker : fctx {
         // now returns.
         myid = saved_id;
       }
+#endif
     }
     fqueue.push(id);
   }
@@ -189,28 +195,30 @@ class worker : fctx {
   }
 
   inline void schedule(const int id) {
-    sync_set_bit(id & (WORDSIZE - 1), &mask_[id / WORDSIZE]);
+    sync_set_bit(id & (WORDSIZE - 1), &mask_[id >> 6]);
   }
 
   inline void deschedule(const int id) {
-    sync_clear_bit(id & (WORDSIZE - 1), &mask_[id / WORDSIZE]);
+    sync_clear_bit(id & (WORDSIZE - 1), &mask_[id >> 6]);
   }
 
   inline void start() { w_ = std::thread(wfunc, this); }
+  inline void stop() { stop_ = true; w_.join(); }
 
-  inline void stop() {
-    stop_ = true;
-    w_.join();
+  inline void start_main(ffunc main_task, intptr_t data) {
+    spawn(main_task, data, MAIN_STACK_SIZE);
+    wfunc(this);
   }
 
-  inline bool is_stop() { return stop_; }
+  inline void stop_main() { stop_ = true; }
 
+  inline bool is_stop() { return stop_; }
   static void wfunc(worker*);
 
  protected:
-  inline void fult_new(const int id, ffunc f, intptr_t data) {
+  inline void fult_new(const int id, ffunc f, intptr_t data, size_t stack_size) {
     // add it to the fult.
-    lwt_[id].set(f, data);
+    lwt_[id].set(f, data, stack_size);
 
     // make it schedable.
     schedule(id);
@@ -245,54 +253,51 @@ class worker : fctx {
     }                                                                   \
   }
 
+std::atomic<int> nworker;
+
 void worker::wfunc(worker* w) {
-  uint8_t count = 0;
-  volatile unsigned long& mask = w->mask_[0];
+#ifdef USE_AFFI
+  affinity::set_me_to(nworker++);
+#endif
+
+#ifdef USE_PAPI
+  profiler wp = {PAPI_L1_DCM};
+  wp.start();
+#endif
 
   while (xunlikely(!w->is_stop())) {
-    while (count++ != 0) {
+    for (auto i=0; i<NMASK; i++) {
+      auto& mask = w->mask_[i];
       if (mask > 0) {
-        loop_sched_all(mask, 0);
+        loop_sched_all(mask, i);
       }
     }
-    sched_yield();
   }
+
+#ifdef USE_PAPI
+  wp.stop();
+  wp.print();
+#endif
 }
 
 class fult_sync {
  public:
-  inline void init() {
-    id_ = myid;
-    ctx_ = static_cast<fult*>(t_ctx);
-    if (ctx_ != NULL)
+  inline fult_sync() : ctx_(NULL), parent_(NULL), id_(myid) {
+    if (t_ctx != NULL) {
+      ctx_ = static_cast<fult*>(t_ctx);
       parent_ = reinterpret_cast<worker*>(ctx_->parent());
-    else {
-      parent_ = NULL;
-      flag_ = false;
     }
   }
 
-  inline fult_sync() { init(); };
+  inline bool has_ctx() { return ctx_ != NULL; }
 
   inline void wait() {
-    if ((ctx_) == NULL) {
-      while (!flag_) {
-      };
-      flag_ = false;
-    } else {
-      ctx_->wait();
-    }
+    ctx_->wait();
   }
 
   inline void signal() {
-    if (parent_ == NULL) {
-      flag_ = true;
-    } else {
-      parent_->schedule(id_);
-    }
+    parent_->schedule(id_);
   }
-
-  volatile bool flag_;
 
  private:
   fult* ctx_;

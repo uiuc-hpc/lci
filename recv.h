@@ -15,8 +15,7 @@ void MPIV_Recv(void* buffer, size_t size, int rank, int tag) {
     startt(misc_timing);
     char data[64];
     mpiv_packet* p = MPIV.pk_mgr.get_packet(data, RECV_READY, MPIV.me, tag);
-    p->set_rdz(0, (uintptr_t)&s, (uintptr_t)buffer, MPIV.ctx.heap_rkey,
-              (uint32_t)size);
+    p->set_rdz(0, (uintptr_t)&s, (uintptr_t)buffer, MPIV.ctx.heap_rkey);
     MPIV_Send(data, 64, rank, 1 << 31 | tag);
     MPIV_Wait(s);
     stopt(misc_timing);
@@ -29,18 +28,22 @@ void MPIV_Recv(void* buffer, size_t size, int rank, int tag) {
   auto in_val = p.first;
   stopt(tbl_timing);
 
+  mpiv_packet* p_ctx = NULL;
+
   if (value.v == in_val.v) {
     MPIV_Wait(s);
     stopt(wake_timing);
+    if (size >= SERVER_COPY_SIZE) {
+      p_ctx = (mpiv_packet*) s.buffer;
+    }
   } else {
-    mpiv_packet* p_ctx = in_val.packet;
-    // This is a SHORT.
-    // Parse the buffer.
-    // Message has arrived, go and copy the message.
+    p_ctx = in_val.packet;
+  }
+
+  if (p_ctx) {
     startt(memcpy_timing);
     memcpy(buffer, p_ctx->buffer(), size);
     stopt(memcpy_timing);
-    // Push here because the commthread must have posted a different one.
     startt(post_timing);
     MPIV.pk_mgr.new_packet(p_ctx);
     stopt(post_timing);

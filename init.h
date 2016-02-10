@@ -18,10 +18,25 @@ inline void MPIV_Init(int& argc, char**& args) {
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
+void main_task(intptr_t arg);
+
+void mpiv_main_task(intptr_t arg) {
+  for (size_t i=1; i<MPIV.w.size(); i++) {
+    MPIV.w[i].start();
+  }
+
+  // user-provided.
+  main_task(arg);
+
+  for (size_t i=1; i<MPIV.w.size(); i++) {
+    MPIV.w[i].stop();
+  }
+  MPIV.w[0].stop_main();
+}
+
 inline void MPIV_Init_worker(int nworker) {
   MPIV.w = std::move(std::vector<worker>(nworker));
-  for (auto& w : MPIV.w)
-    w.start();
+  MPIV.w[0].start_main(mpiv_main_task, 0);
 }
 
 template<class ...Ts>
@@ -34,9 +49,6 @@ inline void MPIV_join(int wid, int tid) {
 }
 
 inline void MPIV_Finalize() {
-  for (auto& w : MPIV.w) {
-    w.stop();
-  }
   MPIV.server.finalize();
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();

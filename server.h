@@ -2,7 +2,13 @@
 #define SERVER_H_
 
 #include <thread>
+#include <iostream>
+#include <memory>
 #include "packet_manager.h"
+#include "profiler.h"
+#include "affinity.h"
+
+using std::unique_ptr;
 
 void mpiv_serve_recv(const ibv_wc& wc);
 void mpiv_serve_send(const ibv_wc& wc);
@@ -31,7 +37,7 @@ class mpiv_server {
     std::vector<rdmax::device> devs = rdmax::device::get_devices();
     assert(devs.size() > 0 && "Unable to find any ibv device");
 
-    dev_ctx_ = new device_ctx(devs.back());
+    dev_ctx_ = std::move(std::unique_ptr<device_ctx>(new device_ctx(devs.back())));
     dev_scq_ = std::move(dev_ctx_->create_cq(64 * 1024));
     dev_rcq_ = std::move(dev_ctx_->create_cq(64 * 1024));
 
@@ -43,7 +49,7 @@ class mpiv_server {
     sbuf_ = dev_ctx_->create_memory(sizeof(mpiv_packet) * NSBUF, mr_flags);
     ctx.sbuf_lkey = sbuf_.lkey();
 
-    sbuf_alloc_ = new pinned_pool(sbuf_.ptr());
+    sbuf_alloc_ = std::move(std::unique_ptr<pinned_pool>(new pinned_pool(sbuf_.ptr())));
     heap_ = dev_ctx_->create_memory((size_t)HEAP_SIZE, mr_flags);
 
     ctx.heap_rkey = heap_.rkey();
@@ -55,7 +61,7 @@ class mpiv_server {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     for (int i = 0; i < size; i++) {
-      ctx.conn.emplace_back(&dev_scq_, &dev_rcq_, dev_ctx_, &sbuf_, i);
+      ctx.conn.emplace_back(&dev_scq_, &dev_rcq_, dev_ctx_.get(), &sbuf_, i);
     }
 
     /* PREPOST recv and allocate send queue. */
@@ -65,13 +71,9 @@ class mpiv_server {
 
     for (int i = 0; i < NSBUF - NPREPOST; i++) {
       mpiv_packet* packet = (mpiv_packet*)sbuf_alloc_->allocate();
-      assert((uintptr_t) packet % 64 == 0);
       pk_mgr.new_packet(packet);
     }
     done_init_ = true;
-#if 0
-        eventSetP = PAPI_NULL;
-#endif
   }
 
   inline void post_srq(mpiv_packet* p) {
@@ -79,48 +81,39 @@ class mpiv_server {
                             sbuf_.lkey());
   }
 
-  inline bool progress() {
+  inline bool progress() { //profiler& p, long long& r, long long &s) {
     initt(t);
     startt(t);
-#if 0
-      PAPI_read(eventSetP, t0_valueP);
-#endif
     bool ret =
-        (dev_rcq_.poll_once([](const ibv_wc& wc) { mpiv_serve_recv(wc); }));
-    ret |= (dev_scq_.poll_once([](const ibv_wc& wc) { mpiv_serve_send(wc); }));
+        (dev_rcq_.poll_once([](const ibv_wc& wc) {
+          mpiv_serve_recv(wc);
+        }));
+    ret |= 
+        (dev_scq_.poll_once([](const ibv_wc& wc) {
+          mpiv_serve_send(wc);
+        }));
     stopt(t)
-#if 0
-        PAPI_read(eventSetP, t1_valueP);
-      if (ret) {
-        poll_timing += t;
-        for (int j = 0; j<3; j++) {
-          t_valueP[j] += (t1_valueP[j] - t0_valueP[j]);
-        }
-      }
-#endif
-        return ret;
+    return ret;
   }
 
   inline void serve() {
     poll_thread_ = std::thread([this] {
-#if 0 
-            PAPI_create_eventset(&eventSetP);
-            PAPI_add_event(eventSetP, PAPI_L1_DCM);
-            PAPI_add_event(eventSetP, PAPI_L2_DCM);
-            PAPI_add_event(eventSetP, PAPI_L3_TCM);
-            PAPI_start(eventSetP);
+#ifdef USE_AFFI
+        affinity::set_me_to_last();
 #endif
-      uint8_t freq = 0;
+#ifdef USE_PAPI
+        profiler server({PAPI_L1_DCM});
+        server.start();
+#endif
 
-      while (1) {
+      while (xunlikely(!this->stop_)) {
         while (progress()) {
         };
-        if (freq++ == 0) {
-          if (this->stop_) break;
-        }
       }
-#if 0
-            PAPI_stop(eventSetP, t1_valueP);
+
+#ifdef USE_PAPI
+      server.stop();
+      server.print();
 #endif
     });
   }
@@ -128,22 +121,20 @@ class mpiv_server {
   inline void finalize() {
     stop_ = true;
     poll_thread_.join();
-    delete dev_ctx_;
     sbuf_.finalize();
     heap_.finalize();
-    delete sbuf_alloc_;
   }
 
  private:
   std::thread poll_thread_;
   volatile bool stop_;
   volatile bool done_init_;
-  device_ctx* dev_ctx_;
+  unique_ptr<device_ctx> dev_ctx_;
   device_cq dev_scq_;
   device_cq dev_rcq_;
   device_memory sbuf_;
   device_memory heap_;
-  pinned_pool* sbuf_alloc_;
+  unique_ptr<pinned_pool> sbuf_alloc_;
 };
 
 #endif

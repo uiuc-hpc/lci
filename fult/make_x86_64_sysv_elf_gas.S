@@ -45,21 +45,21 @@ make_fcontext:
     /* reserve space for context-data on context-stack */
     /* size for fc_mxcsr .. RIP + return-address for context-function */
     /* on context-function entry: (RSP -0x8) % 16 == 0 */
-    leaq  -0x48(%rax), %rax
+    leaq  -0x40(%rax), %rax
 
     /* third arg of make_fcontext() == address of context-function */
-    movq  %rdx, 0x38(%rax)
+    movq  %rdx, 0x30(%rax)
 
     /* save MMX control- and status-word */
-    stmxcsr  (%rax)
+    // stmxcsr  (%rax)
     /* save x87 control-word */
-    fnstcw   0x4(%rax)
+    // fnstcw   0x4(%rax)
 
     /* compute abs address of label finish */
     leaq  finish(%rip), %rcx
     /* save address of finish as return-address for context-function */
     /* will be entered after context-function returns */
-    movq  %rcx, 0x40(%rax)
+    movq  %rcx, 0x38(%rax)
 
     ret /* return pointer to context-data */
 

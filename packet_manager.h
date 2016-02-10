@@ -18,7 +18,6 @@ struct mpiv_packet_content {
       uintptr_t rreq;
       uintptr_t tgt_addr;
       uint32_t rkey;
-      uint32_t size;
     } rdz;
   };
 };
@@ -57,8 +56,8 @@ class mpiv_packet {
   }
   
   inline void set_rdz(uintptr_t sreq, uintptr_t rreq, uintptr_t tgt_addr,
-    uint32_t rkey, uint32_t size ) {
-    content.rdz = {sreq, rreq, tgt_addr, rkey, size};
+    uint32_t rkey) {
+    content.rdz = {sreq, rreq, tgt_addr, rkey};
   }
 
  private:
@@ -70,7 +69,7 @@ class packet_manager final {
   inline mpiv_packet* get_packet() {
     mpiv_packet* packet;
     if (!pool_.pop(packet)) {
-      throw new packet_error(
+      throw packet_error(
           "Not enough buffer, consider increasing concurrency level");
     }
     return packet;
@@ -79,24 +78,20 @@ class packet_manager final {
   inline mpiv_packet* get_packet(mpiv_packet_type packet_type, int rank,
                                  int tag) {
     mpiv_packet* packet = get_packet();
-    packet->header.type = packet_type;
-    packet->header.from = rank;
-    packet->header.tag = tag;
+    packet->header = {packet_type, rank, tag};
     return packet;
   }
 
   inline mpiv_packet* get_packet(char buf[], mpiv_packet_type packet_type,
                                  int rank, int tag) {
     mpiv_packet* packet = reinterpret_cast<mpiv_packet*>(buf);
-    packet->header.type = packet_type;
-    packet->header.from = rank;
-    packet->header.tag = tag;
+    packet->header = {packet_type, rank, tag};
     return packet;
   }
 
   inline void new_packet(mpiv_packet* packet) {
     if (!pool_.push(packet)) {
-      throw new packet_error(
+      throw packet_error(
           "Fatal error, insert more than possible packets into manager");
     }
   }
