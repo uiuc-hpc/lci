@@ -62,8 +62,7 @@ struct hash_val {
 inline hash_val* create_table(size_t num_rows) {
   hash_val* ret = 0;
   // Aligned cache line.
-  posix_memalign((void**)&(ret), 64,
-                 num_rows * TBL_WIDTH * sizeof(hash_val));
+  posix_memalign((void**)&(ret), 64, num_rows * TBL_WIDTH * sizeof(hash_val));
 
   // Initialize all with EMPTY and clear lock.
   for (size_t i = 0; i < num_rows; i++) {
@@ -92,7 +91,7 @@ class arr_hashtbl : base_hashtbl {
     int checked_slot = 0;
 
     auto& master = tbl_[bucket];
-    auto* hcontrol = &tbl_[bucket]; 
+    auto* hcontrol = &tbl_[bucket];
     auto* hentry = hcontrol + 1;
     hash_val* empty_hentry = NULL;
 
@@ -103,7 +102,7 @@ class arr_hashtbl : base_hashtbl {
       if (tag == key) {
         ret.v = hentry->entry.val;
         master.unlock();
-        return make_pair(ret, (uintptr_t) hentry);
+        return make_pair(ret, (uintptr_t)hentry);
       } else if (tag == EMPTY) {
         // Ortherwise, if the tag is empty, we record the slot.
         // We can't return until we go over all entries.
@@ -142,7 +141,7 @@ class arr_hashtbl : base_hashtbl {
     uint32_t hash = myhash(key);
 
     int bucket = hash * TBL_WIDTH;
-    auto* hentry = (hash_val*) hint;
+    auto* hentry = (hash_val*)hint;
     tbl_[bucket].lock();
     hentry->clear();
     tbl_[bucket].unlock();

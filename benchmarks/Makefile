@@ -4,7 +4,8 @@ TARGET = yield wait abt_yield abt_wait fibo abt_fibo fair \
 
 MPICXX = mpicxx
 GXX = gcc
-CXXFLAGS = -g3 -O3 -Wall -Wextra -I../fult -I../
+CXXFLAGS += -g3 -O3 -Wall -Wextra -I../fult -I../\
+		#-DNDEBUG
 
 LDFLAGS = -L/opt/ofed/lib64 -libverbs
 
@@ -25,7 +26,8 @@ MFCONTEXT = ../fult/make_x86_64_sysv_elf_gas.S
 
 CXXFLAGS_NOBOOST = -I$(ABT_INC)
 
-CXXFLAGS += -I$(BOOST_INC) -I$(ABT_INC) -I$(CUCKOO_INC) -I$(RDMAX_INC) -I$(IBV_INC)
+CXXFLAGS += -I$(BOOST_INC) -I$(ABT_INC) -I$(CUCKOO_INC) -I$(RDMAX_INC) -I$(IBV_INC) -I$(TACC_PAPI_INC)
+LDFLAGS += -L$(TACC_PAPI_LIB) -lpapi
 
 all: $(TARGET)
 

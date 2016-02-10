@@ -39,14 +39,12 @@ inline void MPIV_Init_worker(int nworker) {
   MPIV.w[0].start_main(mpiv_main_task, 0);
 }
 
-template<class ...Ts>
+template <class... Ts>
 inline int MPIV_spawn(int wid, Ts... params) {
   return MPIV.w[wid].spawn(params...);
 }
 
-inline void MPIV_join(int wid, int tid) {
-  MPIV.w[wid].join(tid);
-}
+inline void MPIV_join(int wid, int tid) { MPIV.w[wid].join(tid); }
 
 inline void MPIV_Finalize() {
   MPIV.server.finalize();
