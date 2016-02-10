@@ -17,14 +17,14 @@
 
 #define fult_yield()           \
   {                            \
-    if (t_ctx != NULL)         \
-      ((fult*)t_ctx)->yield(); \
+    if (cur_fult != NULL)      \
+      cur_fult->yield(); \
     else                       \
       sched_yield();           \
   }
 
 #define fult_wait() \
-  { ((fult*)t_ctx)->wait(); }
+  { cur_fult->wait(); }
 
 #define F_STACK_SIZE (4096)
 #define MAIN_STACK_SIZE (16*1024)
@@ -36,10 +36,9 @@
 typedef void (*ffunc)(intptr_t);
 static void fwrapper(intptr_t);
 
-class fctx;
-
-__thread fctx* t_ctx = NULL;
-__thread int myid;
+class fult;
+class worker;
+__thread fult* cur_fult = NULL;
 
 typedef void* fcontext_t;
 
@@ -48,24 +47,16 @@ fcontext_t make_fcontext(void* sp, size_t size, void (*thread_func)(intptr_t));
 void* jump_fcontext(fcontext_t* old, fcontext_t, intptr_t arg);
 }
 
-class fctx {
- public:
-  inline void swap(fctx* to) {
-    t_ctx = to;
+struct fctx {
+  inline void swap(fctx* to, intptr_t args) {
     to->parent_ = this;
-    DEBUG(printf("%p --> %p\n", this->myctx_, to->myctx_);)
-    jump_fcontext(&(this->myctx_), to->myctx_, (intptr_t)to);
+    jump_fcontext(&(this->myctx_), to->myctx_, (intptr_t)args);
   }
 
   inline void ret() {
-    t_ctx = parent_;
-    DEBUG(printf("%p --> %p\n", this, parent_);)
-    jump_fcontext(&(this->myctx_), parent_->myctx_, (intptr_t)parent_);
+    jump_fcontext(&(this->myctx_), parent_->myctx_, 0);
   }
 
-  inline fctx* parent() { return parent_; }
-
- protected:
   fctx* parent_;
   fcontext_t myctx_;
 };
@@ -78,129 +69,50 @@ enum fult_state {
   BLOCKED
 };
 
-class fult : public fctx {
+class fult {
  public:
   fult() : state_(INVALID), stack(NULL) {}
-
   ~fult() {
     if (stack != NULL) std::free(stack);
   }
-
-  inline void set(ffunc myfunc, intptr_t data, size_t stack_size) {
-    if (stack == NULL) stack = std::malloc(stack_size);
-    myfunc_ = myfunc;
-    data_ = data;
-    state_ = CREATED;
-    myctx_ = make_fcontext((void*)((uintptr_t)stack + stack_size),
-                           F_STACK_SIZE, fwrapper);
+  inline void init(worker* origin, int id) {
+    origin_ = origin;
+    id_ = id;
   }
 
-  inline void yield() {
-    state_ = YIELD;
-    this->ret();
-  }
+  inline void set(ffunc myfunc, intptr_t data, size_t stack_size);
+  inline void yield();
+  inline void wait();
+  inline void resume();
 
-  inline void wait() {
-    state_ = BLOCKED;
-    this->ret();
-  }
-
-  inline void run() {
-    (*this->myfunc_)(this->data_);
-    // when finish, needs to swap back to the parent.
-    this->state_ = INVALID;
-    this->ret();
-  }
-
-  inline void set_state(fult_state s) { state_ = s; }
-
+  inline void start();
   inline fult_state state() { return state_; }
-
   inline bool is_done() { return state_ == INVALID; }
-
-  using fctx::swap;
+  inline fctx* ctx() { return &ctx_; }
 
  private:
+  worker* origin_;
+  int id_;
+  volatile fult_state state_;
+  fctx ctx_;
+
   ffunc myfunc_;
   intptr_t data_;
-  volatile fult_state state_;
   void* stack;
 
-} __attribute__((aligned(8)));
+} __attribute__((aligned(64)));
 
-static void fwrapper(intptr_t f) {
-  fult* ff = (fult*)f;
-  ff->run();
-}
+typedef fult* fult_t;
 
-class worker : fctx {
+class worker {
  public:
-  worker() {
-    // allocator.allocate(stack, F_STACK_SIZE);
-    // stack = malloc(F_STACK_SIZE);
-    // myctx_ = make_fcontext(stack, F_STACK_SIZE, fwrapper);
-    stop_ = false;
+  inline worker();
+  inline fult_t spawn(ffunc f, intptr_t data, size_t stack_size = F_STACK_SIZE);
+  inline fult_t spawn_to(int tid, ffunc f, intptr_t data, size_t stack_size = F_STACK_SIZE);
 
-    // Reset all mask.
-    for (int i = 0; i < NMASK; i++) mask_[i] = 0;
-
-    // Add all free slot.
-    for (int i = (int)(NMASK * WORDSIZE)-1; i>=0; i--) fqueue.push(i);
-  }
-
-  inline int spawn(ffunc f, intptr_t data, size_t stack_size = F_STACK_SIZE) {
-    int id = -1;
-    while (!fqueue.pop(id)) {
-      fult_yield();
-    }
-    fult_new(id, f, data, stack_size);
-    return id;
-  }
-
-  inline int spawn_to(int tid, ffunc f, intptr_t data, size_t stack_size = F_STACK_SIZE) {
-    int id = -1;
-    while (fqueue.pop(id)) {
-      if (id == tid) break;
-      fqueue.push(id);
-    }
-    fult_new(id, f, data, stack_size);
-    return id;
-  }
-
-  inline void join(int id) {
-    while (!lwt_[id].is_done()) {
-        fult_yield();
-#if 0
-      if (t_ctx != NULL && lwt_[id].state() == CREATED) {
-        // we directly schedule it here to avoid going back to scheduler.
-        deschedule(id);
-
-        // save the old value so we can switch back to it.
-        int saved_id = myid;
-        myid = id;
-
-        // really switch ctx.
-        t_ctx->swap(&lwt_[id]);
-
-        // now returns.
-        myid = saved_id;
-      }
-#endif
-    }
-    fqueue.push(id);
-  }
-
-  inline void set_state(const int id, fult_state state) {
-    lwt_[id].set_state(state);
-  }
-
-  inline void schedule(const int id) {
-    sync_set_bit(id & (WORDSIZE - 1), &mask_[id >> 6]);
-  }
-
-  inline void deschedule(const int id) {
-    sync_clear_bit(id & (WORDSIZE - 1), &mask_[id >> 6]);
-  }
+  inline void join(fult_t f);
+  inline void fin(int id) { tid_poll.push(id); }
+  inline void schedule(const int id);
 
   inline void start() { w_ = std::thread(wfunc, this); }
   inline void stop() { stop_ = true; w_.join(); }
@@ -209,38 +121,123 @@ class worker : fctx {
     spawn(main_task, data, MAIN_STACK_SIZE);
     wfunc(this);
   }
-
   inline void stop_main() { stop_ = true; }
 
   inline bool is_stop() { return stop_; }
-  static void wfunc(worker*);
 
- protected:
-  inline void fult_new(const int id, ffunc f, intptr_t data, size_t stack_size) {
-    // add it to the fult.
-    lwt_[id].set(f, data, stack_size);
-
-    // make it schedable.
-    schedule(id);
+  inline void work(fult* f) {
+    cur_fult = f;
+    ctx_.swap(f->ctx(), (intptr_t) f);
+    cur_fult = NULL;
   }
 
+  static void wfunc(worker*);
+
  private:
+  inline fult_t fult_new(const int id, ffunc f, intptr_t data, size_t stack_size);
+  
+  fctx ctx_;
+  fult lwt_[WORDSIZE * NMASK];
+
   volatile unsigned long mask_[NMASK];
   volatile bool stop_;
-  fult lwt_[WORDSIZE * NMASK];
+
   std::thread w_;
-  void* stack;
 
   // TODO(danghvu): this is temporary, but it is most generic.
   boost::lockfree::stack<uint8_t, boost::lockfree::capacity<WORDSIZE * NMASK>>
-      fqueue;
-};
+      tid_poll;
+} __attribute__((aligned(64)));
+
+void fult::set(ffunc myfunc, intptr_t data, size_t stack_size) {
+  if (stack == NULL) stack = std::malloc(stack_size);
+  myfunc_ = myfunc;
+  data_ = data;
+  state_ = CREATED;
+  ctx_.myctx_ = make_fcontext((void*)((uintptr_t)stack + stack_size),
+      F_STACK_SIZE, fwrapper);
+}
+
+void fult::yield() {
+  state_ = YIELD;
+  ctx_.ret();
+}
+
+void fult::wait() {
+  state_ = BLOCKED;
+  ctx_.ret();
+}
+
+void fult::resume() {
+  origin_->schedule(id_);
+}
+
+void fult::start() {
+  (*this->myfunc_)(this->data_);
+  // when finish, needs to swap back to the parent.
+  this->state_ = INVALID;
+  origin_->fin(id_);
+  ctx_.ret();
+}
+
+static void fwrapper(intptr_t args) {
+  fult* ff = (fult*) args;
+  ff->start();
+}
+
+worker::worker() {
+  stop_ = false;
+  // Reset all mask.
+  for (int i = 0; i < NMASK; i++) mask_[i] = 0;
+  // Add all free slot.
+  for (int i = (int)(NMASK * WORDSIZE)-1; i>=0; i--) { 
+    tid_poll.push(i);
+    lwt_[i].init(this, i);
+  }
+}
+
+fult_t worker::spawn(ffunc f, intptr_t data, size_t stack_size) {
+  int id = -1;
+  while (!tid_poll.pop(id)) {
+    fult_yield();
+  }
+  return fult_new(id, f, data, stack_size);
+}
+
+fult_t worker::spawn_to(int tid, ffunc f, intptr_t data, size_t stack_size) {
+  int id = -1;
+  while (tid_poll.pop(id)) {
+    if (id == tid) break;
+    tid_poll.push(id);
+  }
+  return fult_new(id, f, data, stack_size);
+}
+
+void worker::join(fult* f) {
+  while (!f->is_done()) {
+    fult_yield();
+  }
+}
+
+void worker::schedule(const int id) {
+  sync_set_bit(id & (WORDSIZE - 1), &mask_[id >> 6]);
+}
+
+fult_t worker::fult_new(const int id, ffunc f, intptr_t data, size_t stack_size) {
+  // add it to the fult.
+  lwt_[id].set(f, data, stack_size);
+
+  // make it schedable.
+  schedule(id);
+
+  return (fult_t) &lwt_[id];
+}
 
 #define doschedule(i)                                              \
   {                                                                \
-    myid = i * WORDSIZE + id;                                      \
-    if (w->lwt_[myid].state() != INVALID) w->swap(&w->lwt_[myid]); \
-    if (w->lwt_[myid].state() == YIELD) w->schedule(myid);         \
+    fult* f = &w->lwt_[(i << 6) + id]; \
+    if (f->state() != INVALID) w->work(f); \
+    if (f->state() == YIELD) f->resume();  \
   }
 
 #define loop_sched_all(mask, i)                                         \
@@ -282,11 +279,9 @@ void worker::wfunc(worker* w) {
 
 class fult_sync {
  public:
-  inline fult_sync() : ctx_(NULL), parent_(NULL), id_(myid) {
-    if (t_ctx != NULL) {
-      ctx_ = static_cast<fult*>(t_ctx);
-      parent_ = reinterpret_cast<worker*>(ctx_->parent());
-    }
+  inline fult_sync() {
+    if (cur_fult != NULL)
+      ctx_ = cur_fult;
   }
 
   inline bool has_ctx() { return ctx_ != NULL; }
@@ -296,13 +291,11 @@ class fult_sync {
   }
 
   inline void signal() {
-    parent_->schedule(id_);
+    ctx_->resume();
   }
 
  private:
   fult* ctx_;
-  worker* parent_;
-  int id_;
 
 } __attribute__((aligned));
 

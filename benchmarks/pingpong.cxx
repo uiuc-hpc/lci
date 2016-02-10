@@ -95,7 +95,7 @@ void main_task(intptr_t arg) {
   start = (double *) std::malloc(total_threads * sizeof(double));
   end = (double *) std::malloc(total_threads * sizeof(double));
   alldata = (void*) mpiv_malloc((size_t) MAX_MSG_SIZE*total_threads);
-  int* threads = (int*) malloc(sizeof(int) * total_threads);
+  fult_t* threads = (fult_t*) malloc(sizeof(fult_t) * total_threads);
 
   for (SIZE=MIN_MSG_SIZE; SIZE<=MAX_MSG_SIZE; SIZE<<=1) {
     memset(alldata, 'a', SIZE * total_threads);
@@ -147,7 +147,7 @@ void main_task(intptr_t arg) {
         MPIV_Recv(0, 0, 0, total_threads + 1);
         // MPIV_Send(0, 0, 0, total_threads + 2);
 
-        int tid = MPIV_spawn(0, send_comm, 0);
+        fult_t tid = MPIV_spawn(0, send_comm, 0);
         MPIV_join(0, tid);
       }
       times = MPIV_Wtime() - times;
