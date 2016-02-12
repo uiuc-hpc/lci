@@ -13,8 +13,10 @@ inline void MPIV_Init(int& argc, char**& args) {
   MPI_Init(&argc, &args);
   MPIV.tbl.init();
   mpiv_progress_init();
+
   MPIV.server.init(MPIV.ctx, MPIV.pk_mgr, MPIV.me, MPIV.size);
   MPIV.server.serve();
+
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
@@ -40,11 +42,11 @@ inline void MPIV_Init_worker(int nworker) {
 }
 
 template <class... Ts>
-inline int MPIV_spawn(int wid, Ts... params) {
+inline fult_t MPIV_spawn(int wid, Ts... params) {
   return MPIV.w[wid].spawn(params...);
 }
 
-inline void MPIV_join(int wid, int tid) { MPIV.w[wid].join(tid); }
+inline void MPIV_join(int wid, fult_t t) { MPIV.w[wid].join(t); }
 
 inline void MPIV_Finalize() {
   MPIV.server.finalize();

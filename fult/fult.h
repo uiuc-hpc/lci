@@ -2,13 +2,20 @@
 #define _FULT_H_
 
 #include <atomic>
+#include <thread>
 #include <boost/lockfree/stack.hpp>
+#include <boost/coroutine/stack_allocator.hpp>
+#include <boost/coroutine/stack_context.hpp>
+
 #include <sys/mman.h>
 
 #include "bitops.h"
 #include "rdmax.h"
 #include "affinity.h"
 #include "profiler.h"
+
+using boost::coroutines::stack_allocator;
+using boost::coroutines::stack_context;
 
 #define DEBUG(x)
 
@@ -17,14 +24,14 @@
 
 #define fult_yield()           \
   {                            \
-    if (cur_fult != NULL)      \
-      cur_fult->yield(); \
+    if (__fulting != NULL)      \
+      __fulting->yield(); \
     else                       \
       sched_yield();           \
   }
 
 #define fult_wait() \
-  { cur_fult->wait(); }
+  { __fulting->wait(); }
 
 #define F_STACK_SIZE (4096)
 #define MAIN_STACK_SIZE (16*1024)
@@ -38,7 +45,7 @@ static void fwrapper(intptr_t);
 
 class fult;
 class worker;
-__thread fult* cur_fult = NULL;
+__thread fult* __fulting = NULL;
 
 typedef void* fcontext_t;
 
@@ -69,15 +76,21 @@ enum fult_state {
   BLOCKED
 };
 
+static stack_allocator fult_stack;
+
 class fult {
  public:
   fult() : state_(INVALID), stack(NULL) {}
   ~fult() {
-    if (stack != NULL) std::free(stack);
+    if (stack != NULL) { 
+      fult_stack.deallocate(*stack);
+      free(stack);
+    }
   }
   inline void init(worker* origin, int id) {
     origin_ = origin;
     id_ = id;
+    stack = NULL;
   }
 
   inline void set(ffunc myfunc, intptr_t data, size_t stack_size);
@@ -98,7 +111,7 @@ class fult {
 
   ffunc myfunc_;
   intptr_t data_;
-  void* stack;
+  stack_context* stack;
 
 } __attribute__((aligned(64)));
 
@@ -106,29 +119,44 @@ typedef fult* fult_t;
 
 class worker {
  public:
-  inline worker();
-  inline fult_t spawn(ffunc f, intptr_t data, size_t stack_size = F_STACK_SIZE);
-  inline fult_t spawn_to(int tid, ffunc f, intptr_t data, size_t stack_size = F_STACK_SIZE);
+  inline worker() : stop_(true) {};
+
+  inline void init() {
+    stop_ = false;
+    // Reset all mask.
+    for (int i = 0; i < NMASK; i++) mask_[i] = 0;
+    // Add all free slot.
+    memset(lwt_, 0, sizeof(fult) * (NMASK * WORDSIZE));
+
+    for (int i = (int)(NMASK * WORDSIZE)-1; i>=0; i--) { 
+      tid_poll.push(i);
+      lwt_[i].init(this, i);
+    }
+  }
+
+  inline fult_t spawn(
+    ffunc f, intptr_t data, size_t stack_size = F_STACK_SIZE);
+  inline fult_t spawn_to(
+    int tid, ffunc f, intptr_t data, size_t stack_size = F_STACK_SIZE);
 
   inline void join(fult_t f);
   inline void fin(int id) { tid_poll.push(id); }
   inline void schedule(const int id);
 
-  inline void start() { w_ = std::thread(wfunc, this); }
+  inline void start() { w_ = std::thread(wfunc, this); while (stop_) {}; }
   inline void stop() { stop_ = true; w_.join(); }
 
   inline void start_main(ffunc main_task, intptr_t data) {
+    init();
     spawn(main_task, data, MAIN_STACK_SIZE);
     wfunc(this);
   }
   inline void stop_main() { stop_ = true; }
 
-  inline bool is_stop() { return stop_; }
-
   inline void work(fult* f) {
-    cur_fult = f;
+    __fulting = f;
     ctx_.swap(f->ctx(), (intptr_t) f);
-    cur_fult = NULL;
+    __fulting = NULL;
   }
 
   static void wfunc(worker*);
@@ -149,13 +177,16 @@ class worker {
       tid_poll;
 } __attribute__((aligned(64)));
 
+
 void fult::set(ffunc myfunc, intptr_t data, size_t stack_size) {
-  if (stack == NULL) stack = std::malloc(stack_size);
+  if (stack == NULL) {
+    stack = new stack_context();
+    fult_stack.allocate(*stack, stack_size);
+  }
   myfunc_ = myfunc;
   data_ = data;
   state_ = CREATED;
-  ctx_.myctx_ = make_fcontext((void*)((uintptr_t)stack + stack_size),
-      F_STACK_SIZE, fwrapper);
+  ctx_.myctx_ = make_fcontext(stack->sp, stack->size, fwrapper);
 }
 
 void fult::yield() {
@@ -183,17 +214,6 @@ void fult::start() {
 static void fwrapper(intptr_t args) {
   fult* ff = (fult*) args;
   ff->start();
-}
-
-worker::worker() {
-  stop_ = false;
-  // Reset all mask.
-  for (int i = 0; i < NMASK; i++) mask_[i] = 0;
-  // Add all free slot.
-  for (int i = (int)(NMASK * WORDSIZE)-1; i>=0; i--) { 
-    tid_poll.push(i);
-    lwt_[i].init(this, i);
-  }
 }
 
 fult_t worker::spawn(ffunc f, intptr_t data, size_t stack_size) {
@@ -250,19 +270,21 @@ fult_t worker::fult_new(const int id, ffunc f, intptr_t data, size_t stack_size)
     }                                                                   \
   }
 
-std::atomic<int> nworker;
+std::atomic<int> fult_nworker;
 
 void worker::wfunc(worker* w) {
 #ifdef USE_AFFI
-  affinity::set_me_to(nworker++);
+  affinity::set_me_to(fult_nworker++);
 #endif
+
+  if (w->stop_) w->init();
 
 #ifdef USE_PAPI
   profiler wp = {PAPI_L1_DCM};
   wp.start();
 #endif
 
-  while (xunlikely(!w->is_stop())) {
+  while (xunlikely(!w->stop_)) {
     for (auto i=0; i<NMASK; i++) {
       auto& mask = w->mask_[i];
       if (mask > 0) {
@@ -276,27 +298,5 @@ void worker::wfunc(worker* w) {
   wp.print();
 #endif
 }
-
-class fult_sync {
- public:
-  inline fult_sync() {
-    if (cur_fult != NULL)
-      ctx_ = cur_fult;
-  }
-
-  inline bool has_ctx() { return ctx_ != NULL; }
-
-  inline void wait() {
-    ctx_->wait();
-  }
-
-  inline void signal() {
-    ctx_->resume();
-  }
-
- private:
-  fult* ctx_;
-
-} __attribute__((aligned));
 
 #endif

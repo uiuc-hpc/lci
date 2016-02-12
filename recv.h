@@ -13,10 +13,11 @@ void MPIV_Recv(void* buffer, size_t size, int rank, int tag) {
   if ((size_t)size > SHORT) {
     // RDNZ protocol, use SEND + WAIT.
     startt(misc_timing);
-    char data[64];
-    mpiv_packet* p = MPIV.pk_mgr.get_packet(data, RECV_READY, MPIV.me, tag);
+    char data[sizeof(mpiv_rdz) + sizeof(mpiv_packet_header)];
+    mpiv_packet* p = (mpiv_packet*) data; //MPIV.pk_mgr.get_packet(data, RECV_READY, MPIV.me, tag);
+    p->set_header(RECV_READY, MPIV.me, tag);
     p->set_rdz(0, (uintptr_t)&s, (uintptr_t)buffer, MPIV.ctx.heap_rkey);
-    MPIV_Send(data, 64, rank, 1 << 31 | tag);
+    MPIV_Send(data, sizeof(mpiv_rdz) + sizeof(mpiv_packet_header), rank, 1 << 31 | tag);
     MPIV_Wait(s);
     stopt(misc_timing);
     return;

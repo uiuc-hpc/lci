@@ -11,17 +11,15 @@ void mpiv_recv_recv_ready(mpiv_packet* p) {
                                     (void*)p->rdz_tgt_addr(), p->rdz_rkey(),
                                     s->size, 0);
 
-  p->header.type = SEND_READY_FIN;
-  p->header.from = MPIV.me;
-  p->header.tag = s->tag;
+  p->set_header(SEND_READY_FIN, MPIV.me, s->tag);
 
-  MPIV.ctx.conn[s->rank].write_send(p, 64, 0, (void*)p);
+  MPIV.ctx.conn[s->rank].write_send_imm(p, sizeof(mpiv_rdz) + sizeof(mpiv_packet_header), 0, (void*)p, SEND_READY_FIN);
   mpiv_post_recv(p);
 }
 
 void mpiv_recv_send_ready_fin(mpiv_packet* p_ctx) {
   // Now data is already ready in the buffer.
-  MPIV_Request* req = (MPIV_Request*)p_ctx->rdz_rreq();
+  MPIV_Request* req = (MPIV_Request*)(p_ctx->rdz_rreq());
   startt(signal_timing);
   startt(wake_timing);
   MPIV_Signal(req);
@@ -72,9 +70,7 @@ std::atomic<int> prepost;
 
 void mpiv_recv_short(mpiv_packet* p) {
   startt(misc_timing);
-  const int rank = p->header.from;
-  const int tag = p->header.tag;
-  const mpiv_key key = mpiv_make_key(rank, tag);
+  const mpiv_key key = p->get_key();
   mpiv_value value;
   value.packet = p;
   stopt(misc_timing);
@@ -89,8 +85,7 @@ void mpiv_recv_short(mpiv_packet* p) {
     if (req->size >= SERVER_COPY_SIZE)  {
       req->buffer = (void*) p;
       MPIV_Signal(req);
-    }
-    else {
+    } else {
       memcpy(req->buffer, p->buffer(), req->size);
       MPIV_Signal(req);
       mpiv_post_recv(p);
@@ -122,7 +117,7 @@ void mpiv_recv_send_ready(mpiv_packet* p) {
   mpiv_value remote_val;
   remote_val.request = (MPIV_Request*)p->rdz_sreq();
 
-  mpiv_key key = mpiv_make_key(p->header.from, p->header.tag);
+  mpiv_key key = p->get_key(); //mpiv_make_key(p->header.from, p->header.tag);
   mpiv_post_recv(p);
 
   startt(tbl_timing);
@@ -151,7 +146,7 @@ static void mpiv_progress_init() {
 
 inline void mpiv_serve_recv(const ibv_wc& wc) {
   mpiv_packet* p_ctx = (mpiv_packet*)wc.wr_id;
-  const auto& type = p_ctx->header.type;
+  const auto& type = p_ctx->header().type;
   handle[type](p_ctx);
 }
 
@@ -159,7 +154,8 @@ inline void mpiv_serve_send(const ibv_wc& wc) {
   // Nothing to process, return.
   mpiv_packet* p_ctx = (mpiv_packet*)wc.wr_id;
   if (!p_ctx) return;
-  const auto& type = p_ctx->header.type;
+  const auto& type = p_ctx->header().type;
+
   if (type == SEND_READY_FIN) {
     MPIV_Request* req = (MPIV_Request*)p_ctx->rdz_sreq();
     MPIV_Signal(req);

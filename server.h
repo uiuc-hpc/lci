@@ -4,6 +4,7 @@
 #include <thread>
 #include <iostream>
 #include <memory>
+
 #include "packet_manager.h"
 #include "profiler.h"
 #include "affinity.h"
@@ -34,6 +35,10 @@ class mpiv_server {
 
   inline void init(mpiv_ctx& ctx, packet_manager& pk_mgr, int& rank,
                    int& size) {
+#ifdef USE_AFFI
+    affinity::set_me_to(0);
+#endif
+
     std::vector<rdmax::device> devs = rdmax::device::get_devices();
     assert(devs.size() > 0 && "Unable to find any ibv device");
 
@@ -101,6 +106,7 @@ class mpiv_server {
 #ifdef USE_AFFI
         affinity::set_me_to_last();
 #endif
+
 #ifdef USE_PAPI
         profiler server({PAPI_L1_DCM});
         server.start();

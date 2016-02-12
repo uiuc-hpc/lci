@@ -1,55 +1,68 @@
 #ifndef PACKET_MANAGER_H_
 #define PACKET_MANAGER_H_
 
+#include "common.h"
+
 enum mpiv_packet_type { SEND_SHORT, SEND_READY, RECV_READY, SEND_READY_FIN };
 
 struct mpiv_packet_header {
   mpiv_packet_type type;
   int from;
   int tag;
-} __attribute__((aligned(8)));
+} __attribute__((aligned(16)));
 
-struct mpiv_packet_content {
-  union {
-    char buffer[SHORT];
-    // For rdz.
-    struct {
-      uintptr_t sreq;
-      uintptr_t rreq;
-      uintptr_t tgt_addr;
-      uint32_t rkey;
-    } rdz;
-  };
+struct mpiv_rdz {
+  uintptr_t sreq;
+  uintptr_t rreq;
+  uintptr_t tgt_addr;
+  uint32_t rkey;
+};
+
+union mpiv_packet_content {
+  char buffer[SHORT];
+  mpiv_rdz rdz;
 };
 
 class mpiv_packet {
  public:
   mpiv_packet() {}
-  mpiv_packet_header header;
 
-  inline void set_bytes(void* bytes, const size_t& size) {
-    memcpy(content.buffer, bytes, size);
+  inline const mpiv_packet_header& header() {
+    return header_;
   }
 
-  inline char* buffer() { return content.buffer; }
+  inline void set_header(mpiv_packet_type type, int from, int tag) {
+    header_ = {type, from, tag};
+  }
 
-  inline void set_sreq(const uintptr_t& sreq) { content.rdz.sreq = sreq; }
+  inline void set_bytes(void* bytes, const size_t& size) {
+    memcpy(content_.buffer, bytes, size);
+  }
 
-  inline uintptr_t rdz_tgt_addr() { return content.rdz.tgt_addr; }
+  inline char* buffer() { return content_.buffer; }
 
-  inline uintptr_t rdz_sreq() { return content.rdz.sreq; }
+  inline void set_sreq(const uintptr_t& sreq) { content_.rdz.sreq = sreq; }
 
-  inline uintptr_t rdz_rreq() { return content.rdz.rreq; }
+  inline uintptr_t rdz_tgt_addr() { return content_.rdz.tgt_addr; }
 
-  inline uintptr_t rdz_rkey() { return content.rdz.rkey; }
+  inline uintptr_t rdz_sreq() { return content_.rdz.sreq; }
+
+  inline uintptr_t rdz_rreq() { return content_.rdz.rreq; }
+
+  inline uintptr_t rdz_rkey() { return content_.rdz.rkey; }
+
+  inline mpiv_key get_key() {
+    return mpiv_make_key(header_.from, header_.tag);
+  }
 
   inline void set_rdz(uintptr_t sreq, uintptr_t rreq, uintptr_t tgt_addr,
     uint32_t rkey) {
-    content.rdz = {sreq, rreq, tgt_addr, rkey};
+    content_.rdz = {sreq, rreq, tgt_addr, rkey};
   }
 
  private:
-  mpiv_packet_content content;
+  mpiv_packet_header header_;
+  mpiv_packet_content content_;
 } __attribute__((aligned(64)));
 
 class packet_manager final {
@@ -66,14 +79,7 @@ class packet_manager final {
   inline mpiv_packet* get_packet(mpiv_packet_type packet_type, int rank,
                                  int tag) {
     mpiv_packet* packet = get_packet();
-    packet->header = {packet_type, rank, tag};
-    return packet;
-  }
-
-  inline mpiv_packet* get_packet(char buf[], mpiv_packet_type packet_type,
-                                 int rank, int tag) {
-    mpiv_packet* packet = reinterpret_cast<mpiv_packet*>(buf);
-    packet->header = {packet_type, rank, tag};
+    packet->set_header(packet_type, rank, tag);
     return packet;
   }
 

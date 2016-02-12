@@ -3,30 +3,32 @@
 
 struct mpiv_packet;
 
+extern __thread fult* __fulting;
+
 struct MPIV_Request {
   inline MPIV_Request(void* buffer_, int size_, int rank_, int tag_)
-      : buffer(buffer_), size(size_), rank(rank_), tag(tag_), done_(false) {};
-  fult_sync sync;
+      : buffer(buffer_), size(size_), rank(rank_), tag(tag_), 
+      sync(__fulting), done_(false) {};
   void* buffer;
   int size;
   int rank;
   int tag;
-  // mpiv_packet* packet;
+  fult* sync;
   volatile bool done_;
 } __attribute__((aligned(64)));
 
 inline void MPIV_Wait(MPIV_Request& req) {
-  if (!req.sync.has_ctx()) {
-    while (!req.done_) {};
+  if (!req.sync) {
+    while (!req.done_) { sched_yield(); };
   } else {
-    req.sync.wait();
+    req.sync->wait();
   }
 }
 
 inline void MPIV_Signal(MPIV_Request* req) {
   req->done_ = true;
-  if (req->sync.has_ctx()) {
-    req->sync.signal();
+  if (req->sync) {
+    req->sync->resume();
   };
 }
 
