@@ -253,23 +253,6 @@ fult_t worker::fult_new(const int id, ffunc f, intptr_t data, size_t stack_size)
   return (fult_t) &lwt_[id];
 }
 
-#define doschedule(i)                                              \
-  {                                                                \
-    fult* f = &w->lwt_[(i << 6) + id]; \
-    if (f->state() != INVALID) w->work(f); \
-    if (f->state() == YIELD) f->resume();  \
-  }
-
-#define loop_sched_all(mask, i)                                         \
-  {                                                                     \
-    register unsigned long local = exchange((unsigned long)0, &(mask)); \
-    while (local > 0) {                                                 \
-      int id = find_first_set(local);                                   \
-      local ^= ((unsigned long)1 << id);                                \
-      doschedule(i);                                                    \
-    }                                                                   \
-  }
-
 std::atomic<int> fult_nworker;
 
 void worker::wfunc(worker* w) {
@@ -288,7 +271,21 @@ void worker::wfunc(worker* w) {
     for (auto i=0; i<NMASK; i++) {
       auto& mask = w->mask_[i];
       if (mask > 0) {
-        loop_sched_all(mask, i);
+        // Atomic exchange to get the current waiting threads.
+        auto local_mask = exchange((unsigned long)0, &(mask)); 
+
+        // Works until it no thread is pending.
+        while (local_mask > 0) {
+          auto id = find_first_set(local_mask);
+          // Flips the set bit.
+          local_mask ^= ((unsigned long)1 << id);
+          // Optains the associate thread.
+          fult* f = &w->lwt_[(i << 6) + id];
+          // Works on it.
+          w->work(f); 
+          // If after working this threads yield, set it schedulable.
+          if (f->state() == YIELD) f->resume();
+        }
       }
     }
   }
