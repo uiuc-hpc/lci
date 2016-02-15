@@ -6,6 +6,7 @@
 #include <boost/lockfree/stack.hpp>
 #include <boost/coroutine/stack_allocator.hpp>
 #include <boost/coroutine/stack_context.hpp>
+#include "segmented_stack.h"
 
 #include <sys/mman.h>
 
@@ -35,7 +36,7 @@ using boost::coroutines::stack_context;
 
 #define F_STACK_SIZE (4096)
 #define MAIN_STACK_SIZE (16*1024)
-#define NMASK 2
+#define NMASK 1
 #define WORDSIZE (8 * sizeof(long))
 
 #define MEMFENCE asm volatile("" : : : "memory")
@@ -80,17 +81,12 @@ static stack_allocator fult_stack;
 
 class fult {
  public:
-  fult() : state_(INVALID), stack(NULL) {}
-  ~fult() {
-    if (stack != NULL) { 
-      fult_stack.deallocate(*stack);
-      free(stack);
-    }
-  }
+  fult() : state_(INVALID)  { stack.sp = NULL;}
+  ~fult() { if (stack.sp != NULL) fult_stack.deallocate(stack); }
+
   inline void init(worker* origin, int id) {
     origin_ = origin;
     id_ = id;
-    stack = NULL;
   }
 
   inline void set(ffunc myfunc, intptr_t data, size_t stack_size);
@@ -111,7 +107,7 @@ class fult {
 
   ffunc myfunc_;
   intptr_t data_;
-  stack_context* stack;
+  stack_context stack;
 
 } __attribute__((aligned(64)));
 
@@ -119,17 +115,16 @@ typedef fult* fult_t;
 
 class worker {
  public:
-  inline worker() : stop_(true) {};
-
-  inline void init() {
-    stop_ = false;
+  inline worker() {
+    stop_ = true;
     // Reset all mask.
     for (int i = 0; i < NMASK; i++) mask_[i] = 0;
     // Add all free slot.
     memset(lwt_, 0, sizeof(fult) * (NMASK * WORDSIZE));
+    tid_pool = new boost::lockfree::stack<uint32_t>(NMASK*WORDSIZE);
 
     for (int i = (int)(NMASK * WORDSIZE)-1; i>=0; i--) { 
-      tid_poll.push(i);
+      tid_pool->push(i);
       lwt_[i].init(this, i);
     }
   }
@@ -140,14 +135,14 @@ class worker {
     int tid, ffunc f, intptr_t data, size_t stack_size = F_STACK_SIZE);
 
   inline void join(fult_t f);
-  inline void fin(int id) { tid_poll.push(id); }
+  inline void fin(int id) { tid_pool->push(id); }
   inline void schedule(const int id);
 
-  inline void start() { w_ = std::thread(wfunc, this); while (stop_) {}; }
+  inline void start() { stop_ = false; w_ = std::thread(wfunc, this); }
   inline void stop() { stop_ = true; w_.join(); }
 
   inline void start_main(ffunc main_task, intptr_t data) {
-    init();
+    stop_ = false;
     spawn(main_task, data, MAIN_STACK_SIZE);
     wfunc(this);
   }
@@ -173,20 +168,17 @@ class worker {
   std::thread w_;
 
   // TODO(danghvu): this is temporary, but it is most generic.
-  boost::lockfree::stack<uint8_t, boost::lockfree::capacity<WORDSIZE * NMASK>>
-      tid_poll;
+  boost::lockfree::stack<uint32_t>* tid_pool; //, boost::lockfree::capacity<WORDSIZE * NMASK>>
 } __attribute__((aligned(64)));
 
 
 void fult::set(ffunc myfunc, intptr_t data, size_t stack_size) {
-  if (stack == NULL) {
-    stack = new stack_context();
-    fult_stack.allocate(*stack, stack_size);
-  }
+  if (stack.sp == NULL) 
+    fult_stack.allocate(stack, stack_size);
   myfunc_ = myfunc;
   data_ = data;
+  ctx_.myctx_ = make_fcontext(stack.sp, stack.size, fwrapper);
   state_ = CREATED;
-  ctx_.myctx_ = make_fcontext(stack->sp, stack->size, fwrapper);
 }
 
 void fult::yield() {
@@ -204,10 +196,9 @@ void fult::resume() {
 }
 
 void fult::start() {
-  (*this->myfunc_)(this->data_);
+  (*myfunc_)(data_);
   // when finish, needs to swap back to the parent.
-  this->state_ = INVALID;
-  origin_->fin(id_);
+  state_ = INVALID;
   ctx_.ret();
 }
 
@@ -217,18 +208,18 @@ static void fwrapper(intptr_t args) {
 }
 
 fult_t worker::spawn(ffunc f, intptr_t data, size_t stack_size) {
-  int id = -1;
-  while (!tid_poll.pop(id)) {
-    fult_yield();
+  int id = -1; 
+  if (!tid_pool->pop(id)) {
+    throw std::runtime_error("Too many threads are spawn");
   }
   return fult_new(id, f, data, stack_size);
 }
 
 fult_t worker::spawn_to(int tid, ffunc f, intptr_t data, size_t stack_size) {
   int id = -1;
-  while (tid_poll.pop(id)) {
+  while (tid_pool->pop(id)) {
     if (id == tid) break;
-    tid_poll.push(id);
+    tid_pool->push(id);
   }
   return fult_new(id, f, data, stack_size);
 }
@@ -260,8 +251,6 @@ void worker::wfunc(worker* w) {
   affinity::set_me_to(fult_nworker++);
 #endif
 
-  if (w->stop_) w->init();
-
 #ifdef USE_PAPI
   profiler wp = {PAPI_L1_DCM};
   wp.start();
@@ -277,14 +266,17 @@ void worker::wfunc(worker* w) {
         // Works until it no thread is pending.
         while (local_mask > 0) {
           auto id = find_first_set(local_mask);
+          auto g_id = (i << 6) + id;
           // Flips the set bit.
           local_mask ^= ((unsigned long)1 << id);
           // Optains the associate thread.
-          fult* f = &w->lwt_[(i << 6) + id];
+          fult* f = &w->lwt_[g_id];
           // Works on it.
           w->work(f); 
           // If after working this threads yield, set it schedulable.
-          if (f->state() == YIELD) f->resume();
+          auto state = f->state();
+          if (state == YIELD) f->resume();
+          else if (state == INVALID) w->fin(g_id);
         }
       }
     }

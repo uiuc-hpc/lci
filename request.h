@@ -6,6 +6,8 @@ struct mpiv_packet;
 extern __thread fult* __fulting;
 
 struct MPIV_Request {
+  inline MPIV_Request(int rank_, int tag_) : rank(rank_), tag(tag_),
+      sync(__fulting), done_(false) {}
   inline MPIV_Request(void* buffer_, int size_, int rank_, int tag_)
       : buffer(buffer_), size(size_), rank(rank_), tag(tag_), 
       sync(__fulting), done_(false) {};

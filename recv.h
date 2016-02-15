@@ -1,9 +1,13 @@
 #ifndef RECV_H_
 #define RECV_H_
 
-void MPIV_Send(void* buffer, size_t size, int rank, int tag);
+void MPIV_Send(const void* buffer, int count, MPI_Datatype, int rank, int tag, MPI_Comm);
 
-void MPIV_Recv(void* buffer, size_t size, int rank, int tag) {
+void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank, int tag, MPI_Comm, MPI_Status*) {
+  int size = 0;
+  MPI_Type_size(datatype, &size);
+  size *= count;
+
   mpiv_value value;
   MPIV_Request s(buffer, size, rank, tag);
 
@@ -17,7 +21,7 @@ void MPIV_Recv(void* buffer, size_t size, int rank, int tag) {
     mpiv_packet* p = (mpiv_packet*) data; //MPIV.pk_mgr.get_packet(data, RECV_READY, MPIV.me, tag);
     p->set_header(RECV_READY, MPIV.me, tag);
     p->set_rdz(0, (uintptr_t)&s, (uintptr_t)buffer, MPIV.ctx.heap_rkey);
-    MPIV_Send(data, sizeof(mpiv_rdz) + sizeof(mpiv_packet_header), rank, 1 << 31 | tag);
+    MPIV_Send(data, sizeof(mpiv_rdz) + sizeof(mpiv_packet_header), MPI_CHAR, rank, 1 << 31 | tag, MPI_COMM_WORLD);
     MPIV_Wait(s);
     stopt(misc_timing);
     return;

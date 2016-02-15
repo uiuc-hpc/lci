@@ -35,7 +35,7 @@ class mpiv_packet {
     header_ = {type, from, tag};
   }
 
-  inline void set_bytes(void* bytes, const size_t& size) {
+  inline void set_bytes(const void* bytes, const int& size) {
     memcpy(content_.buffer, bytes, size);
   }
 

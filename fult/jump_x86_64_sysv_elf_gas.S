@@ -36,6 +36,9 @@
 .type jump_fcontext,@function
 .align 16
 jump_fcontext:
+    // PREFETCHT1 (%rsi)
+    // PREFETCHT1 0x40(%rsi)
+    // PREFETCHT1 0x80(%rsi)
     pushq  %rbp  /* save RBP */
     pushq  %rbx  /* save RBX */
     pushq  %r15  /* save R15 */
@@ -84,6 +87,7 @@ jump_fcontext:
 
     /* restore return-address */
     popq  %r8
+    // PREFETCHT1 (%r8)
 
     /* use third arg as return-value after jump */
     movq  %rdx, %rax

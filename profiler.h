@@ -11,30 +11,21 @@
 #include <pthread.h>
 #include <stdexcept>
 
-#if 0
-class profiler_init {
- public:
-  profiler_init() {
-#ifdef USE_PAPI
-    try {
-      if (PAPI_library_init(PAPI_VER_CURRENT) != PAPI_VER_CURRENT) {
-        throw std::runtime_error("papi_library_init");
-      }
-      if (PAPI_thread_init(
-        (unsigned long (*)(void))((unsigned long(*)(void))(pthread_self)))
-          != PAPI_OK) {
-        throw std::runtime_error("papi_thread_init");
-      }
-    } catch (const std::exception& e) {
-      std::cerr << e.what() << std::endl;
-      exit(-1);
+static void profiler_init() {
+  try {
+    if (PAPI_library_init(PAPI_VER_CURRENT) != PAPI_VER_CURRENT) {
+      throw std::runtime_error("papi_library_init");
     }
-#endif
+    if (PAPI_thread_init(
+          (unsigned long (*)(void))((unsigned long(*)(void))(pthread_self)))
+        != PAPI_OK) {
+      throw std::runtime_error("papi_thread_init");
+    }
+  } catch (const std::exception& e) {
+    std::cerr << e.what() << std::endl;
+    exit(-1);
   }
-};
-
-static profiler_init init_it_;
-#endif
+}
 
 class profiler {
  public:

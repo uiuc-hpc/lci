@@ -55,15 +55,15 @@ void main_task(intptr_t arg) {
         if (t == skip) {
           times = MPIV_Wtime();
         }
-        MPIV_Send(s_buf, size, 1, 1);
-        MPIV_Recv(r_buf, size, 1, 1);
+        MPIV_Send(s_buf, size, MPI_CHAR, 1, 1, MPI_COMM_WORLD);
+        MPIV_Recv(r_buf, size, MPI_CHAR, 1, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       }
       times = MPIV_Wtime() - times;
       printf("[%d] %f\n", size, times * 1e6 / total / 2);
     } else {
       for (int t = 0; t < total + skip; t++) {
-        MPIV_Recv(r_buf, size, 0, 1);
-        MPIV_Send(s_buf, size, 0, 1);
+        MPIV_Recv(r_buf, size, MPI_CHAR, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPIV_Send(s_buf, size, MPI_CHAR, 0, 1, MPI_COMM_WORLD);
       }
     }
   }

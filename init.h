@@ -2,17 +2,27 @@
 #define INIT_H_
 
 #include <sys/mman.h>
+#include "profiler.h"
 #include "progress.h"
 
 inline void mpiv_post_recv(mpiv_packet* p) {
-  startt(post_timing) MPIV.server.post_srq(p);
-  stopt(post_timing)
+  startt(post_timing);
+  MPIV.server.post_srq(p);
+  stopt(post_timing);
 }
 
 inline void MPIV_Init(int& argc, char**& args) {
+  setenv("MPICH_ASYNC_PROGRESS", "0", 1);
+  setenv("MV2_ENABLE_AFFINITY", "0", 1);
+
   MPI_Init(&argc, &args);
+
   MPIV.tbl.init();
   mpiv_progress_init();
+
+#ifdef USE_PAPI
+  profiler_init();
+#endif
 
   MPIV.server.init(MPIV.ctx, MPIV.pk_mgr, MPIV.me, MPIV.size);
   MPIV.server.serve();
