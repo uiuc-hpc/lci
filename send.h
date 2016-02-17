@@ -25,7 +25,7 @@ inline void MPIV_Send_short(const void* buffer, int size, int rank, int tag) {
   // Copy the buffer.
   packet->set_bytes(buffer, size);
   MPIV.ctx.conn[rank].write_send(
-      (void*)packet, (size_t)size + sizeof(mpiv_packet_header),
+      (void*)packet, ((((size_t)size + sizeof(mpiv_packet_header)+3)>>2)<<2),
       MPIV.ctx.sbuf_lkey, (void*)packet);
 }
 

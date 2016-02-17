@@ -36,7 +36,7 @@ using boost::coroutines::stack_context;
 
 static const int F_STACK_SIZE = 4096;
 static const int MAIN_STACK_SIZE = 16 * 1024;
-static const int NMASK = 1;
+static const int NMASK = 8;
 static const int WORDSIZE = (8 * sizeof(long));
 
 typedef void (*ffunc)(intptr_t);
@@ -100,6 +100,7 @@ class alignas(64) fult {
   inline fult_state state() { return state_; }
   inline bool is_done() { return state_ == INVALID; }
   inline fctx* ctx() { return &ctx_; }
+  inline int id() { return id_; }
 
  private:
   worker* origin_;
@@ -123,11 +124,12 @@ class alignas(64) worker {
     for (int i = 0; i < NMASK; i++) mask_[i] = 0;
     // Add all free slot.
     memset(lwt_, 0, sizeof(fult) * (NMASK * WORDSIZE));
-    tid_pool = new boost::lockfree::stack<uint32_t>(NMASK*WORDSIZE);
+    tid_pool = std::move(std::unique_ptr<boost::lockfree::stack<fult_t>>(
+      new boost::lockfree::stack<fult_t>(NMASK*WORDSIZE)));
 
     for (int i = (int)(NMASK * WORDSIZE)-1; i>=0; i--) { 
-      tid_pool->push(i);
       lwt_[i].init(this, i);
+      tid_pool->push(&lwt_[i]);
     }
   }
 
@@ -137,7 +139,7 @@ class alignas(64) worker {
     int tid, ffunc f, intptr_t data, size_t stack_size = F_STACK_SIZE);
 
   inline void join(fult_t f);
-  inline void fin(int id) { tid_pool->push(id); }
+  inline void fin(int id) { tid_pool->push(&lwt_[id]); }
   inline void schedule(const int id);
 
   inline void start() { stop_ = false; w_ = std::thread(wfunc, this); }
@@ -170,7 +172,7 @@ class alignas(64) worker {
   std::thread w_;
 
   // TODO(danghvu): this is temporary, but it is most generic.
-  boost::lockfree::stack<uint32_t>* tid_pool; //, boost::lockfree::capacity<WORDSIZE * NMASK>>
+  std::unique_ptr<boost::lockfree::stack<fult_t>> tid_pool; //, boost::lockfree::capacity<WORDSIZE * NMASK>>
 };
 
 
@@ -214,20 +216,20 @@ static void fwrapper(intptr_t args) {
 }
 
 fult_t worker::spawn(ffunc f, intptr_t data, size_t stack_size) {
-  int id = -1; 
-  if (!tid_pool->pop(id)) {
+  fult_t t;
+  if (!tid_pool->pop(t)) {
     throw std::runtime_error("Too many threads are spawn");
   }
-  return fult_new(id, f, data, stack_size);
+  return fult_new(t->id(), f, data, stack_size);
 }
 
 fult_t worker::spawn_to(int tid, ffunc f, intptr_t data, size_t stack_size) {
-  int id = -1;
-  while (tid_pool->pop(id)) {
-    if (id == tid) break;
-    tid_pool->push(id);
+  fult_t t;
+  while (tid_pool->pop(t)) {
+    if (t->id() == tid) break;
+    tid_pool->push(t);
   }
-  return fult_new(id, f, data, stack_size);
+  return fult_new(tid, f, data, stack_size);
 }
 
 void worker::join(fult* f) {
