@@ -5,7 +5,7 @@ struct mpiv_packet;
 
 extern __thread fult* __fulting;
 
-struct MPIV_Request {
+struct alignas(64) MPIV_Request {
   inline MPIV_Request(int rank_, int tag_) : rank(rank_), tag(tag_),
       sync(__fulting), done_(false) {}
   inline MPIV_Request(void* buffer_, int size_, int rank_, int tag_)
@@ -17,13 +17,13 @@ struct MPIV_Request {
   int tag;
   fult* sync;
   volatile bool done_;
-} __attribute__((aligned(64)));
+};
 
-inline void MPIV_Wait(MPIV_Request& req) {
-  if (!req.sync) {
-    while (!req.done_) { sched_yield(); };
+inline void MPIV_Wait(MPIV_Request* req) {
+  if (!req->sync) {
+    while (!req->done_) { sched_yield(); };
   } else {
-    req.sync->wait();
+    req->sync->wait();
   }
 }
 

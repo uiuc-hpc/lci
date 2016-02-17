@@ -5,11 +5,11 @@
 
 enum mpiv_packet_type { SEND_SHORT, SEND_READY, RECV_READY, SEND_READY_FIN };
 
-struct mpiv_packet_header {
+struct alignas(8) mpiv_packet_header {
   mpiv_packet_type type;
   int from;
   int tag;
-} __attribute__((aligned(16)));
+};
 
 struct mpiv_rdz {
   uintptr_t sreq;
@@ -19,11 +19,11 @@ struct mpiv_rdz {
 };
 
 union mpiv_packet_content {
-  char buffer[SHORT];
+  char buffer[SHORT_MSG_SIZE];
   mpiv_rdz rdz;
 };
 
-class mpiv_packet {
+class alignas(64) mpiv_packet {
  public:
   mpiv_packet() {}
 
@@ -55,6 +55,10 @@ class mpiv_packet {
     return mpiv_make_key(header_.from, header_.tag);
   }
 
+  inline mpiv_key get_rdz_key() {
+    return mpiv_make_key(header_.from, 1 << 31 | header_.tag);
+  }
+
   inline void set_rdz(uintptr_t sreq, uintptr_t rreq, uintptr_t tgt_addr,
     uint32_t rkey) {
     content_.rdz = {sreq, rreq, tgt_addr, rkey};
@@ -63,7 +67,7 @@ class mpiv_packet {
  private:
   mpiv_packet_header header_;
   mpiv_packet_content content_;
-} __attribute__((aligned(64)));
+};
 
 class packet_manager final {
  public:

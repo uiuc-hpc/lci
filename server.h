@@ -38,7 +38,6 @@ class mpiv_server {
 #ifdef USE_AFFI
     affinity::set_me_to(0);
 #endif
-
     std::vector<rdmax::device> devs = rdmax::device::get_devices();
     assert(devs.size() > 0 && "Unable to find any ibv device");
 

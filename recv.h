@@ -3,29 +3,21 @@
 
 void MPIV_Send(const void* buffer, int count, MPI_Datatype, int rank, int tag, MPI_Comm);
 
-void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank, int tag, MPI_Comm, MPI_Status*) {
-  int size = 0;
-  MPI_Type_size(datatype, &size);
-  size *= count;
+inline void MPIV_Recv_rndz(void* buffer, int, int rank, int tag, MPIV_Request* s) {
+  startt(misc_timing);
+  mpiv_packet* p = MPIV.pk_mgr.get_packet(RECV_READY, MPIV.me, tag);
+  // p->set_header(RECV_READY, MPIV.me, tag);
+  p->set_rdz(0, (uintptr_t)s, (uintptr_t)buffer, MPIV.ctx.heap_rkey);
+  MPIV.ctx.conn[rank].write_send(p, RNDZ_MSG_SIZE, 0, 0);
+  // MPIV_Send((void*) p, RNDZ_MSG_SIZE, MPI_CHAR, rank, 1 << 31 | tag, MPI_COMM_WORLD);
+  MPIV.pk_mgr.new_packet(p);
+  stopt(misc_timing);
+}
 
-  mpiv_value value;
-  MPIV_Request s(buffer, size, rank, tag);
-
+inline void MPIV_Recv_short(void* buffer, int size, int rank, int tag, MPIV_Request* s) {
   mpiv_key key = mpiv_make_key(rank, tag);
-  value.request = &s;
-
-  if ((size_t)size > SHORT) {
-    // RDNZ protocol, use SEND + WAIT.
-    startt(misc_timing);
-    char data[sizeof(mpiv_rdz) + sizeof(mpiv_packet_header)];
-    mpiv_packet* p = (mpiv_packet*) data; //MPIV.pk_mgr.get_packet(data, RECV_READY, MPIV.me, tag);
-    p->set_header(RECV_READY, MPIV.me, tag);
-    p->set_rdz(0, (uintptr_t)&s, (uintptr_t)buffer, MPIV.ctx.heap_rkey);
-    MPIV_Send(data, sizeof(mpiv_rdz) + sizeof(mpiv_packet_header), MPI_CHAR, rank, 1 << 31 | tag, MPI_COMM_WORLD);
-    MPIV_Wait(s);
-    stopt(misc_timing);
-    return;
-  }
+  mpiv_value value;
+  value.request = s;
 
   // Find if the message has arrived, if not go and make a request.
   startt(tbl_timing);
@@ -38,9 +30,7 @@ void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank, int tag
   if (value.v == in_val.v) {
     MPIV_Wait(s);
     stopt(wake_timing);
-    if (size >= SERVER_COPY_SIZE) {
-      p_ctx = (mpiv_packet*) s.buffer;
-    }
+    if (size >= SERVER_COPY_SIZE) { p_ctx = (mpiv_packet*) s->buffer; }
   } else {
     p_ctx = in_val.packet;
   }
@@ -49,6 +39,7 @@ void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank, int tag
     startt(memcpy_timing);
     memcpy(buffer, p_ctx->buffer(), size);
     stopt(memcpy_timing);
+
     startt(post_timing);
     MPIV.pk_mgr.new_packet(p_ctx);
     stopt(post_timing);
@@ -57,6 +48,40 @@ void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank, int tag
   startt(tbl_timing);
   MPIV.tbl.erase(key, p.second);
   stopt(tbl_timing)
+}
+
+void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank, int tag, MPI_Comm, MPI_Status*) {
+  int size = 0;
+  MPI_Type_size(datatype, &size);
+  size *= count;
+
+  MPIV_Request s(buffer, size, rank, tag);
+
+  if ((size_t)size <= SHORT_MSG_SIZE) {
+    MPIV_Recv_short(buffer, size, rank, tag, &s);
+  } else {
+    MPIV_Recv_rndz(buffer, size, rank, tag, &s);
+    MPIV_Wait(&s);
+  }
+}
+
+void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank, int tag, MPI_Comm, MPIV_Request* s) {
+  int size = 0;
+  MPI_Type_size(datatype, &size);
+  size *= count;
+
+  s->buffer = buffer;
+  s->size = size;
+  s->rank = rank;
+  s->tag = tag;
+  s->done_ = false;
+
+  if ((size_t)size <= SHORT_MSG_SIZE) {
+    MPIV_Recv_short(buffer, size, rank, tag, s);
+    s->done_ = true;
+  } else {
+    MPIV_Recv_rndz(buffer, size, rank, tag, s);
+  }
 }
 
 #endif

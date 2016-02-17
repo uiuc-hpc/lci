@@ -33,7 +33,7 @@ struct mpiv_ctx {
 
 #include "server.h"
 
-struct mpiv {
+struct alignas(64) mpiv {
   int me;
   int size;
   vector<worker> w;
@@ -43,7 +43,7 @@ struct mpiv {
   mpiv_server server;
 
   mpiv_hash_tbl tbl;
-} __attribute__((aligned(64)));
+};
 
 static mpiv MPIV;
 
@@ -66,12 +66,12 @@ void mpiv_free(void* ptr) { MPIV.ctx.heap_segment.deallocate(ptr); }
 
 void mpiv_send_recv_ready(MPIV_Request* sreq, MPIV_Request* rreq) {
   // Need to write them back, setup as a RECV_READY.
-  char data[sizeof(mpiv_rdz) + sizeof(mpiv_packet_header)];
+  char data[RNDZ_MSG_SIZE];
   mpiv_packet* p = (mpiv_packet*) data;
   p->set_header(RECV_READY, MPIV.me, rreq->tag);
   p->set_rdz((uintptr_t)sreq, (uintptr_t)rreq, (uintptr_t)rreq->buffer,
             MPIV.ctx.heap_rkey);
-  MPIV.ctx.conn[rreq->rank].write_send((void*)p, sizeof(mpiv_rdz) + sizeof(mpiv_packet_header), 0, 0);
+  MPIV.ctx.conn[rreq->rank].write_send((void*)p, RNDZ_MSG_SIZE, 0, 0);
 }
 
 #include "init.h"

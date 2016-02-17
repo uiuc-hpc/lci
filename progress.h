@@ -5,16 +5,26 @@
 
 void mpiv_post_recv(mpiv_packet*);
 
-void mpiv_recv_recv_ready(mpiv_packet* p) {
-  MPIV_Request* s = (MPIV_Request*)p->rdz_sreq();
-  MPIV.ctx.conn[s->rank].write_rdma(s->buffer, MPIV.ctx.heap_lkey,
-                                    (void*)p->rdz_tgt_addr(), p->rdz_rkey(),
-                                    s->size, 0);
-
+void mpiv_complete_rndz(mpiv_packet* p, MPIV_Request* s) {
   p->set_header(SEND_READY_FIN, MPIV.me, s->tag);
+  p->set_sreq((uintptr_t) s);
+  MPIV.ctx.conn[s->rank].write_rdma(s->buffer, MPIV.ctx.heap_lkey,
+      (void*)p->rdz_tgt_addr(), p->rdz_rkey(),
+      s->size, 0);
+  MPIV.ctx.conn[s->rank].write_send(p, RNDZ_MSG_SIZE, 0, p);
+}
 
-  MPIV.ctx.conn[s->rank].write_send_imm(p, sizeof(mpiv_rdz) + sizeof(mpiv_packet_header), 0, (void*)p, SEND_READY_FIN);
-  mpiv_post_recv(p);
+void mpiv_recv_recv_ready(mpiv_packet* p) {
+  mpiv_key key = p->get_rdz_key();
+  mpiv_value value;
+  value.packet = p;
+  auto entry = MPIV.tbl.insert(key, value);
+  if (entry.first.v != value.v) {
+    MPIV_Request* s = entry.first.request;
+    mpiv_complete_rndz(p, s);
+    MPIV.tbl.erase(key, entry.second);
+  }
+  mpiv_post_recv(MPIV.pk_mgr.get_packet());
 }
 
 void mpiv_recv_send_ready_fin(mpiv_packet* p_ctx) {
@@ -160,9 +170,8 @@ inline void mpiv_serve_send(const ibv_wc& wc) {
     MPIV_Request* req = (MPIV_Request*)p_ctx->rdz_sreq();
     MPIV_Signal(req);
     stopt(rdma_timing);
-  } else {
-    MPIV.pk_mgr.new_packet(p_ctx);
   }
+  MPIV.pk_mgr.new_packet(p_ctx);
 }
 
 #endif
