@@ -15,7 +15,9 @@ inline void MPIV_Init(int& argc, char**& args) {
   setenv("MPICH_ASYNC_PROGRESS", "0", 1);
   setenv("MV2_ENABLE_AFFINITY", "0", 1);
 
-  MPI_Init(&argc, &args);
+  // Conservatively enable multi-thread, although we don't need.
+  int provided;
+  MPI_Init_thread(&argc, &args, MPI_THREAD_MULTIPLE, &provided);
 
   MPIV.tbl.init();
   mpiv_progress_init();
@@ -59,6 +61,7 @@ inline fult_t MPIV_spawn(int wid, Ts... params) {
 inline void MPIV_join(int wid, fult_t t) { MPIV.w[wid].join(t); }
 
 inline void MPIV_Finalize() {
+  MPI_Barrier(MPI_COMM_WORLD);
   MPIV.server.finalize();
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();

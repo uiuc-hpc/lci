@@ -1,6 +1,8 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
+#include <stdlib.h>
+
 static const int MAX_CONCURRENCY = 128; // maximum concurrent send/recv allowed.
 static const int PACKET_SIZE = (16 * 1024); // transfer unit size.
 static const int SERVER_COPY_SIZE = 512; // threshold to which server poll and copy.

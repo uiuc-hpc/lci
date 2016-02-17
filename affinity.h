@@ -11,6 +11,8 @@
 
 #include <sched.h>
 #include <unistd.h>
+#include <errno.h>
+#include <iostream>
 
 namespace affinity {
   static int set_me_to_(int core_id) {
@@ -23,6 +25,16 @@ namespace affinity {
     CPU_SET(core_id, &cpuset);
 
     std::cerr << "[USE_AFFI] Setting someone to core #" << core_id << std::endl;
+    pthread_t current_thread = pthread_self();    
+    return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+  }
+
+  static int set_me_within(int from, int to) {
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    for (int i = from; i < to; i++)
+      CPU_SET(i, &cpuset);
+    std::cerr << "[USE_AFFI] Setting someone to core #" << from << " - " << to << std::endl;
     pthread_t current_thread = pthread_self();    
     return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
   }

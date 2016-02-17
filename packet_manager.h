@@ -56,7 +56,7 @@ class alignas(64) mpiv_packet {
   }
 
   inline mpiv_key get_rdz_key() {
-    return mpiv_make_key(header_.from, 1 << 31 | header_.tag);
+    return mpiv_make_key(header_.from, (1 << 31) | header_.tag);
   }
 
   inline void set_rdz(uintptr_t sreq, uintptr_t rreq, uintptr_t tgt_addr,

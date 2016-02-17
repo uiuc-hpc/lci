@@ -34,22 +34,23 @@ using boost::coroutines::stack_context;
 #define fult_wait() \
   { __fulting->wait(); }
 
-#define F_STACK_SIZE (4096)
-#define MAIN_STACK_SIZE (16*1024)
-#define NMASK 1
-#define WORDSIZE (8 * sizeof(long))
-
-#define MEMFENCE asm volatile("" : : : "memory")
+static const int F_STACK_SIZE = 4096;
+static const int MAIN_STACK_SIZE = 16 * 1024;
+static const int NMASK = 1;
+static const int WORDSIZE = (8 * sizeof(long));
 
 typedef void (*ffunc)(intptr_t);
+typedef void* fcontext_t;
+
 static void fwrapper(intptr_t);
 
 class fult;
 class worker;
+
+// local thread storage.
 __thread fult* __fulting = NULL;
 
-typedef void* fcontext_t;
-
+// fcontext (from boost).
 extern "C" {
 fcontext_t make_fcontext(void* sp, size_t size, void (*thread_func)(intptr_t));
 void* jump_fcontext(fcontext_t* old, fcontext_t, intptr_t arg);
@@ -79,7 +80,7 @@ enum fult_state {
 
 static stack_allocator fult_stack;
 
-class fult {
+class alignas(64) fult {
  public:
   fult() : state_(INVALID)  { stack.sp = NULL;}
   ~fult() { if (stack.sp != NULL) fult_stack.deallocate(stack); }
@@ -93,6 +94,7 @@ class fult {
   inline void yield();
   inline void wait();
   inline void resume();
+  inline void done();
 
   inline void start();
   inline fult_state state() { return state_; }
@@ -109,11 +111,11 @@ class fult {
   intptr_t data_;
   stack_context stack;
 
-} __attribute__((aligned(64)));
+};
 
 typedef fult* fult_t;
 
-class worker {
+class alignas(64) worker {
  public:
   inline worker() {
     stop_ = true;
@@ -169,7 +171,7 @@ class worker {
 
   // TODO(danghvu): this is temporary, but it is most generic.
   boost::lockfree::stack<uint32_t>* tid_pool; //, boost::lockfree::capacity<WORDSIZE * NMASK>>
-} __attribute__((aligned(64)));
+};
 
 
 void fult::set(ffunc myfunc, intptr_t data, size_t stack_size) {
@@ -193,6 +195,10 @@ void fult::wait() {
 
 void fult::resume() {
   origin_->schedule(id_);
+}
+
+void fult::done() {
+  origin_->fin(id_);
 }
 
 void fult::start() {
@@ -266,17 +272,16 @@ void worker::wfunc(worker* w) {
         // Works until it no thread is pending.
         while (local_mask > 0) {
           auto id = find_first_set(local_mask);
-          auto g_id = (i << 6) + id;
           // Flips the set bit.
           local_mask ^= ((unsigned long)1 << id);
           // Optains the associate thread.
-          fult* f = &w->lwt_[g_id];
+          fult* f = &w->lwt_[(i << 6) + id];
           // Works on it.
           w->work(f); 
           // If after working this threads yield, set it schedulable.
           auto state = f->state();
           if (state == YIELD) f->resume();
-          else if (state == INVALID) w->fin(g_id);
+          else if (state == INVALID) f->done();
         }
       }
     }

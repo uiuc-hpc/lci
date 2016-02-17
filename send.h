@@ -6,7 +6,7 @@
 void mpiv_complete_rndz(mpiv_packet* p, MPIV_Request* s);
 
 inline void MPIV_Send_rdz(MPIV_Request *s) {
-  mpiv_key key = mpiv_make_key(s->rank, 1 << 31 | s->tag);
+  mpiv_key key = mpiv_make_key(s->rank, (1 << 31) | s->tag);
   mpiv_value value;
   value.request = s;
   auto entry = MPIV.tbl.insert(key, value);
