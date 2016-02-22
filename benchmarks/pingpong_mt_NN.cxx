@@ -24,6 +24,9 @@ void runfunc(intptr_t);
 int rank, nworkers, nprocs, i, nthreads, provided;
 fult_t id[MAX_THREADS];
 int thread_ranks[MAX_THREADS];
+double *start[MAX_THREADS];
+double *end[MAX_THREADS];
+
 
 int main(int argc,char *argv[])
 {
@@ -57,6 +60,21 @@ void main_task(intptr_t) {
 
   for (i=0; i<nthreads; i++)
     MPIV_join(i % nworkers, id[i]);
+
+  if (rank == 0) {
+    int iter = 0;
+    for (int size = 1; size <= MAXSIZE; size*=2) {
+      double max = -2e10;
+      double min = 2e10;
+      for (int i = 0; i < nthreads; i++) {
+        if (max < end[i][iter]) max = end[i][iter];
+        if (min > start[i][iter]) min = start[i][iter];
+      }
+      printf("%d \t %.2f\n", size, 1e6 * (max - min) / nthreads / 2 / NTIMES);
+      iter++;
+    }
+  }
+
 }
 
 
@@ -71,24 +89,22 @@ void runfunc(intptr_t thread_rank) {
   /* All even ranks send to (and recv from) rank i+1 many times */
   incr = 16;
   tag = * (int *)thread_rank;
+  start[tag] = (double*) malloc(32 * sizeof(double));
+  end[tag] = (double*) malloc(32 * sizeof(double));
+
+
   if ((rank % 2) == 0) { /* even */
     dest = rank + 1;
 
-    if ((* (int *)thread_rank) == 0)
-      printf("Size (bytes) \t Time (us)\n");
+    int iter = 0;
 
     for (size=1; size<=MAXSIZE; size*=2) {
-      stime = MPI_Wtime();
+      start[tag][iter] = MPI_Wtime();
       for (i=0; i<NTIMES; i++) {
         MPIV_Send(sendbuf, size, MPI_BYTE, dest, tag, MPI_COMM_WORLD);
         MPIV_Recv(recvbuf, size, MPI_BYTE, dest, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       }
-      etime = MPI_Wtime();
-
-      ttime = (etime - stime)/(2*NTIMES);
-
-      if ((* (int *)thread_rank) == 0)
-        printf("%d \t %f\n", size, ttime*1000000);
+      end[tag][iter++] = MPI_Wtime();
 
       if (size == 256) incr = 64;
     }
