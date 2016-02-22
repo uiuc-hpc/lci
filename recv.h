@@ -42,6 +42,7 @@ inline void MPIV_Recv_short(void* buffer, int size, int rank, int tag, MPIV_Requ
 
     startt(post_timing);
     MPIV.pk_mgr.new_packet(p_ctx);
+    //mpiv_post_recv(p_ctx);
     stopt(post_timing);
   }
 

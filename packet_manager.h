@@ -71,12 +71,16 @@ class alignas(64) mpiv_packet {
 
 class packet_manager final {
  public:
+
+  inline mpiv_packet* get_packet_nb() {
+    mpiv_packet* packet = NULL;
+    pool_.pop(packet);
+    return packet;
+  }
+
   inline mpiv_packet* get_packet() {
-    mpiv_packet* packet;
-    if (!pool_.pop(packet)) {
-      throw packet_error(
-          "Not enough buffer, consider increasing concurrency level");
-    }
+    mpiv_packet* packet = NULL;
+    while (!pool_.pop(packet)) fult_yield();
     return packet;
   }
 

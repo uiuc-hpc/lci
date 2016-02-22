@@ -11,7 +11,7 @@ inline void mpiv_post_recv(mpiv_packet* p) {
   stopt(post_timing);
 }
 
-inline void MPIV_Init(int& argc, char**& args) {
+inline void MPIV_Init(int argc, char** args) {
   setenv("MPICH_ASYNC_PROGRESS", "0", 1);
   setenv("MV2_ENABLE_AFFINITY", "0", 1);
 
@@ -48,9 +48,10 @@ void mpiv_main_task(intptr_t arg) {
   MPIV.w[0].stop_main();
 }
 
-inline void MPIV_Init_worker(int nworker) {
-  MPIV.w = std::move(std::vector<worker>(nworker));
-  MPIV.w[0].start_main(mpiv_main_task, 0);
+inline void MPIV_Init_worker(int nworker, intptr_t arg = 0) {
+  if (MPIV.w.size() == 0) 
+    MPIV.w = std::move(std::vector<worker>(nworker));
+  MPIV.w[0].start_main(mpiv_main_task, arg);
 }
 
 template <class... Ts>

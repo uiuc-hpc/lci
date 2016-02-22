@@ -9,6 +9,7 @@
 #include "segmented_stack.h"
 
 #include <sys/mman.h>
+// #define USE_L1_MASK
 
 #include "bitops.h"
 #include "rdmax.h"
@@ -83,7 +84,9 @@ static stack_allocator fult_stack;
 class alignas(64) fult {
  public:
   fult() : state_(INVALID)  { stack.sp = NULL;}
-  ~fult() { if (stack.sp != NULL) fult_stack.deallocate(stack); }
+  ~fult() { 
+    if (stack.sp != NULL) fult_stack.deallocate(stack);
+  }
 
   inline void init(worker* origin, int id) {
     origin_ = origin;
@@ -121,6 +124,7 @@ class alignas(64) worker {
   inline worker() {
     stop_ = true;
     // Reset all mask.
+    l1_mask = 0;
     for (int i = 0; i < NMASK; i++) mask_[i] = 0;
     // Add all free slot.
     memset(lwt_, 0, sizeof(fult) * (NMASK * WORDSIZE));
@@ -166,6 +170,7 @@ class alignas(64) worker {
   fctx ctx_;
   fult lwt_[WORDSIZE * NMASK];
 
+  volatile unsigned long l1_mask;
   volatile unsigned long mask_[NMASK];
   volatile bool stop_;
 
@@ -177,8 +182,9 @@ class alignas(64) worker {
 
 
 void fult::set(ffunc myfunc, intptr_t data, size_t stack_size) {
-  if (stack.sp == NULL) 
+  if (stack.sp == NULL)  {
     fult_stack.allocate(stack, stack_size);
+  }
   myfunc_ = myfunc;
   data_ = data;
   ctx_.myctx_ = make_fcontext(stack.sp, stack.size, fwrapper);
@@ -240,6 +246,9 @@ void worker::join(fult* f) {
 
 void worker::schedule(const int id) {
   sync_set_bit(id & (WORDSIZE - 1), &mask_[id >> 6]);
+#ifdef USE_L1_MASK
+  sync_set_bit(id >> 9, &l1_mask);
+#endif
 }
 
 fult_t worker::fult_new(const int id, ffunc f, intptr_t data, size_t stack_size) {
@@ -265,29 +274,41 @@ void worker::wfunc(worker* w) {
 #endif
 
   while (xunlikely(!w->stop_)) {
-    for (auto i=0; i<NMASK; i++) {
-      auto& mask = w->mask_[i];
-      if (mask > 0) {
-        // Atomic exchange to get the current waiting threads.
-        auto local_mask = exchange((unsigned long)0, &(mask)); 
+#ifdef USE_L1_MASK
+    if (w->l1_mask == 0) continue;
+    auto local_l1_mask = exchange((unsigned long)0, &(w->l1_mask));
+    while (local_l1_mask > 0) {
+      auto ii = find_first_set(local_l1_mask);
+      local_l1_mask ^= ((unsigned long)1 << ii);
 
-        // Works until it no thread is pending.
-        while (local_mask > 0) {
-          auto id = find_first_set(local_mask);
-          // Flips the set bit.
-          local_mask ^= ((unsigned long)1 << id);
-          // Optains the associate thread.
-          fult* f = &w->lwt_[(i << 6) + id];
-          // Works on it.
-          w->work(f); 
-          // If after working this threads yield, set it schedulable.
-          auto state = f->state();
-          if (state == YIELD) f->resume();
-          else if (state == INVALID) f->done();
+      for (auto i=ii * 8; i < ii * 8 + 8 && i < NMASK; i++) {
+#else
+    for (auto i=0; i<NMASK; i++) {{
+#endif
+        auto& mask = w->mask_[i];
+        if (mask > 0) {
+          // Atomic exchange to get the current waiting threads.
+          auto local_mask = exchange((unsigned long)0, &(mask)); 
+
+          // Works until it no thread is pending.
+          while (local_mask > 0) {
+            auto id = find_first_set(local_mask);
+            // Flips the set bit.
+            local_mask ^= ((unsigned long)1 << id);
+            // Optains the associate thread.
+            fult* f = &w->lwt_[(i << 6) + id];
+            // Works on it.
+            w->work(f); 
+            // If after working this threads yield, set it schedulable.
+            auto state = f->state();
+            if (state == YIELD) f->resume();
+            else if (state == INVALID) f->done();
+          }
         }
       }
     }
   }
+  fult_nworker--;
 
 #ifdef USE_PAPI
   wp.stop();

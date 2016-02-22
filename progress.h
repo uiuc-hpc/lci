@@ -24,7 +24,6 @@ void mpiv_recv_recv_ready(mpiv_packet* p) {
     mpiv_complete_rndz(p, s);
     MPIV.tbl.erase(key, entry.second);
   }
-  mpiv_post_recv(MPIV.pk_mgr.get_packet());
 }
 
 void mpiv_recv_send_ready_fin(mpiv_packet* p_ctx) {
@@ -36,47 +35,6 @@ void mpiv_recv_send_ready_fin(mpiv_packet* p_ctx) {
   stopt(signal_timing);
   mpiv_post_recv(p_ctx);
 }
-
-#if 0
-void mpiv_recv_inline(mpiv_packet* p_ctx, const ibv_wc& wc) {
-    startt(misc_timing);
-    const uint32_t recv_size = wc.byte_len;
-    const int tag = wc.imm_data + 1;
-    const int rank = MPIV.server->get_rank(wc.qp_num);
-    const mpiv_key key = mpiv_make_key(rank, tag);
-    mpiv_value value;
-    value.packet = p_ctx;
-    stopt(misc_timing);
-
-    startt(tbl_timing)
-    auto in_val = MPIV.tbl.insert(key, value).first;
-    stopt(tbl_timing)
-
-    if (in_val.v == value.v) {
-        startt(post_timing)
-        mpiv_post_recv(MPIV.pk_mgr.get_packet());
-        stopt(post_timing)
-        // This will be handle by the thread,
-        // so we return right away.
-        return;
-    }
-    MPIV_Request* req = in_val.request;
-    startt(memcpy_timing)
-    memcpy(req->buffer, (void*) p_ctx, recv_size);
-    stopt(memcpy_timing)
-
-    startt(signal_timing)
-    startt(wake_timing);
-    req->sync.signal();
-    stopt(signal_timing)
-
-    startt(post_timing)
-    mpiv_post_recv(p_ctx);
-    stopt(post_timing)
-}
-#endif
-
-std::atomic<int> prepost;
 
 void mpiv_recv_short(mpiv_packet* p) {
   startt(misc_timing);
@@ -99,28 +57,8 @@ void mpiv_recv_short(mpiv_packet* p) {
       memcpy(req->buffer, p->buffer(), req->size);
       MPIV_Signal(req);
       mpiv_post_recv(p);
-      return;
     }
   }
-
-  startt(post_timing);
-  mpiv_post_recv(MPIV.pk_mgr.get_packet());
-  stopt(post_timing);
-
-#if 0
-  startt(memcpy_timing);
-  memcpy(req->buffer, p->buffer(), req->size);
-  stopt(memcpy_timing);
-
-  startt(signal_timing);
-  startt(wake_timing);
-  MPIV_Signal(req);
-  stopt(signal_timing);
-
-  startt(post_timing);
-  mpiv_post_recv(p);
-  stopt(post_timing);
-#endif
 }
 
 void mpiv_recv_send_ready(mpiv_packet* p) {

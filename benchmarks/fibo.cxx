@@ -15,6 +15,13 @@ inline unsigned long long cycle_time() {
     return cycles;
 }
 
+double wtime() {
+  using namespace std::chrono;
+  return duration_cast<duration<double> >(
+             high_resolution_clock::now().time_since_epoch())
+      .count();
+}
+
 long* times;
 long fibo[20];
 
@@ -27,8 +34,9 @@ void ffibo(intptr_t i) {
     if (i <= 1) {
         fibo[i] = i;
     } else {
-        int s1 = w[0].spawn(ffibo, i - 1);
-        int s2 = w[0].spawn(ffibo, i - 2);
+        fibo[i] = 0;
+        fult_t s1 = w[0].spawn(ffibo, i - 1);
+        fult_t s2 = w[0].spawn(ffibo, i - 2);
         w[0].join(s1);
         w[0].join(s2);
         fibo[i] = fibo[i - 1] + fibo[i - 2];
@@ -37,29 +45,32 @@ void ffibo(intptr_t i) {
 
 int compare (const void * a, const void * b) { return (*(long*) a - *(long*) b); }
 
+int number;
+int nworker;
+
+void main_task(intptr_t args) {
+  worker* w = (worker*) args;
+  double t = wtime();
+  for (int tt = 0; tt < TOTAL; tt++) {
+    ffibo(number);
+  }
+  printf("RESULT: %lu %f\n", fibo[number], (double) 1e6 * (wtime() - t) / TOTAL);
+  w[0].stop_main();
+}
+
 int main(int argc, char** args) {
     if (argc < 2) {
         printf("Usage: %s <number>\n", args[0]);
         return 1;
     }
-    int nworker = 1;
-    int number = atoi(args[1]);
-    w = new worker[nworker];
-
-    for (int i = 0; i < nworker; i++) {
+    nworker = 1;
+    number = atoi(args[1]);
+    w = ::new worker[nworker];
+    for (int i = 1; i < nworker; i++) {
         w[i].start();
     }
-    long x = cycle_time();
-    for (int tt = 0; tt < TOTAL; tt++) {
-        memset(fibo, 0, sizeof(long) * number);
-        int id = w[0].spawn(ffibo, number);
-        w[0].join(id);
-    }
-    printf("RESULT: %lu %f\n", fibo[number], (double)(cycle_time() - x) / TOTAL);
-    fflush(stdout);
-    long y = cycle_time() - x;
-
-    for (int i = 0; i < nworker; i++) {
+    w[0].start_main(main_task, (intptr_t) w);
+    for (int i = 1; i < nworker; i++) {
         w[i].stop();
     }
     return 0;

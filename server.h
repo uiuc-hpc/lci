@@ -70,17 +70,21 @@ class mpiv_server {
 
     /* PREPOST recv and allocate send queue. */
     for (int i = 0; i < NPREPOST; i++) {
-      mpiv_post_recv((mpiv_packet*)sbuf_alloc_->allocate());
+      post_srq((mpiv_packet*)sbuf_alloc_->allocate());
     }
 
     for (int i = 0; i < NSBUF - NPREPOST; i++) {
       mpiv_packet* packet = (mpiv_packet*)sbuf_alloc_->allocate();
       pk_mgr.new_packet(packet);
     }
+
+    pk_mgr_ptr = &pk_mgr;
     done_init_ = true;
   }
 
   inline void post_srq(mpiv_packet* p) {
+    if (p == NULL) return;
+    recv_posted_ ++;
     dev_ctx_->post_srq_recv((void*)p, (void*)p, sizeof(mpiv_packet),
                             sbuf_.lkey());
   }
@@ -89,7 +93,8 @@ class mpiv_server {
     initt(t);
     startt(t);
     bool ret =
-        (dev_rcq_.poll_once([](const ibv_wc& wc) {
+        (dev_rcq_.poll_once([this](const ibv_wc& wc) {
+          this->recv_posted_ --;
           mpiv_serve_recv(wc);
         }));
     ret |= 
@@ -97,6 +102,8 @@ class mpiv_server {
           mpiv_serve_send(wc);
         }));
     stopt(t)
+    if (recv_posted_ < NPREPOST)
+      post_srq(pk_mgr_ptr->get_packet_nb());
     return ret;
   }
 
@@ -139,7 +146,9 @@ class mpiv_server {
   device_cq dev_rcq_;
   device_memory sbuf_;
   device_memory heap_;
+  int recv_posted_;
   unique_ptr<pinned_pool> sbuf_alloc_;
+  packet_manager* pk_mgr_ptr;
 };
 
 #endif
