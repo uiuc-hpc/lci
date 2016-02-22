@@ -5,45 +5,32 @@
 #include <atomic>
 
 #include "fult.h"
-
-#define TOTAL 1000
-
-inline unsigned long long cycle_time() {
-    unsigned hi, lo;
-    __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
-    unsigned long long cycles = ((unsigned long long)lo)|(((unsigned long long)hi)<<32);
-    return cycles;
-}
-
-double wtime() {
-  using namespace std::chrono;
-  return duration_cast<duration<double> >(
-             high_resolution_clock::now().time_since_epoch())
-      .count();
-}
+#include "comm_exp.h"
 
 long* times;
-long fibo[20];
-
+long* fibo;
 worker* w;
 
-std::atomic<int> slot;
+struct thread_data_t {
+  long val;
+  long ret;
+};
 
-void ffibo(intptr_t i) {
-    // if (fibo[i] != 0) return;
-    if (i <= 1) {
-        fibo[i] = i;
+void ffibo(intptr_t arg) {
+  thread_data_t * td = (thread_data_t*) arg;
+    if (td->val <= 1) {
+      td->ret = td->val;
     } else {
-        fibo[i] = 0;
-        fult_t s1 = w[0].spawn(ffibo, i - 1);
-        fult_t s2 = w[0].spawn(ffibo, i - 2);
+        thread_data_t data[2];
+        data[0].val = td->val - 1;
+        data[1].val = td->val - 2;
+        fult_t s1 = w[0].spawn(ffibo, (intptr_t) &data[0]);
+        fult_t s2 = w[0].spawn(ffibo, (intptr_t) &data[1]);
         w[0].join(s1);
         w[0].join(s2);
-        fibo[i] = fibo[i - 1] + fibo[i - 2];
+        td->ret = data[0].ret + data[1].ret;
     }
 }
-
-int compare (const void * a, const void * b) { return (*(long*) a - *(long*) b); }
 
 int number;
 int nworker;
@@ -51,10 +38,11 @@ int nworker;
 void main_task(intptr_t args) {
   worker* w = (worker*) args;
   double t = wtime();
-  for (int tt = 0; tt < TOTAL; tt++) {
-    ffibo(number);
+  thread_data_t data = {number, 0};
+  for (int tt = 0; tt < TOTAL_LARGE; tt++) {
+    ffibo((intptr_t) &data);
   }
-  printf("RESULT: %lu %f\n", fibo[number], (double) 1e6 * (wtime() - t) / TOTAL);
+  printf("RESULT: %lu %f\n", data.ret, (double) 1e6 * (wtime() - t) / TOTAL_LARGE);
   w[0].stop_main();
 }
 
