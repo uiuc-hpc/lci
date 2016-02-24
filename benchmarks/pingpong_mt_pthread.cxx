@@ -158,24 +158,6 @@ void * recv_thread(void *arg) {
 
 
     for(size = 0, iter = 0; size <= MAX_MSG_SIZE; size = (size ? size * 2 : 1)) {
-        pthread_mutex_lock(&finished_size_mutex);
-
-        if(finished_size == THREADS) {
-            MPI_Barrier(MPI_COMM_WORLD);
-
-            finished_size = 1;
-
-            pthread_mutex_unlock(&finished_size_mutex);
-            pthread_cond_broadcast(&finished_size_cond);
-        }
-
-        else {
-            finished_size++;
-
-            pthread_cond_wait(&finished_size_cond, &finished_size_mutex);
-            pthread_mutex_unlock(&finished_size_mutex);
-        }
-
         if(size > LARGE_MESSAGE_SIZE) {
             loop = LOOP_LARGE;
             skip = SKIP_LARGE;
@@ -218,8 +200,6 @@ void * send_thread(void *arg) {
                   align_size * align_size);
 
     for(size = 0, iter = 0; size <= MAX_MSG_SIZE; size = (size ? size * 2 : 1)) {
-        MPI_Barrier(MPI_COMM_WORLD);
-
         if(size > LARGE_MESSAGE_SIZE) {
             loop = LOOP_LARGE;
             skip = SKIP_LARGE;
