@@ -35,7 +35,10 @@ struct hash_val {
       void* val;
     } entry;
     struct {
-      std::atomic_flag locked;
+      union { 
+        std::atomic_flag locked;
+        // std::atomic<long> counter;
+      };
       hash_val* next;
     } control;
   };
@@ -43,10 +46,11 @@ struct hash_val {
   inline void init_control() {
     control.locked.clear();
     control.next = NULL;
+    // control.counter = 0;
   }
 
   inline void clear() {
-    entry = {EMPTY, 0};
+    entry.tag = EMPTY;
   }
 
   inline void lock() {
@@ -132,19 +136,16 @@ class arr_hashtbl : base_hashtbl {
         }
       }
     }
-    empty_hentry->entry = {key, value.v};
+    empty_hentry->entry.tag = key;
+    empty_hentry->entry.val = value.v;
     master.unlock();
     return make_pair(ret, (uintptr_t) empty_hentry);
   }
 
+  /** wait-free!! TODO(danghvu): as long as no concurrent p2p with same tag ?*/
   void erase(const key_type& key, hint_type hint) override {
-    uint32_t hash = myhash(key);
-
-    int bucket = hash * TBL_WIDTH;
     auto* hentry = (hash_val*)hint;
-    tbl_[bucket].lock();
     hentry->clear();
-    tbl_[bucket].unlock();
   }
 
  private:
