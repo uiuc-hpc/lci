@@ -76,7 +76,8 @@ MPI effectively. By using this bottom-up strategy, we also provide a clear
 picture on the cost to support a complete MPI, in a finer-grain terms
 such as the number of memory accesses.
 
-\section{High level runtime architecture}
+\section{Runtime Architecture}
+\subsection{High-Level Design and Relaxations}
 We first identify the complication of MPI code is on the message matching
 mechanism. MPI point-to-point procedures (Send/Recv) facilitate matching
 messages by tagging each with an integer. The implementation uses several
@@ -118,7 +119,7 @@ adds extranous overhead to single threaded application and might not achieve
 significant benefit that justifies its cost. We shall also show that our design 
 allows optimizing only a few neccessary operations.
 
-\subsection{Data Structure and Algorithms}
+\subsection{Point-to-Point Message Passing Algorithms}
 We now describe an algorithm and its data structure which allows a large
 concurrent threads to send and receive messages with a remote target. Our
 algorithm relies on a specialized concurrent hash-table $H$ defined as follows.
@@ -191,7 +192,7 @@ target buffer thus saving extra copies.  The protocol however requires
 some control messages to exchange meta data and signal completion.
 
 We next describe the algorithm for Eager and Rendevouz under our design.
-\subsection{Point-to-Point Eager protocol}
+\subsubsection{Point-to-Point Eager protocol}
 
 \begin{algorithm}
   \caption{Eager-message send/recv for thread}
@@ -264,7 +265,7 @@ locality consideration whether the thread or the server should perform the
 memory copy. However, this is an optimization which does not effect the
 correctness of our algorithm.
 
-\subsection{Point-to-Point Rendevouz protocol}
+\subsubsection{Point-to-Point Rendevouz protocol}
 A rendevouz protocol have the same algorithm as short protocol after we have
 exchanged the control message via eager-protocol. The control messages 
 includes two messages: a RTS (ready-to-send) issued by the sender, a RTR
@@ -289,18 +290,26 @@ instead of the thread when RTR arrived. In both situation the server wake up
 the sender thread when RDMA has completed. On the other hand, the receiver only
 waits for the RDMA event to finish after issuing a eager-send of RTR.
 
-\subsection{Thread and hash-table operations}
+\subsection{Critical Operations Discussion}
 Clearly, optimizing the hash-table and thread operations is the key to the
-performance of both protocol. One could easily achieve $O(1)$ amortized
-complexity for both.  However, an efficient implementation requires optimizing
-them for the constant factor. Ideally, we want these operation to be
-\textit{wait-free} and the constant factor is tiny. In fact, in the next
-section we show that we can achieve wait-free for all but the hash-table insert
-operation.  Moreover, our implementation in avarage costs about $1$ cache miss
-for each operation. Note that one can consider implement thread operations
-using using condition variable. However, these are not wait-free since
-condition variable in general requires a lock. A busy-waiting implementation is
-even worst since the processor spends useless time polling.
+performance of both protocol. One could achieve $O(1)$ amortized complexity.
+However, an efficient implementation requires optimizing them for the constant
+factor. Ideally, we want these operation to be \textit{wait-free} and the
+constant factor is tiny. 
+
+One possible implementation of thread operation is to use condition variable.
+However, these are not wait-free since condition variable in general requires a
+lock. A busy-waiting implementation is even worst since the processor spends
+useless time polling. A general kernel or user-level thread library usually goes
+down this path. Qthreads uses a modification i.e. full-empty bit
+synchronization, however internally they also requires locking to implement a
+waiting queue. We have designed a thread library which makes wait-freedom
+possible for both operations.
+
+Our described concurrent hash-table is not deviated very much from conventional
+concurrent hash-table. We however find opportunity to optimize further by take
+advantage of some semantics requirement that we have enforced. One example is
+that, we are able to make the erase operation wait-free.
 
 \section{Implementation and Optimization}
 
