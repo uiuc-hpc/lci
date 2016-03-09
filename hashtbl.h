@@ -1,8 +1,6 @@
 #ifndef HASHTBL_H_
 #define HASHTBL_H_
 
-#include "config.h"
-
 #include <utility>
 #include <stdlib.h>
 
@@ -10,6 +8,7 @@ using std::pair;
 using std::make_pair;
 
 struct mpiv_packet;
+struct MPIV_Request;
 
 union mpiv_value {
   void* v;
@@ -28,20 +27,5 @@ class base_hashtbl {
                                              const value_type& value) = 0;
   virtual void erase(const key_type& key, hint_type t) = 0;
 };
-
-#ifdef USE_LF
-#include "lf_hashtbl.h"
-typedef lf_hashtbl mpiv_hash_tbl;
-#endif
-
-#ifdef USE_COCK
-#include "cock_hashtbl.h"
-typedef cock_hashtbl mpiv_hash_tbl;
-#endif
-
-#ifdef USE_ARRAY
-#include "arr_hashtbl.h"
-typedef arr_hashtbl mpiv_hash_tbl;
-#endif
 
 #endif

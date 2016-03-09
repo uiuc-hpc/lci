@@ -3,6 +3,7 @@
 
 #include <mpi.h>
 #include <boost/lockfree/stack.hpp>
+#include <boost/lockfree/queue.hpp>
 #include <boost/interprocess/managed_external_buffer.hpp>
 #include <boost/interprocess/creation_tags.hpp>
 
@@ -37,9 +38,9 @@ struct alignas(64) mpiv {
   int me;
   int size;
   vector<worker> w;
-
   mpiv_ctx ctx;
-  packet_manager pk_mgr;
+  packet_manager2 sendpk;
+  packet_manager recvpk;
   mpiv_server server;
 
   mpiv_hash_tbl tbl;

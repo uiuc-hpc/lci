@@ -3,6 +3,8 @@
 
 #include <mpi.h>
 
+extern __thread int wid;
+
 void mpiv_complete_rndz(mpiv_packet* p, MPIV_Request* s);
 
 inline void MPIV_Send_rdz(MPIV_Request *s) {
@@ -19,14 +21,14 @@ inline void MPIV_Send_rdz(MPIV_Request *s) {
 }
 
 inline void MPIV_Send_short(const void* buffer, int size, int rank, int tag) {
-  mpiv_packet* packet = MPIV.pk_mgr.get_packet(SEND_SHORT, MPIV.me, tag);
+  mpiv_packet* packet = MPIV.sendpk.get_packet(SEND_SHORT, MPIV.me, tag);
   // This is a short message, we send them immediately and do not yield
   // or create a request for it.
   // Copy the buffer.
   packet->set_bytes(buffer, size);
   MPIV.ctx.conn[rank].write_send(
       (void*)packet, ((((size_t)size + sizeof(mpiv_packet_header)+3)>>2)<<2),
-      MPIV.ctx.sbuf_lkey, (void*)packet);
+      MPIV.ctx.sbuf_lkey, (void*)(packet));
 }
 
 void MPIV_Send(const void* buffer, int count, MPI_Datatype datatype, int rank, int tag, MPI_Comm) {

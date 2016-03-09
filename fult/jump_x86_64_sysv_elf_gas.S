@@ -90,7 +90,7 @@ jump_fcontext:
     // PREFETCHT1 (%r8)
 
     /* use third arg as return-value after jump */
-    movq  %rdx, %rax
+    // movq  %rdx, %rax
 
     /* use third arg as first arg in context function */
     movq  %rdx, %rdi

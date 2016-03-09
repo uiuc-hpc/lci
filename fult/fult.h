@@ -4,9 +4,8 @@
 #include <atomic>
 #include <thread>
 #include <boost/lockfree/stack.hpp>
-#include <boost/coroutine/stack_allocator.hpp>
 #include <boost/coroutine/stack_context.hpp>
-#include "segmented_stack.h"
+#include "standard_stack_allocator.hpp"
 
 #include <sys/mman.h>
 // #define USE_L1_MASK
@@ -16,7 +15,7 @@
 #include "affinity.h"
 #include "profiler.h"
 
-using boost::coroutines::stack_allocator;
+using boost::coroutines::standard_stack_allocator;
 using boost::coroutines::stack_context;
 
 #define DEBUG(x)
@@ -37,7 +36,7 @@ using boost::coroutines::stack_context;
 
 static const int F_STACK_SIZE = 4096;
 static const int MAIN_STACK_SIZE = 16 * 1024;
-static const int NMASK = 8;
+static const int NMASK = 1;
 static const int WORDSIZE = (8 * sizeof(long));
 
 typedef void (*ffunc)(intptr_t);
@@ -50,6 +49,7 @@ class worker;
 
 // local thread storage.
 __thread fult* __fulting = NULL;
+__thread int wid = 0;
 
 // fcontext (from boost).
 extern "C" {
@@ -79,7 +79,7 @@ enum fult_state {
   BLOCKED
 };
 
-static stack_allocator fult_stack;
+static standard_stack_allocator fult_stack;
 
 class alignas(64) fult {
  public:
@@ -264,8 +264,9 @@ fult_t worker::fult_new(const int id, ffunc f, intptr_t data, size_t stack_size)
 std::atomic<int> fult_nworker;
 
 void worker::wfunc(worker* w) {
+  wid = fult_nworker.fetch_add(1);
 #ifdef USE_AFFI
-  affinity::set_me_to(fult_nworker++);
+  affinity::set_me_to(wid);
 #endif
 
 #ifdef USE_PAPI

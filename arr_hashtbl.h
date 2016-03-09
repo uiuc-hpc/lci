@@ -2,11 +2,17 @@
 #define ARR_HASHTBL_H_
 
 #include <mutex>
+#include <atomic>
 #include <stdexcept>
+#include "hashtbl.h"
+#include "config.h"
 
 static const uint64_t EMPTY = (uint64_t)-1;
-static const int TBL_BIT_SIZE = 7;
+static const int TBL_BIT_SIZE = 8;
 static const int TBL_WIDTH = 4;
+
+static_assert(1 << TBL_BIT_SIZE >= 4 * MAX_CONCURRENCY,
+    "Hash table is not large enough");
 
 // default values recommended by http://isthe.com/chongo/tech/comp/fnv/
 static const uint32_t Prime = 0x01000193;  //   16777619
@@ -151,5 +157,7 @@ class arr_hashtbl : base_hashtbl {
  private:
   hash_val* tbl_;
 };
+
+typedef arr_hashtbl mpiv_hash_tbl;
 
 #endif

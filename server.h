@@ -33,7 +33,7 @@ class mpiv_server {
  public:
   mpiv_server() : stop_(false), done_init_(false) {}
 
-  inline void init(mpiv_ctx& ctx, packet_manager& pk_mgr, int& rank,
+  inline void init(mpiv_ctx& ctx, packet_manager2& sendpk, packet_manager& recvpk, int& rank,
                    int& size) {
 #ifdef USE_AFFI
     affinity::set_me_to(0);
@@ -50,7 +50,7 @@ class mpiv_server {
                    IBV_ACCESS_REMOTE_WRITE;
 
     // These are pinned memory.
-    sbuf_ = dev_ctx_->create_memory(sizeof(mpiv_packet) * NSBUF, mr_flags);
+    sbuf_ = dev_ctx_->create_memory(sizeof(mpiv_packet) * (MAX_SEND + MAX_RECV + 2), mr_flags);
     ctx.sbuf_lkey = sbuf_.lkey();
 
     sbuf_alloc_ = std::move(std::unique_ptr<pinned_pool>(new pinned_pool(sbuf_.ptr())));
@@ -68,19 +68,19 @@ class mpiv_server {
       ctx.conn.emplace_back(&dev_scq_, &dev_rcq_, dev_ctx_.get(), &sbuf_, i);
     }
 
-    /* PREPOST recv and allocate send queue. */
-    for (int i = 0; i < NPREPOST; i++) {
-      post_srq((mpiv_packet*)sbuf_alloc_->allocate());
+    // Prepare the packet_mgr and prepost some packet.
+    for (int i = 0; i < MAX_SEND; i++) {
+      sendpk.new_packet((mpiv_packet*)sbuf_alloc_->allocate());
     }
 
-    for (int i = 0; i < NSBUF - NPREPOST; i++) {
-      mpiv_packet* packet = (mpiv_packet*)sbuf_alloc_->allocate();
-      pk_mgr.new_packet(packet);
+    for (int i = 0; i < MAX_RECV; i++) {
+      recvpk.new_packet((mpiv_packet*)sbuf_alloc_->allocate());
     }
 
-    pk_mgr_ptr = &pk_mgr;
+    pk_mgr_ptr = &recvpk;
     done_init_ = true;
   }
+
 
   inline void post_srq(mpiv_packet* p) {
     if (p == NULL) return;
@@ -102,8 +102,8 @@ class mpiv_server {
           mpiv_serve_send(wc);
         }));
     stopt(t)
-    if (recv_posted_ < NPREPOST)
-      post_srq(pk_mgr_ptr->get_packet_nb());
+    // Make sure we always have enough packet, but do not block.
+    if (recv_posted_ < MAX_RECV) post_srq(pk_mgr_ptr->get_packet_nb());
     return ret;
   }
 

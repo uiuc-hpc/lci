@@ -13,11 +13,11 @@ inline void mpiv_post_recv(mpiv_packet* p) {
 
 inline void MPIV_Init(int argc, char** args) {
   setenv("MPICH_ASYNC_PROGRESS", "0", 1);
+  setenv("MV2_ASYNC_PROGRESS", "0", 1);
   setenv("MV2_ENABLE_AFFINITY", "0", 1);
-
-  // Conservatively enable multi-thread, although we don't need.
   int provided;
   MPI_Init_thread(&argc, &args, MPI_THREAD_MULTIPLE, &provided);
+  assert(MPI_THREAD_MULTIPLE == provided);
 
   MPIV.tbl.init();
   mpiv_progress_init();
@@ -26,7 +26,7 @@ inline void MPIV_Init(int argc, char** args) {
   profiler_init();
 #endif
 
-  MPIV.server.init(MPIV.ctx, MPIV.pk_mgr, MPIV.me, MPIV.size);
+  MPIV.server.init(MPIV.ctx, MPIV.sendpk, MPIV.recvpk, MPIV.me, MPIV.size);
   MPIV.server.serve();
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -49,8 +49,10 @@ void mpiv_main_task(intptr_t arg) {
 }
 
 inline void MPIV_Init_worker(int nworker, intptr_t arg = 0) {
-  if (MPIV.w.size() == 0) 
+  if (MPIV.w.size() == 0) {
     MPIV.w = std::move(std::vector<worker>(nworker));
+    // MPIV.sendpk.resize(std::min(nworker, 8));
+  }
   MPIV.w[0].start_main(mpiv_main_task, arg);
 }
 

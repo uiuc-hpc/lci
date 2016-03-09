@@ -1,16 +1,20 @@
 #ifndef RECV_H_
 #define RECV_H_
 
+extern __thread int wid;
+
 void MPIV_Send(const void* buffer, int count, MPI_Datatype, int rank, int tag, MPI_Comm);
 
 inline void MPIV_Recv_rndz(void* buffer, int, int rank, int tag, MPIV_Request* s) {
   startt(misc_timing);
-  mpiv_packet* p = MPIV.pk_mgr.get_packet(RECV_READY, MPIV.me, tag);
+  // char data[RNDZ_MSG_SIZE];
+  mpiv_packet* p = MPIV.sendpk.get_packet(RECV_READY, MPIV.me, tag);
+  // mpiv_packet* p = (mpiv_packet*) data;
   // p->set_header(RECV_READY, MPIV.me, tag);
   p->set_rdz(0, (uintptr_t)s, (uintptr_t)buffer, MPIV.ctx.heap_rkey);
   MPIV.ctx.conn[rank].write_send(p, RNDZ_MSG_SIZE, 0, 0);
   // MPIV_Send((void*) p, RNDZ_MSG_SIZE, MPI_CHAR, rank, 1 << 31 | tag, MPI_COMM_WORLD);
-  MPIV.pk_mgr.new_packet(p);
+  MPIV.sendpk.ret_packet(p);
   stopt(misc_timing);
 }
 
@@ -41,8 +45,7 @@ inline void MPIV_Recv_short(void* buffer, int size, int rank, int tag, MPIV_Requ
     stopt(memcpy_timing);
 
     startt(post_timing);
-    MPIV.pk_mgr.new_packet(p_ctx);
-    //mpiv_post_recv(p_ctx);
+    MPIV.recvpk.ret_packet(p_ctx);
     stopt(post_timing);
   }
 

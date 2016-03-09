@@ -3,8 +3,6 @@
 
 #include "mpiv.h"
 
-void mpiv_post_recv(mpiv_packet*);
-
 void mpiv_complete_rndz(mpiv_packet* p, MPIV_Request* s) {
   p->set_header(SEND_READY_FIN, MPIV.me, s->tag);
   p->set_sreq((uintptr_t) s);
@@ -33,7 +31,7 @@ void mpiv_recv_send_ready_fin(mpiv_packet* p_ctx) {
   startt(wake_timing);
   MPIV_Signal(req);
   stopt(signal_timing);
-  mpiv_post_recv(p_ctx);
+  MPIV.recvpk.ret_packet(p_ctx);
 }
 
 void mpiv_recv_short(mpiv_packet* p) {
@@ -56,7 +54,7 @@ void mpiv_recv_short(mpiv_packet* p) {
     } else {
       memcpy(req->buffer, p->buffer(), req->size);
       MPIV_Signal(req);
-      mpiv_post_recv(p);
+      MPIV.recvpk.ret_packet(p);
     }
   }
 }
@@ -66,7 +64,7 @@ void mpiv_recv_send_ready(mpiv_packet* p) {
   remote_val.request = (MPIV_Request*)p->rdz_sreq();
 
   mpiv_key key = p->get_key(); //mpiv_make_key(p->header.from, p->header.tag);
-  mpiv_post_recv(p);
+  MPIV.recvpk.ret_packet(p);
 
   startt(tbl_timing);
   auto value = MPIV.tbl.insert(key, remote_val).first;
@@ -108,8 +106,11 @@ inline void mpiv_serve_send(const ibv_wc& wc) {
     MPIV_Request* req = (MPIV_Request*)p_ctx->rdz_sreq();
     MPIV_Signal(req);
     stopt(rdma_timing);
+    // this packet is taken directly from recv queue.
+    MPIV.recvpk.ret_packet(p_ctx);
+  } else {
+    MPIV.sendpk.ret_packet(p_ctx);
   }
-  MPIV.pk_mgr.new_packet(p_ctx);
 }
 
 #endif
