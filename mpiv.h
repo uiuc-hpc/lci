@@ -39,8 +39,7 @@ struct alignas(64) mpiv {
   int size;
   vector<worker> w;
   mpiv_ctx ctx;
-  packet_manager2 sendpk;
-  packet_manager recvpk;
+  packet_manager pkpool;
   mpiv_server server;
 
   mpiv_hash_tbl tbl;

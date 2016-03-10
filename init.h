@@ -26,7 +26,7 @@ inline void MPIV_Init(int argc, char** args) {
   profiler_init();
 #endif
 
-  MPIV.server.init(MPIV.ctx, MPIV.sendpk, MPIV.recvpk, MPIV.me, MPIV.size);
+  MPIV.server.init(MPIV.ctx, MPIV.pkpool, MPIV.me, MPIV.size);
   MPIV.server.serve();
 
   MPI_Barrier(MPI_COMM_WORLD);

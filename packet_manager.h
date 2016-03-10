@@ -205,7 +205,7 @@ class packet_managerX final {
   inline void ret_packet(mpiv_packet* packet) { new_packet(packet); }
 
  private:
-  boost::lockfree::stack<mpiv_packet*, boost::lockfree::capacity<MAX_SEND + MAX_RECV>> pool_;
+  boost::lockfree::stack<mpiv_packet*, boost::lockfree::capacity<MAX_CONCURRENCY>> pool_;
 };
 
 using packet_manager = packet_managerX;

@@ -33,7 +33,7 @@ class mpiv_server {
  public:
   mpiv_server() : stop_(false), done_init_(false) {}
 
-  inline void init(mpiv_ctx& ctx, packet_manager2& sendpk, packet_manager& recvpk, int& rank,
+  inline void init(mpiv_ctx& ctx, packet_manager& pkpool, int& rank,
                    int& size) {
 #ifdef USE_AFFI
     affinity::set_me_to(0);
@@ -70,14 +70,14 @@ class mpiv_server {
 
     // Prepare the packet_mgr and prepost some packet.
     for (int i = 0; i < MAX_SEND; i++) {
-      sendpk.new_packet((mpiv_packet*)sbuf_alloc_->allocate());
+      pkpool.new_packet((mpiv_packet*)sbuf_alloc_->allocate());
     }
 
     for (int i = 0; i < MAX_RECV; i++) {
-      recvpk.new_packet((mpiv_packet*)sbuf_alloc_->allocate());
+      pkpool.new_packet((mpiv_packet*)sbuf_alloc_->allocate());
     }
 
-    pk_mgr_ptr = &recvpk;
+    pk_mgr_ptr = &pkpool;
     done_init_ = true;
   }
 
@@ -94,7 +94,7 @@ class mpiv_server {
     startt(t);
     bool ret =
         (dev_rcq_.poll_once([this](const ibv_wc& wc) {
-          this->recv_posted_ --;
+          recv_posted_ --;
           mpiv_serve_recv(wc);
         }));
     ret |= 
