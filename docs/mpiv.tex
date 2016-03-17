@@ -1,6 +1,6 @@
 \documentclass[11pt]{article}
 
-\usepackage{underscore,amsmath,amssymb}
+\usepackage{underscore,amsmath,amssymb,graphicx}
 \usepackage{algorithm}% http://ctan.org/pkg/algorithms
 \usepackage{algpseudocode}% http://ctan.org/pkg/algorithmicx
 
@@ -77,47 +77,71 @@ picture on the cost to support a complete MPI, in a finer-grain terms
 such as the number of memory accesses.
 
 \section{Runtime Architecture}
-\subsection{High-Level Design and Relaxations}
+\subsection{High-Level System Design}
 We first identify the complication of MPI code is on the message matching
 mechanism. MPI point-to-point procedures (Send/Recv) facilitate matching
 messages by tagging each with an integer. The implementation uses several
 queues data structure to store incoming messages. For example, the unexpected
-queue will store message which has arrived but fail to find a matching send;
-the posted queue will store the pending requests which is waiting for incoming
-matched messages.  Depending on different situation, insertion or deletion of
-entries into queues will be issued. In a concurrent setting, these are critical
-section that need to be protected. An efficient lock-free control of these
-operations are non-existing even though individual queue might be implemented
-as lock-free queue. Moreover, when the number of concurrent communication
-increases, traversing a queue requires linear time to the size of the queue.
+queue store arrived messages without a matching request; the posted queue
+will store the pending requests without matching messages. Depending on
+different arrival order, traversing, insertion or deletion of entries into
+queues will be issued. In a concurrent setting, these are critical section that
+need to be protected. An efficient lock-free control of these operations are
+non-existent even though individual queue could be implemented efficiently.
+Moreover, when the number of concurrent communication increases, traversing a
+queue requires linear time to the size of pending requests.
 
-Our first idea is to replace these queues with a single data structure: a
-concurrent hash-table. This is not a radical idea, however it has not been
-considered and implemented because of the following MPI semantics:
-
+We propose an implementation MPI based on the following assumptions:
 \begin{itemize}
-  \item MPI Send/Recv allows wird-card matching e.g. MPI\_ANY\_TAG, which could
-    be used to match messages with any tag.
-  \item MPI enforces an order of messages, two Sended messages having the same
-    tag should arrive in the order that they are posted.
+  \item Large number of concurrent threads Threads are lightweight; they are
+    scheduled by a user-space scheduler that understands synchronization
+    objects.
+  \item The implementation is optimized for the case where don't cares are not used.
+  \item No concurrent send and receive having the same signature, so we do not have to worry about odering.
+  \item The Network Interface Controller (NIC) supports multiple, independent channels.
+  \item The NIC can be accessed in user space; it has its own routing tables,
+    in order to translate ranks in MPI\_COMM\_WORLD to physical node addresses;
+    it has page tables, in order to translate virtual addresses to physical
+    addresses.
 \end{itemize}
 
-We argue that wild-card and ordering is not needed, any application which
-relies on those features could be rewritten slightly to accomodate their needs.
-Moreover, relaxing the requirement allow a simple yet efficient implementation
-for communication in multiple threads. We shall discuss this in more detail
-in a later section.
+The key data structure for communication is a lock-free hash table which stores
+both unsolicited incoming messages and outstanding receives. Since we assume
+there are no don't cares, we can hash by source and tag. We focus on critical
+operations the creation of communicators or of datatypes is not (yet)
+addressed. We also ignore, for the time being, one-sided operation.
 
-We next tackle the problem of cache thrashing and long-delay context-switching
-by designing a message-driven runtime. The runtime is an integrated system of a
-user-level thread (ULT) scheduler and a communication server. The ULT provides
-a low latency thread management while the server is a kernel-thread dedicating
-to message delivery. The two components interact using the afortmentioned
-hash-table.  Our primary goal is to design an algorithm and optimize to
-minimize the latency of this interaction. A failure to achieve this goal simply
-adds extranous overhead to single threaded application and might not achieve
-significant benefit that justifies its cost. We shall also show that our design 
-allows optimizing only a few neccessary operations.
+We argue that these are reasonable assumption.  Applications which relies on
+don't care or ordering could be rewritten to accomodate their needs. We shall
+discuss the possiblity in the later section. Moreover, relaxing the requirement
+allow a simple yet efficient implementation for communication in multiple
+threads. We shall discuss this in more detail in a later section.
+
+The runtime is an integrated system of a user-level thread (ULT) scheduler and
+a communication server. The ULT provides a low latency thread management while
+the server is a kernel-thread dedicating to message delivery. The two
+components interact using the afortmentioned hash-table.  Our primary goal is
+to design an algorithm and optimize to minimize the latency of this
+interaction. A failure to achieve this goal simply adds extranous overhead to
+single threaded application and might not achieve significant benefit that
+justifies its cost. We shall also show that our design allows optimizing only a
+few neccessary operations.
+
+Resource management is another issue in the runtime. Aside from communication
+context such as connections and NIC-provided control data which we maintains
+per communication server, we have to maintain a pool of packet structure. The
+pool is the second shared data structure among all components of the network.
+Each packet is used for storing control and message data to deliver to network
+device.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{fig/runtime.pdf}
+  \caption{MPI Runtime Architecture for multi-threaded executions}\label{fig:overall}
+\end{figure}
+
+Figure \ref{fig:overall} shows the overall architecture of our described
+runtime system.
 
 \subsection{Point-to-Point Message Passing Algorithms}
 We now describe an algorithm and its data structure which allows a large
@@ -171,14 +195,7 @@ which have operations executed in program order. Lastly, linearizability is
 other concurrent objects.
 
 The hash-table serves as a mechanism for a thread and the communication server
-to interact. We now describe algorithms for Send and Recv. Our algorithms are
-based on the following assumptions about the user of MPI:
-\begin{itemize}
-  \item There is no concurrent MPI_Send or MPI_Recv
-    that having the same target i.e. either tag, source or communicator argument
-    must be different.
-  \item There is no use of wildcard - MPI_ANY_TAG, or MPI_ANY_SOURCE.
-\end{itemize}
+to interact. We now describe algorithms for Send and Recv.
 
 Message delivery in general can be implemented in two way: eager or rendevouz
 protocol. Eager protocol is when the message buffer is copied into an
@@ -191,7 +208,6 @@ protocol in which the data is delivered directly from the source buffer to the
 target buffer thus saving extra copies.  The protocol however requires
 some control messages to exchange meta data and signal completion.
 
-We next describe the algorithm for Eager and Rendevouz under our design.
 \subsubsection{Point-to-Point Eager protocol}
 
 \begin{algorithm}
@@ -199,11 +215,12 @@ We next describe the algorithm for Eager and Rendevouz under our design.
   \label{algo:short}
   \begin{algorithmic}[1] % The number tells where the line numbering should start
     \Procedure{Send-Eager}{$b, s, d$} \Comment: buffer, size, destination signature 
-      \State Create new packet $p$
+      \State $p$ = pkpool.get()
       \State Set packet header $p.d$ to $d$
       \State Copy $b$ to $p.b$
       \State Post $p$ to network for send.
     \EndProcedure
+    \\
     \Procedure{Recv-Eager}{$b, s, d$} \Comment: buffer, size, source signature 
       \State $\Gamma$ = current thread id.
       \State Create a request $r$ = $(b,s,d,\Gamma)$
@@ -211,13 +228,13 @@ We next describe the algorithm for Eager and Rendevouz under our design.
       \State Create hash-key $k$ from $d$.
       \State $v' = H.\text{insert}(k,v)$
       \If {$v' \ne v$}
-        \Comment: insertion fail, message has arrived.
-        \State Obtain request $r$ from $v'$
+        \Comment: insertion fail, message has arrived, copy the data.
+        \State Copy $v'.p.b$ to $b$
+        \State pkpool.ret($p$)
       \Else
         \Comment: insertion success, message has not arrived.
-        \State ThreadWait()
+        \State \texttt{ThreadWait}()
       \EndIf
-      \State Copy $r.b$ to $b$.
       \State $H.\text{erase}(k)$
     \EndProcedure
   \end{algorithmic}
@@ -232,11 +249,12 @@ We next describe the algorithm for Eager and Rendevouz under our design.
       \State Create hash-key $k$ from $p.d$.
       \State $v' = H.\text{insert}(k,v)$
       \If {$v' \ne v$}
-        \Comment: insertion fail, thread has arrived.
-        \State Obtain request $r$ from $v'$
-        \State ThreadSignal($r.\Gamma$)
+        \Comment: insertion fail, thread has arrived, copy the data.
+        \State Copy $p.b$ to $v'.r.b$
+        \State \texttt{ThreadSignal}($r.\Gamma$)
+        \State pkpool.ret($p$)
       \Else
-        \Comment: insertion success, thread has not arrived.
+        \Comment: insertion success, thread has not arrived, nothing to do.
         \State \Return
       \EndIf
     \EndProcedure
@@ -257,10 +275,10 @@ with the needed data to copy to its buffer.
 
 On the other hand, the thread is the one who succeeds and the request is
 inserted into the hash-table with the thread identification. The thread now
-block by executing ThreadWait. When the eager packet arrived, the request handler
+block by executing \texttt{ThreadWait}. When the eager packet arrived, the request handler
 is executed by the communication server. The server will fail the insert but
 find the request with the attached thread identification. It now can 
-find the thread and wake up using ThreadSignal. In this situation, there is a
+find the thread and wake up using \texttt{ThreadSignal}. In this situation, there is a
 locality consideration whether the thread or the server should perform the
 memory copy. However, this is an optimization which does not effect the
 correctness of our algorithm.
@@ -281,8 +299,8 @@ we do not have wird-card, the sender and receiver knows exactly their target.
 We only require the receiver to send its buffer to the sender. The sender can
 follow up by issuing an RDMA.  Analogous to the eager protocol, whenever the
 sender or receiver is required to wait for a matching message it will perform
-ThreadWait, and later when the message has arrived the communication server
-will perform a ThreadSignal.
+\texttt{ThreadWait}, and later when the message has arrived the communication server
+will perform a \texttt{ThreadSignal}.
 
 Specifically, the sender either waits when the RTR message has not arrived or
 when RDMA has not finished. In the first situation, the server will issue RDMA
@@ -291,29 +309,224 @@ the sender thread when RDMA has completed. On the other hand, the receiver only
 waits for the RDMA event to finish after issuing a eager-send of RTR.
 
 \subsection{Critical Operations Discussion}
-Clearly, optimizing the hash-table and thread operations is the key to the
-performance of both protocol. One could achieve $O(1)$ amortized complexity.
-However, an efficient implementation requires optimizing them for the constant
-factor. Ideally, we want these operation to be \textit{wait-free} and the
-constant factor is tiny. 
-
-One possible implementation of thread operation is to use condition variable.
-However, these are not wait-free since condition variable in general requires a
-lock. A busy-waiting implementation is even worst since the processor spends
-useless time polling. A general kernel or user-level thread library usually goes
-down this path. Qthreads uses a modification i.e. full-empty bit
-synchronization, however internally they also requires locking to implement a
-waiting queue. We have designed a thread library which makes wait-freedom
-possible for both operations.
-
-Our described concurrent hash-table is not deviated very much from conventional
-concurrent hash-table. We however find opportunity to optimize further by take
-advantage of some semantics requirement that we have enforced. One example is
-that, we are able to make the erase operation wait-free.
+Clearly, optimizing the hash-table, packet pool and thread operations is the
+key to the performance of both protocol. One could achieve $O(1)$ amortized
+complexity.  However, an efficient implementation requires optimizing them for
+the constant factor. Ideally, we want these operation to be \textit{wait-free}
+and the constant factor is tiny. In the next section, we describe the
+implementaion of each of the component and show how we could optimize to reduce
+the cache misses in NUMA achitecture.
 
 \section{Implementation and Optimization}
+\subsection{Thread scheduler}
+Our thread scheduler is implemented as a User-Level Thread (ULT) in order to
+minimize context switching overhead. The context-switching mechanism is similar
+to that of Argobots and Boost coroutines, we make use of \texttt{fcontext}. The
+idea is to maintains a separate stack for each thread. A few registers
+(including the program counter) is saved and restored from an allocated space
+in the stack. Morever, the switch is designed to not involve OS system call,
+thus by-passing the kernel. This overall reduces the latency of switching to a
+new context to under a hundred cycle.
+
+Rather than designing a general purpose ULT, we focus on the two most important
+operations: \texttt{ThreadWait} and \texttt{ThreadSignal}.  One possible
+implementation is to use condition variable. This is the typical
+synchronization method which is used in both POSIX thread and Argobots.
+However, these are expensive since condition variable in general requires a
+lock. A busy-waiting implementation is even worst since the processor spends
+useless time polling. Qthreads uses a slight modification notion i.e.
+full-empty bit. However, internally each full-empty bit object is a waiting
+queue.
+
+Our thread scheduler achieves wait-freedom for both afortmentioned operation.
+Except the required context-swiching for \texttt{ThreadWait}, each operation is
+simply a single x86 instruction. The idea behind our thread scheduler is a novel
+use of bit-vector. Rather than using a queue to implement a set of runnable thread,
+each bit in the bit-vector indicates a thread is runnable.
+
+When a worker is created, it is given a unique worker id, denotes as $\omega$.
+When a thread is created by a worker, it is assigned an unique id $\Gamma$
+within the range of $(0..M-1)$, for $M$ is the maximum concurrent threads for
+that worker.  For example, using a vector of $8$ 64-bit words, we allow up to
+$512$ concurrent threads per worker. A pair $(\omega, \Gamma)$ uniquely
+defines a concurrent thread in the system at a point in time. Additionally,
+during creation time, the worker atomically set its $\Gamma$ bit to $1$.
+
+\begin{algorithm}
+  \caption{Thread scheduler}
+  \label{algo:thread}
+  \begin{algorithmic}[1]
+    \Procedure{Scheduling}{w, V} \Comment{worker, bit-vector}
+    \While {!w.stop} \Comment{loop until user ask to stop}
+      \For{word64 in V}
+      \If{word64 $\ne$ 0}
+        \State localWord64 = 0
+        \State ATOMIC_EXCHANGE(word64, localWord64)
+        \While {localWord64 $> 0$}
+          \State b = Find-First-Set(localWord64)
+          \State FlipBit(localWord64, b)
+          \State ContextSwitch($\Gamma_{b}$)
+        \EndWhile
+      \EndIf
+      \EndFor
+    \EndWhile
+    \EndProcedure
+  \end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+  \caption{Thread Operations}
+  \label{algo:thread-ops}
+  \begin{algorithmic}[1]
+    \Procedure{ThreadWait}{sync}  \Comment{Synchronization object}
+      \State sync = {$(\omega, \Gamma)$}
+      \State ContextSwitch($\omega$)
+    \EndProcedure
+    \\ 
+    \Procedure{ThreadSignal}{sync} \Comment{Synchronization object}
+      \State w = sync.$\omega$
+      \State ATOMIC_SET_BIT(w.V, sync.$\Gamma$)
+    \EndProcedure
+  \end{algorithmic}
+\end{algorithm}
+
+Algorithms \ref{algo:thread} describes our scheduling algorithms. The
+scheduler, when being free will look at each 64-bit word in the bit-vector to
+find a schedulable thread.  Instead of working at 1 thread grenularity, we work
+at 64 threads within a 64-bit word. By using an atomic exchange to swap the 
+interested word to local variable, we could continously perform read and write
+this variable without accessing the main memory.  This is not only easier for
+correctness because there could be concurrent thread writing to the bit-vector,
+this also ensures progress property for all threads because we schedule all threads
+in a bit-vector before moving to the next word.
+
+Algorithms \ref{algo:thread-ops} describes the two thread operations.
+\texttt{ThreadWait} simply stores the thread indentification into the
+synchronization object and switch back to the worker scheduler.  On the other
+hand, \texttt{ThreadSignal} shall access the bit-vector and atomically set the
+bit in the appropriate word based on the thread identification stored in the
+synchronization object.
+
+Note that \texttt{ThreadWait} is executed in the same kernel thread as the
+thread scheduler associating with the running ULT, thus there is no race that
+we need to worry about in accessing the bit-vector. \texttt{ThreadSignal} can
+be executed anywhere, and in our design it will be executed by the
+communication server. Thus in the algorithm it is errornous to perform
+\texttt{ThreadSignal} multiple times. In practise, we store additionally an
+atomic flag per synchronization object to prevent this to happen, we ignore it
+for simplicity.
+
+One can point out a problem with our thread scheduler design. The performance
+shall degrade greatly when we want to support a large number of threads. The
+reason is we have to iterate over the bit-vector. There could be an issue with
+fairness because thread with larger index will be scheduled later. We tackle
+the first problem by using a hierachical design of bit-vector. That is,
+we could use a secondary bit-vector as a hint to index into the first level bit-vector.
+Specifically, each bit in the secondary bit-vector indicates which word in
+the first level could have schedulable thread.
+
+More specifically, \texttt{ThreadSignal} will perform a bit set first into the
+first level then a bit set into the second level. The scheduler will first look
+into the second level to find a potentially word index and go directly to that
+word index to look for schedulable thread. It can happen that the secondary
+might indicate the thread is schedulable, but when it comes to the first level
+the thread is already scheduled by the previous check. This \textit{false
+positive} can happen because the secondary level bit is potentially shared by
+64 thread of the first level bit. But this does not affect the correctness
+because the thread will not be scheduled twice in anyway. There is no situation
+that we can think of that we might have \textit{false negative} or \textit{true
+negative}.
+
+Using this scheme, if we use 1 word for the secondary level bit-vector, each
+bit represent a 64-bit words in the first level, each worker can support up to
+$4096$ threads. And since 8 words can fit in a cache line and better to read
+together, we can use 1 bit to represent a set of 8 64-bit words, and by having
+8 words in the secondary level we can support $262144$ concurrent threads per
+worker. Therefore, for a small number of worker, we can go up to our goal of
+million thread per node without sacrifying much performance.
+
+\subsection{Concurrent Hash-Table}
+Our concurrent hash-table is not deviated very much from conventional
+concurrent hash-table. We however find opportunity to optimize further by take
+advantage of some semantics requirement that we have mentioned.
+
+Firstly, we use a spinlock per bucket. This is an viable option since we could
+control the table size to reduce the hash collision to minimal. The table size is
+related directly to how many concurrent operations which is controlled by 
+our packet pool size. Since the collision is minimal, the conflict can only happen
+between communication server and a thread when both try to insert into the same
+bucket at the same time. Since there is only synchronization between 2 threads
+a spinlock is sufficient for our purpose and it allows a very simple design.
+
+Secondly, we design each bucket as an 4-entry array. Each entry consists of 2
+64-bit words. Within a 4-entry array, one will be used as control entry and the
+other three are used for storing a pair of key and data. The control entry has
+an atomic flag for spin locking, and a pointer to point to the next 4-entry in
+case we have more than 3 collisions. Since 4-entry typically fits in a cache
+line, we suffer only 1 cache miss at most when trying to lock the bucket and
+the data can be read without more cache misses.
+
+Lastly, the \texttt{insert} operation returns the address of the associated
+entry. This allows the \texttt{empty} operation to be a single instruction,
+which set the key to to a special value indicating an empty entry. This is only
+possible because only one thread can change an entry key since no concurrent
+Send/Recv with the same tag is allowed. Thus our \texttt{empty} is very fast
+and achieves wait-freedom since no lock is required. Our \texttt{insert} is
+cache-friendly and does not typically suffer long conflicts when the table size
+is large enough.
+
+\subsection{Concurrent Packet Pool}
+Our pool is currently implemented using a lockfree stack. At the
+initialization, a fixed numbers of packet is allocated and push to the stack.
+During runtime a pool \texttt{get} is a stack \texttt{pop} and a pool
+\texttt{ret} is a stack \texttt{push}.
+
+Since the packet is a unit of communication, its data is read and written very
+frequently. The stack implementation although does not give us the best latency
+in terms of concurrent accesses, it gives us good temporal locality of the
+packet data.
 
 \section{Experiment}
+\subsection{Thread Scheduler}
+\begin{figure}[h]
+  \centering 
+  \includegraphics[width=0.9\textwidth]{fig/thread.png}
+  \caption{Comparing Thread wait and signal with Argobots condition variable
+  implementation. Runtime from entering wait until waken up by signal per thread.}
+
+\end{figure}
+
+\newpage
+
+\subsection{Concurrent Hash-Table}
+\begin{figure}[h!]
+  \centering 
+  \includegraphics[width=\textwidth]{fig/hashtbl.png}
+  \caption{Comparing hash-table inserting and deletion by concurrent threads
+    with cuckoo-hasing.  Runtime is averaged per operation per thread.
+    \texttt{arr} suffix is our implementation and \texttt{ck} prefix is cuckoo-hasing}.
+\end{figure}
+
+\newpage
+
+\subsection{Overall overhead}
+\begin{figure}[h!]
+  \centering 
+  \includegraphics[width=\textwidth]{fig/overhead.png}
+  \caption{Total overhead of runtime system, comparing to raw network latency.}
+\end{figure}
+
+\subsection{Pingpong multiple threads}
+\begin{figure}[h!]
+  \centering 
+  \includegraphics[width=\textwidth]{fig/pingpong.png}
+  \caption{Comparing multi-threaded pingpong with OSU benchmarks using 1-thread
+  in 1-worker and 12-threads in 12-workers. MPIV is our implementation.}
+\end{figure}
+
+\newpage
+
+\subsection{Applications}
 \section{Related Works}
 \section{Conclusion}
 \end{document}
