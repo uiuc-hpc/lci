@@ -217,7 +217,14 @@ class alignas(64) packet_manager_LOCAL final {
  public:
 
   packet_manager_LOCAL(packet_manager* pkpool, uint8_t id, uint8_t max_size) :
-    lock_flag(ATOMIC_FLAG_INIT), id_(id), max_size_(max_size), overflow_(pkpool) {};
+    lock_flag(ATOMIC_FLAG_INIT), id_(id), max_size_(max_size),
+    top_(0), bottom_(0), overflow_(pkpool), container_(new mpiv_packet*[64]) {
+    memset(container_, 0, 64 * sizeof(mpiv_packet*));
+  }
+
+  ~packet_manager_LOCAL() {
+    delete[] (container_);
+  }
 
   inline void lock() {
     while (lock_flag.test_and_set(std::memory_order_acquire)) {
@@ -229,9 +236,9 @@ class alignas(64) packet_manager_LOCAL final {
   inline mpiv_packet* steal_packet() {
     mpiv_packet* packet = NULL;
     lock();
-    if (!pool_.empty()) {
-      packet = pool_.back();
-      pool_.pop_back();
+    if (top_ != bottom_) {
+      packet = container_[bottom_];
+      bottom_ = (bottom_ + 1) & 63;
     }
     unlock();
     return packet;
@@ -240,15 +247,14 @@ class alignas(64) packet_manager_LOCAL final {
   inline mpiv_packet* get_packet_nb() {
     mpiv_packet* packet = NULL;
     lock();
-    if (!pool_.empty()) {
-      packet = pool_.front();
-      packet->poolid() = id_;
-      pool_.pop_front();
+    if (top_ != bottom_) {
+      top_ = (top_ + 64 - 1) & 63;
+      packet = container_[top_];
     } else {
       packet = overflow_->get_packet_nb();
-      if (packet) packet->poolid() = id_;
     }
     unlock();
+    if (packet) packet->poolid() = id_;
     return packet;
   }
 
@@ -267,10 +273,12 @@ class alignas(64) packet_manager_LOCAL final {
 
   inline void new_packet(mpiv_packet* packet) {
     lock();
-    pool_.push_front(packet);
-    if (pool_.size() > max_size_) {
-      overflow_->ret_packet(pool_.back());
-      pool_.pop_back();
+    container_[top_] = packet;
+    top_ = (top_ + 1) & 63;
+    if (((top_ + 64 - bottom_) & 63) > max_size_) {
+      packet = container_[bottom_];
+      bottom_ = (bottom_ + 1) & 63;
+      overflow_->ret_packet(packet);
     }
     unlock();
   }
@@ -281,8 +289,11 @@ class alignas(64) packet_manager_LOCAL final {
   std::atomic_flag lock_flag;
   uint8_t id_;
   uint8_t max_size_;
-  std::deque<mpiv_packet*> pool_;
+  uint8_t top_;
+  uint8_t bottom_;
   packet_manager* overflow_;
+  mpiv_packet** container_;
+  static_assert(64 >= MAX_SEND * 2, "unable to hold all send packet");
 };
 
 class alignas(64) packet_manager_LFLOCAL final {
