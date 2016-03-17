@@ -10,7 +10,6 @@
 // #define CHECK_RESULT
 
 #include "mpiv.h"
-#include "comm_queue.h"
 #include "comm_exp.h"
 
 #include "profiler.h"

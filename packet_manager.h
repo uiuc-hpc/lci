@@ -3,11 +3,13 @@
 
 #include "common.h"
 #include "mpmcqueue.h"
+#include "work_steal_queue.h"
 
 enum mpiv_packet_type { SEND_SHORT, SEND_READY, RECV_READY, SEND_READY_FIN };
 
 struct alignas(8) mpiv_packet_header {
   mpiv_packet_type type;
+  uint8_t poolid;
   int from;
   int tag;
 };
@@ -37,6 +39,8 @@ class alignas(64) mpiv_packet {
     header_.from = from;
     header_.tag = tag;
   }
+
+  inline uint8_t& poolid() { return header_.poolid; }
 
   inline void set_bytes(const void* bytes, const int& size) {
     memcpy(content_.buffer, bytes, size);
@@ -72,9 +76,8 @@ class alignas(64) mpiv_packet {
   mpiv_packet_content content_;
 };
 
-class alignas(64) packet_managerZ final {
+class alignas(64) packet_manager_MPMCQ final {
  public:
-  packet_managerZ() {}
 
   inline mpiv_packet* get_packet_nb() {
     if (queue_.empty()) return 0;
@@ -173,7 +176,7 @@ class packet_managerY final {
   uint8_t size_;
 };
 
-class packet_managerX final {
+class packet_manager_LFSTACK final {
  public:
 
   inline mpiv_packet* get_packet_nb() {
@@ -208,7 +211,137 @@ class packet_managerX final {
   boost::lockfree::stack<mpiv_packet*, boost::lockfree::capacity<MAX_CONCURRENCY>> pool_;
 };
 
-using packet_manager = packet_managerX;
-using packet_manager2 = packet_managerX;
+using packet_manager = packet_manager_LFSTACK;
+
+class alignas(64) packet_manager_LOCAL final {
+ public:
+
+  packet_manager_LOCAL(packet_manager* pkpool, uint8_t id, uint8_t max_size) :
+    lock_flag(ATOMIC_FLAG_INIT), id_(id), max_size_(max_size), overflow_(pkpool) {};
+
+  inline void lock() {
+    while (lock_flag.test_and_set(std::memory_order_acquire)) {
+      asm volatile("pause\n": : :"memory");
+    }
+  }
+  inline void unlock() {lock_flag.clear(std::memory_order_release); }
+
+  inline mpiv_packet* steal_packet() {
+    mpiv_packet* packet = NULL;
+    lock();
+    if (!pool_.empty()) {
+      packet = pool_.back();
+      pool_.pop_back();
+    }
+    unlock();
+    return packet;
+  }
+
+  inline mpiv_packet* get_packet_nb() {
+    mpiv_packet* packet = NULL;
+    lock();
+    if (!pool_.empty()) {
+      packet = pool_.front();
+      packet->poolid() = id_;
+      pool_.pop_front();
+    } else {
+      packet = overflow_->get_packet_nb();
+      if (packet) packet->poolid() = id_;
+    }
+    unlock();
+    return packet;
+  }
+
+  inline mpiv_packet* get_packet() {
+    mpiv_packet* packet = NULL;
+    while (!(packet = get_packet_nb())) fult_yield();
+    return packet;
+  }
+
+  inline mpiv_packet* get_packet(mpiv_packet_type packet_type, int rank,
+                                 int tag) {
+    mpiv_packet* packet = get_packet();
+    packet->set_header(packet_type, rank, tag);
+    return packet;
+  }
+
+  inline void new_packet(mpiv_packet* packet) {
+    lock();
+    pool_.push_front(packet);
+    if (pool_.size() > max_size_) {
+      overflow_->ret_packet(pool_.back());
+      pool_.pop_back();
+    }
+    unlock();
+  }
+
+  inline void ret_packet(mpiv_packet* packet) { new_packet(packet); }
+
+ private:
+  std::atomic_flag lock_flag;
+  uint8_t id_;
+  uint8_t max_size_;
+  std::deque<mpiv_packet*> pool_;
+  packet_manager* overflow_;
+};
+
+class alignas(64) packet_manager_LFLOCAL final {
+ public:
+
+  packet_manager_LFLOCAL(packet_manager* pkpool, uint8_t id, uint8_t max_size) :
+    id_(id), max_size_(max_size), overflow_(pkpool) {};
+
+  inline mpiv_packet* get_packet_nb_nosteal() {
+    mpiv_packet* packet = (mpiv_packet*) pool_.pop();
+    return packet;
+  }
+
+  inline mpiv_packet* get_packet_nb_unused() {
+    mpiv_packet* packet = (mpiv_packet*) pool_.steal();
+    return packet;
+  }
+
+  inline mpiv_packet* get_packet_nb() {
+    mpiv_packet* packet = NULL;
+    packet = (mpiv_packet*) pool_.pop();
+    if (packet) {
+      packet->poolid() = id_;
+    } else {
+      packet = overflow_->get_packet_nb();
+    }
+    return packet;
+  }
+
+  inline mpiv_packet* get_packet() {
+    mpiv_packet* packet = NULL;
+    while (!(packet = get_packet_nb())) fult_yield();
+    return packet;
+  }
+
+  inline mpiv_packet* get_packet(mpiv_packet_type packet_type, int rank,
+                                 int tag) {
+    mpiv_packet* packet = get_packet();
+    packet->set_header(packet_type, rank, tag);
+    return packet;
+  }
+
+  inline void new_packet(mpiv_packet* packet) {
+    pool_.push((void*) packet);
+    if (pool_.size() > max_size_) {
+      mpiv_packet* p = (mpiv_packet*) pool_.steal();
+      if (p) overflow_->ret_packet(p);
+    }
+  }
+
+  inline void ret_packet(mpiv_packet* packet) { new_packet(packet); }
+
+ private:
+  uint8_t id_;
+  uint8_t max_size_;
+  work_steal_queue pool_;
+  packet_manager* overflow_;
+};
+
+using local_pk_pool = packet_manager_LOCAL;
 
 #endif

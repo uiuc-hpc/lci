@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
   int ret;
   int num_xstreams = DEFAULT_NUM_XSTREAMS;
   int num_threads = DEFAULT_NUM_THREADS;
-  if (argc > 1) num_xstreams = atoi(argv[1]);
+  num_xstreams = 2;
   if (argc > 2) num_threads = atoi(argv[2]);
 
   int total_threads = num_threads * num_xstreams;
@@ -83,11 +83,11 @@ int main(int argc, char *argv[])
 
   double t = 0;
   int time;
-  for (time = 0; time < TOTAL; time ++) {
+  for (time = 0; time < TOTAL_LARGE; time ++) {
     total = 0;
     /* Create threads */
     for (i = 0; i < num_threads * num_xstreams; i++) {
-      ret = ABT_thread_create(pools[i % num_xstreams],
+      ret = ABT_thread_create(pools[1],
           thread_func, (void*) (size_t) i, ABT_THREAD_ATTR_NULL,
           &thread[i]);
     }
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
     t+=wtime();
   }
 
-  printf("%f\n", 1e6 * t / total_threads /  TOTAL);
+  printf("%f\n", 1e6 * t / total_threads /  TOTAL_LARGE);
 
   /* Free Execution Streams */
   for (i = 1; i < num_xstreams; i++) {

@@ -8,6 +8,7 @@
 #include <boost/interprocess/creation_tags.hpp>
 
 #include <vector>
+#include <deque>
 #include <atomic>
 
 #include <stdlib.h>
@@ -34,17 +35,19 @@ struct mpiv_ctx {
 
 #include "server.h"
 
+__thread local_pk_pool* __pkpool;
+
 struct alignas(64) mpiv {
   int me;
   int size;
   vector<worker> w;
+  vector<local_pk_pool*> localpkpool;
   mpiv_ctx ctx;
   packet_manager pkpool;
   mpiv_server server;
-
   mpiv_hash_tbl tbl;
+  std::atomic<uint8_t> total_send;
 };
-
 static mpiv MPIV;
 
 double MPIV_Wtime() {
@@ -77,5 +80,5 @@ void mpiv_send_recv_ready(MPIV_Request* sreq, MPIV_Request* rreq) {
 #include "init.h"
 #include "recv.h"
 #include "send.h"
-
+#include "collective.h"
 #endif

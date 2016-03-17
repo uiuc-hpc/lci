@@ -34,8 +34,10 @@ pthread_cond_t  finished_size_cond;
 
 int finished_size;
 
+static int size = 0;
+
 typedef struct thread_tag {
-        int id;
+    int id;
 } thread_tag_t;
 
 void * send_thread(void *arg);
@@ -101,7 +103,7 @@ int main(int argc, char *argv[])
     if(provided != MPI_THREAD_MULTIPLE) {
         if(myid == 0) {
             fprintf(stderr,
-                "MPI_Init_thread must return MPI_THREAD_MULTIPLE!\n");
+                    "MPI_Init_thread must return MPI_THREAD_MULTIPLE!\n");
         }
 
         MPI_Finalize();
@@ -114,21 +116,27 @@ int main(int argc, char *argv[])
         fprintf(stdout, "%-*s%*s\n", 10, "# Size", FIELD_WIDTH, "Latency (us)");
         fflush(stdout);
 
-        tags[i].id = i;
-        pthread_create(&sr_threads[i], NULL,
-                send_thread, &tags[i]);
-        pthread_join(sr_threads[i], NULL);
-
+        for(size = 0; size <= MAX_MSG_SIZE; size = (size ? size * 2 : 1)) {
+            MPI_Barrier(MPI_COMM_WORLD);
+            tags[i].id = i;
+            pthread_create(&sr_threads[i], NULL,
+                    send_thread, &tags[i]);
+            pthread_join(sr_threads[i], NULL);
+        }
     }
 
     else {
-        for(i = 0; i < THREADS; i++) {
-            tags[i].id = i;
-            pthread_create(&sr_threads[i], NULL, recv_thread, &tags[i]);
-        }
+        for(size = 0 ; size <= MAX_MSG_SIZE; size = (size ? size * 2 : 1)) {
+            MPI_Barrier(MPI_COMM_WORLD);
 
-        for(i = 0; i < THREADS; i++) {
-            pthread_join(sr_threads[i], NULL);
+            for(i = 0; i < THREADS; i++) {
+                tags[i].id = i;
+                pthread_create(&sr_threads[i], NULL, recv_thread, &tags[i]);
+            }
+
+            for(i = 0; i < THREADS; i++) {
+                pthread_join(sr_threads[i], NULL);
+            }
         }
     }
 
@@ -138,8 +146,7 @@ int main(int argc, char *argv[])
 }
 
 void * recv_thread(void *arg) {
-    int size, i, val, align_size;
-    int iter;
+    int i, val, align_size;
     char *s_buf, *r_buf;
     thread_tag_t *thread_id;
 
@@ -151,40 +158,34 @@ void * recv_thread(void *arg) {
 
     s_buf =
         (char *) (((unsigned long) s_buf1 + (align_size - 1)) /
-                  align_size * align_size);
+                align_size * align_size);
     r_buf =
         (char *) (((unsigned long) r_buf1 + (align_size - 1)) /
-                  align_size * align_size);
+                align_size * align_size);
 
 
-    for(size = 0, iter = 0; size <= MAX_MSG_SIZE; size = (size ? size * 2 : 1)) {
-        if(size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
-        }  
+    if(size > LARGE_MESSAGE_SIZE) {
+        loop = LOOP_LARGE;
+        skip = SKIP_LARGE;
+    }  
 
-        /* touch the data */
-        for(i = 0; i < size; i++) {
-            s_buf[i] = 'a';
-            r_buf[i] = 'b';
-        }
-
-        for(i = val; i < (loop + skip); i += THREADS) {
-            MPI_Recv (r_buf, size, MPI_CHAR, 0, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Send (s_buf, size, MPI_CHAR, 0, i, MPI_COMM_WORLD);
-        }
-
-        iter++;
+    /* touch the data */
+    for(i = 0; i < size; i++) {
+        s_buf[i] = 'a';
+        r_buf[i] = 'b';
     }
 
-    sleep(1);
+    for(i = val; i < (loop + skip); i += THREADS) {
+        MPI_Recv (r_buf, size, MPI_CHAR, 0, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Send (s_buf, size, MPI_CHAR, 0, i, MPI_COMM_WORLD);
+    }
 
     return 0;
 }
 
 
 void * send_thread(void *arg) {
-    int size, i, val, align_size, iter;
+    int i, val, align_size;
     char *s_buf, *r_buf;
     double t_start = 0, t_end = 0, t = 0, latency;
     thread_tag_t *thread_id = (thread_tag_t *)arg;
@@ -194,41 +195,38 @@ void * send_thread(void *arg) {
 
     s_buf =
         (char *) (((unsigned long) s_buf1 + (align_size - 1)) /
-                  align_size * align_size);
+                align_size * align_size);
     r_buf =
         (char *) (((unsigned long) r_buf1 + (align_size - 1)) /
-                  align_size * align_size);
+                align_size * align_size);
 
-    for(size = 0, iter = 0; size <= MAX_MSG_SIZE; size = (size ? size * 2 : 1)) {
-        if(size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
-        }  
+    if(size > LARGE_MESSAGE_SIZE) {
+        loop = LOOP_LARGE;
+        skip = SKIP_LARGE;
+    }  
 
-        /* touch the data */
-        for(i = 0; i < size; i++) {
-            s_buf[i] = 'a';
-            r_buf[i] = 'b';
-        }
-
-        for(i = 0; i < loop + skip; i++) {
-            if(i == skip) {
-                t_start = MPI_Wtime();
-            }
-
-            MPI_Send(s_buf, size, MPI_CHAR, 1, i, MPI_COMM_WORLD);
-            MPI_Recv(r_buf, size, MPI_CHAR, 1, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        }
-
-        t_end = MPI_Wtime ();
-        t = t_end - t_start;
-
-        latency = (t) * 1.0e6 / (2.0 * loop);
-        fprintf(stdout, "%-*d%*.*f\n", 10, size, FIELD_WIDTH, FLOAT_PRECISION,
-                latency);
-        fflush(stdout);
-        iter++;
+    /* touch the data */
+    for(i = 0; i < size; i++) {
+        s_buf[i] = 'a';
+        r_buf[i] = 'b';
     }
+
+    for(i = 0; i < loop + skip; i++) {
+        if(i == skip) {
+            t_start = MPI_Wtime();
+        }
+
+        MPI_Send(s_buf, size, MPI_CHAR, 1, i, MPI_COMM_WORLD);
+        MPI_Recv(r_buf, size, MPI_CHAR, 1, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+
+    t_end = MPI_Wtime ();
+    t = t_end - t_start;
+
+    latency = (t) * 1.0e6 / (2.0 * loop);
+    fprintf(stdout, "%-*d%*.*f\n", 10, size, FIELD_WIDTH, FLOAT_PRECISION,
+            latency);
+    fflush(stdout);
 
     return 0;
 }

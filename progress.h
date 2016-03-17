@@ -11,7 +11,7 @@ void mpiv_complete_rndz(mpiv_packet* p, MPIV_Request* s) {
   MPIV.ctx.conn[s->rank].write_rdma(s->buffer, MPIV.ctx.heap_lkey,
       (void*)p->rdz_tgt_addr(), p->rdz_rkey(),
       s->size, 0);
-  MPIV.ctx.conn[s->rank].write_send(p, RNDZ_MSG_SIZE, 0, p);
+  MPIV.ctx.conn[s->rank].write_send(p, RNDZ_MSG_SIZE, 0, (void*) p);
 }
 
 void mpiv_recv_recv_ready(mpiv_packet* p) {
@@ -103,14 +103,18 @@ inline void mpiv_serve_send(const ibv_wc& wc) {
   mpiv_packet* p_ctx = (mpiv_packet*)wc.wr_id;
   if (!p_ctx) return;
   const auto& type = p_ctx->header().type;
+  auto poolid = p_ctx->poolid();
 
   if (type == SEND_READY_FIN) {
     MPIV_Request* req = (MPIV_Request*)p_ctx->rdz_sreq();
     MPIV_Signal(req);
     stopt(rdma_timing);
     // this packet is taken directly from recv queue.
+    MPIV.pkpool.ret_packet(p_ctx);
+  } else  {
+    assert(poolid < MPIV.localpkpool.size());
+    MPIV.localpkpool[poolid]->ret_packet(p_ctx);
   }
-  MPIV.pkpool.ret_packet(p_ctx);
 }
 
 #endif

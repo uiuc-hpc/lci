@@ -26,7 +26,7 @@ MFCONTEXT = ../fult/make_x86_64_sysv_elf_gas.S
 
 CXXFLAGS_NOBOOST = -I$(ABT_INC)
 
-CXXFLAGS += -I$(BOOST_INC) -I$(ABT_INC) -I$(CUCKOO_INC) -I$(RDMAX_INC) -I$(IBV_INC) -I$(TACC_PAPI_INC) -fsplit-stack -DBOOST_USE_SEGMENTED_STACKS
+CXXFLAGS += -I$(BOOST_INC) -I$(ABT_INC) -I$(CUCKOO_INC) -I$(RDMAX_INC) -I$(IBV_INC) -I$(TACC_PAPI_INC) #-fsplit-stack -DBOOST_USE_SEGMENTED_STACKS
 LDFLAGS += -L$(TACC_PAPI_LIB) -lpapi -L$(BOOST_LIB)
 
 all: $(TARGET)
@@ -39,9 +39,6 @@ abx_%: abx_%.cxx
 
 %: mfcontext.o jfcontext.o %.cxx
 	$(MPICXX) $(CXXFLAGS) $(LDFLAGS) -std=c++11 $^ -o $@
-
-segmented_stack.o: ../segmented_stack.cxx
-	$(CXX) $(CXXFLAGS) -c ../segmented_stack.cxx
 
 jfcontext.o: $(JFCONTEXT)
 	$(GXX) -O2 -c $(JFCONTEXT) -o jfcontext.o

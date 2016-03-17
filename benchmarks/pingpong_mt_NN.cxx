@@ -105,8 +105,6 @@ void runfunc(intptr_t thread_rank) {
         MPIV_Recv(recvbuf, size, MPI_BYTE, dest, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       }
       end[tag][iter++] = MPI_Wtime();
-
-      if (size == 256) incr = 64;
     }
   }
   else {  /* odd */
@@ -117,7 +115,6 @@ void runfunc(intptr_t thread_rank) {
         MPIV_Recv(recvbuf, size, MPI_BYTE, src, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);    
         MPIV_Send(sendbuf, size, MPI_BYTE, src, tag, MPI_COMM_WORLD);
       }
-      if (size == 256) incr = 64;
     }
   }
 

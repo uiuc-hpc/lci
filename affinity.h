@@ -24,7 +24,7 @@ namespace affinity {
     CPU_ZERO(&cpuset);
     CPU_SET(core_id, &cpuset);
 
-    std::cerr << "[USE_AFFI] Setting someone to core #" << core_id << std::endl;
+    // std::cerr << "[USE_AFFI] Setting someone to core #" << core_id << std::endl;
     pthread_t current_thread = pthread_self();    
     return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
   }
@@ -34,7 +34,7 @@ namespace affinity {
     CPU_ZERO(&cpuset);
     for (int i = from; i < to; i++)
       CPU_SET(i, &cpuset);
-    std::cerr << "[USE_AFFI] Setting someone to core #[" << from << " - " << to <<")" << std::endl;
+    // std::cerr << "[USE_AFFI] Setting someone to core #[" << from << " - " << to <<")" << std::endl;
     pthread_t current_thread = pthread_self();    
     return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
   }
