@@ -36,7 +36,7 @@
 #define index(a,b,c)	((a)+(b)*(blockDimX+2)+(c)*(blockDimX+2)*(blockDimY+2))
 #define calc_pe(a,b,c)	((a)+(b)*num_blocks_x+(c)*num_blocks_x*num_blocks_y)
 
-#define MAX_ITER	25
+#define MAX_ITER	500
 #define LEFT		1
 #define RIGHT		2
 #define TOP		3
@@ -165,7 +165,7 @@ int main(int argc, char **argv) {
 
   while(/*error > 0.001 &&*/ iterations < MAX_ITER) {
     iterations++;
-    if(iterations == 5) startTime = MPI_Wtime();
+    if(iterations == 100) startTime = MPI_Wtime();
 
     /* Copy different planes into buffers */
     for(k=0; k<blockDimZ; ++k)
@@ -228,7 +228,7 @@ int main(int argc, char **argv) {
       }
     for(j=0; j<blockDimY; ++j)
       for(i=0; i<blockDimX; ++i) {
-	temperature[index(i+1, j+1, blockDimY+1)] = top_plane_in[j*blockDimX+i];
+	temperature[index(i+1, j+1, blockDimY+1)] = front_plane_in[j*blockDimX+i];
       }
 
     /* update my value based on the surrounding values */
@@ -244,6 +244,7 @@ int main(int argc, char **argv) {
                                           +  temperature[index(i, j, k)] ) * DIVIDEBY7;
 	}
 
+#if 0
     max_error = error = 0.0;
     for(k=1; k<blockDimZ+1; k++)
       for(j=1; j<blockDimY+1; j++)
@@ -252,6 +253,7 @@ int main(int argc, char **argv) {
 	  if(error > max_error)
 	    max_error = error;
 	}
+#endif
  
     double *tmp;
     tmp = temperature;
@@ -278,7 +280,7 @@ int main(int argc, char **argv) {
   if(myRank == 0) {
     endTime = MPI_Wtime();
     printf("Completed %d iterations\n", iterations);
-    printf("Time elapsed per iteration: %f\n", (endTime - startTime)/(MAX_ITER-5));
+    printf("Time elapsed per iteration: %f\n", (endTime - startTime)/(MAX_ITER-100));
   }
 
   MPI_Finalize();

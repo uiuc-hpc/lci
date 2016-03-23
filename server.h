@@ -33,7 +33,7 @@ class mpiv_server {
  public:
   mpiv_server() : stop_(false), done_init_(false) {}
 
-  inline void init(mpiv_ctx& ctx, packet_manager& pkpool, int& rank,
+  inline void init(mpiv_ctx& ctx, vector<local_pk_pool*>& localpk, packet_manager& pkpool, int& rank,
                    int& size) {
 #ifdef USE_AFFI
     affinity::set_me_to(0);
@@ -78,6 +78,7 @@ class mpiv_server {
     }
 
     pk_mgr_ptr = &pkpool;
+    pk_mgr_local_ptr = &localpk;
     done_init_ = true;
   }
 
@@ -103,7 +104,19 @@ class mpiv_server {
         }));
     stopt(t)
     // Make sure we always have enough packet, but do not block.
-    if (recv_posted_ < MAX_RECV) post_srq(pk_mgr_ptr->get_packet_nb());
+    if (recv_posted_ < MAX_RECV) {
+      auto* p = pk_mgr_ptr->get_packet_nb();
+      if (p != NULL) { 
+        recv_posted_ ++;
+        dev_ctx_->post_srq_recv((void*)p, (void*)p, sizeof(mpiv_packet),
+            sbuf_.lkey());
+      } else if (recv_posted_ < MAX_RECV / 2) {
+        // steal from local pool.
+        for (auto& localpool : *pk_mgr_local_ptr) {
+          post_srq(localpool->steal_packet());
+        }
+      }
+    }
     return ret;
   }
 
@@ -149,6 +162,7 @@ class mpiv_server {
   int recv_posted_;
   unique_ptr<pinned_pool> sbuf_alloc_;
   packet_manager* pk_mgr_ptr;
+  vector<local_pk_pool*>* pk_mgr_local_ptr;
 };
 
 #endif

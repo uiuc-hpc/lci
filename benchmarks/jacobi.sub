@@ -2,8 +2,8 @@
 #SBATCH -J mpiv
 #SBATCH -o results/%j.txt
 #SBATCH -e errors/%j.txt
-#SBATCH -n 4
-#SBATCH -N 4
+#SBATCH -n 8
+#SBATCH -N 8
 #SBATCH -p development
 #SBATCH -t 00:05:00
 #SBATCH -A TG-CCR130058
@@ -24,35 +24,5 @@ export MV2_ENABLE_AFFINITY=0
 #module load gcc/4.7.1
 #module load boost/1.55.0
 
-MV2_ENABLE_AFFINITY=no ibrun -np 4 ./jacobi 128 64 +barrier
-MV2_ENABLE_AFFINITY=no ibrun -np 4 ./jacobi_1 128 64 +barrier
-
-MV2_ENABLE_AFFINITY=no ibrun -np 4 ./jacobi 256 128 +barrier
-MV2_ENABLE_AFFINITY=no ibrun -np 4 ./jacobi_1 256 128 +barrier
-
-MV2_ENABLE_AFFINITY=no ibrun -np 4 ./jacobi 512 256 +barrier
-MV2_ENABLE_AFFINITY=no ibrun -np 4 ./jacobi_1 512 256 +barrier
-
-MV2_ENABLE_AFFINITY=no ibrun -np 4 ./jacobi 1024 512 +barrier
-MV2_ENABLE_AFFINITY=no ibrun -np 4 ./jacobi_1 1024 512 +barrier
-
-MV2_ENABLE_AFFINITY=no ibrun -np 4 ./jacobi 2048 1024 +barrier
-MV2_ENABLE_AFFINITY=no ibrun -np 4 ./jacobi_1 2048 1024 +barrier
-
-MV2_ENABLE_AFFINITY=no ibrun -np 4 ./jacobi 4096 2048 +barrier
-MV2_ENABLE_AFFINITY=no ibrun -np 4 ./jacobi_1 4096 2048 +barrier
-
-#MV2_ENABLE_AFFINITY=no ibrun -np 4 ./jacobi 8192 4096 +barrier
-#MV2_ENABLE_AFFINITY=no ibrun -np 4 ./jacobi_1 8192 4096 +barrier
-
-#ib_send_lat -d mlx4_0 --all &
-#ibrun -n 1 -o 1 ib_send_lat -d mlx4_0 --all `hostname`
-
-#ibrun -np 2 ./pingpong 8 8
-#ibrun -np 2 ./pingpong_16 8 8
-
-#ibrun -np 2 ./pingpong 8 8
-
-#ibrun -np 2 ./pingpong_ck 1 1
-#ibrun -np 2 ./pingpong_ck 1 8
-#ibrun -np 2 ./pingpong_ck 8 8
+ibrun -np 8 ./jacobi_3d_1 512 256 +barrier
+ibrun -np 16 ./jacobi_3d 512 512 512 256 128 256 +barrier

@@ -22,23 +22,32 @@ cd ${SLURM_SUBMIT_DIR}
 #module load gcc/4.7.1
 #module load boost/1.55.0
 
-ibrun -np 2 ./osu_latency
-ibrun -np 2 ./pingpong
+#ibrun -np 2 ./osu_latency
+#ibrun -np 2 ./pingpong
 
-ibrun -np 2 ./pingpong_mt_NN_mod 12 12
-MV2_ENABLE_AFFINITY=0 ibrun -np 2 ./latency_th_mod 12 12
+ibrun -np 2 ./pingpong_mt_NN_old 12 12
+ibrun -np 2 ./pingpong_mt_NN 12 12
 
-ibrun -np 2 ./pingpong_mt_NN_mod 12 8
-MV2_ENABLE_AFFINITY=0 ibrun -np 2 ./latency_th_mod 12 8
+ibrun -np 2 ./pingpong_mt_NN_old 12 8
+ibrun -np 2 ./pingpong_mt_NN 12 8
 
-ibrun -np 2 ./pingpong_mt_NN_mod 12 6
-MV2_ENABLE_AFFINITY=0 ibrun -np 2 ./latency_th_mod 12 6
+ibrun -np 2 ./pingpong_mt_NN_old 12 4
+ibrun -np 2 ./pingpong_mt_NN 12 4
 
-ibrun -np 2 ./pingpong_mt_NN_mod 12 4
-MV2_ENABLE_AFFINITY=0 ibrun -np 2 ./latency_th_mod 12 4
 
-ibrun -np 2 ./pingpong_mt_NN_mod 12 2
-MV2_ENABLE_AFFINITY=0 ibrun -np 2 ./latency_th_mod 12 2
+#MV2_ENABLE_AFFINITY=0 ibrun -np 2 ./latency_th_mod 12 12
+
+#ibrun -np 2 ./pingpong_mt_NN_mod 12 8
+#MV2_ENABLE_AFFINITY=0 ibrun -np 2 ./latency_th_mod 12 8
+
+#ibrun -np 2 ./pingpong_mt_NN_mod 12 6
+#MV2_ENABLE_AFFINITY=0 ibrun -np 2 ./latency_th_mod 12 6
+
+#ibrun -np 2 ./pingpong_mt_NN_mod 12 4
+#MV2_ENABLE_AFFINITY=0 ibrun -np 2 ./latency_th_mod 12 4
+
+#ibrun -np 2 ./pingpong_mt_NN_mod 12 2
+#MV2_ENABLE_AFFINITY=0 ibrun -np 2 ./latency_th_mod 12 2
 
 #ibrun -np 2 ./pingpong_mt_NN_mod 12 1
 #MV2_ENABLE_AFFINITY=0 ibrun -np 2 ./latency_th_mod 12 1

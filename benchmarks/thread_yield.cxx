@@ -26,6 +26,7 @@ int main(int argc, char** args) {
     num_threads = DEFAULT_NUM_THREAD;
     if (argc > 1) num_worker = atoi(args[1]);
     if (argc > 2) num_threads = atoi(args[2]);
+    printf("Num worker: %d, Num threads: %d\n", num_worker, num_threads);
 
     total_threads = num_threads * num_worker;
 

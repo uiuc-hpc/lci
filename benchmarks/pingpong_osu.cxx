@@ -78,14 +78,12 @@ int main(int argc, char *argv[])
 
     align_size = MESSAGE_ALIGNMENT;
 
-    /*s_buf =
+    s_buf =
         (char *) (((unsigned long) s_buf_original + (align_size - 1)) /
                   align_size * align_size);
     r_buf =
         (char *) (((unsigned long) r_buf_original + (align_size - 1)) /
-                  align_size * align_size);*/
-    s_buf = s_buf_original;
-    r_buf = r_buf_original;
+                  align_size * align_size);
 
     if(numprocs != 2) {
         if(myid == 0) {
@@ -122,7 +120,7 @@ int main(int argc, char *argv[])
             for(i = 0; i < loop + skip; i++) {
                 if(i == skip) { 
                     t_start = MPI_Wtime();
-                    f.start();
+                    // f.start();
                 }
 
                 MPI_Send(s_buf, size, MPI_CHAR, 1, 1, MPI_COMM_WORLD);
@@ -130,7 +128,7 @@ int main(int argc, char *argv[])
             }
 
             t_end = MPI_Wtime();
-            auto& x = f.stop();
+            // auto& x = f.stop();
             // std::cerr << 0.5 * x[0]/(loop+skip) << " " << std::endl;
         }
 
@@ -144,8 +142,8 @@ int main(int argc, char *argv[])
         if(myid == 0) {
             double latency = (t_end - t_start) * 1e6 / (2.0 * loop);
 
-            // fprintf(stdout, "%-*d%*.*f\n", 10, size, FIELD_WIDTH,
-            //         FLOAT_PRECISION, latency);
+            fprintf(stdout, "%-*d%*.*f\n", 10, size, FIELD_WIDTH,
+                FLOAT_PRECISION, latency);
             fflush(stdout);
         }
     }
