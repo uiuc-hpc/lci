@@ -20,29 +20,30 @@
 \section{Introduction}
 Message Passing Interface (MPI) has been implemented by several vendors. On
 Blue Gene machine, MPICH is the de-factor implementation, likewise on
-Infiniband machine, we have MVAPICH. Cray has their own implementation called
-CrayMPI; Intel similarly implements IntelMPI. OpenMPI is an effort of
-Open-source commmunity. Each of the implementation uses their best knowledge of
-the underlying computing machine and network architecture to optimize their
-code. For examples, the implementation might reduce latency by accessing
-directly the low-level network-API or optimize critical path using specialized
-instructions to reduce cache misses.
+Infiniband machine, we have MVAPICH. Cray has their own customization on top of
+MPICH called CrayMPI; Intel similarly implements IntelMPI. OpenMPI is another
+effort from Open-source collaboration of several industry and academic vendors.
+Each of the implementation uses their best knowledge of the underlying
+computing machine and network architecture to optimize their code. For
+examples, the implementation might reduce latency by accessing directly the
+low-level network-API or optimize critical path using specialized instructions
+to reduce cache misses.
 
 Recently, because of the increasing in the number of processor cores within a
 computing board, there raises a need of running MPI efficiently in a threaded
 environment.  Although MPI specification requires all of its procedures to be
-thread-safe, MPI implementations have little concerns for using multiple
-threads. For example, OpenMPI latest version still does not provide a stable
-support of MPI\_THREAD\_MUTLIPLE.  MPICH suports thread-safety via a
-coarse-grain locking which essentially serialized all MPI code. The research to
-remove these coarse-grain locks is still undergoning, but the progress is slow
-because the existing software stack is only optimized for single-core
-performance. For an example, there are significant number of global variables
-shared among various component of a MPICH. Global variables which implements
-stack, queue or hash-table can be replaced with concurrent data structure,
-others might be protected with finer-grains lock. 
-However, locks and concurrent data structure has overhead could be added to  
-the critical path and reduces performance of single-threaded applications.
+thread-safe, MPI implementations are not originally designed to optimize for
+using multiple threads. For example, OpenMPI latest version still does not
+provide a stable support of MPI\_THREAD\_MUTLIPLE.  MPICH suports thread-safety
+via a coarse-grain locking which essentially serialized all MPI code. The
+research to remove these coarse-grain locks is still undergoning, but the
+progress is slow because the existing software stack is only optimized for
+single-core performance. For an example, there are significant number of global
+variables shared among various component of a MPICH. Global variables which
+implements stack, queue or hash-table can be replaced with concurrent data
+structure, others might be protected with finer-grains lock.  However, locks
+and concurrent data structure has overhead could be added to  the critical path
+and reduces performance of single-threaded applications.
 
 Communication in multiple threads could also cause cache trashing or false
 sharing if not carefully be taken care of. Moreover, the processor can becomes
@@ -52,16 +53,17 @@ significant overhead for performing MPI concurrently in different thread.
 
 Because of the lack of efficient multi-threaded implementation, to our best
 knowledge, there is no production application that uses the thread-safety
-feature of MPI. What has been ended up is applications runs MPI in a
-single-thread mode, and threads are used only for computation. This leads to a
-restrictive programming model similar to Bulk Synchronous Programming (BSP), in
-which communication and computation code appears in different phases. This
-approach often uses MPI non-blocking feature to allow some overlapping between
-phases and hope the MPI runtime will be able to execute communication code
-behind the scene. In practice, to support better asynchronous communication
-user of MPI implementations often need to enable a flag to request the runtime
-to spawn a dedicated polling thread for progressing the communication (e.g.
-MPICH_ASYNC_PROGRESS flag in MPICH/MVAPICH).
+feature of MPI. What has been ended up is applications runs MPI in a ``Thread
+Funnelled'' mode i.e. only one thread is allowed to execute MPI procedure;
+other threads are used only for computation. This leads to a fairly restrictive
+programming model, in which communication and computation code appears in
+different phases or functions. This approach often uses MPI non-blocking
+feature to allow some overlapping between phases and hope the MPI runtime will
+be able to execute communication code behind the scene. In practice, to support
+better asynchronous communication user of MPI implementations often need to
+enable a flag to request the runtime to spawn a dedicated polling thread for
+progressing the communication (e.g., MPICH_ASYNC_PROGRESS flag in
+MPICH/MVAPICH).
 
 The solution that we have seen for existing MPI implementation to adopt
 multi-core machine is thus ad-hoc and inefficient. In this
@@ -95,7 +97,7 @@ We propose an implementation MPI based on the following assumptions:
   \item Large number of concurrent threads Threads are lightweight; they are
     scheduled by a user-space scheduler that understands synchronization
     objects.
-  \item The implementation is optimized for the case where don't cares are not used.
+  \item The implementation is optimized for the case where MPI_ANY_SOURCE and MPI_ANY_TAG are not used.
   \item No concurrent send and receive having the same signature, thus we do not yet worry about odering.
   \item The Network Interface Controller (NIC) supports multiple, independent channels.
   \item The NIC can be accessed in user space; it has its own routing tables,
@@ -107,8 +109,8 @@ We propose an implementation MPI based on the following assumptions:
 The key data structure for communication is a lock-free hash table which stores
 both unsolicited incoming messages and outstanding receives. Since we assume
 there are no don't cares, we can hash by source and tag. We focus on critical
-operations the creation of communicators or of datatypes is not (yet)
-addressed. We also ignore, for the time being, one-sided operations.
+operations, the creation of communicators or of datatypes is not (yet)
+address. We also ignore, for the time being, one-sided operations.
 
 The runtime is an integrated system of a user-level thread (ULT) scheduler and
 a communication server. The ULT provides a low latency thread management while
@@ -187,15 +189,16 @@ which have operations executed in program order. Lastly, linearizability is
 other concurrent objects.
 
 Message delivery in general can be implemented in two way: eager or rendevouz
-protocol. Eager protocol is when the message buffer is copied into an
-intermediate buffer - usually packed with other control data to deliver to the
-network. This allows the Send operation to return immediately as the buffer
-can be reused.  This protocol however becomes inefficient when message size
-gets larger, typically larger than the L2 or L3 cache size i.e. the cost of
-data movement is significant.  When this is the case, we switch to rendevouz
-protocol in which the data is delivered directly from the source buffer to the
-target buffer by the NIC thus saving extra copies.  The protocol however requires
-some control messages to exchange control data and signal completion.
+protocol. Eager protocol is used when the target buffer is not known to the
+sender. Thus, an copy is made into an intermediate buffer - usually packed with
+other control data to deliver to the network. This also allows the Send
+operation to return immediately as the buffer can be reused.  This protocol
+however becomes inefficient when message size gets larger, typically larger
+than the L2 or L3 cache size i.e. the cost of data movement is significant.
+When this is the case, we switch to rendevouz protocol in which the data is
+delivered directly from the source buffer to the target buffer by the NIC thus
+saving extra copies.  The protocol however requires some control messages to
+exchange control data and signal completion.
 
 \subsubsection{Point-to-Point Eager protocol}
 
@@ -282,7 +285,7 @@ Remote Direct Memory Access (RDMA) feature of modern Network Interface
 Controller (NIC).  Several researchs has focused on optimizing this operation.
 
 In our runtime, we can save one control message i.e. the RTS.  The reason is
-we do not have wird-card, the sender and receiver knows exactly their target.
+we do not have wild-card, the sender and receiver knows exactly their target.
 We only require the receiver to send its buffer to the sender. The sender can
 follow up by issuing an RDMA.  Analogous to the eager protocol, whenever the
 sender or receiver is required to wait for a matching message it will perform
@@ -466,18 +469,58 @@ Therefore our \texttt{empty} is lockless and achieves wait-freedom too. Our
 when the table size is large enough (thus with little to no hash collision).
 
 \subsection{Concurrent Packet Pool}
-Our pool is currently implemented using a lockfree stack. At the
-initialization, a fixed numbers of packet is allocated and push to the stack.
-During runtime a pool \texttt{get} is a stack \texttt{pop} and a pool
-\texttt{ret} is a stack \texttt{push}.
+In general, the packet pool could be implemented using a lockfree stack. A pool
+\texttt{ret} is translated to a stack \texttt{pop}, and \texttt{get} is
+translated to a stack \texttt{pop}.  The Last-In-First-Out (LIFO) property
+allows good temporal locality for copying data to and from the packet.
 
-Since the packet is a unit of communication, its data is read and written very
-frequently. The stack implementation although does not give us the best latency
-in terms of concurrent accesses, it gives us good temporal locality of the
-packet data.
+One problem with the described design is that a packet used by a hardware
+thread could be subsequently used by a different one because they share the
+same pool. This leads to several cache misses because the cacheline has become
+dirty by other threads modification. An example is when two threads from two
+different workers alternatively perform MPI_Send. The packet is modified by one
+worker and later obtained and modified by another worker after it has been
+returned to the pool. Additionally, when a packet is posted to the network as
+a recving buffer, it will be written by the NIC, thus losing its locality to
+any of the thread previously has. These observation leads to a better design
+of our packet pool: we split the packet management into two parts: a private
+pool per worker and a shared pool.
 
-The pool is also served as a mechanism to control the concurrency level of the system.
-A thread will yield control when there is no available packet.
+The private pool consists of packets that are recently read or writen by the
+worker (or associated hardware thread). It is implemented as a fixed size
+double-ended queue (deque). The deque has three main operations:
+\texttt{PopTop}, \texttt{PushTop}, and \texttt{PopBottom} which allows LIFO
+accessing at the top of the queue, and also allows poping from its bottom. The
+idea is that at the bottom of the deque are packets that are least recently
+used and are better candidates for other purposes. That is, when the private
+pool is full, it performs \texttt{PopBottom} and pushed back to
+the shared pool.
+
+When a thread needs a packet, it first looks at the private pool of its worker
+and performs a \texttt{PopTop} which guarantees giving the last packet that
+was read or written by the same worker. In the case that the pool is empty,
+the thread then looks at the shared pool for extra packets. If it still cannot
+find any packet, it shall performs a \texttt{yield} and retry at another time.
+
+The communication server also needs packets for posting to the NIC for recving
+buffers. When that is needed, the server obtains packets from the shared pool
+first since these are consider ``less important'' packets. If the shared pool
+is empty, the server now performs ``steal'' by randomly chosing a private pool
+and execute a \texttt{PopBottom} operation. It repeats the process until It obtains
+a packet.
+
+The private pools can be thought as caches, and the shared pool can be thought
+as the main memory. When ``the cache'' is full, it evicts the least recently
+used to the ``main memory''. Our heuristic essentially perform
+resource-balancing among the set of packets by moving it around pools with the
+locality taken into account.
+
+Since the private pool is only shared between a worker thread and the
+communication server, currently we implemented it using a simple fixed-size
+buffer with a spinlock. Since the conflict is only at most between 2 concurrent
+hardware threads, this is the most efficient implementation for our purpuses.
+The shared pool is accessed by more than two threads, thus implemented using a
+lock-free stack.
 
 \section{Experiment}
 \subsection{Thread Scheduler}
