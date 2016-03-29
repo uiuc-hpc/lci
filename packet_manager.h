@@ -216,15 +216,18 @@ class alignas(64) packet_manager_LOCAL final {
  public:
 #define MAX_SIZE (1 << 12)
 
-  packet_manager_LOCAL(packet_manager* pkpool, uint8_t id, uint8_t max_size) :
-    lock_flag(ATOMIC_FLAG_INIT), id_(id), max_size_(max_size),
-    top_(0), bottom_(0), overflow_(pkpool), container_(new mpiv_packet*[MAX_SIZE]) {
+  packet_manager_LOCAL(packet_manager* pkpool, uint8_t id, uint8_t max_size)
+      : lock_flag(ATOMIC_FLAG_INIT),
+        id_(id),
+        max_size_(max_size),
+        top_(0),
+        bottom_(0),
+        overflow_(pkpool),
+        container_(new mpiv_packet*[MAX_SIZE]) {
     memset(container_, 0, MAX_SIZE * sizeof(mpiv_packet*));
   }
 
-  ~packet_manager_LOCAL() {
-    delete[] (container_);
-  }
+  ~packet_manager_LOCAL() { delete[](container_); }
 
   inline void lock() {
     while (lock_flag.test_and_set(std::memory_order_acquire)) {
