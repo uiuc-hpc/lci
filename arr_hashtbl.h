@@ -12,7 +12,7 @@ static const int TBL_BIT_SIZE = 8;
 static const int TBL_WIDTH = 4;
 
 static_assert((1 << TBL_BIT_SIZE) >= 4 * MAX_CONCURRENCY,
-    "Hash table is not large enough");
+              "Hash table is not large enough");
 
 // default values recommended by http://isthe.com/chongo/tech/comp/fnv/
 static const uint32_t Prime = 0x01000193;  //   16777619
@@ -41,7 +41,7 @@ struct hash_val {
       void* val;
     } entry;
     struct {
-      union { 
+      union {
         std::atomic_flag locked;
         // std::atomic<long> counter;
       };
@@ -55,14 +55,12 @@ struct hash_val {
     // control.counter = 0;
   }
 
-  inline void clear() {
-    entry.tag = EMPTY;
-  }
+  inline void clear() { entry.tag = EMPTY; }
 
   inline void lock() {
     while (control.locked.test_and_set(std::memory_order_acquire)) {
       // Recommended to do this to reduce branch prediction trash.
-      asm volatile("pause\n": : :"memory");
+      asm volatile("pause\n" : : : "memory");
     }
   }
 
@@ -145,7 +143,7 @@ class arr_hashtbl : base_hashtbl {
     empty_hentry->entry.tag = key;
     empty_hentry->entry.val = value.v;
     master.unlock();
-    return make_pair(ret, (uintptr_t) empty_hentry);
+    return make_pair(ret, (uintptr_t)empty_hentry);
   }
 
   /** wait-free!! TODO(danghvu): as long as no concurrent p2p with same tag ?*/

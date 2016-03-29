@@ -3,9 +3,11 @@
 
 extern __thread int wid;
 
-void MPIV_Send(const void* buffer, int count, MPI_Datatype, int rank, int tag, MPI_Comm);
+void MPIV_Send(const void* buffer, int count, MPI_Datatype, int rank, int tag,
+               MPI_Comm);
 
-inline void MPIV_Recv_rndz(void* buffer, int, int rank, int tag, MPIV_Request* s) {
+inline void MPIV_Recv_rndz(void* buffer, int, int rank, int tag,
+                           MPIV_Request* s) {
   startt(misc_timing);
   mpiv_packet* p = __pkpool->get_packet(RECV_READY, MPIV.me, tag);
   p->set_rdz(0, (uintptr_t)s, (uintptr_t)buffer, MPIV.ctx.heap_rkey);
@@ -14,7 +16,8 @@ inline void MPIV_Recv_rndz(void* buffer, int, int rank, int tag, MPIV_Request* s
   stopt(misc_timing);
 }
 
-inline void MPIV_Recv_short(void* buffer, int size, int rank, int tag, MPIV_Request* s) {
+inline void MPIV_Recv_short(void* buffer, int size, int rank, int tag,
+                            MPIV_Request* s) {
   mpiv_key key = mpiv_make_key(rank, tag);
   mpiv_value value;
   value.request = s;
@@ -30,7 +33,9 @@ inline void MPIV_Recv_short(void* buffer, int size, int rank, int tag, MPIV_Requ
   if (value.v == in_val.v) {
     MPIV_Wait(s);
     stopt(wake_timing);
-    if (size >= SERVER_COPY_SIZE) { p_ctx = (mpiv_packet*) s->buffer; }
+    if (size >= SERVER_COPY_SIZE) {
+      p_ctx = (mpiv_packet*)s->buffer;
+    }
   } else {
     p_ctx = in_val.packet;
   }
@@ -50,7 +55,8 @@ inline void MPIV_Recv_short(void* buffer, int size, int rank, int tag, MPIV_Requ
   stopt(tbl_timing)
 }
 
-void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank, int tag, MPI_Comm, MPI_Status*) {
+void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank,
+               int tag, MPI_Comm, MPI_Status*) {
   int size = 0;
   MPI_Type_size(datatype, &size);
   size *= count;
@@ -65,7 +71,8 @@ void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank, int tag
   }
 }
 
-void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank, int tag, MPI_Comm, MPIV_Request* s) {
+void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
+                int tag, MPI_Comm, MPIV_Request* s) {
   int size = 0;
   MPI_Type_size(datatype, &size);
   size *= count;

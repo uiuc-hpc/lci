@@ -23,12 +23,12 @@ using boost::coroutines::stack_context;
 #define xlikely(x) __builtin_expect((x), 1)
 #define xunlikely(x) __builtin_expect((x), 0)
 
-#define fult_yield()           \
-  {                            \
-    if (__fulting != NULL)      \
-      __fulting->yield(); \
-    else                       \
-      sched_yield();           \
+#define fult_yield()       \
+  {                        \
+    if (__fulting != NULL) \
+      __fulting->yield();  \
+    else                   \
+      sched_yield();       \
   }
 
 #define fult_wait() \
@@ -63,9 +63,7 @@ struct fctx {
     jump_fcontext(&(this->myctx_), to->myctx_, (intptr_t)args);
   }
 
-  inline void ret() {
-    jump_fcontext(&(this->myctx_), parent_->myctx_, 0);
-  }
+  inline void ret() { jump_fcontext(&(this->myctx_), parent_->myctx_, 0); }
 
   fctx* parent_;
   fcontext_t myctx_;
@@ -83,8 +81,8 @@ static standard_stack_allocator fult_stack;
 
 class alignas(64) fult {
  public:
-  fult() : state_(INVALID)  { stack.sp = NULL;}
-  ~fult() { 
+  fult() : state_(INVALID) { stack.sp = NULL; }
+  ~fult() {
     if (stack.sp != NULL) fult_stack.deallocate(stack);
   }
 
@@ -114,7 +112,6 @@ class alignas(64) fult {
   ffunc myfunc_;
   intptr_t data_;
   stack_context stack;
-
 };
 
 typedef fult* fult_t;
@@ -129,25 +126,30 @@ class alignas(64) worker {
     // Add all free slot.
     memset(lwt_, 0, sizeof(fult) * (NMASK * WORDSIZE));
     tid_pool = std::move(std::unique_ptr<boost::lockfree::stack<fult_t>>(
-      new boost::lockfree::stack<fult_t>(NMASK*WORDSIZE)));
+        new boost::lockfree::stack<fult_t>(NMASK * WORDSIZE)));
 
-    for (int i = (int)(NMASK * WORDSIZE)-1; i>=0; i--) { 
+    for (int i = (int)(NMASK * WORDSIZE) - 1; i >= 0; i--) {
       lwt_[i].init(this, i);
       tid_pool->push(&lwt_[i]);
     }
   }
 
-  inline fult_t spawn(
-    ffunc f, intptr_t data, size_t stack_size = F_STACK_SIZE);
-  inline fult_t spawn_to(
-    int tid, ffunc f, intptr_t data, size_t stack_size = F_STACK_SIZE);
+  inline fult_t spawn(ffunc f, intptr_t data, size_t stack_size = F_STACK_SIZE);
+  inline fult_t spawn_to(int tid, ffunc f, intptr_t data,
+                         size_t stack_size = F_STACK_SIZE);
 
   inline void join(fult_t f);
   inline void fin(int id) { tid_pool->push(&lwt_[id]); }
   inline void schedule(const int id);
 
-  inline void start() { stop_ = false; w_ = std::thread(wfunc, this); }
-  inline void stop() { stop_ = true; w_.join(); }
+  inline void start() {
+    stop_ = false;
+    w_ = std::thread(wfunc, this);
+  }
+  inline void stop() {
+    stop_ = true;
+    w_.join();
+  }
 
   inline void start_main(ffunc main_task, intptr_t data) {
     stop_ = false;
@@ -158,15 +160,16 @@ class alignas(64) worker {
 
   inline void work(fult* f) {
     __fulting = f;
-    ctx_.swap(f->ctx(), (intptr_t) f);
+    ctx_.swap(f->ctx(), (intptr_t)f);
     __fulting = NULL;
   }
 
   static void wfunc(worker*);
 
  private:
-  inline fult_t fult_new(const int id, ffunc f, intptr_t data, size_t stack_size);
-  
+  inline fult_t fult_new(const int id, ffunc f, intptr_t data,
+                         size_t stack_size);
+
   fctx ctx_;
   fult lwt_[WORDSIZE * NMASK];
 
@@ -177,12 +180,12 @@ class alignas(64) worker {
   std::thread w_;
 
   // TODO(danghvu): this is temporary, but it is most generic.
-  std::unique_ptr<boost::lockfree::stack<fult_t>> tid_pool; //, boost::lockfree::capacity<WORDSIZE * NMASK>>
+  std::unique_ptr<boost::lockfree::stack<fult_t>>
+      tid_pool;  //, boost::lockfree::capacity<WORDSIZE * NMASK>>
 };
 
-
 void fult::set(ffunc myfunc, intptr_t data, size_t stack_size) {
-  if (stack.sp == NULL)  {
+  if (stack.sp == NULL) {
     fult_stack.allocate(stack, stack_size);
   }
   myfunc_ = myfunc;
@@ -201,13 +204,9 @@ void fult::wait() {
   ctx_.ret();
 }
 
-void fult::resume() {
-  origin_->schedule(id_);
-}
+void fult::resume() { origin_->schedule(id_); }
 
-void fult::done() {
-  origin_->fin(id_);
-}
+void fult::done() { origin_->fin(id_); }
 
 void fult::start() {
   (*myfunc_)(data_);
@@ -217,7 +216,7 @@ void fult::start() {
 }
 
 static void fwrapper(intptr_t args) {
-  fult* ff = (fult*) args;
+  fult* ff = (fult*)args;
   ff->start();
 }
 
@@ -251,14 +250,15 @@ void worker::schedule(const int id) {
 #endif
 }
 
-fult_t worker::fult_new(const int id, ffunc f, intptr_t data, size_t stack_size) {
+fult_t worker::fult_new(const int id, ffunc f, intptr_t data,
+                        size_t stack_size) {
   // add it to the fult.
   lwt_[id].set(f, data, stack_size);
 
   // make it schedable.
   schedule(id);
 
-  return (fult_t) &lwt_[id];
+  return (fult_t)&lwt_[id];
 }
 
 std::atomic<int> fult_nworker;
@@ -282,14 +282,15 @@ void worker::wfunc(worker* w) {
       auto ii = find_first_set(local_l1_mask);
       local_l1_mask ^= ((unsigned long)1 << ii);
 
-      for (auto i=ii * 8; i < ii * 8 + 8 && i < NMASK; i++) {
+      for (auto i = ii * 8; i < ii * 8 + 8 && i < NMASK; i++) {
 #else
-    for (auto i=0; i<NMASK; i++) {{
+    for (auto i = 0; i < NMASK; i++) {
+      {
 #endif
         auto& mask = w->mask_[i];
         if (mask > 0) {
           // Atomic exchange to get the current waiting threads.
-          auto local_mask = exchange((unsigned long)0, &(mask)); 
+          auto local_mask = exchange((unsigned long)0, &(mask));
 
           // Works until it no thread is pending.
           while (local_mask > 0) {
@@ -299,11 +300,13 @@ void worker::wfunc(worker* w) {
             // Optains the associate thread.
             fult* f = &w->lwt_[(i << 6) + id];
             // Works on it.
-            w->work(f); 
+            w->work(f);
             // If after working this threads yield, set it schedulable.
             auto state = f->state();
-            if (state == YIELD) f->resume();
-            else if (state == INVALID) f->done();
+            if (state == YIELD)
+              f->resume();
+            else if (state == INVALID)
+              f->done();
           }
         }
       }

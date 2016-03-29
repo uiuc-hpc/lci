@@ -6,7 +6,8 @@
 // This is based on the implementation at:
 // http://mcg.cs.tau.ac.il/projects/lcrq/
 // See also the paper:
-// A. Morrison and Y. Afek. "Fast concurrent queues for x86 processors." PPoPP 2013.
+// A. Morrison and Y. Afek. "Fast concurrent queues for x86 processors." PPoPP
+// 2013.
 // The implementation has the following copyright and license:
 // Copyright (c) 2013, Adam Morrison and Yehuda Afek.
 // All rights reserved.
@@ -44,36 +45,39 @@
 #include <vector>
 #include <forward_list>
 
-#define CAS2(ptr, o1, o2, n1, n2)                               \
-({                                                              \
-    char __ret;                                                 \
-    __typeof__(o2) __junk;                                      \
-    __typeof__(*(ptr)) __old1 = (o1);                           \
-    __typeof__(o2) __old2 = (o2);                               \
-    __typeof__(*(ptr)) __new1 = (n1);                           \
-    __typeof__(o2) __new2 = (n2);                               \
-    asm volatile("lock cmpxchg16b %2;setz %1"                   \
-                   : "=d"(__junk), "=a"(__ret), "+m" (*ptr)     \
-                   : "b"(__new1), "c"(__new2),                  \
-                     "a"(__old1), "d"(__old2));                 \
-    __ret;                                                      \
-})
+#define CAS2(ptr, o1, o2, n1, n2)                                       \
+  ({                                                                    \
+    char __ret;                                                         \
+    __typeof__(o2) __junk;                                              \
+    __typeof__(*(ptr)) __old1 = (o1);                                   \
+    __typeof__(o2) __old2 = (o2);                                       \
+    __typeof__(*(ptr)) __new1 = (n1);                                   \
+    __typeof__(o2) __new2 = (n2);                                       \
+    asm volatile("lock cmpxchg16b %2;setz %1"                           \
+                 : "=d"(__junk), "=a"(__ret), "+m"(*ptr)                \
+                 : "b"(__new1), "c"(__new2), "a"(__old1), "d"(__old2)); \
+    __ret;                                                              \
+  })
 
-#define BIT_TEST_AND_SET(ptr, b)                                \
-({                                                              \
-    char __ret;                                                 \
-    asm volatile("lock btsq $63, %0; setnc %1" : "+m"(*ptr), "=a"(__ret) : : "cc"); \
-    __ret;                                                      \
-})
+#define BIT_TEST_AND_SET(ptr, b)               \
+  ({                                           \
+    char __ret;                                \
+    asm volatile("lock btsq $63, %0; setnc %1" \
+                 : "+m"(*ptr), "=a"(__ret)     \
+                 :                             \
+                 : "cc");                      \
+    __ret;                                     \
+  })
 
 #define FETCH_ADD(a, b) __sync_fetch_and_add(a, b)
 
-#define SWAP(a, b) __sync_lock_test_and_set((long*) a, (long) b)
+#define SWAP(a, b) __sync_lock_test_and_set((long*)a, (long)b)
 
 #define CAS(a, b, c) __sync_bool_compare_and_swap(a, b, c)
 
 #define RING_SIZE (1ull << 14)
-static_assert(RING_SIZE > (MAX_SEND + MAX_RECV), "Queue is bounded by max concurrency");
+static_assert(RING_SIZE > (MAX_SEND + MAX_RECV),
+              "Queue is bounded by max concurrency");
 
 #define CLOSE_TRIES 10
 
@@ -103,7 +107,8 @@ class MPMCQueue final {
   // WARNING: This may report the queue is not empty when it is.
   bool empty() const;
   void reclaim();
-  static inline Value get_default() { return (Value) 0; } __attribute__((const));
+  static inline Value get_default() { return (Value)0; }
+  __attribute__((const));
 
  private:
   /** Node in a ring queue. */
@@ -135,10 +140,13 @@ class MPMCQueue final {
   inline uint64_t set_unsafe(uint64_t i) const __attribute__((const));
   inline uint64_t node_unsafe(uint64_t i) const __attribute__((const));
   inline uint64_t tail_index(uint64_t i) const __attribute__((const));
-  inline bool is_crq_closed(uint64_t t)  const __attribute__((const));
-  inline bool cas2_put_node(RingNode* node, uint64_t old_idx, Value val, uint64_t idx);
-  inline bool cas2_take_node(RingNode* node, uint64_t val, uint64_t old_idx, uint64_t new_idx);
-  inline bool cas2_idx(RingNode* node, uint64_t val, uint64_t old_idx, uint64_t new_idx);
+  inline bool is_crq_closed(uint64_t t) const __attribute__((const));
+  inline bool cas2_put_node(RingNode* node, uint64_t old_idx, Value val,
+                            uint64_t idx);
+  inline bool cas2_take_node(RingNode* node, uint64_t val, uint64_t old_idx,
+                             uint64_t new_idx);
+  inline bool cas2_idx(RingNode* node, uint64_t val, uint64_t old_idx,
+                       uint64_t new_idx);
 
   /**
    * Fix a RingQueue in which a dequeuer has has made head > tail.

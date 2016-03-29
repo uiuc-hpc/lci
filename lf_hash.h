@@ -19,10 +19,10 @@
 #define USE_HASHWORD 0
 
 /* external types */
-typedef const void *qt_lf_key_t;
-typedef struct qt_hash_s *qt_hash;
-typedef void (*qt_hash_callback_fn)(const qt_lf_key_t, void *, void *);
-typedef void (*qt_hash_deallocator_fn)(void *);
+typedef const void* qt_lf_key_t;
+typedef struct qt_hash_s* qt_hash;
+typedef void (*qt_hash_callback_fn)(const qt_lf_key_t, void*, void*);
+typedef void (*qt_hash_deallocator_fn)(void*);
 
 /* internal types */
 typedef uint64_t lf_key_t;
@@ -31,7 +31,7 @@ typedef uintptr_t marked_ptr_t;
 
 #define MARK_OF(x) ((x)&1)
 #define PTR_MASK(x) ((x) & ~(marked_ptr_t)1)
-#define PTR_OF(x) ((hash_entry *)PTR_MASK(x))
+#define PTR_OF(x) ((hash_entry*)PTR_MASK(x))
 #define CONSTRUCT(mark, ptr) (PTR_MASK((uintptr_t)ptr) | (mark))
 #define UNINITIALIZED ((marked_ptr_t)0)
 
@@ -44,12 +44,12 @@ size_t hard_max_buckets = 0;
 
 typedef struct hash_entry_s {
   so_lf_key_t key;
-  void *value;
+  void* value;
   marked_ptr_t next;
 } hash_entry;
 
 struct qt_hash_s {
-  marked_ptr_t *B;  // Buckets
+  marked_ptr_t* B;  // Buckets
   volatile size_t count;
   volatile size_t size;
 };
@@ -61,9 +61,9 @@ static volatile int POOL_index = 0;
 #endif
 
 /* prototypes */
-static void *qt_lf_list_find(marked_ptr_t *head, so_lf_key_t key,
-                             marked_ptr_t **prev, marked_ptr_t *cur,
-                             marked_ptr_t *next);
+static void* qt_lf_list_find(marked_ptr_t* head, so_lf_key_t key,
+                             marked_ptr_t** prev, marked_ptr_t* cur,
+                             marked_ptr_t* next);
 static void initialize_bucket(qt_hash h, size_t bucket);
 
 #define MSB (((uint64_t)1) << 63)
@@ -138,12 +138,12 @@ static uint64_t qt_hashword(uint64_t key) { /*{{{*/
 #define HASH_KEY(key)
 #endif /* ifdef USE_HASHWORD */
 
-static int qt_lf_list_insert(marked_ptr_t *head, hash_entry *node,
-                             marked_ptr_t *ocur) {
+static int qt_lf_list_insert(marked_ptr_t* head, hash_entry* node,
+                             marked_ptr_t* ocur) {
   so_lf_key_t key = node->key;
 
   while (1) {
-    marked_ptr_t *lprev;
+    marked_ptr_t* lprev;
     marked_ptr_t cur;
 
     if (qt_lf_list_find(head, key, &lprev, &cur, NULL) !=
@@ -163,9 +163,9 @@ static int qt_lf_list_insert(marked_ptr_t *head, hash_entry *node,
   }
 }
 
-static int qt_lf_list_delete(marked_ptr_t *head, so_lf_key_t key) {
+static int qt_lf_list_delete(marked_ptr_t* head, so_lf_key_t key) {
   while (1) {
-    marked_ptr_t *lprev;
+    marked_ptr_t* lprev;
     marked_ptr_t lcur;
     marked_ptr_t lnext;
 
@@ -187,12 +187,12 @@ static int qt_lf_list_delete(marked_ptr_t *head, so_lf_key_t key) {
   }
 }
 
-static void *qt_lf_list_find(marked_ptr_t *head, so_lf_key_t key,
-                             marked_ptr_t **oprev, marked_ptr_t *ocur,
-                             marked_ptr_t *onext) {
+static void* qt_lf_list_find(marked_ptr_t* head, so_lf_key_t key,
+                             marked_ptr_t** oprev, marked_ptr_t* ocur,
+                             marked_ptr_t* onext) {
   so_lf_key_t ckey;
-  void *cval;
-  marked_ptr_t *prev = NULL;
+  void* cval;
+  marked_ptr_t* prev = NULL;
   marked_ptr_t cur = UNINITIALIZED;
   marked_ptr_t next = UNINITIALIZED;
 
@@ -253,11 +253,11 @@ static inline so_lf_key_t so_regularkey(const key_t key) {
 
 static inline so_lf_key_t so_dummykey(const key_t key) { return REVERSE(key); }
 
-void *qt_hash_put(qt_hash h, qt_lf_key_t key, void *value) {
+void* qt_hash_put(qt_hash h, qt_lf_key_t key, void* value) {
   // int index = __sync_fetch_and_add(&POOL_index, 1) & (POOL_SIZE - 1);
   // hash_entry *node = &POOL[index];
   // memset(node, 0, sizeof(hash_entry));
-  hash_entry *node = (hash_entry *)malloc(sizeof(hash_entry));
+  hash_entry* node = (hash_entry*)malloc(sizeof(hash_entry));
 
   size_t bucket;
   uint64_t lkey = (uint64_t)(uintptr_t)key;
@@ -288,7 +288,7 @@ void *qt_hash_put(qt_hash h, qt_lf_key_t key, void *value) {
   return value;
 }
 
-void *qt_hash_get(qt_hash h, const qt_lf_key_t key) {
+void* qt_hash_get(qt_hash h, const qt_lf_key_t key) {
   size_t bucket;
   uint64_t lkey = (uint64_t)(uintptr_t)key;
 
@@ -344,7 +344,7 @@ static void initialize_bucket(qt_hash h, size_t bucket) {
   // int index = __sync_fetch_and_add(&POOL_index, 1) & (POOL_SIZE - 1);
   // hash_entry *dummy = &POOL[index];
   // memset(dummy, 0, sizeof(hash_entry));
-  hash_entry *dummy = (hash_entry *)malloc(sizeof(hash_entry));
+  hash_entry* dummy = (hash_entry*)malloc(sizeof(hash_entry));
 
   dummy->key = so_dummykey(bucket);
   dummy->value = NULL;
@@ -366,12 +366,12 @@ qt_hash qt_hash_create(int needSync) {
   if (hard_max_buckets == 0) {
     hard_max_buckets = getpagesize() / sizeof(marked_ptr_t);
   }
-  tmp->B = (marked_ptr_t *)calloc(hard_max_buckets, sizeof(marked_ptr_t));
+  tmp->B = (marked_ptr_t*)calloc(hard_max_buckets, sizeof(marked_ptr_t));
   assert(tmp->B);
   tmp->size = 2;
   tmp->count = 0;
   {
-    hash_entry *dummy = (hash_entry *)calloc(
+    hash_entry* dummy = (hash_entry*)calloc(
         1, sizeof(hash_entry));  // XXX: should pull out of a memory pool
     assert(dummy);
     tmp->B[0] = CONSTRUCT(0, dummy);
@@ -417,7 +417,7 @@ size_t qt_hash_count(qt_hash h) {
   return h->size;
 }
 
-void qt_hash_callback(qt_hash h, qt_hash_callback_fn f, void *arg) {
+void qt_hash_callback(qt_hash h, qt_hash_callback_fn f, void* arg) {
   marked_ptr_t cursor;
 
   assert(h);

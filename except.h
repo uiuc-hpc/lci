@@ -8,14 +8,12 @@
 
 class hash_table_error : public std::runtime_error {
  public:
-  hash_table_error(std::string s) : std::runtime_error(s) {
-  }
+  hash_table_error(std::string s) : std::runtime_error(s) {}
 };
 
 class packet_error : public std::runtime_error {
  public:
-  packet_error(std::string s) : std::runtime_error(s) {
-  }
+  packet_error(std::string s) : std::runtime_error(s) {}
 };
 
 #endif

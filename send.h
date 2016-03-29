@@ -7,7 +7,7 @@ extern __thread int wid;
 
 void mpiv_complete_rndz(mpiv_packet* p, MPIV_Request* s);
 
-inline void MPIV_Send_rdz(MPIV_Request *s) {
+inline void MPIV_Send_rdz(MPIV_Request* s) {
   mpiv_key key = mpiv_make_key(s->rank, (1 << 31) | s->tag);
   mpiv_value value;
   value.request = s;
@@ -27,11 +27,13 @@ inline void MPIV_Send_short(const void* buffer, int size, int rank, int tag) {
   // Copy the buffer.
   packet->set_bytes(buffer, size);
   MPIV.ctx.conn[rank].write_send(
-      (void*)packet, ((((size_t)size + sizeof(mpiv_packet_header)+3)>>2)<<2),
+      (void*)packet,
+      ((((size_t)size + sizeof(mpiv_packet_header) + 3) >> 2) << 2),
       MPIV.ctx.sbuf_lkey, (void*)(packet));
 }
 
-void MPIV_Send(const void* buffer, int count, MPI_Datatype datatype, int rank, int tag, MPI_Comm) {
+void MPIV_Send(const void* buffer, int count, MPI_Datatype datatype, int rank,
+               int tag, MPI_Comm) {
   // if (MPIV.total_send == MAX_SEND) fult_yield();
   // MPIV.total_send++;
   int size = 0;
@@ -41,14 +43,15 @@ void MPIV_Send(const void* buffer, int count, MPI_Datatype datatype, int rank, i
   if (size <= SHORT_MSG_SIZE) {
     MPIV_Send_short(buffer, size, rank, tag);
   } else {
-    MPIV_Request s((void*) buffer, size, rank, tag);
+    MPIV_Request s((void*)buffer, size, rank, tag);
     MPIV_Send_rdz(&s);
     MPIV_Wait(&s);
   }
   // MPIV.total_send--;
 }
 
-void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank, int tag, MPI_Comm, MPIV_Request* req) {
+void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
+                int tag, MPI_Comm, MPIV_Request* req) {
   int size = 0;
   MPI_Type_size(datatype, &size);
   size = count * size;
@@ -56,7 +59,7 @@ void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank, int
     MPIV_Send_short(buf, size, rank, tag);
     req->done_ = true;
   } else {
-    req->buffer = (void*) buf;
+    req->buffer = (void*)buf;
     req->size = size;
     req->rank = rank;
     req->tag = tag;
