@@ -1,7 +1,7 @@
 #define BENCHMARK "OSU MPIV Multi-threaded Latency Test"
 /*
  * Copyright (C) 2002-2014 the Network-Based Computing Laboratory
- * (NBCL), The Ohio State University. 
+ * (NBCL), The Ohio State University.
  *
  * Contact: Dr. D. K. Panda (panda@cse.ohio-state.edu)
  *
@@ -18,190 +18,184 @@
 #include <pthread.h>
 
 #define MESSAGE_ALIGNMENT 64
-#define MIN_MSG_SIZE 1 
+#define MIN_MSG_SIZE 1
 #define MAX_MSG_SIZE (1 << 22)
 #define MYBUFSIZE (MAX_MSG_SIZE + MESSAGE_ALIGNMENT)
-#define SKIP_LARGE  100
-#define LOOP_LARGE  1000
-#define LARGE_MESSAGE_SIZE  8192
+#define SKIP_LARGE 100
+#define LOOP_LARGE 1000
+#define LARGE_MESSAGE_SIZE 8192
 
-char*        s_buf1;
-char*        r_buf1;
-int         skip = 1000;
-int         loop = 10000;
-
+char* s_buf1;
+char* r_buf1;
+int skip = 1000;
+int loop = 10000;
 
 pthread_mutex_t finished_size_mutex;
-pthread_cond_t  finished_size_cond;
+pthread_cond_t finished_size_cond;
 
-typedef struct thread_tag {
-    int id;
-} thread_tag_t;
+typedef struct thread_tag { int id; } thread_tag_t;
 
 void send_thread(intptr_t arg);
 void recv_thread(intptr_t arg);
 
 #ifdef PACKAGE_VERSION
-#   define HEADER "# " BENCHMARK " v" PACKAGE_VERSION "\n"
+#define HEADER "# " BENCHMARK " v" PACKAGE_VERSION "\n"
 #else
-#   define HEADER "# " BENCHMARK "\n"
+#define HEADER "# " BENCHMARK "\n"
 #endif
 
 #ifndef FIELD_WIDTH
-#   define FIELD_WIDTH 20
+#define FIELD_WIDTH 20
 #endif
 
 #ifndef FLOAT_PRECISION
-#   define FLOAT_PRECISION 2
+#define FLOAT_PRECISION 2
 #endif
 
 int numprocs, provided, myid, err;
 static int THREADS = 1;
 static int WORKERS = 1;
 
-int main(int argc, char *argv[])
-{
-    MPIV_Init(argc, argv);
-    if (argc > 2) {
-        THREADS = atoi(argv[1]);
-        WORKERS = atoi(argv[1]);
+int main(int argc, char* argv[]) {
+  MPIV_Init(argc, argv);
+  if (argc > 2) {
+    THREADS = atoi(argv[1]);
+    WORKERS = atoi(argv[1]);
+  }
+
+  MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
+  MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+
+  if (numprocs != 2) {
+    if (myid == 0) {
+      fprintf(stderr, "This test requires exactly two processes\n");
     }
-
-    MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
-    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
-
-    if(numprocs != 2) {
-        if(myid == 0) {
-            fprintf(stderr, "This test requires exactly two processes\n");
-        }
-
-        MPIV_Finalize();
-        return EXIT_FAILURE;
-    }
-
-    if (myid == 0) 
-        MPIV_Init_worker(1);
-    else
-        MPIV_Init_worker(WORKERS);
 
     MPIV_Finalize();
+    return EXIT_FAILURE;
+  }
+
+  if (myid == 0)
+    MPIV_Init_worker(1);
+  else
+    MPIV_Init_worker(WORKERS);
+
+  MPIV_Finalize();
 }
 
 static int size = 0;
 
 void main_task(intptr_t) {
-    int i = 0;
-    r_buf1 = (char*) mpiv_malloc(MYBUFSIZE);
-    s_buf1 = (char*) mpiv_malloc(MYBUFSIZE);
-    fult_t* sr_threads = new fult_t[THREADS];
-    thread_tag_t* tags = new thread_tag_t[THREADS];
+  int i = 0;
+  r_buf1 = (char*)mpiv_malloc(MYBUFSIZE);
+  s_buf1 = (char*)mpiv_malloc(MYBUFSIZE);
+  fult_t* sr_threads = new fult_t[THREADS];
+  thread_tag_t* tags = new thread_tag_t[THREADS];
 
-    if(myid == 0) {
-        fprintf(stdout, HEADER);
-        fprintf(stdout, "%-*s%*s\n", 10, "# Size", FIELD_WIDTH, "Latency (us)");
-        fflush(stdout);
-        for(size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE; size = (size ? size * 2 : 1)) {
-            MPI_Barrier(MPI_COMM_WORLD);
-            tags[i].id = 0;
-            sr_threads[i] = MPIV_spawn(0, send_thread, (intptr_t) &tags[i]);
-            MPIV_join(0, sr_threads[i]);
-        }
-    } else {
-        for(size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE; size = (size ? size * 2 : 1)) {
-            MPI_Barrier(MPI_COMM_WORLD);
-            for(i = 0; i < THREADS; i++) {
-                tags[i].id = i;
-                sr_threads[i] = MPIV_spawn(i % WORKERS, recv_thread, (intptr_t) &tags[i]);
-            }
-
-            for(i = 0; i < THREADS; i++) {
-                MPIV_join(i % WORKERS, sr_threads[i]);
-            }
-        }
+  if (myid == 0) {
+    fprintf(stdout, HEADER);
+    fprintf(stdout, "%-*s%*s\n", 10, "# Size", FIELD_WIDTH, "Latency (us)");
+    fflush(stdout);
+    for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
+         size = (size ? size * 2 : 1)) {
+      MPI_Barrier(MPI_COMM_WORLD);
+      tags[i].id = 0;
+      sr_threads[i] = MPIV_spawn(0, send_thread, (intptr_t)&tags[i]);
+      MPIV_join(0, sr_threads[i]);
     }
-    mpiv_free(r_buf1);
-    mpiv_free(s_buf1);
+  } else {
+    for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
+         size = (size ? size * 2 : 1)) {
+      MPI_Barrier(MPI_COMM_WORLD);
+      for (i = 0; i < THREADS; i++) {
+        tags[i].id = i;
+        sr_threads[i] =
+            MPIV_spawn(i % WORKERS, recv_thread, (intptr_t)&tags[i]);
+      }
+
+      for (i = 0; i < THREADS; i++) {
+        MPIV_join(i % WORKERS, sr_threads[i]);
+      }
+    }
+  }
+  mpiv_free(r_buf1);
+  mpiv_free(s_buf1);
 }
 
 void recv_thread(intptr_t arg) {
-    int i, val, align_size;
-    char *s_buf, *r_buf;
-    thread_tag_t *thread_id;
+  int i, val, align_size;
+  char *s_buf, *r_buf;
+  thread_tag_t* thread_id;
 
-    thread_id = (thread_tag_t *)arg;
-    val = thread_id->id;
+  thread_id = (thread_tag_t*)arg;
+  val = thread_id->id;
 
-    align_size = MESSAGE_ALIGNMENT;
+  align_size = MESSAGE_ALIGNMENT;
 
-    s_buf =
-        (char *) (((unsigned long) s_buf1 + (align_size - 1)) /
-                align_size * align_size);
-    r_buf =
-        (char *) (((unsigned long) r_buf1 + (align_size - 1)) /
-                align_size * align_size);
+  s_buf = (char*)(((unsigned long)s_buf1 + (align_size - 1)) / align_size *
+                  align_size);
+  r_buf = (char*)(((unsigned long)r_buf1 + (align_size - 1)) / align_size *
+                  align_size);
 
-    if(size > LARGE_MESSAGE_SIZE) {
-        loop = LOOP_LARGE;
-        skip = SKIP_LARGE;
-    }  
+  if (size > LARGE_MESSAGE_SIZE) {
+    loop = LOOP_LARGE;
+    skip = SKIP_LARGE;
+  }
 
-    /* touch the data */
-    for(i = 0; i < size; i++) {
-        s_buf[i] = 'a';
-        r_buf[i] = 'b';
-    }
+  /* touch the data */
+  for (i = 0; i < size; i++) {
+    s_buf[i] = 'a';
+    r_buf[i] = 'b';
+  }
 
-    for(i = val; i < (loop + skip); i += THREADS) {
-        MPIV_Recv (r_buf, size, MPI_CHAR, 0, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPIV_Send (s_buf, size, MPI_CHAR, 0, i, MPI_COMM_WORLD);
-    }
-    // sleep(1);
+  for (i = val; i < (loop + skip); i += THREADS) {
+    MPIV_Recv(r_buf, size, MPI_CHAR, 0, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPIV_Send(s_buf, size, MPI_CHAR, 0, i, MPI_COMM_WORLD);
+  }
+  // sleep(1);
 }
 
-
 void send_thread(intptr_t arg) {
-    int i, val, align_size;
-    char *s_buf, *r_buf;
-    double t_start = 0, t_end = 0, t = 0, latency;
-    thread_tag_t *thread_id = (thread_tag_t *)arg;
+  int i, val, align_size;
+  char *s_buf, *r_buf;
+  double t_start = 0, t_end = 0, t = 0, latency;
+  thread_tag_t* thread_id = (thread_tag_t*)arg;
 
-    val = thread_id->id;
-    align_size = MESSAGE_ALIGNMENT;
+  val = thread_id->id;
+  align_size = MESSAGE_ALIGNMENT;
 
-    s_buf =
-        (char *) (((unsigned long) s_buf1 + (align_size - 1)) /
-                align_size * align_size);
-    r_buf =
-        (char *) (((unsigned long) r_buf1 + (align_size - 1)) /
-                align_size * align_size);
+  s_buf = (char*)(((unsigned long)s_buf1 + (align_size - 1)) / align_size *
+                  align_size);
+  r_buf = (char*)(((unsigned long)r_buf1 + (align_size - 1)) / align_size *
+                  align_size);
 
-    if(size > LARGE_MESSAGE_SIZE) {
-        loop = LOOP_LARGE;
-        skip = SKIP_LARGE;
-    }  
+  if (size > LARGE_MESSAGE_SIZE) {
+    loop = LOOP_LARGE;
+    skip = SKIP_LARGE;
+  }
 
-    /* touch the data */
-    for(i = 0; i < size; i++) {
-        s_buf[i] = 'a';
-        r_buf[i] = 'b';
-    }
+  /* touch the data */
+  for (i = 0; i < size; i++) {
+    s_buf[i] = 'a';
+    r_buf[i] = 'b';
+  }
 
 #if 1
-    for(i = 0; i < loop + skip; i++) {
-        if(i == skip) {
-            t_start = MPIV_Wtime();
-        }
-
-        MPIV_Send(s_buf, size, MPI_CHAR, 1, i, MPI_COMM_WORLD);
-        MPIV_Recv(r_buf, size, MPI_CHAR, 1, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  for (i = 0; i < loop + skip; i++) {
+    if (i == skip) {
+      t_start = MPIV_Wtime();
     }
+
+    MPIV_Send(s_buf, size, MPI_CHAR, 1, i, MPI_COMM_WORLD);
+    MPIV_Recv(r_buf, size, MPI_CHAR, 1, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  }
 #endif
 
-    t_end = MPIV_Wtime ();
-    t = t_end - t_start;
+  t_end = MPIV_Wtime();
+  t = t_end - t_start;
 
-    latency = (t) * 1.0e6 / (2.0 * loop);
-    std::cout << size << "\t" << latency << std::endl;
+  latency = (t)*1.0e6 / (2.0 * loop);
+  std::cout << size << "\t" << latency << std::endl;
 }
 
 /* vi: set sw=4 sts=4 tw=80: */

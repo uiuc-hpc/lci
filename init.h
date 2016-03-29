@@ -38,8 +38,8 @@ void init_thread_local(intptr_t id) {
   uint8_t max_size = MAX_SEND / MPIV.w.size();
   if (__pkpool != NULL) return;
   __pkpool = new local_pk_pool(&MPIV.pkpool, id, max_size);
-  MPIV.localpkpool[(int) id] = __pkpool;
-  for (int i=0; i<max_size; i++) {
+  MPIV.localpkpool[(int)id] = __pkpool;
+  for (int i = 0; i < max_size; i++) {
     auto* pk = MPIV.pkpool.get_packet_nb();
     if (pk != NULL) {
       memset(pk, 0, sizeof(mpiv_packet));
@@ -51,7 +51,7 @@ void init_thread_local(intptr_t id) {
 void mpiv_main_task(intptr_t arg) {
   init_thread_local(0);
 
-  for (size_t i=1; i<MPIV.w.size(); i++) {
+  for (size_t i = 1; i < MPIV.w.size(); i++) {
     MPIV.w[i].start();
     auto t = MPIV.w[i].spawn(init_thread_local, i);
     MPIV.w[i].join(t);
@@ -60,7 +60,7 @@ void mpiv_main_task(intptr_t arg) {
   // user-provided.
   main_task(arg);
 
-  for (size_t i=1; i<MPIV.w.size(); i++) {
+  for (size_t i = 1; i < MPIV.w.size(); i++) {
     MPIV.w[i].stop();
   }
   MPIV.w[0].stop_main();

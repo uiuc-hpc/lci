@@ -7,11 +7,11 @@ void mpiv_post_recv(mpiv_packet* p);
 
 void mpiv_complete_rndz(mpiv_packet* p, MPIV_Request* s) {
   p->set_header(SEND_READY_FIN, MPIV.me, s->tag);
-  p->set_sreq((uintptr_t) s);
+  p->set_sreq((uintptr_t)s);
   MPIV.ctx.conn[s->rank].write_rdma(s->buffer, MPIV.ctx.heap_lkey,
-      (void*)p->rdz_tgt_addr(), p->rdz_rkey(),
-      s->size, 0);
-  MPIV.ctx.conn[s->rank].write_send(p, RNDZ_MSG_SIZE, 0, (void*) p);
+                                    (void*)p->rdz_tgt_addr(), p->rdz_rkey(),
+                                    s->size, 0);
+  MPIV.ctx.conn[s->rank].write_send(p, RNDZ_MSG_SIZE, 0, (void*)p);
 }
 
 void mpiv_recv_recv_ready(mpiv_packet* p) {
@@ -49,9 +49,9 @@ void mpiv_recv_short(mpiv_packet* p) {
 
   if (value.v != in_val.v) {
     // comm-thread comes later.
-    MPIV_Request* req = in_val.request; 
-    if (req->size >= SERVER_COPY_SIZE)  {
-      req->buffer = (void*) p;
+    MPIV_Request* req = in_val.request;
+    if (req->size >= SERVER_COPY_SIZE) {
+      req->buffer = (void*)p;
       MPIV_Signal(req);
     } else {
       memcpy(req->buffer, p->buffer(), req->size);
@@ -65,7 +65,7 @@ void mpiv_recv_send_ready(mpiv_packet* p) {
   mpiv_value remote_val;
   remote_val.request = (MPIV_Request*)p->rdz_sreq();
 
-  mpiv_key key = p->get_key(); //mpiv_make_key(p->header.from, p->header.tag);
+  mpiv_key key = p->get_key();  // mpiv_make_key(p->header.from, p->header.tag);
   MPIV.pkpool.ret_packet(p);
 
   startt(tbl_timing);
@@ -85,7 +85,7 @@ typedef void (*p_ctx_handler)(mpiv_packet* p_ctx);
 static p_ctx_handler* handle;
 
 static void mpiv_progress_init() {
-  posix_memalign((void**) &handle, 64, 64);
+  posix_memalign((void**)&handle, 64, 64);
   handle[SEND_SHORT] = mpiv_recv_short;
   handle[SEND_READY] = mpiv_recv_send_ready;
   handle[RECV_READY] = mpiv_recv_recv_ready;
@@ -111,7 +111,7 @@ inline void mpiv_serve_send(const ibv_wc& wc) {
     stopt(rdma_timing);
     // this packet is taken directly from recv queue.
     MPIV.pkpool.ret_packet(p_ctx);
-  } else  {
+  } else {
     assert(poolid < MPIV.localpkpool.size());
     MPIV.localpkpool[poolid]->ret_packet(p_ctx);
   }

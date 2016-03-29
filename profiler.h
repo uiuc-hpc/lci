@@ -6,7 +6,7 @@
 
 #include <vector>
 #include <iostream>
-#include <papi.h> 
+#include <papi.h>
 #include <thread>
 #include <pthread.h>
 #include <stdexcept>
@@ -16,9 +16,8 @@ static void profiler_init() {
     if (PAPI_library_init(PAPI_VER_CURRENT) != PAPI_VER_CURRENT) {
       throw std::runtime_error("papi_library_init");
     }
-    if (PAPI_thread_init(
-          (unsigned long (*)(void))((unsigned long(*)(void))(pthread_self)))
-        != PAPI_OK) {
+    if (PAPI_thread_init((unsigned long (*)(void))(
+            (unsigned long (*)(void))(pthread_self))) != PAPI_OK) {
       throw std::runtime_error("papi_thread_init");
     }
   } catch (const std::exception& e) {
@@ -35,18 +34,14 @@ class profiler {
     counters_.resize(events_.size(), 0);
   }
 
-  inline void start() {
-    PAPI_start_counters(&events_[0], events_.size());
-  }
+  inline void start() { PAPI_start_counters(&events_[0], events_.size()); }
 
   inline const std::vector<long long>& stop() {
     PAPI_stop_counters(&counters_[0], counters_.size());
     return counters_;
   }
 
-  inline void read(long long* val) {
-    PAPI_read_counters(val, events_.size());
-  }
+  inline void read(long long* val) { PAPI_read_counters(val, events_.size()); }
 
   inline void accum(long long* val) {
     PAPI_accum_counters(val, events_.size());
@@ -62,6 +57,6 @@ class profiler {
   std::vector<long long> counters_;
 };
 
-#endif // USE_PAPI
+#endif  // USE_PAPI
 
 #endif

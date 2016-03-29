@@ -30,22 +30,24 @@
 /* We want to wrap entries around, and because mod operator % sometimes
  * misbehaves on negative values. -1 maps to the highest value.
  */
-#define wrap_x(a)	(((a)+num_blocks_x)%num_blocks_x)
-#define wrap_y(a)	(((a)+num_blocks_y)%num_blocks_y)
-#define wrap_z(a)	(((a)+num_blocks_z)%num_blocks_z)
+#define wrap_x(a) (((a) + num_blocks_x) % num_blocks_x)
+#define wrap_y(a) (((a) + num_blocks_y) % num_blocks_y)
+#define wrap_z(a) (((a) + num_blocks_z) % num_blocks_z)
 
-#define index(a,b,c)	((a)+(b)*(blockDimX+2)+(c)*(blockDimX+2)*(blockDimY+2))
-#define calc_pe(a,b,c)	((a)+(b)*num_blocks_x+(c)*num_blocks_x*num_blocks_y)
+#define index(a, b, c) \
+  ((a) + (b) * (blockDimX + 2) + (c) * (blockDimX + 2) * (blockDimY + 2))
+#define calc_pe(a, b, c) \
+  ((a) + (b)*num_blocks_x + (c)*num_blocks_x * num_blocks_y)
 
-#define MAX_ITER	500
+#define MAX_ITER 500
 #define SKIP_ITER 100
-#define LEFT		1
-#define RIGHT		2
-#define TOP		3
-#define BOTTOM		4
-#define FRONT		5
-#define BACK		6
-#define DIVIDEBY7	0.14285714285714285714
+#define LEFT 1
+#define RIGHT 2
+#define TOP 3
+#define BOTTOM 4
+#define FRONT 5
+#define BACK 6
+#define DIVIDEBY7 0.14285714285714285714
 
 double startTime;
 double endTime;
@@ -54,8 +56,7 @@ int arrayDimX, arrayDimY, arrayDimZ;
 int noBarrier = 0;
 int myRank, numPes;
 
-int main(int argc, char **argv) {
-
+int main(int argc, char** argv) {
   MPIV_Init(argc, argv);
 
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);
@@ -63,31 +64,35 @@ int main(int argc, char **argv) {
 
   if (argc != 4 && argc != 8) {
     printf("%s [array_size] [block_size] +[no]barrier\n", argv[0]);
-    printf("%s [array_size_X] [array_size_Y] [array_size_Z] [block_size_X] [block_size_Y] [block_size_Z] +[no]barrier\n", argv[0]);
+    printf(
+        "%s [array_size_X] [array_size_Y] [array_size_Z] [block_size_X] "
+        "[block_size_Y] [block_size_Z] +[no]barrier\n",
+        argv[0]);
     MPI_Abort(MPI_COMM_WORLD, -1);
   }
 
-  if(argc == 4) {
+  if (argc == 4) {
     arrayDimZ = arrayDimY = arrayDimX = atoi(argv[1]);
     blockDimZ = blockDimY = blockDimX = atoi(argv[2]);
-    if(strcasecmp(argv[3], "+nobarrier") == 0)
+    if (strcasecmp(argv[3], "+nobarrier") == 0)
       noBarrier = 1;
     else
       noBarrier = 0;
-    if(noBarrier && myRank==0) printf("\nSTENCIL COMPUTATION WITH NO BARRIERS\n");
-  }
-  else {
+    if (noBarrier && myRank == 0)
+      printf("\nSTENCIL COMPUTATION WITH NO BARRIERS\n");
+  } else {
     arrayDimX = atoi(argv[1]);
     arrayDimY = atoi(argv[2]);
     arrayDimZ = atoi(argv[3]);
     blockDimX = atoi(argv[4]);
     blockDimY = atoi(argv[5]);
     blockDimZ = atoi(argv[6]);
-    if(strcasecmp(argv[7], "+nobarrier") == 0)
+    if (strcasecmp(argv[7], "+nobarrier") == 0)
       noBarrier = 1;
     else
       noBarrier = 0;
-    if(noBarrier && myRank==0) printf("\nSTENCIL COMPUTATION WITH NO BARRIERS\n");
+    if (noBarrier && myRank == 0)
+      printf("\nSTENCIL COMPUTATION WITH NO BARRIERS\n");
   }
 
   if (arrayDimX < blockDimX || arrayDimX % blockDimX != 0) {
@@ -107,21 +112,22 @@ int main(int argc, char **argv) {
   MPIV_Finalize();
 }
 
-double *left_plane_out  ;
-double *right_plane_out ;
-double *left_plane_in   ;
-double *right_plane_in  ;
-double *bottom_plane_out;
-double *top_plane_out	;
-double *bottom_plane_in;;
-double *top_plane_in    ;
-double *back_plane_out   ;
-double *front_plane_out   ;
-double *back_plane_in     ;
-double *front_plane_in    ;
+double* left_plane_out;
+double* right_plane_out;
+double* left_plane_in;
+double* right_plane_in;
+double* bottom_plane_out;
+double* top_plane_out;
+double* bottom_plane_in;
+;
+double* top_plane_in;
+double* back_plane_out;
+double* front_plane_out;
+double* back_plane_in;
+double* front_plane_in;
 
-double *temperature;
-double *new_temperature;
+double* temperature;
+double* new_temperature;
 
 int num_blocks_x;
 int num_blocks_y;
@@ -131,7 +137,9 @@ int myYcoord;
 int myZcoord;
 
 void right(intptr_t) {
-  MPIV_Recv(right_plane_in, blockDimY*blockDimZ, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord), RIGHT, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  MPIV_Recv(right_plane_in, blockDimY * blockDimZ, MPI_DOUBLE,
+            calc_pe(wrap_x(myXcoord + 1), myYcoord, myZcoord), RIGHT,
+            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 #if 0
   for(int k=0; k<blockDimZ; ++k)
     for(int j=0; j<blockDimY; ++j) {
@@ -140,22 +148,23 @@ void right(intptr_t) {
 #endif
   int k, j, i;
   i = blockDimX;
-  for(k=1; k<blockDimZ + 1; k++)
-    for(j=1; j<blockDimY + 1; j++) {
-      new_temperature[index(i, j, k)] = (temperature[index(i-1, j, k)]
-          +  right_plane_in[(k-1)*blockDimY + (j-1)]
-          +  temperature[index(i, j-1, k)]
-          +  temperature[index(i, j+1, k)]
-          +  temperature[index(i, j, k-1)]
-          +  temperature[index(i, j, k+1)]
-          +  temperature[index(i, j, k)] ) * DIVIDEBY7;
+  for (k = 1; k < blockDimZ + 1; k++)
+    for (j = 1; j < blockDimY + 1; j++) {
+      new_temperature[index(i, j, k)] =
+          (temperature[index(i - 1, j, k)] +
+           right_plane_in[(k - 1) * blockDimY + (j - 1)] +
+           temperature[index(i, j - 1, k)] + temperature[index(i, j + 1, k)] +
+           temperature[index(i, j, k - 1)] + temperature[index(i, j, k + 1)] +
+           temperature[index(i, j, k)]) *
+          DIVIDEBY7;
     }
-
 }
 
 void left(intptr_t) {
-  MPIV_Recv(left_plane_in, blockDimY*blockDimZ, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord), LEFT, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-  /* Copy buffers into ghost layers */
+  MPIV_Recv(left_plane_in, blockDimY * blockDimZ, MPI_DOUBLE,
+            calc_pe(wrap_x(myXcoord - 1), myYcoord, myZcoord), LEFT,
+            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+/* Copy buffers into ghost layers */
 
 #if 0
   for(int k=0; k<blockDimZ; ++k)
@@ -163,127 +172,125 @@ void left(intptr_t) {
       temperature[index(0, j+1, k+1)] = left_plane_in[k*blockDimY+j];
     }
 #endif
-  int k,j,i;
+  int k, j, i;
   i = 1;
-  for(k=1; k<blockDimZ + 1; k++)
-    for(j=1; j<blockDimY + 1; j++) {
-      new_temperature[index(i, j, k)] = (left_plane_in[(k-1)*blockDimY + (j-1)]
-          +  temperature[index(i+1, j, k)]
-          +  temperature[index(i, j-1, k)]
-          +  temperature[index(i, j+1, k)]
-          +  temperature[index(i, j, k-1)]
-          +  temperature[index(i, j, k+1)]
-          +  temperature[index(i, j, k)] ) * DIVIDEBY7;
+  for (k = 1; k < blockDimZ + 1; k++)
+    for (j = 1; j < blockDimY + 1; j++) {
+      new_temperature[index(i, j, k)] =
+          (left_plane_in[(k - 1) * blockDimY + (j - 1)] +
+           temperature[index(i + 1, j, k)] + temperature[index(i, j - 1, k)] +
+           temperature[index(i, j + 1, k)] + temperature[index(i, j, k - 1)] +
+           temperature[index(i, j, k + 1)] + temperature[index(i, j, k)]) *
+          DIVIDEBY7;
     }
-
 }
 
 void up(intptr_t) {
-  MPIV_Recv(top_plane_in, blockDimX*blockDimZ, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord+1), myZcoord), TOP,
-      MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  MPIV_Recv(top_plane_in, blockDimX * blockDimZ, MPI_DOUBLE,
+            calc_pe(myXcoord, wrap_y(myYcoord + 1), myZcoord), TOP,
+            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 #if 0
   for(int k=0; k<blockDimZ; ++k)
     for(int i=0; i<blockDimX; ++i) {
       temperature[index(i+1, blockDimY+1, k+1)] = top_plane_in[k*blockDimX+i];
     }
 #endif
-  int k,j,i;
+  int k, j, i;
   j = blockDimY;
-  for(k=1; k<blockDimZ + 1; k++)
-    for(i=1; i<blockDimX + 1; i++) {
-      new_temperature[index(i, j, k)] = (temperature[index(i-1, j, k)]
-          +  temperature[index(i+1, j, k)]
-          +  temperature[index(i, j-1, k)]
-          +  top_plane_in[(k-1)*blockDimX + (i-1)]
-          +  temperature[index(i, j, k-1)]
-          +  temperature[index(i, j, k+1)]
-          +  temperature[index(i, j, k)] ) * DIVIDEBY7;
+  for (k = 1; k < blockDimZ + 1; k++)
+    for (i = 1; i < blockDimX + 1; i++) {
+      new_temperature[index(i, j, k)] =
+          (temperature[index(i - 1, j, k)] + temperature[index(i + 1, j, k)] +
+           temperature[index(i, j - 1, k)] +
+           top_plane_in[(k - 1) * blockDimX + (i - 1)] +
+           temperature[index(i, j, k - 1)] + temperature[index(i, j, k + 1)] +
+           temperature[index(i, j, k)]) *
+          DIVIDEBY7;
     }
-
 }
 
 void down(intptr_t) {
-  MPIV_Recv(bottom_plane_in, blockDimX*blockDimZ, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord-1), myZcoord), BOTTOM, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  MPIV_Recv(bottom_plane_in, blockDimX * blockDimZ, MPI_DOUBLE,
+            calc_pe(myXcoord, wrap_y(myYcoord - 1), myZcoord), BOTTOM,
+            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 #if 0
   for(int k=0; k<blockDimZ; ++k)
     for(int i=0; i<blockDimX; ++i) {
       temperature[index(i+1, 0, k+1)] = bottom_plane_in[k*blockDimX+i];
     }
 #endif
-  int k,j,i;
+  int k, j, i;
   j = 1;
-  for(k=1; k<blockDimZ+1; k++)
-    for(i=1; i<blockDimX+1; i++) {
-      new_temperature[index(i, j, k)] = (temperature[index(i-1, j, k)]
-          +  temperature[index(i+1, j, k)]
-          +  bottom_plane_in[(k-1) * blockDimX + (i-1)]
-          +  temperature[index(i, j+1, k)]
-          +  temperature[index(i, j, k-1)]
-          +  temperature[index(i, j, k+1)]
-          +  temperature[index(i, j, k)] ) * DIVIDEBY7;
+  for (k = 1; k < blockDimZ + 1; k++)
+    for (i = 1; i < blockDimX + 1; i++) {
+      new_temperature[index(i, j, k)] =
+          (temperature[index(i - 1, j, k)] + temperature[index(i + 1, j, k)] +
+           bottom_plane_in[(k - 1) * blockDimX + (i - 1)] +
+           temperature[index(i, j + 1, k)] + temperature[index(i, j, k - 1)] +
+           temperature[index(i, j, k + 1)] + temperature[index(i, j, k)]) *
+          DIVIDEBY7;
     }
-
 }
 
 void front(intptr_t) {
-  MPIV_Recv(front_plane_in, blockDimX*blockDimY, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1)), FRONT, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  MPIV_Recv(front_plane_in, blockDimX * blockDimY, MPI_DOUBLE,
+            calc_pe(myXcoord, myYcoord, wrap_z(myZcoord + 1)), FRONT,
+            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 #if 0
   for(int j=0; j<blockDimY; ++j)
     for(int i=0; i<blockDimX; ++i) {
       temperature[index(i+1, j+1, blockDimY+1)] = front_plane_in[j*blockDimX+i];
     }
 #endif
-  int k,j,i;
+  int k, j, i;
   k = blockDimY;
-  for(j=1; j<blockDimY+1; j++)
-    for(i=1; i<blockDimX+1; i++) {
-      new_temperature[index(i, j, k)] = (temperature[index(i-1, j, k)]
-          +  temperature[index(i+1, j, k)]
-          +  temperature[index(i, j-1, k)]
-          +  temperature[index(i, j+1, k)]
-          +  temperature[index(i, j, k-1)]
-          +  front_plane_in[(j-1) * blockDimX + (i-1)]
-          +  temperature[index(i, j, k)] ) * DIVIDEBY7;
+  for (j = 1; j < blockDimY + 1; j++)
+    for (i = 1; i < blockDimX + 1; i++) {
+      new_temperature[index(i, j, k)] =
+          (temperature[index(i - 1, j, k)] + temperature[index(i + 1, j, k)] +
+           temperature[index(i, j - 1, k)] + temperature[index(i, j + 1, k)] +
+           temperature[index(i, j, k - 1)] +
+           front_plane_in[(j - 1) * blockDimX + (i - 1)] +
+           temperature[index(i, j, k)]) *
+          DIVIDEBY7;
     }
-
 }
 
 void back(intptr_t) {
-  MPIV_Recv(back_plane_in, blockDimX*blockDimY, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1)), BACK, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  MPIV_Recv(back_plane_in, blockDimX * blockDimY, MPI_DOUBLE,
+            calc_pe(myXcoord, myYcoord, wrap_z(myZcoord - 1)), BACK,
+            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 #if 0
   for(int j=0; j<blockDimY; ++j)
     for(int i=0; i<blockDimX; ++i) {
       temperature[index(i+1, j+1, 0)] = back_plane_in[j*blockDimX+i];
     }
 #endif
-  int j,k,i;
+  int j, k, i;
   k = 1;
-  for(j=1; j<blockDimY+1; j++)
-    for(i=1; i<blockDimX+1; i++) {
-      new_temperature[index(i, j, k)] = (temperature[index(i-1, j, k)]
-          +  temperature[index(i+1, j, k)]
-          +  temperature[index(i, j-1, k)]
-          +  temperature[index(i, j+1, k)]
-          +  back_plane_in[(j-1) * blockDimX + (i-1)]
-          +  temperature[index(i, j, k+1)]
-          +  temperature[index(i, j, k)] ) * DIVIDEBY7;
+  for (j = 1; j < blockDimY + 1; j++)
+    for (i = 1; i < blockDimX + 1; i++) {
+      new_temperature[index(i, j, k)] =
+          (temperature[index(i - 1, j, k)] + temperature[index(i + 1, j, k)] +
+           temperature[index(i, j - 1, k)] + temperature[index(i, j + 1, k)] +
+           back_plane_in[(j - 1) * blockDimX + (i - 1)] +
+           temperature[index(i, j, k + 1)] + temperature[index(i, j, k)]) *
+          DIVIDEBY7;
     }
-
 }
 
 void compute(intptr_t arg) {
-  int k,j,i;
-  std::pair<int, int> *tp_k = (std::pair<int,int>*) arg;
-  for(k=tp_k->first; k<tp_k->second; k++)
-    for(j=2; j<blockDimY; j++)
-      for(i=2; i<blockDimX; i++) {
-        new_temperature[index(i, j, k)] = (temperature[index(i-1, j, k)]
-            +  temperature[index(i+1, j, k)]
-            +  temperature[index(i, j-1, k)]
-            +  temperature[index(i, j+1, k)]
-            +  temperature[index(i, j, k-1)]
-            +  temperature[index(i, j, k+1)]
-            +  temperature[index(i, j, k)] ) * DIVIDEBY7;
+  int k, j, i;
+  std::pair<int, int>* tp_k = (std::pair<int, int>*)arg;
+  for (k = tp_k->first; k < tp_k->second; k++)
+    for (j = 2; j < blockDimY; j++)
+      for (i = 2; i < blockDimX; i++) {
+        new_temperature[index(i, j, k)] =
+            (temperature[index(i - 1, j, k)] + temperature[index(i + 1, j, k)] +
+             temperature[index(i, j - 1, k)] + temperature[index(i, j + 1, k)] +
+             temperature[index(i, j, k - 1)] + temperature[index(i, j, k + 1)] +
+             temperature[index(i, j, k)]) *
+            DIVIDEBY7;
       }
 }
 
@@ -292,12 +299,12 @@ void main_task(intptr_t) {
   num_blocks_y = arrayDimY / blockDimY;
   num_blocks_z = arrayDimZ / blockDimZ;
 
-  if(myRank == 0) {
-    printf("Running Jacobi on %d processors with (%d, %d, %d) elements\n", numPes, num_blocks_x, num_blocks_y, num_blocks_z);
+  if (myRank == 0) {
+    printf("Running Jacobi on %d processors with (%d, %d, %d) elements\n",
+           numPes, num_blocks_x, num_blocks_y, num_blocks_z);
     printf("Array Dimensions: %d %d %d\n", arrayDimX, arrayDimY, arrayDimZ);
     printf("Block Dimensions: %d %d %d\n", blockDimX, blockDimY, blockDimZ);
   }
-
 
   myXcoord = myRank % num_blocks_x;
   myYcoord = (myRank % (num_blocks_x * num_blocks_y)) / num_blocks_x;
@@ -307,68 +314,78 @@ void main_task(intptr_t) {
   double error = 1.0, max_error = 0.0;
 
   /* allocate one dimensional arrays */
-  temperature = new double[(blockDimX+2) * (blockDimY+2) * (blockDimZ+2)];
-  new_temperature = new double[(blockDimX+2) * (blockDimY+2) * (blockDimZ+2)];
+  temperature = new double[(blockDimX + 2) * (blockDimY + 2) * (blockDimZ + 2)];
+  new_temperature =
+      new double[(blockDimX + 2) * (blockDimY + 2) * (blockDimZ + 2)];
 
-  for(k=0; k<blockDimZ+2; k++)
-    for(j=0; j<blockDimY+2; j++)
-      for(i=0; i<blockDimX+2; i++) {
+  for (k = 0; k < blockDimZ + 2; k++)
+    for (j = 0; j < blockDimY + 2; j++)
+      for (i = 0; i < blockDimX + 2; i++) {
         temperature[index(i, j, k)] = 0.0;
       }
 
   /* boundary conditions */
-  if(myZcoord == 0 && myYcoord < num_blocks_y/2 && myXcoord < num_blocks_x/2) {
-    for(j=1; j<=blockDimY; j++)
-      for(i=1; i<=blockDimX; i++)
-        temperature[index(i, j, 1)] = 1.0;
+  if (myZcoord == 0 && myYcoord < num_blocks_y / 2 &&
+      myXcoord < num_blocks_x / 2) {
+    for (j = 1; j <= blockDimY; j++)
+      for (i = 1; i <= blockDimX; i++) temperature[index(i, j, 1)] = 1.0;
   }
 
-  if(myZcoord == num_blocks_z-1 && myYcoord >= num_blocks_y/2 && myXcoord >= num_blocks_x/2) {
-    for(j=1; j<=blockDimY; j++)
-      for(i=1; i<=blockDimX; i++)
+  if (myZcoord == num_blocks_z - 1 && myYcoord >= num_blocks_y / 2 &&
+      myXcoord >= num_blocks_x / 2) {
+    for (j = 1; j <= blockDimY; j++)
+      for (i = 1; i <= blockDimX; i++)
         temperature[index(i, j, blockDimZ)] = 0.0;
   }
 
-  /* Copy left, right, bottom, top, front and back  planes into temporary arrays. */
+  /* Copy left, right, bottom, top, front and back  planes into temporary
+   * arrays. */
 
-  left_plane_out   = (double*) mpiv_malloc(sizeof(double)*blockDimY*blockDimZ);
-  right_plane_out  = (double*) mpiv_malloc(sizeof(double)*blockDimY*blockDimZ);
-  left_plane_in    = (double*) mpiv_malloc(sizeof(double)*blockDimY*blockDimZ);
-  right_plane_in   = (double*) mpiv_malloc(sizeof(double)*blockDimY*blockDimZ);
+  left_plane_out = (double*)mpiv_malloc(sizeof(double) * blockDimY * blockDimZ);
+  right_plane_out =
+      (double*)mpiv_malloc(sizeof(double) * blockDimY * blockDimZ);
+  left_plane_in = (double*)mpiv_malloc(sizeof(double) * blockDimY * blockDimZ);
+  right_plane_in = (double*)mpiv_malloc(sizeof(double) * blockDimY * blockDimZ);
 
-  bottom_plane_out = (double*) mpiv_malloc(sizeof(double)*blockDimX*blockDimZ);
-  top_plane_out	   = (double*) mpiv_malloc(sizeof(double)*blockDimX*blockDimZ);
-  bottom_plane_in  = (double*) mpiv_malloc(sizeof(double)*blockDimX*blockDimZ);
-  top_plane_in     = (double*) mpiv_malloc(sizeof(double)*blockDimX*blockDimZ);
+  bottom_plane_out =
+      (double*)mpiv_malloc(sizeof(double) * blockDimX * blockDimZ);
+  top_plane_out = (double*)mpiv_malloc(sizeof(double) * blockDimX * blockDimZ);
+  bottom_plane_in =
+      (double*)mpiv_malloc(sizeof(double) * blockDimX * blockDimZ);
+  top_plane_in = (double*)mpiv_malloc(sizeof(double) * blockDimX * blockDimZ);
 
-  back_plane_out    = (double*) mpiv_malloc(sizeof(double)*blockDimX*blockDimY);
-  front_plane_out   = (double*) mpiv_malloc(sizeof(double)*blockDimX*blockDimY);
-  back_plane_in     = (double*) mpiv_malloc(sizeof(double)*blockDimX*blockDimY);
-  front_plane_in    = (double*) mpiv_malloc(sizeof(double)*blockDimX*blockDimY);
+  back_plane_out = (double*)mpiv_malloc(sizeof(double) * blockDimX * blockDimY);
+  front_plane_out =
+      (double*)mpiv_malloc(sizeof(double) * blockDimX * blockDimY);
+  back_plane_in = (double*)mpiv_malloc(sizeof(double) * blockDimX * blockDimY);
+  front_plane_in = (double*)mpiv_malloc(sizeof(double) * blockDimX * blockDimY);
 
   printf("starting...%d %d %d\n", myXcoord, myYcoord, myZcoord);
 
-  while(/*error > 0.001 &&*/ iterations < MAX_ITER) {
+  while (/*error > 0.001 &&*/ iterations < MAX_ITER) {
     iterations++;
-    if(iterations == SKIP_ITER) startTime = MPI_Wtime();
+    if (iterations == SKIP_ITER) startTime = MPI_Wtime();
 
     /* Copy different planes into buffers */
-    for(k=0; k<blockDimZ; ++k)
-      for(j=0; j<blockDimY; ++j) {
-        left_plane_out[k*blockDimY+j] = temperature[index(1, j+1, k+1)];
-        right_plane_out[k*blockDimY+j] = temperature[index(blockDimX, j+1, k+1)];
+    for (k = 0; k < blockDimZ; ++k)
+      for (j = 0; j < blockDimY; ++j) {
+        left_plane_out[k * blockDimY + j] = temperature[index(1, j + 1, k + 1)];
+        right_plane_out[k * blockDimY + j] =
+            temperature[index(blockDimX, j + 1, k + 1)];
       }
 
-    for(k=0; k<blockDimZ; ++k)
-      for(i=0; i<blockDimX; ++i) {
-        top_plane_out[k*blockDimX+i] = temperature[index(i+1, 1, k+1)];
-        bottom_plane_out[k*blockDimX+i] = temperature[index(i+1, blockDimY, k+1)];
+    for (k = 0; k < blockDimZ; ++k)
+      for (i = 0; i < blockDimX; ++i) {
+        top_plane_out[k * blockDimX + i] = temperature[index(i + 1, 1, k + 1)];
+        bottom_plane_out[k * blockDimX + i] =
+            temperature[index(i + 1, blockDimY, k + 1)];
       }
 
-    for(j=0; j<blockDimY; ++j)
-      for(i=0; i<blockDimX; ++i) {
-        back_plane_out[j*blockDimX+i] = temperature[index(i+1, j+1, 1)];
-        front_plane_out[j*blockDimX+i] = temperature[index(i+1, j+1, blockDimZ)];
+    for (j = 0; j < blockDimY; ++j)
+      for (i = 0; i < blockDimX; ++i) {
+        back_plane_out[j * blockDimX + i] = temperature[index(i + 1, j + 1, 1)];
+        front_plane_out[j * blockDimX + i] =
+            temperature[index(i + 1, j + 1, blockDimZ)];
       }
 
     // printf("spawning\n");
@@ -381,18 +398,31 @@ void main_task(intptr_t) {
     auto f = MPIV_spawn(0, front, 0);
     auto b = MPIV_spawn(0, back, 0);
 
-    auto tp_i_1 = std::make_pair<int,int>(2, (int)((double)blockDimZ/1.5));
-    auto tp_i_2 = std::make_pair<int,int>((int)((double)blockDimZ/1.5), blockDimZ*1);
+    auto tp_i_1 = std::make_pair<int, int>(2, (int)((double)blockDimZ / 1.5));
+    auto tp_i_2 =
+        std::make_pair<int, int>((int)((double)blockDimZ / 1.5), blockDimZ * 1);
 
-    auto c = MPIV_spawn(1, compute, (intptr_t) &tp_i_1);
+    auto c = MPIV_spawn(1, compute, (intptr_t)&tp_i_1);
 
     /* Send my left, right, bottom, top, front and back planes */
-    MPIV_Send(left_plane_out, blockDimY*blockDimZ, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord), RIGHT, MPI_COMM_WORLD);
-    MPIV_Send(right_plane_out, blockDimY*blockDimZ, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord), LEFT, MPI_COMM_WORLD);
-    MPIV_Send(bottom_plane_out, blockDimX*blockDimZ, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord-1), myZcoord), TOP, MPI_COMM_WORLD);
-    MPIV_Send(top_plane_out, blockDimX*blockDimZ, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord+1), myZcoord), BOTTOM, MPI_COMM_WORLD);
-    MPIV_Send(back_plane_out, blockDimX*blockDimY, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1)), FRONT, MPI_COMM_WORLD);
-    MPIV_Send(front_plane_out, blockDimX*blockDimY, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1)), BACK, MPI_COMM_WORLD);
+    MPIV_Send(left_plane_out, blockDimY * blockDimZ, MPI_DOUBLE,
+              calc_pe(wrap_x(myXcoord - 1), myYcoord, myZcoord), RIGHT,
+              MPI_COMM_WORLD);
+    MPIV_Send(right_plane_out, blockDimY * blockDimZ, MPI_DOUBLE,
+              calc_pe(wrap_x(myXcoord + 1), myYcoord, myZcoord), LEFT,
+              MPI_COMM_WORLD);
+    MPIV_Send(bottom_plane_out, blockDimX * blockDimZ, MPI_DOUBLE,
+              calc_pe(myXcoord, wrap_y(myYcoord - 1), myZcoord), TOP,
+              MPI_COMM_WORLD);
+    MPIV_Send(top_plane_out, blockDimX * blockDimZ, MPI_DOUBLE,
+              calc_pe(myXcoord, wrap_y(myYcoord + 1), myZcoord), BOTTOM,
+              MPI_COMM_WORLD);
+    MPIV_Send(back_plane_out, blockDimX * blockDimY, MPI_DOUBLE,
+              calc_pe(myXcoord, myYcoord, wrap_z(myZcoord - 1)), FRONT,
+              MPI_COMM_WORLD);
+    MPIV_Send(front_plane_out, blockDimX * blockDimY, MPI_DOUBLE,
+              calc_pe(myXcoord, myYcoord, wrap_z(myZcoord + 1)), BACK,
+              MPI_COMM_WORLD);
 
     MPIV_join(0, r);
     MPIV_join(0, l);
@@ -401,7 +431,7 @@ void main_task(intptr_t) {
     MPIV_join(0, f);
     MPIV_join(0, b);
 
-    compute((intptr_t) &tp_i_2);
+    compute((intptr_t)&tp_i_2);
 
     /* update my value based on the surrounding values */
     MPIV_join(1, c);
@@ -417,35 +447,36 @@ void main_task(intptr_t) {
         }
 #endif
 
-    double *tmp;
+    double* tmp;
     tmp = temperature;
     temperature = new_temperature;
     new_temperature = tmp;
 
     /* boundary conditions */
-    if(myZcoord == 0 && myYcoord < num_blocks_y/2 && myXcoord < num_blocks_x/2) {
-      for(j=1; j<=blockDimY; j++)
-        for(i=1; i<=blockDimX; i++)
-          temperature[index(i, j, 1)] = 1.0;
+    if (myZcoord == 0 && myYcoord < num_blocks_y / 2 &&
+        myXcoord < num_blocks_x / 2) {
+      for (j = 1; j <= blockDimY; j++)
+        for (i = 1; i <= blockDimX; i++) temperature[index(i, j, 1)] = 1.0;
     }
 
-    if(myZcoord == num_blocks_z-1 && myYcoord >= num_blocks_y/2 && myXcoord >= num_blocks_x/2) {
-      for(j=1; j<=blockDimY; j++)
-        for(i=1; i<=blockDimX; i++)
+    if (myZcoord == num_blocks_z - 1 && myYcoord >= num_blocks_y / 2 &&
+        myXcoord >= num_blocks_x / 2) {
+      for (j = 1; j <= blockDimY; j++)
+        for (i = 1; i <= blockDimX; i++)
           temperature[index(i, j, blockDimZ)] = 0.0;
     }
 
     // if(myRank == 0) printf("Iteration %d\n", iterations);
-    if(noBarrier == 0)
-      MPIV_Barrier(MPI_COMM_WORLD);
+    if (noBarrier == 0) MPIV_Barrier(MPI_COMM_WORLD);
     // printf("%d %d done barrier\n", iterations, myRank);
-      // MPI_Allreduce(&max_error, &error, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    // MPI_Allreduce(&max_error, &error, 1, MPI_DOUBLE, MPI_MAX,
+    // MPI_COMM_WORLD);
   } /* end of while loop */
 
-  if(myRank == 0) {
+  if (myRank == 0) {
     endTime = MPI_Wtime();
     printf("Completed %d iterations\n", iterations);
-    printf("Time elapsed per iteration: %f\n", (endTime - startTime)/(MAX_ITER-SKIP_ITER));
+    printf("Time elapsed per iteration: %f\n",
+           (endTime - startTime) / (MAX_ITER - SKIP_ITER));
   }
 } /* end function main */
-

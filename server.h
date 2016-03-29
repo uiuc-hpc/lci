@@ -33,15 +33,16 @@ class mpiv_server {
  public:
   mpiv_server() : stop_(false), done_init_(false) {}
 
-  inline void init(mpiv_ctx& ctx, vector<local_pk_pool*>& localpk, packet_manager& pkpool, int& rank,
-                   int& size) {
+  inline void init(mpiv_ctx& ctx, vector<local_pk_pool*>& localpk,
+                   packet_manager& pkpool, int& rank, int& size) {
 #ifdef USE_AFFI
     affinity::set_me_to(0);
 #endif
     std::vector<rdmax::device> devs = rdmax::device::get_devices();
     assert(devs.size() > 0 && "Unable to find any ibv device");
 
-    dev_ctx_ = std::move(std::unique_ptr<device_ctx>(new device_ctx(devs.back())));
+    dev_ctx_ =
+        std::move(std::unique_ptr<device_ctx>(new device_ctx(devs.back())));
     dev_scq_ = std::move(dev_ctx_->create_cq(64 * 1024));
     dev_rcq_ = std::move(dev_ctx_->create_cq(64 * 1024));
 
@@ -50,10 +51,12 @@ class mpiv_server {
                    IBV_ACCESS_REMOTE_WRITE;
 
     // These are pinned memory.
-    sbuf_ = dev_ctx_->create_memory(sizeof(mpiv_packet) * (MAX_SEND + MAX_RECV + 2), mr_flags);
+    sbuf_ = dev_ctx_->create_memory(
+        sizeof(mpiv_packet) * (MAX_SEND + MAX_RECV + 2), mr_flags);
     ctx.sbuf_lkey = sbuf_.lkey();
 
-    sbuf_alloc_ = std::move(std::unique_ptr<pinned_pool>(new pinned_pool(sbuf_.ptr())));
+    sbuf_alloc_ =
+        std::move(std::unique_ptr<pinned_pool>(new pinned_pool(sbuf_.ptr())));
     heap_ = dev_ctx_->create_memory((size_t)HEAP_SIZE, mr_flags);
 
     ctx.heap_rkey = heap_.rkey();
@@ -82,34 +85,29 @@ class mpiv_server {
     done_init_ = true;
   }
 
-
   inline void post_srq(mpiv_packet* p) {
     if (p == NULL) return;
-    recv_posted_ ++;
+    recv_posted_++;
     dev_ctx_->post_srq_recv((void*)p, (void*)p, sizeof(mpiv_packet),
                             sbuf_.lkey());
   }
 
-  inline bool progress() { //profiler& p, long long& r, long long &s) {
+  inline bool progress() {  // profiler& p, long long& r, long long &s) {
     initt(t);
     startt(t);
-    bool ret =
-        (dev_rcq_.poll_once([this](const ibv_wc& wc) {
-          recv_posted_ --;
-          mpiv_serve_recv(wc);
-        }));
-    ret |= 
-        (dev_scq_.poll_once([](const ibv_wc& wc) {
-          mpiv_serve_send(wc);
-        }));
+    bool ret = (dev_rcq_.poll_once([this](const ibv_wc& wc) {
+      recv_posted_--;
+      mpiv_serve_recv(wc);
+    }));
+    ret |= (dev_scq_.poll_once([](const ibv_wc& wc) { mpiv_serve_send(wc); }));
     stopt(t)
-    // Make sure we always have enough packet, but do not block.
-    if (recv_posted_ < MAX_RECV) {
+        // Make sure we always have enough packet, but do not block.
+        if (recv_posted_ < MAX_RECV) {
       auto* p = pk_mgr_ptr->get_packet_nb();
-      if (p != NULL) { 
-        recv_posted_ ++;
+      if (p != NULL) {
+        recv_posted_++;
         dev_ctx_->post_srq_recv((void*)p, (void*)p, sizeof(mpiv_packet),
-            sbuf_.lkey());
+                                sbuf_.lkey());
       } else if (recv_posted_ < MAX_RECV / 2) {
         // steal from local pool.
         for (auto& localpool : *pk_mgr_local_ptr) {
@@ -123,12 +121,12 @@ class mpiv_server {
   inline void serve() {
     poll_thread_ = std::thread([this] {
 #ifdef USE_AFFI
-        affinity::set_me_to_last();
+      affinity::set_me_to_last();
 #endif
 
 #ifdef USE_PAPI
-        profiler server({PAPI_L1_DCM});
-        server.start();
+      profiler server({PAPI_L1_DCM});
+      server.start();
 #endif
 
       while (xunlikely(!this->stop_)) {

@@ -6,11 +6,15 @@ struct mpiv_packet;
 extern __thread fult* __fulting;
 
 struct alignas(64) MPIV_Request {
-  inline MPIV_Request(int rank_, int tag_) : rank(rank_), tag(tag_),
-      sync(__fulting), done_(false) {}
+  inline MPIV_Request(int rank_, int tag_)
+      : rank(rank_), tag(tag_), sync(__fulting), done_(false) {}
   inline MPIV_Request(void* buffer_, int size_, int rank_, int tag_)
-      : buffer(buffer_), size(size_), rank(rank_), tag(tag_), 
-      sync(__fulting), done_(false) {};
+      : buffer(buffer_),
+        size(size_),
+        rank(rank_),
+        tag(tag_),
+        sync(__fulting),
+        done_(false){};
   void* buffer;
   int size;
   int rank;
@@ -21,7 +25,9 @@ struct alignas(64) MPIV_Request {
 
 inline void MPIV_Wait(MPIV_Request* req) {
   if (!req->sync) {
-    while (!req->done_) { sched_yield(); };
+    while (!req->done_) {
+      sched_yield();
+    };
   } else {
     req->sync->wait();
   }

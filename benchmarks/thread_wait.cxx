@@ -33,7 +33,7 @@ int main(int argc, char** args) {
     w[i].start();
   }
 
-  w[0].start_main(main_task, (intptr_t) w);
+  w[0].start_main(main_task, (intptr_t)w);
   for (int i = 1; i < nworker; i++) {
     w[i].stop();
   }
@@ -41,10 +41,10 @@ int main(int argc, char** args) {
 }
 
 void main_task(intptr_t arg) {
-  worker* w = (worker*) arg;
+  worker* w = (worker*)arg;
   fult_t* tid = new fult_t[total_threads];
-  double  t = 0;
-  for (int tt = 0; tt < TOTAL_LARGE ; tt++) {
+  double t = 0;
+  for (int tt = 0; tt < TOTAL_LARGE; tt++) {
     total = 0;
     for (int i = 0; i < total_threads; i++) {
       tid[i] = w[1].spawn(f1, i);
