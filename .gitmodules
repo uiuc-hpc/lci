@@ -1,0 +1,3 @@
+[submodule "rdmax"]
+	path = rdmax
+	url = https://danghvu@github.com/uiuc-hpc/rdmax.git
