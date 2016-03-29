@@ -146,6 +146,8 @@ class mpiv_server {
   inline void finalize() {
     stop_ = true;
     poll_thread_.join();
+    dev_scq_.finalize();
+    dev_rcq_.finalize();
     sbuf_.finalize();
     heap_.finalize();
   }

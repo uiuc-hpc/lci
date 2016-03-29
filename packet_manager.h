@@ -216,10 +216,12 @@ using packet_manager = packet_manager_LFSTACK;
 class alignas(64) packet_manager_LOCAL final {
  public:
 
+#define MAX_SIZE (1 << 12)
+
   packet_manager_LOCAL(packet_manager* pkpool, uint8_t id, uint8_t max_size) :
     lock_flag(ATOMIC_FLAG_INIT), id_(id), max_size_(max_size),
-    top_(0), bottom_(0), overflow_(pkpool), container_(new mpiv_packet*[64]) {
-    memset(container_, 0, 64 * sizeof(mpiv_packet*));
+    top_(0), bottom_(0), overflow_(pkpool), container_(new mpiv_packet*[MAX_SIZE]) {
+    memset(container_, 0, MAX_SIZE * sizeof(mpiv_packet*));
   }
 
   ~packet_manager_LOCAL() {
@@ -238,7 +240,7 @@ class alignas(64) packet_manager_LOCAL final {
     lock();
     if (top_ != bottom_) {
       packet = container_[bottom_];
-      bottom_ = (bottom_ + 1) & 63;
+      bottom_ = (bottom_ + 1) & (MAX_SIZE - 1);
     }
     unlock();
     return packet;
@@ -248,7 +250,7 @@ class alignas(64) packet_manager_LOCAL final {
     mpiv_packet* packet = NULL;
     lock();
     if (top_ != bottom_) {
-      top_ = (top_ + 64 - 1) & 63;
+      top_ = (top_ + MAX_SIZE - 1) & (MAX_SIZE - 1);
       packet = container_[top_];
     } else {
       packet = overflow_->get_packet_nb();
@@ -274,10 +276,10 @@ class alignas(64) packet_manager_LOCAL final {
   inline void new_packet(mpiv_packet* packet) {
     lock();
     container_[top_] = packet;
-    top_ = (top_ + 1) & 63;
-    if (((top_ + 64 - bottom_) & 63) > max_size_) {
+    top_ = (top_ + 1) & (MAX_SIZE - 1);
+    if (((top_ + MAX_SIZE - bottom_) & (MAX_SIZE - 1)) > max_size_) {
       packet = container_[bottom_];
-      bottom_ = (bottom_ + 1) & 63;
+      bottom_ = (bottom_ + 1) & (MAX_SIZE - 1);
       overflow_->ret_packet(packet);
     }
     unlock();
@@ -293,7 +295,7 @@ class alignas(64) packet_manager_LOCAL final {
   uint8_t bottom_;
   packet_manager* overflow_;
   mpiv_packet** container_;
-  static_assert(64 >= MAX_SEND * 2, "unable to hold all send packet");
+  static_assert(MAX_SIZE >= MAX_SEND * 2, "unable to hold all send packet");
 };
 
 class alignas(64) packet_manager_LFLOCAL final {
