@@ -112,8 +112,7 @@ inline void mpiv_serve_send(const ibv_wc& wc) {
     // this packet is taken directly from recv queue.
     MPIV.pkpool.ret_packet(p_ctx);
   } else {
-    assert(poolid < MPIV.localpkpool.size());
-    MPIV.localpkpool[poolid]->ret_packet(p_ctx);
+    MPIV.pkpool.ret_packet_to(p_ctx, poolid);
   }
 }
 

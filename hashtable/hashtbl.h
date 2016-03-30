@@ -28,4 +28,11 @@ class base_hashtbl {
   virtual void erase(const key_type& key, hint_type t) = 0;
 };
 
+typedef uint64_t mpiv_key;
+
+constexpr mpiv_key mpiv_make_key(const int& rank, const int& tag) {
+  return (((uint64_t)rank << 32) | tag);
+}
+
+
 #endif

@@ -147,7 +147,7 @@ class arr_hashtbl : base_hashtbl {
   }
 
   /** wait-free!! TODO(danghvu): as long as no concurrent p2p with same tag ?*/
-  void erase(const key_type& key, hint_type hint) override {
+  void erase(const key_type&, hint_type hint) override {
     auto* hentry = (hash_val*)hint;
     hentry->clear();
   }

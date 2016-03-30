@@ -43,7 +43,6 @@ void MPIV_Barrier(MPI_Comm comm) {
   --dim;
 
   /* Receive from children. */
-  int tt = 0;
   for (i = dim, mask = 1 << i; i > hibit; --i, mask >>= 1) {
     peer = rank | mask;
     if (peer < size) {

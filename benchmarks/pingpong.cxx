@@ -34,7 +34,7 @@ int main(int argc, char** args) {
   return 0;
 }
 
-void main_task(intptr_t arg) {
+void main_task(intptr_t) {
   double times = 0;
   int rank = MPIV.me;
   void* r_buf = (void*)mpiv_malloc((size_t)MAX_MSG_SIZE);

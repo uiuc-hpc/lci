@@ -5,7 +5,7 @@
 #include <iostream>
 #include <memory>
 
-#include "packet_manager.h"
+#include "packet/packet_manager.h"
 #include "profiler.h"
 #include "affinity.h"
 
@@ -33,8 +33,7 @@ class mpiv_server {
  public:
   mpiv_server() : stop_(false), done_init_(false) {}
 
-  inline void init(mpiv_ctx& ctx, vector<local_pk_pool*>& localpk,
-                   packet_manager& pkpool, int& rank, int& size) {
+  inline void init(mpiv_ctx& ctx, packet_manager& pkpool, int& rank, int& size) {
 #ifdef USE_AFFI
     affinity::set_me_to(0);
 #endif
@@ -73,15 +72,14 @@ class mpiv_server {
 
     // Prepare the packet_mgr and prepost some packet.
     for (int i = 0; i < MAX_SEND; i++) {
-      pkpool.new_packet((mpiv_packet*)sbuf_alloc_->allocate());
+      pkpool.ret_packet((mpiv_packet*)sbuf_alloc_->allocate());
     }
 
     for (int i = 0; i < MAX_RECV; i++) {
-      pkpool.new_packet((mpiv_packet*)sbuf_alloc_->allocate());
+      pkpool.ret_packet((mpiv_packet*)sbuf_alloc_->allocate());
     }
 
     pk_mgr_ptr = &pkpool;
-    pk_mgr_local_ptr = &localpk;
     done_init_ = true;
   }
 
@@ -102,19 +100,11 @@ class mpiv_server {
     ret |= (dev_scq_.poll_once([](const ibv_wc& wc) { mpiv_serve_send(wc); }));
     stopt(t)
         // Make sure we always have enough packet, but do not block.
-        if (recv_posted_ < MAX_RECV) {
-      auto* p = pk_mgr_ptr->get_packet_nb();
-      if (p != NULL) {
-        recv_posted_++;
-        dev_ctx_->post_srq_recv((void*)p, (void*)p, sizeof(mpiv_packet),
-                                sbuf_.lkey());
-      } else if (recv_posted_ < MAX_RECV / 2) {
-        // steal from local pool.
-        for (auto& localpool : *pk_mgr_local_ptr) {
-          post_srq(localpool->steal_packet());
-        }
-      }
-    }
+    if (recv_posted_ < MAX_RECV)
+      post_srq(pk_mgr_ptr->get_for_recv());
+    // uint8_t count = 255;
+    // while (recv_posted_ < MAX_RECV / 2 && count --> 0)
+    // post_srq(pk_mgr_ptr->get_for_recv());
     return ret;
   }
 
@@ -162,7 +152,7 @@ class mpiv_server {
   int recv_posted_;
   unique_ptr<pinned_pool> sbuf_alloc_;
   packet_manager* pk_mgr_ptr;
-  vector<local_pk_pool*>* pk_mgr_local_ptr;
+  // vector<local_pk_pool*>* pk_mgr_local_ptr;
 };
 
 #endif

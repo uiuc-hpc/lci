@@ -7,13 +7,8 @@
 #define ALIGNED64(x) (((x) + 63) / 64 * 64)
 
 /** Setup hash table */
-typedef uint64_t mpiv_key;
 struct mpiv_packet;
 struct MPIV_Request;
-
-constexpr mpiv_key mpiv_make_key(const int& rank, const int& tag) {
-  return (((uint64_t)rank << 32) | tag);
-}
 
 #ifdef USE_TIMING
 /** Setup timing */

@@ -27,15 +27,15 @@ static const size_t HEAP_SIZE =
 //#define USE_AFFI
 
 #ifdef USE_LF
-#include "lf_hashtbl.h"
+#include "hashtable/lf_hashtbl.h"
 #endif
 
 #ifdef USE_COCK
-#include "cock_hashtbl.h"
+#include "hashtable/cock_hashtbl.h"
 #endif
 
 #ifdef USE_ARRAY
-#include "arr_hashtbl.h"
+#include "hashtable/arr_hashtbl.h"
 #endif
 
 #endif

@@ -20,8 +20,9 @@
 #include "except.h"
 #include "rdmax.h"
 #include "request.h"
-#include "hashtbl.h"
-#include "packet_manager.h"
+
+#include "hashtable/hashtbl.h"
+#include "packet/packet_manager.h"
 
 #include "common.h"
 
@@ -35,19 +36,17 @@ struct mpiv_ctx {
 
 #include "server.h"
 
-__thread local_pk_pool* __pkpool;
-
 struct alignas(64) mpiv {
   int me;
   int size;
   vector<worker> w;
-  vector<local_pk_pool*> localpkpool;
   mpiv_ctx ctx;
   packet_manager pkpool;
   mpiv_server server;
   mpiv_hash_tbl tbl;
   std::atomic<uint8_t> total_send;
 };
+
 static mpiv MPIV;
 
 double MPIV_Wtime() {

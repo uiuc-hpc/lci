@@ -51,6 +51,8 @@ class worker;
 __thread fult* __fulting = NULL;
 __thread int wid = 0;
 
+inline int get_worker_id() { return wid; }
+
 // fcontext (from boost).
 extern "C" {
 fcontext_t make_fcontext(void* sp, size_t size, void (*thread_func)(intptr_t));

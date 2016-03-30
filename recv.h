@@ -9,10 +9,11 @@ void MPIV_Send(const void* buffer, int count, MPI_Datatype, int rank, int tag,
 inline void MPIV_Recv_rndz(void* buffer, int, int rank, int tag,
                            MPIV_Request* s) {
   startt(misc_timing);
-  mpiv_packet* p = __pkpool->get_packet(RECV_READY, MPIV.me, tag);
+  mpiv_packet* p = MPIV.pkpool.get_for_send();
+  p->set_header(RECV_READY, MPIV.me, tag);
   p->set_rdz(0, (uintptr_t)s, (uintptr_t)buffer, MPIV.ctx.heap_rkey);
   MPIV.ctx.conn[rank].write_send(p, RNDZ_MSG_SIZE, 0, 0);
-  __pkpool->ret_packet(p);
+  MPIV.pkpool.ret_packet_to(p, wid);
   stopt(misc_timing);
 }
 
@@ -46,7 +47,7 @@ inline void MPIV_Recv_short(void* buffer, int size, int rank, int tag,
     stopt(memcpy_timing);
 
     startt(post_timing);
-    __pkpool->ret_packet(p_ctx);
+    MPIV.pkpool.ret_packet_to(p_ctx, wid);
     stopt(post_timing);
   }
 

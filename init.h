@@ -26,7 +26,7 @@ inline void MPIV_Init(int argc, char** args) {
   profiler_init();
 #endif
 
-  MPIV.server.init(MPIV.ctx, MPIV.localpkpool, MPIV.pkpool, MPIV.me, MPIV.size);
+  MPIV.server.init(MPIV.ctx, MPIV.pkpool, MPIV.me, MPIV.size);
   MPIV.server.serve();
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -34,27 +34,9 @@ inline void MPIV_Init(int argc, char** args) {
 
 void main_task(intptr_t arg);
 
-void init_thread_local(intptr_t id) {
-  uint8_t max_size = MAX_SEND / MPIV.w.size();
-  if (__pkpool != NULL) return;
-  __pkpool = new local_pk_pool(&MPIV.pkpool, id, max_size);
-  MPIV.localpkpool[(int)id] = __pkpool;
-  for (int i = 0; i < max_size; i++) {
-    auto* pk = MPIV.pkpool.get_packet_nb();
-    if (pk != NULL) {
-      memset(pk, 0, sizeof(mpiv_packet));
-      __pkpool->new_packet(pk);
-    }
-  }
-}
-
 void mpiv_main_task(intptr_t arg) {
-  init_thread_local(0);
-
   for (size_t i = 1; i < MPIV.w.size(); i++) {
     MPIV.w[i].start();
-    auto t = MPIV.w[i].spawn(init_thread_local, i);
-    MPIV.w[i].join(t);
   }
 
   // user-provided.
@@ -69,7 +51,7 @@ void mpiv_main_task(intptr_t arg) {
 inline void MPIV_Init_worker(int nworker, intptr_t arg = 0) {
   if (MPIV.w.size() == 0) {
     MPIV.w = std::move(std::vector<worker>(nworker));
-    MPIV.localpkpool = std::move(std::vector<local_pk_pool*>(nworker));
+    MPIV.pkpool.init_worker(nworker);
   }
   MPIV.w[0].start_main(mpiv_main_task, arg);
 }
