@@ -47,17 +47,12 @@ void mpiv_recv_short(mpiv_packet* p) {
   auto in_val = MPIV.tbl.insert(key, value).first;
   stopt(tbl_timing);
 
-  if (value.v != in_val.v) {
+  if (xlikely(value.v != in_val.v)) {
     // comm-thread comes later.
     MPIV_Request* req = in_val.request;
-    if (req->size >= SERVER_COPY_SIZE) {
-      req->buffer = (void*)p;
-      MPIV_Signal(req);
-    } else {
-      memcpy(req->buffer, p->buffer(), req->size);
-      MPIV_Signal(req);
-      MPIV.pkpool.ret_packet(p);
-    }
+    memcpy(req->buffer, p->buffer(), req->size);
+    MPIV_Signal(req);
+    MPIV.pkpool.ret_packet(p);
   }
 }
 

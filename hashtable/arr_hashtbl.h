@@ -156,6 +156,4 @@ class arr_hashtbl : base_hashtbl {
   hash_val* tbl_;
 };
 
-typedef arr_hashtbl mpiv_hash_tbl;
-
 #endif

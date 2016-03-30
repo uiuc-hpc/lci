@@ -34,4 +34,8 @@ constexpr mpiv_key mpiv_make_key(const int& rank, const int& tag) {
   return (((uint64_t)rank << 32) | tag);
 }
 
+#include "arr_hashtbl.h"
+
+using mpiv_hash_tbl = arr_hashtbl;
+
 #endif

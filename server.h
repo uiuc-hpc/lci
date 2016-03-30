@@ -100,11 +100,8 @@ class mpiv_server {
     }));
     ret |= (dev_scq_.poll_once([](const ibv_wc& wc) { mpiv_serve_send(wc); }));
     stopt(t)
-        // Make sure we always have enough packet, but do not block.
-        if (recv_posted_ < MAX_RECV) post_srq(pk_mgr_ptr->get_for_recv());
-    // uint8_t count = 255;
-    // while (recv_posted_ < MAX_RECV / 2 && count --> 0)
-    // post_srq(pk_mgr_ptr->get_for_recv());
+    // Make sure we always have enough packet, but do not block.
+    if (recv_posted_ < MAX_RECV) post_srq(pk_mgr_ptr->get_for_recv());
     return ret;
   }
 

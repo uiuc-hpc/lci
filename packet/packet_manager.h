@@ -196,5 +196,4 @@ class alignas(64) packet_manager_NUMA_LFSTACK final
 };
 
 using packet_manager = packet_manager_NUMA_LFSTACK;
-
 #endif

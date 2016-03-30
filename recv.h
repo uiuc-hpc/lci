@@ -31,17 +31,11 @@ inline void MPIV_Recv_short(void* buffer, int size, int rank, int tag,
 
   mpiv_packet* p_ctx = NULL;
 
-  if (value.v == in_val.v) {
+  if (xunlikely(value.v == in_val.v)) {
     MPIV_Wait(s);
     stopt(wake_timing);
-    if (size >= SERVER_COPY_SIZE) {
-      p_ctx = (mpiv_packet*)s->buffer;
-    }
   } else {
     p_ctx = in_val.packet;
-  }
-
-  if (p_ctx) {
     startt(memcpy_timing);
     memcpy(buffer, p_ctx->buffer(), size);
     stopt(memcpy_timing);
