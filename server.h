@@ -33,7 +33,8 @@ class mpiv_server {
  public:
   mpiv_server() : stop_(false), done_init_(false) {}
 
-  inline void init(mpiv_ctx& ctx, packet_manager& pkpool, int& rank, int& size) {
+  inline void init(mpiv_ctx& ctx, packet_manager& pkpool, int& rank,
+                   int& size) {
 #ifdef USE_AFFI
     affinity::set_me_to(0);
 #endif
@@ -100,8 +101,7 @@ class mpiv_server {
     ret |= (dev_scq_.poll_once([](const ibv_wc& wc) { mpiv_serve_send(wc); }));
     stopt(t)
         // Make sure we always have enough packet, but do not block.
-    if (recv_posted_ < MAX_RECV)
-      post_srq(pk_mgr_ptr->get_for_recv());
+        if (recv_posted_ < MAX_RECV) post_srq(pk_mgr_ptr->get_for_recv());
     // uint8_t count = 255;
     // while (recv_posted_ < MAX_RECV / 2 && count --> 0)
     // post_srq(pk_mgr_ptr->get_for_recv());

@@ -74,12 +74,16 @@ class alignas(64) packet_manager_LFSTACK : public packet_manager_base {
                          boost::lockfree::capacity<MAX_CONCURRENCY>> pool_;
 };
 
-template<class T>
+template <class T>
 class alignas(64) arr_pool {
  public:
   static const size_t MAX_SIZE = (1 << 12);
-  arr_pool(uint8_t max_size) : lock_flag(ATOMIC_FLAG_INIT),
-      max_size_(max_size), top_(0), bottom_(0), container_(new T[MAX_SIZE]) {
+  arr_pool(uint8_t max_size)
+      : lock_flag(ATOMIC_FLAG_INIT),
+        max_size_(max_size),
+        top_(0),
+        bottom_(0),
+        container_(new T[MAX_SIZE]) {
     memset(container_, 0, MAX_SIZE * sizeof(T));
   }
 
@@ -138,9 +142,10 @@ class alignas(64) arr_pool {
 
 extern __thread int wid;
 
-class alignas(64) packet_manager_NUMA_LFSTACK final : public packet_manager_LFSTACK {
+class alignas(64) packet_manager_NUMA_LFSTACK final
+    : public packet_manager_LFSTACK {
  public:
-  packet_manager_NUMA_LFSTACK() : nworker_(0) {};
+  packet_manager_NUMA_LFSTACK() : nworker_(0){};
   ~packet_manager_NUMA_LFSTACK() {
     for (auto& a : private_pool_) {
       delete a;
@@ -149,7 +154,8 @@ class alignas(64) packet_manager_NUMA_LFSTACK final : public packet_manager_LFST
 
   void init_worker(int nworker) {
     for (int i = nworker_; i < nworker; i++) {
-      private_pool_.emplace_back(new arr_pool<mpiv_packet*>(MAX_SEND / nworker / 2));
+      private_pool_.emplace_back(
+          new arr_pool<mpiv_packet*>(MAX_SEND / nworker / 2));
     }
     nworker_ = nworker;
   }
@@ -161,8 +167,10 @@ class alignas(64) packet_manager_NUMA_LFSTACK final : public packet_manager_LFST
   inline mpiv_packet* get_for_send() override {
     mpiv_packet* p = 0;
     p = private_pool_[wid]->popTop();
-    if (!p) return get_packet();
-    else return p;
+    if (!p)
+      return get_packet();
+    else
+      return p;
   }
 
   inline mpiv_packet* get_for_recv() override {
