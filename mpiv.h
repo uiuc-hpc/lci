@@ -36,7 +36,7 @@ struct mpiv_ctx {
 
 #include "server.h"
 
-struct alignas(64) mpiv {
+struct mpiv {
   int me;
   int size;
   vector<worker> w;
@@ -45,7 +45,7 @@ struct alignas(64) mpiv {
   mpiv_server server;
   mpiv_hash_tbl tbl;
   std::atomic<uint8_t> total_send;
-};
+} __attribute__((aligned(64)));
 
 static mpiv MPIV;
 

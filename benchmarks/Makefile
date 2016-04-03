@@ -7,7 +7,7 @@ GXX = gcc
 CXXFLAGS += -g3 -O3 -Wall -Wextra -I../fult -I../\
 		#-DNDEBUG
 
-LDFLAGS = -L/opt/ofed/lib64 -libverbs
+LDFLAGS += -L/opt/ofed/lib64 -libverbs
 
 CUCKOO_INC = $(HOME)/libcuckoo/include
 
@@ -27,7 +27,7 @@ MFCONTEXT = ../fult/make_x86_64_sysv_elf_gas.S
 CXXFLAGS_NOBOOST = -I$(ABT_INC)
 
 CXXFLAGS += -std=c++11  -I$(BOOST_INC) -I$(ABT_INC) -I$(CUCKOO_INC) -I$(RDMAX_INC) -I$(IBV_INC) -I$(TACC_PAPI_INC) #-fsplit-stack -DBOOST_USE_SEGMENTED_STACKS
-LDFLAGS += -L$(TACC_PAPI_LIB) -lpapi -L$(BOOST_LIB)
+LDFLAGS += -L$(TACC_PAPI_LIB) -lpapi -L$(BOOST_LIB)# -llmpe -lmpe
 
 all: $(TARGET)
 
@@ -38,13 +38,16 @@ abx_%: abx_%.cxx
 	$(MPICXX) $(CXXFLAGS_NOBOOST) $^ -o $@ -L$(ABT_LIB)
 
 %: mfcontext.o jfcontext.o %.cxx
-	$(MPICXX) $(CXXFLAGS) $(LDFLAGS) $^ -o $@
+	$(MPICXX) $(CXXFLAGS) $^ $(LDFLAGS) -o $@
 
 jfcontext.o: $(JFCONTEXT)
 	$(GXX) -O2 -c $(JFCONTEXT) -o jfcontext.o
 
 mfcontext.o: $(MFCONTEXT)
 	$(GXX) -O2 -c $(MFCONTEXT) -o mfcontext.o
+
+jacobi_3d: jacobi_3d.c
+	$(MPICXX) -O3 $^ -o $@
 
 clean:
 	rm -rf $(TARGET) *.o

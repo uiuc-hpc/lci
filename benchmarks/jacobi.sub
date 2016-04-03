@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH -J mpiv
+#SBATCH -J mpiv_jacobi
 #SBATCH -o results/%j.txt
 #SBATCH -e errors/%j.txt
 #SBATCH -n 8
 #SBATCH -N 8
-#SBATCH -p development
-#SBATCH -t 00:05:00
+#SBATCH -p development 
+#SBATCH -t 00:60:00
 #SBATCH -A TG-CCR130058
 
 # This script run on development queue of Stampede (up to 16 nodes), for more
@@ -17,12 +17,32 @@ cd ${SLURM_SUBMIT_DIR}
 
 export MV2_ENABLE_AFFINITY=0
 
-# export ABT_ENV_THREAD_STACKSIZE=4096
+#ibrun -np 8 ./jacobi_3d_1 1024 512 +barrier
 
-# Modify this to your lib path
-# export LD_LIBRARY_PATH=$HOME/qthread/lib:$HOME/argo/lib:$HOME/gasnet/lib:$LD_LIBRARY_PATH
-#module load gcc/4.7.1
-#module load boost/1.55.0
+#ibrun -np 16 ./jacobi_3d 256 256 256 128 64 128 +barrier
+#ibrun -np 32 ./jacobi_3d 256 256 256 64 64 128 +barrier
+#ibrun -np 64 ./jacobi_3d 256 256 256 64 64 64 +barrier
 
 ibrun -np 8 ./jacobi_3d_1 512 256 +barrier
-ibrun -np 16 ./jacobi_3d 512 512 512 256 128 256 +barrier
+ibrun -np 64 ./jacobi_3d 512 128 +barrier
+
+ibrun -np 8 ./jacobi_3d_1 1024 512 +barrier
+ibrun -np 64 ./jacobi_3d 1024 256 +barrier
+
+ibrun -np 8 ./jacobi_3d_1 2048 1024 +barrier
+ibrun -np 64 ./jacobi_3d 2048 512 +barrier
+
+#ibrun -np 16 ./jacobi_3d_1 512 512 512 128 256 256 +barrier
+#ibrun -np 128 ./jacobi_3d 512 512 512 64 128 128 +barrier
+
+#ibrun -np 16 ./jacobi_3d_1 1024 1024 1024 256 512 512 +barrier
+#ibrun -np 128 ./jacobi_3d 1024 1024 1024 128 256 256 +barrier
+
+#ibrun -np 16 ./jacobi_3d_1 2048 2048 2048 512 1024 1024 +barrier
+#ibrun -np 128 ./jacobi_3d 2048 2048 2048 256 512 512 +barrier
+
+#ibrun -np 4 ./jacobi_3d_1 1024 1024 1024 1024 512 512 +barrier
+#ibrun -np 32 ./jacobi_3d 1024 1024 1024 512 256 256 +barrier
+
+#ibrun -np 4 ./jacobi_3d_1 512 512 512 512 256 256 +barrier
+#ibrun -np 32 ./jacobi_3d 512 512 512 256 128 128 +barrier

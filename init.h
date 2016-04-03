@@ -1,9 +1,16 @@
 #ifndef INIT_H_
 #define INIT_H_
 
+#if USE_MPE
+#include <mpe.h>
+#endif
+
 #include <sys/mman.h>
 #include "profiler.h"
 #include "progress.h"
+
+int mpiv_send_start, mpiv_send_end, mpiv_recv_start, mpiv_recv_end;
+int mpiv_barrier_start, mpiv_barrier_end;
 
 inline void mpiv_post_recv(mpiv_packet* p) {
   startt(post_timing);
@@ -18,6 +25,20 @@ inline void MPIV_Init(int argc, char** args) {
   int provided;
   MPI_Init_thread(&argc, &args, MPI_THREAD_MULTIPLE, &provided);
   assert(MPI_THREAD_MULTIPLE == provided);
+
+#if USE_MPE
+  MPE_Init_log();
+  mpiv_send_start = MPE_Log_get_event_number(); 
+  mpiv_send_end = MPE_Log_get_event_number(); 
+  mpiv_recv_start = MPE_Log_get_event_number(); 
+  mpiv_recv_end = MPE_Log_get_event_number(); 
+  mpiv_barrier_start = MPE_Log_get_event_number();
+  mpiv_barrier_end = MPE_Log_get_event_number();
+
+  MPE_Describe_state(mpiv_send_start, mpiv_send_end, "MPIV_SEND", "red");
+  MPE_Describe_state(mpiv_recv_start, mpiv_recv_end, "MPIV_RECV", "blue");
+  MPE_Describe_state(mpiv_barrier_start, mpiv_barrier_end, "MPIV_BARRIER", "purple");
+#endif
 
   MPIV.tbl.init();
   mpiv_progress_init();
@@ -61,12 +82,19 @@ inline fult_t MPIV_spawn(int wid, Ts... params) {
   return MPIV.w[wid].spawn(params...);
 }
 
-inline void MPIV_join(int wid, fult_t t) { MPIV.w[wid].join(t); }
+inline void MPIV_join(fult_t t) {
+  fult* f = (fult*) t;
+  f->join();
+}
 
 inline void MPIV_Finalize() {
   MPI_Barrier(MPI_COMM_WORLD);
   MPIV.server.finalize();
   MPI_Barrier(MPI_COMM_WORLD);
+
+#if USE_MPE
+  MPE_Finish_log("mpivlog");
+#endif
   MPI_Finalize();
 }
 

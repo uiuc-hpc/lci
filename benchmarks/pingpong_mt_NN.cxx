@@ -56,7 +56,7 @@ void main_task(intptr_t) {
     id[i] = MPIV_spawn(i % nworkers, runfunc, (intptr_t)&thread_ranks[i]);
   }
 
-  for (i = 0; i < nthreads; i++) MPIV_join(i % nworkers, id[i]);
+  for (i = 0; i < nthreads; i++) MPIV_join(id[i]);
 
   if (rank == 0) {
     int iter = 0;

@@ -3,12 +3,12 @@
 
 enum mpiv_packet_type { SEND_SHORT, SEND_READY, RECV_READY, SEND_READY_FIN };
 
-struct alignas(8) mpiv_packet_header {
+struct mpiv_packet_header {
   mpiv_packet_type type;
   uint8_t poolid;
   int from;
   int tag;
-};
+} __attribute__((aligned(8)));
 
 struct mpiv_rdz {
   uintptr_t sreq;
@@ -22,7 +22,7 @@ union mpiv_packet_content {
   mpiv_rdz rdz;
 };
 
-class alignas(64) mpiv_packet {
+class mpiv_packet {
  public:
   mpiv_packet() {}
 
@@ -66,6 +66,6 @@ class alignas(64) mpiv_packet {
  private:
   mpiv_packet_header header_;
   mpiv_packet_content content_;
-};
+} __attribute__((aligned(64)));
 
 #endif

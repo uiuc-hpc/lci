@@ -30,6 +30,10 @@ const int MPIV_COLL_BASE_TAG_BARRIER = 1337;
 
 #if 1
 void MPIV_Barrier(MPI_Comm comm) {
+#if USE_MPE
+  MPE_Log_event(mpiv_barrier_start, 0, "start_barrier");
+#endif
+
   int i, peer, dim, hibit, mask;
 
   int size = MPIV.size;
@@ -65,6 +69,10 @@ void MPIV_Barrier(MPI_Comm comm) {
       MPIV_Send(0, 0, MPI_BYTE, peer, MPIV_COLL_BASE_TAG_BARRIER, comm);
     }
   }
+
+#if USE_MPE
+  MPE_Log_event(mpiv_barrier_end, 0, "end_barrier");
+#endif
 }
 #else
 

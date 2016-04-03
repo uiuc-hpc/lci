@@ -3,6 +3,9 @@
 
 #include <atomic>
 #include <thread>
+#include <functional>
+
+#include <boost/function.hpp>
 #include <boost/lockfree/stack.hpp>
 #include <boost/coroutine/stack_context.hpp>
 #include "standard_stack_allocator.hpp"
@@ -36,10 +39,16 @@ using boost::coroutines::stack_context;
 
 static const int F_STACK_SIZE = 4096;
 static const int MAIN_STACK_SIZE = 16 * 1024;
-static const int NMASK = 1;
+#ifndef USE_L1_MASK
+static const int NMASK = 8;
+#else
+static const int NMASK = 8 * 8 * 64;
+#endif
 static const int WORDSIZE = (8 * sizeof(long));
 
-typedef void (*ffunc)(intptr_t);
+//typedef void (*ffunc)(intptr_t);
+typedef boost::function<void(intptr_t)> ffunc;
+
 typedef void* fcontext_t;
 
 static void fwrapper(intptr_t);
@@ -81,7 +90,7 @@ enum fult_state {
 
 static standard_stack_allocator fult_stack;
 
-class alignas(64) fult {
+class fult {
  public:
   fult() : state_(INVALID) { stack.sp = NULL; }
   ~fult() {
@@ -98,6 +107,7 @@ class alignas(64) fult {
   inline void wait();
   inline void resume();
   inline void done();
+  inline void join();
 
   inline void start();
   inline fult_state state() { return state_; }
@@ -114,11 +124,11 @@ class alignas(64) fult {
   ffunc myfunc_;
   intptr_t data_;
   stack_context stack;
-};
+} __attribute__((aligned(64)));
 
 typedef fult* fult_t;
 
-class alignas(64) worker {
+class worker {
  public:
   inline worker() {
     stop_ = true;
@@ -136,7 +146,7 @@ class alignas(64) worker {
     }
   }
 
-  inline fult_t spawn(ffunc f, intptr_t data, size_t stack_size = F_STACK_SIZE);
+  inline fult_t spawn(ffunc f, intptr_t data = 0, size_t stack_size = F_STACK_SIZE);
   inline fult_t spawn_to(int tid, ffunc f, intptr_t data,
                          size_t stack_size = F_STACK_SIZE);
 
@@ -184,7 +194,7 @@ class alignas(64) worker {
   // TODO(danghvu): this is temporary, but it is most generic.
   std::unique_ptr<boost::lockfree::stack<fult_t>>
       tid_pool;  //, boost::lockfree::capacity<WORDSIZE * NMASK>>
-};
+} __attribute__((aligned(64)));
 
 void fult::set(ffunc myfunc, intptr_t data, size_t stack_size) {
   if (stack.sp == NULL) {
@@ -210,8 +220,14 @@ void fult::resume() { origin_->schedule(id_); }
 
 void fult::done() { origin_->fin(id_); }
 
+void fult::join() {
+  while (!is_done()) {
+    fult_yield();
+  }
+}
+
 void fult::start() {
-  (*myfunc_)(data_);
+  (myfunc_)(data_);
   // when finish, needs to swap back to the parent.
   state_ = INVALID;
   ctx_.ret();
@@ -240,9 +256,7 @@ fult_t worker::spawn_to(int tid, ffunc f, intptr_t data, size_t stack_size) {
 }
 
 void worker::join(fult* f) {
-  while (!f->is_done()) {
-    fult_yield();
-  }
+  f->join();
 }
 
 void worker::schedule(const int id) {

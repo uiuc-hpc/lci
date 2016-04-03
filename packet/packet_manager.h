@@ -4,7 +4,7 @@
 #include "packet.h"
 #include "mpmcqueue.h"
 
-class alignas(64) packet_manager_base {
+class packet_manager_base {
  public:
   virtual mpiv_packet* get_packet_nb() = 0;
   virtual mpiv_packet* get_packet() = 0;
@@ -12,9 +12,9 @@ class alignas(64) packet_manager_base {
   virtual mpiv_packet* get_for_send() = 0;
   virtual mpiv_packet* get_for_recv() = 0;
   virtual void ret_packet_to(mpiv_packet* packet, int hint) = 0;
-};
+} __attribute__((aligned(64)));
 
-class alignas(64) packet_manager_MPMCQ final : public packet_manager_base {
+class packet_manager_MPMCQ final : public packet_manager_base {
  public:
   inline mpiv_packet* get_packet_nb() override {
     if (queue_.empty()) return 0;
@@ -40,9 +40,9 @@ class alignas(64) packet_manager_MPMCQ final : public packet_manager_base {
 
  private:
   ppl::MPMCQueue<uint64_t> queue_;
-};
+} __attribute__((aligned(64)));
 
-class alignas(64) packet_manager_LFSTACK : public packet_manager_base {
+class packet_manager_LFSTACK : public packet_manager_base {
  public:
   inline mpiv_packet* get_packet_nb() override {
     mpiv_packet* packet = NULL;
@@ -72,10 +72,10 @@ class alignas(64) packet_manager_LFSTACK : public packet_manager_base {
  protected:
   boost::lockfree::stack<mpiv_packet*,
                          boost::lockfree::capacity<MAX_CONCURRENCY>> pool_;
-};
+} __attribute__((aligned(64)));
 
 template <class T>
-class alignas(64) arr_pool {
+class arr_pool {
  public:
   static const size_t MAX_SIZE = (1 << 12);
   arr_pool(uint8_t max_size)
@@ -138,11 +138,11 @@ class alignas(64) arr_pool {
   uint8_t top_;
   uint8_t bottom_;
   T* container_;
-};
+} __attribute__((aligned(64)));
 
 extern __thread int wid;
 
-class alignas(64) packet_manager_NUMA_LFSTACK final
+class packet_manager_NUMA_LFSTACK final
     : public packet_manager_LFSTACK {
  public:
   packet_manager_NUMA_LFSTACK() : nworker_(0){};
@@ -193,7 +193,7 @@ class alignas(64) packet_manager_NUMA_LFSTACK final
   using packet_manager_LFSTACK::pool_;
   std::vector<arr_pool<mpiv_packet*>*> private_pool_;
   int nworker_;
-};
+} __attribute__((aligned(64)));
 
 using packet_manager = packet_manager_NUMA_LFSTACK;
 #endif

@@ -36,7 +36,8 @@
 #define index(a,b,c)	((a)+(b)*(blockDimX+2)+(c)*(blockDimX+2)*(blockDimY+2))
 #define calc_pe(a,b,c)	((a)+(b)*num_blocks_x+(c)*num_blocks_x*num_blocks_y)
 
-#define MAX_ITER	500
+#define MAX_ITER	250
+#define SKIP_ITER 100
 #define LEFT		1
 #define RIGHT		2
 #define TOP		3
@@ -130,20 +131,20 @@ int main(int argc, char **argv) {
   for(k=0; k<blockDimZ+2; k++)
     for(j=0; j<blockDimY+2; j++)
       for(i=0; i<blockDimX+2; i++) {
-	temperature[index(i, j, k)] = 0.0;
+        temperature[index(i, j, k)] = 0.0;
       }
 
   /* boundary conditions */
   if(myZcoord == 0 && myYcoord < num_blocks_y/2 && myXcoord < num_blocks_x/2) {
     for(j=1; j<=blockDimY; j++)
       for(i=1; i<=blockDimX; i++)
-	temperature[index(i, j, 1)] = 1.0;
+        temperature[index(i, j, 1)] = 1.0;
   }
 
   if(myZcoord == num_blocks_z-1 && myYcoord >= num_blocks_y/2 && myXcoord >= num_blocks_x/2) {
     for(j=1; j<=blockDimY; j++)
       for(i=1; i<=blockDimX; i++)
-      temperature[index(i, j, blockDimZ)] = 0.0;
+        temperature[index(i, j, blockDimZ)] = 0.0;
   }
 
   /* Copy left, right, bottom, top, front and back  planes into temporary arrays. */
@@ -165,7 +166,7 @@ int main(int argc, char **argv) {
 
   while(/*error > 0.001 &&*/ iterations < MAX_ITER) {
     iterations++;
-    if(iterations == 100) startTime = MPI_Wtime();
+    if(iterations == SKIP_ITER) startTime = MPI_Wtime();
 
     /* Copy different planes into buffers */
     for(k=0; k<blockDimZ; ++k)
@@ -208,53 +209,53 @@ int main(int argc, char **argv) {
     /* Copy buffers into ghost layers */
     for(k=0; k<blockDimZ; ++k)
       for(j=0; j<blockDimY; ++j) {
-	temperature[index(0, j+1, k+1)] = left_plane_in[k*blockDimY+j];
+        temperature[index(0, j+1, k+1)] = left_plane_in[k*blockDimY+j];
       }
     for(k=0; k<blockDimZ; ++k)
       for(j=0; j<blockDimY; ++j) {
-	temperature[index(blockDimX+1, j+1, k+1)] = right_plane_in[k*blockDimY+j];
+        temperature[index(blockDimX+1, j+1, k+1)] = right_plane_in[k*blockDimY+j];
       }
     for(k=0; k<blockDimZ; ++k)
       for(i=0; i<blockDimX; ++i) {
-	temperature[index(i+1, 0, k+1)] = bottom_plane_in[k*blockDimX+i];
+        temperature[index(i+1, 0, k+1)] = bottom_plane_in[k*blockDimX+i];
       }
     for(k=0; k<blockDimZ; ++k)
       for(i=0; i<blockDimX; ++i) {
-	temperature[index(i+1, blockDimY+1, k+1)] = top_plane_in[k*blockDimX+i];
+        temperature[index(i+1, blockDimY+1, k+1)] = top_plane_in[k*blockDimX+i];
       }
     for(j=0; j<blockDimY; ++j)
       for(i=0; i<blockDimX; ++i) {
-	temperature[index(i+1, j+1, 0)] = back_plane_in[j*blockDimX+i];
+        temperature[index(i+1, j+1, 0)] = back_plane_in[j*blockDimX+i];
       }
     for(j=0; j<blockDimY; ++j)
       for(i=0; i<blockDimX; ++i) {
-	temperature[index(i+1, j+1, blockDimY+1)] = front_plane_in[j*blockDimX+i];
+        temperature[index(i+1, j+1, blockDimY+1)] = front_plane_in[j*blockDimX+i];
       }
 
     /* update my value based on the surrounding values */
     for(k=1; k<blockDimZ+1; k++)
       for(j=1; j<blockDimY+1; j++)
-	for(i=1; i<blockDimX+1; i++) {
-	  new_temperature[index(i, j, k)] = (temperature[index(i-1, j, k)]
-                                          +  temperature[index(i+1, j, k)]
-                                          +  temperature[index(i, j-1, k)]
-                                          +  temperature[index(i, j+1, k)]
-                                          +  temperature[index(i, j, k-1)]
-                                          +  temperature[index(i, j, k+1)]
-                                          +  temperature[index(i, j, k)] ) * DIVIDEBY7;
-	}
+        for(i=1; i<blockDimX+1; i++) {
+          new_temperature[index(i, j, k)] = (temperature[index(i-1, j, k)]
+              +  temperature[index(i+1, j, k)]
+              +  temperature[index(i, j-1, k)]
+              +  temperature[index(i, j+1, k)]
+              +  temperature[index(i, j, k-1)]
+              +  temperature[index(i, j, k+1)]
+              +  temperature[index(i, j, k)] ) * DIVIDEBY7;
+        }
 
 #if 0
     max_error = error = 0.0;
     for(k=1; k<blockDimZ+1; k++)
       for(j=1; j<blockDimY+1; j++)
-	for(i=1; i<blockDimX+1; i++) {
-	  error = fabs(new_temperature[index(i, j, k)] - temperature[index(i, j, k)]);
-	  if(error > max_error)
-	    max_error = error;
-	}
+        for(i=1; i<blockDimX+1; i++) {
+          error = fabs(new_temperature[index(i, j, k)] - temperature[index(i, j, k)]);
+          if(error > max_error)
+            max_error = error;
+        }
 #endif
- 
+
     double *tmp;
     tmp = temperature;
     temperature = new_temperature;
@@ -263,24 +264,25 @@ int main(int argc, char **argv) {
     /* boundary conditions */
     if(myZcoord == 0 && myYcoord < num_blocks_y/2 && myXcoord < num_blocks_x/2) {
       for(j=1; j<=blockDimY; j++)
-	for(i=1; i<=blockDimX; i++)
-	  temperature[index(i, j, 1)] = 1.0;
+        for(i=1; i<=blockDimX; i++)
+          temperature[index(i, j, 1)] = 1.0;
     }
 
     if(myZcoord == num_blocks_z-1 && myYcoord >= num_blocks_y/2 && myXcoord >= num_blocks_x/2) {
       for(j=1; j<=blockDimY; j++)
-	for(i=1; i<=blockDimX; i++)
-	temperature[index(i, j, blockDimZ)] = 0.0;
+        for(i=1; i<=blockDimX; i++)
+          temperature[index(i, j, blockDimZ)] = 0.0;
     }
 
     // if(myRank == 0) printf("Iteration %d %f\n", iterations, max_error);
-    if(noBarrier == 0) MPI_Allreduce(&max_error, &error, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    if(noBarrier == 0) // MPI_Allreduce(&max_error, &error, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
   } /* end of while loop */
 
   if(myRank == 0) {
     endTime = MPI_Wtime();
     printf("Completed %d iterations\n", iterations);
-    printf("Time elapsed per iteration: %f\n", (endTime - startTime)/(MAX_ITER-100));
+    printf("Time elapsed per iteration: %f\n", (endTime - startTime)/(MAX_ITER-SKIP_ITER));
   }
 
   MPI_Finalize();
