@@ -1,14 +1,48 @@
-\documentclass[11pt]{article}
+\documentclass{sig-alternate-05-2015}
 
 \usepackage{underscore,amsmath,amssymb,graphicx}
 \usepackage{algorithm}% http://ctan.org/pkg/algorithms
 \usepackage{algpseudocode}% http://ctan.org/pkg/algorithmicx
 
-
-\title{Toward million communicating threads}
-\author{Hoang-Vu Dang \and Marc Snir \and William Gropp}
+\DeclareRobustCommand{\ttfamily}{\fontencoding{T1}\fontfamily{lmtt}\selectfont}
 
 \begin{document}
+
+% Copyright
+\setcopyright{acmcopyright}
+
+% DOI
+\doi{10.475/123_4}
+
+% ISBN
+\isbn{123-4567-24-567/08/06}
+
+%Conference
+\conferenceinfo{Euro MPI}{Aug XX--YY, 2016, XXX, YYY, ZZZ}
+
+\title{Toward million communicating threads}
+
+\numberofauthors{3}
+\author{
+\alignauthor
+Hoang-Vu Dang\\
+\affaddr{Department of Computer Science}\\
+\affaddr{University of Illinois at Urbana-Champaign}\\
+\email{hdang8@illinois.edu}
+%
+\alignauthor
+Marc Snir\\
+\affaddr{Department of Computer Science}\\
+\affaddr{University of Illinois at Urbana-Champaign}\\
+\email{snir@illinois.edu}
+%
+\alignauthor
+William Gropp
+\affaddr{Department of Computer Science}\\
+\affaddr{University of Illinois at Urbana-Champaign}\\
+\email{wgropp@illinois.edu}
+}
+
 \maketitle
 
 \abstract{
@@ -124,15 +158,15 @@ to be reduced to optimizing a few neccessary operations.
 
 Resource management is another important issue. Aside from communication
 context such as connections and NIC-provided control data which we maintains
-per communication server, we have to maintain a pool of packet structure. The
+per communication server, we have to maintain a pool of packets structure. The
 pool is the second shared data structure of the runtime.  Each packet is used
 for storing control and message data to deliver to network device.
 
-\begin{figure}
+\begin{figure*}
   \centering
-  \includegraphics[width=\textwidth]{fig/runtime.pdf}
+  \includegraphics[width=.6\textwidth]{fig/runtime.pdf}
   \caption{MPI Runtime Architecture for multi-threaded executions}\label{fig:overall}
-\end{figure}
+\end{figure*}
 
 Figure \ref{fig:overall} shows the overall architecture of our described
 runtime system.
@@ -182,13 +216,13 @@ means for each key, we can find only one value associated with that key.
 
 In a concurrent setting, we further require the hash-table to be
 \textit{linearizable}.  This means we ensure firstly safety and correctness
-property. Secondly, we ensure operations takes affect in a real-time order.
+property. Secondly, we ensure operations take affect in a real-time order.
 This is a strong guarantee however is neccessary to implement MPI semantics
-which have operations executed in program order. Lastly, linearizability is 
-\textit{composable} which allows us to correctly use the hash-table to implement
-other concurrent objects.
+which have operations executed in program order. Lastly, linearizability is
+\textit{composable} which allows us to correctly use the hash-table to
+implement other concurrent objects.
 
-Message delivery in general can be implemented in two way: eager or rendevouz
+Message delivery in general can be implemented in two way: \textit{eager} or \textit{rendevouz}
 protocol. Eager protocol is used when the target buffer is not known to the
 sender. Thus, an copy is made into an intermediate buffer - usually packed with
 other control data to deliver to the network. This also allows the Send
@@ -214,18 +248,19 @@ exchange control data and signal completion.
     \EndProcedure
     \\
     \Procedure{Recv-Eager}{$b, s, d$} \Comment: buffer, size, source signature 
-      \State $\Gamma$ = current thread id.
-      \State Create a request $r$ = $(b,s,d,\Gamma)$
+      \State Create a request $r$ = $(b,s,d, (\omega, \Gamma))$
       \State Create hash-value $v$ from $r$.
       \State Create hash-key $k$ from $d$.
       \State $v' = H.\text{insert}(k,v)$
       \If {$v' \ne v$}
-        \Comment: insertion fail, message has arrived, copy the data.
+        \Comment: insertion fail
         \State Copy $v'.p.b$ to $b$
+        \Comment: message arrived, copy data.
         \State pkpool.ret($p$)
       \Else
-        \Comment: insertion success, message has not arrived.
+        \Comment: insertion success
         \State \texttt{ThreadWait}()
+        \Comment: message not arrived, wait.
       \EndIf
       \State $H.\text{erase}(k)$
     \EndProcedure
@@ -241,13 +276,15 @@ exchange control data and signal completion.
       \State Create hash-key $k$ from $p.d$.
       \State $v' = H.\text{insert}(k,v)$
       \If {$v' \ne v$}
-        \Comment: insertion fail, thread has arrived, copy the data.
+        \Comment: insertion fail.
         \State Copy $p.b$ to $v'.r.b$
+        \Comment: thread arrived, copy data.
         \State \texttt{ThreadSignal}($r.\Gamma$)
         \State pkpool.ret($p$)
       \Else
-        \Comment: insertion success, thread has not arrived, nothing to do.
+        \Comment: insertion success.
         \State \Return
+        \Comment: thread not arrive, nothing to do.
       \EndIf
     \EndProcedure
   \end{algorithmic}
@@ -298,24 +335,25 @@ RDMA has completed. The receiver after issuing the RTR will wait until the
 signal that RDMA has finished arrived and data is now available.
 
 \subsection{Critical Operations Discussion}
-Clearly, optimizing the hash-table, packet pool and thread operations is the
-key to the performance of both protocol. One could achieve $O(1)$ amortized
-complexity.  However, an efficient implementation requires optimizing for the
-constant factor. Ideally, we want these operation to be \textit{wait-free} to
-ensure progress and the constant factor is tiny. In the next section, we
-describe the implementaion of each of the component and show how we could
-optimize to reduce the cache misses in NUMA achitecture.
+Clearly, optimizing the hash-table, the packet pool and the thread scheduler
+operations are the key to achieve good performance for our protocols. One could
+achieve $O(1)$ amortized in complexity however, an efficient implementation
+requires optimizing for the constant factor. Ideally, we want these operations
+to be \textit{wait-free} to ensure progress and minimizing the number of memory
+accesses and possible cache misses. In the next section, we describe the
+implementaion of each of the three components and show how we could optimize
+toward our goals.
 
-\section{Implementation and Optimization}
+\section{Runtime Implementation and Optimization}
 \subsection{Thread scheduler}
 Our thread scheduler is implemented as a User-Level Thread (ULT) in order to
 minimize context switching overhead. The context-switching mechanism is similar
 to that of Argobots and Boost coroutines, we make use of \texttt{fcontext}. The
 idea is to maintains a separate stack for each thread. A few registers
 (including the program counter) is saved and restored from an allocated space
-in the stack. Morever, the switch is designed to not involve OS system call,
-thus by-passing the kernel. This overall reduces the latency of switching to a
-new context to under a hundred cycle.
+in the stack. Morever, the context-switching is designed to not involve
+Operating System (OS) system call, thus by-passing kernel code. This overall
+reduces the latency of switching to a new context to less than a hundred cycles.
 
 Rather than designing a general purpose ULT, we focus on the two most important
 operations: \texttt{ThreadWait} and \texttt{ThreadSignal}. One possible
@@ -341,23 +379,23 @@ that worker.  For example, using a vector of $8$ 64-bit words, we allow up to
 $512$ concurrent threads per worker.
 
 A pair $(\omega, \Gamma)$ uniquely defines a thread in the system at a point in
-time. Additionally, during the creation time, the worker atomically set the
-associated $\Gamma$ bit.
+time. During the creation time, the worker atomically set the
+associated $\Gamma$ bit in its bitvector structure.
 
 \begin{algorithm}
   \caption{Thread scheduler}
   \label{algo:thread}
   \begin{algorithmic}[1]
-    \Procedure{Scheduling}{w, V} \Comment{worker, bit-vector}
-    \While {!w.stop} \Comment{loop until user ask to stop}
-      \For{word64 in V}
-      \If{word64 $\ne$ 0}
-        \State localWord64 = 0
-        \State ATOMIC_EXCHANGE(word64, localWord64)
+    \Procedure{Scheduling}{$\omega$, V} \Comment{worker, bit-vector}
+    \While {!$\omega$.stop} \Comment{loop until user ask to stop}
+      \For{word in V}
+      \If{word $\ne$ 0}
+        \State localWord = 0
+        \State AtomicExchg(word, localWord)
         \While {localWord64 $> 0$}
-          \State b = Find-First-Set(localWord64)
-          \State FlipBit(localWord64, b)
-          \State ContextSwitch($\Gamma_{b}$)
+          \State b = FindFirstSet(localWord)
+          \State localWord = FlipBit(localWord, b)
+          \State ContextSwitch($b$)
         \EndWhile
       \EndIf
       \EndFor
@@ -370,33 +408,31 @@ associated $\Gamma$ bit.
   \caption{Thread Operations}
   \label{algo:thread-ops}
   \begin{algorithmic}[1]
-    \Procedure{ThreadWait}{sync}  \Comment{Synchronization object}
-      \State sync = {$(\omega, \Gamma)$}
+    \Procedure{ThreadWait}{}
       \State ContextSwitch($\omega$)
     \EndProcedure
     \\ 
-    \Procedure{ThreadSignal}{sync} \Comment{Synchronization object}
-      \State w = sync.$\omega$
-      \State ATOMIC_SET_BIT(w.V, sync.$\Gamma$)
+    \Procedure{ThreadSignal}{sync}
+      \State AtomicBitSet(sync.$\omega$.V, sync.$\Gamma$)
     \EndProcedure
   \end{algorithmic}
 \end{algorithm}
 
 Algorithms \ref{algo:thread} describes our scheduling algorithms. The
-scheduler, when being free will look at each 64-bit word in the bit-vector to
-find a schedulable thread.  Instead of working at 1-thread granularity, we work
-at 64-threads represented by a 64-bit word. By using an atomic exchange to swap
-the interested word to local variable, we are able to continously perform read
-and write this variable without accessing the main memory.  This is not only
-easier for correctness since concurrent threads are writing to the same
-bit-vector; this also ensures progress property for all threads because we
-can schedule them in order. We do not support thread-stealing yet, but it can
-be done by allowing stealing 64-bit word.
+worker, when available will attempt to find a schedulable thread in its bitvector.
+Instead of working at 1-thread granularity, we work
+at 64-thread represented by a 64-bit word. By using an atomic exchange to swap
+the interested word to local variable, we are able to continously perform
+read/write from/to this variable without accessing the main memory.  This is
+not only ensures progress property for all threads because we can schedule them
+in order, it is also provide correctness since there is no atomic
+read-modify-write x86 instructions operating at bit level.  We do not support
+thread-stealing yet, but it can be done in similar fashion by stealing at 64-thread
+granularity.
 
 Algorithms \ref{algo:thread-ops} describes the two thread operations.
-\texttt{ThreadWait} simply stores the thread indentification i.e. ($(\omega,
-\Gamma)$) into the synchronization object and switch back to the worker
-scheduler. On the other hand, \texttt{ThreadSignal} shall access the
+\texttt{ThreadWait} simply switch back to the worker scheduler based on current worker id (i.e. $\omega$)
+On the other hand, \texttt{ThreadSignal} shall access the
 bit-vector and atomically set the bit in the appropriate word based on the
 the same information stored in the synchronization object.
 
@@ -484,7 +520,9 @@ returned to the pool. Additionally, when a packet is posted to the network as
 a recving buffer, it will be written by the NIC, thus losing its locality to
 any of the thread previously has. These observation leads to a better design
 of our packet pool: we split the packet management into two parts: a private
-pool per worker and a shared pool.
+pool per worker and a shared pool. Initially, there is a fixed number of 
+packets for each private and shared pool. At runtime, we design an algorithms to 
+allow moving packets among those pool depending on their usages.
 
 The private pool consists of packets that are recently read or writen by the
 worker (or associated hardware thread). It is implemented as a fixed size
@@ -496,22 +534,17 @@ used and are better candidates for other purposes. That is, when the private
 pool is full, it performs \texttt{PopBottom} and pushed back to
 the shared pool.
 
-When a thread needs a packet, it first looks at the private pool of its worker
-and performs a \texttt{PopTop} which guarantees giving the last packet that
-was read or written by the same worker. In the case that the pool is empty,
-the thread then looks at the shared pool for extra packets. If it still cannot
-find any packet, it shall performs a \texttt{yield} and retry at another time.
-
-The communication server also needs packets for posting to the NIC for recving
-buffers. When that is needed, the server obtains packets from the shared pool
-first since these are consider ``less important'' packets. If the shared pool
-is empty, the server now performs ``steal'' by randomly chosing a private pool
-and execute a \texttt{PopBottom} operation. It repeats the process until It obtains
-a packet.
-
+When a packet for sending is needed by a thread, a \texttt{PopTop} is performed
+with the private pool of the current worker, which guarantees giving the last
+packet that was read or written by the same worker. If the private pool is
+empty, the shared pool is accessed for extra packets.  Alternatively, when a
+packet is needed for posting to the NIC receiving queues as buffers by the
+communication server, the server obtains packets from the shared pool first.
+If the shared pool is empty, the server now performs a \textit{steal} by
+randomly chosing a private pool and perform the \texttt{PopBottom} operation.
 The private pools can be thought as caches, and the shared pool can be thought
 as the main memory. When ``the cache'' is full, it evicts the least recently
-used to the ``main memory''. Our heuristic essentially perform
+used to the ``main memory''. Our heuristic essentially performs
 resource-balancing among the set of packets by moving it around pools with the
 locality taken into account.
 
@@ -524,43 +557,60 @@ lock-free stack.
 
 \section{Experiment}
 \subsection{Thread Scheduler}
-\begin{figure}[h]
+Filling micro-benchmarks.
+Filling micro-benchmarks.
+Filling micro-benchmarks.
+Filling micro-benchmarks.
+Filling micro-benchmarks.
+Filling micro-benchmarks.
+Filling micro-benchmarks.
+
+\begin{figure*}[h]
   \centering 
-  \includegraphics[width=0.9\textwidth]{fig/thread.png}
+  \includegraphics[width=0.6\textwidth]{fig/thread.png}
   \caption{Comparing Thread wait and signal with Argobots condition variable
   implementation. Runtime from entering wait until waken up by signal per thread.}
-
-\end{figure}
-
-\newpage
+\end{figure*}
 
 \subsection{Concurrent Hash-Table}
-\begin{figure}[h!]
+Filling micro-benchmarks.
+Filling micro-benchmarks.
+Filling micro-benchmarks.
+Filling micro-benchmarks.
+Filling micro-benchmarks.
+Filling micro-benchmarks.
+Filling micro-benchmarks.
+
+
+\begin{figure*}[h!]
   \centering 
-  \includegraphics[width=\textwidth]{fig/hashtbl.png}
+  \includegraphics[width=0.6\textwidth]{fig/hashtbl.png}
   \caption{Comparing hash-table inserting and deletion by concurrent threads
     with cuckoo-hasing.  Runtime is averaged per operation per thread.
     \texttt{arr} suffix is our implementation and \texttt{ck} prefix is cuckoo-hasing}.
-\end{figure}
-
-\newpage
+\end{figure*}
 
 \subsection{Overall overhead}
-\begin{figure}[h!]
+Filling micro-benchmarks.
+Filling micro-benchmarks.
+Filling micro-benchmarks.
+Filling micro-benchmarks.
+Filling micro-benchmarks.
+Filling micro-benchmarks.
+Filling micro-benchmarks.
+\begin{figure*}[h!]
   \centering 
-  \includegraphics[width=\textwidth]{fig/overhead.png}
+  \includegraphics[width=0.6\textwidth]{fig/overhead.png}
   \caption{Total overhead of runtime system, comparing to raw network latency.}
-\end{figure}
+\end{figure*}
 
 \subsection{Pingpong multiple threads}
-\begin{figure}[h!]
+\begin{figure*}[h!]
   \centering 
-  \includegraphics[width=\textwidth]{fig/pingpong.png}
+  \includegraphics[width=0.6\textwidth]{fig/pingpong.png}
   \caption{Comparing multi-threaded pingpong with OSU benchmarks using 1-thread
   in 1-worker and 12-threads in 12-workers. MPIV is our implementation.}
-\end{figure}
-
-\newpage
+\end{figure*}
 
 \subsection{Applications}
 \section{Related Works}
