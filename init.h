@@ -70,11 +70,13 @@ void mpiv_main_task(intptr_t arg) {
 }
 
 inline void MPIV_Init_worker(int nworker, intptr_t arg = 0) {
+  MPI_Barrier(MPI_COMM_WORLD);
   if (MPIV.w.size() == 0) {
     MPIV.w = std::move(std::vector<worker>(nworker));
     MPIV.pkpool.init_worker(nworker);
   }
   MPIV.w[0].start_main(mpiv_main_task, arg);
+  MPI_Barrier(MPI_COMM_WORLD);
 }
 
 template <class... Ts>
