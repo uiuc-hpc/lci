@@ -77,5 +77,5 @@ void mpiv_send_recv_ready(MPIV_Request* sreq, MPIV_Request* rreq) {
 #include "init.h"
 #include "recv.h"
 #include "send.h"
-#include "collective.h"
+#include "coll/collective.h"
 #endif
