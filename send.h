@@ -64,6 +64,8 @@ void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
   int size = 0;
   MPI_Type_size(datatype, &size);
   size = count * size;
+  new (req) MPIV_Request(rank, tag);
+
   if (size <= SHORT_MSG_SIZE) {
     MPIV_Send_short(buf, size, rank, tag);
     req->done_ = true;
@@ -72,7 +74,6 @@ void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
     req->size = size;
     req->rank = rank;
     req->tag = tag;
-    req->done_ = false;
     MPIV_Send_rdz(req);
   }
 }

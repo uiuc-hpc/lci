@@ -18,12 +18,12 @@ inline void mpiv_post_recv(mpiv_packet* p) {
   stopt(post_timing);
 }
 
-inline void MPIV_Init(int argc, char** args) {
+inline void MPIV_Init(int* argc, char*** args) {
   setenv("MPICH_ASYNC_PROGRESS", "0", 1);
   setenv("MV2_ASYNC_PROGRESS", "0", 1);
   setenv("MV2_ENABLE_AFFINITY", "0", 1);
   int provided;
-  MPI_Init_thread(&argc, &args, MPI_THREAD_MULTIPLE, &provided);
+  MPI_Init_thread(argc, args, MPI_THREAD_MULTIPLE, &provided);
   assert(MPI_THREAD_MULTIPLE == provided);
 
 #if USE_MPE

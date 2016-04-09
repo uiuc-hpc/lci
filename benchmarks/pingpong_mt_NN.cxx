@@ -28,7 +28,7 @@ double* start[MAX_THREADS];
 double* end[MAX_THREADS];
 
 int main(int argc, char* argv[]) {
-  MPIV_Init(argc, argv);
+  MPIV_Init(&argc, &argv);
 
   MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
   if (nprocs != 2) {

@@ -24,6 +24,7 @@ struct MPIV_Request {
 } __attribute__((aligned(64)));
 
 inline void MPIV_Wait(MPIV_Request* req) {
+  if (xunlikely(req->done_)) return;
   if (!req->sync) {
     while (!req->done_) {
       sched_yield();
@@ -33,11 +34,19 @@ inline void MPIV_Wait(MPIV_Request* req) {
   }
 }
 
+void MPIV_Waitall(int count, MPIV_Request request[], MPI_Status*) {
+  for (int i=0; i<count; i++) {
+    MPIV_Wait(&request[i]);
+  }
+}
+
+
 inline void MPIV_Signal(MPIV_Request* req) {
+  // Copy this first, because after done_ = true the request could be replaced.
+  fult* sync = req->sync;
   req->done_ = true;
-  if (req->sync) {
-    req->sync->resume();
-  };
+  // Since we have a copy, should be able to resume safely.
+  if (sync) { sync->resume(); };
 }
 
 #endif

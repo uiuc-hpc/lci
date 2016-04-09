@@ -57,7 +57,7 @@ static int THREADS = 1;
 static int WORKERS = 1;
 
 int main(int argc, char* argv[]) {
-  MPIV_Init(argc, argv);
+  MPIV_Init(&argc, &argv);
   if (argc > 2) {
     THREADS = atoi(argv[1]);
     WORKERS = atoi(argv[1]);

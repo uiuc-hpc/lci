@@ -44,13 +44,19 @@ void mpiv_recv_short(mpiv_packet* p) {
   stopt(misc_timing);
 
   startt(tbl_timing);
-  auto in_val = MPIV.tbl.insert(key, value).first;
+  auto inserted = MPIV.tbl.insert(key, value);
+  auto in_val = inserted.first;
   stopt(tbl_timing);
 
   if (xlikely(value.v != in_val.v)) {
     // comm-thread comes later.
+    startt(tbl_timing);
+    MPIV.tbl.erase(key, inserted.second);
+    stopt(tbl_timing)
+
     MPIV_Request* req = in_val.request;
     memcpy(req->buffer, p->buffer(), req->size);
+
     MPIV_Signal(req);
     MPIV.pkpool.ret_packet(p);
   }

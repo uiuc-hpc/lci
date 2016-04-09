@@ -53,6 +53,7 @@ void main_task(intptr_t arg) {
     t -= wtime();
     for (int i = 0; i < total_threads; i++) {
       w[1].schedule(tid[i]->id());
+      // w[1].schedule(tid[i]->id());
     }
     for (int i = 0; i < total_threads; i++) {
       w[1].join(tid[i]);

@@ -9,7 +9,7 @@ int ompi_coll_tuned_allgather_intra_bruck(void *sbuf, int scount,
     MPI_Datatype rdtype,
     MPI_Comm comm)
 {
-  int line = -1, rank, size, sendto, recvfrom, distance, blockcount, err = 0;
+  int rank, size, sendto, recvfrom, distance, blockcount;
   int slb, rlb, sext, rext;
   char *tmpsend = NULL, *tmprecv = NULL;
 

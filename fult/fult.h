@@ -37,7 +37,7 @@ using boost::coroutines::stack_context;
 #define fult_wait() \
   { __fulting->wait(); }
 
-static const int F_STACK_SIZE = 4096;
+static const int F_STACK_SIZE = 4*1024;
 static const int MAIN_STACK_SIZE = 16 * 1024;
 #ifndef USE_L1_MASK
 static const int NMASK = 8;
@@ -315,14 +315,13 @@ void worker::wfunc(worker* w) {
             local_mask ^= ((unsigned long)1 << id);
             // Optains the associate thread.
             fult* f = &w->lwt_[(i << 6) + id];
-            // Works on it.
-            w->work(f);
-            // If after working this threads yield, set it schedulable.
-            auto state = f->state();
-            if (state == YIELD)
-              f->resume();
-            else if (state == INVALID)
-              f->done();
+            // Works on it only if it's not completed.
+            if (f->state() != INVALID)  {
+              w->work(f);
+              // Cleanup after working.
+              if (f->state() == YIELD) f->resume();
+              else if (f->state() == INVALID) f->done();
+            }
           }
         }
       }
