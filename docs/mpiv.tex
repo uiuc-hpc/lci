@@ -3,8 +3,11 @@
 \usepackage{underscore,amsmath,amssymb,graphicx}
 \usepackage{algorithm}% http://ctan.org/pkg/algorithms
 \usepackage{algpseudocode}% http://ctan.org/pkg/algorithmicx
+\usepackage{url}
 
 \DeclareRobustCommand{\ttfamily}{\fontencoding{T1}\fontfamily{lmtt}\selectfont}
+
+\hyphenation{light-weight}
 
 \begin{document}
 
@@ -53,64 +56,84 @@ William Gropp
 
 \section{Introduction}
 Message Passing Interface (MPI) has been implemented by several vendors. On
-Blue Gene machine, MPICH is the de-factor implementation, likewise on
-Infiniband machine, we have MVAPICH. Cray has their own customization on top of
-MPICH called CrayMPI; Intel similarly implements IntelMPI. OpenMPI is another
-effort from Open-source collaboration of several industry and academic vendors.
-Each of the implementation uses their best knowledge of the underlying
-computing machine and network architecture to optimize their code. For
-examples, the implementation might reduce latency by accessing directly the
-low-level network-API or optimize critical path using specialized instructions
-to reduce cache misses.
+Blue Gene machine, MPICH \cite{mpich} is the de-factor implementation, likewise
+on Infiniband machine, we have MVAPICH \cite{mvapich}. Cray has their own
+customization on top of MPICH called CrayMPI; Intel similarly implements
+IntelMPI. OpenMPI is another effort from Open-source collaboration of several
+industry and academic vendors \cite{openMPI}.  Each vendor relies on 
+their best knowledge of the underlying computing machine and network
+architecture to optimize their implementation. For examples, the implementation
+might reduce latency by accessing directly the low-level network-API or
+optimize critical path using specialized instructions.
 
 Recently, because of the increasing in the number of processor cores within a
-computing board, there raises a need of running MPI efficiently in a threaded
-environment.  Although MPI specification requires all of its procedures to be
+computing board, there raises a need of running MPI efficiently in threaded
+environments. Although MPI specification requires all of its procedures to be
 thread-safe, MPI implementations are not originally designed to optimize for
-using multiple threads. For example, OpenMPI latest version still does not
-provide a stable support of MPI\_THREAD\_MUTLIPLE.  MPICH suports thread-safety
+using multiple threads: OpenMPI latest version still does not
+provide a stable support of MPI\_THREAD\_MUTLIPLE \cite{openmpifr},  MPICH suports thread-safety
 via a coarse-grain locking which essentially serialized all MPI code. The
-research to remove these coarse-grain locks is still undergoning, but the
+research to replace coarse-grain locking is still undergoning \cite{mpilock}, but the
 progress is slow because the existing software stack is only optimized for
-single-core performance. For an example, there are significant number of global
+single-core performance. For example, there are significant number of global
 variables shared among various component of a MPICH. Global variables which
 implements stack, queue or hash-table can be replaced with concurrent data
 structure, others might be protected with finer-grains lock.  However, locks
 and concurrent data structure has overhead could be added to  the critical path
 and reduces performance of single-threaded applications.
 
-Communication in multiple threads could also cause cache trashing or false
-sharing if not carefully be taken care of. Moreover, the processor can becomes
-under-ultilize because threads execute I/O operations can be preempted. Last but
-not least, kernel thread context-switching is costly. Several paper has report
-significant overhead for performing MPI concurrently in different thread.
+On the other hand, communication in multiple threads is troublesome for many
+reasons. Data movement between processors could cache trashing or false sharing
+if taken care of. Processors can becomes under-ultilize because threads execute
+I/O operations can be preempted. Resource management have to consider locality
+and efficient concurrent accesses since they are shared among processors. Last
+but not least, kernel thread context-switching is costly, increasingly with the
+number of threads. Several studies have reported significant overhead for
+performing MPI concurrently in many threads \cite{threadissue, mpilock}.
 
 Because of the lack of efficient multi-threaded implementation, to our best
 knowledge, there is no production application that uses the thread-safety
-feature of MPI. What has been ended up is applications runs MPI in a ``Thread
+feature of MPI. What has been ended up is application running MPI in a ``Thread
 Funnelled'' mode i.e. only one thread is allowed to execute MPI procedure;
 other threads are used only for computation. This leads to a fairly restrictive
 programming model, in which communication and computation code appears in
-different phases or functions. This approach often uses MPI non-blocking
-feature to allow some overlapping between phases and hope the MPI runtime will
-be able to execute communication code behind the scene. In practice, to support
-better asynchronous communication user of MPI implementations often need to
-enable a flag to request the runtime to spawn a dedicated polling thread for
-progressing the communication (e.g., MPICH_ASYNC_PROGRESS flag in
-MPICH/MVAPICH).
+different phases or procedures. This approach often uses MPI non-blocking
+features to allow overlapping between computation and communication and hope
+the MPI runtime will be able to make communication progress behind the scene.
+In practice, to support better asynchronous communication, user of MPI
+implementations often need to enable a flag to request the runtime to spawn a
+dedicated polling thread for progressing the communication (e.g.,
+MPICH_ASYNC_PROGRESS flag in MPICH/MVAPICH).
 
 The solution that we have seen for existing MPI implementation to adopt
-multi-core machine is thus ad-hoc and inefficient. In this
-paper, we present an approximate implementation of MPI point-to-point
-communication which takes into account of multi-core machine by design. Our
-implementation is approximate since we shall relax some semantics requirement
-of MPI. We argue that our design and algorithms for this relaxation is able to
-achieve efficient implementation, yet do not restrict applications from using
-MPI effectively. By using this bottom-up strategy, we provide an insight on 
-on the cost to support a complete MPI, accurately to the number of memory
-accesses.
+multi-core machine is thus ad-hoc and inefficient. In this paper, we present an
+approximate implementation of MPI point-to-point communication which takes into
+account of multi-core machine by design. Our implementation is approximate
+since we shall relax some semantics requirement of MPI. We argue that our
+design and algorithms for this relaxation is able to achieve efficient
+implementation, yet do not restrict applications from using MPI effectively.
+More complex MPI semantics and functionality can be built on top of our
+point-to-point communication. By using this bottom-up strategy, we provide an
+insight on the minimal cost to implement MPI, accurately to the number of
+memory accesses. We summarize our most signfinicant contributions as follows:
+\begin{itemize}
+  \item A light-weight thread scheduler using bit-vector which achieves
+single-instruction for signalling continuation. 
+  \item An constant time overhead algorithm for MPI point-to-point communication
+utilising a specially designed concurrent wait-free hash-table.
+  \item A resource-aware locality-aware MPI runtime design scalable to million
+communicating threads.
+\end{itemize}
+
+Our paper is organized as follows. The next section describes our runtime
+architecture from the high-level design to individual components. We present
+our implementation details and optimization in Section \ref{sec:impl}. Section
+\ref{sec:exp} discusses experiment and results. Section \ref{sec:related} gives
+an overview of some related works. Finally Section \ref{sec:conclusion} concludes
+our study.
 
 \section{Runtime Architecture}
+\label{sec:runtime}
 \subsection{High-Level System Design}
 We first identify the complication of MPI code is on the message matching
 mechanism. MPI point-to-point procedures (Send/Recv) facilitate matching
@@ -181,38 +204,40 @@ key $k$. At initialization, for any key $k$, only the tuple $(k,\bot)$ are
 stored in the table. The hash-table has two operations: 
 
 \begin{itemize}
-  \item $H.\text{insert}(k,v)$: attempt to store $(k,v)$ into the hash-table.
-  \item $H.\text{empty}(k)$: replace any value stored using key $k$ with $\bot$
+  \item $H.\text{insert}(k,v)$: attempt to replace value of key $k$ by $v$.
+  \item $H.\text{empty}(k)$: replace value of key $k$ by $\bot$
 \end{itemize}
 
-Additionally, let $H_t$ denote a state of $H$ in real time $t$, $H_{t_0}$ denote the
-state of $H$ before a operation and $H_{t_1}$ denotes the state of $H$ after a
-operation; $\mathbb{K}, \mathbb{V}$ denote the key and entry space. In a
-sequential history, we have the following legal semantics:
+Additionally, let $H_t$ denote a state of $H$ which is a set of all key-value
+pair stored in $H$ at time $t$, $H_{t_0}$ denote the state of $H$ before a
+operation and $H_{t_1}$ denotes the state of $H$ after a operation;
+$\mathbb{K}, \mathbb{V}$ denote the key and entry space. In a sequential
+history, we have the following legal semantics:
 
-\[
+\begin{equation}
   \text{insert}(k, v) = \left\{
     \begin{array}{@{}l@{\thinspace}l}
       v \iff (k,\bot) \in H_{t_0}, (k,v) \in H_{t_1}\\
       v' \iff (k,v') \in H_{t_0}, (k,v') \in H_{t_1}
     \end{array}
     \right.
-\]
-\[
+\end{equation}
+\begin{equation}
   \text{empty}(k) = \text{success} \iff  (k,v) \in H_{t_0}, (k,\bot) \in H_{t_1}
-\]
-\[
-  \forall k_0 \in \mathbb{K}, \nexists {v_1, v_2 \in \mathbb{V}}
-    \mid {{v_1 \ne v_2} \wedge {(k_0, v_1) \in H_{t} \wedge (k_0, v_2) \in H_{t}}}
-\]
+\end{equation}
+\begin{equation}
+  \forall k_0 \in \mathbb{K}, \nexists {(v_0, v_1) \in \mathbb{V}}
+  \mid {{v_0 \ne v_1} \wedge {(k_0, v_0), (k_0, v_1)} \subset H_{t}}
+\end{equation}
 
-That is, the insert is only successful if the entry being stored with $k$ at
-the time of insertion is $\bot$.  In that case, $(k,\bot)$ is replaced with
-$(k, v)$. Otherwise, the operations fail and existing value is returned i.e. no
-changed are made to $H$. In constrat, the erase is always success, which shall
-replace any value stored with the input $k$ with $\bot$, essentially removing
-the entry from table.  The last point is the consistency requirement, which
-means for each key, we can find only one value associated with that key.
+That is, (1) means that \texttt{insert} succeeds only if the entry being stored
+with $k$ at the time of insertion is $\bot$.  In that case, $(k,\bot)$ is
+replaced with $(k, v)$. Otherwise, the operations fail and existing value is
+returned i.e. no changed are made to $H$. In contrast, \texttt{erase} as in (2)
+is always successful, which replaces any value $v$ with the input $k$ with
+$\bot$, essentially removing $v$ from the hash-table. The (3) equation is the
+consistency requirement for hash-table, which means for each key we allow
+only one value associated with it.
 
 In a concurrent setting, we further require the hash-table to be
 \textit{linearizable}.  This means we ensure firstly safety and correctness
@@ -234,7 +259,7 @@ delivered directly from the source buffer to the target buffer by the NIC thus
 saving extra copies.  The protocol however requires some control messages to
 exchange control data and signal completion.
 
-\subsubsection{Point-to-Point Eager protocol}
+\subsubsection{Eager protocol}
 
 \begin{algorithm}
   \caption{Eager-message send/recv for thread}
@@ -306,12 +331,10 @@ inserted into the hash-table with the synchronization object. The thread yield
 by executing \texttt{ThreadWait}. When the eager packet arrived, the
 request handler is executed by the communication server. The server will fail
 the insert but find the request with the attached synchronization object. It
-now can wake up the thread using \texttt{ThreadSignal}. In this situation,
-there is a locality consideration whether the thread or the server should
-perform the memory copy. However, this is an optimization which does not effect
-the correctness of our algorithm.
+now can wake up the thread using \texttt{ThreadSignal} and the data copy can
+be performed.
 
-\subsubsection{Point-to-Point Rendevouz protocol}
+\subsubsection{Rendevouz protocol}
 A rendevouz protocol have the same algorithm as short protocol after we have
 exchanged the control message via eager-protocol. The control messages 
 includes two messages: a RTS (ready-to-send) issued by the sender, a RTR
@@ -321,13 +344,14 @@ communication.  The data transfer could be optimized further using the
 Remote Direct Memory Access (RDMA) feature of modern Network Interface
 Controller (NIC).  Several researchs has focused on optimizing this operation.
 
-In our runtime, we can save one control message i.e. the RTS.  The reason is
-we do not have wild-card, the sender and receiver knows exactly their target.
-We only require the receiver to send its buffer to the sender. The sender can
-follow up by issuing an RDMA.  Analogous to the eager protocol, whenever the
-sender or receiver is required to wait for a matching message it will perform
-\texttt{ThreadWait}, and later when the message has arrived the communication server
-will perform a \texttt{ThreadSignal}.
+As an effect of our assumption, in this protocol we can save one control
+message i.e. the RTS.  The reason is we do not have wild-card, the sender and
+receiver knows exactly their target.  We only require the receiver to send its
+buffer to the sender. The sender can follow up by issuing an RDMA.  Analogous
+to the eager protocol, whenever the sender or receiver is required to wait for
+a matching message it will perform \texttt{ThreadWait}, and later when the
+message has arrived the communication server will perform a
+\texttt{ThreadSignal}.
 
 Specifically, the sender waits when the RTR message has not arrived or when
 RDMA is pending. In both situation the server wake up the sender thread when
@@ -345,15 +369,16 @@ implementaion of each of the three components and show how we could optimize
 toward our goals.
 
 \section{Runtime Implementation and Optimization}
+\label{sec:impl}
 \subsection{Thread scheduler}
-Our thread scheduler is implemented as a User-Level Thread (ULT) in order to
-minimize context switching overhead. The context-switching mechanism is similar
-to that of Argobots and Boost coroutines, we make use of \texttt{fcontext}. The
-idea is to maintains a separate stack for each thread. A few registers
-(including the program counter) is saved and restored from an allocated space
-in the stack. Morever, the context-switching is designed to not involve
-Operating System (OS) system call, thus by-passing kernel code. This overall
-reduces the latency of switching to a new context to less than a hundred cycles.
+As mentioned earlier, our scheduler minimize context-switching overhead by
+using ULT. The context-switching mechanism is similar to that of Argobots and
+Boost coroutines, we make use of \texttt{fcontext}. The idea is to maintains a
+separate stack for each thread. A few registers (including the program counter)
+is saved and restored from an allocated space in the stack. Morever, the
+context-switching is designed to not involve Operating System (OS) system call,
+thus by-passing kernel code. This overall reduces the latency of switching to a
+new context to less than a hundred cycles.
 
 Rather than designing a general purpose ULT, we focus on the two most important
 operations: \texttt{ThreadWait} and \texttt{ThreadSignal}. One possible
@@ -367,16 +392,14 @@ rescheduling requires traversing this queue to place them back to the run
 queue.
 
 Our thread scheduler achieves wait-freedom for both afortmentioned operation.
-Except the required context-swiching for \texttt{ThreadWait}, each operation is
-simply a single x86 instruction. The idea behind our thread scheduler is a novel
-use of bit-vector. Rather than using a queue to implement a set of runnable thread,
-each bit in the bit-vector indicates a thread is runnable.
-
-When a worker is created, it is given a unique worker id, denotes as $\omega$.
-When a thread is created by a worker, it is assigned an unique id $\Gamma$
-within the range of $[0,M-1]$, for $M$ is the maximum concurrent threads for
-that worker.  For example, using a vector of $8$ 64-bit words, we allow up to
-$512$ concurrent threads per worker.
+Marking a thread as runnable or waiting is only a single x86 instruction. The
+idea behind our thread scheduler is a novel use of bit-vector. Rather than
+using a queue to implement a set of runnable thread, each bit in the bit-vector
+indicates a thread is runnable. When a worker is created, it is given a unique
+worker id, denotes as $\omega$.  When a thread is created by a worker, it is
+assigned an unique id $\Gamma$ within the range of $[0,M-1]$, for $M$ is the
+maximum concurrent threads for that worker.  For example, using a vector of $8$
+64-bit words, we allow up to $512$ concurrent threads per worker.
 
 A pair $(\omega, \Gamma)$ uniquely defines a thread in the system at a point in
 time. During the creation time, the worker atomically set the
@@ -556,6 +579,7 @@ The shared pool is accessed by more than two threads, thus implemented using a
 lock-free stack.
 
 \section{Experiment}
+\label{sec:exp}
 \subsection{Thread Scheduler}
 Filling micro-benchmarks.
 Filling micro-benchmarks.
@@ -614,5 +638,10 @@ Filling micro-benchmarks.
 
 \subsection{Applications}
 \section{Related Works}
+\label{sec:related}
 \section{Conclusion}
+\label{sec:conclusion}
+
+\bibliographystyle{abbrv}
+\bibliography{mpiv}
 \end{document}
