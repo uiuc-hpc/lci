@@ -40,7 +40,7 @@ Marc Snir\\
 \email{snir@illinois.edu}
 %
 \alignauthor
-William Gropp
+William Gropp\\
 \affaddr{Department of Computer Science}\\
 \affaddr{University of Illinois at Urbana-Champaign}\\
 \email{wgropp@illinois.edu}
@@ -121,8 +121,8 @@ memory accesses. We summarize our most signfinicant contributions as follows:
 single-instruction for signalling continuation. 
   \item An constant time overhead algorithm for MPI point-to-point communication
 utilising a specially designed concurrent wait-free hash-table.
-  \item A resource-aware locality-aware MPI runtime design scalable to million
-communicating threads.
+  \item A resource-aware locality-aware concurrent memory pool for packet management.
+  \item A MPI runtime design for scaling up to million communicating threads.
 \end{itemize}
 
 Our paper is organized as follows. The next section describes our runtime
@@ -156,11 +156,13 @@ We propose an implementation MPI based on the following assumptions:
     objects.
   \item The implementation is optimized for the case where MPI_ANY_SOURCE and MPI_ANY_TAG are not used.
   \item No concurrent send and receive having the same signature, thus we do not yet worry about odering.
-  \item The Network Interface Controller (NIC) supports multiple, independent channels.
   \item The NIC can be accessed in user space; it has its own routing tables,
     in order to translate ranks in MPI\_COMM\_WORLD to physical node addresses;
     it has page tables, in order to translate virtual addresses to physical
     addresses.
+  \item We consider only x86_64 machine, however the technique is general
+    enough to port to other architecture which supports atomic exchange and
+    atomic bit manimupation.
 \end{itemize}
 
 The key data structure for communication is a lock-free hash table which stores
@@ -371,39 +373,46 @@ toward our goals.
 \section{Runtime Implementation and Optimization}
 \label{sec:impl}
 \subsection{Thread scheduler}
-As mentioned earlier, our scheduler minimize context-switching overhead by
-using ULT. The context-switching mechanism is similar to that of Argobots and
-Boost coroutines, we make use of \texttt{fcontext}. The idea is to maintains a
-separate stack for each thread. A few registers (including the program counter)
-is saved and restored from an allocated space in the stack. Morever, the
-context-switching is designed to not involve Operating System (OS) system call,
-thus by-passing kernel code. This overall reduces the latency of switching to a
-new context to less than a hundred cycles.
+As mentioned earlier, our scheduler implements User-Level Thread (UTL). The
+user specifies the number of workers which are implemented with POSIX thread
+and pinned to a specific core. The context-switching mechanism is similar to
+that of Argobots and Boost coroutines, we make use of \texttt{fcontext}. The
+idea is to maintains a separate stack for each thread. A few registers
+(including the program counter) is saved and restored from an allocated space
+in the stack. Morever, the context-switching is designed to not involve
+Operating System (OS) system call, thus by-passing kernel code. This overall
+reduces the latency of switching to a new context to less than a hundred
+cycles.
 
 Rather than designing a general purpose ULT, we focus on the two most important
-operations: \texttt{ThreadWait} and \texttt{ThreadSignal}. One possible
-implementation is condition variable. This is the typical synchronization often
-used in POSIX thread, and other ULT library such as Argobots.  However, these
-are expensive since condition variable in general requires a lock. A
-busy-waiting implementation is even worst since the processor spends useless
-time polling. Qthreads uses a slight modification notion i.e.  full-empty bit.
-However, internally each full-empty bit object is a waiting queue and
-rescheduling requires traversing this queue to place them back to the run
-queue.
+operations for synchronization purpose: \texttt{ThreadWait} and
+\texttt{ThreadSignal}. A possible implementation is \textit{condition
+variable}. This is the typical mechanism in POSIX thread, and other ULT
+library.  Condition variable is a generic container which can
+be used as a building block for many other synchronization primitives. However,
+it is still expensive as in general it requires a mutex lock and some queue
+traversal when many threads are blocking.  An alternative is to use a
+busy-waiting synchronization flag which has lower latency. However this is
+considered even worst for scaling since the processor spends useless time
+polling. Qthreads implements a slight modification notion of condition variable
+namely \textit{full-empty bit}. However, internally each object is a waiting
+queue and rescheduling requires expensive traveral of this queue to find
+runnable threads and insert back to run queues.
 
-Our thread scheduler achieves wait-freedom for both afortmentioned operation.
-Marking a thread as runnable or waiting is only a single x86 instruction. The
-idea behind our thread scheduler is a novel use of bit-vector. Rather than
-using a queue to implement a set of runnable thread, each bit in the bit-vector
-indicates a thread is runnable. When a worker is created, it is given a unique
-worker id, denotes as $\omega$.  When a thread is created by a worker, it is
-assigned an unique id $\Gamma$ within the range of $[0,M-1]$, for $M$ is the
-maximum concurrent threads for that worker.  For example, using a vector of $8$
-64-bit words, we allow up to $512$ concurrent threads per worker.
-
+Our thread scheduler targets a constant time overhead for both afortmentioned
+operation. Marking a thread as runnable or waiting is only a single x86
+instruction. The idea behind our thread scheduler is a novel use of bit-vector.
+Rather than using a queue to implement a set of runnable thread, each bit in
+the bit-vector indicates a schedulable thread. When a worker is created, it is
+given a unique worker id, denotes as $\omega$.  When a thread is created by a
+worker, it is assigned an unique id $\Gamma$ within the range of $[0,M-1]$, for
+$M$ is the maximum concurrent threads for that worker.  For example, using a
+vector of $8$ 64-bit words, we allow up to $512$ concurrent threads per worker.
 A pair $(\omega, \Gamma)$ uniquely defines a thread in the system at a point in
-time. During the creation time, the worker atomically set the
-associated $\Gamma$ bit in its bitvector structure.
+time. During thread's creation time, the associated $\Gamma$ bit in its
+bitvector structure is marked so that when the worker is free it will attempt
+to schedule that thread to run. Algorithms \ref{algo:thread} further describes
+our scheduling algorithms. 
 
 \begin{algorithm}
   \caption{Thread scheduler}
@@ -441,61 +450,69 @@ associated $\Gamma$ bit in its bitvector structure.
   \end{algorithmic}
 \end{algorithm}
 
-Algorithms \ref{algo:thread} describes our scheduling algorithms. The
-worker, when available will attempt to find a schedulable thread in its bitvector.
-Instead of working at 1-thread granularity, we work
-at 64-thread represented by a 64-bit word. By using an atomic exchange to swap
-the interested word to local variable, we are able to continously perform
-read/write from/to this variable without accessing the main memory.  This is
-not only ensures progress property for all threads because we can schedule them
-in order, it is also provide correctness since there is no atomic
-read-modify-write x86 instructions operating at bit level.  We do not support
-thread-stealing yet, but it can be done in similar fashion by stealing at 64-thread
-granularity.
+The scheduler works at 64-threads granularity instead of 1-thread traditionally.
+By using an atomic exchange instruction to swap the interested word to local variable, we
+are able to continously perform read/write from/to this variable without
+accessing the main memory. This is not only ensures progress property for all
+threads because we can schedule them in order, it solves the problem of having
+no atomic read-modify-write instructions operating at bit level.
 
 Algorithms \ref{algo:thread-ops} describes the two thread operations.
-\texttt{ThreadWait} simply switch back to the worker scheduler based on current worker id (i.e. $\omega$)
-On the other hand, \texttt{ThreadSignal} shall access the
-bit-vector and atomically set the bit in the appropriate word based on the
-the same information stored in the synchronization object.
+\texttt{ThreadWait} simply switch back to the worker scheduler based on current
+worker id (i.e. $\omega$) On the other hand, \texttt{ThreadSignal} shall access
+the bit-vector and atomically set the bit in the appropriate word based on the
+the same information stored in the synchronization object. $\omega$ and
+$\Gamma$ are stored in thread local-storage of the worker, and is updated
+whenever a new context is switch to.
 
-Note that \texttt{ThreadWait} is executed in the same kernel thread as the
-thread scheduler associating with the running ULT, thus there is no race that
-we need to worry about in accessing the bit-vector. \texttt{ThreadSignal} can
-be executed anywhere, and in our design it will be executed by the
-communication server. Thus in the algorithm it is errornous to perform
-\texttt{ThreadSignal} multiple times on the same object. In practise, we store
-additionally an atomic flag per synchronization object to prevent this to
-happen.
+There are couple of issues worth discussing on the above design.  Firstly, note
+that \texttt{ThreadWait} is executed in the same kernel thread as the thread
+scheduler associating with the running ULT while \texttt{ThreadSignal} can be
+executed anywhere. Thus, It is errornous to perform \texttt{ThreadSignal}
+multiple times on the same object since they will be treated as one or more
+signal depending on the time the worker looks at the bit-vector. It is also
+erronous to \texttt{ThreadWait} when the associted \texttt{ThreadSignal} has
+been performed. In practise for each MPI request we use an additional flag to
+indicate whether the signal has been executed before performing the
+\texttt{ThreadWait}. This is important for non-blocking communication in the
+case of \texttt{MPI_Waitall} since the communication can be completed before
+the thread attempts to wait.
 
-There are two possible problems with the described thread scheduler design.
-Firstly, the performance degrades greatly when we support a large number of
-threads. The reason is we have to iterate over the bit-vector. Secondly, there
-could be an issue with fairness because thread with larger bit-index will be
-scheduled later.
+The next issue is that the performance shall degrades when we increase the
+maximum number of threads since iterating over the bit-vector word by word is
+more expensive. We tackle this issue by using a hierachical design of
+bit-vector.  That is, we could use an additional bit-vector as a hint to index
+into the original bit-vector. Specifically, each bit in the secondary
+bit-vector indicates which word in the first level may have a schedulable
+thread. More specifically, \texttt{ThreadSignal} will perform a bit set first
+into the first level then a bit set into the second level. The scheduler will
+first look into the second level to find a potential word and go directly to
+that word to look for schedulable threads. %Recall that the secondary bit-vector
+%is shared among a group of threads, thus It can happen that the secondary might
+%indicate the thread is schedulable, but when it arrives at the first level the
+%thread is already scheduled. However, this situation does not affect the
+%correctness since the thread will not be scheduled twice in any situation.
+Using this scheme, suppose we use one word for the secondary level bit-vector,
+each bit represents a 64-bit word in the first level, then each worker can
+support up to $4096$ threads. And since eight words can fit in a cache line and
+better to read together, we can use 1 bit to represent a set of eight 64-bit.
+Similarly by having eight words in the secondary level we can support $262144$
+concurrent threads per worker. With a small number of worker, we can go up to
+our goal of million thread without sacrifying much performance. Also note that
+this is the maximum number of concurrent threads; when a thread completes its
+current task, it can be re-used for launching another task.
 
-We currently ignore the fairness issue, and as long as we maintain the progress
-property this is not a big problem. We tackle the first problem by using a
-hierachical design of bit-vector.  That is, we could use a secondary bit-vector
-as a hint to index into the first level bit-vector.  Specifically, each bit in
-the secondary bit-vector indicates which word in the first level could have
-schedulable thread. More specifically, \texttt{ThreadSignal} will perform a bit
-set first into the first level then a bit set into the second level. The
-scheduler will first look into the second level to find a potentially word and
-go directly to that word index to look for schedulable threads. It can happen
-that the secondary might indicate the thread is schedulable, but when it comes
-to the first level the thread is already scheduled by the previous check.  This
-\textit{false positive} happen because the secondary level bit is potentially
-shared a group of thread. However, it does not affect the correctness since the
-thread will not be scheduled twice in any situation.
-
-Using this scheme, if we use 1 word for the secondary level bit-vector, each
-bit represent a 64-bit words in the first level, each worker can support up to
-$4096$ threads. And since eight words can fit in a cache line and better to read
-together, we can use 1 bit to represent a set of eight 64-bit words. Similarly by having
-eight words in the secondary level we can support $262144$ concurrent threads per
-worker. Therefore, with a small number of worker, we can go up to our goal of
-million thread without sacrifying much performance.
+There is an fairness issue with the thread scheduler i.e. thread with lower
+index typically is scheduled before thread with higher index. There are a few
+solutions to improve fairness for example occasionally traverse the bit-vector
+in different orders. We however currently ignore this problem and leave it for
+future works. Having said that, this issue is not severe since our algorithms
+still ensure progress property. If a thread is marked as schedulable, it's
+eventually will be scheduled in a bounded number of steps. To show that this is
+true, consider the atomic exchange as taking a snapshot of the global state. In
+this snapshot, if a thread is marked it will be scheduled after all threads
+having smaller index are scheduled, which is bounded by the maxmimum number of
+allowed concurrent threads $M$.
 
 \subsection{Concurrent Hash-Table}
 Our concurrent hash-table is not deviated very much from conventional
@@ -505,27 +522,32 @@ advantage of some semantics requirement that we have mentioned.
 Firstly, we use a spinlock per bucket. This is an viable option since we could
 control the table size to reduce the hash collision to minimal. The table size is
 related directly to how many concurrent operations which is controlled by 
-our packet pool size. Since the collision is minimal, the conflict can only happen
+our packet pool size. When there is no collision, the conflict can only happen
 between communication server and a thread when both try to insert into the same
-bucket at the same time. Since there is only synchronization between 2 threads
-a spinlock is sufficient for our purpose moreover allowing a very simple design.
+bucket at the same time. With a small number of conflicts, a spinlock is
+sufficient for synchronization and allow a very simple design.
 
-Secondly, we design each bucket as an 4-entry array. Each entry consists of 2
-64-bit words. Within a 4-entry array, one will be used as control entry and the
-other three are used for storing a pair of key and data. The control entry has
-an atomic flag for spin locking, and a pointer to point to the next bucket in
-case we have more than 3 collisions. Since a bucket typically fits in a cache
-line, we suffer only 1 cache miss at most when trying to lock the bucket and
-the data can be read without more cache misses.
+Secondly, we design each bucket as an 4-entry array. Each entry consists of two
+64-bit words. Within each 4-entry, one entry will be used as \textit{control
+entry} and the other three are used for \textit{data entry}. The control entry
+has an atomic flag for spin locking, and a pointer to point to the next 4-entry
+bucket in case we have more than 3 collisions. A data entry consists of two
+64-bit words of key and value pair. In total, 4-entry takes 64-bytes and
+typically fits in a cache line. Thus we suffer only 1 cache miss when trying to
+lock the bucket and the data can be read without more cache misses.
 
-Lastly, the \texttt{insert} operation returns the address of the associated
-entry. This allows the \texttt{empty} operation to be a single instruction,
-which set the key to $\bot$. This is only possible because only one thread can
-change an entry key because no concurrent Send/Recv with the same tag is allowed.
+Lastly, the \texttt{insert} operation also returns the address of the
+associated entry having the key in memory. This allows the \texttt{empty}
+operation to be a single instruction/single memory write to set the value
+associated with key to $\bot$. This is only possible when only one thread can
+write to an entry key which is true when no concurrent communication with the
+same tag is allowed.
 
-Therefore our \texttt{empty} is lockless and achieves wait-freedom too. Our
-\texttt{insert} is cache-friendly and typically also wait-freedom with high probability 
-when the table size is large enough (thus with little to no hash collision).
+In conclusion, with the above optimization, the \texttt{empty} operation is
+lock-free and wait-free, costs only 1 memory write. The \texttt{insert}
+operation is cache-friendly and is typically wait-free, costs also 1 memory
+write in the common case of no hash collision (write is made to spin-lock;
+other accesses are in cache).
 
 \subsection{Concurrent Packet Pool}
 In general, the packet pool could be implemented using a lockfree stack. A pool
@@ -581,62 +603,55 @@ lock-free stack.
 \section{Experiment}
 \label{sec:exp}
 \subsection{Thread Scheduler}
-Filling micro-benchmarks.
-Filling micro-benchmarks.
-Filling micro-benchmarks.
-Filling micro-benchmarks.
-Filling micro-benchmarks.
-Filling micro-benchmarks.
-Filling micro-benchmarks.
+We describe here an experimence to evaluate the overhead due to thread scheduling.
 
-\begin{figure*}[h]
-  \centering 
-  \includegraphics[width=0.6\textwidth]{fig/thread.png}
-  \caption{Comparing Thread wait and signal with Argobots condition variable
-  implementation. Runtime from entering wait until waken up by signal per thread.}
-\end{figure*}
+%\begin{figure*}[h]
+%  \centering 
+%  \includegraphics[width=0.6\textwidth]{fig/thread.png}
+%  \caption{Comparing Thread wait and signal with Argobots condition variable
+%  implementation. Runtime from entering wait until waken up by signal per thread.}
+%\end{figure*}
 
 \subsection{Concurrent Hash-Table}
-Filling micro-benchmarks.
-Filling micro-benchmarks.
-Filling micro-benchmarks.
-Filling micro-benchmarks.
-Filling micro-benchmarks.
-Filling micro-benchmarks.
-Filling micro-benchmarks.
+We describe here an experiment to evaluate the overhead due to accessing hash-table.
 
+\subsection{Concurrent Packet Pool}
+We describe here an experiment to evaluate the overhead due to packet pool.
 
-\begin{figure*}[h!]
-  \centering 
-  \includegraphics[width=0.6\textwidth]{fig/hashtbl.png}
-  \caption{Comparing hash-table inserting and deletion by concurrent threads
-    with cuckoo-hasing.  Runtime is averaged per operation per thread.
-    \texttt{arr} suffix is our implementation and \texttt{ck} prefix is cuckoo-hasing}.
-\end{figure*}
+%\begin{figure*}[h!]
+%  \centering 
+%  \includegraphics[width=0.6\textwidth]{fig/hashtbl.png}
+%  \caption{Comparing hash-table inserting and deletion by concurrent threads
+%    with cuckoo-hasing.  Runtime is averaged per operation per thread.
+%    \texttt{arr} suffix is our implementation and \texttt{ck} prefix is cuckoo-hasing}.
+%\end{figure*}
 
 \subsection{Overall overhead}
-Filling micro-benchmarks.
-Filling micro-benchmarks.
-Filling micro-benchmarks.
-Filling micro-benchmarks.
-Filling micro-benchmarks.
-Filling micro-benchmarks.
-Filling micro-benchmarks.
-\begin{figure*}[h!]
+Overally this is the overhead.
+\begin{figure}[h!]
   \centering 
-  \includegraphics[width=0.6\textwidth]{fig/overhead.png}
+  \includegraphics[width=0.2\textwidth]{fig/overhead.png}
   \caption{Total overhead of runtime system, comparing to raw network latency.}
-\end{figure*}
+\end{figure}
 
-\subsection{Pingpong multiple threads}
-\begin{figure*}[h!]
+Overally this is the latency compare to OSU.
+\begin{figure}[h!]
   \centering 
-  \includegraphics[width=0.6\textwidth]{fig/pingpong.png}
+  \includegraphics[width=0.2\textwidth]{fig/pingpong.png}
   \caption{Comparing multi-threaded pingpong with OSU benchmarks using 1-thread
   in 1-worker and 12-threads in 12-workers. MPIV is our implementation.}
-\end{figure*}
+\end{figure}
+
+Overally this is the message rate compare to OSU.
+\begin{figure}[h!]
+  \centering 
+  \includegraphics[width=0.2\textwidth]{fig/pingpong.png}
+  \caption{Comparing multi-threaded pingpong with OSU benchmarks using 1-thread
+  in 1-worker and 12-threads in 12-workers. MPIV is our implementation.}
+\end{figure}
 
 \subsection{Applications}
+We shows BFS, UTS, Stencil.
 \section{Related Works}
 \label{sec:related}
 \section{Conclusion}
