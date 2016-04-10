@@ -189,31 +189,60 @@ running in a different core. This leads to several cache misses since the cachel
 is momently owned by the first thread. An example is when two threads running in 
 two different cores alternatively perform \texttt{MPI_Send}.
 
-This motivates us to design a better packet pool. We split the centralized
-packet management into a private pool per worker and a shared pool. Initially,
-there is a fixed number of packets for each private and shared pool.  At
-runtime, we design an algorithms to allow moving packets among those pool
-depending on their usages. Our goal is to maintain good locality per hardware
-thread but does not block if there is available resources.
+\begin{figure}[!h]
+  \centering 
+  \includegraphics[width=0.25\textwidth]{fig/packetlife.pdf}
+  \caption{Packet life cycle: (1) A thread sending data obtain a packet from the
+    pool; (2) The thread writes data into the packet and submit it to the NIC;
+    (1', 2') Communication server obtains a packet for receiving data
+    and posts the packet to the NIC;
+    (3) The server polls the NIC and obtains the packet back (either send/recv packet).
+    (4) If the packet is for sending, it is returned to the pool;
+    If the packet is for receiving and there is a request, the server copies the data
+    and returns the packet to the pool;
+    (4') If the packet is for receiving and the there is no request, the packet is inserted to hash-table.
+    (5') The thread takes packet from the hash-table copies the data before returning it back to the pool.}
+  
+  \label{fig:packetlife}
+\end{figure}
 
-The private pool consists of packets that are recently read or writen by the
-worker (or associated hardware thread). It is implemented as a fixed size
-double-ended queue (deque). The deque has three main operations:
-\texttt{popTop}, \texttt{pushTop}, and \texttt{popBottom} which allows LIFO
-accessing at the top of the queue, and also allows poping from its bottom. The
-idea is that at the bottom of the deque are packets that are least recently
-used and are better candidates for other purposes. That is, when the private
-pool is full, it performs \texttt{popBottom} and pushed back to
-the shared pool.
+Figure \ref{fig:packetlife} explains how different components in our system
+might change the affinity of data inside a packet. The figure shows the life of
+a packet from the time it leaves the pool until it is returned. As explained in
+the figure, when a packet returns to the pool, it can only has the affinity
+of either the communication server or one of the worker thread. More specifically,
+if the packet is used for sending data, it shall have the locality of the thread;
+if the packet is used for receiving data, it shall have the locality of either
+the thread or the server depending on whether the associated request and the
+packet is received first. Moreover, when the packet is posted by the server
+to the NIC for receiving data, the packet shall lose any affinity it has since
+the NIC will perform a write over the packet.
+
+Analysing the packet life cycle motivates us a new design for the packet pool.
+We split the centralized packet management into a private pool per worker and a
+shared pool per communication worker. Initially, there is a fixed number of
+packets for each of the pool. At runtime, we design an algorithms to allow
+moving packets among those pool depending on their usages.  Our goal is to
+maintain good locality per hardware thread but does not block if there is
+available resources.
+
+The private pool consists of packets that are identified as having affinity of
+the associated hardware thread. It is implemented as a fixed size double-ended
+queue (deque). The deque has three main operations: \texttt{popTop},
+\texttt{pushTop}, and \texttt{popBottom} which allows LIFO accessing at the top
+of the queue, and also allows poping from its bottom. The idea is that at the
+bottom of the deque are packets that are least recently used and are better
+candidates for other purposes. That is, when the private pool is full, it
+performs \texttt{popBottom} and pushed back to the shared pool.
 
 When a packet for sending is needed by a thread, a \texttt{popTop} is performed
 with the private pool of the current worker, which guarantees giving the last
 packet that was read or written by the same worker. If the private pool is
 empty, the shared pool is accessed for extra packets.  Alternatively, when a
-packet is needed for posting to the NIC receiving queues as buffers by the
-communication server, the server first try to obtains packets from the shared pool.
-If the shared pool is empty, the server now performs a \textit{steal} by
-randomly chosing a private pool and perform the \texttt{popBottom} operation.
+packet is needed for receiving data by the communication server, the server
+first try to obtains packets from its shared pool. If the shared pool is empty,
+the server now performs a \textit{steal} by randomly chosing a private pool and
+perform the \texttt{popBottom} operation.
 
 The private pools can be thought as caches, and the shared pool can be thought
 as the main memory. When ``the cache'' is full, it evicts the least recently
@@ -221,7 +250,5 @@ used to the ``main memory''. Our heuristic essentially performs
 resource-balancing among the set of packets by moving it around pools with the
 locality taken into account. Since the private pool is only shared between a
 worker thread and the communication server, currently we implemented it using a
-simple fixed-size buffer with a spinlock. Since the conflict is only at most
-between 2 concurrent hardware threads, this is the most efficient
-implementation for our purpuses.  The shared pool is accessed by more than two
-threads, thus implemented using a lock-free stack.
+simple fixed-size buffer with a spinlock. The shared pool is accessed by more
+than two threads, thus implemented using a lock-free stack.
