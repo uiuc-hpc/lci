@@ -181,24 +181,27 @@ exchange control data and signal completion.
   \end{algorithmic}
 \end{algorithm}
 
-The algorithm for eager protocol is listed in Algorithm \ref{algo:short} and
-\ref{algo:server-short} for worker thread side and communication server side
+The pseudocode for eager protocol is listed in Algorithm \ref{algo:short} and
+\ref{algo:server-short} for worker thread and communication server
 respectively. The basic idea here is that the thread and the communication
-server at the receiving side can effectively coordinating to match messages and
-requests.
+server could use the results from hash-table insertion to coordinate the
+matching of messages and request. 
 
-If the communication server succeeds with the hash insertion, the receiving
-request has not been posted by a thread, the server return immediately. A
-thread later comes, eventually fail the insertion but find a packet
-with the needed data to copy to its buffer.
+If the communication server succeeds with the hash insertion, the server knows
+the receiving request has not been posted and it returns immediately. A thread
+later comes, eventually fails the insertion but finds a packet with the needed
+data to work with. On the other hand, if the thread is the one who succeeds,
+the request is then inserted into the hash-table with the synchronization
+object.  The thread is yielded by executing \texttt{ThreadWait}. The worker is
+now free to do other works. When the associated packet arrived, the server will
+fail the insertion and find the request with the attached synchronization
+object. It now can mark the thread as schedulable using \texttt{ThreadSignal}
+so when the worker is available it will pick up the works with the available
+data.
 
-On the other hand, the thread is the one who succeeds and the request is
-inserted into the hash-table with the synchronization object. The thread yield
-by executing \texttt{ThreadWait}. When the eager packet arrived, the
-request handler is executed by the communication server. The server will fail
-the insert but find the request with the attached synchronization object. It
-now can wake up the thread using \texttt{ThreadSignal} and the data copy can
-be performed.
+Since there is no need for linear searching, our matching algorithm achieves a
+constant time complexity as long as operation of thread scheduler, pool and
+hash-table is also constant time.
 
 \subsubsection{Rendevouz protocol}
 A rendevouz protocol have the same algorithm as short protocol after we have
