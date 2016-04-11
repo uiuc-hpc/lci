@@ -118,17 +118,16 @@ that word to look for schedulable threads. %Recall that the secondary bit-vector
 %indicate the thread is schedulable, but when it arrives at the first level the
 %thread is already scheduled. However, this situation does not affect the
 %correctness since the thread will not be scheduled twice in any situation.
-Using this scheme, suppose we use one word for the secondary level bit-vector,
-each bit represents a 64-bit word in the first level, then each worker can
-support up to $4096$ threads. And since eight words can fit in a cache line and
-better to read together, we can use 1 bit to represent a set of eight 64-bit.
-Similarly by having eight words in the secondary level we can support $262144$
+Using this scheme, suppose we allows $s_2$ words in the second level and each
+bit represents $s_1$ words in the first level, the total number of threads we
+can support is $s_1 \times s_2 \times 64^2$. Typically we can choose $s_1 = s_2
+= 8$ since 8 words fit into a cache line. In that case, it allows $262144$
 concurrent threads per worker. With a small number of worker, we can go up to
 our goal of million thread without sacrifying much performance. Also note that
 this is the maximum number of concurrent threads; when a thread completes its
 current task, it can be re-used for launching another task.
 
-There is an fairness issue with the thread scheduler i.e. thread with lower
+The next issue one can point out is fairness i.e. thread with lower
 index typically is scheduled before thread with higher index. There are a few
 solutions to improve fairness for example occasionally traverse the bit-vector
 in different orders. We however currently ignore this problem and leave it for

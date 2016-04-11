@@ -51,7 +51,7 @@ per communication server, we have to maintain a pool of packets structure. The
 pool is the second shared data structure of the runtime.  Each packet is used
 for storing control and message data to deliver to network device.
 
-\begin{figure*}
+\begin{figure*}[!ht]
   \centering
   \includegraphics[width=.6\textwidth]{fig/runtime.pdf}
   \caption{MPI Runtime Architecture for multi-threaded executions}\label{fig:overall}
@@ -93,7 +93,7 @@ history, we have the following legal semantics:
 \end{equation}
 \begin{equation}
   \forall k_0 \in \mathbb{K}, \nexists {(v_0, v_1) \in \mathbb{V}}
-  \mid {{v_0 \ne v_1} \wedge {(k_0, v_0), (k_0, v_1)} \subset H_{t}}
+  \mid {{v_0 \ne v_1} \wedge \{(k_0, v_0), (k_0, v_1)\} \subset H_{t}}
 \end{equation}
 
 That is, (1) means that \texttt{insert} succeeds only if the entry being stored
@@ -183,21 +183,28 @@ exchange control data and signal completion.
 
 The pseudocode for eager protocol is listed in Algorithm \ref{algo:short} and
 \ref{algo:server-short} for worker thread and communication server
-respectively. The basic idea here is that the thread and the communication
+respectively. There is not much for the eager send, the thread can return
+immediately without any waiting since the content of the data shall be copied
+over to the packet data for transfering. Only the receiving algorithm needs some
+elaborations. The basic idea here is that the thread and the communication
 server could use the results from hash-table insertion to coordinate the
-matching of messages and request. 
+matching of messages and request.
 
-If the communication server succeeds with the hash insertion, the server knows
-the receiving request has not been posted and it returns immediately. A thread
-later comes, eventually fails the insertion but finds a packet with the needed
-data to work with. On the other hand, if the thread is the one who succeeds,
-the request is then inserted into the hash-table with the synchronization
-object.  The thread is yielded by executing \texttt{ThreadWait}. The worker is
-now free to do other works. When the associated packet arrived, the server will
-fail the insertion and find the request with the attached synchronization
-object. It now can mark the thread as schedulable using \texttt{ThreadSignal}
-so when the worker is available it will pick up the works with the available
-data.
+The hashing function takes the request signature (rank, tag, communicator) and
+produces a 64-bit key for inserting into the table. It is easy to see that
+when there is a matching message and request, both the server and a thread 
+are having the same signature and key. Depending on which comes first the algorithm
+goes into two cases. If the communication server succeeds with the hash
+insertion, the server knows the receiving request has not been posted and it
+returns immediately. A thread later comes, eventually fails the insertion but
+finds a packet with the needed data to work with. On the other hand, if the
+thread is the one who succeeds, the request is then inserted into the
+hash-table with the synchronization object.  The thread is yielded by executing
+\texttt{ThreadWait}. The worker is now free to do other works. When the
+associated packet arrived, the server will fail the insertion and find the
+request with the attached synchronization object. It now can mark the thread as
+schedulable using \texttt{ThreadSignal} so when the worker is available it will
+pick up the works with the available data.
 
 Since there is no need for linear searching, our matching algorithm achieves a
 constant time complexity as long as operation of thread scheduler, pool and
