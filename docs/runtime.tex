@@ -232,7 +232,45 @@ Clearly, optimizing the hash-table, the packet pool and the thread scheduler
 operations are the key to achieve good performance for our protocols. One could
 achieve $O(1)$ amortized in complexity however, an efficient implementation
 requires optimizing for the constant factor. Ideally, we want these operations
-to be \textit{wait-free} to ensure progress and minimizing the number of memory
-accesses and possible cache misses. In the next section, we describe the
-implementaion of each of the three components and show how we could optimize
-toward our goals.
+to be \textit{wait-free} (every operation has a bound on number of steps before
+completion) to ensure progress and guarantee system-wide throughput. Moreover, we 
+want to minimize memory accesses thus reducing possible cache miss. In the next
+section, we describe the implementaion of each of the three components and show
+how we could optimize toward our goals.
+
+\subsection{Supporting wild-cards}
+Although it is out of the scope of this paper to deal with wild-cards, we
+provide here some possible options to mitigate existing applications. A
+MPI-complete implementation could be built on top of our foundation but
+possibly losing some of the properties that we want for performance. However,
+among the applications that we have looked at, these mitigation approaches are
+often sufficient.
+
+An application depending on \texttt{MPI_ANY_TAG} can be rewritten such
+that the receiver can have a tag (Note that the sender always has a valid tag).
+There are two cases:
+\begin{itemize}
+  \item Number of expecting tags are bounded and deterministic: one can spawn a
+    number of threads, each posts a \texttt{MPI_Recv} for a valid expecting
+    tag and subsequently performs actions associating with that tag. 
+  \item The number of tags is un-bounded or non-deterministic: the sender
+    can help by first sending its tag to the receiver via a pre-defined tag.
+    Once sender and receiver agrees on the generated tag, they can proceed
+    the communication.
+\end{itemize}
+
+The remedy for \texttt{MPI_ANY_SOURCE} is similar to \texttt{MPI_ANY_TAG} when
+there is a bounded and deterministic number of source ranks. It is harder in
+the other case since there is no way to notify the receiver of its sender
+unless there is a 3rd-party channel. For example, we could introduce a special
+\texttt{MPI_Send_anysource} procedure, in which the sender expects the receiver
+to post a \texttt{MPI_ANY_SOURCE}. In that case, when the sender receives this
+special packet, it will ignore the rank of the sender and uses a special tag
+associated with \texttt{MPI_ANY_TAG} to match into the hash-table.
+
+When there is concurrent send/recv with the same signature (rank, tag,
+communicator), one can add to the tag value a session counter increasing
+atomically with each send/recv posted message to ensure order. When this is not
+possible, relaxing the hash-table to allow redundant entries with the same key
+is required. We refer the reader to an alternative algorithm introduced
+recently by Intel to allow matching using such hash-tables \cite{m5}. 

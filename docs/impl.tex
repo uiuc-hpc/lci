@@ -189,9 +189,9 @@ running in a different core. This leads to several cache misses since the cachel
 is momently owned by the first thread. An example is when two threads running in 
 two different cores alternatively perform \texttt{MPI_Send}.
 
-\begin{figure}[!h]
+\begin{figure}[t]
   \centering 
-  \includegraphics[width=0.25\textwidth]{fig/packetlife.pdf}
+  \includegraphics[width=0.3\textwidth]{fig/packetlife.pdf}
   \caption{Packet life cycle: (1) A thread sending data obtain a packet from the
     pool; (2) The thread writes data into the packet and submit it to the NIC;
     (1', 2') Communication server obtains a packet for receiving data
