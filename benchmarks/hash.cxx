@@ -1,4 +1,4 @@
-#define CONFIG_TBL_SIZE 16
+#define CONFIG_TABLE_SIZE 16
 
 #include "hashtable/hashtbl.h"
 #include "hashtable/arr_hashtbl.h"
@@ -36,20 +36,21 @@ void benchmark_insert_with_delete() {
   ti1 = ti2 = 0;
   std::atomic<int> f1, f2;
 
-  std::vector<double> times(NTHREADS, 0.0);
+  std::vector<double> times(TOTAL_LARGE - SKIP_LARGE, 0.0);
 
   affinity::set_me_to_(0);
   for (int j=0; j<TOTAL_LARGE; j++)  {
     f1 = f2 = 0;
     auto t1 = std::thread([&]{
-        affinity::set_me_to_(1);
+        affinity::set_me_to_(0);
         mpiv_value v;
         v.v = (void*) 1;
         BARRIER(f1, NTHREADS + 1)
         if (whofirst == THREADS) BARRIER(f2, NTHREADS + 1)
         if (j >= SKIP_LARGE) ti1 -= wtime();
         for (int i = 0; i < NUM_INSERTED; i++) {
-          my_table.insert(i, v);
+          bool ret = my_table.insert(i, v);
+          if (whofirst == SERVER) assert(ret); else assert(!ret);
         }
         if (j >= SKIP_LARGE) ti1 += wtime();
         if (whofirst == SERVER) BARRIER(f2, NTHREADS + 1);
@@ -59,16 +60,17 @@ void benchmark_insert_with_delete() {
  
     for (int tt = 0; tt < NTHREADS; tt++) {
     th[tt] = std::move(std::thread([tt, j, &times, &my_table, &ti2, &f1, &f2] {
-        affinity::set_me_to_(tt + 2);
+        affinity::set_me_to_(tt + 1);
         mpiv_value v;
         v.v = (void*) 2;
         BARRIER(f1, NTHREADS + 1)
         if (whofirst == SERVER) BARRIER(f2, NTHREADS + 1);
-        if (j >= SKIP_LARGE) times[tt] -= wtime();
+        if (j >= SKIP_LARGE && tt == 0) times[j - SKIP_LARGE] -= wtime();
         for (int i = tt; i < NUM_INSERTED; i+=NTHREADS) {
-          my_table.insert(i, v);
+          bool ret = my_table.insert(i, v);
+          if (whofirst == SERVER) assert(!ret); else assert(ret);
         }
-        if (j >= SKIP_LARGE) times[tt] += wtime();
+        if (j >= SKIP_LARGE && tt == 0) times[j - SKIP_LARGE] += wtime();
         if (whofirst == THREADS) BARRIER(f2, NTHREADS + 1);
     }));
     }
@@ -87,10 +89,11 @@ void benchmark_insert_with_delete() {
   qu[0] = (size % 2==1)?(times[size/2]):((times[size/2-1] + times[size/2])/2); // median
   qu[1] = times[size*3/4]; //u q
   qu[2] = times[size/4]; //d q
-  qu[3] = times[size-1]; // max
-  qu[4] = times[0]; // min
+  double iq = qu[1] - qu[2];
+  qu[3] = std::min(qu[1] + 1.5*iq, times[size - 1]); // max
+  qu[4] = std::max(qu[2] - 1.5*iq, times[0]); // min
 
-  for (auto &q : qu) q = q * 1e6 / (NUM_INSERTED_PER_THREAD) / (TOTAL_LARGE - SKIP_LARGE);
+  for (auto &q : qu) q = q * 1e6 / (NUM_INSERTED_PER_THREAD);// / (TOTAL_LARGE - SKIP_LARGE);
 
   if (whofirst == SERVER) {
     printf("Time insert (server): %.3f\n", 1e6 * ti1/(NUM_INSERTED)/(TOTAL_LARGE - SKIP_LARGE));
@@ -123,9 +126,11 @@ int main(int argc, char** args) {
   benchmark_insert_with_delete<arr_hashtbl, SERVER>();
   benchmark_insert_with_delete<cock_hashtbl, SERVER>();
   benchmark_insert_with_delete<tbb_hashtbl, SERVER>();
+  // benchmark_insert_with_delete<folly_hashtbl, SERVER>();
 
   benchmark_insert_with_delete<arr_hashtbl, THREADS>();
   benchmark_insert_with_delete<cock_hashtbl, THREADS>();
   benchmark_insert_with_delete<tbb_hashtbl, THREADS>();
+  // benchmark_insert_with_delete<folly_hashtbl, THREADS>();
   return 0;
 }
