@@ -171,8 +171,8 @@ same tag is allowed.
 In conclusion, with the above optimization, the \texttt{empty} operation is
 lock-free and wait-free, costs only 1 memory write. The \texttt{insert}
 operation is cache-friendly and is typically wait-free, costs also 1 memory
-write in the common case of no hash collision (write is made to spin-lock;
-other accesses are in cache).
+write in the common case of no hash collision. Including the spin-lock,
+our cost can be as low as two memory writes.
 
 \subsection{Concurrent Packet Pool}
 In general, the packet pool can be implemented using a lockfree stack. A pool
