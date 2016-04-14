@@ -3,6 +3,7 @@
 
 #include <utility>
 #include <stdlib.h>
+#include <stdint.h>
 
 using std::pair;
 using std::make_pair;

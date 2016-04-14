@@ -8,16 +8,10 @@ class cock_hashtbl : base_hashtbl {
  public:
   void init() override {}
 
-  pair<value_type, hint_type> insert(const key_type& key,
-                                     const value_type& value) override {
-    value_type ret = value;
-    tbl_.upsert(key, [&ret](mpiv_value& v) { ret.v = v.v; }, value);
-    return make_pair(ret, 0);
-  }
-
-  void erase(const key_type& key, hint_type t) override {
-    (void)t;
-    tbl_.erase(key);
+  bool insert(const key_type& key, value_type& value) override {
+    bool ret = true;
+    tbl_.upsert(key, [&ret, &value](mpiv_value& v) { value.v = v.v; ret = false; }, value);
+    return ret;
   }
 
  private:

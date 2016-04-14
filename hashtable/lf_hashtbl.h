@@ -11,16 +11,15 @@ class lf_hashtbl : base_hashtbl {
  public:
   void init() override { tbl_ = qt_hash_create(0); }
 
-  pair<value_type, hint_type> insert(const key_type& key,
-                                     const value_type& value) override {
-    value_type ret = value;
+  bool insert(const key_type& key, value_type& value) override {
+    value_type ret;
     ret.v = qt_hash_put(tbl_, (const void*)key, value.v);
-    return make_pair(ret, 0);
-  }
-
-  void erase(const key_type& key, hint_type t) override {
-    (void)t;
-    qt_hash_remove(tbl_, (const void*)key);
+    if (ret.v == value.v) return true;
+    else {
+      value = ret;
+      qt_hash_remove(tbl_, (const void*)key);
+      return false;
+    }
   }
 
  private:
