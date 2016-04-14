@@ -7,9 +7,10 @@ GXX = gcc
 CXXFLAGS += -g3 -O3 -Wall -Wextra -I../fult -I../\
 		#-DNDEBUG
 
-LDFLAGS += -L/opt/ofed/lib64 -libverbs
+LDFLAGS += -L/opt/ofed/lib64 -libverbs #-L/opt/apps/intel/15/composer_xe_2015.2.164/tbb/lib/intel64/gcc4.4/ -ltbb -ltbbmalloc
 
 CUCKOO_INC = $(HOME)/libcuckoo/include
+TBB_INC = /opt/apps/intel/15/composer_xe_2015.2.164/tbb/include/
 
 BOOST_INC = $(TACC_BOOST_INC) #/usr/local/boost/1.58.0/include
 BOOST_LIB = $(TACC_BOOST_LIB)
@@ -26,7 +27,7 @@ MFCONTEXT = ../fult/make_x86_64_sysv_elf_gas.S
 
 CXXFLAGS_NOBOOST = -I$(ABT_INC)
 
-CXXFLAGS += -std=c++11  -I$(BOOST_INC) -I$(ABT_INC) -I$(CUCKOO_INC) -I$(RDMAX_INC) -I$(IBV_INC) -I$(TACC_PAPI_INC) #-fsplit-stack -DBOOST_USE_SEGMENTED_STACKS
+CXXFLAGS += -std=c++11  -I$(BOOST_INC) -I$(ABT_INC) -I$(CUCKOO_INC) -I$(TBB_INC) -I$(RDMAX_INC) -I$(IBV_INC) -I$(TACC_PAPI_INC) #-fsplit-stack -DBOOST_USE_SEGMENTED_STACKS
 LDFLAGS += -L$(TACC_PAPI_LIB) -lpapi -L$(BOOST_LIB)# -llmpe -lmpe
 
 all: $(TARGET)

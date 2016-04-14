@@ -8,7 +8,11 @@
 #include "config.h"
 
 static const uint64_t EMPTY = (uint64_t)-1;
+#ifndef CONFIG_TABLE_SIZE
 static const int TBL_BIT_SIZE = 8;
+#else
+static const int TBL_BIT_SIZE = CONFIG_TABLE_SIZE;
+#endif
 static const int TBL_WIDTH = 4;
 
 // static_assert((1 << TBL_BIT_SIZE) >= 4 * MAX_CONCURRENCY,

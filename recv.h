@@ -27,20 +27,14 @@ inline void MPIV_Recv_short(void* buffer, int size, int rank, int tag,
   // Find if the message has arrived, if not go and make a request.
   startt(tbl_timing);
   auto inserted = MPIV.tbl.insert(key, value);
-  auto in_val = inserted.first;
   stopt(tbl_timing);
 
-  mpiv_packet* p_ctx = NULL;
-
-  if (xunlikely(value.v == in_val.v)) {
-    // Nothing to do.
-    return;
-  } else {
+  if (inserted.first.v != value.v) {
     startt(tbl_timing);
     MPIV.tbl.erase(key, inserted.second);
     stopt(tbl_timing)
 
-    p_ctx = in_val.packet;
+    mpiv_packet* p_ctx = inserted.first.packet;
     startt(memcpy_timing);
     memcpy(buffer, p_ctx->buffer(), size);
     stopt(memcpy_timing);
@@ -49,7 +43,10 @@ inline void MPIV_Recv_short(void* buffer, int size, int rank, int tag,
     MPIV.pkpool.ret_packet_to(p_ctx, wid);
     stopt(post_timing);
     s->done_ = true;
-  }
+  } /*else {
+     s->key = key;
+     s->hint = inserted.second;
+  }*/
 }
 
 void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank,
@@ -87,7 +84,6 @@ void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
   } else {
     MPIV_Recv_rndz(buffer, size, rank, tag, s);
   }
-
   // Someone has to wait.
 }
 

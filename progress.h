@@ -19,10 +19,8 @@ void mpiv_recv_recv_ready(mpiv_packet* p) {
   mpiv_value value;
   value.packet = p;
   auto entry = MPIV.tbl.insert(key, value);
-  if (entry.first.v != value.v) {
-    MPIV_Request* s = entry.first.request;
-    mpiv_complete_rndz(p, s);
-    MPIV.tbl.erase(key, entry.second);
+  if (xlikely(entry.first.v != value.v)) {
+    mpiv_complete_rndz(p, entry.first.request);
   }
 }
 
@@ -49,11 +47,11 @@ void mpiv_recv_short(mpiv_packet* p) {
   stopt(tbl_timing);
 
   if (xlikely(value.v != in_val.v)) {
-    // comm-thread comes later.
-    startt(tbl_timing);
+    //startt(tbl_timing);
     MPIV.tbl.erase(key, inserted.second);
-    stopt(tbl_timing)
+    //stopt(tbl_timing)
 
+    // comm-thread comes later.
     MPIV_Request* req = in_val.request;
     memcpy(req->buffer, p->buffer(), req->size);
 
@@ -62,33 +60,12 @@ void mpiv_recv_short(mpiv_packet* p) {
   }
 }
 
-void mpiv_recv_send_ready(mpiv_packet* p) {
-  mpiv_value remote_val;
-  remote_val.request = (MPIV_Request*)p->rdz_sreq();
-
-  mpiv_key key = p->get_key();  // mpiv_make_key(p->header.from, p->header.tag);
-  MPIV.pkpool.ret_packet(p);
-
-  startt(tbl_timing);
-  auto value = MPIV.tbl.insert(key, remote_val).first;
-  stopt(tbl_timing);
-
-  if (value.v == remote_val.v) {
-    // This will be handle by the thread,
-    // so we return right away.
-    return;
-  }
-  MPIV_Request* req = value.request;
-  mpiv_send_recv_ready(remote_val.request, req);
-}
-
 typedef void (*p_ctx_handler)(mpiv_packet* p_ctx);
 static p_ctx_handler* handle;
 
 static void mpiv_progress_init() {
   posix_memalign((void**)&handle, 64, 64);
   handle[SEND_SHORT] = mpiv_recv_short;
-  handle[SEND_READY] = mpiv_recv_send_ready;
   handle[RECV_READY] = mpiv_recv_recv_ready;
   handle[SEND_READY_FIN] = mpiv_recv_send_ready_fin;
 }

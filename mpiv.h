@@ -19,7 +19,6 @@
 
 #include "except.h"
 #include "rdmax.h"
-#include "request.h"
 
 #include "hashtable/hashtbl.h"
 #include "packet/packet_manager.h"
@@ -61,6 +60,8 @@ void* mpiv_malloc(size_t size) {
   if (ptr == 0) throw std::runtime_error("no more memory\n");
   return ptr;
 }
+
+#include "request.h"
 
 void mpiv_free(void* ptr) { MPIV.ctx.heap_segment.deallocate(ptr); }
 

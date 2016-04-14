@@ -13,12 +13,13 @@ inline void MPIV_Send_rdz(MPIV_Request* s) {
   mpiv_key key = mpiv_make_key(s->rank, (1 << 31) | s->tag);
   mpiv_value value;
   value.request = s;
-  auto entry = MPIV.tbl.insert(key, value);
-  mpiv_packet* p;
-  if (entry.first.v != value.v) {
-    p = entry.first.packet;
-    mpiv_complete_rndz(p, s);
-    MPIV.tbl.erase(key, entry.second);
+  auto inserted = MPIV.tbl.insert(key, value);
+  if (inserted.first.v != value.v) {
+    MPIV.tbl.erase(key, inserted.second);
+    mpiv_complete_rndz(inserted.first.packet, s);
+  } else {
+    s->key = key;
+    s->hint = inserted.second;
   }
 }
 
@@ -64,16 +65,11 @@ void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
   int size = 0;
   MPI_Type_size(datatype, &size);
   size = count * size;
-  new (req) MPIV_Request(rank, tag);
-
   if (size <= SHORT_MSG_SIZE) {
     MPIV_Send_short(buf, size, rank, tag);
     req->done_ = true;
   } else {
-    req->buffer = (void*)buf;
-    req->size = size;
-    req->rank = rank;
-    req->tag = tag;
+    new (req) MPIV_Request((void*) buf, size, rank, tag);
     MPIV_Send_rdz(req);
   }
 }
