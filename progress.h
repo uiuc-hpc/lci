@@ -18,9 +18,8 @@ void mpiv_recv_recv_ready(mpiv_packet* p) {
   mpiv_key key = p->get_rdz_key();
   mpiv_value value;
   value.packet = p;
-  auto entry = MPIV.tbl.insert(key, value);
-  if (xlikely(entry.first.v != value.v)) {
-    mpiv_complete_rndz(p, entry.first.request);
+  if (!MPIV.tbl.insert(key, value)) {
+    mpiv_complete_rndz(p, value.request);
   }
 }
 
@@ -41,18 +40,9 @@ void mpiv_recv_short(mpiv_packet* p) {
   value.packet = p;
   stopt(misc_timing);
 
-  startt(tbl_timing);
-  auto inserted = MPIV.tbl.insert(key, value);
-  auto in_val = inserted.first;
-  stopt(tbl_timing);
-
-  if (xlikely(value.v != in_val.v)) {
-    //startt(tbl_timing);
-    MPIV.tbl.erase(key, inserted.second);
-    //stopt(tbl_timing)
-
+  if (!MPIV.tbl.insert(key, value)) {
     // comm-thread comes later.
-    MPIV_Request* req = in_val.request;
+    MPIV_Request* req = value.request;
     memcpy(req->buffer, p->buffer(), req->size);
 
     MPIV_Signal(req);

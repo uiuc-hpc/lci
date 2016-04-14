@@ -95,9 +95,7 @@ class arr_hashtbl : base_hashtbl {
     tbl_ = create_table(1 << TBL_BIT_SIZE);
   }
 
-  pair<value_type, hint_type> insert(const key_type& key,
-                                     const value_type& value) override {
-    value_type ret = value;
+  bool insert(const key_type& key, value_type& value) override {
     uint32_t hash = myhash(key);
     int bucket = hash * TBL_WIDTH;
     int checked_slot = 0;
@@ -112,9 +110,10 @@ class arr_hashtbl : base_hashtbl {
       auto tag = hentry->entry.tag;
       // If the key is the same as tag, someone has inserted it.
       if (tag == key) {
-        ret.v = hentry->entry.val;
+        value.v = hentry->entry.val;
+        hentry->clear();
         master.unlock();
-        return make_pair(ret, (uintptr_t)hentry);
+        return false;
       } else if (tag == EMPTY) {
         // Ortherwise, if the tag is empty, we record the slot.
         // We can't return until we go over all entries.
@@ -147,13 +146,7 @@ class arr_hashtbl : base_hashtbl {
     empty_hentry->entry.tag = key;
     empty_hentry->entry.val = value.v;
     master.unlock();
-    return make_pair(ret, (uintptr_t)empty_hentry);
-  }
-
-  /** wait-free!! TODO(danghvu): as long as no concurrent p2p with same tag ?*/
-  void erase(const key_type&, hint_type hint) override {
-    auto* hentry = (hash_val*)hint;
-    hentry->clear();
+    return true;
   }
 
  private:

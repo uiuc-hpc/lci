@@ -13,13 +13,8 @@ inline void MPIV_Send_rdz(MPIV_Request* s) {
   mpiv_key key = mpiv_make_key(s->rank, (1 << 31) | s->tag);
   mpiv_value value;
   value.request = s;
-  auto inserted = MPIV.tbl.insert(key, value);
-  if (inserted.first.v != value.v) {
-    MPIV.tbl.erase(key, inserted.second);
-    mpiv_complete_rndz(inserted.first.packet, s);
-  } else {
-    s->key = key;
-    s->hint = inserted.second;
+  if (!MPIV.tbl.insert(key, value)) {
+    mpiv_complete_rndz(value.packet, s);
   }
 }
 
