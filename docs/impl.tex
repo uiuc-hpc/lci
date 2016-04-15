@@ -98,11 +98,11 @@ executed anywhere. Thus, It is errornous to perform \texttt{ThreadSignal}
 multiple times on the same object since they will be treated as one or more
 signal depending on the time the worker looks at the bit-vector. It is also
 erronous to \texttt{ThreadWait} when the associted \texttt{ThreadSignal} has
-been performed. In practise for each MPI request we use an additional flag to
-indicate whether the signal has been executed before performing the
-\texttt{ThreadWait}. This is important for non-blocking communication in the
-case of \texttt{MPI_Waitall} since the communication can be completed before
-the thread attempts to wait.
+been performed. Thus, to support efficient non-blocking communication and
+different flavor of \texttt{MPI_Wait*}, we have to build a more powerful
+synchronization.  A workaround is to spawn a thread for each non-blocking
+communication so that they have their own synchronization object, and we
+currently doing this when appropriate.
 
 The next issue is that the performance shall degrades when we increase the
 maximum number of threads since iterating over the bit-vector word by word is
@@ -176,7 +176,7 @@ our cost can be as low as two memory writes.
 
 \subsection{Concurrent Packet Pool}
 In general, the packet pool can be implemented using a lockfree stack. A pool
-\texttt{free} is translated to a stack \texttt{push}, and \texttt{alloc} is
+\texttt{ret} is translated to a stack \texttt{push}, and \texttt{get} is
 translated to a stack \texttt{pop}. At the initialization, a fixed number of
 packet is initialized from the main memory and \texttt{push} to the container.
 The Last-In-First-Out (LIFO) property allows good temporal locality for
@@ -217,13 +217,10 @@ packet is received first. Moreover, when the packet is posted by the server
 to the NIC for receiving data, the packet shall lose any affinity it has since
 the NIC will perform a write over the packet.
 
-Analysing the packet life cycle motivates us a new design for the packet pool.
-We split the centralized packet management into a private pool per worker and a
-shared pool per communication worker. Initially, there is a fixed number of
-packets for each of the pool. At runtime, we design an algorithms to allow
-moving packets among those pool depending on their usages.  Our goal is to
-maintain good locality per hardware thread but does not block if there is
-available resources.
+Analysing the packet life cycle naturally motivates us a new design for the
+packet pool: split the centralized packet management into a private pool per
+worker. Initially, there is a fixed number of packets for each of the pool. At
+runtime, we allow moving packets among those pools via \textit{resource-stealing}.
 
 The private pool consists of packets that are identified as having affinity of
 the associated hardware thread. It is implemented as a fixed size double-ended
@@ -231,23 +228,13 @@ queue (deque). The deque has three main operations: \texttt{popTop},
 \texttt{pushTop}, and \texttt{popBottom} which allows LIFO accessing at the top
 of the queue, and also allows poping from its bottom. The idea is that at the
 bottom of the deque are packets that are least recently used and are better
-candidates for other purposes. That is, when the private pool is full, it
-performs \texttt{popBottom} and pushed back to the shared pool.
+candidates for other purposes. 
 
 When a packet for sending is needed by a thread, a \texttt{popTop} is performed
 with the private pool of the current worker, which guarantees giving the last
 packet that was read or written by the same worker. If the private pool is
-empty, the shared pool is accessed for extra packets.  Alternatively, when a
-packet is needed for receiving data by the communication server, the server
-first try to obtains packets from its shared pool. If the shared pool is empty,
-the server now performs a \textit{steal} by randomly chosing a private pool and
-perform the \texttt{popBottom} operation.
-
-The private pools can be thought as caches, and the shared pool can be thought
-as the main memory. When ``the cache'' is full, it evicts the least recently
-used to the ``main memory''. Our heuristic essentially performs
+empty, It performs a \textit{steal} by randomly chosing another private pool and
+perform the \texttt{popBottom} operation. Our algorithms essentially performs
 resource-balancing among the set of packets by moving it around pools with the
-locality taken into account. Since the private pool is only shared between a
-worker thread and the communication server, currently we implemented it using a
-simple fixed-size buffer with a spinlock. The shared pool is accessed by more
-than two threads, thus implemented using a lock-free stack.
+locality taken into account. Currently we implement the pool using a simple
+fixed-size ring-buffer with a spinlock.

@@ -48,8 +48,10 @@ to be reduced to optimizing a few neccessary operations.
 Resource management is another important issue. Aside from communication
 context such as connections and NIC-provided control data which we maintains
 per communication server, we have to maintain a pool of packets structure. The
-pool is the second shared data structure of the runtime.  Each packet is used
-for storing control and message data to deliver to network device.
+pool is the second shared data structure of the runtime. The two basic operations
+are \texttt{get} and \texttt{ret} which obtains and returns a packet from/to
+the pool respectively. Each packet is used for storing control and message data
+to deliver to network device.
 
 \begin{figure*}[!ht]
   \centering

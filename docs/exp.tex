@@ -2,11 +2,11 @@
 \pgfplotstableread{data/tablefind.dat}\mytablefind
 
 \begin{figure*}[ht]
-  \begin{adjustbox}{width=\textwidth}
-    \centering
-    \begin{subfigure}{\columnwidth}
+  \centering
+  \begin{adjustbox}{width=.8\textwidth}
+    \subfigure[Latency per successful \texttt{insert}.]{
       \centering
-      \begin{tikzpicture}[scale=0.9]
+      \begin{tikzpicture}[scale=.8]
         \begin{axis}[xlabel=N Threads, ylabel=Latency (usec), ymin=0, scaled ticks=false, tick label style={/pgf/number format/fixed},
             boxplot/draw direction=y,
             ytick distance={0.1},
@@ -26,12 +26,11 @@
           }
         \end{axis}
       \end{tikzpicture}
-      \caption{Latency per successful \texttt{insert}.}
-    \end{subfigure}
+    }
 
-    \begin{subfigure}{\columnwidth}
+    \subfigure[Latency per fail \texttt{insert} followed by an \texttt{erase}.]{
       \centering
-      \begin{tikzpicture}[scale=0.9]
+      \begin{tikzpicture}[scale=.8]
         \begin{axis}[xlabel=N Threads, ylabel=Latency (usec), ymin=0, scaled ticks=false, tick label style={/pgf/number format/fixed},
             boxplot/draw direction=y,
             ytick distance={0.1},
@@ -51,22 +50,22 @@
           }
         \end{axis}
       \end{tikzpicture}
-      \caption{Latency per fail \texttt{insert} followed by an \texttt{erase}.}
-    \end{subfigure}
+    }
   \end{adjustbox}
 
   \caption{Latency of our hash-table implementation (\textit{arr}) in comparison
   to libcuckoo (\textit{ch}) and tbb concurrent hash map (\textit{tbb}).  Each
-  hash-table is initiailzied with the initial size of $2^{16}$, the number of
+  hash-table is created with the initial size of $2^{16}$, the number of
   insertion per thread is chosen so that there is enough room and no expansion is
   required. TBB is also compiled with \textit{tbb-malloc} to improve performance.
   Latency exceeds an 0.5 microsecond is not shown.\label{fig:hash-table}}
 
 \end{figure*}
 
-\subsection{Runtime Overhead}
-In this section, we evaluate empirically each components of our runtime and
-justify the overhead that we have previously estimated.
+\subsection{Component overheads}
+In this section we evaluate our implementation of each individual component.
+Understanding them individually gives us an idea on the minimum cost of the overall
+system.
 
 \subsubsection{Concurrent Hash-Table}
 To evaluate the overhead due to hash-table operations, we measure the latency 
@@ -94,29 +93,30 @@ as 50 nanosecond. This latency is consitent with our expectation that our cost
 for the hash-table is equivalent to 2 memory writes.
 
 \subsubsection{Concurrent Packet Pool}
-We describe here an experiment to evaluate the overhead due to packet pool.
+The overhead due to packet pool is measured as the sum of the latency of
+\texttt{get} and \texttt{ret} operation. We evaluate this quantity by performs
+a random number of \texttt{get} followed by the same number of \texttt{ret} in
+each thread. The range of the random number is chosen so that the sum of all
+threads does not exceed the total number of available packets: the maximum is
+number of packets divided by number of threads.
 
 \subsubsection{Thread scheduler}
-\subsubsection{Overall latency for single-threaded case}
-\begin{figure}
-  \centering 
-  \includegraphics[width=0.4\textwidth]{fig/overhead.png}
-  \caption{Overhead in comparison to raw network latency.}
-\end{figure}
+The overhead due to thread scheduler is measured as scheduling time which consists
+of two components:
+\begin{itemize}
+    \item Mark a thread as schedulable: the latency of a \texttt{ThreadSignal}.
+    \item Finding schedulable threads: the latency taken when the scheduler is free
+      until it finds a thread to execute i.e. time taken when thread is yielded until
+      it is picked up again.
+\end{itemize}
 
-\subsection{Micro-benchmarks}
-In this section, we measure overall latency and message rate of the runtime
-under single and multi-threaded executions. We use the OSU benchmarks for
-latency measurement and Sandia multi-threaded benchmarks for messsage rate
-measurement. We compare our runtime (denoted as MPIV) with MVAPICH2.
-
-%\begin{figure}
-%  \centering 
-%  \includegraphics[width=0.5\textwidth]{fig/pingpong.png}
-%  \caption{Comparing latency using OSU benchmarks using 1-thread
-%  in 1-worker and 12-threads in 12-workers.} 
-%\end{figure}
-
-\subsection{Applications}
-We shows BFS, UTS, Stencil.
-
+\subsection{Microbenchmarks and Application Evaluation}
+App/benchmarks: pingpong, pingpong_mt, stencil, ?bfs, ?uts.
+This is the plan:
+  \begin{verbatim}
+  We compare multi-threaded apps/benchmarks with:
+    - MVAPICH2: original MPI.
+    - MPI-PTHREAD-POOL: hash-table
+    - MPI-PTHREAD: hash-table + pool
+    - MPI-FULL: hash-table + pool + thread
+  \end{verbatim}
