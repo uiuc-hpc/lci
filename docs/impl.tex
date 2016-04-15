@@ -225,16 +225,16 @@ runtime, we allow moving packets among those pools via \textit{resource-stealing
 The private pool consists of packets that are identified as having affinity of
 the associated hardware thread. It is implemented as a fixed size double-ended
 queue (deque). The deque has three main operations: \texttt{popTop},
-\texttt{pushTop}, and \texttt{popBottom} which allows LIFO accessing at the top
-of the queue, and also allows poping from its bottom. The idea is that at the
-bottom of the deque are packets that are least recently used and are better
-candidates for other purposes. 
+\texttt{pushTop}, and \texttt{popBottom} which allows LIFO accessing at the one
+end and taking items from the other end. The idea is that at the bottom of the
+deque are packets that are least recently used and are better candidates for
+other purposes. 
 
-When a packet for sending is needed by a thread, a \texttt{popTop} is performed
-with the private pool of the current worker, which guarantees giving the last
-packet that was read or written by the same worker. If the private pool is
-empty, It performs a \textit{steal} by randomly chosing another private pool and
-perform the \texttt{popBottom} operation. Our algorithms essentially performs
+When a packet is needed, a \texttt{popTop} is performed with the private pool
+of the current worker, which guarantees giving the last packet that was read or
+written by the same worker. If the private pool is empty, It performs a
+\textit{steal} by randomly chosing another private pool and perform the
+\texttt{popBottom} operation. Our algorithms essentially performs
 resource-balancing among the set of packets by moving it around pools with the
 locality taken into account. Currently we implement the pool using a simple
 fixed-size ring-buffer with a spinlock.

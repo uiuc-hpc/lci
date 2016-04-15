@@ -1,5 +1,6 @@
 \pgfplotstableread{data/tableinsert.dat}\mytableinsert
 \pgfplotstableread{data/tablefind.dat}\mytablefind
+\pgfplotstableread{data/pool.dat}\mytablepool
 
 \begin{figure*}[ht]
   \centering
@@ -19,7 +20,7 @@
           \addlegendimage{area legend,fill=blue,draw=black}; \addlegendentry{ch};
           \addlegendimage{area legend,fill=black,draw=black}; \addlegendentry{tbb};
 
-          \pgfplotsinvokeforeach{3,...,23}{
+          \pgfplotsinvokeforeach{0,...,23}{
             \addplot+[boxplot prepared from table={table=\mytableinsert,
               row=#1, lower whisker=lw, upper whisker=uw, lower quartile=lq, upper quartile=uq,
             median=med, draw position=nthreads}, boxplot prepared] coordinates {};
@@ -43,7 +44,7 @@
           \addlegendimage{area legend,fill=blue,draw=black}; \addlegendentry{ch};
           \addlegendimage{area legend,fill=black,draw=black}; \addlegendentry{tbb};
 
-          \pgfplotsinvokeforeach{3,...,23}{
+          \pgfplotsinvokeforeach{0,...,23}{
             \addplot+[boxplot prepared from table={table=\mytablefind,
               row=#1, lower whisker=lw, upper whisker=uw, lower quartile=lq, upper quartile=uq,
             median=med, draw position=nthreads}, boxplot prepared] coordinates {};
@@ -65,8 +66,7 @@
 \subsection{Component overheads}
 In this section we evaluate our implementation of each individual component.
 Understanding them individually gives us an idea on the minimum cost of the overall
-system.
-
+system. 
 \subsubsection{Concurrent Hash-Table}
 To evaluate the overhead due to hash-table operations, we measure the latency 
 on hash-table operations in the two following scenarios when performing them
@@ -78,12 +78,16 @@ in a number of POSIX threads:
     performs \texttt{erase}.
 \end{itemize}
 
- The two scenarious represent the only two possible runtime execution of the
+ The two scenarios represent the only two possible runtime execution of the
  hash-table in our algorithms, thus measuring the latency in both cases give us
  an idea on how it will add to the overhead of MPI procedure. To justify the
  benefit of customization, we also compare ourselves to two popular general
  purposes hash-tables: libcuckoo implementing cuckoo hashing (\textit{ch})
- \cite{chasing}, and TBB concurrent hashmap (\textit{tbb}) \cite{tbb}.
+ \cite{chasing}, and TBB concurrent hashmap (\textit{tbb}) \cite{tbb}. The
+ experiment is to create threads and have each performed a fixed number of
+ insertion (and erase) with different key to collect the mean latency. We ran
+ the experiment for $1000$ times and collect the summaries of the latency of a
+ thread. Between each run, we also perform a cache invalidation.
 
 Figure~\ref{fig:hash-table} shows the result of our experiment. In both cases,
 both TBB concurrent hash map and libcuckoo shows inconsistent latency when
@@ -93,12 +97,52 @@ as 50 nanosecond. This latency is consitent with our expectation that our cost
 for the hash-table is equivalent to 2 memory writes.
 
 \subsubsection{Concurrent Packet Pool}
+\begin{figure}[ht]
+%  \centering
+%  \begin{adjustbox}{width=.8\textwidth}
+%    \subfigure[Latency per successful \texttt{insert}.]{
+      \centering
+      \begin{tikzpicture}[scale=.8]
+        \begin{axis}[xlabel=N Threads, ylabel=Latency (usec), ymin=0, scaled ticks=false, tick label style={/pgf/number format/fixed},
+            boxplot/draw direction=y,
+            %ytick distance={0.1},
+            ymax={1},
+            %cycle list={{red,dashed},{blue,dashed},{black,dashed},{red},{blue},{black}},
+            cycle list={{red},{blue},{black}},
+            legend pos={north east}
+          ]
+          % hack to make legend
+          %\addlegendimage{area legend,fill=red,draw=black,dashed}; \addlegendentry{numa-cp};
+          %\addlegendimage{area legend,fill=blue,draw=black,dashed}; \addlegendentry{stack-cp};
+          %\addlegendimage{area legend,fill=black,draw=black,dashed}; \addlegendentry{queue-cp};
+          \addlegendimage{area legend,fill=red,draw=black}; \addlegendentry{numa};
+          \addlegendimage{area legend,fill=blue,draw=black}; \addlegendentry{stack};
+          \addlegendimage{area legend,fill=black,draw=black}; \addlegendentry{queue};
+
+          \pgfplotsinvokeforeach{0,...,23}{
+            \addplot+[boxplot prepared from table={table=\mytablepool,
+              row=#1, lower whisker=lw, upper whisker=uw, lower quartile=lq, upper quartile=uq,
+            median=med, draw position=nthreads}, boxplot prepared] coordinates {};
+          }
+        \end{axis}
+      \end{tikzpicture}
+      \caption{Latency of pool implementation vs. a lockfree pool and a lockfree queue
+        implementation, latency higher than 1 microsecond are not shown\label{fig:pool}.}
+%    }
+\end{figure}
+
 The overhead due to packet pool is measured as the sum of the latency of
-\texttt{get} and \texttt{ret} operation. We evaluate this quantity by performs
+\texttt{get} and \texttt{ret} operation. We evaluate this quantity by performing
 a random number of \texttt{get} followed by the same number of \texttt{ret} in
 each thread. The range of the random number is chosen so that the sum of all
 threads does not exceed the total number of available packets: the maximum is
 number of packets divided by number of threads.
+
+The result is shown in Figure \ref{fig:pool} in comparison with implementation
+using boost lockfree queue and lockfree stack. Our result for this benchmark
+outperforms others by a wide margin, especially when the number of threads
+increase. The great variation in latency per operation of a centralized pool is
+clearly due to memory conflicts in this type of access patterns.
 
 \subsubsection{Thread scheduler}
 The overhead due to thread scheduler is measured as scheduling time which consists
