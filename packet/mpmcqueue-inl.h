@@ -20,9 +20,11 @@ namespace ppli {
 constexpr size_t num_workers = 1;
 }
 
+extern __thread int wid;
+
 namespace ppl {
 
-constexpr int get_core() { return 0; }
+int get_core() { return wid; }
 
 template <typename Value>
 inline MPMCQueue<Value>::MPMCQueue() {
@@ -43,7 +45,8 @@ inline MPMCQueue<Value>::~MPMCQueue() {
 
 template <typename Value>
 inline void MPMCQueue<Value>::enqueue(Value n) {
-  // int close_tries = 0;  // Current number of attempts to close CRQ.
+  int close_tries = 0;  // Current number of attempts to close CRQ.
+  RingQueue* new_rq = NULL;
 
   while (true) {
     RingQueue* rq = tail;  // HAZARD.
@@ -56,9 +59,21 @@ inline void MPMCQueue<Value>::enqueue(Value n) {
 
     // Attempt to enqueue in CRQ rq.
     uint64_t crq_tail = FETCH_ADD(&rq->tail, 1);
-    /*if (unlikely(is_crq_closed(crq_tail))) {
-      throw std::runtime_error("Not enough space, pool is bounded.");
-    }*/
+    if (unlikely(is_crq_closed(crq_tail))) {
+      if (new_rq == NULL) { 
+        new_rq = new RingQueue();
+        init_ring(new_rq);
+      }
+      new_rq->tail = 1;
+      new_rq->array[0].val = n;
+      new_rq->array[0].idx = 0;
+      if (CAS(&rq->next, NULL, new_rq)) {
+        CAS(&tail, rq, new_rq);
+        return;
+      }
+      // Failure is okay: someone else appended a new CRQ to attempt enq to.
+      continue;
+    }
 
     RingNode* node = &rq->array[crq_tail & (RING_SIZE - 1)];
     write_prefetch(node);
@@ -71,17 +86,30 @@ inline void MPMCQueue<Value>::enqueue(Value n) {
         if ((likely(!node_unsafe(idx)) || rq->head < crq_tail) &&
             cas2_put_node(node, idx, n, crq_tail)) {
           // If we got here, we failed to append a new CRQ if we tried.
+          if (new_rq != NULL) delete new_rq;
           return;
         }
       }
     }
 
     // Enqueue failed. Possibly close CRQ.
-    // uint64_t crq_head = rq->head;
-    // if (unlikely((int64_t) (crq_tail - crq_head) >= (int64_t) RING_SIZE) &&
-    //    close_crq(rq, crq_tail, ++close_tries)) {
-    throw std::runtime_error("Not enough space, pool is bounded.");
-    //}
+    uint64_t crq_head = rq->head;
+    if (unlikely((int64_t) (crq_tail - crq_head) >= (int64_t) RING_SIZE) &&
+      close_crq(rq, crq_tail, ++close_tries)) {
+      // Attempt to add a new CRQ (see above).
+      if (new_rq == NULL) {
+        new_rq = new RingQueue();
+        init_ring(new_rq);
+      }
+      new_rq->tail = 1;
+      new_rq->array[0].val = n;
+      new_rq->array[0].idx = 0;
+      if (CAS(&rq->next, NULL, new_rq)) {
+        CAS(&tail, rq, new_rq);
+        new_rq = NULL;
+        return;
+      }
+    }
   }
 }
 
@@ -152,7 +180,10 @@ inline Value MPMCQueue<Value>::dequeue() {
         return MPMCQueue<Value>::get_default();
       }
       if (tail_index(rq->tail) <= crq_head + 1) {
-        throw std::runtime_error("Impossiboru!!! Pool is bounded");
+        if (CAS(&head, rq, next)) {
+          // Succeeded in removing rq.
+          // retired[get_core()].push_front(rq);
+        }
       }
     }
   }

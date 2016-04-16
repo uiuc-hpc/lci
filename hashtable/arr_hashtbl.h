@@ -121,7 +121,7 @@ class arr_hashtbl : base_hashtbl {
       }
 
       hentry++;
-      checked_slot += 1;
+      checked_slot++;
       // If we go over all entry, means no empty slot.
       if (checked_slot == (TBL_WIDTH - 1)) {
         // Moving on to the next.

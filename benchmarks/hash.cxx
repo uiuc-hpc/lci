@@ -26,6 +26,19 @@ enum type_t {
   THREADS,
 };
 
+int *cache_buf;
+int cache_size;
+
+static void
+cache_invalidate(void)
+{
+  int i;
+  cache_buf[0] = 1;
+  for (i = 1 ; i < cache_size ; ++i) {
+    cache_buf[i] = cache_buf[i - 1];
+  }
+}
+
 template<class HASH_T, type_t whofirst>
 void benchmark_insert_with_delete() {
   std::cout << typeid(HASH_T).name() << " " << whofirst << std::endl;
@@ -40,6 +53,7 @@ void benchmark_insert_with_delete() {
 
   affinity::set_me_to_(0);
   for (int j=0; j<TOTAL_LARGE; j++)  {
+    cache_invalidate();
     f1 = f2 = 0;
     auto t1 = std::thread([&]{
         affinity::set_me_to_(0);
@@ -122,6 +136,8 @@ int main(int argc, char** args) {
   benchmark_insert_with_delete<cock_hashtbl, NONE>();
   // benchmark_insert_with_delete<tbb_hashtbl, NONE>();
 #endif
+  cache_size = (8 * 1024 * 1024 / sizeof(int));
+  cache_buf = (int*) malloc(sizeof(int) * cache_size);
 
   benchmark_insert_with_delete<arr_hashtbl, SERVER>();
   benchmark_insert_with_delete<cock_hashtbl, SERVER>();

@@ -23,7 +23,7 @@ cd ${SLURM_SUBMIT_DIR}
 #module load boost/1.55.0
 
 ibrun -np 2 osu_latency
-ibrun -np 2 ./pingpong_2
+ibrun -np 2 ./pingpong_old
 ibrun -np 2 ./pingpong
 
 #lstopo -c

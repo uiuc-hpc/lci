@@ -1,7 +1,7 @@
 #ifndef BARRIER_H_
 #define BARRIER_H_
 
-const int MPIV_COLL_BASE_TAG_BARRIER = 1337;
+const int MPIV_COLL_BASE_TAG_BARRIER = 413371337;
 
 void MPIV_Barrier_log(MPI_Comm comm) {
 #if USE_MPE

@@ -39,7 +39,6 @@ void MPIV_Waitall(int count, MPIV_Request request[], MPI_Status*) {
 
 inline void MPIV_Signal(MPIV_Request* req) {
   fult* sync = req->sync;
-  req->done_ = true;
   sync->resume();
 }
 

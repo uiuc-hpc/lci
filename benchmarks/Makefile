@@ -4,13 +4,24 @@ TARGET = yield wait abt_yield abt_wait fibo abt_fibo fair \
 
 MPICXX = mpicxx
 GXX = gcc
-CXXFLAGS += -g3 -O3 -Wall -Wextra -I../fult -I../\
-		#-DNDEBUG
+CXXFLAGS += -g3 -O3 -Wall -Wextra -I../fult -I../
 
-LDFLAGS += -L/opt/ofed/lib64 -libverbs #-L/opt/apps/intel/15/composer_xe_2015.2.164/tbb/lib/intel64/gcc4.4/ -ltbb -ltbbmalloc
+LDFLAGS += -L/opt/ofed/lib64 -libverbs -L/opt/apps/intel/15/composer_xe_2015.2.164/tbb/lib/intel64/gcc4.4/ 
+
+### FOR TESTING HASH TABLE ###
+#FACEBOOK_INC = -I$(HOME)/facebook/include -I$(HOME)/glog/include -I$(HOME)/folly/folly/double-conversion #-DNDEBUG
+#FACEBOOK_LIB = -L$(HOME)/gflags/lib -lgflags -L$(HOME)/glog/lib -lglog -L$(HOME)/facebook/lib -lfolly -lpthread
+#CXXFLAGS += $(FACEBOOK_INC)
+#LDFLAGS += $(FACEBOOK_LIB)
 
 CUCKOO_INC = $(HOME)/libcuckoo/include
-TBB_INC = /opt/apps/intel/15/composer_xe_2015.2.164/tbb/include/
+
+### FOR TESTING TBB ###
+
+#TBB_INC = -I/opt/apps/intel/15/composer_xe_2015.2.164/tbb/include/
+#TBB_LIB = -ltbb -ltbbmalloc
+#LDFLAGS += $(TBB_LIB)
+#CXXFLAGS += $(TBB_INC)
 
 BOOST_INC = $(TACC_BOOST_INC) #/usr/local/boost/1.58.0/include
 BOOST_LIB = $(TACC_BOOST_LIB)
@@ -27,7 +38,7 @@ MFCONTEXT = ../fult/make_x86_64_sysv_elf_gas.S
 
 CXXFLAGS_NOBOOST = -I$(ABT_INC)
 
-CXXFLAGS += -std=c++11  -I$(BOOST_INC) -I$(ABT_INC) -I$(CUCKOO_INC) -I$(TBB_INC) -I$(RDMAX_INC) -I$(IBV_INC) -I$(TACC_PAPI_INC) #-fsplit-stack -DBOOST_USE_SEGMENTED_STACKS
+CXXFLAGS += -std=c++11  -I$(BOOST_INC) -I$(ABT_INC) -I$(CUCKOO_INC) -I$(RDMAX_INC) -I$(IBV_INC) -I$(TACC_PAPI_INC) #-fsplit-stack -DBOOST_USE_SEGMENTED_STACKS
 LDFLAGS += -L$(TACC_PAPI_LIB) -lpapi -L$(BOOST_LIB)# -llmpe -lmpe
 
 all: $(TARGET)

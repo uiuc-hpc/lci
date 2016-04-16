@@ -26,12 +26,15 @@ void mpiv_recv_recv_ready(mpiv_packet* p) {
 void mpiv_recv_send_ready_fin(mpiv_packet* p_ctx) {
   // Now data is already ready in the buffer.
   MPIV_Request* req = (MPIV_Request*)(p_ctx->rdz_rreq());
+  assert(req);
   startt(signal_timing);
   startt(wake_timing);
   MPIV_Signal(req);
   stopt(signal_timing);
   MPIV.pkpool.ret_packet(p_ctx);
 }
+
+void mpiv_post_recv(mpiv_packet*);
 
 void mpiv_recv_short(mpiv_packet* p) {
   startt(misc_timing);
@@ -80,6 +83,7 @@ inline void mpiv_serve_send(const ibv_wc& wc) {
     // this packet is taken directly from recv queue.
     MPIV.pkpool.ret_packet(p_ctx);
   } else {
+    // if (MPIV.server.need_recv()) // mpiv_post_recv(p_ctx);
     MPIV.pkpool.ret_packet_to(p_ctx, poolid);
   }
 }

@@ -98,7 +98,7 @@ void main_task(intptr_t) {
     fflush(stdout);
     for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
          size = (size ? size * 2 : 1)) {
-      MPI_Barrier(MPI_COMM_WORLD);
+      MPIV_Barrier(MPI_COMM_WORLD);
       tags[i].id = 0;
       sr_threads[i] = MPIV_spawn(0, send_thread, (intptr_t)&tags[i]);
       MPIV_join(sr_threads[i]);
@@ -106,7 +106,7 @@ void main_task(intptr_t) {
   } else {
     for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
          size = (size ? size * 2 : 1)) {
-      MPI_Barrier(MPI_COMM_WORLD);
+      MPIV_Barrier(MPI_COMM_WORLD);
       for (i = 0; i < THREADS; i++) {
         tags[i].id = i;
         sr_threads[i] =

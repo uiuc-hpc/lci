@@ -91,6 +91,8 @@ class mpiv_server {
                             sbuf_.lkey());
   }
 
+  inline bool need_recv() { return recv_posted_ < MAX_RECV / 2; }
+
   inline bool progress() {  // profiler& p, long long& r, long long &s) {
     initt(t);
     startt(t);
@@ -102,7 +104,7 @@ class mpiv_server {
     stopt(t)
     // Make sure we always have enough packet, but do not block.
     if (recv_posted_ < MAX_RECV) post_srq(pk_mgr_ptr->get_for_recv());
-    assert(recv_posted_ >= 0 && "No posted buffer");
+    assert(recv_posted_ > 0 && "No posted buffer");
     return ret;
   }
 

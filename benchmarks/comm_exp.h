@@ -20,4 +20,10 @@ inline double wtime() {
   return t1.tv_sec + t1.tv_usec / 1e6;
 }
 
+inline double wutime() {
+  struct timeval t1;
+  gettimeofday(&t1, NULL);
+  return t1.tv_sec * 1e6 + t1.tv_usec;
+}
+
 #endif

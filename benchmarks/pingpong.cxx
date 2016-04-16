@@ -48,7 +48,7 @@ void main_task(intptr_t) {
       total = TOTAL_LARGE;
       skip = SKIP_LARGE;
     }
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPIV_Barrier(MPI_COMM_WORLD);
     if (rank == 0) {
       memset(r_buf, 'a', size);
       memset(s_buf, 'b', size);
@@ -77,6 +77,7 @@ void main_task(intptr_t) {
         MPIV_Send(s_buf, size, MPI_CHAR, 0, 1, MPI_COMM_WORLD);
       }
     }
+    MPIV_Barrier(MPI_COMM_WORLD);
   }
 
   mpiv_free(r_buf);

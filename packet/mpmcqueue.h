@@ -75,7 +75,7 @@
 
 #define CAS(a, b, c) __sync_bool_compare_and_swap(a, b, c)
 
-#define RING_SIZE (1ull << 14)
+#define RING_SIZE (1ull << 16)
 static_assert(RING_SIZE > (MAX_SEND + MAX_RECV),
               "Queue is bounded by max concurrency");
 
