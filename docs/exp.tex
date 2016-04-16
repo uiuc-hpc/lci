@@ -109,7 +109,7 @@ for the hash-table is equivalent to 2 memory writes.
             ymax={1},
             %cycle list={{red,dashed},{blue,dashed},{black,dashed},{red},{blue},{black}},
             cycle list={{red},{blue},{black}},
-            legend pos={north east}
+            legend pos={north west}
           ]
           % hack to make legend
           %\addlegendimage{area legend,fill=red,draw=black,dashed}; \addlegendentry{numa-cp};
@@ -132,17 +132,23 @@ for the hash-table is equivalent to 2 memory writes.
 \end{figure}
 
 The overhead due to packet pool is measured as the sum of the latency of
-\texttt{get} and \texttt{ret} operation. We evaluate this quantity by performing
-a random number of \texttt{get} followed by the same number of \texttt{ret} in
-each thread. The range of the random number is chosen so that the sum of all
-threads does not exceed the total number of available packets: the maximum is
-number of packets divided by number of threads.
+\texttt{get} and \texttt{ret} operation. We evaluate this quantity by
+performing a random number of \texttt{get} followed by the same number of
+\texttt{ret} in each thread. To match better with the real workload, we also
+perform a random sleep in between the two group of operations. Further, The
+range of the random number is chosen with the same seed for each implementation
+and ensure threads do not request more than available packets: the maximum is
+number of packets divided by number of threads. We perform this experiment
+$1000$ times and plot the summary similarly as  the hash-table experiment.
 
 The result is shown in Figure \ref{fig:pool} in comparison with implementation
-using boost lockfree queue and lockfree stack. Our result for this benchmark
-outperforms others by a wide margin, especially when the number of threads
-increase. The great variation in latency per operation of a centralized pool is
-clearly due to memory conflicts in this type of access patterns.
+using a concurrent lockfree stack and a lockfree queue. Our result for this
+benchmark outperforms others by a wide margin, especially when the number of
+threads increase. The lockfree stack is faster than the queue at single thread,
+however performs worst for more than two threads since there is contention at
+the top of the stack. The great variation in latency per operation of a
+centralized pool is clearly due to memory conflicts in this type of access
+patterns. Our latency is consistently in the range of 100-150 nanosecond.
 
 \subsubsection{Thread scheduler}
 The overhead due to thread scheduler is measured as scheduling time which consists
