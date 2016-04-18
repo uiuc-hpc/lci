@@ -5,7 +5,7 @@
 
 struct mpiv_packet;
 
-extern __thread fult* __fulting;
+extern __thread thread __fulting;
 
 struct MPIV_Request {
   inline MPIV_Request(int rank_, int tag_)
@@ -21,7 +21,7 @@ struct MPIV_Request {
   int size;
   int rank;
   int tag;
-  fult* sync;
+  thread sync;
   bool done_;
 } __attribute__((aligned(64)));
 
@@ -30,7 +30,7 @@ inline void MPIV_Wait(MPIV_Request* req) {
 #ifdef USE_WORKER_WAIT
   req->sync->origin()->wait(req->done_);
 #else
-  req->sync->wait();
+  req->sync->wait(req->done_);
 #endif
 }
 
@@ -38,7 +38,7 @@ inline void MPIV_Signal(MPIV_Request* req) {
 #ifdef USE_WORKER_WAIT
   req->sync->origin()->resume(req->done_);
 #else
-  req->sync->resume();
+  req->sync->resume(req->done_);
 #endif
 }
 

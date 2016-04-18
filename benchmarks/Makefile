@@ -1,6 +1,6 @@
 MPICXX = mpicxx
 GXX = gcc
-CXXFLAGS += -O3 -Wall -Wextra -std=c++11 -I../fult -I../ -DUSE_AFFI
+CXXFLAGS += -O3 -Wall -Wextra -std=c++11 -I../ult -I../ -DUSE_AFFI
 
 ### FOR TESTING HASH TABLE ###
 #FACEBOOK_INC = -I$(HOME)/facebook/include -I$(HOME)/glog/include -I$(HOME)/folly/folly/double-conversion #-DNDEBUG
@@ -23,10 +23,10 @@ BOOST_LIB = $(TACC_BOOST_LIB)
 CXXFLAGS += -Wno-unused-local-typedefs
 
 ### FOR TESTING ARGOBOTS ###
-# ABT_INC = $(HOME)/argo/include
-# ABT_LIB = $(HOME)/argo/lib -labt
-# CXXFLAGS += -I$(ABT_INC)
-# LDFLAGS += -L$(ABT_LIB)
+ABT_INC = $(HOME)/argo/include
+ABT_LIB = $(HOME)/argo/lib -labt
+CXXFLAGS += -I$(ABT_INC)
+LDFLAGS += -L$(ABT_LIB)
 
 ### FOR USING PAPI ##
 # PAPI_LIB = $(TACC_PAPI_LIB) -lpapi
@@ -38,27 +38,27 @@ RDMAX_INC = ../rdmax/include
 IBV_INC = /opt/ofed/include/
 IBV_LIB = /opt/ofed/lib64 -libverbs
 
-JFCONTEXT = ../fult/jump_x86_64_sysv_elf_gas.S
-MFCONTEXT = ../fult/make_x86_64_sysv_elf_gas.S
+JFCONTEXT = ../ult/fult/jump_x86_64_sysv_elf_gas.S
+MFCONTEXT = ../ult/fult/make_x86_64_sysv_elf_gas.S
 
 CXXFLAGS_NOBOOST = -I$(ABT_INC)
 
 CXXFLAGS += -I$(BOOST_INC) -I$(RDMAX_INC) -I$(IBV_INC)
 LDFLAGS += -L$(BOOST_LIB) -L$(IBV_LIB) # -llmpe -lmpe
 
-all: pp pp_cond_nonuma pp_nonuma
+all: pp 
 
-#pp: pingpong pingpong_cond pingpong_cond_nonuma pingpong_nonuma \
-		pingpong_mt pingpong_mt_cond pingpong_mt_pthread pingpong_mt_cond_nonuma pingpong_mt_nonuma \
-		pingpong_mt_NN pingpong_mt_NN_nonuma
+pp: pingpong pingpong_cond_nonuma pingpong_nonuma pingpong_abt_nonuma \
+		pingpong_mt pingpong_mt_pthread pingpong_mt_cond_nonuma pingpong_mt_nonuma pingpong_mt_abt_nonuma
 
-pp: pingpong pingpong_mt pingpong_mt_pthread
+pingpong_abt_nonuma: CXXFLAGS+=-DUSE_ABT -DCONFIG_PK_MANAGER=packet_manager_LFSTACK
+pingpong_mt_abt_nonuma: CXXFLAGS+=-DUSE_ABT -DCONFIG_PK_MANAGER=packet_manager_LFSTACK
 
-pp_cond_nonuma: CXXFLAGS+=-DUSE_WORKER_WAIT -DCONFIG_PK_MANAGER=packet_manager_LFSTACK
-pp_cond_nonuma: pingpong_cond_nonuma pingpong_mt_cond_nonuma
+pingpong_cond_nonuma: CXXFLAGS+=-DUSE_WORKER_WAIT -DCONFIG_PK_MANAGER=packet_manager_LFSTACK
+pingpong_mt_cond_nonuma: CXXFLAGS+=-DUSE_WORKER_WAIT -DCONFIG_PK_MANAGER=packet_manager_LFSTACK
 
-pp_nonuma: CXXFLAGS+=-DCONFIG_PK_MANAGER=packet_manager_LFSTACK
-pp_nonuma: pingpong_nonuma pingpong_mt_nonuma
+pingpong_nonuma: CXXFLAGS+=-DCONFIG_PK_MANAGER=packet_manager_LFSTACK
+pingpong_mt_nonuma: CXXFLAGS+=-DCONFIG_PK_MANAGER=packet_manager_LFSTACK
 
 abt_%: abt_%.c
 	$(GXX) $(CXXFLAGS) $^ -o $@ -L$(ABT_LIB)
@@ -66,7 +66,7 @@ abt_%: abt_%.c
 abx_%: abx_%.cxx
 	$(MPICXX) $(CXXFLAGS_NOBOOST) $^ -o $@ -L$(ABT_LIB)
 
-%: mfcontext.o jfcontext.o %.cxx ../*.h ../fult/*.h
+%: mfcontext.o jfcontext.o %.cxx ../*.h ../ult/*.h ../ult/fult/*.h ../ult/abt/*.h
 	$(MPICXX) $(CXXFLAGS) mfcontext.o jfcontext.o $@.cxx $(LDFLAGS) -o $@
 
 jfcontext.o: $(JFCONTEXT)

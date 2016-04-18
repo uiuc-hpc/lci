@@ -4,6 +4,8 @@
 #include "packet.h"
 #include "mpmcqueue.h"
 
+extern int mpiv_worker_id();
+
 class packet_manager_base {
  public:
   virtual void init_worker(int) = 0;
@@ -26,7 +28,7 @@ class packet_manager_MPMCQ : public packet_manager_base {
 
   inline mpiv_packet* get_packet() override {
     mpiv_packet* p = 0;
-    while (!(p = get_packet_nb())) fult_yield();
+    while (!(p = get_packet_nb())) ult_yield();
     return p;
   }
 
@@ -58,7 +60,7 @@ class packet_manager_LFQUEUE: public packet_manager_base {
 
   inline mpiv_packet* get_packet() override {
     mpiv_packet* packet = NULL;
-    while (!pool_.pop(packet)) fult_yield();
+    while (!pool_.pop(packet)) ult_yield();
     assert(packet);
     return packet;
   }
@@ -94,7 +96,7 @@ class packet_manager_LFSTACK : public packet_manager_base {
 
   inline mpiv_packet* get_packet() override {
     mpiv_packet* packet = NULL;
-    while (!pool_.pop(packet)) fult_yield();
+    while (!pool_.pop(packet)) ult_yield();
     assert(packet);
     return packet;
   }
@@ -183,8 +185,6 @@ class arr_pool {
   T* container_;
 } __attribute__((aligned(64)));
 
-extern __thread int wid;
-
 class packet_manager_NUMA final
     : public packet_manager_LFSTACK {
  public:
@@ -211,9 +211,9 @@ class packet_manager_NUMA final
 
   inline mpiv_packet* get_for_send() override {
     mpiv_packet* p = 0;
-    p = private_pool_[wid]->popTop();
+    p = private_pool_[mpiv_worker_id()]->popTop();
     if (!p) p = get_packet();
-    p->poolid() = wid;
+    p->poolid() = mpiv_worker_id();
     return p;
   }
 
@@ -275,14 +275,14 @@ class packet_manager_NUMA_STEAL final
 
   inline mpiv_packet* get_packet() override {
     mpiv_packet* p = 0;
-    while (!(p = get_packet_nb())) { fult_yield(); }
+    while (!(p = get_packet_nb())) { ult_yield(); }
     return p;
   }
 
   inline mpiv_packet* get_for_send() override {
-    mpiv_packet* p = private_pool_[wid + 1]->popTop();
+    mpiv_packet* p = private_pool_[mpiv_worker_id() + 1]->popTop();
     if (!p) p = get_packet();
-    p->poolid() = wid;
+    p->poolid() = mpiv_worker_id();
     return p;
   }
 

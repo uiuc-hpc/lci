@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <atomic>
 
-#include "fult.h"
+#include "ult.h"
 #include "comm_exp.h"
 
 long* times;
@@ -24,8 +24,8 @@ void ffibo(intptr_t arg) {
     thread_data_t data[2];
     data[0].val = td->val - 1;
     data[1].val = td->val - 2;
-    fult_t s1 = w[0].spawn(ffibo, (intptr_t)&data[0]);
-    fult_t s2 = w[0].spawn(ffibo, (intptr_t)&data[1]);
+    auto s1 = w[0].spawn(ffibo, (intptr_t)&data[0]);
+    auto s2 = w[0].spawn(ffibo, (intptr_t)&data[1]);
     s1->join();
     s2->join();
     td->ret = data[0].ret + data[1].ret;
@@ -48,6 +48,9 @@ void main_task(intptr_t args) {
 }
 
 int main(int argc, char** args) {
+#ifdef USE_ABT
+  ABT_init(argc, args);
+#endif
   if (argc < 2) {
     printf("Usage: %s <number>\n", args[0]);
     return 1;

@@ -16,17 +16,17 @@ inline void fult::yield() {
   ctx_.ret();
 }
 
-inline void fult::wait() {
+inline void fult::wait(bool&) {
   state_ = BLOCKED;
   ctx_.ret();
 }
 
-inline void fult::resume() { origin_->schedule(id_); }
+inline void fult::resume(bool&) { origin_->schedule(id_); }
 
 inline void fult::done() { origin_->fin(id_); }
 
 inline void fult::join() {
-  while (state_ != INVALID) { fult_yield(); }
+  while (state_ != INVALID) { __fulting->yield(); }
 }
 
 inline void fult::start() {
@@ -34,6 +34,8 @@ inline void fult::start() {
   state_ = INVALID;
   ctx_.ret();
 }
+
+inline int fult::get_worker_id() { return origin_->id_; }
 
 static void fwrapper(intptr_t args) {
   fult* ff = (fult*)args;
@@ -105,9 +107,10 @@ inline fult_t fworker::fult_new(const int id, ffunc f, intptr_t data,
 }
 
 inline void fworker::wfunc(fworker* w) {
-  wid = nfworker_.fetch_add(1);
+  w->id_ = nfworker_.fetch_add(1);
+  bool flag;
 #ifdef USE_AFFI
-  affinity::set_me_to(wid);
+  affinity::set_me_to(w->id_);
 #endif
 
 #ifdef USE_PAPI
@@ -144,7 +147,7 @@ inline void fworker::wfunc(fworker* w) {
             if (f->state() != INVALID)  {
               w->work(f);
               // Cleanup after working.
-              if (f->state() == YIELD) f->resume();
+              if (f->state() == YIELD) f->resume(flag);
               else if (f->state() == INVALID) f->done();
             }
           }

@@ -69,6 +69,7 @@ int main(int argc, char* argv[]) {
 
 #ifdef USE_WORKER_WAIT
   WORKERS = THREADS;
+  printf("WARNING... WORKER: %d\n", WORKERS);
 #endif
 
   MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
@@ -97,7 +98,7 @@ void main_task(intptr_t) {
   int i = 0;
   r_buf1 = (char*)mpiv_malloc(MYBUFSIZE);
   s_buf1 = (char*)mpiv_malloc(MYBUFSIZE);
-  fult_t* sr_threads = new fult_t[THREADS];
+  thread* sr_threads = new thread[THREADS];
   thread_tag_t* tags = new thread_tag_t[THREADS];
 
   if (myid == 0) {

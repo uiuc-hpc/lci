@@ -3,8 +3,6 @@
 
 #include <mpi.h>
 
-extern __thread int wid;
-
 extern int mpiv_send_start, mpiv_send_end;
 
 void mpiv_complete_rndz(mpiv_packet* p, MPIV_Request* s);

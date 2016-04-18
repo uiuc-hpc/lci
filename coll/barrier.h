@@ -70,7 +70,7 @@ int MPIV_Barrier_N(MPI_Comm comm) {
   /* The root collects and broadcasts the messages. */
 
   else {
-    fult_t th[size];
+    thread th[size];
     for (i = 1; i < size; ++i) {
       th[i] = MPIV_spawn(0, [](intptr_t i) {
           MCA_PML_CALL(Recv(NULL, 0, MPI_BYTE, i,

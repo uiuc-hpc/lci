@@ -5,6 +5,10 @@
 #include <mpe.h>
 #endif
 
+#ifdef USE_ABT
+#include <abt.h>
+#endif
+
 #include <sys/mman.h>
 #include "profiler.h"
 #include "progress.h"
@@ -22,9 +26,15 @@ inline void MPIV_Init(int* argc, char*** args) {
   setenv("MPICH_ASYNC_PROGRESS", "0", 1);
   setenv("MV2_ASYNC_PROGRESS", "0", 1);
   setenv("MV2_ENABLE_AFFINITY", "0", 1);
+  // setenv("ABT_ENV_SET_AFFINITY", "0", 1);
+
   int provided;
   MPI_Init_thread(argc, args, MPI_THREAD_MULTIPLE, &provided);
   assert(MPI_THREAD_MULTIPLE == provided);
+
+#ifdef USE_ABT
+  ABT_init(*argc, *args);
+#endif
 
 #if USE_MPE
   MPE_Init_log();
@@ -80,13 +90,12 @@ inline void MPIV_Init_worker(int nworker, intptr_t arg = 0) {
 }
 
 template <class... Ts>
-inline fult_t MPIV_spawn(int wid, Ts... params) {
+inline thread MPIV_spawn(int wid, Ts... params) {
   return MPIV.w[wid].spawn(params...);
 }
 
-inline void MPIV_join(fult_t t) {
-  fult* f = (fult*) t;
-  f->join();
+inline void MPIV_join(thread ult) {
+  ult->join();
 }
 
 inline void MPIV_Finalize() {

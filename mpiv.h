@@ -60,6 +60,10 @@ void* mpiv_malloc(size_t size) {
   return ptr;
 }
 
+inline int mpiv_worker_id() {
+  return __fulting->get_worker_id();
+}
+
 #include "request.h"
 
 void mpiv_free(void* ptr) { MPIV.ctx.heap_segment.deallocate(ptr); }

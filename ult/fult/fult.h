@@ -13,6 +13,8 @@
 
 #include <sys/mman.h>
 // #define USE_L1_MASK
+static const int F_STACK_SIZE = 4*1024;
+static const int MAIN_STACK_SIZE = 16*1024;
 
 #include "ult.h"
 #include "bitops.h"
@@ -24,20 +26,6 @@ using boost::coroutines::standard_stack_allocator;
 using boost::coroutines::stack_context;
 
 #define DEBUG(x)
-
-#define xlikely(x) __builtin_expect((x), 1)
-#define xunlikely(x) __builtin_expect((x), 0)
-
-#define fult_yield()       \
-  {                        \
-    if (__fulting != NULL) \
-      __fulting->yield();  \
-    else                   \
-      sched_yield();       \
-  }
-
-#define fult_wait() \
-  { __fulting->wait(); }
 
 #ifndef USE_L1_MASK
 static const int NMASK = 8;
@@ -51,9 +39,7 @@ static void fwrapper(intptr_t);
 class fult;
 class fworker;
 
-// local thread storage.
-__thread fult* __fulting = NULL;
-__thread int wid = 0;
+__thread fult* __fulting;
 
 // fcontext (from boost).
 extern "C" {
@@ -90,17 +76,19 @@ class fult final : public ult_base {
   inline ~fult() { if (stack.sp != NULL) fult_stack.deallocate(stack); }
 
   void yield();
-  void wait();
-  void resume();
-  void done();
+  void wait(bool&);
+  void resume(bool&);
   void join();
-  void start();
+  int get_worker_id();
 
   void init(ffunc myfunc, intptr_t data, size_t stack_size);
   inline fult_state state() { return state_; }
   inline fctx* ctx() { return &ctx_; }
   inline int id() { return id_; }
   inline fworker* origin() { return origin_; }
+
+  void start();
+  void done();
 
  private:
   fworker* origin_;
@@ -144,6 +132,8 @@ class fworker final {
     stop_ = true;
   }
 
+  inline int id() { return id_; }
+
 #ifdef USE_WORKER_WAIT
 // This is for the worker to wait instead the thread.
 // In that case, we do not support yielding.
@@ -166,6 +156,7 @@ class fworker final {
   volatile bool stop_;
 
   std::thread w_;
+  int id_;
 
 #ifdef USE_WORKER_WAIT
   std::mutex m_;

@@ -20,11 +20,9 @@ namespace ppli {
 constexpr size_t num_workers = 1;
 }
 
-extern __thread int wid;
-
 namespace ppl {
 
-int get_core() { return wid; }
+int get_core() { return 0; }
 
 template <typename Value>
 inline MPMCQueue<Value>::MPMCQueue() {

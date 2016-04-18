@@ -21,6 +21,7 @@ cd ${SLURM_SUBMIT_DIR}
 echo "Single threaded pingpong"
 ibrun -np 2 osu_latency
 ibrun -np 2 ./pingpong_cond_nonuma
+ibrun -np 2 ./pingpong_abt_nonuma
 ibrun -np 2 ./pingpong_nonuma
 ibrun -np 2 ./pingpong
 
@@ -29,5 +30,15 @@ NWORKER=14
 echo "Multi-threaded pingpong:" $NTHREAD $NWORKER
 MV2_ENABLE_AFFINITY=0 ibrun -np 2 ./pingpong_mt_pthread $NTHREAD $NWORKER
 ibrun -np 2 ./pingpong_mt_cond_nonuma $NTHREAD $NWORKER
+ibrun -np 2 ./pingpong_mt_abt_nonuma $NTHREAD $NWORKER
+ibrun -np 2 ./pingpong_mt_nonuma $NTHREAD $NWORKER
+ibrun -np 2 ./pingpong_mt $NTHREAD $NWORKER
+
+NTHREAD=28
+NWORKER=14
+echo "Multi-threaded pingpong:" $NTHREAD $NWORKER
+MV2_ENABLE_AFFINITY=0 ibrun -np 2 ./pingpong_mt_pthread $NTHREAD $NWORKER
+ibrun -np 2 ./pingpong_mt_cond_nonuma $NTHREAD $NWORKER
+ibrun -np 2 ./pingpong_mt_abt_nonuma $NTHREAD $NWORKER
 ibrun -np 2 ./pingpong_mt_nonuma $NTHREAD $NWORKER
 ibrun -np 2 ./pingpong_mt $NTHREAD $NWORKER
