@@ -26,8 +26,8 @@ void ffibo(intptr_t arg) {
     data[1].val = td->val - 2;
     fult_t s1 = w[0].spawn(ffibo, (intptr_t)&data[0]);
     fult_t s2 = w[0].spawn(ffibo, (intptr_t)&data[1]);
-    w[0].join(s1);
-    w[0].join(s2);
+    s1->join();
+    s2->join();
     td->ret = data[0].ret + data[1].ret;
   }
 }

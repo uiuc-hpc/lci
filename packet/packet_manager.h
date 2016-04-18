@@ -301,5 +301,10 @@ class packet_manager_NUMA_STEAL final
   int nworker_;
 } __attribute__((aligned(64)));
 
+#ifdef CONFIG_PK_MANAGER 
+using packet_manager = CONFIG_PK_MANAGER;
+#else
 using packet_manager = packet_manager_NUMA_STEAL;
+#endif
+
 #endif

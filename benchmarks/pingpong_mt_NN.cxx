@@ -75,7 +75,6 @@ void main_task(intptr_t) {
 
 void runfunc(intptr_t thread_rank) {
   int src, dest, tag, i, size, incr;
-  double stime, etime, ttime;
   char *sendbuf, *recvbuf;
 
   sendbuf = (char*)mpiv_malloc(MAXSIZE);

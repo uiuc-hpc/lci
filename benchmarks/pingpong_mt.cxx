@@ -56,12 +56,20 @@ int numprocs, provided, myid, err;
 static int THREADS = 1;
 static int WORKERS = 1;
 
+int cores;
+
 int main(int argc, char* argv[]) {
   MPIV_Init(&argc, &argv);
   if (argc > 2) {
     THREADS = atoi(argv[1]);
-    WORKERS = atoi(argv[1]);
+    WORKERS = atoi(argv[2]);
   }
+
+  cores = WORKERS;
+
+#ifdef USE_WORKER_WAIT
+  WORKERS = THREADS;
+#endif
 
   MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
   MPI_Comm_rank(MPI_COMM_WORLD, &myid);
@@ -130,6 +138,11 @@ void recv_thread(intptr_t arg) {
   thread_id = (thread_tag_t*)arg;
   val = thread_id->id;
 
+#ifdef USE_WORKER_WAIT
+  if (cores < THREADS) 
+    affinity::set_me_to(val % cores);
+#endif
+
   align_size = MESSAGE_ALIGNMENT;
 
   s_buf = (char*)(((unsigned long)s_buf1 + (align_size - 1)) / align_size *
@@ -155,13 +168,10 @@ void recv_thread(intptr_t arg) {
   // sleep(1);
 }
 
-void send_thread(intptr_t arg) {
-  int i, val, align_size;
+void send_thread(intptr_t) {
+  int i, align_size;
   char *s_buf, *r_buf;
   double t_start = 0, t_end = 0, t = 0, latency;
-  thread_tag_t* thread_id = (thread_tag_t*)arg;
-
-  val = thread_id->id;
   align_size = MESSAGE_ALIGNMENT;
 
   s_buf = (char*)(((unsigned long)s_buf1 + (align_size - 1)) / align_size *

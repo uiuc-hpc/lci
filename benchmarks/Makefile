@@ -1,12 +1,6 @@
-TARGET = yield wait abt_yield abt_wait fibo abt_fibo fair \
-    comm abx_comm abx_comm2 abx_comm_order abx_comm_reorder \
-    abt_fair comm3 comm4 abx_comm4 abx_comm42
-
 MPICXX = mpicxx
 GXX = gcc
-CXXFLAGS += -g3 -O3 -Wall -Wextra -I../fult -I../
-
-LDFLAGS += -L/opt/ofed/lib64 -libverbs -L/opt/apps/intel/15/composer_xe_2015.2.164/tbb/lib/intel64/gcc4.4/ 
+CXXFLAGS += -O3 -Wall -Wextra -std=c++11 -I../fult -I../ -DUSE_AFFI
 
 ### FOR TESTING HASH TABLE ###
 #FACEBOOK_INC = -I$(HOME)/facebook/include -I$(HOME)/glog/include -I$(HOME)/folly/folly/double-conversion #-DNDEBUG
@@ -14,10 +8,11 @@ LDFLAGS += -L/opt/ofed/lib64 -libverbs -L/opt/apps/intel/15/composer_xe_2015.2.1
 #CXXFLAGS += $(FACEBOOK_INC)
 #LDFLAGS += $(FACEBOOK_LIB)
 
-CUCKOO_INC = $(HOME)/libcuckoo/include
+### FOR TESTING LIBCUCKOO ###
+# CUCKOO_INC = $(HOME)/libcuckoo/include
+# CXXFLAGS += -I$(CUCKOO_INC)
 
 ### FOR TESTING TBB ###
-
 #TBB_INC = -I/opt/apps/intel/15/composer_xe_2015.2.164/tbb/include/
 #TBB_LIB = -ltbb -ltbbmalloc
 #LDFLAGS += $(TBB_LIB)
@@ -25,23 +20,45 @@ CUCKOO_INC = $(HOME)/libcuckoo/include
 
 BOOST_INC = $(TACC_BOOST_INC) #/usr/local/boost/1.58.0/include
 BOOST_LIB = $(TACC_BOOST_LIB)
+CXXFLAGS += -Wno-unused-local-typedefs
 
-ABT_INC = $(HOME)/argo/include
-ABT_LIB = $(HOME)/argo/lib -labt
+### FOR TESTING ARGOBOTS ###
+# ABT_INC = $(HOME)/argo/include
+# ABT_LIB = $(HOME)/argo/lib -labt
+# CXXFLAGS += -I$(ABT_INC)
+# LDFLAGS += -L$(ABT_LIB)
+
+### FOR USING PAPI ##
+# PAPI_LIB = $(TACC_PAPI_LIB) -lpapi
+# PAPI_INC = $(TACC_PAPI_INC)
+# CXXFLAGS += -I$(PAPI_INC)
+# LDFLAGS += -L$(PAPI_LIB)
 
 RDMAX_INC = ../rdmax/include
-
 IBV_INC = /opt/ofed/include/
+IBV_LIB = /opt/ofed/lib64 -libverbs
 
 JFCONTEXT = ../fult/jump_x86_64_sysv_elf_gas.S
 MFCONTEXT = ../fult/make_x86_64_sysv_elf_gas.S
 
 CXXFLAGS_NOBOOST = -I$(ABT_INC)
 
-CXXFLAGS += -std=c++11  -I$(BOOST_INC) -I$(ABT_INC) -I$(CUCKOO_INC) -I$(RDMAX_INC) -I$(IBV_INC) -I$(TACC_PAPI_INC) #-fsplit-stack -DBOOST_USE_SEGMENTED_STACKS
-LDFLAGS += -L$(TACC_PAPI_LIB) -lpapi -L$(BOOST_LIB)# -llmpe -lmpe
+CXXFLAGS += -I$(BOOST_INC) -I$(RDMAX_INC) -I$(IBV_INC)
+LDFLAGS += -L$(BOOST_LIB) -L$(IBV_LIB) # -llmpe -lmpe
 
-all: $(TARGET)
+all: pp pp_cond_nonuma pp_nonuma
+
+#pp: pingpong pingpong_cond pingpong_cond_nonuma pingpong_nonuma \
+		pingpong_mt pingpong_mt_cond pingpong_mt_pthread pingpong_mt_cond_nonuma pingpong_mt_nonuma \
+		pingpong_mt_NN pingpong_mt_NN_nonuma
+
+pp: pingpong pingpong_mt pingpong_mt_pthread
+
+pp_cond_nonuma: CXXFLAGS+=-DUSE_WORKER_WAIT -DCONFIG_PK_MANAGER=packet_manager_LFSTACK
+pp_cond_nonuma: pingpong_cond_nonuma pingpong_mt_cond_nonuma
+
+pp_nonuma: CXXFLAGS+=-DCONFIG_PK_MANAGER=packet_manager_LFSTACK
+pp_nonuma: pingpong_nonuma pingpong_mt_nonuma
 
 abt_%: abt_%.c
 	$(GXX) $(CXXFLAGS) $^ -o $@ -L$(ABT_LIB)
@@ -49,8 +66,8 @@ abt_%: abt_%.c
 abx_%: abx_%.cxx
 	$(MPICXX) $(CXXFLAGS_NOBOOST) $^ -o $@ -L$(ABT_LIB)
 
-%: mfcontext.o jfcontext.o %.cxx
-	$(MPICXX) $(CXXFLAGS) $^ $(LDFLAGS) -o $@
+%: mfcontext.o jfcontext.o %.cxx ../*.h ../fult/*.h
+	$(MPICXX) $(CXXFLAGS) mfcontext.o jfcontext.o $@.cxx $(LDFLAGS) -o $@
 
 jfcontext.o: $(JFCONTEXT)
 	$(GXX) -O2 -c $(JFCONTEXT) -o jfcontext.o

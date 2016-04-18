@@ -15,24 +15,14 @@
 
 cd ${SLURM_SUBMIT_DIR}
 
-# export ABT_ENV_THREAD_STACKSIZE=4096
-
-# Modify th_modis to your lib path
-# export LD_LIBRARY_PATH=$HOME/qth_modread/lib:$HOME/argo/lib:$HOME/gasnet/lib:$LD_LIBRARY_PATH
-#module load gcc/4.7.1
-#module load boost/1.55.0
-
-#ibrun -np 2 ./osu_latency
-#ibrun -np 2 ./pingpong
-
 ibrun -np 2 ./pingpong_mt_NN 12 12
-ibrun -np 2 ./pingpong_mt_NN_old 12 12
+ibrun -np 2 ./pingpong_mt_NN_nonuma 12 12
 
 ibrun -np 2 ./pingpong_mt_NN 12 8
-ibrun -np 2 ./pingpong_mt_NN_old 12 8
+ibrun -np 2 ./pingpong_mt_NN_nonuma 12 8
 
 ibrun -np 2 ./pingpong_mt_NN 12 4
-ibrun -np 2 ./pingpong_mt_NN_old 12 4
+ibrun -np 2 ./pingpong_mt_NN_nonuma 12 4
 
 
 #MV2_ENABLE_AFFINITY=0 ibrun -np 2 ./latency_th_mod 12 12

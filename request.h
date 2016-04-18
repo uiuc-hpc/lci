@@ -22,24 +22,32 @@ struct MPIV_Request {
   int rank;
   int tag;
   fult* sync;
-  volatile bool done_;
+  bool done_;
 } __attribute__((aligned(64)));
 
 inline void MPIV_Wait(MPIV_Request* req) {
   if (xunlikely(req->done_)) return;
+#ifdef USE_WORKER_WAIT
+  req->sync->origin()->wait(req->done_);
+#else
   req->sync->wait();
+#endif
 }
 
+inline void MPIV_Signal(MPIV_Request* req) {
+#ifdef USE_WORKER_WAIT
+  req->sync->origin()->resume(req->done_);
+#else
+  req->sync->resume();
+#endif
+}
+
+// FIXME(danghvu): DO NOT USE THIS
 void MPIV_Waitall(int count, MPIV_Request request[], MPI_Status*) {
   for (int i=0; i<count; i++) {
     MPIV_Wait(&request[i]);
   }
 }
 
-
-inline void MPIV_Signal(MPIV_Request* req) {
-  fult* sync = req->sync;
-  sync->resume();
-}
 
 #endif

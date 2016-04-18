@@ -146,7 +146,8 @@ void* recv_thread(void* arg) {
 
   thread_id = (thread_tag_t*)arg;
   val = thread_id->id;
-  affinity::set_me_within(0, WORKERS);
+
+  affinity::set_me_to(val % WORKERS);
 
   align_size = MESSAGE_ALIGNMENT;
 
@@ -174,13 +175,12 @@ void* recv_thread(void* arg) {
   return 0;
 }
 
-void* send_thread(void* arg) {
-  int i, val, align_size;
+void* send_thread(void*) {
+  affinity::set_me_to(0);
+
+  int i, align_size;
   char *s_buf, *r_buf;
   double t_start = 0, t_end = 0, t = 0, latency;
-  thread_tag_t* thread_id = (thread_tag_t*)arg;
-
-  val = thread_id->id;
   align_size = MESSAGE_ALIGNMENT;
 
   s_buf = (char*)(((unsigned long)s_buf1 + (align_size - 1)) / align_size *

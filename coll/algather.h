@@ -110,13 +110,12 @@ int ompi_coll_tuned_allgather_intra_ring(void *sbuf, int scount,
 {
   int rank, size;
   int sendto, recvfrom, i, recvdatafrom, senddatafrom;
-  int slb, rlb, sext, rext;
+  int sext, rext;
   char *tmpsend = NULL, *tmprecv = NULL;
 
   rank = MPIV.me;
   size = MPIV.size;
 
-  slb = rlb = 0;
   MPI_Type_size(sdtype, &sext);
   MPI_Type_size(rdtype, &rext);
 

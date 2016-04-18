@@ -15,28 +15,19 @@
 
 cd ${SLURM_SUBMIT_DIR}
 
-# export ABT_ENV_THREAD_STACKSIZE=4096
-
 # Modify this to your lib path
 # export LD_LIBRARY_PATH=$HOME/qthread/lib:$HOME/argo/lib:$HOME/gasnet/lib:$LD_LIBRARY_PATH
-#module load gcc/4.7.1
-#module load boost/1.55.0
 
+echo "Single threaded pingpong"
 ibrun -np 2 osu_latency
-ibrun -np 2 ./pingpong_old
+ibrun -np 2 ./pingpong_cond_nonuma
+ibrun -np 2 ./pingpong_nonuma
 ibrun -np 2 ./pingpong
 
-#lstopo -c
-#ibrun -np 2 ./pingpong_old 1 1 32
-
-#ib_send_lat -d mlx4_0 --all &
-#ibrun -n 1 -o 1 ib_send_lat -d mlx4_0 --all `hostname`
-
-#ibrun -np 2 ./pingpong 8 8
-#ibrun -np 2 ./pingpong_16 8 8
-
-#ibrun -np 2 ./pingpong 8 8
-
-#ibrun -np 2 ./pingpong_ck 1 1
-#ibrun -np 2 ./pingpong_ck 1 8
-#ibrun -np 2 ./pingpong_ck 8 8
+NTHREAD=14
+NWORKER=14
+echo "Multi-threaded pingpong:" $NTHREAD $NWORKER
+MV2_ENABLE_AFFINITY=0 ibrun -np 2 ./pingpong_mt_pthread $NTHREAD $NWORKER
+ibrun -np 2 ./pingpong_mt_cond_nonuma $NTHREAD $NWORKER
+ibrun -np 2 ./pingpong_mt_nonuma $NTHREAD $NWORKER
+ibrun -np 2 ./pingpong_mt $NTHREAD $NWORKER

@@ -15,7 +15,7 @@
 #include <malloc.h>
 #include <unistd.h>
 
-#include "fult.h"
+#include "ult.h"
 
 #include "except.h"
 #include "rdmax.h"
@@ -43,7 +43,6 @@ struct mpiv {
   packet_manager pkpool;
   mpiv_server server;
   mpiv_hash_tbl tbl;
-  std::atomic<uint8_t> total_send;
 } __attribute__((aligned(64)));
 
 static mpiv MPIV;
