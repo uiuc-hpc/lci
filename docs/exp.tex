@@ -200,15 +200,15 @@ of two components:
             mark size=1.5pt,
             legend style={font=\tiny},
           ]
-          \addplot table [x=threads, y=mvapich2+mt] {data/pingpong1.dat};
+          \addplot table [x=threads, y=mvapich2+mt] {data/pingpong1.dat} node[pos=0.24, pin=above:1.7]{};
           \addlegendentry{mvapich2+mt}
-          \addplot table [x=threads, y=pthread+hash] {data/pingpong1.dat};
+          \addplot table [x=threads, y=pthread+hash] {data/pingpong1.dat} node[pos=0.24, pin=3.7]{};
           \addlegendentry{pthread+hash}
-          \addplot table [x=threads, y=abt+hash] {data/pingpong1.dat};
+          \addplot table [x=threads, y=abt+hash] {data/pingpong1.dat} node[pos=0.24, pin=above:1.85]{};
           \addlegendentry{abt+hash}
-          \addplot table [x=threads, y=fult+hash] {data/pingpong1.dat};
+          \addplot table [x=threads, y=fult+hash] {data/pingpong1.dat} node[pos=0.24, pin=right:1.45]{};
           \addlegendentry{fult+hash}
-          \addplot table [x=threads, y=mvapich2] {data/pingpong1.dat};
+          \addplot table [x=threads, y=mvapich2] {data/pingpong1.dat} node[pos=0.24, pin=right:1.23]{};
           \addlegendentry{mvapich2}
         \end{axis}
       \end{tikzpicture}
