@@ -125,7 +125,7 @@ int main(int argc, char* argv[]) {
 
       for (i = 0; i < THREADS; i++) {
         tags[i].id = i;
-        pthread_create(&sr_threads[i], NULL, recv_thread, &tags[i]);
+        pthread_create(&sr_threads[i], NULL, recv_thread, (void*) (long) i);
       }
 
       for (i = 0; i < THREADS; i++) {
@@ -142,12 +142,9 @@ int main(int argc, char* argv[]) {
 void* recv_thread(void* arg) {
   int i, val, align_size;
   char *s_buf, *r_buf;
-  thread_tag_t* thread_id;
 
-  thread_id = (thread_tag_t*)arg;
-  val = thread_id->id;
-
-  affinity::set_me_to(val % WORKERS);
+  val = (int) (long) arg;
+  affinity::set_me_within(0, WORKERS);
 
   align_size = MESSAGE_ALIGNMENT;
 

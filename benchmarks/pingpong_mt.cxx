@@ -56,21 +56,12 @@ int numprocs, provided, myid, err;
 static int THREADS = 1;
 static int WORKERS = 1;
 
-int cores;
-
 int main(int argc, char* argv[]) {
   MPIV_Init(&argc, &argv);
   if (argc > 2) {
     THREADS = atoi(argv[1]);
     WORKERS = atoi(argv[2]);
   }
-
-  cores = WORKERS;
-
-#ifdef USE_WORKER_WAIT
-  WORKERS = THREADS;
-  printf("WARNING... WORKER: %d\n", WORKERS);
-#endif
 
   MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
   MPI_Comm_rank(MPI_COMM_WORLD, &myid);
@@ -111,20 +102,21 @@ void main_task(intptr_t) {
       tags[i].id = 0;
       sr_threads[i] = MPIV_spawn(0, send_thread, (intptr_t)&tags[i]);
       MPIV_join(sr_threads[i]);
+      MPIV_Barrier(MPI_COMM_WORLD);
     }
   } else {
     for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
          size = (size ? size * 2 : 1)) {
       MPIV_Barrier(MPI_COMM_WORLD);
       for (i = 0; i < THREADS; i++) {
-        tags[i].id = i;
         sr_threads[i] =
-            MPIV_spawn(i % WORKERS, recv_thread, (intptr_t)&tags[i]);
+            MPIV_spawn(i % WORKERS, recv_thread, (intptr_t) i);
       }
 
       for (i = 0; i < THREADS; i++) {
         MPIV_join(sr_threads[i]);
       }
+      MPIV_Barrier(MPI_COMM_WORLD);
     }
   }
   mpiv_free(r_buf1);
@@ -134,15 +126,7 @@ void main_task(intptr_t) {
 void recv_thread(intptr_t arg) {
   int i, val, align_size;
   char *s_buf, *r_buf;
-  thread_tag_t* thread_id;
-
-  thread_id = (thread_tag_t*)arg;
-  val = thread_id->id;
-
-#ifdef USE_WORKER_WAIT
-  if (cores < THREADS) 
-    affinity::set_me_to(val % cores);
-#endif
+  val = (int) (arg); 
 
   align_size = MESSAGE_ALIGNMENT;
 

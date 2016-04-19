@@ -4,6 +4,7 @@
 #include "affinity.h"
 
 __thread abt_thread* __fulting = NULL;
+__thread int __wid = 0;
 
 abt_thread::abt_thread() {
   ABT_mutex_create(&mutex_);
@@ -13,6 +14,7 @@ abt_thread::abt_thread() {
 void abt_thread::yield() {
   ABT_thread_yield();
   __fulting = this;
+  __wid = this->get_worker_id();
 }
 
 void abt_thread::wait(bool& flag) {
@@ -23,18 +25,21 @@ void abt_thread::wait(bool& flag) {
   }
   ABT_mutex_unlock(mutex_);
   __fulting = this;
+  __wid = this->get_worker_id();
 }
+
 
 void abt_thread::resume(bool& flag) {
   ABT_mutex_lock(mutex_);
   flag = true;
-  ABT_mutex_unlock(mutex_);
   ABT_cond_signal(cond_);
+  ABT_mutex_unlock(mutex_);
 }
 
 void abt_thread::join() {
   ABT_thread_join(th_);
   __fulting = this;
+  __wid = this->get_worker_id();
 }
 
 int abt_thread::get_worker_id() {
@@ -44,6 +49,7 @@ int abt_thread::get_worker_id() {
 static void abt_fwrapper(void* arg) {
   abt_thread* th = (abt_thread*) arg;
   __fulting = th;
+  __wid = th->get_worker_id();
   th->f(th->data);
   __fulting = NULL;
 }
@@ -65,7 +71,9 @@ std::atomic<int> abt_nworker;
 
 static void abt_start_up(void* arg) {
   long id = (long) arg;
+#ifdef USE_AFFI
   affinity::set_me_to(id);
+#endif
 }
 
 void abt_worker::start() {
@@ -88,7 +96,9 @@ void abt_worker::stop() {
 
 void abt_worker::start_main(ffunc main_task, intptr_t data) {
   id_ = abt_nworker.fetch_add(1);
+#ifdef USE_AFFI
   affinity::set_me_to(id_);
+#endif
   ABT_xstream_self(&xstream_);
   ABT_xstream_get_main_pools(xstream_, 1, &pool_);
   ABT_xstream_start(xstream_);

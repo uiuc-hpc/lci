@@ -13,8 +13,8 @@
 
 #include <sys/mman.h>
 // #define USE_L1_MASK
-static const int F_STACK_SIZE = 4*1024;
-static const int MAIN_STACK_SIZE = 16*1024;
+static const int F_STACK_SIZE = 4 * 1024;
+static const int MAIN_STACK_SIZE = 16 * 1024;
 
 #include "ult.h"
 #include "bitops.h"
@@ -35,11 +35,11 @@ static const int NMASK = 8 * 8 * 64;
 static const int WORDSIZE = (8 * sizeof(long));
 
 typedef void* fcontext_t;
-static void fwrapper(intptr_t);
 class fult;
 class fworker;
 
 __thread fult* __fulting;
+__thread int __wid;
 
 // fcontext (from boost).
 extern "C" {
@@ -69,7 +69,9 @@ enum fult_state {
 
 static standard_stack_allocator fult_stack;
 
-class fult final : public ult_base {
+static void fwrapper(intptr_t);
+
+class fult final {
  friend class fworker;
  public:
   inline fult() : state_(INVALID) { stack.sp = NULL; }
@@ -86,9 +88,7 @@ class fult final : public ult_base {
   inline fctx* ctx() { return &ctx_; }
   inline int id() { return id_; }
   inline fworker* origin() { return origin_; }
-
-  void start();
-  void done();
+  inline void start();
 
  private:
   fworker* origin_;
@@ -134,13 +134,6 @@ class fworker final {
 
   inline int id() { return id_; }
 
-#ifdef USE_WORKER_WAIT
-// This is for the worker to wait instead the thread.
-// In that case, we do not support yielding.
-  void wait(bool& flag);
-  void resume(bool& flag);
-#endif
-
  private:
   fult_t fult_new(const int id, ffunc f, intptr_t data, size_t stack_size);
   static void wfunc(fworker*);
@@ -157,11 +150,6 @@ class fworker final {
 
   std::thread w_;
   int id_;
-
-#ifdef USE_WORKER_WAIT
-  std::mutex m_;
-  std::condition_variable cv_;
-#endif
 
   // TODO(danghvu): this is temporary, but it is most generic.
   std::unique_ptr<boost::lockfree::stack<fult_t>>

@@ -23,39 +23,22 @@ inline void fult::wait(bool&) {
 
 inline void fult::resume(bool&) { origin_->schedule(id_); }
 
-inline void fult::done() { origin_->fin(id_); }
-
 inline void fult::join() {
   while (state_ != INVALID) { __fulting->yield(); }
 }
 
+inline int fult::get_worker_id() { return origin_->id_; }
+
 inline void fult::start() {
-  (myfunc_)(data_);
+  myfunc_(data_);
   state_ = INVALID;
   ctx_.ret();
 }
 
-inline int fult::get_worker_id() { return origin_->id_; }
-
-static void fwrapper(intptr_t args) {
-  fult* ff = (fult*)args;
+void fwrapper(intptr_t args) {
+  fult* ff = (fult*) args;
   ff->start();
 }
-
-#ifdef USE_WORKER_WAIT
-void fworker::wait(bool& flag) {
-  std::unique_lock<std::mutex> lk(m_);
-  cv_.wait(lk, [&flag] { return flag; });
-}
-
-void fworker::resume(bool& flag) {
-  {
-    std::lock_guard<std::mutex> lk(m_);
-    flag = true;
-  }
-  cv_.notify_one();
-}
-#endif
 
 inline fworker::fworker() {
   stop_ = true;
@@ -108,7 +91,7 @@ inline fult_t fworker::fult_new(const int id, ffunc f, intptr_t data,
 
 inline void fworker::wfunc(fworker* w) {
   w->id_ = nfworker_.fetch_add(1);
-  bool flag;
+  __wid = w->id_;
 #ifdef USE_AFFI
   affinity::set_me_to(w->id_);
 #endif
@@ -144,11 +127,11 @@ inline void fworker::wfunc(fworker* w) {
             // Optains the associate thread.
             fult* f = &w->lwt_[(i << 6) + id];
             // Works on it only if it's not completed.
-            if (f->state() != INVALID)  {
+            if (xlikely(f->state() != INVALID)) {
               w->work(f);
               // Cleanup after working.
-              if (f->state() == YIELD) f->resume(flag);
-              else if (f->state() == INVALID) f->done();
+              if (f->state() == YIELD) w->schedule(f->id_);
+              else if (f->state() == INVALID) w->fin(f->id_);
             }
           }
         }
