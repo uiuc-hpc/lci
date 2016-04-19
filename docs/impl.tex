@@ -14,16 +14,12 @@ Rather than designing a general purpose ULT, we focus on the two most important
 operations for synchronization purpose: \texttt{ThreadWait} and
 \texttt{ThreadSignal}. A possible implementation is \textit{condition
 variable}. This is the typical mechanism in POSIX thread, and other ULT
-library.  Condition variable is a generic container which can
-be used as a building block for many other synchronization primitives. However,
-it is still expensive as in general it requires a mutex lock and some queue
-traversal when many threads are blocking.  An alternative is to use a
-busy-waiting synchronization flag which has lower latency. However this is
-considered even worst for scaling since the processor spends useless time
-polling. Qthreads implements a slight modification notion of condition variable
-namely \textit{full-empty bit}. However, internally each object is a waiting
-queue and rescheduling requires expensive traveral of this queue to find
-runnable threads and insert back to run queues.
+library.  Condition variable is a generic container which is
+used as a building block for many other synchronization primitives. It
+typically requires a mutex and a queue traversal to find the waiting thread. An
+alternative is to use a busy-waiting synchronization flag which has lower
+latency. However this is considered worst for scaling since the processor
+spends useless time polling. 
 
 Our thread scheduler targets a constant time overhead for both afortmentioned
 operation. Marking a thread as runnable or waiting is only a single x86
@@ -32,13 +28,12 @@ Rather than using a queue to implement a set of runnable thread, each bit in
 the bit-vector indicates a schedulable thread. When a worker is created, it is
 given a unique worker id, denotes as $\omega$.  When a thread is created by a
 worker, it is assigned an unique id $\Gamma$ within the range of $[0,M-1]$, for
-$M$ is the maximum concurrent threads for that worker.  For example, using a
-vector of $8$ 64-bit words, we allow up to $512$ concurrent threads per worker.
-A pair $(\omega, \Gamma)$ uniquely defines a thread in the system at a point in
-time. During thread's creation time, the associated $\Gamma$ bit in its
-bitvector structure is marked so that when the worker is free it will attempt
-to schedule that thread to run. Algorithms \ref{algo:thread} further describes
-our scheduling algorithms. 
+$M$ is the maximum concurrent threads for that worker.  A pair $(\omega,
+\Gamma)$ uniquely defines a thread in the system at a point in time. During
+creation time, the associated $\Gamma$ bit in its bitvector structure
+is marked so that when the worker is free it will attempt to schedule that
+thread to run. Algorithms \ref{algo:thread} further describes our scheduling
+algorithms. 
 
 \begin{algorithm}
   \caption{Thread scheduler}
