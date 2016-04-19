@@ -188,60 +188,59 @@ of two components:
       \end{tikzpicture}
     }
 
-    \subfigure[Number of worker = 14, Number of threads = 42] {
-      \begin{tikzpicture}[scale=.9]
+    \subfigure[Single threaded latency test] {
+      \centering
+      \begin{tikzpicture}[scale=0.9]
         \begin{axis}[xlabel=Message Size (byte), ylabel=Latency (usec),
             xmode=log, ymode=log, xtick distance=2^2,
             log basis x=2, log basis y=2,
-            ymin=1, ytick distance=2^2,
             xmax=2^14,
             xmin=1, % cycle list={{red},{blue},{black}},
             legend pos={north west},
             mark size=1.5pt,
             legend style={font=\tiny},
           ]
-          \addplot table [x=threads, y=mvapich2+mt] {data/pingpong3.dat};
+          \addplot table [x=threads, y=mvapich2+mt] {data/pingpong1.dat};
           \addlegendentry{mvapich2+mt}
-          \addplot table [x=threads, y=pthread+hash] {data/pingpong3.dat};
+          \addplot table [x=threads, y=pthread+hash] {data/pingpong1.dat};
           \addlegendentry{pthread+hash}
-          \addplot table [x=threads, y=abt+hash] {data/pingpong3.dat};
+          \addplot table [x=threads, y=abt+hash] {data/pingpong1.dat};
           \addlegendentry{abt+hash}
-          \addplot table [x=threads, y=fult+hash] {data/pingpong3.dat};
+          \addplot table [x=threads, y=fult+hash] {data/pingpong1.dat};
           \addlegendentry{fult+hash}
+          \addplot table [x=threads, y=mvapich2] {data/pingpong1.dat};
+          \addlegendentry{mvapich2}
         \end{axis}
       \end{tikzpicture}
     }
+
+%    \subfigure[Number of worker = 14, Number of threads = 42] {
+%      \begin{tikzpicture}[scale=.9]
+%        \begin{axis}[xlabel=Message Size (byte), ylabel=Latency (usec),
+%            xmode=log, ymode=log, xtick distance=2^2,
+%            log basis x=2, log basis y=2,
+%            ymin=1, ytick distance=2^2,
+%            xmax=2^14,
+%            xmin=1, % cycle list={{red},{blue},{black}},
+%            legend pos={north west},
+%            mark size=1.5pt,
+%            legend style={font=\tiny},
+%          ]
+%          \addplot table [x=threads, y=mvapich2+mt] {data/pingpong3.dat};
+%          \addlegendentry{mvapich2+mt}
+%          \addplot table [x=threads, y=pthread+hash] {data/pingpong3.dat};
+%          \addlegendentry{pthread+hash}
+%          \addplot table [x=threads, y=abt+hash] {data/pingpong3.dat};
+%          \addlegendentry{abt+hash}
+%          \addplot table [x=threads, y=fult+hash] {data/pingpong3.dat};
+%          \addlegendentry{fult+hash}
+%        \end{axis}
+%      \end{tikzpicture}
+%    }
   \end{adjustbox}
 
-  \caption{Latency comparison between different MPI implementation using OSU multi-threaded latency test.\label{fig:osumt}}
+  \caption{Latency comparison between different MPI implementation using OSU latency test.\label{fig:osumt}}
 \end{figure*}
-
-\begin{figure}[ht]
-  \centering
-  \begin{tikzpicture}[scale=0.9]
-    \begin{axis}[xlabel=Message Size (byte), ylabel=Latency (usec),
-          xmode=log, ymode=log, xtick distance=2^2,
-          log basis x=2, log basis y=2,
-          xmax=2^14,
-          xmin=1, % cycle list={{red},{blue},{black}},
-          legend pos={north west},
-          mark size=1.5pt,
-          legend style={font=\tiny},
-      ]
-      \addplot table [x=threads, y=mvapich2+mt] {data/pingpong1.dat};
-      \addlegendentry{mvapich2+mt}
-      \pgfplotsset{cycle list shift=1}
-      \addplot table [x=threads, y=abt+hash] {data/pingpong1.dat};
-      \addlegendentry{abt+hash}
-      \addplot table [x=threads, y=fult+hash] {data/pingpong1.dat};
-      \addlegendentry{fult+hash}
-      \addplot table [x=threads, y=mvapich2] {data/pingpong1.dat};
-      \addlegendentry{mvapich2}
-    \end{axis}
-  \end{tikzpicture}
-
-  \caption{Latency comparison between different MPI implementation using OSU single-threaded latency test.\label{fig:osu}}
-\end{figure}
 
 \subsubsection{OSU latency benchmarks}
 \begin{table}
