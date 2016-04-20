@@ -27,10 +27,12 @@ struct MPIV_Request {
 
 inline void MPIV_Wait(MPIV_Request* req) {
   if (xunlikely(req->done_)) return;
+  // printf(">>> WAIT: rank %d tag %d sync id %d origin %d\n", req->rank, req->tag, req->sync->id(), req->sync->get_worker_id());
   req->sync->wait(req->done_);
 }
 
 inline void MPIV_Signal(MPIV_Request* req) {
+  // printf(">>> rank %d tag %d sync id %d origin %d\n", req->rank, req->tag, req->sync->id(), req->sync->get_worker_id());
   req->sync->resume(req->done_);
 }
 

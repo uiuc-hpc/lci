@@ -81,9 +81,10 @@ inline void mpiv_serve_send(const ibv_wc& wc) {
     MPIV_Signal(req);
     stopt(rdma_timing);
     // this packet is taken directly from recv queue.
+    //if (MPIV.server.need_recv()) mpiv_post_recv(p_ctx); else
     MPIV.pkpool.ret_packet(p_ctx);
   } else {
-    // if (MPIV.server.need_recv()) // mpiv_post_recv(p_ctx);
+    // if (MPIV.server.need_recv()) mpiv_post_recv(p_ctx); else
     MPIV.pkpool.ret_packet_to(p_ctx, poolid);
   }
 }

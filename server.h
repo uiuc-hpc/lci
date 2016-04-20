@@ -110,6 +110,7 @@ class mpiv_server {
 
   inline void serve() {
     poll_thread_ = std::thread([this] {
+      __wid = -1;
 #ifdef USE_AFFI
       affinity::set_me_to_last();
 #endif

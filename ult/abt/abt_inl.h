@@ -12,34 +12,47 @@ abt_thread::abt_thread() {
 }
 
 void abt_thread::yield() {
+  abt_thread* saved = __fulting;
   ABT_thread_yield();
-  __fulting = this;
-  __wid = this->get_worker_id();
+  if (saved) {
+    __fulting = saved;
+    __wid = saved->get_worker_id();
+  }
 }
 
 void abt_thread::wait(bool& flag) {
-  assert(__fulting);
+  abt_thread* saved = __fulting;
   ABT_mutex_lock(mutex_);
   while (!flag) {
     ABT_cond_wait(cond_, mutex_);
   }
   ABT_mutex_unlock(mutex_);
-  __fulting = this;
-  __wid = this->get_worker_id();
+  if (saved) { 
+    __fulting = saved;
+    __wid = saved->get_worker_id();
+  }
 }
 
 
 void abt_thread::resume(bool& flag) {
+  abt_thread* saved = __fulting;
   ABT_mutex_lock(mutex_);
   flag = true;
-  ABT_cond_signal(cond_);
   ABT_mutex_unlock(mutex_);
+  ABT_cond_signal(cond_);
+  if (saved) {
+    __fulting = saved;
+    __wid = saved->get_worker_id();
+  }
 }
 
 void abt_thread::join() {
+  abt_thread* saved = __fulting;
   ABT_thread_join(th_);
-  __fulting = this;
-  __wid = this->get_worker_id();
+  if(saved) { 
+    __fulting = saved;
+    __wid = saved->get_worker_id();
+  }
 }
 
 int abt_thread::get_worker_id() {
@@ -101,8 +114,7 @@ void abt_worker::start_main(ffunc main_task, intptr_t data) {
 #endif
   ABT_xstream_self(&xstream_);
   ABT_xstream_get_main_pools(xstream_, 1, &pool_);
-  ABT_xstream_start(xstream_);
-  abt_thread* t = spawn(main_task, data, MAIN_STACK_SIZE);
+  auto t = spawn(main_task, data, MAIN_STACK_SIZE);
   t->join();
   delete t;
 }

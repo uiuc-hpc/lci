@@ -1,6 +1,6 @@
 MPICXX = mpicxx
 GXX = gcc
-CXXFLAGS += -O3 -Wall -Wextra -std=c++11 -I../ult -I../ -DUSE_AFFI
+CXXFLAGS += -g3 -O3 -Wall -Wextra -std=c++11 -I../ult -I../ -DUSE_AFFI
 
 ### FOR TESTING HASH TABLE ###
 #FACEBOOK_INC = -I$(HOME)/facebook/include -I$(HOME)/glog/include -I$(HOME)/folly/folly/double-conversion #-DNDEBUG
@@ -9,8 +9,8 @@ CXXFLAGS += -O3 -Wall -Wextra -std=c++11 -I../ult -I../ -DUSE_AFFI
 #LDFLAGS += $(FACEBOOK_LIB)
 
 ### FOR TESTING LIBCUCKOO ###
-# CUCKOO_INC = $(HOME)/libcuckoo/include
-# CXXFLAGS += -I$(CUCKOO_INC)
+CUCKOO_INC = $(HOME)/libcuckoo/include
+CXXFLAGS += -I$(CUCKOO_INC)
 
 ### FOR TESTING TBB ###
 #TBB_INC = -I/opt/apps/intel/15/composer_xe_2015.2.164/tbb/include/
@@ -46,19 +46,15 @@ CXXFLAGS_NOBOOST = -I$(ABT_INC)
 CXXFLAGS += -I$(BOOST_INC) -I$(RDMAX_INC) -I$(IBV_INC)
 LDFLAGS += -L$(BOOST_LIB) -L$(IBV_LIB) # -llmpe -lmpe
 
-all: pp 
+all: pp jaco
 
-pp: pingpong pingpong_cond_nonuma pingpong_nonuma pingpong_abt_nonuma \
-		pingpong_mt pingpong_mt_pthread pingpong_mt_cond_nonuma pingpong_mt_nonuma pingpong_mt_abt_nonuma
+jaco: jacobi_3d jacobi_3d_1 jacobi_3d_cond jacobi_3d_abt
 
-pingpong_abt_nonuma: CXXFLAGS+=-DUSE_ABT -DCONFIG_PK_MANAGER=packet_manager_LFSTACK
-pingpong_mt_abt_nonuma: CXXFLAGS+=-DUSE_ABT -DCONFIG_PK_MANAGER=packet_manager_LFSTACK
+pp: pingpong pingpong_cond pingpong_abt \
+		pingpong_mt pingpong_mt_pthread pingpong_mt_cond pingpong_mt_abt
 
-pingpong_cond_nonuma: CXXFLAGS+=-DUSE_WORKER_WAIT -DCONFIG_PK_MANAGER=packet_manager_LFSTACK
-pingpong_mt_cond_nonuma: CXXFLAGS+=-DUSE_WORKER_WAIT -DCONFIG_PK_MANAGER=packet_manager_LFSTACK
-
-pingpong_nonuma: CXXFLAGS+=-DCONFIG_PK_MANAGER=packet_manager_LFSTACK
-pingpong_mt_nonuma: CXXFLAGS+=-DCONFIG_PK_MANAGER=packet_manager_LFSTACK
+%_abt: CXXFLAGS+=-DUSE_ABT
+%_cond: CXXFLAGS+=-DUSE_PTHREAD
 
 abt_%: abt_%.c
 	$(GXX) $(CXXFLAGS) $^ -o $@ -L$(ABT_LIB)

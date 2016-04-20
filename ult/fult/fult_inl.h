@@ -1,6 +1,13 @@
 #ifndef FULT_INL_H_
 #define FULT_INL_H_
 
+#define MUL64(x) ((x)<<6)
+#define DIV64(x) ((x)>>6)
+#define DIV512(x) ((x)>>9)
+#define DIV32768(x) ((x)>>15)
+#define MUL8(x) ((x)<<3)
+#define MOD_POW2(x, y) ((x) & ((y)-1))
+
 inline void fult::init(ffunc myfunc, intptr_t data, size_t stack_size) {
   if (stack.sp == NULL) {
     fult_stack.allocate(stack, stack_size);
@@ -21,7 +28,9 @@ inline void fult::wait(bool&) {
   ctx_.ret();
 }
 
-inline void fult::resume(bool&) { origin_->schedule(id_); }
+inline void fult::resume(bool&) {
+  origin_->schedule(id_);
+}
 
 inline void fult::join() {
   while (state_ != INVALID) { __fulting->yield(); }
@@ -43,18 +52,24 @@ void fwrapper(intptr_t args) {
 inline fworker::fworker() {
   stop_ = true;
   // Reset all mask.
-  l1_mask = 0;
+  mask_ = new unsigned long[NMASK];
+  lwt_ = new fult[NMASK * WORDSIZE];
   for (int i = 0; i < NMASK; i++) mask_[i] = 0;
+  for (int i = 0; i < 8; i++) l1_mask[i] = 0;
   // Add all free slot.
   memset(lwt_, 0, sizeof(fult) * (NMASK * WORDSIZE));
   tid_pool = std::move(std::unique_ptr<boost::lockfree::stack<fult_t>>(
         new boost::lockfree::stack<fult_t>(NMASK * WORDSIZE)));
-
   for (int i = (int)(NMASK * WORDSIZE) - 1; i >= 0; i--) {
     lwt_[i].origin_ = this;
     lwt_[i].id_ = i;
     tid_pool->push(&lwt_[i]);
   }
+}
+
+fworker::~fworker() {
+  delete [] lwt_;
+  delete [] mask_;
 }
 
 inline fult_t fworker::spawn(ffunc f, intptr_t data, size_t stack_size) {
@@ -72,9 +87,9 @@ inline void fworker::work(fult* f) {
 }
 
 inline void fworker::schedule(const int id) {
-  sync_set_bit(id & (WORDSIZE - 1), &mask_[id >> 6]);
+  sync_set_bit(MOD_POW2(id, WORDSIZE), &mask_[DIV64(id)]);
 #ifdef USE_L1_MASK
-  sync_set_bit(id >> 9, &l1_mask);
+  sync_set_bit(DIV512(MOD_POW2(id, 32768)), &l1_mask[DIV32768(id)]);
 #endif
 }
 
@@ -89,6 +104,7 @@ inline fult_t fworker::fult_new(const int id, ffunc f, intptr_t data,
   return (fult_t)&lwt_[id];
 }
 
+#ifndef USE_L1_MASK
 inline void fworker::wfunc(fworker* w) {
   w->id_ = nfworker_.fetch_add(1);
   __wid = w->id_;
@@ -102,36 +118,82 @@ inline void fworker::wfunc(fworker* w) {
 #endif
 
   while (xunlikely(!w->stop_)) {
-#ifdef USE_L1_MASK
-    if (w->l1_mask == 0) continue;
-    auto local_l1_mask = exchange((unsigned long)0, &(w->l1_mask));
-    while (local_l1_mask > 0) {
-      auto ii = find_first_set(local_l1_mask);
-      local_l1_mask ^= ((unsigned long)1 << ii);
-
-      for (auto i = ii * 8; i < ii * 8 + 8 && i < NMASK; i++) {
-#else
     for (auto i = 0; i < NMASK; i++) {
-      {
-#endif
-        auto& mask = w->mask_[i];
-        if (mask > 0) {
-          // Atomic exchange to get the current waiting threads.
-          auto local_mask = exchange((unsigned long)0, &(mask));
+      auto& mask = w->mask_[i];
+      if (mask > 0) {
+        // Atomic exchange to get the current waiting threads.
+        auto local_mask = exchange((unsigned long)0, &(mask));
+        // Works until it no thread is pending.
+        while (local_mask > 0) {
+          auto id = find_first_set(local_mask);
+          bit_flip(local_mask, id);
+          // Optains the associate thread.
+          fult* f = &(w->lwt_[MUL64(i) + id]);
+          // Works on it only if it's not completed.
+          if (xlikely(f->state_ != INVALID)) {
+            w->work(f);
+            // Cleanup after working.
+            if (f->state_ == YIELD) w->schedule(f->id_);
+            else if (f->state_ == INVALID) w->fin(f->id_);
+          }
+        }
+      }
+    }
+  }
+  nfworker_--;
 
-          // Works until it no thread is pending.
-          while (local_mask > 0) {
-            auto id = find_first_set(local_mask);
-            // Flips the set bit.
-            local_mask ^= ((unsigned long)1 << id);
-            // Optains the associate thread.
-            fult* f = &w->lwt_[(i << 6) + id];
-            // Works on it only if it's not completed.
-            if (xlikely(f->state() != INVALID)) {
-              w->work(f);
-              // Cleanup after working.
-              if (f->state() == YIELD) w->schedule(f->id_);
-              else if (f->state() == INVALID) w->fin(f->id_);
+#ifdef USE_PAPI
+  wp.stop();
+  wp.print();
+#endif
+}
+
+#else
+
+inline void fworker::wfunc(fworker* w) {
+  w->id_ = nfworker_.fetch_add(1);
+  __wid = w->id_;
+#ifdef USE_AFFI
+  affinity::set_me_to(w->id_);
+#endif
+
+#ifdef USE_PAPI
+  profiler wp = {PAPI_L1_DCM};
+  wp.start();
+#endif
+
+  while (xunlikely(!w->stop_)) {
+    for (int l1i = 0; l1i < 8; l1i++) {
+      if (w->l1_mask[l1i] == 0) continue; 
+      auto local_l1_mask = exchange((unsigned long)0, &(w->l1_mask[l1i]));
+
+      while (local_l1_mask > 0) {
+        auto ii = find_first_set(local_l1_mask);
+        bit_flip(local_l1_mask, ii);
+
+        auto start_i = MUL8(MUL64(l1i)) + MUL8(ii);
+        for (auto i = start_i; i < start_i + 8 && i < NMASK; i++) {
+          auto& mask = w->mask_[i];
+          if (mask > 0) {
+            unsigned long local_mask = 0;
+            // Atomic exchange to get the current waiting threads.
+            local_mask = exchange(local_mask, &(w->mask_[i]));
+            // if (w->id() == 1 && i == 0) printf("%d (%p) update %lx\n", w->id(), w, w->mask_[0]);
+            // Works until it no thread is pending.
+            while (local_mask > 0) {
+              auto id = find_first_set(local_mask);
+              bit_flip(local_mask, id);
+              // Optains the associate thread.
+              fult* f = &w->lwt_[MUL64(i) + id];
+              // Works on it only if it's not completed.
+              if (xlikely(f->state_ != INVALID)) {
+                // if (w->id() == 1) printf("%d (%p) work %lx\n", w->id(), w, w->mask_[0]);
+                w->work(f);
+                // if (w->id() == 1) printf("%d (%p) return %lx\n", w->id(), w, w->mask_[0]);
+                // Cleanup after working.
+                if (f->state_ == YIELD) w->schedule(f->id_);
+                else if (f->state_ == INVALID) w->fin(f->id_);
+              }
             }
           }
         }
@@ -145,5 +207,6 @@ inline void fworker::wfunc(fworker* w) {
   wp.print();
 #endif
 }
+#endif // ifndef L1_MASK
 
 #endif

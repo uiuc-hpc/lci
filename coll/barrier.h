@@ -92,10 +92,13 @@ int MPIV_Barrier_N(MPI_Comm comm) {
 }
 
 void MPIV_Barrier(MPI_Comm comm) {
+#if 0
   if (MPIV.size > 32)
     MPIV_Barrier_log(comm);
   else
     MPIV_Barrier_N(comm);
+#endif
+  MPI_Barrier(comm);
 }
 
 #endif

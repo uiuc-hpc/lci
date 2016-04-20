@@ -17,6 +17,7 @@ inline void MPIV_Send_rdz(MPIV_Request* s) {
 }
 
 inline void MPIV_Send_short(const void* buffer, int size, int rank, int tag) {
+  // while (MPIV.server.need_recv()) ult_yield();
   mpiv_packet* packet = MPIV.pkpool.get_for_send();
   packet->set_header(SEND_SHORT, MPIV.me, tag);
   // This is a short message, we send them immediately and do not yield

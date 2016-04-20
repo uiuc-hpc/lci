@@ -74,7 +74,7 @@ struct hash_val {
 inline hash_val* create_table(size_t num_rows) {
   hash_val* ret = 0;
   // Aligned cache line.
-  posix_memalign((void**)&(ret), 64, num_rows * TBL_WIDTH * sizeof(hash_val));
+  assert(posix_memalign((void**)&(ret), 64, num_rows * TBL_WIDTH * sizeof(hash_val)) == 0);
 
   // Initialize all with EMPTY and clear lock.
   for (size_t i = 0; i < num_rows; i++) {
@@ -82,7 +82,8 @@ inline hash_val* create_table(size_t num_rows) {
     ret[i * TBL_WIDTH].init_control();
     // Remaining are slots.
     for (int j = 1; j < TBL_WIDTH; j++) {
-      ret[i * TBL_WIDTH + j].clear();
+      ret[i * TBL_WIDTH + j].entry.tag = EMPTY;
+      ret[i * TBL_WIDTH + j].entry.val = 0;
     }
   }
   return ret;

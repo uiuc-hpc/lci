@@ -58,7 +58,7 @@ int noBarrier = 0;
 int myRank, numPes;
 
 int main(int argc, char** argv) {
-  MPIV_Init(argc, argv);
+  MPIV_Init(&argc, &argv);
 
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
@@ -446,44 +446,46 @@ void main_task(intptr_t) {
   back_plane_in = (double*)mpiv_malloc(sizeof(double) * blockDimX * blockDimY);
   front_plane_in = (double*)mpiv_malloc(sizeof(double) * blockDimX * blockDimY);
 
-  std::vector<fult_t> x;
-  std::vector<fult_t> extra;
-  int spare = blockDimZ / NWORKER / NWORKER;
+  std::vector<thread> x;
+  std::vector<thread> extra;
+  int spare = 0; //blockDimZ / NWORKER / NWORKER;
   x.reserve(blockDimZ);
   extra.reserve(spare);
 
   printf("starting...%d %d %d\n", myXcoord, myYcoord, myZcoord);
+
+  int wcom = 0;
 
   while (/*error > 0.001 &&*/ iterations < MAX_ITER) {
     iterations++;
     if (iterations == SKIP_ITER) startTime = MPI_Wtime();
 
     /* Receive my right, left, top, bottom, back and front planes */
-    auto r = MPIV_spawn(1, right, 0);
-    auto l = MPIV_spawn(1, left, 0);
-    auto u = MPIV_spawn(1, up, 0);
-    auto d = MPIV_spawn(1, down, 0);
-    auto f = MPIV_spawn(1, front, 0);
-    auto b = MPIV_spawn(1, back, 0);
+    auto r = MPIV_spawn(wcom, right, 0);
+    auto l = MPIV_spawn(wcom, left, 0);
+    auto u = MPIV_spawn(wcom, up, 0);
+    auto d = MPIV_spawn(wcom, down, 0);
+    auto f = MPIV_spawn(wcom, front, 0);
+    auto b = MPIV_spawn(wcom, back, 0);
 
     /* Send data. */
-    auto sr = MPIV_spawn(1, send_right, 0);
-    auto sl = MPIV_spawn(1, send_left, 0);
-    auto su = MPIV_spawn(1, send_top, 0);
-    auto sd = MPIV_spawn(1, send_bot, 0);
-    auto sf = MPIV_spawn(1, send_front, 0);
-    auto sb = MPIV_spawn(1, send_back, 0);
+    auto sr = MPIV_spawn(wcom, send_right, 0);
+    auto sl = MPIV_spawn(wcom, send_left, 0);
+    auto su = MPIV_spawn(wcom, send_top, 0);
+    auto sd = MPIV_spawn(wcom, send_bot, 0);
+    auto sf = MPIV_spawn(wcom, send_front, 0);
+    auto sb = MPIV_spawn(wcom, send_back, 0);
 
     x.clear();
     for (int i = 2; i < blockDimZ-spare; i++) {
-      int w = (i % (NWORKER - 1)) + 1;
-      if (w == 1) w = 0;
+      int w = wcom;
+      if (NWORKER > 1) w = (i % (NWORKER - 1)) + 1;
       x.push_back(MPIV_spawn(w, compute, (intptr_t) i));
     }
 
     extra.clear();
     for (int i=blockDimZ-spare; i < blockDimZ; i++) {
-      extra.push_back(MPIV_spawn(1, compute, (intptr_t) i));
+      extra.push_back(MPIV_spawn(wcom, compute, (intptr_t) i));
     }
 
     // finish computation.
@@ -541,7 +543,7 @@ void main_task(intptr_t) {
     }
 
     // if(myRank == 0) printf("Iteration %d\n", iterations);
-    if (noBarrier == 0) MPIV_Barrier(MPI_COMM_WORLD);
+    if (noBarrier == 0) MPI_Barrier(MPI_COMM_WORLD);
     // printf("%d %d done barrier\n", iterations, myRank);
     // MPI_Allreduce(&max_error, &error, 1, MPI_DOUBLE, MPI_MAX,
     // MPI_COMM_WORLD);

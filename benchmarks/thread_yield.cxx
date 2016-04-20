@@ -5,11 +5,11 @@
 #include <atomic>
 #include <stdlib.h>
 
-#include "fult.h"
+#include "ult.h"
 #include "comm_exp.h"
 
 void f1(intptr_t i) {
-  for (int i = 0; i < TOTAL; i++) fult_yield();
+  for (int i = 0; i < TOTAL; i++) ult_yield();
 }
 
 int compare(const void* a, const void* b) { return (*(long*)a - *(long*)b); }
@@ -18,6 +18,10 @@ int num_threads, num_worker, total_threads;
 void main_task(intptr_t);
 
 int main(int argc, char** args) {
+#if USE_ABT
+  ABT_init(argc, args);
+#endif
+
   if (argc < 2) {
     printf("Usage %s <num_workers> <num_threads>\n", args[0]);
   }
@@ -43,12 +47,12 @@ int main(int argc, char** args) {
 void main_task(intptr_t arg) {
   worker* w = (worker*)arg;
   double t = wtime();
-  fult_t tid[num_threads * num_worker];
+  thread tid[num_threads * num_worker];
   for (int i = 0; i < num_threads * num_worker; i++) {
     tid[i] = w[i % num_worker].spawn(f1, i);
   }
   for (int i = 0; i < num_threads * num_worker; i++) {
-    w[i % num_worker].join(tid[i]);
+    tid[i]->join();
   }
   t = wtime() - t;
   printf("%.5f\n", 1e6 * t / TOTAL / total_threads);

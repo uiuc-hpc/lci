@@ -10,33 +10,47 @@ pthread_thread::pthread_thread() {
 }
 
 void pthread_thread::yield() {
+  auto saved = __fulting;
   std::this_thread::yield();
-  __fulting = this;
-  __wid = this->get_worker_id();
+  if (saved) {
+    __fulting = saved;
+    __wid = saved->get_worker_id();
+  }
 }
 
 void pthread_thread::wait(bool& flag) {
+  auto saved = __fulting;
   {
   std::unique_lock<std::mutex> lk(m_);
   cv_.wait(lk, [&flag] { return flag; });
   }
-  __fulting = this;
-  __wid = this->get_worker_id();
+  if (saved) {
+    __fulting = saved;
+    __wid = saved->get_worker_id();
+  }
 }
 
 
 void pthread_thread::resume(bool& flag) {
+  auto saved = __fulting;
   {
     std::lock_guard<std::mutex> lk(m_);
     flag = true;
   }
   cv_.notify_one();
+  if (saved) {
+    __fulting = saved;
+    __wid = saved->get_worker_id();
+  }
 }
 
 void pthread_thread::join() {
+  auto saved = __fulting;
   th_.join();
-  __fulting = this;
-  __wid = this->get_worker_id();
+  if (saved) {
+    __fulting = saved;
+    __wid = saved->get_worker_id();
+  }
 }
 
 int pthread_thread::get_worker_id() {

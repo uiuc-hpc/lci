@@ -13,8 +13,8 @@
 
 #include <sys/mman.h>
 // #define USE_L1_MASK
-static const int F_STACK_SIZE = 4 * 1024;
-static const int MAIN_STACK_SIZE = 16 * 1024;
+static const int F_STACK_SIZE = 8 * 1024;
+static const int MAIN_STACK_SIZE = 8 * 1024;
 
 #include "ult.h"
 #include "bitops.h"
@@ -109,6 +109,8 @@ class fworker final {
  public:
 
    fworker();
+   ~fworker();
+
    fult_t spawn(ffunc f, intptr_t data = 0, size_t stack_size = F_STACK_SIZE);
    void work(fult* f);
 
@@ -141,16 +143,14 @@ class fworker final {
   void schedule(const int id);
   inline void fin(int id) { tid_pool->push(&lwt_[id]); }
 
-  fctx ctx_;
-  fult lwt_[WORDSIZE * NMASK];
-
-  volatile unsigned long l1_mask;
-  volatile unsigned long mask_[NMASK];
-  volatile bool stop_;
+  fctx ctx_ __attribute__((aligned(64)));
+  volatile unsigned long l1_mask[8] __attribute__((aligned(64)));
+  volatile bool stop_ __attribute__((aligned(64)));
+  fult* lwt_ __attribute__((aligned(64)));
+  volatile unsigned long* mask_ __attribute__((aligned(64)));
 
   std::thread w_;
   int id_;
-
   // TODO(danghvu): this is temporary, but it is most generic.
   std::unique_ptr<boost::lockfree::stack<fult_t>>
       tid_pool;  //, boost::lockfree::capacity<WORDSIZE * NMASK>>
