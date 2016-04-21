@@ -97,7 +97,25 @@ as 50 nanosecond. This latency is consitent with our expectation that our cost
 for the hash-table is equivalent to 2 memory writes.
 
 \subsubsection{Thread scheduler}
-TODO
+
+\begin{table}[h]
+  \begin{tabular}{| l || l | l | l |}
+    \hline
+    & \textbf{POSIX thread} & \textbf{Argobots}	& \textbf{Fult} \\ \hline
+    Scheduling & 0.75 & 0.08 & 0.02 \\ \hline
+    Signal & 1.15 & 0.30 & 0.01 \\ \hline
+    Total & 1.90 & 0.38 & 0.03 \\ \hline
+  \end{tabular}
+  \caption{Break down of thread scheduler overheads, shown in $usec$. \label{fig:thread}}
+\end{table}
+
+To evaluate the thread scheduler minimum overhead, we measure separately the
+two operations: 1) How fast can a thread be scheduled - by performing a large
+number of yield within a thread and obtain the entire runtime. 2) The cost of a
+\texttt{ThreadSignal} by getting the runtime latency when performing operation
+on a thread of a different worker. Table~\ref{fig:thread} shows our results,
+Fult scheduler achieves the overall cost of 30 nanosecond, about $10\times$
+that of Argobots and $60\times$ of POSIX threads.
 
 \subsubsection{Concurrent Packet Pool}
 \begin{figure}[ht]
@@ -234,10 +252,10 @@ patterns. Our latency is consistently in the range of 100-150 nanosecond.
 \end{figure*}
 
 \subsubsection{OSU latency benchmarks}
-\begin{table}
-\begin{tabular}{|l|l|l|}
+\begin{table}[h]
+\begin{tabular}{|l||l|l|}
 \hline
-MPI impl. & Matching Algorithm & Scheduler \\
+& \textbf{Matching Algorithm} & \textbf{Scheduler} \\
 \hline
 mvapich2+mt & queues & POSIX thread \\
 \hline
@@ -245,7 +263,7 @@ pthread+hash & hash-table & POSIX thread \\
 \hline
 abt+hash & hash-table & Argobots \\
 \hline
-fult+hash & hash-table & Bitvector \\
+fult+hash & hash-table & Fult \\
 \hline
 \end{tabular}
 \caption{Summary of MPI implementation used in the evaluation, Speedup is shown

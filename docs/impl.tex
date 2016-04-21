@@ -55,17 +55,17 @@ reduce the overhead of context switching because a context-switch in ULT bypass
 the kernel and thus lower the latency to less than a hundred cycles.
 
 Additionally, to further show that improving \texttt{ThreadWait} and
-\texttt{ThreadSignal} is critical to the algorithm, we implement a specialized
-thread scheduler based on bit-vector. The context-switching mechanism is
-similar to that of Argobots. However, rather than using a queue as traditional
-ULT, , a bit in the bit-vector shall indicates a schedulable thread. When a
-worker is created, it is given a unique worker id, denotes as $\omega$.  When a
-thread is created by a worker, it is also assigned an unique id $\Gamma$.  A
-pair $(\omega, \Gamma)$ uniquely defines a thread in the system at a point in
-time. During creation time, the associated $\Gamma$ bit in its bitvector
-structure is marked so that when the worker is free it will attempt to schedule
-that thread to run. Algorithms \ref{algo:thread} further describes our
-scheduling algorithms. 
+\texttt{ThreadSignal} is critical to the algorithm, we design and implement a
+specialized thread scheduler based on bit-vector, namely \textit{Fult}. The
+context-switching mechanism is similar to that of Argobots. However, rather
+than using a queue as traditional ULT - we indicates a schedulable thread by a
+single bit. When a worker is created, it is given a unique worker id, denotes
+as $\omega$.  When a thread is created by a worker, it is also assigned an
+unique id $\Gamma$.  A pair $(\omega, \Gamma)$ uniquely defines a thread in the
+system at a point in time. During creation time, the associated $\Gamma$ bit in
+its bitvector structure is marked so that when the worker is free it will
+attempt to schedule that thread to run. Algorithms \ref{algo:thread} further
+describes our scheduling algorithms. 
 
 \begin{algorithm}
   \caption{Thread scheduler}
