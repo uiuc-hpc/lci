@@ -187,9 +187,9 @@ patterns. Our latency is consistently in the range of 100-150 nanosecond.
             ylabel near ticks,
             xlabel near ticks,
           ]
-          \addplot table [x=threads, y=mvapich2+mt] {data/pingpong2.dat} node[pos=0.27, pin=below:56.8]{};
+          \addplot table [x=threads, y=mvapich2+mt] {data/pingpong2.dat} node[pos=0.27, pin=below:40.1]{};
           \addlegendentry{mvapich2+mt}
-          \addplot table [x=threads, y=pthread+hash] {data/pingpong2.dat} node [pos=0.25, pin=above:5.7]{};
+          \addplot table [x=threads, y=pthread+hash] {data/pingpong2.dat} node [pos=0.25, pin=above:5.5]{};
           \addlegendentry{pthread+hash}
           \addplot table [x=threads, y=abt+hash] {data/pingpong2.dat} node [pos=0.25, pin=above:2.3]{};
           \addlegendentry{abt+hash}
@@ -273,13 +273,16 @@ fult+hash & hash-table & Fult \\
 
 We use OSU benchmarks \cite{osubench} to evaluate the latency per
 \texttt{MPI_Send} or \texttt{MPI_Recv}. The single threaded test is performed
-using \texttt{osu_latency}, the multi-threaded test is performed with
-\texttt{osu_latency_mt}. We compare our best implementation
-(\textit{fult+hash}) with MVAPICH2 and other possible implementation of our
-runtime design.  Table~\ref{tbl:mpi} summarizes the differences of the tested
-runtime.  \textit{mvapich2+mt} is the MVAPICH2 with POSIX thread which is the
-base implementation in \texttt{osu_latency_mt}. Further, in multi-threaded test,
-we modify the code so that each thread uses different tags.
+using \texttt{osu_latency} and Infiniband latency testsuite, the multi-threaded
+test is performed with \texttt{osu_latency_mt}. We compare our best
+implementation (\textit{fult+hash}) with MVAPICH2 and other possible
+implementation of our runtime design. Table~\ref{tbl:mpi} summarizes the
+differences of the tested runtime.  \textit{mvapich2+mt} is the MVAPICH2 with
+POSIX thread i.e. \textit{osu_latency_mt} benchmark. For a fair comaprison with
+MVAPICH2, we also disable their \textit{RDMA fast path} and \textit{shared
+memory} optimization, (by setting \texttt{MV2_USE_RDMA_FAST_PATH=0},
+\texttt{MV2_USE_SHARED_MEM=0}). Further, in multi-threaded test, we modify the
+code so that each thread uses different tags.
 
 Performance results for multi-threaded tests are shown in
 Figure~\ref{fig:osumt}.  Under tested settings, the most improvement in
@@ -287,7 +290,7 @@ performance is due to the replacement of the complex queue of MPI with the
 hash-table.  Then, the replacement of POSIX threads with a light-weight
 threads. Our thread-scheduler improves the latency upto 40\% compared to
 Argobots, $3$ times compared to POSIX thread scheduler. Overally, we achieve
-speedup of upto $45\times$ compared to MVAPICH2.
+speedup of upto $25\times$ compared to MVAPICH2.
 
 \begin{figure}
   \centering
@@ -301,7 +304,7 @@ speedup of upto $45\times$ compared to MVAPICH2.
         mark size=1.5pt,
         legend style={font=\tiny},
       ]
-      \addplot table [x=threads, y=mvapich2+mt] {data/pingpong1.dat} node[pos=0.24, pin=above:1.7]{};
+      \addplot table [x=threads, y=mvapich2+mt] {data/pingpong1.dat} node[pos=0.24, pin=above:1.55]{};
       \addlegendentry{mvapich2+mt}
       \addplot table [x=threads, y=pthread+hash] {data/pingpong1.dat};
       \addlegendentry{pthread+hash}
@@ -309,8 +312,11 @@ speedup of upto $45\times$ compared to MVAPICH2.
       \addlegendentry{abt+hash}
       \addplot table [x=threads, y=fult+hash] {data/pingpong1.dat} node[pos=0.24, pin=right:1.45]{};
       \addlegendentry{fult+hash}
-      \addplot table [x=threads, y=mvapich2] {data/pingpong1.dat} node[pos=0.24, pin=right:1.23]{};
+      \pgfplotsset{cycle list shift=1}
+      \addplot table [x=threads, y=mvapich2] {data/pingpong1.dat};
       \addlegendentry{mvapich2}
+      \addplot table [x=threads, y=ibv] {data/pingpong1.dat} node[pos=0.24, pin=right:1.23]{};
+      \addlegendentry{device latency}
     \end{axis}
   \end{tikzpicture}
   \caption{Latency comparison for single-threaded OSU latency test.\label{fig:osu-single}}
@@ -319,5 +325,6 @@ speedup of upto $45\times$ compared to MVAPICH2.
 Our overheads analyzed in the previous section translate accurately to the
 single-threaded benchmark results in Figure~\ref{fig:osu-single}. In general,
 compared to a single-threaded MPI implementation, our best implementation
-achieves overall overhead of 0.2 $usec$ virtually tie with running MPI
-in a POSIX thread in MPI_THREAD_MULTIPLE mode (as in \textit{mvapich2+mt}).
+achieves overall overhead of 0.2 $usec$, lower than running MPI
+in a POSIX thread in MPI_THREAD_MULTIPLE mode (as in \textit{mvapich2+mt}) and virtually
+tie with a single thread performance (as in \textit{mvapich2}).
