@@ -27,19 +27,11 @@ struct MPIV_Request {
 
 inline void MPIV_Wait(MPIV_Request* req) {
   if (xunlikely(req->done_)) return;
-#ifdef USE_WORKER_WAIT
-  req->sync->origin()->wait(req->done_);
-#else
   req->sync->wait(req->done_);
-#endif
 }
 
 inline void MPIV_Signal(MPIV_Request* req) {
-#ifdef USE_WORKER_WAIT
-  req->sync->origin()->resume(req->done_);
-#else
   req->sync->resume(req->done_);
-#endif
 }
 
 // FIXME(danghvu): DO NOT USE THIS

@@ -60,8 +60,10 @@ void* mpiv_malloc(size_t size) {
   return ptr;
 }
 
+extern __thread int __wid;
+
 inline int mpiv_worker_id() {
-  return __fulting->get_worker_id();
+  return __wid;
 }
 
 #include "request.h"

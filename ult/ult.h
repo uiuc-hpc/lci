@@ -15,14 +15,20 @@ class ult_base {
   virtual void join() = 0;
 };
 
-#ifndef USE_ABT
-#include "fult/fult.h"
-using thread = fult_t;
-using worker = fworker;
-#else
+#ifdef USE_ABT
 #include "abt/abt.h"
 using thread = abt_thread_t;
 using worker = abt_worker;
+#else
+#ifdef USE_PTHREAD
+#include "pthread/upthread.h"
+using thread = pthread_thread_t;
+using worker = pthread_worker;
+#else
+#include "fult/fult.h"
+using thread = fult_t;
+using worker = fworker;
+#endif
 #endif
 
 #define ult_yield()        \
