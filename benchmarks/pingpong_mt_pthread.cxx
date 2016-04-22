@@ -15,18 +15,25 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <atomic>
 
 #define MESSAGE_ALIGNMENT 64
 #define MAX_MSG_SIZE (1 << 22)
 #define MYBUFSIZE (MAX_MSG_SIZE + MESSAGE_ALIGNMENT)
-#define SKIP_LARGE 10
-#define LOOP_LARGE 100
+#define SKIP_LARGE 100
+#define LOOP_LARGE 1000
 #define LARGE_MESSAGE_SIZE 8192
 
-char s_buf1[MYBUFSIZE];
-char r_buf1[MYBUFSIZE];
-int skip = 100;
-int loop = 1000;
+#define BARRIER(f, n) {\
+    int x = f.fetch_add(1);\
+    if (x == n-1) MPI_Barrier(MPI_COMM_WORLD);\
+    while (f < n) { } \
+}
+
+char* s_buf;
+char* r_buf;
+int skip = 1000;
+int loop = 10000;
 
 pthread_mutex_t finished_size_mutex;
 pthread_cond_t finished_size_cond;
@@ -56,6 +63,7 @@ void* recv_thread(void* arg);
 
 static int THREADS = 1;
 static int WORKERS = 1;
+std::atomic<int> f;
 
 int main(int argc, char* argv[]) {
   if (argc > 2) {
@@ -106,12 +114,23 @@ int main(int argc, char* argv[]) {
     return EXIT_FAILURE;
   }
 
+  int align_size = MESSAGE_ALIGNMENT;
+
+  if (posix_memalign((void**)&s_buf, align_size, MYBUFSIZE)) {
+      fprintf(stderr, "Error allocating host memory\n");
+  }
+
+  if (posix_memalign((void**)&r_buf, align_size, MYBUFSIZE)) {
+      fprintf(stderr, "Error allocating host memory\n");
+  }
+
   if (myid == 0) {
     fprintf(stdout, HEADER);
     fprintf(stdout, "%-*s%*s\n", 10, "# Size", FIELD_WIDTH, "Latency (us)");
     fflush(stdout);
 
     for (size = 0; size <= MAX_MSG_SIZE; size = (size ? size * 2 : 1)) {
+      f = 0;
       MPI_Barrier(MPI_COMM_WORLD);
       tags[i].id = i;
       pthread_create(&sr_threads[i], NULL, send_thread, &tags[i]);
@@ -121,6 +140,7 @@ int main(int argc, char* argv[]) {
 
   else {
     for (size = 0; size <= MAX_MSG_SIZE; size = (size ? size * 2 : 1)) {
+      f = 0;
       MPI_Barrier(MPI_COMM_WORLD);
 
       for (i = 0; i < THREADS; i++) {
@@ -140,23 +160,17 @@ int main(int argc, char* argv[]) {
 }
 
 void* recv_thread(void* arg) {
-  int i, val, align_size;
-  char *s_buf, *r_buf;
+  int i, val;
 
   val = (int) (long) arg;
-  affinity::set_me_within(0, WORKERS);
-
-  align_size = MESSAGE_ALIGNMENT;
-
-  s_buf = (char*)(((unsigned long)s_buf1 + (align_size - 1)) / align_size *
-                  align_size);
-  r_buf = (char*)(((unsigned long)r_buf1 + (align_size - 1)) / align_size *
-                  align_size);
+  affinity::set_me_to(val % WORKERS);
 
   if (size > LARGE_MESSAGE_SIZE) {
     loop = LOOP_LARGE;
     skip = SKIP_LARGE;
   }
+
+  BARRIER(f, THREADS);
 
   /* touch the data */
   for (i = 0; i < size; i++) {
@@ -175,20 +189,15 @@ void* recv_thread(void* arg) {
 void* send_thread(void*) {
   affinity::set_me_to(0);
 
-  int i, align_size;
-  char *s_buf, *r_buf;
+  int i;
   double t_start = 0, t_end = 0, t = 0, latency;
-  align_size = MESSAGE_ALIGNMENT;
-
-  s_buf = (char*)(((unsigned long)s_buf1 + (align_size - 1)) / align_size *
-                  align_size);
-  r_buf = (char*)(((unsigned long)r_buf1 + (align_size - 1)) / align_size *
-                  align_size);
 
   if (size > LARGE_MESSAGE_SIZE) {
     loop = LOOP_LARGE;
     skip = SKIP_LARGE;
   }
+
+  BARRIER(f, 1);
 
   /* touch the data */
   for (i = 0; i < size; i++) {

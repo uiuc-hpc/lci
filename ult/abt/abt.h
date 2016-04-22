@@ -3,9 +3,6 @@
 
 #include <abt.h>
 
-static const int F_STACK_SIZE = 16*1024;
-static const int MAIN_STACK_SIZE = 16*1024;
-
 class abt_worker;
 class abt_thread;
 

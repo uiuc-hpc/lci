@@ -7,57 +7,53 @@ __thread pthread_thread* __fulting = NULL;
 __thread int __wid = 0;
 
 pthread_thread::pthread_thread() {
+  pthread_mutex_init(&m_, NULL);
+  pthread_cond_init(&cv_, NULL);
+}
+
+pthread_thread::~pthread_thread() {
+  pthread_mutex_destroy(&m_);
+  pthread_cond_destroy(&cv_);
 }
 
 void pthread_thread::yield() {
   auto saved = __fulting;
-  std::this_thread::yield();
-  if (saved) {
-    __fulting = saved;
-    __wid = saved->get_worker_id();
-  }
+  pthread_yield();
+  if (saved) { __fulting = saved; }
 }
 
 void pthread_thread::wait(bool& flag) {
   auto saved = __fulting;
-  {
-  std::unique_lock<std::mutex> lk(m_);
-  cv_.wait(lk, [&flag] { return flag; });
+  pthread_mutex_lock(&m_);
+  while (!flag) {
+    pthread_cond_wait(&cv_, &m_);
   }
-  if (saved) {
-    __fulting = saved;
-    __wid = saved->get_worker_id();
-  }
+  pthread_mutex_unlock(&m_);
+  if (saved) { __fulting = saved; }
 }
 
 
 void pthread_thread::resume(bool& flag) {
   auto saved = __fulting;
-  {
-    std::lock_guard<std::mutex> lk(m_);
-    flag = true;
-  }
-  cv_.notify_one();
-  if (saved) {
-    __fulting = saved;
-    __wid = saved->get_worker_id();
-  }
+  pthread_mutex_lock(&m_);
+  flag = true;
+  pthread_mutex_unlock(&m_);
+  pthread_cond_signal(&cv_);
+  if (saved) { __fulting = saved; }
 }
 
 void pthread_thread::join() {
   auto saved = __fulting;
-  th_.join();
-  if (saved) {
-    __fulting = saved;
-    __wid = saved->get_worker_id();
-  }
+  pthread_join(th_, NULL);
+  if (saved) { __fulting = saved; }
+  delete this;
 }
 
 int pthread_thread::get_worker_id() {
   return origin_->id();
 }
 
-static void pwrapper(void* arg) {
+static void* pthread_wrapper(void* arg) {
   pthread_thread* th = (pthread_thread*) arg;
   __fulting = th;
   __wid = th->get_worker_id();
@@ -66,14 +62,20 @@ static void pwrapper(void* arg) {
 #endif
   th->f(th->data);
   __fulting = NULL;
+  return 0;
 }
 
-pthread_thread* pthread_worker::spawn(ffunc f, intptr_t data, size_t) {
+pthread_thread* pthread_worker::spawn(ffunc f, intptr_t data, size_t stack_size) {
   pthread_thread *th = new pthread_thread();
   th->f = f;
   th->data = data;
   th->origin_ = this;
-  th->th_ = std::move(std::thread(pwrapper, th));
+
+  pthread_attr_t attrs;
+  pthread_attr_init(&attrs);
+  if (stack_size > 0) pthread_attr_setstacksize(&attrs, stack_size);
+
+  assert(pthread_create(&(th->th_), &attrs, pthread_wrapper, (void*) th) == 0);
   return th;
 }
 
@@ -88,12 +90,12 @@ void pthread_worker::stop() {
 
 void pthread_worker::start_main(ffunc main_task, intptr_t data) {
   id_ = pth_nworker.fetch_add(1);
+  __wid = id_;
 #ifdef USE_AFFI
   affinity::set_me_to(id_);
 #endif
-  pthread_thread* t = spawn(main_task, data);
+  pthread_thread* t = spawn(main_task, data, 0);
   t->join();
-  delete t;
 }
 
 void pthread_worker::stop_main() {

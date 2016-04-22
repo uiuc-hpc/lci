@@ -26,7 +26,7 @@ static inline unsigned long find_last_set(unsigned long word) {
 
 static inline unsigned long exchange(unsigned long word,
                                      volatile unsigned long* addr) {
-  asm(LOCKPREFIX "xchgq %0,%1" : "=r"(word) : "m"(ADDR), "0"(word) : "memory");
+  asm("xchgq %0,%1" : "=r"(word) : "m"(ADDR), "0"(word) : "memory");
   return word;
 }
 

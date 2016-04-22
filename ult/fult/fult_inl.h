@@ -51,11 +51,11 @@ void fwrapper(intptr_t args) {
 
 inline fworker::fworker() {
   stop_ = true;
-  // Reset all mask.
-  mask_ = new unsigned long[NMASK];
-  lwt_ = new fult[NMASK * WORDSIZE];
+  posix_memalign((void**) &lwt_, 64, sizeof(fult) * NMASK * WORDSIZE);
   for (int i = 0; i < NMASK; i++) mask_[i] = 0;
+#ifdef USE_L1_MASK
   for (int i = 0; i < 8; i++) l1_mask[i] = 0;
+#endif
   // Add all free slot.
   memset(lwt_, 0, sizeof(fult) * (NMASK * WORDSIZE));
   tid_pool = std::move(std::unique_ptr<boost::lockfree::stack<fult_t>>(
@@ -68,8 +68,7 @@ inline fworker::fworker() {
 }
 
 fworker::~fworker() {
-  delete [] lwt_;
-  delete [] mask_;
+  free((void*) lwt_);
 }
 
 inline fult_t fworker::spawn(ffunc f, intptr_t data, size_t stack_size) {
@@ -124,7 +123,7 @@ inline void fworker::wfunc(fworker* w) {
         // Atomic exchange to get the current waiting threads.
         auto local_mask = exchange((unsigned long)0, &(mask));
         // Works until it no thread is pending.
-        while (local_mask > 0) {
+        while (xlikely(local_mask > 0)) {
           auto id = find_first_set(local_mask);
           bit_flip(local_mask, id);
           // Optains the associate thread.
@@ -132,7 +131,6 @@ inline void fworker::wfunc(fworker* w) {
           // Works on it only if it's not completed.
           if (xlikely(f->state_ != INVALID)) {
             w->work(f);
-            // Cleanup after working.
             if (f->state_ == YIELD) w->schedule(f->id_);
             else if (f->state_ == INVALID) w->fin(f->id_);
           }
@@ -180,17 +178,14 @@ inline void fworker::wfunc(fworker* w) {
             local_mask = exchange(local_mask, &(w->mask_[i]));
             // if (w->id() == 1 && i == 0) printf("%d (%p) update %lx\n", w->id(), w, w->mask_[0]);
             // Works until it no thread is pending.
-            while (local_mask > 0) {
+            while (xlikely(local_mask > 0)) {
               auto id = find_first_set(local_mask);
               bit_flip(local_mask, id);
               // Optains the associate thread.
               fult* f = &w->lwt_[MUL64(i) + id];
               // Works on it only if it's not completed.
               if (xlikely(f->state_ != INVALID)) {
-                // if (w->id() == 1) printf("%d (%p) work %lx\n", w->id(), w, w->mask_[0]);
                 w->work(f);
-                // if (w->id() == 1) printf("%d (%p) return %lx\n", w->id(), w, w->mask_[0]);
-                // Cleanup after working.
                 if (f->state_ == YIELD) w->schedule(f->id_);
                 else if (f->state_ == INVALID) w->fin(f->id_);
               }

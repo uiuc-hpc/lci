@@ -15,8 +15,11 @@
 
 cd ${SLURM_SUBMIT_DIR}
 
-# Modify this to your lib path
-# export LD_LIBRARY_PATH=$HOME/qthread/lib:$HOME/argo/lib:$HOME/gasnet/lib:$LD_LIBRARY_PATH
+# MODIFY THIS TO YOUR LIB PATH
+# EXPORT LD_LIBRARY_PATH=$HOME/QTHREAD/LIB:$HOME/ARGO/LIB:$HOME/GASNET/LIB:$LD_LIBRARY_PATH
+
+# SETTING proper MVAPICH2:
+export MV2_USE_RDMA_FAST_PATH=0 # DISABLE FAST PATH
 
 echo "Single threaded pingpong"
 ibrun -np 2 osu_latency

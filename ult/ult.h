@@ -7,6 +7,9 @@
 #include <boost/function.hpp>
 typedef boost::function<void(intptr_t)> ffunc;
 
+static const int F_STACK_SIZE = 8 * 1024;
+static const int MAIN_STACK_SIZE = 64 * 1024;
+
 class ult_base {
  public:
   virtual void yield() = 0;

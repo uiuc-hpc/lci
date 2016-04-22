@@ -52,6 +52,8 @@ void recv_thread(intptr_t arg);
 #define FLOAT_PRECISION 2
 #endif
 
+std::atomic<int> f;
+
 int numprocs, provided, myid, err;
 static int THREADS = 1;
 static int WORKERS = 1;
@@ -100,7 +102,7 @@ void main_task(intptr_t) {
          size = (size ? size * 2 : 1)) {
       MPIV_Barrier(MPI_COMM_WORLD);
       tags[i].id = 0;
-      sr_threads[i] = MPIV_spawn(0, send_thread, (intptr_t)&tags[i]);
+      sr_threads[i] = MPIV_spawn(0, send_thread, 0);
       MPIV_join(sr_threads[i]);
       MPIV_Barrier(MPI_COMM_WORLD);
     }
@@ -150,6 +152,7 @@ void recv_thread(intptr_t arg) {
     MPIV_Recv(r_buf, size, MPI_CHAR, 0, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     MPIV_Send(s_buf, size, MPI_CHAR, 0, i, MPI_COMM_WORLD);
   }
+
   // sleep(1);
 }
 
@@ -175,7 +178,6 @@ void send_thread(intptr_t) {
     r_buf[i] = 'b';
   }
 
-#if 1
   for (i = 0; i < loop + skip; i++) {
     if (i == skip) {
       t_start = MPIV_Wtime();
@@ -184,7 +186,6 @@ void send_thread(intptr_t) {
     MPIV_Send(s_buf, size, MPI_CHAR, 1, i, MPI_COMM_WORLD);
     MPIV_Recv(r_buf, size, MPI_CHAR, 1, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
   }
-#endif
 
   t_end = MPIV_Wtime();
   t = t_end - t_start;

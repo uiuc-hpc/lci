@@ -14,10 +14,7 @@ abt_thread::abt_thread() {
 void abt_thread::yield() {
   abt_thread* saved = __fulting;
   ABT_thread_yield();
-  if (saved) {
-    __fulting = saved;
-    __wid = saved->get_worker_id();
-  }
+  if (saved) __fulting = saved; 
 }
 
 void abt_thread::wait(bool& flag) {
@@ -27,10 +24,8 @@ void abt_thread::wait(bool& flag) {
     ABT_cond_wait(cond_, mutex_);
   }
   ABT_mutex_unlock(mutex_);
-  if (saved) { 
-    __fulting = saved;
-    __wid = saved->get_worker_id();
-  }
+  // ABT_self_suspend();
+  if (saved) {  __fulting = saved; }
 }
 
 
@@ -40,19 +35,15 @@ void abt_thread::resume(bool& flag) {
   flag = true;
   ABT_mutex_unlock(mutex_);
   ABT_cond_signal(cond_);
-  if (saved) {
-    __fulting = saved;
-    __wid = saved->get_worker_id();
-  }
+  // ABT_thread_resume(th_);
+  if (saved) { __fulting = saved; }
 }
 
 void abt_thread::join() {
   abt_thread* saved = __fulting;
   ABT_thread_join(th_);
-  if(saved) { 
-    __fulting = saved;
-    __wid = saved->get_worker_id();
-  }
+  if(saved) { __fulting = saved; }
+  delete this;
 }
 
 int abt_thread::get_worker_id() {
@@ -62,7 +53,6 @@ int abt_thread::get_worker_id() {
 static void abt_fwrapper(void* arg) {
   abt_thread* th = (abt_thread*) arg;
   __fulting = th;
-  __wid = th->get_worker_id();
   th->f(th->data);
   __fulting = NULL;
 }
@@ -84,6 +74,7 @@ std::atomic<int> abt_nworker;
 
 static void abt_start_up(void* arg) {
   long id = (long) arg;
+  __wid = id;
 #ifdef USE_AFFI
   affinity::set_me_to(id);
 #endif
@@ -109,6 +100,7 @@ void abt_worker::stop() {
 
 void abt_worker::start_main(ffunc main_task, intptr_t data) {
   id_ = abt_nworker.fetch_add(1);
+  __wid = id_;
 #ifdef USE_AFFI
   affinity::set_me_to(id_);
 #endif
@@ -116,7 +108,6 @@ void abt_worker::start_main(ffunc main_task, intptr_t data) {
   ABT_xstream_get_main_pools(xstream_, 1, &pool_);
   auto t = spawn(main_task, data, MAIN_STACK_SIZE);
   t->join();
-  delete t;
 }
 
 void abt_worker::stop_main() {
