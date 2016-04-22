@@ -31,7 +31,7 @@ We propose an implementation MPI based on the following assumptions:
 
 The key data structure for communication is a lock-free hash table which stores
 both unsolicited incoming messages and outstanding receives. Since we assume
-there are no don't cares, we can hash by source and tag. We focus on critical
+there are no wildcard, we can hash by source and tag. We focus on critical
 operations, the creation of communicators or of datatypes is not (yet)
 address. We also ignore, for the time being, one-sided operations.
 

@@ -17,6 +17,19 @@
 \usetikzlibrary{pgfplots.statistics}
 
 \pgfplotsset{
+  /pgfplots/xlabel near ticks/.style={
+    /pgfplots/every axis x label/.style={
+      at={(ticklabel cs:0.5)},anchor=near ticklabel
+    }
+  },
+  /pgfplots/ylabel near ticks/.style={
+    /pgfplots/every axis y label/.style={
+      at={(ticklabel cs:0.5)},rotate=90,anchor=near ticklabel
+    }
+  }
+}
+
+\pgfplotsset{
     boxplot prepared from table/.code={
         \def\tikz@plot@handler{\pgfplotsplothandlerboxplotprepared}%
         \pgfplotsset{

@@ -96,40 +96,57 @@ hash-table is optimized for these patterns, our latency is almost always as low
 as 50 nanosecond. This latency is consitent with our expectation that our cost
 for the hash-table is equivalent to 2 memory writes.
 
+\subsubsection{Thread scheduler}
+
+\begin{table}[h]
+  \begin{tabular}{| l || l | l | l |}
+    \hline
+    & \textbf{POSIX thread} & \textbf{Argobots}	& \textbf{Fult} \\ \hline
+    Scheduling & 0.75 & 0.08 & 0.02 \\ \hline
+    Signal & 1.15 & 0.30 & 0.01 \\ \hline
+    Total & 1.90 & 0.38 & 0.03 \\ \hline
+  \end{tabular}
+  \caption{Break down of thread scheduler overheads, shown in $usec$. \label{fig:thread}}
+\end{table}
+
+To evaluate the thread scheduler minimum overhead, we measure separately the
+two operations: 1) How fast can a thread be scheduled - by performing a large
+number of yield within a thread and obtain the entire runtime. 2) The cost of a
+\texttt{ThreadSignal} by getting the runtime latency when performing operation
+on a thread of a different worker. Table~\ref{fig:thread} shows our results,
+Fult scheduler achieves the overall cost of 30 nanosecond, about $10\times$
+that of Argobots and $60\times$ of POSIX threads.
+
 \subsubsection{Concurrent Packet Pool}
 \begin{figure}[ht]
-%  \centering
-%  \begin{adjustbox}{width=.8\textwidth}
-%    \subfigure[Latency per successful \texttt{insert}.]{
-      \centering
-      \begin{tikzpicture}[scale=.8]
-        \begin{axis}[xlabel=N Threads, ylabel=Latency (usec), ymin=0, scaled ticks=false, tick label style={/pgf/number format/fixed},
-            boxplot/draw direction=y,
+  \centering
+  \begin{tikzpicture}[scale=.9]
+    \begin{axis}[xlabel=N Threads, ylabel=Latency (usec), ymin=0, scaled ticks=false, tick label style={/pgf/number format/fixed},
+        boxplot/draw direction=y,
             %ytick distance={0.1},
-            ymax={1},
+        ymax={1},
             %cycle list={{red,dashed},{blue,dashed},{black,dashed},{red},{blue},{black}},
-            cycle list={{red},{blue},{black}},
-            legend pos={north west}
-          ]
+        cycle list={{red},{blue},{black}},
+        legend pos={north west}
+      ]
           % hack to make legend
           %\addlegendimage{area legend,fill=red,draw=black,dashed}; \addlegendentry{numa-cp};
           %\addlegendimage{area legend,fill=blue,draw=black,dashed}; \addlegendentry{stack-cp};
           %\addlegendimage{area legend,fill=black,draw=black,dashed}; \addlegendentry{queue-cp};
-          \addlegendimage{area legend,fill=red,draw=black}; \addlegendentry{numa};
-          \addlegendimage{area legend,fill=blue,draw=black}; \addlegendentry{stack};
-          \addlegendimage{area legend,fill=black,draw=black}; \addlegendentry{queue};
+      \addlegendimage{area legend,fill=red,draw=black}; \addlegendentry{numa};
+      \addlegendimage{area legend,fill=blue,draw=black}; \addlegendentry{stack};
+      \addlegendimage{area legend,fill=black,draw=black}; \addlegendentry{queue};
 
-          \pgfplotsinvokeforeach{0,...,23}{
-            \addplot+[boxplot prepared from table={table=\mytablepool,
-              row=#1, lower whisker=lw, upper whisker=uw, lower quartile=lq, upper quartile=uq,
-            median=med, draw position=nthreads}, boxplot prepared] coordinates {};
-          }
-        \end{axis}
-      \end{tikzpicture}
-      \caption{Latency of pool implementation vs. a lockfree pool and a lockfree queue
-        implementation, latency higher than 1 microsecond are not shown\label{fig:pool}.}
-%    }
-\end{figure}
+      \pgfplotsinvokeforeach{0,...,23}{
+        \addplot+[boxplot prepared from table={table=\mytablepool,
+          row=#1, lower whisker=lw, upper whisker=uw, lower quartile=lq, upper quartile=uq,
+        median=med, draw position=nthreads}, boxplot prepared] coordinates {};
+      }
+    \end{axis}
+  \end{tikzpicture}
+  \caption{Latency of pool implementation vs. a lockfree pool and a lockfree queue
+    implementation, latency higher than 1 microsecond are not shown\label{fig:pool}.}
+  \end{figure}
 
 The overhead due to packet pool is measured as the sum of the latency of
 \texttt{get} and \texttt{ret} operation. We evaluate this quantity by
@@ -150,21 +167,13 @@ the top of the stack. The great variation in latency per operation of a
 centralized pool is clearly due to memory conflicts in this type of access
 patterns. Our latency is consistently in the range of 100-150 nanosecond.
 
-\subsubsection{Thread scheduler}
-The overhead due to thread scheduler is measured as scheduling time which consists
-of two components:
-\begin{itemize}
-    \item Mark a thread as schedulable: the latency of a \texttt{ThreadSignal}.
-    \item Finding schedulable threads: the latency taken when the scheduler is free
-      until it finds a thread to execute i.e. time taken when thread is yielded until
-      it is picked up again.
-\end{itemize}
 
 \subsection{Microbenchmarks and Application Evaluation}
 \begin{figure*}[ht]
   \centering
   \begin{adjustbox}{width=.9\textwidth}
-    \subfigure[Number of worker = 14, Number of threads = 14] {
+    \subfigure[Latency per message transfer for $14$ threads, one per worker/socket.] {
+      \centering
       \begin{tikzpicture}[scale=.9]
         \begin{axis}[xlabel=Message Size (byte), ylabel=Latency (usec),
             xmode=log, ymode=log, xtick distance=2^2,
@@ -175,10 +184,12 @@ of two components:
             legend pos={north west},
             mark size=1.5pt,
             legend style={font=\tiny},
+            ylabel near ticks,
+            xlabel near ticks,
           ]
-          \addplot table [x=threads, y=mvapich2+mt] {data/pingpong2.dat} node[pos=0.27, pin=below:127.6]{};
+          \addplot table [x=threads, y=mvapich2+mt] {data/pingpong2.dat} node[pos=0.27, pin=below:40.1]{};
           \addlegendentry{mvapich2+mt}
-          \addplot table [x=threads, y=pthread+hash] {data/pingpong2.dat} node [pos=0.25, pin=above:5.7]{};
+          \addplot table [x=threads, y=pthread+hash] {data/pingpong2.dat} node [pos=0.25, pin=above:5.5]{};
           \addlegendentry{pthread+hash}
           \addplot table [x=threads, y=abt+hash] {data/pingpong2.dat} node [pos=0.25, pin=above:2.3]{};
           \addlegendentry{abt+hash}
@@ -187,33 +198,31 @@ of two components:
         \end{axis}
       \end{tikzpicture}
     }
-
-    \subfigure[Single threaded latency test] {
+    \subfigure[Latency per 64-byte message transfer for upto 1M thread and round-robin assigned to worker/socket, 
+      \textit{pthread+hash} version only works up to 16K threads due to limitation in the system.] {
       \centering
-      \begin{tikzpicture}[scale=0.9]
-        \begin{axis}[xlabel=Message Size (byte), ylabel=Latency (usec),
+      \begin{tikzpicture}[scale=.9]
+        \begin{axis}[xlabel=N threads, ylabel=Latency (usec),
             xmode=log, ymode=log, xtick distance=2^2,
             log basis x=2, log basis y=2,
-            xmax=2^14,
-            xmin=1, % cycle list={{red},{blue},{black}},
+            ymin=1, ytick distance=2^2,
+            xmin=4,
             legend pos={north west},
             mark size=1.5pt,
             legend style={font=\tiny},
+            yticklabel=\pgfmathparse{2^\tick}\pgfmathprintnumber{\pgfmathresult},
+            ylabel near ticks,
+            xlabel near ticks,
           ]
-          \addplot table [x=threads, y=mvapich2+mt] {data/pingpong1.dat} node[pos=0.24, pin=above:1.7]{};
-          \addlegendentry{mvapich2+mt}
-          \addplot table [x=threads, y=pthread+hash] {data/pingpong1.dat} node[pos=0.24, pin=3.7]{};
+          \addplot table [x=threads, y=pthread+hash,col sep=comma] {data/strong.dat} node[pos=0.9, pin=7.9] {};
           \addlegendentry{pthread+hash}
-          \addplot table [x=threads, y=abt+hash] {data/pingpong1.dat} node[pos=0.24, pin=above:1.85]{};
+          \addplot table [x=threads, y=abt+hash, col sep=comma] {data/strong.dat} node[pos=0.55, pin=2.3] {};
           \addlegendentry{abt+hash}
-          \addplot table [x=threads, y=fult+hash] {data/pingpong1.dat} node[pos=0.24, pin=right:1.45]{};
+          \addplot table [x=threads, y=fult+hash, col sep=comma] {data/strong.dat} node[pos=0.55, pin=1.7] {};
           \addlegendentry{fult+hash}
-          \addplot table [x=threads, y=mvapich2] {data/pingpong1.dat} node[pos=0.24, pin=right:1.23]{};
-          \addlegendentry{mvapich2}
         \end{axis}
       \end{tikzpicture}
     }
-
 %    \subfigure[Number of worker = 14, Number of threads = 42] {
 %      \begin{tikzpicture}[scale=.9]
 %        \begin{axis}[xlabel=Message Size (byte), ylabel=Latency (usec),
@@ -239,22 +248,22 @@ of two components:
 %    }
   \end{adjustbox}
 
-  \caption{Latency comparison between different MPI implementation using OSU latency test.\label{fig:osumt}}
+  \caption{Latency comparison between different MPI implementation using OSU multi-threaded latency test.\label{fig:osumt}}
 \end{figure*}
 
 \subsubsection{OSU latency benchmarks}
-\begin{table}
-\begin{tabular}{|l|l|l|l|}
+\begin{table}[h]
+\begin{tabular}{|l||l|l|}
 \hline
-MPI impl. & Matching & Scheduler & Speedup \\
+& \textbf{Matching Algorithm} & \textbf{Scheduler} \\
 \hline
-mvapich2+mt & queues & POSIX thread & 1 \\
+mvapich2+mt & queues & POSIX thread \\
 \hline
-pthread+hash & hash-table & POSIX thread & 22 \\
+pthread+hash & hash-table & POSIX thread \\
 \hline
-abt+hash & hash-table & Argobots & 56 \\
+abt+hash & hash-table & Argobots \\
 \hline
-fult+hash & hash-table & Bitvector & 73 \\
+fult+hash & hash-table & Fult \\
 \hline
 \end{tabular}
 \caption{Summary of MPI implementation used in the evaluation, Speedup is shown
@@ -264,18 +273,58 @@ fult+hash & hash-table & Bitvector & 73 \\
 
 We use OSU benchmarks \cite{osubench} to evaluate the latency per
 \texttt{MPI_Send} or \texttt{MPI_Recv}. The single threaded test is performed
-using \texttt{osu_latency}, the multi-threaded test is performed with
-\texttt{osu_latency_mt}. We compare our best implementation (fult+hash) with
-MVAPICH2 and other possible implementations of our runtime design.
-Table~\ref{tbl:mpi} summerizes the differences of the tested runtime.
-\textit{mvapich2+mt} is the MVAPICH2 with POSIX thread which is the base
-implementation in \texttt{osu_latency_mt}. Others are our runtime
-with different thread scheduler: POSIX thread, Argobots and the described
-bit-vector based scheduler.
+using \texttt{osu_latency} and Infiniband latency testsuite, the multi-threaded
+test is performed with \texttt{osu_latency_mt}. We compare our best
+implementation (\textit{fult+hash}) with MVAPICH2 and other possible
+implementation of our runtime design. Table~\ref{tbl:mpi} summarizes the
+differences of the tested runtime.  \textit{mvapich2+mt} is the MVAPICH2 with
+POSIX thread i.e. \textit{osu_latency_mt} benchmark. For a fair comaprison with
+MVAPICH2, we also disable their \textit{RDMA fast path} and \textit{shared
+memory} optimization, (by setting \texttt{MV2_USE_RDMA_FAST_PATH=0},
+\texttt{MV2_USE_SHARED_MEM=0}). Further, in multi-threaded test, we modify the
+code so that each thread uses different tags.
 
 Performance results for multi-threaded tests are shown in
 Figure~\ref{fig:osumt}.  Under tested settings, the most improvement in
 performance is due to the replacement of the complex queue of MPI with the
 hash-table.  Then, the replacement of POSIX threads with a light-weight
-threads. Our thread-scheduler also improves the latency upto 40\% compared
-to Argobots.
+threads. Our thread-scheduler improves the latency upto 40\% compared to
+Argobots, $3$ times compared to POSIX thread scheduler. Overally, we achieve
+speedup of upto $25\times$ compared to MVAPICH2.
+
+\begin{figure}
+  \centering
+  \begin{tikzpicture}[scale=0.9]
+    \begin{axis}[xlabel=Message Size (byte), ylabel=Latency (usec),
+        xmode=log, ymode=log, xtick distance=2^2,
+        log basis x=2, log basis y=2,
+        xmax=2^14,
+        xmin=1, % cycle list={{red},{blue},{black}},
+        legend pos={north west},
+        mark size=1.5pt,
+        legend style={font=\tiny},
+      ]
+      \addplot table [x=threads, y=mvapich2+mt] {data/pingpong1.dat} node[pos=0.24, pin=above:1.55]{};
+      \addlegendentry{mvapich2+mt}
+      \addplot table [x=threads, y=pthread+hash] {data/pingpong1.dat};
+      \addlegendentry{pthread+hash}
+      \addplot table [x=threads, y=abt+hash] {data/pingpong1.dat} node[pos=0.24, pin=above:1.85]{};
+      \addlegendentry{abt+hash}
+      \addplot table [x=threads, y=fult+hash] {data/pingpong1.dat} node[pos=0.24, pin=right:1.45]{};
+      \addlegendentry{fult+hash}
+      \pgfplotsset{cycle list shift=1}
+      \addplot table [x=threads, y=mvapich2] {data/pingpong1.dat};
+      \addlegendentry{mvapich2}
+      \addplot table [x=threads, y=ibv] {data/pingpong1.dat} node[pos=0.24, pin=right:1.23]{};
+      \addlegendentry{device latency}
+    \end{axis}
+  \end{tikzpicture}
+  \caption{Latency comparison for single-threaded OSU latency test.\label{fig:osu-single}}
+\end{figure}
+
+Our overheads analyzed in the previous section translate accurately to the
+single-threaded benchmark results in Figure~\ref{fig:osu-single}. In general,
+compared to a single-threaded MPI implementation, our best implementation
+achieves overall overhead of 0.2 $usec$, lower than running MPI
+in a POSIX thread in MPI_THREAD_MULTIPLE mode (as in \textit{mvapich2+mt}) and virtually
+tie with a single thread performance (as in \textit{mvapich2}).
