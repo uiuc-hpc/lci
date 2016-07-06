@@ -85,6 +85,7 @@ inline void mpiv_serve_send(const ibv_wc& wc) {
     MPIV.pkpool.ret_packet(p_ctx);
   } else {
     // if (MPIV.server.need_recv()) mpiv_post_recv(p_ctx); else
+    // MPIV_Signal((MPIV_Request*) p_ctx->header().sreq);
     MPIV.pkpool.ret_packet_to(p_ctx, poolid);
   }
 }

@@ -57,8 +57,10 @@ inline void MPIV_Init(int* argc, char*** args) {
   profiler_init();
 #endif
 
+#ifndef DISABLE_COMM
   MPIV.server.init(MPIV.ctx, MPIV.pkpool, MPIV.me, MPIV.size);
   MPIV.server.serve();
+#endif
 
   MPI_Barrier(MPI_COMM_WORLD);
 }
@@ -91,7 +93,7 @@ inline void MPIV_Init_worker(int nworker, intptr_t arg = 0) {
 
 template <class... Ts>
 inline thread MPIV_spawn(int wid, Ts... params) {
-  return MPIV.w[wid].spawn(params...);
+  return MPIV.w[wid % MPIV.w.size()].spawn(params...);
 }
 
 inline void MPIV_join(thread ult) {
@@ -99,9 +101,11 @@ inline void MPIV_join(thread ult) {
 }
 
 inline void MPIV_Finalize() {
+#ifndef DISABLE_COMM
   MPI_Barrier(MPI_COMM_WORLD);
   MPIV.server.finalize();
   MPI_Barrier(MPI_COMM_WORLD);
+#endif
 
 #if USE_MPE
   MPE_Finish_log("mpivlog");

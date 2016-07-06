@@ -7,8 +7,8 @@
 #include <boost/function.hpp>
 typedef boost::function<void(intptr_t)> ffunc;
 
-static const int F_STACK_SIZE = 8 * 1024;
-static const int MAIN_STACK_SIZE = 64 * 1024;
+static const int F_STACK_SIZE = 64 * 1024;
+static const int MAIN_STACK_SIZE = 1024 * 1024;
 
 class ult_base {
  public:
@@ -16,6 +16,7 @@ class ult_base {
   virtual void wait(bool&) = 0;
   virtual void resume(bool&) = 0;
   virtual void join() = 0;
+  virtual void cancel() = 0;
 };
 
 #ifdef USE_ABT

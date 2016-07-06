@@ -20,6 +20,7 @@ class pthread_thread final : public ult_base {
   void yield();
   void wait(bool&);
   void resume(bool&);
+  void cancel() { pthread_cancel(th_); }
   void join();
   int get_worker_id();
 

@@ -24,7 +24,6 @@ void abt_thread::wait(bool& flag) {
     ABT_cond_wait(cond_, mutex_);
   }
   ABT_mutex_unlock(mutex_);
-  // ABT_self_suspend();
   if (saved) {  __fulting = saved; }
 }
 
@@ -35,7 +34,6 @@ void abt_thread::resume(bool& flag) {
   flag = true;
   ABT_mutex_unlock(mutex_);
   ABT_cond_signal(cond_);
-  // ABT_thread_resume(th_);
   if (saved) { __fulting = saved; }
 }
 

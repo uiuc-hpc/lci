@@ -17,13 +17,14 @@ inline void MPIV_Send_rdz(MPIV_Request* s) {
 }
 
 inline void MPIV_Send_short(const void* buffer, int size, int rank, int tag) {
-  // while (MPIV.server.need_recv()) ult_yield();
   mpiv_packet* packet = MPIV.pkpool.get_for_send();
   packet->set_header(SEND_SHORT, MPIV.me, tag);
   // This is a short message, we send them immediately and do not yield
   // or create a request for it.
   // Copy the buffer.
   packet->set_bytes(buffer, size);
+  // packet->header().sreq = (intptr_t) s;
+
   MPIV.ctx.conn[rank].write_send(
       (void*)packet,
       ((((size_t)size + sizeof(mpiv_packet_header) + 3) >> 2) << 2),
@@ -35,8 +36,6 @@ void MPIV_Send(const void* buffer, int count, MPI_Datatype datatype, int rank,
 #if USE_MPE
   MPE_Log_event(mpiv_send_start, 0, "start_send");
 #endif
-  // if (MPIV.total_send == MAX_SEND) fult_yield();
-  // MPIV.total_send++;
   int size = 0;
   MPI_Type_size(datatype, &size);
   size = count * size;
@@ -54,6 +53,7 @@ void MPIV_Send(const void* buffer, int count, MPI_Datatype datatype, int rank,
 #endif
 }
 
+#if 0
 void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
                 int tag, MPI_Comm, MPIV_Request* req) {
   int size = 0;
@@ -67,5 +67,6 @@ void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
     MPIV_Send_rdz(req);
   }
 }
+#endif
 
 #endif

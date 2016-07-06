@@ -16,6 +16,7 @@ class abt_thread final : public ult_base {
   void wait(bool&);
   void resume(bool&);
   void join();
+  void cancel() { ABT_thread_cancel(th_); ABT_thread_resume(th_); }
   int get_worker_id();
 
   ffunc f;

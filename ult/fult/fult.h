@@ -59,6 +59,7 @@ struct fctx {
 
 enum fult_state {
   INVALID,
+  DONE,
   CREATED,
   // READY, -- this may not be needed.
   YIELD,
@@ -79,6 +80,7 @@ class fult final {
   void wait(bool&);
   void resume(bool&);
   void join();
+  void cancel() { state_ = INVALID; bool x; resume(x); }
   int get_worker_id();
 
   void init(ffunc myfunc, intptr_t data, size_t stack_size);
