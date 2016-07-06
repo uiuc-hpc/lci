@@ -123,7 +123,7 @@ template <class T>
 class arr_pool {
  public:
   static const size_t MAX_SIZE = (1 << 12);
-  arr_pool(uint8_t max_size)
+  arr_pool(size_t max_size)
       : lock_flag(ATOMIC_FLAG_INIT),
         max_size_(max_size),
         top_(0),
@@ -179,9 +179,9 @@ class arr_pool {
 
  private:
   std::atomic_flag lock_flag;
-  uint8_t max_size_;
-  uint8_t top_;
-  uint8_t bottom_;
+  size_t max_size_;
+  size_t top_;
+  size_t bottom_;
   T* container_;
 } __attribute__((aligned(64)));
 

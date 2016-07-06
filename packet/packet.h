@@ -26,7 +26,7 @@ class mpiv_packet {
  public:
   mpiv_packet() {}
 
-  inline const mpiv_packet_header& header() { return header_; }
+  inline mpiv_packet_header& header() { return header_; }
 
   inline void set_header(mpiv_packet_type type, int from, int tag) {
     header_.type = type;

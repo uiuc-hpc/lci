@@ -1,6 +1,0 @@
-| l | l | l | l |
-\hline
-& POSIX thread & Argobots	& Fult \\ \hline
-Scheduling & 0.75 & 0.09 & 0.02 \\ \hline
-Signal & 1.16 & 0.29 & 0.01 \\ \hline
-Total & 1.91 & 0.38 & 0.03 \\ \hline
