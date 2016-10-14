@@ -72,7 +72,9 @@ inline int mpiv_worker_id() {
 void mpiv_free(void* ptr) { MPIV.ctx.heap_segment.deallocate(ptr); }
 
 #include "init.h"
-#include "recv.h"
-#include "send.h"
+#include "mpi/recv.h"
+#include "mpi/irecv.h"
+#include "mpi/send.h"
+#include "mpi/waitall.h"
 #include "coll/collective.h"
 #endif
