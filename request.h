@@ -10,14 +10,14 @@ extern __thread thread __fulting;
 struct MPIV_Request {
   inline MPIV_Request(): counter(NULL) {};
   inline MPIV_Request(int rank_, int tag_)
-      : rank(rank_), tag(tag_), sync(__fulting), done_(false) {}
+      : rank(rank_), tag(tag_), sync(__fulting), done_(false), counter(NULL) {}
   inline MPIV_Request(void* buffer_, int size_, int rank_, int tag_)
       : buffer(buffer_),
         size(size_),
         rank(rank_),
         tag(tag_),
         sync(__fulting),
-        done_(false) {};
+        done_(false), counter(NULL) {};
   void* buffer;
   int size;
   int rank;
