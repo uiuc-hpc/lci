@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // #include "osu.h"
+#include "affinity.h"
 #include <mpi.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -75,11 +76,14 @@ int main(int argc, char* argv[]) {
   double t_start = 0.0, t_end = 0.0;
   int provided;
 
-  MPI_Init(&argc, &argv);
+  MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+  if (provided != MPI_THREAD_MULTIPLE) return -1;
   MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
   MPI_Comm_rank(MPI_COMM_WORLD, &myid);
 
   align_size = MESSAGE_ALIGNMENT;
+
+  affinity::set_me_to(0);
 
   s_buf = (char*)(((unsigned long)s_buf_original + (align_size - 1)) /
                   align_size * align_size);

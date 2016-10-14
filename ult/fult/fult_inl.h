@@ -81,7 +81,9 @@ inline fult_t fworker::spawn(ffunc f, intptr_t data, size_t stack_size) {
 
 inline void fworker::work(fult* f) {
   __fulting = f;
+  // printf("%p swapping %p\n", this, f);
   ctx_.swap(f->ctx(), (intptr_t)f);
+  // printf("%p returning from %p\n", this, f);
   __fulting = NULL;
 }
 
@@ -103,6 +105,8 @@ inline fult_t fworker::fult_new(const int id, ffunc f, intptr_t data,
   return (fult_t)&lwt_[id];
 }
 
+fworker* random_worker();
+
 #ifndef USE_L1_MASK
 inline void fworker::wfunc(fworker* w) {
   w->id_ = nfworker_.fetch_add(1);
@@ -117,6 +121,7 @@ inline void fworker::wfunc(fworker* w) {
 #endif
 
   while (xunlikely(!w->stop_)) {
+    bool has_work = false;
     for (auto i = 0; i < NMASK; i++) {
       auto& mask = w->mask_[i];
       if (mask > 0) {
@@ -124,6 +129,7 @@ inline void fworker::wfunc(fworker* w) {
         auto local_mask = exchange((unsigned long)0, &(mask));
         // Works until it no thread is pending.
         while (xlikely(local_mask > 0)) {
+          has_work = true;
           auto id = find_first_set(local_mask);
           bit_flip(local_mask, id);
           // Optains the associate thread.
@@ -137,6 +143,35 @@ inline void fworker::wfunc(fworker* w) {
         }
       }
     }
+
+#define ENABLE_STEAL
+#ifdef ENABLE_STEAL
+    if (!has_work && nfworker_ > 1) {
+        // Steal..
+        fworker* steal = random_worker();
+        for (auto i = 0; i < NMASK; i++) {
+          auto& mask = steal->mask_[i];
+          if (mask > 0) {
+            // Atomic exchange to get the current waiting threads.
+            auto local_mask = exchange((unsigned long)0, &(mask));
+            // Works until it no thread is pending.
+            while (xlikely(local_mask > 0)) {
+              auto id = find_first_set(local_mask);
+              bit_flip(local_mask, id);
+              // Optains the associate thread.
+              fult* f = &(steal->lwt_[MUL64(i) + id]);
+              // Works on it only if it's not completed.
+              if (xlikely(f->state_ != INVALID)) {
+                w->work(f);
+                if (f->state_ == YIELD) steal->schedule(f->id_);
+                else if (f->state_ == INVALID) steal->fin(f->id_);
+              }
+            }
+            break;
+          }
+        }
+    }
+#endif
   }
   nfworker_--;
 

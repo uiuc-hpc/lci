@@ -46,11 +46,11 @@ CXXFLAGS_NOBOOST = -I$(ABT_INC)
 CXXFLAGS += -I$(BOOST_INC) -I$(RDMAX_INC) -I$(IBV_INC)
 LDFLAGS += -L$(BOOST_LIB) -L$(IBV_LIB) # -llmpe -lmpe
 
-DEPS = mfcontext.o jfcontext.o %.cxx ../*.h ../ult/*.h ../ult/fult/*.h ../ult/abt/*.h ../ult/pthread/*.h
+DEPS = mfcontext.o jfcontext.o ../*.h ../ult/*.h ../ult/fult/*.h ../ult/abt/*.h ../ult/pthread/*.h
 
 all: pp jaco
 
-jaco: jacobi_3d jacobi_3d_1 jacobi_3d_cond jacobi_3d_abt
+jaco: jacobi_3d_mpiv jacobi_3d_mpiv_cond jacobi_3d_mpiv_abt
 
 pp: pingpong pingpong_cond pingpong_abt \
 		pingpong_mt pingpong_mt_pthread pingpong_mt_cond pingpong_mt_abt
@@ -61,16 +61,20 @@ abt_%: abt_%.c
 abx_%: abx_%.cxx
 	$(MPICXX) $(CXXFLAGS_NOBOOST) $^ -o $@ -L$(ABT_LIB)
 
-%: $(DEPS)
+%: $(DEPS) %.cxx
 	$(MPICXX) $(CXXFLAGS) mfcontext.o jfcontext.o $@.cxx $(LDFLAGS) -o $@
 
 %_abt: CXXFLAGS+=-DUSE_ABT
-%_abt: $(DEPS)
+%_abt: $(DEPS) %.cxx
 	$(MPICXX) $(CXXFLAGS) mfcontext.o jfcontext.o $*.cxx $(LDFLAGS) -o $@
 	
 %_cond: CXXFLAGS+=-DUSE_PTHREAD
-%_cond: $(DEPS)
+%_cond: $(DEPS) %.cxx
 	$(MPICXX) $(CXXFLAGS) mfcontext.o jfcontext.o $*.cxx $(LDFLAGS) -o $@
+
+%_thread: CXXFLAGS+=-DUSE_PTHREAD
+%_thread: $(DEPS) %_thread.cxx
+	$(MPICXX) $(CXXFLAGS) mfcontext.o jfcontext.o $@.cxx $(LDFLAGS) -o $@
 
 jfcontext.o: $(JFCONTEXT)
 	$(GXX) -O2 -c $(JFCONTEXT) -o jfcontext.o

@@ -67,6 +67,10 @@ inline int mpiv_worker_id() {
   return __wid;
 }
 
+inline worker* mpiv_get_random_worker() {
+  return &MPIV.w[rand() % MPIV.w.size()];
+}
+
 #include "request.h"
 
 void mpiv_free(void* ptr) { MPIV.ctx.heap_segment.deallocate(ptr); }

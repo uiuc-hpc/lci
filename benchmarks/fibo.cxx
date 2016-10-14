@@ -16,6 +16,9 @@ struct thread_data_t {
   long ret;
 };
 
+int number;
+int nworker;
+
 void ffibo(intptr_t arg) {
   thread_data_t* td = (thread_data_t*)arg;
   if (td->val <= 1) {
@@ -24,16 +27,18 @@ void ffibo(intptr_t arg) {
     thread_data_t data[2];
     data[0].val = td->val - 1;
     data[1].val = td->val - 2;
-    auto s1 = w[0].spawn(ffibo, (intptr_t)&data[0]);
-    auto s2 = w[0].spawn(ffibo, (intptr_t)&data[1]);
+    auto s1 = w[__wid].spawn(ffibo, (intptr_t)&data[0]);
+    auto s2 = w[__wid].spawn(ffibo, (intptr_t)&data[1]);
     s1->join();
     s2->join();
     td->ret = data[0].ret + data[1].ret;
   }
 }
-
-int number;
-int nworker;
+worker* random_worker() {
+    int p = rand() % nworker;
+    // printf("pick %d\n", p);
+    return &w[p];
+}
 
 void main_task(intptr_t args) {
   worker* w = (worker*)args;
@@ -51,12 +56,12 @@ int main(int argc, char** args) {
 #ifdef USE_ABT
   ABT_init(argc, args);
 #endif
-  if (argc < 2) {
-    printf("Usage: %s <number>\n", args[0]);
+  if (argc < 3) {
+    printf("Usage: %s <nworker> <number>\n", args[0]);
     return 1;
   }
-  nworker = 1;
-  number = atoi(args[1]);
+  nworker = atoi(args[1]);
+  number = atoi(args[2]);
   w = ::new worker[nworker];
   for (int i = 1; i < nworker; i++) {
     w[i].start();

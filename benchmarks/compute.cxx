@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "profiler.h"
 
 #define MESSAGE_ALIGNMENT 64
-#define MAX_MSG_SIZE (1 << 22)
+#define MAX_MSG_SIZE (1 << 20)
 #define MYBUFSIZE (MAX_MSG_SIZE + MESSAGE_ALIGNMENT)
 
 char s_buf_original[MYBUFSIZE];
@@ -73,7 +73,6 @@ int main(int argc, char* argv[]) {
   int align_size;
 
   double t_start = 0.0, t_end = 0.0;
-  int provided;
 
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
@@ -85,16 +84,6 @@ int main(int argc, char* argv[]) {
                   align_size * align_size);
   r_buf = (char*)(((unsigned long)r_buf_original + (align_size - 1)) /
                   align_size * align_size);
-
-  if (numprocs != 2) {
-    if (myid == 0) {
-      fprintf(stderr, "This test requires exactly two processes\n");
-    }
-
-    MPI_Finalize();
-
-    return EXIT_FAILURE;
-  }
 
   srand48(1238);
 
@@ -123,25 +112,26 @@ int main(int argc, char* argv[]) {
       for (i = 0; i < loop + skip; i++) {
         if (i == skip) {
           t_start = MPI_Wtime();
+          // f.start();
         }
- 
-        MPI_Send(s_buf, 64, MPI_CHAR, 1, 1, MPI_COMM_WORLD);
-        MPI_Recv(r_buf, 64, MPI_CHAR, 1, 1, MPI_COMM_WORLD, &reqstat);
+        int loop = lrand48() % (size);
+        for (int ii = 0; ii < loop; ii++) {
+            trash[lrand48() % ARRAY_SIZE] += ((char*) r_buf)[lrand48() % 64];
+        }
+        // MPI_Send(s_buf, size, MPI_CHAR, 1, 1, MPI_COMM_WORLD);
+        // MPI_Recv(r_buf, size, MPI_CHAR, 1, 1, MPI_COMM_WORLD, &reqstat);
       }
-      t_end = MPI_Wtime();
 
+      t_end = MPI_Wtime();
       // auto& x = f.stop();
       // std::cerr << 0.5 * x[0]/(loop+skip) << " " << std::endl;
     }
 
     else if (myid == 1) {
       for (i = 0; i < loop + skip; i++) {
-        MPI_Recv(r_buf, 64, MPI_CHAR, 0, 1, MPI_COMM_WORLD, &reqstat);
-        int loop = lrand48() % size;
-        for (int ii = 0; ii < loop; ii++) {
-            trash[lrand48() % ARRAY_SIZE] += ((char*) r_buf)[lrand48() % 64];
-        }
-        MPI_Send(s_buf, 64, MPI_CHAR, 0, 1, MPI_COMM_WORLD);
+        // MPI_Recv(r_buf, size, MPI_CHAR, 0, 1, MPI_COMM_WORLD, &reqstat);
+
+        // MPI_Send(s_buf, size, MPI_CHAR, 0, 1, MPI_COMM_WORLD);
       }
     }
 

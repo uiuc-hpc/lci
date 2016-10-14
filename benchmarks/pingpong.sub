@@ -21,17 +21,20 @@ cd ${SLURM_SUBMIT_DIR}
 # SETTING proper MVAPICH2:
 export MV2_USE_RDMA_FAST_PATH=0 # DISABLE FAST PATH
 
-echo "Single threaded pingpong"
-ibrun -np 2 osu_latency
-MV2_ENABLE_AFFINITY=0 ibrun -np 2 ./pingpong_mt_pthread 1 1
-ibrun -np 2 ./pingpong_cond
-ibrun -np 2 ./pingpong_abt
-ibrun -np 2 ./pingpong
+echo "Single threaded pingpong (with compute)"
 
-NTHREAD=14
-NWORKER=14
-echo "Multi-threaded pingpong:" $NTHREAD $NWORKER
-MV2_ENABLE_AFFINITY=0 ibrun -np 2 ./pingpong_mt_pthread $NTHREAD $NWORKER
-ibrun -np 2 ./pingpong_mt_cond $NTHREAD $NWORKER
-ibrun -np 2 ./pingpong_mt_abt $NTHREAD $NWORKER
-ibrun -np 2 ./pingpong_mt $NTHREAD $NWORKER
+ibrun -np 2 taskset 0x3 ./pingpong_osu
+MV2_ENABLE_AFFINITY=0 MPICH_ASYNC_PROGRESS=1 ibrun -np 2 taskset 0x3 pingpong_osu
+MV2_ENABLE_AFFINITY=0 ibrun -np 2 ./pingpong_osu_mt
+ibrun -np 2 ./pingpong_compute_cond
+ibrun -np 2 ./pingpong_compute_abt
+ibrun -np 2 ./pingpong_compute
+./compute
+
+#NTHREAD=14
+#NWORKER=14
+#echo "Multi-threaded pingpong:" $NTHREAD $NWORKER
+#MV2_ENABLE_AFFINITY=0 ibrun -np 2 ./pingpong_mt_pthread $NTHREAD $NWORKER
+#ibrun -np 2 ./pingpong_mt_cond $NTHREAD $NWORKER
+#ibrun -np 2 ./pingpong_mt_abt $NTHREAD $NWORKER
+#ibrun -np 2 ./pingpong_mt $NTHREAD $NWORKER

@@ -31,9 +31,10 @@ ibrun -np 2 ./osu_latency
 #MV2_ENABLE_AFFINITY=0 ibrun -np 2 pingpong_mt_pthread 1 1
 #ibrun -np 2 ./pingpong_mt 1 1
 
-#MV2_ENABLE_AFFINITY=0 ibrun -np 2 pingpong_mt_pthread 12 12
-ibrun -np 2 ./pingpong_mt_old 12 12
-ibrun -np 2 ./pingpong_mt 12 12
+MV2_ENABLE_AFFINITY=0 ibrun -np 2 pingpong_mt_pthread 8 8
+ibrun -np 2 ./pingpong_mt_cond 8 8
+ibrun -np 2 ./pingpong_mt_abt 8 8
+ibrun -np 2 ./pingpong_mt 8 8
 
 #ibrun -np 2 ./pingpong_mt 12 6
 #MV2_ENABLE_AFFINITY=0 ibrun -np 2 osu_latency_mt 12 6
