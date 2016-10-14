@@ -17,7 +17,7 @@ inline void MPIV_Recv_rndz(void* buffer, int, int rank, int tag,
   else p = (mpiv_packet*) &data[0];
   p->set_header(RECV_READY, MPIV.me, tag);
   p->set_rdz(0, (uintptr_t)s, (uintptr_t)buffer, MPIV.ctx.heap_rkey);
-  MPIV.ctx.conn[rank].write_send(p, RNDZ_MSG_SIZE, 0, 0);
+  MPIV.ctx.conn[rank].write_send(p, RNDZ_MSG_SIZE, MPIV.ctx.sbuf_lkey, p);
   if (__wid >= 0) MPIV.pkpool.ret_packet_to(p, __wid);
   stopt(misc_timing);
 }

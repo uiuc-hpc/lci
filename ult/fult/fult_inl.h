@@ -144,7 +144,7 @@ inline void fworker::wfunc(fworker* w) {
       }
     }
 
-#define ENABLE_STEAL
+// #define ENABLE_STEAL
 #ifdef ENABLE_STEAL
     if (!has_work && nfworker_ > 1) {
         // Steal..

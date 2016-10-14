@@ -11,7 +11,7 @@ void mpiv_complete_rndz(mpiv_packet* p, MPIV_Request* s) {
   MPIV.ctx.conn[s->rank].write_rdma(s->buffer, MPIV.ctx.heap_lkey,
                                     (void*)p->rdz_tgt_addr(), p->rdz_rkey(),
                                     s->size, 0);
-  MPIV.ctx.conn[s->rank].write_send(p, RNDZ_MSG_SIZE, 0, (void*)p);
+  MPIV.ctx.conn[s->rank].write_send(p, RNDZ_MSG_SIZE, MPIV.ctx.sbuf_lkey, (void*)p);
 }
 
 void mpiv_recv_recv_ready(mpiv_packet* p) {

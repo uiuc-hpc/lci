@@ -27,7 +27,7 @@ inline void MPIV_Send_short(const void* buffer, int size, int rank, int tag) {
 
   MPIV.ctx.conn[rank].write_send(
       (void*)packet,
-      ((((size_t)size + sizeof(mpiv_packet_header) + 3) >> 2) << 2),
+      std::max((size_t) 8, (size_t)size) + sizeof(mpiv_packet_header),
       MPIV.ctx.sbuf_lkey, (void*)(packet));
 }
 
