@@ -5,7 +5,7 @@ class server_rdmax : server_base {
  public:
   server_rdmax() : stop_(false), done_init_(false) {}
   inline void init(packet_manager& pkpool, int& rank, int& size);
-  inline void post_srq(mpiv_packet* p);
+  inline void post_recv(mpiv_packet* p);
   inline void serve();
   inline void finalize();
   inline void write_send(int rank, void* buf, size_t size, void* ctx);
@@ -79,7 +79,7 @@ void server_rdmax::init(packet_manager& pkpool, int& rank,
   done_init_ = true;
 }
 
-void server_rdmax::post_srq(mpiv_packet* p) {
+void server_rdmax::post_recv(mpiv_packet* p) {
   if (p == NULL) return;
   recv_posted_++;
   dev_ctx_->post_srq_recv((void*)p, (void*)p, sizeof(mpiv_packet),
@@ -98,7 +98,7 @@ bool server_rdmax::progress() {  // profiler& p, long long& r, long long &s) {
   }));
   stopt(t)
     // Make sure we always have enough packet, but do not block.
-  if (recv_posted_ < MAX_RECV) post_srq(pk_mgr_ptr->get_for_recv());
+  if (recv_posted_ < MAX_RECV) post_recv(pk_mgr_ptr->get_for_recv());
   // assert(recv_posted_ > 0 && "No posted buffer");
   return ret;
 }

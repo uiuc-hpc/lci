@@ -32,7 +32,7 @@ struct pinned_pool {
 class server_base {
  public:
   virtual inline void init(packet_manager& pkpool, int& rank, int& size) = 0;
-  virtual inline void post_srq(mpiv_packet* p) = 0;
+  virtual inline void post_recv(mpiv_packet* p) = 0;
   virtual inline void serve() = 0;
   virtual inline void finalize() = 0;
   virtual inline void write_send(int rank, void* buf, size_t size, void* ctx) = 0;
