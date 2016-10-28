@@ -102,14 +102,17 @@ void main_task(intptr_t) {
          size = (size ? size * 2 : 1)) {
       MPIV_Barrier(MPI_COMM_WORLD);
       tags[i].id = 0;
+      // printf("spawn\n");
       sr_threads[i] = MPIV_spawn(0, send_thread, 0);
       MPIV_join(sr_threads[i]);
+      // printf("join\n");
       MPIV_Barrier(MPI_COMM_WORLD);
     }
   } else {
     for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
          size = (size ? size * 2 : 1)) {
       MPIV_Barrier(MPI_COMM_WORLD);
+      // printf("r spawn\n");
       for (i = 0; i < THREADS; i++) {
         sr_threads[i] =
             MPIV_spawn(i % WORKERS, recv_thread, (intptr_t) i);
@@ -118,6 +121,7 @@ void main_task(intptr_t) {
       for (i = 0; i < THREADS; i++) {
         MPIV_join(sr_threads[i]);
       }
+      // printf("r join\n");
       MPIV_Barrier(MPI_COMM_WORLD);
     }
   }

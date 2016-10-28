@@ -72,7 +72,7 @@ void main_task(intptr_t) {
         }
       }
       times = MPIV_Wtime() - times;
-      printf("[%d] %f\n", size, (total * WIN) / times);
+      printf("[%d] %f\n", size, (size / 1e6 * total * WIN) / times);
     } else {
       memset(s_buf, 'b', size);
       memset(r_buf, 'a', size);

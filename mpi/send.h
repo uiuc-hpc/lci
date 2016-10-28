@@ -25,10 +25,10 @@ inline void MPIV_Send_short(const void* buffer, int size, int rank, int tag) {
   packet->set_bytes(buffer, size);
   // packet->header().sreq = (intptr_t) s;
 
-  MPIV.ctx.conn[rank].write_send(
+  MPIV.server.write_send(rank, 
       (void*)packet,
       std::max((size_t) 8, (size_t)size) + sizeof(mpiv_packet_header),
-      MPIV.ctx.sbuf_lkey, (void*)(packet));
+      (void*)(packet));
 }
 
 void MPIV_Send(const void* buffer, int count, MPI_Datatype datatype, int rank,
@@ -52,21 +52,5 @@ void MPIV_Send(const void* buffer, int count, MPI_Datatype datatype, int rank,
   MPE_Log_event(mpiv_send_end, 0, "end_send");
 #endif
 }
-
-#if 0
-void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
-                int tag, MPI_Comm, MPIV_Request* req) {
-  int size = 0;
-  MPI_Type_size(datatype, &size);
-  size = count * size;
-  if (size <= SHORT_MSG_SIZE) {
-    MPIV_Send_short(buf, size, rank, tag);
-    req->done_ = true;
-  } else {
-    new (req) MPIV_Request((void*) buf, size, rank, tag);
-    MPIV_Send_rdz(req);
-  }
-}
-#endif
 
 #endif

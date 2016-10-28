@@ -20,8 +20,8 @@ inline void MPIV_Recv_rndz(void* buffer, int size, int rank, int tag,
   mpiv_packet* p = MPIV.pkpool.get_for_send();
   #endif
   p->set_header(RECV_READY, MPIV.me, tag);
-  p->set_rdz(0, (uintptr_t)s, (uintptr_t)buffer, MPIV.ctx.heap_rkey);
-  MPIV.ctx.conn[rank].write_send(p, RNDZ_MSG_SIZE, MPIV.ctx.sbuf_lkey, p);
+  p->set_rdz(0, (uintptr_t)s, (uintptr_t)buffer, MPIV.server.heap_rkey());
+  MPIV.server.write_send(rank, p, RNDZ_MSG_SIZE, p);
   // MPIV.pkpool.ret_packet_to(p, mpiv_worker_id());
   stopt(misc_timing);
 }
@@ -58,6 +58,7 @@ void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank,
   MPIV_Request s(buffer, size, rank, tag);
 
   if ((size_t)size <= SHORT_MSG_SIZE) {
+    assert(s.counter == 0);
     MPIV_Recv_short(buffer, size, rank, tag, &s);
   } else {
     MPIV_Recv_rndz(buffer, size, rank, tag, &s);

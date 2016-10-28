@@ -58,7 +58,7 @@ inline void MPIV_Init(int* argc, char*** args) {
 #endif
 
 #ifndef DISABLE_COMM
-  MPIV.server.init(MPIV.ctx, MPIV.pkpool, MPIV.me, MPIV.size);
+  MPIV.server.init(MPIV.pkpool, MPIV.me, MPIV.size);
   MPIV.server.serve();
 #endif
 

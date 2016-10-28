@@ -25,21 +25,12 @@
 
 #include "common.h"
 
-struct mpiv_ctx {
-  uint32_t sbuf_lkey;
-  uint32_t heap_rkey;
-  uint32_t heap_lkey;
-  mbuffer heap_segment;
-  vector<connection> conn;
-};
-
-#include "server.h"
+#include "server/server.h"
 
 struct mpiv {
   int me;
   int size;
   vector<worker> w;
-  mpiv_ctx ctx;
   packet_manager pkpool;
   mpiv_server server;
   mpiv_hash_tbl tbl;
@@ -56,7 +47,7 @@ double MPIV_Wtime() {
 }
 
 void* mpiv_malloc(size_t size) {
-  void* ptr = MPIV.ctx.heap_segment.allocate((size_t)size);
+  void* ptr = MPIV.server.allocate((size_t)size);
   if (ptr == 0) throw std::runtime_error("no more memory\n");
   return ptr;
 }
@@ -69,7 +60,9 @@ inline int mpiv_worker_id() {
 
 #include "request.h"
 
-void mpiv_free(void* ptr) { MPIV.ctx.heap_segment.deallocate(ptr); }
+void mpiv_free(void* ptr) {
+    MPIV.server.deallocate(ptr);
+}
 
 #include "init.h"
 #include "mpi/recv.h"

@@ -8,10 +8,10 @@ void mpiv_post_recv(mpiv_packet* p);
 void mpiv_complete_rndz(mpiv_packet* p, MPIV_Request* s) {
   p->set_header(SEND_READY_FIN, MPIV.me, s->tag);
   p->set_sreq((uintptr_t)s);
-  MPIV.ctx.conn[s->rank].write_rdma(s->buffer, MPIV.ctx.heap_lkey,
-                                    (void*)p->rdz_tgt_addr(), p->rdz_rkey(),
-                                    s->size, 0);
-  MPIV.ctx.conn[s->rank].write_send(p, RNDZ_MSG_SIZE, MPIV.ctx.sbuf_lkey, (void*)p);
+  MPIV.server.write_rma(s->rank, s->buffer, 
+          (void*)p->rdz_tgt_addr(), p->rdz_rkey(),
+          s->size, 0);
+  MPIV.server.write_send(s->rank, p, RNDZ_MSG_SIZE, (void*)p);
 }
 
 void mpiv_recv_recv_ready(mpiv_packet* p) {
@@ -69,15 +69,15 @@ static void mpiv_progress_init() {
   handle[SEND_READY_FIN] = mpiv_recv_send_ready_fin;
 }
 
-inline void mpiv_serve_recv(const ibv_wc& wc) {
-  mpiv_packet* p_ctx = (mpiv_packet*)wc.wr_id;
+inline void mpiv_serve_recv(mpiv_packet* p_ctx) {
+  // mpiv_packet* p_ctx = (mpiv_packet*)wc.wr_id;
   const auto& type = p_ctx->header().type;
   handle[type](p_ctx);
 }
 
-inline void mpiv_serve_send(const ibv_wc& wc) {
+inline void mpiv_serve_send(mpiv_packet* p_ctx) {
   // Nothing to process, return.
-  mpiv_packet* p_ctx = (mpiv_packet*)wc.wr_id;
+  // mpiv_packet* p_ctx = (mpiv_packet*)wc.wr_id;
   if (!p_ctx) return;
   const auto& type = p_ctx->header().type;
   auto poolid = p_ctx->poolid();

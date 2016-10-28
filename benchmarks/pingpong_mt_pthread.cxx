@@ -163,7 +163,7 @@ void* recv_thread(void* arg) {
   int i, val;
 
   val = (int) (long) arg;
-  affinity::set_me_to(val % WORKERS);
+  // affinity::set_me_to(val % WORKERS);
 
   if (size > LARGE_MESSAGE_SIZE) {
     loop = LOOP_LARGE;
@@ -179,15 +179,15 @@ void* recv_thread(void* arg) {
   }
 
   for (i = val; i < (loop + skip); i += THREADS) {
-    MPI_Recv(r_buf, size, MPI_CHAR, 0, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    MPI_Send(s_buf, size, MPI_CHAR, 0, i, MPI_COMM_WORLD);
+    MPI_Recv(r_buf, size, MPI_CHAR, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Send(s_buf, size, MPI_CHAR, 0, 2, MPI_COMM_WORLD);
   }
 
   return 0;
 }
 
 void* send_thread(void*) {
-  affinity::set_me_to(0);
+  // affinity::set_me_to(0);
 
   int i;
   double t_start = 0, t_end = 0, t = 0, latency;
@@ -210,8 +210,8 @@ void* send_thread(void*) {
       t_start = MPI_Wtime();
     }
 
-    MPI_Send(s_buf, size, MPI_CHAR, 1, i, MPI_COMM_WORLD);
-    MPI_Recv(r_buf, size, MPI_CHAR, 1, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Send(s_buf, size, MPI_CHAR, 1, 1, MPI_COMM_WORLD);
+    MPI_Recv(r_buf, size, MPI_CHAR, 1, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
   }
 
   t_end = MPI_Wtime();
