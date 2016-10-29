@@ -38,8 +38,8 @@ CXXFLAGS += -Wno-unused-local-typedefs
 # LDFLAGS += -L$(PAPI_LIB)
 
 RDMAX_INC = -I../rdmax/include
-IBV_INC = -I/opt/ofed/include/
-IBV_LIB = -libverbs
+IBV_INC = -I/opt/ofed/include/ -I$(HOME)/libfab/include
+IBV_LIB = -lfabric #-L$(HOME)/libfab/lib -L$(HOME)/psm2 -libverbs -lfabric
 
 JFCONTEXT = ../ult/fult/jump_x86_64_sysv_elf_gas.S
 MFCONTEXT = ../ult/fult/make_x86_64_sysv_elf_gas.S

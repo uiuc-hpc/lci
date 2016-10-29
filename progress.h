@@ -10,8 +10,8 @@ void mpiv_complete_rndz(mpiv_packet* p, MPIV_Request* s) {
   p->set_sreq((uintptr_t)s);
   MPIV.server.write_rma(s->rank, s->buffer, 
           (void*)p->rdz_tgt_addr(), p->rdz_rkey(),
-          s->size, 0);
-  MPIV.server.write_send(s->rank, p, RNDZ_MSG_SIZE, (void*)p);
+          s->size, (void*) p);
+  // MPIV.server.write_send(s->rank, p, RNDZ_MSG_SIZE, (void*)p);
 }
 
 void mpiv_recv_recv_ready(mpiv_packet* p) {
@@ -84,6 +84,7 @@ inline void mpiv_serve_send(mpiv_packet* p_ctx) {
 
   if (type == SEND_READY_FIN) {
     MPIV_Request* req = (MPIV_Request*)p_ctx->rdz_sreq();
+    MPIV.server.write_send(req->rank, p_ctx, RNDZ_MSG_SIZE, 0);
     MPIV_Signal(req);
     stopt(rdma_timing);
     // this packet is taken directly from recv queue.

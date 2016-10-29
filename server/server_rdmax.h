@@ -152,5 +152,4 @@ void server_rdmax::finalize() {
   heap_.finalize();
 }
 
-
 #endif

@@ -43,7 +43,8 @@ class server_base {
 };
 
 #include "server_rdmax.h"
+#include "server_ofi.h"
 
-using mpiv_server = server_rdmax;
+using mpiv_server = server_ofi;
 
 #endif
