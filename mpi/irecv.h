@@ -8,7 +8,7 @@ extern int mpiv_worker_id();
 void MPIV_Send(const void* buffer, int count, MPI_Datatype, int rank, int tag,
                MPI_Comm);
 
-void MPIV_Recv_rndz(void* buffer, int size, int rank, int tag,
+void proto_recv_rndz(void* buffer, int size, int rank, int tag,
                            MPIV_Request* s);
 
 void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,

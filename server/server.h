@@ -47,7 +47,7 @@ class ServerBase {
 #include "server_rdmax.h"
 #include "server_ofi.h"
 
-using Server = ServerOFI;
+using Server = ServerRdmax;
 
 } // namespace mpiv.
 #endif

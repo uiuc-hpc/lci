@@ -49,7 +49,7 @@ void* malloc(size_t size) {
   return ptr;
 }
 
-double wtime() {
+double MPIV_Wtime() {
   using namespace std::chrono;
   return duration_cast<duration<double> >(
              high_resolution_clock::now().time_since_epoch())

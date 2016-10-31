@@ -17,6 +17,8 @@
 #include <iostream>
 #include <pthread.h>
 
+using namespace mpiv;
+
 #define MESSAGE_ALIGNMENT 64
 #define MIN_MSG_SIZE 1
 #define MAX_MSG_SIZE (1 << 22)
@@ -89,8 +91,8 @@ static int size = 0;
 
 void main_task(intptr_t) {
   int i = 0;
-  r_buf1 = (char*)mpiv_malloc(MYBUFSIZE);
-  s_buf1 = (char*)mpiv_malloc(MYBUFSIZE);
+  r_buf1 = (char*)mpiv::malloc(MYBUFSIZE);
+  s_buf1 = (char*)mpiv::malloc(MYBUFSIZE);
   thread* sr_threads = new thread[THREADS];
   thread_tag_t* tags = new thread_tag_t[THREADS];
 
@@ -125,8 +127,8 @@ void main_task(intptr_t) {
       MPIV_Barrier(MPI_COMM_WORLD);
     }
   }
-  mpiv_free(r_buf1);
-  mpiv_free(s_buf1);
+  mpiv::free(r_buf1);
+  mpiv::free(s_buf1);
 }
 
 void recv_thread(intptr_t arg) {

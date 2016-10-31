@@ -6,7 +6,7 @@ extern int mpiv_recv_start, mpiv_recv_end;
 void MPIV_Send(const void* buffer, int count, MPI_Datatype, int rank, int tag,
                MPI_Comm);
 
-inline void MPIV_Recv_rndz(void* buffer, int size, int rank, int tag,
+inline void proto_recv_rndz(void* buffer, int, int rank, int tag,
                            MPIV_Request* s) {
   startt(misc_timing);
   #if 0
@@ -24,7 +24,7 @@ inline void MPIV_Recv_rndz(void* buffer, int size, int rank, int tag,
   stopt(misc_timing);
 }
 
-inline void MPIV_Recv_short(void* buffer, int size, int rank, int tag,
+inline void proto_recv_short(void* buffer, int size, int rank, int tag,
                             MPIV_Request* s) {
   mpiv_key key = mpiv_make_key(rank, tag);
   mpiv_value value;
@@ -57,9 +57,9 @@ void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank,
 
   if ((size_t)size <= SHORT_MSG_SIZE) {
     assert(s.counter == 0);
-    MPIV_Recv_short(buffer, size, rank, tag, &s);
+    proto_recv_short(buffer, size, rank, tag, &s);
   } else {
-    MPIV_Recv_rndz(buffer, size, rank, tag, &s);
+    proto_recv_rndz(buffer, size, rank, tag, &s);
   }
   MPIV_Wait(&s);
 #if USE_MPE

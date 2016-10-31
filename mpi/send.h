@@ -7,7 +7,7 @@ extern int mpiv_send_start, mpiv_send_end;
 
 void mpiv_complete_rndz(Packet* p, MPIV_Request* s);
 
-inline void MPIV_Send_rdz(MPIV_Request* s) {
+inline void proto_send_rdz(MPIV_Request* s) {
   mpiv_key key = mpiv_make_key(s->rank, (1 << 31) | s->tag);
   mpiv_value value;
   value.request = s;
@@ -16,7 +16,7 @@ inline void MPIV_Send_rdz(MPIV_Request* s) {
   }
 }
 
-inline void MPIV_Send_short(const void* buffer, int size, int rank, int tag) {
+inline void proto_send_short(const void* buffer, int size, int rank, int tag) {
   Packet* packet = MPIV.pkpool.get_for_send();
   packet->set_header(SEND_SHORT, MPIV.me, tag);
   // This is a short message, we send them immediately and do not yield
@@ -41,10 +41,10 @@ void MPIV_Send(const void* buffer, int count, MPI_Datatype datatype, int rank,
   size = count * size;
   // First we need a packet, as we don't want to register.
   if (size <= SHORT_MSG_SIZE) {
-    MPIV_Send_short(buffer, size, rank, tag);
+    proto_send_short(buffer, size, rank, tag);
   } else {
     MPIV_Request s((void*)buffer, size, rank, tag);
-    MPIV_Send_rdz(&s);
+    proto_send_rdz(&s);
     MPIV_Wait(&s);
   }
   // MPIV.total_send--;

@@ -5,8 +5,8 @@
 
 extern int mpiv_send_start, mpiv_send_end;
 void mpiv_complete_rndz(Packet* p, MPIV_Request* s);
-void MPIV_Send_rdz(MPIV_Request* s);
-void MPIV_Send_short(const void* buffer, int size, int rank, int tag);
+void proto_send_rdz(MPIV_Request* s);
+void proto_send_short(const void* buffer, int size, int rank, int tag);
 
 void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
                 int tag, MPI_Comm, MPIV_Request* req) {
@@ -14,7 +14,7 @@ void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
   MPI_Type_size(datatype, &size);
   size = count * size;
   if (size <= SHORT_MSG_SIZE) {
-    MPIV_Send_short(buf, size, rank, tag);
+    proto_send_short(buf, size, rank, tag);
     req->done_ = true;
   } else {
     new (req) MPIV_Request((void*) buf, size, rank, tag);

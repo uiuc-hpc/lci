@@ -6,10 +6,10 @@
 
 extern int mpiv_send_start, mpiv_send_end;
 void mpiv_complete_rndz(Packet* p, MPIV_Request* s);
-void MPIV_Send_rdz(MPIV_Request* s);
-void MPIV_Send_short(const void* buffer, int size, int rank, int tag);
+void proto_send_rdz(MPIV_Request* s);
+void proto_send_short(const void* buffer, int size, int rank, int tag);
 
-int MPIV_Recv_short_wait(MPIV_Request* s) {
+int proto_recv_short_wait(MPIV_Request* s) {
 
   mpiv_key key = mpiv_make_key(s->rank, s->tag);
   mpiv_value value;
@@ -31,7 +31,7 @@ void MPIV_Waitall(int count, MPIV_Request* req) {
         req[i].counter = &counter;
     }
     for (int i = 0; i < count; i++) {
-        MPIV_Recv_short_wait(&req[i]);
+        proto_recv_short_wait(&req[i]);
     }
 
     // Loop in-case was signal wrongly.
