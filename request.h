@@ -3,26 +3,28 @@
 
 #include "mpiv.h"
 
-struct mpiv_packet;
-
 extern __thread thread __fulting;
 
+namespace mpiv {
+
 struct MPIV_Request {
+  inline MPIV_Request(): counter(NULL) {};
   inline MPIV_Request(int rank_, int tag_)
-      : rank(rank_), tag(tag_), sync(__fulting), done_(false) {}
+      : rank(rank_), tag(tag_), sync(__fulting), done_(false), counter(NULL) {}
   inline MPIV_Request(void* buffer_, int size_, int rank_, int tag_)
       : buffer(buffer_),
         size(size_),
         rank(rank_),
         tag(tag_),
         sync(__fulting),
-        done_(false) {};
+        done_(false), counter(NULL) {};
   void* buffer;
   int size;
   int rank;
   int tag;
   thread sync;
   bool done_;
+  std::atomic<int>* counter;
 } __attribute__((aligned(64)));
 
 inline void MPIV_Wait(MPIV_Request* req) {
@@ -36,12 +38,6 @@ inline void MPIV_Signal(MPIV_Request* req) {
   req->sync->resume(req->done_);
 }
 
-// FIXME(danghvu): DO NOT USE THIS
-void MPIV_Waitall(int count, MPIV_Request request[], MPI_Status*) {
-  for (int i=0; i<count; i++) {
-    MPIV_Wait(&request[i]);
-  }
-}
-
+}; // namespace mpiv.
 
 #endif

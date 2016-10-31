@@ -89,7 +89,7 @@ inline hash_val* create_table(size_t num_rows) {
   return ret;
 }
 
-class arr_hashtbl : base_hashtbl {
+class HashTblArr : HashTblBase {
  public:
   void init() override {
     // Try to align it with cache line.

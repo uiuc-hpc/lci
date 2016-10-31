@@ -18,15 +18,18 @@ CXXFLAGS += -I$(CUCKOO_INC)
 #LDFLAGS += $(TBB_LIB)
 #CXXFLAGS += $(TBB_INC)
 
-BOOST_INC = $(TACC_BOOST_INC) #/usr/local/boost/1.58.0/include
-BOOST_LIB = $(TACC_BOOST_LIB)
+#TACC_BOOST_INC=/home/w00d/software/boost_1_61_0/
+#TACC_BOOST_LIB=/home/w00d/software/boost_1_61_0/stage/lib
+
+BOOST_INC = -I$(TACC_BOOST_INC) #/usr/local/boost/1.58.0/include
+BOOST_LIB = -L$(TACC_BOOST_LIB)
 CXXFLAGS += -Wno-unused-local-typedefs
 
 ### FOR TESTING ARGOBOTS ###
-ABT_INC = $(HOME)/argo/include
-ABT_LIB = $(HOME)/argo/lib -labt
-CXXFLAGS += -I$(ABT_INC)
-LDFLAGS += -L$(ABT_LIB)
+# ABT_INC = $(HOME)/argo/include
+# ABT_LIB = $(HOME)/argo/lib -labt
+# CXXFLAGS += -I$(ABT_INC)
+# LDFLAGS += -L$(ABT_LIB)
 
 ### FOR USING PAPI ##
 # PAPI_LIB = $(TACC_PAPI_LIB) -lpapi
@@ -34,17 +37,17 @@ LDFLAGS += -L$(ABT_LIB)
 # CXXFLAGS += -I$(PAPI_INC)
 # LDFLAGS += -L$(PAPI_LIB)
 
-RDMAX_INC = ../rdmax/include
-IBV_INC = /opt/ofed/include/
-IBV_LIB = /opt/ofed/lib64 -libverbs
+RDMAX_INC = -I../rdmax/include
+IBV_INC = -I/opt/ofed/include/ -I$(HOME)/libfab/include
+IBV_LIB = # -L$(HOME)/libfab/lib -lfabric
 
 JFCONTEXT = ../ult/fult/jump_x86_64_sysv_elf_gas.S
 MFCONTEXT = ../ult/fult/make_x86_64_sysv_elf_gas.S
 
 CXXFLAGS_NOBOOST = -I$(ABT_INC)
 
-CXXFLAGS += -I$(BOOST_INC) -I$(RDMAX_INC) -I$(IBV_INC)
-LDFLAGS += -L$(BOOST_LIB) -L$(IBV_LIB) # -llmpe -lmpe
+CXXFLAGS += $(BOOST_INC) $(RDMAX_INC) $(IBV_INC)
+LDFLAGS += $(BOOST_LIB) $(IBV_LIB) # -llmpe -lmpe
 
 DEPS = mfcontext.o jfcontext.o ../*.h ../ult/*.h ../ult/fult/*.h ../ult/abt/*.h ../ult/pthread/*.h
 

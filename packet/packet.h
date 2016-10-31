@@ -1,10 +1,12 @@
 #ifndef PACKET_H_
 #define PACKET_H_
 
-enum mpiv_packet_type { SEND_SHORT, SEND_READY, RECV_READY, SEND_READY_FIN };
+namespace mpiv {
 
-struct mpiv_packet_header {
-  mpiv_packet_type type;
+enum PacketType { SEND_SHORT, SEND_READY, RECV_READY, SEND_READY_FIN };
+
+struct PacketHeader {
+  PacketType type;
   uint8_t poolid;
   int from;
   int tag;
@@ -17,18 +19,18 @@ struct mpiv_rdz {
   uint32_t rkey;
 };
 
-union mpiv_packet_content {
+union PacketContent {
   char buffer[SHORT_MSG_SIZE];
   mpiv_rdz rdz;
 };
 
-class mpiv_packet {
+class Packet {
  public:
-  mpiv_packet() {}
+  Packet() {}
 
-  inline mpiv_packet_header& header() { return header_; }
+  inline PacketHeader& header() { return header_; }
 
-  inline void set_header(mpiv_packet_type type, int from, int tag) {
+  inline void set_header(PacketType type, int from, int tag) {
     header_.type = type;
     header_.from = from;
     header_.tag = tag;
@@ -64,8 +66,10 @@ class mpiv_packet {
   }
 
  private:
-  mpiv_packet_header header_;
-  mpiv_packet_content content_;
+  PacketHeader header_;
+  PacketContent content_;
 } __attribute__((aligned(64)));
+
+}; // namespace mpiv.
 
 #endif

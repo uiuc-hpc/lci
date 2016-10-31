@@ -17,20 +17,19 @@
 #include <iostream>
 #include <pthread.h>
 
-using namespace mpiv;
-
 #define MESSAGE_ALIGNMENT 64
 #define MIN_MSG_SIZE 1
-#define MAX_MSG_SIZE (1 << 22)
+#define MAX_MSG_SIZE 8096
 #define MYBUFSIZE (MAX_MSG_SIZE + MESSAGE_ALIGNMENT)
-#define SKIP_LARGE 100
-#define LOOP_LARGE 1000
+#define SKIP_LARGE 10
+#define LOOP_LARGE 100
 #define LARGE_MESSAGE_SIZE 8192
 
 char* s_buf1;
 char* r_buf1;
 int skip = 1000;
 int loop = 10000;
+#define WIN 4
 
 pthread_mutex_t finished_size_mutex;
 pthread_cond_t finished_size_cond;
@@ -79,11 +78,7 @@ int main(int argc, char* argv[]) {
     return EXIT_FAILURE;
   }
 
-  if (myid == 0)
-    MPIV_Init_worker(1);
-  else
-    MPIV_Init_worker(WORKERS);
-
+  MPIV_Init_worker(WORKERS);
   MPIV_Finalize();
 }
 
@@ -91,8 +86,8 @@ static int size = 0;
 
 void main_task(intptr_t) {
   int i = 0;
-  r_buf1 = (char*)mpiv::malloc(MYBUFSIZE);
-  s_buf1 = (char*)mpiv::malloc(MYBUFSIZE);
+  r_buf1 = (char*)mpiv_malloc(MYBUFSIZE);
+  s_buf1 = (char*)mpiv_malloc(MYBUFSIZE);
   thread* sr_threads = new thread[THREADS];
   thread_tag_t* tags = new thread_tag_t[THREADS];
 
@@ -103,32 +98,36 @@ void main_task(intptr_t) {
     for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
          size = (size ? size * 2 : 1)) {
       MPIV_Barrier(MPI_COMM_WORLD);
-      tags[i].id = 0;
-      // printf("spawn\n");
-      sr_threads[i] = MPIV_spawn(0, send_thread, 0);
-      MPIV_join(sr_threads[i]);
-      // printf("join\n");
+      for (i = 0; i < THREADS; i++) {
+        sr_threads[i] =
+            MPIV_spawn(i % WORKERS, send_thread, (intptr_t) i);
+      }
+      for (i = 0; i < THREADS; i++) {
+        MPIV_join(sr_threads[i]);
+      }
       MPIV_Barrier(MPI_COMM_WORLD);
     }
   } else {
     for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
          size = (size ? size * 2 : 1)) {
       MPIV_Barrier(MPI_COMM_WORLD);
-      // printf("r spawn\n");
+      double t_start = MPIV_Wtime();
+
       for (i = 0; i < THREADS; i++) {
         sr_threads[i] =
             MPIV_spawn(i % WORKERS, recv_thread, (intptr_t) i);
       }
-
       for (i = 0; i < THREADS; i++) {
         MPIV_join(sr_threads[i]);
       }
-      // printf("r join\n");
+      double t_end = MPIV_Wtime();
+      double t = t_end - t_start;
+      printf("%d \t %.5f \n", size, WIN * (loop + skip) / t);
       MPIV_Barrier(MPI_COMM_WORLD);
     }
   }
-  mpiv::free(r_buf1);
-  mpiv::free(s_buf1);
+  mpiv_free(r_buf1);
+  mpiv_free(s_buf1);
 }
 
 void recv_thread(intptr_t arg) {
@@ -148,23 +147,29 @@ void recv_thread(intptr_t arg) {
     skip = SKIP_LARGE;
   }
 
+  #if 0
   /* touch the data */
   for (i = 0; i < size; i++) {
     s_buf[i] = 'a';
     r_buf[i] = 'b';
   }
-
+  #endif
+  MPIV_Request req[WIN];
   for (i = val; i < (loop + skip); i += THREADS) {
-    MPIV_Recv(r_buf, size, MPI_CHAR, 0, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    MPIV_Send(s_buf, size, MPI_CHAR, 0, i, MPI_COMM_WORLD);
+      for (int k = 0; k < WIN; k++) {
+          MPIV_Irecv(r_buf, size, MPI_CHAR, 0, i << 8 | k, MPI_COMM_WORLD, &req[k]);
+      }
+      MPIV_Waitall(WIN, req);
   }
-
-  // sleep(1);
 }
 
-void send_thread(intptr_t) {
+extern double _tt;
+
+void send_thread(intptr_t arg) {
   int i, align_size;
   char *s_buf, *r_buf;
+  int val = (int) (arg); 
+ 
   double t_start = 0, t_end = 0, t = 0, latency;
   align_size = MESSAGE_ALIGNMENT;
 
@@ -178,26 +183,19 @@ void send_thread(intptr_t) {
     skip = SKIP_LARGE;
   }
 
+  #if 0
   /* touch the data */
   for (i = 0; i < size; i++) {
     s_buf[i] = 'a';
     r_buf[i] = 'b';
   }
-
-  for (i = 0; i < loop + skip; i++) {
-    if (i == skip) {
-      t_start = MPIV_Wtime();
-    }
-
-    MPIV_Send(s_buf, size, MPI_CHAR, 1, i, MPI_COMM_WORLD);
-    MPIV_Recv(r_buf, size, MPI_CHAR, 1, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  #endif
+  MPIV_Request req[WIN];
+  for (i = val; i < (loop + skip); i += THREADS) {
+      for (int k = 0; k < WIN; k++) {
+          MPIV_Send(s_buf, size, MPI_CHAR, 1, i << 8 | k, MPI_COMM_WORLD);
+      }
   }
-
-  t_end = MPIV_Wtime();
-  t = t_end - t_start;
-
-  latency = (t)*1.0e6 / (2.0 * loop);
-  std::cout << size << "\t" << latency << std::endl;
 }
 
 /* vi: set sw=4 sts=4 tw=80: */

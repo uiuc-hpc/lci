@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 
-static const int MAX_SEND = 256;  // maximum concurrent send.
+static const int MAX_SEND = 64;  // maximum concurrent send.
 static const int MAX_RECV = 32;  // maximum concurrent recv.
 
 #ifndef CONFIG_CONCUR

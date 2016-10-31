@@ -4,42 +4,44 @@
 #include "packet.h"
 #include "mpmcqueue.h"
 
-extern int mpiv_worker_id();
+extern int worker_id();
 
-class packet_manager_base {
+namespace mpiv {
+
+class PacketManagerBase {
  public:
   virtual void init_worker(int) = 0;
-  virtual mpiv_packet* get_packet_nb() = 0;
-  virtual mpiv_packet* get_packet() = 0;
-  virtual void ret_packet(mpiv_packet* packet) = 0;
-  virtual mpiv_packet* get_for_send() = 0;
-  virtual mpiv_packet* get_for_recv() = 0;
-  virtual void ret_packet_to(mpiv_packet* packet, int hint) = 0;
+  virtual Packet* get_packet_nb() = 0;
+  virtual Packet* get_packet() = 0;
+  virtual void ret_packet(Packet* packet) = 0;
+  virtual Packet* get_for_send() = 0;
+  virtual Packet* get_for_recv() = 0;
+  virtual void ret_packet_to(Packet* packet, int hint) = 0;
 } __attribute__((aligned(64)));
 
-class packet_manager_MPMCQ : public packet_manager_base {
+class PacketManagerMPMCQ : public PacketManagerBase {
  public:
   void init_worker(int) override {}
 
-  inline mpiv_packet* get_packet_nb() override {
+  inline Packet* get_packet_nb() override {
     if (pool_.empty()) return 0;
-    return (mpiv_packet*)pool_.dequeue();
+    return (Packet*)pool_.dequeue();
   }
 
-  inline mpiv_packet* get_packet() override {
-    mpiv_packet* p = 0;
+  inline Packet* get_packet() override {
+    Packet* p = 0;
     while (!(p = get_packet_nb())) ult_yield();
     return p;
   }
 
-  inline void ret_packet(mpiv_packet* packet) override {
+  inline void ret_packet(Packet* packet) override {
     assert(packet != 0);
     pool_.enqueue((uint64_t)packet);
   }
 
-  inline mpiv_packet* get_for_send() override { return get_packet(); }
-  inline mpiv_packet* get_for_recv() override { return get_packet_nb(); }
-  inline void ret_packet_to(mpiv_packet* packet, int) override {
+  inline Packet* get_for_send() override { return get_packet(); }
+  inline Packet* get_for_recv() override { return get_packet_nb(); }
+  inline void ret_packet_to(Packet* packet, int) override {
     ret_packet(packet);
   }
 
@@ -47,83 +49,83 @@ class packet_manager_MPMCQ : public packet_manager_base {
   ppl::MPMCQueue<uint64_t> pool_;
 } __attribute__((aligned(64)));
 
-class packet_manager_LFQUEUE: public packet_manager_base {
+class PacketManagerLfQueue: public PacketManagerBase {
  public:
 
   void init_worker(int) {};
 
-  inline mpiv_packet* get_packet_nb() override {
-    mpiv_packet* packet = NULL;
+  inline Packet* get_packet_nb() override {
+    Packet* packet = NULL;
     pool_.pop(packet);
     return packet;
   }
 
-  inline mpiv_packet* get_packet() override {
-    mpiv_packet* packet = NULL;
+  inline Packet* get_packet() override {
+    Packet* packet = NULL;
     while (!pool_.pop(packet)) ult_yield();
     assert(packet);
     return packet;
   }
 
-  inline void ret_packet(mpiv_packet* packet) override {
+  inline void ret_packet(Packet* packet) override {
     if (!pool_.push(packet)) {
       throw packet_error(
           "Fatal error, insert more than possible packets into manager");
     }
   }
 
-  inline mpiv_packet* get_for_send() override { return get_packet(); }
-  inline mpiv_packet* get_for_recv() override { return get_packet_nb(); }
-  inline void ret_packet_to(mpiv_packet* packet, int) override {
+  inline Packet* get_for_send() override { return get_packet(); }
+  inline Packet* get_for_recv() override { return get_packet_nb(); }
+  inline void ret_packet_to(Packet* packet, int) override {
     ret_packet(packet);
   }
 
  protected:
-  boost::lockfree::queue<mpiv_packet*,
+  boost::lockfree::queue<Packet*,
                          boost::lockfree::capacity<MAX_CONCURRENCY>> pool_;
 } __attribute__((aligned(64)));
 
-class packet_manager_LFSTACK : public packet_manager_base {
+class PacketManagerLfStack : public PacketManagerBase {
  public:
 
   void init_worker(int) {};
 
-  inline mpiv_packet* get_packet_nb() override {
-    mpiv_packet* packet = NULL;
+  inline Packet* get_packet_nb() override {
+    Packet* packet = NULL;
     pool_.pop(packet);
     return packet;
   }
 
-  inline mpiv_packet* get_packet() override {
-    mpiv_packet* packet = NULL;
+  inline Packet* get_packet() override {
+    Packet* packet = NULL;
     while (!pool_.pop(packet)) ult_yield();
     assert(packet);
     return packet;
   }
 
-  inline void ret_packet(mpiv_packet* packet) override {
+  inline void ret_packet(Packet* packet) override {
     if (!pool_.push(packet)) {
       throw packet_error(
           "Fatal error, insert more than possible packets into manager");
     }
   }
 
-  inline mpiv_packet* get_for_send() override { return get_packet(); }
-  inline mpiv_packet* get_for_recv() override { return get_packet_nb(); }
-  inline void ret_packet_to(mpiv_packet* packet, int) override {
+  inline Packet* get_for_send() override { return get_packet(); }
+  inline Packet* get_for_recv() override { return get_packet_nb(); }
+  inline void ret_packet_to(Packet* packet, int) override {
     ret_packet(packet);
   }
 
  protected:
-  boost::lockfree::stack<mpiv_packet*,
+  boost::lockfree::stack<Packet*,
                          boost::lockfree::capacity<MAX_CONCURRENCY>> pool_;
 } __attribute__((aligned(64)));
 
 template <class T>
-class arr_pool {
+class ArrPool {
  public:
   static const size_t MAX_SIZE = (1 << 12);
-  arr_pool(size_t max_size)
+  ArrPool(size_t max_size)
       : lock_flag(ATOMIC_FLAG_INIT),
         max_size_(max_size),
         top_(0),
@@ -132,7 +134,7 @@ class arr_pool {
     memset(container_, 0, MAX_SIZE * sizeof(T));
   }
 
-  ~arr_pool() { delete[] container_; }
+  ~ArrPool() { delete[] container_; }
 
   T popTop() {
     T ret = 0;
@@ -185,22 +187,22 @@ class arr_pool {
   T* container_;
 } __attribute__((aligned(64)));
 
-class packet_manager_NUMA final
-    : public packet_manager_LFSTACK {
+class PacketManagerNuma final
+    : public PacketManagerLfStack {
  public:
 
-  using parent = packet_manager_LFSTACK;
+  using parent = PacketManagerLfStack;
 
-  packet_manager_NUMA() : nworker_(0){};
+  PacketManagerNuma() : nworker_(0){};
 
-  ~packet_manager_NUMA() {
+  ~PacketManagerNuma() {
     for (auto& a : private_pool_) delete a;
   }
 
   void init_worker(int nworker) {
     for (int i = nworker_; i < nworker; i++) {
       private_pool_.emplace_back(
-          new arr_pool<mpiv_packet*>(MAX_SEND / nworker / 2));
+          new ArrPool<Packet*>(MAX_SEND / nworker / 2));
     }
     nworker_ = nworker;
   }
@@ -209,16 +211,16 @@ class packet_manager_NUMA final
   using parent::get_packet;
   using parent::ret_packet;
 
-  inline mpiv_packet* get_for_send() override {
-    mpiv_packet* p = 0;
-    p = private_pool_[mpiv_worker_id()]->popTop();
+  inline Packet* get_for_send() override {
+    Packet* p = 0;
+    p = private_pool_[worker_id()]->popTop();
     if (!p) p = get_packet();
-    p->poolid() = mpiv_worker_id();
+    p->poolid() = worker_id();
     return p;
   }
 
-  inline mpiv_packet* get_for_recv() override {
-    mpiv_packet* p = 0;
+  inline Packet* get_for_recv() override {
+    Packet* p = 0;
     if (!(p = get_packet_nb())) {
       int steal = rand() % nworker_;
       p = private_pool_[steal]->popBottom();
@@ -226,46 +228,46 @@ class packet_manager_NUMA final
     return p;
   }
 
-  inline void ret_packet_to(mpiv_packet* packet, int hint) override {
-    mpiv_packet* p = private_pool_[hint]->pushTop(packet);
+  inline void ret_packet_to(Packet* packet, int hint) override {
+    Packet* p = private_pool_[hint]->pushTop(packet);
     if (p) {
       ret_packet(p);
     }
   }
 
  private:
-  std::vector<arr_pool<mpiv_packet*>*> private_pool_;
+  std::vector<ArrPool<Packet*>*> private_pool_;
   int nworker_;
 } __attribute__((aligned(64)));
 
-class packet_manager_NUMA_STEAL final
-    : public packet_manager_base {
+class PacketManagerNumaSteal final
+    : public PacketManagerBase {
  public:
 
-  packet_manager_NUMA_STEAL() {
+  PacketManagerNumaSteal() {
     private_pool_.emplace_back(
-        new arr_pool<mpiv_packet*>(MAX_CONCURRENCY));
+        new ArrPool<Packet*>(MAX_CONCURRENCY));
     nworker_ = 1;
   };
 
-  ~packet_manager_NUMA_STEAL() {
+  ~PacketManagerNumaSteal() {
     for (auto& a : private_pool_) delete a;
   }
 
   void init_worker(int nworker) {
     for (int i = nworker_; i < nworker + 1; i++) {
       private_pool_.emplace_back(
-          new arr_pool<mpiv_packet*>(MAX_CONCURRENCY));
+          new ArrPool<Packet*>(MAX_CONCURRENCY));
     }
     nworker_ = nworker;
   }
 
-  inline void ret_packet(mpiv_packet* p) override {
+  inline void ret_packet(Packet* p) override {
     private_pool_[0]->pushTop(p);
   }
 
-  inline mpiv_packet* get_packet_nb() override {
-    mpiv_packet* p = private_pool_[0]->popBottom();
+  inline Packet* get_packet_nb() override {
+    Packet* p = private_pool_[0]->popBottom();
     if (!p) {
       int steal = rand() % (nworker_ + 1);
       return private_pool_[steal]->popBottom();
@@ -273,38 +275,40 @@ class packet_manager_NUMA_STEAL final
     return p;
   }
 
-  inline mpiv_packet* get_packet() override {
-    mpiv_packet* p = 0;
+  inline Packet* get_packet() override {
+    Packet* p = 0;
     while (!(p = get_packet_nb())) { ult_yield(); }
     return p;
   }
 
-  inline mpiv_packet* get_for_send() override {
-    mpiv_packet* p = private_pool_[mpiv_worker_id() + 1]->popTop();
+  inline Packet* get_for_send() override {
+    Packet* p = private_pool_[worker_id() + 1]->popTop();
     if (!p) p = get_packet();
-    p->poolid() = mpiv_worker_id();
+    p->poolid() = worker_id();
     return p;
   }
 
-  inline mpiv_packet* get_for_recv() override {
-    mpiv_packet* p = private_pool_[0]->popTop();
+  inline Packet* get_for_recv() override {
+    Packet* p = private_pool_[0]->popTop();
     if (!p) p = get_packet_nb();
     return p;
   }
 
-  inline void ret_packet_to(mpiv_packet* packet, int hint) override {
+  inline void ret_packet_to(Packet* packet, int hint) override {
     private_pool_[hint + 1]->pushTop(packet);
   }
 
  private:
-  std::vector<arr_pool<mpiv_packet*>*> private_pool_;
+  std::vector<ArrPool<Packet*>*> private_pool_;
   int nworker_;
 } __attribute__((aligned(64)));
 
 #ifdef CONFIG_PK_MANAGER 
-using packet_manager = CONFIG_PK_MANAGER;
+using PacketManager = CONFIG_PK_MANAGER;
 #else
-using packet_manager = packet_manager_NUMA_STEAL;
+using PacketManager = PacketManagerNumaSteal;
 #endif
+
+}; // namespace mpiv.
 
 #endif

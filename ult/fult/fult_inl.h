@@ -121,7 +121,9 @@ inline void fworker::wfunc(fworker* w) {
 #endif
 
   while (xunlikely(!w->stop_)) {
+#ifdef ENABLE_STEAL
     bool has_work = false;
+#endif
     for (auto i = 0; i < NMASK; i++) {
       auto& mask = w->mask_[i];
       if (mask > 0) {
@@ -129,7 +131,9 @@ inline void fworker::wfunc(fworker* w) {
         auto local_mask = exchange((unsigned long)0, &(mask));
         // Works until it no thread is pending.
         while (xlikely(local_mask > 0)) {
+#ifdef ENABLE_STEAL
           has_work = true;
+#endif
           auto id = find_first_set(local_mask);
           bit_flip(local_mask, id);
           // Optains the associate thread.
