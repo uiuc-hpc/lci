@@ -8,6 +8,8 @@
 using std::pair;
 using std::make_pair;
 
+namespace mpiv {
+
 struct Packet;
 struct MPIV_Request;
 
@@ -36,4 +38,5 @@ constexpr mpiv_key mpiv_make_key(const int& rank, const int& tag) {
 
 using HashTbl = HashTblArr;
 
+}; // namespace mpiv.
 #endif

@@ -27,47 +27,43 @@
 
 #include "server/server.h"
 
-struct mpiv {
+extern __thread int __wid;
+inline int worker_id() { return __wid; }
+
+namespace mpiv {
+
+struct Execution {
   int me;
   int size;
-  vector<worker> w;
   PacketManager pkpool;
   Server server;
   HashTbl tbl;
-  std::atomic<int> total_send;
+  std::vector<worker> w;
 } __attribute__((aligned(64)));
 
-static mpiv MPIV;
+static Execution MPIV;
 
-double MPIV_Wtime() {
+void* malloc(size_t size) {
+  void* ptr = MPIV.server.allocate((size_t)size);
+  if (ptr == 0) throw std::runtime_error("no more memory\n");
+  return ptr;
+}
+
+double wtime() {
   using namespace std::chrono;
   return duration_cast<duration<double> >(
              high_resolution_clock::now().time_since_epoch())
       .count();
 }
 
-void* mpiv_malloc(size_t size) {
-  void* ptr = MPIV.server.allocate((size_t)size);
-  if (ptr == 0) throw std::runtime_error("no more memory\n");
-  return ptr;
-}
-
-extern __thread int __wid;
-
-inline int mpiv_worker_id() {
-  return __wid;
-}
-
-#include "request.h"
-
-void mpiv_free(void* ptr) {
+void free(void* ptr) {
     MPIV.server.deallocate(ptr);
 }
 
+}; // namespace mpiv.
+
+#include "request.h"
 #include "init.h"
-#include "mpi/recv.h"
-#include "mpi/irecv.h"
-#include "mpi/send.h"
-#include "mpi/waitall.h"
-#include "coll/collective.h"
+#include "mpi/mpi.h"
+
 #endif

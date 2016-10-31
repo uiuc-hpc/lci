@@ -3,8 +3,6 @@
 
 extern int mpiv_recv_start, mpiv_recv_end;
 
-extern int mpiv_worker_id();
-
 void MPIV_Send(const void* buffer, int count, MPI_Datatype, int rank, int tag,
                MPI_Comm);
 
@@ -40,7 +38,7 @@ inline void MPIV_Recv_short(void* buffer, int size, int rank, int tag,
     stopt(memcpy_timing);
 
     startt(post_timing);
-    MPIV.pkpool.ret_packet_to(p_ctx, mpiv_worker_id());
+    MPIV.pkpool.ret_packet_to(p_ctx, worker_id());
     stopt(post_timing);
     s->done_ = true;
   }

@@ -3,9 +3,9 @@
 
 #include "mpiv.h"
 
-struct mpiv_packet;
-
 extern __thread thread __fulting;
+
+namespace mpiv {
 
 struct MPIV_Request {
   inline MPIV_Request(): counter(NULL) {};
@@ -37,5 +37,7 @@ inline void MPIV_Signal(MPIV_Request* req) {
   // printf(">>> rank %d tag %d sync id %d origin %d\n", req->rank, req->tag, req->sync->id(), req->sync->get_worker_id());
   req->sync->resume(req->done_);
 }
+
+}; // namespace mpiv.
 
 #endif

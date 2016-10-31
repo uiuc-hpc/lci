@@ -1,6 +1,8 @@
 #ifndef PACKET_H_
 #define PACKET_H_
 
+namespace mpiv {
+
 enum PacketType { SEND_SHORT, SEND_READY, RECV_READY, SEND_READY_FIN };
 
 struct PacketHeader {
@@ -67,5 +69,7 @@ class Packet {
   PacketHeader header_;
   PacketContent content_;
 } __attribute__((aligned(64)));
+
+}; // namespace mpiv.
 
 #endif

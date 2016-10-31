@@ -11,6 +11,8 @@
 
 using std::unique_ptr;
 
+namespace mpiv {
+
 void mpiv_serve_recv(Packet*);
 void mpiv_serve_send(Packet*);
 void mpiv_post_recv(Packet*);
@@ -47,4 +49,5 @@ class ServerBase {
 
 using Server = ServerOFI;
 
+} // namespace mpiv.
 #endif

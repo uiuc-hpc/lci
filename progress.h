@@ -3,6 +3,8 @@
 
 #include "mpiv.h"
 
+namespace mpiv {
+
 void mpiv_post_recv(Packet* p);
 
 void mpiv_complete_rndz(Packet* p, MPIV_Request* s) {
@@ -96,5 +98,7 @@ inline void mpiv_serve_send(Packet* p_ctx) {
     MPIV.pkpool.ret_packet_to(p_ctx, poolid);
   }
 }
+
+}; // namespace mpiv.
 
 #endif

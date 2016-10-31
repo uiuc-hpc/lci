@@ -13,6 +13,11 @@
 #include "profiler.h"
 #include "progress.h"
 
+// User provide this TODO(danghvu): HACKXXX
+void main_task(intptr_t arg);
+
+namespace mpiv {
+
 int mpiv_send_start, mpiv_send_end, mpiv_recv_start, mpiv_recv_end;
 int mpiv_barrier_start, mpiv_barrier_end;
 
@@ -65,8 +70,6 @@ inline void MPIV_Init(int* argc, char*** args) {
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void main_task(intptr_t arg);
-
 void mpiv_main_task(intptr_t arg) {
   for (size_t i = 1; i < MPIV.w.size(); i++) {
     MPIV.w[i].start();
@@ -112,5 +115,7 @@ inline void MPIV_Finalize() {
 #endif
   MPI_Finalize();
 }
+
+}; // namespace mpiv
 
 #endif

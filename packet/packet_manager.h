@@ -4,7 +4,9 @@
 #include "packet.h"
 #include "mpmcqueue.h"
 
-extern int mpiv_worker_id();
+extern int worker_id();
+
+namespace mpiv {
 
 class PacketManagerBase {
  public:
@@ -211,9 +213,9 @@ class PacketManagerNuma final
 
   inline Packet* get_for_send() override {
     Packet* p = 0;
-    p = private_pool_[mpiv_worker_id()]->popTop();
+    p = private_pool_[worker_id()]->popTop();
     if (!p) p = get_packet();
-    p->poolid() = mpiv_worker_id();
+    p->poolid() = worker_id();
     return p;
   }
 
@@ -280,9 +282,9 @@ class PacketManagerNumaSteal final
   }
 
   inline Packet* get_for_send() override {
-    Packet* p = private_pool_[mpiv_worker_id() + 1]->popTop();
+    Packet* p = private_pool_[worker_id() + 1]->popTop();
     if (!p) p = get_packet();
-    p->poolid() = mpiv_worker_id();
+    p->poolid() = worker_id();
     return p;
   }
 
@@ -306,5 +308,7 @@ using PacketManager = CONFIG_PK_MANAGER;
 #else
 using PacketManager = PacketManagerNumaSteal;
 #endif
+
+}; // namespace mpiv.
 
 #endif

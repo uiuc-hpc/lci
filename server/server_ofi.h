@@ -198,11 +198,11 @@ bool ServerOFI::progress() {  // profiler& p, long long& r, long long &s) {
     // Got an entry here ?
     recv_posted_--;
     mpiv_serve_recv((Packet*) (((my_context*) entry.op_context)->ctx_));
-    delete entry.op_context;
+    delete (my_context*) entry.op_context;
     rett = true;
   } else if (ret == -FI_EAGAIN) {
   } else if (ret == -FI_EAVAIL) {
-    fi_cq_readerr(rcq, &error, NULL);
+    fi_cq_readerr(rcq, &error, 0);
     printf("Err: %s\n", fi_strerror(error.err));
     MPI_Abort(MPI_COMM_WORLD, error.err);
   } else if (ret < 0) {
@@ -215,11 +215,11 @@ bool ServerOFI::progress() {  // profiler& p, long long& r, long long &s) {
   if (ret > 0) {
     // Got an entry here ?
     mpiv_serve_send((Packet*) (((my_context*) entry.op_context)->ctx_));
-    delete entry.op_context;
+    delete (my_context*) entry.op_context;
     rett = true;
   } else if (ret == -FI_EAGAIN) {
   } else if (ret == -FI_EAVAIL) {
-    fi_cq_readerr(scq, &error, NULL);
+    fi_cq_readerr(scq, &error, 0);
     printf("Err: %s\n", fi_strerror(error.err));
     MPI_Abort(MPI_COMM_WORLD, error.err);
   } else if (ret < 0) {

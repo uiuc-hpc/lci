@@ -17,7 +17,7 @@ int MPIV_Recv_short_wait(MPIV_Request* s) {
   if (!MPIV.tbl.insert(key, value)) {
     Packet* p_ctx = value.packet;
     memcpy(s->buffer, p_ctx->buffer(), s->size);
-    MPIV.pkpool.ret_packet_to(p_ctx, mpiv_worker_id());
+    MPIV.pkpool.ret_packet_to(p_ctx, worker_id());
     s->done_ = true;
     return (s->counter->fetch_sub(1));
   }
