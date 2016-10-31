@@ -4,11 +4,10 @@
 #include <mpi.h>
 
 extern int mpiv_send_start, mpiv_send_end;
-void mpiv_complete_rndz(Packet* p, MPIV_Request* s);
 void proto_send_rdz(MPIV_Request* s);
 void proto_send_short(const void* buffer, int size, int rank, int tag);
 
-void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
+void isend(const void* buf, int count, MPI_Datatype datatype, int rank,
                 int tag, MPI_Comm, MPIV_Request* req) {
   int size = 0;
   MPI_Type_size(datatype, &size);

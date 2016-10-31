@@ -27,7 +27,7 @@ inline void mpiv_post_recv(Packet* p) {
   stopt(post_timing);
 }
 
-inline void MPIV_Init(int* argc, char*** args) {
+inline void init(int* argc, char*** args) {
   setenv("MPICH_ASYNC_PROGRESS", "0", 1);
   setenv("MV2_ASYNC_PROGRESS", "0", 1);
   setenv("MV2_ENABLE_AFFINITY", "0", 1);
@@ -84,7 +84,7 @@ void mpiv_main_task(intptr_t arg) {
   MPIV.w[0].stop_main();
 }
 
-inline void MPIV_Init_worker(int nworker, intptr_t arg = 0) {
+inline void init_worker(int nworker, intptr_t arg) {
   MPI_Barrier(MPI_COMM_WORLD);
   if (MPIV.w.size() == 0) {
     MPIV.w = std::move(std::vector<worker>(nworker));
@@ -94,19 +94,29 @@ inline void MPIV_Init_worker(int nworker, intptr_t arg = 0) {
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-template <class... Ts>
-inline thread MPIV_spawn(int wid, Ts... params) {
-  return MPIV.w[wid % MPIV.w.size()].spawn(params...);
+}; // namespace mpiv
+
+void MPIV_Init(int* argc, char ***args) {
+  mpiv::init(argc, args);
 }
 
-inline void MPIV_join(thread ult) {
+void MPIV_Init_worker(int nworker, intptr_t arg = 0) {
+  mpiv::init_worker(nworker, arg);
+}
+
+template <class... Ts>
+thread MPIV_spawn(int wid, Ts... params) {
+  return mpiv::MPIV.w[wid % mpiv::MPIV.w.size()].spawn(params...);
+}
+
+void MPIV_join(thread ult) {
   ult->join();
 }
 
-inline void MPIV_Finalize() {
+void MPIV_Finalize() {
 #ifndef DISABLE_COMM
   MPI_Barrier(MPI_COMM_WORLD);
-  MPIV.server.finalize();
+  mpiv::MPIV.server.finalize();
   MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
@@ -116,6 +126,5 @@ inline void MPIV_Finalize() {
   MPI_Finalize();
 }
 
-}; // namespace mpiv
 
 #endif

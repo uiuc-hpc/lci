@@ -31,7 +31,6 @@ extern __thread int __wid;
 inline int worker_id() { return __wid; }
 
 namespace mpiv {
-
 struct Execution {
   int me;
   int size;
@@ -47,13 +46,6 @@ void* malloc(size_t size) {
   void* ptr = MPIV.server.allocate((size_t)size);
   if (ptr == 0) throw std::runtime_error("no more memory\n");
   return ptr;
-}
-
-double MPIV_Wtime() {
-  using namespace std::chrono;
-  return duration_cast<duration<double> >(
-             high_resolution_clock::now().time_since_epoch())
-      .count();
 }
 
 void free(void* ptr) {

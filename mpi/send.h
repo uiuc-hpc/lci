@@ -31,8 +31,8 @@ inline void proto_send_short(const void* buffer, int size, int rank, int tag) {
       (void*)(packet));
 }
 
-void MPIV_Send(const void* buffer, int count, MPI_Datatype datatype, int rank,
-               int tag, MPI_Comm) {
+void send(const void* buffer, int count, MPI_Datatype datatype, int rank, int
+        tag, MPI_Comm) {
 #if USE_MPE
   MPE_Log_event(mpiv_send_start, 0, "start_send");
 #endif

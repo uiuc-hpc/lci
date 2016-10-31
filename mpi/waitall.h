@@ -1,5 +1,5 @@
-#ifndef ISEND_H_
-#define ISEND_H_
+#ifndef WAITALL_H_
+#define WAITALL_H_
 
 #include <mpi.h>
 #include <assert.h>
@@ -25,20 +25,20 @@ int proto_recv_short_wait(MPIV_Request* s) {
 }
 
 // Assume short message for now.
-void MPIV_Waitall(int count, MPIV_Request* req) {
-    std::atomic<int> counter(count);
-    for (int i = 0; i < count; i++) {
-        req[i].counter = &counter;
-    }
-    for (int i = 0; i < count; i++) {
-        proto_recv_short_wait(&req[i]);
-    }
+void waitall(int count, MPIV_Request* req) {
+  std::atomic<int> counter(count);
+  for (int i = 0; i < count; i++) {
+    req[i].counter = &counter;
+  }
+  for (int i = 0; i < count; i++) {
+    proto_recv_short_wait(&req[i]);
+  }
 
-    // Loop in-case was signal wrongly.
-    while (counter.load() != 0)
-        MPIV_Wait(req);
+  // Loop in-case was signal wrongly.
+  while (counter.load() != 0)
+    MPIV_Wait(req);
 
-    assert(counter.load() == 0);
+  assert(counter.load() == 0);
 }
 
 #endif

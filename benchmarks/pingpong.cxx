@@ -28,8 +28,6 @@
 
 int size = 0;
 
-using namespace mpiv;
-
 int main(int argc, char** args) {
   MPIV_Init(&argc, &args);
   if (argc > 1) size = atoi(args[1]);
@@ -40,7 +38,7 @@ int main(int argc, char** args) {
 
 void main_task(intptr_t) {
   double times = 0;
-  int rank = MPIV.me;
+  int rank = mpiv::MPIV.me;
   void* r_buf = (void*)mpiv::malloc((size_t)MAX_MSG_SIZE);
   void* s_buf = (void*)mpiv::malloc((size_t)MAX_MSG_SIZE);
 

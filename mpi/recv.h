@@ -3,9 +3,6 @@
 
 extern int mpiv_recv_start, mpiv_recv_end;
 
-void MPIV_Send(const void* buffer, int count, MPI_Datatype, int rank, int tag,
-               MPI_Comm);
-
 inline void proto_recv_rndz(void* buffer, int, int rank, int tag,
                            MPIV_Request* s) {
   startt(misc_timing);
@@ -44,7 +41,7 @@ inline void proto_recv_short(void* buffer, int size, int rank, int tag,
   }
 }
 
-void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank,
+void recv(void* buffer, int count, MPI_Datatype datatype, int rank,
                int tag, MPI_Comm, MPI_Status*) {
 #if USE_MPE
   MPE_Log_event(mpiv_recv_start, 0, "start_recv");
