@@ -5,7 +5,7 @@
 
 extern int mpiv_send_start, mpiv_send_end;
 
-void mpiv_complete_rndz(mpiv_packet* p, MPIV_Request* s);
+void mpiv_complete_rndz(Packet* p, MPIV_Request* s);
 
 inline void MPIV_Send_rdz(MPIV_Request* s) {
   mpiv_key key = mpiv_make_key(s->rank, (1 << 31) | s->tag);
@@ -17,7 +17,7 @@ inline void MPIV_Send_rdz(MPIV_Request* s) {
 }
 
 inline void MPIV_Send_short(const void* buffer, int size, int rank, int tag) {
-  mpiv_packet* packet = MPIV.pkpool.get_for_send();
+  Packet* packet = MPIV.pkpool.get_for_send();
   packet->set_header(SEND_SHORT, MPIV.me, tag);
   // This is a short message, we send them immediately and do not yield
   // or create a request for it.
@@ -27,7 +27,7 @@ inline void MPIV_Send_short(const void* buffer, int size, int rank, int tag) {
 
   MPIV.server.write_send(rank, 
       (void*)packet,
-      std::max((size_t) 8, (size_t)size) + sizeof(mpiv_packet_header),
+      std::max((size_t) 8, (size_t)size) + sizeof(PacketHeader),
       (void*)(packet));
 }
 

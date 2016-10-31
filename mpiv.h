@@ -31,7 +31,7 @@ struct mpiv {
   int me;
   int size;
   vector<worker> w;
-  packet_manager pkpool;
+  PacketManager pkpool;
   mpiv_server server;
   mpiv_hash_tbl tbl;
   std::atomic<int> total_send;

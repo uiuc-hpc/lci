@@ -4,7 +4,7 @@
 #include <mpi.h>
 
 extern int mpiv_send_start, mpiv_send_end;
-void mpiv_complete_rndz(mpiv_packet* p, MPIV_Request* s);
+void mpiv_complete_rndz(Packet* p, MPIV_Request* s);
 void MPIV_Send_rdz(MPIV_Request* s);
 void MPIV_Send_short(const void* buffer, int size, int rank, int tag);
 

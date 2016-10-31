@@ -13,11 +13,11 @@ inline void MPIV_Recv_rndz(void* buffer, int size, int rank, int tag,
   startt(misc_timing);
   #if 0
   char data[RNDZ_MSG_SIZE];
-  mpiv_packet* p;
+  Packet* p;
   if (__wid >= 0) p = MPIV.pkpool.get_for_send();
-  else p = (mpiv_packet*) &data[0];
+  else p = (Packet*) &data[0];
   #else
-  mpiv_packet* p = MPIV.pkpool.get_for_send();
+  Packet* p = MPIV.pkpool.get_for_send();
   #endif
   p->set_header(RECV_READY, MPIV.me, tag);
   p->set_rdz(0, (uintptr_t)s, (uintptr_t)buffer, MPIV.server.heap_rkey());
@@ -34,7 +34,7 @@ inline void MPIV_Recv_short(void* buffer, int size, int rank, int tag,
 
   // Find if the message has arrived, if not go and make a request.
   if (!MPIV.tbl.insert(key, value)) {
-    mpiv_packet* p_ctx = value.packet;
+    Packet* p_ctx = value.packet;
     startt(memcpy_timing);
     memcpy(buffer, p_ctx->buffer(), size);
     stopt(memcpy_timing);

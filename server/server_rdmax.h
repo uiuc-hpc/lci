@@ -4,8 +4,8 @@
 class server_rdmax : server_base {
  public:
   server_rdmax() : stop_(false), done_init_(false) {}
-  inline void init(packet_manager& pkpool, int& rank, int& size);
-  inline void post_recv(mpiv_packet* p);
+  inline void init(PacketManager& pkpool, int& rank, int& size);
+  inline void post_recv(Packet* p);
   inline void serve();
   inline void finalize();
   inline void write_send(int rank, void* buf, size_t size, void* ctx);
@@ -26,12 +26,12 @@ class server_rdmax : server_base {
   device_memory heap_;
   int recv_posted_;
   unique_ptr<pinned_pool> sbuf_alloc_;
-  packet_manager* pk_mgr_ptr;
+  PacketManager* pk_mgr_ptr;
   mbuffer heap_segment;
   vector<connection> conn;
 };
 
-void server_rdmax::init(packet_manager& pkpool, int& rank,
+void server_rdmax::init(PacketManager& pkpool, int& rank,
     int& size) {
 #ifdef USE_AFFI
   affinity::set_me_to(0);
@@ -50,7 +50,7 @@ void server_rdmax::init(packet_manager& pkpool, int& rank,
 
   // These are pinned memory.
   sbuf_ = dev_ctx_->create_memory(
-      sizeof(mpiv_packet) * (MAX_SEND + MAX_RECV + 2), mr_flags);
+      sizeof(Packet) * (MAX_SEND + MAX_RECV + 2), mr_flags);
 
   sbuf_alloc_ =
     std::move(std::unique_ptr<pinned_pool>(new pinned_pool(sbuf_.ptr())));
@@ -68,21 +68,21 @@ void server_rdmax::init(packet_manager& pkpool, int& rank,
 
   // Prepare the packet_mgr and prepost some packet.
   for (int i = 0; i < MAX_SEND; i++) {
-    pkpool.ret_packet((mpiv_packet*)sbuf_alloc_->allocate());
+    pkpool.ret_packet((Packet*)sbuf_alloc_->allocate());
   }
 
   for (int i = 0; i < MAX_RECV; i++) {
-    pkpool.ret_packet((mpiv_packet*)sbuf_alloc_->allocate());
+    pkpool.ret_packet((Packet*)sbuf_alloc_->allocate());
   }
 
   pk_mgr_ptr = &pkpool;
   done_init_ = true;
 }
 
-void server_rdmax::post_recv(mpiv_packet* p) {
+void server_rdmax::post_recv(Packet* p) {
   if (p == NULL) return;
   recv_posted_++;
-  dev_ctx_->post_srq_recv((void*)p, (void*)p, sizeof(mpiv_packet),
+  dev_ctx_->post_srq_recv((void*)p, (void*)p, sizeof(Packet),
       sbuf_.lkey());
 }
 
@@ -91,10 +91,10 @@ bool server_rdmax::progress() {  // profiler& p, long long& r, long long &s) {
   startt(t);
   bool ret = (dev_rcq_.poll_once([this](const ibv_wc& wc) {
         recv_posted_--;
-        mpiv_serve_recv((mpiv_packet*) wc.wr_id);
+        mpiv_serve_recv((Packet*) wc.wr_id);
   }));
   ret |= (dev_scq_.poll_once([](const ibv_wc& wc) {
-      mpiv_serve_send((mpiv_packet*) wc.wr_id);
+      mpiv_serve_send((Packet*) wc.wr_id);
   }));
   stopt(t)
     // Make sure we always have enough packet, but do not block.

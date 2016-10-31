@@ -5,7 +5,7 @@
 #include <assert.h>
 
 extern int mpiv_send_start, mpiv_send_end;
-void mpiv_complete_rndz(mpiv_packet* p, MPIV_Request* s);
+void mpiv_complete_rndz(Packet* p, MPIV_Request* s);
 void MPIV_Send_rdz(MPIV_Request* s);
 void MPIV_Send_short(const void* buffer, int size, int rank, int tag);
 
@@ -15,7 +15,7 @@ int MPIV_Recv_short_wait(MPIV_Request* s) {
   mpiv_value value;
   value.request = s;
   if (!MPIV.tbl.insert(key, value)) {
-    mpiv_packet* p_ctx = value.packet;
+    Packet* p_ctx = value.packet;
     memcpy(s->buffer, p_ctx->buffer(), s->size);
     MPIV.pkpool.ret_packet_to(p_ctx, mpiv_worker_id());
     s->done_ = true;

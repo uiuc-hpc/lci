@@ -3,9 +3,9 @@
 
 #include "mpiv.h"
 
-void mpiv_post_recv(mpiv_packet* p);
+void mpiv_post_recv(Packet* p);
 
-void mpiv_complete_rndz(mpiv_packet* p, MPIV_Request* s) {
+void mpiv_complete_rndz(Packet* p, MPIV_Request* s) {
   p->set_header(SEND_READY_FIN, MPIV.me, s->tag);
   p->set_sreq((uintptr_t)s);
   MPIV.server.write_rma(s->rank, s->buffer, 
@@ -14,7 +14,7 @@ void mpiv_complete_rndz(mpiv_packet* p, MPIV_Request* s) {
   // MPIV.server.write_send(s->rank, p, RNDZ_MSG_SIZE, (void*)p);
 }
 
-void mpiv_recv_recv_ready(mpiv_packet* p) {
+void mpiv_recv_recv_ready(Packet* p) {
   mpiv_key key = p->get_rdz_key();
   mpiv_value value;
   value.packet = p;
@@ -23,7 +23,7 @@ void mpiv_recv_recv_ready(mpiv_packet* p) {
   }
 }
 
-void mpiv_recv_send_ready_fin(mpiv_packet* p_ctx) {
+void mpiv_recv_send_ready_fin(Packet* p_ctx) {
   // Now data is already ready in the buffer.
   MPIV_Request* req = (MPIV_Request*)(p_ctx->rdz_rreq());
   assert(req);
@@ -34,9 +34,9 @@ void mpiv_recv_send_ready_fin(mpiv_packet* p_ctx) {
   MPIV.pkpool.ret_packet(p_ctx);
 }
 
-void mpiv_post_recv(mpiv_packet*);
+void mpiv_post_recv(Packet*);
 
-void mpiv_recv_short(mpiv_packet* p) {
+void mpiv_recv_short(Packet* p) {
   startt(misc_timing);
   const mpiv_key key = p->get_key();
   mpiv_value value;
@@ -59,7 +59,7 @@ void mpiv_recv_short(mpiv_packet* p) {
   }
 }
 
-typedef void (*p_ctx_handler)(mpiv_packet* p_ctx);
+typedef void (*p_ctx_handler)(Packet* p_ctx);
 static p_ctx_handler* handle;
 
 static void mpiv_progress_init() {
@@ -69,15 +69,15 @@ static void mpiv_progress_init() {
   handle[SEND_READY_FIN] = mpiv_recv_send_ready_fin;
 }
 
-inline void mpiv_serve_recv(mpiv_packet* p_ctx) {
-  // mpiv_packet* p_ctx = (mpiv_packet*)wc.wr_id;
+inline void mpiv_serve_recv(Packet* p_ctx) {
+  // Packet* p_ctx = (Packet*)wc.wr_id;
   const auto& type = p_ctx->header().type;
   handle[type](p_ctx);
 }
 
-inline void mpiv_serve_send(mpiv_packet* p_ctx) {
+inline void mpiv_serve_send(Packet* p_ctx) {
   // Nothing to process, return.
-  // mpiv_packet* p_ctx = (mpiv_packet*)wc.wr_id;
+  // Packet* p_ctx = (Packet*)wc.wr_id;
   if (!p_ctx) return;
   const auto& type = p_ctx->header().type;
   auto poolid = p_ctx->poolid();

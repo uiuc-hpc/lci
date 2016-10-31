@@ -8,12 +8,12 @@
 using std::pair;
 using std::make_pair;
 
-struct mpiv_packet;
+struct Packet;
 struct MPIV_Request;
 
 union mpiv_value {
   void* v;
-  mpiv_packet* packet;
+  Packet* packet;
   MPIV_Request* request;
 };
 

@@ -16,7 +16,7 @@
 int mpiv_send_start, mpiv_send_end, mpiv_recv_start, mpiv_recv_end;
 int mpiv_barrier_start, mpiv_barrier_end;
 
-inline void mpiv_post_recv(mpiv_packet* p) {
+inline void mpiv_post_recv(Packet* p) {
   startt(post_timing);
   MPIV.server.post_recv(p);
   stopt(post_timing);
