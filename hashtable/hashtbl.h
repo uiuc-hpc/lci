@@ -35,8 +35,16 @@ constexpr mpiv_key mpiv_make_key(const int& rank, const int& tag) {
 }
 
 #include "hashtbl_arr.h"
+#include "hashtbl_cock.h"
 
-using HashTbl = HashTblArr;
+template <> struct Config<ConfigType::HASHTBL_ARR> {
+  using HashTbl = HashTblArr;
+};
+template <> struct Config<ConfigType::HASHTBL_COCK> {
+  using HasbTbl = HashTblCock;
+};
+
+using HashTbl = Config<HashTblCfg>::HashTbl;
 
 }; // namespace mpiv.
 #endif

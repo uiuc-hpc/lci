@@ -4,6 +4,7 @@
 #include <thread>
 #include <iostream>
 #include <memory>
+#include "config.h"
 
 #include "packet/packet_manager.h"
 #include "profiler.h"
@@ -47,7 +48,14 @@ class ServerBase {
 #include "server_rdmax.h"
 #include "server_ofi.h"
 
-using Server = ServerRdmax;
+template <> struct Config<ConfigType::SERVER_RDMAX> {
+  using Server = ServerRdmax;
+};
+template <> struct Config<ConfigType::SERVER_OFI> {
+  using Server = ServerOFI;
+};
+
+using Server = Config<ServerCfg>::Server;
 
 } // namespace mpiv.
 #endif

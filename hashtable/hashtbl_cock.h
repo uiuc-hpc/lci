@@ -4,7 +4,7 @@
 #include "hashtbl.h"
 #include <libcuckoo/cuckoohash_map.hh>
 
-class cock_hashtbl : base_hashtbl {
+class HashTblCock : HashTblBase {
  public:
   void init() override {}
 
