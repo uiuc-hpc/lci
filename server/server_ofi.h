@@ -28,9 +28,9 @@
 #define SPIN_LOCK(l) { while (lock.test_and_set(std::memory_order_acquire)); }  // acquire lock
 #define SPIN_UNLOCK(l) { lock.clear(std::memory_order_release); }
 
-class server_ofi : server_base {
+class ServerOFI : ServerBase {
  public:
-  server_ofi() : stop_(false), done_init_(false) { lock.clear(); }
+  ServerOFI() : stop_(false), done_init_(false) { lock.clear(); }
   inline void init(PacketManager& pkpool, int& rank, int& size);
   inline void post_recv(Packet* p);
   inline void serve();
@@ -71,7 +71,7 @@ class server_ofi : server_base {
   std::atomic_flag lock;
 };
 
-void server_ofi::init(PacketManager& pkpool, int& rank,
+void ServerOFI::init(PacketManager& pkpool, int& rank,
     int& size) {
 #ifdef USE_AFFI
   affinity::set_me_to(0);
@@ -184,7 +184,7 @@ struct my_context {
     void* ctx_;
 };
 
-bool server_ofi::progress() {  // profiler& p, long long& r, long long &s) {
+bool ServerOFI::progress() {  // profiler& p, long long& r, long long &s) {
   initt(t);
   startt(t);
 
@@ -234,7 +234,7 @@ bool server_ofi::progress() {  // profiler& p, long long& r, long long &s) {
   return rett;
 }
 
-void server_ofi::serve() {
+void ServerOFI::serve() {
   poll_thread_ = std::thread([this] {
       __wid = -1;
 #ifdef USE_AFFI
@@ -258,7 +258,7 @@ void server_ofi::serve() {
   });
 }
 
-void server_ofi::post_recv(Packet* p) {
+void ServerOFI::post_recv(Packet* p) {
   if (p == NULL) return;
   SPIN_LOCK(lock);
   FI_SAFECALL(fi_recv(ep, p, sizeof(Packet), 0, FI_ADDR_UNSPEC, new my_context(p)));
@@ -266,13 +266,13 @@ void server_ofi::post_recv(Packet* p) {
   SPIN_UNLOCK(lock);
 }
 
-void server_ofi::write_send(int rank, void* buf, size_t size, void* ctx) {
+void ServerOFI::write_send(int rank, void* buf, size_t size, void* ctx) {
   SPIN_LOCK(lock);
   FI_SAFECALL(fi_send(ep, buf, size, 0, fi_addr[rank], new my_context(ctx)));
   SPIN_UNLOCK(lock);
 }
 
-void server_ofi::write_rma(int rank, void* from, void* to, uint32_t rkey, size_t size, void* ctx) {
+void ServerOFI::write_rma(int rank, void* from, void* to, uint32_t rkey, size_t size, void* ctx) {
   SPIN_LOCK(lock);
   FI_SAFECALL(fi_write(ep, from, size, 0, fi_addr[rank],
         (uintptr_t) to - heap_addr[rank], // this is offset.
@@ -280,15 +280,15 @@ void server_ofi::write_rma(int rank, void* from, void* to, uint32_t rkey, size_t
   SPIN_UNLOCK(lock);
 }
 
-void* server_ofi::allocate(size_t s) {
+void* ServerOFI::allocate(size_t s) {
   return heap_segment.allocate(s);
 }
 
-void server_ofi::deallocate(void* ptr) {
+void ServerOFI::deallocate(void* ptr) {
   heap_segment.deallocate(ptr);
 }
 
-void server_ofi::finalize() {
+void ServerOFI::finalize() {
   stop_ = true;
   poll_thread_.join();
 }

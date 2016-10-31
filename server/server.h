@@ -29,7 +29,7 @@ struct pinned_pool {
   }
 };
 
-class server_base {
+class ServerBase {
  public:
   virtual inline void init(PacketManager& pkpool, int& rank, int& size) = 0;
   virtual inline void post_recv(Packet* p) = 0;
@@ -45,6 +45,6 @@ class server_base {
 #include "server_rdmax.h"
 #include "server_ofi.h"
 
-using mpiv_server = server_ofi;
+using Server = ServerOFI;
 
 #endif

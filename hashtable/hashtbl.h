@@ -17,7 +17,7 @@ union mpiv_value {
   MPIV_Request* request;
 };
 
-class base_hashtbl {
+class HashTblBase {
  public:
   typedef uint64_t key_type;
   typedef mpiv_value value_type;
@@ -32,8 +32,8 @@ constexpr mpiv_key mpiv_make_key(const int& rank, const int& tag) {
   return (((uint64_t)rank << 32) | tag);
 }
 
-#include "arr_hashtbl.h"
+#include "hashtbl_arr.h"
 
-using mpiv_hash_tbl = arr_hashtbl;
+using HashTbl = HashTblArr;
 
 #endif

@@ -1,9 +1,9 @@
 #ifndef SERVER_RDMAX_H_
 #define SERVER_RDMAX_H_
 
-class server_rdmax : server_base {
+class ServerRdmax : ServerBase {
  public:
-  server_rdmax() : stop_(false), done_init_(false) {}
+  ServerRdmax() : stop_(false), done_init_(false) {}
   inline void init(PacketManager& pkpool, int& rank, int& size);
   inline void post_recv(Packet* p);
   inline void serve();
@@ -31,7 +31,7 @@ class server_rdmax : server_base {
   vector<connection> conn;
 };
 
-void server_rdmax::init(PacketManager& pkpool, int& rank,
+void ServerRdmax::init(PacketManager& pkpool, int& rank,
     int& size) {
 #ifdef USE_AFFI
   affinity::set_me_to(0);
@@ -79,14 +79,14 @@ void server_rdmax::init(PacketManager& pkpool, int& rank,
   done_init_ = true;
 }
 
-void server_rdmax::post_recv(Packet* p) {
+void ServerRdmax::post_recv(Packet* p) {
   if (p == NULL) return;
   recv_posted_++;
   dev_ctx_->post_srq_recv((void*)p, (void*)p, sizeof(Packet),
       sbuf_.lkey());
 }
 
-bool server_rdmax::progress() {  // profiler& p, long long& r, long long &s) {
+bool ServerRdmax::progress() {  // profiler& p, long long& r, long long &s) {
   initt(t);
   startt(t);
   bool ret = (dev_rcq_.poll_once([this](const ibv_wc& wc) {
@@ -103,7 +103,7 @@ bool server_rdmax::progress() {  // profiler& p, long long& r, long long &s) {
   return ret;
 }
 
-void server_rdmax::serve() {
+void ServerRdmax::serve() {
   poll_thread_ = std::thread([this] {
       __wid = -1;
 #ifdef USE_AFFI
@@ -127,23 +127,23 @@ void server_rdmax::serve() {
   });
 }
 
-void server_rdmax::write_send(int rank, void* buf, size_t size, void* ctx) {
+void ServerRdmax::write_send(int rank, void* buf, size_t size, void* ctx) {
     conn[rank].write_send(buf, size, sbuf_.lkey(), ctx);
 }
 
-void server_rdmax::write_rma(int rank, void* from, void* to, uint32_t rkey, size_t size, void* ctx) {
+void ServerRdmax::write_rma(int rank, void* from, void* to, uint32_t rkey, size_t size, void* ctx) {
     conn[rank].write_rdma(from, heap_.lkey(), to, rkey, size, ctx);
 }
 
-void* server_rdmax::allocate(size_t s) {
+void* ServerRdmax::allocate(size_t s) {
     return heap_segment.allocate(s);
 }
 
-void server_rdmax::deallocate(void* ptr) {
+void ServerRdmax::deallocate(void* ptr) {
     heap_segment.deallocate(ptr);
 }
 
-void server_rdmax::finalize() {
+void ServerRdmax::finalize() {
   stop_ = true;
   poll_thread_.join();
   dev_scq_.finalize();
