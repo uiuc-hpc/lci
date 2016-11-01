@@ -41,9 +41,9 @@
 #ifndef MPMCQUEUE_H_
 #define MPMCQUEUE_H_
 
+#include <forward_list>
 #include <stddef.h>
 #include <vector>
-#include <forward_list>
 
 #define CAS2(ptr, o1, o2, n1, n2)                                       \
   ({                                                                    \

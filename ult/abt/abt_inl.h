@@ -14,7 +14,7 @@ abt_thread::abt_thread() {
 void abt_thread::yield() {
   abt_thread* saved = __fulting;
   ABT_thread_yield();
-  if (saved) __fulting = saved; 
+  if (saved) __fulting = saved;
 }
 
 void abt_thread::wait(bool& flag) {
@@ -24,9 +24,10 @@ void abt_thread::wait(bool& flag) {
     ABT_cond_wait(cond_, mutex_);
   }
   ABT_mutex_unlock(mutex_);
-  if (saved) {  __fulting = saved; }
+  if (saved) {
+    __fulting = saved;
+  }
 }
-
 
 void abt_thread::resume(bool& flag) {
   abt_thread* saved = __fulting;
@@ -34,44 +35,44 @@ void abt_thread::resume(bool& flag) {
   flag = true;
   ABT_mutex_unlock(mutex_);
   ABT_cond_signal(cond_);
-  if (saved) { __fulting = saved; }
+  if (saved) {
+    __fulting = saved;
+  }
 }
 
 void abt_thread::join() {
   abt_thread* saved = __fulting;
   ABT_thread_join(th_);
-  if(saved) { __fulting = saved; }
+  if (saved) {
+    __fulting = saved;
+  }
   delete this;
 }
 
-int abt_thread::get_worker_id() {
-  return origin_->id();
-}
+int abt_thread::get_worker_id() { return origin_->id(); }
 
 static void abt_fwrapper(void* arg) {
-  abt_thread* th = (abt_thread*) arg;
+  abt_thread* th = (abt_thread*)arg;
   __fulting = th;
   th->f(th->data);
   __fulting = NULL;
 }
 
 abt_thread* abt_worker::spawn(ffunc f, intptr_t data, size_t stack_size) {
-  abt_thread *th = new abt_thread();
+  abt_thread* th = new abt_thread();
   th->f = f;
   th->data = data;
   th->origin_ = this;
   ABT_thread_attr_create(&(th->attr_));
   ABT_thread_attr_set_stacksize(th->attr_, stack_size);
-  ABT_thread_create(
-      pool_, abt_fwrapper, (void*) th, th->attr_,
-      &(th->th_));
+  ABT_thread_create(pool_, abt_fwrapper, (void*)th, th->attr_, &(th->th_));
   return th;
 }
 
 std::atomic<int> abt_nworker;
 
 static void abt_start_up(void* arg) {
-  long id = (long) arg;
+  long id = (long)arg;
   __wid = id;
 #ifdef USE_AFFI
   affinity::set_me_to(id);
@@ -85,9 +86,8 @@ void abt_worker::start() {
   ABT_xstream_start(xstream_);
 
   ABT_thread start_up;
-  ABT_thread_create(
-      pool_, abt_start_up, (void*) (long) id_, ABT_THREAD_ATTR_NULL,
-      &start_up);
+  ABT_thread_create(pool_, abt_start_up, (void*)(long)id_, ABT_THREAD_ATTR_NULL,
+                    &start_up);
   ABT_thread_join(start_up);
 }
 
@@ -108,7 +108,6 @@ void abt_worker::start_main(ffunc main_task, intptr_t data) {
   t->join();
 }
 
-void abt_worker::stop_main() {
-}
+void abt_worker::stop_main() {}
 
 #endif

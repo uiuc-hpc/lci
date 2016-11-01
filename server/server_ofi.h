@@ -1,32 +1,39 @@
 #ifndef SERVER_OFI_H_
 #define SERVER_OFI_H_
 
-#include <mpi.h>
-#include <cstring>
 #include <cstdlib>
+#include <cstring>
+#include <mpi.h>
 #include <rdma/fabric.h>
 #include <rdma/fi_domain.h>
 #include <rdma/fi_endpoint.h>
 #include <rdma/fi_tagged.h>
 
 #include <rdma/fi_cm.h>
-#include <rdma/fi_rma.h>
 #include <rdma/fi_errno.h>
+#include <rdma/fi_rma.h>
 
-#define FI_SAFECALL(x) {\
-    int err = (x); \
-    if (err) {\
-        printf ("err : %s (%s:%d)\n", fi_strerror(err), __FILE__, __LINE__);\
-        MPI_Abort(MPI_COMM_WORLD, err);\
-    }\
-}
+#define FI_SAFECALL(x)                                                    \
+  {                                                                       \
+    int err = (x);                                                        \
+    if (err) {                                                            \
+      printf("err : %s (%s:%d)\n", fi_strerror(err), __FILE__, __LINE__); \
+      MPI_Abort(MPI_COMM_WORLD, err);                                     \
+    }                                                                     \
+  }
 
 #define ALIGNMENT (4096)
-#define ALIGNEDX(x) (void*) ((((uintptr_t) x + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT))
-#define MAX_CQ_SIZE (16*1024)
+#define ALIGNEDX(x) \
+  (void*)((((uintptr_t)x + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT))
+#define MAX_CQ_SIZE (16 * 1024)
 
-#define SPIN_LOCK(l) { while (lock.test_and_set(std::memory_order_acquire)); }  // acquire lock
-#define SPIN_UNLOCK(l) { lock.clear(std::memory_order_release); }
+#define SPIN_LOCK(l)                                     \
+  {                                                      \
+    while (lock.test_and_set(std::memory_order_acquire)) \
+      ;                                                  \
+  }  // acquire lock
+#define SPIN_UNLOCK(l) \
+  { lock.clear(std::memory_order_release); }
 
 class ServerOFI : ServerBase {
  public:
@@ -36,7 +43,8 @@ class ServerOFI : ServerBase {
   inline void serve();
   inline void finalize();
   inline void write_send(int rank, void* buf, size_t size, void* ctx);
-  inline void write_rma(int rank, void* from, void* to, uint32_t rkey, size_t size, void* ctx);
+  inline void write_rma(int rank, void* from, void* to, uint32_t rkey,
+                        size_t size, void* ctx);
   inline void* allocate(size_t s);
   inline void deallocate(void* ptr);
   inline uint32_t heap_rkey() { return heap_rkey_; }
@@ -47,15 +55,15 @@ class ServerOFI : ServerBase {
   volatile bool stop_;
   volatile bool done_init_;
 
-  fi_info *fi;
-  fid_fabric *fabric;
-  fid_domain *domain;
-  fid_ep *ep;
-  fid_cq *scq;
-  fid_cq *rcq;
-  fid_mr *mr_heap;
-  fid_mr *mr_sbuf;
-  fid_av *av;
+  fi_info* fi;
+  fid_fabric* fabric;
+  fid_domain* domain;
+  fid_ep* ep;
+  fid_cq* scq;
+  fid_cq* rcq;
+  fid_mr* mr_heap;
+  fid_mr* mr_sbuf;
+  fid_av* av;
   vector<fi_addr_t> fi_addr;
   vector<uintptr_t> heap_addr;
 
@@ -71,15 +79,14 @@ class ServerOFI : ServerBase {
   std::atomic_flag lock;
 };
 
-void ServerOFI::init(PacketManager& pkpool, int& rank,
-    int& size) {
+void ServerOFI::init(PacketManager& pkpool, int& rank, int& size) {
 #ifdef USE_AFFI
   affinity::set_me_to(0);
 #endif
 
-  // Create hint.
+// Create hint.
 #if 1
-  struct fi_info *hints;
+  struct fi_info* hints;
   hints = fi_allocinfo();
   hints->ep_attr->type = FI_EP_RDM;
   // hints->domain_attr->mr_mode = FI_MR_BASIC;
@@ -88,7 +95,7 @@ void ServerOFI::init(PacketManager& pkpool, int& rank,
 #endif
 
   // Create info.
-  FI_SAFECALL(fi_getinfo(FI_VERSION(1,0), NULL, NULL, 0, hints, &fi));
+  FI_SAFECALL(fi_getinfo(FI_VERSION(1, 0), NULL, NULL, 0, hints, &fi));
 
   // Create libfabric obj.
   FI_SAFECALL(fi_fabric(fi->fabric_attr, &fabric, NULL));
@@ -108,28 +115,29 @@ void ServerOFI::init(PacketManager& pkpool, int& rank,
   FI_SAFECALL(fi_cq_open(domain, &cq_attr, &rcq, NULL));
 
   // Bind my ep to cq.
-  FI_SAFECALL(fi_ep_bind(ep, (fid_t) scq, FI_SEND | FI_TRANSMIT));
-  FI_SAFECALL(fi_ep_bind(ep, (fid_t) rcq, FI_RECV));
+  FI_SAFECALL(fi_ep_bind(ep, (fid_t)scq, FI_SEND | FI_TRANSMIT));
+  FI_SAFECALL(fi_ep_bind(ep, (fid_t)rcq, FI_RECV));
 
   // Get memory for heap.
   heap_ = std::move(unique_ptr<char[]>(new char[HEAP_SIZE]));
   heap_segment = std::move(mbuffer(boost::interprocess::create_only,
-        ALIGNEDX(heap_.get()), (size_t)HEAP_SIZE));
+                                   ALIGNEDX(heap_.get()), (size_t)HEAP_SIZE));
 
   FI_SAFECALL(fi_mr_reg(domain, heap_.get(), HEAP_SIZE,
-        FI_READ | FI_WRITE | FI_REMOTE_WRITE | FI_REMOTE_READ, 0, 0,
-        0, &mr_heap, 0));
+                        FI_READ | FI_WRITE | FI_REMOTE_WRITE | FI_REMOTE_READ,
+                        0, 0, 0, &mr_heap, 0));
 
   heap_rkey_ = fi_mr_key(mr_heap);
 
-  sbuf_ = std::move(unique_ptr<char[]>(
-      new char[sizeof(Packet) * (MAX_SEND + MAX_RECV + 2)]));
-  FI_SAFECALL(fi_mr_reg(domain, sbuf_.get(), sizeof(Packet) * (MAX_SEND + MAX_RECV + 2),
-        FI_READ | FI_WRITE | FI_REMOTE_WRITE | FI_REMOTE_READ, 0, 1,
-        0, &mr_sbuf, 0));
-  sbuf_alloc_ =
-    std::move(std::unique_ptr<pinned_pool>(new pinned_pool(ALIGNEDX(sbuf_.get()))));
- 
+  sbuf_ = std::move(
+      unique_ptr<char[]>(new char[sizeof(Packet) * (MAX_SEND + MAX_RECV + 2)]));
+  FI_SAFECALL(fi_mr_reg(domain, sbuf_.get(),
+                        sizeof(Packet) * (MAX_SEND + MAX_RECV + 2),
+                        FI_READ | FI_WRITE | FI_REMOTE_WRITE | FI_REMOTE_READ,
+                        0, 1, 0, &mr_sbuf, 0));
+  sbuf_alloc_ = std::move(
+      std::unique_ptr<pinned_pool>(new pinned_pool(ALIGNEDX(sbuf_.get()))));
+
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
@@ -140,8 +148,8 @@ void ServerOFI::init(PacketManager& pkpool, int& rank,
   FI_SAFECALL(fi_getname((fid_t)ep, addr, &addrlen));
 
   // Set heap address at the end. TODO(danghvu): Need a more generic way.
-  uintptr_t myaddr = (uintptr_t) heap_.get();
-  *(uintptr_t*)((char*) addr + addrlen) =  myaddr;
+  uintptr_t myaddr = (uintptr_t)heap_.get();
+  *(uintptr_t*)((char*)addr + addrlen) = myaddr;
 
   fi_addr.resize(size);
   heap_addr.resize(size);
@@ -150,19 +158,19 @@ void ServerOFI::init(PacketManager& pkpool, int& rank,
   memset(&av_attr, 0, sizeof(av_attr));
   av_attr.type = FI_AV_MAP;
   FI_SAFECALL(fi_av_open(domain, &av_attr, &av, NULL));
-  FI_SAFECALL(fi_ep_bind(ep, (fid_t) av, 0));
+  FI_SAFECALL(fi_ep_bind(ep, (fid_t)av, 0));
   FI_SAFECALL(fi_enable(ep));
 
   for (int i = 0; i < size; i++) {
     if (i != rank) {
       void* destaddr = malloc(addrlen + sizeof(uintptr_t));
-      MPI_Sendrecv(addr, addrlen + sizeof(uintptr_t), MPI_BYTE, i, 99,
-          destaddr, addrlen + sizeof(uintptr_t), MPI_BYTE,
-          i, 99, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Sendrecv(addr, addrlen + sizeof(uintptr_t), MPI_BYTE, i, 99, destaddr,
+                   addrlen + sizeof(uintptr_t), MPI_BYTE, i, 99, MPI_COMM_WORLD,
+                   MPI_STATUS_IGNORE);
       if (fi_av_insert(av, destaddr, 1, &fi_addr[i], 0, NULL) == -1) {
-         MPI_Abort(MPI_COMM_WORLD, -1);
+        MPI_Abort(MPI_COMM_WORLD, -1);
       }
-      heap_addr[i] = *(uintptr_t*) ((char*) destaddr + addrlen);
+      heap_addr[i] = *(uintptr_t*)((char*)destaddr + addrlen);
     }
   }
 
@@ -179,9 +187,9 @@ void ServerOFI::init(PacketManager& pkpool, int& rank,
 }
 
 struct my_context {
-    my_context(void* ctx) : ctx_ (ctx) {}
-    struct fi_context fi_ctx;
-    void* ctx_;
+  my_context(void* ctx) : ctx_(ctx) {}
+  struct fi_context fi_ctx;
+  void* ctx_;
 };
 
 bool ServerOFI::progress() {  // profiler& p, long long& r, long long &s) {
@@ -197,8 +205,8 @@ bool ServerOFI::progress() {  // profiler& p, long long& r, long long &s) {
   if (ret > 0) {
     // Got an entry here ?
     recv_posted_--;
-    mpiv_serve_recv((Packet*) (((my_context*) entry.op_context)->ctx_));
-    delete (my_context*) entry.op_context;
+    mpiv_serve_recv((Packet*)(((my_context*)entry.op_context)->ctx_));
+    delete (my_context*)entry.op_context;
     rett = true;
   } else if (ret == -FI_EAGAIN) {
   } else if (ret == -FI_EAVAIL) {
@@ -206,7 +214,7 @@ bool ServerOFI::progress() {  // profiler& p, long long& r, long long &s) {
     printf("Err: %s\n", fi_strerror(error.err));
     MPI_Abort(MPI_COMM_WORLD, error.err);
   } else if (ret < 0) {
-     /* handle error */
+    /* handle error */
     printf("Err: %s\n", fi_strerror(ret));
     MPI_Abort(MPI_COMM_WORLD, error.err);
   }
@@ -214,8 +222,8 @@ bool ServerOFI::progress() {  // profiler& p, long long& r, long long &s) {
   ret = fi_cq_read(scq, &entry, 1);
   if (ret > 0) {
     // Got an entry here ?
-    mpiv_serve_send((Packet*) (((my_context*) entry.op_context)->ctx_));
-    delete (my_context*) entry.op_context;
+    mpiv_serve_send((Packet*)(((my_context*)entry.op_context)->ctx_));
+    delete (my_context*)entry.op_context;
     rett = true;
   } else if (ret == -FI_EAGAIN) {
   } else if (ret == -FI_EAVAIL) {
@@ -223,37 +231,36 @@ bool ServerOFI::progress() {  // profiler& p, long long& r, long long &s) {
     printf("Err: %s\n", fi_strerror(error.err));
     MPI_Abort(MPI_COMM_WORLD, error.err);
   } else if (ret < 0) {
-     /* handle error */
+    /* handle error */
     printf("Err: %s\n", fi_strerror(ret));
     MPI_Abort(MPI_COMM_WORLD, error.err);
   }
-  
+
   if (recv_posted_ < MAX_RECV) post_recv(pk_mgr_ptr->get_for_recv());
 
-  stopt(t)
-  return rett;
+  stopt(t) return rett;
 }
 
 void ServerOFI::serve() {
   poll_thread_ = std::thread([this] {
-      __wid = -1;
+    __wid = -1;
 #ifdef USE_AFFI
-      affinity::set_me_to_last();
+    affinity::set_me_to_last();
 #endif
 
 #ifdef USE_PAPI
-      profiler server({PAPI_L1_DCM});
-      server.start();
+    profiler server({PAPI_L1_DCM});
+    server.start();
 #endif
 
-      while (xunlikely(!this->stop_)) {
-          while (progress()) {
-          };
-      }
+    while (xunlikely(!this->stop_)) {
+      while (progress()) {
+      };
+    }
 
 #ifdef USE_PAPI
-      server.stop();
-      server.print();
+    server.stop();
+    server.print();
 #endif
   });
 }
@@ -261,7 +268,8 @@ void ServerOFI::serve() {
 void ServerOFI::post_recv(Packet* p) {
   if (p == NULL) return;
   SPIN_LOCK(lock);
-  FI_SAFECALL(fi_recv(ep, p, sizeof(Packet), 0, FI_ADDR_UNSPEC, new my_context(p)));
+  FI_SAFECALL(
+      fi_recv(ep, p, sizeof(Packet), 0, FI_ADDR_UNSPEC, new my_context(p)));
   recv_posted_++;
   SPIN_UNLOCK(lock);
 }
@@ -272,21 +280,18 @@ void ServerOFI::write_send(int rank, void* buf, size_t size, void* ctx) {
   SPIN_UNLOCK(lock);
 }
 
-void ServerOFI::write_rma(int rank, void* from, void* to, uint32_t rkey, size_t size, void* ctx) {
+void ServerOFI::write_rma(int rank, void* from, void* to, uint32_t rkey,
+                          size_t size, void* ctx) {
   SPIN_LOCK(lock);
   FI_SAFECALL(fi_write(ep, from, size, 0, fi_addr[rank],
-        (uintptr_t) to - heap_addr[rank], // this is offset.
-        rkey, new my_context(ctx)));
+                       (uintptr_t)to - heap_addr[rank],  // this is offset.
+                       rkey, new my_context(ctx)));
   SPIN_UNLOCK(lock);
 }
 
-void* ServerOFI::allocate(size_t s) {
-  return heap_segment.allocate(s);
-}
+void* ServerOFI::allocate(size_t s) { return heap_segment.allocate(s); }
 
-void ServerOFI::deallocate(void* ptr) {
-  heap_segment.deallocate(ptr);
-}
+void ServerOFI::deallocate(void* ptr) { heap_segment.deallocate(ptr); }
 
 void ServerOFI::finalize() {
   stop_ = true;

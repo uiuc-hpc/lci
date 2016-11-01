@@ -58,7 +58,7 @@ inline void MPMCQueue<Value>::enqueue(Value n) {
     // Attempt to enqueue in CRQ rq.
     uint64_t crq_tail = FETCH_ADD(&rq->tail, 1);
     if (unlikely(is_crq_closed(crq_tail))) {
-      if (new_rq == NULL) { 
+      if (new_rq == NULL) {
         new_rq = new RingQueue();
         init_ring(new_rq);
       }
@@ -92,8 +92,8 @@ inline void MPMCQueue<Value>::enqueue(Value n) {
 
     // Enqueue failed. Possibly close CRQ.
     uint64_t crq_head = rq->head;
-    if (unlikely((int64_t) (crq_tail - crq_head) >= (int64_t) RING_SIZE) &&
-      close_crq(rq, crq_tail, ++close_tries)) {
+    if (unlikely((int64_t)(crq_tail - crq_head) >= (int64_t)RING_SIZE) &&
+        close_crq(rq, crq_tail, ++close_tries)) {
       // Attempt to add a new CRQ (see above).
       if (new_rq == NULL) {
         new_rq = new RingQueue();

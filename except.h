@@ -2,9 +2,9 @@
 #define EXCEPT_H_
 
 #include <exception>
+#include <iostream>
 #include <stdexcept>
 #include <string>
-#include <iostream>
 
 class hash_table_error : public std::runtime_error {
  public:

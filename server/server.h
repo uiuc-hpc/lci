@@ -1,14 +1,14 @@
 #ifndef SERVER_H_
 #define SERVER_H_
 
-#include <thread>
+#include "config.h"
 #include <iostream>
 #include <memory>
-#include "config.h"
+#include <thread>
 
+#include "affinity.h"
 #include "packet/packet_manager.h"
 #include "profiler.h"
-#include "affinity.h"
 
 using std::unique_ptr;
 
@@ -38,24 +38,28 @@ class ServerBase {
   virtual inline void post_recv(Packet* p) = 0;
   virtual inline void serve() = 0;
   virtual inline void finalize() = 0;
-  virtual inline void write_send(int rank, void* buf, size_t size, void* ctx) = 0;
-  virtual inline void write_rma(int rank, void* from, void* to, uint32_t rkey, size_t size, void* ctx) = 0;
+  virtual inline void write_send(int rank, void* buf, size_t size,
+                                 void* ctx) = 0;
+  virtual inline void write_rma(int rank, void* from, void* to, uint32_t rkey,
+                                size_t size, void* ctx) = 0;
   virtual inline void* allocate(size_t s) = 0;
   virtual inline void deallocate(void* ptr) = 0;
   virtual inline uint32_t heap_rkey() = 0;
 };
 
-#include "server_rdmax.h"
 #include "server_ofi.h"
+#include "server_rdmax.h"
 
-template <> struct Config<ConfigType::SERVER_RDMAX> {
+template <>
+struct Config<ConfigType::SERVER_RDMAX> {
   using Server = ServerRdmax;
 };
-template <> struct Config<ConfigType::SERVER_OFI> {
+template <>
+struct Config<ConfigType::SERVER_OFI> {
   using Server = ServerOFI;
 };
 
 using Server = Config<ServerCfg>::Server;
 
-} // namespace mpiv.
+}  // namespace mpiv.
 #endif

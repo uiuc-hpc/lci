@@ -4,12 +4,12 @@
 #include "config.h"
 #ifdef USE_PAPI
 
-#include <vector>
 #include <iostream>
 #include <papi.h>
-#include <thread>
 #include <pthread.h>
 #include <stdexcept>
+#include <thread>
+#include <vector>
 
 static void profiler_init() {
   try {

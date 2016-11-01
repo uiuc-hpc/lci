@@ -14,7 +14,8 @@ class lf_hashtbl : base_hashtbl {
   bool insert(const key_type& key, value_type& value) override {
     value_type ret;
     ret.v = qt_hash_put(tbl_, (const void*)key, value.v);
-    if (ret.v == value.v) return true;
+    if (ret.v == value.v)
+      return true;
     else {
       value = ret;
       qt_hash_remove(tbl_, (const void*)key);

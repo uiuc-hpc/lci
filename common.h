@@ -51,6 +51,7 @@ using rdmax::connection;
 typedef boost::interprocess::basic_managed_external_buffer<
     char, boost::interprocess::rbtree_best_fit<
               boost::interprocess::mutex_family, void*, 64>,
-    boost::interprocess::iset_index> mbuffer;
+    boost::interprocess::iset_index>
+    mbuffer;
 
 #endif

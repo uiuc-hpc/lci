@@ -12,9 +12,9 @@
 
 #include <sched.h>
 
+#include <errno.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <errno.h>
 
 #define GET_NCORE() sysconf(_SC_NPROCESSORS_ONLN);
 
@@ -23,7 +23,7 @@ namespace affinity {
 #endif
 
 inline int set_me_to_(int core_id) {
-  int num_cores = GET_NCORE(); 
+  int num_cores = GET_NCORE();
   if (core_id < 0 || core_id >= num_cores) return EINVAL;
 
   cpu_set_t cpuset;

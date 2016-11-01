@@ -10,7 +10,12 @@ class HashTblCock : HashTblBase {
 
   bool insert(const key_type& key, value_type& value) override {
     bool ret = true;
-    tbl_.upsert(key, [&ret, &value](mpiv_value& v) { value.v = v.v; ret = false; }, value);
+    tbl_.upsert(key,
+                [&ret, &value](mpiv_value& v) {
+                  value.v = v.v;
+                  ret = false;
+                },
+                value);
     if (!ret) {
       tbl_.erase(key);
     }

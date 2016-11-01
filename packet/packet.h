@@ -70,6 +70,6 @@ class Packet {
   PacketContent content_;
 } __attribute__((aligned(64)));
 
-}; // namespace mpiv.
+};  // namespace mpiv.
 
 #endif

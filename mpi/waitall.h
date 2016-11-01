@@ -1,8 +1,8 @@
 #ifndef WAITALL_H_
 #define WAITALL_H_
 
-#include <mpi.h>
 #include <assert.h>
+#include <mpi.h>
 
 extern int mpiv_send_start, mpiv_send_end;
 void mpiv_complete_rndz(Packet* p, MPIV_Request* s);
@@ -10,7 +10,6 @@ void proto_send_rdz(MPIV_Request* s);
 void proto_send_short(const void* buffer, int size, int rank, int tag);
 
 int proto_recv_short_wait(MPIV_Request* s) {
-
   mpiv_key key = mpiv_make_key(s->rank, s->tag);
   mpiv_value value;
   value.request = s;
@@ -35,8 +34,7 @@ void waitall(int count, MPIV_Request* req) {
   }
 
   // Loop in-case was signal wrongly.
-  while (counter.load() != 0)
-    MPIV_Wait(req);
+  while (counter.load() != 0) MPIV_Wait(req);
 
   assert(counter.load() == 0);
 }

@@ -2,11 +2,10 @@
 #define TBB_HASHTBL_H_
 
 #include "hashtbl.h"
-#include <unordered_map>
 #include <tbb/concurrent_hash_map.h>
+#include <unordered_map>
 class tbb_hashtbl : base_hashtbl {
  public:
-
   tbb_hashtbl() : tbl_(1 << 16) {}
 
   void init() override {}

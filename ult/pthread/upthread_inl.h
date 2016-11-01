@@ -19,7 +19,9 @@ pthread_thread::~pthread_thread() {
 void pthread_thread::yield() {
   auto saved = __fulting;
   pthread_yield();
-  if (saved) { __fulting = saved; }
+  if (saved) {
+    __fulting = saved;
+  }
 }
 
 void pthread_thread::wait(bool& flag) {
@@ -29,9 +31,10 @@ void pthread_thread::wait(bool& flag) {
     pthread_cond_wait(&cv_, &m_);
   }
   pthread_mutex_unlock(&m_);
-  if (saved) { __fulting = saved; }
+  if (saved) {
+    __fulting = saved;
+  }
 }
-
 
 void pthread_thread::resume(bool& flag) {
   auto saved = __fulting;
@@ -39,22 +42,24 @@ void pthread_thread::resume(bool& flag) {
   flag = true;
   pthread_mutex_unlock(&m_);
   pthread_cond_signal(&cv_);
-  if (saved) { __fulting = saved; }
+  if (saved) {
+    __fulting = saved;
+  }
 }
 
 void pthread_thread::join() {
   auto saved = __fulting;
   pthread_join(th_, NULL);
-  if (saved) { __fulting = saved; }
+  if (saved) {
+    __fulting = saved;
+  }
   delete this;
 }
 
-int pthread_thread::get_worker_id() {
-  return origin_->id();
-}
+int pthread_thread::get_worker_id() { return origin_->id(); }
 
 static void* pthread_wrapper(void* arg) {
-  pthread_thread* th = (pthread_thread*) arg;
+  pthread_thread* th = (pthread_thread*)arg;
   __fulting = th;
   __wid = th->get_worker_id();
 #ifdef USE_AFFI
@@ -65,8 +70,9 @@ static void* pthread_wrapper(void* arg) {
   return 0;
 }
 
-pthread_thread* pthread_worker::spawn(ffunc f, intptr_t data, size_t stack_size) {
-  pthread_thread *th = new pthread_thread();
+pthread_thread* pthread_worker::spawn(ffunc f, intptr_t data,
+                                      size_t stack_size) {
+  pthread_thread* th = new pthread_thread();
   th->f = f;
   th->data = data;
   th->origin_ = this;
@@ -75,18 +81,15 @@ pthread_thread* pthread_worker::spawn(ffunc f, intptr_t data, size_t stack_size)
   pthread_attr_init(&attrs);
   if (stack_size > 0) pthread_attr_setstacksize(&attrs, stack_size);
 
-  assert(pthread_create(&(th->th_), &attrs, pthread_wrapper, (void*) th) == 0);
+  assert(pthread_create(&(th->th_), &attrs, pthread_wrapper, (void*)th) == 0);
   return th;
 }
 
 std::atomic<int> pth_nworker;
 
-void pthread_worker::start() {
-  id_ = pth_nworker.fetch_add(1);
-}
+void pthread_worker::start() { id_ = pth_nworker.fetch_add(1); }
 
-void pthread_worker::stop() {
-}
+void pthread_worker::stop() {}
 
 void pthread_worker::start_main(ffunc main_task, intptr_t data) {
   id_ = pth_nworker.fetch_add(1);
@@ -98,7 +101,6 @@ void pthread_worker::start_main(ffunc main_task, intptr_t data) {
   t->join();
 }
 
-void pthread_worker::stop_main() {
-}
+void pthread_worker::stop_main() {}
 
 #endif

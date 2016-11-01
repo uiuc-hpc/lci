@@ -1,9 +1,9 @@
 #ifndef HASHTBL_H_
 #define HASHTBL_H_
 
-#include <utility>
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <utility>
 
 using std::pair;
 using std::make_pair;
@@ -37,14 +37,16 @@ constexpr mpiv_key mpiv_make_key(const int& rank, const int& tag) {
 #include "hashtbl_arr.h"
 #include "hashtbl_cock.h"
 
-template <> struct Config<ConfigType::HASHTBL_ARR> {
+template <>
+struct Config<ConfigType::HASHTBL_ARR> {
   using HashTbl = HashTblArr;
 };
-template <> struct Config<ConfigType::HASHTBL_COCK> {
+template <>
+struct Config<ConfigType::HASHTBL_COCK> {
   using HasbTbl = HashTblCock;
 };
 
 using HashTbl = Config<HashTblCfg>::HashTbl;
 
-}; // namespace mpiv.
+};  // namespace mpiv.
 #endif

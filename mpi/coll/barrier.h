@@ -25,7 +25,7 @@ void MPIV_Barrier_log(MPI_Comm comm) {
     peer = rank | mask;
     if (peer < size) {
       MPIV_Recv(0, 0, MPI_BYTE, peer, MPIV_COLL_BASE_TAG_BARRIER,
-          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
   }
 
@@ -49,7 +49,7 @@ void MPIV_Barrier_log(MPI_Comm comm) {
 #endif
 }
 
-#define MCA_PML_CALL(x) MPIV_ ## x
+#define MCA_PML_CALL(x) MPIV_##x
 #define MCA_COLL_BASE_TAG_BARRIER MPIV_COLL_BASE_TAG_BARRIER
 
 int MPIV_Barrier_N(MPI_Comm comm) {
@@ -60,11 +60,10 @@ int MPIV_Barrier_N(MPI_Comm comm) {
   /* All non-root send & receive zero-length message. */
 
   if (rank > 0) {
-    MCA_PML_CALL(Send
-        (NULL, 0, MPI_BYTE, 0, MCA_COLL_BASE_TAG_BARRIER,comm));
+    MCA_PML_CALL(Send(NULL, 0, MPI_BYTE, 0, MCA_COLL_BASE_TAG_BARRIER, comm));
 
-    MCA_PML_CALL(Recv
-        (NULL, 0, MPI_BYTE, 0, MCA_COLL_BASE_TAG_BARRIER, comm, MPI_STATUS_IGNORE));
+    MCA_PML_CALL(Recv(NULL, 0, MPI_BYTE, 0, MCA_COLL_BASE_TAG_BARRIER, comm,
+                      MPI_STATUS_IGNORE));
   }
 
   /* The root collects and broadcasts the messages. */
@@ -72,14 +71,15 @@ int MPIV_Barrier_N(MPI_Comm comm) {
   else {
     thread th[size];
     for (i = 1; i < size; ++i) {
-      th[i] = MPIV_spawn(0, [](intptr_t i) {
-          MCA_PML_CALL(Recv(NULL, 0, MPI_BYTE, i,
-                MCA_COLL_BASE_TAG_BARRIER,
-                MPI_COMM_WORLD, MPI_STATUS_IGNORE));
-          MCA_PML_CALL(Send
-              (NULL, 0, MPI_BYTE, i,
-               MCA_COLL_BASE_TAG_BARRIER, MPI_COMM_WORLD));
-      }, i);
+      th[i] = MPIV_spawn(
+          0,
+          [](intptr_t i) {
+            MCA_PML_CALL(Recv(NULL, 0, MPI_BYTE, i, MCA_COLL_BASE_TAG_BARRIER,
+                              MPI_COMM_WORLD, MPI_STATUS_IGNORE));
+            MCA_PML_CALL(Send(NULL, 0, MPI_BYTE, i, MCA_COLL_BASE_TAG_BARRIER,
+                              MPI_COMM_WORLD));
+          },
+          i);
     }
     for (i = 1; i < size; ++i) {
       MPIV_join(th[i]);
@@ -102,4 +102,3 @@ void MPIV_Barrier(MPI_Comm comm) {
 }
 
 #endif
-

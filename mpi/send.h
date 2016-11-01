@@ -25,14 +25,14 @@ inline void proto_send_short(const void* buffer, int size, int rank, int tag) {
   packet->set_bytes(buffer, size);
   // packet->header().sreq = (intptr_t) s;
 
-  MPIV.server.write_send(rank, 
-      (void*)packet,
-      std::max((size_t) 8, (size_t)size) + sizeof(PacketHeader),
+  MPIV.server.write_send(
+      rank, (void*)packet,
+      std::max((size_t)8, (size_t)size) + sizeof(PacketHeader),
       (void*)(packet));
 }
 
-void send(const void* buffer, int count, MPI_Datatype datatype, int rank, int
-        tag, MPI_Comm) {
+void send(const void* buffer, int count, MPI_Datatype datatype, int rank,
+          int tag, MPI_Comm) {
 #if USE_MPE
   MPE_Log_event(mpiv_send_start, 0, "start_send");
 #endif
@@ -47,7 +47,7 @@ void send(const void* buffer, int count, MPI_Datatype datatype, int rank, int
     proto_send_rdz(&s);
     MPIV_Wait(&s);
   }
-  // MPIV.total_send--;
+// MPIV.total_send--;
 #if USE_MPE
   MPE_Log_event(mpiv_send_end, 0, "end_send");
 #endif

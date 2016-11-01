@@ -33,10 +33,9 @@ class PacketManagerMPMCQ : public PacketManagerBase {
   ppl::MPMCQueue<uint64_t> pool_;
 } __attribute__((aligned(64)));
 
-class PacketManagerLfQueue: public PacketManagerBase {
+class PacketManagerLfQueue : public PacketManagerBase {
  public:
-
-  void init_worker(int) {};
+  void init_worker(int){};
 
   inline Packet* get_packet_nb() override {
     Packet* packet = NULL;
@@ -65,14 +64,13 @@ class PacketManagerLfQueue: public PacketManagerBase {
   }
 
  protected:
-  boost::lockfree::queue<Packet*,
-                         boost::lockfree::capacity<MAX_CONCURRENCY>> pool_;
+  boost::lockfree::queue<Packet*, boost::lockfree::capacity<MAX_CONCURRENCY>>
+      pool_;
 } __attribute__((aligned(64)));
 
 class PacketManagerLfStack : public PacketManagerBase {
  public:
-
-  void init_worker(int) {};
+  void init_worker(int){};
 
   inline Packet* get_packet_nb() override {
     Packet* packet = NULL;
@@ -101,14 +99,12 @@ class PacketManagerLfStack : public PacketManagerBase {
   }
 
  protected:
-  boost::lockfree::stack<Packet*,
-                         boost::lockfree::capacity<MAX_CONCURRENCY>> pool_;
+  boost::lockfree::stack<Packet*, boost::lockfree::capacity<MAX_CONCURRENCY>>
+      pool_;
 } __attribute__((aligned(64)));
 
-class PacketManagerNuma final
-    : public PacketManagerLfStack {
+class PacketManagerNuma final : public PacketManagerLfStack {
  public:
-
   using parent = PacketManagerLfStack;
 
   PacketManagerNuma() : nworker_(0){};
@@ -119,8 +115,7 @@ class PacketManagerNuma final
 
   void init_worker(int nworker) {
     for (int i = nworker_; i < nworker; i++) {
-      private_pool_.emplace_back(
-          new ArrPool<Packet*>(MAX_SEND / nworker / 2));
+      private_pool_.emplace_back(new ArrPool<Packet*>(MAX_SEND / nworker / 2));
     }
     nworker_ = nworker;
   }
@@ -157,6 +152,5 @@ class PacketManagerNuma final
   std::vector<ArrPool<Packet*>*> private_pool_;
   int nworker_;
 } __attribute__((aligned(64)));
-
 
 #endif

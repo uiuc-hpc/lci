@@ -1,18 +1,18 @@
 #ifndef MPIV_H_
 #define MPIV_H_
 
-#include <mpi.h>
-#include <boost/lockfree/stack.hpp>
-#include <boost/lockfree/queue.hpp>
-#include <boost/interprocess/managed_external_buffer.hpp>
 #include <boost/interprocess/creation_tags.hpp>
+#include <boost/interprocess/managed_external_buffer.hpp>
+#include <boost/lockfree/queue.hpp>
+#include <boost/lockfree/stack.hpp>
+#include <mpi.h>
 
-#include <vector>
-#include <deque>
 #include <atomic>
+#include <deque>
+#include <vector>
 
-#include <stdlib.h>
 #include <malloc.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "ult.h"
@@ -48,14 +48,12 @@ void* malloc(size_t size) {
   return ptr;
 }
 
-void free(void* ptr) {
-    MPIV.server.deallocate(ptr);
-}
+void free(void* ptr) { MPIV.server.deallocate(ptr); }
 
-}; // namespace mpiv.
+};  // namespace mpiv.
 
-#include "request.h"
 #include "init.h"
 #include "mpi/mpi.h"
+#include "request.h"
 
 #endif

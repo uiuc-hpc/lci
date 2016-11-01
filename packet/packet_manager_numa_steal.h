@@ -67,13 +67,10 @@ class ArrPool {
   T* container_;
 } __attribute__((aligned(64)));
 
-class PacketManagerNumaSteal final
-    : public PacketManagerBase {
+class PacketManagerNumaSteal final : public PacketManagerBase {
  public:
-
   PacketManagerNumaSteal() {
-    private_pool_.emplace_back(
-        new ArrPool<Packet*>(MAX_CONCURRENCY));
+    private_pool_.emplace_back(new ArrPool<Packet*>(MAX_CONCURRENCY));
     nworker_ = 1;
   };
 
@@ -83,15 +80,12 @@ class PacketManagerNumaSteal final
 
   void init_worker(int nworker) {
     for (int i = nworker_; i < nworker + 1; i++) {
-      private_pool_.emplace_back(
-          new ArrPool<Packet*>(MAX_CONCURRENCY));
+      private_pool_.emplace_back(new ArrPool<Packet*>(MAX_CONCURRENCY));
     }
     nworker_ = nworker;
   }
 
-  inline void ret_packet(Packet* p) override {
-    private_pool_[0]->pushTop(p);
-  }
+  inline void ret_packet(Packet* p) override { private_pool_[0]->pushTop(p); }
 
   inline Packet* get_packet_nb() override {
     Packet* p = private_pool_[0]->popBottom();
@@ -104,7 +98,9 @@ class PacketManagerNumaSteal final
 
   inline Packet* get_packet() override {
     Packet* p = 0;
-    while (!(p = get_packet_nb())) { ult_yield(); }
+    while (!(p = get_packet_nb())) {
+      ult_yield();
+    }
     return p;
   }
 

@@ -10,9 +10,8 @@ void mpiv_post_recv(Packet* p);
 void mpiv_complete_rndz(Packet* p, MPIV_Request* s) {
   p->set_header(SEND_READY_FIN, MPIV.me, s->tag);
   p->set_sreq((uintptr_t)s);
-  MPIV.server.write_rma(s->rank, s->buffer, 
-          (void*)p->rdz_tgt_addr(), p->rdz_rkey(),
-          s->size, (void*) p);
+  MPIV.server.write_rma(s->rank, s->buffer, (void*)p->rdz_tgt_addr(),
+                        p->rdz_rkey(), s->size, (void*)p);
 }
 
 void mpiv_recv_recv_ready(Packet* p) {
@@ -50,11 +49,11 @@ void mpiv_recv_short(Packet* p) {
     memcpy(req->buffer, p->buffer(), req->size);
 
     if (req->counter) {
-        if (req->counter->fetch_sub(1) - 1 == 0) {
-            MPIV_Signal(req);
-        }
-    } else {
+      if (req->counter->fetch_sub(1) - 1 == 0) {
         MPIV_Signal(req);
+      }
+    } else {
+      MPIV_Signal(req);
     }
     MPIV.pkpool.ret_packet(p);
   }
@@ -89,7 +88,7 @@ inline void mpiv_serve_send(Packet* p_ctx) {
     MPIV_Signal(req);
     stopt(rdma_timing);
     // this packet is taken directly from recv queue.
-    //if (MPIV.server.need_recv()) mpiv_post_recv(p_ctx); else
+    // if (MPIV.server.need_recv()) mpiv_post_recv(p_ctx); else
     MPIV.pkpool.ret_packet(p_ctx);
   } else {
     // if (MPIV.server.need_recv()) mpiv_post_recv(p_ctx); else
@@ -98,6 +97,6 @@ inline void mpiv_serve_send(Packet* p_ctx) {
   }
 }
 
-}; // namespace mpiv.
+};  // namespace mpiv.
 
 #endif

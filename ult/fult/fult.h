@@ -2,23 +2,23 @@
 #define _FULT_H_
 
 #include <atomic>
+#include <condition_variable>
+#include <functional>
 #include <mutex>
 #include <thread>
-#include <functional>
-#include <condition_variable>
 
-#include <boost/lockfree/stack.hpp>
-#include <boost/coroutine/stack_context.hpp>
 #include "standard_stack_allocator.hpp"
+#include <boost/coroutine/stack_context.hpp>
+#include <boost/lockfree/stack.hpp>
 
 #include <sys/mman.h>
 // #define USE_L1_MASK
 
-#include "ult.h"
-#include "bitops.h"
-#include "rdmax.h"
 #include "affinity.h"
+#include "bitops.h"
 #include "profiler.h"
+#include "rdmax.h"
+#include "ult.h"
 
 using boost::coroutines::standard_stack_allocator;
 using boost::coroutines::stack_context;
@@ -41,8 +41,8 @@ __thread int __wid;
 
 // fcontext (from boost).
 extern "C" {
-  fcontext_t make_fcontext(void* sp, size_t size, void (*thread_func)(intptr_t));
-  void* jump_fcontext(fcontext_t* old, fcontext_t, intptr_t arg);
+fcontext_t make_fcontext(void* sp, size_t size, void (*thread_func)(intptr_t));
+void* jump_fcontext(fcontext_t* old, fcontext_t, intptr_t arg);
 }
 
 struct fctx {
@@ -71,16 +71,23 @@ static standard_stack_allocator fult_stack;
 static void fwrapper(intptr_t);
 
 class fult final {
- friend class fworker;
+  friend class fworker;
+
  public:
   inline fult() : state_(INVALID) { stack.sp = NULL; }
-  inline ~fult() { if (stack.sp != NULL) fult_stack.deallocate(stack); }
+  inline ~fult() {
+    if (stack.sp != NULL) fult_stack.deallocate(stack);
+  }
 
   void yield();
   void wait(bool&);
   void resume(bool&);
   void join();
-  void cancel() { state_ = INVALID; bool x; resume(x); }
+  void cancel() {
+    state_ = INVALID;
+    bool x;
+    resume(x);
+  }
   int get_worker_id();
 
   void init(ffunc myfunc, intptr_t data, size_t stack_size);
@@ -105,14 +112,14 @@ typedef fult* fult_t;
 static std::atomic<int> nfworker_;
 
 class fworker final {
- friend class fult;
+  friend class fult;
+
  public:
+  fworker();
+  ~fworker();
 
-   fworker();
-   ~fworker();
-
-   fult_t spawn(ffunc f, intptr_t data = 0, size_t stack_size = F_STACK_SIZE);
-   void work(fult* f);
+  fult_t spawn(ffunc f, intptr_t data = 0, size_t stack_size = F_STACK_SIZE);
+  void work(fult* f);
 
   inline void start() {
     stop_ = false;
@@ -130,9 +137,7 @@ class fworker final {
     wfunc(this);
   }
 
-  inline void stop_main() {
-    stop_ = true;
-  }
+  inline void stop_main() { stop_ = true; }
 
   inline int id() { return id_; }
 

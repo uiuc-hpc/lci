@@ -1,8 +1,8 @@
-#include <stdlib.h> /* for malloc/free/etc */
-#include <stdio.h>
-#include <unistd.h> /* for getpagesize() */
 #include <assert.h>
 #include <inttypes.h> /* for PRI___ macros (printf) */
+#include <stdio.h>
+#include <stdlib.h> /* for malloc/free/etc */
+#include <unistd.h> /* for getpagesize() */
 
 /*
  * The hash table in this file is based on the work by Ori Shalev and Nir Shavit

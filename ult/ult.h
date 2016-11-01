@@ -46,5 +46,4 @@ using worker = fworker;
 #define ult_wait() \
   { __fulting->wait(); }
 
-
 #endif

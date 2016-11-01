@@ -1,11 +1,11 @@
 #ifndef ARR_HASHTBL_H_
 #define ARR_HASHTBL_H_
 
-#include <mutex>
-#include <atomic>
-#include <stdexcept>
-#include "hashtbl.h"
 #include "config.h"
+#include "hashtbl.h"
+#include <atomic>
+#include <mutex>
+#include <stdexcept>
 
 static const uint64_t EMPTY = (uint64_t)-1;
 #ifndef CONFIG_TABLE_SIZE
@@ -74,7 +74,8 @@ struct hash_val {
 inline hash_val* create_table(size_t num_rows) {
   hash_val* ret = 0;
   // Aligned cache line.
-  assert(posix_memalign((void**)&(ret), 64, num_rows * TBL_WIDTH * sizeof(hash_val)) == 0);
+  assert(posix_memalign((void**)&(ret), 64,
+                        num_rows * TBL_WIDTH * sizeof(hash_val)) == 0);
 
   // Initialize all with EMPTY and clear lock.
   for (size_t i = 0; i < num_rows; i++) {

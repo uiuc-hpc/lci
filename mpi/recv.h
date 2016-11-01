@@ -4,16 +4,16 @@
 extern int mpiv_recv_start, mpiv_recv_end;
 
 inline void proto_recv_rndz(void* buffer, int, int rank, int tag,
-                           MPIV_Request* s) {
+                            MPIV_Request* s) {
   startt(misc_timing);
-  #if 0
+#if 0
   char data[RNDZ_MSG_SIZE];
   Packet* p;
   if (__wid >= 0) p = MPIV.pkpool.get_for_send();
   else p = (Packet*) &data[0];
-  #else
+#else
   Packet* p = MPIV.pkpool.get_for_send();
-  #endif
+#endif
   p->set_header(RECV_READY, MPIV.me, tag);
   p->set_rdz(0, (uintptr_t)s, (uintptr_t)buffer, MPIV.server.heap_rkey());
   MPIV.server.write_send(rank, p, RNDZ_MSG_SIZE, p);
@@ -22,7 +22,7 @@ inline void proto_recv_rndz(void* buffer, int, int rank, int tag,
 }
 
 inline void proto_recv_short(void* buffer, int size, int rank, int tag,
-                            MPIV_Request* s) {
+                             MPIV_Request* s) {
   mpiv_key key = mpiv_make_key(rank, tag);
   mpiv_value value;
   value.request = s;
@@ -41,8 +41,8 @@ inline void proto_recv_short(void* buffer, int size, int rank, int tag,
   }
 }
 
-void recv(void* buffer, int count, MPI_Datatype datatype, int rank,
-               int tag, MPI_Comm, MPI_Status*) {
+void recv(void* buffer, int count, MPI_Datatype datatype, int rank, int tag,
+          MPI_Comm, MPI_Status*) {
 #if USE_MPE
   MPE_Log_event(mpiv_recv_start, 0, "start_recv");
 #endif

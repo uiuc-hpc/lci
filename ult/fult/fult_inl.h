@@ -1,11 +1,11 @@
 #ifndef FULT_INL_H_
 #define FULT_INL_H_
 
-#define MUL64(x) ((x)<<6)
-#define DIV64(x) ((x)>>6)
-#define DIV512(x) ((x)>>9)
-#define DIV32768(x) ((x)>>15)
-#define MUL8(x) ((x)<<3)
+#define MUL64(x) ((x) << 6)
+#define DIV64(x) ((x) >> 6)
+#define DIV512(x) ((x) >> 9)
+#define DIV32768(x) ((x) >> 15)
+#define MUL8(x) ((x) << 3)
 #define MOD_POW2(x, y) ((x) & ((y)-1))
 
 inline void fult::init(ffunc myfunc, intptr_t data, size_t stack_size) {
@@ -28,12 +28,12 @@ inline void fult::wait(bool&) {
   ctx_.ret();
 }
 
-inline void fult::resume(bool&) {
-  origin_->schedule(id_);
-}
+inline void fult::resume(bool&) { origin_->schedule(id_); }
 
 inline void fult::join() {
-  while (state_ != INVALID) { __fulting->yield(); }
+  while (state_ != INVALID) {
+    __fulting->yield();
+  }
 }
 
 inline int fult::get_worker_id() { return origin_->id_; }
@@ -45,13 +45,13 @@ inline void fult::start() {
 }
 
 void fwrapper(intptr_t args) {
-  fult* ff = (fult*) args;
+  fult* ff = (fult*)args;
   ff->start();
 }
 
 inline fworker::fworker() {
   stop_ = true;
-  posix_memalign((void**) &lwt_, 64, sizeof(fult) * NMASK * WORDSIZE);
+  posix_memalign((void**)&lwt_, 64, sizeof(fult) * NMASK * WORDSIZE);
   for (int i = 0; i < NMASK; i++) mask_[i] = 0;
 #ifdef USE_L1_MASK
   for (int i = 0; i < 8; i++) l1_mask[i] = 0;
@@ -59,7 +59,7 @@ inline fworker::fworker() {
   // Add all free slot.
   memset(lwt_, 0, sizeof(fult) * (NMASK * WORDSIZE));
   tid_pool = std::move(std::unique_ptr<boost::lockfree::stack<fult_t>>(
-        new boost::lockfree::stack<fult_t>(NMASK * WORDSIZE)));
+      new boost::lockfree::stack<fult_t>(NMASK * WORDSIZE)));
   for (int i = (int)(NMASK * WORDSIZE) - 1; i >= 0; i--) {
     lwt_[i].origin_ = this;
     lwt_[i].id_ = i;
@@ -67,9 +67,7 @@ inline fworker::fworker() {
   }
 }
 
-fworker::~fworker() {
-  free((void*) lwt_);
-}
+fworker::~fworker() { free((void*)lwt_); }
 
 inline fult_t fworker::spawn(ffunc f, intptr_t data, size_t stack_size) {
   fult_t t;
@@ -95,7 +93,7 @@ inline void fworker::schedule(const int id) {
 }
 
 inline fult_t fworker::fult_new(const int id, ffunc f, intptr_t data,
-                        size_t stack_size) {
+                                size_t stack_size) {
   // add it to the fult.
   lwt_[id].init(f, data, stack_size);
 
@@ -141,8 +139,10 @@ inline void fworker::wfunc(fworker* w) {
           // Works on it only if it's not completed.
           if (xlikely(f->state_ != INVALID)) {
             w->work(f);
-            if (f->state_ == YIELD) w->schedule(f->id_);
-            else if (f->state_ == INVALID) w->fin(f->id_);
+            if (f->state_ == YIELD)
+              w->schedule(f->id_);
+            else if (f->state_ == INVALID)
+              w->fin(f->id_);
           }
         }
       }
@@ -151,29 +151,31 @@ inline void fworker::wfunc(fworker* w) {
 // #define ENABLE_STEAL
 #ifdef ENABLE_STEAL
     if (!has_work && nfworker_ > 1) {
-        // Steal..
-        fworker* steal = random_worker();
-        for (auto i = 0; i < NMASK; i++) {
-          auto& mask = steal->mask_[i];
-          if (mask > 0) {
-            // Atomic exchange to get the current waiting threads.
-            auto local_mask = exchange((unsigned long)0, &(mask));
-            // Works until it no thread is pending.
-            while (xlikely(local_mask > 0)) {
-              auto id = find_first_set(local_mask);
-              bit_flip(local_mask, id);
-              // Optains the associate thread.
-              fult* f = &(steal->lwt_[MUL64(i) + id]);
-              // Works on it only if it's not completed.
-              if (xlikely(f->state_ != INVALID)) {
-                w->work(f);
-                if (f->state_ == YIELD) steal->schedule(f->id_);
-                else if (f->state_ == INVALID) steal->fin(f->id_);
-              }
+      // Steal..
+      fworker* steal = random_worker();
+      for (auto i = 0; i < NMASK; i++) {
+        auto& mask = steal->mask_[i];
+        if (mask > 0) {
+          // Atomic exchange to get the current waiting threads.
+          auto local_mask = exchange((unsigned long)0, &(mask));
+          // Works until it no thread is pending.
+          while (xlikely(local_mask > 0)) {
+            auto id = find_first_set(local_mask);
+            bit_flip(local_mask, id);
+            // Optains the associate thread.
+            fult* f = &(steal->lwt_[MUL64(i) + id]);
+            // Works on it only if it's not completed.
+            if (xlikely(f->state_ != INVALID)) {
+              w->work(f);
+              if (f->state_ == YIELD)
+                steal->schedule(f->id_);
+              else if (f->state_ == INVALID)
+                steal->fin(f->id_);
             }
-            break;
           }
+          break;
         }
+      }
     }
 #endif
   }
@@ -201,7 +203,7 @@ inline void fworker::wfunc(fworker* w) {
 
   while (xunlikely(!w->stop_)) {
     for (int l1i = 0; l1i < 8; l1i++) {
-      if (w->l1_mask[l1i] == 0) continue; 
+      if (w->l1_mask[l1i] == 0) continue;
       auto local_l1_mask = exchange((unsigned long)0, &(w->l1_mask[l1i]));
 
       while (local_l1_mask > 0) {
@@ -215,7 +217,8 @@ inline void fworker::wfunc(fworker* w) {
             unsigned long local_mask = 0;
             // Atomic exchange to get the current waiting threads.
             local_mask = exchange(local_mask, &(w->mask_[i]));
-            // if (w->id() == 1 && i == 0) printf("%d (%p) update %lx\n", w->id(), w, w->mask_[0]);
+            // if (w->id() == 1 && i == 0) printf("%d (%p) update %lx\n",
+            // w->id(), w, w->mask_[0]);
             // Works until it no thread is pending.
             while (xlikely(local_mask > 0)) {
               auto id = find_first_set(local_mask);
@@ -225,8 +228,10 @@ inline void fworker::wfunc(fworker* w) {
               // Works on it only if it's not completed.
               if (xlikely(f->state_ != INVALID)) {
                 w->work(f);
-                if (f->state_ == YIELD) w->schedule(f->id_);
-                else if (f->state_ == INVALID) w->fin(f->id_);
+                if (f->state_ == YIELD)
+                  w->schedule(f->id_);
+                else if (f->state_ == INVALID)
+                  w->fin(f->id_);
               }
             }
           }
@@ -241,6 +246,6 @@ inline void fworker::wfunc(fworker* w) {
   wp.print();
 #endif
 }
-#endif // ifndef L1_MASK
+#endif  // ifndef L1_MASK
 
 #endif

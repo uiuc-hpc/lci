@@ -31,7 +31,7 @@ static inline unsigned long exchange(unsigned long word,
 }
 
 static inline void bit_flip(unsigned long& word, int bit) {
-  word ^= ((long) 1 << bit);
+  word ^= ((long)1 << bit);
 }
 
 #endif

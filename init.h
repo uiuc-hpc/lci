@@ -9,9 +9,9 @@
 #include <abt.h>
 #endif
 
-#include <sys/mman.h>
 #include "profiler.h"
 #include "progress.h"
+#include <sys/mman.h>
 
 // User provide this TODO(danghvu): HACKXXX
 void main_task(intptr_t arg);
@@ -43,16 +43,17 @@ inline void init(int* argc, char*** args) {
 
 #if USE_MPE
   MPE_Init_log();
-  mpiv_send_start = MPE_Log_get_event_number(); 
-  mpiv_send_end = MPE_Log_get_event_number(); 
-  mpiv_recv_start = MPE_Log_get_event_number(); 
-  mpiv_recv_end = MPE_Log_get_event_number(); 
+  mpiv_send_start = MPE_Log_get_event_number();
+  mpiv_send_end = MPE_Log_get_event_number();
+  mpiv_recv_start = MPE_Log_get_event_number();
+  mpiv_recv_end = MPE_Log_get_event_number();
   mpiv_barrier_start = MPE_Log_get_event_number();
   mpiv_barrier_end = MPE_Log_get_event_number();
 
   MPE_Describe_state(mpiv_send_start, mpiv_send_end, "MPIV_SEND", "red");
   MPE_Describe_state(mpiv_recv_start, mpiv_recv_end, "MPIV_RECV", "blue");
-  MPE_Describe_state(mpiv_barrier_start, mpiv_barrier_end, "MPIV_BARRIER", "purple");
+  MPE_Describe_state(mpiv_barrier_start, mpiv_barrier_end, "MPIV_BARRIER",
+                     "purple");
 #endif
 
   MPIV.tbl.init();
@@ -94,11 +95,9 @@ inline void init_worker(int nworker, intptr_t arg) {
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-}; // namespace mpiv
+};  // namespace mpiv
 
-void MPIV_Init(int* argc, char ***args) {
-  mpiv::init(argc, args);
-}
+void MPIV_Init(int* argc, char*** args) { mpiv::init(argc, args); }
 
 void MPIV_Init_worker(int nworker, intptr_t arg = 0) {
   mpiv::init_worker(nworker, arg);
@@ -109,9 +108,7 @@ thread MPIV_spawn(int wid, Ts... params) {
   return mpiv::MPIV.w[wid % mpiv::MPIV.w.size()].spawn(params...);
 }
 
-void MPIV_join(thread ult) {
-  ult->join();
-}
+void MPIV_join(thread ult) { ult->join(); }
 
 void MPIV_Finalize() {
 #ifndef DISABLE_COMM
@@ -125,6 +122,5 @@ void MPIV_Finalize() {
 #endif
   MPI_Finalize();
 }
-
 
 #endif

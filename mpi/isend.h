@@ -7,8 +7,8 @@ extern int mpiv_send_start, mpiv_send_end;
 void proto_send_rdz(MPIV_Request* s);
 void proto_send_short(const void* buffer, int size, int rank, int tag);
 
-void isend(const void* buf, int count, MPI_Datatype datatype, int rank,
-                int tag, MPI_Comm, MPIV_Request* req) {
+void isend(const void* buf, int count, MPI_Datatype datatype, int rank, int tag,
+           MPI_Comm, MPIV_Request* req) {
   int size = 0;
   MPI_Type_size(datatype, &size);
   size = count * size;
@@ -16,7 +16,7 @@ void isend(const void* buf, int count, MPI_Datatype datatype, int rank,
     proto_send_short(buf, size, rank, tag);
     req->done_ = true;
   } else {
-    new (req) MPIV_Request((void*) buf, size, rank, tag);
+    new (req) MPIV_Request((void*)buf, size, rank, tag);
   }
 }
 
