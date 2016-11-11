@@ -52,23 +52,21 @@ inline void proto_req_send_long_init(MPIV_Request* req) {
 inline bool init_sync(thread_counter& counter, int count, MPIV_Request* req) {
   bool ret = false;
   for (int i = 0; i < count; i++) {
+    req[i].sync = tlself.thread;
     switch (req[i].type) {
       case REQ_NULL:
         break;
       case REQ_RECV_SHORT:
-        req[i].sync = tlself.thread;
         req[i].counter = &counter;
         proto_req_recv_short_init(&req[i]);
         ret = true;
         break;
       case REQ_RECV_LONG:
-        req[i].sync = tlself.thread;
         req[i].counter = &counter;
         proto_req_recv_long_init(&req[i]);
         ret = true;
         break;
       case REQ_SEND_LONG:
-        req[i].sync = tlself.thread;
         req[i].counter = &counter;
         proto_req_send_long_init(&req[i]);
         ret = true;
@@ -80,8 +78,6 @@ inline bool init_sync(thread_counter& counter, int count, MPIV_Request* req) {
         ret = true;
         break;
       case REQ_PENDING:
-        // You have lost your signal.. need to wakeup yourselves.
-        thread_signal(tlself.thread);
         ret = true;
         break;
       default:
@@ -104,9 +100,8 @@ void waitall(int count, MPIV_Request* req) {
 
 void waitsome(int count, MPIV_Request* req, int* out_count, int* index) {
   *out_count = 0;
-  thread_counter counter(1);
+   thread_counter counter(1);
   if (init_sync(counter, count, req)) {
-
     while (counter.count > 0) {
       thread_wait(&counter);
       if (counter.count > 0) {
