@@ -16,7 +16,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define GET_NCORE() sysconf(_SC_NPROCESSORS_ONLN);
+#define GET_NCORE() sysconf(_SC_NPROCESSORS_ONLN)
 
 #ifdef __cplusplus
 namespace affinity {

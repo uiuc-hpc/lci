@@ -44,8 +44,13 @@ void send(const void* buffer, int count, MPI_Datatype datatype, int rank,
     proto_send_short(buffer, size, rank, tag);
   } else {
     MPIV_Request s((void*)buffer, size, rank, tag);
+    s.sync = tlself.thread;
     proto_send_rdz(&s);
-    MPIV_Wait(&s);
+    mpiv_key key = mpiv_make_key(s.rank, (1 << 30) | s.tag);
+    mpiv_value value;
+    if (MPIV.tbl.insert(key, value)) {
+      thread_wait(s.sync);
+    }
   }
 // MPIV.total_send--;
 #if USE_MPE

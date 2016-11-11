@@ -7,9 +7,6 @@
 #include <boost/function.hpp>
 typedef boost::function<void(intptr_t)> ffunc;
 
-static const int F_STACK_SIZE = 64 * 1024;
-static const int MAIN_STACK_SIZE = 1024 * 1024;
-
 class ult_base {
  public:
   virtual void yield() = 0;
@@ -30,20 +27,51 @@ using thread = pthread_thread_t;
 using worker = pthread_worker;
 #else
 #include "fult/fult.h"
-using thread = fult_t;
+using thread = fthread*;
 using worker = fworker;
+using thread_sync = fthread;
+struct thread_counter {
+  fthread* thread;
+  std::atomic<int> count;
+  thread_counter(int count_) {
+    count.store(count_);
+    thread = tlself.thread;
+  }
+};
+
+inline void thread_wait(thread_sync* sync) {
+  sync->wait();
+}
+
+inline void thread_signal(thread_sync* sync) {
+  sync->resume();
+}
+
+inline void thread_wait(thread_counter* sync) {
+  sync->thread->wait();
+}
+
+inline void thread_signal(thread_counter* sync) {
+  if (sync->count.fetch_sub(1) - 1 == 0) {
+    sync->thread->resume();
+  }
+}
+
 #endif
 #endif
 
 #define ult_yield()        \
   {                        \
-    if (__fulting != NULL) \
-      __fulting->yield();  \
+    if (tlself.thread != NULL) \
+      tlself.thread->yield();  \
     else                   \
       sched_yield();       \
   }
 
 #define ult_wait() \
-  { __fulting->wait(); }
+  { tlself.thread->wait(); }
+
+#define worker_id()  \
+  ((tlself.worker != NULL)?(tlself.worker->id()):-1)
 
 #endif

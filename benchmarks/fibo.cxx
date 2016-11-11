@@ -27,8 +27,8 @@ void ffibo(intptr_t arg) {
     thread_data_t data[2];
     data[0].val = td->val - 1;
     data[1].val = td->val - 2;
-    auto s1 = w[__wid].spawn(ffibo, (intptr_t)&data[0]);
-    auto s2 = w[__wid].spawn(ffibo, (intptr_t)&data[1]);
+    auto s1 = w[(tlself.worker->id() + 1) % nworker].spawn(ffibo, (intptr_t)&data[0]);
+    auto s2 = w[(tlself.worker->id() + 2) % nworker].spawn(ffibo, (intptr_t)&data[1]);
     s1->join();
     s2->join();
     td->ret = data[0].ret + data[1].ret;
@@ -60,8 +60,8 @@ int main(int argc, char** args) {
     printf("Usage: %s <nworker> <number>\n", args[0]);
     return 1;
   }
-  nworker = atoi(args[1]);
-  number = atoi(args[2]);
+  number = atoi(args[1]);
+  nworker = atoi(args[2]);
   w = ::new worker[nworker];
   for (int i = 1; i < nworker; i++) {
     w[i].start();

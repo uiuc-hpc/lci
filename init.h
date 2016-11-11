@@ -1,6 +1,8 @@
 #ifndef INIT_H_
 #define INIT_H_
 
+#include "config.h"
+
 #if USE_MPE
 #include <mpe.h>
 #endif
@@ -13,19 +15,13 @@
 #include "progress.h"
 #include <sys/mman.h>
 
-// User provide this TODO(danghvu): HACKXXX
-void main_task(intptr_t arg);
+// HACK
+void main_task(intptr_t);
 
 namespace mpiv {
 
 int mpiv_send_start, mpiv_send_end, mpiv_recv_start, mpiv_recv_end;
 int mpiv_barrier_start, mpiv_barrier_end;
-
-inline void mpiv_post_recv(Packet* p) {
-  startt(post_timing);
-  MPIV.server.post_recv(p);
-  stopt(post_timing);
-}
 
 inline void init(int* argc, char*** args) {
   setenv("MPICH_ASYNC_PROGRESS", "0", 1);
@@ -72,35 +68,34 @@ inline void init(int* argc, char*** args) {
 }
 
 void mpiv_main_task(intptr_t arg) {
-  for (size_t i = 1; i < MPIV.w.size(); i++) {
-    MPIV.w[i].start();
-  }
-
   // user-provided.
   main_task(arg);
 
   for (size_t i = 1; i < MPIV.w.size(); i++) {
     MPIV.w[i].stop();
   }
-  MPIV.w[0].stop_main();
-}
 
-inline void init_worker(int nworker, intptr_t arg) {
-  MPI_Barrier(MPI_COMM_WORLD);
-  if (MPIV.w.size() == 0) {
-    MPIV.w = std::move(std::vector<worker>(nworker));
-    MPIV.pkpool.init_worker(nworker);
-  }
-  MPIV.w[0].start_main(mpiv_main_task, arg);
-  MPI_Barrier(MPI_COMM_WORLD);
+  MPIV.w[0].stop_main();
 }
 
 };  // namespace mpiv
 
-void MPIV_Init(int* argc, char*** args) { mpiv::init(argc, args); }
+void MPIV_Init(int* argc, char*** args) {
+    mpiv::init(argc, args);
+}
 
-void MPIV_Init_worker(int nworker, intptr_t arg = 0) {
-  mpiv::init_worker(nworker, arg);
+void MPIV_Start_worker(int number, intptr_t arg = 0) {
+  if (mpiv::MPIV.w.size() == 0) {
+    mpiv::MPIV.w = std::move(std::vector<worker>(number));
+    mpiv::MPIV.pkpool.init_worker(number);
+  }
+
+  for (size_t i = 1; i < mpiv::MPIV.w.size(); i++) {
+    mpiv::MPIV.w[i].start();
+  }
+
+  mpiv::MPIV.w[0].start_main(mpiv::mpiv_main_task, arg);
+  MPI_Barrier(MPI_COMM_WORLD);
 }
 
 template <class... Ts>

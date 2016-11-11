@@ -31,7 +31,7 @@ int size = 0;
 int main(int argc, char** args) {
   MPIV_Init(&argc, &args);
   if (argc > 1) size = atoi(args[1]);
-  MPIV_Init_worker(1);
+  MPIV_Start_worker(1);
   MPIV_Finalize();
   return 0;
 }

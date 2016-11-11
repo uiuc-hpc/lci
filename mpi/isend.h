@@ -13,10 +13,12 @@ void isend(const void* buf, int count, MPI_Datatype datatype, int rank, int tag,
   MPI_Type_size(datatype, &size);
   size = count * size;
   if (size <= SHORT_MSG_SIZE) {
+    req->type = REQ_SEND_SHORT;
     proto_send_short(buf, size, rank, tag);
-    req->done_ = true;
   } else {
     new (req) MPIV_Request((void*)buf, size, rank, tag);
+    req->type = REQ_SEND_LONG;
+    proto_send_rdz(req);
   }
 }
 

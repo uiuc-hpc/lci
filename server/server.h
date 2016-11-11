@@ -14,6 +14,7 @@ using std::unique_ptr;
 
 namespace mpiv {
 
+void mpiv_recv_imm(uint32_t imm);
 void mpiv_serve_recv(Packet*);
 void mpiv_serve_send(Packet*);
 void mpiv_post_recv(Packet*);
@@ -34,17 +35,17 @@ struct pinned_pool {
 
 class ServerBase {
  public:
-  virtual inline void init(PacketManager& pkpool, int& rank, int& size) = 0;
-  virtual inline void post_recv(Packet* p) = 0;
-  virtual inline void serve() = 0;
-  virtual inline void finalize() = 0;
-  virtual inline void write_send(int rank, void* buf, size_t size,
-                                 void* ctx) = 0;
-  virtual inline void write_rma(int rank, void* from, void* to, uint32_t rkey,
-                                size_t size, void* ctx) = 0;
-  virtual inline void* allocate(size_t s) = 0;
-  virtual inline void deallocate(void* ptr) = 0;
-  virtual inline uint32_t heap_rkey() = 0;
+  virtual void init(PacketManager& pkpool, int& rank, int& size) = 0;
+  virtual void post_recv(Packet* p) = 0;
+  virtual void serve() = 0;
+  virtual void finalize() = 0;
+  virtual void write_send(int rank, void* buf, size_t size,
+      void* ctx) = 0;
+  virtual void write_rma(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
+      size_t size, void* ctx) = 0;
+  virtual void* allocate(size_t s) = 0;
+  virtual void deallocate(void* ptr) = 0;
+  virtual uint32_t heap_rkey() = 0;
 };
 
 #include "server_ofi.h"

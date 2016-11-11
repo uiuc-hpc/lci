@@ -3,7 +3,7 @@
 
 namespace mpiv {
 
-enum PacketType { SEND_SHORT, SEND_READY, RECV_READY, SEND_READY_FIN };
+enum PacketType { SEND_SHORT, SEND_READY, RECV_READY, SEND_READY_FIN, SEND_AM };
 
 struct PacketHeader {
   PacketType type;

@@ -27,6 +27,7 @@
   (void*)((((uintptr_t)x + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT))
 #define MAX_CQ_SIZE (16 * 1024)
 
+#ifndef SPIN_LOCK
 #define SPIN_LOCK(l)                                     \
   {                                                      \
     while (lock.test_and_set(std::memory_order_acquire)) \
@@ -34,6 +35,7 @@
   }  // acquire lock
 #define SPIN_UNLOCK(l) \
   { lock.clear(std::memory_order_release); }
+#endif
 
 class ServerOFI : ServerBase {
  public:
@@ -43,11 +45,17 @@ class ServerOFI : ServerBase {
   inline void serve();
   inline void finalize();
   inline void write_send(int rank, void* buf, size_t size, void* ctx);
-  inline void write_rma(int rank, void* from, void* to, uint32_t rkey,
+  inline void write_rma(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
                         size_t size, void* ctx);
+  inline void write_rma_signal(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
+                        size_t size, uint32_t sid, void* ctx);
+
   inline void* allocate(size_t s);
   inline void deallocate(void* ptr);
   inline uint32_t heap_rkey() { return heap_rkey_; }
+  inline uint32_t heap_rkey(int node) { return heap_rkey_; } // Assuming the same key for all node.
+  inline uint32_t heap_lkey() { return 0; } // Do not need.
+  inline uint32_t sbuf_lkey() { return 0; } // Do not need.
 
  private:
   inline bool progress();
@@ -89,7 +97,7 @@ void ServerOFI::init(PacketManager& pkpool, int& rank, int& size) {
   struct fi_info* hints;
   hints = fi_allocinfo();
   hints->ep_attr->type = FI_EP_RDM;
-  // hints->domain_attr->mr_mode = FI_MR_BASIC;
+  // hints->domain_attr->mr_mode = FI_MR_SCALABLE;
   hints->caps = FI_RMA | FI_MSG;
   hints->mode = FI_CONTEXT | FI_LOCAL_MR;
 #endif
@@ -109,7 +117,7 @@ void ServerOFI::init(PacketManager& pkpool, int& rank, int& size) {
   // Create cq.
   struct fi_cq_attr cq_attr;
   memset(&cq_attr, 0, sizeof(cq_attr));
-  cq_attr.format = FI_CQ_FORMAT_CONTEXT;
+  cq_attr.format = FI_CQ_FORMAT_DATA; // FI_CQ_FORMAT_CONTEXT;
   cq_attr.size = MAX_CQ_SIZE;
   FI_SAFECALL(fi_cq_open(domain, &cq_attr, &scq, NULL));
   FI_SAFECALL(fi_cq_open(domain, &cq_attr, &rcq, NULL));
@@ -182,6 +190,7 @@ void ServerOFI::init(PacketManager& pkpool, int& rank, int& size) {
   for (int i = 0; i < MAX_RECV; i++) {
     pkpool.ret_packet((Packet*)sbuf_alloc_->allocate());
   }
+  recv_posted_ = 0;
   pk_mgr_ptr = &pkpool;
   done_init_ = true;
 }
@@ -196,7 +205,7 @@ bool ServerOFI::progress() {  // profiler& p, long long& r, long long &s) {
   initt(t);
   startt(t);
 
-  struct fi_cq_entry entry;
+  struct fi_cq_data_entry entry;
   struct fi_cq_err_entry error;
   ssize_t ret;
   bool rett = false;
@@ -205,8 +214,14 @@ bool ServerOFI::progress() {  // profiler& p, long long& r, long long &s) {
   if (ret > 0) {
     // Got an entry here ?
     recv_posted_--;
-    mpiv_serve_recv((Packet*)(((my_context*)entry.op_context)->ctx_));
-    delete (my_context*)entry.op_context;
+    if (entry.flags & FI_REMOTE_CQ_DATA) {
+      mpiv_recv_imm(entry.data);
+    } else {
+      mpiv_serve_recv((Packet*)(((my_context*)entry.op_context)->ctx_));
+      SPIN_LOCK(lock);
+      delete (my_context*)entry.op_context;
+      SPIN_UNLOCK(lock);
+    }
     rett = true;
   } else if (ret == -FI_EAGAIN) {
   } else if (ret == -FI_EAVAIL) {
@@ -223,7 +238,9 @@ bool ServerOFI::progress() {  // profiler& p, long long& r, long long &s) {
   if (ret > 0) {
     // Got an entry here ?
     mpiv_serve_send((Packet*)(((my_context*)entry.op_context)->ctx_));
+    SPIN_LOCK(lock);
     delete (my_context*)entry.op_context;
+    SPIN_UNLOCK(lock);
     rett = true;
   } else if (ret == -FI_EAGAIN) {
   } else if (ret == -FI_EAVAIL) {
@@ -243,7 +260,6 @@ bool ServerOFI::progress() {  // profiler& p, long long& r, long long &s) {
 
 void ServerOFI::serve() {
   poll_thread_ = std::thread([this] {
-    __wid = -1;
 #ifdef USE_AFFI
     affinity::set_me_to_last();
 #endif
@@ -280,10 +296,19 @@ void ServerOFI::write_send(int rank, void* buf, size_t size, void* ctx) {
   SPIN_UNLOCK(lock);
 }
 
-void ServerOFI::write_rma(int rank, void* from, void* to, uint32_t rkey,
+void ServerOFI::write_rma(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
                           size_t size, void* ctx) {
   SPIN_LOCK(lock);
   FI_SAFECALL(fi_write(ep, from, size, 0, fi_addr[rank],
+                       (uintptr_t)to - heap_addr[rank],  // this is offset.
+                       rkey, new my_context(ctx)));
+  SPIN_UNLOCK(lock);
+}
+
+void ServerOFI::write_rma_signal(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
+                          size_t size, uint32_t imm, void* ctx) {
+  SPIN_LOCK(lock);
+  FI_SAFECALL(fi_writedata(ep, from, size, 0, imm, fi_addr[rank],
                        (uintptr_t)to - heap_addr[rank],  // this is offset.
                        rkey, new my_context(ctx)));
   SPIN_UNLOCK(lock);

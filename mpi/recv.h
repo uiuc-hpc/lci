@@ -18,6 +18,7 @@ inline void proto_recv_rndz(void* buffer, int, int rank, int tag,
   p->set_rdz(0, (uintptr_t)s, (uintptr_t)buffer, MPIV.server.heap_rkey());
   MPIV.server.write_send(rank, p, RNDZ_MSG_SIZE, p);
   // MPIV.pkpool.ret_packet_to(p, mpiv_worker_id());
+
   stopt(misc_timing);
 }
 
@@ -37,7 +38,8 @@ inline void proto_recv_short(void* buffer, int size, int rank, int tag,
     startt(post_timing);
     MPIV.pkpool.ret_packet_to(p_ctx, worker_id());
     stopt(post_timing);
-    s->done_ = true;
+  } else {
+    thread_wait(s->sync);
   }
 }
 
@@ -51,14 +53,18 @@ void recv(void* buffer, int count, MPI_Datatype datatype, int rank, int tag,
   size *= count;
 
   MPIV_Request s(buffer, size, rank, tag);
+  s.sync = tlself.thread;
 
   if ((size_t)size <= SHORT_MSG_SIZE) {
-    assert(s.counter == 0);
     proto_recv_short(buffer, size, rank, tag, &s);
   } else {
     proto_recv_rndz(buffer, size, rank, tag, &s);
+    mpiv_key key = mpiv_make_key(rank, tag);
+    mpiv_value value;
+    if (MPIV.tbl.insert(key, value)) {
+      thread_wait(s.sync);
+    }
   }
-  MPIV_Wait(&s);
 #if USE_MPE
   MPE_Log_event(mpiv_recv_end, 0, "end_recv");
 #endif

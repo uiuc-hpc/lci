@@ -35,16 +35,18 @@ constexpr mpiv_key mpiv_make_key(const int& rank, const int& tag) {
 }
 
 #include "hashtbl_arr.h"
-#include "hashtbl_cock.h"
-
 template <>
 struct Config<ConfigType::HASHTBL_ARR> {
   using HashTbl = HashTblArr;
 };
+
+#if 0
+#include "hashtbl_cock.h"
 template <>
 struct Config<ConfigType::HASHTBL_COCK> {
   using HasbTbl = HashTblCock;
 };
+#endif
 
 using HashTbl = Config<HashTblCfg>::HashTbl;
 

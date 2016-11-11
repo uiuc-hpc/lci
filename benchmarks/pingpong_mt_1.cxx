@@ -80,9 +80,9 @@ int main(int argc, char* argv[]) {
   }
 
   if (myid == 0)
-    MPIV_Init_worker(1);
+    MPIV_Start_worker(1);
   else
-    MPIV_Init_worker(WORKERS);
+    MPIV_Start_worker(WORKERS);
 
   MPIV_Finalize();
 }
@@ -91,8 +91,8 @@ static int size = 0;
 
 void main_task(intptr_t) {
   int i = 0;
-  r_buf1 = (char*)mpiv_malloc(MYBUFSIZE);
-  s_buf1 = (char*)mpiv_malloc(MYBUFSIZE);
+  r_buf1 = (char*)mpiv::malloc(MYBUFSIZE);
+  s_buf1 = (char*)mpiv::malloc(MYBUFSIZE);
   thread* sr_threads = new thread[MAX_THREADS];
   thread_tag_t* tags = new thread_tag_t[MAX_THREADS];
 
@@ -126,8 +126,8 @@ void main_task(intptr_t) {
           }
       }
   }
-  mpiv_free(r_buf1);
-  mpiv_free(s_buf1);
+  mpiv::free(r_buf1);
+  mpiv::free(s_buf1);
 }
 
 void recv_thread(intptr_t arg) {

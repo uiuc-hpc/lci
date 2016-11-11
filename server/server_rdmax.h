@@ -9,11 +9,17 @@ class ServerRdmax : ServerBase {
   inline void serve();
   inline void finalize();
   inline void write_send(int rank, void* buf, size_t size, void* ctx);
-  inline void write_rma(int rank, void* from, void* to, uint32_t rkey,
+  inline void write_rma(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
                         size_t size, void* ctx);
+  inline void write_rma_signal(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
+                        size_t size, uint32_t sid, void* ctx);
   inline void* allocate(size_t s);
   inline void deallocate(void* ptr);
   inline uint32_t heap_rkey() { return heap_.rkey(); }
+  inline uint32_t heap_lkey() { return heap_.lkey(); }
+  inline uint32_t heap_rkey(int node) { return conn[node].rkey(); }
+  inline uint32_t sbuf_lkey() { return sbuf_.lkey(); }
+  inline uint32_t sbuf_rkey() { return sbuf_.rkey(); }
 
  private:
   inline bool progress();
@@ -63,7 +69,7 @@ void ServerRdmax::init(PacketManager& pkpool, int& rank, int& size) {
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
   for (int i = 0; i < size; i++) {
-    conn.emplace_back(&dev_scq_, &dev_rcq_, dev_ctx_.get(), &sbuf_, i);
+    conn.emplace_back(&dev_scq_, &dev_rcq_, dev_ctx_.get(), &heap_, i);
   }
 
   // Prepare the packet_mgr and prepost some packet.
@@ -90,20 +96,22 @@ bool ServerRdmax::progress() {  // profiler& p, long long& r, long long &s) {
   startt(t);
   bool ret = (dev_rcq_.poll_once([this](const ibv_wc& wc) {
     recv_posted_--;
-    mpiv_serve_recv((Packet*)wc.wr_id);
+    if (wc.opcode != IBV_WC_RECV_RDMA_WITH_IMM)
+      mpiv_serve_recv((Packet*)wc.wr_id);
+    else
+      mpiv_recv_imm(wc.imm_data);
   }));
   ret |= (dev_scq_.poll_once(
       [](const ibv_wc& wc) { mpiv_serve_send((Packet*)wc.wr_id); }));
-  stopt(t)
-      // Make sure we always have enough packet, but do not block.
-      if (recv_posted_ < MAX_RECV) post_recv(pk_mgr_ptr->get_for_recv());
+  stopt(t);
+  // Make sure we always have enough packet, but do not block.
+  if (recv_posted_ < MAX_RECV) post_recv(pk_mgr_ptr->get_for_recv());
   // assert(recv_posted_ > 0 && "No posted buffer");
   return ret;
 }
 
 void ServerRdmax::serve() {
   poll_thread_ = std::thread([this] {
-    __wid = -1;
 #ifdef USE_AFFI
     affinity::set_me_to_last();
 #endif
@@ -129,9 +137,14 @@ void ServerRdmax::write_send(int rank, void* buf, size_t size, void* ctx) {
   conn[rank].write_send(buf, size, sbuf_.lkey(), ctx);
 }
 
-void ServerRdmax::write_rma(int rank, void* from, void* to, uint32_t rkey,
+void ServerRdmax::write_rma(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
                             size_t size, void* ctx) {
-  conn[rank].write_rdma(from, heap_.lkey(), to, rkey, size, ctx);
+  conn[rank].write_rdma(from, lkey, to, rkey, size, ctx);
+}
+
+void ServerRdmax::write_rma_signal(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
+                            size_t size, uint32_t sid, void* ctx) {
+  conn[rank].write_rdma_imm(from, lkey, to, rkey, size, sid, ctx);
 }
 
 void* ServerRdmax::allocate(size_t s) { return heap_segment.allocate(s); }

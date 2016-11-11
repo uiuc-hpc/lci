@@ -3,8 +3,8 @@
 
 #include <boost/interprocess/creation_tags.hpp>
 #include <boost/interprocess/managed_external_buffer.hpp>
-#include <boost/lockfree/queue.hpp>
-#include <boost/lockfree/stack.hpp>
+// #include <boost/lockfree/queue.hpp>
+// #include <boost/lockfree/stack.hpp>
 #include <mpi.h>
 
 #include <atomic>
@@ -27,10 +27,10 @@
 
 #include "server/server.h"
 
-extern __thread int __wid;
-inline int worker_id() { return __wid; }
-
 namespace mpiv {
+
+typedef void (*am_func_t)();
+
 struct Execution {
   int me;
   int size;
@@ -38,6 +38,7 @@ struct Execution {
   Server server;
   HashTbl tbl;
   std::vector<worker> w;
+  std::vector<am_func_t> am_table;
 } __attribute__((aligned(64)));
 
 static Execution MPIV;
@@ -55,5 +56,6 @@ void free(void* ptr) { MPIV.server.deallocate(ptr); }
 #include "init.h"
 #include "mpi/mpi.h"
 #include "request.h"
+#include "ext/am.h"
 
 #endif

@@ -1,7 +1,7 @@
 #ifndef MPIV_MPI_H_
 #define MPIV_MPI_H_
 
-extern int worker_id();
+#include "request.h"
 
 namespace mpiv {
 
@@ -41,9 +41,12 @@ void MPIV_Waitall(int count, mpiv::MPIV_Request* req) {
 void MPIV_Barrier(MPI_Comm comm) { MPI_Barrier(comm); }
 
 double MPIV_Wtime() {
+#if 0
   using namespace std::chrono;
   return duration_cast<duration<double> >(
              high_resolution_clock::now().time_since_epoch())
       .count();
+#endif
+    return MPI_Wtime();
 }
 #endif

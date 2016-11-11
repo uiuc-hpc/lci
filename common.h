@@ -6,10 +6,6 @@
 
 #define ALIGNED64(x) (((x) + 63) / 64 * 64)
 
-/** Setup hash table */
-struct mpiv_packet;
-struct MPIV_Request;
-
 #ifdef USE_TIMING
 /** Setup timing */
 static double tbl_timing;

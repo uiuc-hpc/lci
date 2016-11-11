@@ -3,8 +3,6 @@
 
 #include "packet.h"
 
-extern int worker_id();
-
 namespace mpiv {
 
 class PacketManagerBase {
