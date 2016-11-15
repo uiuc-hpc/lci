@@ -16,24 +16,14 @@ static const int RNDZ_MSG_SIZE = 48; // control message.
 static const size_t HEAP_SIZE =
     (size_t)2 * 1024 * 1024 * 1024;  // total pinned heap size.
 
-/*! This config is to select particular implementation for each component. */
-enum class ConfigType {
-  // Server.
-  SERVER_RDMAX = 0,
-  SERVER_OFI,
-  // HashTable.
-  HASHTBL_ARR,
-  HASHTBL_COCK,
-  // Packet Manager.
-  PACKET_MANAGER_NUMA_STEAL,
-};
+class ServerOFI;
+class ServerRdmax;
+class HashTblArr;
+class PacketManagerNumaSteal;
 
-template <ConfigType>
-struct Config;
-
-constexpr ConfigType ServerCfg = ConfigType::SERVER_OFI;
-constexpr ConfigType HashTblCfg = ConfigType::HASHTBL_ARR;
-constexpr ConfigType PacketManagerCfg = ConfigType::PACKET_MANAGER_NUMA_STEAL;
+using Server = ServerOFI;
+using HashTbl = HashTblArr;
+using PacketManager = PacketManagerNumaSteal;
 
 }  // namespace mpiv.
 

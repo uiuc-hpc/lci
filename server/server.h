@@ -51,16 +51,5 @@ class ServerBase {
 #include "server_ofi.h"
 #include "server_rdmax.h"
 
-template <>
-struct Config<ConfigType::SERVER_RDMAX> {
-  using Server = ServerRdmax;
-};
-template <>
-struct Config<ConfigType::SERVER_OFI> {
-  using Server = ServerOFI;
-};
-
-using Server = Config<ServerCfg>::Server;
-
 }  // namespace mpiv.
 #endif

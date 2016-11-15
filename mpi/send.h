@@ -37,6 +37,7 @@ void send(const void* buffer, int count, MPI_Datatype datatype, int rank,
   MPE_Log_event(mpiv_send_start, 0, "start_send");
 #endif
   int size = 0;
+  thread_sync sync;
   MPI_Type_size(datatype, &size);
   size = count * size;
   // First we need a packet, as we don't want to register.
@@ -44,7 +45,7 @@ void send(const void* buffer, int count, MPI_Datatype datatype, int rank,
     proto_send_short(buffer, size, rank, tag);
   } else {
     MPIV_Request s((void*)buffer, size, rank, tag);
-    s.sync = tlself.thread;
+    s.sync = &sync;
     proto_send_rdz(&s);
     mpiv_key key = mpiv_make_key(s.rank, (1 << 30) | s.tag);
     mpiv_value value;

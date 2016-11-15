@@ -29,30 +29,27 @@ using worker = pthread_worker;
 #include "fult/fult.h"
 using thread = fthread*;
 using worker = fworker;
-using thread_sync = fthread;
-struct thread_counter {
+
+struct thread_sync {
   fthread* thread;
   std::atomic<int> count;
-  thread_counter(int count_) {
+  thread_sync() {
+    thread = tlself.thread;
+    count.store(-1);
+  }
+  thread_sync(int count_) {
     count.store(count_);
     thread = tlself.thread;
   }
 };
 
 inline void thread_wait(thread_sync* sync) {
-  sync->wait();
-}
-
-inline void thread_signal(thread_sync* sync) {
-  sync->resume();
-}
-
-inline void thread_wait(thread_counter* sync) {
   sync->thread->wait();
 }
 
-inline void thread_signal(thread_counter* sync) {
-  if (sync->count.fetch_sub(1) - 1 == 0) {
+inline void thread_signal(thread_sync* sync) {
+  // smaller than 0 means no counter, saving abit cycles and data.
+  if (sync->count < 0 || sync->count.fetch_sub(1) - 1 == 0) {
     sync->thread->resume();
   }
 }

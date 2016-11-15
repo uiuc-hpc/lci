@@ -18,13 +18,6 @@ class PacketManagerBase {
 
 #include "packet_manager_numa_steal.h"
 
-template <>
-struct Config<ConfigType::PACKET_MANAGER_NUMA_STEAL> {
-  using PacketManager = PacketManagerNumaSteal;
-};
-
-using PacketManager = Config<PacketManagerCfg>::PacketManager;
-
 };  // namespace mpiv.
 
 #endif

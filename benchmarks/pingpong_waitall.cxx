@@ -66,7 +66,6 @@ void main_task(intptr_t) {
         MPIV_Waitall(WIN, r);
         MPIV_Recv(r_buf, 4, MPI_CHAR, 1, WIN + 1, MPI_COMM_WORLD,
                   MPI_STATUS_IGNORE);
-        // printf("done recv\n");
       }
       times = MPIV_Wtime() - times;
       printf("[%d] %f\n", size, (1e-6 * size * total * WIN) / times);

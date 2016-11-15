@@ -65,7 +65,7 @@ void mpiv_recv_send_ready_fin(Packet* p_ctx) {
   mpiv_value value;
   if (!MPIV.tbl.insert(key, value)) {
     req->type = REQ_DONE;
-    MPIV_Signal(req);
+    thread_signal(req->sync);
   }
   stopt(signal_timing);
   MPIV.pkpool.ret_packet(p_ctx);
@@ -85,7 +85,7 @@ void mpiv_recv_short(Packet* p) {
     MPIV_Request* req = value.request;
     memcpy(req->buffer, p->buffer(), req->size);
     req->type = REQ_DONE;
-    MPIV_Signal(req);
+    thread_signal(req->sync);
     MPIV.pkpool.ret_packet(p);
   }
 }
@@ -122,7 +122,7 @@ inline void mpiv_serve_send(Packet* p_ctx) {
     mpiv_value value;
     if (!MPIV.tbl.insert(key, value)) {
       req->type = REQ_DONE;
-      MPIV_Signal(req);
+      thread_signal(req->sync);
     }
     stopt(rdma_timing);
     // this packet is taken directly from recv queue.

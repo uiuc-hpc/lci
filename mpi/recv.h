@@ -53,7 +53,8 @@ void recv(void* buffer, int count, MPI_Datatype datatype, int rank, int tag,
   size *= count;
 
   MPIV_Request s(buffer, size, rank, tag);
-  s.sync = tlself.thread;
+  thread_sync sync;
+  s.sync = &sync;
 
   if ((size_t)size <= SHORT_MSG_SIZE) {
     proto_recv_short(buffer, size, rank, tag, &s);
