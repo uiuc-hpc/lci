@@ -7,17 +7,15 @@
 #include <thread>
 
 #include "affinity.h"
-#include "packet/packet_manager.h"
+#include "packet/packet_pool.h"
 #include "profiler.h"
 
 using std::unique_ptr;
 
-namespace mpiv {
-
-void mpiv_recv_imm(uint32_t imm);
-void mpiv_serve_recv(Packet*);
-void mpiv_serve_send(Packet*);
-void mpiv_post_recv(Packet*);
+void mv_recv_imm(uint32_t imm);
+void mv_serve_recv(packet*);
+void mv_serve_send(packet*);
+void mv_post_recv(packet*);
 
 double MPIV_Wtime();
 
@@ -28,15 +26,15 @@ struct pinned_pool {
   std::atomic<size_t> last;
 
   void* allocate() {
-    ptrdiff_t diff = (ptrdiff_t)(last.fetch_add(1) * sizeof(Packet));
+    ptrdiff_t diff = (ptrdiff_t)(last.fetch_add(1) * sizeof(packet));
     return (void*)(ptr + diff);
   }
 };
 
 class ServerBase {
  public:
-  virtual void init(PacketManager& pkpool, int& rank, int& size) = 0;
-  virtual void post_recv(Packet* p) = 0;
+  virtual void init(mv_pp* pkpool, int& rank, int& size) = 0;
+  virtual void post_recv(packet* p) = 0;
   virtual void serve() = 0;
   virtual void finalize() = 0;
   virtual void write_send(int rank, void* buf, size_t size,
@@ -51,5 +49,4 @@ class ServerBase {
 #include "server_ofi.h"
 #include "server_rdmax.h"
 
-}  // namespace mpiv.
 #endif

@@ -3,8 +3,6 @@
 
 #include "mpiv.h"
 
-namespace mpiv {
-
 enum RequestType {
   REQ_NULL,
   REQ_DONE,
@@ -32,9 +30,5 @@ struct MPIV_Request {
   thread_sync* sync;
   RequestType type;
 } __attribute__((aligned(64)));
-
-};  // namespace mpiv.
-
-using MPIV_Request = mpiv::MPIV_Request;
 
 #endif

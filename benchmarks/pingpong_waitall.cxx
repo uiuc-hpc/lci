@@ -39,9 +39,10 @@ int main(int argc, char** args) {
 
 void main_task(intptr_t) {
   double times = 0;
-  int rank = mpiv::MPIV.me;
-  void* r_buf = (void*)mpiv::malloc((size_t)MAX_MSG_SIZE);
-  void* s_buf = (void*)mpiv::malloc((size_t)MAX_MSG_SIZE);
+  int rank;
+  MPIV_Comm_rank(MPI_COMM_WORLD, &rank);
+  void* r_buf = (void*)mv_malloc((size_t)MAX_MSG_SIZE);
+  void* s_buf = (void*)mv_malloc((size_t)MAX_MSG_SIZE);
 
   for (int size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE; size <<= 1) {
     int total = TOTAL;
@@ -52,7 +53,7 @@ void main_task(intptr_t) {
       skip = SKIP_LARGE;
     }
     MPIV_Barrier(MPI_COMM_WORLD);
-    mpiv::MPIV_Request r[64];
+    MPIV_Request r[64];
     if (rank == 0) {
       memset(r_buf, 'a', size);
       memset(s_buf, 'b', size);
@@ -64,8 +65,10 @@ void main_task(intptr_t) {
           MPIV_Isend(s_buf, size, MPI_CHAR, 1, k, MPI_COMM_WORLD, &r[k]);
         }
         MPIV_Waitall(WIN, r);
+        // printf("recv\n");
         MPIV_Recv(r_buf, 4, MPI_CHAR, 1, WIN + 1, MPI_COMM_WORLD,
                   MPI_STATUS_IGNORE);
+        // printf("recv done\n");
       }
       times = MPIV_Wtime() - times;
       printf("[%d] %f\n", size, (1e-6 * size * total * WIN) / times);
@@ -88,6 +91,6 @@ void main_task(intptr_t) {
     MPIV_Barrier(MPI_COMM_WORLD);
   }
 
-  mpiv::free(r_buf);
-  mpiv::free(s_buf);
+  mv_free(r_buf);
+  mv_free(s_buf);
 }

@@ -4,8 +4,8 @@
 class ServerRdmax : ServerBase {
  public:
   ServerRdmax() : stop_(false), done_init_(false) {}
-  inline void init(PacketManager& pkpool, int& rank, int& size);
-  inline void post_recv(Packet* p);
+  inline void init(mv_pp* pkpool, int& rank, int& size);
+  inline void post_recv(packet* p);
   inline void serve();
   inline void finalize();
   inline void write_send(int rank, void* buf, size_t size, void* ctx);
@@ -33,12 +33,12 @@ class ServerRdmax : ServerBase {
   device_memory heap_;
   int recv_posted_;
   unique_ptr<pinned_pool> sbuf_alloc_;
-  PacketManager* pk_mgr_ptr;
+  mv_pp* pkpool;
   mbuffer heap_segment;
   vector<connection> conn;
 };
 
-void ServerRdmax::init(PacketManager& pkpool, int& rank, int& size) {
+void ServerRdmax::init(mv_pp* pkpool, int& rank, int& size) {
 #ifdef USE_AFFI
   affinity::set_me_to(0);
 #endif
@@ -55,7 +55,7 @@ void ServerRdmax::init(PacketManager& pkpool, int& rank, int& size) {
       IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
 
   // These are pinned memory.
-  sbuf_ = dev_ctx_->create_memory(sizeof(Packet) * (MAX_SEND + MAX_RECV + 2),
+  sbuf_ = dev_ctx_->create_memory(sizeof(packet) * (MAX_SEND + MAX_RECV + 2),
                                   mr_flags);
 
   sbuf_alloc_ =
@@ -73,22 +73,18 @@ void ServerRdmax::init(PacketManager& pkpool, int& rank, int& size) {
   }
 
   // Prepare the packet_mgr and prepost some packet.
-  for (int i = 0; i < MAX_SEND; i++) {
-    pkpool.ret_packet((Packet*)sbuf_alloc_->allocate());
+  for (int i = 0; i < MAX_SEND + MAX_RECV; i++) {
+    mv_pp_free(pkpool, (packet*)sbuf_alloc_->allocate(), 0);
   }
-
-  for (int i = 0; i < MAX_RECV; i++) {
-    pkpool.ret_packet((Packet*)sbuf_alloc_->allocate());
-  }
-
-  pk_mgr_ptr = &pkpool;
+  this->pkpool = pkpool;
+  this->recv_posted_ = 0;
   done_init_ = true;
 }
 
-void ServerRdmax::post_recv(Packet* p) {
+void ServerRdmax::post_recv(packet* p) {
   if (p == NULL) return;
   recv_posted_++;
-  dev_ctx_->post_srq_recv((void*)p, (void*)p, sizeof(Packet), sbuf_.lkey());
+  dev_ctx_->post_srq_recv((void*)p, (void*)p, sizeof(packet), sbuf_.lkey());
 }
 
 bool ServerRdmax::progress() {  // profiler& p, long long& r, long long &s) {
@@ -97,15 +93,15 @@ bool ServerRdmax::progress() {  // profiler& p, long long& r, long long &s) {
   bool ret = (dev_rcq_.poll_once([this](const ibv_wc& wc) {
     recv_posted_--;
     if (wc.opcode != IBV_WC_RECV_RDMA_WITH_IMM)
-      mpiv_serve_recv((Packet*)wc.wr_id);
+      mv_serve_recv((packet*)wc.wr_id);
     else
-      mpiv_recv_imm(wc.imm_data);
+      mv_recv_imm(wc.imm_data);
   }));
   ret |= (dev_scq_.poll_once(
-      [](const ibv_wc& wc) { mpiv_serve_send((Packet*)wc.wr_id); }));
+      [](const ibv_wc& wc) { mv_serve_send((packet*)wc.wr_id); }));
   stopt(t);
   // Make sure we always have enough packet, but do not block.
-  if (recv_posted_ < MAX_RECV) post_recv(pk_mgr_ptr->get_for_recv());
+  if (recv_posted_ < MAX_RECV) post_recv(mv_pp_alloc_recv_nb(pkpool));
   // assert(recv_posted_ > 0 && "No posted buffer");
   return ret;
 }

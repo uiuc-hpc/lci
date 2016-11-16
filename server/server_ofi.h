@@ -40,8 +40,8 @@
 class ServerOFI : ServerBase {
  public:
   ServerOFI() : stop_(false), done_init_(false) { lock.clear(); }
-  inline void init(PacketManager& pkpool, int& rank, int& size);
-  inline void post_recv(Packet* p);
+  inline void init(mv_pp* pkpool, int& rank, int& size);
+  inline void post_recv(packet* p);
   inline void serve();
   inline void finalize();
   inline void write_send(int rank, void* buf, size_t size, void* ctx);
@@ -83,11 +83,11 @@ class ServerOFI : ServerBase {
 
   int recv_posted_;
   unique_ptr<pinned_pool> sbuf_alloc_;
-  PacketManager* pk_mgr_ptr;
+  mv_pp* pkpool;
   std::atomic_flag lock;
 };
 
-void ServerOFI::init(PacketManager& pkpool, int& rank, int& size) {
+void ServerOFI::init(mv_pp* pkpool, int& rank, int& size) {
 #ifdef USE_AFFI
   affinity::set_me_to(0);
 #endif
@@ -138,9 +138,9 @@ void ServerOFI::init(PacketManager& pkpool, int& rank, int& size) {
   heap_rkey_ = fi_mr_key(mr_heap);
 
   sbuf_ = std::move(
-      unique_ptr<char[]>(new char[sizeof(Packet) * (MAX_SEND + MAX_RECV + 2)]));
+      unique_ptr<char[]>(new char[sizeof(packet) * (MAX_SEND + MAX_RECV + 2)]));
   FI_SAFECALL(fi_mr_reg(domain, sbuf_.get(),
-                        sizeof(Packet) * (MAX_SEND + MAX_RECV + 2),
+                        sizeof(packet) * (MAX_SEND + MAX_RECV + 2),
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE | FI_REMOTE_READ,
                         0, 1, 0, &mr_sbuf, 0));
   sbuf_alloc_ = std::move(
@@ -183,15 +183,11 @@ void ServerOFI::init(PacketManager& pkpool, int& rank, int& size) {
   }
 
   // Prepare the packet_mgr and prepost some packet.
-  for (int i = 0; i < MAX_SEND; i++) {
-    pkpool.ret_packet((Packet*)sbuf_alloc_->allocate());
-  }
-
-  for (int i = 0; i < MAX_RECV; i++) {
-    pkpool.ret_packet((Packet*)sbuf_alloc_->allocate());
+  for (int i = 0; i < MAX_SEND + MAX_RECV; i++) {
+    mv_pp_free(pkpool, (packet*)sbuf_alloc_->allocate(), 0);
   }
   recv_posted_ = 0;
-  pk_mgr_ptr = &pkpool;
+  this->pkpool = pkpool;
   done_init_ = true;
 }
 
@@ -215,9 +211,9 @@ bool ServerOFI::progress() {  // profiler& p, long long& r, long long &s) {
     // Got an entry here ?
     recv_posted_--;
     if (entry.flags & FI_REMOTE_CQ_DATA) {
-      mpiv_recv_imm(entry.data);
+      mv_recv_imm(entry.data);
     } else {
-      mpiv_serve_recv((Packet*)(((my_context*)entry.op_context)->ctx_));
+      mv_serve_recv((packet*)(((my_context*)entry.op_context)->ctx_));
       SPIN_LOCK(lock);
       delete (my_context*)entry.op_context;
       SPIN_UNLOCK(lock);
@@ -237,7 +233,7 @@ bool ServerOFI::progress() {  // profiler& p, long long& r, long long &s) {
   ret = fi_cq_read(scq, &entry, 1);
   if (ret > 0) {
     // Got an entry here ?
-    mpiv_serve_send((Packet*)(((my_context*)entry.op_context)->ctx_));
+    mv_serve_send((packet*)(((my_context*)entry.op_context)->ctx_));
     SPIN_LOCK(lock);
     delete (my_context*)entry.op_context;
     SPIN_UNLOCK(lock);
@@ -253,7 +249,7 @@ bool ServerOFI::progress() {  // profiler& p, long long& r, long long &s) {
     MPI_Abort(MPI_COMM_WORLD, error.err);
   }
 
-  if (recv_posted_ < MAX_RECV) post_recv(pk_mgr_ptr->get_for_recv());
+  if (recv_posted_ < MAX_RECV) post_recv(mv_pp_alloc_recv_nb(pkpool));
 
   stopt(t) return rett;
 }
@@ -281,18 +277,22 @@ void ServerOFI::serve() {
   });
 }
 
-void ServerOFI::post_recv(Packet* p) {
+void ServerOFI::post_recv(packet* p) {
   if (p == NULL) return;
   SPIN_LOCK(lock);
   FI_SAFECALL(
-      fi_recv(ep, p, sizeof(Packet), 0, FI_ADDR_UNSPEC, new my_context(p)));
+      fi_recv(ep, p, sizeof(packet), 0, FI_ADDR_UNSPEC, new my_context(p)));
   recv_posted_++;
   SPIN_UNLOCK(lock);
 }
 
 void ServerOFI::write_send(int rank, void* buf, size_t size, void* ctx) {
   SPIN_LOCK(lock);
-  FI_SAFECALL(fi_send(ep, buf, size, 0, fi_addr[rank], new my_context(ctx)));
+  if (ctx) {
+    FI_SAFECALL(fi_send(ep, buf, size, 0, fi_addr[rank], new my_context(ctx)));
+  } else {
+    FI_SAFECALL(fi_inject(ep, buf, size, fi_addr[rank]));
+  }
   SPIN_UNLOCK(lock);
 }
 

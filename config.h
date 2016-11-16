@@ -3,10 +3,8 @@
 
 #include <stdlib.h>
 
-namespace mpiv {
-
 // Communication setup...
-static const int MAX_SEND = 256;  // maximum concurrent send.
+static const int MAX_SEND = 64;  // maximum concurrent send.
 static const int MAX_RECV = 32;  // maximum concurrent recv.
 static const int MAX_CONCURRENCY = MAX_SEND + MAX_RECV;
 static const int PACKET_SIZE = (16 * 1024 + 64);       // transfer unit size.
@@ -18,13 +16,10 @@ static const size_t HEAP_SIZE =
 
 class ServerOFI;
 class ServerRdmax;
-class HashTblArr;
-class PacketManagerNumaSteal;
 
-using Server = ServerOFI;
-using HashTbl = HashTblArr;
-using PacketManager = PacketManagerNumaSteal;
+using Server = ServerRdmax;
 
-}  // namespace mpiv.
+#define HASH_ARR
+#define PP_NS
 
 #endif

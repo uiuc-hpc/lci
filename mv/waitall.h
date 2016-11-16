@@ -4,20 +4,19 @@
 #include <assert.h>
 #include <mpi.h>
 
-extern int mpiv_send_start, mpiv_send_end;
-void mpiv_complete_rndz(Packet* p, MPIV_Request* s);
+extern int mv_send_start, mv_send_end;
+void mv_complete_rndz(packet* p, MPIV_Request* s);
 void proto_send_rdz(MPIV_Request* s);
 void proto_send_short(const void* buffer, int size, int rank, int tag);
 
 inline void proto_req_recv_short_init(MPIV_Request* s) {
-  mpiv_key key = mpiv_make_key(s->rank, s->tag);
-  mpiv_value value;
-  value.request = s;
+  mv_key key = mv_make_key(s->rank, s->tag);
+  mv_value value = (mv_value) s;
   RequestType oldtype = s->type;
-  if (!MPIV.tbl.insert(key, value)) {
-    Packet* p_ctx = value.packet;
+  if (!hash_insert(MPIV.tbl, key, value)) {
+    packet* p_ctx = (packet*) value;
     memcpy(s->buffer, p_ctx->buffer(), s->size);
-    MPIV.pkpool.ret_packet_to(p_ctx, worker_id());
+    mv_pp_free(MPIV.pkpool, p_ctx, worker_id());
     s->type = REQ_DONE;
     s->sync->count--;
   } else { 
@@ -26,10 +25,10 @@ inline void proto_req_recv_short_init(MPIV_Request* s) {
 }
 
 inline void proto_req_recv_long_init(MPIV_Request* req) {
-  mpiv_key key = mpiv_make_key(req->rank, req->tag);
-  mpiv_value value;
+  mv_key key = mv_make_key(req->rank, req->tag);
+  mv_value value;
   RequestType oldtype = req->type;
-  if (!MPIV.tbl.insert(key, value)) {
+  if (!hash_insert(MPIV.tbl, key, value)) {
     req->type = REQ_DONE;
     req->sync->count--;
   } else {
@@ -38,10 +37,10 @@ inline void proto_req_recv_long_init(MPIV_Request* req) {
 }
 
 inline void proto_req_send_long_init(MPIV_Request* req) {
-  mpiv_key key = mpiv_make_key(req->rank, (1 << 30) | req->tag);
-  mpiv_value value;
+  mv_key key = mv_make_key(req->rank, (1 << 30) | req->tag);
+  mv_value value;
   RequestType oldtype = req->type;
-  if (!MPIV.tbl.insert(key, value)) {
+  if (!hash_insert(MPIV.tbl, key, value)) {
     req->type = REQ_DONE;
     req->sync->count--;
   } else {
@@ -49,36 +48,36 @@ inline void proto_req_send_long_init(MPIV_Request* req) {
   }
 }
 
-inline bool init_sync(thread_sync& counter, int count, MPIV_Request* req) {
+inline bool init_sync(thread_sync* counter, int count, MPIV_Request* req) {
   bool ret = false;
   for (int i = 0; i < count; i++) {
     switch (req[i].type) {
       case REQ_NULL:
         break;
       case REQ_RECV_SHORT:
-        req[i].sync = &counter;
+        req[i].sync = counter;
         proto_req_recv_short_init(&req[i]);
         ret = true;
         break;
       case REQ_RECV_LONG:
-        req[i].sync = &counter;
+        req[i].sync = counter;
         proto_req_recv_long_init(&req[i]);
         ret = true;
         break;
       case REQ_SEND_LONG:
-        req[i].sync = &counter;
+        req[i].sync = counter;
         proto_req_send_long_init(&req[i]);
         ret = true;
         break;
       case REQ_DONE:
-        counter.count--;
+        counter->count--;
         ret = true;
         break;
       case REQ_PENDING:
         ret = true;
         break;
       default:
-        counter.count--;
+        counter->count--;
         ret = true;
         break;
     }
@@ -87,11 +86,11 @@ inline bool init_sync(thread_sync& counter, int count, MPIV_Request* req) {
 }
 
 // Assume short message for now.
-void waitall(int count, MPIV_Request* req) {
-  thread_sync counter(count);
+void mv_waitall(int count, MPIV_Request* req) {
+  thread_sync* counter = thread_sync_get(count);
   if (init_sync(counter, count, req)) {
-    while (counter.count > 0) {
-      thread_wait(&counter);
+    while (counter->count > 0) {
+      thread_wait(counter);
     }
     for (int i = 0; i < count; i++) {
       if (req[i].type == REQ_DONE) {
@@ -101,22 +100,18 @@ void waitall(int count, MPIV_Request* req) {
   }
 }
 
-__thread thread_sync tls_counter;
-
-void waitsome(int count, MPIV_Request* req, int* out_count, int* index) {
+void mv_waitsome(int count, MPIV_Request* req, int* out_count, int* index) {
   *out_count = 0;
-  thread_sync& counter = tls_counter;
-  counter.count = 1;
-  counter.thread = tlself.thread;
+  thread_sync* counter = thread_sync_get(1);
   if (init_sync(counter, count, req)) {
-    while (counter.count > 0) {
-      thread_wait(&counter);
+    while (counter->count > 0) {
+      thread_wait(counter);
       for (int i = 0; i < count; i++) {
         if (req[i].type == REQ_DONE) {
           index[*out_count] = i;
           *out_count = *out_count + 1;
           req[i].type = REQ_NULL;
-          counter.count --;
+          counter->count --;
         } 
       }
     }

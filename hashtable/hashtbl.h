@@ -5,36 +5,22 @@
 #include <stdlib.h>
 #include <utility>
 
-using std::pair;
-using std::make_pair;
+#include "macro.h"
 
-namespace mpiv {
+typedef uintptr_t mv_value;
+typedef uint64_t mv_key;
 
-struct Packet;
-struct MPIV_Request;
-
-union mpiv_value {
-  void* v;
-  Packet* packet;
-  MPIV_Request* request;
-};
-
-class HashTblBase {
- public:
-  typedef uint64_t key_type;
-  typedef mpiv_value value_type;
-
-  virtual void init() = 0;
-  virtual bool insert(const key_type& key, value_type& value) = 0;
-};
-
-typedef uint64_t mpiv_key;
-
-constexpr mpiv_key mpiv_make_key(const int& rank, const int& tag) {
+MV_INLINE static mv_key mv_make_key(const int& rank, const int& tag) {
   return (((uint64_t)rank << 32) | tag);
 }
 
-#include "hashtbl_arr.h"
+typedef void* mv_hash;
 
-};  // namespace mpiv.
+void hash_init(mv_hash** h);
+bool hash_insert(mv_hash* h, const mv_key& key, mv_value& value);
+
+#ifdef HASH_ARR
+#include "hashtbl_arr.h"
+#endif
+
 #endif

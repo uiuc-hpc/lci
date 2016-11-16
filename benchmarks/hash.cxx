@@ -1,12 +1,11 @@
 #define CONFIG_TABLE_SIZE 16
 
 #include "hashtable/hashtbl.h"
-#include "hashtable/arr_hashtbl.h"
-#include "hashtable/tbb_hashtbl.h"
-#include "hashtable/cock_hashtbl.h"
+#include "hashtable/hashtbl_arr.h"
+#include "hashtable/hashtbl_tbb.h"
+#include "hashtable/hashtbl_cock.h"
 
 #include "comm_exp.h"
-#define USE_AFFI
 #include "affinity.h"
 
 #include <thread>
@@ -39,11 +38,14 @@ cache_invalidate(void)
   }
 }
 
-template<class HASH_T, type_t whofirst>
-void benchmark_insert_with_delete() {
+typedef std::function<void(mv_hash**)> hash_init_f ;
+typedef std::function<bool(mv_hash*, const mv_key&, mv_value&)> hash_insert_f;
+
+template<typename HASH_T, type_t whofirst>
+void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert) {
   std::cout << typeid(HASH_T).name() << " " << whofirst << std::endl;
-  HASH_T my_table;
-  my_table.init();
+  mv_hash* my_table;
+  init(&my_table);
 
   double ti1, ti2;
   ti1 = ti2 = 0;
@@ -57,13 +59,12 @@ void benchmark_insert_with_delete() {
     f1 = f2 = 0;
     auto t1 = std::thread([&]{
         affinity::set_me_to_(0);
-        mpiv_value v;
-        v.v = (void*) 1;
+        mv_value v = 1;
         BARRIER(f1, NTHREADS + 1)
         if (whofirst == THREADS) BARRIER(f2, NTHREADS + 1)
         if (j >= SKIP_LARGE) ti1 -= wtime();
         for (int i = 0; i < NUM_INSERTED; i++) {
-          bool ret = my_table.insert(i, v);
+          bool ret = insert(my_table, (mv_key) i, v);
           if (whofirst == SERVER) assert(ret); else assert(!ret);
         }
         if (j >= SKIP_LARGE) ti1 += wtime();
@@ -73,15 +74,14 @@ void benchmark_insert_with_delete() {
     std::vector<std::thread> th(NTHREADS);
  
     for (int tt = 0; tt < NTHREADS; tt++) {
-    th[tt] = std::move(std::thread([tt, j, &times, &my_table, &ti2, &f1, &f2] {
+    th[tt] = std::move(std::thread([tt, j, &insert, &times, &my_table, &ti2, &f1, &f2] {
         affinity::set_me_to_(tt + 1);
-        mpiv_value v;
-        v.v = (void*) 2;
+        mv_value v = 2;
         BARRIER(f1, NTHREADS + 1)
         if (whofirst == SERVER) BARRIER(f2, NTHREADS + 1);
         if (j >= SKIP_LARGE && tt == 0) times[j - SKIP_LARGE] -= wtime();
         for (int i = tt; i < NUM_INSERTED; i+=NTHREADS) {
-          bool ret = my_table.insert(i, v);
+          bool ret = insert(my_table, (mv_key) i, v);
           if (whofirst == SERVER) assert(!ret); else assert(ret);
         }
         if (j >= SKIP_LARGE && tt == 0) times[j - SKIP_LARGE] += wtime();
@@ -139,14 +139,12 @@ int main(int argc, char** args) {
   cache_size = (8 * 1024 * 1024 / sizeof(int));
   cache_buf = (int*) malloc(sizeof(int) * cache_size);
 
-  benchmark_insert_with_delete<arr_hashtbl, SERVER>();
-  benchmark_insert_with_delete<cock_hashtbl, SERVER>();
-  benchmark_insert_with_delete<tbb_hashtbl, SERVER>();
-  // benchmark_insert_with_delete<folly_hashtbl, SERVER>();
+  benchmark_insert_with_delete<arr_hash_val, SERVER>(arr_hash_init, arr_hash_insert);
+  benchmark_insert_with_delete<ck_hash_val, SERVER>(ck_hash_init, ck_hash_insert);
+  benchmark_insert_with_delete<tbb_hash_val, SERVER>(tbb_hash_init, tbb_hash_insert);
 
-  benchmark_insert_with_delete<arr_hashtbl, THREADS>();
-  benchmark_insert_with_delete<cock_hashtbl, THREADS>();
-  benchmark_insert_with_delete<tbb_hashtbl, THREADS>();
-  // benchmark_insert_with_delete<folly_hashtbl, THREADS>();
+  benchmark_insert_with_delete<arr_hash_val, THREADS>(arr_hash_init, arr_hash_insert);
+  benchmark_insert_with_delete<ck_hash_val, THREADS>(ck_hash_init, ck_hash_insert);
+  benchmark_insert_with_delete<tbb_hash_val, THREADS>(tbb_hash_init, tbb_hash_insert);
   return 0;
 }

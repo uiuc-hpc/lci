@@ -91,8 +91,8 @@ static int size = 0;
 
 void main_task(intptr_t) {
   int i = 0;
-  r_buf1 = (char*)mpiv::malloc(MYBUFSIZE);
-  s_buf1 = (char*)mpiv::malloc(MYBUFSIZE);
+  r_buf1 = (char*)mv_malloc(MYBUFSIZE);
+  s_buf1 = (char*)mv_malloc(MYBUFSIZE);
   thread* sr_threads = new thread[MAX_THREADS];
   thread_tag_t* tags = new thread_tag_t[MAX_THREADS];
 
@@ -126,8 +126,8 @@ void main_task(intptr_t) {
           }
       }
   }
-  mpiv::free(r_buf1);
-  mpiv::free(s_buf1);
+  mv_free(r_buf1);
+  mv_free(s_buf1);
 }
 
 void recv_thread(intptr_t arg) {

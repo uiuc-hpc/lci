@@ -3,29 +3,29 @@
 
 #include "mpmcqueue.h"
 
-class PacketManagerMPMCQ : public PacketManagerBase {
+class packetManagerMPMCQ : public packetManagerBase {
  public:
   void init_worker(int) override {}
 
-  inline Packet* get_packet_nb() override {
+  inline packet* get_packet_nb() override {
     if (pool_.empty()) return 0;
-    return (Packet*)pool_.dequeue();
+    return (packet*)pool_.dequeue();
   }
 
-  inline Packet* get_packet() override {
-    Packet* p = 0;
+  inline packet* get_packet() override {
+    packet* p = 0;
     while (!(p = get_packet_nb())) ult_yield();
     return p;
   }
 
-  inline void ret_packet(Packet* packet) override {
+  inline void ret_packet(packet* packet) override {
     assert(packet != 0);
     pool_.enqueue((uint64_t)packet);
   }
 
-  inline Packet* get_for_send() override { return get_packet(); }
-  inline Packet* get_for_recv() override { return get_packet_nb(); }
-  inline void ret_packet_to(Packet* packet, int) override {
+  inline packet* get_for_send() override { return get_packet(); }
+  inline packet* get_for_recv() override { return get_packet_nb(); }
+  inline void ret_packet_to(packet* packet, int) override {
     ret_packet(packet);
   }
 
@@ -33,89 +33,89 @@ class PacketManagerMPMCQ : public PacketManagerBase {
   ppl::MPMCQueue<uint64_t> pool_;
 } __attribute__((aligned(64)));
 
-class PacketManagerLfQueue : public PacketManagerBase {
+class packetManagerLfQueue : public packetManagerBase {
  public:
   void init_worker(int){};
 
-  inline Packet* get_packet_nb() override {
-    Packet* packet = NULL;
+  inline packet* get_packet_nb() override {
+    packet* packet = NULL;
     pool_.pop(packet);
     return packet;
   }
 
-  inline Packet* get_packet() override {
-    Packet* packet = NULL;
+  inline packet* get_packet() override {
+    packet* packet = NULL;
     while (!pool_.pop(packet)) ult_yield();
     assert(packet);
     return packet;
   }
 
-  inline void ret_packet(Packet* packet) override {
+  inline void ret_packet(packet* packet) override {
     if (!pool_.push(packet)) {
       throw packet_error(
           "Fatal error, insert more than possible packets into manager");
     }
   }
 
-  inline Packet* get_for_send() override { return get_packet(); }
-  inline Packet* get_for_recv() override { return get_packet_nb(); }
-  inline void ret_packet_to(Packet* packet, int) override {
+  inline packet* get_for_send() override { return get_packet(); }
+  inline packet* get_for_recv() override { return get_packet_nb(); }
+  inline void ret_packet_to(packet* packet, int) override {
     ret_packet(packet);
   }
 
  protected:
-  boost::lockfree::queue<Packet*, boost::lockfree::capacity<MAX_CONCURRENCY>>
+  boost::lockfree::queue<packet*, boost::lockfree::capacity<MAX_CONCURRENCY>>
       pool_;
 } __attribute__((aligned(64)));
 
-class PacketManagerLfStack : public PacketManagerBase {
+class packetManagerLfStack : public packetManagerBase {
  public:
   void init_worker(int){};
 
-  inline Packet* get_packet_nb() override {
-    Packet* packet = NULL;
+  inline packet* get_packet_nb() override {
+    packet* packet = NULL;
     pool_.pop(packet);
     return packet;
   }
 
-  inline Packet* get_packet() override {
-    Packet* packet = NULL;
+  inline packet* get_packet() override {
+    packet* packet = NULL;
     while (!pool_.pop(packet)) ult_yield();
     assert(packet);
     return packet;
   }
 
-  inline void ret_packet(Packet* packet) override {
+  inline void ret_packet(packet* packet) override {
     if (!pool_.push(packet)) {
       throw packet_error(
           "Fatal error, insert more than possible packets into manager");
     }
   }
 
-  inline Packet* get_for_send() override { return get_packet(); }
-  inline Packet* get_for_recv() override { return get_packet_nb(); }
-  inline void ret_packet_to(Packet* packet, int) override {
+  inline packet* get_for_send() override { return get_packet(); }
+  inline packet* get_for_recv() override { return get_packet_nb(); }
+  inline void ret_packet_to(packet* packet, int) override {
     ret_packet(packet);
   }
 
  protected:
-  boost::lockfree::stack<Packet*, boost::lockfree::capacity<MAX_CONCURRENCY>>
+  boost::lockfree::stack<packet*, boost::lockfree::capacity<MAX_CONCURRENCY>>
       pool_;
 } __attribute__((aligned(64)));
 
-class PacketManagerNuma final : public PacketManagerLfStack {
+class packetManagerNuma final : public packetManagerLfStack {
  public:
-  using parent = PacketManagerLfStack;
+  using parent = packetManagerLfStack;
 
-  PacketManagerNuma() : nworker_(0){};
+  packetManagerNuma() : nworker_(0){};
 
-  ~PacketManagerNuma() {
+  ~packetManagerNuma() {
     for (auto& a : private_pool_) delete a;
   }
 
   void init_worker(int nworker) {
     for (int i = nworker_; i < nworker; i++) {
-      private_pool_.emplace_back(new ArrPool<Packet*>(MAX_SEND / nworker / 2));
+      private_pool_.emplace_back(new ArrPool<packet*>(MAX_SEND / nworker / 2));
     }
     nworker_ = nworker;
   }
@@ -124,16 +124,16 @@ class PacketManagerNuma final : public PacketManagerLfStack {
   using parent::get_packet;
   using parent::ret_packet;
 
-  inline Packet* get_for_send() override {
-    Packet* p = 0;
+  inline packet* get_for_send() override {
+    packet* p = 0;
     p = private_pool_[worker_id()]->popTop();
     if (!p) p = get_packet();
     p->poolid() = worker_id();
     return p;
   }
 
-  inline Packet* get_for_recv() override {
-    Packet* p = 0;
+  inline packet* get_for_recv() override {
+    packet* p = 0;
     if (!(p = get_packet_nb())) {
       int steal = rand() % nworker_;
       p = private_pool_[steal]->popBottom();
@@ -141,15 +141,15 @@ class PacketManagerNuma final : public PacketManagerLfStack {
     return p;
   }
 
-  inline void ret_packet_to(Packet* packet, int hint) override {
-    Packet* p = private_pool_[hint]->pushTop(packet);
+  inline void ret_packet_to(packet* packet, int hint) override {
+    packet* p = private_pool_[hint]->pushTop(packet);
     if (p) {
       ret_packet(p);
     }
   }
 
  private:
-  std::vector<ArrPool<Packet*>*> private_pool_;
+  std::vector<ArrPool<packet*>*> private_pool_;
   int nworker_;
 } __attribute__((aligned(64)));
 

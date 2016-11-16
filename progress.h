@@ -9,15 +9,13 @@ typedef void (*_1_arg)(void*, uint32_t, uint32_t);
 typedef void (*_2_arg)(void*, uint32_t, uint32_t, uint32_t);
 typedef void (*_3_arg)(void*, uint32_t, uint32_t, uint32_t, uint32_t);
 
-namespace mpiv {
+void mv_post_recv(packet* p);
 
-void mpiv_post_recv(Packet* p);
-
-void mpiv_recv_imm(uint32_t imm) {
+void mv_recv_imm(uint32_t imm) {
   printf("GOT ID %d\n", imm);
 }
 
-void mpiv_recv_am(Packet *p) {
+void mv_recv_am(packet *p) {
   uint8_t fid = (uint8_t) p->header().tag;
   uint32_t* buffer = (uint32_t*) p->buffer();
   uint32_t size = buffer[0];
@@ -39,102 +37,94 @@ void mpiv_recv_am(Packet *p) {
   };
 }
 
-void mpiv_complete_rndz(Packet* p, MPIV_Request* s) {
+void mv_complete_rndz(packet* p, MPIV_Request* s) {
   p->set_header(SEND_READY_FIN, MPIV.me, s->tag);
   p->set_sreq((uintptr_t)s);
   MPIV.server.write_rma(s->rank, s->buffer, MPIV.server.heap_lkey(), (void*)p->rdz_tgt_addr(),
                         p->rdz_rkey(), s->size, (void*)p);
 }
 
-void mpiv_recv_recv_ready(Packet* p) {
-  mpiv_key key = p->get_rdz_key();
-  mpiv_value value;
-  value.packet = p;
-  if (!MPIV.tbl.insert(key, value)) {
-    mpiv_complete_rndz(p, value.request);
+void mv_recv_recv_ready(packet* p) {
+  mv_key key = p->get_rdz_key();
+  mv_value value = (mv_value) p;
+  if (!hash_insert(MPIV.tbl, key, value)) {
+    mv_complete_rndz(p, (MPIV_Request*) value);
   }
 }
 
-void mpiv_recv_send_ready_fin(Packet* p_ctx) {
+void mv_recv_send_ready_fin(packet* p_ctx) {
   // Now data is already ready in the buffer.
   MPIV_Request* req = (MPIV_Request*)(p_ctx->rdz_rreq());
   startt(signal_timing);
   startt(wake_timing);
 
-  mpiv_key key = mpiv_make_key(req->rank, req->tag);
-  mpiv_value value;
-  if (!MPIV.tbl.insert(key, value)) {
+  mv_key key = mv_make_key(req->rank, req->tag);
+  mv_value value;
+  if (!hash_insert(MPIV.tbl, key, value)) {
     req->type = REQ_DONE;
     thread_signal(req->sync);
   }
   stopt(signal_timing);
-  MPIV.pkpool.ret_packet(p_ctx);
+  mv_pp_free(MPIV.pkpool, p_ctx, 0);
 }
 
-void mpiv_post_recv(Packet*);
+void mv_post_recv(packet*);
 
-void mpiv_recv_short(Packet* p) {
+void mv_recv_short(packet* p) {
   startt(misc_timing);
-  const mpiv_key key = p->get_key();
-  mpiv_value value;
-  value.packet = p;
+  const mv_key key = p->get_key();
+  mv_value value = (mv_value) p;
   stopt(misc_timing);
 
-  if (!MPIV.tbl.insert(key, value)) {
+  if (!hash_insert(MPIV.tbl, key, value)) {
     // comm-thread comes later.
-    MPIV_Request* req = value.request;
+    MPIV_Request* req = (MPIV_Request*) value;
     memcpy(req->buffer, p->buffer(), req->size);
     req->type = REQ_DONE;
     thread_signal(req->sync);
-    MPIV.pkpool.ret_packet(p);
+    mv_pp_free(MPIV.pkpool, p, 0);
   }
 }
 
-typedef void (*p_ctx_handler)(Packet* p_ctx);
+typedef void (*p_ctx_handler)(packet* p_ctx);
 static p_ctx_handler* handle;
 
-static void mpiv_progress_init() {
+static void mv_progress_init() {
   posix_memalign((void**)&handle, 64, 64);
-  handle[SEND_SHORT] = mpiv_recv_short;
-  handle[RECV_READY] = mpiv_recv_recv_ready;
-  handle[SEND_READY_FIN] = mpiv_recv_send_ready_fin;
+  handle[SEND_SHORT] = mv_recv_short;
+  handle[RECV_READY] = mv_recv_recv_ready;
+  handle[SEND_READY_FIN] = mv_recv_send_ready_fin;
   // AM.
-  handle[SEND_AM] = mpiv_recv_am;
+  handle[SEND_AM] = mv_recv_am;
 }
 
-inline void mpiv_serve_recv(Packet* p_ctx) {
-  // Packet* p_ctx = (Packet*)wc.wr_id;
+inline void mv_serve_recv(packet* p_ctx) {
+  // packet* p_ctx = (packet*)wc.wr_id;
   const auto& type = p_ctx->header().type;
   handle[type](p_ctx);
 }
 
-inline void mpiv_serve_send(Packet* p_ctx) {
+inline void mv_serve_send(packet* p_ctx) {
   // Nothing to process, return.
-  // Packet* p_ctx = (Packet*)wc.wr_id;
+  // packet* p_ctx = (packet*)wc.wr_id;
   if (!p_ctx) return;
   const auto& type = p_ctx->header().type;
-  auto poolid = p_ctx->poolid();
 
   if (type == SEND_READY_FIN) {
     MPIV_Request* req = (MPIV_Request*)p_ctx->rdz_sreq();
     MPIV.server.write_send(req->rank, p_ctx, RNDZ_MSG_SIZE, 0);
-    mpiv_key key = mpiv_make_key(req->rank, (1 << 30) | req->tag);
-    mpiv_value value;
-    if (!MPIV.tbl.insert(key, value)) {
+    mv_key key = mv_make_key(req->rank, (1 << 30) | req->tag);
+    mv_value value;
+    if (!hash_insert(MPIV.tbl, key, value)) {
       req->type = REQ_DONE;
       thread_signal(req->sync);
     }
     stopt(rdma_timing);
     // this packet is taken directly from recv queue.
-    // if (MPIV.server.need_recv()) mpiv_post_recv(p_ctx); else
-    MPIV.pkpool.ret_packet(p_ctx);
+    mv_pp_free(MPIV.pkpool, p_ctx, 0);
   } else {
-    // if (MPIV.server.need_recv()) mpiv_post_recv(p_ctx); else
-    // MPIV_Signal((MPIV_Request*) p_ctx->header().sreq);
-    MPIV.pkpool.ret_packet_to(p_ctx, poolid);
+    mv_pp_free(MPIV.pkpool, p_ctx, p_ctx->header().poolid);
   }
 }
-
-};  // namespace mpiv.
 
 #endif

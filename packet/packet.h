@@ -1,42 +1,38 @@
 #ifndef PACKET_H_
 #define PACKET_H_
 
-namespace mpiv {
+enum packetType { SEND_SHORT, SEND_READY, RECV_READY, SEND_READY_FIN, SEND_AM };
 
-enum PacketType { SEND_SHORT, SEND_READY, RECV_READY, SEND_READY_FIN, SEND_AM };
-
-struct PacketHeader {
-  PacketType type;
+struct packet_header {
+  packetType type;
   uint8_t poolid;
   int from;
   int tag;
 } __attribute__((aligned(8)));
 
-struct mpiv_rdz {
+struct mv_rdz {
   uintptr_t sreq;
   uintptr_t rreq;
   uintptr_t tgt_addr;
   uint32_t rkey;
 };
 
-union PacketContent {
+union packet_content {
   char buffer[SHORT_MSG_SIZE];
-  mpiv_rdz rdz;
+  mv_rdz rdz;
 };
 
-class Packet {
+class packet {
  public:
-  Packet() {}
+  packet() {}
 
-  inline PacketHeader& header() { return header_; }
+  inline packet_header& header() { return header_; }
 
-  inline void set_header(PacketType type, int from, int tag) {
+  inline void set_header(packetType type, int from, int tag) {
     header_.type = type;
     header_.from = from;
     header_.tag = tag;
   }
-
-  inline uint8_t& poolid() { return header_.poolid; }
 
   inline void set_bytes(const void* bytes, const int& size) {
     memcpy(content_.buffer, bytes, size);
@@ -54,10 +50,10 @@ class Packet {
 
   inline uintptr_t rdz_rkey() { return content_.rdz.rkey; }
 
-  inline mpiv_key get_key() { return mpiv_make_key(header_.from, header_.tag); }
+  inline mv_key get_key() { return mv_make_key(header_.from, header_.tag); }
 
-  inline mpiv_key get_rdz_key() {
-    return mpiv_make_key(header_.from, (1 << 31) | header_.tag);
+  inline mv_key get_rdz_key() {
+    return mv_make_key(header_.from, (1 << 31) | header_.tag);
   }
 
   inline void set_rdz(uintptr_t sreq, uintptr_t rreq, uintptr_t tgt_addr,
@@ -66,10 +62,8 @@ class Packet {
   }
 
  private:
-  PacketHeader header_;
-  PacketContent content_;
+  packet_header header_;
+  packet_content content_;
 } __attribute__((aligned(64)));
-
-};  // namespace mpiv.
 
 #endif

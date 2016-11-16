@@ -3,8 +3,6 @@
 
 #include <boost/interprocess/creation_tags.hpp>
 #include <boost/interprocess/managed_external_buffer.hpp>
-// #include <boost/lockfree/queue.hpp>
-// #include <boost/lockfree/stack.hpp>
 #include <mpi.h>
 
 #include <atomic>
@@ -21,40 +19,36 @@
 #include "rdmax.h"
 
 #include "hashtable/hashtbl.h"
-#include "packet/packet_manager.h"
+#include "packet/packet_pool.h"
 
 #include "common.h"
 
 #include "server/server.h"
 
-namespace mpiv {
-
-typedef void (*am_func_t)();
+typedef void (*mv_am_func_t)();
 
 struct Execution {
   int me;
   int size;
-  PacketManager pkpool;
   Server server;
-  HashTbl tbl;
+  mv_hash* tbl;
+  mv_pp* pkpool;
   std::vector<worker> w;
-  std::vector<am_func_t> am_table;
+  std::vector<mv_am_func_t> am_table;
 } __attribute__((aligned(64)));
 
 static Execution MPIV;
 
-void* malloc(size_t size) {
+void* mv_malloc(size_t size) {
   void* ptr = MPIV.server.allocate((size_t)size);
   if (ptr == 0) throw std::runtime_error("no more memory\n");
   return ptr;
 }
 
-void free(void* ptr) { MPIV.server.deallocate(ptr); }
-
-};  // namespace mpiv.
+void mv_free(void* ptr) { MPIV.server.deallocate(ptr); }
 
 #include "init.h"
-#include "mpi/mpi.h"
+#include "mv/mpi.h"
 #include "request.h"
 #include "ext/am.h"
 

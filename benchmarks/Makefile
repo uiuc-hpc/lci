@@ -1,6 +1,6 @@
 MPICXX = mpicxx
 GXX = gcc
-CXXFLAGS += -g3 -O3 -Wall -Wextra -std=c++11 -I../ult -I../ -DUSE_AFFI
+CXXFLAGS += -g3 -O3 -Wall -Wextra -std=c++11 -I../ult -I../ -DUSE_AFFI -funit-at-a-time
 
 ### FOR TESTING HASH TABLE ###
 #FACEBOOK_INC = -I$(HOME)/facebook/include -I$(HOME)/glog/include -I$(HOME)/folly/folly/double-conversion #-DNDEBUG
@@ -13,10 +13,10 @@ CUCKOO_INC = $(HOME)/libcuckoo/include
 CXXFLAGS += -I$(CUCKOO_INC)
 
 ### FOR TESTING TBB ###
-#TBB_INC = -I/opt/apps/intel/15/composer_xe_2015.2.164/tbb/include/
-#TBB_LIB = -ltbb -ltbbmalloc
-#LDFLAGS += $(TBB_LIB)
-#CXXFLAGS += $(TBB_INC)
+# TBB_INC = -I/opt/apps/intel/15/composer_xe_2015.2.164/tbb/include/
+# TBB_LIB = -L/opt/apps/intel/15/composer_xe_2015.2.164/tbb/lib/intel64/gcc4.1 -ltbb -ltbbmalloc
+# LDFLAGS += $(TBB_LIB)
+# CXXFLAGS += $(TBB_INC)
 
 #TACC_BOOST_INC=/home/w00d/software/boost_1_61_0/
 #TACC_BOOST_LIB=/home/w00d/software/boost_1_61_0/stage/lib
@@ -39,7 +39,7 @@ CXXFLAGS += -Wno-unused-local-typedefs
 
 RDMAX_INC = -I../rdmax/include
 IBV_INC = -I/opt/ofed/include/ -I$(HOME)/libfab/include
-IBV_LIB =  -lfabric -libverbs
+IBV_LIB =  # -lfabric -libverbs
 
 JFCONTEXT = ../ult/fult/jump_x86_64_sysv_elf_gas.S
 MFCONTEXT = ../ult/fult/make_x86_64_sysv_elf_gas.S

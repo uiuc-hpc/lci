@@ -4,48 +4,33 @@
 #include "hashtbl.h"
 #include <tbb/concurrent_hash_map.h>
 #include <unordered_map>
-class tbb_hashtbl : base_hashtbl {
- public:
-  tbb_hashtbl() : tbl_(1 << 16) {}
 
-  void init() override {}
-
-  bool insert(const key_type& key, value_type& value) override {
-    tbb::concurrent_hash_map<key_type, value_type>::accessor acc;
-    if (!tbl_.insert(acc, key)) {
-      value = acc->second;
-      tbl_.erase(acc);
-      return false;
-    } else {
-      acc->second = value;
-      return true;
-    }
-  }
-
- private:
-  tbb::concurrent_hash_map<key_type, value_type> tbl_;
+struct tbb_hash_val {
+  tbb_hash_val() : tbl_(1<<16) {}
+  tbb::concurrent_hash_map<mv_key, mv_value> tbl_;
 };
 
-#if 0
-#include <folly/AtomicHashMap.h>
-class folly_hashtbl : base_hashtbl {
- public:
-  folly_hashtbl() : tbl_(1 << 16) {}
-  void init() override {}
+void tbb_hash_init(mv_hash** hash) {
+  tbb_hash_val** h = (tbb_hash_val**) hash;
+  *h = new tbb_hash_val();
+}
 
-  bool insert(const key_type& key, value_type& value) override {
-    auto p = tbl_.insert(key, value);
-    if (!p.second) {
-      value = (*(p.first)).second;
-      tbl_.erase(key);
-      return false;
-    }
+bool tbb_hash_insert(mv_hash* hash, const mv_key& key, mv_value& value) {
+  tbb::concurrent_hash_map<mv_key, mv_value>::accessor acc;
+  tbb_hash_val* h = (tbb_hash_val*) hash;
+  if (!h->tbl_.insert(acc, key)) {
+    value = acc->second;
+    h->tbl_.erase(acc);
+    return false;
+  } else {
+    acc->second = value;
     return true;
   }
+}
 
- private:
-  folly::AtomicHashMap<key_type, value_type> tbl_;
-};
+#ifndef hash_init
+#define hash_init tbb_hash_init
+#define hash_insert tbb_hash_insert
 #endif
 
 #endif

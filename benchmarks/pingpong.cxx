@@ -38,9 +38,9 @@ int main(int argc, char** args) {
 
 void main_task(intptr_t) {
   double times = 0;
-  int rank = mpiv::MPIV.me;
-  void* r_buf = (void*)mpiv::malloc((size_t)MAX_MSG_SIZE);
-  void* s_buf = (void*)mpiv::malloc((size_t)MAX_MSG_SIZE);
+  int rank = MPIV.me;
+  void* r_buf = (void*)mv_malloc((size_t)MAX_MSG_SIZE);
+  void* s_buf = (void*)mv_malloc((size_t)MAX_MSG_SIZE);
 
   for (int size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE; size <<= 1) {
     int total = TOTAL;
@@ -82,6 +82,6 @@ void main_task(intptr_t) {
     MPIV_Barrier(MPI_COMM_WORLD);
   }
 
-  mpiv::free(r_buf);
-  mpiv::free(s_buf);
+  mv_free(r_buf);
+  mv_free(s_buf);
 }
