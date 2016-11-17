@@ -39,7 +39,7 @@ MV_INLINE void proto_recv_short(void* buffer, int size, int rank, int tag,
     stopt(memcpy_timing);
 
     startt(post_timing);
-    mv_pp_free(MPIV.pkpool, p_ctx, worker_id());
+    mv_pp_free(MPIV.pkpool, p_ctx, worker_id() + 1);
     stopt(post_timing);
   } else {
     thread_wait(s->sync);

@@ -16,7 +16,7 @@ inline void proto_req_recv_short_init(MPIV_Request* s) {
   if (!hash_insert(MPIV.tbl, key, value)) {
     packet* p_ctx = (packet*) value;
     memcpy(s->buffer, p_ctx->buffer(), s->size);
-    mv_pp_free(MPIV.pkpool, p_ctx, worker_id());
+    mv_pp_free(MPIV.pkpool, p_ctx, worker_id() + 1);
     s->type = REQ_DONE;
     s->sync->count--;
   } else { 

@@ -33,7 +33,7 @@ struct arr_hash_val {
       arr_hash_val* next;
     } control;
   };
-};
+} __attribute__((aligned(64)));
 
 inline void arr_hash_init(mv_hash** h) {
   arr_hash_val** hv = (arr_hash_val**) h;

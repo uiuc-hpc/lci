@@ -11,79 +11,72 @@ void ns_pp_init(mv_pp**);
 void ns_pp_destroy(mv_pp*);
 void ns_pp_ext(mv_pp*, int nworker);
 
-void ns_pp_free(mv_pp*, packet*, int pid);
+MV_INLINE void ns_pp_free(mv_pp*, packet*, int pid);
 MV_INLINE packet* ns_pp_alloc_send(mv_pp*);
 MV_INLINE packet* ns_pp_alloc_recv_nb(mv_pp*);
 
-template<class T> class ArrPool;
-
-template <class T>
-class ArrPool {
- public:
-  static const size_t MAX_SIZE = (1 << 12);
-  ArrPool(size_t max_size)
+#define MAX_SIZE (1<<12)
+struct dequeue {
+  dequeue(size_t max_size)
       : flag(MV_SPIN_UNLOCKED),
         max_size_(max_size),
-        top_(0),
-        bottom_(0),
-        container_(new T[MAX_SIZE]) {
-    memset(container_, 0, MAX_SIZE * sizeof(T));
+        top(0),
+        bot(0) {
+    container = (void**) malloc(MAX_SIZE);
+    memset(container, 0, MAX_SIZE);
   }
-
-  ~ArrPool() { delete[] container_; }
-
-  MV_INLINE T popTop() {
-    T ret = 0;
-    mv_spin_lock(&flag);
-    if (top_ != bottom_) {
-      top_ = (top_ + MAX_SIZE - 1) & (MAX_SIZE - 1);
-      ret = container_[top_];
-    }
-    mv_spin_unlock(&flag);
-    return ret;
-  };
-
-  MV_INLINE T pushTop(T p) {
-    T ret = 0;
-    mv_spin_lock(&flag);
-    container_[top_] = p;
-    top_ = (top_ + 1) & (MAX_SIZE - 1);
-    if (((top_ + MAX_SIZE - bottom_) & (MAX_SIZE - 1)) > max_size_) {
-      ret = container_[bottom_];
-      bottom_ = (bottom_ + 1) & (MAX_SIZE - 1);
-    }
-    mv_spin_unlock(&flag);
-    return ret;
-  };
-
-  MV_INLINE T popBottom() {
-    T ret = 0;
-    mv_spin_lock(&flag);
-    if (top_ != bottom_) {
-      ret = container_[bottom_];
-      bottom_ = (bottom_ + 1) & (MAX_SIZE - 1);
-    }
-    mv_spin_unlock(&flag);
-    return ret;
-  };
-
- private:
-  volatile int flag;
+  ~dequeue() { free(container); }
+  volatile int flag __attribute__((aligned(64)));
   size_t max_size_;
-  size_t top_;
-  size_t bottom_;
-  T* container_;
+  size_t top;
+  size_t bot;
+  void** container;
 } __attribute__((aligned(64)));
 
+MV_INLINE void* dq_pop_top(dequeue* deq) {
+  void* ret = NULL;
+  mv_spin_lock(&deq->flag);
+  if (deq->top != deq->bot) {
+    deq->top = (deq->top + MAX_SIZE - 1) & (MAX_SIZE - 1);
+    ret = deq->container[deq->top];
+  }
+  mv_spin_unlock(&deq->flag);
+  return ret;
+};
+
+MV_INLINE void* dq_push_top(dequeue* deq, void* p) {
+  void* ret = NULL;
+  mv_spin_lock(&deq->flag);
+  deq->container[deq->top] = p;
+  deq->top = (deq->top + 1) & (MAX_SIZE - 1);
+  if (((deq->top + MAX_SIZE - deq->bot) & (MAX_SIZE - 1)) > deq->max_size_) {
+    ret = deq->container[deq->bot];
+    deq->bot = (deq->bot + 1) & (MAX_SIZE - 1);
+  }
+  mv_spin_unlock(&deq->flag);
+  return ret;
+};
+
+MV_INLINE void* dq_pop_bot(dequeue* deq) {
+  void* ret = NULL;
+  mv_spin_lock(&deq->flag);
+  if (deq->top != deq->bot) {
+    ret = deq->container[deq->bot];
+    deq->bot = (deq->bot + 1) & (MAX_SIZE - 1);
+  }
+  mv_spin_unlock(&deq->flag);
+  return ret;
+};
+
 struct ns_pp {
-  std::vector<ArrPool<packet*>*> prv_pool;
+  std::vector<dequeue*> prv_pool;
   int nworker_;
 } __attribute__((aligned(64)));
 
 inline void ns_pp_init(mv_pp** pp_) {
   ns_pp** pp = (ns_pp**) pp_;
   *pp = new ns_pp();
-  (*pp)->prv_pool.emplace_back(new ArrPool<packet*>(MAX_CONCURRENCY));
+  (*pp)->prv_pool.emplace_back(new dequeue(MAX_CONCURRENCY));
   (*pp)->nworker_ = 0;
 }
 #undef mv_pp_init
@@ -92,7 +85,7 @@ inline void ns_pp_init(mv_pp** pp_) {
 inline void ns_pp_ext(mv_pp* pp_, int nworker) {
   ns_pp* pp = (ns_pp*) pp_;
   for (int i = pp->nworker_; i < nworker; i++) {
-    pp->prv_pool.emplace_back(new ArrPool<packet*>(MAX_CONCURRENCY));
+    pp->prv_pool.emplace_back(new dequeue(MAX_CONCURRENCY));
   }
   pp->nworker_ = nworker;
 }
@@ -107,26 +100,25 @@ inline void ns_pp_destroy(mv_pp* mv_pp_) {
 #undef mv_pp_destroy
 #define mv_pp_destroy ns_pp_destroy
 
-void ns_pp_free(mv_pp* mv_pp_, packet* p, const int where) ;
-
-inline void ns_pp_free(mv_pp* mv_pp_, packet* p, const int where) {
+MV_INLINE void ns_pp_free(mv_pp* mv_pp_, packet* p, int where = 0) {
   ns_pp* pp = (ns_pp*) mv_pp_;
-  pp->prv_pool[where]->pushTop(p);
+  dq_push_top(pp->prv_pool[where], p);
 }
 #undef mv_pp_free
 #define mv_pp_free ns_pp_free
 
 MV_INLINE packet* ns_pp_alloc_send(mv_pp* mv_pp_) {
   ns_pp* pp = (ns_pp*) mv_pp_;
-  packet* p = pp->prv_pool[worker_id() + 1]->popTop();
+  const int pid = worker_id() + 1;
+  packet* p = (packet*) dq_pop_top(pp->prv_pool[pid]);
   while (!p) {
-    p = pp->prv_pool[worker_id() + 1]->popTop();
+    p = (packet*) dq_pop_top(pp->prv_pool[pid]);
     for (int steal = 0; steal < pp->nworker_ + 1; steal++) {
-      p = pp->prv_pool[steal]->popBottom();
+      p = (packet*) dq_pop_bot(pp->prv_pool[steal]);
       if (p) break;
     }
   }
-  p->header().poolid = worker_id() + 1;
+  p->header().poolid = pid;
   return p;
 }
 #undef mv_pp_alloc_send
@@ -134,11 +126,11 @@ MV_INLINE packet* ns_pp_alloc_send(mv_pp* mv_pp_) {
 
 MV_INLINE packet* ns_pp_alloc_recv_nb(mv_pp* mv_pp_) {
   ns_pp* pp = (ns_pp*) mv_pp_;
-  packet* p = pp->prv_pool[0]->popTop();
+  packet* p = (packet*) dq_pop_top(pp->prv_pool[0]);
   if (!p) {
-    p = pp->prv_pool[0]->popTop();
+    p = (packet*) dq_pop_top(pp->prv_pool[0]);
     for (int steal = 1; steal < pp->nworker_ + 1; steal++) {
-      p = pp->prv_pool[steal]->popBottom();
+      p = (packet*) dq_pop_bot(pp->prv_pool[steal]);
       if (p) break;
     }
   }

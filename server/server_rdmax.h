@@ -4,25 +4,25 @@
 class ServerRdmax : ServerBase {
  public:
   ServerRdmax() : stop_(false), done_init_(false) {}
-  inline void init(mv_pp* pkpool, int& rank, int& size);
-  inline void post_recv(packet* p);
-  inline void serve();
-  inline void finalize();
-  inline void write_send(int rank, void* buf, size_t size, void* ctx);
-  inline void write_rma(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
+  MV_INLINE void init(mv_pp* pkpool, int& rank, int& size);
+  MV_INLINE void post_recv(packet* p);
+  MV_INLINE void serve();
+  MV_INLINE void finalize();
+  MV_INLINE void write_send(int rank, void* buf, size_t size, void* ctx);
+  MV_INLINE void write_rma(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
                         size_t size, void* ctx);
-  inline void write_rma_signal(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
+  MV_INLINE void write_rma_signal(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
                         size_t size, uint32_t sid, void* ctx);
-  inline void* allocate(size_t s);
-  inline void deallocate(void* ptr);
-  inline uint32_t heap_rkey() { return heap_.rkey(); }
-  inline uint32_t heap_lkey() { return heap_.lkey(); }
-  inline uint32_t heap_rkey(int node) { return conn[node].rkey(); }
-  inline uint32_t sbuf_lkey() { return sbuf_.lkey(); }
-  inline uint32_t sbuf_rkey() { return sbuf_.rkey(); }
+  MV_INLINE void* allocate(size_t s);
+  MV_INLINE void deallocate(void* ptr);
+  MV_INLINE uint32_t heap_rkey() { return heap_.rkey(); }
+  MV_INLINE uint32_t heap_lkey() { return heap_.lkey(); }
+  MV_INLINE uint32_t heap_rkey(int node) { return conn[node].rkey(); }
+  MV_INLINE uint32_t sbuf_lkey() { return sbuf_.lkey(); }
+  MV_INLINE uint32_t sbuf_rkey() { return sbuf_.rkey(); }
 
  private:
-  inline bool progress();
+  MV_INLINE bool progress();
   std::thread poll_thread_;
   volatile bool stop_;
   volatile bool done_init_;
@@ -81,13 +81,13 @@ void ServerRdmax::init(mv_pp* pkpool, int& rank, int& size) {
   done_init_ = true;
 }
 
-void ServerRdmax::post_recv(packet* p) {
+MV_INLINE void ServerRdmax::post_recv(packet* p) {
   if (p == NULL) return;
   recv_posted_++;
   dev_ctx_->post_srq_recv((void*)p, (void*)p, sizeof(packet), sbuf_.lkey());
 }
 
-bool ServerRdmax::progress() {  // profiler& p, long long& r, long long &s) {
+MV_INLINE bool ServerRdmax::progress() {  // profiler& p, long long& r, long long &s) {
   initt(t);
   startt(t);
   bool ret = (dev_rcq_.poll_once([this](const ibv_wc& wc) {
@@ -129,25 +129,25 @@ void ServerRdmax::serve() {
   });
 }
 
-void ServerRdmax::write_send(int rank, void* buf, size_t size, void* ctx) {
+MV_INLINE void ServerRdmax::write_send(int rank, void* buf, size_t size, void* ctx) {
   conn[rank].write_send(buf, size, sbuf_.lkey(), ctx);
 }
 
-void ServerRdmax::write_rma(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
+MV_INLINE void ServerRdmax::write_rma(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
                             size_t size, void* ctx) {
   conn[rank].write_rdma(from, lkey, to, rkey, size, ctx);
 }
 
-void ServerRdmax::write_rma_signal(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
+MV_INLINE void ServerRdmax::write_rma_signal(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
                             size_t size, uint32_t sid, void* ctx) {
   conn[rank].write_rdma_imm(from, lkey, to, rkey, size, sid, ctx);
 }
 
-void* ServerRdmax::allocate(size_t s) { return heap_segment.allocate(s); }
+MV_INLINE void* ServerRdmax::allocate(size_t s) { return heap_segment.allocate(s); }
 
-void ServerRdmax::deallocate(void* ptr) { heap_segment.deallocate(ptr); }
+MV_INLINE void ServerRdmax::deallocate(void* ptr) { heap_segment.deallocate(ptr); }
 
-void ServerRdmax::finalize() {
+MV_INLINE void ServerRdmax::finalize() {
   stop_ = true;
   poll_thread_.join();
   dev_scq_.finalize();

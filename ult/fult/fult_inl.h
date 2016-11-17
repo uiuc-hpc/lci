@@ -1,6 +1,8 @@
 #ifndef FULT_INL_H_
 #define FULT_INL_H_
 
+#include "macro.h"
+
 // Fthread.
 
 #define MUL64(x) ((x) << 6)
@@ -10,7 +12,7 @@
 #define MUL8(x) ((x) << 3)
 #define MOD_POW2(x, y) ((x) & ((y)-1))
 
-inline void fthread::init(ffunc myfunc, intptr_t data, size_t stack_size) {
+MV_INLINE void fthread::init(ffunc myfunc, intptr_t data, size_t stack_size) {
   if (stack.sp == NULL) {
     fthread_stack.allocate(stack, stack_size);
   }
@@ -20,20 +22,20 @@ inline void fthread::init(ffunc myfunc, intptr_t data, size_t stack_size) {
   state_ = CREATED;
 }
 
-inline void fthread::yield() {
+MV_INLINE void fthread::yield() {
   state_ = YIELD;
   ctx_.swap_ctx_parent();
 }
 
-inline void fthread::wait() {
+MV_INLINE void fthread::wait() {
   state_ = BLOCKED;
   ctx_.swap_ctx_parent();
 }
 
-inline void fthread::resume() { origin_->schedule(id_); }
-inline void fthread::fin() { origin_->fin(id_); }
+MV_INLINE void fthread::resume() { origin_->schedule(id_); }
+MV_INLINE void fthread::fin() { origin_->fin(id_); }
 
-inline void fthread::join() {
+MV_INLINE void fthread::join() {
   while (state_ != INVALID) {
     tlself.thread->yield();
   }
@@ -41,20 +43,20 @@ inline void fthread::join() {
 
 int fthread::get_worker_id() { return origin_->id_; }
 
-inline void fthread::start() {
+MV_INLINE void fthread::start() {
   myfunc_(data_);
   state_ = INVALID;
   ctx_.swap_ctx_parent();
 }
 
-inline void fwrapper(intptr_t args) {
+MV_INLINE void fwrapper(intptr_t args) {
   fthread* ff = (fthread*)args;
   ff->start();
 }
 
 /// Fworker.
 
-inline fworker::fworker() {
+MV_INLINE fworker::fworker() {
   stop_ = true;
   posix_memalign((void**)&thread_, 64, sizeof(fthread) * NMASK * WORDSIZE);
   for (int i = 0; i < NMASK; i++) mask_[i] = 0;
@@ -71,9 +73,9 @@ inline fworker::fworker() {
   thread_pool_lock_.clear();
 }
 
-inline fworker::~fworker() { free((void*)thread_); }
+MV_INLINE fworker::~fworker() { free((void*)thread_); }
 
-inline void fworker::fin(int id) {
+MV_INLINE void fworker::fin(int id) {
   SPIN_LOCK(thread_pool_lock_);
   thread_pool_.push(&thread_[id]);
   SPIN_UNLOCK(thread_pool_lock_);
@@ -90,7 +92,7 @@ fthread* fworker::spawn(ffunc f, intptr_t data, size_t stack_size) {
   return fthread_new(t->id(), f, data, stack_size);
 }
 
-inline void fworker::work(fthread* f) {
+MV_INLINE void fworker::work(fthread* f) {
   if (xunlikely(f->state_ == INVALID)) return;
   tlself.thread = f;
   ctx_.swap_ctx(f->ctx(), (intptr_t)f);
@@ -101,7 +103,7 @@ inline void fworker::work(fthread* f) {
     f->fin();
 }
 
-inline void fworker::schedule(const int id) {
+MV_INLINE void fworker::schedule(const int id) {
   sync_set_bit(MOD_POW2(id, WORDSIZE), &mask_[DIV64(id)]);
 #ifdef USE_L1_MASK
   sync_set_bit(DIV512(MOD_POW2(id, 32768)), &l1_mask[DIV32768(id)]);
@@ -119,7 +121,7 @@ fthread* fworker::fthread_new(const int id, ffunc f, intptr_t data,
   return (fthread*)&thread_[id];
 }
 
-static inline int pop_work(unsigned long& mask) {
+static MV_INLINE int pop_work(unsigned long& mask) {
   auto id = find_first_set(mask);
   bit_flip(mask, id);
   return id;
@@ -130,7 +132,7 @@ fworker * random_worker();
 #endif
 
 #ifndef USE_L1_MASK
-inline void fworker::wfunc(fworker* w) {
+MV_INLINE void fworker::wfunc(fworker* w) {
   w->id_ = nfworker_.fetch_add(1);
   tlself.worker = w;
 #ifdef USE_AFFI
@@ -196,7 +198,7 @@ inline void fworker::wfunc(fworker* w) {
 
 #else
 
-inline void fworker::wfunc(fworker* w) {
+MV_INLINE void fworker::wfunc(fworker* w) {
   w->id_ = nfworker_.fetch_add(1);
   tlself.worker = w;
 #ifdef USE_AFFI

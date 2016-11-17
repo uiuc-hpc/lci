@@ -65,7 +65,7 @@ void mv_recv_send_ready_fin(packet* p_ctx) {
     thread_signal(req->sync);
   }
   stopt(signal_timing);
-  mv_pp_free(MPIV.pkpool, p_ctx, 0);
+  mv_pp_free(MPIV.pkpool, p_ctx);
 }
 
 void mv_post_recv(packet*);
@@ -82,7 +82,7 @@ void mv_recv_short(packet* p) {
     memcpy(req->buffer, p->buffer(), req->size);
     req->type = REQ_DONE;
     thread_signal(req->sync);
-    mv_pp_free(MPIV.pkpool, p, 0);
+    mv_pp_free(MPIV.pkpool, p);
   }
 }
 
@@ -121,7 +121,7 @@ inline void mv_serve_send(packet* p_ctx) {
     }
     stopt(rdma_timing);
     // this packet is taken directly from recv queue.
-    mv_pp_free(MPIV.pkpool, p_ctx, 0);
+    mv_pp_free(MPIV.pkpool, p_ctx);
   } else {
     mv_pp_free(MPIV.pkpool, p_ctx, p_ctx->header().poolid);
   }
