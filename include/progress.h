@@ -38,7 +38,7 @@ void mv_recv_am(packet *p) {
 }
 
 void mv_complete_rndz(packet* p, MPIV_Request* s) {
-  p->header = {SEND_READY_FIN, MPIV.me, 0, s->tag};
+  p->header = {SEND_READY_FIN, 0, MPIV.me, s->tag};
   p->content.rdz.sreq = (uintptr_t)s;
   MPIV.server.write_rma(s->rank, s->buffer,
           MPIV.server.heap_lkey(), (void*)p->content.rdz.tgt_addr,
@@ -81,7 +81,7 @@ void mv_recv_short(packet* p) {
     // comm-thread comes later.
     MPIV_Request* req = (MPIV_Request*) value;
     memcpy(req->buffer, p->content.buffer, req->size);
-    req->type = REQ_DONE;
+    if (req->type != REQ_NULL) req->type = REQ_DONE;
     thread_signal(req->sync);
     mv_pp_free(MPIV.pkpool, p);
   }

@@ -1,6 +1,8 @@
 #ifndef ULT_H_
 #define ULT_H_
 
+#include "macro.h"
+
 #define xlikely(x) __builtin_expect((x), 1)
 #define xunlikely(x) __builtin_expect((x), 0)
 
@@ -15,7 +17,6 @@ class ult_base {
   virtual void join() = 0;
   virtual void cancel() = 0;
 };
-
 
 #ifdef USE_ABT
 #include "abt/abt.h"
@@ -33,16 +34,16 @@ using worker = fworker;
 
 using thread_sync = fthread;
 
-inline thread_sync* thread_sync_get(int count = -1) {
+MV_INLINE thread_sync* thread_sync_get(int count = -1) {
   tlself.thread->count = count;
   return tlself.thread;
 }
 
-inline void thread_wait(thread_sync*) {
+MV_INLINE void thread_wait(thread_sync*) {
   tlself.thread->wait();
 }
 
-inline void thread_signal(thread_sync* sync) {
+MV_INLINE void thread_signal(thread_sync* sync) {
   fthread* thread = sync;
   // smaller than 0 means no counter, saving abit cycles and data.
   if (thread->count < 0 || thread->count.fetch_sub(1) - 1 == 0) {
@@ -53,19 +54,16 @@ inline void thread_signal(thread_sync* sync) {
 #endif
 #endif
 
-inline void ult_yield()
-{                        
-  if (tlself.thread != NULL) 
-    tlself.thread->yield();  
-  else                   
-    sched_yield();       
-}
+#define ult_yield() tlself.thread->yield() 
 
-inline void ult_wait() 
-{ tlself.thread->wait(); }
+#define ult_wait() tlself.thread->wait()
 
-inline int worker_id() {
-  return ((tlself.worker != NULL)?(tlself.worker->id()):-1);
+__thread int cache_wid= -1;
+
+MV_INLINE int worker_id() {
+  if (unlikely(cache_wid == -1))
+    cache_wid = tlself.worker->id();
+  return cache_wid;
 }
 
 #endif

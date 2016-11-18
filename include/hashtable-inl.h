@@ -17,7 +17,7 @@ int hash_insert(mv_hash* h, mv_key key, mv_value* value);
 #include "lock.h"
 #include "macro.h"
 
-static inline uint32_t myhash(const uint64_t k);
+static MV_INLINE uint32_t myhash(const uint64_t k);
 static const uint64_t EMPTY = (uint64_t)-1;
 static const int TBL_BIT_SIZE = 8;
 static const int TBL_WIDTH = 4;
@@ -29,7 +29,7 @@ typedef struct hash_val {
       uintptr_t val;
     } entry;
     struct {
-      volatile int lock;
+      volatile int lock __attribute__((aligned(8)));
       struct hash_val* next;
     } control;
   };
@@ -38,15 +38,15 @@ typedef struct hash_val {
 static inline hash_val* create_table(size_t num_rows);
 
 void hash_init(mv_hash** h) {
-  hash_val** hv = (hash_val**) h;
+  struct hash_val** hv = (struct hash_val**) h;
   *hv = create_table(1 << TBL_BIT_SIZE);
 }
 
 int hash_insert(mv_hash* h, mv_key key, mv_value* value) {
-  hash_val* tbl_ = (hash_val*) h;
+  struct hash_val* tbl_ = (struct hash_val*) h;
 
-  uint32_t hash = myhash(key);
-  int bucket = hash * TBL_WIDTH;
+  const uint32_t hash = myhash(key);
+  const int bucket = hash * TBL_WIDTH;
   int checked_slot = 0;
 
   hash_val* master = &tbl_[bucket];
@@ -107,7 +107,7 @@ static const uint32_t Seed = 0x811C9DC5;   // 2166136261
 #define TINY_MASK(x) (((uint32_t)1 << (x)) - 1)
 #define FNV1_32_INIT ((uint32_t)2166136261)
 
-static inline uint32_t myhash(const uint64_t k) {
+static MV_INLINE uint32_t myhash(const uint64_t k) {
   uint32_t hash = ((k & 0xff) ^ Seed) * Prime;
   hash = (((k >> 8) & 0xff) ^ hash) * Prime;
   hash = (((k >> 16) & 0xff) ^ hash) * Prime;
@@ -122,10 +122,9 @@ static inline uint32_t myhash(const uint64_t k) {
 }
 
 static inline hash_val* create_table(size_t num_rows) {
-    hash_val* ret = NULL;
-    assert(posix_memalign((void**)&(ret), 64,
-                num_rows * TBL_WIDTH * sizeof(hash_val)) == 0);
-
+  hash_val* ret = NULL;
+  assert(posix_memalign((void**)&(ret), 64,
+        num_rows * TBL_WIDTH * sizeof(hash_val)) == 0);
 
   // Initialize all with EMPTY and clear lock.
   for (size_t i = 0; i < num_rows; i++) {

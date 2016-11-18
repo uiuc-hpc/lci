@@ -8,7 +8,7 @@ enum packetType { SEND_SHORT, SEND_READY, RECV_READY, SEND_READY_FIN, SEND_AM };
 
 struct packet_header {
   enum packetType type;
-  uint8_t poolid;
+  int poolid;
   int from;
   int tag;
 } __attribute__((aligned(8)));

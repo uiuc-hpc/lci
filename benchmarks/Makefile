@@ -1,6 +1,6 @@
 MPICXX = mpicxx 
 GXX = gcc
-CXXFLAGS += -g -ggdb -O3 -Wall -Wextra -std=c++11 -I../ult -I../include -I../ -DUSE_AFFI
+CXXFLAGS += -g -ggdb -O3 -Wall -flto -Wextra -std=c++11 -I../ult -I../include -I../ -DUSE_AFFI
 
 ### FOR TESTING HASH TABLE ###
 #FACEBOOK_INC = -I$(HOME)/facebook/include -I$(HOME)/glog/include -I$(HOME)/folly/folly/double-conversion #-DNDEBUG
@@ -18,8 +18,8 @@ CXXFLAGS += -I$(CUCKOO_INC)
 # LDFLAGS += $(TBB_LIB)
 # CXXFLAGS += $(TBB_INC)
 
-TACC_BOOST_INC=/home/w00d/software/boost_1_61_0/
-TACC_BOOST_LIB=/home/w00d/software/boost_1_61_0/stage/lib
+# TACC_BOOST_INC=/home/w00d/software/boost_1_61_0/
+# TACC_BOOST_LIB=/home/w00d/software/boost_1_61_0/stage/lib
 
 BOOST_INC = -I$(TACC_BOOST_INC) #/usr/local/boost/1.58.0/include
 BOOST_LIB = -L$(TACC_BOOST_LIB)
@@ -65,6 +65,7 @@ abx_%: abx_%.cxx
 	$(MPICXX) $(CXXFLAGS_NOBOOST) $^ -o $@ -L$(ABT_LIB)
 
 %: %.cxx
+	make clean -C ../src && make -C ../src
 	$(MPICXX) $(CXXFLAGS) $(LDFLAGS) $^ ../src/libmv.a -o $@
 
 %_abt: CXXFLAGS+=-DUSE_ABT

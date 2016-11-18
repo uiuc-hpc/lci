@@ -10,8 +10,8 @@ MV_INLINE void mv_recv(void*, size_t, int, int);
 MV_INLINE void proto_recv_rndz(void* buffer, int, int rank, int tag,
                             MPIV_Request* s) {
   startt(misc_timing);
-  packet* p = mv_pp_alloc(MPIV.pkpool, worker_id() + 1);
-  p->header = {RECV_READY, worker_id() + 1, MPIV.me, tag};
+  packet* p = mv_pp_alloc(MPIV.pkpool, 0);
+  p->header = {RECV_READY, 0, MPIV.me, tag};
   p->content.rdz = {0, (uintptr_t) s, (uintptr_t) buffer, MPIV.server.heap_rkey()};
   MPIV.server.write_send(rank, p, RNDZ_MSG_SIZE, p);
   stopt(misc_timing);
@@ -23,12 +23,11 @@ MV_INLINE void proto_recv_short(void* buffer, int size, int rank, int tag,
   mv_value value = (mv_value) s;
 
   // Find if the message has arrived, if not go and make a request.
-  if (!hash_insert(MPIV.tbl, key, &value)) {
+  if (likely(!hash_insert(MPIV.tbl, key, &value))) {
     packet* p_ctx = (packet*) value;
     startt(memcpy_timing);
     memcpy(buffer, p_ctx->content.buffer, size);
     stopt(memcpy_timing);
-
     startt(post_timing);
     mv_pp_free_to(MPIV.pkpool, p_ctx, worker_id() + 1);
     stopt(post_timing);
@@ -43,6 +42,7 @@ MV_INLINE void mv_recv(void* buffer, size_t size, int rank, int tag) {
 #endif
   MPIV_Request s(buffer, size, rank, tag);
   s.sync = thread_sync_get();
+  s.type = REQ_NULL;
 
   if ((size_t)size <= SHORT_MSG_SIZE) {
     proto_recv_short(buffer, size, rank, tag, &s);

@@ -10,6 +10,7 @@
  */
 
 #include "mpiv.h"
+#include "ult/ult.h"
 #include <atomic>
 #include <unistd.h>
 #include <stdlib.h>

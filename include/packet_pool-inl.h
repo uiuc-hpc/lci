@@ -111,7 +111,6 @@ struct packet* mv_pp_alloc(mv_pp* mv_pp_, int pid) {
   struct mv_pp* pp = (struct mv_pp*) mv_pp_;
   struct packet* p = (struct packet*) dq_pop_top(pp->prv_pool[pid]);
   while (!p) {
-    p = (struct packet*) dq_pop_top(pp->prv_pool[pid]);
     for (int steal = 0; steal < pp->nworker_ + 1; steal++) {
       p = (struct packet*) dq_pop_bot(pp->prv_pool[steal]);
       if (p) break;
@@ -124,7 +123,6 @@ struct packet* mv_pp_alloc_nb(mv_pp* mv_pp_, int pid) {
   struct mv_pp* pp = (struct mv_pp*) mv_pp_;
   struct packet* p = (struct packet*) dq_pop_top(pp->prv_pool[pid]);
   if (!p) {
-    p = (struct packet*) dq_pop_top(pp->prv_pool[pid]);
     for (int steal = 1; steal < pp->nworker_ + 1; steal++) {
       p = (struct packet*) dq_pop_bot(pp->prv_pool[steal]);
       if (p) break;

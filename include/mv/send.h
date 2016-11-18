@@ -20,19 +20,20 @@ MV_INLINE void proto_send_rdz(MPIV_Request* s) {
 }
 
 MV_INLINE void proto_send_short(const void* buffer, int size, int rank, int tag) {
-  packet* packet = mv_pp_alloc(MPIV.pkpool, worker_id() + 1);
-  packet->header = {SEND_SHORT, worker_id() + 1, MPIV.me, tag};
+  // Get from my pool.
+  const int pid = worker_id() + 1;
+  packet* packet = mv_pp_alloc(MPIV.pkpool, pid);
+  packet->header = {SEND_SHORT, pid, MPIV.me, tag};
   
   // This is a short message, we send them immediately and do not yield
   // or create a request for it.
   // Copy the buffer.
   memcpy(packet->content.buffer, buffer, size);
-  // packet->header().sreq = (intptr_t) s;
 
   MPIV.server.write_send(
       rank, (void*)packet,
-      std::max((size_t)8, (size_t)size) + sizeof(packet_header),
-      (void*)(packet));
+      (size_t) (size + sizeof(packet_header)),
+      (void*) (packet));
 }
 
 MV_INLINE void mv_send(const void* buffer, size_t size, int rank, int tag) {
