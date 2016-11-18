@@ -57,21 +57,24 @@ inline void fwrapper(intptr_t args) {
 
 /// Fworker.
 
-inline void fworker_init(fworker* w) {
-  w->stop = true;
-  posix_memalign((void**)&w->threads, 64, sizeof(fthread) * NMASK * WORDSIZE);
-  for (int i = 0; i < NMASK; i++) w->mask[i] = 0;
+inline void fworker_init(fworker** w) {
+  // posix_memalign((void**) w, 64, sizeof(fworker));
+  *w = new fworker();
+  (*w)->stop = true;
+  // (*w)->threads = (fthread*) malloc(sizeof(fthread) * NMASK * WORDSIZE);
+  posix_memalign((void**)&((*w)->threads), 64, sizeof(fthread) * NMASK * WORDSIZE);
+  for (int i = 0; i < NMASK; i++) (*w)->mask[i] = 0;
 #ifdef USE_L1_MASK
-  for (int i = 0; i < 8; i++) w->l1_mask[i] = 0;
+  for (int i = 0; i < 8; i++) (*w)->l1_mask[i] = 0;
 #endif
   // Add all free slot.
-  memset(w->threads, 0, sizeof(fthread) * (NMASK * WORDSIZE));
+  memset((*w)->threads, 0, sizeof(fthread) * (NMASK * WORDSIZE));
   for (int i = (int)(NMASK * WORDSIZE) - 1; i >= 0; i--) {
-    w->threads[i].origin_ = w;
-    w->threads[i].id_ = i;
-    w->thread_pool.push(&w->threads[i]);
+    (*w)->threads[i].origin_ = *w;
+    (*w)->threads[i].id_ = i;
+    (*w)->thread_pool.push(&((*w)->threads[i]));
   }
-  w->thread_pool_lock = MV_SPIN_UNLOCKED;
+  (*w)->thread_pool_lock = MV_SPIN_UNLOCKED;
 }
 
 inline void fworker_destroy(fworker* w) { free((void*)w->threads); }

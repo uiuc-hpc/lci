@@ -55,18 +55,17 @@ void MPIV_Start_worker(int number, intptr_t arg = 0) {
   mv_worker_init(&MPIV.w[0]);
   for (size_t i = 1; i < MPIV.w.size(); i++) {
     mv_worker_init(&MPIV.w[i]);
-    mv_worker_start(&MPIV.w[i]);
+    mv_worker_start(MPIV.w[i]);
   }
-
-  mv_worker_start_main(&MPIV.w[0], mv_main_task, arg);
+  mv_worker_start_main(MPIV.w[0], mv_main_task, arg);
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-mv_thread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg) {
-  return mv_worker_spawn(&MPIV.w[wid % MPIV.w.size()], func, arg);
+mv_thread MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg) {
+  return mv_worker_spawn(MPIV.w[wid % MPIV.w.size()], func, arg);
 }
 
-void MPIV_join(mv_thread* ult) { ult->join(); }
+void MPIV_join(mv_thread ult) { mv_join(ult); }
 
 void MPIV_Finalize() {
 #ifndef DISABLE_COMM

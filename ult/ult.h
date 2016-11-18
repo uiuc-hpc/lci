@@ -20,8 +20,8 @@ using thread = pthread_thread_t;
 using worker = pthread_worker;
 #else
 #include "fult/fult.h"
-typedef fthread mv_thread;
-typedef fworker mv_worker;
+typedef fthread* mv_thread;
+typedef fworker* mv_worker;
 typedef fthread mv_sync;
 
 #define mv_worker_spawn fworker_spawn
@@ -35,6 +35,11 @@ typedef fthread mv_sync;
 #define mv_worker_stop_main fworker_stop_main
 #define mv_worker_id fworker_id
 
+MV_INLINE void mv_join(mv_thread thread) {
+  fthread* t = (fthread*) thread;
+  t->join();
+}
+
 MV_INLINE mv_sync* mv_get_sync() {
   tlself.thread->count = -1;
   return tlself.thread;
@@ -46,14 +51,14 @@ MV_INLINE mv_sync* mv_get_counter(int count) {
 }
 
 MV_INLINE void thread_wait(mv_sync* sync) {
-  fthread* thread = sync;
+  fthread* thread = (fthread*) sync;
   thread->wait();
 }
 
 MV_INLINE void thread_signal(mv_sync* sync) {
-  fthread* thread = sync;
+  fthread* thread = (fthread*) sync;
   // smaller than 0 means no counter, saving abit cycles and data.
-  if (xlikely(thread->count < 0)) thread->resume();
+  if (thread->count < 0) thread->resume();
   else if(thread->count.fetch_sub(1) - 1 == 0) {
     thread->resume();
   }

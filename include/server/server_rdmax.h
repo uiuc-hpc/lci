@@ -130,7 +130,12 @@ void ServerRdmax::serve() {
 }
 
 MV_INLINE void ServerRdmax::write_send(int rank, void* buf, size_t size, void* ctx) {
-  conn[rank].write_send(buf, size, sbuf_.lkey(), ctx);
+  if (size <= conn[rank].qp().max_inline()) {
+    conn[rank].write_send(buf, size, sbuf_.lkey(), 0);
+    mv_pp_free_to(pkpool, (packet*) ctx, ((packet*) ctx)->header.poolid);
+  } else {
+    conn[rank].write_send(buf, size, sbuf_.lkey(), ctx);
+  }
 }
 
 MV_INLINE void ServerRdmax::write_rma(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,

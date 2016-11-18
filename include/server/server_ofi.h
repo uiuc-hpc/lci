@@ -13,6 +13,8 @@
 #include <rdma/fi_errno.h>
 #include <rdma/fi_rma.h>
 
+#include "lock.h"
+
 #define FI_SAFECALL(x)                                                    \
   {                                                                       \
     int err = (x);                                                        \
@@ -27,19 +29,9 @@
   (void*)((((uintptr_t)x + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT))
 #define MAX_CQ_SIZE (16 * 1024)
 
-#ifndef SPIN_LOCK
-#define SPIN_LOCK(l)                                     \
-  {                                                      \
-    while (lock.test_and_set(std::memory_order_acquire)) \
-      ;                                                  \
-  }  // acquire lock
-#define SPIN_UNLOCK(l) \
-  { lock.clear(std::memory_order_release); }
-#endif
-
 class ServerOFI : ServerBase {
  public:
-  ServerOFI() : stop_(false), done_init_(false) { lock.clear(); }
+  ServerOFI() : stop_(false), done_init_(false), lock (MV_SPIN_UNLOCKED) {};
   inline void init(mv_pp* pkpool, int& rank, int& size);
   inline void post_recv(packet* p);
   inline void serve();
@@ -84,7 +76,7 @@ class ServerOFI : ServerBase {
   int recv_posted_;
   unique_ptr<pinned_pool> sbuf_alloc_;
   mv_pp* pkpool;
-  std::atomic_flag lock;
+  volatile int lock;
 };
 
 void ServerOFI::init(mv_pp* pkpool, int& rank, int& size) {
@@ -184,7 +176,7 @@ void ServerOFI::init(mv_pp* pkpool, int& rank, int& size) {
 
   // Prepare the packet_mgr and prepost some packet.
   for (int i = 0; i < MAX_SEND + MAX_RECV; i++) {
-    mv_pp_free(pkpool, (packet*)sbuf_alloc_->allocate(), 0);
+    mv_pp_free(pkpool, (packet*)sbuf_alloc_->allocate());
   }
   recv_posted_ = 0;
   this->pkpool = pkpool;
@@ -214,9 +206,9 @@ bool ServerOFI::progress() {  // profiler& p, long long& r, long long &s) {
       mv_recv_imm(entry.data);
     } else {
       mv_serve_recv((packet*)(((my_context*)entry.op_context)->ctx_));
-      SPIN_LOCK(lock);
+      mv_spin_lock(&lock);
       delete (my_context*)entry.op_context;
-      SPIN_UNLOCK(lock);
+      mv_spin_unlock(&lock);
     }
     rett = true;
   } else if (ret == -FI_EAGAIN) {
@@ -234,9 +226,9 @@ bool ServerOFI::progress() {  // profiler& p, long long& r, long long &s) {
   if (ret > 0) {
     // Got an entry here ?
     mv_serve_send((packet*)(((my_context*)entry.op_context)->ctx_));
-    SPIN_LOCK(lock);
+    mv_spin_lock(&lock);
     delete (my_context*)entry.op_context;
-    SPIN_UNLOCK(lock);
+    mv_spin_unlock(&lock);
     rett = true;
   } else if (ret == -FI_EAGAIN) {
   } else if (ret == -FI_EAVAIL) {
@@ -249,7 +241,7 @@ bool ServerOFI::progress() {  // profiler& p, long long& r, long long &s) {
     MPI_Abort(MPI_COMM_WORLD, error.err);
   }
 
-  if (recv_posted_ < MAX_RECV) post_recv(mv_pp_alloc_recv_nb(pkpool));
+  if (recv_posted_ < MAX_RECV) post_recv(mv_pp_alloc_nb(pkpool, 0));
 
   stopt(t) return rett;
 }
@@ -279,39 +271,40 @@ void ServerOFI::serve() {
 
 void ServerOFI::post_recv(packet* p) {
   if (p == NULL) return;
-  SPIN_LOCK(lock);
+  mv_spin_lock(&lock);
   FI_SAFECALL(
       fi_recv(ep, p, sizeof(packet), 0, FI_ADDR_UNSPEC, new my_context(p)));
   recv_posted_++;
-  SPIN_UNLOCK(lock);
+  mv_spin_unlock(&lock);
 }
 
 void ServerOFI::write_send(int rank, void* buf, size_t size, void* ctx) {
-  SPIN_LOCK(lock);
-  if (ctx) {
+  mv_spin_lock(&lock);
+  if (size > 32) {
     FI_SAFECALL(fi_send(ep, buf, size, 0, fi_addr[rank], new my_context(ctx)));
   } else {
     FI_SAFECALL(fi_inject(ep, buf, size, fi_addr[rank]));
+    mv_pp_free_to(pkpool, (packet*) ctx, ((packet*) ctx)->header.poolid);
   }
-  SPIN_UNLOCK(lock);
+  mv_spin_unlock(&lock);
 }
 
 void ServerOFI::write_rma(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
                           size_t size, void* ctx) {
-  SPIN_LOCK(lock);
+  mv_spin_lock(&lock);
   FI_SAFECALL(fi_write(ep, from, size, 0, fi_addr[rank],
                        (uintptr_t)to - heap_addr[rank],  // this is offset.
                        rkey, new my_context(ctx)));
-  SPIN_UNLOCK(lock);
+  mv_spin_unlock(&lock);
 }
 
 void ServerOFI::write_rma_signal(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
                           size_t size, uint32_t imm, void* ctx) {
-  SPIN_LOCK(lock);
+  mv_spin_lock(&lock);
   FI_SAFECALL(fi_writedata(ep, from, size, 0, imm, fi_addr[rank],
                        (uintptr_t)to - heap_addr[rank],  // this is offset.
                        rkey, new my_context(ctx)));
-  SPIN_UNLOCK(lock);
+  mv_spin_unlock(&lock);
 }
 
 void* ServerOFI::allocate(size_t s) { return heap_segment.allocate(s); }

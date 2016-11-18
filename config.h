@@ -15,7 +15,7 @@
 #ifdef __cplusplus
 class ServerOFI;
 class ServerRdmax;
-using Server = ServerRdmax;
+using Server = ServerOFI;
 #endif
 
 #endif
