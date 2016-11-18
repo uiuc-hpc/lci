@@ -9,7 +9,6 @@
 #define MAX_CONCURRENCY (MAX_SEND+MAX_RECV)
 #define PACKET_SIZE (16 * 1024 + 64)       // transfer unit size.
 #define SHORT_MSG_SIZE (PACKET_SIZE - 16)  // short message size.
-#define RNDZ_MSG_SIZE 48 // control message.
 
 #define HEAP_SIZE ((size_t)2 * 1024 * 1024 * 1024)  // total pinned heap size.
 

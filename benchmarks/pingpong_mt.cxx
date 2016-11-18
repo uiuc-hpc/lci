@@ -101,18 +101,18 @@ void main_task(intptr_t) {
     fflush(stdout);
     for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
          size = (size ? size * 2 : 1)) {
-      MPIV_Barrier(MPI_COMM_WORLD);
+      MPI_Barrier(MPI_COMM_WORLD);
       tags[i].id = 0;
       // printf("spawn\n");
       sr_threads[i] = MPIV_spawn(0, send_thread, 0);
       MPIV_join(sr_threads[i]);
       // printf("join\n");
-      MPIV_Barrier(MPI_COMM_WORLD);
+      MPI_Barrier(MPI_COMM_WORLD);
     }
   } else {
     for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
          size = (size ? size * 2 : 1)) {
-      MPIV_Barrier(MPI_COMM_WORLD);
+      MPI_Barrier(MPI_COMM_WORLD);
       // printf("r spawn\n");
       for (i = 0; i < THREADS; i++) {
         sr_threads[i] =
@@ -123,7 +123,7 @@ void main_task(intptr_t) {
         MPIV_join(sr_threads[i]);
       }
       // printf("r join\n");
-      MPIV_Barrier(MPI_COMM_WORLD);
+      MPI_Barrier(MPI_COMM_WORLD);
     }
   }
   mv_free(r_buf1);
@@ -185,14 +185,14 @@ void send_thread(intptr_t) {
 
   for (i = 0; i < loop + skip; i++) {
     if (i == skip) {
-      t_start = MPIV_Wtime();
+      t_start = MPI_Wtime();
     }
 
     MPIV_Send(s_buf, size, MPI_CHAR, 1, i, MPI_COMM_WORLD);
     MPIV_Recv(r_buf, size, MPI_CHAR, 1, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
   }
 
-  t_end = MPIV_Wtime();
+  t_end = MPI_Wtime();
   t = t_end - t_start;
 
   latency = (t)*1.0e6 / (2.0 * loop);

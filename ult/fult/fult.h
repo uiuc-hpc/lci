@@ -36,7 +36,7 @@ struct tls_t {
   fworker* worker;
 };
 
-__thread tls_t tlself;
+extern __thread tls_t tlself;
 
 // fcontext (from boost).
 extern "C" {

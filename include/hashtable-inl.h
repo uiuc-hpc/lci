@@ -26,7 +26,7 @@ typedef struct hash_val {
   union {
     struct {
       mv_key tag;
-      uintptr_t val;
+      mv_value val;
     } entry;
     struct {
       volatile int lock __attribute__((aligned(8)));

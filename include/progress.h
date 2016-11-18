@@ -38,7 +38,7 @@ void mv_recv_am(packet *p) {
 }
 
 void mv_complete_rndz(packet* p, MPIV_Request* s) {
-  p->header = {SEND_READY_FIN, 0, MPIV.me, s->tag};
+  p->header = {SEND_WRITE_FIN, 0, MPIV.me, s->tag};
   p->content.rdz.sreq = (uintptr_t)s;
   MPIV.server.write_rma(s->rank, s->buffer,
           MPIV.server.heap_lkey(), (void*)p->content.rdz.tgt_addr,
@@ -106,14 +106,14 @@ inline void mv_serve_recv(packet* p_ctx) {
 }
 
 inline void mv_serve_send(packet* p_ctx) {
-  // Nothing to process, return.
-  // packet* p_ctx = (packet*)wc.wr_id;
   if (!p_ctx) return;
-  const auto& type = p_ctx->header.type;
 
-  if (type == SEND_READY_FIN) {
+  const auto& type = p_ctx->header.type;
+  if (type == SEND_WRITE_FIN) {
     MPIV_Request* req = (MPIV_Request*)p_ctx->content.rdz.sreq;
-    MPIV.server.write_send(req->rank, p_ctx, RNDZ_MSG_SIZE, 0);
+    p_ctx->header.type = SEND_READY_FIN;
+    MPIV.server.write_send(req->rank, p_ctx,
+            sizeof(packet_header) + sizeof(mv_rdz), p_ctx);
     mv_key key = mv_make_key(req->rank, (1 << 30) | req->tag);
     mv_value value;
     if (!hash_insert(MPIV.tbl, key, &value)) {
@@ -121,8 +121,6 @@ inline void mv_serve_send(packet* p_ctx) {
       thread_signal(req->sync);
     }
     stopt(rdma_timing);
-    // this packet is taken directly from recv queue.
-    mv_pp_free(MPIV.pkpool, p_ctx);
   } else {
     mv_pp_free_to(MPIV.pkpool, p_ctx, p_ctx->header.poolid);
   }

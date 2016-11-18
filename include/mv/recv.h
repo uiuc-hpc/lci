@@ -11,9 +11,10 @@ MV_INLINE void proto_recv_rndz(void* buffer, int, int rank, int tag,
                             MPIV_Request* s) {
   startt(misc_timing);
   packet* p = mv_pp_alloc(MPIV.pkpool, 0);
+  assert(p);
   p->header = {RECV_READY, 0, MPIV.me, tag};
   p->content.rdz = {0, (uintptr_t) s, (uintptr_t) buffer, MPIV.server.heap_rkey()};
-  MPIV.server.write_send(rank, p, RNDZ_MSG_SIZE, p);
+  MPIV.server.write_send(rank, p, sizeof(packet_header) + sizeof(mv_rdz), p);
   stopt(misc_timing);
 }
 

@@ -12,7 +12,7 @@ MV_INLINE void proto_send_short(const void* buffer, int size, int rank, int tag)
 MV_INLINE void mv_send(const void*, size_t, int, int);
 
 MV_INLINE void proto_send_rdz(MPIV_Request* s) {
-  mv_key key = mv_make_key(s->rank, (1 << 31) | s->tag);
+  mv_key key = mv_make_rdz_key(s->rank, s->tag);
   mv_value value = (mv_value) s;
   if (!hash_insert(MPIV.tbl, key, &value)) {
     mv_complete_rndz((packet*) value, s);
@@ -48,7 +48,7 @@ MV_INLINE void mv_send(const void* buffer, size_t size, int rank, int tag) {
     s.sync = thread_sync_get();
     proto_send_rdz(&s);
     mv_key key = mv_make_key(s.rank, (1 << 30) | s.tag);
-    mv_value value;
+    mv_value value = 0;
     if (hash_insert(MPIV.tbl, key, &value)) {
       thread_wait(s.sync);
     }

@@ -6,8 +6,8 @@ INCLUDE = -I../include -I../ -I../ult/ -I../include/mv/
 CFLAGS ?= -Wall -std=gnu99 -O3 -g $(INCLUDE)
 CXXFLAGS ?= -g -ggdb -O3 -Wall -Wextra -std=c++11 $(INCLUDE) -DUSE_AFFI
 
-# TACC_BOOST_INC=/home/w00d/software/boost_1_61_0/
-# TACC_BOOST_LIB=/home/w00d/software/boost_1_61_0/stage/lib
+TACC_BOOST_INC=/home/w00d/software/boost_1_61_0/
+TACC_BOOST_LIB=/home/w00d/software/boost_1_61_0/stage/lib
 
 BOOST_INC = -I$(TACC_BOOST_INC) #/usr/local/boost/1.58.0/include
 BOOST_LIB = -L$(TACC_BOOST_LIB)

@@ -4,6 +4,9 @@
 #include "mv.h"
 // #include "coll/collective.h"
 
+__thread tls_t tlself;
+__thread int cache_wid = -2;
+
 int mv_send_start, mv_send_end, mv_recv_start, mv_recv_end;
 int mv_barrier_start, mv_barrier_end;
 
@@ -57,9 +60,8 @@ void MPIV_Start_worker(int number, intptr_t arg = 0) {
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-template <class... Ts>
-thread MPIV_spawn(int wid, Ts... params) {
-  return MPIV.w[wid % MPIV.w.size()].spawn(params...);
+thread MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg) {
+  return MPIV.w[wid % MPIV.w.size()].spawn(func, arg);
 }
 
 void MPIV_join(thread ult) { ult->join(); }

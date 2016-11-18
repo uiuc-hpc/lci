@@ -55,14 +55,13 @@ MV_INLINE void thread_signal(thread_sync* sync) {
 #endif
 
 #define ult_yield() tlself.thread->yield() 
-
 #define ult_wait() tlself.thread->wait()
 
-__thread int cache_wid= -1;
+extern __thread int cache_wid;
 
 MV_INLINE int worker_id() {
-  if (unlikely(cache_wid == -1))
-    cache_wid = tlself.worker->id();
+  if (unlikely(cache_wid == -2))
+    cache_wid = tlself.worker->id(); //tlself.worker?tlself.worker->id():-1;
   return cache_wid;
 }
 

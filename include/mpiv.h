@@ -2,12 +2,12 @@
 #define MPIV_H_
 
 #include <mpi.h>
+#include "ult.h"
 
 void* mv_malloc(size_t size);
 void mv_free(void* ptr);
 
 struct MPIV_Request;
-struct thread;
 
 void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank,
                int tag, MPI_Comm, MPI_Status*);
@@ -27,11 +27,10 @@ void MPIV_Init(int* argc, char*** args);
 
 void MPIV_Start_worker(int number, intptr_t arg = 0);
 
-template <class... Ts>
-thread MPIV_spawn(int wid, Ts... params);
-
 void MPIV_join(thread ult);
 
 void MPIV_Finalize();
+
+thread MPIV_spawn(int, void (*)(intptr_t), intptr_t);
 
 #endif

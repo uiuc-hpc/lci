@@ -41,7 +41,7 @@ MV_INLINE void fthread::join() {
   }
 }
 
-int fthread::get_worker_id() { return origin_->id_; }
+MV_INLINE int fthread::get_worker_id() { return origin_->id_; }
 
 MV_INLINE void fthread::start() {
   myfunc_(data_);
@@ -81,7 +81,7 @@ MV_INLINE void fworker::fin(int id) {
   SPIN_UNLOCK(thread_pool_lock_);
 }
 
-fthread* fworker::spawn(ffunc f, intptr_t data, size_t stack_size) {
+MV_INLINE fthread* fworker::spawn(ffunc f, intptr_t data, size_t stack_size) {
   SPIN_LOCK(thread_pool_lock_);
   if (thread_pool_.empty()) {
     throw std::runtime_error("Too many threads are spawn");
@@ -110,7 +110,7 @@ MV_INLINE void fworker::schedule(const int id) {
 #endif
 }
 
-fthread* fworker::fthread_new(const int id, ffunc f, intptr_t data,
+MV_INLINE fthread* fworker::fthread_new(const int id, ffunc f, intptr_t data,
                                 size_t stack_size) {
   // add it to the fthread.
   thread_[id].init(f, data, stack_size);
