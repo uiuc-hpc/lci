@@ -46,16 +46,16 @@ void* jump_fcontext(fcontext_t* old, fcontext_t, intptr_t arg);
 
 struct fctx {
   inline void swap_ctx(fctx* to, intptr_t args) {
-    to->parent_ = this;
-    jump_fcontext(&(this->myctx_), to->myctx_, (intptr_t)args);
+    to->parent = this;
+    jump_fcontext(&(this->stack_ctx), to->stack_ctx, (intptr_t)args);
   }
 
   inline void swap_ctx_parent() {
-    jump_fcontext(&(this->myctx_), parent_->myctx_, 0);
+    jump_fcontext(&(this->stack_ctx), parent->stack_ctx, 0);
   }
 
-  fctx* parent_;
-  fcontext_t myctx_;
+  fctx* parent;
+  fcontext_t stack_ctx;
 };
 
 static standard_stack_allocator fthread_stack;
@@ -63,7 +63,6 @@ static void fwrapper(intptr_t);
 
 #include "fworker.h"
 #include "fthread.h"
-
 #include "fult_inl.h"
 
 #endif

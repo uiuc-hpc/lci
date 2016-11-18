@@ -13,51 +13,45 @@
 #define MUL8(x) ((x) << 3)
 #define MOD_POW2(x, y) ((x) & ((y)-1))
 
-inline void fthread::init(ffunc myfunc, intptr_t data, size_t stack_size) {
-  if (stack.sp == NULL) {
-    fthread_stack.allocate(stack, stack_size);
+MV_INLINE void fthread_create(fthread* f, ffunc func, intptr_t data, size_t stack_size) {
+  if (f->stack.sp == NULL) {
+    fthread_stack.allocate(f->stack, stack_size);
   }
-  myfunc_ = myfunc;
-  data_ = data;
-  ctx_.myctx_ = make_fcontext(stack.sp, stack.size, fwrapper);
-  state_ = CREATED;
+  f->func = func;
+  f->data = data;
+  f->ctx.stack_ctx = make_fcontext(f->stack.sp, f->stack.size, fwrapper);
+  f->state = CREATED;
 }
 
-inline void fthread::yield() {
-  state_ = YIELD;
-  ctx_.swap_ctx_parent();
+MV_INLINE void fthread_yield(fthread* f) {
+  f->state = YIELD;
+  f->ctx.swap_ctx_parent();
 }
 
-inline void fthread::wait() {
-  state_ = BLOCKED;
-  ctx_.swap_ctx_parent();
+MV_INLINE void fthread_wait(fthread* f) {
+  f->state = BLOCKED;
+  f->ctx.swap_ctx_parent();
 }
 
-inline void fthread::resume() { fworker_sched_thread(origin_, id_); }
-inline void fthread::fin() { fworker_fini_thread(origin_, id_); }
+MV_INLINE void fthread_resume(fthread *f) { fworker_sched_thread(f->origin, f->id); }
+MV_INLINE void fthread_fini(fthread* f) { fworker_fini_thread(f->origin, f->id); }
 
-inline void fthread::join() {
-  while (state_ != INVALID) {
-    tlself.thread->yield();
+MV_INLINE void fthread_join(fthread *f) {
+  while (f->state != INVALID) {
+    fthread_yield(tlself.thread);
   }
 }
 
-inline int fthread::get_worker_id() { return origin_->id; }
-
-inline void fthread::start() {
-  myfunc_(data_);
-  state_ = INVALID;
-  ctx_.swap_ctx_parent();
-}
-
-inline void fwrapper(intptr_t args) {
-  fthread* ff = (fthread*)args;
-  ff->start();
+MV_INLINE void fwrapper(intptr_t args) {
+  fthread* f = (fthread*)args;
+  f->func(f->data);
+  f->state = INVALID;
+  f->ctx.swap_ctx_parent();
 }
 
 /// Fworker.
 
-inline void fworker_init(fworker** w) {
+MV_INLINE void fworker_init(fworker** w) {
   // posix_memalign((void**) w, 64, sizeof(fworker));
   *w = new fworker();
   (*w)->stop = true;
@@ -70,22 +64,23 @@ inline void fworker_init(fworker** w) {
   // Add all free slot.
   memset((*w)->threads, 0, sizeof(fthread) * (NMASK * WORDSIZE));
   for (int i = (int)(NMASK * WORDSIZE) - 1; i >= 0; i--) {
-    (*w)->threads[i].origin_ = *w;
-    (*w)->threads[i].id_ = i;
+    fthread_init((*w)->threads);
+    (*w)->threads[i].origin = *w;
+    (*w)->threads[i].id = i;
     (*w)->thread_pool.push(&((*w)->threads[i]));
   }
   (*w)->thread_pool_lock = MV_SPIN_UNLOCKED;
 }
 
-inline void fworker_destroy(fworker* w) { free((void*)w->threads); }
+MV_INLINE void fworker_destroy(fworker* w) { free((void*)w->threads); }
 
-inline void fworker_fini_thread(fworker* w, const int id) {
+MV_INLINE void fworker_fini_thread(fworker* w, const int id) {
   mv_spin_lock(&w->thread_pool_lock);
   w->thread_pool.push(&w->threads[id]);
   mv_spin_unlock(&w->thread_pool_lock);
 }
 
-inline fthread* fworker_spawn(fworker *w, ffunc f, intptr_t data, size_t stack_size) {
+MV_INLINE fthread* fworker_spawn(fworker *w, ffunc f, intptr_t data, size_t stack_size) {
   mv_spin_lock(&w->thread_pool_lock);
   if (w->thread_pool.empty()) {
     throw std::runtime_error("Too many threads are spawn");
@@ -95,33 +90,33 @@ inline fthread* fworker_spawn(fworker *w, ffunc f, intptr_t data, size_t stack_s
   mv_spin_unlock(&w->thread_pool_lock);
 
   // add it to the fthread.
-  w->threads[t->id()].init(f, data, stack_size);
+  fthread_create(t, f, data, stack_size);
 
   // make it schedable.
-  fworker_sched_thread(w, t->id());
+  fworker_sched_thread(w, t->id);
 
   return t;
 }
 
-inline void fworker_work(fworker* w, fthread* f) {
-  if (xunlikely(f->state_ == INVALID)) return;
+MV_INLINE void fworker_work(fworker* w, fthread* f) {
+  if (xunlikely(f->state == INVALID)) return;
   tlself.thread = f;
-  w->ctx.swap_ctx(f->ctx(), (intptr_t)f);
+  w->ctx.swap_ctx(&f->ctx, (intptr_t)f);
   tlself.thread = NULL;
-  if (f->state_ == YIELD)
-    f->resume();
-  else if (f->state_ == INVALID)
-    f->fin();
+  if (f->state == YIELD)
+    fthread_resume(f);
+  else if (f->state == INVALID)
+    fthread_fini(f);
 }
 
-inline void fworker_sched_thread(fworker* w, const int id) {
+MV_INLINE void fworker_sched_thread(fworker* w, const int id) {
   sync_set_bit(MOD_POW2(id, WORDSIZE), &w->mask[DIV64(id)]);
 #ifdef USE_L1_MASK
   sync_set_bit(DIV512(MOD_POW2(id, 32768)), &w->l1_mask[DIV32768(id)]);
 #endif
 }
 
-static inline int pop_work(unsigned long& mask) {
+static MV_INLINE int pop_work(unsigned long& mask) {
   auto id = find_first_set(mask);
   bit_flip(mask, id);
   return id;
@@ -132,7 +127,7 @@ fworker * random_worker();
 #endif
 
 #ifndef USE_L1_MASK
-inline void wfunc(fworker* w) {
+MV_INLINE void wfunc(fworker* w) {
   w->id = nfworker_.fetch_add(1);
   tlself.worker = w;
 #ifdef USE_AFFI
@@ -198,7 +193,7 @@ inline void wfunc(fworker* w) {
 
 #else
 
-inline void fworker::wfunc(fworker* w) {
+MV_INLINE void fworker::wfunc(fworker* w) {
   w->id = nfworker_.fetch_add(1);
   tlself.worker = w;
 #ifdef USE_AFFI

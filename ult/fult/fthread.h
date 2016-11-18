@@ -10,42 +10,33 @@ enum fthread_state {
   BLOCKED
 };
 
-class fthread {
- public:
-  inline fthread() : state_(INVALID) { stack.sp = NULL; }
-  inline ~fthread() {
-    if (stack.sp != NULL) fthread_stack.deallocate(stack);
-  }
-
-  void yield();
-  void wait();
-  void resume();
-  void fin();
-  void join();
-  int get_worker_id();
-  void start();
-
-  inline void cancel() {
-    state_ = INVALID;
-    resume();
-  }
-
-  void init(ffunc myfunc, intptr_t data, size_t stack_size);
-  inline fthread_state state() { return state_; }
-  inline fctx* ctx() { return &ctx_; }
-  inline int id() { return id_; }
-  inline fworker* origin() { return origin_; }
-
-  fworker* origin_;
-  int id_;
-  std::atomic<int> count;
-  volatile fthread_state state_;
-
- private:
-  fctx ctx_;
-  ffunc myfunc_;
-  intptr_t data_;
+struct fthread {
+  fctx ctx;
   stack_context stack;
+  fworker* origin;
+  int id;
+  std::atomic<int> count;
+  ffunc func;
+  intptr_t data;
+  volatile fthread_state state;
 } __attribute__((aligned(64)));
+
+MV_INLINE void fthread_init(fthread* f) {
+  f->state = INVALID;
+  f->stack.sp = NULL;
+}
+
+MV_INLINE void fthread_destory(fthread* f) {
+  if (f->stack.sp != NULL) fthread_stack.deallocate(f->stack);
+}
+
+MV_INLINE void fthread_yield(fthread*);
+MV_INLINE void fthread_wait(fthread*);
+MV_INLINE void fthread_resume(fthread*);
+
+MV_INLINE void fthread_fini(fthread*);
+MV_INLINE void fthread_join(fthread*);
+MV_INLINE void fthread_cancel(fthread* f) { f->state = INVALID; fthread_resume(f); }
+MV_INLINE void fthread_create(fthread*, ffunc myfunc, intptr_t data, size_t stack_size);
 
 #endif
