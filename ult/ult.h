@@ -9,15 +9,6 @@
 #include <boost/function.hpp>
 typedef boost::function<void(intptr_t)> ffunc;
 
-class ult_base {
- public:
-  virtual void yield() = 0;
-  virtual void wait(bool&) = 0;
-  virtual void resume(bool&) = 0;
-  virtual void join() = 0;
-  virtual void cancel() = 0;
-};
-
 #ifdef USE_ABT
 #include "abt/abt.h"
 using thread = abt_thread_t;
@@ -29,24 +20,41 @@ using thread = pthread_thread_t;
 using worker = pthread_worker;
 #else
 #include "fult/fult.h"
-using thread = fthread*;
-using worker = fworker;
+typedef fthread mv_thread;
+typedef fworker mv_worker;
+typedef fthread mv_sync;
 
-using thread_sync = fthread;
+#define mv_worker_spawn fworker_spawn
+#define mv_worker_init fworker_init
+#define mv_worker_worker fworker_work
+#define mv_worker_sched_thread fworker_sched_thread
+#define mv_worker_fini_thread fworker_fini_thread
+#define mv_worker_start fworker_start
+#define mv_worker_stop forker_stop
+#define mv_worker_start_main fworker_start_main
+#define mv_worker_stop_main fworker_stop_main
+#define mv_worker_id fworker_id
 
-MV_INLINE thread_sync* thread_sync_get(int count = -1) {
+MV_INLINE mv_sync* mv_get_sync() {
+  tlself.thread->count = -1;
+  return tlself.thread;
+}
+
+MV_INLINE mv_sync* mv_get_counter(int count) {
   tlself.thread->count = count;
   return tlself.thread;
 }
 
-MV_INLINE void thread_wait(thread_sync*) {
-  tlself.thread->wait();
+MV_INLINE void thread_wait(mv_sync* sync) {
+  fthread* thread = sync;
+  thread->wait();
 }
 
-MV_INLINE void thread_signal(thread_sync* sync) {
+MV_INLINE void thread_signal(mv_sync* sync) {
   fthread* thread = sync;
   // smaller than 0 means no counter, saving abit cycles and data.
-  if (thread->count < 0 || thread->count.fetch_sub(1) - 1 == 0) {
+  if (xlikely(thread->count < 0)) thread->resume();
+  else if(thread->count.fetch_sub(1) - 1 == 0) {
     thread->resume();
   }
 }
@@ -60,8 +68,7 @@ MV_INLINE void thread_signal(thread_sync* sync) {
 extern __thread int cache_wid;
 
 MV_INLINE int worker_id() {
-  if (unlikely(cache_wid == -2))
-    cache_wid = tlself.worker->id(); //tlself.worker?tlself.worker->id():-1;
+  if (unlikely(cache_wid == -2)) cache_wid = mv_worker_id(tlself.worker);
   return cache_wid;
 }
 

@@ -62,7 +62,7 @@ void mv_recv_send_ready_fin(packet* p_ctx) {
   mv_key key = mv_make_key(req->rank, req->tag);
   mv_value value;
   if (!hash_insert(MPIV.tbl, key, &value)) {
-    req->type = REQ_DONE;
+    if (req->type != REQ_NULL) req->type = REQ_DONE;
     thread_signal(req->sync);
   }
   stopt(signal_timing);

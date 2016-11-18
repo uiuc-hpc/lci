@@ -34,7 +34,7 @@ struct Execution {
   Server server;
   mv_hash* tbl;
   mv_pp* pkpool;
-  std::vector<worker> w;
+  std::vector<mv_worker> w;
   std::vector<mv_am_func_t> am_table;
 } __attribute__((aligned(64)));
 

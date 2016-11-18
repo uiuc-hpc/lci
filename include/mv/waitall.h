@@ -48,7 +48,7 @@ inline void proto_req_send_long_init(MPIV_Request* req) {
   }
 }
 
-inline bool init_sync(thread_sync* counter, int count, MPIV_Request* req) {
+inline bool init_sync(mv_sync* counter, int count, MPIV_Request* req) {
   bool ret = false;
   for (int i = 0; i < count; i++) {
     switch (req[i].type) {
@@ -87,7 +87,7 @@ inline bool init_sync(thread_sync* counter, int count, MPIV_Request* req) {
 
 // Assume short message for now.
 void mv_waitall(int count, MPIV_Request* req) {
-  thread_sync* counter = thread_sync_get(count);
+  mv_sync* counter = mv_get_counter(count);
   if (init_sync(counter, count, req)) {
     while (counter->count > 0) {
       thread_wait(counter);
@@ -102,7 +102,7 @@ void mv_waitall(int count, MPIV_Request* req) {
 
 void mv_waitsome(int count, MPIV_Request* req, int* out_count, int* index) {
   *out_count = 0;
-  thread_sync* counter = thread_sync_get(1);
+  mv_sync* counter = mv_get_counter(1);
   if (init_sync(counter, count, req)) {
     while (counter->count > 0) {
       thread_wait(counter);

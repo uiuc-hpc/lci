@@ -10,9 +10,7 @@ enum fthread_state {
   BLOCKED
 };
 
-class fthread final {
-  friend class fworker;
-
+class fthread {
  public:
   inline fthread() : state_(INVALID) { stack.sp = NULL; }
   inline ~fthread() {
@@ -38,12 +36,12 @@ class fthread final {
   inline int id() { return id_; }
   inline fworker* origin() { return origin_; }
 
-  std::atomic<int> count;
-
- private:
   fworker* origin_;
   int id_;
+  std::atomic<int> count;
   volatile fthread_state state_;
+
+ private:
   fctx ctx_;
   ffunc myfunc_;
   intptr_t data_;

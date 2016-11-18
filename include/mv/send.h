@@ -45,7 +45,7 @@ MV_INLINE void mv_send(const void* buffer, size_t size, int rank, int tag) {
     proto_send_short(buffer, size, rank, tag);
   } else {
     MPIV_Request s((void*)buffer, size, rank, tag);
-    s.sync = thread_sync_get();
+    s.sync = mv_get_sync();
     proto_send_rdz(&s);
     mv_key key = mv_make_key(s.rank, (1 << 30) | s.tag);
     mv_value value = 0;

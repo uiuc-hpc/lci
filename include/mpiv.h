@@ -27,10 +27,10 @@ void MPIV_Init(int* argc, char*** args);
 
 void MPIV_Start_worker(int number, intptr_t arg = 0);
 
-void MPIV_join(thread ult);
+void MPIV_join(mv_thread* ult);
 
 void MPIV_Finalize();
 
-thread MPIV_spawn(int, void (*)(intptr_t), intptr_t);
+mv_thread* MPIV_spawn(int, void (*)(intptr_t), intptr_t);
 
 #endif

@@ -27,7 +27,7 @@ struct MPIV_Request {
   int size;
   int rank;
   int tag;
-  thread_sync* sync;
+  mv_sync* sync;
   RequestType type;
 } __attribute__((aligned(64)));
 

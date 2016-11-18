@@ -71,10 +71,10 @@ void mv_main_task(intptr_t arg) {
   main_task(arg);
 
   for (size_t i = 1; i < MPIV.w.size(); i++) {
-    MPIV.w[i].stop();
+    mv_worker_stop(&MPIV.w[i]);
   }
 
-  MPIV.w[0].stop_main();
+  mv_worker_stop_main(&MPIV.w[0]);
 }
 
 #endif

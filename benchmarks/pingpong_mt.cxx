@@ -92,7 +92,7 @@ void main_task(intptr_t) {
   int i = 0;
   r_buf1 = (char*)mv_malloc(MYBUFSIZE);
   s_buf1 = (char*)mv_malloc(MYBUFSIZE);
-  thread* sr_threads = new thread[THREADS];
+  mv_thread** sr_threads = new mv_thread*[THREADS];
   thread_tag_t* tags = new thread_tag_t[THREADS];
 
   if (myid == 0) {

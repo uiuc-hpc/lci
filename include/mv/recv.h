@@ -24,7 +24,7 @@ MV_INLINE void proto_recv_short(void* buffer, int size, int rank, int tag,
   mv_value value = (mv_value) s;
 
   // Find if the message has arrived, if not go and make a request.
-  if (likely(!hash_insert(MPIV.tbl, key, &value))) {
+  if (!hash_insert(MPIV.tbl, key, &value)) {
     packet* p_ctx = (packet*) value;
     startt(memcpy_timing);
     memcpy(buffer, p_ctx->content.buffer, size);
@@ -42,7 +42,7 @@ MV_INLINE void mv_recv(void* buffer, size_t size, int rank, int tag) {
   MPE_Log_event(mv_recv_start, 0, "start_recv");
 #endif
   MPIV_Request s(buffer, size, rank, tag);
-  s.sync = thread_sync_get();
+  s.sync = mv_get_sync();
   s.type = REQ_NULL;
 
   if ((size_t)size <= SHORT_MSG_SIZE) {
