@@ -5,9 +5,12 @@ void mv_am_send(size_t node, uint8_t fid, void* src, size_t size, int8_t count, 
   va_list args;
   va_start(args, count);
 
-  packet* packet = mv_pp_alloc_send(MPIV.pkpool);
-  packet->set_header(SEND_AM, MPIV.me, fid);
-  uint32_t* buffer = (uint32_t*) packet->buffer();
+  packet* packet = mv_pp_alloc(MPIV.pkpool, worker_id() + 1);
+  packet->header.type = SEND_AM;
+  packet->header.from = MPIV.me;
+  packet->header.tag = fid;
+  uint32_t* buffer = (uint32_t*) packet->content.buffer;
+
   buffer[0] = size;
   buffer[1] = (uint32_t) count;
   for (int i = 0; i < count; i++) {

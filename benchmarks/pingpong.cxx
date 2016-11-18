@@ -24,7 +24,7 @@
 #endif
 
 #define MIN_MSG_SIZE 1
-#define MAX_MSG_SIZE 4 * 1024 * 1024
+#define MAX_MSG_SIZE (1 << 22)
 
 int size = 0;
 
@@ -38,7 +38,8 @@ int main(int argc, char** args) {
 
 void main_task(intptr_t) {
   double times = 0;
-  int rank = MPIV.me;
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   void* r_buf = (void*)mv_malloc((size_t)MAX_MSG_SIZE);
   void* s_buf = (void*)mv_malloc((size_t)MAX_MSG_SIZE);
 
@@ -50,13 +51,13 @@ void main_task(intptr_t) {
       total = TOTAL_LARGE;
       skip = SKIP_LARGE;
     }
-    MPIV_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
     if (rank == 0) {
       memset(r_buf, 'a', size);
       memset(s_buf, 'b', size);
       for (int t = 0; t < total + skip; t++) {
         if (t == skip) {
-          times = MPIV_Wtime();
+          times = MPI_Wtime();
         }
         MPIV_Send(s_buf, size, MPI_CHAR, 1, 1, MPI_COMM_WORLD);
         MPIV_Recv(r_buf, size, MPI_CHAR, 1, 1, MPI_COMM_WORLD,
@@ -68,7 +69,7 @@ void main_task(intptr_t) {
           }
         }
       }
-      times = MPIV_Wtime() - times;
+      times = MPI_Wtime() - times;
       printf("[%d] %f\n", size, times * 1e6 / total / 2);
     } else {
       memset(s_buf, 'b', size);
@@ -79,7 +80,7 @@ void main_task(intptr_t) {
         MPIV_Send(s_buf, size, MPI_CHAR, 0, 1, MPI_COMM_WORLD);
       }
     }
-    MPIV_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
   }
 
   mv_free(r_buf);

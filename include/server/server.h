@@ -7,7 +7,7 @@
 #include <thread>
 
 #include "affinity.h"
-#include "packet/packet_pool.h"
+#include "packet_pool.h"
 #include "profiler.h"
 
 using std::unique_ptr;
@@ -46,7 +46,7 @@ class ServerBase {
   virtual uint32_t heap_rkey() = 0;
 };
 
-#include "server_ofi.h"
+// #include "server_ofi.h"
 #include "server_rdmax.h"
 
 #endif

@@ -18,8 +18,9 @@
 #include "except.h"
 #include "rdmax.h"
 
-#include "hashtable/hashtbl.h"
-#include "packet/packet_pool.h"
+#include "hashtable.h"
+#include "packet.h"
+#include "packet_pool.h"
 
 #include "common.h"
 
@@ -47,9 +48,12 @@ void* mv_malloc(size_t size) {
 
 void mv_free(void* ptr) { MPIV.server.deallocate(ptr); }
 
-#include "init.h"
-#include "mv/mpi.h"
 #include "request.h"
-#include "ext/am.h"
+#include "init.h"
+#include "mv/send.h"
+#include "mv/recv.h"
+#include "mv/isend.h"
+#include "mv/irecv.h"
+#include "mv/waitall.h"
 
 #endif

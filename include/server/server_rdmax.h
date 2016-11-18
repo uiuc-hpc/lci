@@ -74,7 +74,7 @@ void ServerRdmax::init(mv_pp* pkpool, int& rank, int& size) {
 
   // Prepare the packet_mgr and prepost some packet.
   for (int i = 0; i < MAX_SEND + MAX_RECV; i++) {
-    mv_pp_free(pkpool, (packet*)sbuf_alloc_->allocate(), 0);
+    mv_pp_free(pkpool, (packet*)sbuf_alloc_->allocate());
   }
   this->pkpool = pkpool;
   this->recv_posted_ = 0;
@@ -101,7 +101,7 @@ MV_INLINE bool ServerRdmax::progress() {  // profiler& p, long long& r, long lon
       [](const ibv_wc& wc) { mv_serve_send((packet*)wc.wr_id); }));
   stopt(t);
   // Make sure we always have enough packet, but do not block.
-  if (recv_posted_ < MAX_RECV) post_recv(mv_pp_alloc_recv_nb(pkpool));
+  if (recv_posted_ < MAX_RECV) post_recv(mv_pp_alloc_nb(pkpool, 0));
   // assert(recv_posted_ > 0 && "No posted buffer");
   return ret;
 }

@@ -14,18 +14,19 @@ MV_INLINE void mv_send(const void*, size_t, int, int);
 MV_INLINE void proto_send_rdz(MPIV_Request* s) {
   mv_key key = mv_make_key(s->rank, (1 << 31) | s->tag);
   mv_value value = (mv_value) s;
-  if (!hash_insert(MPIV.tbl, key, value)) {
+  if (!hash_insert(MPIV.tbl, key, &value)) {
     mv_complete_rndz((packet*) value, s);
   }
 }
 
 MV_INLINE void proto_send_short(const void* buffer, int size, int rank, int tag) {
-  packet* packet = mv_pp_alloc_send(MPIV.pkpool);
-  packet->set_header(SEND_SHORT, MPIV.me, tag);
+  packet* packet = mv_pp_alloc(MPIV.pkpool, worker_id() + 1);
+  packet->header = {SEND_SHORT, worker_id() + 1, MPIV.me, tag};
+  
   // This is a short message, we send them immediately and do not yield
   // or create a request for it.
   // Copy the buffer.
-  packet->set_bytes(buffer, size);
+  memcpy(packet->content.buffer, buffer, size);
   // packet->header().sreq = (intptr_t) s;
 
   MPIV.server.write_send(
@@ -47,7 +48,7 @@ MV_INLINE void mv_send(const void* buffer, size_t size, int rank, int tag) {
     proto_send_rdz(&s);
     mv_key key = mv_make_key(s.rank, (1 << 30) | s.tag);
     mv_value value;
-    if (hash_insert(MPIV.tbl, key, value)) {
+    if (hash_insert(MPIV.tbl, key, &value)) {
       thread_wait(s.sync);
     }
   }

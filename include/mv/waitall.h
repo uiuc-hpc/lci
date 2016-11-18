@@ -13,10 +13,10 @@ inline void proto_req_recv_short_init(MPIV_Request* s) {
   mv_key key = mv_make_key(s->rank, s->tag);
   mv_value value = (mv_value) s;
   RequestType oldtype = s->type;
-  if (!hash_insert(MPIV.tbl, key, value)) {
+  if (!hash_insert(MPIV.tbl, key, &value)) {
     packet* p_ctx = (packet*) value;
-    memcpy(s->buffer, p_ctx->buffer(), s->size);
-    mv_pp_free(MPIV.pkpool, p_ctx, worker_id() + 1);
+    memcpy(s->buffer, p_ctx->content.buffer, s->size);
+    mv_pp_free_to(MPIV.pkpool, p_ctx, worker_id() + 1);
     s->type = REQ_DONE;
     s->sync->count--;
   } else { 
@@ -28,7 +28,7 @@ inline void proto_req_recv_long_init(MPIV_Request* req) {
   mv_key key = mv_make_key(req->rank, req->tag);
   mv_value value;
   RequestType oldtype = req->type;
-  if (!hash_insert(MPIV.tbl, key, value)) {
+  if (!hash_insert(MPIV.tbl, key, &value)) {
     req->type = REQ_DONE;
     req->sync->count--;
   } else {
@@ -40,7 +40,7 @@ inline void proto_req_send_long_init(MPIV_Request* req) {
   mv_key key = mv_make_key(req->rank, (1 << 30) | req->tag);
   mv_value value;
   RequestType oldtype = req->type;
-  if (!hash_insert(MPIV.tbl, key, value)) {
+  if (!hash_insert(MPIV.tbl, key, &value)) {
     req->type = REQ_DONE;
     req->sync->count--;
   } else {

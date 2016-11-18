@@ -1,68 +1,68 @@
 #ifndef ARR_HASHTBL_H_
 #define ARR_HASHTBL_H_
 
-// #include "config.h"
-#include "hashtbl.h"
-#include <atomic>
+#define _POSIX_C_SOURCE 200809L
+#include <stdint.h>
+#include <stdlib.h>
+
+typedef uintptr_t mv_value;
+typedef uint64_t mv_key;
+typedef void* mv_hash;
+void hash_init(mv_hash** h);
+int hash_insert(mv_hash* h, mv_key key, mv_value* value);
+
 #include <assert.h>
-#include <mutex>
-#include <stdexcept>
+#include <stdlib.h>
 
 #include "lock.h"
 #include "macro.h"
 
-struct arr_hash_val;
-
-inline void arr_hash_init(mv_hash** h);
-inline void arr_hash_insert(mv_hash*, mv_key*, mv_value*);
-inline static uint32_t myhash(const uint64_t k);
-inline arr_hash_val* create_table(size_t num_rows);
-
+static inline uint32_t myhash(const uint64_t k);
 static const uint64_t EMPTY = (uint64_t)-1;
 static const int TBL_BIT_SIZE = 8;
 static const int TBL_WIDTH = 4;
 
-struct arr_hash_val {
+typedef struct hash_val {
   union {
     struct {
-      uint64_t tag;
+      mv_key tag;
       uintptr_t val;
     } entry;
     struct {
       volatile int lock;
-      arr_hash_val* next;
+      struct hash_val* next;
     } control;
   };
-} __attribute__((aligned(64)));
+} hash_val __attribute__((aligned(64)));
 
-inline void arr_hash_init(mv_hash** h) {
-  arr_hash_val** hv = (arr_hash_val**) h;
+static inline hash_val* create_table(size_t num_rows);
+
+void hash_init(mv_hash** h) {
+  hash_val** hv = (hash_val**) h;
   *hv = create_table(1 << TBL_BIT_SIZE);
 }
-#undef hash_init
-#define hash_init arr_hash_init
 
-inline bool arr_hash_insert(mv_hash* h, const mv_key& key, mv_value& value) {
-  arr_hash_val* tbl_ = (arr_hash_val*) h;
+int hash_insert(mv_hash* h, mv_key key, mv_value* value) {
+  hash_val* tbl_ = (hash_val*) h;
 
   uint32_t hash = myhash(key);
   int bucket = hash * TBL_WIDTH;
   int checked_slot = 0;
 
-  arr_hash_val* master = &tbl_[bucket];
-  arr_hash_val* hcontrol = &tbl_[bucket];
-  arr_hash_val* hentry = hcontrol + 1;
-  arr_hash_val* empty_hentry = NULL;
+  hash_val* master = &tbl_[bucket];
+  hash_val* hcontrol = &tbl_[bucket];
+  hash_val* hentry = hcontrol + 1;
+  hash_val* empty_hentry = NULL;
 
   mv_spin_lock(&master->control.lock);
   while (1) {
-    auto tag = hentry->entry.tag;
+    mv_key tag = hentry->entry.tag;
     // If the key is the same as tag, someone has inserted it.
     if (tag == key) {
-      value = hentry->entry.val;
+      *value = hentry->entry.val;
       hentry->entry.tag = EMPTY;
       mv_spin_unlock(&master->control.lock);
-      return false;
+      return 0;
     } else if (tag == EMPTY) {
       // Ortherwise, if the tag is empty, we record the slot.
       // We can't return until we go over all entries.
@@ -93,12 +93,10 @@ inline bool arr_hash_insert(mv_hash* h, const mv_key& key, mv_value& value) {
     }
   }
   empty_hentry->entry.tag = key;
-  empty_hentry->entry.val = value;
+  empty_hentry->entry.val = *value;
   mv_spin_unlock(&master->control.lock);
-  return true;
+  return 1;
 }
-#undef hash_insert
-#define hash_insert arr_hash_insert
 
 // static_assert((1 << TBL_BIT_SIZE) >= 4 * MAX_CONCURRENCY,
 //              "Hash table is not large enough");
@@ -106,8 +104,8 @@ inline bool arr_hash_insert(mv_hash* h, const mv_key& key, mv_value& value) {
 // default values recommended by http://isthe.com/chongo/tech/comp/fnv/
 static const uint32_t Prime = 0x01000193;  //   16777619
 static const uint32_t Seed = 0x811C9DC5;   // 2166136261
-#define TINY_MASK(x) (((u_int32_t)1 << (x)) - 1)
-#define FNV1_32_INIT ((u_int32_t)2166136261)
+#define TINY_MASK(x) (((uint32_t)1 << (x)) - 1)
+#define FNV1_32_INIT ((uint32_t)2166136261)
 
 static inline uint32_t myhash(const uint64_t k) {
   uint32_t hash = ((k & 0xff) ^ Seed) * Prime;
@@ -123,11 +121,11 @@ static inline uint32_t myhash(const uint64_t k) {
   return (((hash >> TBL_BIT_SIZE) ^ hash) & TINY_MASK(TBL_BIT_SIZE));
 }
 
-inline arr_hash_val* create_table(size_t num_rows) {
-  arr_hash_val* ret = 0;
-  // Aligned cache line.
-  assert(posix_memalign((void**)&(ret), 64,
-        num_rows * TBL_WIDTH * sizeof(arr_hash_val)) == 0);
+static inline hash_val* create_table(size_t num_rows) {
+    hash_val* ret = NULL;
+    assert(posix_memalign((void**)&(ret), 64,
+                num_rows * TBL_WIDTH * sizeof(hash_val)) == 0);
+
 
   // Initialize all with EMPTY and clear lock.
   for (size_t i = 0; i < num_rows; i++) {

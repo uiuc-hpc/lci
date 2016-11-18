@@ -71,7 +71,11 @@ void main_task(intptr_t) {
         // printf("recv done\n");
       }
       times = MPIV_Wtime() - times;
+<<<<<<< Updated upstream
       printf("[%d] %f\n", size, (1e-6 * size * total * WIN) / times);
+=======
+      printf("[%d] %f\n", size, (size / 1e6 * total * WIN) / times);
+>>>>>>> Stashed changes
     } else {
       memset(s_buf, 'b', size);
       memset(r_buf, 'a', size);

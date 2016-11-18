@@ -18,8 +18,8 @@
 // HACK
 void main_task(intptr_t);
 
-int mv_send_start, mv_send_end, mv_recv_start, mv_recv_end;
-int mv_barrier_start, mv_barrier_end;
+extern int mv_send_start, mv_send_end, mv_recv_start, mv_recv_end;
+extern int mv_barrier_start, mv_barrier_end;
 
 inline void mv_init(int* argc, char*** args) {
   setenv("MPICH_ASYNC_PROGRESS", "0", 1);
@@ -75,45 +75,6 @@ void mv_main_task(intptr_t arg) {
   }
 
   MPIV.w[0].stop_main();
-}
-
-void MPIV_Init(int* argc, char*** args) {
-    mv_init(argc, args);
-}
-
-void MPIV_Start_worker(int number, intptr_t arg = 0) {
-  if (MPIV.w.size() == 0) {
-    MPIV.w = std::move(std::vector<worker>(number));
-    mv_pp_ext(MPIV.pkpool, number);
-  }
-
-  for (size_t i = 1; i < MPIV.w.size(); i++) {
-    MPIV.w[i].start();
-  }
-
-  MPIV.w[0].start_main(mv_main_task, arg);
-  MPI_Barrier(MPI_COMM_WORLD);
-}
-
-template <class... Ts>
-thread MPIV_spawn(int wid, Ts... params) {
-  return MPIV.w[wid % MPIV.w.size()].spawn(params...);
-}
-
-void MPIV_join(thread ult) { ult->join(); }
-
-void MPIV_Finalize() {
-#ifndef DISABLE_COMM
-  MPI_Barrier(MPI_COMM_WORLD);
-  MPIV.server.finalize();
-  mv_pp_destroy(MPIV.pkpool);
-  MPI_Barrier(MPI_COMM_WORLD);
-#endif
-
-#if USE_MPE
-  MPE_Finish_log("mpivlog");
-#endif
-  MPI_Finalize();
 }
 
 #endif

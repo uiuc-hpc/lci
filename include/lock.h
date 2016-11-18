@@ -8,8 +8,9 @@
 
 MV_INLINE void mv_spin_lock(volatile int *flag)
 {
-  while (*flag || __sync_lock_test_and_set(flag, 1))
-    asm volatile("pause": : :"memory");
+  while (__sync_lock_test_and_set(flag, 1))
+      while (*flag)
+          __asm__ volatile("pause": : :"memory");
 }
 
 MV_INLINE void mv_spin_unlock(volatile int *flag)
