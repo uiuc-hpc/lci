@@ -3,6 +3,8 @@
 
 #include "config.h"
 #include <stdexcept>
+#include <boost/interprocess/creation_tags.hpp>
+#include <boost/interprocess/managed_external_buffer.hpp>
 
 #define ALIGNED64(x) (((x) + 63) / 64 * 64)
 
@@ -37,17 +39,5 @@ static long long t_valueP[3], t0_valueP[3], t1_valueP[3];
 #define resett(x) \
   {}
 #endif
-
-/** Setup struct and RDMAX */
-using rdmax::device_ctx;
-using rdmax::device_cq;
-using rdmax::device_memory;
-using rdmax::connection;
-
-typedef boost::interprocess::basic_managed_external_buffer<
-    char, boost::interprocess::rbtree_best_fit<
-              boost::interprocess::mutex_family, void*, 64>,
-    boost::interprocess::iset_index>
-    mbuffer;
 
 #endif

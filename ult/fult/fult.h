@@ -24,12 +24,10 @@ using boost::coroutines::stack_context;
 
 #define DEBUG(x)
 
-#define SPIN_LOCK(l) while (l.test_and_set(std::memory_order_acquire));  // acquire lock
-#define SPIN_UNLOCK(l) l.clear(std::memory_order_release); 
-
+typedef void (*ffunc)(intptr_t);
 typedef void* fcontext_t;
-class fthread;
-class fworker;
+struct fthread;
+struct fworker;
 
 struct tls_t {
   fthread* thread;
@@ -45,18 +43,18 @@ void* jump_fcontext(fcontext_t* old, fcontext_t, intptr_t arg);
 }
 
 struct fctx {
-  inline void swap_ctx(fctx* to, intptr_t args) {
-    to->parent = this;
-    jump_fcontext(&(this->stack_ctx), to->stack_ctx, (intptr_t)args);
-  }
-
-  inline void swap_ctx_parent() {
-    jump_fcontext(&(this->stack_ctx), parent->stack_ctx, 0);
-  }
-
   fctx* parent;
   fcontext_t stack_ctx;
 };
+
+MV_INLINE static void swap_ctx(fctx* from, fctx* to, intptr_t args) {
+  to->parent = from;
+  jump_fcontext(&(from->stack_ctx), to->stack_ctx, (intptr_t)args);
+}
+
+MV_INLINE static void swap_ctx_parent(fctx* f) {
+  jump_fcontext(&(f->stack_ctx), f->parent->stack_ctx, 0);
+}
 
 static standard_stack_allocator fthread_stack;
 static void fwrapper(intptr_t);

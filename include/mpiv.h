@@ -1,36 +1,58 @@
-#ifndef MPIV_H_
-#define MPIV_H_
+#ifndef MPIV_MPIV_H_
+#define MPIV_MPIV_H_
 
 #include <mpi.h>
-#include "ult.h"
+#include "mv.h"
+#include "request.h"
 
-void* mv_malloc(size_t size);
-void mv_free(void* ptr);
+extern mv_engine* mv_hdl;
 
-struct MPIV_Request;
+MV_INLINE void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank,
+               int tag, MPI_Comm, MPI_Status*) {
+  int size;
+  MPI_Type_size(datatype, &size);
+  mv_recv(mv_hdl, buffer, size * count, rank, tag);
+}
 
-void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank,
-               int tag, MPI_Comm, MPI_Status*);
+MV_INLINE void MPIV_Send(void* buffer, int count, MPI_Datatype datatype, int rank,
+               int tag, MPI_Comm) {
+  int size;
+  MPI_Type_size(datatype, &size);
+  mv_send(mv_hdl, buffer, size * count, rank, tag);
+}
 
-void MPIV_Send(void* buffer, int count, MPI_Datatype datatype, int rank,
-               int tag, MPI_Comm);
+MV_INLINE void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
+                int tag, MPI_Comm, MPIV_Request* s) {
+  int size;
+  MPI_Type_size(datatype, &size);
+  mv_irecv(mv_hdl, buffer, size * count, rank, tag, s);
+}
 
-void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
-                int tag, MPI_Comm, MPIV_Request* s);
+MV_INLINE void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
+                int tag, MPI_Comm, MPIV_Request* req) {
+  int size;
+  MPI_Type_size(datatype, &size);
+  mv_isend(mv_hdl, buf, size * count, rank, tag, req);
+}
 
-void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
-                int tag, MPI_Comm, MPIV_Request* req);
+MV_INLINE void MPIV_Waitall(int count, MPIV_Request* req, MPI_Status*) {
+  mv_waitall(mv_hdl, count, req);
+}
 
-void MPIV_Waitall(int count, MPIV_Request* req, MPI_Status*);
+MV_INLINE void MPIV_Init(int* argc, char*** args) {
+  mv_open(argc, args, &mv_hdl);
+}
 
-void MPIV_Init(int* argc, char*** args);
+MV_INLINE void MPIV_Finalize() {
+  mv_close(mv_hdl);
+}
 
-void MPIV_Start_worker(int number, intptr_t arg = 0);
+MV_INLINE void* MPIV_Alloc(int size) {
+  return mv_malloc(mv_hdl, (size_t)size);
+}
 
-void MPIV_join(mv_thread* ult);
-
-void MPIV_Finalize();
-
-mv_thread* MPIV_spawn(int, void (*)(intptr_t), intptr_t);
+MV_INLINE void MPIV_Free(void* ptr) {
+  mv_free(mv_hdl, ptr); 
+}
 
 #endif

@@ -9,7 +9,7 @@
 
 // #define CHECK_RESULT
 
-#include "mpiv.h"
+#include "helper.h"
 #include "comm_exp.h"
 
 #include "profiler.h"
@@ -40,8 +40,8 @@ void main_task(intptr_t) {
   double times = 0;
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  void* r_buf = (void*)mv_malloc((size_t)MAX_MSG_SIZE);
-  void* s_buf = (void*)mv_malloc((size_t)MAX_MSG_SIZE);
+  void* r_buf = (void*)MPIV_Alloc((size_t)MAX_MSG_SIZE);
+  void* s_buf = (void*)MPIV_Alloc((size_t)MAX_MSG_SIZE);
 
   for (int size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE; size <<= 1) {
     int total = TOTAL;
@@ -83,6 +83,6 @@ void main_task(intptr_t) {
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  mv_free(r_buf);
-  mv_free(s_buf);
+  MPIV_Free(r_buf);
+  MPIV_Free(s_buf);
 }

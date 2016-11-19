@@ -25,11 +25,11 @@ LDFLAGS += $(BOOST_LIB) $(IBV_LIB) # -llmpe -lmpe
 
 all: libmv.a
 
-libmv.a: mpiv.o mfcontext.o jfcontext.o
+libmv.a: mpiv.o waitall.o init.o memory.o isend.o irecv.o send.o recv.o mfcontext.o jfcontext.o
 	ar rcs $@ $^
 
-mpiv.o: mpiv.cxx
-	$(MPICXX) $(CXXFLAGS) -c mpiv.cxx -o mpiv.o
+%.o: %.cxx
+	$(MPICXX) $(CXXFLAGS) -c $^ -o $@
 
 jfcontext.o: $(JFCONTEXT)
 	$(CXX) -O3 -c $(JFCONTEXT) -o jfcontext.o

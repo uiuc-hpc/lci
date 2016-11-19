@@ -257,7 +257,7 @@ void ServerOFI::serve() {
     server.start();
 #endif
 
-    while (xunlikely(!this->stop_)) {
+    while (unlikely(!this->stop_)) {
       while (progress()) {
       };
     }

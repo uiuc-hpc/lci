@@ -10,6 +10,7 @@
 // #define CHECK_RESULT
 
 #include "mpiv.h"
+#include "helper.h"
 #include "comm_exp.h"
 
 #include "profiler.h"
@@ -40,9 +41,9 @@ int main(int argc, char** args) {
 void main_task(intptr_t) {
   double times = 0;
   int rank;
-  MPIV_Comm_rank(MPI_COMM_WORLD, &rank);
-  void* r_buf = (void*)mv_malloc((size_t)MAX_MSG_SIZE);
-  void* s_buf = (void*)mv_malloc((size_t)MAX_MSG_SIZE);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  void* r_buf = (void*)MPIV_Alloc((size_t)MAX_MSG_SIZE);
+  void* s_buf = (void*)MPIV_Alloc((size_t)MAX_MSG_SIZE);
 
   for (int size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE; size <<= 1) {
     int total = TOTAL;
@@ -52,30 +53,28 @@ void main_task(intptr_t) {
       total = TOTAL_LARGE;
       skip = SKIP_LARGE;
     }
-    MPIV_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
     MPIV_Request r[64];
     if (rank == 0) {
       memset(r_buf, 'a', size);
       memset(s_buf, 'b', size);
       for (int t = 0; t < total + skip; t++) {
         if (t == skip) {
-          times = MPIV_Wtime();
+          times = MPI_Wtime();
         }
         for (int k = 0; k < WIN; k++) {
           MPIV_Isend(s_buf, size, MPI_CHAR, 1, k, MPI_COMM_WORLD, &r[k]);
+          // MPIV_Send(s_buf, size, MPI_CHAR, 1, k, MPI_COMM_WORLD);
         }
-        MPIV_Waitall(WIN, r);
-        // printf("recv\n");
+        // printf("recv waitall\n");
+        MPIV_Waitall(WIN, r, MPI_STATUSES_IGNORE);
+        // printf("recv waitall done \n");
         MPIV_Recv(r_buf, 4, MPI_CHAR, 1, WIN + 1, MPI_COMM_WORLD,
                   MPI_STATUS_IGNORE);
         // printf("recv done\n");
       }
-      times = MPIV_Wtime() - times;
-<<<<<<< Updated upstream
+      times = MPI_Wtime() - times;
       printf("[%d] %f\n", size, (1e-6 * size * total * WIN) / times);
-=======
-      printf("[%d] %f\n", size, (size / 1e6 * total * WIN) / times);
->>>>>>> Stashed changes
     } else {
       memset(s_buf, 'b', size);
       memset(r_buf, 'a', size);
@@ -83,7 +82,7 @@ void main_task(intptr_t) {
         for (int k = 0; k < WIN; k++) {
           MPIV_Irecv(r_buf, size, MPI_CHAR, 0, k, MPI_COMM_WORLD, &r[k]);
         }
-        MPIV_Waitall(WIN, r);
+        MPIV_Waitall(WIN, r, MPI_STATUSES_IGNORE);
         MPIV_Send(s_buf, 4, MPI_CHAR, 0, WIN + 1, MPI_COMM_WORLD);
         if (t == 0 || CHECK_RESULT) {
           for (int j = 0; j < size; j++) {
@@ -92,9 +91,9 @@ void main_task(intptr_t) {
         }
       }
     }
-    MPIV_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  mv_free(r_buf);
-  mv_free(s_buf);
+  MPIV_Free(r_buf);
+  MPIV_Free(s_buf);
 }

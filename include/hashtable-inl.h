@@ -8,8 +8,8 @@
 typedef uintptr_t mv_value;
 typedef uint64_t mv_key;
 typedef void* mv_hash;
-void hash_init(mv_hash** h);
-int hash_insert(mv_hash* h, mv_key key, mv_value* value);
+inline void mv_hash_init(mv_hash** h);
+inline int mv_hash_insert(mv_hash* h, mv_key key, mv_value* value);
 
 #include <assert.h>
 #include <stdlib.h>
@@ -37,12 +37,12 @@ typedef struct hash_val {
 
 static inline hash_val* create_table(size_t num_rows);
 
-void hash_init(mv_hash** h) {
+inline void mv_hash_init(mv_hash** h) {
   struct hash_val** hv = (struct hash_val**) h;
   *hv = create_table(1 << TBL_BIT_SIZE);
 }
 
-int hash_insert(mv_hash* h, mv_key key, mv_value* value) {
+inline int mv_hash_insert(mv_hash* h, mv_key key, mv_value* value) {
   struct hash_val* tbl_ = (struct hash_val*) h;
 
   const uint32_t hash = myhash(key);

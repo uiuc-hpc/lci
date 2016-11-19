@@ -25,12 +25,12 @@ MV_INLINE void fthread_create(fthread* f, ffunc func, intptr_t data, size_t stac
 
 MV_INLINE void fthread_yield(fthread* f) {
   f->state = YIELD;
-  f->ctx.swap_ctx_parent();
+  swap_ctx_parent(&f->ctx);
 }
 
 MV_INLINE void fthread_wait(fthread* f) {
   f->state = BLOCKED;
-  f->ctx.swap_ctx_parent();
+  swap_ctx_parent(&f->ctx);
 }
 
 MV_INLINE void fthread_resume(fthread *f) { fworker_sched_thread(f->origin, f->id); }
@@ -46,7 +46,7 @@ MV_INLINE void fwrapper(intptr_t args) {
   fthread* f = (fthread*)args;
   f->func(f->data);
   f->state = INVALID;
-  f->ctx.swap_ctx_parent();
+  swap_ctx_parent(&f->ctx);
 }
 
 /// Fworker.
@@ -99,14 +99,14 @@ MV_INLINE fthread* fworker_spawn(fworker *w, ffunc f, intptr_t data, size_t stac
 }
 
 MV_INLINE void fworker_work(fworker* w, fthread* f) {
-  if (xunlikely(f->state == INVALID)) return;
+  if (unlikely(f->state == INVALID)) return;
   tlself.thread = f;
-  w->ctx.swap_ctx(&f->ctx, (intptr_t)f);
+
+  swap_ctx(&w->ctx, &f->ctx, (intptr_t)f);
+
   tlself.thread = NULL;
-  if (f->state == YIELD)
-    fthread_resume(f);
-  else if (f->state == INVALID)
-    fthread_fini(f);
+  if (f->state == YIELD) fthread_resume(f);
+  else if (f->state == INVALID) fthread_fini(f);
 }
 
 MV_INLINE void fworker_sched_thread(fworker* w, const int id) {
@@ -139,7 +139,7 @@ MV_INLINE void wfunc(fworker* w) {
   wp.start();
 #endif
 
-  while (xunlikely(!w->stop)) {
+  while (unlikely(!w->stop)) {
 #ifdef ENABLE_STEAL
     bool has_work = false;
 #endif
@@ -149,7 +149,7 @@ MV_INLINE void wfunc(fworker* w) {
         // Atomic exchange to get the current waiting threads.
         auto local_mask = exchange((unsigned long)0, &(mask));
         // Works until it no thread is pending.
-        while (xlikely(local_mask > 0)) {
+        while (likely(local_mask > 0)) {
 #ifdef ENABLE_STEAL
           has_work = true;
 #endif
@@ -171,7 +171,7 @@ MV_INLINE void wfunc(fworker* w) {
           // Atomic exchange to get the current waiting threads.
           auto local_mask = exchange((unsigned long)0, &(mask));
           // Works until it no thread is pending.
-          while (xlikely(local_mask > 0)) {
+          while (likely(local_mask > 0)) {
             auto id = pop_work(local_mask);
             // Optains the associate thread.
             fthread* f = &(steal->threads[MUL64(i) + id]);
@@ -205,7 +205,7 @@ MV_INLINE void fworker::wfunc(fworker* w) {
   wp.start();
 #endif
 
-  while (xunlikely(!w->stop)) {
+  while (unlikely(!w->stop)) {
     for (int l1i = 0; l1i < 8; l1i++) {
       if (w->l1_mask[l1i] == 0) continue;
       auto local_l1_mask = exchange((unsigned long)0, &(w->l1_mask[l1i]));
@@ -222,7 +222,7 @@ MV_INLINE void fworker::wfunc(fworker* w) {
             // Atomic exchange to get the current waiting threads.
             local_mask = exchange(local_mask, &(w->mask[i]));
             // Works until it no thread is pending.
-            while (xlikely(local_mask > 0)) {
+            while (likely(local_mask > 0)) {
               auto id = pop_work(local_mask);
               // Optains the associate thread.
               fthread* f = &w->thread[MUL64(i) + id];

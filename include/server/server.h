@@ -2,22 +2,15 @@
 #define SERVER_H_
 
 #include "config.h"
+#include <atomic>
 #include <iostream>
 #include <memory>
 #include <thread>
 
 #include "affinity.h"
-#include "packet_pool.h"
 #include "profiler.h"
 
 using std::unique_ptr;
-
-void mv_recv_imm(uint32_t imm);
-void mv_serve_recv(packet*);
-void mv_serve_send(packet*);
-void mv_post_recv(packet*);
-
-double MPIV_Wtime();
 
 struct pinned_pool {
   pinned_pool(void* ptr_) : ptr((uintptr_t)ptr_), last(0) {}
@@ -31,22 +24,13 @@ struct pinned_pool {
   }
 };
 
-class ServerBase {
- public:
-  virtual void init(mv_pp* pkpool, int& rank, int& size) = 0;
-  virtual void post_recv(packet* p) = 0;
-  virtual void serve() = 0;
-  virtual void finalize() = 0;
-  virtual void write_send(int rank, void* buf, size_t size,
-      void* ctx) = 0;
-  virtual void write_rma(int rank, void* from, uint32_t lkey, void* to, uint32_t rkey,
-      size_t size, void* ctx) = 0;
-  virtual void* allocate(size_t s) = 0;
-  virtual void deallocate(void* ptr) = 0;
-  virtual uint32_t heap_rkey() = 0;
-};
+typedef boost::interprocess::basic_managed_external_buffer<
+    char, boost::interprocess::rbtree_best_fit<
+              boost::interprocess::mutex_family, void*, 64>,
+    boost::interprocess::iset_index>
+    mbuffer;
 
-#include "server_ofi.h"
+// #include "server_ofi.h"
 #include "server_rdmax.h"
 
 #endif

@@ -10,7 +10,7 @@
  */
 
 #include "mpiv.h"
-#include "ult/ult.h"
+#include "helper.h"
 #include <atomic>
 #include <unistd.h>
 #include <stdlib.h>
@@ -90,9 +90,9 @@ static int size = 0;
 
 void main_task(intptr_t) {
   int i = 0;
-  r_buf1 = (char*)mv_malloc(MYBUFSIZE);
-  s_buf1 = (char*)mv_malloc(MYBUFSIZE);
-  mv_thread** sr_threads = new mv_thread*[THREADS];
+  r_buf1 = (char*)MPIV_Alloc(MYBUFSIZE);
+  s_buf1 = (char*)MPIV_Alloc(MYBUFSIZE);
+  mv_thread* sr_threads = new mv_thread[THREADS];
   thread_tag_t* tags = new thread_tag_t[THREADS];
 
   if (myid == 0) {
@@ -126,8 +126,8 @@ void main_task(intptr_t) {
       MPI_Barrier(MPI_COMM_WORLD);
     }
   }
-  mv_free(r_buf1);
-  mv_free(s_buf1);
+  MPIV_Free(r_buf1);
+  MPIV_Free(s_buf1);
 }
 
 void recv_thread(intptr_t arg) {

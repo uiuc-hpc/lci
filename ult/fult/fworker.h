@@ -32,7 +32,7 @@ MV_INLINE void fworker_start(fworker* w) {
   w->runner = std::thread(wfunc, w);
 }
 
-MV_INLINE void forker_stop(fworker* w) {
+MV_INLINE void fworker_stop(fworker* w) {
   w->stop = 1;
   w->runner.join();
 }

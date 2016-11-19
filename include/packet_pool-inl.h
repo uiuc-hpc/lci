@@ -9,7 +9,6 @@
 
 #include "lock.h"
 #include "macro.h"
-#include "packet_pool.h"
 
 #define MAX_SIZE (1<<12)
 
@@ -21,7 +20,7 @@ struct dequeue {
     void* container[MAX_SIZE];
 } __attribute__((aligned(64)));
 
-void dq_init(struct dequeue* dq, size_t size) {
+inline void dq_init(struct dequeue* dq, size_t size) {
   memset(dq->container, 0, MAX_SIZE);
   dq->top = 0;
   dq->bot = 0;
@@ -29,7 +28,7 @@ void dq_init(struct dequeue* dq, size_t size) {
   dq->flag = MV_SPIN_UNLOCKED;
 }
 
-void* dq_pop_top(struct dequeue* deq) {
+inline void* dq_pop_top(struct dequeue* deq) {
   void* ret = NULL;
   mv_spin_lock(&deq->flag);
   if (deq->top != deq->bot) {
@@ -40,7 +39,7 @@ void* dq_pop_top(struct dequeue* deq) {
   return ret;
 };
 
-void* dq_push_top(struct dequeue* deq, void* p) {
+inline void* dq_push_top(struct dequeue* deq, void* p) {
   void* ret = NULL;
   mv_spin_lock(&deq->flag);
   deq->container[deq->top] = p;
@@ -53,7 +52,7 @@ void* dq_push_top(struct dequeue* deq, void* p) {
   return ret;
 };
 
-void* dq_pop_bot(struct dequeue* deq) {
+inline void* dq_pop_bot(struct dequeue* deq) {
   void* ret = NULL;
   mv_spin_lock(&deq->flag);
   if (deq->top != deq->bot) {
