@@ -1,6 +1,6 @@
 MPICXX = mpicxx 
 GXX = gcc
-CXXFLAGS += -g -ggdb -O3 -Wall -flto -Wextra -std=c++11 -I../ult -I../include -I../ -DUSE_AFFI
+CXXFLAGS += -g -ggdb -O3 -Wall -Wextra -std=c++11 -I../ult -I../include -I../ -DUSE_AFFI
 
 ### FOR TESTING HASH TABLE ###
 #FACEBOOK_INC = -I$(HOME)/facebook/include -I$(HOME)/glog/include -I$(HOME)/folly/folly/double-conversion #-DNDEBUG
@@ -23,7 +23,6 @@ CXXFLAGS += -I$(CUCKOO_INC)
 
 BOOST_INC = -I$(TACC_BOOST_INC) #/usr/local/boost/1.58.0/include
 BOOST_LIB = -L$(TACC_BOOST_LIB)
-CXXFLAGS += -Wno-unused-local-typedefs
 
 ### FOR TESTING ARGOBOTS ###
 # ABT_INC = $(HOME)/argo/include

@@ -3,9 +3,6 @@
 
 #include "config.h"
 #include <stdexcept>
-#include <boost/interprocess/creation_tags.hpp>
-#include <boost/interprocess/managed_external_buffer.hpp>
-
 #define ALIGNED64(x) (((x) + 63) / 64 * 64)
 
 #ifdef USE_TIMING

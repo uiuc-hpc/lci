@@ -18,27 +18,24 @@ struct rdmax_server {
   device_cq dev_rcq;
   device_memory sbuf;
   device_memory heap;
-  mbuffer heap_segment;
   int recv_posted;
   unique_ptr<pinned_pool> sbuf_alloc;
   mv_pp* pkpool;
+  void* heap_ptr;
   vector<connection> conn;
 } __attribute__((aligned(64)));
 
-inline void rdmax_init(rdmax_server** s, mv_engine* mv, mv_pp*, int& rank, int& size);
+inline void rdmax_init(mv_engine* mv, mv_pp*, size_t heap_size, rdmax_server** s_ptr);
 inline void rdmax_post_recv(rdmax_server* s, packet* p);
-inline bool rdmax_progress(rdmax_server* s);
 inline void rdmax_serve(rdmax_server* s);
 inline void rdmax_write_send(rdmax_server* s, int rank, void* buf, size_t size, void* ctx);
 inline void rdmax_write_rma(rdmax_server* s, int rank, void* from,
     uint32_t lkey, void* to, uint32_t rkey, size_t size, void* ctx);
 inline void rdmax_write_rma_signal(rdmax_server *s, int rank, void* from,
     uint32_t lkey, void* to, uint32_t rkey, size_t size, uint32_t sid, void* ctx);
-inline void* rdmax_allocate(rdmax_server* s, size_t size);
-inline void rdmax_deallocate(rdmax_server* s, void* ptr);
 inline void rdmax_finalize(rdmax_server* s);
 
-inline void rdmax_init(rdmax_server** s_ptr, mv_engine* mv, mv_pp* pkpool, int& rank, int& size) {
+inline void rdmax_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size, rdmax_server** s_ptr) {
   rdmax_server* s = new rdmax_server();
   s->stop = true;
 #ifdef USE_AFFI
@@ -59,18 +56,15 @@ inline void rdmax_init(rdmax_server** s_ptr, mv_engine* mv, mv_pp* pkpool, int& 
   // These are pinned memory.
   s->sbuf = s->dev_ctx->create_memory(sizeof(packet) * (MAX_SEND + MAX_RECV + 2),
       mr_flags);
-
   s->sbuf_alloc =
       std::move(std::unique_ptr<pinned_pool>(new pinned_pool(s->sbuf.ptr())));
-  s->heap = s->dev_ctx->create_memory((size_t)HEAP_SIZE, mr_flags);
 
-  s->heap_segment = std::move(mbuffer(boost::interprocess::create_only,
-        s->heap.ptr(), (size_t)HEAP_SIZE));
+  s->heap = s->dev_ctx->create_memory(heap_size, mr_flags);
 
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  MPI_Comm_rank(MPI_COMM_WORLD, &mv->me);
+  MPI_Comm_size(MPI_COMM_WORLD, &mv->size);
 
-  for (int i = 0; i < size; i++) {
+  for (int i = 0; i < mv->size; i++) {
     s->conn.emplace_back(&s->dev_scq, &s->dev_rcq, s->dev_ctx.get(), &s->heap, i);
   }
 
@@ -90,7 +84,7 @@ inline void rdmax_post_recv(rdmax_server* s, packet* p) {
   s->dev_ctx->post_srq_recv((void*)p, (void*)p, sizeof(packet), s->sbuf.lkey());
 }
 
-inline bool rdmax_progress(rdmax_server* s) {  // profiler& p, long long& r, long long &s) {
+MV_INLINE bool rdmax_progress(rdmax_server* s) {  // profiler& p, long long& r, long long &s) {
   initt(t);
   startt(t);
   bool ret = (s->dev_rcq.poll_once([s](const ibv_wc& wc) {
@@ -116,20 +110,11 @@ inline void rdmax_serve(rdmax_server* s) {
     affinity::set_me_to_last();
 #endif
 
-#ifdef USE_PAPI
-    profiler server({PAPI_L1_DCM});
-    server.start();
-#endif
-
     while (unlikely(!s->stop)) {
       while (rdmax_progress(s)) {
       };
     }
 
-#ifdef USE_PAPI
-    server.stop();
-    server.print();
-#endif
   });
 }
 
@@ -152,10 +137,6 @@ inline void rdmax_write_rma_signal(rdmax_server* s, int rank, void* from, void* 
   s->conn[rank].write_rdma_imm(from, s->heap.lkey(), to, rkey, size, sid, ctx);
 }
 
-inline void* rdmax_allocate(rdmax_server* s, size_t size) { return s->heap_segment.allocate(size); }
-
-inline void rdmax_deallocate(rdmax_server* s, void* ptr) { s->heap_segment.deallocate(ptr); }
-
 inline void rdmax_finalize(rdmax_server* s) {
   s->stop = true;
   s->poll_thread.join();
@@ -166,6 +147,7 @@ inline void rdmax_finalize(rdmax_server* s) {
 }
 
 inline uint32_t rdmax_heap_rkey(rdmax_server* s) { return s->heap.rkey(); }
+inline void* rdmax_heap_ptr(rdmax_server* s) { return s->heap.ptr(); }
 
 #define mv_server_init rdmax_init
 #define mv_server_serve rdmax_serve
@@ -173,8 +155,7 @@ inline uint32_t rdmax_heap_rkey(rdmax_server* s) { return s->heap.rkey(); }
 #define mv_server_rma rdmax_write_rma
 #define mv_server_rma_signal rdmax_write_rma_signal
 #define mv_server_heap_rkey rdmax_heap_rkey
-#define mv_server_alloc rdmax_allocate
-#define mv_server_dealloc rdmax_deallocate
+#define mv_server_heap_ptr rdmax_heap_ptr
 #define mv_server_finalize rdmax_finalize
 
 #endif

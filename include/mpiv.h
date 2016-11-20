@@ -4,8 +4,17 @@
 #include <mpi.h>
 #include "mv.h"
 #include "request.h"
+#include <boost/interprocess/creation_tags.hpp>
+#include <boost/interprocess/managed_external_buffer.hpp>
+
+typedef boost::interprocess::basic_managed_external_buffer<
+    char, boost::interprocess::rbtree_best_fit<
+              boost::interprocess::mutex_family, void*, 64>,
+    boost::interprocess::iset_index>
+    mbuffer;
 
 extern mv_engine* mv_hdl;
+extern mbuffer heap_segment;
 
 MV_INLINE void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank,
                int tag, MPI_Comm, MPI_Status*) {
@@ -40,7 +49,10 @@ MV_INLINE void MPIV_Waitall(int count, MPIV_Request* req, MPI_Status*) {
 }
 
 MV_INLINE void MPIV_Init(int* argc, char*** args) {
-  mv_open(argc, args, &mv_hdl);
+  size_t heap_size = 1024 * 1024 * 1024;
+  mv_open(argc, args, heap_size, &mv_hdl);
+  heap_segment = std::move(mbuffer(boost::interprocess::create_only,
+        mv_heap_ptr(mv_hdl), heap_size));
 }
 
 MV_INLINE void MPIV_Finalize() {
@@ -48,11 +60,11 @@ MV_INLINE void MPIV_Finalize() {
 }
 
 MV_INLINE void* MPIV_Alloc(int size) {
-  return mv_malloc(mv_hdl, (size_t)size);
+  return heap_segment.allocate(size);
 }
 
 MV_INLINE void MPIV_Free(void* ptr) {
-  mv_free(mv_hdl, ptr); 
+  return heap_segment.deallocate(ptr);
 }
 
 #endif

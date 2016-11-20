@@ -193,7 +193,7 @@ MV_INLINE void wfunc(fworker* w) {
 
 #else
 
-MV_INLINE void fworker::wfunc(fworker* w) {
+MV_INLINE void wfunc(fworker* w) {
   w->id = nfworker_.fetch_add(1);
   tlself.worker = w;
 #ifdef USE_AFFI
@@ -225,7 +225,7 @@ MV_INLINE void fworker::wfunc(fworker* w) {
             while (likely(local_mask > 0)) {
               auto id = pop_work(local_mask);
               // Optains the associate thread.
-              fthread* f = &w->thread[MUL64(i) + id];
+              fthread* f = &w->threads[MUL64(i) + id];
               fworker_work(w, f);
             }
           }

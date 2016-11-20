@@ -72,8 +72,10 @@ struct mv_pp {
 
 inline void mv_pp_init(mv_pp** pp_) {
   struct mv_pp** pp = (struct mv_pp**) pp_;
-  (*pp) = (struct mv_pp*) malloc(sizeof (struct mv_pp));
-  struct dequeue* dq = (struct dequeue*) malloc(sizeof(struct dequeue));
+  posix_memalign((void**) pp, 64, sizeof(struct mv_pp));
+  // (*pp) = (struct mv_pp*) malloc(sizeof (struct mv_pp));
+  struct dequeue* dq;
+  posix_memalign((void**) &dq, 64, sizeof(struct dequeue));
   dq_init(dq, MAX_CONCURRENCY);
   (*pp)->nworker_ = 0;
   (*pp)->prv_pool[0] = dq;
@@ -82,7 +84,8 @@ inline void mv_pp_init(mv_pp** pp_) {
 inline void mv_pp_ext(mv_pp* pp_, int nworker) {
   struct mv_pp* pp = (struct mv_pp*) pp_;
   for (int i = pp->nworker_; i < nworker; i++) {
-    struct dequeue* dq = (struct dequeue*) malloc(sizeof(struct dequeue));
+    struct dequeue* dq;
+    posix_memalign((void**) &dq, 64, sizeof(struct dequeue));
     pp->prv_pool[i + 1] = dq;
     dq_init(dq, MAX_CONCURRENCY);
   }
@@ -110,10 +113,8 @@ struct packet* mv_pp_alloc(mv_pp* mv_pp_, int pid) {
   struct mv_pp* pp = (struct mv_pp*) mv_pp_;
   struct packet* p = (struct packet*) dq_pop_top(pp->prv_pool[pid]);
   while (!p) {
-    for (int steal = 0; steal < pp->nworker_ + 1; steal++) {
-      p = (struct packet*) dq_pop_bot(pp->prv_pool[steal]);
-      if (p) break;
-    }
+    int steal = rand() % (pp->nworker_ + 1);
+    p = (struct packet*) dq_pop_bot(pp->prv_pool[steal]);
   }
   return p;
 }
@@ -122,10 +123,8 @@ struct packet* mv_pp_alloc_nb(mv_pp* mv_pp_, int pid) {
   struct mv_pp* pp = (struct mv_pp*) mv_pp_;
   struct packet* p = (struct packet*) dq_pop_top(pp->prv_pool[pid]);
   if (!p) {
-    for (int steal = 1; steal < pp->nworker_ + 1; steal++) {
-      p = (struct packet*) dq_pop_bot(pp->prv_pool[steal]);
-      if (p) break;
-    }
+    int steal = rand() % (pp->nworker_ + 1);
+    p = (struct packet*) dq_pop_bot(pp->prv_pool[steal]);
   }
   return p;
 }

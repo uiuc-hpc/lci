@@ -24,13 +24,12 @@ struct pinned_pool {
   }
 };
 
-typedef boost::interprocess::basic_managed_external_buffer<
-    char, boost::interprocess::rbtree_best_fit<
-              boost::interprocess::mutex_family, void*, 64>,
-    boost::interprocess::iset_index>
-    mbuffer;
+#ifdef MV_USE_SERVER_OFI
+#include "server_ofi.h"
+#endif
 
-// #include "server_ofi.h"
+#ifdef MV_USE_SERVER_RDMAX
 #include "server_rdmax.h"
+#endif
 
 #endif

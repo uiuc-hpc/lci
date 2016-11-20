@@ -1,7 +1,7 @@
 #include "mv.h"
 #include "mv-inl.h"
 
-void mv_open(int *argc, char*** args, mv_engine** ret)
+void mv_open(int *argc, char*** args, size_t heap_size, mv_engine** ret)
 {
   mv_struct *mv = new mv_struct();
 
@@ -18,7 +18,7 @@ void mv_open(int *argc, char*** args, mv_engine** ret)
 
   mv_pp_init(&mv->pkpool);
 
-  mv_server_init(&(mv->server), mv, mv->pkpool, mv->me, mv->size);
+  mv_server_init(mv, mv->pkpool, heap_size, &mv->server);
   mv_server_serve(mv->server);
   MPI_Barrier(MPI_COMM_WORLD);
 
