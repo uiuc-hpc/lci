@@ -15,10 +15,10 @@ struct fthread {
   stack_context stack;
   fworker* origin;
   int id;
-  std::atomic<int> count;
   ffunc func;
   intptr_t data;
   volatile fthread_state state;
+  volatile int count;
 } __attribute__((aligned(64)));
 
 MV_INLINE void fthread_init(fthread* f) {

@@ -7,7 +7,7 @@ struct fworker {
   fthread* threads;
   std::thread runner;
   std::stack<fthread*> thread_pool;
-  volatile int thread_pool_lock;
+  volatile int thread_pool_lock __attribute__((aligned(64)));
   int id;
   struct {
     bool stop;
