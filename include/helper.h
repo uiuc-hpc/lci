@@ -36,8 +36,10 @@ void MPIV_Start_worker(int number, intptr_t arg = 0) {
     mv_set_num_worker(mv_hdl, number);
   }
   fworker_init(&all_worker[0]);
+    all_worker[0]->id = 0;
   for (size_t i = 1; i < all_worker.size(); i++) {
     fworker_init(&all_worker[i]);
+    all_worker[i]->id = i;
     fworker_start(all_worker[i]);
   }
   fworker_start_main(all_worker[0], mv_main_task, arg);
@@ -75,7 +77,7 @@ void thread_wait(mv_sync* sync) {
 void thread_signal(mv_sync* sync) {
   fthread* thread = (fthread*) sync;
   // smaller than 0 means no counter, saving abit cycles and data.
-  if (thread->count < 0 || (thread->count.fetch_sub(1) - 1 == 0)) {
+  if (thread->count < 0 || (__sync_sub_and_fetch(&thread->count, 1) == 0)) {
     fthread_resume(thread);
   }
 }

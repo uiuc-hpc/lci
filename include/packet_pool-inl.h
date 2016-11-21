@@ -13,7 +13,7 @@
 #define MAX_SIZE (1<<12)
 
 struct dequeue {
-    volatile int flag __attribute__((aligned(8)));
+    volatile int flag;
     size_t top;
     size_t bot;
     size_t size;

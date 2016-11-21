@@ -52,8 +52,8 @@ MV_INLINE void fwrapper(intptr_t args) {
 /// Fworker.
 
 MV_INLINE void fworker_init(fworker** w) {
-  // posix_memalign((void**) w, 64, sizeof(fworker));
-  *w = new fworker();
+  posix_memalign((void**) w, 64, sizeof(struct fworker));
+  new (*w) fworker();
   (*w)->stop = true;
   // (*w)->threads = (fthread*) malloc(sizeof(fthread) * NMASK * WORDSIZE);
   posix_memalign((void**)&((*w)->threads), 64, sizeof(fthread) * NMASK * WORDSIZE);
@@ -194,7 +194,6 @@ MV_INLINE void wfunc(fworker* w) {
 #else
 
 MV_INLINE void wfunc(fworker* w) {
-  w->id = nfworker_.fetch_add(1);
   tlself.worker = w;
 #ifdef USE_AFFI
   affinity::set_me_to(w->id);
@@ -233,7 +232,6 @@ MV_INLINE void wfunc(fworker* w) {
       }
     }
   }
-  nfworker_--;
 
 #ifdef USE_PAPI
   wp.stop();
