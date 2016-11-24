@@ -18,8 +18,8 @@ CXXFLAGS += -I$(CUCKOO_INC)
 # LDFLAGS += $(TBB_LIB)
 # CXXFLAGS += $(TBB_INC)
 
-TACC_BOOST_INC=/home/w00d/software/boost_1_61_0/
-TACC_BOOST_LIB=/home/w00d/software/boost_1_61_0/stage/lib
+# TACC_BOOST_INC=/home/w00d/software/boost_1_61_0/
+# TACC_BOOST_LIB=/home/w00d/software/boost_1_61_0/stage/lib
 
 BOOST_INC = -I$(TACC_BOOST_INC) #/usr/local/boost/1.58.0/include
 BOOST_LIB = -L$(TACC_BOOST_LIB)

@@ -3,6 +3,7 @@
 
 #include <mpi.h>
 #include "mv.h"
+#include "mv-inl.h"
 #include "request.h"
 #include <boost/interprocess/creation_tags.hpp>
 #include <boost/interprocess/managed_external_buffer.hpp>
@@ -20,16 +21,28 @@ MV_INLINE void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int ran
                int tag, MPI_Comm, MPI_Status*) {
   int size;
   MPI_Type_size(datatype, &size);
-  mv_recv(mv_hdl, buffer, size * count, rank, tag);
+  size *= count;
+  mv_sync* sync = mv_get_sync();
+  if ((size_t)size <= SHORT_MSG_SIZE) {
+    mv_recv_eager(mv_hdl, buffer, size, rank, tag, sync);
+  } else {
+    mv_recv_rdz(mv_hdl, buffer, size, rank, tag, sync);
+  }
 }
 
 MV_INLINE void MPIV_Send(void* buffer, int count, MPI_Datatype datatype, int rank,
                int tag, MPI_Comm) {
   int size;
   MPI_Type_size(datatype, &size);
-  mv_send(mv_hdl, buffer, size * count, rank, tag);
+  size *= count;
+  if (size <= SHORT_MSG_SIZE) {
+    mv_send_eager(mv_hdl, buffer, size, rank, tag);
+  } else {
+    mv_send_rdz(mv_hdl, buffer, size, rank, tag, mv_get_sync());
+  }
 }
 
+#if 0
 MV_INLINE void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
                 int tag, MPI_Comm, MPIV_Request* s) {
   int size;
@@ -47,6 +60,7 @@ MV_INLINE void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int
 MV_INLINE void MPIV_Waitall(int count, MPIV_Request* req, MPI_Status*) {
   mv_waitall(mv_hdl, count, req);
 }
+#endif
 
 MV_INLINE void MPIV_Init(int* argc, char*** args) {
   size_t heap_size = 1024 * 1024 * 1024;

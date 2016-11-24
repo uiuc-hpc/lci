@@ -31,8 +31,7 @@ inline int set_me_to_(int core_id) {
   CPU_ZERO(&cpuset);
   CPU_SET(core_id, &cpuset);
 
-  // std::cerr << "[USE_AFFI] Setting someone to core #" << core_id <<
-  // std::endl;
+  std::cerr << "[USE_AFFI] Setting someone to core #" << core_id << std::endl;
   pthread_t current_thread = pthread_self();
   return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
 }

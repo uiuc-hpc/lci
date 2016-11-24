@@ -21,12 +21,18 @@ void* mv_heap_ptr(mv_engine*);
 void mv_set_num_worker(mv_engine*, int number);
 
 /*! Communication function */
-struct MPIV_Request; 
-void mv_send(mv_engine*, const void* buffer, size_t size, int rank, int tag);
-void mv_recv(mv_engine*, void* buffer, size_t size, int rank, int tag);
-void mv_isend(mv_engine*, const void* buffer, size_t size, int rank, int tag, MPIV_Request*);
-void mv_irecv(mv_engine*, void* buffer, size_t size, int rank, int tag, MPIV_Request*);
-void mv_waitall(mv_engine*, int count, MPIV_Request* req);
+typedef void (*mv_am_func_t)();
+
+void mv_send_eager(mv_engine* mv, const void* buffer, int size, int rank, int tag);
+void mv_send_rdz(mv_engine* mv, const void* buffer, int size, int rank, int tag, mv_sync* sync);
+
+void mv_recv_eager(mv_engine* mv, void* buffer, int size, int rank, int tag,
+                             mv_sync* sync);
+void mv_recv_rdz(mv_engine* mv, void* buffer, int size, int rank, int tag,
+                             mv_sync* sync);
+
+// void mv_put(mv_engine*, int dst_rank, void* dst, void* src, size_t size);
+// void mv_get(mv_engine*, int dst_rank, void* src, void* dst, size_t size, mv_sync* sync);
 
 struct packet;
 struct mv_pp;
@@ -39,7 +45,6 @@ typedef struct ofi_server mv_server;
 #error ("Need server definition (MV_USE_SERVER_RDMAX | MV_USE_SERVER_OFI)")
 #endif
 
-typedef void (*mv_am_func_t)();
 
 typedef uintptr_t mv_value;
 typedef uint64_t mv_key;

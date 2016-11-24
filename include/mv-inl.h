@@ -42,4 +42,12 @@ inline void mv_serve_send(mv_engine*, packet*);
 #include "progress.h"
 #include "proto.h"
 
+MV_INLINE void* mv_heap_ptr(mv_engine* mv) {
+  return mv_server_heap_ptr(mv->server);
+}
+
+MV_INLINE void mv_set_num_worker(mv_engine* mv, int number) {
+  mv_pp_ext(mv->pkpool, number);
+}
+
 #endif
