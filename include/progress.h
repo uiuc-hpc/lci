@@ -5,9 +5,6 @@
 #include "request.h"
 
 typedef void (*_0_arg)(void*, uint32_t);
-typedef void (*_1_arg)(void*, uint32_t, uint32_t);
-typedef void (*_2_arg)(void*, uint32_t, uint32_t, uint32_t);
-typedef void (*_3_arg)(void*, uint32_t, uint32_t, uint32_t, uint32_t);
 
 MV_INLINE void proto_complete_rndz(mv_engine* mv, packet* p, MPIV_Request* s);
 
@@ -19,22 +16,8 @@ inline void mv_recv_am(mv_engine* mv, packet *p) {
   uint8_t fid = (uint8_t) p->header.tag;
   uint32_t* buffer = (uint32_t*) p->content.buffer;
   uint32_t size = buffer[0];
-  uint32_t count = buffer[1];
-  char* data = (char*) &buffer[2 + count];
-  switch (count) {
-    case 0:
-      ((_0_arg) mv->am_table[fid])(data, size);
-      break;
-    case 1:
-      ((_1_arg) mv->am_table[fid])(data, size, buffer[2]);
-      break;
-    case 2:
-      ((_2_arg) mv->am_table[fid])(data, size, buffer[2], buffer[3]);
-      break;
-    case 3:
-      ((_3_arg) mv->am_table[fid])(data, size, buffer[2], buffer[3], buffer[4]);
-      break;
-  };
+  char* data = (char*) &buffer[1];
+  ((_0_arg) mv->am_table[fid])(data, size);
 }
 
 inline void mv_recv_recv_ready(mv_engine* mv, packet* p) {

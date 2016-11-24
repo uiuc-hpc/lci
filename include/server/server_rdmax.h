@@ -147,6 +147,7 @@ inline void rdmax_finalize(rdmax_server* s) {
 }
 
 inline uint32_t rdmax_heap_rkey(rdmax_server* s) { return s->heap.rkey(); }
+inline uint32_t rdmax_heap_rkey(rdmax_server* s, int node) { return s->conn[node].rkey(); }
 inline void* rdmax_heap_ptr(rdmax_server* s) { return s->heap.ptr(); }
 
 #define mv_server_init rdmax_init

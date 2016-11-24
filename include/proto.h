@@ -66,8 +66,31 @@ MV_INLINE void mv_recv_eager(mv_engine* mv, void* buffer, int size, int rank, in
   } else {
     packet* p_ctx = (packet*) value;
     memcpy(buffer, p_ctx->content.buffer, size);
-    mv_pp_free_to(mv->pkpool, p_ctx, mv_my_worker_id());
+    mv_pp_free_to(mv->pkpool, p_ctx, mv_my_worker_id() + 1);
   }
 }
+
+MV_INLINE void mv_am_eager(mv_engine* mv, int node, void* src, int size, uint32_t fid) {
+  packet* packet = mv_pp_alloc(mv->pkpool, mv_my_worker_id() + 1);
+  packet->header.type = SEND_AM;
+  packet->header.from = mv->me;
+  packet->header.tag = fid;
+  uint32_t* buffer = (uint32_t*) packet->content.buffer;
+  buffer[0] = size;
+  memcpy((void*) &buffer[1], src, size);
+  mv_server_send(mv->server, node, packet, sizeof(uint32_t) + (uint32_t)size + sizeof(packet_header), packet);
+}
+
+MV_INLINE void mv_put(mv_engine* mv, int node, void* dst, void* src, int size, uint32_t sid) {
+  mv_server_rma_signal(mv->server, node, src, dst, mv_server_heap_rkey(mv->server, node), size, sid, 0);
+}
+
+MV_INLINE uint8_t mv_am_register(mv_engine* mv, mv_am_func_t f) {
+  MPI_Barrier(MPI_COMM_WORLD);
+  mv->am_table.push_back(f);
+  MPI_Barrier(MPI_COMM_WORLD);
+  return mv->am_table.size() - 1;
+}
+
 
 #endif
