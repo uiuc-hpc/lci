@@ -3,7 +3,8 @@
 
 const int MPIV_COLL_BASE_TAG_BARRIER = 413371337;
 
-void MPIV_Barrier_log(MPI_Comm comm) {
+void MPIV_Barrier_log(MPI_Comm comm)
+{
 #if USE_MPE
   MPE_Log_event(mv_barrier_start, 0, "start_barrier");
 #endif
@@ -52,7 +53,8 @@ void MPIV_Barrier_log(MPI_Comm comm) {
 #define MCA_PML_CALL(x) MPIV_##x
 #define MCA_COLL_BASE_TAG_BARRIER MPIV_COLL_BASE_TAG_BARRIER
 
-int MPIV_Barrier_N(MPI_Comm comm) {
+int MPIV_Barrier_N(MPI_Comm comm)
+{
   int i;
   int size = MPIV.size;
   int rank = MPIV.me;
@@ -91,7 +93,8 @@ int MPIV_Barrier_N(MPI_Comm comm) {
   return MPI_SUCCESS;
 }
 
-void MPIV_Barrier(MPI_Comm comm) {
+void MPIV_Barrier(MPI_Comm comm)
+{
 #if 0
   if (MPIV.size > 32)
     MPIV_Barrier_log(comm);

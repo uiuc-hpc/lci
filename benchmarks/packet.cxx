@@ -14,7 +14,8 @@ extern __thread int wid;
 int* cache_buf;
 int cache_size;
 
-static void cache_invalidate(void) {
+static void cache_invalidate(void)
+{
   int i;
   cache_buf[0] = 1;
   for (i = 1; i < cache_size; ++i) {
@@ -23,7 +24,8 @@ static void cache_invalidate(void) {
 }
 
 template <class T>
-void benchmarks() {
+void benchmarks()
+{
   T pkg;
   pkg.init_worker(NTHREADS);
   for (int i = 0; i < MAX_CONCURRENCY; i++) {
@@ -97,7 +99,8 @@ void benchmarks() {
 }
 
 template <class T>
-void benchmarks_cp() {
+void benchmarks_cp()
+{
   T pkg;
   pkg.init_worker(NTHREADS);
   for (int i = 0; i < MAX_CONCURRENCY; i++) {
@@ -165,7 +168,8 @@ void benchmarks_cp() {
          qu[1], qu[2], qu[3], qu[4]);
 }
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   if (argc > 1) NTHREADS = atoi(args[1]);
   cache_size = (8 * 1024 * 1024 / sizeof(int));
   cache_buf = (int*)malloc(sizeof(int) * cache_size);

@@ -8,12 +8,14 @@ struct ck_hash_val {
   cuckoohash_map<mv_key, mv_value> tbl_;
 };
 
-void ck_hash_init(mv_hash** hash) {
+void ck_hash_init(mv_hash** hash)
+{
   ck_hash_val** h = (ck_hash_val**)hash;
   *h = new ck_hash_val();
 }
 
-bool ck_hash_insert(mv_hash* hash, const mv_key& key, mv_value& value) {
+bool ck_hash_insert(mv_hash* hash, const mv_key& key, mv_value& value)
+{
   ck_hash_val* h = (ck_hash_val*)hash;
   bool ret = true;
   h->tbl_.upsert(key,

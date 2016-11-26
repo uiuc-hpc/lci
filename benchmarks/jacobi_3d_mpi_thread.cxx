@@ -67,7 +67,8 @@ int arrayDimX, arrayDimY, arrayDimZ;
 int noBarrier = 0;
 int myRank, numPes;
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
   MPIV_Init(&argc, &argv);
 
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);
@@ -147,7 +148,8 @@ int myXcoord;
 int myYcoord;
 int myZcoord;
 
-void right(intptr_t) {
+void right(intptr_t)
+{
   MPI_Recv(right_plane_in, blockDimY * blockDimZ, MPI_DOUBLE,
            calc_pe(wrap_x(myXcoord + 1), myYcoord, myZcoord), RIGHT,
            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -171,7 +173,8 @@ void right(intptr_t) {
     }
 }
 
-void left(intptr_t) {
+void left(intptr_t)
+{
   MPI_Recv(left_plane_in, blockDimY * blockDimZ, MPI_DOUBLE,
            calc_pe(wrap_x(myXcoord - 1), myYcoord, myZcoord), LEFT,
            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -196,7 +199,8 @@ void left(intptr_t) {
     }
 }
 
-void up(intptr_t) {
+void up(intptr_t)
+{
   MPI_Recv(top_plane_in, blockDimX * blockDimZ, MPI_DOUBLE,
            calc_pe(myXcoord, wrap_y(myYcoord + 1), myZcoord), TOP,
            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -220,7 +224,8 @@ void up(intptr_t) {
     }
 }
 
-void down(intptr_t) {
+void down(intptr_t)
+{
   MPI_Recv(bottom_plane_in, blockDimX * blockDimZ, MPI_DOUBLE,
            calc_pe(myXcoord, wrap_y(myYcoord - 1), myZcoord), BOTTOM,
            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -243,7 +248,8 @@ void down(intptr_t) {
     }
 }
 
-void front(intptr_t) {
+void front(intptr_t)
+{
   MPI_Recv(front_plane_in, blockDimX * blockDimY, MPI_DOUBLE,
            calc_pe(myXcoord, myYcoord, wrap_z(myZcoord + 1)), FRONT,
            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -267,7 +273,8 @@ void front(intptr_t) {
     }
 }
 
-void back(intptr_t) {
+void back(intptr_t)
+{
   MPI_Recv(back_plane_in, blockDimX * blockDimY, MPI_DOUBLE,
            calc_pe(myXcoord, myYcoord, wrap_z(myZcoord - 1)), BACK,
            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -290,7 +297,8 @@ void back(intptr_t) {
     }
 }
 
-void send_left(intptr_t) {
+void send_left(intptr_t)
+{
   int k, j;
   for (k = 0; k < blockDimZ; ++k)
     for (j = 0; j < blockDimY; ++j) {
@@ -301,7 +309,8 @@ void send_left(intptr_t) {
            MPI_COMM_WORLD);
 }
 
-void send_right(intptr_t) {
+void send_right(intptr_t)
+{
   int k, j;
   for (k = 0; k < blockDimZ; ++k)
     for (j = 0; j < blockDimY; ++j) {
@@ -313,7 +322,8 @@ void send_right(intptr_t) {
            MPI_COMM_WORLD);
 }
 
-void send_bot(intptr_t) {
+void send_bot(intptr_t)
+{
   int k, i;
   for (k = 0; k < blockDimZ; ++k)
     for (i = 0; i < blockDimX; ++i) {
@@ -325,7 +335,8 @@ void send_bot(intptr_t) {
            MPI_COMM_WORLD);
 }
 
-void send_top(intptr_t) {
+void send_top(intptr_t)
+{
   int k, i;
   for (k = 0; k < blockDimZ; ++k)
     for (i = 0; i < blockDimX; ++i) {
@@ -336,7 +347,8 @@ void send_top(intptr_t) {
            MPI_COMM_WORLD);
 }
 
-void send_back(intptr_t) {
+void send_back(intptr_t)
+{
   int j, i;
   for (j = 0; j < blockDimY; ++j)
     for (i = 0; i < blockDimX; ++i) {
@@ -347,7 +359,8 @@ void send_back(intptr_t) {
            MPI_COMM_WORLD);
 }
 
-void send_front(intptr_t) {
+void send_front(intptr_t)
+{
   int j, i;
   for (j = 0; j < blockDimY; ++j)
     for (i = 0; i < blockDimX; ++i) {
@@ -363,7 +376,8 @@ int mpiv_work_start, mpiv_work_end;
 
 int PER_THREAD = 64 * 8;
 
-void compute(intptr_t k) {
+void compute(intptr_t k)
+{
 #if USE_MPE
   if (wid == 0) MPE_Log_event(mpiv_work_start, 0, "work");
 #endif
@@ -381,7 +395,8 @@ void compute(intptr_t k) {
 #endif
 }
 
-void main_task(intptr_t) {
+void main_task(intptr_t)
+{
 #if USE_MPE
   mpiv_work_start = MPE_Log_get_event_number();
   mpiv_work_end = MPE_Log_get_event_number();

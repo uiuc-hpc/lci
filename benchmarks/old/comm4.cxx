@@ -36,7 +36,8 @@ int total_threads;
 int eventSet;
 long long t_value[3], t0_value[3], t1_value[3];
 
-void wait_comm(intptr_t i) {
+void wait_comm(intptr_t i)
+{
   char* buffer = (char*)((uintptr_t)alldata + SIZE * i);
 
 #ifdef CHECK_RESULT
@@ -65,7 +66,8 @@ void wait_comm(intptr_t i) {
 #endif
 }
 
-void send_comm(intptr_t) {
+void send_comm(intptr_t)
+{
 #if 0
     PAPI_read(eventSet, t0_value);
 #endif
@@ -86,7 +88,8 @@ void send_comm(intptr_t) {
 #endif
 }
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
 #if 0
     PAPI_library_init(PAPI_VER_CURRENT);
     PAPI_thread_init(pthread_self);

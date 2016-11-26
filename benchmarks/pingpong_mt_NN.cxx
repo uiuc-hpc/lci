@@ -24,7 +24,8 @@ void runfunc(intptr_t);
 int rank, nworkers, nprocs, i, nthreads, provided;
 thread* id;
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   MPIV_Init(&argc, &argv);
 
   MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
@@ -51,7 +52,8 @@ int main(int argc, char* argv[]) {
 
 int size;
 char *sendbuf, *recvbuf;
-void main_task(intptr_t) {
+void main_task(intptr_t)
+{
   sendbuf = (char*)mpiv_malloc(MAXSIZE);
   recvbuf = (char*)mpiv_malloc(MAXSIZE);
   int loop = std::max(TOTAL_LARGE, nthreads);
@@ -73,7 +75,8 @@ void main_task(intptr_t) {
   mpiv_free(recvbuf);
 }
 
-void runfunc(intptr_t thread_rank) {
+void runfunc(intptr_t thread_rank)
+{
   int src, dest, tag, i;
   /* All even ranks send to (and recv from) rank i+1 many times */
   tag = (int)thread_rank;

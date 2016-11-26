@@ -23,7 +23,8 @@
 /**
  * Queue used for communication requests, wait requests, and fill requests
  */
-class queue_t {
+class queue_t
+{
  public:
   /**
    * Create an empty queue.
@@ -70,7 +71,6 @@ class queue_t {
    * @param q Queue to check.
    */
   inline bool empty() { return head->next == NULL; }
-
  private:
   /** Node in the queue. */
   struct queue_node_t {
@@ -93,16 +93,19 @@ class queue_t {
 #include "comm_queue-inl.h"
 
 template <typename T>
-class mpsc_queue_t {
+class mpsc_queue_t
+{
  public:
   mpsc_queue_t()
       : _head(reinterpret_cast<buffer_node_t*>(new buffer_node_aligned_t)),
-        _tail(_head.load(std::memory_order_relaxed)) {
+        _tail(_head.load(std::memory_order_relaxed))
+  {
     buffer_node_t* front = _head.load(std::memory_order_relaxed);
     front->next.store(NULL, std::memory_order_relaxed);
   }
 
-  ~mpsc_queue_t() {
+  ~mpsc_queue_t()
+  {
     T output;
     while (this->dequeue(output)) {
     }
@@ -110,7 +113,8 @@ class mpsc_queue_t {
     delete front;
   }
 
-  void enqueue(const T& input) {
+  void enqueue(const T& input)
+  {
     buffer_node_t* node =
         reinterpret_cast<buffer_node_t*>(new buffer_node_aligned_t);
     node->data = input;
@@ -120,7 +124,8 @@ class mpsc_queue_t {
     prev_head->next.store(node, std::memory_order_release);
   }
 
-  bool dequeue(T& output) {
+  bool dequeue(T& output)
+  {
     buffer_node_t* tail = _tail.load(std::memory_order_relaxed);
     buffer_node_t* next = tail->next.load(std::memory_order_acquire);
 

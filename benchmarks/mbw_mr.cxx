@@ -24,8 +24,10 @@
 #define WARMUP_ITERS_LARGE (2)
 #define LARGE_THRESHOLD (8192)
 
-#define WINDOW_SIZES \
-  { 8, 16, 32, 64, 128 }
+#define WINDOW_SIZES   \
+  {                    \
+    8, 16, 32, 64, 128 \
+  }
 #define WINDOW_SIZES_COUNT (5)
 
 #define MAX_MSG_SIZE (1 << 22)
@@ -62,7 +64,8 @@ int pairs, print_rate;
 int window_size, window_varied;
 int c, curr_size;
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   MPIV_Init(&argc, &argv);
 
   MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
@@ -168,7 +171,8 @@ error:
   return 0;
 }
 
-void main_task(intptr_t) {
+void main_task(intptr_t)
+{
   if (window_varied) {
     int window_array[] = WINDOW_SIZES;
     double** bandwidth_results;
@@ -280,7 +284,8 @@ void main_task(intptr_t) {
   }
 }
 
-void usage() {
+void usage()
+{
   printf("Options:\n");
   printf("  -r=<0,1>         Print uni-directional message rate (default 1)\n");
   printf("  -p=<pairs>       Number of pairs involved (default np / 2)\n");
@@ -300,7 +305,8 @@ void usage() {
 }
 
 double calc_bw(int rank, int size, int num_pairs, int window_size, char* s_buf,
-               char* r_buf) {
+               char* r_buf)
+{
   double t_start = 0, t_end = 0, t = 0, sum_time = 0, bw = 0;
   int i, j, target;
   int loop, skip;

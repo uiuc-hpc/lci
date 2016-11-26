@@ -16,7 +16,8 @@
 #define DEFAULT_NUM_XSTREAMS 4
 #define DEFAULT_NUM_THREADS 4
 
-inline unsigned long long cycle_time() {
+inline unsigned long long cycle_time()
+{
   unsigned hi, lo;
   __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
   unsigned long long cycles =
@@ -35,7 +36,8 @@ static int SIZE = 1;
 
 thread_local void* buffer = NULL;
 
-void thread_func(void* arg) {
+void thread_func(void* arg)
+{
   if (buffer == NULL) {
     buffer = malloc(SIZE);
   }
@@ -45,7 +47,8 @@ void thread_func(void* arg) {
   end[myid] = MPI_Wtime();
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   ABT_init(argc, argv);
   int provide;
   MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provide);

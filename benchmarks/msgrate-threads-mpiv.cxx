@@ -60,12 +60,14 @@ typedef struct {
   //  MPI_Comm *comm;
 } thread_input;
 
-static void abort_app(const char* msg) {
+static void abort_app(const char* msg)
+{
   perror(msg);
   MPI_Abort(MPI_COMM_WORLD, 1);
 }
 
-static void cache_invalidate(void) {
+static void cache_invalidate(void)
+{
   int i;
 
   cache_buf[0] = 1;
@@ -75,8 +77,8 @@ static void cache_invalidate(void) {
 }
 
 static inline double timer(void) { return MPI_Wtime(); }
-
-void display_result(const char* test, const double result) {
+void display_result(const char* test, const double result)
+{
   if (0 == rank) {
     if (machine_output) {
       printf("%.2f ", result);
@@ -89,10 +91,10 @@ void display_result(const char* test, const double result) {
 /*********************Start RMA FUNCS**************************/
 
 void setupwindows() {}
-
 /***********************End RMA FUNCS**************************/
 
-void sendmsg(intptr_t input) {
+void sendmsg(intptr_t input)
+{
   int nreqs = 0;
   int niters = 0;
   thread_input* t_info = (thread_input*)input;
@@ -105,7 +107,8 @@ void sendmsg(intptr_t input) {
   MPIV_Waitall(nreqs, t_info->local_reqs, MPI_STATUSES_IGNORE);
 }
 
-void recvmsg(intptr_t input) {
+void recvmsg(intptr_t input)
+{
   int nreqs = 0;
   int niters = 0;
   thread_input* t_info = (thread_input*)input;
@@ -118,7 +121,8 @@ void recvmsg(intptr_t input) {
   MPIV_Waitall(nreqs, t_info->local_reqs, MPI_STATUSES_IGNORE);
 }
 
-void test_one_way(void) {
+void test_one_way(void)
+{
   int i, k, nreqs;
   double tmp, total = 0;
   MPIV_Barrier(MPI_COMM_WORLD);
@@ -186,7 +190,8 @@ void test_one_way(void) {
   MPIV_Barrier(MPI_COMM_WORLD);
 }
 
-void same_dir_run(intptr_t input) {
+void same_dir_run(intptr_t input)
+{
   int nreqs = 0;
   int niters = 0;
   int j = 0;
@@ -208,7 +213,8 @@ void same_dir_run(intptr_t input) {
   }
 }
 
-void test_same_dir(void) {
+void test_same_dir(void)
+{
   int i, k, nreqs;
   double tmp, total = 0;
   MPI_Barrier(MPI_COMM_WORLD);
@@ -248,7 +254,8 @@ void test_same_dir(void) {
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void test_same_direction(void) {
+void test_same_direction(void)
+{
   int i, j, k, nreqs;
   double tmp, total = 0;
 
@@ -281,7 +288,8 @@ void test_same_direction(void) {
                  (niters * npeers * nmsgs * 2) / (tmp / world_size));
 }
 
-void* all_run(void* input) {
+void* all_run(void* input)
+{
   int nreqs = 0;
   int niters = 0;
   int j = 0;
@@ -302,7 +310,8 @@ void* all_run(void* input) {
   return NULL;
 }
 
-void test_all(void) {
+void test_all(void)
+{
   int i, k, nreqs;
   double tmp, total = 0;
   MPIV_Barrier(MPI_COMM_WORLD);
@@ -343,7 +352,8 @@ void test_all(void) {
   MPIV_Barrier(MPI_COMM_WORLD);
 }
 
-void test_allstart(void) {
+void test_allstart(void)
+{
   int i, j, k, nreqs = 0;
   double tmp, total = 0;
 
@@ -376,7 +386,8 @@ void test_allstart(void) {
                  (niters * npeers * nmsgs * 2) / (tmp / world_size));
 }
 
-void usage(void) {
+void usage(void)
+{
   fprintf(stderr, "Usage: msgrate -n <ppn> [OPTION]...\n\n");
   fprintf(stderr, "  -h           Display this help message and exit\n");
   fprintf(stderr, "  -p <num>     Number of peers used in communication\n");
@@ -389,7 +400,8 @@ void usage(void) {
   fprintf(stderr, "\nReport bugs to <bwbarre@sandia.gov>\n");
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   int start_err = 0;
   int i;
   int prov;
@@ -566,7 +578,8 @@ int main(int argc, char* argv[]) {
   return 0;
 }
 
-void main_task(intptr_t) {
+void main_task(intptr_t)
+{
   /* run tests */
   test_one_way();
   test_same_dir();

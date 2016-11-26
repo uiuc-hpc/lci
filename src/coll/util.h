@@ -1,7 +1,8 @@
 #ifndef UTIL_H_
 #define UTIL_H_
 
-inline int opal_cube_dim(int value) {
+inline int opal_cube_dim(int value)
+{
   int dim, size;
 
   for (dim = 0, size = 1; size < value; ++dim, size <<= 1) {
@@ -11,7 +12,8 @@ inline int opal_cube_dim(int value) {
   return dim;
 }
 
-inline int opal_hibit(int value, int start) {
+inline int opal_hibit(int value, int start)
+{
   unsigned int mask;
 
   --start;

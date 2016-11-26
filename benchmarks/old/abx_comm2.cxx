@@ -18,7 +18,8 @@
 
 static int SIZE = 1;
 
-inline unsigned long long cycle_time() {
+inline unsigned long long cycle_time()
+{
   unsigned hi, lo;
   __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
   unsigned long long cycles =
@@ -41,7 +42,8 @@ typedef ABT_sync MPIV_Request;
 volatile int total = 0;
 thread_local void* buffer = NULL;
 
-void thread_func(void* arg) {
+void thread_func(void* arg)
+{
   size_t myid = (size_t)arg;
   if (buffer == NULL) {
     buffer = malloc(SIZE);
@@ -51,7 +53,8 @@ void thread_func(void* arg) {
   end[myid] = MPI_Wtime();
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   int provide;
   MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provide);
   ABT_init(argc, argv);

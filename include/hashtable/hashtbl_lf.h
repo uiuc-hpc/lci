@@ -7,11 +7,12 @@ extern "C" {
 #include "lf_hash.h"
 }
 
-class lf_hashtbl : base_hashtbl {
+class lf_hashtbl : base_hashtbl
+{
  public:
   void init() override { tbl_ = qt_hash_create(0); }
-
-  bool insert(const key_type& key, value_type& value) override {
+  bool insert(const key_type& key, value_type& value) override
+  {
     value_type ret;
     ret.v = qt_hash_put(tbl_, (const void*)key, value.v);
     if (ret.v == value.v)

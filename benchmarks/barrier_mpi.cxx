@@ -2,7 +2,8 @@
 #include "mpi.h"
 #include <iostream>
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   MPI_Init(&argc, &args);
   int rank;
   double t = 0;

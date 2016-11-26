@@ -20,10 +20,12 @@
 #define GET_NCORE() sysconf(_SC_NPROCESSORS_ONLN)
 
 #ifdef __cplusplus
-namespace affinity {
+namespace affinity
+{
 #endif
 
-inline int set_me_to_(int core_id) {
+inline int set_me_to_(int core_id)
+{
   int num_cores = GET_NCORE();
   if (core_id < 0 || core_id >= num_cores) return EINVAL;
 
@@ -36,7 +38,8 @@ inline int set_me_to_(int core_id) {
   return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
 }
 
-inline int set_me_within(int from, int to) {
+inline int set_me_within(int from, int to)
+{
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
   int i;
@@ -47,13 +50,15 @@ inline int set_me_within(int from, int to) {
   return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
 }
 
-inline int set_me_to(int core_id) {
+inline int set_me_to(int core_id)
+{
   int num_cores = GET_NCORE();
   // TODO(danghvu): do this because the second set is near mlx
   return set_me_to_(num_cores - core_id - 2);
 }
 
-inline int set_me_to_last() {
+inline int set_me_to_last()
+{
   int num_cores = GET_NCORE();
   return set_me_to_(num_cores - 1);
 }

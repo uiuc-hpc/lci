@@ -12,7 +12,8 @@ int nworker = DEFAULT_NUM_WORKER;
 int num_threads = DEFAULT_NUM_THREAD;
 int total_threads;
 
-void f1(intptr_t i) {
+void f1(intptr_t i)
+{
   total += 1;
   bool* b = (bool*)i;
   __fulting->wait(*b);
@@ -20,7 +21,8 @@ void f1(intptr_t i) {
 
 void main_task(intptr_t);
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
 #ifdef USE_ABT
   ABT_init(argc, args);
 #endif
@@ -36,7 +38,8 @@ int main(int argc, char** args) {
   for (int i = 1; i < nworker + 1; i++) w[i].stop();
 }
 
-void main_task(intptr_t arg) {
+void main_task(intptr_t arg)
+{
 #if 1
   worker* w = (worker*)arg;
   thread* tid = new thread[total_threads];

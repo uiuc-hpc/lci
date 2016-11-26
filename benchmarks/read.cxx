@@ -21,7 +21,8 @@ using rdmax::device_cq;
 using rdmax::device_ctx;
 using rdmax::device_memory;
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   MPI_Init(&argc, &args);
   int rank = 0;
   int nnode = 0;

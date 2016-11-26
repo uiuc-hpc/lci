@@ -21,12 +21,15 @@ pthread_cond_t finished_size_cond;
 
 int finished_size;
 
-typedef struct thread_tag { int id; } thread_tag_t;
+typedef struct thread_tag {
+  int id;
+} thread_tag_t;
 
 void* send_thread(void* arg);
 void* recv_thread(void* arg);
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   int numprocs, provided, myid, err;
   int i = 0;
 
@@ -140,7 +143,8 @@ int main(int argc, char* argv[]) {
   return EXIT_SUCCESS;
 }
 
-void* recv_thread(void* arg) {
+void* recv_thread(void* arg)
+{
   unsigned long align_size = sysconf(_SC_PAGESIZE);
   int size, i, val;
   int iter;
@@ -207,7 +211,8 @@ void* recv_thread(void* arg) {
   return 0;
 }
 
-void* send_thread(void* arg) {
+void* send_thread(void* arg)
+{
   unsigned long align_size = sysconf(_SC_PAGESIZE);
   int size, i, val, iter;
   char *s_buf, *r_buf;

@@ -96,7 +96,8 @@ static void initialize_bucket(qt_hash h, size_t bucket);
 #define HASH_KEY(key) key = qt_hashword(key)
 /* this function based on http://burtleburtle.net/bob/hash/evahash.html */
 #define rot(x, k) (((x) << (k)) | ((x) >> (32 - (k))))
-static uint64_t qt_hashword(uint64_t key) { /*{{{*/
+static uint64_t qt_hashword(uint64_t key)
+{ /*{{{*/
   uint32_t a, b, c;
 
   const union {
@@ -139,7 +140,8 @@ static uint64_t qt_hashword(uint64_t key) { /*{{{*/
 #endif /* ifdef USE_HASHWORD */
 
 static int qt_lf_list_insert(marked_ptr_t* head, hash_entry* node,
-                             marked_ptr_t* ocur) {
+                             marked_ptr_t* ocur)
+{
   so_lf_key_t key = node->key;
 
   while (1) {
@@ -163,7 +165,8 @@ static int qt_lf_list_insert(marked_ptr_t* head, hash_entry* node,
   }
 }
 
-static int qt_lf_list_delete(marked_ptr_t* head, so_lf_key_t key) {
+static int qt_lf_list_delete(marked_ptr_t* head, so_lf_key_t key)
+{
   while (1) {
     marked_ptr_t* lprev;
     marked_ptr_t lcur;
@@ -189,7 +192,8 @@ static int qt_lf_list_delete(marked_ptr_t* head, so_lf_key_t key) {
 
 static void* qt_lf_list_find(marked_ptr_t* head, so_lf_key_t key,
                              marked_ptr_t** oprev, marked_ptr_t* ocur,
-                             marked_ptr_t* onext) {
+                             marked_ptr_t* onext)
+{
   so_lf_key_t ckey;
   void* cval;
   marked_ptr_t* prev = NULL;
@@ -247,13 +251,14 @@ static void* qt_lf_list_find(marked_ptr_t* head, so_lf_key_t key,
   }
 }
 
-static inline so_lf_key_t so_regularkey(const key_t key) {
+static inline so_lf_key_t so_regularkey(const key_t key)
+{
   return REVERSE(key | MSB);
 }
 
 static inline so_lf_key_t so_dummykey(const key_t key) { return REVERSE(key); }
-
-void* qt_hash_put(qt_hash h, qt_lf_key_t key, void* value) {
+void* qt_hash_put(qt_hash h, qt_lf_key_t key, void* value)
+{
   // int index = __sync_fetch_and_add(&POOL_index, 1) & (POOL_SIZE - 1);
   // hash_entry *node = &POOL[index];
   // memset(node, 0, sizeof(hash_entry));
@@ -288,7 +293,8 @@ void* qt_hash_put(qt_hash h, qt_lf_key_t key, void* value) {
   return value;
 }
 
-void* qt_hash_get(qt_hash h, const qt_lf_key_t key) {
+void* qt_hash_get(qt_hash h, const qt_lf_key_t key)
+{
   size_t bucket;
   uint64_t lkey = (uint64_t)(uintptr_t)key;
 
@@ -305,7 +311,8 @@ void* qt_hash_get(qt_hash h, const qt_lf_key_t key) {
                          NULL);
 }
 
-int qt_hash_remove(qt_hash h, const qt_lf_key_t key) {
+int qt_hash_remove(qt_hash h, const qt_lf_key_t key)
+{
   size_t bucket;
   uint64_t lkey = (uint64_t)(uintptr_t)key;
 
@@ -322,7 +329,8 @@ int qt_hash_remove(qt_hash h, const qt_lf_key_t key) {
   return 1;
 }
 
-static inline size_t GET_PARENT(uint64_t bucket) {
+static inline size_t GET_PARENT(uint64_t bucket)
+{
   uint64_t t = bucket;
 
   t |= t >> 1;
@@ -334,7 +342,8 @@ static inline size_t GET_PARENT(uint64_t bucket) {
   return bucket & (t >> 1);
 }
 
-static void initialize_bucket(qt_hash h, size_t bucket) {
+static void initialize_bucket(qt_hash h, size_t bucket)
+{
   size_t parent = GET_PARENT(bucket);
   marked_ptr_t cur;
 
@@ -359,7 +368,8 @@ static void initialize_bucket(qt_hash h, size_t bucket) {
   }
 }
 
-qt_hash qt_hash_create(int needSync) {
+qt_hash qt_hash_create(int needSync)
+{
   qt_hash tmp = (qt_hash)malloc(sizeof(struct qt_hash_s));
 
   assert(tmp);
@@ -379,7 +389,8 @@ qt_hash qt_hash_create(int needSync) {
   return tmp;
 }
 
-void qt_hash_destroy(qt_hash h) {
+void qt_hash_destroy(qt_hash h)
+{
   marked_ptr_t cursor;
 
   assert(h);
@@ -395,7 +406,8 @@ void qt_hash_destroy(qt_hash h) {
   free(h);
 }
 
-void qt_hash_destroy_deallocate(qt_hash h, qt_hash_deallocator_fn f) {
+void qt_hash_destroy_deallocate(qt_hash h, qt_hash_deallocator_fn f)
+{
   marked_ptr_t cursor;
 
   assert(h);
@@ -412,12 +424,14 @@ void qt_hash_destroy_deallocate(qt_hash h, qt_hash_deallocator_fn f) {
   free(h);
 }
 
-size_t qt_hash_count(qt_hash h) {
+size_t qt_hash_count(qt_hash h)
+{
   assert(h);
   return h->size;
 }
 
-void qt_hash_callback(qt_hash h, qt_hash_callback_fn f, void* arg) {
+void qt_hash_callback(qt_hash h, qt_hash_callback_fn f, void* arg)
+{
   marked_ptr_t cursor;
 
   assert(h);

@@ -21,12 +21,14 @@ struct fthread {
   volatile int count;
 } __attribute__((aligned(64)));
 
-MV_INLINE void fthread_init(fthread* f) {
+MV_INLINE void fthread_init(fthread* f)
+{
   f->state = INVALID;
   f->stack.sp = NULL;
 }
 
-MV_INLINE void fthread_destory(fthread* f) {
+MV_INLINE void fthread_destory(fthread* f)
+{
   if (f->stack.sp != NULL) fthread_stack.deallocate(f->stack);
 }
 
@@ -36,7 +38,8 @@ MV_INLINE void fthread_resume(fthread*);
 
 MV_INLINE void fthread_fini(fthread*);
 MV_INLINE void fthread_join(fthread*);
-MV_INLINE void fthread_cancel(fthread* f) {
+MV_INLINE void fthread_cancel(fthread* f)
+{
   f->state = INVALID;
   fthread_resume(f);
 }

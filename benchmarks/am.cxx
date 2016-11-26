@@ -6,7 +6,8 @@ uint64_t rmt_dma_buf;
 volatile int done = 0;
 extern mv_engine* mv_hdl;
 
-void test(void* buf, uint32_t size) {
+void test(void* buf, uint32_t size)
+{
   assert(size == 8);
   rmt_dma_buf = *((uint64_t*)buf);
   void* dma_src = MPIV_Alloc(64);
@@ -17,14 +18,16 @@ void test(void* buf, uint32_t size) {
   done = 1;
 }
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   MPIV_Init(&argc, &args);
   fid = mv_am_register(mv_hdl, (mv_am_func_t)test);
   MPIV_Start_worker(1);
   MPIV_Finalize();
 }
 
-void main_task(intptr_t) {
+void main_task(intptr_t)
+{
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   void* dma_buf = MPIV_Alloc(64);

@@ -34,7 +34,9 @@ int loop = 10000;
 pthread_mutex_t finished_size_mutex;
 pthread_cond_t finished_size_cond;
 
-typedef struct thread_tag { int id; } thread_tag_t;
+typedef struct thread_tag {
+  int id;
+} thread_tag_t;
 
 void* send_thread(void* arg);
 void* recv_thread(void* arg);
@@ -61,7 +63,8 @@ static int WORKERS = 1;
 
 void main_task(intptr_t);
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   int provide;
   MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provide);
 
@@ -89,7 +92,8 @@ int main(int argc, char* argv[]) {
 
 static int size = 0;
 
-void main_task(intptr_t) {
+void main_task(intptr_t)
+{
   int i = 0;
   r_buf1 = (char*)malloc(MYBUFSIZE);
   s_buf1 = (char*)malloc(MYBUFSIZE);
@@ -129,7 +133,8 @@ void main_task(intptr_t) {
   free(s_buf1);
 }
 
-void* recv_thread(void* arg) {
+void* recv_thread(void* arg)
+{
   int i, val, align_size;
   char *s_buf, *r_buf;
   val = (int)(long)(arg);
@@ -164,7 +169,8 @@ void* recv_thread(void* arg) {
   return 0;
 }
 
-void* send_thread(void*) {
+void* send_thread(void*)
+{
   int i, align_size;
   char *s_buf, *r_buf;
   double t_start = 0, t_end = 0, t = 0, latency;

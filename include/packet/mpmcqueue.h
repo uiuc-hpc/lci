@@ -81,14 +81,15 @@ static_assert(RING_SIZE > (MAX_SEND + MAX_RECV),
 
 #define CLOSE_TRIES 10
 
-namespace ppl {
-
+namespace ppl
+{
 /**
  * General multiple-producer, multiple-consumer queue.
  * @warning Value *must* be 64 bits.
  */
 template <typename Value>
-class MPMCQueue final {
+class MPMCQueue final
+{
  public:
   /**
    * Create an empty queue.
@@ -129,7 +130,7 @@ class MPMCQueue final {
   /** Tail of the linked list of CRQs. */
   RingQueue* tail;
   /** Per-thread retired RingQueues. */
-  std::vector<std::forward_list<RingQueue*> > retired;
+  std::vector<std::forward_list<RingQueue*>> retired;
 
   /** Initialize a new ring queue. */
   inline void init_ring(RingQueue* rq);

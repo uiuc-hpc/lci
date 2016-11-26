@@ -50,7 +50,8 @@ int myRow, myCol, num_blocks_x, num_blocks_y;
 double** temperature;
 double** new_temperature;
 
-void recvL(intptr_t) {
+void recvL(intptr_t)
+{
   MPIV_Recv(left_edge_in, blockDimX * sizeof(double),
             calc_pe(myRow, wrap_y(myCol - 1)), LEFT);
 
@@ -64,7 +65,8 @@ void recvL(intptr_t) {
   }
 }
 
-void recvR(intptr_t) {
+void recvR(intptr_t)
+{
   MPIV_Recv(right_edge_in, blockDimX * sizeof(double),
             calc_pe(myRow, wrap_y(myCol + 1)), RIGHT);
 
@@ -79,7 +81,8 @@ void recvR(intptr_t) {
   }
 }
 
-void recvB(intptr_t) {
+void recvB(intptr_t)
+{
   MPIV_Recv(&temperature[blockDimX + 1][1], blockDimY * sizeof(double),
             calc_pe(wrap_x(myRow + 1), myCol), BOTTOM);
   for (int j = 1; j < blockDimY + 1; j++) {
@@ -91,7 +94,8 @@ void recvB(intptr_t) {
   }
 }
 
-void recvT(intptr_t) {
+void recvT(intptr_t)
+{
   MPIV_Recv(&temperature[0][1], blockDimY * sizeof(double),
             calc_pe(wrap_x(myRow - 1), myCol), TOP);
   for (int j = 1; j < blockDimY + 1; j++) {
@@ -103,27 +107,32 @@ void recvT(intptr_t) {
   }
 }
 
-void sendL(intptr_t) {
+void sendL(intptr_t)
+{
   MPIV_Send(left_edge_out, blockDimX * sizeof(double),
             calc_pe(myRow, wrap_y(myCol - 1)), RIGHT);
 }
 
-void sendR(intptr_t) {
+void sendR(intptr_t)
+{
   MPIV_Send(right_edge_out, blockDimX * sizeof(double),
             calc_pe(myRow, wrap_y(myCol + 1)), LEFT);
 }
 
-void sendB(intptr_t) {
+void sendB(intptr_t)
+{
   MPIV_Send(&temperature[1][1], blockDimY * sizeof(double),
             calc_pe(wrap_x(myRow - 1), myCol), BOTTOM);
 }
 
-void sendT(intptr_t) {
+void sendT(intptr_t)
+{
   MPIV_Send(&temperature[blockDimX][1], blockDimY * sizeof(double),
             calc_pe(wrap_x(myRow + 1), myCol), TOP);
 }
 
-void compute(intptr_t) {
+void compute(intptr_t)
+{
   int i, j;
   for (i = 2; i < blockDimX; i++) {
     for (j = 2; j < blockDimY; j++) {
@@ -138,7 +147,8 @@ void compute(intptr_t) {
 
 int noBarrier = 0;
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
   MPIV_Init(argc, argv);
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
@@ -201,7 +211,8 @@ int main(int argc, char** argv) {
   return 0;
 }
 
-void main_task(intptr_t) {
+void main_task(intptr_t)
+{
   int iterations = 0, i, j;
   double error = 1.0, max_error = 0.0;
 

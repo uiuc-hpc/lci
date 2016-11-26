@@ -14,13 +14,15 @@
 #define DEFAULT_NUM_WORKER 4
 #define DEFAULT_NUM_THREAD 4
 
-inline double wtime() {
+inline double wtime()
+{
   struct timeval t1;
   gettimeofday(&t1, NULL);
   return t1.tv_sec + t1.tv_usec / 1e6;
 }
 
-inline double wutime() {
+inline double wutime()
+{
   struct timeval t1;
   gettimeofday(&t1, NULL);
   return t1.tv_sec * 1e6 + t1.tv_usec;

@@ -40,7 +40,8 @@ inline void rdmax_write_rma_signal(rdmax_server* s, int rank, void* from,
 inline void rdmax_finalize(rdmax_server* s);
 
 inline void rdmax_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size,
-                       rdmax_server** s_ptr) {
+                       rdmax_server** s_ptr)
+{
   rdmax_server* s = new rdmax_server();
   s->stop = true;
 #ifdef USE_AFFI
@@ -84,14 +85,15 @@ inline void rdmax_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size,
   *s_ptr = s;
 }
 
-inline void rdmax_post_recv(rdmax_server* s, packet* p) {
+inline void rdmax_post_recv(rdmax_server* s, packet* p)
+{
   if (p == NULL) return;
   s->recv_posted++;
   s->dev_ctx->post_srq_recv((void*)p, (void*)p, sizeof(packet), s->sbuf.lkey());
 }
 
-MV_INLINE bool rdmax_progress(
-    rdmax_server* s) {  // profiler& p, long long& r, long long &s) {
+MV_INLINE bool rdmax_progress(rdmax_server* s)
+{  // profiler& p, long long& r, long long &s) {
   initt(t);
   startt(t);
   bool ret = (s->dev_rcq.poll_once([s](const ibv_wc& wc) {
@@ -111,7 +113,8 @@ MV_INLINE bool rdmax_progress(
   return ret;
 }
 
-inline void rdmax_serve(rdmax_server* s) {
+inline void rdmax_serve(rdmax_server* s)
+{
   s->stop = false;
   s->poll_thread = std::thread([s] {
 #ifdef USE_AFFI
@@ -127,7 +130,8 @@ inline void rdmax_serve(rdmax_server* s) {
 }
 
 inline void rdmax_write_send(rdmax_server* s, int rank, void* buf, size_t size,
-                             void* ctx) {
+                             void* ctx)
+{
   if (size <= s->conn[rank].qp().max_inline()) {
     s->conn[rank].write_send(buf, size, s->sbuf.lkey(), 0);
     mv_pp_free_to(s->pkpool, (packet*)ctx, ((packet*)ctx)->header.poolid);
@@ -137,17 +141,20 @@ inline void rdmax_write_send(rdmax_server* s, int rank, void* buf, size_t size,
 }
 
 inline void rdmax_write_rma(rdmax_server* s, int rank, void* from, void* to,
-                            uint32_t rkey, size_t size, void* ctx) {
+                            uint32_t rkey, size_t size, void* ctx)
+{
   s->conn[rank].write_rdma(from, s->heap.lkey(), to, rkey, size, ctx);
 }
 
 inline void rdmax_write_rma_signal(rdmax_server* s, int rank, void* from,
                                    void* to, uint32_t rkey, size_t size,
-                                   uint32_t sid, void* ctx) {
+                                   uint32_t sid, void* ctx)
+{
   s->conn[rank].write_rdma_imm(from, s->heap.lkey(), to, rkey, size, sid, ctx);
 }
 
-inline void rdmax_finalize(rdmax_server* s) {
+inline void rdmax_finalize(rdmax_server* s)
+{
   s->stop = true;
   s->poll_thread.join();
   s->dev_scq.finalize();
@@ -157,11 +164,11 @@ inline void rdmax_finalize(rdmax_server* s) {
 }
 
 inline uint32_t rdmax_heap_rkey(rdmax_server* s) { return s->heap.rkey(); }
-inline uint32_t rdmax_heap_rkey(rdmax_server* s, int node) {
+inline uint32_t rdmax_heap_rkey(rdmax_server* s, int node)
+{
   return s->conn[node].rkey();
 }
 inline void* rdmax_heap_ptr(rdmax_server* s) { return s->heap.ptr(); }
-
 #define mv_server_init rdmax_init
 #define mv_server_serve rdmax_serve
 #define mv_server_send rdmax_write_send

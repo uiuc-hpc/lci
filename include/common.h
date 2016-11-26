@@ -20,21 +20,31 @@ static int eventSetP;
 static long long t_valueP[3], t0_valueP[3], t1_valueP[3];
 
 #define initt(x) double x = 0;
-#define startt(x) \
-  { x -= MPIV_Wtime(); }
-#define stopt(x) \
-  { x += MPIV_Wtime(); }
+#define startt(x)      \
+  {                    \
+    x -= MPIV_Wtime(); \
+  }
+#define stopt(x)       \
+  {                    \
+    x += MPIV_Wtime(); \
+  }
 #define resett(x) \
-  { x = 0; }
+  {               \
+    x = 0;        \
+  }
 #else
 #define initt(x) \
-  {}
+  {              \
+  }
 #define startt(x) \
-  {}
+  {               \
+  }
 #define stopt(x) \
-  {}
+  {              \
+  }
 #define resett(x) \
-  {}
+  {               \
+  }
 #endif
 
 #endif

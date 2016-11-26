@@ -1,7 +1,8 @@
 #include "mv-inl.h"
 #include "mv.h"
 
-void mv_open(int* argc, char*** args, size_t heap_size, mv_engine** ret) {
+void mv_open(int* argc, char*** args, size_t heap_size, mv_engine** ret)
+{
   mv_struct* mv = new mv_struct();
 
   setenv("MPICH_ASYNC_PROGRESS", "0", 1);
@@ -24,7 +25,8 @@ void mv_open(int* argc, char*** args, size_t heap_size, mv_engine** ret) {
   *ret = mv;
 }
 
-void mv_close(mv_engine* mv) {
+void mv_close(mv_engine* mv)
+{
   MPI_Barrier(MPI_COMM_WORLD);
   mv_server_finalize(mv->server);
   mv_pp_destroy(mv->pkpool);

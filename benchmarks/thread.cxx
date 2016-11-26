@@ -1,13 +1,15 @@
 #include "comm_exp.h"
 #include "mpiv.h"
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   MPIV_Init(argc, args);
   MPIV_Init_worker(1);
   MPIV_Finalize();
 }
 
-void main_task(intptr_t args) {
+void main_task(intptr_t args)
+{
   double t = 0;
   for (int i = 0; i < TOTAL_LARGE + SKIP_LARGE; i++) {
     if (i == SKIP_LARGE) t = MPIV_Wtime();

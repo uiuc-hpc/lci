@@ -20,7 +20,8 @@ struct dequeue {
   void* container[MAX_SIZE];
 } __attribute__((aligned(64)));
 
-inline void dq_init(struct dequeue* dq, size_t size) {
+inline void dq_init(struct dequeue* dq, size_t size)
+{
   memset(dq->container, 0, MAX_SIZE);
   dq->top = 0;
   dq->bot = 0;
@@ -28,7 +29,8 @@ inline void dq_init(struct dequeue* dq, size_t size) {
   dq->flag = MV_SPIN_UNLOCKED;
 }
 
-inline void* dq_pop_top(struct dequeue* deq) {
+inline void* dq_pop_top(struct dequeue* deq)
+{
   void* ret = NULL;
   mv_spin_lock(&deq->flag);
   if (deq->top != deq->bot) {
@@ -39,7 +41,8 @@ inline void* dq_pop_top(struct dequeue* deq) {
   return ret;
 };
 
-inline void* dq_push_top(struct dequeue* deq, void* p) {
+inline void* dq_push_top(struct dequeue* deq, void* p)
+{
   void* ret = NULL;
   mv_spin_lock(&deq->flag);
   deq->container[deq->top] = p;
@@ -52,7 +55,8 @@ inline void* dq_push_top(struct dequeue* deq, void* p) {
   return ret;
 };
 
-inline void* dq_pop_bot(struct dequeue* deq) {
+inline void* dq_pop_bot(struct dequeue* deq)
+{
   void* ret = NULL;
   mv_spin_lock(&deq->flag);
   if (deq->top != deq->bot) {
@@ -70,7 +74,8 @@ struct mv_pp {
   struct dequeue* prv_pool[MAX_NPOOLS];
 } __attribute__((aligned(64)));
 
-inline void mv_pp_init(mv_pp** pp_) {
+inline void mv_pp_init(mv_pp** pp_)
+{
   struct mv_pp** pp = (struct mv_pp**)pp_;
   posix_memalign((void**)pp, 64, sizeof(struct mv_pp));
   // (*pp) = (struct mv_pp*) malloc(sizeof (struct mv_pp));
@@ -81,7 +86,8 @@ inline void mv_pp_init(mv_pp** pp_) {
   (*pp)->prv_pool[0] = dq;
 }
 
-inline void mv_pp_ext(mv_pp* pp_, int nworker) {
+inline void mv_pp_ext(mv_pp* pp_, int nworker)
+{
   struct mv_pp* pp = (struct mv_pp*)pp_;
   for (int i = pp->nworker_; i < nworker; i++) {
     struct dequeue* dq;
@@ -92,24 +98,28 @@ inline void mv_pp_ext(mv_pp* pp_, int nworker) {
   pp->nworker_ = nworker;
 }
 
-inline void mv_pp_destroy(mv_pp* mv_pp_) {
+inline void mv_pp_destroy(mv_pp* mv_pp_)
+{
   struct mv_pp* pp = (struct mv_pp*)mv_pp_;
   for (int i = 0; i < 1 + pp->nworker_; i++) {
     free(pp->prv_pool[i]);
   }
 }
 
-void mv_pp_free(mv_pp* mv_pp_, struct packet* p) {
+void mv_pp_free(mv_pp* mv_pp_, struct packet* p)
+{
   struct mv_pp* pp = (struct mv_pp*)mv_pp_;
   dq_push_top(pp->prv_pool[0], p);
 }
 
-void mv_pp_free_to(mv_pp* mv_pp_, struct packet* p, int where) {
+void mv_pp_free_to(mv_pp* mv_pp_, struct packet* p, int where)
+{
   struct mv_pp* pp = (struct mv_pp*)mv_pp_;
   dq_push_top(pp->prv_pool[where], p);
 }
 
-struct packet* mv_pp_alloc(mv_pp* mv_pp_, int pid) {
+struct packet* mv_pp_alloc(mv_pp* mv_pp_, int pid)
+{
   struct mv_pp* pp = (struct mv_pp*)mv_pp_;
   struct packet* p = (struct packet*)dq_pop_top(pp->prv_pool[pid]);
   while (!p) {
@@ -119,7 +129,8 @@ struct packet* mv_pp_alloc(mv_pp* mv_pp_, int pid) {
   return p;
 }
 
-struct packet* mv_pp_alloc_nb(mv_pp* mv_pp_, int pid) {
+struct packet* mv_pp_alloc_nb(mv_pp* mv_pp_, int pid)
+{
   struct mv_pp* pp = (struct mv_pp*)mv_pp_;
   struct packet* p = (struct packet*)dq_pop_top(pp->prv_pool[pid]);
   if (!p) {

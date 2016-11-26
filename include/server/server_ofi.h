@@ -73,7 +73,8 @@ inline void ofi_write_rma_signal(ofi_server* s, int rank, void* from,
 inline void ofi_finalize(ofi_server* s);
 
 inline void ofi_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size,
-                     ofi_server** s_ptr) {
+                     ofi_server** s_ptr)
+{
 #ifdef USE_AFFI
   affinity::set_me_to(0);
 #endif
@@ -186,8 +187,8 @@ struct my_context {
   void* ctx_;
 };
 
-MV_INLINE bool ofi_progress(
-    ofi_server* s) {  // profiler& p, long long& r, long long &s) {
+MV_INLINE bool ofi_progress(ofi_server* s)
+{  // profiler& p, long long& r, long long &s) {
   initt(t);
   startt(t);
 
@@ -244,7 +245,8 @@ MV_INLINE bool ofi_progress(
   stopt(t) return rett;
 }
 
-void ofi_serve(ofi_server* s) {
+void ofi_serve(ofi_server* s)
+{
   s->poll_thread = std::thread([s] {
 #ifdef USE_AFFI
     affinity::set_me_to_last();
@@ -267,7 +269,8 @@ void ofi_serve(ofi_server* s) {
   });
 }
 
-inline void ofi_post_recv(ofi_server* s, packet* p) {
+inline void ofi_post_recv(ofi_server* s, packet* p)
+{
   if (p == NULL) return;
   mv_spin_lock(&s->lock);
   FI_SAFECALL(
@@ -277,7 +280,8 @@ inline void ofi_post_recv(ofi_server* s, packet* p) {
 }
 
 inline void ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
-                           void* ctx) {
+                           void* ctx)
+{
   mv_spin_lock(&s->lock);
   if (size > 32) {
     FI_SAFECALL(
@@ -290,7 +294,8 @@ inline void ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
 }
 
 inline void ofi_write_rma(ofi_server* s, int rank, void* from, void* to,
-                          uint32_t rkey, size_t size, void* ctx) {
+                          uint32_t rkey, size_t size, void* ctx)
+{
   mv_spin_lock(&s->lock);
   FI_SAFECALL(fi_write(s->ep, from, size, 0, s->fi_addr[rank],
                        (uintptr_t)to - s->heap_addr[rank],  // this is offset.
@@ -300,7 +305,8 @@ inline void ofi_write_rma(ofi_server* s, int rank, void* from, void* to,
 
 inline void ofi_write_rma_signal(ofi_server* s, int rank, void* from, void* to,
                                  uint32_t rkey, size_t size, uint32_t sid,
-                                 void* ctx) {
+                                 void* ctx)
+{
   mv_spin_lock(&s->lock);
   FI_SAFECALL(
       fi_writedata(s->ep, from, size, 0, sid, s->fi_addr[rank],
@@ -309,14 +315,14 @@ inline void ofi_write_rma_signal(ofi_server* s, int rank, void* from, void* to,
   mv_spin_unlock(&s->lock);
 }
 
-inline void ofi_finalize(ofi_server* s) {
+inline void ofi_finalize(ofi_server* s)
+{
   s->stop = true;
   s->poll_thread.join();
 }
 
 inline uint32_t ofi_heap_rkey(ofi_server* s) { return s->heap_rkey; }
 inline void* ofi_heap_ptr(ofi_server* s) { return ALIGNEDX(s->heap.get()); }
-
 #define mv_server_init ofi_init
 #define mv_server_serve ofi_serve
 #define mv_server_send ofi_write_send

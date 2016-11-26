@@ -33,7 +33,8 @@ enum type_t {
 int* cache_buf;
 int cache_size;
 
-static void cache_invalidate(void) {
+static void cache_invalidate(void)
+{
   int i;
   cache_buf[0] = 1;
   for (i = 1; i < cache_size; ++i) {
@@ -45,7 +46,8 @@ typedef std::function<void(mv_hash**)> hash_init_f;
 typedef std::function<bool(mv_hash*, const mv_key&, mv_value&)> hash_insert_f;
 
 template <typename HASH_T, type_t whofirst>
-void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert) {
+void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert)
+{
   std::cout << typeid(HASH_T).name() << " " << whofirst << std::endl;
   mv_hash* my_table;
   init(&my_table);
@@ -141,7 +143,8 @@ void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert) {
   }
 }
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   if (argc > 1) NUM_INSERTED_PER_THREAD = atoi(args[1]);
   if (argc > 2) NTHREADS = atoi(args[2]);
 

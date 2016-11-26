@@ -19,7 +19,8 @@ struct thread_data_t {
 int number;
 int nworker;
 
-void ffibo(intptr_t arg) {
+void ffibo(intptr_t arg)
+{
   thread_data_t* td = (thread_data_t*)arg;
   if (td->val <= 1) {
     td->ret = td->val;
@@ -36,13 +37,15 @@ void ffibo(intptr_t arg) {
     td->ret = data[0].ret + data[1].ret;
   }
 }
-worker* random_worker() {
+worker* random_worker()
+{
   int p = rand() % nworker;
   // printf("pick %d\n", p);
   return &w[p];
 }
 
-void main_task(intptr_t args) {
+void main_task(intptr_t args)
+{
   worker* w = (worker*)args;
   double t = wtime();
   thread_data_t data = {number, 0};
@@ -54,7 +57,8 @@ void main_task(intptr_t args) {
   w[0].stop_main();
 }
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
 #ifdef USE_ABT
   ABT_init(argc, args);
 #endif

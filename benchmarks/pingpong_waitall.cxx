@@ -30,7 +30,8 @@
 
 int size = 0;
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   MPIV_Init(&argc, &args);
   if (argc > 1) size = atoi(args[1]);
   MPIV_Start_worker(1);
@@ -38,7 +39,8 @@ int main(int argc, char** args) {
   return 0;
 }
 
-void main_task(intptr_t) {
+void main_task(intptr_t)
+{
   double times = 0;
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);

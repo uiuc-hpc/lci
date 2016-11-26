@@ -16,8 +16,8 @@ typedef void (*_0_arg)(void*, uint32_t);
 MV_INLINE void proto_complete_rndz(mv_engine* mv, packet* p, MPIV_Request* s);
 
 inline void mv_serve_imm(uint32_t imm) { printf("GOT ID %d\n", imm); }
-
-inline void mv_recv_am(mv_engine* mv, packet* p) {
+inline void mv_recv_am(mv_engine* mv, packet* p)
+{
   uint8_t fid = (uint8_t)p->header.tag;
   uint32_t* buffer = (uint32_t*)p->content.buffer;
   uint32_t size = buffer[0];
@@ -25,7 +25,8 @@ inline void mv_recv_am(mv_engine* mv, packet* p) {
   ((_0_arg)mv->am_table[fid])(data, size);
 }
 
-inline void mv_recv_recv_ready(mv_engine* mv, packet* p) {
+inline void mv_recv_recv_ready(mv_engine* mv, packet* p)
+{
   mv_key key = mv_make_rdz_key(p->header.from, p->header.tag);
   mv_value value = (mv_value)p;
   if (!mv_hash_insert(mv->tbl, key, &value)) {
@@ -33,7 +34,8 @@ inline void mv_recv_recv_ready(mv_engine* mv, packet* p) {
   }
 }
 
-inline void mv_recv_send_ready_fin(mv_engine* mv, packet* p_ctx) {
+inline void mv_recv_send_ready_fin(mv_engine* mv, packet* p_ctx)
+{
   // Now data is already ready in the content.buffer.
   MPIV_Request* req = (MPIV_Request*)(p_ctx->content.rdz.rreq);
   startt(signal_timing);
@@ -49,7 +51,8 @@ inline void mv_recv_send_ready_fin(mv_engine* mv, packet* p_ctx) {
   mv_pp_free(mv->pkpool, p_ctx);
 }
 
-inline void mv_recv_short(mv_engine* mv, packet* p) {
+inline void mv_recv_short(mv_engine* mv, packet* p)
+{
   startt(misc_timing);
   const mv_key key = mv_make_key(p->header.from, p->header.tag);
   mv_value value = (mv_value)p;
@@ -65,20 +68,23 @@ inline void mv_recv_short(mv_engine* mv, packet* p) {
   }
 }
 
-static inline void mv_progress_init(mv_engine* mv) {
-  PROTO_SHORT = mv_am_register(mv, (mv_am_func_t) mv_recv_short);
-  PROTO_RECV_READY = mv_am_register(mv, (mv_am_func_t) mv_recv_recv_ready);
-  PROTO_READY_FIN = mv_am_register(mv, (mv_am_func_t) mv_recv_send_ready_fin);
-  PROTO_AM = mv_am_register(mv, (mv_am_func_t) mv_recv_am);
+static inline void mv_progress_init(mv_engine* mv)
+{
+  PROTO_SHORT = mv_am_register(mv, (mv_am_func_t)mv_recv_short);
+  PROTO_RECV_READY = mv_am_register(mv, (mv_am_func_t)mv_recv_recv_ready);
+  PROTO_READY_FIN = mv_am_register(mv, (mv_am_func_t)mv_recv_send_ready_fin);
+  PROTO_AM = mv_am_register(mv, (mv_am_func_t)mv_recv_am);
 }
 
-inline void mv_serve_recv(mv_engine* mv, packet* p_ctx) {
+inline void mv_serve_recv(mv_engine* mv, packet* p_ctx)
+{
   // packet* p_ctx = (packet*)wc.wr_id;
   const auto& fid = p_ctx->header.fid;
-  ((p_ctx_handler) mv->am_table[fid])(mv, p_ctx);
+  ((p_ctx_handler)mv->am_table[fid])(mv, p_ctx);
 }
 
-inline void mv_serve_send(mv_engine* mv, packet* p_ctx) {
+inline void mv_serve_send(mv_engine* mv, packet* p_ctx)
+{
   if (!p_ctx) return;
 
   const auto& fid = p_ctx->header.fid;

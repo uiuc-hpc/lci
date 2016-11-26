@@ -14,11 +14,11 @@ using std::unique_ptr;
 
 struct pinned_pool {
   pinned_pool(void* ptr_) : ptr((uintptr_t)ptr_), last(0) {}
-
   uintptr_t ptr;
   std::atomic<size_t> last;
 
-  void* allocate() {
+  void* allocate()
+  {
     ptrdiff_t diff = (ptrdiff_t)(last.fetch_add(1) * sizeof(packet));
     return (void*)(ptr + diff);
   }

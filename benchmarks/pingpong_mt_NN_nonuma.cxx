@@ -29,7 +29,8 @@ int thread_ranks[MAX_THREADS];
 double* start[MAX_THREADS];
 double* end[MAX_THREADS];
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   MPIV_Init(&argc, &argv);
 
   MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
@@ -52,7 +53,8 @@ int main(int argc, char* argv[]) {
   return 0;
 }
 
-void main_task(intptr_t) {
+void main_task(intptr_t)
+{
   for (i = 0; i < nthreads; i++) {
     thread_ranks[i] = i;
     id[i] = MPIV_spawn(i % nworkers, runfunc, (intptr_t)&thread_ranks[i]);
@@ -75,7 +77,8 @@ void main_task(intptr_t) {
   }
 }
 
-void runfunc(intptr_t thread_rank) {
+void runfunc(intptr_t thread_rank)
+{
   int src, dest, tag, i, size, incr;
   char *sendbuf, *recvbuf;
 

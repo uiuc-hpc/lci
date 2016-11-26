@@ -5,7 +5,8 @@ struct X {
   void do_x(){};
 };
 
-int main() {
+int main()
+{
   X* x = new X;
   std::function<void(X*)> f;
   f = &X::do_x;

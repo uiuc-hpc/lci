@@ -44,7 +44,9 @@ int finished_size;
 
 static int size = 0;
 
-typedef struct thread_tag { int id; } thread_tag_t;
+typedef struct thread_tag {
+  int id;
+} thread_tag_t;
 
 void* send_thread(void* arg);
 void* recv_thread(void* arg);
@@ -67,7 +69,8 @@ static int THREADS = 1;
 static int WORKERS = 1;
 std::atomic<int> f;
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   if (argc > 2) {
     THREADS = atoi(argv[1]);
     WORKERS = atoi(argv[2]);
@@ -161,7 +164,8 @@ int main(int argc, char* argv[]) {
   return EXIT_SUCCESS;
 }
 
-void* recv_thread(void* arg) {
+void* recv_thread(void* arg)
+{
   int i, val;
 
   val = (int)(long)arg;
@@ -188,7 +192,8 @@ void* recv_thread(void* arg) {
   return 0;
 }
 
-void* send_thread(void*) {
+void* send_thread(void*)
+{
   // affinity::set_me_to(0);
 
   int i;

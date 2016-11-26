@@ -6,7 +6,8 @@
 class abt_worker;
 class abt_thread;
 
-class abt_thread final : public ult_base {
+class abt_thread final : public ult_base
+{
   friend class abt_worker;
 
  public:
@@ -17,7 +18,8 @@ class abt_thread final : public ult_base {
   void wait(bool&);
   void resume(bool&);
   void join();
-  void cancel() {
+  void cancel()
+  {
     ABT_thread_cancel(th_);
     ABT_thread_resume(th_);
   }
@@ -34,7 +36,8 @@ class abt_thread final : public ult_base {
   abt_worker* origin_;
 };
 
-class abt_worker final {
+class abt_worker final
+{
   friend class abt_thread;
 
  public:
@@ -45,7 +48,6 @@ class abt_worker final {
   void start_main(ffunc main_task, intptr_t data);
   void stop_main();
   inline int id() { return id_; }
-
  private:
   ABT_xstream xstream_;
   ABT_pool pool_;

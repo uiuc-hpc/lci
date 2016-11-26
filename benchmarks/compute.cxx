@@ -66,7 +66,8 @@ int large_message_size = 8192;
 #define ARRAY_SIZE 1024 * 1024 * 1024
 static char trash[ARRAY_SIZE];
 
-uint64_t rdtsc() {
+uint64_t rdtsc()
+{
   unsigned int lo, hi;
   __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
   return ((uint64_t)hi << 32) | lo;
@@ -74,7 +75,8 @@ uint64_t rdtsc() {
 
 char* r_buf;
 
-void compute(int size) {
+void compute(int size)
+{
 #if 0
   for (int ii = 0; ii < size; ii++) {
     trash[lrand48() % ARRAY_SIZE] += ((char*) r_buf)[lrand48() % 64];
@@ -86,7 +88,8 @@ void compute(int size) {
 #endif
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   int myid, numprocs, i;
   int size;
   MPI_Status reqstat;

@@ -28,18 +28,21 @@ MV_INLINE void fworker_fini_thread(fworker* w, const int tid);
 
 MV_INLINE static void wfunc(fworker*);
 
-MV_INLINE void fworker_start(fworker* w) {
+MV_INLINE void fworker_start(fworker* w)
+{
   w->stop = 0;
   w->runner = std::thread(wfunc, w);
 }
 
-MV_INLINE void fworker_stop(fworker* w) {
+MV_INLINE void fworker_stop(fworker* w)
+{
   w->stop = 1;
   w->runner.join();
 }
 
 MV_INLINE void fworker_start_main(fworker* w, ffunc main_task,
-                                  intptr_t data = 0) {
+                                  intptr_t data = 0)
+{
   w->stop = 0;
   fworker_spawn(w, main_task, data, MAIN_STACK_SIZE);
   wfunc(w);

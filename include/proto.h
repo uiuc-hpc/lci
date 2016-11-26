@@ -1,7 +1,8 @@
 #ifndef MV_PROTO_H_
 #define MV_PROTO_H_
 
-MV_INLINE void proto_complete_rndz(mv_engine* mv, packet* p, MPIV_Request* s) {
+MV_INLINE void proto_complete_rndz(mv_engine* mv, packet* p, MPIV_Request* s)
+{
   p->header = {PROTO_SEND_WRITE_FIN, 0, mv->me, s->tag};
   p->content.rdz.sreq = (uintptr_t)s;
   mv_server_rma(mv->server, s->rank, s->buffer, (void*)p->content.rdz.tgt_addr,
@@ -9,7 +10,8 @@ MV_INLINE void proto_complete_rndz(mv_engine* mv, packet* p, MPIV_Request* s) {
 }
 
 MV_INLINE void mv_send_rdz(mv_engine* mv, const void* buffer, int size,
-                           int rank, int tag, mv_sync* sync) {
+                           int rank, int tag, mv_sync* sync)
+{
   MPIV_Request s((void*)buffer, size, rank, tag);
   s.sync = sync;
   mv_key key = mv_make_rdz_key(rank, tag);
@@ -24,7 +26,8 @@ MV_INLINE void mv_send_rdz(mv_engine* mv, const void* buffer, int size,
 }
 
 MV_INLINE void mv_send_eager(mv_engine* mv, const void* buffer, int size,
-                             int rank, int tag) {
+                             int rank, int tag)
+{
   // Get from my pool.
   const int8_t pid = mv_my_worker_id() + 1;
   packet* packet = mv_pp_alloc(mv->pkpool, pid);
@@ -40,15 +43,18 @@ MV_INLINE void mv_send_eager(mv_engine* mv, const void* buffer, int size,
 }
 
 MV_INLINE void mv_recv_rdz(mv_engine* mv, void* buffer, int size, int rank,
-                           int tag, mv_sync* sync) {
+                           int tag, mv_sync* sync)
+{
   MPIV_Request s(buffer, size, rank, tag);
   s.sync = sync;
 
   packet* p = mv_pp_alloc(mv->pkpool, 0);
 <<<<<<< HEAD
   p->header = {PROTO_RECV_READY, 0, mv->me, tag};
-  p->content.rdz = {0, (uintptr_t) &s, (uintptr_t) buffer, mv_server_heap_rkey(mv->server)};
-  mv_server_send(mv->server, rank, p, sizeof(packet_header) + sizeof(mv_rdz), p);
+  p->content.rdz = {0, (uintptr_t)&s, (uintptr_t)buffer,
+                    mv_server_heap_rkey(mv->server)};
+  mv_server_send(mv->server, rank, p, sizeof(packet_header) + sizeof(mv_rdz),
+                 p);
 =======
   p->header = {RECV_READY, 0, mv->me, tag};
   p->content.rdz = {0, (uintptr_t)&s, (uintptr_t)buffer,
@@ -65,7 +71,8 @@ MV_INLINE void mv_recv_rdz(mv_engine* mv, void* buffer, int size, int rank,
 }
 
 MV_INLINE void mv_recv_eager(mv_engine* mv, void* buffer, int size, int rank,
-                             int tag, mv_sync* sync) {
+                             int tag, mv_sync* sync)
+{
   MPIV_Request s(buffer, size, rank, tag);
   s.sync = sync;
 
@@ -81,7 +88,8 @@ MV_INLINE void mv_recv_eager(mv_engine* mv, void* buffer, int size, int rank,
 }
 
 MV_INLINE void mv_am_eager(mv_engine* mv, int node, void* src, int size,
-                           uint32_t fid) {
+                           uint32_t fid)
+{
   packet* packet = mv_pp_alloc(mv->pkpool, mv_my_worker_id() + 1);
   packet->header.fid = PROTO_AM;
   packet->header.from = mv->me;
@@ -95,12 +103,14 @@ MV_INLINE void mv_am_eager(mv_engine* mv, int node, void* src, int size,
 }
 
 MV_INLINE void mv_put(mv_engine* mv, int node, void* dst, void* src, int size,
-                      uint32_t sid) {
+                      uint32_t sid)
+{
   mv_server_rma_signal(mv->server, node, src, dst,
                        mv_server_heap_rkey(mv->server, node), size, sid, 0);
 }
 
-MV_INLINE uint8_t mv_am_register(mv_engine* mv, mv_am_func_t f) {
+MV_INLINE uint8_t mv_am_register(mv_engine* mv, mv_am_func_t f)
+{
   MPI_Barrier(MPI_COMM_WORLD);
   mv->am_table.push_back(f);
   MPI_Barrier(MPI_COMM_WORLD);

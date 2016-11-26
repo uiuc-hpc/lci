@@ -66,7 +66,8 @@ int large_message_size = 8192;
 #define ARRAY_SIZE 1024 * 1024 * 1024
 static char trash[ARRAY_SIZE];
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   int myid, numprocs, i;
   int size;
   MPI_Status reqstat;

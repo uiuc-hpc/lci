@@ -1,7 +1,8 @@
 #include "mv-inl.h"
 #include "mv.h"
 
-MV_INLINE void proto_req_recv_short_init(mv_engine* mv, MPIV_Request* req) {
+MV_INLINE void proto_req_recv_short_init(mv_engine* mv, MPIV_Request* req)
+{
   mv_key key = mv_make_key(req->rank, req->tag);
   mv_value value = (mv_value)req;
   RequestType oldtype = req->type;
@@ -16,7 +17,8 @@ MV_INLINE void proto_req_recv_short_init(mv_engine* mv, MPIV_Request* req) {
   }
 }
 
-MV_INLINE void proto_req_recv_long_init(mv_engine* mv, MPIV_Request* req) {
+MV_INLINE void proto_req_recv_long_init(mv_engine* mv, MPIV_Request* req)
+{
   mv_key key = mv_make_key(req->rank, req->tag);
   mv_value value = 0;
   RequestType oldtype = req->type;
@@ -28,7 +30,8 @@ MV_INLINE void proto_req_recv_long_init(mv_engine* mv, MPIV_Request* req) {
   }
 }
 
-MV_INLINE void proto_req_send_long_init(mv_engine* mv, MPIV_Request* req) {
+MV_INLINE void proto_req_send_long_init(mv_engine* mv, MPIV_Request* req)
+{
   mv_key key = mv_make_key(req->rank, (1 << 30) | req->tag);
   mv_value value = 0;
   RequestType oldtype = req->type;
@@ -41,7 +44,8 @@ MV_INLINE void proto_req_send_long_init(mv_engine* mv, MPIV_Request* req) {
 }
 
 MV_INLINE bool init_sync(mv_engine* mv, mv_sync* counter, int count,
-                         MPIV_Request* req) {
+                         MPIV_Request* req)
+{
   bool ret = false;
   for (int i = 0; i < count; i++) {
     switch (req[i].type) {
@@ -79,7 +83,8 @@ MV_INLINE bool init_sync(mv_engine* mv, mv_sync* counter, int count,
 }
 
 // Assume short message for now.
-void mv_waitall(mv_engine* mv, int count, MPIV_Request* req) {
+void mv_waitall(mv_engine* mv, int count, MPIV_Request* req)
+{
   mv_sync* counter = mv_get_counter(count);
   if (init_sync(mv, counter, count, req)) {
     thread_wait(counter);

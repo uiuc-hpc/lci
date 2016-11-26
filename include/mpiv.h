@@ -18,7 +18,8 @@ extern mv_engine* mv_hdl;
 extern mbuffer heap_segment;
 
 MV_INLINE void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype,
-                         int rank, int tag, MPI_Comm, MPI_Status*) {
+                         int rank, int tag, MPI_Comm, MPI_Status*)
+{
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
@@ -31,7 +32,8 @@ MV_INLINE void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype,
 }
 
 MV_INLINE void MPIV_Send(void* buffer, int count, MPI_Datatype datatype,
-                         int rank, int tag, MPI_Comm) {
+                         int rank, int tag, MPI_Comm)
+{
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
@@ -62,7 +64,8 @@ MV_INLINE void MPIV_Waitall(int count, MPIV_Request* req, MPI_Status*) {
 }
 #endif
 
-MV_INLINE void MPIV_Init(int* argc, char*** args) {
+MV_INLINE void MPIV_Init(int* argc, char*** args)
+{
   size_t heap_size = 1024 * 1024 * 1024;
   mv_open(argc, args, heap_size, &mv_hdl);
   heap_segment = std::move(mbuffer(boost::interprocess::create_only,
@@ -70,9 +73,6 @@ MV_INLINE void MPIV_Init(int* argc, char*** args) {
 }
 
 MV_INLINE void MPIV_Finalize() { mv_close(mv_hdl); }
-
 MV_INLINE void* MPIV_Alloc(int size) { return heap_segment.allocate(size); }
-
 MV_INLINE void MPIV_Free(void* ptr) { return heap_segment.deallocate(ptr); }
-
 #endif

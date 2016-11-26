@@ -14,25 +14,28 @@
 #define read_prefetch(A) __builtin_prefetch((const void*)A, 0, 3)
 /** Indicate address A should be prefetched for a write. */
 #define write_prefetch(A) \
-  {}  //__builtin_prefetch((const void*) A, 1, 3);
+  {                       \
+  }  //__builtin_prefetch((const void*) A, 1, 3);
 
-namespace ppli {
+namespace ppli
+{
 constexpr size_t num_workers = 1;
 }
 
-namespace ppl {
-
+namespace ppl
+{
 int get_core() { return 0; }
-
 template <typename Value>
-inline MPMCQueue<Value>::MPMCQueue() {
+inline MPMCQueue<Value>::MPMCQueue()
+{
   head = new RingQueue();
   init_ring(head);
   tail = head;
 }
 
 template <typename Value>
-inline MPMCQueue<Value>::~MPMCQueue() {
+inline MPMCQueue<Value>::~MPMCQueue()
+{
   reclaim();
   for (RingQueue* rq = head; rq != NULL;) {
     RingQueue* next = rq->next;
@@ -42,7 +45,8 @@ inline MPMCQueue<Value>::~MPMCQueue() {
 }
 
 template <typename Value>
-inline void MPMCQueue<Value>::enqueue(Value n) {
+inline void MPMCQueue<Value>::enqueue(Value n)
+{
   int close_tries = 0;  // Current number of attempts to close CRQ.
   RingQueue* new_rq = NULL;
 
@@ -112,7 +116,8 @@ inline void MPMCQueue<Value>::enqueue(Value n) {
 }
 
 template <typename Value>
-inline Value MPMCQueue<Value>::dequeue() {
+inline Value MPMCQueue<Value>::dequeue()
+{
   while (true) {
     RingQueue* rq = head;  // HAZARD.
     uint64_t crq_head = FETCH_ADD(&rq->head, 1);
@@ -188,17 +193,20 @@ inline Value MPMCQueue<Value>::dequeue() {
 }
 
 template <typename Value>
-inline bool MPMCQueue<Value>::empty() const {
+inline bool MPMCQueue<Value>::empty() const
+{
   return (tail_index(head->tail) < head->head + 1) && head->next == NULL;
 }
 
 template <typename Value>
-void MPMCQueue<Value>::reclaim() {
+void MPMCQueue<Value>::reclaim()
+{
   // nothing to reclaim.
 }
 
 template <typename Value>
-inline void MPMCQueue<Value>::init_ring(RingQueue* rq) {
+inline void MPMCQueue<Value>::init_ring(RingQueue* rq)
+{
   for (size_t i = 0; i < RING_SIZE; ++i) {
     rq->array[i].val = MPMCQueue<Value>::get_default();
     rq->array[i].idx = i;
@@ -209,58 +217,67 @@ inline void MPMCQueue<Value>::init_ring(RingQueue* rq) {
 }
 
 template <typename Value>
-inline bool MPMCQueue<Value>::is_empty(Value v) const {
+inline bool MPMCQueue<Value>::is_empty(Value v) const
+{
   return v == MPMCQueue<Value>::get_default();
 }
 
 template <typename Value>
-inline uint64_t MPMCQueue<Value>::node_index(uint64_t i) const {
+inline uint64_t MPMCQueue<Value>::node_index(uint64_t i) const
+{
   return i & ~(1ull << 63);
 }
 
 template <typename Value>
-inline uint64_t MPMCQueue<Value>::set_unsafe(uint64_t i) const {
+inline uint64_t MPMCQueue<Value>::set_unsafe(uint64_t i) const
+{
   return i | (1ull << 63);
 }
 
 template <typename Value>
-inline uint64_t MPMCQueue<Value>::node_unsafe(uint64_t i) const {
+inline uint64_t MPMCQueue<Value>::node_unsafe(uint64_t i) const
+{
   return i & (1ull << 63);
 }
 
 template <typename Value>
-inline uint64_t MPMCQueue<Value>::tail_index(uint64_t i) const {
+inline uint64_t MPMCQueue<Value>::tail_index(uint64_t i) const
+{
   return i & ~(1ull << 63);
 }
 
 template <typename Value>
-inline bool MPMCQueue<Value>::is_crq_closed(uint64_t t) const {
+inline bool MPMCQueue<Value>::is_crq_closed(uint64_t t) const
+{
   return (t & (1ull << 63)) != 0;
 }
 
 template <typename Value>
 inline bool MPMCQueue<Value>::cas2_put_node(RingNode* node, uint64_t old_idx,
-                                            Value val, uint64_t idx) {
+                                            Value val, uint64_t idx)
+{
   return CAS2((uint64_t*)node, MPMCQueue<Value>::get_default(), old_idx, val,
               idx);
 }
 
 template <typename Value>
 inline bool MPMCQueue<Value>::cas2_take_node(RingNode* node, uint64_t val,
-                                             uint64_t old_idx,
-                                             uint64_t new_idx) {
+                                             uint64_t old_idx, uint64_t new_idx)
+{
   return CAS2((uint64_t*)node, val, old_idx, MPMCQueue<Value>::get_default(),
               new_idx);
 }
 
 template <typename Value>
 inline bool MPMCQueue<Value>::cas2_idx(RingNode* node, uint64_t val,
-                                       uint64_t old_idx, uint64_t new_idx) {
+                                       uint64_t old_idx, uint64_t new_idx)
+{
   return CAS2((uint64_t*)node, val, old_idx, val, new_idx);
 }
 
 template <typename Value>
-inline void MPMCQueue<Value>::fix_state(RingQueue* rq) {
+inline void MPMCQueue<Value>::fix_state(RingQueue* rq)
+{
   while (true) {
     uint64_t tail = FETCH_ADD(&rq->tail, 0);
     uint64_t head = FETCH_ADD(&rq->head, 0);
@@ -275,7 +292,8 @@ inline void MPMCQueue<Value>::fix_state(RingQueue* rq) {
 
 template <typename Value>
 inline bool MPMCQueue<Value>::close_crq(RingQueue* rq, const uint64_t tail,
-                                        const int tries) {
+                                        const int tries)
+{
   if (tries < CLOSE_TRIES) {
     return CAS(&rq->tail, tail + 1, (tail + 1) | (1ull << 63));
   } else {

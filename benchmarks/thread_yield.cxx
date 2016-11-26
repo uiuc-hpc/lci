@@ -8,16 +8,17 @@
 #include "comm_exp.h"
 #include "ult.h"
 
-void f1(intptr_t i) {
+void f1(intptr_t i)
+{
   for (int i = 0; i < TOTAL; i++) ult_yield();
 }
 
 int compare(const void* a, const void* b) { return (*(long*)a - *(long*)b); }
-
 int num_threads, num_worker, total_threads;
 void main_task(intptr_t);
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
 #if USE_ABT
   ABT_init(argc, args);
 #endif
@@ -46,7 +47,8 @@ int main(int argc, char** args) {
   return 0;
 }
 
-void main_task(intptr_t arg) {
+void main_task(intptr_t arg)
+{
   worker* w = (worker*)arg;
   double t = wtime();
   thread tid[num_threads * num_worker];
