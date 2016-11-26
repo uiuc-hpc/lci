@@ -14,7 +14,7 @@ void mv_open(int *argc, char*** args, size_t heap_size, mv_engine** ret)
   assert(MPI_THREAD_MULTIPLE == provided);
 
   mv_hash_init(&mv->tbl);
-  mv_progress_init();
+  mv_progress_init(mv);
 
   mv_pp_init(&mv->pkpool);
 

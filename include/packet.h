@@ -4,11 +4,8 @@
 #include <stdint.h>
 #include "config.h"
 
-enum packetType { SEND_SHORT, SEND_READY, RECV_READY,
-    SEND_WRITE_FIN, SEND_READY_FIN, SEND_AM };
-
 struct packet_header {
-  enum packetType type;
+  int32_t fid;
   int8_t poolid;
   int from;
   int tag;

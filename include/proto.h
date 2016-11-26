@@ -2,7 +2,7 @@
 #define MV_PROTO_H_
 
 MV_INLINE void proto_complete_rndz(mv_engine* mv, packet* p, MPIV_Request* s) {
-  p->header = {SEND_WRITE_FIN, 0, mv->me, s->tag};
+  p->header = {PROTO_SEND_WRITE_FIN, 0, mv->me, s->tag};
   p->content.rdz.sreq = (uintptr_t)s;
   mv_server_rma(mv->server, s->rank, s->buffer,
           (void*)p->content.rdz.tgt_addr,
@@ -27,7 +27,7 @@ MV_INLINE void mv_send_eager(mv_engine* mv, const void* buffer, int size, int ra
   // Get from my pool.
   const int8_t pid = mv_my_worker_id() + 1;
   packet* packet = mv_pp_alloc(mv->pkpool, pid);
-  packet->header = {SEND_SHORT, pid, mv->me, tag};
+  packet->header = {PROTO_SHORT, pid, mv->me, tag};
   
   // This is a eager message, we send them immediately and do not yield
   // or create a request for it.
@@ -43,7 +43,7 @@ MV_INLINE void mv_recv_rdz(mv_engine* mv, void* buffer, int size, int rank, int 
   s.sync = sync;
 
   packet* p = mv_pp_alloc(mv->pkpool, 0);
-  p->header = {RECV_READY, 0, mv->me, tag};
+  p->header = {PROTO_RECV_READY, 0, mv->me, tag};
   p->content.rdz = {0, (uintptr_t) &s, (uintptr_t) buffer, mv_server_heap_rkey(mv->server)};
   mv_server_send(mv->server, rank, p, sizeof(packet_header) + sizeof(mv_rdz), p);
 
@@ -72,7 +72,7 @@ MV_INLINE void mv_recv_eager(mv_engine* mv, void* buffer, int size, int rank, in
 
 MV_INLINE void mv_am_eager(mv_engine* mv, int node, void* src, int size, uint32_t fid) {
   packet* packet = mv_pp_alloc(mv->pkpool, mv_my_worker_id() + 1);
-  packet->header.type = SEND_AM;
+  packet->header.fid = PROTO_AM;
   packet->header.from = mv->me;
   packet->header.tag = fid;
   uint32_t* buffer = (uint32_t*) packet->content.buffer;

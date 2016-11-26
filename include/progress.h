@@ -4,6 +4,13 @@
 #include "mv.h"
 #include "request.h"
 
+extern int PROTO_SHORT;
+extern int PROTO_RECV_READY;
+extern int PROTO_READY_FIN;
+extern int PROTO_AM;
+extern int PROTO_SEND_WRITE_FIN;
+
+typedef void (*p_ctx_handler)(mv_engine*, packet* p_ctx);
 typedef void (*_0_arg)(void*, uint32_t);
 
 MV_INLINE void proto_complete_rndz(mv_engine* mv, packet* p, MPIV_Request* s);
@@ -60,31 +67,26 @@ inline void mv_recv_short(mv_engine* mv, packet* p) {
   }
 }
 
-typedef void (*p_ctx_handler)(mv_engine*, packet* p_ctx);
-static p_ctx_handler* handle;
-
-static inline void mv_progress_init() {
-  posix_memalign((void**)&handle, 64, 64);
-  handle[SEND_SHORT] = mv_recv_short;
-  handle[RECV_READY] = mv_recv_recv_ready;
-  handle[SEND_READY_FIN] = mv_recv_send_ready_fin;
-  // AM.
-  handle[SEND_AM] = mv_recv_am;
+static inline void mv_progress_init(mv_engine* mv) {
+  PROTO_SHORT = mv_am_register(mv, (mv_am_func_t) mv_recv_short);
+  PROTO_RECV_READY = mv_am_register(mv, (mv_am_func_t) mv_recv_recv_ready);
+  PROTO_READY_FIN = mv_am_register(mv, (mv_am_func_t) mv_recv_send_ready_fin);
+  PROTO_AM = mv_am_register(mv, (mv_am_func_t) mv_recv_am);
 }
 
 inline void mv_serve_recv(mv_engine* mv, packet* p_ctx) {
   // packet* p_ctx = (packet*)wc.wr_id;
-  const auto& type = p_ctx->header.type;
-  handle[type](mv, p_ctx);
+  const auto& fid = p_ctx->header.fid;
+  ((p_ctx_handler) mv->am_table[fid])(mv, p_ctx);
 }
 
 inline void mv_serve_send(mv_engine* mv, packet* p_ctx) {
   if (!p_ctx) return;
 
-  const auto& type = p_ctx->header.type;
-  if (type == SEND_WRITE_FIN) {
+  const auto& fid = p_ctx->header.fid;
+  if (fid == PROTO_SEND_WRITE_FIN) {
     MPIV_Request* req = (MPIV_Request*)p_ctx->content.rdz.sreq;
-    p_ctx->header.type = SEND_READY_FIN;
+    p_ctx->header.fid = PROTO_READY_FIN;
     mv_server_send(mv->server, req->rank, p_ctx,
             sizeof(packet_header) + sizeof(mv_rdz), p_ctx);
     mv_key key = mv_make_key(req->rank, (1 << 30) | req->tag);
