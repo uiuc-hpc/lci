@@ -26,15 +26,14 @@ typedef void (*mv_am_func_t)();
 void mv_send_eager(mv_engine* mv, const void* buffer, int size, int rank, int tag);
 void mv_send_rdz(mv_engine* mv, const void* buffer, int size, int rank, int tag, mv_sync* sync);
 
-void mv_recv_eager(mv_engine* mv, void* buffer, int size, int rank, int tag,
-                             mv_sync* sync);
-void mv_recv_rdz(mv_engine* mv, void* buffer, int size, int rank, int tag,
-                             mv_sync* sync);
+void mv_recv_eager(mv_engine* mv, void* buffer, int size, int rank, int tag, mv_sync* sync);
+void mv_recv_rdz(mv_engine* mv, void* buffer, int size, int rank, int tag, mv_sync* sync);
 
 /*! One-sided communication function */
 void mv_am_eager(mv_engine*, int dst_rank, void* src, int size, uint32_t fid);
 void mv_put(mv_engine*, int dst_rank, void* dst, void* src, int size, uint32_t fid);
 // void mv_am_rdz(mv_engine*, int dst_rank, void* src, int size, uint32_t fid);
+uint8_t mv_am_register(mv_engine* mv, mv_am_func_t f);
 
 // void mv_get(mv_engine*, int dst_rank, void* src, void* dst, size_t size, mv_sync* sync);
 
