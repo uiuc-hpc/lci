@@ -1,11 +1,11 @@
-#include <stdio.h>
-#include <thread>
-#include <string.h>
 #include <assert.h>
 #include <atomic>
+#include <stdio.h>
+#include <string.h>
+#include <thread>
 
-#include "ult.h"
 #include "comm_exp.h"
+#include "ult.h"
 
 long* times;
 long* fibo;
@@ -27,17 +27,19 @@ void ffibo(intptr_t arg) {
     thread_data_t data[2];
     data[0].val = td->val - 1;
     data[1].val = td->val - 2;
-    auto s1 = w[(tlself.worker->id() + 1) % nworker].spawn(ffibo, (intptr_t)&data[0]);
-    auto s2 = w[(tlself.worker->id() + 2) % nworker].spawn(ffibo, (intptr_t)&data[1]);
+    auto s1 =
+        w[(tlself.worker->id() + 1) % nworker].spawn(ffibo, (intptr_t)&data[0]);
+    auto s2 =
+        w[(tlself.worker->id() + 2) % nworker].spawn(ffibo, (intptr_t)&data[1]);
     s1->join();
     s2->join();
     td->ret = data[0].ret + data[1].ret;
   }
 }
 worker* random_worker() {
-    int p = rand() % nworker;
-    // printf("pick %d\n", p);
-    return &w[p];
+  int p = rand() % nworker;
+  // printf("pick %d\n", p);
+  return &w[p];
 }
 
 void main_task(intptr_t args) {

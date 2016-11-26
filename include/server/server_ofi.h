@@ -59,17 +59,21 @@ struct ofi_server {
   volatile int lock;
 } __attribute__((aligned(64)));
 
-inline void ofi_init(mv_engine* mv, mv_pp*, size_t heap_size, ofi_server** s_ptr);
+inline void ofi_init(mv_engine* mv, mv_pp*, size_t heap_size,
+                     ofi_server** s_ptr);
 inline void ofi_post_recv(ofi_server* s, packet* p);
 inline void ofi_serve(ofi_server* s);
-inline void ofi_write_send(ofi_server* s, int rank, void* buf, size_t size, void* ctx);
-inline void ofi_write_rma(ofi_server* s, int rank, void* from,
-    uint32_t lkey, void* to, uint32_t rkey, size_t size, void* ctx);
-inline void ofi_write_rma_signal(ofi_server *s, int rank, void* from,
-    uint32_t lkey, void* to, uint32_t rkey, size_t size, uint32_t sid, void* ctx);
+inline void ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
+                           void* ctx);
+inline void ofi_write_rma(ofi_server* s, int rank, void* from, uint32_t lkey,
+                          void* to, uint32_t rkey, size_t size, void* ctx);
+inline void ofi_write_rma_signal(ofi_server* s, int rank, void* from,
+                                 uint32_t lkey, void* to, uint32_t rkey,
+                                 size_t size, uint32_t sid, void* ctx);
 inline void ofi_finalize(ofi_server* s);
 
-inline void ofi_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size, ofi_server** s_ptr) {
+inline void ofi_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size,
+                     ofi_server** s_ptr) {
 #ifdef USE_AFFI
   affinity::set_me_to(0);
 #endif
@@ -84,7 +88,7 @@ inline void ofi_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size, ofi_server*
   hints->mode = FI_CONTEXT | FI_LOCAL_MR;
 #endif
 
-  ofi_server *s = new ofi_server();
+  ofi_server* s = new ofi_server();
 
   // Create info.
   FI_SAFECALL(fi_getinfo(FI_VERSION(1, 0), NULL, NULL, 0, hints, &s->fi));
@@ -101,7 +105,7 @@ inline void ofi_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size, ofi_server*
   // Create cq.
   struct fi_cq_attr cq_attr;
   memset(&cq_attr, 0, sizeof(cq_attr));
-  cq_attr.format = FI_CQ_FORMAT_DATA; 
+  cq_attr.format = FI_CQ_FORMAT_DATA;
   cq_attr.size = MAX_CQ_SIZE;
   FI_SAFECALL(fi_cq_open(s->domain, &cq_attr, &s->scq, NULL));
   FI_SAFECALL(fi_cq_open(s->domain, &cq_attr, &s->rcq, NULL));
@@ -182,7 +186,8 @@ struct my_context {
   void* ctx_;
 };
 
-MV_INLINE bool ofi_progress(ofi_server* s) {  // profiler& p, long long& r, long long &s) {
+MV_INLINE bool ofi_progress(
+    ofi_server* s) {  // profiler& p, long long& r, long long &s) {
   initt(t);
   startt(t);
 
@@ -271,19 +276,21 @@ inline void ofi_post_recv(ofi_server* s, packet* p) {
   mv_spin_unlock(&s->lock);
 }
 
-inline void ofi_write_send(ofi_server*s, int rank, void* buf, size_t size, void* ctx) {
+inline void ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
+                           void* ctx) {
   mv_spin_lock(&s->lock);
   if (size > 32) {
-    FI_SAFECALL(fi_send(s->ep, buf, size, 0, s->fi_addr[rank], new my_context(ctx)));
+    FI_SAFECALL(
+        fi_send(s->ep, buf, size, 0, s->fi_addr[rank], new my_context(ctx)));
   } else {
     FI_SAFECALL(fi_inject(s->ep, buf, size, s->fi_addr[rank]));
-    mv_pp_free_to(s->pkpool, (packet*) ctx, ((packet*) ctx)->header.poolid);
+    mv_pp_free_to(s->pkpool, (packet*)ctx, ((packet*)ctx)->header.poolid);
   }
   mv_spin_unlock(&s->lock);
 }
 
-inline void ofi_write_rma(ofi_server *s, int rank, void* from,
-    void* to, uint32_t rkey, size_t size, void* ctx) {
+inline void ofi_write_rma(ofi_server* s, int rank, void* from, void* to,
+                          uint32_t rkey, size_t size, void* ctx) {
   mv_spin_lock(&s->lock);
   FI_SAFECALL(fi_write(s->ep, from, size, 0, s->fi_addr[rank],
                        (uintptr_t)to - s->heap_addr[rank],  // this is offset.
@@ -291,12 +298,14 @@ inline void ofi_write_rma(ofi_server *s, int rank, void* from,
   mv_spin_unlock(&s->lock);
 }
 
-inline void ofi_write_rma_signal(ofi_server *s, int rank, void* from,
-    void* to, uint32_t rkey, size_t size, uint32_t sid, void* ctx) {
+inline void ofi_write_rma_signal(ofi_server* s, int rank, void* from, void* to,
+                                 uint32_t rkey, size_t size, uint32_t sid,
+                                 void* ctx) {
   mv_spin_lock(&s->lock);
-  FI_SAFECALL(fi_writedata(s->ep, from, size, 0, sid, s->fi_addr[rank],
-                       (uintptr_t)to - s->heap_addr[rank],  // this is offset.
-                       rkey, new my_context(ctx)));
+  FI_SAFECALL(
+      fi_writedata(s->ep, from, size, 0, sid, s->fi_addr[rank],
+                   (uintptr_t)to - s->heap_addr[rank],  // this is offset.
+                   rkey, new my_context(ctx)));
   mv_spin_unlock(&s->lock);
 }
 

@@ -12,10 +12,10 @@
 
 #include <sched.h>
 
+#include "macro.h"
 #include <errno.h>
 #include <pthread.h>
 #include <unistd.h>
-#include "macro.h"
 
 #define GET_NCORE() sysconf(_SC_NPROCESSORS_ONLN)
 

@@ -23,16 +23,16 @@
 #undef USE_AFFI
 #define DISABLE_COMM
 #define NWORKER 15
-#if ((4096 / NWORKER) > (8*64))
+#if ((4096 / NWORKER) > (8 * 64))
 #define USE_L1_MASK
 #endif
 
 #include "mpiv.h"
-#include <utility>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
-#include <math.h>
+#include <utility>
 
 /* We want to wrap entries around, and because mod operator % sometimes
  * misbehaves on negative values. -1 maps to the highest value.
@@ -45,7 +45,7 @@
   ((a) + (b) * (blockDimX + 2) + (c) * (blockDimX + 2) * (blockDimY + 2))
 #define calc_pe(a, b, c) \
   ((a) + (b)*num_blocks_x + (c)*num_blocks_x * num_blocks_y)
- 
+
 #define get_i(X) ((X % ((blockDimX + 2) * (blockDimY + 2))) % (blockDimX + 2))
 #define get_j(X) ((X % ((blockDimX + 2) * (blockDimY + 2))) / (blockDimX + 2))
 #define get_k(X) ((X / ((blockDimX + 2) * (blockDimY + 2))))
@@ -149,8 +149,8 @@ int myZcoord;
 
 void right(intptr_t) {
   MPI_Recv(right_plane_in, blockDimY * blockDimZ, MPI_DOUBLE,
-            calc_pe(wrap_x(myXcoord + 1), myYcoord, myZcoord), RIGHT,
-            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+           calc_pe(wrap_x(myXcoord + 1), myYcoord, myZcoord), RIGHT,
+           MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 #if 0
   for(int k=0; k<blockDimZ; ++k)
     for(int j=0; j<blockDimY; ++j) {
@@ -173,8 +173,8 @@ void right(intptr_t) {
 
 void left(intptr_t) {
   MPI_Recv(left_plane_in, blockDimY * blockDimZ, MPI_DOUBLE,
-            calc_pe(wrap_x(myXcoord - 1), myYcoord, myZcoord), LEFT,
-            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+           calc_pe(wrap_x(myXcoord - 1), myYcoord, myZcoord), LEFT,
+           MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 /* Copy buffers into ghost layers */
 
 #if 0
@@ -198,8 +198,8 @@ void left(intptr_t) {
 
 void up(intptr_t) {
   MPI_Recv(top_plane_in, blockDimX * blockDimZ, MPI_DOUBLE,
-            calc_pe(myXcoord, wrap_y(myYcoord + 1), myZcoord), TOP,
-            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+           calc_pe(myXcoord, wrap_y(myYcoord + 1), myZcoord), TOP,
+           MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 #if 0
   for(int k=0; k<blockDimZ; ++k)
     for(int i=0; i<blockDimX; ++i) {
@@ -222,8 +222,8 @@ void up(intptr_t) {
 
 void down(intptr_t) {
   MPI_Recv(bottom_plane_in, blockDimX * blockDimZ, MPI_DOUBLE,
-            calc_pe(myXcoord, wrap_y(myYcoord - 1), myZcoord), BOTTOM,
-            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+           calc_pe(myXcoord, wrap_y(myYcoord - 1), myZcoord), BOTTOM,
+           MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 #if 0
   for(int k=0; k<blockDimZ; ++k)
     for(int i=0; i<blockDimX; ++i) {
@@ -245,8 +245,8 @@ void down(intptr_t) {
 
 void front(intptr_t) {
   MPI_Recv(front_plane_in, blockDimX * blockDimY, MPI_DOUBLE,
-            calc_pe(myXcoord, myYcoord, wrap_z(myZcoord + 1)), FRONT,
-            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+           calc_pe(myXcoord, myYcoord, wrap_z(myZcoord + 1)), FRONT,
+           MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 #if 0
   for(int j=0; j<blockDimY; ++j)
     for(int i=0; i<blockDimX; ++i) {
@@ -269,8 +269,8 @@ void front(intptr_t) {
 
 void back(intptr_t) {
   MPI_Recv(back_plane_in, blockDimX * blockDimY, MPI_DOUBLE,
-            calc_pe(myXcoord, myYcoord, wrap_z(myZcoord - 1)), BACK,
-            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+           calc_pe(myXcoord, myYcoord, wrap_z(myZcoord - 1)), BACK,
+           MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 #if 0
   for(int j=0; j<blockDimY; ++j)
     for(int i=0; i<blockDimX; ++i) {
@@ -291,101 +291,100 @@ void back(intptr_t) {
 }
 
 void send_left(intptr_t) {
-    int k, j;
-    for (k = 0; k < blockDimZ; ++k)
-      for (j = 0; j < blockDimY; ++j) {
-        left_plane_out[k * blockDimY + j] = temperature[index(1, j + 1, k + 1)];
-      }
-    MPI_Send(left_plane_out, blockDimY * blockDimZ, MPI_DOUBLE,
-              calc_pe(wrap_x(myXcoord - 1), myYcoord, myZcoord), RIGHT,
-              MPI_COMM_WORLD);
+  int k, j;
+  for (k = 0; k < blockDimZ; ++k)
+    for (j = 0; j < blockDimY; ++j) {
+      left_plane_out[k * blockDimY + j] = temperature[index(1, j + 1, k + 1)];
+    }
+  MPI_Send(left_plane_out, blockDimY * blockDimZ, MPI_DOUBLE,
+           calc_pe(wrap_x(myXcoord - 1), myYcoord, myZcoord), RIGHT,
+           MPI_COMM_WORLD);
 }
 
 void send_right(intptr_t) {
-    int k, j;
-    for (k = 0; k < blockDimZ; ++k)
-      for (j = 0; j < blockDimY; ++j) {
-        right_plane_out[k * blockDimY + j] = temperature[index(blockDimX, j + 1, k + 1)];
-      }
-    MPI_Send(right_plane_out, blockDimY * blockDimZ, MPI_DOUBLE,
-              calc_pe(wrap_x(myXcoord + 1), myYcoord, myZcoord), LEFT,
-              MPI_COMM_WORLD);
+  int k, j;
+  for (k = 0; k < blockDimZ; ++k)
+    for (j = 0; j < blockDimY; ++j) {
+      right_plane_out[k * blockDimY + j] =
+          temperature[index(blockDimX, j + 1, k + 1)];
+    }
+  MPI_Send(right_plane_out, blockDimY * blockDimZ, MPI_DOUBLE,
+           calc_pe(wrap_x(myXcoord + 1), myYcoord, myZcoord), LEFT,
+           MPI_COMM_WORLD);
 }
 
 void send_bot(intptr_t) {
-    int k, i;
-    for (k = 0; k < blockDimZ; ++k)
-      for (i = 0; i < blockDimX; ++i) {
-        bottom_plane_out[k * blockDimX + i] = temperature[index(i + 1, blockDimY, k + 1)];
-      }
-    MPI_Send(bottom_plane_out, blockDimX * blockDimZ, MPI_DOUBLE,
-              calc_pe(myXcoord, wrap_y(myYcoord - 1), myZcoord), TOP,
-              MPI_COMM_WORLD);
+  int k, i;
+  for (k = 0; k < blockDimZ; ++k)
+    for (i = 0; i < blockDimX; ++i) {
+      bottom_plane_out[k * blockDimX + i] =
+          temperature[index(i + 1, blockDimY, k + 1)];
+    }
+  MPI_Send(bottom_plane_out, blockDimX * blockDimZ, MPI_DOUBLE,
+           calc_pe(myXcoord, wrap_y(myYcoord - 1), myZcoord), TOP,
+           MPI_COMM_WORLD);
 }
 
 void send_top(intptr_t) {
-    int k, i;
-    for (k = 0; k < blockDimZ; ++k)
-      for (i = 0; i < blockDimX; ++i) {
-        top_plane_out[k * blockDimX + i] = temperature[index(i + 1, 1, k + 1)];
-      }
-    MPI_Send(top_plane_out, blockDimX * blockDimZ, MPI_DOUBLE,
-              calc_pe(myXcoord, wrap_y(myYcoord + 1), myZcoord), BOTTOM,
-              MPI_COMM_WORLD);
+  int k, i;
+  for (k = 0; k < blockDimZ; ++k)
+    for (i = 0; i < blockDimX; ++i) {
+      top_plane_out[k * blockDimX + i] = temperature[index(i + 1, 1, k + 1)];
+    }
+  MPI_Send(top_plane_out, blockDimX * blockDimZ, MPI_DOUBLE,
+           calc_pe(myXcoord, wrap_y(myYcoord + 1), myZcoord), BOTTOM,
+           MPI_COMM_WORLD);
 }
 
 void send_back(intptr_t) {
-    int j, i;
-    for (j = 0; j < blockDimY; ++j)
-      for (i = 0; i < blockDimX; ++i) {
-        back_plane_out[j * blockDimX + i] = temperature[index(i + 1, j + 1, 1)];
-      }
-    MPI_Send(back_plane_out, blockDimX * blockDimY, MPI_DOUBLE,
-              calc_pe(myXcoord, myYcoord, wrap_z(myZcoord - 1)), FRONT,
-              MPI_COMM_WORLD);
+  int j, i;
+  for (j = 0; j < blockDimY; ++j)
+    for (i = 0; i < blockDimX; ++i) {
+      back_plane_out[j * blockDimX + i] = temperature[index(i + 1, j + 1, 1)];
+    }
+  MPI_Send(back_plane_out, blockDimX * blockDimY, MPI_DOUBLE,
+           calc_pe(myXcoord, myYcoord, wrap_z(myZcoord - 1)), FRONT,
+           MPI_COMM_WORLD);
 }
 
 void send_front(intptr_t) {
-    int j, i;
-    for (j = 0; j < blockDimY; ++j)
-      for (i = 0; i < blockDimX; ++i) {
-        front_plane_out[j * blockDimX + i] =
-            temperature[index(i + 1, j + 1, blockDimZ)];
-      }
-    MPI_Send(front_plane_out, blockDimX * blockDimY, MPI_DOUBLE,
-              calc_pe(myXcoord, myYcoord, wrap_z(myZcoord + 1)), BACK,
-              MPI_COMM_WORLD);
+  int j, i;
+  for (j = 0; j < blockDimY; ++j)
+    for (i = 0; i < blockDimX; ++i) {
+      front_plane_out[j * blockDimX + i] =
+          temperature[index(i + 1, j + 1, blockDimZ)];
+    }
+  MPI_Send(front_plane_out, blockDimX * blockDimY, MPI_DOUBLE,
+           calc_pe(myXcoord, myYcoord, wrap_z(myZcoord + 1)), BACK,
+           MPI_COMM_WORLD);
 }
 
 int mpiv_work_start, mpiv_work_end;
 
-int PER_THREAD = 64*8;
+int PER_THREAD = 64 * 8;
 
 void compute(intptr_t k) {
-
 #if USE_MPE
-  if (wid == 0)
-    MPE_Log_event(mpiv_work_start, 0, "work");
+  if (wid == 0) MPE_Log_event(mpiv_work_start, 0, "work");
 #endif
-    for(int j=2; j<blockDimY; j++)
-      for(int i=2; i<blockDimX; i++) {
-        new_temperature[index(i,j,k)] =
+  for (int j = 2; j < blockDimY; j++)
+    for (int i = 2; i < blockDimX; i++) {
+      new_temperature[index(i, j, k)] =
           (temperature[index(i - 1, j, k)] + temperature[index(i + 1, j, k)] +
            temperature[index(i, j - 1, k)] + temperature[index(i, j + 1, k)] +
            temperature[index(i, j, k - 1)] + temperature[index(i, j, k + 1)] +
            temperature[index(i, j, k)]) *
           DIVIDEBY7;
-      }
+    }
 #if USE_MPE
-  if (wid == 0)
-    MPE_Log_event(mpiv_work_end, 0, "work");
+  if (wid == 0) MPE_Log_event(mpiv_work_end, 0, "work");
 #endif
 }
 
 void main_task(intptr_t) {
 #if USE_MPE
-  mpiv_work_start = MPE_Log_get_event_number(); 
-  mpiv_work_end = MPE_Log_get_event_number(); 
+  mpiv_work_start = MPE_Log_get_event_number();
+  mpiv_work_end = MPE_Log_get_event_number();
   MPE_Describe_state(mpiv_work_start, mpiv_work_end, "WORK", "yellow");
 #endif
 
@@ -416,10 +415,13 @@ void main_task(intptr_t) {
     for (j = 0; j < blockDimY + 2; j++)
       for (i = 0; i < blockDimX + 2; i++) {
         temperature[index(i, j, k)] = 0.0;
-        //printf("%d %d %d %d\n", i, j, k, index(i,j,k));
-        //printf("i: %d\n", (index(i,j,k) % ((blockDimX + 2) * (blockDimY + 2))) % (blockDimX + 2));
-        //printf("j: %d\n", (index(i,j,k) % ((blockDimX + 2) * (blockDimY + 2))) / (blockDimX + 2));
-        //printf("k: %d\n", (index(i,j,k) / ((blockDimX + 2) * (blockDimY + 2))));
+        // printf("%d %d %d %d\n", i, j, k, index(i,j,k));
+        // printf("i: %d\n", (index(i,j,k) % ((blockDimX + 2) * (blockDimY +
+        // 2))) % (blockDimX + 2));
+        // printf("j: %d\n", (index(i,j,k) % ((blockDimX + 2) * (blockDimY +
+        // 2))) / (blockDimX + 2));
+        // printf("k: %d\n", (index(i,j,k) / ((blockDimX + 2) * (blockDimY +
+        // 2))));
       }
 
   /* boundary conditions */
@@ -440,21 +442,17 @@ void main_task(intptr_t) {
    * arrays. */
 
   left_plane_out = (double*)malloc(sizeof(double) * blockDimY * blockDimZ);
-  right_plane_out =
-      (double*)malloc(sizeof(double) * blockDimY * blockDimZ);
+  right_plane_out = (double*)malloc(sizeof(double) * blockDimY * blockDimZ);
   left_plane_in = (double*)malloc(sizeof(double) * blockDimY * blockDimZ);
   right_plane_in = (double*)malloc(sizeof(double) * blockDimY * blockDimZ);
 
-  bottom_plane_out =
-      (double*)malloc(sizeof(double) * blockDimX * blockDimZ);
+  bottom_plane_out = (double*)malloc(sizeof(double) * blockDimX * blockDimZ);
   top_plane_out = (double*)malloc(sizeof(double) * blockDimX * blockDimZ);
-  bottom_plane_in =
-      (double*)malloc(sizeof(double) * blockDimX * blockDimZ);
+  bottom_plane_in = (double*)malloc(sizeof(double) * blockDimX * blockDimZ);
   top_plane_in = (double*)malloc(sizeof(double) * blockDimX * blockDimZ);
 
   back_plane_out = (double*)malloc(sizeof(double) * blockDimX * blockDimY);
-  front_plane_out =
-      (double*)malloc(sizeof(double) * blockDimX * blockDimY);
+  front_plane_out = (double*)malloc(sizeof(double) * blockDimX * blockDimY);
   back_plane_in = (double*)malloc(sizeof(double) * blockDimX * blockDimY);
   front_plane_in = (double*)malloc(sizeof(double) * blockDimX * blockDimY);
 
@@ -487,7 +485,7 @@ void main_task(intptr_t) {
     auto sb = MPIV_spawn(12, send_back, 0);
 
     x.clear();
-    for (int k=2; k<blockDimZ; k++) {
+    for (int k = 2; k < blockDimZ; k++) {
       // int w = ((x.size() % (NWORKER-1)) + 1);
       int w = x.size() % NWORKER;
       x.push_back(MPIV_spawn(w, compute, k));

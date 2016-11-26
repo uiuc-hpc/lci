@@ -4,10 +4,10 @@
  *   See COPYRIGHT notice in top-level directory.
  */
 
-#include "mpi.h"
 #include "affinity.h"
-#include <stdio.h>
+#include "mpi.h"
 #include <pthread.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 

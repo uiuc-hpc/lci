@@ -1,11 +1,17 @@
 #ifndef PACKET_H_
 #define PACKET_H_
 
-#include <stdint.h>
 #include "config.h"
+#include <stdint.h>
 
-enum packetType { SEND_SHORT, SEND_READY, RECV_READY,
-    SEND_WRITE_FIN, SEND_READY_FIN, SEND_AM };
+enum packetType {
+  SEND_SHORT,
+  SEND_READY,
+  RECV_READY,
+  SEND_WRITE_FIN,
+  SEND_READY_FIN,
+  SEND_AM
+};
 
 struct packet_header {
   enum packetType type;

@@ -14,15 +14,11 @@ enum RequestType {
 };
 
 struct MPIV_Request {
-  inline MPIV_Request() : sync(NULL) {};
+  inline MPIV_Request() : sync(NULL){};
   inline MPIV_Request(int rank_, int tag_)
       : rank(rank_), tag(tag_), sync(NULL) {}
   inline MPIV_Request(void* buffer_, int size_, int rank_, int tag_)
-      : buffer(buffer_),
-        size(size_),
-        rank(rank_),
-        tag(tag_),
-        sync(NULL) {};
+      : buffer(buffer_), size(size_), rank(rank_), tag(tag_), sync(NULL){};
   void* buffer;
   int size;
   int rank;

@@ -19,10 +19,10 @@
  */
 
 #include "mpiv.h"
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
-#include <math.h>
 
 /* We want to wrap entries around, and because mod operator %
  * sometimes misbehaves on negative values. -1 maps to the highest value.*/

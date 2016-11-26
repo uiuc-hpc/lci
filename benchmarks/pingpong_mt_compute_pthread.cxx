@@ -10,13 +10,13 @@
  */
 
 #include "affinity.h"
-#include <mpi.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <pthread.h>
 #include <atomic>
 #include <cstdlib>
+#include <mpi.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define MESSAGE_ALIGNMENT 64
 #define MAX_MSG_SIZE (1 << 20)
@@ -25,11 +25,13 @@
 #define LOOP_LARGE 1000
 #define LARGE_MESSAGE_SIZE 8192
 
-#define BARRIER(f, n) {\
-    int x = f.fetch_add(1);\
-    if (x == n-1) MPI_Barrier(MPI_COMM_WORLD);\
-    while (f < n) { } \
-}
+#define BARRIER(f, n)                            \
+  {                                              \
+    int x = f.fetch_add(1);                      \
+    if (x == n - 1) MPI_Barrier(MPI_COMM_WORLD); \
+    while (f < n) {                              \
+    }                                            \
+  }
 
 char* s_buf;
 char* r_buf;
@@ -120,11 +122,11 @@ int main(int argc, char* argv[]) {
   int align_size = MESSAGE_ALIGNMENT;
 
   if (posix_memalign((void**)&s_buf, align_size, MYBUFSIZE)) {
-      fprintf(stderr, "Error allocating host memory\n");
+    fprintf(stderr, "Error allocating host memory\n");
   }
 
   if (posix_memalign((void**)&r_buf, align_size, MYBUFSIZE)) {
-      fprintf(stderr, "Error allocating host memory\n");
+    fprintf(stderr, "Error allocating host memory\n");
   }
 
   if (myid == 0) {
@@ -141,7 +143,7 @@ int main(int argc, char* argv[]) {
     for (size = 1; size <= MAX_MSG_SIZE; size = (size ? size * 2 : 1)) {
       for (i = 0; i < THREADS; i++) {
         tags[i].id = i;
-        recv_thread((void*) (long) i);
+        recv_thread((void*)(long)i);
       }
     }
   }
@@ -151,13 +153,13 @@ int main(int argc, char* argv[]) {
   return EXIT_SUCCESS;
 }
 
-#define ARRAY_SIZE (64*1024*1024)
+#define ARRAY_SIZE (64 * 1024 * 1024)
 static char trash[ARRAY_SIZE];
 
 void* recv_thread(void* arg) {
   int i, val;
 
-  val = (int) (long) arg;
+  val = (int)(long)arg;
   // affinity::set_me_to(val % WORKERS);
 
   if (size > LARGE_MESSAGE_SIZE) {
@@ -179,7 +181,7 @@ void* recv_thread(void* arg) {
 
     int loop = lrand48() % size;
     for (int ii = 0; ii < loop; ii++) {
-        trash[lrand48() % ARRAY_SIZE] += r_buf[lrand48() % 64];
+      trash[lrand48() % ARRAY_SIZE] += r_buf[lrand48() % 64];
     }
 
     MPI_Send(s_buf, 64, MPI_CHAR, 0, 1, MPI_COMM_WORLD);

@@ -1,12 +1,12 @@
-#include <stdio.h>
-#include <thread>
-#include <string.h>
 #include <assert.h>
 #include <atomic>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <thread>
 
-#include "ult.h"
 #include "comm_exp.h"
+#include "ult.h"
 
 void f1(intptr_t i) {
   for (int i = 0; i < TOTAL; i++) ult_yield();

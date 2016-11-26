@@ -1,8 +1,8 @@
 #ifndef FULT_INL_H_
 #define FULT_INL_H_
 
-#include "macro.h"
 #include "lock.h"
+#include "macro.h"
 
 // Fthread.
 
@@ -13,7 +13,8 @@
 #define MUL8(x) ((x) << 3)
 #define MOD_POW2(x, y) ((x) & ((y)-1))
 
-MV_INLINE void fthread_create(fthread* f, ffunc func, intptr_t data, size_t stack_size) {
+MV_INLINE void fthread_create(fthread* f, ffunc func, intptr_t data,
+                              size_t stack_size) {
   if (f->stack.sp == NULL) {
     fthread_stack.allocate(f->stack, stack_size);
   }
@@ -33,10 +34,14 @@ MV_INLINE void fthread_wait(fthread* f) {
   swap_ctx_parent(&f->ctx);
 }
 
-MV_INLINE void fthread_resume(fthread *f) { fworker_sched_thread(f->origin, f->id); }
-MV_INLINE void fthread_fini(fthread* f) { fworker_fini_thread(f->origin, f->id); }
+MV_INLINE void fthread_resume(fthread* f) {
+  fworker_sched_thread(f->origin, f->id);
+}
+MV_INLINE void fthread_fini(fthread* f) {
+  fworker_fini_thread(f->origin, f->id);
+}
 
-MV_INLINE void fthread_join(fthread *f) {
+MV_INLINE void fthread_join(fthread* f) {
   while (f->state != INVALID) {
     fthread_yield(tlself.thread);
   }
@@ -52,11 +57,12 @@ MV_INLINE void fwrapper(intptr_t args) {
 /// Fworker.
 
 MV_INLINE void fworker_init(fworker** w) {
-  posix_memalign((void**) w, 64, sizeof(struct fworker));
+  posix_memalign((void**)w, 64, sizeof(struct fworker));
   new (*w) fworker();
   (*w)->stop = true;
   // (*w)->threads = (fthread*) malloc(sizeof(fthread) * NMASK * WORDSIZE);
-  posix_memalign((void**)&((*w)->threads), 64, sizeof(fthread) * NMASK * WORDSIZE);
+  posix_memalign((void**)&((*w)->threads), 64,
+                 sizeof(fthread) * NMASK * WORDSIZE);
   for (int i = 0; i < NMASK; i++) (*w)->mask[i] = 0;
 #ifdef USE_L1_MASK
   for (int i = 0; i < 8; i++) (*w)->l1_mask[i] = 0;
@@ -80,7 +86,8 @@ MV_INLINE void fworker_fini_thread(fworker* w, const int id) {
   mv_spin_unlock(&w->thread_pool_lock);
 }
 
-MV_INLINE fthread* fworker_spawn(fworker *w, ffunc f, intptr_t data, size_t stack_size) {
+MV_INLINE fthread* fworker_spawn(fworker* w, ffunc f, intptr_t data,
+                                 size_t stack_size) {
   mv_spin_lock(&w->thread_pool_lock);
   if (w->thread_pool.empty()) {
     throw std::runtime_error("Too many threads are spawn");
@@ -105,8 +112,10 @@ MV_INLINE void fworker_work(fworker* w, fthread* f) {
   swap_ctx(&w->ctx, &f->ctx, (intptr_t)f);
 
   tlself.thread = NULL;
-  if (f->state == YIELD) fthread_resume(f);
-  else if (f->state == INVALID) fthread_fini(f);
+  if (f->state == YIELD)
+    fthread_resume(f);
+  else if (f->state == INVALID)
+    fthread_fini(f);
 }
 
 MV_INLINE void fworker_sched_thread(fworker* w, const int id) {
@@ -123,7 +132,7 @@ static MV_INLINE int pop_work(unsigned long& mask) {
 }
 
 #ifdef ENABLE_STEAL
-fworker * random_worker();
+fworker* random_worker();
 #endif
 
 #ifndef USE_L1_MASK
@@ -239,8 +248,5 @@ MV_INLINE void wfunc(fworker* w) {
 #endif
 }
 #endif  // ifndef L1_MASK
-
-
-
 
 #endif

@@ -38,12 +38,12 @@ typedef struct hash_val {
 static inline hash_val* create_table(size_t num_rows);
 
 inline void mv_hash_init(mv_hash** h) {
-  struct hash_val** hv = (struct hash_val**) h;
+  struct hash_val** hv = (struct hash_val**)h;
   *hv = create_table(1 << TBL_BIT_SIZE);
 }
 
 inline int mv_hash_insert(mv_hash* h, mv_key key, mv_value* value) {
-  struct hash_val* tbl_ = (struct hash_val*) h;
+  struct hash_val* tbl_ = (struct hash_val*)h;
 
   const uint32_t hash = myhash(key);
   const int bucket = hash * TBL_WIDTH;
@@ -124,7 +124,7 @@ static MV_INLINE uint32_t myhash(const uint64_t k) {
 static inline hash_val* create_table(size_t num_rows) {
   hash_val* ret = NULL;
   assert(posix_memalign((void**)&(ret), 64,
-        num_rows * TBL_WIDTH * sizeof(hash_val)) == 0);
+                        num_rows * TBL_WIDTH * sizeof(hash_val)) == 0);
 
   // Initialize all with EMPTY and clear lock.
   for (size_t i = 0; i < num_rows; i++) {

@@ -9,14 +9,14 @@
  * copyright file COPYRIGHT in the top level OMB directory.
  */
 
-#include "mpiv.h"
 #include "helper.h"
+#include "mpiv.h"
 #include <atomic>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <iostream>
 #include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define MESSAGE_ALIGNMENT 64
 #define MIN_MSG_SIZE 1
@@ -115,8 +115,7 @@ void main_task(intptr_t) {
       MPI_Barrier(MPI_COMM_WORLD);
       // printf("r spawn\n");
       for (i = 0; i < THREADS; i++) {
-        sr_threads[i] =
-            MPIV_spawn(i % WORKERS, recv_thread, (intptr_t) i);
+        sr_threads[i] = MPIV_spawn(i % WORKERS, recv_thread, (intptr_t)i);
       }
 
       for (i = 0; i < THREADS; i++) {
@@ -133,7 +132,7 @@ void main_task(intptr_t) {
 void recv_thread(intptr_t arg) {
   int i, val, align_size;
   char *s_buf, *r_buf;
-  val = (int) (arg); 
+  val = (int)(arg);
 
   align_size = MESSAGE_ALIGNMENT;
 

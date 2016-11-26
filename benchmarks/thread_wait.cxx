@@ -1,11 +1,11 @@
-#include <stdio.h>
-#include <thread>
-#include <string.h>
 #include <assert.h>
 #include <atomic>
+#include <stdio.h>
+#include <string.h>
+#include <thread>
 
-#include "ult.h"
 #include "comm_exp.h"
+#include "ult.h"
 
 std::atomic<int> total;
 int nworker = DEFAULT_NUM_WORKER;
@@ -14,7 +14,7 @@ int total_threads;
 
 void f1(intptr_t i) {
   total += 1;
-  bool* b = (bool*) i;
+  bool* b = (bool*)i;
   __fulting->wait(*b);
 }
 
@@ -30,10 +30,10 @@ int main(int argc, char** args) {
   printf("Num worker: %d, Num threads: %d\n", nworker, num_threads);
 
   total_threads = num_threads * nworker;
-  worker w[nworker+1];
-  for (int i=1; i<nworker+1;i++) w[i].start();
+  worker w[nworker + 1];
+  for (int i = 1; i < nworker + 1; i++) w[i].start();
   w[0].start_main(main_task, (intptr_t)&w);
-  for (int i=1; i<nworker+1;i++) w[i].stop();
+  for (int i = 1; i < nworker + 1; i++) w[i].stop();
 }
 
 void main_task(intptr_t arg) {
@@ -47,9 +47,10 @@ void main_task(intptr_t arg) {
     memset(b, 0, total_threads * sizeof(bool));
     total = 0;
     for (int i = 0; i < total_threads; i++) {
-      tid[i] = w[1].spawn(f1, (intptr_t) &b[i]);
+      tid[i] = w[1].spawn(f1, (intptr_t)&b[i]);
     }
-    while (total != total_threads) {};
+    while (total != total_threads) {
+    };
     t -= wtime();
     for (int i = 0; i < total_threads; i++) {
       tid[i]->resume(b[i]);

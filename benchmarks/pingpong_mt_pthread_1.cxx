@@ -11,10 +11,10 @@
 
 #include "affinity.h"
 #include <mpi.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define MESSAGE_ALIGNMENT 64
 #define MAX_MSG_SIZE (1 << 22)
@@ -125,7 +125,7 @@ int main(int argc, char* argv[]) {
 
       for (i = 0; i < THREADS; i++) {
         tags[i].id = i;
-        pthread_create(&sr_threads[i], NULL, recv_thread, (void*) (long) i);
+        pthread_create(&sr_threads[i], NULL, recv_thread, (void*)(long)i);
       }
 
       for (i = 0; i < THREADS; i++) {
@@ -143,7 +143,7 @@ void* recv_thread(void* arg) {
   int i, val, align_size;
   char *s_buf, *r_buf;
 
-  val = (int) (long) arg;
+  val = (int)(long)arg;
   affinity::set_me_within(0, WORKERS);
 
   align_size = MESSAGE_ALIGNMENT;
