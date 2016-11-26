@@ -10,14 +10,14 @@
  */
 
 #define USE_L1_MASK
-#include "mpiv.h"
 #include "helper.h"
+#include "mpiv.h"
 #include <atomic>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <iostream>
 #include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define MESSAGE_ALIGNMENT 64
 #define MIN_MSG_SIZE 64
@@ -101,31 +101,30 @@ void main_task(intptr_t) {
     fprintf(stdout, HEADER);
     fprintf(stdout, "%-*s%*s\n", 10, "# Size", FIELD_WIDTH, "Latency (us)");
     fflush(stdout);
-    for (THREADS = MIN_THREADS ; THREADS <= MAX_THREADS; THREADS <<= 1) {
-        for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
-                size = (size ? size * 2 : 1)) {
-            MPI_Barrier(MPI_COMM_WORLD);
-            tags[i].id = 0;
-            sr_threads[i] = MPIV_spawn(0, send_thread, (intptr_t)&tags[i]);
-            MPIV_join(sr_threads[i]);
-            MPI_Barrier(MPI_COMM_WORLD);
-        }
+    for (THREADS = MIN_THREADS; THREADS <= MAX_THREADS; THREADS <<= 1) {
+      for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
+           size = (size ? size * 2 : 1)) {
+        MPI_Barrier(MPI_COMM_WORLD);
+        tags[i].id = 0;
+        sr_threads[i] = MPIV_spawn(0, send_thread, (intptr_t)&tags[i]);
+        MPIV_join(sr_threads[i]);
+        MPI_Barrier(MPI_COMM_WORLD);
+      }
     }
   } else {
-      for (THREADS = MIN_THREADS ; THREADS <= MAX_THREADS; THREADS <<= 1) {
-          for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
-                  size = (size ? size * 2 : 1)) {
-              MPI_Barrier(MPI_COMM_WORLD);
-              for (i = 0; i < THREADS; i++) {
-                  sr_threads[i] =
-                      MPIV_spawn(i % WORKERS, recv_thread, (intptr_t) i);
-              }
-              for (i = 0; i < THREADS; i++) {
-                  MPIV_join(sr_threads[i]);
-              }
-              MPI_Barrier(MPI_COMM_WORLD);
-          }
+    for (THREADS = MIN_THREADS; THREADS <= MAX_THREADS; THREADS <<= 1) {
+      for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
+           size = (size ? size * 2 : 1)) {
+        MPI_Barrier(MPI_COMM_WORLD);
+        for (i = 0; i < THREADS; i++) {
+          sr_threads[i] = MPIV_spawn(i % WORKERS, recv_thread, (intptr_t)i);
+        }
+        for (i = 0; i < THREADS; i++) {
+          MPIV_join(sr_threads[i]);
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
       }
+    }
   }
   MPIV_Free(r_buf1);
   MPIV_Free(s_buf1);
@@ -134,7 +133,7 @@ void main_task(intptr_t) {
 void recv_thread(intptr_t arg) {
   int i, val, align_size;
   char *s_buf, *r_buf;
-  val = (int) (arg); 
+  val = (int)(arg);
 
   align_size = MESSAGE_ALIGNMENT;
 

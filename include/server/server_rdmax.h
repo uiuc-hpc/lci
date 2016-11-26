@@ -25,17 +25,22 @@ struct rdmax_server {
   vector<connection> conn;
 } __attribute__((aligned(64)));
 
-inline void rdmax_init(mv_engine* mv, mv_pp*, size_t heap_size, rdmax_server** s_ptr);
+inline void rdmax_init(mv_engine* mv, mv_pp*, size_t heap_size,
+                       rdmax_server** s_ptr);
 inline void rdmax_post_recv(rdmax_server* s, packet* p);
 inline void rdmax_serve(rdmax_server* s);
-inline void rdmax_write_send(rdmax_server* s, int rank, void* buf, size_t size, void* ctx);
+inline void rdmax_write_send(rdmax_server* s, int rank, void* buf, size_t size,
+                             void* ctx);
 inline void rdmax_write_rma(rdmax_server* s, int rank, void* from,
-    uint32_t lkey, void* to, uint32_t rkey, size_t size, void* ctx);
-inline void rdmax_write_rma_signal(rdmax_server *s, int rank, void* from,
-    uint32_t lkey, void* to, uint32_t rkey, size_t size, uint32_t sid, void* ctx);
+                            uint32_t lkey, void* to, uint32_t rkey, size_t size,
+                            void* ctx);
+inline void rdmax_write_rma_signal(rdmax_server* s, int rank, void* from,
+                                   uint32_t lkey, void* to, uint32_t rkey,
+                                   size_t size, uint32_t sid, void* ctx);
 inline void rdmax_finalize(rdmax_server* s);
 
-inline void rdmax_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size, rdmax_server** s_ptr) {
+inline void rdmax_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size,
+                       rdmax_server** s_ptr) {
   rdmax_server* s = new rdmax_server();
   s->stop = true;
 #ifdef USE_AFFI
@@ -54,8 +59,8 @@ inline void rdmax_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size, rdmax_ser
       IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
 
   // These are pinned memory.
-  s->sbuf = s->dev_ctx->create_memory(sizeof(packet) * (MAX_SEND + MAX_RECV + 2),
-      mr_flags);
+  s->sbuf = s->dev_ctx->create_memory(
+      sizeof(packet) * (MAX_SEND + MAX_RECV + 2), mr_flags);
   s->sbuf_alloc =
       std::move(std::unique_ptr<pinned_pool>(new pinned_pool(s->sbuf.ptr())));
 
@@ -65,7 +70,8 @@ inline void rdmax_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size, rdmax_ser
   MPI_Comm_size(MPI_COMM_WORLD, &mv->size);
 
   for (int i = 0; i < mv->size; i++) {
-    s->conn.emplace_back(&s->dev_scq, &s->dev_rcq, s->dev_ctx.get(), &s->heap, i);
+    s->conn.emplace_back(&s->dev_scq, &s->dev_rcq, s->dev_ctx.get(), &s->heap,
+                         i);
   }
 
   // Prepare the packet_mgr and prepost some packet.
@@ -84,7 +90,8 @@ inline void rdmax_post_recv(rdmax_server* s, packet* p) {
   s->dev_ctx->post_srq_recv((void*)p, (void*)p, sizeof(packet), s->sbuf.lkey());
 }
 
-MV_INLINE bool rdmax_progress(rdmax_server* s) {  // profiler& p, long long& r, long long &s) {
+MV_INLINE bool rdmax_progress(
+    rdmax_server* s) {  // profiler& p, long long& r, long long &s) {
   initt(t);
   startt(t);
   bool ret = (s->dev_rcq.poll_once([s](const ibv_wc& wc) {
@@ -98,7 +105,8 @@ MV_INLINE bool rdmax_progress(rdmax_server* s) {  // profiler& p, long long& r, 
       [s](const ibv_wc& wc) { mv_serve_send(s->mv, (packet*)wc.wr_id); }));
   stopt(t);
   // Make sure we always have enough packet, but do not block.
-  if (s->recv_posted < MAX_RECV) rdmax_post_recv(s, mv_pp_alloc_nb(s->pkpool, 0));
+  if (s->recv_posted < MAX_RECV)
+    rdmax_post_recv(s, mv_pp_alloc_nb(s->pkpool, 0));
   // assert(recv_posted_ > 0 && "No posted buffer");
   return ret;
 }
@@ -118,22 +126,24 @@ inline void rdmax_serve(rdmax_server* s) {
   });
 }
 
-inline void rdmax_write_send(rdmax_server* s, int rank, void* buf, size_t size, void* ctx) {
+inline void rdmax_write_send(rdmax_server* s, int rank, void* buf, size_t size,
+                             void* ctx) {
   if (size <= s->conn[rank].qp().max_inline()) {
     s->conn[rank].write_send(buf, size, s->sbuf.lkey(), 0);
-    mv_pp_free_to(s->pkpool, (packet*) ctx, ((packet*) ctx)->header.poolid);
+    mv_pp_free_to(s->pkpool, (packet*)ctx, ((packet*)ctx)->header.poolid);
   } else {
     s->conn[rank].write_send(buf, size, s->sbuf.lkey(), ctx);
   }
 }
 
-inline void rdmax_write_rma(rdmax_server* s, int rank, void* from, void* to, uint32_t rkey,
-    size_t size, void* ctx) {
+inline void rdmax_write_rma(rdmax_server* s, int rank, void* from, void* to,
+                            uint32_t rkey, size_t size, void* ctx) {
   s->conn[rank].write_rdma(from, s->heap.lkey(), to, rkey, size, ctx);
 }
 
-inline void rdmax_write_rma_signal(rdmax_server* s, int rank, void* from, void* to, uint32_t rkey,
-    size_t size, uint32_t sid, void* ctx) {
+inline void rdmax_write_rma_signal(rdmax_server* s, int rank, void* from,
+                                   void* to, uint32_t rkey, size_t size,
+                                   uint32_t sid, void* ctx) {
   s->conn[rank].write_rdma_imm(from, s->heap.lkey(), to, rkey, size, sid, ctx);
 }
 
@@ -147,7 +157,9 @@ inline void rdmax_finalize(rdmax_server* s) {
 }
 
 inline uint32_t rdmax_heap_rkey(rdmax_server* s) { return s->heap.rkey(); }
-inline uint32_t rdmax_heap_rkey(rdmax_server* s, int node) { return s->conn[node].rkey(); }
+inline uint32_t rdmax_heap_rkey(rdmax_server* s, int node) {
+  return s->conn[node].rkey();
+}
 inline void* rdmax_heap_ptr(rdmax_server* s) { return s->heap.ptr(); }
 
 #define mv_server_init rdmax_init

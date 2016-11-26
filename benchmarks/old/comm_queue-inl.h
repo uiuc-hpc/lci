@@ -3,8 +3,8 @@
  * @brief Methods for the communication and FEB queues.
  */
 
-#include <stddef.h>
 #include "comm_queue.h"
+#include <stddef.h>
 
 inline queue_t::queue_t() {
   POOL = new queue_node_t[MAX_QUEUE_SIZE];

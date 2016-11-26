@@ -9,19 +9,19 @@ struct ck_hash_val {
 };
 
 void ck_hash_init(mv_hash** hash) {
-  ck_hash_val** h = (ck_hash_val**) hash;
+  ck_hash_val** h = (ck_hash_val**)hash;
   *h = new ck_hash_val();
 }
 
 bool ck_hash_insert(mv_hash* hash, const mv_key& key, mv_value& value) {
-  ck_hash_val* h = (ck_hash_val*) hash;
+  ck_hash_val* h = (ck_hash_val*)hash;
   bool ret = true;
   h->tbl_.upsert(key,
-      [&ret, &value](mv_value& v) {
-        value = v;
-        ret = false;
-      },
-      value);
+                 [&ret, &value](mv_value& v) {
+                   value = v;
+                   ret = false;
+                 },
+                 value);
   if (!ret) {
     h->tbl_.erase(key);
   }

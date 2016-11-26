@@ -5,17 +5,17 @@
 #include <condition_variable>
 #include <functional>
 #include <mutex>
-#include <thread>
 #include <stack>
+#include <thread>
 
 #include "standard_stack_allocator.hpp"
 #include <boost/coroutine/stack_context.hpp>
 
 #include <sys/mman.h>
 
-#include "config.h"
 #include "affinity.h"
 #include "bitops.h"
+#include "config.h"
 #include "profiler.h"
 #include "ult.h"
 
@@ -59,8 +59,8 @@ MV_INLINE static void swap_ctx_parent(fctx* f) {
 static standard_stack_allocator fthread_stack;
 static void fwrapper(intptr_t);
 
-#include "fworker.h"
 #include "fthread.h"
 #include "fult_inl.h"
+#include "fworker.h"
 
 #endif

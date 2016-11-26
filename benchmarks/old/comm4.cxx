@@ -1,20 +1,20 @@
-#include <stdio.h>
-#include <thread>
-#include <string.h>
 #include <assert.h>
 #include <atomic>
-#include <sys/time.h>
-#include <unistd.h>
 #include <mpi.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/time.h>
+#include <thread>
+#include <unistd.h>
 
 // #define CHECK_RESULT
 #include <papi.h>
 
 #include "fult.h"
 
-#include "mpiv.h"
-#include "comm_queue.h"
 #include "comm_exp.h"
+#include "comm_queue.h"
+#include "mpiv.h"
 
 #if 0
 #undef TOTAL

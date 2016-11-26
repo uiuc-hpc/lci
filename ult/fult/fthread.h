@@ -36,7 +36,11 @@ MV_INLINE void fthread_resume(fthread*);
 
 MV_INLINE void fthread_fini(fthread*);
 MV_INLINE void fthread_join(fthread*);
-MV_INLINE void fthread_cancel(fthread* f) { f->state = INVALID; fthread_resume(f); }
-MV_INLINE void fthread_create(fthread*, ffunc myfunc, intptr_t data, size_t stack_size);
+MV_INLINE void fthread_cancel(fthread* f) {
+  f->state = INVALID;
+  fthread_resume(f);
+}
+MV_INLINE void fthread_create(fthread*, ffunc myfunc, intptr_t data,
+                              size_t stack_size);
 
 #endif

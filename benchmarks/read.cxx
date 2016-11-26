@@ -1,11 +1,11 @@
 // This file test the rdmax post_send, each thread sends the same amount of data
 // over a number of times.
 
-#include <mpi.h>
-#include <iostream>
 #include <future>
-#include <thread>
 #include <iomanip>
+#include <iostream>
+#include <mpi.h>
+#include <thread>
 
 #include "rdmax.h"
 
@@ -32,7 +32,7 @@ int main(int argc, char** args) {
   if (argc < 2) {
     if (rank == 0)
       std::cerr << "Usage: " << args[0] << " <size per thread> <nthreads>"
-          << std::endl;
+                << std::endl;
     return 0;
   }
 
@@ -42,8 +42,7 @@ int main(int argc, char** args) {
   assert(num_send < 10000 && "Not enough resources for this");
 
   if (rank == 0) {
-    std::cout << "Testing ... size " << msg_size
-      << std::endl;
+    std::cout << "Testing ... size " << msg_size << std::endl;
   }
 
   vector<device> devs = rdmax::device::get_devices();
@@ -60,17 +59,16 @@ int main(int argc, char** args) {
   device_cq cq = ctx.create_cq(num_send);
 
   // Create RDMA memory.
-  int mr_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ |
-    IBV_ACCESS_REMOTE_WRITE;
+  int mr_flags =
+      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
 
   device_memory dm = ctx.create_memory(msg_size * 100, mr_flags);
 
   // Connect to the other rank.
-  connection conn(&cq, &cq, &ctx, &dm, 1-rank);
-
+  connection conn(&cq, &cq, &ctx, &dm, 1 - rank);
 
   // Initialize the send buffer.
-  char *ptr = static_cast<char*>(dm.ptr());
+  char* ptr = static_cast<char*>(dm.ptr());
   affinity::set_me_to(0);
 
   // profiler p({PAPI_L1_DCM});
@@ -81,16 +79,18 @@ int main(int argc, char** args) {
 
   if (rank == 1) {
     for (int j = 0; j < num_send + 100; ++j) {
-      if (j>=100) {
+      if (j >= 100) {
         // p.start();
         t_all -= MPI_Wtime();
       }
       ctx.post_srq_recv(ptr, ptr, msg_size, dm.lkey());
-      while (!cq.poll_once([](ibv_wc&){}));
+      while (!cq.poll_once([](ibv_wc&) {}))
+        ;
       memset(ptr, 'A', msg_size);
       conn.write_send(ptr, msg_size, dm.lkey(), ptr);
-      while(!cq.poll_once([](ibv_wc&){}));
-      if (j>=100) { 
+      while (!cq.poll_once([](ibv_wc&) {}))
+        ;
+      if (j >= 100) {
         t_all += MPI_Wtime();
         // auto v = p.stop();
         // s += v[0];
@@ -110,12 +110,13 @@ int main(int argc, char** args) {
         t.join();
       }*/
       auto t = std::thread([&] {
-          affinity::set_me_to(0);
-          conn.write_send(ptr, msg_size, dm.lkey(), ptr);
-          while(!cq.poll_once([](ibv_wc&){}));
-          memset(ptr, 'A', msg_size);
-          // ptr affinity == 4
-          });
+        affinity::set_me_to(0);
+        conn.write_send(ptr, msg_size, dm.lkey(), ptr);
+        while (!cq.poll_once([](ibv_wc&) {}))
+          ;
+        memset(ptr, 'A', msg_size);
+        // ptr affinity == 4
+      });
       t.join();
 
       // for (int i = 0; i < msg_size; i++)
@@ -125,38 +126,39 @@ int main(int argc, char** args) {
         auto t = std::thread([&] {
           affinity::set_me_to(4);
           ctx.post_srq_recv(ptr, ptr, msg_size, dm.lkey());
-          while (!cq.poll_once([](ibv_wc&){}));
+          while (!cq.poll_once([](ibv_wc&) {}))
+            ;
 
-          if (j>=100) t_all -= MPI_Wtime();
-          for (int i=0; i < msg_size; i++)
-            assert(ptr[i] == 'A');
-          if (j>=100) t_all += MPI_Wtime();
+          if (j >= 100) t_all -= MPI_Wtime();
+          for (int i = 0; i < msg_size; i++) assert(ptr[i] == 'A');
+          if (j >= 100) t_all += MPI_Wtime();
         });
         t.join();
       } else {
-          auto t = std::thread([&] {
+        auto t = std::thread([&] {
           affinity::set_me_to(0);
           ctx.post_srq_recv(ptr, ptr, msg_size, dm.lkey());
-          while (!cq.poll_once([](ibv_wc&){}));
+          while (!cq.poll_once([](ibv_wc&) {}))
+            ;
 
-          if (j>=100) t_all -= MPI_Wtime();
-          for (int i=0; i < msg_size; i++)
-            assert(ptr[i] == 'A');
-          if (j>=100) t_all += MPI_Wtime();
+          if (j >= 100) t_all -= MPI_Wtime();
+          for (int i = 0; i < msg_size; i++) assert(ptr[i] == 'A');
+          if (j >= 100) t_all += MPI_Wtime();
         });
         t.join();
       }
-
     }
   }
   MPI_Barrier(MPI_COMM_WORLD);
 
   if (rank == 0) {
-    std::cout << rank << " written something! Time per write: "
-        << std::fixed << std::setprecision(9)
-        << "Overall latency: " << 1e6 * t_all / num_send << " us, " << std::endl
-        << "Overall BW: " << msg_size * num_send / t_all / 1e6 << " MB/s " << std::endl << "Miss: " << 1.0 * s / num_send
-        << std::endl;
+    std::cout << rank << " written something! Time per write: " << std::fixed
+              << std::setprecision(9)
+              << "Overall latency: " << 1e6 * t_all / num_send << " us, "
+              << std::endl
+              << "Overall BW: " << msg_size * num_send / t_all / 1e6 << " MB/s "
+              << std::endl
+              << "Miss: " << 1.0 * s / num_send << std::endl;
   }
 
   MPI_Barrier(MPI_COMM_WORLD);

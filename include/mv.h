@@ -1,19 +1,19 @@
 #ifndef MPIV_MV_H_
 #define MPIV_MV_H_
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <vector>
 #include "config.h"
 #include "macro.h"
 #include "ult.h"
+#include <stdint.h>
+#include <stdlib.h>
+#include <vector>
 
 int mv_my_worker_id();
 
 /*! Init context */
 struct mv_struct;
 typedef struct mv_struct mv_engine;
-void mv_open(int *argc, char*** args, size_t heap_size, mv_engine**); 
+void mv_open(int* argc, char*** args, size_t heap_size, mv_engine**);
 void mv_close(mv_engine*);
 
 /*! Memory function */
@@ -23,19 +23,25 @@ void mv_set_num_worker(mv_engine*, int number);
 /*! Two-sided communication function */
 typedef void (*mv_am_func_t)();
 
-void mv_send_eager(mv_engine* mv, const void* buffer, int size, int rank, int tag);
-void mv_send_rdz(mv_engine* mv, const void* buffer, int size, int rank, int tag, mv_sync* sync);
+void mv_send_eager(mv_engine* mv, const void* buffer, int size, int rank,
+                   int tag);
+void mv_send_rdz(mv_engine* mv, const void* buffer, int size, int rank, int tag,
+                 mv_sync* sync);
 
-void mv_recv_eager(mv_engine* mv, void* buffer, int size, int rank, int tag, mv_sync* sync);
-void mv_recv_rdz(mv_engine* mv, void* buffer, int size, int rank, int tag, mv_sync* sync);
+void mv_recv_eager(mv_engine* mv, void* buffer, int size, int rank, int tag,
+                   mv_sync* sync);
+void mv_recv_rdz(mv_engine* mv, void* buffer, int size, int rank, int tag,
+                 mv_sync* sync);
 
 /*! One-sided communication function */
 void mv_am_eager(mv_engine*, int dst_rank, void* src, int size, uint32_t fid);
-void mv_put(mv_engine*, int dst_rank, void* dst, void* src, int size, uint32_t fid);
+void mv_put(mv_engine*, int dst_rank, void* dst, void* src, int size,
+            uint32_t fid);
 // void mv_am_rdz(mv_engine*, int dst_rank, void* src, int size, uint32_t fid);
 uint8_t mv_am_register(mv_engine* mv, mv_am_func_t f);
 
-// void mv_get(mv_engine*, int dst_rank, void* src, void* dst, size_t size, mv_sync* sync);
+// void mv_get(mv_engine*, int dst_rank, void* src, void* dst, size_t size,
+// mv_sync* sync);
 
 struct packet;
 struct mv_pp;
@@ -45,9 +51,8 @@ typedef struct rdmax_server mv_server;
 #elif defined(MV_USE_SERVER_OFI)
 typedef struct ofi_server mv_server;
 #else
-#error ("Need server definition (MV_USE_SERVER_RDMAX | MV_USE_SERVER_OFI)")
+#error("Need server definition (MV_USE_SERVER_RDMAX | MV_USE_SERVER_OFI)")
 #endif
-
 
 typedef uintptr_t mv_value;
 typedef uint64_t mv_key;

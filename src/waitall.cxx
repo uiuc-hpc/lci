@@ -1,17 +1,17 @@
-#include "mv.h"
 #include "mv-inl.h"
+#include "mv.h"
 
 MV_INLINE void proto_req_recv_short_init(mv_engine* mv, MPIV_Request* req) {
   mv_key key = mv_make_key(req->rank, req->tag);
-  mv_value value = (mv_value) req;
+  mv_value value = (mv_value)req;
   RequestType oldtype = req->type;
   if (!mv_hash_insert(mv->tbl, key, &value)) {
-    packet* p_ctx = (packet*) value;
+    packet* p_ctx = (packet*)value;
     memcpy(req->buffer, p_ctx->content.buffer, req->size);
     mv_pp_free_to(mv->pkpool, p_ctx, mv_my_worker_id());
     req->type = REQ_DONE;
     thread_signal(req->sync);
-  } else { 
+  } else {
     __sync_bool_compare_and_swap(&req->type, oldtype, REQ_PENDING);
   }
 }
@@ -40,7 +40,8 @@ MV_INLINE void proto_req_send_long_init(mv_engine* mv, MPIV_Request* req) {
   }
 }
 
-MV_INLINE bool init_sync(mv_engine* mv, mv_sync* counter, int count, MPIV_Request* req) {
+MV_INLINE bool init_sync(mv_engine* mv, mv_sync* counter, int count,
+                         MPIV_Request* req) {
   bool ret = false;
   for (int i = 0; i < count; i++) {
     switch (req[i].type) {
@@ -85,7 +86,7 @@ void mv_waitall(mv_engine* mv, int count, MPIV_Request* req) {
     for (int i = 0; i < count; i++) {
       if (req[i].type == REQ_DONE) {
         req[i].type = REQ_NULL;
-      } 
+      }
     }
   }
 }

@@ -9,14 +9,14 @@
  * copyright file COPYRIGHT in the top level OMB directory.
  */
 
-#include "mpi.h"
 #include "affinity.h"
+#include "mpi.h"
 #include <atomic>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <iostream>
 #include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define MESSAGE_ALIGNMENT 64
 #define MIN_MSG_SIZE 64
@@ -59,7 +59,6 @@ static int MIN_THREADS = 4096;
 static int THREADS = 1;
 static int WORKERS = 1;
 
-
 void main_task(intptr_t);
 
 int main(int argc, char* argv[]) {
@@ -101,30 +100,30 @@ void main_task(intptr_t) {
     fprintf(stdout, HEADER);
     fprintf(stdout, "%-*s%*s\n", 10, "# Size", FIELD_WIDTH, "Latency (us)");
     fflush(stdout);
-    for (THREADS = MIN_THREADS ; THREADS <= MAX_THREADS; THREADS <<= 1) {
-        for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
-                size = (size ? size * 2 : 1)) {
-            MPI_Barrier(MPI_COMM_WORLD);
-            tags[i].id = 0;
-            pthread_create(&sr_threads[i], NULL, send_thread, &tags[i]);
-            pthread_join(sr_threads[i], NULL);
-            MPI_Barrier(MPI_COMM_WORLD);
-        }
+    for (THREADS = MIN_THREADS; THREADS <= MAX_THREADS; THREADS <<= 1) {
+      for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
+           size = (size ? size * 2 : 1)) {
+        MPI_Barrier(MPI_COMM_WORLD);
+        tags[i].id = 0;
+        pthread_create(&sr_threads[i], NULL, send_thread, &tags[i]);
+        pthread_join(sr_threads[i], NULL);
+        MPI_Barrier(MPI_COMM_WORLD);
+      }
     }
   } else {
-      for (THREADS = MIN_THREADS ; THREADS <= MAX_THREADS; THREADS <<= 1) {
-          for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
-                  size = (size ? size * 2 : 1)) {
-              MPI_Barrier(MPI_COMM_WORLD);
-              for (i = 0; i < THREADS; i++) {
-                  pthread_create(&sr_threads[i], NULL, recv_thread, (void*) (long) i);
-              }
-              for (i = 0; i < THREADS; i++) {
-                  pthread_join(sr_threads[i], NULL);
-              }
-              MPI_Barrier(MPI_COMM_WORLD);
-          }
+    for (THREADS = MIN_THREADS; THREADS <= MAX_THREADS; THREADS <<= 1) {
+      for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
+           size = (size ? size * 2 : 1)) {
+        MPI_Barrier(MPI_COMM_WORLD);
+        for (i = 0; i < THREADS; i++) {
+          pthread_create(&sr_threads[i], NULL, recv_thread, (void*)(long)i);
+        }
+        for (i = 0; i < THREADS; i++) {
+          pthread_join(sr_threads[i], NULL);
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
       }
+    }
   }
   free(r_buf1);
   free(s_buf1);
@@ -133,7 +132,7 @@ void main_task(intptr_t) {
 void* recv_thread(void* arg) {
   int i, val, align_size;
   char *s_buf, *r_buf;
-  val = (int) (long) (arg); 
+  val = (int)(long)(arg);
 
   // affinity::set_me_within(0, WORKERS);
 

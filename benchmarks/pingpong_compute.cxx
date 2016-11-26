@@ -1,16 +1,16 @@
-#include <stdio.h>
-#include <thread>
-#include <string.h>
 #include <assert.h>
 #include <atomic>
-#include <sys/time.h>
-#include <unistd.h>
 #include <mpi.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/time.h>
+#include <thread>
+#include <unistd.h>
 
 // #define CHECK_RESULT
 
-#include "mpiv.h"
 #include "comm_exp.h"
+#include "mpiv.h"
 
 #include "profiler.h"
 
@@ -37,21 +37,21 @@ int main(int argc, char** args) {
   return 0;
 }
 
-#define ARRAY_SIZE 1024*1024*1024
+#define ARRAY_SIZE 1024 * 1024 * 1024
 static char trash[ARRAY_SIZE];
 
-uint64_t rdtsc(){
-  unsigned int lo,hi;
-  __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
+uint64_t rdtsc() {
+  unsigned int lo, hi;
+  __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
   return ((uint64_t)hi << 32) | lo;
 }
 
-void *r_buf;
+void* r_buf;
 
 void compute(int size) {
 #if 1
   for (int ii = 0; ii < size; ii++) {
-    trash[lrand48() % ARRAY_SIZE] += ((char*) r_buf)[lrand48() % 64];
+    trash[lrand48() % ARRAY_SIZE] += ((char*)r_buf)[lrand48() % 64];
   }
 #else
   uint64_t start = rdtsc();
@@ -87,8 +87,7 @@ void main_task(intptr_t) {
         }
 
         MPIV_Send(s_buf, 64, MPI_CHAR, 1, 1, MPI_COMM_WORLD);
-        MPIV_Recv(r_buf, 64, MPI_CHAR, 1, 1, MPI_COMM_WORLD,
-                  MPI_STATUS_IGNORE);
+        MPIV_Recv(r_buf, 64, MPI_CHAR, 1, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         compute(size);
       }
       times = MPI_Wtime() - times;
@@ -96,8 +95,7 @@ void main_task(intptr_t) {
       memset(s_buf, 'b', size);
       memset(r_buf, 'a', size);
       for (int t = 0; t < total + skip; t++) {
-        MPIV_Recv(r_buf, 64, MPI_CHAR, 0, 1, MPI_COMM_WORLD,
-                  MPI_STATUS_IGNORE);
+        MPIV_Recv(r_buf, 64, MPI_CHAR, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         compute(size);
         MPIV_Send(s_buf, 64, MPI_CHAR, 0, 1, MPI_COMM_WORLD);
       }
@@ -106,10 +104,10 @@ void main_task(intptr_t) {
 
     if (rank == 0) {
       double latency = times * 1e6 / (2.0 * total);
-      fprintf(stdout, "%-*d%*.*f\n", 10, size, FIELD_WIDTH, FLOAT_PRECISION, latency);
+      fprintf(stdout, "%-*d%*.*f\n", 10, size, FIELD_WIDTH, FLOAT_PRECISION,
+              latency);
       fflush(stdout);
     }
-
   }
 
   mv_free(r_buf);

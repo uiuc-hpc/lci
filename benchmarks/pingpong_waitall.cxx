@@ -1,17 +1,17 @@
-#include <stdio.h>
-#include <thread>
-#include <string.h>
 #include <assert.h>
 #include <atomic>
-#include <sys/time.h>
-#include <unistd.h>
 #include <mpi.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/time.h>
+#include <thread>
+#include <unistd.h>
 
 // #define CHECK_RESULT
 
-#include "mpiv.h"
-#include "helper.h"
 #include "comm_exp.h"
+#include "helper.h"
+#include "mpiv.h"
 
 #include "profiler.h"
 
