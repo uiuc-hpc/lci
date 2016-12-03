@@ -62,7 +62,8 @@ static standard_stack_allocator fthread_stack;
 static void fwrapper(intptr_t);
 
 #include "fthread.h"
-#include "fult_inl.h"
 #include "fworker.h"
+
+#include "fult_inl.h"
 
 #endif

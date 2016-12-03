@@ -11,7 +11,7 @@
 #define SHORT_MSG_SIZE (PACKET_SIZE - 16)  // short message size.
 
 /*! Need to define server type. */
-#define MV_USE_SERVER_RDMAX
+#define MV_USE_SERVER_IBV
 // #define MV_USE_SERVER_OFI
 
 #endif

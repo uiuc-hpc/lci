@@ -46,8 +46,8 @@ uint8_t mv_am_register(mv_engine* mv, mv_am_func_t f);
 struct packet;
 struct mv_pp;
 
-#if defined(MV_USE_SERVER_RDMAX)
-typedef struct rdmax_server mv_server;
+#if defined(MV_USE_SERVER_IBV)
+typedef struct ibv_server mv_server;
 #elif defined(MV_USE_SERVER_OFI)
 typedef struct ofi_server mv_server;
 #else

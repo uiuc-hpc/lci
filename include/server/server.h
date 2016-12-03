@@ -24,6 +24,7 @@ struct pinned_pool {
   }
 };
 
+/*
 #ifdef MV_USE_SERVER_OFI
 #include "server_ofi.h"
 #endif
@@ -31,5 +32,7 @@ struct pinned_pool {
 #ifdef MV_USE_SERVER_RDMAX
 #include "server_rdmax.h"
 #endif
+*/
+#include "server_ibv.h"
 
 #endif

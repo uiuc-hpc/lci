@@ -49,7 +49,7 @@ MV_INLINE void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int ra
                 int tag, MPI_Comm, MPIV_Request* s) {
   int size;
   MPI_Type_size(datatype, &size);
-  mv_irecv(mv_hdl, buffer, size * count, rank, tag, s);
+  size *= count;
 }
 
 MV_INLINE void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,

@@ -49,19 +49,11 @@ MV_INLINE void mv_recv_rdz(mv_engine* mv, void* buffer, int size, int rank,
   s.sync = sync;
 
   packet* p = mv_pp_alloc(mv->pkpool, 0);
-<<<<<<< HEAD
   p->header = {PROTO_RECV_READY, 0, mv->me, tag};
   p->content.rdz = {0, (uintptr_t)&s, (uintptr_t)buffer,
                     mv_server_heap_rkey(mv->server)};
   mv_server_send(mv->server, rank, p, sizeof(packet_header) + sizeof(mv_rdz),
                  p);
-=======
-  p->header = {RECV_READY, 0, mv->me, tag};
-  p->content.rdz = {0, (uintptr_t)&s, (uintptr_t)buffer,
-                    mv_server_heap_rkey(mv->server)};
-  mv_server_send(mv->server, rank, p, sizeof(packet_header) + sizeof(mv_rdz),
-                 p);
->>>>>>> da1c13aae63788896a5e11168b736d3c61c4c2ae
 
   mv_key key = mv_make_key(rank, tag);
   mv_value value = 0;
