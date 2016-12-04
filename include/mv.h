@@ -22,16 +22,13 @@ void mv_set_num_worker(mv_engine*, int number);
 
 /*! Two-sided communication function */
 typedef void (*mv_am_func_t)();
+struct mv_ctx;
 
-void mv_send_eager(mv_engine* mv, const void* buffer, int size, int rank,
-                   int tag);
-void mv_send_rdz(mv_engine* mv, const void* buffer, int size, int rank, int tag,
-                 mv_sync* sync);
+void mv_send_eager(mv_engine* mv, mv_ctx* ctx);
+void mv_send_rdz(mv_engine* mv, mv_ctx* ctx, mv_sync* sync);
 
-void mv_recv_eager(mv_engine* mv, void* buffer, int size, int rank, int tag,
-                   mv_sync* sync);
-void mv_recv_rdz(mv_engine* mv, void* buffer, int size, int rank, int tag,
-                 mv_sync* sync);
+void mv_recv_eager(mv_engine* mv, mv_ctx* ctx, mv_sync* sync);
+void mv_recv_rdz(mv_engine* mv, mv_ctx* ctx, mv_sync* sync);
 
 /*! One-sided communication function */
 void mv_am_eager(mv_engine*, int dst_rank, void* src, int size, uint32_t fid);

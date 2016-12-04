@@ -13,7 +13,7 @@ extern int PROTO_SEND_WRITE_FIN;
 typedef void (*p_ctx_handler)(mv_engine*, packet* p_ctx);
 typedef void (*_0_arg)(void*, uint32_t);
 
-MV_INLINE void proto_complete_rndz(mv_engine* mv, packet* p, MPIV_Request* s);
+MV_INLINE void proto_complete_rndz(mv_engine* mv, packet* p, mv_ctx* s);
 
 inline void mv_serve_imm(uint32_t imm) { printf("GOT ID %d\n", imm); }
 inline void mv_recv_am(mv_engine* mv, packet* p)
@@ -30,21 +30,21 @@ inline void mv_recv_recv_ready(mv_engine* mv, packet* p)
   mv_key key = mv_make_rdz_key(p->header.from, p->header.tag);
   mv_value value = (mv_value)p;
   if (!mv_hash_insert(mv->tbl, key, &value)) {
-    proto_complete_rndz(mv, p, (MPIV_Request*)value);
+    proto_complete_rndz(mv, p, (mv_ctx*)value);
   }
 }
 
 inline void mv_recv_send_ready_fin(mv_engine* mv, packet* p_ctx)
 {
   // Now data is already ready in the content.buffer.
-  MPIV_Request* req = (MPIV_Request*)(p_ctx->content.rdz.rreq);
+  mv_ctx* req = (mv_ctx*)(p_ctx->content.rdz.rreq);
   startt(signal_timing);
   startt(wake_timing);
 
   mv_key key = mv_make_key(req->rank, req->tag);
   mv_value value = 0;
   if (!mv_hash_insert(mv->tbl, key, &value)) {
-    if (req->type != REQ_NULL) req->type = REQ_DONE;
+    req->type = REQ_DONE;
     thread_signal(req->sync);
   }
   stopt(signal_timing);
@@ -60,9 +60,9 @@ inline void mv_recv_short(mv_engine* mv, packet* p)
 
   if (!mv_hash_insert(mv->tbl, key, &value)) {
     // comm-thread comes later.
-    MPIV_Request* req = (MPIV_Request*)value;
+    mv_ctx* req = (mv_ctx*)value;
     memcpy(req->buffer, p->content.buffer, req->size);
-    if (req->type != REQ_NULL) req->type = REQ_DONE;
+    req->type = REQ_DONE;
     thread_signal(req->sync);
     mv_pp_free(mv->pkpool, p);
   }
@@ -78,7 +78,6 @@ static inline void mv_progress_init(mv_engine* mv)
 
 inline void mv_serve_recv(mv_engine* mv, packet* p_ctx)
 {
-  // packet* p_ctx = (packet*)wc.wr_id;
   const auto& fid = p_ctx->header.fid;
   ((p_ctx_handler)mv->am_table[fid])(mv, p_ctx);
 }
@@ -89,7 +88,7 @@ inline void mv_serve_send(mv_engine* mv, packet* p_ctx)
 
   const auto& fid = p_ctx->header.fid;
   if (fid == PROTO_SEND_WRITE_FIN) {
-    MPIV_Request* req = (MPIV_Request*)p_ctx->content.rdz.sreq;
+    mv_ctx* req = (mv_ctx*)p_ctx->content.rdz.sreq;
     p_ctx->header.fid = PROTO_READY_FIN;
     mv_server_send(mv->server, req->rank, p_ctx,
                    sizeof(packet_header) + sizeof(mv_rdz), p_ctx);

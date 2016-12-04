@@ -54,6 +54,7 @@ fthread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg)
 }
 
 void MPIV_join(fthread* ult) { fthread_join(ult); }
+
 mv_sync* mv_get_sync()
 {
   tlself.thread->count = -1;
@@ -72,7 +73,9 @@ void thread_wait(mv_sync* sync)
   if (thread->count < 0) {
     fthread_wait(thread);
   } else {
-    while (thread->count > 0) fthread_wait(thread);
+    while (thread->count > 0) {
+      fthread_wait(thread);
+    }
   }
 }
 
@@ -80,7 +83,7 @@ void thread_signal(mv_sync* sync)
 {
   fthread* thread = (fthread*)sync;
   // smaller than 0 means no counter, saving abit cycles and data.
-  if (thread->count < 0 || (__sync_sub_and_fetch(&thread->count, 1) == 0)) {
+  if (thread->count < 0 || __sync_sub_and_fetch(&thread->count, 1) == 0) {
     fthread_resume(thread);
   }
 }

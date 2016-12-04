@@ -26,7 +26,7 @@
 
 #define MIN_MSG_SIZE 1
 #define MAX_MSG_SIZE (1 << 22)
-#define WIN 64
+#define WIN 2
 
 int size = 0;
 
@@ -68,12 +68,9 @@ void main_task(intptr_t)
           MPIV_Isend(s_buf, size, MPI_CHAR, 1, k, MPI_COMM_WORLD, &r[k]);
           // MPIV_Send(s_buf, size, MPI_CHAR, 1, k, MPI_COMM_WORLD);
         }
-        // printf("recv waitall\n");
         MPIV_Waitall(WIN, r, MPI_STATUSES_IGNORE);
-        // printf("recv waitall done \n");
         MPIV_Recv(r_buf, 4, MPI_CHAR, 1, WIN + 1, MPI_COMM_WORLD,
                   MPI_STATUS_IGNORE);
-        // printf("recv done\n");
       }
       times = MPI_Wtime() - times;
       printf("[%d] %f\n", size, (1e-6 * size * total * WIN) / times);
@@ -83,6 +80,7 @@ void main_task(intptr_t)
       for (int t = 0; t < total + skip; t++) {
         for (int k = 0; k < WIN; k++) {
           MPIV_Irecv(r_buf, size, MPI_CHAR, 0, k, MPI_COMM_WORLD, &r[k]);
+          // MPIV_Recv(r_buf, size, MPI_CHAR, 0, k, MPI_COMM_WORLD, MPI_STATUS_IGNORE);//, &r[k]);
         }
         MPIV_Waitall(WIN, r, MPI_STATUSES_IGNORE);
         MPIV_Send(s_buf, 4, MPI_CHAR, 0, WIN + 1, MPI_COMM_WORLD);

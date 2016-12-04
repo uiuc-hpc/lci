@@ -20,7 +20,7 @@ CXXFLAGS += $(BOOST_INC) $(RDMAX_INC) $(IBV_INC)
 LDFLAGS += $(BOOST_LIB) $(IBV_LIB) # -llmpe -lmpe
 
 FCONTEXT = mfcontext.o jfcontext.o
-COMM = waitall.o init.o
+COMM = init.o
 MPIV = mpiv.o
 
 all: libmv.a
