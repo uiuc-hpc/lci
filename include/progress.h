@@ -48,7 +48,7 @@ inline void mv_recv_send_ready_fin(mv_engine* mv, packet* p_ctx)
     thread_signal(req->sync);
   }
   stopt(signal_timing);
-  mv_pp_free(mv->pkpool, p_ctx);
+  mv_pool_put(mv->pkpool, p_ctx);
 }
 
 inline void mv_recv_short(mv_engine* mv, packet* p)
@@ -64,7 +64,7 @@ inline void mv_recv_short(mv_engine* mv, packet* p)
     memcpy(req->buffer, p->content.buffer, req->size);
     req->type = REQ_DONE;
     thread_signal(req->sync);
-    mv_pp_free(mv->pkpool, p);
+    mv_pool_put(mv->pkpool, p);
   }
 }
 
@@ -100,7 +100,7 @@ inline void mv_serve_send(mv_engine* mv, packet* p_ctx)
     }
     stopt(rdma_timing);
   } else {
-    mv_pp_free_to(mv->pkpool, p_ctx, p_ctx->header.poolid);
+    mv_pool_put_to(mv->pkpool, p_ctx, p_ctx->header.poolid);
   }
 }
 

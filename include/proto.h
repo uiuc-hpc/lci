@@ -42,22 +42,22 @@ MV_INLINE void mv_send_rdz(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
 MV_INLINE void mv_send_eager(mv_engine* mv, mv_ctx* ctx)
 {
   // Get from my pool.
-  const int8_t pid = mv_my_worker_id() + 1;
-  packet* packet = mv_pp_alloc(mv->pkpool, pid);
-  packet->header = {PROTO_SHORT, pid, mv->me, ctx->tag};
+  packet* p = (packet*) mv_pool_get(mv->pkpool);
+  const int8_t pid = mv_pool_get_local(mv->pkpool);
+  p->header = {PROTO_SHORT, pid, mv->me, ctx->tag};
 
   // This is a eager message, we send them immediately and do not yield
   // or create a request for it.
   // Copy the buffer.
-  memcpy(packet->content.buffer, ctx->buffer, ctx->size);
+  memcpy(p->content.buffer, ctx->buffer, ctx->size);
 
-  mv_server_send(mv->server, ctx->rank, (void*)packet,
-                 (size_t)(ctx->size + sizeof(packet_header)), (void*)(packet));
+  mv_server_send(mv->server, ctx->rank, (void*)p,
+                 (size_t)(std::max((int) 8, ctx->size) + sizeof(packet_header)), (void*)(p));
 }
 
 MV_INLINE void mv_recv_rdz_init(mv_engine* mv, mv_ctx* ctx)
 {
-  packet* p = mv_pp_alloc(mv->pkpool, 0);
+  packet* p = (packet*) mv_pool_get(mv->pkpool); //, 0);
   p->header = {PROTO_RECV_READY, 0, mv->me, ctx->tag};
   p->content.rdz = {0, (uintptr_t)ctx, (uintptr_t)ctx->buffer,
                     mv_server_heap_rkey(mv->server)};
@@ -95,7 +95,7 @@ MV_INLINE void mv_recv_eager_post(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
     ctx->type = REQ_DONE;
     packet* p_ctx = (packet*)value;
     memcpy(ctx->buffer, p_ctx->content.buffer, ctx->size);
-    mv_pp_free_to(mv->pkpool, p_ctx, mv_my_worker_id() + 1);
+    mv_pool_put(mv->pkpool, p_ctx);
   }
 }
 
@@ -110,16 +110,16 @@ MV_INLINE void mv_recv_eager(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
 MV_INLINE void mv_am_eager(mv_engine* mv, int node, void* src, int size,
                            uint32_t fid)
 {
-  packet* packet = mv_pp_alloc(mv->pkpool, mv_my_worker_id() + 1);
-  packet->header.fid = PROTO_AM;
-  packet->header.from = mv->me;
-  packet->header.tag = fid;
-  uint32_t* buffer = (uint32_t*)packet->content.buffer;
+  packet* p = (packet*) mv_pool_get(mv->pkpool); 
+  p->header.fid = PROTO_AM;
+  p->header.from = mv->me;
+  p->header.tag = fid;
+  uint32_t* buffer = (uint32_t*)p->content.buffer;
   buffer[0] = size;
   memcpy((void*)&buffer[1], src, size);
-  mv_server_send(mv->server, node, packet,
+  mv_server_send(mv->server, node, p,
                  sizeof(uint32_t) + (uint32_t)size + sizeof(packet_header),
-                 packet);
+                 p);
 }
 
 MV_INLINE void mv_put(mv_engine* mv, int node, void* dst, void* src, int size,

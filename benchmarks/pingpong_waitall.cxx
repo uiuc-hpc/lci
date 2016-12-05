@@ -26,7 +26,7 @@
 
 #define MIN_MSG_SIZE 1
 #define MAX_MSG_SIZE (1 << 22)
-#define WIN 2
+#define WIN 64
 
 int size = 0;
 

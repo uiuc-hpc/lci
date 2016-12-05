@@ -8,8 +8,6 @@
 #include <stdlib.h>
 #include <vector>
 
-int mv_my_worker_id();
-
 /*! Init context */
 struct mv_struct;
 typedef struct mv_struct mv_engine;
@@ -41,7 +39,7 @@ uint8_t mv_am_register(mv_engine* mv, mv_am_func_t f);
 // mv_sync* sync);
 
 struct packet;
-struct mv_pp;
+struct mv_pool;
 
 #if defined(MV_USE_SERVER_IBV)
 typedef struct ibv_server mv_server;
@@ -59,8 +57,8 @@ struct mv_struct {
   int me;
   int size;
   mv_server* server;
+  mv_pool* pkpool;
   mv_hash* tbl;
-  mv_pp* pkpool;
   std::vector<mv_am_func_t> am_table;
 } __attribute__((aligned(64)));
 

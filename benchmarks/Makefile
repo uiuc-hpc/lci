@@ -18,12 +18,6 @@ CXXFLAGS += -I$(CUCKOO_INC)
 # LDFLAGS += $(TBB_LIB)
 # CXXFLAGS += $(TBB_INC)
 
-# TACC_BOOST_INC=/home/w00d/software/boost_1_61_0/
-# TACC_BOOST_LIB=/home/w00d/software/boost_1_61_0/stage/lib
-
-BOOST_INC = -I$(TACC_BOOST_INC) #/usr/local/boost/1.58.0/include
-BOOST_LIB = -L$(TACC_BOOST_LIB)
-
 ### FOR TESTING ARGOBOTS ###
 # ABT_INC = $(HOME)/argo/include
 # ABT_LIB = $(HOME)/argo/lib -labt
@@ -31,10 +25,10 @@ BOOST_LIB = -L$(TACC_BOOST_LIB)
 # LDFLAGS += -L$(ABT_LIB)
 
 ### FOR USING PAPI ##
-# PAPI_LIB = $(TACC_PAPI_LIB) -lpapi
-# PAPI_INC = $(TACC_PAPI_INC)
-# CXXFLAGS += -I$(PAPI_INC)
-# LDFLAGS += -L$(PAPI_LIB)
+PAPI_LIB = $(TACC_PAPI_LIB) -lpapi
+PAPI_INC = $(TACC_PAPI_INC)
+CXXFLAGS += -I$(PAPI_INC)
+LDFLAGS += -L$(PAPI_LIB)
 
 RDMAX_INC = -I../rdmax/include
 IBV_INC = -I/opt/ofed/include/ -I$(HOME)/libfab/include
@@ -45,8 +39,8 @@ MFCONTEXT = ../ult/fult/make_x86_64_sysv_elf_gas.S
 
 CXXFLAGS_NOBOOST = -I$(ABT_INC)
 
-CXXFLAGS += $(BOOST_INC) $(RDMAX_INC) $(IBV_INC)
-LDFLAGS += $(BOOST_LIB) $(IBV_LIB) # -llmpe -lmpe
+CXXFLAGS += $(IBV_INC)
+LDFLAGS += $(IBV_LIB) # -llmpe -lmpe
 
 DEPS = ../src/*.o mfcontext.o jfcontext.o ../*.h ../ult/*.h ../ult/fult/*.h ../ult/abt/*.h ../ult/pthread/*.h
 

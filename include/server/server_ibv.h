@@ -4,6 +4,7 @@
 #include <mpi.h>
 
 #include "mv.h"
+#include "pool.h"
 #include "infiniband/verbs.h"
 
 #define ALIGNMENT (4096)
@@ -29,10 +30,11 @@ struct conn_ctx {
   ibv_gid gid;
 };
 
+typedef ibv_mr mv_server_memory;
+
 struct ibv_server {
   // MV fields.
   mv_engine* mv;
-  mv_pp* pkpool;
 
   // Polling threads.
   std::thread poll_thread;
@@ -44,8 +46,8 @@ struct ibv_server {
   ibv_srq* dev_srq;
   ibv_cq* send_cq;
   ibv_cq* recv_cq;
-  ibv_mr* sbuf;
-  ibv_mr* heap;
+  mv_server_memory* sbuf;
+  mv_server_memory* heap;
 
   // Connections O(N)
   ibv_qp** dev_qp;
@@ -53,14 +55,13 @@ struct ibv_server {
 
   // Helper fields.
   uint32_t max_inline;
-  void* sbuf_ptr;
+  mv_pool* sbuf_pool;
   void* heap_ptr;
-  pinned_pool* sbuf_alloc;
   int recv_posted;
 } __attribute__((aligned(64)));
 
-inline void ibv_server_init(mv_engine* mv, mv_pp*, size_t heap_size,
-                       ibv_server** s_ptr);
+
+inline void ibv_server_init(mv_engine* mv, size_t heap_size, ibv_server** s_ptr);
 inline void ibv_server_post_recv(ibv_server* s, packet* p);
 inline void ibv_server_serve(ibv_server* s);
 inline void ibv_server_write_send(ibv_server* s, int rank, void* buf, size_t size,
@@ -73,6 +74,19 @@ inline void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
                                    size_t size, uint32_t sid, void* ctx);
 inline void ibv_server_finalize(ibv_server* s);
 
+
+inline mv_server_memory* ibv_server_mem_malloc(ibv_server* s, size_t size) {
+  int mr_flags =
+      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+  void* ptr = 0;
+  posix_memalign(&ptr, 4096, size + 4096); 
+  return ibv_reg_mr(s->dev_pd, ptr, size, mr_flags);
+}
+
+inline void ibv_server_mem_free(mv_server_memory* mr) {
+  ibv_dereg_mr(mr);
+}
+
 static ibv_qp* qp_create(ibv_server* s, ibv_device_attr* dev_attr) {
   ibv_qp_init_attr qp_init_attr;
   qp_init_attr.qp_context = 0;
@@ -83,7 +97,7 @@ static ibv_qp* qp_create(ibv_server* s, ibv_device_attr* dev_attr) {
       {
         (uint32_t)dev_attr->max_qp_wr, // max_send_wr
         (uint32_t)dev_attr->max_qp_wr, // max_recv_wr
-        32, // max_send_sge
+        8, // max_send_sge -- this affect the size of inline (TODO:tune later).
         1, // max_recv_sge
         0, // max_inline_data;  -- this do nothing.
       };
@@ -161,12 +175,12 @@ static void qp_to_rts(ibv_qp* qp) {
   }
 }
 
-inline void ibv_server_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size,
+inline void ibv_server_init(mv_engine* mv, size_t heap_size,
                        ibv_server** s_ptr)
 {
   ibv_server* s = new ibv_server();
   s->stop = true;
-  s->max_inline = 64;
+  s->max_inline = 128;
 
 #ifdef USE_AFFI
   affinity::set_me_to(0);
@@ -202,7 +216,7 @@ inline void ibv_server_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size,
   // Create shared-receive queue, **number here affect performance**.
   ibv_srq_init_attr srq_attr;
   srq_attr.srq_context = 0;
-  srq_attr.attr.max_wr = 32;
+  srq_attr.attr.max_wr = MAX_RECV;
   srq_attr.attr.max_sge = 1;
   srq_attr.attr.srq_limit = 0;
   s->dev_srq = ibv_create_srq(s->dev_pd, &srq_attr);
@@ -215,24 +229,8 @@ inline void ibv_server_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size,
   s->recv_cq = ibv_create_cq(s->dev_ctx, 64 * 1024, 0, 0, 0);
 
   // Create RDMA memory.
-  int mr_flags =
-      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-
-  // These are pinned memory.
-  void* ptr = 0;
-  size_t size = sizeof(packet) * (MAX_SEND + MAX_RECV + 2);
-  posix_memalign(&ptr, ALIGNMENT, size);
-  s->sbuf_ptr = ptr;
-  s->sbuf = ibv_reg_mr(s->dev_pd, ptr, size, mr_flags);
-  if (s->sbuf == 0) {
-    printf("Unable to create sbuf\n");
-    exit(EXIT_FAILURE);
-  }
-  s->sbuf_alloc = new pinned_pool(s->sbuf_ptr);
-
-  posix_memalign(&ptr, ALIGNMENT, heap_size);
-  s->heap_ptr = ptr;
-  s->heap = ibv_reg_mr(s->dev_pd, ptr, heap_size, mr_flags);
+  s->heap = ibv_server_mem_malloc(s, heap_size);
+  s->heap_ptr = (void*) s->heap->addr;
   if (s->heap == 0) {
     printf("Unable to create sbuf\n");
     exit(EXIT_FAILURE);
@@ -271,12 +269,17 @@ inline void ibv_server_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size,
   }
 
   // Prepare the packet_mgr and prepost some packet.
+  s->sbuf = ibv_server_mem_malloc(s, sizeof(packet) * (MAX_SEND + MAX_RECV));
+  mv_pool_create(&s->sbuf_pool, (void*) s->sbuf->addr, sizeof(packet), MAX_SEND + MAX_RECV);
+#if 0
   for (int i = 0; i < MAX_SEND + MAX_RECV; i++) {
-    mv_pp_free(pkpool, (packet*)s->sbuf_alloc->allocate());
+    mv_pp_free(pkpool, (packet*) mv_pool_get(s->sbuf_pool));
   }
+#endif
+
   s->recv_posted = 0;
   s->mv = mv;
-  s->pkpool = pkpool;
+  s->mv->pkpool = s->sbuf_pool;
   *s_ptr = s;
 }
 
@@ -328,7 +331,7 @@ MV_INLINE bool ibv_server_progress(ibv_server* s)
   stopt(t);
   // Make sure we always have enough packet, but do not block.
   if (s->recv_posted < MAX_RECV)
-    ibv_server_post_recv(s, mv_pp_alloc_nb(s->pkpool, 0));
+    ibv_server_post_recv(s, (packet*) mv_pool_get_nb(s->sbuf_pool)); //, 0));
 
   return ret;
 }
@@ -377,8 +380,8 @@ inline void ibv_server_write_send(ibv_server* s, int rank, void* buf, size_t siz
     this_wr.send_flags |= IBV_SEND_INLINE;
     this_wr.imm_data = 0;
     IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
-
-    mv_pp_free_to(s->pkpool, (packet*)ctx, ((packet*)ctx)->header.poolid);
+    // Must be in the same threads.
+    mv_pool_put(s->sbuf_pool, ctx); 
   } else {
     setup_wr(this_wr, (uintptr_t) ctx, &list, IBV_WR_SEND_WITH_IMM, IBV_SEND_SIGNALED);
     this_wr.imm_data = 0;

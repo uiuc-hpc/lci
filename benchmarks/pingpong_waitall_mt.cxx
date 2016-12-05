@@ -197,10 +197,12 @@ void send_thread(intptr_t arg)
     r_buf[i] = 'b';
   }
 #endif
+  MPIV_Request req[WIN];
   for (i = val; i < (loop + skip); i += THREADS) {
     for (int k = 0; k < WIN; k++) {
-      MPIV_Send(s_buf, size, MPI_CHAR, 1, i << 8 | k, MPI_COMM_WORLD);
+      MPIV_Isend(r_buf, size, MPI_CHAR, 1, i << 8 | k, MPI_COMM_WORLD, &req[k]);
     }
+    MPIV_Waitall(WIN, req, MPI_STATUSES_IGNORE);
     MPIV_Recv(r_buf, 4, MPI_CHAR, 1, (WIN+1) << 8 | val, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
   }
 }

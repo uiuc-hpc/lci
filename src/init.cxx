@@ -15,10 +15,7 @@ void mv_open(int* argc, char*** args, size_t heap_size, mv_engine** ret)
 
   mv_hash_init(&mv->tbl);
   mv_progress_init(mv);
-
-  mv_pp_init(&mv->pkpool);
-
-  mv_server_init(mv, mv->pkpool, heap_size, &mv->server);
+  mv_server_init(mv, heap_size, &mv->server);
   mv_server_serve(mv->server);
   MPI_Barrier(MPI_COMM_WORLD);
 
@@ -29,6 +26,5 @@ void mv_close(mv_engine* mv)
 {
   MPI_Barrier(MPI_COMM_WORLD);
   mv_server_finalize(mv->server);
-  mv_pp_destroy(mv->pkpool);
   MPI_Finalize();
 }

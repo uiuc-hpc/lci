@@ -9,7 +9,6 @@
 #include <thread>
 
 #include "standard_stack_allocator.hpp"
-#include <boost/coroutine/stack_context.hpp>
 
 #include <sys/mman.h>
 
@@ -20,7 +19,6 @@
 #include "ult.h"
 
 using boost::coroutines::standard_stack_allocator;
-using boost::coroutines::stack_context;
 
 #define DEBUG(x)
 

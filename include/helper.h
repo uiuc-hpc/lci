@@ -8,13 +8,6 @@
 
 static std::vector<fworker*> all_worker;
 __thread tls_t tlself;
-__thread int worker_id = -2;
-
-int mv_my_worker_id()
-{
-  if (unlikely(worker_id == -2)) worker_id = tlself.worker->id;
-  return worker_id;
-}
 
 void main_task(intptr_t);
 void mv_main_task(intptr_t arg)
@@ -35,7 +28,6 @@ void MPIV_Start_worker(int number, intptr_t arg = 0)
 {
   if (all_worker.size() == 0) {
     all_worker = std::move(std::vector<fworker*>(number));
-    mv_set_num_worker(mv_hdl, number);
   }
   fworker_init(&all_worker[0]);
   all_worker[0]->id = 0;
