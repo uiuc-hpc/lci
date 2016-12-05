@@ -150,7 +150,6 @@ fworker* random_worker();
 #ifndef USE_L1_MASK
 MV_INLINE void wfunc(fworker* w)
 {
-  w->id = nfworker_.fetch_add(1);
   tlself.worker = w;
 #ifdef USE_AFFI
   affinity::set_me_to(w->id);
@@ -205,7 +204,6 @@ MV_INLINE void wfunc(fworker* w)
     }
 #endif
   }
-  nfworker_--;
 
 #ifdef USE_PAPI
   wp.stop();

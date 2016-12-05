@@ -52,7 +52,7 @@ MV_INLINE void mv_send_eager(mv_engine* mv, mv_ctx* ctx)
   memcpy(p->content.buffer, ctx->buffer, ctx->size);
 
   mv_server_send(mv->server, ctx->rank, (void*)p,
-                 (size_t)(std::max((int) 8, ctx->size) + sizeof(packet_header)), (void*)(p));
+                 (size_t)(ctx->size + sizeof(packet_header)), (void*)(p));
 }
 
 MV_INLINE void mv_recv_rdz_init(mv_engine* mv, mv_ctx* ctx)
