@@ -11,10 +11,10 @@
 
 #include "affinity.h"
 #include <mpi.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define MESSAGE_ALIGNMENT 64
 #define MAX_MSG_SIZE (1 << 22)
@@ -35,7 +35,9 @@ int finished_size;
 
 static int size = 0;
 
-typedef struct thread_tag { int id; } thread_tag_t;
+typedef struct thread_tag {
+  int id;
+} thread_tag_t;
 
 void* send_thread(void* arg);
 void* recv_thread(void* arg);
@@ -57,7 +59,8 @@ void* recv_thread(void* arg);
 static int THREADS = 1;
 static int WORKERS = 1;
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   if (argc > 2) {
     THREADS = atoi(argv[1]);
     WORKERS = atoi(argv[2]);
@@ -125,7 +128,7 @@ int main(int argc, char* argv[]) {
 
       for (i = 0; i < THREADS; i++) {
         tags[i].id = i;
-        pthread_create(&sr_threads[i], NULL, recv_thread, (void*) (long) i);
+        pthread_create(&sr_threads[i], NULL, recv_thread, (void*)(long)i);
       }
 
       for (i = 0; i < THREADS; i++) {
@@ -139,11 +142,12 @@ int main(int argc, char* argv[]) {
   return EXIT_SUCCESS;
 }
 
-void* recv_thread(void* arg) {
+void* recv_thread(void* arg)
+{
   int i, val, align_size;
   char *s_buf, *r_buf;
 
-  val = (int) (long) arg;
+  val = (int)(long)arg;
   affinity::set_me_within(0, WORKERS);
 
   align_size = MESSAGE_ALIGNMENT;
@@ -172,7 +176,8 @@ void* recv_thread(void* arg) {
   return 0;
 }
 
-void* send_thread(void*) {
+void* send_thread(void*)
+{
   affinity::set_me_to(0);
 
   int i, align_size;

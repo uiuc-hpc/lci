@@ -5,38 +5,34 @@
 #include <condition_variable>
 #include <functional>
 #include <mutex>
-#include <thread>
 #include <stack>
+#include <thread>
 
 #include "standard_stack_allocator.hpp"
-#include <boost/coroutine/stack_context.hpp>
 
 #include <sys/mman.h>
 
-#include "config.h"
 #include "affinity.h"
 #include "bitops.h"
+#include "config.h"
 #include "profiler.h"
 #include "ult.h"
 
 using boost::coroutines::standard_stack_allocator;
-using boost::coroutines::stack_context;
 
 #define DEBUG(x)
 
-#define SPIN_LOCK(l) while (l.test_and_set(std::memory_order_acquire));  // acquire lock
-#define SPIN_UNLOCK(l) l.clear(std::memory_order_release); 
-
+typedef void (*ffunc)(intptr_t);
 typedef void* fcontext_t;
-class fthread;
-class fworker;
+struct fthread;
+struct fworker;
 
 struct tls_t {
   fthread* thread;
   fworker* worker;
 };
 
-__thread tls_t tlself;
+extern __thread tls_t tlself;
 
 // fcontext (from boost).
 extern "C" {
@@ -45,24 +41,26 @@ void* jump_fcontext(fcontext_t* old, fcontext_t, intptr_t arg);
 }
 
 struct fctx {
-  inline void swap_ctx(fctx* to, intptr_t args) {
-    to->parent_ = this;
-    jump_fcontext(&(this->myctx_), to->myctx_, (intptr_t)args);
-  }
-
-  inline void swap_ctx_parent() {
-    jump_fcontext(&(this->myctx_), parent_->myctx_, 0);
-  }
-
-  fctx* parent_;
-  fcontext_t myctx_;
+  fctx* parent;
+  fcontext_t stack_ctx;
 };
+
+MV_INLINE static void swap_ctx(fctx* from, fctx* to, intptr_t args)
+{
+  to->parent = from;
+  jump_fcontext(&(from->stack_ctx), to->stack_ctx, (intptr_t)args);
+}
+
+MV_INLINE static void swap_ctx_parent(fctx* f)
+{
+  jump_fcontext(&(f->stack_ctx), f->parent->stack_ctx, 0);
+}
 
 static standard_stack_allocator fthread_stack;
 static void fwrapper(intptr_t);
 
-#include "fworker.h"
 #include "fthread.h"
+#include "fworker.h"
 
 #include "fult_inl.h"
 

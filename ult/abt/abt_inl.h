@@ -6,18 +6,21 @@
 __thread abt_thread* __fulting = NULL;
 __thread int __wid = 0;
 
-abt_thread::abt_thread() {
+abt_thread::abt_thread()
+{
   ABT_mutex_create(&mutex_);
   ABT_cond_create(&cond_);
 }
 
-void abt_thread::yield() {
+void abt_thread::yield()
+{
   abt_thread* saved = __fulting;
   ABT_thread_yield();
   if (saved) __fulting = saved;
 }
 
-void abt_thread::wait(bool& flag) {
+void abt_thread::wait(bool& flag)
+{
   abt_thread* saved = __fulting;
   ABT_mutex_lock(mutex_);
   while (!flag) {
@@ -29,7 +32,8 @@ void abt_thread::wait(bool& flag) {
   }
 }
 
-void abt_thread::resume(bool& flag) {
+void abt_thread::resume(bool& flag)
+{
   abt_thread* saved = __fulting;
   ABT_mutex_lock(mutex_);
   flag = true;
@@ -40,7 +44,8 @@ void abt_thread::resume(bool& flag) {
   }
 }
 
-void abt_thread::join() {
+void abt_thread::join()
+{
   abt_thread* saved = __fulting;
   ABT_thread_join(th_);
   if (saved) {
@@ -50,15 +55,16 @@ void abt_thread::join() {
 }
 
 int abt_thread::get_worker_id() { return origin_->id(); }
-
-static void abt_fwrapper(void* arg) {
+static void abt_fwrapper(void* arg)
+{
   abt_thread* th = (abt_thread*)arg;
   __fulting = th;
   th->f(th->data);
   __fulting = NULL;
 }
 
-abt_thread* abt_worker::spawn(ffunc f, intptr_t data, size_t stack_size) {
+abt_thread* abt_worker::spawn(ffunc f, intptr_t data, size_t stack_size)
+{
   abt_thread* th = new abt_thread();
   th->f = f;
   th->data = data;
@@ -71,7 +77,8 @@ abt_thread* abt_worker::spawn(ffunc f, intptr_t data, size_t stack_size) {
 
 std::atomic<int> abt_nworker;
 
-static void abt_start_up(void* arg) {
+static void abt_start_up(void* arg)
+{
   long id = (long)arg;
   __wid = id;
 #ifdef USE_AFFI
@@ -79,7 +86,8 @@ static void abt_start_up(void* arg) {
 #endif
 }
 
-void abt_worker::start() {
+void abt_worker::start()
+{
   id_ = abt_nworker.fetch_add(1);
   ABT_xstream_create(ABT_SCHED_NULL, &xstream_);
   ABT_xstream_get_main_pools(xstream_, 1, &pool_);
@@ -91,12 +99,14 @@ void abt_worker::start() {
   ABT_thread_join(start_up);
 }
 
-void abt_worker::stop() {
+void abt_worker::stop()
+{
   ABT_xstream_join(xstream_);
   ABT_xstream_free(&xstream_);
 }
 
-void abt_worker::start_main(ffunc main_task, intptr_t data) {
+void abt_worker::start_main(ffunc main_task, intptr_t data)
+{
   id_ = abt_nworker.fetch_add(1);
   __wid = id_;
 #ifdef USE_AFFI
@@ -109,5 +119,4 @@ void abt_worker::start_main(ffunc main_task, intptr_t data) {
 }
 
 void abt_worker::stop_main() {}
-
 #endif

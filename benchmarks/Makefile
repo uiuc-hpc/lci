@@ -1,6 +1,6 @@
-MPICXX = mpicxx
+MPICXX = mpicxx 
 GXX = gcc
-CXXFLAGS += -g3 -O3 -Wall -Wextra -std=c++11 -I../ult -I../ -DUSE_AFFI
+CXXFLAGS += -g -ggdb -O3 -Wall -Wextra -std=c++11 -I../ult -I../include -I../ -DUSE_AFFI
 
 ### FOR TESTING HASH TABLE ###
 #FACEBOOK_INC = -I$(HOME)/facebook/include -I$(HOME)/glog/include -I$(HOME)/folly/folly/double-conversion #-DNDEBUG
@@ -13,17 +13,10 @@ CUCKOO_INC = $(HOME)/libcuckoo/include
 CXXFLAGS += -I$(CUCKOO_INC)
 
 ### FOR TESTING TBB ###
-#TBB_INC = -I/opt/apps/intel/15/composer_xe_2015.2.164/tbb/include/
-#TBB_LIB = -ltbb -ltbbmalloc
-#LDFLAGS += $(TBB_LIB)
-#CXXFLAGS += $(TBB_INC)
-
-#TACC_BOOST_INC=/home/w00d/software/boost_1_61_0/
-#TACC_BOOST_LIB=/home/w00d/software/boost_1_61_0/stage/lib
-
-BOOST_INC = -I$(TACC_BOOST_INC) #/usr/local/boost/1.58.0/include
-BOOST_LIB = -L$(TACC_BOOST_LIB)
-CXXFLAGS += -Wno-unused-local-typedefs
+# TBB_INC = -I/opt/apps/intel/15/composer_xe_2015.2.164/tbb/include/
+# TBB_LIB = -L/opt/apps/intel/15/composer_xe_2015.2.164/tbb/lib/intel64/gcc4.1 -ltbb -ltbbmalloc
+# LDFLAGS += $(TBB_LIB)
+# CXXFLAGS += $(TBB_INC)
 
 ### FOR TESTING ARGOBOTS ###
 # ABT_INC = $(HOME)/argo/include
@@ -32,24 +25,24 @@ CXXFLAGS += -Wno-unused-local-typedefs
 # LDFLAGS += -L$(ABT_LIB)
 
 ### FOR USING PAPI ##
-# PAPI_LIB = $(TACC_PAPI_LIB) -lpapi
-# PAPI_INC = $(TACC_PAPI_INC)
-# CXXFLAGS += -I$(PAPI_INC)
-# LDFLAGS += -L$(PAPI_LIB)
+PAPI_LIB = $(TACC_PAPI_LIB) -lpapi
+PAPI_INC = $(TACC_PAPI_INC)
+CXXFLAGS += -I$(PAPI_INC)
+LDFLAGS += -L$(PAPI_LIB)
 
 RDMAX_INC = -I../rdmax/include
 IBV_INC = -I/opt/ofed/include/ -I$(HOME)/libfab/include
-IBV_LIB =  -lfabric -libverbs
+IBV_LIB = -libverbs # -lfabric
 
 JFCONTEXT = ../ult/fult/jump_x86_64_sysv_elf_gas.S
 MFCONTEXT = ../ult/fult/make_x86_64_sysv_elf_gas.S
 
 CXXFLAGS_NOBOOST = -I$(ABT_INC)
 
-CXXFLAGS += $(BOOST_INC) $(RDMAX_INC) $(IBV_INC)
-LDFLAGS += $(BOOST_LIB) $(IBV_LIB) # -llmpe -lmpe
+CXXFLAGS += $(IBV_INC)
+LDFLAGS += $(IBV_LIB) # -llmpe -lmpe
 
-DEPS = mfcontext.o jfcontext.o ../*.h ../ult/*.h ../ult/fult/*.h ../ult/abt/*.h ../ult/pthread/*.h
+DEPS = ../src/*.o mfcontext.o jfcontext.o ../*.h ../ult/*.h ../ult/fult/*.h ../ult/abt/*.h ../ult/pthread/*.h
 
 all: pp jaco
 
@@ -64,8 +57,9 @@ abt_%: abt_%.c
 abx_%: abx_%.cxx
 	$(MPICXX) $(CXXFLAGS_NOBOOST) $^ -o $@ -L$(ABT_LIB)
 
-%: $(DEPS) %.cxx
-	$(MPICXX) $(CXXFLAGS) mfcontext.o jfcontext.o $@.cxx $(LDFLAGS) -o $@
+%: %.cxx
+	make -C ../src
+	$(MPICXX) $(CXXFLAGS) $(LDFLAGS) $^ ../src/libmv.a -o $@
 
 %_abt: CXXFLAGS+=-DUSE_ABT
 %_abt: $(DEPS) %.cxx
@@ -78,12 +72,6 @@ abx_%: abx_%.cxx
 %_thread: CXXFLAGS+=-DUSE_PTHREAD
 %_thread: $(DEPS) %_thread.cxx
 	$(MPICXX) $(CXXFLAGS) mfcontext.o jfcontext.o $@.cxx $(LDFLAGS) -o $@
-
-jfcontext.o: $(JFCONTEXT)
-	$(GXX) -O2 -c $(JFCONTEXT) -o jfcontext.o
-
-mfcontext.o: $(MFCONTEXT)
-	$(GXX) -O2 -c $(MFCONTEXT) -o mfcontext.o
 
 jacobi_3d: jacobi_3d.c
 	$(MPICXX) -O3 $^ -o $@

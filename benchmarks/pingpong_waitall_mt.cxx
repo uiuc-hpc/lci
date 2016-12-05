@@ -10,12 +10,13 @@
  */
 
 #include "mpiv.h"
+#include "helper.h"
 #include <atomic>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <iostream>
 #include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define MESSAGE_ALIGNMENT 64
 #define MIN_MSG_SIZE 1
@@ -34,7 +35,9 @@ int loop = 10000;
 pthread_mutex_t finished_size_mutex;
 pthread_cond_t finished_size_cond;
 
-typedef struct thread_tag { int id; } thread_tag_t;
+typedef struct thread_tag {
+  int id;
+} thread_tag_t;
 
 void send_thread(intptr_t arg);
 void recv_thread(intptr_t arg);
@@ -59,7 +62,8 @@ int numprocs, provided, myid, err;
 static int THREADS = 1;
 static int WORKERS = 1;
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   MPIV_Init(&argc, &argv);
   if (argc > 2) {
     THREADS = atoi(argv[1]);
@@ -84,11 +88,12 @@ int main(int argc, char* argv[]) {
 
 static int size = 0;
 
-void main_task(intptr_t) {
+void main_task(intptr_t)
+{
   int i = 0;
-  r_buf1 = (char*)mpiv::malloc(MYBUFSIZE);
-  s_buf1 = (char*)mpiv::malloc(MYBUFSIZE);
-  thread* sr_threads = new thread[THREADS];
+  r_buf1 = (char*)MPIV_Alloc(MYBUFSIZE);
+  s_buf1 = (char*)MPIV_Alloc(MYBUFSIZE);
+  fthread** sr_threads = new fthread*[THREADS];
   thread_tag_t* tags = new thread_tag_t[THREADS];
 
   if (myid == 0) {
@@ -97,43 +102,42 @@ void main_task(intptr_t) {
     fflush(stdout);
     for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
          size = (size ? size * 2 : 1)) {
-      MPIV_Barrier(MPI_COMM_WORLD);
+      MPI_Barrier(MPI_COMM_WORLD);
       for (i = 0; i < THREADS; i++) {
-        sr_threads[i] =
-            MPIV_spawn(i % WORKERS, send_thread, (intptr_t) i);
+        sr_threads[i] = MPIV_spawn(i % WORKERS, send_thread, (intptr_t)i);
       }
       for (i = 0; i < THREADS; i++) {
         MPIV_join(sr_threads[i]);
       }
-      MPIV_Barrier(MPI_COMM_WORLD);
+      MPI_Barrier(MPI_COMM_WORLD);
     }
   } else {
     for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
          size = (size ? size * 2 : 1)) {
-      MPIV_Barrier(MPI_COMM_WORLD);
-      double t_start = MPIV_Wtime();
+      MPI_Barrier(MPI_COMM_WORLD);
+      double t_start = MPI_Wtime();
 
       for (i = 0; i < THREADS; i++) {
-        sr_threads[i] =
-            MPIV_spawn(i % WORKERS, recv_thread, (intptr_t) i);
+        sr_threads[i] = MPIV_spawn(i % WORKERS, recv_thread, (intptr_t)i);
       }
       for (i = 0; i < THREADS; i++) {
         MPIV_join(sr_threads[i]);
       }
-      double t_end = MPIV_Wtime();
+      double t_end = MPI_Wtime();
       double t = t_end - t_start;
       printf("%d \t %.5f \n", size, WIN * (loop + skip) / t);
-      MPIV_Barrier(MPI_COMM_WORLD);
+      MPI_Barrier(MPI_COMM_WORLD);
     }
   }
-  mpiv::free(r_buf1);
-  mpiv::free(s_buf1);
+  MPIV_Free(r_buf1);
+  MPIV_Free(s_buf1);
 }
 
-void recv_thread(intptr_t arg) {
+void recv_thread(intptr_t arg)
+{
   int i, val, align_size;
   char *s_buf, *r_buf;
-  val = (int) (arg); 
+  val = (int)(arg);
 
   align_size = MESSAGE_ALIGNMENT;
 
@@ -147,29 +151,32 @@ void recv_thread(intptr_t arg) {
     skip = SKIP_LARGE;
   }
 
-  #if 0
+#if 0
   /* touch the data */
   for (i = 0; i < size; i++) {
     s_buf[i] = 'a';
     r_buf[i] = 'b';
   }
-  #endif
+#endif
   MPIV_Request req[WIN];
   for (i = val; i < (loop + skip); i += THREADS) {
-      for (int k = 0; k < WIN; k++) {
-          MPIV_Irecv(r_buf, size, MPI_CHAR, 0, i << 8 | k, MPI_COMM_WORLD, &req[k]);
-      }
-      MPIV_Waitall(WIN, req);
+    for (int k = 0; k < WIN; k++) {
+      MPIV_Irecv(r_buf, size, MPI_CHAR, 0, i << 8 | k, MPI_COMM_WORLD, &req[k]);
+      // MPIV_Recv(r_buf, size, MPI_CHAR, 0, i << 8 | k, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+    MPIV_Waitall(WIN, req, MPI_STATUSES_IGNORE);
+    MPIV_Send(s_buf, 4, MPI_CHAR, 0, (WIN+1) << 8 | val, MPI_COMM_WORLD);
   }
 }
 
 extern double _tt;
 
-void send_thread(intptr_t arg) {
+void send_thread(intptr_t arg)
+{
   int i, align_size;
   char *s_buf, *r_buf;
-  int val = (int) (arg); 
- 
+  int val = (int)(arg);
+
   double t_start = 0, t_end = 0, t = 0, latency;
   align_size = MESSAGE_ALIGNMENT;
 
@@ -183,18 +190,20 @@ void send_thread(intptr_t arg) {
     skip = SKIP_LARGE;
   }
 
-  #if 0
+#if 0
   /* touch the data */
   for (i = 0; i < size; i++) {
     s_buf[i] = 'a';
     r_buf[i] = 'b';
   }
-  #endif
+#endif
   MPIV_Request req[WIN];
   for (i = val; i < (loop + skip); i += THREADS) {
-      for (int k = 0; k < WIN; k++) {
-          MPIV_Send(s_buf, size, MPI_CHAR, 1, i << 8 | k, MPI_COMM_WORLD);
-      }
+    for (int k = 0; k < WIN; k++) {
+      MPIV_Isend(r_buf, size, MPI_CHAR, 1, i << 8 | k, MPI_COMM_WORLD, &req[k]);
+    }
+    MPIV_Waitall(WIN, req, MPI_STATUSES_IGNORE);
+    MPIV_Recv(r_buf, 4, MPI_CHAR, 1, (WIN+1) << 8 | val, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
   }
 }
 

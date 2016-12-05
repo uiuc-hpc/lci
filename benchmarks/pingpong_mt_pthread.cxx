@@ -10,12 +10,12 @@
  */
 
 #include "affinity.h"
-#include <mpi.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <pthread.h>
 #include <atomic>
+#include <mpi.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define MESSAGE_ALIGNMENT 64
 #define MAX_MSG_SIZE (1 << 22)
@@ -24,11 +24,13 @@
 #define LOOP_LARGE 1000
 #define LARGE_MESSAGE_SIZE 8192
 
-#define BARRIER(f, n) {\
-    int x = f.fetch_add(1);\
-    if (x == n-1) MPI_Barrier(MPI_COMM_WORLD);\
-    while (f < n) { } \
-}
+#define BARRIER(f, n)                            \
+  {                                              \
+    int x = f.fetch_add(1);                      \
+    if (x == n - 1) MPI_Barrier(MPI_COMM_WORLD); \
+    while (f < n) {                              \
+    }                                            \
+  }
 
 char* s_buf;
 char* r_buf;
@@ -42,7 +44,9 @@ int finished_size;
 
 static int size = 0;
 
-typedef struct thread_tag { int id; } thread_tag_t;
+typedef struct thread_tag {
+  int id;
+} thread_tag_t;
 
 void* send_thread(void* arg);
 void* recv_thread(void* arg);
@@ -65,7 +69,8 @@ static int THREADS = 1;
 static int WORKERS = 1;
 std::atomic<int> f;
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   if (argc > 2) {
     THREADS = atoi(argv[1]);
     WORKERS = atoi(argv[2]);
@@ -117,11 +122,11 @@ int main(int argc, char* argv[]) {
   int align_size = MESSAGE_ALIGNMENT;
 
   if (posix_memalign((void**)&s_buf, align_size, MYBUFSIZE)) {
-      fprintf(stderr, "Error allocating host memory\n");
+    fprintf(stderr, "Error allocating host memory\n");
   }
 
   if (posix_memalign((void**)&r_buf, align_size, MYBUFSIZE)) {
-      fprintf(stderr, "Error allocating host memory\n");
+    fprintf(stderr, "Error allocating host memory\n");
   }
 
   if (myid == 0) {
@@ -145,7 +150,7 @@ int main(int argc, char* argv[]) {
 
       for (i = 0; i < THREADS; i++) {
         tags[i].id = i;
-        pthread_create(&sr_threads[i], NULL, recv_thread, (void*) (long) i);
+        pthread_create(&sr_threads[i], NULL, recv_thread, (void*)(long)i);
       }
 
       for (i = 0; i < THREADS; i++) {
@@ -159,10 +164,11 @@ int main(int argc, char* argv[]) {
   return EXIT_SUCCESS;
 }
 
-void* recv_thread(void* arg) {
+void* recv_thread(void* arg)
+{
   int i, val;
 
-  val = (int) (long) arg;
+  val = (int)(long)arg;
   // affinity::set_me_to(val % WORKERS);
 
   if (size > LARGE_MESSAGE_SIZE) {
@@ -186,7 +192,8 @@ void* recv_thread(void* arg) {
   return 0;
 }
 
-void* send_thread(void*) {
+void* send_thread(void*)
+{
   // affinity::set_me_to(0);
 
   int i;

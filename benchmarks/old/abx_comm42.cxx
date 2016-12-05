@@ -3,13 +3,13 @@
  * See COPYRIGHT in top-level directory.
  */
 
-#include <mpi.h>
+#include "abt.h"
 #include <algorithm>
+#include <math.h>
+#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-#include "abt.h"
 
 #include "comm_exp.h"
 
@@ -18,7 +18,8 @@
 
 static int SIZE = 1;
 
-inline unsigned long long cycle_time() {
+inline unsigned long long cycle_time()
+{
   unsigned hi, lo;
   __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
   unsigned long long cycles =
@@ -42,7 +43,8 @@ volatile int total = 0;
 
 void* alldata;
 
-void thread_func(void* arg) {
+void thread_func(void* arg)
+{
   size_t myid = (size_t)arg;
   void* buffer = (void*)((uintptr_t)alldata + SIZE * myid);
   start[myid] = MPI_Wtime();
@@ -50,7 +52,8 @@ void thread_func(void* arg) {
   end[myid] = MPI_Wtime();
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   int provide;
   MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provide);
   ABT_init(argc, argv);

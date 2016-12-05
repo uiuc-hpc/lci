@@ -3,10 +3,11 @@
  * @brief Methods for the communication and FEB queues.
  */
 
-#include <stddef.h>
 #include "comm_queue.h"
+#include <stddef.h>
 
-inline queue_t::queue_t() {
+inline queue_t::queue_t()
+{
   POOL = new queue_node_t[MAX_QUEUE_SIZE];
   head = &POOL[0];
   head->elem = NULL;
@@ -15,10 +16,9 @@ inline queue_t::queue_t() {
 }
 
 inline queue_t::~queue_t() { delete[] POOL; }
-
 inline void queue_t::init() { POOL_index = 1; }
-
-inline void queue_t::enqueue_nosync(void* n) {
+inline void queue_t::enqueue_nosync(void* n)
+{
   queue_node_t* node = &POOL[POOL_index];
   // This wraps the index when it exceeds MAX_QUEUE_SIZE.
   POOL_index = (POOL_index + 1) & (MAX_QUEUE_SIZE - 1);
@@ -28,7 +28,8 @@ inline void queue_t::enqueue_nosync(void* n) {
   tail = node;
 }
 
-inline void queue_t::enqueue(void* n) {
+inline void queue_t::enqueue(void* n)
+{
   int id = POOL_index.fetch_add(1);
   queue_node_t* node = &POOL[id & (MAX_QUEUE_SIZE - 1)];
   volatile queue_node_t* old_tail;
@@ -54,7 +55,8 @@ inline void queue_t::enqueue(void* n) {
   }
 }
 
-inline void* queue_t::dequeue() {
+inline void* queue_t::dequeue()
+{
   void* d = head->next->elem;
   head = head->next;
   return d;

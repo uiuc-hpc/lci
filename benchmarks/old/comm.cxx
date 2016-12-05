@@ -1,19 +1,19 @@
-#include <stdio.h>
-#include <thread>
-#include <string.h>
 #include <assert.h>
 #include <atomic>
-#include <sys/time.h>
-#include <unistd.h>
 #include <mpi.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/time.h>
+#include <thread>
+#include <unistd.h>
 
 #include "fult.h"
 
 typedef fult_sync MPIV_Request;
 
-#include "mpiv.h"
-#include "comm_queue.h"
 #include "comm_exp.h"
+#include "comm_queue.h"
+#include "mpiv.h"
 
 double *start, *end;
 worker* w;
@@ -21,7 +21,8 @@ worker* w;
 static int SIZE = 1;
 thread_local void* buffer = NULL;
 
-void wait_comm(intptr_t i) {
+void wait_comm(intptr_t i)
+{
   if (buffer == NULL) {
     buffer = malloc(SIZE);
   }
@@ -30,7 +31,8 @@ void wait_comm(intptr_t i) {
   end[i] = MPI_Wtime();
 }
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   int provide;
   MPI_Init_thread(&argc, &args, MPI_THREAD_MULTIPLE, &provide);
   if (argc < 3) {

@@ -11,11 +11,11 @@
 
 #include "mpiv.h"
 #include <atomic>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <iostream>
 #include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define MESSAGE_ALIGNMENT 64
 #define MIN_MSG_SIZE 1
@@ -33,7 +33,9 @@ int loop = 10000;
 pthread_mutex_t finished_size_mutex;
 pthread_cond_t finished_size_cond;
 
-typedef struct thread_tag { int id; } thread_tag_t;
+typedef struct thread_tag {
+  int id;
+} thread_tag_t;
 
 void send_thread(intptr_t arg);
 void recv_thread(intptr_t arg);
@@ -58,7 +60,8 @@ int numprocs, provided, myid, err;
 static int THREADS = 1;
 static int WORKERS = 1;
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   MPIV_Init(&argc, &argv);
   if (argc > 2) {
     THREADS = atoi(argv[1]);
@@ -87,7 +90,8 @@ int main(int argc, char* argv[]) {
 
 static int size = 0;
 
-void main_task(intptr_t) {
+void main_task(intptr_t)
+{
   int i = 0;
   r_buf1 = (char*)mpiv_malloc(MYBUFSIZE);
   s_buf1 = (char*)mpiv_malloc(MYBUFSIZE);
@@ -111,8 +115,7 @@ void main_task(intptr_t) {
          size = (size ? size * 2 : 1)) {
       MPIV_Barrier(MPI_COMM_WORLD);
       for (i = 0; i < THREADS; i++) {
-        sr_threads[i] =
-            MPIV_spawn(i % WORKERS, recv_thread, (intptr_t) i);
+        sr_threads[i] = MPIV_spawn(i % WORKERS, recv_thread, (intptr_t)i);
       }
 
       for (i = 0; i < THREADS; i++) {
@@ -125,13 +128,14 @@ void main_task(intptr_t) {
   mpiv_free(s_buf1);
 }
 
-#define ARRAY_SIZE 64*1024*1024
+#define ARRAY_SIZE 64 * 1024 * 1024
 static char trash[ARRAY_SIZE];
 
-void recv_thread(intptr_t arg) {
+void recv_thread(intptr_t arg)
+{
   int i, val, align_size;
   char *s_buf, *r_buf;
-  val = (int) (arg); 
+  val = (int)(arg);
 
   align_size = MESSAGE_ALIGNMENT;
 
@@ -156,7 +160,7 @@ void recv_thread(intptr_t arg) {
 
     int loop = lrand48() % 4096;
     for (int ii = 0; ii < loop; ii++) {
-        trash[lrand48() % ARRAY_SIZE] += r_buf[lrand48() % size];
+      trash[lrand48() % ARRAY_SIZE] += r_buf[lrand48() % size];
     }
 
     MPIV_Send(s_buf, size, MPI_CHAR, 0, i, MPI_COMM_WORLD);
@@ -165,7 +169,8 @@ void recv_thread(intptr_t arg) {
   // sleep(1);
 }
 
-void send_thread(intptr_t) {
+void send_thread(intptr_t)
+{
   int i, align_size;
   char *s_buf, *r_buf;
   double t_start = 0, t_end = 0, t = 0, latency;

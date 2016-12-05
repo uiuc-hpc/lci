@@ -44,11 +44,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // #include "osu.h"
 #include "affinity.h"
-#include <mpi.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include "profiler.h"
+#include <mpi.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define MESSAGE_ALIGNMENT 64
 #define MAX_MSG_SIZE (1 << 22)
@@ -63,10 +63,11 @@ int skip_large = 100;
 int loop_large = 1000;
 int large_message_size = 8192;
 
-#define ARRAY_SIZE 1024*1024*1024
+#define ARRAY_SIZE 1024 * 1024 * 1024
 static char trash[ARRAY_SIZE];
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   int myid, numprocs, i;
   int size;
   MPI_Status reqstat;
@@ -128,7 +129,7 @@ int main(int argc, char* argv[]) {
         if (i == skip) {
           t_start = MPI_Wtime();
         }
- 
+
         MPI_Send(s_buf, 64, MPI_CHAR, 1, 1, MPI_COMM_WORLD);
         MPI_Recv(r_buf, 64, MPI_CHAR, 1, 1, MPI_COMM_WORLD, &reqstat);
       }
@@ -143,7 +144,7 @@ int main(int argc, char* argv[]) {
         MPI_Recv(r_buf, 64, MPI_CHAR, 0, 1, MPI_COMM_WORLD, &reqstat);
         int loop = lrand48() % size;
         for (int ii = 0; ii < loop; ii++) {
-            trash[lrand48() % ARRAY_SIZE] += ((char*) r_buf)[lrand48() % 64];
+          trash[lrand48() % ARRAY_SIZE] += ((char*)r_buf)[lrand48() % 64];
         }
         MPI_Send(s_buf, 64, MPI_CHAR, 0, 1, MPI_COMM_WORLD);
       }

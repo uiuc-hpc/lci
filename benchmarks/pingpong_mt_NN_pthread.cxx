@@ -4,10 +4,10 @@
  *   See COPYRIGHT notice in top-level directory.
  */
 
-#include "mpi.h"
 #include "affinity.h"
-#include <stdio.h>
+#include "mpi.h"
 #include <pthread.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 
@@ -27,7 +27,8 @@ int nworkers;
 double* start[MAX_THREADS];
 double* end[MAX_THREADS];
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   int rank, nprocs, i, nthreads, provided;
   pthread_t id[MAX_THREADS];
   int thread_ranks[MAX_THREADS];
@@ -82,7 +83,8 @@ int main(int argc, char* argv[]) {
   return 0;
 }
 
-void* runfunc(void* thread_rank) {
+void* runfunc(void* thread_rank)
+{
   affinity::set_me_within(0, nworkers);
   int rank, src, dest, tag, i, size, incr;
   double stime, etime, ttime;

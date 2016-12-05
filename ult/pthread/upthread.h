@@ -11,7 +11,8 @@
 class pthread_thread;
 class pthread_worker;
 
-class pthread_thread final : public ult_base {
+class pthread_thread final : public ult_base
+{
   friend class pthread_worker;
 
  public:
@@ -35,7 +36,8 @@ class pthread_thread final : public ult_base {
   pthread_cond_t cv_;
 };
 
-class pthread_worker final {
+class pthread_worker final
+{
   friend class pthread_thread;
 
  public:
@@ -46,7 +48,6 @@ class pthread_worker final {
   void start_main(ffunc main_task, intptr_t data);
   void stop_main();
   inline int id() { return id_; }
-
  private:
   int id_;
 };

@@ -43,11 +43,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // #include "osu.h"
-#include <mpi.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include "profiler.h"
+#include <mpi.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define MESSAGE_ALIGNMENT 64
 #define MAX_MSG_SIZE (1 << 20)
@@ -62,14 +63,37 @@ int skip_large = 100;
 int loop_large = 1000;
 int large_message_size = 8192;
 
-#define ARRAY_SIZE 1024*1024*1024
+#define ARRAY_SIZE 1024 * 1024 * 1024
 static char trash[ARRAY_SIZE];
 
-int main(int argc, char* argv[]) {
+uint64_t rdtsc()
+{
+  unsigned int lo, hi;
+  __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
+  return ((uint64_t)hi << 32) | lo;
+}
+
+char* r_buf;
+
+void compute(int size)
+{
+#if 0
+  for (int ii = 0; ii < size; ii++) {
+    trash[lrand48() % ARRAY_SIZE] += ((char*) r_buf)[lrand48() % 64];
+  }
+#else
+  uint64_t start = rdtsc();
+  while (rdtsc() - start < 10 * size)
+    ;
+#endif
+}
+
+int main(int argc, char* argv[])
+{
   int myid, numprocs, i;
   int size;
   MPI_Status reqstat;
-  char *s_buf, *r_buf;
+  char* s_buf;
   int align_size;
 
   double t_start = 0.0, t_end = 0.0;
@@ -114,10 +138,7 @@ int main(int argc, char* argv[]) {
           t_start = MPI_Wtime();
           // f.start();
         }
-        int loop = lrand48() % (size);
-        for (int ii = 0; ii < loop; ii++) {
-            trash[lrand48() % ARRAY_SIZE] += ((char*) r_buf)[lrand48() % 64];
-        }
+        compute(size);
         // MPI_Send(s_buf, size, MPI_CHAR, 1, 1, MPI_COMM_WORLD);
         // MPI_Recv(r_buf, size, MPI_CHAR, 1, 1, MPI_COMM_WORLD, &reqstat);
       }

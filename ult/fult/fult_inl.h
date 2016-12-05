@@ -1,6 +1,9 @@
 #ifndef FULT_INL_H_
 #define FULT_INL_H_
 
+#include "lock.h"
+#include "macro.h"
+
 // Fthread.
 
 #define MUL64(x) ((x) << 6)
@@ -10,131 +13,147 @@
 #define MUL8(x) ((x) << 3)
 #define MOD_POW2(x, y) ((x) & ((y)-1))
 
-inline void fthread::init(ffunc myfunc, intptr_t data, size_t stack_size) {
-  if (stack.sp == NULL) {
-    fthread_stack.allocate(stack, stack_size);
+MV_INLINE void fthread_create(fthread* f, ffunc func, intptr_t data,
+                              size_t stack_size)
+{
+  if (f->stack.sp == NULL) {
+    fthread_stack.allocate(f->stack, stack_size);
   }
-  myfunc_ = myfunc;
-  data_ = data;
-  ctx_.myctx_ = make_fcontext(stack.sp, stack.size, fwrapper);
-  state_ = CREATED;
+  f->func = func;
+  f->data = data;
+  f->ctx.stack_ctx = make_fcontext(f->stack.sp, f->stack.size, fwrapper);
+  f->state = CREATED;
 }
 
-inline void fthread::yield() {
-  state_ = YIELD;
-  ctx_.swap_ctx_parent();
+MV_INLINE void fthread_yield(fthread* f)
+{
+  f->state = YIELD;
+  swap_ctx_parent(&f->ctx);
 }
 
-inline void fthread::wait() {
-  state_ = BLOCKED;
-  ctx_.swap_ctx_parent();
+MV_INLINE void fthread_wait(fthread* f)
+{
+  f->state = BLOCKED;
+  swap_ctx_parent(&f->ctx);
 }
 
-inline void fthread::resume() { origin_->schedule(id_); }
-inline void fthread::fin() { origin_->fin(id_); }
+MV_INLINE void fthread_resume(fthread* f)
+{
+  fworker_sched_thread(f->origin, f->id);
+}
+MV_INLINE void fthread_fini(fthread* f)
+{
+  fworker_fini_thread(f->origin, f->id);
+}
 
-inline void fthread::join() {
-  while (state_ != INVALID) {
-    tlself.thread->yield();
+MV_INLINE void fthread_join(fthread* f)
+{
+  while (f->state != INVALID) {
+    fthread_yield(tlself.thread);
   }
 }
 
-int fthread::get_worker_id() { return origin_->id_; }
-
-inline void fthread::start() {
-  myfunc_(data_);
-  state_ = INVALID;
-  ctx_.swap_ctx_parent();
-}
-
-inline void fwrapper(intptr_t args) {
-  fthread* ff = (fthread*)args;
-  ff->start();
+MV_INLINE void fwrapper(intptr_t args)
+{
+  fthread* f = (fthread*)args;
+  f->func(f->data);
+  f->state = INVALID;
+  swap_ctx_parent(&f->ctx);
 }
 
 /// Fworker.
 
-inline fworker::fworker() {
-  stop_ = true;
-  posix_memalign((void**)&thread_, 64, sizeof(fthread) * NMASK * WORDSIZE);
-  for (int i = 0; i < NMASK; i++) mask_[i] = 0;
+MV_INLINE void fworker_init(fworker** w)
+{
+  posix_memalign((void**)w, 64, sizeof(struct fworker));
+  new (*w) fworker();
+  (*w)->stop = true;
+  // (*w)->threads = (fthread*) malloc(sizeof(fthread) * NMASK * WORDSIZE);
+  posix_memalign((void**)&((*w)->threads), 64,
+                 sizeof(fthread) * NMASK * WORDSIZE);
+  for (int i = 0; i < NMASK; i++) (*w)->mask[i] = 0;
 #ifdef USE_L1_MASK
-  for (int i = 0; i < 8; i++) l1_mask[i] = 0;
+  for (int i = 0; i < 8; i++) (*w)->l1_mask[i] = 0;
 #endif
   // Add all free slot.
-  memset(thread_, 0, sizeof(fthread) * (NMASK * WORDSIZE));
+  memset((*w)->threads, 0, sizeof(fthread) * (NMASK * WORDSIZE));
   for (int i = (int)(NMASK * WORDSIZE) - 1; i >= 0; i--) {
-    thread_[i].origin_ = this;
-    thread_[i].id_ = i;
-    thread_pool_.push(&thread_[i]);
+    fthread_init((*w)->threads);
+    (*w)->threads[i].origin = *w;
+    (*w)->threads[i].id = i;
+    (*w)->thread_pool.push(&((*w)->threads[i]));
   }
-  thread_pool_lock_.clear();
+  (*w)->thread_pool_lock = MV_SPIN_UNLOCKED;
 }
 
-inline fworker::~fworker() { free((void*)thread_); }
-
-inline void fworker::fin(int id) {
-  SPIN_LOCK(thread_pool_lock_);
-  thread_pool_.push(&thread_[id]);
-  SPIN_UNLOCK(thread_pool_lock_);
+MV_INLINE void fworker_destroy(fworker* w) { free((void*)w->threads); }
+MV_INLINE void fworker_fini_thread(fworker* w, const int id)
+{
+  mv_spin_lock(&w->thread_pool_lock);
+  w->thread_pool.push(&w->threads[id]);
+  mv_spin_unlock(&w->thread_pool_lock);
 }
 
-fthread* fworker::spawn(ffunc f, intptr_t data, size_t stack_size) {
-  SPIN_LOCK(thread_pool_lock_);
-  if (thread_pool_.empty()) {
+MV_INLINE fthread* fworker_spawn(fworker* w, ffunc f, intptr_t data,
+                                 size_t stack_size)
+{
+  mv_spin_lock(&w->thread_pool_lock);
+  if (w->thread_pool.empty()) {
     throw std::runtime_error("Too many threads are spawn");
   }
-  fthread* t = thread_pool_.top();
-  thread_pool_.pop();
-  SPIN_UNLOCK(thread_pool_lock_);
-  return fthread_new(t->id(), f, data, stack_size);
+  fthread* t = w->thread_pool.top();
+  w->thread_pool.pop();
+  mv_spin_unlock(&w->thread_pool_lock);
+
+  // add it to the fthread.
+  fthread_create(t, f, data, stack_size);
+
+  // make it schedable.
+  fworker_sched_thread(w, t->id);
+
+  return t;
 }
 
-inline void fworker::work(fthread* f) {
-  if (xunlikely(f->state_ == INVALID)) return;
+MV_INLINE void fworker_work(fworker* w, fthread* f)
+{
+  if (unlikely(f->state == INVALID)) return;
   tlself.thread = f;
-  ctx_.swap_ctx(f->ctx(), (intptr_t)f);
+
+  swap_ctx(&w->ctx, &f->ctx, (intptr_t)f);
+
   tlself.thread = NULL;
-  if (f->state_ == YIELD)
-    f->resume();
-  else if (f->state_ == INVALID)
-    f->fin();
+  if (f->state == YIELD)
+    fthread_resume(f);
+  else if (f->state == INVALID)
+    fthread_fini(f);
 }
 
-inline void fworker::schedule(const int id) {
-  sync_set_bit(MOD_POW2(id, WORDSIZE), &mask_[DIV64(id)]);
+MV_INLINE void fworker_sched_thread(fworker* w, const int id)
+{
+  sync_set_bit(MOD_POW2(id, WORDSIZE), &w->mask[DIV64(id)]);
 #ifdef USE_L1_MASK
-  sync_set_bit(DIV512(MOD_POW2(id, 32768)), &l1_mask[DIV32768(id)]);
+  sync_set_bit(DIV512(MOD_POW2(id, 32768)), &w->l1_mask[DIV32768(id)]);
 #endif
 }
 
-fthread* fworker::fthread_new(const int id, ffunc f, intptr_t data,
-                                size_t stack_size) {
-  // add it to the fthread.
-  thread_[id].init(f, data, stack_size);
-
-  // make it schedable.
-  schedule(id);
-
-  return (fthread*)&thread_[id];
-}
-
-static inline int pop_work(unsigned long& mask) {
+static MV_INLINE int pop_work(unsigned long& mask)
+{
   auto id = find_first_set(mask);
   bit_flip(mask, id);
   return id;
 }
 
 #ifdef ENABLE_STEAL
-fworker * random_worker();
+fworker* random_worker();
 #endif
 
 #ifndef USE_L1_MASK
-inline void fworker::wfunc(fworker* w) {
-  w->id_ = nfworker_.fetch_add(1);
+MV_INLINE void wfunc(fworker* w)
+{
+  w->id = nfworker_.fetch_add(1);
   tlself.worker = w;
 #ifdef USE_AFFI
-  affinity::set_me_to(w->id_);
+  affinity::set_me_to(w->id);
 #endif
 
 #ifdef USE_PAPI
@@ -142,24 +161,24 @@ inline void fworker::wfunc(fworker* w) {
   wp.start();
 #endif
 
-  while (xunlikely(!w->stop_)) {
+  while (unlikely(!w->stop)) {
 #ifdef ENABLE_STEAL
     bool has_work = false;
 #endif
     for (auto i = 0; i < NMASK; i++) {
-      auto& mask = w->mask_[i];
+      auto& mask = w->mask[i];
       if (mask > 0) {
         // Atomic exchange to get the current waiting threads.
         auto local_mask = exchange((unsigned long)0, &(mask));
         // Works until it no thread is pending.
-        while (xlikely(local_mask > 0)) {
+        while (likely(local_mask > 0)) {
 #ifdef ENABLE_STEAL
           has_work = true;
 #endif
           int id = pop_work(local_mask);
           // Optains the associate thread.
-          fthread* f = &(w->thread_[MUL64(i) + id]);
-          w->work(f);
+          fthread* f = &(w->threads[MUL64(i) + id]);
+          fworker_work(w, f);
         }
       }
     }
@@ -174,11 +193,11 @@ inline void fworker::wfunc(fworker* w) {
           // Atomic exchange to get the current waiting threads.
           auto local_mask = exchange((unsigned long)0, &(mask));
           // Works until it no thread is pending.
-          while (xlikely(local_mask > 0)) {
+          while (likely(local_mask > 0)) {
             auto id = pop_work(local_mask);
             // Optains the associate thread.
-            fthread* f = &(steal->thread_[MUL64(i) + id]);
-            w->work(f);
+            fthread* f = &(steal->threads[MUL64(i) + id]);
+            fworker_work(w, f);
           }
           break;
         }
@@ -196,11 +215,11 @@ inline void fworker::wfunc(fworker* w) {
 
 #else
 
-inline void fworker::wfunc(fworker* w) {
-  w->id_ = nfworker_.fetch_add(1);
+MV_INLINE void wfunc(fworker* w)
+{
   tlself.worker = w;
 #ifdef USE_AFFI
-  affinity::set_me_to(w->id_);
+  affinity::set_me_to(w->id);
 #endif
 
 #ifdef USE_PAPI
@@ -208,7 +227,7 @@ inline void fworker::wfunc(fworker* w) {
   wp.start();
 #endif
 
-  while (xunlikely(!w->stop_)) {
+  while (unlikely(!w->stop)) {
     for (int l1i = 0; l1i < 8; l1i++) {
       if (w->l1_mask[l1i] == 0) continue;
       auto local_l1_mask = exchange((unsigned long)0, &(w->l1_mask[l1i]));
@@ -219,24 +238,23 @@ inline void fworker::wfunc(fworker* w) {
 
         auto start_i = MUL8(MUL64(l1i)) + MUL8(ii);
         for (auto i = start_i; i < start_i + 8 && i < NMASK; i++) {
-          auto& mask = w->mask_[i];
+          auto& mask = w->mask[i];
           if (mask > 0) {
             unsigned long local_mask = 0;
             // Atomic exchange to get the current waiting threads.
-            local_mask = exchange(local_mask, &(w->mask_[i]));
+            local_mask = exchange(local_mask, &(w->mask[i]));
             // Works until it no thread is pending.
-            while (xlikely(local_mask > 0)) {
+            while (likely(local_mask > 0)) {
               auto id = pop_work(local_mask);
               // Optains the associate thread.
-              fthread* f = &w->thread_[MUL64(i) + id];
-              w->work(f);
+              fthread* f = &w->threads[MUL64(i) + id];
+              fworker_work(w, f);
             }
           }
         }
       }
     }
   }
-  nfworker_--;
 
 #ifdef USE_PAPI
   wp.stop();
@@ -244,8 +262,5 @@ inline void fworker::wfunc(fworker* w) {
 #endif
 }
 #endif  // ifndef L1_MASK
-
-
-
 
 #endif

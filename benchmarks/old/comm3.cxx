@@ -1,19 +1,19 @@
-#include <stdio.h>
-#include <thread>
-#include <string.h>
 #include <assert.h>
 #include <atomic>
-#include <sys/time.h>
-#include <unistd.h>
 #include <mpi.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/time.h>
+#include <thread>
+#include <unistd.h>
 
 #include "fult.h"
 
 typedef fult_sync MPIV_Request;
 
-#include "mpiv.h"
-#include "comm_queue.h"
 #include "comm_exp.h"
+#include "comm_queue.h"
+#include "mpiv.h"
 
 #if 0
 #undef TOTAL
@@ -27,7 +27,8 @@ worker* w;
 
 static int SIZE = 1;
 
-void wait_comm(intptr_t i) {
+void wait_comm(intptr_t i)
+{
   void* buffer = mpiv_malloc(SIZE);
   start[i] = MPI_Wtime();
   MPIV_Recv2(buffer, SIZE, 1, i);
@@ -35,7 +36,8 @@ void wait_comm(intptr_t i) {
   mpiv_free(buffer);
 }
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   MPIV_Init(argc, args);
 
   if (argc < 3) {
