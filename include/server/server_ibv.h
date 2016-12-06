@@ -9,6 +9,8 @@
 
 #define ALIGNMENT (4096)
 
+// #define IBV_SERVER_DEBUG
+
 #ifdef IBV_SERVER_DEBUG
 #define IBV_SAFECALL(x)                                                    \
   {                                                                       \
@@ -97,7 +99,8 @@ static ibv_qp* qp_create(ibv_server* s, ibv_device_attr* dev_attr) {
       {
         (uint32_t)dev_attr->max_qp_wr, // max_send_wr
         (uint32_t)dev_attr->max_qp_wr, // max_recv_wr
-        8, // max_send_sge -- this affect the size of inline (TODO:tune later).
+        // -- this affect the size of inline (TODO:tune later).
+        1, // max_send_sge -- some device only allows 1..
         1, // max_recv_sge
         0, // max_inline_data;  -- this do nothing.
       };
@@ -225,8 +228,13 @@ inline void ibv_server_init(mv_engine* mv, size_t heap_size,
     exit(EXIT_FAILURE);
   }
     
+  // Create completion queues.
   s->send_cq = ibv_create_cq(s->dev_ctx, 64 * 1024, 0, 0, 0);
   s->recv_cq = ibv_create_cq(s->dev_ctx, 64 * 1024, 0, 0, 0);
+  if (s->send_cq == 0 || s->recv_cq == 0) {
+    printf("Unable to create cq\n");
+    exit(EXIT_FAILURE);
+  }
 
   // Create RDMA memory.
   s->heap = ibv_server_mem_malloc(s, heap_size);
@@ -246,8 +254,12 @@ inline void ibv_server_init(mv_engine* mv, size_t heap_size,
 
   for (int i = 0; i < mv->size; i++) {
     s->dev_qp[i] = qp_create(s, &dev_attr);
-    rmtctx = &s->conn[i];
+    if (!s->dev_qp[i]) {
+      printf("Unable to create queue pair\n");
+      exit(EXIT_FAILURE);
+    }
 
+    rmtctx = &s->conn[i];
     lctx.addr = (uintptr_t) s->heap_ptr;
     lctx.rkey = s->heap->rkey;
     lctx.qp_num = s->dev_qp[i]->qp_num;

@@ -17,16 +17,34 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define GET_NCORE() sysconf(_SC_NPROCESSORS_ONLN)
-
 #ifdef __cplusplus
 namespace affinity
 {
 #endif
 
+#define SERVER_CORE (get_ncores() - 1)
+
+inline static int get_ncores()
+{
+  int logical = sysconf( _SC_NPROCESSORS_ONLN );
+  uint32_t registers[4];
+  __asm__ __volatile__ ("cpuid " :
+          "=a" (registers[0]),
+          "=b" (registers[1]),
+          "=c" (registers[2]),
+          "=d" (registers[3])
+          : "a" (1), "c" (0));
+  unsigned cpufset = registers[3];
+  if (cpufset & (1 << 28)) { // hyperthreading
+      return logical / 2;
+  } else {
+      return logical;
+  }
+}
+
 inline int set_me_to_(int core_id)
 {
-  int num_cores = GET_NCORE();
+  int num_cores = get_ncores();
   if (core_id < 0 || core_id >= num_cores) return EINVAL;
 
   cpu_set_t cpuset;
@@ -52,15 +70,14 @@ inline int set_me_within(int from, int to)
 
 inline int set_me_to(int core_id)
 {
-  int num_cores = GET_NCORE();
+  int num_cores = get_ncores();
   // TODO(danghvu): do this because the second set is near mlx
-  return set_me_to_(num_cores - core_id - 2);
+  return set_me_to_((SERVER_CORE - 1 - core_id + num_cores) % num_cores);
 }
 
 inline int set_me_to_last()
 {
-  int num_cores = GET_NCORE();
-  return set_me_to_(num_cores - 1);
+  return set_me_to_(SERVER_CORE);
 }
 
 #ifdef __cplusplus

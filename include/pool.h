@@ -12,7 +12,7 @@
 #include "macro.h"
 
 #define MAX_NPOOLS 128
-#define MAX_LOCAL_POOL 64
+#define MAX_LOCAL_POOL 8
 
 extern int mv_pool_nkey;
 extern __thread int8_t tls_pool_struct[MAX_LOCAL_POOL];
@@ -49,23 +49,13 @@ inline void mv_pool_create(mv_pool** pool, void* data, size_t elm_size, unsigned
 MV_INLINE static int8_t mv_pool_get_local(mv_pool* pool) {
   int8_t pid = tls_pool_struct[pool->key]; 
   // struct dequeue* lpool = (struct dequeue*) pthread_getspecific(pool->key);
-  if (unlikely(pid == 0)) {
+  if (unlikely(pid == -1)) {
     struct dequeue* lpool;
     posix_memalign((void**) &lpool, 64, sizeof(struct dequeue));
     dq_init(lpool, pool->count);
-  
-    // Need to do this to prevent race condition while one initializing
-    // and one stealing.
-    int cur = pool->npools;
-    while (1) {
-      if (__sync_bool_compare_and_swap(&(pool->lpools[cur]), NULL, lpool)) {
-        tls_pool_struct[pool->key] = cur;
-        break;
-      }
-      cur ++;
-    }
-    // Performed once by each thread, should be OK.
-    __sync_fetch_and_add(&pool->npools, 1);
+    pid = __sync_fetch_and_add(&pool->npools, 1);
+    tls_pool_struct[pool->key] = pid;
+    pool->lpools[pid] = lpool;
   }
   return pid;
 }
@@ -111,7 +101,8 @@ inline void* mv_pool_get_nb(mv_pool* pool) {
     elm = dq_pop_top(lpool);
     if (elm == NULL) {
       int steal = rand() % (pool->npools);
-      elm = dq_pop_bot(pool->lpools[steal]);
+      if (likely(pool->lpools[steal] != NULL))
+        elm = dq_pop_bot(pool->lpools[steal]);
     }
   }
   return elm;
@@ -121,7 +112,8 @@ inline void* mv_pool_get_slow(mv_pool* pool) {
   void* elm = NULL;
   while (!elm) {
     int steal = rand() % (pool->npools);
-    elm = dq_pop_bot(pool->lpools[steal]);
+    if (likely(pool->lpools[steal] != NULL))
+      elm = dq_pop_bot(pool->lpools[steal]);
   }
   return elm;
 }

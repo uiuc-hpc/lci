@@ -12,7 +12,8 @@
 
 int main(int argc, char** args) {
   mv_pool* p;
-  mv_pool_create(&p, 4, 1024);
+  void * data = malloc(4 * 1024);
+  mv_pool_create(&p, data, 4, 1024);
   profiler_init();
   profiler f({PAPI_L1_TCM, PAPI_TOT_CYC});
   f.start();

@@ -3,7 +3,10 @@
 mv_engine* mv_hdl;
 uintptr_t MPIV_HEAP;
 
-__thread int8_t tls_pool_struct[MAX_LOCAL_POOL] = {0};
+// TODO(danghvu): Ugly hack to make thread-local storage faster.
+__thread int8_t
+tls_pool_struct[MAX_LOCAL_POOL] = {-1, -1, -1, -1, -1, -1, -1, -1};
+
 int mv_pool_nkey = 0;
 
 int PROTO_SHORT;
