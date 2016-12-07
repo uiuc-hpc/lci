@@ -12,7 +12,7 @@
 
 #define ALIGNMENT (4096)
 
-#define IBV_SERVER_DEBUG
+// #define IBV_SERVER_DEBUG
 
 #ifdef IBV_SERVER_DEBUG
 #define IBV_SAFECALL(x)                                                    \
@@ -238,6 +238,7 @@ void ibv_server_init(mv_engine* mv, size_t heap_size,
   // Create RDMA memory.
   s->heap = ibv_server_mem_malloc(s, heap_size);
   s->heap_ptr = (void*) s->heap->addr;
+
   if (s->heap == 0) {
     printf("Unable to create sbuf\n");
     exit(EXIT_FAILURE);

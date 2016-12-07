@@ -42,9 +42,8 @@ void main_task(intptr_t arg)
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   void* r_buf = (void*) MPIV_Alloc((size_t)MAX_MSG_SIZE);
   void* s_buf = (void*) MPIV_Alloc((size_t)MAX_MSG_SIZE);
-  memset(r_buf, 'a', size);
-  memset(s_buf, 'b', size);
-  printf("??\n");
+  memset(r_buf, 'a', 1);
+  memset(s_buf, 'b', 1);
 
   for (int size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE; size <<= 1) {
     int total = TOTAL;
@@ -56,16 +55,13 @@ void main_task(intptr_t arg)
     }
     MPI_Barrier(MPI_COMM_WORLD);
     if (rank == 0) {
-      printf("2??\n");
       memset(r_buf, 'a', size);
       memset(s_buf, 'b', size);
       for (int t = 0; t < total + skip; t++) {
         if (t == skip) {
           times = MPI_Wtime();
         }
-        printf("send\n");
         MPIV_Send(s_buf, size, MPI_CHAR, 1, 1, MPI_COMM_WORLD);
-        printf("recv\n");
         MPIV_Recv(r_buf, size, MPI_CHAR, 1, 2, MPI_COMM_WORLD,
                   MPI_STATUS_IGNORE);
         if (t == 0 || CHECK_RESULT) {
@@ -81,10 +77,8 @@ void main_task(intptr_t arg)
       memset(s_buf, 'b', size);
       memset(r_buf, 'a', size);
       for (int t = 0; t < total + skip; t++) {
-        printf("recb\n");
         MPIV_Recv(r_buf, size, MPI_CHAR, 0, 1, MPI_COMM_WORLD,
                   MPI_STATUS_IGNORE);
-        printf("sendb\n");
         MPIV_Send(s_buf, size, MPI_CHAR, 0, 2, MPI_COMM_WORLD);
       }
     }

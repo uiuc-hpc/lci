@@ -1,23 +1,22 @@
-MPICXX = mpicc
+MPICC = mpicc
 CXX = gcc
 
 INCLUDE = -I../include -I../ -I../ult/ -I../include/mv/
 
-CFLAGS ?= -Wall -std=gnu99 -O3 -g $(INCLUDE) -DUSE_AFFI
-CXXFLAGS ?= -g -ggdb -O3 -Wall -Wextra -std=gnu99 $(INCLUDE) -DUSE_AFFI -D_GNU_SOURCE -pthread
+CFLAGS ?= -g -ggdb -O3 -Wall -Wextra -std=gnu99 $(INCLUDE) -DUSE_AFFI -D_GNU_SOURCE -pthread
 
 IBV_INC = -I/opt/ofed/include/ -I$(HOME)/libfab/include
 
 JFCONTEXT = ../ult/fult/jump_x86_64_sysv_elf_gas.S
 MFCONTEXT = ../ult/fult/make_x86_64_sysv_elf_gas.S
 
-CXXFLAGS += $(IBV_INC)
+CFLAGS += $(IBV_INC)
 LDFLAGS += $(IBV_LIB) # -llmpe -lmpe
 
 ### FOR USING PAPI ##
 PAPI_LIB = $(TACC_PAPI_LIB) -lpapi
 PAPI_INC = $(TACC_PAPI_INC)
-CXXFLAGS += -I$(PAPI_INC)
+CFLAGS += -I$(PAPI_INC)
 LDFLAGS += -L$(PAPI_LIB)
 
 FCONTEXT = mfcontext.o jfcontext.o
@@ -29,7 +28,7 @@ libmv.a: $(FCONTEXT) $(COMM)
 	ar rcs $@ $^
 
 %.o: %.c
-	$(MPICXX) $(CXXFLAGS) -c $^ -o $@
+	$(MPICC) $(CFLAGS) -c $^ -o $@
 
 jfcontext.o: $(JFCONTEXT)
 	$(CXX) -O3 -c $(JFCONTEXT) -o jfcontext.o

@@ -2,7 +2,7 @@
 #include "mpiv.h"
 
 mv_engine* mv_hdl;
-uintptr_t MPIV_HEAP;
+void* MPIV_HEAP;
 
 void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype,
                          int rank, int tag, MPI_Comm comm, MPI_Status* status)
@@ -140,7 +140,7 @@ void MPIV_Init(int* argc, char*** args)
   mv_open(argc, args, heap_size, &mv_hdl);
   stop = 0;
   pthread_create(&progress_thread, 0, progress, 0);
-  MPIV_HEAP = (uintptr_t) mv_heap_ptr(mv_hdl);
+  MPIV_HEAP = mv_heap_ptr(mv_hdl);
 }
 
 void MPIV_Finalize()
@@ -150,6 +150,11 @@ void MPIV_Finalize()
   mv_close(mv_hdl);
 }
 
-void* MPIV_Alloc(int size) { void* ptr = (void*) MPIV_HEAP; MPIV_HEAP += size; return ptr;}
+void* MPIV_Alloc(size_t size)
+{
+    void* ptr = MPIV_HEAP; 
+    MPIV_HEAP = (char*) MPIV_HEAP + size;
+    return ptr;
+}
 
 void MPIV_Free(void* ptr) {}

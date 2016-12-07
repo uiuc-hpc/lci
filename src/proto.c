@@ -39,7 +39,6 @@ void mv_send_rdz(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
 
 void mv_send_eager(mv_engine* mv, mv_ctx* ctx)
 {
-  printf("send eager\n");
   // Get from my pool.
   mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool);
   p->header.fid = PROTO_SHORT;
@@ -50,12 +49,10 @@ void mv_send_eager(mv_engine* mv, mv_ctx* ctx)
   // This is a eager message, we send them immediately and do not yield
   // or create a request for it.
   // Copy the buffer.
-  printf("send eager memcpy\n");
 
   memcpy(p->content.buffer, ctx->buffer, ctx->size);
   mv_server_send(mv->server, ctx->rank, (void*)p,
                  (size_t)(ctx->size + sizeof(packet_header)), (void*)(p));
-  printf("send eager done\n");
 }
 
 void mv_recv_rdz_init(mv_engine* mv, mv_ctx* ctx)

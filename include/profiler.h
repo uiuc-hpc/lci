@@ -3,10 +3,10 @@
 
 #include "config.h"
 
+#ifdef USE_PAPI
+
 #include <papi.h>
 #include <pthread.h>
-
-#ifdef USE_PAPI
 
 static void profiler_init()
 {

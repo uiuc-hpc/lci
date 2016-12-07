@@ -42,8 +42,10 @@ void main_task(intptr_t arg)
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   void* r_buf = (void*) MPIV_Alloc((size_t)MAX_MSG_SIZE);
   void* s_buf = (void*) MPIV_Alloc((size_t)MAX_MSG_SIZE);
-  memset(r_buf, 'a', size);
-  memset(s_buf, 'b', size);
+  for (int i = 0; i < 10; i++) {
+      memset(r_buf, 1, i);
+      memset(s_buf, 2, i);
+  }
   MPIV_Free(r_buf);
   MPIV_Free(s_buf);
 }

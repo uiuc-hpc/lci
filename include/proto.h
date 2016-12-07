@@ -2,6 +2,9 @@
 #define MV_PROTO_H_
 
 extern int PROTO_SEND_WRITE_FIN;
+extern void mv_server_rma(mv_server* s, int rank, void* from,
+        void* to, uint32_t rkey, size_t size,
+        void* ctx);
 
 MV_INLINE void proto_complete_rndz(mv_engine* mv, mv_packet* p, mv_ctx* s)
 {

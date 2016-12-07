@@ -79,6 +79,8 @@ int ibv_server_progress(ibv_server* s);
 
 mv_server_memory* ibv_server_mem_malloc(ibv_server* s, size_t size);
 void ibv_server_mem_free(mv_server_memory* mr);
+void* ibv_server_heap_ptr(mv_server* s);
+uint32_t ibv_server_heap_rkey(mv_server* s, int node);
 
 #define mv_server_init ibv_server_init
 #define mv_server_send ibv_server_write_send

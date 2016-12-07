@@ -23,13 +23,11 @@ void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
 
 void MPIV_Waitall(int count, MPIV_Request* req, MPI_Status*);
 
-extern uintptr_t MPIV_HEAP;
-
 void MPIV_Init(int* argc, char*** args);
 
 void MPIV_Finalize();
 
-void* MPIV_Alloc(int size);
+void* MPIV_Alloc(size_t size);
 void MPIV_Free(void*);
 
 #endif

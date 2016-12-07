@@ -11,8 +11,6 @@
 
 #include "mpiv.h"
 #include "helper.h"
-#include <atomic>
-#include <iostream>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,8 +54,6 @@ void recv_thread(intptr_t arg);
 #define FLOAT_PRECISION 2
 #endif
 
-std::atomic<int> f;
-
 int numprocs, provided, myid, err;
 static int THREADS = 1;
 static int WORKERS = 1;
@@ -88,13 +84,13 @@ int main(int argc, char* argv[])
 
 static int size = 0;
 
-void main_task(intptr_t)
+void main_task(intptr_t arg)
 {
   int i = 0;
   r_buf1 = (char*)MPIV_Alloc(MYBUFSIZE);
   s_buf1 = (char*)MPIV_Alloc(MYBUFSIZE);
-  fthread** sr_threads = new fthread*[THREADS];
-  thread_tag_t* tags = new thread_tag_t[THREADS];
+  fthread* sr_threads[THREADS];
+  thread_tag_t* tags[THREADS];
 
   if (myid == 0) {
     fprintf(stdout, HEADER);
