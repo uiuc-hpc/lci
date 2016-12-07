@@ -7,6 +7,8 @@
 #include "pool.h"
 #include "infiniband/verbs.h"
 
+#include "profiler.h"
+
 #define ALIGNMENT (4096)
 
 // #define IBV_SERVER_DEBUG
@@ -40,7 +42,6 @@ struct ibv_server {
 
   // Polling threads.
   std::thread poll_thread;
-  volatile bool stop;
 
   // Device fields.
   ibv_context* dev_ctx;
@@ -182,7 +183,6 @@ inline void ibv_server_init(mv_engine* mv, size_t heap_size,
                        ibv_server** s_ptr)
 {
   ibv_server* s = new ibv_server();
-  s->stop = true;
   s->max_inline = 128;
 
 #ifdef USE_AFFI
@@ -348,22 +348,6 @@ MV_INLINE bool ibv_server_progress(ibv_server* s)
   return ret;
 }
 
-inline void ibv_server_serve(ibv_server* s)
-{
-  s->stop = false;
-  s->poll_thread = std::thread([s] {
-#ifdef USE_AFFI
-    affinity::set_me_to_last();
-#endif
-
-    while (unlikely(!s->stop)) {
-      while (ibv_server_progress(s)) {
-      };
-    }
-
-  });
-}
-
 static MV_INLINE void setup_wr(ibv_send_wr& wr, uintptr_t id, ibv_sge* l,
                             ibv_wr_opcode mode, int flags)
 {
@@ -450,8 +434,6 @@ inline void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
 
 inline void ibv_server_finalize(ibv_server* s)
 {
-  s->stop = true;
-  s->poll_thread.join();
   // TODO(danghvu):
   // s->dev_scq.finalize();
   // s->dev_rcq.finalize();
@@ -468,12 +450,12 @@ inline uint32_t ibv_server_heap_rkey(ibv_server* s, int node)
 inline void* ibv_server_heap_ptr(ibv_server* s) { return s->heap_ptr; }
 
 #define mv_server_init ibv_server_init
-#define mv_server_serve ibv_server_serve
 #define mv_server_send ibv_server_write_send
 #define mv_server_rma ibv_server_write_rma
 #define mv_server_rma_signal ibv_server_write_rma_signal
 #define mv_server_heap_rkey ibv_server_heap_rkey
 #define mv_server_heap_ptr ibv_server_heap_ptr
+#define mv_server_progress ibv_server_progress
 #define mv_server_finalize ibv_server_finalize
 
 #endif

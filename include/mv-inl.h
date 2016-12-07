@@ -39,4 +39,9 @@ MV_INLINE void* mv_heap_ptr(mv_engine* mv)
   return mv_server_heap_ptr(mv->server);
 }
 
+MV_INLINE void mv_progress(mv_engine* mv) {
+   while (mv_server_progress(mv->server))
+     ;
+}
+
 #endif

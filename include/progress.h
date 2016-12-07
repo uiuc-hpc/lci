@@ -38,8 +38,6 @@ inline void mv_recv_send_ready_fin(mv_engine* mv, packet* p_ctx)
 {
   // Now data is already ready in the content.buffer.
   mv_ctx* req = (mv_ctx*)(p_ctx->content.rdz.rreq);
-  startt(signal_timing);
-  startt(wake_timing);
 
   mv_key key = mv_make_key(req->rank, req->tag);
   mv_value value = 0;
@@ -47,16 +45,13 @@ inline void mv_recv_send_ready_fin(mv_engine* mv, packet* p_ctx)
     req->type = REQ_DONE;
     thread_signal(req->sync);
   }
-  stopt(signal_timing);
   mv_pool_put(mv->pkpool, p_ctx);
 }
 
 inline void mv_recv_short(mv_engine* mv, packet* p)
 {
-  startt(misc_timing);
   const mv_key key = mv_make_key(p->header.from, p->header.tag);
   mv_value value = (mv_value)p;
-  stopt(misc_timing);
 
   if (!mv_hash_insert(mv->tbl, key, &value)) {
     // comm-thread comes later.
@@ -87,7 +82,7 @@ inline void mv_serve_send(mv_engine* mv, packet* p_ctx)
   if (!p_ctx) return;
 
   const auto& fid = p_ctx->header.fid;
-  if (fid == PROTO_SEND_WRITE_FIN) {
+  if (unlikely(fid == PROTO_SEND_WRITE_FIN)) {
     mv_ctx* req = (mv_ctx*)p_ctx->content.rdz.sreq;
     p_ctx->header.fid = PROTO_READY_FIN;
     mv_server_send(mv->server, req->rank, p_ctx,
@@ -98,8 +93,10 @@ inline void mv_serve_send(mv_engine* mv, packet* p_ctx)
       req->type = REQ_DONE;
       thread_signal(req->sync);
     }
-    stopt(rdma_timing);
   } else {
+    // NOTE: This improves performance on memcpy, since it sends back
+    // the packet to the sender thread. However, this causes a cache misses on the
+    // spinlock of the pool. TODO(danghvu): send back only medium msg ?
     mv_pool_put_to(mv->pkpool, p_ctx, p_ctx->header.poolid);
   }
 }

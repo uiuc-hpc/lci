@@ -2,29 +2,22 @@
 #define PROFILER_H_
 
 #include "config.h"
-#ifdef USE_PAPI
 
 #include <iostream>
 #include <papi.h>
 #include <pthread.h>
-#include <stdexcept>
 #include <thread>
 #include <vector>
 
 static void profiler_init()
 {
-  try {
     if (PAPI_library_init(PAPI_VER_CURRENT) != PAPI_VER_CURRENT) {
-      throw std::runtime_error("papi_library_init");
+        exit(EXIT_FAILURE);
     }
     if (PAPI_thread_init((unsigned long (*)(void))(
             (unsigned long (*)(void))(pthread_self))) != PAPI_OK) {
-      throw std::runtime_error("papi_thread_init");
+        exit(EXIT_FAILURE);
     }
-  } catch (const std::exception& e) {
-    std::cerr << e.what() << std::endl;
-    exit(-1);
-  }
 }
 
 class profiler
@@ -60,7 +53,5 @@ class profiler
   std::vector<int> events_;
   std::vector<long long> counters_;
 };
-
-#endif  // USE_PAPI
 
 #endif

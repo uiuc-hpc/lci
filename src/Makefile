@@ -14,6 +14,12 @@ MFCONTEXT = ../ult/fult/make_x86_64_sysv_elf_gas.S
 CXXFLAGS += $(IBV_INC)
 LDFLAGS += $(IBV_LIB) # -llmpe -lmpe
 
+### FOR USING PAPI ##
+PAPI_LIB = $(TACC_PAPI_LIB) -lpapi
+PAPI_INC = $(TACC_PAPI_INC)
+CXXFLAGS += -I$(PAPI_INC)
+LDFLAGS += -L$(PAPI_LIB)
+
 FCONTEXT = mfcontext.o jfcontext.o
 COMM = init.o
 MPIV = mpiv.o
