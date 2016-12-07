@@ -27,6 +27,7 @@ namespace affinity
 inline static int get_ncores()
 {
   int logical = sysconf( _SC_NPROCESSORS_ONLN );
+#if 0
   uint32_t registers[4];
   __asm__ __volatile__ ("cpuid " :
           "=a" (registers[0]),
@@ -40,6 +41,8 @@ inline static int get_ncores()
   } else {
       return logical;
   }
+#endif
+  return logical;
 }
 
 inline int set_me_to_(int core_id)

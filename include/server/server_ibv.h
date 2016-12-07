@@ -87,7 +87,9 @@ inline mv_server_memory* ibv_server_mem_malloc(ibv_server* s, size_t size) {
 }
 
 inline void ibv_server_mem_free(mv_server_memory* mr) {
+  void* ptr = (void*) mr->addr;
   ibv_dereg_mr(mr);
+  free(ptr);
 }
 
 static ibv_qp* qp_create(ibv_server* s, ibv_device_attr* dev_attr) {
@@ -283,11 +285,6 @@ inline void ibv_server_init(mv_engine* mv, size_t heap_size,
   // Prepare the packet_mgr and prepost some packet.
   s->sbuf = ibv_server_mem_malloc(s, sizeof(packet) * (MAX_SEND + MAX_RECV));
   mv_pool_create(&s->sbuf_pool, (void*) s->sbuf->addr, sizeof(packet), MAX_SEND + MAX_RECV);
-#if 0
-  for (int i = 0; i < MAX_SEND + MAX_RECV; i++) {
-    mv_pp_free(pkpool, (packet*) mv_pool_get(s->sbuf_pool));
-  }
-#endif
 
   s->recv_posted = 0;
   s->mv = mv;
@@ -434,10 +431,11 @@ inline void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
 
 inline void ibv_server_finalize(ibv_server* s)
 {
-  // TODO(danghvu):
-  // s->dev_scq.finalize();
-  // s->dev_rcq.finalize();
-  // s->sbuf.finalize();
+  ibv_destroy_cq(s->send_cq);
+  ibv_destroy_cq(s->send_cq);
+  mv_pool_destroy(s->sbuf_pool);
+  ibv_server_mem_free(s->sbuf);
+  ibv_server_mem_free(s->heap);
   // s->heap.finalize();
 }
 

@@ -46,6 +46,12 @@ inline void mv_pool_create(mv_pool** pool, void* data, size_t elm_size, unsigned
   *pool = p;
 }
 
+inline void mv_pool_destroy(mv_pool* pool) {
+  for (int i = 0; i < pool->npools; i++) {
+    free(pool->lpools[i]);
+  }
+}
+
 MV_INLINE static int8_t mv_pool_get_local(mv_pool* pool) {
   int8_t pid = tls_pool_struct[pool->key]; 
   // struct dequeue* lpool = (struct dequeue*) pthread_getspecific(pool->key);

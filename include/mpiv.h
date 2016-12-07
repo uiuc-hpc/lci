@@ -32,4 +32,5 @@ void MPIV_Finalize();
 
 MV_INLINE void* MPIV_Alloc(int size) { void* ptr = (void*) MPIV_HEAP; MPIV_HEAP += size; return ptr;}
 MV_INLINE void MPIV_Free(void*) { }
+
 #endif

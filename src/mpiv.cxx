@@ -3,18 +3,6 @@
 mv_engine* mv_hdl;
 uintptr_t MPIV_HEAP;
 
-// TODO(danghvu): Ugly hack to make thread-local storage faster.
-__thread int8_t
-tls_pool_struct[MAX_LOCAL_POOL] = {-1, -1, -1, -1, -1, -1, -1, -1};
-
-int mv_pool_nkey = 0;
-
-int PROTO_SHORT;
-int PROTO_RECV_READY;
-int PROTO_READY_FIN;
-int PROTO_AM;
-int PROTO_SEND_WRITE_FIN = 99;
-
 void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype,
                          int rank, int tag, MPI_Comm, MPI_Status*)
 {
@@ -43,7 +31,6 @@ void MPIV_Send(void* buffer, int count, MPI_Datatype datatype,
     mv_send_rdz(mv_hdl, &ctx, mv_get_sync());
   }
 }
-
 
 void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
                 int tag, MPI_Comm, MPIV_Request* req) {
@@ -86,34 +73,33 @@ void MPIV_Waitall(int count, MPIV_Request* req, MPI_Status*) {
     mv_ctx* ctx = (mv_ctx *) req[i];
     ctx->complete(mv_hdl, ctx, counter);
     if (ctx->type == REQ_DONE) {
-      req[i] = MPI_REQUEST_NULL;
       thread_signal(counter);
-      delete ctx;
     }
   }
   thread_wait(counter);
   for (int i = 0; i < count; i++) {
-    req[i] = MPI_REQUEST_NULL;
+    if (req[i] != MPI_REQUEST_NULL) {
+      mv_ctx* ctx = (mv_ctx*) req[i];
+      delete ctx;
+      req[i] = MPI_REQUEST_NULL;
+    }
   }
 }
 
 static bool stop;
 static std::thread progress_thread;
 
-static void progress(mv_engine* mv)
-{
-  affinity::set_me_to_last();
-  stop = false;
-  while (!stop) {
-    mv_progress(mv);
-  }
-}
-
 void MPIV_Init(int* argc, char*** args)
 {
   size_t heap_size = 1024 * 1024 * 1024;
   mv_open(argc, args, heap_size, &mv_hdl);
-  progress_thread = std::move(std::thread(progress, mv_hdl));
+  progress_thread = std::move(std::thread([=] {
+    affinity::set_me_to_last();
+    stop = false;
+    while (!stop) {
+      mv_progress(mv_hdl);
+    }
+  }));
   MPIV_HEAP = (uintptr_t) mv_heap_ptr(mv_hdl);
 }
 

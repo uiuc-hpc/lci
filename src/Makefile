@@ -21,12 +21,11 @@ CXXFLAGS += -I$(PAPI_INC)
 LDFLAGS += -L$(PAPI_LIB)
 
 FCONTEXT = mfcontext.o jfcontext.o
-COMM = init.o
-MPIV = mpiv.o
+COMM = init.o mv.o mpiv.o
 
 all: libmv.a
 
-libmv.a: $(FCONTEXT) $(COMM) $(MPIV)
+libmv.a: $(FCONTEXT) $(COMM)
 	ar rcs $@ $^
 
 %.o: %.cxx

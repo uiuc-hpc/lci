@@ -9,6 +9,8 @@
 #include <thread>
 #include <vector>
 
+#ifdef USE_PAPI
+
 static void profiler_init()
 {
     if (PAPI_library_init(PAPI_VER_CURRENT) != PAPI_VER_CURRENT) {
@@ -53,5 +55,7 @@ class profiler
   std::vector<int> events_;
   std::vector<long long> counters_;
 };
+
+#endif // USE_PAPI
 
 #endif

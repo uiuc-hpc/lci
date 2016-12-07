@@ -46,7 +46,7 @@ typedef struct ibv_server mv_server;
 #elif defined(MV_USE_SERVER_OFI)
 typedef struct ofi_server mv_server;
 #else
-#error("Need server definition (MV_USE_SERVER_RDMAX | MV_USE_SERVER_OFI)")
+#error("Need server definition (MV_USE_SERVER_IBV | MV_USE_SERVER_OFI)")
 #endif
 
 typedef uintptr_t mv_value;
