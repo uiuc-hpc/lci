@@ -1,12 +1,11 @@
 #include "mv-inl.h"
 #include "mv.h"
 
-#include <thread>
 #include <math.h>
 
 void mv_open(int* argc, char*** args, size_t heap_size, mv_engine** ret)
 {
-  mv_struct* mv = new mv_struct();
+  struct mv_struct* mv = malloc(sizeof(struct mv_struct));
 
   setenv("MPICH_ASYNC_PROGRESS", "0", 1);
   setenv("MV2_ASYNC_PROGRESS", "0", 1);

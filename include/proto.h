@@ -3,8 +3,12 @@
 
 MV_INLINE void proto_complete_rndz(mv_engine* mv, mv_packet* p, mv_ctx* s)
 {
-  p->header = {PROTO_SEND_WRITE_FIN, 0, mv->me, s->tag};
+  p->header.fid = PROTO_SEND_WRITE_FIN;
+  p->header.poolid = 0;
+  p->header.from = mv->me;
+  p->header.tag = s->tag;
   p->content.rdz.sreq = (uintptr_t)s;
+
   mv_server_rma(mv->server, s->rank, s->buffer, (void*)p->content.rdz.tgt_addr,
                 p->content.rdz.rkey, s->size, (void*)p);
 }
@@ -43,8 +47,10 @@ MV_INLINE void mv_send_eager(mv_engine* mv, mv_ctx* ctx)
 {
   // Get from my pool.
   mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool);
-  const int8_t pid = mv_pool_get_local(mv->pkpool);
-  p->header = {PROTO_SHORT, pid, mv->me, ctx->tag};
+  p->header.fid = PROTO_SHORT;
+  p->header.poolid = mv_pool_get_local(mv->pkpool);
+  p->header.from = mv->me;
+  p->header.tag = ctx->tag;
 
   // This is a eager message, we send them immediately and do not yield
   // or create a request for it.
@@ -58,10 +64,17 @@ MV_INLINE void mv_send_eager(mv_engine* mv, mv_ctx* ctx)
 MV_INLINE void mv_recv_rdz_init(mv_engine* mv, mv_ctx* ctx)
 {
   mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool); //, 0);
-  p->header = {PROTO_RECV_READY, 0, mv->me, ctx->tag};
-  p->content.rdz = {0, (uintptr_t)ctx, (uintptr_t)ctx->buffer,
-                    mv_server_heap_rkey(mv->server)};
-  mv_server_send(mv->server, ctx->rank, p, sizeof(packet_header) + sizeof(mv_rdz),
+  p->header.fid = PROTO_RECV_READY;
+  p->header.poolid = 0;
+  p->header.from = mv->me;
+  p->header.tag = ctx->tag;
+
+  p->content.rdz.sreq = 0;
+  p->content.rdz.rreq = (uintptr_t) ctx;
+  p->content.rdz.tgt_addr = (uintptr_t)ctx->buffer;
+  p->content.rdz.rkey = mv_server_heap_rkey(mv->server, mv->me);
+
+  mv_server_send(mv->server, ctx->rank, p, sizeof(packet_header) + sizeof(struct mv_rdz),
                  p);
 }
 
@@ -132,9 +145,10 @@ MV_INLINE void mv_put(mv_engine* mv, int node, void* dst, void* src, int size,
 MV_INLINE uint8_t mv_am_register(mv_engine* mv, mv_am_func_t f)
 {
   MPI_Barrier(MPI_COMM_WORLD);
-  mv->am_table.push_back(f);
-  MPI_Barrier(MPI_COMM_WORLD);
-  return mv->am_table.size() - 1;
+  // mv->am_table.push_back(f);
+  // MPI_Barrier(MPI_COMM_WORLD);
+  return 0; 
+  // return mv->am_table.size() - 1;
 }
 
 #endif

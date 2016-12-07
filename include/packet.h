@@ -4,12 +4,12 @@
 #include "config.h"
 #include <stdint.h>
 
-struct packet_header {
+typedef struct packet_header {
   int32_t fid;
   int8_t poolid;
   int from;
   int tag;
-} __attribute__((aligned(8)));
+} packet_header __attribute__((aligned(8)));
 
 struct mv_rdz {
   uintptr_t sreq;
@@ -18,10 +18,10 @@ struct mv_rdz {
   uint32_t rkey;
 };
 
-union packet_content {
+typedef union packet_content {
   char buffer[SHORT_MSG_SIZE];
   struct mv_rdz rdz;
-};
+} packet_content;
 
 struct mv_packet {
   packet_header header;

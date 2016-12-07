@@ -52,7 +52,7 @@ inline void mv_pool_destroy(mv_pool* pool) {
   }
 }
 
-MV_INLINE static int8_t mv_pool_get_local(mv_pool* pool) {
+MV_INLINE int8_t mv_pool_get_local(mv_pool* pool) {
   int8_t pid = tls_pool_struct[pool->key]; 
   // struct dequeue* lpool = (struct dequeue*) pthread_getspecific(pool->key);
   if (unlikely(pid == -1)) {

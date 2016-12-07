@@ -6,7 +6,6 @@
 #include "ult.h"
 #include <stdint.h>
 #include <stdlib.h>
-#include <vector>
 
 /*! Init context */
 struct mv_struct;
@@ -21,6 +20,7 @@ void mv_set_num_worker(mv_engine*, int number);
 /*! Two-sided communication function */
 typedef void (*mv_am_func_t)();
 struct mv_ctx;
+typedef struct mv_ctx mv_ctx;
 
 void mv_send_eager(mv_engine* mv, mv_ctx* ctx);
 void mv_send_rdz(mv_engine* mv, mv_ctx* ctx, mv_sync* sync);
@@ -39,7 +39,9 @@ uint8_t mv_am_register(mv_engine* mv, mv_am_func_t f);
 // mv_sync* sync);
 
 struct mv_packet;
+typedef struct mv_packet mv_packet;
 struct mv_pool;
+typedef struct mv_pool mv_pool;
 
 #if defined(MV_USE_SERVER_IBV)
 typedef struct ibv_server mv_server;
@@ -59,7 +61,8 @@ struct mv_struct {
   mv_server* server;
   mv_pool* pkpool;
   mv_hash* tbl;
-  std::vector<mv_am_func_t> am_table;
+  mv_am_func_t am_table[128];
+  int am_num_func;
 } __attribute__((aligned(64)));
 
 #endif

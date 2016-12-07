@@ -1,4 +1,4 @@
-MPICXX = mpicxx 
+MPICXX = mpicc
 GXX = gcc
 CXXFLAGS += -g -ggdb -O3 -Wall -Wextra -std=c++11 -I../ult -I../include -I../ -DUSE_AFFI
 

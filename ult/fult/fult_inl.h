@@ -152,7 +152,7 @@ MV_INLINE void wfunc(fworker* w)
 {
   tlself.worker = w;
 #ifdef USE_AFFI
-  affinity::set_me_to(w->id);
+  set_me_to(w->id);
 #endif
 
 #ifdef USE_PAPI

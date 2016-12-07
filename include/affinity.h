@@ -11,20 +11,16 @@
 #endif
 
 #include <sched.h>
+#include <stdio.h>
 
 #include "macro.h"
 #include <errno.h>
 #include <pthread.h>
 #include <unistd.h>
 
-#ifdef __cplusplus
-namespace affinity
-{
-#endif
-
 #define SERVER_CORE (get_ncores() - 1)
 
-inline static int get_ncores()
+inline int get_ncores()
 {
   int logical = sysconf( _SC_NPROCESSORS_ONLN );
 #if 0
@@ -54,7 +50,7 @@ inline int set_me_to_(int core_id)
   CPU_ZERO(&cpuset);
   CPU_SET(core_id, &cpuset);
 
-  std::cerr << "[USE_AFFI] Setting someone to core #" << core_id << std::endl;
+  fprintf(stderr, "[USE_AFFI] Setting someone to core # %d\n", core_id);
   pthread_t current_thread = pthread_self();
   return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
 }
@@ -82,10 +78,6 @@ inline int set_me_to_last()
 {
   return set_me_to_(SERVER_CORE);
 }
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
 

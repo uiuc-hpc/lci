@@ -2,7 +2,6 @@
 #define COMMON_H_
 
 #include "config.h"
-#include <stdexcept>
 #define ALIGNED64(x) (((x) + 63) / 64 * 64)
 
 #ifdef USE_TIMING

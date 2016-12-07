@@ -3,11 +3,8 @@
 
 #include "config.h"
 
-#include <iostream>
 #include <papi.h>
 #include <pthread.h>
-#include <thread>
-#include <vector>
 
 #ifdef USE_PAPI
 

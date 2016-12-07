@@ -1,10 +1,10 @@
-MPICXX = mpicxx
-CXX = g++
+MPICXX = mpicc
+CXX = gcc
 
 INCLUDE = -I../include -I../ -I../ult/ -I../include/mv/
 
-CFLAGS ?= -Wall -std=gnu99 -O3 -g $(INCLUDE)
-CXXFLAGS ?= -g -ggdb -O3 -Wall -Wextra -std=c++11 $(INCLUDE) -DUSE_AFFI
+CFLAGS ?= -Wall -std=gnu11 -O3 -g $(INCLUDE)
+CXXFLAGS ?= -g -ggdb -O3 -Wall -Wextra -std=gnu11 $(INCLUDE) -DUSE_AFFI
 
 IBV_INC = -I/opt/ofed/include/ -I$(HOME)/libfab/include
 
@@ -28,7 +28,7 @@ all: libmv.a
 libmv.a: $(FCONTEXT) $(COMM)
 	ar rcs $@ $^
 
-%.o: %.cxx
+%.o: %.c
 	$(MPICXX) $(CXXFLAGS) -c $^ -o $@
 
 jfcontext.o: $(JFCONTEXT)

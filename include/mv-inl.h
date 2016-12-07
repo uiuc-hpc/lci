@@ -8,6 +8,7 @@ inline void mv_hash_init(mv_hash** h);
 inline int mv_hash_insert(mv_hash* h, mv_key key, mv_value* value);
 
 /*! Server functions */
+#if 0
 inline void mv_server_init(mv_server** s, mv_engine* mv, int& rank, int& size);
 inline void mv_server_post_recv(mv_server* s, mv_packet* p);
 inline void mv_server_serve(mv_server* s);
@@ -19,6 +20,7 @@ inline void mv_server_rma_signal(mv_server* s, int rank, void* from,
                                  uint32_t lkey, void* to, uint32_t rkey,
                                  size_t size, uint32_t sid, void* ctx);
 inline void mv_server_finalize(mv_server* s);
+#endif
 
 /*! Progress functions */
 inline void mv_serve_imm(uint32_t imm);

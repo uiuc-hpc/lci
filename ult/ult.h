@@ -4,8 +4,10 @@
 #include <stdint.h>
 
 struct mv_sync;
-mv_sync* mv_get_sync();
-mv_sync* mv_get_counter(int count);
+typedef struct mv_sync mv_sync;
+
+struct mv_sync* mv_get_sync();
+struct mv_sync* mv_get_counter(int count);
 void thread_wait(mv_sync* sync);
 void thread_signal(mv_sync* sync);
 
