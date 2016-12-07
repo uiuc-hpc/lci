@@ -47,4 +47,12 @@ struct mv_struct {
 uint8_t mv_am_register(mv_engine* mv, mv_am_func_t f);
 void* mv_heap_ptr(mv_engine* mv);
 
+#include "packet.h"
+#include "request.h"
+#include "pool.h"
+#include "hashtable.h"
+#include "progress.h"
+#include "server/server.h"
+#include "proto.h"
+
 #endif

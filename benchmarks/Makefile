@@ -1,6 +1,6 @@
 MPICXX = mpicc
 GXX = gcc
-CXXFLAGS += -g -ggdb -O3 -Wall -Wextra -std=gnu99 -I../ult -I../include -I../ -DUSE_AFFI
+CXXFLAGS += -g -ggdb -O3 -Wall -Wextra -std=gnu99 -I../ult -I../include -I../ -D_GNU_SOURCE -pthread
 
 ### FOR TESTING HASH TABLE ###
 #FACEBOOK_INC = -I$(HOME)/facebook/include -I$(HOME)/glog/include -I$(HOME)/folly/folly/double-conversion #-DNDEBUG

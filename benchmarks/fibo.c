@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <atomic>
 #include <stdio.h>
 #include <string.h>
 

@@ -1,6 +1,5 @@
 #include <mpi.h>
 #include "mv.h"
-#include "mv-inl.h"
 
 void mv_open(int* argc, char*** args, size_t heap_size, mv_engine** ret)
 {

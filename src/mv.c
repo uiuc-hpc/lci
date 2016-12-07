@@ -2,7 +2,6 @@
 
 #include "mpi.h"
 #include "mv.h"
-#include "mv-inl.h"
 #include <stdint.h>
 #include "pool.h"
 
@@ -17,7 +16,6 @@ uint8_t mv_am_register(mv_engine* mv, mv_am_func_t f)
   MPI_Barrier(MPI_COMM_WORLD);
   return mv->am_table_size - 1;
 }
-
 
 void* mv_heap_ptr(mv_engine* mv)
 {

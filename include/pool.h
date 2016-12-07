@@ -32,5 +32,6 @@ void mv_pool_put_to(mv_pool* pool, void* elm, int8_t pid);
 void* mv_pool_get(mv_pool* pool);
 void* mv_pool_get_nb(mv_pool* pool);
 void* mv_pool_get_slow(mv_pool* pool);
+int8_t mv_pool_get_local(mv_pool* pool);
 
 #endif

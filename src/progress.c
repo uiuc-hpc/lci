@@ -1,5 +1,63 @@
 #include "mv.h"
-#include "mv-inl.h"
+
+extern int PROTO_READY_FIN;
+extern int PROTO_SEND_WRITE_FIN;
+
+static void mv_recv_am(mv_engine* mv, mv_packet* p)
+{
+  uint8_t fid = (uint8_t)p->header.tag;
+  uint32_t* buffer = (uint32_t*)p->content.buffer;
+  uint32_t size = buffer[0];
+  char* data = (char*)&buffer[1];
+  ((_0_arg)mv->am_table[fid])(data, size);
+}
+
+static void mv_recv_recv_ready(mv_engine* mv, mv_packet* p)
+{
+  mv_key key = mv_make_rdz_key(p->header.from, p->header.tag);
+  mv_value value = (mv_value)p;
+  if (!mv_hash_insert(mv->tbl, key, &value)) {
+    proto_complete_rndz(mv, p, (mv_ctx*)value);
+  }
+}
+
+static void mv_recv_send_ready_fin(mv_engine* mv, mv_packet* p_ctx)
+{
+  // Now data is already ready in the content.buffer.
+  mv_ctx* req = (mv_ctx*)(p_ctx->content.rdz.rreq);
+
+  mv_key key = mv_make_key(req->rank, req->tag);
+  mv_value value = 0;
+  if (!mv_hash_insert(mv->tbl, key, &value)) {
+    req->type = REQ_DONE;
+    thread_signal(req->sync);
+  }
+  mv_pool_put(mv->pkpool, p_ctx);
+}
+
+static void mv_recv_short(mv_engine* mv, mv_packet* p)
+{
+  const mv_key key = mv_make_key(p->header.from, p->header.tag);
+  mv_value value = (mv_value)p;
+
+  if (!mv_hash_insert(mv->tbl, key, &value)) {
+    // comm-thread comes later.
+    mv_ctx* req = (mv_ctx*)value;
+    memcpy(req->buffer, p->content.buffer, req->size);
+    req->type = REQ_DONE;
+    thread_signal(req->sync);
+    mv_pool_put(mv->pkpool, p);
+  }
+}
+
+void mv_progress_init(mv_engine* mv)
+{
+  PROTO_SHORT = mv_am_register(mv, mv_recv_short);
+  PROTO_RECV_READY = mv_am_register(mv, (mv_am_func_t)mv_recv_recv_ready);
+  PROTO_READY_FIN = mv_am_register(mv, (mv_am_func_t)mv_recv_send_ready_fin);
+  PROTO_AM = mv_am_register(mv, (mv_am_func_t)mv_recv_am);
+}
+
 
 void mv_serve_recv(mv_engine* mv, mv_packet* p_ctx)
 {

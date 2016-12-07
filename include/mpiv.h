@@ -29,7 +29,7 @@ void MPIV_Init(int* argc, char*** args);
 
 void MPIV_Finalize();
 
-MV_INLINE void* MPIV_Alloc(int size) { void* ptr = (void*) MPIV_HEAP; MPIV_HEAP += size; return ptr;}
+void* MPIV_Alloc(int size);
 void MPIV_Free(void*);
 
 #endif

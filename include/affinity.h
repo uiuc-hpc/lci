@@ -6,6 +6,7 @@
 #ifndef __USE_GNU
 #define __USE_GNU
 #endif
+
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -20,7 +21,7 @@
 
 #define SERVER_CORE (get_ncores() - 1)
 
-inline int get_ncores()
+MV_INLINE int get_ncores()
 {
   int logical = sysconf( _SC_NPROCESSORS_ONLN );
 #if 0
@@ -41,7 +42,7 @@ inline int get_ncores()
   return logical;
 }
 
-inline int set_me_to_(int core_id)
+MV_INLINE int set_me_to_(int core_id)
 {
   int num_cores = get_ncores();
   if (core_id < 0 || core_id >= num_cores) return EINVAL;
@@ -55,7 +56,7 @@ inline int set_me_to_(int core_id)
   return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
 }
 
-inline int set_me_within(int from, int to)
+MV_INLINE int set_me_within(int from, int to)
 {
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
@@ -67,14 +68,14 @@ inline int set_me_within(int from, int to)
   return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
 }
 
-inline int set_me_to(int core_id)
+MV_INLINE int set_me_to(int core_id)
 {
   int num_cores = get_ncores();
   // TODO(danghvu): do this because the second set is near mlx
   return set_me_to_((SERVER_CORE - 1 - core_id + num_cores) % num_cores);
 }
 
-inline int set_me_to_last()
+MV_INLINE int set_me_to_last()
 {
   return set_me_to_(SERVER_CORE);
 }
