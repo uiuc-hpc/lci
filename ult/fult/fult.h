@@ -3,10 +3,9 @@
 
 #include <sys/mman.h>
 
-#include "affinity.h"
+#include "macro.h"
 #include "bitops.h"
 #include "config.h"
-#include "profiler.h"
 #include "ult.h"
 
 #define DEBUG(x)
@@ -43,7 +42,7 @@ MV_INLINE void swap_ctx_parent(fctx* f)
   jump_fcontext(&(f->stack_ctx), f->parent->stack_ctx, 0);
 }
 
-static void fwrapper(intptr_t);
+static void fwrapper(intptr_t arg);
 
 #include "fthread.h"
 #include "fworker.h"

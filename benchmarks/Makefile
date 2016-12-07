@@ -32,7 +32,6 @@ PAPI_INC = $(TACC_PAPI_INC)
 CFLAGS += -I$(PAPI_INC)
 LDFLAGS += -L$(PAPI_LIB)
 
-RDMAX_INC = -I../rdmax/include
 IBV_INC = -I/opt/ofed/include/ -I$(HOME)/libfab/include
 IBV_LIB = -libverbs # -lfabric
 

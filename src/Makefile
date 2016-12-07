@@ -1,7 +1,7 @@
 MPICC = mpicc
 CXX = gcc
 
-INCLUDE = -I../include -I../ -I../ult/ -I../include/mv/
+INCLUDE = -I../include -I../ -I./include
 
 CFLAGS ?= -g -ggdb -O3 -Wall -Wextra -std=gnu99 $(INCLUDE) -DUSE_AFFI -D_GNU_SOURCE -pthread
 
@@ -14,13 +14,13 @@ CFLAGS += $(IBV_INC)
 LDFLAGS += $(IBV_LIB) # -llmpe -lmpe
 
 ### FOR USING PAPI ##
-PAPI_LIB = $(TACC_PAPI_LIB) -lpapi
-PAPI_INC = $(TACC_PAPI_INC)
-CFLAGS += -I$(PAPI_INC)
-LDFLAGS += -L$(PAPI_LIB)
+# PAPI_LIB = $(TACC_PAPI_LIB) -lpapi
+# PAPI_INC = $(TACC_PAPI_INC)
+# CFLAGS += -I$(PAPI_INC)
+# LDFLAGS += -L$(PAPI_LIB)
 
 FCONTEXT = mfcontext.o jfcontext.o
-COMM = init.o mv.o mpiv.o proto.o progress.o hashtable.o pool.o server_ibv.o
+COMM = mv.o mpiv.o proto.o progress.o hashtable.o pool.o server_ibv.o
 
 all: libmv.a
 

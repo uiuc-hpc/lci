@@ -3,6 +3,7 @@
 
 #include "lock.h"
 #include "macro.h"
+#include "affinity.h"
 
 // Fthread.
 
@@ -54,7 +55,7 @@ MV_INLINE void fthread_join(fthread* f)
   }
 }
 
-MV_INLINE void fwrapper(intptr_t args)
+static void fwrapper(intptr_t args)
 {
   fthread* f = (fthread*)args;
   f->func(f->data);

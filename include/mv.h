@@ -1,17 +1,20 @@
 #ifndef MPIV_MV_H_
 #define MPIV_MV_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "config.h"
-#include "macro.h"
-#include "ult.h"
+#include "ult/ult.h"
 #include <stdint.h>
 #include <stdlib.h>
 
 /*! Init context */
 struct mv_struct;
-typedef struct mv_struct mv_engine;
-void mv_open(int* argc, char*** args, size_t heap_size, mv_engine**);
-void mv_close(mv_engine*);
+typedef struct mv_struct mvh;
+void mv_open(int* argc, char*** args, size_t heap_size, mvh**);
+void mv_close(mvh*);
 
 typedef void (*mv_am_func_t)();
 struct mv_ctx;
@@ -34,25 +37,53 @@ typedef uintptr_t mv_value;
 typedef uint64_t mv_key;
 typedef void* mv_hash;
 
-struct mv_struct {
-  int me;
-  int size;
-  mv_server* server;
-  mv_pool* pkpool;
-  mv_hash* tbl;
-  int am_table_size;
-  mv_am_func_t am_table[128];
-} __attribute__((aligned(64)));
+void mv_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
+void mv_send_rdz_init(mvh* mv, mv_ctx* ctx);
+void mv_send_rdz(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 
-uint8_t mv_am_register(mv_engine* mv, mv_am_func_t f);
-void* mv_heap_ptr(mv_engine* mv);
+void mv_send_eager(mvh* mv, mv_ctx* ctx);
+void mv_recv_rdz_init(mvh* mv, mv_ctx* ctx);
+void mv_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
+void mv_recv_rdz(mvh* mv, mv_ctx* ctx, mv_sync* sync);
+void mv_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
+void mv_recv_eager(mvh* mv, mv_ctx* ctx, mv_sync* sync);
+void mv_am_eager(mvh* mv, int node, void* src, int size,
+                           uint32_t fid);
 
-#include "packet.h"
-#include "request.h"
-#include "pool.h"
-#include "hashtable.h"
-#include "progress.h"
-#include "server/server.h"
-#include "proto.h"
+void mv_put(mvh* mv, int node, void* dst, void* src, int size,
+                      uint32_t sid);
+
+void* mv_heap_ptr(mvh* mv);
+uint8_t mv_am_register(mvh* mv, mv_am_func_t f);
+
+/*! MPI like functions */
+#include <mpi.h>
+typedef uintptr_t MPIV_Request;
+extern mvh* mv_hdl;
+
+void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype,
+                         int rank, int tag, MPI_Comm, MPI_Status*);
+
+void MPIV_Send(void* buffer, int count, MPI_Datatype datatype,
+                         int rank, int tag, MPI_Comm);
+
+void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
+                int tag, MPI_Comm, MPIV_Request* req);
+
+void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
+                int tag, MPI_Comm, MPIV_Request* req);
+
+void MPIV_Waitall(int count, MPIV_Request* req, MPI_Status*);
+
+void MPIV_Init(int* argc, char*** args);
+
+void MPIV_Finalize();
+
+void* MPIV_Alloc(size_t size);
+void MPIV_Free(void*);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

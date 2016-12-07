@@ -1,9 +1,9 @@
-#include "mv.h"
+#include "mv_priv.h"
 
 extern int PROTO_READY_FIN;
 extern int PROTO_SEND_WRITE_FIN;
 
-static void mv_recv_am(mv_engine* mv, mv_packet* p)
+static void mv_recv_am(mvh* mv, mv_packet* p)
 {
   uint8_t fid = (uint8_t)p->header.tag;
   uint32_t* buffer = (uint32_t*)p->content.buffer;
@@ -12,7 +12,7 @@ static void mv_recv_am(mv_engine* mv, mv_packet* p)
   ((_0_arg)mv->am_table[fid])(data, size);
 }
 
-static void mv_recv_recv_ready(mv_engine* mv, mv_packet* p)
+static void mv_recv_recv_ready(mvh* mv, mv_packet* p)
 {
   mv_key key = mv_make_rdz_key(p->header.from, p->header.tag);
   mv_value value = (mv_value)p;
@@ -21,7 +21,7 @@ static void mv_recv_recv_ready(mv_engine* mv, mv_packet* p)
   }
 }
 
-static void mv_recv_send_ready_fin(mv_engine* mv, mv_packet* p_ctx)
+static void mv_recv_send_ready_fin(mvh* mv, mv_packet* p_ctx)
 {
   // Now data is already ready in the content.buffer.
   mv_ctx* req = (mv_ctx*)(p_ctx->content.rdz.rreq);
@@ -35,7 +35,7 @@ static void mv_recv_send_ready_fin(mv_engine* mv, mv_packet* p_ctx)
   mv_pool_put(mv->pkpool, p_ctx);
 }
 
-static void mv_recv_short(mv_engine* mv, mv_packet* p)
+static void mv_recv_short(mvh* mv, mv_packet* p)
 {
   const mv_key key = mv_make_key(p->header.from, p->header.tag);
   mv_value value = (mv_value)p;
@@ -50,7 +50,7 @@ static void mv_recv_short(mv_engine* mv, mv_packet* p)
   }
 }
 
-void mv_progress_init(mv_engine* mv)
+void mv_progress_init(mvh* mv)
 {
   PROTO_SHORT = mv_am_register(mv, mv_recv_short);
   PROTO_RECV_READY = mv_am_register(mv, (mv_am_func_t)mv_recv_recv_ready);
@@ -59,13 +59,13 @@ void mv_progress_init(mv_engine* mv)
 }
 
 
-void mv_serve_recv(mv_engine* mv, mv_packet* p_ctx)
+void mv_serve_recv(mvh* mv, mv_packet* p_ctx)
 {
   const int8_t fid = p_ctx->header.fid;
   ((p_ctx_handler)mv->am_table[fid])(mv, p_ctx);
 }
 
-void mv_serve_send(mv_engine* mv, mv_packet* p_ctx)
+void mv_serve_send(mvh* mv, mv_packet* p_ctx)
 {
   if (!p_ctx) return;
 

@@ -2,13 +2,8 @@
 #define SERVER_IBV_H
 
 #include <mpi.h>
-
-#include "mv.h"
-#include "affinity.h"
-#include "pool.h"
+#include "mv_priv.h"
 #include "infiniband/verbs.h"
-
-#include "profiler.h"
 
 #define ALIGNMENT (4096)
 
@@ -41,7 +36,7 @@ typedef struct ibv_mr mv_server_memory;
 
 typedef struct ibv_server {
   // MV fields.
-  mv_engine* mv;
+  mvh* mv;
 
   // Device fields.
   struct ibv_context* dev_ctx;
@@ -64,7 +59,7 @@ typedef struct ibv_server {
 } ibv_server __attribute__((aligned(64)));
 
 
-void ibv_server_init(mv_engine* mv, size_t heap_size, ibv_server** s_ptr);
+void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr);
 void ibv_server_post_recv(ibv_server* s, mv_packet* p);
 void ibv_server_write_send(ibv_server* s, int rank, void* buf, size_t size,
                              void* ctx);
@@ -177,7 +172,7 @@ void qp_to_rts(struct ibv_qp* qp) {
   }
 }
 
-void ibv_server_init(mv_engine* mv, size_t heap_size,
+void ibv_server_init(mvh* mv, size_t heap_size,
                        ibv_server** s_ptr)
 {
   ibv_server* s = 0;

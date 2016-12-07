@@ -1,8 +1,8 @@
 #ifndef MV_HELPER_H_
 #define MV_HELPER_H_
 
-#include "mpiv.h"
 #include "mv.h"
+#include "ult/ult.h"
 #include "ult/fult/fult.h"
 
 static fworker** all_worker;
@@ -22,7 +22,7 @@ void mv_main_task(intptr_t arg)
   fworker_stop_main(all_worker[0]);
 }
 
-extern mv_engine* mv_hdl;
+extern mvh* mv_hdl;
 
 void MPIV_Start_worker(int number)
 {

@@ -1,7 +1,6 @@
-#include "mv.h"
-#include "mpiv.h"
+#include "mv_priv.h"
 
-mv_engine* mv_hdl;
+mvh* mv_hdl;
 void* MPIV_HEAP;
 
 void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype,

@@ -1,6 +1,9 @@
 #ifndef F_WORKER_H_
 #define F_WORKER_H_
 
+#include "macro.h"
+#include <pthread.h>
+
 typedef struct fworker {
   fthread* threads;
   fthread** thread_pool;

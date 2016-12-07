@@ -1,5 +1,5 @@
 #include <mpi.h>
-#include "mv.h"
+#include "include/mv_priv.h"
 
 /*! Protocol key FIXME */
 int PROTO_SHORT;
@@ -8,7 +8,7 @@ int PROTO_READY_FIN;
 int PROTO_AM;
 int PROTO_SEND_WRITE_FIN = 99;
 
-void mv_send_rdz_post(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
+void mv_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
   ctx->sync = sync;
   ctx->type = REQ_PENDING;
@@ -19,7 +19,7 @@ void mv_send_rdz_post(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
   }
 }
 
-void mv_send_rdz_init(mv_engine* mv, mv_ctx* ctx)
+void mv_send_rdz_init(mvh* mv, mv_ctx* ctx)
 {
   mv_key key = mv_make_rdz_key(ctx->rank, ctx->tag);
   mv_value value = (mv_value)ctx;
@@ -28,7 +28,7 @@ void mv_send_rdz_init(mv_engine* mv, mv_ctx* ctx)
   }
 }
 
-void mv_send_rdz(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
+void mv_send_rdz(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
   mv_send_rdz_init(mv, ctx);
   mv_send_rdz_post(mv, ctx, sync);
@@ -37,7 +37,7 @@ void mv_send_rdz(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
   }
 }
 
-void mv_send_eager(mv_engine* mv, mv_ctx* ctx)
+void mv_send_eager(mvh* mv, mv_ctx* ctx)
 {
   // Get from my pool.
   mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool);
@@ -55,7 +55,7 @@ void mv_send_eager(mv_engine* mv, mv_ctx* ctx)
                  (size_t)(ctx->size + sizeof(packet_header)), (void*)(p));
 }
 
-void mv_recv_rdz_init(mv_engine* mv, mv_ctx* ctx)
+void mv_recv_rdz_init(mvh* mv, mv_ctx* ctx)
 {
   mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool); //, 0);
   p->header.fid = PROTO_RECV_READY;
@@ -72,7 +72,7 @@ void mv_recv_rdz_init(mv_engine* mv, mv_ctx* ctx)
                  p);
 }
 
-void mv_recv_rdz_post(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
+void mv_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
   ctx->sync = sync;
   ctx->type = REQ_PENDING;
@@ -83,7 +83,7 @@ void mv_recv_rdz_post(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
   }
 }
 
-void mv_recv_rdz(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
+void mv_recv_rdz(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
   mv_recv_rdz_init(mv, ctx);
   mv_recv_rdz_post(mv, ctx, sync);
@@ -92,7 +92,7 @@ void mv_recv_rdz(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
   }
 }
 
-void mv_recv_eager_post(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
+void mv_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
   ctx->sync = sync;
   ctx->type = REQ_PENDING;
@@ -106,7 +106,7 @@ void mv_recv_eager_post(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
   }
 }
 
-void mv_recv_eager(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
+void mv_recv_eager(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
   mv_recv_eager_post(mv, ctx, sync);
   while (ctx->type != REQ_DONE) {
@@ -114,7 +114,7 @@ void mv_recv_eager(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
   }
 }
 
-void mv_am_eager(mv_engine* mv, int node, void* src, int size,
+void mv_am_eager(mvh* mv, int node, void* src, int size,
                            uint32_t fid)
 {
   mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool); 
@@ -129,7 +129,7 @@ void mv_am_eager(mv_engine* mv, int node, void* src, int size,
                  p);
 }
 
-void mv_put(mv_engine* mv, int node, void* dst, void* src, int size,
+void mv_put(mvh* mv, int node, void* dst, void* src, int size,
                       uint32_t sid)
 {
   mv_server_rma_signal(mv->server, node, src, dst,
