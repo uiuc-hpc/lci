@@ -1,7 +1,7 @@
 #ifndef MV_PROTO_H_
 #define MV_PROTO_H_
 
-MV_INLINE void proto_complete_rndz(mv_engine* mv, packet* p, mv_ctx* s)
+MV_INLINE void proto_complete_rndz(mv_engine* mv, mv_packet* p, mv_ctx* s)
 {
   p->header = {PROTO_SEND_WRITE_FIN, 0, mv->me, s->tag};
   p->content.rdz.sreq = (uintptr_t)s;
@@ -25,7 +25,7 @@ MV_INLINE void mv_send_rdz_init(mv_engine* mv, mv_ctx* ctx)
   mv_key key = mv_make_rdz_key(ctx->rank, ctx->tag);
   mv_value value = (mv_value)ctx;
   if (!mv_hash_insert(mv->tbl, key, &value)) {
-    proto_complete_rndz(mv, (packet*)value, ctx);
+    proto_complete_rndz(mv, (mv_packet*)value, ctx);
   }
 }
 
@@ -42,7 +42,7 @@ MV_INLINE void mv_send_rdz(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
 MV_INLINE void mv_send_eager(mv_engine* mv, mv_ctx* ctx)
 {
   // Get from my pool.
-  packet* p = (packet*) mv_pool_get(mv->pkpool);
+  mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool);
   const int8_t pid = mv_pool_get_local(mv->pkpool);
   p->header = {PROTO_SHORT, pid, mv->me, ctx->tag};
 
@@ -57,7 +57,7 @@ MV_INLINE void mv_send_eager(mv_engine* mv, mv_ctx* ctx)
 
 MV_INLINE void mv_recv_rdz_init(mv_engine* mv, mv_ctx* ctx)
 {
-  packet* p = (packet*) mv_pool_get(mv->pkpool); //, 0);
+  mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool); //, 0);
   p->header = {PROTO_RECV_READY, 0, mv->me, ctx->tag};
   p->content.rdz = {0, (uintptr_t)ctx, (uintptr_t)ctx->buffer,
                     mv_server_heap_rkey(mv->server)};
@@ -93,7 +93,7 @@ MV_INLINE void mv_recv_eager_post(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
   mv_value value = (mv_value)ctx;
   if (!mv_hash_insert(mv->tbl, key, &value)) {
     ctx->type = REQ_DONE;
-    packet* p_ctx = (packet*)value;
+    mv_packet* p_ctx = (mv_packet*)value;
     memcpy(ctx->buffer, p_ctx->content.buffer, ctx->size);
     mv_pool_put(mv->pkpool, p_ctx);
   }
@@ -110,7 +110,7 @@ MV_INLINE void mv_recv_eager(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
 MV_INLINE void mv_am_eager(mv_engine* mv, int node, void* src, int size,
                            uint32_t fid)
 {
-  packet* p = (packet*) mv_pool_get(mv->pkpool); 
+  mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool); 
   p->header.fid = PROTO_AM;
   p->header.from = mv->me;
   p->header.tag = fid;

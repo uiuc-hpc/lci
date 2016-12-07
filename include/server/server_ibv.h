@@ -65,7 +65,7 @@ struct ibv_server {
 
 
 inline void ibv_server_init(mv_engine* mv, size_t heap_size, ibv_server** s_ptr);
-inline void ibv_server_post_recv(ibv_server* s, packet* p);
+inline void ibv_server_post_recv(ibv_server* s, mv_packet* p);
 inline void ibv_server_serve(ibv_server* s);
 inline void ibv_server_write_send(ibv_server* s, int rank, void* buf, size_t size,
                              void* ctx);
@@ -282,9 +282,9 @@ inline void ibv_server_init(mv_engine* mv, size_t heap_size,
     qp_to_rts(s->dev_qp[i]);
   }
 
-  // Prepare the packet_mgr and prepost some packet.
-  s->sbuf = ibv_server_mem_malloc(s, sizeof(packet) * (MAX_SEND + MAX_RECV));
-  mv_pool_create(&s->sbuf_pool, (void*) s->sbuf->addr, sizeof(packet), MAX_SEND + MAX_RECV);
+  // Prepare the mv_packet_mgr and prepost some mv_packet.
+  s->sbuf = ibv_server_mem_malloc(s, sizeof(mv_packet) * (MAX_SEND + MAX_RECV));
+  mv_pool_create(&s->sbuf_pool, (void*) s->sbuf->addr, sizeof(mv_packet), MAX_SEND + MAX_RECV);
 
   s->recv_posted = 0;
   s->mv = mv;
@@ -292,14 +292,14 @@ inline void ibv_server_init(mv_engine* mv, size_t heap_size,
   *s_ptr = s;
 }
 
-inline void ibv_server_post_recv(ibv_server* s, packet* p)
+inline void ibv_server_post_recv(ibv_server* s, mv_packet* p)
 {
   if (p == NULL) return;
   s->recv_posted++;
 
   ibv_sge sg = {
     (uintptr_t) p, // addr
-    sizeof(packet), //length
+    sizeof(mv_packet), //length
     s->sbuf->lkey,
   };
 
@@ -327,20 +327,20 @@ MV_INLINE bool ibv_server_progress(ibv_server* s)
   if (ne == 1) {
     s->recv_posted--;
     if (wc.opcode != IBV_WC_RECV_RDMA_WITH_IMM)
-      mv_serve_recv(s->mv, (packet*)wc.wr_id);
+      mv_serve_recv(s->mv, (mv_packet*)wc.wr_id);
     else
       mv_serve_imm(wc.imm_data);
     ret = true;
   }
   ne = ibv_poll_cq(s->send_cq, 1, &wc);
   if (ne == 1) {
-    mv_serve_send(s->mv, (packet*)wc.wr_id);
+    mv_serve_send(s->mv, (mv_packet*)wc.wr_id);
     ret = true;
   }
   stopt(t);
   // Make sure we always have enough packet, but do not block.
   if (s->recv_posted < MAX_RECV)
-    ibv_server_post_recv(s, (packet*) mv_pool_get_nb(s->sbuf_pool)); //, 0));
+    ibv_server_post_recv(s, (mv_packet*) mv_pool_get_nb(s->sbuf_pool)); //, 0));
 
   return ret;
 }

@@ -23,7 +23,7 @@ union packet_content {
   struct mv_rdz rdz;
 };
 
-struct packet {
+struct mv_packet {
   packet_header header;
   packet_content content;
 } __attribute__((aligned(64)));

@@ -38,7 +38,7 @@ uint8_t mv_am_register(mv_engine* mv, mv_am_func_t f);
 // void mv_get(mv_engine*, int dst_rank, void* src, void* dst, size_t size,
 // mv_sync* sync);
 
-struct packet;
+struct mv_packet;
 struct mv_pool;
 
 #if defined(MV_USE_SERVER_IBV)
