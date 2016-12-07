@@ -35,9 +35,7 @@ MV_INLINE void fthread_yield(fthread* f)
 MV_INLINE void fthread_wait(fthread* f)
 {
   f->state = BLOCKED;
-  printf("swap\n");
   swap_ctx_parent(&f->ctx);
-  printf("back\n");
 }
 
 MV_INLINE void fthread_resume(fthread* f)
@@ -68,12 +66,13 @@ MV_INLINE void fwrapper(intptr_t args)
 
 MV_INLINE void fworker_init(fworker** w_ptr)
 {
-  fworker* w;
+  fworker* w = 0;
   posix_memalign((void**)&w, 64, sizeof(struct fworker));
-  w->stop = true;
-  // (*w)->threads = (fthread*) malloc(sizeof(fthread) * NMASK * WORDSIZE);
+
+  w->stop = 1;
   posix_memalign((void**)&(w->threads), 64,
                  sizeof(fthread) * NMASK * WORDSIZE);
+
   for (int i = 0; i < NMASK; i++) w->mask[i] = 0;
 #ifdef USE_L1_MASK
   for (int i = 0; i < 8; i++) w->l1_mask[i] = 0;
@@ -161,7 +160,7 @@ MV_INLINE void* wfunc(void* arg)
 
   while (unlikely(!w->stop)) {
 #ifdef ENABLE_STEAL
-    bool has_work = false;
+    int has_work = 0;
 #endif
     for (int i = 0; i < NMASK; i++) {
       if (w->mask[i] > 0) {
@@ -170,7 +169,7 @@ MV_INLINE void* wfunc(void* arg)
         // Works until it no thread is pending.
         while (likely(local_mask > 0)) {
 #ifdef ENABLE_STEAL
-          has_work = true;
+          has_work = 1;
 #endif
           int id = pop_work(&local_mask);
           // Optains the associate thread.

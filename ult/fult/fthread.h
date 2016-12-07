@@ -29,7 +29,8 @@ MV_INLINE void fthread_init(fthread* f)
 
 MV_INLINE void fthread_destory(fthread* f)
 {
-  if (f->stack != NULL) free((uintptr_t) (f->stack - F_STACK_SIZE));
+  if (f->stack != NULL)
+    free((void*) ((uintptr_t)f->stack - F_STACK_SIZE));
 }
 
 MV_INLINE void fthread_yield(fthread*);

@@ -15,7 +15,7 @@ void mv_main_task(intptr_t arg)
   // user-provided.
   main_task(arg);
 
-  for (size_t i = 1; i < nworker; i++) {
+  for (int i = 1; i < nworker; i++) {
     fworker_stop(all_worker[i]);
   }
 
@@ -32,7 +32,7 @@ void MPIV_Start_worker(int number)
   nworker = number;
   fworker_init(&all_worker[0]);
   all_worker[0]->id = 0;
-  for (size_t i = 1; i < nworker; i++) {
+  for (int i = 1; i < nworker; i++) {
     fworker_init(&all_worker[i]);
     all_worker[i]->id = i;
     fworker_start(all_worker[i]);

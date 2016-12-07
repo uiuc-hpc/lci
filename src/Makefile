@@ -21,7 +21,7 @@ CXXFLAGS += -I$(PAPI_INC)
 LDFLAGS += -L$(PAPI_LIB)
 
 FCONTEXT = mfcontext.o jfcontext.o
-COMM = init.o mv.o mpiv.o
+COMM = init.o mv.o mpiv.o proto.o progress.o hashtable.o pool.o
 
 all: libmv.a
 

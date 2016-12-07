@@ -32,13 +32,13 @@ typedef struct fctx {
   fcontext_t stack_ctx;
 } fctx;
 
-MV_INLINE static void swap_ctx(fctx* from, fctx* to, intptr_t args)
+MV_INLINE void swap_ctx(fctx* from, fctx* to, intptr_t args)
 {
   to->parent = from;
   jump_fcontext(&(from->stack_ctx), to->stack_ctx, (intptr_t)args);
 }
 
-MV_INLINE static void swap_ctx_parent(fctx* f)
+MV_INLINE void swap_ctx_parent(fctx* f)
 {
   jump_fcontext(&(f->stack_ctx), f->parent->stack_ctx, 0);
 }

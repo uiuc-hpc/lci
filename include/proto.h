@@ -42,7 +42,6 @@ MV_INLINE void mv_send_rdz(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
   }
 }
 
-
 MV_INLINE void mv_send_eager(mv_engine* mv, mv_ctx* ctx)
 {
   // Get from my pool.
@@ -56,7 +55,6 @@ MV_INLINE void mv_send_eager(mv_engine* mv, mv_ctx* ctx)
   // or create a request for it.
   // Copy the buffer.
   memcpy(p->content.buffer, ctx->buffer, ctx->size);
-
   mv_server_send(mv->server, ctx->rank, (void*)p,
                  (size_t)(ctx->size + sizeof(packet_header)), (void*)(p));
 }
@@ -114,14 +112,10 @@ MV_INLINE void mv_recv_eager_post(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
 
 MV_INLINE void mv_recv_eager(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
 {
-  printf("begin %d\n", mv->me);
   mv_recv_eager_post(mv, ctx, sync);
-  printf("posted %d\n", mv->me);
   while (ctx->type != REQ_DONE) {
-    printf("Wait %d\n", mv->me);
     thread_wait(sync);
   }
-  printf("done %d\n", mv->me);
 }
 
 MV_INLINE void mv_am_eager(mv_engine* mv, int node, void* src, int size,
@@ -146,13 +140,28 @@ MV_INLINE void mv_put(mv_engine* mv, int node, void* dst, void* src, int size,
                        mv_server_heap_rkey(mv->server, node), size, sid, 0);
 }
 
-MV_INLINE uint8_t mv_am_register(mv_engine* mv, mv_am_func_t f)
+#if 0
+MV_INLINE void mv_am_eager(mv_engine* mv, int node, void* src, int size,
+                           uint32_t fid)
 {
-  MPI_Barrier(MPI_COMM_WORLD);
-  // mv->am_table.push_back(f);
-  // MPI_Barrier(MPI_COMM_WORLD);
-  return 0; 
-  // return mv->am_table.size() - 1;
+  mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool); 
+  p->header.fid = PROTO_AM;
+  p->header.from = mv->me;
+  p->header.tag = fid;
+  uint32_t* buffer = (uint32_t*)p->content.buffer;
+  buffer[0] = size;
+  memcpy((void*)&buffer[1], src, size);
+  mv_server_send(mv->server, node, p,
+                 sizeof(uint32_t) + (uint32_t)size + sizeof(packet_header),
+                 p);
 }
+
+MV_INLINE void mv_put(mv_engine* mv, int node, void* dst, void* src, int size,
+                      uint32_t sid)
+{
+  mv_server_rma_signal(mv->server, node, src, dst,
+                       mv_server_heap_rkey(mv->server, node), size, sid, 0);
+}
+#endif
 
 #endif

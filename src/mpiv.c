@@ -1,4 +1,5 @@
 #include "mpiv.h"
+#include "mv-inl.h"
 
 mv_engine* mv_hdl;
 uintptr_t MPIV_HEAP;
@@ -128,7 +129,8 @@ static void* progress(void* arg)
   set_me_to_last();
   stop = 0;
   while (!stop) {
-    mv_progress(mv_hdl);
+    while (mv_server_progress(mv_hdl->server))
+      ;
   }
 }
 
@@ -143,7 +145,7 @@ void MPIV_Init(int* argc, char*** args)
 void MPIV_Finalize()
 {
   stop = 1;
-  pthread_join(&progress_thread, 0);
+  pthread_join(progress_thread, 0);
   mv_close(mv_hdl);
 }
 

@@ -8,8 +8,8 @@
 typedef uintptr_t mv_value;
 typedef uint64_t mv_key;
 typedef void* mv_hash;
-inline void mv_hash_init(mv_hash** h);
-inline int mv_hash_insert(mv_hash* h, mv_key key, mv_value* value);
+void mv_hash_init(mv_hash** h);
+int mv_hash_insert(mv_hash* h, mv_key key, mv_value* value);
 
 #include <assert.h>
 #include <stdlib.h>
@@ -17,10 +17,11 @@ inline int mv_hash_insert(mv_hash* h, mv_key key, mv_value* value);
 #include "lock.h"
 #include "macro.h"
 
-static MV_INLINE uint32_t myhash(const uint64_t k);
-static const uint64_t EMPTY = (uint64_t)-1;
-static const int TBL_BIT_SIZE = 8;
-static const int TBL_WIDTH = 4;
+#define EMPTY ((uint64_t)-1)
+#define TBL_BIT_SIZE 9
+#define TBL_WIDTH  4
+
+MV_INLINE uint32_t myhash(const uint64_t k);
 
 typedef struct hash_val {
   union {
@@ -35,15 +36,15 @@ typedef struct hash_val {
   };
 } hash_val __attribute__((aligned(64)));
 
-static inline hash_val* create_table(size_t num_rows);
+MV_INLINE hash_val* create_table(size_t num_rows);
 
-inline void mv_hash_init(mv_hash** h)
+void mv_hash_init(mv_hash** h)
 {
   struct hash_val** hv = (struct hash_val**)h;
   *hv = create_table(1 << TBL_BIT_SIZE);
 }
 
-inline int mv_hash_insert(mv_hash* h, mv_key key, mv_value* value)
+int mv_hash_insert(mv_hash* h, mv_key key, mv_value* value)
 {
   struct hash_val* tbl_ = (struct hash_val*)h;
 
@@ -109,7 +110,7 @@ static const uint32_t Seed = 0x811C9DC5;   // 2166136261
 #define TINY_MASK(x) (((uint32_t)1 << (x)) - 1)
 #define FNV1_32_INIT ((uint32_t)2166136261)
 
-static MV_INLINE uint32_t myhash(const uint64_t k)
+MV_INLINE uint32_t myhash(const uint64_t k)
 {
   uint32_t hash = ((k & 0xff) ^ Seed) * Prime;
   hash = (((k >> 8) & 0xff) ^ hash) * Prime;
@@ -124,7 +125,7 @@ static MV_INLINE uint32_t myhash(const uint64_t k)
   return (((hash >> TBL_BIT_SIZE) ^ hash) & TINY_MASK(TBL_BIT_SIZE));
 }
 
-static inline hash_val* create_table(size_t num_rows)
+MV_INLINE hash_val* create_table(size_t num_rows)
 {
   hash_val* ret = NULL;
   assert(posix_memalign((void**)&(ret), 64,

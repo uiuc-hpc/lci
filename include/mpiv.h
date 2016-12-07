@@ -1,7 +1,6 @@
 #ifndef MPIV_MPIV_H_
 #define MPIV_MPIV_H_
 
-#include "mv-inl.h"
 #include "mv.h"
 #include "request.h"
 #include <mpi.h>

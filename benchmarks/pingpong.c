@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <atomic>
 #include <mpi.h>
 #include <stdio.h>
 #include <string.h>
@@ -76,10 +75,8 @@ void main_task(intptr_t arg)
       memset(s_buf, 'b', size);
       memset(r_buf, 'a', size);
       for (int t = 0; t < total + skip; t++) {
-        printf("recv\n");
         MPIV_Recv(r_buf, size, MPI_CHAR, 0, 1, MPI_COMM_WORLD,
                   MPI_STATUS_IGNORE);
-        printf("send\n");
         MPIV_Send(s_buf, size, MPI_CHAR, 0, 2, MPI_COMM_WORLD);
       }
     }

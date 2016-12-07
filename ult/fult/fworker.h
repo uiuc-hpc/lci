@@ -25,7 +25,7 @@ MV_INLINE void fworker_work(fworker*, fthread*);
 MV_INLINE void fworker_sched_thread(fworker* w, const int tid);
 MV_INLINE void fworker_fini_thread(fworker* w, const int tid);
 
-MV_INLINE static void* wfunc(void*);
+MV_INLINE void* wfunc(void*);
 
 MV_INLINE void fworker_start(fworker* w)
 {
