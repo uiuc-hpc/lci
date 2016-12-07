@@ -4,10 +4,10 @@
 #include "mpiv.h"
 #include "mv.h"
 #include "ult/fult/fult.h"
-#include <vector>
 
-static std::vector<fworker*> all_worker;
-__thread tls_t tlself;
+static fworker** all_worker;
+static int nworker;
+__thread struct tls_t tlself;
 
 void main_task(intptr_t);
 void mv_main_task(intptr_t arg)
@@ -15,7 +15,7 @@ void mv_main_task(intptr_t arg)
   // user-provided.
   main_task(arg);
 
-  for (size_t i = 1; i < all_worker.size(); i++) {
+  for (size_t i = 1; i < nworker; i++) {
     fworker_stop(all_worker[i]);
   }
 
@@ -24,25 +24,26 @@ void mv_main_task(intptr_t arg)
 
 extern mv_engine* mv_hdl;
 
-void MPIV_Start_worker(int number, intptr_t arg = 0)
+void MPIV_Start_worker(int number)
 {
-  if (all_worker.size() == 0) {
-    all_worker = std::move(std::vector<fworker*>(number));
+  if (nworker == 0) {
+    all_worker = malloc(sizeof(struct fworker*) * number);
   }
+  nworker = number;
   fworker_init(&all_worker[0]);
   all_worker[0]->id = 0;
-  for (size_t i = 1; i < all_worker.size(); i++) {
+  for (size_t i = 1; i < nworker; i++) {
     fworker_init(&all_worker[i]);
     all_worker[i]->id = i;
     fworker_start(all_worker[i]);
   }
-  fworker_start_main(all_worker[0], mv_main_task, arg);
+  fworker_start_main(all_worker[0], mv_main_task, 0);
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
 fthread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg)
 {
-  return fworker_spawn(all_worker[wid % all_worker.size()], func, arg);
+  return fworker_spawn(all_worker[wid % nworker], func, arg, F_STACK_SIZE);
 }
 
 void MPIV_join(fthread* ult) { fthread_join(ult); }

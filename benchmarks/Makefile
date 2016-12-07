@@ -1,6 +1,6 @@
 MPICXX = mpicc
 GXX = gcc
-CXXFLAGS += -g -ggdb -O3 -Wall -Wextra -std=c++11 -I../ult -I../include -I../ -DUSE_AFFI
+CXXFLAGS += -g -ggdb -O3 -Wall -Wextra -std=gnu99 -I../ult -I../include -I../ -DUSE_AFFI
 
 ### FOR TESTING HASH TABLE ###
 #FACEBOOK_INC = -I$(HOME)/facebook/include -I$(HOME)/glog/include -I$(HOME)/folly/folly/double-conversion #-DNDEBUG
@@ -57,7 +57,7 @@ abt_%: abt_%.c
 abx_%: abx_%.cxx
 	$(MPICXX) $(CXXFLAGS_NOBOOST) $^ -o $@ -L$(ABT_LIB)
 
-%: %.cxx
+%: %.c
 	make -C ../src
 	$(MPICXX) $(CXXFLAGS) $(LDFLAGS) $^ ../src/libmv.a -o $@
 

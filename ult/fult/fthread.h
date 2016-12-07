@@ -10,26 +10,26 @@ enum fthread_state {
   BLOCKED
 };
 
-struct fthread {
+typedef struct fthread {
   fctx ctx;
-  stack_context stack;
-  fworker* origin;
+  void* stack;
+  struct fworker* origin;
   int id;
   ffunc func;
   intptr_t data;
-  volatile fthread_state state;
+  volatile enum fthread_state state;
   volatile int count;
-} __attribute__((aligned(64)));
+} fthread __attribute__((aligned(64)));
 
 MV_INLINE void fthread_init(fthread* f)
 {
   f->state = INVALID;
-  f->stack.sp = NULL;
+  f->stack = NULL;
 }
 
 MV_INLINE void fthread_destory(fthread* f)
 {
-  if (f->stack.sp != NULL) fthread_stack.deallocate(f->stack);
+  if (f->stack != NULL) free((uintptr_t) (f->stack - F_STACK_SIZE));
 }
 
 MV_INLINE void fthread_yield(fthread*);

@@ -35,9 +35,9 @@ static inline unsigned long exchange(unsigned long word,
   return word;
 }
 
-static inline void bit_flip(unsigned long& word, int bit)
+static unsigned long bit_flip(unsigned long word, int bit)
 {
-  word ^= ((long)1 << bit);
+  return word ^ ((long)1 << bit);
 }
 
 #endif

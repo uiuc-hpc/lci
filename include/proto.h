@@ -114,10 +114,14 @@ MV_INLINE void mv_recv_eager_post(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
 
 MV_INLINE void mv_recv_eager(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
 {
+  printf("begin %d\n", mv->me);
   mv_recv_eager_post(mv, ctx, sync);
+  printf("posted %d\n", mv->me);
   while (ctx->type != REQ_DONE) {
+    printf("Wait %d\n", mv->me);
     thread_wait(sync);
   }
+  printf("done %d\n", mv->me);
 }
 
 MV_INLINE void mv_am_eager(mv_engine* mv, int node, void* src, int size,

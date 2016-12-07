@@ -6,8 +6,6 @@
 #include "request.h"
 #include <mpi.h>
 
-
-extern "C" {
 typedef uintptr_t MPIV_Request;
 
 extern mv_engine* mv_hdl;
@@ -34,6 +32,5 @@ void MPIV_Finalize();
 
 MV_INLINE void* MPIV_Alloc(int size) { void* ptr = (void*) MPIV_HEAP; MPIV_HEAP += size; return ptr;}
 void MPIV_Free(void*);
-}
 
 #endif

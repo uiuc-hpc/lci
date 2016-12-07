@@ -42,6 +42,21 @@ void MPIV_Send(void* buffer, int count, MPI_Datatype datatype,
   }
 }
 
+static void recv_eager_post(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
+{
+  mv_recv_eager_post(mv, ctx, sync);
+}
+
+static void recv_rdz_post(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
+{
+  mv_recv_rdz_post(mv, ctx, sync);
+}
+
+static void send_rdz_post(mv_engine* mv, mv_ctx* ctx, mv_sync* sync)
+{
+  mv_send_rdz_post(mv, ctx, sync);
+}
+
 void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
                 int tag, MPI_Comm comm, MPIV_Request* req) {
   int size;
@@ -53,10 +68,10 @@ void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
   ctx->rank = rank;
   ctx->tag = tag;
   if ((size_t)size <= SHORT_MSG_SIZE) {
-    ctx->complete = mv_recv_eager_post;
+    ctx->complete = recv_eager_post;
   } else {
     mv_recv_rdz_init(mv_hdl, ctx);
-    ctx->complete = mv_recv_rdz_post;
+    ctx->complete = recv_rdz_post;
   }
   *req = (MPIV_Request) ctx;
 }
@@ -77,7 +92,7 @@ void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
     *req = MPI_REQUEST_NULL;
   } else {
     mv_send_rdz_init(mv_hdl, ctx);
-    ctx->complete = mv_send_rdz_post;
+    ctx->complete = send_rdz_post;
     *req = (MPIV_Request) ctx;
   }
 }
@@ -106,28 +121,29 @@ void MPIV_Waitall(int count, MPIV_Request* req, MPI_Status* status) {
 }
 
 static int stop;
-// static std::thread progress_thread;
+static pthread_t progress_thread;
+
+static void* progress(void* arg)
+{
+  set_me_to_last();
+  stop = 0;
+  while (!stop) {
+    mv_progress(mv_hdl);
+  }
+}
 
 void MPIV_Init(int* argc, char*** args)
 {
-#if 0
   size_t heap_size = 1024 * 1024 * 1024;
   mv_open(argc, args, heap_size, &mv_hdl);
-  progress_thread = std::move(std::thread([=] {
-    affinity::set_me_to_last();
-    stop = 0;
-    while (!stop) {
-      mv_progress(mv_hdl);
-    }
-  }));
-#endif
+  pthread_create(&progress_thread, 0, progress, 0);
   MPIV_HEAP = (uintptr_t) mv_heap_ptr(mv_hdl);
 }
 
 void MPIV_Finalize()
 {
   stop = 1;
-  // progress_thread.join();
+  pthread_join(&progress_thread, 0);
   mv_close(mv_hdl);
 }
 
