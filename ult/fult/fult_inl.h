@@ -1,9 +1,9 @@
 #ifndef FULT_INL_H_
 #define FULT_INL_H_
 
-#include "lock.h"
-#include "macro.h"
-#include "affinity.h"
+#include "mv/lock.h"
+#include "mv/macro.h"
+#include "mv/affinity.h"
 
 // Fthread.
 

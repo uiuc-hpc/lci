@@ -43,7 +43,7 @@ all: $(LIBRARY) $(ARCHIVE)
 install:
 	mkdir -p $(PREFIX)/lib
 	mkdir -p $(PREFIX)/include
-	cp include/* $(PREFIX)/include
+	cp -R include/* $(PREFIX)/include
 	cp libmv.a $(PREFIX)/lib
 	cp libmv.so $(PREFIX)/lib
 

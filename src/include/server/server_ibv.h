@@ -4,11 +4,12 @@
 #include <mpi.h>
 
 #include "mv.h"
-#include "affinity.h"
+#include "mv/affinity.h"
+
 #include "pool.h"
 #include "infiniband/verbs.h"
 
-#include "profiler.h"
+#include "mv/profiler.h"
 
 #define ALIGNMENT (4096)
 

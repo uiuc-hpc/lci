@@ -9,7 +9,6 @@
 #include <stdint.h>
 
 #include "dequeue.h"
-#include "macro.h"
 
 #define MAX_NPOOLS 128
 #define MAX_LOCAL_POOL 8

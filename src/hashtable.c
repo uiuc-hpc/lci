@@ -14,8 +14,8 @@ int mv_hash_insert(mv_hash* h, mv_key key, mv_value* value);
 #include <assert.h>
 #include <stdlib.h>
 
-#include "lock.h"
-#include "macro.h"
+#include "mv/lock.h"
+#include "mv/macro.h"
 
 #define EMPTY ((uint64_t)-1)
 #define TBL_BIT_SIZE 9

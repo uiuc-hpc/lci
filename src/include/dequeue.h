@@ -2,7 +2,7 @@
 #define MV_DEQUEUE_H_
 
 #define MAX_SIZE (1 << 12)
-#include "lock.h"
+#include "mv/lock.h"
 
 struct dequeue {
   volatile int spinlock;

@@ -1,7 +1,7 @@
 #ifndef BITOPS_H_
 #define BITOPS_H_
 
-#include "macro.h"
+#include "mv/macro.h"
 
 // we need lock so it is atomic and will not be reorder.
 // but this is not guarantee that it will be available to other processor.

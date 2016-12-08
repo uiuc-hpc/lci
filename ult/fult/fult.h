@@ -3,9 +3,9 @@
 
 #include <sys/mman.h>
 
-#include "macro.h"
-#include "bitops.h"
 #include "config.h"
+#include "mv/macro.h"
+#include "bitops.h"
 #include "ult.h"
 
 #define DEBUG(x)

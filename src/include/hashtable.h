@@ -12,8 +12,7 @@ typedef void* mv_hash;
 #include <assert.h>
 #include <stdlib.h>
 
-#include "lock.h"
-#include "macro.h"
+#include "mv/lock.h"
 
 #define EMPTY ((uint64_t)-1)
 #define TBL_BIT_SIZE 9
