@@ -1,8 +1,10 @@
 MPICC = mpicc
+LD = mpicc
 GXX = gcc
 
-CFLAGS += -g -ggdb -O3 -Wall -Wextra -std=gnu99 -I../ult -I../include -I../
-CFLAGS += -D_GNU_SOURCE -pthread -DUSE_AFFI
+CFLAGS += -static -g3 -ggdb -O3 -Wall -Wextra -std=gnu99 -I../ult -I../include -I../
+CFLAGS += -D_GNU_SOURCE -DUSE_AFFI
+LDFLAGS += -O3 -pthread
 
 ### FOR TESTING HASH TABLE ###
 #FACEBOOK_INC = -I$(HOME)/facebook/include -I$(HOME)/glog/include -I$(HOME)/folly/folly/double-conversion #-DNDEBUG
@@ -27,13 +29,13 @@ CFLAGS += -D_GNU_SOURCE -pthread -DUSE_AFFI
 # LDFLAGS += -L$(ABT_LIB)
 
 ### FOR USING PAPI ##
-PAPI_LIB = $(TACC_PAPI_LIB) -lpapi
-PAPI_INC = $(TACC_PAPI_INC)
-CFLAGS += -I$(PAPI_INC)
-LDFLAGS += -L$(PAPI_LIB)
+# PAPI_LIB = $(TACC_PAPI_LIB) -lpapi
+# PAPI_INC = $(TACC_PAPI_INC)
+# CFLAGS += -I$(PAPI_INC)
+# LDFLAGS += -L$(PAPI_LIB)
 
-IBV_INC = -I/opt/ofed/include/ -I$(HOME)/libfab/include
-IBV_LIB = -libverbs # -lfabric
+IBV_INC = -I/usr/lib64 -I/opt/ofed/include/ -I$(HOME)/libfab/include
+IBV_LIB = -L/usr/lib64 -libverbs # -lfabric
 
 CFLAGS += $(IBV_INC)
 LDFLAGS += $(IBV_LIB) # -llmpe -lmpe
@@ -55,7 +57,8 @@ abx_%: abx_%.cxx
 
 %: %.c
 	make -C ../src
-	$(MPICC) $(CFLAGS) $(LDFLAGS) $^ ../src/libmv.a -o $@
+	$(MPICC) $(CFLAGS) $^ -c $^
+	$(LD) $(LDFLAGS) $@.o ../src/libmv.a -o $@
 
 %_abt: CFLAGS+=-DUSE_ABT
 %_abt: $(DEPS) %.cxx

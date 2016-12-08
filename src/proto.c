@@ -8,7 +8,14 @@ int PROTO_READY_FIN;
 int PROTO_AM;
 int PROTO_SEND_WRITE_FIN = 99;
 
-void mv_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+MV_INLINE void mvi_wait(mv_ctx *ctx, mv_sync* sync)
+{
+  while (ctx->type != REQ_DONE) {
+    thread_wait(sync);
+  }
+}
+
+MV_INLINE void mvi_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
   ctx->sync = sync;
   ctx->type = REQ_PENDING;
@@ -18,8 +25,12 @@ void mv_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
     ctx->type = REQ_DONE;
   }
 }
+void mv_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+{
+  mvi_send_rdz_post(mv, ctx, sync);
+}
 
-void mv_send_rdz_init(mvh* mv, mv_ctx* ctx)
+MV_INLINE void mvi_send_rdz_init(mvh* mv, mv_ctx* ctx)
 {
   mv_key key = mv_make_rdz_key(ctx->rank, ctx->tag);
   mv_value value = (mv_value)ctx;
@@ -27,14 +38,16 @@ void mv_send_rdz_init(mvh* mv, mv_ctx* ctx)
     proto_complete_rndz(mv, (mv_packet*)value, ctx);
   }
 }
+void mv_send_rdz_init(mvh* mv, mv_ctx* ctx)
+{
+  mvi_send_rdz_init(mv, ctx);
+}
 
 void mv_send_rdz(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
-  mv_send_rdz_init(mv, ctx);
-  mv_send_rdz_post(mv, ctx, sync);
-  while (ctx->type != REQ_DONE) {
-    thread_wait(sync);
-  }
+  mvi_send_rdz_init(mv, ctx);
+  mvi_send_rdz_post(mv, ctx, sync);
+  mvi_wait(ctx, sync);
 }
 
 void mv_send_eager(mvh* mv, mv_ctx* ctx)
@@ -55,7 +68,7 @@ void mv_send_eager(mvh* mv, mv_ctx* ctx)
                  (size_t)(ctx->size + sizeof(packet_header)), (void*)(p));
 }
 
-void mv_recv_rdz_init(mvh* mv, mv_ctx* ctx)
+MV_INLINE void mvi_recv_rdz_init(mvh* mv, mv_ctx* ctx)
 {
   mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool); //, 0);
   p->header.fid = PROTO_RECV_READY;
@@ -71,8 +84,12 @@ void mv_recv_rdz_init(mvh* mv, mv_ctx* ctx)
   mv_server_send(mv->server, ctx->rank, p, sizeof(packet_header) + sizeof(struct mv_rdz),
                  p);
 }
+void mv_recv_rdz_init(mvh* mv, mv_ctx* ctx)
+{
+  mvi_recv_rdz_init(mv, ctx);
+}
 
-void mv_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+MV_INLINE void mvi_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
   ctx->sync = sync;
   ctx->type = REQ_PENDING;
@@ -82,17 +99,19 @@ void mv_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
     ctx->type = REQ_DONE;
   }
 }
+void mv_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+{
+  mvi_recv_rdz_post(mv, ctx, sync);
+}
 
 void mv_recv_rdz(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
-  mv_recv_rdz_init(mv, ctx);
-  mv_recv_rdz_post(mv, ctx, sync);
-  while (ctx->type != REQ_DONE) {
-    thread_wait(sync);
-  }
+  mvi_recv_rdz_init(mv, ctx);
+  mvi_recv_rdz_post(mv, ctx, sync);
+  mvi_wait(ctx, sync);
 }
 
-void mv_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+MV_INLINE void mvi_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
   ctx->sync = sync;
   ctx->type = REQ_PENDING;
@@ -106,12 +125,15 @@ void mv_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
   }
 }
 
+void mv_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+{
+  mvi_recv_eager_post(mv, ctx, sync);
+}
+
 void mv_recv_eager(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
-  mv_recv_eager_post(mv, ctx, sync);
-  while (ctx->type != REQ_DONE) {
-    thread_wait(sync);
-  }
+  mvi_recv_eager_post(mv, ctx, sync);
+  mvi_wait(ctx, sync);
 }
 
 void mv_am_eager(mvh* mv, int node, void* src, int size,

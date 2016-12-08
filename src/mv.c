@@ -9,6 +9,7 @@ __thread int8_t
 tls_pool_struct[MAX_LOCAL_POOL] = {-1, -1, -1, -1, -1, -1, -1, -1};
 
 int mv_pool_nkey = 0;
+uint32_t server_max_inline = 128;
 
 uint8_t mv_am_register(mvh* mv, mv_am_func_t f)
 {

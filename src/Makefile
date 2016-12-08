@@ -3,7 +3,7 @@ CXX = gcc
 
 INCLUDE = -I../include -I../ -I./include
 
-CFLAGS ?= -g -ggdb -O3 -Wall -Wextra -std=gnu99 $(INCLUDE) -DUSE_AFFI -D_GNU_SOURCE -pthread
+CFLAGS ?= -g3 -ggdb -O3 -Wall -Wextra -std=gnu99 $(INCLUDE) -DUSE_AFFI -D_GNU_SOURCE -pthread
 
 IBV_INC = -I/opt/ofed/include/ -I$(HOME)/libfab/include
 
@@ -20,7 +20,7 @@ LDFLAGS += $(IBV_LIB) # -llmpe -lmpe
 # LDFLAGS += -L$(PAPI_LIB)
 
 FCONTEXT = mfcontext.o jfcontext.o
-COMM = mv.o mpiv.o proto.o progress.o hashtable.o pool.o server_ibv.o
+COMM = mv.o mpiv.o proto.o progress.o hashtable.o pool.o # server_ibv.o
 
 all: libmv.a
 

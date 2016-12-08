@@ -21,8 +21,6 @@ int mv_hash_insert(mv_hash* h, mv_key key, mv_value* value);
 #define TBL_BIT_SIZE 9
 #define TBL_WIDTH  4
 
-uint32_t myhash(const uint64_t k);
-
 typedef struct hash_val {
   union {
     struct {
@@ -30,13 +28,16 @@ typedef struct hash_val {
       mv_value val;
     } entry;
     struct {
-      volatile int lock __attribute__((aligned(8)));
+      volatile int lock;
       struct hash_val* next;
     } control;
   };
-} hash_val __attribute__((aligned(64)));
+  // NOTE: This alignment is important, it makes 4 entries into a cache line.
+  // Make sure using TBL_WIDTH = 4
+} hash_val __attribute__((aligned(16)));
 
-hash_val* create_table(size_t num_rows);
+MV_INLINE hash_val* create_table(size_t num_rows);
+MV_INLINE uint32_t myhash(const uint64_t k);
 
 void mv_hash_init(mv_hash** h)
 {
@@ -110,7 +111,7 @@ static const uint32_t Seed = 0x811C9DC5;   // 2166136261
 #define TINY_MASK(x) (((uint32_t)1 << (x)) - 1)
 #define FNV1_32_INIT ((uint32_t)2166136261)
 
-uint32_t myhash(const uint64_t k)
+MV_INLINE uint32_t myhash(const uint64_t k)
 {
   uint32_t hash = ((k & 0xff) ^ Seed) * Prime;
   hash = (((k >> 8) & 0xff) ^ hash) * Prime;
@@ -125,7 +126,7 @@ uint32_t myhash(const uint64_t k)
   return (((hash >> TBL_BIT_SIZE) ^ hash) & TINY_MASK(TBL_BIT_SIZE));
 }
 
-hash_val* create_table(size_t num_rows)
+MV_INLINE hash_val* create_table(size_t num_rows)
 {
   hash_val* ret = NULL;
   assert(posix_memalign((void**)&(ret), 64,
