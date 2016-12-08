@@ -1,8 +1,5 @@
 #include "mv_priv.h"
 
-extern int PROTO_READY_FIN;
-extern int PROTO_SEND_WRITE_FIN;
-
 static void mv_recv_am(mvh* mv, mv_packet* p)
 {
   uint8_t fid = (uint8_t)p->header.tag;
@@ -52,10 +49,11 @@ static void mv_recv_short(mvh* mv, mv_packet* p)
 
 void mv_progress_init(mvh* mv)
 {
-  PROTO_SHORT = mv_am_register(mv, mv_recv_short);
-  PROTO_RECV_READY = mv_am_register(mv, (mv_am_func_t)mv_recv_recv_ready);
-  PROTO_READY_FIN = mv_am_register(mv, (mv_am_func_t)mv_recv_send_ready_fin);
-  PROTO_AM = mv_am_register(mv, (mv_am_func_t)mv_recv_am);
+  // Keep this order.
+  mv_am_register(mv, mv_recv_short);
+  mv_am_register(mv, (mv_am_func_t)mv_recv_recv_ready);
+  mv_am_register(mv, (mv_am_func_t)mv_recv_send_ready_fin);
+  mv_am_register(mv, (mv_am_func_t)mv_recv_am);
 }
 
 

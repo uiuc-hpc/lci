@@ -20,7 +20,7 @@ LDFLAGS += $(IBV_LIB) # -llmpe -lmpe
 # LDFLAGS += -L$(PAPI_LIB)
 
 FCONTEXT = mfcontext.o jfcontext.o
-COMM = mv.o mpiv.o proto.o progress.o hashtable.o pool.o # server_ibv.o
+COMM = mv.o mpiv.o progress.o hashtable.o pool.o # server_ibv.o
 
 all: libmv.a
 

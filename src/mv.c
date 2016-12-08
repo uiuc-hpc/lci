@@ -53,3 +53,75 @@ void mv_close(mvh* mv)
   mv_server_finalize(mv->server);
   MPI_Finalize();
 }
+
+void mv_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+{
+  mvi_send_rdz_post(mv, ctx, sync);
+}
+
+void mv_send_rdz_init(mvh* mv, mv_ctx* ctx)
+{
+  mvi_send_rdz_init(mv, ctx);
+}
+
+void mv_send_rdz(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+{
+  mvi_send_rdz_init(mv, ctx);
+  mvi_send_rdz_post(mv, ctx, sync);
+  mvi_wait(ctx, sync);
+}
+
+void mv_send_eager(mvh* mv, mv_ctx* ctx)
+{
+  mvi_send_eager(mv, ctx);
+}
+
+void mv_recv_rdz_init(mvh* mv, mv_ctx* ctx)
+{
+  mvi_recv_rdz_init(mv, ctx);
+}
+
+void mv_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+{
+  mvi_recv_rdz_post(mv, ctx, sync);
+}
+
+void mv_recv_rdz(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+{
+  mvi_recv_rdz_init(mv, ctx);
+  mvi_recv_rdz_post(mv, ctx, sync);
+  mvi_wait(ctx, sync);
+}
+
+void mv_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+{
+  mvi_recv_eager_post(mv, ctx, sync);
+}
+
+void mv_recv_eager(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+{
+  mvi_recv_eager_post(mv, ctx, sync);
+  mvi_wait(ctx, sync);
+}
+
+void mv_am_eager(mvh* mv, int node, void* src, int size,
+                           uint32_t fid)
+{
+  mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool); 
+  p->header.fid = PROTO_AM;
+  p->header.from = mv->me;
+  p->header.tag = fid;
+  uint32_t* buffer = (uint32_t*)p->content.buffer;
+  buffer[0] = size;
+  memcpy((void*)&buffer[1], src, size);
+  mv_server_send(mv->server, node, p,
+                 sizeof(uint32_t) + (uint32_t)size + sizeof(packet_header),
+                 p);
+}
+
+void mv_put(mvh* mv, int node, void* dst, void* src, int size,
+                      uint32_t sid)
+{
+  mv_server_rma_signal(mv->server, node, src, dst,
+                       mv_server_heap_rkey(mv->server, node), size, sid, 0);
+}

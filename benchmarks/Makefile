@@ -4,7 +4,7 @@ GXX = gcc
 
 CFLAGS += -static -g3 -ggdb -O3 -Wall -Wextra -std=gnu99 -I../ult -I../include -I../
 CFLAGS += -D_GNU_SOURCE -DUSE_AFFI
-LDFLAGS += -O3 -pthread
+LDFLAGS += -O3 -pthread -flto
 
 ### FOR TESTING HASH TABLE ###
 #FACEBOOK_INC = -I$(HOME)/facebook/include -I$(HOME)/glog/include -I$(HOME)/folly/folly/double-conversion #-DNDEBUG

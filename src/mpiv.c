@@ -10,17 +10,19 @@ void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype,
   MPI_Type_size(datatype, &size);
   size *= count;
   mv_sync* sync = mv_get_sync();
-  mv_ctx ctx = {
+  struct mv_ctx ctx = {
     .buffer = buffer,
     .size = size,
     .rank = rank,
     .tag = tag
   };
   if ((size_t)size <= SHORT_MSG_SIZE) {
-    mv_recv_eager(mv_hdl, &ctx, sync);
+    mvi_recv_eager_post(mv_hdl, &ctx, sync);
   } else {
-    mv_recv_rdz(mv_hdl, &ctx, sync);
+    mvi_recv_rdz_init(mv_hdl, &ctx);
+    mvi_recv_rdz_post(mv_hdl, &ctx, sync);
   }
+  mvi_wait(&ctx, sync);
 }
 
 void MPIV_Send(void* buffer, int count, MPI_Datatype datatype,
@@ -29,16 +31,19 @@ void MPIV_Send(void* buffer, int count, MPI_Datatype datatype,
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
-  mv_ctx ctx = {
+  struct mv_ctx ctx = {
      .buffer = buffer,
      .size = size,
      .rank = rank,
      .tag = tag
   };
   if (size <= SHORT_MSG_SIZE) {
-    mv_send_eager(mv_hdl, &ctx);
+    mvi_send_eager(mv_hdl, &ctx);
   } else {
-    mv_send_rdz(mv_hdl, &ctx, mv_get_sync());
+    mv_sync* sync = mv_get_sync();
+    mvi_send_rdz_init(mv_hdl, &ctx);
+    mvi_send_rdz_post(mv_hdl, &ctx, sync);
+    mvi_wait(&ctx, sync);
   }
 }
 
@@ -55,7 +60,7 @@ void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
   if ((size_t)size <= SHORT_MSG_SIZE) {
     ctx->complete = mv_recv_eager_post;
   } else {
-    mv_recv_rdz_init(mv_hdl, ctx);
+    mvi_recv_rdz_init(mv_hdl, ctx);
     ctx->complete = mv_recv_rdz_post;
   }
   *req = (MPIV_Request) ctx;
@@ -73,10 +78,10 @@ void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
   ctx->tag = tag;
 
   if (size <= SHORT_MSG_SIZE) {
-    mv_send_eager(mv_hdl, ctx);
+    mvi_send_eager(mv_hdl, ctx);
     *req = MPI_REQUEST_NULL;
   } else {
-    mv_send_rdz_init(mv_hdl, ctx);
+    mvi_send_rdz_init(mv_hdl, ctx);
     ctx->complete = mv_send_rdz_post;
     *req = (MPIV_Request) ctx;
   }
