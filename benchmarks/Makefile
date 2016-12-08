@@ -22,10 +22,10 @@ LDFLAGS += -O3 -Wl,-rpath=$(abspath ../) -Wl,-z,now -Wl,-z,relro
 # CFLAGS += $(TBB_INC)
 
 ### FOR TESTING ARGOBOTS ###
-# ABT_INC = $(HOME)/argo/include
-# ABT_LIB = $(HOME)/argo/lib -labt
-# CFLAGS += -I$(ABT_INC)
-# LDFLAGS += -L$(ABT_LIB)
+ABT_INC = $(HOME)/argo/include
+ABT_LIB = $(HOME)/argo/lib -labt
+CFLAGS += -I$(ABT_INC)
+LDFLAGS += -L$(ABT_LIB)
 
 ### FOR USING PAPI ##
 # PAPI_LIB = $(TACC_PAPI_LIB) -lpapi
