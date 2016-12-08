@@ -3,8 +3,12 @@
 mvh* mv_hdl;
 void* MPIV_HEAP;
 
+#define __UNUSED__ __attribute__((unused))
+
 void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype,
-                         int rank, int tag, MPI_Comm comm, MPI_Status* status)
+    int rank, int tag,
+    MPI_Comm comm __UNUSED__,
+    MPI_Status* status __UNUSED__)
 {
   int size;
   MPI_Type_size(datatype, &size);
@@ -26,7 +30,7 @@ void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype,
 }
 
 void MPIV_Send(void* buffer, int count, MPI_Datatype datatype,
-                         int rank, int tag, MPI_Comm comm)
+    int rank, int tag, MPI_Comm comm __UNUSED__)
 {
   int size;
   MPI_Type_size(datatype, &size);
@@ -48,7 +52,7 @@ void MPIV_Send(void* buffer, int count, MPI_Datatype datatype,
 }
 
 void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
-                int tag, MPI_Comm comm, MPIV_Request* req) {
+                int tag, MPI_Comm comm __UNUSED__, MPIV_Request* req) {
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
@@ -67,7 +71,7 @@ void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
 }
 
 void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
-                int tag, MPI_Comm comm, MPIV_Request* req) {
+                int tag, MPI_Comm comm __UNUSED__, MPIV_Request* req) {
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
@@ -87,7 +91,7 @@ void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
   }
 }
 
-void MPIV_Waitall(int count, MPIV_Request* req, MPI_Status* status) {
+void MPIV_Waitall(int count, MPIV_Request* req, MPI_Status* status __UNUSED__) {
   mv_sync* counter = mv_get_counter(count);
   for (int i = 0; i < count; i++) {
     if (req[i] == MPI_REQUEST_NULL) {
@@ -113,7 +117,7 @@ void MPIV_Waitall(int count, MPIV_Request* req, MPI_Status* status) {
 volatile int stop;
 static pthread_t progress_thread;
 
-static void* progress(void* arg)
+static void* progress(void* arg __UNUSED__)
 {
   set_me_to_last();
   while (!stop) {
@@ -146,4 +150,4 @@ void* MPIV_Alloc(size_t size)
     return ptr;
 }
 
-void MPIV_Free(void* ptr) {}
+void MPIV_Free(void* ptr __UNUSED__) {}

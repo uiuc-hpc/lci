@@ -67,6 +67,10 @@ typedef struct ibv_server {
 
 
 MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr);
+MV_INLINE void ibv_server_finalize(ibv_server* s);
+MV_INLINE mv_server_memory* ibv_server_mem_malloc(ibv_server* s, size_t size);
+MV_INLINE void ibv_server_mem_free(mv_server_memory* mr);
+
 MV_INLINE void ibv_server_post_recv(ibv_server* s, mv_packet* p);
 MV_INLINE void ibv_server_write_send(ibv_server* s, int rank, void* buf, size_t size,
                              void* ctx);
@@ -76,29 +80,12 @@ MV_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
 MV_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
                                    void* to, uint32_t rkey,
                                    size_t size, uint32_t sid, void* ctx);
-MV_INLINE void ibv_server_finalize(ibv_server* s);
 MV_INLINE int ibv_server_progress(ibv_server* s);
 
-MV_INLINE mv_server_memory* ibv_server_mem_malloc(ibv_server* s, size_t size);
-MV_INLINE void ibv_server_mem_free(mv_server_memory* mr);
 MV_INLINE void* ibv_server_heap_ptr(mv_server* s);
 MV_INLINE uint32_t ibv_server_heap_rkey(mv_server* s, int node);
 
-MV_INLINE mv_server_memory* ibv_server_mem_malloc(ibv_server* s, size_t size) {
-  int mr_flags =
-      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-  void* ptr = 0;
-  posix_memalign(&ptr, 4096, size + 4096); 
-  return ibv_reg_mr(s->dev_pd, ptr, size, mr_flags);
-}
-
-MV_INLINE void ibv_server_mem_free(mv_server_memory* mr) {
-  void* ptr = (void*) mr->addr;
-  ibv_dereg_mr(mr);
-  free(ptr);
-}
-
-static struct ibv_qp* qp_create(ibv_server* s, struct ibv_device_attr* dev_attr) {
+MV_INLINE struct ibv_qp* qp_create(ibv_server* s, struct ibv_device_attr* dev_attr) {
   struct ibv_qp_init_attr qp_init_attr;
   qp_init_attr.qp_context = 0;
   qp_init_attr.send_cq = s->send_cq;
@@ -185,117 +172,6 @@ MV_INLINE void qp_to_rts(struct ibv_qp* qp) {
   }
 }
 
-MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size,
-                       ibv_server** s_ptr)
-{
-  ibv_server* s = 0;
-  posix_memalign((void**) &s, 64, sizeof(ibv_server));
-
-#ifdef USE_AFFI
-  set_me_to(0);
-#endif
-  int num_devices;
-  struct ibv_device** dev_list = ibv_get_device_list(&num_devices);
-  if (num_devices <= 0) {
-    printf("Unable to find any ibv devices\n");
-    exit(EXIT_FAILURE);
-  }
-  // Use the last one by default.
-  s->dev_ctx = ibv_open_device(dev_list[num_devices - 1]);
-  struct ibv_device_attr dev_attr;
-  ibv_query_device(s->dev_ctx, &dev_attr);
-  int rc = 0;
-  struct ibv_port_attr port_attr;
-  int dev_port = 0;
-  for (; dev_port < 128; dev_port++) {
-    rc = ibv_query_port(s->dev_ctx, dev_port, &port_attr);
-    if (rc == 0) break;
-  }
-  if (rc != 0) {
-    printf("Unable to query port\n");
-    exit(EXIT_FAILURE);
-  }
-
-  s->dev_pd = ibv_alloc_pd(s->dev_ctx);
-  if (s->dev_pd == 0) {
-    printf("Could not create protection domain for context\n");
-    exit(EXIT_FAILURE);
-  }
-
-  // Create shared-receive queue, **number here affect performance**.
-  struct ibv_srq_init_attr srq_attr;
-  srq_attr.srq_context = 0;
-  srq_attr.attr.max_wr = MAX_RECV;
-  srq_attr.attr.max_sge = 1;
-  srq_attr.attr.srq_limit = 0;
-  s->dev_srq = ibv_create_srq(s->dev_pd, &srq_attr);
-  if (s->dev_srq == 0) {
-    printf("Could not create shared received queue\n");
-    exit(EXIT_FAILURE);
-  }
-    
-  // Create completion queues.
-  s->send_cq = ibv_create_cq(s->dev_ctx, 64 * 1024, 0, 0, 0);
-  s->recv_cq = ibv_create_cq(s->dev_ctx, 64 * 1024, 0, 0, 0);
-  if (s->send_cq == 0 || s->recv_cq == 0) {
-    printf("Unable to create cq\n");
-    exit(EXIT_FAILURE);
-  }
-
-  // Create RDMA memory.
-  s->heap = ibv_server_mem_malloc(s, heap_size);
-  s->heap_ptr = (void*) s->heap->addr;
-
-  if (s->heap == 0) {
-    printf("Unable to create sbuf\n");
-    exit(EXIT_FAILURE);
-  }
-
-  MPI_Comm_rank(MPI_COMM_WORLD, &mv->me);
-  MPI_Comm_size(MPI_COMM_WORLD, &mv->size);
-  s->conn = (struct conn_ctx*) malloc(sizeof(struct conn_ctx) * mv->size);
-  s->dev_qp = (struct ibv_qp**) malloc(sizeof(struct ibv_qp*) * mv->size);
-
-  struct conn_ctx lctx;
-  struct conn_ctx* rmtctx;
-
-  for (int i = 0; i < mv->size; i++) {
-    s->dev_qp[i] = qp_create(s, &dev_attr);
-    if (!s->dev_qp[i]) {
-      printf("Unable to create queue pair\n");
-      exit(EXIT_FAILURE);
-    }
-
-    rmtctx = &s->conn[i];
-    lctx.addr = (uintptr_t) s->heap_ptr;
-    lctx.rkey = s->heap->rkey;
-    lctx.qp_num = s->dev_qp[i]->qp_num;
-    lctx.lid = port_attr.lid;
-    rc = ibv_query_gid(s->dev_ctx, dev_port, 0, &lctx.gid);
-    if (rc != 0) {
-      printf("Unable to query gid\n");
-      exit(EXIT_FAILURE);
-    }
-
-    // Exchange connection conn_ctx.
-    MPI_Sendrecv(&lctx, sizeof(struct conn_ctx), MPI_BYTE, i, 0, rmtctx,
-        sizeof(struct conn_ctx), MPI_BYTE, i, 0, MPI_COMM_WORLD,
-        MPI_STATUS_IGNORE);
-
-    qp_init(s->dev_qp[i], dev_port);
-    qp_to_rtr(s->dev_qp[i], dev_port, &port_attr, rmtctx);
-    qp_to_rts(s->dev_qp[i]);
-  }
-
-  // Prepare the mv_packet_mgr and prepost some mv_packet.
-  s->sbuf = ibv_server_mem_malloc(s, sizeof(mv_packet) * (MAX_SEND + MAX_RECV));
-  mv_pool_create(&s->sbuf_pool, (void*) s->sbuf->addr, sizeof(mv_packet), MAX_SEND + MAX_RECV);
-
-  s->recv_posted = 0;
-  s->mv = mv;
-  s->mv->pkpool = s->sbuf_pool;
-  *s_ptr = s;
-}
 
 MV_INLINE void ibv_server_post_recv(ibv_server* s, mv_packet* p)
 {
@@ -426,6 +302,132 @@ MV_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
   IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
 }
 
+MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size,
+    ibv_server** s_ptr)
+{
+  ibv_server* s = 0;
+  posix_memalign((void**) &s, 64, sizeof(ibv_server));
+
+  assert(s);
+
+#ifdef USE_AFFI
+  set_me_to(0);
+#endif
+
+  int num_devices;
+  struct ibv_device** dev_list = ibv_get_device_list(&num_devices);
+  if (num_devices <= 0) {
+    printf("Unable to find any ibv devices\n");
+    exit(EXIT_FAILURE);
+  }
+  // Use the last one by default.
+  s->dev_ctx = ibv_open_device(dev_list[num_devices - 1]);
+  if (s->dev_ctx == 0) {
+    printf("Unable to find any ibv devices\n");
+    exit(EXIT_FAILURE);
+  }
+
+  struct ibv_device_attr dev_attr;
+  int rc = ibv_query_device(s->dev_ctx, &dev_attr);
+  if (rc != 0) {
+    printf("Unable to query device\n");
+    exit(EXIT_FAILURE);
+  }
+
+  struct ibv_port_attr port_attr;
+  uint8_t dev_port = 0;
+  // int (*func)(struct ibv_context*, uint8_t, struct ibv_port_attr *);
+  // func = ibv_query_port;
+  for (; dev_port < 128; dev_port ++) {
+    rc = ibv_query_port(s->dev_ctx, dev_port, &port_attr);
+    if (rc == 0) break;
+  }
+  if (rc != 0) {
+    printf("Unable to query port\n");
+    exit(EXIT_FAILURE);
+  }
+
+  s->dev_pd = ibv_alloc_pd(s->dev_ctx);
+  if (s->dev_pd == 0) {
+    printf("Could not create protection domain for context\n");
+    exit(EXIT_FAILURE);
+  }
+
+  // Create shared-receive queue, **number here affect performance**.
+  struct ibv_srq_init_attr srq_attr;
+  srq_attr.srq_context = 0;
+  srq_attr.attr.max_wr = MAX_RECV;
+  srq_attr.attr.max_sge = 1;
+  srq_attr.attr.srq_limit = 0;
+  s->dev_srq = ibv_create_srq(s->dev_pd, &srq_attr);
+  if (s->dev_srq == 0) {
+    printf("Could not create shared received queue\n");
+    exit(EXIT_FAILURE);
+  }
+    
+  // Create completion queues.
+  s->send_cq = ibv_create_cq(s->dev_ctx, 64 * 1024, 0, 0, 0);
+  s->recv_cq = ibv_create_cq(s->dev_ctx, 64 * 1024, 0, 0, 0);
+  if (s->send_cq == 0 || s->recv_cq == 0) {
+    printf("Unable to create cq\n");
+    exit(EXIT_FAILURE);
+  }
+
+  // Create RDMA memory.
+  s->heap = ibv_server_mem_malloc(s, heap_size);
+  s->heap_ptr = (void*) s->heap->addr;
+
+  if (s->heap == 0) {
+    printf("Unable to create sbuf\n");
+    exit(EXIT_FAILURE);
+  }
+
+  MPI_Comm_rank(MPI_COMM_WORLD, &mv->me);
+  MPI_Comm_size(MPI_COMM_WORLD, &mv->size);
+  s->conn = (struct conn_ctx*) malloc(sizeof(struct conn_ctx) * mv->size);
+  s->dev_qp = (struct ibv_qp**) malloc(sizeof(struct ibv_qp*) * mv->size);
+
+  struct conn_ctx lctx;
+  struct conn_ctx* rmtctx;
+
+  for (int i = 0; i < mv->size; i++) {
+    s->dev_qp[i] = qp_create(s, &dev_attr);
+    if (!s->dev_qp[i]) {
+      printf("Unable to create queue pair\n");
+      exit(EXIT_FAILURE);
+    }
+
+    rmtctx = &s->conn[i];
+    lctx.addr = (uintptr_t) s->heap_ptr;
+    lctx.rkey = s->heap->rkey;
+    lctx.qp_num = s->dev_qp[i]->qp_num;
+    lctx.lid = port_attr.lid;
+    rc = ibv_query_gid(s->dev_ctx, dev_port, 0, &lctx.gid);
+    if (rc != 0) {
+      printf("Unable to query gid\n");
+      exit(EXIT_FAILURE);
+    }
+
+    // Exchange connection conn_ctx.
+    MPI_Sendrecv(&lctx, sizeof(struct conn_ctx), MPI_BYTE, i, 0, rmtctx,
+        sizeof(struct conn_ctx), MPI_BYTE, i, 0, MPI_COMM_WORLD,
+        MPI_STATUS_IGNORE);
+
+    qp_init(s->dev_qp[i], dev_port);
+    qp_to_rtr(s->dev_qp[i], dev_port, &port_attr, rmtctx);
+    qp_to_rts(s->dev_qp[i]);
+  }
+
+  // Prepare the mv_packet_mgr and prepost some mv_packet.
+  s->sbuf = ibv_server_mem_malloc(s, sizeof(mv_packet) * (MAX_SEND + MAX_RECV));
+  mv_pool_create(&s->sbuf_pool, (void*) s->sbuf->addr, sizeof(mv_packet), MAX_SEND + MAX_RECV);
+
+  s->recv_posted = 0;
+  s->mv = mv;
+  s->mv->pkpool = s->sbuf_pool;
+  *s_ptr = s;
+}
+
 MV_INLINE void ibv_server_finalize(ibv_server* s)
 {
   ibv_destroy_cq(s->send_cq);
@@ -434,6 +436,20 @@ MV_INLINE void ibv_server_finalize(ibv_server* s)
   ibv_server_mem_free(s->sbuf);
   ibv_server_mem_free(s->heap);
   // s->heap.finalize();
+}
+
+MV_INLINE mv_server_memory* ibv_server_mem_malloc(ibv_server* s, size_t size) {
+  int mr_flags =
+      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+  void* ptr = 0;
+  posix_memalign(&ptr, 4096, size + 4096); 
+  return ibv_reg_mr(s->dev_pd, ptr, size, mr_flags);
+}
+
+MV_INLINE void ibv_server_mem_free(mv_server_memory* mr) {
+  void* ptr = (void*) mr->addr;
+  ibv_dereg_mr(mr);
+  free(ptr);
 }
 
 MV_INLINE uint32_t ibv_server_heap_rkey(ibv_server* s, int node)
