@@ -1,4 +1,5 @@
 #include "mv_priv.h"
+#include "mv/affinity.h"
 
 MV_EXPORT
 mvh* mv_hdl;

@@ -25,14 +25,6 @@ typedef struct mv_packet mv_packet;
 struct mv_pool;
 typedef struct mv_pool mv_pool;
 
-#if defined(MV_USE_SERVER_IBV)
-typedef struct ibv_server mv_server;
-#elif defined(MV_USE_SERVER_OFI)
-typedef struct ofi_server mv_server;
-#else
-#error("Need server definition (MV_USE_SERVER_IBV | MV_USE_SERVER_OFI)")
-#endif
-
 typedef uintptr_t mv_value;
 typedef uint64_t mv_key;
 typedef void* mv_hash;
@@ -66,7 +58,10 @@ void mv_am_eager(mvh* mv, int node, void* src, int size,
     uint32_t fid);
 
 MV_EXPORT
-void mv_put(mvh* mv, int node, void* dst, void* src, int size,
+void mv_put(mvh* mv, int node, void* dst, void* src, int size);
+
+MV_EXPORT
+void mv_put_signal(mvh* mv, int node, void* dst, void* src, int size,
     uint32_t sid);
 
 MV_EXPORT

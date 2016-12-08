@@ -119,9 +119,15 @@ void mv_am_eager(mvh* mv, int node, void* src, int size,
                  p);
 }
 
-void mv_put(mvh* mv, int node, void* dst, void* src, int size,
-                      uint32_t sid)
+void mv_put(mvh* mv, int node, void* dst, void* src, int size)
+{
+  mv_server_rma(mv->server, node, src, dst,
+      mv_server_heap_rkey(mv->server, node), size, 0);
+}
+
+void mv_put_signal(mvh* mv, int node, void* dst, void* src, int size,
+    uint32_t sid)
 {
   mv_server_rma_signal(mv->server, node, src, dst,
-                       mv_server_heap_rkey(mv->server, node), size, sid, 0);
+      mv_server_heap_rkey(mv->server, node), size, sid, 0);
 }

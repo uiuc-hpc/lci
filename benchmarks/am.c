@@ -16,7 +16,7 @@ void test(void* buf, uint32_t size)
   memset(dma_src, 'A', 64);
   int me;
   MPI_Comm_rank(MPI_COMM_WORLD, &me);
-  mv_put(mv_hdl, 1 - me, (void*)rmt_dma_buf, dma_src, 64, 1337);
+  mv_put_signal(mv_hdl, 1 - me, (void*)rmt_dma_buf, dma_src, 64, 1337);
   done = 1;
 }
 

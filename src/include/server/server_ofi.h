@@ -1,8 +1,8 @@
 #ifndef SERVER_OFI_H_
 #define SERVER_OFI_H_
 
-#include <cstdlib>
-#include <cstring>
+#include <stdlib.h>
+#include <string.h>
 #include <mpi.h>
 #include <rdma/fabric.h>
 #include <rdma/fi_domain.h>
@@ -13,10 +13,7 @@
 #include <rdma/fi_errno.h>
 #include <rdma/fi_rma.h>
 
-#include "lock.h"
-
-#include <vector>
-using std::vector;
+#include "mv/lock.h"
 
 #define FI_SAFECALL(x)                                                    \
   {                                                                       \
@@ -25,71 +22,61 @@ using std::vector;
       printf("err : %s (%s:%d)\n", fi_strerror(err), __FILE__, __LINE__); \
       MPI_Abort(MPI_COMM_WORLD, err);                                     \
     }                                                                     \
-  }
+  } while (0);
 
 #define ALIGNMENT (4096)
 #define ALIGNEDX(x) \
   (void*)((((uintptr_t)x + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT))
 #define MAX_CQ_SIZE (16 * 1024)
 
-struct ofi_server {
-  std::thread poll_thread;
-  volatile bool stop;
+typedef struct ofi_server {
+  struct fi_info* fi;
+  struct fid_fabric* fabric;
+  struct fid_domain* domain;
+  struct fid_ep* ep;
+  struct fid_cq* scq;
+  struct fid_cq* rcq;
+  struct fid_mr* mr_heap;
+  struct fid_mr* mr_sbuf;
+  struct fid_av* av;
+  fi_addr_t* fi_addr;
+  uintptr_t* heap_addr;
 
-  fi_info* fi;
-  fid_fabric* fabric;
-  fid_domain* domain;
-  fid_ep* ep;
-  fid_cq* scq;
-  fid_cq* rcq;
-  fid_mr* mr_heap;
-  fid_mr* mr_sbuf;
-  fid_av* av;
-  vector<fi_addr_t> fi_addr;
-  vector<uintptr_t> heap_addr;
-
-  unique_ptr<char[]> heap;
-  unique_ptr<char[]> sbuf;
+  void* heap;
+  void* sbuf;
+  mv_pool* sbuf_pool;
 
   uint32_t heap_rkey;
   int recv_posted;
-  unique_ptr<pinned_pool> sbuf_alloc;
-  mv_engine* mv;
-  mv_pp* pkpool;
+  mvh* mv;
   volatile int lock;
-} __attribute__((aligned(64)));
+} ofi_server __attribute__((aligned(64)));
 
-inline void ofi_init(mv_engine* mv, mv_pp*, size_t heap_size,
-                     ofi_server** s_ptr);
-inline void ofi_post_recv(ofi_server* s, packet* p);
-inline void ofi_serve(ofi_server* s);
-inline void ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
+MV_INLINE void ofi_init(mvh* mv, size_t heap_size,
+    ofi_server** s_ptr);
+MV_INLINE void ofi_post_recv(ofi_server* s, mv_packet* p);
+MV_INLINE void ofi_serve(ofi_server* s);
+MV_INLINE void ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
                            void* ctx);
-inline void ofi_write_rma(ofi_server* s, int rank, void* from, uint32_t lkey,
+MV_INLINE void ofi_write_rma(ofi_server* s, int rank, void* from,
                           void* to, uint32_t rkey, size_t size, void* ctx);
-inline void ofi_write_rma_signal(ofi_server* s, int rank, void* from,
-                                 uint32_t lkey, void* to, uint32_t rkey,
+MV_INLINE void ofi_write_rma_signal(ofi_server* s, int rank, void* from,
+                                 void* to, uint32_t rkey,
                                  size_t size, uint32_t sid, void* ctx);
-inline void ofi_finalize(ofi_server* s);
+MV_INLINE void ofi_finalize(ofi_server* s);
 
-inline void ofi_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size,
-                     ofi_server** s_ptr)
+MV_INLINE void ofi_init(mvh* mv, size_t heap_size,
+    ofi_server** s_ptr)
 {
-#ifdef USE_AFFI
-  affinity::set_me_to(0);
-#endif
-
 // Create hint.
-#if 1
   struct fi_info* hints;
   hints = fi_allocinfo();
   hints->ep_attr->type = FI_EP_RDM;
   // hints->domain_attr->mr_mode = FI_MR_SCALABLE;
   hints->caps = FI_RMA | FI_MSG;
   hints->mode = FI_CONTEXT | FI_LOCAL_MR;
-#endif
 
-  ofi_server* s = new ofi_server();
+  ofi_server* s = malloc(sizeof(ofi_server));
 
   // Create info.
   FI_SAFECALL(fi_getinfo(FI_VERSION(1, 0), NULL, NULL, 0, hints, &s->fi));
@@ -116,24 +103,28 @@ inline void ofi_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size,
   FI_SAFECALL(fi_ep_bind(s->ep, (fid_t)s->rcq, FI_RECV));
 
   // Get memory for heap.
-  s->heap = std::move(unique_ptr<char[]>(new char[heap_size]));
+  s->heap = 0 ;//std::move(unique_ptr<char[]>(new char[heap_size]));
+  posix_memalign(&s->heap, 4096, heap_size);
 
-  FI_SAFECALL(fi_mr_reg(s->domain, s->heap.get(), heap_size,
+  FI_SAFECALL(fi_mr_reg(s->domain, s->heap, heap_size,
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE | FI_REMOTE_READ,
                         0, 0, 0, &s->mr_heap, 0));
 
   s->heap_rkey = fi_mr_key(s->mr_heap);
 
-  s->sbuf = std::move(
-      unique_ptr<char[]>(new char[sizeof(packet) * (MAX_SEND + MAX_RECV + 2)]));
+  // s->sbuf = std::move(
+      // unique_ptr<char[]>(new char[sizeof(mv_packet) * (MAX_SEND + MAX_RECV + 2)]));
+  s->sbuf = 0;
+  posix_memalign(&s->sbuf, 4096, (MAX_SEND + MAX_RECV) * sizeof(mv_packet));
 
-  FI_SAFECALL(fi_mr_reg(s->domain, s->sbuf.get(),
-                        sizeof(packet) * (MAX_SEND + MAX_RECV + 2),
+  FI_SAFECALL(fi_mr_reg(s->domain, s->sbuf,
+                        sizeof(mv_packet) * (MAX_SEND + MAX_RECV + 2),
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE | FI_REMOTE_READ,
                         0, 1, 0, &s->mr_sbuf, 0));
 
-  s->sbuf_alloc = std::move(
-      std::unique_ptr<pinned_pool>(new pinned_pool(ALIGNEDX(s->sbuf.get()))));
+  // s->sbuf_alloc = std::move(
+      // std::unique_ptr<pinned_pool>(new pinned_pool(ALIGNEDX(s->sbuf.get()))));
+  mv_pool_create(&s->sbuf_pool, s->sbuf, sizeof(mv_packet), MAX_SEND + MAX_RECV);
 
   MPI_Comm_rank(MPI_COMM_WORLD, &mv->me);
   MPI_Comm_size(MPI_COMM_WORLD, &mv->size);
@@ -145,11 +136,11 @@ inline void ofi_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size,
   FI_SAFECALL(fi_getname((fid_t)s->ep, addr, &addrlen));
 
   // Set heap address at the end. TODO(danghvu): Need a more generic way.
-  uintptr_t myaddr = (uintptr_t)s->heap.get();
+  uintptr_t myaddr = (uintptr_t)s->heap;
   *(uintptr_t*)((char*)addr + addrlen) = myaddr;
 
-  s->fi_addr.resize(mv->size);
-  s->heap_addr.resize(mv->size);
+  s->fi_addr = malloc(sizeof(fi_addr_t) * mv->size);
+  s->heap_addr = malloc(sizeof(uintptr_t) * mv->size);
 
   struct fi_av_attr av_attr;
   memset(&av_attr, 0, sizeof(av_attr));
@@ -171,31 +162,23 @@ inline void ofi_init(mv_engine* mv, mv_pp* pkpool, size_t heap_size,
     }
   }
 
-  // Prepare the packet_mgr and prepost some packet.
-  for (int i = 0; i < MAX_SEND + MAX_RECV; i++) {
-    mv_pp_free(pkpool, (packet*)s->sbuf_alloc->allocate());
-  }
   s->recv_posted = 0;
-  s->pkpool = pkpool;
   s->mv = mv;
+  mv->pkpool = s->sbuf_pool;
   *s_ptr = s;
 }
 
-struct my_context {
-  my_context(void* ctx) : ctx_(ctx) {}
+typedef struct my_context {
   struct fi_context fi_ctx;
   void* ctx_;
-};
+} my_context;
 
-MV_INLINE bool ofi_progress(ofi_server* s)
+MV_INLINE int ofi_progress(ofi_server* s)
 {  // profiler& p, long long& r, long long &s) {
-  initt(t);
-  startt(t);
-
   struct fi_cq_data_entry entry;
   struct fi_cq_err_entry error;
   ssize_t ret;
-  bool rett = false;
+  int rett = 0;
 
   ret = fi_cq_read(s->rcq, &entry, 1);
   if (ret > 0) {
@@ -204,12 +187,12 @@ MV_INLINE bool ofi_progress(ofi_server* s)
     if (entry.flags & FI_REMOTE_CQ_DATA) {
       mv_serve_imm(entry.data);
     } else {
-      mv_serve_recv(s->mv, (packet*)(((my_context*)entry.op_context)->ctx_));
+      mv_serve_recv(s->mv, (mv_packet*)(((my_context*)entry.op_context)->ctx_));
       mv_spin_lock(&s->lock);
-      delete (my_context*)entry.op_context;
+      free((my_context*)entry.op_context);
       mv_spin_unlock(&s->lock);
     }
-    rett = true;
+    rett = 1;
   } else if (ret == -FI_EAGAIN) {
   } else if (ret == -FI_EAVAIL) {
     fi_cq_readerr(s->rcq, &error, 0);
@@ -224,11 +207,11 @@ MV_INLINE bool ofi_progress(ofi_server* s)
   ret = fi_cq_read(s->scq, &entry, 1);
   if (ret > 0) {
     // Got an entry here ?
-    mv_serve_send(s->mv, (packet*)(((my_context*)entry.op_context)->ctx_));
+    mv_serve_send(s->mv, (mv_packet*)(((my_context*)entry.op_context)->ctx_));
     mv_spin_lock(&s->lock);
-    delete (my_context*)entry.op_context;
+    free((my_context*)entry.op_context);
     mv_spin_unlock(&s->lock);
-    rett = true;
+    rett = 1;
   } else if (ret == -FI_EAGAIN) {
   } else if (ret == -FI_EAVAIL) {
     fi_cq_readerr(s->scq, &error, 0);
@@ -240,96 +223,82 @@ MV_INLINE bool ofi_progress(ofi_server* s)
     MPI_Abort(MPI_COMM_WORLD, error.err);
   }
 
-  if (s->recv_posted < MAX_RECV) ofi_post_recv(s, mv_pp_alloc_nb(s->pkpool, 0));
+  if (s->recv_posted < MAX_RECV) ofi_post_recv(s, mv_pool_get(s->sbuf_pool));
 
-  stopt(t) return rett;
+  return rett;
 }
 
-void ofi_serve(ofi_server* s)
-{
-  s->poll_thread = std::thread([s] {
-#ifdef USE_AFFI
-    affinity::set_me_to_last();
-#endif
-
-#ifdef USE_PAPI
-    profiler server({PAPI_L1_DCM});
-    server.start();
-#endif
-
-    while (unlikely(!s->stop)) {
-      while (ofi_progress(s)) {
-      };
-    }
-
-#ifdef USE_PAPI
-    server.stop();
-    server.print();
-#endif
-  });
-}
-
-inline void ofi_post_recv(ofi_server* s, packet* p)
+MV_INLINE void ofi_post_recv(ofi_server* s, mv_packet* p)
 {
   if (p == NULL) return;
   mv_spin_lock(&s->lock);
+  my_context* fictx = malloc(sizeof(my_context));
+  fictx->ctx_ = p;
   FI_SAFECALL(
-      fi_recv(s->ep, p, sizeof(packet), 0, FI_ADDR_UNSPEC, new my_context(p)));
+      fi_recv(s->ep, p, sizeof(mv_packet), 0, FI_ADDR_UNSPEC, fictx));
   s->recv_posted++;
   mv_spin_unlock(&s->lock);
 }
 
-inline void ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
+MV_INLINE void ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
                            void* ctx)
 {
   mv_spin_lock(&s->lock);
   if (size > 32) {
+    my_context* fictx = malloc(sizeof(my_context));
+    fictx->ctx_ = ctx;
     FI_SAFECALL(
-        fi_send(s->ep, buf, size, 0, s->fi_addr[rank], new my_context(ctx)));
+        fi_send(s->ep, buf, size, 0, s->fi_addr[rank], fictx));
   } else {
     FI_SAFECALL(fi_inject(s->ep, buf, size, s->fi_addr[rank]));
-    mv_pp_free_to(s->pkpool, (packet*)ctx, ((packet*)ctx)->header.poolid);
+    mv_pool_put_to(s->sbuf_pool, (mv_packet*)ctx, ((mv_packet*)ctx)->header.poolid);
   }
   mv_spin_unlock(&s->lock);
 }
 
-inline void ofi_write_rma(ofi_server* s, int rank, void* from, void* to,
+MV_INLINE void ofi_write_rma(ofi_server* s, int rank, void* from, void* to,
                           uint32_t rkey, size_t size, void* ctx)
 {
   mv_spin_lock(&s->lock);
+  my_context* fictx = malloc(sizeof(my_context));
+  fictx->ctx_ = ctx;
   FI_SAFECALL(fi_write(s->ep, from, size, 0, s->fi_addr[rank],
                        (uintptr_t)to - s->heap_addr[rank],  // this is offset.
-                       rkey, new my_context(ctx)));
+                       rkey, fictx));
   mv_spin_unlock(&s->lock);
 }
 
-inline void ofi_write_rma_signal(ofi_server* s, int rank, void* from, void* to,
+MV_INLINE void ofi_write_rma_signal(ofi_server* s, int rank, void* from, void* to,
                                  uint32_t rkey, size_t size, uint32_t sid,
                                  void* ctx)
 {
   mv_spin_lock(&s->lock);
+  my_context* fictx = malloc(sizeof(my_context));
+  fictx->ctx_ = ctx;
   FI_SAFECALL(
       fi_writedata(s->ep, from, size, 0, sid, s->fi_addr[rank],
                    (uintptr_t)to - s->heap_addr[rank],  // this is offset.
-                   rkey, new my_context(ctx)));
+                   rkey, fictx));
   mv_spin_unlock(&s->lock);
 }
 
-inline void ofi_finalize(ofi_server* s)
+MV_INLINE void ofi_finalize(ofi_server* s)
 {
-  s->stop = true;
-  s->poll_thread.join();
 }
 
-inline uint32_t ofi_heap_rkey(ofi_server* s) { return s->heap_rkey; }
-inline void* ofi_heap_ptr(ofi_server* s) { return ALIGNEDX(s->heap.get()); }
+MV_INLINE uint32_t ofi_heap_rkey(ofi_server* s, int node) {
+  return s->heap_rkey;
+}
+
+MV_INLINE void* ofi_heap_ptr(ofi_server* s) { return ALIGNEDX(s->heap); }
+
 #define mv_server_init ofi_init
-#define mv_server_serve ofi_serve
 #define mv_server_send ofi_write_send
 #define mv_server_rma ofi_write_rma
 #define mv_server_rma_signal ofi_write_rma_signal
 #define mv_server_heap_rkey ofi_heap_rkey
 #define mv_server_heap_ptr ofi_heap_ptr
+#define mv_server_progress ofi_progress
 #define mv_server_finalize ofi_finalize
 
 #endif

@@ -7,14 +7,18 @@ AR ?= ar
 RANLIB ?= ranlib
 PREFIX ?= /usr
 
+# Define server here
+SERVER = -DMV_USE_SERVER_IBV
+# SERVER = -DMV_USE_SERVER_OFI
+
 SRCDIR = ./src
 OBJDIR ?= ./obj
 
 INCLUDE = -I./include -I./src/include -I./ 
-CFLAGS += -fPIC -flto -fvisibility=hidden -std=gnu99 $(INCLUDE) -DUSE_AFFI -D_GNU_SOURCE -pthread
+CFLAGS += -fPIC -flto -fvisibility=hidden -std=gnu99 $(INCLUDE) $(SERVER) -DUSE_AFFI -D_GNU_SOURCE -pthread
 
-IBV_INC = -I/opt/ofed/include/ # -I$(HOME)/libfab/include
-IBV_LIB = -L/opt/ofed/lib64 -libverbs
+IBV_INC = -I/opt/ofed/include/ -I$(HOME)/libfab/include
+IBV_LIB = -L/opt/ofed/lib64 -libverbs -lfabric
 
 JFCONTEXT = ult/fult/jump_x86_64_sysv_elf_gas.S
 MFCONTEXT = ult/fult/make_x86_64_sysv_elf_gas.S

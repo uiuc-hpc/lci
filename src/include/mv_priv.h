@@ -5,6 +5,14 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#ifdef MV_USE_SERVER_OFI
+typedef struct ofi_server mv_server;
+#endif
+
+#ifdef MV_USE_SERVER_IBV
+typedef struct ibv_server mv_server;
+#endif
+
 struct mv_struct {
   int me;
   int size;
