@@ -1,6 +1,8 @@
 #include "mv_priv.h"
 
+MV_EXPORT
 mvh* mv_hdl;
+
 void* MPIV_HEAP;
 
 #define __UNUSED__ __attribute__((unused))
