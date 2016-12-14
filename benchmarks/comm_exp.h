@@ -17,14 +17,14 @@
 inline double wtime()
 {
   struct timeval t1;
-  gettimeofday(&t1, NULL);
+  gettimeofday(&t1, 0);
   return t1.tv_sec + t1.tv_usec / 1e6;
 }
 
 inline double wutime()
 {
   struct timeval t1;
-  gettimeofday(&t1, NULL);
+  gettimeofday(&t1, 0);
   return t1.tv_sec * 1e6 + t1.tv_usec;
 }
 

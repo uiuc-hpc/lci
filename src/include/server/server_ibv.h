@@ -73,7 +73,7 @@ MV_INLINE mv_server_memory* ibv_server_mem_malloc(ibv_server* s, size_t size);
 MV_INLINE void ibv_server_mem_free(mv_server_memory* mr);
 
 MV_INLINE void ibv_server_post_recv(ibv_server* s, mv_packet* p);
-MV_INLINE void ibv_server_write_send(ibv_server* s, int rank, void* buf, size_t size,
+MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf, size_t size,
                              void* ctx);
 MV_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
                             void* to, uint32_t rkey, size_t size,
@@ -193,10 +193,7 @@ MV_INLINE void ibv_server_post_recv(ibv_server* s, mv_packet* p)
   };
 
   struct ibv_recv_wr* bad_wr = 0;
-  if (ibv_post_srq_recv(s->dev_srq, &wr, &bad_wr)) {
-    printf("Unable to post_srq\n");
-    exit(EXIT_FAILURE);
-  }
+  IBV_SAFECALL(ibv_post_srq_recv(s->dev_srq, &wr, &bad_wr));
 }
 
 int ibv_server_progress(ibv_server* s)
@@ -204,6 +201,14 @@ int ibv_server_progress(ibv_server* s)
   struct ibv_wc wc;
   int ret = 0;
   int ne = ibv_poll_cq(s->recv_cq, 1, &wc);
+#ifdef IBV_SERVER_DEBUG
+  if (wc.status != IBV_WC_SUCCESS) {
+    fprintf(stderr, "Failed status %s (%d) for wr_id %d\n", 
+        ibv_wc_status_str(wc.status),
+        wc.status, (int)wc.wr_id);
+    exit(EXIT_FAILURE);
+  }
+#endif
   if (ne == 1) {
     s->recv_posted--;
     if (wc.opcode != IBV_WC_RECV_RDMA_WITH_IMM)
@@ -213,6 +218,14 @@ int ibv_server_progress(ibv_server* s)
     ret = 1;
   }
   ne = ibv_poll_cq(s->send_cq, 1, &wc);
+#ifdef IBV_SERVER_DEBUG
+  if (wc.status != IBV_WC_SUCCESS) {
+    fprintf(stderr, "Failed status %s (%d) for wr_id %d\n", 
+        ibv_wc_status_str(wc.status),
+        wc.status, (int)wc.wr_id);
+    exit(EXIT_FAILURE);
+  }
+#endif
   if (ne == 1) {
     mv_serve_send(s->mv, (mv_packet*)wc.wr_id);
     ret = 1;
@@ -220,6 +233,12 @@ int ibv_server_progress(ibv_server* s)
   // Make sure we always have enough packet, but do not block.
   if (s->recv_posted < MAX_RECV)
     ibv_server_post_recv(s, (mv_packet*) mv_pool_get_nb(s->sbuf_pool)); //, 0));
+
+#ifdef IBV_SERVER_DEBUG
+  if (s->recv_posted < MAX_RECV) {
+    printf("WARNING DEADLOCK\n");
+  }
+#endif
 
   return ret;
 }
@@ -233,8 +252,9 @@ int ibv_server_progress(ibv_server* s)
     (w).next = NULL; \
 } while (0);
 
-MV_INLINE void ibv_server_write_send(ibv_server* s, int rank, void* buf, size_t size,
-                             void* ctx)
+/*! This return whether or not to wait. */
+MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf, size_t size,
+                                    void* ctx)
 {
   struct ibv_sge list = {
     .addr = (uintptr_t)buf, // address
@@ -252,10 +272,12 @@ MV_INLINE void ibv_server_write_send(ibv_server* s, int rank, void* buf, size_t 
     IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
     // Must be in the same threads.
     mv_pool_put(s->sbuf_pool, ctx); 
+    return 0;
   } else {
     setup_wr(this_wr, (uintptr_t) ctx, &list, IBV_WR_SEND_WITH_IMM, IBV_SEND_SIGNALED);
     this_wr.imm_data = 0;
     IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
+    return 1;
   }
 }
 
@@ -310,10 +332,6 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size,
   posix_memalign((void**) &s, 64, sizeof(ibv_server));
 
   assert(s);
-
-#ifdef USE_AFFI
-  set_me_to(0);
-#endif
 
   int num_devices;
   struct ibv_device** dev_list = ibv_get_device_list(&num_devices);

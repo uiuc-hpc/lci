@@ -2,8 +2,9 @@ MPICC = mpicc
 LD = mpicc
 CC = gcc
 
-CFLAGS += -g3 -ggdb -O3 -Wall -Wextra -std=gnu99 -I../ult -I../include -I../ -DUSE_AFFI -D_GNU_SOURCE
-LDFLAGS += -O3 -Wl,-rpath=$(abspath ../) -Wl,-z,now -Wl,-z,relro
+CFLAGS += -g3 -ggdb -O3 -Wall -Wextra -std=gnu99 -I../include -DUSE_AFFI -D_GNU_SOURCE
+LDFLAGS += # -O3 -Wl,-rpath=$(abspath ../) -Wl,-z,now -Wl,-z,relro
+LIB = ../libmv.a
 
 ### FOR TESTING HASH TABLE ###
 #FACEBOOK_INC = -I$(HOME)/facebook/include -I$(HOME)/glog/include -I$(HOME)/folly/folly/double-conversion #-DNDEBUG
@@ -35,7 +36,7 @@ LDFLAGS += -L$(ABT_LIB)
 
 %: %.c
 	$(MPICC) $(CFLAGS) -c $^
-	$(LD) $(LDFLAGS) $@.o -L../ -lmv -o $@
+	$(LD) $(LDFLAGS) $@.o $(LIB) -o $@
 
 clean:
 	rm -rf $(TARGET) *.o

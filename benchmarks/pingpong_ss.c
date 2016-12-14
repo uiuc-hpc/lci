@@ -59,7 +59,7 @@ void main_task(intptr_t arg)
         if (t == skip) {
           times = MPI_Wtime();
         }
-        MPIV_Send(s_buf, size, MPI_CHAR, 1, 1, MPI_COMM_WORLD);
+        MPIV_Ssend(s_buf, size, MPI_CHAR, 1, 1, MPI_COMM_WORLD);
         MPIV_Recv(r_buf, size, MPI_CHAR, 1, 2, MPI_COMM_WORLD,
                   MPI_STATUS_IGNORE);
         if (t == 0 || CHECK_RESULT) {
@@ -77,7 +77,7 @@ void main_task(intptr_t arg)
       for (int t = 0; t < total + skip; t++) {
         MPIV_Recv(r_buf, size, MPI_CHAR, 0, 1, MPI_COMM_WORLD,
                   MPI_STATUS_IGNORE);
-        MPIV_Send(s_buf, size, MPI_CHAR, 0, 2, MPI_COMM_WORLD);
+        MPIV_Ssend(s_buf, size, MPI_CHAR, 0, 2, MPI_COMM_WORLD);
       }
     }
     MPI_Barrier(MPI_COMM_WORLD);

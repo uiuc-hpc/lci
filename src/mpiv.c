@@ -54,6 +54,30 @@ void MPIV_Send(void* buffer, int count, MPI_Datatype datatype,
   }
 }
 
+void MPIV_Ssend(void* buffer, int count, MPI_Datatype datatype,
+    int rank, int tag, MPI_Comm comm __UNUSED__)
+{
+  int size;
+  MPI_Type_size(datatype, &size);
+  size *= count;
+  struct mv_ctx ctx = {
+     .buffer = buffer,
+     .size = size,
+     .rank = rank,
+     .tag = tag
+  };
+  if (size <= SHORT_MSG_SIZE) {
+    mv_sync* sync = mv_get_sync();
+    mvi_send_eager_post(mv_hdl, &ctx, sync);
+    mvi_wait(&ctx, sync);
+  } else {
+    mv_sync* sync = mv_get_sync();
+    mvi_send_rdz_init(mv_hdl, &ctx);
+    mvi_send_rdz_post(mv_hdl, &ctx, sync);
+    mvi_wait(&ctx, sync);
+  }
+}
+
 void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
                 int tag, MPI_Comm comm __UNUSED__, MPIV_Request* req) {
   int size;
@@ -117,13 +141,13 @@ void MPIV_Waitall(int count, MPIV_Request* req, MPI_Status* status __UNUSED__) {
   }
 }
 
-volatile int stop;
+volatile int mv_thread_stop;
 static pthread_t progress_thread;
 
 static void* progress(void* arg __UNUSED__)
 {
   set_me_to_last();
-  while (!stop) {
+  while (!mv_thread_stop) {
     while (mv_server_progress(mv_hdl->server))
       ;
   }
@@ -134,14 +158,14 @@ void MPIV_Init(int* argc, char*** args)
 {
   size_t heap_size = 1024 * 1024 * 1024;
   mv_open(argc, args, heap_size, &mv_hdl);
-  stop = 0;
+  mv_thread_stop = 0;
   pthread_create(&progress_thread, 0, progress, 0);
   MPIV_HEAP = mv_heap_ptr(mv_hdl);
 }
 
 void MPIV_Finalize()
 {
-  stop = 1;
+  mv_thread_stop = 1;
   pthread_join(progress_thread, 0);
   mv_close(mv_hdl);
 }

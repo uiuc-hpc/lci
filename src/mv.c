@@ -5,8 +5,9 @@
 #include <stdint.h>
 #include "pool.h"
 
-__thread int8_t
-tls_pool_struct[MAX_LOCAL_POOL] = {-1, -1, -1, -1, -1, -1, -1, -1};
+int8_t tls_pool_struct[16][MAX_LOCAL_POOL]; // = {-1, -1, -1, -1, -1, -1, -1, -1};
+// __thread int8_t tls_pool_struct[MAX_LOCAL_POOL] = {-1, -1, -1, -1, -1, -1, -1, -1};
+__thread int mv_core_id = -1;
 
 int mv_pool_nkey = 0;
 uint32_t server_max_inline = 128;
@@ -25,6 +26,7 @@ void* mv_heap_ptr(mvh* mv)
 
 void mv_open(int* argc, char*** args, size_t heap_size, mvh** ret)
 {
+  set_me_to(0);
   struct mv_struct* mv = malloc(sizeof(struct mv_struct));
 
   setenv("MPICH_ASYNC_PROGRESS", "0", 1);
@@ -37,6 +39,14 @@ void mv_open(int* argc, char*** args, size_t heap_size, mvh** ret)
     printf("Need MPI_THREAD_MULTIPLE\n");
     exit(EXIT_FAILURE);
   }
+
+#if 1
+  for (int i = 0; i < 16; i++) {
+    for (int j = 0; j < MAX_LOCAL_POOL; j++) {
+      tls_pool_struct[i][j] = -1;
+    }
+  }
+#endif
 
   mv_hash_init(&mv->tbl);
   mv->am_table_size = 0;

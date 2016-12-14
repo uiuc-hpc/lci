@@ -9,8 +9,8 @@
  * copyright file COPYRIGHT in the top level OMB directory.
  */
 
-#include "helper.h"
-#include "mpiv.h"
+#include "mv.h"
+#include "mv/helper.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,9 +78,9 @@ int main(int argc, char* argv[])
   }
 
   if (myid == 0)
-    MPIV_Start_worker(1);
+    MPIV_Start_worker(1, 0);
   else
-    MPIV_Start_worker(WORKERS);
+    MPIV_Start_worker(WORKERS, 0);
 
   MPIV_Finalize();
 }

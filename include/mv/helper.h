@@ -5,8 +5,8 @@
 #include "ult/ult.h"
 #include "ult/fult/fult.h"
 
-static fworker** all_worker;
-static int nworker;
+static fworker** all_worker = 0;
+static int nworker = 0;
 __thread struct tls_t tlself;
 
 void main_task(intptr_t);
@@ -24,10 +24,10 @@ void mv_main_task(intptr_t arg)
 
 extern mvh* mv_hdl;
 
-void MPIV_Start_worker(int number)
+void MPIV_Start_worker(int number, intptr_t g)
 {
   if (nworker == 0) {
-    all_worker = malloc(sizeof(struct fworker*) * number);
+    all_worker = (fworker**) malloc(sizeof(struct fworker*) * number);
   }
   nworker = number;
   fworker_init(&all_worker[0]);
@@ -37,7 +37,7 @@ void MPIV_Start_worker(int number)
     all_worker[i]->id = i;
     fworker_start(all_worker[i]);
   }
-  fworker_start_main(all_worker[0], mv_main_task, 0);
+  fworker_start_main(all_worker[0], mv_main_task, g);
   MPI_Barrier(MPI_COMM_WORLD);
 }
 

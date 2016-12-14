@@ -50,10 +50,11 @@ static void mv_recv_short(mvh* mv, mv_packet* p)
 void mv_progress_init(mvh* mv)
 {
   // Keep this order.
-  mv_am_register(mv, mv_recv_short);
+  mv_am_register(mv, (mv_am_func_t)mv_recv_short);
   mv_am_register(mv, (mv_am_func_t)mv_recv_recv_ready);
   mv_am_register(mv, (mv_am_func_t)mv_recv_send_ready_fin);
   mv_am_register(mv, (mv_am_func_t)mv_recv_am);
+  mv_am_register(mv, (mv_am_func_t)mv_recv_short);
 }
 
 
@@ -66,7 +67,6 @@ void mv_serve_recv(mvh* mv, mv_packet* p_ctx)
 void mv_serve_send(mvh* mv, mv_packet* p_ctx)
 {
   if (!p_ctx) return;
-
   const int8_t fid = p_ctx->header.fid;
   if (unlikely(fid == PROTO_SEND_WRITE_FIN)) {
     mv_ctx* req = (mv_ctx*)p_ctx->content.rdz.sreq;
@@ -80,6 +80,15 @@ void mv_serve_send(mvh* mv, mv_packet* p_ctx)
       thread_signal(req->sync);
     }
   } else {
+    if (unlikely(fid == PROTO_SHORT_WAIT)) {
+      mv_key key = mv_make_key(mv->me, (1 << 30) | p_ctx->header.tag);
+      mv_value value = 0;
+      if (!mv_hash_insert(mv->tbl, key, &value)) {
+        mv_ctx* req = (mv_ctx*) value;
+        req->type = REQ_DONE;
+        thread_signal(req->sync);
+      }
+    }
     // NOTE: This improves performance on memcpy, since it sends back
     // the packet to the sender thread. However, this causes a cache misses on the
     // spinlock of the pool. TODO(danghvu): send back only medium msg ?

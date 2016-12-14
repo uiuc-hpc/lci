@@ -6,6 +6,7 @@
 #define PROTO_RECV_READY 1
 #define PROTO_READY_FIN 2
 #define PROTO_AM 3
+#define PROTO_SHORT_WAIT 4
 
 #define PROTO_SEND_WRITE_FIN 127
 
@@ -44,12 +45,41 @@ MV_INLINE void mvi_send_eager(mvh* mv, mv_ctx* ctx)
   // This is a eager message, we send them immediately and do not yield
   // or create a request for it.
   // Copy the buffer.
-
   memcpy(p->content.buffer, ctx->buffer, ctx->size);
+
   mv_server_send(mv->server, ctx->rank, (void*)p,
                  (size_t)(ctx->size + sizeof(packet_header)), (void*)(p));
 }
 
+MV_INLINE void mvi_send_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+{
+  // Get from my pool.
+  mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool);
+  p->header.fid = PROTO_SHORT_WAIT;
+  p->header.poolid = mv_pool_get_local(mv->pkpool);
+  p->header.from = mv->me;
+  p->header.tag = ctx->tag;
+
+  // This is a eager message, we send them immediately and do not yield
+  // or create a request for it.
+  // Copy the buffer.
+  memcpy(p->content.buffer, ctx->buffer, ctx->size);
+
+  int wait = mv_server_send(mv->server, ctx->rank, (void*)p,
+      (size_t)(ctx->size + sizeof(packet_header)), (void*)(p));
+  
+  if (wait) {
+    mv_key key = mv_make_key(mv->me, (1 << 30) | ctx->tag);
+    ctx->sync = sync;
+    ctx->type = REQ_PENDING;
+    mv_value value = (mv_value) ctx;
+    if (!mv_hash_insert(mv->tbl, key, &value)) {
+      ctx->type = REQ_DONE;
+    }
+  } else {
+    ctx->type = REQ_DONE;
+  }
+}
 
 MV_INLINE void mvi_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {

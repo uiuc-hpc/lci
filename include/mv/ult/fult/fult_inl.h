@@ -2,9 +2,11 @@
 #define FULT_INL_H_
 
 #include <string.h>
+
 #include "mv/lock.h"
 #include "mv/macro.h"
 #include "mv/affinity.h"
+#include <malloc.h>
 
 // Fthread.
 
@@ -68,8 +70,12 @@ static void fwrapper(intptr_t args)
 
 MV_INLINE void fworker_init(fworker** w_ptr)
 {
+#ifndef __cplusplus
   fworker* w = 0;
-  posix_memalign((void**)&w, 64, sizeof(struct fworker));
+  posix_memalign((void**) &w, 64, sizeof(fworker));
+#else
+  fworker* w = new fworker(); // Work around... malloc fail here for no reason.
+#endif
 
   w->stop = 1;
   posix_memalign((void**)&(w->threads), 64,

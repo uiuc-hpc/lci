@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 #include "mv/config.h"
-#include "ult/ult.h"
+#include "mv/ult/ult.h"
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -81,6 +81,10 @@ void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype,
 
 MV_EXPORT
 void MPIV_Send(void* buffer, int count, MPI_Datatype datatype,
+    int rank, int tag, MPI_Comm);
+
+MV_EXPORT
+void MPIV_Ssend(void* buffer, int count, MPI_Datatype datatype,
     int rank, int tag, MPI_Comm);
 
 MV_EXPORT

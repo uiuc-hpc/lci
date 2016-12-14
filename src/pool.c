@@ -23,20 +23,6 @@ void mv_pool_destroy(mv_pool* pool) {
   }
 }
 
-int8_t mv_pool_get_local(mv_pool* pool) {
-  int8_t pid = tls_pool_struct[pool->key]; 
-  // struct dequeue* lpool = (struct dequeue*) pthread_getspecific(pool->key);
-  if (unlikely(pid == -1)) {
-    struct dequeue* lpool = 0;
-    posix_memalign((void**) &lpool, 64, sizeof(struct dequeue));
-    dq_init(lpool, pool->count);
-    pid = __sync_fetch_and_add(&pool->npools, 1);
-    tls_pool_struct[pool->key] = pid;
-    pool->lpools[pid] = lpool;
-  }
-  return pid;
-}
-
 void mv_pool_put(mv_pool* pool, void* elm) {
   int8_t pid = mv_pool_get_local(pool);
   struct dequeue* lpool = pool->lpools[pid];

@@ -6,6 +6,7 @@
 #include "mv/affinity.h"
 
 static int nworker = 0;
+extern __thread int mv_core_id;
 
 typedef void(*ffunc)(intptr_t);
 
@@ -32,10 +33,10 @@ void mv_main_task(intptr_t arg)
 extern mvh* mv_hdl;
 mv_pth_thread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg);
 
-void MPIV_Start_worker(int number)
+void MPIV_Start_worker(int number, intptr_t g)
 {
   nworker = number;
-  mv_pth_thread* main_thread = MPIV_spawn(0, mv_main_task, 0);
+  mv_pth_thread* main_thread = MPIV_spawn(0, mv_main_task, g);
   pthread_join(main_thread->thread, 0);
   free(main_thread);
   MPI_Barrier(MPI_COMM_WORLD);
@@ -45,6 +46,7 @@ static void* pth_wrap(void* arg)
 {
   mv_pth_thread* th = (mv_pth_thread*)arg;
   set_me_to(th->wid);
+  mv_core_id = th->wid;
   tlself = th;
   th->f(th->data);
   tlself = NULL;
@@ -53,7 +55,7 @@ static void* pth_wrap(void* arg)
 
 mv_pth_thread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg)
 {
-  mv_pth_thread *t = malloc(sizeof(struct mv_pth_thread));
+  mv_pth_thread *t = (mv_pth_thread*) malloc(sizeof(struct mv_pth_thread));
   pthread_mutex_init(&t->mutex, 0);
   pthread_cond_init(&t->cond, 0);
   t->f = func;
@@ -72,7 +74,7 @@ void MPIV_join(mv_pth_thread* ult)
 #if 1
 mv_sync* mv_get_sync()
 {
-  tlself->count = -1;
+  tlself->count = 1;
   return (mv_sync*)tlself;
 }
 
@@ -86,23 +88,19 @@ void thread_wait(mv_sync* sync)
 {
   mv_pth_thread* thread = (mv_pth_thread*)sync;
   pthread_mutex_lock(&thread->mutex);
-  if (thread->count < 0) {
+  while (thread->count > 0)
     pthread_cond_wait(&thread->cond, &thread->mutex);
-  } else {
-    while (thread->count > 0) {
-      pthread_cond_wait(&thread->cond, &thread->mutex);
-    }
-  }
   pthread_mutex_unlock(&thread->mutex);
 }
 
 void thread_signal(mv_sync* sync)
 {
   mv_pth_thread* thread = (mv_pth_thread*)sync;
-  // smaller than 0 means no counter, saving abit cycles and data.
-  if (thread->count < 0 || __sync_sub_and_fetch(&thread->count, 1) == 0) {
-    pthread_cond_signal(&thread->cond);
-  }
+  pthread_mutex_lock(&thread->mutex);
+  thread->count--;
+  if (thread->count == 0)
+    pthread_cond_signal(&thread->cond); 
+  pthread_mutex_unlock(&thread->mutex);
 }
 #endif
 
