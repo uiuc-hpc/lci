@@ -12,10 +12,10 @@
 #include "dequeue.h"
 
 #define MAX_NPOOLS 128
-#define MAX_LOCAL_POOL 8
+#define MAX_LOCAL_POOL 64 // align to a cache line.
 
 extern int mv_pool_nkey;
-extern int8_t tls_pool_struct[16][MAX_LOCAL_POOL];
+extern int8_t tls_pool_struct[MAX_NPOOLS][MAX_LOCAL_POOL];
 //extern __thread int8_t tls_pool_struct[MAX_LOCAL_POOL];
 
 typedef struct mv_pool {

@@ -6,10 +6,12 @@
 #include <stdlib.h>
 
 #ifdef MV_USE_SERVER_OFI
+#define SERVER_CONTEXT char __padding__[64];
 typedef struct ofi_server mv_server;
 #endif
 
 #ifdef MV_USE_SERVER_IBV
+#define SERVER_CONTEXT char __padding__[0];
 typedef struct ibv_server mv_server;
 #endif
 

@@ -1,12 +1,11 @@
 #include "mv_priv.h"
 #include "mv/affinity.h"
+#include "mv/macro.h"
 
 MV_EXPORT
 mvh* mv_hdl;
 
 void* MPIV_HEAP;
-
-#define __UNUSED__ __attribute__((unused))
 
 void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype,
     int rank, int tag,

@@ -20,8 +20,12 @@
 MV_INLINE void fthread_create(fthread* f, ffunc func, intptr_t data,
                               size_t stack_size)
 {
-  if (f->stack == NULL) {
+  if (unlikely(f->stack == NULL)) {
     void* memory = malloc(stack_size);
+    if (memory == 0) {
+      printf("No more memory for stack\n");
+      exit(EXIT_FAILURE);
+    }
     f->stack = (void*) ((uintptr_t) memory + stack_size);
   }
   f->func = func;
@@ -46,8 +50,13 @@ MV_INLINE void fthread_resume(fthread* f)
 {
   fworker_sched_thread(f->origin, f->id);
 }
+
 MV_INLINE void fthread_fini(fthread* f)
 {
+  if (f->stack != NULL) {
+    // free((void*) ((uintptr_t)f->stack - F_STACK_SIZE));
+    // f->stack = NULL;
+  }
   fworker_fini_thread(f->origin, f->id);
 }
 
@@ -214,37 +223,32 @@ MV_INLINE void* wfunc(void* arg)
 
 #else
 
-MV_INLINE void wfunc(fworker* w)
+MV_INLINE void* wfunc(void* arg)
 {
+  fworker* w = (fworker*) arg;
   tlself.worker = w;
 #ifdef USE_AFFI
-  affinity::set_me_to(w->id);
-#endif
-
-#ifdef USE_PAPI
-  profiler wp = {PAPI_L1_DCM};
-  wp.start();
+  set_me_to(w->id);
 #endif
 
   while (unlikely(!w->stop)) {
     for (int l1i = 0; l1i < 8; l1i++) {
       if (w->l1_mask[l1i] == 0) continue;
-      auto local_l1_mask = exchange((unsigned long)0, &(w->l1_mask[l1i]));
+      unsigned long local_l1_mask = exchange((unsigned long)0, &(w->l1_mask[l1i]));
 
       while (local_l1_mask > 0) {
-        auto ii = find_first_set(local_l1_mask);
-        bit_flip(local_l1_mask, ii);
+        int ii = find_first_set(local_l1_mask);
+        local_l1_mask = bit_flip(local_l1_mask, ii);
 
-        auto start_i = MUL8(MUL64(l1i)) + MUL8(ii);
-        for (auto i = start_i; i < start_i + 8 && i < NMASK; i++) {
-          auto& mask = w->mask[i];
-          if (mask > 0) {
+        int start_i = MUL8(MUL64(l1i)) + MUL8(ii);
+        for (int i = start_i; i < start_i + 8 && i < NMASK; i++) {
+          if (w->mask[i] > 0) {
             unsigned long local_mask = 0;
             // Atomic exchange to get the current waiting threads.
             local_mask = exchange(local_mask, &(w->mask[i]));
             // Works until it no thread is pending.
             while (likely(local_mask > 0)) {
-              auto id = pop_work(&local_mask);
+              int id = pop_work(&local_mask);
               // Optains the associate thread.
               fthread* f = &w->threads[MUL64(i) + id];
               fworker_work(w, f);
@@ -255,10 +259,7 @@ MV_INLINE void wfunc(fworker* w)
     }
   }
 
-#ifdef USE_PAPI
-  wp.stop();
-  wp.print();
-#endif
+  return 0;
 }
 #endif  // ifndef L1_MASK
 

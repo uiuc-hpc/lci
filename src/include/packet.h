@@ -22,9 +22,16 @@ typedef union packet_content {
   struct mv_rdz rdz;
 } packet_content;
 
+typedef struct {
+    packet_header header;
+    packet_content content;
+} mv_packet_data;
+
 struct mv_packet {
-  packet_header header;
-  packet_content content;
+  struct {
+    SERVER_CONTEXT;
+  } context;
+  mv_packet_data data;
 } __attribute__((aligned(64)));
 
 #endif

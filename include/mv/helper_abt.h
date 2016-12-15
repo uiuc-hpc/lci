@@ -89,7 +89,7 @@ mv_abt_thread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg)
   ABT_thread_attr_create(&t->attr);
   t->f = func;
   t->data = arg;
-  ABT_thread_attr_set_stacksize(t->attr, 64 * 1024);
+  ABT_thread_attr_set_stacksize(t->attr, 16 * 1024);
   ABT_thread_create(pool[wid], abt_wrap, t, t->attr, &t->thread);
   return t;
 }

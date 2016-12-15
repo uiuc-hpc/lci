@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "pool.h"
 
-int8_t tls_pool_struct[16][MAX_LOCAL_POOL]; // = {-1, -1, -1, -1, -1, -1, -1, -1};
+int8_t tls_pool_struct[MAX_NPOOLS][MAX_LOCAL_POOL]; // = {-1, -1, -1, -1, -1, -1, -1, -1};
 // __thread int8_t tls_pool_struct[MAX_LOCAL_POOL] = {-1, -1, -1, -1, -1, -1, -1, -1};
 __thread int mv_core_id = -1;
 
@@ -41,7 +41,7 @@ void mv_open(int* argc, char*** args, size_t heap_size, mvh** ret)
   }
 
 #if 1
-  for (int i = 0; i < 16; i++) {
+  for (int i = 0; i < MAX_NPOOLS; i++) {
     for (int j = 0; j < MAX_LOCAL_POOL; j++) {
       tls_pool_struct[i][j] = -1;
     }
@@ -118,10 +118,10 @@ void mv_am_eager(mvh* mv, int node, void* src, int size,
                            uint32_t fid)
 {
   mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool); 
-  p->header.fid = PROTO_AM;
-  p->header.from = mv->me;
-  p->header.tag = fid;
-  uint32_t* buffer = (uint32_t*)p->content.buffer;
+  p->data.header.fid = PROTO_AM;
+  p->data.header.from = mv->me;
+  p->data.header.tag = fid;
+  uint32_t* buffer = (uint32_t*)p->data.content.buffer;
   buffer[0] = size;
   memcpy((void*)&buffer[1], src, size);
   mv_server_send(mv->server, node, p,

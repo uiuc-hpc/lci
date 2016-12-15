@@ -39,7 +39,7 @@ MV_INLINE int get_ncores()
       return logical;
   }
 #endif
-  return logical;
+  return logical / 4;
 }
 
 MV_INLINE int set_me_to_(int core_id)

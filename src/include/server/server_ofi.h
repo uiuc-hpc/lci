@@ -7,14 +7,17 @@
 #include <rdma/fabric.h>
 #include <rdma/fi_domain.h>
 #include <rdma/fi_endpoint.h>
-#include <rdma/fi_tagged.h>
 
 #include <rdma/fi_cm.h>
 #include <rdma/fi_errno.h>
 #include <rdma/fi_rma.h>
 
 #include "mv/lock.h"
+#include "mv/macro.h"
 
+#define SERVER_FI_DEBUG
+
+#ifdef SERVER_FI_DEBUG
 #define FI_SAFECALL(x)                                                    \
   {                                                                       \
     int err = (x);                                                        \
@@ -23,6 +26,10 @@
       MPI_Abort(MPI_COMM_WORLD, err);                                     \
     }                                                                     \
   } while (0);
+
+#else 
+#define FI_SAFECALL(x) {(x);}
+#endif
 
 #define ALIGNMENT (4096)
 #define ALIGNEDX(x) \
@@ -55,8 +62,7 @@ typedef struct ofi_server {
 MV_INLINE void ofi_init(mvh* mv, size_t heap_size,
     ofi_server** s_ptr);
 MV_INLINE void ofi_post_recv(ofi_server* s, mv_packet* p);
-MV_INLINE void ofi_serve(ofi_server* s);
-MV_INLINE void ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
+MV_INLINE int ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
                            void* ctx);
 MV_INLINE void ofi_write_rma(ofi_server* s, int rank, void* from,
                           void* to, uint32_t rkey, size_t size, void* ctx);
@@ -91,12 +97,12 @@ MV_INLINE void ofi_init(mvh* mv, size_t heap_size,
   FI_SAFECALL(fi_endpoint(s->domain, s->fi, &s->ep, NULL));
 
   // Create cq.
-  struct fi_cq_attr cq_attr;
-  memset(&cq_attr, 0, sizeof(cq_attr));
-  cq_attr.format = FI_CQ_FORMAT_DATA;
-  cq_attr.size = MAX_CQ_SIZE;
-  FI_SAFECALL(fi_cq_open(s->domain, &cq_attr, &s->scq, NULL));
-  FI_SAFECALL(fi_cq_open(s->domain, &cq_attr, &s->rcq, NULL));
+  struct fi_cq_attr *cq_attr = malloc(sizeof(struct fi_cq_attr));
+  memset(cq_attr, 0, sizeof(cq_attr));
+  cq_attr->format = FI_CQ_FORMAT_DATA;
+  cq_attr->size = MAX_CQ_SIZE;
+  FI_SAFECALL(fi_cq_open(s->domain, cq_attr, &s->scq, NULL));
+  FI_SAFECALL(fi_cq_open(s->domain, cq_attr, &s->rcq, NULL));
 
   // Bind my ep to cq.
   FI_SAFECALL(fi_ep_bind(s->ep, (fid_t)s->scq, FI_SEND | FI_TRANSMIT));
@@ -168,11 +174,6 @@ MV_INLINE void ofi_init(mvh* mv, size_t heap_size,
   *s_ptr = s;
 }
 
-typedef struct my_context {
-  struct fi_context fi_ctx;
-  void* ctx_;
-} my_context;
-
 MV_INLINE int ofi_progress(ofi_server* s)
 {  // profiler& p, long long& r, long long &s) {
   struct fi_cq_data_entry entry;
@@ -187,10 +188,7 @@ MV_INLINE int ofi_progress(ofi_server* s)
     if (entry.flags & FI_REMOTE_CQ_DATA) {
       mv_serve_imm(entry.data);
     } else {
-      mv_serve_recv(s->mv, (mv_packet*)(((my_context*)entry.op_context)->ctx_));
-      mv_spin_lock(&s->lock);
-      free((my_context*)entry.op_context);
-      mv_spin_unlock(&s->lock);
+      mv_serve_recv(s->mv, (mv_packet*)entry.op_context);
     }
     rett = 1;
   } else if (ret == -FI_EAGAIN) {
@@ -207,10 +205,7 @@ MV_INLINE int ofi_progress(ofi_server* s)
   ret = fi_cq_read(s->scq, &entry, 1);
   if (ret > 0) {
     // Got an entry here ?
-    mv_serve_send(s->mv, (mv_packet*)(((my_context*)entry.op_context)->ctx_));
-    mv_spin_lock(&s->lock);
-    free((my_context*)entry.op_context);
-    mv_spin_unlock(&s->lock);
+    mv_serve_send(s->mv, (mv_packet*)entry.op_context);
     rett = 1;
   } else if (ret == -FI_EAGAIN) {
   } else if (ret == -FI_EAVAIL) {
@@ -232,39 +227,38 @@ MV_INLINE void ofi_post_recv(ofi_server* s, mv_packet* p)
 {
   if (p == NULL) return;
   mv_spin_lock(&s->lock);
-  my_context* fictx = malloc(sizeof(my_context));
-  fictx->ctx_ = p;
   FI_SAFECALL(
-      fi_recv(s->ep, p, sizeof(mv_packet), 0, FI_ADDR_UNSPEC, fictx));
+      fi_recv(s->ep, &p->data, sizeof(mv_packet_data), 0, FI_ADDR_UNSPEC, &p->context));
   s->recv_posted++;
   mv_spin_unlock(&s->lock);
 }
 
-MV_INLINE void ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
-                           void* ctx)
+MV_INLINE int ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
+                             void* ctx)
 {
-  mv_spin_lock(&s->lock);
-  if (size > 32) {
-    my_context* fictx = malloc(sizeof(my_context));
-    fictx->ctx_ = ctx;
+  //FIXME(danghvu): should take from the device.
+  if (size >= 30) {
+    mv_spin_lock(&s->lock);
     FI_SAFECALL(
-        fi_send(s->ep, buf, size, 0, s->fi_addr[rank], fictx));
+        fi_send(s->ep, buf, size, 0, s->fi_addr[rank], (struct fi_context*) ctx));
+    mv_spin_unlock(&s->lock);
+    return 1;
   } else {
+    mv_spin_lock(&s->lock);
     FI_SAFECALL(fi_inject(s->ep, buf, size, s->fi_addr[rank]));
-    mv_pool_put_to(s->sbuf_pool, (mv_packet*)ctx, ((mv_packet*)ctx)->header.poolid);
+    mv_pool_put(s->sbuf_pool, (mv_packet*)ctx);
+    mv_spin_unlock(&s->lock);
+    return 0;
   }
-  mv_spin_unlock(&s->lock);
 }
 
 MV_INLINE void ofi_write_rma(ofi_server* s, int rank, void* from, void* to,
                           uint32_t rkey, size_t size, void* ctx)
 {
   mv_spin_lock(&s->lock);
-  my_context* fictx = malloc(sizeof(my_context));
-  fictx->ctx_ = ctx;
   FI_SAFECALL(fi_write(s->ep, from, size, 0, s->fi_addr[rank],
                        (uintptr_t)to - s->heap_addr[rank],  // this is offset.
-                       rkey, fictx));
+                       rkey, ctx));
   mv_spin_unlock(&s->lock);
 }
 
@@ -273,20 +267,19 @@ MV_INLINE void ofi_write_rma_signal(ofi_server* s, int rank, void* from, void* t
                                  void* ctx)
 {
   mv_spin_lock(&s->lock);
-  my_context* fictx = malloc(sizeof(my_context));
-  fictx->ctx_ = ctx;
   FI_SAFECALL(
       fi_writedata(s->ep, from, size, 0, sid, s->fi_addr[rank],
                    (uintptr_t)to - s->heap_addr[rank],  // this is offset.
-                   rkey, fictx));
+                   rkey, ctx));
   mv_spin_unlock(&s->lock);
 }
 
 MV_INLINE void ofi_finalize(ofi_server* s)
 {
+  free(s);
 }
 
-MV_INLINE uint32_t ofi_heap_rkey(ofi_server* s, int node) {
+MV_INLINE uint32_t ofi_heap_rkey(ofi_server* s, int node __UNUSED__) {
   return s->heap_rkey;
 }
 

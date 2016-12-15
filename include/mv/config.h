@@ -5,6 +5,6 @@
 #define MAX_SEND 192  // maximum concurrent send.
 #define MAX_RECV 64 // maximum concurrent recv.
 #define PACKET_SIZE (16 * 1024 + 64)       // transfer unit size.
-#define SHORT_MSG_SIZE (PACKET_SIZE - 16)  // short message size.
+#define SHORT_MSG_SIZE (PACKET_SIZE - sizeof(packet_header))  // short message size.
 
 #endif

@@ -8,5 +8,7 @@
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
 #define min(x, y) ((x)<(y)?x:y)
+#define __UNUSED__ __attribute__((unused))
+
 
 #endif

@@ -27,18 +27,12 @@ MV_INLINE void fthread_init(fthread* f)
   f->stack = NULL;
 }
 
-MV_INLINE void fthread_destory(fthread* f)
-{
-  if (f->stack != NULL)
-    free((void*) ((uintptr_t)f->stack - F_STACK_SIZE));
-}
-
 MV_INLINE void fthread_yield(fthread*);
 MV_INLINE void fthread_wait(fthread*);
 MV_INLINE void fthread_resume(fthread*);
-
 MV_INLINE void fthread_fini(fthread*);
 MV_INLINE void fthread_join(fthread*);
+
 MV_INLINE void fthread_cancel(fthread* f)
 {
   f->state = INVALID;

@@ -2,8 +2,8 @@ MPICC = mpicc
 LD = mpicc
 CC = gcc
 
-CFLAGS += -g3 -ggdb -O3 -Wall -Wextra -std=gnu99 -I../include -DUSE_AFFI -D_GNU_SOURCE
-LDFLAGS += # -O3 -Wl,-rpath=$(abspath ../) -Wl,-z,now -Wl,-z,relro
+CFLAGS += -g3 -ggdb -O3 -Wall -Wextra -std=gnu99 -I../include -DUSE_AFFI -D_GNU_SOURCE #-fopenmp
+LDFLAGS += -O3 -Wl,-rpath=$(abspath ../) -Wl,-z,now -Wl,-z,relro -libverbs -lfabric #-L/work/03490/tg827895/hpcx/mxm/lib/ -lmxm 
 LIB = ../libmv.a
 
 ### FOR TESTING HASH TABLE ###
@@ -37,6 +37,14 @@ LDFLAGS += -L$(ABT_LIB)
 %: %.c
 	$(MPICC) $(CFLAGS) -c $^
 	$(LD) $(LDFLAGS) $@.o $(LIB) -o $@
+
+%_abt: %.c
+	$(MPICC) $(CFLAGS) -c $^ -DUSE_ABT
+	$(LD) $(LDFLAGS) $*.o $(LIB) -o $@
+
+%_pth: %.c
+	$(MPICC) $(CFLAGS) -c $^ -DUSE_PTH
+	$(LD) $(LDFLAGS) $*.o $(LIB) -o $@
 
 clean:
 	rm -rf $(TARGET) *.o
