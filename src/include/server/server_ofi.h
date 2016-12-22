@@ -12,10 +12,9 @@
 #include <rdma/fi_errno.h>
 #include <rdma/fi_rma.h>
 
-#include "mv/lock.h"
 #include "mv/macro.h"
 
-#define SERVER_FI_DEBUG
+// #define SERVER_FI_DEBUG
 
 #ifdef SERVER_FI_DEBUG
 #define FI_SAFECALL(x)                                                    \
@@ -35,6 +34,7 @@
 #define ALIGNEDX(x) \
   (void*)((((uintptr_t)x + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT))
 #define MAX_CQ_SIZE (16 * 1024)
+#define MAX_POLL 8
 
 typedef struct ofi_server {
   struct fi_info* fi;
@@ -56,7 +56,6 @@ typedef struct ofi_server {
   uint32_t heap_rkey;
   int recv_posted;
   mvh* mv;
-  volatile int lock;
 } ofi_server __attribute__((aligned(64)));
 
 MV_INLINE void ofi_init(mvh* mv, size_t heap_size,
@@ -118,8 +117,6 @@ MV_INLINE void ofi_init(mvh* mv, size_t heap_size,
 
   s->heap_rkey = fi_mr_key(s->mr_heap);
 
-  // s->sbuf = std::move(
-      // unique_ptr<char[]>(new char[sizeof(mv_packet) * (MAX_SEND + MAX_RECV + 2)]));
   s->sbuf = 0;
   posix_memalign(&s->sbuf, 4096, (MAX_SEND + MAX_RECV) * sizeof(mv_packet));
 
@@ -128,8 +125,6 @@ MV_INLINE void ofi_init(mvh* mv, size_t heap_size,
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE | FI_REMOTE_READ,
                         0, 1, 0, &s->mr_sbuf, 0));
 
-  // s->sbuf_alloc = std::move(
-      // std::unique_ptr<pinned_pool>(new pinned_pool(ALIGNEDX(s->sbuf.get()))));
   mv_pool_create(&s->sbuf_pool, s->sbuf, sizeof(mv_packet), MAX_SEND + MAX_RECV);
 
   MPI_Comm_rank(MPI_COMM_WORLD, &mv->me);
@@ -174,51 +169,60 @@ MV_INLINE void ofi_init(mvh* mv, size_t heap_size,
   *s_ptr = s;
 }
 
+extern double mv_ptime;
+
 MV_INLINE int ofi_progress(ofi_server* s)
-{  // profiler& p, long long& r, long long &s) {
-  struct fi_cq_data_entry entry;
+{  
+  // double t1 = -(MPI_Wtime());
+  struct fi_cq_data_entry entry[MAX_POLL];
   struct fi_cq_err_entry error;
   ssize_t ret;
   int rett = 0;
 
-  ret = fi_cq_read(s->rcq, &entry, 1);
-  if (ret > 0) {
-    // Got an entry here ?
-    s->recv_posted--;
-    if (entry.flags & FI_REMOTE_CQ_DATA) {
-      mv_serve_imm(entry.data);
+  do {
+    ret = fi_cq_read(s->rcq, &entry, MAX_POLL);
+    // t1 += MPI_Wtime();
+    if (ret > 0) {
+      // Got an entry here ?
+      for (int i = 0; i < ret; i++) {
+        s->recv_posted--;
+        if (entry[i].flags & FI_REMOTE_CQ_DATA) {
+          mv_serve_imm(entry[i].data);
+        } else {
+          mv_serve_recv(s->mv, (mv_packet*)entry[i].op_context);
+        }
+      }
+      rett = 1;
+    } else if (ret == -FI_EAGAIN) {
     } else {
-      mv_serve_recv(s->mv, (mv_packet*)entry.op_context);
+      fi_cq_readerr(s->rcq, &error, 0);
+      printf("Err: %s\n", fi_strerror(error.err));
+      MPI_Abort(MPI_COMM_WORLD, error.err);
+    } 
+  } while (ret > 0);
+
+  // t1 -= MPI_Wtime();
+  do {
+    ret = fi_cq_read(s->scq, &entry, MAX_POLL);
+    // t1 += MPI_Wtime();
+    if (ret > 0) {
+      for (int i = 0; i < ret; i++)  {
+        mv_serve_send(s->mv, (mv_packet*)entry[i].op_context);
+      }
+      rett = 1;
+    } else if (ret == -FI_EAGAIN) {
+    } else {
+      fi_cq_readerr(s->rcq, &error, 0);
+      printf("Err: %s\n", fi_strerror(error.err));
+      MPI_Abort(MPI_COMM_WORLD, error.err);
     }
-    rett = 1;
-  } else if (ret == -FI_EAGAIN) {
-  } else if (ret == -FI_EAVAIL) {
-    fi_cq_readerr(s->rcq, &error, 0);
-    printf("Err: %s\n", fi_strerror(error.err));
-    MPI_Abort(MPI_COMM_WORLD, error.err);
-  } else if (ret < 0) {
-    /* handle error */
-    printf("Err: %s\n", fi_strerror(ret));
-    MPI_Abort(MPI_COMM_WORLD, error.err);
-  }
+  } while (ret > 0);
 
-  ret = fi_cq_read(s->scq, &entry, 1);
-  if (ret > 0) {
-    // Got an entry here ?
-    mv_serve_send(s->mv, (mv_packet*)entry.op_context);
-    rett = 1;
-  } else if (ret == -FI_EAGAIN) {
-  } else if (ret == -FI_EAVAIL) {
-    fi_cq_readerr(s->scq, &error, 0);
-    printf("Err: %s\n", fi_strerror(error.err));
-    MPI_Abort(MPI_COMM_WORLD, error.err);
-  } else if (ret < 0) {
-    /* handle error */
-    printf("Err: %s\n", fi_strerror(ret));
-    MPI_Abort(MPI_COMM_WORLD, error.err);
-  }
-
+  // t1 -= MPI_Wtime();
   if (s->recv_posted < MAX_RECV) ofi_post_recv(s, mv_pool_get(s->sbuf_pool));
+  // t1 += MPI_Wtime();
+
+  // mv_ptime += t1;
 
   return rett;
 }
@@ -226,11 +230,9 @@ MV_INLINE int ofi_progress(ofi_server* s)
 MV_INLINE void ofi_post_recv(ofi_server* s, mv_packet* p)
 {
   if (p == NULL) return;
-  mv_spin_lock(&s->lock);
   FI_SAFECALL(
       fi_recv(s->ep, &p->data, sizeof(mv_packet_data), 0, FI_ADDR_UNSPEC, &p->context));
   s->recv_posted++;
-  mv_spin_unlock(&s->lock);
 }
 
 MV_INLINE int ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
@@ -238,16 +240,12 @@ MV_INLINE int ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
 {
   //FIXME(danghvu): should take from the device.
   if (size >= 30) {
-    mv_spin_lock(&s->lock);
     FI_SAFECALL(
         fi_send(s->ep, buf, size, 0, s->fi_addr[rank], (struct fi_context*) ctx));
-    mv_spin_unlock(&s->lock);
     return 1;
   } else {
-    mv_spin_lock(&s->lock);
     FI_SAFECALL(fi_inject(s->ep, buf, size, s->fi_addr[rank]));
     mv_pool_put(s->sbuf_pool, (mv_packet*)ctx);
-    mv_spin_unlock(&s->lock);
     return 0;
   }
 }
@@ -255,23 +253,19 @@ MV_INLINE int ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
 MV_INLINE void ofi_write_rma(ofi_server* s, int rank, void* from, void* to,
                           uint32_t rkey, size_t size, void* ctx)
 {
-  mv_spin_lock(&s->lock);
   FI_SAFECALL(fi_write(s->ep, from, size, 0, s->fi_addr[rank],
                        (uintptr_t)to - s->heap_addr[rank],  // this is offset.
                        rkey, ctx));
-  mv_spin_unlock(&s->lock);
 }
 
 MV_INLINE void ofi_write_rma_signal(ofi_server* s, int rank, void* from, void* to,
                                  uint32_t rkey, size_t size, uint32_t sid,
                                  void* ctx)
 {
-  mv_spin_lock(&s->lock);
   FI_SAFECALL(
       fi_writedata(s->ep, from, size, 0, sid, s->fi_addr[rank],
-                   (uintptr_t)to - s->heap_addr[rank],  // this is offset.
-                   rkey, ctx));
-  mv_spin_unlock(&s->lock);
+        (uintptr_t)to - s->heap_addr[rank],  // this is offset.
+        rkey, ctx));
 }
 
 MV_INLINE void ofi_finalize(ofi_server* s)
@@ -283,7 +277,7 @@ MV_INLINE uint32_t ofi_heap_rkey(ofi_server* s, int node __UNUSED__) {
   return s->heap_rkey;
 }
 
-MV_INLINE void* ofi_heap_ptr(ofi_server* s) { return ALIGNEDX(s->heap); }
+MV_INLINE void* ofi_heap_ptr(ofi_server* s) { return s->heap; }
 
 #define mv_server_init ofi_init
 #define mv_server_send ofi_write_send
@@ -293,5 +287,6 @@ MV_INLINE void* ofi_heap_ptr(ofi_server* s) { return ALIGNEDX(s->heap); }
 #define mv_server_heap_ptr ofi_heap_ptr
 #define mv_server_progress ofi_progress
 #define mv_server_finalize ofi_finalize
+#define mv_server_post_recv ofi_post_recv
 
 #endif

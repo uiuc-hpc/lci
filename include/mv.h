@@ -1,6 +1,8 @@
 #ifndef MPIV_MV_H_
 #define MPIV_MV_H_
 
+#include "mpi.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -36,9 +38,6 @@ MV_EXPORT
 void mv_close(mvh*);
 
 MV_EXPORT
-void mv_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
-
-MV_EXPORT
 void mv_send_rdz_init(mvh* mv, mv_ctx* ctx);
 
 MV_EXPORT
@@ -71,7 +70,6 @@ MV_EXPORT
 uint8_t mv_am_register(mvh* mv, mv_am_func_t f);
 
 /*! MPI like functions */
-#include <mpi.h>
 typedef uintptr_t MPIV_Request;
 extern mvh* mv_hdl;
 
@@ -111,8 +109,9 @@ MV_EXPORT
 void MPIV_Free(void*);
 
 void mv_recv_rdz_init(mvh* mv, mv_ctx* ctx);
-void mv_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
-void mv_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
+int mv_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
+int mv_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
+int mv_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 
 #ifdef __cplusplus
 }

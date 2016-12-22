@@ -38,7 +38,6 @@ void MPIV_Start_worker(int number, intptr_t g)
     fworker_start(all_worker[i]);
   }
   fworker_start_main(all_worker[0], mv_main_task, g);
-  MPI_Barrier(MPI_COMM_WORLD);
 }
 
 fthread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg)
@@ -58,6 +57,11 @@ mv_sync* mv_get_counter(int count)
 {
   tlself.thread->count = count;
   return (mv_sync*)tlself.thread;
+}
+
+void thread_yield()
+{
+  fthread_yield(tlself.thread);
 }
 
 void thread_wait(mv_sync* sync)

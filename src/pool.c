@@ -1,5 +1,16 @@
 #include "pool.h"
 
+int8_t tls_pool_struct[MAX_NPOOLS][MAX_LOCAL_POOL]; // = {-1, -1, -1, -1, -1, -1, -1, -1};
+int mv_pool_nkey = 0;
+
+void mv_pool_init() {
+  for (int i = 0; i < MAX_NPOOLS; i++) {
+    for (int j = 0; j < MAX_LOCAL_POOL; j++) {
+      tls_pool_struct[i][j] = -1;
+    }
+  }
+}
+
 void mv_pool_create(mv_pool** pool, void* data, size_t elm_size, unsigned count) {
   mv_pool* p = 0;
   posix_memalign((void**) &p, 64, sizeof(struct mv_pool));

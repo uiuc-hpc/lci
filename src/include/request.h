@@ -12,7 +12,7 @@ enum RequestType {
   REQ_SEND_LONG
 };
 
-typedef void(*fcomplete)(mvh* mv, mv_ctx* ctx, mv_sync* sync);
+typedef int(*fcomplete)(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 
 struct mv_ctx {
   void* buffer;

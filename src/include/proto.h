@@ -36,7 +36,13 @@ MV_INLINE void mvi_wait(mv_ctx *ctx, mv_sync* sync)
 MV_INLINE void mvi_send_eager(mvh* mv, mv_ctx* ctx)
 {
   // Get from my pool.
-  mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool);
+  mv_packet* p = (mv_packet*) mv_pool_get_nb(mv->pkpool);
+  if (unlikely(!p)) {
+    do {
+      p = mv_pool_get_nb(mv->pkpool);
+      thread_yield();
+    } while (!p);
+  }
   p->data.header.fid = PROTO_SHORT;
   p->data.header.poolid = mv_pool_get_local(mv->pkpool);
   p->data.header.from = mv->me;
@@ -54,7 +60,14 @@ MV_INLINE void mvi_send_eager(mvh* mv, mv_ctx* ctx)
 MV_INLINE void mvi_send_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
   // Get from my pool.
-  mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool);
+  mv_packet* p = (mv_packet*) mv_pool_get_nb(mv->pkpool);
+  if (unlikely(!p)) {
+    do {
+      p = mv_pool_get_nb(mv->pkpool);
+      thread_yield();
+    } while (!p);
+  }
+
   p->data.header.fid = PROTO_SHORT_WAIT;
   p->data.header.poolid = mv_pool_get_local(mv->pkpool);
   p->data.header.from = mv->me;
@@ -81,7 +94,7 @@ MV_INLINE void mvi_send_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
   }
 }
 
-MV_INLINE void mvi_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+MV_INLINE int mvi_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
   ctx->sync = sync;
   ctx->type = REQ_PENDING;
@@ -89,7 +102,9 @@ MV_INLINE void mvi_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
   mv_value value = (mv_value) ctx;
   if (!mv_hash_insert(mv->tbl, key, &value)) {
     ctx->type = REQ_DONE;
+    return 1;
   }
+  return 0;
 }
 
 MV_INLINE void mvi_send_rdz_init(mvh* mv, mv_ctx* ctx)
@@ -118,7 +133,7 @@ MV_INLINE void mvi_recv_rdz_init(mvh* mv, mv_ctx* ctx)
                  &p->context);
 }
 
-MV_INLINE void mvi_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+MV_INLINE int mvi_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
   ctx->sync = sync;
   ctx->type = REQ_PENDING;
@@ -126,10 +141,12 @@ MV_INLINE void mvi_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
   mv_value value = 0;
   if (!mv_hash_insert(mv->tbl, key, &value)) {
     ctx->type = REQ_DONE;
+    return 1;
   }
+  return 0;
 }
 
-MV_INLINE void mvi_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+MV_INLINE int mvi_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
   ctx->sync = sync;
   ctx->type = REQ_PENDING;
@@ -140,7 +157,9 @@ MV_INLINE void mvi_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
     mv_packet* p_ctx = (mv_packet*)value;
     memcpy(ctx->buffer, p_ctx->data.content.buffer, ctx->size);
     mv_pool_put(mv->pkpool, p_ctx);
+    return 1;
   }
+  return 0;
 }
 
 #endif

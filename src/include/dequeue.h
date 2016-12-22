@@ -5,11 +5,13 @@
 #include "mv/lock.h"
 
 struct dequeue {
+  struct {
+    void* cache;
+    size_t top;
+    size_t bot;
+    size_t size;
+  } __attribute__((aligned(64)));
   volatile int spinlock;
-  size_t top;
-  size_t bot;
-  size_t size;
-  void* cache;
   void* container[MAX_SIZE];
 } __attribute__((aligned(64)));
 

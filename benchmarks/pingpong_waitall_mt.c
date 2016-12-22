@@ -9,26 +9,33 @@
  * copyright file COPYRIGHT in the top level OMB directory.
  */
 
-#include "mpiv.h"
-#include "helper.h"
+#include "mv.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "comm_exp.h"
+
+#ifdef USE_ABT
+#include "mv/helper_abt.h"
+#elif defined(USE_PTH)
+#include "mv/helper_pth.h"
+#else
+#include "mv/helper.h"
+#endif
 
 #define MESSAGE_ALIGNMENT 64
-#define MIN_MSG_SIZE 1
-#define MAX_MSG_SIZE (1 << 22)
+#define MIN_MSG_SIZE 64
+#define MAX_MSG_SIZE 64 //(1 << 22)
 #define MYBUFSIZE (MAX_MSG_SIZE + MESSAGE_ALIGNMENT)
-#define SKIP_LARGE 10
-#define LOOP_LARGE 100
 #define LARGE_MESSAGE_SIZE 8192
 
 char* s_buf1;
 char* r_buf1;
-int skip = 1000;
-int loop = 10000;
-#define WIN 64
+int skip = 0;
+int loop = 64 * 1e5;
+
+int MAX_WIN = 64;
 
 pthread_mutex_t finished_size_mutex;
 pthread_cond_t finished_size_cond;
@@ -55,14 +62,17 @@ void recv_thread(intptr_t arg);
 #endif
 
 int numprocs, provided, myid, err;
+static int NTHREADS = 1;
 static int THREADS = 1;
+
 static int WORKERS = 1;
+static int WIN = 64;
 
 int main(int argc, char* argv[])
 {
   MPIV_Init(&argc, &argv);
   if (argc > 2) {
-    THREADS = atoi(argv[1]);
+    NTHREADS = atoi(argv[1]);
     WORKERS = atoi(argv[2]);
   }
 
@@ -78,7 +88,7 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
 
-  MPIV_Start_worker(WORKERS);
+  MPIV_Start_worker(WORKERS, 0);
   MPIV_Finalize();
 }
 
@@ -89,44 +99,49 @@ void main_task(intptr_t arg)
   int i = 0;
   r_buf1 = (char*)MPIV_Alloc(MYBUFSIZE);
   s_buf1 = (char*)MPIV_Alloc(MYBUFSIZE);
-  fthread* sr_threads[THREADS];
-  thread_tag_t* tags[THREADS];
+  mv_thread* sr_threads = malloc(sizeof(mv_thread) * NTHREADS);
+  thread_tag_t* tags = malloc(sizeof(thread_tag_t) * NTHREADS);
 
   if (myid == 0) {
     fprintf(stdout, HEADER);
-    fprintf(stdout, "%-*s%*s\n", 10, "# Size", FIELD_WIDTH, "Latency (us)");
+    fprintf(stdout, "%-*s%*s\n", 10, "# THREAD", FIELD_WIDTH, "Msg rate (msg/s)");
     fflush(stdout);
+    for (THREADS = 1 ; THREADS <= NTHREADS; THREADS *= 2)
     for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
          size = (size ? size * 2 : 1)) {
+      WIN = max(1, MAX_WIN / THREADS);
       MPI_Barrier(MPI_COMM_WORLD);
-      for (i = 0; i < THREADS; i++) {
+      for (int i = 0; i < THREADS; i++) {
         sr_threads[i] = MPIV_spawn(i % WORKERS, send_thread, (intptr_t)i);
       }
-      for (i = 0; i < THREADS; i++) {
+      for (int i = 0; i < THREADS; i++) {
         MPIV_join(sr_threads[i]);
       }
       MPI_Barrier(MPI_COMM_WORLD);
     }
   } else {
+    for (THREADS = 1 ; THREADS <= NTHREADS; THREADS *= 2)
     for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
          size = (size ? size * 2 : 1)) {
+      WIN = max(1, MAX_WIN / THREADS);
       MPI_Barrier(MPI_COMM_WORLD);
       double t_start = MPI_Wtime();
-
-      for (i = 0; i < THREADS; i++) {
+      for (int i = 0; i < THREADS; i++) {
         sr_threads[i] = MPIV_spawn(i % WORKERS, recv_thread, (intptr_t)i);
       }
-      for (i = 0; i < THREADS; i++) {
+      for (int i = 0; i < THREADS; i++) {
         MPIV_join(sr_threads[i]);
       }
-      double t_end = MPI_Wtime();
-      double t = t_end - t_start;
-      printf("%d \t %.5f \n", size, WIN * (loop + skip) / t);
       MPI_Barrier(MPI_COMM_WORLD);
+      double t = MPI_Wtime() - t_start;
+      printf("%d %d \t %.5f \n", WIN, THREADS,  (loop + skip + (loop+skip)/WIN) / t);
     }
   }
-  MPIV_Free(r_buf1);
-  MPIV_Free(s_buf1);
+
+  free(sr_threads);
+  free(tags);
+  // MPIV_Free(r_buf1);
+  // MPIV_Free(s_buf1);
 }
 
 void recv_thread(intptr_t arg)
@@ -143,7 +158,7 @@ void recv_thread(intptr_t arg)
                   align_size);
 
   if (size > LARGE_MESSAGE_SIZE) {
-    loop = LOOP_LARGE;
+    loop = TOTAL_LARGE;
     skip = SKIP_LARGE;
   }
 
@@ -155,13 +170,16 @@ void recv_thread(intptr_t arg)
   }
 #endif
   MPIV_Request req[WIN];
-  for (i = val; i < (loop + skip); i += THREADS) {
+  for (i = val; i < (loop + skip) / WIN; i += THREADS) {
     for (int k = 0; k < WIN; k++) {
-      MPIV_Irecv(r_buf, size, MPI_CHAR, 0, i << 8 | k, MPI_COMM_WORLD, &req[k]);
+      MPIV_Irecv(r_buf, size, MPI_CHAR, 0, (i << 8) | k, MPI_COMM_WORLD, &req[k]);
       // MPIV_Recv(r_buf, size, MPI_CHAR, 0, i << 8 | k, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
+    // printf("%d Wait\n", val);
     MPIV_Waitall(WIN, req, MPI_STATUSES_IGNORE);
-    MPIV_Send(s_buf, 4, MPI_CHAR, 0, (WIN+1) << 8 | val, MPI_COMM_WORLD);
+    // printf("%d done Wait\n", val);
+    MPIV_Send(s_buf, size, MPI_CHAR, 0, val, MPI_COMM_WORLD);
+    // printf("%d done Send\n", val);
   }
 }
 
@@ -182,7 +200,7 @@ void send_thread(intptr_t arg)
                   align_size);
 
   if (size > LARGE_MESSAGE_SIZE) {
-    loop = LOOP_LARGE;
+    loop = TOTAL_LARGE;
     skip = SKIP_LARGE;
   }
 
@@ -194,12 +212,15 @@ void send_thread(intptr_t arg)
   }
 #endif
   MPIV_Request req[WIN];
-  for (i = val; i < (loop + skip); i += THREADS) {
+  for (i = val; i < (loop + skip) / WIN; i += THREADS) {
     for (int k = 0; k < WIN; k++) {
-      MPIV_Isend(r_buf, size, MPI_CHAR, 1, i << 8 | k, MPI_COMM_WORLD, &req[k]);
+      MPIV_Isend(r_buf, size, MPI_CHAR, 1, (i << 8) | k, MPI_COMM_WORLD, &req[k]);
     }
+    // printf("%d Wait\n", val);
     MPIV_Waitall(WIN, req, MPI_STATUSES_IGNORE);
-    MPIV_Recv(r_buf, 4, MPI_CHAR, 1, (WIN+1) << 8 | val, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    //printf("%d Done Wait\n", val);
+    MPIV_Recv(r_buf, size, MPI_CHAR, 1, val, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    // printf("%d Done Recv\n", val);
   }
 }
 

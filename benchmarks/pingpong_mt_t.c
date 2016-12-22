@@ -26,7 +26,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-
 #define max(a,b) ((a>b)?(a):(b))
 
 #define MESSAGE_ALIGNMENT 64

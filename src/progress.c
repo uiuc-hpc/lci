@@ -27,7 +27,7 @@ static void mv_recv_send_ready_fin(mvh* mv, mv_packet* p_ctx)
   mv_value value = 0;
   if (!mv_hash_insert(mv->tbl, key, &value)) {
     req->type = REQ_DONE;
-    thread_signal(req->sync);
+    if (req->sync) thread_signal(req->sync);
   }
   mv_pool_put(mv->pkpool, p_ctx);
 }
@@ -42,8 +42,11 @@ static void mv_recv_short(mvh* mv, mv_packet* p)
     mv_ctx* req = (mv_ctx*)value;
     memcpy(req->buffer, p->data.content.buffer, req->size);
     req->type = REQ_DONE;
-    thread_signal(req->sync);
-    mv_pool_put(mv->pkpool, p);
+    if (req->sync) thread_signal(req->sync);
+    if (mv->server->recv_posted < MAX_RECV)
+      mv_server_post_recv(mv->server, p);
+    else
+      mv_pool_put(mv->pkpool, p);
   }
 }
 
@@ -77,7 +80,7 @@ void mv_serve_send(mvh* mv, mv_packet* p_ctx)
     mv_value value = 0;
     if (!mv_hash_insert(mv->tbl, key, &value)) {
       req->type = REQ_DONE;
-      thread_signal(req->sync);
+      if (req->sync) thread_signal(req->sync);
     }
   } else {
     if (unlikely(fid == PROTO_SHORT_WAIT)) {
@@ -86,7 +89,7 @@ void mv_serve_send(mvh* mv, mv_packet* p_ctx)
       if (!mv_hash_insert(mv->tbl, key, &value)) {
         mv_ctx* req = (mv_ctx*) value;
         req->type = REQ_DONE;
-        thread_signal(req->sync);
+        if (req->sync) thread_signal(req->sync);
       }
     }
     // NOTE: This improves performance on memcpy, since it sends back

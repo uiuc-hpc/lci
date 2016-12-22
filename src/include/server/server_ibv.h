@@ -486,6 +486,7 @@ MV_INLINE void* ibv_server_heap_ptr(ibv_server* s) { return s->heap_ptr; }
 #define mv_server_heap_ptr ibv_server_heap_ptr
 #define mv_server_progress ibv_server_progress
 #define mv_server_finalize ibv_server_finalize
+#define mv_server_post_recv ibv_server_post_recv
 
 #endif
 

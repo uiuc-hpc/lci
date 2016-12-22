@@ -6,7 +6,6 @@
 #include "mv/lock.h"
 #include "mv/macro.h"
 #include "mv/affinity.h"
-#include <malloc.h>
 
 // Fthread.
 
@@ -17,11 +16,14 @@
 #define MUL8(x) ((x) << 3)
 #define MOD_POW2(x, y) ((x) & ((y)-1))
 
+#define MAX_THREAD (NMASK * WORDSIZE)
+
 MV_INLINE void fthread_create(fthread* f, ffunc func, intptr_t data,
                               size_t stack_size)
 {
   if (unlikely(f->stack == NULL)) {
-    void* memory = malloc(stack_size);
+    void* memory = 0;
+    posix_memalign(&memory, 64, stack_size);
     if (memory == 0) {
       printf("No more memory for stack\n");
       exit(EXIT_FAILURE);
@@ -53,10 +55,6 @@ MV_INLINE void fthread_resume(fthread* f)
 
 MV_INLINE void fthread_fini(fthread* f)
 {
-  if (f->stack != NULL) {
-    // free((void*) ((uintptr_t)f->stack - F_STACK_SIZE));
-    // f->stack = NULL;
-  }
   fworker_fini_thread(f->origin, f->id);
 }
 
@@ -88,16 +86,17 @@ MV_INLINE void fworker_init(fworker** w_ptr)
 
   w->stop = 1;
   posix_memalign((void**)&(w->threads), 64,
-                 sizeof(fthread) * NMASK * WORDSIZE);
+                 sizeof(fthread) * MAX_THREAD);
+  w->thread_pool = (fthread**) malloc( MAX_THREAD * sizeof(uintptr_t));
+  memset(w->threads, 0, sizeof(fthread) * MAX_THREAD);
+  memset(w->thread_pool, 0, sizeof(fthread*) * MAX_THREAD);
 
   for (int i = 0; i < NMASK; i++) w->mask[i] = 0;
 #ifdef USE_L1_MASK
   for (int i = 0; i < 8; i++) w->l1_mask[i] = 0;
 #endif
   // Add all free slot.
-  w->thread_pool = (fthread**) malloc( NMASK * WORDSIZE * sizeof(uintptr_t));
-  memset(w->threads, 0, sizeof(fthread) * (NMASK * WORDSIZE));
-  for (int i = (int)(NMASK * WORDSIZE) - 1; i >= 0; i--) {
+  for (int i = (int)(MAX_THREAD) - 1; i >= 0; i--) {
     fthread_init(&(w->threads[i]));
     w->threads[i].origin = w;
     w->threads[i].id = i;

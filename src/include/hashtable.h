@@ -16,7 +16,7 @@ typedef void* mv_hash;
 
 #define EMPTY ((uint64_t)-1)
 #define TBL_BIT_SIZE 9
-#define TBL_WIDTH  4
+#define TBL_WIDTH 4
 
 uint32_t myhash(const uint64_t k);
 
@@ -27,11 +27,13 @@ typedef struct hash_val {
       mv_value val;
     } entry;
     struct {
-      volatile int lock __attribute__((aligned(8)));
+      volatile int lock;
       struct hash_val* next;
     } control;
   };
-} hash_val __attribute__((aligned(64)));
+  // NOTE: This must be aligned to 16, make sure TBL_WDITH is 4,
+  // So they will fit in a cache line.
+} hash_val __attribute__((aligned(16)));
 
 hash_val* create_table(size_t num_rows);
 void mv_hash_init(mv_hash** h);

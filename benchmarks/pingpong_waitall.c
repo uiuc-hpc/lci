@@ -5,11 +5,17 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-// #define CHECK_RESULT
-
 #include "comm_exp.h"
-#include "mv/helper.h"
 #include "mv.h"
+
+// #define CHECK_RESULT
+#ifdef USE_ABT
+#include "mv/helper_abt.h"
+#elif defined(USE_PTH)
+#include "mv/helper_pth.h"
+#else
+#include "mv/helper.h"
+#endif
 
 #include "mv/profiler.h"
 
@@ -22,17 +28,15 @@
 #define skip 0
 #endif
 
-#define MIN_MSG_SIZE 1
-#define MAX_MSG_SIZE (1 << 22)
-#define WIN 64
-
+#define MIN_MSG_SIZE 64
+#define MAX_MSG_SIZE 64 //(1 << 22)
 int size = 0;
+int WIN = 4;
 
 int main(int argc, char** args)
 {
   MPIV_Init(&argc, &args);
-  if (argc > 1) size = atoi(args[1]);
-  MPIV_Start_worker(1);
+  MPIV_Start_worker(1, 0);
   MPIV_Finalize();
   return 0;
 }
@@ -45,6 +49,7 @@ void main_task(intptr_t arg)
   void* r_buf = (void*)MPIV_Alloc((size_t)MAX_MSG_SIZE);
   void* s_buf = (void*)MPIV_Alloc((size_t)MAX_MSG_SIZE);
 
+  for (WIN = 1; WIN <= 128; WIN *= 2) 
   for (int size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE; size <<= 1) {
     int total = TOTAL;
     int skip = SKIP;
@@ -54,7 +59,7 @@ void main_task(intptr_t arg)
       skip = SKIP_LARGE;
     }
     MPI_Barrier(MPI_COMM_WORLD);
-    MPIV_Request r[64];
+    MPIV_Request r[WIN];
     if (rank == 0) {
       memset(r_buf, 'a', size);
       memset(s_buf, 'b', size);
@@ -71,7 +76,7 @@ void main_task(intptr_t arg)
                   MPI_STATUS_IGNORE);
       }
       times = MPI_Wtime() - times;
-      printf("[%d] %f\n", size, (1e-6 * size * total * WIN) / times);
+      printf("%d %d %f\n", WIN, size, (total * WIN) / times);
     } else {
       memset(s_buf, 'b', size);
       memset(r_buf, 'a', size);
@@ -79,7 +84,7 @@ void main_task(intptr_t arg)
         for (int k = 0; k < WIN; k++) {
           MPIV_Irecv(r_buf, size, MPI_CHAR, 0, k, MPI_COMM_WORLD, &r[k]);
           // MPIV_Recv(r_buf, size, MPI_CHAR, 0, k, MPI_COMM_WORLD, MPI_STATUS_IGNORE);//, &r[k]);
-        }
+        }       
         MPIV_Waitall(WIN, r, MPI_STATUSES_IGNORE);
         MPIV_Send(s_buf, 4, MPI_CHAR, 0, WIN + 1, MPI_COMM_WORLD);
         if (t == 0 || CHECK_RESULT) {

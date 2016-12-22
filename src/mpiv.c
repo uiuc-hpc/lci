@@ -5,6 +5,9 @@
 MV_EXPORT
 mvh* mv_hdl;
 
+static void* ctx_data;
+static mv_pool* mv_ctx_pool;
+
 void* MPIV_HEAP;
 
 void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype,
@@ -77,31 +80,12 @@ void MPIV_Ssend(void* buffer, int count, MPI_Datatype datatype,
   }
 }
 
-void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
-                int tag, MPI_Comm comm __UNUSED__, MPIV_Request* req) {
-  int size;
-  MPI_Type_size(datatype, &size);
-  size *= count;
-  mv_ctx *ctx = malloc(sizeof(struct mv_ctx));
-  ctx->buffer = buffer;
-  ctx->size = size;
-  ctx->rank = rank;
-  ctx->tag = tag;
-  if ((size_t)size <= SHORT_MSG_SIZE) {
-    ctx->complete = mv_recv_eager_post;
-  } else {
-    mvi_recv_rdz_init(mv_hdl, ctx);
-    ctx->complete = mv_recv_rdz_post;
-  }
-  *req = (MPIV_Request) ctx;
-}
-
 void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
                 int tag, MPI_Comm comm __UNUSED__, MPIV_Request* req) {
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
-  mv_ctx *ctx = malloc(sizeof(struct mv_ctx));
+  mv_ctx *ctx = (mv_ctx*) mv_pool_get(mv_ctx_pool);
   ctx->buffer = (void*) buf;
   ctx->size = size;
   ctx->rank = rank;
@@ -109,6 +93,7 @@ void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
 
   if (size <= SHORT_MSG_SIZE) {
     mvi_send_eager(mv_hdl, ctx);
+    mv_pool_put(mv_ctx_pool, ctx);
     *req = MPI_REQUEST_NULL;
   } else {
     mvi_send_rdz_init(mv_hdl, ctx);
@@ -117,24 +102,47 @@ void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
   }
 }
 
+void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
+                int tag, MPI_Comm comm __UNUSED__, MPIV_Request* req) {
+  int size;
+  MPI_Type_size(datatype, &size);
+  size *= count;
+  mv_ctx *ctx = (mv_ctx*) mv_pool_get(mv_ctx_pool); 
+  ctx->buffer = buffer;
+  ctx->size = size;
+  ctx->rank = rank;
+  ctx->tag = tag;
+  if ((size_t)size <= SHORT_MSG_SIZE) {
+    ctx->complete = mv_recv_eager_post;
+    *req = (MPIV_Request) ctx;
+  } else {
+    mvi_recv_rdz_init(mv_hdl, ctx);
+    ctx->complete = mv_recv_rdz_post;
+    *req = (MPIV_Request) ctx;
+  }
+}
+
+
 void MPIV_Waitall(int count, MPIV_Request* req, MPI_Status* status __UNUSED__) {
-  mv_sync* counter = mv_get_counter(count);
+  int pending = count;
   for (int i = 0; i < count; i++) {
-    if (req[i] == MPI_REQUEST_NULL) {
-      thread_signal(counter);
-      continue;
-    }
-    mv_ctx* ctx = (mv_ctx *) req[i];
-    ctx->complete(mv_hdl, ctx, counter);
-    if (ctx->type == REQ_DONE) {
-      thread_signal(counter);
+    if (req[i] == MPI_REQUEST_NULL)
+      pending--;
+  }
+  mv_sync* counter = mv_get_counter(pending);
+  for (int i = 0; i < count; i++) {
+    if (req[i] != MPI_REQUEST_NULL) {
+      mv_ctx* ctx = (mv_ctx *) req[i];
+      if (ctx->complete(mv_hdl, ctx, counter)) {
+        thread_signal(counter);
+      }
     }
   }
-  thread_wait(counter);
   for (int i = 0; i < count; i++) {
     if (req[i] != MPI_REQUEST_NULL) {
       mv_ctx* ctx = (mv_ctx*) req[i];
-      free(ctx);
+      mvi_wait(ctx, counter);
+      mv_pool_put(mv_ctx_pool, ctx);
       req[i] = MPI_REQUEST_NULL;
     }
   }
@@ -157,6 +165,8 @@ void MPIV_Init(int* argc, char*** args)
 {
   size_t heap_size = 1024 * 1024 * 1024;
   mv_open(argc, args, heap_size, &mv_hdl);
+  posix_memalign(&ctx_data, 64, sizeof(struct mv_ctx) * MAX_PACKET);
+  mv_pool_create(&mv_ctx_pool, ctx_data, sizeof(struct mv_ctx), MAX_PACKET);
   mv_thread_stop = 0;
   pthread_create(&progress_thread, 0, progress, 0);
   MPIV_HEAP = mv_heap_ptr(mv_hdl);

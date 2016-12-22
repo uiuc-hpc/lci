@@ -20,26 +20,11 @@
 #include <unistd.h>
 
 #define SERVER_CORE (get_ncores() - 1)
+#define THREAD_PER_CORE 4
 
 MV_INLINE int get_ncores()
 {
-  int logical = sysconf( _SC_NPROCESSORS_ONLN );
-#if 0
-  uint32_t registers[4];
-  __asm__ __volatile__ ("cpuid " :
-          "=a" (registers[0]),
-          "=b" (registers[1]),
-          "=c" (registers[2]),
-          "=d" (registers[3])
-          : "a" (1), "c" (0));
-  unsigned cpufset = registers[3];
-  if (cpufset & (1 << 28)) { // hyperthreading
-      return logical / 2;
-  } else {
-      return logical;
-  }
-#endif
-  return logical / 4;
+  return sysconf( _SC_NPROCESSORS_ONLN ) / THREAD_PER_CORE;
 }
 
 MV_INLINE int set_me_to_(int core_id)
@@ -51,7 +36,7 @@ MV_INLINE int set_me_to_(int core_id)
   CPU_ZERO(&cpuset);
   CPU_SET(core_id, &cpuset);
 
-  fprintf(stderr, "[USE_AFFI] Setting someone to core # %d\n", core_id);
+  // fprintf(stderr, "[USE_AFFI] Setting someone to core # %d\n", core_id);
   pthread_t current_thread = pthread_self();
   return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
 }

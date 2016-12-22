@@ -8,7 +8,14 @@
 // #define CHECK_RESULT
 
 #include "comm_exp.h"
+
+#ifdef USE_ABT
+#include "mv/helper_abt.h"
+#elif defined(USE_PTH)
+#include "mv/helper_pth.h"
+#else
 #include "mv/helper.h"
+#endif
 
 #include "mv/profiler.h"
 
@@ -35,9 +42,12 @@ int main(int argc, char** args)
   return 0;
 }
 
+extern double mv_ptime;
+
 void main_task(intptr_t arg)
 {
   double times = 0;
+  double ptime = 0;
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   void* r_buf = (void*) MPIV_Alloc((size_t)MAX_MSG_SIZE);
@@ -70,7 +80,7 @@ void main_task(intptr_t arg)
         }
       }
       times = MPI_Wtime() - times;
-      printf("[%d] %f\n", size, times * 1e6 / total / 2);
+      printf("[%d] %f\n", size, times * 1e6 / total / 2);//, (mv_ptime - ptime) * 1e6/ total / 2);
     } else {
       memset(s_buf, 'b', size);
       memset(r_buf, 'a', size);

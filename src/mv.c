@@ -5,12 +5,9 @@
 #include <stdint.h>
 #include "pool.h"
 
-int8_t tls_pool_struct[MAX_NPOOLS][MAX_LOCAL_POOL]; // = {-1, -1, -1, -1, -1, -1, -1, -1};
-// __thread int8_t tls_pool_struct[MAX_LOCAL_POOL] = {-1, -1, -1, -1, -1, -1, -1, -1};
 __thread int mv_core_id = -1;
-
-int mv_pool_nkey = 0;
 uint32_t server_max_inline = 128;
+double mv_ptime  = 0;
 
 uint8_t mv_am_register(mvh* mv, mv_am_func_t f)
 {
@@ -64,9 +61,9 @@ void mv_close(mvh* mv)
   MPI_Finalize();
 }
 
-void mv_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+int mv_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
-  mvi_send_rdz_post(mv, ctx, sync);
+  return mvi_send_rdz_post(mv, ctx, sync);
 }
 
 void mv_send_rdz_init(mvh* mv, mv_ctx* ctx)
@@ -91,9 +88,9 @@ void mv_recv_rdz_init(mvh* mv, mv_ctx* ctx)
   mvi_recv_rdz_init(mv, ctx);
 }
 
-void mv_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+int mv_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
-  mvi_recv_rdz_post(mv, ctx, sync);
+  return mvi_recv_rdz_post(mv, ctx, sync);
 }
 
 void mv_recv_rdz(mvh* mv, mv_ctx* ctx, mv_sync* sync)
@@ -103,9 +100,9 @@ void mv_recv_rdz(mvh* mv, mv_ctx* ctx, mv_sync* sync)
   mvi_wait(ctx, sync);
 }
 
-void mv_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+int mv_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
-  mvi_recv_eager_post(mv, ctx, sync);
+  return mvi_recv_eager_post(mv, ctx, sync);
 }
 
 void mv_recv_eager(mvh* mv, mv_ctx* ctx, mv_sync* sync)

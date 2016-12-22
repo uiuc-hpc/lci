@@ -139,6 +139,13 @@ void thread_signal(mv_sync* sync)
   ABT_mutex_unlock(thread->mutex);
   tlself = saved;
 }
+
+void thread_yield()
+{
+  mv_abt_thread* saved = tlself;
+  ABT_thread_yield();
+  tlself = saved;
+}
 #endif
 
 typedef mv_abt_thread* mv_thread;

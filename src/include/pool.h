@@ -26,6 +26,7 @@ typedef struct mv_pool {
   struct dequeue* lpools[MAX_NPOOLS];
 } mv_pool __attribute__((aligned(64)));
 
+void mv_pool_init();
 void mv_pool_create(mv_pool** pool, void* data, size_t elm_size, unsigned count);
 void mv_pool_destroy(mv_pool* pool);
 void mv_pool_put(mv_pool* pool, void* elm);

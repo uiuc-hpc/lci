@@ -11,13 +11,17 @@ extern __thread int mv_core_id;
 typedef void(*ffunc)(intptr_t);
 
 typedef struct mv_pth_thread {
-  ffunc f;
-  intptr_t data;
-  int count;
-  int wid;
-  pthread_t thread;
-  pthread_mutex_t mutex;
-  pthread_cond_t cond;
+  struct {
+    ffunc f;
+    intptr_t data;
+    int wid;
+    pthread_t thread;
+  } __attribute__((aligned(64)));
+  struct {
+    volatile int count;
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+  } __attribute__((aligned(64)));
 } mv_pth_thread;
 
 __thread mv_pth_thread* tlself;
@@ -61,6 +65,11 @@ mv_pth_thread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg)
   t->f = func;
   t->data = arg;
   t->wid = wid;
+
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setstacksize(&attr, 64 * 1024);
+
   pthread_create(&t->thread, 0, pth_wrap, t);
   return t;
 }
@@ -101,6 +110,11 @@ void thread_signal(mv_sync* sync)
   if (thread->count == 0)
     pthread_cond_signal(&thread->cond); 
   pthread_mutex_unlock(&thread->mutex);
+}
+
+void thread_yield()
+{
+  pthread_yield();
 }
 #endif
 

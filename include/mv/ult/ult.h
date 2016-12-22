@@ -13,6 +13,7 @@ struct mv_sync* mv_get_sync();
 struct mv_sync* mv_get_counter(int count);
 void thread_wait(mv_sync* sync);
 void thread_signal(mv_sync* sync);
+void thread_yield();
 
 extern __thread int mv_core_id;
 

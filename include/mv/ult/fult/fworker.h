@@ -5,15 +5,15 @@
 #include <pthread.h>
 
 typedef struct fworker {
-  fthread* threads;
   fthread** thread_pool;
   int thread_pool_last;
+  volatile int thread_pool_lock;
   pthread_t runner;
-  volatile int thread_pool_lock __attribute__((aligned(64)));
+  int stop;
   int id;
+  fthread* threads;
+  fctx ctx;
   struct {
-    int stop;
-    fctx ctx;
 #ifdef USE_L1_MASK
     unsigned long l1_mask[8];
 #endif
