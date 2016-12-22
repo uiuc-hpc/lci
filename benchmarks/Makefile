@@ -63,8 +63,5 @@ hash:
 packet:
 	mpicxx $(CXXFLAGS) $(LDFLAGS) -I../include -I../src/include/ packet.cxx -o packet ../src/pool.c -DUSE_AFFI
 
-thread_wait:
-	mpicxx $(CXXFLAGS) $(LDFLAGS) -I../include -I../src/include/ thread_wait.cxx -o thread_wait -DUSE_AFFI ../libmv.a
-
 clean:
 	rm -rf $(TARGET) *.o
