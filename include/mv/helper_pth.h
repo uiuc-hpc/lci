@@ -114,11 +114,10 @@ void thread_signal(mv_sync* sync)
 
 void thread_yield()
 {
-  pthread_yield();
+  sched_yield();
 }
 #endif
 
 typedef struct mv_pth_thread* mv_thread;
-typedef struct ABT_xstream mv_worker;
 
 #endif

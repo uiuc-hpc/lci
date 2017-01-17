@@ -73,14 +73,14 @@ void main_task(intptr_t a)
   for (nthreads = min_nthreads; nthreads <= max_nthreads; nthreads *= 2)
     for (size = MINSIZE; size <= MAXSIZE; size *= 2) {
       int loop = TOTAL_MSG;
-      double t1 = wtime();
       MPI_Barrier(MPI_COMM_WORLD);
+      double t1 = wtime();
       for (i = 0; i < nthreads; i++) {
         id[i] = MPIV_spawn(i % nworkers, runfunc, (intptr_t)i);
       }
       for (i = 0; i < nthreads; i++) MPIV_join(id[i]);
-      t1 = wtime() - t1;
       MPI_Barrier(MPI_COMM_WORLD);
+      t1 = wtime() - t1;
       if (rank == 0) printf("%d \t %d \t %.2f\n", size, nthreads, (2 * loop) / t1);
     }
   free(id);

@@ -20,7 +20,12 @@
 #include <unistd.h>
 
 #define SERVER_CORE (get_ncores() - 1)
+
+#ifdef MV_USE_SERVER_OFI
 #define THREAD_PER_CORE 4
+#else
+#define THREAD_PER_CORE 1
+#endif
 
 MV_INLINE int get_ncores()
 {
@@ -36,7 +41,7 @@ MV_INLINE int set_me_to_(int core_id)
   CPU_ZERO(&cpuset);
   CPU_SET(core_id, &cpuset);
 
-  // fprintf(stderr, "[USE_AFFI] Setting someone to core # %d\n", core_id);
+  fprintf(stderr, "[USE_AFFI] Setting someone to core # %d\n", core_id);
   pthread_t current_thread = pthread_self();
   return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
 }

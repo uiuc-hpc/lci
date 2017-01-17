@@ -1,15 +1,13 @@
 .PHONY: all clean install
 
+include config.mk
+
 MPICC ?= mpicc
 CC ?= gcc
 CFLAGS ?= -g3 -ggdb -O3 -Wall -Wextra
 AR ?= ar
 RANLIB ?= ranlib
 PREFIX ?= /usr
-
-# Define server here
-#SERVER = -DMV_USE_SERVER_IBV
-SERVER = -DMV_USE_SERVER_OFI
 
 SRCDIR = ./src
 OBJDIR ?= ./obj

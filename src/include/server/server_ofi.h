@@ -100,12 +100,12 @@ MV_INLINE void ofi_init(mvh* mv, size_t heap_size,
   memset(cq_attr, 0, sizeof(cq_attr));
   cq_attr->format = FI_CQ_FORMAT_DATA;
   cq_attr->size = MAX_CQ_SIZE;
-  FI_SAFECALL(fi_cq_open(s->domain, cq_attr, &s->scq, NULL));
+  // FI_SAFECALL(fi_cq_open(s->domain, cq_attr, &s->scq, NULL));
   FI_SAFECALL(fi_cq_open(s->domain, cq_attr, &s->rcq, NULL));
 
   // Bind my ep to cq.
-  FI_SAFECALL(fi_ep_bind(s->ep, (fid_t)s->scq, FI_SEND | FI_TRANSMIT));
-  FI_SAFECALL(fi_ep_bind(s->ep, (fid_t)s->rcq, FI_RECV));
+  FI_SAFECALL(fi_ep_bind(s->ep, (fid_t)s->rcq, FI_RECV | FI_SEND | FI_TRANSMIT));
+  // FI_SAFECALL(fi_ep_bind(s->ep, (fid_t)s->rcq, FI_RECV));
 
   // Get memory for heap.
   s->heap = 0 ;//std::move(unique_ptr<char[]>(new char[heap_size]));
@@ -171,6 +171,26 @@ MV_INLINE void ofi_init(mvh* mv, size_t heap_size,
 
 extern double mv_ptime;
 
+MV_INLINE int ofi_progress_recv_once(ofi_server* s)
+{
+  struct fi_cq_data_entry entry;
+  int ret = fi_cq_read(s->rcq, &entry, 1);
+  if (ret > 0) {
+    return 1;
+  } 
+  return 0;
+}
+
+MV_INLINE int ofi_progress_send_once(ofi_server* s)
+{
+  struct fi_cq_data_entry entry;
+  int ret = fi_cq_read(s->scq, &entry, 1);
+  if (ret > 0) {
+    return 1;
+  }
+  return 0;
+}
+
 MV_INLINE int ofi_progress(ofi_server* s)
 {  
   // double t1 = -(MPI_Wtime());
@@ -185,11 +205,14 @@ MV_INLINE int ofi_progress(ofi_server* s)
     if (ret > 0) {
       // Got an entry here ?
       for (int i = 0; i < ret; i++) {
-        s->recv_posted--;
         if (entry[i].flags & FI_REMOTE_CQ_DATA) {
+          s->recv_posted--;
           mv_serve_imm(entry[i].data);
-        } else {
+        } if (entry[i].flags & FI_RECV) {
+          s->recv_posted--;
           mv_serve_recv(s->mv, (mv_packet*)entry[i].op_context);
+        } else {
+          mv_serve_send(s->mv, (mv_packet*)entry[i].op_context);
         }
       }
       rett = 1;
@@ -201,28 +224,22 @@ MV_INLINE int ofi_progress(ofi_server* s)
     } 
   } while (ret > 0);
 
-  // t1 -= MPI_Wtime();
-  do {
-    ret = fi_cq_read(s->scq, &entry, MAX_POLL);
-    // t1 += MPI_Wtime();
-    if (ret > 0) {
-      for (int i = 0; i < ret; i++)  {
-        mv_serve_send(s->mv, (mv_packet*)entry[i].op_context);
-      }
-      rett = 1;
-    } else if (ret == -FI_EAGAIN) {
-    } else {
-      fi_cq_readerr(s->rcq, &error, 0);
-      printf("Err: %s\n", fi_strerror(error.err));
-      MPI_Abort(MPI_COMM_WORLD, error.err);
+#if 0
+  ret = fi_cq_read(s->scq, &entry, MAX_POLL);
+  if (ret > 0) {
+    for (int i = 0; i < ret; i++)  {
+      mv_serve_send(s->mv, (mv_packet*)entry[i].op_context);
     }
-  } while (ret > 0);
+    rett = 1;
+  } else if (ret == -FI_EAGAIN) {
+  } else {
+    fi_cq_readerr(s->rcq, &error, 0);
+    printf("Err: %s\n", fi_strerror(error.err));
+    MPI_Abort(MPI_COMM_WORLD, error.err);
+  }
+#endif
 
-  // t1 -= MPI_Wtime();
   if (s->recv_posted < MAX_RECV) ofi_post_recv(s, mv_pool_get(s->sbuf_pool));
-  // t1 += MPI_Wtime();
-
-  // mv_ptime += t1;
 
   return rett;
 }
@@ -239,14 +256,14 @@ MV_INLINE int ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
                              void* ctx)
 {
   //FIXME(danghvu): should take from the device.
-  if (size >= 30) {
-    FI_SAFECALL(
-        fi_send(s->ep, buf, size, 0, s->fi_addr[rank], (struct fi_context*) ctx));
-    return 1;
-  } else {
+  if (size < 30) {
     FI_SAFECALL(fi_inject(s->ep, buf, size, s->fi_addr[rank]));
     mv_pool_put(s->sbuf_pool, (mv_packet*)ctx);
     return 0;
+  } else {
+    FI_SAFECALL(
+        fi_send(s->ep, buf, size, 0, s->fi_addr[rank], (struct fi_context*) ctx));
+    return 1;
   }
 }
 
@@ -288,5 +305,7 @@ MV_INLINE void* ofi_heap_ptr(ofi_server* s) { return s->heap; }
 #define mv_server_progress ofi_progress
 #define mv_server_finalize ofi_finalize
 #define mv_server_post_recv ofi_post_recv
+#define mv_server_progress_send_once ofi_progress_send_once
+#define mv_server_progress_recv_once ofi_progress_recv_once
 
 #endif

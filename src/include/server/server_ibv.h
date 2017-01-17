@@ -6,12 +6,12 @@
 #include "mv.h"
 #include "mv/affinity.h"
 
-#include "pool.h"
 #include "infiniband/verbs.h"
 
 #include "mv/profiler.h"
 
 #define ALIGNMENT (4096)
+#define MAX_CQ 16
 
 // #define IBV_SERVER_DEBUG
 
@@ -60,10 +60,9 @@ typedef struct ibv_server {
   struct conn_ctx* conn;
 
   // Helper fields.
-  uint32_t server_max_inline;
   mv_pool* sbuf_pool;
   void* heap_ptr;
-  int recv_posted;
+  long recv_posted;
 } ibv_server __attribute__((aligned(64)));
 
 
@@ -101,7 +100,7 @@ MV_INLINE struct ibv_qp* qp_create(ibv_server* s, struct ibv_device_attr* dev_at
   qp_init_attr.qp_type = IBV_QPT_RC;
   qp_init_attr.sq_sig_all = 0; 
   struct ibv_qp* qp = ibv_create_qp(s->dev_pd, &qp_init_attr);
-  server_max_inline = min(server_max_inline,
+  server_max_inline = MIN(server_max_inline,
           (uint32_t) qp_init_attr.cap.max_inline_data);
   return qp;
 }
@@ -196,11 +195,32 @@ MV_INLINE void ibv_server_post_recv(ibv_server* s, mv_packet* p)
   IBV_SAFECALL(ibv_post_srq_recv(s->dev_srq, &wr, &bad_wr));
 }
 
-int ibv_server_progress(ibv_server* s)
-{  // profiler& p, long long& r, long long &s) {
+MV_INLINE int ibv_progress_recv_once(ibv_server* s)
+{
   struct ibv_wc wc;
+  int ret = ibv_poll_cq(s->recv_cq, 1, &wc);
+  if (ret > 0) {
+    return 1;
+  } 
+  return 0;
+}
+
+MV_INLINE int ibv_progress_send_once(ibv_server* s)
+{
+  struct ibv_wc wc;
+  int ret = ibv_poll_cq(s->send_cq, 1, &wc);
+  if (ret > 0) {
+    return 1;
+  }
+  return 0;
+}
+
+MV_INLINE int ibv_server_progress(ibv_server* s)
+{  // profiler& p, long long& r, long long &s) {
+  struct ibv_wc wc[MAX_CQ];
   int ret = 0;
-  int ne = ibv_poll_cq(s->recv_cq, 1, &wc);
+  int ne = ibv_poll_cq(s->recv_cq, MAX_CQ, wc);
+
 #ifdef IBV_SERVER_DEBUG
   if (wc.status != IBV_WC_SUCCESS) {
     fprintf(stderr, "Failed status %s (%d) for wr_id %d\n", 
@@ -209,15 +229,19 @@ int ibv_server_progress(ibv_server* s)
     exit(EXIT_FAILURE);
   }
 #endif
-  if (ne == 1) {
-    s->recv_posted--;
-    if (wc.opcode != IBV_WC_RECV_RDMA_WITH_IMM)
-      mv_serve_recv(s->mv, (mv_packet*)wc.wr_id);
-    else
-      mv_serve_imm(wc.imm_data);
+  if (ne > 0) {
+    for (int i = 0; i < ne; i++) {
+      s->recv_posted--;
+      if (wc[i].opcode != IBV_WC_RECV_RDMA_WITH_IMM)
+        mv_serve_recv(s->mv, (mv_packet*)wc[i].wr_id);
+      else
+        mv_serve_imm(wc[i].imm_data);
+    }
     ret = 1;
   }
-  ne = ibv_poll_cq(s->send_cq, 1, &wc);
+
+  ne = ibv_poll_cq(s->send_cq, MAX_CQ, wc);
+
 #ifdef IBV_SERVER_DEBUG
   if (wc.status != IBV_WC_SUCCESS) {
     fprintf(stderr, "Failed status %s (%d) for wr_id %d\n", 
@@ -226,10 +250,12 @@ int ibv_server_progress(ibv_server* s)
     exit(EXIT_FAILURE);
   }
 #endif
-  if (ne == 1) {
-    mv_serve_send(s->mv, (mv_packet*)wc.wr_id);
+  if (ne > 0) {
+    for (int i = 0; i < ne; i++)
+      mv_serve_send(s->mv, (mv_packet*)wc[i].wr_id);
     ret = 1;
   }
+
   // Make sure we always have enough packet, but do not block.
   if (s->recv_posted < MAX_RECV)
     ibv_server_post_recv(s, (mv_packet*) mv_pool_get_nb(s->sbuf_pool)); //, 0));
@@ -270,6 +296,7 @@ MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf, size_t s
             IBV_SEND_INLINE | IBV_SEND_SIGNALED);
     this_wr.imm_data = 0;
     IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
+
     // Must be in the same threads.
     mv_pool_put(s->sbuf_pool, ctx); 
     return 0;
@@ -330,7 +357,6 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size,
 {
   ibv_server* s = 0;
   posix_memalign((void**) &s, 64, sizeof(ibv_server));
-
   assert(s);
 
   int num_devices;
@@ -487,6 +513,8 @@ MV_INLINE void* ibv_server_heap_ptr(ibv_server* s) { return s->heap_ptr; }
 #define mv_server_progress ibv_server_progress
 #define mv_server_finalize ibv_server_finalize
 #define mv_server_post_recv ibv_server_post_recv
+#define mv_server_progress_send_once ibv_progress_send_once
+#define mv_server_progress_recv_once ibv_progress_recv_once
 
 #endif
 

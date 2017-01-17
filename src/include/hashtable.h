@@ -18,8 +18,6 @@ typedef void* mv_hash;
 #define TBL_BIT_SIZE 9
 #define TBL_WIDTH 4
 
-uint32_t myhash(const uint64_t k);
-
 typedef struct hash_val {
   union {
     struct {
@@ -35,7 +33,6 @@ typedef struct hash_val {
   // So they will fit in a cache line.
 } hash_val __attribute__((aligned(16)));
 
-hash_val* create_table(size_t num_rows);
 void mv_hash_init(mv_hash** h);
 int mv_hash_insert(mv_hash* h, mv_key key, mv_value* value);
 

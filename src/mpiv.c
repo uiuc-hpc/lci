@@ -46,7 +46,7 @@ void MPIV_Send(void* buffer, int count, MPI_Datatype datatype,
      .rank = rank,
      .tag = tag
   };
-  if (size <= SHORT_MSG_SIZE) {
+  if ((size_t) size <= SHORT_MSG_SIZE) {
     mvi_send_eager(mv_hdl, &ctx);
   } else {
     mv_sync* sync = mv_get_sync();
@@ -68,7 +68,7 @@ void MPIV_Ssend(void* buffer, int count, MPI_Datatype datatype,
      .rank = rank,
      .tag = tag
   };
-  if (size <= SHORT_MSG_SIZE) {
+  if ((size_t) size <= SHORT_MSG_SIZE) {
     mv_sync* sync = mv_get_sync();
     mvi_send_eager_post(mv_hdl, &ctx, sync);
     mvi_wait(&ctx, sync);
@@ -91,7 +91,7 @@ void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
   ctx->rank = rank;
   ctx->tag = tag;
 
-  if (size <= SHORT_MSG_SIZE) {
+  if ((size_t) size <= SHORT_MSG_SIZE) {
     mvi_send_eager(mv_hdl, ctx);
     mv_pool_put(mv_ctx_pool, ctx);
     *req = MPI_REQUEST_NULL;
@@ -154,6 +154,7 @@ static pthread_t progress_thread;
 static void* progress(void* arg __UNUSED__)
 {
   set_me_to_last();
+  int poll_rate;
   while (!mv_thread_stop) {
     while (mv_server_progress(mv_hdl->server))
       ;

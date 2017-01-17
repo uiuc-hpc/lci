@@ -29,7 +29,7 @@
 #endif
 
 #define MIN_MSG_SIZE 1
-#define MAX_MSG_SIZE (1 << 22)
+#define MAX_MSG_SIZE 256//(1 << 22)
 
 int size = 0;
 

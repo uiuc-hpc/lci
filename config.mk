@@ -1,0 +1,3 @@
+# Define server here
+# SERVER = -DMV_USE_SERVER_IBV
+SERVER = -DMV_USE_SERVER_OFI

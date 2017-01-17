@@ -5,6 +5,8 @@
 
 #ifdef USE_PAPI
 
+#include <vector>
+#include <iostream>
 #include <papi.h>
 #include <pthread.h>
 
@@ -24,12 +26,21 @@ class profiler
  public:
   inline profiler(std::initializer_list<int> args)
   {
-    std::cerr << "[USE_PAPI] Profiling in: " << PAPI_thread_id() << std::endl;
+    // std::cerr << "[USE_PAPI] Profiling in: " << PAPI_thread_id() << std::endl;
     events_ = args;
+    if (PAPI_num_counters() < events_.size()) {
+      // printf("[USE_PAPI] %d\n", PAPI_num_counters());
+      exit(EXIT_FAILURE);
+    }
     counters_.resize(events_.size(), 0);
   }
 
-  inline void start() { PAPI_start_counters(&events_[0], events_.size()); }
+  inline void start() {
+    int err;
+    if ((err = PAPI_start_counters((int*) &events_[0], events_.size())) != PAPI_OK) {
+      printf("%s\n", PAPI_strerror(err));
+    }
+  }
   inline const std::vector<long long>& stop()
   {
     PAPI_stop_counters(&counters_[0], counters_.size());

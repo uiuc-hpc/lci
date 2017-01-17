@@ -28,14 +28,18 @@
 #define skip 0
 #endif
 
-#define MIN_MSG_SIZE 64
-#define MAX_MSG_SIZE 64 //(1 << 22)
+#define MIN_MSG_SIZE 1
+#define MAX_MSG_SIZE (1 << 22)
 int size = 0;
 int WIN = 4;
 
 int main(int argc, char** args)
 {
   MPI_Init(&argc, &args);
+  int provided = 0;
+  MPI_Init_thread(&argc, &args, MPI_THREAD_MULTIPLE, &provided);
+  if (provided != MPI_THREAD_MULTIPLE)
+    return -1;
   main_task(0);
   MPI_Finalize();
   return 0;
@@ -49,7 +53,7 @@ void main_task(intptr_t arg)
   void* r_buf = (void*)malloc((size_t)MAX_MSG_SIZE);
   void* s_buf = (void*)malloc((size_t)MAX_MSG_SIZE);
 
-  for (WIN = 1; WIN <= 128; WIN *= 2) 
+  for (WIN = 64; WIN <= 64; WIN *= 2) 
   for (int size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE; size <<= 1) {
     int total = TOTAL;
     int skip = SKIP;
@@ -76,7 +80,8 @@ void main_task(intptr_t arg)
                   MPI_STATUS_IGNORE);
       }
       times = MPI_Wtime() - times;
-      printf("%d %d %f\n", WIN, size, (total * WIN) / times);
+      printf("%d %f\n", size, (total * WIN) / times);
+      // printf("%d %f\n", size, size / 1e6 * total * WIN / times);
     } else {
       memset(s_buf, 'b', size);
       memset(r_buf, 'a', size);

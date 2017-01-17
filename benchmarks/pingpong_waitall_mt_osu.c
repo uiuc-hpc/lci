@@ -63,8 +63,7 @@ int numprocs, provided, myid, err;
 static int NTHREADS = 1;
 static int THREADS = 1;
 
-static int WORKERS = 1;
-static int MAX_WIN = 64;
+static int MAX_WIN = 64 * 2;
 static int WIN = 64;
 
 int main(int argc, char* argv[])
@@ -74,7 +73,6 @@ int main(int argc, char* argv[])
 
   if (argc > 2) {
     NTHREADS = atoi(argv[1]);
-    WORKERS = atoi(argv[2]);
   }
 
   MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
@@ -107,7 +105,7 @@ void main_task(intptr_t arg)
     fprintf(stdout, HEADER);
     fprintf(stdout, "%-*s%*s\n", 10, "# THREAD", FIELD_WIDTH, "Msg rate (msg/s)");
     fflush(stdout);
-    for (THREADS = 1 ; THREADS <= NTHREADS; THREADS *= 2)
+    for (THREADS = 1; THREADS <= NTHREADS; THREADS *= 2)
     for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
          size = (size ? size * 2 : 1)) {
       WIN = max(1, MAX_WIN / THREADS);
@@ -121,7 +119,7 @@ void main_task(intptr_t arg)
       MPI_Barrier(MPI_COMM_WORLD);
     }
   } else {
-    for (THREADS = 1 ; THREADS <= NTHREADS; THREADS *= 2)
+    for (THREADS = 1; THREADS <= NTHREADS; THREADS *= 2)
     for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
          size = (size ? size * 2 : 1)) {
       WIN = max(1, MAX_WIN / THREADS);
@@ -147,9 +145,9 @@ void main_task(intptr_t arg)
 
 void* recv_thread(void* arg)
 {
-  int i, val, align_size;
+  int i, align_size;
   char *s_buf, *r_buf;
-  val = (int)(arg);
+  long val = (long)(arg);
   set_me_to_(val);
 
   align_size = MESSAGE_ALIGNMENT;
@@ -175,10 +173,9 @@ void* recv_thread(void* arg)
   for (i = val; i < (loop + skip) / WIN; i += THREADS) {
     for (int k = 0; k < WIN; k++) {
       MPI_Irecv(r_buf, size, MPI_CHAR, 0, val * WIN + k, MPI_COMM_WORLD, &req[k]);
-      // MPIV_Recv(r_buf, size, MPI_CHAR, 0, i << 8 | k, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
     MPI_Waitall(WIN, req, MPI_STATUSES_IGNORE);
-    MPI_Ssend(s_buf, size, MPI_CHAR, 0, ((WIN+1) << 8) | val, MPI_COMM_WORLD);
+    MPI_Send(s_buf, size, MPI_CHAR, 0, ((WIN+1) << 8) | val, MPI_COMM_WORLD);
   }
   return 0;
 }
@@ -189,7 +186,7 @@ void* send_thread(void* arg)
 {
   int i, align_size;
   char *s_buf, *r_buf;
-  int val = (int)(arg);
+  long val = (long)(arg);
   set_me_to_(val);
 
   double t_start = 0, t_end = 0, t = 0, latency;

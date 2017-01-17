@@ -4,13 +4,14 @@
 // Communication setup...
 #ifdef MV_USE_SERVER_OFI
 #define MAX_PACKET 1024
+#define PACKET_SIZE (128 * 1024 + 128)
 #else
 #define MAX_PACKET 256
+#define PACKET_SIZE (16 * 1024 + 64)
 #endif
 
 #define MAX_RECV 64
 #define MAX_SEND (MAX_PACKET - MAX_RECV) // maximum concurrent send.
-#define PACKET_SIZE (16 * 1024 + 64)       // transfer unit size.
 #define SHORT_MSG_SIZE (PACKET_SIZE - sizeof(packet_header))  // short message size.
 
 #endif

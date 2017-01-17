@@ -96,7 +96,7 @@ MV_INLINE void fworker_init(fworker** w_ptr)
   for (int i = 0; i < 8; i++) w->l1_mask[i] = 0;
 #endif
   // Add all free slot.
-  for (int i = (int)(MAX_THREAD) - 1; i >= 0; i--) {
+  for (int i = 0; i < (int) MAX_THREAD; i++) {
     fthread_init(&(w->threads[i]));
     w->threads[i].origin = w;
     w->threads[i].id = i;
@@ -165,6 +165,10 @@ MV_INLINE int pop_work(unsigned long* mask)
 fworker* random_worker();
 #endif
 
+#if 0
+__thread double wtimework, wtimeall;
+#endif
+
 #ifndef USE_L1_MASK
 MV_INLINE void* wfunc(void* arg)
 {
@@ -174,16 +178,32 @@ MV_INLINE void* wfunc(void* arg)
   set_me_to(w->id);
 #endif
 
+#if 0
+  wtimework = 0;
+  int first = 1;
+#endif
+
   while (unlikely(!w->stop)) {
 #ifdef ENABLE_STEAL
     int has_work = 0;
 #endif
     for (int i = 0; i < NMASK; i++) {
       if (w->mask[i] > 0) {
+#if 0
+        if (unlikely(first))  {
+          wtimework = -wtime();
+          wtimeall = -wtime();
+          first = 0;
+        } else {
+          wtimework -= wtime();
+        }
+#endif
+
         // Atomic exchange to get the current waiting threads.
         unsigned long local_mask = exchange((unsigned long)0, &(w->mask[i]));
         // Works until it no thread is pending.
         while (likely(local_mask > 0)) {
+
 #ifdef ENABLE_STEAL
           has_work = 1;
 #endif
@@ -192,6 +212,7 @@ MV_INLINE void* wfunc(void* arg)
           fthread* f = &(w->threads[MUL64(i) + id]);
           fworker_work(w, f);
         }
+        // wtimework += wtime();
       }
     }
 

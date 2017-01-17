@@ -35,7 +35,7 @@ char* r_buf1;
 int skip = 0;
 int loop = 64 * 1e5;
 
-int MAX_WIN = 64;
+int MAX_WIN = 64 * 2;
 
 pthread_mutex_t finished_size_mutex;
 pthread_cond_t finished_size_cond;
