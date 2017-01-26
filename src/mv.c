@@ -1,5 +1,3 @@
-// TODO(danghvu): Ugly hack to make thread-local storage faster.
-
 #include <mpi.h>
 #include "include/mv_priv.h"
 #include <stdint.h>
@@ -128,11 +126,7 @@ void mv_send_eager_enqueue(mvh* mv, void* src, int size, int rank, int tag)
 
 void mv_send_rdz_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
-  ctx->buffer = src;
-  ctx->size = size;
-  ctx->rank = rank;
-  ctx->tag = tag;
-  ctx->type = REQ_PENDING;
+  INIT_CTX(ctx);
 
   mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool); 
   mv_set_proto(p, MV_PROTO_RTS);
@@ -143,6 +137,14 @@ void mv_send_rdz_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, m
   p->data.content.rdz.sreq = (uintptr_t) ctx;
   mv_server_send(mv->server, ctx->rank, &p->data,
       sizeof(packet_header) + sizeof(struct mv_rdz), &p->context);
+}
+
+int mv_send_rdz_enqueue_post(mvh* mv, mv_ctx* ctx, mv_sync *sync)
+{
+  if (ctx->type == REQ_DONE)
+    return 1;
+  else
+    mv->sync = sync;
 }
 
 int mv_recv_dequeue(mvh* mv, mv_ctx* ctx)

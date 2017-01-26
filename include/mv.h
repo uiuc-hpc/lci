@@ -85,31 +85,15 @@ struct mv_ctx {
 
 
 /**
- * \defgroup low-level Low-level API
+ * @defgroup low-level Low-level API
  * @{
  */
 
 /**
-* @brief Create a handle for communication.
-*
-* @param argc
-* @param args
-* @param heap_size
-* @param handle
-*
-*/
-MV_EXPORT
-void mv_open(int* argc, char*** args, size_t heap_size, mvh** handle);
-
-/**
-* @brief Close the handle and free memory.
-*
-* @param handle
-*
-*/
-MV_EXPORT
-void mv_close(mvh* handle);
-
+ * @defgroup match Matching using rank, tag.
+ * @{
+ */
+ 
 /**
 * @brief Send a buffer and match at destination.
 *
@@ -150,6 +134,33 @@ MV_EXPORT
 int mv_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 
 /**
+* @brief Initialize a rdz send.
+*
+* @param mv
+* @param src
+* @param size
+* @param rank
+* @param tag
+* @param ctx
+*
+*/
+MV_EXPORT
+void mv_send_rdz_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx);
+
+/**
+* @brief Try to finish rdz send and insert sync obj for waking up.
+*
+* @param mv
+* @param ctx
+* @param sync
+*
+* @return 1 if finished, 0 otherwise.
+*/
+MV_EXPORT
+int mv_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
+
+
+/**
 * @brief Initialize a rdz recv.
 *
 * @param mv
@@ -175,31 +186,12 @@ void mv_recv_rdz_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* c
 MV_EXPORT
 int mv_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 
-/**
-* @brief Initialize a rdz send.
-*
-* @param mv
-* @param src
-* @param size
-* @param rank
-* @param tag
-* @param ctx
-*
-*/
-MV_EXPORT
-void mv_send_rdz_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx);
+/**@} End group matching */
 
 /**
-* @brief Try to finish rdz send and insert sync obj for waking up.
-*
-* @param mv
-* @param ctx
-* @param sync
-*
-* @return 1 if finished, 0 otherwise.
-*/
-MV_EXPORT
-int mv_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
+ * @defgroup queue Enqueue/Dequeue
+ * @{
+ */
 
 /**
 * @brief Send eager a buffer, enqueue at destination.
@@ -229,7 +221,7 @@ MV_EXPORT
 void mv_send_rdz_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx);
 
 /**
-* @brief Initialize a rdz send, enqueue at destination.
+* @brief Try to finish or attach sync for waking up.
 *
 * @param mv
 * @param ctx
@@ -250,6 +242,34 @@ int mv_send_rdz_enqueue_post(mvh* mv, mv_ctx* ctx, mv_sync *sync);
 */
 MV_EXPORT
 int mv_recv_dequeue(mvh* mv, mv_ctx* ctx);
+
+/**@} End queue group */
+
+/**
+ * @defgroup control Control APIs
+ * @{
+ */
+
+/**
+* @brief Create a handle for communication.
+*
+* @param argc
+* @param args
+* @param heap_size
+* @param handle
+*
+*/
+MV_EXPORT
+void mv_open(int* argc, char*** args, size_t heap_size, mvh** handle);
+
+/**
+* @brief Close the handle and free memory.
+*
+* @param handle
+*
+*/
+MV_EXPORT
+void mv_close(mvh* handle);
 
 /**
 * @brief Blocking wait on sync, for communication to finish
@@ -297,10 +317,12 @@ void* mv_alloc(mvh* mv, size_t size);
 MV_EXPORT
 void mv_free(mvh* mv, void* buffer);
 
-/**@}*/
+/**@} end control */
+
+/**@} end low-level */
 
 /**
-* \defgroup exp-api Experimental API
+* @defgroup exp-api Experimental API
 * @{
 */
 
@@ -339,7 +361,7 @@ void mv_packet_done(mvh* mv, mv_packet* p);
 /**@}*/
 
 /**
-* \defgroup mpi MPI-like API
+* @defgroup mpi MPI-like API
 *	@{
 */
 typedef uintptr_t MPIV_Request;
