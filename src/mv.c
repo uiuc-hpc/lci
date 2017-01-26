@@ -139,12 +139,14 @@ void mv_send_rdz_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, m
       sizeof(packet_header) + sizeof(struct mv_rdz), &p->context);
 }
 
-int mv_send_rdz_enqueue_post(mvh* mv, mv_ctx* ctx, mv_sync *sync)
+int mv_send_rdz_enqueue_post(mvh* mv __UNUSED__, mv_ctx* ctx, mv_sync *sync)
 {
   if (ctx->type == REQ_DONE)
     return 1;
-  else
-    mv->sync = sync;
+  else {
+    ctx->sync = sync;
+    return 0;
+  }
 }
 
 int mv_recv_dequeue(mvh* mv, mv_ctx* ctx)
