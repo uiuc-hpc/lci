@@ -1,3 +1,10 @@
+/**
+ * @file mv.h
+ * @author Hoang-Vu Dang (danghvu@gmail.com)
+ * @brief Header file for all MPIv code.
+ *
+ */
+
 #ifndef MPIV_MV_H_
 #define MPIV_MV_H_
 
@@ -76,6 +83,12 @@ struct mv_ctx {
   void* control;
 } __attribute__((aligned(64)));
 
+
+/**
+ * \defgroup low-level Low-level API
+ * @{
+ */
+
 /**
 * @brief Create a handle for communication.
 *
@@ -98,8 +111,7 @@ MV_EXPORT
 void mv_close(mvh* handle);
 
 /**
-* @brief Non-blocking send an eager message, buffer is available
-*   after done.
+* @brief Send a buffer and match at destination.
 *
 * @param mv
 * @param src
@@ -112,7 +124,7 @@ MV_EXPORT
 void mv_send_eager(mvh* mv, void* src, int size, int rank, int tag);
 
 /**
-* @brief Non-blocking initialize an eager recv.
+* @brief Initialize a recv, matching incoming message.
 *
 * @param mv
 * @param ctx
@@ -122,7 +134,7 @@ MV_EXPORT
 void mv_recv_eager_init(mvh* mv, mv_ctx* ctx);
 
 /**
-* @brief Non-blocking try to finish eager recv.
+* @brief Try to match and insert sync obj for waking up.
 *
 * @param mv
 * @param ctx
@@ -134,7 +146,7 @@ MV_EXPORT
 int mv_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 
 /**
-* @brief Non-blocking initialize rendezvous recv.
+* @brief Initialize a rdz recv.
 *
 * @param mv
 * @param ctx
@@ -144,7 +156,7 @@ MV_EXPORT
 void mv_recv_rdz_init(mvh* mv, mv_ctx* ctx);
 
 /**
-* @brief Non-blocking try to finish rendezvous recv.
+* @brief Try to match rdz and insert sync obj for waking up.
 *
 * @param mv
 * @param ctx
@@ -156,7 +168,7 @@ MV_EXPORT
 int mv_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 
 /**
-* @brief Non-blocking initialize rendezvous send.
+* @brief Initialize a rdz send.
 *
 * @param mv
 * @param ctx
@@ -166,7 +178,7 @@ MV_EXPORT
 void mv_send_rdz_init(mvh* mv, mv_ctx* ctx);
 
 /**
-* @brief Non-blocking try to finish rendezvous send.
+* @brief Try to finish rdz send and insert sync obj for waking up.
 *
 * @param mv
 * @param ctx
@@ -177,7 +189,39 @@ void mv_send_rdz_init(mvh* mv, mv_ctx* ctx);
 MV_EXPORT
 int mv_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 
-/*! Inline functions (keep them very short).*/
+/**
+* @brief Send eager a buffer, enqueue at destination.
+*
+* @param mv
+* @param src
+* @param size
+* @param rank
+* @param tag
+*
+*/
+MV_EXPORT
+void mv_send_eager_enqueue(mvh* mv, void* src, int size, int rank, int tag);
+
+/**
+* @brief Initialize a rdz send, enqueue at destination.
+*
+* @param mv
+* @param ctx
+*
+*/
+MV_EXPORT
+void mv_send_rdz_enqueue_init(mvh* mv, mv_ctx* ctx);
+
+/**
+* @brief Try to dequeue, for message send with send-enqueue.
+*
+* @param mv
+* @param ctx
+*
+* @return 1 if got data, 0 otherwise.
+*/
+MV_EXPORT
+int mv_recv_dequeue(mvh* mv, mv_ctx* ctx);
 
 /**
 * @brief Blocking wait on sync, for communication to finish
@@ -205,7 +249,32 @@ void mv_wait(mv_ctx* ctx, mv_sync* sync)
 MV_INLINE
 int mv_test(mv_ctx* ctx) { return (ctx->type == REQ_DONE); }
 
-/*! Experimental list of functions. */
+/**
+* @brief Allocate memory for communication
+*
+* @param mv
+* @param size
+*
+* @return buffer
+*/
+MV_EXPORT
+void* mv_alloc(mvh* mv, size_t size);
+
+/**
+* @brief Free allocated memory.
+*
+* @param mv
+* @param buffer
+*/
+MV_EXPORT
+void mv_free(mvh* mv, void* buffer);
+
+/**@}*/
+
+/**
+* \defgroup exp-api Experimental API
+* @{
+*/
 
 MV_EXPORT
 void mv_am_eager(mvh* mv, int node, void* src, int size, int tag, uint8_t fid);
@@ -239,22 +308,12 @@ size_t mv_data_max_size();
 MV_EXPORT
 void mv_packet_done(mvh* mv, mv_packet* p);
 
-MV_EXPORT
-void mv_send_eager_enqueue(mvh* mv, void* src, int size, int rank, int tag);
+/**@}*/
 
-MV_EXPORT
-void mv_send_rdz_enqueue_init(mvh* mv, mv_ctx* ctx);
-
-MV_EXPORT
-int mv_recv_dequeue(mvh* mv, mv_ctx* ctx);
-
-MV_EXPORT
-void* mv_alloc(mvh*, size_t);
-
-MV_EXPORT
-void mv_free(mvh*, void*);
-
-/*! MPI like functions */
+/**
+* \defgroup mpi MPI-like API
+*	@{
+*/
 typedef uintptr_t MPIV_Request;
 extern mvh* mv_hdl;
 
@@ -292,6 +351,8 @@ void* MPIV_Alloc(size_t size);
 
 MV_EXPORT
 void MPIV_Free(void*);
+
+/**@}*/
 
 #ifdef __cplusplus
 }
