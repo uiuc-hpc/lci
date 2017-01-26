@@ -1,8 +1,6 @@
 #ifndef PROFILER_H_
 #define PROFILER_H_
 
-#include "config.h"
-
 #ifdef USE_PAPI
 
 #include <vector>

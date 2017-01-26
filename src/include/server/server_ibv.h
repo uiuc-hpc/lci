@@ -180,7 +180,7 @@ MV_INLINE void ibv_server_post_recv(ibv_server* s, mv_packet* p)
 
   struct ibv_sge sg = {
     .addr = (uintptr_t) p, 
-    .length = sizeof(mv_packet), 
+    .length = MV_PACKET_SIZE, 
     .lkey = s->sbuf->lkey,
   };
 
@@ -221,7 +221,7 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
   int ret = 0;
   int ne = ibv_poll_cq(s->recv_cq, MAX_CQ, wc);
 
-#ifdef IBV_SERVER_DEBUG
+#if 0
   if (wc.status != IBV_WC_SUCCESS) {
     fprintf(stderr, "Failed status %s (%d) for wr_id %d\n", 
         ibv_wc_status_str(wc.status),
@@ -242,7 +242,7 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
 
   ne = ibv_poll_cq(s->send_cq, MAX_CQ, wc);
 
-#ifdef IBV_SERVER_DEBUG
+#if 0 
   if (wc.status != IBV_WC_SUCCESS) {
     fprintf(stderr, "Failed status %s (%d) for wr_id %d\n", 
         ibv_wc_status_str(wc.status),
@@ -262,7 +262,7 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
 
 #ifdef IBV_SERVER_DEBUG
   if (s->recv_posted < MAX_RECV) {
-    printf("WARNING DEADLOCK\n");
+    printf("WARNING DEADLOCK %d\n", s->recv_posted);
   }
 #endif
 
@@ -464,8 +464,8 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size,
   }
 
   // Prepare the mv_packet_mgr and prepost some mv_packet.
-  s->sbuf = ibv_server_mem_malloc(s, sizeof(mv_packet) * (MAX_SEND + MAX_RECV));
-  mv_pool_create(&s->sbuf_pool, (void*) s->sbuf->addr, sizeof(mv_packet), MAX_SEND + MAX_RECV);
+  s->sbuf = ibv_server_mem_malloc(s, MV_PACKET_SIZE * (MAX_SEND + MAX_RECV));
+  mv_pool_create(&s->sbuf_pool, (void*) s->sbuf->addr, MV_PACKET_SIZE, MAX_SEND + MAX_RECV);
 
   s->recv_posted = 0;
   s->mv = mv;

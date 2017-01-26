@@ -50,55 +50,92 @@ static void mv_recv_short(mvh* mv, mv_packet* p)
   }
 }
 
-void mv_progress_init(mvh* mv)
+static void mv_recv_short_enqueue(mvh* mv, mv_packet* p)
 {
-  // Keep this order.
-  mv_am_register(mv, (mv_am_func_t)mv_recv_short);
-  mv_am_register(mv, (mv_am_func_t)mv_recv_recv_ready);
-  mv_am_register(mv, (mv_am_func_t)mv_recv_send_ready_fin);
-  mv_am_register(mv, (mv_am_func_t)mv_recv_am);
-  mv_am_register(mv, (mv_am_func_t)mv_recv_short);
+  dq_push_top(&mv->queue, (void*) p); 
 }
 
-
-void mv_serve_recv(mvh* mv, mv_packet* p_ctx)
+static void mv_sent_rdz_enqueue_done(mvh* mv, mv_packet* p)
 {
-  const int8_t fid = p_ctx->data.header.fid;
-  ((p_ctx_handler)mv->am_table[fid])(mv, p_ctx);
+  mv_ctx* ctx = (mv_ctx*) p->data.content.rdz.sreq;
+  ctx->type = REQ_DONE;
+  mv_pool_put(mv->pkpool, p);
 }
 
-void mv_serve_send(mvh* mv, mv_packet* p_ctx)
+static void mv_recv_rdz_enqueue_done(mvh* mv, mv_packet* p)
 {
-  if (!p_ctx) return;
-  const int8_t fid = p_ctx->data.header.fid;
-  if (unlikely(fid == PROTO_SEND_WRITE_FIN)) {
-    mv_ctx* req = (mv_ctx*)p_ctx->data.content.rdz.sreq;
-    p_ctx->data.header.fid = PROTO_READY_FIN;
-    mv_server_send(mv->server, req->rank, &p_ctx->data,
-                   sizeof(packet_header) + sizeof(struct mv_rdz), &p_ctx->context);
-    mv_key key = mv_make_key(req->rank, (1 << 30) | req->tag);
-    mv_value value = 0;
-    if (!mv_hash_insert(mv->tbl, key, &value)) {
-      req->type = REQ_DONE;
-      if (req->sync) thread_signal(req->sync);
-    }
-  } else {
-    if (unlikely(fid == PROTO_SHORT_WAIT)) {
-      mv_key key = mv_make_key(mv->me, (1 << 30) | p_ctx->data.header.tag);
-      mv_value value = 0;
-      if (!mv_hash_insert(mv->tbl, key, &value)) {
-        mv_ctx* req = (mv_ctx*) value;
-        req->type = REQ_DONE;
-        if (req->sync) thread_signal(req->sync);
-      }
-    }
-    // NOTE: This improves performance on memcpy, since it sends back
-    // the packet to the sender thread. However, this causes a cache misses on the
-    // spinlock of the pool. TODO(danghvu): send back only medium msg ?
-    mv_pool_put_to(mv->pkpool, p_ctx, p_ctx->data.header.poolid);
+  dq_push_top(&mv->queue, (void*) p); 
+}
+
+static void mv_recv_rtr(mvh* mv, mv_packet* p)
+{
+  mv_ctx* ctx = (mv_ctx*) p->data.content.rdz.sreq;
+  mv_put(mv, p->data.header.from, (void*) p->data.content.rdz.tgt_addr,
+      ctx->buffer, ctx->size);
+  int rank = p->data.header.from;
+  p->data.header.from = mv->me;
+  mv_set_proto(p, MV_PROTO_LONG_ENQUEUE);
+  mv_server_send(mv->server, rank, &p->data,
+      sizeof(packet_header) + sizeof(struct mv_rdz), &p->context);
+}
+
+static void mv_recv_rts(mvh* mv, mv_packet* p)
+{
+  void* ptr = mv_alloc(mv, p->data.header.size);
+  int rank = p->data.header.from;
+  p->data.header.from = mv->me;
+  mv_set_proto(p, MV_PROTO_RTR);
+  p->data.content.rdz.tgt_addr = (uintptr_t) ptr;
+  mv_server_send(mv->server, rank, &p->data,
+      sizeof(packet_header) + sizeof(struct mv_rdz), &p->context);
+}
+
+static void mv_sent_write_fin(mvh* mv, mv_packet* p_ctx)
+{
+  mv_ctx* req = (mv_ctx*)p_ctx->data.content.rdz.sreq;
+  mv_set_proto(p_ctx, MV_PROTO_READY_FIN);
+  mv_server_send(mv->server, req->rank, &p_ctx->data,
+      sizeof(packet_header) + sizeof(struct mv_rdz), &p_ctx->context);
+  mv_key key = mv_make_key(req->rank, (1 << 30) | req->tag);
+  mv_value value = 0;
+  if (!mv_hash_insert(mv->tbl, key, &value)) {
+    req->type = REQ_DONE;
+    if (req->sync) thread_signal(req->sync);
   }
 }
 
-void mv_serve_imm(uint32_t imm) { 
-  printf("GOT ID %d\n", imm);
+static void mv_sent_short_wait(mvh* mv, mv_packet* p_ctx)
+{
+  mv_key key = mv_make_key(mv->me, (1 << 30) | p_ctx->data.header.tag);
+  mv_value value = 0;
+  if (!mv_hash_insert(mv->tbl, key, &value)) {
+    mv_ctx* req = (mv_ctx*) value;
+    req->type = REQ_DONE;
+    if (req->sync) thread_signal(req->sync);
+  }
+  mv_pool_put_to(mv->pkpool, p_ctx, p_ctx->data.header.poolid);
+}
+
+const mv_proto_spec_t mv_proto[11] = {
+  {0, 0, 0, 0}, // Reserved for doing nothing.
+  {mv_recv_short, 0, 1, 0},
+  {mv_recv_short, mv_sent_short_wait, 2, 3},
+  {mv_recv_recv_ready, 0, 4, 0},
+  {mv_recv_send_ready_fin, 0, 5, 0},
+  {0, mv_sent_write_fin, 0, 6},
+  {mv_recv_am, 0, 7, 0},
+  {mv_recv_short_enqueue, 0, 8, 0},
+  {mv_recv_rts, 0, 9, 0},
+  {mv_recv_rtr, 0, 10, 0},
+  {mv_recv_rdz_enqueue_done, mv_sent_rdz_enqueue_done, 11, 12},
+};
+
+void mv_progress_init(mvh* mv)
+{
+  for (int i = 1; i < 11; i++) {
+    if (mv_proto[i].func_am)
+      assert(mv_proto[i].am_fid == mv_am_register(mv, mv_proto[i].func_am));
+    if (mv_proto[i].func_ps)
+      assert(mv_proto[i].ps_fid == mv_am_register(mv, mv_proto[i].func_ps));
+  }
 }

@@ -5,8 +5,7 @@ LD = mpicc
 CC = gcc
 
 CFLAGS += -g3 -ggdb -O3 -Wall -Wextra -std=gnu99 -I../include -I../ -DUSE_AFFI -D_GNU_SOURCE  -I/opt/ofed/include $(SERVER)
-LDFLAGS += -O3 -Wl,-rpath=$(abspath ../) -Wl,-z,now -Wl,-z,relro -libverbs 
-LDFLAGS +=  -lfabric
+LDFLAGS += -O3 -Wl,-rpath=$(abspath ../) -Wl,-z,now -Wl,-z,relro
 LIB = ../libmv.a
 
 CXXFLAGS = -g3 -O3 -std=c++11

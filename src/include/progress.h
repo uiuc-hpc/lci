@@ -2,7 +2,6 @@
 #define PROGRESS_H_
 
 #include "mv.h"
-#include "request.h"
 
 extern int PROTO_SHORT;
 extern int PROTO_RECV_READY;
@@ -14,8 +13,9 @@ typedef void (*p_ctx_handler)(mvh*, mv_packet* p_ctx);
 typedef void (*_0_arg)(void*, uint32_t);
 
 void mv_progress_init(mvh* mv);
-void mv_serve_imm(uint32_t);
-void mv_serve_send(mvh* mv, mv_packet* p_ctx);
-void mv_serve_recv(mvh* mv, mv_packet* p_ctx);
+
+MV_INLINE void mv_serve_imm(uint32_t);
+MV_INLINE void mv_serve_send(mvh* mv, mv_packet* p_ctx);
+MV_INLINE void mv_serve_recv(mvh* mv, mv_packet* p_ctx);
 
 #endif

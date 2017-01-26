@@ -97,7 +97,7 @@ MV_INLINE void ofi_init(mvh* mv, size_t heap_size,
 
   // Create cq.
   struct fi_cq_attr *cq_attr = malloc(sizeof(struct fi_cq_attr));
-  memset(cq_attr, 0, sizeof(cq_attr));
+  memset(cq_attr, 0, sizeof(struct fi_cq_attr));
   cq_attr->format = FI_CQ_FORMAT_DATA;
   cq_attr->size = MAX_CQ_SIZE;
   // FI_SAFECALL(fi_cq_open(s->domain, cq_attr, &s->scq, NULL));
@@ -223,21 +223,6 @@ MV_INLINE int ofi_progress(ofi_server* s)
       MPI_Abort(MPI_COMM_WORLD, error.err);
     } 
   } while (ret > 0);
-
-#if 0
-  ret = fi_cq_read(s->scq, &entry, MAX_POLL);
-  if (ret > 0) {
-    for (int i = 0; i < ret; i++)  {
-      mv_serve_send(s->mv, (mv_packet*)entry[i].op_context);
-    }
-    rett = 1;
-  } else if (ret == -FI_EAGAIN) {
-  } else {
-    fi_cq_readerr(s->rcq, &error, 0);
-    printf("Err: %s\n", fi_strerror(error.err));
-    MPI_Abort(MPI_COMM_WORLD, error.err);
-  }
-#endif
 
   if (s->recv_posted < MAX_RECV) ofi_post_recv(s, mv_pool_get(s->sbuf_pool));
 

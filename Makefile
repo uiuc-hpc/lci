@@ -12,8 +12,14 @@ PREFIX ?= /usr
 SRCDIR = ./src
 OBJDIR ?= ./obj
 
-INCLUDE = -I./include -I./src/include -I./ 
+INCLUDE = -I./include -I./src/include -I./  -I./src/include/umalloc
 CFLAGS += -fPIC -fvisibility=hidden -std=gnu99 $(INCLUDE) $(SERVER) -DUSE_AFFI -D_GNU_SOURCE -pthread
+
+ifeq ($(MV_SERVER), ofi)
+	CFLAGS += -DMV_USE_SERVER_OFI
+else
+	CFLAGS += -DMV_USE_SERVER_IBV
+endif
 
 IBV_INC = -I/opt/ofed/include/ -I$(HOME)/libfab/include
 IBV_LIB = -L/opt/ofed/lib64 -libverbs # -lfabric
@@ -32,10 +38,11 @@ LDFLAGS += -shared -Lstatic -flto $(IBV_LIB) # -llmpe -lmpe
 
 FCONTEXT = mfcontext.o jfcontext.o
 COMM = mv.o mpiv.o progress.o hashtable.o pool.o
+UMALLOC = umalloc/attach.o  umalloc/ufree.o  umalloc/umalloc.o  umalloc/umstats.o
 
 OBJECTS = $(addprefix $(OBJDIR)/, $(COMM))
 
-LIBOBJ = $(OBJECTS) $(addprefix $(OBJDIR)/, $(FCONTEXT))
+LIBOBJ = $(OBJECTS) $(addprefix $(OBJDIR)/, $(FCONTEXT)) $(addprefix $(OBJDIR)/, $(UMALLOC))
 
 LIBRARY = libmv.so
 ARCHIVE = libmv.a

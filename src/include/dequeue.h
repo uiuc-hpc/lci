@@ -3,6 +3,7 @@
 
 #define MAX_SIZE (1 << 12)
 #include "mv/lock.h"
+#include <string.h>
 
 struct dequeue {
   struct {
@@ -16,8 +17,8 @@ struct dequeue {
 } __attribute__((aligned(64)));
 
 MV_INLINE void dq_init(struct dequeue* dq, size_t size);
+MV_INLINE void dq_push_top(struct dequeue* deq, void* p);
 MV_INLINE void* dq_pop_top(struct dequeue* deq);
-MV_INLINE void* dq_push_top(struct dequeue* deq, void* p);
 MV_INLINE void* dq_pop_bot(struct dequeue* deq);
 
 MV_INLINE void dq_init(struct dequeue* dq, size_t size)
@@ -42,18 +43,15 @@ MV_INLINE void* dq_pop_top(struct dequeue* deq)
   return ret;
 };
 
-MV_INLINE void* dq_push_top(struct dequeue* deq, void* p)
+MV_INLINE void dq_push_top(struct dequeue* deq, void* p)
 {
-  void* ret = NULL;
   mv_spin_lock(&deq->spinlock);
   deq->container[deq->top] = p;
   deq->top = (deq->top + 1) & (MAX_SIZE - 1);
   if (((deq->top + MAX_SIZE - deq->bot) & (MAX_SIZE - 1)) > deq->size) {
-    ret = deq->container[deq->bot];
     deq->bot = (deq->bot + 1) & (MAX_SIZE - 1);
   }
   mv_spin_unlock(&deq->spinlock);
-  return ret;
 };
 
 MV_INLINE void* dq_pop_bot(struct dequeue* deq)

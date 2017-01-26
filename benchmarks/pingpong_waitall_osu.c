@@ -36,10 +36,10 @@ int WIN = 4;
 int main(int argc, char** args)
 {
   MPI_Init(&argc, &args);
-  int provided = 0;
-  MPI_Init_thread(&argc, &args, MPI_THREAD_MULTIPLE, &provided);
-  if (provided != MPI_THREAD_MULTIPLE)
-    return -1;
+  // int provided = 0;
+  // MPI_Init_thread(&argc, &args, MPI_THREAD_MULTIPLE, &provided);
+  // if (provided != MPI_THREAD_MULTIPLE)
+    // return -1;
   main_task(0);
   MPI_Finalize();
   return 0;

@@ -1,3 +1,2 @@
-# Define server here
-# SERVER = -DMV_USE_SERVER_IBV
-SERVER = -DMV_USE_SERVER_OFI
+# Define server here (ofi, ibv)
+MV_SERVER = ibv

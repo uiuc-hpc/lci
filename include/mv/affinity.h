@@ -1,8 +1,6 @@
 #ifndef AFFINITY_H_
 #define AFFINITY_H_
 
-#ifdef USE_AFFI
-
 #ifndef __USE_GNU
 #define __USE_GNU
 #endif
@@ -20,12 +18,7 @@
 #include <unistd.h>
 
 #define SERVER_CORE (get_ncores() - 1)
-
-#ifdef MV_USE_SERVER_OFI
-#define THREAD_PER_CORE 4
-#else
 #define THREAD_PER_CORE 1
-#endif
 
 MV_INLINE int get_ncores()
 {
@@ -69,7 +62,5 @@ MV_INLINE int set_me_to_last()
 {
   return set_me_to_(SERVER_CORE);
 }
-
-#endif
 
 #endif
