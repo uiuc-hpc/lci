@@ -77,7 +77,7 @@ void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
   } else {
     mv_ctx *ctx = (mv_ctx*) mv_pool_get(mv_ctx_pool);
     mvi_send_rdz_init(mv_hdl, (void*) buf, size, rank, tag, ctx);
-    ctx->complete = mv_send_rdz_post;
+    ctx->complete = mv_send_post;
     *req = (MPIV_Request) ctx;
   }
 }
@@ -88,14 +88,9 @@ void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
   MPI_Type_size(datatype, &size);
   size *= count;
   mv_ctx *ctx = (mv_ctx*) mv_pool_get(mv_ctx_pool); 
-  if ((size_t)size <= SHORT_MSG_SIZE) {
-    ctx->complete = mv_recv_eager_post;
-    *req = (MPIV_Request) ctx;
-  } else {
-    mvi_recv_rdz_init(mv_hdl, (void*) buffer, size, rank, tag, ctx);
-    ctx->complete = mv_recv_rdz_post;
-    *req = (MPIV_Request) ctx;
-  }
+  mv_recv_init(mv_hdl, (void*) buffer, size, rank, tag, ctx);
+  ctx->complete = mv_recv_post;
+  *req = (MPIV_Request) ctx;
 }
 
 

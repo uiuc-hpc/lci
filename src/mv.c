@@ -70,39 +70,38 @@ void mv_close(mvh* mv)
   MPI_Finalize();
 }
 
-int mv_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+void mv_send_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
-  return mvi_send_rdz_post(mv, ctx, sync);
+  if (size <= (int) SHORT_MSG_SIZE) {
+    mvi_send_eager(mv, src, size, rank, tag);
+    ctx->type = REQ_DONE;
+  } else {
+    mvi_send_rdz_init(mv, src, size, rank, tag, ctx);
+  }
 }
 
-void mv_send_rdz_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
+int mv_send_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
-  mvi_send_rdz_init(mv, src, size, rank, tag, ctx);
+  if (ctx->size <= (int) SHORT_MSG_SIZE) 
+    return 1;
+  else
+    return mvi_send_rdz_post(mv, ctx, sync);
 }
 
-void mv_send_eager(mvh* mv, void* src, int size, int rank, int tag)
+void mv_recv_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
-  mvi_send_eager(mv, src, size, rank, tag);
+  if (size <= (int) SHORT_MSG_SIZE) 
+    mvi_recv_eager_init(mv, src, size, rank, tag, ctx);
+  else
+    mvi_recv_rdz_init(mv, src, size, rank, tag, ctx);
 }
 
-void mv_recv_rdz_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
+int mv_recv_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
-  mvi_recv_rdz_init(mv, src, size, rank, tag, ctx);
-}
-
-int mv_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
-{
-  return mvi_recv_rdz_post(mv, ctx, sync);
-}
-
-int mv_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
-{
-  return mvi_recv_eager_post(mv, ctx, sync);
-}
-
-void mv_recv_eager_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
-{
-  mvi_recv_eager_init(mv, src, size, rank, tag, ctx);
+  if (ctx->size <= (int) SHORT_MSG_SIZE) 
+    return mvi_recv_eager_post(mv, ctx, sync);
+  else
+    return mvi_recv_rdz_post(mv, ctx, sync);
 }
 
 void mv_am_eager(mvh* mv, int node, void* src, int size, int tag,
@@ -118,28 +117,27 @@ void mv_am_eager2(mvh* mv, int node, void* src, int size, int tag,
   mvi_am_generic2(mv, node, src, size, tag, am_fid, ps_fid, p);
 }
 
-void mv_send_eager_enqueue(mvh* mv, void* src, int size, int rank, int tag)
+void mv_send_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
-  mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool); 
-  mvi_am_generic(mv, rank, src, size, tag, MV_PROTO_SHORT_ENQUEUE, p);
+  if (size <= (int) SHORT_MSG_SIZE) {
+    mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool); 
+    mvi_am_generic(mv, rank, src, size, tag, MV_PROTO_SHORT_ENQUEUE, p);
+    ctx->type = REQ_DONE;
+  } else {
+    INIT_CTX(ctx);
+    mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool); 
+    mv_set_proto(p, MV_PROTO_RTS);
+    p->data.header.poolid = 0;
+    p->data.header.from = mv->me;
+    p->data.header.tag = ctx->tag;
+    p->data.header.size = ctx->size;
+    p->data.content.rdz.sreq = (uintptr_t) ctx;
+    mv_server_send(mv->server, ctx->rank, &p->data,
+        sizeof(packet_header) + sizeof(struct mv_rdz), &p->context);
+  }
 }
 
-void mv_send_rdz_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
-{
-  INIT_CTX(ctx);
-
-  mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool); 
-  mv_set_proto(p, MV_PROTO_RTS);
-  p->data.header.poolid = 0;
-  p->data.header.from = mv->me;
-  p->data.header.tag = ctx->tag;
-  p->data.header.size = ctx->size;
-  p->data.content.rdz.sreq = (uintptr_t) ctx;
-  mv_server_send(mv->server, ctx->rank, &p->data,
-      sizeof(packet_header) + sizeof(struct mv_rdz), &p->context);
-}
-
-int mv_send_rdz_enqueue_post(mvh* mv __UNUSED__, mv_ctx* ctx, mv_sync *sync)
+int mv_send_enqueue_post(mvh* mv __UNUSED__, mv_ctx* ctx, mv_sync *sync)
 {
   if (ctx->type == REQ_DONE)
     return 1;
