@@ -1,11 +1,11 @@
 #ifndef MPIV_MV_PRIV_H_
 #define MPIV_MV_PRIV_H_
 
-#include "dequeue.h"
 #include "mv.h"
 #include "umalloc/umalloc.h"
 #include <stdint.h>
 #include <stdlib.h>
+#include "dequeue.h"
 
 #ifdef MV_USE_SERVER_OFI
 #define SERVER_CONTEXT char __padding__[64];
@@ -29,11 +29,11 @@ struct mv_struct {
   struct dequeue queue;
 } __attribute__((aligned(64)));
 
-#include "hashtable.h"
 #include "packet.h"
 #include "pool.h"
+#include "hashtable.h"
 #include "progress.h"
-#include "proto.h"
 #include "server/server.h"
+#include "proto.h"
 
 #endif
