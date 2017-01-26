@@ -33,10 +33,15 @@ void mvi_send_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 }
 
 MV_INLINE
+void mvi_recv_eager_init(mvh* mv __UNUSED__, void* src, int size, int rank, int tag, mv_ctx* ctx)
+{
+  INIT_CTX(ctx);
+}
+
+MV_INLINE
 int mvi_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
   ctx->sync = sync;
-  ctx->type = REQ_PENDING;
   mv_key key = mv_make_key(ctx->rank, ctx->tag);
   mv_value value = (mv_value)ctx;
   if (!mv_hash_insert(mv->tbl, key, &value)) {

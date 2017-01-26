@@ -13,10 +13,19 @@ MV_INLINE void proto_complete_rndz(mvh* mv, mv_packet* p, mv_ctx* s)
                 p->data.content.rdz.rkey, s->size, &p->context);
 }
 
+MV_INLINE void mvi_send_rdz_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
+{
+  INIT_CTX(ctx);
+  mv_key key = mv_make_rdz_key(ctx->rank, ctx->tag);
+  mv_value value = (mv_value)ctx;
+  if (!mv_hash_insert(mv->tbl, key, &value)) {
+    proto_complete_rndz(mv, (mv_packet*)value, ctx);
+  }
+}
+
 MV_INLINE int mvi_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
   ctx->sync = sync;
-  ctx->type = REQ_PENDING;
   mv_key key = mv_make_key(ctx->rank, (1 << 30) | ctx->tag);
   mv_value value = (mv_value) ctx;
   if (!mv_hash_insert(mv->tbl, key, &value)) {
@@ -26,17 +35,9 @@ MV_INLINE int mvi_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
   return 0;
 }
 
-MV_INLINE void mvi_send_rdz_init(mvh* mv, mv_ctx* ctx)
+MV_INLINE void mvi_recv_rdz_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
-  mv_key key = mv_make_rdz_key(ctx->rank, ctx->tag);
-  mv_value value = (mv_value)ctx;
-  if (!mv_hash_insert(mv->tbl, key, &value)) {
-    proto_complete_rndz(mv, (mv_packet*)value, ctx);
-  }
-}
-
-MV_INLINE void mvi_recv_rdz_init(mvh* mv, mv_ctx* ctx)
-{
+  INIT_CTX(ctx);
   mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool); 
   mv_set_proto(p, MV_PROTO_RECV_READY);
   p->data.header.poolid = 0;
@@ -55,7 +56,6 @@ MV_INLINE void mvi_recv_rdz_init(mvh* mv, mv_ctx* ctx)
 MV_INLINE int mvi_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
   ctx->sync = sync;
-  ctx->type = REQ_PENDING;
   mv_key key = mv_make_key(ctx->rank, ctx->tag);
   mv_value value = 0;
   if (!mv_hash_insert(mv->tbl, key, &value)) {

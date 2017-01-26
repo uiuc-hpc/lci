@@ -1,6 +1,14 @@
 #ifndef MV_PROTO_H
 #define MV_PROTO_H
 
+#define INIT_CTX(ctx) {\
+  ctx->buffer = src;\
+  ctx->size = size;\
+  ctx->rank = rank;\
+  ctx->tag = tag;\
+  ctx->type = REQ_PENDING;\
+}
+
 typedef struct {
   mv_am_func_t func_am;
   mv_am_func_t func_ps;

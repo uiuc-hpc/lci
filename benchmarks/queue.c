@@ -29,21 +29,16 @@ int main(int argc, char** args)
   int rank, len;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   len = atoi(args[1]);
-  mv_ctx ctx = {
-    .buffer = 0,
-    .size = len,
-    .rank = 1,
-    .tag = 0,
-  };
 
+  mv_ctx ctx;
   if (rank == 0) {
-    ctx.buffer = mv_alloc(mv, len);
-    memset(ctx.buffer, 'A', len);
+    void* buffer = mv_alloc(mv, len);
+    memset(buffer, 'A', len);
     double t1; 
     for (int i = 0; i < SKIP_LARGE + TOTAL_LARGE; i++) {
       if (i == SKIP_LARGE) t1 = MPI_Wtime();
-      mv_send_rdz_enqueue_init(mv, &ctx);
-      while (ctx.type != REQ_DONE)
+      mv_send_rdz_enqueue_init(mv, buffer, len, 1, 0, &ctx);
+      while (!mv_test(&ctx))
         mv_progress(mv);
     }
     printf("Latency: %.5f\n", (MPI_Wtime() - t1)/TOTAL_LARGE* 1e6);

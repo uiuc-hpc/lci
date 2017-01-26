@@ -127,11 +127,15 @@ void mv_send_eager(mvh* mv, void* src, int size, int rank, int tag);
 * @brief Initialize a recv, matching incoming message.
 *
 * @param mv
+* @param src
+* @param size
+* @param rank
+* @param tag
 * @param ctx
 *
 */
 MV_EXPORT
-void mv_recv_eager_init(mvh* mv, mv_ctx* ctx);
+void mv_recv_eager_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx);
 
 /**
 * @brief Try to match and insert sync obj for waking up.
@@ -149,11 +153,15 @@ int mv_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 * @brief Initialize a rdz recv.
 *
 * @param mv
+* @param src
+* @param size
+* @param rank
+* @param tag
 * @param ctx
 *
 */
 MV_EXPORT
-void mv_recv_rdz_init(mvh* mv, mv_ctx* ctx);
+void mv_recv_rdz_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx);
 
 /**
 * @brief Try to match rdz and insert sync obj for waking up.
@@ -171,11 +179,15 @@ int mv_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 * @brief Initialize a rdz send.
 *
 * @param mv
+* @param src
+* @param size
+* @param rank
+* @param tag
 * @param ctx
 *
 */
 MV_EXPORT
-void mv_send_rdz_init(mvh* mv, mv_ctx* ctx);
+void mv_send_rdz_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx);
 
 /**
 * @brief Try to finish rdz send and insert sync obj for waking up.
@@ -206,11 +218,27 @@ void mv_send_eager_enqueue(mvh* mv, void* src, int size, int rank, int tag);
 * @brief Initialize a rdz send, enqueue at destination.
 *
 * @param mv
+* @param src
+* @param size
+* @param rank
+* @param tag
 * @param ctx
 *
 */
 MV_EXPORT
-void mv_send_rdz_enqueue_init(mvh* mv, mv_ctx* ctx);
+void mv_send_rdz_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx);
+
+/**
+* @brief Initialize a rdz send, enqueue at destination.
+*
+* @param mv
+* @param ctx
+* @param sync
+*
+* @return 1 if finished, 0 otherwise.
+*/
+MV_EXPORT
+int mv_send_rdz_enqueue_post(mvh* mv, mv_ctx* ctx, mv_sync *sync);
 
 /**
 * @brief Try to dequeue, for message send with send-enqueue.

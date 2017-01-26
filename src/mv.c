@@ -77,9 +77,9 @@ int mv_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
   return mvi_send_rdz_post(mv, ctx, sync);
 }
 
-void mv_send_rdz_init(mvh* mv, mv_ctx* ctx)
+void mv_send_rdz_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
-  mvi_send_rdz_init(mv, ctx);
+  mvi_send_rdz_init(mv, src, size, rank, tag, ctx);
 }
 
 void mv_send_eager(mvh* mv, void* src, int size, int rank, int tag)
@@ -87,9 +87,9 @@ void mv_send_eager(mvh* mv, void* src, int size, int rank, int tag)
   mvi_send_eager(mv, src, size, rank, tag);
 }
 
-void mv_recv_rdz_init(mvh* mv, mv_ctx* ctx)
+void mv_recv_rdz_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
-  mvi_recv_rdz_init(mv, ctx);
+  mvi_recv_rdz_init(mv, src, size, rank, tag, ctx);
 }
 
 int mv_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
@@ -102,9 +102,9 @@ int mv_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
   return mvi_recv_eager_post(mv, ctx, sync);
 }
 
-void mv_recv_eager_init(mvh* mv __UNUSED__, mv_ctx* ctx)
+void mv_recv_eager_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
-  ctx->type = REQ_PENDING;
+  mvi_recv_eager_init(mv, src, size, rank, tag, ctx);
 }
 
 void mv_am_eager(mvh* mv, int node, void* src, int size, int tag,
@@ -126,9 +126,14 @@ void mv_send_eager_enqueue(mvh* mv, void* src, int size, int rank, int tag)
   mvi_am_generic(mv, rank, src, size, tag, MV_PROTO_SHORT_ENQUEUE, p);
 }
 
-void mv_send_rdz_enqueue_init(mvh* mv, mv_ctx* ctx)
+void mv_send_rdz_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
+  ctx->buffer = src;
+  ctx->size = size;
+  ctx->rank = rank;
+  ctx->tag = tag;
   ctx->type = REQ_PENDING;
+
   mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool); 
   mv_set_proto(p, MV_PROTO_RTS);
   p->data.header.poolid = 0;
