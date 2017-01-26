@@ -2,8 +2,8 @@
 #define MV_HELPER_H_
 
 #include "mv.h"
-#include "ult/ult.h"
 #include "ult/fult/fult.h"
+#include "ult/ult.h"
 
 static fworker** all_worker = 0;
 static int nworker = 0;
@@ -27,7 +27,7 @@ extern mvh* mv_hdl;
 void MPIV_Start_worker(int number, intptr_t g)
 {
   if (nworker == 0) {
-    all_worker = (fworker**) malloc(sizeof(struct fworker*) * number);
+    all_worker = (fworker**)malloc(sizeof(struct fworker*) * number);
   }
   nworker = number;
   fworker_init(&all_worker[0]);
@@ -46,7 +46,6 @@ fthread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg)
 }
 
 void MPIV_join(fthread* ult) { fthread_join(ult); }
-
 mv_sync* mv_get_sync()
 {
   tlself.thread->count = -1;
@@ -59,11 +58,7 @@ mv_sync* mv_get_counter(int count)
   return (mv_sync*)tlself.thread;
 }
 
-void thread_yield()
-{
-  fthread_yield(tlself.thread);
-}
-
+void thread_yield() { fthread_yield(tlself.thread); }
 void thread_wait(mv_sync* sync)
 {
   fthread* thread = (fthread*)sync;

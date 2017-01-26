@@ -2,14 +2,14 @@
 #define MV_HELPER_ABT_H
 
 #include "mv.h"
-#include <abt.h>
 #include "mv/affinity.h"
+#include <abt.h>
 
 static ABT_xstream* xstream;
 static ABT_pool* pool;
 static int nworker = 0;
 
-typedef void(*ffunc)(intptr_t);
+typedef void (*ffunc)(intptr_t);
 
 typedef struct mv_abt_thread {
   ffunc f;
@@ -35,16 +35,12 @@ void mv_main_task(intptr_t arg)
 extern mvh* mv_hdl;
 mv_abt_thread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg);
 
-static void setup(intptr_t i)
-{
-  set_me_to(i);
-}
-
+static void setup(intptr_t i) { set_me_to(i); }
 void MPIV_Start_worker(int number, intptr_t arg)
 {
   ABT_init(0, NULL);
-  xstream = (ABT_xstream*) malloc(sizeof(ABT_xstream) * number);
-  pool = (ABT_pool*) malloc(sizeof(ABT_pool) * number);
+  xstream = (ABT_xstream*)malloc(sizeof(ABT_xstream) * number);
+  pool = (ABT_pool*)malloc(sizeof(ABT_pool) * number);
 
   nworker = number;
   ABT_xstream_self(&xstream[0]);
@@ -55,7 +51,7 @@ void MPIV_Start_worker(int number, intptr_t arg)
     ABT_xstream_create(ABT_SCHED_NULL, &xstream[i]);
     ABT_xstream_get_main_pools(xstream[i], 1, &pool[i]);
     ABT_xstream_start(xstream[i]);
-    mv_abt_thread* s = MPIV_spawn(i, setup, (intptr_t) i);
+    mv_abt_thread* s = MPIV_spawn(i, setup, (intptr_t)i);
     ABT_thread_join(s->thread);
     free(s);
   }
@@ -83,7 +79,7 @@ static void abt_wrap(void* arg)
 
 mv_abt_thread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg)
 {
-  mv_abt_thread *t = (mv_abt_thread*) malloc(sizeof(struct mv_abt_thread));
+  mv_abt_thread* t = (mv_abt_thread*)malloc(sizeof(struct mv_abt_thread));
   ABT_mutex_create(&t->mutex);
   ABT_cond_create(&t->cond);
   ABT_thread_attr_create(&t->attr);
@@ -133,9 +129,8 @@ void thread_signal(mv_sync* sync)
   mv_abt_thread* thread = (mv_abt_thread*)sync;
   mv_abt_thread* saved = tlself;
   ABT_mutex_lock(thread->mutex);
-  thread->count --;
-  if (thread->count == 0)
-    ABT_cond_signal(thread->cond);
+  thread->count--;
+  if (thread->count == 0) ABT_cond_signal(thread->cond);
   ABT_mutex_unlock(thread->mutex);
   tlself = saved;
 }

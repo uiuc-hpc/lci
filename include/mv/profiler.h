@@ -3,20 +3,20 @@
 
 #ifdef USE_PAPI
 
-#include <vector>
 #include <iostream>
 #include <papi.h>
 #include <pthread.h>
+#include <vector>
 
 static void profiler_init()
 {
-    if (PAPI_library_init(PAPI_VER_CURRENT) != PAPI_VER_CURRENT) {
-        exit(EXIT_FAILURE);
-    }
-    if (PAPI_thread_init((unsigned long (*)(void))(
-            (unsigned long (*)(void))(pthread_self))) != PAPI_OK) {
-        exit(EXIT_FAILURE);
-    }
+  if (PAPI_library_init(PAPI_VER_CURRENT) != PAPI_VER_CURRENT) {
+    exit(EXIT_FAILURE);
+  }
+  if (PAPI_thread_init((unsigned long (*)(void))(
+          (unsigned long (*)(void))(pthread_self))) != PAPI_OK) {
+    exit(EXIT_FAILURE);
+  }
 }
 
 class profiler
@@ -24,7 +24,8 @@ class profiler
  public:
   inline profiler(std::initializer_list<int> args)
   {
-    // std::cerr << "[USE_PAPI] Profiling in: " << PAPI_thread_id() << std::endl;
+    // std::cerr << "[USE_PAPI] Profiling in: " << PAPI_thread_id() <<
+    // std::endl;
     events_ = args;
     if (PAPI_num_counters() < events_.size()) {
       // printf("[USE_PAPI] %d\n", PAPI_num_counters());
@@ -33,9 +34,11 @@ class profiler
     counters_.resize(events_.size(), 0);
   }
 
-  inline void start() {
+  inline void start()
+  {
     int err;
-    if ((err = PAPI_start_counters((int*) &events_[0], events_.size())) != PAPI_OK) {
+    if ((err = PAPI_start_counters((int*)&events_[0], events_.size())) !=
+        PAPI_OK) {
       printf("%s\n", PAPI_strerror(err));
     }
   }
@@ -62,6 +65,6 @@ class profiler
   std::vector<long long> counters_;
 };
 
-#endif // USE_PAPI
+#endif  // USE_PAPI
 
 #endif

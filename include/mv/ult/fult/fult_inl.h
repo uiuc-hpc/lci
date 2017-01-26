@@ -3,9 +3,9 @@
 
 #include <string.h>
 
+#include "mv/affinity.h"
 #include "mv/lock.h"
 #include "mv/macro.h"
-#include "mv/affinity.h"
 
 // Fthread.
 
@@ -28,7 +28,7 @@ MV_INLINE void fthread_create(fthread* f, ffunc func, intptr_t data,
       printf("No more memory for stack\n");
       exit(EXIT_FAILURE);
     }
-    f->stack = (void*) ((uintptr_t) memory + stack_size);
+    f->stack = (void*)((uintptr_t)memory + stack_size);
   }
   f->func = func;
   f->data = data;
@@ -79,15 +79,14 @@ MV_INLINE void fworker_init(fworker** w_ptr)
 {
 #ifndef __cplusplus
   fworker* w = 0;
-  posix_memalign((void**) &w, 64, sizeof(fworker));
+  posix_memalign((void**)&w, 64, sizeof(fworker));
 #else
-  fworker* w = new fworker(); // Work around... malloc fail here for no reason.
+  fworker* w = new fworker();  // Work around... malloc fail here for no reason.
 #endif
 
   w->stop = 1;
-  posix_memalign((void**)&(w->threads), 64,
-                 sizeof(fthread) * MAX_THREAD);
-  w->thread_pool = (fthread**) malloc( MAX_THREAD * sizeof(uintptr_t));
+  posix_memalign((void**)&(w->threads), 64, sizeof(fthread) * MAX_THREAD);
+  w->thread_pool = (fthread**)malloc(MAX_THREAD * sizeof(uintptr_t));
   memset(w->threads, 0, sizeof(fthread) * MAX_THREAD);
   memset(w->thread_pool, 0, sizeof(fthread*) * MAX_THREAD);
 
@@ -96,7 +95,7 @@ MV_INLINE void fworker_init(fworker** w_ptr)
   for (int i = 0; i < 8; i++) w->l1_mask[i] = 0;
 #endif
   // Add all free slot.
-  for (int i = 0; i < (int) MAX_THREAD; i++) {
+  for (int i = 0; i < (int)MAX_THREAD; i++) {
     fthread_init(&(w->threads[i]));
     w->threads[i].origin = w;
     w->threads[i].id = i;
@@ -172,7 +171,7 @@ __thread double wtimework, wtimeall;
 #ifndef USE_L1_MASK
 MV_INLINE void* wfunc(void* arg)
 {
-  fworker* w = (fworker*) arg;
+  fworker* w = (fworker*)arg;
   tlself.worker = w;
 #ifdef USE_AFFI
   set_me_to(w->id);
@@ -203,7 +202,6 @@ MV_INLINE void* wfunc(void* arg)
         unsigned long local_mask = exchange((unsigned long)0, &(w->mask[i]));
         // Works until it no thread is pending.
         while (likely(local_mask > 0)) {
-
 #ifdef ENABLE_STEAL
           has_work = 1;
 #endif
@@ -245,7 +243,7 @@ MV_INLINE void* wfunc(void* arg)
 
 MV_INLINE void* wfunc(void* arg)
 {
-  fworker* w = (fworker*) arg;
+  fworker* w = (fworker*)arg;
   tlself.worker = w;
 #ifdef USE_AFFI
   set_me_to(w->id);
@@ -254,7 +252,8 @@ MV_INLINE void* wfunc(void* arg)
   while (unlikely(!w->stop)) {
     for (int l1i = 0; l1i < 8; l1i++) {
       if (w->l1_mask[l1i] == 0) continue;
-      unsigned long local_l1_mask = exchange((unsigned long)0, &(w->l1_mask[l1i]));
+      unsigned long local_l1_mask =
+          exchange((unsigned long)0, &(w->l1_mask[l1i]));
 
       while (local_l1_mask > 0) {
         int ii = find_first_set(local_l1_mask);

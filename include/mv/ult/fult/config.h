@@ -9,7 +9,7 @@
 
 #define WORDSIZE (8 * sizeof(long))
 #define F_STACK_SIZE (16 * 1024)
-#define MAIN_STACK_SIZE  (1024 * 1024)
+#define MAIN_STACK_SIZE (1024 * 1024)
 
 // #define ENABLE_STEAL
 

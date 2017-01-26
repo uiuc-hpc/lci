@@ -3,9 +3,9 @@
 
 #include <sys/mman.h>
 
+#include "bitops.h"
 #include "config.h"
 #include "mv/macro.h"
-#include "bitops.h"
 #include "mv/ult/ult.h"
 
 #define DEBUG(x)
@@ -26,8 +26,8 @@ extern __thread struct tls_t tlself;
 #ifdef __cplusplus
 extern "C" {
 #endif
-  fcontext_t make_fcontext(void* sp, size_t size, void (*thread_func)(intptr_t));
-  void* jump_fcontext(fcontext_t* old, fcontext_t, intptr_t arg);
+fcontext_t make_fcontext(void* sp, size_t size, void (*thread_func)(intptr_t));
+void* jump_fcontext(fcontext_t* old, fcontext_t, intptr_t arg);
 #ifdef __cplusplus
 }
 #endif

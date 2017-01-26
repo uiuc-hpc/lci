@@ -30,6 +30,6 @@ inline double wutime()
   return t1.tv_sec * 1e6 + t1.tv_usec;
 }
 
-#define max(a,b) ((a>b)?(a):(b))
+#define max(a, b) ((a > b) ? (a) : (b))
 
 #endif

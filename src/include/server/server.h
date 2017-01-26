@@ -2,7 +2,7 @@
 #define SERVER_H_
 
 #ifdef MV_USE_SERVER_OFI
-#define server_context 
+#define server_context
 #include "server_ofi.h"
 #endif
 

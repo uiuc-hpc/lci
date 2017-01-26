@@ -66,6 +66,4 @@ MV_INLINE void* dq_pop_bot(struct dequeue* deq)
   return ret;
 };
 
-
-
 #endif

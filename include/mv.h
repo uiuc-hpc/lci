@@ -53,11 +53,11 @@ typedef union packet_content {
 } packet_content;
 
 typedef struct __attribute__((__packed__)) {
-    packet_header header;
-    packet_content content;
+  packet_header header;
+  packet_content content;
 } mv_packet_data_t;
 
-typedef int(*mv_fcb)(mvh* mv, mv_ctx* ctx, mv_sync* sync);
+typedef int (*mv_fcb)(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 
 enum RequestType {
   REQ_NULL = 0,
@@ -84,7 +84,6 @@ struct mv_ctx {
 * @param heap_size
 * @param handle
 *
-* @return 
 */
 MV_EXPORT
 void mv_open(int* argc, char*** args, size_t heap_size, mvh** handle);
@@ -94,7 +93,6 @@ void mv_open(int* argc, char*** args, size_t heap_size, mvh** handle);
 *
 * @param handle
 *
-* @return 
 */
 MV_EXPORT
 void mv_close(mvh* handle);
@@ -109,7 +107,6 @@ void mv_close(mvh* handle);
 * @param rank
 * @param tag
 *
-* @return 
 */
 MV_EXPORT
 void mv_send_eager(mvh* mv, void* src, int size, int rank, int tag);
@@ -120,7 +117,6 @@ void mv_send_eager(mvh* mv, void* src, int size, int rank, int tag);
 * @param mv
 * @param ctx
 *
-* @return 
 */
 MV_EXPORT
 void mv_recv_eager_init(mvh* mv, mv_ctx* ctx);
@@ -132,7 +128,7 @@ void mv_recv_eager_init(mvh* mv, mv_ctx* ctx);
 * @param ctx
 * @param sync
 *
-* @return 1 if finished.
+* @return 1 if finished, 0 otherwise.
 */
 MV_EXPORT
 int mv_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
@@ -143,7 +139,6 @@ int mv_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 * @param mv
 * @param ctx
 *
-* @return 
 */
 MV_EXPORT
 void mv_recv_rdz_init(mvh* mv, mv_ctx* ctx);
@@ -155,7 +150,7 @@ void mv_recv_rdz_init(mvh* mv, mv_ctx* ctx);
 * @param ctx
 * @param sync
 *
-* @return 
+* @return 1 if finished, 0 otherwise.
 */
 MV_EXPORT
 int mv_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
@@ -166,7 +161,6 @@ int mv_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 * @param mv
 * @param ctx
 *
-* @return 
 */
 MV_EXPORT
 void mv_send_rdz_init(mvh* mv, mv_ctx* ctx);
@@ -178,7 +172,7 @@ void mv_send_rdz_init(mvh* mv, mv_ctx* ctx);
 * @param ctx
 * @param sync
 *
-* @return 
+* @return 1 if finished, 0 otherwise.
 */
 MV_EXPORT
 int mv_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
@@ -191,10 +185,10 @@ int mv_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 * @param ctx
 * @param sync
 *
-* @return 
+* @return
 */
 MV_INLINE
-void mv_wait(mv_ctx *ctx, mv_sync* sync)
+void mv_wait(mv_ctx* ctx, mv_sync* sync)
 {
   while (ctx->type != REQ_DONE) {
     thread_wait(sync);
@@ -206,31 +200,26 @@ void mv_wait(mv_ctx *ctx, mv_sync* sync)
 *
 * @param ctx
 *
-* @return 
+* @return 1 if finished, 0 otherwise.
 */
 MV_INLINE
-int mv_test(mv_ctx *ctx)
-{
-  return (ctx->type == REQ_DONE);
-}
-
+int mv_test(mv_ctx* ctx) { return (ctx->type == REQ_DONE); }
 
 /*! Experimental list of functions. */
 
 MV_EXPORT
-void mv_am_eager(mvh* mv, int node, void* src, int size, int tag,
-                 uint8_t fid);
+void mv_am_eager(mvh* mv, int node, void* src, int size, int tag, uint8_t fid);
 
 MV_EXPORT
 void mv_am_eager2(mvh* mv, int node, void* src, int size, int tag,
-                 uint8_t am_fid, uint8_t ps_fid, mv_packet* p);
+                  uint8_t am_fid, uint8_t ps_fid, mv_packet* p);
 
 MV_EXPORT
 void mv_put(mvh* mv, int node, void* dst, void* src, int size);
 
 MV_EXPORT
 void mv_put_signal(mvh* mv, int node, void* dst, void* src, int size,
-    uint32_t sid);
+                   uint32_t sid);
 
 MV_EXPORT
 void* mv_heap_ptr(mvh* mv);
@@ -270,24 +259,24 @@ typedef uintptr_t MPIV_Request;
 extern mvh* mv_hdl;
 
 MV_EXPORT
-void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype,
-    int rank, int tag, MPI_Comm, MPI_Status*);
+void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank,
+               int tag, MPI_Comm, MPI_Status*);
 
 MV_EXPORT
-void MPIV_Send(void* buffer, int count, MPI_Datatype datatype,
-    int rank, int tag, MPI_Comm);
+void MPIV_Send(void* buffer, int count, MPI_Datatype datatype, int rank,
+               int tag, MPI_Comm);
 
 MV_EXPORT
-void MPIV_Ssend(void* buffer, int count, MPI_Datatype datatype,
-    int rank, int tag, MPI_Comm);
+void MPIV_Ssend(void* buffer, int count, MPI_Datatype datatype, int rank,
+                int tag, MPI_Comm);
 
 MV_EXPORT
 void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
-    int tag, MPI_Comm, MPIV_Request* req);
+                int tag, MPI_Comm, MPIV_Request* req);
 
 MV_EXPORT
 void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
-    int tag, MPI_Comm, MPIV_Request* req);
+                int tag, MPI_Comm, MPIV_Request* req);
 
 MV_EXPORT
 void MPIV_Waitall(int count, MPIV_Request* req, MPI_Status*);
@@ -303,7 +292,6 @@ void* MPIV_Alloc(size_t size);
 
 MV_EXPORT
 void MPIV_Free(void*);
-
 
 #ifdef __cplusplus
 }

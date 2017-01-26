@@ -22,7 +22,7 @@
 
 MV_INLINE int get_ncores()
 {
-  return sysconf( _SC_NPROCESSORS_ONLN ) / THREAD_PER_CORE;
+  return sysconf(_SC_NPROCESSORS_ONLN) / THREAD_PER_CORE;
 }
 
 MV_INLINE int set_me_to_(int core_id)
@@ -58,9 +58,5 @@ MV_INLINE int set_me_to(int core_id)
   return set_me_to_((SERVER_CORE - 1 - core_id + num_cores) % num_cores);
 }
 
-MV_INLINE int set_me_to_last()
-{
-  return set_me_to_(SERVER_CORE);
-}
-
+MV_INLINE int set_me_to_last() { return set_me_to_(SERVER_CORE); }
 #endif

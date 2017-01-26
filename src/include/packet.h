@@ -1,8 +1,8 @@
 #ifndef PACKET_H_
 #define PACKET_H_
 
-#include <stdint.h>
 #include "config.h"
+#include <stdint.h>
 
 struct mv_packet {
   struct {

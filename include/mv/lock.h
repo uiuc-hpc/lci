@@ -19,5 +19,4 @@ MV_INLINE void mv_spin_lock(volatile int* flag)
 }
 
 MV_INLINE void mv_spin_unlock(volatile int* flag) { __sync_lock_release(flag); }
-
 #endif

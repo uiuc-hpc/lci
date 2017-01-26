@@ -1,10 +1,10 @@
 #ifndef ULT_H_
 #define ULT_H_
 
-#include <stdint.h>
-#include <sched.h>
-#include "mv/macro.h"
 #include "mv/affinity.h"
+#include "mv/macro.h"
+#include <sched.h>
+#include <stdint.h>
 
 struct mv_sync;
 typedef struct mv_sync mv_sync;
@@ -17,8 +17,11 @@ void thread_yield();
 
 extern __thread int mv_core_id;
 
-MV_INLINE int mv_worker_id() {
-  if (unlikely(mv_core_id == -1)) { mv_core_id = sched_getcpu() % get_ncores(); }
+MV_INLINE int mv_worker_id()
+{
+  if (unlikely(mv_core_id == -1)) {
+    mv_core_id = sched_getcpu() % get_ncores();
+  }
   return mv_core_id;
 }
 

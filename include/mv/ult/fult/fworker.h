@@ -42,8 +42,7 @@ MV_INLINE void fworker_stop(fworker* w)
   pthread_join(w->runner, 0);
 }
 
-MV_INLINE void fworker_start_main(fworker* w, ffunc main_task,
-                                  intptr_t data)
+MV_INLINE void fworker_start_main(fworker* w, ffunc main_task, intptr_t data)
 {
   w->stop = 0;
   fworker_spawn(w, main_task, data, MAIN_STACK_SIZE);
@@ -52,5 +51,4 @@ MV_INLINE void fworker_start_main(fworker* w, ffunc main_task,
 
 MV_INLINE void fworker_stop_main(fworker* w) { w->stop = 1; }
 MV_INLINE int fworker_id(fworker* w) { return w->id; }
-
 #endif
