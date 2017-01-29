@@ -12,10 +12,9 @@
 typedef struct {
   mv_am_func_t func_am;
   mv_am_func_t func_ps;
-  uint8_t am_fid;
-  uint8_t ps_fid;
 } mv_proto_spec_t;
 
+// Keep this order, or change mv_proto.
 enum mv_proto_name {
   MV_PROTO_NULL = 0,
   MV_PROTO_SHORT,
@@ -32,16 +31,12 @@ enum mv_proto_name {
   MV_PROTO_RTR,
   MV_PROTO_LONG_ENQUEUE,
 };
-
-extern const mv_proto_spec_t mv_proto[11];
+const mv_proto_spec_t mv_proto[11] __attribute__((aligned(64)));
 
 #define mv_set_proto(p, N)                      \
   {                                             \
-    p->data.header.am_fid = mv_proto[N].am_fid; \
-    p->data.header.ps_fid = mv_proto[N].ps_fid; \
-  }                                             \
-  while (0)                                     \
-    ;
+    p->data.header.proto = N;                   \
+  }
 
 MV_INLINE
 int mvi_am_generic(mvh* mv, int node, void* src, int size, int tag,
@@ -57,6 +52,7 @@ int mvi_am_generic(mvh* mv, int node, void* src, int size, int tag,
                         (size_t)(size + sizeof(packet_header)), &p->context);
 }
 
+#if 0
 MV_INLINE
 int mvi_am_generic2(mvh* mv, int node, void* src, int size, int tag,
                     uint8_t am_fid, uint8_t ps_fid, mv_packet* p)
@@ -71,6 +67,7 @@ int mvi_am_generic2(mvh* mv, int node, void* src, int size, int tag,
   return mv_server_send(mv->server, node, &p->data,
                         (size_t)(size + sizeof(packet_header)), &p->context);
 }
+#endif
 
 #include "proto/proto_eager.h"
 #include "proto/proto_ext.h"
@@ -79,20 +76,19 @@ int mvi_am_generic2(mvh* mv, int node, void* src, int size, int tag,
 MV_INLINE
 void mv_serve_recv(mvh* mv, mv_packet* p_ctx)
 {
-  const uint8_t fid = p_ctx->data.header.am_fid;
-  ((p_ctx_handler)mv->am_table[fid])(mv, p_ctx);
+  enum mv_proto_name proto = p_ctx->data.header.proto;
+  mv_proto[proto].func_am(mv, p_ctx);
 }
 
 MV_INLINE
 void mv_serve_send(mvh* mv, mv_packet* p_ctx)
 {
   if (!p_ctx) return;
-  const uint8_t fid = p_ctx->data.header.ps_fid;
-  if (fid) {
-    ((p_ctx_handler)mv->am_table[fid])(mv, p_ctx);
-  } else {  // by default, returns to the pool.
+  enum mv_proto_name proto = p_ctx->data.header.proto;
+  if (mv_proto[proto].func_ps)
+    mv_proto[proto].func_ps(mv, p_ctx);
+  else
     mv_pool_put_to(mv->pkpool, p_ctx, p_ctx->data.header.poolid);
-  }
 }
 
 MV_INLINE

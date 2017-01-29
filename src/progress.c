@@ -117,25 +117,16 @@ static void mv_sent_short_wait(mvh* mv, mv_packet* p_ctx)
 }
 
 const mv_proto_spec_t mv_proto[11] = {
-  {0, 0, 0, 0}, // Reserved for doing nothing.
-  {mv_recv_short, 0, 1, 0},
-  {mv_recv_short, mv_sent_short_wait, 2, 3},
-  {mv_recv_recv_ready, 0, 4, 0},
-  {mv_recv_send_ready_fin, 0, 5, 0},
-  {0, mv_sent_write_fin, 0, 6},
-  {mv_recv_am, 0, 7, 0},
-  {mv_recv_short_enqueue, 0, 8, 0},
-  {mv_recv_rts, 0, 9, 0},
-  {mv_recv_rtr, 0, 10, 0},
-  {mv_recv_rdz_enqueue_done, mv_sent_rdz_enqueue_done, 11, 12},
+  {0, 0}, // Reserved for doing nothing.
+  {mv_recv_short, 0},
+  {mv_recv_short, mv_sent_short_wait},
+  {mv_recv_recv_ready, 0},
+  {mv_recv_send_ready_fin, 0},
+  {0, mv_sent_write_fin},
+  {mv_recv_am, 0},
+  {mv_recv_short_enqueue, 0},
+  {mv_recv_rts, 0},
+  {mv_recv_rtr, 0},
+  {mv_recv_rdz_enqueue_done, mv_sent_rdz_enqueue_done},
 };
 
-void mv_progress_init(mvh* mv)
-{
-  for (int i = 1; i < 11; i++) {
-    if (mv_proto[i].func_am)
-      assert(mv_proto[i].am_fid == mv_am_register(mv, mv_proto[i].func_am));
-    if (mv_proto[i].func_ps)
-      assert(mv_proto[i].ps_fid == mv_am_register(mv, mv_proto[i].func_ps));
-  }
-}

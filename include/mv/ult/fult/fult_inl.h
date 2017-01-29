@@ -77,18 +77,15 @@ static void fwrapper(intptr_t args)
 
 MV_INLINE void fworker_init(fworker** w_ptr)
 {
-#ifndef __cplusplus
-  fworker* w = 0;
-  posix_memalign((void**)&w, 64, sizeof(fworker));
-#else
-  fworker* w = new fworker();  // Work around... malloc fail here for no reason.
-#endif
-
+  fworker *w = 0;
+  posix_memalign((void**)&w, 64, sizeof(struct fworker));
   w->stop = 1;
-  posix_memalign((void**)&(w->threads), 64, sizeof(fthread) * MAX_THREAD);
-  w->thread_pool = (fthread**)malloc(MAX_THREAD * sizeof(uintptr_t));
-  memset(w->threads, 0, sizeof(fthread) * MAX_THREAD);
-  memset(w->thread_pool, 0, sizeof(fthread*) * MAX_THREAD);
+  w->thread_pool_last = 0;
+  posix_memalign((void**)&(w->threads), 64, sizeof(struct fthread) * MAX_THREAD);
+  posix_memalign((void**)&(w->thread_pool), 64, sizeof(uintptr_t) * MAX_THREAD);
+
+  memset(w->threads, 0, sizeof(struct fthread) * MAX_THREAD);
+  memset(w->thread_pool, 0, sizeof(uintptr_t) * MAX_THREAD);
 
   for (int i = 0; i < NMASK; i++) w->mask[i] = 0;
 #ifdef USE_L1_MASK
@@ -96,13 +93,13 @@ MV_INLINE void fworker_init(fworker** w_ptr)
 #endif
   // Add all free slot.
   for (int i = 0; i < (int)MAX_THREAD; i++) {
-    fthread_init(&(w->threads[i]));
-    w->threads[i].origin = w;
-    w->threads[i].id = i;
-    w->thread_pool[w->thread_pool_last++] = (&(w->threads[i]));
+    fthread* t = &(w->threads[i]);
+    fthread_init(t);
+    t->origin = w;
+    t->id = i;
+    w->thread_pool[w->thread_pool_last++] = t;
   }
   w->thread_pool_lock = MV_SPIN_UNLOCKED;
-
   *w_ptr = w;
 }
 

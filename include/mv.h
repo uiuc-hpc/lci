@@ -38,8 +38,7 @@ typedef uint64_t mv_key;
 typedef void* mv_hash;
 
 typedef struct packet_header {
-  uint8_t am_fid;
-  uint8_t ps_fid;
+  uint8_t proto;
   int8_t poolid;
   int8_t padding;
   int from;

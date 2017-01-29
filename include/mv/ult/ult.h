@@ -21,6 +21,7 @@ MV_INLINE int mv_worker_id()
 {
   if (unlikely(mv_core_id == -1)) {
     mv_core_id = sched_getcpu() % get_ncores();
+    if (mv_core_id == -1) mv_core_id = 0;
   }
   return mv_core_id;
 }

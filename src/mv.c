@@ -50,10 +50,8 @@ void mv_open(int* argc, char*** args, size_t heap_size, mvh** ret)
     }
   }
 #endif
-
   mv_hash_init(&mv->tbl);
   mv->am_table_size = 1;
-  mv_progress_init(mv);
   mv_server_init(mv, heap_size, &mv->server);
   MPI_Barrier(MPI_COMM_WORLD);
 
@@ -67,6 +65,7 @@ void mv_close(mvh* mv)
 {
   MPI_Barrier(MPI_COMM_WORLD);
   mv_server_finalize(mv->server);
+  free(mv);
   MPI_Finalize();
 }
 
@@ -104,6 +103,7 @@ int mv_recv_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
     return mvi_recv_rdz_post(mv, ctx, sync);
 }
 
+#if 0
 void mv_am_eager(mvh* mv, int node, void* src, int size, int tag,
                  uint8_t fid)
 {
@@ -116,6 +116,7 @@ void mv_am_eager2(mvh* mv, int node, void* src, int size, int tag,
 {
   mvi_am_generic2(mv, node, src, size, tag, am_fid, ps_fid, p);
 }
+#endif
 
 void mv_send_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
@@ -154,7 +155,7 @@ int mv_recv_dequeue(mvh* mv, mv_ctx* ctx)
   ctx->rank = p->data.header.from;
   ctx->tag = p->data.header.tag;
   ctx->size = p->data.header.size;
-  if (p->data.header.am_fid == mv_proto[MV_PROTO_SHORT_ENQUEUE].am_fid) {
+  if (p->data.header.proto == MV_PROTO_SHORT_ENQUEUE) {
     ctx->buffer = p->data.content.buffer;
   } else {
     ctx->buffer = (void*) p->data.content.rdz.tgt_addr;
@@ -188,7 +189,7 @@ mv_packet_data_t* mv_packet_data(mv_packet* p)
 
 void mv_packet_done(mvh* mv, mv_packet* p)
 {
-  if (p->data.header.am_fid == mv_proto[MV_PROTO_LONG_ENQUEUE].am_fid)
+  if (p->data.header.proto == MV_PROTO_LONG_ENQUEUE)
     mv_free(mv, (void*) p->data.content.rdz.tgt_addr);
   mv_pool_put(mv->pkpool, p);
 }
