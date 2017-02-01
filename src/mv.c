@@ -193,7 +193,7 @@ mv_packet_data_t* mv_packet_data(mv_packet* p)
 
 void mv_packet_done(mvh* mv, mv_packet* p)
 {
-  mv_pool_put_to(mv->pkpool, p, p->data.header.poolid);
+  mv_pool_put(mv->pkpool, p);
 }
 
 size_t mv_data_max_size()
