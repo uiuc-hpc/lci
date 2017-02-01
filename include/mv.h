@@ -65,7 +65,7 @@ typedef struct __attribute__((__packed__)) {
 
 typedef int (*mv_fcb)(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 
-enum RequestType {
+enum request_t {
   REQ_NULL = 0,
   REQ_DONE,
   REQ_PENDING,
@@ -77,7 +77,7 @@ struct mv_ctx {
   int rank;
   int tag;
   mv_sync* sync;
-  enum RequestType type;
+  enum request_t type;
   mv_fcb complete;
   void* control;
 } __attribute__((aligned(64)));
@@ -161,9 +161,11 @@ int mv_recv_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 * @param tag
 * @param ctx
 *
+* @return 1 if finished, 0 otherwise.
+*
 */
 MV_EXPORT
-void mv_send_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx);
+int mv_send_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx);
 
 /**
 * @brief Try to finish or attach sync for waking up.
@@ -240,7 +242,9 @@ void mv_wait(mv_ctx* ctx, mv_sync* sync)
 * @return 1 if finished, 0 otherwise.
 */
 MV_INLINE
-int mv_test(mv_ctx* ctx) { return (ctx->type == REQ_DONE); }
+int mv_test(mv_ctx* ctx) {
+  return (ctx->type == REQ_DONE);
+}
 
 /**
 * @brief Allocate memory for communication

@@ -226,16 +226,16 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
   int ret = 0;
   int ne = ibv_poll_cq(s->recv_cq, MAX_CQ, wc);
 
-#if 0
-  if (wc.status != IBV_WC_SUCCESS) {
-    fprintf(stderr, "Failed status %s (%d) for wr_id %d\n", 
-        ibv_wc_status_str(wc.status),
-        wc.status, (int)wc.wr_id);
-    exit(EXIT_FAILURE);
-  }
-#endif
   if (ne > 0) {
     for (int i = 0; i < ne; i++) {
+#if IBV_SERVER_DEBUG
+      if (wc[i].status != IBV_WC_SUCCESS) {
+        fprintf(stderr, "Failed status %s (%d) for wr_id %d\n", 
+            ibv_wc_status_str(wc[i].status),
+            wc[i].status, (int)wc[i].wr_id);
+        exit(EXIT_FAILURE);
+      }
+#endif
       s->recv_posted--;
       if (wc[i].opcode != IBV_WC_RECV_RDMA_WITH_IMM)
         mv_serve_recv(s->mv, (mv_packet*)wc[i].wr_id);
@@ -247,16 +247,18 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
 
   ne = ibv_poll_cq(s->send_cq, MAX_CQ, wc);
 
-#if 0 
-  if (wc.status != IBV_WC_SUCCESS) {
-    fprintf(stderr, "Failed status %s (%d) for wr_id %d\n", 
-        ibv_wc_status_str(wc.status),
-        wc.status, (int)wc.wr_id);
-    exit(EXIT_FAILURE);
-  }
-#endif
   if (ne > 0) {
-    for (int i = 0; i < ne; i++) mv_serve_send(s->mv, (mv_packet*)wc[i].wr_id);
+    for (int i = 0; i < ne; i++) { 
+#ifdef IBV_SERVER_DEBUG
+      if (wc[i].status != IBV_WC_SUCCESS) {
+        fprintf(stderr, "Failed status %s (%d) for wr_id %d\n", 
+            ibv_wc_status_str(wc[i].status),
+            wc[i].status, (int)wc[i].wr_id);
+        exit(EXIT_FAILURE);
+      }
+#endif
+      mv_serve_send(s->mv, (mv_packet*)wc[i].wr_id);
+    }
     ret = 1;
   }
 
@@ -265,7 +267,7 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
     ibv_server_post_recv(s, (mv_packet*)mv_pool_get_nb(s->sbuf_pool));  //, 0));
 
 #ifdef IBV_SERVER_DEBUG
-  if (s->recv_posted < MAX_RECV) {
+  if (s->recv_posted == 0) {
     printf("WARNING DEADLOCK %d\n", s->recv_posted);
   }
 #endif
@@ -473,15 +475,22 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr)
     qp_to_rts(s->dev_qp[i]);
   }
 
+  // FIXME(danghvu): How many is enough?
+  uint32_t npacket = MAX(MAX_PACKET, mv->size * 2);
+
   // Prepare the mv_packet_mgr and prepost some mv_packet.
-  s->sbuf = ibv_server_mem_malloc(s, MV_PACKET_SIZE * (MAX_SEND + MAX_RECV));
+  s->sbuf = ibv_server_mem_malloc(s, MV_PACKET_SIZE * (npacket));
   mv_pool_create(&s->sbuf_pool, (void*)s->sbuf->addr, MV_PACKET_SIZE,
-                 MAX_SEND + MAX_RECV);
+                 npacket);
 
   s->recv_posted = 0;
   s->mv = mv;
   s->mv->pkpool = s->sbuf_pool;
   *s_ptr = s;
+
+  // Prepost half.
+  for (int i = 0; i < MAX_RECV / 2; i++)
+    ibv_server_post_recv(mv->server, (mv_packet*)mv_pool_get_nb(s->sbuf_pool));
 }
 
 MV_INLINE void ibv_server_finalize(ibv_server* s)

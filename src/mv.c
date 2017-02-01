@@ -118,15 +118,16 @@ void mv_am_eager2(mvh* mv, int node, void* src, int size, int tag,
 }
 #endif
 
-void mv_send_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
+int mv_send_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
+  mv_packet* p = (mv_packet*) mv_pool_get_nb(mv->pkpool); 
+  if (!p) return 0;
+
   if (size <= (int) SHORT_MSG_SIZE) {
-    mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool); 
     mvi_am_generic(mv, rank, src, size, tag, MV_PROTO_SHORT_ENQUEUE, p);
     ctx->type = REQ_DONE;
   } else {
     INIT_CTX(ctx);
-    mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool); 
     mv_set_proto(p, MV_PROTO_RTS);
     p->data.header.poolid = 0;
     p->data.header.from = mv->me;
@@ -136,6 +137,7 @@ void mv_send_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, mv_ct
     mv_server_send(mv->server, ctx->rank, &p->data,
         sizeof(packet_header) + sizeof(struct mv_rdz), &p->context);
   }
+  return 1;
 }
 
 int mv_send_enqueue_post(mvh* mv __UNUSED__, mv_ctx* ctx, mv_sync *sync)
@@ -156,11 +158,13 @@ int mv_recv_dequeue(mvh* mv, mv_ctx* ctx)
   ctx->tag = p->data.header.tag;
   ctx->size = p->data.header.size;
   if (p->data.header.proto == MV_PROTO_SHORT_ENQUEUE) {
-    ctx->buffer = p->data.content.buffer;
+    // TODO(danghvu): Have to do this to return the packet.
+    ctx->buffer = (void*) mv_alloc(mv, ctx->size);
+    memcpy(ctx->buffer, p->data.content.buffer, ctx->size);
   } else {
     ctx->buffer = (void*) p->data.content.rdz.tgt_addr;
   }
-  ctx->control = (void*) p;
+  mv_packet_done(mv, p);
   return 1;
 }
 
@@ -189,9 +193,7 @@ mv_packet_data_t* mv_packet_data(mv_packet* p)
 
 void mv_packet_done(mvh* mv, mv_packet* p)
 {
-  if (p->data.header.proto == MV_PROTO_LONG_ENQUEUE)
-    mv_free(mv, (void*) p->data.content.rdz.tgt_addr);
-  mv_pool_put(mv->pkpool, p);
+  mv_pool_put_to(mv->pkpool, p->data.header.poolid);
 }
 
 size_t mv_data_max_size()
@@ -199,13 +201,17 @@ size_t mv_data_max_size()
   return SHORT_MSG_SIZE;
 }
 
-static volatile int memlock;
+static volatile int memlock = 0;
 
 void* mv_alloc(mvh* mv, size_t s)
 {
   mv_spin_lock(&memlock);
   void* p = umalloc(mv->heap, s);
   mv_spin_unlock(&memlock);
+  if (p == 0) {
+    fprintf(stderr, "Not enough memory for allocation");
+    exit(EXIT_FAILURE);
+  }
   return p;
 }
 
