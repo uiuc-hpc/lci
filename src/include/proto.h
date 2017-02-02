@@ -1,13 +1,14 @@
 #ifndef MV_PROTO_H
 #define MV_PROTO_H
 
-#define INIT_CTX(ctx) {\
-  ctx->buffer = src;\
-  ctx->size = size;\
-  ctx->rank = rank;\
-  ctx->tag = tag;\
-  ctx->type = REQ_PENDING;\
-}
+#define INIT_CTX(ctx)        \
+  {                          \
+    ctx->buffer = src;       \
+    ctx->size = size;        \
+    ctx->rank = rank;        \
+    ctx->tag = tag;          \
+    ctx->type = REQ_PENDING; \
+  }
 
 typedef struct {
   mv_am_func_t func_am;
@@ -33,9 +34,9 @@ enum mv_proto_name {
 };
 const mv_proto_spec_t mv_proto[11] __attribute__((aligned(64)));
 
-#define mv_set_proto(p, N)                      \
-  {                                             \
-    p->data.header.proto = N;                   \
+#define mv_set_proto(p, N)    \
+  {                           \
+    p->data.header.proto = N; \
   }
 
 MV_INLINE

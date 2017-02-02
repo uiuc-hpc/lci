@@ -103,21 +103,6 @@ int mv_recv_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
     return mvi_recv_rdz_post(mv, ctx, sync);
 }
 
-#if 0
-void mv_am_eager(mvh* mv, int node, void* src, int size, int tag,
-                 uint8_t fid)
-{
-  mv_packet* p = (mv_packet*) mv_pool_get(mv->pkpool); 
-  mvi_am_generic2(mv, node, src, size, tag, fid, 0, p);
-}
-
-void mv_am_eager2(mvh* mv, int node, void* src, int size, int tag,
-                 uint8_t am_fid, uint8_t ps_fid, mv_packet* p)
-{
-  mvi_am_generic2(mv, node, src, size, tag, am_fid, ps_fid, p);
-}
-#endif
-
 int mv_send_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
   mv_packet* p = (mv_packet*) mv_pool_get_nb(mv->pkpool); 

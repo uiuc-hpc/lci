@@ -230,9 +230,9 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
     for (int i = 0; i < ne; i++) {
 #if IBV_SERVER_DEBUG
       if (wc[i].status != IBV_WC_SUCCESS) {
-        fprintf(stderr, "Failed status %s (%d) for wr_id %d\n", 
-            ibv_wc_status_str(wc[i].status),
-            wc[i].status, (int)wc[i].wr_id);
+        fprintf(stderr, "Failed status %s (%d) for wr_id %d\n",
+                ibv_wc_status_str(wc[i].status), wc[i].status,
+                (int)wc[i].wr_id);
         exit(EXIT_FAILURE);
       }
 #endif
@@ -248,12 +248,12 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
   ne = ibv_poll_cq(s->send_cq, MAX_CQ, wc);
 
   if (ne > 0) {
-    for (int i = 0; i < ne; i++) { 
+    for (int i = 0; i < ne; i++) {
 #ifdef IBV_SERVER_DEBUG
       if (wc[i].status != IBV_WC_SUCCESS) {
-        fprintf(stderr, "Failed status %s (%d) for wr_id %d\n", 
-            ibv_wc_status_str(wc[i].status),
-            wc[i].status, (int)wc[i].wr_id);
+        fprintf(stderr, "Failed status %s (%d) for wr_id %d\n",
+                ibv_wc_status_str(wc[i].status), wc[i].status,
+                (int)wc[i].wr_id);
         exit(EXIT_FAILURE);
       }
 #endif
@@ -480,8 +480,7 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr)
 
   // Prepare the mv_packet_mgr and prepost some mv_packet.
   s->sbuf = ibv_server_mem_malloc(s, MV_PACKET_SIZE * (npacket));
-  mv_pool_create(&s->sbuf_pool, (void*)s->sbuf->addr, MV_PACKET_SIZE,
-                 npacket);
+  mv_pool_create(&s->sbuf_pool, (void*)s->sbuf->addr, MV_PACKET_SIZE, npacket);
 
   s->recv_posted = 0;
   s->mv = mv;

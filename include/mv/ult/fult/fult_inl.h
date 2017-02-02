@@ -77,11 +77,12 @@ static void fwrapper(intptr_t args)
 
 MV_INLINE void fworker_init(fworker** w_ptr)
 {
-  fworker *w = 0;
+  fworker* w = 0;
   posix_memalign((void**)&w, 64, sizeof(struct fworker));
   w->stop = 1;
   w->thread_pool_last = 0;
-  posix_memalign((void**)&(w->threads), 64, sizeof(struct fthread) * MAX_THREAD);
+  posix_memalign((void**)&(w->threads), 64,
+                 sizeof(struct fthread) * MAX_THREAD);
   posix_memalign((void**)&(w->thread_pool), 64, sizeof(uintptr_t) * MAX_THREAD);
 
   memset(w->threads, 0, sizeof(struct fthread) * MAX_THREAD);

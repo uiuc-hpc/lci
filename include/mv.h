@@ -82,7 +82,6 @@ struct mv_ctx {
   void* control;
 } __attribute__((aligned(64)));
 
-
 /**
  * @defgroup low-level Low-level API
  * @{
@@ -92,7 +91,7 @@ struct mv_ctx {
  * @defgroup match Matching using rank, tag.
  * @{
  */
- 
+
 /**
 * @brief Send a buffer and match at destination.
 *
@@ -165,7 +164,8 @@ int mv_recv_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 *
 */
 MV_EXPORT
-int mv_send_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx);
+int mv_send_enqueue_init(mvh* mv, void* src, int size, int rank, int tag,
+                         mv_ctx* ctx);
 
 /**
 * @brief Try to finish or attach sync for waking up.
@@ -177,7 +177,7 @@ int mv_send_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx
 * @return 1 if finished, 0 otherwise.
 */
 MV_EXPORT
-int mv_send_enqueue_post(mvh* mv, mv_ctx* ctx, mv_sync *sync);
+int mv_send_enqueue_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 
 /**
 * @brief Try to dequeue, for message send with send-enqueue.
@@ -242,10 +242,7 @@ void mv_wait(mv_ctx* ctx, mv_sync* sync)
 * @return 1 if finished, 0 otherwise.
 */
 MV_INLINE
-int mv_test(mv_ctx* ctx) {
-  return (ctx->type == REQ_DONE);
-}
-
+int mv_test(mv_ctx* ctx) { return (ctx->type == REQ_DONE); }
 /**
 * @brief Allocate memory for communication
 *
