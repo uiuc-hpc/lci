@@ -20,9 +20,7 @@ extern int8_t tls_pool_struct[MAX_NPOOLS][MAX_LOCAL_POOL];
 
 typedef struct mv_pool {
   int key;
-  unsigned count;
   int npools;
-  void* data;
   struct dequeue* lpools[MAX_NPOOLS];
 } mv_pool __attribute__((aligned(64)));
 
@@ -45,7 +43,7 @@ MV_INLINE int8_t mv_pool_get_local(mv_pool* pool)
   if (unlikely(pid == -1)) {
     struct dequeue* lpool = 0;
     posix_memalign((void**)&lpool, 64, sizeof(struct dequeue));
-    dq_init(lpool, pool->count);
+    dq_init(lpool);
     pid = __sync_fetch_and_add(&pool->npools, 1);
     tls_pool_struct[wid][pool->key] = pid;
     // tls_pool_struct[pool->key] = pid;

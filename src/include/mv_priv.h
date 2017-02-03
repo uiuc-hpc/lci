@@ -27,6 +27,7 @@ struct mv_struct {
   int am_table_size;
   mv_am_func_t am_table[128];
   struct dequeue queue;
+  mv_pool* mem_pool[24];
 } __attribute__((aligned(64)));
 
 #include "packet.h"

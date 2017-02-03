@@ -4,6 +4,12 @@
 #include "pool.h"
 #include "umalloc/umalloc.h"
 
+MV_INLINE unsigned long find_first_set(unsigned long word)
+{
+  asm("rep; bsf %1,%0" : "=r"(word) : "rm"(word));
+  return word;
+}
+
 __thread int mv_core_id = -1;
 uint32_t server_max_inline = 128;
 double mv_ptime  = 0;
@@ -53,11 +59,20 @@ void mv_open(int* argc, char*** args, size_t heap_size, mvh** ret)
   mv_hash_init(&mv->tbl);
   mv->am_table_size = 1;
   mv_server_init(mv, heap_size, &mv->server);
-  MPI_Barrier(MPI_COMM_WORLD);
 
+  // Init queue protocol.
+  // TODO(danghvu): USE SPMC queue.
+  dq_init(&mv->queue);
+
+  // Init heap.
   mv->heap = umalloc_makeheap(mv_heap_ptr(mv), heap_size,
       UMALLOC_HEAP_GROWS_UP);
-  dq_init(&mv->queue, MAX_PACKET);
+
+  for (int i = 0; i < 24; i++)
+    mv_pool_create(&mv->mem_pool[i], 0, 0, 0);
+
+  MPI_Barrier(MPI_COMM_WORLD);
+
   *ret = mv;
 }
 
@@ -81,7 +96,7 @@ void mv_send_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
 
 int mv_send_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
-  if (ctx->size <= (int) SHORT_MSG_SIZE) 
+  if (ctx->size <= (int) SHORT_MSG_SIZE)
     return 1;
   else
     return mvi_send_rdz_post(mv, ctx, sync);
@@ -89,7 +104,7 @@ int mv_send_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 
 void mv_recv_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
-  if (size <= (int) SHORT_MSG_SIZE) 
+  if (size <= (int) SHORT_MSG_SIZE)
     mvi_recv_eager_init(mv, src, size, rank, tag, ctx);
   else
     mvi_recv_rdz_init(mv, src, size, rank, tag, ctx);
@@ -97,7 +112,7 @@ void mv_recv_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
 
 int mv_recv_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
-  if (ctx->size <= (int) SHORT_MSG_SIZE) 
+  if (ctx->size <= (int) SHORT_MSG_SIZE)
     return mvi_recv_eager_post(mv, ctx, sync);
   else
     return mvi_recv_rdz_post(mv, ctx, sync);
@@ -105,7 +120,7 @@ int mv_recv_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 
 int mv_send_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
-  mv_packet* p = (mv_packet*) mv_pool_get_nb(mv->pkpool); 
+  mv_packet* p = (mv_packet*) mv_pool_get_nb(mv->pkpool);
   if (!p) return 0;
 
   if (size <= (int) SHORT_MSG_SIZE) {
@@ -190,19 +205,34 @@ static volatile int memlock = 0;
 
 void* mv_alloc(mvh* mv, size_t s)
 {
-  mv_spin_lock(&memlock);
-  void* p = umalloc(mv->heap, s);
-  mv_spin_unlock(&memlock);
-  if (p == 0) {
-    fprintf(stderr, "Not enough memory for allocation");
-    exit(EXIT_FAILURE);
+  uint8_t b = find_first_set(s);
+  if (b < MV_MAX_MEM_POOL_BIT_SIZE) {
+    void* p = mv_pool_get_nb(mv->mem_pool[b]);
+    if (!p)
+      goto slow_path;
+    else
+      return p;
   }
-  return p;
+
+slow_path:
+  mv_spin_lock(&memlock);
+  uint8_t* p = (uint8_t*) umalloc(mv->heap, 1 << (b+1));
+  *((uint8_t*) p) = b;
+  p += 8;
+  mv_spin_unlock(&memlock);
+  return (void*) p;
 }
 
 void mv_free(mvh* mv, void* ptr)
 {
-  mv_spin_lock(&memlock);
-  ufree(mv->heap, ptr);
-  mv_spin_unlock(&memlock);
+  uint8_t* raw = (uint8_t*) ptr;
+  raw -= 8;
+  uint8_t b = *raw;
+  if (b < MV_MAX_MEM_POOL_BIT_SIZE) {
+    mv_pool_put(mv->mem_pool[b], ptr);
+  } else {
+    mv_spin_lock(&memlock);
+    ufree(mv->heap, raw);
+    mv_spin_unlock(&memlock);
+  }
 }

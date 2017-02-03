@@ -14,8 +14,6 @@ void mv_pool_init() {
 void mv_pool_create(mv_pool** pool, void* data, size_t elm_size, unsigned count) {
   mv_pool* p = 0;
   posix_memalign((void**) &p, 64, sizeof(struct mv_pool));
-  p->data = data;
-  p->count = count;
   p->npools = 0;
   p->key = __sync_fetch_and_add(&mv_pool_nkey, 1);
   if (p->key > MAX_LOCAL_POOL) {
@@ -23,7 +21,7 @@ void mv_pool_create(mv_pool** pool, void* data, size_t elm_size, unsigned count)
     exit(EXIT_FAILURE);
   }
   for (unsigned i = 0; i < count; i++) {
-    mv_pool_put(p, (void*) ((uintptr_t) p->data + elm_size * i));
+    mv_pool_put(p, (void*) ((uintptr_t) data + elm_size * i));
   }
   *pool = p;
 }

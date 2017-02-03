@@ -10,23 +10,21 @@ struct dequeue {
     void* cache;
     size_t top;
     size_t bot;
-    size_t size;
   } __attribute__((aligned(64)));
   volatile int spinlock;
   void* container[MAX_SIZE];
 } __attribute__((aligned(64)));
 
-MV_INLINE void dq_init(struct dequeue* dq, size_t size);
+MV_INLINE void dq_init(struct dequeue* dq);
 MV_INLINE void dq_push_top(struct dequeue* deq, void* p);
 MV_INLINE void* dq_pop_top(struct dequeue* deq);
 MV_INLINE void* dq_pop_bot(struct dequeue* deq);
 
-MV_INLINE void dq_init(struct dequeue* dq, size_t size)
+MV_INLINE void dq_init(struct dequeue* dq)
 {
   memset(dq->container, 0, MAX_SIZE);
   dq->top = 0;
   dq->bot = 0;
-  dq->size = size;
   dq->cache = NULL;
   dq->spinlock = MV_SPIN_UNLOCKED;
 }
@@ -48,8 +46,9 @@ MV_INLINE void dq_push_top(struct dequeue* deq, void* p)
   mv_spin_lock(&deq->spinlock);
   deq->container[deq->top] = p;
   deq->top = (deq->top + 1) & (MAX_SIZE - 1);
-  if (((deq->top + MAX_SIZE - deq->bot) & (MAX_SIZE - 1)) > deq->size) {
-    deq->bot = (deq->bot + 1) & (MAX_SIZE - 1);
+  if (deq->top == deq->bot) {
+    fprintf(stderr, "pool overflow\n");
+    exit(EXIT_FAILURE);
   }
   mv_spin_unlock(&deq->spinlock);
 };
