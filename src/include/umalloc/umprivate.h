@@ -207,21 +207,6 @@ struct mdesc {
      needs to be maintained on a per-process basis. */
   void (*abortfunc)(void);
 
-  /* Debugging hook for free.
-     FIXME:  For mapped regions shared by more than one process, this
-     needs to be maintained on a per-process basis. */
-  void (*ufree_hook)(void*, void*);
-
-  /* Debugging hook for `malloc'.
-     FIXME:  For mapped regions shared by more than one process, this
-     needs to be maintained on a per-process basis. */
-  void* (*umalloc_hook)(void*, uintptr_t);
-
-  /* Debugging hook for realloc.
-     FIXME:  For mapped regions shared by more than one process, this
-     needs to be maintained on a per-process basis. */
-  void* (*urealloc_hook)(void*, void*, uintptr_t);
-
   /* Number of info entries.  */
   uintptr_t heapsize;
 
@@ -239,9 +224,6 @@ struct mdesc {
      Allocated with malign/__umalloc_free (not umalloc/ufree).  */
   /* Table indexed by block number giving per-block information.  */
   malloc_info* heapinfo;
-
-  /* Instrumentation.  */
-  struct mstats heapstats;
 
   /* Free list headers for each fragment size.  */
   /* Free lists for each fragment size.  */

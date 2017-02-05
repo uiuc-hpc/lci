@@ -2,9 +2,11 @@
 #define MPIV_MV_PRIV_H_
 
 #include "mv.h"
+#include "config.h"
 #include "umalloc/umalloc.h"
 #include <stdint.h>
 #include <stdlib.h>
+#include "lcrq.h"
 #include "dequeue.h"
 
 #ifdef MV_USE_SERVER_OFI
@@ -23,12 +25,16 @@ struct mv_struct {
   mv_server* server;
   mv_pool* pkpool;
   mv_hash* tbl;
-  umalloc_heap_t* heap;
+#ifndef USE_CCQ
+  struct dequeue queue;
+#else
+  lcrq_t queue;
+#endif
   int am_table_size;
   mv_am_func_t am_table[128];
-  struct dequeue queue;
-  mv_pool* mem_pool[24];
 } __attribute__((aligned(64)));
+
+extern umalloc_heap_t* mv_heap;
 
 #include "packet.h"
 #include "pool.h"

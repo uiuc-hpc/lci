@@ -2,7 +2,6 @@
 #include "include/mv_priv.h"
 #include <stdint.h>
 #include "pool.h"
-#include "umalloc/umalloc.h"
 
 MV_INLINE unsigned long find_first_set(unsigned long word)
 {
@@ -12,7 +11,9 @@ MV_INLINE unsigned long find_first_set(unsigned long word)
 
 __thread int mv_core_id = -1;
 uint32_t server_max_inline = 128;
-double mv_ptime  = 0;
+double mv_ptime = 0;
+umalloc_heap_t* mv_heap = 0;
+
 extern uint8_t MV_AM_GENERIC;
 
 uint8_t mv_am_register(mvh* mv, mv_am_func_t f)
@@ -61,15 +62,15 @@ void mv_open(int* argc, char*** args, size_t heap_size, mvh** ret)
   mv_server_init(mv, heap_size, &mv->server);
 
   // Init queue protocol.
-  // TODO(danghvu): USE SPMC queue.
+#ifndef USE_CCQ
   dq_init(&mv->queue);
+#else
+  lcrq_queue_init(&mv->queue);
+#endif
 
   // Init heap.
-  mv->heap = umalloc_makeheap(mv_heap_ptr(mv), heap_size,
+  mv_heap = umalloc_makeheap(mv_heap_ptr(mv), heap_size,
       UMALLOC_HEAP_GROWS_UP);
-
-  for (int i = 0; i < 24; i++)
-    mv_pool_create(&mv->mem_pool[i], 0, 0, 0);
 
   MPI_Barrier(MPI_COMM_WORLD);
 
@@ -131,8 +132,8 @@ int mv_send_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx
     mv_set_proto(p, MV_PROTO_RTS);
     p->data.header.poolid = 0;
     p->data.header.from = mv->me;
-    p->data.header.tag = ctx->tag;
-    p->data.header.size = ctx->size;
+    p->data.header.tag = tag;
+    p->data.header.size = size;
     p->data.content.rdz.sreq = (uintptr_t) ctx;
     mv_server_send(mv->server, ctx->rank, &p->data,
         sizeof(packet_header) + sizeof(struct mv_rdz), &p->context);
@@ -152,14 +153,18 @@ int mv_send_enqueue_post(mvh* mv __UNUSED__, mv_ctx* ctx, mv_sync *sync)
 
 int mv_recv_dequeue(mvh* mv, mv_ctx* ctx)
 {
+#ifndef USE_CCQ
   mv_packet* p = (mv_packet*) dq_pop_bot(&mv->queue);
+#else
+  mv_packet* p = (mv_packet*) lcrq_dequeue(&mv->queue);
+#endif
   if (p == NULL) return 0;
   ctx->rank = p->data.header.from;
   ctx->tag = p->data.header.tag;
   ctx->size = p->data.header.size;
   if (p->data.header.proto == MV_PROTO_SHORT_ENQUEUE) {
     // TODO(danghvu): Have to do this to return the packet.
-    ctx->buffer = (void*) mv_alloc(mv, ctx->size);
+    ctx->buffer = (void*) mv_alloc(ctx->size);
     memcpy(ctx->buffer, p->data.content.buffer, ctx->size);
   } else {
     ctx->buffer = (void*) p->data.content.rdz.tgt_addr;
@@ -201,38 +206,19 @@ size_t mv_data_max_size()
   return SHORT_MSG_SIZE;
 }
 
-static volatile int memlock = 0;
+volatile int ml = 0;
 
-void* mv_alloc(mvh* mv, size_t s)
+void* mv_alloc(size_t s)
 {
-  uint8_t b = find_first_set(s);
-  if (b < MV_MAX_MEM_POOL_BIT_SIZE) {
-    void* p = mv_pool_get_nb(mv->mem_pool[b]);
-    if (!p)
-      goto slow_path;
-    else
-      return p;
-  }
-
-slow_path:
-  mv_spin_lock(&memlock);
-  uint8_t* p = (uint8_t*) umalloc(mv->heap, 1 << (b+1));
-  *((uint8_t*) p) = b;
-  p += 8;
-  mv_spin_unlock(&memlock);
-  return (void*) p;
+  mv_spin_lock(&ml);
+  void* p = umemalign(mv_heap, 4096, s);
+  mv_spin_unlock(&ml);
+  return p;
 }
 
-void mv_free(mvh* mv, void* ptr)
+void mv_free(void* ptr)
 {
-  uint8_t* raw = (uint8_t*) ptr;
-  raw -= 8;
-  uint8_t b = *raw;
-  if (b < MV_MAX_MEM_POOL_BIT_SIZE) {
-    mv_pool_put(mv->mem_pool[b], ptr);
-  } else {
-    mv_spin_lock(&memlock);
-    ufree(mv->heap, raw);
-    mv_spin_unlock(&memlock);
-  }
+  mv_spin_lock(&ml);
+  ufree(mv_heap, ptr);
+  mv_spin_unlock(&ml);
 }

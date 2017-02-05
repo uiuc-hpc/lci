@@ -15,6 +15,7 @@
 #define SHORT_MSG_SIZE \
   (MV_PACKET_SIZE - sizeof(packet_header))  // short message size.
 
-#define MV_MAX_MEM_POOL_BIT_SIZE 24 // messages with this size is cached.
+// Using LCRQ or spinlock.
+#define USE_CCQ
 
 #endif

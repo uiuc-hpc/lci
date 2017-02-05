@@ -37,8 +37,8 @@ LDFLAGS += -shared -Lstatic -flto $(IBV_LIB) # -llmpe -lmpe
 # LDFLAGS += -L$(PAPI_LIB)
 
 FCONTEXT = mfcontext.o jfcontext.o
-COMM = mv.o mpiv.o progress.o hashtable.o pool.o
-UMALLOC = umalloc/attach.o  umalloc/ufree.o  umalloc/umalloc.o  umalloc/umstats.o
+COMM = mv.o mpiv.o progress.o hashtable.o pool.o lcrq.o
+UMALLOC = umalloc/attach.o umalloc/umemalign.o umalloc/ufree.o umalloc/umalloc.o
 
 OBJECTS = $(addprefix $(OBJDIR)/, $(COMM))
 

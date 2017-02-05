@@ -87,7 +87,7 @@ void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
-  mv_ctx *ctx = (mv_ctx*) mv_pool_get(mv_ctx_pool); 
+  mv_ctx *ctx = (mv_ctx*) mv_pool_get(mv_ctx_pool);
   mv_recv_init(mv_hdl, (void*) buffer, size, rank, tag, ctx);
   ctx->complete = mv_recv_post;
   *req = (MPIV_Request) ctx;
@@ -126,8 +126,7 @@ static void* progress(void* arg __UNUSED__)
 {
   set_me_to_last();
   while (!mv_thread_stop) {
-    while (mv_server_progress(mv_hdl->server))
-      ;
+    while (mv_server_progress(mv_hdl->server));
   }
   return 0;
 }
@@ -153,9 +152,10 @@ void MPIV_Finalize()
 
 void* MPIV_Alloc(size_t size)
 {
-    void* ptr = MPIV_HEAP; 
-    MPIV_HEAP = (char*) MPIV_HEAP + size;
-    return ptr;
+  return mv_alloc(size);
 }
 
-void MPIV_Free(void* ptr __UNUSED__) {}
+void MPIV_Free(void* ptr)
+{
+  mv_free(ptr);
+}

@@ -77,7 +77,7 @@ struct mv_ctx {
   int rank;
   int tag;
   mv_sync* sync;
-  enum request_t type;
+  volatile enum request_t type;
   mv_fcb complete;
   void* control;
 } __attribute__((aligned(64)));
@@ -252,7 +252,7 @@ int mv_test(mv_ctx* ctx) { return (ctx->type == REQ_DONE); }
 * @return buffer
 */
 MV_EXPORT
-void* mv_alloc(mvh* mv, size_t size);
+void* mv_alloc(size_t size);
 
 /**
 * @brief Free allocated memory.
@@ -261,7 +261,7 @@ void* mv_alloc(mvh* mv, size_t size);
 * @param buffer
 */
 MV_EXPORT
-void mv_free(mvh* mv, void* buffer);
+void mv_free(void* buffer);
 
 /**@} end control */
 

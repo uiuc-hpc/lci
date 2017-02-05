@@ -52,7 +52,11 @@ static void mv_recv_short(mvh* mv, mv_packet* p)
 
 static void mv_recv_short_enqueue(mvh* mv, mv_packet* p)
 {
-  dq_push_top(&mv->queue, (void*) p); 
+#ifndef USE_CCQ
+  dq_push_top(&mv->queue, (void*) p);
+#else
+  lcrq_enqueue(&mv->queue, (void*) p);
+#endif
 }
 
 static void mv_sent_rdz_enqueue_done(mvh* mv, mv_packet* p)
@@ -64,7 +68,11 @@ static void mv_sent_rdz_enqueue_done(mvh* mv, mv_packet* p)
 
 static void mv_recv_rdz_enqueue_done(mvh* mv, mv_packet* p)
 {
-  dq_push_top(&mv->queue, (void*) p); 
+#ifndef USE_CCQ
+  dq_push_top(&mv->queue, (void*) p);
+#else
+  lcrq_enqueue(&mv->queue, (void*) p);
+#endif
 }
 
 static void mv_recv_rtr(mvh* mv, mv_packet* p)
@@ -81,7 +89,7 @@ static void mv_recv_rtr(mvh* mv, mv_packet* p)
 
 static void mv_recv_rts(mvh* mv, mv_packet* p)
 {
-  void* ptr = mv_alloc(mv, p->data.header.size);
+  void* ptr = mv_alloc(p->data.header.size);
   int rank = p->data.header.from;
   p->data.header.from = mv->me;
   mv_set_proto(p, MV_PROTO_RTR);

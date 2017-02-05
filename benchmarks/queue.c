@@ -39,7 +39,7 @@ int main(int argc, char** args)
       skip = SKIP;
       total = TOTAL;
     }
-    void* buffer = mv_alloc(mv, len);
+    void* buffer = mv_alloc(len);
     if (rank == 0) {
       memset(buffer, 'A', len);
       double t1;
@@ -53,7 +53,7 @@ int main(int argc, char** args)
         //recv
         while (!mv_recv_dequeue(mv, &ctx))
           mv_progress(mv);
-        mv_free(mv, ctx.buffer);
+        mv_free(ctx.buffer);
       }
       printf("%d \t %.5f\n", len, (MPI_Wtime() - t1)/total / 2 * 1e6);
     } else {
@@ -65,7 +65,7 @@ int main(int argc, char** args)
           for (int j = 0; j < len; j++) {
             assert(((char*)ctx.buffer)[j] == 'A');
           }
-        mv_free(mv, ctx.buffer);
+        mv_free(ctx.buffer);
         // send
         while (!mv_send_enqueue_init(mv, buffer, len, 0, 0, &ctx))
           mv_progress(mv);
@@ -74,7 +74,7 @@ int main(int argc, char** args)
       }
     }
     MPI_Barrier(MPI_COMM_WORLD);
-    mv_free(mv, buffer);
+    mv_free(buffer);
   }
   mv_close(mv);
   return 0;
