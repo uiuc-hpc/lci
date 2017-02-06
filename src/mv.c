@@ -85,14 +85,17 @@ void mv_close(mvh* mv)
   MPI_Finalize();
 }
 
-void mv_send_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
+int mv_send_init(mvh* mv, const void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
   if (size <= (int) SHORT_MSG_SIZE) {
-    mvi_send_eager(mv, src, size, rank, tag);
+    mv_packet* p = mv_pool_get_nb(mv->pkpool);
+    if (!p) return 0;
+    mvi_am_generic(mv, rank, src, size, tag, MV_PROTO_SHORT, p);
     ctx->type = REQ_DONE;
   } else {
     mvi_send_rdz_init(mv, src, size, rank, tag, ctx);
   }
+  return 1;
 }
 
 int mv_send_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
@@ -103,12 +106,16 @@ int mv_send_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
     return mvi_send_rdz_post(mv, ctx, sync);
 }
 
-void mv_recv_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
+int mv_recv_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
   if (size <= (int) SHORT_MSG_SIZE)
     mvi_recv_eager_init(mv, src, size, rank, tag, ctx);
-  else
-    mvi_recv_rdz_init(mv, src, size, rank, tag, ctx);
+  else {
+    mv_packet* p = mv_pool_get_nb(mv->pkpool);
+    if (!p) return 0;
+    mvi_recv_rdz_init(mv, src, size, rank, tag, ctx, p);
+  }
+  return 1;
 }
 
 int mv_recv_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
@@ -119,7 +126,7 @@ int mv_recv_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
     return mvi_recv_rdz_post(mv, ctx, sync);
 }
 
-int mv_send_enqueue_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
+int mv_send_enqueue_init(mvh* mv, const void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
   mv_packet* p = (mv_packet*) mv_pool_get_nb(mv->pkpool);
   if (!p) return 0;
@@ -206,6 +213,7 @@ size_t mv_data_max_size()
   return SHORT_MSG_SIZE;
 }
 
+// FIXME(danghvu): Get rid of this lock? or move to finer-grained.
 volatile int ml = 0;
 
 void* mv_alloc(size_t s)

@@ -301,12 +301,13 @@ MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf,
   struct ibv_send_wr* bad_wr;
 
   if (size <= server_max_inline) {
-    setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND_WITH_IMM,
+    setup_wr(this_wr, (uintptr_t) 0, &list, IBV_WR_SEND,
              IBV_SEND_INLINE | IBV_SEND_SIGNALED);
     IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
+    mv_pool_put(s->sbuf_pool, ctx);
     return 0;
   } else {
-    setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND_WITH_IMM,
+    setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND,
              IBV_SEND_SIGNALED);
     IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
     return 1;

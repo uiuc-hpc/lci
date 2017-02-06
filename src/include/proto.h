@@ -3,7 +3,7 @@
 
 #define INIT_CTX(ctx)        \
   {                          \
-    ctx->buffer = src;       \
+    ctx->buffer = (void*)src;\
     ctx->size = size;        \
     ctx->rank = rank;        \
     ctx->tag = tag;          \
@@ -40,7 +40,7 @@ const mv_proto_spec_t mv_proto[11] __attribute__((aligned(64)));
   }
 
 MV_INLINE
-int mvi_am_generic(mvh* mv, int node, void* src, int size, int tag,
+int mvi_am_generic(mvh* mv, int node, const void* src, int size, int tag,
                    const enum mv_proto_name proto, mv_packet* p)
 {
   mv_set_proto(p, proto);

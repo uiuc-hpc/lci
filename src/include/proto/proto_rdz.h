@@ -14,7 +14,7 @@ MV_INLINE void proto_complete_rndz(mvh* mv, mv_packet* p, mv_ctx* s)
                 s->size, &p->context);
 }
 
-MV_INLINE void mvi_send_rdz_init(mvh* mv, void* src, int size, int rank,
+MV_INLINE void mvi_send_rdz_init(mvh* mv, const void* src, int size, int rank,
                                  int tag, mv_ctx* ctx)
 {
   INIT_CTX(ctx);
@@ -38,10 +38,9 @@ MV_INLINE int mvi_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 }
 
 MV_INLINE void mvi_recv_rdz_init(mvh* mv, void* src, int size, int rank,
-                                 int tag, mv_ctx* ctx)
+                                 int tag, mv_ctx* ctx, mv_packet* p)
 {
   INIT_CTX(ctx);
-  mv_packet* p = (mv_packet*)mv_pool_get(mv->pkpool);
   mv_set_proto(p, MV_PROTO_RECV_READY);
   p->data.header.poolid = 0;
   p->data.header.from = mv->me;

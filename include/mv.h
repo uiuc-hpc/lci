@@ -101,9 +101,11 @@ struct mv_ctx {
 * @param rank
 * @param tag
 *
+* @return 1 if success, 0 otherwise -- need to retry.
+*
 */
 MV_EXPORT
-void mv_send_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx);
+int mv_send_init(mvh* mv, const void* src, int size, int rank, int tag, mv_ctx* ctx);
 
 /**
 * @brief Try to finish send, or insert sync for waking up.
@@ -128,9 +130,11 @@ int mv_send_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 * @param tag
 * @param ctx
 *
+* @return 1 if success, 0 otherwise -- need to retry.
+*
 */
 MV_EXPORT
-void mv_recv_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx);
+int mv_recv_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx);
 
 /**
 * @brief Try to match and insert sync obj for waking up.
@@ -160,11 +164,11 @@ int mv_recv_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 * @param tag
 * @param ctx
 *
-* @return 1 if finished, 0 otherwise.
+* @return 1 if success, 0 otherwise -- need to retry.
 *
 */
 MV_EXPORT
-int mv_send_enqueue_init(mvh* mv, void* src, int size, int rank, int tag,
+int mv_send_enqueue_init(mvh* mv, const void* src, int size, int rank, int tag,
                          mv_ctx* ctx);
 
 /**

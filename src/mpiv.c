@@ -18,15 +18,11 @@ void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype,
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
-  mv_sync* sync = mv_get_sync();
   struct mv_ctx ctx;
-  if ((size_t)size <= SHORT_MSG_SIZE) {
-    mvi_recv_eager_init(mv_hdl, buffer, size, rank, tag, &ctx);
-    mvi_recv_eager_post(mv_hdl, &ctx, sync);
-  } else {
-    mvi_recv_rdz_init(mv_hdl, buffer, size, rank, tag, &ctx);
-    mvi_recv_rdz_post(mv_hdl, &ctx, sync);
-  }
+  while (!mv_recv_init(mv_hdl, buffer, size, rank, tag, &ctx))
+    thread_yield();
+  mv_sync* sync = mv_get_sync();
+  mv_recv_post(mv_hdl, &ctx, sync);
   mv_wait(&ctx, sync);
 }
 
@@ -36,15 +32,12 @@ void MPIV_Send(void* buffer, int count, MPI_Datatype datatype,
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
-  if ((size_t) size <= SHORT_MSG_SIZE) {
-    mvi_send_eager(mv_hdl, buffer, size, rank, tag);
-  } else {
-    struct mv_ctx ctx;
-    mv_sync* sync = mv_get_sync();
-    mvi_send_rdz_init(mv_hdl, buffer, size, rank, tag, &ctx);
-    mvi_send_rdz_post(mv_hdl, &ctx, sync);
-    mv_wait(&ctx, sync);
-  }
+  struct mv_ctx ctx;
+  while (!mv_send_init(mv_hdl, buffer, size, rank, tag, &ctx))
+    thread_yield();
+  mv_sync* sync = mv_get_sync();
+  mv_send_post(mv_hdl, &ctx, sync);
+  mv_wait(&ctx, sync);
 }
 
 void MPIV_Ssend(void* buffer, int count, MPI_Datatype datatype,
@@ -54,16 +47,11 @@ void MPIV_Ssend(void* buffer, int count, MPI_Datatype datatype,
   MPI_Type_size(datatype, &size);
   size *= count;
   struct mv_ctx ctx;
-  if ((size_t) size <= SHORT_MSG_SIZE) {
-    mv_sync* sync = mv_get_sync();
-    mvi_send_eager_post(mv_hdl, &ctx, sync);
-    mv_wait(&ctx, sync);
-  } else {
-    mv_sync* sync = mv_get_sync();
-    mvi_send_rdz_init(mv_hdl, buffer, size, rank, tag, &ctx);
-    mvi_send_rdz_post(mv_hdl, &ctx, sync);
-    mv_wait(&ctx, sync);
-  }
+  while (!mv_send_init(mv_hdl, buffer, size, rank, tag, &ctx))
+    thread_yield();
+  mv_sync* sync = mv_get_sync();
+  mv_send_post(mv_hdl, &ctx, sync);
+  mv_wait(&ctx, sync);
 }
 
 void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
@@ -71,14 +59,15 @@ void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
-  if ((size_t) size <= SHORT_MSG_SIZE) {
-    mvi_send_eager(mv_hdl, (void*) buf, size, rank, tag);
-    *req = MPI_REQUEST_NULL;
-  } else {
-    mv_ctx *ctx = (mv_ctx*) mv_pool_get(mv_ctx_pool);
-    mvi_send_rdz_init(mv_hdl, (void*) buf, size, rank, tag, ctx);
+  mv_ctx *ctx = (mv_ctx*) mv_pool_get(mv_ctx_pool);
+  while (!mv_send_init(mv_hdl, buf, size, rank, tag, ctx))
+    thread_yield();
+  if (ctx->type != REQ_DONE) {
     ctx->complete = mv_send_post;
     *req = (MPIV_Request) ctx;
+  } else {
+    mv_pool_put(mv_ctx_pool, ctx);
+    *req = MPI_REQUEST_NULL;
   }
 }
 
@@ -88,11 +77,11 @@ void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
   MPI_Type_size(datatype, &size);
   size *= count;
   mv_ctx *ctx = (mv_ctx*) mv_pool_get(mv_ctx_pool);
-  mv_recv_init(mv_hdl, (void*) buffer, size, rank, tag, ctx);
+  while (!mv_recv_init(mv_hdl, (void*) buffer, size, rank, tag, ctx))
+    thread_yield();
   ctx->complete = mv_recv_post;
   *req = (MPIV_Request) ctx;
 }
-
 
 void MPIV_Waitall(int count, MPIV_Request* req, MPI_Status* status __UNUSED__) {
   int pending = count;
