@@ -122,15 +122,14 @@ MV_INLINE void ofi_init(mvh* mv, size_t heap_size, ofi_server** s_ptr)
   s->heap_rkey = fi_mr_key(s->mr_heap);
 
   s->sbuf = 0;
-  posix_memalign(&s->sbuf, 4096, (MAX_SEND + MAX_RECV) * sizeof(mv_packet));
+  posix_memalign(&s->sbuf, 4096, (MAX_PACKET) * MV_PACKET_SIZE);
 
   FI_SAFECALL(fi_mr_reg(s->domain, s->sbuf,
-                        sizeof(mv_packet) * (MAX_SEND + MAX_RECV + 2),
+                        MV_PACKET_SIZE * (MAX_PACKET),
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE | FI_REMOTE_READ,
                         0, 1, 0, &s->mr_sbuf, 0));
 
-  mv_pool_create(&s->sbuf_pool, s->sbuf, sizeof(mv_packet),
-                 MAX_SEND + MAX_RECV);
+  mv_pool_create(&s->sbuf_pool, s->sbuf, MV_PACKET_SIZE, MAX_PACKET);
 
   MPI_Comm_rank(MPI_COMM_WORLD, &mv->me);
   MPI_Comm_size(MPI_COMM_WORLD, &mv->size);
@@ -211,10 +210,10 @@ MV_INLINE int ofi_progress(ofi_server* s)
       // Got an entry here ?
       for (int i = 0; i < ret; i++) {
         if (entry[i].flags & FI_REMOTE_CQ_DATA) {
-          s->recv_posted--;
-          mv_serve_imm(entry[i].data);
-        }
-        if (entry[i].flags & FI_RECV) {
+          // NOTE(danghvu): In OFI, a imm data is transferred without
+          // comsuming a posted receive.
+          mv_serve_imm(s->mv, entry[i].data);
+        } else if (entry[i].flags & FI_RECV) {
           s->recv_posted--;
           mv_serve_recv(s->mv, (mv_packet*)entry[i].op_context);
         } else {
@@ -238,7 +237,7 @@ MV_INLINE int ofi_progress(ofi_server* s)
 MV_INLINE void ofi_post_recv(ofi_server* s, mv_packet* p)
 {
   if (p == NULL) return;
-  FI_SAFECALL(fi_recv(s->ep, &p->data, sizeof(mv_packet_data), 0,
+  FI_SAFECALL(fi_recv(s->ep, &p->data, MV_PACKET_SIZE, 0,
                       FI_ADDR_UNSPEC, &p->context));
   s->recv_posted++;
 }

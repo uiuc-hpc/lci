@@ -53,6 +53,9 @@ int main(int argc, char** args)
         //recv
         while (!mv_recv_dequeue(mv, &ctx))
           mv_progress(mv);
+        assert(ctx.rank == 1);
+        assert(ctx.tag == 0);
+        assert(ctx.size == len);
         mv_free(ctx.buffer);
       }
       printf("%d \t %.5f\n", len, (MPI_Wtime() - t1)/total / 2 * 1e6);

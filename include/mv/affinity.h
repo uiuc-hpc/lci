@@ -18,7 +18,7 @@
 #include <unistd.h>
 
 #define SERVER_CORE (get_ncores() - 1)
-#define THREAD_PER_CORE 1
+#define THREAD_PER_CORE 4
 
 MV_INLINE int get_ncores()
 {

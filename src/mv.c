@@ -137,6 +137,7 @@ int mv_send_enqueue_init(mvh* mv, const void* src, int size, int rank, int tag, 
   if (!p) return 0;
 
   if (size <= (int) SHORT_MSG_SIZE) {
+    p->data.header.to = mv->me;
     mvi_am_generic(mv, rank, src, size, tag, MV_PROTO_SHORT_ENQUEUE, p);
     ctx->type = REQ_DONE;
   } else {
@@ -165,7 +166,7 @@ int mv_recv_dequeue(mvh* mv, mv_ctx* msg)
   mv_packet* p = (mv_packet*) lcrq_dequeue(&mv->queue);
 #endif
   if (p == NULL) return 0;
-  msg->rank = p->data.header.from;
+  msg->rank = p->data.header.to;
   msg->tag = p->data.header.tag;
   msg->size = p->data.header.size;
   if (p->data.header.proto == MV_PROTO_SHORT_ENQUEUE) {

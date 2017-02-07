@@ -113,7 +113,6 @@ void mv_serve_imm(mvh* mv, uint32_t imm) {
   if (real_imm == imm) {
     // Match + Signal
     mv_ctx* req = (mv_ctx*) mv_comm_id[imm];
-    req->type = REQ_DONE;
     mv_key key = mv_make_key(req->rank, req->tag);
     mv_value value = 0;
     if (!mv_hash_insert(mv->tbl, key, &value)) {

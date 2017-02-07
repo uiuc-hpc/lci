@@ -474,7 +474,7 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr)
   }
 
   // FIXME(danghvu): How many is enough?
-  uint32_t npacket = MAX(MAX_PACKET, mv->size * 2);
+  uint32_t npacket = MAX(MAX_PACKET, mv->size * 4);
 
   // Prepare the mv_packet_mgr and prepost some mv_packet.
   s->sbuf = ibv_server_mem_malloc(s, MV_PACKET_SIZE * (npacket));

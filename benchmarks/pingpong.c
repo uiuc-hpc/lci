@@ -28,7 +28,7 @@
 #define skip 0
 #endif
 
-#define MIN_MSG_SIZE 1
+#define MIN_MSG_SIZE (131072*2)
 #define MAX_MSG_SIZE (1 << 22)
 
 int size = 0;

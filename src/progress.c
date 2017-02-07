@@ -63,9 +63,9 @@ static void mv_recv_rtr_queue(mvh* mv, mv_packet* p)
       (1 << 31) | (p->data.content.rdz.comm_id), &p->context);
 }
 
-static void mv_sent_rtr_queue(mvh* mv __UNUSED__, mv_packet* p)
+static void mv_sent_rtr_queue(mvh* mv __UNUSED__, mv_packet* p __UNUSED__)
 {
-  p->data.header.from = p->data.header.to;
+  // p->data.header.from = p->data.header.to;
 }
 
 static void mv_recv_rts_queue(mvh* mv, mv_packet* p)
