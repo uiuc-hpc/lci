@@ -74,7 +74,7 @@ void mv_open(int* argc, char*** args, size_t heap_size, mvh** ret)
 
   // Comm id (rdz).
   mv_pool_create(&mv->idpool, 0, 0, 0);
-  for (uint64_t i = 0; i < MAX_COMM_ID; i++)
+  for (uint64_t i = 1; i < MAX_COMM_ID; i++)
     mv_pool_put(mv->idpool, (void*) i);
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -142,7 +142,7 @@ int mv_send_enqueue_init(mvh* mv, const void* src, int size, int rank, int tag, 
   } else {
     INIT_CTX(ctx);
     p->data.content.rdz.sreq = (uintptr_t) ctx;
-    mvi_am_rdz_generic(mv, rank, tag, MV_PROTO_RTS_ENQUEUE, p);
+    mvi_am_rdz_generic(mv, rank, tag, size, MV_PROTO_RTS_ENQUEUE, p);
   }
   return 1;
 }
@@ -208,7 +208,7 @@ volatile int ml = 0;
 void* mv_alloc(size_t s)
 {
   mv_spin_lock(&ml);
-  void* p = umemalign(mv_heap, 4096, s);
+  void* p = umemalign(mv_heap, 8192, s);
   mv_spin_unlock(&ml);
   return p;
 }

@@ -52,13 +52,14 @@ int mvi_am_generic(mvh* mv, int node, const void* src, int size, int tag,
 }
 
 MV_INLINE
-int mvi_am_rdz_generic(mvh* mv, int node, int tag,
-    const enum mv_proto_name proto, mv_packet* p)
+int mvi_am_rdz_generic(mvh* mv, int node, int tag, int size,
+                       const enum mv_proto_name proto, mv_packet* p)
 {
   mv_set_proto(p, proto);
   p->data.header.poolid = mv_pool_get_local(mv->pkpool);
   p->data.header.from = mv->me;
   p->data.header.tag = tag;
+  p->data.header.size = size;
   return mv_server_send(mv->server, node, &p->data,
                         (size_t)(sizeof(struct mv_rdz) + sizeof(packet_header)),
                         &p->context);

@@ -47,7 +47,7 @@ MV_INLINE void mvi_recv_rdz_init(mvh* mv, void* src, int size, int rank,
   p->data.content.rdz.comm_id = (uint32_t) comm_idx;
   p->data.content.rdz.tgt_addr = (uintptr_t)ctx->buffer;
   p->data.content.rdz.rkey = mv_server_heap_rkey(mv->server, mv->me);
-  mvi_am_rdz_generic(mv, ctx->rank, ctx->tag, MV_PROTO_RTR_MATCH, p);
+  mvi_am_rdz_generic(mv, rank, tag, size, MV_PROTO_RTR_MATCH, p);
 }
 
 MV_INLINE int mvi_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)

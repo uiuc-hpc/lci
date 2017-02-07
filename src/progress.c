@@ -63,19 +63,21 @@ static void mv_recv_rtr_queue(mvh* mv, mv_packet* p)
       (1 << 31) | (p->data.content.rdz.comm_id), &p->context);
 }
 
-static void mv_sent_rtr_queue(mvh* mv __UNUSED__, mv_packet* p __UNUSED__)
+static void mv_sent_rtr_queue(mvh* mv __UNUSED__, mv_packet* p)
 {
+  p->data.header.from = p->data.header.to;
 }
 
 static void mv_recv_rts_queue(mvh* mv, mv_packet* p)
 {
   void* ptr = mv_alloc(p->data.header.size);
   int rank = p->data.header.from;
-  p->data.header.from = mv->me;
-  mv_set_proto(p, MV_PROTO_RTR_ENQUEUE);
-  p->data.content.rdz.tgt_addr = (uintptr_t) ptr;
   uint64_t comm_idx = (uint64_t) mv_pool_get(mv->idpool);
   mv_comm_id[comm_idx] = (uintptr_t) p;
+  p->data.header.from = mv->me;
+  p->data.header.to = rank;
+  mv_set_proto(p, MV_PROTO_RTR_ENQUEUE);
+  p->data.content.rdz.tgt_addr = (uintptr_t) ptr;
   p->data.content.rdz.comm_id = (uint32_t) comm_idx;
   mv_server_send(mv->server, rank, &p->data,
       sizeof(packet_header) + sizeof(struct mv_rdz), &p->context);

@@ -39,9 +39,9 @@ typedef void* mv_hash;
 
 typedef struct packet_header {
   uint8_t proto;
-  int8_t poolid;
-  int8_t padding;
+  uint8_t poolid;
   int from;
+  int to;
   int tag;
   int size;
 } packet_header;
