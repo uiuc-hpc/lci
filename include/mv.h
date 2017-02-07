@@ -48,9 +48,9 @@ typedef struct packet_header {
 
 struct mv_rdz {
   uintptr_t sreq;
-  uintptr_t rreq;
   uintptr_t tgt_addr;
   uint32_t rkey;
+  uint32_t comm_id;
 };
 
 typedef union packet_content {
@@ -79,7 +79,6 @@ struct mv_ctx {
   mv_sync* sync;
   volatile enum request_t type;
   mv_fcb complete;
-  void* control;
 } __attribute__((aligned(64)));
 
 /**
@@ -300,13 +299,7 @@ MV_EXPORT
 void mv_progress(mvh* mv);
 
 MV_EXPORT
-mv_packet_data_t* mv_packet_data(mv_packet* p);
-
-MV_EXPORT
 size_t mv_data_max_size();
-
-MV_EXPORT
-void mv_packet_done(mvh* mv, mv_packet* p);
 
 /**@}*/
 

@@ -239,8 +239,10 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
       s->recv_posted--;
       if (wc[i].opcode != IBV_WC_RECV_RDMA_WITH_IMM)
         mv_serve_recv(s->mv, (mv_packet*)wc[i].wr_id);
-      else
-        mv_serve_imm(wc[i].imm_data);
+      else {
+        mv_serve_imm(s->mv, wc[i].imm_data);
+        mv_pool_put(s->sbuf_pool, (mv_packet*)wc[i].wr_id);
+      }
     }
     ret = 1;
   }

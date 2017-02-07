@@ -13,6 +13,7 @@ __thread int mv_core_id = -1;
 uint32_t server_max_inline = 128;
 double mv_ptime = 0;
 umalloc_heap_t* mv_heap = 0;
+uintptr_t mv_comm_id[MAX_COMM_ID];
 
 extern uint8_t MV_AM_GENERIC;
 
@@ -50,13 +51,12 @@ void mv_open(int* argc, char*** args, size_t heap_size, mvh** ret)
     exit(EXIT_FAILURE);
   }
 
-#if 1
   for (int i = 0; i < MAX_NPOOLS; i++) {
     for (int j = 0; j < MAX_LOCAL_POOL; j++) {
       tls_pool_struct[i][j] = -1;
     }
   }
-#endif
+
   mv_hash_init(&mv->tbl);
   mv->am_table_size = 1;
   mv_server_init(mv, heap_size, &mv->server);
@@ -71,6 +71,11 @@ void mv_open(int* argc, char*** args, size_t heap_size, mvh** ret)
   // Init heap.
   mv_heap = umalloc_makeheap(mv_heap_ptr(mv), heap_size,
       UMALLOC_HEAP_GROWS_UP);
+
+  // Comm id (rdz).
+  mv_pool_create(&mv->idpool, 0, 0, 0);
+  for (uint64_t i = 0; i < MAX_COMM_ID; i++)
+    mv_pool_put(mv->idpool, (void*) i);
 
   MPI_Barrier(MPI_COMM_WORLD);
 
@@ -90,7 +95,7 @@ int mv_send_init(mvh* mv, const void* src, int size, int rank, int tag, mv_ctx* 
   if (size <= (int) SHORT_MSG_SIZE) {
     mv_packet* p = mv_pool_get_nb(mv->pkpool);
     if (!p) return 0;
-    mvi_am_generic(mv, rank, src, size, tag, MV_PROTO_SHORT, p);
+    mvi_am_generic(mv, rank, src, size, tag, MV_PROTO_SHORT_MATCH, p);
     ctx->type = REQ_DONE;
   } else {
     mvi_send_rdz_init(mv, src, size, rank, tag, ctx);
@@ -100,7 +105,7 @@ int mv_send_init(mvh* mv, const void* src, int size, int rank, int tag, mv_ctx* 
 
 int mv_send_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
-  if (ctx->size <= (int) SHORT_MSG_SIZE)
+  if (!ctx || ctx->size <= (int) SHORT_MSG_SIZE)
     return 1;
   else
     return mvi_send_rdz_post(mv, ctx, sync);
@@ -136,14 +141,8 @@ int mv_send_enqueue_init(mvh* mv, const void* src, int size, int rank, int tag, 
     ctx->type = REQ_DONE;
   } else {
     INIT_CTX(ctx);
-    mv_set_proto(p, MV_PROTO_RTS);
-    p->data.header.poolid = 0;
-    p->data.header.from = mv->me;
-    p->data.header.tag = tag;
-    p->data.header.size = size;
     p->data.content.rdz.sreq = (uintptr_t) ctx;
-    mv_server_send(mv->server, ctx->rank, &p->data,
-        sizeof(packet_header) + sizeof(struct mv_rdz), &p->context);
+    mvi_am_rdz_generic(mv, rank, tag, MV_PROTO_RTS_ENQUEUE, p);
   }
   return 1;
 }
@@ -158,7 +157,7 @@ int mv_send_enqueue_post(mvh* mv __UNUSED__, mv_ctx* ctx, mv_sync *sync)
   }
 }
 
-int mv_recv_dequeue(mvh* mv, mv_ctx* ctx)
+int mv_recv_dequeue(mvh* mv, mv_ctx* msg)
 {
 #ifndef USE_CCQ
   mv_packet* p = (mv_packet*) dq_pop_bot(&mv->queue);
@@ -166,17 +165,17 @@ int mv_recv_dequeue(mvh* mv, mv_ctx* ctx)
   mv_packet* p = (mv_packet*) lcrq_dequeue(&mv->queue);
 #endif
   if (p == NULL) return 0;
-  ctx->rank = p->data.header.from;
-  ctx->tag = p->data.header.tag;
-  ctx->size = p->data.header.size;
+  msg->rank = p->data.header.from;
+  msg->tag = p->data.header.tag;
+  msg->size = p->data.header.size;
   if (p->data.header.proto == MV_PROTO_SHORT_ENQUEUE) {
     // TODO(danghvu): Have to do this to return the packet.
-    ctx->buffer = (void*) mv_alloc(ctx->size);
-    memcpy(ctx->buffer, p->data.content.buffer, ctx->size);
+    msg->buffer = (void*) mv_alloc(msg->size);
+    memcpy(msg->buffer, p->data.content.buffer, msg->size);
   } else {
-    ctx->buffer = (void*) p->data.content.rdz.tgt_addr;
+    msg->buffer = (void*) p->data.content.rdz.tgt_addr;
   }
-  mv_packet_done(mv, p);
+  mv_pool_put(mv->pkpool, p);
   return 1;
 }
 
@@ -196,16 +195,6 @@ void mv_put_signal(mvh* mv, int node, void* dst, void* src, int size,
 void mv_progress(mvh* mv)
 {
   mv_server_progress(mv->server);
-}
-
-mv_packet_data_t* mv_packet_data(mv_packet* p)
-{
-  return &p->data;
-}
-
-void mv_packet_done(mvh* mv, mv_packet* p)
-{
-  mv_pool_put(mv->pkpool, p);
 }
 
 size_t mv_data_max_size()

@@ -15,6 +15,8 @@
 #define SHORT_MSG_SIZE \
   (MV_PACKET_SIZE - sizeof(packet_header))  // short message size.
 
+#define MAX_COMM_ID (4096)
+
 // Using LCRQ or spinlock.
 #define USE_CCQ
 

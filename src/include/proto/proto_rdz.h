@@ -1,17 +1,17 @@
 #ifndef MV_PROTO_RDZ_H
 #define MV_PROTO_RDZ_H
 
-MV_INLINE void proto_complete_rndz(mvh* mv, mv_packet* p, mv_ctx* s)
-{
-  mv_set_proto(p, MV_PROTO_SEND_FIN);
-  p->data.header.poolid = 0;
-  p->data.header.from = mv->me;
-  p->data.header.tag = s->tag;
-  p->data.content.rdz.sreq = (uintptr_t)s;
+extern uintptr_t mv_comm_id[MAX_COMM_ID];
 
-  mv_server_rma(mv->server, s->rank, s->buffer,
-                (void*)p->data.content.rdz.tgt_addr, p->data.content.rdz.rkey,
-                s->size, &p->context);
+MV_INLINE void proto_complete_rndz(mvh* mv, mv_packet* p, mv_ctx* ctx)
+{
+  int rank = p->data.header.from;
+  mv_set_proto(p, MV_PROTO_LONG_MATCH);
+  p->data.content.rdz.sreq = (uintptr_t)ctx;
+  mv_server_rma_signal(mv->server, p->data.header.from, ctx->buffer,
+      (void*) p->data.content.rdz.tgt_addr,
+      mv_server_heap_rkey(mv->server, rank), ctx->size,
+      p->data.content.rdz.comm_id, p);
 }
 
 MV_INLINE void mvi_send_rdz_init(mvh* mv, const void* src, int size, int rank,
@@ -41,18 +41,13 @@ MV_INLINE void mvi_recv_rdz_init(mvh* mv, void* src, int size, int rank,
                                  int tag, mv_ctx* ctx, mv_packet* p)
 {
   INIT_CTX(ctx);
-  mv_set_proto(p, MV_PROTO_RECV_READY);
-  p->data.header.poolid = 0;
-  p->data.header.from = mv->me;
-  p->data.header.tag = ctx->tag;
-
+  uint64_t comm_idx = (uint64_t) mv_pool_get(mv->idpool);
+  mv_comm_id[comm_idx] = (uintptr_t) ctx;
   p->data.content.rdz.sreq = 0;
-  p->data.content.rdz.rreq = (uintptr_t)ctx;
+  p->data.content.rdz.comm_id = (uint32_t) comm_idx;
   p->data.content.rdz.tgt_addr = (uintptr_t)ctx->buffer;
   p->data.content.rdz.rkey = mv_server_heap_rkey(mv->server, mv->me);
-
-  mv_server_send(mv->server, ctx->rank, &p->data,
-                 sizeof(packet_header) + sizeof(struct mv_rdz), &p->context);
+  mvi_am_rdz_generic(mv, ctx->rank, ctx->tag, MV_PROTO_RTR_MATCH, p);
 }
 
 MV_INLINE int mvi_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)

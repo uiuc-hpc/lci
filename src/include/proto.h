@@ -18,21 +18,19 @@ typedef struct {
 // Keep this order, or change mv_proto.
 enum mv_proto_name {
   MV_PROTO_NULL = 0,
-  MV_PROTO_SHORT,
+  MV_PROTO_SHORT_MATCH,
   MV_PROTO_SHORT_WAIT,
-
-  MV_PROTO_RECV_READY,
-  MV_PROTO_READY_FIN,
-  MV_PROTO_SEND_FIN,
+  MV_PROTO_RTR_MATCH,
+  MV_PROTO_LONG_MATCH,
 
   MV_PROTO_GENERIC,
 
   MV_PROTO_SHORT_ENQUEUE,
-  MV_PROTO_RTS,
-  MV_PROTO_RTR,
+  MV_PROTO_RTS_ENQUEUE,
+  MV_PROTO_RTR_ENQUEUE,
   MV_PROTO_LONG_ENQUEUE,
 };
-const mv_proto_spec_t mv_proto[11] __attribute__((aligned(64)));
+const mv_proto_spec_t mv_proto[10] __attribute__((aligned(64)));
 
 #define mv_set_proto(p, N)    \
   {                           \
@@ -51,6 +49,19 @@ int mvi_am_generic(mvh* mv, int node, const void* src, int size, int tag,
   memcpy(p->data.content.buffer, src, size);
   return mv_server_send(mv->server, node, &p->data,
                         (size_t)(size + sizeof(packet_header)), &p->context);
+}
+
+MV_INLINE
+int mvi_am_rdz_generic(mvh* mv, int node, int tag,
+    const enum mv_proto_name proto, mv_packet* p)
+{
+  mv_set_proto(p, proto);
+  p->data.header.poolid = mv_pool_get_local(mv->pkpool);
+  p->data.header.from = mv->me;
+  p->data.header.tag = tag;
+  return mv_server_send(mv->server, node, &p->data,
+                        (size_t)(sizeof(struct mv_rdz) + sizeof(packet_header)),
+                        &p->context);
 }
 
 #if 0
@@ -93,5 +104,30 @@ void mv_serve_send(mvh* mv, mv_packet* p_ctx)
 }
 
 MV_INLINE
-void mv_serve_imm(uint32_t imm) { printf("GOT ID %d\n", imm); }
+void mv_serve_imm(mvh* mv, uint32_t imm) {
+  // FIXME(danghvu): This comm_id is here due to the imm
+  // only takes uint32_t, if this takes uint64_t we can
+  // store a pointer to this request context.
+  uint64_t real_imm = (imm & (MAX_COMM_ID - 1));
+  if (real_imm == imm) {
+    // Match + Signal
+    mv_ctx* req = (mv_ctx*) mv_comm_id[imm];
+    req->type = REQ_DONE;
+    mv_key key = mv_make_key(req->rank, req->tag);
+    mv_value value = 0;
+    if (!mv_hash_insert(mv->tbl, key, &value)) {
+      req->type = REQ_DONE;
+      if (req->sync) thread_signal(req->sync);
+    }
+  } else {
+    // Enqueue.
+    mv_packet* p = (mv_packet*) mv_comm_id[real_imm];
+#ifndef USE_CCQ
+    dq_push_top(&mv->queue, (void*) p);
+#else
+    lcrq_enqueue(&mv->queue, (void*) p);
+#endif
+  }
+  mv_pool_put(mv->idpool, (void*) real_imm);
+}
 #endif
