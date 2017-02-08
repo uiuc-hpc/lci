@@ -1,21 +1,28 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
-// Communication setup...
+// NOTE(danghvu): These numbers are tweaked for performance and some alignment.
+// Update at our own risk.
+
 #ifdef MV_USE_SERVER_OFI
 #define MAX_PACKET 1024
-#define MV_PACKET_SIZE (128 * 1024 + 128)
+#define MV_PACKET_SIZE (128 * 1024 + 4096)
 #else
 #define MAX_PACKET 256
-#define MV_PACKET_SIZE (16 * 1024 + 128)
+#define MV_PACKET_SIZE (16 * 1024 + 4096)
 #endif
 
 #define MAX_RECV 64
 #define MAX_SEND (MAX_PACKET - MAX_RECV)  // maximum concurrent send.
-#define SHORT_MSG_SIZE \
-  (MV_PACKET_SIZE - sizeof(packet_header))  // short message size.
 
-#define MAX_COMM_ID (4096)
+#define SHORT_MSG_SIZE \
+  ((MV_PACKET_SIZE - sizeof(struct packet_header) \
+    - sizeof(struct packet_context)) & (16 * 1024 - 1))  // short message size.
+
+#define POST_MSG_SIZE \
+  (SHORT_MSG_SIZE + sizeof(packet_header))
+
+#define MAX_COMM_ID MAX_PACKET
 
 // Using LCRQ or spinlock.
 #define USE_CCQ

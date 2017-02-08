@@ -189,7 +189,9 @@ MV_INLINE void ibv_server_post_recv(ibv_server* s, mv_packet* p)
   s->recv_posted++;
 
   struct ibv_sge sg = {
-      .addr = (uintptr_t)(&p->data), .length = MV_PACKET_SIZE, .lkey = s->sbuf->lkey,
+      .addr = (uintptr_t)(&p->data),
+      .length = POST_MSG_SIZE,
+      .lkey = s->sbuf->lkey,
   };
 
   struct ibv_recv_wr wr = {
@@ -477,10 +479,11 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr)
   uint32_t npacket = MAX(MAX_PACKET, mv->size * 2);
 
   // Prepare the mv_packet_mgr and prepost some mv_packet.
-  s->sbuf = ibv_server_mem_malloc(s, MV_PACKET_SIZE * (npacket));
+  s->sbuf = ibv_server_mem_malloc(s, MV_PACKET_SIZE * (2 + npacket));
+  uint64_t base_packet = (uintptr_t) s->sbuf->addr + 4096 - sizeof(struct packet_context);
   mv_pool_create(&s->sbuf_pool);
   for (unsigned i = 0; i < npacket; i++) {
-    mv_packet* p = (mv_packet*) ((uintptr_t) s->sbuf->addr + i * MV_PACKET_SIZE);
+    mv_packet* p = (mv_packet*) ((uintptr_t) base_packet + i * MV_PACKET_SIZE);
     mv_pool_put(s->sbuf_pool, p);
     p->context.pid = i;
   }

@@ -31,6 +31,7 @@ enum mv_proto_name {
   MV_PROTO_LONG_ENQUEUE,
 };
 const mv_proto_spec_t mv_proto[10] __attribute__((aligned(64)));
+extern uintptr_t mv_comm_id[MAX_COMM_ID];
 
 #define mv_set_proto(p, N)    \
   {                           \
@@ -65,26 +66,107 @@ int mvi_am_rdz_generic(mvh* mv, int node, int tag, int size,
                         &p->context);
 }
 
-#if 0
 MV_INLINE
-int mvi_am_generic2(mvh* mv, int node, void* src, int size, int tag,
-                    uint8_t am_fid, uint8_t ps_fid, mv_packet* p)
+void mvi_recv_eager_init(mvh* mv __UNUSED__, void* src, int size, int rank,
+                         int tag, mv_ctx* ctx)
 {
-  p->data.header.am_fid = am_fid;
-  p->data.header.ps_fid = ps_fid;
-  p->context.poolid = mv_pool_get_local(mv->pkpool);
-  p->data.header.from = mv->me;
-  p->data.header.tag = tag;
-  p->data.header.size = size;
-  memcpy(p->data.content.buffer, src, size);
-  return mv_server_send(mv->server, node, &p->data,
-                        (size_t)(size + sizeof(packet_header)), &p->context);
+  INIT_CTX(ctx);
 }
-#endif
 
-#include "proto/proto_eager.h"
-#include "proto/proto_ext.h"
-#include "proto/proto_rdz.h"
+MV_INLINE
+int mvi_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+{
+  ctx->sync = sync;
+  mv_key key = mv_make_key(ctx->rank, ctx->tag);
+  mv_value value = (mv_value)ctx;
+  if (!mv_hash_insert(mv->tbl, key, &value)) {
+    ctx->type = REQ_DONE;
+    mv_packet* p_ctx = (mv_packet*)value;
+    memcpy(ctx->buffer, p_ctx->data.content.buffer, ctx->size);
+    mv_pool_put(mv->pkpool, p_ctx);
+    return 1;
+  }
+  return 0;
+}
+
+MV_INLINE
+void mvi_send_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+{
+  // FIXME(danghvu)
+  // int wait = mvi_send_eager(mv, ctx->buffer, ctx->size, ctx->rank, ctx->tag);
+  int wait = 1;
+  if (wait) {
+    mv_key key = mv_make_key(mv->me, (1 << 30) | ctx->tag);
+    ctx->sync = sync;
+    ctx->type = REQ_PENDING;
+    mv_value value = (mv_value)ctx;
+    if (!mv_hash_insert(mv->tbl, key, &value)) {
+      ctx->type = REQ_DONE;
+    }
+  } else {
+    ctx->type = REQ_DONE;
+  }
+}
+
+MV_INLINE void proto_complete_rndz(mvh* mv, mv_packet* p, mv_ctx* ctx)
+{
+  int rank = p->data.header.from;
+  mv_set_proto(p, MV_PROTO_LONG_MATCH);
+  p->data.content.rdz.sreq = (uintptr_t)ctx;
+  mv_server_rma_signal(mv->server, p->data.header.from, ctx->buffer,
+      (void*) p->data.content.rdz.tgt_addr,
+      mv_server_heap_rkey(mv->server, rank), ctx->size,
+      p->data.content.rdz.comm_id, p);
+}
+
+MV_INLINE void mvi_send_rdz_init(mvh* mv, const void* src, int size, int rank,
+                                 int tag, mv_ctx* ctx)
+{
+  INIT_CTX(ctx);
+  mv_key key = mv_make_rdz_key(ctx->rank, ctx->tag);
+  mv_value value = (mv_value)ctx;
+  if (!mv_hash_insert(mv->tbl, key, &value)) {
+    proto_complete_rndz(mv, (mv_packet*)value, ctx);
+  }
+}
+
+MV_INLINE int mvi_send_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+{
+  ctx->sync = sync;
+  mv_key key = mv_make_key(ctx->rank, (1 << 30) | ctx->tag);
+  mv_value value = (mv_value)ctx;
+  if (!mv_hash_insert(mv->tbl, key, &value)) {
+    ctx->type = REQ_DONE;
+    return 1;
+  }
+  return 0;
+}
+
+MV_INLINE void mvi_recv_rdz_init(mvh* mv, void* src, int size, int rank,
+                                 int tag, mv_ctx* ctx, mv_packet* p)
+{
+  INIT_CTX(ctx);
+  uint64_t comm_idx = p->context.pid;
+  mv_comm_id[comm_idx] = (uintptr_t) ctx;
+  ctx->packet = p;
+  p->data.content.rdz.sreq = 0;
+  p->data.content.rdz.comm_id = (uint32_t) comm_idx;
+  p->data.content.rdz.tgt_addr = (uintptr_t)ctx->buffer;
+  p->data.content.rdz.rkey = mv_server_heap_rkey(mv->server, mv->me);
+  mvi_am_rdz_generic(mv, rank, tag, size, MV_PROTO_RTR_MATCH, p);
+}
+
+MV_INLINE int mvi_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
+{
+  ctx->sync = sync;
+  mv_key key = mv_make_key(ctx->rank, ctx->tag);
+  mv_value value = 0;
+  if (!mv_hash_insert(mv->tbl, key, &value)) {
+    ctx->type = REQ_DONE;
+    return 1;
+  }
+  return 0;
+}
 
 MV_INLINE
 void mv_serve_recv(mvh* mv, mv_packet* p_ctx)
