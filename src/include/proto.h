@@ -42,7 +42,7 @@ int mvi_am_generic(mvh* mv, int node, const void* src, int size, int tag,
                    const enum mv_proto_name proto, mv_packet* p)
 {
   mv_set_proto(p, proto);
-  p->data.header.poolid = mv_pool_get_local(mv->pkpool);
+  p->context.poolid = mv_pool_get_local(mv->pkpool);
   p->data.header.from = mv->me;
   p->data.header.tag = tag;
   p->data.header.size = size;
@@ -56,7 +56,7 @@ int mvi_am_rdz_generic(mvh* mv, int node, int tag, int size,
                        const enum mv_proto_name proto, mv_packet* p)
 {
   mv_set_proto(p, proto);
-  p->data.header.poolid = mv_pool_get_local(mv->pkpool);
+  p->context.poolid = mv_pool_get_local(mv->pkpool);
   p->data.header.from = mv->me;
   p->data.header.tag = tag;
   p->data.header.size = size;
@@ -72,7 +72,7 @@ int mvi_am_generic2(mvh* mv, int node, void* src, int size, int tag,
 {
   p->data.header.am_fid = am_fid;
   p->data.header.ps_fid = ps_fid;
-  p->data.header.poolid = mv_pool_get_local(mv->pkpool);
+  p->context.poolid = mv_pool_get_local(mv->pkpool);
   p->data.header.from = mv->me;
   p->data.header.tag = tag;
   p->data.header.size = size;
@@ -101,7 +101,7 @@ void mv_serve_send(mvh* mv, mv_packet* p_ctx)
   if (mv_proto[proto].func_ps)
     mv_proto[proto].func_ps(mv, p_ctx);
   else
-    mv_pool_put_to(mv->pkpool, p_ctx, p_ctx->data.header.poolid);
+    mv_pool_put_to(mv->pkpool, p_ctx, p_ctx->context.poolid);
 }
 
 MV_INLINE
@@ -113,6 +113,7 @@ void mv_serve_imm(mvh* mv, uint32_t imm) {
   if (real_imm == imm) {
     // Match + Signal
     mv_ctx* req = (mv_ctx*) mv_comm_id[imm];
+    mv_pool_put_to(mv->pkpool, req->packet, req->packet->context.poolid);
     mv_key key = mv_make_key(req->rank, req->tag);
     mv_value value = 0;
     if (!mv_hash_insert(mv->tbl, key, &value)) {
@@ -128,6 +129,5 @@ void mv_serve_imm(mvh* mv, uint32_t imm) {
     lcrq_enqueue(&mv->queue, (void*) p);
 #endif
   }
-  mv_pool_put(mv->idpool, (void*) real_imm);
 }
 #endif

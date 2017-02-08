@@ -125,7 +125,10 @@ void MPIV_Init(int* argc, char*** args)
   size_t heap_size = 1024 * 1024 * 1024;
   mv_open(argc, args, heap_size, &mv_hdl);
   posix_memalign(&ctx_data, 64, sizeof(struct mv_ctx) * MAX_PACKET);
-  mv_pool_create(&mv_ctx_pool, ctx_data, sizeof(struct mv_ctx), MAX_PACKET);
+  mv_pool_create(&mv_ctx_pool);
+  mv_ctx* ctxs = (mv_ctx*) ctx_data;
+  for (int i = 0; i < MAX_PACKET; i++)
+    mv_pool_put(mv_ctx_pool, &ctxs[i]);
   mv_thread_stop = 0;
   pthread_create(&progress_thread, 0, progress, 0);
   MPIV_HEAP = mv_heap_ptr(mv_hdl);

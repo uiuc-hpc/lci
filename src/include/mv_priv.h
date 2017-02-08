@@ -24,7 +24,6 @@ struct mv_struct {
   int size;
   mv_server* server;
   mv_pool* pkpool;
-  mv_pool* idpool;
   mv_hash* tbl;
 #ifndef USE_CCQ
   struct dequeue queue;

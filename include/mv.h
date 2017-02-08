@@ -39,7 +39,6 @@ typedef void* mv_hash;
 
 typedef struct packet_header {
   uint8_t proto;
-  uint8_t poolid;
   int from;
   int to;
   int tag;
@@ -77,6 +76,7 @@ struct mv_ctx {
   int rank;
   int tag;
   mv_sync* sync;
+  mv_packet* packet;
   volatile enum request_t type;
   mv_fcb complete;
 } __attribute__((aligned(64)));

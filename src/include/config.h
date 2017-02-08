@@ -7,7 +7,7 @@
 #define MV_PACKET_SIZE (128 * 1024 + 128)
 #else
 #define MAX_PACKET 256
-#define MV_PACKET_SIZE (16 * 1024 + 64)
+#define MV_PACKET_SIZE (16 * 1024 + 128)
 #endif
 
 #define MAX_RECV 64

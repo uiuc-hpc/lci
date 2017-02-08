@@ -41,8 +41,9 @@ MV_INLINE void mvi_recv_rdz_init(mvh* mv, void* src, int size, int rank,
                                  int tag, mv_ctx* ctx, mv_packet* p)
 {
   INIT_CTX(ctx);
-  uint64_t comm_idx = (uint64_t) mv_pool_get(mv->idpool);
+  uint64_t comm_idx = p->context.pid;
   mv_comm_id[comm_idx] = (uintptr_t) ctx;
+  ctx->packet = p;
   p->data.content.rdz.sreq = 0;
   p->data.content.rdz.comm_id = (uint32_t) comm_idx;
   p->data.content.rdz.tgt_addr = (uintptr_t)ctx->buffer;

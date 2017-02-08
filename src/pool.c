@@ -11,7 +11,7 @@ void mv_pool_init() {
   }
 }
 
-void mv_pool_create(mv_pool** pool, void* data, size_t elm_size, unsigned count) {
+void mv_pool_create(mv_pool** pool) {
   mv_pool* p = 0;
   posix_memalign((void**) &p, 64, sizeof(struct mv_pool));
   p->npools = 0;
@@ -19,9 +19,6 @@ void mv_pool_create(mv_pool** pool, void* data, size_t elm_size, unsigned count)
   if (p->key > MAX_LOCAL_POOL) {
     printf("Unable to allocate more pool\n");
     exit(EXIT_FAILURE);
-  }
-  for (unsigned i = 0; i < count; i++) {
-    mv_pool_put(p, (void*) ((uintptr_t) data + elm_size * i));
   }
   *pool = p;
 }

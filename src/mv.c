@@ -72,11 +72,6 @@ void mv_open(int* argc, char*** args, size_t heap_size, mvh** ret)
   mv_heap = umalloc_makeheap(mv_heap_ptr(mv), heap_size,
       UMALLOC_HEAP_GROWS_UP);
 
-  // Comm id (rdz).
-  mv_pool_create(&mv->idpool, 0, 0, 0);
-  for (uint64_t i = 1; i < MAX_COMM_ID; i++)
-    mv_pool_put(mv->idpool, (void*) i);
-
   MPI_Barrier(MPI_COMM_WORLD);
 
   *ret = mv;

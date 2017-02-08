@@ -43,6 +43,10 @@ static void mv_sent_rdz_enqueue_done(mvh* mv, mv_packet* p)
   mv_pool_put(mv->pkpool, p);
 }
 
+static void mv_sent_rtr_match(mvh* mv __UNUSED__, mv_packet* p __UNUSED__)
+{
+}
+
 static void mv_recv_rtr_match(mvh* mv, mv_packet* p)
 {
   mv_key key = mv_make_rdz_key(p->data.header.from, p->data.header.tag);
@@ -72,7 +76,7 @@ static void mv_recv_rts_queue(mvh* mv, mv_packet* p)
 {
   void* ptr = mv_alloc(p->data.header.size);
   int rank = p->data.header.from;
-  uint64_t comm_idx = (uint64_t) mv_pool_get(mv->idpool);
+  uint64_t comm_idx = p->context.pid;
   mv_comm_id[comm_idx] = (uintptr_t) p;
   p->data.header.from = mv->me;
   p->data.header.to = rank;
@@ -104,14 +108,14 @@ static void mv_sent_short_wait(mvh* mv, mv_packet* p_ctx)
     req->type = REQ_DONE;
     if (req->sync) thread_signal(req->sync);
   }
-  mv_pool_put_to(mv->pkpool, p_ctx, p_ctx->data.header.poolid);
+  mv_pool_put_to(mv->pkpool, p_ctx, p_ctx->context.poolid);
 }
 
 const mv_proto_spec_t mv_proto[10] = {
   {0, 0}, // Reserved for doing nothing.
   {mv_recv_short_match, 0},
   {mv_recv_short_match, mv_sent_short_wait},
-  {mv_recv_rtr_match, 0},
+  {mv_recv_rtr_match, mv_sent_rtr_match},
   {0, mv_sent_rdz_match_done},
   {mv_recv_am, 0},
   {mv_recv_short_enqueue, 0},
