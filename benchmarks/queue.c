@@ -4,8 +4,6 @@
 #include <math.h>
 
 #include "mv.h"
-#define MV_USE_SERVER_IBV
-#include "src/include/mv_priv.h"
 
 // #define USE_L1_MASK
 #ifdef USE_ABT
@@ -31,7 +29,7 @@ int main(int argc, char** args)
   int total, skip;
 
   mv_ctx ctx;
-  for (size_t len = 1; len <= 1 << 22; len <<= 1) {
+  for (size_t len = 16 * 1024 ; len <= 256 * 1024 ; len <<= 1) {
     if (len > 8192) {
       skip = SKIP_LARGE;
       total = TOTAL_LARGE;
@@ -40,8 +38,8 @@ int main(int argc, char** args)
       total = TOTAL;
     }
     void* buffer = mv_alloc(len);
+    memset(buffer, 'A', len);
     if (rank == 0) {
-      memset(buffer, 'A', len);
       double t1;
       for (int i = 0; i < skip + total; i++) {
         if (i == skip) t1 = MPI_Wtime();
@@ -50,25 +48,33 @@ int main(int argc, char** args)
           mv_progress(mv);
         while (!mv_test(&ctx))
           mv_progress(mv);
+
+        void* buf;
+        int rank, tag, size;
         //recv
-        while (!mv_recv_dequeue(mv, &ctx))
+        while (!mv_recv_dequeue(mv, &buf, &size, &rank, &tag))
           mv_progress(mv);
-        assert(ctx.rank == 1);
-        assert(ctx.tag == 0);
-        assert(ctx.size == len);
-        mv_free(ctx.buffer);
+        assert(rank == 1);
+        assert(tag == 0);
+        assert(size == len);
+        if (i == 0)
+        for (int j = 0; j < size; j++) {
+          assert(((char*)buf)[j] == 'A');
+        }
+        mv_free(buf);
       }
       printf("%d \t %.5f\n", len, (MPI_Wtime() - t1)/total / 2 * 1e6);
     } else {
       for (int i = 0; i < skip + total; i++) {
-        // recv.
-        while (!mv_recv_dequeue(mv, &ctx))
+        void* buf;
+        int rank, tag, size;
+        while (!mv_recv_dequeue(mv, &buf, &size, &rank, &tag))
           mv_progress(mv);
         if (i == 0)
-          for (int j = 0; j < len; j++) {
-            assert(((char*)ctx.buffer)[j] == 'A');
-          }
-        mv_free(ctx.buffer);
+        for (int j = 0; j < size; j++) {
+          assert(((char*)buf)[j] == 'A');
+        }
+        mv_free(buf);
         // send
         while (!mv_send_enqueue_init(mv, buffer, len, 0, 0, &ctx))
           mv_progress(mv);

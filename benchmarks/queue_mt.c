@@ -56,6 +56,7 @@ void recv_thread(intptr_t arg);
 int numprocs, provided, myid, err;
 static int THREADS = 1;
 static int WORKERS = 1;
+static int WINDOWS = 1;
 
 int main(int argc, char* argv[])
 {
@@ -63,6 +64,7 @@ int main(int argc, char* argv[])
   if (argc > 2) {
     THREADS = atoi(argv[1]);
     WORKERS = atoi(argv[2]);
+    WINDOWS = atoi(argv[3]);
   }
 
   MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
@@ -77,10 +79,7 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
 
-  if (myid == 0)
-    MPIV_Start_worker(1, 0);
-  else
-    MPIV_Start_worker(WORKERS, 0);
+  MPIV_Start_worker(WORKERS, 0);
 
   MPIV_Finalize();
 }
@@ -102,11 +101,10 @@ void main_task(intptr_t arg)
     for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
          size = (size ? size * 2 : 1)) {
       MPI_Barrier(MPI_COMM_WORLD);
-      tags[i].id = 0;
-      // printf("spawn\n");
-      sr_threads[i] = MPIV_spawn(0, send_thread, 0);
-      MPIV_join(sr_threads[i]);
-      // printf("join\n");
+      for (i = 0; i < THREADS; i++)
+          sr_threads[i] = MPIV_spawn(i % WORKERS, send_thread, (intptr_t)i);
+      for (i = 0; i < THREADS; i++)
+          MPIV_join(sr_threads[i]);
       MPI_Barrier(MPI_COMM_WORLD);
     }
   } else {
@@ -152,19 +150,23 @@ void recv_thread(intptr_t arg)
     r_buf[i] = 'b';
   }
 
-   mv_ctx ctxs,ctxr;
+   mv_ctx ctxs;
+   void* buf;
+   int len, rank, tag;
 
-  for (i = val; i < (loop + skip); i += THREADS) {
+  for (i = 0; i < loop + skip; i++) {
     // recv
-    while (!mv_recv_dequeue(mv_hdl, &ctxr))
-        ;
-    mv_free(ctxr.buffer);
+    while (!mv_recv_dequeue(mv_hdl, &buf, &len, &rank, &tag))
+          ;
+    mv_free(buf);
 
     // send
-    while (!mv_send_enqueue_init(mv_hdl, s_buf, size, 0, 0, &ctxs))
-        ;
-    while (!mv_test(&ctxs))
-        ;
+    // for (int j = 0; j < WINDOWS; j++)
+        while (!mv_send_enqueue_init(mv_hdl, s_buf, size, 0, 0, &ctxs))
+            ;
+    // for (int j = 0; j < WINDOWS; j++)
+        // while (!mv_test(&ctxs[j]))
+            // ;
   }
   sleep(0.5);
 }
@@ -192,22 +194,28 @@ void send_thread(intptr_t arg)
     r_buf[i] = 'b';
   }
 
-  mv_ctx ctxs,ctxr;
+  mv_ctx ctxr;
+  void* buf;
+  int len, rank, tag;
 
   for (i = 0; i < loop + skip; i++) {
     if (i == skip) {
       t_start = MPI_Wtime();
     }
     // send
+    //for (int j = 0; j < WINDOWS; j++)
     while (!mv_send_enqueue_init(mv_hdl, s_buf, size, 1, 0, &ctxr))
         ;
-    while (!mv_test(&ctxr))
-        ;
+    // for (int j = 0; j < WINDOWS; j++)
+        // while (!mv_test(&ctxr[j]))
+            // ;
 
     // recv.
-    while (!mv_recv_dequeue(mv_hdl, &ctxs))
-        ;
-    mv_free(ctxs.buffer);
+    // for (int j = 0; j < WINDOWS; j++) {
+        while (!mv_recv_dequeue(mv_hdl, &buf, &len, &rank, &tag))
+            ;
+        mv_free(buf);
+    // }
   }
 
   t_end = MPI_Wtime();

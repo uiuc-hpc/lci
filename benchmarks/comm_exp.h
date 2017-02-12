@@ -5,7 +5,7 @@
 
 #define LARGE 8192
 
-#define NEXP 5
+#define NEXP (64*4)
 
 #define TOTAL 10000
 #define SKIP 1000

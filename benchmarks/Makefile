@@ -5,10 +5,18 @@ LD = mpicc
 CC = gcc
 
 CFLAGS += -g3 -ggdb -O3 -Wall -Wextra -std=gnu99 -pthread -I../include -I../ -DUSE_AFFI -D_GNU_SOURCE  -I/opt/ofed/include $(SERVER)
-LDFLAGS += -O3 -Wl,-rpath=$(abspath ../) -Wl,-z,now -Wl,-z,relro -pthread # -lfabric
+LDFLAGS += -O3 -Wl,-rpath=$(abspath ../) -Wl,-z,now -Wl,-z,relro -pthread
 LIB = ../libmv.a
 
 CXXFLAGS = -g3 -O3 -std=c++11
+
+ifeq ($(MV_SERVER), ofi)
+	CFLAGS += -DMV_USE_SERVER_OFI -DTHREAD_PER_CORE=4 -DAFF_DEBUG
+	LDFLAGS += -lfabric # -L$(HOME)/libfab/lib -lfabric
+else
+	CFLAGS += -DMV_USE_SERVER_IBV
+	LDFLAGS += -libverbs
+endif
 
 ### FOR TESTING HASH TABLE ###
 #FACEBOOK_INC = -I$(HOME)/facebook/include -I$(HOME)/glog/include -I$(HOME)/folly/folly/double-conversion #-DNDEBUG
@@ -66,6 +74,9 @@ pool: pool.cxx
 
 packet: packet.cxx
 	mpicxx $(CXXFLAGS) $(LDFLAGS) -I../include -I../src/include/ packet.cxx -o packet ../src/pool.c -DUSE_AFFI
+
+lqueue: lqueue.cxx
+	mpicxx $(CXXFLAGS) $(LDFLAGS) -I../include -I../src/include/ lqueue.cxx -o lqueue ../src/lcrq.c -DUSE_AFFI
 
 pingpong_mt_NN_compute_: pingpong_mt_NN_compute.cxx
 	mpicxx $(CXXFLAGS) $(LDFLAGS) $^ -o $@ $(LIB) -I../include -I../src/include/ -DUSE_AFFI -DUSE_PAPI

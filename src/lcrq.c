@@ -180,8 +180,13 @@ static inline int close_crq(RingQueue *rq, const uint64_t t, const int tries) {
     return BIT_TEST_AND_SET(&rq->tail, 63);
 }
 
-void lcrq_queue_init(lcrq_t* q) {
-  RingQueue *rq = malloc(sizeof(RingQueue));
+void lcrq_destroy(lcrq_t* q)
+{
+  free(q->head);
+}
+
+void lcrq_init(lcrq_t* q) {
+  RingQueue *rq = (RingQueue*) malloc(sizeof(RingQueue));
   init_ring(rq);
   q->head = q->tail = rq;
 }
@@ -212,7 +217,7 @@ void lcrq_enqueue(lcrq_t* q, void* arg) {
     if (crq_is_closed(t)) {
 alloc:
       if (nrq == NULL) {
-        nrq = malloc(sizeof(RingQueue));
+        nrq = (RingQueue*) malloc(sizeof(RingQueue));
         init_ring(nrq);
       }
 

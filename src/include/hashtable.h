@@ -33,7 +33,8 @@ typedef struct hash_val {
   // So they will fit in a cache line.
 } hash_val __attribute__((aligned(16)));
 
-void mv_hash_init(mv_hash** h);
+void mv_hash_create(mv_hash** h);
+void mv_hash_destroy(mv_hash* h);
 int mv_hash_insert(mv_hash* h, mv_key key, mv_value* value);
 
 #endif

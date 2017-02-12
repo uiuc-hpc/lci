@@ -26,10 +26,12 @@ int main(int argc, char** args)
   mv_open(&argc, &args, heap_size, &mv);
   set_me_to_last();
 
-  mv_packet* p_send[64];
-  mv_packet* p_recv[64];
+  int WINDOWS = atoi(args[1]);
 
-  for (int i = 0; i < 64; i++) {
+  mv_packet* p_send[WINDOWS];
+  mv_packet* p_recv[WINDOWS];
+
+  for (int i = 0; i < WINDOWS; i++) {
     p_send[i] = mv_pool_get(mv->pkpool);
     p_recv[i] = mv_pool_get(mv->pkpool);
   }
@@ -38,8 +40,9 @@ int main(int argc, char** args)
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   // printf("%d\n", server_max_inline);
-  
+
   double times[NEXP];
+  double times_p[NEXP];
   int count = 0;
 
   void* src = malloc(8192);
@@ -51,53 +54,64 @@ int main(int argc, char** args)
     for (int exp = 0; exp < NEXP; exp ++) {
       if (rank == 0)  {
         for (int i = 0; i < TOTAL + SKIP; i++) {
-          if (i == SKIP)
+          if (i == SKIP) {
             times[exp] = MPI_Wtime();
+            times_p[exp] = 0;
+          }
+          times_p[exp] -= MPI_Wtime();
           // memcpy((void*) &p_send->data, src, size);
-          for (int k = 0; k < 64; k++)
+          for (int k = 0; k < WINDOWS; k++)
             mv_server_send(mv->server, 1-rank, &p_send[k]->data,
               (size_t)(size + sizeof(packet_header)), &p_send[k]->context);
+          times_p[exp] += MPI_Wtime();
           count = 0;
-          while (count < 64) {
-            count += mv_server_progress_send_once(mv->server);
+          while (count < WINDOWS) {
+            count += mv_server_progress_once(mv->server);
           }
-          for (int k = 0; k < 64; k++)
+#if 0
+      //    times_p[exp] += MPI_Wtime();
+          for (int k = 0; k < WINDOWS; k++)
             mv_server_post_recv(mv->server, p_recv[k]);
+           // times_p[exp] -= MPI_Wtime();
           count = 0;
-          while (count < 64) {
-            count += mv_server_progress_recv_once(mv->server);
+          while (count < WINDOWS) {
+            count += mv_server_progress_once(mv->server);
           }
+#endif
         }
       } else {
         for (int i = 0; i < TOTAL + SKIP; i++) {
-          for (int k = 0; k < 64; k++)
+          for (int k = 0; k < WINDOWS; k++)
             mv_server_post_recv(mv->server, p_recv[k]);
           count = 0;
-          while (count < 64) {
-            count += mv_server_progress_recv_once(mv->server);
+          while (count < WINDOWS) {
+            count += mv_server_progress_once(mv->server);
           }
-          for (int k = 0; k < 64; k++)
+#if 0
+          for (int k = 0; k < WINDOWS; k++)
             mv_server_send(mv->server, 1-rank, &p_send[k]->data,
               (size_t)(size + sizeof(packet_header)), &p_send[k]->context);
           count = 0;
-          while (count < 64) {
-            count += mv_server_progress_send_once(mv->server);
+          while (count < WINDOWS) {
+            count += mv_server_progress_once(mv->server);
           }
+#endif
         }
       }
-      times[exp] = (MPI_Wtime() - times[exp]) * 1e6 / TOTAL / 2 / 64;
+      times[exp] = (MPI_Wtime() - times[exp]) * 1e6 / TOTAL / WINDOWS;
+      times_p[exp] = times_p[exp] * 1e6 / TOTAL / WINDOWS;
       MPI_Barrier(MPI_COMM_WORLD);
     }
     if (rank == 0) {
       double sum = 0;
       for (int i = 0; i < NEXP; i++)
-        sum += times[i];
+        sum += times_p[i];
       double mean = sum / NEXP;
       sum = 0;
       for (int i = 0; i < NEXP; i++)
-        sum += (times[i] - mean) * (times[i] - mean);
-      double std = sqrt(sum / (10 - 1));
-      printf("%d %.2f %.2f\n", size, mean, std);
+        sum += (times_p[i] - mean) * (times_p[i] - mean);
+      double std = sqrt(sum / (NEXP - 1));
+      printf("%d %.2f %.2f %.2f\n", size, mean, std, times_p[0]);
     }
   }
 

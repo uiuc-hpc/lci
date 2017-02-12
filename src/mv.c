@@ -10,12 +10,8 @@ MV_INLINE unsigned long find_first_set(unsigned long word)
 }
 
 __thread int mv_core_id = -1;
-uint32_t server_max_inline = 128;
-double mv_ptime = 0;
-umalloc_heap_t* mv_heap = 0;
 uintptr_t mv_comm_id[MAX_COMM_ID];
-
-extern uint8_t MV_AM_GENERIC;
+umalloc_heap_t* mv_heap = 0;
 
 uint8_t mv_am_register(mvh* mv, mv_am_func_t f)
 {
@@ -51,13 +47,8 @@ void mv_open(int* argc, char*** args, size_t heap_size, mvh** ret)
     exit(EXIT_FAILURE);
   }
 
-  for (int i = 0; i < MAX_NPOOLS; i++) {
-    for (int j = 0; j < MAX_LOCAL_POOL; j++) {
-      tls_pool_struct[i][j] = -1;
-    }
-  }
-
-  mv_hash_init(&mv->tbl);
+  mv_pool_init();
+  mv_hash_create(&mv->tbl);
   mv->am_table_size = 1;
   mv_server_init(mv, heap_size, &mv->server);
 
@@ -65,15 +56,27 @@ void mv_open(int* argc, char*** args, size_t heap_size, mvh** ret)
 #ifndef USE_CCQ
   dq_init(&mv->queue);
 #else
-  lcrq_queue_init(&mv->queue);
+  lcrq_init(&mv->queue);
 #endif
+
+  lcrq_init(&mv->squeue);
 
   // Init heap.
   mv_heap = umalloc_makeheap(mv_heap_ptr(mv), heap_size,
       UMALLOC_HEAP_GROWS_UP);
 
-  MPI_Barrier(MPI_COMM_WORLD);
+  // Prepare the list of packet.
+  uint32_t npacket = MAX(MAX_PACKET, mv->size * 3);
+  uintptr_t sbuf_addr = (uintptr_t) mv_alloc(MV_PACKET_SIZE * (2 + npacket));
+  uintptr_t base_packet = (uintptr_t) sbuf_addr + 4096 - sizeof(struct packet_context);
+  mv_pool_create(&mv->pkpool);
+  for (unsigned i = 0; i < npacket; i++) {
+    mv_packet* p = (mv_packet*) (base_packet + i * MV_PACKET_SIZE);
+    p->context.pid = i;
+    mv_pool_put(mv->pkpool, p);
+  }
 
+  MPI_Barrier(MPI_COMM_WORLD);
   *ret = mv;
 }
 
@@ -81,6 +84,11 @@ void mv_close(mvh* mv)
 {
   MPI_Barrier(MPI_COMM_WORLD);
   mv_server_finalize(mv->server);
+  mv_hash_destroy(mv->tbl);
+  mv_pool_destroy(mv->pkpool);
+#ifdef USE_CCQ
+  lcrq_destroy(&mv->queue);
+#endif
   free(mv);
   MPI_Finalize();
 }
@@ -129,7 +137,7 @@ int mv_recv_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 int mv_send_enqueue_init(mvh* mv, const void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
   mv_packet* p = (mv_packet*) mv_pool_get_nb(mv->pkpool);
-  if (!p) return 0;
+  if (!p) { ctx->type = REQ_NULL; return 0; };
 
   if (size <= (int) SHORT_MSG_SIZE) {
     p->data.header.to = mv->me;
@@ -138,7 +146,14 @@ int mv_send_enqueue_init(mvh* mv, const void* src, int size, int rank, int tag, 
   } else {
     INIT_CTX(ctx);
     p->data.content.rdz.sreq = (uintptr_t) ctx;
-    mvi_am_rdz_generic(mv, rank, tag, size, MV_PROTO_RTS_ENQUEUE, p);
+    p->context.poolid = mv_pool_get_local(mv->pkpool);
+    p->data.header.proto = MV_PROTO_RTS_ENQUEUE;
+    p->data.header.from = mv->me;
+    p->data.header.tag = tag;
+    p->data.header.size = size;
+    mv_server_send(mv->server, rank, &p->data,
+        (size_t)(sizeof(struct mv_rdz) + sizeof(struct packet_header)),
+        &p->context);
   }
   return 1;
 }
@@ -153,7 +168,7 @@ int mv_send_enqueue_post(mvh* mv __UNUSED__, mv_ctx* ctx, mv_sync *sync)
   }
 }
 
-int mv_recv_dequeue(mvh* mv, mv_ctx* msg)
+int mv_recv_dequeue(mvh* mv, void** buffer, int* size, int* rank, int*tag)
 {
 #ifndef USE_CCQ
   mv_packet* p = (mv_packet*) dq_pop_bot(&mv->queue);
@@ -161,15 +176,15 @@ int mv_recv_dequeue(mvh* mv, mv_ctx* msg)
   mv_packet* p = (mv_packet*) lcrq_dequeue(&mv->queue);
 #endif
   if (p == NULL) return 0;
-  msg->rank = p->data.header.to;
-  msg->tag = p->data.header.tag;
-  msg->size = p->data.header.size;
+  *rank = p->data.header.to;
+  *tag = p->data.header.tag;
+  *size = p->data.header.size;
   if (p->data.header.proto == MV_PROTO_SHORT_ENQUEUE) {
     // TODO(danghvu): Have to do this to return the packet.
-    msg->buffer = (void*) mv_alloc(msg->size);
-    memcpy(msg->buffer, p->data.content.buffer, msg->size);
+    *buffer = (void*) mv_alloc(*size);
+    memcpy(*buffer, p->data.content.buffer, *size);
   } else {
-    msg->buffer = (void*) p->data.content.rdz.tgt_addr;
+    *buffer = (void*) p->data.content.rdz.tgt_addr;
   }
   mv_pool_put(mv->pkpool, p);
   return 1;
@@ -204,8 +219,9 @@ volatile int ml = 0;
 void* mv_alloc(size_t s)
 {
   mv_spin_lock(&ml);
-  void* p = umemalign(mv_heap, 8192, s);
+  void* p = umemalign(mv_heap, 4096, s);
   mv_spin_unlock(&ml);
+  assert(p != 0 && "No more memory\n");
   return p;
 }
 

@@ -13,7 +13,7 @@
 #define ALIGNMENT (4096)
 #define MAX_CQ 16
 
-// #define IBV_SERVER_DEBUG
+#define IBV_SERVER_DEBUG
 
 #ifdef IBV_SERVER_DEBUG
 #define IBV_SAFECALL(x)                                      \
@@ -34,8 +34,6 @@
   while (0)             \
     ;
 #endif
-
-extern uint32_t server_max_inline;
 
 struct conn_ctx {
   uint64_t addr;
@@ -65,7 +63,6 @@ typedef struct ibv_server {
   struct conn_ctx* conn;
 
   // Helper fields.
-  mv_pool* sbuf_pool;
   void* heap_ptr;
   long recv_posted;
 } ibv_server __attribute__((aligned(64)));
@@ -106,8 +103,6 @@ MV_INLINE struct ibv_qp* qp_create(ibv_server* s,
   qp_init_attr.qp_type = IBV_QPT_RC;
   qp_init_attr.sq_sig_all = 0;
   struct ibv_qp* qp = ibv_create_qp(s->dev_pd, &qp_init_attr);
-  server_max_inline =
-      MIN(server_max_inline, (uint32_t)qp_init_attr.cap.max_inline_data);
   return qp;
 }
 
@@ -186,16 +181,17 @@ MV_INLINE void qp_to_rts(struct ibv_qp* qp)
 MV_INLINE void ibv_server_post_recv(ibv_server* s, mv_packet* p)
 {
   if (p == NULL) return;
+  p->context.poolid = mv_pool_get_local(s->mv->pkpool);
   s->recv_posted++;
 
   struct ibv_sge sg = {
       .addr = (uintptr_t)(&p->data),
       .length = POST_MSG_SIZE,
-      .lkey = s->sbuf->lkey,
+      .lkey = s->heap->lkey,
   };
 
   struct ibv_recv_wr wr = {
-      .wr_id = (uintptr_t)p, .next = 0, .sg_list = &sg, .num_sge = 1,
+      .wr_id = (uintptr_t) &(p->context), .next = 0, .sg_list = &sg, .num_sge = 1,
   };
 
   struct ibv_recv_wr* bad_wr = 0;
@@ -243,7 +239,7 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
         mv_serve_recv(s->mv, (mv_packet*)wc[i].wr_id);
       else {
         mv_serve_imm(s->mv, wc[i].imm_data);
-        mv_pool_put(s->sbuf_pool, (mv_packet*)wc[i].wr_id);
+        mv_pool_put(s->mv->pkpool, (mv_packet*)wc[i].wr_id);
       }
     }
     ret = 1;
@@ -267,8 +263,9 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
   }
 
   // Make sure we always have enough packet, but do not block.
-  if (s->recv_posted < MAX_RECV)
-    ibv_server_post_recv(s, (mv_packet*)mv_pool_get_nb(s->sbuf_pool));  //, 0));
+  if (s->recv_posted < MAX_RECV) {
+    ibv_server_post_recv(s, (mv_packet*)mv_pool_get_nb(s->mv->pkpool));  //, 0));
+  }
 
 #ifdef IBV_SERVER_DEBUG
   if (s->recv_posted == 0) {
@@ -298,17 +295,17 @@ MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf,
   struct ibv_sge list = {
       .addr = (uintptr_t)buf,    // address
       .length = (uint32_t)size,  // length
-      .lkey = s->sbuf->lkey,     // lkey
+      .lkey = s->heap->lkey,     // lkey
   };
 
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr;
 
-  if (size <= server_max_inline) {
+  if (size <= SERVER_MAX_INLINE) {
     setup_wr(this_wr, (uintptr_t) 0, &list, IBV_WR_SEND,
              IBV_SEND_INLINE | IBV_SEND_SIGNALED);
     IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
-    mv_pool_put(s->sbuf_pool, ctx);
+    mv_pool_put(s->mv->pkpool, ctx);
     return 0;
   } else {
     setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND,
@@ -333,7 +330,7 @@ MV_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
   };
 
   int flags =
-      (size <= server_max_inline ? IBV_SEND_INLINE : 0) | IBV_SEND_SIGNALED;
+      (size <= SERVER_MAX_INLINE ? IBV_SEND_INLINE : 0) | IBV_SEND_SIGNALED;
   setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE, flags);
   this_wr.wr.rdma.remote_addr = (uintptr_t)to;
   this_wr.wr.rdma.rkey = rkey;
@@ -355,7 +352,7 @@ MV_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
   };
 
   int flags =
-      (size <= server_max_inline ? IBV_SEND_INLINE : 0) | IBV_SEND_SIGNALED;
+      (size <= SERVER_MAX_INLINE ? IBV_SEND_INLINE : 0) | IBV_SEND_SIGNALED;
   setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE_WITH_IMM, flags);
 
   this_wr.wr.rdma.remote_addr = (uintptr_t)to;
@@ -383,6 +380,7 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr)
     printf("Unable to find any ibv devices\n");
     exit(EXIT_FAILURE);
   }
+  ibv_free_device_list(dev_list);
 
   struct ibv_device_attr dev_attr;
   int rc = ibv_query_device(s->dev_ctx, &dev_attr);
@@ -435,7 +433,7 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr)
   s->heap_ptr = (void*)s->heap->addr;
 
   if (s->heap == 0) {
-    printf("Unable to create sbuf\n");
+    printf("Unable to create heap\n");
     exit(EXIT_FAILURE);
   }
 
@@ -475,37 +473,23 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr)
     qp_to_rts(s->dev_qp[i]);
   }
 
-  // FIXME(danghvu): How many is enough?
-  uint32_t npacket = MAX(MAX_PACKET, mv->size * 2);
-
-  // Prepare the mv_packet_mgr and prepost some mv_packet.
-  s->sbuf = ibv_server_mem_malloc(s, MV_PACKET_SIZE * (2 + npacket));
-  uint64_t base_packet = (uintptr_t) s->sbuf->addr + 4096 - sizeof(struct packet_context);
-  mv_pool_create(&s->sbuf_pool);
-  for (unsigned i = 0; i < npacket; i++) {
-    mv_packet* p = (mv_packet*) ((uintptr_t) base_packet + i * MV_PACKET_SIZE);
-    mv_pool_put(s->sbuf_pool, p);
-    p->context.pid = i;
-  }
-
   s->recv_posted = 0;
   s->mv = mv;
-  s->mv->pkpool = s->sbuf_pool;
   *s_ptr = s;
-
-  // Prepost half.
-  for (int i = 0; i < MAX_RECV / 2; i++)
-    ibv_server_post_recv(mv->server, (mv_packet*)mv_pool_get_nb(s->sbuf_pool));
 }
 
 MV_INLINE void ibv_server_finalize(ibv_server* s)
 {
   ibv_destroy_cq(s->send_cq);
-  ibv_destroy_cq(s->send_cq);
-  mv_pool_destroy(s->sbuf_pool);
-  ibv_server_mem_free(s->sbuf);
+  ibv_destroy_cq(s->recv_cq);
+  ibv_destroy_srq(s->dev_srq);
   ibv_server_mem_free(s->heap);
-  // s->heap.finalize();
+  for (int i = 0; i < s->mv->size; i++) {
+    ibv_destroy_qp(s->dev_qp[i]);
+  }
+  free(s->conn);
+  free(s->dev_qp);
+  free(s);
 }
 
 MV_INLINE mv_server_memory* ibv_server_mem_malloc(ibv_server* s, size_t size)

@@ -6,10 +6,15 @@
 MV_INLINE hash_val* create_table(size_t num_rows);
 MV_INLINE uint32_t myhash(const uint64_t k);
 
-void mv_hash_init(mv_hash** h)
+void mv_hash_create(mv_hash** h)
 {
   struct hash_val** hv = (struct hash_val**)h;
   *hv = create_table(1 << TBL_BIT_SIZE);
+}
+
+void mv_hash_destroy(mv_hash* h)
+{
+  free(h);
 }
 
 int mv_hash_insert(mv_hash* h, mv_key key, mv_value* value)

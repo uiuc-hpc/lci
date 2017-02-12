@@ -6,5 +6,8 @@ int main(int argc, char** args) {
   if (provided != MPI_THREAD_MULTIPLE) {
     MPI_Abort(MPI_COMM_WORLD, 0);
   }
+#pragma omp parallel for
+  for (int i = 0; i < 100; i++)
+    printf("%d\n", i);
   MPI_Finalize();
 }

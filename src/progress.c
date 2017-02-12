@@ -43,10 +43,6 @@ static void mv_sent_rdz_enqueue_done(mvh* mv, mv_packet* p)
   mv_pool_put(mv->pkpool, p);
 }
 
-static void mv_sent_rtr_match(mvh* mv __UNUSED__, mv_packet* p __UNUSED__)
-{
-}
-
 static void mv_recv_rtr_match(mvh* mv, mv_packet* p)
 {
   mv_key key = mv_make_rdz_key(p->data.header.from, p->data.header.tag);
@@ -60,31 +56,26 @@ static void mv_recv_rtr_queue(mvh* mv, mv_packet* p)
 {
   mv_ctx* ctx = (mv_ctx*) p->data.content.rdz.sreq;
   int rank = p->data.header.from;
-  mv_set_proto(p, MV_PROTO_LONG_ENQUEUE);
+  p->data.header.proto = MV_PROTO_LONG_ENQUEUE;
   mv_server_rma_signal(mv->server, rank, ctx->buffer,
       (void*) p->data.content.rdz.tgt_addr,
       mv_server_heap_rkey(mv->server, rank), ctx->size,
       (1 << 31) | (p->data.content.rdz.comm_id), &p->context);
 }
 
-static void mv_sent_rtr_queue(mvh* mv __UNUSED__, mv_packet* p __UNUSED__)
-{
-  // p->data.header.from = p->data.header.to;
-}
-
 static void mv_recv_rts_queue(mvh* mv, mv_packet* p)
 {
   void* ptr = mv_alloc(p->data.header.size);
   int rank = p->data.header.from;
-  uint64_t comm_idx = p->context.pid;
+  uint32_t comm_idx = p->context.pid;
   mv_comm_id[comm_idx] = (uintptr_t) p;
   p->data.header.from = mv->me;
   p->data.header.to = rank;
-  mv_set_proto(p, MV_PROTO_RTR_ENQUEUE);
+  p->data.header.proto = MV_PROTO_RTR_ENQUEUE;
   p->data.content.rdz.tgt_addr = (uintptr_t) ptr;
   p->data.content.rdz.comm_id = (uint32_t) comm_idx;
   mv_server_send(mv->server, rank, &p->data,
-      sizeof(packet_header) + sizeof(struct mv_rdz), &p->context);
+      sizeof(struct packet_header) + sizeof(struct mv_rdz), &p->context);
 }
 
 static void mv_sent_rdz_match_done(mvh* mv, mv_packet* p)
@@ -113,14 +104,14 @@ static void mv_sent_short_wait(mvh* mv, mv_packet* p_ctx)
 
 const mv_proto_spec_t mv_proto[10] = {
   {0, 0}, // Reserved for doing nothing.
-  {mv_recv_short_match, 0},
+  {mv_recv_short_match, MV_PROTO_DONE},
   {mv_recv_short_match, mv_sent_short_wait},
-  {mv_recv_rtr_match, mv_sent_rtr_match},
+  {mv_recv_rtr_match, 0},
   {0, mv_sent_rdz_match_done},
-  {mv_recv_am, 0},
-  {mv_recv_short_enqueue, 0},
-  {mv_recv_rts_queue, 0},
-  {mv_recv_rtr_queue, mv_sent_rtr_queue},
+  {mv_recv_am, MV_PROTO_DONE},
+  {mv_recv_short_enqueue, MV_PROTO_DONE},
+  {mv_recv_rts_queue, MV_PROTO_DONE},
+  {mv_recv_rtr_queue, 0},
   {0, mv_sent_rdz_enqueue_done},
 };
 

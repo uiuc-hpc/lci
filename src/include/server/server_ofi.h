@@ -49,15 +49,11 @@ typedef struct ofi_server {
   struct fid_cq* scq;
   struct fid_cq* rcq;
   struct fid_mr* mr_heap;
-  struct fid_mr* mr_sbuf;
   struct fid_av* av;
   fi_addr_t* fi_addr;
   uintptr_t* heap_addr;
 
   void* heap;
-  void* sbuf;
-  mv_pool* sbuf_pool;
-
   uint32_t heap_rkey;
   int recv_posted;
   mvh* mv;
@@ -120,17 +116,6 @@ MV_INLINE void ofi_init(mvh* mv, size_t heap_size, ofi_server** s_ptr)
                         0, 0, 0, &s->mr_heap, 0));
 
   s->heap_rkey = fi_mr_key(s->mr_heap);
-
-  s->sbuf = 0;
-  posix_memalign(&s->sbuf, 4096, (MAX_PACKET) * MV_PACKET_SIZE);
-
-  FI_SAFECALL(fi_mr_reg(s->domain, s->sbuf,
-                        MV_PACKET_SIZE * (MAX_PACKET),
-                        FI_READ | FI_WRITE | FI_REMOTE_WRITE | FI_REMOTE_READ,
-                        0, 1, 0, &s->mr_sbuf, 0));
-
-  mv_pool_create(&s->sbuf_pool, s->sbuf, MV_PACKET_SIZE, MAX_PACKET);
-
   MPI_Comm_rank(MPI_COMM_WORLD, &mv->me);
   MPI_Comm_size(MPI_COMM_WORLD, &mv->size);
 
@@ -169,26 +154,15 @@ MV_INLINE void ofi_init(mvh* mv, size_t heap_size, ofi_server** s_ptr)
 
   s->recv_posted = 0;
   s->mv = mv;
-  mv->pkpool = s->sbuf_pool;
   *s_ptr = s;
 }
 
 extern double mv_ptime;
 
-MV_INLINE int ofi_progress_recv_once(ofi_server* s)
+MV_INLINE int ofi_progress_once(ofi_server* s)
 {
   struct fi_cq_data_entry entry;
   int ret = fi_cq_read(s->rcq, &entry, 1);
-  if (ret > 0) {
-    return 1;
-  }
-  return 0;
-}
-
-MV_INLINE int ofi_progress_send_once(ofi_server* s)
-{
-  struct fi_cq_data_entry entry;
-  int ret = fi_cq_read(s->scq, &entry, 1);
   if (ret > 0) {
     return 1;
   }
@@ -229,7 +203,7 @@ MV_INLINE int ofi_progress(ofi_server* s)
     }
   } while (ret > 0);
 
-  if (s->recv_posted < MAX_RECV) ofi_post_recv(s, mv_pool_get(s->sbuf_pool));
+  if (s->recv_posted < MAX_RECV) ofi_post_recv(s, mv_pool_get(s->mv->pkpool));
 
   return rett;
 }
@@ -237,7 +211,7 @@ MV_INLINE int ofi_progress(ofi_server* s)
 MV_INLINE void ofi_post_recv(ofi_server* s, mv_packet* p)
 {
   if (p == NULL) return;
-  FI_SAFECALL(fi_recv(s->ep, &p->data, MV_PACKET_SIZE, 0,
+  FI_SAFECALL(fi_recv(s->ep, &p->data, POST_MSG_SIZE, 0,
                       FI_ADDR_UNSPEC, &p->context));
   s->recv_posted++;
 }
@@ -245,10 +219,9 @@ MV_INLINE void ofi_post_recv(ofi_server* s, mv_packet* p)
 MV_INLINE int ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
                              void* ctx)
 {
-  // FIXME(danghvu): should take from the device.
-  if (size < 30) {
+  if (size <= SERVER_MAX_INLINE) {
     FI_SAFECALL(fi_inject(s->ep, buf, size, s->fi_addr[rank]));
-    mv_pool_put(s->sbuf_pool, (mv_packet*)ctx);
+    mv_pool_put(s->mv->pkpool, ctx);
     return 0;
   } else {
     FI_SAFECALL(fi_send(s->ep, buf, size, 0, s->fi_addr[rank],
@@ -291,7 +264,6 @@ MV_INLINE void* ofi_heap_ptr(ofi_server* s) { return s->heap; }
 #define mv_server_progress ofi_progress
 #define mv_server_finalize ofi_finalize
 #define mv_server_post_recv ofi_post_recv
-#define mv_server_progress_send_once ofi_progress_send_once
-#define mv_server_progress_recv_once ofi_progress_recv_once
+#define mv_server_progress_once ofi_progress_once
 
 #endif

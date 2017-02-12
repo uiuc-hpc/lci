@@ -10,60 +10,28 @@
     ctx->type = REQ_PENDING; \
   }
 
+#define MV_PROTO_DONE ((mv_am_func_t) -1)
+
 typedef struct {
   mv_am_func_t func_am;
   mv_am_func_t func_ps;
 } mv_proto_spec_t;
 
-// Keep this order, or change mv_proto.
-enum mv_proto_name {
-  MV_PROTO_NULL = 0,
-  MV_PROTO_SHORT_MATCH,
-  MV_PROTO_SHORT_WAIT,
-  MV_PROTO_RTR_MATCH,
-  MV_PROTO_LONG_MATCH,
-
-  MV_PROTO_GENERIC,
-
-  MV_PROTO_SHORT_ENQUEUE,
-  MV_PROTO_RTS_ENQUEUE,
-  MV_PROTO_RTR_ENQUEUE,
-  MV_PROTO_LONG_ENQUEUE,
-};
 const mv_proto_spec_t mv_proto[10] __attribute__((aligned(64)));
 extern uintptr_t mv_comm_id[MAX_COMM_ID];
-
-#define mv_set_proto(p, N)    \
-  {                           \
-    p->data.header.proto = N; \
-  }
 
 MV_INLINE
 int mvi_am_generic(mvh* mv, int node, const void* src, int size, int tag,
                    const enum mv_proto_name proto, mv_packet* p)
 {
-  mv_set_proto(p, proto);
   p->context.poolid = mv_pool_get_local(mv->pkpool);
+  p->data.header.proto = proto;
   p->data.header.from = mv->me;
   p->data.header.tag = tag;
   p->data.header.size = size;
   memcpy(p->data.content.buffer, src, size);
   return mv_server_send(mv->server, node, &p->data,
-                        (size_t)(size + sizeof(packet_header)), &p->context);
-}
-
-MV_INLINE
-int mvi_am_rdz_generic(mvh* mv, int node, int tag, int size,
-                       const enum mv_proto_name proto, mv_packet* p)
-{
-  mv_set_proto(p, proto);
-  p->context.poolid = mv_pool_get_local(mv->pkpool);
-  p->data.header.from = mv->me;
-  p->data.header.tag = tag;
-  p->data.header.size = size;
-  return mv_server_send(mv->server, node, &p->data,
-                        (size_t)(sizeof(struct mv_rdz) + sizeof(packet_header)),
-                        &p->context);
+                        (size_t)(size + sizeof(struct packet_header)), &p->context);
 }
 
 MV_INLINE
@@ -111,7 +79,7 @@ void mvi_send_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 MV_INLINE void proto_complete_rndz(mvh* mv, mv_packet* p, mv_ctx* ctx)
 {
   int rank = p->data.header.from;
-  mv_set_proto(p, MV_PROTO_LONG_MATCH);
+  p->data.header.proto = MV_PROTO_LONG_MATCH;
   p->data.content.rdz.sreq = (uintptr_t)ctx;
   mv_server_rma_signal(mv->server, p->data.header.from, ctx->buffer,
       (void*) p->data.content.rdz.tgt_addr,
@@ -149,11 +117,18 @@ MV_INLINE void mvi_recv_rdz_init(mvh* mv, void* src, int size, int rank,
   uint64_t comm_idx = p->context.pid;
   mv_comm_id[comm_idx] = (uintptr_t) ctx;
   ctx->packet = p;
+  p->context.poolid = mv_pool_get_local(mv->pkpool);
+  p->data.header.from = mv->me;
+  p->data.header.size = size;
+  p->data.header.tag = tag;
+  p->data.header.proto = MV_PROTO_RTR_MATCH;
   p->data.content.rdz.sreq = 0;
   p->data.content.rdz.comm_id = (uint32_t) comm_idx;
   p->data.content.rdz.tgt_addr = (uintptr_t)ctx->buffer;
   p->data.content.rdz.rkey = mv_server_heap_rkey(mv->server, mv->me);
-  mvi_am_rdz_generic(mv, rank, tag, size, MV_PROTO_RTR_MATCH, p);
+  mv_server_send(mv->server, rank, &p->data,
+        (size_t)(sizeof(struct mv_rdz) + sizeof(struct packet_header)),
+        &p->context);
 }
 
 MV_INLINE int mvi_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
@@ -172,6 +147,7 @@ MV_INLINE
 void mv_serve_recv(mvh* mv, mv_packet* p_ctx)
 {
   enum mv_proto_name proto = p_ctx->data.header.proto;
+  assert(proto >= 0 && proto <= 10);
   mv_proto[proto].func_am(mv, p_ctx);
 }
 
@@ -180,10 +156,10 @@ void mv_serve_send(mvh* mv, mv_packet* p_ctx)
 {
   if (!p_ctx) return;
   enum mv_proto_name proto = p_ctx->data.header.proto;
-  if (mv_proto[proto].func_ps)
-    mv_proto[proto].func_ps(mv, p_ctx);
-  else
+  if (mv_proto[proto].func_ps == MV_PROTO_DONE)
     mv_pool_put_to(mv->pkpool, p_ctx, p_ctx->context.poolid);
+  else if (mv_proto[proto].func_ps)
+    mv_proto[proto].func_ps(mv, p_ctx);
 }
 
 MV_INLINE
@@ -191,7 +167,7 @@ void mv_serve_imm(mvh* mv, uint32_t imm) {
   // FIXME(danghvu): This comm_id is here due to the imm
   // only takes uint32_t, if this takes uint64_t we can
   // store a pointer to this request context.
-  uint64_t real_imm = (imm & (MAX_COMM_ID - 1));
+  uint32_t real_imm = imm << 2 >> 2;
   if (real_imm == imm) {
     // Match + Signal
     mv_ctx* req = (mv_ctx*) mv_comm_id[imm];
@@ -203,6 +179,7 @@ void mv_serve_imm(mvh* mv, uint32_t imm) {
       if (req->sync) thread_signal(req->sync);
     }
   } else {
+    assert(real_imm < MAX_COMM_ID && "Invalid imm");
     // Enqueue.
     mv_packet* p = (mv_packet*) mv_comm_id[real_imm];
 #ifndef USE_CCQ

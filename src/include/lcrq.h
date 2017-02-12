@@ -28,7 +28,8 @@ typedef struct mpmc_queue {
   RingQueue *tail;
 } lcrq_t;
 
-void lcrq_queue_init(lcrq_t* q);
+void lcrq_init(lcrq_t* q);
+void lcrq_destroy(lcrq_t* q);
 void lcrq_enqueue(lcrq_t* q, void* item);
 void* lcrq_dequeue(lcrq_t* q);
 

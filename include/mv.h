@@ -37,30 +37,46 @@ typedef uintptr_t mv_value;
 typedef uint64_t mv_key;
 typedef void* mv_hash;
 
-typedef struct packet_header {
-  uint8_t proto;
+// Keep this order, or change mv_proto.
+enum mv_proto_name {
+  MV_PROTO_NULL = 0,
+  MV_PROTO_SHORT_MATCH,
+  MV_PROTO_SHORT_WAIT,
+  MV_PROTO_RTR_MATCH,
+  MV_PROTO_LONG_MATCH,
+
+  MV_PROTO_GENERIC,
+
+  MV_PROTO_SHORT_ENQUEUE,
+  MV_PROTO_RTS_ENQUEUE,
+  MV_PROTO_RTR_ENQUEUE,
+  MV_PROTO_LONG_ENQUEUE,
+};
+
+struct __attribute__((__packed__)) packet_header {
+  enum mv_proto_name proto __attribute__((aligned(4)));
   int from;
   int to;
   int tag;
   int size;
-} packet_header;
+};
 
-struct mv_rdz {
+struct __attribute__((__packed__)) mv_rdz {
   uintptr_t sreq;
   uintptr_t tgt_addr;
   uint32_t rkey;
   uint32_t comm_id;
 };
 
-typedef union packet_content {
+union packet_content {
   struct mv_rdz rdz;
   char buffer[0];
-} packet_content;
+};
 
-typedef struct __attribute__((__packed__)) {
-  packet_header header;
-  packet_content content;
-} mv_packet_data_t;
+struct __attribute__((__packed__)) packet_data {
+  struct packet_header header;
+  union packet_content content;
+};
 
 typedef int (*mv_fcb)(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 
@@ -186,12 +202,16 @@ int mv_send_enqueue_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 * @brief Try to dequeue, for message send with send-enqueue.
 *
 * @param mv
-* @param ctx
+* @param buf
+* @param size
+* @param rank
+* @param tag
 *
 * @return 1 if got data, 0 otherwise.
 */
 MV_EXPORT
-int mv_recv_dequeue(mvh* mv, mv_ctx* ctx);
+int mv_recv_dequeue(mvh* mv, void** buf, int *size, int *rank,
+  int *tag);
 
 /**@} End queue group */
 

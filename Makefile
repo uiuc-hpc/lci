@@ -16,13 +16,14 @@ INCLUDE = -I./include -I./src/include -I./  -I./src/include/umalloc
 CFLAGS += -fPIC -fvisibility=hidden -std=gnu99 $(INCLUDE) $(SERVER) -DUSE_AFFI -D_GNU_SOURCE -pthread
 
 ifeq ($(MV_SERVER), ofi)
-	CFLAGS += -DMV_USE_SERVER_OFI
+	CFLAGS += -DMV_USE_SERVER_OFI -DTHREAD_PER_CORE=4
+	LDFLAGS += -lfabric # -L$(HOME)/libfab/lib -lfabric
 else
 	CFLAGS += -DMV_USE_SERVER_IBV
 endif
 
 IBV_INC = -I/opt/ofed/include/ -I$(HOME)/libfab/include
-IBV_LIB = -L/opt/ofed/lib64 -libverbs # -lfabric
+IBV_LIB = -L/opt/ofed/lib64 -libverbs
 
 JFCONTEXT = include/mv/ult/fult/jump_x86_64_sysv_elf_gas.S
 MFCONTEXT = include/mv/ult/fult/make_x86_64_sysv_elf_gas.S

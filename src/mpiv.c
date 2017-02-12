@@ -115,7 +115,7 @@ static void* progress(void* arg __UNUSED__)
 {
   set_me_to_last();
   while (!mv_thread_stop) {
-    while (mv_server_progress(mv_hdl->server));
+    mv_progress(mv_hdl);
   }
   return 0;
 }
