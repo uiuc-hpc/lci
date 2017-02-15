@@ -168,9 +168,9 @@ void mv_serve_imm(mvh* mv, uint32_t imm) {
   // only takes uint32_t, if this takes uint64_t we can
   // store a pointer to this request context.
   uint32_t real_imm = imm << 2 >> 2;
+  // Match + Signal
+  mv_ctx* req = (mv_ctx*) mv_comm_id[real_imm];
   if (real_imm == imm) {
-    // Match + Signal
-    mv_ctx* req = (mv_ctx*) mv_comm_id[imm];
     mv_pool_put_to(mv->pkpool, req->packet, req->packet->context.poolid);
     mv_key key = mv_make_key(req->rank, req->tag);
     mv_value value = 0;
@@ -179,14 +179,8 @@ void mv_serve_imm(mvh* mv, uint32_t imm) {
       if (req->sync) thread_signal(req->sync);
     }
   } else {
-    assert(real_imm < MAX_COMM_ID && "Invalid imm");
-    // Enqueue.
-    mv_packet* p = (mv_packet*) mv_comm_id[real_imm];
-#ifndef USE_CCQ
-    dq_push_top(&mv->queue, (void*) p);
-#else
-    lcrq_enqueue(&mv->queue, (void*) p);
-#endif
+    mv_pool_put_to(mv->pkpool, req->packet, req->packet->context.poolid);
+    req->type = REQ_DONE;
   }
 }
 #endif

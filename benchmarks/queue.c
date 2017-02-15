@@ -29,7 +29,7 @@ int main(int argc, char** args)
   int total, skip;
 
   mv_ctx ctx;
-  for (size_t len = 16 * 1024 ; len <= 256 * 1024 ; len <<= 1) {
+  for (size_t len = 1; len <= (1 << 22); len <<= 1) {
     if (len > 8192) {
       skip = SKIP_LARGE;
       total = TOTAL_LARGE;
@@ -52,10 +52,14 @@ int main(int argc, char** args)
         void* buf;
         int rank, tag, size;
         //recv
-        while (!mv_recv_dequeue(mv, &buf, &size, &rank, &tag))
+        while (!mv_recv_dequeue_init(mv, &size, &rank, &tag, &ctx))
+          mv_progress(mv);
+        buf = mv_alloc(size);
+        mv_recv_dequeue_post(mv, buf, &ctx);
+        while (!mv_test(&ctx))
           mv_progress(mv);
         assert(rank == 1);
-        assert(tag == 0);
+        assert(tag == i);
         assert(size == len);
         if (i == 0)
         for (int j = 0; j < size; j++) {
@@ -68,7 +72,12 @@ int main(int argc, char** args)
       for (int i = 0; i < skip + total; i++) {
         void* buf;
         int rank, tag, size;
-        while (!mv_recv_dequeue(mv, &buf, &size, &rank, &tag))
+        //recv
+        while (!mv_recv_dequeue_init(mv, &size, &rank, &tag, &ctx))
+          mv_progress(mv);
+        buf = mv_alloc(size);
+        mv_recv_dequeue_post(mv, buf, &ctx);
+        while (!mv_test(&ctx))
           mv_progress(mv);
         if (i == 0)
         for (int j = 0; j < size; j++) {
@@ -76,7 +85,7 @@ int main(int argc, char** args)
         }
         mv_free(buf);
         // send
-        while (!mv_send_enqueue_init(mv, buffer, len, 0, 0, &ctx))
+        while (!mv_send_enqueue_init(mv, buffer, len, 0, i, &ctx))
           mv_progress(mv);
         while (!mv_test(&ctx))
           mv_progress(mv);

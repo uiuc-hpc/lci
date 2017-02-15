@@ -56,7 +56,6 @@ enum mv_proto_name {
 struct __attribute__((__packed__)) packet_header {
   enum mv_proto_name proto __attribute__((aligned(4)));
   int from;
-  int to;
   int tag;
   int size;
 };
@@ -202,16 +201,27 @@ int mv_send_enqueue_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 * @brief Try to dequeue, for message send with send-enqueue.
 *
 * @param mv
-* @param buf
 * @param size
 * @param rank
 * @param tag
+* @param ctx
 *
 * @return 1 if got data, 0 otherwise.
 */
 MV_EXPORT
-int mv_recv_dequeue(mvh* mv, void** buf, int *size, int *rank,
-  int *tag);
+int mv_recv_dequeue_init(mvh* mv, int *size, int *rank, int *tag, mv_ctx* ctx);
+
+/**
+* @brief Try to finish a dequeue op, for message send with send-enqueue.
+*
+* @param mv
+* @param buf An allocated buffer (with mv_alloc).
+* @param ctx
+*
+* @return 1 if finished, 0 otherwise.
+*/
+MV_EXPORT
+int mv_recv_dequeue_post(mvh* mv, void* buf, mv_ctx* ctx);
 
 /**@} End queue group */
 

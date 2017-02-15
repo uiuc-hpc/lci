@@ -65,6 +65,12 @@ static void mv_recv_rtr_queue(mvh* mv, mv_packet* p)
 
 static void mv_recv_rts_queue(mvh* mv, mv_packet* p)
 {
+#ifndef USE_CCQ
+  dq_push_top(&mv->queue, (void*) p);
+#else
+  lcrq_enqueue(&mv->queue, (void*) p);
+#endif
+#if 0
   void* ptr = mv_alloc(p->data.header.size);
   int rank = p->data.header.from;
   uint32_t comm_idx = p->context.pid;
@@ -76,6 +82,7 @@ static void mv_recv_rts_queue(mvh* mv, mv_packet* p)
   p->data.content.rdz.comm_id = (uint32_t) comm_idx;
   mv_server_send(mv->server, rank, &p->data,
       sizeof(struct packet_header) + sizeof(struct mv_rdz), &p->context);
+#endif
 }
 
 static void mv_sent_rdz_match_done(mvh* mv, mv_packet* p)

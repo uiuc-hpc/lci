@@ -140,7 +140,6 @@ int mv_send_enqueue_init(mvh* mv, const void* src, int size, int rank, int tag, 
   if (!p) { ctx->type = REQ_NULL; return 0; };
 
   if (size <= (int) SHORT_MSG_SIZE) {
-    p->data.header.to = mv->me;
     mvi_am_generic(mv, rank, src, size, tag, MV_PROTO_SHORT_ENQUEUE, p);
     ctx->type = REQ_DONE;
   } else {
@@ -168,7 +167,7 @@ int mv_send_enqueue_post(mvh* mv __UNUSED__, mv_ctx* ctx, mv_sync *sync)
   }
 }
 
-int mv_recv_dequeue(mvh* mv, void** buffer, int* size, int* rank, int*tag)
+int mv_recv_dequeue_init(mvh* mv, int* size, int* rank, int *tag, mv_ctx* ctx)
 {
 #ifndef USE_CCQ
   mv_packet* p = (mv_packet*) dq_pop_bot(&mv->queue);
@@ -176,18 +175,35 @@ int mv_recv_dequeue(mvh* mv, void** buffer, int* size, int* rank, int*tag)
   mv_packet* p = (mv_packet*) lcrq_dequeue(&mv->queue);
 #endif
   if (p == NULL) return 0;
-  *rank = p->data.header.to;
+
+  *rank = p->data.header.from;
   *tag = p->data.header.tag;
   *size = p->data.header.size;
-  if (p->data.header.proto == MV_PROTO_SHORT_ENQUEUE) {
-    // TODO(danghvu): Have to do this to return the packet.
-    *buffer = (void*) mv_alloc(*size);
-    memcpy(*buffer, p->data.content.buffer, *size);
-  } else {
-    *buffer = (void*) p->data.content.rdz.tgt_addr;
-  }
-  mv_pool_put(mv->pkpool, p);
+  ctx->packet = p;
   return 1;
+}
+
+int mv_recv_dequeue_post(mvh* mv, void* buf, mv_ctx* ctx)
+{
+  mv_packet* p = (mv_packet*) ctx->packet;
+  if (p->data.header.proto == MV_PROTO_SHORT_ENQUEUE) {
+    memcpy(buf, p->data.content.buffer, p->data.header.size);
+    mv_pool_put(mv->pkpool, p);
+    ctx->type = REQ_DONE;
+    return 1;
+  } else {
+    uint32_t comm_idx = p->context.pid;
+    mv_comm_id[comm_idx] = (uintptr_t) ctx;
+    int rank = p->data.header.from;
+    p->data.header.from = mv->me;
+    p->data.header.proto = MV_PROTO_RTR_ENQUEUE;
+    p->data.content.rdz.tgt_addr = (uintptr_t) buf;
+    p->data.content.rdz.comm_id = (uint32_t) comm_idx;
+    mv_server_send(mv->server, rank, &p->data,
+        sizeof(struct packet_header) + sizeof(struct mv_rdz), &p->context);
+    ctx->type = REQ_PENDING;
+    return 0;
+  }
 }
 
 void mv_put(mvh* mv, int node, void* dst, void* src, int size)

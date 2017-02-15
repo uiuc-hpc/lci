@@ -23,7 +23,7 @@
 
 #define MAX_COMM_ID 4096
 
-#define SERVER_MAX_INLINE (sizeof(struct packet_header) + 16)
+#define SERVER_MAX_INLINE (sizeof(struct packet_header) + 8)
 
 // Using LCRQ or spinlock.
 #define USE_CCQ
