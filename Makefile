@@ -16,7 +16,7 @@ INCLUDE = -I./include -I./src/include -I./  -I./src/include/umalloc
 CFLAGS += -fPIC -fvisibility=hidden -std=gnu99 $(INCLUDE) $(SERVER) -DUSE_AFFI -D_GNU_SOURCE -pthread
 
 ifeq ($(MV_SERVER), ofi)
-	CFLAGS += -DMV_USE_SERVER_OFI -DTHREAD_PER_CORE=4
+	CFLAGS += -DMV_USE_SERVER_OFI -DAFF_DEBUG
 	LDFLAGS += -lfabric # -L$(HOME)/libfab/lib -lfabric
 else
 	CFLAGS += -DMV_USE_SERVER_IBV

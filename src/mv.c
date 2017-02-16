@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include "pool.h"
 
+size_t server_max_inline;
+
 MV_INLINE unsigned long find_first_set(unsigned long word)
 {
   asm("rep; bsf %1,%0" : "=r"(word) : "rm"(word));
@@ -138,7 +140,6 @@ int mv_send_enqueue_init(mvh* mv, const void* src, int size, int rank, int tag, 
 {
   mv_packet* p = (mv_packet*) mv_pool_get_nb(mv->pkpool);
   if (!p) { ctx->type = REQ_NULL; return 0; };
-
   if (size <= (int) SHORT_MSG_SIZE) {
     mvi_am_generic(mv, rank, src, size, tag, MV_PROTO_SHORT_ENQUEUE, p);
     ctx->type = REQ_DONE;
@@ -159,12 +160,8 @@ int mv_send_enqueue_init(mvh* mv, const void* src, int size, int rank, int tag, 
 
 int mv_send_enqueue_post(mvh* mv __UNUSED__, mv_ctx* ctx, mv_sync *sync)
 {
-  if (ctx->type == REQ_DONE)
-    return 1;
-  else {
-    ctx->sync = sync;
-    return 0;
-  }
+  ctx->sync = sync;
+  return 0;
 }
 
 int mv_recv_dequeue_init(mvh* mv, int* size, int* rank, int *tag, mv_ctx* ctx)
@@ -192,6 +189,7 @@ int mv_recv_dequeue_post(mvh* mv, void* buf, mv_ctx* ctx)
     ctx->type = REQ_DONE;
     return 1;
   } else {
+    ctx->type = REQ_PENDING;
     uint32_t comm_idx = p->context.pid;
     mv_comm_id[comm_idx] = (uintptr_t) ctx;
     int rank = p->data.header.from;
@@ -201,7 +199,6 @@ int mv_recv_dequeue_post(mvh* mv, void* buf, mv_ctx* ctx)
     p->data.content.rdz.comm_id = (uint32_t) comm_idx;
     mv_server_send(mv->server, rank, &p->data,
         sizeof(struct packet_header) + sizeof(struct mv_rdz), &p->context);
-    ctx->type = REQ_PENDING;
     return 0;
   }
 }
@@ -247,3 +244,9 @@ void mv_free(void* ptr)
   ufree(mv_heap, ptr);
   mv_spin_unlock(&ml);
 }
+
+size_t get_ncores()
+{
+  return sysconf(_SC_NPROCESSORS_ONLN) / THREAD_PER_CORE;
+}
+

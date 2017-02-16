@@ -18,16 +18,8 @@
 #include <unistd.h>
 
 #define SERVER_CORE (get_ncores() - 1)
-#ifndef THREAD_PER_CORE
-#define THREAD_PER_CORE 1
-#endif
 
-// #define AFF_DEBUG
-
-MV_INLINE int get_ncores()
-{
-  return sysconf(_SC_NPROCESSORS_ONLN) / THREAD_PER_CORE;
-}
+size_t get_ncores();
 
 MV_INLINE int set_me_to_(int core_id)
 {

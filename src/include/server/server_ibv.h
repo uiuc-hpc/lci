@@ -67,6 +67,8 @@ typedef struct ibv_server {
   long recv_posted;
 } ibv_server __attribute__((aligned(64)));
 
+extern size_t server_max_inline;
+
 MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr);
 MV_INLINE void ibv_server_finalize(ibv_server* s);
 MV_INLINE mv_server_memory* ibv_server_mem_malloc(ibv_server* s, size_t size);
@@ -103,6 +105,7 @@ MV_INLINE struct ibv_qp* qp_create(ibv_server* s,
   qp_init_attr.qp_type = IBV_QPT_RC;
   qp_init_attr.sq_sig_all = 0;
   struct ibv_qp* qp = ibv_create_qp(s->dev_pd, &qp_init_attr);
+  server_max_inline = MIN(qp_init_attr.cap.max_inline_data, SERVER_MAX_INLINE);
   return qp;
 }
 
@@ -301,11 +304,11 @@ MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf,
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr;
 
-  if (size <= SERVER_MAX_INLINE) {
+  if (size <= server_max_inline) {
     setup_wr(this_wr, (uintptr_t) 0, &list, IBV_WR_SEND,
              IBV_SEND_INLINE | IBV_SEND_SIGNALED);
     IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
-    mv_pool_put(s->mv->pkpool, ctx);
+    mv_serve_send(s->mv, ctx);
     return 0;
   } else {
     setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND,

@@ -79,6 +79,7 @@ MV_INLINE void ofi_init(mvh* mv, size_t heap_size, ofi_server** s_ptr)
   // hints->domain_attr->mr_mode = FI_MR_SCALABLE;
   hints->caps = FI_RMA | FI_MSG;
   hints->mode = FI_CONTEXT | FI_LOCAL_MR;
+  hints->tx_attr->msg_order = FI_ORDER_SAS;
 
   ofi_server* s = malloc(sizeof(ofi_server));
 
@@ -203,7 +204,7 @@ MV_INLINE int ofi_progress(ofi_server* s)
     }
   } while (ret > 0);
 
-  if (s->recv_posted < MAX_RECV) ofi_post_recv(s, mv_pool_get(s->mv->pkpool));
+  if (s->recv_posted < MAX_RECV) ofi_post_recv(s, mv_pool_get_nb(s->mv->pkpool));
 
   return rett;
 }
@@ -221,11 +222,11 @@ MV_INLINE int ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
 {
   if (size <= SERVER_MAX_INLINE) {
     FI_SAFECALL(fi_inject(s->ep, buf, size, s->fi_addr[rank]));
-    mv_pool_put(s->mv->pkpool, ctx);
+    mv_serve_send(s->mv, ctx);
     return 0;
   } else {
     FI_SAFECALL(fi_send(s->ep, buf, size, 0, s->fi_addr[rank],
-                        (struct fi_context*)ctx));
+          (struct fi_context*)ctx));
     return 1;
   }
 }

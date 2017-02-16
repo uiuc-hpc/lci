@@ -122,7 +122,6 @@ MV_INLINE void mvi_recv_rdz_init(mvh* mv, void* src, int size, int rank,
   p->data.header.size = size;
   p->data.header.tag = tag;
   p->data.header.proto = MV_PROTO_RTR_MATCH;
-  p->data.content.rdz.sreq = 0;
   p->data.content.rdz.comm_id = (uint32_t) comm_idx;
   p->data.content.rdz.tgt_addr = (uintptr_t)ctx->buffer;
   p->data.content.rdz.rkey = mv_server_heap_rkey(mv->server, mv->me);
@@ -156,8 +155,9 @@ void mv_serve_send(mvh* mv, mv_packet* p_ctx)
 {
   if (!p_ctx) return;
   enum mv_proto_name proto = p_ctx->data.header.proto;
-  if (mv_proto[proto].func_ps == MV_PROTO_DONE)
-    mv_pool_put_to(mv->pkpool, p_ctx, p_ctx->context.poolid);
+  if (mv_proto[proto].func_ps == MV_PROTO_DONE) {
+    mv_pool_put(mv->pkpool, p_ctx);
+  }
   else if (mv_proto[proto].func_ps)
     mv_proto[proto].func_ps(mv, p_ctx);
 }

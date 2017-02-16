@@ -11,10 +11,10 @@ LIB = ../libmv.a
 CXXFLAGS = -g3 -O3 -std=c++11
 
 ifeq ($(MV_SERVER), ofi)
-	CFLAGS += -DMV_USE_SERVER_OFI -DTHREAD_PER_CORE=4 -DAFF_DEBUG
+	CFLAGS += -DMV_USE_SERVER_OFI -DAFF_DEBUG
 	LDFLAGS += -lfabric # -L$(HOME)/libfab/lib -lfabric
 else
-	CFLAGS += -DMV_USE_SERVER_IBV
+	CFLAGS += -DMV_USE_SERVER_IBV -DAFF_DEBUG
 	LDFLAGS += -libverbs
 endif
 
