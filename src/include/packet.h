@@ -6,8 +6,8 @@
 
 struct __attribute__((packed)) packet_context {
   SERVER_CONTEXT;
-  uint32_t pid; // keep this 32-bit.
-  int32_t poolid;
+  uintptr_t req;
+  uint64_t poolid;
 };
 
 struct __attribute__((packed)) mv_packet {

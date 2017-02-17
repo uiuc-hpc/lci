@@ -206,6 +206,12 @@ MV_INLINE int ofi_progress(ofi_server* s)
 
   if (s->recv_posted < MAX_RECV) ofi_post_recv(s, mv_pool_get_nb(s->mv->pkpool));
 
+#ifdef SERVER_FI_DEBUG
+  if (s->recv_posted == 0) {
+    fprintf(stderr, "WARNING DEADLOCK\n");
+  }
+#endif
+
   return rett;
 }
 

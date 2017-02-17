@@ -42,7 +42,6 @@ void mv_pool_put(mv_pool* pool, void* elm) {
 }
 
 void mv_pool_put_to(mv_pool* pool, void* elm, int32_t pid) {
-  assert(pid >= 0 && pid < pool->npools && "POOL ERROR: pid out of range");
   struct dequeue* lpool = pool->lpools[pid];
   dq_push_top(lpool, elm);
 }

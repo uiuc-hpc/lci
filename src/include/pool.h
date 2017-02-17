@@ -47,8 +47,7 @@ MV_INLINE int32_t mv_pool_get_local(mv_pool* pool)
     if (pid == EMPTY_POOL) {
       struct dequeue* lpool = 0;
       posix_memalign((void**)&lpool, 64, sizeof(struct dequeue));
-      assert(lpool != 0 && "POOL ERROR: Unable to create dequeue");
-
+      // assert(lpool != 0 && "POOL ERROR: Unable to create dequeue");
       dq_init(lpool);
       pid = pool->npools++;
       pool->lpools[pid] = lpool;
@@ -57,7 +56,7 @@ MV_INLINE int32_t mv_pool_get_local(mv_pool* pool)
     }
     mv_spin_unlock(&init_pool_lock);
   }
-  assert(pid >= 0 && pid < pool->npools && "POOL ERROR: pid out-of-range");
+  // assert(pid >= 0 && pid < pool->npools && "POOL ERROR: pid out-of-range");
   return pid;
 }
 

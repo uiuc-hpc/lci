@@ -21,13 +21,11 @@
 #define POST_MSG_SIZE \
   (SHORT_MSG_SIZE + sizeof(struct packet_header))
 
-#define MAX_COMM_ID 4096
-
 #define SERVER_MAX_INLINE (sizeof(struct packet_header) + 8)
 
 // Using LCRQ or spinlock.
 #define USE_CCQ
 
-#define THREAD_PER_CORE 1
+#define THREAD_PER_CORE 4
 
 #endif

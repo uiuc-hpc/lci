@@ -184,7 +184,6 @@ MV_INLINE void qp_to_rts(struct ibv_qp* qp)
 MV_INLINE void ibv_server_post_recv(ibv_server* s, mv_packet* p)
 {
   if (p == NULL) return;
-  p->context.poolid = mv_pool_get_local(s->mv->pkpool);
   s->recv_posted++;
 
   struct ibv_sge sg = {
@@ -291,6 +290,8 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
   while (0)                     \
     ;
 
+static uint8_t count_inline = 0;
+
 /*! This return whether or not to wait. */
 MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf,
                                     size_t size, void* ctx)
@@ -304,13 +305,15 @@ MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf,
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr;
 
-  if (size <= server_max_inline) {
+  if (size <= server_max_inline && count_inline < 32) {
     setup_wr(this_wr, (uintptr_t) 0, &list, IBV_WR_SEND,
              IBV_SEND_INLINE | IBV_SEND_SIGNALED);
     IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
     mv_serve_send(s->mv, ctx);
+    count_inline ++;
     return 0;
   } else {
+    count_inline = 0;
     setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND,
              IBV_SEND_SIGNALED);
     IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));

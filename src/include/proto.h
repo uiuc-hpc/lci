@@ -11,6 +11,7 @@
   }
 
 #define MV_PROTO_DONE ((mv_am_func_t) -1)
+#define MV_PROTO_DATA_DONE ((mv_am_func_t) -2)
 
 typedef struct {
   mv_am_func_t func_am;
@@ -18,12 +19,12 @@ typedef struct {
 } mv_proto_spec_t;
 
 const mv_proto_spec_t mv_proto[10] __attribute__((aligned(64)));
-extern uintptr_t mv_comm_id[MAX_COMM_ID];
 
 MV_INLINE
 int mvi_am_generic(mvh* mv, int node, const void* src, int size, int tag,
                    const enum mv_proto_name proto, mv_packet* p)
 {
+  // NOTE: need locality here, since this pkt has data.
   p->context.poolid = mv_pool_get_local(mv->pkpool);
   p->data.header.proto = proto;
   p->data.header.from = mv->me;
@@ -114,15 +115,12 @@ MV_INLINE void mvi_recv_rdz_init(mvh* mv, void* src, int size, int rank,
                                  int tag, mv_ctx* ctx, mv_packet* p)
 {
   INIT_CTX(ctx);
-  uint64_t comm_idx = p->context.pid;
-  mv_comm_id[comm_idx] = (uintptr_t) ctx;
-  ctx->packet = p;
-  p->context.poolid = mv_pool_get_local(mv->pkpool);
+  p->context.req = (uintptr_t) ctx;
   p->data.header.from = mv->me;
   p->data.header.size = size;
   p->data.header.tag = tag;
   p->data.header.proto = MV_PROTO_RTR_MATCH;
-  p->data.content.rdz.comm_id = (uint32_t) comm_idx;
+  p->data.content.rdz.comm_id = (uint32_t) ((uintptr_t) p - (uintptr_t) mv_heap_ptr(mv));
   p->data.content.rdz.tgt_addr = (uintptr_t)ctx->buffer;
   p->data.content.rdz.rkey = mv_server_heap_rkey(mv->server, mv->me);
   mv_server_send(mv->server, rank, &p->data,
@@ -145,8 +143,7 @@ MV_INLINE int mvi_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 MV_INLINE
 void mv_serve_recv(mvh* mv, mv_packet* p_ctx)
 {
-  enum mv_proto_name proto = p_ctx->data.header.proto;
-  assert(proto >= 0 && proto <= 10);
+  const enum mv_proto_name proto = p_ctx->data.header.proto;
   mv_proto[proto].func_am(mv, p_ctx);
 }
 
@@ -154,12 +151,14 @@ MV_INLINE
 void mv_serve_send(mvh* mv, mv_packet* p_ctx)
 {
   if (!p_ctx) return;
-  enum mv_proto_name proto = p_ctx->data.header.proto;
-  if (mv_proto[proto].func_ps == MV_PROTO_DONE) {
-    mv_pool_put(mv->pkpool, p_ctx);
+  const enum mv_proto_name proto = p_ctx->data.header.proto;
+  const mv_am_func_t f = mv_proto[proto].func_ps;
+
+  if (f == MV_PROTO_DONE) {
+    mv_pool_put_to(mv->pkpool, p_ctx, p_ctx->context.poolid);
+  } else if (f) {
+    f(mv, p_ctx);
   }
-  else if (mv_proto[proto].func_ps)
-    mv_proto[proto].func_ps(mv, p_ctx);
 }
 
 MV_INLINE
@@ -168,10 +167,11 @@ void mv_serve_imm(mvh* mv, uint32_t imm) {
   // only takes uint32_t, if this takes uint64_t we can
   // store a pointer to this request context.
   uint32_t real_imm = imm << 2 >> 2;
+  mv_packet* p = (mv_packet*) ((uintptr_t) mv_heap_ptr(mv) + real_imm);
+  mv_ctx* req = (mv_ctx*) p->context.req;
   // Match + Signal
-  mv_ctx* req = (mv_ctx*) mv_comm_id[real_imm];
   if (real_imm == imm) {
-    mv_pool_put_to(mv->pkpool, req->packet, req->packet->context.poolid);
+    mv_pool_put(mv->pkpool, p);
     mv_key key = mv_make_key(req->rank, req->tag);
     mv_value value = 0;
     if (!mv_hash_insert(mv->tbl, key, &value)) {
@@ -179,7 +179,7 @@ void mv_serve_imm(mvh* mv, uint32_t imm) {
       if (req->sync) thread_signal(req->sync);
     }
   } else {
-    mv_pool_put_to(mv->pkpool, req->packet, req->packet->context.poolid);
+    mv_pool_put(mv->pkpool, p);
     req->type = REQ_DONE;
   }
 }

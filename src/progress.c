@@ -20,10 +20,7 @@ static void mv_recv_short_match(mvh* mv, mv_packet* p)
     memcpy(req->buffer, p->data.content.buffer, req->size);
     req->type = REQ_DONE;
     if (req->sync) thread_signal(req->sync);
-    if (mv->server->recv_posted < MAX_RECV)
-      mv_server_post_recv(mv->server, p);
-    else
-      mv_pool_put(mv->pkpool, p);
+    mv_pool_put(mv->pkpool, p);
   }
 }
 

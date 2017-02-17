@@ -329,9 +329,6 @@ MV_EXPORT
 void mv_progress(mvh* mv);
 
 MV_EXPORT
-size_t mv_data_max_size();
-
-MV_EXPORT
 size_t get_ncores();
 
 /**@}*/

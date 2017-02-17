@@ -10,7 +10,7 @@
 #include "dequeue.h"
 
 #ifdef MV_USE_SERVER_OFI
-#define SERVER_CONTEXT char __padding__[64 - 8];
+#define SERVER_CONTEXT char __padding__[64 - 16];
 typedef struct ofi_server mv_server;
 #endif
 
@@ -30,7 +30,6 @@ struct mv_struct {
 #else
   lcrq_t queue;
 #endif
-  lcrq_t squeue;
   int am_table_size;
   mv_am_func_t am_table[128];
 } __attribute__((aligned(64)));

@@ -12,7 +12,6 @@ MV_INLINE unsigned long find_first_set(unsigned long word)
 }
 
 __thread int mv_core_id = -1;
-uintptr_t mv_comm_id[MAX_COMM_ID];
 umalloc_heap_t* mv_heap = 0;
 
 uint8_t mv_am_register(mvh* mv, mv_am_func_t f)
@@ -36,12 +35,12 @@ void* mv_heap_ptr(mvh* mv)
 
 void mv_open(int* argc, char*** args, size_t heap_size, mvh** ret)
 {
-  struct mv_struct* mv = malloc(sizeof(struct mv_struct));
+  struct mv_struct* mv;
+  posix_memalign((void**) &mv, 4096, sizeof(struct mv_struct));
 
   setenv("MPICH_ASYNC_PROGRESS", "0", 1);
   setenv("MV2_ASYNC_PROGRESS", "0", 1);
   setenv("MV2_ENABLE_AFFINITY", "0", 1);
-
   int provided;
   MPI_Init_thread(argc, args, MPI_THREAD_MULTIPLE, &provided);
   if (MPI_THREAD_MULTIPLE != provided) {
@@ -52,6 +51,7 @@ void mv_open(int* argc, char*** args, size_t heap_size, mvh** ret)
   mv_pool_init();
   mv_hash_create(&mv->tbl);
   mv->am_table_size = 1;
+
   mv_server_init(mv, heap_size, &mv->server);
 
   // Init queue protocol.
@@ -61,20 +61,19 @@ void mv_open(int* argc, char*** args, size_t heap_size, mvh** ret)
   lcrq_init(&mv->queue);
 #endif
 
-  lcrq_init(&mv->squeue);
-
   // Init heap.
   mv_heap = umalloc_makeheap(mv_heap_ptr(mv), heap_size,
       UMALLOC_HEAP_GROWS_UP);
 
   // Prepare the list of packet.
-  uint32_t npacket = MAX(MAX_PACKET, mv->size * 3);
+  uint32_t npacket = MAX(MAX_PACKET, mv->size * 4);
   uintptr_t sbuf_addr = (uintptr_t) mv_alloc(MV_PACKET_SIZE * (2 + npacket));
   uintptr_t base_packet = (uintptr_t) sbuf_addr + 4096 - sizeof(struct packet_context);
   mv_pool_create(&mv->pkpool);
+
   for (unsigned i = 0; i < npacket; i++) {
     mv_packet* p = (mv_packet*) (base_packet + i * MV_PACKET_SIZE);
-    p->context.pid = i;
+    p->context.poolid = 0; // default to the first pool -- usually server.
     mv_pool_put(mv->pkpool, p);
   }
 
@@ -146,7 +145,6 @@ int mv_send_enqueue_init(mvh* mv, const void* src, int size, int rank, int tag, 
   } else {
     INIT_CTX(ctx);
     p->data.content.rdz.sreq = (uintptr_t) ctx;
-    p->context.poolid = mv_pool_get_local(mv->pkpool);
     p->data.header.proto = MV_PROTO_RTS_ENQUEUE;
     p->data.header.from = mv->me;
     p->data.header.tag = tag;
@@ -177,6 +175,7 @@ int mv_recv_dequeue_init(mvh* mv, int* size, int* rank, int *tag, mv_ctx* ctx)
   *tag = p->data.header.tag;
   *size = p->data.header.size;
   ctx->packet = p;
+  ctx->type = REQ_PENDING;
   return 1;
 }
 
@@ -189,14 +188,12 @@ int mv_recv_dequeue_post(mvh* mv, void* buf, mv_ctx* ctx)
     ctx->type = REQ_DONE;
     return 1;
   } else {
-    ctx->type = REQ_PENDING;
-    uint32_t comm_idx = p->context.pid;
-    mv_comm_id[comm_idx] = (uintptr_t) ctx;
     int rank = p->data.header.from;
+    p->context.req = (uintptr_t) ctx;
     p->data.header.from = mv->me;
     p->data.header.proto = MV_PROTO_RTR_ENQUEUE;
     p->data.content.rdz.tgt_addr = (uintptr_t) buf;
-    p->data.content.rdz.comm_id = (uint32_t) comm_idx;
+    p->data.content.rdz.comm_id = (uint32_t) ((uintptr_t) p - (uintptr_t) mv_heap_ptr(mv));
     mv_server_send(mv->server, rank, &p->data,
         sizeof(struct packet_header) + sizeof(struct mv_rdz), &p->context);
     return 0;
@@ -221,11 +218,6 @@ void mv_progress(mvh* mv)
   mv_server_progress(mv->server);
 }
 
-size_t mv_data_max_size()
-{
-  return SHORT_MSG_SIZE;
-}
-
 // FIXME(danghvu): Get rid of this lock? or move to finer-grained.
 volatile int ml = 0;
 
@@ -234,7 +226,6 @@ void* mv_alloc(size_t s)
   mv_spin_lock(&ml);
   void* p = umemalign(mv_heap, 4096, s);
   mv_spin_unlock(&ml);
-  assert(p != 0 && "No more memory\n");
   return p;
 }
 
