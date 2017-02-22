@@ -188,11 +188,13 @@ int mv_recv_dequeue_post(mvh* mv, void* buf, mv_ctx* ctx)
     ctx->type = REQ_DONE;
     return 1;
   } else {
+    // uint32_t rkey = ofi_get_mrkey(mv->server, buf, ctx->size);
     int rank = p->data.header.from;
     p->context.req = (uintptr_t) ctx;
     p->data.header.from = mv->me;
     p->data.header.proto = MV_PROTO_RTR_ENQUEUE;
     p->data.content.rdz.tgt_addr = (uintptr_t) buf;
+    // p->data.content.rdz.rkey = (uint32_t) rkey;
     p->data.content.rdz.comm_id = (uint32_t) ((uintptr_t) p - (uintptr_t) mv_heap_ptr(mv));
     mv_server_send(mv->server, rank, &p->data,
         sizeof(struct packet_header) + sizeof(struct mv_rdz), &p->context);

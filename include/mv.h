@@ -168,6 +168,7 @@ int mv_recv_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
  * @defgroup queue Enqueue/Dequeue
  * @{
  */
+
 /**
 * @brief Initialize a rdz send, enqueue at destination.
 *

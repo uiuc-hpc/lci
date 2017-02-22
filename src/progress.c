@@ -56,7 +56,9 @@ static void mv_recv_rtr_queue(mvh* mv, mv_packet* p)
   p->data.header.proto = MV_PROTO_LONG_ENQUEUE;
   mv_server_rma_signal(mv->server, rank, ctx->buffer,
       (void*) p->data.content.rdz.tgt_addr,
-      mv_server_heap_rkey(mv->server, rank), ctx->size,
+      // p->data.content.rdz.rkey,
+      mv_server_heap_rkey(mv->server, rank),
+      ctx->size,
       (1 << 31) | (p->data.content.rdz.comm_id), &p->context);
 }
 

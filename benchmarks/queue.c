@@ -29,7 +29,7 @@ int main(int argc, char** args)
   int total, skip;
 
   mv_ctx ctx;
-  for (size_t len = 1; len <= (1 << 22); len <<= 1) {
+  for (size_t len = (1 << 22); len <= (1 << 28); len <<= 1) {
     if (len > 8192) {
       skip = SKIP_LARGE;
       total = TOTAL_LARGE;
@@ -54,7 +54,8 @@ int main(int argc, char** args)
         //recv
         while (!mv_recv_dequeue_init(mv, &size, &rank, &tag, &ctx))
           mv_progress(mv);
-        mv_recv_dequeue_post(mv, buffer, &ctx);
+        void* recv = mv_alloc(size);
+        mv_recv_dequeue_post(mv, recv, &ctx);
         while (!mv_test(&ctx))
           mv_progress(mv);
         assert(rank == 1);
@@ -62,8 +63,9 @@ int main(int argc, char** args)
         assert(size == len);
         if (i == 0)
         for (int j = 0; j < size; j++) {
-          assert(((char*)buffer)[j] == 'A');
+          assert(((char*)recv)[j] == 'A');
         }
+        mv_free(recv);
       }
       printf("%d \t %.5f\n", len, (MPI_Wtime() - t1)/total / 2 * 1e6);
     } else {
@@ -72,13 +74,15 @@ int main(int argc, char** args)
         //recv
         while (!mv_recv_dequeue_init(mv, &size, &rank, &tag, &ctx))
           mv_progress(mv);
-        mv_recv_dequeue_post(mv, buffer, &ctx);
+        void* recv = mv_alloc(size);
+        mv_recv_dequeue_post(mv, recv, &ctx);
         while (!mv_test(&ctx))
           mv_progress(mv);
         if (i == 0)
         for (int j = 0; j < size; j++) {
-          assert(((char*)buffer)[j] == 'A');
+          assert(((char*)recv)[j] == 'A');
         }
+        mv_free(recv);
         // send
         while (!mv_send_enqueue_init(mv, buffer, len, 0, i, &ctx))
           mv_progress(mv);

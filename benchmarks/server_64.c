@@ -52,22 +52,26 @@ int main(int argc, char** args)
     double time = 0;
     MPI_Barrier(MPI_COMM_WORLD);
     for (int exp = 0; exp < NEXP; exp ++) {
+      printf("%d..\n", exp);
       if (rank == 0)  {
         for (int i = 0; i < TOTAL + SKIP; i++) {
           if (i == SKIP) {
             times[exp] = MPI_Wtime();
             times_p[exp] = 0;
           }
-          times_p[exp] -= MPI_Wtime();
           // memcpy((void*) &p_send->data, src, size);
           for (int k = 0; k < WINDOWS; k++)
             mv_server_send(mv->server, 1-rank, &p_send[k]->data,
-              (size_t)(size + sizeof(packet_header)), &p_send[k]->context);
-          times_p[exp] += MPI_Wtime();
+              (size_t)(size + sizeof(struct packet_header)), &p_send[k]->context);
+
+          MPI_Barrier(MPI_COMM_WORLD);
+
+          times_p[exp] -= MPI_Wtime();
           count = 0;
           while (count < WINDOWS) {
             count += mv_server_progress_once(mv->server);
           }
+          times_p[exp] += MPI_Wtime();
 #if 0
       //    times_p[exp] += MPI_Wtime();
           for (int k = 0; k < WINDOWS; k++)
@@ -81,12 +85,22 @@ int main(int argc, char** args)
         }
       } else {
         for (int i = 0; i < TOTAL + SKIP; i++) {
+          if (i == SKIP) {
+            times[exp] = MPI_Wtime();
+            times_p[exp] = 0;
+          }
+
           for (int k = 0; k < WINDOWS; k++)
             mv_server_post_recv(mv->server, p_recv[k]);
+
+          MPI_Barrier(MPI_COMM_WORLD);
+
           count = 0;
+          times_p[exp] -= MPI_Wtime();
           while (count < WINDOWS) {
             count += mv_server_progress_once(mv->server);
           }
+          times_p[exp] += MPI_Wtime();
 #if 0
           for (int k = 0; k < WINDOWS; k++)
             mv_server_send(mv->server, 1-rank, &p_send[k]->data,
@@ -102,17 +116,18 @@ int main(int argc, char** args)
       times_p[exp] = times_p[exp] * 1e6 / TOTAL / WINDOWS;
       MPI_Barrier(MPI_COMM_WORLD);
     }
-    if (rank == 0) {
-      double sum = 0;
-      for (int i = 0; i < NEXP; i++)
-        sum += times_p[i];
-      double mean = sum / NEXP;
-      sum = 0;
-      for (int i = 0; i < NEXP; i++)
-        sum += (times_p[i] - mean) * (times_p[i] - mean);
-      double std = sqrt(sum / (NEXP - 1));
-      printf("%d %.2f %.2f %.2f\n", size, mean, std, times_p[0]);
-    }
+    double sum = 0;
+    for (int i = 0; i < NEXP; i++)
+      sum += times_p[i];
+    double mean = sum / NEXP;
+    sum = 0;
+    for (int i = 0; i < NEXP; i++)
+      sum += (times_p[i] - mean) * (times_p[i] - mean);
+    double std = sqrt(sum / (NEXP - 1));
+    if (rank == 0)
+      printf("Send %d %.2f %.2f\n", size, mean, std);
+    else
+      printf("Recv %d %.2f %.2f\n", size, mean, std);
   }
 
   free(src);

@@ -4,7 +4,6 @@
 #include <math.h>
 
 #include "mv.h"
-#define MV_USE_SERVER_IBV
 #include "src/include/mv_priv.h"
 
 // #define USE_L1_MASK
@@ -35,7 +34,7 @@ int main(int argc, char** args)
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   // printf("%d\n", server_max_inline);
-  
+
   double times[NEXP];
 
   void* src = malloc(8192);
@@ -51,25 +50,25 @@ int main(int argc, char** args)
             times[exp] = MPI_Wtime();
           memcpy((void*) &p_send->data, src, size);
           int k = mv_server_send(mv->server, 1-rank, &p_send->data,
-              (size_t)(size + sizeof(packet_header)), &p_send->context);
+              (size_t)(size + sizeof(struct packet_header)), &p_send->context);
 #ifdef MV_USE_SERVER_OFI
           if (k)
 #endif
-            while (mv_server_progress_send_once(mv->server) == 0);
+            while (mv_server_progress_once(mv->server) == 0);
           mv_server_post_recv(mv->server, p_recv);
-          while (mv_server_progress_recv_once(mv->server) == 0);
+          while (mv_server_progress_once(mv->server) == 0);
         }
       } else {
         for (int i = 0; i < TOTAL + SKIP; i++) {
           mv_server_post_recv(mv->server, p_recv);
-          while (mv_server_progress_recv_once(mv->server) == 0);
+          while (mv_server_progress_once(mv->server) == 0);
           memcpy((void*) &p_send->data, src, size);
           int k = mv_server_send(mv->server, 1-rank, &p_send->data,
-              (size_t)(size + sizeof(packet_header)), &p_send->context);
+              (size_t)(size + sizeof(struct packet_header)), &p_send->context);
 #ifdef MV_USE_SERVER_OFI
           if (k)
 #endif
-            while (mv_server_progress_send_once(mv->server) == 0);
+            while (mv_server_progress_once(mv->server) == 0);
         }
       }
       times[exp] = (MPI_Wtime() - times[exp]) * 1e6 / TOTAL / 2;

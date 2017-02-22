@@ -70,13 +70,21 @@ MV_INLINE void ofi_write_rma_signal(ofi_server* s, int rank, void* from,
                                     uint32_t sid, void* ctx);
 MV_INLINE void ofi_finalize(ofi_server* s);
 
+MV_INLINE uint32_t ofi_get_mrkey(ofi_server* s, void *buf, size_t size) {
+  struct fid_mr* mr;
+  FI_SAFECALL(fi_mr_reg(s->domain, buf, size,
+                        FI_READ | FI_WRITE | FI_REMOTE_WRITE | FI_REMOTE_READ,
+                        0, 0, 0, &mr, 0));
+  return fi_mr_key(mr);
+}
+
 MV_INLINE void ofi_init(mvh* mv, size_t heap_size, ofi_server** s_ptr)
 {
   // Create hint.
   struct fi_info* hints;
   hints = fi_allocinfo();
   hints->ep_attr->type = FI_EP_RDM;
-  // hints->domain_attr->mr_mode = FI_MR_SCALABLE;
+  // hints->domain_attr->mr_mode = FI_MR_BASIC;
   hints->caps = FI_RMA | FI_MSG;
   hints->mode = FI_CONTEXT | FI_LOCAL_MR;
   hints->tx_attr->msg_order = FI_ORDER_SAS;

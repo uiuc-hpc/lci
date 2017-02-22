@@ -156,9 +156,14 @@ void recv_thread(intptr_t arg)
 
   for (i = 0; i < loop + skip; i++) {
     // recv
-    while (!mv_recv_dequeue(mv_hdl, &buf, &len, &rank, &tag))
+    while (!mv_recv_dequeue_init(mv_hdl, &len, &rank, &tag, &ctxs))
           ;
+    void* b = mv_alloc(len);
+    mv_recv_dequeue_post(mv_hdl, buf, &ctxs);
     mv_free(buf);
+
+    while (!mv_test(&ctxs))
+        ;
 
     // send
     // for (int j = 0; j < WINDOWS; j++)
