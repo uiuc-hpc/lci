@@ -1,6 +1,8 @@
 #ifndef MV_PROTO_H
 #define MV_PROTO_H
 
+// #include "dreg/dreg.h"
+
 #define INIT_CTX(ctx)        \
   {                          \
     ctx->buffer = (void*)src;\
@@ -24,8 +26,12 @@ MV_INLINE
 int mvi_am_generic(mvh* mv, int node, const void* src, int size, int tag,
                    const enum mv_proto_name proto, mv_packet* p)
 {
-  // NOTE: need locality here, since this pkt has data.
-  p->context.poolid = mv_pool_get_local(mv->pkpool);
+  // NOTE: need locality here, since this pkt has a lot of data.
+  if (size < 4096)
+    p->context.poolid = mv_pool_get_local(mv->pkpool);
+  else
+    p->context.poolid = 0;
+
   p->data.header.proto = proto;
   p->data.header.from = mv->me;
   p->data.header.tag = tag;
@@ -79,12 +85,11 @@ void mvi_send_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 
 MV_INLINE void proto_complete_rndz(mvh* mv, mv_packet* p, mv_ctx* ctx)
 {
-  int rank = p->data.header.from;
   p->data.header.proto = MV_PROTO_LONG_MATCH;
   p->data.content.rdz.sreq = (uintptr_t)ctx;
   mv_server_rma_signal(mv->server, p->data.header.from, ctx->buffer,
-      (void*) p->data.content.rdz.tgt_addr,
-      mv_server_heap_rkey(mv->server, rank), ctx->size,
+      p->data.content.rdz.tgt_addr,
+      p->data.content.rdz.rkey, ctx->size,
       p->data.content.rdz.comm_id, p);
 }
 
@@ -116,13 +121,16 @@ MV_INLINE void mvi_recv_rdz_init(mvh* mv, void* src, int size, int rank,
 {
   INIT_CTX(ctx);
   p->context.req = (uintptr_t) ctx;
+  p->context.dma_mem = mv_server_dma_reg(mv->server, src, size);
+
   p->data.header.from = mv->me;
   p->data.header.size = size;
   p->data.header.tag = tag;
   p->data.header.proto = MV_PROTO_RTR_MATCH;
   p->data.content.rdz.comm_id = (uint32_t) ((uintptr_t) p - (uintptr_t) mv_heap_ptr(mv));
-  p->data.content.rdz.tgt_addr = (uintptr_t)ctx->buffer;
-  p->data.content.rdz.rkey = mv_server_heap_rkey(mv->server, mv->me);
+  p->data.content.rdz.tgt_addr = (uintptr_t) src;
+  p->data.content.rdz.rkey = mv_server_dma_key(p->context.dma_mem);
+
   mv_server_send(mv->server, rank, &p->data,
         (size_t)(sizeof(struct mv_rdz) + sizeof(struct packet_header)),
         &p->context);
@@ -168,9 +176,10 @@ void mv_serve_imm(mvh* mv, uint32_t imm) {
   // store a pointer to this request context.
   uint32_t real_imm = imm << 2 >> 2;
   mv_packet* p = (mv_packet*) ((uintptr_t) mv_heap_ptr(mv) + real_imm);
-  mv_ctx* req = (mv_ctx*) p->context.req;
   // Match + Signal
   if (real_imm == imm) {
+    mv_ctx* req = (mv_ctx*) p->context.req;
+    mv_server_dma_dereg(p->context.dma_mem);
     mv_pool_put(mv->pkpool, p);
     mv_key key = mv_make_key(req->rank, req->tag);
     mv_value value = 0;
@@ -179,8 +188,18 @@ void mv_serve_imm(mvh* mv, uint32_t imm) {
       if (req->sync) thread_signal(req->sync);
     }
   } else {
+#if 0
+#ifndef USE_CCQ
+    dq_push_top(&mv->queue, (void*) p);
+#else
+    lcrq_enqueue(&mv->queue, (void*) p);
+#endif
+#else
+    mv_ctx* req = (mv_ctx*) p->context.req;
+    mv_server_dma_dereg(p->context.dma_mem);
     mv_pool_put(mv->pkpool, p);
     req->type = REQ_DONE;
+#endif
   }
 }
 #endif

@@ -66,8 +66,8 @@ int nthreads;
 
 void main_task(intptr_t a)
 {
-  sendbuf = (char*)MPIV_Alloc(MAXSIZE * max_nthreads);
-  recvbuf = (char*)MPIV_Alloc(MAXSIZE * max_nthreads);
+  sendbuf = (char*)malloc(MAXSIZE * max_nthreads);
+  recvbuf = (char*)malloc(MAXSIZE * max_nthreads);
   id = malloc(sizeof(mv_thread) * max_nthreads);
 
   for (nthreads = min_nthreads; nthreads <= max_nthreads; nthreads *= 2)

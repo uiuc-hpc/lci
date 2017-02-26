@@ -7,6 +7,7 @@
 struct __attribute__((packed)) packet_context {
   SERVER_CONTEXT;
   uintptr_t req;
+  uintptr_t dma_mem;
   uint64_t poolid;
 };
 

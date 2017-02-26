@@ -3,16 +3,10 @@
 #include <stdint.h>
 #include "pool.h"
 
+// #include "dreg/dreg.h"
+
 size_t server_max_inline;
-
-MV_INLINE unsigned long find_first_set(unsigned long word)
-{
-  asm("rep; bsf %1,%0" : "=r"(word) : "rm"(word));
-  return word;
-}
-
 __thread int mv_core_id = -1;
-umalloc_heap_t* mv_heap = 0;
 
 uint8_t mv_am_register(mvh* mv, mv_am_func_t f)
 {
@@ -35,13 +29,16 @@ void* mv_heap_ptr(mvh* mv)
 
 void mv_open(int* argc, char*** args, size_t heap_size, mvh** ret)
 {
-  struct mv_struct* mv;
+  struct mv_struct* mv = 0;
   posix_memalign((void**) &mv, 4096, sizeof(struct mv_struct));
 
   setenv("MPICH_ASYNC_PROGRESS", "0", 1);
   setenv("MV2_ASYNC_PROGRESS", "0", 1);
   setenv("MV2_ENABLE_AFFINITY", "0", 1);
+  setenv("MV2_USE_LAZY_MEM_UNREGISTER", "0", 1);
+
   int provided;
+
   MPI_Init_thread(argc, args, MPI_THREAD_MULTIPLE, &provided);
   if (MPI_THREAD_MULTIPLE != provided) {
     printf("Need MPI_THREAD_MULTIPLE\n");
@@ -61,14 +58,10 @@ void mv_open(int* argc, char*** args, size_t heap_size, mvh** ret)
   lcrq_init(&mv->queue);
 #endif
 
-  // Init heap.
-  mv_heap = umalloc_makeheap(mv_heap_ptr(mv), heap_size,
-      UMALLOC_HEAP_GROWS_UP);
-
   // Prepare the list of packet.
   uint32_t npacket = MAX(MAX_PACKET, mv->size * 4);
-  uintptr_t sbuf_addr = (uintptr_t) mv_alloc(MV_PACKET_SIZE * (2 + npacket));
-  uintptr_t base_packet = (uintptr_t) sbuf_addr + 4096 - sizeof(struct packet_context);
+  uintptr_t sbuf_addr = (uintptr_t) mv_heap_ptr(mv);
+  uintptr_t base_packet = (uintptr_t) sbuf_addr + 4096; //- sizeof(struct packet_context);
   mv_pool_create(&mv->pkpool);
 
   for (unsigned i = 0; i < npacket; i++) {
@@ -176,6 +169,7 @@ int mv_recv_dequeue_init(mvh* mv, int* size, int* rank, int *tag, mv_ctx* ctx)
   *size = p->data.header.size;
   ctx->packet = p;
   ctx->type = REQ_PENDING;
+
   return 1;
 }
 
@@ -188,16 +182,22 @@ int mv_recv_dequeue_post(mvh* mv, void* buf, mv_ctx* ctx)
     ctx->type = REQ_DONE;
     return 1;
   } else {
-    // uint32_t rkey = ofi_get_mrkey(mv->server, buf, ctx->size);
+#if 0
+    memcpy(buf, (void*) p->data.content.rdz.tgt_addr, p->data.header.size);
+    free_dma_mem(p->data.content.rdz.mem);
+    free((void*) p->data.content.rdz.tgt_addr);
+    mv_pool_put(mv->pkpool, p);
+#else
     int rank = p->data.header.from;
     p->context.req = (uintptr_t) ctx;
-    p->data.header.from = mv->me;
+    p->context.dma_mem = mv_server_dma_reg(mv->server, buf, p->data.header.size);
     p->data.header.proto = MV_PROTO_RTR_ENQUEUE;
     p->data.content.rdz.tgt_addr = (uintptr_t) buf;
-    // p->data.content.rdz.rkey = (uint32_t) rkey;
+    p->data.content.rdz.rkey = mv_server_dma_key(p->context.dma_mem);
     p->data.content.rdz.comm_id = (uint32_t) ((uintptr_t) p - (uintptr_t) mv_heap_ptr(mv));
     mv_server_send(mv->server, rank, &p->data,
         sizeof(struct packet_header) + sizeof(struct mv_rdz), &p->context);
+#endif
     return 0;
   }
 }
@@ -211,7 +211,7 @@ void mv_put(mvh* mv, int node, void* dst, void* src, int size)
 void mv_put_signal(mvh* mv, int node, void* dst, void* src, int size,
     uint32_t sid)
 {
-  mv_server_rma_signal(mv->server, node, src, dst,
+  mv_server_rma_signal(mv->server, node, src, (uintptr_t) dst,
       mv_server_heap_rkey(mv->server, node), size, sid, 0);
 }
 
@@ -220,26 +220,7 @@ void mv_progress(mvh* mv)
   mv_server_progress(mv->server);
 }
 
-// FIXME(danghvu): Get rid of this lock? or move to finer-grained.
-volatile int ml = 0;
-
-void* mv_alloc(size_t s)
-{
-  mv_spin_lock(&ml);
-  void* p = umemalign(mv_heap, 4096, s);
-  mv_spin_unlock(&ml);
-  return p;
-}
-
-void mv_free(void* ptr)
-{
-  mv_spin_lock(&ml);
-  ufree(mv_heap, ptr);
-  mv_spin_unlock(&ml);
-}
-
-size_t get_ncores()
+size_t mv_get_ncores()
 {
   return sysconf(_SC_NPROCESSORS_ONLN) / THREAD_PER_CORE;
 }
-

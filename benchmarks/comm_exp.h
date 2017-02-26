@@ -32,4 +32,22 @@ inline double wutime()
 
 #define max(a, b) ((a > b) ? (a) : (b))
 
+static inline unsigned long long get_rdtsc()
+{
+  unsigned hi, lo;
+  __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+  unsigned long long cycle = ((unsigned long long)lo)|( ((unsigned long long)hi)<<32) ;
+  return cycle;
+}
+
+static inline void busywait_cyc(unsigned long long delay)
+{
+  unsigned long long start_cycle, stop_cycle, start_plus_delay;
+  start_cycle = get_rdtsc();
+  start_plus_delay = start_cycle + delay;
+  do{
+    stop_cycle = get_rdtsc();
+  }
+  while(stop_cycle < start_plus_delay);
+}
 #endif

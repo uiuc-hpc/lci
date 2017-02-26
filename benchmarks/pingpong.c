@@ -50,8 +50,10 @@ void main_task(intptr_t arg)
   double ptime = 0;
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  void* r_buf = (void*) MPIV_Alloc((size_t)MAX_MSG_SIZE);
-  void* s_buf = (void*) MPIV_Alloc((size_t)MAX_MSG_SIZE);
+  void* r_buf = 0; // = (void*) malloc((size_t)MAX_MSG_SIZE);
+  void* s_buf = 0; // = (void*) malloc((size_t)MAX_MSG_SIZE);
+  posix_memalign(&r_buf, 4096, MAX_MSG_SIZE);
+  posix_memalign(&s_buf, 4096, MAX_MSG_SIZE);
 
   for (int size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE; size <<= 1) {
     int total = TOTAL;
@@ -93,6 +95,6 @@ void main_task(intptr_t arg)
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  MPIV_Free(r_buf);
-  MPIV_Free(s_buf);
+  free(r_buf);
+  free(s_buf);
 }

@@ -1,9 +1,0 @@
-Allow user to not store heap data structures in heap itself
-    -- rename mdesc struct and export to user: pass in allocated struct to
-       umalloc_attach
-    -- Find out which members of mdesc are allocated on heap, and provide an
-       alternate method (pass in struct with func ptr for allocating new memory
-       for data structures: default to using heap itself).
-
-Allow heap to grow down as well as up.
-    -- Either as runtime attach() option, or compile two versions of functions.

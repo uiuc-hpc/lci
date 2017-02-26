@@ -89,8 +89,8 @@ static int size = 0;
 void main_task(intptr_t arg)
 {
   int i = 0;
-  r_buf1 = (char*)MPIV_Alloc(MYBUFSIZE);
-  s_buf1 = (char*)MPIV_Alloc(MYBUFSIZE);
+  r_buf1 = (char*)malloc(MYBUFSIZE);
+  s_buf1 = (char*)malloc(MYBUFSIZE);
   mv_thread sr_threads[THREADS];
   thread_tag_t tags[THREADS];
 
@@ -101,9 +101,10 @@ void main_task(intptr_t arg)
     for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
          size = (size ? size * 2 : 1)) {
       MPI_Barrier(MPI_COMM_WORLD);
-      for (i = 0; i < THREADS; i++)
+      int i = 0;
+      // for (i = 0; i < THREADS; i++)
           sr_threads[i] = MPIV_spawn(i % WORKERS, send_thread, (intptr_t)i);
-      for (i = 0; i < THREADS; i++)
+      // for (i = 0; i < THREADS; i++)
           MPIV_join(sr_threads[i]);
       MPI_Barrier(MPI_COMM_WORLD);
     }
@@ -122,8 +123,8 @@ void main_task(intptr_t arg)
       MPI_Barrier(MPI_COMM_WORLD);
     }
   }
-  MPIV_Free(r_buf1);
-  MPIV_Free(s_buf1);
+  free(r_buf1);
+  free(s_buf1);
 }
 
 void recv_thread(intptr_t arg)
@@ -154,24 +155,19 @@ void recv_thread(intptr_t arg)
    void* buf;
    int len, rank, tag;
 
-  for (i = 0; i < loop + skip; i++) {
+  for (i = val; i < loop + skip; i+=THREADS) {
     // recv
     while (!mv_recv_dequeue_init(mv_hdl, &len, &rank, &tag, &ctxs))
           ;
-    void* b = mv_alloc(len);
-    mv_recv_dequeue_post(mv_hdl, buf, &ctxs);
-    mv_free(buf);
+    void* b = malloc(len);
+    mv_recv_dequeue_post(mv_hdl, b, &ctxs);
+    free(b);
 
     while (!mv_test(&ctxs))
         ;
 
-    // send
-    // for (int j = 0; j < WINDOWS; j++)
-        while (!mv_send_enqueue_init(mv_hdl, s_buf, size, 0, 0, &ctxs))
-            ;
-    // for (int j = 0; j < WINDOWS; j++)
-        // while (!mv_test(&ctxs[j]))
-            // ;
+    while (!mv_send_enqueue_init(mv_hdl, s_buf, size, 0, 0, &ctxs))
+        ;
   }
   sleep(0.5);
 }
@@ -211,16 +207,16 @@ void send_thread(intptr_t arg)
     //for (int j = 0; j < WINDOWS; j++)
     while (!mv_send_enqueue_init(mv_hdl, s_buf, size, 1, 0, &ctxr))
         ;
-    // for (int j = 0; j < WINDOWS; j++)
-        // while (!mv_test(&ctxr[j]))
-            // ;
 
     // recv.
     // for (int j = 0; j < WINDOWS; j++) {
-        while (!mv_recv_dequeue(mv_hdl, &buf, &len, &rank, &tag))
-            ;
-        mv_free(buf);
-    // }
+    while (!mv_recv_dequeue_init(mv_hdl, &len, &rank, &tag, &ctxr))
+        ;
+    void* buf = malloc(len);
+    mv_recv_dequeue_post(mv_hdl, buf, &ctxr);
+    while (!mv_test(&ctxr))
+        ;
+    free(buf);
   }
 
   t_end = MPI_Wtime();

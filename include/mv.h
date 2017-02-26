@@ -330,7 +330,7 @@ MV_EXPORT
 void mv_progress(mvh* mv);
 
 MV_EXPORT
-size_t get_ncores();
+size_t mv_get_ncores();
 
 /**@}*/
 

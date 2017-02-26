@@ -90,8 +90,8 @@ static int size = 0;
 void main_task(intptr_t arg)
 {
   int i = 0;
-  r_buf1 = (char*)MPIV_Alloc(MYBUFSIZE);
-  s_buf1 = (char*)MPIV_Alloc(MYBUFSIZE);
+  r_buf1 = (char*)malloc(MYBUFSIZE);
+  s_buf1 = (char*)malloc(MYBUFSIZE);
   mv_thread sr_threads[THREADS];
   thread_tag_t tags[THREADS];
 
@@ -125,8 +125,8 @@ void main_task(intptr_t arg)
       MPI_Barrier(MPI_COMM_WORLD);
     }
   }
-  MPIV_Free(r_buf1);
-  MPIV_Free(s_buf1);
+  free(r_buf1);
+  free(s_buf1);
 }
 
 void recv_thread(intptr_t arg)

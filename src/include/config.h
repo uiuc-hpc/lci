@@ -21,7 +21,7 @@
 #define POST_MSG_SIZE \
   (SHORT_MSG_SIZE + sizeof(struct packet_header))
 
-#define SERVER_MAX_INLINE (sizeof(struct packet_header) + 8)
+#define SERVER_MAX_INLINE (sizeof(struct packet_header) + 32)
 
 // Using LCRQ or spinlock.
 #define USE_CCQ

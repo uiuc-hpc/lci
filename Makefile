@@ -12,15 +12,8 @@ PREFIX ?= /usr
 SRCDIR = ./src
 OBJDIR ?= ./obj
 
-INCLUDE = -I./include -I./src/include -I./  -I./src/include/umalloc
+INCLUDE = -I./include -I./src/include -I./  -I./src/include/umalloc -I./src/
 CFLAGS += -fPIC -fvisibility=hidden -std=gnu99 $(INCLUDE) $(SERVER) -DUSE_AFFI -D_GNU_SOURCE -pthread
-
-ifeq ($(MV_SERVER), ofi)
-	CFLAGS += -DMV_USE_SERVER_OFI -DAFF_DEBUG
-	LDFLAGS += -lfabric # -L$(HOME)/libfab/lib -lfabric
-else
-	CFLAGS += -DMV_USE_SERVER_IBV
-endif
 
 IBV_INC = -I/opt/ofed/include/ -I$(HOME)/libfab/include
 IBV_LIB = -L/opt/ofed/lib64 -libverbs
@@ -39,11 +32,21 @@ LDFLAGS += -shared -Lstatic -flto $(IBV_LIB) # -llmpe -lmpe
 
 FCONTEXT = mfcontext.o jfcontext.o
 COMM = mv.o mpiv.o progress.o hashtable.o pool.o lcrq.o
-UMALLOC = umalloc/attach.o umalloc/umemalign.o umalloc/ufree.o umalloc/umalloc.o
+DREG = dreg/dreg.o dreg/avl.o
 
 OBJECTS = $(addprefix $(OBJDIR)/, $(COMM))
 
-LIBOBJ = $(OBJECTS) $(addprefix $(OBJDIR)/, $(FCONTEXT)) $(addprefix $(OBJDIR)/, $(UMALLOC))
+LIBOBJ = $(OBJECTS) $(addprefix $(OBJDIR)/, $(FCONTEXT))
+
+ifeq ($(MV_SERVER), ofi)
+	CFLAGS += -DMV_USE_SERVER_OFI -DAFF_DEBUG
+	LDFLAGS += -lfabric # -L$(HOME)/libfab/lib -lfabric
+else
+	CFLAGS += -DMV_USE_SERVER_IBV -DAFF_DEBUG
+	LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
+	MALLOC = $(CTMALLOC)/*.o
+endif
+
 
 LIBRARY = libmv.so
 ARCHIVE = libmv.a
@@ -60,14 +63,18 @@ install: all
 $(OBJDIR)/%.o: $(SRCDIR)/$(notdir %.c)
 	$(MPICC) $(CFLAGS) -c $< -o $@
 
+CTMALLOC = src/ctmalloc
 
-$(LIBRARY): $(LIBOBJ)
-	$(MPICC) $(LDFLAGS) $(LIBOBJ) -o $(LIBRARY)
+ctmalloc:
+	$(MAKE) -C $(CTMALLOC)
+
+$(LIBRARY): $(LIBOBJ) ctmalloc
+	$(MPICC) $(LDFLAGS) $(LIBOBJ) $(MALLOC) -o $(LIBRARY)
 
 
 $(ARCHIVE): $(LIBOBJ)
 	@rm -f $(ARCHIVE)
-	$(AR) q $(ARCHIVE) $(LIBOBJ)
+	$(AR) q $(ARCHIVE) $(LIBOBJ) $(MALLOC)
 	$(RANLIB) $(ARCHIVE)
 
 $(OBJDIR)/jfcontext.o: $(JFCONTEXT)
@@ -77,5 +84,6 @@ $(OBJDIR)/mfcontext.o: $(MFCONTEXT)
 	$(CC) -O3 -c $(MFCONTEXT) -o $(OBJDIR)/mfcontext.o
 
 clean:
-	rm -rf $(OBJDIR)/*.o libmv.a libmv.so
+	$(MAKE) clean -C $(CTMALLOC)
+	rm -rf $(LIBOBJ) libmv.a libmv.so
 

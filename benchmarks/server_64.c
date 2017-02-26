@@ -59,6 +59,7 @@ int main(int argc, char** args)
             times[exp] = MPI_Wtime();
             times_p[exp] = 0;
           }
+
           // memcpy((void*) &p_send->data, src, size);
           for (int k = 0; k < WINDOWS; k++)
             mv_server_send(mv->server, 1-rank, &p_send[k]->data,
@@ -66,8 +67,8 @@ int main(int argc, char** args)
 
           MPI_Barrier(MPI_COMM_WORLD);
 
-          times_p[exp] -= MPI_Wtime();
           count = 0;
+          times_p[exp] -= MPI_Wtime();
           while (count < WINDOWS) {
             count += mv_server_progress_once(mv->server);
           }
@@ -89,11 +90,11 @@ int main(int argc, char** args)
             times[exp] = MPI_Wtime();
             times_p[exp] = 0;
           }
+          MPI_Barrier(MPI_COMM_WORLD);
 
           for (int k = 0; k < WINDOWS; k++)
             mv_server_post_recv(mv->server, p_recv[k]);
 
-          MPI_Barrier(MPI_COMM_WORLD);
 
           count = 0;
           times_p[exp] -= MPI_Wtime();

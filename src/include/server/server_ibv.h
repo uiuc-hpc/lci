@@ -6,6 +6,8 @@
 #include "mv.h"
 #include "mv/affinity.h"
 
+#include "dreg/dreg.h"
+
 #include "infiniband/verbs.h"
 
 #include "mv/profiler.h"
@@ -13,7 +15,7 @@
 #define ALIGNMENT (4096)
 #define MAX_CQ 16
 
-#define IBV_SERVER_DEBUG
+// #define IBV_SERVER_DEBUG
 
 #ifdef IBV_SERVER_DEBUG
 #define IBV_SAFECALL(x)                                      \
@@ -81,7 +83,7 @@ MV_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
                                     void* to, uint32_t rkey, size_t size,
                                     void* ctx);
 MV_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
-                                           void* to, uint32_t rkey, size_t size,
+                                           uintptr_t addr, uint32_t rkey, size_t size,
                                            uint32_t sid, void* ctx);
 MV_INLINE int ibv_server_progress(ibv_server* s);
 
@@ -179,6 +181,36 @@ MV_INLINE void qp_to_rts(struct ibv_qp* qp)
     printf("failed to modify QP state to RTS\n");
     exit(EXIT_FAILURE);
   }
+}
+
+MV_INLINE uintptr_t _real_ibv_reg(ibv_server *s, void* buf, size_t size)
+{
+  int mr_flags =
+      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+  return (uintptr_t) ibv_reg_mr(s->dev_pd, buf, size, mr_flags);
+}
+
+MV_INLINE uintptr_t ibv_dma_reg(ibv_server* s, void *buf, size_t size)
+{
+  return (uintptr_t) dreg_register(s, buf, size);
+}
+
+MV_INLINE int ibv_dma_dereg(uintptr_t mem)
+{
+  dreg_unregister((dreg_entry*) mem);
+  return 1;
+}
+
+MV_INLINE uint32_t ibv_dma_key(uintptr_t mem)
+{
+  // return ((struct ibv_mr*) mem)->rkey;
+  return ((struct ibv_mr*) (((dreg_entry*) mem)->memhandle[0]))->rkey;
+}
+
+MV_INLINE uint32_t ibv_dma_lkey(uintptr_t mem)
+{
+  return ((struct ibv_mr*) (((dreg_entry*) mem)->memhandle[0]))->lkey;
+  // return ((struct ibv_mr*) mem)->lkey;
 }
 
 MV_INLINE void ibv_server_post_recv(ibv_server* s, mv_packet* p)
@@ -305,12 +337,12 @@ MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf,
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr;
 
-  if (size <= server_max_inline && count_inline < 32) {
+  if (size <= server_max_inline) {
     setup_wr(this_wr, (uintptr_t) 0, &list, IBV_WR_SEND,
              IBV_SEND_INLINE | IBV_SEND_SIGNALED);
     IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
     mv_serve_send(s->mv, ctx);
-    count_inline ++;
+    // count_inline ++;
     return 0;
   } else {
     count_inline = 0;
@@ -345,23 +377,25 @@ MV_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
 }
 
 MV_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
-                                           void* to, uint32_t rkey, size_t size,
+                                           uintptr_t addr, uint32_t rkey, size_t size,
                                            uint32_t sid, void* ctx)
 {
   struct ibv_send_wr this_wr;  // = {0};
   struct ibv_send_wr* bad_wr = 0;
 
+  uintptr_t mr = ibv_dma_reg(s, from, size);
+
   struct ibv_sge list = {
       .addr = (uintptr_t)from,   // address
       .length = (unsigned)size,  // length
-      .lkey = s->heap->lkey,     // lkey
+      .lkey = ibv_dma_lkey(mr),
   };
 
   int flags =
       (size <= SERVER_MAX_INLINE ? IBV_SEND_INLINE : 0) | IBV_SEND_SIGNALED;
   setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE_WITH_IMM, flags);
 
-  this_wr.wr.rdma.remote_addr = (uintptr_t)to;
+  this_wr.wr.rdma.remote_addr = addr;
   this_wr.wr.rdma.rkey = rkey;
   this_wr.imm_data = sid;
 
@@ -479,6 +513,8 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr)
     qp_to_rts(s->dev_qp[i]);
   }
 
+  dreg_init();
+
   s->recv_posted = 0;
   s->mv = mv;
   *s_ptr = s;
@@ -531,5 +567,9 @@ MV_INLINE void* ibv_server_heap_ptr(ibv_server* s) { return s->heap_ptr; }
 #define mv_server_post_recv ibv_server_post_recv
 #define mv_server_progress_send_once ibv_progress_send_once
 #define mv_server_progress_recv_once ibv_progress_recv_once
+
+#define mv_server_dma_reg ibv_dma_reg
+#define mv_server_dma_key ibv_dma_key
+#define mv_server_dma_dereg ibv_dma_dereg
 
 #endif
