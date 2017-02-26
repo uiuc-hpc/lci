@@ -41,6 +41,8 @@ LIBOBJ = $(OBJECTS) $(addprefix $(OBJDIR)/, $(FCONTEXT))
 ifeq ($(MV_SERVER), ofi)
 	CFLAGS += -DMV_USE_SERVER_OFI -DAFF_DEBUG
 	LDFLAGS += -lfabric # -L$(HOME)/libfab/lib -lfabric
+	# LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
+	# MALLOC = $(CTMALLOC)/*.o
 else
 	CFLAGS += -DMV_USE_SERVER_IBV -DAFF_DEBUG
 	LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))

@@ -314,10 +314,12 @@ void mv_am_eager2(mvh* mv, int node, void* src, int size, int tag,
                   uint8_t am_fid, uint8_t ps_fid, mv_packet* p);
 
 MV_EXPORT
-void mv_put(mvh* mv, int node, void* dst, void* src, int size);
+void mv_put(mvh* mv, int node, uintptr_t dst, uint32_t rkey,
+            void* src, int size);
 
 MV_EXPORT
-void mv_put_signal(mvh* mv, int node, void* dst, void* src, int size,
+void mv_put_signal(mvh* mv, int node, uintptr_t dst, uint32_t rkey,
+                   void* src, int size,
                    uint32_t sid);
 
 MV_EXPORT

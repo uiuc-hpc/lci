@@ -131,4 +131,16 @@ int free_dma_mem(uintptr_t mem)
 {
   return ibv_dereg_mr((struct ibv_mr*) mem);
 }
+#else
+#if 0
+uintptr_t get_dma_mem(void* server, void* buf, size_t s)
+{
+  return _real_ofi_reg((mv_server*) server, buf, s);
+}
+
+int free_dma_mem(uintptr_t mem)
+{
+  return fi_close((struct fid*) mem);
+}
+#endif
 #endif

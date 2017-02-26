@@ -202,17 +202,16 @@ int mv_recv_dequeue_post(mvh* mv, void* buf, mv_ctx* ctx)
   }
 }
 
-void mv_put(mvh* mv, int node, void* dst, void* src, int size)
+void mv_put(mvh* mv, int node, uintptr_t addr, uint32_t rkey, void* src, int size)
 {
-  mv_server_rma(mv->server, node, src, dst,
-      mv_server_heap_rkey(mv->server, node), size, 0);
+  mv_server_rma(mv->server, node, src, addr, rkey, size, 0);
 }
 
-void mv_put_signal(mvh* mv, int node, void* dst, void* src, int size,
-    uint32_t sid)
+void mv_put_signal(mvh* mv, int node, uintptr_t dst, uint32_t rkey,
+    void* src, int size, uint32_t sid)
 {
-  mv_server_rma_signal(mv->server, node, src, (uintptr_t) dst,
-      mv_server_heap_rkey(mv->server, node), size, sid, 0);
+  mv_server_rma_signal(mv->server, node, src, dst,
+      rkey, size, sid, 0);
 }
 
 void mv_progress(mvh* mv)
