@@ -239,6 +239,71 @@ int mv_recv_queue_post(mvh* mv, void* buf, mv_ctx* ctx);
 /**@} End queue group */
 
 /**
+* @defgroup rdma-api API for one-sided communication
+* @{
+*/
+
+/**
+* @brief create an address for RMA.
+*
+* @param mv
+* @param buf
+* @param size
+* @param rctx_ptr
+*
+* @return
+*/
+MV_EXPORT
+int mv_rma_create(mvh* mv, void* buf, size_t size, mv_addr** rctx_ptr);
+
+/**
+* @brief performs an RDMA PUT to dst (created by mv_rma_create).
+*
+* @param mv
+* @param src
+* @param size
+* @param rank
+* @param dst
+* @param ctx
+*
+* @return 1 if success, 0 otherwise.
+*/
+MV_EXPORT
+int mv_send_put(mvh* mv, void* src, int size, int rank, mv_addr* dst,
+                mv_ctx* ctx);
+
+/**
+* @brief assign a ctx to an rma handle for receiving signal.
+*
+* @param mv
+* @param rctx
+* @param ctx
+*
+* @return
+*/
+MV_EXPORT
+int mv_recv_put_signal(mvh* mv, mv_addr* rctx, mv_ctx* ctx);
+
+/**
+* @brief  performs an RDMA PUT to dst, and also signal a handle.
+*
+* @param mv
+* @param src
+* @param size
+* @param rank
+* @param dst
+* @param ctx
+*
+* @return
+*/
+MV_EXPORT
+int mv_send_put_signal(mvh* mv, void* src, int size, int rank, mv_addr* dst,
+                       mv_ctx* ctx);
+
+/**@} end rdma-api */
+
+
+/**
  * @defgroup control Control APIs
  * @{
  */
@@ -316,70 +381,6 @@ void mv_free(void* buffer);
 /**@} end control */
 
 /**@} end low-level */
-
-/**
-* @defgroup rdma-api API for one-sided communication
-* @{
-*/
-
-/**
-* @brief create an address for RMA.
-*
-* @param mv
-* @param buf
-* @param size
-* @param rctx_ptr
-*
-* @return
-*/
-MV_EXPORT
-int mv_rma_create(mvh* mv, void* buf, size_t size, mv_addr** rctx_ptr);
-
-/**
-* @brief performs an RDMA PUT to dst (created by mv_rma_create).
-*
-* @param mv
-* @param src
-* @param size
-* @param rank
-* @param dst
-* @param ctx
-*
-* @return 1 if success, 0 otherwise.
-*/
-MV_EXPORT
-int mv_send_put(mvh* mv, void* src, int size, int rank, mv_addr* dst,
-                mv_ctx* ctx);
-
-/**
-* @brief assign a ctx to an rma handle for receiving signal.
-*
-* @param mv
-* @param rctx
-* @param ctx
-*
-* @return
-*/
-MV_EXPORT
-int mv_recv_put_signal(mvh* mv, mv_addr* rctx, mv_ctx* ctx);
-
-/**
-* @brief  performs an RDMA PUT to dst, and also signal a handle.
-*
-* @param mv
-* @param src
-* @param size
-* @param rank
-* @param dst
-* @param ctx
-*
-* @return
-*/
-MV_EXPORT
-int mv_send_put_signal(mvh* mv, void* src, int size, int rank, mv_addr* dst,
-                       mv_ctx* ctx);
-
-/**@} end rdma-api */
 
 /**
 * @defgroup exp-api Experimental API
