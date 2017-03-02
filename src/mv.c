@@ -262,21 +262,3 @@ size_t mv_get_ncores()
 {
   return sysconf(_SC_NPROCESSORS_ONLN) / THREAD_PER_CORE;
 }
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <dlfcn.h>
-
-#define DECLARE_HOOK(mmap) \
-  int munmap(void *addr, size_t length) __attribute__((weak,alias("hook_"#mmap)));\
-typedef void *(*mmap_ptr_t)(void *, size_t);
-
-#define DEFINE_HOOK(mmap)                                               \
-  void *hook_##mmap(void *addr, size_t length) { \
-    printf("Inside %s\n", __FUNCTION__);                                \
-    mmap_ptr_t orig_mmap = (mmap_ptr_t)dlsym(RTLD_NEXT, #mmap);               \
-    return orig_mmap(addr, length);            \
-  }
-
-DECLARE_HOOK(munmap)
-DEFINE_HOOK(munmap)
