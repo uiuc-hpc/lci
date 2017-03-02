@@ -265,7 +265,7 @@ MV_EXPORT
 void mv_close(mvh* handle);
 
 /**
-* @brief Blocking wait on sync, for communication to finish
+* @brief Blocking wait on sync, for communication to finish.
 *
 * @param ctx
 * @param sync
@@ -288,7 +288,11 @@ void mv_wait(mv_ctx* ctx, mv_sync* sync)
 * @return 1 if finished, 0 otherwise.
 */
 MV_INLINE
-int mv_test(mv_ctx* ctx) { return (ctx->type == REQ_DONE); }
+int mv_test(mv_ctx* ctx)
+{
+  return (ctx->type == REQ_DONE);
+}
+
 /**
 * @brief Allocate memory for communication
 *
@@ -314,7 +318,7 @@ void mv_free(void* buffer);
 /**@} end low-level */
 
 /**
-* @defgroup exp-api Experimental API
+* @defgroup rdma-api API for one-sided communication
 * @{
 */
 
@@ -374,6 +378,13 @@ int mv_recv_put_signal(mvh* mv, mv_addr* rctx, mv_ctx* ctx);
 MV_EXPORT
 int mv_send_put_signal(mvh* mv, void* src, int size, int rank, mv_addr* dst,
                        mv_ctx* ctx);
+
+/**@} end rdma-api */
+
+/**
+* @defgroup exp-api Experimental API
+* @{
+*/
 
 MV_EXPORT
 void* mv_heap_ptr(mvh* mv);
