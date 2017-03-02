@@ -41,10 +41,11 @@ int main(int argc, char** args)
     memset(buffer, 'A', len);
     if (rank == 0) {
       double t1;
+      void *recv = malloc(len);
       for (int i = 0; i < skip + total; i++) {
         if (i == skip) t1 = MPI_Wtime();
         // send
-        while (!mv_send_enqueue_init(mv, buffer, len, 1, 0, &ctx))
+        while (!mv_send_queue(mv, buffer, len, 1, 0, &ctx))
           mv_progress(mv);
         // mv_send_enqueue_post(mv, &ctx, 0);
         while (!mv_test(&ctx))
@@ -52,11 +53,10 @@ int main(int argc, char** args)
 
         int rank, tag, size;
         //recv
-        while (!mv_recv_dequeue_init(mv, &size, &rank, &tag, &ctx)) {
+        while (!mv_recv_queue(mv, &size, &rank, &tag, &ctx)) {
           mv_progress(mv);
         }
-        void *recv = malloc(size);
-        mv_recv_dequeue_post(mv, recv, &ctx);
+        mv_recv_queue_post(mv, recv, &ctx);
         while (!mv_test(&ctx)) {
           mv_progress(mv);
         }
@@ -67,18 +67,18 @@ int main(int argc, char** args)
           for (int j = 0; j < size; j++) {
             assert(((char*)recv)[j] == 'A');
           }
-        free(recv);
       }
+      free(recv);
       printf("%d \t %.5f\n", len, (MPI_Wtime() - t1)/total / 2 * 1e6);
     } else {
+      void* recv = malloc(len);
       for (int i = 0; i < skip + total; i++) {
         int rank, tag, size;
         //recv
-        while (!mv_recv_dequeue_init(mv, &size, &rank, &tag, &ctx)) {
+        while (!mv_recv_queue(mv, &size, &rank, &tag, &ctx)) {
           mv_progress(mv);
         }
-        void* recv = malloc(size);
-        mv_recv_dequeue_post(mv, recv, &ctx);
+        mv_recv_queue_post(mv, recv, &ctx);
         while (!mv_test(&ctx)) {
           mv_progress(mv);
         }
@@ -86,9 +86,8 @@ int main(int argc, char** args)
           for (int j = 0; j < size; j++) {
             assert(((char*)recv)[j] == 'A');
           }
-        free(recv);
         // send
-        while (!mv_send_enqueue_init(mv, buffer, len, 0, i, &ctx))
+        while (!mv_send_queue(mv, buffer, len, 0, i, &ctx))
           mv_progress(mv);
         // mv_send_enqueue_post(mv, &ctx, 0);
         while (!mv_test(&ctx))

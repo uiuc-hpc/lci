@@ -41,7 +41,8 @@ LIBOBJ = $(OBJECTS) $(addprefix $(OBJDIR)/, $(FCONTEXT))
 ifeq ($(MV_SERVER), ofi)
 	CFLAGS += -DMV_USE_SERVER_OFI -DAFF_DEBUG
 	LDFLAGS += -lfabric # -L$(HOME)/libfab/lib -lfabric
-	# LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
+	LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
+	# MALLOC = -L$(HOME)/tcmalloc/lib -ltcmalloc
 	# MALLOC = $(CTMALLOC)/*.o
 else
 	CFLAGS += -DMV_USE_SERVER_IBV -DAFF_DEBUG
@@ -65,12 +66,7 @@ install: all
 $(OBJDIR)/%.o: $(SRCDIR)/$(notdir %.c)
 	$(MPICC) $(CFLAGS) -c $< -o $@
 
-CTMALLOC = src/ctmalloc
-
-ctmalloc:
-	$(MAKE) -C $(CTMALLOC)
-
-$(LIBRARY): $(LIBOBJ) ctmalloc
+$(LIBRARY): $(LIBOBJ)
 	$(MPICC) $(LDFLAGS) $(LIBOBJ) $(MALLOC) -o $(LIBRARY)
 
 
@@ -86,6 +82,5 @@ $(OBJDIR)/mfcontext.o: $(MFCONTEXT)
 	$(CC) -O3 -c $(MFCONTEXT) -o $(OBJDIR)/mfcontext.o
 
 clean:
-	$(MAKE) clean -C $(CTMALLOC)
 	rm -rf $(LIBOBJ) libmv.a libmv.so
 

@@ -13,8 +13,7 @@
 #include <rdma/fi_rma.h>
 
 #include "mv/macro.h"
-
-// #include "dreg/dreg.h"
+#include "dreg/dreg.h"
 
 // #define SERVER_FI_DEBUG
 
@@ -86,22 +85,22 @@ MV_INLINE uintptr_t _real_ofi_reg(ofi_server *s, void* buf, size_t size)
   return (uintptr_t) mr;
 }
 
-MV_INLINE uintptr_t ofi_dma_reg(ofi_server* s, void *buf, size_t size)
+MV_INLINE uintptr_t ofi_rma_reg(ofi_server* s, void *buf, size_t size)
 {
-  // return (uintptr_t) dreg_register(s, buf, size);
-  return _real_ofi_reg(s, buf, size);
+  return (uintptr_t) dreg_register(s, buf, size);
+  // return _real_ofi_reg(s, buf, size);
 }
 
-MV_INLINE int ofi_dma_dereg(uintptr_t mem)
+MV_INLINE int ofi_rma_dereg(uintptr_t mem)
 {
-  // dreg_unregister((dreg_entry*) mem);
-  return fi_close((struct fid*) mem);
+  dreg_unregister((dreg_entry*) mem); return 1;
+  // return fi_close((struct fid*) mem);
 }
 
-MV_INLINE uint32_t ofi_dma_key(uintptr_t mem)
+MV_INLINE uint32_t ofi_rma_key(uintptr_t mem)
 {
-  return fi_mr_key((struct fid_mr*) mem);
-  // return fi_mr_key((struct fid_mr*) (((dreg_entry*) mem)->memhandle[0]));
+  // return fi_mr_key((struct fid_mr*) mem);
+  return fi_mr_key((struct fid_mr*) (((dreg_entry*) mem)->memhandle[0]));
 }
 
 MV_INLINE void ofi_init(mvh* mv, size_t heap_size, ofi_server** s_ptr)
@@ -141,6 +140,8 @@ MV_INLINE void ofi_init(mvh* mv, size_t heap_size, ofi_server** s_ptr)
   // FI_SAFECALL(
   //    fi_ep_bind(s->ep, (fid_t)s->scq, FI_SEND | FI_TRANSMIT));
   FI_SAFECALL(fi_ep_bind(s->ep, (fid_t)s->rcq, FI_SEND | FI_TRANSMIT | FI_RECV));
+
+  dreg_init();
 
   // Get memory for heap.
   s->heap = 0;  // std::move(unique_ptr<char[]>(new char[heap_size]));
@@ -186,8 +187,6 @@ MV_INLINE void ofi_init(mvh* mv, size_t heap_size, ofi_server** s_ptr)
       s->heap_addr[i] = *(uintptr_t*)((char*)destaddr + addrlen);
     }
   }
-
-  // dreg_init();
 
   s->recv_posted = 0;
   s->mv = mv;
@@ -318,7 +317,7 @@ MV_INLINE void ofi_write_rma(ofi_server* s, int rank, void* from, uintptr_t addr
                              uint32_t rkey, size_t size, void* ctx)
 {
   FI_SAFECALL(fi_write(s->ep, from, size, 0, s->fi_addr[rank],
-                       addr, rkey, ctx));
+                       0, rkey, ctx));
 }
 
 MV_INLINE void ofi_write_rma_signal(ofi_server* s, int rank, void* buf,
@@ -350,8 +349,8 @@ MV_INLINE void* ofi_heap_ptr(ofi_server* s) { return s->heap; }
 #define mv_server_post_recv ofi_post_recv
 #define mv_server_progress_once ofi_progress_once
 
-#define mv_server_dma_reg ofi_dma_reg
-#define mv_server_dma_key ofi_dma_key
-#define mv_server_dma_dereg ofi_dma_dereg
+#define mv_server_rma_reg ofi_rma_reg
+#define mv_server_rma_key ofi_rma_key
+#define mv_server_rma_dereg ofi_rma_dereg
 
 #endif

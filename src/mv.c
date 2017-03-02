@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include "pool.h"
 
-// #include "dreg/dreg.h"
+#include "dreg/dreg.h"
 
 size_t server_max_inline;
 __thread int mv_core_id = -1;
@@ -61,13 +61,21 @@ void mv_open(int* argc, char*** args, size_t heap_size, mvh** ret)
   // Prepare the list of packet.
   uint32_t npacket = MAX(MAX_PACKET, mv->size * 4);
   uintptr_t sbuf_addr = (uintptr_t) mv_heap_ptr(mv);
-  uintptr_t base_packet = (uintptr_t) sbuf_addr + 4096; //- sizeof(struct packet_context);
+  uintptr_t base_packet = (uintptr_t) sbuf_addr + 4096 - sizeof(struct packet_context);
   mv_pool_create(&mv->pkpool);
 
   for (unsigned i = 0; i < npacket; i++) {
     mv_packet* p = (mv_packet*) (base_packet + i * MV_PACKET_SIZE);
     p->context.poolid = 0; // default to the first pool -- usually server.
     mv_pool_put(mv->pkpool, p);
+  }
+
+  // Prepare the list of rma_ctx.
+  uintptr_t base_rma = (base_packet + npacket * MV_PACKET_SIZE);
+  mv_pool_create(&mv->rma_pool);
+  for(unsigned i = 0; i < MAX_PACKET; i++) {
+    struct mv_rma_ctx* rma_ctx = (struct mv_rma_ctx*) (base_rma + i * sizeof(struct mv_rma_ctx));
+    mv_pool_put(mv->rma_pool, rma_ctx);
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -87,7 +95,7 @@ void mv_close(mvh* mv)
   MPI_Finalize();
 }
 
-int mv_send_init(mvh* mv, const void* src, int size, int rank, int tag, mv_ctx* ctx)
+int mv_send(mvh* mv, const void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
   if (size <= (int) SHORT_MSG_SIZE) {
     mv_packet* p = mv_pool_get_nb(mv->pkpool);
@@ -108,7 +116,7 @@ int mv_send_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
     return mvi_send_rdz_post(mv, ctx, sync);
 }
 
-int mv_recv_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
+int mv_recv(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
   if (size <= (int) SHORT_MSG_SIZE)
     mvi_recv_eager_init(mv, src, size, rank, tag, ctx);
@@ -128,7 +136,7 @@ int mv_recv_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
     return mvi_recv_rdz_post(mv, ctx, sync);
 }
 
-int mv_send_enqueue_init(mvh* mv, const void* src, int size, int rank, int tag, mv_ctx* ctx)
+int mv_send_queue(mvh* mv, const void* src, int size, int rank, int tag, mv_ctx* ctx)
 {
   mv_packet* p = (mv_packet*) mv_pool_get_nb(mv->pkpool);
   if (!p) { ctx->type = REQ_NULL; return 0; };
@@ -149,13 +157,13 @@ int mv_send_enqueue_init(mvh* mv, const void* src, int size, int rank, int tag, 
   return 1;
 }
 
-int mv_send_enqueue_post(mvh* mv __UNUSED__, mv_ctx* ctx, mv_sync *sync)
+int mv_send_queue_post(mvh* mv __UNUSED__, mv_ctx* ctx, mv_sync *sync)
 {
   ctx->sync = sync;
   return 0;
 }
 
-int mv_recv_dequeue_init(mvh* mv, int* size, int* rank, int *tag, mv_ctx* ctx)
+int mv_recv_queue(mvh* mv, int* size, int* rank, int *tag, mv_ctx* ctx)
 {
 #ifndef USE_CCQ
   mv_packet* p = (mv_packet*) dq_pop_bot(&mv->queue);
@@ -173,7 +181,7 @@ int mv_recv_dequeue_init(mvh* mv, int* size, int* rank, int *tag, mv_ctx* ctx)
   return 1;
 }
 
-int mv_recv_dequeue_post(mvh* mv, void* buf, mv_ctx* ctx)
+int mv_recv_queue_post(mvh* mv, void* buf, mv_ctx* ctx)
 {
   mv_packet* p = (mv_packet*) ctx->packet;
   if (p->data.header.proto == MV_PROTO_SHORT_ENQUEUE) {
@@ -184,16 +192,16 @@ int mv_recv_dequeue_post(mvh* mv, void* buf, mv_ctx* ctx)
   } else {
 #if 0
     memcpy(buf, (void*) p->data.content.rdz.tgt_addr, p->data.header.size);
-    free_dma_mem(p->data.content.rdz.mem);
+    free_rma_mem(p->data.content.rdz.mem);
     free((void*) p->data.content.rdz.tgt_addr);
     mv_pool_put(mv->pkpool, p);
 #else
     int rank = p->data.header.from;
     p->context.req = (uintptr_t) ctx;
-    p->context.dma_mem = mv_server_dma_reg(mv->server, buf, p->data.header.size);
+    uintptr_t rma_mem = mv_server_rma_reg(mv->server, buf, p->data.header.size);
     p->data.header.proto = MV_PROTO_RTR_ENQUEUE;
     p->data.content.rdz.tgt_addr = (uintptr_t) buf;
-    p->data.content.rdz.rkey = mv_server_dma_key(p->context.dma_mem);
+    p->data.content.rdz.rkey = mv_server_rma_key(rma_mem);
     p->data.content.rdz.comm_id = (uint32_t) ((uintptr_t) p - (uintptr_t) mv_heap_ptr(mv));
     mv_server_send(mv->server, rank, &p->data,
         sizeof(struct packet_header) + sizeof(struct mv_rdz), &p->context);
@@ -202,16 +210,47 @@ int mv_recv_dequeue_post(mvh* mv, void* buf, mv_ctx* ctx)
   }
 }
 
-void mv_put(mvh* mv, int node, uintptr_t addr, uint32_t rkey, void* src, int size)
+int mv_send_put(mvh* mv, void* src, int size, int rank, mv_addr* dst, mv_ctx* ctx)
 {
-  mv_server_rma(mv->server, node, src, addr, rkey, size, 0);
+  mv_packet* p = (mv_packet*) mv_pool_get_nb(mv->pkpool);
+  if (!p) { ctx->type = REQ_NULL; return 0; };
+  struct mv_rma_ctx* dctx = (struct mv_rma_ctx*) dst;
+  ctx->type = REQ_PENDING;
+  p->context.req = (uintptr_t) ctx;
+  p->data.header.proto = MV_PROTO_LONG_PUT;
+  mv_server_rma(mv->server, rank, src, dctx->addr, dctx->rkey, size, &p->context);
+  return 1;
 }
 
-void mv_put_signal(mvh* mv, int node, uintptr_t dst, uint32_t rkey,
-    void* src, int size, uint32_t sid)
+int mv_send_put_signal(mvh* mv, void* src, int size, int rank, mv_addr* dst, mv_ctx* ctx)
 {
-  mv_server_rma_signal(mv->server, node, src, dst,
-      rkey, size, sid, 0);
+  mv_packet* p = (mv_packet*) mv_pool_get_nb(mv->pkpool);
+  if (!p) { ctx->type = REQ_NULL; return 0; };
+  struct mv_rma_ctx* dctx = (struct mv_rma_ctx*) dst;
+  ctx->type = REQ_PENDING;
+  p->context.req = (uintptr_t) ctx;
+  p->data.header.proto = MV_PROTO_LONG_PUT;
+  mv_server_rma_signal(mv->server, rank, src, dctx->addr, dctx->rkey, size,
+      RMA_SIGNAL_SIMPLE | dctx->sid, &p->context);
+  return 1;
+}
+
+int mv_rma_create(mvh* mv, void* buf, size_t size, mv_addr** rctx_ptr)
+{
+  struct mv_rma_ctx* rctx = (struct mv_rma_ctx*) mv_pool_get(mv->rma_pool);
+  uintptr_t rma = mv_server_rma_reg(mv->server, buf, size);
+  rctx->addr = (uintptr_t) buf;
+  rctx->rkey = mv_server_rma_key(rma);
+  rctx->sid = (uint32_t) ((uintptr_t) rctx - (uintptr_t) mv_heap_ptr(mv));
+  *rctx_ptr = rctx;
+  return 1;
+}
+
+int mv_recv_put_signal(mvh* mv, mv_addr* rctx, mv_ctx* ctx)
+{
+  rctx->req = (uintptr_t) ctx;
+  ctx->type = REQ_PENDING;
+  return 1;
 }
 
 void mv_progress(mvh* mv)
@@ -223,3 +262,21 @@ size_t mv_get_ncores()
 {
   return sysconf(_SC_NPROCESSORS_ONLN) / THREAD_PER_CORE;
 }
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <dlfcn.h>
+
+#define DECLARE_HOOK(mmap) \
+  int munmap(void *addr, size_t length) __attribute__((weak,alias("hook_"#mmap)));\
+typedef void *(*mmap_ptr_t)(void *, size_t);
+
+#define DEFINE_HOOK(mmap)                                               \
+  void *hook_##mmap(void *addr, size_t length) { \
+    printf("Inside %s\n", __FUNCTION__);                                \
+    mmap_ptr_t orig_mmap = (mmap_ptr_t)dlsym(RTLD_NEXT, #mmap);               \
+    return orig_mmap(addr, length);            \
+  }
+
+DECLARE_HOOK(munmap)
+DEFINE_HOOK(munmap)

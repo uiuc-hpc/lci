@@ -58,7 +58,7 @@ static void mv_recv_rtr_queue(mvh* mv, mv_packet* p)
       p->data.content.rdz.tgt_addr,
       p->data.content.rdz.rkey,
       ctx->size,
-      (1 << 31) | (p->data.content.rdz.comm_id), &p->context);
+      RMA_SIGNAL_QUEUE | (p->data.content.rdz.comm_id), &p->context);
 }
 
 static void mv_recv_rts_queue(mvh* mv, mv_packet* p)
@@ -108,7 +108,14 @@ static void mv_sent_short_wait(mvh* mv, mv_packet* p_ctx)
   mv_pool_put_to(mv->pkpool, p_ctx, p_ctx->context.poolid);
 }
 
-const mv_proto_spec_t mv_proto[10] = {
+static void mv_sent_put(mvh* mv, mv_packet* p_ctx)
+{
+  mv_ctx* req = (mv_ctx*) p_ctx->context.req;
+  req->type = REQ_DONE;
+  mv_pool_put(mv->pkpool, p_ctx);
+}
+
+const mv_proto_spec_t mv_proto[11] = {
   {0, 0}, // Reserved for doing nothing.
   {mv_recv_short_match, MV_PROTO_DONE},
   {mv_recv_short_match, mv_sent_short_wait},
@@ -119,8 +126,11 @@ const mv_proto_spec_t mv_proto[10] = {
   {mv_recv_rts_queue, MV_PROTO_DONE},
   {mv_recv_rtr_queue, 0},
   {0, mv_sent_rdz_enqueue_done},
+  {0, mv_sent_put},
 };
 
+
+//FIXME(danghvu): Experimental stuff to work-around memory registration.
 #ifdef SERVER_IBV_H
 uintptr_t get_dma_mem(void* server, void* buf, size_t s)
 {
@@ -132,7 +142,7 @@ int free_dma_mem(uintptr_t mem)
   return ibv_dereg_mr((struct ibv_mr*) mem);
 }
 #else
-#if 0
+#if 1
 uintptr_t get_dma_mem(void* server, void* buf, size_t s)
 {
   return _real_ofi_reg((mv_server*) server, buf, s);

@@ -51,6 +51,8 @@ enum mv_proto_name {
   MV_PROTO_RTS_ENQUEUE,
   MV_PROTO_RTR_ENQUEUE,
   MV_PROTO_LONG_ENQUEUE,
+
+  MV_PROTO_LONG_PUT,
 };
 
 struct __attribute__((__packed__)) packet_header {
@@ -63,6 +65,7 @@ struct __attribute__((__packed__)) packet_header {
 struct __attribute__((__packed__)) mv_rdz {
   uintptr_t sreq;
   uintptr_t tgt_addr;
+  uint32_t tgt_offset;
   uint32_t rkey;
   uint32_t comm_id;
 };
@@ -96,6 +99,15 @@ struct mv_ctx {
   mv_fcb complete;
 } __attribute__((aligned(64)));
 
+struct mv_rma_ctx {
+  uintptr_t req;
+  uint64_t addr;
+  uint32_t rkey;
+  uint32_t sid;
+} __attribute__((aligned(64)));
+
+typedef struct mv_rma_ctx mv_addr;
+
 /**
  * @defgroup low-level Low-level API
  * @{
@@ -119,7 +131,7 @@ struct mv_ctx {
 *
 */
 MV_EXPORT
-int mv_send_init(mvh* mv, const void* src, int size, int rank, int tag, mv_ctx* ctx);
+int mv_send(mvh* mv, const void* src, int size, int rank, int tag, mv_ctx* ctx);
 
 /**
 * @brief Try to finish send, or insert sync for waking up.
@@ -148,7 +160,7 @@ int mv_send_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 *
 */
 MV_EXPORT
-int mv_recv_init(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx);
+int mv_recv(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx);
 
 /**
 * @brief Try to match and insert sync obj for waking up.
@@ -170,7 +182,7 @@ int mv_recv_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
  */
 
 /**
-* @brief Initialize a rdz send, enqueue at destination.
+* @brief Initialize a rdz send, queue at destination.
 *
 * @param mv
 * @param src
@@ -183,7 +195,7 @@ int mv_recv_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 *
 */
 MV_EXPORT
-int mv_send_enqueue_init(mvh* mv, const void* src, int size, int rank, int tag,
+int mv_send_queue(mvh* mv, const void* src, int size, int rank, int tag,
                          mv_ctx* ctx);
 
 /**
@@ -196,10 +208,10 @@ int mv_send_enqueue_init(mvh* mv, const void* src, int size, int rank, int tag,
 * @return 1 if finished, 0 otherwise.
 */
 MV_EXPORT
-int mv_send_enqueue_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
+int mv_send_queue_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 
 /**
-* @brief Try to dequeue, for message send with send-enqueue.
+* @brief Try to queue, for message send with send-queue.
 *
 * @param mv
 * @param size
@@ -210,10 +222,10 @@ int mv_send_enqueue_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 * @return 1 if got data, 0 otherwise.
 */
 MV_EXPORT
-int mv_recv_dequeue_init(mvh* mv, int *size, int *rank, int *tag, mv_ctx* ctx);
+int mv_recv_queue(mvh* mv, int *size, int *rank, int *tag, mv_ctx* ctx);
 
 /**
-* @brief Try to finish a dequeue op, for message send with send-enqueue.
+* @brief Try to finish a queue op, for message send with send-queue.
 *
 * @param mv
 * @param buf An allocated buffer (with mv_alloc).
@@ -222,7 +234,7 @@ int mv_recv_dequeue_init(mvh* mv, int *size, int *rank, int *tag, mv_ctx* ctx);
 * @return 1 if finished, 0 otherwise.
 */
 MV_EXPORT
-int mv_recv_dequeue_post(mvh* mv, void* buf, mv_ctx* ctx);
+int mv_recv_queue_post(mvh* mv, void* buf, mv_ctx* ctx);
 
 /**@} End queue group */
 
@@ -306,21 +318,66 @@ void mv_free(void* buffer);
 * @{
 */
 
+/**
+* @brief create an address for RMA.
+*
+* @param mv
+* @param buf
+* @param size
+* @param rctx_ptr
+*
+* @return
+*/
 MV_EXPORT
-void mv_am_eager(mvh* mv, int node, void* src, int size, int tag, uint8_t fid);
+int mv_rma_create(mvh* mv, void* buf, size_t size, mv_addr** rctx_ptr);
 
-MV_EXPORT
-void mv_am_eager2(mvh* mv, int node, void* src, int size, int tag,
-                  uint8_t am_fid, uint8_t ps_fid, mv_packet* p);
 
+/**
+* @brief performs an RDMA PUT to dst (created by mv_rma_create).
+*
+* @param mv
+* @param src
+* @param size
+* @param rank
+* @param dst
+* @param ctx
+*
+* @return 1 if success, 0 otherwise.
+*/
 MV_EXPORT
-void mv_put(mvh* mv, int node, uintptr_t dst, uint32_t rkey,
-            void* src, int size);
+int mv_send_put(mvh* mv, void* src, int size, int rank,
+                     mv_addr* dst, mv_ctx* ctx);
 
+
+/**
+* @brief assign a ctx to an rma handle for receiving signal.
+*
+* @param mv
+* @param rctx
+* @param ctx
+*
+* @return
+*/
 MV_EXPORT
-void mv_put_signal(mvh* mv, int node, uintptr_t dst, uint32_t rkey,
-                   void* src, int size,
-                   uint32_t sid);
+int mv_recv_put_signal(mvh* mv, mv_addr* rctx, mv_ctx* ctx);
+
+
+/**
+* @brief  performs an RDMA PUT to dst, and also signal a handle.
+*
+* @param mv
+* @param src
+* @param size
+* @param rank
+* @param dst
+* @param ctx
+*
+* @return
+*/
+MV_EXPORT
+int mv_send_put_signal(mvh* mv, void* src, int size, int rank,
+                       mv_addr* dst, mv_ctx* ctx);
+
 
 MV_EXPORT
 void* mv_heap_ptr(mvh* mv);

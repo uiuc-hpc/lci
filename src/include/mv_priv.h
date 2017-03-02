@@ -10,7 +10,7 @@
 #include "dequeue.h"
 
 #ifdef MV_USE_SERVER_OFI
-#define SERVER_CONTEXT char __padding__[64 - 24];
+#define SERVER_CONTEXT char __padding__[64 - 16];
 typedef struct ofi_server mv_server;
 #endif
 
@@ -24,6 +24,7 @@ struct mv_struct {
   int size;
   mv_server* server;
   mv_pool* pkpool;
+  mv_pool* rma_pool;
   mv_hash* tbl;
 #ifndef USE_CCQ
   struct dequeue queue;
@@ -34,7 +35,8 @@ struct mv_struct {
   mv_am_func_t am_table[128];
 } __attribute__((aligned(64)));
 
-extern umalloc_heap_t* mv_heap;
+#define RMA_SIGNAL_SIMPLE (1 << 30)
+#define RMA_SIGNAL_QUEUE (1 << 31)
 
 #include "packet.h"
 #include "pool.h"

@@ -18,6 +18,8 @@ else
 	LDFLAGS += -libverbs
 endif
 
+LDFLAGS += -L$(HOME)/tcmalloc/lib -ltcmalloc
+
 ### FOR TESTING HASH TABLE ###
 #FACEBOOK_INC = -I$(HOME)/facebook/include -I$(HOME)/glog/include -I$(HOME)/folly/folly/double-conversion #-DNDEBUG
 #FACEBOOK_LIB = -L$(HOME)/gflags/lib -lgflags -L$(HOME)/glog/lib -lglog -L$(HOME)/facebook/lib -lfolly -lpthread
