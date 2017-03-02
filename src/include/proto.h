@@ -3,17 +3,17 @@
 
 // #include "dreg/dreg.h"
 
-#define INIT_CTX(ctx)        \
-  {                          \
-    ctx->buffer = (void*)src;\
-    ctx->size = size;        \
-    ctx->rank = rank;        \
-    ctx->tag = tag;          \
-    ctx->type = REQ_PENDING; \
+#define INIT_CTX(ctx)         \
+  {                           \
+    ctx->buffer = (void*)src; \
+    ctx->size = size;         \
+    ctx->rank = rank;         \
+    ctx->tag = tag;           \
+    ctx->type = REQ_PENDING;  \
   }
 
-#define MV_PROTO_DONE ((mv_am_func_t) -1)
-#define MV_PROTO_DATA_DONE ((mv_am_func_t) -2)
+#define MV_PROTO_DONE ((mv_am_func_t)-1)
+#define MV_PROTO_DATA_DONE ((mv_am_func_t)-2)
 
 typedef struct {
   mv_am_func_t func_am;
@@ -38,7 +38,8 @@ int mvi_am_generic(mvh* mv, int node, const void* src, int size, int tag,
   p->data.header.size = size;
   memcpy(p->data.content.buffer, src, size);
   return mv_server_send(mv->server, node, &p->data,
-                        (size_t)(size + sizeof(struct packet_header)), &p->context);
+                        (size_t)(size + sizeof(struct packet_header)),
+                        &p->context);
 }
 
 MV_INLINE
@@ -88,9 +89,8 @@ MV_INLINE void proto_complete_rndz(mvh* mv, mv_packet* p, mv_ctx* ctx)
   p->data.header.proto = MV_PROTO_LONG_MATCH;
   p->data.content.rdz.sreq = (uintptr_t)ctx;
   mv_server_rma_signal(mv->server, p->data.header.from, ctx->buffer,
-      p->data.content.rdz.tgt_addr,
-      p->data.content.rdz.rkey, ctx->size,
-      p->data.content.rdz.comm_id, p);
+                       p->data.content.rdz.tgt_addr, p->data.content.rdz.rkey,
+                       ctx->size, p->data.content.rdz.comm_id, p);
 }
 
 MV_INLINE void mvi_send_rdz_init(mvh* mv, const void* src, int size, int rank,
@@ -120,20 +120,21 @@ MV_INLINE void mvi_recv_rdz_init(mvh* mv, void* src, int size, int rank,
                                  int tag, mv_ctx* ctx, mv_packet* p)
 {
   INIT_CTX(ctx);
-  p->context.req = (uintptr_t) ctx;
+  p->context.req = (uintptr_t)ctx;
   uintptr_t reg = mv_server_rma_reg(mv->server, src, size);
 
   p->data.header.from = mv->me;
   p->data.header.size = size;
   p->data.header.tag = tag;
   p->data.header.proto = MV_PROTO_RTR_MATCH;
-  p->data.content.rdz.comm_id = (uint32_t) ((uintptr_t) p - (uintptr_t) mv_heap_ptr(mv));
-  p->data.content.rdz.tgt_addr = (uintptr_t) src;
+  p->data.content.rdz.comm_id =
+      (uint32_t)((uintptr_t)p - (uintptr_t)mv_heap_ptr(mv));
+  p->data.content.rdz.tgt_addr = (uintptr_t)src;
   p->data.content.rdz.rkey = mv_server_rma_key(reg);
 
   mv_server_send(mv->server, rank, &p->data,
-        (size_t)(sizeof(struct mv_rdz) + sizeof(struct packet_header)),
-        &p->context);
+                 (size_t)(sizeof(struct mv_rdz) + sizeof(struct packet_header)),
+                 &p->context);
 }
 
 MV_INLINE int mvi_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
@@ -173,7 +174,8 @@ void mv_serve_send(mvh* mv, mv_packet* p_ctx)
 }
 
 MV_INLINE
-void mv_serve_imm(mvh* mv, uint32_t imm) {
+void mv_serve_imm(mvh* mv, uint32_t imm)
+{
   // FIXME(danghvu): This comm_id is here due to the imm
   // only takes uint32_t, if this takes uint64_t we can
   // store a pointer to this request context.
@@ -186,19 +188,19 @@ void mv_serve_imm(mvh* mv, uint32_t imm) {
 #endif
 #else
     imm ^= RMA_SIGNAL_QUEUE;
-    mv_packet* p = (mv_packet*) ((uintptr_t) mv_heap_ptr(mv) + imm);
-    mv_ctx* req = (mv_ctx*) p->context.req;
+    mv_packet* p = (mv_packet*)((uintptr_t)mv_heap_ptr(mv) + imm);
+    mv_ctx* req = (mv_ctx*)p->context.req;
     mv_pool_put(mv->pkpool, p);
     req->type = REQ_DONE;
 #endif
   } else if (imm & RMA_SIGNAL_SIMPLE) {
     imm ^= RMA_SIGNAL_SIMPLE;
-    struct mv_rma_ctx* ctx = (struct mv_rma_ctx*) (
-        (uintptr_t) mv_heap_ptr(mv) + imm);
-    if (ctx->req) ((mv_ctx*) ctx->req)->type = REQ_DONE;
+    struct mv_rma_ctx* ctx =
+        (struct mv_rma_ctx*)((uintptr_t)mv_heap_ptr(mv) + imm);
+    if (ctx->req) ((mv_ctx*)ctx->req)->type = REQ_DONE;
   } else {
-    mv_packet* p = (mv_packet*) ((uintptr_t) mv_heap_ptr(mv) + imm);
-    mv_ctx* req = (mv_ctx*) p->context.req;
+    mv_packet* p = (mv_packet*)((uintptr_t)mv_heap_ptr(mv) + imm);
+    mv_ctx* req = (mv_ctx*)p->context.req;
     mv_pool_put(mv->pkpool, p);
     mv_key key = mv_make_key(req->rank, req->tag);
     mv_value value = 0;

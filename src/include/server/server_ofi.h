@@ -64,43 +64,44 @@ MV_INLINE void ofi_init(mvh* mv, size_t heap_size, ofi_server** s_ptr);
 MV_INLINE void ofi_post_recv(ofi_server* s, mv_packet* p);
 MV_INLINE int ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
                              void* ctx);
-MV_INLINE void ofi_write_rma(ofi_server* s, int rank, void* from, uintptr_t addr,
-                             uint32_t rkey, size_t size, void* ctx);
+MV_INLINE void ofi_write_rma(ofi_server* s, int rank, void* from,
+                             uintptr_t addr, uint32_t rkey, size_t size,
+                             void* ctx);
 
 MV_INLINE void ofi_write_rma_signal(ofi_server* s, int rank, void* buf,
-                                    uintptr_t addr,
-                                    uint32_t rkey, size_t size,
+                                    uintptr_t addr, uint32_t rkey, size_t size,
                                     uint32_t sid, void* ctx);
 
 MV_INLINE void ofi_finalize(ofi_server* s);
 
 static uint32_t next_key = 1;
 
-MV_INLINE uintptr_t _real_ofi_reg(ofi_server *s, void* buf, size_t size)
+MV_INLINE uintptr_t _real_ofi_reg(ofi_server* s, void* buf, size_t size)
 {
   struct fid_mr* mr;
   FI_SAFECALL(fi_mr_reg(s->domain, buf, size,
-                        FI_READ | FI_WRITE | FI_REMOTE_WRITE,
-                        0, next_key++, 0, &mr, 0));
-  return (uintptr_t) mr;
+                        FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, next_key++, 0,
+                        &mr, 0));
+  return (uintptr_t)mr;
 }
 
-MV_INLINE uintptr_t ofi_rma_reg(ofi_server* s, void *buf, size_t size)
+MV_INLINE uintptr_t ofi_rma_reg(ofi_server* s, void* buf, size_t size)
 {
-  return (uintptr_t) dreg_register(s, buf, size);
+  return (uintptr_t)dreg_register(s, buf, size);
   // return _real_ofi_reg(s, buf, size);
 }
 
 MV_INLINE int ofi_rma_dereg(uintptr_t mem)
 {
-  dreg_unregister((dreg_entry*) mem); return 1;
+  dreg_unregister((dreg_entry*)mem);
+  return 1;
   // return fi_close((struct fid*) mem);
 }
 
 MV_INLINE uint32_t ofi_rma_key(uintptr_t mem)
 {
   // return fi_mr_key((struct fid_mr*) mem);
-  return fi_mr_key((struct fid_mr*) (((dreg_entry*) mem)->memhandle[0]));
+  return fi_mr_key((struct fid_mr*)(((dreg_entry*)mem)->memhandle[0]));
 }
 
 MV_INLINE void ofi_init(mvh* mv, size_t heap_size, ofi_server** s_ptr)
@@ -139,7 +140,8 @@ MV_INLINE void ofi_init(mvh* mv, size_t heap_size, ofi_server** s_ptr)
   // Bind my ep to cq.
   // FI_SAFECALL(
   //    fi_ep_bind(s->ep, (fid_t)s->scq, FI_SEND | FI_TRANSMIT));
-  FI_SAFECALL(fi_ep_bind(s->ep, (fid_t)s->rcq, FI_SEND | FI_TRANSMIT | FI_RECV));
+  FI_SAFECALL(
+      fi_ep_bind(s->ep, (fid_t)s->rcq, FI_SEND | FI_TRANSMIT | FI_RECV));
 
   dreg_init();
 
@@ -148,8 +150,8 @@ MV_INLINE void ofi_init(mvh* mv, size_t heap_size, ofi_server** s_ptr)
   posix_memalign(&s->heap, 4096, heap_size);
 
   FI_SAFECALL(fi_mr_reg(s->domain, s->heap, heap_size,
-                        FI_READ | FI_WRITE | FI_REMOTE_WRITE,
-                        0, 0, 0, &s->mr_heap, 0));
+                        FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, 0, 0,
+                        &s->mr_heap, 0));
 
   s->heap_rkey = fi_mr_key(s->mr_heap);
   MPI_Comm_rank(MPI_COMM_WORLD, &mv->me);
@@ -231,7 +233,8 @@ MV_INLINE int ofi_progress_send(ofi_server* s)
     }
   } while (ret > 0);
 
-  if (s->recv_posted < MAX_RECV) ofi_post_recv(s, mv_pool_get_nb(s->mv->pkpool));
+  if (s->recv_posted < MAX_RECV)
+    ofi_post_recv(s, mv_pool_get_nb(s->mv->pkpool));
 
 #ifdef SERVER_FI_DEBUG
   if (s->recv_posted == 0) {
@@ -240,9 +243,7 @@ MV_INLINE int ofi_progress_send(ofi_server* s)
 #endif
 
   return rett;
-
 }
-
 
 MV_INLINE int ofi_progress(ofi_server* s)
 {
@@ -280,7 +281,8 @@ MV_INLINE int ofi_progress(ofi_server* s)
     }
   } while (ret > 0);
 
-  if (s->recv_posted < MAX_RECV) ofi_post_recv(s, mv_pool_get_nb(s->mv->pkpool));
+  if (s->recv_posted < MAX_RECV)
+    ofi_post_recv(s, mv_pool_get_nb(s->mv->pkpool));
 
 #ifdef SERVER_FI_DEBUG
   if (s->recv_posted == 0) {
@@ -294,8 +296,8 @@ MV_INLINE int ofi_progress(ofi_server* s)
 MV_INLINE void ofi_post_recv(ofi_server* s, mv_packet* p)
 {
   if (p == NULL) return;
-  FI_SAFECALL(fi_recv(s->ep, &p->data, POST_MSG_SIZE, 0,
-                      FI_ADDR_UNSPEC, &p->context));
+  FI_SAFECALL(
+      fi_recv(s->ep, &p->data, POST_MSG_SIZE, 0, FI_ADDR_UNSPEC, &p->context));
   s->recv_posted++;
 }
 
@@ -308,27 +310,24 @@ MV_INLINE int ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
     return 0;
   } else {
     FI_SAFECALL(fi_send(s->ep, buf, size, 0, s->fi_addr[rank],
-          (struct fi_context*)ctx));
+                        (struct fi_context*)ctx));
     return 1;
   }
 }
 
-MV_INLINE void ofi_write_rma(ofi_server* s, int rank, void* from, uintptr_t addr,
-                             uint32_t rkey, size_t size, void* ctx)
+MV_INLINE void ofi_write_rma(ofi_server* s, int rank, void* from,
+                             uintptr_t addr, uint32_t rkey, size_t size,
+                             void* ctx)
 {
-  FI_SAFECALL(fi_write(s->ep, from, size, 0, s->fi_addr[rank],
-                       0, rkey, ctx));
+  FI_SAFECALL(fi_write(s->ep, from, size, 0, s->fi_addr[rank], 0, rkey, ctx));
 }
 
 MV_INLINE void ofi_write_rma_signal(ofi_server* s, int rank, void* buf,
-                                    uintptr_t addr,
-                                    uint32_t rkey, size_t size,
+                                    uintptr_t addr, uint32_t rkey, size_t size,
                                     uint32_t sid, void* ctx)
 {
-  FI_SAFECALL(
-      fi_writedata(s->ep, buf, size, 0, sid,
-                   s->fi_addr[rank], addr, rkey,
-                   ctx));
+  FI_SAFECALL(fi_writedata(s->ep, buf, size, 0, sid, s->fi_addr[rank], addr,
+                           rkey, ctx));
 }
 
 MV_INLINE void ofi_finalize(ofi_server* s) { free(s); }

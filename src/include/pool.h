@@ -35,7 +35,7 @@ void* mv_pool_get_slow(mv_pool* pool);
 
 extern volatile int init_pool_lock;
 
-#define EMPTY_POOL ((int32_t) -1)
+#define EMPTY_POOL ((int32_t)-1)
 
 MV_INLINE int32_t mv_pool_get_local(mv_pool* pool)
 {

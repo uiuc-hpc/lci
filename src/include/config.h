@@ -15,11 +15,11 @@
 #define MAX_RECV 64
 #define MAX_SEND (MAX_PACKET - MAX_RECV)  // maximum concurrent send.
 
-#define SHORT_MSG_SIZE \
-  (MV_PACKET_SIZE - sizeof(struct packet_header) - sizeof(struct packet_context))
+#define SHORT_MSG_SIZE                             \
+  (MV_PACKET_SIZE - sizeof(struct packet_header) - \
+   sizeof(struct packet_context))
 
-#define POST_MSG_SIZE \
-  (SHORT_MSG_SIZE + sizeof(struct packet_header))
+#define POST_MSG_SIZE (SHORT_MSG_SIZE + sizeof(struct packet_header))
 
 #define SERVER_MAX_INLINE (sizeof(struct packet_header) + 32)
 

@@ -83,8 +83,9 @@ MV_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
                                     void* to, uint32_t rkey, size_t size,
                                     void* ctx);
 MV_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
-                                           uintptr_t addr, uint32_t rkey, size_t size,
-                                           uint32_t sid, void* ctx);
+                                           uintptr_t addr, uint32_t rkey,
+                                           size_t size, uint32_t sid,
+                                           void* ctx);
 MV_INLINE int ibv_server_progress(ibv_server* s);
 
 MV_INLINE void* ibv_server_heap_ptr(mv_server* s);
@@ -183,33 +184,33 @@ MV_INLINE void qp_to_rts(struct ibv_qp* qp)
   }
 }
 
-MV_INLINE uintptr_t _real_ibv_reg(ibv_server *s, void* buf, size_t size)
+MV_INLINE uintptr_t _real_ibv_reg(ibv_server* s, void* buf, size_t size)
 {
   int mr_flags =
       IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-  return (uintptr_t) ibv_reg_mr(s->dev_pd, buf, size, mr_flags);
+  return (uintptr_t)ibv_reg_mr(s->dev_pd, buf, size, mr_flags);
 }
 
-MV_INLINE uintptr_t ibv_dma_reg(ibv_server* s, void *buf, size_t size)
+MV_INLINE uintptr_t ibv_dma_reg(ibv_server* s, void* buf, size_t size)
 {
-  return (uintptr_t) dreg_register(s, buf, size);
+  return (uintptr_t)dreg_register(s, buf, size);
 }
 
 MV_INLINE int ibv_dma_dereg(uintptr_t mem)
 {
-  dreg_unregister((dreg_entry*) mem);
+  dreg_unregister((dreg_entry*)mem);
   return 1;
 }
 
 MV_INLINE uint32_t ibv_dma_key(uintptr_t mem)
 {
   // return ((struct ibv_mr*) mem)->rkey;
-  return ((struct ibv_mr*) (((dreg_entry*) mem)->memhandle[0]))->rkey;
+  return ((struct ibv_mr*)(((dreg_entry*)mem)->memhandle[0]))->rkey;
 }
 
 MV_INLINE uint32_t ibv_dma_lkey(uintptr_t mem)
 {
-  return ((struct ibv_mr*) (((dreg_entry*) mem)->memhandle[0]))->lkey;
+  return ((struct ibv_mr*)(((dreg_entry*)mem)->memhandle[0]))->lkey;
   // return ((struct ibv_mr*) mem)->lkey;
 }
 
@@ -225,7 +226,10 @@ MV_INLINE void ibv_server_post_recv(ibv_server* s, mv_packet* p)
   };
 
   struct ibv_recv_wr wr = {
-      .wr_id = (uintptr_t) &(p->context), .next = 0, .sg_list = &sg, .num_sge = 1,
+      .wr_id = (uintptr_t) & (p->context),
+      .next = 0,
+      .sg_list = &sg,
+      .num_sge = 1,
   };
 
   struct ibv_recv_wr* bad_wr = 0;
@@ -298,7 +302,8 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
 
   // Make sure we always have enough packet, but do not block.
   if (s->recv_posted < MAX_RECV) {
-    ibv_server_post_recv(s, (mv_packet*)mv_pool_get_nb(s->mv->pkpool));  //, 0));
+    ibv_server_post_recv(s,
+                         (mv_packet*)mv_pool_get_nb(s->mv->pkpool));  //, 0));
   }
 
 #ifdef IBV_SERVER_DEBUG
@@ -338,7 +343,7 @@ MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf,
   struct ibv_send_wr* bad_wr;
 
   if (size <= server_max_inline) {
-    setup_wr(this_wr, (uintptr_t) 0, &list, IBV_WR_SEND,
+    setup_wr(this_wr, (uintptr_t)0, &list, IBV_WR_SEND,
              IBV_SEND_INLINE | IBV_SEND_SIGNALED);
     IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
     mv_serve_send(s->mv, ctx);
@@ -346,8 +351,7 @@ MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf,
     return 0;
   } else {
     count_inline = 0;
-    setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND,
-             IBV_SEND_SIGNALED);
+    setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND, IBV_SEND_SIGNALED);
     IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
     return 1;
   }
@@ -377,8 +381,8 @@ MV_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
 }
 
 MV_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
-                                           uintptr_t addr, uint32_t rkey, size_t size,
-                                           uint32_t sid, void* ctx)
+                                           uintptr_t addr, uint32_t rkey,
+                                           size_t size, uint32_t sid, void* ctx)
 {
   struct ibv_send_wr this_wr;  // = {0};
   struct ibv_send_wr* bad_wr = 0;
