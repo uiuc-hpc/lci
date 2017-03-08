@@ -45,18 +45,16 @@ enum mv_proto_name {
   MV_PROTO_RTR_MATCH,
   MV_PROTO_LONG_MATCH,
 
-  MV_PROTO_GENERIC,
-
-  MV_PROTO_SHORT_ENQUEUE,
-  MV_PROTO_RTS_ENQUEUE,
-  MV_PROTO_RTR_ENQUEUE,
-  MV_PROTO_LONG_ENQUEUE,
+  MV_PROTO_SHORT_QUEUE,
+  MV_PROTO_RTS_QUEUE,
+  MV_PROTO_RTR_QUEUE,
+  MV_PROTO_LONG_QUEUE,
 
   MV_PROTO_LONG_PUT,
+  MV_PROTO_PERSIS
 };
 
 struct __attribute__((__packed__)) packet_header {
-  enum mv_proto_name proto __attribute__((aligned(4)));
   int from;
   int tag;
   int size;
@@ -65,7 +63,6 @@ struct __attribute__((__packed__)) packet_header {
 struct __attribute__((__packed__)) mv_rdz {
   uintptr_t sreq;
   uintptr_t tgt_addr;
-  uint32_t tgt_offset;
   uint32_t rkey;
   uint32_t comm_id;
 };
@@ -197,18 +194,6 @@ int mv_recv_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 MV_EXPORT
 int mv_send_queue(mvh* mv, const void* src, int size, int rank, int tag,
                   mv_ctx* ctx);
-
-/**
-* @brief Try to finish or attach sync for waking up.
-*
-* @param mv
-* @param ctx
-* @param sync
-*
-* @return 1 if finished, 0 otherwise.
-*/
-MV_EXPORT
-int mv_send_queue_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 
 /**
 * @brief Try to queue, for message send with send-queue.
@@ -442,6 +427,18 @@ void* MPIV_Alloc(size_t size);
 
 MV_EXPORT
 void MPIV_Free(void*);
+
+MV_EXPORT
+mv_packet* mv_alloc_packet(mvh* mv, int tag, int size);
+
+MV_EXPORT
+void* mv_get_packet_data(mv_packet* p);
+
+MV_EXPORT
+void mv_free_packet(mvh* mv, mv_packet* p);
+
+MV_EXPORT
+void mv_send_persis(mvh* mv, mv_packet* p, int rank, mv_ctx* ctx);
 
 /**@}*/
 

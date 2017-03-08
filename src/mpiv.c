@@ -19,10 +19,10 @@ void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype,
   MPI_Type_size(datatype, &size);
   size *= count;
   struct mv_ctx ctx;
-  while (!mv_recv(mv_hdl, buffer, size, rank, tag, &ctx))
+  while (!mvi_recv(mv_hdl, buffer, size, rank, tag, &ctx))
     thread_yield();
   mv_sync* sync = mv_get_sync();
-  mv_recv_post(mv_hdl, &ctx, sync);
+  mvi_recv_post(mv_hdl, &ctx, sync);
   mv_wait(&ctx, sync);
 }
 
@@ -33,10 +33,10 @@ void MPIV_Send(void* buffer, int count, MPI_Datatype datatype,
   MPI_Type_size(datatype, &size);
   size *= count;
   struct mv_ctx ctx;
-  while (!mv_send(mv_hdl, buffer, size, rank, tag, &ctx))
+  while (!mvi_send(mv_hdl, buffer, size, rank, tag, &ctx))
     thread_yield();
   mv_sync* sync = mv_get_sync();
-  mv_send_post(mv_hdl, &ctx, sync);
+  mvi_send_post(mv_hdl, &ctx, sync);
   mv_wait(&ctx, sync);
 }
 
@@ -47,10 +47,10 @@ void MPIV_Ssend(void* buffer, int count, MPI_Datatype datatype,
   MPI_Type_size(datatype, &size);
   size *= count;
   struct mv_ctx ctx;
-  while (!mv_send(mv_hdl, buffer, size, rank, tag, &ctx))
+  while (!mvi_send(mv_hdl, buffer, size, rank, tag, &ctx))
     thread_yield();
   mv_sync* sync = mv_get_sync();
-  mv_send_post(mv_hdl, &ctx, sync);
+  mvi_send_post(mv_hdl, &ctx, sync);
   mv_wait(&ctx, sync);
 }
 
@@ -60,10 +60,10 @@ void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
   MPI_Type_size(datatype, &size);
   size *= count;
   mv_ctx *ctx = (mv_ctx*) mv_pool_get(mv_ctx_pool);
-  while (!mv_send(mv_hdl, buf, size, rank, tag, ctx))
+  while (!mvi_send(mv_hdl, buf, size, rank, tag, ctx))
     thread_yield();
   if (ctx->type != REQ_DONE) {
-    ctx->complete = mv_send_post;
+    ctx->complete = mvi_send_post;
     *req = (MPIV_Request) ctx;
   } else {
     mv_pool_put(mv_ctx_pool, ctx);
@@ -77,9 +77,9 @@ void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
   MPI_Type_size(datatype, &size);
   size *= count;
   mv_ctx *ctx = (mv_ctx*) mv_pool_get(mv_ctx_pool);
-  while (!mv_recv(mv_hdl, (void*) buffer, size, rank, tag, ctx))
+  while (!mvi_recv(mv_hdl, (void*) buffer, size, rank, tag, ctx))
     thread_yield();
-  ctx->complete = mv_recv_post;
+  ctx->complete = mvi_recv_post;
   *req = (MPIV_Request) ctx;
 }
 

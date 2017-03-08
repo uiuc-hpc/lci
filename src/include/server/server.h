@@ -9,4 +9,8 @@
 #include "server_ibv.h"
 #endif
 
+#ifdef MV_USE_SERVER_PSM
+#include "server_psm2.h"
+#endif
+
 #endif

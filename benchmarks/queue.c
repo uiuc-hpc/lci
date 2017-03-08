@@ -52,7 +52,6 @@ int main(int argc, char** args)
           mv_progress(mv);
 
         int rank, tag, size;
-        //recv
         while (!mv_recv_queue(mv, &size, &rank, &tag, &ctx)) {
           mv_progress(mv);
         }
@@ -60,13 +59,14 @@ int main(int argc, char** args)
         while (!mv_test(&ctx)) {
           mv_progress(mv);
         }
-        assert(rank == 1);
-        assert(tag == i);
-        assert(size == len);
-        if (i == 0)
+        if (i == 0) {
+          assert(rank == 1);
+          assert(tag == i);
+          assert(size == len);
           for (int j = 0; j < size; j++) {
             assert(((char*)recv)[j] == 'A');
           }
+        }
       }
       free(recv);
       printf("%d \t %.5f\n", len, (MPI_Wtime() - t1)/total / 2 * 1e6);
@@ -82,10 +82,6 @@ int main(int argc, char** args)
         while (!mv_test(&ctx)) {
           mv_progress(mv);
         }
-        if (i == 0)
-          for (int j = 0; j < size; j++) {
-            assert(((char*)recv)[j] == 'A');
-          }
         // send
         while (!mv_send_queue(mv, buffer, len, 0, i, &ctx))
           mv_progress(mv);

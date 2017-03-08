@@ -3,19 +3,11 @@
 
 #include "mv.h"
 
-extern int PROTO_SHORT;
-extern int PROTO_RECV_READY;
-extern int PROTO_READY_FIN;
-extern int PROTO_AM;
-extern int PROTO_SEND_WRITE_FIN;
-
 typedef void (*p_ctx_handler)(mvh*, mv_packet* p_ctx);
 typedef void (*_0_arg)(void*, uint32_t);
 
-void mv_progress_init(mvh* mv);
-
 MV_INLINE void mv_serve_imm(mvh* mv, uint32_t);
-MV_INLINE void mv_serve_send(mvh* mv, mv_packet* p_ctx);
-MV_INLINE void mv_serve_recv(mvh* mv, mv_packet* p_ctx);
+MV_INLINE void mv_serve_send(mvh* mv, mv_packet* p_ctx, uint32_t);
+MV_INLINE void mv_serve_recv(mvh* mv, mv_packet* p_ctx, uint32_t);
 
 #endif

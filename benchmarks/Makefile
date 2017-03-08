@@ -13,9 +13,16 @@ CXXFLAGS = -g3 -O3 -std=c++11
 ifeq ($(MV_SERVER), ofi)
 	CFLAGS += -DMV_USE_SERVER_OFI -DAFF_DEBUG
 	LDFLAGS += -lfabric # -L$(HOME)/libfab/lib -lfabric
-else
+endif
+
+ifeq ($(MV_SERVER), ibv)
 	CFLAGS += -DMV_USE_SERVER_IBV -DAFF_DEBUG
 	LDFLAGS += -libverbs
+endif
+
+ifeq ($(MV_SERVER), psm)
+	CFLAGS += -DMV_USE_SERVER_PSM -DAFF_DEBUG
+	LDFLAGS += -lpsm2 # -L$(HOME)/libfab/lib -lfabric
 endif
 
 LDFLAGS += -L$(HOME)/tcmalloc/lib -ltcmalloc

@@ -3,20 +3,24 @@
 
 #include "mv.h"
 #include "config.h"
-#include "umalloc/umalloc.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include "lcrq.h"
 #include "dequeue.h"
 
 #ifdef MV_USE_SERVER_OFI
-#define SERVER_CONTEXT char __padding__[64 - 16];
+#define SERVER_CONTEXT char __padding__[64 - 32];
 typedef struct ofi_server mv_server;
 #endif
 
 #ifdef MV_USE_SERVER_IBV
 #define SERVER_CONTEXT char __padding__[0];
 typedef struct ibv_server mv_server;
+#endif
+
+#ifdef MV_USE_SERVER_PSM
+#define SERVER_CONTEXT char __pandding__[64 - 32];
+typedef struct psm_server mv_server;
 #endif
 
 struct mv_struct {
@@ -31,8 +35,8 @@ struct mv_struct {
 #else
   lcrq_t queue;
 #endif
-  int am_table_size;
-  mv_am_func_t am_table[128];
+  // int am_table_size;
+  // mv_am_func_t am_table[128];
 } __attribute__((aligned(64)));
 
 #define RMA_SIGNAL_SIMPLE (1 << 30)

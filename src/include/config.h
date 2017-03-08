@@ -7,7 +7,14 @@
 #ifdef MV_USE_SERVER_OFI
 #define MAX_PACKET 1024
 #define MV_PACKET_SIZE (32 * 1024 + 4096)
-#else
+#endif
+
+#ifdef MV_USE_SERVER_PSM
+#define MAX_PACKET 1024
+#define MV_PACKET_SIZE (32 * 1024 + 4096)
+#endif
+
+#ifdef MV_USE_SERVER_IBV
 #define MAX_PACKET 256
 #define MV_PACKET_SIZE (16 * 1024 + 4096)
 #endif

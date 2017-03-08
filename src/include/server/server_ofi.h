@@ -113,7 +113,6 @@ MV_INLINE void ofi_init(mvh* mv, size_t heap_size, ofi_server** s_ptr)
   hints->domain_attr->mr_mode = FI_MR_BASIC;
   hints->caps = FI_RMA | FI_MSG;
   hints->mode = FI_CONTEXT | FI_LOCAL_MR;
-  hints->tx_attr->msg_order = FI_ORDER_SAS;
 
   ofi_server* s = malloc(sizeof(ofi_server));
 

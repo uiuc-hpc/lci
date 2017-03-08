@@ -157,16 +157,16 @@ void recv_thread(intptr_t arg)
 
   for (i = val; i < loop + skip; i+=THREADS) {
     // recv
-    while (!mv_recv_dequeue_init(mv_hdl, &len, &rank, &tag, &ctxs))
+    while (!mv_recv_queue(mv_hdl, &len, &rank, &tag, &ctxs))
           ;
     void* b = malloc(len);
-    mv_recv_dequeue_post(mv_hdl, b, &ctxs);
+    mv_recv_queue_post(mv_hdl, b, &ctxs);
     free(b);
 
     while (!mv_test(&ctxs))
         ;
 
-    while (!mv_send_enqueue_init(mv_hdl, s_buf, size, 0, 0, &ctxs))
+    while (!mv_send_queue(mv_hdl, s_buf, size, 0, 0, &ctxs))
         ;
   }
   sleep(0.5);
@@ -205,15 +205,15 @@ void send_thread(intptr_t arg)
     }
     // send
     //for (int j = 0; j < WINDOWS; j++)
-    while (!mv_send_enqueue_init(mv_hdl, s_buf, size, 1, 0, &ctxr))
+    while (!mv_send_queue(mv_hdl, s_buf, size, 1, 0, &ctxr))
         ;
 
     // recv.
     // for (int j = 0; j < WINDOWS; j++) {
-    while (!mv_recv_dequeue_init(mv_hdl, &len, &rank, &tag, &ctxr))
+    while (!mv_recv_queue(mv_hdl, &len, &rank, &tag, &ctxr))
         ;
     void* buf = malloc(len);
-    mv_recv_dequeue_post(mv_hdl, buf, &ctxr);
+    mv_recv_queue_post(mv_hdl, buf, &ctxr);
     while (!mv_test(&ctxr))
         ;
     free(buf);

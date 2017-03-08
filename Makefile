@@ -42,14 +42,18 @@ ifeq ($(MV_SERVER), ofi)
 	CFLAGS += -DMV_USE_SERVER_OFI -DAFF_DEBUG
 	LDFLAGS += -lfabric # -L$(HOME)/libfab/lib -lfabric
 	LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
-	# MALLOC = -L$(HOME)/tcmalloc/lib -ltcmalloc
-	# MALLOC = $(CTMALLOC)/*.o
-else
-	CFLAGS += -DMV_USE_SERVER_IBV -DAFF_DEBUG
-	LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
-	MALLOC = $(CTMALLOC)/*.o
 endif
 
+ifeq ($(MV_SERVER), ibv)
+	CFLAGS += -DMV_USE_SERVER_IBV -DAFF_DEBUG
+	LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
+endif
+
+ifeq ($(MV_SERVER), psm)
+	CFLAGS += -DMV_USE_SERVER_PSM -DAFF_DEBUG
+	LDFLAGS += -L/home1/03490/tg827895/psm2/usr/lib64/ -lpsm2 # -L$(HOME)/libfab/lib -lfabric
+	LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
+endif
 
 LIBRARY = libmv.so
 ARCHIVE = libmv.a

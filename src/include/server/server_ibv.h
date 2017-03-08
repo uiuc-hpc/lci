@@ -1,5 +1,5 @@
-#ifndef SERVER_IBV_H
-#define SERVER_IBV_H
+#ifndef SERVER_IBV_H_
+#define SERVER_IBV_H_
 
 #include <mpi.h>
 
@@ -80,7 +80,7 @@ MV_INLINE void ibv_server_post_recv(ibv_server* s, mv_packet* p);
 MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf,
                                     size_t size, void* ctx);
 MV_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
-                                    void* to, uint32_t rkey, size_t size,
+                                    uintptr_t to, uint32_t rkey, size_t size,
                                     void* ctx);
 MV_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
                                            uintptr_t addr, uint32_t rkey,
@@ -191,24 +191,24 @@ MV_INLINE uintptr_t _real_ibv_reg(ibv_server* s, void* buf, size_t size)
   return (uintptr_t)ibv_reg_mr(s->dev_pd, buf, size, mr_flags);
 }
 
-MV_INLINE uintptr_t ibv_dma_reg(ibv_server* s, void* buf, size_t size)
+MV_INLINE uintptr_t ibv_rma_reg(ibv_server* s, void* buf, size_t size)
 {
   return (uintptr_t)dreg_register(s, buf, size);
 }
 
-MV_INLINE int ibv_dma_dereg(uintptr_t mem)
+MV_INLINE int ibv_rma_dereg(uintptr_t mem)
 {
   dreg_unregister((dreg_entry*)mem);
   return 1;
 }
 
-MV_INLINE uint32_t ibv_dma_key(uintptr_t mem)
+MV_INLINE uint32_t ibv_rma_key(uintptr_t mem)
 {
   // return ((struct ibv_mr*) mem)->rkey;
   return ((struct ibv_mr*)(((dreg_entry*)mem)->memhandle[0]))->rkey;
 }
 
-MV_INLINE uint32_t ibv_dma_lkey(uintptr_t mem)
+MV_INLINE uint32_t ibv_rma_lkey(uintptr_t mem)
 {
   return ((struct ibv_mr*)(((dreg_entry*)mem)->memhandle[0]))->lkey;
   // return ((struct ibv_mr*) mem)->lkey;
@@ -358,7 +358,7 @@ MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf,
 }
 
 MV_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
-                                    void* to, uint32_t rkey, size_t size,
+                                    uintptr_t to, uint32_t rkey, size_t size,
                                     void* ctx)
 
 {
@@ -387,12 +387,12 @@ MV_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
   struct ibv_send_wr this_wr;  // = {0};
   struct ibv_send_wr* bad_wr = 0;
 
-  uintptr_t mr = ibv_dma_reg(s, from, size);
+  uintptr_t mr = ibv_rma_reg(s, from, size);
 
   struct ibv_sge list = {
       .addr = (uintptr_t)from,   // address
       .length = (unsigned)size,  // length
-      .lkey = ibv_dma_lkey(mr),
+      .lkey = ibv_rma_lkey(mr),
   };
 
   int flags =
@@ -572,8 +572,8 @@ MV_INLINE void* ibv_server_heap_ptr(ibv_server* s) { return s->heap_ptr; }
 #define mv_server_progress_send_once ibv_progress_send_once
 #define mv_server_progress_recv_once ibv_progress_recv_once
 
-#define mv_server_dma_reg ibv_dma_reg
-#define mv_server_dma_key ibv_dma_key
-#define mv_server_dma_dereg ibv_dma_dereg
+#define mv_server_rma_reg ibv_rma_reg
+#define mv_server_rma_key ibv_rma_key
+#define mv_server_rma_dereg ibv_rma_dereg
 
 #endif

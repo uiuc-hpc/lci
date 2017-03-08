@@ -1,2 +1,2 @@
-# Define server here (ofi, ibv)
-MV_SERVER = ofi
+# Define server here (ofi, ibv, psm)
+MV_SERVER = psm

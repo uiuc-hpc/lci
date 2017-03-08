@@ -46,10 +46,10 @@ void main_task(intptr_t arg)
   double times = 0;
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  void* r_buf = (void*)MPIV_Alloc((size_t)MAX_MSG_SIZE);
-  void* s_buf = (void*)MPIV_Alloc((size_t)MAX_MSG_SIZE);
+  void* r_buf = (void*)malloc((size_t)MAX_MSG_SIZE);
+  void* s_buf = (void*)malloc((size_t)MAX_MSG_SIZE);
 
-  // for (WIN = 128; WIN <= 128; WIN *= 2) 
+  // for (WIN = 128; WIN <= 128; WIN *= 2)
   for (int size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE; size <<= 1) {
     int total = TOTAL;
     int skip = SKIP;
@@ -85,7 +85,7 @@ void main_task(intptr_t arg)
         for (int k = 0; k < WIN; k++) {
           MPIV_Irecv(r_buf, size, MPI_CHAR, 0, k, MPI_COMM_WORLD, &r[k]);
           // MPIV_Recv(r_buf, size, MPI_CHAR, 0, k, MPI_COMM_WORLD, MPI_STATUS_IGNORE);//, &r[k]);
-        }       
+        }
         MPIV_Waitall(WIN, r, MPI_STATUSES_IGNORE);
         MPIV_Send(s_buf, 4, MPI_CHAR, 0, WIN + 1, MPI_COMM_WORLD);
         if (t == 0 || CHECK_RESULT) {
@@ -98,6 +98,6 @@ void main_task(intptr_t arg)
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  MPIV_Free(r_buf);
-  MPIV_Free(s_buf);
+  free(r_buf);
+  free(s_buf);
 }
