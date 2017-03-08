@@ -78,14 +78,14 @@ MV_INLINE void ibv_server_mem_free(mv_server_memory* mr);
 
 MV_INLINE void ibv_server_post_recv(ibv_server* s, mv_packet* p);
 MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf,
-                                    size_t size, void* ctx);
+                                    size_t size, mv_packet* ctx, uint32_t proto);
 MV_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
                                     uintptr_t to, uint32_t rkey, size_t size,
-                                    void* ctx);
+                                    mv_packet* ctx, uint32_t proto);
 MV_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
                                            uintptr_t addr, uint32_t rkey,
                                            size_t size, uint32_t sid,
-                                           void* ctx);
+                                           mv_packet* ctx, uint32_t proto);
 MV_INLINE int ibv_server_progress(ibv_server* s);
 
 MV_INLINE void* ibv_server_heap_ptr(mv_server* s);
@@ -274,7 +274,7 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
 #endif
       s->recv_posted--;
       if (wc[i].opcode != IBV_WC_RECV_RDMA_WITH_IMM)
-        mv_serve_recv(s->mv, (mv_packet*)wc[i].wr_id);
+        mv_serve_recv(s->mv, (mv_packet*)wc[i].wr_id, wc[i].imm_data);
       else {
         mv_serve_imm(s->mv, wc[i].imm_data);
         mv_pool_put(s->mv->pkpool, (mv_packet*)wc[i].wr_id);
@@ -295,7 +295,8 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
         exit(EXIT_FAILURE);
       }
 #endif
-      mv_serve_send(s->mv, (mv_packet*)wc[i].wr_id);
+      mv_packet* p = (mv_packet*)wc[i].wr_id;
+      mv_serve_send(s->mv, p, p->context.proto);
     }
     ret = 1;
   }
@@ -331,7 +332,7 @@ static uint8_t count_inline = 0;
 
 /*! This return whether or not to wait. */
 MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf,
-                                    size_t size, void* ctx)
+                                    size_t size, mv_packet* ctx, uint32_t proto)
 {
   struct ibv_sge list = {
       .addr = (uintptr_t)buf,    // address
@@ -343,15 +344,16 @@ MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf,
   struct ibv_send_wr* bad_wr;
 
   if (size <= server_max_inline) {
-    setup_wr(this_wr, (uintptr_t)0, &list, IBV_WR_SEND,
+    setup_wr(this_wr, (uintptr_t)0, &list, IBV_WR_SEND_WITH_IMM,
              IBV_SEND_INLINE | IBV_SEND_SIGNALED);
     IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
-    mv_serve_send(s->mv, ctx);
+    this_wr.imm_data = proto;
+    mv_serve_send(s->mv, ctx, proto);
     // count_inline ++;
     return 0;
   } else {
-    count_inline = 0;
-    setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND, IBV_SEND_SIGNALED);
+    ctx->context.proto = this_wr.imm_data = proto;
+    setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND_WITH_IMM, IBV_SEND_SIGNALED);
     IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
     return 1;
   }
@@ -359,9 +361,10 @@ MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf,
 
 MV_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
                                     uintptr_t to, uint32_t rkey, size_t size,
-                                    void* ctx)
+                                    mv_packet* ctx, uint32_t proto)
 
 {
+  ctx->context.proto = proto;
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr = 0;
 
@@ -382,10 +385,11 @@ MV_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
 
 MV_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
                                            uintptr_t addr, uint32_t rkey,
-                                           size_t size, uint32_t sid, void* ctx)
+                                           size_t size, uint32_t sid, mv_packet* ctx, uint32_t proto)
 {
   struct ibv_send_wr this_wr;  // = {0};
   struct ibv_send_wr* bad_wr = 0;
+  ctx->context.proto = proto;
 
   uintptr_t mr = ibv_rma_reg(s, from, size);
 

@@ -63,14 +63,14 @@ typedef struct ofi_server {
 MV_INLINE void ofi_init(mvh* mv, size_t heap_size, ofi_server** s_ptr);
 MV_INLINE void ofi_post_recv(ofi_server* s, mv_packet* p);
 MV_INLINE int ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
-                             void* ctx);
+                             mv_packet* ctx, uint32_t proto);
 MV_INLINE void ofi_write_rma(ofi_server* s, int rank, void* from,
                              uintptr_t addr, uint32_t rkey, size_t size,
-                             void* ctx);
+                             mv_packet* ctx, uint32_t proto);
 
 MV_INLINE void ofi_write_rma_signal(ofi_server* s, int rank, void* buf,
                                     uintptr_t addr, uint32_t rkey, size_t size,
-                                    uint32_t sid, void* ctx);
+                                    uint32_t sid, mv_packet* ctx, uint32_t proto);
 
 MV_INLINE void ofi_finalize(ofi_server* s);
 
@@ -219,7 +219,8 @@ MV_INLINE int ofi_progress_send(ofi_server* s)
     if (ret > 0) {
       // Got an entry here ?
       for (int i = 0; i < ret; i++) {
-        mv_serve_send(s->mv, (mv_packet*)entry[i].op_context);
+        mv_packet* p = (mv_packet*)entry[i].op_context;
+        mv_serve_send(s->mv, p, p->context.proto);
       }
       rett = 1;
 #ifdef SERVER_FI_DEBUG
@@ -258,15 +259,19 @@ MV_INLINE int ofi_progress(ofi_server* s)
     if (ret > 0) {
       // Got an entry here ?
       for (int i = 0; i < ret; i++) {
-        if (entry[i].flags & FI_REMOTE_CQ_DATA) {
+        if (entry[i].flags & FI_RECV) {
+          s->recv_posted--;
+          mv_serve_recv(s->mv, (mv_packet*)entry[i].op_context, entry[i].data);
+        } else if (entry[i].flags & FI_REMOTE_CQ_DATA) {
           // NOTE(danghvu): In OFI, a imm data is transferred without
           // comsuming a posted receive.
           mv_serve_imm(s->mv, entry[i].data);
         } else if (entry[i].flags & FI_RECV) {
           s->recv_posted--;
-          mv_serve_recv(s->mv, (mv_packet*)entry[i].op_context);
+          mv_serve_recv(s->mv, (mv_packet*)entry[i].op_context, entry[i].data);
         } else {
-          mv_serve_send(s->mv, (mv_packet*)entry[i].op_context);
+          mv_packet* p = (mv_packet*)entry[i].op_context;
+          mv_serve_send(s->mv, p, p->context.proto);
         }
       }
       rett = 1;
@@ -301,14 +306,15 @@ MV_INLINE void ofi_post_recv(ofi_server* s, mv_packet* p)
 }
 
 MV_INLINE int ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
-                             void* ctx)
+                             mv_packet* ctx, uint32_t proto)
 {
   if (size <= SERVER_MAX_INLINE) {
-    FI_SAFECALL(fi_inject(s->ep, buf, size, s->fi_addr[rank]));
-    mv_serve_send(s->mv, ctx);
+    FI_SAFECALL(fi_injectdata(s->ep, buf, size, proto, s->fi_addr[rank]));
+    mv_serve_send(s->mv, ctx, proto);
     return 0;
   } else {
-    FI_SAFECALL(fi_send(s->ep, buf, size, 0, s->fi_addr[rank],
+    ctx->context.proto = proto;
+    FI_SAFECALL(fi_senddata(s->ep, buf, size, 0, proto, s->fi_addr[rank],
                         (struct fi_context*)ctx));
     return 1;
   }
@@ -316,15 +322,17 @@ MV_INLINE int ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
 
 MV_INLINE void ofi_write_rma(ofi_server* s, int rank, void* from,
                              uintptr_t addr, uint32_t rkey, size_t size,
-                             void* ctx)
+                             mv_packet* ctx, uint32_t proto)
 {
+  ctx->context.proto = proto;
   FI_SAFECALL(fi_write(s->ep, from, size, 0, s->fi_addr[rank], 0, rkey, ctx));
 }
 
 MV_INLINE void ofi_write_rma_signal(ofi_server* s, int rank, void* buf,
                                     uintptr_t addr, uint32_t rkey, size_t size,
-                                    uint32_t sid, void* ctx)
+                                    uint32_t sid, mv_packet* ctx, uint32_t proto)
 {
+  ctx->context.proto = proto;
   FI_SAFECALL(fi_writedata(s->ep, buf, size, 0, sid, s->fi_addr[rank], addr,
                            rkey, ctx));
 }
