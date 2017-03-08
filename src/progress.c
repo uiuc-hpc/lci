@@ -4,7 +4,7 @@
 static void mv_recv_am(mvh* mv, mv_packet* p)
 {
   uint8_t fid = (uint8_t)p->data.header.tag;
-  uint32_t* buffer = (uint32_t*)p->data.content.buffer;
+  uint32_t* buffer = (uint32_t*)p->data.buffer;
   uint32_t size = buffer[0];
   char* data = (char*)&buffer[1];
   ((_0_arg)mv->am_table[fid])(data, size);
@@ -19,7 +19,7 @@ static void mv_recv_short_match(mvh* mv, mv_packet* p)
   if (!mv_hash_insert(mv->tbl, key, &value)) {
     // comm-thread comes later.
     mv_ctx* req = (mv_ctx*)value;
-    memcpy(req->buffer, p->data.content.buffer, req->size);
+    memcpy(req->buffer, p->data.buffer, req->size);
     req->type = REQ_DONE;
     if (req->sync) thread_signal(req->sync);
     mv_pool_put(mv->pkpool, p);
@@ -28,7 +28,7 @@ static void mv_recv_short_match(mvh* mv, mv_packet* p)
 
 static void mv_sent_rdz_enqueue_done(mvh* mv, mv_packet* p)
 {
-  mv_ctx* ctx = (mv_ctx*) p->data.content.rdz.sreq;
+  mv_ctx* ctx = (mv_ctx*) p->data.rdz.sreq;
   ctx->type = REQ_DONE;
   mv_pool_put(mv->pkpool, p);
 }
@@ -44,18 +44,18 @@ static void mv_recv_rtr_match(mvh* mv, mv_packet* p)
 
 static void mv_recv_rtr_queue(mvh* mv, mv_packet* p)
 {
-  mv_ctx* ctx = (mv_ctx*) p->data.content.rdz.sreq;
+  mv_ctx* ctx = (mv_ctx*) p->data.rdz.sreq;
   int rank = ctx->rank;
   mv_server_rma_signal(mv->server, rank, ctx->buffer,
-      p->data.content.rdz.tgt_addr,
-      p->data.content.rdz.rkey,
+      p->data.rdz.tgt_addr,
+      p->data.rdz.rkey,
       ctx->size,
-      RMA_SIGNAL_QUEUE | (p->data.content.rdz.comm_id), p, MV_PROTO_LONG_QUEUE);
+      RMA_SIGNAL_QUEUE | (p->data.rdz.comm_id), p, MV_PROTO_LONG_QUEUE);
 }
 
 static void mv_sent_rdz_match_done(mvh* mv, mv_packet* p)
 {
-  mv_ctx* req = (mv_ctx*) p->data.content.rdz.sreq;
+  mv_ctx* req = (mv_ctx*) p->data.rdz.sreq;
   mv_key key = mv_make_key(req->rank, RDZ_MATCH_TAG | req->tag);
   mv_value value = 0;
   if (!mv_hash_insert(mv->tbl, key, &value)) {

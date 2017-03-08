@@ -54,29 +54,6 @@ enum mv_proto_name {
   MV_PROTO_PERSIS
 };
 
-struct __attribute__((__packed__)) packet_header {
-  int from;
-  int tag;
-  int size;
-};
-
-struct __attribute__((__packed__)) mv_rdz {
-  uintptr_t sreq;
-  uintptr_t tgt_addr;
-  uint32_t rkey;
-  uint32_t comm_id;
-};
-
-union packet_content {
-  struct mv_rdz rdz;
-  char buffer[0];
-};
-
-struct __attribute__((__packed__)) packet_data {
-  struct packet_header header;
-  union packet_content content;
-};
-
 typedef int (*mv_fcb)(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 
 enum request_t {

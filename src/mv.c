@@ -118,7 +118,7 @@ int mv_send_queue(mvh* mv, const void* src, int size, int rank, int tag, mv_ctx*
     ctx->type = REQ_DONE;
   } else {
     INIT_CTX(ctx);
-    p->data.content.rdz.sreq = (uintptr_t) ctx;
+    p->data.rdz.sreq = (uintptr_t) ctx;
     p->data.header.from = mv->me;
     p->data.header.tag = tag;
     p->data.header.size = size;
@@ -151,7 +151,7 @@ int mv_recv_queue_post(mvh* mv, void* buf, mv_ctx* ctx)
 {
   mv_packet* p = (mv_packet*) ctx->packet;
   if (p->context.proto != MV_PROTO_RTS_QUEUE) {
-    memcpy(buf, p->data.content.buffer, p->data.header.size);
+    memcpy(buf, p->data.buffer, p->data.header.size);
     mv_pool_put(mv->pkpool, p);
     ctx->type = REQ_DONE;
     return 1;
@@ -160,9 +160,9 @@ int mv_recv_queue_post(mvh* mv, void* buf, mv_ctx* ctx)
     p->context.req = (uintptr_t) ctx;
     uintptr_t rma_mem = mv_server_rma_reg(mv->server, buf, p->data.header.size);
     p->context.rma_mem = rma_mem;
-    p->data.content.rdz.tgt_addr = (uintptr_t) buf;
-    p->data.content.rdz.rkey = mv_server_rma_key(rma_mem);
-    p->data.content.rdz.comm_id = (uint32_t) ((uintptr_t) p - (uintptr_t) mv_heap_ptr(mv));
+    p->data.rdz.tgt_addr = (uintptr_t) buf;
+    p->data.rdz.rkey = mv_server_rma_key(rma_mem);
+    p->data.rdz.comm_id = (uint32_t) ((uintptr_t) p - (uintptr_t) mv_heap_ptr(mv));
     mv_server_send(mv->server, rank, &p->data,
         sizeof(struct packet_header) + sizeof(struct mv_rdz), p, MV_PROTO_RTR_QUEUE);
     return 0;
@@ -241,5 +241,5 @@ void mv_free_packet(mvh* mv, mv_packet* p)
 
 void* mv_get_packet_data(mv_packet* p)
 {
-  return p->data.content.buffer;
+  return p->data.buffer;
 }

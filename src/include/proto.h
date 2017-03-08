@@ -31,7 +31,7 @@ int mvi_am_generic(mvh* mv, int node, const void* src, int size, int tag,
   p->data.header.from = mv->me;
   p->data.header.tag = tag;
   p->data.header.size = size;
-  memcpy(p->data.content.buffer, src, size);
+  memcpy(p->data.buffer, src, size);
   return mv_server_send(mv->server, node, &p->data,
                         (size_t)(size + sizeof(struct packet_header)),
                         p, proto);
@@ -53,7 +53,7 @@ int mvi_recv_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
   if (!mv_hash_insert(mv->tbl, key, &value)) {
     ctx->type = REQ_DONE;
     mv_packet* p_ctx = (mv_packet*)value;
-    memcpy(ctx->buffer, p_ctx->data.content.buffer, ctx->size);
+    memcpy(ctx->buffer, p_ctx->data.buffer, ctx->size);
     mv_pool_put(mv->pkpool, p_ctx);
     return 1;
   }
@@ -81,10 +81,10 @@ void mvi_send_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 
 MV_INLINE void proto_complete_rndz(mvh* mv, mv_packet* p, mv_ctx* ctx)
 {
-  p->data.content.rdz.sreq = (uintptr_t)ctx;
+  p->data.rdz.sreq = (uintptr_t)ctx;
   mv_server_rma_signal(mv->server, p->data.header.from, ctx->buffer,
-                       p->data.content.rdz.tgt_addr, p->data.content.rdz.rkey,
-                       ctx->size, p->data.content.rdz.comm_id, p, MV_PROTO_LONG_MATCH);
+                       p->data.rdz.tgt_addr, p->data.rdz.rkey,
+                       ctx->size, p->data.rdz.comm_id, p, MV_PROTO_LONG_MATCH);
 }
 
 MV_INLINE void mvi_send_rdz_init(mvh* mv, const void* src, int size, int rank,
@@ -120,10 +120,10 @@ MV_INLINE void mvi_recv_rdz_init(mvh* mv, void* src, int size, int rank,
   p->data.header.from = mv->me;
   p->data.header.size = size;
   p->data.header.tag = tag;
-  p->data.content.rdz.comm_id =
+  p->data.rdz.comm_id =
       (uint32_t)((uintptr_t)p - (uintptr_t)mv_heap_ptr(mv));
-  p->data.content.rdz.tgt_addr = (uintptr_t)src;
-  p->data.content.rdz.rkey = mv_server_rma_key(reg);
+  p->data.rdz.tgt_addr = (uintptr_t)src;
+  p->data.rdz.rkey = mv_server_rma_key(reg);
 
   mv_server_send(mv->server, rank, &p->data,
                  (size_t)(sizeof(struct mv_rdz) + sizeof(struct packet_header)),
