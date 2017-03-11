@@ -25,7 +25,7 @@ ifeq ($(MV_SERVER), psm)
 	LDFLAGS += -lpsm2 # -L$(HOME)/libfab/lib -lfabric
 endif
 
-LDFLAGS += -L$(HOME)/tcmalloc/lib -ltcmalloc
+LDFLAGS += -L$(HOME)/tcmalloc_sb/lib -ltcmalloc
 
 ### FOR TESTING HASH TABLE ###
 #FACEBOOK_INC = -I$(HOME)/facebook/include -I$(HOME)/glog/include -I$(HOME)/folly/folly/double-conversion #-DNDEBUG

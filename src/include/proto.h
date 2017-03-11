@@ -1,7 +1,7 @@
 #ifndef MV_PROTO_H
 #define MV_PROTO_H
 
-#define RDZ_MATCH_TAG ((uint32_t) 1 << 30)
+#define RDZ_MATCH_TAG ((uint32_t) 1 << 24)
 
 #define INIT_CTX(ctx)         \
   {                           \
@@ -17,7 +17,7 @@ typedef struct {
   mv_am_func_t func_ps;
 } mv_proto_spec_t;
 
-const mv_proto_spec_t mv_proto[11] __attribute__((aligned(64)));
+const mv_proto_spec_t mv_proto[10] __attribute__((aligned(64)));
 
 MV_INLINE
 int mvi_am_generic(mvh* mv, int node, const void* src, int size, int tag,
@@ -28,13 +28,8 @@ int mvi_am_generic(mvh* mv, int node, const void* src, int size, int tag,
   else
     p->context.poolid = 0;
 
-  p->data.header.from = mv->me;
-  p->data.header.tag = tag;
-  p->data.header.size = size;
-  memcpy(p->data.buffer, src, size);
-  return mv_server_send(mv->server, node, &p->data,
-                        (size_t)(size + sizeof(struct packet_header)),
-                        p, proto);
+  return mv_server_send(mv->server, node, (void*) src, size,
+                        p, proto | tag << 8);
 }
 
 MV_INLINE
@@ -81,17 +76,17 @@ void mvi_send_eager_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 
 MV_INLINE void proto_complete_rndz(mvh* mv, mv_packet* p, mv_ctx* ctx)
 {
-  p->data.rdz.sreq = (uintptr_t)ctx;
-  mv_server_rma_signal(mv->server, p->data.header.from, ctx->buffer,
-                       p->data.rdz.tgt_addr, p->data.rdz.rkey,
-                       ctx->size, p->data.rdz.comm_id, p, MV_PROTO_LONG_MATCH);
+  p->context.req = (uintptr_t)ctx;
+  mv_server_rma_signal(mv->server, p->context.from, ctx->buffer,
+                       p->data.rtr.tgt_addr, p->data.rtr.rkey,
+                       ctx->size, p->data.rtr.comm_id, p, MV_PROTO_LONG_MATCH);
 }
 
 MV_INLINE void mvi_send_rdz_init(mvh* mv, const void* src, int size, int rank,
                                  int tag, mv_ctx* ctx)
 {
   INIT_CTX(ctx);
-  mv_key key = mv_make_rdz_key(ctx->rank, ctx->tag);
+  mv_key key = mv_make_rdz_key(rank, tag);
   mv_value value = (mv_value)ctx;
   if (!mv_hash_insert(mv->tbl, key, &value)) {
     proto_complete_rndz(mv, (mv_packet*)value, ctx);
@@ -117,17 +112,14 @@ MV_INLINE void mvi_recv_rdz_init(mvh* mv, void* src, int size, int rank,
   p->context.req = (uintptr_t)ctx;
   uintptr_t reg = mv_server_rma_reg(mv->server, src, size);
 
-  p->data.header.from = mv->me;
-  p->data.header.size = size;
-  p->data.header.tag = tag;
-  p->data.rdz.comm_id =
+  p->data.rtr.comm_id =
       (uint32_t)((uintptr_t)p - (uintptr_t)mv_heap_ptr(mv));
-  p->data.rdz.tgt_addr = (uintptr_t)src;
-  p->data.rdz.rkey = mv_server_rma_key(reg);
+  p->data.rtr.tgt_addr = (uintptr_t)src;
+  p->data.rtr.rkey = mv_server_rma_key(reg);
 
   mv_server_send(mv->server, rank, &p->data,
-                 (size_t)(sizeof(struct mv_rdz) + sizeof(struct packet_header)),
-                 p, MV_PROTO_RTR_MATCH);
+                 (size_t)(sizeof(struct packet_rtr) + sizeof(struct packet_header)),
+                 p, MV_PROTO_RTR_MATCH | tag << 8);
 }
 
 MV_INLINE int mvi_recv_rdz_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
@@ -157,10 +149,12 @@ MV_INLINE int mvi_send(mvh* mv, const void* src, int size, int rank, int tag, mv
 
 MV_INLINE int mvi_send_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
 {
-  if (!ctx || ctx->size <= (int) SHORT_MSG_SIZE)
+  if (!ctx) return 1;
+  if (ctx->size <= (int) SHORT_MSG_SIZE) {
     return 1;
-  else
+  } else {
     return mvi_send_rdz_post(mv, ctx, sync);
+  }
 }
 
 MV_INLINE int mvi_recv(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx)
@@ -192,7 +186,6 @@ void mv_serve_recv(mvh* mv, mv_packet* p_ctx, uint32_t proto)
 MV_INLINE
 void mv_serve_send(mvh* mv, mv_packet* p_ctx, uint32_t proto)
 {
-  if (!p_ctx) return;
   const mv_am_func_t f = mv_proto[proto].func_ps;
   if (likely(f)) {
     f(mv, p_ctx);

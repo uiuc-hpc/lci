@@ -123,7 +123,7 @@ static void* progress(void* arg __UNUSED__)
 void MPIV_Init(int* argc, char*** args)
 {
   size_t heap_size = 256 * 1024 * 1024;
-  mv_open(argc, args, heap_size, &mv_hdl);
+  mv_open(heap_size, &mv_hdl);
   posix_memalign(&ctx_data, 64, sizeof(struct mv_ctx) * MAX_PACKET);
   mv_pool_create(&mv_ctx_pool);
   mv_ctx* ctxs = (mv_ctx*) ctx_data;

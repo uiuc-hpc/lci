@@ -6,19 +6,24 @@
 
 struct __attribute__((packed)) packet_context {
   SERVER_CONTEXT;
+  uint32_t from;
+  uint32_t size;
+  uint32_t tag;
+  uint32_t proto;
   uintptr_t req;
   uintptr_t rma_mem;
   uint64_t poolid;
-  uint64_t proto;
 };
 
 struct __attribute__((__packed__)) packet_header {
-  int from;
-  int tag;
-  int size;
 };
 
-struct __attribute__((__packed__)) mv_rdz {
+struct __attribute__((__packed__)) packet_rts {
+  uintptr_t sreq;
+  uintptr_t size;
+};
+
+struct __attribute__((__packed__)) packet_rtr {
   uintptr_t sreq;
   uintptr_t tgt_addr;
   uint32_t rkey;
@@ -28,7 +33,8 @@ struct __attribute__((__packed__)) mv_rdz {
 struct __attribute__((__packed__)) packet_data {
   struct packet_header header;
   union {
-    struct mv_rdz rdz;
+    struct packet_rts rts;
+    struct packet_rtr rtr;
     char buffer[0];
   };
 };

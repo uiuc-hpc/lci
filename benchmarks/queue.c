@@ -21,8 +21,8 @@ mvh* mv;
 int main(int argc, char** args)
 {
   size_t heap_size = 128 * 1024 * 1024;
-  mv_open(&argc, &args, heap_size, &mv);
-  set_me_to_last();
+  mv_open(heap_size, &mv);
+  // set_me_to_last();
 
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);

@@ -9,7 +9,7 @@
 #include "dequeue.h"
 
 #ifdef MV_USE_SERVER_OFI
-#define SERVER_CONTEXT char __padding__[64 - 32];
+#define SERVER_CONTEXT char __padding__[64 - 40];
 typedef struct ofi_server mv_server;
 #endif
 
@@ -19,7 +19,7 @@ typedef struct ibv_server mv_server;
 #endif
 
 #ifdef MV_USE_SERVER_PSM
-#define SERVER_CONTEXT char __pandding__[64 - 32];
+#define SERVER_CONTEXT char __pandding__[64 - 40];
 typedef struct psm_server mv_server;
 #endif
 

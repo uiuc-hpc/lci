@@ -11,7 +11,7 @@
 #include "mv/macro.h"
 #include "dreg/dreg.h"
 
-static volatile int psm_lock = 0;
+// #define USE_DREG
 
 // #define SERVER_PSM_DEBUG
 
@@ -80,6 +80,7 @@ MV_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
                                     uint32_t sid, mv_packet* ctx, uint32_t proto);
 
 MV_INLINE void psm_finalize(psm_server* s);
+MV_INLINE void psm_flush(psm_server* s);
 
 static uint32_t next_key = 1;
 
@@ -118,20 +119,30 @@ MV_INLINE int _real_psm_free(uintptr_t mem)
 
 MV_INLINE uintptr_t psm_rma_reg(psm_server* s, void* buf, size_t size)
 {
+#ifdef USE_DREG
   return (uintptr_t)dreg_register(s, buf, size);
-  // return _real_psm_reg(s, buf, size);
+#else
+  return _real_psm_reg(s, buf, size);
+#endif
 }
 
 MV_INLINE int psm_rma_dereg(uintptr_t mem)
 {
+#ifdef USE_DREG
   dreg_unregister((dreg_entry*)mem);
   return 1;
-  // return fi_close((struct fid*) mem);
+#else
+  return _real_psm_free(mem);
+#endif
 }
 
 MV_INLINE uint32_t psm_rma_key(uintptr_t mem)
 {
+#ifdef USE_DREG
   return ((struct psm_mr*)(((dreg_entry*)mem)->memhandle[0]))->rkey;
+#else
+  return ((struct psm_mr*) mem)->rkey;
+#endif
 }
 
 static volatile int psm_start_stop = 0;
@@ -165,9 +176,11 @@ MV_INLINE void psm_init(mvh* mv, size_t heap_size, psm_server** s_ptr)
   int rc;
   int ver_major = PSM2_VERNO_MAJOR;
   int ver_minor = PSM2_VERNO_MINOR;
-  dreg_init();
 
-  psm2_uuid_generate(s->uuid);
+#ifdef USE_DREG
+  dreg_init();
+#endif
+
   PSM_SAFECALL(psm2_init(&ver_major, &ver_minor));
 
   /* Setup the endpoint options struct */
@@ -175,8 +188,17 @@ MV_INLINE void psm_init(mvh* mv, size_t heap_size, psm_server** s_ptr)
   PSM_SAFECALL(psm2_ep_open_opts_get_defaults(&option));
   option.affinity = 0; // Disable affinity.
 
+  psm2_uuid_generate(s->uuid);
+
   /* Attempt to open a PSM2 endpoint. This allocates hardware resources. */
   PSM_SAFECALL(psm2_ep_open(s->uuid, &option, &s->myep, &s->myepid));
+
+  int provided;
+  MPI_Init_thread(NULL, NULL, MPI_THREAD_FUNNELED, &provided);
+  if (MPI_THREAD_FUNNELED != provided) {
+    printf("Need MPI_THREAD_MULTIPLE\n");
+    exit(EXIT_FAILURE);
+  }
 
   /* Exchange ep addr. */
   MPI_Comm_rank(MPI_COMM_WORLD, &mv->me);
@@ -254,24 +276,28 @@ MV_INLINE void psm_progress(psm_server* s)
 #endif
 
   err = psm2_mq_ipeek(s->mq, &req, NULL);
-
   if (err == PSM2_OK) {
     err = psm2_mq_test(&req, &status); // we need the status
     uintptr_t ctx = (uintptr_t) status.context;
+    if (ctx)
     if (ctx & PSM_RECV) {
-      uint32_t proto = (status.msg_tag >> 32);
-      mv_serve_recv(s->mv, (mv_packet*) (ctx ^ PSM_RECV), proto);
+      uint32_t proto = (status.msg_tag >> 48);
+      mv_packet* p = (mv_packet*) (ctx ^ PSM_RECV);
+      p->context.from = (status.msg_tag >> 32) & 0x0000ffff;
+      p->context.size = (status.msg_length) - sizeof(struct packet_header);
+      p->context.tag = proto >> 8;
+      mv_serve_recv(s->mv, p, proto & 0x00ff);
       s->recv_posted--;
     } else if (ctx & PSM_SEND) {
       mv_packet* p = (mv_packet*) (ctx ^ PSM_SEND);
       uint32_t proto = p->context.proto;
       mv_serve_send(s->mv, p, proto);
-    } else { // recv rdma.
+    } else { // else if (ctx & PSM_RDMA) { // recv rdma.
       struct psm_mr* mr = (struct psm_mr*) (ctx ^ PSM_RDMA);
-      uint32_t proto = (status.msg_tag >> 32);
+      uint32_t imm = (status.msg_tag >> 32);
       prepare_rdma(s, mr);
-      if (proto)
-        mv_serve_imm(s->mv, proto);
+      if (imm)
+        mv_serve_imm(s->mv, imm);
     }
   }
 
@@ -294,27 +320,31 @@ MV_INLINE void psm_post_recv(psm_server* s, mv_packet* p)
   s->recv_posted++;
 }
 
-MV_INLINE int psm_write_send(psm_server* s, int rank, void* buf, size_t size,
+MV_INLINE int psm_write_send(psm_server* s, int rank, void* ubuf, size_t size,
                              mv_packet* ctx, uint32_t proto)
 {
-  if (size <= 1024) {
+  int me = s->mv->me;
+
+  if (size <= 4096) {
 #ifdef USE_AM
     PSM_SAFECALL(psm2_am_request_short(
         s->epaddr[rank], s->psm_recv_am_idx, NULL, 0, buf, size,
         PSM2_AM_FLAG_NOREPLY | PSM2_AM_FLAG_ASYNC, NULL, 0));
 #else
     PSM_SAFECALL(psm2_mq_send(s->mq, s->epaddr[rank], 0,
-        (uint64_t) proto << 32, buf, size));
+        ((uint64_t) proto << 48 | (uint64_t) me << 32), ubuf, size));
 #endif
-    mv_serve_send(s->mv, ctx, proto);
+    mv_serve_send(s->mv, ctx, proto & 0x00ff);
     return 1;
   } else {
-    ctx->context.proto = proto;
+    memcpy(ctx->data.buffer, ubuf, size);
+    ctx->context.proto = proto & 0x00ff;
     PSM_SAFECALL(psm2_mq_isend(s->mq,
         s->epaddr[rank],
         0, /* no flags */
-        (uint64_t) proto << 32, /* tag */
-        buf, size, (void*)(PSM_SEND | (uintptr_t) ctx), (psm2_mq_req_t*) ctx));
+        ((uint64_t) proto << 48 | (uint64_t) me << 32), /* tag */
+        ctx->data.buffer, size,
+        (void*)(PSM_SEND | (uintptr_t) ctx), (psm2_mq_req_t*) ctx));
     return 0;
   }
 }
@@ -333,7 +363,7 @@ MV_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
   PSM_SAFECALL(psm2_mq_isend(s->mq,
         s->epaddr[rank],
         0, /* no flags */
-        (uint64_t) sid << 32 | rkey, /* tag */
+        ((uint64_t) sid << 32) | rkey, /* tag */
         buf, size, (void*) (PSM_SEND | (uintptr_t) ctx), (psm2_mq_req_t*) ctx));
 }
 

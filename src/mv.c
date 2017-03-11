@@ -13,27 +13,19 @@ void* mv_heap_ptr(mvh* mv)
   return mv_server_heap_ptr(mv->server);
 }
 
-void mv_open(int* argc, char*** args, size_t heap_size, mvh** ret)
+void mv_open(size_t heap_size, mvh** ret)
 {
   struct mv_struct* mv = 0;
   posix_memalign((void**) &mv, 4096, sizeof(struct mv_struct));
 
+  setenv("I_MPI_FABRICS", "ofa", 1);
   setenv("MPICH_ASYNC_PROGRESS", "0", 1);
   setenv("MV2_ASYNC_PROGRESS", "0", 1);
   setenv("MV2_ENABLE_AFFINITY", "0", 1);
   setenv("MV2_USE_LAZY_MEM_UNREGISTER", "0", 1);
 
-  int provided;
-
-  MPI_Init_thread(argc, args, MPI_THREAD_MULTIPLE, &provided);
-  if (MPI_THREAD_MULTIPLE != provided) {
-    printf("Need MPI_THREAD_MULTIPLE\n");
-    exit(EXIT_FAILURE);
-  }
-
   mv_pool_init();
   mv_hash_create(&mv->tbl);
-  // mv->am_table_size = 1;
 
   mv_server_init(mv, heap_size, &mv->server);
 
@@ -101,12 +93,12 @@ int mv_recv_post(mvh* mv, mv_ctx* ctx, mv_sync* sync)
   return mvi_recv_post(mv, ctx, sync);
 }
 
-void mv_send_persis(mvh* mv, mv_packet* p, int rank, mv_ctx* ctx)
+void mv_send_persis(mvh* mv, mv_packet* p, int rank, int tag, mv_ctx* ctx)
 {
   p->context.req = (uintptr_t) ctx;
   mv_server_send(mv->server, rank, &p->data,
-      (size_t)(p->data.header.size + sizeof(struct packet_header)),
-      p, MV_PROTO_PERSIS);
+      (size_t)(p->context.size + sizeof(struct packet_header)),
+      p, MV_PROTO_PERSIS | tag << 8);
 }
 
 int mv_send_queue(mvh* mv, const void* src, int size, int rank, int tag, mv_ctx* ctx)
@@ -118,13 +110,11 @@ int mv_send_queue(mvh* mv, const void* src, int size, int rank, int tag, mv_ctx*
     ctx->type = REQ_DONE;
   } else {
     INIT_CTX(ctx);
-    p->data.rdz.sreq = (uintptr_t) ctx;
-    p->data.header.from = mv->me;
-    p->data.header.tag = tag;
-    p->data.header.size = size;
+    p->data.rts.sreq = (uintptr_t) ctx;
+    p->data.rts.size = size;
     mv_server_send(mv->server, rank, &p->data,
-        (size_t)(sizeof(struct mv_rdz) + sizeof(struct packet_header)),
-        p, MV_PROTO_RTS_QUEUE);
+        (size_t)(sizeof(struct packet_rts) + sizeof(struct packet_header)),
+        p, MV_PROTO_RTS_QUEUE | tag << 8);
   }
   return 1;
 }
@@ -138,9 +128,13 @@ int mv_recv_queue(mvh* mv, int* size, int* rank, int *tag, mv_ctx* ctx)
 #endif
   if (p == NULL) return 0;
 
-  *rank = p->data.header.from;
-  *tag = p->data.header.tag;
-  *size = p->data.header.size;
+  *rank = p->context.from;
+  if (p->context.proto != MV_PROTO_RTS_QUEUE) {
+    *size = p->context.size;
+  } else {
+    *size = p->data.rts.size;
+  }
+  *tag = p->context.tag;
   ctx->packet = p;
   ctx->type = REQ_PENDING;
 
@@ -151,20 +145,20 @@ int mv_recv_queue_post(mvh* mv, void* buf, mv_ctx* ctx)
 {
   mv_packet* p = (mv_packet*) ctx->packet;
   if (p->context.proto != MV_PROTO_RTS_QUEUE) {
-    memcpy(buf, p->data.buffer, p->data.header.size);
+    memcpy(buf, p->data.buffer, p->context.size);
     mv_pool_put(mv->pkpool, p);
     ctx->type = REQ_DONE;
     return 1;
   } else {
-    int rank = p->data.header.from;
+    int rank = p->context.from;
     p->context.req = (uintptr_t) ctx;
-    uintptr_t rma_mem = mv_server_rma_reg(mv->server, buf, p->data.header.size);
+    uintptr_t rma_mem = mv_server_rma_reg(mv->server, buf, p->data.rts.size);
     p->context.rma_mem = rma_mem;
-    p->data.rdz.tgt_addr = (uintptr_t) buf;
-    p->data.rdz.rkey = mv_server_rma_key(rma_mem);
-    p->data.rdz.comm_id = (uint32_t) ((uintptr_t) p - (uintptr_t) mv_heap_ptr(mv));
+    p->data.rtr.tgt_addr = (uintptr_t) buf;
+    p->data.rtr.rkey = mv_server_rma_key(rma_mem);
+    p->data.rtr.comm_id = (uint32_t) ((uintptr_t) p - (uintptr_t) mv_heap_ptr(mv));
     mv_server_send(mv->server, rank, &p->data,
-        sizeof(struct packet_header) + sizeof(struct mv_rdz), p, MV_PROTO_RTR_QUEUE);
+        sizeof(struct packet_header) + sizeof(struct packet_rtr), p, MV_PROTO_RTR_QUEUE);
     return 0;
   }
 }
@@ -220,7 +214,7 @@ size_t mv_get_ncores()
   return sysconf(_SC_NPROCESSORS_ONLN) / THREAD_PER_CORE;
 }
 
-mv_packet* mv_alloc_packet(mvh* mv, int tag, int size)
+mv_packet* mv_alloc_packet(mvh* mv, int size)
 {
   mv_packet* p = mv_pool_get_nb(mv->pkpool);
   if (!p) return NULL;
@@ -228,9 +222,7 @@ mv_packet* mv_alloc_packet(mvh* mv, int tag, int size)
     fprintf(stderr, "Message size %d too big, try < %d\n", size, (int) SHORT_MSG_SIZE);
     exit(EXIT_FAILURE);
   }
-  p->data.header.from = mv->me;
-  p->data.header.size = size;
-  p->data.header.tag = tag;
+  p->context.size = size;
   return p;
 }
 

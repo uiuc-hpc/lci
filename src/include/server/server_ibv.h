@@ -15,7 +15,7 @@
 #define ALIGNMENT (4096)
 #define MAX_CQ 16
 
-// #define IBV_SERVER_DEBUG
+#define IBV_SERVER_DEBUG
 
 #ifdef IBV_SERVER_DEBUG
 #define IBV_SAFECALL(x)                                      \
@@ -65,6 +65,8 @@ typedef struct ibv_server {
   struct conn_ctx* conn;
 
   // Helper fields.
+  int* qp2rank;
+  int qp2rank_mod;
   void* heap_ptr;
   long recv_posted;
 } ibv_server __attribute__((aligned(64)));
@@ -102,7 +104,7 @@ MV_INLINE struct ibv_qp* qp_create(ibv_server* s,
   qp_init_attr.cap.max_send_wr = (uint32_t)dev_attr->max_qp_wr;
   qp_init_attr.cap.max_recv_wr = (uint32_t)dev_attr->max_qp_wr;
   // -- this affect the size of (TODO:tune later).
-  qp_init_attr.cap.max_send_sge = 1;
+  qp_init_attr.cap.max_send_sge = 8;
   qp_init_attr.cap.max_recv_sge = 1;
   qp_init_attr.cap.max_inline_data = 0;
   qp_init_attr.qp_type = IBV_QPT_RC;
@@ -273,9 +275,13 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
       }
 #endif
       s->recv_posted--;
-      if (wc[i].opcode != IBV_WC_RECV_RDMA_WITH_IMM)
-        mv_serve_recv(s->mv, (mv_packet*)wc[i].wr_id, wc[i].imm_data);
-      else {
+      if (wc[i].opcode != IBV_WC_RECV_RDMA_WITH_IMM) {
+        mv_packet* p = (mv_packet*) wc[i].wr_id;
+        p->context.from = s->qp2rank[wc[i].qp_num % s->qp2rank_mod];
+        p->context.size = wc[i].byte_len - sizeof(struct packet_header);
+        p->context.tag = wc[i].imm_data >> 8;
+        mv_serve_recv(s->mv, p, 0x00ff & wc[i].imm_data);
+      } else {
         mv_serve_imm(s->mv, wc[i].imm_data);
         mv_pool_put(s->mv->pkpool, (mv_packet*)wc[i].wr_id);
       }
@@ -296,7 +302,7 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
       }
 #endif
       mv_packet* p = (mv_packet*)wc[i].wr_id;
-      mv_serve_send(s->mv, p, p->context.proto);
+      if (p) mv_serve_send(s->mv, p, p->context.proto);
     }
     ret = 1;
   }
@@ -328,32 +334,31 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
   while (0)                     \
     ;
 
-static uint8_t count_inline = 0;
-
 /*! This return whether or not to wait. */
-MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf,
+MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* ubuf,
                                     size_t size, mv_packet* ctx, uint32_t proto)
 {
   struct ibv_sge list = {
-      .addr = (uintptr_t)buf,    // address
+      .addr = (uintptr_t)ubuf,    // address
       .length = (uint32_t)size,  // length
       .lkey = s->heap->lkey,     // lkey
   };
 
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr;
-
   if (size <= server_max_inline) {
     setup_wr(this_wr, (uintptr_t)0, &list, IBV_WR_SEND_WITH_IMM,
              IBV_SEND_INLINE | IBV_SEND_SIGNALED);
-    IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
     this_wr.imm_data = proto;
-    mv_serve_send(s->mv, ctx, proto);
-    // count_inline ++;
+    IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
+    mv_serve_send(s->mv, ctx, proto & 0x00ff);
     return 0;
   } else {
-    ctx->context.proto = this_wr.imm_data = proto;
+    memcpy(ctx->data.buffer, ubuf, size);
+    list.addr = (uintptr_t) &(ctx->data);
+    ctx->context.proto = proto & 0x00ff;
     setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND_WITH_IMM, IBV_SEND_SIGNALED);
+    this_wr.imm_data = proto;
     IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
     return 1;
   }
@@ -485,6 +490,13 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr)
     exit(EXIT_FAILURE);
   }
 
+  int provided;
+  MPI_Init_thread(NULL, NULL, MPI_THREAD_FUNNELED, &provided);
+  if (MPI_THREAD_FUNNELED != provided) {
+    printf("Need MPI_THREAD_MULTIPLE\n");
+    exit(EXIT_FAILURE);
+  }
+
   MPI_Comm_rank(MPI_COMM_WORLD, &mv->me);
   MPI_Comm_size(MPI_COMM_WORLD, &mv->size);
   s->conn = (struct conn_ctx*)malloc(sizeof(struct conn_ctx) * mv->size);
@@ -520,6 +532,28 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr)
     qp_to_rtr(s->dev_qp[i], dev_port, &port_attr, rmtctx);
     qp_to_rts(s->dev_qp[i]);
   }
+
+  // ***HACK TO MAP QP TO RANK***
+  int j = mv->size;
+  int* b;
+  while (1) {
+    b = (int*) calloc(j, sizeof(int));
+    int i = 0;
+    for (;i < mv->size; i++) {
+      int k = (s->dev_qp[i]->qp_num % j);
+      if (b[k]) break;
+      b[k] = 1;
+    }
+    if (i == mv->size) break;
+    j++;
+    free(b);
+  }
+
+  for (int i = 0; i < mv->size; i++) {
+    b[s->dev_qp[i]->qp_num % j] = i;
+  }
+  s->qp2rank_mod = j;
+  s->qp2rank = b;
 
   dreg_init();
 

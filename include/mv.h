@@ -41,7 +41,6 @@ typedef void* mv_hash;
 enum mv_proto_name {
   MV_PROTO_NULL = 0,
   MV_PROTO_SHORT_MATCH,
-  MV_PROTO_SHORT_WAIT,
   MV_PROTO_RTR_MATCH,
   MV_PROTO_LONG_MATCH,
 
@@ -280,7 +279,7 @@ int mv_send_put_signal(mvh* mv, void* src, int size, int rank, mv_addr* dst,
 *
 */
 MV_EXPORT
-void mv_open(int* argc, char*** args, size_t heap_size, mvh** handle);
+void mv_open(size_t heap_size, mvh** handle);
 
 /**
 * @brief Close the handle and free memory.
@@ -406,7 +405,7 @@ MV_EXPORT
 void MPIV_Free(void*);
 
 MV_EXPORT
-mv_packet* mv_alloc_packet(mvh* mv, int tag, int size);
+mv_packet* mv_alloc_packet(mvh* mv, int size);
 
 MV_EXPORT
 void* mv_get_packet_data(mv_packet* p);
@@ -415,7 +414,7 @@ MV_EXPORT
 void mv_free_packet(mvh* mv, mv_packet* p);
 
 MV_EXPORT
-void mv_send_persis(mvh* mv, mv_packet* p, int rank, mv_ctx* ctx);
+void mv_send_persis(mvh* mv, mv_packet* p, int rank, int tag, mv_ctx* ctx);
 
 /**@}*/
 
