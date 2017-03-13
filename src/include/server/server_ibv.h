@@ -14,15 +14,17 @@
 
 #define ALIGNMENT (4096)
 #define MAX_CQ 16
+#define GET_PROTO(p) (p & 0x00ff)
 
-#define IBV_SERVER_DEBUG
+// #define IBV_SERVER_DEBUG
 
 #ifdef IBV_SERVER_DEBUG
 #define IBV_SAFECALL(x)                                      \
   {                                                          \
     int err = (x);                                           \
     if (err) {                                               \
-      printf("err : %d (%s:%d)\n", err, __FILE__, __LINE__); \
+      fprintf(stderr,                                        \
+        "err : %d (%s:%d)\n", err, __FILE__, __LINE__);      \
       MPI_Abort(MPI_COMM_WORLD, err);                        \
     }                                                        \
   }                                                          \
@@ -127,7 +129,7 @@ MV_INLINE void qp_init(struct ibv_qp* qp, int port)
       IBV_QP_STATE | IBV_QP_PKEY_INDEX | IBV_QP_PORT | IBV_QP_ACCESS_FLAGS;
   int rc = ibv_modify_qp(qp, &attr, flags);
   if (rc != 0) {
-    printf("Unable to init qp\n");
+    fprintf(stderr, "Unable to init qp\n");
     exit(EXIT_FAILURE);
   }
 }
@@ -160,7 +162,7 @@ MV_INLINE void qp_to_rtr(struct ibv_qp* qp, int dev_port,
 
   int rc = ibv_modify_qp(qp, &attr, flags);
   if (rc != 0) {
-    printf("failed to modify QP state to RTR\n");
+    fprintf(stderr, "failed to modify QP state to RTR\n");
     exit(EXIT_FAILURE);
   }
 }
@@ -181,7 +183,7 @@ MV_INLINE void qp_to_rts(struct ibv_qp* qp)
               IBV_QP_RNR_RETRY | IBV_QP_SQ_PSN | IBV_QP_MAX_QP_RD_ATOMIC;
   int rc = ibv_modify_qp(qp, &attr, flags);
   if (rc != 0) {
-    printf("failed to modify QP state to RTS\n");
+    fprintf(stderr, "failed to modify QP state to RTS\n");
     exit(EXIT_FAILURE);
   }
 }
@@ -280,7 +282,7 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
         p->context.from = s->qp2rank[wc[i].qp_num % s->qp2rank_mod];
         p->context.size = wc[i].byte_len - sizeof(struct packet_header);
         p->context.tag = wc[i].imm_data >> 8;
-        mv_serve_recv(s->mv, p, 0x00ff & wc[i].imm_data);
+        mv_serve_recv(s->mv, p, GET_PROTO(wc[i].imm_data));
       } else {
         mv_serve_imm(s->mv, wc[i].imm_data);
         mv_pool_put(s->mv->pkpool, (mv_packet*)wc[i].wr_id);
@@ -315,7 +317,7 @@ MV_INLINE int ibv_server_progress(ibv_server* s)
 
 #ifdef IBV_SERVER_DEBUG
   if (s->recv_posted == 0) {
-    printf("WARNING DEADLOCK %d\n", s->recv_posted);
+    fprintf(stderr, "WARNING DEADLOCK %d\n", s->recv_posted);
   }
 #endif
 
@@ -351,12 +353,14 @@ MV_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* ubuf,
              IBV_SEND_INLINE | IBV_SEND_SIGNALED);
     this_wr.imm_data = proto;
     IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
-    mv_serve_send(s->mv, ctx, proto & 0x00ff);
+    mv_serve_send(s->mv, ctx, GET_PROTO(proto));
     return 0;
   } else {
-    memcpy(ctx->data.buffer, ubuf, size);
-    list.addr = (uintptr_t) &(ctx->data);
-    ctx->context.proto = proto & 0x00ff;
+    if (ubuf != ctx->data.buffer) {
+      memcpy(ctx->data.buffer, ubuf, size);
+      list.addr = (uintptr_t) (ctx->data.buffer);
+    }
+    ctx->context.proto = GET_PROTO(proto);
     setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND_WITH_IMM, IBV_SEND_SIGNALED);
     this_wr.imm_data = proto;
     IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
@@ -424,13 +428,13 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr)
   int num_devices;
   struct ibv_device** dev_list = ibv_get_device_list(&num_devices);
   if (num_devices <= 0) {
-    printf("Unable to find any ibv devices\n");
+    fprintf(stderr, "Unable to find any ibv devices\n");
     exit(EXIT_FAILURE);
   }
   // Use the last one by default.
   s->dev_ctx = ibv_open_device(dev_list[num_devices - 1]);
   if (s->dev_ctx == 0) {
-    printf("Unable to find any ibv devices\n");
+    fprintf(stderr, "Unable to find any ibv devices\n");
     exit(EXIT_FAILURE);
   }
   ibv_free_device_list(dev_list);
@@ -438,7 +442,7 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr)
   struct ibv_device_attr dev_attr;
   int rc = ibv_query_device(s->dev_ctx, &dev_attr);
   if (rc != 0) {
-    printf("Unable to query device\n");
+    fprintf(stderr, "Unable to query device\n");
     exit(EXIT_FAILURE);
   }
 
@@ -451,13 +455,13 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr)
     if (rc == 0) break;
   }
   if (rc != 0) {
-    printf("Unable to query port\n");
+    fprintf(stderr, "Unable to query port\n");
     exit(EXIT_FAILURE);
   }
 
   s->dev_pd = ibv_alloc_pd(s->dev_ctx);
   if (s->dev_pd == 0) {
-    printf("Could not create protection domain for context\n");
+    fprintf(stderr, "Could not create protection domain for context\n");
     exit(EXIT_FAILURE);
   }
 
@@ -469,7 +473,7 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr)
   srq_attr.attr.srq_limit = 0;
   s->dev_srq = ibv_create_srq(s->dev_pd, &srq_attr);
   if (s->dev_srq == 0) {
-    printf("Could not create shared received queue\n");
+    fprintf(stderr, "Could not create shared received queue\n");
     exit(EXIT_FAILURE);
   }
 
@@ -477,7 +481,7 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr)
   s->send_cq = ibv_create_cq(s->dev_ctx, 64 * 1024, 0, 0, 0);
   s->recv_cq = ibv_create_cq(s->dev_ctx, 64 * 1024, 0, 0, 0);
   if (s->send_cq == 0 || s->recv_cq == 0) {
-    printf("Unable to create cq\n");
+    fprintf(stderr, "Unable to create cq\n");
     exit(EXIT_FAILURE);
   }
 
@@ -486,14 +490,14 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr)
   s->heap_ptr = (void*)s->heap->addr;
 
   if (s->heap == 0) {
-    printf("Unable to create heap\n");
+    fprintf(stderr, "Unable to create heap\n");
     exit(EXIT_FAILURE);
   }
 
   int provided;
   MPI_Init_thread(NULL, NULL, MPI_THREAD_FUNNELED, &provided);
   if (MPI_THREAD_FUNNELED != provided) {
-    printf("Need MPI_THREAD_MULTIPLE\n");
+    fprintf(stderr, "Need MPI_THREAD_MULTIPLE\n");
     exit(EXIT_FAILURE);
   }
 
@@ -508,7 +512,7 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr)
   for (int i = 0; i < mv->size; i++) {
     s->dev_qp[i] = qp_create(s, &dev_attr);
     if (!s->dev_qp[i]) {
-      printf("Unable to create queue pair\n");
+      fprintf(stderr, "Unable to create queue pair\n");
       exit(EXIT_FAILURE);
     }
 
@@ -519,7 +523,7 @@ MV_INLINE void ibv_server_init(mvh* mv, size_t heap_size, ibv_server** s_ptr)
     lctx.lid = port_attr.lid;
     rc = ibv_query_gid(s->dev_ctx, dev_port, 0, &lctx.gid);
     if (rc != 0) {
-      printf("Unable to query gid\n");
+      fprintf(stderr, "Unable to query gid\n");
       exit(EXIT_FAILURE);
     }
 

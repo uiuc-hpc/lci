@@ -33,6 +33,6 @@
 // Using LCRQ or spinlock.
 #define USE_CCQ
 
-#define THREAD_PER_CORE 1
+#define THREAD_PER_CORE 4
 
 #endif

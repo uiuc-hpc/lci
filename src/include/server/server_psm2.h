@@ -15,6 +15,9 @@
 
 // #define SERVER_PSM_DEBUG
 
+#define GET_PROTO(p) (p & 0x00ff)
+#define MAKE_PSM_TAG(proto, rank) (((uint64_t) proto << 48) | (uint64_t) rank << 32)
+
 #ifdef SERVER_PSM_DEBUG
 #define PSM_SAFECALL(x)                                                   \
   {                                                                       \
@@ -286,7 +289,7 @@ MV_INLINE void psm_progress(psm_server* s)
       p->context.from = (status.msg_tag >> 32) & 0x0000ffff;
       p->context.size = (status.msg_length) - sizeof(struct packet_header);
       p->context.tag = proto >> 8;
-      mv_serve_recv(s->mv, p, proto & 0x00ff);
+      mv_serve_recv(s->mv, p, GET_PROTO(proto));
       s->recv_posted--;
     } else if (ctx & PSM_SEND) {
       mv_packet* p = (mv_packet*) (ctx ^ PSM_SEND);
@@ -332,18 +335,18 @@ MV_INLINE int psm_write_send(psm_server* s, int rank, void* ubuf, size_t size,
         PSM2_AM_FLAG_NOREPLY | PSM2_AM_FLAG_ASYNC, NULL, 0));
 #else
     PSM_SAFECALL(psm2_mq_send(s->mq, s->epaddr[rank], 0,
-        ((uint64_t) proto << 48 | (uint64_t) me << 32), ubuf, size));
+        MAKE_PSM_TAG(proto, me), ubuf, size));
 #endif
-    mv_serve_send(s->mv, ctx, proto & 0x00ff);
+    mv_serve_send(s->mv, ctx, GET_PROTO(proto));
     return 1;
   } else {
-    memcpy(ctx->data.buffer, ubuf, size);
-    ctx->context.proto = proto & 0x00ff;
+    if (ubuf != ctx->data.buffer)
+      memcpy(ctx->data.buffer, ubuf, size);
+    ctx->context.proto = GET_PROTO(proto);
     PSM_SAFECALL(psm2_mq_isend(s->mq,
         s->epaddr[rank],
         0, /* no flags */
-        ((uint64_t) proto << 48 | (uint64_t) me << 32), /* tag */
-        ctx->data.buffer, size,
+        MAKE_PSM_TAG(proto, me), ctx->data.buffer, size,
         (void*)(PSM_SEND | (uintptr_t) ctx), (psm2_mq_req_t*) ctx));
     return 0;
   }

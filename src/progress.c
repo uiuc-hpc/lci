@@ -45,7 +45,8 @@ static void mv_recv_rtr_match(mvh* mv, mv_packet* p)
 static void mv_recv_rtr_queue(mvh* mv, mv_packet* p)
 {
   int rank = p->context.from;
-  mv_ctx* ctx = p->context.req = (uintptr_t) p->data.rtr.sreq;
+  p->context.req = (uintptr_t) p->data.rtr.sreq;
+  mv_ctx* ctx = (mv_ctx*) p->data.rtr.sreq;
   mv_server_rma_signal(mv->server, rank, (void*) ctx->buffer,
       p->data.rtr.tgt_addr,
       p->data.rtr.rkey,

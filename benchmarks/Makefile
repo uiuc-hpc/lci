@@ -18,14 +18,13 @@ endif
 ifeq ($(MV_SERVER), ibv)
 	CFLAGS += -DMV_USE_SERVER_IBV -DAFF_DEBUG
 	LDFLAGS += -libverbs
+	LDFLAGS += -L$(HOME)/tcmalloc_sb/lib -ltcmalloc
 endif
 
 ifeq ($(MV_SERVER), psm)
 	CFLAGS += -DMV_USE_SERVER_PSM -DAFF_DEBUG
 	LDFLAGS += -lpsm2 # -L$(HOME)/libfab/lib -lfabric
 endif
-
-LDFLAGS += -L$(HOME)/tcmalloc_sb/lib -ltcmalloc
 
 ### FOR TESTING HASH TABLE ###
 #FACEBOOK_INC = -I$(HOME)/facebook/include -I$(HOME)/glog/include -I$(HOME)/folly/folly/double-conversion #-DNDEBUG
