@@ -39,8 +39,9 @@ struct lc_struct {
   // lc_am_func_t am_table[128];
 } __attribute__((aligned(64)));
 
-#define RMA_SIGNAL_SIMPLE (1 << 30)
-#define RMA_SIGNAL_QUEUE (1 << 31)
+#define RMA_SIGNAL_MATCH 0
+#define RMA_SIGNAL_SIMPLE 1
+#define RMA_SIGNAL_QUEUE 2
 
 #include "packet.h"
 #include "pool.h"

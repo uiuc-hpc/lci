@@ -6,18 +6,18 @@
 #include <unistd.h>
 
 #include "comm_exp.h"
-#include "mv.h"
+#include "lc.h"
 
 // #define CHECK_RESULT
 #ifdef USE_ABT
-#include "mv/helper_abt.h"
+#include "lc/helper_abt.h"
 #elif defined(USE_PTH)
-#include "mv/helper_pth.h"
+#include "lc/helper_pth.h"
 #else
-#include "mv/helper.h"
+#include "lc/helper.h"
 #endif
 
-#include "mv/profiler.h"
+#include "lc/profiler.h"
 
 #define CHECK_RESULT 0
 
@@ -31,7 +31,7 @@
 #define MIN_MSG_SIZE 1
 #define MAX_MSG_SIZE (1 << 22)
 int size = 0;
-int WIN = 64;
+int WIN = 32;
 
 int main(int argc, char** args)
 {

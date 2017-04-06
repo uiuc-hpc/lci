@@ -1,8 +1,6 @@
 #ifndef LC_PROTO_H
 #define LC_PROTO_H
 
-#define RDZ_MATCH_TAG ((uint32_t) 1 << 24)
-
 #define INIT_CTX(ctx)         \
   {                           \
     ctx->buffer = (void*)src; \
@@ -15,6 +13,7 @@
   }
 
 #define MAKE_PROTO(proto, tag) (((uint32_t) proto) | ((uint32_t)tag << 8))
+#define MAKE_SIG(sig, id) (((uint32_t) sig << 30) | id)
 
 typedef struct {
   lc_am_func_t func_am;
@@ -37,7 +36,7 @@ void lci_put(lch* mv, void* src, int size, int rank,
              uintptr_t tgt, uint32_t rkey,
              uint32_t type, uint32_t id, lc_packet* p) {
   lc_server_rma_signal(mv->server, rank, src,
-      tgt, rkey, size, type | id, p);
+      tgt, rkey, size, MAKE_SIG(type, id), p);
 }
 
 LC_INLINE void lci_rdz_prepare(lch* mv, void* src, int size, lc_ctx* ctx, lc_packet* p)
@@ -72,28 +71,28 @@ void lc_serve_imm(lch* mv, uint32_t imm)
   // FIXME(danghvu): This comm_id is here due to the imm
   // only takes uint32_t, if this takes uint64_t we can
   // store a pointer to this request context.
-  if (imm & RMA_SIGNAL_QUEUE) {
-    imm ^= RMA_SIGNAL_QUEUE;
-    lc_packet* p = (lc_packet*)((uintptr_t)lc_heap_ptr(mv) + imm);
+  uint32_t type = imm >> 30;
+  uint32_t id = imm & 0x0fffffff;
+  uintptr_t addr = (uintptr_t)lc_heap_ptr(mv) + id;
+
+  if (type == RMA_SIGNAL_QUEUE) {
+    lc_packet* p = (lc_packet*) addr;
     lc_ctx* req = (lc_ctx*)p->context.req;
     lc_server_rma_dereg(p->context.rma_mem);
-    lc_pool_put(mv->pkpool, p);
     req->type = REQ_DONE;
-  } else if (imm & RMA_SIGNAL_SIMPLE) {
-    imm ^= RMA_SIGNAL_SIMPLE;
-    struct lc_rma_ctx* ctx =
-        (struct lc_rma_ctx*)((uintptr_t)lc_heap_ptr(mv) + imm);
-    if (ctx->req) ((lc_ctx*)ctx->req)->type = REQ_DONE;
-  } else {
-    lc_packet* p = (lc_packet*)((uintptr_t)lc_heap_ptr(mv) + imm);
-    lc_ctx* req = (lc_ctx*)p->context.req;
     lc_pool_put(mv->pkpool, p);
-    lc_key key = lc_make_key(req->rank, req->tag);
-    lc_value value = 0;
-    if (!lc_hash_insert(mv->tbl, key, &value)) {
-      req->type = REQ_DONE;
-      if (req->sync) thread_signal(req->sync);
-    }
+  } else if (type == RMA_SIGNAL_SIMPLE) {
+    struct lc_rma_ctx* ctx = (struct lc_rma_ctx*)addr;
+    if (ctx->req)
+      ((lc_ctx*)ctx->req)->type = REQ_DONE;
+  } else {
+    lc_packet* p = (lc_packet*) addr;
+    lc_ctx* req = (lc_ctx*)p->context.req;
+    lc_spin_lock(&req->lock);
+    req->type = REQ_DONE;
+    if (req->sync) thread_signal(req->sync);
+    lc_spin_unlock(&req->lock);
+    lc_pool_put(mv->pkpool, p);
   }
 }
 #endif

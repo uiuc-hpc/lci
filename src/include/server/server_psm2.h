@@ -11,12 +11,10 @@
 #include "mv/macro.h"
 #include "dreg/dreg.h"
 
-// #define SERVER_PSM_DEBUG
-
 #define GET_PROTO(p) (p & 0x00ff)
 #define MAKE_PSM_TAG(proto, rank) ((uint64_t) ((((uint64_t) proto) << 40) | (((uint64_t) rank) << 24)))
 
-#ifdef SERVER_PSM_DEBUG
+#ifdef LC_SERVER_DEBUG
 #define PSM_SAFECALL(x)                                                   \
   {                                                                       \
     int err = (x);                                                        \
@@ -105,7 +103,7 @@ LC_INLINE uintptr_t _real_psm_reg(psm_server* s, void* buf, size_t size)
   mr->addr = (uintptr_t) buf;
   mr->size = size;
   mr->rkey = (1 + __sync_fetch_and_add(&next_key, 1)) & 0x00ffffff;
-#ifdef SERVER_PSM_DEBUG
+#ifdef LC_SERVER_DEBUG
   assert(next_key != 0);
 #endif
   prepare_rdma(s, mr);

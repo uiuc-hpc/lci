@@ -1180,8 +1180,7 @@ dreg_entry* dreg_new_entry(void* server, void* buf, size_t len)
     pagenum_high = pagebase_high_a >> DREG_PAGEBITS;
     npages = 1 + (pagenum_high - pagenum_low);
 
-    if (rdma_dreg_cache_limit != 0
-        && npages >= (int) rdma_dreg_cache_limit)
+    if (rdma_dreg_cache_limit != 0)
     {
         return NULL;
     }

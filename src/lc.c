@@ -97,7 +97,7 @@ int lc_send(lch* mv, const void* src, int size, int rank, int tag, lc_ctx* ctx)
   return 1;
 }
 
-int lc_send_post(lch* mv, lc_ctx* ctx, lc_sync* sync)
+int lc_send_post(lch* mv __UNUSED__, lc_ctx* ctx, lc_sync* sync)
 {
   if (!ctx) return 1;
   if (ctx->size <= (int) SHORT_MSG_SIZE) {
@@ -137,19 +137,28 @@ int lc_recv(lch* mv, void* src, int size, int rank, int tag, lc_ctx* ctx)
 
 int lc_recv_post(lch* mv, lc_ctx* ctx, lc_sync* sync)
 {
-  ctx->sync = sync;
-  lc_key key = lc_make_key(ctx->rank, ctx->tag);
-  lc_value value = (lc_value)ctx;
-  if (!lc_hash_insert(mv->tbl, key, &value)) {
-    ctx->type = REQ_DONE;
-    if (ctx->size <= (int) SHORT_MSG_SIZE) {
+  if (ctx->size <= (int) SHORT_MSG_SIZE) {
+    ctx->sync = sync;
+    lc_key key = lc_make_key(ctx->rank, ctx->tag);
+    lc_value value = (lc_value)ctx;
+    if (!lc_hash_insert(mv->tbl, key, &value)) {
+      ctx->type = REQ_DONE;
       lc_packet* p_ctx = (lc_packet*)value;
       memcpy(ctx->buffer, p_ctx->data.buffer, ctx->size);
       lc_pool_put(mv->pkpool, p_ctx);
+      return 0;
     }
     return 1;
+  } else {
+    int ret = 0;
+    lc_spin_lock(&ctx->lock);
+    if (ctx->type != REQ_DONE)
+      ctx->sync = sync;
+    else
+      ret = 1;
+    lc_spin_unlock(&ctx->lock);
+    return ret;
   }
-  return 0;
 }
 
 void lc_send_persis(lch* mv, lc_packet* p, int rank, int tag, lc_ctx* ctx)

@@ -13,9 +13,7 @@
 #define MAX_CQ 16
 #define GET_PROTO(p) (p & 0x00ff)
 
-#define IBV_SERVER_DEBUG
-
-#ifdef IBV_SERVER_DEBUG
+#ifdef LC_SERVER_DEBUG
 #define IBV_SAFECALL(x)                                      \
   {                                                          \
     int err = (x);                                           \
@@ -103,7 +101,7 @@ LC_INLINE struct ibv_qp* qp_create(ibv_server* s,
   qp_init_attr.cap.max_send_wr = (uint32_t)dev_attr->max_qp_wr;
   qp_init_attr.cap.max_recv_wr = (uint32_t)dev_attr->max_qp_wr;
   // -- this affect the size of (TODO:tune later).
-  qp_init_attr.cap.max_send_sge = 1;
+  qp_init_attr.cap.max_send_sge = 8;
   qp_init_attr.cap.max_recv_sge = 1;
   qp_init_attr.cap.max_inline_data = 0;
   qp_init_attr.qp_type = IBV_QPT_RC;
@@ -283,7 +281,7 @@ LC_INLINE int ibv_server_progress(ibv_server* s)
 
   if (ne > 0) {
     for (int i = 0; i < ne; i++) {
-#ifdef IBV_SERVER_DEBUG
+#ifdef LC_SERVER_DEBUG
       if (wc[i].status != IBV_WC_SUCCESS) {
         fprintf(stderr, "Failed status %s (%d) for wr_id %d\n",
                 ibv_wc_status_str(wc[i].status), wc[i].status,
@@ -310,7 +308,7 @@ LC_INLINE int ibv_server_progress(ibv_server* s)
 
   if (ne > 0) {
     for (int i = 0; i < ne; i++) {
-#ifdef IBV_SERVER_DEBUG
+#ifdef LC_SERVER_DEBUG
       if (wc[i].status != IBV_WC_SUCCESS) {
         fprintf(stderr, "Failed status %s (%d) for wr_id %d\n",
                 ibv_wc_status_str(wc[i].status), wc[i].status,
@@ -330,7 +328,7 @@ LC_INLINE int ibv_server_progress(ibv_server* s)
                          (lc_packet*)lc_pool_get_nb(s->mv->pkpool));  //, 0));
   }
 
-#ifdef IBV_SERVER_DEBUG
+#ifdef LC_SERVER_DEBUG
   if (s->recv_posted == 0) {
     fprintf(stderr, "WARNING DEADLOCK %d\n", s->recv_posted);
   }
