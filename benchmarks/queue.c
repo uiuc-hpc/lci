@@ -64,7 +64,7 @@ int main(int argc, char** args)
         while (!lc_test(&ctx)) {
           lc_progress(mv);
         }
-        if (i == -1) {
+        if (i == 10) {
           assert(rank == 1);
           assert(tag == i);
           assert(size == len);

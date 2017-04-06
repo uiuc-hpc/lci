@@ -362,9 +362,8 @@ MV_INLINE void psm_write_rma(psm_server* s, int rank, void* from,
 
 MV_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
                                     uintptr_t addr, uint32_t rkey, size_t size,
-                                    uint32_t sid, lc_packet* ctx, uint32_t proto)
+                                    uint32_t sid, lc_packet* ctx)
 {
-  ctx->context.proto = proto;
   PSM_SAFECALL(psm2_mq_isend(s->mq,
         s->epaddr[rank],
         0, /* no flags */

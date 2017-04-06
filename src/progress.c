@@ -38,20 +38,23 @@ static void lc_recv_rtr_match(lch* mv, lc_packet* p)
   lc_key key = lc_make_rdz_key(p->context.from, p->context.tag);
   lc_value value = (lc_value)p;
   if (!lc_hash_insert(mv->tbl, key, &value)) {
-    lci_rdma_match(mv, p, (lc_ctx*)value);
+    lc_ctx* ctx = (lc_ctx*)value;
+    p->context.req = (uintptr_t)ctx;
+    p->context.proto = MV_PROTO_LONG_MATCH;
+    lci_put(mv, ctx->buffer, ctx->size, p->context.from,
+      p->data.rtr.tgt_addr, p->data.rtr.rkey,
+      0, p->data.rtr.comm_id, p);
   }
 }
 
 static void lc_recv_rtr_queue(lch* mv, lc_packet* p)
 {
-  int rank = p->context.from;
   p->context.req = (uintptr_t) p->data.rtr.sreq;
+  p->context.proto = MV_PROTO_LONG_QUEUE;
   lc_ctx* ctx = (lc_ctx*) p->data.rtr.sreq;
-  lc_server_rma_signal(mv->server, rank, (void*) ctx->buffer,
-      p->data.rtr.tgt_addr,
-      p->data.rtr.rkey,
-      ctx->size,
-      RMA_SIGNAL_QUEUE | (p->data.rtr.comm_id), p, MV_PROTO_LONG_QUEUE);
+  lci_put(mv, ctx->buffer, ctx->size, p->context.from,
+      p->data.rtr.tgt_addr, p->data.rtr.rkey,
+      RMA_SIGNAL_QUEUE, p->data.rtr.comm_id, p);
 }
 
 static void lc_sent_rdz_match_done(lch* mv, lc_packet* p)

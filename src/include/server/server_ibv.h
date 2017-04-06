@@ -12,7 +12,7 @@
 #define MAX_CQ 16
 #define GET_PROTO(p) (p & 0x00ff)
 
-// #define IBV_SERVER_DEBUG
+#define IBV_SERVER_DEBUG
 
 #ifdef IBV_SERVER_DEBUG
 #define IBV_SAFECALL(x)                                      \
@@ -85,7 +85,7 @@ MV_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
 MV_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
                                            uintptr_t addr, uint32_t rkey,
                                            size_t size, uint32_t sid,
-                                           lc_packet* ctx, uint32_t proto);
+                                           lc_packet* ctx);
 MV_INLINE int ibv_server_progress(ibv_server* s);
 
 MV_INLINE void* ibv_server_heap_ptr(lc_server* s);
@@ -395,9 +395,7 @@ MV_INLINE void ibv_server_read(ibv_server* s, int rank, void* dst,
       .lkey = s->heap->lkey,     // lkey
   };
 
-  int flags =
-      (size <= SERVER_MAX_INLINE ? IBV_SEND_INLINE : 0) | IBV_SEND_SIGNALED;
-  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_READ, flags);
+  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_READ, IBV_SEND_SIGNALED);
   this_wr.wr.rdma.remote_addr = (uintptr_t)src;
   this_wr.wr.rdma.rkey = rkey;
 
@@ -419,9 +417,7 @@ MV_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
       .lkey = s->heap->lkey,     // lkey
   };
 
-  int flags =
-      (size <= SERVER_MAX_INLINE ? IBV_SEND_INLINE : 0) | IBV_SEND_SIGNALED;
-  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE, flags);
+  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE, IBV_SEND_SIGNALED);
   this_wr.wr.rdma.remote_addr = (uintptr_t)to;
   this_wr.wr.rdma.rkey = rkey;
 
@@ -430,11 +426,10 @@ MV_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
 
 MV_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
                                            uintptr_t addr, uint32_t rkey,
-                                           size_t size, uint32_t sid, lc_packet* ctx, uint32_t proto)
+                                           size_t size, uint32_t sid, lc_packet* ctx)
 {
   struct ibv_send_wr this_wr;  // = {0};
   struct ibv_send_wr* bad_wr = 0;
-  ctx->context.proto = proto;
 
   uintptr_t mr = ibv_rma_reg(s, from, size);
 
@@ -444,9 +439,7 @@ MV_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
       .lkey = ibv_rma_lkey(mr),
   };
 
-  int flags =
-      (size <= SERVER_MAX_INLINE ? IBV_SEND_INLINE : 0) | IBV_SEND_SIGNALED;
-  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE_WITH_IMM, flags);
+  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE_WITH_IMM, IBV_SEND_SIGNALED);
 
   this_wr.wr.rdma.remote_addr = addr;
   this_wr.wr.rdma.rkey = rkey;

@@ -25,19 +25,19 @@ const lc_proto_spec_t lc_proto[10] __attribute__((aligned(64)));
 
 MV_INLINE
 int lci_send(lch* mv, const void* src, int size, int rank, int tag,
-            uint32_t proto, lc_packet* p)
+            lc_packet* p)
 {
   p->context.poolid = (size > 128)?lc_pool_get_local(mv->pkpool):0;
   return lc_server_send(mv->server, rank, (void*) src, size,
-                        p, MAKE_PROTO(proto, tag));
+                        p, MAKE_PROTO(p->context.proto, tag));
 }
 
-MV_INLINE void lci_rdma_match(lch* mv, lc_packet* p, lc_ctx* ctx)
-{
-  p->context.req = (uintptr_t)ctx;
-  lc_server_rma_signal(mv->server, p->context.from, ctx->buffer,
-                       p->data.rtr.tgt_addr, p->data.rtr.rkey,
-                       ctx->size, p->data.rtr.comm_id, p, MV_PROTO_LONG_MATCH);
+MV_INLINE
+void lci_put(lch* mv, void* src, int size, int rank,
+             uintptr_t tgt, uint32_t rkey,
+             uint32_t type, uint32_t id, lc_packet* p) {
+  lc_server_rma_signal(mv->server, rank, src,
+      tgt, rkey, size, type | id, p);
 }
 
 MV_INLINE void lci_rdz_prepare(lch* mv, void* src, int size, lc_ctx* ctx, lc_packet* p)
