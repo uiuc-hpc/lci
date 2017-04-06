@@ -74,6 +74,9 @@ all: $(TARGET)
 	$(MPICC) $(CFLAGS) -c $^ -DUSE_PTH
 	$(LD) $(LDFLAGS) $*.o $(LIB) -o $@
 
+write_mpi: write_mpi.cxx
+	mpicxx $(CXXFLAGS) write_mpi.cxx -o write_mpi
+
 hash: hash.cxx
 	mpicxx $(CXXFLAGS) $(LDFLAGS) -I../include -I../src/include/ hash.cxx -o hash ../src/hashtable.c
 

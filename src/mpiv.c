@@ -1,12 +1,12 @@
-#include "mv_priv.h"
+#include "lc_priv.h"
 #include "mv/affinity.h"
 #include "mv/macro.h"
 
 MV_EXPORT
-mvh* mv_hdl;
+lch* lc_hdl;
 
 static void* ctx_data;
-static mv_pool* mv_ctx_pool;
+static lc_pool* lc_ctx_pool;
 
 void* MPIV_HEAP;
 
@@ -18,12 +18,12 @@ void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype,
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
-  struct mv_ctx ctx;
-  while (!mvi_recv(mv_hdl, buffer, size, rank, tag, &ctx))
+  struct lc_ctx ctx;
+  while (!lc_recv(lc_hdl, buffer, size, rank, tag, &ctx))
     thread_yield();
-  mv_sync* sync = mv_get_sync();
-  mvi_recv_post(mv_hdl, &ctx, sync);
-  mv_wait(&ctx, sync);
+  lc_sync* sync = lc_get_sync();
+  lc_recv_post(lc_hdl, &ctx, sync);
+  lc_wait(&ctx, sync);
 }
 
 void MPIV_Send(void* buffer, int count, MPI_Datatype datatype,
@@ -32,12 +32,12 @@ void MPIV_Send(void* buffer, int count, MPI_Datatype datatype,
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
-  struct mv_ctx ctx;
-  while (!mvi_send(mv_hdl, buffer, size, rank, tag, &ctx))
+  struct lc_ctx ctx;
+  while (!lc_send(lc_hdl, buffer, size, rank, tag, &ctx))
     thread_yield();
-  mv_sync* sync = mv_get_sync();
-  mvi_send_post(mv_hdl, &ctx, sync);
-  mv_wait(&ctx, sync);
+  lc_sync* sync = lc_get_sync();
+  lc_send_post(lc_hdl, &ctx, sync);
+  lc_wait(&ctx, sync);
 }
 
 void MPIV_Ssend(void* buffer, int count, MPI_Datatype datatype,
@@ -46,12 +46,12 @@ void MPIV_Ssend(void* buffer, int count, MPI_Datatype datatype,
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
-  struct mv_ctx ctx;
-  while (!mvi_send(mv_hdl, buffer, size, rank, tag, &ctx))
+  struct lc_ctx ctx;
+  while (!lc_send(lc_hdl, buffer, size, rank, tag, &ctx))
     thread_yield();
-  mv_sync* sync = mv_get_sync();
-  mvi_send_post(mv_hdl, &ctx, sync);
-  mv_wait(&ctx, sync);
+  lc_sync* sync = lc_get_sync();
+  lc_send_post(lc_hdl, &ctx, sync);
+  lc_wait(&ctx, sync);
 }
 
 void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
@@ -59,14 +59,14 @@ void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
-  mv_ctx *ctx = (mv_ctx*) mv_pool_get(mv_ctx_pool);
-  while (!mvi_send(mv_hdl, buf, size, rank, tag, ctx))
+  lc_ctx *ctx = (lc_ctx*) lc_pool_get(lc_ctx_pool);
+  while (!lc_send(lc_hdl, buf, size, rank, tag, ctx))
     thread_yield();
   if (ctx->type != REQ_DONE) {
-    ctx->complete = mvi_send_post;
+    ctx->complete = lc_send_post;
     *req = (MPIV_Request) ctx;
   } else {
-    mv_pool_put(mv_ctx_pool, ctx);
+    lc_pool_put(lc_ctx_pool, ctx);
     *req = MPI_REQUEST_NULL;
   }
 }
@@ -76,10 +76,10 @@ void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
-  mv_ctx *ctx = (mv_ctx*) mv_pool_get(mv_ctx_pool);
-  while (!mvi_recv(mv_hdl, (void*) buffer, size, rank, tag, ctx))
+  lc_ctx *ctx = (lc_ctx*) lc_pool_get(lc_ctx_pool);
+  while (!lc_recv(lc_hdl, (void*) buffer, size, rank, tag, ctx))
     thread_yield();
-  ctx->complete = mvi_recv_post;
+  ctx->complete = lc_recv_post;
   *req = (MPIV_Request) ctx;
 }
 
@@ -89,33 +89,33 @@ void MPIV_Waitall(int count, MPIV_Request* req, MPI_Status* status __UNUSED__) {
     if (req[i] == MPI_REQUEST_NULL)
       pending--;
   }
-  mv_sync* counter = mv_get_counter(pending);
+  lc_sync* counter = lc_get_counter(pending);
   for (int i = 0; i < count; i++) {
     if (req[i] != MPI_REQUEST_NULL) {
-      mv_ctx* ctx = (mv_ctx *) req[i];
-      if (ctx->complete(mv_hdl, ctx, counter)) {
+      lc_ctx* ctx = (lc_ctx *) req[i];
+      if (ctx->complete(lc_hdl, ctx, counter)) {
         thread_signal(counter);
       }
     }
   }
   for (int i = 0; i < count; i++) {
     if (req[i] != MPI_REQUEST_NULL) {
-      mv_ctx* ctx = (mv_ctx*) req[i];
-      mv_wait(ctx, counter);
-      mv_pool_put(mv_ctx_pool, ctx);
+      lc_ctx* ctx = (lc_ctx*) req[i];
+      lc_wait(ctx, counter);
+      lc_pool_put(lc_ctx_pool, ctx);
       req[i] = MPI_REQUEST_NULL;
     }
   }
 }
 
-volatile int mv_thread_stop;
+volatile int lc_thread_stop;
 static pthread_t progress_thread;
 
 static void* progress(void* arg __UNUSED__)
 {
   set_me_to_last();
-  while (!mv_thread_stop) {
-    mv_progress(mv_hdl);
+  while (!lc_thread_stop) {
+    lc_progress(lc_hdl);
   }
   return 0;
 }
@@ -123,21 +123,21 @@ static void* progress(void* arg __UNUSED__)
 void MPIV_Init(int* argc, char*** args)
 {
   size_t heap_size = 256 * 1024 * 1024;
-  mv_open(heap_size, &mv_hdl);
-  posix_memalign(&ctx_data, 64, sizeof(struct mv_ctx) * MAX_PACKET);
-  mv_pool_create(&mv_ctx_pool);
-  mv_ctx* ctxs = (mv_ctx*) ctx_data;
+  lc_open(heap_size, &lc_hdl);
+  posix_memalign(&ctx_data, 64, sizeof(struct lc_ctx) * MAX_PACKET);
+  lc_pool_create(&lc_ctx_pool);
+  lc_ctx* ctxs = (lc_ctx*) ctx_data;
   for (int i = 0; i < MAX_PACKET; i++)
-    mv_pool_put(mv_ctx_pool, &ctxs[i]);
-  mv_thread_stop = 0;
+    lc_pool_put(lc_ctx_pool, &ctxs[i]);
+  lc_thread_stop = 0;
   pthread_create(&progress_thread, 0, progress, 0);
-  MPIV_HEAP = mv_heap_ptr(mv_hdl);
+  MPIV_HEAP = lc_heap_ptr(lc_hdl);
 }
 
 void MPIV_Finalize()
 {
-  mv_thread_stop = 1;
+  lc_thread_stop = 1;
   pthread_join(progress_thread, 0);
   free(ctx_data);
-  mv_close(mv_hdl);
+  lc_close(lc_hdl);
 }

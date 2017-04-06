@@ -1,7 +1,7 @@
 #ifndef MV_HELPER_H_
 #define MV_HELPER_H_
 
-#include "mv.h"
+#include "lc.h"
 #include "ult/fult/fult.h"
 #include "ult/ult.h"
 
@@ -10,7 +10,7 @@ static int nworker = 0;
 __thread struct tls_t tlself;
 
 void main_task(intptr_t);
-void mv_main_task(intptr_t arg)
+void lc_main_task(intptr_t arg)
 {
   // user-provided.
   main_task(arg);
@@ -22,7 +22,7 @@ void mv_main_task(intptr_t arg)
   fworker_stop_main(all_worker[0]);
 }
 
-extern mvh* mv_hdl;
+extern lch* lc_hdl;
 
 void MPIV_Start_worker(int number, intptr_t g)
 {
@@ -37,7 +37,7 @@ void MPIV_Start_worker(int number, intptr_t g)
     all_worker[i]->id = i;
     fworker_start(all_worker[i]);
   }
-  fworker_start_main(all_worker[0], mv_main_task, g);
+  fworker_start_main(all_worker[0], lc_main_task, g);
 }
 
 fthread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg)
@@ -46,20 +46,20 @@ fthread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg)
 }
 
 void MPIV_join(fthread* ult) { fthread_join(ult); }
-mv_sync* mv_get_sync()
+lc_sync* lc_get_sync()
 {
   tlself.thread->count = -1;
-  return (mv_sync*)tlself.thread;
+  return (lc_sync*)tlself.thread;
 }
 
-mv_sync* mv_get_counter(int count)
+lc_sync* lc_get_counter(int count)
 {
   tlself.thread->count = count;
-  return (mv_sync*)tlself.thread;
+  return (lc_sync*)tlself.thread;
 }
 
 void thread_yield() { fthread_yield(tlself.thread); }
-void thread_wait(mv_sync* sync)
+void thread_wait(lc_sync* sync)
 {
   fthread* thread = (fthread*)sync;
   if (thread->count < 0) {
@@ -71,7 +71,7 @@ void thread_wait(mv_sync* sync)
   }
 }
 
-void thread_signal(mv_sync* sync)
+void thread_signal(lc_sync* sync)
 {
   fthread* thread = (fthread*)sync;
   // smaller than 0 means no counter, saving abit cycles and data.
@@ -80,7 +80,7 @@ void thread_signal(mv_sync* sync)
   }
 }
 
-typedef struct fthread* mv_thread;
-typedef struct fworker* mv_worker;
+typedef struct fthread* lc_thread;
+typedef struct fworker* lc_worker;
 
 #endif

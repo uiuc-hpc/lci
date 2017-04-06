@@ -107,18 +107,18 @@ MV_INLINE void fworker_init(fworker** w_ptr)
 MV_INLINE void fworker_destroy(fworker* w) { free((void*)w->threads); }
 MV_INLINE void fworker_fini_thread(fworker* w, const int id)
 {
-  mv_spin_lock(&w->thread_pool_lock);
+  lc_spin_lock(&w->thread_pool_lock);
   w->thread_pool[w->thread_pool_last++] = &(w->threads[id]);
-  mv_spin_unlock(&w->thread_pool_lock);
+  lc_spin_unlock(&w->thread_pool_lock);
 }
 
 MV_INLINE fthread* fworker_spawn(fworker* w, ffunc f, intptr_t data,
                                  size_t stack_size)
 {
-  mv_spin_lock(&w->thread_pool_lock);
+  lc_spin_lock(&w->thread_pool_lock);
   fthread* t = w->thread_pool[w->thread_pool_last - 1];
   w->thread_pool_last--;
-  mv_spin_unlock(&w->thread_pool_lock);
+  lc_spin_unlock(&w->thread_pool_lock);
 
   // add it to the fthread.
   fthread_create(t, f, data, stack_size);

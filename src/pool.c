@@ -1,10 +1,10 @@
 #include "pool.h"
 
 int32_t tls_pool_struct[MAX_NPOOLS][MAX_LOCAL_POOL]; // = {-1, -1, -1, -1, -1, -1, -1, -1};
-int mv_pool_nkey = 0;
+int lc_pool_nkey = 0;
 volatile int init_pool_lock = 0;
 
-void mv_pool_init() {
+void lc_pool_init() {
   for (int i = 0; i < MAX_NPOOLS; i++) {
     for (int j = 0; j < MAX_LOCAL_POOL; j++) {
       tls_pool_struct[i][j] = -1;
@@ -12,11 +12,11 @@ void mv_pool_init() {
   }
 }
 
-void mv_pool_create(mv_pool** pool) {
-  mv_pool* p = 0;
-  posix_memalign((void**) &p, 64, sizeof(struct mv_pool));
+void lc_pool_create(lc_pool** pool) {
+  lc_pool* p = 0;
+  posix_memalign((void**) &p, 64, sizeof(struct lc_pool));
   p->npools = 0;
-  p->key = mv_pool_nkey++;
+  p->key = lc_pool_nkey++;
   if (p->key < 0 || p->key > MAX_LOCAL_POOL) {
     printf("Unable to allocate more pool\n");
     exit(EXIT_FAILURE);
@@ -24,15 +24,15 @@ void mv_pool_create(mv_pool** pool) {
   *pool = p;
 }
 
-void mv_pool_destroy(mv_pool* pool) {
+void lc_pool_destroy(lc_pool* pool) {
   for (int i = 0; i < pool->npools; i++) {
     free(pool->lpools[i]);
   }
   free(pool);
 }
 
-void mv_pool_put(mv_pool* pool, void* elm) {
-  int32_t pid = mv_pool_get_local(pool);
+void lc_pool_put(lc_pool* pool, void* elm) {
+  int32_t pid = lc_pool_get_local(pool);
   struct dequeue* lpool = pool->lpools[pid];
   if (lpool->cache == NULL) {
     lpool->cache = elm;
@@ -41,13 +41,13 @@ void mv_pool_put(mv_pool* pool, void* elm) {
   }
 }
 
-void mv_pool_put_to(mv_pool* pool, void* elm, int32_t pid) {
+void lc_pool_put_to(lc_pool* pool, void* elm, int32_t pid) {
   struct dequeue* lpool = pool->lpools[pid];
   dq_push_top(lpool, elm);
 }
 
-void* mv_pool_get(mv_pool* pool) {
-  int32_t pid = mv_pool_get_local(pool);
+void* lc_pool_get(lc_pool* pool) {
+  int32_t pid = lc_pool_get_local(pool);
   struct dequeue* lpool = pool->lpools[pid];
   void *elm = NULL;
   if (lpool->cache != NULL) {
@@ -56,13 +56,13 @@ void* mv_pool_get(mv_pool* pool) {
   } else {
     elm = dq_pop_top(lpool);
     if (elm == NULL)
-      elm = mv_pool_get_slow(pool);
+      elm = lc_pool_get_slow(pool);
   }
   return elm;
 }
 
-void* mv_pool_get_nb(mv_pool* pool) {
-  int32_t pid = mv_pool_get_local(pool);
+void* lc_pool_get_nb(lc_pool* pool) {
+  int32_t pid = lc_pool_get_local(pool);
   struct dequeue* lpool = pool->lpools[pid];
   void* elm = NULL;
   if (lpool->cache != NULL) {
@@ -79,7 +79,7 @@ void* mv_pool_get_nb(mv_pool* pool) {
   return elm;
 }
 
-void* mv_pool_get_slow(mv_pool* pool) {
+void* lc_pool_get_slow(lc_pool* pool) {
   void* elm = NULL;
   while (!elm) {
     int steal = rand() % (pool->npools);

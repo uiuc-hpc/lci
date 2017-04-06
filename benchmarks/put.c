@@ -11,7 +11,7 @@ mvh* mv;
 
 int main(int argc, char** args)
 {
-  mv_open(&argc, &args, 1024 * 1024 * 1024, &mv);
+  mv_open(1024 * 1024 * 1024, &mv);
   char* buf = (char*) malloc(MAX_MSG_SIZE);
   mv_addr* rma;
   mv_rma_create(mv, buf, MAX_MSG_SIZE, &rma);
@@ -21,26 +21,26 @@ int main(int argc, char** args)
   void* buf2;
   if (rank == 0) {
     mv_ctx s;
-    mv_send_enqueue_init(mv, rma, sizeof(mv_addr), 1, 0, &s);
+    mv_send_queue(mv, rma, sizeof(mv_addr), 1, 0, &s);
     while (!mv_test(&s))
       mv_progress(mv);
 
     int size, rank, tag;
     mv_ctx r;
-    while (!mv_recv_dequeue_init(mv, &size, &rank, &tag, &r))
+    while (!mv_recv_queue(mv, &size, &rank, &tag, &r))
       mv_progress(mv);
     buf2 = malloc(size);
-    mv_recv_dequeue_post(mv, buf2, &r);
+    mv_recv_queue_post(mv, buf2, &r);
   } else {
     int size, rank, tag;
     mv_ctx r;
-    while (!mv_recv_dequeue_init(mv, &size, &rank, &tag, &r))
+    while (!mv_recv_queue(mv, &size, &rank, &tag, &r))
       mv_progress(mv);
     buf2 = malloc(size);
-    mv_recv_dequeue_post(mv, buf2, &r);
+    mv_recv_queue_post(mv, buf2, &r);
 
     mv_ctx s;
-    mv_send_enqueue_init(mv, rma, sizeof(mv_addr), 0, 0, &s);
+    mv_send_queue(mv, rma, sizeof(mv_addr), 0, 0, &s);
     while (!mv_test(&s))
       mv_progress(mv);
   }
@@ -90,6 +90,7 @@ int main(int argc, char** args)
       printf("%d \t %.5f \n", size, t1 * 1e6 / TOTAL / 2);
     }
   }
+  mv_close(mv);
 }
 
 void main_task(intptr_t a)

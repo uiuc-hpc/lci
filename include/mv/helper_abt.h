@@ -11,7 +11,7 @@ static int nworker = 0;
 
 typedef void (*ffunc)(intptr_t);
 
-typedef struct mv_abt_thread {
+typedef struct lc_abt_thread {
   ffunc f;
   intptr_t data;
   int count;
@@ -19,21 +19,21 @@ typedef struct mv_abt_thread {
   ABT_mutex mutex;
   ABT_cond cond;
   ABT_thread_attr attr;
-} mv_abt_thread;
+} lc_abt_thread;
 
-__thread mv_abt_thread* tlself = NULL;
+__thread lc_abt_thread* tlself = NULL;
 
 void main_task(intptr_t);
 
-void mv_main_task(intptr_t arg)
+void lc_main_task(intptr_t arg)
 {
   set_me_to(0);
   // user-provided.
   main_task(arg);
 }
 
-extern mvh* mv_hdl;
-mv_abt_thread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg);
+extern lch* lc_hdl;
+lc_abt_thread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg);
 
 static void setup(intptr_t i) { set_me_to(i); }
 void MPIV_Start_worker(int number, intptr_t arg)
@@ -51,12 +51,12 @@ void MPIV_Start_worker(int number, intptr_t arg)
     ABT_xstream_create(ABT_SCHED_NULL, &xstream[i]);
     ABT_xstream_get_main_pools(xstream[i], 1, &pool[i]);
     ABT_xstream_start(xstream[i]);
-    mv_abt_thread* s = MPIV_spawn(i, setup, (intptr_t)i);
+    lc_abt_thread* s = MPIV_spawn(i, setup, (intptr_t)i);
     ABT_thread_join(s->thread);
     free(s);
   }
 
-  mv_abt_thread* s = MPIV_spawn(0, mv_main_task, arg);
+  lc_abt_thread* s = MPIV_spawn(0, lc_main_task, arg);
   ABT_thread_join(s->thread);
   free(s);
 
@@ -71,15 +71,15 @@ void MPIV_Start_worker(int number, intptr_t arg)
 
 static void abt_wrap(void* arg)
 {
-  mv_abt_thread* th = (mv_abt_thread*)arg;
+  lc_abt_thread* th = (lc_abt_thread*)arg;
   tlself = th;
   th->f(th->data);
   tlself = NULL;
 }
 
-mv_abt_thread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg)
+lc_abt_thread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg)
 {
-  mv_abt_thread* t = (mv_abt_thread*)malloc(sizeof(struct mv_abt_thread));
+  lc_abt_thread* t = (lc_abt_thread*)malloc(sizeof(struct lc_abt_thread));
   ABT_mutex_create(&t->mutex);
   ABT_cond_create(&t->cond);
   ABT_thread_attr_create(&t->attr);
@@ -90,31 +90,31 @@ mv_abt_thread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg)
   return t;
 }
 
-void MPIV_join(mv_abt_thread* ult)
+void MPIV_join(lc_abt_thread* ult)
 {
-  mv_abt_thread* saved = tlself;
+  lc_abt_thread* saved = tlself;
   ABT_thread_join(ult->thread);
   tlself = saved;
   free(ult);
 }
 
 #if 1
-mv_sync* mv_get_sync()
+lc_sync* lc_get_sync()
 {
   tlself->count = 1;
-  return (mv_sync*)tlself;
+  return (lc_sync*)tlself;
 }
 
-mv_sync* mv_get_counter(int count)
+lc_sync* lc_get_counter(int count)
 {
   tlself->count = count;
-  return (mv_sync*)tlself;
+  return (lc_sync*)tlself;
 }
 
-void thread_wait(mv_sync* sync)
+void thread_wait(lc_sync* sync)
 {
-  mv_abt_thread* thread = (mv_abt_thread*)sync;
-  mv_abt_thread* saved = tlself;
+  lc_abt_thread* thread = (lc_abt_thread*)sync;
+  lc_abt_thread* saved = tlself;
 
   ABT_mutex_lock(thread->mutex);
   while (thread->count > 0) {
@@ -124,10 +124,10 @@ void thread_wait(mv_sync* sync)
   tlself = saved;
 }
 
-void thread_signal(mv_sync* sync)
+void thread_signal(lc_sync* sync)
 {
-  mv_abt_thread* thread = (mv_abt_thread*)sync;
-  mv_abt_thread* saved = tlself;
+  lc_abt_thread* thread = (lc_abt_thread*)sync;
+  lc_abt_thread* saved = tlself;
   ABT_mutex_lock(thread->mutex);
   thread->count--;
   if (thread->count == 0) ABT_cond_signal(thread->cond);
@@ -137,13 +137,13 @@ void thread_signal(mv_sync* sync)
 
 void thread_yield()
 {
-  mv_abt_thread* saved = tlself;
+  lc_abt_thread* saved = tlself;
   ABT_thread_yield();
   tlself = saved;
 }
 #endif
 
-typedef mv_abt_thread* mv_thread;
-typedef ABT_xstream mv_worker;
+typedef lc_abt_thread* lc_thread;
+typedef ABT_xstream lc_worker;
 
 #endif

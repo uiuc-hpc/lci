@@ -907,6 +907,8 @@ dreg_entry *dreg_register(void* server, void* buf, size_t len)
     lock_dreg();
 #endif /* !defined(DISABLE_PTMALLOC) */
 
+    // printf("<reg buf %p> %d\n", buf, len);
+
     struct dreg_entry* d = dreg_find(buf, len);
 
     if (d != NULL)
@@ -944,6 +946,8 @@ dreg_entry *dreg_register(void* server, void* buf, size_t len)
         dreg_incr_refcount(d);
     }
 
+    // printf("<reg %p> %d\n", d, d->refcount);
+
 #if !defined(DISABLE_PTMALLOC)
     unlock_dreg();
 #endif /* !defined(DISABLE_PTMALLOC) */
@@ -957,7 +961,7 @@ void dreg_unregister(dreg_entry* d)
     lock_dreg();
 #endif /* !defined(DISABLE_PTMALLOC) */
 
-    // printf("<dreg %p>\n", d);
+    // printf("<dreg %p> %d\n", d, d->refcount);
     dreg_decr_refcount(d);
 
 #if !defined(DISABLE_PTMALLOC)
@@ -1040,7 +1044,6 @@ void dreg_decr_refcount(dreg_entry* d)
                 if (d->memhandle[i])
                 {
                     d->is_valid = 0;
-
                     if (free_dma_mem(d->memhandle[i]))
                     {
                         ibv_error_abort(IBV_RETURN_ERR, "deregister fails\n");

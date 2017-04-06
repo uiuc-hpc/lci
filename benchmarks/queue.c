@@ -3,7 +3,7 @@
 #include <string.h>
 #include <math.h>
 
-#include "mv.h"
+#include "lc.h"
 
 // #define USE_L1_MASK
 #ifdef USE_ABT
@@ -16,19 +16,22 @@
 
 #include "comm_exp.h"
 
-mvh* mv;
+lch* mv;
+int WINDOWS = 1;
 
 int main(int argc, char** args)
 {
   size_t heap_size = 128 * 1024 * 1024;
-  mv_open(heap_size, &mv);
-  // set_me_to_last();
+  lc_open(heap_size, &mv);
+
+  if (argc > 1)
+    WINDOWS = atoi(args[1]);
 
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   int total, skip;
 
-  mv_ctx ctx;
+  lc_ctx ctx;
   for (size_t len = 1; len <= (1 << 22); len <<= 1) {
     if (len > 8192) {
       skip = SKIP_LARGE;
@@ -37,29 +40,31 @@ int main(int argc, char** args)
       skip = SKIP;
       total = TOTAL;
     }
-    void* buffer = malloc(len);
+    void* buffer;
+    void* recv;
+    buffer = malloc(len);
+    recv = malloc(len);
     memset(buffer, 'A', len);
     if (rank == 0) {
       double t1;
-      void *recv = malloc(len);
       for (int i = 0; i < skip + total; i++) {
         if (i == skip) t1 = MPI_Wtime();
-        // send
-        while (!mv_send_queue(mv, buffer, len, 1, 0, &ctx))
-          mv_progress(mv);
-        // mv_send_enqueue_post(mv, &ctx, 0);
-        while (!mv_test(&ctx))
-          mv_progress(mv);
+        for (int j = 0; j < WINDOWS; j++)  {
+          while (!lc_send_queue(mv, buffer, len, 1, 0, &ctx))
+            lc_progress(mv);
+          while (!lc_test(&ctx))
+            lc_progress(mv);
+        }
 
         int rank, tag, size;
-        while (!mv_recv_queue(mv, &size, &rank, &tag, &ctx)) {
-          mv_progress(mv);
+        while (!lc_recv_queue(mv, &size, &rank, &tag, &ctx)) {
+          lc_progress(mv);
         }
-        mv_recv_queue_post(mv, recv, &ctx);
-        while (!mv_test(&ctx)) {
-          mv_progress(mv);
+        lc_recv_queue_post(mv, recv, &ctx);
+        while (!lc_test(&ctx)) {
+          lc_progress(mv);
         }
-        if (i == 0) {
+        if (i == -1) {
           assert(rank == 1);
           assert(tag == i);
           assert(size == len);
@@ -68,32 +73,33 @@ int main(int argc, char** args)
           }
         }
       }
-      free(recv);
-      printf("%d \t %.5f\n", len, (MPI_Wtime() - t1)/total / 2 * 1e6);
+      printf("%d \t %.5f\n", len, (MPI_Wtime() - t1)/total / (WINDOWS+1) * 1e6);
     } else {
-      void* recv = malloc(len);
       for (int i = 0; i < skip + total; i++) {
         int rank, tag, size;
         //recv
-        while (!mv_recv_queue(mv, &size, &rank, &tag, &ctx)) {
-          mv_progress(mv);
-        }
-        mv_recv_queue_post(mv, recv, &ctx);
-        while (!mv_test(&ctx)) {
-          mv_progress(mv);
+        for (int j = 0; j < WINDOWS; j++) {
+          while (!lc_recv_queue(mv, &size, &rank, &tag, &ctx)) {
+            lc_progress(mv);
+          }
+          lc_recv_queue_post(mv, recv, &ctx);
+          while (!lc_test(&ctx)) {
+            lc_progress(mv);
+          }
         }
         // send
-        while (!mv_send_queue(mv, buffer, len, 0, i, &ctx))
-          mv_progress(mv);
-        // mv_send_enqueue_post(mv, &ctx, 0);
-        while (!mv_test(&ctx))
-          mv_progress(mv);
+        while (!lc_send_queue(mv, buffer, len, 0, i, &ctx))
+          lc_progress(mv);
+        // lc_send_enqueue_post(mv, &ctx, 0);
+        while (!lc_test(&ctx))
+          lc_progress(mv);
       }
     }
     MPI_Barrier(MPI_COMM_WORLD);
+    free(recv);
     free(buffer);
   }
-  mv_close(mv);
+  lc_close(mv);
   return 0;
 }
 

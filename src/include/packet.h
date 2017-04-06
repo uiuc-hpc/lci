@@ -39,7 +39,7 @@ struct __attribute__((__packed__)) packet_data {
   };
 };
 
-struct __attribute__((packed)) mv_packet {
+struct __attribute__((packed)) lc_packet {
   struct packet_context context;
   struct packet_data data;
 };

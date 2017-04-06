@@ -6,18 +6,18 @@
 MV_INLINE hash_val* create_table(size_t num_rows);
 MV_INLINE uint32_t myhash(const uint64_t k);
 
-void mv_hash_create(mv_hash** h)
+void lc_hash_create(lc_hash** h)
 {
   struct hash_val** hv = (struct hash_val**)h;
   *hv = create_table(1 << TBL_BIT_SIZE);
 }
 
-void mv_hash_destroy(mv_hash* h)
+void lc_hash_destroy(lc_hash* h)
 {
   free(h);
 }
 
-int mv_hash_insert(mv_hash* h, mv_key key, mv_value* value)
+int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value)
 {
   struct hash_val* tbl_ = (struct hash_val*)h;
 
@@ -30,14 +30,14 @@ int mv_hash_insert(mv_hash* h, mv_key key, mv_value* value)
   hash_val* hentry = hcontrol + 1;
   hash_val* empty_hentry = NULL;
 
-  mv_spin_lock(&master->control.lock);
+  lc_spin_lock(&master->control.lock);
   while (1) {
-    mv_key tag = hentry->entry.tag;
+    lc_key tag = hentry->entry.tag;
     // If the key is the same as tag, someone has inserted it.
     if (tag == key) {
       *value = hentry->entry.val;
       hentry->entry.tag = EMPTY;
-      mv_spin_unlock(&master->control.lock);
+      lc_spin_unlock(&master->control.lock);
       return 0;
     } else if (tag == EMPTY) {
       // Ortherwise, if the tag is empty, we record the slot.
@@ -70,7 +70,7 @@ int mv_hash_insert(mv_hash* h, mv_key key, mv_value* value)
   }
   empty_hentry->entry.tag = key;
   empty_hentry->entry.val = *value;
-  mv_spin_unlock(&master->control.lock);
+  lc_spin_unlock(&master->control.lock);
   return 1;
 }
 

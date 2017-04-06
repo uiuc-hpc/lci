@@ -6,7 +6,7 @@ const int MPIV_COLL_BASE_TAG_BARRIER = 413371337;
 void MPIV_Barrier_log(MPI_Comm comm)
 {
 #if USE_MPE
-  MPE_Log_event(mv_barrier_start, 0, "start_barrier");
+  MPE_Log_event(lc_barrier_start, 0, "start_barrier");
 #endif
 
   int i, peer, dim, hibit, mask;
@@ -46,7 +46,7 @@ void MPIV_Barrier_log(MPI_Comm comm)
   }
 
 #if USE_MPE
-  MPE_Log_event(mv_barrier_end, 0, "end_barrier");
+  MPE_Log_event(lc_barrier_end, 0, "end_barrier");
 #endif
 }
 

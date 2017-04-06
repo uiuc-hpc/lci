@@ -31,7 +31,7 @@ LDFLAGS += -shared -Lstatic -flto $(IBV_LIB) # -llmpe -lmpe
 # LDFLAGS += -L$(PAPI_LIB)
 
 FCONTEXT = mfcontext.o jfcontext.o
-COMM = mv.o mpiv.o progress.o hashtable.o pool.o lcrq.o
+COMM = lc.o mpiv.o progress.o hashtable.o pool.o lcrq.o
 DREG = dreg/dreg.o dreg/avl.o
 
 OBJECTS = $(addprefix $(OBJDIR)/, $(COMM))

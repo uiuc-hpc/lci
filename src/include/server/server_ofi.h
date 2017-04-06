@@ -57,20 +57,20 @@ typedef struct ofi_server {
   void* heap;
   uint32_t heap_rkey;
   int recv_posted;
-  mvh* mv;
+  lch* mv;
 } ofi_server __attribute__((aligned(64)));
 
-MV_INLINE void ofi_init(mvh* mv, size_t heap_size, ofi_server** s_ptr);
-MV_INLINE void ofi_post_recv(ofi_server* s, mv_packet* p);
+MV_INLINE void ofi_init(lch* mv, size_t heap_size, ofi_server** s_ptr);
+MV_INLINE void ofi_post_recv(ofi_server* s, lc_packet* p);
 MV_INLINE int ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
-                             mv_packet* ctx, uint32_t proto);
+                             lc_packet* ctx, uint32_t proto);
 MV_INLINE void ofi_write_rma(ofi_server* s, int rank, void* from,
                              uintptr_t addr, uint32_t rkey, size_t size,
-                             mv_packet* ctx, uint32_t proto);
+                             lc_packet* ctx, uint32_t proto);
 
 MV_INLINE void ofi_write_rma_signal(ofi_server* s, int rank, void* buf,
                                     uintptr_t addr, uint32_t rkey, size_t size,
-                                    uint32_t sid, mv_packet* ctx, uint32_t proto);
+                                    uint32_t sid, lc_packet* ctx, uint32_t proto);
 
 MV_INLINE void ofi_finalize(ofi_server* s);
 
@@ -104,7 +104,7 @@ MV_INLINE uint32_t ofi_rma_key(uintptr_t mem)
   return fi_mr_key((struct fid_mr*)(((dreg_entry*)mem)->memhandle[0]));
 }
 
-MV_INLINE void ofi_init(mvh* mv, size_t heap_size, ofi_server** s_ptr)
+MV_INLINE void ofi_init(lch* mv, size_t heap_size, ofi_server** s_ptr)
 {
   // Create hint.
   struct fi_info* hints;
@@ -194,7 +194,7 @@ MV_INLINE void ofi_init(mvh* mv, size_t heap_size, ofi_server** s_ptr)
   *s_ptr = s;
 }
 
-extern double mv_ptime;
+extern double lc_ptime;
 
 MV_INLINE int ofi_progress_once(ofi_server* s)
 {
@@ -219,8 +219,8 @@ MV_INLINE int ofi_progress_send(ofi_server* s)
     if (ret > 0) {
       // Got an entry here ?
       for (int i = 0; i < ret; i++) {
-        mv_packet* p = (mv_packet*)entry[i].op_context;
-        mv_serve_send(s->mv, p, p->context.proto);
+        lc_packet* p = (lc_packet*)entry[i].op_context;
+        lc_serve_send(s->mv, p, p->context.proto);
       }
       rett = 1;
 #ifdef SERVER_FI_DEBUG
@@ -234,7 +234,7 @@ MV_INLINE int ofi_progress_send(ofi_server* s)
   } while (ret > 0);
 
   if (s->recv_posted < MAX_RECV)
-    ofi_post_recv(s, mv_pool_get_nb(s->mv->pkpool));
+    ofi_post_recv(s, lc_pool_get_nb(s->mv->pkpool));
 
 #ifdef SERVER_FI_DEBUG
   if (s->recv_posted == 0) {
@@ -261,17 +261,17 @@ MV_INLINE int ofi_progress(ofi_server* s)
       for (int i = 0; i < ret; i++) {
         if (entry[i].flags & FI_RECV) {
           s->recv_posted--;
-          mv_serve_recv(s->mv, (mv_packet*)entry[i].op_context, entry[i].data);
+          lc_serve_recv(s->mv, (lc_packet*)entry[i].op_context, entry[i].data);
         } else if (entry[i].flags & FI_REMOTE_CQ_DATA) {
           // NOTE(danghvu): In OFI, a imm data is transferred without
           // comsuming a posted receive.
-          mv_serve_imm(s->mv, entry[i].data);
+          lc_serve_imm(s->mv, entry[i].data);
         } else if (entry[i].flags & FI_RECV) {
           s->recv_posted--;
-          mv_serve_recv(s->mv, (mv_packet*)entry[i].op_context, entry[i].data);
+          lc_serve_recv(s->mv, (lc_packet*)entry[i].op_context, entry[i].data);
         } else {
-          mv_packet* p = (mv_packet*)entry[i].op_context;
-          mv_serve_send(s->mv, p, p->context.proto);
+          lc_packet* p = (lc_packet*)entry[i].op_context;
+          lc_serve_send(s->mv, p, p->context.proto);
         }
       }
       rett = 1;
@@ -286,7 +286,7 @@ MV_INLINE int ofi_progress(ofi_server* s)
   } while (ret > 0);
 
   if (s->recv_posted < MAX_RECV)
-    ofi_post_recv(s, mv_pool_get_nb(s->mv->pkpool));
+    ofi_post_recv(s, lc_pool_get_nb(s->mv->pkpool));
 
 #ifdef SERVER_FI_DEBUG
   if (s->recv_posted == 0) {
@@ -297,7 +297,7 @@ MV_INLINE int ofi_progress(ofi_server* s)
   return rett;
 }
 
-MV_INLINE void ofi_post_recv(ofi_server* s, mv_packet* p)
+MV_INLINE void ofi_post_recv(ofi_server* s, lc_packet* p)
 {
   if (p == NULL) return;
   FI_SAFECALL(
@@ -306,11 +306,11 @@ MV_INLINE void ofi_post_recv(ofi_server* s, mv_packet* p)
 }
 
 MV_INLINE int ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
-                             mv_packet* ctx, uint32_t proto)
+                             lc_packet* ctx, uint32_t proto)
 {
   if (size <= SERVER_MAX_INLINE) {
     FI_SAFECALL(fi_injectdata(s->ep, buf, size, proto, s->fi_addr[rank]));
-    mv_serve_send(s->mv, ctx, proto);
+    lc_serve_send(s->mv, ctx, proto);
     return 0;
   } else {
     ctx->context.proto = proto;
@@ -322,7 +322,7 @@ MV_INLINE int ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
 
 MV_INLINE void ofi_write_rma(ofi_server* s, int rank, void* from,
                              uintptr_t addr, uint32_t rkey, size_t size,
-                             mv_packet* ctx, uint32_t proto)
+                             lc_packet* ctx, uint32_t proto)
 {
   ctx->context.proto = proto;
   FI_SAFECALL(fi_write(s->ep, from, size, 0, s->fi_addr[rank], 0, rkey, ctx));
@@ -330,7 +330,7 @@ MV_INLINE void ofi_write_rma(ofi_server* s, int rank, void* from,
 
 MV_INLINE void ofi_write_rma_signal(ofi_server* s, int rank, void* buf,
                                     uintptr_t addr, uint32_t rkey, size_t size,
-                                    uint32_t sid, mv_packet* ctx, uint32_t proto)
+                                    uint32_t sid, lc_packet* ctx, uint32_t proto)
 {
   ctx->context.proto = proto;
   FI_SAFECALL(fi_writedata(s->ep, buf, size, 0, sid, s->fi_addr[rank], addr,
@@ -344,19 +344,19 @@ MV_INLINE uint32_t ofi_heap_rkey(ofi_server* s, int node __UNUSED__)
 }
 
 MV_INLINE void* ofi_heap_ptr(ofi_server* s) { return s->heap; }
-#define mv_server_init ofi_init
-#define mv_server_send ofi_write_send
-#define mv_server_rma ofi_write_rma
-#define mv_server_rma_signal ofi_write_rma_signal
-#define mv_server_heap_rkey ofi_heap_rkey
-#define mv_server_heap_ptr ofi_heap_ptr
-#define mv_server_progress ofi_progress
-#define mv_server_finalize ofi_finalize
-#define mv_server_post_recv ofi_post_recv
-#define mv_server_progress_once ofi_progress_once
+#define lc_server_init ofi_init
+#define lc_server_send ofi_write_send
+#define lc_server_rma ofi_write_rma
+#define lc_server_rma_signal ofi_write_rma_signal
+#define lc_server_heap_rkey ofi_heap_rkey
+#define lc_server_heap_ptr ofi_heap_ptr
+#define lc_server_progress ofi_progress
+#define lc_server_finalize ofi_finalize
+#define lc_server_post_recv ofi_post_recv
+#define lc_server_progress_once ofi_progress_once
 
-#define mv_server_rma_reg ofi_rma_reg
-#define mv_server_rma_key ofi_rma_key
-#define mv_server_rma_dereg ofi_rma_dereg
+#define lc_server_rma_reg ofi_rma_reg
+#define lc_server_rma_key ofi_rma_key
+#define lc_server_rma_dereg ofi_rma_dereg
 
 #endif

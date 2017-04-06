@@ -1,14 +1,14 @@
 #ifndef MV_MACRO_H_
 #define MV_MACRO_H_
 
-#define mv_mem_fence()                   \
+#define lc_mem_fence()                   \
   {                                      \
     asm volatile("mfence" ::: "memory"); \
   }
 
 #define MV_INLINE static inline __attribute__((always_inline))
-#define mv_make_key(r, t) ((((uint64_t)(r) << 32) | (uint64_t)(t)))
-#define mv_make_rdz_key(x, y) mv_make_key(x, (((uint32_t) 1 << 31) | y));
+#define lc_make_key(r, t) ((((uint64_t)(r) << 32) | (uint64_t)(t)))
+#define lc_make_rdz_key(x, y) lc_make_key(x, (((uint32_t) 1 << 31) | y));
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 

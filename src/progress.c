@@ -1,7 +1,7 @@
-#include "mv_priv.h"
+#include "lc_priv.h"
 
 #if 0
-static void mv_recv_am(mvh* mv, mv_packet* p)
+static void lc_recv_am(lch* mv, lc_packet* p)
 {
   uint8_t fid = (uint8_t)p->data.header.tag;
   uint32_t* buffer = (uint32_t*)p->data.buffer;
@@ -11,94 +11,81 @@ static void mv_recv_am(mvh* mv, mv_packet* p)
 }
 #endif
 
-static void mv_recv_short_match(mvh* mv, mv_packet* p)
+static void lc_recv_short_match(lch* mv, lc_packet* p)
 {
-  const mv_key key = mv_make_key(p->context.from, p->context.tag);
-  mv_value value = (mv_value)p;
+  const lc_key key = lc_make_key(p->context.from, p->context.tag);
+  lc_value value = (lc_value)p;
 
-  if (!mv_hash_insert(mv->tbl, key, &value)) {
+  if (!lc_hash_insert(mv->tbl, key, &value)) {
     // comm-thread comes later.
-    mv_ctx* req = (mv_ctx*)value;
+    lc_ctx* req = (lc_ctx*)value;
     memcpy(req->buffer, p->data.buffer, req->size);
     req->type = REQ_DONE;
     if (req->sync) thread_signal(req->sync);
-    mv_pool_put(mv->pkpool, p);
+    lc_pool_put(mv->pkpool, p);
   }
 }
 
-static void mv_sent_rdz_enqueue_done(mvh* mv, mv_packet* p)
+static void lc_sent_rdz_enqueue_done(lch* mv, lc_packet* p)
 {
-  mv_ctx* ctx = (mv_ctx*) p->context.req;
+  lc_ctx* ctx = (lc_ctx*) p->context.req;
   ctx->type = REQ_DONE;
-  mv_pool_put(mv->pkpool, p);
+  lc_pool_put(mv->pkpool, p);
 }
 
-static void mv_recv_rtr_match(mvh* mv, mv_packet* p)
+static void lc_recv_rtr_match(lch* mv, lc_packet* p)
 {
-  mv_key key = mv_make_rdz_key(p->context.from, p->context.tag);
-  mv_value value = (mv_value)p;
-  if (!mv_hash_insert(mv->tbl, key, &value)) {
-    proto_complete_rndz(mv, p, (mv_ctx*)value);
+  lc_key key = lc_make_rdz_key(p->context.from, p->context.tag);
+  lc_value value = (lc_value)p;
+  if (!lc_hash_insert(mv->tbl, key, &value)) {
+    lci_rdma_match(mv, p, (lc_ctx*)value);
   }
 }
 
-static void mv_recv_rtr_queue(mvh* mv, mv_packet* p)
+static void lc_recv_rtr_queue(lch* mv, lc_packet* p)
 {
   int rank = p->context.from;
   p->context.req = (uintptr_t) p->data.rtr.sreq;
-  mv_ctx* ctx = (mv_ctx*) p->data.rtr.sreq;
-  mv_server_rma_signal(mv->server, rank, (void*) ctx->buffer,
+  lc_ctx* ctx = (lc_ctx*) p->data.rtr.sreq;
+  lc_server_rma_signal(mv->server, rank, (void*) ctx->buffer,
       p->data.rtr.tgt_addr,
       p->data.rtr.rkey,
       ctx->size,
       RMA_SIGNAL_QUEUE | (p->data.rtr.comm_id), p, MV_PROTO_LONG_QUEUE);
 }
 
-static void mv_sent_rdz_match_done(mvh* mv, mv_packet* p)
+static void lc_sent_rdz_match_done(lch* mv, lc_packet* p)
 {
-  mv_ctx* req = (mv_ctx*) p->context.req;
-  mv_key key = mv_make_key(req->rank, RDZ_MATCH_TAG | req->tag);
-  mv_value value = 0;
-  if (!mv_hash_insert(mv->tbl, key, &value)) {
-    req->type = REQ_DONE;
-    if (req->sync) thread_signal(req->sync);
-  }
-  mv_pool_put(mv->pkpool, p);
-}
-
-static void mv_sent_short(mvh* mv, mv_packet* p_ctx)
-{
-  mv_ctx* ctx = (mv_ctx*) p_ctx->context.req;
-  ctx->type = REQ_DONE;
-  if (ctx->sync) thread_signal(ctx->sync);
-  if (p_ctx->context.poolid)
-    mv_pool_put_to(mv->pkpool, p_ctx, p_ctx->context.poolid);
-  else
-    mv_pool_put(mv->pkpool, p_ctx);
-}
-
-static void mv_sent_put(mvh* mv, mv_packet* p_ctx)
-{
-  mv_ctx* req = (mv_ctx*) p_ctx->context.req;
+  lc_ctx* req = (lc_ctx*) p->context.req;
+  lc_spin_lock(&req->lock);
   req->type = REQ_DONE;
-  mv_pool_put(mv->pkpool, p_ctx);
+  if (req->sync) thread_signal(req->sync);
+  lc_spin_unlock(&req->lock);
+  lc_pool_put(mv->pkpool, p);
 }
 
-static void mv_sent_persis(mvh* mv, mv_packet* p_ctx)
+static void lc_sent_put(lch* mv, lc_packet* p_ctx)
 {
-  mv_ctx* req = (mv_ctx*) p_ctx->context.req;
+  lc_ctx* req = (lc_ctx*) p_ctx->context.req;
+  req->type = REQ_DONE;
+  lc_pool_put(mv->pkpool, p_ctx);
+}
+
+static void lc_sent_persis(lch* mv __UNUSED__, lc_packet* p_ctx)
+{
+  lc_ctx* req = (lc_ctx*) p_ctx->context.req;
   req->type = REQ_DONE;
 }
 
-static void mv_sent_done(mvh* mv, mv_packet* p_ctx)
+static void lc_sent_done(lch* mv, lc_packet* p_ctx)
 {
   if (p_ctx->context.poolid)
-    mv_pool_put_to(mv->pkpool, p_ctx, p_ctx->context.poolid);
+    lc_pool_put_to(mv->pkpool, p_ctx, p_ctx->context.poolid);
   else
-    mv_pool_put(mv->pkpool, p_ctx);
+    lc_pool_put(mv->pkpool, p_ctx);
 }
 
-static void mv_recv_queue_packet_short(mvh* mv, mv_packet* p)
+static void lc_recv_queue_packet_short(lch* mv, lc_packet* p)
 {
   p->context.proto = MV_PROTO_SHORT_QUEUE;
 #ifndef USE_CCQ
@@ -108,7 +95,7 @@ static void mv_recv_queue_packet_short(mvh* mv, mv_packet* p)
 #endif
 }
 
-static void mv_recv_queue_packet_long(mvh* mv, mv_packet* p)
+static void lc_recv_queue_packet_long(lch* mv, lc_packet* p)
 {
   p->context.proto = MV_PROTO_RTS_QUEUE;
 #ifndef USE_CCQ
@@ -118,56 +105,32 @@ static void mv_recv_queue_packet_long(mvh* mv, mv_packet* p)
 #endif
 }
 
-const mv_proto_spec_t mv_proto[10] = {
+uintptr_t get_dma_mem(void* server, void* buf, size_t s)
+{
+  return _real_server_reg((lc_server*) server, buf, s);
+}
+
+int free_dma_mem(uintptr_t mem)
+{
+  _real_server_dereg(mem);
+  return 1;
+}
+
+const lc_proto_spec_t lc_proto[10] = {
   {0, 0}, // Reserved for doing nothing.
 
   /** Tag Matching protocol */
-  {mv_recv_short_match, mv_sent_done},
-  {mv_recv_rtr_match, 0},
-  {0, mv_sent_rdz_match_done},
+  {lc_recv_short_match, lc_sent_done},
+  {lc_recv_rtr_match, 0},
+  {0, lc_sent_rdz_match_done},
 
   /** Queue Matching protocol */
-  {mv_recv_queue_packet_short, mv_sent_done},
-  {mv_recv_queue_packet_long, mv_sent_done},
-  {mv_recv_rtr_queue, 0},
-  {0, mv_sent_rdz_enqueue_done},
+  {lc_recv_queue_packet_short, lc_sent_done},
+  {lc_recv_queue_packet_long, lc_sent_done},
+  {lc_recv_rtr_queue, 0},
+  {0, lc_sent_rdz_enqueue_done},
 
   /** Other experimental */
-  {0, mv_sent_put},
-  {mv_recv_queue_packet_short, mv_sent_persis}, // PERSIS
+  {0, lc_sent_put},
+  {lc_recv_queue_packet_short, lc_sent_persis}, // PERSIS
 };
-
-
-//FIXME(danghvu): Experimental stuff to work-around memory registration.
-#ifdef SERVER_IBV_H_
-uintptr_t get_dma_mem(void* server, void* buf, size_t s)
-{
-  return _real_ibv_reg((mv_server*) server, buf, s);
-}
-
-int free_dma_mem(uintptr_t mem)
-{
-  return ibv_dereg_mr((struct ibv_mr*) mem);
-}
-#else
-#ifdef SERVER_OFI_H_
-uintptr_t get_dma_mem(void* server, void* buf, size_t s)
-{
-  return _real_ofi_reg((mv_server*) server, buf, s);
-}
-
-int free_dma_mem(uintptr_t mem)
-{
-  return fi_close((struct fid*) mem);
-}
-#else
-#ifdef SERVER_PSM_H_
-uintptr_t get_dma_mem(void* server, void* buf, size_t s) {
-  return _real_psm_reg((mv_server*) server, buf, s);
-}
-int free_dma_mem(uintptr_t mem) {
-  return _real_psm_free(mem);
-}
-#endif
-#endif
-#endif

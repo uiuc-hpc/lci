@@ -5,9 +5,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-typedef uintptr_t mv_value;
-typedef uint64_t mv_key;
-typedef void* mv_hash;
+typedef uintptr_t lc_value;
+typedef uint64_t lc_key;
+typedef void* lc_hash;
 
 #include <assert.h>
 #include <stdlib.h>
@@ -21,8 +21,8 @@ typedef void* mv_hash;
 typedef struct hash_val {
   union {
     struct {
-      mv_key tag;
-      mv_value val;
+      lc_key tag;
+      lc_value val;
     } entry;
     struct {
       volatile int lock;
@@ -33,8 +33,8 @@ typedef struct hash_val {
   // So they will fit in a cache line.
 } hash_val __attribute__((aligned(16)));
 
-void mv_hash_create(mv_hash** h);
-void mv_hash_destroy(mv_hash* h);
-int mv_hash_insert(mv_hash* h, mv_key key, mv_value* value);
+void lc_hash_create(lc_hash** h);
+void lc_hash_destroy(lc_hash* h);
+int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value);
 
 #endif

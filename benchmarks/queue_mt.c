@@ -9,6 +9,7 @@
  * copyright file COPYRIGHT in the top level OMB directory.
  */
 
+#include <assert.h>
 #include "mv.h"
 #include "mv/helper.h"
 #include <pthread.h>
@@ -17,8 +18,8 @@
 #include <unistd.h>
 
 #define MESSAGE_ALIGNMENT 64
-#define MIN_MSG_SIZE 1
-#define MAX_MSG_SIZE (1 << 22)
+#define MIN_MSG_SIZE 64
+#define MAX_MSG_SIZE (1 << 20)
 #define MYBUFSIZE (MAX_MSG_SIZE + MESSAGE_ALIGNMENT)
 #define SKIP_LARGE 100
 #define LOOP_LARGE 1000
@@ -101,25 +102,26 @@ void main_task(intptr_t arg)
     for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
          size = (size ? size * 2 : 1)) {
       MPI_Barrier(MPI_COMM_WORLD);
+      double t1 = MPI_Wtime();
       int i = 0;
-      // for (i = 0; i < THREADS; i++)
+      for (i = 0; i < 1; i++)
           sr_threads[i] = MPIV_spawn(i % WORKERS, send_thread, (intptr_t)i);
-      // for (i = 0; i < THREADS; i++)
+      for (i = 0; i < 1; i++)
           MPIV_join(sr_threads[i]);
       MPI_Barrier(MPI_COMM_WORLD);
+      t1 = MPI_Wtime() - t1;
+      printf("%d %.5f \n", size, (loop + skip) / t1);
     }
   } else {
     for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
          size = (size ? size * 2 : 1)) {
       MPI_Barrier(MPI_COMM_WORLD);
-      // printf("r spawn\n");
       for (i = 0; i < THREADS; i++) {
         sr_threads[i] = MPIV_spawn(i % WORKERS, recv_thread, (intptr_t)i);
       }
       for (i = 0; i < THREADS; i++) {
         MPIV_join(sr_threads[i]);
       }
-      // printf("r join\n");
       MPI_Barrier(MPI_COMM_WORLD);
     }
   }
@@ -152,24 +154,32 @@ void recv_thread(intptr_t arg)
   }
 
    mv_ctx ctxs;
-   void* buf;
+   void* buf = malloc(size);
+   memset(buf, 0, size);
    int len, rank, tag;
 
   for (i = val; i < loop + skip; i+=THREADS) {
     // recv
     while (!mv_recv_queue(mv_hdl, &len, &rank, &tag, &ctxs))
-          ;
-    void* b = malloc(len);
-    mv_recv_queue_post(mv_hdl, b, &ctxs);
-    free(b);
+        ; // thread_yield();
+
+    mv_recv_queue_post(mv_hdl, buf, &ctxs);
 
     while (!mv_test(&ctxs))
-        ;
+        ; //thread_yield();
 
-    while (!mv_send_queue(mv_hdl, s_buf, size, 0, 0, &ctxs))
-        ;
+    if (i == -1) {
+        assert(len == size);
+        for (int j = 0; j < len; j++)
+            assert(((char*) buf)[j] == 'a');
+    }
+
+    // while (!mv_send_queue(mv_hdl, s_buf, size, 0, 0, &ctxs))
+        // ; //thread_yield();
+
+    // while (!mv_test(&ctxs))
+        // ; //thread_yield();
   }
-  sleep(0.5);
 }
 
 void send_thread(intptr_t arg)
@@ -189,6 +199,8 @@ void send_thread(intptr_t arg)
     skip = SKIP_LARGE;
   }
 
+  int val = (int)(arg);
+
   /* touch the data */
   for (i = 0; i < size; i++) {
     s_buf[i] = 'a';
@@ -196,34 +208,36 @@ void send_thread(intptr_t arg)
   }
 
   mv_ctx ctxr;
-  void* buf;
+  void* buf = malloc(size);
   int len, rank, tag;
 
-  for (i = 0; i < loop + skip; i++) {
+  for (i = val; i < loop + skip; i+=1) {
     if (i == skip) {
       t_start = MPI_Wtime();
     }
     // send
     //for (int j = 0; j < WINDOWS; j++)
     while (!mv_send_queue(mv_hdl, s_buf, size, 1, 0, &ctxr))
-        ;
+        ; // thread_yield();
+
+    while (!mv_test(&ctxr))
+        ; // thread_yield();
 
     // recv.
     // for (int j = 0; j < WINDOWS; j++) {
-    while (!mv_recv_queue(mv_hdl, &len, &rank, &tag, &ctxr))
-        ;
-    void* buf = malloc(len);
-    mv_recv_queue_post(mv_hdl, buf, &ctxr);
-    while (!mv_test(&ctxr))
-        ;
-    free(buf);
+    // while (!mv_recv_queue(mv_hdl, &len, &rank, &tag, &ctxr))
+        // ; // thread_yield();
+
+    // mv_recv_queue_post(mv_hdl, buf, &ctxr);
+    // while (!mv_test(&ctxr))
+        // ; // thread_yield();
   }
 
   t_end = MPI_Wtime();
   t = t_end - t_start;
 
-  latency = (t)*1.0e6 / (2.0 * loop);
-  printf("[%d] %.3f\n", size, latency);
+  latency = (t)*1.0e6 / loop;
+  // printf("[%d] %.3f\n", size, latency);
 }
 
 /* vi: set sw=4 sts=4 tw=80: */

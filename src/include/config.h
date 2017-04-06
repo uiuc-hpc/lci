@@ -28,11 +28,14 @@
 
 #define POST_MSG_SIZE (SHORT_MSG_SIZE + sizeof(struct packet_header))
 
-#define SERVER_MAX_INLINE (sizeof(struct packet_header) + 64)
+#define SERVER_MAX_INLINE (sizeof(struct packet_header) + 32)
 
 // Using LCRQ or spinlock.
 #define USE_CCQ
 
-#define THREAD_PER_CORE 4
+// Use memory registration (Must also enable tcmalloc)
+#define USE_DREG
+
+#define THREAD_PER_CORE 1
 
 #endif

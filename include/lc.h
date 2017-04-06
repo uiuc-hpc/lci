@@ -21,24 +21,24 @@ extern "C" {
 #define MV_EXPORT __attribute__((visibility("default")))
 
 /*! Init context */
-struct mv_struct;
-typedef struct mv_struct mvh;
+struct lc_struct;
+typedef struct lc_struct lch;
 
-typedef void (*mv_am_func_t)();
-struct mv_ctx;
-typedef struct mv_ctx mv_ctx;
+typedef void (*lc_am_func_t)();
+struct lc_ctx;
+typedef struct lc_ctx lc_ctx;
 
-struct mv_packet;
-typedef struct mv_packet mv_packet;
-struct mv_pool;
-typedef struct mv_pool mv_pool;
+struct lc_packet;
+typedef struct lc_packet lc_packet;
+struct lc_pool;
+typedef struct lc_pool lc_pool;
 
-typedef uintptr_t mv_value;
-typedef uint64_t mv_key;
-typedef void* mv_hash;
+typedef uintptr_t lc_value;
+typedef uint64_t lc_key;
+typedef void* lc_hash;
 
-// Keep this order, or change mv_proto.
-enum mv_proto_name {
+// Keep this order, or change lc_proto.
+enum lc_proto_name {
   MV_PROTO_NULL = 0,
   MV_PROTO_SHORT_MATCH,
   MV_PROTO_RTR_MATCH,
@@ -53,33 +53,32 @@ enum mv_proto_name {
   MV_PROTO_PERSIS
 };
 
-typedef int (*mv_fcb)(mvh* mv, mv_ctx* ctx, mv_sync* sync);
+typedef int (*lc_fcb)(lch* mv, lc_ctx* ctx, lc_sync* sync);
 
-enum request_t {
-  REQ_NULL = 0,
-  REQ_DONE,
-  REQ_PENDING,
-};
+#define REQ_NULL 0
+#define REQ_DONE 1
+#define REQ_PENDING 2
 
-struct mv_ctx {
+struct lc_ctx {
   void* buffer;
   int size;
   int rank;
   int tag;
-  mv_sync* sync;
-  mv_packet* packet;
-  volatile enum request_t type;
-  mv_fcb complete;
+  volatile int type;
+  lc_sync* sync;
+  lc_packet* packet;
+  lc_fcb complete;
+  volatile int lock;
 } __attribute__((aligned(64)));
 
-struct mv_rma_ctx {
+struct lc_rma_ctx {
   uintptr_t req;
   uint64_t addr;
   uint32_t rkey;
   uint32_t sid;
 } __attribute__((aligned(64)));
 
-typedef struct mv_rma_ctx mv_addr;
+typedef struct lc_rma_ctx lc_addr;
 
 /**
  * @defgroup low-level Low-level API
@@ -104,7 +103,7 @@ typedef struct mv_rma_ctx mv_addr;
 *
 */
 MV_EXPORT
-int mv_send(mvh* mv, const void* src, int size, int rank, int tag, mv_ctx* ctx);
+int lc_send(lch* mv, const void* src, int size, int rank, int tag, lc_ctx* ctx);
 
 /**
 * @brief Try to finish send, or insert sync for waking up.
@@ -117,7 +116,7 @@ int mv_send(mvh* mv, const void* src, int size, int rank, int tag, mv_ctx* ctx);
 *
 */
 MV_EXPORT
-int mv_send_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
+int lc_send_post(lch* mv, lc_ctx* ctx, lc_sync* sync);
 
 /**
 * @brief Initialize a recv, matching incoming message.
@@ -133,7 +132,7 @@ int mv_send_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 *
 */
 MV_EXPORT
-int mv_recv(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx);
+int lc_recv(lch* mv, void* src, int size, int rank, int tag, lc_ctx* ctx);
 
 /**
 * @brief Try to match and insert sync obj for waking up.
@@ -145,7 +144,7 @@ int mv_recv(mvh* mv, void* src, int size, int rank, int tag, mv_ctx* ctx);
 * @return 1 if finished, 0 otherwise.
 */
 MV_EXPORT
-int mv_recv_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
+int lc_recv_post(lch* mv, lc_ctx* ctx, lc_sync* sync);
 
 /**@} End group matching */
 
@@ -168,8 +167,8 @@ int mv_recv_post(mvh* mv, mv_ctx* ctx, mv_sync* sync);
 *
 */
 MV_EXPORT
-int mv_send_queue(mvh* mv, const void* src, int size, int rank, int tag,
-                  mv_ctx* ctx);
+int lc_send_queue(lch* mv, const void* src, int size, int rank, int tag,
+                  lc_ctx* ctx);
 
 /**
 * @brief Try to queue, for message send with send-queue.
@@ -183,19 +182,19 @@ int mv_send_queue(mvh* mv, const void* src, int size, int rank, int tag,
 * @return 1 if got data, 0 otherwise.
 */
 MV_EXPORT
-int mv_recv_queue(mvh* mv, int* size, int* rank, int* tag, mv_ctx* ctx);
+int lc_recv_queue(lch* mv, int* size, int* rank, int* tag, lc_ctx* ctx);
 
 /**
 * @brief Try to finish a queue op, for message send with send-queue.
 *
 * @param mv
-* @param buf An allocated buffer (with mv_alloc).
+* @param buf An allocated buffer (with lc_alloc).
 * @param ctx
 *
 * @return 1 if finished, 0 otherwise.
 */
 MV_EXPORT
-int mv_recv_queue_post(mvh* mv, void* buf, mv_ctx* ctx);
+int lc_recv_queue_post(lch* mv, void* buf, lc_ctx* ctx);
 
 /**@} End queue group */
 
@@ -215,10 +214,10 @@ int mv_recv_queue_post(mvh* mv, void* buf, mv_ctx* ctx);
 * @return
 */
 MV_EXPORT
-int mv_rma_create(mvh* mv, void* buf, size_t size, mv_addr** rctx_ptr);
+int lc_rma_create(lch* mv, void* buf, size_t size, lc_addr** rctx_ptr);
 
 /**
-* @brief performs an RDMA PUT to dst (created by mv_rma_create).
+* @brief performs an RDMA PUT to dst (created by lc_rma_create).
 *
 * @param mv
 * @param src
@@ -230,8 +229,8 @@ int mv_rma_create(mvh* mv, void* buf, size_t size, mv_addr** rctx_ptr);
 * @return 1 if success, 0 otherwise.
 */
 MV_EXPORT
-int mv_send_put(mvh* mv, void* src, int size, int rank, mv_addr* dst,
-                mv_ctx* ctx);
+int lc_send_put(lch* mv, void* src, int size, int rank, lc_addr* dst,
+                lc_ctx* ctx);
 
 /**
 * @brief assign a ctx to an rma handle for receiving signal.
@@ -243,7 +242,7 @@ int mv_send_put(mvh* mv, void* src, int size, int rank, mv_addr* dst,
 * @return
 */
 MV_EXPORT
-int mv_recv_put_signal(mvh* mv, mv_addr* rctx, mv_ctx* ctx);
+int lc_recv_put_signal(lch* mv, lc_addr* rctx, lc_ctx* ctx);
 
 /**
 * @brief  performs an RDMA PUT to dst, and also signal a handle.
@@ -258,8 +257,8 @@ int mv_recv_put_signal(mvh* mv, mv_addr* rctx, mv_ctx* ctx);
 * @return
 */
 MV_EXPORT
-int mv_send_put_signal(mvh* mv, void* src, int size, int rank, mv_addr* dst,
-                       mv_ctx* ctx);
+int lc_send_put_signal(lch* mv, void* src, int size, int rank, lc_addr* dst,
+                       lc_ctx* ctx);
 
 /**@} end rdma-api */
 
@@ -279,7 +278,7 @@ int mv_send_put_signal(mvh* mv, void* src, int size, int rank, mv_addr* dst,
 *
 */
 MV_EXPORT
-void mv_open(size_t heap_size, mvh** handle);
+void lc_open(size_t heap_size, lch** handle);
 
 /**
 * @brief Close the handle and free memory.
@@ -288,7 +287,7 @@ void mv_open(size_t heap_size, mvh** handle);
 *
 */
 MV_EXPORT
-void mv_close(mvh* handle);
+void lc_close(lch* handle);
 
 /**
 * @brief Blocking wait on sync, for communication to finish.
@@ -299,7 +298,7 @@ void mv_close(mvh* handle);
 * @return
 */
 MV_INLINE
-void mv_wait(mv_ctx* ctx, mv_sync* sync)
+void lc_wait(lc_ctx* ctx, lc_sync* sync)
 {
   while (ctx->type != REQ_DONE) {
     thread_wait(sync);
@@ -314,30 +313,10 @@ void mv_wait(mv_ctx* ctx, mv_sync* sync)
 * @return 1 if finished, 0 otherwise.
 */
 MV_INLINE
-int mv_test(mv_ctx* ctx)
+int lc_test(lc_ctx* ctx)
 {
   return (ctx->type == REQ_DONE);
 }
-
-/**
-* @brief Allocate memory for communication
-*
-* @param mv
-* @param size
-*
-* @return buffer
-*/
-MV_EXPORT
-void* mv_alloc(size_t size);
-
-/**
-* @brief Free allocated memory.
-*
-* @param mv
-* @param buffer
-*/
-MV_EXPORT
-void mv_free(void* buffer);
 
 /**@} end control */
 
@@ -349,16 +328,16 @@ void mv_free(void* buffer);
 */
 
 MV_EXPORT
-void* mv_heap_ptr(mvh* mv);
+void* lc_heap_ptr(lch* mv);
 
 MV_EXPORT
-uint8_t mv_am_register(mvh* mv, mv_am_func_t f);
+uint8_t lc_am_register(lch* mv, lc_am_func_t f);
 
 MV_EXPORT
-void mv_progress(mvh* mv);
+void lc_progress(lch* mv);
 
 MV_EXPORT
-size_t mv_get_ncores();
+size_t lc_get_ncores();
 
 /**@}*/
 
@@ -367,7 +346,7 @@ size_t mv_get_ncores();
 *	@{
 */
 typedef uintptr_t MPIV_Request;
-extern mvh* mv_hdl;
+extern lch* lc_hdl;
 
 MV_EXPORT
 void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank,
@@ -405,16 +384,16 @@ MV_EXPORT
 void MPIV_Free(void*);
 
 MV_EXPORT
-mv_packet* mv_alloc_packet(mvh* mv, int size);
+lc_packet* lc_alloc_packet(lch* mv, int size);
 
 MV_EXPORT
-void* mv_get_packet_data(mv_packet* p);
+void* lc_get_packet_data(lc_packet* p);
 
 MV_EXPORT
-void mv_free_packet(mvh* mv, mv_packet* p);
+void lc_free_packet(lch* mv, lc_packet* p);
 
 MV_EXPORT
-void mv_send_persis(mvh* mv, mv_packet* p, int rank, int tag, mv_ctx* ctx);
+void lc_send_persis(lch* mv, lc_packet* p, int rank, int tag, lc_ctx* ctx);
 
 /**@}*/
 

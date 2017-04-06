@@ -32,36 +32,36 @@ MV_INLINE void dq_init(struct dequeue* dq)
 MV_INLINE void* dq_pop_top(struct dequeue* deq)
 {
   void* ret = NULL;
-  mv_spin_lock(&deq->spinlock);
+  lc_spin_lock(&deq->spinlock);
   if (deq->top != deq->bot) {
     deq->top = (deq->top + MAX_SIZE - 1) & (MAX_SIZE - 1);
     ret = deq->container[deq->top];
   }
-  mv_spin_unlock(&deq->spinlock);
+  lc_spin_unlock(&deq->spinlock);
   return ret;
 };
 
 MV_INLINE void dq_push_top(struct dequeue* deq, void* p)
 {
-  mv_spin_lock(&deq->spinlock);
+  lc_spin_lock(&deq->spinlock);
   deq->container[deq->top] = p;
   deq->top = (deq->top + 1) & (MAX_SIZE - 1);
   if (deq->top == deq->bot) {
     fprintf(stderr, "pool overflow\n");
     exit(EXIT_FAILURE);
   }
-  mv_spin_unlock(&deq->spinlock);
+  lc_spin_unlock(&deq->spinlock);
 };
 
 MV_INLINE void* dq_pop_bot(struct dequeue* deq)
 {
   void* ret = NULL;
-  mv_spin_lock(&deq->spinlock);
+  lc_spin_lock(&deq->spinlock);
   if (deq->top != deq->bot) {
     ret = deq->container[deq->bot];
     deq->bot = (deq->bot + 1) & (MAX_SIZE - 1);
   }
-  mv_spin_unlock(&deq->spinlock);
+  lc_spin_unlock(&deq->spinlock);
   return ret;
 };
 

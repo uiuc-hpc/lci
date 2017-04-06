@@ -6,24 +6,24 @@
 #include <sched.h>
 #include <stdint.h>
 
-struct mv_sync;
-typedef struct mv_sync mv_sync;
+struct lc_sync;
+typedef struct lc_sync lc_sync;
 
-struct mv_sync* mv_get_sync();
-struct mv_sync* mv_get_counter(int count);
-void thread_wait(mv_sync* sync);
-void thread_signal(mv_sync* sync);
+struct lc_sync* lc_get_sync();
+struct lc_sync* lc_get_counter(int count);
+void thread_wait(lc_sync* sync);
+void thread_signal(lc_sync* sync);
 void thread_yield();
 
-extern __thread int mv_core_id;
+extern __thread int lc_core_id;
 
-MV_INLINE int mv_worker_id()
+MV_INLINE int lc_worker_id()
 {
-  if (unlikely(mv_core_id == -1)) {
-    mv_core_id = sched_getcpu() % mv_get_ncores();
-    if (mv_core_id == -1) mv_core_id = 0;
+  if (unlikely(lc_core_id == -1)) {
+    lc_core_id = sched_getcpu() % lc_get_ncores();
+    if (lc_core_id == -1) lc_core_id = 0;
   }
-  return mv_core_id;
+  return lc_core_id;
 }
 
 #endif
