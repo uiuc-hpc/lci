@@ -3,9 +3,9 @@
 
 #include <string.h>
 
-#include "mv/affinity.h"
-#include "mv/lock.h"
-#include "mv/macro.h"
+#include "lc/affinity.h"
+#include "lc/lock.h"
+#include "lc/macro.h"
 
 // Fthread.
 
@@ -18,7 +18,7 @@
 
 #define MAX_THREAD (NMASK * WORDSIZE)
 
-MV_INLINE void fthread_create(fthread* f, ffunc func, intptr_t data,
+LC_INLINE void fthread_create(fthread* f, ffunc func, intptr_t data,
                               size_t stack_size)
 {
   if (unlikely(f->stack == NULL)) {
@@ -36,29 +36,29 @@ MV_INLINE void fthread_create(fthread* f, ffunc func, intptr_t data,
   f->state = CREATED;
 }
 
-MV_INLINE void fthread_yield(fthread* f)
+LC_INLINE void fthread_yield(fthread* f)
 {
   f->state = YIELD;
   swap_ctx_parent(&f->ctx);
 }
 
-MV_INLINE void fthread_wait(fthread* f)
+LC_INLINE void fthread_wait(fthread* f)
 {
   f->state = BLOCKED;
   swap_ctx_parent(&f->ctx);
 }
 
-MV_INLINE void fthread_resume(fthread* f)
+LC_INLINE void fthread_resume(fthread* f)
 {
   fworker_sched_thread(f->origin, f->id);
 }
 
-MV_INLINE void fthread_fini(fthread* f)
+LC_INLINE void fthread_fini(fthread* f)
 {
   fworker_fini_thread(f->origin, f->id);
 }
 
-MV_INLINE void fthread_join(fthread* f)
+LC_INLINE void fthread_join(fthread* f)
 {
   while (f->state != INVALID) {
     fthread_yield(tlself.thread);
@@ -75,7 +75,7 @@ static void fwrapper(intptr_t args)
 
 /// Fworker.
 
-MV_INLINE void fworker_init(fworker** w_ptr)
+LC_INLINE void fworker_init(fworker** w_ptr)
 {
   fworker* w = 0;
   posix_memalign((void**)&w, 64, sizeof(struct fworker));
@@ -100,19 +100,19 @@ MV_INLINE void fworker_init(fworker** w_ptr)
     t->id = i;
     w->thread_pool[w->thread_pool_last++] = t;
   }
-  w->thread_pool_lock = MV_SPIN_UNLOCKED;
+  w->thread_pool_lock = LC_SPIN_UNLOCKED;
   *w_ptr = w;
 }
 
-MV_INLINE void fworker_destroy(fworker* w) { free((void*)w->threads); }
-MV_INLINE void fworker_fini_thread(fworker* w, const int id)
+LC_INLINE void fworker_destroy(fworker* w) { free((void*)w->threads); }
+LC_INLINE void fworker_fini_thread(fworker* w, const int id)
 {
   lc_spin_lock(&w->thread_pool_lock);
   w->thread_pool[w->thread_pool_last++] = &(w->threads[id]);
   lc_spin_unlock(&w->thread_pool_lock);
 }
 
-MV_INLINE fthread* fworker_spawn(fworker* w, ffunc f, intptr_t data,
+LC_INLINE fthread* fworker_spawn(fworker* w, ffunc f, intptr_t data,
                                  size_t stack_size)
 {
   lc_spin_lock(&w->thread_pool_lock);
@@ -129,7 +129,7 @@ MV_INLINE fthread* fworker_spawn(fworker* w, ffunc f, intptr_t data,
   return t;
 }
 
-MV_INLINE void fworker_work(fworker* w, fthread* f)
+LC_INLINE void fworker_work(fworker* w, fthread* f)
 {
   if (unlikely(f->state == INVALID)) return;
   tlself.thread = f;
@@ -143,7 +143,7 @@ MV_INLINE void fworker_work(fworker* w, fthread* f)
     fthread_fini(f);
 }
 
-MV_INLINE void fworker_sched_thread(fworker* w, const int id)
+LC_INLINE void fworker_sched_thread(fworker* w, const int id)
 {
   sync_set_bit(MOD_POW2(id, WORDSIZE), &w->mask[DIV64(id)]);
 #ifdef USE_L1_MASK
@@ -151,7 +151,7 @@ MV_INLINE void fworker_sched_thread(fworker* w, const int id)
 #endif
 }
 
-MV_INLINE int pop_work(unsigned long* mask)
+LC_INLINE int pop_work(unsigned long* mask)
 {
   int id = find_first_set(*mask);
   *mask = bit_flip(*mask, id);
@@ -167,7 +167,7 @@ __thread double wtimework, wtimeall;
 #endif
 
 #ifndef USE_L1_MASK
-MV_INLINE void* wfunc(void* arg)
+LC_INLINE void* wfunc(void* arg)
 {
   fworker* w = (fworker*)arg;
   tlself.worker = w;
@@ -239,7 +239,7 @@ MV_INLINE void* wfunc(void* arg)
 
 #else
 
-MV_INLINE void* wfunc(void* arg)
+LC_INLINE void* wfunc(void* arg)
 {
   fworker* w = (fworker*)arg;
   tlself.worker = w;

@@ -40,7 +40,7 @@ static void lc_recv_rtr_match(lch* mv, lc_packet* p)
   if (!lc_hash_insert(mv->tbl, key, &value)) {
     lc_ctx* ctx = (lc_ctx*)value;
     p->context.req = (uintptr_t)ctx;
-    p->context.proto = MV_PROTO_LONG_MATCH;
+    p->context.proto = LC_PROTO_LONG_MATCH;
     lci_put(mv, ctx->buffer, ctx->size, p->context.from,
       p->data.rtr.tgt_addr, p->data.rtr.rkey,
       0, p->data.rtr.comm_id, p);
@@ -50,7 +50,7 @@ static void lc_recv_rtr_match(lch* mv, lc_packet* p)
 static void lc_recv_rtr_queue(lch* mv, lc_packet* p)
 {
   p->context.req = (uintptr_t) p->data.rtr.sreq;
-  p->context.proto = MV_PROTO_LONG_QUEUE;
+  p->context.proto = LC_PROTO_LONG_QUEUE;
   lc_ctx* ctx = (lc_ctx*) p->data.rtr.sreq;
   lci_put(mv, ctx->buffer, ctx->size, p->context.from,
       p->data.rtr.tgt_addr, p->data.rtr.rkey,
@@ -90,7 +90,7 @@ static void lc_sent_done(lch* mv, lc_packet* p_ctx)
 
 static void lc_recv_queue_packet_short(lch* mv, lc_packet* p)
 {
-  p->context.proto = MV_PROTO_SHORT_QUEUE;
+  p->context.proto = LC_PROTO_SHORT_QUEUE;
 #ifndef USE_CCQ
   dq_push_top(&mv->queue, (void*) p);
 #else
@@ -100,7 +100,7 @@ static void lc_recv_queue_packet_short(lch* mv, lc_packet* p)
 
 static void lc_recv_queue_packet_long(lch* mv, lc_packet* p)
 {
-  p->context.proto = MV_PROTO_RTS_QUEUE;
+  p->context.proto = LC_PROTO_RTS_QUEUE;
 #ifndef USE_CCQ
   dq_push_top(&mv->queue, (void*) p);
 #else

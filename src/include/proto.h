@@ -1,5 +1,5 @@
-#ifndef MV_PROTO_H
-#define MV_PROTO_H
+#ifndef LC_PROTO_H
+#define LC_PROTO_H
 
 #define RDZ_MATCH_TAG ((uint32_t) 1 << 24)
 
@@ -23,7 +23,7 @@ typedef struct {
 
 const lc_proto_spec_t lc_proto[10] __attribute__((aligned(64)));
 
-MV_INLINE
+LC_INLINE
 int lci_send(lch* mv, const void* src, int size, int rank, int tag,
             lc_packet* p)
 {
@@ -32,7 +32,7 @@ int lci_send(lch* mv, const void* src, int size, int rank, int tag,
                         p, MAKE_PROTO(p->context.proto, tag));
 }
 
-MV_INLINE
+LC_INLINE
 void lci_put(lch* mv, void* src, int size, int rank,
              uintptr_t tgt, uint32_t rkey,
              uint32_t type, uint32_t id, lc_packet* p) {
@@ -40,7 +40,7 @@ void lci_put(lch* mv, void* src, int size, int rank,
       tgt, rkey, size, type | id, p);
 }
 
-MV_INLINE void lci_rdz_prepare(lch* mv, void* src, int size, lc_ctx* ctx, lc_packet* p)
+LC_INLINE void lci_rdz_prepare(lch* mv, void* src, int size, lc_ctx* ctx, lc_packet* p)
 {
   p->context.req = (uintptr_t)ctx;
   uintptr_t rma_mem = lc_server_rma_reg(mv->server, src, size);
@@ -51,13 +51,13 @@ MV_INLINE void lci_rdz_prepare(lch* mv, void* src, int size, lc_ctx* ctx, lc_pac
   p->data.rtr.rkey = lc_server_rma_key(rma_mem);
 }
 
-MV_INLINE
+LC_INLINE
 void lc_serve_recv(lch* mv, lc_packet* p_ctx, uint32_t proto)
 {
   lc_proto[proto].func_am(mv, p_ctx);
 }
 
-MV_INLINE
+LC_INLINE
 void lc_serve_send(lch* mv, lc_packet* p_ctx, uint32_t proto)
 {
   const lc_am_func_t f = lc_proto[proto].func_ps;
@@ -66,7 +66,7 @@ void lc_serve_send(lch* mv, lc_packet* p_ctx, uint32_t proto)
   }
 }
 
-MV_INLINE
+LC_INLINE
 void lc_serve_imm(lch* mv, uint32_t imm)
 {
   // FIXME(danghvu): This comm_id is here due to the imm

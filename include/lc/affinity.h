@@ -21,7 +21,7 @@
 
 size_t lc_get_ncores();
 
-MV_INLINE int set_me_to_(int core_id)
+LC_INLINE int set_me_to_(int core_id)
 {
   int num_cores = lc_get_ncores();
   if (core_id < 0 || core_id >= num_cores) return EINVAL;
@@ -37,7 +37,7 @@ MV_INLINE int set_me_to_(int core_id)
   return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
 }
 
-MV_INLINE int set_me_within(int from, int to)
+LC_INLINE int set_me_within(int from, int to)
 {
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
@@ -49,12 +49,12 @@ MV_INLINE int set_me_within(int from, int to)
   return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
 }
 
-MV_INLINE int set_me_to(int core_id)
+LC_INLINE int set_me_to(int core_id)
 {
   int num_cores = lc_get_ncores();
   // TODO(danghvu): do this because the second set is near mlx
   return set_me_to_((SERVER_CORE - 1 - core_id + num_cores) % num_cores);
 }
 
-MV_INLINE int set_me_to_last() { return set_me_to_(SERVER_CORE); }
+LC_INLINE int set_me_to_last() { return set_me_to_(SERVER_CORE); }
 #endif

@@ -1,2 +1,2 @@
 # Define server here (ofi, ibv, psm)
-MV_SERVER = ibv
+LC_SERVER = ibv

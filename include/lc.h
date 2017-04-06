@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef MPIV_MV_H_
-#define MPIV_MV_H_
+#ifndef MPIV_LC_H_
+#define MPIV_LC_H_
 
 #include "mpi.h"
 
@@ -14,11 +14,11 @@
 extern "C" {
 #endif
 
-#include "mv/ult/ult.h"
+#include "ult/ult.h"
 #include <stdint.h>
 #include <stdlib.h>
 
-#define MV_EXPORT __attribute__((visibility("default")))
+#define LC_EXPORT __attribute__((visibility("default")))
 
 /*! Init context */
 struct lc_struct;
@@ -39,18 +39,18 @@ typedef void* lc_hash;
 
 // Keep this order, or change lc_proto.
 enum lc_proto_name {
-  MV_PROTO_NULL = 0,
-  MV_PROTO_SHORT_MATCH,
-  MV_PROTO_RTR_MATCH,
-  MV_PROTO_LONG_MATCH,
+  LC_PROTO_NULL = 0,
+  LC_PROTO_SHORT_MATCH,
+  LC_PROTO_RTR_MATCH,
+  LC_PROTO_LONG_MATCH,
 
-  MV_PROTO_SHORT_QUEUE,
-  MV_PROTO_RTS_QUEUE,
-  MV_PROTO_RTR_QUEUE,
-  MV_PROTO_LONG_QUEUE,
+  LC_PROTO_SHORT_QUEUE,
+  LC_PROTO_RTS_QUEUE,
+  LC_PROTO_RTR_QUEUE,
+  LC_PROTO_LONG_QUEUE,
 
-  MV_PROTO_LONG_PUT,
-  MV_PROTO_PERSIS
+  LC_PROTO_LONG_PUT,
+  LC_PROTO_PERSIS
 };
 
 typedef int (*lc_fcb)(lch* mv, lc_ctx* ctx, lc_sync* sync);
@@ -102,7 +102,7 @@ typedef struct lc_rma_ctx lc_addr;
 * @return 1 if success, 0 otherwise -- need to retry.
 *
 */
-MV_EXPORT
+LC_EXPORT
 int lc_send(lch* mv, const void* src, int size, int rank, int tag, lc_ctx* ctx);
 
 /**
@@ -115,7 +115,7 @@ int lc_send(lch* mv, const void* src, int size, int rank, int tag, lc_ctx* ctx);
 * @return 1 if finished, 0 otherwise.
 *
 */
-MV_EXPORT
+LC_EXPORT
 int lc_send_post(lch* mv, lc_ctx* ctx, lc_sync* sync);
 
 /**
@@ -131,7 +131,7 @@ int lc_send_post(lch* mv, lc_ctx* ctx, lc_sync* sync);
 * @return 1 if success, 0 otherwise -- need to retry.
 *
 */
-MV_EXPORT
+LC_EXPORT
 int lc_recv(lch* mv, void* src, int size, int rank, int tag, lc_ctx* ctx);
 
 /**
@@ -143,7 +143,7 @@ int lc_recv(lch* mv, void* src, int size, int rank, int tag, lc_ctx* ctx);
 *
 * @return 1 if finished, 0 otherwise.
 */
-MV_EXPORT
+LC_EXPORT
 int lc_recv_post(lch* mv, lc_ctx* ctx, lc_sync* sync);
 
 /**@} End group matching */
@@ -166,7 +166,7 @@ int lc_recv_post(lch* mv, lc_ctx* ctx, lc_sync* sync);
 * @return 1 if success, 0 otherwise -- need to retry.
 *
 */
-MV_EXPORT
+LC_EXPORT
 int lc_send_queue(lch* mv, const void* src, int size, int rank, int tag,
                   lc_ctx* ctx);
 
@@ -181,7 +181,7 @@ int lc_send_queue(lch* mv, const void* src, int size, int rank, int tag,
 *
 * @return 1 if got data, 0 otherwise.
 */
-MV_EXPORT
+LC_EXPORT
 int lc_recv_queue(lch* mv, int* size, int* rank, int* tag, lc_ctx* ctx);
 
 /**
@@ -193,7 +193,7 @@ int lc_recv_queue(lch* mv, int* size, int* rank, int* tag, lc_ctx* ctx);
 *
 * @return 1 if finished, 0 otherwise.
 */
-MV_EXPORT
+LC_EXPORT
 int lc_recv_queue_post(lch* mv, void* buf, lc_ctx* ctx);
 
 /**@} End queue group */
@@ -213,7 +213,7 @@ int lc_recv_queue_post(lch* mv, void* buf, lc_ctx* ctx);
 *
 * @return
 */
-MV_EXPORT
+LC_EXPORT
 int lc_rma_create(lch* mv, void* buf, size_t size, lc_addr** rctx_ptr);
 
 /**
@@ -228,7 +228,7 @@ int lc_rma_create(lch* mv, void* buf, size_t size, lc_addr** rctx_ptr);
 *
 * @return 1 if success, 0 otherwise.
 */
-MV_EXPORT
+LC_EXPORT
 int lc_send_put(lch* mv, void* src, int size, int rank, lc_addr* dst,
                 lc_ctx* ctx);
 
@@ -241,7 +241,7 @@ int lc_send_put(lch* mv, void* src, int size, int rank, lc_addr* dst,
 *
 * @return
 */
-MV_EXPORT
+LC_EXPORT
 int lc_recv_put_signal(lch* mv, lc_addr* rctx, lc_ctx* ctx);
 
 /**
@@ -256,7 +256,7 @@ int lc_recv_put_signal(lch* mv, lc_addr* rctx, lc_ctx* ctx);
 *
 * @return
 */
-MV_EXPORT
+LC_EXPORT
 int lc_send_put_signal(lch* mv, void* src, int size, int rank, lc_addr* dst,
                        lc_ctx* ctx);
 
@@ -277,7 +277,7 @@ int lc_send_put_signal(lch* mv, void* src, int size, int rank, lc_addr* dst,
 * @param handle
 *
 */
-MV_EXPORT
+LC_EXPORT
 void lc_open(size_t heap_size, lch** handle);
 
 /**
@@ -286,7 +286,7 @@ void lc_open(size_t heap_size, lch** handle);
 * @param handle
 *
 */
-MV_EXPORT
+LC_EXPORT
 void lc_close(lch* handle);
 
 /**
@@ -297,7 +297,7 @@ void lc_close(lch* handle);
 *
 * @return
 */
-MV_INLINE
+LC_INLINE
 void lc_wait(lc_ctx* ctx, lc_sync* sync)
 {
   while (ctx->type != REQ_DONE) {
@@ -312,7 +312,7 @@ void lc_wait(lc_ctx* ctx, lc_sync* sync)
 *
 * @return 1 if finished, 0 otherwise.
 */
-MV_INLINE
+LC_INLINE
 int lc_test(lc_ctx* ctx)
 {
   return (ctx->type == REQ_DONE);
@@ -327,16 +327,16 @@ int lc_test(lc_ctx* ctx)
 * @{
 */
 
-MV_EXPORT
+LC_EXPORT
 void* lc_heap_ptr(lch* mv);
 
-MV_EXPORT
+LC_EXPORT
 uint8_t lc_am_register(lch* mv, lc_am_func_t f);
 
-MV_EXPORT
+LC_EXPORT
 void lc_progress(lch* mv);
 
-MV_EXPORT
+LC_EXPORT
 size_t lc_get_ncores();
 
 /**@}*/
@@ -348,51 +348,51 @@ size_t lc_get_ncores();
 typedef uintptr_t MPIV_Request;
 extern lch* lc_hdl;
 
-MV_EXPORT
+LC_EXPORT
 void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype, int rank,
                int tag, MPI_Comm, MPI_Status*);
 
-MV_EXPORT
+LC_EXPORT
 void MPIV_Send(void* buffer, int count, MPI_Datatype datatype, int rank,
                int tag, MPI_Comm);
 
-MV_EXPORT
+LC_EXPORT
 void MPIV_Ssend(void* buffer, int count, MPI_Datatype datatype, int rank,
                 int tag, MPI_Comm);
 
-MV_EXPORT
+LC_EXPORT
 void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
                 int tag, MPI_Comm, MPIV_Request* req);
 
-MV_EXPORT
+LC_EXPORT
 void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
                 int tag, MPI_Comm, MPIV_Request* req);
 
-MV_EXPORT
+LC_EXPORT
 void MPIV_Waitall(int count, MPIV_Request* req, MPI_Status*);
 
-MV_EXPORT
+LC_EXPORT
 void MPIV_Init(int* argc, char*** args);
 
-MV_EXPORT
+LC_EXPORT
 void MPIV_Finalize();
 
-MV_EXPORT
+LC_EXPORT
 void* MPIV_Alloc(size_t size);
 
-MV_EXPORT
+LC_EXPORT
 void MPIV_Free(void*);
 
-MV_EXPORT
+LC_EXPORT
 lc_packet* lc_alloc_packet(lch* mv, int size);
 
-MV_EXPORT
+LC_EXPORT
 void* lc_get_packet_data(lc_packet* p);
 
-MV_EXPORT
+LC_EXPORT
 void lc_free_packet(lch* mv, lc_packet* p);
 
-MV_EXPORT
+LC_EXPORT
 void lc_send_persis(lch* mv, lc_packet* p, int rank, int tag, lc_ctx* ctx);
 
 /**@}*/

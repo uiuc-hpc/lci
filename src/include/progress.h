@@ -4,8 +4,8 @@
 typedef void (*p_ctx_handler)(lch*, lc_packet* p_ctx);
 typedef void (*_0_arg)(void*, uint32_t);
 
-MV_INLINE void lc_serve_imm(lch* mv, uint32_t);
-MV_INLINE void lc_serve_send(lch* mv, lc_packet* p_ctx, uint32_t);
-MV_INLINE void lc_serve_recv(lch* mv, lc_packet* p_ctx, uint32_t);
+LC_INLINE void lc_serve_imm(lch* mv, uint32_t);
+LC_INLINE void lc_serve_send(lch* mv, lc_packet* p_ctx, uint32_t);
+LC_INLINE void lc_serve_recv(lch* mv, lc_packet* p_ctx, uint32_t);
 
 #endif

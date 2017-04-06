@@ -1,5 +1,5 @@
-#ifndef MV_HELPER_PTH_H
-#define MV_HELPER_PTH_H
+#ifndef LC_HELPER_PTH_H
+#define LC_HELPER_PTH_H
 
 #include "mv.h"
 #include "mv/affinity.h"

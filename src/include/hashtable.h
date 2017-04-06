@@ -12,7 +12,7 @@ typedef void* lc_hash;
 #include <assert.h>
 #include <stdlib.h>
 
-#include "mv/lock.h"
+#include "lc/lock.h"
 
 #define EMPTY ((uint64_t)-1)
 #define TBL_BIT_SIZE 9

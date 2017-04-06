@@ -1,5 +1,5 @@
-#ifndef MV_HELPER_H_
-#define MV_HELPER_H_
+#ifndef LC_HELPER_H_
+#define LC_HELPER_H_
 
 #include "lc.h"
 #include "ult/fult/fult.h"

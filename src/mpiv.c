@@ -1,8 +1,8 @@
 #include "lc_priv.h"
-#include "mv/affinity.h"
-#include "mv/macro.h"
+#include "lc/affinity.h"
+#include "lc/macro.h"
 
-MV_EXPORT
+LC_EXPORT
 lch* lc_hdl;
 
 static void* ctx_data;

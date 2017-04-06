@@ -1,8 +1,8 @@
 #ifndef ULT_H_
 #define ULT_H_
 
-#include "mv/affinity.h"
-#include "mv/macro.h"
+#include "lc/affinity.h"
+#include "lc/macro.h"
 #include <sched.h>
 #include <stdint.h>
 
@@ -17,7 +17,7 @@ void thread_yield();
 
 extern __thread int lc_core_id;
 
-MV_INLINE int lc_worker_id()
+LC_INLINE int lc_worker_id()
 {
   if (unlikely(lc_core_id == -1)) {
     lc_core_id = sched_getcpu() % lc_get_ncores();

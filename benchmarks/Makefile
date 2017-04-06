@@ -6,23 +6,23 @@ CC = gcc
 
 CFLAGS += -g3 -ggdb -O3 -Wall -Wextra -std=gnu99 -pthread -I../include -I../ -DUSE_AFFI -D_GNU_SOURCE  -I/opt/ofed/include $(SERVER)
 LDFLAGS += -O3 -Wl,-rpath=$(abspath ../) -Wl,-z,now -Wl,-z,relro -pthread
-LIB = ../libmv.a
+LIB = ../liblwci.a
 
 CXXFLAGS = -g3 -O3 -std=c++11
 
-ifeq ($(MV_SERVER), ofi)
-	CFLAGS += -DMV_USE_SERVER_OFI -DAFF_DEBUG
+ifeq ($(LC_SERVER), ofi)
+	CFLAGS += -DLC_USE_SERVER_OFI -DAFF_DEBUG
 	LDFLAGS += -lfabric # -L$(HOME)/libfab/lib -lfabric
 endif
 
-ifeq ($(MV_SERVER), ibv)
-	CFLAGS += -DMV_USE_SERVER_IBV -DAFF_DEBUG
+ifeq ($(LC_SERVER), ibv)
+	CFLAGS += -DLC_USE_SERVER_IBV -DAFF_DEBUG
 	LDFLAGS += -libverbs
 	LDFLAGS += -L$(HOME)/tcmalloc_sb/lib -ltcmalloc
 endif
 
-ifeq ($(MV_SERVER), psm)
-	CFLAGS += -DMV_USE_SERVER_PSM -DAFF_DEBUG
+ifeq ($(LC_SERVER), psm)
+	CFLAGS += -DLC_USE_SERVER_PSM -DAFF_DEBUG
 	LDFLAGS += -lpsm2 # -L$(HOME)/libfab/lib -lfabric
 endif
 

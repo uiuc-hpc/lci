@@ -10,14 +10,14 @@
 #include "comm_exp.h"
 
 #ifdef USE_ABT
-#include "mv/helper_abt.h"
+#include "lc/helper_abt.h"
 #elif defined(USE_PTH)
-#include "mv/helper_pth.h"
+#include "lc/helper_pth.h"
 #else
-#include "mv/helper.h"
+#include "lc/helper.h"
 #endif
 
-#include "mv/profiler.h"
+#include "lc/profiler.h"
 
 #define CHECK_RESULT 0
 

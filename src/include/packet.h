@@ -15,9 +15,6 @@ struct __attribute__((packed)) packet_context {
   uint64_t poolid;
 };
 
-struct __attribute__((__packed__)) packet_header {
-};
-
 struct __attribute__((__packed__)) packet_rts {
   uintptr_t sreq;
   uintptr_t size;
@@ -31,7 +28,6 @@ struct __attribute__((__packed__)) packet_rtr {
 };
 
 struct __attribute__((__packed__)) packet_data {
-  struct packet_header header;
   union {
     struct packet_rts rts;
     struct packet_rtr rtr;

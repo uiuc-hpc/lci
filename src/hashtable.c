@@ -1,10 +1,10 @@
 #include "hashtable.h"
 
-#include "mv/lock.h"
-#include "mv/macro.h"
+#include "lc/lock.h"
+#include "lc/macro.h"
 
-MV_INLINE hash_val* create_table(size_t num_rows);
-MV_INLINE uint32_t myhash(const uint64_t k);
+LC_INLINE hash_val* create_table(size_t num_rows);
+LC_INLINE uint32_t myhash(const uint64_t k);
 
 void lc_hash_create(lc_hash** h)
 {
@@ -80,7 +80,7 @@ static const uint32_t Seed = 0x811C9DC5;  // 2166136261
 #define TINY_MASK(x) (((uint32_t)1 << (x)) - 1)
 #define FNV1_32_INIT ((uint32_t)2166136261)
 
-MV_INLINE uint32_t myhash(const uint64_t k)
+LC_INLINE uint32_t myhash(const uint64_t k)
 {
   uint32_t hash = ((k & 0xff) ^ Seed) * Prime;
   hash = (((k >> 8) & 0xff) ^ hash) * Prime;
@@ -95,7 +95,7 @@ MV_INLINE uint32_t myhash(const uint64_t k)
   return (((hash >> TBL_BIT_SIZE) ^ hash) & TINY_MASK(TBL_BIT_SIZE));
 }
 
-MV_INLINE hash_val* create_table(size_t num_rows)
+LC_INLINE hash_val* create_table(size_t num_rows)
 {
   hash_val* ret = NULL;
   posix_memalign((void**)&(ret), 64,
@@ -104,7 +104,7 @@ MV_INLINE hash_val* create_table(size_t num_rows)
   // Initialize all with EMPTY and clear lock.
   for (size_t i = 0; i < num_rows; i++) {
     // First are control.
-    ret[i * TBL_WIDTH].control.lock = MV_SPIN_UNLOCKED;
+    ret[i * TBL_WIDTH].control.lock = LC_SPIN_UNLOCKED;
     ret[i * TBL_WIDTH].control.next = NULL;
 
     // Remaining are slots.

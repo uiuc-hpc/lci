@@ -1,5 +1,5 @@
-#ifndef MV_POOL_H_
-#define MV_POOL_H_
+#ifndef LC_POOL_H_
+#define LC_POOL_H_
 
 #include <pthread.h>
 #include <stddef.h>
@@ -9,8 +9,8 @@
 #include <string.h>
 #include <assert.h>
 
+#include "ult/ult.h"
 #include "dequeue.h"
-#include "mv/ult/ult.h"
 
 #define MAX_NPOOLS 128
 #define MAX_LOCAL_POOL 8  // align to a cache line.
@@ -37,7 +37,7 @@ extern volatile int init_pool_lock;
 
 #define EMPTY_POOL ((int32_t)-1)
 
-MV_INLINE int32_t lc_pool_get_local(lc_pool* pool)
+LC_INLINE int32_t lc_pool_get_local(lc_pool* pool)
 {
   int wid = lc_worker_id();
   int32_t pid = tls_pool_struct[wid][pool->key];

@@ -18,8 +18,8 @@ CFLAGS += -fPIC -fvisibility=hidden -std=gnu99 $(INCLUDE) $(SERVER) -DUSE_AFFI -
 IBV_INC = -I/opt/ofed/include/ -I$(HOME)/libfab/include
 IBV_LIB = -L/opt/ofed/lib64 -libverbs
 
-JFCONTEXT = include/mv/ult/fult/jump_x86_64_sysv_elf_gas.S
-MFCONTEXT = include/mv/ult/fult/make_x86_64_sysv_elf_gas.S
+JFCONTEXT = include/ult/fult/jump_x86_64_sysv_elf_gas.S
+MFCONTEXT = include/ult/fult/make_x86_64_sysv_elf_gas.S
 
 CFLAGS += $(IBV_INC)
 LDFLAGS += -shared -Lstatic -flto $(IBV_LIB) # -llmpe -lmpe
@@ -38,25 +38,25 @@ OBJECTS = $(addprefix $(OBJDIR)/, $(COMM))
 
 LIBOBJ = $(OBJECTS) $(addprefix $(OBJDIR)/, $(FCONTEXT))
 
-ifeq ($(MV_SERVER), ofi)
-	CFLAGS += -DMV_USE_SERVER_OFI -DAFF_DEBUG
+ifeq ($(LC_SERVER), ofi)
+	CFLAGS += -DLC_USE_SERVER_OFI -DAFF_DEBUG
 	LDFLAGS += -lfabric # -L$(HOME)/libfab/lib -lfabric
 	LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
 endif
 
-ifeq ($(MV_SERVER), ibv)
-	CFLAGS += -DMV_USE_SERVER_IBV -DAFF_DEBUG
+ifeq ($(LC_SERVER), ibv)
+	CFLAGS += -DLC_USE_SERVER_IBV -DAFF_DEBUG
 	LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
 endif
 
-ifeq ($(MV_SERVER), psm)
-	CFLAGS += -DMV_USE_SERVER_PSM -DAFF_DEBUG
+ifeq ($(LC_SERVER), psm)
+	CFLAGS += -DLC_USE_SERVER_PSM -DAFF_DEBUG
 	LDFLAGS += -L/home1/03490/tg827895/psm2/usr/lib64/ -lpsm2 # -L$(HOME)/libfab/lib -lfabric
 	LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
 endif
 
-LIBRARY = libmv.so
-ARCHIVE = libmv.a
+LIBRARY = liblwci.so
+ARCHIVE = liblwci.a
 
 all: $(LIBRARY) $(ARCHIVE)
 

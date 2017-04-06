@@ -1,5 +1,5 @@
-#ifndef MPIV_MV_PRIV_H_
-#define MPIV_MV_PRIV_H_
+#ifndef MPIV_LC_PRIV_H_
+#define MPIV_LC_PRIV_H_
 
 #include "lc.h"
 #include "config.h"
@@ -8,17 +8,17 @@
 #include "lcrq.h"
 #include "dequeue.h"
 
-#ifdef MV_USE_SERVER_OFI
+#ifdef LC_USE_SERVER_OFI
 #define SERVER_CONTEXT char __padding__[64 - 40];
 typedef struct ofi_server lc_server;
 #endif
 
-#ifdef MV_USE_SERVER_IBV
+#ifdef LC_USE_SERVER_IBV
 #define SERVER_CONTEXT char __padding__[0];
 typedef struct ibv_server lc_server;
 #endif
 
-#ifdef MV_USE_SERVER_PSM
+#ifdef LC_USE_SERVER_PSM
 #define SERVER_CONTEXT char __pandding__[64 - 40];
 typedef struct psm_server lc_server;
 #endif

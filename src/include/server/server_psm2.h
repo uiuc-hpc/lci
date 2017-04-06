@@ -68,20 +68,20 @@ struct psm_mr {
   uint32_t rkey;
 };
 
-MV_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr);
-MV_INLINE void psm_post_recv(psm_server* s, lc_packet* p);
-MV_INLINE int psm_write_send(psm_server* s, int rank, void* buf, size_t size,
+LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr);
+LC_INLINE void psm_post_recv(psm_server* s, lc_packet* p);
+LC_INLINE int psm_write_send(psm_server* s, int rank, void* buf, size_t size,
                              lc_packet* ctx, uint32_t proto);
-MV_INLINE void psm_write_rma(psm_server* s, int rank, void* from,
+LC_INLINE void psm_write_rma(psm_server* s, int rank, void* from,
                              uintptr_t addr, uint32_t rkey, size_t size,
                              lc_packet* ctx, uint32_t proto);
 
-MV_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
+LC_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
                                     uintptr_t addr, uint32_t rkey, size_t size,
                                     uint32_t sid, lc_packet* ctx, uint32_t proto);
 
-MV_INLINE void psm_finalize(psm_server* s);
-MV_INLINE void psm_flush(psm_server* s);
+LC_INLINE void psm_finalize(psm_server* s);
+LC_INLINE void psm_flush(psm_server* s);
 
 static uint32_t next_key = 0;
 
@@ -89,7 +89,7 @@ static uint32_t next_key = 0;
 #define PSM_SEND ((uint64_t) 1 << 62)
 #define PSM_RDMA ((uint64_t) 1 << 63)
 
-MV_INLINE void prepare_rdma(psm_server* s, struct psm_mr* mr)
+LC_INLINE void prepare_rdma(psm_server* s, struct psm_mr* mr)
 {
   PSM_SAFECALL(psm2_mq_irecv(s->mq,
         mr->rkey, /* message tag */
@@ -99,7 +99,7 @@ MV_INLINE void prepare_rdma(psm_server* s, struct psm_mr* mr)
         (void*) (PSM_RDMA | (uintptr_t) mr), &mr->req));
 }
 
-MV_INLINE uintptr_t _real_psm_reg(psm_server* s, void* buf, size_t size)
+LC_INLINE uintptr_t _real_psm_reg(psm_server* s, void* buf, size_t size)
 {
   struct psm_mr* mr = (struct psm_mr*) malloc(sizeof(struct psm_mr));
   mr->addr = (uintptr_t) buf;
@@ -112,7 +112,7 @@ MV_INLINE uintptr_t _real_psm_reg(psm_server* s, void* buf, size_t size)
   return (uintptr_t)mr;
 }
 
-MV_INLINE int _real_psm_free(uintptr_t mem)
+LC_INLINE int _real_psm_free(uintptr_t mem)
 {
   struct psm_mr* mr = (struct psm_mr*) mem;
   psm2_mq_cancel(&mr->req);
@@ -121,7 +121,7 @@ MV_INLINE int _real_psm_free(uintptr_t mem)
   return 1;
 }
 
-MV_INLINE uintptr_t psm_rma_reg(psm_server* s, void* buf, size_t size)
+LC_INLINE uintptr_t psm_rma_reg(psm_server* s, void* buf, size_t size)
 {
 #ifdef USE_DREG
   return (uintptr_t)dreg_register(s, buf, size);
@@ -130,7 +130,7 @@ MV_INLINE uintptr_t psm_rma_reg(psm_server* s, void* buf, size_t size)
 #endif
 }
 
-MV_INLINE int psm_rma_dereg(uintptr_t mem)
+LC_INLINE int psm_rma_dereg(uintptr_t mem)
 {
 #ifdef USE_DREG
   dreg_unregister((dreg_entry*)mem);
@@ -140,7 +140,7 @@ MV_INLINE int psm_rma_dereg(uintptr_t mem)
 #endif
 }
 
-MV_INLINE uint32_t psm_rma_key(uintptr_t mem)
+LC_INLINE uint32_t psm_rma_key(uintptr_t mem)
 {
 #ifdef USE_DREG
   return ((struct psm_mr*)(((dreg_entry*)mem)->memhandle[0]))->rkey;
@@ -173,7 +173,7 @@ static int psm_recv_am(psm2_am_token_t token,
   return 0;
 }
 
-MV_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
+LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
 {
   psm_server* s = (psm_server*) malloc(sizeof(struct psm_server));
 
@@ -261,7 +261,7 @@ MV_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   *s_ptr = s;
 }
 
-MV_INLINE void psm_progress(psm_server* s)
+LC_INLINE void psm_progress(psm_server* s)
 {
   psm2_mq_req_t req;
   psm2_mq_status_t status;
@@ -310,7 +310,7 @@ MV_INLINE void psm_progress(psm_server* s)
 
 }
 
-MV_INLINE void psm_post_recv(psm_server* s, lc_packet* p)
+LC_INLINE void psm_post_recv(psm_server* s, lc_packet* p)
 {
   if (p == NULL) return;
 
@@ -324,7 +324,7 @@ MV_INLINE void psm_post_recv(psm_server* s, lc_packet* p)
   s->recv_posted++;
 }
 
-MV_INLINE int psm_write_send(psm_server* s, int rank, void* ubuf, size_t size,
+LC_INLINE int psm_write_send(psm_server* s, int rank, void* ubuf, size_t size,
                              lc_packet* ctx, uint32_t proto)
 {
   int me = s->mv->me;
@@ -354,13 +354,13 @@ MV_INLINE int psm_write_send(psm_server* s, int rank, void* ubuf, size_t size,
   }
 }
 
-MV_INLINE void psm_write_rma(psm_server* s, int rank, void* from,
+LC_INLINE void psm_write_rma(psm_server* s, int rank, void* from,
                              uintptr_t addr, uint32_t rkey, size_t size,
                              lc_packet* ctx, uint32_t proto)
 {
 }
 
-MV_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
+LC_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
                                     uintptr_t addr, uint32_t rkey, size_t size,
                                     uint32_t sid, lc_packet* ctx)
 {
@@ -371,14 +371,14 @@ MV_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
         buf, size, (void*) (PSM_SEND | (uintptr_t) ctx), (psm2_mq_req_t*) ctx));
 }
 
-MV_INLINE void psm_finalize(psm_server* s) { free(s); }
+LC_INLINE void psm_finalize(psm_server* s) { free(s); }
 
-MV_INLINE uint32_t psm_heap_rkey(psm_server* s, int node __UNUSED__)
+LC_INLINE uint32_t psm_heap_rkey(psm_server* s, int node __UNUSED__)
 {
   return 0;
 }
 
-MV_INLINE void* psm_heap_ptr(psm_server* s) { return s->heap; }
+LC_INLINE void* psm_heap_ptr(psm_server* s) { return s->heap; }
 
 #define lc_server_init psm_init
 #define lc_server_send psm_write_send
