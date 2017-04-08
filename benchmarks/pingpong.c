@@ -10,11 +10,11 @@
 #include "comm_exp.h"
 
 #ifdef USE_ABT
-#include "lc/helper_abt.h"
+#include "ult/helper_abt.h"
 #elif defined(USE_PTH)
-#include "lc/helper_pth.h"
+#include "ult/helper_pth.h"
 #else
-#include "lc/helper.h"
+#include "ult/helper.h"
 #endif
 
 #include "lc/profiler.h"

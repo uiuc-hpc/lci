@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "mv/macro.h"
+#include "lc/macro.h"
 #include "dreg/dreg.h"
 
 #define GET_PROTO(p) (p & 0x00ff)
@@ -56,11 +56,13 @@ typedef struct psm_server {
   void* heap;
   uint32_t heap_rkey;
   int recv_posted;
+  lcrq_t free_mr;
   lch* mv;
 } psm_server __attribute__((aligned(64)));
 
 struct psm_mr {
   psm2_mq_req_t req;
+  psm_server* server;
   uintptr_t addr;
   size_t size;
   uint32_t rkey;
@@ -76,7 +78,7 @@ LC_INLINE void psm_write_rma(psm_server* s, int rank, void* from,
 
 LC_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
                                     uintptr_t addr, uint32_t rkey, size_t size,
-                                    uint32_t sid, lc_packet* ctx, uint32_t proto);
+                                    uint32_t sid, lc_packet* ctx);
 
 LC_INLINE void psm_finalize(psm_server* s);
 LC_INLINE void psm_flush(psm_server* s);
@@ -100,6 +102,7 @@ LC_INLINE void prepare_rdma(psm_server* s, struct psm_mr* mr)
 LC_INLINE uintptr_t _real_psm_reg(psm_server* s, void* buf, size_t size)
 {
   struct psm_mr* mr = (struct psm_mr*) malloc(sizeof(struct psm_mr));
+  mr->server = s;
   mr->addr = (uintptr_t) buf;
   mr->size = size;
   mr->rkey = (1 + __sync_fetch_and_add(&next_key, 1)) & 0x00ffffff;
@@ -113,9 +116,12 @@ LC_INLINE uintptr_t _real_psm_reg(psm_server* s, void* buf, size_t size)
 LC_INLINE int _real_psm_free(uintptr_t mem)
 {
   struct psm_mr* mr = (struct psm_mr*) mem;
-  psm2_mq_cancel(&mr->req);
-  psm2_mq_wait(&mr->req, NULL);
-  free(mr);
+  if (psm2_mq_cancel(&mr->req) == PSM2_OK) {
+    psm2_mq_wait(&mr->req, NULL);
+    free(mr);
+  } else {
+    lcrq_enqueue(&(mr->server->free_mr), (void*) mr);
+  }
   return 1;
 }
 
@@ -240,16 +246,16 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   /* Setup mq for comm */
   PSM_SAFECALL(psm2_mq_init(s->myep, PSM2_MQ_ORDERMASK_NONE, NULL, 0, &s->mq));
 
+  lcrq_init(&s->free_mr);
+
+#ifdef USE_AM
   psm2_am_handler_fn_t am[1];
   am[0] = psm_recv_am;
 
   PSM_SAFECALL(psm2_am_register_handlers(s->myep,
                am,
                1, &s->psm_recv_am_idx));
-
-  // int val;
-  // psm2_mq_getopt(s->mq, PSM2_MQ_RNDV_HFI_THRESH, &val);
-  // printf("%d\n", val);
+#endif
 
   s->heap = 0;
   posix_memalign(&s->heap, 4096, heap_size);
@@ -281,31 +287,47 @@ LC_INLINE void psm_progress(psm_server* s)
   if (err == PSM2_OK) {
     err = psm2_mq_test(&req, &status); // we need the status
     uintptr_t ctx = (uintptr_t) status.context;
-    if (ctx)
-    if (ctx & PSM_RECV) {
-      uint64_t proto = (status.msg_tag >> 40);
-      lc_packet* p = (lc_packet*) (ctx ^ PSM_RECV);
-      p->context.from = (status.msg_tag >> 24) & 0x0000ffff;
-      p->context.size = (status.msg_length) - sizeof(struct packet_header);
-      p->context.tag = proto >> 8;
-      lc_serve_recv(s->mv, p, GET_PROTO(proto));
-      s->recv_posted--;
-    } else if (ctx & PSM_SEND) {
-      lc_packet* p = (lc_packet*) (ctx ^ PSM_SEND);
-      uint32_t proto = p->context.proto;
-      lc_serve_send(s->mv, p, proto);
-    } else { // else if (ctx & PSM_RDMA) { // recv rdma.
-      struct psm_mr* mr = (struct psm_mr*) (ctx ^ PSM_RDMA);
-      uint32_t imm = (status.msg_tag >> 32);
-      prepare_rdma(s, mr);
-      if (imm)
-        lc_serve_imm(s->mv, imm);
+    if (ctx) {
+      if (ctx & PSM_RECV) {
+        uint64_t proto = (status.msg_tag >> 40);
+        lc_packet* p = (lc_packet*) (ctx ^ PSM_RECV);
+        p->context.from = (status.msg_tag >> 24) & 0x0000ffff;
+        p->context.size = (status.msg_length);
+        p->context.tag = proto >> 8;
+        lc_serve_recv(s->mv, p, GET_PROTO(proto));
+        s->recv_posted--;
+      } else if (ctx & PSM_SEND) {
+        lc_packet* p = (lc_packet*) (ctx ^ PSM_SEND);
+        uint32_t proto = p->context.proto;
+        lc_serve_send(s->mv, p, proto);
+      } else { // else if (ctx & PSM_RDMA) { // recv rdma.
+        struct psm_mr* mr = (struct psm_mr*) (ctx ^ PSM_RDMA);
+        uint32_t imm = (status.msg_tag >> 32);
+        prepare_rdma(s, mr);
+        if (imm)
+          lc_serve_imm(s->mv, imm);
+      }
     }
   }
 
   if (s->recv_posted < MAX_RECV)
     psm_post_recv(s, lc_pool_get_nb(s->mv->pkpool));
 
+  // Cleanup stuffs when nothing to do, this improves the reg/dereg a bit.
+  struct psm_mr* mr = (struct psm_mr*) lcrq_dequeue(&(s->free_mr));
+  if (unlikely(mr)) {
+    if (psm2_mq_cancel(&mr->req) == PSM2_OK) {
+      psm2_mq_wait(&mr->req, NULL);
+      free(mr);
+    } else {
+      lcrq_enqueue(&(s->free_mr), (void*) mr);
+    }
+  }
+
+#ifdef LC_SERVER_DEBUG
+  if (s->recv_posted == 0)
+    printf("WARNING DEADLOCK\n");
+#endif
 }
 
 LC_INLINE void psm_post_recv(psm_server* s, lc_packet* p)

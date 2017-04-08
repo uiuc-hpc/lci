@@ -11,11 +11,16 @@ typedef struct lc_sync lc_sync;
 
 struct lc_sync* lc_get_sync();
 struct lc_sync* lc_get_counter(int count);
-void thread_wait(lc_sync* sync);
-void thread_signal(lc_sync* sync);
-void thread_yield();
 
 extern __thread int lc_core_id;
+
+typedef void (*lc_twait_func_t)(lc_sync*);
+typedef void (*lc_tyield_func_t)();
+typedef void (*lc_tsignal_func_t)(lc_sync*);
+
+extern lc_tyield_func_t thread_yield;
+extern lc_twait_func_t thread_wait;
+extern lc_tsignal_func_t thread_signal;
 
 LC_INLINE int lc_worker_id()
 {

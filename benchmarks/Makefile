@@ -1,6 +1,6 @@
 include ../config.mk
 
-MPICC = mpicc
+MPICC = $(HOME)/mpich-ch4/bin/mpicc
 LD = mpicc
 CC = gcc
 

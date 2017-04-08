@@ -11,14 +11,14 @@
 
 #define USE_L1_MASK
 
-#include "mv.h"
+#include "lc.h"
 
 #ifdef USE_ABT
-#include "mv/helper_abt.h"
+#include "lc/helper_abt.h"
 #elif defined(USE_PTH)
-#include "mv/helper_pth.h"
+#include "lc/helper_pth.h"
 #else
-#include "mv/helper.h"
+#include "lc/helper.h"
 #endif
 
 #include <pthread.h>
@@ -105,9 +105,9 @@ static int size = 0;
 void main_task(intptr_t a)
 {
   int i = 0;
-  r_buf1 = (char*)MPIV_Alloc(MYBUFSIZE);
-  s_buf1 = (char*)MPIV_Alloc(MYBUFSIZE);
-  mv_thread* sr_threads = malloc(MAX_THREADS * sizeof(mv_thread));
+  r_buf1 = (char*)malloc(MYBUFSIZE);
+  s_buf1 = (char*)malloc(MYBUFSIZE);
+  lc_thread* sr_threads = malloc(MAX_THREADS * sizeof(lc_thread));
   thread_tag_t* tags = malloc(MAX_THREADS * sizeof(thread_tag_t));
 
   if (myid == 0) {
@@ -139,8 +139,8 @@ void main_task(intptr_t a)
       }
     }
   }
-  MPIV_Free(r_buf1);
-  MPIV_Free(s_buf1);
+  free(r_buf1);
+  free(s_buf1);
 }
 
 void recv_thread(intptr_t arg)

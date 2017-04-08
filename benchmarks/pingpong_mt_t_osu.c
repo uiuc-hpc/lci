@@ -9,9 +9,10 @@
  * copyright file COPYRIGHT in the top level OMB directory.
  */
 
-#include "mv/affinity.h"
+#include "lc/affinity.h"
 #include "mpi.h"
-#include "mv/macro.h"
+#include "lc/macro.h"
+#include "lc/helper.h"
 
 #define max(a,b) ((a)>(b)?(a):(b))
 
@@ -141,7 +142,7 @@ void* recv_thread(void* arg)
   char *s_buf, *r_buf;
   val = (int)(long)(arg);
 
-  set_me_to(val);
+  // set_me_to(val);
 
   align_size = MESSAGE_ALIGNMENT;
 
@@ -167,13 +168,13 @@ void* recv_thread(void* arg)
     MPI_Recv(r_buf, size, MPI_CHAR, 0, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     MPI_Send(s_buf, size, MPI_CHAR, 0, i, MPI_COMM_WORLD);
   }
-  // sleep(1);
+  sleep(1);
   return 0;
 }
 
 void* send_thread(void* a)
 {
-  set_me_to(0);
+  // set_me_to(0);
   int i, align_size;
   char *s_buf, *r_buf;
   double t_start = 0, t_end = 0, t = 0, latency;

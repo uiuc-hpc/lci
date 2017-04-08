@@ -88,6 +88,7 @@ void lc_serve_imm(lch* mv, uint32_t imm)
   } else {
     lc_packet* p = (lc_packet*) addr;
     lc_ctx* req = (lc_ctx*)p->context.req;
+    lc_server_rma_dereg(p->context.rma_mem);
     lc_spin_lock(&req->lock);
     req->type = REQ_DONE;
     if (req->sync) thread_signal(req->sync);

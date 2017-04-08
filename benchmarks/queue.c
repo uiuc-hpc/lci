@@ -7,11 +7,11 @@
 
 // #define USE_L1_MASK
 #ifdef USE_ABT
-#include "lc/helper_abt.h"
+#include "ult/helper_abt.h"
 #elif defined(USE_PTH)
-#include "lc/helper_pth.h"
+#include "ult/helper_pth.h"
 #else
-#include "lc/helper.h"
+#include "ult/helper.h"
 #endif
 
 #include "comm_exp.h"
@@ -64,7 +64,8 @@ int main(int argc, char** args)
         while (!lc_test(&ctx)) {
           lc_progress(mv);
         }
-        if (i == 10) {
+#if 0
+        if (1) {
           assert(rank == 1);
           assert(tag == i);
           assert(size == len);
@@ -72,6 +73,7 @@ int main(int argc, char** args)
             assert(((char*)recv)[j] == 'A');
           }
         }
+#endif
       }
       printf("%d \t %.5f\n", len, (MPI_Wtime() - t1)/total / (WINDOWS+1) * 1e6);
     } else {

@@ -10,11 +10,11 @@
 
 // #define CHECK_RESULT
 #ifdef USE_ABT
-#include "lc/helper_abt.h"
+#include "ult/helper_abt.h"
 #elif defined(USE_PTH)
-#include "lc/helper_pth.h"
+#include "ult/helper_pth.h"
 #else
-#include "lc/helper.h"
+#include "ult/helper.h"
 #endif
 
 #include "lc/profiler.h"
@@ -31,7 +31,7 @@
 #define MIN_MSG_SIZE 1
 #define MAX_MSG_SIZE (1 << 22)
 int size = 0;
-int WIN = 32;
+int WIN = 64;
 
 int main(int argc, char** args)
 {

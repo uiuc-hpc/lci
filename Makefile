@@ -64,8 +64,8 @@ install: all
 	mkdir -p $(PREFIX)/lib
 	mkdir -p $(PREFIX)/include
 	cp -R include/* $(PREFIX)/include
-	cp libmv.a $(PREFIX)/lib
-	cp libmv.so $(PREFIX)/lib
+	cp liblwci.a $(PREFIX)/lib
+	cp liblwci.so $(PREFIX)/lib
 
 $(OBJDIR)/%.o: $(SRCDIR)/$(notdir %.c)
 	$(MPICC) $(CFLAGS) -c $< -o $@
