@@ -25,7 +25,6 @@ void lc_main_task(intptr_t arg)
 extern lch* lc_hdl;
 
 void _thread_yield() { fthread_yield(tlself.thread); }
-
 void _thread_wait(lc_sync* sync)
 {
   fthread* thread = (fthread*)sync;
@@ -88,5 +87,4 @@ fthread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg)
 }
 
 void MPIV_join(fthread* ult) { fthread_join(ult); }
-
 #endif

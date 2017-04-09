@@ -70,7 +70,8 @@ LC_INLINE void ofi_write_rma(ofi_server* s, int rank, void* from,
 
 LC_INLINE void ofi_write_rma_signal(ofi_server* s, int rank, void* buf,
                                     uintptr_t addr, uint32_t rkey, size_t size,
-                                    uint32_t sid, lc_packet* ctx, uint32_t proto);
+                                    uint32_t sid, lc_packet* ctx,
+                                    uint32_t proto);
 
 LC_INLINE void ofi_finalize(ofi_server* s);
 
@@ -315,7 +316,7 @@ LC_INLINE int ofi_write_send(ofi_server* s, int rank, void* buf, size_t size,
   } else {
     ctx->context.proto = proto;
     FI_SAFECALL(fi_senddata(s->ep, buf, size, 0, proto, s->fi_addr[rank],
-                        (struct fi_context*)ctx));
+                            (struct fi_context*)ctx));
     return 1;
   }
 }
@@ -330,7 +331,8 @@ LC_INLINE void ofi_write_rma(ofi_server* s, int rank, void* from,
 
 LC_INLINE void ofi_write_rma_signal(ofi_server* s, int rank, void* buf,
                                     uintptr_t addr, uint32_t rkey, size_t size,
-                                    uint32_t sid, lc_packet* ctx, uint32_t proto)
+                                    uint32_t sid, lc_packet* ctx,
+                                    uint32_t proto)
 {
   ctx->context.proto = proto;
   FI_SAFECALL(fi_writedata(s->ep, buf, size, 0, sid, s->fi_addr[rank], addr,

@@ -14,16 +14,15 @@
 #define GET_PROTO(p) (p & 0x00ff)
 
 #ifdef LC_SERVER_DEBUG
-#define IBV_SAFECALL(x)                                      \
-  {                                                          \
-    int err = (x);                                           \
-    if (err) {                                               \
-      fprintf(stderr,                                        \
-        "err : %d (%s:%d)\n", err, __FILE__, __LINE__);      \
-      MPI_Abort(MPI_COMM_WORLD, err);                        \
-    }                                                        \
-  }                                                          \
-  while (0)                                                  \
+#define IBV_SAFECALL(x)                                               \
+  {                                                                   \
+    int err = (x);                                                    \
+    if (err) {                                                        \
+      fprintf(stderr, "err : %d (%s:%d)\n", err, __FILE__, __LINE__); \
+      MPI_Abort(MPI_COMM_WORLD, err);                                 \
+    }                                                                 \
+  }                                                                   \
+  while (0)                                                           \
     ;
 #else
 #define IBV_SAFECALL(x) \
@@ -77,7 +76,8 @@ LC_INLINE void ibv_server_mem_free(lc_server_memory* mr);
 
 LC_INLINE void ibv_server_post_recv(ibv_server* s, lc_packet* p);
 LC_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf,
-                                    size_t size, lc_packet* ctx, uint32_t proto);
+                                    size_t size, lc_packet* ctx,
+                                    uint32_t proto);
 LC_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
                                     uintptr_t to, uint32_t rkey, size_t size,
                                     lc_packet* ctx, uint32_t proto);
@@ -192,7 +192,7 @@ LC_INLINE uintptr_t _real_ibv_reg(ibv_server* s, void* buf, size_t size)
 
 LC_INLINE void _real_ibv_dereg(uintptr_t mem)
 {
-  ibv_dereg_mr((struct ibv_mr*) mem);
+  ibv_dereg_mr((struct ibv_mr*)mem);
 }
 
 LC_INLINE uintptr_t ibv_rma_reg(ibv_server* s, void* buf, size_t size)
@@ -218,7 +218,7 @@ LC_INLINE uint32_t ibv_rma_key(uintptr_t mem)
 #ifdef USE_DREG
   return ((struct ibv_mr*)(((dreg_entry*)mem)->memhandle[0]))->rkey;
 #else
-  return ((struct ibv_mr*) mem)->rkey;
+  return ((struct ibv_mr*)mem)->rkey;
 #endif
 }
 
@@ -227,7 +227,7 @@ LC_INLINE uint32_t ibv_rma_lkey(uintptr_t mem)
 #ifdef USE_DREG
   return ((struct ibv_mr*)(((dreg_entry*)mem)->memhandle[0]))->lkey;
 #else
-  return ((struct ibv_mr*) mem)->lkey;
+  return ((struct ibv_mr*)mem)->lkey;
 #endif
 }
 
@@ -291,7 +291,7 @@ LC_INLINE int ibv_server_progress(ibv_server* s)
 #endif
       s->recv_posted--;
       if (wc[i].opcode != IBV_WC_RECV_RDMA_WITH_IMM) {
-        lc_packet* p = (lc_packet*) wc[i].wr_id;
+        lc_packet* p = (lc_packet*)wc[i].wr_id;
         p->context.from = s->qp2rank[wc[i].qp_num % s->qp2rank_mod];
         p->context.size = wc[i].byte_len;
         p->context.tag = wc[i].imm_data >> 8;
@@ -354,7 +354,7 @@ LC_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* ubuf,
                                     size_t size, lc_packet* ctx, uint32_t proto)
 {
   struct ibv_sge list = {
-      .addr = (uintptr_t)ubuf,    // address
+      .addr = (uintptr_t)ubuf,   // address
       .length = (uint32_t)size,  // length
       .lkey = s->heap->lkey,     // lkey
   };
@@ -370,9 +370,10 @@ LC_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* ubuf,
     return 0;
   } else {
     memcpy(ctx->data.buffer, ubuf, size);
-    list.addr = (uintptr_t) ctx->data.buffer;
+    list.addr = (uintptr_t)ctx->data.buffer;
     ctx->context.proto = GET_PROTO(proto);
-    setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND_WITH_IMM, IBV_SEND_SIGNALED);
+    setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND_WITH_IMM,
+             IBV_SEND_SIGNALED);
     this_wr.imm_data = proto;
     IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
     return 1;
@@ -389,7 +390,7 @@ LC_INLINE void ibv_server_read(ibv_server* s, int rank, void* dst,
   struct ibv_send_wr* bad_wr = 0;
 
   struct ibv_sge list = {
-      .addr = (uintptr_t)dst,   // address
+      .addr = (uintptr_t)dst,    // address
       .length = (unsigned)size,  // length
       .lkey = s->heap->lkey,     // lkey
   };
@@ -416,7 +417,8 @@ LC_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
       .lkey = s->heap->lkey,     // lkey
   };
 
-  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE, IBV_SEND_SIGNALED);
+  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE,
+           IBV_SEND_SIGNALED);
   this_wr.wr.rdma.remote_addr = (uintptr_t)to;
   this_wr.wr.rdma.rkey = rkey;
 
@@ -425,7 +427,8 @@ LC_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
 
 LC_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
                                            uintptr_t addr, uint32_t rkey,
-                                           size_t size, uint32_t sid, lc_packet* ctx)
+                                           size_t size, uint32_t sid,
+                                           lc_packet* ctx)
 {
   struct ibv_send_wr this_wr;  // = {0};
   struct ibv_send_wr* bad_wr = 0;
@@ -438,7 +441,8 @@ LC_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
       .lkey = ibv_rma_lkey(mr),
   };
 
-  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE_WITH_IMM, IBV_SEND_SIGNALED);
+  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE_WITH_IMM,
+           IBV_SEND_SIGNALED);
 
   this_wr.wr.rdma.remote_addr = addr;
   this_wr.wr.rdma.rkey = rkey;
@@ -569,9 +573,9 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
   int j = mv->size;
   int* b;
   while (1) {
-    b = (int*) calloc(j, sizeof(int));
+    b = (int*)calloc(j, sizeof(int));
     int i = 0;
-    for (;i < mv->size; i++) {
+    for (; i < mv->size; i++) {
       int k = (s->dev_qp[i]->qp_num % j);
       if (b[k]) break;
       b[k] = 1;
@@ -632,7 +636,6 @@ LC_INLINE uint32_t ibv_server_heap_rkey(ibv_server* s, int node)
 }
 
 LC_INLINE void* ibv_server_heap_ptr(ibv_server* s) { return s->heap_ptr; }
-
 #define lc_server_init ibv_server_init
 #define lc_server_send ibv_server_write_send
 #define lc_server_rma ibv_server_write_rma

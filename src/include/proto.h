@@ -7,13 +7,13 @@
     ctx->size = size;         \
     ctx->rank = rank;         \
     ctx->tag = tag;           \
-    ctx->sync = 0; \
+    ctx->sync = 0;            \
     ctx->type = REQ_PENDING;  \
-    ctx->lock = 0; \
+    ctx->lock = 0;            \
   }
 
-#define MAKE_PROTO(proto, tag) (((uint32_t) proto) | ((uint32_t)tag << 8))
-#define MAKE_SIG(sig, id) (((uint32_t) sig << 30) | id)
+#define MAKE_PROTO(proto, tag) (((uint32_t)proto) | ((uint32_t)tag << 8))
+#define MAKE_SIG(sig, id) (((uint32_t)sig << 30) | id)
 
 typedef struct {
   lc_am_func_t func_am;
@@ -24,28 +24,28 @@ const lc_proto_spec_t lc_proto[10] __attribute__((aligned(64)));
 
 LC_INLINE
 int lci_send(lch* mv, const void* src, int size, int rank, int tag,
-            lc_packet* p)
+             lc_packet* p)
 {
-  p->context.poolid = (size > 128)?lc_pool_get_local(mv->pkpool):0;
-  return lc_server_send(mv->server, rank, (void*) src, size,
-                        p, MAKE_PROTO(p->context.proto, tag));
+  p->context.poolid = (size > 128) ? lc_pool_get_local(mv->pkpool) : 0;
+  return lc_server_send(mv->server, rank, (void*)src, size, p,
+                        MAKE_PROTO(p->context.proto, tag));
 }
 
 LC_INLINE
-void lci_put(lch* mv, void* src, int size, int rank,
-             uintptr_t tgt, uint32_t rkey,
-             uint32_t type, uint32_t id, lc_packet* p) {
-  lc_server_rma_signal(mv->server, rank, src,
-      tgt, rkey, size, MAKE_SIG(type, id), p);
+void lci_put(lch* mv, void* src, int size, int rank, uintptr_t tgt,
+             uint32_t rkey, uint32_t type, uint32_t id, lc_packet* p)
+{
+  lc_server_rma_signal(mv->server, rank, src, tgt, rkey, size,
+                       MAKE_SIG(type, id), p);
 }
 
-LC_INLINE void lci_rdz_prepare(lch* mv, void* src, int size, lc_ctx* ctx, lc_packet* p)
+LC_INLINE void lci_rdz_prepare(lch* mv, void* src, int size, lc_ctx* ctx,
+                               lc_packet* p)
 {
   p->context.req = (uintptr_t)ctx;
   uintptr_t rma_mem = lc_server_rma_reg(mv->server, src, size);
   p->context.rma_mem = rma_mem;
-  p->data.rtr.comm_id =
-      (uint32_t)((uintptr_t)p - (uintptr_t)lc_heap_ptr(mv));
+  p->data.rtr.comm_id = (uint32_t)((uintptr_t)p - (uintptr_t)lc_heap_ptr(mv));
   p->data.rtr.tgt_addr = (uintptr_t)src;
   p->data.rtr.rkey = lc_server_rma_key(rma_mem);
 }
@@ -76,17 +76,16 @@ void lc_serve_imm(lch* mv, uint32_t imm)
   uintptr_t addr = (uintptr_t)lc_heap_ptr(mv) + id;
 
   if (type == RMA_SIGNAL_QUEUE) {
-    lc_packet* p = (lc_packet*) addr;
+    lc_packet* p = (lc_packet*)addr;
     lc_ctx* req = (lc_ctx*)p->context.req;
     lc_server_rma_dereg(p->context.rma_mem);
     req->type = REQ_DONE;
     lc_pool_put(mv->pkpool, p);
   } else if (type == RMA_SIGNAL_SIMPLE) {
     struct lc_rma_ctx* ctx = (struct lc_rma_ctx*)addr;
-    if (ctx->req)
-      ((lc_ctx*)ctx->req)->type = REQ_DONE;
+    if (ctx->req) ((lc_ctx*)ctx->req)->type = REQ_DONE;
   } else {
-    lc_packet* p = (lc_packet*) addr;
+    lc_packet* p = (lc_packet*)addr;
     lc_ctx* req = (lc_ctx*)p->context.req;
     lc_server_rma_dereg(p->context.rma_mem);
     lc_spin_lock(&req->lock);

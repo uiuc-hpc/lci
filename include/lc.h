@@ -262,7 +262,6 @@ int lc_send_put_signal(lch* mv, void* src, int size, int rank, lc_addr* dst,
 
 /**@} end rdma-api */
 
-
 /**
  * @defgroup control Control APIs
  * @{
@@ -313,11 +312,7 @@ void lc_wait(lc_ctx* ctx, lc_sync* sync)
 * @return 1 if finished, 0 otherwise.
 */
 LC_INLINE
-int lc_test(lc_ctx* ctx)
-{
-  return (ctx->type == REQ_DONE);
-}
-
+int lc_test(lc_ctx* ctx) { return (ctx->type == REQ_DONE); }
 /**@} end control */
 
 /**@} end low-level */
