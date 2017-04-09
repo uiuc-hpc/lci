@@ -21,8 +21,6 @@ void lc_open(size_t heap_size, lch** ret)
   struct lc_struct* mv = 0;
   posix_memalign((void**) &mv, 4096, sizeof(struct lc_struct));
 
-  setenv("I_MPI_FABRICS", "ofa", 1);
-  setenv("MPICH_ASYNC_PROGRESS", "0", 1);
   setenv("MV2_ASYNC_PROGRESS", "0", 1);
   setenv("MV2_ENABLE_AFFINITY", "0", 1);
   setenv("MV2_USE_LAZY_MEM_UNREGISTER", "0", 1);
