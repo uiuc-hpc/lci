@@ -1,2 +1,2 @@
-# MPIV
-Implementation of a stripped down MPI in infiniband
+# LWCI
+Implementation of a cool communication layer
