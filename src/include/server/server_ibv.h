@@ -538,8 +538,8 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
 
   if (with_mpi) {
     int provided;
-    MPI_Init_thread(NULL, NULL, MPI_THREAD_FUNNELED, &provided);
-    if (MPI_THREAD_FUNNELED != provided) {
+    MPI_Init_thread(NULL, NULL, MPI_THREAD_MULTIPLE, &provided);
+    if (MPI_THREAD_MULTIPLE != provided) {
       fprintf(stderr, "Need MPI_THREAD_MULTIPLE\n");
       exit(EXIT_FAILURE);
     }

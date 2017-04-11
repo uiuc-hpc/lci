@@ -37,6 +37,6 @@
 // Server debug
 // #define LC_SERVER_DEBUG
 
-#define THREAD_PER_CORE 4
+#define THREAD_PER_CORE 1
 
 #endif
