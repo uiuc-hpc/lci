@@ -4,6 +4,7 @@
 #include "pool.h"
 
 #include "dreg/dreg.h"
+#include "pmi.h"
 
 size_t server_max_inline;
 __thread int lc_core_id = -1;
@@ -57,13 +58,14 @@ void lc_open(size_t heap_size, lch** ret)
     lc_pool_put(mv->rma_pool, rma_ctx);
   }
 
-  MPI_Barrier(MPI_COMM_WORLD);
+  PMI_Barrier();
+
   *ret = mv;
 }
 
 void lc_close(lch* mv)
 {
-  MPI_Barrier(MPI_COMM_WORLD);
+  PMI_Barrier();
   lc_server_finalize(mv->server);
   lc_hash_destroy(mv->tbl);
   lc_pool_destroy(mv->pkpool);
@@ -71,7 +73,6 @@ void lc_close(lch* mv)
   lcrq_destroy(&mv->queue);
 #endif
   free(mv);
-  MPI_Finalize();
 }
 
 int lc_send(lch* mv, const void* src, int size, int rank, int tag, lc_ctx* ctx)
@@ -301,4 +302,12 @@ void lc_free_packet(lch* mv, lc_packet* p)
 void* lc_get_packet_data(lc_packet* p)
 {
   return p->data.buffer;
+}
+
+int lc_id(lch* mv) {
+  return mv->me;
+}
+
+int lc_size(lch* mv) {
+  return mv->size;
 }

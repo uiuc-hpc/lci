@@ -47,7 +47,6 @@ extern double mv_ptime;
 void main_task(intptr_t arg)
 {
   double times = 0;
-  double ptime = 0;
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   void* r_buf = 0; // = (void*) malloc((size_t)MAX_MSG_SIZE);

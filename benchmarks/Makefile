@@ -18,7 +18,7 @@ endif
 ifeq ($(LC_SERVER), ibv)
 	CFLAGS += -DLC_USE_SERVER_IBV -DAFF_DEBUG
 	LDFLAGS += -libverbs
-	LDFLAGS += -L$(HOME)/tcmalloc_sb/lib -ltcmalloc
+	# LDFLAGS += -L$(HOME)/tcmalloc_sb/lib -ltcmalloc
 endif
 
 ifeq ($(LC_SERVER), psm)

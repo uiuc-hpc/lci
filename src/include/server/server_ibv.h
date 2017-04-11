@@ -1,7 +1,7 @@
 #ifndef SERVER_IBV_H_
 #define SERVER_IBV_H_
 
-#include <mpi.h>
+#include "pmi.h"
 
 #include "lc/affinity.h"
 #include "lc/profiler.h"
@@ -65,6 +65,7 @@ typedef struct ibv_server {
   int qp2rank_mod;
   void* heap_ptr;
   long recv_posted;
+  int with_mpi;
 } ibv_server __attribute__((aligned(64)));
 
 extern size_t server_max_inline;
@@ -526,15 +527,31 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
     exit(EXIT_FAILURE);
   }
 
-  int provided;
-  MPI_Init_thread(NULL, NULL, MPI_THREAD_FUNNELED, &provided);
-  if (MPI_THREAD_FUNNELED != provided) {
-    fprintf(stderr, "Need MPI_THREAD_MULTIPLE\n");
-    exit(EXIT_FAILURE);
+  char* lc_mpi = getenv("LC_MPI");
+  int with_mpi = s->with_mpi = 0;
+  if (lc_mpi)
+    with_mpi = s->with_mpi = atoi(lc_mpi);
+
+  char key[256];
+  char value[256];
+  char name[256];
+
+  if (with_mpi) {
+    int provided;
+    MPI_Init_thread(NULL, NULL, MPI_THREAD_FUNNELED, &provided);
+    if (MPI_THREAD_FUNNELED != provided) {
+      fprintf(stderr, "Need MPI_THREAD_MULTIPLE\n");
+      exit(EXIT_FAILURE);
+    }
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &mv->me);
+    MPI_Comm_size(MPI_COMM_WORLD, &mv->size);
+  } else {
+    int spawned;
+    PMI_Init(&spawned, &mv->size, &mv->me);
+    PMI_KVS_Get_my_name(name, 255);
   }
 
-  MPI_Comm_rank(MPI_COMM_WORLD, &mv->me);
-  MPI_Comm_size(MPI_COMM_WORLD, &mv->size);
   s->conn = (struct conn_ctx*)malloc(sizeof(struct conn_ctx) * mv->size);
   s->dev_qp = (struct ibv_qp**)malloc(sizeof(struct ibv_qp*) * mv->size);
 
@@ -558,15 +575,32 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
       fprintf(stderr, "Unable to query gid\n");
       exit(EXIT_FAILURE);
     }
+    if (with_mpi) {
+      // Exchange connection conn_ctx.
+      MPI_Sendrecv(&lctx, sizeof(struct conn_ctx), MPI_BYTE, i, 0, rmtctx,
+          sizeof(struct conn_ctx), MPI_BYTE, i, 0, MPI_COMM_WORLD,
+          MPI_STATUS_IGNORE);
+      qp_init(s->dev_qp[i], dev_port);
+      qp_to_rtr(s->dev_qp[i], dev_port, &port_attr, rmtctx);
+      qp_to_rts(s->dev_qp[i]);
+    } else {
+      sprintf(key, "_LC_KEY_%d_%d", mv->me, i);
+      sprintf(value, "%llu-%d-%d-%d", (unsigned long long) lctx.addr, lctx.rkey, lctx.qp_num, (int) lctx.lid);
+      PMI_KVS_Put(name, key, value);
+    }
+  }
 
-    // Exchange connection conn_ctx.
-    MPI_Sendrecv(&lctx, sizeof(struct conn_ctx), MPI_BYTE, i, 0, rmtctx,
-                 sizeof(struct conn_ctx), MPI_BYTE, i, 0, MPI_COMM_WORLD,
-                 MPI_STATUS_IGNORE);
-
-    qp_init(s->dev_qp[i], dev_port);
-    qp_to_rtr(s->dev_qp[i], dev_port, &port_attr, rmtctx);
-    qp_to_rts(s->dev_qp[i]);
+  if (!with_mpi) {
+    PMI_Barrier();
+    for (int i = 0; i < mv->size; i++) {
+      sprintf(key, "_LC_KEY_%d_%d", i, mv->me);
+      PMI_KVS_Get(name, key, value, 255);
+      rmtctx = &s->conn[i];
+      sscanf(value, "%llu-%d-%d-%d", (unsigned long long*) &rmtctx->addr, &rmtctx->rkey, &rmtctx->qp_num, (int*) &rmtctx->lid);
+      qp_init(s->dev_qp[i], dev_port);
+      qp_to_rtr(s->dev_qp[i], dev_port, &port_attr, rmtctx);
+      qp_to_rts(s->dev_qp[i]);
+    }
   }
 
   // ***HACK TO MAP QP TO RANK***
@@ -609,6 +643,11 @@ LC_INLINE void ibv_server_finalize(ibv_server* s)
   for (int i = 0; i < s->mv->size; i++) {
     ibv_destroy_qp(s->dev_qp[i]);
   }
+  if (s->with_mpi)
+    MPI_Finalize();
+  else
+    PMI_Finalize();
+
   free(s->conn);
   free(s->dev_qp);
   free(s);

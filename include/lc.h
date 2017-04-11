@@ -390,6 +390,12 @@ void lc_free_packet(lch* mv, lc_packet* p);
 LC_EXPORT
 void lc_send_persis(lch* mv, lc_packet* p, int rank, int tag, lc_ctx* ctx);
 
+LC_EXPORT
+int lc_id(lch* mv);
+
+LC_EXPORT
+int lc_size(lch* mv);
+
 /**@}*/
 
 #ifdef __cplusplus

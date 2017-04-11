@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "pmi.h"
 #include "lc/macro.h"
 #include "dreg/dreg.h"
 
@@ -59,6 +60,7 @@ typedef struct psm_server {
   int recv_posted;
   lcrq_t free_mr;
   lch* mv;
+  int with_mpi;
 } psm_server __attribute__((aligned(64)));
 
 struct psm_mr {
@@ -203,33 +205,67 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   /* Attempt to open a PSM2 endpoint. This allocates hardware resources. */
   PSM_SAFECALL(psm2_ep_open(s->uuid, &option, &s->myep, &s->myepid));
 
-  int provided;
-  MPI_Init_thread(NULL, NULL, MPI_THREAD_FUNNELED, &provided);
-  if (MPI_THREAD_FUNNELED != provided) {
-    printf("Need MPI_THREAD_MULTIPLE\n");
-    exit(EXIT_FAILURE);
-  }
-
   /* Exchange ep addr. */
-  MPI_Comm_rank(MPI_COMM_WORLD, &mv->me);
-  MPI_Comm_size(MPI_COMM_WORLD, &mv->size);
+  int with_mpi = s->with_mpi = 0;
+  char* lc_mpi = getenv("LC_MPI");
+  if (lc_mpi)
+    with_mpi = s->with_mpi = atoi(lc_mpi);
+
+  char key[256];
+  char value[256];
+  char name[256];
+
+  if (!with_mpi) {
+    int spawned;
+    PMI_Init(&spawned, &mv->size, &mv->me);
+    PMI_KVS_Get_my_name(name, 255);
+  } else {
+    int provided;
+    MPI_Init_thread(NULL, NULL, MPI_THREAD_MULTIPLE, &provided);
+    if (MPI_THREAD_MULTIPLE != provided) {
+      printf("Need MPI_THREAD_MULTIPLE\n");
+      exit(EXIT_FAILURE);
+    }
+    MPI_Comm_rank(MPI_COMM_WORLD, &mv->me);
+    MPI_Comm_size(MPI_COMM_WORLD, &mv->size);
+  }
 
   int epid_array_mask[mv->size];
 
   s->epid = (psm2_epid_t*)calloc(mv->size, sizeof(psm2_epid_t));
   s->epaddr = (psm2_epaddr_t*)calloc(mv->size, sizeof(psm2_epaddr_t));
 
-  for (int i = 0; i < mv->size; i++) {
-    if (i != mv->me) {
-      psm2_epid_t destaddr;
-      MPI_Sendrecv(&s->myepid, sizeof(psm2_epid_t), MPI_BYTE, i, 99, &destaddr,
-                   sizeof(psm2_epid_t), MPI_BYTE, i, 99, MPI_COMM_WORLD,
-                   MPI_STATUS_IGNORE);
-      memcpy(&s->epid[i], &destaddr, sizeof(psm2_epid_t));
-      epid_array_mask[i] = 1;
-    } else {
-      epid_array_mask[i] = 0;
+  if (!with_mpi) {
+    sprintf(key, "_LC_KEY_%d", mv->me);
+    sprintf(value, "%llu", (unsigned long long) s->myepid);
+    PMI_KVS_Put(name, key, value);
+    PMI_Barrier();
+    for (int i = 0; i < mv->size; i++) {
+      if (i != mv->me) {
+        sprintf(key, "_LC_KEY_%d", i);
+        PMI_KVS_Get(name, key, value, 255);
+        psm2_epid_t destaddr;
+        sscanf(value, "%llu", (unsigned long long*) &destaddr);
+        memcpy(&s->epid[i], &destaddr, sizeof(psm2_epid_t));
+        epid_array_mask[i] = 1;
+      } else {
+        epid_array_mask[i] = 0;
+      }
     }
+  } else {
+    for (int i = 0; i < mv->size; i++) {
+      if (i != mv->me) {
+        psm2_epid_t destaddr;
+        MPI_Sendrecv(&s->myepid, sizeof(psm2_epid_t), MPI_BYTE, i, 99, &destaddr,
+            sizeof(psm2_epid_t), MPI_BYTE, i, 99, MPI_COMM_WORLD,
+            MPI_STATUS_IGNORE);
+        memcpy(&s->epid[i], &destaddr, sizeof(psm2_epid_t));
+        epid_array_mask[i] = 1;
+      } else {
+        epid_array_mask[i] = 0;
+      }
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
   }
 
   pthread_t startup_thread;
@@ -239,8 +275,10 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   PSM_SAFECALL(psm2_ep_connect(s->myep, mv->size, s->epid, epid_array_mask,
                                epid_connect_errors, s->epaddr, 0));
 
-  // Make sure everyone has finished.
-  MPI_Barrier(MPI_COMM_WORLD);
+  if (!with_mpi)
+    PMI_Barrier();
+  else
+    MPI_Barrier(MPI_COMM_WORLD);
 
   psm_start_stop = 1;
   pthread_join(startup_thread, NULL);
@@ -384,7 +422,14 @@ LC_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
                              (psm2_mq_req_t*)ctx));
 }
 
-LC_INLINE void psm_finalize(psm_server* s) { free(s); }
+LC_INLINE void psm_finalize(psm_server* s) {
+  if (s->with_mpi)
+    MPI_Finalize();
+  else
+    PMI_Finalize();
+  free(s);
+}
+
 LC_INLINE uint32_t psm_heap_rkey(psm_server* s, int node __UNUSED__)
 {
   return 0;

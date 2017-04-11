@@ -1,3 +1,5 @@
+#include <mpi.h>
+
 #include "lc_priv.h"
 #include "lc/affinity.h"
 #include "lc/macro.h"
@@ -123,6 +125,7 @@ static void* progress(void* arg __UNUSED__)
 void MPIV_Init(int* argc, char*** args)
 {
   size_t heap_size = 256 * 1024 * 1024;
+  setenv("LC_MPI", "1", 1);
   lc_open(heap_size, &lc_hdl);
   posix_memalign(&ctx_data, 64, sizeof(struct lc_ctx) * MAX_PACKET);
   lc_pool_create(&lc_ctx_pool);

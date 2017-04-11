@@ -27,8 +27,7 @@ int main(int argc, char** args)
   if (argc > 1)
     WINDOWS = atoi(args[1]);
 
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  int rank = lc_id(mv);
   int total, skip;
 
   lc_ctx ctx;
@@ -48,7 +47,7 @@ int main(int argc, char** args)
     if (rank == 0) {
       double t1;
       for (int i = 0; i < skip + total; i++) {
-        if (i == skip) t1 = MPI_Wtime();
+        if (i == skip) t1 = wtime();
         for (int j = 0; j < WINDOWS; j++)  {
           while (!lc_send_queue(mv, buffer, len, 1, 0, &ctx))
             lc_progress(mv);
@@ -75,7 +74,7 @@ int main(int argc, char** args)
         }
 #endif
       }
-      printf("%d \t %.5f\n", len, (MPI_Wtime() - t1)/total / (WINDOWS+1) * 1e6);
+      printf("%d \t %.5f\n", len, (wtime() - t1)/total / (WINDOWS+1) * 1e6);
     } else {
       for (int i = 0; i < skip + total; i++) {
         int rank, tag, size;
@@ -97,7 +96,6 @@ int main(int argc, char** args)
           lc_progress(mv);
       }
     }
-    MPI_Barrier(MPI_COMM_WORLD);
     free(recv);
     free(buffer);
   }

@@ -33,10 +33,11 @@ LDFLAGS += -shared -Lstatic -flto $(IBV_LIB) # -llmpe -lmpe
 FCONTEXT = mfcontext.o jfcontext.o
 COMM = lc.o mpiv.o progress.o hashtable.o pool.o lcrq.o
 DREG = dreg/dreg.o dreg/avl.o
+PMI = pmi/simple_pmi.o pmi/simple_pmiutil.o
 
 OBJECTS = $(addprefix $(OBJDIR)/, $(COMM))
 
-LIBOBJ = $(OBJECTS) $(addprefix $(OBJDIR)/, $(FCONTEXT))
+LIBOBJ = $(OBJECTS) $(addprefix $(OBJDIR)/, $(FCONTEXT)) $(addprefix $(OBJDIR)/, $(PMI))
 
 ifeq ($(LC_SERVER), ofi)
 	CFLAGS += -DLC_USE_SERVER_OFI -DAFF_DEBUG
@@ -86,5 +87,5 @@ $(OBJDIR)/mfcontext.o: $(MFCONTEXT)
 	$(CC) -O3 -c $(MFCONTEXT) -o $(OBJDIR)/mfcontext.o
 
 clean:
-	rm -rf $(LIBOBJ) libmv.a libmv.so
+	rm -rf $(LIBOBJ) liblwci.a liblwci.so
 

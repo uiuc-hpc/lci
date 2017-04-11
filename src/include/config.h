@@ -26,7 +26,7 @@
 
 #define POST_MSG_SIZE (SHORT_MSG_SIZE)
 
-#define SERVER_MAX_INLINE 0
+#define SERVER_MAX_INLINE 32
 
 // Using LCRQ or spinlock.
 #define USE_CCQ
