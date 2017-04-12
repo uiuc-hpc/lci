@@ -530,8 +530,7 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
 
   char* lc_mpi = getenv("LC_MPI");
   int with_mpi = s->with_mpi = 0;
-  if (lc_mpi)
-    with_mpi = s->with_mpi = atoi(lc_mpi);
+  if (lc_mpi) with_mpi = s->with_mpi = atoi(lc_mpi);
 
   char key[256];
   char value[256];
@@ -579,14 +578,15 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
     if (with_mpi) {
       // Exchange connection conn_ctx.
       MPI_Sendrecv(&lctx, sizeof(struct conn_ctx), MPI_BYTE, i, 0, rmtctx,
-          sizeof(struct conn_ctx), MPI_BYTE, i, 0, MPI_COMM_WORLD,
-          MPI_STATUS_IGNORE);
+                   sizeof(struct conn_ctx), MPI_BYTE, i, 0, MPI_COMM_WORLD,
+                   MPI_STATUS_IGNORE);
       qp_init(s->dev_qp[i], dev_port);
       qp_to_rtr(s->dev_qp[i], dev_port, &port_attr, rmtctx);
       qp_to_rts(s->dev_qp[i]);
     } else {
       sprintf(key, "_LC_KEY_%d_%d", mv->me, i);
-      sprintf(value, "%llu-%d-%d-%d", (unsigned long long) lctx.addr, lctx.rkey, lctx.qp_num, (int) lctx.lid);
+      sprintf(value, "%llu-%d-%d-%d", (unsigned long long)lctx.addr, lctx.rkey,
+              lctx.qp_num, (int)lctx.lid);
       PMI_KVS_Put(name, key, value);
     }
   }
@@ -597,7 +597,8 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
       sprintf(key, "_LC_KEY_%d_%d", i, mv->me);
       PMI_KVS_Get(name, key, value, 255);
       rmtctx = &s->conn[i];
-      sscanf(value, "%llu-%d-%d-%d", (unsigned long long*) &rmtctx->addr, &rmtctx->rkey, &rmtctx->qp_num, (int*) &rmtctx->lid);
+      sscanf(value, "%llu-%d-%d-%d", (unsigned long long*)&rmtctx->addr,
+             &rmtctx->rkey, &rmtctx->qp_num, (int*)&rmtctx->lid);
       qp_init(s->dev_qp[i], dev_port);
       qp_to_rtr(s->dev_qp[i], dev_port, &port_attr, rmtctx);
       qp_to_rts(s->dev_qp[i]);

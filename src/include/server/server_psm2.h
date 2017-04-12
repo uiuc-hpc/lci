@@ -207,8 +207,7 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   /* Exchange ep addr. */
   int with_mpi = s->with_mpi = 0;
   char* lc_mpi = getenv("LC_MPI");
-  if (lc_mpi)
-    with_mpi = s->with_mpi = atoi(lc_mpi);
+  if (lc_mpi) with_mpi = s->with_mpi = atoi(lc_mpi);
 
   char key[256];
   char value[256];
@@ -236,7 +235,7 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
 
   if (!with_mpi) {
     sprintf(key, "_LC_KEY_%d", mv->me);
-    sprintf(value, "%llu", (unsigned long long) s->myepid);
+    sprintf(value, "%llu", (unsigned long long)s->myepid);
     PMI_KVS_Put(name, key, value);
     PMI_Barrier();
     for (int i = 0; i < mv->size; i++) {
@@ -244,7 +243,7 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
         sprintf(key, "_LC_KEY_%d", i);
         PMI_KVS_Get(name, key, value, 255);
         psm2_epid_t destaddr;
-        sscanf(value, "%llu", (unsigned long long*) &destaddr);
+        sscanf(value, "%llu", (unsigned long long*)&destaddr);
         memcpy(&s->epid[i], &destaddr, sizeof(psm2_epid_t));
         epid_array_mask[i] = 1;
       } else {
@@ -255,9 +254,9 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
     for (int i = 0; i < mv->size; i++) {
       if (i != mv->me) {
         psm2_epid_t destaddr;
-        MPI_Sendrecv(&s->myepid, sizeof(psm2_epid_t), MPI_BYTE, i, 99, &destaddr,
-            sizeof(psm2_epid_t), MPI_BYTE, i, 99, MPI_COMM_WORLD,
-            MPI_STATUS_IGNORE);
+        MPI_Sendrecv(&s->myepid, sizeof(psm2_epid_t), MPI_BYTE, i, 99,
+                     &destaddr, sizeof(psm2_epid_t), MPI_BYTE, i, 99,
+                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         memcpy(&s->epid[i], &destaddr, sizeof(psm2_epid_t));
         epid_array_mask[i] = 1;
       } else {
@@ -421,7 +420,8 @@ LC_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
                              (psm2_mq_req_t*)ctx));
 }
 
-LC_INLINE void psm_finalize(psm_server* s) {
+LC_INLINE void psm_finalize(psm_server* s)
+{
   if (s->with_mpi)
     MPI_Finalize();
   else
