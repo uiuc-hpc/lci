@@ -1,13 +1,13 @@
 #ifndef SERVER_PSM_H_
 #define SERVER_PSM_H_
 
-#include <mpi.h>
 #include <psm2.h>    /* required for core PSM2 functions */
 #include <psm2_mq.h> /* required for PSM2 MQ functions (send, recv, etc) */
 #include <psm2_am.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include <mpi.h>
 #include "pmi.h"
 #include "lc/macro.h"
 #include "dreg/dreg.h"
@@ -84,8 +84,6 @@ LC_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
                                     uint32_t sid, lc_packet* ctx);
 
 LC_INLINE void psm_finalize(psm_server* s);
-LC_INLINE void psm_flush(psm_server* s);
-
 static uint32_t next_key = 0;
 
 #define PSM_RECV ((uint64_t)1 << 61)
@@ -164,10 +162,10 @@ static void* psm_startup(void* arg)
   return 0;
 }
 
+#if 0
 static lch* __mv;
 static volatile lc_packet* __p_r = 0;
 static volatile int has_data = 0;
-
 static int psm_recv_am(psm2_am_token_t token, psm2_amarg_t* args, int nargs,
                        void* src, uint32_t len)
 {
@@ -176,6 +174,7 @@ static int psm_recv_am(psm2_am_token_t token, psm2_amarg_t* args, int nargs,
   has_data = 1;
   return 0;
 }
+#endif
 
 LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
 {
@@ -299,7 +298,7 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   posix_memalign(&s->heap, 4096, heap_size);
 
   s->recv_posted = 0;
-  __mv = s->mv = mv;
+  s->mv = mv;
   *s_ptr = s;
 }
 

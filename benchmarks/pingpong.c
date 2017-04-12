@@ -7,6 +7,7 @@
 
 // #define CHECK_RESULT
 
+#include "mpiv.h"
 #include "comm_exp.h"
 
 #ifdef USE_ABT

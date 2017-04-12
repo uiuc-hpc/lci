@@ -1,4 +1,3 @@
-#include <mpi.h>
 #include "include/lc_priv.h"
 #include <stdint.h>
 #include "pool.h"
@@ -265,7 +264,7 @@ int lc_rma_create(lch* mv, void* buf, size_t size, lc_addr** rctx_ptr)
   return 1;
 }
 
-int lc_recv_put_signal(lch* mv, lc_addr* rctx, lc_ctx* ctx)
+int lc_recv_put_signal(lch* mv __UNUSED__, lc_addr* rctx, lc_ctx* ctx)
 {
   rctx->req = (uintptr_t) ctx;
   ctx->type = REQ_PENDING;

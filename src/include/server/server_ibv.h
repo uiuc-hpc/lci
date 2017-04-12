@@ -1,6 +1,7 @@
 #ifndef SERVER_IBV_H_
 #define SERVER_IBV_H_
 
+#include <mpi.h>
 #include "pmi.h"
 
 #include "lc/affinity.h"

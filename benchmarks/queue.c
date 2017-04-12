@@ -4,16 +4,6 @@
 #include <math.h>
 
 #include "lc.h"
-
-// #define USE_L1_MASK
-#ifdef USE_ABT
-#include "ult/helper_abt.h"
-#elif defined(USE_PTH)
-#include "ult/helper_pth.h"
-#else
-#include "ult/helper.h"
-#endif
-
 #include "comm_exp.h"
 
 lch* mv;
@@ -102,6 +92,3 @@ int main(int argc, char** args)
   lc_close(mv);
   return 0;
 }
-
-void main_task(intptr_t arg) { }
-

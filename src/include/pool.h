@@ -12,7 +12,7 @@
 #include "ult/ult.h"
 #include "dequeue.h"
 
-#define MAX_NPOOLS 128
+#define MAX_NPOOLS 512
 #define MAX_LOCAL_POOL 8  // align to a cache line.
 
 extern int lc_pool_nkey;

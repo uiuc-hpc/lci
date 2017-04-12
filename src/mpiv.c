@@ -1,4 +1,5 @@
 #include <mpi.h>
+#include "mpiv.h"
 
 #include "lc_priv.h"
 #include "lc/affinity.h"
@@ -122,7 +123,7 @@ static void* progress(void* arg __UNUSED__)
   return 0;
 }
 
-void MPIV_Init(int* argc, char*** args)
+void MPIV_Init(int* argc __UNUSED__, char*** args __UNUSED__)
 {
   size_t heap_size = 256 * 1024 * 1024;
   setenv("LC_MPI", "1", 1);

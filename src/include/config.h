@@ -26,16 +26,17 @@
 
 #define POST_MSG_SIZE (SHORT_MSG_SIZE)
 
+#ifdef LC_SERVER_INLINE
 #define SERVER_MAX_INLINE 32
+#else
+#define SERVER_MAX_INLINE 0
+#endif
 
 // Using LCRQ or spinlock.
 #define USE_CCQ
 
 // Use memory registration (Must also enable tcmalloc)
 // #define USE_DREG
-
-// Server debug
-// #define LC_SERVER_DEBUG
 
 #define THREAD_PER_CORE 1
 
