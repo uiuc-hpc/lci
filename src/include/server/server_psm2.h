@@ -179,7 +179,7 @@ static int psm_recv_am(psm2_am_token_t token, psm2_amarg_t* args, int nargs,
 LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
 {
   setenv("I_MPI_FABRICS", "ofa", 1);
-  setenv("PSM2_DEVICES", "hfi", 1);
+  setenv("PSM2_DEVICES", "shm,hfi", 1);
   setenv("PSM2_SHAREDCONTEXTS", "0", 1);
 
   psm_server* s = (psm_server*)malloc(sizeof(struct psm_server));
@@ -239,29 +239,21 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
     PMI_KVS_Put(name, key, value);
     PMI_Barrier();
     for (int i = 0; i < mv->size; i++) {
-      if (i != mv->me) {
-        sprintf(key, "_LC_KEY_%d", i);
-        PMI_KVS_Get(name, key, value, 255);
-        psm2_epid_t destaddr;
-        sscanf(value, "%llu", (unsigned long long*)&destaddr);
-        memcpy(&s->epid[i], &destaddr, sizeof(psm2_epid_t));
-        epid_array_mask[i] = 1;
-      } else {
-        epid_array_mask[i] = 0;
-      }
+      sprintf(key, "_LC_KEY_%d", i);
+      PMI_KVS_Get(name, key, value, 255);
+      psm2_epid_t destaddr;
+      sscanf(value, "%llu", (unsigned long long*)&destaddr);
+      memcpy(&s->epid[i], &destaddr, sizeof(psm2_epid_t));
+      epid_array_mask[i] = 1;
     }
   } else {
     for (int i = 0; i < mv->size; i++) {
-      if (i != mv->me) {
-        psm2_epid_t destaddr;
-        MPI_Sendrecv(&s->myepid, sizeof(psm2_epid_t), MPI_BYTE, i, 99,
-                     &destaddr, sizeof(psm2_epid_t), MPI_BYTE, i, 99,
-                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        memcpy(&s->epid[i], &destaddr, sizeof(psm2_epid_t));
-        epid_array_mask[i] = 1;
-      } else {
-        epid_array_mask[i] = 0;
-      }
+      psm2_epid_t destaddr;
+      MPI_Sendrecv(&s->myepid, sizeof(psm2_epid_t), MPI_BYTE, i, 99,
+          &destaddr, sizeof(psm2_epid_t), MPI_BYTE, i, 99,
+          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      memcpy(&s->epid[i], &destaddr, sizeof(psm2_epid_t));
+      epid_array_mask[i] = 1;
     }
     MPI_Barrier(MPI_COMM_WORLD);
   }
