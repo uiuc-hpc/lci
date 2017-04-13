@@ -179,7 +179,7 @@ static int psm_recv_am(psm2_am_token_t token, psm2_amarg_t* args, int nargs,
 LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
 {
   setenv("I_MPI_FABRICS", "ofa", 1);
-  setenv("PSM2_DEVICES", "shm,hfi", 1);
+  // setenv("PSM2_DEVICES", "shm,hfi", 1);
   setenv("PSM2_SHAREDCONTEXTS", "0", 1);
 
   psm_server* s = (psm_server*)malloc(sizeof(struct psm_server));
