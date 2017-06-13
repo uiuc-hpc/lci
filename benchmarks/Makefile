@@ -37,10 +37,10 @@ CUCKOO_INC = $(HOME)/libcuckoo/include
 CXXFLAGS += -I$(CUCKOO_INC)
 
 ### FOR TESTING TBB ###
-# TBB_INC = -I/opt/apps/intel/15/composer_xe_2015.2.164/tbb/include/
-# TBB_LIB = -ltbb -ltbbmalloc -L/opt/apps/intel/15/composer_xe_2015.2.164/tbb/lib/intel64/gcc4.1 -ltbb -ltbbmalloc
-# LDFLAGS += $(TBB_LIB)
-# CXXFLAGS += $(TBB_INC)
+TBB_INC = -I/opt/apps/intel/15/composer_xe_2015.2.164/tbb/include/
+TBB_LIB = -ltbb -L/opt/apps/intel/15/composer_xe_2015.2.164/tbb/lib/intel64/gcc4.1
+LDFLAGS += $(TBB_LIB)
+CXXFLAGS += $(TBB_INC)
 
 ### FOR TESTING ARGOBOTS ###
 ABT_INC = $(HOME)/argo/include
@@ -55,8 +55,8 @@ LDFLAGS += -L$(ABT_LIB)
 ### FOR USING PAPI ##
 PAPI_LIB = $(TACC_PAPI_LIB) -lpfm -lpapi
 PAPI_INC = $(TACC_PAPI_INC)
-# CXXFLAGS += -I$(PAPI_INC)
-#LDFLAGS += -L$(PAPI_LIB)
+CXXFLAGS += -I$(PAPI_INC)
+LDFLAGS += -L$(PAPI_LIB)
 
 TARGET = pingpong_mt_NN pingpong_mt_NN_abt pingpong_mt_NN_pth pingpong_mt_NN_osu
 
@@ -78,7 +78,7 @@ write_mpi: write_mpi.cxx
 	mpicxx $(CXXFLAGS) write_mpi.cxx -o write_mpi
 
 hash: hash.cxx
-	mpicxx $(CXXFLAGS) $(LDFLAGS) -I../include -I../src/include/ hash.cxx -o hash ../src/hashtable.c
+	mpicxx $(CXXFLAGS) $(LDFLAGS) -I../include -I../src/include/ hash.cxx -o hash ../src/hashtable.c ../liblwci.a
 
 pool: pool.cxx
 	mpicxx $(CXXFLAGS) $(LDFLAGS) -I../include -I../src/include/ pool.cxx -o pool  ../src/pool.c -DUSE_AFFI
