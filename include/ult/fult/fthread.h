@@ -16,7 +16,7 @@ typedef struct fthread {
   struct fworker* origin;
   int id;
   ffunc func;
-  intptr_t data;
+  void* data;
   volatile enum fthread_state state;
   volatile int count;
 } fthread __attribute__((aligned(64)));
@@ -39,6 +39,6 @@ LC_INLINE void fthread_cancel(fthread* f)
   fthread_resume(f);
 }
 
-LC_INLINE void fthread_create(fthread*, ffunc myfunc, intptr_t data,
+LC_INLINE void fthread_create(fthread*, ffunc myfunc, void* data,
                               size_t stack_size);
 #endif

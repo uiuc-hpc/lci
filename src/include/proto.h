@@ -9,7 +9,6 @@
     ctx->tag = tag;           \
     ctx->sync = 0;            \
     ctx->type = REQ_PENDING;  \
-    ctx->lock = 0;            \
   }
 
 #define MAKE_PROTO(proto, tag) (((uint32_t)proto) | ((uint32_t)tag << 8))
@@ -88,11 +87,13 @@ void lc_serve_imm(lch* mv, uint32_t imm)
     lc_packet* p = (lc_packet*)addr;
     lc_ctx* req = (lc_ctx*)p->context.req;
     lc_server_rma_dereg(p->context.rma_mem);
-    lc_spin_lock(&req->lock);
-    req->type = REQ_DONE;
-    if (req->sync) thread_signal(req->sync);
-    lc_spin_unlock(&req->lock);
-    lc_pool_put(mv->pkpool, p);
+    const lc_key key = lc_make_key(p->context.from, p->context.tag);
+    lc_value value = (lc_value)p;
+    if (!lc_hash_insert(mv->tbl, key, &value)) {
+      req->type = REQ_DONE;
+      if (req->sync) thread_signal(req->sync);
+      lc_pool_put(mv->pkpool, p);
+    }
   }
 }
 #endif

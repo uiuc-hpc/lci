@@ -178,9 +178,9 @@ static int psm_recv_am(psm2_am_token_t token, psm2_amarg_t* args, int nargs,
 
 LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
 {
-  setenv("I_MPI_FABRICS", "ofa", 1);
-  // setenv("PSM2_DEVICES", "shm,hfi", 1);
-  setenv("PSM2_SHAREDCONTEXTS", "0", 1);
+  // setenv("I_MPI_FABRICS", "ofa", 1);
+  // setenv("PSM2_SHAREDCONTEXTS", "0", 1);
+  // setenv("PSM2_RCVTHREAD", "0", 1);
 
   psm_server* s = (psm_server*)malloc(sizeof(struct psm_server));
 
@@ -375,7 +375,7 @@ LC_INLINE int psm_write_send(psm_server* s, int rank, void* ubuf, size_t size,
   int me = s->mv->me;
   uint64_t real_tag = MAKE_PSM_TAG(proto, me);
 
-  if (size <= 1024) {
+  if (size < 1024) {
 #ifdef USE_AM
     PSM_SAFECALL(psm2_am_request_short(
         s->epaddr[rank], s->psm_recv_am_idx, NULL, 0, buf, size,

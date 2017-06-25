@@ -4,7 +4,7 @@ MPICC = mpicc
 LD = mpicc
 CC = gcc
 
-EXTRA = -DUSE_AFFI -DAFF_DEBUG
+# EXTRA = -DUSE_AFFI
 
 CFLAGS += -g3 -ggdb -O3 -Wall -Wextra -std=gnu99 -pthread -I../include -I../ $(EXTRA) -D_GNU_SOURCE  -I/opt/ofed/include $(SERVER)
 LDFLAGS += -O3 -Wl,-rpath=$(abspath ../) -Wl,-z,now -Wl,-z,relro -pthread
@@ -13,18 +13,18 @@ LIB = ../liblwci.a
 CXXFLAGS = -g3 -O3 -std=c++11
 
 ifeq ($(LC_SERVER), ofi)
-	CFLAGS += -DLC_USE_SERVER_OFI 
+	CFLAGS += -DLC_USE_SERVER_OFI -DAFF_DEBUG
 	LDFLAGS += -lfabric # -L$(HOME)/libfab/lib -lfabric
 endif
 
 ifeq ($(LC_SERVER), ibv)
-	CFLAGS += -DLC_USE_SERVER_IBV 
+	CFLAGS += -DLC_USE_SERVER_IBV -DAFF_DEBUG
 	LDFLAGS += -libverbs
 	# LDFLAGS += -L$(HOME)/tcmalloc_sb/lib -ltcmalloc
 endif
 
 ifeq ($(LC_SERVER), psm)
-	CFLAGS += -DLC_USE_SERVER_PSM
+	CFLAGS += -DLC_USE_SERVER_PSM -DAFF_DEBUG
 	LDFLAGS += -lpsm2 # -L$(HOME)/libfab/lib -lfabric
 endif
 
@@ -39,10 +39,10 @@ CUCKOO_INC = $(HOME)/install/libcuckoo/include
 CXXFLAGS += -I$(CUCKOO_INC)
 
 ### FOR TESTING TBB ###
-# TBB_INC = $(TACC_INTEL_DIR)/tbb/include
-# TBB_LIB = $(TACC_INTEL_DIR)/tbb/lib -ltbb -ltbbmalloc
-# LDFLAGS += -L$(TBB_LIB)
-# CXXFLAGS += -I$(TBB_INC)
+TBB_INC = $(TACC_INTEL_DIR)/tbb/include
+TBB_LIB = $(TACC_INTEL_DIR)/tbb/lib -ltbb -ltbbmalloc
+LDFLAGS += -L$(TBB_LIB)
+CXXFLAGS += -I$(TBB_INC)
 
 ### FOR TESTING ARGOBOTS ###
 # ABT_INC = $(HOME)/argo/include
@@ -55,10 +55,10 @@ CXXFLAGS += -I$(TACC_BOOST_INC)
 LDFLAGS += -L$(TACC_BOOST_LIB)
 
 ### FOR USING PAPI ##
-# PAPI_LIB = $(TACC_PAPI_LIB) -lpfm -lpapi
-# PAPI_INC = $(TACC_PAPI_INC)
-# CXXFLAGS += -I$(PAPI_INC)
-# LDFLAGS += -L$(PAPI_LIB)
+PAPI_LIB = $(TACC_PAPI_LIB) -lpfm -lpapi
+PAPI_INC = $(TACC_PAPI_INC)
+CXXFLAGS += -I$(PAPI_INC)
+LDFLAGS += -L$(PAPI_LIB)
 
 TARGET = pingpong_mt_NN pingpong_mt_NN_abt pingpong_mt_NN_pth pingpong_mt_NN_osu
 

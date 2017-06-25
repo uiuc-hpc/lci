@@ -1,19 +1,28 @@
 #include "comm_exp.h"
-#include "mv.h"
+#include "lc.h"
 #include "pool.h"
 
 #define USE_PAPI
-#include "mv/profiler.h"
+#include "lc/profiler.h"
+
+#define LC_USE_SERVER_PSM
+#include "config.h"
 
 #include "packet/packet_manager_misc.h"
 
-__thread int mv_core_id = -1;
+__thread int lc_core_id = -1;
 
 #include <atomic>
+#include <random>
 #include <chrono>
 #include <thread>
 #include <algorithm>
 #include <vector>
+
+#undef TOTAL_LARGE
+#undef SKIP_LARGE
+#define TOTAL_LARGE 200
+#define SKIP_LARGE 50
 
 int NTHREADS = 4;
 int PER_THREAD = 16;
@@ -31,23 +40,22 @@ static void cache_invalidate(void)
 }
 
 void benchmarks()
-{
-  mv_pool* pkg;
-  int* data = (int*) malloc(4 * MAX_PACKET);
-  mv_pool_create(&pkg, data, 4, MAX_PACKET);
+{ 
+  lc_pool* pkg;
+  lc_pool_create(&pkg);
+  for (int i = 1; i < MAX_PACKET+1; i++) lc_pool_put(pkg, (void*) i);
 
   std::atomic<int> f;
-  std::vector<double> times(TOTAL_LARGE - SKIP_LARGE, 0);
+  std::vector<double> times(TOTAL_LARGE, 0);
 
   srand(1234);
   std::vector<int> rands;
   std::thread th[NTHREADS];
-  PER_THREAD = MAX_PACKET / (MAX_PACKET / NTHREADS);
-  profiler_init();
-  profiler prof({PAPI_L2_TCM});
+  PER_THREAD = NTHREADS;
+  profiler prof({PAPI_L1_DCM});
   double l1 = 0;
 
-  for (int k = 0; k < TOTAL_LARGE; k++) {
+  for (int k = 0; k < TOTAL_LARGE + SKIP_LARGE; k++) {
     rands.clear();
     for (int i = 0; i < PER_THREAD * (NTHREADS); i++) {
       rands.push_back(rand() % (MAX_PACKET / NTHREADS) + 1);
@@ -63,23 +71,26 @@ void benchmarks()
         }
         double t1 = 0;
         if (i == 0 && k >= SKIP_LARGE) { 
-          t1 = wutime();
           prof.start();
+          t1 = wutime();
         }
 
         int sumnrun = 0;
         for (int j = 0; j < PER_THREAD; j++) {
           int nruns = rands[i * PER_THREAD + j];
           for (int jj = 0; jj < nruns; jj++) {
-            pp[jj] = mv_pool_get(pkg);
+            pp[jj] = lc_pool_get(pkg);
           }
           if (k >= SKIP_LARGE && i == 0) times[k - SKIP_LARGE] += wutime();
           std::this_thread::sleep_for(
-              std::chrono::microseconds(rands[i * PER_THREAD]));
+                  std::chrono::microseconds(rands[ff * PER_THREAD]));
+          // double t1 = wutime();
+          // while (wutime() - t1 <= rands[ff * PER_THREAD])
+          //        ;
           if (k >= SKIP_LARGE && i == 0) times[k - SKIP_LARGE] -= wutime();
 
           for (int jj = 0; jj < nruns; jj++) {
-            mv_pool_put(pkg, pp[jj]);
+            lc_pool_put(pkg, pp[jj]);
           }
           sumnrun += nruns;
         }
@@ -120,17 +131,20 @@ void benchmarks_old()
 {
   T pkg;
   pkg.init_worker(NTHREADS);
-  for (int i = 0; i < MAX_PACKET; i++) {
-    pkg.ret_packet(new int());
+  for (int i = 1; i < MAX_PACKET+1; i++) {
+    pkg.ret_packet((void*)i);
   }
-  std::atomic<int> f;
-  std::vector<double> times(TOTAL_LARGE - SKIP_LARGE, 0);
-
+  std::atomic<int> f = 0;
+  std::vector<double> times(TOTAL_LARGE, 0);
+  
   srand(1234);
   std::vector<int> rands;
   std::thread th[NTHREADS];
-  PER_THREAD = MAX_PACKET / (MAX_PACKET / NTHREADS);
-  for (int k = 0; k < TOTAL_LARGE; k++) {
+  PER_THREAD = NTHREADS;
+  double l1 = 0;
+  profiler prof({PAPI_L1_DCM});
+
+  for (int k = 0; k < TOTAL_LARGE + SKIP_LARGE; k++) {
     rands.clear();
     for (int i = 0; i < PER_THREAD * (NTHREADS); i++) {
       rands.push_back(rand() % (MAX_PACKET / NTHREADS) + 1);
@@ -145,7 +159,11 @@ void benchmarks_old()
         while (f < NTHREADS) {
         }
         double t1 = 0;
-        if (ff == 0 && k >= SKIP_LARGE) t1 = wutime();
+        if (ff == 0 && k >= SKIP_LARGE) {
+          prof.start();
+          t1 = wutime();
+        }
+
         int sumnrun = 0;
         for (int j = 0; j < PER_THREAD; j++) {
           int nruns = rands[ff * PER_THREAD + j];
@@ -153,8 +171,12 @@ void benchmarks_old()
             pp[jj] = pkg.get_for_send();
           }
           if (k >= SKIP_LARGE && ff == 0) times[k - SKIP_LARGE] += wutime();
+          // double t1 = wutime();
+          // while (wutime() - t1 <= rands[ff * PER_THREAD])
+          //        ;
           std::this_thread::sleep_for(
-              std::chrono::microseconds(rands[ff * PER_THREAD]));
+                  std::chrono::microseconds(rands[ff * PER_THREAD]));
+
           if (k >= SKIP_LARGE && ff == 0) times[k - SKIP_LARGE] -= wutime();
 
           for (int jj = 0; jj < nruns; jj++) {
@@ -165,6 +187,8 @@ void benchmarks_old()
         if (ff == 0 && k >= SKIP_LARGE) {
           times[k - SKIP_LARGE] += ((wutime() - t1));
           times[k - SKIP_LARGE] /= sumnrun;
+          auto& s = prof.stop();
+          l1 += (double) s[0] / sumnrun;
         }
       }));
     }
@@ -187,6 +211,7 @@ void benchmarks_old()
 
   printf("Time (get+return): %d %.3f %.3f %.3f %.3f %.3f\n", NTHREADS, qu[0],
          qu[1], qu[2], qu[3], qu[4]);
+  printf("Cache: %.5f\n", l1 / TOTAL_LARGE);
 }
 
 int main(int argc, char** args)
@@ -194,7 +219,9 @@ int main(int argc, char** args)
   if (argc > 1) NTHREADS = atoi(args[1]);
   cache_size = (8 * 1024 * 1024 / sizeof(int));
   cache_buf = (int*)malloc(sizeof(int) * cache_size);
-  mv_pool_init();
+  lc_pool_init();
+  profiler_init();
+
   benchmarks();
 
   // benchmarks_cp<packet_manager_NUMA_STEAL>();

@@ -10,7 +10,7 @@
 
 #define DEBUG(x)
 
-typedef void (*ffunc)(intptr_t);
+typedef void* (*ffunc)(void*);
 typedef void* fcontext_t;
 struct fthread;
 struct fworker;
@@ -26,8 +26,8 @@ extern __thread struct tls_t tlself;
 #ifdef __cplusplus
 extern "C" {
 #endif
-fcontext_t make_fcontext(void* sp, size_t size, void (*thread_func)(intptr_t));
-void* jump_fcontext(fcontext_t* old, fcontext_t, intptr_t arg);
+fcontext_t make_fcontext(void* sp, size_t size, void* (*thread_func)(void*));
+void* jump_fcontext(fcontext_t* old, fcontext_t, void* arg);
 #ifdef __cplusplus
 }
 #endif
@@ -37,18 +37,18 @@ typedef struct fctx {
   fcontext_t stack_ctx;
 } fctx;
 
-LC_INLINE void swap_ctx(fctx* from, fctx* to, intptr_t args)
+LC_INLINE void swap_ctx(fctx* from, fctx* to, void* args)
 {
   to->parent = from;
-  jump_fcontext(&(from->stack_ctx), to->stack_ctx, (intptr_t)args);
+  jump_fcontext(&(from->stack_ctx), to->stack_ctx, args);
 }
 
 LC_INLINE void swap_ctx_parent(fctx* f)
 {
-  jump_fcontext(&(f->stack_ctx), f->parent->stack_ctx, 0);
+  jump_fcontext(&(f->stack_ctx), f->parent->stack_ctx, f->parent);
 }
 
-static void fwrapper(intptr_t arg);
+static void* fwrapper(void* arg);
 
 #include "fthread.h"
 #include "fworker.h"

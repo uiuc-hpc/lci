@@ -9,19 +9,6 @@ static fworker** all_worker = 0;
 static int nworker = 0;
 __thread struct tls_t tlself;
 
-void main_task(intptr_t);
-void lc_main_task(intptr_t arg)
-{
-  // user-provided.
-  main_task(arg);
-
-  for (int i = 1; i < nworker; i++) {
-    fworker_stop(all_worker[i]);
-  }
-
-  fworker_stop_main(all_worker[0]);
-}
-
 extern lch* lc_hdl;
 
 void _thread_yield() { fthread_yield(tlself.thread); }
@@ -61,7 +48,7 @@ lc_sync* lc_get_counter(int count)
 typedef struct fthread* lc_thread;
 typedef struct fworker* lc_worker;
 
-void MPIV_Start_worker(int number, intptr_t g)
+void MPIV_Start_worker(int number)
 {
   thread_yield = _thread_yield;
   thread_wait = _thread_wait;
@@ -78,13 +65,24 @@ void MPIV_Start_worker(int number, intptr_t g)
     all_worker[i]->id = i;
     fworker_start(all_worker[i]);
   }
-  fworker_start_main(all_worker[0], lc_main_task, g);
+  fworker_start_main(all_worker[0]);
 }
 
-fthread* MPIV_spawn(int wid, void (*func)(intptr_t), intptr_t arg)
+fthread* MPIV_spawn(int wid, void* (*func)(void*), void* arg)
 {
   return fworker_spawn(all_worker[wid % nworker], func, arg, F_STACK_SIZE);
 }
 
 void MPIV_join(fthread* ult) { fthread_join(ult); }
+
+void MPIV_Stop_worker()
+{
+  fworker_stop_main(all_worker[0]);
+  fworker_destroy(all_worker[0]);
+
+  for (int i = 1; i < nworker; i++) {
+    fworker_stop(all_worker[i]);
+    fworker_destroy(all_worker[i]);
+  }
+}
 #endif

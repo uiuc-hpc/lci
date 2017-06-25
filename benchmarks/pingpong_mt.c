@@ -9,8 +9,8 @@
  * copyright file COPYRIGHT in the top level OMB directory.
  */
 
-#include "mv.h"
-#include "mv/helper.h"
+#include "mpiv.h"
+#include "ult/helper.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,7 +92,7 @@ void main_task(intptr_t arg)
   int i = 0;
   r_buf1 = (char*)malloc(MYBUFSIZE);
   s_buf1 = (char*)malloc(MYBUFSIZE);
-  mv_thread sr_threads[THREADS];
+  lc_thread sr_threads[THREADS];
   thread_tag_t tags[THREADS];
 
   if (myid == 0) {

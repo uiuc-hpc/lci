@@ -15,7 +15,7 @@ typedef void* lc_hash;
 #include "lc/lock.h"
 
 #define EMPTY ((uint64_t)-1)
-#define TBL_BIT_SIZE 9
+#define TBL_BIT_SIZE 16
 #define TBL_WIDTH 4
 
 typedef struct hash_val {
@@ -31,7 +31,7 @@ typedef struct hash_val {
   };
   // NOTE: This must be aligned to 16, make sure TBL_WDITH is 4,
   // So they will fit in a cache line.
-} hash_val __attribute__((aligned(16)));
+} hash_val;
 
 void lc_hash_create(lc_hash** h);
 void lc_hash_destroy(lc_hash* h);

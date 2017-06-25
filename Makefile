@@ -12,6 +12,8 @@ PREFIX ?= /usr
 SRCDIR = ./src
 OBJDIR ?= ./obj
 
+EXTRA = -DAFF_DEBUG -DUSE_AFFI
+
 ifeq (,$(wildcard $(OBJDIR)))
 $(shell mkdir -p $(OBJDIR))
 endif
@@ -24,8 +26,8 @@ ifeq (,$(wildcard $(OBJDIR)/dreg))
 $(shell mkdir -p $(OBJDIR)/dreg)
 endif
 
-INCLUDE = -I./include -I./src/include -I./  -I./src/
-CFLAGS += -fPIC -fvisibility=hidden -std=gnu99 $(INCLUDE) -DUSE_AFFI -D_GNU_SOURCE -pthread
+INCLUDE = -I./include -I./src/include -I./  -I./src/ -I$(HOME)/psm2/include
+CFLAGS += -fPIC -fvisibility=hidden -std=gnu99 $(INCLUDE) $(EXTRA) -D_GNU_SOURCE -pthread
 
 IBV_DIR = /opt/ofed/
 PSM_DIR = /usr/

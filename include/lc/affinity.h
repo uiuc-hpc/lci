@@ -17,15 +17,9 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define SERVER_CORE (lc_get_ncores() - 1)
-
-size_t lc_get_ncores();
-
-LC_INLINE int set_me_to_(int core_id)
+LC_INLINE int set_me_to(int core_id)
 {
-  int num_cores = lc_get_ncores();
-  if (core_id < 0 || core_id >= num_cores) return EINVAL;
-
+#ifdef USE_AFFI
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
   CPU_SET(core_id, &cpuset);
@@ -35,10 +29,14 @@ LC_INLINE int set_me_to_(int core_id)
 #endif
   pthread_t current_thread = pthread_self();
   return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+#else
+  return 0;
+#endif
 }
 
 LC_INLINE int set_me_within(int from, int to)
 {
+#ifdef USE_AFFI
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
   int i;
@@ -47,14 +45,9 @@ LC_INLINE int set_me_within(int from, int to)
   // <<")" << std::endl;
   pthread_t current_thread = pthread_self();
   return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+#else
+  return 0;
+#endif
 }
 
-LC_INLINE int set_me_to(int core_id)
-{
-  int num_cores = lc_get_ncores();
-  // TODO(danghvu): do this because the second set is near mlx
-  return set_me_to_((SERVER_CORE - 1 - core_id + num_cores) % num_cores);
-}
-
-LC_INLINE int set_me_to_last() { return set_me_to_(SERVER_CORE); }
 #endif

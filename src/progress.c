@@ -17,7 +17,7 @@ static void lc_recv_short_match(lch* mv, lc_packet* p)
   lc_value value = (lc_value)p;
 
   if (!lc_hash_insert(mv->tbl, key, &value)) {
-    // comm-thread comes later.
+    // data has comes.
     lc_ctx* req = (lc_ctx*)value;
     memcpy(req->buffer, p->data.buffer, req->size);
     req->type = REQ_DONE;
@@ -60,10 +60,8 @@ static void lc_recv_rtr_queue(lch* mv, lc_packet* p)
 static void lc_sent_rdz_match_done(lch* mv, lc_packet* p)
 {
   lc_ctx* req = (lc_ctx*) p->context.req;
-  lc_spin_lock(&req->lock);
   req->type = REQ_DONE;
   if (req->sync) thread_signal(req->sync);
-  lc_spin_unlock(&req->lock);
   lc_pool_put(mv->pkpool, p);
 }
 

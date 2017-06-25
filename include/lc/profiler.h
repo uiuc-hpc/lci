@@ -42,6 +42,7 @@ class profiler
       printf("%s\n", PAPI_strerror(err));
     }
   }
+
   inline const std::vector<long long>& stop()
   {
     PAPI_stop_counters(&counters_[0], counters_.size());
