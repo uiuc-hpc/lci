@@ -1,8 +1,8 @@
 #ifndef LC_HELPER_ABT_H
 #define LC_HELPER_ABT_H
 
-#include "mv.h"
-#include "mv/affinity.h"
+#include "lc.h"
+#include "lc/affinity.h"
 #include <abt.h>
 
 static ABT_xstream* xstream;

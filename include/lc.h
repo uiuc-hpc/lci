@@ -66,7 +66,6 @@ struct lc_ctx {
   lc_sync* sync;
   lc_packet* packet;
   lc_fcb complete;
-  volatile int lock;
 } __attribute__((aligned(64)));
 
 struct lc_rma_ctx {
@@ -101,7 +100,7 @@ typedef struct lc_rma_ctx lc_addr;
 *
 */
 LC_EXPORT
-int lc_send(lch* mv, const void* src, int size, int rank, int tag, lc_ctx* ctx);
+int lc_send_tag(lch* mv, const void* src, int size, int rank, int tag, lc_ctx* ctx);
 
 /**
 * @brief Try to finish send, or insert sync for waking up.
@@ -114,7 +113,7 @@ int lc_send(lch* mv, const void* src, int size, int rank, int tag, lc_ctx* ctx);
 *
 */
 LC_EXPORT
-int lc_send_post(lch* mv, lc_ctx* ctx, lc_sync* sync);
+int lc_send_tag_post(lch* mv, lc_ctx* ctx, lc_sync* sync);
 
 /**
 * @brief Initialize a recv, matching incoming message.
@@ -130,7 +129,7 @@ int lc_send_post(lch* mv, lc_ctx* ctx, lc_sync* sync);
 *
 */
 LC_EXPORT
-int lc_recv(lch* mv, void* src, int size, int rank, int tag, lc_ctx* ctx);
+int lc_recv_tag(lch* mv, void* src, int size, int rank, int tag, lc_ctx* ctx);
 
 /**
 * @brief Try to match and insert sync obj for waking up.
@@ -142,7 +141,7 @@ int lc_recv(lch* mv, void* src, int size, int rank, int tag, lc_ctx* ctx);
 * @return 1 if finished, 0 otherwise.
 */
 LC_EXPORT
-int lc_recv_post(lch* mv, lc_ctx* ctx, lc_sync* sync);
+int lc_recv_tag_post(lch* mv, lc_ctx* ctx, lc_sync* sync);
 
 /**@} End group matching */
 
@@ -328,9 +327,6 @@ uint8_t lc_am_register(lch* mv, lc_am_func_t f);
 
 LC_EXPORT
 void lc_progress(lch* mv);
-
-LC_EXPORT
-size_t lc_get_ncores();
 
 LC_EXPORT
 lc_packet* lc_alloc_packet(lch* mv, int size);

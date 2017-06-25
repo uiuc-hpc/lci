@@ -26,10 +26,12 @@ typedef struct psm_server lc_server;
 struct lc_struct {
   int me;
   int size;
+  int ncores;
   lc_server* server;
   lc_pool* pkpool;
   lc_pool* rma_pool;
   lc_hash* tbl;
+
 #ifndef USE_CCQ
   struct dequeue queue;
 #else

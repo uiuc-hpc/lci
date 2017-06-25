@@ -18,21 +18,22 @@
 
 #define MAX_THREAD (NMASK * WORDSIZE)
 
-LC_INLINE void fthread_create(fthread* f, ffunc func, intptr_t data,
+LC_INLINE void fthread_create(fthread* f, ffunc func, void* data,
                               size_t stack_size)
 {
   if (unlikely(f->stack == NULL)) {
     void* memory = 0;
     posix_memalign(&memory, 64, stack_size);
     if (memory == 0) {
-      printf("No more memory for stack\n");
+      fprintf(stderr, "No more memory for stack\n");
       exit(EXIT_FAILURE);
     }
-    f->stack = (void*)((uintptr_t)memory + stack_size);
+    f->stack = memory; 
   }
   f->func = func;
   f->data = data;
-  f->ctx.stack_ctx = make_fcontext(f->stack, stack_size, fwrapper);
+  f->ctx.stack_ctx = make_fcontext((void*) ((uintptr_t) f->stack + stack_size),
+                                   stack_size, fwrapper);
   f->state = CREATED;
 }
 
@@ -65,12 +66,13 @@ LC_INLINE void fthread_join(fthread* f)
   }
 }
 
-static void fwrapper(intptr_t args)
+static void* fwrapper(void* args)
 {
   fthread* f = (fthread*)args;
   f->func(f->data);
   f->state = INVALID;
   swap_ctx_parent(&f->ctx);
+  return 0;
 }
 
 /// Fworker.
@@ -104,7 +106,16 @@ LC_INLINE void fworker_init(fworker** w_ptr)
   *w_ptr = w;
 }
 
-LC_INLINE void fworker_destroy(fworker* w) { free((void*)w->threads); }
+LC_INLINE void fworker_destroy(fworker* w)
+{
+  for (int i = 0; i < (int)MAX_THREAD; i++) {
+    free(w->threads[i].stack);
+  }
+  free((void*)w->threads);
+  free((void*)w->thread_pool);
+  free(w);
+}
+
 LC_INLINE void fworker_fini_thread(fworker* w, const int id)
 {
   lc_spin_lock(&w->thread_pool_lock);
@@ -112,7 +123,7 @@ LC_INLINE void fworker_fini_thread(fworker* w, const int id)
   lc_spin_unlock(&w->thread_pool_lock);
 }
 
-LC_INLINE fthread* fworker_spawn(fworker* w, ffunc f, intptr_t data,
+LC_INLINE fthread* fworker_spawn(fworker* w, ffunc f, void* data,
                                  size_t stack_size)
 {
   lc_spin_lock(&w->thread_pool_lock);
@@ -134,7 +145,7 @@ LC_INLINE void fworker_work(fworker* w, fthread* f)
   if (unlikely(f->state == INVALID)) return;
   tlself.thread = f;
 
-  swap_ctx(&w->ctx, &f->ctx, (intptr_t)f);
+  swap_ctx(&w->ctx, &f->ctx, f);
 
   tlself.thread = NULL;
   if (f->state == YIELD)
@@ -171,10 +182,6 @@ LC_INLINE void* wfunc(void* arg)
 {
   fworker* w = (fworker*)arg;
   tlself.worker = w;
-#ifdef USE_AFFI
-  set_me_to(w->id);
-#endif
-
 #if 0
   wtimework = 0;
   int first = 1;
@@ -243,9 +250,6 @@ LC_INLINE void* wfunc(void* arg)
 {
   fworker* w = (fworker*)arg;
   tlself.worker = w;
-#ifdef USE_AFFI
-  set_me_to(w->id);
-#endif
 
   while (unlikely(!w->stop)) {
     for (int l1i = 0; l1i < 8; l1i++) {

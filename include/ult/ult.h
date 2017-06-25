@@ -25,7 +25,7 @@ extern lc_tsignal_func_t thread_signal;
 LC_INLINE int lc_worker_id()
 {
   if (unlikely(lc_core_id == -1)) {
-    lc_core_id = sched_getcpu() % lc_get_ncores();
+    lc_core_id = sched_getcpu();
     if (lc_core_id == -1) lc_core_id = 0;
   }
   return lc_core_id;

@@ -21,7 +21,7 @@ typedef struct fworker {
   } __attribute__((aligned(64)));
 } fworker __attribute__((aligned(64)));
 
-LC_INLINE fthread* fworker_spawn(fworker*, ffunc f, intptr_t data,
+LC_INLINE fthread* fworker_spawn(fworker*, ffunc f, void* data,
                                  size_t stack_size);
 LC_INLINE void fworker_init(fworker**);
 LC_INLINE void fworker_work(fworker*, fthread*);
@@ -42,13 +42,26 @@ LC_INLINE void fworker_stop(fworker* w)
   pthread_join(w->runner, 0);
 }
 
-LC_INLINE void fworker_start_main(fworker* w, ffunc main_task, intptr_t data)
+static fthread main_sched;
+static fthread* main_thread;
+
+LC_INLINE void fworker_start_main(fworker* w)
 {
   w->stop = 0;
-  fworker_spawn(w, main_task, data, MAIN_STACK_SIZE);
-  wfunc(w);
+  memset(&main_sched, 0, sizeof(struct fthread));
+  fthread_create(&main_sched, wfunc, w, MAIN_STACK_SIZE);
+  main_thread = fworker_spawn(w, NULL, NULL, MAIN_STACK_SIZE);
+  main_thread->ctx.parent = &(main_sched.ctx);
+  fthread_yield(main_thread);
 }
 
-LC_INLINE void fworker_stop_main(fworker* w) { w->stop = 1; }
+LC_INLINE void fworker_stop_main(fworker* w)
+{
+  w->stop = 1;
+  main_sched.ctx.parent = &(main_thread->ctx);
+  fthread_wait(main_thread);
+  free(main_sched.stack);
+}
+
 LC_INLINE int fworker_id(fworker* w) { return w->id; }
 #endif
