@@ -40,7 +40,7 @@ LDFLAGS += -shared -Lstatic
 # LDFLAGS += -L$(PAPI_LIB)
 
 # USE DREG
-# LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
+LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
 
 ifeq ($(LC_SERVER_DEBUG), yes)
 CFLAGS += -DLC_SERVER_DEBUG
@@ -67,13 +67,13 @@ JFCONTEXT = include/ult/fult/jump_x86_64_sysv_elf_gas.S
 MFCONTEXT = include/ult/fult/make_x86_64_sysv_elf_gas.S
 FCONTEXT = mfcontext.o jfcontext.o
 
-COMM = lc.o mpiv.o progress.o hashtable.o pool.o lcrq.o
-DREG = dreg/dreg.o dreg/avl.o
+COMM = lc.o aff.o mpiv.o progress.o hashtable.o pool.o lcrq.o
+DREG = dreg/dreg.o dreg/avl.o ptmalloc283/malloc.o
 PMI = pmi/simple_pmi.o pmi/simple_pmiutil.o
 
 OBJECTS = $(addprefix $(OBJDIR)/, $(COMM))
 
-LIBOBJ = $(OBJECTS) $(addprefix $(OBJDIR)/, $(FCONTEXT)) $(addprefix $(OBJDIR)/, $(PMI))
+LIBOBJ += $(OBJECTS) $(addprefix $(OBJDIR)/, $(FCONTEXT)) $(addprefix $(OBJDIR)/, $(PMI))
 
 LIBRARY = liblwci.so
 ARCHIVE = liblwci.a
