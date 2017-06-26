@@ -1,22 +1,22 @@
 #include <assert.h>
-#include <mpi.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
 
 // #define CHECK_RESULT
-extern double rx_post;
 
 #include "mpiv.h"
 #include "comm_exp.h"
 
+#if 0
 #ifdef USE_ABT
 #include "ult/helper_abt.h"
 #elif defined(USE_PTH)
 #include "ult/helper_pth.h"
 #else
 #include "ult/helper.h"
+#endif
 #endif
 
 #include "lc/profiler.h"
@@ -37,13 +37,13 @@ int size = 0;
 
 int main(int argc, char** args)
 {
-  MPIV_Init(&argc, &args);
+  MPI_Init(&argc, &args);
   if (argc > 1) size = atoi(args[1]);
-  MPIV_Start_worker(1);
-  set_me_to(1);
+  MPI_Start_worker(1);
+  set_me_to(14);
   double times = 0;
-  int rank = lc_id(lc_hdl);
-  // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   void* r_buf = 0; // = (void*) malloc((size_t)MAX_MSG_SIZE);
   void* s_buf = 0; // = (void*) malloc((size_t)MAX_MSG_SIZE);
   posix_memalign(&r_buf, 4096, MAX_MSG_SIZE);
@@ -65,8 +65,8 @@ int main(int argc, char** args)
         if (t == skip) {
           times = wtime();
         }
-        MPIV_Send(s_buf, size, MPI_CHAR, 1, 1, MPI_COMM_WORLD);
-        MPIV_Recv(r_buf, size, MPI_CHAR, 1, 2, MPI_COMM_WORLD,
+        MPI_Send(s_buf, size, MPI_CHAR, 1, 1, MPI_COMM_WORLD);
+        MPI_Recv(r_buf, size, MPI_CHAR, 1, 2, MPI_COMM_WORLD,
                   MPI_STATUS_IGNORE);
         if (t == 0 || CHECK_RESULT) {
           for (int j = 0; j < size; j++) {
@@ -81,18 +81,19 @@ int main(int argc, char** args)
       memset(s_buf, 'b', size);
       memset(r_buf, 'a', size);
       for (int t = 0; t < total + skip; t++) {
-        MPIV_Recv(r_buf, size, MPI_CHAR, 0, 1, MPI_COMM_WORLD,
+        MPI_Recv(r_buf, size, MPI_CHAR, 0, 1, MPI_COMM_WORLD,
                   MPI_STATUS_IGNORE);
-        MPIV_Send(s_buf, size, MPI_CHAR, 0, 2, MPI_COMM_WORLD);
+        MPI_Send(s_buf, size, MPI_CHAR, 0, 2, MPI_COMM_WORLD);
       }
       // printf("[%d] %f\n", size, rx_time * 1e6 / total / 2);//, (mv_ptime - ptime) * 1e6/ total / 2);
     }
+    PMI_Barrier();
     // MPI_Barrier(MPI_COMM_WORLD);
   }
 
   free(r_buf);
   free(s_buf);
 
-  MPIV_Stop_worker();
-  MPIV_Finalize();
+  MPI_Stop_worker();
+  MPI_Finalize();
 }
