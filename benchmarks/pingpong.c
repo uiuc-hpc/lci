@@ -87,7 +87,6 @@ int main(int argc, char** args)
       }
       // printf("[%d] %f\n", size, rx_time * 1e6 / total / 2);//, (mv_ptime - ptime) * 1e6/ total / 2);
     }
-    PMI_Barrier();
     // MPI_Barrier(MPI_COMM_WORLD);
   }
 

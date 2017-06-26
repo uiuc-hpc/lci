@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <mpi.h>
 #include "pmi.h"
 #include "lc/macro.h"
 #include "dreg/dreg.h"
@@ -213,11 +212,8 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   char value[256];
   char name[256];
 
-  if (!with_mpi) {
-    int spawned;
-    PMI_Init(&spawned, &mv->size, &mv->me);
-    PMI_KVS_Get_my_name(name, 255);
-  } else {
+#ifdef WITH_MPI
+  if (with_mpi) {
     int provided;
     MPI_Init_thread(NULL, NULL, MPI_THREAD_MULTIPLE, &provided);
     if (MPI_THREAD_MULTIPLE != provided) {
@@ -226,14 +222,33 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
     }
     MPI_Comm_rank(MPI_COMM_WORLD, &mv->me);
     MPI_Comm_size(MPI_COMM_WORLD, &mv->size);
+  } 
+#else
+  {
+    int spawned;
+    PMI_Init(&spawned, &mv->size, &mv->me);
+    PMI_KVS_Get_my_name(name, 255);
   }
-
+#endif
   int epid_array_mask[mv->size];
 
   s->epid = (psm2_epid_t*)calloc(mv->size, sizeof(psm2_epid_t));
   s->epaddr = (psm2_epaddr_t*)calloc(mv->size, sizeof(psm2_epaddr_t));
 
-  if (!with_mpi) {
+#ifdef WITH_MPI
+  if (with_mpi) {
+    for (int i = 0; i < mv->size; i++) {
+      psm2_epid_t destaddr;
+      MPI_Sendrecv(&s->myepid, sizeof(psm2_epid_t), MPI_BYTE, i, 99,
+          &destaddr, sizeof(psm2_epid_t), MPI_BYTE, i, 99,
+          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      memcpy(&s->epid[i], &destaddr, sizeof(psm2_epid_t));
+      epid_array_mask[i] = 1;
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+  } else 
+#else
+  {
     sprintf(key, "_LC_KEY_%d", mv->me);
     sprintf(value, "%llu", (unsigned long long)s->myepid);
     PMI_KVS_Put(name, key, value);
@@ -246,17 +261,8 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
       memcpy(&s->epid[i], &destaddr, sizeof(psm2_epid_t));
       epid_array_mask[i] = 1;
     }
-  } else {
-    for (int i = 0; i < mv->size; i++) {
-      psm2_epid_t destaddr;
-      MPI_Sendrecv(&s->myepid, sizeof(psm2_epid_t), MPI_BYTE, i, 99,
-          &destaddr, sizeof(psm2_epid_t), MPI_BYTE, i, 99,
-          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      memcpy(&s->epid[i], &destaddr, sizeof(psm2_epid_t));
-      epid_array_mask[i] = 1;
-    }
-    MPI_Barrier(MPI_COMM_WORLD);
   }
+#endif
 
   pthread_t startup_thread;
   pthread_create(&startup_thread, NULL, psm_startup, (void*)s);
@@ -265,11 +271,7 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   PSM_SAFECALL(psm2_ep_connect(s->myep, mv->size, s->epid, epid_array_mask,
                                epid_connect_errors, s->epaddr, 0));
 
-  if (!with_mpi)
-    PMI_Barrier();
-  else
-    MPI_Barrier(MPI_COMM_WORLD);
-
+  PMI_Barrier();
   psm_start_stop = 1;
   pthread_join(startup_thread, NULL);
 
@@ -335,6 +337,8 @@ LC_INLINE int psm_progress(psm_server* s)
         if (imm) lc_serve_imm(s->mv, imm);
       }
     }
+  } else {
+    sched_yield();
   }
 
   if (s->recv_posted < MAX_RECV)
@@ -354,7 +358,7 @@ LC_INLINE int psm_progress(psm_server* s)
 #ifdef LC_SERVER_DEBUG
   if (s->recv_posted == 0) printf("WARNING DEADLOCK\n");
 #endif
-  return (err == PSM_OK);
+  return (err == PSM2_OK);
 }
 
 LC_INLINE void psm_post_recv(psm_server* s, lc_packet* p)
@@ -415,10 +419,7 @@ LC_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
 
 LC_INLINE void psm_finalize(psm_server* s)
 {
-  if (s->with_mpi)
-    MPI_Finalize();
-  else
-    PMI_Finalize();
+  PMI_Finalize();
   free(s);
 }
 
