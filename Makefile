@@ -41,9 +41,6 @@ LDFLAGS += -shared -Lstatic
 # CFLAGS += -I$(PAPI_INC)
 # LDFLAGS += -L$(PAPI_LIB)
 
-# USE DREG
-LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
-
 ifeq ($(LC_SERVER_DEBUG), yes)
 CFLAGS += -DLC_SERVER_DEBUG
 endif
@@ -72,6 +69,9 @@ FCONTEXT = mfcontext.o jfcontext.o
 COMM = lc.o mpiv.o progress.o hashtable.o pool.o lcrq.o
 DREG = dreg/dreg.o dreg/avl.o ptmalloc283/malloc.o
 PMI = pmi/simple_pmi.o pmi/simple_pmiutil.o
+
+# USE DREG
+# LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
 
 OBJECTS = $(addprefix $(OBJDIR)/, $(COMM))
 

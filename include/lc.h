@@ -310,6 +310,7 @@ void lc_wait(lc_ctx* ctx, lc_sync* sync)
 */
 LC_INLINE
 int lc_test(lc_ctx* ctx) { return (ctx->type == REQ_DONE); }
+
 /**@} end control */
 
 /**@} end low-level */
