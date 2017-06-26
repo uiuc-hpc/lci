@@ -73,7 +73,7 @@ void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert)
   std::vector<double> l1(TOTAL_LARGE, 0.0);
 
   profiler_init();
-  profiler prof({PAPI_L1_DCM});
+  profiler prof({PAPI_L2_DCM});
 
   set_me_to(0);
   for (int j = 0; j < TOTAL_LARGE + SKIP_LARGE; j++) {
