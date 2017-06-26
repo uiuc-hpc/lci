@@ -41,7 +41,7 @@ static void cache_invalidate(void)
 }
 
 typedef std::function<void(lc_hash**)> hash_init_f;
-typedef std::function<bool(lc_hash*, lc_key, lc_value*)> hash_insert_f;
+typedef std::function<bool(lc_hash*, lc_key, lc_value*, int)> hash_insert_f;
 
 std::vector<double> summarize(std::vector<double> times) {
   int size = times.size();
@@ -88,7 +88,7 @@ void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert)
 
       if (j >= SKIP_LARGE) ti1 -= wtime();
       for (int i = 0; i < NUM_INSERTED; i++) {
-        bool ret = insert(my_table, (lc_key)i, &v);
+        bool ret = insert(my_table, (lc_key)i, &v, 1);
         if (whofirst == SERVER)
           assert(ret);
         else
@@ -109,21 +109,26 @@ void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert)
             if (whofirst == SERVER) b2.wait();
             int i = tt;
             if (j >= SKIP_LARGE && tt == 0) {
+#ifdef MEASURE_CACHE
               prof.start();
-              l1[j - SKIP_LARGE] = 0;
+#else
               times[j - SKIP_LARGE] -= wtime();
+#endif
             }
             for (; i < NUM_INSERTED; i += NTHREADS) {
-              bool ret = insert(my_table, (lc_key)i, &v);
+              bool ret = insert(my_table, (lc_key)i, &v, 0);
               if (whofirst == SERVER)
                 assert(!ret);
               else
                 assert(ret);
             }
             if (j >= SKIP_LARGE && tt == 0) {
-              times[j - SKIP_LARGE] += wtime();
+#ifdef MEASURE_CACHE
               auto &s = prof.stop();
               l1[j - SKIP_LARGE] += s[0];
+#else
+              times[j - SKIP_LARGE] += wtime();
+#endif
             }
             if (whofirst == THREADS) b2.wait();
           }));
@@ -138,33 +143,33 @@ void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert)
   // double max = 1e6*(*(std::max_element(times.begin(), times.end()))) /
   // (NUM_INSERTED_PER_THREAD)/(TOTAL_LARGE - SKIP_LARGE);
   // compute - 5 quantile:
+#ifndef MEASURE_CACHE
   auto qu = summarize(times);
-  auto lqu = summarize(l1);
-
   for (auto& q : qu)
     q = q * 1e6 / NUM_INSERTED_PER_THREAD;
+#else
+  auto qu = summarize(l1);
+  for (auto& q : qu)
+    q = q / NUM_INSERTED_PER_THREAD;
+#endif
+
 
   if (whofirst == SERVER) {
-    printf("Time insert (server): %.3f\n",
+    printf("insert (server): %.3f\n",
            1e6 * ti1 / (NUM_INSERTED) / TOTAL_LARGE);
-    printf("Time find+erase (thread): %d %.3f %.3f %.3f %.3f %.3f\n", NTHREADS,
+    printf("find+erase (thread): %d %.3f %.3f %.3f %.3f %.3f\n", NTHREADS,
            qu[0], qu[1], qu[2], qu[3], qu[4]);
   } else if (whofirst == THREADS) {
-    printf("Time find+erase (server): %.3f\n",
+    printf("find+erase (server): %.3f\n",
            1e6 * ti1 / (NUM_INSERTED) / TOTAL_LARGE);
-    printf("Time insert (thread): %d %.3f %.3f %.3f %.3f %.3f\n", NTHREADS,
+    printf("insert (thread): %d %.3f %.3f %.3f %.3f %.3f\n", NTHREADS,
            qu[0], qu[1], qu[2], qu[3], qu[4]);
   } else {
-    printf("Time ops (server): %.3f\n",
+    printf("ops (server): %.3f\n",
            1e6 * ti1 / (NUM_INSERTED) / TOTAL_LARGE );
-    printf("Time ops (thread): %d %.3f %.3f %.3f %.3f %.3f\n", NTHREADS, qu[0],
+    printf("ops (thread): %d %.3f %.3f %.3f %.3f %.3f\n", NTHREADS, qu[0],
            qu[1], qu[2], qu[3], qu[4]);
   }
-
-  for (auto& q :lqu)
-    q = q / NUM_INSERTED_PER_THREAD;
-  printf("Cache: %d %.3f %.3f %.3f %.3f %.3f\n", NTHREADS, lqu[0],
-           lqu[1], lqu[2], lqu[3], lqu[4]);
 }
 
 int main(int argc, char** args)
