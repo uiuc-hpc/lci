@@ -17,7 +17,7 @@ void lc_hash_destroy(lc_hash* h)
   free(h);
 }
 
-int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value)
+int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value, int type)
 {
   struct hash_val* tbl_ = (struct hash_val*)h;
 
@@ -33,8 +33,10 @@ int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value)
   lc_spin_lock(&master->control.lock);
   while (1) {
     lc_key tag = hentry->entry.tag;
+    int cur_type = tag & 1;
     // If the key is the same as tag, someone has inserted it.
-    if (tag == key) {
+    // If the type is different, meaning we can't use it.
+    if ((tag >> 1) == key && cur_type != type) {
       *value = hentry->entry.val;
       hentry->entry.tag = EMPTY;
       lc_spin_unlock(&master->control.lock);
@@ -68,7 +70,7 @@ int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value)
       }
     }
   }
-  empty_hentry->entry.tag = key;
+  empty_hentry->entry.tag = (key << 1) | type;
   empty_hentry->entry.val = *value;
   lc_spin_unlock(&master->control.lock);
   return 1;

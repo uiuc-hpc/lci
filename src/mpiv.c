@@ -127,7 +127,6 @@ static void* progress(void* arg __UNUSED__)
   while (!lc_thread_stop) {
     while (lc_progress(lc_hdl))
       ;
-    asm("pause");
   }
   return 0;
 }

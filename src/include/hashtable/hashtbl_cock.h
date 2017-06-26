@@ -13,7 +13,7 @@ void ck_hash_init(lc_hash** hash)
   *h = new ck_hash_val();
 }
 
-bool ck_hash_insert(lc_hash* hash, lc_key key, lc_value* value)
+bool ck_hash_insert(lc_hash* hash, lc_key key, lc_value* value, int type)
 {
   ck_hash_val* h = (ck_hash_val*)hash;
   bool ret = true;

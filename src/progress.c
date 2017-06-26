@@ -16,7 +16,7 @@ static void lc_recv_short_match(lch* mv, lc_packet* p)
   const lc_key key = lc_make_key(p->context.from, p->context.tag);
   lc_value value = (lc_value)p;
 
-  if (!lc_hash_insert(mv->tbl, key, &value)) {
+  if (!lc_hash_insert(mv->tbl, key, &value, 1)) {
     // data has comes.
     lc_ctx* req = (lc_ctx*)value;
     memcpy(req->buffer, p->data.buffer, req->size);
@@ -37,7 +37,7 @@ static void lc_recv_rtr_match(lch* mv, lc_packet* p)
 {
   lc_key key = lc_make_rdz_key(p->context.from, p->context.tag);
   lc_value value = (lc_value)p;
-  if (!lc_hash_insert(mv->tbl, key, &value)) {
+  if (!lc_hash_insert(mv->tbl, key, &value, 1)) {
     lc_ctx* ctx = (lc_ctx*)value;
     p->context.req = (uintptr_t)ctx;
     p->context.proto = LC_PROTO_LONG_MATCH;

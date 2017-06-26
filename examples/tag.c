@@ -39,7 +39,7 @@ int main(int argc, char** args)
       for (int i = 0; i < skip + total; i++) {
         if (i == skip) t1 = wtime();
         for (int j = 0; j < WINDOWS; j++)  {
-          while (!lc_send_tag(mv, buffer, len, 1, j, &ctx))
+          while (!lc_send_tag(mv, buffer, len, 1, 0, &ctx))
             lc_progress(mv);
           while (!lc_test(&ctx))
             lc_progress(mv);
@@ -56,7 +56,7 @@ int main(int argc, char** args)
       for (int i = 0; i < skip + total; i++) {
         //rx_buffer
         for (int j = 0; j < WINDOWS; j++) {
-          while (!lc_recv_tag(mv, rx_buffer, len, 0, j, &ctx))
+          while (!lc_recv_tag(mv, rx_buffer, len, 0, 0, &ctx))
             lc_progress(mv);
           lc_recv_tag_post(mv, &ctx, 0);
           while (!lc_test(&ctx)) {

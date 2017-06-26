@@ -84,7 +84,7 @@ int lc_send_tag(lch* mv, const void* src, int size, int rank, int tag, lc_ctx* c
     INIT_CTX(ctx);
     lc_key key = lc_make_rdz_key(rank, tag);
     lc_value value = (lc_value)ctx;
-    if (!lc_hash_insert(mv->tbl, key, &value)) {
+    if (!lc_hash_insert(mv->tbl, key, &value, 0)) {
       lc_packet* p = (lc_packet*) value;
       p->context.req = (uintptr_t)ctx;
       p->context.proto = LC_PROTO_LONG_MATCH;
@@ -132,7 +132,7 @@ int lc_recv_tag_post(lch* mv, lc_ctx* ctx, lc_sync* sync)
     ctx->sync = sync;
     lc_key key = lc_make_key(ctx->rank, ctx->tag);
     lc_value value = (lc_value)ctx;
-    if (!lc_hash_insert(mv->tbl, key, &value)) {
+    if (!lc_hash_insert(mv->tbl, key, &value, 0)) {
       ctx->type = REQ_DONE;
       lc_packet* p_ctx = (lc_packet*)value;
       if (ctx->size <= (int) SHORT_MSG_SIZE)

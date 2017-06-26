@@ -35,6 +35,7 @@ typedef struct hash_val {
 
 void lc_hash_create(lc_hash** h);
 void lc_hash_destroy(lc_hash* h);
-int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value);
+int lc_hash_insert2(lc_hash* h, lc_key key, lc_value* value);
+int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value, int type);
 
 #endif
