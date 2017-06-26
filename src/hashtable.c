@@ -39,7 +39,7 @@ int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value)
       hentry->entry.tag = EMPTY;
       lc_spin_unlock(&master->control.lock);
       return 0;
-    } else if (tag == EMPTY) {
+    } else if (tag == EMPTY && empty_hentry == NULL) {
       // Ortherwise, if the tag is empty, we record the slot.
       // We can't return until we go over all entries.
       empty_hentry = hentry;

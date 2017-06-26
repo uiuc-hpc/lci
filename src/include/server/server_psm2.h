@@ -293,7 +293,7 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   *s_ptr = s;
 }
 
-LC_INLINE void psm_progress(psm_server* s)
+LC_INLINE int psm_progress(psm_server* s)
 {
   psm2_mq_req_t req;
   psm2_mq_status_t status;
@@ -354,6 +354,7 @@ LC_INLINE void psm_progress(psm_server* s)
 #ifdef LC_SERVER_DEBUG
   if (s->recv_posted == 0) printf("WARNING DEADLOCK\n");
 #endif
+  return (err == PSM_OK);
 }
 
 LC_INLINE void psm_post_recv(psm_server* s, lc_packet* p)

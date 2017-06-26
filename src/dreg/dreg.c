@@ -84,7 +84,7 @@ struct dreg_entry *dreg_all_list;
 #define DREG_END(R) ((R)->pagenum + (R)->npages - 1)
 
 extern void(*hook_sysalloc)(void*, size_t);
-extern void(*hook_sysrelease)(void*, size_t);
+void (*hook_sysrelease)(void*, size_t);
 
 /* list element */
 typedef struct _entry

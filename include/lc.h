@@ -326,7 +326,7 @@ LC_EXPORT
 uint8_t lc_am_register(lch* mv, lc_am_func_t f);
 
 LC_EXPORT
-void lc_progress(lch* mv);
+int lc_progress(lch* mv);
 
 LC_EXPORT
 lc_packet* lc_alloc_packet(lch* mv, int size);

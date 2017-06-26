@@ -3,9 +3,7 @@
 
 // NOTE(danghvu): These numbers are tweaked for performance and some alignment.
 // Update at our own risk.
-
-// Use memory registration (Must also enable tcmalloc)
-// #define USE_DREG
+#define USE_DREG
 
 #ifdef LC_USE_SERVER_OFI
 #define MAX_PACKET 1024
@@ -42,6 +40,6 @@
 
 // Using LCRQ or spinlock.
 #define USE_CCQ
-#define THREAD_PER_CORE 4
+#define THREAD_PER_CORE 1
 
 #endif

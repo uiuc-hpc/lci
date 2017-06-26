@@ -7,9 +7,6 @@
 
 size_t server_max_inline;
 __thread int lc_core_id = -1;
-lc_tyield_func_t thread_yield;
-lc_twait_func_t thread_wait;
-lc_tsignal_func_t thread_signal;
 
 void* lc_heap_ptr(lch* mv)
 {
@@ -255,9 +252,9 @@ int lc_recv_put_signal(lch* mv __UNUSED__, lc_addr* rctx, lc_ctx* ctx)
   return 1;
 }
 
-void lc_progress(lch* mv)
+int lc_progress(lch* mv)
 {
-  lc_server_progress(mv->server);
+  return lc_server_progress(mv->server);
 }
 
 lc_packet* lc_alloc_packet(lch* mv, int size)

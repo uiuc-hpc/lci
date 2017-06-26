@@ -11,8 +11,8 @@ __thread struct tls_t tlself;
 
 extern lch* lc_hdl;
 
-void _thread_yield() { fthread_yield(tlself.thread); }
-void _thread_wait(lc_sync* sync)
+void thread_yield() { fthread_yield(tlself.thread); }
+void thread_wait(lc_sync* sync)
 {
   fthread* thread = (fthread*)sync;
   if (thread->count < 0) {
@@ -24,7 +24,7 @@ void _thread_wait(lc_sync* sync)
   }
 }
 
-void _thread_signal(lc_sync* sync)
+void thread_signal(lc_sync* sync)
 {
   fthread* thread = (fthread*)sync;
   // smaller than 0 means no counter, saving abit cycles and data.
@@ -48,12 +48,8 @@ lc_sync* lc_get_counter(int count)
 typedef struct fthread* lc_thread;
 typedef struct fworker* lc_worker;
 
-void MPIV_Start_worker(int number)
+void MPI_Start_worker(int number)
 {
-  thread_yield = _thread_yield;
-  thread_wait = _thread_wait;
-  thread_signal = _thread_signal;
-
   if (nworker == 0) {
     all_worker = (fworker**)malloc(sizeof(struct fworker*) * number);
   }
@@ -68,14 +64,14 @@ void MPIV_Start_worker(int number)
   fworker_start_main(all_worker[0]);
 }
 
-fthread* MPIV_spawn(int wid, void* (*func)(void*), void* arg)
+fthread* MPI_spawn(int wid, void* (*func)(void*), void* arg)
 {
   return fworker_spawn(all_worker[wid % nworker], func, arg, F_STACK_SIZE);
 }
 
-void MPIV_join(fthread* ult) { fthread_join(ult); }
+void MPI_join(fthread* ult) { fthread_join(ult); }
 
-void MPIV_Stop_worker()
+void MPI_Stop_worker()
 {
   fworker_stop_main(all_worker[0]);
   fworker_destroy(all_worker[0]);

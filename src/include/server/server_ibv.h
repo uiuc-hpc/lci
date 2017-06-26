@@ -1,7 +1,6 @@
 #ifndef SERVER_IBV_H_
 #define SERVER_IBV_H_
 
-#include <mpi.h>
 #include "pmi.h"
 
 #include "lc/affinity.h"
@@ -20,7 +19,7 @@
     int err = (x);                                                    \
     if (err) {                                                        \
       fprintf(stderr, "err : %d (%s:%d)\n", err, __FILE__, __LINE__); \
-      MPI_Abort(MPI_COMM_WORLD, err);                                 \
+      exit(EXIT_FAILURE)                                              \
     }                                                                 \
   }                                                                   \
   while (0)                                                           \
@@ -536,6 +535,7 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
   char value[256];
   char name[256];
 
+#ifdef WITH_MPI
   if (with_mpi) {
     int provided;
     MPI_Init_thread(NULL, NULL, MPI_THREAD_MULTIPLE, &provided);
@@ -546,7 +546,9 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
 
     MPI_Comm_rank(MPI_COMM_WORLD, &mv->me);
     MPI_Comm_size(MPI_COMM_WORLD, &mv->size);
-  } else {
+  } else
+#endif
+  {
     int spawned;
     PMI_Init(&spawned, &mv->size, &mv->me);
     PMI_KVS_Get_my_name(name, 255);
@@ -575,6 +577,7 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
       fprintf(stderr, "Unable to query gid\n");
       exit(EXIT_FAILURE);
     }
+#ifdef WITH_MPI
     if (with_mpi) {
       // Exchange connection conn_ctx.
       MPI_Sendrecv(&lctx, sizeof(struct conn_ctx), MPI_BYTE, i, 0, rmtctx,
@@ -583,7 +586,9 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
       qp_init(s->dev_qp[i], dev_port);
       qp_to_rtr(s->dev_qp[i], dev_port, &port_attr, rmtctx);
       qp_to_rts(s->dev_qp[i]);
-    } else {
+    } else
+#endif
+    {
       sprintf(key, "_LC_KEY_%d_%d", mv->me, i);
       sprintf(value, "%llu-%d-%d-%d", (unsigned long long)lctx.addr, lctx.rkey,
               lctx.qp_num, (int)lctx.lid);
@@ -645,9 +650,11 @@ LC_INLINE void ibv_server_finalize(ibv_server* s)
   for (int i = 0; i < s->mv->size; i++) {
     ibv_destroy_qp(s->dev_qp[i]);
   }
+#ifdef WITH_MPI
   if (s->with_mpi)
     MPI_Finalize();
   else
+#endif
     PMI_Finalize();
 
   free(s->conn);

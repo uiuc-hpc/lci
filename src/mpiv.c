@@ -1,26 +1,29 @@
-#include <mpi.h>
 #include "mpiv.h"
 
 #include "lc_priv.h"
 #include "lc/affinity.h"
 #include "lc/macro.h"
-
-LC_EXPORT
-lch* lc_hdl;
+#include "ult/helper.h"
 
 static void* ctx_data;
 static lc_pool* lc_ctx_pool;
-double rx_post = 0;
+LC_EXPORT
+lch* lc_hdl;
 
-void* MPIV_HEAP;
+void* MPI_HEAP;
 
-void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype,
+static inline void MPI_Type_size(MPI_Datatype type, int *size)
+{
+  *size = (int) type;
+}
+
+void MPI_Recv(void* buffer, int count, MPI_Datatype datatype,
     int rank, int tag,
-    MPI_Comm comm __UNUSED__,
+    MPI_Comm lc_hdl,
     MPI_Status* status __UNUSED__)
 {
   int size = 1;
-  // MPI_Type_size(datatype, &size);
+  MPI_Type_size(datatype, &size);
   size *= count;
   struct lc_ctx ctx;
   while (!lc_recv_tag(lc_hdl, buffer, size, rank, tag, &ctx))
@@ -30,24 +33,22 @@ void MPIV_Recv(void* buffer, int count, MPI_Datatype datatype,
   lc_wait(&ctx, sync);
 }
 
-void MPIV_Send(void* buffer, int count, MPI_Datatype datatype,
-    int rank, int tag, MPI_Comm comm __UNUSED__)
+void MPI_Send(void* buffer, int count, MPI_Datatype datatype,
+    int rank, int tag, MPI_Comm lc_hdl __UNUSED__)
 {
   int size = 1;
-  // MPI_Type_size(datatype, &size);
+  MPI_Type_size(datatype, &size);
   size *= count;
   struct lc_ctx ctx;
-  rx_post -= MPI_Wtime();
   while (!lc_send_tag(lc_hdl, buffer, size, rank, tag, &ctx))
     thread_yield();
-  rx_post += MPI_Wtime();
   lc_sync* sync = lc_get_sync();
   lc_send_tag_post(lc_hdl, &ctx, sync);
   lc_wait(&ctx, sync);
 }
 
-void MPIV_Ssend(void* buffer, int count, MPI_Datatype datatype,
-    int rank, int tag, MPI_Comm comm __UNUSED__)
+void MPI_Ssend(void* buffer, int count, MPI_Datatype datatype,
+    int rank, int tag, MPI_Comm lc_hdl __UNUSED__)
 {
   int size;
   MPI_Type_size(datatype, &size);
@@ -60,8 +61,8 @@ void MPIV_Ssend(void* buffer, int count, MPI_Datatype datatype,
   lc_wait(&ctx, sync);
 }
 
-void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
-                int tag, MPI_Comm comm __UNUSED__, MPIV_Request* req) {
+void MPI_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
+                int tag, MPI_Comm lc_hdl __UNUSED__, MPI_Request* req) {
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
@@ -70,15 +71,15 @@ void MPIV_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
     thread_yield();
   if (ctx->type != REQ_DONE) {
     ctx->complete = lc_send_tag_post;
-    *req = (MPIV_Request) ctx;
+    *req = (MPI_Request) ctx;
   } else {
     lc_pool_put(lc_ctx_pool, ctx);
     *req = MPI_REQUEST_NULL;
   }
 }
 
-void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
-                int tag, MPI_Comm comm __UNUSED__, MPIV_Request* req) {
+void MPI_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
+                int tag, MPI_Comm lc_hdl __UNUSED__, MPI_Request* req) {
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
@@ -86,10 +87,10 @@ void MPIV_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
   while (!lc_recv_tag(lc_hdl, (void*) buffer, size, rank, tag, ctx))
     thread_yield();
   ctx->complete = lc_recv_tag_post;
-  *req = (MPIV_Request) ctx;
+  *req = (MPI_Request) ctx;
 }
 
-void MPIV_Waitall(int count, MPIV_Request* req, MPI_Status* status __UNUSED__) {
+void MPI_Waitall(int count, MPI_Request* req, MPI_Status* status __UNUSED__) {
   int pending = count;
   for (int i = 0; i < count; i++) {
     if (req[i] == MPI_REQUEST_NULL)
@@ -119,17 +120,19 @@ static pthread_t progress_thread;
 
 static void* progress(void* arg __UNUSED__)
 {
-  set_me_to(0);
+  int c = 0;
+  if (getenv("LC_POLL_CORE"))
+    c = atoi(getenv("LC_POLL_CORE"));
+  set_me_to(c);
   while (!lc_thread_stop) {
-    lc_progress(lc_hdl);
-    // This yield is important, ortherwise
-    // for some processor it will deadlock the client.
-    sched_yield();
+    while (lc_progress(lc_hdl))
+      ;
+    asm("pause");
   }
   return 0;
 }
 
-void MPIV_Init(int* argc __UNUSED__, char*** args __UNUSED__)
+void MPI_Init(int* argc __UNUSED__, char*** args __UNUSED__)
 {
   size_t heap_size = 256 * 1024 * 1024;
   // setenv("LC_MPI", "1", 1);
@@ -140,11 +143,11 @@ void MPIV_Init(int* argc __UNUSED__, char*** args __UNUSED__)
   for (int i = 0; i < MAX_PACKET; i++)
     lc_pool_put(lc_ctx_pool, &ctxs[i]);
   lc_thread_stop = 0;
-  pthread_create(&progress_thread, 0, progress, (void*) lc_hdl->me);
-  MPIV_HEAP = lc_heap_ptr(lc_hdl);
+  pthread_create(&progress_thread, 0, progress, (void*) (long)lc_hdl->me);
+  MPI_HEAP = lc_heap_ptr(lc_hdl);
 }
 
-void MPIV_Finalize()
+void MPI_Finalize()
 {
   lc_thread_stop = 1;
   pthread_join(progress_thread, 0);
