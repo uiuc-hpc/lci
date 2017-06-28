@@ -3,8 +3,14 @@
 
 #include <libcuckoo/cuckoohash_map.hh>
 
+struct hash_compare_ck {
+  size_t operator() (const lc_key &k) {
+    return myhash(k);
+  }
+};
+
 struct ck_hash_val {
-  cuckoohash_map<lc_key, lc_value> tbl_;
+  cuckoohash_map<lc_key, lc_value, hash_compare_ck> tbl_;
 };
 
 void ck_hash_init(lc_hash** hash)

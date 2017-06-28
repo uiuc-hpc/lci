@@ -75,6 +75,8 @@ void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert)
   profiler_init();
 #ifdef MEASURE_CACHE
   profiler prof({PAPI_COUNTER});
+#else
+  void* prof;
 #endif
 
   set_me_to(0);
