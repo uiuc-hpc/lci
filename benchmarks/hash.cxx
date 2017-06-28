@@ -43,7 +43,7 @@ static void cache_invalidate(void)
 typedef std::function<void(lc_hash**)> hash_init_f;
 typedef std::function<bool(lc_hash*, lc_key, lc_value*, int)> hash_insert_f;
 
-std::vector<double> summarize(std::vector<double> times) {
+std::vector<double> summarize(std::vector<double>& times) {
   int size = times.size();
   std::sort(times.begin(), times.end());
   std::vector<double> qu(5, 0.0);
@@ -55,7 +55,7 @@ std::vector<double> summarize(std::vector<double> times) {
   double iq = qu[1] - qu[2];
   qu[3] = MIN(qu[1] + 1.5 * iq, times[size - 1]);  // max
   qu[4] = MAX((double) (qu[2] - 1.5 * iq), times[0]);         // min
-  return times;
+  return qu;
 }
 
 template <typename HASH_T, type_t whofirst>
@@ -151,13 +151,13 @@ void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert)
   // (NUM_INSERTED_PER_THREAD)/(TOTAL_LARGE - SKIP_LARGE);
   // compute - 5 quantile:
 #ifndef MEASURE_CACHE
+  for (auto& t : times)
+    t = t * 1e6 / NUM_INSERTED_PER_THREAD;
   auto qu = summarize(times);
-  for (auto& q : qu)
-    q = q * 1e6 / NUM_INSERTED_PER_THREAD;
 #else
+  for (auto& t : l1)
+    t /= NUM_INSERTED_PER_THREAD;
   auto qu = summarize(l1);
-  for (auto& q : qu)
-    q = q / NUM_INSERTED_PER_THREAD;
 #endif
 
 
