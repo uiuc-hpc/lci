@@ -73,7 +73,9 @@ void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert)
   std::vector<double> l1(TOTAL_LARGE, 0.0);
 
   profiler_init();
-  profiler prof({PAPI_L1_DCM});
+#ifdef MEASURE_CACHE
+  profiler prof({PAPI_COUNTER});
+#endif
 
   set_me_to(0);
   for (int j = 0; j < TOTAL_LARGE + SKIP_LARGE; j++) {
@@ -95,7 +97,10 @@ void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert)
           assert(!ret);
       }
       if (j >= SKIP_LARGE) ti1 += wtime();
-      if (whofirst == SERVER) b2.wait();
+      if (whofirst == SERVER) { 
+        cache_invalidate();
+        b2.wait();
+      }
     });
 
     std::vector<std::thread> th(NTHREADS);
@@ -108,7 +113,7 @@ void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert)
             b1.wait();
             if (whofirst == SERVER) b2.wait();
             int i = tt;
-            if (j >= SKIP_LARGE && tt == 0) {
+            if (j >= SKIP_LARGE && j % NTHREADS == tt) {
 #ifdef MEASURE_CACHE
               prof.start();
 #else
@@ -122,7 +127,7 @@ void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert)
               else
                 assert(ret);
             }
-            if (j >= SKIP_LARGE && tt == 0) {
+            if (j >= SKIP_LARGE && j % NTHREADS == tt) {
 #ifdef MEASURE_CACHE
               auto &s = prof.stop();
               l1[j - SKIP_LARGE] += s[0];
