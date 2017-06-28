@@ -5,13 +5,13 @@ LD = mpicc
 CC = gcc
 CXX = g++
 
-EXTRA = -DUSE_AFFI -DAFF_DEBUG
+EXTRA = -DUSE_AFFI
 
 CFLAGS += -g3 -ggdb -O3 -Wall -Wextra -std=gnu99 -pthread -I../include -I../ $(EXTRA) -D_GNU_SOURCE  -I/opt/ofed/include $(SERVER)
 LDFLAGS += -O3 -Wl,-rpath=$(abspath ../) -Wl,-z,now -Wl,-z,relro -pthread
 LIB = ../liblwci.a
 
-CXXFLAGS = -g3 -O3 -std=c++11 -D_GNU_SOURCE
+CXXFLAGS = -g3 -O3 -std=c++11 -D_GNU_SOURCE $(EXTRA)
 
 ifeq ($(LC_SERVER), ofi)
 	CFLAGS += -DLC_USE_SERVER_OFI
@@ -36,7 +36,7 @@ endif
 #LDFLAGS += $(FACEBOOK_LIB)
 
 ### FOR TESTING LIBCUCKOO ###
-CUCKOO_INC = -I$(HOME)/libcuckoo/include
+CUCKOO_INC = -I$(HOME)/install/libcuckoo/include
 
 ### FOR TESTING TBB ###
 TBB_INC = -I$(TACC_INTEL_DIR)/tbb/include
@@ -79,7 +79,10 @@ hash: hash.cxx
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(TBB_INC) $(TBB_LIB) $(CUCKOO_INC) -I../include -I../src/include/ hash.cxx -o hash ../src/hashtable.c ../liblwci.a
 
 hash_c: hash.cxx
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(TBB_INC) $(TBB_LIB) $(CUCKOO_INC) -I../include -I../src/include/ hash.cxx -o hash_c ../src/hashtable.c ../liblwci.a -DMEASURE_CACHE
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(TBB_INC) $(TBB_LIB) $(CUCKOO_INC) -I../include -I../src/include/ hash.cxx -o hash_c ../src/hashtable.c ../liblwci.a -DMEASURE_CACHE -DPAPI_COUNTER=PAPI_L1_DCM
+
+hash_i: hash.cxx
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(TBB_INC) $(TBB_LIB) $(CUCKOO_INC) -I../include -I../src/include/ hash.cxx -o hash_i ../src/hashtable.c ../liblwci.a -DMEASURE_CACHE -DPAPI_COUNTER=PAPI_TOT_INS
 
 pool: pool.cxx
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -I../include -I../src/include/ pool.cxx -o pool  ../src/pool.c -DUSE_AFFI
