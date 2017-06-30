@@ -81,12 +81,12 @@ void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert)
 
   set_me_to(0);
   for (int j = 0; j < TOTAL_LARGE + SKIP_LARGE; j++) {
-    cache_invalidate();
     cpp_barrier b1(NTHREADS + 1);
     cpp_barrier b2(NTHREADS + 1);
     auto t1 = std::thread([&] {
       set_me_to(0);
       lc_value v = 1;
+      cache_invalidate();
       b1.wait();
       if (whofirst == THREADS) b2.wait();
 
@@ -99,7 +99,7 @@ void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert)
           assert(!ret);
       }
       if (j >= SKIP_LARGE) ti1 += wtime();
-      if (whofirst == SERVER) { 
+      if (whofirst == SERVER) {
         cache_invalidate();
         b2.wait();
       }
@@ -111,11 +111,12 @@ void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert)
       th[tt] = std::move(
           std::thread([tt, j, &b1, &b2, &prof, &l1, &insert, &times, &my_table, &ti2, &f1, &f2] {
             set_me_to(tt + 1);
+            cache_invalidate();
             lc_value v = 2;
             b1.wait();
             if (whofirst == SERVER) b2.wait();
             int i = tt;
-            if (j >= SKIP_LARGE && j % NTHREADS == tt) {
+            if (j >= SKIP_LARGE && 0 == tt) {
 #ifdef MEASURE_CACHE
               prof.start();
 #else
@@ -129,7 +130,7 @@ void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert)
               else
                 assert(ret);
             }
-            if (j >= SKIP_LARGE && j % NTHREADS == tt) {
+            if (j >= SKIP_LARGE && 0 == tt) {
 #ifdef MEASURE_CACHE
               auto &s = prof.stop();
               l1[j - SKIP_LARGE] += s[0];
@@ -137,7 +138,9 @@ void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert)
               times[j - SKIP_LARGE] += wtime();
 #endif
             }
-            if (whofirst == THREADS) b2.wait();
+            if (whofirst == THREADS) {
+              b2.wait();
+            }
           }));
     }
 
