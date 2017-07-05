@@ -267,14 +267,11 @@ int lc_send_put_signal(lch* mv, void* src, int size, int rank, lc_addr* dst,
 /**
 * @brief Create a handle for communication.
 *
-* @param argc
-* @param args
-* @param heap_size
 * @param handle
 *
 */
 LC_EXPORT
-void lc_open(size_t heap_size, lch** handle);
+void lc_open(lch** handle);
 
 /**
 * @brief Close the handle and free memory.

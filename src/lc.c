@@ -13,21 +13,13 @@ void* lc_heap_ptr(lch* mv)
   return lc_server_heap_ptr(mv->server);
 }
 
-void lc_open(size_t heap_size, lch** ret)
+void lc_open(lch** ret)
 {
-  struct lc_struct* mv = 0;
-  posix_memalign((void**) &mv, 4096, sizeof(struct lc_struct));
+  struct lc_struct* mv = memalign(4096, sizeof(struct lc_struct));
   mv->ncores = sysconf(_SC_NPROCESSORS_ONLN) / THREAD_PER_CORE;
-
-  setenv("MV2_ASYNC_PROGRESS", "0", 1);
-  setenv("MV2_ENABLE_AFFINITY", "0", 1);
-  setenv("MV2_USE_LAZY_MEM_UNREGISTER", "0", 1);
 
   lc_pool_init();
   lc_hash_create(&mv->tbl);
-
-  lc_server_init(mv, heap_size, &mv->server);
-
   // Init queue protocol.
 #ifndef USE_CCQ
   dq_init(&mv->queue);
@@ -37,8 +29,9 @@ void lc_open(size_t heap_size, lch** ret)
 
   // Prepare the list of packet.
   uint32_t npacket = MAX(MAX_PACKET, mv->size * 4);
-  uintptr_t sbuf_addr = (uintptr_t) lc_heap_ptr(mv);
-  uintptr_t base_packet = (uintptr_t) sbuf_addr + 4096;
+  lc_server_init(mv, npacket * LC_PACKET_SIZE * 2, &mv->server);
+
+  uintptr_t base_packet = (uintptr_t) lc_heap_ptr(mv);
   lc_pool_create(&mv->pkpool);
 
   for (unsigned i = 0; i < npacket; i++) {

@@ -2,7 +2,6 @@
 
 include config.mk
 
-MPICC ?= mpicc
 CC ?= gcc
 CFLAGS ?= -g3 -ggdb -O3 -Wall -Wextra
 AR ?= ar
@@ -26,7 +25,7 @@ ifeq (,$(wildcard $(OBJDIR)/dreg))
 $(shell mkdir -p $(OBJDIR)/dreg)
 endif
 
-INCLUDE = -I./include -I./src/include -I./  -I./src/ -I$(HOME)/psm2/include
+INCLUDE = -I./include -I./src/include -I./  -I./src/ 
 CFLAGS += -fPIC -fvisibility=hidden -std=gnu99 $(INCLUDE) $(EXTRA) -D_GNU_SOURCE -pthread
 
 IBV_DIR = /opt/ofed/
@@ -71,7 +70,7 @@ DREG = dreg/dreg.o dreg/avl.o ptmalloc283/malloc.o
 PMI = pmi/simple_pmi.o pmi/simple_pmiutil.o
 
 # USE DREG
-# LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
+LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
 
 OBJECTS = $(addprefix $(OBJDIR)/, $(COMM))
 
@@ -90,7 +89,7 @@ install: all
 	cp liblwci.so $(PREFIX)/lib
 
 $(OBJDIR)/%.o: $(SRCDIR)/$(notdir %.c)
-	$(MPICC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 $(LIBRARY): $(LIBOBJ)
 	$(CC) $(LDFLAGS) $(LIBOBJ) $(MALLOC) -o $(LIBRARY)

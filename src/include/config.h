@@ -4,8 +4,7 @@
 // NOTE(danghvu): These numbers are tweaked for performance and some alignment.
 // Update at our own risk.
 
-// #define USE_DREG
-// DOESN'T WORK FOR NOW DUE TO A BAD DREG IMPL
+#define USE_DREG
 
 #ifdef LC_USE_SERVER_OFI
 #define MAX_PACKET 1024

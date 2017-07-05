@@ -1,4 +1,5 @@
 #include "pool.h"
+#include "ptmalloc.h"
 
 int32_t tls_pool_struct[MAX_NPOOLS][MAX_LOCAL_POOL]; // = {-1, -1, -1, -1, -1, -1, -1, -1};
 int lc_pool_nkey = 0;
@@ -12,9 +13,8 @@ void lc_pool_init() {
   }
 }
 
-void lc_pool_create(lc_pool** pool) {
-  lc_pool* p = 0;
-  posix_memalign((void**) &p, 64, sizeof(struct lc_pool));
+void lc_pool_create(struct lc_pool** pool) {
+  struct lc_pool* p = memalign(64, sizeof(struct lc_pool));
   p->npools = 0;
   p->key = lc_pool_nkey++;
   if (p->key < 0 || p->key > MAX_LOCAL_POOL) {
@@ -24,14 +24,14 @@ void lc_pool_create(lc_pool** pool) {
   *pool = p;
 }
 
-void lc_pool_destroy(lc_pool* pool) {
+void lc_pool_destroy(struct lc_pool* pool) {
   for (int i = 0; i < pool->npools; i++) {
     free(pool->lpools[i]);
   }
   free(pool);
 }
 
-void lc_pool_put(lc_pool* pool, void* elm) {
+void lc_pool_put(struct lc_pool* pool, void* elm) {
   int32_t pid = lc_pool_get_local(pool);
   struct dequeue* lpool = pool->lpools[pid];
   if (lpool->cache == NULL) {
@@ -41,12 +41,12 @@ void lc_pool_put(lc_pool* pool, void* elm) {
   }
 }
 
-void lc_pool_put_to(lc_pool* pool, void* elm, int32_t pid) {
+void lc_pool_put_to(struct lc_pool* pool, void* elm, int32_t pid) {
   struct dequeue* lpool = pool->lpools[pid];
   dq_push_top(lpool, elm);
 }
 
-void* lc_pool_get(lc_pool* pool) {
+void* lc_pool_get(struct lc_pool* pool) {
   int32_t pid = lc_pool_get_local(pool);
   struct dequeue* lpool = pool->lpools[pid];
   void *elm = NULL;
@@ -61,7 +61,7 @@ void* lc_pool_get(lc_pool* pool) {
   return elm;
 }
 
-void* lc_pool_get_nb(lc_pool* pool) {
+void* lc_pool_get_nb(struct lc_pool* pool) {
   int32_t pid = lc_pool_get_local(pool);
   struct dequeue* lpool = pool->lpools[pid];
   void* elm = NULL;
@@ -79,7 +79,7 @@ void* lc_pool_get_nb(lc_pool* pool) {
   return elm;
 }
 
-void* lc_pool_get_slow(lc_pool* pool) {
+void* lc_pool_get_slow(struct lc_pool* pool) {
   void* elm = NULL;
   while (!elm) {
     int steal = rand() % (pool->npools);

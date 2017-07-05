@@ -133,9 +133,8 @@ static void* progress(void* arg __UNUSED__)
 
 void MPI_Init(int* argc __UNUSED__, char*** args __UNUSED__)
 {
-  size_t heap_size = 256 * 1024 * 1024;
   // setenv("LC_MPI", "1", 1);
-  lc_open(heap_size, &lc_hdl);
+  lc_open(&lc_hdl);
   posix_memalign(&ctx_data, 64, sizeof(struct lc_ctx) * MAX_PACKET);
   lc_pool_create(&lc_ctx_pool);
   lc_ctx* ctxs = (lc_ctx*) ctx_data;

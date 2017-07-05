@@ -1,5 +1,6 @@
 #include "hashtable.h"
 
+#include "ptmalloc.h"
 #include "lc/lock.h"
 #include "lc/macro.h"
 
@@ -78,9 +79,8 @@ int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value, int type)
 
 LC_INLINE hash_val* create_table(size_t num_rows)
 {
-  hash_val* ret = NULL;
-  posix_memalign((void**)&(ret), 64,
-                 num_rows * TBL_WIDTH * sizeof(hash_val));
+  hash_val* ret = memalign(64,
+      num_rows * TBL_WIDTH * sizeof(hash_val));
 
   // Initialize all with EMPTY and clear lock.
   for (size_t i = 0; i < num_rows; i++) {

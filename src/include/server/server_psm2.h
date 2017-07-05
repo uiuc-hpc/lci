@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "pmi.h"
+#include "ptmalloc.h"
 #include "lc/macro.h"
 #include "dreg/dreg.h"
 
@@ -183,7 +184,6 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
 
   psm_server* s = (psm_server*)malloc(sizeof(struct psm_server));
 
-  int rc;
   int ver_major = PSM2_VERNO_MAJOR;
   int ver_minor = PSM2_VERNO_MINOR;
 
@@ -287,9 +287,7 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   PSM_SAFECALL(psm2_am_register_handlers(s->myep, am, 1, &s->psm_recv_am_idx));
 #endif
 
-  s->heap = 0;
-  posix_memalign(&s->heap, 4096, heap_size);
-
+  s->heap = memalign(4096, heap_size);
   s->recv_posted = 0;
   s->mv = mv;
   *s_ptr = s;

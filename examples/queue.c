@@ -11,8 +11,7 @@ int WINDOWS = 1;
 
 int main(int argc, char** args)
 {
-  size_t heap_size = 128 * 1024 * 1024;
-  lc_open(heap_size, &mv);
+  lc_open(&mv);
 
   if (argc > 1)
     WINDOWS = atoi(args[1]);

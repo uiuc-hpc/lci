@@ -1204,7 +1204,8 @@ dreg_entry* dreg_new_entry(void* server, void* buf, size_t len)
 #endif
     {
         d->server = server;
-        d->memhandle[i] = get_dma_mem(d->server, (void *)pagebase_low_p, register_nbytes);
+        // d->memhandle[i] = get_dma_mem(d->server, (void *)pagebase_low_p, register_nbytes);
+        d->memhandle[i] = get_dma_mem(d->server, (void *)buf, len);
 
         /* if not success, return NULL to indicate that we were unable to
          * register this memory.  */

@@ -481,12 +481,6 @@ MAX_RELEASE_CHECK_RATE   default: 255 unless not HAVE_MMAP
   improvement at the expense of carrying around more memory.
 */
 
-#ifdef HAVE_CONFIG_H
-#  include "config.h"
-#endif
-
-// #include <ucs/sys/preprocessor.h>
-
 #ifndef WIN32
 #ifdef _WIN32
 #define WIN32 1
@@ -736,23 +730,24 @@ extern "C" {
 
 /* ------------------- Declarations of public routines ------------------- */
 
-#ifdef UCM_MALLOC_PREFIX
-#define dlcalloc               UCS_PP_TOKENPASTE(UCM_MALLOC_PREFIX, calloc)
-#define dlfree                 UCS_PP_TOKENPASTE(UCM_MALLOC_PREFIX, free)
-#define dlmalloc               UCS_PP_TOKENPASTE(UCM_MALLOC_PREFIX, malloc)
-#define dlmemalign             UCS_PP_TOKENPASTE(UCM_MALLOC_PREFIX, memalign)
-#define dlrealloc              UCS_PP_TOKENPASTE(UCM_MALLOC_PREFIX, realloc)
-#define dlvalloc               UCS_PP_TOKENPASTE(UCM_MALLOC_PREFIX, valloc)
-#define dlpvalloc              UCS_PP_TOKENPASTE(UCM_MALLOC_PREFIX, pvalloc)
-#define dlmallinfo             UCS_PP_TOKENPASTE(UCM_MALLOC_PREFIX, mallinfo)
-#define dlmallopt              UCS_PP_TOKENPASTE(UCM_MALLOC_PREFIX, mallopt)
-#define dlmalloc_trim          UCS_PP_TOKENPASTE(UCM_MALLOC_PREFIX, malloc_trim)
-#define dlmalloc_stats         UCS_PP_TOKENPASTE(UCM_MALLOC_PREFIX, malloc_stats)
-#define dlmalloc_usable_size   UCS_PP_TOKENPASTE(UCM_MALLOC_PREFIX, malloc_usable_size)
-#define dlmalloc_footprint     UCS_PP_TOKENPASTE(UCM_MALLOC_PREFIX, malloc_footprint)
-#define dlindependent_calloc   UCS_PP_TOKENPASTE(UCM_MALLOC_PREFIX, independent_calloc)
-#define dlindependent_comalloc UCS_PP_TOKENPASTE(UCM_MALLOC_PREFIX, independent_comalloc)
-#endif /* UCM_MALLOC_PREFIX */
+#ifndef USE_DL_PREFIX
+#define dlcalloc               calloc
+#define dlfree                 free
+#define dlmalloc               malloc
+#define dlmemalign             memalign
+#define dlrealloc              realloc
+#define dlvalloc               valloc
+#define dlpvalloc              pvalloc
+#define dlmallinfo             mallinfo
+#define dlmallopt              mallopt
+#define dlmalloc_trim          malloc_trim
+#define dlmalloc_stats         malloc_stats
+#define dlmalloc_usable_size   malloc_usable_size
+#define dlmalloc_footprint     malloc_footprint
+#define dlmalloc_max_footprint malloc_max_footprint
+#define dlindependent_calloc   independent_calloc
+#define dlindependent_comalloc independent_comalloc
+#endif /* USE_DL_PREFIX */
 
 
 /*
@@ -1417,12 +1412,6 @@ unsigned char _BitScanReverse(unsigned long *index, unsigned long mask);
    using so many "#if"s.
 */
 
-extern void(*hook_sysrelease)(void*, size_t);
-
-int munmap_(void* x, size_t size) {
-  hook_sysrelease(x, size);
-  return munmap(x, size);
-}
 
 /* MORECORE and MMAP must return MFAIL on failure */
 #define MFAIL                ((void*)(MAX_SIZE_T))
@@ -1440,7 +1429,7 @@ int munmap_(void* x, size_t size) {
 #define USE_MMAP_BIT         (SIZE_T_ONE)
 
 #ifndef WIN32
-#define CALL_MUNMAP(a, s)    munmap_((a), (s))
+#define CALL_MUNMAP(a, s)    munmap((a), (s))
 #define MMAP_PROT            (PROT_READ|PROT_WRITE)
 #if !defined(MAP_ANONYMOUS) && defined(MAP_ANON)
 #define MAP_ANONYMOUS        MAP_ANON
@@ -1732,7 +1721,7 @@ static FORCEINLINE int pthread_init_lock (MLOCK_T *sl) {
 static FORCEINLINE int pthread_islocked (MLOCK_T *sl) {
   if(!pthread_try_lock(sl)){
     int ret = (sl->c != 0);
-    pthread_mutex_unlock(&(sl)->l);
+    pthread_mutex_unlock(sl);
     return ret;
   }
   return 0;
@@ -3989,7 +3978,6 @@ static int sys_trim(mstate m, size_t pad) {
               !has_segment_link(m, sp)) { /* can't shrink if pinned */
             size_t newsize = sp->size - extra;
             /* Prefer mremap, fall back to munmap */
-            /* coverity[offset_free] */
             if ((CALL_MREMAP(sp->base, sp->size, newsize, 0) != MFAIL) ||
                 (CALL_MUNMAP(sp->base + newsize, extra) == 0)) {
               released = extra;
@@ -4726,7 +4714,6 @@ void* dlmemalign(size_t alignment, size_t bytes) {
 void** dlindependent_calloc(size_t n_elements, size_t elem_size,
                                  void* chunks[]) {
   size_t sz = elem_size; /* serves as 1-element array */
-  /* coverity[callee_ptr_arith] */
   return ialloc(gm, n_elements, &sz, 3, chunks);
 }
 
@@ -4801,7 +4788,7 @@ static mstate init_user_mstate(char* tbase, size_t tsize) {
   mchunkptr msp = align_as_chunk(tbase);
   mstate m = (mstate)(chunk2mem(msp));
   memset(m, 0, msize);
-  (void)INITIAL_LOCK(&m->mutex);
+  INITIAL_LOCK(&m->mutex);
   msp->head = (msize|PINUSE_BIT|CINUSE_BIT);
   m->seg.base = m->least_addr = tbase;
   m->seg.size = m->footprint = m->max_footprint = tsize;
@@ -5242,6 +5229,15 @@ int mspace_mallopt(int param_number, int value) {
 }
 
 #endif /* MSPACES */
+
+extern void(*hook_sysrelease)(void*, size_t);
+
+int munmap_(void* x, size_t size)
+{
+  if (hook_sysrelease)
+    hook_sysrelease(x, size);
+  return munmap(x, size);
+}
 
 /* -------------------- Alternative MORECORE functions ------------------- */
 
