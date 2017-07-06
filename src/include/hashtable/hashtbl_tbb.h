@@ -15,7 +15,7 @@ struct hash_compare {
 };
 
 struct tbb_hash_val {
-  tbb_hash_val() : tbl_(1 << 16) {}
+  tbb_hash_val() : tbl_(4 * (1 << 16)) {}
   tbb::concurrent_hash_map<lc_key, lc_value, hash_compare> tbl_;
 };
 

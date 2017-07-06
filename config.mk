@@ -2,7 +2,7 @@
 # WIP, there are more configs in ./src/include/confg.h
 
 # Define server here (ofi, ibv, psm)
-LC_SERVER ?= psm
+LC_SERVER ?= ibv
 
 # Define use inline send or not (yes, no)
 # Could help latency of tiny messages, but may fail due to lack of flow control

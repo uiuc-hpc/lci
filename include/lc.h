@@ -13,6 +13,7 @@ extern "C" {
 #endif
 
 #include "ult/ult.h"
+#include "ptmalloc.h"
 #include <stdint.h>
 #include <stdlib.h>
 

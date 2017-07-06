@@ -2,7 +2,7 @@
 
 include config.mk
 
-CC ?= gcc
+CC = gcc
 CFLAGS ?= -g3 -ggdb -O3 -Wall -Wextra
 AR ?= ar
 RANLIB ?= ranlib
@@ -25,7 +25,7 @@ ifeq (,$(wildcard $(OBJDIR)/dreg))
 $(shell mkdir -p $(OBJDIR)/dreg)
 endif
 
-INCLUDE = -I./include -I./src/include -I./  -I./src/ 
+INCLUDE = -I./include -I./src/include -I./  -I./src/
 CFLAGS += -fPIC -fvisibility=hidden -std=gnu99 $(INCLUDE) $(EXTRA) -D_GNU_SOURCE -pthread
 
 IBV_DIR = /opt/ofed/

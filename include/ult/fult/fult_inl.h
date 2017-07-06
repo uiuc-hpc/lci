@@ -22,8 +22,7 @@ LC_INLINE void fthread_create(fthread* f, ffunc func, void* data,
                               size_t stack_size)
 {
   if (unlikely(f->stack == NULL)) {
-    void* memory = 0;
-    posix_memalign(&memory, 64, stack_size);
+    void* memory = memalign(64, stack_size);
     if (memory == 0) {
       fprintf(stderr, "No more memory for stack\n");
       exit(EXIT_FAILURE);
@@ -79,13 +78,11 @@ static void* fwrapper(void* args)
 
 LC_INLINE void fworker_init(fworker** w_ptr)
 {
-  fworker* w = 0;
-  posix_memalign((void**)&w, 64, sizeof(struct fworker));
+  fworker* w = memalign(64, sizeof(struct fworker));
   w->stop = 1;
   w->thread_pool_last = 0;
-  posix_memalign((void**)&(w->threads), 64,
-                 sizeof(struct fthread) * MAX_THREAD);
-  posix_memalign((void**)&(w->thread_pool), 64, sizeof(uintptr_t) * MAX_THREAD);
+  w->threads = memalign(64, sizeof(struct fthread) * MAX_THREAD);
+  w->thread_pool = memalign(64, sizeof(uintptr_t) * MAX_THREAD);
 
   memset(w->threads, 0, sizeof(struct fthread) * MAX_THREAD);
   memset(w->thread_pool, 0, sizeof(uintptr_t) * MAX_THREAD);

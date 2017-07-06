@@ -135,7 +135,7 @@ void MPI_Init(int* argc __UNUSED__, char*** args __UNUSED__)
 {
   // setenv("LC_MPI", "1", 1);
   lc_open(&lc_hdl);
-  posix_memalign(&ctx_data, 64, sizeof(struct lc_ctx) * MAX_PACKET);
+  ctx_data = memalign(64, sizeof(struct lc_ctx) * MAX_PACKET);
   lc_pool_create(&lc_ctx_pool);
   lc_ctx* ctxs = (lc_ctx*) ctx_data;
   for (int i = 0; i < MAX_PACKET; i++)

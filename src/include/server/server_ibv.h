@@ -454,8 +454,7 @@ LC_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
 
 LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
 {
-  ibv_server* s = 0;
-  posix_memalign((void**)&s, 64, sizeof(ibv_server));
+  ibv_server* s = memalign(64, sizeof(ibv_server));
   assert(s);
 
   int num_devices;
@@ -666,8 +665,7 @@ LC_INLINE lc_server_memory* ibv_server_mem_malloc(ibv_server* s, size_t size)
 {
   int mr_flags =
       IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-  void* ptr = 0;
-  posix_memalign(&ptr, 4096, size + 4096);
+  void* ptr = memalign(4096, size + 4096);
   return ibv_reg_mr(s->dev_pd, ptr, size, mr_flags);
 }
 
