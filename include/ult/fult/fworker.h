@@ -23,7 +23,7 @@ typedef struct fworker {
 
 LC_INLINE fthread* fworker_spawn(fworker*, ffunc f, void* data,
                                  size_t stack_size);
-LC_INLINE void fworker_init(fworker**);
+LC_INLINE void fworker_create(fworker**);
 LC_INLINE void fworker_work(fworker*, fthread*);
 LC_INLINE void fworker_sched_thread(fworker* w, const int tid);
 LC_INLINE void fworker_fini_thread(fworker* w, const int tid);

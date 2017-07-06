@@ -92,7 +92,7 @@ void lc_serve_imm(lch* mv, uint32_t imm)
     lc_value value = (lc_value)p;
     if (!lc_hash_insert(mv->tbl, key, &value, SERVER)) {
       req->type = REQ_DONE;
-      if (req->sync) thread_signal(req->sync);
+      if (req->sync) lc_thread_signal(req->sync);
       lc_pool_put(mv->pkpool, p);
     }
   }

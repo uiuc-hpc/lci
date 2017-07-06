@@ -6,7 +6,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "lcrq.h"
-#include "dequeue.h"
 #include "lc/hashtable.h"
 #include "lc/pool.h"
 

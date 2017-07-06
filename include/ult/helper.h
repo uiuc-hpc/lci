@@ -50,14 +50,17 @@ typedef struct fworker* lc_worker;
 
 void MPI_Start_worker(int number)
 {
+  lc_thread_signal = thread_signal;
+  lc_thread_wait = thread_wait;
+  lc_thread_yield = thread_yield;
   if (nworker == 0) {
     all_worker = (fworker**)malloc(sizeof(struct fworker*) * number);
   }
   nworker = number;
-  fworker_init(&all_worker[0]);
+  fworker_create(&all_worker[0]);
   all_worker[0]->id = 0;
   for (int i = 1; i < nworker; i++) {
-    fworker_init(&all_worker[i]);
+    fworker_create(&all_worker[i]);
     all_worker[i]->id = i;
     fworker_start(all_worker[i]);
   }

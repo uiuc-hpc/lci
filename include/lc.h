@@ -287,7 +287,7 @@ LC_INLINE
 void lc_wait(lc_ctx* ctx, lc_sync* sync)
 {
   while (ctx->type != REQ_DONE) {
-    thread_wait(sync);
+    lc_thread_wait(sync);
   }
 }
 
