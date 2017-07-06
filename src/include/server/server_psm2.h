@@ -22,7 +22,7 @@
     int err = (x);                                            \
     if (err != PSM2_OK && err != PSM2_MQ_NO_COMPLETIONS) {    \
       fprintf(stderr, "err : (%s:%d)\n", __FILE__, __LINE__); \
-      MPI_Abort(MPI_COMM_WORLD, err);                         \
+      exit(err);                                              \
     }                                                         \
   }                                                           \
   while (0)                                                   \
@@ -217,7 +217,7 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
     int provided;
     MPI_Init_thread(NULL, NULL, MPI_THREAD_MULTIPLE, &provided);
     if (MPI_THREAD_MULTIPLE != provided) {
-      printf("Need MPI_THREAD_MULTIPLE\n");
+      fprintf(stderr, "Need MPI_THREAD_MULTIPLE\n");
       exit(EXIT_FAILURE);
     }
     MPI_Comm_rank(MPI_COMM_WORLD, &mv->me);
@@ -354,7 +354,7 @@ LC_INLINE int psm_progress(psm_server* s)
   }
 
 #ifdef LC_SERVER_DEBUG
-  if (s->recv_posted == 0) printf("WARNING DEADLOCK\n");
+  if (s->recv_posted == 0) fprintf(stderr, "WARNING DEADLOCK\n");
 #endif
   return (err == PSM2_OK);
 }

@@ -31,7 +31,7 @@ void lc_open(lch** ret)
   uint32_t npacket = MAX(MAX_PACKET, mv->size * 4);
   lc_server_init(mv, npacket * LC_PACKET_SIZE * 2, &mv->server);
 
-  uintptr_t base_packet = (uintptr_t) lc_heap_ptr(mv);
+  uintptr_t base_packet = (uintptr_t) lc_heap_ptr(mv) + 4096; // the commid should not be 0.
   lc_pool_create(&mv->pkpool);
 
   for (unsigned i = 0; i < npacket; i++) {

@@ -73,7 +73,6 @@ void lc_serve_imm(lch* mv, uint32_t imm)
   uint32_t type = imm >> 30;
   uint32_t id = imm & 0x0fffffff;
   uintptr_t addr = (uintptr_t)lc_heap_ptr(mv) + id;
-
   if (type == RMA_SIGNAL_QUEUE) {
     lc_packet* p = (lc_packet*)addr;
     lc_ctx* req = (lc_ctx*)p->context.req;
@@ -87,7 +86,7 @@ void lc_serve_imm(lch* mv, uint32_t imm)
     lc_packet* p = (lc_packet*)addr;
     lc_ctx* req = (lc_ctx*)p->context.req;
     lc_server_rma_dereg(p->context.rma_mem);
-    const lc_key key = lc_make_key(p->context.from, p->context.tag);
+    const lc_key key = lc_make_key(req->rank, req->tag);
     lc_value value = (lc_value)p;
     if (!lc_hash_insert(mv->tbl, key, &value, 1)) {
       req->type = REQ_DONE;

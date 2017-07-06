@@ -11,8 +11,7 @@ int WINDOWS = 1;
 
 int main(int argc, char** args)
 {
-  size_t heap_size = 128 * 1024 * 1024;
-  lc_open(heap_size, &mv);
+  lc_open(&mv);
 
   if (argc > 1)
     WINDOWS = atoi(args[1]);
@@ -39,12 +38,12 @@ int main(int argc, char** args)
       for (int i = 0; i < skip + total; i++) {
         if (i == skip) t1 = wtime();
         for (int j = 0; j < WINDOWS; j++)  {
-          while (!lc_send_tag(mv, buffer, len, 1, 0, &ctx))
+          while (!lc_send_tag(mv, buffer, len, 1, 99, &ctx))
             lc_progress(mv);
           while (!lc_test(&ctx))
             lc_progress(mv);
         }
-        while (!lc_recv_tag(mv, rx_buffer, len, 1, 0, &ctx))
+        while (!lc_recv_tag(mv, rx_buffer, len, 1, 99, &ctx))
           lc_progress(mv);
         lc_recv_tag_post(mv, &ctx, 0);
         while (!lc_test(&ctx)) {
@@ -54,9 +53,8 @@ int main(int argc, char** args)
       printf("%llu \t %.5f\n", len, (wtime() - t1)/total / (WINDOWS+1) * 1e6);
     } else {
       for (int i = 0; i < skip + total; i++) {
-        //rx_buffer
         for (int j = 0; j < WINDOWS; j++) {
-          while (!lc_recv_tag(mv, rx_buffer, len, 0, 0, &ctx))
+          while (!lc_recv_tag(mv, rx_buffer, len, 0, 99, &ctx))
             lc_progress(mv);
           lc_recv_tag_post(mv, &ctx, 0);
           while (!lc_test(&ctx)) {
@@ -64,7 +62,7 @@ int main(int argc, char** args)
           }
         }
         // send
-        while (!lc_send_tag(mv, buffer, len, 0, 0, &ctx))
+        while (!lc_send_tag(mv, buffer, len, 0, 99, &ctx))
           lc_progress(mv);
         while (!lc_test(&ctx))
           lc_progress(mv);
