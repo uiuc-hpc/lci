@@ -1,11 +1,27 @@
-#include "hashtable.h"
+#include "lc/hashtable.h"
 
-#include "ptmalloc.h"
 #include "lc/lock.h"
 #include "lc/macro.h"
 
-LC_INLINE hash_val* create_table(size_t num_rows);
-LC_INLINE uint32_t myhash(const uint64_t k);
+LC_INLINE hash_val_t* create_table(size_t num_rows)
+{
+  hash_val_t* ret = memalign(64,
+      num_rows * TBL_WIDTH * sizeof(struct hash_val));
+
+  // Initialize all with EMPTY and clear lock.
+  for (size_t i = 0; i < num_rows; i++) {
+    // First are control.
+    ret[i * TBL_WIDTH].control.lock = LC_SPIN_UNLOCKED;
+    ret[i * TBL_WIDTH].control.next = NULL;
+
+    // Remaining are slots.
+    for (int j = 1; j < TBL_WIDTH; j++) {
+      ret[i * TBL_WIDTH + j].entry.tag = EMPTY;
+      ret[i * TBL_WIDTH + j].entry.val = 0;
+    }
+  }
+  return ret;
+}
 
 void lc_hash_create(lc_hash** h)
 {
@@ -15,10 +31,12 @@ void lc_hash_create(lc_hash** h)
 
 void lc_hash_destroy(lc_hash* h)
 {
+  // FIXME: LEAK, need to destroy extended table.
   free(h);
 }
 
-int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value, int type)
+int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value,
+    enum insert_type type)
 {
   struct hash_val* tbl_ = (struct hash_val*)h;
 
@@ -26,18 +44,19 @@ int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value, int type)
   const int bucket = hash * TBL_WIDTH;
   int checked_slot = 0;
 
-  hash_val* master = &tbl_[bucket];
-  hash_val* hcontrol = &tbl_[bucket];
-  hash_val* hentry = hcontrol + 1;
-  hash_val* empty_hentry = NULL;
+  hash_val_t* master = &tbl_[bucket];
+  hash_val_t* hcontrol = &tbl_[bucket];
+  hash_val_t* hentry = hcontrol + 1;
+  hash_val_t* empty_hentry = NULL;
+
+  lc_key cmp_key = (key << 1) | (1-type);
 
   lc_spin_lock(&master->control.lock);
   while (1) {
     lc_key tag = hentry->entry.tag;
-    int cur_type = tag & 1;
     // If the key is the same as tag, someone has inserted it.
     // If the type is different, meaning we can't use it.
-    if ((tag >> 1) == key && cur_type != type) {
+    if (tag == cmp_key) {
       *value = hentry->entry.val;
       hentry->entry.tag = EMPTY;
       lc_spin_unlock(&master->control.lock);
@@ -75,24 +94,4 @@ int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value, int type)
   empty_hentry->entry.val = *value;
   lc_spin_unlock(&master->control.lock);
   return 1;
-}
-
-LC_INLINE hash_val* create_table(size_t num_rows)
-{
-  hash_val* ret = memalign(64,
-      num_rows * TBL_WIDTH * sizeof(hash_val));
-
-  // Initialize all with EMPTY and clear lock.
-  for (size_t i = 0; i < num_rows; i++) {
-    // First are control.
-    ret[i * TBL_WIDTH].control.lock = LC_SPIN_UNLOCKED;
-    ret[i * TBL_WIDTH].control.next = NULL;
-
-    // Remaining are slots.
-    for (int j = 1; j < TBL_WIDTH; j++) {
-      ret[i * TBL_WIDTH + j].entry.tag = EMPTY;
-      ret[i * TBL_WIDTH + j].entry.val = 0;
-    }
-  }
-  return ret;
 }

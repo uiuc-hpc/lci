@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include "lcrq.h"
 #include "dequeue.h"
+#include "lc/hashtable.h"
 
 #ifdef LC_USE_SERVER_OFI
 #define SERVER_CONTEXT char __padding__[64 - 40];
@@ -47,7 +48,6 @@ struct lc_struct {
 
 #include "packet.h"
 #include "pool.h"
-#include "hashtable.h"
 #include "progress.h"
 #include "server/server.h"
 #include "proto.h"

@@ -4,19 +4,25 @@
 #define _POSIX_C_SOURCE 200809L
 #include <stdint.h>
 #include <stdlib.h>
+#include "ptmalloc.h"
 
 typedef uintptr_t lc_value;
 typedef uint64_t lc_key;
-typedef void* lc_hash;
+typedef void lc_hash;
 
 #include <assert.h>
 #include <stdlib.h>
 
+#include "lc/macro.h"
 #include "lc/lock.h"
 
 #define EMPTY ((uint64_t)-1)
 #define TBL_BIT_SIZE 16
 #define TBL_WIDTH 4
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct hash_val {
   union {
@@ -31,12 +37,26 @@ typedef struct hash_val {
   };
   // NOTE: This must be aligned to 16, make sure TBL_WDITH is 4,
   // So they will fit in a cache line.
-} hash_val;
+} hash_val_t;
 
+enum insert_type {
+  CLIENT,
+  SERVER
+};
+
+LC_EXPORT
 void lc_hash_create(lc_hash** h);
+
+LC_EXPORT
 void lc_hash_destroy(lc_hash* h);
-int lc_hash_insert2(lc_hash* h, lc_key key, lc_value* value);
-int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value, int type);
+
+LC_EXPORT
+int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value,
+                   enum insert_type type);
+
+#ifdef __cplusplus
+}
+#endif
 
 // default values recommended by http://isthe.com/chongo/tech/comp/fnv/
 static const uint32_t Prime = 0x01000193; //   16777619

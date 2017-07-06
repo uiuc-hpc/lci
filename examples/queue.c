@@ -18,6 +18,8 @@ int main(int argc, char** args)
 
   int rank = lc_id(mv);
   int total, skip;
+  void* buffer = memalign(4096, 1<<22);
+  void* rx_buffer = memalign(4096, 1<<22);
 
   lc_ctx ctx;
   for (size_t len = 1; len <= (1 << 22); len <<= 1) {
@@ -28,10 +30,6 @@ int main(int argc, char** args)
       skip = SKIP;
       total = TOTAL;
     }
-    void* buffer;
-    void* rx_buffer;
-    buffer = malloc(len);
-    rx_buffer = malloc(len);
     memset(buffer, 'A', len);
     if (rank == 0) {
       double t1;
@@ -73,9 +71,9 @@ int main(int argc, char** args)
           lc_progress(mv);
       }
     }
-    free(rx_buffer);
-    free(buffer);
   }
+  free(rx_buffer);
+  free(buffer);
   lc_close(mv);
   return 0;
 }

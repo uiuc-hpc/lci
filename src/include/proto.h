@@ -1,6 +1,8 @@
 #ifndef LC_PROTO_H
 #define LC_PROTO_H
 
+#include "lc/hashtable.h"
+
 #define INIT_CTX(ctx)         \
   {                           \
     ctx->buffer = (void*)src; \
@@ -88,7 +90,7 @@ void lc_serve_imm(lch* mv, uint32_t imm)
     lc_server_rma_dereg(p->context.rma_mem);
     const lc_key key = lc_make_key(req->rank, req->tag);
     lc_value value = (lc_value)p;
-    if (!lc_hash_insert(mv->tbl, key, &value, 1)) {
+    if (!lc_hash_insert(mv->tbl, key, &value, SERVER)) {
       req->type = REQ_DONE;
       if (req->sync) thread_signal(req->sync);
       lc_pool_put(mv->pkpool, p);

@@ -17,8 +17,6 @@ extern "C" {
 #include <stdint.h>
 #include <stdlib.h>
 
-#define LC_EXPORT __attribute__((visibility("default")))
-
 /*! Init context */
 struct lc_struct;
 typedef struct lc_struct lch;
@@ -31,10 +29,6 @@ struct lc_packet;
 typedef struct lc_packet lc_packet;
 struct lc_pool;
 typedef struct lc_pool lc_pool;
-
-typedef uintptr_t lc_value;
-typedef uint64_t lc_key;
-typedef void* lc_hash;
 
 // Keep this order, or change lc_proto.
 enum lc_proto_name {

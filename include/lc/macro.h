@@ -1,6 +1,8 @@
 #ifndef LC_MACRO_H_
 #define LC_MACRO_H_
 
+#define LC_EXPORT __attribute__((visibility("default")))
+
 #define lc_mem_fence()                   \
   {                                      \
     asm volatile("mfence" ::: "memory"); \
