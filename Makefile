@@ -1,4 +1,4 @@
-.PHONY: all clean install
+.PHONY: all clean install tests
 
 include config.mk
 
@@ -109,3 +109,5 @@ $(OBJDIR)/mfcontext.o: $(MFCONTEXT)
 clean:
 	rm -rf $(LIBOBJ) liblwci.a liblwci.so
 
+tests:
+	$(MAKE) -C tests && ./tests/all_test

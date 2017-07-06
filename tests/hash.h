@@ -1,5 +1,3 @@
-#include <gtest/gtest.h>
-
 #include "lc/hashtable.h"
 
 TEST(HASH, InitFini)
@@ -54,10 +52,4 @@ TEST(HASH, InsertClientFirst)
   ASSERT_TRUE(lc_hash_insert(h, k, &v, SERVER));
   ASSERT_EQ(v, -3);
   lc_hash_destroy(h);
-}
-
-int main(int argc, char** argv)
-{
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
 }

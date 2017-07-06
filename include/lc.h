@@ -27,8 +27,6 @@ typedef struct lc_ctx lc_ctx;
 
 struct lc_packet;
 typedef struct lc_packet lc_packet;
-struct lc_pool;
-typedef struct lc_pool lc_pool;
 
 // Keep this order, or change lc_proto.
 enum lc_proto_name {

@@ -1,7 +1,7 @@
 #include "include/lc_priv.h"
 #include <stdint.h>
-#include "pool.h"
 
+#include "lc/pool.h"
 #include "dreg/dreg.h"
 #include "pmi.h"
 
@@ -18,7 +18,6 @@ void lc_open(lch** ret)
   struct lc_struct* mv = memalign(4096, sizeof(struct lc_struct));
   mv->ncores = sysconf(_SC_NPROCESSORS_ONLN) / THREAD_PER_CORE;
 
-  lc_pool_init();
   lc_hash_create(&mv->tbl);
   // Init queue protocol.
 #ifndef USE_CCQ

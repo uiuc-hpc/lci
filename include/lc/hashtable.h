@@ -8,7 +8,6 @@
 
 typedef uintptr_t lc_value;
 typedef uint64_t lc_key;
-typedef void lc_hash;
 
 #include <assert.h>
 #include <stdlib.h>
@@ -37,7 +36,7 @@ typedef struct hash_val {
   };
   // NOTE: This must be aligned to 16, make sure TBL_WDITH is 4,
   // So they will fit in a cache line.
-} hash_val_t;
+} lc_hash;
 
 enum insert_type {
   CLIENT,

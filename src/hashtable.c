@@ -3,9 +3,9 @@
 #include "lc/lock.h"
 #include "lc/macro.h"
 
-LC_INLINE hash_val_t* create_table(size_t num_rows)
+LC_INLINE struct hash_val* create_table(size_t num_rows)
 {
-  hash_val_t* ret = memalign(64,
+  struct hash_val* ret = memalign(64,
       num_rows * TBL_WIDTH * sizeof(struct hash_val));
 
   // Initialize all with EMPTY and clear lock.
@@ -44,10 +44,10 @@ int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value,
   const int bucket = hash * TBL_WIDTH;
   int checked_slot = 0;
 
-  hash_val_t* master = &tbl_[bucket];
-  hash_val_t* hcontrol = &tbl_[bucket];
-  hash_val_t* hentry = hcontrol + 1;
-  hash_val_t* empty_hentry = NULL;
+  struct hash_val* master = &tbl_[bucket];
+  struct hash_val* hcontrol = &tbl_[bucket];
+  struct hash_val* hentry = hcontrol + 1;
+  struct hash_val* empty_hentry = NULL;
 
   lc_key cmp_key = (key << 1) | (1-type);
 

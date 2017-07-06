@@ -8,6 +8,7 @@
 #include "lcrq.h"
 #include "dequeue.h"
 #include "lc/hashtable.h"
+#include "lc/pool.h"
 
 #ifdef LC_USE_SERVER_OFI
 #define SERVER_CONTEXT char __padding__[64 - 40];
@@ -47,7 +48,6 @@ struct lc_struct {
 #define RMA_SIGNAL_QUEUE 2
 
 #include "packet.h"
-#include "pool.h"
 #include "progress.h"
 #include "server/server.h"
 #include "proto.h"

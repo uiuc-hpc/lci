@@ -6,7 +6,8 @@ LC_LINK = ../liblwci.a -libverbs
 
 GXX = g++
 
-TARGET = hash_test
+TARGET = all_test
+DEPS = hash.h pool.h
 
 all: $(TARGET)
 
@@ -17,5 +18,5 @@ libgtest.a:
 	$(GXX) $(GTEST_FLAGS) -c ${GTEST_DIR}/src/gtest-all.cc
 	ar -rv libgtest.a gtest-all.o
 
-%_test: %.cxx libgtest.a
-	$(GXX) $(LC_FLAGS) $(GTEST_FLAGS) $^ $(LC_LINK) -o $@
+%_test: %.cxx libgtest.a $(DEPS)
+	$(GXX) $(LC_FLAGS) $(GTEST_FLAGS) $< libgtest.a $(LC_LINK) -o $@

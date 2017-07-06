@@ -1,19 +1,36 @@
-#include "pool.h"
-#include "ptmalloc.h"
+#include "lc/pool.h"
 
 int32_t tls_pool_struct[MAX_NPOOLS][MAX_LOCAL_POOL]; // = {-1, -1, -1, -1, -1, -1, -1, -1};
 int lc_pool_nkey = 0;
-volatile int init_pool_lock = 0;
+volatile int init_lock = 0;
+static int initialized = 0;
 
-void lc_pool_init() {
-  for (int i = 0; i < MAX_NPOOLS; i++) {
-    for (int j = 0; j < MAX_LOCAL_POOL; j++) {
-      tls_pool_struct[i][j] = -1;
+LC_INLINE void lc_pool_init() {
+  lc_spin_lock(&init_lock);
+  if (!initialized) {
+    for (int i = 0; i < MAX_NPOOLS; i++) {
+      memset(&tls_pool_struct[i][0], POOL_UNINIT,
+             sizeof(int32_t) * MAX_LOCAL_POOL);
     }
+    initialized = 1;
   }
+  lc_spin_unlock(&init_lock);
+}
+
+LC_INLINE void* lc_pool_get_slow(struct lc_pool* pool) {
+  void* elm = NULL;
+  while (!elm) {
+    int steal = rand() % (pool->npools);
+    if (likely(pool->lpools[steal] != NULL))
+      elm = dq_pop_bot(pool->lpools[steal]);
+  }
+  return elm;
 }
 
 void lc_pool_create(struct lc_pool** pool) {
+  if (unlikely(!initialized))
+    lc_pool_init();
+
   struct lc_pool* p = memalign(64, sizeof(struct lc_pool));
   p->npools = 0;
   p->key = lc_pool_nkey++;
@@ -75,16 +92,6 @@ void* lc_pool_get_nb(struct lc_pool* pool) {
       if (likely(pool->lpools[steal] != NULL))
         elm = dq_pop_bot(pool->lpools[steal]);
     }
-  }
-  return elm;
-}
-
-void* lc_pool_get_slow(struct lc_pool* pool) {
-  void* elm = NULL;
-  while (!elm) {
-    int steal = rand() % (pool->npools);
-    if (likely(pool->lpools[steal] != NULL))
-      elm = dq_pop_bot(pool->lpools[steal]);
   }
   return elm;
 }
