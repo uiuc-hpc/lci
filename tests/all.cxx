@@ -2,6 +2,7 @@
 
 #include "hash.h"
 #include "pool.h"
+#include "fult.h"
 
 int main(int argc, char** argv)
 {

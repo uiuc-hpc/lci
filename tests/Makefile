@@ -7,7 +7,7 @@ LC_LINK = ../liblwci.a -libverbs
 GXX = g++
 
 TARGET = all_test
-DEPS = hash.h pool.h
+DEPS = $(shell find . -name '*.h')
 
 all: $(TARGET)
 
