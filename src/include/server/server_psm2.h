@@ -127,30 +127,17 @@ LC_INLINE int _real_psm_free(uintptr_t mem)
 
 LC_INLINE uintptr_t psm_rma_reg(psm_server* s, void* buf, size_t size)
 {
-#ifdef USE_DREG
-  return (uintptr_t)dreg_register(s, buf, size);
-#else
   return _real_psm_reg(s, buf, size);
-#endif
 }
 
 LC_INLINE int psm_rma_dereg(uintptr_t mem)
 {
-#ifdef USE_DREG
-  dreg_unregister((dreg_entry*)mem);
-  return 1;
-#else
   return _real_psm_free(mem);
-#endif
 }
 
 LC_INLINE uint32_t psm_rma_key(uintptr_t mem)
 {
-#ifdef USE_DREG
-  return ((struct psm_mr*)(((dreg_entry*)mem)->memhandle[0]))->rkey;
-#else
   return ((struct psm_mr*)mem)->rkey;
-#endif
 }
 
 static volatile int psm_start_stop = 0;
@@ -187,10 +174,6 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   int ver_major = PSM2_VERNO_MAJOR;
   int ver_minor = PSM2_VERNO_MINOR;
 
-#ifdef USE_DREG
-  dreg_init();
-#endif
-
   PSM_SAFECALL(psm2_init(&ver_major, &ver_minor));
 
   /* Setup the endpoint options struct */
@@ -222,7 +205,7 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
     }
     MPI_Comm_rank(MPI_COMM_WORLD, &mv->me);
     MPI_Comm_size(MPI_COMM_WORLD, &mv->size);
-  } 
+  }
 #else
   {
     int spawned;
@@ -246,7 +229,7 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
       epid_array_mask[i] = 1;
     }
     MPI_Barrier(MPI_COMM_WORLD);
-  } else 
+  } else
 #else
   {
     sprintf(key, "_LC_KEY_%d", mv->me);
