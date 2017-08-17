@@ -36,7 +36,7 @@ endif
 #LDFLAGS += $(FACEBOOK_LIB)
 
 ### FOR TESTING LIBCUCKOO ###
-CUCKOO_INC = -I$(HOME)/install/libcuckoo/include
+CUCKOO_INC = -I$(HOME)/libcuckoo/include
 
 ### FOR TESTING TBB ###
 TBB_INC = -I$(TACC_INTEL_DIR)/tbb/include

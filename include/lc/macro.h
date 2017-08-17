@@ -20,4 +20,6 @@
 
 #define __UNUSED__ __attribute__((unused))
 
+#define LC_POOL_GET_OR_RETN(p, x) lc_packet* x = lc_pool_get_nb((p)); if (x == NULL) return LC_ERR_NOP;
+
 #endif

@@ -6,7 +6,7 @@
 #include "ult/helper.h"
 
 static void* ctx_data;
-static lc_pool* lc_ctx_pool;
+static lc_pool* lc_req_pool;
 LC_EXPORT
 lch* lc_hdl;
 
@@ -25,11 +25,11 @@ void MPI_Recv(void* buffer, int count, MPI_Datatype datatype,
   int size = 1;
   MPI_Type_size(datatype, &size);
   size *= count;
-  struct lc_ctx ctx;
+  lc_req ctx;
   while (!lc_recv_tag(lc_hdl, buffer, size, rank, tag, &ctx))
     thread_yield();
   lc_sync* sync = lc_get_sync();
-  lc_recv_tag_post(lc_hdl, &ctx, sync);
+  lc_post(lc_hdl, &ctx, sync);
   lc_wait(&ctx, sync);
 }
 
@@ -39,11 +39,11 @@ void MPI_Send(void* buffer, int count, MPI_Datatype datatype,
   int size = 1;
   MPI_Type_size(datatype, &size);
   size *= count;
-  struct lc_ctx ctx;
+  lc_req ctx;
   while (!lc_send_tag(lc_hdl, buffer, size, rank, tag, &ctx))
     thread_yield();
   lc_sync* sync = lc_get_sync();
-  lc_send_tag_post(lc_hdl, &ctx, sync);
+  lc_post(lc_hdl, &ctx, sync);
   lc_wait(&ctx, sync);
 }
 
@@ -53,11 +53,11 @@ void MPI_Ssend(void* buffer, int count, MPI_Datatype datatype,
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
-  struct lc_ctx ctx;
+  lc_req ctx;
   while (!lc_send_tag(lc_hdl, buffer, size, rank, tag, &ctx))
     thread_yield();
   lc_sync* sync = lc_get_sync();
-  lc_send_tag_post(lc_hdl, &ctx, sync);
+  lc_post(lc_hdl, &ctx, sync);
   lc_wait(&ctx, sync);
 }
 
@@ -66,14 +66,13 @@ void MPI_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
-  lc_ctx *ctx = (lc_ctx*) lc_pool_get(lc_ctx_pool);
+  lc_req *ctx = (lc_req*) lc_pool_get(lc_req_pool);
   while (!lc_send_tag(lc_hdl, buf, size, rank, tag, ctx))
     thread_yield();
   if (ctx->type != REQ_DONE) {
-    ctx->complete = lc_send_tag_post;
     *req = (MPI_Request) ctx;
   } else {
-    lc_pool_put(lc_ctx_pool, ctx);
+    lc_pool_put(lc_req_pool, ctx);
     *req = MPI_REQUEST_NULL;
   }
 }
@@ -83,10 +82,9 @@ void MPI_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
   int size;
   MPI_Type_size(datatype, &size);
   size *= count;
-  lc_ctx *ctx = (lc_ctx*) lc_pool_get(lc_ctx_pool);
+  lc_req *ctx = (lc_req*) lc_pool_get(lc_req_pool);
   while (!lc_recv_tag(lc_hdl, (void*) buffer, size, rank, tag, ctx))
     thread_yield();
-  ctx->complete = lc_recv_tag_post;
   *req = (MPI_Request) ctx;
 }
 
@@ -99,17 +97,17 @@ void MPI_Waitall(int count, MPI_Request* req, MPI_Status* status __UNUSED__) {
   lc_sync* counter = lc_get_counter(pending);
   for (int i = 0; i < count; i++) {
     if (req[i] != MPI_REQUEST_NULL) {
-      lc_ctx* ctx = (lc_ctx *) req[i];
-      if (ctx->complete(lc_hdl, ctx, counter)) {
+      lc_req* ctx = (lc_req *) req[i];
+      if (lc_post(lc_hdl, ctx, counter)) {
         thread_signal(counter);
       }
     }
   }
   for (int i = 0; i < count; i++) {
     if (req[i] != MPI_REQUEST_NULL) {
-      lc_ctx* ctx = (lc_ctx*) req[i];
+      lc_req* ctx = (lc_req*) req[i];
       lc_wait(ctx, counter);
-      lc_pool_put(lc_ctx_pool, ctx);
+      lc_pool_put(lc_req_pool, ctx);
       req[i] = MPI_REQUEST_NULL;
     }
   }
@@ -135,11 +133,11 @@ void MPI_Init(int* argc __UNUSED__, char*** args __UNUSED__)
 {
   // setenv("LC_MPI", "1", 1);
   lc_open(&lc_hdl);
-  ctx_data = memalign(64, sizeof(struct lc_ctx) * MAX_PACKET);
-  lc_pool_create(&lc_ctx_pool);
-  lc_ctx* ctxs = (lc_ctx*) ctx_data;
+  ctx_data = memalign(64, sizeof(lc_req) * MAX_PACKET);
+  lc_pool_create(&lc_req_pool);
+  lc_req* ctxs = (lc_req*) ctx_data;
   for (int i = 0; i < MAX_PACKET; i++)
-    lc_pool_put(lc_ctx_pool, &ctxs[i]);
+    lc_pool_put(lc_req_pool, &ctxs[i]);
   lc_thread_stop = 0;
   pthread_create(&progress_thread, 0, progress, (void*) (long)lc_hdl->me);
   MPI_HEAP = lc_heap_ptr(lc_hdl);

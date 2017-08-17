@@ -23,7 +23,7 @@ int main(int argc, char** args)
   assert(buffer);
   assert(rx_buffer);
 
-  lc_ctx ctx;
+  lc_req ctx;
   for (size_t len = 1; len <= (1 << 22); len <<= 1) {
     if (len > 8192) {
       skip = SKIP_LARGE;
@@ -38,34 +38,22 @@ int main(int argc, char** args)
       for (int i = 0; i < skip + total; i++) {
         if (i == skip) t1 = wtime();
         for (int j = 0; j < WINDOWS; j++)  {
-          while (!lc_send_tag(mv, buffer, len, 1, 99, &ctx))
-            lc_progress(mv);
-          while (!lc_test(&ctx))
-            lc_progress(mv);
+          lc_send_tag(mv, buffer, len, 1, 99, &ctx);
+          lc_wait_poll(mv, &ctx);
         }
-        while (!lc_recv_tag(mv, rx_buffer, len, 1, 99, &ctx))
-          lc_progress(mv);
-        lc_recv_tag_post(mv, &ctx, 0);
-        while (!lc_test(&ctx)) {
-          lc_progress(mv);
-        }
+        lc_recv_tag(mv, rx_buffer, len, 1, 99, &ctx);
+        lc_wait_poll(mv, &ctx);
       }
       printf("%llu \t %.5f\n", len, (wtime() - t1)/total / (WINDOWS+1) * 1e6);
     } else {
       for (int i = 0; i < skip + total; i++) {
         for (int j = 0; j < WINDOWS; j++) {
-          while (!lc_recv_tag(mv, rx_buffer, len, 0, 99, &ctx))
-            lc_progress(mv);
-          lc_recv_tag_post(mv, &ctx, 0);
-          while (!lc_test(&ctx)) {
-            lc_progress(mv);
-          }
+          lc_recv_tag(mv, rx_buffer, len, 0, 99, &ctx);
+          lc_wait_poll(mv, &ctx);
         }
         // send
-        while (!lc_send_tag(mv, buffer, len, 0, 99, &ctx))
-          lc_progress(mv);
-        while (!lc_test(&ctx))
-          lc_progress(mv);
+        lc_send_tag(mv, buffer, len, 0, 99, &ctx);
+        lc_wait_poll(mv, &ctx);
       }
     }
   }

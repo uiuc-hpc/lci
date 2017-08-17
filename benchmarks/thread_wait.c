@@ -42,7 +42,7 @@ int main(int argc, char** args)
   printf("Num worker: %d, Num threads: %d\n", num_worker + 1, num_threads);
 
   total_threads = num_threads * num_worker;
-  MPIV_start_worker(num_worker + 1);
+  MPIV_Start_worker(num_worker + 1);
 
   lc_thread* tid = (lc_thread*) malloc(total_threads * sizeof(lc_thread));
   set_me_to(0);
@@ -81,5 +81,5 @@ int main(int argc, char** args)
     sum += (times[i] - mean) * (times[i] - mean);
   double std = sqrt(sum / (loop - 1));
   printf("%.2f %.2f\n", mean, std);
-  MPIV_stop_worker();
+  MPIV_Stop_worker();
 }

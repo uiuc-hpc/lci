@@ -10,15 +10,16 @@
  */
 
 #include <assert.h>
-#include "mv.h"
-#include "mv/helper.h"
+#include "mpiv.h"
+#include "ult/helper.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
+int STHREADS = 1;
 #define MESSAGE_ALIGNMENT 64
-#define MIN_MSG_SIZE 64
+#define MIN_MSG_SIZE 1
 #define MAX_MSG_SIZE (1 << 20)
 #define MYBUFSIZE (MAX_MSG_SIZE + MESSAGE_ALIGNMENT)
 #define SKIP_LARGE 100
@@ -92,10 +93,15 @@ void main_task(intptr_t arg)
   int i = 0;
   r_buf1 = (char*)malloc(MYBUFSIZE);
   s_buf1 = (char*)malloc(MYBUFSIZE);
-  mv_thread sr_threads[THREADS];
+  lc_thread sr_threads[THREADS];
   thread_tag_t tags[THREADS];
 
+  lc_qid qid;
+  for (i = 0; i < THREADS; i++)
+      lc_queue_create(lc_hdl, &qid);
+
   if (myid == 0) {
+      STHREADS = THREADS;
     fprintf(stdout, HEADER);
     fprintf(stdout, "%-*s%*s\n", 10, "# Size", FIELD_WIDTH, "Latency (us)");
     fflush(stdout);
@@ -104,10 +110,11 @@ void main_task(intptr_t arg)
       MPI_Barrier(MPI_COMM_WORLD);
       double t1 = MPI_Wtime();
       int i = 0;
-      for (i = 0; i < 1; i++)
+      for (i = 0; i < STHREADS; i++)
           sr_threads[i] = MPIV_spawn(i % WORKERS, send_thread, (intptr_t)i);
-      for (i = 0; i < 1; i++)
+      for (i = 0; i < STHREADS; i++) {
           MPIV_join(sr_threads[i]);
+      }
       MPI_Barrier(MPI_COMM_WORLD);
       t1 = MPI_Wtime() - t1;
       printf("%d %.5f \n", size, (loop + skip) / t1);
@@ -153,33 +160,36 @@ void recv_thread(intptr_t arg)
     r_buf[i] = 'b';
   }
 
-   mv_ctx ctxs;
+   lc_ctx ctxs;
    void* buf = malloc(size);
    memset(buf, 0, size);
    int len, rank, tag;
 
   for (i = val; i < loop + skip; i+=THREADS) {
     // recv
-    while (!mv_recv_queue(mv_hdl, &len, &rank, &tag, &ctxs))
-        ; // thread_yield();
-
-    mv_recv_queue_post(mv_hdl, buf, &ctxs);
-
-    while (!mv_test(&ctxs))
-        ; //thread_yield();
-
-    if (i == -1) {
-        assert(len == size);
-        for (int j = 0; j < len; j++)
-            assert(((char*) buf)[j] == 'a');
+    for (int j = 0; j< WINDOWS; j++) {
+        while (!lc_recv_queue(lc_hdl, &len, &rank, &tag, val, &ctxs))
+            ;
+        if (!lc_recv_queue_post(lc_hdl, buf, &ctxs)) {
+            while (!lc_test(&ctxs))
+                ;
+        }
     }
 
-    // while (!mv_send_queue(mv_hdl, s_buf, size, 0, 0, &ctxs))
-        // ; //thread_yield();
+    //if (i == 1) {
+        assert(len == size);
+        assert(tag == i);
+        // for (int j = 0; j < len; j++)
+        //    assert(((char*) buf)[j] == 'a');
+    //}
 
-    // while (!mv_test(&ctxs))
-        // ; //thread_yield();
+    while (!lc_send_queue(lc_hdl, s_buf, size, 0, 0, val, &ctxs))
+        ; //thread_yield();
+
+    while (!lc_test(&ctxs))
+        ; //thread_yield();
   }
+  free(buf);
 }
 
 void send_thread(intptr_t arg)
@@ -207,31 +217,36 @@ void send_thread(intptr_t arg)
     r_buf[i] = 'b';
   }
 
-  mv_ctx ctxr;
+  lc_ctx ctxr;
   void* buf = malloc(size);
   int len, rank, tag;
 
-  for (i = val; i < loop + skip; i+=1) {
+  for (i = val; i < loop + skip; i+=STHREADS) {
     if (i == skip) {
       t_start = MPI_Wtime();
     }
     // send
-    //for (int j = 0; j < WINDOWS; j++)
-    while (!mv_send_queue(mv_hdl, s_buf, size, 1, 0, &ctxr))
-        ; // thread_yield();
+    for (int j = 0; j < WINDOWS; j++) {
+        while (!lc_send_queue(lc_hdl, s_buf, size, 1, i, val, &ctxr))
+            ;
 
-    while (!mv_test(&ctxr))
-        ; // thread_yield();
+        while (!lc_test(&ctxr))
+            ;
+    }
+
+    // fprintf(stderr, "Send %d\n", i);
 
     // recv.
     // for (int j = 0; j < WINDOWS; j++) {
-    // while (!mv_recv_queue(mv_hdl, &len, &rank, &tag, &ctxr))
-        // ; // thread_yield();
+    while (!lc_recv_queue(lc_hdl, &len, &rank, &tag, val, &ctxr))
+        ; // thread_yield();
 
-    // mv_recv_queue_post(mv_hdl, buf, &ctxr);
-    // while (!mv_test(&ctxr))
-        // ; // thread_yield();
+    lc_recv_queue_post(lc_hdl, buf, &ctxr);
+    while (!lc_test(&ctxr))
+        ; // thread_yield();
   }
+
+  free(buf);
 
   t_end = MPI_Wtime();
   t = t_end - t_start;

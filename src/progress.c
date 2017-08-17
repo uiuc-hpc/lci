@@ -18,7 +18,7 @@ static void lc_recv_short_match(lch* mv, lc_packet* p)
 
   if (!lc_hash_insert(mv->tbl, key, &value, SERVER)) {
     // data has comes.
-    lc_ctx* req = (lc_ctx*)value;
+    lc_req* req = (lc_req*)value;
     memcpy(req->buffer, p->data.buffer, req->size);
     req->type = REQ_DONE;
     if (req->sync) lc_thread_signal(req->sync);
@@ -28,7 +28,7 @@ static void lc_recv_short_match(lch* mv, lc_packet* p)
 
 static void lc_sent_rdz_enqueue_done(lch* mv, lc_packet* p)
 {
-  lc_ctx* ctx = (lc_ctx*) p->context.req;
+  lc_req* ctx = (lc_req*) p->context.req;
   ctx->type = REQ_DONE;
   lc_pool_put(mv->pkpool, p);
 }
@@ -38,7 +38,7 @@ static void lc_recv_rtr_match(lch* mv, lc_packet* p)
   lc_key key = lc_make_rdz_key(p->context.from, p->context.tag);
   lc_value value = (lc_value)p;
   if (!lc_hash_insert(mv->tbl, key, &value, SERVER)) {
-    lc_ctx* ctx = (lc_ctx*)value;
+    lc_req* ctx = (lc_req*)value;
     p->context.req = (uintptr_t)ctx;
     p->context.proto = LC_PROTO_LONG_MATCH;
     lci_put(mv, ctx->buffer, ctx->size, p->context.from,
@@ -51,7 +51,7 @@ static void lc_recv_rtr_queue(lch* mv, lc_packet* p)
 {
   p->context.req = (uintptr_t) p->data.rtr.sreq;
   p->context.proto = LC_PROTO_LONG_QUEUE;
-  lc_ctx* ctx = (lc_ctx*) p->data.rtr.sreq;
+  lc_req* ctx = (lc_req*) p->data.rtr.sreq;
   lci_put(mv, ctx->buffer, ctx->size, p->context.from,
       p->data.rtr.tgt_addr, p->data.rtr.rkey,
       RMA_SIGNAL_QUEUE, p->data.rtr.comm_id, p);
@@ -59,7 +59,7 @@ static void lc_recv_rtr_queue(lch* mv, lc_packet* p)
 
 static void lc_sent_rdz_match_done(lch* mv, lc_packet* p)
 {
-  lc_ctx* req = (lc_ctx*) p->context.req;
+  lc_req* req = (lc_req*) p->context.req;
   req->type = REQ_DONE;
   if (req->sync) lc_thread_signal(req->sync);
   lc_pool_put(mv->pkpool, p);
@@ -67,14 +67,14 @@ static void lc_sent_rdz_match_done(lch* mv, lc_packet* p)
 
 static void lc_sent_put(lch* mv, lc_packet* p_ctx)
 {
-  lc_ctx* req = (lc_ctx*) p_ctx->context.req;
+  lc_req* req = (lc_req*) p_ctx->context.req;
   req->type = REQ_DONE;
   lc_pool_put(mv->pkpool, p_ctx);
 }
 
 static void lc_sent_persis(lch* mv __UNUSED__, lc_packet* p_ctx)
 {
-  lc_ctx* req = (lc_ctx*) p_ctx->context.req;
+  lc_req* req = (lc_req*) p_ctx->context.req;
   req->type = REQ_DONE;
 }
 

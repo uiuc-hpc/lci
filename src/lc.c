@@ -2,7 +2,6 @@
 #include <stdint.h>
 
 #include "lc/pool.h"
-#include "dreg/dreg.h"
 #include "pmi.h"
 
 size_t server_max_inline;
@@ -67,78 +66,7 @@ void lc_close(lch* mv)
   free(mv);
 }
 
-int lc_send_tag(lch* mv, const void* src, int size, int rank, int tag, lc_ctx* ctx)
-{
-  if (size <= (int) SHORT_MSG_SIZE) {
-    lc_packet* p = lc_pool_get_nb(mv->pkpool);
-    if (!p) return 0;
-    p->context.proto = LC_PROTO_SHORT_MATCH;
-    lci_send(mv, src, size, rank, tag, p);
-    ctx->type = REQ_DONE;
-  } else {
-    INIT_CTX(ctx);
-    lc_key key = lc_make_rdz_key(rank, tag);
-    lc_value value = (lc_value)ctx;
-    if (!lc_hash_insert(mv->tbl, key, &value, CLIENT)) {
-      lc_packet* p = (lc_packet*) value;
-      p->context.req = (uintptr_t)ctx;
-      p->context.proto = LC_PROTO_LONG_MATCH;
-      lci_put(mv, ctx->buffer, ctx->size, p->context.from,
-          p->data.rtr.tgt_addr, p->data.rtr.rkey,
-          0, p->data.rtr.comm_id, p);
-    }
-  }
-  return 1;
-}
-
-int lc_send_tag_post(lch* mv __UNUSED__, lc_ctx* ctx, lc_sync* sync)
-{
-  if (!ctx) return 1;
-  if (ctx->size <= (int) SHORT_MSG_SIZE) {
-    return 1;
-  } else {
-    if (ctx->type == REQ_DONE) return 1;
-    else {
-      ctx->sync = sync;
-      return 0;
-    }
-  }
-}
-
-int lc_recv_tag(lch* mv, void* src, int size, int rank, int tag, lc_ctx* ctx)
-{
-  if (size <= (int) SHORT_MSG_SIZE) {
-    INIT_CTX(ctx);
-    return 1;
-  } else {
-    lc_packet* p = lc_pool_get_nb(mv->pkpool);
-    if (!p) return 0;
-    INIT_CTX(ctx);
-    lci_rdz_prepare(mv, src, size, ctx, p);
-    p->context.proto = LC_PROTO_RTR_MATCH;
-    lci_send(mv, &p->data, sizeof(struct packet_rtr),
-             rank, tag, p);
-    return 1;
-  }
-}
-
-int lc_recv_tag_post(lch* mv, lc_ctx* ctx, lc_sync* sync)
-{
-    ctx->sync = sync;
-    lc_key key = lc_make_key(ctx->rank, ctx->tag);
-    lc_value value = (lc_value)ctx;
-    if (!lc_hash_insert(mv->tbl, key, &value, CLIENT)) {
-      ctx->type = REQ_DONE;
-      lc_packet* p_ctx = (lc_packet*)value;
-      if (ctx->size <= (int) SHORT_MSG_SIZE)
-        memcpy(ctx->buffer, p_ctx->data.buffer, ctx->size);
-      lc_pool_put(mv->pkpool, p_ctx);
-      return 1;
-    }
-    return 0;
-}
-
-void lc_send_persis(lch* mv, lc_packet* p, int rank, int tag, lc_ctx* ctx)
+void lc_send_persis(lch* mv, lc_packet* p, int rank, int tag, lc_req* ctx)
 {
   p->context.req = (uintptr_t) ctx;
   p->context.proto = LC_PROTO_PERSIS;
@@ -146,66 +74,7 @@ void lc_send_persis(lch* mv, lc_packet* p, int rank, int tag, lc_ctx* ctx)
            rank, tag, p);
 }
 
-int lc_send_queue(lch* mv, const void* src, int size, int rank, int tag, lc_ctx* ctx)
-{
-  lc_packet* p = (lc_packet*) lc_pool_get_nb(mv->pkpool);
-  if (!p) { ctx->type = REQ_NULL; return 0; };
-  if (size <= (int) SHORT_MSG_SIZE) {
-    p->context.proto = LC_PROTO_SHORT_QUEUE;
-    lci_send(mv, src, size, rank, tag, p);
-    ctx->type = REQ_DONE;
-  } else {
-    INIT_CTX(ctx);
-    p->context.proto = LC_PROTO_RTS_QUEUE;
-    p->data.rts.sreq = (uintptr_t) ctx;
-    p->data.rts.size = size;
-    lci_send(mv, &p->data, sizeof(struct packet_rts),
-             rank, tag, p);
-  }
-  return 1;
-}
-
-int lc_recv_queue(lch* mv, int* size, int* rank, int *tag, lc_ctx* ctx)
-{
-#ifndef USE_CCQ
-  lc_packet* p = (lc_packet*) dq_pop_bot(&mv->queue);
-#else
-  lc_packet* p = (lc_packet*) lcrq_dequeue(&mv->queue);
-#endif
-  if (p == NULL) return 0;
-
-  *rank = p->context.from;
-  if (p->context.proto != LC_PROTO_RTS_QUEUE) {
-    *size = p->context.size;
-  } else {
-    *size = p->data.rts.size;
-  }
-  *tag = p->context.tag;
-  ctx->packet = p;
-  ctx->type = REQ_PENDING;
-
-  return 1;
-}
-
-int lc_recv_queue_post(lch* mv, void* buf, lc_ctx* ctx)
-{
-  lc_packet* p = (lc_packet*) ctx->packet;
-  if (p->context.proto != LC_PROTO_RTS_QUEUE) {
-    memcpy(buf, p->data.buffer, p->context.size);
-    lc_pool_put(mv->pkpool, p);
-    ctx->type = REQ_DONE;
-    return 1;
-  } else {
-    int rank = p->context.from;
-    lci_rdz_prepare(mv, buf, p->data.rts.size, ctx, p);
-    p->context.proto = LC_PROTO_RTR_QUEUE;
-    lci_send(mv, &p->data, sizeof(struct packet_rtr),
-             rank, 0, p);
-    return 0;
-  }
-}
-
-int lc_send_put(lch* mv, void* src, int size, int rank, lc_addr* dst, lc_ctx* ctx)
+int lc_send_put(lch* mv, void* src, int size, int rank, lc_addr* dst, lc_req* ctx)
 {
   lc_packet* p = (lc_packet*) lc_pool_get_nb(mv->pkpool);
   if (!p) { ctx->type = REQ_NULL; return 0; };
@@ -216,7 +85,7 @@ int lc_send_put(lch* mv, void* src, int size, int rank, lc_addr* dst, lc_ctx* ct
   return 1;
 }
 
-int lc_send_put_signal(lch* mv, void* src, int size, int rank, lc_addr* dst, lc_ctx* ctx)
+int lc_send_put_signal(lch* mv, void* src, int size, int rank, lc_addr* dst, lc_req* ctx)
 {
   lc_packet* p = (lc_packet*) lc_pool_get_nb(mv->pkpool);
   if (!p) { ctx->type = REQ_NULL; return 0; };
@@ -240,7 +109,7 @@ int lc_rma_create(lch* mv, void* buf, size_t size, lc_addr** rctx_ptr)
   return 1;
 }
 
-int lc_recv_put_signal(lch* mv __UNUSED__, lc_addr* rctx, lc_ctx* ctx)
+int lc_recv_put_signal(lch* mv __UNUSED__, lc_addr* rctx, lc_req* ctx)
 {
   rctx->req = (uintptr_t) ctx;
   ctx->type = REQ_PENDING;
