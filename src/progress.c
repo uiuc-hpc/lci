@@ -21,7 +21,7 @@ static void lc_recv_short_match(lch* mv, lc_packet* p)
     lc_req* req = (lc_req*)value;
     memcpy(req->buffer, p->data.buffer, req->size);
     req->type = REQ_DONE;
-    if (req->sync) lc_thread_signal(req->sync);
+    if (req->sync) g_sync.signal(req->sync);
     lc_pool_put(mv->pkpool, p);
   }
 }
@@ -61,7 +61,7 @@ static void lc_sent_rdz_match_done(lch* mv, lc_packet* p)
 {
   lc_req* req = (lc_req*) p->context.req;
   req->type = REQ_DONE;
-  if (req->sync) lc_thread_signal(req->sync);
+  if (req->sync) g_sync.signal(req->sync);
   lc_pool_put(mv->pkpool, p);
 }
 

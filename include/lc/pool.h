@@ -9,7 +9,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "ult/ult.h"
+#include "thread.h"
 #include "lc/lock.h"
 #include "lc/dequeue.h"
 #include "ptmalloc.h"

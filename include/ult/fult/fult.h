@@ -6,7 +6,6 @@
 #include "bitops.h"
 #include "config.h"
 #include "lc/macro.h"
-#include "ult/ult.h"
 
 #define DEBUG(x)
 

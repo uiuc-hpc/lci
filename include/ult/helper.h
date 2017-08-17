@@ -3,7 +3,7 @@
 
 #include "lc.h"
 #include "ult/fult/fult.h"
-#include "ult/ult.h"
+#include "thread.h"
 
 static fworker** all_worker = 0;
 static int nworker = 0;
@@ -50,9 +50,7 @@ typedef struct fworker* lc_worker;
 
 void MPI_Start_worker(int number)
 {
-  lc_thread_signal = thread_signal;
-  lc_thread_wait = thread_wait;
-  lc_thread_yield = thread_yield;
+  lc_sync_init(thread_wait, thread_signal, thread_yield);
   if (nworker == 0) {
     all_worker = (fworker**)malloc(sizeof(struct fworker*) * number);
   }

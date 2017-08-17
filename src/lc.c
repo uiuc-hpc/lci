@@ -6,9 +6,6 @@
 
 size_t server_max_inline;
 __thread int lc_core_id = -1;
-lc_tyield_func_t lc_thread_yield;
-lc_twait_func_t lc_thread_wait;
-lc_tsignal_func_t lc_thread_signal;
 
 void* lc_heap_ptr(lch* mv)
 {

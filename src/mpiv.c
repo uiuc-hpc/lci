@@ -10,8 +10,6 @@ static lc_pool* lc_req_pool;
 LC_EXPORT
 lch* lc_hdl;
 
-void* MPI_HEAP;
-
 static inline void MPI_Type_size(MPI_Datatype type, int *size)
 {
   *size = (int) type;
@@ -30,7 +28,7 @@ void MPI_Recv(void* buffer, int count, MPI_Datatype datatype,
     thread_yield();
   lc_sync* sync = lc_get_sync();
   lc_post(lc_hdl, &ctx, sync);
-  lc_wait(&ctx, sync);
+  lc_wait(&ctx);
 }
 
 void MPI_Send(void* buffer, int count, MPI_Datatype datatype,
@@ -44,7 +42,7 @@ void MPI_Send(void* buffer, int count, MPI_Datatype datatype,
     thread_yield();
   lc_sync* sync = lc_get_sync();
   lc_post(lc_hdl, &ctx, sync);
-  lc_wait(&ctx, sync);
+  lc_wait(&ctx);
 }
 
 void MPI_Ssend(void* buffer, int count, MPI_Datatype datatype,
@@ -58,7 +56,7 @@ void MPI_Ssend(void* buffer, int count, MPI_Datatype datatype,
     thread_yield();
   lc_sync* sync = lc_get_sync();
   lc_post(lc_hdl, &ctx, sync);
-  lc_wait(&ctx, sync);
+  lc_wait(&ctx);
 }
 
 void MPI_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
@@ -106,7 +104,7 @@ void MPI_Waitall(int count, MPI_Request* req, MPI_Status* status __UNUSED__) {
   for (int i = 0; i < count; i++) {
     if (req[i] != MPI_REQUEST_NULL) {
       lc_req* ctx = (lc_req*) req[i];
-      lc_wait(ctx, counter);
+      lc_wait(ctx);
       lc_pool_put(lc_req_pool, ctx);
       req[i] = MPI_REQUEST_NULL;
     }
@@ -140,7 +138,6 @@ void MPI_Init(int* argc __UNUSED__, char*** args __UNUSED__)
     lc_pool_put(lc_req_pool, &ctxs[i]);
   lc_thread_stop = 0;
   pthread_create(&progress_thread, 0, progress, (void*) (long)lc_hdl->me);
-  MPI_HEAP = lc_heap_ptr(lc_hdl);
 }
 
 void MPI_Finalize()

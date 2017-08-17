@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-#include "ult/ult.h"
+#include "thread.h"
 #include "ptmalloc.h"
 #include <stdint.h>
 #include <stdlib.h>
@@ -266,7 +266,7 @@ LC_INLINE
 void lc_wait(lc_req* ctx)
 {
   while (ctx->type != REQ_DONE) {
-    lc_thread_wait(ctx->sync);
+    g_sync.wait(ctx->sync);
   }
 }
 
@@ -330,6 +330,10 @@ void lc_wait_poll(lch* mv, lc_req* ctx) {
   while (!lc_test(ctx))
     lc_progress(mv);
 }
+
+LC_EXPORT
+void lc_sync_init(lc_wait_fp w, lc_signal_fp s, lc_yield_fp y);
+
 /**@}*/
 
 #ifdef __cplusplus
