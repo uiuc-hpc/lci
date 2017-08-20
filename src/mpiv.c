@@ -67,7 +67,7 @@ void MPI_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
   lc_req *ctx = (lc_req*) lc_pool_get(lc_req_pool);
   while (!lc_send_tag(lc_hdl, buf, size, rank, tag, ctx))
     thread_yield();
-  if (ctx->type != REQ_DONE) {
+  if (ctx->type != LC_REQ_DONE) {
     *req = (MPI_Request) ctx;
   } else {
     lc_pool_put(lc_req_pool, ctx);

@@ -12,7 +12,8 @@ struct __attribute__((packed)) packet_context {
   uint32_t proto;
   uintptr_t req;
   uintptr_t rma_mem;
-  uint64_t poolid;
+  uint32_t poolid;
+  uint32_t runtime;
 };
 
 struct __attribute__((__packed__)) packet_rts {

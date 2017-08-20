@@ -20,7 +20,6 @@ int main(int argc, char** args)
   int total, skip;
   void* buffer = memalign(4096, 1<<22);
   void* rx_buffer = memalign(4096, 1<<22);
-
   lc_req ctx;
   for (size_t len = 1; len <= (1 << 22); len <<= 1) {
     if (len > 8192) {

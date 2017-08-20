@@ -370,7 +370,7 @@ LC_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* ubuf,
     lc_serve_send(s->mv, ctx, GET_PROTO(proto));
     return 0;
   } else {
-    memcpy(ctx->data.buffer, ubuf, size);
+    if (ctx->data.buffer != ubuf) memcpy(ctx->data.buffer, ubuf, size);
     list.addr = (uintptr_t)ctx->data.buffer;
     ctx->context.proto = GET_PROTO(proto);
     setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND_WITH_IMM,

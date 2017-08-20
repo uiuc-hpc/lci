@@ -14,7 +14,7 @@ void* lc_heap_ptr(lch* mv)
 
 void lc_open(lch** ret)
 {
-  struct lc_struct* mv = memalign(4096, sizeof(struct lc_struct));
+  struct lc_struct* mv = malloc(sizeof(struct lc_struct));
   mv->ncores = sysconf(_SC_NPROCESSORS_ONLN) / THREAD_PER_CORE;
 
   lc_hash_create(&mv->tbl);
@@ -63,8 +63,9 @@ void lc_close(lch* mv)
   free(mv);
 }
 
-void lc_send_persis(lch* mv, lc_packet* p, int rank, int tag, lc_req* ctx)
+void lc_send_pkt(lch* mv, struct lc_pkt* pkt, int rank, int tag, lc_req* ctx)
 {
+  lc_packet* p = (lc_packet*) pkt->_reserved_;
   p->context.req = (uintptr_t) ctx;
   p->context.proto = LC_PROTO_PERSIS;
   lci_send(mv, &p->data, p->context.size,
@@ -74,9 +75,9 @@ void lc_send_persis(lch* mv, lc_packet* p, int rank, int tag, lc_req* ctx)
 int lc_send_put(lch* mv, void* src, int size, int rank, lc_addr* dst, lc_req* ctx)
 {
   lc_packet* p = (lc_packet*) lc_pool_get_nb(mv->pkpool);
-  if (!p) { ctx->type = REQ_NULL; return 0; };
+  if (!p) { ctx->type = LC_REQ_NULL; return 0; };
   struct lc_rma_ctx* dctx = (struct lc_rma_ctx*) dst;
-  ctx->type = REQ_PENDING;
+  ctx->type = LC_REQ_PENDING;
   p->context.req = (uintptr_t) ctx;
   lc_server_rma(mv->server, rank, src, dctx->addr, dctx->rkey, size, p, LC_PROTO_LONG_PUT);
   return 1;
@@ -85,9 +86,9 @@ int lc_send_put(lch* mv, void* src, int size, int rank, lc_addr* dst, lc_req* ct
 int lc_send_put_signal(lch* mv, void* src, int size, int rank, lc_addr* dst, lc_req* ctx)
 {
   lc_packet* p = (lc_packet*) lc_pool_get_nb(mv->pkpool);
-  if (!p) { ctx->type = REQ_NULL; return 0; };
+  if (!p) { ctx->type = LC_REQ_NULL; return 0; };
   struct lc_rma_ctx* dctx = (struct lc_rma_ctx*) dst;
-  ctx->type = REQ_PENDING;
+  ctx->type = LC_REQ_PENDING;
   p->context.req = (uintptr_t) ctx;
   p->context.proto = LC_PROTO_LONG_PUT;
   lci_put(mv, src, size, rank, dctx->addr, dctx->rkey,
@@ -109,7 +110,7 @@ int lc_rma_create(lch* mv, void* buf, size_t size, lc_addr** rctx_ptr)
 int lc_recv_put_signal(lch* mv __UNUSED__, lc_addr* rctx, lc_req* ctx)
 {
   rctx->req = (uintptr_t) ctx;
-  ctx->type = REQ_PENDING;
+  ctx->type = LC_REQ_PENDING;
   return 1;
 }
 
@@ -118,26 +119,31 @@ int lc_progress(lch* mv)
   return lc_server_progress(mv->server);
 }
 
-lc_packet* lc_alloc_packet(lch* mv, int size)
+lc_status lc_pkt_init(lch* mv, int size, int rank, int tag, struct lc_pkt* pkt)
 {
-  lc_packet* p = lc_pool_get_nb(mv->pkpool);
-  if (!p) return NULL;
-  if (size >= (int) SHORT_MSG_SIZE) {
-    fprintf(stderr, "Message size %d too big, try < %d\n", size, (int) SHORT_MSG_SIZE);
-    exit(EXIT_FAILURE);
-  }
+  LC_POOL_GET_OR_RETN(mv->pkpool, p);
   p->context.size = size;
-  return p;
+  pkt->rank = rank;
+  pkt->tag = tag;
+  p->context.runtime = 0;
+  pkt->_reserved_ = p;
+  if (size < (int) SHORT_MSG_SIZE) {
+    pkt->buffer = &p->data;
+  } else {
+    pkt->buffer = memalign(4096, size);
+    p->data.rts.size = size;
+  }
+  return LC_OK;
 }
 
-void lc_free_packet(lch* mv, lc_packet* p)
+void lc_pkt_fini(lch* mv, struct lc_pkt* pkt)
 {
-  lc_pool_put(mv->pkpool, p);
-}
-
-void* lc_get_packet_data(lc_packet* p)
-{
-  return p->data.buffer;
+  if (pkt->_reserved_) {
+    lc_packet* p = (lc_packet*) pkt->_reserved_;
+    if (pkt->buffer != &(p->data))
+      free(pkt->buffer);
+    lc_pool_put(mv->pkpool, p);
+  }
 }
 
 int lc_id(lch* mv) {

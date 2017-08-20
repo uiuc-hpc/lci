@@ -9,6 +9,24 @@
 #include "lc/hashtable.h"
 #include "lc/pool.h"
 
+// Keep this order, or change lc_proto.
+enum lc_proto_name {
+  LC_PROTO_NULL = 0,
+  LC_PROTO_SHORT_TAG,
+  LC_PROTO_RTS_TAG,
+  LC_PROTO_RTR_TAG,
+  LC_PROTO_LONG_TAG,
+
+  LC_PROTO_SHORT_QUEUE,
+  LC_PROTO_RTS_QUEUE,
+  LC_PROTO_RTR_QUEUE,
+  LC_PROTO_LONG_QUEUE,
+
+  LC_PROTO_LONG_PUT,
+  LC_PROTO_PERSIS
+};
+
+
 #ifdef LC_USE_SERVER_OFI
 #define SERVER_CONTEXT char __padding__[64 - 40];
 typedef struct ofi_server lc_server;
@@ -38,11 +56,9 @@ struct lc_struct {
 #else
   lcrq_t queue;
 #endif
-  // int am_table_size;
-  // lc_am_func_t am_table[128];
 } __attribute__((aligned(64)));
 
-#define RMA_SIGNAL_MATCH 0
+#define RMA_SIGNAL_TAG 0
 #define RMA_SIGNAL_SIMPLE 1
 #define RMA_SIGNAL_QUEUE 2
 

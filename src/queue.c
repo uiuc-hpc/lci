@@ -4,13 +4,17 @@
 #include "lc/pool.h"
 #include "pmi.h"
 
-lc_status lc_send_queue(lch* mv, const void* src, int size, int rank, int tag, lc_req* ctx)
+lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, lc_req* ctx)
 {
-  LC_POOL_GET_OR_RETN(mv->pkpool, p);
+  lc_packet* p = (lc_packet*) pkt->_reserved_;
+  void* src = pkt->buffer;
+  int size = p->context.size;
+  int rank = pkt->rank;
+  int tag = pkt->tag;
   if (size <= (int) SHORT_MSG_SIZE) {
     p->context.proto = LC_PROTO_SHORT_QUEUE;
     lci_send(mv, src, size, rank, tag, p);
-    ctx->type = REQ_DONE;
+    ctx->type = LC_REQ_DONE;
   } else {
     INIT_CTX(ctx);
     p->context.proto = LC_PROTO_RTS_QUEUE;
@@ -19,6 +23,26 @@ lc_status lc_send_queue(lch* mv, const void* src, int size, int rank, int tag, l
     lci_send(mv, &p->data, sizeof(struct packet_rts),
              rank, tag, p);
   }
+  ctx->post = NULL;
+  return LC_OK;
+}
+
+lc_status lc_send_queue(lch* mv, const void* src, int size, int rank, int tag, lc_req* ctx)
+{
+  LC_POOL_GET_OR_RETN(mv->pkpool, p);
+  if (size <= (int) SHORT_MSG_SIZE) {
+    p->context.proto = LC_PROTO_SHORT_QUEUE;
+    lci_send(mv, src, size, rank, tag, p);
+    ctx->type = LC_REQ_DONE;
+  } else {
+    INIT_CTX(ctx);
+    p->context.proto = LC_PROTO_RTS_QUEUE;
+    p->data.rts.sreq = (uintptr_t) ctx;
+    p->data.rts.size = size;
+    lci_send(mv, &p->data, sizeof(struct packet_rts),
+             rank, tag, p);
+  }
+  ctx->post = NULL;
   return LC_OK;
 }
 
@@ -39,8 +63,8 @@ lc_status lc_recv_queue_probe(lch* mv, int* size, int* rank, int *tag, lc_req* c
   }
   *tag = p->context.tag;
   ctx->packet = p;
-  ctx->type = REQ_PENDING;
-
+  ctx->type = LC_REQ_PENDING;
+  ctx->post = NULL;
   return LC_OK;
 }
 
@@ -50,7 +74,7 @@ lc_status lc_recv_queue(lch* mv, void* buf, lc_req* ctx)
   if (p->context.proto != LC_PROTO_RTS_QUEUE) {
     memcpy(buf, p->data.buffer, p->context.size);
     lc_pool_put(mv->pkpool, p);
-    ctx->type = REQ_DONE;
+    ctx->type = LC_REQ_DONE;
     return LC_OK;
   } else {
     int rank = p->context.from;

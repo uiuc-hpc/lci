@@ -10,7 +10,7 @@
     ctx->rank = rank;         \
     ctx->tag = tag;           \
     ctx->sync = 0;            \
-    ctx->type = REQ_PENDING;  \
+    ctx->type = LC_REQ_PENDING;  \
   }
 
 #define MAKE_PROTO(proto, tag) (((uint32_t)proto) | ((uint32_t)tag << 8))
@@ -79,22 +79,27 @@ void lc_serve_imm(lch* mv, uint32_t imm)
     lc_packet* p = (lc_packet*)addr;
     lc_req* req = (lc_req*)p->context.req;
     lc_server_rma_dereg(p->context.rma_mem);
-    req->type = REQ_DONE;
+    req->type = LC_REQ_DONE;
     lc_pool_put(mv->pkpool, p);
   } else if (type == RMA_SIGNAL_SIMPLE) {
     struct lc_rma_ctx* ctx = (struct lc_rma_ctx*)addr;
-    if (ctx->req) ((lc_req*)ctx->req)->type = REQ_DONE;
-  } else {
+    if (ctx->req) ((lc_req*)ctx->req)->type = LC_REQ_DONE;
+  } else { // match.
     lc_packet* p = (lc_packet*)addr;
     lc_req* req = (lc_req*)p->context.req;
     lc_server_rma_dereg(p->context.rma_mem);
+    req->type = LC_REQ_DONE;
+    if (req->sync) g_sync.signal(req->sync);
+    lc_pool_put(mv->pkpool, p);
+#if 0
     const lc_key key = lc_make_key(req->rank, req->tag);
     lc_value value = (lc_value)p;
     if (!lc_hash_insert(mv->tbl, key, &value, SERVER)) {
-      req->type = REQ_DONE;
+      req->type = LC_REQ_DONE;
       if (req->sync) g_sync.signal(req->sync);
       lc_pool_put(mv->pkpool, p);
     }
+#endif
   }
 }
 #endif

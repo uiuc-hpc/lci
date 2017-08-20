@@ -18,7 +18,6 @@ int main(int argc, char** args)
 
   int rank = lc_id(mv);
   int total, skip;
-  void* buffer = memalign(4096, 1 << 22);
   void* rx_buffer = memalign(4096, 1 << 22);
   lc_req ctx;
 
@@ -30,13 +29,15 @@ int main(int argc, char** args)
       skip = SKIP;
       total = TOTAL;
     }
-    memset(buffer, 'A', len);
+    struct lc_pkt pkt;
+    lc_pkt_init(mv, len, 1, 99, &pkt);
+    memset(pkt.buffer, 'A', len);
     if (rank == 0) {
       double t1;
       for (int i = 0; i < skip + total; i++) {
         if (i == skip) t1 = wtime();
         for (int j = 0; j < WINDOWS; j++)  {
-          lc_send_tag(mv, buffer, len, 1, 99, &ctx);
+          lc_send_tag_p(mv, &pkt, &ctx);
           lc_wait_poll(mv, &ctx);
         }
         lc_recv_tag(mv, rx_buffer, len, 1, 99, &ctx);
@@ -44,19 +45,20 @@ int main(int argc, char** args)
       }
       printf("%llu \t %.5f\n", len, (wtime() - t1)/total / (WINDOWS+1) * 1e6);
     } else {
+      pkt.rank = 0;
       for (int i = 0; i < skip + total; i++) {
         for (int j = 0; j < WINDOWS; j++) {
           lc_recv_tag(mv, rx_buffer, len, 0, 99, &ctx);
           lc_wait_poll(mv, &ctx);
         }
         // send
-        lc_send_tag(mv, buffer, len, 0, 99, &ctx);
+        lc_send_tag_p(mv, &pkt, &ctx);
         lc_wait_poll(mv, &ctx);
       }
     }
+    lc_pkt_fini(mv, &pkt);
   }
   free(rx_buffer);
-  free(buffer);
   lc_close(mv);
   return 0;
 }

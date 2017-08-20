@@ -33,34 +33,20 @@ typedef enum lc_status {
   LC_OK = 1,
 } lc_status;
 
-// Keep this order, or change lc_proto.
-enum lc_proto_name {
-  LC_PROTO_NULL = 0,
-  LC_PROTO_SHORT_MATCH,
-  LC_PROTO_RTR_MATCH,
-  LC_PROTO_LONG_MATCH,
-
-  LC_PROTO_SHORT_QUEUE,
-  LC_PROTO_RTS_QUEUE,
-  LC_PROTO_RTR_QUEUE,
-  LC_PROTO_LONG_QUEUE,
-
-  LC_PROTO_LONG_PUT,
-  LC_PROTO_PERSIS
-};
-
 typedef lc_status (*lc_fcb)(lch* mv, lc_req* ctx, lc_sync* sync);
 
-#define REQ_NULL 0
-#define REQ_DONE 1
-#define REQ_PENDING 2
+enum lc_req_state {
+  LC_REQ_NULL = 0,
+  LC_REQ_DONE,
+  LC_REQ_PENDING,
+};
 
 struct lc_ctx {
   void* buffer;
   int size;
   int rank;
   int tag;
-  volatile int type;
+  volatile enum lc_req_state type;
   lc_sync* sync;
   lc_packet* packet;
   lc_fcb post;
@@ -74,6 +60,13 @@ struct lc_rma_ctx {
 } __attribute__((aligned(64)));
 
 typedef struct lc_rma_ctx lc_addr;
+
+struct lc_pkt {
+  void*  _reserved_;
+  void* buffer;
+  int rank;
+  int tag;
+};
 
 /**
  * @defgroup low-level Low-level API
@@ -101,6 +94,21 @@ LC_EXPORT
 lc_status lc_send_tag(lch* mv, const void* src, int size, int rank, int tag, lc_req* ctx);
 
 /**
+* @brief Send a buffer and match at destination (packetized version)
+*
+* @param mv
+* @param src
+* @param size
+* @param rank
+* @param tag
+*
+* @return 1 if success, 0 otherwise -- need to retry.
+*
+*/
+LC_EXPORT
+lc_status lc_send_tag_p(lch* mv, struct lc_pkt* pkt, lc_req* ctx);
+
+/**
 * @brief Initialize a recv, matching incoming message.
 *
 * @param mv
@@ -124,7 +132,7 @@ lc_status lc_recv_tag(lch* mv, void* src, int size, int rank, int tag, lc_req* c
  */
 
 /**
-* @brief Initialize a rdz send, queue at destination.
+* @brief Initialize a send, queue at destination.
 *
 * @param mv
 * @param src
@@ -141,7 +149,24 @@ lc_status lc_send_queue(lch* mv, const void* src, int size, int rank, int tag,
                         lc_req* ctx);
 
 /**
-* @brief Try to queue, for message send with send-queue.
+* @brief Initialize a send, queue at destination (packetized version).
+*
+* @param mv
+* @param src
+* @param size
+* @param rank
+* @param tag
+* @param ctx
+*
+* @return 1 if success, 0 otherwise -- need to retry.
+*
+*/
+LC_EXPORT
+lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, lc_req* ctx);
+
+
+/**
+* @brief Try to dequeue, for message send with send-queue.
 *
 * @param mv
 * @param size
@@ -265,7 +290,7 @@ void lc_close(lch* handle);
 LC_INLINE
 void lc_wait(lc_req* ctx)
 {
-  while (ctx->type != REQ_DONE) {
+  while (ctx->type != LC_REQ_DONE) {
     g_sync.wait(ctx->sync);
   }
 }
@@ -279,7 +304,7 @@ void lc_wait(lc_req* ctx)
 */
 LC_INLINE
 int lc_test(lc_req* ctx) {
-  return (ctx->type == REQ_DONE);
+  return (ctx->type == LC_REQ_DONE);
 }
 
 /**@} end control */
@@ -298,16 +323,10 @@ LC_EXPORT
 int lc_progress(lch* mv);
 
 LC_EXPORT
-lc_packet* lc_alloc_packet(lch* mv, int size);
+lc_status lc_pkt_init(lch* mv, int size, int rank, int tag, struct lc_pkt*);
 
 LC_EXPORT
-void* lc_get_packet_data(lc_packet* p);
-
-LC_EXPORT
-void lc_free_packet(lch* mv, lc_packet* p);
-
-LC_EXPORT
-void lc_send_persis(lch* mv, lc_packet* p, int rank, int tag, lc_req* ctx);
+void lc_pkt_fini(lch* mv, struct lc_pkt* p);
 
 LC_EXPORT
 int lc_id(lch* mv);
@@ -318,8 +337,11 @@ int lc_size(lch* mv);
 LC_INLINE
 lc_status lc_post(lch* mv, lc_req* ctx, lc_sync* sync)
 {
-  if (ctx->post)
-    return ctx->post(mv, ctx, sync);
+  if (ctx->post) {
+    lc_status ret = ctx->post(mv, ctx, sync);
+    ctx->post = NULL;
+    return ret;
+  }
   else
     return LC_OK;
 }
