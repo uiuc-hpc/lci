@@ -36,9 +36,8 @@ typedef enum lc_status {
 typedef lc_status (*lc_fcb)(lch* mv, lc_req* ctx, lc_sync* sync);
 
 enum lc_req_state {
-  LC_REQ_NULL = 0,
-  LC_REQ_DONE,
-  LC_REQ_PENDING,
+  LC_REQ_PENDING = 0,
+  LC_REQ_DONE = 1,
 };
 
 struct lc_ctx {
@@ -46,7 +45,11 @@ struct lc_ctx {
   int size;
   int rank;
   int tag;
-  volatile enum lc_req_state type;
+  union {
+    volatile enum lc_req_state type;
+    volatile int int_type;
+  };
+  int lock;
   lc_sync* sync;
   lc_packet* packet;
   lc_fcb post;
@@ -86,6 +89,7 @@ struct lc_pkt {
 * @param size
 * @param rank
 * @param tag
+* @param ctx
 *
 * @return 1 if success, 0 otherwise -- need to retry.
 *
@@ -97,10 +101,8 @@ lc_status lc_send_tag(lch* mv, const void* src, int size, int rank, int tag, lc_
 * @brief Send a buffer and match at destination (packetized version)
 *
 * @param mv
-* @param src
-* @param size
-* @param rank
-* @param tag
+* @param pkt
+* @param ctx
 *
 * @return 1 if success, 0 otherwise -- need to retry.
 *
@@ -152,10 +154,7 @@ lc_status lc_send_queue(lch* mv, const void* src, int size, int rank, int tag,
 * @brief Initialize a send, queue at destination (packetized version).
 *
 * @param mv
-* @param src
-* @param size
-* @param rank
-* @param tag
+* @param pkt
 * @param ctx
 *
 * @return 1 if success, 0 otherwise -- need to retry.
@@ -183,7 +182,7 @@ lc_status lc_recv_queue_probe(lch* mv, int* size, int* rank, int* tag, lc_req* c
 * @brief Try to finish a queue op, for message send with send-queue.
 *
 * @param mv
-* @param buf An allocated buffer (with lc_alloc).
+* @param buf An allocated buffer.
 * @param ctx
 *
 * @return 1 if finished, 0 otherwise.
@@ -280,6 +279,18 @@ void lc_open(lch** handle);
 LC_EXPORT
 void lc_close(lch* handle);
 
+LC_INLINE
+lc_status lc_post(lch* mv, lc_req* ctx, lc_sync* sync)
+{
+  if (ctx->post) {
+    lc_status ret = ctx->post(mv, ctx, sync);
+    ctx->post = NULL;
+    return ret;
+  }
+  else
+    return LC_OK;
+}
+
 /**
 * @brief Blocking wait on sync, for communication to finish.
 *
@@ -288,10 +299,10 @@ void lc_close(lch* handle);
 * @return
 */
 LC_INLINE
-void lc_wait(lc_req* ctx)
+void lc_wait(lch*mv, lc_req* ctx, lc_sync* sync)
 {
-  while (ctx->type != LC_REQ_DONE) {
-    g_sync.wait(ctx->sync);
+  if (lc_post(mv, ctx, sync) == LC_ERR_NOP) {
+      lc_sync_wait(ctx->sync, &(ctx->int_type));
   }
 }
 
@@ -335,18 +346,6 @@ LC_EXPORT
 int lc_size(lch* mv);
 
 LC_INLINE
-lc_status lc_post(lch* mv, lc_req* ctx, lc_sync* sync)
-{
-  if (ctx->post) {
-    lc_status ret = ctx->post(mv, ctx, sync);
-    ctx->post = NULL;
-    return ret;
-  }
-  else
-    return LC_OK;
-}
-
-LC_INLINE
 void lc_wait_poll(lch* mv, lc_req* ctx) {
   lc_post(mv, ctx, NULL);
   while (!lc_test(ctx))
@@ -354,7 +353,7 @@ void lc_wait_poll(lch* mv, lc_req* ctx) {
 }
 
 LC_EXPORT
-void lc_sync_init(lc_wait_fp w, lc_signal_fp s, lc_yield_fp y);
+void lc_sync_init(lc_get_fp i, lc_wait_fp w, lc_signal_fp s, lc_yield_fp y);
 
 /**@}*/
 

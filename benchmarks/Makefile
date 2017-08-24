@@ -45,6 +45,8 @@ TBB_LIB = -L$(TACC_INTEL_DIR)/tbb/lib/intel64/gcc4.4/ -ltbb -ltbbmalloc
 ### FOR TESTING ARGOBOTS ###
 ABT_INC = $(HOME)/argo/include
 ABT_LIB = $(HOME)/argo/lib -labt
+CFLAGS += -I$(ABT_INC)
+LDFLAGS += -L$(ABT_LIB)
 
 ### FOR TESTING BOOST ###
 CXXFLAGS += -I$(TACC_BOOST_INC)

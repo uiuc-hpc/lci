@@ -1,14 +1,13 @@
 #include <assert.h>
-#include <mpi.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
 
+#include "mpiv.h"
 #include "comm_exp.h"
 #include "lc.h"
 
-// #define CHECK_RESULT
 #ifdef USE_ABT
 #include "ult/helper_abt.h"
 #elif defined(USE_PTH)
@@ -35,20 +34,15 @@ int WIN = 64;
 
 int main(int argc, char** args)
 {
-  MPIV_Init(&argc, &args);
-  MPIV_Start_worker(1, 0);
-  MPIV_Finalize();
-  return 0;
-}
+  MPI_Init(&argc, &args);
+  MPI_Start_worker(1);
+  set_me_to(14);
 
-void main_task(intptr_t arg)
-{
   double times = 0;
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   void* r_buf = (void*)malloc((size_t)MAX_MSG_SIZE);
   void* s_buf = (void*)malloc((size_t)MAX_MSG_SIZE);
-
   // for (WIN = 128; WIN <= 128; WIN *= 2)
   for (int size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE; size <<= 1) {
     int total = TOTAL;
@@ -58,24 +52,24 @@ void main_task(intptr_t arg)
       total = TOTAL_LARGE;
       skip = SKIP_LARGE;
     }
-    MPI_Barrier(MPI_COMM_WORLD);
-    MPIV_Request r[WIN];
+    // MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Request r[WIN];
     if (rank == 0) {
       memset(r_buf, 'a', size);
       memset(s_buf, 'b', size);
       for (int t = 0; t < total + skip; t++) {
         if (t == skip) {
-          times = MPI_Wtime();
+          times = wtime();
         }
         for (int k = 0; k < WIN; k++) {
-          MPIV_Isend(s_buf, size, MPI_CHAR, 1, k, MPI_COMM_WORLD, &r[k]);
-          // MPIV_Send(s_buf, size, MPI_CHAR, 1, k, MPI_COMM_WORLD);
+          MPI_Isend(s_buf, size, MPI_CHAR, 1, k, MPI_COMM_WORLD, &r[k]);
+          // MPI_Send(s_buf, size, MPI_CHAR, 1, k, MPI_COMM_WORLD);
         }
-        MPIV_Waitall(WIN, r, MPI_STATUSES_IGNORE);
-        MPIV_Recv(r_buf, 4, MPI_CHAR, 1, WIN + 1, MPI_COMM_WORLD,
-                  MPI_STATUS_IGNORE);
+        MPI_Waitall(WIN, r, 0);
+        MPI_Recv(r_buf, 4, MPI_CHAR, 1, WIN + 1, MPI_COMM_WORLD,
+                 0);
       }
-      times = MPI_Wtime() - times;
+      times = wtime() - times;
       printf("%d %f\n", size, (total * WIN) / times);
       // printf("%d %f\n", size, size / 1e6 * total * WIN / times);
     } else {
@@ -83,11 +77,11 @@ void main_task(intptr_t arg)
       memset(r_buf, 'a', size);
       for (int t = 0; t < total + skip; t++) {
         for (int k = 0; k < WIN; k++) {
-          MPIV_Irecv(r_buf, size, MPI_CHAR, 0, k, MPI_COMM_WORLD, &r[k]);
-          // MPIV_Recv(r_buf, size, MPI_CHAR, 0, k, MPI_COMM_WORLD, MPI_STATUS_IGNORE);//, &r[k]);
+          MPI_Irecv(r_buf, size, MPI_CHAR, 0, k, MPI_COMM_WORLD, &r[k]);
+          // MPI_Recv(r_buf, size, MPI_CHAR, 0, k, MPI_COMM_WORLD, MPI_STATUS_IGNORE);//, &r[k]);
         }
-        MPIV_Waitall(WIN, r, MPI_STATUSES_IGNORE);
-        MPIV_Send(s_buf, 4, MPI_CHAR, 0, WIN + 1, MPI_COMM_WORLD);
+        MPI_Waitall(WIN, r, 0);
+        MPI_Send(s_buf, 4, MPI_CHAR, 0, WIN + 1, MPI_COMM_WORLD);
         if (t == 0 || CHECK_RESULT) {
           for (int j = 0; j < size; j++) {
             // assert(((char*)r_buf)[j] == 'b');
@@ -95,7 +89,7 @@ void main_task(intptr_t arg)
         }
       }
     }
-    MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Barrier(MPI_COMM_WORLD);
   }
 
   free(r_buf);

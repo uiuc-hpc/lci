@@ -18,7 +18,6 @@ typedef struct fthread {
   ffunc func;
   void* data;
   volatile enum fthread_state state;
-  volatile int count;
 } fthread __attribute__((aligned(64)));
 
 LC_INLINE void fthread_init(fthread* f)

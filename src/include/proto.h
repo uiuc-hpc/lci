@@ -10,6 +10,7 @@
     ctx->rank = rank;         \
     ctx->tag = tag;           \
     ctx->sync = 0;            \
+    ctx->lock = 0;            \
     ctx->type = LC_REQ_PENDING;  \
   }
 
@@ -88,18 +89,11 @@ void lc_serve_imm(lch* mv, uint32_t imm)
     lc_packet* p = (lc_packet*)addr;
     lc_req* req = (lc_req*)p->context.req;
     lc_server_rma_dereg(p->context.rma_mem);
+    lc_spin_lock(&req->lock);
     req->type = LC_REQ_DONE;
-    if (req->sync) g_sync.signal(req->sync);
+    if (req->sync) lc_sync_signal(req->sync);
+    lc_spin_unlock(&req->lock);
     lc_pool_put(mv->pkpool, p);
-#if 0
-    const lc_key key = lc_make_key(req->rank, req->tag);
-    lc_value value = (lc_value)p;
-    if (!lc_hash_insert(mv->tbl, key, &value, SERVER)) {
-      req->type = LC_REQ_DONE;
-      if (req->sync) g_sync.signal(req->sync);
-      lc_pool_put(mv->pkpool, p);
-    }
-#endif
   }
 }
 #endif

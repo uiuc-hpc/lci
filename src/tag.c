@@ -4,14 +4,20 @@
 #include "lc/pool.h"
 #include "pmi.h"
 
-static lc_status lc_send_tag_post(lch* mv __UNUSED__, lc_req* ctx, lc_sync* sync)
+static lc_status lc_tag_post(lch* mv __UNUSED__, lc_req* ctx, lc_sync* sync)
 {
-  if (!ctx) return 1;
-  if (ctx->size <= (int) SHORT_MSG_SIZE || ctx->type == LC_REQ_DONE) {
+  if (!ctx) return LC_OK;
+  if (ctx->type == LC_REQ_DONE) {
     return LC_OK;
   } else {
-    ctx->sync = sync;
-    return LC_ERR_NOP;
+    lc_status ret = LC_OK;
+    lc_spin_lock(&ctx->lock);
+    if (ctx->type != LC_REQ_DONE) {
+      ctx->sync = sync;
+      ret = LC_ERR_NOP;
+    }
+    lc_spin_unlock(&ctx->lock);
+    return ret;
   }
 }
 
@@ -34,7 +40,7 @@ lc_status lc_send_tag_p(lch* mv, struct lc_pkt* pkt, lc_req* ctx)
     lci_send(mv, &p->data, sizeof(struct packet_rts),
              rank, tag, p);
   }
-  ctx->post = lc_send_tag_post;
+  ctx->post = lc_tag_post;
   return LC_OK;
 }
 
@@ -53,13 +59,13 @@ lc_status lc_send_tag(lch* mv, const void* src, int size, int rank, int tag, lc_
     lci_send(mv, &p->data, sizeof(struct packet_rts),
              rank, tag, p);
   }
-  ctx->post = lc_send_tag_post;
+  ctx->post = lc_tag_post;
   return LC_OK;
 }
 
-static lc_status lc_recv_tag_post(lch* mv, lc_req* ctx, lc_sync* sync)
+lc_status lc_recv_tag(lch* mv, void* src, int size, int rank, int tag, lc_req* ctx)
 {
-  ctx->sync = sync;
+  INIT_CTX(ctx);
   lc_key key = lc_make_key(ctx->rank, ctx->tag);
   lc_value value = (lc_value)ctx;
   if (!lc_hash_insert(mv->tbl, key, &value, CLIENT)) {
@@ -68,7 +74,6 @@ static lc_status lc_recv_tag_post(lch* mv, lc_req* ctx, lc_sync* sync)
       ctx->type = LC_REQ_DONE;
       memcpy(ctx->buffer, p_ctx->data.buffer, ctx->size);
       lc_pool_put(mv->pkpool, p_ctx);
-      return LC_OK;
     } else {
       p_ctx->context.proto = LC_PROTO_RTR_TAG;
       lci_rdz_prepare(mv, ctx->buffer, ctx->size, ctx, p_ctx);
@@ -76,12 +81,6 @@ static lc_status lc_recv_tag_post(lch* mv, lc_req* ctx, lc_sync* sync)
           ctx->rank, ctx->tag, p_ctx);
     }
   }
-  return LC_ERR_NOP;
-}
-
-lc_status lc_recv_tag(lch* mv, void* src, int size, int rank, int tag, lc_req* ctx)
-{
-  INIT_CTX(ctx);
-  ctx->post = lc_recv_tag_post;
+  ctx->post = lc_tag_post;
   return LC_OK;
 }

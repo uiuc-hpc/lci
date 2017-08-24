@@ -9,14 +9,12 @@
 #include "mpiv.h"
 #include "comm_exp.h"
 
-#if 0
 #ifdef USE_ABT
 #include "ult/helper_abt.h"
 #elif defined(USE_PTH)
 #include "ult/helper_pth.h"
 #else
 #include "ult/helper.h"
-#endif
 #endif
 
 #include "lc/profiler.h"
@@ -41,6 +39,7 @@ int main(int argc, char** args)
   if (argc > 1) size = atoi(args[1]);
   MPI_Start_worker(1);
   set_me_to(14);
+
   double times = 0;
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);

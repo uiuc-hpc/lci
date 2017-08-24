@@ -74,8 +74,7 @@ void lc_send_pkt(lch* mv, struct lc_pkt* pkt, int rank, int tag, lc_req* ctx)
 
 int lc_send_put(lch* mv, void* src, int size, int rank, lc_addr* dst, lc_req* ctx)
 {
-  lc_packet* p = (lc_packet*) lc_pool_get_nb(mv->pkpool);
-  if (!p) { ctx->type = LC_REQ_NULL; return 0; };
+  LC_POOL_GET_OR_RETN(mv->pkpool, p);
   struct lc_rma_ctx* dctx = (struct lc_rma_ctx*) dst;
   ctx->type = LC_REQ_PENDING;
   p->context.req = (uintptr_t) ctx;
@@ -85,8 +84,7 @@ int lc_send_put(lch* mv, void* src, int size, int rank, lc_addr* dst, lc_req* ct
 
 int lc_send_put_signal(lch* mv, void* src, int size, int rank, lc_addr* dst, lc_req* ctx)
 {
-  lc_packet* p = (lc_packet*) lc_pool_get_nb(mv->pkpool);
-  if (!p) { ctx->type = LC_REQ_NULL; return 0; };
+  LC_POOL_GET_OR_RETN(mv->pkpool, p);
   struct lc_rma_ctx* dctx = (struct lc_rma_ctx*) dst;
   ctx->type = LC_REQ_PENDING;
   p->context.req = (uintptr_t) ctx;
