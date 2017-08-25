@@ -2,6 +2,7 @@
 #define LC_PROTO_H
 
 #include "lc/hashtable.h"
+#include "lc/macro.h"
 
 #define INIT_CTX(ctx)         \
   {                           \
@@ -10,8 +11,7 @@
     ctx->rank = rank;         \
     ctx->tag = tag;           \
     ctx->sync = 0;            \
-    ctx->lock = 0;            \
-    ctx->type = LC_REQ_PENDING;  \
+    ctx->type = LC_REQ_PEND;  \
   }
 
 #define MAKE_PROTO(proto, tag) (((uint32_t)proto) | ((uint32_t)tag << 8))
@@ -89,10 +89,7 @@ void lc_serve_imm(lch* mv, uint32_t imm)
     lc_packet* p = (lc_packet*)addr;
     lc_req* req = (lc_req*)p->context.req;
     lc_server_rma_dereg(p->context.rma_mem);
-    lc_spin_lock(&req->lock);
-    req->type = LC_REQ_DONE;
-    if (req->sync) lc_sync_signal(req->sync);
-    lc_spin_unlock(&req->lock);
+    LC_SET_REQ_DONE_AND_SIGNAL(req);
     lc_pool_put(mv->pkpool, p);
   }
 }

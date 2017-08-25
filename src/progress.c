@@ -9,10 +9,7 @@ static void lc_recv_tag_short(lch* mv, lc_packet* p)
     // data has comes.
     lc_req* req = (lc_req*)value;
     memcpy(req->buffer, p->data.buffer, req->size);
-    lc_spin_lock(&req->lock);
-    req->type = LC_REQ_DONE;
-    if (req->sync) lc_sync_signal(req->sync);
-    lc_spin_unlock(&req->lock);
+    LC_SET_REQ_DONE_AND_SIGNAL(req);
     lc_pool_put(mv->pkpool, p);
   }
 }
@@ -35,10 +32,7 @@ static void lc_recv_tag_rts(lch* mv, lc_packet* p)
 static void lc_sent_rdz_done(lch* mv, lc_packet* p)
 {
   lc_req* req = (lc_req*) p->context.req;
-  lc_spin_lock(&req->lock);
-  req->type = LC_REQ_DONE;
-  if (req->sync) lc_sync_signal(req->sync);
-  lc_spin_unlock(&req->lock);
+  LC_SET_REQ_DONE_AND_SIGNAL(req);
   lc_pool_put(mv->pkpool, p);
 }
 
@@ -65,10 +59,7 @@ static void lc_recv_rtr_queue(lch* mv, lc_packet* p)
 static void lc_sent_put(lch* mv, lc_packet* p_ctx)
 {
   lc_req* req = (lc_req*) p_ctx->context.req;
-  lc_spin_lock(&req->lock);
-  req->type = LC_REQ_DONE;
-  if (req->sync) lc_sync_signal(req->sync);
-  lc_spin_unlock(&req->lock);
+  LC_SET_REQ_DONE_AND_SIGNAL(req);
   lc_pool_put(mv->pkpool, p_ctx);
 }
 

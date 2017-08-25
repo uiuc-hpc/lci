@@ -94,4 +94,6 @@ int main(int argc, char** args)
 
   free(r_buf);
   free(s_buf);
+  MPI_Stop_worker();
+  MPI_Finalize();
 }

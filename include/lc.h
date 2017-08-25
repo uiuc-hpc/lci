@@ -36,7 +36,7 @@ typedef enum lc_status {
 typedef lc_status (*lc_fcb)(lch* mv, lc_req* ctx, lc_sync* sync);
 
 enum lc_req_state {
-  LC_REQ_PENDING = 0,
+  LC_REQ_PEND = 0,
   LC_REQ_DONE = 1,
 };
 
@@ -49,7 +49,6 @@ struct lc_ctx {
     volatile enum lc_req_state type;
     volatile int int_type;
   };
-  int lock;
   lc_sync* sync;
   lc_packet* packet;
   lc_fcb post;

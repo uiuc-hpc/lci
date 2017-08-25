@@ -10,14 +10,11 @@ static lc_status lc_tag_post(lch* mv __UNUSED__, lc_req* ctx, lc_sync* sync)
   if (ctx->type == LC_REQ_DONE) {
     return LC_OK;
   } else {
-    lc_status ret = LC_OK;
-    lc_spin_lock(&ctx->lock);
-    if (ctx->type != LC_REQ_DONE) {
-      ctx->sync = sync;
-      ret = LC_ERR_NOP;
+    if (__sync_val_compare_and_swap(&ctx->sync, NULL, sync) == NULL) {
+      return LC_ERR_NOP;
+    } else {
+      return LC_OK;
     }
-    lc_spin_unlock(&ctx->lock);
-    return ret;
   }
 }
 

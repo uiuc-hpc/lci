@@ -54,7 +54,6 @@ lc_status lc_recv_queue_probe(lch* mv, int* size, int* rank, int *tag, lc_req* c
   lc_packet* p = (lc_packet*) lcrq_dequeue(&mv->queue);
 #endif
   if (p == NULL) return LC_ERR_NOP;
-
   *rank = p->context.from;
   if (p->context.proto != LC_PROTO_RTS_QUEUE) {
     *size = p->context.size;
@@ -63,7 +62,7 @@ lc_status lc_recv_queue_probe(lch* mv, int* size, int* rank, int *tag, lc_req* c
   }
   *tag = p->context.tag;
   ctx->packet = p;
-  ctx->type = LC_REQ_PENDING;
+  ctx->type = LC_REQ_PEND;
   ctx->post = NULL;
   return LC_OK;
 }
