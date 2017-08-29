@@ -21,36 +21,28 @@ extern lch* lc_hdl;
 #define MPI_COMM_WORLD lc_hdl
 
 LC_INLINE
-void MPI_Comm_rank(MPI_Comm comm, int* rank)
-{
-  *rank = lc_id(comm);
-}
-
+void MPI_Comm_rank(MPI_Comm comm, int* rank) { *rank = lc_id(comm); }
 LC_INLINE
-void MPI_Comm_size(MPI_Comm comm, int* size)
-{
-  *size = lc_size(comm);
-}
+void MPI_Comm_size(MPI_Comm comm, int* size) { *size = lc_size(comm); }
+LC_EXPORT
+void MPI_Recv(void* buffer, int count, MPI_Datatype datatype, int rank, int tag,
+              MPI_Comm, MPI_Status*);
 
 LC_EXPORT
-void MPI_Recv(void* buffer, int count, MPI_Datatype datatype, int rank,
-               int tag, MPI_Comm, MPI_Status*);
-
-LC_EXPORT
-void MPI_Send(void* buffer, int count, MPI_Datatype datatype, int rank,
-               int tag, MPI_Comm);
+void MPI_Send(void* buffer, int count, MPI_Datatype datatype, int rank, int tag,
+              MPI_Comm);
 
 LC_EXPORT
 void MPI_Ssend(void* buffer, int count, MPI_Datatype datatype, int rank,
-                int tag, MPI_Comm);
+               int tag, MPI_Comm);
 
 LC_EXPORT
 void MPI_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
-                int tag, MPI_Comm, MPI_Request* req);
+               int tag, MPI_Comm, MPI_Request* req);
 
 LC_EXPORT
 void MPI_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
-                int tag, MPI_Comm, MPI_Request* req);
+               int tag, MPI_Comm, MPI_Request* req);
 
 LC_EXPORT
 void MPI_Waitall(int count, MPI_Request* req, MPI_Status*);

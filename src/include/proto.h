@@ -85,7 +85,7 @@ void lc_serve_imm(lch* mv, uint32_t imm)
   } else if (type == RMA_SIGNAL_SIMPLE) {
     struct lc_rma_ctx* ctx = (struct lc_rma_ctx*)addr;
     if (ctx->req) ((lc_req*)ctx->req)->type = LC_REQ_DONE;
-  } else { // match.
+  } else {  // match.
     lc_packet* p = (lc_packet*)addr;
     lc_req* req = (lc_req*)p->context.req;
     lc_server_rma_dereg(p->context.rma_mem);

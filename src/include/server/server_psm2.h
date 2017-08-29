@@ -130,11 +130,7 @@ LC_INLINE uintptr_t psm_rma_reg(psm_server* s, void* buf, size_t size)
   return _real_psm_reg(s, buf, size);
 }
 
-LC_INLINE int psm_rma_dereg(uintptr_t mem)
-{
-  return _real_psm_free(mem);
-}
-
+LC_INLINE int psm_rma_dereg(uintptr_t mem) { return _real_psm_free(mem); }
 LC_INLINE uint32_t psm_rma_key(uintptr_t mem)
 {
   return ((struct psm_mr*)mem)->rkey;
@@ -222,9 +218,9 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   if (with_mpi) {
     for (int i = 0; i < mv->size; i++) {
       psm2_epid_t destaddr;
-      MPI_Sendrecv(&s->myepid, sizeof(psm2_epid_t), MPI_BYTE, i, 99,
-          &destaddr, sizeof(psm2_epid_t), MPI_BYTE, i, 99,
-          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Sendrecv(&s->myepid, sizeof(psm2_epid_t), MPI_BYTE, i, 99, &destaddr,
+                   sizeof(psm2_epid_t), MPI_BYTE, i, 99, MPI_COMM_WORLD,
+                   MPI_STATUS_IGNORE);
       memcpy(&s->epid[i], &destaddr, sizeof(psm2_epid_t));
       epid_array_mask[i] = 1;
     }
@@ -247,7 +243,7 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   }
 #endif
 
-  pthread_t startup_thread;
+    pthread_t startup_thread;
   pthread_create(&startup_thread, NULL, psm_startup, (void*)s);
 
   psm2_error_t epid_connect_errors[mv->size];

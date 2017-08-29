@@ -38,10 +38,7 @@ typedef struct hash_val {
   // So they will fit in a cache line.
 } lc_hash;
 
-enum insert_type {
-  CLIENT,
-  SERVER
-};
+enum insert_type { CLIENT, SERVER };
 
 LC_EXPORT
 void lc_hash_create(lc_hash** h);
@@ -58,8 +55,8 @@ int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value,
 #endif
 
 // default values recommended by http://isthe.com/chongo/tech/comp/fnv/
-static const uint32_t Prime = 0x01000193; //   16777619
-static const uint32_t Seed = 0x811C9DC5;  // 2166136261
+static const uint32_t Prime = 0x01000193;  //   16777619
+static const uint32_t Seed = 0x811C9DC5;   // 2166136261
 #define TINY_MASK(x) (((uint32_t)1 << (x)) - 1)
 #define FNV1_32_INIT ((uint32_t)2166136261)
 

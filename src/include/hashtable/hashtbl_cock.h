@@ -4,9 +4,7 @@
 #include <libcuckoo/cuckoohash_map.hh>
 
 struct hash_compare_ck {
-  size_t operator() (const lc_key &k) {
-    return myhash(k);
-  }
+  size_t operator()(const lc_key& k) { return myhash(k); }
 };
 
 struct ck_hash_val {

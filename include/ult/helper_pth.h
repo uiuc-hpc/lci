@@ -103,11 +103,7 @@ void MPIV_start_worker(int number)
   pthread_cond_init(&tlself->cond, 0);
 }
 
-void MPIV_stop_worker()
-{
-  free(tlself);
-}
-
+void MPIV_stop_worker() { free(tlself); }
 void MPIV_join(lc_pth_thread* ult)
 {
   pthread_join(ult->thread, 0);

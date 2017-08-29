@@ -13,20 +13,14 @@ __thread struct tls_t tlself;
 extern lch* lc_hdl;
 
 void* thread_get() { return tlself.thread; }
-
 void thread_yield() { fthread_yield(tlself.thread); }
-
 void thread_wait(void* thread, volatile int* mutex)
 {
   lc_spin_unlock(mutex);
   fthread_wait(thread);
 }
 
-void thread_signal(void* thread)
-{
-  fthread_resume(thread);
-}
-
+void thread_signal(void* thread) { fthread_resume(thread); }
 typedef struct fthread* lc_thread;
 typedef struct fworker* lc_worker;
 
@@ -53,7 +47,6 @@ fthread* MPI_spawn(int wid, void* (*func)(void*), void* arg)
 }
 
 void MPI_join(fthread* ult) { fthread_join(ult); }
-
 void MPI_Stop_worker()
 {
   fworker_stop_main(all_worker[0]);

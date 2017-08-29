@@ -63,7 +63,7 @@ struct lc_rma_ctx {
 typedef struct lc_rma_ctx lc_addr;
 
 struct lc_pkt {
-  void*  _reserved_;
+  void* _reserved_;
   void* buffer;
   int rank;
   int tag;
@@ -93,7 +93,8 @@ struct lc_pkt {
 *
 */
 LC_EXPORT
-lc_status lc_send_tag(lch* mv, const void* src, int size, int rank, int tag, lc_req* ctx);
+lc_status lc_send_tag(lch* mv, const void* src, int size, int rank, int tag,
+                      lc_req* ctx);
 
 /**
 * @brief Send a buffer and match at destination (packetized version)
@@ -122,7 +123,8 @@ lc_status lc_send_tag_p(lch* mv, struct lc_pkt* pkt, lc_req* ctx);
 *
 */
 LC_EXPORT
-lc_status lc_recv_tag(lch* mv, void* src, int size, int rank, int tag, lc_req* ctx);
+lc_status lc_recv_tag(lch* mv, void* src, int size, int rank, int tag,
+                      lc_req* ctx);
 
 /**@} End group matching */
 
@@ -161,7 +163,6 @@ lc_status lc_send_queue(lch* mv, const void* src, int size, int rank, int tag,
 LC_EXPORT
 lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, lc_req* ctx);
 
-
 /**
 * @brief Try to dequeue, for message send with send-queue.
 *
@@ -174,7 +175,8 @@ lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, lc_req* ctx);
 * @return 1 if got data, 0 otherwise.
 */
 LC_EXPORT
-lc_status lc_recv_queue_probe(lch* mv, int* size, int* rank, int* tag, lc_req* ctx);
+lc_status lc_recv_queue_probe(lch* mv, int* size, int* rank, int* tag,
+                              lc_req* ctx);
 
 /**
 * @brief Try to finish a queue op, for message send with send-queue.
@@ -299,10 +301,10 @@ lc_status lc_post(lc_req* ctx, lc_sync* sync)
 * @return
 */
 LC_INLINE
-void lc_wait(lch*mv __UNUSED__, lc_req* ctx, lc_sync* sync)
+void lc_wait(lch* mv __UNUSED__, lc_req* ctx, lc_sync* sync)
 {
   if (lc_post(ctx, sync) == LC_ERR_NOP) {
-      lc_sync_wait(ctx->sync, &(ctx->int_type));
+    lc_sync_wait(ctx->sync, &(ctx->int_type));
   }
 }
 
@@ -314,10 +316,7 @@ void lc_wait(lch*mv __UNUSED__, lc_req* ctx, lc_sync* sync)
 * @return 1 if finished, 0 otherwise.
 */
 LC_INLINE
-int lc_test(lc_req* ctx) {
-  return (ctx->type == LC_REQ_DONE);
-}
-
+int lc_test(lc_req* ctx) { return (ctx->type == LC_REQ_DONE); }
 /**@} end control */
 
 /**@} end low-level */
@@ -346,9 +345,9 @@ LC_EXPORT
 int lc_size(lch* mv);
 
 LC_INLINE
-void lc_wait_poll(lch* mv, lc_req* ctx) {
-  while (!lc_test(ctx))
-    lc_progress(mv);
+void lc_wait_poll(lch* mv, lc_req* ctx)
+{
+  while (!lc_test(ctx)) lc_progress(mv);
 }
 
 LC_EXPORT

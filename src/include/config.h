@@ -23,8 +23,8 @@
 #define LC_PACKET_SIZE (64 * 1024 + 4096)
 #endif
 
-#endif // LC_USE_SERVER_PSM
-#endif // LC_USE_SERVER_OFI
+#endif  // LC_USE_SERVER_PSM
+#endif  // LC_USE_SERVER_OFI
 
 #define MAX_RECV 64
 #define MAX_SEND (MAX_PACKET - MAX_RECV)  // maximum concurrent send.

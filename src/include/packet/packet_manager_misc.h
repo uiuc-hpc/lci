@@ -6,13 +6,11 @@
 #include <boost/lockfree/queue.hpp>
 #include <boost/lockfree/stack.hpp>
 
-
 class packetManagerMPMCQ
 {
  public:
   void thread_yield() {}
   void init_worker(int) {}
-
   inline void* get_packet_nb()
   {
     if (pool_.empty()) return 0;
@@ -44,7 +42,6 @@ class packetManagerLfQueue
  public:
   void init_worker(int){};
   void thread_yield() {}
-
   inline void* get_packet_nb()
   {
     void* packet = NULL;

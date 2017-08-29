@@ -25,13 +25,10 @@ __thread lc_abt_thread* tlself = NULL;
 extern lch* lc_hdl;
 lc_abt_thread* MPI_spawn(int wid, void (*func)(intptr_t), intptr_t arg);
 
-void* thread_get() {
-  return tlself;
-}
-
+void* thread_get() { return tlself; }
 void thread_wait(void* t, volatile int* lock)
 {
-  lc_abt_thread* thread = (lc_abt_thread*) t;
+  lc_abt_thread* thread = (lc_abt_thread*)t;
   lc_abt_thread* saved = tlself;
   ABT_mutex_lock(thread->mutex);
   lc_spin_unlock(lock);
@@ -42,7 +39,7 @@ void thread_wait(void* t, volatile int* lock)
 
 void thread_signal(void* t)
 {
-  lc_abt_thread* thread = (lc_abt_thread*) t;
+  lc_abt_thread* thread = (lc_abt_thread*)t;
   lc_abt_thread* saved = tlself;
   ABT_cond_signal(thread->cond);
   tlself = saved;
@@ -56,7 +53,6 @@ void thread_yield()
 }
 
 static void setup(intptr_t i) { set_me_to(i); }
-
 void MPI_Start_worker(int number)
 {
   ABT_init(0, NULL);
@@ -85,10 +81,7 @@ void MPI_Start_worker(int number)
   }
 }
 
-void MPI_Stop_worker()
-{
-}
-
+void MPI_Stop_worker() {}
 static void abt_wrap(void* arg)
 {
   lc_abt_thread* th = (lc_abt_thread*)arg;

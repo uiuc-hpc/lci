@@ -12,7 +12,7 @@ TEST(FULT, InitFini)
 
 static void* incr(void* arg)
 {
-  int* v = (int*) arg;
+  int* v = (int*)arg;
   (*v)++;
   return 0;
 }
@@ -33,7 +33,7 @@ TEST(FULT, SpawnJoinMain)
 
 TEST(FULT, SpawnJoinExt)
 {
-  fworker* f, *ext;
+  fworker *f, *ext;
   fworker_create(&f);
   fworker_start_main(f);
   fworker_create(&ext);

@@ -20,15 +20,18 @@
 
 #define __UNUSED__ __attribute__((unused))
 
-#define LC_POOL_GET_OR_RETN(p, x) lc_packet* x = lc_pool_get_nb((p)); if (x == NULL) return LC_ERR_NOP; x->context.runtime = 1;
+#define LC_POOL_GET_OR_RETN(p, x)     \
+  lc_packet* x = lc_pool_get_nb((p)); \
+  if (x == NULL) return LC_ERR_NOP;   \
+  x->context.runtime = 1;
 
-#define LC_SET_REQ_DONE_AND_SIGNAL(r) {\
-    req->type = LC_REQ_DONE;\
-    void* sync = req->sync;\
-    if (!sync)\
-      sync = __sync_val_compare_and_swap(&req->sync, NULL, (void*) -1);\
-    if (sync) lc_sync_signal(sync);\
-}
-
+#define LC_SET_REQ_DONE_AND_SIGNAL(r)                                  \
+  {                                                                    \
+    req->type = LC_REQ_DONE;                                           \
+    void* sync = req->sync;                                            \
+    if (!sync)                                                         \
+      sync = __sync_val_compare_and_swap(&req->sync, NULL, (void*)-1); \
+    if (sync) lc_sync_signal(sync);                                    \
+  }
 
 #endif

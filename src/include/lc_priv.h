@@ -26,7 +26,6 @@ enum lc_proto_name {
   LC_PROTO_PERSIS
 };
 
-
 #ifdef LC_USE_SERVER_OFI
 #define SERVER_CONTEXT char __padding__[64 - 40];
 typedef struct ofi_server lc_server;

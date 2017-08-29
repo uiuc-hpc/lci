@@ -43,7 +43,7 @@ LC_INLINE int lc_worker_id()
   return lc_core_id;
 }
 
-LC_INLINE void lc_sync_wait(lc_sync* sync, volatile int *flag)
+LC_INLINE void lc_sync_wait(lc_sync* sync, volatile int* flag)
 {
   void* thread_ctx = g_sync.get();
   while (!*flag) {

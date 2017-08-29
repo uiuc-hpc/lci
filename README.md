@@ -3,8 +3,8 @@ Implementation of a cool communication layer ("W" sounds like "V")
 
 ## Authors
 
-- @danghvu (danghvu@gmail.com)
-- @snirmarc
+- \@danghvu (danghvu@gmail.com)
+- \@snirmarc
 
 ## Installation
 ```

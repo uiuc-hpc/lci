@@ -6,12 +6,8 @@
 #include "hashtable.h"
 
 struct hash_compare {
-  static size_t hash(const lc_key &k) {
-    return myhash(k);
-  }
-  static bool equal(const lc_key& k1, const lc_key& k2) {
-    return k1 == k2;
-  }
+  static size_t hash(const lc_key& k) { return myhash(k); }
+  static bool equal(const lc_key& k1, const lc_key& k2) { return k1 == k2; }
 };
 
 struct tbb_hash_val {
