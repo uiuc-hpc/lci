@@ -4,20 +4,6 @@
 #include "lc/pool.h"
 #include "pmi.h"
 
-static lc_status lc_tag_post(lch* mv __UNUSED__, lc_req* ctx, lc_sync* sync)
-{
-  if (!ctx) return LC_OK;
-  if (ctx->type == LC_REQ_DONE) {
-    return LC_OK;
-  } else {
-    if (__sync_val_compare_and_swap(&ctx->sync, NULL, sync) == NULL) {
-      return LC_ERR_NOP;
-    } else {
-      return LC_OK;
-    }
-  }
-}
-
 lc_status lc_send_tag_p(lch* mv, struct lc_pkt* pkt, lc_req* ctx)
 {
   lc_packet* p = (lc_packet*) pkt->_reserved_;
@@ -37,7 +23,6 @@ lc_status lc_send_tag_p(lch* mv, struct lc_pkt* pkt, lc_req* ctx)
     lci_send(mv, &p->data, sizeof(struct packet_rts),
              rank, tag, p);
   }
-  ctx->post = lc_tag_post;
   return LC_OK;
 }
 
@@ -56,7 +41,6 @@ lc_status lc_send_tag(lch* mv, const void* src, int size, int rank, int tag, lc_
     lci_send(mv, &p->data, sizeof(struct packet_rts),
              rank, tag, p);
   }
-  ctx->post = lc_tag_post;
   return LC_OK;
 }
 
@@ -78,6 +62,5 @@ lc_status lc_recv_tag(lch* mv, void* src, int size, int rank, int tag, lc_req* c
           ctx->rank, ctx->tag, p_ctx);
     }
   }
-  ctx->post = lc_tag_post;
   return LC_OK;
 }

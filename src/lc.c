@@ -76,7 +76,7 @@ int lc_send_put(lch* mv, void* src, int size, int rank, lc_addr* dst, lc_req* ct
 {
   LC_POOL_GET_OR_RETN(mv->pkpool, p);
   struct lc_rma_ctx* dctx = (struct lc_rma_ctx*) dst;
-  ctx->type = LC_REQ_PENDING;
+  ctx->type = LC_REQ_PEND;
   p->context.req = (uintptr_t) ctx;
   lc_server_rma(mv->server, rank, src, dctx->addr, dctx->rkey, size, p, LC_PROTO_LONG_PUT);
   return 1;
@@ -86,7 +86,7 @@ int lc_send_put_signal(lch* mv, void* src, int size, int rank, lc_addr* dst, lc_
 {
   LC_POOL_GET_OR_RETN(mv->pkpool, p);
   struct lc_rma_ctx* dctx = (struct lc_rma_ctx*) dst;
-  ctx->type = LC_REQ_PENDING;
+  ctx->type = LC_REQ_PEND;
   p->context.req = (uintptr_t) ctx;
   p->context.proto = LC_PROTO_LONG_PUT;
   lci_put(mv, src, size, rank, dctx->addr, dctx->rkey,
@@ -108,7 +108,7 @@ int lc_rma_create(lch* mv, void* buf, size_t size, lc_addr** rctx_ptr)
 int lc_recv_put_signal(lch* mv __UNUSED__, lc_addr* rctx, lc_req* ctx)
 {
   rctx->req = (uintptr_t) ctx;
-  ctx->type = LC_REQ_PENDING;
+  ctx->type = LC_REQ_PEND;
   return 1;
 }
 

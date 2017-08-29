@@ -23,7 +23,6 @@ lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, lc_req* ctx)
     lci_send(mv, &p->data, sizeof(struct packet_rts),
              rank, tag, p);
   }
-  ctx->post = NULL;
   return LC_OK;
 }
 
@@ -42,7 +41,6 @@ lc_status lc_send_queue(lch* mv, const void* src, int size, int rank, int tag, l
     lci_send(mv, &p->data, sizeof(struct packet_rts),
              rank, tag, p);
   }
-  ctx->post = NULL;
   return LC_OK;
 }
 
@@ -63,7 +61,6 @@ lc_status lc_recv_queue_probe(lch* mv, int* size, int* rank, int *tag, lc_req* c
   *tag = p->context.tag;
   ctx->packet = p;
   ctx->type = LC_REQ_PEND;
-  ctx->post = NULL;
   return LC_OK;
 }
 

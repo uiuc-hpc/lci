@@ -95,7 +95,7 @@ void MPI_Waitall(int count, MPI_Request* req, MPI_Status* status __UNUSED__) {
   for (int i = 0; i < count; i++) {
     if (req[i] != MPI_REQUEST_NULL) {
       lc_req* ctx = (lc_req *) req[i];
-      if (lc_post(lc_hdl, ctx, &sync) == LC_OK) {
+      if (lc_post(ctx, &sync) == LC_OK) {
         __sync_fetch_and_sub(&sync.count, 1);
         lc_pool_put(lc_req_pool, ctx);
         req[i] = MPI_REQUEST_NULL;

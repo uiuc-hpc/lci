@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef MPIV_LC_H_
-#define MPIV_LC_H_
+#ifndef LC_H_
+#define LC_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,7 +51,6 @@ struct lc_ctx {
   };
   lc_sync* sync;
   lc_packet* packet;
-  lc_fcb post;
 } __attribute__((aligned(64)));
 
 struct lc_rma_ctx {
@@ -279,15 +278,17 @@ LC_EXPORT
 void lc_close(lch* handle);
 
 LC_INLINE
-lc_status lc_post(lch* mv, lc_req* ctx, lc_sync* sync)
+lc_status lc_post(lc_req* ctx, lc_sync* sync)
 {
-  if (ctx->post) {
-    lc_status ret = ctx->post(mv, ctx, sync);
-    ctx->post = NULL;
-    return ret;
-  }
-  else
+  if (ctx->type == LC_REQ_DONE) {
     return LC_OK;
+  } else {
+    if (__sync_val_compare_and_swap(&ctx->sync, NULL, sync) == NULL) {
+      return LC_ERR_NOP;
+    } else {
+      return LC_OK;
+    }
+  }
 }
 
 /**
@@ -298,9 +299,9 @@ lc_status lc_post(lch* mv, lc_req* ctx, lc_sync* sync)
 * @return
 */
 LC_INLINE
-void lc_wait(lch*mv, lc_req* ctx, lc_sync* sync)
+void lc_wait(lch*mv __UNUSED__, lc_req* ctx, lc_sync* sync)
 {
-  if (lc_post(mv, ctx, sync) == LC_ERR_NOP) {
+  if (lc_post(ctx, sync) == LC_ERR_NOP) {
       lc_sync_wait(ctx->sync, &(ctx->int_type));
   }
 }
@@ -346,7 +347,6 @@ int lc_size(lch* mv);
 
 LC_INLINE
 void lc_wait_poll(lch* mv, lc_req* ctx) {
-  lc_post(mv, ctx, NULL);
   while (!lc_test(ctx))
     lc_progress(mv);
 }
