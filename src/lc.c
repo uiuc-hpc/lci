@@ -63,15 +63,7 @@ void lc_close(lch* mv)
   free(mv);
 }
 
-void lc_send_pkt(lch* mv, struct lc_pkt* pkt, int rank, int tag, lc_req* ctx)
-{
-  lc_packet* p = (lc_packet*) pkt->_reserved_;
-  p->context.req = (uintptr_t) ctx;
-  p->context.proto = LC_PROTO_PERSIS;
-  lci_send(mv, &p->data, p->context.size,
-           rank, tag, p);
-}
-
+#if 0
 int lc_send_put(lch* mv, void* src, int size, int rank, lc_addr* dst, lc_req* ctx)
 {
   LC_POOL_GET_OR_RETN(mv->pkpool, p);
@@ -93,6 +85,7 @@ int lc_send_put_signal(lch* mv, void* src, int size, int rank, lc_addr* dst, lc_
           RMA_SIGNAL_SIMPLE, dctx->sid, p);
   return 1;
 }
+#endif
 
 int lc_rma_create(lch* mv, void* buf, size_t size, lc_addr** rctx_ptr)
 {

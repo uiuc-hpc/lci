@@ -12,12 +12,12 @@ lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, lc_req* ctx)
   int rank = pkt->rank;
   int tag = pkt->tag;
   if (size <= (int) SHORT_MSG_SIZE) {
-    p->context.proto = LC_PROTO_SHORT_QUEUE;
+    p->context.proto = LC_PROTO_SHORT;
     lci_send(mv, src, size, rank, tag, p);
     ctx->type = LC_REQ_DONE;
   } else {
     INIT_CTX(ctx);
-    p->context.proto = LC_PROTO_RTS_QUEUE;
+    p->context.proto = LC_PROTO_RTS;
     p->data.rts.sreq = (uintptr_t) ctx;
     p->data.rts.size = size;
     lci_send(mv, &p->data, sizeof(struct packet_rts),
@@ -30,12 +30,12 @@ lc_status lc_send_queue(lch* mv, const void* src, int size, int rank, int tag, l
 {
   LC_POOL_GET_OR_RETN(mv->pkpool, p);
   if (size <= (int) SHORT_MSG_SIZE) {
-    p->context.proto = LC_PROTO_SHORT_QUEUE;
+    p->context.proto = LC_PROTO_SHORT;
     lci_send(mv, src, size, rank, tag, p);
     ctx->type = LC_REQ_DONE;
   } else {
     INIT_CTX(ctx);
-    p->context.proto = LC_PROTO_RTS_QUEUE;
+    p->context.proto = LC_PROTO_RTS;
     p->data.rts.sreq = (uintptr_t) ctx;
     p->data.rts.size = size;
     lci_send(mv, &p->data, sizeof(struct packet_rts),
@@ -53,7 +53,7 @@ lc_status lc_recv_queue_probe(lch* mv, int* size, int* rank, int *tag, lc_req* c
 #endif
   if (p == NULL) return LC_ERR_NOP;
   *rank = p->context.from;
-  if (p->context.proto != LC_PROTO_RTS_QUEUE) {
+  if (p->context.proto & LC_PROTO_SHORT) {
     *size = p->context.size;
   } else {
     *size = p->data.rts.size;
@@ -67,7 +67,7 @@ lc_status lc_recv_queue_probe(lch* mv, int* size, int* rank, int *tag, lc_req* c
 lc_status lc_recv_queue(lch* mv, void* buf, lc_req* ctx)
 {
   lc_packet* p = (lc_packet*) ctx->packet;
-  if (p->context.proto != LC_PROTO_RTS_QUEUE) {
+  if (p->context.proto & LC_PROTO_SHORT) {
     memcpy(buf, p->data.buffer, p->context.size);
     lc_pool_put(mv->pkpool, p);
     ctx->type = LC_REQ_DONE;
@@ -75,7 +75,7 @@ lc_status lc_recv_queue(lch* mv, void* buf, lc_req* ctx)
   } else {
     int rank = p->context.from;
     lci_rdz_prepare(mv, buf, p->data.rts.size, ctx, p);
-    p->context.proto = LC_PROTO_RTR_QUEUE;
+    p->context.proto = LC_PROTO_RTR;
     lci_send(mv, &p->data, sizeof(struct packet_rtr),
              rank, 0, p);
     return LC_ERR_NOP;
