@@ -55,12 +55,14 @@ LC_INLINE void lci_rdz_prepare(lch* mv, void* src, int size, lc_req* ctx,
 LC_INLINE
 void lc_serve_recv(lch* mv, lc_packet* p_ctx, uint32_t proto)
 {
+  p_ctx->context.proto = proto;
   lc_proto[proto].func_am(mv, p_ctx);
 }
 
 LC_INLINE
 void lc_serve_send(lch* mv, lc_packet* p_ctx, uint32_t proto)
 {
+  p_ctx->context.proto = proto;
   const lc_am_func_t f = lc_proto[proto].func_ps;
   if (likely(f)) {
     f(mv, p_ctx);

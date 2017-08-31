@@ -52,9 +52,9 @@ lc_status lc_recv_tag(lch* mv, void* src, int size, int rank, int tag, lc_req* c
   if (!lc_hash_insert(mv->tbl, key, &value, CLIENT)) {
     lc_packet* p_ctx = (lc_packet*)value;
     if (ctx->size <= (int) SHORT_MSG_SIZE) {
-      ctx->type = LC_REQ_DONE;
       memcpy(ctx->buffer, p_ctx->data.buffer, ctx->size);
       lc_pool_put(mv->pkpool, p_ctx);
+      ctx->type = LC_REQ_DONE;
     } else {
       p_ctx->context.proto = LC_PROTO_RTR_TAG;
       lci_rdz_prepare(mv, ctx->buffer, ctx->size, ctx, p_ctx);
