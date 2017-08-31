@@ -4,29 +4,18 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-// #define CHECK_RESULT
-
 #include "mpiv.h"
 #include "comm_exp.h"
 
 #ifdef USE_ABT
-#include "ult/helper_abt.h"
+#include "helper_abt.h"
 #elif defined(USE_PTH)
-#include "ult/helper_pth.h"
+#include "helper_pth.h"
 #else
-#include "ult/helper.h"
+#include "helper_fult.h"
 #endif
-
-#include "lc/profiler.h"
 
 #define CHECK_RESULT 0
-
-#if 0
-#undef total
-#define total 20
-#undef skip
-#define skip 0
-#endif
 
 #define MIN_MSG_SIZE 1
 #define MAX_MSG_SIZE (1 << 22)
@@ -35,6 +24,7 @@ int size = 0;
 
 int main(int argc, char** args)
 {
+  setenv("LC_POLL_CORE", "15", 1);
   MPI_Init(&argc, &args);
   if (argc > 1) size = atoi(args[1]);
   MPI_Start_worker(1);

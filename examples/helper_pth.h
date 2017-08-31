@@ -27,7 +27,7 @@ typedef struct lc_pth_thread {
 __thread lc_pth_thread* tlself;
 
 extern lch* lc_hdl;
-lc_pth_thread* MPIV_spawn(int wid, void* (*func)(void*), void*);
+lc_pth_thread* MPI_spawn(int wid, void* (*func)(void*), void*);
 
 static void* pth_wrap(void* arg)
 {
@@ -40,41 +40,27 @@ static void* pth_wrap(void* arg)
   return 0;
 }
 
-#if 1
-lc_sync* lc_get_sync()
-{
-  tlself->count = 1;
-  return (lc_sync*)tlself;
-}
+void* thread_get() { return tlself; }
 
-lc_sync* lc_get_counter(int count)
+void _thread_wait(void* t, volatile int* lock)
 {
-  tlself->count = count;
-  return (lc_sync*)tlself;
-}
-
-void _thread_wait(lc_sync* sync)
-{
-  lc_pth_thread* thread = (lc_pth_thread*)sync;
+  lc_pth_thread* thread = (lc_pth_thread*)t;
   pthread_mutex_lock(&thread->mutex);
-  while (thread->count > 0) pthread_cond_wait(&thread->cond, &thread->mutex);
+  lc_spin_unlock(lock);
+  pthread_cond_wait(&thread->cond, &thread->mutex);
   pthread_mutex_unlock(&thread->mutex);
 }
 
-void _thread_signal(lc_sync* sync)
+void _thread_signal(void* t)
 {
-  lc_pth_thread* thread = (lc_pth_thread*)sync;
-  pthread_mutex_lock(&thread->mutex);
-  thread->count--;
-  if (thread->count == 0) pthread_cond_signal(&thread->cond);
-  pthread_mutex_unlock(&thread->mutex);
+  lc_pth_thread* thread = (lc_pth_thread*)t;
+  pthread_cond_signal(&thread->cond);
 }
 
 void _thread_yield() { sched_yield(); }
-#endif
 
 typedef struct lc_pth_thread* lc_thread;
-lc_pth_thread* MPIV_spawn(int wid, void* (*func)(void*), void* arg)
+lc_pth_thread* MPI_spawn(int wid, void* (*func)(void*), void* arg)
 {
   lc_pth_thread* t = (lc_pth_thread*)malloc(sizeof(struct lc_pth_thread));
   pthread_mutex_init(&t->mutex, 0);
@@ -91,20 +77,17 @@ lc_pth_thread* MPIV_spawn(int wid, void* (*func)(void*), void* arg)
   return t;
 }
 
-void MPIV_start_worker(int number)
+void MPI_Start_worker(int number)
 {
-  thread_yield = _thread_yield;
-  thread_wait = _thread_wait;
-  thread_signal = _thread_signal;
-
+  lc_sync_init(thread_get, _thread_wait, _thread_signal, _thread_yield);
   nworker = number;
   tlself = (lc_pth_thread*)malloc(sizeof(struct lc_pth_thread));
   pthread_mutex_init(&tlself->mutex, 0);
   pthread_cond_init(&tlself->cond, 0);
 }
 
-void MPIV_stop_worker() { free(tlself); }
-void MPIV_join(lc_pth_thread* ult)
+void MPI_Stop_worker() { free(tlself); }
+void MPI_join(lc_pth_thread* ult)
 {
   pthread_join(ult->thread, 0);
   free(ult);
