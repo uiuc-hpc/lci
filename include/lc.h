@@ -33,7 +33,7 @@ typedef enum lc_status {
   LC_OK = 1,
 } lc_status;
 
-typedef lc_status (*lc_fcb)(lch* mv, lc_req* ctx, lc_sync* sync);
+typedef void (*lc_fcb)(lch* mv, lc_req* req, lc_packet* p);
 
 enum lc_req_state {
   LC_REQ_PEND = 0,
@@ -51,6 +51,7 @@ struct lc_ctx {
   };
   lc_sync* sync;
   lc_packet* packet;
+  lc_fcb finalize;
 } __attribute__((aligned(64)));
 
 struct lc_rma_ctx {

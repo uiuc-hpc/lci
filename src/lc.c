@@ -144,3 +144,14 @@ int lc_id(lch* mv) {
 int lc_size(lch* mv) {
   return mv->size;
 }
+
+uintptr_t get_dma_mem(void* server, void* buf, size_t s)
+{
+  return _real_server_reg((lc_server*) server, buf, s);
+}
+
+int free_dma_mem(uintptr_t mem)
+{
+  _real_server_dereg(mem);
+  return 1;
+}

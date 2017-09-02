@@ -65,7 +65,7 @@ JFCONTEXT = include/ult/fult/jump_x86_64_sysv_elf_gas.S
 MFCONTEXT = include/ult/fult/make_x86_64_sysv_elf_gas.S
 FCONTEXT = mfcontext.o jfcontext.o
 
-COMM = lc.o thread.o queue.o tag.o mpiv.o progress.o hashtable.o pool.o lcrq.o
+COMM = lc.o thread.o queue.o tag.o hashtable.o pool.o lcrq.o
 DREG = dreg/dreg.o dreg/avl.o ptmalloc283/malloc.o
 PMI = pmi/simple_pmi.o pmi/simple_pmiutil.o
 
@@ -105,6 +105,9 @@ $(OBJDIR)/jfcontext.o: $(JFCONTEXT)
 
 $(OBJDIR)/mfcontext.o: $(MFCONTEXT)
 	$(CC) -O3 -c $(MFCONTEXT) -o $(OBJDIR)/mfcontext.o
+
+mpiv.a: src/mpiv.o
+	$(AR) q mpiv.a src/mpiv.o $(LIBOBJ)
 
 clean:
 	rm -rf $(LIBOBJ) liblwci.a liblwci.so

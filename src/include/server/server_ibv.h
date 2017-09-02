@@ -690,7 +690,6 @@ LC_INLINE void* ibv_server_heap_ptr(ibv_server* s) { return s->heap_ptr; }
 #define lc_server_heap_ptr ibv_server_heap_ptr
 #define lc_server_progress ibv_server_progress
 #define lc_server_finalize ibv_server_finalize
-#define lc_server_post_recv ibv_server_post_recv
 
 #define lc_server_rma_reg ibv_rma_reg
 #define lc_server_rma_key ibv_rma_key

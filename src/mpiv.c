@@ -1,7 +1,8 @@
 #include <assert.h>
 
 #include "mpiv.h"
-#include "lc_priv.h"
+//#include "lc_priv.h"
+#include "lc/pool.h"
 #include "lc/affinity.h"
 #include "lc/macro.h"
 #include "thread.h"
@@ -132,13 +133,13 @@ void MPI_Init(int* argc __UNUSED__, char*** args __UNUSED__)
 {
   // setenv("LC_MPI", "1", 1);
   lc_open(&lc_hdl);
-  ctx_data = memalign(64, sizeof(lc_req) * MAX_PACKET);
+  ctx_data = memalign(64, sizeof(lc_req) * 1024);
   lc_pool_create(&lc_req_pool);
   lc_req* ctxs = (lc_req*) ctx_data;
-  for (int i = 0; i < MAX_PACKET; i++)
+  for (int i = 0; i < 1024; i++)
     lc_pool_put(lc_req_pool, &ctxs[i]);
   lc_thread_stop = 0;
-  pthread_create(&progress_thread, 0, progress, (void*) (long)lc_hdl->me);
+  pthread_create(&progress_thread, 0, progress, 0);
 }
 
 void MPI_Finalize()

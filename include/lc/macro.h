@@ -24,13 +24,23 @@
   if (x == NULL) return LC_ERR_NOP;   \
   x->context.runtime = 1;
 
+#define MODE_THREAD
+
+#ifndef MODE_THREAD
+
+#define LC_SET_REQ_DONE_AND_SIGNAL(r) \
+  (r)->type = LC_REQ_DONE;
+
+#else
+
 #define LC_SET_REQ_DONE_AND_SIGNAL(r)                                  \
   {                                                                    \
-    req->type = LC_REQ_DONE;                                           \
-    void* sync = req->sync;                                            \
+    void* sync = (r)->sync;                                            \
+    (r)->type = LC_REQ_DONE;                                           \
     if (!sync)                                                         \
-      sync = __sync_val_compare_and_swap(&req->sync, NULL, (void*)-1); \
+      sync = __sync_val_compare_and_swap(&(r)->sync, NULL, (void*)-1); \
     if (sync) lc_sync_signal(sync);                                    \
   }
+#endif
 
 #endif

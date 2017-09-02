@@ -19,8 +19,12 @@ CXXFLAGS = -g3 -O3 -std=c++11
 all: $(TARGET)
 
 %: %.c
-	$(CC) $(CFLAGS) -c $^
+	$(MPICC) $(CFLAGS) -c $^
 	$(LD) $(LDFLAGS) $@.o $(LIB) -o $@
+
+pingpong: pingpong.c
+	$(MPICC) $(CFLAGS) -c $^
+	$(LD) $(LDFLAGS) $@.o ../mpiv.a -o $@
 
 %_abt: %.c
 	$(MPICC) $(CFLAGS) -c $^ -DUSE_ABT

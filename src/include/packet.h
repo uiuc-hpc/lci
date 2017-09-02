@@ -10,19 +10,22 @@ struct __attribute__((packed)) packet_context {
   uint32_t size;
   uint32_t tag;
   uint32_t proto;
-  uintptr_t req;
+  lc_req* req;
   uintptr_t rma_mem;
   uint32_t poolid;
   uint32_t runtime;
 };
 
 struct __attribute__((__packed__)) packet_rts {
-  uintptr_t sreq;
+  uintptr_t req;
+  uintptr_t src_addr;
   uintptr_t size;
 };
 
 struct __attribute__((__packed__)) packet_rtr {
-  uintptr_t sreq;
+  uintptr_t req;
+  uintptr_t src_addr;
+  uintptr_t size;
   uintptr_t tgt_addr;
   uint32_t rkey;
   uint32_t comm_id;

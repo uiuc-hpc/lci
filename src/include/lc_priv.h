@@ -40,10 +40,6 @@ struct lc_struct {
 #endif
 } __attribute__((aligned(64)));
 
-#define RMA_SIGNAL_TAG 0
-#define RMA_SIGNAL_SIMPLE 1
-#define RMA_SIGNAL_QUEUE 2
-
 #include "packet.h"
 #include "progress.h"
 #include "server/server.h"
