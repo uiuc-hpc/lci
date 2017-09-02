@@ -11,7 +11,7 @@ CFLAGS += -g3 -ggdb -O3 -Wall -Wextra -std=gnu99 -pthread -I../include -I../ $(E
 LDFLAGS += -O3 -Wl,-rpath=$(abspath ../) -Wl,-z,now -Wl,-z,relro -pthread
 LIB = ../liblwci.a
 
-#LDFLAGS += -lpsm2
+LDFLAGS += -lpsm2
 LDFLAGS += -libverbs
 
 CXXFLAGS = -g3 -O3 -std=c++11
