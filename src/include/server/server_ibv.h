@@ -434,16 +434,23 @@ LC_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
   struct ibv_send_wr this_wr;  // = {0};
   struct ibv_send_wr* bad_wr = 0;
 
-  uintptr_t mr = ibv_rma_reg(s, from, size);
+  uint32_t lkey = 0;
+  int flag = IBV_SEND_SIGNALED;
+
+  if (size > server_max_inline) {
+    lkey = ibv_rma_lkey(ibv_rma_reg(s, from, size));
+  } else {
+    flag |= IBV_SEND_INLINE;
+  }
 
   struct ibv_sge list = {
       .addr = (uintptr_t)from,   // address
       .length = (unsigned)size,  // length
-      .lkey = ibv_rma_lkey(mr),
+      .lkey = lkey
   };
 
   setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE_WITH_IMM,
-           IBV_SEND_SIGNALED);
+           flag);
 
   this_wr.wr.rdma.remote_addr = addr;
   this_wr.wr.rdma.rkey = rkey;

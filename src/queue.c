@@ -12,7 +12,7 @@ lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, lc_req* ctx)
   int rank = pkt->rank;
   int tag = pkt->tag;
   if (size <= (int) SHORT_MSG_SIZE) {
-    lci_send(mv, src, size, rank, tag, LC_PROTO_SHORT, p);
+    lci_send(mv, src, size, rank, tag, LC_PROTO_DATA, p);
     ctx->int_type = LC_REQ_DONE;
   } else {
     INIT_CTX(ctx);
@@ -29,7 +29,7 @@ lc_status lc_send_queue(lch* mv, const void* src, int size, int rank, int tag, l
 {
   LC_POOL_GET_OR_RETN(mv->pkpool, p);
   if (size <= (int) SHORT_MSG_SIZE) {
-    lci_send(mv, src, size, rank, tag, LC_PROTO_SHORT, p);
+    lci_send(mv, src, size, rank, tag, LC_PROTO_DATA, p);
     ctx->int_type = LC_REQ_DONE;
   } else {
     INIT_CTX(ctx);
@@ -51,7 +51,7 @@ lc_status lc_recv_queue_probe(lch* mv, int* size, int* rank, int* tag, lc_req* c
 #endif
   if (!p) return LC_ERR_NOP;
   *rank = p->context.from;
-  if (p->context.proto & LC_PROTO_SHORT) {
+  if (p->context.proto & LC_PROTO_DATA) {
     *size = p->context.size;
   } else {
     *size = p->data.rts.size;
@@ -66,7 +66,7 @@ lc_status lc_recv_queue_probe(lch* mv, int* size, int* rank, int* tag, lc_req* c
 lc_status lc_recv_queue(lch* mv, void* buf, lc_req* ctx)
 {
   lc_packet* p = (lc_packet*) ctx->packet;
-  if (p->context.proto & LC_PROTO_SHORT) {
+  if (p->context.proto & LC_PROTO_DATA) {
     memcpy(buf, p->data.buffer, p->context.size);
     lc_pool_put(mv->pkpool, p);
     ctx->int_type = LC_REQ_DONE;

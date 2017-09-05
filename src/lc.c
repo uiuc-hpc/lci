@@ -38,14 +38,6 @@ void lc_open(lch** ret)
     lc_pool_put(mv->pkpool, p);
   }
 
-  // Prepare the list of rma_ctx.
-  uintptr_t base_rma = (base_packet + npacket * LC_PACKET_SIZE);
-  lc_pool_create(&mv->rma_pool);
-  for(unsigned i = 0; i < MAX_PACKET; i++) {
-    struct lc_rma_ctx* rma_ctx = (struct lc_rma_ctx*) (base_rma + i * sizeof(struct lc_rma_ctx));
-    lc_pool_put(mv->rma_pool, rma_ctx);
-  }
-
   PMI_Barrier();
 
   *ret = mv;
@@ -63,46 +55,45 @@ void lc_close(lch* mv)
   free(mv);
 }
 
-#if 0
-int lc_send_put(lch* mv, void* src, int size, int rank, lc_addr* dst, lc_req* ctx)
+lc_status lc_send_put(lch* mv, void* src, int size, int rank, lc_addr* dst, lc_req* ctx)
 {
   LC_POOL_GET_OR_RETN(mv->pkpool, p);
   struct lc_rma_ctx* dctx = (struct lc_rma_ctx*) dst;
   ctx->type = LC_REQ_PEND;
-  p->context.req = (uintptr_t) ctx;
-  lc_server_rma(mv->server, rank, src, dctx->addr, dctx->rkey, size, p, LC_PROTO_LONG_PUT);
-  return 1;
-}
-
-int lc_send_put_signal(lch* mv, void* src, int size, int rank, lc_addr* dst, lc_req* ctx)
-{
-  LC_POOL_GET_OR_RETN(mv->pkpool, p);
-  struct lc_rma_ctx* dctx = (struct lc_rma_ctx*) dst;
-  ctx->type = LC_REQ_PEND;
-  p->context.req = (uintptr_t) ctx;
-  p->context.proto = LC_PROTO_LONG_PUT;
+  ctx->sync = NULL;
+  p->context.req = ctx;
+  p->context.proto = LC_PROTO_LONG;
   lci_put(mv, src, size, rank, dctx->addr, dctx->rkey,
-          RMA_SIGNAL_SIMPLE, dctx->sid, p);
-  return 1;
+          dctx->sid, p);
+  return LC_OK;
 }
-#endif
 
-int lc_rma_create(lch* mv, void* buf, size_t size, lc_addr** rctx_ptr)
+lc_status lc_recv_put(lch* mv, lc_addr* rctx, lc_req* req)
 {
-  struct lc_rma_ctx* rctx = (struct lc_rma_ctx*) lc_pool_get(mv->rma_pool);
+  lc_packet* p = (lc_packet*) ((uintptr_t)lc_heap_ptr(mv) + (rctx->sid >> 2));
+  req->type = LC_REQ_PEND;
+  req->sync = NULL;
+  p->context.req = req;
+  return LC_OK;
+}
+
+lc_status lc_rma_init(lch* mv, void* buf, size_t size, lc_addr* rctx)
+{
   uintptr_t rma = lc_server_rma_reg(mv->server, buf, size);
   rctx->addr = (uintptr_t) buf;
   rctx->rkey = lc_server_rma_key(rma);
-  rctx->sid = (uint32_t) ((uintptr_t) rctx - (uintptr_t) lc_heap_ptr(mv));
-  *rctx_ptr = rctx;
-  return 1;
+  LC_POOL_GET_OR_RETN(mv->pkpool, p);
+  p->context.req = 0;
+  p->context.rma_mem = rma;
+  rctx->sid = MAKE_SIG(LC_PROTO_TGT, (uint32_t)((uintptr_t)p - (uintptr_t)lc_heap_ptr(mv)));
+  return LC_OK;
 }
 
-int lc_recv_put_signal(lch* mv __UNUSED__, lc_addr* rctx, lc_req* ctx)
+void lc_rma_fini(lch*mv, lc_addr* rctx)
 {
-  rctx->req = (uintptr_t) ctx;
-  ctx->type = LC_REQ_PEND;
-  return 1;
+  lc_packet* p = (lc_packet*) ((uintptr_t)lc_heap_ptr(mv) + (rctx->sid >> 2));
+  lc_server_rma_dereg(p->context.rma_mem);
+  lc_pool_put(mv->pkpool, p);
 }
 
 int lc_progress(lch* mv)

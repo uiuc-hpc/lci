@@ -16,20 +16,21 @@
 
 #define LC_PROTO_QUEUE   (0b0000000)
 #define LC_PROTO_TAG     (0b0000001)
-#define LC_PROTO_INC     (0b0000010)
+#define LC_PROTO_TGT     (0b0000010)
 
-#define LC_PROTO_SHORT   (0b0000100)
-#define LC_PROTO_RTS     (0b0001000)
-#define LC_PROTO_RTR     (0b0010000)
+#define LC_PROTO_DATA    (0b0000100)
+#define LC_PROTO_RTR     (0b0001000)
+#define LC_PROTO_RTS     (0b0010000)
 #define LC_PROTO_LONG    (0b0100000)
 
 #define MAKE_PROTO(proto, tag) (((uint32_t)proto) | ((uint32_t)tag << 8))
-#define MAKE_SIG(sig, id) (((uint32_t)sig << 30) | id)
+#define MAKE_SIG(sig, id) (((uint32_t)sig) | ((uint32_t) id << 2))
 
 LC_INLINE
 int lci_send(lch* mv, const void* src, int size, int rank, int tag,
              uint8_t proto, lc_packet* p)
 {
+  assert(tag >> 24 == 0 && "Tag is out-of-range");
   p->context.proto = proto;
   p->context.poolid = (size > 128) ? lc_pool_get_local(mv->pkpool) : 0;
   return lc_server_send(mv->server, rank, (void*)src, size, p, MAKE_PROTO(proto, tag));
@@ -64,11 +65,11 @@ static void lc_sent_put(lch* mv, lc_packet* p)
 #endif
 
 LC_INLINE
-void lc_serve_recv(lch* mv, lc_packet* p, uint32_t proto)
+void lc_serve_recv(lch* mv, lc_packet* p, uint8_t proto)
 {
   if (proto & LC_PROTO_RTR) {
     p->context.req = (lc_req*) p->data.rtr.req;
-    int signal = p->context.proto & 0b01;
+    int signal = p->context.proto & 0b11;
     p->context.proto = LC_PROTO_LONG;
     lci_put(mv, (void*) p->data.rts.src_addr, p->data.rts.size, p->context.from,
         p->data.rtr.tgt_addr, p->data.rtr.rkey,
@@ -79,7 +80,15 @@ void lc_serve_recv(lch* mv, lc_packet* p, uint32_t proto)
     lc_value value = (lc_value)p;
     if (!lc_hash_insert(mv->tbl, key, &value, SERVER)) {
       lc_req* req = (lc_req*) value;
-      req->finalize(mv, req, p);
+      if (proto & LC_PROTO_DATA) {
+        memcpy(req->buffer, p->data.buffer, req->size);
+        LC_SET_REQ_DONE_AND_SIGNAL(req);
+        lc_pool_put(mv->pkpool, p);
+      } else {
+        lci_rdz_prepare(mv, req->buffer, req->size, req, p);
+        lci_send(mv, &p->data, sizeof(struct packet_rtr),
+            req->rank, req->tag, LC_PROTO_RTR | LC_PROTO_TAG, p);
+      }
     }
   } else if ((proto & 1) == LC_PROTO_QUEUE) {
     p->context.proto = proto;
@@ -92,18 +101,20 @@ void lc_serve_recv(lch* mv, lc_packet* p, uint32_t proto)
 }
 
 LC_INLINE
-void lc_serve_send(lch* mv, lc_packet* p, uint32_t proto)
+void lc_serve_send(lch* mv, lc_packet* p, uint8_t proto)
 {
-  if (proto & (LC_PROTO_SHORT | LC_PROTO_RTS)) {
+  if (proto & LC_PROTO_RTR) {
+    return;
+  } else if (proto & LC_PROTO_LONG) {
+    LC_SET_REQ_DONE_AND_SIGNAL(p->context.req);
+    lc_pool_put(mv->pkpool, p);
+  } else {
     if (p->context.runtime) {
       if (p->context.poolid)
         lc_pool_put_to(mv->pkpool, p, p->context.poolid);
       else
         lc_pool_put(mv->pkpool, p);
     }
-  } else if (proto & LC_PROTO_LONG) {
-    LC_SET_REQ_DONE_AND_SIGNAL(p->context.req);
-    lc_pool_put(mv->pkpool, p);
   }
 }
 
@@ -113,13 +124,17 @@ void lc_serve_imm(lch* mv, uint32_t imm)
   // FIXME(danghvu): This comm_id is here due to the imm
   // only takes uint32_t, if this takes uint64_t we can
   // store a pointer to this request context.
-  uint32_t type = imm >> 30;
-  uint32_t id = imm & 0x0fffffff;
+  uint32_t type = imm & 0b11;
+  uint32_t id = imm >> 2;
   uintptr_t addr = (uintptr_t)lc_heap_ptr(mv) + id;
-  (void) type;
-  lc_packet* p = (lc_packet*)addr;
-  LC_SET_REQ_DONE_AND_SIGNAL(p->context.req);
-  lc_server_rma_dereg(p->context.rma_mem);
-  lc_pool_put(mv->pkpool, p);
+  if (type != LC_PROTO_TGT) {
+    lc_packet* p = (lc_packet*)addr;
+    LC_SET_REQ_DONE_AND_SIGNAL(p->context.req);
+    lc_server_rma_dereg(p->context.rma_mem);
+    lc_pool_put(mv->pkpool, p);
+  } else {
+    lc_packet* p = (lc_packet*)addr;
+    if (p->context.req) LC_SET_REQ_DONE_AND_SIGNAL(p->context.req);
+  }
 }
 #endif

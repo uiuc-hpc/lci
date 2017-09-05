@@ -9,11 +9,11 @@ struct __attribute__((packed)) packet_context {
   uint32_t from;
   uint32_t size;
   uint32_t tag;
-  uint32_t proto;
   lc_req* req;
   uintptr_t rma_mem;
-  uint32_t poolid;
-  uint32_t runtime;
+  uint8_t proto;
+  uint8_t runtime;
+  uint16_t poolid;
 };
 
 struct __attribute__((__packed__)) packet_rts {

@@ -224,7 +224,7 @@ int lc_rma_create(lch* mv, void* buf, size_t size, lc_addr** rctx_ptr);
 * @return 1 if success, 0 otherwise.
 */
 LC_EXPORT
-int lc_send_put(lch* mv, void* src, int size, int rank, lc_addr* dst,
+lc_status lc_send_put(lch* mv, void* src, int size, int rank, lc_addr* dst,
                 lc_req* ctx);
 
 /**
@@ -237,7 +237,7 @@ int lc_send_put(lch* mv, void* src, int size, int rank, lc_addr* dst,
 * @return
 */
 LC_EXPORT
-int lc_recv_put_signal(lch* mv, lc_addr* rctx, lc_req* ctx);
+lc_status lc_recv_put(lch* mv, lc_addr* rctx, lc_req* ctx);
 
 /**
 * @brief  performs an RDMA PUT to dst, and also signal a handle.
@@ -338,6 +338,12 @@ lc_status lc_pkt_init(lch* mv, int size, int rank, int tag, struct lc_pkt*);
 
 LC_EXPORT
 void lc_pkt_fini(lch* mv, struct lc_pkt* p);
+
+LC_EXPORT
+lc_status lc_rma_init(lch* mv, void* buf, size_t size, lc_addr* rctx);
+
+LC_EXPORT
+void lc_rma_fini(lch*mv, lc_addr* rctx);
 
 LC_EXPORT
 int lc_id(lch* mv);

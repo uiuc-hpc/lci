@@ -30,7 +30,6 @@ struct lc_struct {
   int ncores;
   lc_server* server;
   lc_pool* pkpool;
-  lc_pool* rma_pool;
   lc_hash* tbl;
 
 #ifndef USE_CCQ
