@@ -145,20 +145,6 @@ static void* psm_startup(void* arg)
   return 0;
 }
 
-#if 0
-static lch* __mv;
-static volatile lc_packet* __p_r = 0;
-static volatile int has_data = 0;
-static int psm_recv_am(psm2_am_token_t token, psm2_amarg_t* args, int nargs,
-                       void* src, uint32_t len)
-{
-  if (!__p_r) __p_r = lc_pool_get(__mv->pkpool);
-  memcpy((void*)&__p_r->data, src, len);
-  has_data = 1;
-  return 0;
-}
-#endif
-
 LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
 {
   // setenv("I_MPI_FABRICS", "ofa", 1);
@@ -259,13 +245,6 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
 
   lcrq_init(&s->free_mr);
 
-#ifdef USE_AM
-  psm2_am_handler_fn_t am[1];
-  am[0] = psm_recv_am;
-
-  PSM_SAFECALL(psm2_am_register_handlers(s->myep, am, 1, &s->psm_recv_am_idx));
-#endif
-
   s->heap = memalign(4096, heap_size);
   s->recv_posted = 0;
   s->mv = mv;
@@ -277,18 +256,6 @@ LC_INLINE int psm_progress(psm_server* s)
   psm2_mq_req_t req;
   psm2_mq_status_t status;
   psm2_error_t err;
-
-#ifdef USE_AM
-  // NOTE(danghvu): This ugly hack is to ultilize PSM2 AM layer.
-  // This saves some memory copy.
-  if (!__p_r) __p_r = lc_pool_get_nb(s->mv->pkpool);
-  if (__p_r) psm2_poll(s->myep);
-  if (has_data) {
-    lc_serve_recv(s->mv, (lc_packet*)__p_r);
-    __p_r = 0;
-    has_data = 0;
-  }
-#endif
 
   err = psm2_mq_ipeek(s->mq, &req, NULL);
   if (err == PSM2_OK) {
@@ -358,13 +325,7 @@ LC_INLINE int psm_write_send(psm_server* s, int rank, void* ubuf, size_t size,
   uint64_t real_tag = MAKE_PSM_TAG(proto, me);
 
   if (size < 1024) {
-#ifdef USE_AM
-    PSM_SAFECALL(psm2_am_request_short(
-        s->epaddr[rank], s->psm_recv_am_idx, NULL, 0, buf, size,
-        PSM2_AM_FLAG_NOREPLY | PSM2_AM_FLAG_ASYNC, NULL, 0));
-#else
     PSM_SAFECALL(psm2_mq_send(s->mq, s->epaddr[rank], 0, real_tag, ubuf, size));
-#endif
     lc_serve_send(s->mv, ctx, GET_PROTO(proto));
     return 1;
   } else {
@@ -378,11 +339,13 @@ LC_INLINE int psm_write_send(psm_server* s, int rank, void* ubuf, size_t size,
   }
 }
 
+#if 0
 LC_INLINE void psm_write_rma(psm_server* s, int rank, void* from,
                              uintptr_t addr, uint32_t rkey, size_t size,
                              lc_packet* ctx, uint32_t proto)
 {
 }
+#endif
 
 LC_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
                                     uintptr_t addr, uint32_t rkey, size_t size,
