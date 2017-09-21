@@ -16,13 +16,17 @@
 #define MUL8(x) ((x) << 3)
 #define MOD_POW2(x, y) ((x) & ((y)-1))
 
-#define MAX_THREAD (NMASK * WORDSIZE)
+#define MAX_THREAD (WORDSIZE * NMASK)
+#define MAX_INIT_THREAD (WORDSIZE * 8) 
+
+extern int nfworker_;
 
 LC_INLINE void fthread_create(fthread* f, ffunc func, void* data,
                               size_t stack_size)
 {
-  if (unlikely(f->stack == NULL)) {
-    void* memory = memalign(64, stack_size);
+  if (unlikely(f->stack == NULL) || stack_size > 8192) {
+    free(f->stack);
+    void* memory = lc_memalign(64, stack_size);
     if (memory == 0) {
       fprintf(stderr, "No more memory for stack\n");
       exit(EXIT_FAILURE);
@@ -75,42 +79,51 @@ static void* fwrapper(void* args)
 }
 
 /// Fworker.
+LC_INLINE void add_more_threads(fworker* w, int num_threads)
+{
+  int thread_size = w->thread_size;
+  w->threads = realloc(w->threads, sizeof(uintptr_t) * (thread_size + num_threads));
+  w->thread_pool = realloc(w->thread_pool, sizeof(uintptr_t) * (thread_size + num_threads));
+  memset((char*) w->thread_pool + sizeof(uintptr_t) * thread_size, 0, sizeof(uintptr_t) * num_threads);
+
+  for (int i = 0; i < num_threads; i++) {
+    fthread* t = lc_memalign(64, sizeof(struct fthread)); // &(w->threads[thread_size + i]);
+    memset(t, 0, sizeof(struct fthread));
+    fthread_init(t);
+    t->origin = w;
+    t->id = thread_size + i;
+    w->thread_pool[w->thread_pool_last++] = t;
+    w->threads[t->id] = t;
+  }
+  w->thread_size += num_threads;
+}
 
 LC_INLINE void fworker_create(fworker** w_ptr)
 {
-  fworker* w = (fworker*)memalign(64, sizeof(struct fworker));
+  fworker* w = (fworker*)lc_memalign(64, sizeof(struct fworker));
   w->stop = 1;
   w->thread_pool_last = 0;
-  w->threads =
-      (struct fthread*)memalign(64, sizeof(struct fthread) * MAX_THREAD);
-  w->thread_pool =
-      (struct fthread**)memalign(64, sizeof(uintptr_t) * MAX_THREAD);
-
-  memset(w->threads, 0, sizeof(struct fthread) * MAX_THREAD);
-  memset(w->thread_pool, 0, sizeof(uintptr_t) * MAX_THREAD);
+  w->thread_size = 0;
+  w->threads = NULL;
+  w->thread_pool = NULL;
 
   for (int i = 0; i < NMASK; i++) w->mask[i] = 0;
 #ifdef USE_L1_MASK
   for (int i = 0; i < 8; i++) w->l1_mask[i] = 0;
 #endif
-  // Add all free slot.
-  for (int i = 0; i < (int)MAX_THREAD; i++) {
-    fthread* t = &(w->threads[i]);
-    fthread_init(t);
-    t->origin = w;
-    t->id = i;
-    w->thread_pool[w->thread_pool_last++] = t;
-  }
+
+  add_more_threads(w, MAX_INIT_THREAD);
+
   w->thread_pool_lock = LC_SPIN_UNLOCKED;
   *w_ptr = w;
 }
 
 LC_INLINE void fworker_destroy(fworker* w)
 {
-  for (int i = 0; i < (int)MAX_THREAD; i++) {
-    free(w->threads[i].stack);
+  for (int i = 0; i < w->thread_size; i++) {
+    free(w->thread_pool[i]->stack);
+    free(w->thread_pool[i]);
   }
-  free((void*)w->threads);
   free((void*)w->thread_pool);
   free(w);
 }
@@ -118,14 +131,29 @@ LC_INLINE void fworker_destroy(fworker* w)
 LC_INLINE void fworker_fini_thread(fworker* w, const int id)
 {
   lc_spin_lock(&w->thread_pool_lock);
-  w->thread_pool[w->thread_pool_last++] = &(w->threads[id]);
+  w->thread_pool[w->thread_pool_last++] = w->threads[id];
   lc_spin_unlock(&w->thread_pool_lock);
 }
 
 LC_INLINE fthread* fworker_spawn(fworker* w, ffunc f, void* data,
                                  size_t stack_size)
 {
+  // Poll abit to wait for some free threads.
+  int count = 0;
+  while (w->thread_pool_last == 0 && count++ < 255)
+    fthread_yield(tlself.thread);
+
   lc_spin_lock(&w->thread_pool_lock);
+  while (w->thread_pool_last == 0) {
+    if (w->thread_size < MAX_THREAD)
+      add_more_threads(w, MIN(w->thread_size, MAX_THREAD - w->thread_size));
+    else {
+      lc_spin_unlock(&w->thread_pool_lock);
+      while (w->thread_pool_last == 0)
+        fthread_yield(tlself.thread);
+      lc_spin_lock(&w->thread_pool_lock);
+    }
+  }
   fthread* t = w->thread_pool[w->thread_pool_last - 1];
   w->thread_pool_last--;
   lc_spin_unlock(&w->thread_pool_lock);
@@ -170,6 +198,50 @@ LC_INLINE int pop_work(unsigned long* mask)
 
 #ifdef ENABLE_STEAL
 fworker* random_worker();
+LC_INLINE void random_steal(fworker* w) {
+  fworker* steal = random_worker();
+  for (int i = 0; i < NMASK; i++) {
+    if (steal->mask[i] > 0) {
+      // Atomic exchange to get the current waiting threads.
+      unsigned long local_mask = exchange((unsigned long)0, &(steal->mask[i]));
+      // Works until it no thread is pending.
+      while (likely(local_mask > 0)) {
+        int id = pop_work(&local_mask);
+        // Optains the associate thread.
+        fthread* f = steal->threads[MUL64(i) + id];
+        fworker_work(w, f);
+      }
+      break;
+    }
+  }
+}
+
+LC_INLINE void random_steal_l1(fworker* w) {
+  fworker* steal = random_worker();
+  for (int l1i = 0; l1i < 8; l1i++) {
+    if (steal->l1_mask[l1i] == 0) continue;
+    unsigned long local_l1_mask = steal->l1_mask[l1i];
+
+    if (local_l1_mask > 0) {
+      int ii = find_first_set(local_l1_mask);
+      int start_i = MUL8(MUL64(l1i)) + MUL8(ii);
+      for (int i = start_i; i < start_i + 8 && i < NMASK; i++) {
+        if (steal->mask[i] > 0) {
+          // Atomic exchange to get the current waiting threads.
+          unsigned long local_mask = exchange(0, &(steal->mask[i]));
+          // Works until it no thread is pending.
+          while (likely(local_mask > 0)) {
+            int id = pop_work(&local_mask);
+            // Optains the associate thread.
+            fthread* f = steal->threads[MUL64(i) + id];
+            fworker_work(w, f);
+          }
+          return;
+        }
+      }
+    }
+  }
+}
 #endif
 
 #if 0
@@ -181,10 +253,14 @@ LC_INLINE void* wfunc(void* arg)
 {
   fworker* w = (fworker*)arg;
   tlself.worker = w;
-#if 0
-  wtimework = 0;
-  int first = 1;
+  set_me_to(w->id);
+
+#ifdef ENABLE_STEAL
+  if (w->id == 0) {
+    fprintf(stderr, "[FULT] Using steal\n");
+  }
 #endif
+
 
   while (unlikely(!w->stop)) {
 #ifdef ENABLE_STEAL
@@ -192,52 +268,24 @@ LC_INLINE void* wfunc(void* arg)
 #endif
     for (int i = 0; i < NMASK; i++) {
       if (w->mask[i] > 0) {
-#if 0
-        if (unlikely(first))  {
-          wtimework = -wtime();
-          wtimeall = -wtime();
-          first = 0;
-        } else {
-          wtimework -= wtime();
-        }
-#endif
-
         // Atomic exchange to get the current waiting threads.
         unsigned long local_mask = exchange((unsigned long)0, &(w->mask[i]));
         // Works until it no thread is pending.
-        while (likely(local_mask > 0)) {
 #ifdef ENABLE_STEAL
-          has_work = 1;
+        has_work = 1;
 #endif
+        while (likely(local_mask > 0)) {
           int id = pop_work(&local_mask);
           // Optains the associate thread.
-          fthread* f = &(w->threads[MUL64(i) + id]);
+          fthread* f = w->threads[MUL64(i) + id];
           fworker_work(w, f);
         }
-        // wtimework += wtime();
       }
     }
 
 #ifdef ENABLE_STEAL
-    if (!has_work && nfworker_ > 1) {
-      // Steal..
-      fworker* steal = random_worker();
-      for (auto i = 0; i < NMASK; i++) {
-        auto& mask = steal->mask_[i];
-        if (mask > 0) {
-          // Atomic exchange to get the current waiting threads.
-          auto local_mask = exchange((unsigned long)0, &(mask));
-          // Works until it no thread is pending.
-          while (likely(local_mask > 0)) {
-            auto id = pop_work(&local_mask);
-            // Optains the associate thread.
-            fthread* f = &(steal->threads[MUL64(i) + id]);
-            fworker_work(w, f);
-          }
-          break;
-        }
-      }
-    }
+    if (!has_work && nfworker_ > 1)
+      random_steal(w);
 #endif
   }
   return 0;
@@ -249,8 +297,17 @@ LC_INLINE void* wfunc(void* arg)
 {
   fworker* w = (fworker*)arg;
   tlself.worker = w;
+  set_me_to(w->id);
 
+  if (w->id == 0) {
+#ifdef ENABLE_STEAL
+    fprintf(stderr, "[FULT] Using steal\n");
+#endif
+    fprintf(stderr, "[FULT] Using L1_MASK\n");
+  }
+ 
   while (unlikely(!w->stop)) {
+    int has_work = 0;
     for (int l1i = 0; l1i < 8; l1i++) {
       if (w->l1_mask[l1i] == 0) continue;
       unsigned long local_l1_mask =
@@ -263,20 +320,26 @@ LC_INLINE void* wfunc(void* arg)
         int start_i = MUL8(MUL64(l1i)) + MUL8(ii);
         for (int i = start_i; i < start_i + 8 && i < NMASK; i++) {
           if (w->mask[i] > 0) {
-            unsigned long local_mask = 0;
+            has_work = 1;
             // Atomic exchange to get the current waiting threads.
-            local_mask = exchange(local_mask, &(w->mask[i]));
+            unsigned long local_mask = exchange(0, &(w->mask[i]));
             // Works until it no thread is pending.
             while (likely(local_mask > 0)) {
               int id = pop_work(&local_mask);
               // Optains the associate thread.
-              fthread* f = &w->threads[MUL64(i) + id];
+              fthread* f = w->threads[MUL64(i) + id];
               fworker_work(w, f);
             }
           }
         }
       }
     }
+
+#ifdef ENABLE_STEAL
+    if (!has_work && nfworker_ > 1) {
+      random_steal_l1(w);
+    }
+#endif
   }
 
   return 0;

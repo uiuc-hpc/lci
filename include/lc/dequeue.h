@@ -22,7 +22,7 @@ LC_INLINE void* dq_pop_bot(struct dequeue* deq);
 
 LC_INLINE void dq_init(struct dequeue* dq)
 {
-  memset(dq->container, 0, MAX_SIZE);
+  memset(dq->container, 0, sizeof(void*) * MAX_SIZE);
   dq->top = 0;
   dq->bot = 0;
   dq->cache = NULL;

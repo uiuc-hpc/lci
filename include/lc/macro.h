@@ -3,6 +3,8 @@
 
 #define LC_EXPORT __attribute__((visibility("default")))
 
+#define LC_SAFE(x) {while (!x);}
+
 #define lc_mem_fence()                   \
   {                                      \
     asm volatile("mfence" ::: "memory"); \
@@ -25,7 +27,6 @@
   x->context.runtime = 1;
 
 #define MODE_THREAD
-
 #ifndef MODE_THREAD
 
 #define LC_SET_REQ_DONE_AND_SIGNAL(r) \
@@ -35,12 +36,21 @@
 
 #define LC_SET_REQ_DONE_AND_SIGNAL(r)                                  \
   {                                                                    \
-    void* sync = (r)->sync;                                            \
-    (r)->type = LC_REQ_DONE;                                           \
-    if (!sync)                                                         \
+    lc_sync* sync = (r)->sync;                                         \
+    if (sync == NULL)                                                  \
       sync = __sync_val_compare_and_swap(&(r)->sync, NULL, (void*)-1); \
-    if (sync) lc_sync_signal(sync);                                    \
+    (r)->type = LC_REQ_DONE;                                           \
+    if (sync && sync != (void*) -1) lc_sync_signal(sync);              \
   }
 #endif
+
+#include <stdlib.h>
+LC_INLINE
+void* lc_memalign(size_t alignment, size_t size)
+{
+  void* ptr = 0;
+  posix_memalign(&ptr, alignment, size);
+  return ptr;
+}
 
 #endif

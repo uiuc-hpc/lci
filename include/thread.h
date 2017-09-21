@@ -45,28 +45,14 @@ LC_INLINE int lc_worker_id()
 
 LC_INLINE void lc_sync_wait(lc_sync* sync, volatile int* flag)
 {
-  void* thread_ctx = g_sync.get();
-  while (!*flag) {
-    lc_spin_lock(&sync->mutex);
-    if (*flag) {
-      lc_spin_unlock(&sync->mutex);
-      return;
-    }
-    sync->queue = thread_ctx;
-    g_sync.wait(thread_ctx, &sync->mutex);
-  }
+  g_sync.wait(sync->queue, flag);
 }
 
 LC_INLINE void lc_sync_signal(lc_sync* sync)
 {
   if (sync->count < 0 || __sync_sub_and_fetch(&sync->count, 1) == 0) {
-    lc_spin_lock(&sync->mutex);
-    if (!sync->queue) {
-      lc_spin_unlock(&sync->mutex);
-      return;
-    }
-    lc_spin_unlock(&sync->mutex);
-    g_sync.signal(sync->queue);
+    if (sync->queue)
+      g_sync.signal(sync->queue);
   }
 }
 

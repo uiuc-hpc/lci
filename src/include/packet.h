@@ -19,13 +19,13 @@ struct __attribute__((packed)) packet_context {
 struct __attribute__((__packed__)) packet_rts {
   uintptr_t req;
   uintptr_t src_addr;
-  uintptr_t size;
+  size_t size;
 };
 
 struct __attribute__((__packed__)) packet_rtr {
   uintptr_t req;
   uintptr_t src_addr;
-  uintptr_t size;
+  size_t size;
   uintptr_t tgt_addr;
   uint32_t rkey;
   uint32_t comm_id;

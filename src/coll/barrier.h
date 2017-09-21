@@ -1,107 +1,38 @@
-#ifndef BARRIER_H_
-#define BARRIER_H_
+#ifndef LC_BARRIER_H_
+#define LC_BARRIER_H_
 
-const int MPIV_COLL_BASE_TAG_BARRIER = 413371337;
+static int round = 0;
 
-void MPIV_Barrier_log(MPI_Comm comm)
+#define MCA_COLL_BASE_TAG_BARRIER 1339
+
+int ompi_coll_base_barrier_intra_bruck(lch* comm)
 {
-#if USE_MPE
-  MPE_Log_event(lc_barrier_start, 0, "start_barrier");
-#endif
+  int rank, size, distance, to, from;
 
-  int i, peer, dim, hibit, mask;
+  rank = lc_id(comm);
+  size = lc_size(comm);
+  int tempsend, temprecv;
+  lc_req sreq, rreq;
 
-  int size = MPIV.size;
-  int rank = MPIV.me;
+  /* exchange data with rank-2^k and rank+2^k */
+  for (distance = 1; distance < size; distance <<= 1) {
+    from = (rank + size - distance) % size;
+    to   = (rank + distance) % size;
 
-  /* Send null-messages up and down the tree.  Synchronization at the
-   * root (rank 0). */
+    /* send message to lower ranked node */
+    LC_SAFE(lc_send_tag(comm, &tempsend, 0, to,
+        round << 8 | MCA_COLL_BASE_TAG_BARRIER, &sreq));
 
-  dim = opal_cube_dim(size);
-  hibit = opal_hibit(rank, dim);
-  --dim;
+    lc_recv_tag(comm, &temprecv, 0, from,
+        round << 8 | MCA_COLL_BASE_TAG_BARRIER, &rreq);
 
-  /* Receive from children. */
-  for (i = dim, mask = 1 << i; i > hibit; --i, mask >>= 1) {
-    peer = rank | mask;
-    if (peer < size) {
-      MPIV_Recv(0, 0, MPI_BYTE, peer, MPIV_COLL_BASE_TAG_BARRIER,
-                MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
+    lc_wait(&sreq);
+    lc_wait(&rreq);
   }
 
-  /* Send to and receive from parent. */
-  if (rank > 0) {
-    peer = rank & ~(1 << hibit);
-    MPIV_Send(0, 0, MPI_BYTE, peer, MPIV_COLL_BASE_TAG_BARRIER, comm);
-    MPIV_Recv(0, 0, MPI_BYTE, peer, MPIV_COLL_BASE_TAG_BARRIER, comm,
-              MPI_STATUS_IGNORE);
-  }
+  round++;
 
-  for (i = hibit + 1, mask = 1 << i; i <= dim; ++i, mask <<= 1) {
-    peer = rank | mask;
-    if (peer < size) {
-      MPIV_Send(0, 0, MPI_BYTE, peer, MPIV_COLL_BASE_TAG_BARRIER, comm);
-    }
-  }
-
-#if USE_MPE
-  MPE_Log_event(lc_barrier_end, 0, "end_barrier");
-#endif
-}
-
-#define MCA_PML_CALL(x) MPIV_##x
-#define MCA_COLL_BASE_TAG_BARRIER MPIV_COLL_BASE_TAG_BARRIER
-
-int MPIV_Barrier_N(MPI_Comm comm)
-{
-  int i;
-  int size = MPIV.size;
-  int rank = MPIV.me;
-
-  /* All non-root send & receive zero-length message. */
-
-  if (rank > 0) {
-    MCA_PML_CALL(Send(NULL, 0, MPI_BYTE, 0, MCA_COLL_BASE_TAG_BARRIER, comm));
-
-    MCA_PML_CALL(Recv(NULL, 0, MPI_BYTE, 0, MCA_COLL_BASE_TAG_BARRIER, comm,
-                      MPI_STATUS_IGNORE));
-  }
-
-  /* The root collects and broadcasts the messages. */
-
-  else {
-    thread th[size];
-    for (i = 1; i < size; ++i) {
-      th[i] = MPIV_spawn(
-          0,
-          [](intptr_t i) {
-            MCA_PML_CALL(Recv(NULL, 0, MPI_BYTE, i, MCA_COLL_BASE_TAG_BARRIER,
-                              MPI_COMM_WORLD, MPI_STATUS_IGNORE));
-            MCA_PML_CALL(Send(NULL, 0, MPI_BYTE, i, MCA_COLL_BASE_TAG_BARRIER,
-                              MPI_COMM_WORLD));
-          },
-          i);
-    }
-    for (i = 1; i < size; ++i) {
-      MPIV_join(th[i]);
-    }
-  }
-
-  /* All done */
-
-  return MPI_SUCCESS;
-}
-
-void MPIV_Barrier(MPI_Comm comm)
-{
-#if 0
-  if (MPIV.size > 32)
-    MPIV_Barrier_log(comm);
-  else
-    MPIV_Barrier_N(comm);
-#endif
-  MPI_Barrier(comm);
+  return 0;
 }
 
 #endif

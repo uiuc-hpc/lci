@@ -26,7 +26,6 @@ typedef struct lc_pth_thread {
 
 __thread lc_pth_thread* tlself;
 
-extern lch* lc_hdl;
 lc_pth_thread* MPI_spawn(int wid, void* (*func)(void*), void*);
 
 static void* pth_wrap(void* arg)
@@ -42,12 +41,12 @@ static void* pth_wrap(void* arg)
 
 void* thread_get() { return tlself; }
 
-void _thread_wait(void* t, volatile int* lock)
+void _thread_wait(void* t, volatile int* flag)
 {
   lc_pth_thread* thread = (lc_pth_thread*)t;
   pthread_mutex_lock(&thread->mutex);
-  lc_spin_unlock(lock);
-  pthread_cond_wait(&thread->cond, &thread->mutex);
+  while (!*flag)
+    pthread_cond_wait(&thread->cond, &thread->mutex);
   pthread_mutex_unlock(&thread->mutex);
 }
 

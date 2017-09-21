@@ -25,7 +25,10 @@ extern __thread struct tls_t tlself;
 #ifdef __cplusplus
 extern "C" {
 #endif
+LC_EXPORT
 fcontext_t make_fcontext(void* sp, size_t size, void* (*thread_func)(void*));
+
+LC_EXPORT
 void* jump_fcontext(fcontext_t* old, fcontext_t, void* arg);
 #ifdef __cplusplus
 }

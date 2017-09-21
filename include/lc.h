@@ -13,7 +13,6 @@ extern "C" {
 #endif
 
 #include "thread.h"
-#include "ptmalloc.h"
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -42,7 +41,7 @@ enum lc_req_state {
 
 struct lc_ctx {
   void* buffer;
-  int size;
+  size_t size;
   int rank;
   int tag;
   union {
@@ -51,7 +50,6 @@ struct lc_ctx {
   };
   lc_sync* sync;
   lc_packet* packet;
-  lc_fcb finalize;
 } __attribute__((aligned(64)));
 
 struct lc_rma_ctx {
@@ -94,7 +92,7 @@ struct lc_pkt {
 *
 */
 LC_EXPORT
-lc_status lc_send_tag(lch* mv, const void* src, int size, int rank, int tag,
+lc_status lc_send_tag(lch* mv, const void* src, size_t size, int rank, int tag,
                       lc_req* ctx);
 
 /**
@@ -124,7 +122,7 @@ lc_status lc_send_tag_p(lch* mv, struct lc_pkt* pkt, lc_req* ctx);
 *
 */
 LC_EXPORT
-lc_status lc_recv_tag(lch* mv, void* src, int size, int rank, int tag,
+lc_status lc_recv_tag(lch* mv, void* src, size_t size, int rank, int tag,
                       lc_req* ctx);
 
 /**@} End group matching */
@@ -148,7 +146,7 @@ lc_status lc_recv_tag(lch* mv, void* src, int size, int rank, int tag,
 *
 */
 LC_EXPORT
-lc_status lc_send_queue(lch* mv, const void* src, int size, int rank, int tag,
+lc_status lc_send_queue(lch* mv, const void* src, size_t size, int rank, int tag,
                         lc_req* ctx);
 
 /**
@@ -176,7 +174,7 @@ lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, lc_req* ctx);
 * @return 1 if got data, 0 otherwise.
 */
 LC_EXPORT
-lc_status lc_recv_queue_probe(lch* mv, int* size, int* rank, int* tag,
+lc_status lc_recv_queue_probe(lch* mv, size_t* size, int* rank, int* tag,
                               lc_req* ctx);
 
 /**
@@ -224,7 +222,7 @@ int lc_rma_create(lch* mv, void* buf, size_t size, lc_addr** rctx_ptr);
 * @return 1 if success, 0 otherwise.
 */
 LC_EXPORT
-lc_status lc_send_put(lch* mv, void* src, int size, int rank, lc_addr* dst,
+lc_status lc_send_put(lch* mv, void* src, size_t size, int rank, lc_addr* dst,
                 lc_req* ctx);
 
 /**
@@ -252,7 +250,7 @@ lc_status lc_recv_put(lch* mv, lc_addr* rctx, lc_req* ctx);
 * @return
 */
 LC_EXPORT
-int lc_send_put_signal(lch* mv, void* src, int size, int rank, lc_addr* dst,
+int lc_send_put_signal(lch* mv, void* src, size_t size, int rank, lc_addr* dst,
                        lc_req* ctx);
 
 /**@} end rdma-api */
@@ -295,15 +293,34 @@ lc_status lc_post(lc_req* ctx, lc_sync* sync)
 }
 
 /**
-* @brief Blocking wait on sync, for communication to finish.
+* @brief Blocking wait.
 *
 * @param ctx
 *
 * @return
 */
 LC_INLINE
-void lc_wait(lch* mv __UNUSED__, lc_req* ctx, lc_sync* sync)
+void lc_wait(lc_req* ctx)
 {
+  while (ctx->type != LC_REQ_DONE)
+    ;
+}
+
+/**
+* @brief Blocking wait on a sync.
+*
+* @param sync
+* @param ctx
+*
+* @return
+*/
+LC_INLINE
+void lc_wait_post(lc_sync* sync, lc_req* ctx)
+{
+  // Need to attach the thread to the queue
+  // before adding to the request.
+  sync->queue = g_sync.get();
+
   if (lc_post(ctx, sync) == LC_ERR_NOP) {
     lc_sync_wait(ctx->sync, &(ctx->int_type));
   }
@@ -334,7 +351,7 @@ LC_EXPORT
 int lc_progress(lch* mv);
 
 LC_EXPORT
-lc_status lc_pkt_init(lch* mv, int size, int rank, int tag, struct lc_pkt*);
+lc_status lc_pkt_init(lch* mv, size_t size, int rank, int tag, struct lc_pkt*);
 
 LC_EXPORT
 void lc_pkt_fini(lch* mv, struct lc_pkt* p);
@@ -351,14 +368,47 @@ int lc_id(lch* mv);
 LC_EXPORT
 int lc_size(lch* mv);
 
+LC_EXPORT
+void lc_sync_init(lc_get_fp i, lc_wait_fp w, lc_signal_fp s, lc_yield_fp y);
+
+#define LC_COL_IN_PLACE ((void*) -1)
+
+LC_EXPORT
+void lc_algather(void* sbuf, size_t scount, void* rbuf, size_t rcount, lch*);
+
+typedef void (*ompi_op_t)(void* dst, void* src, size_t count);
+
+LC_EXPORT
+void lc_alreduce(const void *sbuf, void *rbuf, size_t count, ompi_op_t op, lch*);
+
+LC_EXPORT
+void lc_barrier(lch* mv);
+
+#include <sys/time.h>
+
+LC_INLINE
+double lc_wtime()
+{
+  struct timeval t1;
+  gettimeofday(&t1, 0);
+  return t1.tv_sec + t1.tv_usec / 1e6;
+}
+
+/**
+* @brief Blocking wait ond progress.
+*
+* @param mv
+* @param ctx
+*
+* @return
+*/
 LC_INLINE
 void lc_wait_poll(lch* mv, lc_req* ctx)
 {
-  while (!lc_test(ctx)) lc_progress(mv);
+  while (ctx->type != LC_REQ_DONE)
+    lc_progress(mv);
 }
 
-LC_EXPORT
-void lc_sync_init(lc_get_fp i, lc_wait_fp w, lc_signal_fp s, lc_yield_fp y);
 
 /**@}*/
 

@@ -26,13 +26,13 @@ extern lch* lc_hdl;
 lc_abt_thread* MPI_spawn(int wid, void (*func)(intptr_t), intptr_t arg);
 
 void* thread_get() { return tlself; }
-void thread_wait(void* t, volatile int* lock)
+void thread_wait(void* t, volatile int* flag)
 {
   lc_abt_thread* thread = (lc_abt_thread*)t;
   lc_abt_thread* saved = tlself;
   ABT_mutex_lock(thread->mutex);
-  lc_spin_unlock(lock);
-  ABT_cond_wait(thread->cond, thread->mutex);
+  while (!*flag)
+    ABT_cond_wait(thread->cond, thread->mutex);
   ABT_mutex_unlock(thread->mutex);
   tlself = saved;
 }

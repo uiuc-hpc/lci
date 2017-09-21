@@ -23,7 +23,7 @@ typedef struct fthread {
 LC_INLINE void fthread_init(fthread* f)
 {
   f->state = INVALID;
-  f->stack = NULL;
+  f->stack = lc_memalign(64, 8192);
 }
 
 LC_INLINE void fthread_yield(fthread*);

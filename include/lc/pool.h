@@ -12,9 +12,8 @@
 #include "thread.h"
 #include "lc/lock.h"
 #include "lc/dequeue.h"
-#include "ptmalloc.h"
 
-#define MAX_NPOOLS 128
+#define MAX_NPOOLS 272
 #define MAX_LOCAL_POOL 8  // align to a cache line.
 
 extern int lc_pool_nkey;
@@ -68,7 +67,7 @@ LC_INLINE int32_t lc_pool_get_local(struct lc_pool* pool)
     pid = tls_pool_struct[wid][pool->key];
     if (pid == POOL_UNINIT) {
       struct dequeue* lpool =
-          (struct dequeue*)memalign(64, sizeof(struct dequeue));
+          (struct dequeue*)lc_memalign(64, sizeof(struct dequeue));
       dq_init(lpool);
       pid = pool->npools++;
       pool->lpools[pid] = lpool;

@@ -26,15 +26,14 @@ void lc_open(lch** ret)
 #endif
 
   // Prepare the list of packet.
-  uint32_t npacket = MAX(MAX_PACKET, mv->size * 4);
-  lc_server_init(mv, npacket * LC_PACKET_SIZE * 2, &mv->server);
+  lc_server_init(mv, MAX_PACKET * LC_PACKET_SIZE * 2, &mv->server);
 
   uintptr_t base_packet = (uintptr_t) lc_heap_ptr(mv) + 4096; // the commid should not be 0.
   lc_pool_create(&mv->pkpool);
 
-  for (unsigned i = 0; i < npacket; i++) {
+  for (unsigned i = 0; i < MAX_PACKET; i++) {
     lc_packet* p = (lc_packet*) (base_packet + i * LC_PACKET_SIZE);
-    p->context.poolid = 0; // default to the first pool -- usually server.
+    p->context.poolid = 0;
     lc_pool_put(mv->pkpool, p);
   }
 
@@ -55,7 +54,7 @@ void lc_close(lch* mv)
   free(mv);
 }
 
-lc_status lc_send_put(lch* mv, void* src, int size, int rank, lc_addr* dst, lc_req* ctx)
+lc_status lc_send_put(lch* mv, void* src, size_t size, int rank, lc_addr* dst, lc_req* ctx)
 {
   LC_POOL_GET_OR_RETN(mv->pkpool, p);
   struct lc_rma_ctx* dctx = (struct lc_rma_ctx*) dst;
@@ -101,7 +100,7 @@ int lc_progress(lch* mv)
   return lc_server_progress(mv->server);
 }
 
-lc_status lc_pkt_init(lch* mv, int size, int rank, int tag, struct lc_pkt* pkt)
+lc_status lc_pkt_init(lch* mv, size_t size, int rank, int tag, struct lc_pkt* pkt)
 {
   LC_POOL_GET_OR_RETN(mv->pkpool, p);
   p->context.size = size;
@@ -112,7 +111,7 @@ lc_status lc_pkt_init(lch* mv, int size, int rank, int tag, struct lc_pkt* pkt)
   if (size < (int) SHORT_MSG_SIZE) {
     pkt->buffer = &p->data;
   } else {
-    pkt->buffer = memalign(4096, size);
+    pkt->buffer = lc_memalign(4096, size);
     p->data.rts.size = size;
   }
   return LC_OK;
@@ -146,3 +145,5 @@ int free_dma_mem(uintptr_t mem)
   _real_server_dereg(mem);
   return 1;
 }
+
+

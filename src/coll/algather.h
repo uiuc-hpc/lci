@@ -1,36 +1,32 @@
-#ifndef ALGATHER_H_
-#define ALGATHER_H_
+#ifndef LC_ALGATHER_H_
+#define LC_ALGATHER_H_
+
+#include <string.h>
+#include <stdint.h>
+#include <stddef.h>
 
 #define MCA_COLL_BASE_TAG_ALLGATHER 1338
 
-int ompi_coll_tuned_allgather_intra_bruck(void* sbuf, int scount,
-                                          MPI_Datatype sdtype, void* rbuf,
-                                          int rcount, MPI_Datatype rdtype,
-                                          MPI_Comm comm)
+static inline int ompi_coll_tuned_allgather_intra_bruck(void* sbuf, size_t scount,
+    void* rbuf, size_t rcount, lch* mv)
 {
   int rank, size, sendto, recvfrom, distance, blockcount;
   int slb, rlb, sext, rext;
   char *tmpsend = NULL, *tmprecv = NULL;
 
-  size = MPIV.size;
-  rank = MPIV.me;
+  size = lc_size(mv);
+  rank = lc_id(mv);
   slb = rlb = 0;
-  MPI_Type_size(sdtype, &sext);
-  MPI_Type_size(rdtype, &rext);
+  sext = rext = 1;
 
   /* Initialization step:
      - if send buffer is not MPI_IN_PLACE, copy send buffer to block 0 of
      receive buffer, else
      - if rank r != 0, copy r^th block from receive buffer to block 0.
      */
+  tmpsend = (char*)sbuf;
   tmprecv = (char*)rbuf;
-  if (MPI_IN_PLACE != sbuf) {
-    tmpsend = (char*)sbuf;
-    memcpy(tmprecv, tmpsend, scount * sext);
-  } else if (0 != rank) { /* non root with MPI_IN_PLACE */
-    tmpsend = ((char*)rbuf) + (ptrdiff_t)rank * (ptrdiff_t)rcount * rext;
-    memcpy(tmpsend, tmprecv, rcount * rext);
-  }
+  memcpy(tmprecv, tmpsend, scount * sext);
 
   /* Communication step:
      At every step i, rank r:
@@ -56,16 +52,17 @@ int ompi_coll_tuned_allgather_intra_bruck(void* sbuf, int scount,
       blockcount = size - distance;
     }
 
-    /* Sendreceive */
-    auto t = MPIV_spawn(0, [=](intptr_t) {
-      MPIV_Recv(tmprecv, blockcount * rcount, rdtype, recvfrom,
-                MCA_COLL_BASE_TAG_ALLGATHER + distance, comm,
-                MPI_STATUS_IGNORE);
-    });
+    lc_req sreq, rreq;
 
-    MPIV_Send(tmpsend, blockcount * rcount, rdtype, sendto,
-              MCA_COLL_BASE_TAG_ALLGATHER + distance, comm);
-    MPIV_join(t);
+    /* Sendreceive */
+    LC_SAFE(lc_send_tag(mv, tmpsend, blockcount * rcount, sendto,
+        MCA_COLL_BASE_TAG_ALLGATHER, &sreq));
+
+    lc_recv_tag(mv, tmprecv, blockcount * rcount, recvfrom,
+        MCA_COLL_BASE_TAG_ALLGATHER, &rreq);
+
+    lc_wait(&sreq);
+    lc_wait(&rreq);
   }
 
   /* Finalization step:
@@ -94,86 +91,17 @@ int ompi_coll_tuned_allgather_intra_bruck(void* sbuf, int scount,
     /* 2. move blocks [(size - rank) .. size] from rbuf to the begining of rbuf
      */
     tmpsend = (char*)rbuf + (ptrdiff_t)(size - rank) * (ptrdiff_t)rcount * rext;
-    memcpy(rbuf, tmpsend, rext * (ptrdiff_t)rank * (ptrdiff_t)rcount);
+    memmove(rbuf, tmpsend, rext * (ptrdiff_t)rank * (ptrdiff_t)rcount);
 
     /* 3. copy blocks from shift buffer back to rbuf starting at block [rank].
      */
     tmprecv = (char*)rbuf + (ptrdiff_t)rank * (ptrdiff_t)rcount * rext;
-    memcpy(tmprecv, shift_buf,
-           rext * (ptrdiff_t)(size - rank) * (ptrdiff_t)rcount);
+    __builtin_memcpy(tmprecv, shift_buf,
+        rext * (ptrdiff_t)(size - rank) * (ptrdiff_t)rcount);
     free(free_buf);
   }
 
   return 0;
-}
-
-int ompi_coll_tuned_allgather_intra_ring(void* sbuf, int scount,
-                                         MPI_Datatype sdtype, void* rbuf,
-                                         int rcount, MPI_Datatype rdtype,
-                                         MPI_Comm comm)
-{
-  int rank, size;
-  int sendto, recvfrom, i, recvdatafrom, senddatafrom;
-  int sext, rext;
-  char *tmpsend = NULL, *tmprecv = NULL;
-
-  rank = MPIV.me;
-  size = MPIV.size;
-
-  MPI_Type_size(sdtype, &sext);
-  MPI_Type_size(rdtype, &rext);
-
-  /* Initialization step:
-     - if send buffer is not MPI_IN_PLACE, copy send buffer to appropriate block
-     of receive buffer
-     */
-  tmprecv = (char*)rbuf + rank * rcount * rext;
-  if (MPI_IN_PLACE != sbuf) {
-    tmpsend = (char*)sbuf;
-    memcpy(tmprecv, tmpsend, scount * sext);
-  }
-
-  /* Communication step:
-     At every step i: 0 .. (P-1), rank r:
-     - receives message from [(r - 1 + size) % size] containing data from rank
-     [(r - i - 1 + size) % size]
-     - sends message to rank [(r + 1) % size] containing data from rank
-     [(r - i + size) % size]
-     - sends message which starts at begining of rbuf and has size
-     */
-  sendto = (rank + 1) % size;
-  recvfrom = (rank - 1 + size) % size;
-
-  // fult_t th[size];
-  for (i = 0; i < size - 1; i++) {
-    recvdatafrom = (rank - i - 1 + size) % size;
-    senddatafrom = (rank - i + size) % size;
-
-    tmprecv = (char*)rbuf + recvdatafrom * rcount * rext;
-    tmpsend = (char*)rbuf + senddatafrom * rcount * rext;
-
-    auto t = MPIV_spawn(0, [=](intptr_t) {
-      MPIV_Recv(tmprecv, rcount, rdtype, recvfrom,
-                MCA_COLL_BASE_TAG_ALLGATHER + i, comm, MPI_STATUS_IGNORE);
-    });
-
-    MPIV_Send(tmpsend, rcount, rdtype, sendto, MCA_COLL_BASE_TAG_ALLGATHER + i,
-              comm);
-    MPIV_join(t);
-  }
-
-  // for (i = 0; i < size - 1; i++) {
-  // MPIV_join(th[i]);
-  // }
-
-  return 0;
-}
-
-void MPIV_Allgather(void* sbuf, int scount, MPI_Datatype sdtype, void* rbuf,
-                    int rcount, MPI_Datatype rdtype, MPI_Comm comm)
-{
-  ompi_coll_tuned_allgather_intra_bruck(sbuf, scount, sdtype, rbuf, rcount,
-                                        rdtype, comm);
 }
 
 #endif

@@ -22,8 +22,10 @@ extern lch* lc_hdl;
 
 LC_INLINE
 void MPI_Comm_rank(MPI_Comm comm, int* rank) { *rank = lc_id(comm); }
+
 LC_INLINE
 void MPI_Comm_size(MPI_Comm comm, int* size) { *size = lc_size(comm); }
+
 LC_EXPORT
 void MPI_Recv(void* buffer, int count, MPI_Datatype datatype, int rank, int tag,
               MPI_Comm, MPI_Status*);

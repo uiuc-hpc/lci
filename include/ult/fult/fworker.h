@@ -3,15 +3,17 @@
 
 #include "lc/macro.h"
 #include <pthread.h>
+#include <string.h>
 
 typedef struct fworker {
   fthread** thread_pool;
+  fthread** threads;
   int thread_pool_last;
+  int thread_size;
   volatile int thread_pool_lock;
   pthread_t runner;
   int stop;
   int id;
-  fthread* threads;
   fctx ctx;
   struct {
 #ifdef USE_L1_MASK

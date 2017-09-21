@@ -27,7 +27,7 @@
 #define MAKE_SIG(sig, id) (((uint32_t)sig) | ((uint32_t) id << 2))
 
 LC_INLINE
-int lci_send(lch* mv, const void* src, int size, int rank, int tag,
+int lci_send(lch* mv, const void* src, size_t size, int rank, int tag,
              uint8_t proto, lc_packet* p)
 {
   assert(tag >> 24 == 0 && "Tag is out-of-range");
@@ -37,14 +37,14 @@ int lci_send(lch* mv, const void* src, int size, int rank, int tag,
 }
 
 LC_INLINE
-void lci_put(lch* mv, void* src, int size, int rank, uintptr_t tgt,
+void lci_put(lch* mv, void* src, size_t size, int rank, uintptr_t tgt,
              uint32_t rkey, uint32_t sig, lc_packet* p)
 {
   lc_server_rma_signal(mv->server, rank, src, tgt, rkey, size, sig, p);
 }
 
 LC_INLINE
-void lci_rdz_prepare(lch* mv, void* src, int size, lc_req* ctx,
+void lci_rdz_prepare(lch* mv, void* src, size_t size, lc_req* ctx,
                      lc_packet* p)
 {
   p->context.req = ctx;
@@ -54,15 +54,6 @@ void lci_rdz_prepare(lch* mv, void* src, int size, lc_req* ctx,
   p->data.rtr.tgt_addr = (uintptr_t)src;
   p->data.rtr.rkey = lc_server_rma_key(rma_mem);
 }
-
-#if 0
-static void lc_sent_put(lch* mv, lc_packet* p)
-{
-  lc_req* req = (lc_req*) p->context.req;
-  LC_SET_REQ_DONE_AND_SIGNAL(req);
-  lc_pool_put(mv->pkpool, p);
-}
-#endif
 
 LC_INLINE
 void lc_serve_recv(lch* mv, lc_packet* p, uint8_t proto)
@@ -81,10 +72,12 @@ void lc_serve_recv(lch* mv, lc_packet* p, uint8_t proto)
     if (!lc_hash_insert(mv->tbl, key, &value, SERVER)) {
       lc_req* req = (lc_req*) value;
       if (proto & LC_PROTO_DATA) {
+        req->size = p->context.size;
         memcpy(req->buffer, p->data.buffer, req->size);
         LC_SET_REQ_DONE_AND_SIGNAL(req);
         lc_pool_put(mv->pkpool, p);
       } else {
+        req->size = p->data.rts.size;
         lci_rdz_prepare(mv, req->buffer, req->size, req, p);
         lci_send(mv, &p->data, sizeof(struct packet_rtr),
             req->rank, req->tag, LC_PROTO_RTR | LC_PROTO_TAG, p);

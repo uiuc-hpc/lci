@@ -14,10 +14,11 @@ extern lch* lc_hdl;
 
 void* thread_get() { return tlself.thread; }
 void thread_yield() { fthread_yield(tlself.thread); }
-void thread_wait(void* thread, volatile int* mutex)
+
+void thread_wait(void* thread, volatile int* flag)
 {
-  lc_spin_unlock(mutex);
-  fthread_wait(thread);
+  while (!*flag)
+    fthread_wait(thread);
 }
 
 void thread_signal(void* thread) { fthread_resume(thread); }

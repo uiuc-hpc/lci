@@ -4,7 +4,6 @@
 #define _POSIX_C_SOURCE 200809L
 #include <stdint.h>
 #include <stdlib.h>
-#include "ptmalloc.h"
 
 typedef uintptr_t lc_value;
 typedef uint64_t lc_key;

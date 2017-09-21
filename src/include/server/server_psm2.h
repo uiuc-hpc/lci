@@ -7,10 +7,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "config.h"
 #include "pmi.h"
-#include "ptmalloc.h"
 #include "lc/macro.h"
 #include "dreg/dreg.h"
+
+#ifdef WITH_MPI
+#include <mpi.h>
+#endif
 
 #define GET_PROTO(p) (p & 0x00ff)
 #define MAKE_PSM_TAG(proto, rank) \
@@ -212,7 +216,7 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
     }
     MPI_Barrier(MPI_COMM_WORLD);
   } else
-#else
+#endif
   {
     sprintf(key, "_LC_KEY_%d", mv->me);
     sprintf(value, "%llu", (unsigned long long)s->myepid);
@@ -227,9 +231,8 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
       epid_array_mask[i] = 1;
     }
   }
-#endif
 
-    pthread_t startup_thread;
+  pthread_t startup_thread;
   pthread_create(&startup_thread, NULL, psm_startup, (void*)s);
 
   psm2_error_t epid_connect_errors[mv->size];
@@ -245,7 +248,7 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
 
   lcrq_init(&s->free_mr);
 
-  s->heap = memalign(4096, heap_size);
+  s->heap = lc_memalign(4096, heap_size);
   s->recv_posted = 0;
   s->mv = mv;
   *s_ptr = s;

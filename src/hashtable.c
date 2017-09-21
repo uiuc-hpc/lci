@@ -5,7 +5,7 @@
 
 LC_INLINE struct hash_val* create_table(size_t num_rows)
 {
-  struct hash_val* ret = memalign(64,
+  struct hash_val* ret = lc_memalign(64,
       num_rows * TBL_WIDTH * sizeof(struct hash_val));
 
   // Initialize all with EMPTY and clear lock.
@@ -61,10 +61,15 @@ int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value,
       hentry->entry.tag = EMPTY;
       lc_spin_unlock(&master->control.lock);
       return 0;
-    } else if (tag == EMPTY && empty_hentry == NULL) {
+    } else if (tag == EMPTY) {
       // Ortherwise, if the tag is empty, we record the slot.
       // We can't return until we go over all entries.
-      empty_hentry = hentry;
+      if (empty_hentry == NULL)
+        empty_hentry = hentry;
+    } else {
+      // If we are still seeing some non-empty,
+      // push that empty entry even further.
+      empty_hentry = NULL;
     }
 
     hentry++;

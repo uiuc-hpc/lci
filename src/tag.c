@@ -8,7 +8,7 @@ lc_status lc_send_tag_p(lch* mv, struct lc_pkt* pkt, lc_req* ctx)
 {
   lc_packet* p = (lc_packet*) pkt->_reserved_;
   void* src = pkt->buffer;
-  int size = p->context.size;
+  size_t size = p->context.size;
   int rank = pkt->rank;
   int tag = pkt->tag;
   if (size <= (int) SHORT_MSG_SIZE) {
@@ -25,7 +25,7 @@ lc_status lc_send_tag_p(lch* mv, struct lc_pkt* pkt, lc_req* ctx)
   return LC_OK;
 }
 
-lc_status lc_send_tag(lch* mv, const void* src, int size, int rank, int tag, lc_req* ctx)
+lc_status lc_send_tag(lch* mv, const void* src, size_t size, int rank, int tag, lc_req* ctx)
 {
   LC_POOL_GET_OR_RETN(mv->pkpool, p);
   if (size <= (int) SHORT_MSG_SIZE) {
@@ -42,32 +42,20 @@ lc_status lc_send_tag(lch* mv, const void* src, int size, int rank, int tag, lc_
   return LC_OK;
 }
 
-static void lc_recv_tag_final(lch* mv, lc_req* req, lc_packet* p)
-{
-  if (p->context.proto & LC_PROTO_DATA) {
-    memcpy(req->buffer, p->data.buffer, req->size);
-    LC_SET_REQ_DONE_AND_SIGNAL(req);
-    lc_pool_put(mv->pkpool, p);
-  } else {
-    lci_rdz_prepare(mv, req->buffer, req->size, req, p);
-    lci_send(mv, &p->data, sizeof(struct packet_rtr),
-        req->rank, req->tag, LC_PROTO_RTR | LC_PROTO_TAG, p);
-  }
-}
-
-lc_status lc_recv_tag(lch* mv, void* src, int size, int rank, int tag, lc_req* ctx)
+lc_status lc_recv_tag(lch* mv, void* src, size_t size, int rank, int tag, lc_req* ctx)
 {
   INIT_CTX(ctx);
   lc_key key = lc_make_key(ctx->rank, ctx->tag);
   lc_value value = (lc_value)ctx;
-  ctx->finalize = lc_recv_tag_final;
   if (!lc_hash_insert(mv->tbl, key, &value, CLIENT)) {
     lc_packet* p = (lc_packet*) value;
     if (p->context.proto & LC_PROTO_DATA) {
-      memcpy(src, p->data.buffer, size);
+      memcpy(src, p->data.buffer, p->context.size);
+      ctx->size = p->context.size;
       ctx->type = LC_REQ_DONE;
       lc_pool_put(mv->pkpool, p);
     } else {
+      ctx->size = p->data.rts.size;
       lci_rdz_prepare(mv, src, size, ctx, p);
       lci_send(mv, &p->data, sizeof(struct packet_rtr),
           rank, tag, LC_PROTO_RTR | LC_PROTO_TAG, p);
