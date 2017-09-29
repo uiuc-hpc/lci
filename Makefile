@@ -106,9 +106,8 @@ $(OBJDIR)/jfcontext.o: $(JFCONTEXT)
 $(OBJDIR)/mfcontext.o: $(MFCONTEXT)
 	$(CC) -O3 -c $(MFCONTEXT) -o $(OBJDIR)/mfcontext.o
 
-fult.a: $(addprefix $(OBJDIR)/, $(FCONTEXT))
-	$(AR) q fult.a $^
-	$(RANLIB) fult.a
+libfult.so: $(addprefix $(OBJDIR)/, $(FCONTEXT))
+	$(CC) $(LDFLAGS) $^ -o $@
 
 mpiv.a: src/mpiv.o
 	$(AR) q mpiv.a src/mpiv.o $(LIBOBJ)

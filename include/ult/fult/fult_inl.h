@@ -33,6 +33,8 @@ LC_INLINE void fthread_create(fthread* f, ffunc func, void* data,
     }
     f->stack = memory;
   }
+  f->waiter = 0;
+  f->waiter_lock = LC_SPIN_UNLOCKED;
   f->func = func;
   f->data = data;
   f->ctx.stack_ctx = make_fcontext((void*)((uintptr_t)f->stack + stack_size),
@@ -62,10 +64,23 @@ LC_INLINE void fthread_fini(fthread* f)
   fworker_fini_thread(f->origin, f->id);
 }
 
-LC_INLINE void fthread_join(fthread* f)
+LC_INLINE void fthread_join(fthread_t* f)
 {
-  while (f->state != INVALID) {
+  if (*f == tlself.thread) return;
+  int count = 0;
+  while (*((volatile fthread_t*)f) != NULL && count < 3) {
     fthread_yield(tlself.thread);
+  }
+  fthread* ff = *f;
+  if (*f != NULL) {
+    lc_spin_lock(&ff->waiter_lock);
+    while (*((volatile fthread_t*)f) != NULL) {
+      ff->waiter = tlself.thread;
+      lc_spin_unlock(&ff->waiter_lock);
+      fthread_wait(tlself.thread);
+      lc_spin_lock(&ff->waiter_lock);
+    }
+    lc_spin_unlock(&ff->waiter_lock);
   }
 }
 
@@ -73,7 +88,11 @@ static void* fwrapper(void* args)
 {
   fthread* f = (fthread*)args;
   f->func(f->data);
+  lc_spin_lock(&f->waiter_lock);
+  *(f->uthread) = NULL;
   f->state = INVALID;
+  if (f->waiter) fthread_resume(f->waiter);
+  lc_spin_unlock(&f->waiter_lock);
   swap_ctx_parent(&f->ctx);
   return 0;
 }
@@ -82,12 +101,11 @@ static void* fwrapper(void* args)
 LC_INLINE void add_more_threads(fworker* w, int num_threads)
 {
   int thread_size = w->thread_size;
-  w->threads = realloc(w->threads, sizeof(uintptr_t) * (thread_size + num_threads));
-  w->thread_pool = realloc(w->thread_pool, sizeof(uintptr_t) * (thread_size + num_threads));
-  memset((char*) w->thread_pool + sizeof(uintptr_t) * thread_size, 0, sizeof(uintptr_t) * num_threads);
+  // w->threads = (fthread**) realloc(w->threads, sizeof(uintptr_t) * (thread_size + num_threads));
+  w->thread_pool = (fthread**) realloc(w->thread_pool, sizeof(uintptr_t) * (thread_size + num_threads));
 
   for (int i = 0; i < num_threads; i++) {
-    fthread* t = lc_memalign(64, sizeof(struct fthread)); // &(w->threads[thread_size + i]);
+    fthread* t = (fthread*) lc_memalign(64, sizeof(struct fthread)); // &(w->threads[thread_size + i]);
     memset(t, 0, sizeof(struct fthread));
     fthread_init(t);
     t->origin = w;
@@ -104,17 +122,20 @@ LC_INLINE void fworker_create(fworker** w_ptr)
   w->stop = 1;
   w->thread_pool_last = 0;
   w->thread_size = 0;
-  w->threads = NULL;
+  w->threads = lc_memalign(64, sizeof(uintptr_t) * MAX_THREAD);
   w->thread_pool = NULL;
 
   for (int i = 0; i < NMASK; i++) w->mask[i] = 0;
 #ifdef USE_L1_MASK
   for (int i = 0; i < 8; i++) w->l1_mask[i] = 0;
 #endif
-
-  add_more_threads(w, MAX_INIT_THREAD);
-
   w->thread_pool_lock = LC_SPIN_UNLOCKED;
+
+  lc_spin_lock(&w->thread_pool_lock);
+  add_more_threads(w, MAX_INIT_THREAD);
+  lc_spin_unlock(&w->thread_pool_lock);
+
+  lc_mem_fence();
   *w_ptr = w;
 }
 
@@ -135,8 +156,8 @@ LC_INLINE void fworker_fini_thread(fworker* w, const int id)
   lc_spin_unlock(&w->thread_pool_lock);
 }
 
-LC_INLINE fthread* fworker_spawn(fworker* w, ffunc f, void* data,
-                                 size_t stack_size)
+LC_INLINE void fworker_spawn(fworker* w, ffunc f, void* data,
+    size_t stack_size, fthread_t* thread)
 {
   // Poll abit to wait for some free threads.
   int count = 0;
@@ -156,6 +177,8 @@ LC_INLINE fthread* fworker_spawn(fworker* w, ffunc f, void* data,
   }
   fthread* t = w->thread_pool[w->thread_pool_last - 1];
   w->thread_pool_last--;
+  t->uthread = thread;
+  *thread = t;
   lc_spin_unlock(&w->thread_pool_lock);
 
   // add it to the fthread.
@@ -163,8 +186,6 @@ LC_INLINE fthread* fworker_spawn(fworker* w, ffunc f, void* data,
 
   // make it schedable.
   fworker_sched_thread(w, t->id);
-
-  return t;
 }
 
 LC_INLINE void fworker_work(fworker* w, fthread* f)
@@ -216,8 +237,10 @@ LC_INLINE void random_steal(fworker* w) {
   }
 }
 
+#ifdef USE_L1_MASK
 LC_INLINE void random_steal_l1(fworker* w) {
   fworker* steal = random_worker();
+
   for (int l1i = 0; l1i < 8; l1i++) {
     if (steal->l1_mask[l1i] == 0) continue;
     unsigned long local_l1_mask = steal->l1_mask[l1i];
@@ -242,6 +265,7 @@ LC_INLINE void random_steal_l1(fworker* w) {
     }
   }
 }
+#endif
 #endif
 
 #if 0

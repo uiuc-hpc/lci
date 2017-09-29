@@ -23,8 +23,7 @@ typedef struct fworker {
   } __attribute__((aligned(64)));
 } fworker __attribute__((aligned(64)));
 
-LC_INLINE fthread* fworker_spawn(fworker*, ffunc f, void* data,
-                                 size_t stack_size);
+LC_INLINE void fworker_spawn(fworker*, ffunc f, void* data, size_t stack_size, fthread_t*);
 LC_INLINE void fworker_create(fworker**);
 LC_INLINE void fworker_work(fworker*, fthread*);
 LC_INLINE void fworker_sched_thread(fworker* w, const int tid);
@@ -45,14 +44,14 @@ LC_INLINE void fworker_stop(fworker* w)
 }
 
 static fthread main_sched;
-static fthread* main_thread;
+static fthread_t main_thread;
 
 LC_INLINE void fworker_start_main(fworker* w)
 {
   w->stop = 0;
   memset(&main_sched, 0, sizeof(struct fthread));
   fthread_create(&main_sched, wfunc, w, MAIN_STACK_SIZE);
-  main_thread = fworker_spawn(w, NULL, NULL, MAIN_STACK_SIZE);
+  fworker_spawn(w, NULL, NULL, MAIN_STACK_SIZE, &main_thread);
   main_thread->ctx.parent = &(main_sched.ctx);
   fthread_yield(main_thread);
 }
