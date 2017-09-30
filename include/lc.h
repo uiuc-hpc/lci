@@ -64,8 +64,6 @@ typedef struct lc_rma_ctx lc_addr;
 struct lc_pkt {
   void* _reserved_;
   void* buffer;
-  int rank;
-  int tag;
 };
 
 /**
@@ -106,7 +104,7 @@ lc_status lc_send_tag(lch* mv, const void* src, size_t size, int rank, int tag,
 *
 */
 LC_EXPORT
-lc_status lc_send_tag_p(lch* mv, struct lc_pkt* pkt, lc_req* ctx);
+lc_status lc_send_tag_p(lch* mv, struct lc_pkt* pkt, int rank, int tag, lc_req* ctx);
 
 /**
 * @brief Initialize a recv, matching incoming message.
@@ -160,7 +158,7 @@ lc_status lc_send_queue(lch* mv, const void* src, size_t size, int rank, int tag
 *
 */
 LC_EXPORT
-lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, lc_req* ctx);
+lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, int rank, int tag, lc_req* ctx);
 
 /**
 * @brief Try to dequeue, for message send with send-queue.
@@ -351,7 +349,7 @@ LC_EXPORT
 int lc_progress(lch* mv);
 
 LC_EXPORT
-lc_status lc_pkt_init(lch* mv, size_t size, int rank, int tag, struct lc_pkt*);
+lc_status lc_pkt_init(lch* mv, size_t size, struct lc_pkt*);
 
 LC_EXPORT
 void lc_pkt_fini(lch* mv, struct lc_pkt* p);

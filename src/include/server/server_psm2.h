@@ -16,6 +16,8 @@
 #include <mpi.h>
 #endif
 
+int MPI_Initialized( int *flag );
+
 #define GET_PROTO(p) (p & 0x00ff)
 #define MAKE_PSM_TAG(proto, rank) \
   ((uint64_t)((((uint64_t)proto) << 40) | (((uint64_t)rank) << 24)))
@@ -252,6 +254,9 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   s->recv_posted = 0;
   s->mv = mv;
   *s_ptr = s;
+  PMI_Barrier();
+  // Do not finalize....
+  // PMI_Finalize();
 }
 
 LC_INLINE int psm_progress(psm_server* s)
@@ -362,7 +367,6 @@ LC_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
 
 LC_INLINE void psm_finalize(psm_server* s)
 {
-  PMI_Finalize();
   free(s);
 }
 

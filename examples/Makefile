@@ -1,8 +1,7 @@
 include ../config.mk
 
-MPICC = mpicc
-LD = gcc
-CC = gcc
+CC ?= gcc
+LD = $(CC)
 TARGET = tag queue
 
 EXTRA = -DUSE_AFFI

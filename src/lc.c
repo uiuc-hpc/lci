@@ -37,14 +37,11 @@ void lc_open(lch** ret)
     lc_pool_put(mv->pkpool, p);
   }
 
-  PMI_Barrier();
-
   *ret = mv;
 }
 
 void lc_close(lch* mv)
 {
-  PMI_Barrier();
   lc_server_finalize(mv->server);
   lc_hash_destroy(mv->tbl);
   lc_pool_destroy(mv->pkpool);
@@ -100,12 +97,10 @@ int lc_progress(lch* mv)
   return lc_server_progress(mv->server);
 }
 
-lc_status lc_pkt_init(lch* mv, size_t size, int rank, int tag, struct lc_pkt* pkt)
+lc_status lc_pkt_init(lch* mv, size_t size, struct lc_pkt* pkt)
 {
   LC_POOL_GET_OR_RETN(mv->pkpool, p);
   p->context.size = size;
-  pkt->rank = rank;
-  pkt->tag = tag;
   p->context.runtime = 0;
   pkt->_reserved_ = p;
   if (size < (int) SHORT_MSG_SIZE) {

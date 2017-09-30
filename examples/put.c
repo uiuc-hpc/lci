@@ -2,6 +2,7 @@
 #include "comm_exp.h"
 
 #include <assert.h>
+#include <string.h>
 
 #define MIN_MSG_SIZE 1
 #define MAX_MSG_SIZE (1<<22)
@@ -11,40 +12,33 @@ lch* mv;
 int main(int argc, char** args)
 {
   lc_open(&mv);
-  char* buf = (char*) memalign(4096, MAX_MSG_SIZE);
-  lc_addr rma;
+  char* buf = (char*) lc_memalign(4096, MAX_MSG_SIZE);
+  lc_addr rma, rma_remote;
   lc_rma_init(mv, buf, MAX_MSG_SIZE, &rma);
   int rank = lc_id(mv);
 
-  void* buf2;
+  // Exchange the lc_addr.
   if (rank == 0) {
     lc_req s;
-    lc_send_queue(mv, &rma, sizeof(lc_addr), 1, 0, &s);
+    lc_send_tag(mv, &rma, sizeof(lc_addr), 1, 0, &s);
     lc_wait_poll(mv, &s);
 
-    int size, rank, tag;
-    lc_req r;
-    while (!lc_recv_queue_probe(mv, &size, &rank, &tag, &r))
-      lc_progress(mv);
-    buf2 = malloc(size);
-    lc_recv_queue(mv, buf2, &r);
+    lc_recv_tag(mv, &rma_remote, sizeof(lc_addr), 1, 0, &s);
+    lc_wait_poll(mv, &s);
   } else {
-    int size, rank, tag;
-    lc_req r;
-    while (!lc_recv_queue_probe(mv, &size, &rank, &tag, &r))
-      lc_progress(mv);
-    buf2 = malloc(size);
-    lc_recv_queue(mv, buf2, &r);
-
     lc_req s;
-    lc_send_queue(mv, &rma, sizeof(lc_addr), 0, 0, &s);
+    lc_recv_tag(mv, &rma_remote, sizeof(lc_addr), 0, 0, &s);
+    lc_wait_poll(mv, &s);
+
+    lc_send_tag(mv, &rma, sizeof(lc_addr), 0, 0, &s);
     lc_wait_poll(mv, &s);
   }
 
-  void* src = memalign(4096, MAX_MSG_SIZE);
+  printf("Done exchange address\n");
+
+  void* src = lc_memalign(4096, MAX_MSG_SIZE);
   memset(src, 'A', MAX_MSG_SIZE);
 
-  lc_addr* remote_rma = (lc_addr*) buf2;
   lc_req c1, c2;
   lc_recv_put(mv, &rma, &c2);
 
@@ -56,7 +50,7 @@ int main(int argc, char** args)
           t1 = wtime();
 
         lc_recv_put(mv, &rma, &c1);
-        lc_send_put(mv, src, size, 1, remote_rma, &c2);
+        lc_send_put(mv, src, size, 1, &rma_remote, &c2);
 
         lc_wait_poll(mv, &c2);
         lc_wait_poll(mv, &c1);
@@ -71,7 +65,7 @@ int main(int argc, char** args)
             assert(buf[j] == 'A');
 
         lc_recv_put(mv, &rma, &c2);
-        lc_send_put(mv, src, size, 0, remote_rma, &c1);
+        lc_send_put(mv, src, size, 0, &rma_remote, &c1);
         lc_wait_poll(mv, &c1);
       }
     }

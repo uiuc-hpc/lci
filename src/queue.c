@@ -4,13 +4,11 @@
 #include "lc/pool.h"
 #include "pmi.h"
 
-lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, lc_req* ctx)
+lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, int rank, int tag, lc_req* ctx)
 {
   lc_packet* p = (lc_packet*) pkt->_reserved_;
   void* src = pkt->buffer;
   size_t size = p->context.size;
-  int rank = pkt->rank;
-  int tag = pkt->tag;
   if (size <= (int) SHORT_MSG_SIZE) {
     lci_send(mv, src, size, rank, tag, LC_PROTO_DATA, p);
     ctx->int_type = LC_REQ_DONE;
