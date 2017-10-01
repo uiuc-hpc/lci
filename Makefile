@@ -66,11 +66,13 @@ MFCONTEXT = include/ult/fult/make_x86_64_sysv_elf_gas.S
 FCONTEXT = mfcontext.o jfcontext.o
 
 COMM = lc.o thread.o queue.o tag.o hashtable.o pool.o lcrq.o coll.o
-DREG = dreg/dreg.o dreg/avl.o ptmalloc283/malloc.o
+DREG = dreg/dreg.o dreg/avl.o
 PMI = pmi/simple_pmi.o pmi/simple_pmiutil.o
 
-# USE DREG
-# LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
+ifeq ($(LC_USE_DREG), yes)
+LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
+CFLAGS += -DUSE_DREG
+endif
 
 OBJECTS = $(addprefix $(OBJDIR)/, $(COMM))
 
@@ -79,7 +81,7 @@ LIBOBJ += $(OBJECTS) $(addprefix $(OBJDIR)/, $(FCONTEXT)) $(addprefix $(OBJDIR)/
 LIBRARY = liblwci.so
 ARCHIVE = liblwci.a
 
-all: $(LIBRARY) $(ARCHIVE)
+all: $(LIBRARY) $(ARCHIVE) mpiv.a libfult.so
 
 install: all
 	mkdir -p $(PREFIX)/lib
@@ -109,12 +111,12 @@ $(OBJDIR)/mfcontext.o: $(MFCONTEXT)
 libfult.so: $(addprefix $(OBJDIR)/, $(FCONTEXT))
 	$(CC) $(LDFLAGS) $^ -o $@
 
-mpiv.a: src/mpiv.o
-	$(AR) q mpiv.a src/mpiv.o $(LIBOBJ)
+mpiv.a: obj/mpiv.o
+	$(AR) q mpiv.a obj/mpiv.o $(LIBOBJ)
 	$(RANLIB) mpiv.a
 
 clean:
-	rm -rf $(LIBOBJ) liblwci.a liblwci.so
+	rm -rf $(LIBOBJ) $(OBJDIR)/* liblwci.a liblwci.so mpiv.a
 
 tests:
 	$(MAKE) -C tests && ./tests/all_test

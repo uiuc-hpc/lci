@@ -8,8 +8,8 @@
 typedef struct fworker {
   fthread** thread_pool;
   fthread** threads;
-  int thread_pool_last;
-  int thread_size;
+  unsigned thread_pool_last;
+  unsigned thread_size;
   volatile int thread_pool_lock;
   pthread_t runner;
   int stop;
@@ -51,8 +51,11 @@ LC_INLINE void fworker_start_main(fworker* w)
   w->stop = 0;
   memset(&main_sched, 0, sizeof(struct fthread));
   fthread_create(&main_sched, wfunc, w, MAIN_STACK_SIZE);
+  main_sched.uthread = &main_thread;
   fworker_spawn(w, NULL, NULL, MAIN_STACK_SIZE, &main_thread);
   main_thread->ctx.parent = &(main_sched.ctx);
+  tlself.thread = main_thread;
+  tlself.worker = w;
   fthread_yield(main_thread);
 }
 

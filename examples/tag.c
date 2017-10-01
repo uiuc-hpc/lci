@@ -18,8 +18,9 @@ int main(int argc, char** args)
 
   int rank = lc_id(mv);
   int total, skip;
-  void* buffer = lc_memalign(4096, 1 << 22);
-  void* rx_buffer = lc_memalign(4096, 1 << 22);
+  void* buffer, *rx_buffer;
+  posix_memalign(&buffer, 4096, 1 << 22);
+  posix_memalign(&rx_buffer, 4096, 1 << 22);
   assert(buffer);
   assert(rx_buffer);
   lc_req ctx;

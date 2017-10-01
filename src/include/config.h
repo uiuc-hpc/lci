@@ -4,8 +4,6 @@
 // NOTE(danghvu): These numbers are tweaked for performance and some alignment.
 // Update at our own risk.
 
-#define USE_DREG
-
 #ifdef LC_USE_SERVER_OFI
 #define MAX_PACKET 1024
 #define LC_PACKET_SIZE (32 * 1024 + 4096)

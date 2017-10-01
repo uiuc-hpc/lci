@@ -14,7 +14,8 @@ void* lc_heap_ptr(lch* mv)
 
 void lc_open(lch** ret)
 {
-  struct lc_struct* mv = malloc(sizeof(struct lc_struct));
+  struct lc_struct* mv = 0;
+  posix_memalign((void**) &mv, 64, sizeof(struct lc_struct));
   mv->ncores = sysconf(_SC_NPROCESSORS_ONLN) / THREAD_PER_CORE;
 
   lc_hash_create(&mv->tbl);
@@ -38,6 +39,10 @@ void lc_open(lch** ret)
   }
 
   *ret = mv;
+  PMI_Barrier();
+  while (mv->server->recv_posted == 0)
+    lc_progress(mv);
+  PMI_Finalize();
 }
 
 void lc_close(lch* mv)
@@ -106,7 +111,7 @@ lc_status lc_pkt_init(lch* mv, size_t size, struct lc_pkt* pkt)
   if (size < (int) SHORT_MSG_SIZE) {
     pkt->buffer = &p->data;
   } else {
-    pkt->buffer = lc_memalign(4096, size);
+    posix_memalign((void**) &pkt->buffer, 4096, size);
     p->data.rts.size = size;
   }
   return LC_OK;
@@ -140,5 +145,3 @@ int free_dma_mem(uintptr_t mem)
   _real_server_dereg(mem);
   return 1;
 }
-
-

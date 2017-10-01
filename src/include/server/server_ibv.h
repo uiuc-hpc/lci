@@ -461,8 +461,8 @@ LC_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
 
 LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
 {
-  ibv_server* s = memalign(64, sizeof(ibv_server));
-  assert(s);
+  ibv_server* s = NULL;
+  posix_memalign((void**) &s, 64, sizeof(ibv_server));
 
   int num_devices;
   struct ibv_device** dev_list = ibv_get_device_list(&num_devices);
@@ -638,13 +638,12 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
   s->qp2rank_mod = j;
   s->qp2rank = b;
 
-#ifdef USE_DREG
-  dreg_init();
-#endif
-
   s->recv_posted = 0;
   s->mv = mv;
   *s_ptr = s;
+#ifdef USE_DREG
+  dreg_init();
+#endif
 }
 
 LC_INLINE void ibv_server_finalize(ibv_server* s)
@@ -659,9 +658,7 @@ LC_INLINE void ibv_server_finalize(ibv_server* s)
 #ifdef WITH_MPI
   if (s->with_mpi)
     MPI_Finalize();
-  else
 #endif
-    PMI_Finalize();
 
   free(s->conn);
   free(s->dev_qp);
@@ -672,7 +669,8 @@ LC_INLINE lc_server_memory* ibv_server_mem_malloc(ibv_server* s, size_t size)
 {
   int mr_flags =
       IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-  void* ptr = memalign(4096, size + 4096);
+  void* ptr = 0;
+  posix_memalign(&ptr, 4096, size + 4096);
   return ibv_reg_mr(s->dev_pd, ptr, size, mr_flags);
 }
 

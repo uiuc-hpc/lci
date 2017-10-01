@@ -18,7 +18,8 @@ int main(int argc, char** args)
 
   int rank = lc_id(mv);
   int total, skip;
-  void* rx_buffer = lc_memalign(4096, 1 << 22);
+  posix_memalign(&buffer, 4096, 1<<22);
+  posix_memalign(&rx_buffer, 4096, 1<<22);
   lc_req ctx;
 
   for (size_t len = 1; len <= (1 << 22); len <<= 1) {

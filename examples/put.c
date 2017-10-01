@@ -12,7 +12,10 @@ lch* mv;
 int main(int argc, char** args)
 {
   lc_open(&mv);
-  char* buf = (char*) lc_memalign(4096, MAX_MSG_SIZE);
+  char* buf = 0, *src = 0;
+  posix_memalign((void*) &buf, 4096, MAX_MSG_SIZE);
+  posix_memalign((void*) &src, 4096, MAX_MSG_SIZE);
+
   lc_addr rma, rma_remote;
   lc_rma_init(mv, buf, MAX_MSG_SIZE, &rma);
   int rank = lc_id(mv);
@@ -35,8 +38,6 @@ int main(int argc, char** args)
   }
 
   printf("Done exchange address\n");
-
-  void* src = lc_memalign(4096, MAX_MSG_SIZE);
   memset(src, 'A', MAX_MSG_SIZE);
 
   lc_req c1, c2;

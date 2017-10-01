@@ -17,7 +17,7 @@
 #define MOD_POW2(x, y) ((x) & ((y)-1))
 
 #define MAX_THREAD (WORDSIZE * NMASK)
-#define MAX_INIT_THREAD (WORDSIZE * 8) 
+#define MAX_INIT_THREAD (WORDSIZE * 8)
 
 extern int nfworker_;
 
@@ -25,8 +25,9 @@ LC_INLINE void fthread_create(fthread* f, ffunc func, void* data,
                               size_t stack_size)
 {
   if (unlikely(f->stack == NULL) || stack_size > 8192) {
-    free(f->stack);
-    void* memory = lc_memalign(64, stack_size);
+    // __libc_free(f->stack);
+    void* memory = 0;
+    posix_memalign(&memory, 64, stack_size);
     if (memory == 0) {
       fprintf(stderr, "No more memory for stack\n");
       exit(EXIT_FAILURE);
@@ -101,11 +102,11 @@ static void* fwrapper(void* args)
 LC_INLINE void add_more_threads(fworker* w, int num_threads)
 {
   int thread_size = w->thread_size;
-  // w->threads = (fthread**) realloc(w->threads, sizeof(uintptr_t) * (thread_size + num_threads));
   w->thread_pool = (fthread**) realloc(w->thread_pool, sizeof(uintptr_t) * (thread_size + num_threads));
 
   for (int i = 0; i < num_threads; i++) {
-    fthread* t = (fthread*) lc_memalign(64, sizeof(struct fthread)); // &(w->threads[thread_size + i]);
+    fthread* t = 0;
+    posix_memalign((void**) &t, 64, sizeof(struct fthread)); // &(w->threads[thread_size + i]);
     memset(t, 0, sizeof(struct fthread));
     fthread_init(t);
     t->origin = w;
@@ -118,11 +119,12 @@ LC_INLINE void add_more_threads(fworker* w, int num_threads)
 
 LC_INLINE void fworker_create(fworker** w_ptr)
 {
-  fworker* w = (fworker*)lc_memalign(64, sizeof(struct fworker));
+  fworker* w = 0;
+  posix_memalign((void**) &w, 64, sizeof(struct fworker));
   w->stop = 1;
   w->thread_pool_last = 0;
   w->thread_size = 0;
-  w->threads = lc_memalign(64, sizeof(uintptr_t) * MAX_THREAD);
+  posix_memalign((void**) &w->threads, 64, sizeof(uintptr_t) * MAX_THREAD);
   w->thread_pool = NULL;
 
   for (int i = 0; i < NMASK; i++) w->mask[i] = 0;
@@ -141,7 +143,7 @@ LC_INLINE void fworker_create(fworker** w_ptr)
 
 LC_INLINE void fworker_destroy(fworker* w)
 {
-  for (int i = 0; i < w->thread_size; i++) {
+  for (unsigned i = 0; i < w->thread_size; i++) {
     free(w->thread_pool[i]->stack);
     free(w->thread_pool[i]);
   }
@@ -329,7 +331,7 @@ LC_INLINE void* wfunc(void* arg)
 #endif
     fprintf(stderr, "[FULT] Using L1_MASK\n");
   }
- 
+
   while (unlikely(!w->stop)) {
     int has_work = 0;
     for (int l1i = 0; l1i < 8; l1i++) {

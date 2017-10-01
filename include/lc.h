@@ -235,22 +235,6 @@ lc_status lc_send_put(lch* mv, void* src, size_t size, int rank, lc_addr* dst,
 LC_EXPORT
 lc_status lc_recv_put(lch* mv, lc_addr* rctx, lc_req* ctx);
 
-/**
-* @brief  performs an RDMA PUT to dst, and also signal a handle.
-*
-* @param mv
-* @param src
-* @param size
-* @param rank
-* @param dst
-* @param ctx
-*
-* @return
-*/
-LC_EXPORT
-int lc_send_put_signal(lch* mv, void* src, size_t size, int rank, lc_addr* dst,
-                       lc_req* ctx);
-
 /**@} end rdma-api */
 
 /**
@@ -406,7 +390,6 @@ void lc_wait_poll(lch* mv, lc_req* ctx)
   while (ctx->type != LC_REQ_DONE)
     lc_progress(mv);
 }
-
 
 /**@}*/
 

@@ -5,7 +5,8 @@
 
 LC_INLINE struct hash_val* create_table(size_t num_rows)
 {
-  struct hash_val* ret = lc_memalign(64,
+  struct hash_val* ret = 0;
+  posix_memalign((void**) &ret, 64,
       num_rows * TBL_WIDTH * sizeof(struct hash_val));
 
   // Initialize all with EMPTY and clear lock.

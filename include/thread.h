@@ -8,9 +8,10 @@
 #include <sched.h>
 #include <stdint.h>
 
+#define LC_SYNC_INITIALIZER {0, -1}
+
 struct lc_sync {
   void* queue;
-  volatile int mutex;
   int count;
 };
 

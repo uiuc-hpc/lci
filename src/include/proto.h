@@ -127,7 +127,9 @@ void lc_serve_imm(lch* mv, uint32_t imm)
     lc_pool_put(mv->pkpool, p);
   } else {
     lc_packet* p = (lc_packet*)addr;
-    if (p->context.req) LC_SET_REQ_DONE_AND_SIGNAL(p->context.req);
+    if (p->context.req) {
+      LC_SET_REQ_DONE_AND_SIGNAL(p->context.req);
+    }
   }
 }
 #endif

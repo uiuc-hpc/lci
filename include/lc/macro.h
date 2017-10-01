@@ -44,13 +44,4 @@
   }
 #endif
 
-#include <stdlib.h>
-LC_INLINE
-void* lc_memalign(size_t alignment, size_t size)
-{
-  void* ptr = 0;
-  posix_memalign(&ptr, alignment, size);
-  return ptr;
-}
-
 #endif

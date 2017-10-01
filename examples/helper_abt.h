@@ -23,7 +23,7 @@ typedef struct lc_abt_thread {
 __thread lc_abt_thread* tlself = NULL;
 
 extern lch* lc_hdl;
-lc_abt_thread* MPI_spawn(int wid, void (*func)(intptr_t), intptr_t arg);
+void MPI_spawn(int wid, void (*func)(intptr_t), intptr_t arg, lc_abt_thread**);
 
 void* thread_get() { return tlself; }
 void thread_wait(void* t, volatile int* flag)
@@ -75,7 +75,8 @@ void MPI_Start_worker(int number)
     ABT_xstream_create(ABT_SCHED_NULL, &xstream[i]);
     ABT_xstream_get_main_pools(xstream[i], 1, &pool[i]);
     ABT_xstream_start(xstream[i]);
-    lc_abt_thread* s = MPI_spawn(i, setup, (intptr_t)i);
+    lc_abt_thread* s;
+    MPI_spawn(i, setup, (intptr_t)i, &s);
     ABT_thread_join(s->thread);
     free(s);
   }
@@ -90,7 +91,7 @@ static void abt_wrap(void* arg)
   tlself = NULL;
 }
 
-lc_abt_thread* MPI_spawn(int wid, void (*func)(intptr_t), intptr_t arg)
+void MPI_spawn(int wid, void (*func)(intptr_t), intptr_t arg, lc_abt_thread* th)
 {
   lc_abt_thread* t = (lc_abt_thread*)malloc(sizeof(struct lc_abt_thread));
   ABT_thread_attr_create(&t->attr);
@@ -100,15 +101,15 @@ lc_abt_thread* MPI_spawn(int wid, void (*func)(intptr_t), intptr_t arg)
   t->data = arg;
   ABT_thread_attr_set_stacksize(t->attr, 16 * 1024);
   ABT_thread_create(pool[wid], abt_wrap, t, t->attr, &t->thread);
-  return t;
+  *th = t;
 }
 
-void MPI_join(lc_abt_thread* ult)
+void MPI_join(lc_abt_thread** ult)
 {
   lc_abt_thread* saved = tlself;
   ABT_thread_join(ult->thread);
   tlself = saved;
-  free(ult);
+  free(*ult);
 }
 
 typedef lc_abt_thread* lc_thread;

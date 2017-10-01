@@ -6,27 +6,19 @@
 #include "lc.h"
 #include "comm_exp.h"
 
-lch* mv;
-int WINDOWS = 1;
-
 int main(int argc, char** args)
 {
+  lch *mv;
   lc_open(&mv);
 
-  if (argc > 1)
-    WINDOWS = atoi(args[1]);
-
   int rank = lc_id(mv);
-  int total, skip;
-  void* buffer = lc_memalign(4096, 1 << 22);
-  void* rx_buffer = lc_memalign(4096, 1 << 22);
-  assert(buffer);
-  assert(rx_buffer);
+  void* buffer = malloc(4096);
+  void* rx_buffer = malloc(4096);
   lc_req ctx;
-  int len = 1 << 22;
+  int len = 4096;
 
   if (rank == 0) {
-    lc_send_tag(mv, buffer, len - 1, 1, 99, &ctx);
+    LC_SAFE(lc_send_tag(mv, buffer, len-1, 1, 99, &ctx));
     lc_wait_poll(mv, &ctx);
   } else {
     lc_recv_tag(mv, rx_buffer, len, 0, 99, &ctx);

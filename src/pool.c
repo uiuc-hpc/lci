@@ -30,8 +30,8 @@ LC_INLINE void* lc_pool_get_slow(struct lc_pool* pool) {
 void lc_pool_create(struct lc_pool** pool) {
   if (unlikely(!initialized))
     lc_pool_init();
-
-  struct lc_pool* p = lc_memalign(64, sizeof(struct lc_pool));
+  struct lc_pool* p = 0;
+  posix_memalign((void**) &p, 64, sizeof(struct lc_pool));
   p->npools = 0;
   p->key = lc_pool_nkey++;
   if (p->key < 0 || p->key > MAX_LOCAL_POOL) {

@@ -21,7 +21,11 @@ void thread_wait(void* thread, volatile int* flag)
     fthread_wait(thread);
 }
 
-void thread_signal(void* thread) { fthread_resume(thread); }
+void thread_signal(void* thread)
+{
+  fthread_resume(thread);
+}
+
 typedef struct fthread* lc_thread;
 typedef struct fworker* lc_worker;
 
@@ -42,12 +46,12 @@ void MPI_Start_worker(int number)
   fworker_start_main(all_worker[0]);
 }
 
-fthread* MPI_spawn(int wid, void* (*func)(void*), void* arg)
+void MPI_spawn(int wid, void* (*func)(void*), void* arg, fthread_t* thread)
 {
-  return fworker_spawn(all_worker[wid % nworker], func, arg, F_STACK_SIZE);
+  fworker_spawn(all_worker[wid % nworker], func, arg, F_STACK_SIZE, thread);
 }
 
-void MPI_join(fthread* ult) { fthread_join(ult); }
+void MPI_join(fthread_t* ult) { fthread_join(ult); }
 void MPI_Stop_worker()
 {
   fworker_stop_main(all_worker[0]);

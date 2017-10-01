@@ -250,7 +250,8 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
 
   lcrq_init(&s->free_mr);
 
-  s->heap = lc_memalign(4096, heap_size);
+  s->heap = 0;
+  posix_memalign((void**) &s->heap, 4096, heap_size);
   s->recv_posted = 0;
   s->mv = mv;
   *s_ptr = s;

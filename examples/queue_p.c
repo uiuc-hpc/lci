@@ -18,7 +18,9 @@ int main(int argc, char** args)
 
   int rank = lc_id(mv);
   int total, skip;
-  void* rx_buffer = lc_memalign(4096, 1<<22);
+  void* buffer, *rx_buffer;
+  posix_memalign(&buffer, 4096, 1<<22);
+  posix_memalign(&rx_buffer, 4096, 1<<22);
   lc_req ctx;
   for (size_t len = 1; len <= (1 << 22); len <<= 1) {
     if (len > 8192) {
@@ -39,7 +41,8 @@ int main(int argc, char** args)
           lc_send_queue_p(mv, &pkt, 1, 0, &ctx);
           lc_wait_poll(mv, &ctx);
         }
-        int rank, tag, size;
+        int rank, tag;
+        size_t size;
         while (!lc_recv_queue_probe(mv, &size, &rank, &tag, &ctx)) {
           lc_progress(mv);
         }
@@ -49,7 +52,8 @@ int main(int argc, char** args)
       printf("%llu \t %.5f\n", len, (wtime() - t1)/total / (WINDOWS+1) * 1e6);
     } else {
       for (int i = 0; i < skip + total; i++) {
-        int rank, tag, size;
+        int rank, tag;
+        size_t size;
         for (int j = 0; j < WINDOWS; j++) {
           while (!lc_recv_queue_probe(mv, &size, &rank, &tag, &ctx)) {
             lc_progress(mv);
