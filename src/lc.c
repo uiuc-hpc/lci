@@ -42,7 +42,6 @@ void lc_open(lch** ret)
   PMI_Barrier();
   while (mv->server->recv_posted == 0)
     lc_progress(mv);
-  PMI_Finalize();
 }
 
 void lc_close(lch* mv)

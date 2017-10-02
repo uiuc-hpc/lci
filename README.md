@@ -20,5 +20,11 @@ See [include/lc.h](https://github.com/uiuc-hpc/LC/blob/master/include/lc.h) for 
 
 `doxygen` for a full documentation.
 
+## MPI Interoperation
+
+We use PMI for launching the jobs and hook to MPI rank. Since we have no
+control on what MPI may do with the PMI, initialize with LWCI first (lc_open)
+before MPI_Init is the best approach.
+
 ## LICENSE
 TBD

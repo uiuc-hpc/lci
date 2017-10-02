@@ -194,6 +194,10 @@ int PMI_Init( int *spawned, int * size, int * rank )
   if ( ! PMI_initialized )
     PMI_initialized = NORMAL_INIT_WITH_PM;
 
+  char buf[20];
+  sprintf(buf, "%d", PMI_fd);
+  setenv("PMI_FD", buf, 1);
+
   return( 0 );
 }
 
