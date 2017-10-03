@@ -655,6 +655,7 @@ LC_INLINE void ibv_server_finalize(ibv_server* s)
   for (int i = 0; i < s->mv->size; i++) {
     ibv_destroy_qp(s->dev_qp[i]);
   }
+  PMI_Finalize();
 #ifdef WITH_MPI
   if (s->with_mpi)
     MPI_Finalize();

@@ -53,8 +53,8 @@ struct lc_ctx {
 } __attribute__((aligned(64)));
 
 struct lc_rma_ctx {
-  uintptr_t req;
   uint64_t addr;
+  uint32_t rank;
   uint32_t rkey;
   uint32_t sid;
 } __attribute__((aligned(64)));
@@ -220,7 +220,7 @@ int lc_rma_create(lch* mv, void* buf, size_t size, lc_addr** rctx_ptr);
 * @return 1 if success, 0 otherwise.
 */
 LC_EXPORT
-lc_status lc_send_put(lch* mv, void* src, size_t size, int rank, lc_addr* dst,
+lc_status lc_send_put(lch* mv, void* src, size_t size, lc_addr* dst,
                 lc_req* ctx);
 
 /**

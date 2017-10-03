@@ -51,7 +51,6 @@ lc_status lc_recv_tag(lch* mv, void* src, size_t size, int rank, int tag, lc_req
       memcpy(src, p->data.buffer, p->context.size);
       ctx->size = p->context.size;
       ctx->type = LC_REQ_DONE;
-      printf("done\n");
       lc_pool_put(mv->pkpool, p);
     } else {
       ctx->size = p->data.rts.size;

@@ -67,7 +67,7 @@ int main(int argc, char** args)
     MPI_join(&thread);
   } else {
     lc_req req;
-    lc_send_put(mv, src, 64, 1, &rma_remote, &req);
+    lc_send_put(mv, src, 64, &rma_remote, &req);
     lc_wait_poll(mv, &req);
   }
 

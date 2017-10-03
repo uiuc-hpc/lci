@@ -51,7 +51,7 @@ int main(int argc, char** args)
           t1 = wtime();
 
         lc_recv_put(mv, &rma, &c1);
-        lc_send_put(mv, src, size, 1, &rma_remote, &c2);
+        lc_send_put(mv, src, size, &rma_remote, &c2);
 
         lc_wait_poll(mv, &c2);
         lc_wait_poll(mv, &c1);
@@ -66,7 +66,7 @@ int main(int argc, char** args)
             assert(buf[j] == 'A');
 
         lc_recv_put(mv, &rma, &c2);
-        lc_send_put(mv, src, size, 0, &rma_remote, &c1);
+        lc_send_put(mv, src, size, &rma_remote, &c1);
         lc_wait_poll(mv, &c1);
       }
     }
