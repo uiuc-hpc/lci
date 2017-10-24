@@ -317,6 +317,42 @@ void lc_wait_post(lc_sync* sync, lc_req* ctx)
 */
 LC_INLINE
 int lc_test(lc_req* ctx) { return (ctx->type == LC_REQ_DONE); }
+
+/**
+* @brief Make progress, should be called by the comm thread only.
+*
+* @param mv
+*
+* @return 1 if finished, 0 otherwise.
+*/
+LC_EXPORT
+int lc_progress(lch* mv);
+
+/**
+* @brief Commrank
+*
+* @param mv
+*
+* @return 1 if finished, 0 otherwise.
+*/
+LC_EXPORT
+int lc_id(lch* mv);
+
+/**
+* @brief Commsize
+*
+* @param mv
+*
+* @return 1 if finished, 0 otherwise.
+*/
+LC_EXPORT
+int lc_size(lch* mv);
+
+LC_EXPORT
+void lc_rma_fini(lch*mv, lc_addr* rctx);
+
+LC_EXPORT
+void lc_sync_init(lc_get_fp i, lc_wait_fp w, lc_signal_fp s, lc_yield_fp y);
 /**@} end control */
 
 /**@} end low-level */
@@ -330,28 +366,13 @@ LC_EXPORT
 void* lc_heap_ptr(lch* mv);
 
 LC_EXPORT
-int lc_progress(lch* mv);
-
-LC_EXPORT
 lc_status lc_pkt_init(lch* mv, size_t size, struct lc_pkt*);
 
 LC_EXPORT
-void lc_pkt_fini(lch* mv, struct lc_pkt* p);
+void lc_pkt_fini(lch* mv, struct lc_pkt*);
 
 LC_EXPORT
 lc_status lc_rma_init(lch* mv, void* buf, size_t size, lc_addr* rctx);
-
-LC_EXPORT
-void lc_rma_fini(lch*mv, lc_addr* rctx);
-
-LC_EXPORT
-int lc_id(lch* mv);
-
-LC_EXPORT
-int lc_size(lch* mv);
-
-LC_EXPORT
-void lc_sync_init(lc_get_fp i, lc_wait_fp w, lc_signal_fp s, lc_yield_fp y);
 
 #define LC_COL_IN_PLACE ((void*) -1)
 

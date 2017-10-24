@@ -605,11 +605,15 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
   if (!with_mpi) {
     PMI_Barrier();
     for (int i = 0; i < mv->size; i++) {
-      sprintf(key, "_LC_KEY_%d_%d", i, mv->me);
-      PMI_KVS_Get(name, key, value, 255);
       rmtctx = &s->conn[i];
-      sscanf(value, "%llu-%d-%d-%d", (unsigned long long*)&rmtctx->addr,
-             &rmtctx->rkey, &rmtctx->qp_num, (int*)&rmtctx->lid);
+      if (i != mv->me) {
+        sprintf(key, "_LC_KEY_%d_%d", i, mv->me);
+        PMI_KVS_Get(name, key, value, 255);
+        sscanf(value, "%llu-%d-%d-%d", (unsigned long long*)&rmtctx->addr,
+            &rmtctx->rkey, &rmtctx->qp_num, (int*)&rmtctx->lid);
+      } else {
+        memcpy(rmtctx, &lctx, sizeof(struct conn_ctx));
+      }
       qp_init(s->dev_qp[i], dev_port);
       qp_to_rtr(s->dev_qp[i], dev_port, &port_attr, rmtctx);
       qp_to_rts(s->dev_qp[i]);
