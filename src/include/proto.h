@@ -84,10 +84,12 @@ void lc_serve_recv(lch* mv, lc_packet* p, uint8_t proto)
     }
   } else if ((proto & 1) == LC_PROTO_QUEUE) {
     p->context.proto = proto;
+    lc_qkey key = p->context.tag & 0x000000ff;
+    p->context.tag >>= 8;
 #ifndef USE_CCQ
-    dq_push_top(&mv->queue, (void*) p);
+    dq_push_top(&mv->queue[key], (void*) p);
 #else
-    lcrq_enqueue(&mv->queue, (void*) p);
+    lcrq_enqueue(&mv->queue[key], (void*) p);
 #endif
   }
 }

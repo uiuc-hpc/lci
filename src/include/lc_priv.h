@@ -33,9 +33,9 @@ struct lc_struct {
   lc_hash* tbl;
 
 #ifndef USE_CCQ
-  struct dequeue queue;
+  struct dequeue* queue;
 #else
-  lcrq_t queue;
+  lcrq_t* queue;
 #endif
 } __attribute__((aligned(64)));
 

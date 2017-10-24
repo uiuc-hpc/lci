@@ -27,6 +27,9 @@ typedef struct lc_ctx lc_req;
 struct lc_packet;
 typedef struct lc_packet lc_packet;
 
+typedef int16_t lc_qkey;
+typedef int16_t lc_qtag;
+
 typedef enum lc_status {
   LC_ERR_NOP = 0,
   LC_OK = 1,
@@ -138,13 +141,14 @@ lc_status lc_recv_tag(lch* mv, void* src, size_t size, int rank, int tag,
 * @param size
 * @param rank
 * @param tag
+* @pram  key
 * @param ctx
 *
 * @return 1 if success, 0 otherwise -- need to retry.
 *
 */
 LC_EXPORT
-lc_status lc_send_queue(lch* mv, const void* src, size_t size, int rank, int tag,
+lc_status lc_send_queue(lch* mv, const void* src, size_t size, int rank, lc_qtag tag, lc_qkey key,
                         lc_req* ctx);
 
 /**
@@ -158,7 +162,7 @@ lc_status lc_send_queue(lch* mv, const void* src, size_t size, int rank, int tag
 *
 */
 LC_EXPORT
-lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, int rank, int tag, lc_req* ctx);
+lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, int rank, lc_qtag tag, lc_qkey key, lc_req* ctx);
 
 /**
 * @brief Try to dequeue, for message send with send-queue.
@@ -172,7 +176,7 @@ lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, int rank, int tag, lc_req
 * @return 1 if got data, 0 otherwise.
 */
 LC_EXPORT
-lc_status lc_recv_queue_probe(lch* mv, size_t* size, int* rank, int* tag,
+lc_status lc_recv_queue_probe(lch* mv, size_t* size, int* rank, lc_qtag* tag, lc_qkey key,
                               lc_req* ctx);
 
 /**
@@ -246,10 +250,11 @@ lc_status lc_recv_put(lch* mv, lc_addr* rctx, lc_req* ctx);
 * @brief Create a handle for communication.
 *
 * @param handle
+* @param num_qs: how many queues initialized.
 *
 */
 LC_EXPORT
-void lc_open(lch** handle);
+void lc_open(lch** handle, int num_qs);
 
 /**
 * @brief Close the handle and free memory.
