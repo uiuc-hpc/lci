@@ -30,8 +30,7 @@ typedef struct lc_sync_fp {
 } lc_sync_fp;
 
 extern __thread int lc_core_id;
-
-lc_sync_fp g_sync;
+extern lc_sync_fp g_sync;
 
 void lc_sync_init(lc_get_fp g, lc_wait_fp w, lc_signal_fp s, lc_yield_fp y);
 

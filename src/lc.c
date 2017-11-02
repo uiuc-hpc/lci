@@ -4,6 +4,7 @@
 #include "lc/pool.h"
 #include "pmi.h"
 
+lc_sync_fp g_sync;
 size_t server_max_inline;
 __thread int lc_core_id = -1;
 

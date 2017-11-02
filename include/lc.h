@@ -24,6 +24,8 @@ typedef void (*lc_am_func_t)();
 struct lc_ctx;
 typedef struct lc_ctx lc_req;
 
+typedef void* (*lc_alloc_fn)(void* ctx, size_t size);
+
 struct lc_packet;
 typedef struct lc_packet lc_packet;
 
@@ -172,20 +174,9 @@ lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, int rank, int tag, lc_req
 * @return 1 if got data, 0 otherwise.
 */
 LC_EXPORT
-lc_status lc_recv_queue_probe(lch* mv, size_t* size, int* rank, int* tag,
-                              lc_req* ctx);
-
-/**
-* @brief Try to finish a queue op, for message send with send-queue.
-*
-* @param mv
-* @param buf An allocated buffer.
-* @param ctx
-*
-* @return 1 if finished, 0 otherwise.
-*/
-LC_EXPORT
-lc_status lc_recv_queue(lch* mv, void* buf, lc_req* ctx);
+lc_status lc_recv_queue(lch* mv, size_t* size, int* rank, int* tag,
+                        lc_alloc_fn alloc_cb, void* alloc_ctx,
+                        lc_req* ctx);
 
 /**@} End queue group */
 

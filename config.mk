@@ -2,7 +2,7 @@
 # WIP, there are more configs in ./src/include/confg.h
 
 # Define server here (ofi, ibv, psm)
-LC_SERVER ?= ibv
+LC_SERVER ?= psm
 
 # Define use inline send or not (yes, no)
 # Could help latency of tiny messages, but may fail due to lack of flow control
@@ -12,4 +12,4 @@ LC_SERVER_INLINE ?= yes
 LC_SERVER_DEBUG ?= no
 
 # Use registration cache ? (Only affect ibv -- only use when not-so-dynamic allocation)
-LC_USE_DREG ?= yes
+LC_USE_DREG ?= no

@@ -21,6 +21,9 @@ int main(int argc, char** args)
   if (argc > 1)
     SIZE = atoi(args[1]);
 
+  void* buffer = 0;
+  posix_memalign(&buffer, 4096, 1 << 22);
+
   for (WINDOWS = 1; WINDOWS <= 1024; WINDOWS <<= 1)
   for (size_t len = SIZE; len <= SIZE; len <<= 1) {
     MPI_Request req[WINDOWS];
@@ -31,11 +34,9 @@ int main(int argc, char** args)
       skip = SKIP;
       total = TOTAL;
     }
-    void* buffer = malloc(len);
     memset(buffer, 'A', len);
     if (rank == 0) {
       double t1;
-      void *recv = malloc(len);
       int rank, tag, size;
       for (int i = 0; i < skip + total; i++) {
         if (i == skip) t1 = MPI_Wtime();
@@ -44,28 +45,27 @@ int main(int argc, char** args)
           MPI_Isend(buffer, len, MPI_BYTE, 1, 0, MPI_COMM_WORLD, &req[j]);
         MPI_Waitall(WINDOWS, req, MPI_STATUSES_IGNORE);
 
-        // recv.
+        // buffer.
         MPI_Status stat;
         MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &stat);
         MPI_Get_count(&stat, MPI_BYTE, &size);
         rank = stat.MPI_SOURCE;
         tag = stat.MPI_TAG;
-        MPI_Recv(recv, size, MPI_BYTE, rank, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(buffer, size, MPI_BYTE, rank, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
         if (i == -1) {
           assert(rank == 1);
           assert(tag == i);
           assert(size == len);
           for (int j = 0; j < size; j++) {
-            assert(((char*)recv)[j] == 'A');
+            assert(((char*)buffer)[j] == 'A');
           }
         }
       }
-      free(recv);
       t1 = MPI_Wtime() - t1;
       printf("%d \t %.5f %.5f \n", WINDOWS, total * (WINDOWS+1) / t1, total * (WINDOWS+1) * len / 1e6 / t1);
     } else {
-      void* recv = malloc(len);
+      void* buffer = malloc(len);
       MPI_Request req[WINDOWS];
       for (int i = 0; i < skip + total; i++) {
         for (int j = 0 ; j < WINDOWS; j++) {
@@ -75,17 +75,16 @@ int main(int argc, char** args)
           MPI_Get_count(&stat, MPI_BYTE, &size);
           rank = stat.MPI_SOURCE;
           tag = stat.MPI_TAG;
-          MPI_Irecv(recv, size, MPI_BYTE, rank, tag, MPI_COMM_WORLD, &req[j]);
+          MPI_Irecv(buffer, size, MPI_BYTE, rank, tag, MPI_COMM_WORLD, &req[j]);
         }
         MPI_Waitall(WINDOWS, req, MPI_STATUSES_IGNORE);
-        // for (int j = 0 ; j < WINDOWS; j++) { free(recv[j]); }
+        // for (int j = 0 ; j < WINDOWS; j++) { free(buffer[j]); }
 
         // send
         MPI_Send(buffer, len, MPI_BYTE, 0, i, MPI_COMM_WORLD);
       }
     }
     MPI_Barrier(MPI_COMM_WORLD);
-    free(buffer);
   }
   MPI_Finalize();
   return 0;
