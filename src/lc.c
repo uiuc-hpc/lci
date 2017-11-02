@@ -13,19 +13,23 @@ void* lc_heap_ptr(lch* mv)
   return lc_server_heap_ptr(mv->server);
 }
 
-void lc_open(lch** ret)
+void lc_open(lch** ret, int num_qs)
 {
   struct lc_struct* mv = 0;
   posix_memalign((void**) &mv, 64, sizeof(struct lc_struct));
   mv->ncores = sysconf(_SC_NPROCESSORS_ONLN) / THREAD_PER_CORE;
 
   lc_hash_create(&mv->tbl);
-  // Init queue protocol.
+  posix_memalign((void**) &mv->queue, 64, sizeof(*(mv->queue)) * num_qs);
+
+  for (int i = 0; i < num_qs; i++) {
+    // Init queue protocol.
 #ifndef USE_CCQ
-  dq_init(&mv->queue);
+    dq_init(&mv->queue[i]);
 #else
-  lcrq_init(&mv->queue);
+    lcrq_init(&mv->queue[i]);
 #endif
+  }
 
   // Prepare the list of packet.
   lc_server_init(mv, MAX_PACKET * LC_PACKET_SIZE * 2, &mv->server);

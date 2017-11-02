@@ -11,13 +11,14 @@ int WINDOWS = 1;
 
 int main(int argc, char** args)
 {
-  lc_open(&mv);
+  lc_open(&mv, 0);
 
   if (argc > 1)
     WINDOWS = atoi(args[1]);
 
   int rank = lc_id(mv);
   int total, skip;
+  void* buffer, *rx_buffer;
   posix_memalign(&buffer, 4096, 1<<22);
   posix_memalign(&rx_buffer, 4096, 1<<22);
   lc_req ctx;

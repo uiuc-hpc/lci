@@ -118,6 +118,8 @@ int PMI_Init( int *spawned, int * size, int * rank )
     PMI_size = 1;
     PMI_rank = 0;
     *spawned = 0;
+    *rank = PMI_rank;
+    *size = PMI_size;
 
     PMI_initialized = SINGLETON_INIT_BUT_NO_PM;
     /* 256 is picked as the minimum allowed length by the PMI servers */

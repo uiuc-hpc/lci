@@ -1,6 +1,6 @@
 include ../config.mk
 
-CC = mpicc
+CC = gcc
 LD = $(CC)
 TARGET = tag queue
 

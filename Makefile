@@ -81,7 +81,7 @@ LIBOBJ += $(OBJECTS) $(addprefix $(OBJDIR)/, $(FCONTEXT)) $(addprefix $(OBJDIR)/
 LIBRARY = liblwci.so
 ARCHIVE = liblwci.a
 
-all: $(LIBRARY) $(ARCHIVE) mpiv.a libfult.so
+all: $(LIBRARY) $(ARCHIVE) libfult.so
 
 install: all
 	mkdir -p $(PREFIX)/lib

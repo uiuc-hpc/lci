@@ -1,4 +1,4 @@
-# This file contains all customized compile options for LWCI
+# This file contains all customized compile options for LCI
 # WIP, there are more configs in ./src/include/confg.h
 
 # Define server here (ofi, ibv, psm)

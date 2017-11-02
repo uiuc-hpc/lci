@@ -11,7 +11,7 @@ int WINDOWS = 1;
 
 int main(int argc, char** args)
 {
-  lc_open(&mv);
+  lc_open(&mv, 0);
 
   if (argc > 1)
     WINDOWS = atoi(args[1]);

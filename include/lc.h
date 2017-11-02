@@ -29,6 +29,9 @@ typedef void* (*lc_alloc_fn)(void* ctx, size_t size);
 struct lc_packet;
 typedef struct lc_packet lc_packet;
 
+typedef int16_t lc_qkey;
+typedef int16_t lc_qtag;
+
 typedef enum lc_status {
   LC_ERR_NOP = 0,
   LC_OK = 1,
@@ -140,13 +143,14 @@ lc_status lc_recv_tag(lch* mv, void* src, size_t size, int rank, int tag,
 * @param size
 * @param rank
 * @param tag
+* @pram  key
 * @param ctx
 *
 * @return 1 if success, 0 otherwise -- need to retry.
 *
 */
 LC_EXPORT
-lc_status lc_send_queue(lch* mv, const void* src, size_t size, int rank, int tag,
+lc_status lc_send_queue(lch* mv, const void* src, size_t size, int rank, lc_qtag tag, lc_qkey key,
                         lc_req* ctx);
 
 /**
@@ -160,7 +164,7 @@ lc_status lc_send_queue(lch* mv, const void* src, size_t size, int rank, int tag
 *
 */
 LC_EXPORT
-lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, int rank, int tag, lc_req* ctx);
+lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, int rank, lc_qtag tag, lc_qkey key, lc_req* ctx);
 
 /**
 * @brief Try to dequeue, for message send with send-queue.
@@ -174,9 +178,8 @@ lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, int rank, int tag, lc_req
 * @return 1 if got data, 0 otherwise.
 */
 LC_EXPORT
-lc_status lc_recv_queue(lch* mv, size_t* size, int* rank, int* tag,
-                        lc_alloc_fn alloc_cb, void* alloc_ctx,
-                        lc_req* ctx);
+lc_status lc_recv_queue(lch* mv, size_t* size, int* rank, lc_qtag* tag, lc_qkey, lc_alloc_fn
+        alloc_cb, void* alloc_ctx,  lc_req* ctx);
 
 /**@} End queue group */
 
@@ -237,10 +240,11 @@ lc_status lc_recv_put(lch* mv, lc_addr* rctx, lc_req* ctx);
 * @brief Create a handle for communication.
 *
 * @param handle
+* @param num_qs: how many queues initialized.
 *
 */
 LC_EXPORT
-void lc_open(lch** handle);
+void lc_open(lch** handle, int num_qs);
 
 /**
 * @brief Close the handle and free memory.
@@ -308,6 +312,42 @@ void lc_wait_post(lc_sync* sync, lc_req* ctx)
 */
 LC_INLINE
 int lc_test(lc_req* ctx) { return (ctx->type == LC_REQ_DONE); }
+
+/**
+* @brief Make progress, should be called by the comm thread only.
+*
+* @param mv
+*
+* @return 1 if finished, 0 otherwise.
+*/
+LC_EXPORT
+int lc_progress(lch* mv);
+
+/**
+* @brief Commrank
+*
+* @param mv
+*
+* @return 1 if finished, 0 otherwise.
+*/
+LC_EXPORT
+int lc_id(lch* mv);
+
+/**
+* @brief Commsize
+*
+* @param mv
+*
+* @return 1 if finished, 0 otherwise.
+*/
+LC_EXPORT
+int lc_size(lch* mv);
+
+LC_EXPORT
+void lc_rma_fini(lch*mv, lc_addr* rctx);
+
+LC_EXPORT
+void lc_sync_init(lc_get_fp i, lc_wait_fp w, lc_signal_fp s, lc_yield_fp y);
 /**@} end control */
 
 /**@} end low-level */
@@ -321,28 +361,13 @@ LC_EXPORT
 void* lc_heap_ptr(lch* mv);
 
 LC_EXPORT
-int lc_progress(lch* mv);
-
-LC_EXPORT
 lc_status lc_pkt_init(lch* mv, size_t size, struct lc_pkt*);
 
 LC_EXPORT
-void lc_pkt_fini(lch* mv, struct lc_pkt* p);
+void lc_pkt_fini(lch* mv, struct lc_pkt*);
 
 LC_EXPORT
 lc_status lc_rma_init(lch* mv, void* buf, size_t size, lc_addr* rctx);
-
-LC_EXPORT
-void lc_rma_fini(lch*mv, lc_addr* rctx);
-
-LC_EXPORT
-int lc_id(lch* mv);
-
-LC_EXPORT
-int lc_size(lch* mv);
-
-LC_EXPORT
-void lc_sync_init(lc_get_fp i, lc_wait_fp w, lc_signal_fp s, lc_yield_fp y);
 
 #define LC_COL_IN_PLACE ((void*) -1)
 
