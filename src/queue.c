@@ -53,26 +53,27 @@ lc_status lc_recv_queue(lch* mv, size_t* size, int* rank, lc_qtag* tag, lc_qtag 
 
   *rank = p->context.from;
   *tag = p->context.tag;
-  *size = p->context.size;
-  void* buf = 0;
-  if (!alloc_cb)
-      buf = alloc_ctx;
-  else
-      buf = alloc_cb(alloc_ctx, *size);
+  size_t _size = p->context.size;
+  if (!(p->context.proto & LC_PROTO_DATA))
+    _size = p->data.rts.size;
+
+  void* buf = alloc_ctx;
+  if (alloc_cb)
+      buf = alloc_cb(alloc_ctx, _size);
+
   ctx->sync = NULL;
   if (p->context.proto & LC_PROTO_DATA) {
-    memcpy(buf, p->data.buffer, p->context.size);
+    memcpy(buf, p->data.buffer, _size);
     lc_pool_put(mv->pkpool, p);
     ctx->type = LC_REQ_DONE;
-    return LC_OK;
+    *size = _size;
   } else {
     int rank = p->context.from;
-    lci_rdz_prepare(mv, buf, p->data.rts.size, ctx, p);
+    lci_rdz_prepare(mv, buf, _size, ctx, p);
     lci_send(mv, &p->data, sizeof(struct packet_rtr),
              rank, 0, LC_PROTO_RTR, p);
-    *size = p->data.rts.size;
     ctx->type = LC_REQ_PEND;
-    return LC_OK;
+    *size = _size;
   }
   return LC_OK;
 }
