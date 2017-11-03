@@ -83,7 +83,7 @@ LC_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
                                     uintptr_t to, uint32_t rkey, size_t size,
                                     lc_packet* ctx, uint32_t proto);
 LC_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
-                                           uintptr_t addr, uint32_t rkey,
+                                           uintptr_t addr, size_t offset, uint32_t rkey,
                                            size_t size, uint32_t sid,
                                            lc_packet* ctx);
 LC_INLINE int ibv_server_progress(ibv_server* s);
@@ -427,7 +427,7 @@ LC_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
 }
 
 LC_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
-                                           uintptr_t addr, uint32_t rkey,
+                                           uintptr_t addr, size_t offset, uint32_t rkey,
                                            size_t size, uint32_t sid,
                                            lc_packet* ctx)
 {
@@ -444,7 +444,7 @@ LC_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
   }
 
   struct ibv_sge list = {
-      .addr = (uintptr_t)from,   // address
+      .addr = (uintptr_t)from + offset,   // address
       .length = (unsigned)size,  // length
       .lkey = lkey
   };

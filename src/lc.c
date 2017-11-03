@@ -60,7 +60,7 @@ void lc_close(lch* mv)
   free(mv);
 }
 
-lc_status lc_send_put(lch* mv, void* src, size_t size, lc_addr* dst, lc_req* ctx)
+lc_status lc_send_put(lch* mv, void* src, size_t size, lc_addr* dst, size_t offset, lc_req* ctx)
 {
   LC_POOL_GET_OR_RETN(mv->pkpool, p);
   struct lc_rma_ctx* dctx = (struct lc_rma_ctx*) dst;
@@ -68,7 +68,7 @@ lc_status lc_send_put(lch* mv, void* src, size_t size, lc_addr* dst, lc_req* ctx
   ctx->sync = NULL;
   p->context.req = ctx;
   p->context.proto = LC_PROTO_LONG;
-  lci_put(mv, src, size, dctx->rank, dctx->addr, dctx->rkey,
+  lci_put(mv, src, size, dctx->rank, dctx->addr, offset, dctx->rkey,
           dctx->sid, p);
   return LC_OK;
 }

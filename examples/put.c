@@ -11,7 +11,7 @@ lch* mv;
 
 int main(int argc, char** args)
 {
-  lc_open(&mv);
+  lc_open(&mv, 0);
   char* buf = 0, *src = 0;
   posix_memalign((void*) &buf, 4096, MAX_MSG_SIZE);
   posix_memalign((void*) &src, 4096, MAX_MSG_SIZE);
@@ -51,7 +51,7 @@ int main(int argc, char** args)
           t1 = wtime();
 
         lc_recv_put(mv, &rma, &c1);
-        lc_send_put(mv, src, size, &rma_remote, &c2);
+        lc_send_put(mv, src, size, &rma_remote, 0, &c2);
 
         lc_wait_poll(mv, &c2);
         lc_wait_poll(mv, &c1);
@@ -66,7 +66,7 @@ int main(int argc, char** args)
             assert(buf[j] == 'A');
 
         lc_recv_put(mv, &rma, &c2);
-        lc_send_put(mv, src, size, &rma_remote, &c1);
+        lc_send_put(mv, src, size, &rma_remote, 0, &c1);
         lc_wait_poll(mv, &c1);
       }
     }

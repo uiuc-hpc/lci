@@ -214,7 +214,7 @@ int lc_rma_create(lch* mv, void* buf, size_t size, lc_addr** rctx_ptr);
 * @return 1 if success, 0 otherwise.
 */
 LC_EXPORT
-lc_status lc_send_put(lch* mv, void* src, size_t size, lc_addr* dst,
+lc_status lc_send_put(lch* mv, void* src, size_t size, lc_addr* dst, size_t offset,
                 lc_req* ctx);
 
 /**

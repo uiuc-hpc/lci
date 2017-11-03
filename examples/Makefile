@@ -13,7 +13,7 @@ LIB = ../liblwci.a
 LIB_MPIV = ../mpiv.a
 
 LDFLAGS += -lpsm2
-# LDFLAGS += -libverbs
+LDFLAGS += -libverbs
 
 CXXFLAGS = -g3 -O3 -std=c++11
 
