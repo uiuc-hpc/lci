@@ -44,6 +44,13 @@ void lci_put(lch* mv, void* src, size_t size, int rank, uintptr_t tgt, size_t
 }
 
 LC_INLINE
+void lci_get(lch* mv, void* src, size_t size, int rank, uintptr_t tgt, size_t
+             offset, uint32_t rkey, uint32_t sig, lc_packet* p)
+{
+  lc_server_get(mv->server, rank, src, tgt, offset, rkey, size, sig, p);
+}
+
+LC_INLINE
 void lci_rdz_prepare(lch* mv, void* src, size_t size, lc_req* ctx,
                      lc_packet* p)
 {

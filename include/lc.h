@@ -218,6 +218,23 @@ lc_status lc_send_put(lch* mv, void* src, size_t size, lc_addr* dst, size_t offs
                 lc_req* ctx);
 
 /**
+* @brief performs an RDMA PUT to dst (created by lc_rma_create).
+*
+* @param mv
+* @param src
+* @param size
+* @param rank
+* @param dst
+* @param ctx
+*
+* @return 1 if success, 0 otherwise.
+*/
+LC_EXPORT
+lc_status lc_send_get(lch* mv, void* src, size_t size, lc_addr* dst, size_t offset,
+                      lc_req* ctx);
+
+
+/**
 * @brief assign a ctx to an rma handle for receiving signal.
 *
 * @param mv

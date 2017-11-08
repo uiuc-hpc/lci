@@ -22,7 +22,7 @@ int MPI_Initialized( int *flag );
 #define MAKE_PSM_TAG(proto, rank) \
   ((uint64_t)((((uint64_t)proto) << 40) | (((uint64_t)rank) << 24)))
 
-#define RKEY_REG 0xffffff
+#define PSM_CTRL_MSG 0xffffff
 
 #ifdef LC_SERVER_DEBUG
 #define PSM_SAFECALL(x)                                       \
@@ -51,11 +51,18 @@ int MPI_Initialized( int *flag );
 
 struct psm_server;
 
-struct psm_mr_req {
+enum psm_ctrl_type {
+    REQ_TO_REG = 0,
+    REQ_TO_PUT,
+};
+
+struct psm_ctrl_msg {
+  enum psm_ctrl_type type;
+  int from;
   uintptr_t addr;
-  size_t offset;
   size_t size;
   uint32_t rkey;
+  uint32_t sid;
 };
 
 struct psm_mr {
@@ -79,8 +86,9 @@ typedef struct psm_server {
   psm2_mq_t mq;
   int psm_recv_am_idx;
 
-  struct psm_mr_req req_mr;
+  struct psm_ctrl_msg ctrl_msg;
   struct psm_mr reg_mr;
+  psm2_mq_req_t put_req;
 
   uintptr_t* heap_addr;
   void* heap;
@@ -107,7 +115,7 @@ LC_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
 LC_INLINE void psm_finalize(psm_server* s);
 static uint32_t next_key = 0;
 
-#define PSM_RECV_REG ((uint64_t) 1 << 60)
+#define PSM_RECV_CTRL ((uint64_t) 1 << 60)
 #define PSM_RECV ((uint64_t)1 << 61)
 #define PSM_SEND ((uint64_t)1 << 62)
 #define PSM_RDMA ((uint64_t)1 << 63)
@@ -267,10 +275,10 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   lcrq_init(&s->free_mr);
 
   PSM_SAFECALL(psm2_mq_irecv(
-      s->mq, RKEY_REG,                /* message tag */
+      s->mq, PSM_CTRL_MSG,                /* message tag */
       (uint64_t)(0x0000000000ffffff), /* message tag mask */
       0,                              /* no flags */
-      &s->req_mr, sizeof(struct psm_mr_req), (void*) PSM_RECV_REG, &s->reg_mr.req));
+      &s->ctrl_msg, sizeof(struct psm_ctrl_msg), (void*) PSM_RECV_CTRL, &s->reg_mr.req));
 
   s->heap = 0;
   posix_memalign((void**) &s->heap, 4096, heap_size);
@@ -301,15 +309,30 @@ LC_INLINE int psm_progress(psm_server* s)
         p->context.tag = proto >> 8;
         lc_serve_recv(s->mv, p, GET_PROTO(proto));
         s->recv_posted--;
-      } else if (ctx & PSM_RECV_REG) {
-        s->reg_mr.addr = s->req_mr.addr;
-        s->reg_mr.size = s->req_mr.size;
-        s->reg_mr.rkey = s->req_mr.rkey; 
-        prepare_rdma(s, &s->reg_mr);
+      } else if (ctx & PSM_RECV_CTRL) {
+        if (s->ctrl_msg.type == REQ_TO_REG) {
+          s->reg_mr.addr = s->ctrl_msg.addr;
+          s->reg_mr.size = s->ctrl_msg.size;
+          s->reg_mr.rkey = s->ctrl_msg.rkey; 
+          prepare_rdma(s, &s->reg_mr);
+        } else { // REQ_TO_PUT
+          PSM_SAFECALL(psm2_mq_isend(s->mq, s->epaddr[s->ctrl_msg.from], 0,    /* no flags */
+                      ((uint64_t)s->ctrl_msg.sid << 32) | s->ctrl_msg.rkey, /* tag */
+                      (void*) (s->ctrl_msg.addr), s->ctrl_msg.size, (void*)(PSM_SEND),
+                      &s->put_req));
+        }
       } else if (ctx & PSM_SEND) {
         lc_packet* p = (lc_packet*)(ctx ^ PSM_SEND);
-        uint32_t proto = p->context.proto;
-        lc_serve_send(s->mv, p, proto);
+        if (p) {
+          uint32_t proto = p->context.proto;
+          lc_serve_send(s->mv, p, proto);
+        } else {
+            PSM_SAFECALL(psm2_mq_irecv(
+                        s->mq, PSM_CTRL_MSG,            /* message tag */
+                        (uint64_t)(0x0000000000ffffff), /* message tag mask */
+                        0,                              /* no flags */
+                        &s->ctrl_msg, sizeof(struct psm_ctrl_msg), (void*) PSM_RECV_CTRL, &s->reg_mr.req));
+        }
       } else {  // else if (ctx & PSM_RDMA) { // recv rdma.
         struct psm_mr* mr = (struct psm_mr*)(ctx ^ PSM_RDMA);
         uint32_t imm = (status.msg_tag >> 32);
@@ -317,10 +340,10 @@ LC_INLINE int psm_progress(psm_server* s)
           prepare_rdma(s, mr);
         else {
           PSM_SAFECALL(psm2_mq_irecv(
-                       s->mq, RKEY_REG,                /* message tag */
+                       s->mq, PSM_CTRL_MSG,            /* message tag */
                        (uint64_t)(0x0000000000ffffff), /* message tag mask */
                        0,                              /* no flags */
-                       &s->req_mr, sizeof(struct psm_mr_req), (void*) PSM_RECV_REG, &s->reg_mr.req));
+                       &s->ctrl_msg, sizeof(struct psm_ctrl_msg), (void*) PSM_RECV_CTRL, &s->reg_mr.req));
         }
         if (imm) lc_serve_imm(s->mv, imm);
       }
@@ -391,6 +414,17 @@ LC_INLINE void psm_write_rma(psm_server* s, int rank, void* from,
 }
 #endif
 
+LC_INLINE void psm_get(psm_server* s, int rank, void* buf,
+                       uintptr_t addr, size_t offset, uint32_t rkey __UNUSED__, size_t size,
+                       uint32_t sid, lc_packet* ctx __UNUSED__) // FIXME
+{
+  struct psm_mr* mr = (struct psm_mr*)  psm_rma_reg(s, buf, size);
+  struct psm_ctrl_msg msg = {REQ_TO_PUT, s->mv->me, addr + offset, size, mr->rkey, sid};
+  PSM_SAFECALL(psm2_mq_send(s->mq, s->epaddr[rank], 0,    /* no flags */
+               PSM_CTRL_MSG, /* tag */
+               &msg, sizeof(struct psm_ctrl_msg)));
+}
+
 LC_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
                                     uintptr_t addr, size_t offset, uint32_t rkey, size_t size,
                                     uint32_t sid, lc_packet* ctx)
@@ -401,10 +435,10 @@ LC_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
                                buf, size, (void*)(PSM_SEND | (uintptr_t)ctx),
                                (psm2_mq_req_t*)ctx));
   } else {
-    struct psm_mr_req mr_req = {addr, offset, size, rkey+1};
+    struct psm_ctrl_msg mr_req = {REQ_TO_REG, s->mv->me, addr + offset, size, rkey+1, 0};
     PSM_SAFECALL(psm2_mq_send(s->mq, s->epaddr[rank], 0,    /* no flags */
-                              RKEY_REG, /* tag */
-                              &mr_req, sizeof(struct psm_mr_req)));
+                              PSM_CTRL_MSG, /* tag */
+                              &mr_req, sizeof(struct psm_ctrl_msg)));
     PSM_SAFECALL(psm2_mq_isend(s->mq, s->epaddr[rank], 0,    /* no flags */
                                ((uint64_t)sid << 32) | (rkey+1), /* tag */
                                buf, size, (void*)(PSM_SEND | (uintptr_t)ctx),
@@ -425,7 +459,7 @@ LC_INLINE uint32_t psm_heap_rkey(psm_server* s __UNUSED__, int node __UNUSED__)
 LC_INLINE void* psm_heap_ptr(psm_server* s) { return s->heap; }
 #define lc_server_init psm_init
 #define lc_server_send psm_write_send
-#define lc_server_rma psm_write_rma
+#define lc_server_get psm_get
 #define lc_server_rma_signal psm_write_rma_signal
 #define lc_server_heap_rkey psm_heap_rkey
 #define lc_server_heap_ptr psm_heap_ptr

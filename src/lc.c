@@ -73,6 +73,19 @@ lc_status lc_send_put(lch* mv, void* src, size_t size, lc_addr* dst, size_t offs
   return LC_OK;
 }
 
+lc_status lc_send_get(lch* mv, void* src, size_t size, lc_addr* dst, size_t offset, lc_req* ctx)
+{
+  LC_POOL_GET_OR_RETN(mv->pkpool, p);
+  struct lc_rma_ctx* dctx = (struct lc_rma_ctx*) dst;
+  ctx->type = LC_REQ_PEND;
+  ctx->sync = NULL;
+  p->context.req = ctx;
+  p->context.proto = LC_PROTO_LONG;
+  lci_get(mv, src, size, dctx->rank, dctx->addr, offset, dctx->rkey,
+          dctx->sid, p);
+  return LC_OK;
+}
+
 lc_status lc_recv_put(lch* mv, lc_addr* rctx, lc_req* req)
 {
   lc_packet* p = (lc_packet*) ((uintptr_t)lc_heap_ptr(mv) + (rctx->sid >> 2));
