@@ -1,6 +1,8 @@
 #ifndef FTHREAD_H_
 #define FTHREAD_H_
 
+#include <stdlib.h>
+
 enum fthread_state {
   INVALID,
   DONE,

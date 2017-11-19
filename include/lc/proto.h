@@ -14,15 +14,6 @@
     ctx->type = LC_REQ_PEND;  \
   }
 
-#define LC_PROTO_QUEUE   (0b0000000)
-#define LC_PROTO_TAG     (0b0000001)
-#define LC_PROTO_TGT     (0b0000010)
-
-#define LC_PROTO_DATA    (0b0000100)
-#define LC_PROTO_RTR     (0b0001000)
-#define LC_PROTO_RTS     (0b0010000)
-#define LC_PROTO_LONG    (0b0100000)
-
 #define MAKE_PROTO(proto, tag) (((uint32_t)proto) | ((uint32_t)tag << 8))
 #define MAKE_SIG(sig, id) (((uint32_t)sig) | ((uint32_t) id << 2))
 
@@ -49,7 +40,6 @@ void lci_get(lch* mv, void* src, size_t size, int rank, uintptr_t tgt, size_t
 {
   lc_server_get(mv->server, rank, src, tgt, offset, rkey, size, sig, p);
 }
-
 LC_INLINE
 void lci_rdz_prepare(lch* mv, void* src, size_t size, lc_req* ctx,
                      lc_packet* p)
@@ -57,7 +47,7 @@ void lci_rdz_prepare(lch* mv, void* src, size_t size, lc_req* ctx,
   p->context.req = ctx;
   uintptr_t rma_mem = lc_server_rma_reg(mv->server, src, size);
   p->context.rma_mem = rma_mem;
-  p->data.rtr.comm_id = (uint32_t)((uintptr_t)p - (uintptr_t)lc_heap_ptr(mv));
+  p->data.rtr.comm_id = (uint32_t)((uintptr_t)p - (uintptr_t)mv->heap_base);
   p->data.rtr.tgt_addr = (uintptr_t)src;
   p->data.rtr.rkey = lc_server_rma_key(rma_mem);
 }
@@ -127,7 +117,7 @@ void lc_serve_imm(lch* mv, uint32_t imm)
   // store a pointer to this request context.
   uint32_t type = imm & 0b11;
   uint32_t id = imm >> 2;
-  uintptr_t addr = (uintptr_t)lc_heap_ptr(mv) + id;
+  uintptr_t addr = (uintptr_t)(mv->heap_base) + id;
   if (type == LC_PROTO_TGT) {
     lc_packet* p = (lc_packet*)addr;
     if (p->context.req) LC_SET_REQ_DONE_AND_SIGNAL(p->context.req);

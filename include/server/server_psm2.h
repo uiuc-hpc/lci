@@ -3,20 +3,16 @@
 
 #include <psm2.h>    /* required for core PSM2 functions */
 #include <psm2_mq.h> /* required for PSM2 MQ functions (send, recv, etc) */
-#include <psm2_am.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "config.h"
-#include "pmi.h"
+#include "lc/pmi.h"
 #include "lc/macro.h"
-#include "dreg/dreg.h"
 
 #ifdef WITH_MPI
 #include <mpi.h>
 #endif
-
-int MPI_Initialized( int *flag );
 
 #define GET_PROTO(p) (p & 0x000000ff)
 #define PSM_CTRL_MSG 1
@@ -87,18 +83,17 @@ typedef struct psm_server {
   struct psm_mr reg_mr;
   psm2_mq_req_t put_req;
 
-  uintptr_t* heap_addr;
-  void* heap;
-  uint32_t heap_rkey;
   int recv_posted;
-  lcrq_t free_mr;
+  // lcrq_t free_mr;
   lch* mv;
   int with_mpi;
+  struct dequeue free_mr;
 } psm_server __attribute__((aligned(64)));
 
 static psm2_mq_tag_t tagsel = {.tag0 = 0x00000000, .tag1 = 0x00000000, .tag2 = 0xFFFFFFFF};
 
-LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr);
+LC_INLINE void psm_init(lch* mv, void** s_ptr);
+LC_INLINE int psm_progress(psm_server* s);
 LC_INLINE void psm_post_recv(psm_server* s, lc_packet* p);
 LC_INLINE int psm_write_send(psm_server* s, int rank, void* buf, size_t size,
                              lc_packet* ctx, uint32_t proto);
@@ -168,7 +163,7 @@ LC_INLINE int _real_psm_free(uintptr_t mem)
     psm2_mq_wait2(&mr->req, NULL);
     free(mr);
   } else {
-    lcrq_enqueue(&(mr->server->free_mr), (void*)mr);
+    dq_push_top(&(mr->server->free_mr), (void*)mr);
   }
   return 1;
 }
@@ -193,7 +188,7 @@ static void* psm_startup(void* arg)
   return 0;
 }
 
-LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
+LC_INLINE void psm_init(lch* mv, void** s_ptr)
 {
   // setenv("I_MPI_FABRICS", "ofa", 1);
   // setenv("PSM2_SHAREDCONTEXTS", "0", 1);
@@ -290,15 +285,15 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   /* Setup mq for comm */
   PSM_SAFECALL(psm2_mq_init(s->myep, PSM2_MQ_ORDERMASK_ALL, NULL, 0, &s->mq));
 
-  lcrq_init(&s->free_mr);
+  dq_init(&s->free_mr);
 
   post_control_msg(s);
 
-  s->heap = 0;
-  posix_memalign((void**) &s->heap, 4096, heap_size);
   s->recv_posted = 0;
   s->mv = mv;
   *s_ptr = s;
+  while (s->recv_posted == 0)
+    psm_progress(s);
   PMI_Barrier();
   // Do not finalize....
   // PMI_Finalize();
@@ -314,49 +309,46 @@ LC_INLINE int psm_progress(psm_server* s)
   if (err == PSM2_OK) {
     err = psm2_mq_test2(&req, &status);  // we need the status
     uintptr_t ctx = (uintptr_t)status.context;
-    if (ctx) {
-      if (ctx & PSM_RECV) {
-        uint32_t proto = status.msg_tag.tag0; // (status.msg_tag >> 40);
-        lc_packet* p = (lc_packet*)(ctx ^ PSM_RECV);
-        p->context.from = status.msg_tag.tag1; // (status.msg_tag >> 24) & 0x0000ffff;
-        p->context.size = (status.msg_length);
-        p->context.tag = proto >> 8;
-        lc_serve_recv(s->mv, p, GET_PROTO(proto));
-        s->recv_posted--;
-      } else if (ctx & PSM_RECV_CTRL) {
-        assert(0 && "invalid ctx");
-        if (s->ctrl_msg.type == REQ_TO_REG) {
-          s->reg_mr.addr = s->ctrl_msg.addr;
-          s->reg_mr.size = s->ctrl_msg.size;
-          s->reg_mr.rkey = s->ctrl_msg.rkey; 
-          prepare_rdma(s, &s->reg_mr);
-        } else { // REQ_TO_PUT
-          psm2_mq_tag_t rtag;
-          rtag.tag0 = s->ctrl_msg.sid;
-          rtag.tag1 = 0x0;
-          rtag.tag2 = s->ctrl_msg.rkey;
-          PSM_SAFECALL(psm2_mq_isend2(s->mq, s->epaddr[s->ctrl_msg.from], 0,    /* no flags */
-                      &rtag,
-                      (void*) (s->ctrl_msg.addr), s->ctrl_msg.size, (void*)(PSM_SEND),
-                      &s->put_req));
-        }
-      } else if (ctx & PSM_SEND) {
-        lc_packet* p = (lc_packet*)(ctx ^ PSM_SEND);
-        if (p) {
-          uint32_t proto = p->context.proto;
-          lc_serve_send(s->mv, p, proto);
-        } else {
-          post_control_msg(s);
-        }
-      } else {  // else if (ctx & PSM_RDMA) { // recv rdma.
-        struct psm_mr* mr = (struct psm_mr*)(ctx ^ PSM_RDMA);
-        uint32_t imm = status.msg_tag.tag0;
-        if (mr != &(s->reg_mr))
-          prepare_rdma(s, mr);
-        else
-          post_control_msg(s);
-        if (imm) lc_serve_imm(s->mv, imm);
+    if (ctx & PSM_RECV) {
+      uint32_t proto = status.msg_tag.tag0; // (status.msg_tag >> 40);
+      lc_packet* p = (lc_packet*)(ctx ^ PSM_RECV);
+      p->context.from = status.msg_tag.tag1; // (status.msg_tag >> 24) & 0x0000ffff;
+      p->context.size = (status.msg_length);
+      p->context.tag = proto >> 8;
+      lc_serve_recv(s->mv, p, GET_PROTO(proto));
+      s->recv_posted--;
+    } else if (ctx & PSM_RECV_CTRL) {
+      if (s->ctrl_msg.type == REQ_TO_REG) {
+        s->reg_mr.addr = s->ctrl_msg.addr;
+        s->reg_mr.size = s->ctrl_msg.size;
+        s->reg_mr.rkey = s->ctrl_msg.rkey; 
+        prepare_rdma(s, &s->reg_mr);
+      } else { // REQ_TO_PUT
+        psm2_mq_tag_t rtag;
+        rtag.tag0 = s->ctrl_msg.sid;
+        rtag.tag1 = 0x0;
+        rtag.tag2 = s->ctrl_msg.rkey;
+        PSM_SAFECALL(psm2_mq_isend2(s->mq, s->epaddr[s->ctrl_msg.from], 0,    /* no flags */
+              &rtag,
+              (void*) (s->ctrl_msg.addr), s->ctrl_msg.size, (void*)(PSM_SEND),
+              &s->put_req));
       }
+    } else if (ctx & PSM_SEND) {
+      lc_packet* p = (lc_packet*)(ctx ^ PSM_SEND);
+      if (p) {
+        uint32_t proto = p->context.proto;
+        lc_serve_send(s->mv, p, proto);
+      } else {
+        post_control_msg(s);
+      }
+    } else if (ctx & PSM_RDMA) { // recv rdma.
+      struct psm_mr* mr = (struct psm_mr*)(ctx ^ PSM_RDMA);
+      uint32_t imm = status.msg_tag.tag0;
+      if (mr != &(s->reg_mr))
+        prepare_rdma(s, mr);
+      else
+        post_control_msg(s);
+      if (imm) lc_serve_imm(s->mv, imm);
     }
   } else {
     sched_yield();
@@ -366,13 +358,13 @@ LC_INLINE int psm_progress(psm_server* s)
     psm_post_recv(s, lc_pool_get_nb(s->mv->pkpool));
 
   // Cleanup stuffs when nothing to do, this improves the reg/dereg a bit.
-  struct psm_mr* mr = (struct psm_mr*)lcrq_dequeue(&(s->free_mr));
+  struct psm_mr* mr = (struct psm_mr*)dq_pop_top(&(s->free_mr));
   if (unlikely(mr)) {
     if (psm2_mq_cancel(&mr->req) == PSM2_OK) {
       psm2_mq_wait2(&mr->req, NULL);
       free(mr);
     } else {
-      lcrq_enqueue(&(s->free_mr), (void*)mr);
+      dq_push_top(&(s->free_mr), (void*)mr);
     }
   }
 
@@ -480,13 +472,12 @@ LC_INLINE uint32_t psm_heap_rkey(psm_server* s __UNUSED__, int node __UNUSED__)
   return 0;
 }
 
-LC_INLINE void* psm_heap_ptr(psm_server* s) { return s->heap; }
+#define lc_server psm_server
 #define lc_server_init psm_init
 #define lc_server_send psm_write_send
 #define lc_server_get psm_get
 #define lc_server_rma_signal psm_write_rma_signal
 #define lc_server_heap_rkey psm_heap_rkey
-#define lc_server_heap_ptr psm_heap_ptr
 #define lc_server_progress psm_progress
 #define lc_server_finalize psm_finalize
 #define lc_server_post_recv psm_post_recv

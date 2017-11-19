@@ -2,6 +2,8 @@
 #define FULT_INL_H_
 
 #include <string.h>
+#include <stdlib.h>
+#include <stdint.h>
 
 #include "lc/affinity.h"
 #include "lc/lock.h"

@@ -12,65 +12,12 @@
 extern "C" {
 #endif
 
-#include "thread.h"
+#include "lc/lct.h"
+#include "lc/thread.h"
 #include <stdint.h>
 #include <stdlib.h>
 
 /*! Init context */
-struct lc_struct;
-typedef struct lc_struct lch;
-
-typedef void (*lc_am_func_t)();
-struct lc_ctx;
-typedef struct lc_ctx lc_req;
-
-typedef void* (*lc_alloc_fn)(void* ctx, size_t size);
-
-struct lc_packet;
-typedef struct lc_packet lc_packet;
-
-typedef int16_t lc_qkey;
-typedef int16_t lc_qtag;
-
-typedef enum lc_status {
-  LC_ERR_NOP = 0,
-  LC_OK = 1,
-} lc_status;
-
-typedef void (*lc_fcb)(lch* mv, lc_req* req, lc_packet* p);
-
-enum lc_req_state {
-  LC_REQ_PEND = 0,
-  LC_REQ_DONE = 1,
-};
-
-struct lc_ctx {
-  void* buffer;
-  size_t size;
-  int rank;
-  int tag;
-  union {
-    volatile enum lc_req_state type;
-    volatile int int_type;
-  };
-  lc_sync* sync;
-  lc_packet* packet;
-} __attribute__((aligned(64)));
-
-struct lc_rma_ctx {
-  uint64_t addr;
-  uint32_t rank;
-  uint32_t rkey;
-  uint32_t sid;
-} __attribute__((aligned(64)));
-
-typedef struct lc_rma_ctx lc_addr;
-
-struct lc_pkt {
-  void* _reserved_;
-  void* buffer;
-};
-
 /**
  * @defgroup low-level Low-level API
  * @{
@@ -94,7 +41,7 @@ struct lc_pkt {
 * @return 1 if success, 0 otherwise -- need to retry.
 *
 */
-LC_EXPORT
+LC_INLINE
 lc_status lc_send_tag(lch* mv, const void* src, size_t size, int rank, int tag,
                       lc_req* ctx);
 
@@ -108,7 +55,7 @@ lc_status lc_send_tag(lch* mv, const void* src, size_t size, int rank, int tag,
 * @return 1 if success, 0 otherwise -- need to retry.
 *
 */
-LC_EXPORT
+LC_INLINE
 lc_status lc_send_tag_p(lch* mv, struct lc_pkt* pkt, int rank, int tag, lc_req* ctx);
 
 /**
@@ -124,7 +71,7 @@ lc_status lc_send_tag_p(lch* mv, struct lc_pkt* pkt, int rank, int tag, lc_req* 
 * @return 1 if success, 0 otherwise -- need to retry.
 *
 */
-LC_EXPORT
+LC_INLINE
 lc_status lc_recv_tag(lch* mv, void* src, size_t size, int rank, int tag,
                       lc_req* ctx);
 
@@ -149,7 +96,7 @@ lc_status lc_recv_tag(lch* mv, void* src, size_t size, int rank, int tag,
 * @return 1 if success, 0 otherwise -- need to retry.
 *
 */
-LC_EXPORT
+LC_INLINE
 lc_status lc_send_queue(lch* mv, const void* src, size_t size, int rank, lc_qtag tag, lc_qkey key,
                         lc_req* ctx);
 
@@ -163,7 +110,7 @@ lc_status lc_send_queue(lch* mv, const void* src, size_t size, int rank, lc_qtag
 * @return 1 if success, 0 otherwise -- need to retry.
 *
 */
-LC_EXPORT
+LC_INLINE
 lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, int rank, lc_qtag tag, lc_qkey key, lc_req* ctx);
 
 /**
@@ -177,7 +124,7 @@ lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, int rank, lc_qtag tag, lc
 *
 * @return 1 if got data, 0 otherwise.
 */
-LC_EXPORT
+LC_INLINE
 lc_status lc_recv_queue(lch* mv, size_t* size, int* rank, lc_qtag* tag, lc_qkey, lc_alloc_fn
         alloc_cb, void* alloc_ctx,  lc_req* ctx);
 
@@ -198,7 +145,7 @@ lc_status lc_recv_queue(lch* mv, size_t* size, int* rank, lc_qtag* tag, lc_qkey,
 *
 * @return
 */
-LC_EXPORT
+LC_INLINE
 int lc_rma_create(lch* mv, void* buf, size_t size, lc_addr** rctx_ptr);
 
 /**
@@ -213,7 +160,7 @@ int lc_rma_create(lch* mv, void* buf, size_t size, lc_addr** rctx_ptr);
 *
 * @return 1 if success, 0 otherwise.
 */
-LC_EXPORT
+LC_INLINE
 lc_status lc_send_put(lch* mv, void* src, size_t size, lc_addr* dst, size_t offset,
                 lc_req* ctx);
 
@@ -229,7 +176,7 @@ lc_status lc_send_put(lch* mv, void* src, size_t size, lc_addr* dst, size_t offs
 *
 * @return 1 if success, 0 otherwise.
 */
-LC_EXPORT
+LC_INLINE
 lc_status lc_send_get(lch* mv, void* src, size_t size, lc_addr* dst, size_t offset,
                       lc_req* ctx);
 
@@ -243,7 +190,7 @@ lc_status lc_send_get(lch* mv, void* src, size_t size, lc_addr* dst, size_t offs
 *
 * @return
 */
-LC_EXPORT
+LC_INLINE
 lc_status lc_recv_put(lch* mv, lc_addr* rctx, lc_req* ctx);
 
 /**@} end rdma-api */
@@ -260,7 +207,7 @@ lc_status lc_recv_put(lch* mv, lc_addr* rctx, lc_req* ctx);
 * @param num_qs: how many queues initialized.
 *
 */
-LC_EXPORT
+LC_INLINE
 void lc_open(lch** handle, int num_qs);
 
 /**
@@ -269,22 +216,11 @@ void lc_open(lch** handle, int num_qs);
 * @param handle
 *
 */
-LC_EXPORT
+LC_INLINE
 void lc_close(lch* handle);
 
 LC_INLINE
-lc_status lc_post(lc_req* ctx, lc_sync* sync)
-{
-  if (ctx->type == LC_REQ_DONE) {
-    return LC_OK;
-  } else {
-    if (__sync_val_compare_and_swap(&ctx->sync, NULL, sync) == NULL) {
-      return LC_ERR_NOP;
-    } else {
-      return LC_OK;
-    }
-  }
-}
+lc_status lc_post(lc_req* ctx, void* sync);
 
 /**
 * @brief Blocking wait.
@@ -309,16 +245,7 @@ void lc_wait(lc_req* ctx)
 * @return
 */
 LC_INLINE
-void lc_wait_post(lc_sync* sync, lc_req* ctx)
-{
-  // Need to attach the thread to the queue
-  // before adding to the request.
-  sync->queue = g_sync.get();
-
-  if (lc_post(ctx, sync) == LC_ERR_NOP) {
-    lc_sync_wait(ctx->sync, &(ctx->int_type));
-  }
-}
+void lc_wait_post(void* sync, lc_req* ctx);
 
 /**
 * @brief Non-blocking test if the communication is finished.
@@ -337,7 +264,7 @@ int lc_test(lc_req* ctx) { return (ctx->type == LC_REQ_DONE); }
 *
 * @return 1 if finished, 0 otherwise.
 */
-LC_EXPORT
+LC_INLINE
 int lc_progress(lch* mv);
 
 /**
@@ -347,7 +274,7 @@ int lc_progress(lch* mv);
 *
 * @return 1 if finished, 0 otherwise.
 */
-LC_EXPORT
+LC_INLINE
 int lc_id(lch* mv);
 
 /**
@@ -357,14 +284,12 @@ int lc_id(lch* mv);
 *
 * @return 1 if finished, 0 otherwise.
 */
-LC_EXPORT
+LC_INLINE
 int lc_size(lch* mv);
 
-LC_EXPORT
+LC_INLINE
 void lc_rma_fini(lch*mv, lc_addr* rctx);
 
-LC_EXPORT
-void lc_sync_init(lc_get_fp i, lc_wait_fp w, lc_signal_fp s, lc_yield_fp y);
 /**@} end control */
 
 /**@} end low-level */
@@ -374,16 +299,13 @@ void lc_sync_init(lc_get_fp i, lc_wait_fp w, lc_signal_fp s, lc_yield_fp y);
 * @{
 */
 
-LC_EXPORT
-void* lc_heap_ptr(lch* mv);
-
-LC_EXPORT
+LC_INLINE
 lc_status lc_pkt_init(lch* mv, size_t size, struct lc_pkt*);
 
-LC_EXPORT
+LC_INLINE
 void lc_pkt_fini(lch* mv, struct lc_pkt*);
 
-LC_EXPORT
+LC_INLINE
 lc_status lc_rma_init(lch* mv, void* buf, size_t size, lc_addr* rctx);
 
 #define LC_COL_IN_PLACE ((void*) -1)
@@ -418,13 +340,13 @@ double lc_wtime()
 * @return
 */
 LC_INLINE
-void lc_wait_poll(lch* mv, lc_req* ctx)
-{
-  while (ctx->type != LC_REQ_DONE)
-    lc_progress(mv);
-}
+void lc_wait_poll(lch* mv, lc_req* ctx);
 
 /**@}*/
+
+#include "lc/lc_inl.h"
+#include "lc/tag.h"
+#include "lc/queue.h"
 
 #ifdef __cplusplus
 }

@@ -4,8 +4,16 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "mpiv.h"
-#include "comm_exp.h"
+#define LC_SYNC_WAIT(s, f) \
+{\
+  while (!f)\
+    fthread_wait(s);\
+}\
+
+#define LC_SYNC_SIGNAL(s) \
+{\
+  fthread_resume(s);\
+};\
 
 #ifdef USE_ABT
 #include "helper_abt.h"
@@ -14,6 +22,9 @@
 #else
 #include "helper_fult.h"
 #endif
+
+#include "lc/mpiv.h"
+#include "comm_exp.h"
 
 #define CHECK_RESULT 0
 

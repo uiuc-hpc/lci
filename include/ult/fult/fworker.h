@@ -4,6 +4,7 @@
 #include "lc/macro.h"
 #include <pthread.h>
 #include <string.h>
+#include <stdlib.h>
 
 typedef struct fworker {
   fthread** thread_pool;

@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 struct __attribute__((packed)) packet_context {
-  SERVER_CONTEXT;
+  // SERVER_CONTEXT;
   uint32_t from;
   uint32_t size;
   uint32_t tag;
