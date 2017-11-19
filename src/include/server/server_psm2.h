@@ -19,7 +19,7 @@
 int MPI_Initialized( int *flag );
 
 #define GET_PROTO(p) (p & 0x000000ff)
-#define PSM_CTRL_MSG 0xffffff
+#define PSM_CTRL_MSG 1
 
 #ifdef LC_SERVER_DEBUG
 #define PSM_SAFECALL(x)                                       \
@@ -112,7 +112,7 @@ LC_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
                                     uint32_t sid, lc_packet* ctx);
 
 LC_INLINE void psm_finalize(psm_server* s);
-static uint32_t next_key = 0;
+static uint32_t next_key = 2;
 
 #define PSM_RECV_CTRL ((uint64_t) 1 << 60)
 #define PSM_RECV ((uint64_t)1 << 61)
@@ -153,10 +153,10 @@ LC_INLINE uintptr_t _real_psm_reg(psm_server* s, void* buf, size_t size)
   mr->server = s;
   mr->addr = (uintptr_t)buf;
   mr->size = size;
-  mr->rkey = (1 + __sync_fetch_and_add(&next_key, 2)) & 0x00ffffff;
-#ifdef LC_SERVER_DEBUG
-  assert(next_key != 0);
-#endif
+  do {
+    mr->rkey = (__sync_fetch_and_add(&next_key, 2)) & 0x00ffffff;
+  } while (mr->rkey < 2);
+  // assert(mr->rkey > 2 && "overflow rkey");
   prepare_rdma(s, mr);
   return (uintptr_t)mr;
 }
@@ -288,7 +288,7 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   pthread_join(startup_thread, NULL);
 
   /* Setup mq for comm */
-  PSM_SAFECALL(psm2_mq_init(s->myep, PSM2_MQ_ORDERMASK_NONE, NULL, 0, &s->mq));
+  PSM_SAFECALL(psm2_mq_init(s->myep, PSM2_MQ_ORDERMASK_ALL, NULL, 0, &s->mq));
 
   lcrq_init(&s->free_mr);
 
@@ -324,6 +324,7 @@ LC_INLINE int psm_progress(psm_server* s)
         lc_serve_recv(s->mv, p, GET_PROTO(proto));
         s->recv_posted--;
       } else if (ctx & PSM_RECV_CTRL) {
+        assert(0 && "invalid ctx");
         if (s->ctrl_msg.type == REQ_TO_REG) {
           s->reg_mr.addr = s->ctrl_msg.addr;
           s->reg_mr.size = s->ctrl_msg.size;
@@ -376,7 +377,8 @@ LC_INLINE int psm_progress(psm_server* s)
   }
 
 #ifdef LC_SERVER_DEBUG
-  if (s->recv_posted == 0) fprintf(stderr, "WARNING DEADLOCK\n");
+  static uint32_t count = 0;
+  if (s->recv_posted == 0 && ++count == 0) fprintf(stderr, "WARNING DEADLOCK\n");
 #endif
   return (err == PSM2_OK);
 }
