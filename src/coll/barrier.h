@@ -3,7 +3,7 @@
 
 static int round = 0;
 
-#define MCA_COLL_BASE_TAG_BARRIER 1339
+static lc_info MCA_COLL_BASE_TAG_BARRIER = {LC_SYNC_NULL, LC_SYNC_NULL, {.tag = 1337}};
 
 int ompi_coll_base_barrier_intra_bruck(lch* comm)
 {
@@ -21,10 +21,10 @@ int ompi_coll_base_barrier_intra_bruck(lch* comm)
 
     /* send message to lower ranked node */
     LC_SAFE(lc_send_tag(comm, &tempsend, 0, to,
-        round << 8 | MCA_COLL_BASE_TAG_BARRIER, &sreq));
+        &MCA_COLL_BASE_TAG_BARRIER, &sreq));
 
     lc_recv_tag(comm, &temprecv, 0, from,
-        round << 8 | MCA_COLL_BASE_TAG_BARRIER, &rreq);
+        &MCA_COLL_BASE_TAG_BARRIER, &rreq);
 
     lc_wait(&sreq);
     lc_wait(&rreq);

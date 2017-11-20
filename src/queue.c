@@ -4,45 +4,49 @@
 #include "lc/pool.h"
 #include "pmi.h"
 
-lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, int rank, lc_qtag tag, lc_qkey key, lc_req* ctx)
+lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, int rank, lc_info* desc, lc_req* ctx)
 {
   lc_packet* p = (lc_packet*) pkt->_reserved_;
   void* src = pkt->buffer;
   size_t size = p->context.size;
   if (size <= (int) SHORT_MSG_SIZE) {
-    lci_send(mv, src, size, rank, (tag << 8 | key), LC_PROTO_DATA, p);
+    lci_send(mv, src, size, rank, (desc->qtag << 8 | desc->qkey), LC_PROTO_DATA, p);
     ctx->int_type = LC_REQ_DONE;
   } else {
     INIT_CTX(ctx);
+    ctx->lsync = desc->lsync;
     p->data.rts.req = (uintptr_t) ctx;
     p->data.rts.src_addr = (uintptr_t) src;
     p->data.rts.size = size;
     lci_send(mv, &p->data, sizeof(struct packet_rts),
-             rank, (tag << 8 | key), LC_PROTO_RTS, p);
+             rank, (desc->qtag << 8 | desc->qkey), LC_PROTO_RTS, p);
   }
   return LC_OK;
 }
 
-lc_status lc_send_queue(lch* mv, const void* src, size_t size, int rank, lc_qtag tag, lc_qkey key, lc_req* ctx)
+lc_status lc_send_queue(lch* mv, const void* src, size_t size, int rank,
+                        lc_info* desc, lc_req* ctx)
 {
   LC_POOL_GET_OR_RETN(mv->pkpool, p);
   if (size <= (int) SHORT_MSG_SIZE) {
-    lci_send(mv, src, size, rank, (tag << 8 | key), LC_PROTO_DATA, p);
+    lci_send(mv, src, size, rank, (desc->qtag << 8 | desc->qkey), LC_PROTO_DATA, p);
     ctx->sync = NULL;
     ctx->int_type = LC_REQ_DONE;
   } else {
     INIT_CTX(ctx);
+    ctx->lsync = desc->lsync;
+    ctx->rsync = desc->rsync;
     p->data.rts.req = (uintptr_t) ctx;
     p->data.rts.src_addr = (uintptr_t) src;
     p->data.rts.size = size;
     lci_send(mv, &p->data, sizeof(struct packet_rts),
-             rank, (tag << 8 | key), LC_PROTO_RTS, p);
+             rank, (desc->qtag << 8 | desc->qkey), LC_PROTO_RTS, p);
   }
   return LC_OK;
 }
 
 lc_status lc_recv_queue(lch* mv, size_t* size, int* rank, lc_qtag* tag, lc_qtag key,
-        lc_alloc_fn alloc_cb, void* alloc_ctx,  lc_req* ctx)
+        lc_alloc_fn alloc_cb, void* alloc_ctx,  lc_sync rsync, lc_req* ctx)
 {
 #ifndef USE_CCQ
   lc_packet* p = (lc_packet*) dq_pop_bot(&mv->queue[key]);
@@ -68,6 +72,7 @@ lc_status lc_recv_queue(lch* mv, size_t* size, int* rank, lc_qtag* tag, lc_qtag 
     ctx->type = LC_REQ_DONE;
     *size = _size;
   } else {
+    ctx->lsync = rsync;
     int rank = p->context.from;
     lci_rdz_prepare(mv, buf, _size, ctx, p);
     lci_send(mv, &p->data, sizeof(struct packet_rtr),

@@ -4,7 +4,7 @@
 #include <string.h>
 #include <assert.h>
 
-#define MCA_COLL_BASE_TAG_ALLREDUCE 1339
+static lc_info MCA_COLL_BASE_TAG_ALLREDUCE = {LC_SYNC_NULL, LC_SYNC_NULL, {.tag = 1339}};
 
 static inline int opal_next_poweroftwo(int value)
 {
@@ -68,12 +68,12 @@ int ompi_coll_base_allreduce_intra_recursivedoubling(
   if (rank <  (2 * extra_ranks)) {
     if (0 == (rank % 2)) {
       LC_SAFE(lc_send_tag(comm, tmpsend, count, (rank + 1),
-            MCA_COLL_BASE_TAG_ALLREDUCE, &sreq));
+            &MCA_COLL_BASE_TAG_ALLREDUCE, &sreq));
       lc_wait(&sreq);
       newrank = -1;
     } else {
       lc_recv_tag(comm, tmprecv, count, (rank - 1),
-            MCA_COLL_BASE_TAG_ALLREDUCE, &rreq);
+            &MCA_COLL_BASE_TAG_ALLREDUCE, &rreq);
       lc_wait(&rreq);
       /* tmpsend = tmprecv (op) tmpsend */
       op(tmpsend, tmprecv, count);
@@ -96,8 +96,8 @@ int ompi_coll_base_allreduce_intra_recursivedoubling(
       (newremote * 2 + 1):(newremote + extra_ranks);
 
     /* Exchange the data */
-    LC_SAFE(lc_send_tag(comm, tmpsend, count, remote, MCA_COLL_BASE_TAG_ALLREDUCE, &sreq));
-    lc_recv_tag(comm, tmprecv, count, remote, MCA_COLL_BASE_TAG_ALLREDUCE, &rreq);
+    LC_SAFE(lc_send_tag(comm, tmpsend, count, remote, &MCA_COLL_BASE_TAG_ALLREDUCE, &sreq));
+    lc_recv_tag(comm, tmprecv, count, remote, &MCA_COLL_BASE_TAG_ALLREDUCE, &rreq);
     lc_wait(&sreq);
     lc_wait(&rreq);
 
@@ -122,12 +122,12 @@ int ompi_coll_base_allreduce_intra_recursivedoubling(
   if (rank < (2 * extra_ranks)) {
     if (0 == (rank % 2)) {
       lc_recv_tag(comm, rbuf, count, (rank + 1),
-          MCA_COLL_BASE_TAG_ALLREDUCE, &rreq);
+          &MCA_COLL_BASE_TAG_ALLREDUCE, &rreq);
       lc_wait(&rreq);
       tmpsend = (char*)rbuf;
     } else {
       LC_SAFE(lc_send_tag(comm, tmpsend, count, (rank - 1),
-            MCA_COLL_BASE_TAG_ALLREDUCE, &sreq));
+            &MCA_COLL_BASE_TAG_ALLREDUCE, &sreq));
       lc_wait(&sreq);
     }
   }

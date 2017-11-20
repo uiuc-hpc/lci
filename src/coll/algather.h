@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define MCA_COLL_BASE_TAG_ALLGATHER 1338
+static lc_info MCA_COLL_BASE_TAG_ALLGATHER = {LC_SYNC_NULL, LC_SYNC_NULL, {.tag = 1338}};
 
 static inline int ompi_coll_tuned_allgather_intra_bruck(void* sbuf, size_t scount,
     void* rbuf, size_t rcount, lch* mv)
@@ -56,10 +56,10 @@ static inline int ompi_coll_tuned_allgather_intra_bruck(void* sbuf, size_t scoun
 
     /* Sendreceive */
     LC_SAFE(lc_send_tag(mv, tmpsend, blockcount * rcount, sendto,
-        MCA_COLL_BASE_TAG_ALLGATHER, &sreq));
+        &MCA_COLL_BASE_TAG_ALLGATHER, &sreq));
 
     lc_recv_tag(mv, tmprecv, blockcount * rcount, recvfrom,
-        MCA_COLL_BASE_TAG_ALLGATHER, &rreq);
+        &MCA_COLL_BASE_TAG_ALLGATHER, &rreq);
 
     lc_wait(&sreq);
     lc_wait(&rreq);

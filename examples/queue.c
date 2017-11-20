@@ -22,6 +22,7 @@ int main(int argc, char** args)
   posix_memalign(&buffer, 4096, 1<<22);
   posix_memalign(&rx_buffer, 4096, 1<<22);
   lc_req ctx;
+  lc_info info = {.lsync = LC_SYNC_NULL, .rsync = LC_SYNC_NULL, {.qkey = 0, .qtag = 0}};
   for (size_t len = 1; len <= (1 << 22); len <<= 1) {
     if (len > 8192) {
       skip = SKIP_LARGE;
@@ -36,11 +37,12 @@ int main(int argc, char** args)
       for (int i = 0; i < skip + total; i++) {
         if (i == skip) t1 = wtime();
         for (int j = 0; j < WINDOWS; j++)  {
-          lc_send_queue(mv, buffer, len, 1, i, 0, &ctx);
+          info.qtag = i;
+          lc_send_queue(mv, buffer, len, 1, &info, &ctx);
           lc_wait_poll(mv, &ctx);
         }
         int rank; lc_qtag tag; size_t size;
-        while (!lc_recv_queue(mv, &size, &rank, &tag, 0, NULL, rx_buffer, &ctx)) {
+        while (!lc_recv_queue(mv, &size, &rank, &tag, 0, NULL, rx_buffer, LC_SYNC_NULL, &ctx)) {
           lc_progress(mv);
         }
         lc_wait_poll(mv, &ctx);
@@ -51,7 +53,7 @@ int main(int argc, char** args)
         int rank; lc_qtag tag; size_t size;
         //rx_buffer
         for (int j = 0; j < WINDOWS; j++) {
-          while (!lc_recv_queue(mv, &size, &rank, &tag, 0, NULL, rx_buffer, &ctx)) {
+          while (!lc_recv_queue(mv, &size, &rank, &tag, 0, NULL, rx_buffer, LC_SYNC_NULL, &ctx)) {
             lc_progress(mv);
           }
           if (tag != i) {
@@ -60,7 +62,8 @@ int main(int argc, char** args)
           lc_wait_poll(mv, &ctx);
         }
         // send
-        lc_send_queue(mv, buffer, len, 0, i, 0, &ctx);
+        info.qtag = i;
+        lc_send_queue(mv, buffer, len, 0, &info, &ctx);
         lc_wait_poll(mv, &ctx);
       }
     }

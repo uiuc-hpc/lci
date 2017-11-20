@@ -29,7 +29,8 @@ void MPI_Recv(void* buffer, int count, MPI_Datatype datatype,
   MPI_Type_size(datatype, &size);
   size *= count;
   lc_req ctx;
-  while (!lc_recv_tag(lc_hdl, buffer, size, rank, tag, &ctx))
+  lc_info info = {LC_SYNC_WAKE, LC_SYNC_WAKE, {.tag = tag}};
+  while (!lc_recv_tag(lc_hdl, buffer, size, rank, &info, &ctx))
     thread_yield();
   lc_wait_post(thread_self(), &ctx);
 }
@@ -41,7 +42,8 @@ void MPI_Send(void* buffer, int count, MPI_Datatype datatype,
   MPI_Type_size(datatype, &size);
   size *= count;
   lc_req ctx;
-  while (!lc_send_tag(lc_hdl, buffer, size, rank, tag, &ctx))
+  lc_info info = {LC_SYNC_WAKE, LC_SYNC_WAKE, {.tag = tag}};
+  while (!lc_send_tag(lc_hdl, buffer, size, rank, &info, &ctx))
     thread_yield();
   lc_wait_post(thread_self(), &ctx);
 }
@@ -52,7 +54,8 @@ void MPI_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
   MPI_Type_size(datatype, &size);
   size *= count;
   lc_req *ctx = (lc_req*) lc_pool_get(lc_req_pool);
-  while (!lc_send_tag(lc_hdl, buf, size, rank, tag, ctx))
+  lc_info info = {LC_SYNC_WAKE, LC_SYNC_WAKE, {.tag = tag}};
+  while (!lc_send_tag(lc_hdl, buf, size, rank, &info, ctx))
     thread_yield();
   if (ctx->type != LC_REQ_DONE) {
     *req = (MPI_Request) ctx;
@@ -68,7 +71,8 @@ void MPI_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
   MPI_Type_size(datatype, &size);
   size *= count;
   lc_req *ctx = (lc_req*) lc_pool_get(lc_req_pool);
-  while (!lc_recv_tag(lc_hdl, (void*) buffer, size, rank, tag, ctx))
+  lc_info info = {LC_SYNC_WAKE, LC_SYNC_WAKE, {.tag = tag}};
+  while (!lc_recv_tag(lc_hdl, (void*) buffer, size, rank, &info, ctx))
     thread_yield();
   *req = (MPI_Request) ctx;
 }

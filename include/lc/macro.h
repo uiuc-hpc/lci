@@ -25,22 +25,13 @@
   lc_packet* x = lc_pool_get_nb((p)); \
   if (x == NULL) return LC_ERR_NOP;   
 
-#define MODE_THREAD
-#ifndef MODE_THREAD
-
-#define LC_SET_REQ_DONE_AND_SIGNAL(r) \
-  (r)->type = LC_REQ_DONE;
-
-#else
-
-#define LC_SET_REQ_DONE_AND_SIGNAL(r)                                  \
+#define LC_SET_REQ_DONE_AND_SIGNAL(t, r)                               \
   {                                                                    \
-    void* sync = (r)->sync;                                         \
-    if (sync == NULL)                                                  \
-      sync = __sync_val_compare_and_swap(&(r)->sync, NULL, (void*)-1); \
+    void* sync = (r)->sync;                                            \
+    if (t && sync == NULL)                                             \
+      sync = __sync_val_compare_and_swap(&(r)->sync, NULL, LC_REQ_DONE);\
     (r)->type = LC_REQ_DONE;                                           \
-    if (sync && sync != (void*) -1) lc_sync_signal(sync);              \
+    if (t && sync) lc_sync_signal(sync);                               \
   }
-#endif
 
 #endif

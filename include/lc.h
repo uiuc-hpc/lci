@@ -29,8 +29,27 @@ typedef void* (*lc_alloc_fn)(void* ctx, size_t size);
 struct lc_packet;
 typedef struct lc_packet lc_packet;
 
+typedef int32_t lc_tag;
 typedef int16_t lc_qkey;
 typedef int16_t lc_qtag;
+
+typedef enum lc_sync {
+  LC_SYNC_NULL = 0,
+  LC_SYNC_WAKE,
+} lc_sync;
+
+typedef struct lc_info {
+  lc_sync lsync;
+  lc_sync rsync;
+  union {
+    struct {
+      lc_qkey qkey;
+      lc_qtag qtag;
+    };
+    lc_tag tag;
+    uint32_t offset;
+  };
+} lc_info;
 
 typedef enum lc_status {
   LC_ERR_NOP = 0,
@@ -53,6 +72,8 @@ struct lc_ctx {
     volatile enum lc_req_state type;
     volatile int int_type;
   };
+  lc_sync lsync;
+  lc_sync rsync;
   void* sync;
   lc_packet* packet;
 } __attribute__((aligned(64)));
@@ -95,8 +116,8 @@ struct lc_pkt {
 *
 */
 LC_EXPORT
-lc_status lc_send_tag(lch* mv, const void* src, size_t size, int rank, int tag,
-                      lc_req* ctx);
+lc_status lc_send_tag(lch* mv, const void* src, size_t size, int rank,
+                      lc_info* info, lc_req* ctx);
 
 /**
 * @brief Send a buffer and match at destination (packetized version)
@@ -109,7 +130,7 @@ lc_status lc_send_tag(lch* mv, const void* src, size_t size, int rank, int tag,
 *
 */
 LC_EXPORT
-lc_status lc_send_tag_p(lch* mv, struct lc_pkt* pkt, int rank, int tag, lc_req* ctx);
+lc_status lc_send_tag_p(lch* mv, struct lc_pkt* pkt, int rank, lc_info* info, lc_req* ctx);
 
 /**
 * @brief Initialize a recv, matching incoming message.
@@ -125,7 +146,7 @@ lc_status lc_send_tag_p(lch* mv, struct lc_pkt* pkt, int rank, int tag, lc_req* 
 *
 */
 LC_EXPORT
-lc_status lc_recv_tag(lch* mv, void* src, size_t size, int rank, int tag,
+lc_status lc_recv_tag(lch* mv, void* src, size_t size, int rank, lc_info* info,
                       lc_req* ctx);
 
 /**@} End group matching */
@@ -150,7 +171,7 @@ lc_status lc_recv_tag(lch* mv, void* src, size_t size, int rank, int tag,
 *
 */
 LC_EXPORT
-lc_status lc_send_queue(lch* mv, const void* src, size_t size, int rank, lc_qtag tag, lc_qkey key,
+lc_status lc_send_queue(lch* mv, const void* src, size_t size, int rank, lc_info* desc,
                         lc_req* ctx);
 
 /**
@@ -164,7 +185,7 @@ lc_status lc_send_queue(lch* mv, const void* src, size_t size, int rank, lc_qtag
 *
 */
 LC_EXPORT
-lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, int rank, lc_qtag tag, lc_qkey key, lc_req* ctx);
+lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, int rank, lc_info* info, lc_req* ctx);
 
 /**
 * @brief Try to dequeue, for message send with send-queue.
@@ -178,8 +199,8 @@ lc_status lc_send_queue_p(lch* mv, struct lc_pkt* pkt, int rank, lc_qtag tag, lc
 * @return 1 if got data, 0 otherwise.
 */
 LC_EXPORT
-lc_status lc_recv_queue(lch* mv, size_t* size, int* rank, lc_qtag* tag, lc_qkey, lc_alloc_fn
-        alloc_cb, void* alloc_ctx,  lc_req* ctx);
+lc_status lc_recv_queue(lch* mv, size_t* size, int* rank, lc_qtag* meta, lc_qkey key,
+        lc_alloc_fn alloc_cb, void* alloc_ctx, lc_sync, lc_req* ctx);
 
 /**@} End queue group */
 
@@ -214,8 +235,8 @@ int lc_rma_create(lch* mv, void* buf, size_t size, lc_addr** rctx_ptr);
 * @return 1 if success, 0 otherwise.
 */
 LC_EXPORT
-lc_status lc_send_put(lch* mv, void* src, size_t size, lc_addr* dst, size_t offset,
-                lc_req* ctx);
+lc_status lc_send_put(lch* mv, void* src, size_t size, lc_addr* dst, lc_info* info,
+                      lc_req* ctx);
 
 /**
 * @brief performs an RDMA PUT to dst (created by lc_rma_create).
@@ -230,7 +251,7 @@ lc_status lc_send_put(lch* mv, void* src, size_t size, lc_addr* dst, size_t offs
 * @return 1 if success, 0 otherwise.
 */
 LC_EXPORT
-lc_status lc_send_get(lch* mv, void* src, size_t size, lc_addr* dst, size_t offset,
+lc_status lc_send_get(lch* mv, void* src, size_t size, lc_addr* dst, lc_info*,
                       lc_req* ctx);
 
 
@@ -281,6 +302,7 @@ lc_status lc_post(lc_req* ctx, void* sync)
     if (__sync_val_compare_and_swap(&ctx->sync, NULL, sync) == NULL) {
       return LC_ERR_NOP;
     } else {
+      while (ctx->type != LC_REQ_DONE); // block briefly..
       return LC_OK;
     }
   }

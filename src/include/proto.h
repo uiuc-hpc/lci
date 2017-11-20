@@ -9,7 +9,6 @@
     ctx->buffer = (void*)src; \
     ctx->size = size;         \
     ctx->rank = rank;         \
-    ctx->tag = tag;           \
     ctx->sync = 0;            \
     ctx->type = LC_REQ_PEND;  \
   }
@@ -70,7 +69,7 @@ void lc_serve_recv(lch* mv, lc_packet* p, uint8_t proto)
     p->context.proto = LC_PROTO_LONG;
     lci_put(mv, (void*) p->data.rts.src_addr, p->data.rts.size, p->context.from,
         p->data.rtr.tgt_addr, 0, p->data.rtr.rkey,
-        MAKE_SIG(LC_PROTO_TGT, p->data.rtr.comm_id), p);
+        MAKE_SIG(p->context.req->rsync, p->data.rtr.comm_id), p);
   } else if (proto & LC_PROTO_TAG) {
     p->context.proto = proto;
     const lc_key key = lc_make_key(p->context.from, p->context.tag);
@@ -80,7 +79,7 @@ void lc_serve_recv(lch* mv, lc_packet* p, uint8_t proto)
       if (proto & LC_PROTO_DATA) {
         req->size = p->context.size;
         memcpy(req->buffer, p->data.buffer, p->context.size);
-        LC_SET_REQ_DONE_AND_SIGNAL(req);
+        LC_SET_REQ_DONE_AND_SIGNAL(req->lsync, req);
         lc_pool_put(mv->pkpool, p);
       } else {
         req->size = p->data.rts.size;
@@ -107,7 +106,7 @@ void lc_serve_send(lch* mv, lc_packet* p, uint8_t proto)
   if (proto & LC_PROTO_RTR) {
     return;
   } else if (proto & LC_PROTO_LONG) {
-    LC_SET_REQ_DONE_AND_SIGNAL(p->context.req);
+    LC_SET_REQ_DONE_AND_SIGNAL(p->context.req->lsync, p->context.req);
     lc_pool_put(mv->pkpool, p);
   } else {
     if (!p->context.runtime) {
@@ -128,13 +127,11 @@ void lc_serve_imm(lch* mv, uint32_t imm)
   uint32_t type = imm & 0b11;
   uint32_t id = imm >> 2;
   uintptr_t addr = (uintptr_t)lc_heap_ptr(mv) + id;
-  if (type == LC_PROTO_TGT) {
-    lc_packet* p = (lc_packet*)addr;
-    if (p->context.req) LC_SET_REQ_DONE_AND_SIGNAL(p->context.req);
-    if (p->context.proto & LC_PROTO_RTR) {
+  lc_packet* p = (lc_packet*)addr;
+  if (p->context.req) LC_SET_REQ_DONE_AND_SIGNAL(type, p->context.req);
+  if (p->context.proto & LC_PROTO_RTR) {
       lc_server_rma_dereg(p->context.rma_mem);
       lc_pool_put(mv->pkpool, p);
-    }
   }
 }
 #endif

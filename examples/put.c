@@ -19,21 +19,22 @@ int main(int argc, char** args)
   lc_addr rma, rma_remote;
   lc_rma_init(mv, buf, MAX_MSG_SIZE, &rma);
   int rank = lc_id(mv);
+  lc_info info = {LC_SYNC_NULL, LC_SYNC_NULL, {{0}}};
 
   // Exchange the lc_addr.
   if (rank == 0) {
     lc_req s;
-    lc_send_tag(mv, &rma, sizeof(lc_addr), 1, 0, &s);
+    lc_send_tag(mv, &rma, sizeof(lc_addr), 1, &info, &s);
     lc_wait_poll(mv, &s);
 
-    lc_recv_tag(mv, &rma_remote, sizeof(lc_addr), 1, 0, &s);
+    lc_recv_tag(mv, &rma_remote, sizeof(lc_addr), 1, &info, &s);
     lc_wait_poll(mv, &s);
   } else {
     lc_req s;
-    lc_recv_tag(mv, &rma_remote, sizeof(lc_addr), 0, 0, &s);
+    lc_recv_tag(mv, &rma_remote, sizeof(lc_addr), 0, &info, &s);
     lc_wait_poll(mv, &s);
 
-    lc_send_tag(mv, &rma, sizeof(lc_addr), 0, 0, &s);
+    lc_send_tag(mv, &rma, sizeof(lc_addr), 0, &info, &s);
     lc_wait_poll(mv, &s);
   }
 
@@ -51,7 +52,7 @@ int main(int argc, char** args)
           t1 = wtime();
 
         lc_recv_put(mv, &rma, &c1);
-        lc_send_put(mv, src, size, &rma_remote, 0, &c2);
+        lc_send_put(mv, src, size, &rma_remote, &info, &c2);
 
         lc_wait_poll(mv, &c2);
         lc_wait_poll(mv, &c1);
@@ -66,7 +67,7 @@ int main(int argc, char** args)
             assert(buf[j] == 'A');
 
         lc_recv_put(mv, &rma, &c2);
-        lc_send_put(mv, src, size, &rma_remote, 0, &c1);
+        lc_send_put(mv, src, size, &rma_remote, &info, &c1);
         lc_wait_poll(mv, &c1);
       }
     }
