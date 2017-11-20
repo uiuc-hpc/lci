@@ -359,8 +359,13 @@ int lc_size(lch* mv);
 LC_EXPORT
 void lc_rma_fini(lch*mv, lc_addr* rctx);
 
-LC_EXPORT
-void lc_sync_init(lc_get_fp i, lc_wait_fp w, lc_signal_fp s, lc_yield_fp y);
+LC_INLINE
+void lc_sync_init(lc_wait_fp w, lc_signal_fp s)
+{
+  g_sync.wait = w;
+  g_sync.signal = s;
+}
+
 /**@} end control */
 
 /**@} end low-level */

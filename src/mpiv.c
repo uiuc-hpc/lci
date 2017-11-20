@@ -9,6 +9,8 @@
 
 static void* ctx_data;
 static lc_pool* lc_req_pool;
+void thread_yield();
+void* thread_self();
 
 LC_EXPORT
 lch* lc_hdl;
@@ -28,9 +30,8 @@ void MPI_Recv(void* buffer, int count, MPI_Datatype datatype,
   size *= count;
   lc_req ctx;
   while (!lc_recv_tag(lc_hdl, buffer, size, rank, tag, &ctx))
-    g_sync.yield();
-  lc_sync sync = LC_SYNC_INITIALIZER;
-  lc_wait_post(&sync, &ctx);
+    thread_yield();
+  lc_wait_post(thread_self(), &ctx);
 }
 
 void MPI_Send(void* buffer, int count, MPI_Datatype datatype,
@@ -41,9 +42,8 @@ void MPI_Send(void* buffer, int count, MPI_Datatype datatype,
   size *= count;
   lc_req ctx;
   while (!lc_send_tag(lc_hdl, buffer, size, rank, tag, &ctx))
-    g_sync.yield();
-  lc_sync sync = LC_SYNC_INITIALIZER;
-  lc_wait_post(&sync, &ctx);
+    thread_yield();
+  lc_wait_post(thread_self(), &ctx);
 }
 
 void MPI_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
@@ -53,7 +53,7 @@ void MPI_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
   size *= count;
   lc_req *ctx = (lc_req*) lc_pool_get(lc_req_pool);
   while (!lc_send_tag(lc_hdl, buf, size, rank, tag, ctx))
-    g_sync.yield();
+    thread_yield();
   if (ctx->type != LC_REQ_DONE) {
     *req = (MPI_Request) ctx;
   } else {
@@ -69,10 +69,11 @@ void MPI_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
   size *= count;
   lc_req *ctx = (lc_req*) lc_pool_get(lc_req_pool);
   while (!lc_recv_tag(lc_hdl, (void*) buffer, size, rank, tag, ctx))
-    g_sync.yield();
+    thread_yield();
   *req = (MPI_Request) ctx;
 }
 
+#if 0
 void MPI_Waitall(int count, MPI_Request* req, MPI_Status* status __UNUSED__) {
   int pending = count;
   for (int i = 0; i < count; i++) {
@@ -100,6 +101,7 @@ void MPI_Waitall(int count, MPI_Request* req, MPI_Status* status __UNUSED__) {
     }
   }
 }
+#endif
 
 volatile int lc_thread_stop;
 static pthread_t progress_thread;
@@ -120,7 +122,7 @@ static void* progress(void* arg __UNUSED__)
 void MPI_Init(int* argc __UNUSED__, char*** args __UNUSED__)
 {
   // setenv("LC_MPI", "1", 1);
-  lc_open(&lc_hdl);
+  lc_open(&lc_hdl, 0);
   posix_memalign((void**) &ctx_data, 64, sizeof(lc_req) * 1024);
   lc_pool_create(&lc_req_pool);
   lc_req* ctxs = (lc_req*) ctx_data;

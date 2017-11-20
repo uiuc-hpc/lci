@@ -12,7 +12,7 @@ __thread struct tls_t tlself;
 
 extern lch* lc_hdl;
 
-void* thread_get() { return tlself.thread; }
+void* thread_self() { return tlself.thread; }
 void thread_yield() { fthread_yield(tlself.thread); }
 
 void thread_wait(void* thread, volatile int* flag)
@@ -31,7 +31,7 @@ typedef struct fworker* lc_worker;
 
 void MPI_Start_worker(int number)
 {
-  lc_sync_init(thread_get, thread_wait, thread_signal, thread_yield);
+  lc_sync_init(thread_wait, thread_signal);
   if (nworker == 0) {
     all_worker = (fworker**)malloc(sizeof(struct fworker*) * number);
   }

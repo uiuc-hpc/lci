@@ -36,7 +36,7 @@ int main(int argc, char** args)
       for (int i = 0; i < skip + total; i++) {
         if (i == skip) t1 = wtime();
         for (int j = 0; j < WINDOWS; j++)  {
-          lc_send_queue(mv, buffer, len, 1, 0, 0, &ctx);
+          lc_send_queue(mv, buffer, len, 1, i, 0, &ctx);
           lc_wait_poll(mv, &ctx);
         }
         int rank; lc_qtag tag; size_t size;
@@ -53,6 +53,9 @@ int main(int argc, char** args)
         for (int j = 0; j < WINDOWS; j++) {
           while (!lc_recv_queue(mv, &size, &rank, &tag, 0, NULL, rx_buffer, &ctx)) {
             lc_progress(mv);
+          }
+          if (tag != i) {
+              printf("%d (expect %d)\n", tag, i);
           }
           lc_wait_poll(mv, &ctx);
         }

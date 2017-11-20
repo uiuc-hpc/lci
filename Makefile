@@ -65,7 +65,7 @@ JFCONTEXT = include/ult/fult/jump_x86_64_sysv_elf_gas.S
 MFCONTEXT = include/ult/fult/make_x86_64_sysv_elf_gas.S
 FCONTEXT = mfcontext.o jfcontext.o
 
-COMM = lc.o thread.o queue.o tag.o hashtable.o pool.o lcrq.o coll.o
+COMM = lc.o queue.o tag.o hashtable.o pool.o lcrq.o coll.o
 DREG = dreg/dreg.o dreg/avl.o
 PMI = pmi/simple_pmi.o pmi/simple_pmiutil.o
 
