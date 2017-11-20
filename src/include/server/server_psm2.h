@@ -4,13 +4,14 @@
 #include <psm2.h>    /* required for core PSM2 functions */
 #include <psm2_mq.h> /* required for PSM2 MQ functions (send, recv, etc) */
 #include <psm2_am.h>
+
 #include <stdlib.h>
 #include <string.h>
 
 #include "config.h"
 #include "pmi.h"
+#include "lc/dequeue.h"
 #include "lc/macro.h"
-#include "dreg/dreg.h"
 
 #ifdef WITH_MPI
 #include <mpi.h>
@@ -91,7 +92,7 @@ typedef struct psm_server {
   void* heap;
   uint32_t heap_rkey;
   int recv_posted;
-  lcrq_t free_mr;
+  struct dequeue free_mr;
   lch* mv;
   int with_mpi;
 } psm_server __attribute__((aligned(64)));
@@ -168,7 +169,7 @@ LC_INLINE int _real_psm_free(uintptr_t mem)
     psm2_mq_wait2(&mr->req, NULL);
     free(mr);
   } else {
-    lcrq_enqueue(&(mr->server->free_mr), (void*)mr);
+    dq_push_top(&(mr->server->free_mr), (void*)mr);
   }
   return 1;
 }
@@ -290,7 +291,7 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   /* Setup mq for comm */
   PSM_SAFECALL(psm2_mq_init(s->myep, PSM2_MQ_ORDERMASK_ALL, NULL, 0, &s->mq));
 
-  lcrq_init(&s->free_mr);
+  dq_init(&s->free_mr);
 
   post_control_msg(s);
 
@@ -366,13 +367,13 @@ LC_INLINE int psm_progress(psm_server* s)
     psm_post_recv(s, lc_pool_get_nb(s->mv->pkpool));
 
   // Cleanup stuffs when nothing to do, this improves the reg/dereg a bit.
-  struct psm_mr* mr = (struct psm_mr*)lcrq_dequeue(&(s->free_mr));
+  struct psm_mr* mr = (struct psm_mr*)dq_pop_bot(&(s->free_mr));
   if (unlikely(mr)) {
     if (psm2_mq_cancel(&mr->req) == PSM2_OK) {
       psm2_mq_wait2(&mr->req, NULL);
       free(mr);
     } else {
-      lcrq_enqueue(&(s->free_mr), (void*)mr);
+      dq_push_top(&(s->free_mr), (void*)mr);
     }
   }
 

@@ -39,7 +39,8 @@ void lc_open(lch** ret, int num_qs)
 
   for (unsigned i = 0; i < MAX_PACKET; i++) {
     lc_packet* p = (lc_packet*) (base_packet + i * LC_PACKET_SIZE);
-    p->context.poolid = 0;
+    p->context.poolid  = 0;
+    p->context.runtime = 0;
     lc_pool_put(mv->pkpool, p);
   }
 

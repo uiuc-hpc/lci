@@ -79,7 +79,7 @@ void lc_serve_recv(lch* mv, lc_packet* p, uint8_t proto)
       lc_req* req = (lc_req*) value;
       if (proto & LC_PROTO_DATA) {
         req->size = p->context.size;
-        memcpy(req->buffer, p->data.buffer, req->size);
+        memcpy(req->buffer, p->data.buffer, p->context.size);
         LC_SET_REQ_DONE_AND_SIGNAL(req);
         lc_pool_put(mv->pkpool, p);
       } else {
@@ -110,7 +110,7 @@ void lc_serve_send(lch* mv, lc_packet* p, uint8_t proto)
     LC_SET_REQ_DONE_AND_SIGNAL(p->context.req);
     lc_pool_put(mv->pkpool, p);
   } else {
-    if (p->context.runtime) {
+    if (!p->context.runtime) {
       if (p->context.poolid)
         lc_pool_put_to(mv->pkpool, p, p->context.poolid);
       else

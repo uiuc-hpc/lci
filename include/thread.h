@@ -10,13 +10,6 @@
 
 #define LC_SYNC_INITIALIZER {0, -1}
 
-struct lc_sync {
-  void* queue;
-  int count;
-};
-
-typedef struct lc_sync lc_sync;
-
 typedef void* (*lc_get_fp)();
 typedef void (*lc_signal_fp)(void*);
 typedef void (*lc_wait_fp)(void*, volatile int*);
@@ -43,17 +36,14 @@ LC_INLINE int lc_worker_id()
   return lc_core_id;
 }
 
-LC_INLINE void lc_sync_wait(lc_sync* sync, volatile int* flag)
+LC_INLINE void lc_sync_wait(void* sync, volatile int* flag)
 {
-  g_sync.wait(sync->queue, flag);
+  g_sync.wait(sync, flag);
 }
 
-LC_INLINE void lc_sync_signal(lc_sync* sync)
+LC_INLINE void lc_sync_signal(void* sync)
 {
-  if (sync->count < 0 || __sync_sub_and_fetch(&sync->count, 1) == 0) {
-    if (sync->queue)
-      g_sync.signal(sync->queue);
-  }
+  g_sync.signal(sync);
 }
 
 #endif

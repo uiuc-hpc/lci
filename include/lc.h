@@ -53,7 +53,7 @@ struct lc_ctx {
     volatile enum lc_req_state type;
     volatile int int_type;
   };
-  lc_sync* sync;
+  void* sync;
   lc_packet* packet;
 } __attribute__((aligned(64)));
 
@@ -273,7 +273,7 @@ LC_EXPORT
 void lc_close(lch* handle);
 
 LC_INLINE
-lc_status lc_post(lc_req* ctx, lc_sync* sync)
+lc_status lc_post(lc_req* ctx, void* sync)
 {
   if (ctx->type == LC_REQ_DONE) {
     return LC_OK;
@@ -309,12 +309,8 @@ void lc_wait(lc_req* ctx)
 * @return
 */
 LC_INLINE
-void lc_wait_post(lc_sync* sync, lc_req* ctx)
+void lc_wait_post(void* sync, lc_req* ctx)
 {
-  // Need to attach the thread to the queue
-  // before adding to the request.
-  sync->queue = g_sync.get();
-
   if (lc_post(ctx, sync) == LC_ERR_NOP) {
     lc_sync_wait(ctx->sync, &(ctx->int_type));
   }

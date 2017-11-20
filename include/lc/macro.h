@@ -23,8 +23,7 @@
 
 #define LC_POOL_GET_OR_RETN(p, x)     \
   lc_packet* x = lc_pool_get_nb((p)); \
-  if (x == NULL) return LC_ERR_NOP;   \
-  x->context.runtime = 1;
+  if (x == NULL) return LC_ERR_NOP;   
 
 #define MODE_THREAD
 #ifndef MODE_THREAD
@@ -36,7 +35,7 @@
 
 #define LC_SET_REQ_DONE_AND_SIGNAL(r)                                  \
   {                                                                    \
-    lc_sync* sync = (r)->sync;                                         \
+    void* sync = (r)->sync;                                         \
     if (sync == NULL)                                                  \
       sync = __sync_val_compare_and_swap(&(r)->sync, NULL, (void*)-1); \
     (r)->type = LC_REQ_DONE;                                           \
