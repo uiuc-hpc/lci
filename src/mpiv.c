@@ -54,7 +54,7 @@ void MPI_Isend(const void* buf, int count, MPI_Datatype datatype, int rank,
   MPI_Type_size(datatype, &size);
   size *= count;
   lc_req *ctx = (lc_req*) lc_pool_get(lc_req_pool);
-  lc_info info = {LC_SYNC_WAKE, LC_SYNC_WAKE, {.tag = tag}};
+  lc_info info = {LC_SYNC_CNTR, LC_SYNC_CNTR, {.tag = tag}};
   while (!lc_send_tag(lc_hdl, buf, size, rank, &info, ctx))
     thread_yield();
   if (ctx->type != LC_REQ_DONE) {
@@ -71,26 +71,26 @@ void MPI_Irecv(void* buffer, int count, MPI_Datatype datatype, int rank,
   MPI_Type_size(datatype, &size);
   size *= count;
   lc_req *ctx = (lc_req*) lc_pool_get(lc_req_pool);
-  lc_info info = {LC_SYNC_WAKE, LC_SYNC_WAKE, {.tag = tag}};
+  lc_info info = {LC_SYNC_CNTR, LC_SYNC_CNTR, {.tag = tag}};
   while (!lc_recv_tag(lc_hdl, (void*) buffer, size, rank, &info, ctx))
     thread_yield();
   *req = (MPI_Request) ctx;
 }
 
-#if 0
+#if 1
 void MPI_Waitall(int count, MPI_Request* req, MPI_Status* status __UNUSED__) {
   int pending = count;
   for (int i = 0; i < count; i++) {
     if (req[i] == MPI_REQUEST_NULL)
       pending--;
   }
-  lc_sync sync = {0, pending};
+  struct lc_cntr cntr = {thread_self(), pending};
 
   for (int i = 0; i < count; i++) {
     if (req[i] != MPI_REQUEST_NULL) {
       lc_req* ctx = (lc_req *) req[i];
-      if (lc_post(ctx, &sync) == LC_OK) {
-        __sync_fetch_and_sub(&sync.count, 1);
+      if (lc_post(ctx, &cntr) == LC_OK) {
+        __sync_fetch_and_sub(&cntr.count, 1);
         lc_pool_put(lc_req_pool, ctx);
         req[i] = MPI_REQUEST_NULL;
       }
@@ -99,7 +99,7 @@ void MPI_Waitall(int count, MPI_Request* req, MPI_Status* status __UNUSED__) {
   for (int i = 0; i < count; i++) {
     if (req[i] != MPI_REQUEST_NULL) {
       lc_req* ctx = (lc_req*) req[i];
-      lc_sync_wait(&sync, &ctx->int_type);
+      lc_sync_wait(cntr.sync, &ctx->int_type);
       lc_pool_put(lc_req_pool, ctx);
       req[i] = MPI_REQUEST_NULL;
     }

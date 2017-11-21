@@ -36,7 +36,13 @@ typedef int16_t lc_qtag;
 typedef enum lc_sync {
   LC_SYNC_NULL = 0,
   LC_SYNC_WAKE,
+  LC_SYNC_CNTR,
 } lc_sync;
+
+typedef struct lc_cntr {
+  void* sync;
+  int count;
+} lc_cntr;
 
 typedef struct lc_info {
   lc_sync lsync;

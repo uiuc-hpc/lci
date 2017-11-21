@@ -31,7 +31,13 @@
     if (t && sync == NULL)                                             \
       sync = __sync_val_compare_and_swap(&(r)->sync, NULL, LC_REQ_DONE);\
     (r)->type = LC_REQ_DONE;                                           \
-    if (t && sync) lc_sync_signal(sync);                               \
+    if (t && sync) {\
+      if (t == LC_SYNC_WAKE) lc_sync_signal(sync);             \
+      else if (t == LC_SYNC_CNTR) {\
+        if (__sync_fetch_and_sub(&((lc_cntr*) sync)->count, 1) - 1 == 0) \
+          lc_sync_signal(((lc_cntr*)sync)->sync);\
+      }\
+    }\
   }
 
 #endif

@@ -27,6 +27,10 @@ pingpong: pingpong.c
 	$(CC) $(CFLAGS) -c $^
 	$(LD) $(LDFLAGS) $@.o $(LIB_MPIV) -o $@
 
+pingpong_waitall: pingpong_waitall.c
+	$(CC) $(CFLAGS) -c $^
+	$(LD) $(LDFLAGS) $@.o $(LIB_MPIV) -o $@
+
 %_abt: %.c
 	$(CC) $(CFLAGS) -c $^ -DUSE_ABT
 	$(LD) $(LDFLAGS) $*.o $(LIB_MPIV) -o $@
