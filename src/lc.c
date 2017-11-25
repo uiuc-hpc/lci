@@ -6,6 +6,8 @@
 
 lc_sync_fp g_sync;
 size_t server_max_inline;
+int server_deadlock_alert = 0;
+
 __thread int lc_core_id = -1;
 
 void* lc_heap_ptr(lch* mv)
@@ -30,7 +32,7 @@ void lc_open(lch** ret, int num_qs)
     lcrq_init(&mv->queue[i]);
 #endif
   }
-
+  
   // Prepare the list of packet.
   lc_server_init(mv, MAX_PACKET * LC_PACKET_SIZE * 2, &mv->server);
 

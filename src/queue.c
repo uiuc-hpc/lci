@@ -70,15 +70,14 @@ lc_status lc_recv_queue(lch* mv, size_t* size, int* rank, lc_qtag* tag, lc_qtag 
     memcpy(buf, p->data.buffer, _size);
     lc_pool_put(mv->pkpool, p);
     ctx->type = LC_REQ_DONE;
-    *size = _size;
   } else {
     ctx->lsync = rsync;
+    ctx->type = LC_REQ_PEND;
     int rank = p->context.from;
     lci_rdz_prepare(mv, buf, _size, ctx, p);
     lci_send(mv, &p->data, sizeof(struct packet_rtr),
              rank, 0, LC_PROTO_RTR, p);
-    ctx->type = LC_REQ_PEND;
-    *size = _size;
   }
+  *size = _size;
   return LC_OK;
 }

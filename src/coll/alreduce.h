@@ -32,21 +32,18 @@ int ompi_coll_base_allreduce_intra_recursivedoubling(
 
   /* Special case for size == 1 */
   if (1 == size) {
-    memcpy(rbuf, sbuf, count);
+    memmove(rbuf, sbuf, count);
     return 0;
   }
 
   /* Allocate and initialize temporary send buffer */
   inplacebuf_free = (char*) malloc(count);
-  if (!inplacebuf_free)
-    fprintf(stderr, "%d> Unable to allocate ??? %ld\n", rank, count);
-  assert(inplacebuf_free);
   inplacebuf = inplacebuf_free - gap;
 
   if (LC_COL_IN_PLACE == sbuf) {
-    memcpy(inplacebuf, (char*)rbuf, count);
+    memmove(inplacebuf, (char*)rbuf, count);
   } else {
-    memcpy(inplacebuf, (char*)sbuf, count);
+    memmove(inplacebuf, (char*)sbuf, count);
   }
 
   tmpsend = (char*) inplacebuf;
@@ -134,7 +131,7 @@ int ompi_coll_base_allreduce_intra_recursivedoubling(
 
   /* Ensure that the final result is in rbuf */
   if (tmpsend != rbuf) {
-    memcpy((char*)rbuf, tmpsend, count);
+    memmove((char*)rbuf, tmpsend, count);
   }
 
   if (NULL != inplacebuf_free) free(inplacebuf_free);

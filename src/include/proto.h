@@ -65,11 +65,12 @@ LC_INLINE
 void lc_serve_recv(lch* mv, lc_packet* p, uint8_t proto)
 {
   if (proto & LC_PROTO_RTR) {
-    p->context.req = (lc_req*) p->data.rtr.req;
+    lc_req *req = (lc_req*) p->data.rts.req;
+    p->context.req = req;
     p->context.proto = LC_PROTO_LONG;
     lci_put(mv, (void*) p->data.rts.src_addr, p->data.rts.size, p->context.from,
         p->data.rtr.tgt_addr, 0, p->data.rtr.rkey,
-        MAKE_SIG(p->context.req->rsync, p->data.rtr.comm_id), p);
+        MAKE_SIG(req->rsync, p->data.rtr.comm_id), p);
   } else if (proto & LC_PROTO_TAG) {
     p->context.proto = proto;
     const lc_key key = lc_make_key(p->context.from, p->context.tag);
@@ -124,7 +125,8 @@ void lc_serve_imm(lch* mv, uint32_t imm)
   // FIXME(danghvu): This comm_id is here due to the imm
   // only takes uint32_t, if this takes uint64_t we can
   // store a pointer to this request context.
-  uint32_t type = imm & 0b11;
+  uint32_t type = imm & 0b0011;
+  assert(type == 0);
   uint32_t id = imm >> 2;
   uintptr_t addr = (uintptr_t)lc_heap_ptr(mv) + id;
   lc_packet* p = (lc_packet*)addr;

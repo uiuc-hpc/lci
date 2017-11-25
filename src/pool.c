@@ -51,11 +51,7 @@ void lc_pool_destroy(struct lc_pool* pool) {
 void lc_pool_put(struct lc_pool* pool, void* elm) {
   int32_t pid = lc_pool_get_local(pool);
   struct dequeue* lpool = pool->lpools[pid];
-  if (lpool->cache == NULL) {
-    lpool->cache = elm;
-  } else {
-    dq_push_top(lpool, elm);
-  }
+  dq_push_top(lpool, elm);
 }
 
 void lc_pool_put_to(struct lc_pool* pool, void* elm, int32_t pid) {
@@ -67,14 +63,9 @@ void* lc_pool_get(struct lc_pool* pool) {
   int32_t pid = lc_pool_get_local(pool);
   struct dequeue* lpool = pool->lpools[pid];
   void *elm = NULL;
-  if (lpool->cache != NULL) {
-    elm = lpool->cache;
-    lpool->cache = NULL;
-  } else {
-    elm = dq_pop_top(lpool);
-    if (elm == NULL)
-      elm = lc_pool_get_slow(pool);
-  }
+  elm = dq_pop_top(lpool);
+  if (elm == NULL)
+    elm = lc_pool_get_slow(pool);
   return elm;
 }
 
@@ -82,16 +73,11 @@ void* lc_pool_get_nb(struct lc_pool* pool) {
   int32_t pid = lc_pool_get_local(pool);
   struct dequeue* lpool = pool->lpools[pid];
   void* elm = NULL;
-  if (lpool->cache != NULL) {
-    elm = lpool->cache;
-    lpool->cache = NULL;
-  } else {
-    elm = dq_pop_top(lpool);
-    if (elm == NULL) {
-      int steal = rand() % (pool->npools);
-      if (likely(pool->lpools[steal] != NULL))
-        elm = dq_pop_bot(pool->lpools[steal]);
-    }
+  elm = dq_pop_top(lpool);
+  if (elm == NULL) {
+    int steal = rand() % (pool->npools);
+    if (likely(pool->lpools[steal] != NULL))
+      elm = dq_pop_bot(pool->lpools[steal]);
   }
   return elm;
 }

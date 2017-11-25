@@ -78,11 +78,11 @@ struct lc_ctx {
     volatile enum lc_req_state type;
     volatile int int_type;
   };
-  lc_sync lsync;
-  lc_sync rsync;
   void* sync;
   lc_packet* packet;
-} __attribute__((aligned(64)));
+  lc_sync lsync;
+  lc_sync rsync;
+}; // __attribute__((aligned(64)));
 
 struct lc_rma_ctx {
   uint64_t addr;
@@ -306,6 +306,7 @@ lc_status lc_post(lc_req* ctx, void* sync)
     return LC_OK;
   } else {
     if (__sync_val_compare_and_swap(&ctx->sync, NULL, sync) == NULL) {
+      lc_mem_fence();
       return LC_ERR_NOP;
     } else {
       while (ctx->type != LC_REQ_DONE); // block briefly..

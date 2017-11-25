@@ -94,7 +94,6 @@ typedef struct psm_server {
   int recv_posted;
   struct dequeue free_mr;
   lch* mv;
-  int with_mpi;
 } psm_server __attribute__((aligned(64)));
 
 static psm2_mq_tag_t tagsel = {.tag0 = 0x00000000, .tag1 = 0x00000000, .tag2 = 0xFFFFFFFF};
@@ -151,11 +150,13 @@ LC_INLINE void post_control_msg(psm_server *s)
 LC_INLINE uintptr_t _real_psm_reg(psm_server* s, void* buf, size_t size)
 {
   struct psm_mr* mr = (struct psm_mr*)malloc(sizeof(struct psm_mr));
+  assert(mr && "no more memory");
   mr->server = s;
   mr->addr = (uintptr_t)buf;
   mr->size = size;
   do {
     mr->rkey = (__sync_fetch_and_add(&next_key, 2)) & 0x00ffffff;
+    if (mr->rkey == 0) printf("WARNING: wrap over rkey\n");
   } while (mr->rkey < 2);
   // assert(mr->rkey > 2 && "overflow rkey");
   prepare_rdma(s, mr);
@@ -165,12 +166,15 @@ LC_INLINE uintptr_t _real_psm_reg(psm_server* s, void* buf, size_t size)
 LC_INLINE int _real_psm_free(uintptr_t mem)
 {
   struct psm_mr* mr = (struct psm_mr*)mem;
+  free(mr);
+#if 0
   if (psm2_mq_cancel(&mr->req) == PSM2_OK) {
     psm2_mq_wait2(&mr->req, NULL);
     free(mr);
   } else {
-    dq_push_top(&(mr->server->free_mr), (void*)mr);
+    free(mr);
   }
+#endif
   return 1;
 }
 
@@ -310,7 +314,6 @@ LC_INLINE int psm_progress(psm_server* s)
   psm2_mq_req_t req;
   psm2_mq_status2_t status;
   psm2_error_t err;
-
   err = psm2_mq_ipeek2(s->mq, &req, NULL);
   if (err == PSM2_OK) {
     err = psm2_mq_test2(&req, &status);  // we need the status
@@ -349,14 +352,13 @@ LC_INLINE int psm_progress(psm_server* s)
         } else {
           post_control_msg(s);
         }
-      } else {  // else if (ctx & PSM_RDMA) { // recv rdma.
+      } else if (ctx & PSM_RDMA) { // recv rdma.
         struct psm_mr* mr = (struct psm_mr*)(ctx ^ PSM_RDMA);
         uint32_t imm = status.msg_tag.tag0;
-        if (mr != &(s->reg_mr))
-          prepare_rdma(s, mr);
-        else
-          post_control_msg(s);
+        if (mr == &s->reg_mr) post_control_msg(s);
         if (imm) lc_serve_imm(s->mv, imm);
+      } else {
+        assert(0 && "Invalid data\n");
       }
     }
   } else {
@@ -366,6 +368,7 @@ LC_INLINE int psm_progress(psm_server* s)
   if (s->recv_posted < MAX_RECV)
     psm_post_recv(s, lc_pool_get_nb(s->mv->pkpool));
 
+#if 0
   // Cleanup stuffs when nothing to do, this improves the reg/dereg a bit.
   struct psm_mr* mr = (struct psm_mr*)dq_pop_bot(&(s->free_mr));
   if (unlikely(mr)) {
@@ -373,20 +376,23 @@ LC_INLINE int psm_progress(psm_server* s)
       psm2_mq_wait2(&mr->req, NULL);
       free(mr);
     } else {
-      dq_push_top(&(s->free_mr), (void*)mr);
+      free(mr);
     }
   }
-
-#ifdef LC_SERVER_DEBUG
-  static uint32_t count = 0;
-  if (s->recv_posted == 0 && ++count == 0) fprintf(stderr, "WARNING DEADLOCK\n");
 #endif
+
   return (err == PSM2_OK);
 }
 
 LC_INLINE void psm_post_recv(psm_server* s, lc_packet* p)
 {
-  if (p == NULL) return;
+  if (p == NULL)  {
+    if (s->recv_posted == 0 && !server_deadlock_alert) {
+      server_deadlock_alert = 1;
+      printf("WARNING-LC: deadlock alert\n");
+    }
+    return;
+  }
   psm2_mq_tag_t rtag;
   rtag.tag0 = 0x0;
   rtag.tag1 = 0x0;
@@ -398,7 +404,9 @@ LC_INLINE void psm_post_recv(psm_server* s, lc_packet* p)
       0,                              /* no flags */
       &p->data, POST_MSG_SIZE, (void*)(PSM_RECV | (uintptr_t)&p->context),
       (psm2_mq_req_t*)p));
-  s->recv_posted++;
+
+  if (++s->recv_posted == MAX_RECV && server_deadlock_alert)
+    server_deadlock_alert = 0;
 }
 
 LC_INLINE int psm_write_send(psm_server* s, int rank, void* ubuf, size_t size,
@@ -409,11 +417,14 @@ LC_INLINE int psm_write_send(psm_server* s, int rank, void* ubuf, size_t size,
   rtag.tag1 = s->mv->me;
   rtag.tag2 = 0x0;
 
+#ifdef LC_SERVER_INLINE
   if (size < 1024) {
     PSM_SAFECALL(psm2_mq_send2(s->mq, s->epaddr[rank], 0, &rtag, ubuf, size));
     lc_serve_send(s->mv, ctx, GET_PROTO(proto));
     return 1;
-  } else {
+  } else
+#endif
+  {
     if (ubuf != ctx->data.buffer) memcpy(ctx->data.buffer, ubuf, size);
     ctx->context.proto = GET_PROTO(proto);
     PSM_SAFECALL(psm2_mq_isend2(s->mq, s->epaddr[rank], 0, /* no flags */
@@ -473,6 +484,7 @@ LC_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
 
 LC_INLINE void psm_finalize(psm_server* s)
 {
+  free(s->heap);
   free(s);
 }
 
