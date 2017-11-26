@@ -143,3 +143,8 @@ void MPI_Finalize()
   free(ctx_data);
   lc_close(lc_hdl);
 }
+
+void MPI_Barrier(MPI_Comm mv)
+{
+  lc_barrier(mv);
+}

@@ -126,7 +126,6 @@ void lc_serve_imm(lch* mv, uint32_t imm)
   // only takes uint32_t, if this takes uint64_t we can
   // store a pointer to this request context.
   uint32_t type = imm & 0b0011;
-  assert(type == 0);
   uint32_t id = imm >> 2;
   uintptr_t addr = (uintptr_t)lc_heap_ptr(mv) + id;
   lc_packet* p = (lc_packet*)addr;

@@ -19,7 +19,7 @@
     int err = (x);                                                    \
     if (err) {                                                        \
       fprintf(stderr, "err : %d (%s:%d)\n", err, __FILE__, __LINE__); \
-      exit(EXIT_FAILURE)                                              \
+      exit(EXIT_FAILURE);                                             \
     }                                                                 \
   }                                                                   \
   while (0)                                                           \
@@ -234,8 +234,13 @@ LC_INLINE uint32_t ibv_rma_lkey(uintptr_t mem)
 
 LC_INLINE void ibv_server_post_recv(ibv_server* s, lc_packet* p)
 {
-  if (p == NULL) return;
-  s->recv_posted++;
+  if (p == NULL) {
+    if (s->recv_posted < MAX_RECV / 2 && !server_deadlock_alert) {
+      server_deadlock_alert = 1;
+      printf("WARNING-LC: deadlock alert\n");
+    }
+    return;
+  }
 
   struct ibv_sge sg = {
       .addr = (uintptr_t)(&p->data),
@@ -252,6 +257,9 @@ LC_INLINE void ibv_server_post_recv(ibv_server* s, lc_packet* p)
 
   struct ibv_recv_wr* bad_wr = 0;
   IBV_SAFECALL(ibv_post_srq_recv(s->dev_srq, &wr, &bad_wr));
+
+  if (++s->recv_posted == MAX_RECV && server_deadlock_alert)
+    server_deadlock_alert = 0;
 }
 
 LC_INLINE int ibv_progress_recv_once(ibv_server* s)
