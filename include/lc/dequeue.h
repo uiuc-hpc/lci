@@ -46,7 +46,7 @@ LC_INLINE void dq_push_top(struct dequeue* deq, void* p)
   lc_spin_lock(&deq->spinlock);
   deq->container[deq->top] = p;
   deq->top = (deq->top + 1) & (MAX_SIZE - 1);
-  if (deq->top == deq->bot) {
+  if (unlikely(deq->top == deq->bot)) {
     fprintf(stderr, "pool overflow\n");
     exit(EXIT_FAILURE);
   }

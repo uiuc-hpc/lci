@@ -15,7 +15,7 @@
 #include "helper_fult.h"
 #endif
 
-#define CHECK_RESULT 1
+#define CHECK_RESULT 0
 
 #define MIN_MSG_SIZE 1
 #define MAX_MSG_SIZE (1 << 22)

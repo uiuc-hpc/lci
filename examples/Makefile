@@ -1,4 +1,5 @@
 include ../config.mk
+FULT=$(WORK)/fult
 
 CC = gcc
 LD = $(CC)
@@ -24,8 +25,8 @@ all: $(TARGET)
 	$(LD) $(LDFLAGS) $@.o $(LIB) -o $@
 
 pingpong: pingpong.c
-	$(CC) $(CFLAGS) -c $^
-	$(LD) $(LDFLAGS) $@.o $(LIB_MPIV) -o $@
+	$(CC) $(CFLAGS) -c $^ -I$(FULT)/include
+	$(LD) $(LDFLAGS) $@.o $(LIB_MPIV) -o $@ $(FULT)/libfult.a
 
 pingpong_waitall: pingpong_waitall.c
 	$(CC) $(CFLAGS) -c $^

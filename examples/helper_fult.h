@@ -3,12 +3,11 @@
 
 #include "lc.h"
 
-#include "ult/fult/fult.h"
+#include "fult.h"
 #include "thread.h"
 
 static fworker** all_worker = 0;
 static int nworker = 0;
-__thread struct tls_t tlself;
 
 extern lch* lc_hdl;
 

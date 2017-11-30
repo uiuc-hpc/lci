@@ -60,11 +60,6 @@ ifeq ($(LC_SERVER), psm)
 	CFLAGS += -DLC_USE_SERVER_PSM -DAFF_DEBUG -I$(PSM_DIR)/include
 endif
 
-
-JFCONTEXT = include/ult/fult/jump_x86_64_sysv_elf_gas.S
-MFCONTEXT = include/ult/fult/make_x86_64_sysv_elf_gas.S
-FCONTEXT = mfcontext.o jfcontext.o
-
 COMM = lc.o rma.o queue.o tag.o hashtable.o pool.o lcrq.o coll.o
 DREG = dreg/dreg.o dreg/avl.o
 PMI = pmi/simple_pmi.o pmi/simple_pmiutil.o
@@ -81,7 +76,7 @@ LIBOBJ += $(OBJECTS) $(addprefix $(OBJDIR)/, $(FCONTEXT)) $(addprefix $(OBJDIR)/
 LIBRARY = liblwci.so
 ARCHIVE = liblwci.a
 
-all: $(LIBRARY) $(ARCHIVE) libfult.so
+all: $(LIBRARY) $(ARCHIVE)
 
 install: all
 	mkdir -p $(PREFIX)/lib
@@ -96,20 +91,10 @@ $(OBJDIR)/%.o: $(SRCDIR)/$(notdir %.c)
 $(LIBRARY): $(LIBOBJ)
 	$(CC) $(LDFLAGS) $(LIBOBJ) $(MALLOC) -o $(LIBRARY)
 
-
 $(ARCHIVE): $(LIBOBJ)
 	@rm -f $(ARCHIVE)
 	$(AR) q $(ARCHIVE) $(LIBOBJ) $(MALLOC)
 	$(RANLIB) $(ARCHIVE)
-
-$(OBJDIR)/jfcontext.o: $(JFCONTEXT)
-	$(CC) -O3 -c $(JFCONTEXT) -o $(OBJDIR)/jfcontext.o
-
-$(OBJDIR)/mfcontext.o: $(MFCONTEXT)
-	$(CC) -O3 -c $(MFCONTEXT) -o $(OBJDIR)/mfcontext.o
-
-libfult.so: $(addprefix $(OBJDIR)/, $(FCONTEXT))
-	$(CC) $(LDFLAGS) $^ -o $@
 
 mpiv.a: obj/mpiv.o
 	$(AR) q mpiv.a obj/mpiv.o $(LIBOBJ)
