@@ -387,7 +387,7 @@ LC_INLINE int psm_progress(psm_server* s)
 LC_INLINE void psm_post_recv(psm_server* s, lc_packet* p)
 {
   if (p == NULL)  {
-    if (s->recv_posted == 0 && !server_deadlock_alert) {
+    if (s->recv_posted == MAX_RECV / 2 && !server_deadlock_alert) {
       server_deadlock_alert = 1;
       printf("WARNING-LC: deadlock alert\n");
     }
