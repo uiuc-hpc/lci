@@ -293,7 +293,7 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   pthread_join(startup_thread, NULL);
 
   /* Setup mq for comm */
-  PSM_SAFECALL(psm2_mq_init(s->myep, PSM2_MQ_ORDERMASK_ALL, NULL, 0, &s->mq));
+  PSM_SAFECALL(psm2_mq_init(s->myep, PSM2_MQ_ORDERMASK_NONE, NULL, 0, &s->mq));
 
   dq_init(&s->free_mr);
 
@@ -328,7 +328,6 @@ LC_INLINE int psm_progress(psm_server* s)
         lc_serve_recv(s->mv, p, GET_PROTO(proto));
         s->recv_posted--;
       } else if (ctx & PSM_RECV_CTRL) {
-        assert(0 && "invalid ctx");
         if (s->ctrl_msg.type == REQ_TO_REG) {
           s->reg_mr.addr = s->ctrl_msg.addr;
           s->reg_mr.size = s->ctrl_msg.size;
@@ -447,10 +446,16 @@ LC_INLINE void psm_get(psm_server* s, int rank, void* buf,
                        uintptr_t addr, size_t offset, uint32_t rkey __UNUSED__, size_t size,
                        uint32_t sid, lc_packet* ctx __UNUSED__) // FIXME
 {
+  psm2_mq_tag_t rtag;
+  rtag.tag0 = sid;
+  rtag.tag1 = 0;
+  rtag.tag2 = PSM_CTRL_MSG;
+
   struct psm_mr* mr = (struct psm_mr*)  psm_rma_reg(s, buf, size);
   struct psm_ctrl_msg msg = {REQ_TO_PUT, s->mv->me, addr + offset, size, mr->rkey, sid};
-  PSM_SAFECALL(psm2_mq_send(s->mq, s->epaddr[rank], 0,    /* no flags */
-               PSM_CTRL_MSG, /* tag */
+
+  PSM_SAFECALL(psm2_mq_send2(s->mq, s->epaddr[rank], 0,    /* no flags */
+               &rtag, /* tag */
                &msg, sizeof(struct psm_ctrl_msg)));
 }
 
@@ -463,23 +468,17 @@ LC_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
   rtag.tag1 = 0;
   rtag.tag2 = rkey;
 
-  if (offset == 0) {
-    PSM_SAFECALL(psm2_mq_isend2(s->mq, s->epaddr[rank], 0,    /* no flags */
-                                &rtag,
-                                buf, size, (void*)(PSM_SEND | (uintptr_t)ctx),
-                                (psm2_mq_req_t*)ctx));
-  } else {
-    struct psm_ctrl_msg mr_req = {REQ_TO_REG, s->mv->me, addr + offset, size, rkey+1, 0};
-    rtag.tag2 = PSM_CTRL_MSG;
-    PSM_SAFECALL(psm2_mq_send2(s->mq, s->epaddr[rank], 0,    /* no flags */
-                              &rtag, /* tag */
-                              &mr_req, sizeof(struct psm_ctrl_msg)));
-    rtag.tag2 = rkey + 1;
-    PSM_SAFECALL(psm2_mq_isend2(s->mq, s->epaddr[rank], 0,    /* no flags */
-                                &rtag,
-                                buf, size, (void*)(PSM_SEND | (uintptr_t)ctx),
-                                (psm2_mq_req_t*)ctx));
-  }
+  struct psm_ctrl_msg mr_req = {REQ_TO_REG, s->mv->me, addr + offset, size, rkey+1, 0};
+  rtag.tag2 = PSM_CTRL_MSG;
+  PSM_SAFECALL(psm2_mq_send2(s->mq, s->epaddr[rank], 0,    /* no flags */
+        &rtag, /* tag */
+        &mr_req, sizeof(struct psm_ctrl_msg)));
+
+  rtag.tag2 = rkey + 1;
+  PSM_SAFECALL(psm2_mq_isend2(s->mq, s->epaddr[rank], 0,    /* no flags */
+        &rtag,
+        buf, size, (void*)(PSM_SEND | (uintptr_t)ctx),
+        (psm2_mq_req_t*)ctx));
 }
 
 LC_INLINE void psm_finalize(psm_server* s)

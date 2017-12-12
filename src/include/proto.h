@@ -131,7 +131,7 @@ void lc_serve_imm(lch* mv, uint32_t imm)
   lc_packet* p = (lc_packet*)addr;
   if (p->context.req) LC_SET_REQ_DONE_AND_SIGNAL(type, p->context.req);
   if (p->context.proto & LC_PROTO_RTR) {
-      lc_server_rma_dereg(p->context.rma_mem);
+      if (p->context.rma_mem) lc_server_rma_dereg(p->context.rma_mem);
       lc_pool_put(mv->pkpool, p);
   }
 }

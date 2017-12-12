@@ -25,9 +25,11 @@ lc_status lc_send_get(lch* mv, void* src, size_t size, lc_addr* dst, lc_info* in
   ctx->rsync = info->rsync;
   ctx->sync = NULL;
   p->context.req = ctx;
-  p->context.proto = LC_PROTO_LONG;
+  p->context.proto = LC_PROTO_RTR;
+  uint32_t sid = MAKE_SIG(LC_PROTO_TGT, (uint32_t)((uintptr_t)p - (uintptr_t)lc_heap_ptr(mv)));
+
   lci_get(mv, src, size, dctx->rank, dctx->addr, info->offset, dctx->rkey,
-          dctx->sid, p);
+          sid, p);
   return LC_OK;
 }
 
