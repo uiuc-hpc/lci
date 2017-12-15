@@ -21,10 +21,6 @@
 #endif  // LC_USE_SERVER_PSM
 #endif  // LC_USE_SERVER_OFI
 
-#define MAX_PACKET 1024
-#define MAX_RECV 64
-#define MAX_SEND (MAX_PACKET - MAX_RECV)  // maximum concurrent send.
-
 #define SHORT_MSG_SIZE (LC_PACKET_SIZE - sizeof(struct packet_context))
 
 #define POST_MSG_SIZE (SHORT_MSG_SIZE)

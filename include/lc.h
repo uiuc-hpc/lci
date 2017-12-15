@@ -288,7 +288,7 @@ lc_status lc_recv_put(lch* mv, lc_addr* rctx, lc_req* ctx);
 *
 */
 LC_EXPORT
-void lc_open(lch** handle, int num_qs);
+void lc_open(lch** handle, size_t , size_t, size_t num_qs);
 
 /**
 * @brief Close the handle and free memory.

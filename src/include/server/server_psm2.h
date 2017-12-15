@@ -91,10 +91,12 @@ typedef struct psm_server {
   uintptr_t* heap_addr;
   void* heap;
   uint32_t heap_rkey;
-  int recv_posted;
+  size_t recv_posted;
   struct dequeue free_mr;
   lch* mv;
 } psm_server __attribute__((aligned(64)));
+
+extern size_t server_max_recvs;
 
 static psm2_mq_tag_t tagsel = {.tag0 = 0x00000000, .tag1 = 0x00000000, .tag2 = 0xFFFFFFFF};
 
@@ -364,7 +366,7 @@ LC_INLINE int psm_progress(psm_server* s)
     sched_yield();
   }
 
-  if (s->recv_posted < MAX_RECV)
+  if (s->recv_posted < server_max_recvs)
     psm_post_recv(s, lc_pool_get_nb(s->mv->pkpool));
 
 #if 0
@@ -386,9 +388,11 @@ LC_INLINE int psm_progress(psm_server* s)
 LC_INLINE void psm_post_recv(psm_server* s, lc_packet* p)
 {
   if (p == NULL)  {
-    if (s->recv_posted == MAX_RECV / 2 && !server_deadlock_alert) {
+    if (s->recv_posted == server_max_recvs / 2 && !server_deadlock_alert) {
       server_deadlock_alert = 1;
+#ifdef LC_SERVER_DEBUG
       printf("WARNING-LC: deadlock alert\n");
+#endif
     }
     return;
   }
@@ -404,7 +408,7 @@ LC_INLINE void psm_post_recv(psm_server* s, lc_packet* p)
       &p->data, POST_MSG_SIZE, (void*)(PSM_RECV | (uintptr_t)&p->context),
       (psm2_mq_req_t*)p));
 
-  if (++s->recv_posted == MAX_RECV && server_deadlock_alert)
+  if (++s->recv_posted == server_max_recvs && server_deadlock_alert)
     server_deadlock_alert = 0;
 }
 
