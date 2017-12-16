@@ -6,8 +6,10 @@
 
 lc_sync_fp g_sync;
 size_t server_max_inline;
-size_t server_max_recvs;
-size_t server_num_pkts;
+
+// TODO: configurable.
+const size_t server_max_recvs = 64;
+const size_t server_num_pkts= 2048;
 
 int server_deadlock_alert = 0;
 
@@ -19,13 +21,11 @@ void* lc_heap_ptr(lch* mv)
   return lc_server_heap_ptr(mv->server);
 }
 
-void lc_open(lch** ret, size_t num_pkts, size_t max_recvs, size_t num_qs)
+void lc_open(lch** ret, size_t num_qs)
 {
   struct lc_struct* mv = 0;
   posix_memalign((void**) &mv, 64, sizeof(struct lc_struct));
   mv->ncores = sysconf(_SC_NPROCESSORS_ONLN) / THREAD_PER_CORE;
-  server_max_recvs = max_recvs;
-  server_num_pkts = num_pkts;
 
   lc_hash_create(&mv->tbl);
   posix_memalign((void**) &mv->queue, 64, sizeof(*(mv->queue)) * num_qs);
@@ -45,7 +45,7 @@ void lc_open(lch** ret, size_t num_pkts, size_t max_recvs, size_t num_qs)
   uintptr_t base_packet = (uintptr_t) lc_heap_ptr(mv) + 4096; // the commid should not be 0.
   lc_pool_create(&mv->pkpool);
 
-  for (unsigned i = 0; i < num_pkts; i++) {
+  for (unsigned i = 0; i < server_num_pkts; i++) {
     lc_packet* p = (lc_packet*) (base_packet + i * LC_PACKET_SIZE);
     p->context.poolid  = 0;
     p->context.runtime = 0;

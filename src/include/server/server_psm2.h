@@ -96,7 +96,7 @@ typedef struct psm_server {
   lch* mv;
 } psm_server __attribute__((aligned(64)));
 
-extern size_t server_max_recvs;
+extern const size_t server_max_recvs;
 
 static psm2_mq_tag_t tagsel = {.tag0 = 0x00000000, .tag1 = 0x00000000, .tag2 = 0xFFFFFFFF};
 
@@ -295,7 +295,7 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   pthread_join(startup_thread, NULL);
 
   /* Setup mq for comm */
-  PSM_SAFECALL(psm2_mq_init(s->myep, PSM2_MQ_ORDERMASK_NONE, NULL, 0, &s->mq));
+  PSM_SAFECALL(psm2_mq_init(s->myep, PSM2_MQ_ORDERMASK_ALL, NULL, 0, &s->mq));
 
   dq_init(&s->free_mr);
 
