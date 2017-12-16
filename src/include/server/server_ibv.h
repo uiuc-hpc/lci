@@ -64,11 +64,12 @@ typedef struct ibv_server {
   int* qp2rank;
   int qp2rank_mod;
   void* heap_ptr;
-  long recv_posted;
+  size_t recv_posted;
   int with_mpi;
 } ibv_server __attribute__((aligned(64)));
 
 extern size_t server_max_inline;
+extern const size_t server_max_recvs;
 
 LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr);
 LC_INLINE void ibv_server_finalize(ibv_server* s);
@@ -235,7 +236,7 @@ LC_INLINE uint32_t ibv_rma_lkey(uintptr_t mem)
 LC_INLINE void ibv_server_post_recv(ibv_server* s, lc_packet* p)
 {
   if (p == NULL) {
-    if (s->recv_posted < MAX_RECV / 2 && !server_deadlock_alert) {
+    if (s->recv_posted < server_max_recvs / 2 && !server_deadlock_alert) {
       server_deadlock_alert = 1;
       printf("WARNING-LC: deadlock alert\n");
     }
@@ -258,7 +259,7 @@ LC_INLINE void ibv_server_post_recv(ibv_server* s, lc_packet* p)
   struct ibv_recv_wr* bad_wr = 0;
   IBV_SAFECALL(ibv_post_srq_recv(s->dev_srq, &wr, &bad_wr));
 
-  if (++s->recv_posted == MAX_RECV && server_deadlock_alert)
+  if (++s->recv_posted == server_max_recvs && server_deadlock_alert)
     server_deadlock_alert = 0;
 }
 
@@ -332,7 +333,7 @@ LC_INLINE int ibv_server_progress(ibv_server* s)
   }
 
   // Make sure we always have enough packet, but do not block.
-  if (s->recv_posted < MAX_RECV) {
+  if (s->recv_posted < server_max_recvs) {
     ibv_server_post_recv(s,
                          (lc_packet*)lc_pool_get_nb(s->mv->pkpool));  //, 0));
   }
@@ -515,7 +516,7 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
   // Create shared-receive queue, **number here affect performance**.
   struct ibv_srq_init_attr srq_attr;
   srq_attr.srq_context = 0;
-  srq_attr.attr.max_wr = MAX_RECV;
+  srq_attr.attr.max_wr = server_max_recvs;
   srq_attr.attr.max_sge = 1;
   srq_attr.attr.srq_limit = 0;
   s->dev_srq = ibv_create_srq(s->dev_pd, &srq_attr);
