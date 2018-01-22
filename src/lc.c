@@ -53,9 +53,13 @@ void lc_open(lch** ret, size_t num_qs)
   }
 
   *ret = mv;
-  PMI_Barrier();
-  while (mv->server->recv_posted == 0)
+  while (mv->server->recv_posted < server_max_recvs)
     lc_progress(mv);
+
+  PMI_Barrier();
+#ifdef LC_SERVER_DEBUG
+  fprintf(stderr, "Initialization done %ld / %ld\n", mv->me, mv->size);
+#endif
 }
 
 void lc_close(lch* mv)

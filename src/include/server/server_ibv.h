@@ -371,7 +371,8 @@ LC_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* ubuf,
 
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr;
-  if (size <= server_max_inline) {
+  static int ninline = 0;
+  if (size <= server_max_inline && ninline++ < 64) {
     setup_wr(this_wr, (uintptr_t)0, &list, IBV_WR_SEND_WITH_IMM,
              IBV_SEND_INLINE | IBV_SEND_SIGNALED);
     this_wr.imm_data = proto;
@@ -379,6 +380,7 @@ LC_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* ubuf,
     lc_serve_send(s->mv, ctx, GET_PROTO(proto));
     return 0;
   } else {
+    ninline = 0;
     if (ctx->data.buffer != ubuf) memcpy(ctx->data.buffer, ubuf, size);
     list.addr = (uintptr_t)ctx->data.buffer;
     ctx->context.proto = GET_PROTO(proto);
