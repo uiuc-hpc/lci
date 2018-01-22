@@ -92,7 +92,7 @@ typedef struct psm_server {
   void* heap;
   uint32_t heap_rkey;
   size_t recv_posted;
-  struct dequeue free_mr;
+  lcrq_t free_mr;
   lch* mv;
 } psm_server __attribute__((aligned(64)));
 
@@ -151,8 +151,9 @@ LC_INLINE void post_control_msg(psm_server *s)
 
 LC_INLINE uintptr_t _real_psm_reg(psm_server* s, void* buf, size_t size)
 {
-  struct psm_mr* mr = (struct psm_mr*)malloc(sizeof(struct psm_mr));
-  assert(mr && "no more memory");
+  struct psm_mr* mr = (struct psm_mr*) lcrq_dequeue(&s->free_mr);
+  if (!mr)
+    mr = (struct psm_mr*)malloc(sizeof(struct psm_mr));
   mr->server = s;
   mr->addr = (uintptr_t)buf;
   mr->size = size;
@@ -168,7 +169,7 @@ LC_INLINE uintptr_t _real_psm_reg(psm_server* s, void* buf, size_t size)
 LC_INLINE int _real_psm_free(uintptr_t mem)
 {
   struct psm_mr* mr = (struct psm_mr*)mem;
-  free(mr);
+  lcrq_enqueue(&mr->server->free_mr, (void*) mr);
 #if 0
   if (psm2_mq_cancel(&mr->req) == PSM2_OK) {
     psm2_mq_wait2(&mr->req, NULL);
@@ -297,7 +298,9 @@ LC_INLINE void psm_init(lch* mv, size_t heap_size, psm_server** s_ptr)
   /* Setup mq for comm */
   PSM_SAFECALL(psm2_mq_init(s->myep, PSM2_MQ_ORDERMASK_ALL, NULL, 0, &s->mq));
 
-  dq_init(&s->free_mr);
+  lcrq_init(&s->free_mr);
+  for (int i = 0; i < 256; i++)
+    lcrq_enqueue(&s->free_mr, malloc(sizeof(struct psm_mr)));
 
   post_control_msg(s);
 
@@ -463,6 +466,21 @@ LC_INLINE void psm_get(psm_server* s, int rank, void* buf,
                &msg, sizeof(struct psm_ctrl_msg)));
 }
 
+LC_INLINE void psm_write_rma_signal_rtr(psm_server* s, int rank, void* buf,
+                                    uintptr_t addr __UNUSED__, uint32_t rkey, size_t size,
+                                    uint32_t sid, lc_packet* ctx)
+{
+  psm2_mq_tag_t rtag;
+  rtag.tag0 = sid;
+  rtag.tag1 = 0;
+  rtag.tag2 = rkey;
+
+  PSM_SAFECALL(psm2_mq_isend2(s->mq, s->epaddr[rank], 0,    /* no flags */
+        &rtag,
+        buf, size, (void*)(PSM_SEND | (uintptr_t)ctx),
+        (psm2_mq_req_t*)ctx));
+}
+
 LC_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
                                     uintptr_t addr, size_t offset, uint32_t rkey, size_t size,
                                     uint32_t sid, lc_packet* ctx)
@@ -477,8 +495,8 @@ LC_INLINE void psm_write_rma_signal(psm_server* s, int rank, void* buf,
   PSM_SAFECALL(psm2_mq_send2(s->mq, s->epaddr[rank], 0,    /* no flags */
         &rtag, /* tag */
         &mr_req, sizeof(struct psm_ctrl_msg)));
-
   rtag.tag2 = rkey + 1;
+
   PSM_SAFECALL(psm2_mq_isend2(s->mq, s->epaddr[rank], 0,    /* no flags */
         &rtag,
         buf, size, (void*)(PSM_SEND | (uintptr_t)ctx),
@@ -500,6 +518,7 @@ LC_INLINE void* psm_heap_ptr(psm_server* s) { return s->heap; }
 #define lc_server_init psm_init
 #define lc_server_send psm_write_send
 #define lc_server_get psm_get
+#define lc_server_rma_signal_rtr psm_write_rma_signal_rtr
 #define lc_server_rma_signal psm_write_rma_signal
 #define lc_server_heap_rkey psm_heap_rkey
 #define lc_server_heap_ptr psm_heap_ptr

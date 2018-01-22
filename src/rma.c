@@ -11,7 +11,7 @@ lc_status lc_send_put(lch* mv, void* src, size_t size, lc_addr* dst, lc_info* in
   ctx->sync = NULL;
   p->context.req = ctx;
   p->context.proto = LC_PROTO_LONG;
-  lci_put(mv, src, size, dctx->rank, dctx->addr, info->offset, dctx->rkey,
+  lci_put_ofs(mv, src, size, dctx->rank, dctx->addr, info->offset, dctx->rkey,
           dctx->sid, p);
   return LC_OK;
 }

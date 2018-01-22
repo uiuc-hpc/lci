@@ -468,6 +468,14 @@ LC_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
   IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
 }
 
+LC_INLINE void ibv_server_write_rma_signal_rtr(ibv_server* s, int rank, void* from,
+                                           uintptr_t addr, uint32_t rkey,
+                                           size_t size, uint32_t sid,
+                                           lc_packet* ctx)
+{
+  ibv_server_write_rma_signal(s, rank, from, addr, 0, rkey, size, sid, ctx);
+}
+
 LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
 {
   ibv_server* s = NULL;
@@ -704,6 +712,7 @@ LC_INLINE void* ibv_server_heap_ptr(ibv_server* s) { return s->heap_ptr; }
 #define lc_server_init ibv_server_init
 #define lc_server_send ibv_server_write_send
 #define lc_server_rma ibv_server_write_rma
+#define lc_server_rma_signal_rtr ibv_server_write_rma_signal_rtr
 #define lc_server_rma_signal ibv_server_write_rma_signal
 #define lc_server_heap_rkey ibv_server_heap_rkey
 #define lc_server_heap_ptr ibv_server_heap_ptr

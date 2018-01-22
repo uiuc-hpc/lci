@@ -36,10 +36,17 @@ int lci_send(lch* mv, const void* src, size_t size, int rank, int tag,
 }
 
 LC_INLINE
-void lci_put(lch* mv, void* src, size_t size, int rank, uintptr_t tgt, size_t
-             offset, uint32_t rkey, uint32_t sig, lc_packet* p)
+void lci_put_ofs(lch* mv, void* src, size_t size, int rank, uintptr_t tgt,
+             size_t offset, uint32_t rkey, uint32_t sig, lc_packet* p)
 {
   lc_server_rma_signal(mv->server, rank, src, tgt, offset, rkey, size, sig, p);
+}
+
+LC_INLINE
+void lci_put(lch* mv, void* src, size_t size, int rank, uintptr_t tgt,
+             uint32_t rkey, uint32_t sig, lc_packet* p)
+{
+  lc_server_rma_signal_rtr(mv->server, rank, src, tgt, rkey, size, sig, p);
 }
 
 LC_INLINE
@@ -69,7 +76,7 @@ void lc_serve_recv(lch* mv, lc_packet* p, uint8_t proto)
     p->context.req = req;
     p->context.proto = LC_PROTO_LONG;
     lci_put(mv, (void*) p->data.rts.src_addr, p->data.rts.size, p->context.from,
-        p->data.rtr.tgt_addr, 0, p->data.rtr.rkey,
+        p->data.rtr.tgt_addr, p->data.rtr.rkey,
         MAKE_SIG(req->rsync, p->data.rtr.comm_id), p);
   } else if (proto & LC_PROTO_TAG) {
     p->context.proto = proto;
