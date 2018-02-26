@@ -4,6 +4,7 @@
 #define MAX_SIZE (1 << 12)
 #include "lc/lock.h"
 #include <string.h>
+#include <stdio.h>
 
 struct dequeue {
   struct {

@@ -24,9 +24,16 @@
 extern int server_deadlock_alert;
 
 #define LC_POOL_GET_OR_RETN(p, x)     \
-  if (server_deadlock_alert) return LC_ERR_NOP; \
+  if (server_deadlock_alert) return LC_ERR_RETRY; \
   lc_packet* x = lc_pool_get_nb((p)); \
-  if (x == NULL) return LC_ERR_NOP;   
+  if (x == NULL) return LC_ERR_RETRY;   
+
+#define LC_SET_REQ_DONE_AND_SIGNAL(t, r) \
+{\
+  r->flag = 1;\
+}
+
+#if 0
 
 #define LC_SET_REQ_DONE_AND_SIGNAL(t, r)                                 \
   {                                                                      \
@@ -42,5 +49,7 @@ extern int server_deadlock_alert;
       }}                                                                 \
     lc_mem_fence();                                                      \
   }
+
+#endif
 
 #endif

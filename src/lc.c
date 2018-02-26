@@ -1,123 +1,187 @@
-#include "include/lc_priv.h"
-#include <stdint.h>
+#include "lc.h"
 
+#include "lc_priv.h"
 #include "lc/pool.h"
-#include "pmi.h"
 
-lc_sync_fp g_sync;
-size_t server_max_inline;
+#include <assert.h>
 
-// TODO: configurable.
-const size_t server_max_recvs = 64;
-const size_t server_num_pkts= 2048;
+struct lci_struct g_lc_info;
+int lc_current_id = 1;
+__thread int lc_core_id = 0;
+int server_deadlock_alert;
 
-int server_deadlock_alert = 0;
-
-int lc_current_id = 0;
-__thread int lc_core_id = -1;
-
-void* lc_heap_ptr(lch* mv)
+lc_status lc_init()
 {
-  return lc_server_heap_ptr(mv->server);
+  lci_master_ep_init(&g_lc_info.my_ep);
+  return LC_OK;
 }
 
-void lc_open(lch** ret, size_t num_qs)
+lc_status lc_finalize()
 {
-  struct lc_struct* mv = 0;
-  posix_memalign((void**) &mv, 64, sizeof(struct lc_struct));
-  mv->ncores = sysconf(_SC_NPROCESSORS_ONLN) / THREAD_PER_CORE;
-
-  lc_hash_create(&mv->tbl);
-  posix_memalign((void**) &mv->queue, 64, sizeof(*(mv->queue)) * num_qs);
-
-  for (size_t i = 0; i < num_qs; i++) {
-    // Init queue protocol.
-#ifndef USE_CCQ
-    dq_init(&mv->queue[i]);
-#else
-    lcrq_init(&mv->queue[i]);
-#endif
-  }
-
-  // Prepare the list of packet.
-  lc_server_init(mv, server_num_pkts * LC_PACKET_SIZE * 2, &mv->server);
-
-  uintptr_t base_packet = (uintptr_t) lc_heap_ptr(mv) + 4096; // the commid should not be 0.
-  lc_pool_create(&mv->pkpool);
-
-  for (unsigned i = 0; i < server_num_pkts; i++) {
-    lc_packet* p = (lc_packet*) (base_packet + i * LC_PACKET_SIZE);
-    p->context.poolid  = 0;
-    p->context.runtime = 0;
-    lc_pool_put(mv->pkpool, p);
-  }
-
-  *ret = mv;
-  while (mv->server->recv_posted < server_max_recvs)
-    lc_progress(mv);
-
-  PMI_Barrier();
-#ifdef LC_SERVER_DEBUG
-  fprintf(stderr, "Initialization done %ld / %ld\n", mv->me, mv->size);
-#endif
+  return LC_OK;
 }
 
-void lc_close(lch* mv)
+lc_id lc_rank()
 {
-  lc_server_finalize(mv->server);
-  lc_hash_destroy(mv->tbl);
-  lc_pool_destroy(mv->pkpool);
-#ifdef USE_CCQ
-  lcrq_destroy(&mv->queue);
-#endif
-  free(mv);
+  return g_lc_info.my_ep.eid;
 }
 
-int lc_progress(lch* mv)
+static inline
+lc_status lci_send_alloc(struct lci_ep *ep, lc_id tep, void* src, size_t size, lc_sig* lsig, lc_sig* rsig, lc_req* req)
 {
-  return lc_server_progress(mv->server);
-}
+  LC_POOL_GET_OR_RETN(ep->pkpool, p);
 
-lc_status lc_pkt_init(lch* mv, size_t size, struct lc_pkt* pkt)
-{
-  LC_POOL_GET_OR_RETN(mv->pkpool, p);
-  p->context.size = size;
-  p->context.runtime = 0;
-  pkt->_reserved_ = p;
-  if (size < (int) SHORT_MSG_SIZE) {
-    pkt->buffer = &p->data;
+  if (size <= (int) SHORT_MSG_SIZE) {
+    lc_server_send(ep->hw.handle, tep, src, size, p, LC_PROTO_DATA | LC_PROTO_ALLOC | LC_PROTO_QUEUE);
+    req->flag = 1;
   } else {
-    posix_memalign((void**) &pkt->buffer, 4096, size);
+    INIT_CTX(req);
+    p->data.rts.req = (uintptr_t) req;
+    p->data.rts.src_addr = (uintptr_t) src;
     p->data.rts.size = size;
+    lc_server_send(ep->hw.handle, tep, &p->data, sizeof(struct packet_rts), p, LC_PROTO_RTS | LC_PROTO_ALLOC | LC_PROTO_QUEUE);
   }
   return LC_OK;
 }
 
-void lc_pkt_fini(lch* mv, struct lc_pkt* pkt)
+static inline
+lc_status lci_send_tag(struct lci_ep *ep, lc_id tep, void* src, size_t size, uint32_t tag, lc_sig* lsig, lc_sig* rsig, lc_req* req)
 {
-  if (pkt->_reserved_) {
-    lc_packet* p = (lc_packet*) pkt->_reserved_;
-    if (pkt->buffer != &(p->data))
-      free(pkt->buffer);
-    lc_pool_put(mv->pkpool, p);
+  LC_POOL_GET_OR_RETN(ep->pkpool, p);
+  if (size <= (int) SHORT_MSG_SIZE) {
+    lc_server_send(ep->hw.handle, tep, src, size, p,
+                   MAKE_PROTO(LC_PROTO_DATA | LC_PROTO_TAG, tag));
+    req->flag = 1;
+  } else {
+#ifndef LC_USE_SERVER_PSM
+    INIT_CTX(req);
+    p->data.rts.req = (uintptr_t) req;
+    p->data.rts.src_addr = (uintptr_t) src;
+    p->data.rts.size = size;
+    lc_server_send(ep->hw.handle, tep, &p->data, sizeof(struct packet_rts), p,
+                   MAKE_PROTO(LC_PROTO_RTS | LC_PROTO_TAG, tag));
+#else
+    p->context.req = req;
+    lc_server_send_tag(ep->hw.handle, tep, src, size, tag, p);
+#endif
+  }
+  return LC_OK;
+}
+
+static inline
+lc_status lci_recv_tag(struct lci_ep *ep, lc_id tep, void* src, size_t size, uint32_t tag, lc_sig* lsig, lc_sig* rsig, lc_req* req)
+{
+#ifdef LC_USE_SERVER_PSM
+  if (size > SHORT_MSG_SIZE) {
+    LC_POOL_GET_OR_RETN(ep->pkpool, p);
+    p->context.req = req;
+    lc_server_recv_tag(ep->hw.handle, tep, src, size, tag, p);
+    return LC_OK;
+  }
+#endif
+  
+  INIT_CTX(req);
+  req->tag = tag;
+  lc_key key = lc_make_key(tep, tag);
+  lc_value value = (lc_value)req;
+  if (!lc_hash_insert(ep->tbl, key, &value, CLIENT)) {
+    lc_packet* p = (lc_packet*) value;
+    if (p->context.proto & LC_PROTO_DATA) {
+      memcpy(src, p->data.buffer, p->context.req->size);
+      req->size = p->context.req->size;
+      req->flag = 1;
+      lc_pool_put(ep->pkpool, p);
+    } else {
+      p->context.req = req;
+      p->context.proto = LC_PROTO_RTR;
+      req->size = p->data.rts.size;
+      lci_rdz_prepare(ep, src, size, p);
+      lc_server_send(ep->hw.handle, tep, &p->data, sizeof(struct packet_rtr), p,
+                     LC_PROTO_RTR | LC_PROTO_TAG | LC_PROTO_QUEUE);
+    }
+  }
+  return LC_OK;
+}
+
+static inline
+lc_status lci_produce(struct lci_ep* ep, lc_wr* wr, lc_req* req)
+{
+  lc_data* source = &wr->source_data;
+  lc_data* target = &wr->target_data;
+  // FIXME(danghvu): how do we know gid vs. eid vs. veid.
+
+  // TODO(danghvu): handle more type of source data.
+  void* src_buf = source->addr;
+  size_t size = source->size;
+
+  switch(target->type) {
+    case DAT_EXPL :
+    case DAT_TAG :
+      return lci_send_tag(ep, wr->target, src_buf, size, target->tag_val, &wr->local_sig, &wr->remote_sig, req);
+    case DAT_ALLOC :
+      return lci_send_alloc(ep, wr->target, src_buf, size, &wr->local_sig, &wr->remote_sig, req);
+    default:
+      assert(0 && "Invalid type");
   }
 }
 
-int lc_id(lch* mv) {
-  return mv->me;
-}
-
-int lc_size(lch* mv) {
-  return mv->size;
-}
-
-uintptr_t get_dma_mem(void* server, void* buf, size_t s)
+static inline
+lc_status lci_consume(struct lci_ep* ep, lc_wr* wr, lc_req* req)
 {
-  return _real_server_reg((lc_server*) server, buf, s);
+  lc_data* source = &wr->source_data;
+  lc_data* target = &wr->target_data;
+  void* tgt_buf = target->addr;
+  size_t size = target->size;
+
+  switch(source->type) {
+    case DAT_EXPL :
+    case DAT_TAG :
+      return lci_recv_tag(ep, wr->source, tgt_buf, size, source->tag_val, &wr->local_sig, &wr->remote_sig, req);
+    default:
+      assert(0 && "Invalid type");
+  }
+
+  return LC_OK;
 }
 
-int free_dma_mem(uintptr_t mem)
+static inline
+lc_status lci_complete(struct lci_ep* ep, struct lc_sig* sig, lc_req* req)
 {
-  _real_server_dereg(mem);
-  return 1;
+  if (sig->type == SIG_CQ) {
+    lc_packet* p = cq_pop(&ep->cq);
+    if (!p) return LC_ERR_RETRY;
+
+    memcpy(req, p->context.req, sizeof(struct lc_req));
+    lc_pool_put(ep->pkpool, p);
+  }
+  return LC_OK;
+}
+
+lc_status lc_submit(lc_wr* wr, lc_req* req)
+{
+  struct lci_ep* ep = &g_lc_info.my_ep;
+  if (wr->type == WR_PROD) {
+    return lci_produce(ep, wr, req);
+  } else if (wr->type == WR_CONS) {
+    return lci_consume(ep, wr, req);
+  }
+  return LC_OK;
+}
+
+lc_status lc_ce_test(struct lc_sig* sig, lc_req* req)
+{
+  return lci_complete(&g_lc_info.my_ep, sig, req);
+}
+
+lc_status lc_progress()
+{
+  struct lci_ep* ep = &g_lc_info.my_ep;
+  lc_server_progress(ep->hw.handle);
+  return LC_OK;
+}
+
+lc_status lc_free(void* buf)
+{
+  g_lc_info.my_ep.free(buf);
+  return LC_OK;
 }

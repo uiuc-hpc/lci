@@ -9,7 +9,7 @@
 #else
 
 #ifdef LC_USE_SERVER_PSM
-#define LC_PACKET_SIZE (32 * 1024 + 4096)
+#define LC_PACKET_SIZE (64 * 1024 + 4096)
 #else
 
 #ifdef USE_DREG
@@ -34,5 +34,8 @@
 // Using LCRQ or spinlock.
 // #define USE_CCQ
 #define THREAD_PER_CORE 1
+
+#define SERVER_MAX_RCVS 64
+#define SERVER_NUM_PKTS 2048
 
 #endif

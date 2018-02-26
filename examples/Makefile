@@ -1,7 +1,7 @@
 include ../config.mk
 FULT=$(WORK)/fult
 
-CC = gcc
+CC = icc
 LD = $(CC)
 TARGET = tag queue
 
@@ -13,7 +13,7 @@ LDFLAGS += -O3 -Wl,-rpath=$(abspath ../) -Wl,-z,now -Wl,-z,relro -pthread
 LIB = ../liblwci.a
 LIB_MPIV = ../mpiv.a
 
-LDFLAGS += -lpsm2
+LDFLAGS += -L$(HOME)/libpsm2/usr/lib64 -lpsm2
 LDFLAGS += -libverbs
 
 CXXFLAGS = -g3 -O3 -std=c++11

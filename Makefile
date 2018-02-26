@@ -2,7 +2,7 @@
 
 include config.mk
 
-CC = gcc
+CC = icc
 CFLAGS ?= -g3 -ggdb -O3 -Wall -Wextra
 AR ?= ar
 RANLIB ?= ranlib
@@ -29,7 +29,7 @@ INCLUDE = -I./include -I./src/include -I./  -I./src/
 CFLAGS += -fPIC -fvisibility=hidden -std=gnu99 $(INCLUDE) $(EXTRA) -D_GNU_SOURCE -pthread
 
 IBV_DIR = /opt/ofed/
-PSM_DIR = /usr/
+PSM_DIR = $(HOME)/libpsm2/usr/
 
 CFLAGS += $(IBV_INC)
 LDFLAGS += -shared -Lstatic
@@ -60,7 +60,7 @@ ifeq ($(LC_SERVER), psm)
 	CFLAGS += -DLC_USE_SERVER_PSM -DAFF_DEBUG -I$(PSM_DIR)/include
 endif
 
-COMM = lc.o rma.o queue.o tag.o hashtable.o pool.o lcrq.o coll.o
+COMM = lc.o lcrq.o pool.o hashtable.o # rma.o coll.o
 DREG = dreg/dreg.o dreg/avl.o
 PMI = pmi/simple_pmi.o pmi/simple_pmiutil.o
 

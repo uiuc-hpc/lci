@@ -3,13 +3,15 @@
 
 #include "config.h"
 #include <stdint.h>
+#include "lc.h"
 
 struct __attribute__((packed)) packet_context {
-  SERVER_CONTEXT;
-  uint32_t from;
-  uint32_t size;
-  uint32_t tag;
-  lc_req* req;
+  // Most of the current ctx requires 128-bits (FIXME)
+  uint64_t ctx1;
+  uint64_t ctx2;
+  // Here is LLCI context.
+  struct lc_req req_s;
+  struct lc_req* req;
   uintptr_t rma_mem;
   uint8_t proto;
   uint8_t runtime;
