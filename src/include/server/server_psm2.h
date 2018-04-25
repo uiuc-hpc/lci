@@ -321,31 +321,20 @@ LC_INLINE int psm_progress(psm_server* s)
         p->context.req = &p->context.req_s;
         p->context.req->rank = status.msg_tag.tag1;
         p->context.req->size = (status.msg_length);
-        p->context.req->tag = status.msg_tag.tag0 >> 8;
+        p->context.req->meta.val = status.msg_tag.tag0 >> 8;
         uint32_t proto = status.msg_tag.tag0 & 0x000000ff;
         lc_serve_recv(s->ep, p, proto);
         s->recv_posted--;
       } else {
         uint32_t imm = status.msg_tag.tag0;
-        if (imm != IMM_SERVER_TAG)
-          lc_serve_imm(s->ep, imm);
-        else {
-          // this is direct tag.
-          p->context.req->flag = 1; 
-          lc_pool_put(s->ep->pkpool, p);
-        }
+        lc_serve_imm(s->ep, imm);
       }
     } else if (ctx & PSM_SEND) {
       lc_packet* p = (lc_packet*) (ctx ^ PSM_SEND);
       uint32_t imm = status.msg_tag.tag0;
-      if (imm != IMM_SERVER_TAG) {
-        if (p) {
+      if (p) {
           uint32_t proto = p->context.proto;
           lc_serve_send(s->ep, p, proto);
-        }
-      } else {
-        p->context.req->flag = 1; 
-        lc_pool_put(s->ep->pkpool, p);
       }
     }
   } else {
@@ -423,36 +412,6 @@ LC_INLINE int psm_write_send(psm_server* s, lc_id rank, void* ubuf, size_t size,
                                (psm2_mq_req_t*)ctx));
     return 0;
   }
-}
-
-LC_INLINE int psm_write_send_tag(psm_server* s, lc_id rank, void* ubuf, size_t size, uint32_t tag, lc_packet* ctx)
-{
-  psm2_mq_tag_t rtag;
-  rtag.tag0 = IMM_SERVER_TAG;
-  rtag.tag1 = 0;
-  rtag.tag2 = tag;
-
-  PSM_SAFECALL(psm2_mq_isend2(s->mq, s->epaddr[rank], 0, &rtag, ubuf, size,
-                              (void*) ((uintptr_t) ctx | PSM_SEND), (psm2_mq_req_t*) ctx));
-  // psm2_mq_wait((psm2_mq_req_t*) ctx, NULL);
-  // ctx->context.req->flag = 1;
-  // lc_pool_put(s->ep->pkpool, ctx);
-  return 1;
-}
-
-LC_INLINE int psm_write_recv_tag(psm_server* s, lc_id rank, void* ubuf, size_t size, uint32_t tag, lc_packet* ctx)
-{
-  psm2_mq_tag_t rtag;
-  rtag.tag0 = IMM_SERVER_TAG;
-  rtag.tag1 = 0;
-  rtag.tag2 = tag;
-
-  PSM_SAFECALL(psm2_mq_irecv2(s->mq, s->epaddr[rank], &rtag, &tagsel, 0,
-        ubuf, size, (void*) ((uintptr_t) ctx | PSM_RECV), (psm2_mq_req_t*)ctx));
-  // psm2_mq_wait((psm2_mq_req_t*) ctx, NULL);
-  // ctx->context.req->flag = 1;
-  // lc_pool_put(s->ep->pkpool, ctx);
-  return 1;
 }
 
 #if 0
@@ -546,8 +505,6 @@ LC_INLINE void* psm_heap_ptr(psm_server* s) { return s->heap; }
 #define lc_server_post_recv psm_post_recv
 
 #define lc_server_post_rma psm_post_recv_rma
-#define lc_server_send_tag psm_write_send_tag
-#define lc_server_recv_tag psm_write_recv_tag
 
 #define lc_server_rma_reg psm_rma_reg
 #define lc_server_rma_key psm_rma_key

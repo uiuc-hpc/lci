@@ -28,16 +28,16 @@ int main(int argc, char** args) {
       wr1.type = WR_PROD;
       wr1.source_data.addr = src_buf;
       wr1.source_data.size = size;
-      wr1.target_data.type = DAT_TAG;
-      wr1.target_data.tag_val = 99;
+      wr1.target_data.type = DAT_EXPL;
+      wr1.meta.val = 99;
       wr1.source = 0;
       wr1.target = 1;
 
       wr2.type = WR_CONS;
       wr2.target_data.addr = dst_buf;
       wr2.target_data.size = size;
-      wr2.source_data.type = DAT_TAG;
-      wr2.source_data.tag_val = 99;
+      wr2.source_data.type = DAT_EXPL;
+      wr2.meta.val = 99;
       wr2.source = 1;
       wr2.target = 0;
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
@@ -67,16 +67,16 @@ int main(int argc, char** args) {
       wr1.type = WR_PROD;
       wr1.source_data.addr = src_buf;
       wr1.source_data.size = size;
-      wr1.target_data.type = DAT_TAG;
-      wr1.target_data.tag_val = 99;
+      wr1.target_data.type = DAT_EXPL;
+      wr1.meta.val = 99;
       wr1.source = 1;
       wr1.target = 0;
 
       wr2.type = WR_CONS;
       wr2.target_data.addr = dst_buf;
       wr2.target_data.size = size;
-      wr2.source_data.type = DAT_TAG;
-      wr2.source_data.tag_val = 99;
+      wr2.source_data.type = DAT_EXPL;
+      wr2.meta.val = 99;
       wr2.source = 0;
       wr2.target = 1;
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }

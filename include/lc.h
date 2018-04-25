@@ -38,7 +38,6 @@ enum lc_sig_type {
 enum lc_data_type {
   DAT_EXPL = 0,
   DAT_ALLOC,
-  DAT_TAG 
 };
 
 typedef enum lc_status {
@@ -53,7 +52,13 @@ typedef uint32_t lc_gid;
 typedef uint32_t lc_alloc_id;
 
 // MPI tag is only upto 64K, it can be piggy-backed as well.
-typedef uint16_t lc_tag;
+typedef union {
+  struct {
+    uint16_t trank;
+    uint16_t tval;
+  } tag;
+  uint32_t val;
+} lc_meta;
 
 // These using 1 byte since they need to be limitted,
 // so that can be offloaded in the future.
@@ -75,8 +80,6 @@ typedef struct lc_data {
       lc_alloc_id alloc_id;
       void* alloc_ctx;
     };
-    // tag.
-    lc_tag tag_val;
   };
 } lc_data;
 
@@ -98,6 +101,7 @@ typedef struct lc_wr {
     struct lc_sig remote_sig;
     struct lc_data source_data;
     struct lc_data target_data;
+    lc_meta meta;
     lc_id source;
     lc_id target;
   };
@@ -112,7 +116,7 @@ typedef struct lc_req {
   // Additional fields here.
   void* buffer;
   int rank;
-  int tag;
+  lc_meta meta;
   size_t size;
 } lc_req;
 

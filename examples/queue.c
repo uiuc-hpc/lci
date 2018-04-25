@@ -28,6 +28,7 @@ int main(int argc, char** args) {
     },
     .source = 0,
     .target = 0,
+    .meta = {99},
   };
   struct lc_sig sig = {SIG_CQ};
   double t1;
@@ -50,9 +51,9 @@ int main(int argc, char** args) {
           lc_progress();
         while (req.flag == 0)
           lc_progress();
-        // req.flag = 0;
         while (lc_ce_test(&sig, &req) != LC_OK)
           lc_progress();
+        assert(req.meta.val == 99);
         lc_free(req.buffer);
       }
 
@@ -72,6 +73,7 @@ int main(int argc, char** args) {
         // req.flag = 0;
         while (lc_ce_test(&sig, &req) != LC_OK)
           lc_progress();
+        assert(req.meta.val == 99);
         lc_free(req.buffer);
         req.flag = 0;
         while (lc_submit(&wr, &req) != LC_OK)

@@ -82,7 +82,7 @@ void lc_serve_recv(struct lci_ep* ep, lc_packet* p, uint32_t proto)
     } 
     if (proto & LC_PROTO_TAG) {
       p->context.proto = proto;
-      const lc_key key = lc_make_key(p->context.req->rank, p->context.req->tag);
+      const lc_key key = lc_make_key(p->context.req->rank, p->context.req->meta.val);
       lc_value value = (lc_value)p;
       if (!lc_hash_insert(ep->tbl, key, &value, SERVER)) {
         lc_req* req = (lc_req*) value;
@@ -108,7 +108,7 @@ void lc_serve_recv(struct lci_ep* ep, lc_packet* p, uint32_t proto)
     }
     if (proto & LC_PROTO_TAG) {
       p->context.proto = proto;
-      const lc_key key = lc_make_key(p->context.req->rank, p->context.req->tag);
+      const lc_key key = lc_make_key(p->context.req->rank, p->context.req->meta.val);
       lc_value value = (lc_value)p;
       if (!lc_hash_insert(ep->tbl, key, &value, SERVER)) {
         lc_req* req = (lc_req*) value;

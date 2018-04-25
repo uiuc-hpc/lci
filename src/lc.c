@@ -27,30 +27,30 @@ lc_id lc_rank()
 }
 
 static inline
-lc_status lci_send_alloc(struct lci_ep *ep, lc_id tep, void* src, size_t size, lc_sig* lsig, lc_sig* rsig, lc_req* req)
+lc_status lci_send_alloc(struct lci_ep *ep, lc_id tep, void* src, size_t size, lc_meta meta, lc_sig* lsig, lc_sig* rsig, lc_req* req)
 {
   LC_POOL_GET_OR_RETN(ep->pkpool, p);
 
   if (size <= (int) SHORT_MSG_SIZE) {
-    lc_server_send(ep->hw.handle, tep, src, size, p, LC_PROTO_DATA | LC_PROTO_ALLOC | LC_PROTO_QUEUE);
+    lc_server_send(ep->hw.handle, tep, src, size, p, MAKE_PROTO(LC_PROTO_DATA | LC_PROTO_ALLOC | LC_PROTO_QUEUE, meta.val));
     req->flag = 1;
   } else {
     INIT_CTX(req);
     p->data.rts.req = (uintptr_t) req;
     p->data.rts.src_addr = (uintptr_t) src;
     p->data.rts.size = size;
-    lc_server_send(ep->hw.handle, tep, &p->data, sizeof(struct packet_rts), p, LC_PROTO_RTS | LC_PROTO_ALLOC | LC_PROTO_QUEUE);
+    lc_server_send(ep->hw.handle, tep, &p->data, sizeof(struct packet_rts), p, MAKE_PROTO(LC_PROTO_RTS | LC_PROTO_ALLOC | LC_PROTO_QUEUE, meta.val));
   }
   return LC_OK;
 }
 
 static inline
-lc_status lci_send_tag(struct lci_ep *ep, lc_id tep, void* src, size_t size, uint32_t tag, lc_sig* lsig, lc_sig* rsig, lc_req* req)
+lc_status lci_send_tag(struct lci_ep *ep, lc_id tep, void* src, size_t size, lc_meta tag, lc_sig* lsig, lc_sig* rsig, lc_req* req)
 {
   LC_POOL_GET_OR_RETN(ep->pkpool, p);
   if (size <= (int) SHORT_MSG_SIZE) {
     lc_server_send(ep->hw.handle, tep, src, size, p,
-                   MAKE_PROTO(LC_PROTO_DATA | LC_PROTO_TAG, tag));
+                   MAKE_PROTO(LC_PROTO_DATA | LC_PROTO_TAG, tag.val));
     req->flag = 1;
   } else {
     INIT_CTX(req);
@@ -58,17 +58,16 @@ lc_status lci_send_tag(struct lci_ep *ep, lc_id tep, void* src, size_t size, uin
     p->data.rts.src_addr = (uintptr_t) src;
     p->data.rts.size = size;
     lc_server_send(ep->hw.handle, tep, &p->data, sizeof(struct packet_rts), p,
-                   MAKE_PROTO(LC_PROTO_RTS | LC_PROTO_TAG, tag));
+                   MAKE_PROTO(LC_PROTO_RTS | LC_PROTO_TAG, tag.val));
   }
   return LC_OK;
 }
 
 static inline
-lc_status lci_recv_tag(struct lci_ep *ep, lc_id tep, void* src, size_t size, uint32_t tag, lc_sig* lsig, lc_sig* rsig, lc_req* req)
+lc_status lci_recv_tag(struct lci_ep *ep, lc_id tep, void* src, size_t size, lc_meta tag, lc_sig* lsig, lc_sig* rsig, lc_req* req)
 {
   INIT_CTX(req);
-  req->tag = tag;
-  lc_key key = lc_make_key(tep, tag);
+  lc_key key = lc_make_key(tep, tag.val);
   lc_value value = (lc_value)req;
   if (!lc_hash_insert(ep->tbl, key, &value, CLIENT)) {
     lc_packet* p = (lc_packet*) value;
@@ -102,10 +101,9 @@ lc_status lci_produce(struct lci_ep* ep, lc_wr* wr, lc_req* req)
 
   switch(target->type) {
     case DAT_EXPL :
-    case DAT_TAG :
-      return lci_send_tag(ep, wr->target, src_buf, size, target->tag_val, &wr->local_sig, &wr->remote_sig, req);
+      return lci_send_tag(ep, wr->target, src_buf, size, wr->meta, &wr->local_sig, &wr->remote_sig, req);
     case DAT_ALLOC :
-      return lci_send_alloc(ep, wr->target, src_buf, size, &wr->local_sig, &wr->remote_sig, req);
+      return lci_send_alloc(ep, wr->target, src_buf, size, wr->meta, &wr->local_sig, &wr->remote_sig, req);
     default:
       assert(0 && "Invalid type");
   }
@@ -121,8 +119,7 @@ lc_status lci_consume(struct lci_ep* ep, lc_wr* wr, lc_req* req)
 
   switch(source->type) {
     case DAT_EXPL :
-    case DAT_TAG :
-      return lci_recv_tag(ep, wr->source, tgt_buf, size, source->tag_val, &wr->local_sig, &wr->remote_sig, req);
+      return lci_recv_tag(ep, wr->source, tgt_buf, size, wr->meta, &wr->local_sig, &wr->remote_sig, req);
     default:
       assert(0 && "Invalid type");
   }
