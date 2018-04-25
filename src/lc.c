@@ -53,17 +53,12 @@ lc_status lci_send_tag(struct lci_ep *ep, lc_id tep, void* src, size_t size, uin
                    MAKE_PROTO(LC_PROTO_DATA | LC_PROTO_TAG, tag));
     req->flag = 1;
   } else {
-#ifndef LC_USE_SERVER_PSM
     INIT_CTX(req);
     p->data.rts.req = (uintptr_t) req;
     p->data.rts.src_addr = (uintptr_t) src;
     p->data.rts.size = size;
     lc_server_send(ep->hw.handle, tep, &p->data, sizeof(struct packet_rts), p,
                    MAKE_PROTO(LC_PROTO_RTS | LC_PROTO_TAG, tag));
-#else
-    p->context.req = req;
-    lc_server_send_tag(ep->hw.handle, tep, src, size, tag, p);
-#endif
   }
   return LC_OK;
 }
@@ -71,15 +66,6 @@ lc_status lci_send_tag(struct lci_ep *ep, lc_id tep, void* src, size_t size, uin
 static inline
 lc_status lci_recv_tag(struct lci_ep *ep, lc_id tep, void* src, size_t size, uint32_t tag, lc_sig* lsig, lc_sig* rsig, lc_req* req)
 {
-#ifdef LC_USE_SERVER_PSM
-  if (size > SHORT_MSG_SIZE) {
-    LC_POOL_GET_OR_RETN(ep->pkpool, p);
-    p->context.req = req;
-    lc_server_recv_tag(ep->hw.handle, tep, src, size, tag, p);
-    return LC_OK;
-  }
-#endif
-  
   INIT_CTX(req);
   req->tag = tag;
   lc_key key = lc_make_key(tep, tag);
