@@ -7,26 +7,22 @@
 
 #include "cq.h"
 
-// This is hardware-dependent, so we just use void pointer.
-typedef struct lci_hw {
-  void* handle;
-} lci_hw;
+typedef struct lci_hw lci_hw;
 
 typedef struct lci_conn {
   int n_handle;
   void** handle;
 } lci_conn;
 
-struct lc_packet;
-typedef struct lc_packet lc_packet;
-
 typedef void* (*lc_alloc_fn)(size_t);
 typedef void (*lc_free_fn)(void*);
 
-struct lci_ep {
+typedef struct lci_ep {
   lc_eid eid;
-  // Local hardware context.
-  lci_hw hw;
+
+  // Associated hardware context.
+  void* hw;
+
   // Remote hardware connections.
   lci_conn remotes; 
   
@@ -37,11 +33,21 @@ struct lci_ep {
   lc_pool* pkpool;
   lc_hash* tbl;
   struct comp_q cq;
+} lci_ep;
+
+struct lci_hw {
+  // hw-indepdentent.
+  void* handle;
+
+  // 64-bit cap.
+  long cap;
+
+  // master end-point.
+  lci_ep master_ep;
 };
 
-struct lci_struct {
-  struct lci_ep my_ep;
-};
+struct lc_packet;
+typedef struct lc_packet lc_packet;
 
 #include "packet.h"
 #include "proto.h"
@@ -63,11 +69,15 @@ static void fixed_buffer_allocator_free(void* ptr __UNUSED__)
   // nothing to do.
 }
 
-void lci_master_ep_init(struct lci_ep* ep)
+static inline
+void lci_hw_init(struct lci_hw* hw, long cap)
 {
   // This initialize the hardware context.
   // There might be more than one remote connection.
-  lc_server_init(ep, &ep->eid);
+  lc_server_init(hw, &hw->master_ep.eid);
+  hw->cap = cap;
+  lci_ep* ep = &hw->master_ep;
+
   uintptr_t base_packet = 0;
   posix_memalign((void**) &base_packet, 4096, SERVER_NUM_PKTS * LC_PACKET_SIZE * 2 + 4096);
   ep->base_addr = base_packet;
@@ -78,6 +88,7 @@ void lci_master_ep_init(struct lci_ep* ep)
     lc_packet* p = (lc_packet*) (base_packet + i * LC_PACKET_SIZE);
     p->context.poolid  = 0;
     p->context.runtime = 0;
+    p->context.req_s.parent = p;
     lc_pool_put(ep->pkpool, p);
   }
   cq_init(&ep->cq);

@@ -10,7 +10,8 @@ int total = TOTAL;
 int skip = SKIP;
 
 int main(int argc, char** args) {
-  lc_init();
+  lc_ep ep;
+  lc_init(&ep, EP_TYPE_TAG);
   lc_req req;
   struct lc_wr wr1, wr2;
   double t1;
@@ -20,7 +21,7 @@ int main(int argc, char** args) {
   src_buf = (void*)(((uintptr_t) src_buf + alignment - 1) / alignment * alignment);
   dst_buf = (void*)(((uintptr_t) dst_buf + alignment - 1) / alignment * alignment);
 
-  if (lc_rank() == 0) {
+  if (lc_rank(ep) == 0) {
     for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
       memset(src_buf, 'a', size);
       memset(dst_buf, 'b', size);
@@ -45,16 +46,16 @@ int main(int argc, char** args) {
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
         req.flag = 0;
-        while (lc_submit(&wr1, &req) != LC_OK)
-          lc_progress();
+        while (lc_submit(ep, &wr1, &req) != LC_OK)
+          lc_progress_t(ep);
         while (req.flag == 0)
-          lc_progress();
+          lc_progress_t(ep);
 
         req.flag = 0;
-        while (lc_submit(&wr2, &req) != LC_OK)
-          lc_progress();
+        while (lc_submit(ep, &wr2, &req) != LC_OK)
+          lc_progress_t(ep);
         while (req.flag == 0)
-          lc_progress();
+          lc_progress_t(ep);
       }
 
       t1 = 1e6 * (wtime() - t1) / total / 2;
@@ -83,19 +84,19 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         req.flag = 0;
-        while (lc_submit(&wr2, &req) != LC_OK)
-          lc_progress();
+        while (lc_submit(ep, &wr2, &req) != LC_OK)
+          lc_progress_t(ep);
         while (req.flag == 0)
-          lc_progress();
+          lc_progress_t(ep);
 
         req.flag = 0;
-        while (lc_submit(&wr1, &req) != LC_OK)
-          lc_progress();
+        while (lc_submit(ep, &wr1, &req) != LC_OK)
+          lc_progress_t(ep);
         while (req.flag == 0)
-          lc_progress();
+          lc_progress_t(ep);
 
       }
     }
   }
-  lc_finalize();
+  lc_finalize(ep);
 }

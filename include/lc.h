@@ -16,6 +16,21 @@ extern "C" {
 #include <stdlib.h>
 #include "lc/macro.h"
 
+
+#define EP_ANY      (0)
+#define EP_AR_ALLOC (1<<1)
+#define EP_AR_PIGGY (1<<2)
+#define EP_AR_EXPL  (1<<3)
+
+#define EP_CE_NONE  ((1<<1) << 4)
+#define EP_CE_QUEUE ((1<<2) << 4)
+#define EP_CE_SYNC  ((1<<3) << 4)
+#define EP_CE_AM    ((1<<4) << 4)
+
+#define EP_TYPE_TAG   (EP_CE_NONE  | EP_AR_EXPL)
+#define EP_TYPE_QUEUE (EP_CE_QUEUE | EP_AR_ALLOC)
+#define EP_TYPE_SQUEUE (EP_CE_QUEUE | EP_AR_PIGGY)
+
 enum lc_wr_state {
   LC_REQ_PEND = 0,
   LC_REQ_DONE = 1,
@@ -38,6 +53,7 @@ enum lc_sig_type {
 enum lc_data_type {
   DAT_EXPL = 0,
   DAT_ALLOC,
+  DAT_PIGGY,
 };
 
 typedef enum lc_status {
@@ -115,31 +131,49 @@ typedef struct lc_req {
 
   // Additional fields here.
   void* buffer;
+  void* parent; // reserved field for internal used.
   int rank;
   lc_meta meta;
   size_t size;
 } lc_req;
 
-LC_EXPORT
-lc_status lc_init();
+typedef struct lci_ep* lc_ep;
 
 LC_EXPORT
-lc_status lc_finalize();
+lc_status lc_init(lc_ep*, long cap);
 
 LC_EXPORT
-lc_status lc_submit(struct lc_wr* wr, lc_req* req); 
+lc_status lc_finalize(lc_ep ep);
 
 LC_EXPORT
-lc_status lc_ce_test(struct lc_sig* sig, lc_req* req); 
+lc_status lc_submit(lc_ep, struct lc_wr* wr, lc_req* req); 
 
 LC_EXPORT
-lc_id lc_rank();
+lc_id lc_deq_alloc(lc_ep ep, lc_req* req);
+
+LC_EXPORT
+lc_id lc_deq_piggy(lc_ep ep, lc_req** req);
+
+LC_EXPORT
+lc_status lc_req_free(lc_ep ep, lc_req* req);
+
+LC_EXPORT
+lc_id lc_rank(lc_ep ep);
 
 LC_EXPORT
 lc_status lc_progress();
 
 LC_EXPORT
-lc_status lc_free(void* buf);
+lc_status lc_progress_q();
+
+LC_EXPORT
+lc_status lc_progress_sq();
+
+LC_EXPORT
+lc_status lc_progress_t();
+
+LC_EXPORT
+lc_status lc_free(lc_ep, void* buf);
 
 #ifdef __cplusplus
 }

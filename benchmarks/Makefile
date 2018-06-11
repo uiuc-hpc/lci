@@ -53,10 +53,10 @@ CXXFLAGS += -I$(TACC_BOOST_INC)
 LDFLAGS += -L$(TACC_BOOST_LIB)
 
 ### FOR USING PAPI ##
-PAPI_LIB = $(TACC_PAPI_LIB) -lpfm -lpapi
-PAPI_INC = $(TACC_PAPI_INC)
-CXXFLAGS += -I$(PAPI_INC)
-LDFLAGS += -L$(PAPI_LIB)
+#PAPI_LIB = $(TACC_PAPI_LIB) -lpfm -lpapi
+#PAPI_INC = $(TACC_PAPI_INC)
+#CXXFLAGS += -I$(PAPI_INC)
+#LDFLAGS += -L$(PAPI_LIB)
 
 TARGET = pingpong_mt_NN pingpong_mt_NN_abt pingpong_mt_NN_pth pingpong_mt_NN_osu
 

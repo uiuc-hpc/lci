@@ -11,7 +11,7 @@ int skip = SKIP;
 
 int main(int argc, char** args) {
   lc_ep ep;
-  lc_init(&ep, EP_TYPE_QUEUE);
+  lc_init(&ep, EP_TYPE_SQUEUE);
   lc_req req;
   struct lc_wr wr = {
     .type = WR_PROD,
@@ -21,7 +21,7 @@ int main(int argc, char** args) {
       .size = 0
     },
     .target_data = {
-      .type = DAT_ALLOC,
+      .type = DAT_PIGGY,
       .alloc_id = 0,
       .alloc_ctx = 0
     },
@@ -36,7 +36,7 @@ int main(int argc, char** args) {
   buf = (void*)(((uintptr_t) buf + alignment - 1) / alignment * alignment);
 
   if (lc_rank(ep) == 0) {
-    for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
+    for (int size = MIN_MSG; size <= 4096; size <<= 1) {
       wr.source_data.addr = buf;
       wr.source_data.size = size;
       wr.source = 0;
@@ -48,20 +48,20 @@ int main(int argc, char** args) {
         req.flag = 0;
         wr.meta.val = i;
         while (lc_submit(ep, &wr, &req) != LC_OK)
-          lc_progress_q(ep);
+          lc_progress_sq(ep);
         while (req.flag == 0)
-          lc_progress_q(ep);
-        while (lc_deq_alloc(ep, &req) != LC_OK)
-          lc_progress_q(ep);
-        assert(req.meta.val == i);
-        lc_free(ep, req.buffer);
+          lc_progress_sq(ep);
+        lc_req* req_ptr;
+        while (lc_deq_piggy(ep, &req_ptr) != LC_OK)
+          lc_progress_sq(ep);
+        lc_req_free(ep, req_ptr);
       }
 
       t1 = 1e6 * (wtime() - t1) / total / 2;
       printf("%10.d %10.3f\n", size, t1);
     }
   } else {
-    for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
+    for (int size = MIN_MSG; size <= 4096; size <<= 1) {
       memset(buf, 'a', size);
       wr.source_data.addr = buf;
       wr.source_data.size = size;
@@ -71,16 +71,16 @@ int main(int argc, char** args) {
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
       for (int i = 0; i < total + skip; i++) {
         // req.flag = 0;
-        while (lc_deq_alloc(ep, &req) != LC_OK)
-          lc_progress_q(ep);
-        assert(req.meta.val == i);
-        lc_free(ep, req.buffer);
+        lc_req* req_ptr;
+        while (lc_deq_piggy(ep, &req_ptr) != LC_OK)
+          lc_progress_sq(ep);
+        lc_req_free(ep, req_ptr);
         req.flag = 0;
         wr.meta.val = i;
         while (lc_submit(ep, &wr, &req) != LC_OK)
-          lc_progress_q(ep);
+          lc_progress_sq(ep);
         while (req.flag == 0)
-          lc_progress_q(ep);
+          lc_progress_sq(ep);
       }
     }
   }

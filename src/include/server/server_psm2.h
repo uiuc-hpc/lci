@@ -211,7 +211,7 @@ LC_INLINE uint32_t psm_rma_key(uintptr_t mem)
   return ((struct psm_mr*)mem)->rkey;
 }
 
-LC_INLINE void psm_init(struct lci_ep* ep, uint32_t* eid)
+LC_INLINE void psm_init(struct lci_hw* hw, uint32_t* eid)
 {
   // setenv("I_MPI_FABRICS", "ofa", 1);
   // setenv("PSM2_SHAREDCONTEXTS", "0", 1);
@@ -290,18 +290,20 @@ LC_INLINE void psm_init(struct lci_ep* ep, uint32_t* eid)
   posix_memalign((void**) &s->heap, 4096, heap_size);
 #endif
 
-  ep->hw.handle = s;
-  ep->remotes.n_handle = size;
-  ep->remotes.handle = (void**) &s->epaddr[0];
+  hw->handle = (void*) s;
+  hw->master_ep.hw = (void*) s;
+  hw->master_ep.remotes.n_handle = size;
+  hw->master_ep.remotes.handle = (void**) &s->epaddr[0];
+
   s->me = *eid = (uint32_t) rank;
-  s->ep = ep;
+  s->ep = &hw->master_ep;
 
   PMI_Barrier();
   // Do not finalize....
   // PMI_Finalize();
 }
 
-LC_INLINE int psm_progress(psm_server* s)
+LC_INLINE int psm_progress(psm_server* s, const int cap)
 {
   psm2_mq_req_t req;
   psm2_mq_status2_t status;
@@ -323,7 +325,7 @@ LC_INLINE int psm_progress(psm_server* s)
         p->context.req->size = (status.msg_length);
         p->context.req->meta.val = status.msg_tag.tag0 >> 8;
         uint32_t proto = status.msg_tag.tag0 & 0x000000ff;
-        lc_serve_recv(s->ep, p, proto);
+        lc_serve_recv(s->ep, p, proto, cap);
         s->recv_posted--;
       } else {
         uint32_t imm = status.msg_tag.tag0;

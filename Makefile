@@ -3,7 +3,7 @@
 include config.mk
 
 CC = icc
-CFLAGS ?= -g3 -ggdb -O3 -Wall -Wextra
+CFLAGS ?= -g3 -ggdb -O3 -Wall -Wextra -qopt-report=4 -qopt-report-phase ipo
 AR ?= ar
 RANLIB ?= ranlib
 PREFIX ?= /usr
