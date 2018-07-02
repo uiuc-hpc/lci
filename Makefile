@@ -62,7 +62,7 @@ endif
 
 COMM = lc.o lcrq.o pool.o hashtable.o # rma.o coll.o
 DREG = dreg/dreg.o dreg/avl.o
-PMI = pmi/simple_pmi.o pmi/simple_pmiutil.o
+PMI = pm.o pmi/simple_pmi.o pmi/simple_pmiutil.o
 
 ifeq ($(LC_USE_DREG), yes)
 LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))

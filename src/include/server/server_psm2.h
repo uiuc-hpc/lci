@@ -9,17 +9,11 @@
 #include <string.h>
 
 #include "config.h"
-#include "pmi.h"
+#include "pm.h"
 #include "lc/dequeue.h"
 #include "lc/macro.h"
 #include "include/lcrq.h"
 #include "config.h"
-
-#ifdef WITH_MPI
-#include <mpi.h>
-#endif
-
-int MPI_Initialized( int *flag );
 
 #define GET_PROTO(p) (p & 0x000000ff)
 #define PSM_CTRL_MSG 1
@@ -236,35 +230,21 @@ LC_INLINE void psm_init(struct lci_hw* hw, uint32_t* eid)
   /* Attempt to open a PSM2 endpoint. This allocates hardware resources. */
   PSM_SAFECALL(psm2_ep_open(s->uuid, &option, &s->myep, &s->myepid));
 
-  /* Exchange ep addr. */
-  // int with_mpi = s->with_mpi = 0;
-  // char* lc_mpi = getenv("LC_MPI");
-  // if (lc_mpi) with_mpi = s->with_mpi = atoi(lc_mpi);
-
-  char key[256];
-  char value[256];
   char name[256];
+  char ep_name[256];
+  lc_pm_master_init(&size, &rank, name);
 
-  {
-    int spawned;
-    PMI_Init(&spawned, &size, &rank);
-    PMI_KVS_Get_my_name(name, 255);
-  }
   int epid_array_mask[size];
-
   s->epid = (psm2_epid_t*)calloc(size, sizeof(psm2_epid_t));
   s->epaddr = (psm2_epaddr_t*)calloc(size, sizeof(psm2_epaddr_t));
 
   {
-    sprintf(key, "_LC_KEY_%d", rank);
-    sprintf(value, "%llu", (unsigned long long)s->myepid);
-    PMI_KVS_Put(name, key, value);
-    PMI_Barrier();
+    sprintf(ep_name, "%llu", (unsigned long long)s->myepid);
+    lc_pm_publish(rank, 0, name, ep_name);
     for (int i = 0; i < size; i++) {
-      sprintf(key, "_LC_KEY_%d", i);
-      PMI_KVS_Get(name, key, value, 255);
+      lc_pm_getname(i, 0, name, ep_name);
       psm2_epid_t destaddr;
-      sscanf(value, "%llu", (unsigned long long*)&destaddr);
+      sscanf(ep_name, "%llu", (unsigned long long*)&destaddr);
       memcpy(&s->epid[i], &destaddr, sizeof(psm2_epid_t));
       epid_array_mask[i] = 1;
     }
@@ -273,8 +253,6 @@ LC_INLINE void psm_init(struct lci_hw* hw, uint32_t* eid)
   psm2_error_t epid_connect_errors[size];
   PSM_SAFECALL(psm2_ep_connect(s->myep, size, s->epid, epid_array_mask,
                                epid_connect_errors, s->epaddr, 0));
-
-  PMI_Barrier();
 
   /* Setup mq for comm */
   PSM_SAFECALL(psm2_mq_init(s->myep, PSM2_MQ_ORDERMASK_ALL, NULL, 0, &s->mq));
@@ -318,7 +296,6 @@ LC_INLINE int psm_progress(psm_server* s, const int cap)
     uintptr_t ctx = (uintptr_t) status.context;
     if (ctx & PSM_RECV) {
       lc_packet* p = (lc_packet*) (ctx ^ PSM_RECV);
-
       if (status.msg_tag.tag2 == 0x0) {
         p->context.req = &p->context.req_s;
         p->context.req->rank = status.msg_tag.tag1;
