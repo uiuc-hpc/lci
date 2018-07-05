@@ -10,8 +10,12 @@ int total = TOTAL;
 int skip = SKIP;
 
 int main(int argc, char** args) {
+  lc_init(1);
   lc_ep ep;
-  lc_init(&ep, EP_TYPE_TAG);
+  lc_rep rep;
+  lc_ep_open(0, EP_TYPE_TAG, &ep);
+  lc_ep_connect(0, 1-lc_rank(), 0, &rep);
+
   lc_req req;
   struct lc_wr wr1, wr2;
   double t1;
@@ -32,7 +36,7 @@ int main(int argc, char** args) {
       wr1.target_data.type = DAT_EXPL;
       wr1.meta.val = 99;
       wr1.source = 0;
-      wr1.target = 1;
+      wr1.target = rep;
 
       wr2.type = WR_CONS;
       wr2.target_data.addr = dst_buf;
@@ -40,7 +44,8 @@ int main(int argc, char** args) {
       wr2.source_data.type = DAT_EXPL;
       wr2.meta.val = 99;
       wr2.source = 1;
-      wr2.target = 0;
+      wr2.target = rep;
+
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
 
       for (int i = 0; i < total + skip; i++) {
@@ -71,7 +76,7 @@ int main(int argc, char** args) {
       wr1.target_data.type = DAT_EXPL;
       wr1.meta.val = 99;
       wr1.source = 1;
-      wr1.target = 0;
+      wr1.target = rep;
 
       wr2.type = WR_CONS;
       wr2.target_data.addr = dst_buf;
@@ -79,21 +84,21 @@ int main(int argc, char** args) {
       wr2.source_data.type = DAT_EXPL;
       wr2.meta.val = 99;
       wr2.source = 0;
-      wr2.target = 1;
+      wr2.target = rep;
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
 
       for (int i = 0; i < total + skip; i++) {
         req.flag = 0;
         while (lc_submit(ep, &wr2, &req) != LC_OK)
-          lc_progress_t(ep);
+          lc_progress_t();
         while (req.flag == 0)
-          lc_progress_t(ep);
+          lc_progress_t();
 
         req.flag = 0;
         while (lc_submit(ep, &wr1, &req) != LC_OK)
-          lc_progress_t(ep);
+          lc_progress_t();
         while (req.flag == 0)
-          lc_progress_t(ep);
+          lc_progress_t();
 
       }
     }

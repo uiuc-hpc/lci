@@ -27,8 +27,8 @@ extern "C" {
 #define EP_CE_SYNC  ((1<<3) << 4)
 #define EP_CE_AM    ((1<<4) << 4)
 
-#define EP_TYPE_TAG   (EP_CE_NONE  | EP_AR_EXPL)
-#define EP_TYPE_QUEUE (EP_CE_QUEUE | EP_AR_ALLOC)
+#define EP_TYPE_TAG    (EP_CE_NONE  | EP_AR_EXPL)
+#define EP_TYPE_QUEUE  (EP_CE_QUEUE | EP_AR_ALLOC)
 #define EP_TYPE_SQUEUE (EP_CE_QUEUE | EP_AR_PIGGY)
 
 enum lc_wr_state {
@@ -66,6 +66,8 @@ typedef uint32_t lc_id;
 typedef uint32_t lc_eid;
 typedef uint32_t lc_gid;
 typedef uint32_t lc_alloc_id;
+
+typedef struct lci_rep* lc_rep;
 
 // MPI tag is only upto 64K, it can be piggy-backed as well.
 typedef union {
@@ -119,7 +121,7 @@ typedef struct lc_wr {
     struct lc_data target_data;
     lc_meta meta;
     lc_id source;
-    lc_id target;
+    lc_rep target;
   };
 } lc_wr;
 
@@ -133,6 +135,7 @@ typedef struct lc_req {
   void* buffer;
   void* parent; // reserved field for internal used.
   int rank;
+  void* rhandle;
   lc_meta meta;
   size_t size;
 } lc_req;
@@ -140,7 +143,11 @@ typedef struct lc_req {
 typedef struct lci_ep* lc_ep;
 
 LC_EXPORT
-lc_status lc_init(lc_ep*, long cap);
+lc_status lc_init(int);
+
+LC_EXPORT
+lc_status lc_ep_open(int hwid, long cap, lc_ep* ep);
+
 
 LC_EXPORT
 lc_status lc_finalize(lc_ep ep);
@@ -158,7 +165,7 @@ LC_EXPORT
 lc_status lc_req_free(lc_ep ep, lc_req* req);
 
 LC_EXPORT
-lc_id lc_rank(lc_ep ep);
+lc_id lc_rank();
 
 LC_EXPORT
 lc_status lc_progress();
@@ -174,6 +181,9 @@ lc_status lc_progress_t();
 
 LC_EXPORT
 lc_status lc_free(lc_ep, void* buf);
+
+LC_EXPORT
+lc_status lc_ep_connect(int hwid, int prank, int erank, lc_rep* rep);
 
 #ifdef __cplusplus
 }

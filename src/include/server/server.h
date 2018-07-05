@@ -2,7 +2,7 @@
 #define SERVER_H_
 
 LC_INLINE
-void lc_serve_recv(struct lci_ep* ep, lc_packet* p, uint32_t proto, const int ep_type);
+void lc_serve_recv(struct lci_ep* ep, lc_packet* p, uint32_t proto, const long cap);
 
 LC_INLINE
 void lc_serve_send(struct lci_ep* ep, lc_packet* p, uint32_t proto);

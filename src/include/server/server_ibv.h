@@ -65,7 +65,6 @@ typedef struct ibv_server {
   int qp2rank_mod;
   void* heap_ptr;
   size_t recv_posted;
-  int with_mpi;
 } ibv_server __attribute__((aligned(64)));
 
 extern size_t server_max_inline;
@@ -552,27 +551,10 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
     exit(EXIT_FAILURE);
   }
 
-  char* lc_mpi = getenv("LC_MPI");
-  int with_mpi = s->with_mpi = 0;
-  if (lc_mpi) with_mpi = s->with_mpi = atoi(lc_mpi);
-
   char key[256];
   char value[256];
   char name[256];
 
-#ifdef WITH_MPI
-  if (with_mpi) {
-    int provided;
-    MPI_Init_thread(NULL, NULL, MPI_THREAD_MULTIPLE, &provided);
-    if (MPI_THREAD_MULTIPLE != provided) {
-      fprintf(stderr, "Need MPI_THREAD_MULTIPLE\n");
-      exit(EXIT_FAILURE);
-    }
-
-    MPI_Comm_rank(MPI_COMM_WORLD, &mv->me);
-    MPI_Comm_size(MPI_COMM_WORLD, &mv->size);
-  } else
-#endif
   {
     int spawned;
     PMI_Init(&spawned, &mv->size, &mv->me);
@@ -602,17 +584,6 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
       fprintf(stderr, "Unable to query gid\n");
       exit(EXIT_FAILURE);
     }
-#ifdef WITH_MPI
-    if (with_mpi) {
-      // Exchange connection conn_ctx.
-      MPI_Sendrecv(&lctx, sizeof(struct conn_ctx), MPI_BYTE, i, 0, rmtctx,
-                   sizeof(struct conn_ctx), MPI_BYTE, i, 0, MPI_COMM_WORLD,
-                   MPI_STATUS_IGNORE);
-      qp_init(s->dev_qp[i], dev_port);
-      qp_to_rtr(s->dev_qp[i], dev_port, &port_attr, rmtctx);
-      qp_to_rts(s->dev_qp[i]);
-    } else
-#endif
     {
       sprintf(key, "_LC_KEY_%d_%d", mv->me, i);
       sprintf(value, "%llu-%d-%d-%d", (unsigned long long)lctx.addr, lctx.rkey,
@@ -621,7 +592,7 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
     }
   }
 
-  if (!with_mpi) {
+  {
     PMI_Barrier();
     for (int i = 0; i < mv->size; i++) {
       rmtctx = &s->conn[i];
@@ -679,10 +650,6 @@ LC_INLINE void ibv_server_finalize(ibv_server* s)
     ibv_destroy_qp(s->dev_qp[i]);
   }
   PMI_Finalize();
-#ifdef WITH_MPI
-  if (s->with_mpi)
-    MPI_Finalize();
-#endif
 
   free(s->conn);
   free(s->dev_qp);

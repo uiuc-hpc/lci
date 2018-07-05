@@ -10,9 +10,12 @@ int total = TOTAL;
 int skip = SKIP;
 
 int main(int argc, char** args) {
+  lc_init(1);
   lc_ep ep;
-  lc_init(&ep, EP_TYPE_SQUEUE);
-  lc_req req;
+  lc_rep rep;
+  lc_ep_open(0, EP_TYPE_QUEUE, &ep);
+  lc_ep_connect(0, 1-lc_rank(), 0, &rep);
+
   struct lc_wr wr = {
     .type = WR_PROD,
     .source_data = {
@@ -26,7 +29,7 @@ int main(int argc, char** args) {
       .alloc_ctx = 0
     },
     .source = 0,
-    .target = 0,
+    .target = rep,
     .meta = {99},
   };
   struct lc_sig sig = {SIG_CQ};
@@ -34,13 +37,13 @@ int main(int argc, char** args) {
   size_t alignment = sysconf(_SC_PAGESIZE);
   void* buf = malloc(MAX_MSG + alignment);
   buf = (void*)(((uintptr_t) buf + alignment - 1) / alignment * alignment);
+  lc_req req;
 
   if (lc_rank(ep) == 0) {
     for (int size = MIN_MSG; size <= 4096; size <<= 1) {
       wr.source_data.addr = buf;
       wr.source_data.size = size;
       wr.source = 0;
-      wr.target = 1;
       
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
       for (int i = 0; i < total + skip; i++) {
@@ -66,7 +69,6 @@ int main(int argc, char** args) {
       wr.source_data.addr = buf;
       wr.source_data.size = size;
       wr.source = 1;
-      wr.target = 0;
 
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
       for (int i = 0; i < total + skip; i++) {

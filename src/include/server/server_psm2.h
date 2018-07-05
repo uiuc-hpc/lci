@@ -18,6 +18,8 @@
 #define GET_PROTO(p) (p & 0x000000ff)
 #define PSM_CTRL_MSG 1
 
+#define LC_SERVER_DEBUG
+
 #ifdef LC_SERVER_DEBUG
 #define PSM_SAFECALL(x)                                       \
   {                                                           \
@@ -68,16 +70,18 @@ struct psm_mr {
 };
 
 typedef struct psm_server {
+  struct lci_hw* hw;
+
   psm2_uuid_t uuid;
   int me;
-  struct lci_ep* ep;
+  // struct lci_ep* ep;
 
   // Endpoint + Endpoint ID.
   psm2_ep_t myep;
   psm2_epid_t myepid;
 
-  psm2_epid_t* epid;
-  psm2_epaddr_t* epaddr;
+  // psm2_epid_t* epid;
+  // psm2_epaddr_t* epaddr;
 
   psm2_mq_t mq;
   int psm_recv_am_idx;
@@ -98,7 +102,7 @@ static psm2_mq_tag_t tagsel = {{0x0, 0x0, 0xFFFFFFFF}};
 #define IMM_SERVER_TAG (0xFFFFFFFF)
 
 LC_INLINE void psm_post_recv(psm_server* s, lc_packet* p);
-LC_INLINE int psm_write_send(psm_server* s, lc_id rank, void* ubuf, size_t size,
+LC_INLINE int psm_write_send(psm_server* s, struct lci_ep* ep, void* rep, void* ubuf, size_t size,
                              lc_packet* ctx, uint32_t proto);
 
 #if 0
@@ -205,15 +209,13 @@ LC_INLINE uint32_t psm_rma_key(uintptr_t mem)
   return ((struct psm_mr*)mem)->rkey;
 }
 
-LC_INLINE void psm_init(struct lci_hw* hw, uint32_t* eid)
+LC_INLINE void psm_init(struct lci_hw* hw)
 {
   // setenv("I_MPI_FABRICS", "ofa", 1);
   // setenv("PSM2_SHAREDCONTEXTS", "0", 1);
   // setenv("PSM2_RCVTHREAD", "0", 1);
-  int size;
-  int rank;
-
   psm_server* s = (psm_server*)malloc(sizeof(struct psm_server));
+  s->hw = hw;
 
   int ver_major = PSM2_VERNO_MAJOR;
   int ver_minor = PSM2_VERNO_MINOR;
@@ -226,62 +228,59 @@ LC_INLINE void psm_init(struct lci_hw* hw, uint32_t* eid)
   option.affinity = 0;  // Disable affinity.
 
   psm2_uuid_generate(s->uuid);
+  hw->name = (char*) calloc(1, 256);
 
   /* Attempt to open a PSM2 endpoint. This allocates hardware resources. */
   PSM_SAFECALL(psm2_ep_open(s->uuid, &option, &s->myep, &s->myepid));
+  sprintf(hw->name, "%llu", (unsigned long long)s->myepid);
 
-  char name[256];
-  char ep_name[256];
-  lc_pm_master_init(&size, &rank, name);
-
-  int epid_array_mask[size];
-  s->epid = (psm2_epid_t*)calloc(size, sizeof(psm2_epid_t));
-  s->epaddr = (psm2_epaddr_t*)calloc(size, sizeof(psm2_epaddr_t));
-
-  {
-    sprintf(ep_name, "%llu", (unsigned long long)s->myepid);
-    lc_pm_publish(rank, 0, name, ep_name);
-    for (int i = 0; i < size; i++) {
-      lc_pm_getname(i, 0, name, ep_name);
-      psm2_epid_t destaddr;
-      sscanf(ep_name, "%llu", (unsigned long long*)&destaddr);
-      memcpy(&s->epid[i], &destaddr, sizeof(psm2_epid_t));
-      epid_array_mask[i] = 1;
-    }
-  }
-
-  psm2_error_t epid_connect_errors[size];
-  PSM_SAFECALL(psm2_ep_connect(s->myep, size, s->epid, epid_array_mask,
-                               epid_connect_errors, s->epaddr, 0));
-
-  /* Setup mq for comm */
-  PSM_SAFECALL(psm2_mq_init(s->myep, PSM2_MQ_ORDERMASK_ALL, NULL, 0, &s->mq));
+  lc_pm_publish(lcg_rank, 0, lcg_name, hw->name);
+  hw->handle = (void*) s;
+  s->me = lcg_rank;
+  s->recv_posted = 0;
 
   lcrq_init(&s->free_mr);
   for (int i = 0; i < 256; i++)
     lcrq_enqueue(&s->free_mr, malloc(sizeof(struct psm_mr)));
 
-  s->recv_posted = 0;
+  PSM_SAFECALL(psm2_mq_init(s->myep, PSM2_MQ_ORDERMASK_ALL, NULL, 0, &s->mq));
 
 #if 0
-  s->heap = 0;
-  posix_memalign((void**) &s->heap, 4096, heap_size);
+  s->epid = (psm2_epid_t*)calloc(size, sizeof(psm2_epid_t));
+  s->epaddr = (psm2_epaddr_t*)calloc(size, sizeof(psm2_epaddr_t));
+  psm2_error_t epid_connect_errors[size];
+
+  for (int i = 0; i < size; i++) {
+      lc_pm_getname(i, 0, name, ep_name);
+      psm2_epid_t destaddr;
+      sscanf(ep_name, "%llu", (unsigned long long*)&destaddr);
+      memcpy(&s->epid[i], &destaddr, sizeof(psm2_epid_t));
+  }
+
+  PSM_SAFECALL(psm2_ep_connect(s->myep, size, s->epid, NULL,
+                               epid_connect_errors, s->epaddr, 0));
+
 #endif
-
-  hw->handle = (void*) s;
-  hw->master_ep.hw = (void*) s;
-  hw->master_ep.remotes.n_handle = size;
-  hw->master_ep.remotes.handle = (void**) &s->epaddr[0];
-
-  s->me = *eid = (uint32_t) rank;
-  s->ep = &hw->master_ep;
-
-  PMI_Barrier();
-  // Do not finalize....
-  // PMI_Finalize();
 }
 
-LC_INLINE int psm_progress(psm_server* s, const int cap)
+LC_INLINE void psm_connect(struct lci_hw* hw, int prank, int erank, lc_rep* rep)
+{
+  char ep_name[256];
+  psm2_error_t errs;
+  struct psm_server* s = (struct psm_server*) hw->handle;
+  lc_pm_getname(prank, erank, hw->name, ep_name);
+  psm2_epid_t destaddr;
+  psm2_epaddr_t epaddr;
+  sscanf(ep_name, "%llu", (unsigned long long*)&destaddr);
+  PSM_SAFECALL(psm2_ep_connect(s->myep, 1, &destaddr, NULL,
+                               &errs, &epaddr, 0));
+  *rep = malloc(sizeof(struct lci_rep));
+  (*rep)->rank = prank;
+  (*rep)->eid = (erank << 2);
+  (*rep)->handle = (void*) epaddr;
+}
+
+LC_INLINE int psm_progress(psm_server* s, const long cap)
 {
   psm2_mq_req_t req;
   psm2_mq_status2_t status;
@@ -298,22 +297,23 @@ LC_INLINE int psm_progress(psm_server* s, const int cap)
       lc_packet* p = (lc_packet*) (ctx ^ PSM_RECV);
       if (status.msg_tag.tag2 == 0x0) {
         p->context.req = &p->context.req_s;
+        p->context.req->rhandle = status.msg_peer; 
         p->context.req->rank = status.msg_tag.tag1;
         p->context.req->size = (status.msg_length);
         p->context.req->meta.val = status.msg_tag.tag0 >> 8;
-        uint32_t proto = status.msg_tag.tag0 & 0x000000ff;
-        lc_serve_recv(s->ep, p, proto, cap);
+        uint32_t proto = status.msg_tag.tag0 & 0xff;
+        lc_serve_recv(lcg_ep_list[proto >> 2], p, proto & 0x03, cap);
         s->recv_posted--;
       } else {
         uint32_t imm = status.msg_tag.tag0;
-        lc_serve_imm(s->ep, imm);
+        lc_serve_imm(lcg_ep_list[0], imm);
       }
     } else if (ctx & PSM_SEND) {
       lc_packet* p = (lc_packet*) (ctx ^ PSM_SEND);
       uint32_t imm = status.msg_tag.tag0;
       if (p) {
-          uint32_t proto = p->context.proto;
-          lc_serve_send(s->ep, p, proto);
+          uint32_t proto = p->context.proto & 0xff;
+          lc_serve_send(lcg_ep_list[proto >> 2], p, proto & 0x03);
       }
     }
   } else {
@@ -321,7 +321,7 @@ LC_INLINE int psm_progress(psm_server* s, const int cap)
   }
 
   if (s->recv_posted < SERVER_MAX_RCVS)
-    psm_post_recv(s, lc_pool_get_nb(s->ep->pkpool));
+    psm_post_recv(s, lc_pool_get_nb(s->hw->pkpool));
 
 #if 0
   // Cleanup stuffs when nothing to do, this improves the reg/dereg a bit.
@@ -368,7 +368,7 @@ LC_INLINE void psm_post_recv(psm_server* s, lc_packet* p)
 #endif
 }
 
-LC_INLINE int psm_write_send(psm_server* s, lc_id rank, void* ubuf, size_t size,
+LC_INLINE int psm_write_send(psm_server* s, struct lci_ep* ep, void* rep, void* ubuf, size_t size,
                              lc_packet* ctx, uint32_t proto)
 {
   psm2_mq_tag_t rtag;
@@ -378,14 +378,14 @@ LC_INLINE int psm_write_send(psm_server* s, lc_id rank, void* ubuf, size_t size,
 
 #ifdef LC_SERVER_INLINE
   if (size < 1024) {
-    PSM_SAFECALL(psm2_mq_send2(s->mq, s->epaddr[rank], 0, &rtag, ubuf, size));
-    lc_serve_send(s->ep, ctx, proto);
+    PSM_SAFECALL(psm2_mq_send2(s->mq, rep, 0, &rtag, ubuf, size));
+    lc_serve_send(ep, ctx, proto);
     return 1;
   } else
 #endif
   {
     if (ubuf != ctx->data.buffer) memcpy(ctx->data.buffer, ubuf, size);
-    PSM_SAFECALL(psm2_mq_isend2(s->mq, s->epaddr[rank], 0, /* no flags */
+    PSM_SAFECALL(psm2_mq_isend2(s->mq, rep, 0, /* no flags */
                                &rtag, ctx->data.buffer, size,
                                (void*)(PSM_SEND | (uintptr_t)ctx),
                                (psm2_mq_req_t*)ctx));
@@ -421,7 +421,7 @@ LC_INLINE void psm_get(psm_server* s, int rank, void* buf,
 }
 #endif
 
-LC_INLINE void psm_write_rma_rtr(psm_server* s, int rank, void* buf,
+LC_INLINE void psm_write_rma_rtr(psm_server* s, void* rep, void* buf,
                                  uintptr_t addr __UNUSED__, uint32_t rkey, size_t size,
                                  uint32_t sid, lc_packet* ctx)
 {
@@ -430,7 +430,7 @@ LC_INLINE void psm_write_rma_rtr(psm_server* s, int rank, void* buf,
   rtag.tag1 = 0;
   rtag.tag2 = rkey;
 
-  PSM_SAFECALL(psm2_mq_isend2(s->mq, s->epaddr[rank], 0,    /* no flags */
+  PSM_SAFECALL(psm2_mq_isend2(s->mq, rep, 0,    /* no flags */
         &rtag,
         buf, size, (void*)(PSM_SEND | (uintptr_t)ctx),
         (psm2_mq_req_t*)ctx));
@@ -472,17 +472,19 @@ LC_INLINE uint32_t psm_heap_rkey(psm_server* s __UNUSED__, int node __UNUSED__)
 #endif
 
 LC_INLINE void* psm_heap_ptr(psm_server* s) { return s->heap; }
+
 #define lc_server_init psm_init
+#define lc_server_connect psm_connect
 #define lc_server_send psm_write_send
-#define lc_server_get psm_get
-#define lc_server_rma_rtr psm_write_rma_rtr
-#define lc_server_rma psm_write_rma
-#define lc_server_heap_rkey psm_heap_rkey
-#define lc_server_heap_ptr psm_heap_ptr
 #define lc_server_progress psm_progress
 #define lc_server_finalize psm_finalize
 #define lc_server_post_recv psm_post_recv
+#define lc_server_rma_rtr psm_write_rma_rtr
 
+#define lc_server_get psm_get
+#define lc_server_rma psm_write_rma
+#define lc_server_heap_rkey psm_heap_rkey
+#define lc_server_heap_ptr psm_heap_ptr
 #define lc_server_post_rma psm_post_recv_rma
 
 #define lc_server_rma_reg psm_rma_reg
