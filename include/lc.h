@@ -1,7 +1,7 @@
 /**
  * @file lc.h
  * @author Hoang-Vu Dang (danghvu@gmail.com)
- * @brief Header file for all MPIv code.
+ * @brief Header file for all LCI code.
  *
  */
 
@@ -168,16 +168,16 @@ LC_EXPORT
 lc_id lc_rank();
 
 LC_EXPORT
-lc_status lc_progress();
+lc_status lc_progress(int);
 
 LC_EXPORT
-lc_status lc_progress_q();
+lc_status lc_progress_q(int);
 
 LC_EXPORT
-lc_status lc_progress_sq();
+lc_status lc_progress_sq(int);
 
 LC_EXPORT
-lc_status lc_progress_t();
+lc_status lc_progress_t(int);
 
 LC_EXPORT
 lc_status lc_free(lc_ep, void* buf);

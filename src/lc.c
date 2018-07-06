@@ -195,27 +195,27 @@ lc_status lc_req_free(lc_ep ep, lc_req* req)
   return LC_OK;
 }
 
-lc_status lc_progress_t() // TODO: make a version with index.
+lc_status lc_progress_t(int id) // TODO: make a version with index.
 {
-  lc_server_progress(hw[0].handle, EP_TYPE_TAG);
+  lc_server_progress(hw[id].handle, EP_TYPE_TAG);
   return LC_OK;
 }
 
-lc_status lc_progress_q() // TODO: make a version with index.
+lc_status lc_progress_q(int id) // TODO: make a version with index.
 {
-  lc_server_progress(hw[0].handle, EP_TYPE_QUEUE);
+  lc_server_progress(hw[id].handle, EP_TYPE_QUEUE);
   return LC_OK;
 }
 
-lc_status lc_progress_sq() // TODO: make a version with index.
+lc_status lc_progress_sq(int id) // TODO: make a version with index.
 {
-  lc_server_progress(hw[0].handle, EP_TYPE_SQUEUE);
+  lc_server_progress(hw[id].handle, EP_TYPE_SQUEUE);
   return LC_OK;
 }
 
-lc_status lc_progress()
+lc_status lc_progress(int id)
 {
-  lc_server_progress(hw[0].handle, hw[0].cap);
+  lc_server_progress(hw[id].handle, hw[id].cap);
   return LC_OK;
 }
 

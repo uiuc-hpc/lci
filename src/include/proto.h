@@ -30,7 +30,7 @@ void lci_rdz_prepare(struct lci_ep* ep, void* src, size_t size, lc_packet* p)
   // FIXME: 0x1 is not correct, uncomment the above when ready.
   lc_server_post_rma(ep->hw->handle, src, size, 0x1);
   // p->context.rma_mem = rma_mem;
-  p->data.rtr.comm_id = (uint32_t)((uintptr_t)p - ep->hw->base_addr);
+  p->data.rtr.comm_id = ep->eid | ((uint32_t)((uintptr_t)p - ep->hw->base_addr) << 2);
   p->data.rtr.tgt_addr = (uintptr_t)src;
   p->data.rtr.rkey = 0x1; //lc_server_rma_key(rma_mem);
 }

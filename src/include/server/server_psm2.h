@@ -220,7 +220,11 @@ LC_INLINE void psm_init(struct lci_hw* hw)
   int ver_major = PSM2_VERNO_MAJOR;
   int ver_minor = PSM2_VERNO_MINOR;
 
-  PSM_SAFECALL(psm2_init(&ver_major, &ver_minor));
+  static int psm2_initialized = 0;
+  if (!psm2_initialized) {
+    PSM_SAFECALL(psm2_init(&ver_major, &ver_minor));
+    psm2_initialized = 1;
+  }
 
   /* Setup the endpoint options struct */
   struct psm2_ep_open_opts option;
@@ -305,12 +309,12 @@ LC_INLINE int psm_progress(psm_server* s, const long cap)
         lc_serve_recv(lcg_ep_list[proto >> 2], p, proto & 0x03, cap);
         s->recv_posted--;
       } else {
-        uint32_t imm = status.msg_tag.tag0;
-        lc_serve_imm(lcg_ep_list[0], imm);
+        uint32_t imm = status.msg_tag.tag0 >> 2;
+        uint32_t eid = status.msg_tag.tag0 & 0x3;
+        lc_serve_imm(lcg_ep_list[eid], imm);
       }
     } else if (ctx & PSM_SEND) {
       lc_packet* p = (lc_packet*) (ctx ^ PSM_SEND);
-      uint32_t imm = status.msg_tag.tag0;
       if (p) {
           uint32_t proto = p->context.proto & 0xff;
           lc_serve_send(lcg_ep_list[proto >> 2], p, proto & 0x03);
