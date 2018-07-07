@@ -148,6 +148,12 @@ lc_status lc_init(int);
 LC_EXPORT
 lc_status lc_ep_open(int hwid, long cap, lc_ep* ep);
 
+LC_EXPORT
+lc_status lc_send_tag(lc_ep ep, lc_rep rep, void* src, size_t size, lc_meta tag, lc_req* req);
+
+LC_EXPORT
+lc_status lc_recv_tag(lc_ep ep, lc_rep rep, void* src, size_t size, lc_meta tag, lc_req* req);
+
 
 LC_EXPORT
 lc_status lc_finalize(lc_ep ep);

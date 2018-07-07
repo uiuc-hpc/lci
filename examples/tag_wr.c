@@ -15,9 +15,9 @@ int main(int argc, char** args) {
   lc_rep rep;
   lc_ep_open(0, EP_TYPE_TAG, &ep);
   lc_ep_connect(0, 1-lc_rank(), 0, &rep);
-  lc_meta tag = {99};
 
   lc_req req;
+  struct lc_wr wr1, wr2;
   double t1;
   size_t alignment = sysconf(_SC_PAGESIZE);
   void* src_buf = malloc(MAX_MSG + alignment);
@@ -29,19 +29,35 @@ int main(int argc, char** args) {
     for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
       memset(src_buf, 'a', size);
       memset(dst_buf, 'b', size);
+     
+      wr1.type = WR_PROD;
+      wr1.source_data.addr = src_buf;
+      wr1.source_data.size = size;
+      wr1.target_data.type = DAT_EXPL;
+      wr1.meta.val = 99;
+      wr1.source = 0;
+      wr1.target = rep;
+
+      wr2.type = WR_CONS;
+      wr2.target_data.addr = dst_buf;
+      wr2.target_data.size = size;
+      wr2.source_data.type = DAT_EXPL;
+      wr2.meta.val = 99;
+      wr2.source = 1;
+      wr2.target = rep;
 
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
 
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
         req.flag = 0;
-        while (lc_send_tag(ep, rep, src_buf, size, tag, &req) != LC_OK)
+        while (lc_submit(ep, &wr1, &req) != LC_OK)
           lc_progress_t(0);
         while (req.flag == 0)
           lc_progress_t(0);
 
         req.flag = 0;
-        while (lc_recv_tag(ep, rep, dst_buf, size, tag, &req) != LC_OK)
+        while (lc_submit(ep, &wr2, &req) != LC_OK)
           lc_progress_t(0);
         while (req.flag == 0)
           lc_progress_t(0);
@@ -54,17 +70,32 @@ int main(int argc, char** args) {
     for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
       memset(src_buf, 'a', size);
       memset(dst_buf, 'b', size);
+      wr1.type = WR_PROD;
+      wr1.source_data.addr = src_buf;
+      wr1.source_data.size = size;
+      wr1.target_data.type = DAT_EXPL;
+      wr1.meta.val = 99;
+      wr1.source = 1;
+      wr1.target = rep;
+
+      wr2.type = WR_CONS;
+      wr2.target_data.addr = dst_buf;
+      wr2.target_data.size = size;
+      wr2.source_data.type = DAT_EXPL;
+      wr2.meta.val = 99;
+      wr2.source = 0;
+      wr2.target = rep;
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
 
       for (int i = 0; i < total + skip; i++) {
         req.flag = 0;
-        while (lc_recv_tag(ep, rep, dst_buf, size, tag, &req) != LC_OK)
+        while (lc_submit(ep, &wr2, &req) != LC_OK)
           lc_progress_t(0);
         while (req.flag == 0)
           lc_progress_t(0);
 
         req.flag = 0;
-        while (lc_send_tag(ep, rep, src_buf, size, tag, &req) != LC_OK)
+        while (lc_submit(ep, &wr1, &req) != LC_OK)
           lc_progress_t(0);
         while (req.flag == 0)
           lc_progress_t(0);

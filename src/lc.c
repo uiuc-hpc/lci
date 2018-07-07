@@ -76,7 +76,7 @@ lc_status lci_send_piggy(struct lci_ep *ep, lc_rep tep, void* src, size_t size, 
   return LC_OK;
 }
 
-static inline
+LC_INLINE
 lc_status lci_send_tag(struct lci_ep *ep, lc_rep rep, void* src, size_t size, lc_meta tag, lc_req* req)
 {
   LC_POOL_GET_OR_RETN(ep->hw->pkpool, p);
@@ -95,12 +95,12 @@ lc_status lci_send_tag(struct lci_ep *ep, lc_rep rep, void* src, size_t size, lc
   return LC_OK;
 }
 
-static inline
-lc_status lci_recv_tag(struct lci_ep *ep, lc_id rank, lc_rep rep, void* src, size_t size, lc_meta tag, lc_req* req)
+LC_INLINE
+lc_status lci_recv_tag(struct lci_ep *ep, lc_rep rep, void* src, size_t size, lc_meta tag, lc_req* req)
 {
   INIT_CTX(req);
   req->rhandle = rep->handle;
-  lc_key key = lc_make_key(rank, tag.val);
+  lc_key key = lc_make_key(rep->rank, tag.val);
   lc_value value = (lc_value)req;
   if (!lc_hash_insert(ep->tbl, key, &value, CLIENT)) {
     lc_packet* p = (lc_packet*) value;
@@ -154,12 +154,22 @@ lc_status lci_consume(struct lci_ep* ep, lc_wr* wr, lc_req* req)
 
   switch(source->type) {
     case DAT_EXPL :
-      return lci_recv_tag(ep, wr->source, wr->target, tgt_buf, size, wr->meta, req);
+      return lci_recv_tag(ep, wr->target, tgt_buf, size, wr->meta, req);
     default:
       assert(0 && "Invalid type");
   }
 
   return LC_OK;
+}
+
+lc_status lc_send_tag(lc_ep ep, lc_rep rep, void* src, size_t size, lc_meta tag, lc_req* req)
+{
+  return lci_send_tag(ep, rep, src, size, tag, req);
+}
+
+lc_status lc_recv_tag(lc_ep ep, lc_rep rep, void* src, size_t size, lc_meta tag, lc_req* req)
+{
+  return lci_recv_tag(ep, rep, src, size, tag, req);
 }
 
 lc_status lc_submit(lc_ep ep, lc_wr* wr, lc_req* req)
