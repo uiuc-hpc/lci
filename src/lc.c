@@ -18,19 +18,22 @@ int server_deadlock_alert;
 lc_ep lcg_ep_list[MAX_EP];
 int lcg_nep = 0;
 
-lc_status lc_init(int num_hw) 
+lc_status lc_init() 
 {
   lc_pm_master_init(&lcg_size, &lcg_rank, lcg_name);
-  hw = (struct lci_hw*) malloc(sizeof(struct lci_hw) * num_hw);
-  for (int i = 0; i < num_hw; i++) {
-    lci_hw_init(&hw[i]);
-  }
   return LC_OK;
 }
 
-lc_status lc_ep_open(int hwid, long cap, lc_ep* ep)
+lc_status lc_hw_open(lc_hw* hw)
 {
-  lci_ep_open(&hw[hwid], ep, cap);
+  posix_memalign((void**) hw, 4096, sizeof(struct lci_hw));
+  lci_hw_init(*hw);
+  return LC_OK;
+}
+
+lc_status lc_ep_open(lc_hw hw, long cap, lc_ep* ep)
+{
+  lci_ep_open(hw, ep, cap);
   return LC_OK;
 }
 
@@ -50,14 +53,14 @@ lc_status lci_send_alloc(struct lci_ep *ep, lc_rep tep, void* src, size_t size, 
   LC_POOL_GET_OR_RETN(ep->hw->pkpool, p);
 
   if (size <= (int) SHORT_MSG_SIZE) {
-    lc_server_send(ep->hw->handle, ep, tep->handle, src, size, p, MAKE_PROTO(tep->eid, LC_PROTO_DATA, meta.val));
+    lc_server_send(ep->hw->handle, ep, tep->handle, src, size, p, MAKE_PROTO(ep->eid, tep->eid, LC_PROTO_DATA, meta.val));
     req->flag = 1;
   } else {
     INIT_CTX(req);
     p->data.rts.req = (uintptr_t) req;
     p->data.rts.src_addr = (uintptr_t) src;
     p->data.rts.size = size;
-    lc_server_send(ep->hw->handle, ep, tep->handle, &p->data, sizeof(struct packet_rts), p, MAKE_PROTO(tep->eid, LC_PROTO_RTS, meta.val));
+    lc_server_send(ep->hw->handle, ep, tep->handle, &p->data, sizeof(struct packet_rts), p, MAKE_PROTO(ep->eid, tep->eid, LC_PROTO_RTS, meta.val));
   }
   return LC_OK;
 }
@@ -68,7 +71,7 @@ lc_status lci_send_piggy(struct lci_ep *ep, lc_rep tep, void* src, size_t size, 
   LC_POOL_GET_OR_RETN(ep->hw->pkpool, p);
 
   if (size <= (int) SHORT_MSG_SIZE) {
-    lc_server_send(ep->hw->handle, ep, tep->handle, src, size, p, MAKE_PROTO(tep->eid, LC_PROTO_DATA, meta.val));
+    lc_server_send(ep->hw->handle, ep, tep->handle, src, size, p, MAKE_PROTO(ep->eid, tep->eid, LC_PROTO_DATA, meta.val));
     req->flag = 1;
   } else {
     assert(0);
@@ -82,7 +85,7 @@ lc_status lci_send_tag(struct lci_ep *ep, lc_rep rep, void* src, size_t size, lc
   LC_POOL_GET_OR_RETN(ep->hw->pkpool, p);
   if (size <= (int) SHORT_MSG_SIZE) {
     lc_server_send(ep->hw->handle, ep, rep->handle, src, size, p,
-                   MAKE_PROTO(rep->eid, LC_PROTO_DATA, tag.val));
+                   MAKE_PROTO(ep->eid, rep->eid, LC_PROTO_DATA, tag.val));
     req->flag = 1;
   } else {
     INIT_CTX(req);
@@ -90,7 +93,7 @@ lc_status lci_send_tag(struct lci_ep *ep, lc_rep rep, void* src, size_t size, lc
     p->data.rts.src_addr = (uintptr_t) src;
     p->data.rts.size = size;
     lc_server_send(ep->hw->handle, ep, rep->handle, &p->data, sizeof(struct packet_rts), p,
-                   MAKE_PROTO(rep->eid, LC_PROTO_RTS, tag.val));
+                   MAKE_PROTO(ep->eid, rep->eid, LC_PROTO_RTS, tag.val));
   }
   return LC_OK;
 }
@@ -205,33 +208,33 @@ lc_status lc_req_free(lc_ep ep, lc_req* req)
   return LC_OK;
 }
 
-lc_status lc_progress_t(int id) // TODO: make a version with index.
+lc_status lc_progress_t(lc_hw hw) // TODO: make a version with index.
 {
-  lc_server_progress(hw[id].handle, EP_TYPE_TAG);
+  lc_server_progress(hw->handle, EP_TYPE_TAG);
   return LC_OK;
 }
 
-lc_status lc_progress_q(int id) // TODO: make a version with index.
+lc_status lc_progress_q(lc_hw hw) // TODO: make a version with index.
 {
-  lc_server_progress(hw[id].handle, EP_TYPE_QUEUE);
+  lc_server_progress(hw->handle, EP_TYPE_QUEUE);
   return LC_OK;
 }
 
-lc_status lc_progress_sq(int id) // TODO: make a version with index.
+lc_status lc_progress_sq(lc_hw hw) // TODO: make a version with index.
 {
-  lc_server_progress(hw[id].handle, EP_TYPE_SQUEUE);
+  lc_server_progress(hw->handle, EP_TYPE_SQUEUE);
   return LC_OK;
 }
 
-lc_status lc_progress(int id)
+lc_status lc_progress(lc_hw hw)
 {
-  lc_server_progress(hw[id].handle, hw[id].cap);
+  lc_server_progress(hw->handle, hw->cap);
   return LC_OK;
 }
 
-lc_status lc_ep_connect(int hwid, int prank, int erank, lc_rep* rep)
+lc_status lc_ep_connect(lc_hw hw, int prank, int erank, lc_rep* rep)
 {
-  lci_ep_connect(hwid, prank, erank, rep);
+  lci_ep_connect(hw, prank, erank, rep);
   return LC_OK;
 }
 

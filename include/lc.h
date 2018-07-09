@@ -141,12 +141,16 @@ typedef struct lc_req {
 } lc_req;
 
 typedef struct lci_ep* lc_ep;
+typedef struct lci_hw* lc_hw;
 
 LC_EXPORT
-lc_status lc_init(int);
+lc_status lc_init();
 
 LC_EXPORT
-lc_status lc_ep_open(int hwid, long cap, lc_ep* ep);
+lc_status lc_hw_open(lc_hw* hw);
+
+LC_EXPORT
+lc_status lc_ep_open(lc_hw hw, long cap, lc_ep* ep);
 
 LC_EXPORT
 lc_status lc_send_tag(lc_ep ep, lc_rep rep, void* src, size_t size, lc_meta tag, lc_req* req);
@@ -156,7 +160,7 @@ lc_status lc_recv_tag(lc_ep ep, lc_rep rep, void* src, size_t size, lc_meta tag,
 
 
 LC_EXPORT
-lc_status lc_finalize(lc_ep ep);
+lc_status lc_finalize();
 
 LC_EXPORT
 lc_status lc_submit(lc_ep, struct lc_wr* wr, lc_req* req); 
@@ -174,22 +178,22 @@ LC_EXPORT
 lc_id lc_rank();
 
 LC_EXPORT
-lc_status lc_progress(int);
+lc_status lc_progress(lc_hw);
 
 LC_EXPORT
-lc_status lc_progress_q(int);
+lc_status lc_progress_q(lc_hw);
 
 LC_EXPORT
-lc_status lc_progress_sq(int);
+lc_status lc_progress_sq(lc_hw);
 
 LC_EXPORT
-lc_status lc_progress_t(int);
+lc_status lc_progress_t(lc_hw);
 
 LC_EXPORT
 lc_status lc_free(lc_ep, void* buf);
 
 LC_EXPORT
-lc_status lc_ep_connect(int hwid, int prank, int erank, lc_rep* rep);
+lc_status lc_ep_connect(lc_hw hw, int prank, int erank, lc_rep* rep);
 
 #ifdef __cplusplus
 }

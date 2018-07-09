@@ -10,13 +10,14 @@ int total = TOTAL;
 int skip = SKIP;
 
 int main(int argc, char** args) {
-  lc_init(1);
+  lc_hw hw;
   lc_ep ep;
   lc_rep rep;
-  lc_ep_open(0, EP_TYPE_QUEUE, &ep);
-  lc_ep_connect(0, 1-lc_rank(), 0, &rep);
 
-  PMI_Barrier();
+  lc_init();
+  lc_hw_open(&hw);
+  lc_ep_open(hw, EP_TYPE_QUEUE, &ep);
+  lc_ep_connect(hw, 1-lc_rank(), 0, &rep);
 
   lc_req req;
   struct lc_wr wr = {
@@ -54,11 +55,11 @@ int main(int argc, char** args) {
         req.flag = 0;
         wr.meta.val = i;
         while (lc_submit(ep, &wr, &req) != LC_OK)
-          lc_progress_q(0);
+          lc_progress_q(hw);
         while (req.flag == 0)
-          lc_progress_q(0);
+          lc_progress_q(hw);
         while (lc_deq_alloc(ep, &req) != LC_OK)
-          lc_progress_q(0);
+          lc_progress_q(hw);
         assert(req.meta.val == i);
         lc_free(ep, req.buffer);
       }
@@ -78,17 +79,17 @@ int main(int argc, char** args) {
       for (int i = 0; i < total + skip; i++) {
         // req.flag = 0;
         while (lc_deq_alloc(ep, &req) != LC_OK)
-          lc_progress_q(0);
+          lc_progress_q(hw);
         assert(req.meta.val == i);
         lc_free(ep, req.buffer);
         req.flag = 0;
         wr.meta.val = i;
         while (lc_submit(ep, &wr, &req) != LC_OK)
-          lc_progress_q(0);
+          lc_progress_q(hw);
         while (req.flag == 0)
-          lc_progress_q(0);
+          lc_progress_q(hw);
       }
     }
   }
-  lc_finalize(ep);
+  lc_finalize();
 }

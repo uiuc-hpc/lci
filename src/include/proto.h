@@ -18,7 +18,12 @@
 #define LC_PROTO_RTS     2
 #define LC_PROTO_LONG    3
 
-#define MAKE_PROTO(eid, proto, tag) (((uint32_t)(proto)) | eid | ((uint32_t)tag << 8))
+#define MAKE_PROTO(leid, reid, proto, meta)  (proto | (leid << 2) | (reid << 9) | (meta << 16))
+
+#define PROTO_GET_PROTO(proto) (proto         & 0b011)
+#define PROTO_GET_REID(proto)  ((proto >> 9)  & 0b01111111)
+#define PROTO_GET_LEID(proto)  ((proto >> 2)  & 0b01111111)
+#define PROTO_GET_META(proto)  ((proto >> 16) & 0xffff)
 
 #define MAKE_SIG(sig, id) (((uint32_t)(sig)) | ((uint32_t) id << 3))
 
@@ -53,6 +58,7 @@ static void queue(struct lci_ep* ep, void* arg)
 LC_INLINE
 void lc_serve_recv_piggy(struct lci_ep* ep, lc_packet* p, uint32_t proto, func_cb complete)
 {
+  p->context.req->meta.val = PROTO_GET_META(proto);
   p->context.req->buffer = &p->data;
   complete(ep, p);
 }
@@ -62,6 +68,9 @@ void lc_serve_recv_alloc(struct lci_ep* ep, lc_packet* p, uint32_t proto, func_c
 {
   void* buf;
   size_t size;
+  lc_eid reid = PROTO_GET_LEID(proto);
+  p->context.req->meta.val = PROTO_GET_META(proto);
+  proto = PROTO_GET_PROTO(proto);
 
   switch (proto) {
     case LC_PROTO_DATA: {
@@ -75,16 +84,14 @@ void lc_serve_recv_alloc(struct lci_ep* ep, lc_packet* p, uint32_t proto, func_c
       size = p->data.rts.size;
       buf = ep->alloc(p->data.rts.size);
       p->context.req->buffer = buf;
-
-      uint32_t next_proto = (proto & ~LC_PROTO_RTS) | LC_PROTO_RTR;
       lci_rdz_prepare(ep, buf, size, p);
-      p->context.proto = next_proto;
-      lc_server_send(ep->hw->handle, ep, p->context.req->rhandle, &p->data, sizeof(struct packet_rtr), p, next_proto);
+      proto = MAKE_PROTO(ep->eid, reid, LC_PROTO_RTR, 0);
+      lc_server_send(ep->hw->handle, ep, p->context.req->rhandle, &p->data, sizeof(struct packet_rtr), p, proto);
       break;
     }
 
     case LC_PROTO_RTR: {
-      p->context.proto = LC_PROTO_LONG;
+      p->context.proto = MAKE_PROTO(ep->eid, reid, LC_PROTO_LONG, 0);
       lc_server_rma_rtr(ep->hw->handle, p->context.req->rhandle,
           (void*) p->data.rts.src_addr, 
           p->data.rtr.tgt_addr, p->data.rtr.rkey, p->data.rts.size, 
@@ -93,6 +100,7 @@ void lc_serve_recv_alloc(struct lci_ep* ep, lc_packet* p, uint32_t proto, func_c
     }
 
     default:
+      printf("%d\n", proto);
       assert(0 && "invalid proto");
   };
 }
@@ -102,7 +110,10 @@ void lc_serve_recv_expl(struct lci_ep* ep, lc_packet* p, uint32_t proto, func_cb
 {
   void* buf;
   size_t size;
-  
+  lc_eid reid = PROTO_GET_LEID(proto);
+  p->context.req->meta.val = PROTO_GET_META(proto);
+  proto = PROTO_GET_PROTO(proto);
+ 
   switch (proto) {
     case LC_PROTO_DATA: {
       p->context.proto = proto;
@@ -128,16 +139,15 @@ void lc_serve_recv_expl(struct lci_ep* ep, lc_packet* p, uint32_t proto, func_cb
         p->context.req = req;
         size = p->data.rts.size;
         buf = req->buffer;
-        uint32_t next_proto = (proto & ~LC_PROTO_RTS) | LC_PROTO_RTR;
         lci_rdz_prepare(ep, buf, size, p);
-        p->context.proto = next_proto;
-        lc_server_send(ep->hw->handle, ep, p->context.req->rhandle, &p->data, sizeof(struct packet_rtr), p, next_proto);
+        proto = MAKE_PROTO(ep->eid, reid, LC_PROTO_RTR, 0);
+        lc_server_send(ep->hw->handle, ep, p->context.req->rhandle, &p->data, sizeof(struct packet_rtr), p, proto);
       }
       break;
     }
 
     case LC_PROTO_RTR: {
-      p->context.proto = LC_PROTO_LONG;
+      p->context.proto = MAKE_PROTO(ep->eid, reid, LC_PROTO_LONG, 0);
       lc_server_rma_rtr(ep->hw->handle, p->context.req->rhandle,
           (void*) p->data.rts.src_addr, 
           p->data.rtr.tgt_addr, p->data.rtr.rkey, p->data.rts.size, 
@@ -151,11 +161,13 @@ void lc_serve_recv_expl(struct lci_ep* ep, lc_packet* p, uint32_t proto, func_cb
 }
 
 LC_INLINE
-void lc_serve_recv(struct lci_ep* ep, lc_packet* p, uint32_t proto, const long server_cap)
+void lc_serve_recv(lc_hw hw, lc_packet* p, uint32_t proto, const long server_cap)
 {
-  // A bunch of IF, THEN, ELSE, but if ep_type is const then everything goes away.
+  // NOTE: this should be REID because it is received from remote.
+  struct lci_ep* ep = lcg_ep_list[PROTO_GET_REID(proto)];
+
   if (server_cap == EP_ANY) {
-    return lc_serve_recv(ep, p, proto, ep->cap);
+    return lc_serve_recv(hw, p, proto, ep->cap);
   }
 
   if (server_cap & EP_AR_EXPL) {
@@ -173,8 +185,11 @@ void lc_serve_recv(struct lci_ep* ep, lc_packet* p, uint32_t proto, const long s
 }
 
 LC_INLINE
-void lc_serve_send(struct lci_ep* ep, lc_packet* p, uint32_t proto)
+void lc_serve_send(lc_hw hw, lc_packet* p, uint32_t proto)
 {
+  struct lci_ep* ep = lcg_ep_list[PROTO_GET_LEID(proto)];
+  proto = PROTO_GET_PROTO(proto);
+
   if (proto == LC_PROTO_RTR) {
     if (ep->cap & EP_CE_QUEUE) {
       p->context.req->flag = 0;

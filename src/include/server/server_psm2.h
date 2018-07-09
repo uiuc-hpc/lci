@@ -238,7 +238,6 @@ LC_INLINE void psm_init(struct lci_hw* hw)
   PSM_SAFECALL(psm2_ep_open(s->uuid, &option, &s->myep, &s->myepid));
   sprintf(hw->name, "%llu", (unsigned long long)s->myepid);
 
-  lc_pm_publish(lcg_rank, 0, lcg_name, hw->name);
   hw->handle = (void*) s;
   s->me = lcg_rank;
   s->recv_posted = 0;
@@ -280,7 +279,7 @@ LC_INLINE void psm_connect(struct lci_hw* hw, int prank, int erank, lc_rep* rep)
                                &errs, &epaddr, 0));
   *rep = malloc(sizeof(struct lci_rep));
   (*rep)->rank = prank;
-  (*rep)->eid = (erank << 2);
+  (*rep)->eid = erank;
   (*rep)->handle = (void*) epaddr;
 }
 
@@ -304,9 +303,8 @@ LC_INLINE int psm_progress(psm_server* s, const long cap)
         p->context.req->rhandle = status.msg_peer; 
         p->context.req->rank = status.msg_tag.tag1;
         p->context.req->size = (status.msg_length);
-        p->context.req->meta.val = status.msg_tag.tag0 >> 8;
-        uint32_t proto = status.msg_tag.tag0 & 0xff;
-        lc_serve_recv(lcg_ep_list[proto >> 2], p, proto & 0x03, cap);
+        uint32_t proto = status.msg_tag.tag0;
+        lc_serve_recv(s->hw, p, proto, cap);
         s->recv_posted--;
       } else {
         uint32_t imm = status.msg_tag.tag0 >> 2;
@@ -316,8 +314,8 @@ LC_INLINE int psm_progress(psm_server* s, const long cap)
     } else if (ctx & PSM_SEND) {
       lc_packet* p = (lc_packet*) (ctx ^ PSM_SEND);
       if (p) {
-          uint32_t proto = p->context.proto & 0xff;
-          lc_serve_send(lcg_ep_list[proto >> 2], p, proto & 0x03);
+          uint32_t proto = p->context.proto;
+          lc_serve_send(s->hw, p, proto);
       }
     }
   } else {
@@ -383,12 +381,13 @@ LC_INLINE int psm_write_send(psm_server* s, struct lci_ep* ep, void* rep, void* 
 #ifdef LC_SERVER_INLINE
   if (size < 1024) {
     PSM_SAFECALL(psm2_mq_send2(s->mq, rep, 0, &rtag, ubuf, size));
-    lc_serve_send(ep, ctx, proto);
+    lc_serve_send(s->hw, ctx, proto);
     return 1;
   } else
 #endif
   {
     if (ubuf != ctx->data.buffer) memcpy(ctx->data.buffer, ubuf, size);
+    ctx->context.proto = proto;
     PSM_SAFECALL(psm2_mq_isend2(s->mq, rep, 0, /* no flags */
                                &rtag, ctx->data.buffer, size,
                                (void*)(PSM_SEND | (uintptr_t)ctx),

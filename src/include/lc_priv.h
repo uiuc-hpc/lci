@@ -119,9 +119,9 @@ void lci_ep_open(struct lci_hw* hw, struct lci_ep** ep_ptr, long cap)
 }
 
 LC_INLINE
-void lci_ep_connect(int hwid, int prank, int erank, lc_rep* rep)
+void lci_ep_connect(lc_hw hw, int prank, int erank, lc_rep* rep)
 {
-  lc_server_connect(&hw[hwid], prank, erank, rep);
+  lc_server_connect(hw, prank, erank, rep);
 }
 
 

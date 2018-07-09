@@ -10,17 +10,20 @@ int total = TOTAL;
 int skip = SKIP;
 
 int main(int argc, char** args) {
-  lc_init(2);
   lc_ep ep[2];
   lc_rep rep[2];
-  lc_ep_open(0, EP_TYPE_QUEUE, &ep[0]);
-  lc_ep_open(1, EP_TYPE_QUEUE, &ep[1]);
+  lc_hw hw[2];
 
-  lc_ep_connect(0, 1-lc_rank(), 0, &rep[0]);
-  lc_ep_connect(0, 1-lc_rank(), 1, &rep[1]);
+  lc_init();
 
-  lc_progress_q(0);
-  lc_progress_q(1);
+  lc_hw_open(&hw[0]);
+  lc_hw_open(&hw[1]);
+
+  lc_ep_open(hw[0], EP_TYPE_QUEUE, &ep[0]);
+  lc_ep_open(hw[1], EP_TYPE_QUEUE, &ep[1]);
+
+  lc_ep_connect(hw[0], 1-lc_rank(), 0, &rep[0]);
+  lc_ep_connect(hw[1], 1-lc_rank(), 1, &rep[1]);
 
   PMI_Barrier();
 
@@ -52,7 +55,7 @@ int main(int argc, char** args) {
       wr.source_data.addr = buf;
       wr.source_data.size = size;
       wr.source = 0;
-      wr.target = rep[1];
+      wr.target = rep[0];
       
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
       for (int i = 0; i < total + skip; i++) {
@@ -60,17 +63,15 @@ int main(int argc, char** args) {
         req.flag = 0;
         wr.meta.val = i;
         while (lc_submit(ep[0], &wr, &req) != LC_OK)
-          { lc_progress_q(0); }
+          { lc_progress_q(hw[0]); }
         while (req.flag == 0)
-          { lc_progress_q(0); }
-        if (size < 1024)
-            while (lc_deq_alloc(ep[1], &req) != LC_OK)
-            { lc_progress_q(1);}
-        else 
-            while (lc_deq_alloc(ep[1], &req) != LC_OK)
-            { lc_progress_q(1); lc_progress_q(0); }
+          { lc_progress_q(hw[0]); }
+
+        while (lc_deq_alloc(ep[1], &req) != LC_OK)
+          { lc_progress_q(hw[1]); }
         assert(req.meta.val == i);
         lc_free(ep[1], req.buffer);
+
       }
       PMI_Barrier();
 
@@ -87,20 +88,18 @@ int main(int argc, char** args) {
 
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
       for (int i = 0; i < total + skip; i++) {
-        if (size < 1024)
-            while (lc_deq_alloc(ep[1], &req) != LC_OK)
-            { lc_progress_q(1); }
-        else 
-            while (lc_deq_alloc(ep[1], &req) != LC_OK)
-            { lc_progress_q(1); lc_progress_q(0); }
+
+        while (lc_deq_alloc(ep[0], &req) != LC_OK)
+          { lc_progress_q(hw[0]); }
         assert(req.meta.val == i);
-        lc_free(ep[1], req.buffer);
+        lc_free(ep[0], req.buffer);
+
         req.flag = 0;
         wr.meta.val = i;
-        while (lc_submit(ep[0], &wr, &req) != LC_OK)
-          { lc_progress_q(0); }
+        while (lc_submit(ep[1], &wr, &req) != LC_OK)
+          { lc_progress_q(hw[1]); }
         while (req.flag == 0)
-          { lc_progress_q(0); }
+          { lc_progress_q(hw[1]); }
       }
       PMI_Barrier();
     }

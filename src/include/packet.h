@@ -12,6 +12,7 @@ struct __attribute__((packed)) packet_context {
   // Here is LLCI context.
   struct lc_req req_s;
   struct lc_req* req;
+  struct lci_ep* ep;
   uintptr_t rma_mem;
   uint8_t proto;
   uint8_t runtime;
