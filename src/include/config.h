@@ -36,6 +36,6 @@
 #define THREAD_PER_CORE 1
 
 #define SERVER_MAX_RCVS 64
-#define SERVER_NUM_PKTS 2048
+#define SERVER_NUM_PKTS 1024
 
 #endif

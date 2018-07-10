@@ -158,24 +158,29 @@ lc_status lc_send_tag(lc_ep ep, lc_rep rep, void* src, size_t size, lc_meta tag,
 LC_EXPORT
 lc_status lc_recv_tag(lc_ep ep, lc_rep rep, void* src, size_t size, lc_meta tag, lc_req* req);
 
+LC_EXPORT
+lc_status lc_send_qalloc(lc_ep ep, lc_rep rep, void* src, size_t size, lc_meta tag, lc_req* req);
 
 LC_EXPORT
-lc_status lc_finalize();
+lc_id lc_recv_qalloc(lc_ep ep, lc_req* req);
 
 LC_EXPORT
-lc_status lc_submit(lc_ep, struct lc_wr* wr, lc_req* req); 
+lc_status lc_send_qshort(lc_ep ep, lc_rep rep, void* src, size_t size, lc_meta tag, lc_req* req);
 
 LC_EXPORT
-lc_id lc_deq_alloc(lc_ep ep, lc_req* req);
-
-LC_EXPORT
-lc_id lc_deq_piggy(lc_ep ep, lc_req** req);
+lc_id lc_recv_qshort(lc_ep ep, lc_req** req);
 
 LC_EXPORT
 lc_status lc_req_free(lc_ep ep, lc_req* req);
 
 LC_EXPORT
 lc_id lc_rank();
+
+LC_EXPORT
+lc_status lc_finalize();
+
+LC_EXPORT
+lc_status lc_submit(lc_ep, struct lc_wr* wr, lc_req* req); 
 
 LC_EXPORT
 lc_status lc_progress(lc_hw);

@@ -47,8 +47,8 @@ lc_id lc_rank()
   return lcg_rank;
 }
 
-static inline
-lc_status lci_send_alloc(struct lci_ep *ep, lc_rep tep, void* src, size_t size, lc_meta meta, lc_req* req)
+LC_INLINE
+lc_status lci_send_qalloc(struct lci_ep *ep, lc_rep tep, void* src, size_t size, lc_meta meta, lc_req* req)
 {
   LC_POOL_GET_OR_RETN(ep->hw->pkpool, p);
 
@@ -65,8 +65,8 @@ lc_status lci_send_alloc(struct lci_ep *ep, lc_rep tep, void* src, size_t size, 
   return LC_OK;
 }
 
-static inline
-lc_status lci_send_piggy(struct lci_ep *ep, lc_rep tep, void* src, size_t size, lc_meta meta, lc_req* req)
+LC_INLINE
+lc_status lci_send_qshort(struct lci_ep *ep, lc_rep tep, void* src, size_t size, lc_meta meta, lc_req* req)
 {
   LC_POOL_GET_OR_RETN(ep->hw->pkpool, p);
 
@@ -74,7 +74,7 @@ lc_status lci_send_piggy(struct lci_ep *ep, lc_rep tep, void* src, size_t size, 
     lc_server_send(ep->hw->handle, ep, tep->handle, src, size, p, MAKE_PROTO(ep->eid, tep->eid, LC_PROTO_DATA, meta.val));
     req->flag = 1;
   } else {
-    assert(0);
+    assert(0 && "Only short data");
   }
   return LC_OK;
 }
@@ -124,7 +124,7 @@ lc_status lci_recv_tag(struct lci_ep *ep, lc_rep rep, void* src, size_t size, lc
   return LC_OK;
 }
 
-static inline
+LC_INLINE
 lc_status lci_produce(struct lci_ep* ep, lc_wr* wr, lc_req* req)
 {
   lc_data* source = &wr->source_data;
@@ -139,15 +139,15 @@ lc_status lci_produce(struct lci_ep* ep, lc_wr* wr, lc_req* req)
     case DAT_EXPL :
       return lci_send_tag(ep, wr->target, src_buf, size, wr->meta, req);
     case DAT_ALLOC :
-      return lci_send_alloc(ep, wr->target, src_buf, size, wr->meta, req);
+      return lci_send_qalloc(ep, wr->target, src_buf, size, wr->meta, req);
     case DAT_PIGGY :
-      return lci_send_piggy(ep, wr->target, src_buf, size, wr->meta, req);
+      return lci_send_qshort(ep, wr->target, src_buf, size, wr->meta, req);
     default:
       assert(0 && "Invalid type");
   }
 }
 
-static inline
+LC_INLINE
 lc_status lci_consume(struct lci_ep* ep, lc_wr* wr, lc_req* req)
 {
   lc_data* source = &wr->source_data;
@@ -175,17 +175,12 @@ lc_status lc_recv_tag(lc_ep ep, lc_rep rep, void* src, size_t size, lc_meta tag,
   return lci_recv_tag(ep, rep, src, size, tag, req);
 }
 
-lc_status lc_submit(lc_ep ep, lc_wr* wr, lc_req* req)
+lc_status lc_send_qalloc(lc_ep ep, lc_rep rep, void* src, size_t size, lc_meta meta, lc_req* req)
 {
-  if (wr->type == WR_PROD) {
-    return lci_produce(ep, wr, req);
-  } else if (wr->type == WR_CONS) {
-    return lci_consume(ep, wr, req);
-  }
-  return LC_OK;
+  return lci_send_qalloc(ep, rep, src, size, meta, req);
 }
 
-lc_status lc_deq_alloc(lc_ep ep, lc_req* req)
+lc_status lc_recv_qalloc(lc_ep ep, lc_req* req)
 {
   lc_packet* p = cq_pop(&ep->cq);
   if (!p) return LC_ERR_RETRY;
@@ -194,11 +189,26 @@ lc_status lc_deq_alloc(lc_ep ep, lc_req* req)
   return LC_OK;
 }
 
-lc_status lc_deq_piggy(lc_ep ep, lc_req** req)
+lc_status lc_send_qshort(struct lci_ep *ep, lc_rep tep, void* src, size_t size, lc_meta meta, lc_req* req)
+{
+  return lci_send_qshort(ep, tep, src, size, meta, req);
+}
+
+lc_status lc_recv_qshort(lc_ep ep, lc_req** req)
 {
   lc_packet* p = cq_pop(&ep->cq);
   if (!p) return LC_ERR_RETRY;
   *req = p->context.req;
+  return LC_OK;
+}
+
+lc_status lc_submit(lc_ep ep, lc_wr* wr, lc_req* req)
+{
+  if (wr->type == WR_PROD) {
+    return lci_produce(ep, wr, req);
+  } else if (wr->type == WR_CONS) {
+    return lci_consume(ep, wr, req);
+  }
   return LC_OK;
 }
 

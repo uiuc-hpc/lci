@@ -18,6 +18,7 @@
 #define LC_PROTO_RTS     2
 #define LC_PROTO_LONG    3
 
+// #define MAKE_PROTO(leid, reid, proto, meta)  (proto | (leid << 2) | (reid << 9) | (meta << 16))
 #define MAKE_PROTO(leid, reid, proto, meta)  (proto | (leid << 2) | (reid << 9) | (meta << 16))
 
 #define PROTO_GET_PROTO(proto) (proto         & 0b011)
@@ -100,7 +101,6 @@ void lc_serve_recv_alloc(struct lci_ep* ep, lc_packet* p, uint32_t proto, func_c
     }
 
     default:
-      printf("%d\n", proto);
       assert(0 && "invalid proto");
   };
 }
@@ -173,8 +173,7 @@ void lc_serve_recv(lc_hw hw, lc_packet* p, uint32_t proto, const long server_cap
   if (server_cap & EP_AR_EXPL) {
     if (server_cap & EP_CE_NONE)
       return lc_serve_recv_expl(ep, p, proto, set_flag);
-  } 
-  else if (server_cap & EP_AR_ALLOC) {
+  } else if (server_cap & EP_AR_ALLOC) {
     if (server_cap & EP_CE_QUEUE)
       return lc_serve_recv_alloc(ep, p, proto, queue);
   }

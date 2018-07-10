@@ -62,7 +62,7 @@ int main(int argc, char** args) {
           lc_progress_q(hw);
         while (req.flag == 0)
           lc_progress_q(hw);
-        while (lc_deq_alloc(ep[1], &req) != LC_OK)
+        while (lc_recv_qalloc(ep[1], &req) != LC_OK)
           lc_progress_q(hw);
         assert(req.meta.val == i);
         lc_free(ep[1], req.buffer);
@@ -82,7 +82,7 @@ int main(int argc, char** args) {
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
       for (int i = 0; i < total + skip; i++) {
         // req.flag = 0;
-        while (lc_deq_alloc(ep[1], &req) != LC_OK)
+        while (lc_recv_qalloc(ep[1], &req) != LC_OK)
           lc_progress_q(hw);
         assert(req.meta.val == i);
         lc_free(ep[1], req.buffer);

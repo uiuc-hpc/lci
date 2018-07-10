@@ -31,7 +31,7 @@ LC_INLINE void cq_push(struct comp_q* cq, struct lc_packet* p)
 {
   lc_spin_lock(&cq->spinlock);
   cq->container[cq->top] = p;
-  cq->top = (cq->top + 1) & (MAX_SIZE - 1);
+  cq->top = (cq->top + 1) & (CQ_MAX_SIZE - 1);
   if (unlikely(cq->top == cq->bot)) {
     fprintf(stderr, "pool overflow\n");
     exit(EXIT_FAILURE);
@@ -46,7 +46,7 @@ LC_INLINE void* cq_pop(struct comp_q* cq)
   if (cq->top != cq->bot) {
     ret = cq->container[cq->bot];
     if (ret->context.req->flag != 0)
-      cq->bot = (cq->bot + 1) & (MAX_SIZE - 1);
+      cq->bot = (cq->bot + 1) & (CQ_MAX_SIZE - 1);
     else
       ret = NULL;
   }
