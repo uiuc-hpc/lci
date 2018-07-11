@@ -2,6 +2,7 @@
 #define SERVER_IBV_H_
 
 #include "pmi.h"
+#include "pm.h"
 
 #include "lc/affinity.h"
 #include "lc/profiler.h"
@@ -11,7 +12,8 @@
 
 #define ALIGNMENT (4096)
 #define MAX_CQ 16
-#define GET_PROTO(p) (p & 0x00ff)
+
+#define LC_SERVER_DEBUG
 
 #ifdef LC_SERVER_DEBUG
 #define IBV_SAFECALL(x)                                               \
@@ -44,8 +46,7 @@ struct conn_ctx {
 typedef struct ibv_mr lc_server_memory;
 
 typedef struct ibv_server {
-  // MV fields.
-  lch* mv;
+  struct lci_hw* hw;
 
   // Device fields.
   struct ibv_context* dev_ctx;
@@ -55,6 +56,11 @@ typedef struct ibv_server {
   struct ibv_cq* recv_cq;
   lc_server_memory* sbuf;
   lc_server_memory* heap;
+
+  struct ibv_port_attr port_attr;
+  struct ibv_device_attr dev_attr;
+
+  uint8_t dev_port;
 
   // Connections O(N)
   struct ibv_qp** dev_qp;
@@ -70,26 +76,7 @@ typedef struct ibv_server {
 extern size_t server_max_inline;
 extern const size_t server_max_recvs;
 
-LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr);
-LC_INLINE void ibv_server_finalize(ibv_server* s);
-LC_INLINE lc_server_memory* ibv_server_mem_malloc(ibv_server* s, size_t size);
-LC_INLINE void ibv_server_mem_free(lc_server_memory* mr);
-
-LC_INLINE void ibv_server_post_recv(ibv_server* s, lc_packet* p);
-LC_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* buf,
-                                    size_t size, lc_packet* ctx,
-                                    uint32_t proto);
-LC_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
-                                    uintptr_t to, uint32_t rkey, size_t size,
-                                    lc_packet* ctx, uint32_t proto);
-LC_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
-                                           uintptr_t addr, size_t offset, uint32_t rkey,
-                                           size_t size, uint32_t sid,
-                                           lc_packet* ctx);
-LC_INLINE int ibv_server_progress(ibv_server* s);
-
-LC_INLINE void* ibv_server_heap_ptr(lc_server* s);
-LC_INLINE uint32_t ibv_server_heap_rkey(lc_server* s, int node);
+LC_INLINE lc_server_memory* ibv_mem_malloc(ibv_server* s, size_t size);
 
 LC_INLINE struct ibv_qp* qp_create(ibv_server* s,
                                    struct ibv_device_attr* dev_attr)
@@ -99,8 +86,8 @@ LC_INLINE struct ibv_qp* qp_create(ibv_server* s,
   qp_init_attr.send_cq = s->send_cq;
   qp_init_attr.recv_cq = s->recv_cq;
   qp_init_attr.srq = s->dev_srq;
-  qp_init_attr.cap.max_send_wr = (uint32_t)dev_attr->max_qp_wr;
-  qp_init_attr.cap.max_recv_wr = (uint32_t)dev_attr->max_qp_wr;
+  qp_init_attr.cap.max_send_wr = 4; //(uint32_t)dev_attr->max_qp_wr;
+  qp_init_attr.cap.max_recv_wr = 4; // (uint32_t)dev_attr->max_qp_wr;
   // -- this affect the size of (TODO:tune later).
   qp_init_attr.cap.max_send_sge = 8;
   qp_init_attr.cap.max_recv_sge = 1;
@@ -232,7 +219,7 @@ LC_INLINE uint32_t ibv_rma_lkey(uintptr_t mem)
 #endif
 }
 
-LC_INLINE void ibv_server_post_recv(ibv_server* s, lc_packet* p)
+LC_INLINE void ibv_post_recv_(ibv_server* s, lc_packet* p)
 {
   if (p == NULL) {
     if (s->recv_posted < server_max_recvs / 2 && !server_deadlock_alert) {
@@ -282,7 +269,7 @@ LC_INLINE int ibv_progress_send_once(ibv_server* s)
   return 0;
 }
 
-LC_INLINE int ibv_server_progress(ibv_server* s)
+LC_INLINE int ibv_progress(ibv_server* s, const long cap)
 {  // profiler& p, long long& r, long long &s) {
   struct ibv_wc wc[MAX_CQ];
   int ret = 0;
@@ -301,19 +288,23 @@ LC_INLINE int ibv_server_progress(ibv_server* s)
       s->recv_posted--;
       if (wc[i].opcode != IBV_WC_RECV_RDMA_WITH_IMM) {
         lc_packet* p = (lc_packet*)wc[i].wr_id;
-        p->context.from = s->qp2rank[wc[i].qp_num % s->qp2rank_mod];
-        p->context.size = wc[i].byte_len;
-        p->context.tag = wc[i].imm_data >> 8;
-        lc_serve_recv(s->mv, p, GET_PROTO(wc[i].imm_data));
+        p->context.req = &p->context.req_s;
+        // p->context.req->rhandle = status.msg_peer; 
+        p->context.req->rank = 1 - lcg_rank; // FIXME
+        p->context.req->size = wc[i].byte_len;
+        lc_serve_recv(s->hw, p, wc[i].imm_data, cap);
       } else {
-        lc_serve_imm(s->mv, wc[i].imm_data);
-        lc_pool_put(s->mv->pkpool, (lc_packet*)wc[i].wr_id);
+        uint32_t imm = wc[i].imm_data >> 2;
+        uint32_t eid = wc[i].imm_data & 0x3;
+        lc_serve_imm(lcg_ep_list[eid], wc[i].imm_data);
+        lc_pool_put(s->hw->pkpool, (lc_packet*)wc[i].wr_id);
       }
     }
     ret = 1;
   }
 
   ne = ibv_poll_cq(s->send_cq, MAX_CQ, wc);
+  assert(ne >= 0);
 
   if (ne > 0) {
     for (int i = 0; i < ne; i++) {
@@ -326,15 +317,14 @@ LC_INLINE int ibv_server_progress(ibv_server* s)
       }
 #endif
       lc_packet* p = (lc_packet*)wc[i].wr_id;
-      if (p) lc_serve_send(s->mv, p, p->context.proto);
+      if (p) lc_serve_send(s->hw, p, p->context.proto);
     }
     ret = 1;
   }
 
   // Make sure we always have enough packet, but do not block.
   if (s->recv_posted < server_max_recvs) {
-    ibv_server_post_recv(s,
-                         (lc_packet*)lc_pool_get_nb(s->mv->pkpool));  //, 0));
+    ibv_post_recv_(s, (lc_packet*)lc_pool_get_nb(s->hw->pkpool));  //, 0));
   }
 
 #ifdef LC_SERVER_DEBUG
@@ -359,8 +349,8 @@ LC_INLINE int ibv_server_progress(ibv_server* s)
     ;
 
 /*! This return whether or not to wait. */
-LC_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* ubuf,
-                                    size_t size, lc_packet* ctx, uint32_t proto)
+LC_INLINE int ibv_write_send(ibv_server* s, struct lci_ep* ep, void* rep, void* ubuf, size_t size,
+                             lc_packet* ctx, uint32_t proto)
 {
   struct ibv_sge list = {
       .addr = (uintptr_t)ubuf,   // address
@@ -375,23 +365,23 @@ LC_INLINE int ibv_server_write_send(ibv_server* s, int rank, void* ubuf,
     setup_wr(this_wr, (uintptr_t)0, &list, IBV_WR_SEND_WITH_IMM,
              IBV_SEND_INLINE | IBV_SEND_SIGNALED);
     this_wr.imm_data = proto;
-    IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
-    lc_serve_send(s->mv, ctx, GET_PROTO(proto));
+    IBV_SAFECALL(ibv_post_send((struct ibv_qp*) rep, &this_wr, &bad_wr));
+    lc_serve_send(s->hw, ctx, proto);
     return 0;
   } else {
     ninline = 0;
     if (ctx->data.buffer != ubuf) memcpy(ctx->data.buffer, ubuf, size);
     list.addr = (uintptr_t)ctx->data.buffer;
-    ctx->context.proto = GET_PROTO(proto);
+    ctx->context.proto = proto;
     setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND_WITH_IMM,
              IBV_SEND_SIGNALED);
     this_wr.imm_data = proto;
-    IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
+    IBV_SAFECALL(ibv_post_send((struct ibv_qp*) rep, &this_wr, &bad_wr));
     return 1;
   }
 }
 
-LC_INLINE void ibv_server_read(ibv_server* s, int rank, void* dst,
+LC_INLINE void ibv_read(ibv_server* s, int rank, void* dst,
                                uintptr_t src, uint32_t rkey, size_t size,
                                lc_packet* ctx, uint32_t proto)
 
@@ -413,30 +403,29 @@ LC_INLINE void ibv_server_read(ibv_server* s, int rank, void* dst,
   IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
 }
 
-LC_INLINE void ibv_server_write_rma(ibv_server* s, int rank, void* from,
-                                    uintptr_t to, uint32_t rkey, size_t size,
-                                    lc_packet* ctx, uint32_t proto)
-
+LC_INLINE void ibv_write_rma_rtr(ibv_server* s, void* rep, void* buf,
+                                 uintptr_t addr __UNUSED__, uint32_t rkey, size_t size,
+                                 uint32_t sid, lc_packet* ctx)
 {
-  ctx->context.proto = proto;
+  ctx->context.proto = sid;
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr = 0;
 
   struct ibv_sge list = {
-      .addr = (uintptr_t)from,   // address
+      .addr = (uintptr_t)buf,   // address
       .length = (unsigned)size,  // length
       .lkey = s->heap->lkey,     // lkey
   };
 
   setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE,
            IBV_SEND_SIGNALED);
-  this_wr.wr.rdma.remote_addr = (uintptr_t)to;
+  this_wr.wr.rdma.remote_addr = (uintptr_t)addr;
   this_wr.wr.rdma.rkey = rkey;
 
-  IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
+  IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
 }
 
-LC_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
+LC_INLINE void ibv_write_rma_signal(ibv_server* s, int rank, void* from,
                                            uintptr_t addr, size_t offset, uint32_t rkey,
                                            size_t size, uint32_t sid,
                                            lc_packet* ctx)
@@ -469,18 +458,20 @@ LC_INLINE void ibv_server_write_rma_signal(ibv_server* s, int rank, void* from,
   IBV_SAFECALL(ibv_post_send(s->dev_qp[rank], &this_wr, &bad_wr));
 }
 
-LC_INLINE void ibv_server_write_rma_signal_rtr(ibv_server* s, int rank, void* from,
+LC_INLINE void ibv_write_rma_signal_rtr(ibv_server* s, int rank, void* from,
                                            uintptr_t addr, uint32_t rkey,
                                            size_t size, uint32_t sid,
                                            lc_packet* ctx)
 {
-  ibv_server_write_rma_signal(s, rank, from, addr, 0, rkey, size, sid, ctx);
+  ibv_write_rma_signal(s, rank, from, addr, 0, rkey, size, sid, ctx);
 }
 
-LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
+LC_INLINE void ibv_init(struct lci_hw* hw)
 {
   ibv_server* s = NULL;
-  posix_memalign((void**) &s, 64, sizeof(ibv_server));
+  posix_memalign((void**) &s, 4096, sizeof(struct ibv_server));
+
+  s->hw = hw;
 
   int num_devices;
   struct ibv_device** dev_list = ibv_get_device_list(&num_devices);
@@ -488,6 +479,7 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
     fprintf(stderr, "Unable to find any ibv devices\n");
     exit(EXIT_FAILURE);
   }
+
   // Use the last one by default.
   s->dev_ctx = ibv_open_device(dev_list[num_devices - 1]);
   if (s->dev_ctx == 0) {
@@ -496,21 +488,23 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
   }
   ibv_free_device_list(dev_list);
 
-  struct ibv_device_attr dev_attr;
-  int rc = ibv_query_device(s->dev_ctx, &dev_attr);
+  struct ibv_device_attr *dev_attr = &s->dev_attr;
+  int rc = ibv_query_device(s->dev_ctx, dev_attr);
   if (rc != 0) {
     fprintf(stderr, "Unable to query device\n");
     exit(EXIT_FAILURE);
   }
 
-  struct ibv_port_attr port_attr;
+  struct ibv_port_attr* port_attr = &s->port_attr;
   uint8_t dev_port = 0;
   // int (*func)(struct ibv_context*, uint8_t, struct ibv_port_attr *);
   // func = ibv_query_port;
   for (; dev_port < 128; dev_port++) {
-    rc = ibv_query_port(s->dev_ctx, dev_port, &port_attr);
+    rc = ibv_query_port(s->dev_ctx, dev_port, port_attr);
     if (rc == 0) break;
   }
+  s->dev_port = dev_port;
+
   if (rc != 0) {
     fprintf(stderr, "Unable to query port\n");
     exit(EXIT_FAILURE);
@@ -543,7 +537,7 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
   }
 
   // Create RDMA memory.
-  s->heap = ibv_server_mem_malloc(s, heap_size);
+  s->heap = ibv_mem_malloc(s, 1024 * 1024 * 1024);
   s->heap_ptr = (void*)s->heap->addr;
 
   if (s->heap == 0) {
@@ -551,65 +545,60 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
     exit(EXIT_FAILURE);
   }
 
-  char key[256];
-  char value[256];
-  char name[256];
+  // s->conn = (struct conn_ctx*)malloc(sizeof(struct conn_ctx) * lcg_size);
+  // s->dev_qp = (struct ibv_qp**)malloc(sizeof(struct ibv_qp*) * lcg_size);
+  s->recv_posted = 0;
+  hw->handle = (void*) s;
 
-  {
-    int spawned;
-    PMI_Init(&spawned, &mv->size, &mv->me);
-    PMI_KVS_Get_my_name(name, 255);
-  }
+#ifdef USE_DREG
+  dreg_init();
+#endif
+}
 
-  s->conn = (struct conn_ctx*)malloc(sizeof(struct conn_ctx) * mv->size);
-  s->dev_qp = (struct ibv_qp**)malloc(sizeof(struct ibv_qp*) * mv->size);
-
+LC_INLINE void ibv_connect(ibv_server* s, int leid, int prank, int erank, lc_rep* rep)
+{
   struct conn_ctx lctx;
-  struct conn_ctx* rmtctx;
+  struct conn_ctx rmtctx;
+  char ep_name[256];
+  int rc;
 
-  for (int i = 0; i < mv->size; i++) {
-    s->dev_qp[i] = qp_create(s, &dev_attr);
-    if (!s->dev_qp[i]) {
-      fprintf(stderr, "Unable to create queue pair\n");
-      exit(EXIT_FAILURE);
-    }
-
-    rmtctx = &s->conn[i];
-    lctx.addr = (uintptr_t)s->heap_ptr;
-    lctx.rkey = s->heap->rkey;
-    lctx.qp_num = s->dev_qp[i]->qp_num;
-    lctx.lid = port_attr.lid;
-    rc = ibv_query_gid(s->dev_ctx, dev_port, 0, &lctx.gid);
-    if (rc != 0) {
-      fprintf(stderr, "Unable to query gid\n");
-      exit(EXIT_FAILURE);
-    }
-    {
-      sprintf(key, "_LC_KEY_%d_%d", mv->me, i);
-      sprintf(value, "%llu-%d-%d-%d", (unsigned long long)lctx.addr, lctx.rkey,
-              lctx.qp_num, (int)lctx.lid);
-      PMI_KVS_Put(name, key, value);
-    }
+  struct ibv_qp* qp = qp_create(s, &s->dev_attr);
+  if (!qp) {
+    fprintf(stderr, "Unable to create queue pair\n");
+    exit(EXIT_FAILURE);
   }
 
-  {
-    PMI_Barrier();
-    for (int i = 0; i < mv->size; i++) {
-      rmtctx = &s->conn[i];
-      if (i != mv->me) {
-        sprintf(key, "_LC_KEY_%d_%d", i, mv->me);
-        PMI_KVS_Get(name, key, value, 255);
-        sscanf(value, "%llu-%d-%d-%d", (unsigned long long*)&rmtctx->addr,
-            &rmtctx->rkey, &rmtctx->qp_num, (int*)&rmtctx->lid);
-      } else {
-        memcpy(rmtctx, &lctx, sizeof(struct conn_ctx));
-      }
-      qp_init(s->dev_qp[i], dev_port);
-      qp_to_rtr(s->dev_qp[i], dev_port, &port_attr, rmtctx);
-      qp_to_rts(s->dev_qp[i]);
-    }
+  lctx.addr = (uintptr_t)s->heap_ptr;
+  lctx.rkey = s->heap->rkey;
+  lctx.qp_num = qp->qp_num;
+  lctx.lid = s->port_attr.lid;
+  rc = ibv_query_gid(s->dev_ctx, s->dev_port, 0, &lctx.gid);
+
+  if (rc != 0) {
+    fprintf(stderr, "Unable to query gid\n");
+    exit(EXIT_FAILURE);
   }
 
+  sprintf(ep_name, "%llu-%d-%d-%d", (unsigned long long)lctx.addr, lctx.rkey,
+      lctx.qp_num, (int)lctx.lid);
+
+  lc_pm_publish(lcg_rank, leid, ep_name);
+
+  PMI_Barrier();
+
+  lc_pm_getname(prank, erank, ep_name);
+  if (prank != lcg_rank) {
+    sscanf(ep_name, "%llu-%d-%d-%d", (unsigned long long*)&rmtctx.addr,
+        &rmtctx.rkey, &rmtctx.qp_num, (int*)&rmtctx.lid);
+  } else {
+    memcpy(&rmtctx, &lctx, sizeof(struct conn_ctx));
+  }
+
+  qp_init(qp, s->dev_port);
+  qp_to_rtr(qp, s->dev_port, &s->port_attr, &rmtctx);
+  qp_to_rts(qp);
+
+#if 0
   // ***HACK TO MAP QP TO RANK***
   int j = mv->size;
   int* b;
@@ -631,32 +620,39 @@ LC_INLINE void ibv_server_init(lch* mv, size_t heap_size, ibv_server** s_ptr)
   }
   s->qp2rank_mod = j;
   s->qp2rank = b;
-
-  s->recv_posted = 0;
-  s->mv = mv;
-  *s_ptr = s;
-#ifdef USE_DREG
-  dreg_init();
 #endif
+
+  *rep = malloc(sizeof(struct lci_rep));
+  (*rep)->rank = prank;
+  (*rep)->eid = erank;
+  (*rep)->handle = (void*) qp;
+  PMI_Barrier();
 }
 
-LC_INLINE void ibv_server_finalize(ibv_server* s)
+LC_INLINE void ibv_mem_free(lc_server_memory* mr)
+{
+  void* ptr = (void*)mr->addr;
+  ibv_dereg_mr(mr);
+  free(ptr);
+}
+
+LC_INLINE void ibv_finalize(ibv_server* s)
 {
   ibv_destroy_cq(s->send_cq);
   ibv_destroy_cq(s->recv_cq);
   ibv_destroy_srq(s->dev_srq);
-  ibv_server_mem_free(s->heap);
-  for (int i = 0; i < s->mv->size; i++) {
-    ibv_destroy_qp(s->dev_qp[i]);
-  }
+  // ibv_mem_free(s->heap);
+  // for (int i = 0; i < s->mv->size; i++) {
+  //  ibv_destroy_qp(s->dev_qp[i]);
+  // }
   PMI_Finalize();
 
-  free(s->conn);
-  free(s->dev_qp);
+  // free(s->conn);
+  // free(s->dev_qp);
   free(s);
 }
 
-LC_INLINE lc_server_memory* ibv_server_mem_malloc(ibv_server* s, size_t size)
+LC_INLINE lc_server_memory* ibv_mem_malloc(ibv_server* s, size_t size)
 {
   int mr_flags =
       IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
@@ -665,28 +661,22 @@ LC_INLINE lc_server_memory* ibv_server_mem_malloc(ibv_server* s, size_t size)
   return ibv_reg_mr(s->dev_pd, ptr, size, mr_flags);
 }
 
-LC_INLINE void ibv_server_mem_free(lc_server_memory* mr)
-{
-  void* ptr = (void*)mr->addr;
-  ibv_dereg_mr(mr);
-  free(ptr);
-}
-
-LC_INLINE uint32_t ibv_server_heap_rkey(ibv_server* s, int node)
+LC_INLINE uint32_t ibv_heap_rkey(ibv_server* s, int node)
 {
   return s->conn[node].rkey;
 }
 
-LC_INLINE void* ibv_server_heap_ptr(ibv_server* s) { return s->heap_ptr; }
-#define lc_server_init ibv_server_init
-#define lc_server_send ibv_server_write_send
-#define lc_server_rma ibv_server_write_rma
-#define lc_server_rma_signal_rtr ibv_server_write_rma_signal_rtr
-#define lc_server_rma_signal ibv_server_write_rma_signal
-#define lc_server_heap_rkey ibv_server_heap_rkey
-#define lc_server_heap_ptr ibv_server_heap_ptr
-#define lc_server_progress ibv_server_progress
-#define lc_server_finalize ibv_server_finalize
+LC_INLINE void* ibv_heap_ptr(ibv_server* s) { return s->heap_ptr; }
+
+#define lc_server_init ibv_init
+#define lc_server_connect ibv_connect
+#define lc_server_send ibv_write_send
+#define lc_server_progress ibv_progress
+#define lc_server_finalize ibv_finalize
+#define lc_server_post_recv ibv_post_recv_
+#define lc_server_rma_rtr ibv_write_rma_rtr
+#define lc_server_post_rma(...) {}
+#define lc_server_heap_ptr ibv_heap_ptr
 
 #define lc_server_rma_reg ibv_rma_reg
 #define lc_server_rma_key ibv_rma_key

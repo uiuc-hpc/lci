@@ -80,13 +80,15 @@ static void fixed_buffer_allocator_free(void* ptr __UNUSED__)
 LC_INLINE
 void lci_hw_init(struct lci_hw* hw)
 {
+  uintptr_t base_packet;
+
   // This initialize the hardware context.
   // There might be more than one remote connection.
   lc_server_init(hw);
 
-  uintptr_t base_packet = 0;
-  posix_memalign((void**) &base_packet, 4096, SERVER_NUM_PKTS * LC_PACKET_SIZE * 2 + 4096);
-  hw->base_addr = base_packet;
+  hw->base_addr = (uintptr_t) lc_server_heap_ptr(hw->handle);
+  base_packet = hw->base_addr;
+
   lc_pool_create(&hw->pkpool);
   for (unsigned i = 0; i < SERVER_NUM_PKTS; i++) {
       lc_packet* p = (lc_packet*) (base_packet + i * LC_PACKET_SIZE);
@@ -102,13 +104,12 @@ void lci_ep_open(struct lci_hw* hw, struct lci_ep** ep_ptr, long cap)
 {
   struct lci_ep* ep;
   posix_memalign((void**) &ep, 4096, sizeof(struct lci_ep));
+  char ep_name[256];
 
   ep->hw = hw;
   ep->cap = cap;
   ep->eid = lcg_nep++;
   lcg_ep_list[ep->eid] = ep;
-
-  lc_pm_publish(lcg_rank, ep->eid, lcg_name, hw->name);
 
   lc_hash_create(&ep->tbl);
   cq_init(&ep->cq);
@@ -119,9 +120,9 @@ void lci_ep_open(struct lci_hw* hw, struct lci_ep** ep_ptr, long cap)
 }
 
 LC_INLINE
-void lci_ep_connect(lc_hw hw, int prank, int erank, lc_rep* rep)
+void lci_ep_connect(lc_ep ep, int prank, int erank, lc_rep* rep)
 {
-  lc_server_connect(hw, prank, erank, rep);
+  lc_server_connect(ep->hw->handle, ep->eid, prank, erank, rep);
 }
 
 

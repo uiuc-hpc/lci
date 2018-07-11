@@ -214,7 +214,9 @@ LC_INLINE void psm_init(struct lci_hw* hw)
   // setenv("I_MPI_FABRICS", "ofa", 1);
   // setenv("PSM2_SHAREDCONTEXTS", "0", 1);
   // setenv("PSM2_RCVTHREAD", "0", 1);
-  psm_server* s = (psm_server*)malloc(sizeof(struct psm_server));
+  psm_server* s = NULL;
+  posix_memalign((void**) &s, 4096, sizeof(struct psm_server));
+  
   s->hw = hw;
 
   int ver_major = PSM2_VERNO_MAJOR;
@@ -236,48 +238,34 @@ LC_INLINE void psm_init(struct lci_hw* hw)
 
   /* Attempt to open a PSM2 endpoint. This allocates hardware resources. */
   PSM_SAFECALL(psm2_ep_open(s->uuid, &option, &s->myep, &s->myepid));
-  sprintf(hw->name, "%llu", (unsigned long long)s->myepid);
 
   hw->handle = (void*) s;
   s->me = lcg_rank;
   s->recv_posted = 0;
+
+  posix_memalign(&s->heap, 4096, SERVER_NUM_PKTS * LC_PACKET_SIZE * 2 + 4096);
 
   lcrq_init(&s->free_mr);
   for (int i = 0; i < 256; i++)
     lcrq_enqueue(&s->free_mr, malloc(sizeof(struct psm_mr)));
 
   PSM_SAFECALL(psm2_mq_init(s->myep, PSM2_MQ_ORDERMASK_ALL, NULL, 0, &s->mq));
-
-#if 0
-  s->epid = (psm2_epid_t*)calloc(size, sizeof(psm2_epid_t));
-  s->epaddr = (psm2_epaddr_t*)calloc(size, sizeof(psm2_epaddr_t));
-  psm2_error_t epid_connect_errors[size];
-
-  for (int i = 0; i < size; i++) {
-      lc_pm_getname(i, 0, name, ep_name);
-      psm2_epid_t destaddr;
-      sscanf(ep_name, "%llu", (unsigned long long*)&destaddr);
-      memcpy(&s->epid[i], &destaddr, sizeof(psm2_epid_t));
-  }
-
-  PSM_SAFECALL(psm2_ep_connect(s->myep, size, s->epid, NULL,
-                               epid_connect_errors, s->epaddr, 0));
-
-#endif
 }
 
-LC_INLINE void psm_connect(struct lci_hw* hw, int prank, int erank, lc_rep* rep)
+LC_INLINE void psm_connect(psm_server* s, int leid, int prank, int erank, lc_rep* rep)
 {
   char ep_name[256];
+  sprintf(ep_name, "%llu", (unsigned long long)s->myepid);
+  lc_pm_publish(lcg_rank, leid, ep_name);
+
   psm2_error_t errs;
-  struct psm_server* s = (struct psm_server*) hw->handle;
-  lc_pm_getname(prank, erank, hw->name, ep_name);
+  lc_pm_getname(prank, erank, ep_name);
   psm2_epid_t destaddr;
   psm2_epaddr_t epaddr;
   sscanf(ep_name, "%llu", (unsigned long long*)&destaddr);
   PSM_SAFECALL(psm2_ep_connect(s->myep, 1, &destaddr, NULL,
                                &errs, &epaddr, 0));
-  *rep = malloc(sizeof(struct lci_rep));
+  posix_memalign((void**) rep, 64, sizeof(struct lci_rep));
   (*rep)->rank = prank;
   (*rep)->eid = erank;
   (*rep)->handle = (void*) epaddr;
@@ -479,6 +467,7 @@ LC_INLINE void* psm_heap_ptr(psm_server* s) { return s->heap; }
 #define lc_server_init psm_init
 #define lc_server_connect psm_connect
 #define lc_server_send psm_write_send
+#define lc_server_nextname psm_nextname
 #define lc_server_progress psm_progress
 #define lc_server_finalize psm_finalize
 #define lc_server_post_recv psm_post_recv

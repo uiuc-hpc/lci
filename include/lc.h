@@ -198,7 +198,7 @@ LC_EXPORT
 lc_status lc_free(lc_ep, void* buf);
 
 LC_EXPORT
-lc_status lc_ep_connect(lc_hw hw, int prank, int erank, lc_rep* rep);
+lc_status lc_ep_connect(lc_ep ep, int prank, int erank, lc_rep* rep);
 
 #ifdef __cplusplus
 }

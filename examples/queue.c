@@ -17,7 +17,7 @@ int main(int argc, char** args) {
   lc_init();
   lc_hw_open(&hw);
   lc_ep_open(hw, EP_TYPE_QUEUE, &ep);
-  lc_ep_connect(hw, 1-lc_rank(), 0, &rep);
+  lc_ep_connect(ep, 1-lc_rank(), 0, &rep);
 
   lc_req req;
   struct lc_sig sig = {SIG_CQ};
@@ -38,7 +38,6 @@ int main(int argc, char** args) {
           lc_progress_q(hw);
         while (req.flag == 0)
           lc_progress_q(hw);
-
         while (lc_recv_qalloc(ep, &req) != LC_OK)
           lc_progress_q(hw);
 
@@ -54,7 +53,6 @@ int main(int argc, char** args) {
       memset(buf, 'a', size);
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
       for (int i = 0; i < total + skip; i++) {
-        // req.flag = 0;
         while (lc_recv_qalloc(ep, &req) != LC_OK)
           lc_progress_q(hw);
         assert(req.meta.val == i);

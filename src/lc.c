@@ -7,6 +7,9 @@
 
 #define MAX_EP 256
 
+size_t server_max_inline = SERVER_MAX_INLINE;
+const size_t server_max_recvs = SERVER_MAX_RCVS;
+
 struct lci_hw* hw;
 int lcg_size;
 int lcg_rank;
@@ -242,9 +245,9 @@ lc_status lc_progress(lc_hw hw)
   return LC_OK;
 }
 
-lc_status lc_ep_connect(lc_hw hw, int prank, int erank, lc_rep* rep)
+lc_status lc_ep_connect(lc_ep ep, int prank, int erank, lc_rep* rep)
 {
-  lci_ep_connect(hw, prank, erank, rep);
+  lci_ep_connect(ep, prank, erank, rep);
   return LC_OK;
 }
 
