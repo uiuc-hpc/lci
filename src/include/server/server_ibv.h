@@ -248,6 +248,8 @@ LC_INLINE void ibv_post_recv_(ibv_server* s, lc_packet* p)
       .num_sge = 1,
   };
 
+  p->context.poolid = lc_pool_get_local(s->dev->pkpool);
+
   struct ibv_recv_wr* bad_wr = 0;
   IBV_SAFECALL(ibv_post_srq_recv(s->dev_srq, &wr, &bad_wr));
 

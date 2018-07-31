@@ -16,8 +16,7 @@ struct __attribute__((packed)) packet_context {
   struct lci_ep* ep;
   uint64_t rma_mem;
   uint32_t proto;
-  uint8_t runtime;
-  uint8_t poolid;
+  int32_t poolid;
 };
 
 struct __attribute__((__packed__)) packet_rts {

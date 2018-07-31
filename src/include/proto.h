@@ -193,7 +193,10 @@ void lc_serve_send(lc_dev dev, lc_packet* p, uint32_t proto)
     ((lc_req*) p->data.rts.req)->flag = 1;
     lc_pool_put(ep->dev->pkpool, p);
   } else {
-    lc_pool_put_to(ep->dev->pkpool, p, p->context.poolid);
+    if (p->context.poolid != -1)
+      lc_pool_put_to(ep->dev->pkpool, p, p->context.poolid);
+    else
+      lc_pool_put(ep->dev->pkpool, p);
   }
 }
 

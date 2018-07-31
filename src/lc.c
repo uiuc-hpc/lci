@@ -16,8 +16,8 @@ int lcg_rank;
 int lcg_ndev;
 char lcg_name[256];
 
-int lc_current_id = 1;
-__thread int lc_core_id = 0;
+int lc_current_id = 0;
+__thread int lc_core_id = -1;
 int server_deadlock_alert;
 lc_ep lcg_ep_list[MAX_EP];
 int lcg_nep = 0;
@@ -69,7 +69,7 @@ lc_status lci_send_qalloc(struct lci_ep *ep, lc_rep tep, void* src, size_t size,
 {
   LC_POOL_GET_OR_RETN(ep->dev->pkpool, p);
   p->context.ep = ep;
-  p->context.poolid = (size > 128) ? lc_pool_get_local(ep->dev->pkpool) : 0;
+  p->context.poolid = (size > 128) ? lc_pool_get_local(ep->dev->pkpool) : -1;
 
   if (size <= (int) SHORT_MSG_SIZE) {
     lc_server_send(ep->dev->handle, ep, tep->handle, src, size, p, MAKE_PROTO(tep->eid, LC_PROTO_DATA, meta.val));
@@ -90,7 +90,7 @@ lc_status lci_send_qshort(struct lci_ep *ep, lc_rep tep, void* src, size_t size,
 {
   LC_POOL_GET_OR_RETN(ep->dev->pkpool, p);
   p->context.ep = ep;
-  p->context.poolid = (size > 128) ? lc_pool_get_local(ep->dev->pkpool) : 0;
+  p->context.poolid = (size > 128) ? lc_pool_get_local(ep->dev->pkpool) : -1;
 
   if (size <= (int) SHORT_MSG_SIZE) {
     lc_server_send(ep->dev->handle, ep, tep->handle, src, size, p, MAKE_PROTO(tep->eid, LC_PROTO_DATA, meta.val));
@@ -106,7 +106,7 @@ lc_status lci_send_tag(struct lci_ep *ep, lc_rep rep, void* src, size_t size, lc
 {
   LC_POOL_GET_OR_RETN(ep->dev->pkpool, p);
   p->context.ep = ep;
-  p->context.poolid = (size > 128) ? lc_pool_get_local(ep->dev->pkpool) : 0;
+  p->context.poolid = (size > 64) ? lc_pool_get_local(ep->dev->pkpool) : -1;
 
   if (size <= (int) SHORT_MSG_SIZE) {
     lc_server_send(ep->dev->handle, ep, rep->handle, src, size, p,

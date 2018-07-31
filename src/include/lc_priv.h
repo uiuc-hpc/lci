@@ -81,7 +81,6 @@ void lci_dev_init(struct lci_dev* dev)
   for (unsigned i = 0; i < SERVER_NUM_PKTS; i++) {
       lc_packet* p = (lc_packet*) (base_packet + i * LC_PACKET_SIZE);
       p->context.poolid  = 0;
-      p->context.runtime = 0;
       p->context.req_s.parent = p;
       lc_pool_put(dev->pkpool, p);
   }
