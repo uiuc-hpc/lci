@@ -73,8 +73,8 @@ OBJECTS = $(addprefix $(OBJDIR)/, $(COMM))
 
 LIBOBJ += $(OBJECTS) $(addprefix $(OBJDIR)/, $(FCONTEXT)) $(addprefix $(OBJDIR)/, $(PMI))
 
-LIBRARY = liblwci.so
-ARCHIVE = liblwci.a
+LIBRARY = liblci.so
+ARCHIVE = liblci.a
 
 all: $(LIBRARY) $(ARCHIVE)
 
