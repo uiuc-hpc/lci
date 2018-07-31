@@ -17,16 +17,6 @@ LC_INLINE void lc_pool_init() {
   lc_spin_unlock(&init_lock);
 }
 
-LC_INLINE void* lc_pool_get_slow(struct lc_pool* pool) {
-  void* elm = NULL;
-  while (!elm) {
-    int steal = rand() % (pool->npools);
-    if (likely(pool->lpools[steal] != NULL))
-      elm = dq_pop_bot(pool->lpools[steal]);
-  }
-  return elm;
-}
-
 void lc_pool_create(struct lc_pool** pool) {
   if (unlikely(!initialized))
     lc_pool_init();
@@ -46,38 +36,4 @@ void lc_pool_destroy(struct lc_pool* pool) {
     free(pool->lpools[i]);
   }
   free(pool);
-}
-
-void lc_pool_put(struct lc_pool* pool, void* elm) {
-  int32_t pid = lc_pool_get_local(pool);
-  struct dequeue* lpool = pool->lpools[pid];
-  dq_push_top(lpool, elm);
-}
-
-void lc_pool_put_to(struct lc_pool* pool, void* elm, int32_t pid) {
-  struct dequeue* lpool = pool->lpools[pid];
-  dq_push_top(lpool, elm);
-}
-
-void* lc_pool_get(struct lc_pool* pool) {
-  int32_t pid = lc_pool_get_local(pool);
-  struct dequeue* lpool = pool->lpools[pid];
-  void *elm = NULL;
-  elm = dq_pop_top(lpool);
-  if (elm == NULL)
-    elm = lc_pool_get_slow(pool);
-  return elm;
-}
-
-void* lc_pool_get_nb(struct lc_pool* pool) {
-  int32_t pid = lc_pool_get_local(pool);
-  struct dequeue* lpool = pool->lpools[pid];
-  void* elm = NULL;
-  elm = dq_pop_top(lpool);
-  if (elm == NULL) {
-    int steal = rand() % (pool->npools);
-    if (likely(pool->lpools[steal] != NULL))
-      elm = dq_pop_bot(pool->lpools[steal]);
-  }
-  return elm;
 }

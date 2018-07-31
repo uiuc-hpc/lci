@@ -12,18 +12,18 @@ int skip = SKIP;
 int main(int argc, char** args) {
   lc_ep ep[2];
   lc_rep rep[2];
-  lc_hw hw[2];
+  lc_dev dev[2];
 
   lc_init();
 
-  lc_hw_open(&hw[0]);
-  lc_hw_open(&hw[1]);
+  lc_dev_open(&dev[0]);
+  lc_dev_open(&dev[1]);
 
-  lc_ep_open(hw[0], EP_TYPE_QUEUE, &ep[0]);
-  lc_ep_open(hw[1], EP_TYPE_QUEUE, &ep[1]);
+  lc_ep_open(dev[0], EP_TYPE_QUEUE, &ep[0]);
+  lc_ep_open(dev[1], EP_TYPE_QUEUE, &ep[1]);
 
-  lc_ep_connect(hw[0], 1-lc_rank(), 0, &rep[0]);
-  lc_ep_connect(hw[1], 1-lc_rank(), 1, &rep[1]);
+  lc_ep_query(dev[0], 1-lc_rank(), 0, &rep[0]);
+  lc_ep_query(dev[1], 1-lc_rank(), 1, &rep[1]);
 
   lc_req req;
   struct lc_wr wr = {
@@ -42,7 +42,6 @@ int main(int argc, char** args) {
     .target = 0,
     .meta = {99},
   };
-  struct lc_sig sig = {SIG_CQ};
   double t1;
   size_t alignment = sysconf(_SC_PAGESIZE);
   void* buf = malloc(MAX_MSG + alignment);
@@ -61,12 +60,12 @@ int main(int argc, char** args) {
         req.flag = 0;
         wr.meta.val = i;
         while (lc_submit(ep[0], &wr, &req) != LC_OK)
-          { lc_progress_q(hw[0]); }
+          { lc_progress_q(dev[0]); }
         while (req.flag == 0)
-          { lc_progress_q(hw[0]); }
+          { lc_progress_q(dev[0]); }
 
         while (lc_recv_qalloc(ep[1], &req) != LC_OK)
-          { lc_progress_q(hw[1]); }
+          { lc_progress_q(dev[1]); }
         assert(req.meta.val == i);
         lc_free(ep[1], req.buffer);
 
@@ -86,16 +85,16 @@ int main(int argc, char** args) {
       for (int i = 0; i < total + skip; i++) {
 
         while (lc_recv_qalloc(ep[0], &req) != LC_OK)
-          { lc_progress_q(hw[0]); }
+          { lc_progress_q(dev[0]); }
         assert(req.meta.val == i);
         lc_free(ep[0], req.buffer);
 
         req.flag = 0;
         wr.meta.val = i;
         while (lc_submit(ep[1], &wr, &req) != LC_OK)
-          { lc_progress_q(hw[1]); }
+          { lc_progress_q(dev[1]); }
         while (req.flag == 0)
-          { lc_progress_q(hw[1]); }
+          { lc_progress_q(dev[1]); }
       }
     }
   }

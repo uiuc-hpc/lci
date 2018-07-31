@@ -12,12 +12,12 @@ int skip = SKIP;
 int main(int argc, char** args) {
   lc_ep ep;
   lc_rep rep;
-  lc_hw hw;
+  lc_dev dev;
 
   lc_init();
-  lc_hw_open(&hw);
-  lc_ep_open(hw, EP_TYPE_TAG, &ep);
-  lc_ep_connect(hw, 1-lc_rank(), 0, &rep);
+  lc_dev_open(&dev);
+  lc_ep_open(dev, EP_TYPE_TAG, &ep);
+  lc_ep_query(dev, 1-lc_rank(), 0, &rep);
 
   lc_req req;
   struct lc_wr wr1, wr2;
@@ -55,15 +55,15 @@ int main(int argc, char** args) {
         if (i == skip) t1 = wtime();
         req.flag = 0;
         while (lc_submit(ep, &wr1, &req) != LC_OK)
-          lc_progress_t(hw);
+          lc_progress_t(dev);
         while (req.flag == 0)
-          lc_progress_t(hw);
+          lc_progress_t(dev);
 
         req.flag = 0;
         while (lc_submit(ep, &wr2, &req) != LC_OK)
-          lc_progress_t(hw);
+          lc_progress_t(dev);
         while (req.flag == 0)
-          lc_progress_t(hw);
+          lc_progress_t(dev);
       }
 
       t1 = 1e6 * (wtime() - t1) / total / 2;
@@ -93,15 +93,15 @@ int main(int argc, char** args) {
       for (int i = 0; i < total + skip; i++) {
         req.flag = 0;
         while (lc_submit(ep, &wr2, &req) != LC_OK)
-          lc_progress_t(hw);
+          lc_progress_t(dev);
         while (req.flag == 0)
-          lc_progress_t(hw);
+          lc_progress_t(dev);
 
         req.flag = 0;
         while (lc_submit(ep, &wr1, &req) != LC_OK)
-          lc_progress_t(hw);
+          lc_progress_t(dev);
         while (req.flag == 0)
-          lc_progress_t(hw);
+          lc_progress_t(dev);
 
       }
     }

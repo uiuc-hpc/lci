@@ -2,8 +2,8 @@
 
 include config.mk
 
-CC = icc
-CFLAGS ?= -g3 -ggdb -O3 -Wall -Wextra -ipo # -qopt-report=4 -qopt-report-phase ipo
+CC = gcc
+CFLAGS ?= -g3 -ggdb -O3 -Wall -Wextra # -qopt-report=4 -qopt-report-phase ipo
 AR ?= ar
 RANLIB ?= ranlib
 PREFIX ?= /usr
@@ -11,7 +11,7 @@ PREFIX ?= /usr
 SRCDIR = ./src
 OBJDIR ?= ./obj
 
-EXTRA = -DAFF_DEBUG -DUSE_AFFI -DUSE_ABT
+EXTRA = -DAFF_DEBUG -DUSE_AFFI # -DUSE_ABT
 
 ifeq (,$(wildcard $(OBJDIR)))
 $(shell mkdir -p $(OBJDIR))

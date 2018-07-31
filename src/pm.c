@@ -8,8 +8,6 @@ extern char lcg_name[256];
 
 void lc_pm_master_init(int* size, int* rank, char* name)
 {
-  char key[256];
-  char value[256];
   int spawned;
   PMI_Init(&spawned, size, rank);
   PMI_KVS_Get_my_name(name, 255);
@@ -28,4 +26,14 @@ void lc_pm_getname(int prank, int erank, char* value)
   char key[256];
   sprintf(key, "_LC_KEY_%d_%d", prank, erank);
   PMI_KVS_Get(lcg_name, key, value, 255);
+}
+
+void lc_pm_getname_key(char* key, char* value)
+{
+  PMI_KVS_Get(lcg_name, key, value, 255);
+}
+
+void lc_pm_publish_key(char* key, char* value)
+{
+  PMI_KVS_Put(lcg_name, key, value);
 }

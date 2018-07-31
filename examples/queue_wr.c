@@ -10,14 +10,14 @@ int total = TOTAL;
 int skip = SKIP;
 
 int main(int argc, char** args) {
-  lc_hw hw;
+  lc_dev dev;
   lc_ep ep;
   lc_rep rep;
 
   lc_init();
-  lc_hw_open(&hw);
-  lc_ep_open(hw, EP_TYPE_QUEUE, &ep);
-  lc_ep_connect(hw, 1-lc_rank(), 0, &rep);
+  lc_dev_open(&dev);
+  lc_ep_open(dev, EP_TYPE_QUEUE, &ep);
+  lc_ep_query(dev, 1-lc_rank(), 0, &rep);
 
   lc_req req;
   struct lc_wr wr = {
@@ -36,7 +36,6 @@ int main(int argc, char** args) {
     .target = 0,
     .meta = {99},
   };
-  struct lc_sig sig = {SIG_CQ};
   double t1;
   size_t alignment = sysconf(_SC_PAGESIZE);
   void* buf = malloc(MAX_MSG + alignment);
@@ -55,11 +54,11 @@ int main(int argc, char** args) {
         req.flag = 0;
         wr.meta.val = i;
         while (lc_submit(ep, &wr, &req) != LC_OK)
-          lc_progress_q(hw);
+          lc_progress_q(dev);
         while (req.flag == 0)
-          lc_progress_q(hw);
+          lc_progress_q(dev);
         while (lc_recv_qalloc(ep, &req) != LC_OK)
-          lc_progress_q(hw);
+          lc_progress_q(dev);
         assert(req.meta.val == i);
         lc_free(ep, req.buffer);
       }
@@ -79,15 +78,15 @@ int main(int argc, char** args) {
       for (int i = 0; i < total + skip; i++) {
         // req.flag = 0;
         while (lc_recv_qalloc(ep, &req) != LC_OK)
-          lc_progress_q(hw);
+          lc_progress_q(dev);
         assert(req.meta.val == i);
         lc_free(ep, req.buffer);
         req.flag = 0;
         wr.meta.val = i;
         while (lc_submit(ep, &wr, &req) != LC_OK)
-          lc_progress_q(hw);
+          lc_progress_q(dev);
         while (req.flag == 0)
-          lc_progress_q(hw);
+          lc_progress_q(dev);
       }
     }
   }

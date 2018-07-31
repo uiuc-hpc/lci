@@ -41,15 +41,6 @@ enum lc_wr_type {
   WR_CONS = 1,
 };
 
-enum lc_sig_type {
-  SIG_NONE = 0,
-  SIG_CQ,
-  SIG_WAKE,
-  SIG_CNTRS,
-  SIG_HANDL,
-  SIG_GLOBAL
-};
-
 enum lc_data_type {
   DAT_EXPL = 0,
   DAT_ALLOC,
@@ -68,6 +59,9 @@ typedef uint32_t lc_gid;
 typedef uint32_t lc_alloc_id;
 
 typedef struct lci_rep* lc_rep;
+
+typedef void* (*lc_alloc_fn)(void*, size_t);
+typedef void (*lc_free_fn)(void*, void*);
 
 // MPI tag is only upto 64K, it can be piggy-backed as well.
 typedef union {
@@ -101,22 +95,9 @@ typedef struct lc_data {
   };
 } lc_data;
 
-typedef struct lc_sig {
-  enum lc_sig_type type;
-  union {
-    lc_id id;
-    lc_queue_id q_id;
-    lc_sync_id  s_id;
-    lc_handl_id h_id;
-    lc_global_id g_id;
-  };
-} lc_sig;
-
 typedef struct lc_wr {
   enum lc_wr_type type;
   struct {
-    struct lc_sig local_sig;
-    struct lc_sig remote_sig;
     struct lc_data source_data;
     struct lc_data target_data;
     lc_meta meta;
@@ -129,28 +110,28 @@ typedef struct lc_req {
   // This flag is going to be set when the communication is done.
   // It is going to be set by the communication serve most likely
   // so we are going to align it to avoid false sharing.
-  volatile int flag __attribute__((aligned(64)));
+  volatile int flag;
 
   // Additional fields here.
   void* buffer;
   void* parent; // reserved field for internal used.
-  int rank;
   void* rhandle;
-  lc_meta meta;
   size_t size;
+  int rank;
+  lc_meta meta;
 } lc_req;
 
 typedef struct lci_ep* lc_ep;
-typedef struct lci_hw* lc_hw;
+typedef struct lci_dev* lc_dev;
 
 LC_EXPORT
 lc_status lc_init();
 
 LC_EXPORT
-lc_status lc_hw_open(lc_hw* hw);
+lc_status lc_dev_open(lc_dev* dev);
 
 LC_EXPORT
-lc_status lc_ep_open(lc_hw hw, long cap, lc_ep* ep);
+lc_status lc_ep_open(lc_dev dev, long cap, lc_ep* ep);
 
 LC_EXPORT
 lc_status lc_send_tag(lc_ep ep, lc_rep rep, void* src, size_t size, lc_meta tag, lc_req* req);
@@ -174,7 +155,10 @@ LC_EXPORT
 lc_status lc_req_free(lc_ep ep, lc_req* req);
 
 LC_EXPORT
-lc_id lc_rank();
+void lc_get_proc_num(int *rank);
+
+LC_EXPORT
+void lc_get_num_proc(int *size);
 
 LC_EXPORT
 lc_status lc_finalize();
@@ -183,22 +167,28 @@ LC_EXPORT
 lc_status lc_submit(lc_ep, struct lc_wr* wr, lc_req* req); 
 
 LC_EXPORT
-lc_status lc_progress(lc_hw);
+lc_status lc_progress(lc_dev);
 
 LC_EXPORT
-lc_status lc_progress_q(lc_hw);
+lc_status lc_progress_q(lc_dev);
 
 LC_EXPORT
-lc_status lc_progress_sq(lc_hw);
+lc_status lc_progress_sq(lc_dev);
 
 LC_EXPORT
-lc_status lc_progress_t(lc_hw);
+lc_status lc_progress_t(lc_dev);
 
 LC_EXPORT
 lc_status lc_free(lc_ep, void* buf);
 
 LC_EXPORT
-lc_status lc_ep_connect(lc_ep ep, int prank, int erank, lc_rep* rep);
+lc_status lc_ep_query(lc_dev dev, int prank, int erank, lc_rep* rep);
+
+LC_EXPORT
+lc_status lc_ep_set_alloc(lc_ep ep, lc_alloc_fn alloc, lc_free_fn free, void* ctx);
+
+LC_EXPORT
+void lc_pm_barrier();
 
 #ifdef __cplusplus
 }

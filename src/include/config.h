@@ -12,10 +12,14 @@
 #define LC_PACKET_SIZE (64 * 1024 + 4096)
 #else
 
+#define LC_PACKET_SIZE (16 * 1024 + 4096)
+
+#if 0
 #ifdef USE_DREG
 #define LC_PACKET_SIZE (16 * 1024 + 4096)
 #else
 #define LC_PACKET_SIZE (64 * 1024 + 4096)
+#endif
 #endif
 
 #endif  // LC_USE_SERVER_PSM

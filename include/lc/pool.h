@@ -38,16 +38,16 @@ void lc_pool_create(lc_pool** pool);
 LC_EXPORT
 void lc_pool_destroy(lc_pool* pool);
 
-LC_EXPORT
+LC_INLINE
 void lc_pool_put(lc_pool* pool, void* elm);
 
-LC_EXPORT
+LC_INLINE
 void lc_pool_put_to(lc_pool* pool, void* elm, int32_t pid);
 
-LC_EXPORT
+LC_INLINE
 void* lc_pool_get(lc_pool* pool);
 
-LC_EXPORT
+LC_INLINE
 void* lc_pool_get_nb(lc_pool* pool);
 
 #define POOL_EMPTY (NULL)
@@ -77,6 +77,50 @@ LC_INLINE int32_t lc_pool_get_local(struct lc_pool* pool)
   }
   // assert(pid >= 0 && pid < pool->npools && "POOL ERROR: pid out-of-range");
   return pid;
+}
+
+LC_INLINE void* lc_pool_get_slow(struct lc_pool* pool) {
+  void* elm = NULL;
+  while (!elm) {
+    int steal = rand() % (pool->npools);
+    if (likely(pool->lpools[steal] != NULL))
+      elm = dq_pop_bot(pool->lpools[steal]);
+  }
+  return elm;
+}
+
+LC_INLINE void lc_pool_put(struct lc_pool* pool, void* elm) {
+  int32_t pid = lc_pool_get_local(pool);
+  struct dequeue* lpool = pool->lpools[pid];
+  dq_push_top(lpool, elm);
+}
+
+LC_INLINE void lc_pool_put_to(struct lc_pool* pool, void* elm, int32_t pid) {
+  struct dequeue* lpool = pool->lpools[pid];
+  dq_push_top(lpool, elm);
+}
+
+LC_INLINE void* lc_pool_get(struct lc_pool* pool) {
+  int32_t pid = lc_pool_get_local(pool);
+  struct dequeue* lpool = pool->lpools[pid];
+  void *elm = NULL;
+  elm = dq_pop_top(lpool);
+  if (elm == NULL)
+    elm = lc_pool_get_slow(pool);
+  return elm;
+}
+
+LC_INLINE void* lc_pool_get_nb(struct lc_pool* pool) {
+  int32_t pid = lc_pool_get_local(pool);
+  struct dequeue* lpool = pool->lpools[pid];
+  void* elm = NULL;
+  elm = dq_pop_top(lpool);
+  if (elm == NULL) {
+    int steal = rand() % (pool->npools);
+    if (likely(pool->lpools[steal] != NULL))
+      elm = dq_pop_bot(pool->lpools[steal]);
+  }
+  return elm;
 }
 
 #endif
