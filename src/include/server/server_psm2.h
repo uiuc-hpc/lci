@@ -266,14 +266,13 @@ LC_INLINE int psm_progress(psm_server* s, const long cap)
 {
   psm2_mq_req_t req;
   psm2_mq_status2_t status;
-  psm2_error_t err;
-  int count = 0;
-  do {
-    err = psm2_mq_ipeek2(s->mq, &req, NULL);
-  } while (err != PSM2_OK && count++ < 250);
+  psm2_error_t err = psm2_mq_ipeek2(s->mq, &req, &status);
   
   if (err == PSM2_OK) {
-    err = psm2_mq_test2(&req, &status);  // we need the status
+    #ifndef USE_MINI_PSM2
+    psm2_mq_test2(&req, &status);  // we need the status
+    #endif
+
     uintptr_t ctx = (uintptr_t) status.context;
     if (ctx & PSM_RECV) {
       lc_packet* p = (lc_packet*) (ctx ^ PSM_RECV);
@@ -296,8 +295,6 @@ LC_INLINE int psm_progress(psm_server* s, const long cap)
           lc_serve_send(s->dev, p, proto);
       }
     }
-  } else {
-    sched_yield();
   }
 
   if (s->recv_posted < SERVER_MAX_RCVS)
@@ -357,10 +354,9 @@ LC_INLINE int psm_write_send(psm_server* s, struct lci_ep* ep, void* rep, void* 
   rtag.tag2 = 0x0;
 
 #ifdef LC_SERVER_INLINE
-  if (size < 1024) {
+  if (size <= SERVER_MAX_INLINE) {
     PSM_SAFECALL(psm2_mq_send2(s->mq, rep, 0, &rtag, ubuf, size));
     lc_serve_send(s->dev, ctx, proto);
-    return 1;
   } else
 #endif
   {
@@ -370,8 +366,8 @@ LC_INLINE int psm_write_send(psm_server* s, struct lci_ep* ep, void* rep, void* 
                                &rtag, ctx->data.buffer, size,
                                (void*)(PSM_SEND | (uintptr_t)ctx),
                                (psm2_mq_req_t*)ctx));
-    return 0;
   }
+  return 0;
 }
 
 #if 0

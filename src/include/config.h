@@ -30,7 +30,7 @@
 #define POST_MSG_SIZE (SHORT_MSG_SIZE)
 
 #ifdef LC_SERVER_INLINE
-#define SERVER_MAX_INLINE 64
+#define SERVER_MAX_INLINE 128
 #else
 #define SERVER_MAX_INLINE 0
 #endif
