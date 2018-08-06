@@ -12,4 +12,4 @@ LC_SERVER_INLINE ?= yes
 LC_SERVER_DEBUG ?= no
 
 # Use registration cache ? (Only affect ibv -- only use when not-so-dynamic allocation)
-LC_USE_DREG ?= no
+LC_USE_DREG ?= yes

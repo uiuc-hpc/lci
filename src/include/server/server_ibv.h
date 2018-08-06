@@ -91,7 +91,7 @@ LC_INLINE struct ibv_qp* qp_create(ibv_server* s,
   qp_init_attr.cap.max_send_wr = 256; //(uint32_t)dev_attr->max_qp_wr;
   qp_init_attr.cap.max_recv_wr = 1; //(uint32_t)dev_attr->max_qp_wr;
   // -- this affect the size of (TODO:tune later).
-  qp_init_attr.cap.max_send_sge = 8;
+  qp_init_attr.cap.max_send_sge = 16; // this allows 128 inline.
   qp_init_attr.cap.max_recv_sge = 1;
   qp_init_attr.cap.max_inline_data = 0;
   qp_init_attr.qp_type = IBV_QPT_RC;
@@ -230,7 +230,9 @@ LC_INLINE void ibv_post_recv_(ibv_server* s, lc_packet* p)
   if (p == NULL) {
     if (s->recv_posted < SERVER_MAX_RCVS / 2 && !server_deadlock_alert) {
       server_deadlock_alert = 1;
+      #ifdef LC_SERVER_DEBUG
       printf("WARNING-LC: deadlock alert\n");
+      #endif
     }
     return;
   }
@@ -257,30 +259,11 @@ LC_INLINE void ibv_post_recv_(ibv_server* s, lc_packet* p)
     server_deadlock_alert = 0;
 }
 
-LC_INLINE int ibv_progress_recv_once(ibv_server* s)
-{
-  struct ibv_wc wc;
-  int ret = ibv_poll_cq(s->recv_cq, 1, &wc);
-  if (ret > 0) {
-    return 1;
-  }
-  return 0;
-}
-
-LC_INLINE int ibv_progress_send_once(ibv_server* s)
-{
-  struct ibv_wc wc;
-  int ret = ibv_poll_cq(s->send_cq, 1, &wc);
-  if (ret > 0) {
-    return 1;
-  }
-  return 0;
-}
-
 LC_INLINE int ibv_progress(ibv_server* s, const long cap)
-{  // profiler& p, long long& r, long long &s) {
+{
   struct ibv_wc wc[MAX_CQ];
   int ne = ibv_poll_cq(s->recv_cq, MAX_CQ, wc);
+  int ret = (ne > 0);
 
 #ifdef LC_SERVER_DEBUG
   assert(ne >= 0);
@@ -312,6 +295,7 @@ LC_INLINE int ibv_progress(ibv_server* s, const long cap)
   }
 
   ne = ibv_poll_cq(s->send_cq, MAX_CQ, wc);
+  ret |= (ne > 0);
 
 #ifdef LC_SERVER_DEBUG
   assert(ne >= 0);
@@ -333,6 +317,7 @@ LC_INLINE int ibv_progress(ibv_server* s, const long cap)
   // Make sure we always have enough packet, but do not block.
   if (s->recv_posted < SERVER_MAX_RCVS) {
     ibv_post_recv_(s, (lc_packet*)lc_pool_get_nb(s->dev->pkpool));  //, 0));
+    ret = 1;
   }
 
 #ifdef LC_SERVER_DEBUG
@@ -341,7 +326,7 @@ LC_INLINE int ibv_progress(ibv_server* s, const long cap)
   }
 #endif
 
-  return 0;
+  return ret;
 }
 
 #define setup_wr(w, d, l, m, f) \
@@ -370,9 +355,9 @@ LC_INLINE int ibv_write_send(ibv_server* s, struct lci_ep* ep, void* rep, void* 
       .lkey = s->heap->lkey,
   };
 
-  if (size <= server_max_inline && ninline++ < 64) {
+  if (size <= server_max_inline && ninline++ < 16) {
     setup_wr(this_wr, (uintptr_t)0, &list, IBV_WR_SEND_WITH_IMM,
-             IBV_SEND_INLINE);
+             IBV_SEND_INLINE); // NOTE: do not signal here, cause cache misses
     this_wr.imm_data = proto;
     IBV_SAFECALL(ibv_post_send((struct ibv_qp*) rep, &this_wr, &bad_wr));
     lc_serve_send(s->dev, ctx, proto);
@@ -629,7 +614,7 @@ LC_INLINE void ibv_connect(ibv_server* s, int prank, int erank, lc_rep* rep)
   char name[256];
   lc_pm_getname(prank, erank, name);
   if (atoi(name) == s->id) {
-    *rep = malloc(sizeof(struct lci_rep));
+    posix_memalign((void**) rep, 64, sizeof(struct lci_rep));
     (*rep)->rank = prank;
     (*rep)->eid = erank;
     (*rep)->handle = (void*) s->qp[prank];

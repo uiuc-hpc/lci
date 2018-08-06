@@ -11,7 +11,7 @@ PREFIX ?= /usr
 SRCDIR = ./src
 OBJDIR ?= ./obj
 
-EXTRA = -DAFF_DEBUG -DUSE_AFFI -DUSE_MINI_PSM2# -DUSE_ABT
+EXTRA = -DAFF_DEBUG -DUSE_AFFI #-DUSE_MINI_PSM2# -DUSE_ABT
 
 ifeq (,$(wildcard $(OBJDIR)))
 $(shell mkdir -p $(OBJDIR))

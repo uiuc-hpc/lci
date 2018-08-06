@@ -246,28 +246,24 @@ lc_status lc_req_free(lc_ep ep, lc_req* req)
   return LC_OK;
 }
 
-lc_status lc_progress_t(lc_dev dev) // TODO: make a version with index.
+int lc_progress_t(lc_dev dev) // TODO: make a version with index.
 {
-  lc_server_progress(dev->handle, EP_TYPE_TAG);
-  return LC_OK;
+  return lc_server_progress(dev->handle, EP_TYPE_TAG);
 }
 
-lc_status lc_progress_q(lc_dev dev) // TODO: make a version with index.
+int lc_progress_q(lc_dev dev) // TODO: make a version with index.
 {
-  lc_server_progress(dev->handle, EP_TYPE_QUEUE);
-  return LC_OK;
+  return lc_server_progress(dev->handle, EP_TYPE_QUEUE);
 }
 
-lc_status lc_progress_sq(lc_dev dev) // TODO: make a version with index.
+int lc_progress_sq(lc_dev dev) // TODO: make a version with index.
 {
-  lc_server_progress(dev->handle, EP_TYPE_SQUEUE);
-  return LC_OK;
+  return lc_server_progress(dev->handle, EP_TYPE_SQUEUE);
 }
 
-lc_status lc_progress(lc_dev dev)
+int lc_progress(lc_dev dev)
 {
-  lc_server_progress(dev->handle, dev->cap);
-  return LC_OK;
+  return lc_server_progress(dev->handle, dev->cap);
 }
 
 lc_status lc_ep_query(lc_dev dev, int prank, int erank, lc_rep* rep)
@@ -283,3 +279,16 @@ lc_status lc_free(lc_ep ep, void* buf)
 }
 
 void lc_pm_barrier() { PMI_Barrier(); }
+
+#ifdef USE_DREG
+uintptr_t get_dma_mem(void* server, void* buf, size_t s)
+{
+  return _real_server_reg(server, buf, s);
+}
+
+int free_dma_mem(uintptr_t mem)
+{
+  _real_server_dereg(mem);
+  return 1;
+}
+#endif

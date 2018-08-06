@@ -167,16 +167,16 @@ LC_EXPORT
 lc_status lc_submit(lc_ep, struct lc_wr* wr, lc_req* req); 
 
 LC_EXPORT
-lc_status lc_progress(lc_dev);
+int lc_progress(lc_dev);
 
 LC_EXPORT
-lc_status lc_progress_q(lc_dev);
+int lc_progress_q(lc_dev);
 
 LC_EXPORT
-lc_status lc_progress_sq(lc_dev);
+int lc_progress_sq(lc_dev);
 
 LC_EXPORT
-lc_status lc_progress_t(lc_dev);
+int lc_progress_t(lc_dev);
 
 LC_EXPORT
 lc_status lc_free(lc_ep, void* buf);

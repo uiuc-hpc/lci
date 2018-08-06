@@ -14,7 +14,7 @@
 #include "lc/dequeue.h"
 
 #define MAX_NPOOLS 272
-#define MAX_LOCAL_POOL 8  // align to a cache line.
+#define MAX_LOCAL_POOL 32 // align to a cache line.
 
 extern int lc_pool_nkey;
 extern int32_t tls_pool_struct[MAX_NPOOLS][MAX_LOCAL_POOL];

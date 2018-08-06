@@ -18,8 +18,6 @@
 #define GET_PROTO(p) (p & 0x000000ff)
 #define PSM_CTRL_MSG 1
 
-#define LC_SERVER_DEBUG
-
 #ifdef LC_SERVER_DEBUG
 #define PSM_SAFECALL(x)                                       \
   {                                                           \

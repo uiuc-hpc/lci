@@ -209,6 +209,6 @@ void lc_serve_imm(lc_packet* p)
   // uint32_t type = imm & 0b0111;
   // uint32_t id = imm >> 3;
   p->context.req->flag = 1;
-  // lc_server_rma_dereg(p->context.rma_mem);
+  lc_server_rma_dereg(p->context.rma_mem);
 }
 #endif

@@ -25,6 +25,7 @@ void lc_pool_create(struct lc_pool** pool) {
   p->npools = 0;
   p->key = lc_pool_nkey++;
   if (p->key < 0 || p->key > MAX_LOCAL_POOL) {
+    printf("%d\n", p->key);
     printf("Unable to allocate more pool\n");
     exit(EXIT_FAILURE);
   }

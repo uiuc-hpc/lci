@@ -51,6 +51,10 @@ int main(int argc, char** args) {
           lc_progress_t(dev);
         while (req.flag == 0)
           lc_progress_t(dev);
+        if (i == 0) {
+          for (int j = 0; j < size; j++)
+            assert(((char*) src_buf)[j] == 'a' && ((char*)dst_buf)[j] == 'a');
+        }
       }
 
       t1 = 1e6 * (wtime() - t1) / total / 2;
