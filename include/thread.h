@@ -16,19 +16,19 @@ typedef struct lc_sync_fp {
   lc_signal_fp signal;
 } lc_sync_fp;
 
-extern int lc_current_id;
-extern __thread int lc_core_id;
+extern int lcg_current_id;
+extern __thread int lcg_core_id;
 extern lc_sync_fp g_sync;
 
 LC_INLINE int lc_worker_id()
 {
-  if (unlikely(lc_core_id == -1)) {
-    lc_core_id = sched_getcpu();
-    if (lc_core_id == -1) {
-      lc_core_id = __sync_fetch_and_add(&lc_current_id, 1);
+  if (unlikely(lcg_core_id == -1)) {
+    lcg_core_id = sched_getcpu();
+    if (lcg_core_id == -1) {
+      lcg_core_id = __sync_fetch_and_add(&lcg_current_id, 1);
     }
   }
-  return lc_core_id;
+  return lcg_core_id;
 }
 
 LC_INLINE void lc_sync_wait(void* sync, volatile int* flag)

@@ -2,10 +2,10 @@
 #define SERVER_H_
 
 LC_INLINE
-void lc_serve_recv(lc_dev dev, lc_packet* p, uint32_t proto, const long cap);
+void lc_serve_recv(lc_packet* p, uint32_t proto, const long cap);
 
 LC_INLINE
-void lc_serve_send(lc_dev dev, lc_packet* p, uint32_t proto);
+void lc_serve_send(lc_packet* p, uint32_t proto);
 
 LC_INLINE
 void lc_serve_imm(lc_packet* p);

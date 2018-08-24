@@ -136,7 +136,7 @@ LC_INLINE void psm_post_recv_rma(psm_server* s, void* addr, size_t size, uint32_
       addr, size, (void*)(PSM_RECV), (psm2_mq_req_t*) &s->reg_mr.req));
 }
 
-LC_INLINE void post_control_msg(psm_server *s) 
+LC_INLINE void post_control_msg(psm_server *s)
 {
   psm2_mq_tag_t rtag;
   rtag.tag0 = 0x0;
@@ -200,7 +200,7 @@ LC_INLINE void psm_init(struct lci_dev* dev)
   // setenv("PSM2_RCVTHREAD", "0", 1);
   psm_server* s = NULL;
   posix_memalign((void**) &s, 4096, sizeof(struct psm_server));
-  
+
   s->dev = dev;
 
   int ver_major = PSM2_VERNO_MAJOR;
@@ -243,7 +243,7 @@ LC_INLINE void psm_ep_publish(psm_server* s, int erank)
   lc_pm_publish(lcg_rank, erank, ep_name);
 }
 
-LC_INLINE void psm_connect(psm_server* s, int prank, int erank, lc_rep* rep)
+LC_INLINE void psm_connect(psm_server* s, int prank, int erank, lc_rep rep)
 {
   char ep_name[256];
 
@@ -254,10 +254,9 @@ LC_INLINE void psm_connect(psm_server* s, int prank, int erank, lc_rep* rep)
   sscanf(ep_name, "%llu", (unsigned long long*)&destaddr);
   PSM_SAFECALL(psm2_ep_connect(s->myep, 1, &destaddr, NULL,
                                &errs, &epaddr, 0));
-  posix_memalign((void**) rep, 64, sizeof(struct lci_rep));
-  (*rep)->rank = prank;
-  (*rep)->eid = erank;
-  (*rep)->handle = (void*) epaddr;
+  rep->rank = prank;
+  rep->gid = erank;
+  rep->handle = (void*) epaddr;
 }
 
 LC_INLINE int psm_progress(psm_server* s, const long cap)
@@ -265,7 +264,7 @@ LC_INLINE int psm_progress(psm_server* s, const long cap)
   psm2_mq_req_t req;
   psm2_mq_status2_t status;
   psm2_error_t err = psm2_mq_ipeek2(s->mq, &req, &status);
-  
+
   if (err == PSM2_OK) {
     #ifndef USE_MINI_PSM2
     psm2_mq_test2(&req, &status);  // we need the status
@@ -276,11 +275,11 @@ LC_INLINE int psm_progress(psm_server* s, const long cap)
       lc_packet* p = (lc_packet*) (ctx ^ PSM_RECV);
       if (status.msg_tag.tag2 == 0x0) {
         p->context.req = &p->context.req_s;
-        p->context.req->rhandle = status.msg_peer; 
+        p->context.req->rhandle = status.msg_peer;
         p->context.req->rank = status.msg_tag.tag1;
         p->context.req->size = (status.msg_length);
         uint32_t proto = status.msg_tag.tag0;
-        lc_serve_recv(s->dev, p, proto, cap);
+        lc_serve_recv(p, proto, cap);
         s->recv_posted--;
       } else {
         lc_packet* p = (lc_packet*) (s->dev->base_addr + status.msg_tag.tag0);
@@ -290,7 +289,7 @@ LC_INLINE int psm_progress(psm_server* s, const long cap)
       lc_packet* p = (lc_packet*) (ctx ^ PSM_SEND);
       if (p) {
           uint32_t proto = p->context.proto;
-          lc_serve_send(s->dev, p, proto);
+          lc_serve_send(p, proto);
       }
     }
   }
@@ -317,8 +316,8 @@ LC_INLINE int psm_progress(psm_server* s, const long cap)
 LC_INLINE void psm_post_recv(psm_server* s, lc_packet* p)
 {
   if (p == NULL)  {
-    if (s->recv_posted == SERVER_MAX_RCVS / 2 && !server_deadlock_alert) {
-      server_deadlock_alert = 1;
+    if (s->recv_posted == SERVER_MAX_RCVS / 2 && !lcg_deadlock) {
+      lcg_deadlock = 1;
 #ifdef LC_SERVER_DEBUG
       printf("WARNING-LC: deadlock alert\n");
 #endif
@@ -338,8 +337,8 @@ LC_INLINE void psm_post_recv(psm_server* s, lc_packet* p)
       &p->data, POST_MSG_SIZE, (void*)(PSM_RECV | (uintptr_t)&p->context),
       (psm2_mq_req_t*)p));
 
-  if (++s->recv_posted == SERVER_MAX_RCVS && server_deadlock_alert)
-    server_deadlock_alert = 0;
+  if (++s->recv_posted == SERVER_MAX_RCVS && lcg_deadlock)
+    lcg_deadlock = 0;
 #endif
 }
 
@@ -354,7 +353,7 @@ LC_INLINE int psm_write_send(psm_server* s, struct lci_ep* ep, void* rep, void* 
 #ifdef LC_SERVER_INLINE
   if (size <= SERVER_MAX_INLINE) {
     PSM_SAFECALL(psm2_mq_send2(s->mq, rep, 0, &rtag, ubuf, size));
-    lc_serve_send(s->dev, ctx, proto);
+    lc_serve_send(ctx, proto);
   } else
 #endif
   {

@@ -23,7 +23,7 @@ struct __attribute__((__packed__)) packet_rts {
   uintptr_t req;
   uintptr_t src_addr;
   size_t size;
-  uint64_t reid;
+  uint64_t rgid;
 };
 
 struct __attribute__((__packed__)) packet_rtr {

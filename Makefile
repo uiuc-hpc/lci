@@ -60,7 +60,7 @@ ifeq ($(LC_SERVER), psm)
 	CFLAGS += -DLC_USE_SERVER_PSM -DAFF_DEBUG -I$(PSM_DIR)/include
 endif
 
-COMM = lc.o lcrq.o pool.o hashtable.o # rma.o coll.o
+COMM = lc.o medium.o long.o cq.o lcrq.o pool.o hashtable.o # rma.o coll.o
 DREG = dreg/dreg.o dreg/avl.o
 PMI = pm.o pmi/simple_pmi.o pmi/simple_pmiutil.o
 

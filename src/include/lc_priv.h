@@ -19,15 +19,17 @@ typedef struct lci_dev lci_dev;
 // remote endpoint is just a handle.
 struct lci_rep {
   void* handle;
-  lc_eid rank;
-  lc_eid eid;
-};
+  int rank;
+  int gid;
+} __attribute__((aligned(64)));
 
 typedef struct lci_ep {
-  lc_eid eid;
+  int gid;
 
   // Associated hardware context.
   lci_dev* dev;
+  lc_pool* pkpool;
+  void* handle;
 
   // Cap
   long cap;
@@ -44,6 +46,8 @@ typedef struct lci_ep {
   };
 
   struct comp_q cq;
+
+  struct lci_rep* rep;
 } lci_ep;
 
 struct lci_dev {
@@ -87,32 +91,32 @@ void lci_dev_init(struct lci_dev* dev)
 }
 
 LC_INLINE
-void lci_ep_open(struct lci_dev* dev, struct lci_ep** ep_ptr, long cap)
+void lci_ep_open(struct lci_dev* dev, long cap, struct lci_ep** ep_ptr)
 {
   struct lci_ep* ep;
   posix_memalign((void**) &ep, 64, sizeof(struct lci_ep));
 
   ep->dev = dev;
+  ep->handle = ep->dev->handle;
+  ep->pkpool = dev->pkpool;
   ep->cap = cap;
-  ep->eid = lcg_nep++;
-  lcg_ep_list[ep->eid] = ep;
+  ep->gid = lcg_nep++;
+  lcg_ep_list[ep->gid] = ep;
 
-  if (cap == EP_TYPE_TAG)
+  if (cap & EP_AR_EXPL)
     lc_hash_create(&ep->tbl);
   else {
     cq_init(&ep->cq);
   }
 
-  lc_server_ep_publish(dev->handle, ep->eid);
+  lc_server_ep_publish(dev->handle, ep->gid);
+  posix_memalign((void**) &(ep->rep), 64, sizeof(struct lci_rep) * lcg_size);
+
+  for (int i = 0; i < lcg_size; i++)
+    if (i != lcg_rank)
+      lc_server_connect(dev->handle, i, ep->gid, &ep->rep[i]);
 
   *ep_ptr = ep;
 }
-
-LC_INLINE
-void lci_ep_connect(lc_dev dev, int prank, int erank, lc_rep* rep)
-{
-  lc_server_connect(dev->handle, prank, erank, rep);
-}
-
 
 #endif

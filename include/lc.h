@@ -17,35 +17,16 @@ extern "C" {
 #include "lc/macro.h"
 
 
-#define EP_ANY      (0)
 #define EP_AR_ALLOC (1<<1)
-#define EP_AR_PIGGY (1<<2)
-#define EP_AR_EXPL  (1<<3)
+#define EP_AR_EXPL  (1<<2)
 
-#define EP_CE_NONE  ((1<<1) << 4)
-#define EP_CE_QUEUE ((1<<2) << 4)
-#define EP_CE_SYNC  ((1<<3) << 4)
-#define EP_CE_AM    ((1<<4) << 4)
+#define EP_CE_FLAG ((1<<1) << 4)
+#define EP_CE_CQ   ((1<<2) << 4)
+#define EP_CE_SYNC ((1<<3) << 4)
+#define EP_CE_AM   ((1<<4) << 4)
 
-#define EP_TYPE_TAG    (EP_CE_NONE  | EP_AR_EXPL)
-#define EP_TYPE_QUEUE  (EP_CE_QUEUE | EP_AR_ALLOC)
-#define EP_TYPE_SQUEUE (EP_CE_QUEUE | EP_AR_PIGGY)
-
-enum lc_wr_state {
-  LC_REQ_PEND = 0,
-  LC_REQ_DONE = 1,
-};
-
-enum lc_wr_type {
-  WR_PROD = 0,
-  WR_CONS = 1,
-};
-
-enum lc_data_type {
-  DAT_EXPL = 0,
-  DAT_ALLOC,
-  DAT_PIGGY,
-};
+#define LC_REQ_PEND 0
+#define LC_REQ_DONE 1
 
 typedef enum lc_status {
   LC_OK = 0,
@@ -53,15 +34,10 @@ typedef enum lc_status {
   LC_ERR_FATAL,
 } lc_status;
 
-typedef uint32_t lc_id;
-typedef uint32_t lc_eid;
-typedef uint32_t lc_gid;
-typedef uint32_t lc_alloc_id;
-
-typedef struct lci_rep* lc_rep;
-
 typedef void* (*lc_alloc_fn)(void*, size_t);
 typedef void (*lc_free_fn)(void*, void*);
+
+typedef struct lci_rep* lc_rep;
 
 // MPI tag is only upto 64K, it can be piggy-backed as well.
 typedef union {
@@ -71,40 +47,6 @@ typedef union {
   } tag;
   uint32_t val;
 } lc_meta;
-
-// These using 1 byte since they need to be limitted,
-// so that can be offloaded in the future.
-typedef uint8_t lc_queue_id;
-typedef uint8_t lc_sync_id; 
-typedef uint8_t lc_handl_id; 
-typedef uint8_t lc_global_id;
-
-typedef struct lc_data {
-  enum lc_data_type type;
-  union {
-    // explicit data.
-    struct {
-      void* addr;
-      size_t size;
-    };
-    // allocator.
-    struct {
-      lc_alloc_id alloc_id;
-      void* alloc_ctx;
-    };
-  };
-} lc_data;
-
-typedef struct lc_wr {
-  enum lc_wr_type type;
-  struct {
-    struct lc_data source_data;
-    struct lc_data target_data;
-    lc_meta meta;
-    lc_id source;
-    lc_rep target;
-  };
-} lc_wr;
 
 typedef struct lc_req {
   // This flag is going to be set when the communication is done.
@@ -125,34 +67,37 @@ typedef struct lci_ep* lc_ep;
 typedef struct lci_dev* lc_dev;
 
 LC_EXPORT
-lc_status lc_init();
+lc_status lc_init(int dev_id, long ar, long comp, lc_ep* ep);
 
 LC_EXPORT
-lc_status lc_dev_open(lc_dev* dev);
+lc_status lc_ep_dup(int dev_id, long ar, long comp, lc_ep iep, lc_ep* ep);
 
 LC_EXPORT
-lc_status lc_ep_open(lc_dev dev, long cap, lc_ep* ep);
+lc_status lc_sendm(lc_ep ep, int rep, void* src, size_t size, lc_meta tag, lc_req* req);
 
 LC_EXPORT
-lc_status lc_send_tag(lc_ep ep, lc_rep rep, void* src, size_t size, lc_meta tag, lc_req* req);
+lc_status lc_recvm(lc_ep ep, int rep, void* src, size_t size, lc_meta tag, lc_req* req);
 
 LC_EXPORT
-lc_status lc_recv_tag(lc_ep ep, lc_rep rep, void* src, size_t size, lc_meta tag, lc_req* req);
+lc_status lc_sendl(lc_ep ep, int rep, void* src, size_t size, lc_meta tag, lc_req* req);
 
 LC_EXPORT
-lc_status lc_send_qalloc(lc_ep ep, lc_rep rep, void* src, size_t size, lc_meta tag, lc_req* req);
+lc_status lc_recvl(lc_ep ep, int rep, void* src, size_t size, lc_meta tag, lc_req* req);
 
 LC_EXPORT
-lc_id lc_recv_qalloc(lc_ep ep, lc_req* req);
+lc_status lc_putmd(lc_ep ep, int rep, void* src, size_t size, lc_meta tag, lc_req* req);
 
 LC_EXPORT
-lc_status lc_send_qshort(lc_ep ep, lc_rep rep, void* src, size_t size, lc_meta tag, lc_req* req);
+lc_status lc_putld(lc_ep ep, int rep, void* src, size_t size, lc_meta tag, lc_req* req);
 
 LC_EXPORT
-lc_id lc_recv_qshort(lc_ep ep, lc_req** req);
+lc_status lc_cq_popval(lc_ep ep, lc_req* req);
 
 LC_EXPORT
-lc_status lc_req_free(lc_ep ep, lc_req* req);
+lc_status lc_cq_popref(lc_ep ep, lc_req** req);
+
+LC_EXPORT
+lc_status lc_cq_reqfree(lc_ep ep, lc_req* req);
 
 LC_EXPORT
 void lc_get_proc_num(int *rank);
@@ -164,25 +109,16 @@ LC_EXPORT
 lc_status lc_finalize();
 
 LC_EXPORT
-lc_status lc_submit(lc_ep, struct lc_wr* wr, lc_req* req); 
+int lc_progress(int);
 
 LC_EXPORT
-int lc_progress(lc_dev);
+int lc_progress_t(int);
 
 LC_EXPORT
-int lc_progress_q(lc_dev);
-
-LC_EXPORT
-int lc_progress_sq(lc_dev);
-
-LC_EXPORT
-int lc_progress_t(lc_dev);
+int lc_progress_q(int);
 
 LC_EXPORT
 lc_status lc_free(lc_ep, void* buf);
-
-LC_EXPORT
-lc_status lc_ep_query(lc_dev dev, int prank, int erank, lc_rep* rep);
 
 LC_EXPORT
 lc_status lc_ep_set_alloc(lc_ep ep, lc_alloc_fn alloc, lc_free_fn free, void* ctx);

@@ -10,17 +10,10 @@ int total = TOTAL;
 int skip = SKIP;
 
 int main(int argc, char** args) {
-  lc_init();
-
   lc_ep ep;
-  lc_rep rep;
-  lc_dev dev;
-
-  lc_dev_open(&dev);
-  lc_ep_open(dev, EP_TYPE_TAG, &ep);
+  lc_init(1, EP_AR_EXPL, EP_CE_FLAG, &ep);
   int rank = 0;
   lc_get_proc_num(&rank);
-  lc_ep_query(dev, 1-rank, 0, &rep);
   lc_meta tag = {99};
 
   lc_req req;
@@ -41,16 +34,16 @@ int main(int argc, char** args) {
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
         req.flag = 0;
-        while (lc_send_tag(ep, rep, src_buf, size, tag, &req) != LC_OK)
-          lc_progress_t(dev);
+        while (lc_sendl(ep, 1-rank, src_buf, size, tag, &req) != LC_OK)
+          lc_progress_t(0);
         while (req.flag == 0)
-          lc_progress_t(dev);
+          lc_progress_t(0);
 
         req.flag = 0;
-        while (lc_recv_tag(ep, rep, dst_buf, size, tag, &req) != LC_OK)
-          lc_progress_t(dev);
+        while (lc_recvl(ep, 1-rank, dst_buf, size, tag, &req) != LC_OK)
+          lc_progress_t(0);
         while (req.flag == 0)
-          lc_progress_t(dev);
+          lc_progress_t(0);
         if (i == 0) {
           for (int j = 0; j < size; j++)
             assert(((char*) src_buf)[j] == 'a' && ((char*)dst_buf)[j] == 'a');
@@ -68,16 +61,16 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         req.flag = 0;
-        while (lc_recv_tag(ep, rep, dst_buf, size, tag, &req) != LC_OK)
-          lc_progress_t(dev);
+        while (lc_recvl(ep, 1-rank, dst_buf, size, tag, &req) != LC_OK)
+          lc_progress_t(0);
         while (req.flag == 0)
-          lc_progress_t(dev);
+          lc_progress_t(0);
 
         req.flag = 0;
-        while (lc_send_tag(ep, rep, src_buf, size, tag, &req) != LC_OK)
-          lc_progress_t(dev);
+        while (lc_sendl(ep, 1-rank, src_buf, size, tag, &req) != LC_OK)
+          lc_progress_t(0);
         while (req.flag == 0)
-          lc_progress_t(dev);
+          lc_progress_t(0);
 
       }
     }

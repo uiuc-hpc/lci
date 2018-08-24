@@ -3,7 +3,7 @@ FULT=$(WORK)/fult
 
 CC = icc
 LD = $(CC)
-TARGET = tag queue tag_wr queue_wr queue_2hw queue_2ep queue_short
+TARGET = init tmed tlong qmed qlong
 
 EXTRA = -DUSE_AFFI
 

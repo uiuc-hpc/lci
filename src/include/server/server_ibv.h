@@ -73,10 +73,10 @@ typedef struct ibv_server {
   int qp2rank_mod;
   void* heap_ptr;
   size_t recv_posted;
+  size_t max_inline;
 } ibv_server __attribute__((aligned(64)));
 
 extern int lcg_ndev;
-extern size_t server_max_inline;
 
 LC_INLINE lc_server_memory* ibv_mem_malloc(ibv_server* s, size_t size);
 
@@ -101,7 +101,7 @@ LC_INLINE struct ibv_qp* qp_create(ibv_server* s,
     fprintf(stderr, "Unable to create queue pair\n");
     exit(EXIT_FAILURE);
   }
-  server_max_inline = MIN(qp_init_attr.cap.max_inline_data, SERVER_MAX_INLINE);
+  s->max_inline = MIN(qp_init_attr.cap.max_inline_data, SERVER_MAX_INLINE);
   return qp;
 }
 
@@ -228,8 +228,8 @@ LC_INLINE uint32_t ibv_rma_lkey(uintptr_t mem)
 LC_INLINE void ibv_post_recv_(ibv_server* s, lc_packet* p)
 {
   if (p == NULL) {
-    if (s->recv_posted < SERVER_MAX_RCVS / 2 && !server_deadlock_alert) {
-      server_deadlock_alert = 1;
+    if (s->recv_posted < SERVER_MAX_RCVS / 2 && !lcg_deadlock) {
+      lcg_deadlock = 1;
       #ifdef LC_SERVER_DEBUG
       printf("WARNING-LC: deadlock alert\n");
       #endif
@@ -255,8 +255,8 @@ LC_INLINE void ibv_post_recv_(ibv_server* s, lc_packet* p)
   struct ibv_recv_wr* bad_wr = 0;
   IBV_SAFECALL(ibv_post_srq_recv(s->dev_srq, &wr, &bad_wr));
 
-  if (++s->recv_posted == SERVER_MAX_RCVS && server_deadlock_alert)
-    server_deadlock_alert = 0;
+  if (++s->recv_posted == SERVER_MAX_RCVS && lcg_deadlock)
+    lcg_deadlock = 0;
 }
 
 LC_INLINE int ibv_progress(ibv_server* s, const long cap)
@@ -286,7 +286,7 @@ LC_INLINE int ibv_progress(ibv_server* s, const long cap)
       p->context.req->rank = s->qp2rank[wc[i].qp_num % s->qp2rank_mod];
       p->context.req->rhandle = (void*) s->qp[p->context.req->rank];
       p->context.req->size = wc[i].byte_len;
-      lc_serve_recv(s->dev, p, wc[i].imm_data, cap);
+      lc_serve_recv(p, wc[i].imm_data, cap);
     } else {
       lc_packet* p = (lc_packet*) (s->dev->base_addr + wc[i].imm_data);
       lc_serve_imm(p);
@@ -311,7 +311,7 @@ LC_INLINE int ibv_progress(ibv_server* s, const long cap)
     }
 #endif
     lc_packet* p = (lc_packet*)wc[i].wr_id;
-    if (p) lc_serve_send(s->dev, p, p->context.proto);
+    if (p) lc_serve_send(p, p->context.proto);
   }
 
   // Make sure we always have enough packet, but do not block.
@@ -355,12 +355,12 @@ LC_INLINE int ibv_write_send(ibv_server* s, struct lci_ep* ep, void* rep, void* 
       .lkey = s->heap->lkey,
   };
 
-  if (size <= server_max_inline && ninline++ < 16) {
+  if (size <= s->max_inline && ninline++ < 16) {
     setup_wr(this_wr, (uintptr_t)0, &list, IBV_WR_SEND_WITH_IMM,
              IBV_SEND_INLINE); // NOTE: do not signal here, cause cache misses
     this_wr.imm_data = proto;
     IBV_SAFECALL(ibv_post_send((struct ibv_qp*) rep, &this_wr, &bad_wr));
-    lc_serve_send(s->dev, ctx, proto);
+    lc_serve_send(ctx, proto);
   } else {
     ninline = 0;
     if (ctx->data.buffer != ubuf) memcpy(ctx->data.buffer, ubuf, size);
@@ -405,7 +405,7 @@ LC_INLINE void ibv_write_rma_rtr(ibv_server* s, void* rep, void* buf,
   uint32_t lkey = 0;
   uint32_t flag = IBV_SEND_SIGNALED;
 
-  if (size > server_max_inline) {
+  if (size > s->max_inline) {
     lkey = ibv_rma_lkey(ibv_rma_reg(s, buf, size));
   } else {
     flag |= IBV_SEND_INLINE;
@@ -437,7 +437,7 @@ LC_INLINE void ibv_write_rma_signal(ibv_server* s, int rank, void* from,
   uint32_t lkey = 0;
   int flag = IBV_SEND_SIGNALED;
 
-  if (size > server_max_inline) {
+  if (size > s->max_inline) {
     lkey = ibv_rma_lkey(ibv_rma_reg(s, from, size));
   } else {
     flag |= IBV_SEND_INLINE;
@@ -602,22 +602,21 @@ LC_INLINE void ibv_init(struct lci_dev* dev)
   PMI_Barrier();
 }
 
-LC_INLINE void ibv_ep_publish(ibv_server* s, int erank)
+LC_INLINE void ibv_ep_publish(ibv_server* s, int gid)
 {
   char name[256];
   sprintf(name, "%d", s->id);
-  lc_pm_publish(lcg_rank, erank, name);
+  lc_pm_publish(lcg_rank, gid, name);
 }
 
-LC_INLINE void ibv_connect(ibv_server* s, int prank, int erank, lc_rep* rep)
+LC_INLINE void ibv_connect(ibv_server* s, int prank, int gid, lc_rep rep)
 {
   char name[256];
-  lc_pm_getname(prank, erank, name);
+  lc_pm_getname(prank, gid, name);
   if (atoi(name) == s->id) {
-    posix_memalign((void**) rep, 64, sizeof(struct lci_rep));
-    (*rep)->rank = prank;
-    (*rep)->eid = erank;
-    (*rep)->handle = (void*) s->qp[prank];
+    rep->rank = prank;
+    rep->gid = gid;
+    rep->handle = (void*) s->qp[prank];
   } else {
     // FIXME.
     assert(0);

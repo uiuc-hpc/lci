@@ -8,6 +8,7 @@
 
 int total = TOTAL;
 int skip = SKIP;
+
 void* buf;
 
 static void* no_alloc(void* ctx, size_t size)
@@ -21,39 +22,38 @@ static void no_free(void* ctx, void* buf)
 }
 
 int main(int argc, char** args) {
-  lc_dev dev;
   lc_ep ep;
-  lc_rep rep;
-
-  lc_init();
-  lc_dev_open(&dev);
-  int rank;
-  lc_get_proc_num(&rank);
-  lc_ep_open(dev, EP_TYPE_QUEUE, &ep);
+  lc_init(0, EP_AR_ALLOC, EP_CE_CQ, &ep);
   lc_ep_set_alloc(ep, no_alloc, no_free, NULL);
-  lc_ep_query(dev, 1-rank, 0, &rep);
+
+  int rank = 0;
+  lc_get_proc_num(&rank);
+  lc_meta meta = {99};
 
   lc_req req;
   double t1;
   size_t alignment = sysconf(_SC_PAGESIZE);
-  buf = malloc(MAX_MSG + alignment);
+  buf = malloc(MAX_MSG);
   buf = (void*)(((uintptr_t) buf + alignment - 1) / alignment * alignment);
-  lc_meta meta = {99};
+  void* sbuf = malloc(MAX_MSG);
 
   if (rank == 0) {
     for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
+      memset(sbuf, 'a', size);
+
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
+
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
-
         meta.val = i;
-        while (lc_send_qalloc(ep, rep, buf, size, meta, &req) != LC_OK)
-          lc_progress_q(dev);
+        req.flag = 0;
+        while (lc_putld(ep, 1-rank, sbuf, size, meta, &req) != LC_OK)
+          lc_progress_q(0);
         while (req.flag == 0)
-          lc_progress_q(dev);
-        while (lc_recv_qalloc(ep, &req) != LC_OK)
-          lc_progress_q(dev);
-
+          lc_progress_q(0);
+        req.flag = 0;
+        while (lc_cq_popval(ep, &req) != LC_OK)
+          lc_progress_q(0);
         assert(req.meta.val == i);
         lc_free(ep, req.buffer);
       }
@@ -63,18 +63,22 @@ int main(int argc, char** args) {
     }
   } else {
     for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
-      memset(buf, 'a', size);
+      memset(sbuf, 'a', size);
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
+
       for (int i = 0; i < total + skip; i++) {
-        while (lc_recv_qalloc(ep, &req) != LC_OK)
-          lc_progress_q(dev);
+        req.flag = 0;
+        while (lc_cq_popval(ep, &req) != LC_OK)
+          lc_progress_q(0);
         assert(req.meta.val == i);
         lc_free(ep, req.buffer);
+
         meta.val = i;
-        while (lc_send_qalloc(ep, rep, buf, size, meta, &req) != LC_OK)
-          lc_progress_q(dev);
+        req.flag = 0;
+        while (lc_putld(ep, 1-rank, sbuf, size, meta, &req) != LC_OK)
+          lc_progress_q(0);
         while (req.flag == 0)
-          lc_progress_q(dev);
+          lc_progress_q(0);
       }
     }
   }
