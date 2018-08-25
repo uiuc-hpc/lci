@@ -1,14 +1,14 @@
 #include "lc.h"
-
 #include "lc_priv.h"
 #include "lc/pool.h"
 
 #include <assert.h>
+#include <unistd.h>
 
 #define MAX_EP 256
 
 struct lci_dev* lcg_dev;
-lc_ep lcg_ep_list[MAX_EP];
+struct lci_ep**  lcg_ep_list;
 
 int lcg_size;
 int lcg_rank;
@@ -16,32 +16,23 @@ int lcg_ndev;
 char lcg_name[256];
 
 int lcg_current_id = 0;
-int lcg_deadlock;
+int lcg_deadlock = 0;
 int lcg_nep = 0;
+int lcg_page_size = 0;
 
 __thread int lcg_core_id = -1;
 
-lc_status lc_init(int ndev, long cap1, long cap2, lc_ep* ep)
+lc_status lc_init(int ndev, lc_ep_desc desc, lc_ep* ep)
 {
+  lcg_page_size = sysconf(_SC_PAGESIZE);
+
   lc_pm_master_init(&lcg_size, &lcg_rank, lcg_name);
-  posix_memalign((void**) &lcg_dev, 64, ndev * sizeof(struct lci_dev));
-  lci_dev_init(&lcg_dev[0]);
-  lci_dev_init(&lcg_dev[1]);
-  lci_ep_open(&lcg_dev[0], cap1 | cap2, ep);
-  return LC_OK;
-}
-
-lc_status lc_ep_dup(int dev_id, long cap1, long cap2, lc_ep iep, lc_ep* oep)
-{
-  lci_ep_open(&lcg_dev[dev_id], cap1 | cap2, oep);
-  return LC_OK;
-}
-
-lc_status lc_ep_set_alloc(lc_ep ep, lc_alloc_fn alloc, lc_free_fn free, void* ctx)
-{
-  ep->alloc = alloc;
-  ep->free = free;
-  ep->ctx = ctx;
+  posix_memalign((void**) &lcg_dev, LC_CACHE_LINE, ndev * sizeof(struct lci_dev));
+  posix_memalign((void**) &lcg_ep_list, LC_CACHE_LINE, MAX_EP * sizeof(struct lci_ep*));
+  for (int i = 0; i < ndev; i++) {
+    lci_dev_init(&lcg_dev[i]);
+  }
+  lci_ep_open(&lcg_dev[0], desc.addr | desc.ce, ep);
   return LC_OK;
 }
 
@@ -60,12 +51,12 @@ void lc_get_num_proc(int *size)
   *size = lcg_size;
 }
 
-int lc_progress_t(int id) // TODO: make a version with index.
+int lc_progress_t(int id)
 {
-  return lc_server_progress(lcg_dev[id].handle, EP_AR_EXPL | EP_CE_FLAG);
+  return lc_server_progress(lcg_dev[id].handle, EP_AR_EXPL | EP_CE_SYNC);
 }
 
-int lc_progress_q(int id) // TODO: make a version with index.
+int lc_progress_q(int id)
 {
   return lc_server_progress(lcg_dev[id].handle, EP_AR_ALLOC | EP_CE_CQ);
 }
@@ -80,18 +71,3 @@ lc_status lc_free(lc_ep ep, void* buf)
   ep->free(ep->ctx, buf);
   return LC_OK;
 }
-
-void lc_pm_barrier() { PMI_Barrier(); }
-
-#ifdef USE_DREG
-uintptr_t get_dma_mem(void* server, void* buf, size_t s)
-{
-  return _real_server_reg(server, buf, s);
-}
-
-int free_dma_mem(uintptr_t mem)
-{
-  _real_server_dereg(mem);
-  return 1;
-}
-#endif

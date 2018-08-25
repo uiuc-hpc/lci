@@ -12,22 +12,9 @@
 int total = TOTAL;
 int skip = SKIP;
 
-void* buf;
-
-static void* no_alloc(void* ctx, size_t size)
-{
-  return buf;
-}
-
-static void no_free(void* ctx, void* buf)
-{
-  return;
-}
-
 int main(int argc, char** args) {
   lc_ep ep;
-  lc_init(1, EP_AR_ALLOC, EP_CE_CQ, &ep);
-  lc_ep_set_alloc(ep, no_alloc, no_free, NULL);
+  lc_init(1, LC_ALLOC_CQ, &ep);
 
   int rank = 0;
   lc_get_proc_num(&rank);
@@ -36,8 +23,8 @@ int main(int argc, char** args) {
   lc_req req;
   double t1;
   size_t alignment = sysconf(_SC_PAGESIZE);
-  buf = malloc(MAX_MSG);
-  buf = (void*)(((uintptr_t) buf + alignment - 1) / alignment * alignment);
+  void* buf;
+  posix_memalign(&buf, alignment, MAX_MSG + alignment);
 
   if (rank == 0) {
     for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
@@ -47,16 +34,14 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
-        meta.val = i;
-        while (lc_putmd(ep, 1-rank, buf, size, meta, &req) != LC_OK)
-          lc_progress_q(0);
-        while (req.flag == 0)
+        meta = i;
+        while (lc_putmd(buf, size, 1-rank, meta, ep) != LC_OK)
           lc_progress_q(0);
 
         lc_req* req_ptr;
-        while (lc_cq_popref(ep, &req_ptr) != LC_OK)
+        while (lc_cq_pop(ep, &req_ptr) != LC_OK)
           lc_progress_q(0);
-        assert(req_ptr->meta.val == i);
+        assert(req_ptr->meta == i);
         lc_cq_reqfree(ep, req_ptr);
       }
 
@@ -70,15 +55,13 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         lc_req* req_ptr;
-        while (lc_cq_popref(ep, &req_ptr) != LC_OK)
+        while (lc_cq_pop(ep, &req_ptr) != LC_OK)
           lc_progress_q(0);
-        assert(req_ptr->meta.val == i);
+        assert(req_ptr->meta == i);
         lc_cq_reqfree(ep, req_ptr);
 
-        meta.val = i;
-        while (lc_putmd(ep, 1-rank, buf, size, meta, &req) != LC_OK)
-          lc_progress_q(0);
-        while (req.flag == 0)
+        meta = i;
+        while (lc_putmd(buf, size, 1-rank, meta, ep) != LC_OK)
           lc_progress_q(0);
       }
     }

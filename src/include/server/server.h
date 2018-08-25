@@ -2,13 +2,16 @@
 #define SERVER_H_
 
 LC_INLINE
-void lc_serve_recv(lc_packet* p, uint32_t proto, const long cap);
+void lci_serve_recv(lc_packet* p, lc_proto proto, const long cap);
 
 LC_INLINE
-void lc_serve_send(lc_packet* p, uint32_t proto);
+void lci_serve_imm(lc_packet* p, const long cap);
 
 LC_INLINE
-void lc_serve_imm(lc_packet* p);
+void lci_serve_recv_rdma(lc_packet*, lc_proto proto);
+
+LC_INLINE
+void lci_serve_send(lc_packet* p);
 
 #ifdef LC_USE_SERVER_OFI
 #include "server_ofi.h"

@@ -1,9 +1,12 @@
 include ../config.mk
 FULT=$(WORK)/fult
 
-CC = icc
+CC = gcc
 LD = $(CC)
-TARGET = init tmed tlong qmed qlong
+TARGET = init tshort tmed tlong qshort qmed qlong
+TARGET += qmed_dup qmed_dup_2hw
+TARGET += puts putm putl putss putms putls putsam
+TARGET += tag
 
 EXTRA = -DUSE_AFFI
 

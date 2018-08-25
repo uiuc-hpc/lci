@@ -13,18 +13,18 @@ void lc_pm_master_init(int* size, int* rank, char* name)
   PMI_KVS_Get_my_name(name, 255);
 }
 
-void lc_pm_publish(int prank, int erank, char* value)
+void lc_pm_publish(int rank, int gid, char* value)
 {
   char key[256];
-  sprintf(key, "_LC_KEY_%d_%d", prank, erank);
+  sprintf(key, "_LC_KEY_%d_%d", rank, gid);
   PMI_KVS_Put(lcg_name, key, value);
   PMI_Barrier();
 }
 
-void lc_pm_getname(int prank, int erank, char* value)
+void lc_pm_getname(int rank, int gid, char* value)
 {
   char key[256];
-  sprintf(key, "_LC_KEY_%d_%d", prank, erank);
+  sprintf(key, "_LC_KEY_%d_%d", rank, gid);
   PMI_KVS_Get(lcg_name, key, value, 255);
 }
 
@@ -37,3 +37,5 @@ void lc_pm_publish_key(char* key, char* value)
 {
   PMI_KVS_Put(lcg_name, key, value);
 }
+
+void lc_pm_barrier() { PMI_Barrier(); }

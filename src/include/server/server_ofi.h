@@ -36,7 +36,7 @@
   }
 #endif
 
-#define ALIGNMENT (4096)
+#define ALIGNMENT (lcg_page_size)
 #define ALIGNEDX(x) \
   (void*)((((uintptr_t)x + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT))
 #define MAX_CQ_SIZE (16 * 1024)
@@ -147,7 +147,7 @@ LC_INLINE void ofi_init(lch* mv, size_t heap_size, ofi_server** s_ptr)
 
   // Get memory for heap.
   s->heap = 0;  // std::move(unique_ptr<char[]>(new char[heap_size]));
-  posix_memalign(&s->heap, 4096, heap_size);
+  posix_memalign(&s->heap, lcg_page_size, heap_size);
 
   FI_SAFECALL(fi_mr_reg(s->domain, s->heap, heap_size,
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, 0, 0,

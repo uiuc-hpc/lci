@@ -5,29 +5,32 @@
 #include <stdint.h>
 #include "lc.h"
 
+#define lci_pk_init(ep_, pid_, proto_, p) \
+  p->context.ep = (ep_);                    \
+  p->context.poolid = (pid_);               \
+  p->context.proto = (proto_);
+
 struct __attribute__((packed)) packet_context {
   // Most of the current ctx requires 128-bits (FIXME)
-  union {
-    uint64_t hwctx[2];
-  };
+  uint64_t hwctx[2];
   // Here is LLCI context.
   struct lc_req req_s;
   struct lc_req* req;
   struct lci_ep* ep;
   uint64_t rma_mem;
-  uint32_t proto;
-  int32_t poolid;
+  int16_t proto;
+  int16_t poolid;
 };
 
-struct __attribute__((__packed__)) packet_rts {
-  uintptr_t req;
+struct __attribute__((packed)) packet_rts {
+  uintptr_t ce;
   uintptr_t src_addr;
   size_t size;
   uint64_t rgid;
 };
 
-struct __attribute__((__packed__)) packet_rtr {
-  uintptr_t req;
+struct __attribute__((packed)) packet_rtr {
+  uintptr_t ce;
   uintptr_t src_addr;
   size_t size;
   uintptr_t tgt_addr;
@@ -35,7 +38,7 @@ struct __attribute__((__packed__)) packet_rtr {
   uint32_t comm_id;
 };
 
-struct __attribute__((__packed__)) packet_data {
+struct __attribute__((packed)) packet_data {
   union {
     struct packet_rts rts;
     struct packet_rtr rtr;
@@ -43,7 +46,7 @@ struct __attribute__((__packed__)) packet_data {
   };
 };
 
-struct __attribute__((__packed__)) lc_packet {
+struct __attribute__((packed)) lc_packet {
   struct packet_context context;
   struct packet_data data;
 };

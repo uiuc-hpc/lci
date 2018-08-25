@@ -6,58 +6,41 @@
 
 #include "comm_exp.h"
 
+#undef MAX_MSG
+#define MAX_MSG (128)
+
 int total = TOTAL;
 int skip = SKIP;
-
-void* buf;
-
-static void* no_alloc(void* ctx, size_t size)
-{
-  return buf;
-}
-
-static void no_free(void* ctx, void* buf)
-{
-  return;
-}
 
 int main(int argc, char** args) {
   lc_ep ep;
   lc_init(1, LC_ALLOC_CQ, &ep);
-  lc_ep_set_alloc(ep, no_alloc, no_free, NULL);
 
   int rank = 0;
   lc_get_proc_num(&rank);
   lc_meta meta = {99};
 
   lc_req req;
-  lc_sync sync;
   double t1;
   size_t alignment = sysconf(_SC_PAGESIZE);
-  void* sbuf;
-  posix_memalign(&buf, alignment, MAX_MSG);
-  posix_memalign(&sbuf, alignment, MAX_MSG);
+  void* buf;
+  posix_memalign(&buf, alignment, MAX_MSG + alignment);
 
   if (rank == 0) {
     for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
-      memset(sbuf, 'a', size);
+      memset(buf, 'a', size);
 
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
 
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
         meta = i;
-        sync = 0;
-        while (lc_putld(sbuf, size, 1-rank, meta, ep, &sync) != LC_OK)
-          lc_progress_q(0);
-        while (sync == 0)
-          lc_progress_q(0);
+        lc_putsd(buf, size, 1-rank, meta, ep);
 
         lc_req* req_ptr;
         while (lc_cq_pop(ep, &req_ptr) != LC_OK)
           lc_progress_q(0);
         assert(req_ptr->meta == i);
-        lc_free(ep, req_ptr->buffer);
         lc_cq_reqfree(ep, req_ptr);
       }
 
@@ -66,7 +49,7 @@ int main(int argc, char** args) {
     }
   } else {
     for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
-      memset(sbuf, 'a', size);
+      memset(buf, 'a', size);
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
 
       for (int i = 0; i < total + skip; i++) {
@@ -74,15 +57,10 @@ int main(int argc, char** args) {
         while (lc_cq_pop(ep, &req_ptr) != LC_OK)
           lc_progress_q(0);
         assert(req_ptr->meta == i);
-        lc_free(ep, req_ptr->buffer);
         lc_cq_reqfree(ep, req_ptr);
 
         meta = i;
-        sync = 0;
-        while (lc_putld(sbuf, size, 1-rank, meta, ep, &sync) != LC_OK)
-          lc_progress_q(0);
-        while (sync == 0)
-          lc_progress_q(0);
+        lc_putsd(buf, size, 1-rank, meta, ep);
       }
     }
   }

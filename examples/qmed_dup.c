@@ -26,8 +26,8 @@ static void no_free(void* ctx, void* buf)
 
 int main(int argc, char** args) {
   lc_ep ep[2];
-  lc_init(0, EP_AR_ALLOC, EP_CE_CQ, &ep[0]);
-  lc_ep_dup(0, EP_AR_ALLOC, EP_CE_CQ, ep[0], &ep[1]);
+  lc_init(1, LC_ALLOC_CQ, &ep[0]);
+  lc_ep_dup(0, LC_ALLOC_CQ, ep[0], &ep[1]);
 
   lc_ep_set_alloc(ep[0], no_alloc, no_free, NULL);
   lc_ep_set_alloc(ep[1], no_alloc, no_free, NULL);
@@ -50,16 +50,14 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
-        meta.val = i;
-        while (lc_putmd(ep[i&1], 1-rank, buf, size, meta, &req) != LC_OK)
-          lc_progress_q(0);
-        while (req.flag == 0)
+        meta = i;
+        while (lc_putmd(buf, size, 1-rank, meta, ep[i&1]) != LC_OK)
           lc_progress_q(0);
 
         lc_req* req_ptr;
-        while (lc_cq_popref(ep[i&1], &req_ptr) != LC_OK)
+        while (lc_cq_pop(ep[i&1], &req_ptr) != LC_OK)
           lc_progress_q(0);
-        assert(req_ptr->meta.val == i);
+        assert(req_ptr->meta == i);
         lc_cq_reqfree(ep[i&1], req_ptr);
       }
 
@@ -73,15 +71,13 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         lc_req* req_ptr;
-        while (lc_cq_popref(ep[i&1], &req_ptr) != LC_OK)
+        while (lc_cq_pop(ep[i&1], &req_ptr) != LC_OK)
           lc_progress_q(0);
-        assert(req_ptr->meta.val == i);
+        assert(req_ptr->meta == i);
         lc_cq_reqfree(ep[i&1], req_ptr);
 
-        meta.val = i;
-        while (lc_putmd(ep[i&1], 1-rank, buf, size, meta, &req) != LC_OK)
-          lc_progress_q(0);
-        while (req.flag == 0)
+        meta = i;
+        while (lc_putmd(buf, size, 1-rank, meta, ep[i&1]) != LC_OK)
           lc_progress_q(0);
       }
     }

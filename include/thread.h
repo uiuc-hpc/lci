@@ -8,17 +8,10 @@
 #include <sched.h>
 #include <stdint.h>
 
-typedef void (*lc_signal_fp)(void*);
-typedef void (*lc_wait_fp)(void*, volatile int*);
-
-typedef struct lc_sync_fp {
-  lc_wait_fp wait;
-  lc_signal_fp signal;
-} lc_sync_fp;
-
 extern int lcg_current_id;
 extern __thread int lcg_core_id;
-extern lc_sync_fp g_sync;
+
+typedef volatile int lc_sync;
 
 LC_INLINE int lc_worker_id()
 {
@@ -31,14 +24,22 @@ LC_INLINE int lc_worker_id()
   return lcg_core_id;
 }
 
-LC_INLINE void lc_sync_wait(void* sync, volatile int* flag)
+LC_INLINE void lc_sync_wait(lc_sync* sync)
 {
-  g_sync.wait(sync, flag);
+  while (!*sync)
+    ;
 }
 
-LC_INLINE void lc_sync_signal(void* sync)
+LC_INLINE void lc_sync_reset(lc_sync* sync)
 {
-  g_sync.signal(sync);
+  *sync = 0;
+  lc_mem_fence();
+}
+
+LC_INLINE void lc_sync_signal(lc_sync* sync)
+{
+  *sync = 1;
+  lc_mem_fence();
 }
 
 #endif

@@ -3,7 +3,7 @@
 
 #define LC_EXPORT __attribute__((visibility("default")))
 
-#define LC_SAFE(x) {while (!x);}
+#define LC_SAFE(x) {while (x != LC_OK);}
 
 #define lc_mem_fence()                   \
   {                                      \

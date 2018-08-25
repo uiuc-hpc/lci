@@ -3,25 +3,17 @@
 #include "lc_priv.h"
 #include "lc/pool.h"
 
-lc_status lc_cq_popval(lc_ep ep, lc_req* req)
+lc_status lc_cq_pop(lc_ep ep, lc_req** req_ptr)
 {
-  lc_packet* p = cq_pop(&ep->cq);
-  if (!p) return LC_ERR_RETRY;
-  memcpy(req, p->context.req, sizeof(struct lc_req));
-  lc_pool_put(ep->dev->pkpool, p);
-  return LC_OK;
-}
-
-lc_status lc_cq_popref(lc_ep ep, lc_req** req)
-{
-  lc_packet* p = cq_pop(&ep->cq);
-  if (!p) return LC_ERR_RETRY;
-  *req = p->context.req;
+  lc_req* req = cq_pop(&ep->cq);
+  if (!req) return LC_ERR_RETRY;
+  *req_ptr = req;
   return LC_OK;
 }
 
 lc_status lc_cq_reqfree(lc_ep ep, lc_req* req)
 {
-  lc_pool_put(ep->dev->pkpool, req->parent);
+  lc_packet* packet = (lc_packet*) req->parent;
+  lc_pool_put(ep->pkpool, packet);
   return LC_OK;
 }

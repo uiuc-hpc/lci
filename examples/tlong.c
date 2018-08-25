@@ -11,18 +11,19 @@ int skip = SKIP;
 
 int main(int argc, char** args) {
   lc_ep ep;
-  lc_init(1, EP_AR_EXPL, EP_CE_FLAG, &ep);
+  lc_init(1, LC_EXPL_SYNC, &ep);
   int rank = 0;
   lc_get_proc_num(&rank);
   lc_meta tag = {99};
 
   lc_req req;
+  lc_sync sync;
   double t1;
   size_t alignment = sysconf(_SC_PAGESIZE);
-  void* src_buf = malloc(MAX_MSG + alignment);
-  void* dst_buf = malloc(MAX_MSG + alignment);
-  src_buf = (void*)(((uintptr_t) src_buf + alignment - 1) / alignment * alignment);
-  dst_buf = (void*)(((uintptr_t) dst_buf + alignment - 1) / alignment * alignment);
+  void* src_buf;
+  void* dst_buf;
+  posix_memalign(&src_buf, alignment, MAX_MSG);
+  posix_memalign(&dst_buf, alignment, MAX_MSG);
 
   if (rank == 0) {
     for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
@@ -33,16 +34,17 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
-        req.flag = 0;
-        while (lc_sendl(ep, 1-rank, src_buf, size, tag, &req) != LC_OK)
+        sync = 0;
+        while (lc_sendl(src_buf, size, 1-rank, tag, ep, &sync) != LC_OK)
           lc_progress_t(0);
-        while (req.flag == 0)
+        while (!sync)
           lc_progress_t(0);
 
-        req.flag = 0;
-        while (lc_recvl(ep, 1-rank, dst_buf, size, tag, &req) != LC_OK)
+        req.sync = 0;
+        while (lc_recvl(dst_buf, size, 1-rank, tag, ep, &req) != LC_OK)
           lc_progress_t(0);
-        while (req.flag == 0)
+
+        while (req.sync == 0)
           lc_progress_t(0);
         if (i == 0) {
           for (int j = 0; j < size; j++)
@@ -60,16 +62,16 @@ int main(int argc, char** args) {
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
 
       for (int i = 0; i < total + skip; i++) {
-        req.flag = 0;
-        while (lc_recvl(ep, 1-rank, dst_buf, size, tag, &req) != LC_OK)
+        req.sync = 0;
+        while (lc_recvl(dst_buf, size, 1-rank, tag, ep, &req) != LC_OK)
           lc_progress_t(0);
-        while (req.flag == 0)
+        while (req.sync == 0)
           lc_progress_t(0);
 
-        req.flag = 0;
-        while (lc_sendl(ep, 1-rank, src_buf, size, tag, &req) != LC_OK)
+        sync = 0;
+        while (lc_sendl(src_buf, size, 1-rank, tag, ep, &sync) != LC_OK)
           lc_progress_t(0);
-        while (req.flag == 0)
+        while (!sync)
           lc_progress_t(0);
 
       }

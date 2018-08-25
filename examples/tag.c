@@ -6,20 +6,19 @@
 
 #include "comm_exp.h"
 
-#undef MAX_MSG
-#define MAX_MSG lc_max_medium(0)
-
 int total = TOTAL;
 int skip = SKIP;
 
 int main(int argc, char** args) {
   lc_ep ep;
-  lc_init(1, LC_EXPL_SYNC, &ep);
+  lc_ep_desc desc = {EP_AR_EXPL, EP_CE_SYNC};
+  lc_init(1, desc, &ep);
   int rank = 0;
   lc_get_proc_num(&rank);
   lc_meta tag = {99};
 
   lc_req req;
+  lc_sync sync;
   double t1;
   size_t alignment = sysconf(_SC_PAGESIZE);
   void* src_buf;
@@ -36,13 +35,16 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
-        req.sync = 0;
-        while (lc_sendm(src_buf, size, 1-rank, tag, ep) != LC_OK)
+        sync = 0;
+        while (lc_send(src_buf, size, 1-rank, tag, ep, &sync) != LC_OK)
+          lc_progress_t(0);
+        while (!sync)
           lc_progress_t(0);
 
         req.sync = 0;
-        while (lc_recvm(dst_buf, size, 1-rank, tag, ep, &req) != LC_OK)
+        while (lc_recv(dst_buf, size, 1-rank, tag, ep, &req) != LC_OK)
           lc_progress_t(0);
+
         while (req.sync == 0)
           lc_progress_t(0);
         if (i == 0) {
@@ -62,14 +64,17 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         req.sync = 0;
-        while (lc_recvm(dst_buf, size, 1-rank, tag, ep, &req) != LC_OK)
+        while (lc_recv(dst_buf, size, 1-rank, tag, ep, &req) != LC_OK)
           lc_progress_t(0);
         while (req.sync == 0)
           lc_progress_t(0);
 
-        req.sync = 0;
-        while (lc_sendm(src_buf, size, 1-rank, tag, ep) != LC_OK)
+        sync = 0;
+        while (lc_send(src_buf, size, 1-rank, tag, ep, &sync) != LC_OK)
           lc_progress_t(0);
+        while (!sync)
+          lc_progress_t(0);
+
       }
     }
   }

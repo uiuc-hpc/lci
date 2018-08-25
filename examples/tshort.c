@@ -7,7 +7,7 @@
 #include "comm_exp.h"
 
 #undef MAX_MSG
-#define MAX_MSG lc_max_medium(0)
+#define MAX_MSG lc_max_short(0)
 
 int total = TOTAL;
 int skip = SKIP;
@@ -36,9 +36,7 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
-        req.sync = 0;
-        while (lc_sendm(src_buf, size, 1-rank, tag, ep) != LC_OK)
-          lc_progress_t(0);
+        lc_sends(src_buf, size, 1-rank, tag, ep);
 
         req.sync = 0;
         while (lc_recvm(dst_buf, size, 1-rank, tag, ep, &req) != LC_OK)
@@ -67,9 +65,7 @@ int main(int argc, char** args) {
         while (req.sync == 0)
           lc_progress_t(0);
 
-        req.sync = 0;
-        while (lc_sendm(src_buf, size, 1-rank, tag, ep) != LC_OK)
-          lc_progress_t(0);
+        lc_sends(src_buf, size, 1-rank, tag, ep);
       }
     }
   }
