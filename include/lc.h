@@ -17,6 +17,10 @@ extern "C" {
 #include "lc/macro.h"
 #include "thread.h"
 
+// FIXME;
+typedef void (*ompi_op_t)(void* dst, void* src, size_t count);
+#define LC_COL_IN_PLACE ((void*) -1)
+
 typedef enum lc_status {
   LC_OK = 0,
   LC_ERR_RETRY,
@@ -52,6 +56,8 @@ struct lc_req {
   lc_meta meta;
 } __attribute__((packed, aligned(64)));
 
+typedef struct lc_colreq lc_colreq;
+
 extern int lcg_nep;
 extern int lcg_size;
 extern int lcg_rank;
@@ -72,6 +78,26 @@ static const lc_ep_desc LC_EXPL_SYNC = {EP_AR_EXPL, EP_CE_SYNC};
 static const lc_ep_desc LC_EXPL_CQ   = {EP_AR_EXPL, EP_CE_CQ};
 static const lc_ep_desc LC_EXPL_AM   = {EP_AR_EXPL, EP_CE_AM};
 static const lc_ep_desc LC_ALLOC_CQ  = {EP_AR_ALLOC, EP_CE_CQ};
+
+typedef struct lc_col_sched {
+  void* src;
+  void* dst;
+  size_t size;
+  int rank;
+  int tag;
+  lc_ep ep;
+  int type;
+} lc_col_sched;
+
+struct lc_colreq {
+  int flag;
+  int cur;
+  int total;
+  lc_req pending[2];
+  ompi_op_t op;
+  lc_col_sched next[128];
+};
+
 
 LC_EXPORT
 lc_status lc_init(int dev_id, lc_ep_desc desc, lc_ep* ep);
@@ -165,6 +191,9 @@ LC_EXPORT
 int lc_progress_q(int);
 
 LC_EXPORT
+void lc_col_progress(lc_colreq* req);
+
+LC_EXPORT
 lc_status lc_ep_set_alloc(lc_ep ep, lc_alloc_fn alloc, lc_free_fn free, void* ctx);
 
 LC_EXPORT
@@ -173,8 +202,26 @@ lc_status lc_ep_set_handler(lc_ep ep, lc_handler_fn handler, void* ctx);
 LC_EXPORT
 lc_status lc_ep_get_baseaddr(lc_ep, size_t size, uintptr_t* addr);
 
+LC_INLINE
+lc_status lc_wait(lc_req* req) { while (!req->sync); return LC_OK; };
+
 LC_EXPORT
 void lc_pm_barrier();
+
+LC_EXPORT
+void lc_algather(void* sbuf, size_t scount, void* rbuf, size_t rcount, lc_ep ep);
+
+LC_EXPORT
+void lc_alreduce(const void *sbuf, void *rbuf, size_t count, ompi_op_t op, lc_ep ep);
+
+LC_EXPORT
+void lc_barrier(lc_ep ep);
+
+LC_EXPORT
+void lc_ialreduce(const void *sbuf, void *rbuf, size_t count, ompi_op_t op, lc_ep ep, lc_colreq* req);
+
+LC_EXPORT
+void lc_ibarrier(lc_ep ep, lc_colreq* req);
 
 #ifdef __cplusplus
 }
