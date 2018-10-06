@@ -100,7 +100,7 @@ struct lc_colreq {
 
 
 LC_EXPORT
-lc_status lc_init(int dev_id, lc_ep_desc desc, lc_ep* ep);
+lc_status lc_init(int ndev, lc_ep_desc desc, lc_ep* ep);
 
 LC_EXPORT
 lc_status lc_ep_dup(int dev_id, lc_ep_desc desc, lc_ep iep, lc_ep* ep);
@@ -207,15 +207,6 @@ lc_status lc_wait(lc_req* req) { while (!req->sync); return LC_OK; };
 
 LC_EXPORT
 void lc_pm_barrier();
-
-LC_EXPORT
-void lc_algather(void* sbuf, size_t scount, void* rbuf, size_t rcount, lc_ep ep);
-
-LC_EXPORT
-void lc_alreduce(const void *sbuf, void *rbuf, size_t count, ompi_op_t op, lc_ep ep);
-
-LC_EXPORT
-void lc_barrier(lc_ep ep);
 
 LC_EXPORT
 void lc_ialreduce(const void *sbuf, void *rbuf, size_t count, ompi_op_t op, lc_ep ep, lc_colreq* req);

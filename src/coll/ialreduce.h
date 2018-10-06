@@ -1,7 +1,7 @@
 #ifndef LC_IALREDUCE_H
 #define LC_IALREDUCE_H
 
-#include <assert.h>
+#include <stddef.h>
 
 static lc_meta MCA_COLL_BASE_TAG_IALLREDUCE = 1340;
 static inline int opal_next_poweroftwo(int value);
@@ -25,12 +25,8 @@ int iompi_coll_base_allreduce_intra_recursivedoubling(
     return 0;
   }
 
-  req->flag = 0;
+  lc_colreq_init(req);
   req->op = op;
-  req->cur = 0;
-  req->total = 0;
-  lc_sync_signal(&req->pending[0].sync);
-  lc_sync_signal(&req->pending[1].sync);
 
   /* Allocate and initialize temporary send buffer */
   inplacebuf_free = (char*) malloc(count);

@@ -11,7 +11,28 @@
 #define LC_COL_MEM  4
 #define LC_COL_FREE 5
 
-static void lc_col_send(
+static inline int opal_next_poweroftwo(int value)
+{
+  int power2;
+
+  if (0 == value) {
+    return 1;
+  }
+  power2 = 1 << (8 * sizeof (int) - __builtin_clz(value));
+
+  return power2;
+}
+
+static inline void lc_colreq_init(lc_colreq* req)
+{
+  req->flag = 0;
+  req->cur = 0;
+  req->total = 0;
+  lc_sync_signal(&req->pending[0].sync);
+  lc_sync_signal(&req->pending[1].sync);
+}
+
+static inline void lc_col_send(
     void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_colreq* req)
 {
   lc_col_sched* op = &(req->next[req->total++]);
@@ -23,7 +44,7 @@ static void lc_col_send(
   op->type = LC_COL_SEND;
 }
 
-static void lc_col_recv(
+static inline void lc_col_recv(
     void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_colreq* req)
 {
   lc_col_sched* op = &(req->next[req->total++]);
@@ -35,7 +56,7 @@ static void lc_col_recv(
   op->type = LC_COL_RECV;
 }
 
-static void lc_col_sendrecv(
+static inline void lc_col_sendrecv(
     void* src, void* dst, size_t size, int rank, lc_meta tag, lc_ep ep, lc_colreq* req)
 {
   lc_col_sched* op = &(req->next[req->total++]);
@@ -48,7 +69,7 @@ static void lc_col_sendrecv(
   op->type = LC_COL_SENDRECV;
 }
 
-static void lc_col_op(void *dst, void* src, size_t size, lc_colreq* req)
+static inline void lc_col_op(void *dst, void* src, size_t size, lc_colreq* req)
 {
   lc_col_sched* op = &(req->next[req->total++]);
   op->src = src;
@@ -57,7 +78,7 @@ static void lc_col_op(void *dst, void* src, size_t size, lc_colreq* req)
   op->type = LC_COL_OP;
 }
 
-static void lc_col_memmove(void *dst, void* src, size_t size, lc_colreq* req)
+static inline void lc_col_memmove(void *dst, void* src, size_t size, lc_colreq* req)
 {
   lc_col_sched* op = &(req->next[req->total++]);
   op->src = src;
@@ -66,7 +87,7 @@ static void lc_col_memmove(void *dst, void* src, size_t size, lc_colreq* req)
   op->type = LC_COL_MEM;
 }
 
-static void lc_col_free(void* src, lc_colreq* req)
+static inline void lc_col_free(void* src, lc_colreq* req)
 {
   lc_col_sched* op = &(req->next[req->total++]);
   op->src = src;
