@@ -96,13 +96,13 @@ static inline void lc_col_free(void* src, lc_colreq* req)
 
 void lc_col_progress(lc_colreq* req)
 {
+  // Do nothing until current pending op is done.
+  if (!req->pending[0].sync || !req->pending[1].sync) return;
   while (req->cur < req->total) {
-    if (!req->pending[0].sync || !req->pending[1].sync) return;
-
     lc_col_sched* op = &(req->next[req->cur++]);
     switch (op->type) {
       case LC_COL_SEND:
-        LC_SAFE(lc_send(op->src, op->size, op->rank, op->tag, op->ep, &req->pending[0].sync));
+        LC_SAFE(lc_send(op->src, op->size, op->rank, op->tag, op->ep, &(req->pending[0].sync)));
         break;
       case LC_COL_RECV:
         lc_recv(op->src, op->size, op->rank, op->tag, op->ep, &req->pending[0]);
@@ -123,6 +123,8 @@ void lc_col_progress(lc_colreq* req)
       default:
         assert(0 && "Invalid op");
     }
+    // There is now pending ops, return;
+    if (!req->pending[0].sync || !req->pending[1].sync) return;
   }
   req->flag = 1;
 }

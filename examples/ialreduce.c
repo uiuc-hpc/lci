@@ -30,8 +30,8 @@ size_t skip = SKIP;
 int main(int argc, char** args) {
   lc_ep ep;
   lc_init(1, LC_EXPL_SYNC, &ep);
-  // pthread_t thread;
-  // pthread_create(&thread, NULL, poll_thread, (void*) ep);
+  pthread_t thread;
+  pthread_create(&thread, NULL, poll_thread, (void*) ep);
 
   int t;
   lc_get_proc_num(&t);
@@ -57,7 +57,7 @@ int main(int argc, char** args) {
       lc_ialreduce(LC_COL_IN_PLACE, dst, size * sizeof(int), op_sum, ep, &colreq);
       while (colreq.flag == 0) {
         lc_col_progress(&colreq);
-        lc_progress(0);
+        // lc_progress(0);
       }
 
       if (i == skip && size == 1) {
@@ -72,7 +72,7 @@ int main(int argc, char** args) {
     lc_ibarrier(ep, &colreq);
     while (colreq.flag == 0) {
       lc_col_progress(&colreq);
-      lc_progress(0);
+      // lc_progress(0);
     }
 
     t1 = wtime() - t1;
@@ -80,8 +80,8 @@ int main(int argc, char** args) {
       printf("%10d %10.2f \n", size * sizeof(int), 1e6 * t1 / total);
   }
 
-  // cont = 0;
-  // pthread_join(thread, 0);
+  cont = 0;
+  pthread_join(thread, 0);
 
   lc_finalize();
 }

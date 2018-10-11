@@ -105,7 +105,7 @@ void lci_dev_init(struct lci_dev* dev)
 LC_INLINE
 void lci_ep_open(struct lci_dev* dev, long cap, struct lci_ep** ep_ptr)
 {
-  struct lci_ep* ep;
+  struct lci_ep* ep = 0;
   posix_memalign((void**) &ep, LC_CACHE_LINE, sizeof(struct lci_ep));
   ep->dev = dev;
   ep->handle = ep->dev->handle;

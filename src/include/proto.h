@@ -1,6 +1,7 @@
 #ifndef LC_PROTO_H
 #define LC_PROTO_H
 
+#include "debug.h"
 #include "lc/hashtable.h"
 #include "lc/macro.h"
 
@@ -20,6 +21,22 @@ typedef enum lc_proto {
 #define PROTO_GET_RGID(proto)  ((proto >> 2)  & 0b01111111)
 #define PROTO_GET_META(proto)  ((proto >> 16) & 0xffff)
 
+/* CRC-32C (iSCSI) polynomial in reversed bit order. */
+#define POLY 0x82f63b78
+inline uint32_t crc32c(char *buf, size_t len)
+{
+  uint32_t crc = 0;
+  int k;
+
+  crc = ~crc;
+  while (len--) {
+    crc ^= *buf++;
+    for (k = 0; k < 8; k++)
+      crc = crc & 1 ? (crc >> 1) ^ POLY : crc >> 1;
+  }
+  return ~crc;
+}
+
 LC_INLINE
 void lci_init_req(void* buf, size_t size, lc_req* req)
 {
@@ -36,6 +53,7 @@ void lci_prepare_rtr(struct lci_ep* ep, void* src, size_t size, lc_packet* p)
   p->data.rtr.comm_id = ((uintptr_t)p - ep->dev->base_addr);
   p->data.rtr.tgt_addr = (uintptr_t)src;
   p->data.rtr.rkey = lc_server_rma_key(rma_mem);
+  dprintf("%d] post recv rdma %p %d via %d\n", lcg_rank, src, size, p->data.rtr.rkey);
 }
 
 LC_INLINE
@@ -85,7 +103,7 @@ void lci_ce_queue(lc_ep ep, lc_packet* p)
 {
   lc_req* req = p->context.req;
   req->parent = p;
-  lc_sync_signal(&(req->sync));
+  req->sync = 1;
   cq_push(&ep->cq, req);
 }
 
@@ -93,6 +111,7 @@ LC_INLINE
 void lci_handle_rtr(struct lci_ep* ep, lc_packet* p)
 {
   lci_pk_init(ep, -1, LC_PROTO_LONG, p);
+  dprintf("%d] rma %p --> %p %.4x via %d\n", lcg_rank, p->data.rts.src_addr, p->data.rtr.tgt_addr, crc32c((char*) p->data.rts.src_addr, p->data.rts.size), p->data.rtr.rkey);
   lc_server_rma_rtr(ep->handle, p->context.req->rhandle,
       (void*) p->data.rts.src_addr,
       p->data.rtr.tgt_addr, p->data.rtr.rkey, p->data.rts.size,
@@ -117,10 +136,12 @@ void lci_serve_recv_dyn(struct lci_ep* ep, lc_packet* p, lc_proto proto,
   proto = PROTO_GET_PROTO(proto);
 
   if (proto == LC_PROTO_DATA) {
+    p->context.req->ctx = NULL;
+    assert(p->context.req == &p->context.req_s);
     p->context.req->buffer = &p->data;
     complete(ep, p);
   } else if (proto == LC_PROTO_RTS) {
-    void* buf = ep->alloc(ep->ctx, p->data.rts.size);
+    void* buf = ep->alloc(p->data.rts.size, &(p->context.req->ctx));
     lci_init_req(buf, p->data.rts.size, p->context.req);
     lci_handle_rts(ep, p);
   } else if (proto == LC_PROTO_RTR) {
@@ -234,6 +255,7 @@ LC_INLINE
 void lci_serve_imm(lc_packet* p, const long cap)
 {
   struct lci_ep* ep = p->context.ep;
+  dprintf("%d] got %p %.4x\n", lcg_rank, p->context.req->buffer, crc32c(p->context.req->buffer, p->context.req->size));
   if (!cap)
     lci_ce_dispatch(ep, p, ep->cap);
   else

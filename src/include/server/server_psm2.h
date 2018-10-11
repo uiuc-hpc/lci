@@ -17,6 +17,8 @@
 #define GET_PROTO(p) (p & 0x000000ff)
 #define PSM_RDMA_IMM ((uint32_t) 1<<31)
 
+#define PROTO_GET_META(proto)  ((proto >> 16) & 0xffff)
+
 #ifdef LC_SERVER_DEBUG
 #define PSM_SAFECALL(x)                                       \
   {                                                           \
@@ -98,7 +100,7 @@ LC_INLINE void lc_server_rma_signal(psm_server* s, int rank, void* buf,
 LC_INLINE void lc_server_finalize(psm_server* s);
 #endif
 
-static uint32_t next_key = 0b100;
+static uint32_t next_key = 1;
 
 #define PSM_RECV_CTRL ((uint64_t) 1 << 60)
 #define PSM_RECV ((uint64_t)1 << 61)
@@ -133,7 +135,7 @@ LC_INLINE uint32_t lc_server_get_free_key()
 {
   uint32_t key;
   do {
-    key = (__sync_fetch_and_add(&next_key, 1)) & 0x00ffffff;
+    key = ((__sync_fetch_and_add(&next_key, 1)) << 2 & 0x00ffffff);
     if (key == 0) printf("WARNING: wrap over rkey\n");
   } while (key < 0b100);
   return key;
@@ -267,13 +269,14 @@ LC_INLINE int lc_server_progress(psm_server* s, const long cap)
         lci_serve_recv(p, proto, cap);
         s->recv_posted--;
       } else if (pk_type == PSM_RECV_RDMA) {
+        p->context.req = &p->context.req_s;
         uintptr_t addr = (uintptr_t) status.msg_tag.tag0 + (uintptr_t) s->heap;
         memcpy((void*) addr, p->data.buffer, status.msg_length);
         lc_server_post_recv(s, p);
       } else if (pk_type == PSM_RECV_RDMA_SID) {
+        p->context.req = &p->context.req_s;
         uintptr_t addr = (uintptr_t) status.msg_tag.tag0 + (uintptr_t) s->heap;
         memcpy((void*) addr, p->data.buffer, status.msg_length);
-        p->context.req = &p->context.req_s;
         lci_serve_recv_rdma(p, status.msg_tag.tag1);
         s->recv_posted--;
       } else if (pk_type == PSM_RECV_RDMA_RTP) {
@@ -290,6 +293,7 @@ LC_INLINE int lc_server_progress(psm_server* s, const long cap)
         p->context.req = &p->context.req_s;
         lci_serve_recv_rdma(p, status.msg_tag.tag1);
       } else {
+        p->context.req = &p->context.req_s;
         lc_pool_put(s->dev->pkpool, p);
       }
     } else if (ctx & PSM_SEND) {

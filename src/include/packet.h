@@ -26,6 +26,7 @@ struct __attribute__((packed)) packet_rts {
   uintptr_t ce;
   uintptr_t src_addr;
   size_t size;
+  uintptr_t tgt_addr;
   uint64_t rgid;
 };
 

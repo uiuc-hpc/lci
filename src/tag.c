@@ -4,6 +4,7 @@
 lc_status lc_send(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_sync* ce)
 {
   int ret;
+  lc_sync_reset(ce);
   if (size <= LC_MAX_INLINE) {
     ret = lc_sends(src, size, rank, tag, ep);
     if (ret == LC_OK)
@@ -36,7 +37,7 @@ lc_status lc_recv(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_re
       memcpy(src, p->data.buffer, p->context.req->size);
       req->size = p->context.req->size;
       lc_sync_signal(&req->sync);
-      lc_pool_put(ep->pkpool, p);
+      lci_pk_free_data(ep, p);
     }
   }
   return LC_OK;

@@ -33,13 +33,11 @@ LC_INLINE void lc_sync_wait(lc_sync* sync)
 LC_INLINE void lc_sync_reset(lc_sync* sync)
 {
   *sync = 0;
-  lc_mem_fence();
 }
 
 LC_INLINE void lc_sync_signal(lc_sync* sync)
 {
   *sync = 1;
-  lc_mem_fence();
 }
 
 #endif

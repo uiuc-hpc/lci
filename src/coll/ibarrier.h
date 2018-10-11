@@ -17,10 +17,10 @@ int iompi_coll_base_barrier_intra_bruck(lc_ep comm, lc_colreq* req)
     to   = (rank + distance) % size;
 
     /* send message to lower ranked node */
-    lc_col_send(&(req->op), 1, to,
+    lc_col_send(&(req->empty), 1, to,
         MCA_COLL_BASE_TAG_IBARRIER, comm, req);
 
-    lc_col_recv(&(req->op), 1, from,
+    lc_col_recv(&(req->empty), 1, from,
         MCA_COLL_BASE_TAG_IBARRIER, comm, req);
   }
 

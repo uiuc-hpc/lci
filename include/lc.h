@@ -49,6 +49,7 @@ typedef uint32_t lc_meta;
 struct lc_req {
   lc_sync sync;
   void* buffer;
+  void* ctx;
   void* parent; // reserved field for internal used.
   void* rhandle;
   size_t size;
@@ -70,7 +71,7 @@ typedef struct lci_rep* lc_rep;
 typedef struct lci_ep* lc_ep;
 typedef struct lci_dev* lc_dev;
 
-typedef void* (*lc_alloc_fn)(void* ctx, size_t malloc_size);
+typedef void* (*lc_alloc_fn)(size_t malloc_size, void** ctx);
 typedef void (*lc_free_fn)(void* ctx, void* buffer);
 typedef void (*lc_handler_fn)(void* ctx, lc_req* pkt);
 
@@ -96,6 +97,7 @@ struct lc_colreq {
   lc_req pending[2];
   ompi_op_t op;
   lc_col_sched next[128];
+  int empty;
 };
 
 
@@ -213,6 +215,12 @@ void lc_ialreduce(const void *sbuf, void *rbuf, size_t count, ompi_op_t op, lc_e
 
 LC_EXPORT
 void lc_ibarrier(lc_ep ep, lc_colreq* req);
+
+LC_EXPORT
+void lc_alreduce(const void *sbuf, void *rbuf, size_t count, ompi_op_t op, lc_ep ep);
+
+LC_EXPORT
+void lc_barrier(lc_ep ep);
 
 #ifdef __cplusplus
 }
