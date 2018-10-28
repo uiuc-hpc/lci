@@ -10,8 +10,8 @@ lc_status lc_sendm(void* src, size_t size, int rank, lc_meta tag, lc_ep ep)
               LC_PROTO_DATA, p);
   struct lci_rep* rep = &(ep->rep[rank]);
   memcpy(p->data.buffer, src, size);
-  lc_server_sendm(ep->handle, rep->handle, size, p,
-                  MAKE_PROTO(rep->gid, LC_PROTO_DATA, tag));
+  lc_server_sendm(ep->server, rep->handle, size, p,
+                  MAKE_PROTO(ep->gid, LC_PROTO_DATA, tag));
   return LC_OK;
 }
 
@@ -28,7 +28,7 @@ lc_status lc_putm(void* src, size_t size, int rank, uintptr_t addr, lc_ep ep)
               LC_PROTO_DATA, p);
   struct lci_rep* rep = &(ep->rep[rank]);
   memcpy(&p->data, src, size);
-  lc_server_putm(ep->handle, rep->handle, rep->base, (uint32_t) (addr - rep->base),
+  lc_server_putm(ep->server, rep->handle, rep->base, (uint32_t) (addr - rep->base),
                  rep->rkey, size, p);
   return LC_OK;
 }
@@ -40,8 +40,8 @@ lc_status lc_putms(void* src, size_t size, int rank, uintptr_t addr, lc_meta met
               LC_PROTO_DATA, p);
   struct lci_rep* rep = &(ep->rep[rank]);
   memcpy(&p->data, src, size);
-  lc_server_putms(ep->handle, rep->handle, rep->base, (uint32_t) (addr - rep->base),
-                  rep->rkey, size, MAKE_PROTO(rep->gid, LC_PROTO_LONG, meta), p);
+  lc_server_putms(ep->server, rep->handle, rep->base, (uint32_t) (addr - rep->base),
+                  rep->rkey, size, MAKE_PROTO(ep->gid, LC_PROTO_LONG, meta), p);
   return LC_OK;
 }
 

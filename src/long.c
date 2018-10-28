@@ -13,9 +13,9 @@ lc_status lc_sendl(void* src, size_t size, int rank, lc_meta tag, lc_ep ep,
   p->context.req = &(p->context.req_s);
   lci_init_req(src, size, p->context.req);
   lci_prepare_rts(src, size, ep->gid, ce, p);
-  lc_server_sendm(ep->handle, rep->handle,
+  lc_server_sendm(ep->server, rep->handle,
                   sizeof(struct packet_rts), p,
-                  MAKE_PROTO(rep->gid, LC_PROTO_RTS, tag));
+                  MAKE_PROTO(ep->gid, LC_PROTO_RTS, tag));
   return LC_OK;
 }
 
@@ -32,7 +32,7 @@ lc_status lc_putl(void* src, size_t size, int rank, uintptr_t addr,
   lci_pk_init(ep, -1, LC_PROTO_LONG, p);
   p->data.rts.ce = (uintptr_t) ce;
   struct lci_rep* rep = &(ep->rep[rank]);
-  lc_server_putl(ep->handle, rep->handle, src, rep->base, (uint32_t) (addr - rep->base),
+  lc_server_putl(ep->server, rep->handle, src, rep->base, (uint32_t) (addr - rep->base),
                  rep->rkey, size, p);
   return LC_OK;
 }
@@ -44,9 +44,9 @@ lc_status lc_putls(void* src, size_t size, int rank, uintptr_t addr, lc_meta met
   lci_pk_init(ep, -1, LC_PROTO_LONG, p);
   p->data.rts.ce = (uintptr_t) ce;
   struct lci_rep* rep = &(ep->rep[rank]);
-  lc_server_putls(ep->handle, rep->handle, src, rep->base, (uint32_t) (addr - rep->base),
+  lc_server_putls(ep->server, rep->handle, src, rep->base, (uint32_t) (addr - rep->base),
                   rep->rkey, size,
-                  MAKE_PROTO(rep->gid, LC_PROTO_LONG, meta), p);
+                  MAKE_PROTO(ep->gid, LC_PROTO_LONG, meta), p);
   return LC_OK;
 }
 

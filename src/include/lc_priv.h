@@ -11,7 +11,6 @@
 #define SHORT_MSG_SIZE (LC_PACKET_SIZE - sizeof(struct packet_context))
 #define POST_MSG_SIZE (SHORT_MSG_SIZE)
 
-extern struct lci_dev* dev;
 extern struct lci_ep** lcg_ep_list;
 
 extern int lcg_nep;
@@ -20,13 +19,13 @@ extern int lcg_rank;
 extern int lcg_page_size;
 extern char lcg_name[256];
 
-typedef struct lci_dev lci_dev;
+struct lc_server;
+typedef struct lc_server lc_server;
 
 // remote endpoint is just a handle.
 struct lci_rep {
   void* handle;
   int rank;
-  int gid;
   uintptr_t base;
   uint32_t rkey;
 } __attribute__((packed, aligned(LC_CACHE_LINE)));
@@ -35,9 +34,8 @@ struct lci_ep {
   int gid;
 
   // Associated hardware context.
-  lci_dev* dev;
+  lc_server* server;
   lc_pool* pkpool;
-  void* handle;
 
   // Cap
   long cap;
@@ -58,18 +56,6 @@ struct lci_ep {
   struct comp_q cq __attribute__((aligned(LC_CACHE_LINE)));
 } __attribute__((packed, aligned(LC_CACHE_LINE)));
 
-struct lci_dev {
-  // dev-indepdentent.
-  void* handle;
-  char* name;
-
-  // LC_CACHE_LINE-bit cap.
-  long cap;
-
-  lc_pool* pkpool;
-  uintptr_t base_addr;
-  uintptr_t curr_addr;
-} __attribute__((packed, aligned(LC_CACHE_LINE)));
 
 struct lc_packet;
 typedef struct lc_packet lc_packet;
@@ -79,36 +65,33 @@ typedef struct lc_packet lc_packet;
 #include "server/server.h"
 
 LC_INLINE
-void lci_dev_init(struct lci_dev* dev)
+void lci_dev_init(lc_server** dev)
 {
   uintptr_t base_packet;
-
-  // This initialize the hardware context.
-  // There might be more than one remote connection.
   lc_server_init(dev);
+  lc_server* s = *dev;
 
-  dev->base_addr = (uintptr_t) lc_server_heap_ptr(dev->handle);
-  base_packet = dev->base_addr + lcg_page_size - sizeof(struct packet_context);
+  uintptr_t base_addr = (uintptr_t) lc_server_heap_ptr(s);
+  base_packet = base_addr + lcg_page_size - sizeof(struct packet_context);
 
-  lc_pool_create(&dev->pkpool);
+  lc_pool_create(&s->pkpool);
   for (unsigned i = 0; i < LC_SERVER_NUM_PKTS; i++) {
       lc_packet* p = (lc_packet*) (base_packet + i * LC_PACKET_SIZE);
       p->context.poolid  = 0;
       p->context.req_s.parent = p;
-      lc_pool_put(dev->pkpool, p);
+      lc_pool_put(s->pkpool, p);
   }
 
-  dev->curr_addr = base_packet + LC_SERVER_NUM_PKTS * LC_PACKET_SIZE;
-  dev->curr_addr = (dev->curr_addr + lcg_page_size - 1) / lcg_page_size * lcg_page_size;
+  s->curr_addr = base_packet + LC_SERVER_NUM_PKTS * LC_PACKET_SIZE;
+  s->curr_addr = (s->curr_addr + lcg_page_size - 1) / lcg_page_size * lcg_page_size;
 }
 
 LC_INLINE
-void lci_ep_open(struct lci_dev* dev, long cap, struct lci_ep** ep_ptr)
+void lci_ep_open(lc_server* dev, long cap, struct lci_ep** ep_ptr)
 {
   struct lci_ep* ep = 0;
   posix_memalign((void**) &ep, LC_CACHE_LINE, sizeof(struct lci_ep));
-  ep->dev = dev;
-  ep->handle = ep->dev->handle;
+  ep->server = dev;
   ep->pkpool = dev->pkpool;
   ep->cap = cap;
   ep->gid = lcg_nep++;
@@ -121,13 +104,7 @@ void lci_ep_open(struct lci_dev* dev, long cap, struct lci_ep** ep_ptr)
     cq_init(&ep->cq);
   }
 
-  lc_server_ep_publish(dev->handle, ep->gid);
-  posix_memalign((void**) &(ep->rep), LC_CACHE_LINE, sizeof(struct lci_rep) * lcg_size);
-
-  for (int i = 0; i < lcg_size; i++)
-    if (i != lcg_rank)
-      lc_server_connect(dev->handle, i, ep->gid, &ep->rep[i]);
-
+  ep->rep = dev->rep;
   *ep_ptr = ep;
 }
 

@@ -48,9 +48,9 @@ void lci_init_req(void* buf, size_t size, lc_req* req)
 LC_INLINE
 void lci_prepare_rtr(struct lci_ep* ep, void* src, size_t size, lc_packet* p)
 {
-  uintptr_t rma_mem = lc_server_rma_reg(ep->handle, src, size);
+  uintptr_t rma_mem = lc_server_rma_reg(ep->server, src, size);
   p->context.rma_mem = rma_mem;
-  p->data.rtr.comm_id = ((uintptr_t)p - ep->dev->base_addr);
+  p->data.rtr.comm_id = ((uintptr_t)p - (uintptr_t) lc_server_heap_ptr(ep->server));
   p->data.rtr.tgt_addr = (uintptr_t)src;
   p->data.rtr.rkey = lc_server_rma_key(rma_mem);
   dprintf("%d] post recv rdma %p %d via %d\n", lcg_rank, src, size, p->data.rtr.rkey);
@@ -112,7 +112,7 @@ void lci_handle_rtr(struct lci_ep* ep, lc_packet* p)
 {
   lci_pk_init(ep, -1, LC_PROTO_LONG, p);
   dprintf("%d] rma %p --> %p %.4x via %d\n", lcg_rank, p->data.rts.src_addr, p->data.rtr.tgt_addr, crc32c((char*) p->data.rts.src_addr, p->data.rts.size), p->data.rtr.rkey);
-  lc_server_rma_rtr(ep->handle, p->context.req->rhandle,
+  lc_server_rma_rtr(ep->server, p->context.req->rhandle,
       (void*) p->data.rts.src_addr,
       p->data.rtr.tgt_addr, p->data.rtr.rkey, p->data.rts.size,
       p->data.rtr.comm_id, p);
@@ -124,7 +124,7 @@ void lci_handle_rts(struct lci_ep* ep, lc_packet* p)
   lci_pk_init(ep, -1, LC_PROTO_RTR, p);
   lc_proto proto = MAKE_PROTO(p->data.rts.rgid, LC_PROTO_RTR, 0);
   lci_prepare_rtr(ep, p->context.req->buffer, p->data.rts.size, p);
-  lc_server_sendm(ep->handle, p->context.req->rhandle,
+  lc_server_sendm(ep->server, p->context.req->rhandle,
       sizeof(struct packet_rtr), p, proto);
 }
 

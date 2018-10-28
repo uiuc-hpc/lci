@@ -11,41 +11,6 @@
 #include "lc/macro.h"
 #include "lc.h"
 
-#define ALIGNMENT (lcg_page_size)
-#define MAX_CQ 16
-
-#define IBV_IMM_RTR ((uint32_t) 1<<31)
-
-#ifdef LC_SERVER_DEBUG
-#define IBV_SAFECALL(x)                                               \
-  {                                                                   \
-    int err = (x);                                                    \
-    if (err) {                                                        \
-      fprintf(stderr, "err : %d (%s:%d)\n", err, __FILE__, __LINE__); \
-      exit(EXIT_FAILURE);                                             \
-    }                                                                 \
-  }                                                                   \
-  while (0)                                                           \
-    ;
-#else
-#define IBV_SAFECALL(x) \
-  {                     \
-    x;                  \
-  }                     \
-  while (0)             \
-    ;
-#endif
-
-struct conn_ctx {
-  uint64_t addr;
-  uint32_t rkey;
-  uint32_t qp_num;
-  uint16_t lid;
-  union ibv_gid gid;
-};
-
-typedef struct ibv_mr lc_server_memory;
-
 typedef struct lc_server {
   struct lci_dev* dev;
 
@@ -55,8 +20,8 @@ typedef struct lc_server {
   struct ibv_srq* dev_srq;
   struct ibv_cq* send_cq;
   struct ibv_cq* recv_cq;
-  lc_server_memory* sbuf;
-  lc_server_memory* heap;
+  struct ibv_mr* sbuf;
+  struct ibv_mr* heap;
 
   struct ibv_port_attr port_attr;
   struct ibv_device_attr dev_attr;
@@ -65,8 +30,9 @@ typedef struct lc_server {
 
   // Connections O(N)
   struct ibv_qp** qp;
-  uint32_t* rkey;
-  // struct conn_ctx* conn;
+  struct lci_rep* rep;
+  lc_pool* pkpool;
+  uintptr_t curr_addr;
 
   // Helper fields.
   int id;
@@ -77,196 +43,54 @@ typedef struct lc_server {
   size_t max_inline;
 } lc_server __attribute__((aligned(64)));
 
-extern int lcg_ndev;
+#include "server_ibv_helper.h"
 
-LC_INLINE lc_server_memory* ibv_mem_malloc(lc_server* s, size_t size)
-{
-  int mr_flags =
-      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-  void* ptr = 0;
-  posix_memalign(&ptr, lcg_page_size, size + lcg_page_size);
-  return ibv_reg_mr(s->dev_pd, ptr, size, mr_flags);
-}
-
-LC_INLINE struct ibv_qp* qp_create(lc_server* s)
-{
-  struct ibv_qp_init_attr qp_init_attr;
-  qp_init_attr.qp_context = 0;
-  qp_init_attr.send_cq = s->send_cq;
-  qp_init_attr.recv_cq = s->recv_cq;
-  qp_init_attr.srq = s->dev_srq;
-  qp_init_attr.cap.max_send_wr = 256; //(uint32_t)dev_attr->max_qp_wr;
-  qp_init_attr.cap.max_recv_wr = 1; //(uint32_t)dev_attr->max_qp_wr;
-  // -- this affect the size of (TODO:tune later).
-  qp_init_attr.cap.max_send_sge = 16; // this allows 128 inline.
-  qp_init_attr.cap.max_recv_sge = 1;
-  qp_init_attr.cap.max_inline_data = 0;
-  qp_init_attr.qp_type = IBV_QPT_RC;
-  qp_init_attr.sq_sig_all = 0;
-  struct ibv_qp* qp = ibv_create_qp(s->dev_pd, &qp_init_attr);
-  if (!qp) {
-    fprintf(stderr, "Unable to create queue pair\n");
-    exit(EXIT_FAILURE);
-  }
-  s->max_inline = MIN(qp_init_attr.cap.max_inline_data, LC_MAX_INLINE);
-  return qp;
-}
-
-LC_INLINE void qp_init(struct ibv_qp* qp, int port)
-{
-  struct ibv_qp_attr attr;
-  memset(&attr, 0, sizeof(struct ibv_qp_attr));
-  attr.qp_state = IBV_QPS_INIT;
-  attr.port_num = port;
-  attr.pkey_index = 0;
-  attr.qp_access_flags =
-      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-  int flags =
-      IBV_QP_STATE | IBV_QP_PKEY_INDEX | IBV_QP_PORT | IBV_QP_ACCESS_FLAGS;
-  int rc = ibv_modify_qp(qp, &attr, flags);
-  if (rc != 0) {
-    fprintf(stderr, "Unable to init qp\n");
-    exit(EXIT_FAILURE);
-  }
-}
-
-LC_INLINE void qp_to_rtr(struct ibv_qp* qp, int dev_port,
-                         struct ibv_port_attr* port_attr,
-                         struct conn_ctx* rctx_)
-{
-  struct ibv_qp_attr attr;
-  memset(&attr, 0, sizeof(struct ibv_qp_attr));
-
-  attr.qp_state = IBV_QPS_RTR;
-  attr.path_mtu = port_attr->active_mtu;
-  attr.dest_qp_num = rctx_->qp_num;
-  attr.rq_psn = 0;
-  attr.max_dest_rd_atomic = 1;
-  attr.min_rnr_timer = 12;
-
-  attr.ah_attr.is_global = 0;
-  attr.ah_attr.dlid = rctx_->lid;
-  attr.ah_attr.sl = 0;
-  attr.ah_attr.src_path_bits = 0;
-  attr.ah_attr.port_num = dev_port;
-
-  memcpy(&attr.ah_attr.grh.dgid, &rctx_->gid, 16);
-  attr.ah_attr.grh.sgid_index = 0;  // gid
-
-  int flags = IBV_QP_STATE | IBV_QP_AV | IBV_QP_PATH_MTU | IBV_QP_DEST_QPN |
-              IBV_QP_RQ_PSN | IBV_QP_MAX_DEST_RD_ATOMIC | IBV_QP_MIN_RNR_TIMER;
-
-  int rc = ibv_modify_qp(qp, &attr, flags);
-  if (rc != 0) {
-    fprintf(stderr, "failed to modify QP state to RTR\n");
-    exit(EXIT_FAILURE);
-  }
-}
-
-LC_INLINE void qp_to_rts(struct ibv_qp* qp)
-{
-  struct ibv_qp_attr attr;
-  memset(&attr, 0, sizeof(struct ibv_qp_attr));
-
-  attr.qp_state = IBV_QPS_RTS;
-  attr.timeout = 0x12;
-  attr.retry_cnt = 7;
-  attr.rnr_retry = 7;
-  attr.sq_psn = 0;
-  attr.max_rd_atomic = 1;
-
-  int flags = IBV_QP_STATE | IBV_QP_TIMEOUT | IBV_QP_RETRY_CNT |
-              IBV_QP_RNR_RETRY | IBV_QP_SQ_PSN | IBV_QP_MAX_QP_RD_ATOMIC;
-  int rc = ibv_modify_qp(qp, &attr, flags);
-  if (rc != 0) {
-    fprintf(stderr, "failed to modify QP state to RTS\n");
-    exit(EXIT_FAILURE);
-  }
-}
-
-LC_INLINE uintptr_t _real_ibv_reg(lc_server* s, void* buf, size_t size)
-{
-  int mr_flags =
-      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-  return (uintptr_t)ibv_reg_mr(s->dev_pd, buf, size, mr_flags);
-}
-
-LC_INLINE void _real_ibv_dereg(uintptr_t mem)
-{
-  ibv_dereg_mr((struct ibv_mr*)mem);
-}
-
-LC_INLINE uintptr_t lc_server_rma_reg(lc_server* s, void* buf, size_t size)
-{
 #ifdef USE_DREG
+static inline uintptr_t lc_server_rma_reg(lc_server* s, void* buf, size_t size)
+{
   return (uintptr_t)dreg_register(s, buf, size);
-#else
-  return _real_ibv_reg(s, buf, size);
-#endif
 }
 
-LC_INLINE void lc_server_rma_dereg(uintptr_t mem)
+static inline void lc_server_rma_dereg(uintptr_t mem)
 {
-#ifdef USE_DREG
   dreg_unregister((dreg_entry*)mem);
-#else
-  _real_ibv_dereg(mem);
-#endif
 }
 
-LC_INLINE uint32_t lc_server_rma_key(uintptr_t mem)
+static inline uint32_t lc_server_rma_key(uintptr_t mem)
 {
-#ifdef USE_DREG
   return ((struct ibv_mr*)(((dreg_entry*)mem)->memhandle[0]))->rkey;
-#else
-  return ((struct ibv_mr*)mem)->rkey;
-#endif
 }
 
-LC_INLINE uint32_t ibv_rma_lkey(uintptr_t mem)
+static inline uint32_t ibv_rma_lkey(uintptr_t mem)
 {
-#ifdef USE_DREG
   return ((struct ibv_mr*)(((dreg_entry*)mem)->memhandle[0]))->lkey;
+}
+
 #else
-  return ((struct ibv_mr*)mem)->lkey;
-#endif
-}
 
-LC_INLINE void ibv_post_recv_(lc_server* s, lc_packet* p)
+static inline uintptr_t lc_server_rma_reg(lc_server* s, void* buf, size_t size)
 {
-  if (p == NULL) {
-    if (s->recv_posted < SERVER_MAX_RCVS / 2 && !lcg_deadlock) {
-      lcg_deadlock = 1;
-      #ifdef LC_SERVER_DEBUG
-      printf("WARNING-LC: deadlock alert\n");
-      #endif
-    }
-    return;
-  }
-
-  struct ibv_sge sg = {
-      .addr = (uintptr_t)(&p->data),
-      .length = POST_MSG_SIZE,
-      .lkey = s->heap->lkey,
-  };
-
-  struct ibv_recv_wr wr = {
-      .wr_id = (uintptr_t) & (p->context),
-      .next = 0,
-      .sg_list = &sg,
-      .num_sge = 1,
-  };
-
-  p->context.poolid = lc_pool_get_local(s->dev->pkpool);
-
-  struct ibv_recv_wr* bad_wr = 0;
-  IBV_SAFECALL(ibv_post_srq_recv(s->dev_srq, &wr, &bad_wr));
-
-  if (++s->recv_posted == SERVER_MAX_RCVS && lcg_deadlock)
-    lcg_deadlock = 0;
+  return _real_server_reg(s, buf, size);
 }
 
-LC_INLINE int lc_server_progress(lc_server* s, const long cap)
+static inline void lc_server_rma_dereg(uintptr_t mem)
+{
+  _real_server_dereg(mem);
+}
+
+static inline uint32_t lc_server_rma_key(uintptr_t mem)
+{
+  return ((struct ibv_mr*)mem)->rkey;
+}
+
+static inline uint32_t ibv_rma_lkey(uintptr_t mem)
+{
+  return ((struct ibv_mr*)mem)->lkey;
+}
+
+#endif
+
+static inline int lc_server_progress(lc_server* s, const long cap)
 {
   struct ibv_wc wc[MAX_CQ];
   int ne = ibv_poll_cq(s->recv_cq, MAX_CQ, wc);
@@ -299,9 +123,9 @@ LC_INLINE int lc_server_progress(lc_server* s, const long cap)
     } else {
       if (wc[i].imm_data & IBV_IMM_RTR) {
         // recv immediate protocol (3-msg rdz).
-        lc_packet* p = (lc_packet*) (s->dev->base_addr + (wc[i].imm_data ^ IBV_IMM_RTR));
+        lc_packet* p = (lc_packet*) (s->heap->addr + (wc[i].imm_data ^ IBV_IMM_RTR));
         lci_serve_imm(p, cap);
-        lc_pool_put(s->dev->pkpool, (lc_packet*)wc[i].wr_id);
+        lc_pool_put(s->pkpool, (lc_packet*)wc[i].wr_id);
       } else {
         // recv rdma with signal.
         lc_packet* p = (lc_packet*)wc[i].wr_id;
@@ -332,8 +156,8 @@ LC_INLINE int lc_server_progress(lc_server* s, const long cap)
   }
 
   // Make sure we always have enough packet, but do not block.
-  if (s->recv_posted < SERVER_MAX_RCVS) {
-    ibv_post_recv_(s, (lc_packet*)lc_pool_get_nb(s->dev->pkpool));  //, 0));
+  if (s->recv_posted < LC_SERVER_MAX_RCVS) {
+    ibv_post_recv_(s, (lc_packet*)lc_pool_get_nb(s->pkpool));  //, 0));
     ret = 1;
   }
 
@@ -356,7 +180,7 @@ LC_INLINE int lc_server_progress(lc_server* s, const long cap)
     (w).next = NULL;            \
   }
 
-LC_INLINE int lc_server_sends(lc_server* s __UNUSED__, void* rep,
+static inline void lc_server_sends(lc_server* s __UNUSED__, void* rep,
                         void* ubuf, size_t size, uint32_t proto)
 {
   struct ibv_send_wr this_wr;
@@ -379,10 +203,9 @@ LC_INLINE int lc_server_sends(lc_server* s __UNUSED__, void* rep,
 
   this_wr.imm_data = proto;
   IBV_SAFECALL(ibv_post_send((struct ibv_qp*) rep, &this_wr, &bad_wr));
-  return 0;
 }
 
-LC_INLINE int lc_server_sendm(lc_server* s, void* rep, size_t size,
+static inline void lc_server_sendm(lc_server* s, void* rep, size_t size,
                         lc_packet* ctx, uint32_t proto)
 {
   struct ibv_send_wr this_wr;
@@ -398,10 +221,9 @@ LC_INLINE int lc_server_sendm(lc_server* s, void* rep, size_t size,
            IBV_SEND_SIGNALED);
   this_wr.imm_data = proto;
   IBV_SAFECALL(ibv_post_send((struct ibv_qp*) rep, &this_wr, &bad_wr));
-  return 0;
 }
 
-LC_INLINE void lc_server_puts(lc_server* s __UNUSED__, void* rep, void* buf,
+static inline void lc_server_puts(lc_server* s __UNUSED__, void* rep, void* buf,
     uintptr_t base, uint32_t offset, uint32_t rkey, size_t size)
 {
   struct ibv_send_wr this_wr;
@@ -421,7 +243,7 @@ LC_INLINE void lc_server_puts(lc_server* s __UNUSED__, void* rep, void* buf,
   IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
 }
 
-LC_INLINE void lc_server_putss(lc_server* s __UNUSED__, void* rep, void* buf,
+static inline void lc_server_putss(lc_server* s __UNUSED__, void* rep, void* buf,
     uintptr_t base, uint32_t offset, uint32_t rkey, uint32_t meta, size_t size)
 {
   struct ibv_send_wr this_wr;
@@ -442,7 +264,7 @@ LC_INLINE void lc_server_putss(lc_server* s __UNUSED__, void* rep, void* buf,
   IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
 }
 
-LC_INLINE void lc_server_putm(lc_server* s, void* rep,
+static inline void lc_server_putm(lc_server* s, void* rep,
     uintptr_t base, uint32_t offset, uint32_t rkey, size_t size,
     lc_packet* ctx)
 {
@@ -462,7 +284,7 @@ LC_INLINE void lc_server_putm(lc_server* s, void* rep,
   IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
 }
 
-LC_INLINE void lc_server_putms(lc_server* s, void* rep,
+static inline void lc_server_putms(lc_server* s, void* rep,
                          uintptr_t base, uint32_t offset, uint32_t rkey, size_t size,
                          uint32_t meta, lc_packet* ctx)
 {
@@ -485,7 +307,7 @@ LC_INLINE void lc_server_putms(lc_server* s, void* rep,
 }
 
 
-LC_INLINE void lc_server_putl(lc_server* s, void* rep, void* buf,
+static inline void lc_server_putl(lc_server* s, void* rep, void* buf,
                         uintptr_t base, uint32_t offset, uint32_t rkey, size_t size,
                         lc_packet* ctx)
 {
@@ -509,7 +331,7 @@ LC_INLINE void lc_server_putl(lc_server* s, void* rep, void* buf,
   IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
 }
 
-LC_INLINE void lc_server_putls(lc_server* s, void* rep, void* buf,
+static inline void lc_server_putls(lc_server* s, void* rep, void* buf,
                          uintptr_t base, uint32_t offset, uint32_t rkey, size_t size,
                          uint32_t meta, lc_packet* ctx)
 {
@@ -534,9 +356,7 @@ LC_INLINE void lc_server_putls(lc_server* s, void* rep, void* buf,
   IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
 }
 
-LC_INLINE void lc_server_rma_rtr(lc_server* s, void* rep, void* buf,
-                                 uintptr_t addr, uint32_t rkey, size_t size,
-                                 uint32_t sid, lc_packet* ctx)
+static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf, uintptr_t addr, uint32_t rkey, size_t size, uint32_t sid, lc_packet* ctx)
 {
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr = 0;
@@ -564,12 +384,12 @@ LC_INLINE void lc_server_rma_rtr(lc_server* s, void* rep, void* buf,
   IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
 }
 
-LC_INLINE void lc_server_init(struct lci_dev* dev)
+static inline void lc_server_init(lc_server** dev)
 {
   lc_server* s = NULL;
   posix_memalign((void**) &s, lcg_page_size, sizeof(struct lc_server));
 
-  s->dev = dev;
+  *dev = s;
   s->id = lcg_ndev++;
 
   int num_devices;
@@ -616,7 +436,7 @@ LC_INLINE void lc_server_init(struct lci_dev* dev)
   // Create shared-receive queue, **number here affect performance**.
   struct ibv_srq_init_attr srq_attr;
   srq_attr.srq_context = 0;
-  srq_attr.attr.max_wr = SERVER_MAX_RCVS;
+  srq_attr.attr.max_wr = LC_SERVER_MAX_RCVS;
   srq_attr.attr.max_sge = 1;
   srq_attr.attr.srq_limit = 0;
   s->dev_srq = ibv_create_srq(s->dev_pd, &srq_attr);
@@ -643,11 +463,9 @@ LC_INLINE void lc_server_init(struct lci_dev* dev)
   }
 
   s->recv_posted = 0;
-  dev->handle = (void*) s;
   // s->qp = calloc(lcg_size, sizeof(struct ibv_qp*));
   // s->rkey = calloc(lcg_size, sizeof(uintptr_t));
   posix_memalign((void**)&s->qp, LC_CACHE_LINE, lcg_size * sizeof(struct ibv_qp*));
-  posix_memalign((void**)&s->rkey, LC_CACHE_LINE, lcg_size * sizeof(uint32_t));
 
   struct conn_ctx lctx, rctx;
   char ep_name[256];
@@ -665,13 +483,19 @@ LC_INLINE void lc_server_init(struct lci_dev* dev)
     lc_pm_publish(lcg_rank, (s->id) << 8 | i, ep_name);
   }
 
+  posix_memalign((void**) &(s->rep), LC_CACHE_LINE, sizeof(struct lci_rep) * lcg_size);
+
   for (int i = 0; i < lcg_size; i++) {
     lc_pm_getname(i, (s->id << 8) | lcg_rank, ep_name);
     sscanf(ep_name, "%llu-%d-%d-%d", (unsigned long long*)&rctx.addr,
         &rctx.rkey, &rctx.qp_num, (int*)&rctx.lid);
     qp_to_rtr(s->qp[i], s->dev_port, &s->port_attr, &rctx);
     qp_to_rts(s->qp[i]);
-    s->rkey[i] = rctx.rkey;
+
+    struct lci_rep* rep = &s->rep[i];
+    rep->rank = i;
+    rep->handle = (void*) s->qp[i];
+    rep->rkey = rctx.rkey;
   }
 
   int j = lcg_size;
@@ -700,48 +524,17 @@ LC_INLINE void lc_server_init(struct lci_dev* dev)
   PMI_Barrier();
 }
 
-LC_INLINE void lc_server_ep_publish(lc_server* s, int gid)
-{
-  char name[256];
-  sprintf(name, "%d", s->id);
-  lc_pm_publish(lcg_rank, gid, name);
-}
-
-LC_INLINE void lc_server_connect(lc_server* s, int prank, int gid, lc_rep rep)
-{
-  char name[256];
-  lc_pm_getname(prank, gid, name);
-  if (atoi(name) == s->id) {
-    rep->rank = prank;
-    rep->gid = gid;
-    rep->handle = (void*) s->qp[prank];
-    rep->rkey = s->rkey[prank];
-  } else {
-    assert(0);
-  }
-}
-
-LC_INLINE void lc_server_finalize(lc_server* s)
+static inline void lc_server_finalize(lc_server* s)
 {
   ibv_destroy_cq(s->send_cq);
   ibv_destroy_cq(s->recv_cq);
   ibv_destroy_srq(s->dev_srq);
-  // ibv_mem_free(s->heap);
-  // for (int i = 0; i < s->mv->size; i++) {
-  //  ibv_destroy_qp(s->qp[i]);
-  // }
   PMI_Finalize();
-
-  // free(s->conn);
-  // free(s->qp);
   free(s);
 }
 
-LC_INLINE void* lc_server_heap_ptr(lc_server* s) { return s->heap_ptr; }
+static inline void* lc_server_heap_ptr(lc_server* s) { return s->heap_ptr; }
 
 #define lc_server_post_rma(...) {}
-
-#define _real_server_reg _real_ibv_reg
-#define _real_server_dereg _real_ibv_dereg
 
 #endif

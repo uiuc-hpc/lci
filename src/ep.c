@@ -1,7 +1,7 @@
 #include "lc.h"
 #include "lc_priv.h"
 
-extern struct lci_dev* lcg_dev;
+extern struct lc_server* lcg_dev;
 
 lc_status lc_ep_dup(int dev_id, lc_ep_desc desc, lc_ep iep __UNUSED__, lc_ep* oep)
 {
@@ -13,8 +13,8 @@ lc_status lc_ep_dup(int dev_id, lc_ep_desc desc, lc_ep iep __UNUSED__, lc_ep* oe
 lc_status lc_ep_get_baseaddr(lc_ep ep, size_t size, uintptr_t* addr)
 {
   // FIXME: NOT THREAD-SAFE.
-  *addr = ep->dev->curr_addr;
-  ep->dev->curr_addr += size;
+  *addr = ep->server->curr_addr;
+  ep->server->curr_addr += size;
   return LC_OK;
 }
 
