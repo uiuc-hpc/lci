@@ -17,11 +17,11 @@ volatile int cont = 1;
 
 void* poll_thread(void* arg)
 {
-    while (cont) {
-        lc_progress(0);
-        sched_yield();
-    }
-    return 0;
+  while (cont) {
+    lc_progress(0);
+    sched_yield();
+  }
+  return 0;
 }
 
 size_t total = TOTAL;
@@ -29,7 +29,7 @@ size_t skip = SKIP;
 
 int main(int argc, char** args) {
   lc_ep ep;
-  lc_init(1, LC_EXPL_SYNC, &ep);
+  lc_init(1, &ep);
   pthread_t thread;
   pthread_create(&thread, NULL, poll_thread, (void*) ep);
 

@@ -9,29 +9,29 @@
 #undef MAX_MSG
 #define MAX_MSG lc_max_short(0)
 
-static void counting(void* ctx, lc_req* req)
+volatile int counter = 0;
+
+static void counting(lc_req* req)
 {
-  int* val = (int*) ctx;
-  (*val)++;
+  counter ++;
 }
 
 int main(int argc, char** args) {
-  lc_ep ep, ep2;
+  lc_ep ep, ep_am;
   lc_req req;
   int rank;
 
-  lc_init(1, LC_EXPL_AM, &ep);
-  lc_ep_dup(0, LC_EXPL_SYNC, ep, &ep2);
+  lc_init(1, &ep);
+  lc_opt opt = {.dev = 0, .desc = LC_EXPL_AM, .handler = counting}; 
+  lc_ep_dup(&opt, ep, &ep_am);
 
   lc_get_proc_num(&rank);
 
   uintptr_t addr, raddr;
-  volatile int counter = 0;
   lc_ep_get_baseaddr(ep, MAX_MSG, &addr);
-  lc_ep_set_handler(ep, counting, (void*) &counter);
 
-  lc_sendm(&addr,  sizeof(uintptr_t), 1-rank, 0, ep2);
-  lc_recvm(&raddr, sizeof(uintptr_t), 1-rank, 0, ep2, &req);
+  lc_sendm(&addr,  sizeof(uintptr_t), 1-rank, 0, ep);
+  lc_recvm(&raddr, sizeof(uintptr_t), 1-rank, 0, ep, &req);
   while (req.sync == 0)
     lc_progress(0);
 
@@ -51,9 +51,9 @@ int main(int argc, char** args) {
         int old = counter;
         while (counter == old)
           lc_progress(0);
-        lc_putss(sbuf, size, 1-rank, raddr + MAX_MSG, i, ep);
+        lc_putss(sbuf, size, 1-rank, raddr + MAX_MSG, i, ep_am);
       } else {
-        lc_putss(sbuf, size, 1-rank, raddr + MAX_MSG, i, ep);
+        lc_putss(sbuf, size, 1-rank, raddr + MAX_MSG, i, ep_am);
         int old = counter;
         while (counter == old)
           lc_progress(0);

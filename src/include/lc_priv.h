@@ -65,10 +65,10 @@ typedef struct lc_packet lc_packet;
 #include "server/server.h"
 
 LC_INLINE
-void lci_dev_init(lc_server** dev)
+void lci_dev_init(int id, lc_server** dev)
 {
   uintptr_t base_packet;
-  lc_server_init(dev);
+  lc_server_init(id, dev);
   lc_server* s = *dev;
 
   uintptr_t base_addr = (uintptr_t) lc_server_heap_ptr(s);

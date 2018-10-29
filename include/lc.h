@@ -45,6 +45,13 @@ struct lc_ep_desc {
 } __attribute__((packed));
 
 typedef uint32_t lc_meta;
+struct lc_req;
+typedef struct lc_req lc_req;
+
+typedef void* (*lc_alloc_fn)(size_t malloc_size, void** ctx);
+typedef void (*lc_free_fn)(void* ctx, void* buffer);
+typedef void (*lc_handler_fn)(lc_req* req);
+typedef void (*lc_send_cb)(void* ctx);
 
 struct lc_req {
   lc_sync sync;
@@ -55,6 +62,7 @@ struct lc_req {
   size_t size;
   int rank;
   lc_meta meta;
+  lc_send_cb send_cb;
 } __attribute__((packed, aligned(64)));
 
 typedef struct lc_colreq lc_colreq;
@@ -64,16 +72,12 @@ extern int lcg_size;
 extern int lcg_rank;
 extern int lcg_page_size;
 
-typedef struct lc_req lc_req;
 typedef struct lc_ep_desc lc_ep_desc;
 
 typedef struct lci_rep* lc_rep;
 typedef struct lci_ep* lc_ep;
 typedef struct lci_dev* lc_dev;
 
-typedef void* (*lc_alloc_fn)(size_t malloc_size, void** ctx);
-typedef void (*lc_free_fn)(void* ctx, void* buffer);
-typedef void (*lc_handler_fn)(void* ctx, lc_req* pkt);
 
 static const lc_ep_desc LC_EXPL_SYNC = {EP_AR_EXPL, EP_CE_SYNC};
 static const lc_ep_desc LC_EXPL_CQ   = {EP_AR_EXPL, EP_CE_CQ};
@@ -100,12 +104,21 @@ struct lc_colreq {
   int empty;
 };
 
+struct lc_opt {
+  int dev;
+  lc_ep_desc desc;
+  lc_alloc_fn alloc;
+  lc_free_fn free;
+  lc_handler_fn handler;
+};
+
+typedef struct lc_opt lc_opt;
 
 LC_EXPORT
-lc_status lc_init(int ndev, lc_ep_desc desc, lc_ep* ep);
+lc_status lc_init(int ndev, lc_ep* ep);
 
 LC_EXPORT
-lc_status lc_ep_dup(int dev_id, lc_ep_desc desc, lc_ep iep, lc_ep* ep);
+lc_status lc_ep_dup(lc_opt* opt, lc_ep iep, lc_ep* ep);
 
 LC_EXPORT
 size_t lc_max_short(int dev_id);
@@ -113,15 +126,12 @@ size_t lc_max_short(int dev_id);
 LC_EXPORT
 size_t lc_max_medium(int dev_id);
 
+LC_EXPORT
+lc_status lc_send(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_send_cb func, void* ctx);
+
 /* Short */
 LC_EXPORT
-lc_status lc_send(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_sync*);
-
-LC_EXPORT
 lc_status lc_sends(void* src, size_t size, int rank, lc_meta tag, lc_ep ep);
-
-LC_EXPORT
-lc_status lc_putsd(void* src, size_t size, int rank, lc_meta tag, lc_ep ep);
 
 LC_EXPORT
 lc_status lc_puts(void* src, size_t size, int rank, uintptr_t dst, lc_ep ep);
@@ -144,16 +154,16 @@ lc_status lc_putms(void* src, size_t size, int rank, uintptr_t dst, lc_meta tag,
 
 /* Long */
 LC_EXPORT
-lc_status lc_sendl(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_sync*);
+lc_status lc_sendl(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_send_cb, void* ctx);
 
 LC_EXPORT
-lc_status lc_putld(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_sync*);
+lc_status lc_putld(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_send_cb, void* ctx); 
 
 LC_EXPORT
-lc_status lc_putl(void* src, size_t size, int rank, uintptr_t dst, lc_ep ep, lc_sync*);
+lc_status lc_putl(void* src, size_t size, int rank, uintptr_t dst, lc_ep ep, lc_send_cb, void* ctx);
 
 LC_EXPORT
-lc_status lc_putls(void* src, size_t size, int rank, uintptr_t dst, lc_meta meta, lc_ep ep, lc_sync*);
+lc_status lc_putls(void* src, size_t size, int rank, uintptr_t dst, lc_meta meta, lc_ep ep, lc_send_cb, void* ctx);
 
 /* Receive */
 LC_EXPORT
@@ -196,16 +206,7 @@ LC_EXPORT
 void lc_col_progress(lc_colreq* req);
 
 LC_EXPORT
-lc_status lc_ep_set_alloc(lc_ep ep, lc_alloc_fn alloc, lc_free_fn free, void* ctx);
-
-LC_EXPORT
-lc_status lc_ep_set_handler(lc_ep ep, lc_handler_fn handler, void* ctx);
-
-LC_EXPORT
 lc_status lc_ep_get_baseaddr(lc_ep, size_t size, uintptr_t* addr);
-
-LC_INLINE
-lc_status lc_wait(lc_req* req) { while (!req->sync); return LC_OK; };
 
 LC_EXPORT
 void lc_pm_barrier();

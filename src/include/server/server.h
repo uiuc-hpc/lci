@@ -27,7 +27,7 @@ static inline void lc_server_putls(lc_server* s, void* rep, void* buf, uintptr_t
 
 static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf, uintptr_t addr, uint32_t rkey, size_t size, uint32_t sid, lc_packet* p);
 
-static inline void lc_server_init(lc_server** dev);
+static inline void lc_server_init(int id, lc_server** dev);
 static inline void lc_server_finalize(lc_server* s);
 static inline void* lc_server_heap_ptr(lc_server* s);
 

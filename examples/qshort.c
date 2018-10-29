@@ -13,8 +13,10 @@ int total = TOTAL;
 int skip = SKIP;
 
 int main(int argc, char** args) {
-  lc_ep ep;
-  lc_init(1, LC_ALLOC_CQ, &ep);
+  lc_ep ep, ep_q;
+  lc_init(1, &ep);
+  lc_opt opt = {.dev = 0, .desc = LC_ALLOC_CQ};
+  lc_ep_dup(&opt, ep, &ep_q);
 
   int rank = 0;
   lc_get_proc_num(&rank);
@@ -35,13 +37,13 @@ int main(int argc, char** args) {
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
         meta = i;
-        lc_putsd(buf, size, 1-rank, meta, ep);
+        lc_sends(buf, size, 1-rank, meta, ep_q);
 
         lc_req* req_ptr;
-        while (lc_cq_pop(ep, &req_ptr) != LC_OK)
+        while (lc_cq_pop(ep_q, &req_ptr) != LC_OK)
           lc_progress_q(0);
         assert(req_ptr->meta == i);
-        lc_cq_reqfree(ep, req_ptr);
+        lc_cq_reqfree(ep_q, req_ptr);
       }
 
       t1 = 1e6 * (wtime() - t1) / total / 2;
@@ -54,13 +56,13 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         lc_req* req_ptr;
-        while (lc_cq_pop(ep, &req_ptr) != LC_OK)
+        while (lc_cq_pop(ep_q, &req_ptr) != LC_OK)
           lc_progress_q(0);
         assert(req_ptr->meta == i);
-        lc_cq_reqfree(ep, req_ptr);
+        lc_cq_reqfree(ep_q, req_ptr);
 
         meta = i;
-        lc_putsd(buf, size, 1-rank, meta, ep);
+        lc_sends(buf, size, 1-rank, meta, ep_q);
       }
     }
   }

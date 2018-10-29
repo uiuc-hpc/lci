@@ -22,17 +22,18 @@ int lcg_page_size = 0;
 
 __thread int lcg_core_id = -1;
 
-lc_status lc_init(int ndev, lc_ep_desc desc, lc_ep* ep)
+lc_status lc_init(int ndev, lc_ep* ep)
 {
   lcg_page_size = sysconf(_SC_PAGESIZE);
 
   lc_pm_master_init(&lcg_size, &lcg_rank, lcg_name);
   posix_memalign((void**) &lcg_dev, LC_CACHE_LINE, ndev * sizeof(lc_server*));
   posix_memalign((void**) &lcg_ep_list, LC_CACHE_LINE, MAX_EP * sizeof(struct lci_ep*));
+
   for (int i = 0; i < ndev; i++) {
-    lci_dev_init(&lcg_dev[i]);
+    lci_dev_init(i, &lcg_dev[i]);
   }
-  lci_ep_open(lcg_dev[0], desc.addr | desc.ce, ep);
+  lci_ep_open(lcg_dev[0], LC_EXPL_SYNC.addr | LC_EXPL_SYNC.ce, ep);
   return LC_OK;
 }
 

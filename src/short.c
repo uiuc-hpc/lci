@@ -11,11 +11,6 @@ lc_status lc_sends(void* src, size_t size, int rank, lc_meta tag, lc_ep ep)
   return LC_OK;
 }
 
-lc_status lc_putsd(void* src, size_t size, int rank, lc_meta tag, lc_ep ep)
-{
-  return lc_sends(src, size, rank, tag, ep);
-}
-
 lc_status lc_puts(void* src, size_t size, int rank, uintptr_t addr, lc_ep ep)
 {
   struct lci_rep* rep = &(ep->rep[rank]);

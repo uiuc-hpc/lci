@@ -6,7 +6,7 @@ LD = $(CC)
 TARGET = init tshort tmed tlong qshort qmed qlong
 TARGET += qmed_dup qmed_dup_2hw
 TARGET += puts putm putl putss putms putls putsam
-TARGET += tag
+TARGET += tag ialreduce ibarrier
 
 EXTRA = -DUSE_AFFI
 

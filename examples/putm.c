@@ -14,7 +14,7 @@ int main(int argc, char** args) {
   lc_req req;
   int rank;
 
-  lc_init(1, LC_EXPL_SYNC, &ep);
+  lc_init(1, &ep);
   lc_get_proc_num(&rank);
 
   uintptr_t addr, raddr;

@@ -28,11 +28,6 @@ extern int lcg_deadlock;
   lc_packet* x = lc_pool_get_nb((p)); \
   if (x == NULL) return LC_ERR_RETRY;
 
-#define LC_SET_REQ_DONE_AND_SIGNAL(t, r) \
-{\
-  r->flag = 1;\
-}
-
 #if 0
 
 #define LC_SET_REQ_DONE_AND_SIGNAL(t, r)                                 \

@@ -11,7 +11,7 @@ int skip = SKIP;
 
 int main(int argc, char** args) {
   lc_ep ep;
-  lc_init(1, LC_EXPL_SYNC, &ep);
+  lc_init(1, &ep);
   int rank = 0;
   lc_get_proc_num(&rank);
   lc_meta tag = {99};
@@ -35,7 +35,7 @@ int main(int argc, char** args) {
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
         sync = 0;
-        while (lc_sendl(src_buf, size, 1-rank, tag, ep, &sync) != LC_OK)
+        while (lc_sendl(src_buf, size, 1-rank, tag, ep, lc_signal, &sync) != LC_OK)
           lc_progress_t(0);
         while (!sync)
           lc_progress_t(0);
@@ -69,7 +69,7 @@ int main(int argc, char** args) {
           lc_progress_t(0);
 
         sync = 0;
-        while (lc_sendl(src_buf, size, 1-rank, tag, ep, &sync) != LC_OK)
+        while (lc_sendl(src_buf, size, 1-rank, tag, ep, lc_signal, &sync) != LC_OK)
           lc_progress_t(0);
         while (!sync)
           lc_progress_t(0);

@@ -15,8 +15,9 @@ int main(int argc, char** args) {
   lc_req* req_ptr;
   int rank;
 
-  lc_init(1, LC_EXPL_CQ, &ep);
-  lc_ep_dup(0, LC_EXPL_SYNC, ep, &ep2);
+  lc_init(1, &ep2);
+  lc_opt opt = {.dev = 0, .desc = LC_ALLOC_CQ};
+  lc_ep_dup(&opt, ep2, &ep);
 
   lc_get_proc_num(&rank);
 

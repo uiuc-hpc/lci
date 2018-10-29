@@ -13,30 +13,22 @@ extern __thread int lcg_core_id;
 
 typedef volatile int lc_sync;
 
-LC_INLINE int lc_worker_id()
+LC_INLINE void lc_wait(void* ce)
 {
-  if (unlikely(lcg_core_id == -1)) {
-    lcg_core_id = sched_getcpu();
-    if (lcg_core_id == -1) {
-      lcg_core_id = __sync_fetch_and_add(&lcg_current_id, 1);
-    }
-  }
-  return lcg_core_id;
-}
-
-LC_INLINE void lc_sync_wait(lc_sync* sync)
-{
+  lc_sync* sync = (lc_sync*) ce;
   while (!*sync)
     ;
 }
 
-LC_INLINE void lc_sync_reset(lc_sync* sync)
+LC_INLINE void lc_reset(void* ce)
 {
+  lc_sync* sync = (lc_sync*) ce;
   *sync = 0;
 }
 
-LC_INLINE void lc_sync_signal(lc_sync* sync)
+LC_INLINE void lc_signal(void* ce)
 {
+  lc_sync* sync = (lc_sync*) ce;
   *sync = 1;
 }
 

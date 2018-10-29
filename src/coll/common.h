@@ -28,8 +28,8 @@ static inline void lc_colreq_init(lc_colreq* req)
   req->flag = 0;
   req->cur = 0;
   req->total = 0;
-  lc_sync_signal(&req->pending[0].sync);
-  lc_sync_signal(&req->pending[1].sync);
+  lc_signal((void*) &req->pending[0].sync);
+  lc_signal((void*) &req->pending[1].sync);
 }
 
 static inline void lc_col_send(
@@ -102,13 +102,15 @@ void lc_col_progress(lc_colreq* req)
     lc_col_sched* op = &(req->next[req->cur++]);
     switch (op->type) {
       case LC_COL_SEND:
-        LC_SAFE(lc_send(op->src, op->size, op->rank, op->tag, op->ep, &(req->pending[0].sync)));
+        lc_reset((void*) &req->pending[0].sync);
+        LC_SAFE(lc_send(op->src, op->size, op->rank, op->tag, op->ep, lc_signal, (void*) &(req->pending[0].sync)));
         break;
       case LC_COL_RECV:
         lc_recv(op->src, op->size, op->rank, op->tag, op->ep, &req->pending[0]);
         break;
       case LC_COL_SENDRECV:
-        LC_SAFE(lc_send(op->src, op->size, op->rank, op->tag, op->ep, &req->pending[0].sync));
+        lc_reset((void*) &req->pending[0].sync);
+        LC_SAFE(lc_send(op->src, op->size, op->rank, op->tag, op->ep, lc_signal, (void*) &req->pending[0].sync));
         lc_recv(op->dst, op->size, op->rank, op->tag, op->ep, &req->pending[1]);
         break;
       case LC_COL_OP:

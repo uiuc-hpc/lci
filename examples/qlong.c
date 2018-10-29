@@ -22,9 +22,10 @@ static void no_free(void* ctx, void* buf)
 }
 
 int main(int argc, char** args) {
-  lc_ep ep;
-  lc_init(1, LC_ALLOC_CQ, &ep);
-  lc_ep_set_alloc(ep, no_alloc, no_free, NULL);
+  lc_ep ep, ep_q;
+  lc_init(1, &ep);
+  lc_opt opt = {.dev = 0, .desc = LC_ALLOC_CQ, .alloc = no_alloc, .free = no_free};
+  lc_ep_dup(&opt, ep, &ep_q);
 
   int rank = 0;
   lc_get_proc_num(&rank);
@@ -48,17 +49,17 @@ int main(int argc, char** args) {
         if (i == skip) t1 = wtime();
         meta = i;
         sync = 0;
-        while (lc_putld(sbuf, size, 1-rank, meta, ep, &sync) != LC_OK)
+        while (lc_sendl(sbuf, size, 1-rank, meta, ep_q, lc_signal, &sync) != LC_OK)
           lc_progress_q(0);
         while (sync == 0)
           lc_progress_q(0);
 
         lc_req* req_ptr;
-        while (lc_cq_pop(ep, &req_ptr) != LC_OK)
+        while (lc_cq_pop(ep_q, &req_ptr) != LC_OK)
           lc_progress_q(0);
         assert(req_ptr->meta == i);
-        lc_free(ep, req_ptr->buffer);
-        lc_cq_reqfree(ep, req_ptr);
+        lc_free(ep_q, req_ptr->buffer);
+        lc_cq_reqfree(ep_q, req_ptr);
       }
 
       t1 = 1e6 * (wtime() - t1) / total / 2;
@@ -71,15 +72,15 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         lc_req* req_ptr;
-        while (lc_cq_pop(ep, &req_ptr) != LC_OK)
+        while (lc_cq_pop(ep_q, &req_ptr) != LC_OK)
           lc_progress_q(0);
         assert(req_ptr->meta == i);
-        lc_free(ep, req_ptr->buffer);
-        lc_cq_reqfree(ep, req_ptr);
+        lc_free(ep_q, req_ptr->buffer);
+        lc_cq_reqfree(ep_q, req_ptr);
 
         meta = i;
         sync = 0;
-        while (lc_putld(sbuf, size, 1-rank, meta, ep, &sync) != LC_OK)
+        while (lc_sendl(sbuf, size, 1-rank, meta, ep_q, lc_signal, &sync) != LC_OK)
           lc_progress_q(0);
         while (sync == 0)
           lc_progress_q(0);

@@ -14,7 +14,7 @@ int skip = SKIP;
 
 int main(int argc, char** args) {
   lc_ep ep;
-  lc_init(1, LC_EXPL_SYNC, &ep);
+  lc_init(1, &ep);
   int rank = 0;
   lc_get_proc_num(&rank);
   lc_meta tag = {99};

@@ -1,22 +1,21 @@
 #include "lc.h"
 #include "lc_priv.h"
 
-lc_status lc_send(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_sync* ce)
+lc_status lc_send(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_send_cb cb, void* ce)
 {
   int ret;
-  lc_sync_reset(ce);
   if (size <= LC_MAX_INLINE) {
     ret = lc_sends(src, size, rank, tag, ep);
     if (ret == LC_OK)
-      lc_sync_signal(ce);
+      cb(ce);
     return ret;
   } else if (size <=LC_PACKET_SIZE) {
     ret = lc_sendm(src, size, rank, tag, ep);
     if (ret == LC_OK)
-      lc_sync_signal(ce);
+      cb(ce);
     return ret;
   } else {
-    return lc_sendl(src, size, rank, tag, ep, ce);
+    return lc_sendl(src, size, rank, tag, ep, cb, ce);
   }
 }
 
@@ -36,8 +35,8 @@ lc_status lc_recv(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_re
     } else {
       memcpy(src, p->data.buffer, p->context.req->size);
       req->size = p->context.req->size;
-      lc_sync_signal(&req->sync);
-      lci_pk_free_data(ep, p);
+      p->context.req = req;
+      lci_ce_dispatch(ep, p, ep->cap);
     }
   }
   return LC_OK;

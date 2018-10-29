@@ -15,12 +15,6 @@ lc_status lc_sendm(void* src, size_t size, int rank, lc_meta tag, lc_ep ep)
   return LC_OK;
 }
 
-lc_status lc_putmd(void* src, size_t size, int rank, lc_meta tag, lc_ep ep)
-{
-  lc_sendm(src, size, rank, tag, ep);
-  return LC_OK;
-}
-
 lc_status lc_putm(void* src, size_t size, int rank, uintptr_t addr, lc_ep ep)
 {
   LC_POOL_GET_OR_RETN(ep->pkpool, p);
@@ -55,7 +49,7 @@ lc_status lc_recvm(void* src, size_t size, int rank, lc_meta tag, lc_ep ep,
     lc_packet* p = (lc_packet*) value;
     memcpy(src, p->data.buffer, p->context.req->size);
     req->size = p->context.req->size;
-    lc_sync_signal(&req->sync);
+    lc_signal((void*) &req->sync);
     lci_pk_free_data(ep, p);
   }
   return LC_OK;

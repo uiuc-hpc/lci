@@ -7,12 +7,15 @@
 #include <unistd.h>
 
 int main(int argc, char** args) {
-  lc_ep ep;
+  lc_ep def, ep;
   lc_req req;
   lc_req* req_ptr;
   int rank;
 
-  lc_init(1, LC_EXPL_CQ, &ep);
+  lc_init(1, &def);
+  lc_opt opt = {.dev = 0, .desc = LC_EXPL_CQ};
+  lc_ep_dup(&opt, def, &ep);
+
   lc_get_proc_num(&rank);
 
   uintptr_t addr, raddr;
@@ -41,13 +44,13 @@ int main(int argc, char** args) {
           lc_progress(0);
         assert(req_ptr->meta == i);
         lc_cq_reqfree(ep, req_ptr);
-        while (lc_putls(sbuf, size, 1-rank, raddr + MAX_MSG, i, ep, &sync) != LC_OK)
+        while (lc_putls(sbuf, size, 1-rank, raddr + MAX_MSG, i, ep, lc_signal, &sync) != LC_OK)
           lc_progress(0);
         while (!sync)
           lc_progress(0);
       } else {
         sync = 0;
-        while (lc_putls(sbuf, size, 1-rank, raddr + MAX_MSG, i, ep, &sync) != LC_OK)
+        while (lc_putls(sbuf, size, 1-rank, raddr + MAX_MSG, i, ep, lc_signal, &sync) != LC_OK)
           lc_progress(0);
         while (!sync)
           lc_progress(0);

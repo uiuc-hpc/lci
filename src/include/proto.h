@@ -37,16 +37,14 @@ inline uint32_t crc32c(char *buf, size_t len)
   return ~crc;
 }
 
-LC_INLINE
-void lci_init_req(void* buf, size_t size, lc_req* req)
+static inline void lci_init_req(void* buf, size_t size, lc_req* req)
 {
   req->buffer = buf;
   req->size = size;
-  lc_sync_reset(&req->sync);
+  lc_reset((void*) &req->sync);
 }
 
-LC_INLINE
-void lci_prepare_rtr(struct lci_ep* ep, void* src, size_t size, lc_packet* p)
+static inline void lci_prepare_rtr(struct lci_ep* ep, void* src, size_t size, lc_packet* p)
 {
   uintptr_t rma_mem = lc_server_rma_reg(ep->server, src, size);
   p->context.rma_mem = rma_mem;
@@ -56,23 +54,21 @@ void lci_prepare_rtr(struct lci_ep* ep, void* src, size_t size, lc_packet* p)
   dprintf("%d] post recv rdma %p %d via %d\n", lcg_rank, src, size, p->data.rtr.rkey);
 }
 
-LC_INLINE
-void lci_prepare_rts(void* src, size_t size, uint32_t rgid, lc_sync* ce, lc_packet* p)
+static inline void lci_prepare_rts(void* src, size_t size, uint32_t rgid, lc_send_cb cb, void* ce, lc_packet* p)
 {
   p->data.rts.src_addr = (uintptr_t) src;
   p->data.rts.size = size;
   p->data.rts.rgid = rgid;
+  p->data.rts.cb = cb;
   p->data.rts.ce = (uintptr_t) ce;
 }
 
-LC_INLINE
-void lci_pk_free(lc_ep ep, lc_packet* p)
+static inline void lci_pk_free(lc_ep ep, lc_packet* p)
 {
   lc_pool_put(ep->pkpool, p);
 }
 
-LC_INLINE
-void lci_pk_free_data(lc_ep ep, lc_packet* p)
+static inline void lci_pk_free_data(lc_ep ep, lc_packet* p)
 {
   if (p->context.poolid != -1)
     lc_pool_put_to(ep->pkpool, p, p->context.poolid);
@@ -82,24 +78,21 @@ void lci_pk_free_data(lc_ep ep, lc_packet* p)
 
 typedef void(func_cb(struct lci_ep*, lc_packet*));
 
-LC_INLINE
-void lci_ce_am(lc_ep ep, lc_packet* p)
+static inline void lci_ce_am(lc_ep ep, lc_packet* p)
 {
   lc_req* req = p->context.req;
-  ep->handler(ep->ctx, req);
+  ep->handler(req);
   lci_pk_free(ep, p);
 }
 
-LC_INLINE
-void lci_ce_signal(lc_ep ep __UNUSED__, lc_packet* p)
+static inline void lci_ce_signal(lc_ep ep __UNUSED__, lc_packet* p)
 {
   lc_req* req = p->context.req;
-  lc_sync_signal(&(req->sync));
+  lc_signal((void*) &(req->sync));
   lci_pk_free(ep, p);
 }
 
-LC_INLINE
-void lci_ce_queue(lc_ep ep, lc_packet* p)
+static inline void lci_ce_queue(lc_ep ep, lc_packet* p)
 {
   lc_req* req = p->context.req;
   req->parent = p;
@@ -107,8 +100,7 @@ void lci_ce_queue(lc_ep ep, lc_packet* p)
   cq_push(&ep->cq, req);
 }
 
-LC_INLINE
-void lci_handle_rtr(struct lci_ep* ep, lc_packet* p)
+static inline void lci_handle_rtr(struct lci_ep* ep, lc_packet* p)
 {
   lci_pk_init(ep, -1, LC_PROTO_LONG, p);
   dprintf("%d] rma %p --> %p %.4x via %d\n", lcg_rank, p->data.rts.src_addr, p->data.rtr.tgt_addr, crc32c((char*) p->data.rts.src_addr, p->data.rts.size), p->data.rtr.rkey);
@@ -118,8 +110,7 @@ void lci_handle_rtr(struct lci_ep* ep, lc_packet* p)
       p->data.rtr.comm_id, p);
 }
 
-LC_INLINE
-void lci_handle_rts(struct lci_ep* ep, lc_packet* p)
+static inline void lci_handle_rts(struct lci_ep* ep, lc_packet* p)
 {
   lci_pk_init(ep, -1, LC_PROTO_RTR, p);
   lc_proto proto = MAKE_PROTO(p->data.rts.rgid, LC_PROTO_RTR, 0);
@@ -128,9 +119,8 @@ void lci_handle_rts(struct lci_ep* ep, lc_packet* p)
       sizeof(struct packet_rtr), p, proto);
 }
 
-LC_INLINE
-void lci_serve_recv_dyn(struct lci_ep* ep, lc_packet* p, lc_proto proto,
-                       func_cb complete)
+static inline void lci_serve_recv_dyn(struct lci_ep* ep, lc_packet* p, lc_proto proto,
+    func_cb complete)
 {
   p->context.req->meta = PROTO_GET_META(proto);
   proto = PROTO_GET_PROTO(proto);
@@ -149,8 +139,7 @@ void lci_serve_recv_dyn(struct lci_ep* ep, lc_packet* p, lc_proto proto,
   };
 }
 
-LC_INLINE
-void lci_serve_recv_expl(struct lci_ep* ep, lc_packet* p, lc_proto proto,
+static inline void lci_serve_recv_expl(struct lci_ep* ep, lc_packet* p, lc_proto proto,
                         func_cb complete)
 {
   p->context.req->meta = PROTO_GET_META(proto);
@@ -178,8 +167,7 @@ void lci_serve_recv_expl(struct lci_ep* ep, lc_packet* p, lc_proto proto,
   };
 }
 
-LC_INLINE
-void lci_serve_recv_dispatch(lc_ep ep, lc_packet* p, lc_proto proto, const long cap)
+static inline void lci_serve_recv_dispatch(lc_ep ep, lc_packet* p, lc_proto proto, const long cap)
 {
   if (cap & EP_AR_EXPL) {
     if (cap & EP_CE_SYNC)
@@ -192,11 +180,12 @@ void lci_serve_recv_dispatch(lc_ep ep, lc_packet* p, lc_proto proto, const long 
   } else if (cap & EP_AR_ALLOC) {
     if (cap & EP_CE_CQ)
       return lci_serve_recv_dyn(ep, p, proto, lci_ce_queue);
+    if (cap & EP_CE_AM)
+      return lci_serve_recv_dyn(ep, p, proto, lci_ce_am);
   }
 }
 
-LC_INLINE
-void lci_serve_recv(lc_packet* p, lc_proto proto, const long server_cap)
+static inline void lci_serve_recv(lc_packet* p, lc_proto proto, const long server_cap)
 {
   // NOTE: this should be RGID because it is received from remote.
   struct lci_ep* ep = lcg_ep_list[PROTO_GET_RGID(proto)];
@@ -207,8 +196,7 @@ void lci_serve_recv(lc_packet* p, lc_proto proto, const long server_cap)
   return lci_serve_recv_dispatch(ep, p, proto, server_cap);
 }
 
-LC_INLINE
-void lci_ce_dispatch(lc_ep ep, lc_packet* p, const long cap)
+static inline void lci_ce_dispatch(lc_ep ep, lc_packet* p, const long cap)
 {
   if (cap & EP_CE_SYNC) {
     lci_ce_signal(ep, p);
@@ -222,16 +210,14 @@ void lci_ce_dispatch(lc_ep ep, lc_packet* p, const long cap)
   }
 }
 
-LC_INLINE
-void lci_serve_recv_rdma(lc_packet* p, lc_proto proto)
+static inline void lci_serve_recv_rdma(lc_packet* p, lc_proto proto)
 {
   struct lci_ep* ep = lcg_ep_list[PROTO_GET_RGID(proto)];
   p->context.req->meta = PROTO_GET_META(proto);
   lci_ce_dispatch(ep, p, ep->cap);
 }
 
-LC_INLINE
-void lci_serve_send(lc_packet* p)
+static inline void lci_serve_send(lc_packet* p)
 {
   struct lci_ep* ep = p->context.ep;
   lc_proto proto = p->context.proto;
@@ -241,8 +227,7 @@ void lci_serve_send(lc_packet* p)
     // Note that this messed up the order of completion.
     // If one expects MPI order, should handle completion here.
   } else if (proto == LC_PROTO_LONG) {
-    // We could do more for local completion of long send, do we need ?
-    lc_sync_signal((lc_sync*) p->data.rts.ce);
+    p->data.rts.cb((void*) p->data.rts.ce);
     lci_pk_free(ep, p);
   } else if (proto == LC_PROTO_RTS) {
     lci_pk_free(ep, p);
@@ -251,8 +236,7 @@ void lci_serve_send(lc_packet* p)
   }
 }
 
-LC_INLINE
-void lci_serve_imm(lc_packet* p, const long cap)
+static inline void lci_serve_imm(lc_packet* p, const long cap)
 {
   struct lci_ep* ep = p->context.ep;
   dprintf("%d] got %p %.4x\n", lcg_rank, p->context.req->buffer, crc32c(p->context.req->buffer, p->context.req->size));

@@ -6,6 +6,6 @@
 
 int main(int argc, char** args) {
   lc_ep ep;
-  lc_init(1, LC_EXPL_SYNC, &ep);
+  lc_init(1, &ep);
   lc_finalize();
 }

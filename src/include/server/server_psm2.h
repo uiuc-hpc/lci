@@ -60,6 +60,7 @@ struct psm_mr {
 };
 
 typedef struct lc_server {
+  int id;
   struct lci_rep* rep;
 
   psm2_uuid_t uuid;
@@ -169,7 +170,7 @@ static inline uint32_t lc_server_rma_key(uintptr_t mem)
   return ((struct psm_mr*)mem)->rkey;
 }
 
-static inline void lc_server_init(lc_server** dev)
+static inline void lc_server_init(int id, lc_server** dev)
 {
   // setenv("I_MPI_FABRICS", "ofa", 1);
   // setenv("PSM2_SHAREDCONTEXTS", "0", 1);
@@ -180,6 +181,7 @@ static inline void lc_server_init(lc_server** dev)
 
   int ver_major = PSM2_VERNO_MAJOR;
   int ver_minor = PSM2_VERNO_MINOR;
+  s->id = id;
 
   static int psm2_initialized = 0;
   if (!psm2_initialized) {
@@ -213,7 +215,7 @@ static inline void lc_server_init(lc_server** dev)
   s->heap_rkey = lc_server_get_free_key();
   sprintf(ep_name, "%llu-%llu-%d", (unsigned long long)s->myepid,
           (unsigned long long) s->heap, (uint32_t) s->heap_rkey);
-  lc_pm_publish(lcg_rank, 0, ep_name);
+  lc_pm_publish(lcg_rank, id, ep_name);
 
   posix_memalign((void**) &(s->rep), LC_CACHE_LINE, sizeof(struct lci_rep) * lcg_size);
 
@@ -221,7 +223,7 @@ static inline void lc_server_init(lc_server** dev)
     if (i != lcg_rank) {
       struct lci_rep* rep = &s->rep[i];
       psm2_error_t errs;
-      lc_pm_getname(i, 0, ep_name);
+      lc_pm_getname(i, id, ep_name);
       psm2_epid_t destaddr;
       psm2_epaddr_t epaddr;
       unsigned long long baseaddr;

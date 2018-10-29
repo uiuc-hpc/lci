@@ -10,18 +10,21 @@
 #define MAX_MSG lc_max_medium(0)
 
 int main(int argc, char** args) {
-  lc_ep ep;
+  lc_ep ep, ep2;
   lc_req req;
   lc_req* req_ptr;
   int rank;
 
-  lc_init(1, LC_ALLOC_CQ, &ep);
+  lc_init(1, &ep2);
+  lc_opt opt = {.dev = 0, .desc = LC_ALLOC_CQ };
+  lc_ep_dup(&opt, ep2, &ep);
+
   lc_get_proc_num(&rank);
 
   uintptr_t addr, raddr;
   lc_ep_get_baseaddr(ep, MAX_MSG, &addr);
 
-  lc_putmd(&addr,  sizeof(uintptr_t), 1-rank, 0, ep);
+  lc_sendm(&addr,  sizeof(uintptr_t), 1-rank, 0, ep);
   while (lc_cq_pop(ep, &req_ptr) != LC_OK)
     lc_progress(0);
   memcpy(&raddr, req_ptr->buffer, req_ptr->size);

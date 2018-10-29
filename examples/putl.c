@@ -16,7 +16,7 @@ int main(int argc, char** args) {
   lc_req req;
   int rank;
 
-  lc_init(1, LC_EXPL_SYNC, &ep);
+  lc_init(1, &ep);
   lc_get_proc_num(&rank);
 
   uintptr_t addr, raddr;
@@ -47,13 +47,13 @@ int main(int argc, char** args) {
         while (rbuf[0] == -1)
           lc_progress(0);
         rbuf[0] = -1; sync = 0;
-        while (lc_putl(sbuf, size, 1-rank, raddr + MAX_MSG, ep, &sync) != LC_OK)
+        while (lc_putl(sbuf, size, 1-rank, raddr + MAX_MSG, ep, lc_signal, &sync) != LC_OK)
           lc_progress(0);
         while (!sync)
           lc_progress(0);
       } else {
         sync = 0;
-        while (lc_putl(sbuf, size, 1-rank, raddr + MAX_MSG, ep, &sync) != LC_OK)
+        while (lc_putl(sbuf, size, 1-rank, raddr + MAX_MSG, ep, lc_signal, &sync) != LC_OK)
           lc_progress(0);
         while (!sync)
           lc_progress(0);

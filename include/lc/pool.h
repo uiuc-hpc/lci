@@ -26,6 +26,17 @@ struct dequeue;
 extern "C" {
 #endif
 
+LC_INLINE int lc_worker_id()
+{
+  if (unlikely(lcg_core_id == -1)) {
+    lcg_core_id = sched_getcpu();
+    if (lcg_core_id == -1) {
+      lcg_core_id = __sync_fetch_and_add(&lcg_current_id, 1);
+    }
+  }
+  return lcg_core_id;
+}
+
 typedef struct lc_pool {
   int key;
   int32_t npools;
