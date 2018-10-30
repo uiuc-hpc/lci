@@ -44,7 +44,6 @@ struct lc_ep_desc {
   lc_ep_ce   ce;
 } __attribute__((packed));
 
-typedef uint32_t lc_meta;
 struct lc_req;
 typedef struct lc_req lc_req;
 
@@ -61,7 +60,7 @@ struct lc_req {
   void* rhandle;
   size_t size;
   int rank;
-  lc_meta meta;
+  int meta;
   lc_send_cb send_cb;
 } __attribute__((packed, aligned(64)));
 
@@ -126,47 +125,47 @@ LC_EXPORT
 size_t lc_max_medium(int dev_id);
 
 LC_EXPORT
-lc_status lc_send(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_send_cb func, void* ctx);
+lc_status lc_send(void* src, size_t size, int rank, int tag, lc_ep ep, lc_send_cb func, void* ctx);
 
 /* Short */
 LC_EXPORT
-lc_status lc_sends(void* src, size_t size, int rank, lc_meta tag, lc_ep ep);
+lc_status lc_sends(void* src, size_t size, int rank, int tag, lc_ep ep);
 
 LC_EXPORT
 lc_status lc_puts(void* src, size_t size, int rank, uintptr_t dst, lc_ep ep);
 
 LC_EXPORT
-lc_status lc_putss(void* src, size_t size, int rank, uintptr_t dst, lc_meta meta, lc_ep ep);
+lc_status lc_putss(void* src, size_t size, int rank, uintptr_t dst, int meta, lc_ep ep);
 
 /* Medium */
 LC_EXPORT
-lc_status lc_sendm(void* src, size_t size, int rank, lc_meta tag, lc_ep ep);
+lc_status lc_sendm(void* src, size_t size, int rank, int tag, lc_ep ep);
 
 LC_EXPORT
 lc_status lc_putm(void* src, size_t size, int rank, uintptr_t dst, lc_ep ep);
 
 LC_EXPORT
-lc_status lc_putms(void* src, size_t size, int rank, uintptr_t dst, lc_meta tag, lc_ep ep);
+lc_status lc_putms(void* src, size_t size, int rank, uintptr_t dst, int tag, lc_ep ep);
 
 /* Long */
 LC_EXPORT
-lc_status lc_sendl(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_send_cb, void* ctx);
+lc_status lc_sendl(void* src, size_t size, int rank, int tag, lc_ep ep, lc_send_cb, void* ctx);
 
 LC_EXPORT
 lc_status lc_putl(void* src, size_t size, int rank, uintptr_t dst, lc_ep ep, lc_send_cb, void* ctx);
 
 LC_EXPORT
-lc_status lc_putls(void* src, size_t size, int rank, uintptr_t dst, lc_meta meta, lc_ep ep, lc_send_cb, void* ctx);
+lc_status lc_putls(void* src, size_t size, int rank, uintptr_t dst, int meta, lc_ep ep, lc_send_cb, void* ctx);
 
 /* Receive */
 LC_EXPORT
-lc_status lc_recv(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_req* req);
+lc_status lc_recv(void* src, size_t size, int rank, int tag, lc_ep ep, lc_req* req);
 
 LC_EXPORT
-lc_status lc_recvm(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_req* req);
+lc_status lc_recvm(void* src, size_t size, int rank, int tag, lc_ep ep, lc_req* req);
 
 LC_EXPORT
-lc_status lc_recvl(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_req* req);
+lc_status lc_recvl(void* src, size_t size, int rank, int tag, lc_ep ep, lc_req* req);
 
 LC_EXPORT
 lc_status lc_cq_pop(lc_ep ep, lc_req** req);

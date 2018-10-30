@@ -3,7 +3,7 @@
 #include "lc_priv.h"
 #include "lc/pool.h"
 
-lc_status lc_sendm(void* src, size_t size, int rank, lc_meta tag, lc_ep ep)
+lc_status lc_sendm(void* src, size_t size, int rank, int tag, lc_ep ep)
 {
   LC_POOL_GET_OR_RETN(ep->pkpool, p);
   lci_pk_init(ep, (size > 1024) ? lc_pool_get_local(ep->pkpool) : -1,
@@ -27,7 +27,7 @@ lc_status lc_putm(void* src, size_t size, int rank, uintptr_t addr, lc_ep ep)
   return LC_OK;
 }
 
-lc_status lc_putms(void* src, size_t size, int rank, uintptr_t addr, lc_meta meta, lc_ep ep)
+lc_status lc_putms(void* src, size_t size, int rank, uintptr_t addr, int meta, lc_ep ep)
 {
   LC_POOL_GET_OR_RETN(ep->pkpool, p);
   lci_pk_init(ep, (size > 1024) ? lc_pool_get_local(ep->pkpool) : -1,
@@ -39,7 +39,7 @@ lc_status lc_putms(void* src, size_t size, int rank, uintptr_t addr, lc_meta met
   return LC_OK;
 }
 
-lc_status lc_recvm(void* src, size_t size, int rank, lc_meta tag, lc_ep ep,
+lc_status lc_recvm(void* src, size_t size, int rank, int tag, lc_ep ep,
                    lc_req* req)
 {
   lci_init_req(src, size, req);

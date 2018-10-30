@@ -1,7 +1,7 @@
 #include "lc.h"
 #include "lc_priv.h"
 
-lc_status lc_send(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_send_cb cb, void* ce)
+lc_status lc_send(void* src, size_t size, int rank, int tag, lc_ep ep, lc_send_cb cb, void* ce)
 {
   int ret;
   if (size <= LC_MAX_INLINE) {
@@ -19,7 +19,7 @@ lc_status lc_send(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_se
   }
 }
 
-lc_status lc_recv(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_req* req)
+lc_status lc_recv(void* src, size_t size, int rank, int tag, lc_ep ep, lc_req* req)
 {
   lci_init_req(src, size, req);
   struct lci_rep* rep = &ep->rep[rank];

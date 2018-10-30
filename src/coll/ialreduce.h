@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-static lc_meta MCA_COLL_BASE_TAG_IALLREDUCE = 1340;
+static int MCA_COLL_BASE_TAG_IALLREDUCE = 1340;
 static inline int opal_next_poweroftwo(int value);
 
 int iompi_coll_base_allreduce_intra_recursivedoubling(

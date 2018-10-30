@@ -3,7 +3,7 @@
 #include "lc_priv.h"
 #include "lc/pool.h"
 
-lc_status lc_sendl(void* src, size_t size, int rank, lc_meta tag, lc_ep ep,
+lc_status lc_sendl(void* src, size_t size, int rank, int tag, lc_ep ep,
                    lc_send_cb cb, void* ce)
 {
   LC_POOL_GET_OR_RETN(ep->pkpool, p);
@@ -30,7 +30,7 @@ lc_status lc_putl(void* src, size_t size, int rank, uintptr_t addr,
   return LC_OK;
 }
 
-lc_status lc_putls(void* src, size_t size, int rank, uintptr_t addr, lc_meta meta,
+lc_status lc_putls(void* src, size_t size, int rank, uintptr_t addr, int meta,
                    lc_ep ep, lc_send_cb cb, void* ce)
 {
   LC_POOL_GET_OR_RETN(ep->pkpool, p);
@@ -44,7 +44,7 @@ lc_status lc_putls(void* src, size_t size, int rank, uintptr_t addr, lc_meta met
   return LC_OK;
 }
 
-lc_status lc_recvl(void* src, size_t size, int rank, lc_meta tag, lc_ep ep,
+lc_status lc_recvl(void* src, size_t size, int rank, int tag, lc_ep ep,
                    lc_req* req)
 {
   lci_init_req(src, size, req);

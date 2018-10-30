@@ -1,7 +1,7 @@
 #ifndef LC_IBARRIER_H_
 #define LC_IBARRIER_H_
 
-static lc_meta MCA_COLL_BASE_TAG_IBARRIER = 1341;
+static int MCA_COLL_BASE_TAG_IBARRIER = 1341;
 
 int iompi_coll_base_barrier_intra_bruck(lc_ep comm, lc_colreq* req)
 {

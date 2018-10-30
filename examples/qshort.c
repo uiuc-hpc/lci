@@ -20,7 +20,7 @@ int main(int argc, char** args) {
 
   int rank = 0;
   lc_get_proc_num(&rank);
-  lc_meta meta = {99};
+  int meta = {99};
 
   lc_req req;
   double t1;

@@ -33,7 +33,7 @@ static inline void lc_colreq_init(lc_colreq* req)
 }
 
 static inline void lc_col_send(
-    void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_colreq* req)
+    void* src, size_t size, int rank, int tag, lc_ep ep, lc_colreq* req)
 {
   lc_col_sched* op = &(req->next[req->total++]);
   op->src = src;
@@ -45,7 +45,7 @@ static inline void lc_col_send(
 }
 
 static inline void lc_col_recv(
-    void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_colreq* req)
+    void* src, size_t size, int rank, int tag, lc_ep ep, lc_colreq* req)
 {
   lc_col_sched* op = &(req->next[req->total++]);
   op->src = src;
@@ -57,7 +57,7 @@ static inline void lc_col_recv(
 }
 
 static inline void lc_col_sendrecv(
-    void* src, void* dst, size_t size, int rank, lc_meta tag, lc_ep ep, lc_colreq* req)
+    void* src, void* dst, size_t size, int rank, int tag, lc_ep ep, lc_colreq* req)
 {
   lc_col_sched* op = &(req->next[req->total++]);
   op->src = src;
