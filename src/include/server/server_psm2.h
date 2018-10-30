@@ -240,7 +240,7 @@ static inline void lc_server_init(int id, lc_server** dev)
   }
 }
 
-static inline int lc_server_progress(lc_server* s, const long cap)
+static inline int lc_server_progress(lc_server* s)
 {
   psm2_mq_req_t req;
   psm2_mq_status2_t status;
@@ -262,7 +262,7 @@ static inline int lc_server_progress(lc_server* s, const long cap)
         p->context.req->rank = status.msg_tag.tag1;
         p->context.req->size = (status.msg_length);
         uint32_t proto = status.msg_tag.tag0;
-        lci_serve_recv(p, proto, cap);
+        lci_serve_recv(p, proto);
         s->recv_posted--;
       } else if (pk_type == PSM_RECV_RDMA) {
         p->context.req = &p->context.req_s;
@@ -284,7 +284,7 @@ static inline int lc_server_progress(lc_server* s, const long cap)
       } else if (status.msg_tag.tag0 & PSM_RDMA_IMM) {
         uint32_t off = status.msg_tag.tag0 ^ PSM_RDMA_IMM;
         lc_packet* p = (lc_packet*) (s->heap + off);
-        lci_serve_imm(p, cap);
+        lci_serve_imm(p);
       } else if (status.msg_tag.tag0) {
         p->context.req = &p->context.req_s;
         lci_serve_recv_rdma(p, status.msg_tag.tag1);

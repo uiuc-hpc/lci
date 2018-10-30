@@ -40,9 +40,9 @@ int main(int argc, char** args) {
 
         req.sync = 0;
         while (lc_recvm(dst_buf, size, 1-rank, tag, ep, &req) != LC_OK)
-          lc_progress_t(0);
+          lc_progress(0);
         while (req.sync == 0)
-          lc_progress_t(0);
+          lc_progress(0);
         if (i == 0) {
           for (int j = 0; j < size; j++)
             assert(((char*) src_buf)[j] == 'a' && ((char*)dst_buf)[j] == 'a');
@@ -61,9 +61,9 @@ int main(int argc, char** args) {
       for (int i = 0; i < total + skip; i++) {
         req.sync = 0;
         while (lc_recvm(dst_buf, size, 1-rank, tag, ep, &req) != LC_OK)
-          lc_progress_t(0);
+          lc_progress(0);
         while (req.sync == 0)
-          lc_progress_t(0);
+          lc_progress(0);
 
         lc_sends(src_buf, size, 1-rank, tag, ep);
       }

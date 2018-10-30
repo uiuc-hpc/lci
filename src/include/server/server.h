@@ -4,8 +4,8 @@
 struct lc_server;
 typedef struct lc_server lc_server;
 
-static inline void lci_serve_recv(lc_packet* p, lc_proto proto, const long cap);
-static inline void lci_serve_imm(lc_packet* p, const long cap);
+static inline void lci_serve_recv(lc_packet* p, lc_proto proto);
+static inline void lci_serve_imm(lc_packet* p);
 static inline void lci_serve_recv_rdma(lc_packet*, lc_proto proto);
 static inline void lci_serve_send(lc_packet* p);
 
@@ -13,7 +13,7 @@ static inline uintptr_t lc_server_rma_reg(lc_server* s, void* buf, size_t size);
 static inline void lc_server_rma_dereg(uintptr_t mem);
 static inline uint32_t lc_server_rma_key(uintptr_t mem);
 
-static inline int lc_server_progress(lc_server* s, const long cap);
+static inline int lc_server_progress(lc_server* s);
 static inline void lc_server_sends(lc_server* s, void* rep, void* ubuf, size_t size, uint32_t proto);
 static inline void lc_server_sendm(lc_server* s, void* rep, size_t size, lc_packet* p, uint32_t proto);
 

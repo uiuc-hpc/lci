@@ -45,7 +45,7 @@ int main(int argc, char** args) {
 
         lc_req* req_ptr;
         while (lc_cq_pop(ep_q, &req_ptr) != LC_OK)
-          lc_progress_q(0);
+          lc_progress(0);
         assert(req_ptr->meta == i);
         lc_cq_reqfree(ep_q, req_ptr);
       }
@@ -61,7 +61,7 @@ int main(int argc, char** args) {
       for (int i = 0; i < total + skip; i++) {
         lc_req* req_ptr;
         while (lc_cq_pop(ep_q, &req_ptr) != LC_OK)
-          lc_progress_q(0);
+          lc_progress(0);
         assert(req_ptr->meta == i);
         lc_cq_reqfree(ep_q, req_ptr);
 

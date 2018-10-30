@@ -45,11 +45,11 @@ int main(int argc, char** args) {
         if (i == skip) t1 = wtime();
         meta = i;
         while (lc_sendm(buf, size, 1-rank, meta, ep[i&1]) != LC_OK)
-          lc_progress_q(i&1);
+          lc_progress(i&1);
 
         lc_req* req_ptr;
         while (lc_cq_pop(ep[i&1], &req_ptr) != LC_OK)
-          lc_progress_q(i&1);
+          lc_progress(i&1);
         assert(req_ptr->meta == i);
         lc_cq_reqfree(ep[i&1], req_ptr);
       }
@@ -65,13 +65,13 @@ int main(int argc, char** args) {
       for (int i = 0; i < total + skip; i++) {
         lc_req* req_ptr;
         while (lc_cq_pop(ep[i&1], &req_ptr) != LC_OK)
-          lc_progress_q(i&1);
+          lc_progress(i&1);
         assert(req_ptr->meta == i);
         lc_cq_reqfree(ep[i&1], req_ptr);
 
         meta = i;
         while (lc_sendm(buf, size, 1-rank, meta, ep[i&1]) != LC_OK)
-          lc_progress_q(i&1);
+          lc_progress(i&1);
       }
     }
   }

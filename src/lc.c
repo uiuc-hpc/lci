@@ -52,17 +52,7 @@ void lc_get_num_proc(int *size)
   *size = lcg_size;
 }
 
-int lc_progress_t(int id)
-{
-  return lc_server_progress(lcg_dev[id], EP_AR_EXP | EP_CE_SYNC);
-}
-
-int lc_progress_q(int id)
-{
-  return lc_server_progress(lcg_dev[id], EP_AR_DYN | EP_CE_CQ);
-}
-
 int lc_progress(int id)
 {
-  return lc_server_progress(lcg_dev[id], 0);
+  return lc_server_progress(lcg_dev[id]);
 }

@@ -36,16 +36,16 @@ int main(int argc, char** args) {
         if (i == skip) t1 = wtime();
         sync = 0;
         while (lc_send(src_buf, size, 1-rank, tag, ep, lc_signal, &sync) != LC_OK)
-          lc_progress_t(0);
+          lc_progress(0);
         while (!sync)
-          lc_progress_t(0);
+          lc_progress(0);
 
         req.sync = 0;
         while (lc_recv(dst_buf, size, 1-rank, tag, ep, &req) != LC_OK)
-          lc_progress_t(0);
+          lc_progress(0);
 
         while (req.sync == 0)
-          lc_progress_t(0);
+          lc_progress(0);
         if (i == 0) {
           for (int j = 0; j < size; j++)
             assert(((char*) src_buf)[j] == 'a' && ((char*)dst_buf)[j] == 'a');
@@ -64,15 +64,15 @@ int main(int argc, char** args) {
       for (int i = 0; i < total + skip; i++) {
         req.sync = 0;
         while (lc_recv(dst_buf, size, 1-rank, tag, ep, &req) != LC_OK)
-          lc_progress_t(0);
+          lc_progress(0);
         while (req.sync == 0)
-          lc_progress_t(0);
+          lc_progress(0);
 
         sync = 0;
         while (lc_send(src_buf, size, 1-rank, tag, ep, lc_signal, &sync) != LC_OK)
-          lc_progress_t(0);
+          lc_progress(0);
         while (!sync)
-          lc_progress_t(0);
+          lc_progress(0);
 
       }
     }

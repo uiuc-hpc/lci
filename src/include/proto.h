@@ -198,15 +198,11 @@ static inline void lci_serve_recv_dispatch(lc_ep ep, lc_packet* p, lc_proto prot
   }
 }
 
-static inline void lci_serve_recv(lc_packet* p, lc_proto proto, const long server_cap)
+static inline void lci_serve_recv(lc_packet* p, lc_proto proto)
 {
   // NOTE: this should be RGID because it is received from remote.
   struct lci_ep* ep = lcg_ep_list[PROTO_GET_RGID(proto)];
-  if (!server_cap) {
-    return lci_serve_recv_dispatch(ep, p, proto, ep->cap);
-  }
-
-  return lci_serve_recv_dispatch(ep, p, proto, server_cap);
+  return lci_serve_recv_dispatch(ep, p, proto, ep->cap);
 }
 
 static inline void lci_ce_dispatch(lc_ep ep, lc_packet* p, const long cap)
@@ -249,15 +245,11 @@ static inline void lci_serve_send(lc_packet* p)
   }
 }
 
-static inline void lci_serve_imm(lc_packet* p, const long cap)
+static inline void lci_serve_imm(lc_packet* p)
 {
   struct lci_ep* ep = p->context.ep;
   dprintf("%d] got %p %.4x\n", lcg_rank, p->context.req->buffer, crc32c(p->context.req->buffer, p->context.req->size));
-  if (!cap)
-    lci_ce_dispatch(ep, p, ep->cap);
-  else
-    lci_ce_dispatch(ep, p, cap);
-
+  lci_ce_dispatch(ep, p, ep->cap);
   lc_server_rma_dereg(p->context.rma_mem);
 }
 
