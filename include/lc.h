@@ -108,7 +108,6 @@ struct lc_opt {
   int dev;
   lc_ep_desc desc;
   lc_alloc_fn alloc;
-  lc_free_fn free;
   lc_handler_fn handler;
 };
 
@@ -144,9 +143,6 @@ LC_EXPORT
 lc_status lc_sendm(void* src, size_t size, int rank, lc_meta tag, lc_ep ep);
 
 LC_EXPORT
-lc_status lc_putmd(void* src, size_t size, int rank, lc_meta tag, lc_ep ep);
-
-LC_EXPORT
 lc_status lc_putm(void* src, size_t size, int rank, uintptr_t dst, lc_ep ep);
 
 LC_EXPORT
@@ -155,9 +151,6 @@ lc_status lc_putms(void* src, size_t size, int rank, uintptr_t dst, lc_meta tag,
 /* Long */
 LC_EXPORT
 lc_status lc_sendl(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_send_cb, void* ctx);
-
-LC_EXPORT
-lc_status lc_putld(void* src, size_t size, int rank, lc_meta tag, lc_ep ep, lc_send_cb, void* ctx); 
 
 LC_EXPORT
 lc_status lc_putl(void* src, size_t size, int rank, uintptr_t dst, lc_ep ep, lc_send_cb, void* ctx);

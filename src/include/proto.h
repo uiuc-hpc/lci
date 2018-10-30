@@ -82,14 +82,14 @@ static inline void lci_ce_am(lc_ep ep, lc_packet* p)
 {
   lc_req* req = p->context.req;
   ep->handler(req);
-  lci_pk_free(ep, p);
+  lci_pk_free_data(ep, p);
 }
 
 static inline void lci_ce_signal(lc_ep ep __UNUSED__, lc_packet* p)
 {
   lc_req* req = p->context.req;
   lc_signal((void*) &(req->sync));
-  lci_pk_free(ep, p);
+  lci_pk_free_data(ep, p);
 }
 
 static inline void lci_ce_queue(lc_ep ep, lc_packet* p)

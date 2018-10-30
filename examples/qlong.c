@@ -16,15 +16,10 @@ static void* no_alloc(void* ctx, size_t size)
   return buf;
 }
 
-static void no_free(void* ctx, void* buf)
-{
-  return;
-}
-
 int main(int argc, char** args) {
   lc_ep ep, ep_q;
   lc_init(1, &ep);
-  lc_opt opt = {.dev = 0, .desc = LC_ALLOC_CQ, .alloc = no_alloc, .free = no_free};
+  lc_opt opt = {.dev = 0, .desc = LC_ALLOC_CQ, .alloc = no_alloc };
   lc_ep_dup(&opt, ep, &ep_q);
 
   int rank = 0;
