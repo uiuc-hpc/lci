@@ -20,7 +20,7 @@ int main(int argc, char** args) {
   lc_ep ep[2];
   lc_init(2, &def);
 
-  lc_opt opt = {.dev = 0, .desc = LC_ALLOC_CQ};
+  lc_opt opt = {.dev = 0, .desc = LC_DYN_CQ};
   lc_ep_dup(&opt, def, &ep[0]);
   opt.dev = 1;
   lc_ep_dup(&opt, def, &ep[1]);

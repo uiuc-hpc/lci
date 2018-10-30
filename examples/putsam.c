@@ -22,7 +22,7 @@ int main(int argc, char** args) {
   int rank;
 
   lc_init(1, &ep);
-  lc_opt opt = {.dev = 0, .desc = LC_EXPL_AM, .handler = counting}; 
+  lc_opt opt = {.dev = 0, .desc = LC_EXP_AM, .handler = counting}; 
   lc_ep_dup(&opt, ep, &ep_am);
 
   lc_get_proc_num(&rank);

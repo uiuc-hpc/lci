@@ -16,7 +16,7 @@ int main(int argc, char** args) {
   int rank;
 
   lc_init(1, &ep2);
-  lc_opt opt = {.dev = 0, .desc = LC_ALLOC_CQ };
+  lc_opt opt = {.dev = 0, .desc = LC_IMM_CQ };
   lc_ep_dup(&opt, ep2, &ep);
 
   lc_get_proc_num(&rank);

@@ -11,11 +11,16 @@
 
 int total = TOTAL;
 int skip = SKIP;
+void* buf;
+
+static void* alloc(size_t size, void* ctx) {
+  return buf;
+}
 
 int main(int argc, char** args) {
   lc_ep ep, ep_q;
   lc_init(1, &ep);
-  lc_opt opt = {.dev = 0, .desc = LC_ALLOC_CQ};
+  lc_opt opt = {.dev = 0, .desc = LC_DYN_CQ, .alloc = alloc};
   lc_ep_dup(&opt, ep, &ep_q);
 
   int rank = 0;
@@ -25,7 +30,6 @@ int main(int argc, char** args) {
   lc_req req;
   double t1;
   size_t alignment = sysconf(_SC_PAGESIZE);
-  void* buf;
   posix_memalign(&buf, alignment, MAX_MSG + alignment);
 
   if (rank == 0) {

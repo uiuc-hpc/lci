@@ -19,7 +19,7 @@ static void* no_alloc(void* ctx, size_t size)
 int main(int argc, char** args) {
   lc_ep ep, ep_q;
   lc_init(1, &ep);
-  lc_opt opt = {.dev = 0, .desc = LC_ALLOC_CQ, .alloc = no_alloc };
+  lc_opt opt = {.dev = 0, .desc = LC_DYN_CQ, .alloc = no_alloc };
   lc_ep_dup(&opt, ep, &ep_q);
 
   int rank = 0;
@@ -53,7 +53,6 @@ int main(int argc, char** args) {
         while (lc_cq_pop(ep_q, &req_ptr) != LC_OK)
           lc_progress_q(0);
         assert(req_ptr->meta == i);
-        lc_free(ep_q, req_ptr->buffer);
         lc_cq_reqfree(ep_q, req_ptr);
       }
 
@@ -70,7 +69,6 @@ int main(int argc, char** args) {
         while (lc_cq_pop(ep_q, &req_ptr) != LC_OK)
           lc_progress_q(0);
         assert(req_ptr->meta == i);
-        lc_free(ep_q, req_ptr->buffer);
         lc_cq_reqfree(ep_q, req_ptr);
 
         meta = i;

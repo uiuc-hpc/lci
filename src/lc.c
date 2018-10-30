@@ -33,7 +33,7 @@ lc_status lc_init(int ndev, lc_ep* ep)
   for (int i = 0; i < ndev; i++) {
     lci_dev_init(i, &lcg_dev[i]);
   }
-  lci_ep_open(lcg_dev[0], LC_EXPL_SYNC.addr | LC_EXPL_SYNC.ce, ep);
+  lci_ep_open(lcg_dev[0], LC_EXP_SYNC.addr | LC_EXP_SYNC.ce, ep);
   return LC_OK;
 }
 
@@ -54,21 +54,15 @@ void lc_get_num_proc(int *size)
 
 int lc_progress_t(int id)
 {
-  return lc_server_progress(lcg_dev[id], EP_AR_EXPL | EP_CE_SYNC);
+  return lc_server_progress(lcg_dev[id], EP_AR_EXP | EP_CE_SYNC);
 }
 
 int lc_progress_q(int id)
 {
-  return lc_server_progress(lcg_dev[id], EP_AR_ALLOC | EP_CE_CQ);
+  return lc_server_progress(lcg_dev[id], EP_AR_DYN | EP_CE_CQ);
 }
 
 int lc_progress(int id)
 {
   return lc_server_progress(lcg_dev[id], 0);
-}
-
-lc_status lc_free(lc_ep ep, void* buf)
-{
-  ep->free(ep->ctx, buf);
-  return LC_OK;
 }

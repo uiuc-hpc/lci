@@ -119,6 +119,14 @@ static inline void lci_handle_rts(struct lci_ep* ep, lc_packet* p)
       sizeof(struct packet_rtr), p, proto);
 }
 
+static inline void lci_serve_recv_imm(struct lci_ep* ep, lc_packet* p, lc_proto proto, func_cb complete)
+{
+  p->context.req->meta = PROTO_GET_META(proto);
+  proto = PROTO_GET_PROTO(proto);
+  p->context.req->buffer = &p->data;
+  complete(ep, p);
+}
+
 static inline void lci_serve_recv_dyn(struct lci_ep* ep, lc_packet* p, lc_proto proto,
     func_cb complete)
 {
@@ -126,9 +134,9 @@ static inline void lci_serve_recv_dyn(struct lci_ep* ep, lc_packet* p, lc_proto 
   proto = PROTO_GET_PROTO(proto);
 
   if (proto == LC_PROTO_DATA) {
-    p->context.req->ctx = NULL;
-    assert(p->context.req == &p->context.req_s);
-    p->context.req->buffer = &p->data;
+    void* buf = ep->alloc(p->context.req->size, &(p->context.req->ctx));
+    memcpy(buf, &p->data, p->context.req->size);
+    p->context.req->buffer = buf;
     complete(ep, p);
   } else if (proto == LC_PROTO_RTS) {
     void* buf = ep->alloc(p->data.rts.size, &(p->context.req->ctx));
@@ -169,7 +177,7 @@ static inline void lci_serve_recv_expl(struct lci_ep* ep, lc_packet* p, lc_proto
 
 static inline void lci_serve_recv_dispatch(lc_ep ep, lc_packet* p, lc_proto proto, const long cap)
 {
-  if (cap & EP_AR_EXPL) {
+  if (cap & EP_AR_EXP) {
     if (cap & EP_CE_SYNC)
       return lci_serve_recv_expl(ep, p, proto, lci_ce_signal);
     if (cap & EP_CE_CQ)
@@ -177,11 +185,16 @@ static inline void lci_serve_recv_dispatch(lc_ep ep, lc_packet* p, lc_proto prot
     if (cap & EP_CE_AM) {
       return lci_serve_recv_expl(ep, p, proto, lci_ce_am);
     }
-  } else if (cap & EP_AR_ALLOC) {
+  } else if (cap & EP_AR_DYN) {
     if (cap & EP_CE_CQ)
       return lci_serve_recv_dyn(ep, p, proto, lci_ce_queue);
     if (cap & EP_CE_AM)
       return lci_serve_recv_dyn(ep, p, proto, lci_ce_am);
+  } else if (cap & EP_AR_IMM) {
+    if (cap & EP_CE_CQ)
+      return lci_serve_recv_imm(ep, p, proto, lci_ce_queue);
+    if (cap & EP_CE_AM)
+      return lci_serve_recv_imm(ep, p, proto, lci_ce_am);
   }
 }
 

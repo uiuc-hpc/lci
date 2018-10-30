@@ -98,7 +98,7 @@ void lci_ep_open(lc_server* dev, long cap, struct lci_ep** ep_ptr)
 
   lcg_ep_list[ep->gid] = ep;
 
-  if (cap & EP_AR_EXPL)
+  if (cap & EP_AR_EXP)
     lc_hash_create(&ep->tbl);
   else {
     cq_init(&ep->cq);

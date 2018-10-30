@@ -28,8 +28,9 @@ typedef enum lc_status {
 } lc_status;
 
 typedef enum lc_ep_addr {
-  EP_AR_ALLOC = 1<<1,
-  EP_AR_EXPL  = 1<<2,
+  EP_AR_DYN = 1<<1,
+  EP_AR_EXP  = 1<<2,
+  EP_AR_IMM  = 1<<3,
 } lc_ep_addr;
 
 typedef enum lc_ep_ce {
@@ -78,10 +79,11 @@ typedef struct lci_ep* lc_ep;
 typedef struct lci_dev* lc_dev;
 
 
-static const lc_ep_desc LC_EXPL_SYNC = {EP_AR_EXPL, EP_CE_SYNC};
-static const lc_ep_desc LC_EXPL_CQ   = {EP_AR_EXPL, EP_CE_CQ};
-static const lc_ep_desc LC_EXPL_AM   = {EP_AR_EXPL, EP_CE_AM};
-static const lc_ep_desc LC_ALLOC_CQ  = {EP_AR_ALLOC, EP_CE_CQ};
+static const lc_ep_desc LC_EXP_SYNC = {EP_AR_EXP, EP_CE_SYNC};
+static const lc_ep_desc LC_EXP_CQ   = {EP_AR_EXP, EP_CE_CQ};
+static const lc_ep_desc LC_EXP_AM   = {EP_AR_EXP, EP_CE_AM};
+static const lc_ep_desc LC_DYN_CQ  = {EP_AR_DYN, EP_CE_CQ};
+static const lc_ep_desc LC_IMM_CQ  = {EP_AR_IMM, EP_CE_CQ};
 
 typedef struct lc_col_sched {
   void* src;

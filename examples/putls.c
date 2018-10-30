@@ -13,7 +13,7 @@ int main(int argc, char** args) {
   int rank;
 
   lc_init(1, &def);
-  lc_opt opt = {.dev = 0, .desc = LC_EXPL_CQ};
+  lc_opt opt = {.dev = 0, .desc = LC_EXP_CQ};
   lc_ep_dup(&opt, def, &ep);
 
   lc_get_proc_num(&rank);
