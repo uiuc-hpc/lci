@@ -11,8 +11,6 @@
 #define SHORT_MSG_SIZE (LC_PACKET_SIZE - sizeof(struct packet_context))
 #define POST_MSG_SIZE (SHORT_MSG_SIZE)
 
-extern struct lci_ep** lcg_ep_list;
-
 extern int lcg_nep;
 extern int lcg_size;
 extern int lcg_rank;
@@ -95,7 +93,7 @@ void lci_ep_open(lc_server* dev, long cap, struct lci_ep** ep_ptr)
   ep->cap = cap;
   ep->gid = lcg_nep++;
 
-  lcg_ep_list[ep->gid] = ep;
+  lcg_ep[ep->gid] = ep;
 
   if (cap & EP_AR_EXP)
     lc_hash_create(&ep->tbl);

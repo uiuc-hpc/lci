@@ -15,3 +15,9 @@ LC_EP_AR = "dynamic, explicit"
 
 # Completion mechanism "sync, cq, am, glob"
 LC_EP_CE = "sync, cq"
+
+# Maximum number of devices.
+LC_MAX_DEV = 1
+
+# Maximum number of EP.
+LC_MAX_EP = 32

@@ -5,10 +5,8 @@
 #include <assert.h>
 #include <unistd.h>
 
-#define MAX_EP 256
-
-lc_server** lcg_dev;
-struct lci_ep**  lcg_ep_list;
+lc_server* lcg_dev[LC_MAX_DEV];
+struct lci_ep* lcg_ep[LC_MAX_EP];
 
 int lcg_size;
 int lcg_rank;
@@ -25,10 +23,7 @@ __thread int lcg_core_id = -1;
 lc_status lc_init(int ndev, lc_ep* ep)
 {
   lcg_page_size = sysconf(_SC_PAGESIZE);
-
   lc_pm_master_init(&lcg_size, &lcg_rank, lcg_name);
-  posix_memalign((void**) &lcg_dev, LC_CACHE_LINE, ndev * sizeof(lc_server*));
-  posix_memalign((void**) &lcg_ep_list, LC_CACHE_LINE, MAX_EP * sizeof(struct lci_ep*));
 
   for (int i = 0; i < ndev; i++) {
     lci_dev_init(i, &lcg_dev[i]);

@@ -54,6 +54,9 @@ ifneq (,$(findstring immediate,$(LC_EP_AR)))
 CFLAGS += -DLC_SERVER_HAS_IMM
 endif
 
+CFLAGS += -DLC_MAX_EP=$(LC_MAX_EP)
+CFLAGS += -DLC_MAX_DEV=$(LC_MAX_DEV)
+
 ## Completion events.
 ifneq (,$(findstring am,$(LC_EP_CE)))
 CFLAGS += -DLC_SERVER_HAS_AM

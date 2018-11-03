@@ -5,6 +5,8 @@
 #include "lc/hashtable.h"
 #include "lc/macro.h"
 
+extern struct lci_ep* lcg_ep[];
+
 /* 2-bit is enough for those thing. */
 typedef enum lc_proto {
  LC_PROTO_DATA  = 0,
@@ -230,13 +232,13 @@ static inline void lci_ce_dispatch(lc_ep ep, lc_packet* p, const long cap)
 static inline void lci_serve_recv(lc_packet* p, lc_proto proto)
 {
   // NOTE: this should be RGID because it is received from remote.
-  struct lci_ep* ep = lcg_ep_list[PROTO_GET_RGID(proto)];
+  struct lci_ep* ep = lcg_ep[PROTO_GET_RGID(proto)];
   return lci_serve_recv_dispatch(ep, p, proto, ep->cap);
 }
 
 static inline void lci_serve_recv_rdma(lc_packet* p, lc_proto proto)
 {
-  struct lci_ep* ep = lcg_ep_list[PROTO_GET_RGID(proto)];
+  struct lci_ep* ep = lcg_ep[PROTO_GET_RGID(proto)];
   p->context.req->meta = PROTO_GET_META(proto);
   lci_ce_dispatch(ep, p, ep->cap);
 }
