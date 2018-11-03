@@ -76,7 +76,10 @@ static inline void lci_pk_free_data(lc_ep ep, lc_packet* p)
     lc_pool_put(ep->pkpool, p);
 }
 
-typedef void(func_cb(struct lci_ep*, lc_packet*));
+static inline void lci_ce_glob(lc_ep ep)
+{
+  __sync_fetch_and_add(&ep->completed, 1);
+}
 
 static inline void lci_ce_am(lc_ep ep, lc_packet* p)
 {
@@ -85,7 +88,7 @@ static inline void lci_ce_am(lc_ep ep, lc_packet* p)
   lci_pk_free_data(ep, p);
 }
 
-static inline void lci_ce_signal(lc_ep ep __UNUSED__, lc_packet* p)
+static inline void lci_ce_signal(lc_ep ep, lc_packet* p)
 {
   lc_req* req = p->context.req;
   lc_signal((void*) &(req->sync));
@@ -96,7 +99,6 @@ static inline void lci_ce_queue(lc_ep ep, lc_packet* p)
 {
   lc_req* req = p->context.req;
   req->parent = p;
-  req->sync = 1;
   cq_push(&ep->cq, req);
 }
 
@@ -119,16 +121,17 @@ static inline void lci_handle_rts(struct lci_ep* ep, lc_packet* p)
       sizeof(struct packet_rtr), p, proto);
 }
 
-static inline void lci_serve_recv_imm(struct lci_ep* ep, lc_packet* p, lc_proto proto, func_cb complete)
+static inline void lci_ce_dispatch(lc_ep ep, lc_packet* p, const long cap);
+
+static inline void lci_serve_recv_imm(struct lci_ep* ep, lc_packet* p, lc_proto proto, const long cap)
 {
   p->context.req->meta = PROTO_GET_META(proto);
   proto = PROTO_GET_PROTO(proto);
   p->context.req->buffer = &p->data;
-  complete(ep, p);
+  lci_ce_dispatch(ep, p, cap);
 }
 
-static inline void lci_serve_recv_dyn(struct lci_ep* ep, lc_packet* p, lc_proto proto,
-    func_cb complete)
+static inline void lci_serve_recv_dyn(struct lci_ep* ep, lc_packet* p, lc_proto proto, const long cap)
 {
   p->context.req->meta = PROTO_GET_META(proto);
   proto = PROTO_GET_PROTO(proto);
@@ -137,7 +140,7 @@ static inline void lci_serve_recv_dyn(struct lci_ep* ep, lc_packet* p, lc_proto 
     void* buf = ep->alloc(p->context.req->size, &(p->context.req->ctx));
     memcpy(buf, &p->data, p->context.req->size);
     p->context.req->buffer = buf;
-    complete(ep, p);
+    lci_ce_dispatch(ep, p, cap);
   } else if (proto == LC_PROTO_RTS) {
     void* buf = ep->alloc(p->data.rts.size, &(p->context.req->ctx));
     lci_init_req(buf, p->data.rts.size, p->context.req);
@@ -147,8 +150,7 @@ static inline void lci_serve_recv_dyn(struct lci_ep* ep, lc_packet* p, lc_proto 
   };
 }
 
-static inline void lci_serve_recv_expl(struct lci_ep* ep, lc_packet* p, lc_proto proto,
-                        func_cb complete)
+static inline void lci_serve_recv_expl(struct lci_ep* ep, lc_packet* p, lc_proto proto, const long cap)
 {
   p->context.req->meta = PROTO_GET_META(proto);
   p->context.proto = proto = PROTO_GET_PROTO(proto);
@@ -161,7 +163,7 @@ static inline void lci_serve_recv_expl(struct lci_ep* ep, lc_packet* p, lc_proto
       req->size = p->context.req->size;
       memcpy(req->buffer, p->data.buffer, p->context.req->size);
       p->context.req = req;
-      complete(ep, p);
+      lci_ce_dispatch(ep, p, cap);
     }
   } else if (proto == LC_PROTO_RTS) {
     const lc_key key = lc_make_key(p->context.req->rank, p->context.req->meta);
@@ -177,25 +179,52 @@ static inline void lci_serve_recv_expl(struct lci_ep* ep, lc_packet* p, lc_proto
 
 static inline void lci_serve_recv_dispatch(lc_ep ep, lc_packet* p, lc_proto proto, const long cap)
 {
+#ifdef LC_SERVER_HAS_EXP
   if (cap & EP_AR_EXP) {
-    if (cap & EP_CE_SYNC)
-      return lci_serve_recv_expl(ep, p, proto, lci_ce_signal);
-    if (cap & EP_CE_CQ)
-      return lci_serve_recv_expl(ep, p, proto, lci_ce_queue);
-    if (cap & EP_CE_AM) {
-      return lci_serve_recv_expl(ep, p, proto, lci_ce_am);
-    }
-  } else if (cap & EP_AR_DYN) {
-    if (cap & EP_CE_CQ)
-      return lci_serve_recv_dyn(ep, p, proto, lci_ce_queue);
-    if (cap & EP_CE_AM)
-      return lci_serve_recv_dyn(ep, p, proto, lci_ce_am);
-  } else if (cap & EP_AR_IMM) {
-    if (cap & EP_CE_CQ)
-      return lci_serve_recv_imm(ep, p, proto, lci_ce_queue);
-    if (cap & EP_CE_AM)
-      return lci_serve_recv_imm(ep, p, proto, lci_ce_am);
+    return lci_serve_recv_expl(ep, p, proto, cap);
+  } else
+#endif
+#ifdef LC_SERVER_HAS_DYN
+  if (cap & EP_AR_DYN) {
+    return lci_serve_recv_dyn(ep, p, proto, cap);
+  } else
+#endif
+#ifdef LC_SERVER_HAS_IMM
+    return lci_serve_recv_imm(ep, p, proto, cap);
+  } else
+#endif
+  // placeholder for anything else.
+  {
   }
+}
+
+static inline void lci_ce_dispatch(lc_ep ep, lc_packet* p, const long cap)
+{
+#ifdef LC_SERVER_HAS_SYNC
+  if (cap & EP_CE_SYNC) {
+    lci_ce_signal(ep, p);
+  } else
+#endif
+#ifdef LC_SERVER_HAS_CQ
+  if (cap & EP_CE_CQ) {
+    lci_ce_queue(ep, p);
+  } else
+#endif
+#ifdef LC_SERVER_HAS_AM
+  if (cap & EP_CE_AM) {
+    lci_ce_am(ep, p);
+  } else
+#endif
+  {
+    // If nothing is worth, return this to packet pool.
+    lci_pk_free_data(ep, p);
+  }
+
+#ifdef LC_SERVER_HAS_GLOB
+  if (cap & EP_CE_GLOB) {
+    lci_ce_glob(ep);
+  }
+#endif
 }
 
 static inline void lci_serve_recv(lc_packet* p, lc_proto proto)
@@ -203,20 +232,6 @@ static inline void lci_serve_recv(lc_packet* p, lc_proto proto)
   // NOTE: this should be RGID because it is received from remote.
   struct lci_ep* ep = lcg_ep_list[PROTO_GET_RGID(proto)];
   return lci_serve_recv_dispatch(ep, p, proto, ep->cap);
-}
-
-static inline void lci_ce_dispatch(lc_ep ep, lc_packet* p, const long cap)
-{
-  if (cap & EP_CE_SYNC) {
-    lci_ce_signal(ep, p);
-  } else if (cap & EP_CE_CQ) {
-    lci_ce_queue(ep, p);
-  } else if (cap & EP_CE_AM) {
-    lci_ce_am(ep, p);
-  } else {
-    // We could do a counting completion here.
-    assert(0 && "TODO");
-  }
 }
 
 static inline void lci_serve_recv_rdma(lc_packet* p, lc_proto proto)

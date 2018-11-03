@@ -31,14 +31,14 @@ struct lci_rep {
 } __attribute__((packed, aligned(LC_CACHE_LINE)));
 
 struct lci_ep {
+  // Cap
+  long cap;
   int gid;
 
   // Associated hardware context.
   lc_server* server;
   lc_pool* pkpool;
-
-  // Cap
-  long cap;
+  struct lci_rep* rep;
 
   // Other misc data.
   union{
@@ -51,8 +51,7 @@ struct lci_ep {
     lc_handler_fn handler;
   };
 
-  struct lci_rep* rep;
-
+  volatile int completed;
   struct comp_q cq __attribute__((aligned(LC_CACHE_LINE)));
 } __attribute__((packed, aligned(LC_CACHE_LINE)));
 

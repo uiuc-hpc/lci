@@ -40,6 +40,39 @@ LDFLAGS += -shared -Lstatic
 # CFLAGS += -I$(PAPI_INC)
 # LDFLAGS += -L$(PAPI_LIB)
 
+### BEGIN -- ENDPOINT OPTIONS SELECTIONS
+## Addressing mode.
+ifneq (,$(findstring explicit,$(LC_EP_AR)))
+CFLAGS += -DLC_SERVER_HAS_EXP
+endif
+
+ifneq (,$(findstring dynamic,$(LC_EP_AR)))
+CFLAGS += -DLC_SERVER_HAS_DYN 
+endif
+
+ifneq (,$(findstring immediate,$(LC_EP_AR)))
+CFLAGS += -DLC_SERVER_HAS_IMM
+endif
+
+## Completion events.
+ifneq (,$(findstring am,$(LC_EP_CE)))
+CFLAGS += -DLC_SERVER_HAS_AM
+endif
+
+ifneq (,$(findstring sync,$(LC_EP_CE)))
+CFLAGS += -DLC_SERVER_HAS_SYNC
+endif
+
+ifneq (,$(findstring cq,$(LC_EP_CE)))
+CFLAGS += -DLC_SERVER_HAS_CQ
+endif
+
+ifneq (,$(findstring glob,$(LC_EP_CE)))
+CFLAGS += -DLC_SERVER_HAS_GLOB
+endif
+
+### END -- ENDPOINT OPTIONS SELECTIONS
+
 ifeq ($(LC_SERVER_DEBUG), yes)
 CFLAGS += -DLC_SERVER_DEBUG
 endif
@@ -60,7 +93,7 @@ ifeq ($(LC_SERVER), psm)
 	CFLAGS += -DLC_USE_SERVER_PSM -DAFF_DEBUG -I$(PSM_DIR)/include
 endif
 
-COMM = lc.o medium.o short.o long.o tag.o cq.o misc.o ep.o lcrq.o pool.o hashtable.o coll.o
+COMM = lc.o medium.o short.o long.o tag.o cq.o misc.o ep.o lcrq.o pool.o hashtable.o coll.o glob.o
 DREG = dreg/dreg.o dreg/avl.o
 PMI = pm.o pmi/simple_pmi.o pmi/simple_pmiutil.o
 

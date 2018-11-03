@@ -12,6 +12,10 @@ lc_status lc_ep_dup(lc_opt* opt, lc_ep iep __UNUSED__, lc_ep* oep)
   if (opt->desc.ce == EP_CE_AM) {
     (*oep)->handler = opt->handler;
   }
+  if (opt->glob) {
+    (*oep)->cap |= EP_CE_GLOB;
+    (*oep)->completed = 0;
+  }
   return LC_OK;
 }
 

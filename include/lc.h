@@ -34,10 +34,10 @@ typedef enum lc_ep_addr {
 } lc_ep_addr;
 
 typedef enum lc_ep_ce {
-  EP_CE_NULL = 0,
   EP_CE_SYNC = ((1<<1) << 4),
   EP_CE_CQ   = ((1<<2) << 4),
   EP_CE_AM   = ((1<<3) << 4),
+  EP_CE_GLOB = ((1<<4) << 4),
 } lc_ep_ce;
 
 struct lc_ep_desc {
@@ -78,7 +78,7 @@ typedef struct lci_rep* lc_rep;
 typedef struct lci_ep* lc_ep;
 typedef struct lci_dev* lc_dev;
 
-
+static const lc_ep_desc LC_EXP_NULL = {EP_AR_EXP, 0};
 static const lc_ep_desc LC_EXP_SYNC = {EP_AR_EXP, EP_CE_SYNC};
 static const lc_ep_desc LC_EXP_CQ   = {EP_AR_EXP, EP_CE_CQ};
 static const lc_ep_desc LC_EXP_AM   = {EP_AR_EXP, EP_CE_AM};
@@ -110,6 +110,7 @@ struct lc_opt {
   lc_ep_desc desc;
   lc_alloc_fn alloc;
   lc_handler_fn handler;
+  int glob;
 };
 
 typedef struct lc_opt lc_opt;
@@ -169,6 +170,8 @@ lc_status lc_recvm(void* src, size_t size, int rank, int tag, lc_ep ep, lc_req* 
 LC_EXPORT
 lc_status lc_recvl(void* src, size_t size, int rank, int tag, lc_ep ep, lc_req* req);
 
+#define lc_recvs lc_recvm
+
 LC_EXPORT
 lc_status lc_cq_pop(lc_ep ep, lc_req** req);
 
@@ -176,7 +179,7 @@ LC_EXPORT
 lc_status lc_cq_reqfree(lc_ep ep, lc_req* req);
 
 LC_EXPORT
-lc_status lc_free(lc_ep ep, void* buf);
+int lc_glob_mark(lc_ep ep);
 
 LC_EXPORT
 void lc_get_proc_num(int *rank);
