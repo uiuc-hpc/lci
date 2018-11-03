@@ -20,4 +20,4 @@ LC_EP_CE = "sync, cq"
 LC_MAX_DEV = 1
 
 # Maximum number of EP.
-LC_MAX_EP = 32
+LC_MAX_EP = 8

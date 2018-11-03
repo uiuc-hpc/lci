@@ -1,7 +1,7 @@
 #include "lc.h"
 #include "lc_priv.h"
 
-extern struct lc_server** lcg_dev;
+extern lc_server* lcg_dev[];
 
 lc_status lc_ep_dup(lc_opt* opt, lc_ep iep __UNUSED__, lc_ep* oep)
 {

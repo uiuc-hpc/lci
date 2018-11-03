@@ -34,6 +34,7 @@ typedef enum lc_ep_addr {
 } lc_ep_addr;
 
 typedef enum lc_ep_ce {
+  EP_CE_NULL = 0,
   EP_CE_SYNC = ((1<<1) << 4),
   EP_CE_CQ   = ((1<<2) << 4),
   EP_CE_AM   = ((1<<3) << 4),
@@ -78,7 +79,7 @@ typedef struct lci_rep* lc_rep;
 typedef struct lci_ep* lc_ep;
 typedef struct lci_dev* lc_dev;
 
-static const lc_ep_desc LC_EXP_NULL = {EP_AR_EXP, 0};
+static const lc_ep_desc LC_EXP_NULL = {EP_AR_EXP, EP_CE_NULL};
 static const lc_ep_desc LC_EXP_SYNC = {EP_AR_EXP, EP_CE_SYNC};
 static const lc_ep_desc LC_EXP_CQ   = {EP_AR_EXP, EP_CE_CQ};
 static const lc_ep_desc LC_EXP_AM   = {EP_AR_EXP, EP_CE_AM};

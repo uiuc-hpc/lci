@@ -44,10 +44,7 @@ LC_INLINE void* cq_pop(struct comp_q* cq)
   lc_spin_lock(&cq->spinlock);
   if (cq->top != cq->bot) {
     ret = cq->container[cq->bot];
-    if (ret->sync != 0)
-      cq->bot = (cq->bot + 1) & (CQ_MAX_SIZE - 1);
-    else
-      ret = NULL;
+    cq->bot = (cq->bot + 1) & (CQ_MAX_SIZE - 1);
   }
   lc_spin_unlock(&cq->spinlock);
   return ret;
