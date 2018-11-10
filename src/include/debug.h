@@ -2,7 +2,7 @@
 #define LC_DEBUG_H_
 
 #ifdef LC_DEBUG
-#define dprintf(...) printf(...)
+#define dprintf printf
 #else
 #define dprintf(...) {};
 #endif

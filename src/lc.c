@@ -17,6 +17,7 @@ int lcg_current_id = 0;
 int lcg_deadlock = 0;
 int lcg_nep = 0;
 int lcg_page_size = 0;
+volatile uint32_t next_key = 1;
 
 __thread int lcg_core_id = -1;
 

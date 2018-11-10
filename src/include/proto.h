@@ -20,7 +20,7 @@ typedef enum lc_proto {
 #define MAKE_PROTO(rgid, proto, meta)  (proto | (rgid << 2) | (meta << 16))
 
 #define PROTO_GET_PROTO(proto) (proto         & 0b011)
-#define PROTO_GET_RGID(proto)  ((proto >> 2)  & 0b01111111)
+#define PROTO_GET_RGID(proto)  ((proto >> 2)  & 0b011111111111111)
 #define PROTO_GET_META(proto)  ((proto >> 16) & 0xffff)
 
 /* CRC-32C (iSCSI) polynomial in reversed bit order. */
@@ -50,19 +50,21 @@ static inline void lci_prepare_rtr(struct lci_ep* ep, void* src, size_t size, lc
 {
   uintptr_t rma_mem = lc_server_rma_reg(ep->server, src, size);
   p->context.rma_mem = rma_mem;
+  p->context.ref = 2;
   p->data.rtr.comm_id = ((uintptr_t)p - (uintptr_t) lc_server_heap_ptr(ep->server));
   p->data.rtr.tgt_addr = (uintptr_t)src;
   p->data.rtr.rkey = lc_server_rma_key(rma_mem);
+
   dprintf("%d] post recv rdma %p %d via %d\n", lcg_rank, src, size, p->data.rtr.rkey);
 }
 
-static inline void lci_prepare_rts(void* src, size_t size, uint32_t rgid, lc_send_cb cb, void* ce, lc_packet* p)
+static inline void lci_prepare_rts(void* src, size_t size, lc_send_cb cb, void* ce, lc_packet* p)
 {
   p->data.rts.src_addr = (uintptr_t) src;
   p->data.rts.size = size;
-  p->data.rts.rgid = rgid;
   p->data.rts.cb = cb;
   p->data.rts.ce = (uintptr_t) ce;
+  lc_mem_fence();
 }
 
 static inline void lci_pk_free(lc_ep ep, lc_packet* p)
@@ -106,8 +108,10 @@ static inline void lci_ce_queue(lc_ep ep, lc_packet* p)
 
 static inline void lci_handle_rtr(struct lci_ep* ep, lc_packet* p)
 {
+  dprintf("Recv RTR %p\n", p);
   lci_pk_init(ep, -1, LC_PROTO_LONG, p);
-  dprintf("%d] rma %p --> %p %.4x via %d\n", lcg_rank, p->data.rts.src_addr, p->data.rtr.tgt_addr, crc32c((char*) p->data.rts.src_addr, p->data.rts.size), p->data.rtr.rkey);
+  // dprintf("%d] rma %p --> %p %.4x via %d\n", lcg_rank, p->data.rts.src_addr, p->data.rtr.tgt_addr, crc32c((char*) p->data.rts.src_addr, p->data.rts.size), p->data.rtr.rkey);
+
   lc_server_rma_rtr(ep->server, p->context.req->rhandle,
       (void*) p->data.rts.src_addr,
       p->data.rtr.tgt_addr, p->data.rtr.rkey, p->data.rts.size,
@@ -116,8 +120,9 @@ static inline void lci_handle_rtr(struct lci_ep* ep, lc_packet* p)
 
 static inline void lci_handle_rts(struct lci_ep* ep, lc_packet* p)
 {
+  dprintf("Recv RTS: %p\n", p);
   lci_pk_init(ep, -1, LC_PROTO_RTR, p);
-  lc_proto proto = MAKE_PROTO(p->data.rts.rgid, LC_PROTO_RTR, 0);
+  lc_proto proto = MAKE_PROTO(ep->gid, LC_PROTO_RTR, 0);
   lci_prepare_rtr(ep, p->context.req->buffer, p->data.rts.size, p);
   lc_server_sendm(ep->server, p->context.req->rhandle,
       sizeof(struct packet_rtr), p, proto);
@@ -192,6 +197,7 @@ static inline void lci_serve_recv_dispatch(lc_ep ep, lc_packet* p, lc_proto prot
   } else
 #endif
 #ifdef LC_SERVER_HAS_IMM
+  if (cap & EP_AR_IMM) {
     return lci_serve_recv_imm(ep, p, proto, cap);
   } else
 #endif
@@ -249,15 +255,21 @@ static inline void lci_serve_send(lc_packet* p)
   lc_proto proto = p->context.proto;
 
   if (proto == LC_PROTO_RTR) {
-    // Do nothing, the data is on the way using this packet as context.
+    if (--p->context.ref == 0)
+      lci_ce_dispatch(ep, p, ep->cap);
+    // Have to keep the ref counting here, otherwise there is a nasty race
+    // when the RMA is done and this RTR is not.
     // Note that this messed up the order of completion.
-    // If one expects MPI order, should handle completion here.
+    // If one expects MPI order, should need to split completion here.
   } else if (proto == LC_PROTO_LONG) {
+    dprintf("SENT LONG: %p\n", p);
     p->data.rts.cb((void*) p->data.rts.ce);
     lci_pk_free(ep, p);
   } else if (proto == LC_PROTO_RTS) {
+    dprintf("SENT RTS: %p\n", p);
     lci_pk_free(ep, p);
   } else {
+    dprintf("SENT UNKNOWN: %p\n", p);
     lci_pk_free_data(ep, p);
   }
 }
@@ -266,8 +278,10 @@ static inline void lci_serve_imm(lc_packet* p)
 {
   struct lci_ep* ep = p->context.ep;
   dprintf("%d] got %p %.4x\n", lcg_rank, p->context.req->buffer, crc32c(p->context.req->buffer, p->context.req->size));
-  lci_ce_dispatch(ep, p, ep->cap);
+  dprintf("Recv RDMA: %p %d\n", p, lc_server_rma_key(p->context.rma_mem));
   lc_server_rma_dereg(p->context.rma_mem);
+  if (--p->context.ref == 0)
+    lci_ce_dispatch(ep, p, ep->cap);
 }
 
 #endif

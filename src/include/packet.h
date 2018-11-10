@@ -5,9 +5,10 @@
 #include <stdint.h>
 #include "lc.h"
 
-#define lci_pk_init(ep_, pid_, proto_, p) \
-  p->context.ep = (ep_);                    \
-  p->context.poolid = (pid_);               \
+#define lci_pk_init(ep_, pid_, proto_, p)  \
+  p->context.ep = (ep_);                   \
+  p->context.poolid = (pid_);              \
+  p->context.ref = 1;                      \
   p->context.proto = (proto_);
 
 struct __attribute__((packed)) packet_context {
@@ -19,7 +20,8 @@ struct __attribute__((packed)) packet_context {
   struct lci_ep* ep;
   uint64_t rma_mem;
   int16_t proto;
-  int16_t poolid;
+  int8_t poolid;
+  int8_t ref;
 };
 
 struct __attribute__((packed)) packet_rts {
@@ -28,7 +30,6 @@ struct __attribute__((packed)) packet_rts {
   uintptr_t src_addr;
   size_t size;
   uintptr_t tgt_addr;
-  uint64_t rgid;
 };
 
 struct __attribute__((packed)) packet_rtr {

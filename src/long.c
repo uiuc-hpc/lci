@@ -9,7 +9,7 @@ lc_status lc_sendl(void* src, size_t size, int rank, int tag, lc_ep ep,
   LC_POOL_GET_OR_RETN(ep->pkpool, p);
   lci_pk_init(ep, -1, LC_PROTO_RTS, p);
   struct lci_rep* rep = &(ep->rep[rank]);
-  lci_prepare_rts(src, size, ep->gid, cb, ce, p);
+  lci_prepare_rts(src, size, cb, ce, p);
   lc_server_sendm(ep->server, rep->handle,
                   sizeof(struct packet_rts), p,
                   MAKE_PROTO(ep->gid, LC_PROTO_RTS, tag));

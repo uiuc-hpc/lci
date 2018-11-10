@@ -28,7 +28,7 @@ lc_status lc_recv(void* src, size_t size, int rank, int tag, lc_ep ep, lc_req* r
   lc_value value = (lc_value)req;
   if (!lc_hash_insert(ep->tbl, key, &value, CLIENT)) {
     lc_packet* p = (lc_packet*) value;
-    if (p->context.proto & LC_PROTO_RTS) {
+    if (p->context.proto == LC_PROTO_RTS) {
       req->size = p->data.rts.size;
       p->context.req = req;
       lci_handle_rts(ep, p);

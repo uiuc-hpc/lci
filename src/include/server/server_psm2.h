@@ -14,10 +14,6 @@
 #include "include/lcrq.h"
 #include "config.h"
 
-#define GET_PROTO(p) (p & 0x000000ff)
-#define PSM_RDMA_IMM ((uint32_t) 1<<31)
-
-#define PROTO_GET_META(proto)  ((proto >> 16) & 0xffff)
 
 #ifdef LC_SERVER_DEBUG
 #define PSM_SAFECALL(x)                                       \
@@ -44,10 +40,12 @@
 #define MAX_CQ_SIZE (16 * 1024)
 #define MAX_POLL 8
 
-#define PSM_RECV_DATA 0x0
-#define PSM_RECV_RDMA 0x1
-#define PSM_RECV_RDMA_SID 0x2
-#define PSM_RECV_RDMA_RTP 0x3
+#define PSM_RECV_DATA     ((uint32_t) (0x1 << 28))
+#define PSM_RECV_RDMA     ((uint32_t) (0x2 << 28))
+#define PSM_RECV_RDMA_SID ((uint32_t) (0x3 << 28))
+#define PSM_RECV_RDMA_RTP ((uint32_t) (0x4 << 28))
+
+#define PSM_RDMA_IMM ((uint32_t) 1 << 31)
 
 struct lc_server;
 
@@ -73,17 +71,13 @@ typedef struct lc_server {
 
   lc_pool* pkpool;
   uintptr_t curr_addr;
-
-  uintptr_t* heap_addr;
   void* heap;
   uint32_t heap_rkey;
   size_t recv_posted;
   lcrq_t free_mr;
 } lc_server __attribute__((aligned(LC_CACHE_LINE)));
 
-static psm2_mq_tag_t LCI_PSM2_TAGSEL = {{0x0, 0x0, 0xFFFFFFFC}};
-
-#define IMM_SERVER_TAG (0xFFFFFFFF)
+static psm2_mq_tag_t LCI_PSM2_TAGSEL = {{0x0, 0x0, 0x0FFFFFFF}};
 
 static inline void lc_server_post_recv(lc_server* s, lc_packet* p);
 
@@ -99,20 +93,33 @@ static inline void lc_server_rma_signal(lc_server* s, int rank, void* buf,
 static inline void lc_server_finalize(lc_server* s);
 #endif
 
-static uint32_t next_key = 1;
+extern volatile uint32_t next_key;
 
-#define PSM_RECV_CTRL ((uint64_t) 1 << 60)
-#define PSM_RECV ((uint64_t)1 << 61)
-#define PSM_SEND ((uint64_t)1 << 62)
-#define PSM_RDMA ((uint64_t)1 << 63)
+#define PSM_RECV ((uint64_t)1 << 62)
+#define PSM_SEND ((uint64_t)1 << 63)
+
+// Buffered send-recv.
+#define PSM_TAG_TRECV_DATA()             {.tag0 = 0x0,   .tag1 = 0x0,  .tag2 = PSM_RECV_DATA}
+#define PSM_TAG_TSEND_DATA(proto, rank)  {.tag0 = proto, .tag1 = rank, .tag2 = PSM_RECV_DATA}
+
+
+// Buffered RDMA.
+#define PSM_TAG_SRDMA(offset)            {.tag0 = offset, .tag1 = 0x0,  .tag2 = PSM_RECV_RDMA}
+#define PSM_TAG_SRDMA_META(offset, meta) {.tag0 = offset, .tag1 = meta, .tag2 = PSM_RECV_RDMA_SID}
+
+// Non-buffered RDMA.
+#define PSM_TAG_SRDMA_RTS(offset, rkey)    {.tag0 = offset, .tag1 = rkey, .tag2 = PSM_RECV_RDMA_RTP}
+#define PSM_TAG_SRDMA_DAT(rkey)            {.tag0 = 0, .tag1 = 0,    .tag2 = rkey}
+#define PSM_TAG_SRDMA_DAT_META(rkey, meta) {.tag0 = 1, .tag1 = meta, .tag2 = rkey}
+#define PSM_TAG_SRDMA_DAT_IMM(rkey, sid)   {.tag0 = sid, .tag1 = PSM_RDMA_IMM, .tag2 = rkey}
+
+// RDMA RECV
+#define PSM_TAG_RRDMA_DAT(rkey)            {.tag0 = 0,   .tag1 = 0, .tag2 = rkey}
 
 static inline void lc_server_post_recv_rma(lc_server* s, void* addr, size_t size,
     uint32_t rkey, uintptr_t ctx, psm2_mq_req_t* req)
 {
-  psm2_mq_tag_t rtag;
-  rtag.tag0 = 0x0;
-  rtag.tag1 = 0x0;
-  rtag.tag2 = rkey;
+  psm2_mq_tag_t rtag = PSM_TAG_RRDMA_DAT(rkey);
 
   PSM_SAFECALL(psm2_mq_irecv2(
       s->mq, PSM2_MQ_ANY_ADDR, &rtag, /* message tag */
@@ -132,12 +139,7 @@ static inline struct psm_mr* lc_server_get_free_mr(lc_server* s)
 
 static inline uint32_t lc_server_get_free_key()
 {
-  uint32_t key;
-  do {
-    key = ((__sync_fetch_and_add(&next_key, 1)) << 2 & 0x00ffffff);
-    if (key == 0) printf("WARNING: wrap over rkey\n");
-  } while (key < 0b100);
-  return key;
+  return (__sync_fetch_and_add(&next_key, 1) & 0x0fffffff);
 }
 
 static inline uintptr_t _real_psm_reg(lc_server* s, void* buf, size_t size)
@@ -254,7 +256,7 @@ static inline int lc_server_progress(lc_server* s)
     uintptr_t ctx = (uintptr_t) status.context;
     if (ctx & PSM_RECV) {
       lc_packet* p = (lc_packet*) (ctx ^ PSM_RECV);
-      uint32_t pk_type = status.msg_tag.tag2;
+      uint32_t pk_type = (status.msg_tag.tag2 & 0xf0000000);
       // Simple recv.
       if (pk_type == PSM_RECV_DATA) {
         p->context.req = &p->context.req_s;
@@ -281,8 +283,8 @@ static inline int lc_server_progress(lc_server* s)
         size_t size; memcpy(&size, p->data.buffer, sizeof(size_t));
         lc_server_post_recv_rma(s, (void*) addr, size, rkey, (uintptr_t) p, (psm2_mq_req_t*) p);
         s->recv_posted--;
-      } else if (status.msg_tag.tag0 & PSM_RDMA_IMM) {
-        uint32_t off = status.msg_tag.tag0 ^ PSM_RDMA_IMM;
+      } else if (status.msg_tag.tag1 == PSM_RDMA_IMM) {
+        uint32_t off = status.msg_tag.tag0;
         lc_packet* p = (lc_packet*) (s->heap + off);
         lci_serve_imm(p);
       } else if (status.msg_tag.tag0) {
@@ -314,10 +316,8 @@ static inline void lc_server_post_recv(lc_server* s, lc_packet* p)
     }
     return;
   }
-  psm2_mq_tag_t rtag;
-  rtag.tag0 = 0x0;
-  rtag.tag1 = 0x0;
-  rtag.tag2 = PSM_RECV_DATA;
+
+  psm2_mq_tag_t rtag = PSM_TAG_TRECV_DATA();
 
   PSM_SAFECALL(psm2_mq_irecv2(
       s->mq, PSM2_MQ_ANY_ADDR, &rtag,                       /* message tag */
@@ -333,10 +333,7 @@ static inline void lc_server_post_recv(lc_server* s, lc_packet* p)
 static inline void lc_server_sendm(lc_server* s, void* rep, size_t size,
                               lc_packet* ctx, uint32_t proto)
 {
-  psm2_mq_tag_t rtag;
-  rtag.tag0 = proto;
-  rtag.tag1 = s->me;
-  rtag.tag2 = PSM_RECV_DATA;
+  psm2_mq_tag_t rtag = PSM_TAG_TSEND_DATA(proto, s->me);
 
   PSM_SAFECALL(psm2_mq_isend2(s->mq, rep, 0, /* no flags */
         &rtag, ctx->data.buffer, size,
@@ -347,30 +344,21 @@ static inline void lc_server_sendm(lc_server* s, void* rep, size_t size,
 static inline void lc_server_sends(lc_server* s, void* rep, void* ubuf, size_t size,
                               uint32_t proto)
 {
-  psm2_mq_tag_t rtag;
-  rtag.tag0 = proto;
-  rtag.tag1 = s->me;
-  rtag.tag2 = PSM_RECV_DATA;
+  psm2_mq_tag_t rtag = PSM_TAG_TSEND_DATA(proto, s->me);
   PSM_SAFECALL(psm2_mq_send2(s->mq, rep, 0, &rtag, ubuf, size));
 }
 
 static inline void lc_server_puts(lc_server* s, void* rep, void* buf,
     uintptr_t base __UNUSED__, uint32_t offset, uint32_t rkey __UNUSED__, size_t size)
 {
-  psm2_mq_tag_t rtag;
-  rtag.tag0 = offset;
-  rtag.tag1 = 0x0;
-  rtag.tag2 = PSM_RECV_RDMA;
+  psm2_mq_tag_t rtag = PSM_TAG_SRDMA(offset);
   PSM_SAFECALL(psm2_mq_send2(s->mq, rep, 0, &rtag, buf, size));
 }
 
 static inline void lc_server_putss(lc_server* s, void* rep, void* buf,
     uintptr_t base __UNUSED__, uint32_t offset, uint32_t rkey __UNUSED__, uint32_t meta, size_t size)
 {
-  psm2_mq_tag_t rtag;
-  rtag.tag0 = offset;
-  rtag.tag1 = meta;
-  rtag.tag2 = PSM_RECV_RDMA_SID;
+  psm2_mq_tag_t rtag = PSM_TAG_SRDMA_META(offset, meta);
   PSM_SAFECALL(psm2_mq_send2(s->mq, rep, 0, &rtag, buf, size));
 }
 
@@ -378,10 +366,7 @@ static inline void lc_server_putm(lc_server* s, void* rep,
     uintptr_t base __UNUSED__, uint32_t offset, uint32_t rkey __UNUSED__, size_t size,
     lc_packet* ctx)
 {
-  psm2_mq_tag_t rtag;
-  rtag.tag0 = offset;
-  rtag.tag1 = 0x0;
-  rtag.tag2 = PSM_RECV_RDMA;
+  psm2_mq_tag_t rtag = PSM_TAG_SRDMA(offset);
   PSM_SAFECALL(psm2_mq_isend2(s->mq, rep, 0, &rtag, ctx->data.buffer, size,
                (void*) (PSM_SEND | (uintptr_t) ctx), (psm2_mq_req_t*)ctx));
 }
@@ -390,10 +375,7 @@ static inline void lc_server_putms(lc_server* s, void* rep,
     uintptr_t base __UNUSED__, uint32_t offset, uint32_t rkey __UNUSED__, size_t size,
     uint32_t meta, lc_packet* ctx)
 {
-  psm2_mq_tag_t rtag;
-  rtag.tag0 = offset;
-  rtag.tag1 = meta;
-  rtag.tag2 = PSM_RECV_RDMA_SID;
+  psm2_mq_tag_t rtag = PSM_TAG_SRDMA_META(offset, meta);
   PSM_SAFECALL(psm2_mq_isend2(s->mq, rep, 0, &rtag, ctx->data.buffer, size,
                (void*) (PSM_SEND | (uintptr_t) ctx), (psm2_mq_req_t*)ctx));
 }
@@ -402,16 +384,11 @@ static inline void lc_server_putl(lc_server* s, void* rep, void* buffer,
     uintptr_t base __UNUSED__, uint32_t offset, uint32_t rkey, size_t size,
     lc_packet* ctx)
 {
-  psm2_mq_tag_t rtag;
-  rtag.tag0 = offset;
-  rtag.tag1 = rkey;
-  rtag.tag2 = PSM_RECV_RDMA_RTP;
+  psm2_mq_tag_t rtag = PSM_TAG_SRDMA_RTS(offset, rkey);
   PSM_SAFECALL(psm2_mq_send2(s->mq, rep, 0, &rtag, &size, sizeof(size_t)));
 
-  rtag.tag0 = 0x0;
-  rtag.tag1 = 0x0;
-  rtag.tag2 = rkey;
-  PSM_SAFECALL(psm2_mq_isend2(s->mq, rep, 0, &rtag, buffer, size,
+  psm2_mq_tag_t rtag2 = PSM_TAG_SRDMA_DAT(rkey);
+  PSM_SAFECALL(psm2_mq_isend2(s->mq, rep, 0, &rtag2, buffer, size,
                (void*) (PSM_SEND | (uintptr_t) ctx), (psm2_mq_req_t*)ctx));
 }
 
@@ -419,16 +396,11 @@ static inline void lc_server_putls(lc_server* s, void* rep, void* buffer,
     uintptr_t base __UNUSED__, uint32_t offset, uint32_t rkey, size_t size,
     uint32_t sid, lc_packet* ctx)
 {
-  psm2_mq_tag_t rtag;
-  rtag.tag0 = offset;
-  rtag.tag1 = rkey;
-  rtag.tag2 = PSM_RECV_RDMA_RTP;
+  psm2_mq_tag_t rtag = PSM_TAG_SRDMA_RTS(offset, rkey);
   PSM_SAFECALL(psm2_mq_send2(s->mq, rep, 0, &rtag, &size, sizeof(size_t)));
 
-  rtag.tag0 = 0x1;
-  rtag.tag1 = sid;
-  rtag.tag2 = rkey;
-  PSM_SAFECALL(psm2_mq_isend2(s->mq, rep, 0, &rtag, buffer, size,
+  psm2_mq_tag_t rtag2 = PSM_TAG_SRDMA_DAT_META(rkey, sid);
+  PSM_SAFECALL(psm2_mq_isend2(s->mq, rep, 0, &rtag2, buffer, size,
                (void*) (PSM_SEND | (uintptr_t) ctx), (psm2_mq_req_t*)ctx));
 }
 
@@ -454,10 +426,7 @@ static inline void lc_server_get(lc_server* s, int rank, void* buf,
 static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf, uintptr_t addr __UNUSED__,
                                      uint32_t rkey, size_t size, uint32_t sid, lc_packet* ctx)
 {
-  psm2_mq_tag_t rtag;
-  rtag.tag0 = sid | PSM_RDMA_IMM;
-  rtag.tag1 = 0;
-  rtag.tag2 = rkey;
+  psm2_mq_tag_t rtag = PSM_TAG_SRDMA_DAT_IMM(rkey, sid);
 
   PSM_SAFECALL(psm2_mq_isend2(s->mq, rep, 0,    /* no flags */
         &rtag,
