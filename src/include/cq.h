@@ -8,25 +8,26 @@
 
 #define CQ_MAX_SIZE (LC_SERVER_NUM_PKTS * 2)
 
-// CQ is just a cqueue with a check for completion.
-struct comp_q {
+struct lc_cq {
   struct {
     size_t top;
     size_t bot;
   } __attribute__((aligned(64)));
   volatile int spinlock;
-  struct lc_req* container[CQ_MAX_SIZE];
+  void* container[CQ_MAX_SIZE];
 } __attribute__((aligned(64)));
 
-LC_INLINE void cq_init(struct comp_q* cq)
+static inline void lc_cq_create(struct lc_cq** cq_ptr)
 {
+  posix_memalign((void**) cq_ptr, 64, sizeof(struct lc_cq));
+  lc_cq* cq = *cq_ptr;
   memset(cq->container, 0, sizeof(void*) * CQ_MAX_SIZE);
   cq->top = 0;
   cq->bot = 0;
   cq->spinlock = LC_SPIN_UNLOCKED;
 }
 
-LC_INLINE void cq_push(struct comp_q* cq, lc_req* req)
+static inline void lc_cq_push(struct lc_cq* cq, void* req)
 {
   lc_spin_lock(&cq->spinlock);
   cq->container[cq->top] = req;
@@ -38,9 +39,9 @@ LC_INLINE void cq_push(struct comp_q* cq, lc_req* req)
   lc_spin_unlock(&cq->spinlock);
 };
 
-LC_INLINE void* cq_pop(struct comp_q* cq)
+static inline void* lc_cq_pop(struct lc_cq* cq)
 {
-  lc_req* ret = NULL;
+  void* ret = NULL;
   lc_spin_lock(&cq->spinlock);
   if (cq->top != cq->bot) {
     ret = cq->container[cq->bot];

@@ -34,7 +34,7 @@
   }
 #endif
 
-#define ALIGNMENT (lcg_page_size)
+#define ALIGNMENT (8192)
 #define ALIGNEDX(x) \
   (void*)((((uintptr_t)x + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT))
 #define MAX_CQ_SIZE (16 * 1024)
@@ -59,7 +59,7 @@ struct psm_mr {
 
 typedef struct lc_server {
   int id;
-  struct lci_rep* rep;
+  struct lc_rep* rep;
 
   psm2_uuid_t uuid;
   int me;
@@ -178,7 +178,7 @@ static inline void lc_server_init(int id, lc_server** dev)
   // setenv("PSM2_SHAREDCONTEXTS", "0", 1);
   // setenv("PSM2_RCVTHREAD", "0", 1);
   lc_server* s = NULL;
-  posix_memalign((void**) &s, lcg_page_size, sizeof(struct lc_server));
+  posix_memalign((void**) &s, 8192, sizeof(struct lc_server));
   *dev = s;
 
   int ver_major = PSM2_VERNO_MAJOR;
@@ -204,7 +204,7 @@ static inline void lc_server_init(int id, lc_server** dev)
   s->me = lcg_rank;
   s->recv_posted = 0;
 
-  posix_memalign(&s->heap, lcg_page_size,
+  posix_memalign(&s->heap, 8192,
                  LC_SERVER_NUM_PKTS * LC_PACKET_SIZE * 2 + LC_DEV_MEM_SIZE);
 
   lcrq_init(&s->free_mr);
@@ -219,11 +219,11 @@ static inline void lc_server_init(int id, lc_server** dev)
           (unsigned long long) s->heap, (uint32_t) s->heap_rkey);
   lc_pm_publish(lcg_rank, id, ep_name);
 
-  posix_memalign((void**) &(s->rep), LC_CACHE_LINE, sizeof(struct lci_rep) * lcg_size);
+  posix_memalign((void**) &(s->rep), LC_CACHE_LINE, sizeof(struct lc_rep) * lcg_size);
 
   for (int i = 0; i < lcg_size; i++) {
     if (i != lcg_rank) {
-      struct lci_rep* rep = &s->rep[i];
+      struct lc_rep* rep = &s->rep[i];
       psm2_error_t errs;
       lc_pm_getname(i, id, ep_name);
       psm2_epid_t destaddr;
@@ -252,7 +252,6 @@ static inline int lc_server_progress(lc_server* s)
     #ifndef USE_MINI_PSM2
     psm2_mq_test2(&req, &status);  // we need the status
     #endif
-
     uintptr_t ctx = (uintptr_t) status.context;
     if (ctx & PSM_RECV) {
       lc_packet* p = (lc_packet*) (ctx ^ PSM_RECV);
@@ -260,11 +259,11 @@ static inline int lc_server_progress(lc_server* s)
       // Simple recv.
       if (pk_type == PSM_RECV_DATA) {
         p->context.req = &p->context.req_s;
-        p->context.req->rhandle = status.msg_peer;
+        p->context.req->__reserved__ = status.msg_peer;
         p->context.req->rank = status.msg_tag.tag1;
         p->context.req->size = (status.msg_length);
         uint32_t proto = status.msg_tag.tag0;
-        lci_serve_recv(p, proto);
+        lc_serve_recv(p, proto);
         s->recv_posted--;
       } else if (pk_type == PSM_RECV_RDMA) {
         p->context.req = &p->context.req_s;
@@ -275,7 +274,7 @@ static inline int lc_server_progress(lc_server* s)
         p->context.req = &p->context.req_s;
         uintptr_t addr = (uintptr_t) status.msg_tag.tag0 + (uintptr_t) s->heap;
         memcpy((void*) addr, p->data.buffer, status.msg_length);
-        lci_serve_recv_rdma(p, status.msg_tag.tag1);
+        lc_serve_recv_rdma(p, status.msg_tag.tag1);
         s->recv_posted--;
       } else if (pk_type == PSM_RECV_RDMA_RTP) {
         uintptr_t addr = (uintptr_t) status.msg_tag.tag0 + (uintptr_t) s->heap;
@@ -286,17 +285,17 @@ static inline int lc_server_progress(lc_server* s)
       } else if (status.msg_tag.tag1 == PSM_RDMA_IMM) {
         uint32_t off = status.msg_tag.tag0;
         lc_packet* p = (lc_packet*) (s->heap + off);
-        lci_serve_imm(p);
+        lc_serve_imm(p);
       } else if (status.msg_tag.tag0) {
         p->context.req = &p->context.req_s;
-        lci_serve_recv_rdma(p, status.msg_tag.tag1);
+        lc_serve_recv_rdma(p, status.msg_tag.tag1);
       } else {
         p->context.req = &p->context.req_s;
         lc_pool_put(s->pkpool, p);
       }
     } else if (ctx & PSM_SEND) {
       lc_packet* p = (lc_packet*) (ctx ^ PSM_SEND);
-      if (p) lci_serve_send(p);
+      if (p) lc_serve_send(p);
     }
   }
 
@@ -323,7 +322,7 @@ static inline void lc_server_post_recv(lc_server* s, lc_packet* p)
       s->mq, PSM2_MQ_ANY_ADDR, &rtag,                       /* message tag */
       &LCI_PSM2_TAGSEL, /* message tag mask */
       0,       /* no flags */
-      &p->data, POST_MSG_SIZE, (void*)(PSM_RECV | (uintptr_t)&p->context),
+      &p->data, SHORT_MSG_SIZE, (void*)(PSM_RECV | (uintptr_t)&p->context),
       (psm2_mq_req_t*)p));
 
   if (++s->recv_posted == LC_SERVER_MAX_RCVS && lcg_deadlock)

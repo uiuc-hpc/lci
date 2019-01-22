@@ -24,9 +24,9 @@
 extern int lcg_deadlock;
 
 #define LC_POOL_GET_OR_RETN(p, x)     \
-  if (lcg_deadlock) return LC_ERR_RETRY; \
+  if (lcg_deadlock) return LCI_ERR_RETRY; \
   lc_packet* x = lc_pool_get_nb((p)); \
-  if (x == NULL) return LC_ERR_RETRY;
+  if (x == NULL) return LCI_ERR_RETRY;
 
 #if 0
 

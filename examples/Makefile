@@ -23,7 +23,7 @@ CXXFLAGS = -g3 -O3 -std=c++11
 
 all: $(TARGET)
 
-%: %.c
+%: %.c $(LIB)
 	$(CC) $(CFLAGS) -c $^
 	$(LD) $(LDFLAGS) $@.o $(LIB) -o $@
 

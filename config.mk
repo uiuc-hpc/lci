@@ -11,13 +11,13 @@ LC_SERVER_DEBUG ?= no
 LC_USE_DREG ?= yes
 
 # Addressing mode "dynamic, explicit, immediate"
-LC_EP_AR = "dynamic, explicit"
+LC_EP_AR = "explicit"
 
 # Completion mechanism "sync, cq, am, glob"
-LC_EP_CE = "sync, cq"
+LC_EP_CE = "sync"
 
 # Maximum number of devices.
-LC_MAX_DEV = 1
+LC_MAX_DEV = 4
 
 # Maximum number of EP.
 LC_MAX_EP = 8

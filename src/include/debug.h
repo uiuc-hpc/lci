@@ -4,7 +4,7 @@
 #ifdef LC_DEBUG
 #define dprintf printf
 #else
-#define dprintf(...) {};
+#define dprintf(...) 
 #endif
 
 #endif

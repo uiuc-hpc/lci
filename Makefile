@@ -96,9 +96,10 @@ ifeq ($(LC_SERVER), psm)
 	CFLAGS += -DLC_USE_SERVER_PSM -DAFF_DEBUG -I$(PSM_DIR)/include
 endif
 
-COMM = lc.o medium.o short.o long.o tag.o cq.o misc.o ep.o lcrq.o pool.o hashtable.o coll.o glob.o
+#COMM = lc.o medium.o short.o long.o tag.o cq.o misc.o ep.o lcrq.o pool.o hashtable.o coll.o glob.o
 DREG = dreg/dreg.o dreg/avl.o
 PMI = pm.o pmi/simple_pmi.o pmi/simple_pmiutil.o
+COMM = lci.o short.o medium.o pool.o hashtable.o misc.o lcrq.o
 
 ifeq ($(LC_USE_DREG), yes)
 LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))

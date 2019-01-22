@@ -1,5 +1,5 @@
-#include "lc.h"
-#include "lc_priv.h"
+#include "lci.h"
+#include "lci_priv.h"
 
 size_t lc_max_short(int dev __UNUSED__)
 {

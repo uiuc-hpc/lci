@@ -1,4 +1,4 @@
-#define ALIGNMENT (lcg_page_size)
+#define ALIGNMENT (8192)
 #define MAX_CQ 16
 
 #define IBV_IMM_RTR ((uint32_t) 1<<31)
@@ -38,7 +38,7 @@ static inline struct ibv_mr* ibv_mem_malloc(lc_server* s, size_t size)
   int mr_flags =
       IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
   void* ptr = 0;
-  posix_memalign(&ptr, lcg_page_size, size + lcg_page_size);
+  posix_memalign(&ptr, 8192, size + 8192);
   return ibv_reg_mr(s->dev_pd, ptr, size, mr_flags);
 }
 
@@ -164,7 +164,7 @@ static inline void ibv_post_recv_(lc_server* s, lc_packet* p)
 
   struct ibv_sge sg = {
       .addr = (uintptr_t)(&p->data),
-      .length = POST_MSG_SIZE,
+      .length = SHORT_MSG_SIZE,
       .lkey = s->heap->lkey,
   };
 

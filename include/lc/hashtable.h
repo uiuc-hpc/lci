@@ -21,7 +21,7 @@ typedef uint64_t lc_key;
 extern "C" {
 #endif
 
-typedef struct hash_val {
+struct lc_hash {
   union {
     struct {
       lc_key tag;
@@ -29,24 +29,20 @@ typedef struct hash_val {
     } entry;
     struct {
       volatile int lock;
-      struct hash_val* next;
+      struct lc_hash* next;
     } control;
   };
   // NOTE: This must be aligned to 16, make sure TBL_WDITH is 4,
   // So they will fit in a cache line.
-} lc_hash;
+};
 
 enum insert_type { CLIENT, SERVER };
+void lc_hash_create(struct lc_hash** h);
+void lc_hash_destroy(struct lc_hash* h);
 
-LC_EXPORT
-void lc_hash_create(lc_hash** h);
-
-LC_EXPORT
-void lc_hash_destroy(lc_hash* h);
-
-LC_INLINE
-int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value,
-                   enum insert_type type);
+static inline int lc_hash_insert(
+    struct lc_hash* h, lc_key key, lc_value* value,
+    enum insert_type type);
 
 #ifdef __cplusplus
 }
@@ -58,7 +54,7 @@ static const uint32_t Seed = 0x811C9DC5;   // 2166136261
 #define TINY_MASK(x) (((uint32_t)1 << (x)) - 1)
 #define FNV1_32_INIT ((uint32_t)2166136261)
 
-LC_INLINE uint32_t myhash(const uint64_t k)
+static inline uint32_t myhash(const uint64_t k)
 {
   uint32_t hash = ((k & 0xff) ^ Seed) * Prime;
   hash = (((k >> 8) & 0xff) ^ hash) * Prime;
@@ -73,11 +69,11 @@ LC_INLINE uint32_t myhash(const uint64_t k)
   return (((hash >> TBL_BIT_SIZE) ^ hash) & TINY_MASK(TBL_BIT_SIZE));
 }
 
-LC_INLINE struct hash_val* create_table(size_t num_rows)
+static inline struct lc_hash* create_table(size_t num_rows)
 {
-  struct hash_val* ret = 0;
+  struct lc_hash* ret = 0;
   posix_memalign((void**) &ret, 64,
-      num_rows * TBL_WIDTH * sizeof(struct hash_val));
+      num_rows * TBL_WIDTH * sizeof(struct lc_hash));
 
   // Initialize all with EMPTY and clear lock.
   for (size_t i = 0; i < num_rows; i++) {
@@ -94,19 +90,19 @@ LC_INLINE struct hash_val* create_table(size_t num_rows)
   return ret;
 }
 
-LC_INLINE int lc_hash_insert(lc_hash* h, lc_key key, lc_value* value,
+static inline int lc_hash_insert(struct lc_hash* h, lc_key key, lc_value* value,
     enum insert_type type)
 {
-  struct hash_val* tbl_ = (struct hash_val*)h;
+  struct lc_hash* tbl_ = (struct lc_hash*)h;
 
   const uint32_t hash = myhash(key);
   const int bucket = hash * TBL_WIDTH;
   int checked_slot = 0;
 
-  struct hash_val* master = &tbl_[bucket];
-  struct hash_val* hcontrol = &tbl_[bucket];
-  struct hash_val* hentry = hcontrol + 1;
-  struct hash_val* empty_hentry = NULL;
+  struct lc_hash* master = &tbl_[bucket];
+  struct lc_hash* hcontrol = &tbl_[bucket];
+  struct lc_hash* hentry = hcontrol + 1;
+  struct lc_hash* empty_hentry = NULL;
 
   lc_key cmp_key = (key << 1) | (1-type);
 

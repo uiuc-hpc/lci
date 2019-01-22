@@ -5,14 +5,12 @@
 #include <stdio.h>
 
 #include "pm.h"
-
 #include "dreg/dreg.h"
 #include "infiniband/verbs.h"
 #include "lc/macro.h"
-#include "lc.h"
 
 typedef struct lc_server {
-  struct lci_dev* dev;
+  struct lc_dev* dev;
 
   // Device fields.
   struct ibv_context* dev_ctx;
@@ -30,7 +28,7 @@ typedef struct lc_server {
 
   // Connections O(N)
   struct ibv_qp** qp;
-  struct lci_rep* rep;
+  struct lc_rep* rep;
   lc_pool* pkpool;
   uintptr_t curr_addr;
 
@@ -90,7 +88,7 @@ static inline uint32_t ibv_rma_lkey(uintptr_t mem)
 
 #endif
 
-static inline int lc_server_progress(lc_server* s, const long cap)
+static inline int lc_server_progress(lc_server* s)
 {
   struct ibv_wc wc[MAX_CQ];
   int ne = ibv_poll_cq(s->recv_cq, MAX_CQ, wc);
@@ -117,20 +115,20 @@ static inline int lc_server_progress(lc_server* s, const long cap)
       lc_packet* p = (lc_packet*)wc[i].wr_id;
       p->context.req = &p->context.req_s;
       p->context.req->rank = s->qp2rank[wc[i].qp_num % s->qp2rank_mod];
-      p->context.req->rhandle = (void*) s->qp[p->context.req->rank];
+      p->context.req->__reserved__ = (void*) s->qp[p->context.req->rank];
       p->context.req->size = wc[i].byte_len;
-      lci_serve_recv(p, wc[i].imm_data, cap);
+      lc_serve_recv(p, wc[i].imm_data);
     } else {
       if (wc[i].imm_data & IBV_IMM_RTR) {
         // recv immediate protocol (3-msg rdz).
         lc_packet* p = (lc_packet*) (s->heap->addr + (wc[i].imm_data ^ IBV_IMM_RTR));
-        lci_serve_imm(p, cap);
+        lc_serve_imm(p);
         lc_pool_put(s->pkpool, (lc_packet*)wc[i].wr_id);
       } else {
         // recv rdma with signal.
         lc_packet* p = (lc_packet*)wc[i].wr_id;
         p->context.req = &p->context.req_s;
-        lci_serve_recv_rdma(p, wc[i].imm_data);
+        lc_serve_recv_rdma(p, wc[i].imm_data);
       }
     }
   }
@@ -152,7 +150,7 @@ static inline int lc_server_progress(lc_server* s, const long cap)
     }
 #endif
     lc_packet* p = (lc_packet*)wc[i].wr_id;
-    if (p) lci_serve_send(p);
+    if (p) lc_serve_send(p);
   }
 
   // Make sure we always have enough packet, but do not block.
@@ -384,13 +382,13 @@ static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf, uintptr
   IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
 }
 
-static inline void lc_server_init(lc_server** dev)
+static inline void lc_server_init(int id, lc_server** dev)
 {
   lc_server* s = NULL;
-  posix_memalign((void**) &s, lcg_page_size, sizeof(struct lc_server));
+  posix_memalign((void**) &s, 8192, sizeof(struct lc_server));
 
   *dev = s;
-  s->id = lcg_ndev++;
+  s->id = id;
 
   int num_devices;
   struct ibv_device** dev_list = ibv_get_device_list(&num_devices);
@@ -483,7 +481,7 @@ static inline void lc_server_init(lc_server** dev)
     lc_pm_publish(lcg_rank, (s->id) << 8 | i, ep_name);
   }
 
-  posix_memalign((void**) &(s->rep), LC_CACHE_LINE, sizeof(struct lci_rep) * lcg_size);
+  posix_memalign((void**) &(s->rep), LC_CACHE_LINE, sizeof(struct lc_rep) * lcg_size);
 
   for (int i = 0; i < lcg_size; i++) {
     lc_pm_getname(i, (s->id << 8) | lcg_rank, ep_name);
@@ -492,10 +490,10 @@ static inline void lc_server_init(lc_server** dev)
     qp_to_rtr(s->qp[i], s->dev_port, &s->port_attr, &rctx);
     qp_to_rts(s->qp[i]);
 
-    struct lci_rep* rep = &s->rep[i];
+    struct lc_rep* rep = &s->rep[i];
     rep->rank = i;
-    rep->handle = (void*) s->qp[i];
     rep->rkey = rctx.rkey;
+    rep->handle = (void*) s->qp[i];
   }
 
   int j = lcg_size;
