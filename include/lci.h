@@ -99,6 +99,16 @@ struct LCI_Cq_s;
 typedef struct LCI_Cq_s* LCI_Cq;
 
 /**
+ * Handler type
+ */
+typedef void (*LCI_Handler)(LCI_Request* req, void* usr_context);
+
+/**
+ * Allocator type
+ */
+typedef void* (*LCI_Allocator)(size_t size, void* usr_context);
+
+/**
  * Initialize LCI.
  */
 LCI_API
@@ -129,10 +139,22 @@ LCI_API
 LCI_Status LCI_Property_set_message_type(LCI_Message_type type, LCI_Property* prop);
 
 /**
- * Set synchronization type (sync, am, cq).
+ * Set synchronization type for completion.
  */
 LCI_API
-LCI_Status LCI_Property_set_sync_type(LCI_Sync_type type, void* ctx, LCI_Property* prop);
+LCI_Status LCI_Property_set_sync_type(LCI_Sync_type ltype, LCI_Sync_type rtype, LCI_Property* prop);
+
+/**
+ * Set handler for AM protocol.
+ */
+LCI_API
+LCI_Status LCI_Property_set_handler(LCI_Handler handler, LCI_Property* prop);
+
+/**
+ * Set allocator for dynamic protocol.
+ */
+LCI_API
+LCI_Status LCI_Property_set_allocator(LCI_Allocator alloc, LCI_Property* prop);
 
 /**
  * Create an Endpoint, collective calls for those involved in the endpoints.
@@ -167,28 +189,28 @@ LCI_API
 LCI_Status LCI_Sendm(void* src, size_t size, int rank, int tag, LCI_Endpoint ep);
 
 /**
- * Send a long message, @sync is signalled when the buffer @src can be reused.
+ * Send a long message.
  */
 LCI_API
-LCI_Status LCI_Sendl(void* src, size_t size, int rank, int tag, LCI_Endpoint ep, LCI_Sync sync, LCI_Request* req);
+LCI_Status LCI_Sendl(void* src, size_t size, int rank, int tag, LCI_Endpoint ep, void* sync_context);
 
 /**
- * Receive a short message, @sync is signalled when the data is ready to be consumed in @src.
+ * Receive a short message.
  */
 LCI_API
-LCI_Status LCI_Recvs(void* src, size_t size, int rank, int tag, LCI_Endpoint ep, LCI_Sync sync, LCI_Request* req);
+LCI_Status LCI_Recvs(void* src, size_t size, int rank, int tag, LCI_Endpoint ep, void* sync_context, LCI_Request* req);
 
 /**
- * Receive a medium message, @sync is signalled when the data is ready to be consumed in @src.
+ * Receive a medium message.
  */
 LCI_API
-LCI_Status LCI_Recvm(void* src, size_t size, int rank, int tag, LCI_Endpoint ep, LCI_Sync sync, LCI_Request* req);
+LCI_Status LCI_Recvm(void* src, size_t size, int rank, int tag, LCI_Endpoint ep, void* sync_context, LCI_Request* req);
 
 /**
- * Receive a medium message, @sync is signalled when the data is ready to be consumed in @src.
+ * Receive a medium message.
  */
 LCI_API
-LCI_Status LCI_Recvl(void* src, size_t size, int rank, int tag, LCI_Endpoint ep, LCI_Sync sync, LCI_Request* req);
+LCI_Status LCI_Recvl(void* src, size_t size, int rank, int tag, LCI_Endpoint ep, void* sync_context, LCI_Request* req);
 
 /* One-sided functions. */
 
@@ -208,10 +230,9 @@ LCI_Status LCI_Putm(void* src, size_t size, int rank, int rma_id, int offset, LC
 
 /**
  * Put long message to a remote address @rma_id available at the remote endpoint, offset @offset.
- * @sync is signalled when the buffer @src is ready to be reused.
  */
 LCI_API
-LCI_Status LCI_Putl(void* src, size_t size, int rank, int rma_id, int offset, LCI_Endpoint ep, LCI_Sync sync, LCI_Request* request);
+LCI_Status LCI_Putl(void* src, size_t size, int rank, int rma_id, int offset, LCI_Endpoint ep, void* context);
 
 /**
  * Put short message to a remote address, piggy-back data to completed request.
@@ -229,12 +250,17 @@ LCI_Status LCI_Putmd(void* src, size_t size, int rank, int tag, LCI_Endpoint ep)
 
 /**
  * Put long message to a remote address, required a remote allocation.
- * @sync is signalled when buffer @src is ready to be reused.
  */
 LCI_API
-LCI_Status LCI_Putld(void* src, size_t size, int rank, int tag, LCI_Endpoint ep, LCI_Sync sync, LCI_Request* request);
+LCI_Status LCI_Putld(void* src, size_t size, int rank, int tag, LCI_Endpoint ep, void* sync_context, LCI_Request* request);
 
 /* Completion methods */
+
+/**
+ * Create a completion queue.
+ */
+LCI_API
+LCI_Status LCI_Cq_create(LCI_Cq* ep);
 
 /**
  * Return first completed request in the queue.

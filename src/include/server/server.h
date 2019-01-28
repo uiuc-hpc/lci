@@ -31,15 +31,15 @@ static inline void lc_server_init(int id, lc_server** dev);
 static inline void lc_server_finalize(lc_server* s);
 static inline void* lc_server_heap_ptr(lc_server* s);
 
-#ifdef LC_USE_SERVER_OFI
+#ifdef LCI_USE_SERVER_OFI
 #include "server_ofi.h"
 #endif
 
-#ifdef LC_USE_SERVER_PSM
+#ifdef LCI_USE_SERVER_PSM
 #include "server_psm2.h"
 #endif
 
-#ifdef LC_USE_SERVER_IBV
+#ifdef LCI_USE_SERVER_IBV
 #include "server_ibv.h"
 #endif
 

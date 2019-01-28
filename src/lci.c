@@ -49,14 +49,15 @@ LCI_Status LCI_Endpoint_create(int device, LCI_Property prop, LCI_Endpoint* ep_p
     ep->property = EP_AR_EXP;
   } else {
     ep->property = EP_AR_DYN;
+    ep->alloc = prop->allocator;
   }
 
-  if (prop->stype == LCI_ST_SYNC) {
+  if (prop->rtype == LCI_ST_SYNC) {
     ep->property |= EP_CE_SYNC;
-  } else if (prop->stype == LCI_ST_AM) {
+  } else if (prop->rtype == LCI_ST_AM) {
     ep->property |= EP_CE_AM;
-    ep->handler = prop->s_ctx;
-  } else if (prop->stype == LCI_ST_CQ) {
+    ep->handler = prop->handler;
+  } else if (prop->rtype == LCI_ST_CQ) {
     ep->property |= EP_CE_CQ;
     lc_cq_create(&ep->cq);
   }
@@ -72,7 +73,8 @@ LCI_Status LCI_Property_create(LCI_Property* prop_ptr)
   posix_memalign((void**) &prop, 64, sizeof(struct LCI_Property_s));
   prop->ctype = LCI_CT_COLL;
   prop->mtype = LCI_MT_LONG;
-  prop->stype = LCI_ST_SYNC;
+  prop->rtype = LCI_ST_SYNC;
+  prop->ltype = LCI_ST_SYNC;
 
   *prop_ptr = prop;
   return LCI_OK;
@@ -90,10 +92,23 @@ LCI_Status LCI_Property_set_message_type(LCI_Message_type type, LCI_Property* pr
   return LCI_OK;
 }
 
-LCI_Status LCI_Property_set_sync_type(LCI_Sync_type type, void* ctx, LCI_Property* prop)
+LCI_Status LCI_Property_set_handler(LCI_Handler handler, LCI_Property* prop)
 {
-  (*prop)->stype = type;
-  (*prop)->s_ctx = ctx;
+  (*prop)->handler = handler;
+  return LCI_OK;
+}
+
+LCI_Status LCI_Property_set_allocator(LCI_Allocator handler, LCI_Property* prop)
+{
+  (*prop)->allocator = handler;
+  return LCI_OK;
+}
+
+LCI_API
+LCI_Status LCI_Property_set_sync_type(LCI_Sync_type ltype, LCI_Sync_type rtype, LCI_Property* prop)
+{
+  (*prop)->ltype = ltype;
+  (*prop)->rtype = rtype;
   return LCI_OK;
 }
 

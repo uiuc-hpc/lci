@@ -2,22 +2,22 @@
 # WIP, there are more configs in ./src/include/confg.h
 
 # Define server here (ofi, ibv, psm)
-LC_SERVER ?= psm
+LCI_SERVER ?= psm
 
 # When in doubt, enable this (yes, no)
-LC_SERVER_DEBUG ?= no
+LCI_SERVER_DEBUG ?= no
 
 # Use registration cache ? (Only affect ibv -- only use when not-so-dynamic allocation)
-LC_USE_DREG ?= yes
+LCI_USE_DREG ?= yes
 
 # Addressing mode "dynamic, explicit, immediate"
-LC_EP_AR = "explicit"
+LCI_EP_AR = "explicit"
 
 # Completion mechanism "sync, cq, am, glob"
-LC_EP_CE = "sync"
+LCI_EP_CE = "sync"
 
 # Maximum number of devices.
-LC_MAX_DEV = 4
+LCI_MAX_DEV = 4
 
 # Maximum number of EP.
-LC_MAX_EP = 8
+LCI_MAX_EP = 8

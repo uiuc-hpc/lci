@@ -33,7 +33,6 @@ struct __attribute__((packed)) packet_context {
 };
 
 struct __attribute__((packed)) packet_rts {
-  void* cb;
   intptr_t ce;
   intptr_t src_addr;
   size_t size;
@@ -41,7 +40,6 @@ struct __attribute__((packed)) packet_rts {
 };
 
 struct __attribute__((packed)) packet_rtr {
-  // lc_send_cb cb;
   intptr_t ce;
   intptr_t src_addr;
   size_t size;

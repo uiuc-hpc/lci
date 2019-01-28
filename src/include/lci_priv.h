@@ -23,9 +23,6 @@ typedef struct lc_cq lc_cq;
 struct lc_req;
 typedef struct lc_rep lc_rep;
 
-typedef void (*lc_handler)(LCI_Request* req);
-typedef void* (*lc_alloc)(size_t size, void* usr_ctx);
-
 typedef enum lc_ep_addr {
   EP_AR_DYN = 1<<1,
   EP_AR_EXP  = 1<<2,
@@ -49,8 +46,10 @@ extern int lcg_size;
 struct LCI_Property_s {
   LCI_Comm_type ctype;
   LCI_Message_type mtype;
-  LCI_Sync_type stype;
-  void* s_ctx;
+  LCI_Sync_type ltype;
+  LCI_Sync_type rtype;
+  LCI_Handler handler;
+  LCI_Allocator allocator;
 };
 
 struct LCI_Endpoint_s {
@@ -64,9 +63,9 @@ struct LCI_Endpoint_s {
   union {
     lc_hash* tbl;
     lc_cq* cq;
-    lc_handler handler;
+    LCI_Handler handler;
   };
-  lc_alloc alloc;
+  LCI_Allocator alloc;
   volatile int completed;
 
   int gid;

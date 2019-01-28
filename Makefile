@@ -42,66 +42,66 @@ LDFLAGS += -shared -Lstatic
 
 ### BEGIN -- ENDPOINT OPTIONS SELECTIONS
 ## Addressing mode.
-ifneq (,$(findstring explicit,$(LC_EP_AR)))
-CFLAGS += -DLC_SERVER_HAS_EXP
+ifneq (,$(findstring explicit,$(LCI_EP_AR)))
+CFLAGS += -DLCI_SERVER_HAS_EXP
 endif
 
-ifneq (,$(findstring dynamic,$(LC_EP_AR)))
-CFLAGS += -DLC_SERVER_HAS_DYN 
+ifneq (,$(findstring dynamic,$(LCI_EP_AR)))
+CFLAGS += -DLCI_SERVER_HAS_DYN 
 endif
 
-ifneq (,$(findstring immediate,$(LC_EP_AR)))
-CFLAGS += -DLC_SERVER_HAS_IMM
+ifneq (,$(findstring immediate,$(LCI_EP_AR)))
+CFLAGS += -DLCI_SERVER_HAS_IMM
 endif
 
-CFLAGS += -DLC_MAX_EP=$(LC_MAX_EP)
-CFLAGS += -DLC_MAX_DEV=$(LC_MAX_DEV)
+CFLAGS += -DLCI_MAX_EP=$(LCI_MAX_EP)
+CFLAGS += -DLCI_MAX_DEV=$(LCI_MAX_DEV)
 
 ## Completion events.
-ifneq (,$(findstring am,$(LC_EP_CE)))
-CFLAGS += -DLC_SERVER_HAS_AM
+ifneq (,$(findstring am,$(LCI_EP_CE)))
+CFLAGS += -DLCI_SERVER_HAS_AM
 endif
 
-ifneq (,$(findstring sync,$(LC_EP_CE)))
-CFLAGS += -DLC_SERVER_HAS_SYNC
+ifneq (,$(findstring sync,$(LCI_EP_CE)))
+CFLAGS += -DLCI_SERVER_HAS_SYNC
 endif
 
-ifneq (,$(findstring cq,$(LC_EP_CE)))
-CFLAGS += -DLC_SERVER_HAS_CQ
+ifneq (,$(findstring cq,$(LCI_EP_CE)))
+CFLAGS += -DLCI_SERVER_HAS_CQ
 endif
 
-ifneq (,$(findstring glob,$(LC_EP_CE)))
-CFLAGS += -DLC_SERVER_HAS_GLOB
+ifneq (,$(findstring glob,$(LCI_EP_CE)))
+CFLAGS += -DLCI_SERVER_HAS_GLOB
 endif
 
 ### END -- ENDPOINT OPTIONS SELECTIONS
 
-ifeq ($(LC_SERVER_DEBUG), yes)
-CFLAGS += -DLC_SERVER_DEBUG
+ifeq ($(LCI_SERVER_DEBUG), yes)
+CFLAGS += -DLCI_SERVER_DEBUG
 endif
 
-ifeq ($(LC_SERVER_INLINE), yes)
-CFLAGS += -DLC_SERVER_INLINE
+ifeq ($(LCI_SERVER_INLINE), yes)
+CFLAGS += -DLCI_SERVER_INLINE
 endif
 
-ifeq ($(LC_SERVER), ofi)
-	CFLAGS += -DLC_USE_SERVER_OFI -DAFF_DEBUG
+ifeq ($(LCI_SERVER), ofi)
+	CFLAGS += -DLCI_USE_SERVER_OFI -DAFF_DEBUG
 endif
 
-ifeq ($(LC_SERVER), ibv)
-	CFLAGS += -DLC_USE_SERVER_IBV -DAFF_DEBUG -I$(IBV_DIR)/include
+ifeq ($(LCI_SERVER), ibv)
+	CFLAGS += -DLCI_USE_SERVER_IBV -DAFF_DEBUG -I$(IBV_DIR)/include
 endif
 
-ifeq ($(LC_SERVER), psm)
-	CFLAGS += -DLC_USE_SERVER_PSM -DAFF_DEBUG -I$(PSM_DIR)/include
+ifeq ($(LCI_SERVER), psm)
+	CFLAGS += -DLCI_USE_SERVER_PSM -DAFF_DEBUG -I$(PSM_DIR)/include
 endif
 
 #COMM = lc.o medium.o short.o long.o tag.o cq.o misc.o ep.o lcrq.o pool.o hashtable.o coll.o glob.o
 DREG = dreg/dreg.o dreg/avl.o
 PMI = pm.o pmi/simple_pmi.o pmi/simple_pmiutil.o
-COMM = lci.o short.o medium.o pool.o hashtable.o misc.o lcrq.o
+COMM = lci.o short.o medium.o long.o pool.o hashtable.o misc.o lcrq.o
 
-ifeq ($(LC_USE_DREG), yes)
+ifeq ($(LCI_USE_DREG), yes)
 LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
 CFLAGS += -DUSE_DREG
 endif

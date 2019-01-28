@@ -1,4 +1,4 @@
-#include "lc.h"
+#include "lci.h"
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -10,18 +10,26 @@ int total = TOTAL;
 int skip = SKIP;
 
 int main(int argc, char** args) {
-  lc_ep ep;
-  lc_init(1, &ep);
-  int rank = 0;
-  lc_get_proc_num(&rank);
-  int tag = {99};
+  LCI_Initialize(1);
+  LCI_Endpoint ep;
+  LCI_Property prop;
+  LCI_Property_create(&prop);
+  LCI_Endpoint_create(0, prop, &ep);
 
-  lc_req req;
-  lc_sync sync;
-  double t1;
+  int rank = LCI_Rank();
+  int tag = 99;
+
+  LCI_Request req;
+  LCI_Sync sync;
+  LCI_Sync_create(&sync);
+
+  LCI_Sync lsync;
+  LCI_Sync_create(&lsync);
+
+  double t1 = 0;
   size_t alignment = sysconf(_SC_PAGESIZE);
-  void* src_buf;
-  void* dst_buf;
+  void* src_buf = 0;
+  void* dst_buf = 0;
   posix_memalign(&src_buf, alignment, MAX_MSG);
   posix_memalign(&dst_buf, alignment, MAX_MSG);
 
@@ -34,18 +42,15 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
-        sync = 0;
-        while (lc_sendl(src_buf, size, 1-rank, tag, ep, lc_signal, &sync) != LC_OK)
-          lc_progress(0);
-        while (!sync)
-          lc_progress(0);
-
-        req.sync = 0;
-        while (lc_recvl(dst_buf, size, 1-rank, tag, ep, &req) != LC_OK)
-          lc_progress(0);
-
-        while (req.sync == 0)
-          lc_progress(0);
+        LCI_Sync_reset(&lsync);
+        LCI_Sendl(src_buf, size, 1-rank, tag, ep, lsync);
+        while (!LCI_Sync_test(lsync))
+          LCI_Progress(0, 1);
+        LCI_Sync_reset(&sync);
+        while (LCI_Recvl(dst_buf, size, 1-rank, tag, ep, sync, &req) != LCI_OK)
+          LCI_Progress(0, 1);
+        while (!LCI_Sync_test(sync))
+          LCI_Progress(0, 1);
         if (i == 0) {
           for (int j = 0; j < size; j++)
             assert(((char*) src_buf)[j] == 'a' && ((char*)dst_buf)[j] == 'a');
@@ -62,20 +67,18 @@ int main(int argc, char** args) {
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
 
       for (int i = 0; i < total + skip; i++) {
-        req.sync = 0;
-        while (lc_recvl(dst_buf, size, 1-rank, tag, ep, &req) != LC_OK)
-          lc_progress(0);
-        while (req.sync == 0)
-          lc_progress(0);
-
-        sync = 0;
-        while (lc_sendl(src_buf, size, 1-rank, tag, ep, lc_signal, &sync) != LC_OK)
-          lc_progress(0);
-        while (!sync)
-          lc_progress(0);
-
+        LCI_Sync_reset(&sync);
+        while (LCI_Recvl(dst_buf, size, 1-rank, tag, ep, sync, &req) != LCI_OK)
+          LCI_Progress(0, 1);
+        while (!LCI_Sync_test(sync))
+          LCI_Progress(0, 1);
+        LCI_Sync_reset(&lsync);
+        LCI_Sendl(src_buf, size, 1-rank, tag, ep, lsync);
+        while (!LCI_Sync_test(lsync))
+          LCI_Progress(0, 1);
       }
     }
   }
-  lc_finalize();
+  lc_pm_barrier();
+  LCI_Finalize();
 }

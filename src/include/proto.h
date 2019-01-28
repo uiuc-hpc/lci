@@ -56,12 +56,11 @@ static inline void lc_prepare_rtr(LCI_Endpoint ep, void* src, size_t size, lc_pa
   dprintf("%d] post recv rdma %p %d via %d\n", lcg_rank, src, size, p->data.rtr.rkey);
 }
 
-static inline void lc_prepare_rts(void* src, size_t size, void* cb, void* ce, lc_packet* p)
+static inline void lc_prepare_rts(void* src, size_t size, void* usr_context, lc_packet* p)
 {
   p->data.rts.src_addr = (uintptr_t) src;
   p->data.rts.size = size;
-  p->data.rts.cb = cb;
-  p->data.rts.ce = (uintptr_t) ce;
+  p->data.rts.ce = (uintptr_t) usr_context;
   lc_mem_fence();
 }
 
@@ -73,7 +72,7 @@ static inline void lc_ce_glob(LCI_Endpoint ep)
 static inline void lc_ce_am(LCI_Endpoint ep, lc_packet* p)
 {
   LCI_Request* req = p->context.req;
-  ep->handler(req);
+  ep->handler(req, 0);
   lc_pk_free_data(ep, p);
 }
 
@@ -109,6 +108,7 @@ static inline void lc_handle_rts(LCI_Endpoint ep, lc_packet* p)
   lc_pk_init(ep, -1, LC_PROTO_RTR, p);
   lc_proto proto = MAKE_PROTO(ep->gid, LC_PROTO_RTR, 0);
   lc_prepare_rtr(ep, p->context.req->buffer, p->data.rts.size, p);
+  dprintf("Send RTR: %p\n", p, p->context.req->__reserved__, proto);
   lc_server_sendm(ep->server, p->context.req->__reserved__,
       sizeof(struct packet_rtr), p, proto);
 }
@@ -171,17 +171,17 @@ static inline void lc_serve_recv_expl(LCI_Endpoint ep, lc_packet* p, lc_proto pr
 
 static inline void lc_serve_recv_dispatch(LCI_Endpoint ep, lc_packet* p, lc_proto proto, const long cap)
 {
-#ifdef LC_SERVER_HAS_EXP
+#ifdef LCI_SERVER_HAS_EXP
   if (cap & EP_AR_EXP) {
     return lc_serve_recv_expl(ep, p, proto, cap);
   } else
 #endif
-#ifdef LC_SERVER_HAS_DYN
+#ifdef LCI_SERVER_HAS_DYN
   if (cap & EP_AR_DYN) {
     return lc_serve_recv_dyn(ep, p, proto, cap);
   } else
 #endif
-#ifdef LC_SERVER_HAS_IMM
+#ifdef LCI_SERVER_HAS_IMM
   if (cap & EP_AR_IMM) {
     return lc_serve_recv_imm(ep, p, proto, cap);
   } else
@@ -193,17 +193,17 @@ static inline void lc_serve_recv_dispatch(LCI_Endpoint ep, lc_packet* p, lc_prot
 
 static inline void lc_ce_dispatch(LCI_Endpoint ep, lc_packet* p, const long cap)
 {
-#ifdef LC_SERVER_HAS_SYNC
+#ifdef LCI_SERVER_HAS_SYNC
   if (cap & EP_CE_SYNC) {
     lc_ce_signal(ep, p);
   } else
 #endif
-#ifdef LC_SERVER_HAS_CQ
+#ifdef LCI_SERVER_HAS_CQ
   if (cap & EP_CE_CQ) {
     lc_ce_queue(ep, p);
   } else
 #endif
-#ifdef LC_SERVER_HAS_AM
+#ifdef LCI_SERVER_HAS_AM
   if (cap & EP_CE_AM) {
     lc_ce_am(ep, p);
   } else
@@ -213,7 +213,7 @@ static inline void lc_ce_dispatch(LCI_Endpoint ep, lc_packet* p, const long cap)
     lc_pk_free_data(ep, p);
   }
 
-#ifdef LC_SERVER_HAS_GLOB
+#ifdef LCI_SERVER_HAS_GLOB
   if (cap & EP_CE_GLOB) {
     lc_ce_glob(ep);
   }
@@ -248,7 +248,7 @@ static inline void lc_serve_send(lc_packet* p)
     // If one expects MPI order, should need to split completion here.
   } else if (proto == LC_PROTO_LONG) {
     dprintf("SENT LONG: %p\n", p);
-    // p->data.rts.cb((void*) p->data.rts.ce); FIXME.
+    LCI_Sync_signal((LCI_Sync)p->data.rts.ce); // FIXME
     lc_pk_free(ep, p);
   } else if (proto == LC_PROTO_RTS) {
     dprintf("SENT RTS: %p\n", p);
