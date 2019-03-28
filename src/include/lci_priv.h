@@ -37,22 +37,22 @@ typedef enum lc_ep_ce {
   EP_CE_GLOB = ((1<<4) << 4),
 } lc_ep_ce;
 
-extern LCI_Endpoint lcg_endpoint[];
+extern LCI_endpoint_t lcg_endpoint[];
 extern int lcg_num_devices;
 extern int lcg_num_endpoints;
 extern int lcg_rank;
 extern int lcg_size;
 
-struct LCI_Property_s {
-  LCI_Comm_type ctype;
-  LCI_Message_type mtype;
-  LCI_Sync_type ltype;
-  LCI_Sync_type rtype;
+struct LCI_PL_s {
+  LCI_comm_t ctype;
+  LCI_msg_t mtype;
+  LCI_comp_t ltype;
+  LCI_comp_t rtype;
   LCI_Handler handler;
   LCI_Allocator allocator;
 };
 
-struct LCI_Endpoint_s {
+struct LCI_endpoint_s {
   // Associated hardware context.
   lc_server* server;
   long property;
@@ -69,10 +69,6 @@ struct LCI_Endpoint_s {
   volatile int completed;
 
   int gid;
-};
-
-struct LCI_Sync_s {
-  volatile int flag;
 };
 
 struct lc_rep {
