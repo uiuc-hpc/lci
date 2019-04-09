@@ -3,10 +3,7 @@ FULT=$(WORK)/fult
 
 CC = gcc
 LD = $(CC)
-TARGET = init tshort tmed tlong qshort qmed qlong
-TARGET += qmed_dup qmed_dup_2hw
-TARGET += puts putm putl putss putms putls putsam
-TARGET += tag ialreduce ibarrier
+TARGET = init pt2pti pt2ptbc pt2ptd # tshort tmed tlong qshort qmed qlong
 
 EXTRA = -DUSE_AFFI
 

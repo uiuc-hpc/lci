@@ -72,7 +72,7 @@ typedef enum LCI_dynamic_t {
 /**
  * Synchronizer object, owned by the runtime.
  */
-typedef uint64_t LCI_one2one_t;
+typedef uint64_t LCI_sync_t;
 
 typedef union {
   char immediate[64]; // may not want a full cacheline here.
@@ -97,10 +97,10 @@ typedef struct LCI_request_s {
   void* __reserved__;
 } LCI_request_t;
 
-typedef struct LCI_one2onel {
-  LCI_one2one_t sync;
+typedef struct LCI_sync_long {
+  LCI_sync_t sync;
   LCI_request_t request;
-} LCI_one2onel_t;
+} LCI_syncl_t;
 
 /**
  * Endpoint object, owned by the runtime.
@@ -123,7 +123,7 @@ typedef struct LCI_Cq_s* LCI_Cq;
 /**
  * Handler type
  */
-typedef void (*LCI_Handler)(LCI_one2one_t* sync, void* usr_context);
+typedef void (*LCI_Handler)(LCI_sync_t* sync, void* usr_context);
 
 /**
  * Allocator type
@@ -182,7 +182,7 @@ LCI_error_t LCI_PL_set_allocator(LCI_Allocator alloc, LCI_PL* prop);
  * Create an endpoint, collective calls for those involved in the endpoints.
  */
 LCI_API
-LCI_error_t LCI_endpoint_t_create(int device_id, LCI_PL prop, LCI_endpoint_t* ep);
+LCI_error_t LCI_endpoint_create(int device_id, LCI_PL prop, LCI_endpoint_t* ep);
 
 /**
  * Query the rank of the current process.
@@ -199,40 +199,40 @@ int LCI_Size();
 /* Two-sided functions. */
 
 /**
- * Send a short message, completed immediately, or return LCI_ERR_RETRY.
+ * Send an immediate message, completed immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
-LCI_error_t LCI_Sends(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep);
+LCI_error_t LCI_sendi(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep);
 
 /**
- * Send a medium message, completed immediately, or return LCI_ERR_RETRY.
+ * Send a buffered-copy message, completed immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
-LCI_error_t LCI_Sendm(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep);
+LCI_error_t LCI_sendbc(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep);
 
 /**
- * Send a long message.
+ * Send a direct message.
  */
 LCI_API
-LCI_error_t LCI_Sendl(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep, void* sync_context);
+LCI_error_t LCI_sendd(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep, void* sync);
 
 /**
- * Receive a short message.
+ * Receive a immediate message.
  */
 LCI_API
-LCI_error_t LCI_Recvs(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep, LCI_one2one_t* sync);
-
-/**
- * Receive a medium message.
- */
-LCI_API
-LCI_error_t LCI_Recvm(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep, LCI_one2one_t* sync);
+LCI_error_t LCI_recvi(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep, void* sync);
 
 /**
  * Receive a medium message.
  */
 LCI_API
-LCI_error_t LCI_Recvl(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep, LCI_one2one_t* sync);
+LCI_error_t LCI_recvbc(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep, void* sync);
+
+/**
+ * Receive a direct message.
+ */
+LCI_API
+LCI_error_t LCI_recvd(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep, void* sync);
 
 /* One-sided functions. */
 
@@ -306,31 +306,37 @@ LCI_error_t LCI_request_t_free(int n, LCI_request_t** req);
  * Create a Sync object.
  */
 LCI_API
-LCI_error_t LCI_one2one_create(LCI_one2one_t* sync);
+LCI_error_t LCI_sync_create(void* sync);
 
 /**
  * Reset on a Sync object.
  */
 LCI_API
-LCI_error_t LCI_one2one_set_full(LCI_one2one_t* sync);
+LCI_error_t LCI_one2one_set_full(void* sync);
 
 /**
  * Wait on a Sync object.
  */
 LCI_API
-LCI_error_t LCI_one2one_set_empty(LCI_one2one_t* sync);
+LCI_error_t LCI_one2one_set_empty(void* sync);
 
 /**
  * Test a Sync object, return 1 if finished.
  */
 LCI_API
-int LCI_one2one_wait_full(LCI_one2one_t* sync);
+int LCI_one2one_test_empty(void* sync);
 
 /**
- * Signal a Sync object.
+ * Wait until become full.
  */
 LCI_API
-LCI_error_t LCI_one2one_wait_empty(LCI_one2one_t* sync);
+int LCI_one2one_wait_full(void* sync);
+
+/**
+ * Wait until become empty.
+ */
+LCI_API
+LCI_error_t LCI_one2one_wait_empty(void* sync);
 
 /**
  * Polling a specific device @device_id for at least @count time.

@@ -5,6 +5,6 @@
 #include <unistd.h>
 
 int main(int argc, char** args) {
-  LCI_Initialize(1);
-  LCI_Finalize();
+  LCI_initialize(1);
+  LCI_finalize();
 }

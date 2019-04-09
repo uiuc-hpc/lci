@@ -23,9 +23,9 @@ struct __attribute__((packed)) packet_context {
   // Most of the current ctx requires 128-bits (FIXME)
   int64_t hwctx[2];
   // Here is LLCI context.
-  LCI_Request req_s;
-  LCI_Request* req;
-  LCI_Endpoint ep;
+  LCI_syncl_t sync_s;
+  LCI_syncl_t* sync;
+  LCI_endpoint_t ep;
   intptr_t rma_mem;
   int16_t proto;
   int8_t poolid;

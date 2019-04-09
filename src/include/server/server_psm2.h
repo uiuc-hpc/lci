@@ -258,20 +258,20 @@ static inline int lc_server_progress(lc_server* s)
       uint32_t pk_type = (status.msg_tag.tag2 & 0xf0000000);
       // Simple recv.
       if (pk_type == PSM_RECV_DATA) {
-        p->context.req = &p->context.req_s;
-        p->context.req->__reserved__ = status.msg_peer;
-        p->context.req->rank = status.msg_tag.tag1;
-        p->context.req->size = (status.msg_length);
+        p->context.sync = &p->context.sync_s;
+        p->context.sync->request.__reserved__ = status.msg_peer;
+        p->context.sync->request.rank = status.msg_tag.tag1;
+        p->context.sync->request.size = (status.msg_length);
         uint32_t proto = status.msg_tag.tag0;
         lc_serve_recv(p, proto);
         s->recv_posted--;
       } else if (pk_type == PSM_RECV_RDMA) {
-        p->context.req = &p->context.req_s;
+        p->context.sync = &p->context.sync_s;
         uintptr_t addr = (uintptr_t) status.msg_tag.tag0 + (uintptr_t) s->heap;
         memcpy((void*) addr, p->data.buffer, status.msg_length);
         lc_server_post_recv(s, p);
       } else if (pk_type == PSM_RECV_RDMA_SID) {
-        p->context.req = &p->context.req_s;
+        p->context.sync = &p->context.sync_s;
         uintptr_t addr = (uintptr_t) status.msg_tag.tag0 + (uintptr_t) s->heap;
         memcpy((void*) addr, p->data.buffer, status.msg_length);
         lc_serve_recv_rdma(p, status.msg_tag.tag1);
@@ -287,10 +287,10 @@ static inline int lc_server_progress(lc_server* s)
         lc_packet* p = (lc_packet*) (s->heap + off);
         lc_serve_imm(p);
       } else if (status.msg_tag.tag0) {
-        p->context.req = &p->context.req_s;
+        p->context.sync = &p->context.sync_s;
         lc_serve_recv_rdma(p, status.msg_tag.tag1);
       } else {
-        p->context.req = &p->context.req_s;
+        p->context.sync = &p->context.sync_s;
         lc_pool_put(s->pkpool, p);
       }
     } else if (ctx & PSM_SEND) {

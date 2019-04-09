@@ -122,23 +122,28 @@ int LCI_Size()
   return lcg_size;
 }
 
-LCI_error_t LCI_one2one_set_full(LCI_one2one_t* sync) {
-  *sync = 1;
+LCI_error_t LCI_sync_create(void* sync) {
+  *(LCI_sync_t*) sync = 0;
   return LCI_OK;
 }
 
-LCI_error_t LCI_one2one_wait_empty(LCI_one2one_t* sync) {
-  while (*sync)
+LCI_error_t LCI_one2one_set_full(void* sync) {
+  *(LCI_sync_t*)sync = 1;
+  return LCI_OK;
+}
+
+LCI_error_t LCI_one2one_wait_empty(void* sync) {
+  while (*(LCI_sync_t*)sync)
     ;
   return LCI_OK;
 }
 
-int LCI_one2one_test(LCI_one2one_t* sync) {
-  return (*sync == 0);
+int LCI_one2one_test_empty(void* sync) {
+  return (*(LCI_sync_t*)sync == 0);
 }
 
-LCI_error_t LCI_one2one_set_empty(LCI_one2one_t* sync) {
-  *sync = 0;
+LCI_error_t LCI_one2one_set_empty(void* sync) {
+  *(LCI_sync_t*)sync = 0;
   return LCI_OK;
 }
 

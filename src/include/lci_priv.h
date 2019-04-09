@@ -5,6 +5,8 @@
 
 #define SHORT_MSG_SIZE (LC_PACKET_SIZE - sizeof(struct packet_context))
 
+#define LCI_SYNCL_PTR_TO_REQ_PTR(sync) (&((LCI_syncl_t*) sync)->request)
+
 struct lc_server;
 typedef struct lc_server lc_server;
 

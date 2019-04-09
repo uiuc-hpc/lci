@@ -7,24 +7,22 @@
 #include "comm_exp.h"
 
 #undef MAX_MSG
-#define MAX_MSG 128
+#define MAX_MSG (4 * 1024 * 1024)
 
 int total = TOTAL;
 int skip = SKIP;
 
 int main(int argc, char** args) {
-  LCI_Initialize(1);
-  LCI_Endpoint ep;
-  LCI_Property prop;
-  LCI_Property_create(&prop);
-  LCI_Endpoint_create(0, prop, &ep);
+  LCI_initialize(1);
+  LCI_endpoint_t ep;
+  LCI_PL prop;
+  LCI_PL_create(&prop);
+  LCI_endpoint_create(0, prop, &ep);
 
   int rank = LCI_Rank();
   int tag = 99;
 
-  LCI_Request req;
-  LCI_Sync sync;
-  LCI_Sync_create(&sync);
+  LCI_syncl_t sync;
 
   double t1 = 0;
   size_t alignment = sysconf(_SC_PAGESIZE);
@@ -42,11 +40,15 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
-        LCI_Sends(src_buf, size, 1-rank, tag, ep);
-        LCI_Sync_reset(&sync);
-        LCI_Recvs(dst_buf, size, 1-rank, tag, ep, sync, &req);
-        while (!LCI_Sync_test(sync))
-          LCI_Progress(0, 1);
+        LCI_one2one_set_empty(&sync);
+        while (LCI_sendd(src_buf, size, 1-rank, tag, ep, &sync) != LCI_OK)
+          LCI_progress(0, 1);
+        while (LCI_one2one_test_empty(&sync))
+          LCI_progress(0, 1);
+        LCI_one2one_set_empty(&sync);
+        LCI_recvd(dst_buf, size, 1-rank, tag, ep, &sync);
+        while (LCI_one2one_test_empty(&sync))
+          LCI_progress(0, 1);
         if (i == 0) {
           for (int j = 0; j < size; j++)
             assert(((char*) src_buf)[j] == 'a' && ((char*)dst_buf)[j] == 'a');
@@ -63,13 +65,17 @@ int main(int argc, char** args) {
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
 
       for (int i = 0; i < total + skip; i++) {
-        LCI_Sync_reset(&sync);
-        LCI_Recvs(dst_buf, size, 1-rank, tag, ep, sync, &req);
-        while (!LCI_Sync_test(sync))
-          LCI_Progress(0, 1);
-        LCI_Sends(src_buf, size, 1-rank, tag, ep);
+        LCI_one2one_set_empty(&sync);
+        LCI_recvd(dst_buf, size, 1-rank, tag, ep, &sync);
+        while (LCI_one2one_test_empty(&sync))
+          LCI_progress(0, 1);
+        LCI_one2one_set_empty(&sync);
+        while (LCI_sendd(src_buf, size, 1-rank, tag, ep, &sync) != LCI_OK)
+          LCI_progress(0, 1);
+        while (LCI_one2one_test_empty(&sync))
+          LCI_progress(0, 1);
       }
     }
   }
-  LCI_Finalize();
+  LCI_finalize();
 }
