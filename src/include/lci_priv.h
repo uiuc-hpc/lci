@@ -62,8 +62,9 @@ struct LCI_endpoint_s {
   // Associated software components.
   lc_pool* pkpool;
   lc_rep* rep;
+  lc_hash* tbl;
+
   union {
-    lc_hash* tbl;
     lc_cq* cq;
     LCI_Handler handler;
   };
@@ -100,6 +101,9 @@ static inline void lc_dev_init(int id, lc_server** dev)
     // p->context.req_s.parent = p;
     lc_pool_put(s->pkpool, p);
   }
+
+  s->curr_addr = base_packet + LC_SERVER_NUM_PKTS * LC_PACKET_SIZE;
+  s->curr_addr = (s->curr_addr + 8192 - 1) / 8192 * 8192;
 }
 
 static inline void lc_dev_finalize(lc_server* dev)

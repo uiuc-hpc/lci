@@ -75,7 +75,7 @@ typedef enum LCI_dynamic_t {
 typedef uint64_t LCI_sync_t;
 
 typedef union {
-  char immediate[64]; // may not want a full cacheline here.
+  char immediate[8]; // may not want a full cacheline here.
   void* buffer;
 } LCI_data_t;
 
@@ -84,10 +84,7 @@ typedef union {
  */
 typedef struct LCI_request_s {
   /* Status of the communication. */
-  union {
-    char immediate[8];
-    void* buffer;
-  };
+  LCI_data_t data;
   LCI_error_t status;
   enum {invalid, immediate, buffered, direct} type;
   int rank;
@@ -117,8 +114,8 @@ typedef struct LCI_PL_s* LCI_PL;
 /**
  * Completion queue object, owned by the runtime.
  */
-struct LCI_Cq_s;
-typedef struct LCI_Cq_s* LCI_Cq;
+struct LCI_cq_s;
+typedef struct LCI_cq_s* LCI_Cq;
 
 /**
  * Handler type
@@ -241,7 +238,7 @@ LCI_error_t LCI_recvd(void* src, size_t size, int rank, int tag, LCI_endpoint_t 
  * Complete immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
-LCI_error_t LCI_Puts(void* src, size_t size, int rank, int rma_id, int offset, LCI_endpoint_t ep);
+LCI_error_t LCI_puti(void* src, size_t size, int rank, int rma_id, int offset, LCI_endpoint_t ep);
 
 /**
  * Put medium message to a remote address @rma_id available at the remote endpoint, offset @offset.
@@ -282,25 +279,25 @@ LCI_error_t LCI_Putld(void* src, size_t size, int rank, int tag, LCI_endpoint_t 
  * Create a completion queue.
  */
 LCI_API
-LCI_error_t LCI_Cq_create(LCI_Cq* ep);
+LCI_error_t LCI_cq_create(LCI_Cq* ep);
 
 /**
  * Return first completed request in the queue.
  */
 LCI_API
-LCI_error_t LCI_Cq_dequeue(LCI_Cq ep, LCI_request_t** req);
+LCI_error_t LCI_cq_dequeue(LCI_endpoint_t ep, LCI_request_t** req);
 
 /**
  * Return at most @n first completed request in the queue.
  */
 LCI_API
-LCI_error_t LCI_Cq_mul_dequeue(LCI_Cq ep, int n, int* actual, LCI_request_t** req);
+LCI_error_t LCI_cq_mul_dequeue(LCI_Cq ep, int n, int* actual, LCI_request_t** req);
 
 /**
  * Return @n requests to the runtime.
  */
 LCI_API
-LCI_error_t LCI_request_t_free(int n, LCI_request_t** req);
+LCI_error_t LCI_request_free(LCI_endpoint_t ep, int n, LCI_request_t** req);
 
 /**
  * Create a Sync object.
@@ -343,6 +340,12 @@ LCI_error_t LCI_one2one_wait_empty(void* sync);
  */
 LCI_API
 LCI_error_t LCI_progress(int device_id, int count);
+
+/**
+ * Querying a specific device @device_id for a base address.
+ */
+LCI_API
+uintptr_t LCI_get_base_addr(int device_id);
 
 #ifdef __cplusplus
 }

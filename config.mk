@@ -14,7 +14,7 @@ LCI_USE_DREG ?= yes
 LCI_EP_AR = "explicit"
 
 # Completion mechanism "sync, cq, am, glob"
-LCI_EP_CE = "sync"
+LCI_EP_CE = "sync, cq"
 
 # Maximum number of devices.
 LCI_MAX_DEV = 4

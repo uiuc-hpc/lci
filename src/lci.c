@@ -1,5 +1,6 @@
 #include "lci.h"
 #include "src/include/lci_priv.h"
+#include "src/include/cq.h"
 
 lc_server* lcg_dev[8];
 LCI_endpoint_t lcg_endpoint[8];
@@ -147,8 +148,27 @@ LCI_error_t LCI_one2one_set_empty(void* sync) {
   return LCI_OK;
 }
 
+LCI_error_t LCI_cq_dequeue(LCI_endpoint_t ep, LCI_request_t** req_ptr)
+{
+  LCI_request_t* req = lc_cq_pop(ep->cq);
+  if (!req) return LCI_ERR_RETRY;
+  *req_ptr = req;
+  return LCI_OK;
+}
+
+LCI_error_t LCI_request_free(LCI_endpoint_t ep, int n, LCI_request_t** req)
+{
+  lc_packet* packet = (lc_packet*) ((*req)->__reserved__);
+  lc_pool_put(ep->pkpool, packet);
+  return LCI_OK;
+}
+
 LCI_error_t LCI_progress(int id, int count)
 {
   lc_server_progress(lcg_dev[id]);
   return LCI_OK;
+}
+
+uintptr_t LCI_get_base_addr(int id) {
+  return (uintptr_t) lcg_dev[id]->heap;
 }

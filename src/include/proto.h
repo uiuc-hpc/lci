@@ -40,7 +40,7 @@ inline uint32_t crc32c(char *buf, size_t len)
 
 static inline void lc_init_req(void* buf, size_t size, LCI_request_t* req)
 {
-  req->buffer = buf;
+  req->data.buffer = buf;
   req->size = size;
 }
 
@@ -85,8 +85,10 @@ static inline void lc_ce_signal(LCI_endpoint_t ep, lc_packet* p)
 
 static inline void lc_ce_queue(LCI_endpoint_t ep, lc_packet* p)
 {
-  void* sync = p->context.sync;
-  lc_cq_push(ep->cq, (void*) sync);
+  LCI_syncl_t* sync = p->context.sync;
+  LCI_request_t* req = LCI_SYNCL_PTR_TO_REQ_PTR(sync);
+  req->__reserved__ = (void*) p;
+  lc_cq_push(ep->cq, req);
 }
 
 static inline void lc_handle_rtr(LCI_endpoint_t ep, lc_packet* p)
@@ -105,7 +107,7 @@ static inline void lc_handle_rts(LCI_endpoint_t ep, lc_packet* p)
   dprintf("Recv RTS: %p\n", p);
   lc_pk_init(ep, -1, LC_PROTO_RTR, p);
   lc_proto proto = MAKE_PROTO(ep->gid, LC_PROTO_RTR, 0);
-  lc_prepare_rtr(ep, p->context.sync->request.buffer, p->data.rts.size, p);
+  lc_prepare_rtr(ep, p->context.sync->request.data.buffer, p->data.rts.size, p);
   dprintf("Send RTR: %p\n", p, p->context.sync->request.__reserved__, proto);
   lc_server_sendm(ep->server, p->context.sync->request.__reserved__,
       sizeof(struct packet_rtr), p, proto);
@@ -117,7 +119,7 @@ static inline void lc_serve_recv_imm(LCI_endpoint_t ep, lc_packet* p, lc_proto p
 {
   p->context.sync->request.tag = PROTO_GET_META(proto);
   proto = PROTO_GET_PROTO(proto);
-  p->context.sync->request.buffer = &p->data;
+  p->context.sync->request.data.buffer = &p->data;
   lc_ce_dispatch(ep, p, cap);
 }
 
@@ -129,7 +131,7 @@ static inline void lc_serve_recv_dyn(LCI_endpoint_t ep, lc_packet* p, lc_proto p
   if (proto == LC_PROTO_DATA) {
     void* buf = ep->alloc(p->context.sync->request.size, p->context.sync->request.usr_ctx);
     memcpy(buf, &p->data, p->context.sync->request.size);
-    p->context.sync->request.buffer = buf;
+    p->context.sync->request.data.buffer = buf;
     lc_ce_dispatch(ep, p, cap);
   } else if (proto == LC_PROTO_RTS) {
     void* buf = ep->alloc(p->data.rts.size, p->context.sync->request.usr_ctx);
@@ -151,7 +153,7 @@ static inline void lc_serve_recv_expl(LCI_endpoint_t ep, lc_packet* p, lc_proto 
     if (!lc_hash_insert(ep->tbl, key, &value, SERVER)) {
       LCI_syncl_t* sync = (LCI_syncl_t*) value;
       sync->request.size = p->context.sync->request.size;
-      memcpy(sync->request.buffer, p->data.buffer, p->context.sync->request.size);
+      memcpy(sync->request.data.buffer, p->data.buffer, p->context.sync->request.size);
       p->context.sync = sync;
       lc_ce_dispatch(ep, p, cap);
     }
