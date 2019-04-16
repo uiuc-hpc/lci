@@ -69,23 +69,20 @@ static inline void lc_ce_glob(LCI_endpoint_t ep)
   __sync_fetch_and_add(&ep->completed, 1);
 }
 
-static inline void lc_ce_am(LCI_endpoint_t ep, lc_packet* p)
+static inline void lc_ce_am(LCI_endpoint_t ep, lc_packet* p, void* sync)
 {
-  void* sync = p->context.sync;
   ep->handler(sync, 0);
   lc_pk_free_data(ep, p);
 }
 
-static inline void lc_ce_signal(LCI_endpoint_t ep, lc_packet* p)
+static inline void lc_ce_signal(LCI_endpoint_t ep, lc_packet* p, void* sync)
 {
-  void* sync = p->context.sync;
   LCI_one2one_set_full(sync);
   lc_pk_free_data(ep, p);
 }
 
-static inline void lc_ce_queue(LCI_endpoint_t ep, lc_packet* p)
+static inline void lc_ce_queue(LCI_endpoint_t ep, lc_packet* p, void* sync)
 {
-  LCI_syncl_t* sync = p->context.sync;
   LCI_request_t* req = LCI_SYNCL_PTR_TO_REQ_PTR(sync);
   req->__reserved__ = (void*) p;
   lc_cq_push(ep->cq, req);
@@ -113,14 +110,14 @@ static inline void lc_handle_rts(LCI_endpoint_t ep, lc_packet* p)
       sizeof(struct packet_rtr), p, proto);
 }
 
-static inline void lc_ce_dispatch(LCI_endpoint_t ep, lc_packet* p, const long cap);
+static inline void lc_ce_dispatch(LCI_endpoint_t ep, lc_packet* p, void* sync, const long cap);
 
 static inline void lc_serve_recv_imm(LCI_endpoint_t ep, lc_packet* p, lc_proto proto, const long cap)
 {
   p->context.sync->request.tag = PROTO_GET_META(proto);
   proto = PROTO_GET_PROTO(proto);
   p->context.sync->request.data.buffer = &p->data;
-  lc_ce_dispatch(ep, p, cap);
+  lc_ce_dispatch(ep, p, p->context.sync, cap);
 }
 
 static inline void lc_serve_recv_dyn(LCI_endpoint_t ep, lc_packet* p, lc_proto proto, const long cap)
@@ -132,7 +129,7 @@ static inline void lc_serve_recv_dyn(LCI_endpoint_t ep, lc_packet* p, lc_proto p
     void* buf = ep->alloc(p->context.sync->request.size, p->context.sync->request.usr_ctx);
     memcpy(buf, &p->data, p->context.sync->request.size);
     p->context.sync->request.data.buffer = buf;
-    lc_ce_dispatch(ep, p, cap);
+    lc_ce_dispatch(ep, p, p->context.sync, cap);
   } else if (proto == LC_PROTO_RTS) {
     void* buf = ep->alloc(p->data.rts.size, p->context.sync->request.usr_ctx);
     lc_init_req(buf, p->data.rts.size, &p->context.sync->request);
@@ -154,8 +151,7 @@ static inline void lc_serve_recv_expl(LCI_endpoint_t ep, lc_packet* p, lc_proto 
       LCI_syncl_t* sync = (LCI_syncl_t*) value;
       sync->request.size = p->context.sync->request.size;
       memcpy(sync->request.data.buffer, p->data.buffer, p->context.sync->request.size);
-      p->context.sync = sync;
-      lc_ce_dispatch(ep, p, cap);
+      lc_ce_dispatch(ep, p, sync, cap);
     }
   } else if (proto == LC_PROTO_RTS) {
     const lc_key key = lc_make_key(p->context.sync->request.rank, p->context.sync->request.tag);
@@ -191,21 +187,21 @@ static inline void lc_serve_recv_dispatch(LCI_endpoint_t ep, lc_packet* p, lc_pr
   }
 }
 
-static inline void lc_ce_dispatch(LCI_endpoint_t ep, lc_packet* p, const long cap)
+static inline void lc_ce_dispatch(LCI_endpoint_t ep, lc_packet* p, void* sync, const long cap)
 {
 #ifdef LCI_SERVER_HAS_SYNC
   if (cap & EP_CE_SYNC) {
-    lc_ce_signal(ep, p);
+    lc_ce_signal(ep, p, sync);
   } else
 #endif
 #ifdef LCI_SERVER_HAS_CQ
   if (cap & EP_CE_CQ) {
-    lc_ce_queue(ep, p);
+    lc_ce_queue(ep, p, sync);
   } else
 #endif
 #ifdef LCI_SERVER_HAS_AM
   if (cap & EP_CE_AM) {
-    lc_ce_am(ep, p);
+    lc_ce_am(ep, p, sync);
   } else
 #endif
   {
@@ -231,7 +227,7 @@ static inline void lc_serve_recv_rdma(lc_packet* p, lc_proto proto)
 {
   LCI_endpoint_t ep = lcg_endpoint[PROTO_GET_RGID(proto)];
   p->context.sync->request.tag = PROTO_GET_META(proto);
-  lc_ce_dispatch(ep, p, ep->property);
+  lc_ce_dispatch(ep, p, p->context.sync, ep->property);
 }
 
 static inline void lc_serve_send(lc_packet* p)
@@ -241,7 +237,7 @@ static inline void lc_serve_send(lc_packet* p)
 
   if (proto == LC_PROTO_RTR) {
     if (--p->context.ref == 0)
-      lc_ce_dispatch(ep, p, ep->property);
+      lc_ce_dispatch(ep, p, p->context.sync, ep->property);
     // Have to keep the ref counting here, otherwise there is a nasty race
     // when the RMA is done and this RTR is not.
     // Note that this messed up the order of completion.
@@ -265,7 +261,7 @@ static inline void lc_serve_imm(lc_packet* p)
   dprintf("Recv RDMA: %p %d\n", p, lc_server_rma_key(p->context.rma_mem));
   lc_server_rma_dereg(p->context.rma_mem);
   if (--p->context.ref == 0)
-    lc_ce_dispatch(ep, p, ep->property);
+    lc_ce_dispatch(ep, p, p->context.sync, ep->property);
 }
 
 #endif

@@ -45,7 +45,7 @@ LCI_error_t LCI_recvi(void* src, size_t size, int rank, int tag, LCI_endpoint_t 
     lc_packet* p = (lc_packet*) value;
     memcpy(src, p->data.buffer, p->context.sync->request.size);
     request->size = p->context.sync->request.size;
-    lc_ce_dispatch(ep, p, ep->property);
+    lc_ce_dispatch(ep, p, sync, ep->property);
   }
   return LCI_OK;
 }
@@ -60,7 +60,7 @@ LCI_error_t LCI_recvbc(void* src, size_t size, int rank, int tag, LCI_endpoint_t
     lc_packet* p = (lc_packet*) value;
     memcpy(src, p->data.buffer, p->context.sync->request.size);
     req->size = p->context.sync->request.size;
-    lc_ce_dispatch(ep, p, ep->property);
+    lc_ce_dispatch(ep, p, sync, ep->property);
   }
   return LCI_OK;
 }

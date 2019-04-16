@@ -347,6 +347,8 @@ LCI_error_t LCI_progress(int device_id, int count);
 LCI_API
 uintptr_t LCI_get_base_addr(int device_id);
 
+void lc_pm_barrier();
+
 #ifdef __cplusplus
 }
 #endif
