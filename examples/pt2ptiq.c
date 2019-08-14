@@ -15,9 +15,17 @@ int skip = SKIP;
 int main(int argc, char** args) {
   LCI_initialize(&argc, &args);
   LCI_endpoint_t ep;
-  LCI_PL prop;
+  LCI_PL_t prop;
+  LCI_CQ_t cq;
   LCI_PL_create(&prop);
-  LCI_PL_set_sync_type(LCI_COMPLETION_ONE2ONEL, LCI_COMPLETION_QUEUE, &prop);
+  LCI_CQ_create(0, &cq);
+  LCI_PL_set_cq(&cq, &prop);
+  LCI_PL_set_completion(LCI_PORT_COMMAND, LCI_COMPLETION_ONE2ONEL, &prop);
+  LCI_PL_set_completion(LCI_PORT_MESSAGE, LCI_COMPLETION_QUEUE, &prop);
+  LCI_MT_t mt;
+  LCI_MT_create(0, &mt);
+  LCI_PL_set_mt(&mt, &prop);
+
   LCI_endpoint_create(0, prop, &ep);
   lc_pm_barrier();
 
@@ -45,7 +53,7 @@ int main(int argc, char** args) {
         if (i == skip) t1 = wtime();
         LCI_sendi(src_buf, size, 1-rank, tag, ep);
         LCI_recvi(dst_buf, size, 1-rank, tag, ep, &sync);
-        while (LCI_cq_dequeue(ep, &req_ptr) == LCI_ERR_RETRY)
+        while (LCI_CQ_dequeue(&cq, &req_ptr) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
         if (i == 0) {
           for (int j = 0; j < size; j++)
@@ -65,7 +73,7 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         LCI_recvi(dst_buf, size, 1-rank, tag, ep, &sync);
-        while (LCI_cq_dequeue(ep, &req_ptr) == LCI_ERR_RETRY)
+        while (LCI_CQ_dequeue(&cq, &req_ptr) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
         LCI_request_free(ep, 1, &req_ptr);
         LCI_sendi(src_buf, size, 1-rank, tag, ep);

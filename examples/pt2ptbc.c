@@ -15,8 +15,11 @@ int skip = SKIP;
 int main(int argc, char** args) {
   LCI_initialize(&argc, &args);
   LCI_endpoint_t ep;
-  LCI_PL prop;
+  LCI_PL_t prop;
   LCI_PL_create(&prop);
+  LCI_MT_t mt;
+  LCI_MT_create(0, &mt);
+  LCI_PL_set_mt(&mt, &prop);
   LCI_endpoint_create(0, prop, &ep);
 
   int rank = LCI_RANK;

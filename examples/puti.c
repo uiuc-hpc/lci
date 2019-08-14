@@ -14,9 +14,11 @@ int main(int argc, char** args) {
   LCI_endpoint_t ep;
   LCI_syncl_t sync;
 
-  LCI_PL prop;
+  LCI_PL_t prop;
   LCI_PL_create(&prop);
-  LCI_PL_set_sync_type(LCI_COMPLETION_ONE2ONEL, LCI_COMPLETION_ONE2ONEL, &prop);
+  LCI_PL_set_completion(LCI_PORT_MESSAGE, LCI_COMPLETION_ONE2ONEL, &prop);
+  LCI_PL_set_completion(LCI_PORT_COMMAND, LCI_COMPLETION_ONE2ONEL, &prop);
+
   LCI_endpoint_create(0, prop, &ep);
   int rank = LCI_RANK;
   lc_pm_barrier();

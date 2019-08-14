@@ -148,7 +148,7 @@ static inline void lc_serve_recv_expl(LCI_endpoint_t ep, lc_packet* p, lc_proto 
   if (proto == LC_PROTO_DATA) {
     const lc_key key = lc_make_key(p->context.sync->request.rank, p->context.sync->request.tag);
     lc_value value = (lc_value)p;
-    if (!lc_hash_insert(ep->tbl, key, &value, SERVER)) {
+    if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
       LCI_syncl_t* sync = (LCI_syncl_t*) value;
       sync->request.length = p->context.sync->request.length;
       memcpy(sync->request.data.buffer, p->data.buffer, p->context.sync->request.length);
@@ -157,7 +157,7 @@ static inline void lc_serve_recv_expl(LCI_endpoint_t ep, lc_packet* p, lc_proto 
   } else if (proto == LC_PROTO_RTS) {
     const lc_key key = lc_make_key(p->context.sync->request.rank, p->context.sync->request.tag);
     lc_value value = (lc_value)p;
-    if (!lc_hash_insert(ep->tbl, key, &value, SERVER)) {
+    if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
       p->context.sync = (LCI_syncl_t*) value;
       lc_handle_rts(ep, p);
     }

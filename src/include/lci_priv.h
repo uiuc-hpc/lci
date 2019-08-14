@@ -50,6 +50,8 @@ struct LCI_PL_s {
   LCI_comp_t rtype;
   LCI_Handler handler;
   LCI_Allocator allocator;
+  LCI_CQ_t cq;
+  LCI_MT_t mt;
 };
 
 struct LCI_endpoint_s {
@@ -60,7 +62,7 @@ struct LCI_endpoint_s {
   // Associated software components.
   lc_pool* pkpool;
   lc_rep* rep;
-  lc_hash* tbl;
+  lc_hash* mt;
 
   union {
     lc_cq* cq;
@@ -108,6 +110,7 @@ static inline void lc_dev_init(int id, lc_server** dev)
 
 static inline void lc_dev_finalize(lc_server* dev)
 {
+  lc_server_finalize(dev);
 }
 
 #endif

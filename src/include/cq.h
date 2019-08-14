@@ -27,6 +27,10 @@ static inline void lc_cq_create(struct lc_cq** cq_ptr)
   cq->spinlock = LC_SPIN_UNLOCKED;
 }
 
+static inline void lc_cq_free(struct lc_cq* cq) {
+  free(cq);
+}
+
 static inline void lc_cq_push(struct lc_cq* cq, void* req)
 {
   lc_spin_lock(&cq->spinlock);
@@ -50,5 +54,7 @@ static inline void* lc_cq_pop(struct lc_cq* cq)
   lc_spin_unlock(&cq->spinlock);
   return ret;
 };
+
+#define LCI_CQ_s lc_cq
 
 #endif

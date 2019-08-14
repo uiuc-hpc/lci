@@ -155,4 +155,7 @@ static inline int lc_hash_insert(struct lc_hash* h, lc_key key, lc_value* value,
   lc_spin_unlock(&master->control.lock);
   return 1;
 }
+
+#define LCI_MT_s lc_hash
+
 #endif

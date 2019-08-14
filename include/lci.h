@@ -46,19 +46,35 @@ typedef enum LCI_comm_t {
 } LCI_comm_t;
 
 /**
+ * LCI Matching type.
+ */
+typedef enum LCI_match_t {
+  LCI_MATCH_RANKTAG = 0,
+  LCI_MATCH_TAG
+} LCI_match_t;
+
+/**
  * LCI Message type.
  */
-typedef enum LCI_msg_t {
+typedef enum {
   LCI_MSG_IMMEDIATE,
   LCI_MSG_BUFFERED,
   LCI_MSG_DIRECT,
 } LCI_msg_t;
 
+/**
+ * LCI Port type.
+ */
+typedef enum {
+  LCI_PORT_COMMAND = 0,
+  LCI_PORT_MESSAGE = 1,
+} LCI_port_t;
+
 
 /**
  * LCI completion type.
  */
-typedef enum LCI_comp_t {
+typedef enum {
   LCI_COMPLETION_QUEUE = 0,
   LCI_COMPLETION_HANDLER,
   LCI_COMPLETION_ONE2ONEL,
@@ -75,7 +91,7 @@ typedef enum LCI_comp_t {
 /**
  * LCI dynamic buffer.
  */
-typedef enum LCI_dynamic_t {
+typedef enum {
   LCI_STATIC = 0,
   LCI_DYNAMIC
 } LCI_dynamic_t;
@@ -124,13 +140,19 @@ typedef struct LCI_endpoint_s* LCI_endpoint_t;
  * Property object, owned by the runtime.
  */
 struct LCI_PL_s;
-typedef struct LCI_PL_s* LCI_PL;
+typedef struct LCI_PL_s* LCI_PL_t;
 
 /**
  * Completion queue object, owned by the runtime.
  */
-struct LCI_cq_s;
-typedef struct LCI_cq_s* LCI_Cq;
+struct LCI_CQ_s;
+typedef struct LCI_CQ_s* LCI_CQ_t;
+
+/**
+ * Hash table type, owned by the runtime.
+ */
+struct LCI_MT_s;
+typedef struct LCI_MT_s* LCI_MT_t;
 
 /**
  * Handler type
@@ -155,46 +177,70 @@ LCI_API
 LCI_error_t LCI_finalize();
 
 /**
- * Create an endpoint Property @prop.
+ * Create an endpoint Property @plist.
  */
 LCI_API
-LCI_error_t LCI_PL_create(LCI_PL* prop);
+LCI_error_t LCI_PL_create(LCI_PL_t* plist);
+
+/**
+ * Destroy an endpoint Property @plist.
+ */
+LCI_API
+LCI_error_t LCI_PL_free(LCI_PL_t* plist);
 
 /**
  * Set communication style (1sided, 2sided, collective).
  */
 LCI_API
-LCI_error_t LCI_PL_set_comm_type(LCI_comm_t type, LCI_PL* prop);
+LCI_error_t LCI_PL_set_comm_type(LCI_comm_t type, LCI_PL_t*  plist);
+
+/**
+ * Set matching style (ranktag, tag).
+ */
+LCI_API
+LCI_error_t LCI_PL_set_match_type(LCI_match_t type, LCI_PL_t*  plist);
+
+/**
+ * Set hash-table memory for matching.
+ */
+LCI_API
+LCI_error_t LCI_PL_set_mt(LCI_MT_t *mt, LCI_PL_t*  plist);
 
 /**
  * Set message type (short, medium, long).
  */
 LCI_API
-LCI_error_t LCI_PL_set_message_type(LCI_msg_t type, LCI_PL* prop);
+LCI_error_t LCI_PL_set_msg_type(LCI_msg_t type, LCI_PL_t*  plist);
 
 /**
- * Set synchronization type for completion.
+ * Set completion mechanism.
  */
 LCI_API
-LCI_error_t LCI_PL_set_sync_type(LCI_comp_t ltype, LCI_comp_t rtype, LCI_PL* prop);
+LCI_error_t LCI_PL_set_completion(LCI_port_t port, LCI_comp_t type, LCI_PL_t*  plist);
+
+/**
+ * Set completion mechanism.
+ */
+LCI_API
+LCI_error_t LCI_PL_set_cq(LCI_CQ_t* cq, LCI_PL_t *plist);
 
 /**
  * Set handler for AM protocol.
  */
 LCI_API
-LCI_error_t LCI_PL_set_handler(LCI_Handler handler, LCI_PL* prop);
+LCI_error_t LCI_PL_set_handler(LCI_Handler handler, LCI_PL_t*  plist);
 
 /**
  * Set allocator for dynamic protocol.
  */
 LCI_API
-LCI_error_t LCI_PL_set_allocator(LCI_Allocator alloc, LCI_PL* prop);
+LCI_error_t LCI_PL_set_allocator(LCI_Allocator alloc, LCI_PL_t*  plist);
 
 /**
  * Create an endpoint, collective calls for those involved in the endpoints.
  */
 LCI_API
-LCI_error_t LCI_endpoint_create(int device_id, LCI_PL prop, LCI_endpoint_t* ep);
+LCI_error_t LCI_endpoint_create(int device_id, LCI_PL_t plist, LCI_endpoint_t* ep);
 
 /**
  * Query the rank of the current process.
@@ -260,33 +306,33 @@ LCI_error_t LCI_puti(void* src, size_t size, int rank, int rma_id, int offset, L
  * Complete immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
-LCI_error_t LCI_Putm(void* src, size_t size, int rank, int rma_id, int offset, LCI_endpoint_t ep);
+LCI_error_t LCI_putm(void* src, size_t size, int rank, int rma_id, int offset, LCI_endpoint_t ep);
 
 /**
  * Put long message to a remote address @rma_id available at the remote endpoint, offset @offset.
  */
 LCI_API
-LCI_error_t LCI_Putl(void* src, size_t size, int rank, int rma_id, int offset, LCI_endpoint_t ep, void* context);
+LCI_error_t LCI_putl(void* src, size_t size, int rank, int rma_id, int offset, LCI_endpoint_t ep, void* context);
 
 /**
  * Put short message to a remote address, piggy-back data to completed request.
  * Complete immediately or LCI_ERR_RETRY.
  */
 LCI_API
-LCI_error_t LCI_Putsd(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep);
+LCI_error_t LCI_putsd(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep);
 
 /**
  * Put medium message to a remote address, piggy-back data to completed request.
  * Complete immediately or LCI_ERR_RETRY.
  */
 LCI_API
-LCI_error_t LCI_Putmd(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep);
+LCI_error_t LCI_putmd(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep);
 
 /**
  * Put long message to a remote address, required a remote allocation.
  */
 LCI_API
-LCI_error_t LCI_Putld(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep, void* sync_context);
+LCI_error_t LCI_putld(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep, void* sync_context);
 
 /* Completion methods */
 
@@ -294,25 +340,41 @@ LCI_error_t LCI_Putld(void* src, size_t size, int rank, int tag, LCI_endpoint_t 
  * Create a completion queue.
  */
 LCI_API
-LCI_error_t LCI_cq_create(LCI_Cq* ep);
+LCI_error_t LCI_CQ_create(uint32_t length, LCI_CQ_t* cq);
+
+/**
+ * Destroy a completion queue.
+ */
+LCI_API
+LCI_error_t LCI_CQ_free(LCI_CQ_t* cq);
 
 /**
  * Return first completed request in the queue.
  */
 LCI_API
-LCI_error_t LCI_cq_dequeue(LCI_endpoint_t ep, LCI_request_t** req);
+LCI_error_t LCI_CQ_dequeue(LCI_CQ_t* cq, LCI_request_t** req);
 
 /**
  * Return at most @n first completed request in the queue.
  */
 LCI_API
-LCI_error_t LCI_cq_mul_dequeue(LCI_Cq ep, int n, int* actual, LCI_request_t** req);
+LCI_error_t LCI_CQ_mul_dequeue(LCI_CQ_t *cq, LCI_request_t requests[], uint8_t count);
 
 /**
  * Return @n requests to the runtime.
  */
 LCI_API
 LCI_error_t LCI_request_free(LCI_endpoint_t ep, int n, LCI_request_t** req);
+
+/**
+ * Create a matching hash-table.
+ */
+LCI_error_t LCI_MT_create(uint32_t length, LCI_MT_t *mt);
+
+/**
+ * Destroy the matching hash-table.
+ */
+LCI_error_t LCI_MT_free(LCI_MT_t *mt);
 
 /**
  * Create a Sync object.
