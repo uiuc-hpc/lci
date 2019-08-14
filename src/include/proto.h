@@ -220,13 +220,13 @@ static inline void lc_ce_dispatch(LCI_endpoint_t ep, lc_packet* p, void* sync, c
 static inline void lc_serve_recv(lc_packet* p, lc_proto proto)
 {
   // NOTE: this should be RGID because it is received from remote.
-  LCI_endpoint_t ep = lcg_endpoint[PROTO_GET_RGID(proto)];
+  LCI_endpoint_t ep = LCI_ENDPOINTS[PROTO_GET_RGID(proto)];
   return lc_serve_recv_dispatch(ep, p, proto, ep->property);
 }
 
 static inline void lc_serve_recv_rdma(lc_packet* p, lc_proto proto)
 {
-  LCI_endpoint_t ep = lcg_endpoint[PROTO_GET_RGID(proto)];
+  LCI_endpoint_t ep = LCI_ENDPOINTS[PROTO_GET_RGID(proto)];
   p->context.sync->request.tag = PROTO_GET_META(proto);
   lc_ce_dispatch(ep, p, p->context.sync, ep->property);
 }

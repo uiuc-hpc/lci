@@ -22,6 +22,7 @@ extern "C" {
 int LCI_IMMEDIATE_LENGTH;
 int LCI_BUFFERED_LENGTH;
 int LCI_NUM_DEVICES;
+int LCI_NUM_ENDPOINTS;
 int LCI_NUM_PROCESSES;
 int LCI_RANK;
 int LCI_REGISTERED_MEMORY_SIZE;
@@ -145,7 +146,7 @@ typedef void* (*LCI_Allocator)(size_t size, void* usr_context);
  * Initialize LCI.
  */
 LCI_API
-LCI_error_t LCI_initialize(int num_devices);
+LCI_error_t LCI_initialize(int* argc, char*** args);
 
 /**
  * Finalize LCI.

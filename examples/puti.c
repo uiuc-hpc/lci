@@ -10,7 +10,7 @@
 #define MAX_MSG 128
 
 int main(int argc, char** args) {
-  LCI_initialize(1);
+  LCI_initialize(&argc, &args);
   LCI_endpoint_t ep;
   LCI_syncl_t sync;
 
@@ -18,7 +18,7 @@ int main(int argc, char** args) {
   LCI_PL_create(&prop);
   LCI_PL_set_sync_type(LCI_COMPLETION_ONE2ONEL, LCI_COMPLETION_ONE2ONEL, &prop);
   LCI_endpoint_create(0, prop, &ep);
-  int rank = LCI_Rank();
+  int rank = LCI_RANK;
   lc_pm_barrier();
 
   uintptr_t addr, raddr;

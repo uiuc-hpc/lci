@@ -2,12 +2,10 @@
 #include "src/include/lci_priv.h"
 #include "src/include/cq.h"
 
-lc_server* lcg_dev[8];
-LCI_endpoint_t lcg_endpoint[8];
-int lcg_num_devices = 0;
-int lcg_num_endpoints= 0;
-char lcg_name[64];
+lc_server** LCI_DEVICES;
+LCI_endpoint_t* LCI_ENDPOINTS;
 
+char lcg_name[64];
 int lcg_current_id = 0;
 int lcg_deadlock = 0;
 volatile uint32_t next_key = 1;
@@ -15,7 +13,7 @@ __thread int lcg_core_id = -1;
 
 void lc_config_init(int num_proc, int rank);
 
-LCI_error_t LCI_initialize(int num_devices)
+LCI_error_t LCI_initialize(int* argc, char*** args)
 {
   int num_proc, rank;
   // Initialize processes in this job.
@@ -24,30 +22,30 @@ LCI_error_t LCI_initialize(int num_devices)
   // Set some constant from environment variable.
   lc_config_init(num_proc, rank);
 
-  for (int i = 0; i < num_devices; i++) {
-    lc_dev_init(i, &lcg_dev[i]);
+  for (int i = 0; i < LCI_NUM_DEVICES; i++) {
+    lc_dev_init(i, &LCI_DEVICES[i]);
   }
-  lcg_num_devices = num_devices;
   return LCI_OK;
 }
 
 LCI_error_t LCI_finalize()
 {
-  for (int i = 0; i < lcg_num_devices; i++) {
-    lc_dev_finalize(lcg_dev[i]);
+  for (int i = 0; i < LCI_NUM_DEVICES; i++) {
+    lc_dev_finalize(LCI_DEVICES[i]);
   }
   return LCI_OK;
 }
 
 LCI_error_t LCI_endpoint_create(int device, LCI_PL prop, LCI_endpoint_t* ep_ptr)
 {
+  static int num_endpoints = 0;
   struct LCI_endpoint_s* ep = 0;
-  lc_server* dev = lcg_dev[device];
+  lc_server* dev = LCI_DEVICES[device];
   posix_memalign((void**) &ep, 64, sizeof(struct LCI_endpoint_s));
   ep->server = dev;
   ep->pkpool = dev->pkpool;
-  ep->gid = lcg_num_endpoints++;
-  lcg_endpoint[ep->gid] = ep;
+  ep->gid = num_endpoints++;
+  LCI_ENDPOINTS[ep->gid] = ep;
 
   if (prop->ctype == LCI_COMM_2SIDED || prop->ctype == LCI_COMM_COLLECTIVE) {
     lc_hash_create(&ep->tbl);
@@ -159,10 +157,10 @@ LCI_error_t LCI_request_free(LCI_endpoint_t ep, int n, LCI_request_t** req)
 
 LCI_error_t LCI_progress(int id, int count)
 {
-  lc_server_progress(lcg_dev[id]);
+  lc_server_progress(LCI_DEVICES[id]);
   return LCI_OK;
 }
 
 uintptr_t LCI_get_base_addr(int id) {
-  return (uintptr_t) lcg_dev[id]->heap;
+  return (uintptr_t) LCI_DEVICES[id]->heap;
 }

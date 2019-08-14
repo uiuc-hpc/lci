@@ -13,13 +13,13 @@ int total = TOTAL;
 int skip = SKIP;
 
 int main(int argc, char** args) {
-  LCI_initialize(1);
+  LCI_initialize(&argc, &args);
   LCI_endpoint_t ep;
   LCI_PL prop;
   LCI_PL_create(&prop);
   LCI_endpoint_create(0, prop, &ep);
 
-  int rank = LCI_Rank();
+  int rank = LCI_RANK;
   int tag = 99;
 
   LCI_syncl_t sync;

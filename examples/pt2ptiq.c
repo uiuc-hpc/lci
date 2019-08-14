@@ -13,7 +13,7 @@ int total = TOTAL;
 int skip = SKIP;
 
 int main(int argc, char** args) {
-  LCI_initialize(1);
+  LCI_initialize(&argc, &args);
   LCI_endpoint_t ep;
   LCI_PL prop;
   LCI_PL_create(&prop);
@@ -21,7 +21,7 @@ int main(int argc, char** args) {
   LCI_endpoint_create(0, prop, &ep);
   lc_pm_barrier();
 
-  int rank = LCI_Rank();
+  int rank = LCI_RANK;
   int tag = 99;
 
   LCI_request_t* req_ptr;
