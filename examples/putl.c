@@ -34,7 +34,7 @@ int main(int argc, char** args) {
 
   memset(sbuf, 1, sizeof(char) * MAX_MSG);
   rbuf[0] = -1;
-  lc_pm_barrier();
+  LCI_PM_barrier();
 
   double t1;
   lc_sync sync;

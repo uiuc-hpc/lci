@@ -21,7 +21,7 @@ int main(int argc, char** args) {
 
   LCI_endpoint_create(0, prop, &ep);
   int rank = LCI_RANK;
-  lc_pm_barrier();
+  LCI_PM_barrier();
 
   uintptr_t addr, raddr;
   int base_offset = 64 * 1024;
@@ -37,7 +37,7 @@ int main(int argc, char** args) {
   long* rbuf = (long*) (addr + MAX_MSG);
   memset(sbuf, 1, sizeof(char) * MAX_MSG);
   rbuf[0] = -1;
-  lc_pm_barrier();
+  LCI_PM_barrier();
 
   double t1;
 
