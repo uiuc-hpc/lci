@@ -103,25 +103,25 @@ static inline int lc_server_progress(lc_server* s)
 #ifdef LC_SERVER_DEBUG
     if (wc[i].status != IBV_WC_SUCCESS) {
       fprintf(stderr, "Failed status %s (%d) for wr_id %d\n",
-          ibv_wc_status_str(wc[i].status), wc[i].status,
-          (int)wc[i].wr_id);
+              ibv_wc_status_str(wc[i].status), wc[i].status, (int)wc[i].wr_id);
       exit(EXIT_FAILURE);
     }
 #endif
     s->recv_posted--;
-    __builtin_prefetch((void*) wc[i].wr_id);
+    __builtin_prefetch((void*)wc[i].wr_id);
     if (wc[i].opcode != IBV_WC_RECV_RDMA_WITH_IMM) {
       // simple recv.
       lc_packet* p = (lc_packet*)wc[i].wr_id;
       p->context.req = &p->context.req_s;
       p->context.req->rank = s->qp2rank[wc[i].qp_num % s->qp2rank_mod];
-      p->context.req->__reserved__ = (void*) s->qp[p->context.req->rank];
+      p->context.req->__reserved__ = (void*)s->qp[p->context.req->rank];
       p->context.req->size = wc[i].byte_len;
       lc_serve_recv(p, wc[i].imm_data);
     } else {
       if (wc[i].imm_data & IBV_IMM_RTR) {
         // recv immediate protocol (3-msg rdz).
-        lc_packet* p = (lc_packet*) (s->heap->addr + (wc[i].imm_data ^ IBV_IMM_RTR));
+        lc_packet* p =
+            (lc_packet*)(s->heap->addr + (wc[i].imm_data ^ IBV_IMM_RTR));
         lc_serve_imm(p);
         lc_pool_put(s->pkpool, (lc_packet*)wc[i].wr_id);
       } else {
@@ -144,8 +144,7 @@ static inline int lc_server_progress(lc_server* s)
 #ifdef LC_SERVER_DEBUG
     if (wc[i].status != IBV_WC_SUCCESS) {
       fprintf(stderr, "Failed status %s (%d) for wr_id %d\n",
-          ibv_wc_status_str(wc[i].status), wc[i].status,
-          (int)wc[i].wr_id);
+              ibv_wc_status_str(wc[i].status), wc[i].status, (int)wc[i].wr_id);
       exit(EXIT_FAILURE);
     }
 #endif
@@ -179,20 +178,17 @@ static inline int lc_server_progress(lc_server* s)
   }
 
 static inline void lc_server_sends(lc_server* s __UNUSED__, void* rep,
-                        void* ubuf, size_t size, uint32_t proto)
+                                   void* ubuf, size_t size, uint32_t proto)
 {
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr;
   static int ninline = 0;
 
   struct ibv_sge list = {
-      .addr = (uintptr_t)ubuf,
-      .length = (uint32_t)size,
-      .lkey = 0
-  };
+      .addr = (uintptr_t)ubuf, .length = (uint32_t)size, .lkey = 0};
 
   setup_wr(this_wr, (uintptr_t)0, &list, IBV_WR_SEND_WITH_IMM,
-           IBV_SEND_INLINE); // NOTE: do not signal freqly here.
+           IBV_SEND_INLINE);  // NOTE: do not signal freqly here.
 
   if (unlikely(ninline++ == 64)) {
     this_wr.send_flags |= IBV_SEND_SIGNALED;
@@ -200,11 +196,11 @@ static inline void lc_server_sends(lc_server* s __UNUSED__, void* rep,
   }
 
   this_wr.imm_data = proto;
-  IBV_SAFECALL(ibv_post_send((struct ibv_qp*) rep, &this_wr, &bad_wr));
+  IBV_SAFECALL(ibv_post_send((struct ibv_qp*)rep, &this_wr, &bad_wr));
 }
 
 static inline void lc_server_sendm(lc_server* s, void* rep, size_t size,
-                        lc_packet* ctx, uint32_t proto)
+                                   lc_packet* ctx, uint32_t proto)
 {
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr;
@@ -218,19 +214,20 @@ static inline void lc_server_sendm(lc_server* s, void* rep, size_t size,
   setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND_WITH_IMM,
            IBV_SEND_SIGNALED);
   this_wr.imm_data = proto;
-  IBV_SAFECALL(ibv_post_send((struct ibv_qp*) rep, &this_wr, &bad_wr));
+  IBV_SAFECALL(ibv_post_send((struct ibv_qp*)rep, &this_wr, &bad_wr));
 }
 
 static inline void lc_server_puts(lc_server* s __UNUSED__, void* rep, void* buf,
-    uintptr_t base, uint32_t offset, uint32_t rkey, size_t size)
+                                  uintptr_t base, uint32_t offset,
+                                  uint32_t rkey, size_t size)
 {
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr = 0;
 
   struct ibv_sge list = {
-    .addr = (uintptr_t) buf,
-    .length = (unsigned)size,
-    .lkey = 0,
+      .addr = (uintptr_t)buf,
+      .length = (unsigned)size,
+      .lkey = 0,
   };
 
   setup_wr(this_wr, 0, &list, IBV_WR_RDMA_WRITE,
@@ -241,73 +238,74 @@ static inline void lc_server_puts(lc_server* s __UNUSED__, void* rep, void* buf,
   IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
 }
 
-static inline void lc_server_putss(lc_server* s __UNUSED__, void* rep, void* buf,
-    uintptr_t base, uint32_t offset, uint32_t rkey, uint32_t meta, size_t size)
+static inline void lc_server_putss(lc_server* s __UNUSED__, void* rep,
+                                   void* buf, uintptr_t base, uint32_t offset,
+                                   uint32_t rkey, uint32_t meta, size_t size)
 {
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr = 0;
 
   struct ibv_sge list = {
-    .addr = (uintptr_t)buf,
-    .length = (unsigned)size,
-    .lkey = 0,
+      .addr = (uintptr_t)buf,
+      .length = (unsigned)size,
+      .lkey = 0,
   };
 
   setup_wr(this_wr, 0, &list, IBV_WR_RDMA_WRITE_WITH_IMM,
            IBV_SEND_SIGNALED | IBV_SEND_INLINE);
-  this_wr.wr.rdma.remote_addr = (uintptr_t) (base + offset);
+  this_wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
   this_wr.wr.rdma.rkey = rkey;
   this_wr.imm_data = meta;
 
   IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
 }
 
-static inline void lc_server_putm(lc_server* s, void* rep,
-    uintptr_t base, uint32_t offset, uint32_t rkey, size_t size,
-    lc_packet* ctx)
+static inline void lc_server_putm(lc_server* s, void* rep, uintptr_t base,
+                                  uint32_t offset, uint32_t rkey, size_t size,
+                                  lc_packet* ctx)
 {
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr = 0;
 
   struct ibv_sge list = {
-    .addr = (uintptr_t)ctx->data.buffer,
-    .length = (unsigned)size,
-    .lkey = s->heap->lkey,
+      .addr = (uintptr_t)ctx->data.buffer,
+      .length = (unsigned)size,
+      .lkey = s->heap->lkey,
   };
 
-  setup_wr(this_wr, (uintptr_t) ctx, &list, IBV_WR_RDMA_WRITE, IBV_SEND_SIGNALED);
-  this_wr.wr.rdma.remote_addr = (uintptr_t) (base + offset);
+  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE,
+           IBV_SEND_SIGNALED);
+  this_wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
   this_wr.wr.rdma.rkey = rkey;
 
   IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
 }
 
-static inline void lc_server_putms(lc_server* s, void* rep,
-                         uintptr_t base, uint32_t offset, uint32_t rkey, size_t size,
-                         uint32_t meta, lc_packet* ctx)
+static inline void lc_server_putms(lc_server* s, void* rep, uintptr_t base,
+                                   uint32_t offset, uint32_t rkey, size_t size,
+                                   uint32_t meta, lc_packet* ctx)
 {
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr = 0;
 
   struct ibv_sge list = {
-    .addr = (uintptr_t)ctx->data.buffer,
-    .length = (unsigned)size,
-    .lkey = s->heap->lkey,
+      .addr = (uintptr_t)ctx->data.buffer,
+      .length = (unsigned)size,
+      .lkey = s->heap->lkey,
   };
 
-  setup_wr(this_wr, (uintptr_t) ctx, &list,
-           IBV_WR_RDMA_WRITE_WITH_IMM, IBV_SEND_SIGNALED);
-  this_wr.wr.rdma.remote_addr = (uintptr_t) (base + offset);
+  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE_WITH_IMM,
+           IBV_SEND_SIGNALED);
+  this_wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
   this_wr.wr.rdma.rkey = rkey;
   this_wr.imm_data = meta;
 
   IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
 }
-
 
 static inline void lc_server_putl(lc_server* s, void* rep, void* buf,
-                        uintptr_t base, uint32_t offset, uint32_t rkey, size_t size,
-                        lc_packet* ctx)
+                                  uintptr_t base, uint32_t offset,
+                                  uint32_t rkey, size_t size, lc_packet* ctx)
 {
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr = 0;
@@ -317,21 +315,22 @@ static inline void lc_server_putl(lc_server* s, void* rep, void* buf,
   lkey = ibv_rma_lkey(lc_server_rma_reg(s, buf, size));
 
   struct ibv_sge list = {
-    .addr = (uintptr_t)buf,
-    .length = (unsigned)size,
-    .lkey = lkey,
+      .addr = (uintptr_t)buf,
+      .length = (unsigned)size,
+      .lkey = lkey,
   };
 
-  setup_wr(this_wr, (uintptr_t) ctx, &list, IBV_WR_RDMA_WRITE, flag);
-  this_wr.wr.rdma.remote_addr = (uintptr_t) (base + offset);
+  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE, flag);
+  this_wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
   this_wr.wr.rdma.rkey = rkey;
 
   IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
 }
 
 static inline void lc_server_putls(lc_server* s, void* rep, void* buf,
-                         uintptr_t base, uint32_t offset, uint32_t rkey, size_t size,
-                         uint32_t meta, lc_packet* ctx)
+                                   uintptr_t base, uint32_t offset,
+                                   uint32_t rkey, size_t size, uint32_t meta,
+                                   lc_packet* ctx)
 {
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr = 0;
@@ -341,20 +340,22 @@ static inline void lc_server_putls(lc_server* s, void* rep, void* buf,
   lkey = ibv_rma_lkey(lc_server_rma_reg(s, buf, size));
 
   struct ibv_sge list = {
-    .addr = (uintptr_t)buf,
-    .length = (unsigned)size,
-    .lkey = lkey,
+      .addr = (uintptr_t)buf,
+      .length = (unsigned)size,
+      .lkey = lkey,
   };
 
-  setup_wr(this_wr, (uintptr_t) ctx, &list, IBV_WR_RDMA_WRITE_WITH_IMM, flag);
-  this_wr.wr.rdma.remote_addr = (uintptr_t) (base + offset);
+  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE_WITH_IMM, flag);
+  this_wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
   this_wr.wr.rdma.rkey = rkey;
   this_wr.imm_data = meta;
 
   IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
 }
 
-static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf, uintptr_t addr, uint32_t rkey, size_t size, uint32_t sid, lc_packet* ctx)
+static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf,
+                                     uintptr_t addr, uint32_t rkey, size_t size,
+                                     uint32_t sid, lc_packet* ctx)
 {
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr = 0;
@@ -373,9 +374,8 @@ static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf, uintptr
       .lkey = lkey,
   };
 
-  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE_WITH_IMM,
-           flag);
-  this_wr.wr.rdma.remote_addr = (uintptr_t) addr;
+  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE_WITH_IMM, flag);
+  this_wr.wr.rdma.remote_addr = (uintptr_t)addr;
   this_wr.wr.rdma.rkey = rkey;
   this_wr.imm_data = sid | IBV_IMM_RTR;
 
@@ -385,7 +385,7 @@ static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf, uintptr
 static inline void lc_server_init(int id, lc_server** dev)
 {
   lc_server* s = NULL;
-  posix_memalign((void**) &s, 8192, sizeof(struct lc_server));
+  posix_memalign((void**)&s, 8192, sizeof(struct lc_server));
 
   *dev = s;
   s->id = id;
@@ -405,7 +405,7 @@ static inline void lc_server_init(int id, lc_server** dev)
   }
   ibv_free_device_list(dev_list);
 
-  struct ibv_device_attr *dev_attr = &s->dev_attr;
+  struct ibv_device_attr* dev_attr = &s->dev_attr;
   int rc = ibv_query_device(s->dev_ctx, dev_attr);
   if (rc != 0) {
     fprintf(stderr, "Unable to query device\n");
@@ -463,7 +463,8 @@ static inline void lc_server_init(int id, lc_server** dev)
   s->recv_posted = 0;
   // s->qp = calloc(lcg_size, sizeof(struct ibv_qp*));
   // s->rkey = calloc(lcg_size, sizeof(uintptr_t));
-  posix_memalign((void**)&s->qp, LC_CACHE_LINE, lcg_size * sizeof(struct ibv_qp*));
+  posix_memalign((void**)&s->qp, LC_CACHE_LINE,
+                 lcg_size * sizeof(struct ibv_qp*));
 
   struct conn_ctx lctx, rctx;
   char ep_name[256];
@@ -481,37 +482,38 @@ static inline void lc_server_init(int id, lc_server** dev)
     lc_pm_publish(lcg_rank, (s->id) << 8 | i, ep_name);
   }
 
-  posix_memalign((void**) &(s->rep), LC_CACHE_LINE, sizeof(struct lc_rep) * lcg_size);
+  posix_memalign((void**)&(s->rep), LC_CACHE_LINE,
+                 sizeof(struct lc_rep) * lcg_size);
 
   for (int i = 0; i < lcg_size; i++) {
     lc_pm_getname(i, (s->id << 8) | lcg_rank, ep_name);
     sscanf(ep_name, "%llu-%d-%d-%d", (unsigned long long*)&rctx.addr,
-        &rctx.rkey, &rctx.qp_num, (int*)&rctx.lid);
+           &rctx.rkey, &rctx.qp_num, (int*)&rctx.lid);
     qp_to_rtr(s->qp[i], s->dev_port, &s->port_attr, &rctx);
     qp_to_rts(s->qp[i]);
 
     struct lc_rep* rep = &s->rep[i];
     rep->rank = i;
     rep->rkey = rctx.rkey;
-    rep->handle = (void*) s->qp[i];
+    rep->handle = (void*)s->qp[i];
   }
 
   int j = lcg_size;
   int* b;
   while (1) {
-      b = (int*)calloc(j, sizeof(int));
-      int i = 0;
-      for (; i < lcg_size; i++) {
-          int k = (s->qp[i]->qp_num % j);
-          if (b[k]) break;
-          b[k] = 1;
-      }
-      if (i == lcg_size) break;
-      j++;
-      free(b);
+    b = (int*)calloc(j, sizeof(int));
+    int i = 0;
+    for (; i < lcg_size; i++) {
+      int k = (s->qp[i]->qp_num % j);
+      if (b[k]) break;
+      b[k] = 1;
+    }
+    if (i == lcg_size) break;
+    j++;
+    free(b);
   }
   for (int i = 0; i < lcg_size; i++) {
-      b[s->qp[i]->qp_num % j] = i;
+    b[s->qp[i]->qp_num % j] = i;
   }
   s->qp2rank_mod = j;
   s->qp2rank = b;
@@ -533,6 +535,8 @@ static inline void lc_server_finalize(lc_server* s)
 
 static inline void* lc_server_heap_ptr(lc_server* s) { return s->heap_ptr; }
 
-#define lc_server_post_rma(...) {}
+#define lc_server_post_rma(...) \
+  {                             \
+  }
 
 #endif

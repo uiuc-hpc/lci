@@ -7,8 +7,8 @@
 #define LC_COL_SEND 0
 #define LC_COL_RECV 1
 #define LC_COL_SENDRECV 2
-#define LC_COL_OP   3
-#define LC_COL_MEM  4
+#define LC_COL_OP 3
+#define LC_COL_MEM 4
 #define LC_COL_FREE 5
 
 static inline int opal_next_poweroftwo(int value)
@@ -18,7 +18,7 @@ static inline int opal_next_poweroftwo(int value)
   if (0 == value) {
     return 1;
   }
-  power2 = 1 << (8 * sizeof (int) - __builtin_clz(value));
+  power2 = 1 << (8 * sizeof(int) - __builtin_clz(value));
 
   return power2;
 }
@@ -28,12 +28,12 @@ static inline void lc_colreq_init(lc_colreq* req)
   req->flag = 0;
   req->cur = 0;
   req->total = 0;
-  lc_signal((void*) &req->pending[0].sync);
-  lc_signal((void*) &req->pending[1].sync);
+  lc_signal((void*)&req->pending[0].sync);
+  lc_signal((void*)&req->pending[1].sync);
 }
 
-static inline void lc_col_send(
-    void* src, size_t size, int rank, int tag, lc_ep ep, lc_colreq* req)
+static inline void lc_col_send(void* src, size_t size, int rank, int tag,
+                               lc_ep ep, lc_colreq* req)
 {
   lc_col_sched* op = &(req->next[req->total++]);
   op->src = src;
@@ -44,8 +44,8 @@ static inline void lc_col_send(
   op->type = LC_COL_SEND;
 }
 
-static inline void lc_col_recv(
-    void* src, size_t size, int rank, int tag, lc_ep ep, lc_colreq* req)
+static inline void lc_col_recv(void* src, size_t size, int rank, int tag,
+                               lc_ep ep, lc_colreq* req)
 {
   lc_col_sched* op = &(req->next[req->total++]);
   op->src = src;
@@ -56,8 +56,8 @@ static inline void lc_col_recv(
   op->type = LC_COL_RECV;
 }
 
-static inline void lc_col_sendrecv(
-    void* src, void* dst, size_t size, int rank, int tag, lc_ep ep, lc_colreq* req)
+static inline void lc_col_sendrecv(void* src, void* dst, size_t size, int rank,
+                                   int tag, lc_ep ep, lc_colreq* req)
 {
   lc_col_sched* op = &(req->next[req->total++]);
   op->src = src;
@@ -69,7 +69,7 @@ static inline void lc_col_sendrecv(
   op->type = LC_COL_SENDRECV;
 }
 
-static inline void lc_col_op(void *dst, void* src, size_t size, lc_colreq* req)
+static inline void lc_col_op(void* dst, void* src, size_t size, lc_colreq* req)
 {
   lc_col_sched* op = &(req->next[req->total++]);
   op->src = src;
@@ -78,7 +78,8 @@ static inline void lc_col_op(void *dst, void* src, size_t size, lc_colreq* req)
   op->type = LC_COL_OP;
 }
 
-static inline void lc_col_memmove(void *dst, void* src, size_t size, lc_colreq* req)
+static inline void lc_col_memmove(void* dst, void* src, size_t size,
+                                  lc_colreq* req)
 {
   lc_col_sched* op = &(req->next[req->total++]);
   op->src = src;
@@ -102,15 +103,17 @@ void lc_col_progress(lc_colreq* req)
     lc_col_sched* op = &(req->next[req->cur++]);
     switch (op->type) {
       case LC_COL_SEND:
-        lc_reset((void*) &req->pending[0].sync);
-        LC_SAFE(lc_send(op->src, op->size, op->rank, op->tag, op->ep, lc_signal, (void*) &(req->pending[0].sync)));
+        lc_reset((void*)&req->pending[0].sync);
+        LC_SAFE(lc_send(op->src, op->size, op->rank, op->tag, op->ep, lc_signal,
+                        (void*)&(req->pending[0].sync)));
         break;
       case LC_COL_RECV:
         lc_recv(op->src, op->size, op->rank, op->tag, op->ep, &req->pending[0]);
         break;
       case LC_COL_SENDRECV:
-        lc_reset((void*) &req->pending[0].sync);
-        LC_SAFE(lc_send(op->src, op->size, op->rank, op->tag, op->ep, lc_signal, (void*) &req->pending[0].sync));
+        lc_reset((void*)&req->pending[0].sync);
+        LC_SAFE(lc_send(op->src, op->size, op->rank, op->tag, op->ep, lc_signal,
+                        (void*)&req->pending[0].sync));
         lc_recv(op->dst, op->size, op->rank, op->tag, op->ep, &req->pending[1]);
         break;
       case LC_COL_OP:

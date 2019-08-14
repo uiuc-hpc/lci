@@ -14,7 +14,7 @@
 #include "lc/dequeue.h"
 
 #define MAX_NPOOLS 272
-#define MAX_LOCAL_POOL 32 // align to a cache line.
+#define MAX_LOCAL_POOL 32  // align to a cache line.
 
 extern int lc_pool_nkey;
 extern int32_t tls_pool_struct[MAX_NPOOLS][MAX_LOCAL_POOL];
@@ -78,7 +78,7 @@ LC_INLINE int32_t lc_pool_get_local(struct lc_pool* pool)
     pid = tls_pool_struct[wid][pool->key];
     if (pid == POOL_UNINIT) {
       struct dequeue* lpool = 0;
-      posix_memalign((void**) &lpool, 64, sizeof(struct dequeue));
+      posix_memalign((void**)&lpool, 64, sizeof(struct dequeue));
       dq_init(lpool);
       pid = pool->npools++;
       pool->lpools[pid] = lpool;
@@ -90,7 +90,8 @@ LC_INLINE int32_t lc_pool_get_local(struct lc_pool* pool)
   return pid;
 }
 
-LC_INLINE void* lc_pool_get_slow(struct lc_pool* pool) {
+LC_INLINE void* lc_pool_get_slow(struct lc_pool* pool)
+{
   void* elm = NULL;
   while (!elm) {
     int steal = rand() % (pool->npools);
@@ -100,28 +101,31 @@ LC_INLINE void* lc_pool_get_slow(struct lc_pool* pool) {
   return elm;
 }
 
-LC_INLINE void lc_pool_put(struct lc_pool* pool, void* elm) {
+LC_INLINE void lc_pool_put(struct lc_pool* pool, void* elm)
+{
   int32_t pid = lc_pool_get_local(pool);
   struct dequeue* lpool = pool->lpools[pid];
   dq_push_top(lpool, elm);
 }
 
-LC_INLINE void lc_pool_put_to(struct lc_pool* pool, void* elm, int32_t pid) {
+LC_INLINE void lc_pool_put_to(struct lc_pool* pool, void* elm, int32_t pid)
+{
   struct dequeue* lpool = pool->lpools[pid];
   dq_push_top(lpool, elm);
 }
 
-LC_INLINE void* lc_pool_get(struct lc_pool* pool) {
+LC_INLINE void* lc_pool_get(struct lc_pool* pool)
+{
   int32_t pid = lc_pool_get_local(pool);
   struct dequeue* lpool = pool->lpools[pid];
-  void *elm = NULL;
+  void* elm = NULL;
   elm = dq_pop_top(lpool);
-  if (elm == NULL)
-    elm = lc_pool_get_slow(pool);
+  if (elm == NULL) elm = lc_pool_get_slow(pool);
   return elm;
 }
 
-LC_INLINE void* lc_pool_get_nb(struct lc_pool* pool) {
+LC_INLINE void* lc_pool_get_nb(struct lc_pool* pool)
+{
   int32_t pid = lc_pool_get_local(pool);
   struct dequeue* lpool = pool->lpools[pid];
   void* elm = NULL;

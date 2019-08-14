@@ -19,7 +19,7 @@ struct lc_cq {
 
 static inline void lc_cq_create(struct lc_cq** cq_ptr)
 {
-  posix_memalign((void**) cq_ptr, 64, sizeof(struct lc_cq));
+  posix_memalign((void**)cq_ptr, 64, sizeof(struct lc_cq));
   lc_cq* cq = *cq_ptr;
   memset(cq->container, 0, sizeof(void*) * CQ_MAX_SIZE);
   cq->top = 0;
@@ -27,9 +27,7 @@ static inline void lc_cq_create(struct lc_cq** cq_ptr)
   cq->spinlock = LC_SPIN_UNLOCKED;
 }
 
-static inline void lc_cq_free(struct lc_cq* cq) {
-  free(cq);
-}
+static inline void lc_cq_free(struct lc_cq* cq) { free(cq); }
 
 static inline void lc_cq_push(struct lc_cq* cq, void* req)
 {

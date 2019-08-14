@@ -33,6 +33,7 @@ class packetManagerMPMCQ
   inline void* get_for_send() { return get_packet(); }
   inline void* get_for_recv() { return get_packet_nb(); }
   inline void ret_packet_to(void* packet, int) { ret_packet(packet); }
+
  protected:
   ppl::MPMCQueue<uint64_t> pool_;
 } __attribute__((aligned(64)));
@@ -67,6 +68,7 @@ class packetManagerLfQueue
   inline void* get_for_send() { return get_packet(); }
   inline void* get_for_recv() { return get_packet_nb(); }
   inline void ret_packet_to(void* packet, int) { ret_packet(packet); }
+
  protected:
   boost::lockfree::queue<void*, boost::lockfree::capacity<MAX_PACKET>> pool_;
 } __attribute__((aligned(64)));
@@ -101,6 +103,7 @@ class packetManagerLfStack
   inline void* get_for_send() { return get_packet(); }
   inline void* get_for_recv() { return get_packet_nb(); }
   inline void ret_packet_to(void* packet, int) { ret_packet(packet); }
+
  protected:
   boost::lockfree::stack<void*, boost::lockfree::capacity<MAX_PACKET>> pool_;
 } __attribute__((aligned(64)));

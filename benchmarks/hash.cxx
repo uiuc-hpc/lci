@@ -43,7 +43,8 @@ static void cache_invalidate(void)
 typedef std::function<void(lc_hash**)> hash_init_f;
 typedef std::function<bool(lc_hash*, lc_key, lc_value*, int)> hash_insert_f;
 
-std::vector<double> summarize(std::vector<double>& times) {
+std::vector<double> summarize(std::vector<double>& times)
+{
   int size = times.size();
   std::sort(times.begin(), times.end());
   std::vector<double> qu(5, 0.0);
@@ -53,8 +54,8 @@ std::vector<double> summarize(std::vector<double>& times) {
   qu[1] = times[size * 3 / 4];                                  // u q
   qu[2] = times[size / 4];                                      // d q
   double iq = qu[1] - qu[2];
-  qu[3] = MIN(qu[1] + 1.5 * iq, times[size - 1]);  // max
-  qu[4] = MAX((double) (qu[2] - 1.5 * iq), times[0]);         // min
+  qu[3] = MIN(qu[1] + 1.5 * iq, times[size - 1]);     // max
+  qu[4] = MAX((double)(qu[2] - 1.5 * iq), times[0]);  // min
   return qu;
 }
 
@@ -108,40 +109,40 @@ void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert)
     std::vector<std::thread> th(NTHREADS);
 
     for (int tt = 0; tt < NTHREADS; tt++) {
-      th[tt] = std::move(
-          std::thread([tt, j, &b1, &b2, &prof, &l1, &insert, &times, &my_table, &ti2, &f1, &f2] {
-            set_me_to(tt + 1);
-            cache_invalidate();
-            lc_value v = 2;
-            b1.wait();
-            if (whofirst == SERVER) b2.wait();
-            int i = tt;
-            if (j >= SKIP_LARGE && 0 == tt) {
+      th[tt] = std::move(std::thread([tt, j, &b1, &b2, &prof, &l1, &insert,
+                                      &times, &my_table, &ti2, &f1, &f2] {
+        set_me_to(tt + 1);
+        cache_invalidate();
+        lc_value v = 2;
+        b1.wait();
+        if (whofirst == SERVER) b2.wait();
+        int i = tt;
+        if (j >= SKIP_LARGE && 0 == tt) {
 #ifdef MEASURE_CACHE
-              prof.start();
+          prof.start();
 #else
-              times[j - SKIP_LARGE] -= wtime();
+          times[j - SKIP_LARGE] -= wtime();
 #endif
-            }
-            for (; i < NUM_INSERTED; i += NTHREADS) {
-              bool ret = insert(my_table, (lc_key)i, &v, 0);
-              if (whofirst == SERVER)
-                assert(!ret);
-              else
-                assert(ret);
-            }
-            if (j >= SKIP_LARGE && 0 == tt) {
+        }
+        for (; i < NUM_INSERTED; i += NTHREADS) {
+          bool ret = insert(my_table, (lc_key)i, &v, 0);
+          if (whofirst == SERVER)
+            assert(!ret);
+          else
+            assert(ret);
+        }
+        if (j >= SKIP_LARGE && 0 == tt) {
 #ifdef MEASURE_CACHE
-              auto &s = prof.stop();
-              l1[j - SKIP_LARGE] += s[0];
+          auto& s = prof.stop();
+          l1[j - SKIP_LARGE] += s[0];
 #else
-              times[j - SKIP_LARGE] += wtime();
+          times[j - SKIP_LARGE] += wtime();
 #endif
-            }
-            if (whofirst == THREADS) {
-              b2.wait();
-            }
-          }));
+        }
+        if (whofirst == THREADS) {
+          b2.wait();
+        }
+      }));
     }
 
     for (auto& t : th) t.join();
@@ -154,29 +155,24 @@ void benchmark_insert_with_delete(hash_init_f init, hash_insert_f insert)
   // (NUM_INSERTED_PER_THREAD)/(TOTAL_LARGE - SKIP_LARGE);
   // compute - 5 quantile:
 #ifndef MEASURE_CACHE
-  for (auto& t : times)
-    t = t * 1e6 / NUM_INSERTED_PER_THREAD;
+  for (auto& t : times) t = t * 1e6 / NUM_INSERTED_PER_THREAD;
   auto qu = summarize(times);
 #else
-  for (auto& t : l1)
-    t /= NUM_INSERTED_PER_THREAD;
+  for (auto& t : l1) t /= NUM_INSERTED_PER_THREAD;
   auto qu = summarize(l1);
 #endif
 
-
   if (whofirst == SERVER) {
-    printf("insert (server): %.3f\n",
-           1e6 * ti1 / (NUM_INSERTED) / TOTAL_LARGE);
+    printf("insert (server): %.3f\n", 1e6 * ti1 / (NUM_INSERTED) / TOTAL_LARGE);
     printf("find+erase (thread): %d %.3f %.3f %.3f %.3f %.3f\n", NTHREADS,
            qu[0], qu[1], qu[2], qu[3], qu[4]);
   } else if (whofirst == THREADS) {
     printf("find+erase (server): %.3f\n",
            1e6 * ti1 / (NUM_INSERTED) / TOTAL_LARGE);
-    printf("insert (thread): %d %.3f %.3f %.3f %.3f %.3f\n", NTHREADS,
-           qu[0], qu[1], qu[2], qu[3], qu[4]);
+    printf("insert (thread): %d %.3f %.3f %.3f %.3f %.3f\n", NTHREADS, qu[0],
+           qu[1], qu[2], qu[3], qu[4]);
   } else {
-    printf("ops (server): %.3f\n",
-           1e6 * ti1 / (NUM_INSERTED) / TOTAL_LARGE );
+    printf("ops (server): %.3f\n", 1e6 * ti1 / (NUM_INSERTED) / TOTAL_LARGE);
     printf("ops (thread): %d %.3f %.3f %.3f %.3f %.3f\n", NTHREADS, qu[0],
            qu[1], qu[2], qu[3], qu[4]);
   }
@@ -202,7 +198,7 @@ int main(int argc, char** args)
   benchmark_insert_with_delete<tbb_hash_val, SERVER>(tbb_hash_init,
                                                      tbb_hash_insert);
   benchmark_insert_with_delete<hash_val, THREADS>(lc_hash_create,
-                                                      lc_hash_insert);
+                                                  lc_hash_insert);
   benchmark_insert_with_delete<ck_hash_val, THREADS>(ck_hash_init,
                                                      ck_hash_insert);
   benchmark_insert_with_delete<tbb_hash_val, THREADS>(tbb_hash_init,

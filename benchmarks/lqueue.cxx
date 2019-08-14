@@ -40,7 +40,6 @@ static void cache_invalidate(void)
 #define QUEUE_DE(q) dq_pop_bot(q)
 #endif
 
-
 void benchmarks()
 {
   QUEUE_T q;
@@ -86,7 +85,7 @@ void benchmarks()
         for (int j = 0; j < PER_THREAD; j++) {
           int nruns = rands[i * PER_THREAD + j];
           for (int jj = 0; jj < nruns; jj++) {
-            QUEUE_EN(&q, (void*) jj);
+            QUEUE_EN(&q, (void*)jj);
           }
           sumnrun += nruns;
 #if 0

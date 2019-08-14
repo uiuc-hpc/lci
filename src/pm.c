@@ -38,4 +38,4 @@ void lc_pm_publish_key(char* key, char* value)
   PMI_KVS_Put(lcg_name, key, value);
 }
 
-void lc_pm_barrier() { PMI_Barrier(); }
+void LCI_PM_barrier() { PMI_Barrier(); }

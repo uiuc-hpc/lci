@@ -71,6 +71,7 @@ class queue_t
    * @param q Queue to check.
    */
   inline bool empty() { return head->next == NULL; }
+
  private:
   /** Node in the queue. */
   struct queue_node_t {

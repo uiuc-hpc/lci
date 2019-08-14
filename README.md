@@ -14,9 +14,9 @@ make install PREFIX=$INSTALLDIR
 
 ## Hack
 
-See [examples/](https://github.com/uiuc-hpc/LC/tree/master/examples) for some example code.
+See [examples/](https://github.com/uiuc-hpc/LC/tree/v21/examples) for some example code.
 
-See [include/lc.h](https://github.com/uiuc-hpc/LC/blob/master/include/lc.h) for public APIs.
+See [include/lci.h](https://github.com/uiuc-hpc/LC/blob/v21/include/lci.h) for public APIs.
 
 `doxygen` for a full documentation.
 
@@ -27,4 +27,4 @@ control on what MPI may do with the PMI, initialize with LCI first (lc_open)
 before MPI_Init is the best approach.
 
 ## LICENSE
-TBD
+See LICENSE file.

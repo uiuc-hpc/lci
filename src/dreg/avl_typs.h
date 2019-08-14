@@ -1,25 +1,25 @@
 /** <plaintext>
-*
-* avl_typs.h -- declaration of private types used for avl trees
-*
-* Created 03/01/89 by Brad Appleton
-*
-* ^{Mods:* }
-*
-* Fri Jul 14 13:55:58 1989, Rev 1.0, brad(0165)
-*
-**/
+ *
+ * avl_typs.h -- declaration of private types used for avl trees
+ *
+ * Created 03/01/89 by Brad Appleton
+ *
+ * ^{Mods:* }
+ *
+ * Fri Jul 14 13:55:58 1989, Rev 1.0, brad(0165)
+ *
+ **/
 
 /* definition of a NULL action and a NULL tree */
-#define NULL_ACTION ((void(*)()) NULL)
-#define NULL_TREE ((AVLtree) NULL)
+#define NULL_ACTION ((void (*)())NULL)
+#define NULL_TREE ((AVLtree)NULL)
 
 /* MIN and MAX macros (used for rebalancing) */
 #ifndef MIN
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
 #ifndef MAX
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 #endif
 
 /* Directional Definitions */
@@ -41,19 +41,19 @@ typedef short DIRECTION;
 
 /* structure for a node in an AVL tree */
 typedef struct avl_node {
-    void* data;                     /* pointer to data */
-    short bal;                      /* balance factor */
-    struct avl_node* subtree[2];    /* LEFT and RIGHT subtrees */
+  void* data;                  /* pointer to data */
+  short bal;                   /* balance factor */
+  struct avl_node* subtree[2]; /* LEFT and RIGHT subtrees */
 #if !defined(DISABLE_PTMALLOC)
-    /* A next field to thread AVLnodes in case of free with PTMALLOC. */
-    void* next;
+  /* A next field to thread AVLnodes in case of free with PTMALLOC. */
+  void* next;
 #endif /* !defined(DISABLE_PTMALLOC) */
 } AVLnode, *AVLtree;
 
 /* structure which holds information about an AVL tree */
 typedef struct avl_descriptor {
-    AVLtree root;                /* pointer to the root node of the tree */
-    long (*compar)();            /* function used to compare keys */
-    unsigned long (*isize)();    /* function to return the size of an item */
-    long count;                  /* number of nodes in the tree */
+  AVLtree root;             /* pointer to the root node of the tree */
+  long (*compar)();         /* function used to compare keys */
+  unsigned long (*isize)(); /* function to return the size of an item */
+  long count;               /* number of nodes in the tree */
 } AVLdescriptor;

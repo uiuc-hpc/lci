@@ -56,21 +56,22 @@ static inline void busywait_cyc(unsigned long long delay)
 #include <condition_variable>
 class cpp_barrier
 {
-  private:
-    std::mutex _mutex;
-    std::condition_variable _cv;
-    std::size_t _count;
-  public:
-    explicit cpp_barrier(std::size_t count) : _count{count} { }
-    void wait()
-    {
-      std::unique_lock<std::mutex> lock{_mutex};
-      if (--_count == 0) {
-        _cv.notify_all();
-      } else {
-        _cv.wait(lock, [this] { return _count == 0; });
-      }
+ private:
+  std::mutex _mutex;
+  std::condition_variable _cv;
+  std::size_t _count;
+
+ public:
+  explicit cpp_barrier(std::size_t count) : _count{count} {}
+  void wait()
+  {
+    std::unique_lock<std::mutex> lock{_mutex};
+    if (--_count == 0) {
+      _cv.notify_all();
+    } else {
+      _cv.wait(lock, [this] { return _count == 0; });
     }
+  }
 };
 #endif
 #endif

@@ -4,20 +4,19 @@
 #include "config.h"
 #include <stdint.h>
 
-#define lc_pk_init(ep_, pid_, proto_, p)  \
-  p->context.ep = (ep_);                   \
-  p->context.poolid = (pid_);              \
-  p->context.ref = 1;                      \
+#define lc_pk_init(ep_, pid_, proto_, p) \
+  p->context.ep = (ep_);                 \
+  p->context.poolid = (pid_);            \
+  p->context.ref = 1;                    \
   p->context.proto = (proto_);
 
-#define lc_pk_free(ep_, p_) \
-  lc_pool_put((ep_)->pkpool, p_);
+#define lc_pk_free(ep_, p_) lc_pool_put((ep_)->pkpool, p_);
 
-#define lc_pk_free_data(ep_, p_) \
-  if ((p_)->context.poolid != -1)   \
+#define lc_pk_free_data(ep_, p_)                             \
+  if ((p_)->context.poolid != -1)                            \
     lc_pool_put_to((ep_)->pkpool, p_, (p_)->context.poolid); \
-  else \
-    lc_pool_put((ep_)->pkpool, p_); \
+  else                                                       \
+    lc_pool_put((ep_)->pkpool, p_);
 
 struct __attribute__((packed)) packet_context {
   // Most of the current ctx requires 128-bits (FIXME)

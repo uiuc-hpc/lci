@@ -40,9 +40,8 @@ enum insert_type { CLIENT, SERVER };
 void lc_hash_create(struct lc_hash** h);
 void lc_hash_destroy(struct lc_hash* h);
 
-static inline int lc_hash_insert(
-    struct lc_hash* h, lc_key key, lc_value* value,
-    enum insert_type type);
+static inline int lc_hash_insert(struct lc_hash* h, lc_key key, lc_value* value,
+                                 enum insert_type type);
 
 #ifdef __cplusplus
 }
@@ -72,8 +71,8 @@ static inline uint32_t myhash(const uint64_t k)
 static inline struct lc_hash* create_table(size_t num_rows)
 {
   struct lc_hash* ret = 0;
-  posix_memalign((void**) &ret, 64,
-      num_rows * TBL_WIDTH * sizeof(struct lc_hash));
+  posix_memalign((void**)&ret, 64,
+                 num_rows * TBL_WIDTH * sizeof(struct lc_hash));
 
   // Initialize all with EMPTY and clear lock.
   for (size_t i = 0; i < num_rows; i++) {
@@ -91,7 +90,7 @@ static inline struct lc_hash* create_table(size_t num_rows)
 }
 
 static inline int lc_hash_insert(struct lc_hash* h, lc_key key, lc_value* value,
-    enum insert_type type)
+                                 enum insert_type type)
 {
   struct lc_hash* tbl_ = (struct lc_hash*)h;
 
@@ -104,7 +103,7 @@ static inline int lc_hash_insert(struct lc_hash* h, lc_key key, lc_value* value,
   struct lc_hash* hentry = hcontrol + 1;
   struct lc_hash* empty_hentry = NULL;
 
-  lc_key cmp_key = (key << 1) | (1-type);
+  lc_key cmp_key = (key << 1) | (1 - type);
 
   lc_spin_lock(&master->control.lock);
   while (1) {
@@ -119,8 +118,7 @@ static inline int lc_hash_insert(struct lc_hash* h, lc_key key, lc_value* value,
     } else if (tag == EMPTY) {
       // Ortherwise, if the tag is empty, we record the slot.
       // We can't return until we go over all entries.
-      if (empty_hentry == NULL)
-        empty_hentry = hentry;
+      if (empty_hentry == NULL) empty_hentry = hentry;
     } else {
       // If we are still seeing some non-empty,
       // push that empty entry even further.

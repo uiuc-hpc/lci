@@ -14,9 +14,10 @@ __thread int mv_core_id = -1;
 
 mv_pool* p;
 
-void* test_put(void* arg) {
+void* test_put(void* arg)
+{
   set_me_to_(0);
-  for (int i = 0; i < TIME; i++){
+  for (int i = 0; i < TIME; i++) {
     void* d[NP];
     for (int j = 0; j < NP; j++) {
       d[j] = mv_pool_get(p);
@@ -28,9 +29,10 @@ void* test_put(void* arg) {
   return 0;
 }
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   mv_pool_init();
-  void * data = malloc(4 * 1024);
+  void* data = malloc(4 * 1024);
   mv_pool_create(&p, data, 4, 1024);
 
   profiler_init();
@@ -43,6 +45,6 @@ int main(int argc, char** args) {
     pthread_join(t1, 0);
   }
   auto& x = f.stop();
-  printf("%.5f\n", 1.0 * x[0]/TIME);//, 1.0 * x[1]/TIME);
+  printf("%.5f\n", 1.0 * x[0] / TIME);  //, 1.0 * x[1]/TIME);
   return 0;
 }

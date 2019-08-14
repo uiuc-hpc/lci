@@ -40,10 +40,10 @@ static void cache_invalidate(void)
 }
 
 void benchmarks()
-{ 
+{
   lc_pool* pkg;
   lc_pool_create(&pkg);
-  for (int i = 1; i < MAX_PACKET+1; i++) lc_pool_put(pkg, (void*) i);
+  for (int i = 1; i < MAX_PACKET + 1; i++) lc_pool_put(pkg, (void*)i);
 
   std::atomic<int> f;
   std::vector<double> times(TOTAL_LARGE, 0);
@@ -70,7 +70,7 @@ void benchmarks()
         while (f < NTHREADS) {
         }
         double t1 = 0;
-        if (i == 0 && k >= SKIP_LARGE) { 
+        if (i == 0 && k >= SKIP_LARGE) {
           prof.start();
           t1 = wutime();
         }
@@ -83,7 +83,7 @@ void benchmarks()
           }
           if (k >= SKIP_LARGE && i == 0) times[k - SKIP_LARGE] += wutime();
           std::this_thread::sleep_for(
-                  std::chrono::microseconds(rands[ff * PER_THREAD]));
+              std::chrono::microseconds(rands[ff * PER_THREAD]));
           // double t1 = wutime();
           // while (wutime() - t1 <= rands[ff * PER_THREAD])
           //        ;
@@ -100,7 +100,7 @@ void benchmarks()
           times[k - SKIP_LARGE] += ((wutime() - t1));
           times[k - SKIP_LARGE] /= sumnrun;
           auto& s = prof.stop();
-          l1 += (double) s[0] / sumnrun;
+          l1 += (double)s[0] / sumnrun;
         }
       }));
     }
@@ -131,12 +131,12 @@ void benchmarks_old()
 {
   T pkg;
   pkg.init_worker(NTHREADS);
-  for (int i = 1; i < MAX_PACKET+1; i++) {
+  for (int i = 1; i < MAX_PACKET + 1; i++) {
     pkg.ret_packet((void*)i);
   }
   std::atomic<int> f = 0;
   std::vector<double> times(TOTAL_LARGE, 0);
-  
+
   srand(1234);
   std::vector<int> rands;
   std::thread th[NTHREADS];
@@ -175,7 +175,7 @@ void benchmarks_old()
           // while (wutime() - t1 <= rands[ff * PER_THREAD])
           //        ;
           std::this_thread::sleep_for(
-                  std::chrono::microseconds(rands[ff * PER_THREAD]));
+              std::chrono::microseconds(rands[ff * PER_THREAD]));
 
           if (k >= SKIP_LARGE && ff == 0) times[k - SKIP_LARGE] -= wutime();
 
@@ -188,7 +188,7 @@ void benchmarks_old()
           times[k - SKIP_LARGE] += ((wutime() - t1));
           times[k - SKIP_LARGE] /= sumnrun;
           auto& s = prof.stop();
-          l1 += (double) s[0] / sumnrun;
+          l1 += (double)s[0] / sumnrun;
         }
       }));
     }

@@ -51,7 +51,6 @@ void unlock_dreg(void);
 extern uintptr_t get_dma_mem(void* server, void* buf, size_t s);
 extern int free_dma_mem(uintptr_t mem);
 
-
 typedef struct dreg_entry dreg_entry;
 
 extern int g_is_dreg_initialized;
@@ -59,25 +58,24 @@ extern int g_is_dreg_finalize;
 extern unsigned long dreg_stat_cache_hit;
 extern unsigned long dreg_stat_cache_miss;
 struct dreg_entry {
-    unsigned long pagenum;
-    uintptr_t memhandle[MAX_NUM_HCAS];
+  unsigned long pagenum;
+  uintptr_t memhandle[MAX_NUM_HCAS];
 
-    int refcount;
+  int refcount;
 
-    /* page number, e.g. address >> DREG_PAGEBITS */
-    unsigned long  npages;
+  /* page number, e.g. address >> DREG_PAGEBITS */
+  unsigned long npages;
 
-    /* for hash chain or free chain */
-    dreg_entry *next;
+  /* for hash chain or free chain */
+  dreg_entry* next;
 
-    /* for zero refcount chain */
-    dreg_entry *next_unused;
-    dreg_entry *prev_unused;
+  /* for zero refcount chain */
+  dreg_entry* next_unused;
+  dreg_entry* prev_unused;
 
-    void* server;
-    int is_valid;
+  void* server;
+  int is_valid;
 };
-
 
 /*
  * When an application needs to register memory, it
@@ -158,116 +156,118 @@ struct dreg_entry {
  * changed.
  */
 
-extern struct dreg_entry *dreg_free_list;
+extern struct dreg_entry* dreg_free_list;
 
-extern struct dreg_entry *dreg_unused_list;
-extern struct dreg_entry *dreg_unused_tail;
-
-
+extern struct dreg_entry* dreg_unused_list;
+extern struct dreg_entry* dreg_unused_tail;
 
 /* DREG_PAGESIZE must be smaller than or equal to the hardware
  * pagesize. Otherwise we might register past the top page given
  * to us. This page might be invalid (e.g. read-only).
  */
 
-#define DREG_PAGESIZE 4096      /* must be 2^DREG_PAGEBITS */
-#define DREG_PAGEBITS 12        /* must be ln2 of DREG_PAGESIZE */
+#define DREG_PAGESIZE 4096 /* must be 2^DREG_PAGEBITS */
+#define DREG_PAGEBITS 12   /* must be ln2 of DREG_PAGESIZE */
 #define DREG_PAGEMASK (DREG_PAGESIZE - 1)
 
-#define DREG_HASHSIZE 128       /* must be 2^DREG_HASHBITS */
-#define DREG_HASHBITS 7         /* must be ln2 DREG_HASHSIZE */
-#define DREG_HASHMASK (DREG_HASHSIZE-1)
+#define DREG_HASHSIZE 128 /* must be 2^DREG_HASHBITS */
+#define DREG_HASHBITS 7   /* must be ln2 DREG_HASHSIZE */
+#define DREG_HASHMASK (DREG_HASHSIZE - 1)
 
-#define DREG_HASH(a) ( ( ((uintptr_t)(a)) >> DREG_PAGEBITS) & DREG_HASHMASK )
+#define DREG_HASH(a) ((((uintptr_t)(a)) >> DREG_PAGEBITS) & DREG_HASHMASK)
 
 /*
  * Delete entry d from the double-linked unused list.
  * Take care if d is either the head or the tail of the list.
  */
 
-#define DREG_REMOVE_FROM_UNUSED_LIST(d) {                           \
-    dreg_entry *prev = (d)->prev_unused;                            \
-        dreg_entry *next = (d)->next_unused;                        \
-        (d)->next_unused = NULL;                                    \
-        (d)->prev_unused = NULL;                                    \
-        if (prev != NULL) {                                         \
-            prev->next_unused = next;                               \
-        }                                                           \
-    if (next != NULL) {                                             \
-        next->prev_unused = prev;                                   \
-    }                                                               \
-    if (dreg_unused_list == (d)) {                                  \
-        dreg_unused_list = next;                                    \
-    }                                                               \
-    if (dreg_unused_tail == (d)) {                                  \
-        dreg_unused_tail = prev;                                    \
-    }                                                               \
-}
+#define DREG_REMOVE_FROM_UNUSED_LIST(d)  \
+  {                                      \
+    dreg_entry* prev = (d)->prev_unused; \
+    dreg_entry* next = (d)->next_unused; \
+    (d)->next_unused = NULL;             \
+    (d)->prev_unused = NULL;             \
+    if (prev != NULL) {                  \
+      prev->next_unused = next;          \
+    }                                    \
+    if (next != NULL) {                  \
+      next->prev_unused = prev;          \
+    }                                    \
+    if (dreg_unused_list == (d)) {       \
+      dreg_unused_list = next;           \
+    }                                    \
+    if (dreg_unused_tail == (d)) {       \
+      dreg_unused_tail = prev;           \
+    }                                    \
+  }
 
 /*
  * Add entries to the head of the unused list. dreg_evict() takes
  * them from the tail. This gives us a simple LRU mechanism
  */
 
-#define DREG_ADD_TO_UNUSED_LIST(d) {                                \
-    d->next_unused = dreg_unused_list;                              \
-    d->prev_unused = NULL;                                          \
-    if (dreg_unused_list != NULL) {                                 \
-        dreg_unused_list->prev_unused = d;                          \
-    }                                                               \
-    dreg_unused_list = d;                                           \
-    if (NULL == dreg_unused_tail) {                                 \
-        dreg_unused_tail = d;                                       \
-    }                                                               \
-}
+#define DREG_ADD_TO_UNUSED_LIST(d)       \
+  {                                      \
+    d->next_unused = dreg_unused_list;   \
+    d->prev_unused = NULL;               \
+    if (dreg_unused_list != NULL) {      \
+      dreg_unused_list->prev_unused = d; \
+    }                                    \
+    dreg_unused_list = d;                \
+    if (NULL == dreg_unused_tail) {      \
+      dreg_unused_tail = d;              \
+    }                                    \
+  }
 
-#define DREG_GET_FROM_FREE_LIST(d) {                                \
-    d = dreg_free_list;                                             \
-    if (dreg_free_list != NULL) {                                   \
-        dreg_free_list = dreg_free_list->next;                      \
-        dreg_inuse_count++;                                         \
-        if (dreg_max_use_count < dreg_inuse_count)                  \
-            dreg_max_use_count = dreg_inuse_count;                  \
-    }                                                               \
-}
+#define DREG_GET_FROM_FREE_LIST(d)               \
+  {                                              \
+    d = dreg_free_list;                          \
+    if (dreg_free_list != NULL) {                \
+      dreg_free_list = dreg_free_list->next;     \
+      dreg_inuse_count++;                        \
+      if (dreg_max_use_count < dreg_inuse_count) \
+        dreg_max_use_count = dreg_inuse_count;   \
+    }                                            \
+  }
 
-#define DREG_ADD_TO_FREE_LIST(d) {                                  \
-    d->next = dreg_free_list;                                       \
-    dreg_free_list = d;                                             \
-    dreg_inuse_count--;                                             \
-}
+#define DREG_ADD_TO_FREE_LIST(d) \
+  {                              \
+    d->next = dreg_free_list;    \
+    dreg_free_list = d;          \
+    dreg_inuse_count--;          \
+  }
 
 int dreg_init(void);
 
 int dreg_finalize(void);
 
-dreg_entry *dreg_register(void* server, void *buf, size_t len);
+dreg_entry* dreg_register(void* server, void* buf, size_t len);
 
-void dreg_unregister(dreg_entry * entry);
+void dreg_unregister(dreg_entry* entry);
 
-dreg_entry *dreg_find(void *buf, size_t len);
+dreg_entry* dreg_find(void* buf, size_t len);
 
-dreg_entry *dreg_get(void);
+dreg_entry* dreg_get(void);
 
 int dreg_evict(void);
 
-void dreg_release(dreg_entry * d);
+void dreg_release(dreg_entry* d);
 
-void dreg_decr_refcount(dreg_entry * d);
+void dreg_decr_refcount(dreg_entry* d);
 
-void dreg_incr_refcount(dreg_entry * d);
+void dreg_incr_refcount(dreg_entry* d);
 
-dreg_entry *dreg_new_entry(void* server, void *buf, size_t len);
+dreg_entry* dreg_new_entry(void* server, void* buf, size_t len);
 
 void flush_dereg_mrs_external(void);
 
 #ifndef DISABLE_PTMALLOC
-void find_and_free_dregs_inside(void *buf, size_t len);
+void find_and_free_dregs_inside(void* buf, size_t len);
 #endif
 
-#if defined(CKPT) ||  defined(ENABLE_CHECKPOINTING)
+#if defined(CKPT) || defined(ENABLE_CHECKPOINTING)
 void dreg_deregister_all(void);
 void dreg_reregister_all(void);
 #endif
 
-#endif                          /* _DREG_H */
+#endif /* _DREG_H */

@@ -52,29 +52,28 @@ static inline uint64_t rdtsc()
   return ((uint64_t)hi << 32) | lo;
 }
 
-static long find_prime(int n) {
-  int count=0;
+static long find_prime(int n)
+{
+  int count = 0;
   long a = 2;
-  while(count<n) {
+  while (count < n) {
     long b = 2;
     int prime = 1;
-    while(b * b <= a) {
-      if(a % b == 0)
-      {
+    while (b * b <= a) {
+      if (a % b == 0) {
         prime = 0;
         break;
       }
       b++;
     }
-    if(prime > 0)
-      count++;
+    if (prime > 0) count++;
     a++;
   }
   return (--a);
 }
 
-__attribute__((noinline))
-static int compute(double size) {
+__attribute__((noinline)) static int compute(double size)
+{
   double start = wutime();
   while (wutime() - start < size) {
     ;
@@ -126,7 +125,7 @@ void main_task(intptr_t a)
 {
   sendbuf = (char*)MPIV_Alloc(MAXSIZE * max_nthreads);
   recvbuf = (char*)MPIV_Alloc(MAXSIZE * max_nthreads);
-  id = (mv_thread*) malloc(sizeof(mv_thread) * max_nthreads);
+  id = (mv_thread*)malloc(sizeof(mv_thread) * max_nthreads);
   cache_size = (8 * 1024 * 1024 / sizeof(int));
   cache_buf = (int*)malloc(sizeof(int) * cache_size);
   profiler_init();
@@ -134,10 +133,9 @@ void main_task(intptr_t a)
   for (nthreads = min_nthreads; nthreads <= max_nthreads; nthreads *= 2)
     for (work = WORK; work <= WORK; work += 32) {
       cache_invalidate();
-      int loop = TOTAL_MSG/nthreads*nthreads;
+      int loop = TOTAL_MSG / nthreads * nthreads;
       double t3 = wtime();
-      for (int i = 0; i < loop; i++)
-        compute(work);
+      for (int i = 0; i < loop; i++) compute(work);
       t3 = (wtime() - t3) / loop;
 
       for (size = MINSIZE; size <= MAXSIZE; size *= 2) {
@@ -161,10 +159,12 @@ void main_task(intptr_t a)
         for (int i = 0; i < nthreads; i++) MPIV_join(id[i]);
         MPI_Barrier(MPI_COMM_WORLD);
         t2 = wtime() - t2;
-        if (rank == 1) printf("%.5f \t %d \t %.2f \t %.2f \t %.2f \n", 1e6 * t3, nthreads, 1e6 * (t1 - t2) / loop / 2, t1 , t2);
+        if (rank == 1)
+          printf("%.5f \t %d \t %.2f \t %.2f \t %.2f \n", 1e6 * t3, nthreads,
+                 1e6 * (t1 - t2) / loop / 2, t1, t2);
 #endif
-        // if (rank == 1) printf("%.5f \t %d \t %.2f\n", 1e6 * t3, nthreads, 1e6 * (t1 - t3*(loop/nthreads)) / loop / 2);
-
+        // if (rank == 1) printf("%.5f \t %d \t %.2f\n", 1e6 * t3, nthreads, 1e6
+        // * (t1 - t3*(loop/nthreads)) / loop / 2);
       }
     }
   free(id);
@@ -175,13 +175,12 @@ void runfunc(intptr_t thread_rank)
   int src, dest, tag, i;
   /* All even ranks send to (and recv from) rank i+1 many times */
   tag = (int)thread_rank;
-  int loop = TOTAL_MSG/nthreads*nthreads; //max(TOTAL, nthreads * 100);
+  int loop = TOTAL_MSG / nthreads * nthreads;  // max(TOTAL, nthreads * 100);
   profiler prof({PAPI_L2_TCM});
-  if (tag == 0) 
-    prof.start();
+  if (tag == 0) prof.start();
 
-  void* lsendbuf = ((char*) sendbuf + thread_rank * 64);
-  void* lrecvbuf = ((char*) recvbuf + thread_rank * 64);
+  void* lsendbuf = ((char*)sendbuf + thread_rank * 64);
+  void* lrecvbuf = ((char*)recvbuf + thread_rank * 64);
   double time = 0;
   if ((rank % 2) == 0) { /* even */
     // memset(recvbuf, 'a', size);
@@ -189,8 +188,9 @@ void runfunc(intptr_t thread_rank)
     dest = rank + 1;
     for (i = tag; i < loop; i += nthreads) {
       if (comm) MPIV_Send(lsendbuf, size, MPI_BYTE, dest, tag, MPI_COMM_WORLD);
-      if (comm) MPIV_Recv(lrecvbuf, size, MPI_BYTE, dest, tag, MPI_COMM_WORLD,
-                MPI_STATUS_IGNORE);
+      if (comm)
+        MPIV_Recv(lrecvbuf, size, MPI_BYTE, dest, tag, MPI_COMM_WORLD,
+                  MPI_STATUS_IGNORE);
       compute(work);
     }
   } else { /* odd */
@@ -198,8 +198,9 @@ void runfunc(intptr_t thread_rank)
     // memset(recvbuf, 'b', size);
     src = rank - 1;
     for (i = tag; i < loop; i += nthreads) {
-      if (comm) MPIV_Recv(lrecvbuf, size, MPI_BYTE, src, tag, MPI_COMM_WORLD,
-                MPI_STATUS_IGNORE);
+      if (comm)
+        MPIV_Recv(lrecvbuf, size, MPI_BYTE, src, tag, MPI_COMM_WORLD,
+                  MPI_STATUS_IGNORE);
       compute(work);
       if (comm) MPIV_Send(lsendbuf, size, MPI_BYTE, src, tag, MPI_COMM_WORLD);
     }

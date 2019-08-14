@@ -1,7 +1,7 @@
 #define ALIGNMENT (8192)
 #define MAX_CQ 16
 
-#define IBV_IMM_RTR ((uint32_t) 1<<31)
+#define IBV_IMM_RTR ((uint32_t)1 << 31)
 
 #ifdef LC_SERVER_DEBUG
 #define IBV_SAFECALL(x)                                               \
@@ -49,10 +49,10 @@ static inline struct ibv_qp* qp_create(lc_server* s)
   qp_init_attr.send_cq = s->send_cq;
   qp_init_attr.recv_cq = s->recv_cq;
   qp_init_attr.srq = s->dev_srq;
-  qp_init_attr.cap.max_send_wr = 256; //(uint32_t)dev_attr->max_qp_wr;
-  qp_init_attr.cap.max_recv_wr = 1; //(uint32_t)dev_attr->max_qp_wr;
+  qp_init_attr.cap.max_send_wr = 256;  //(uint32_t)dev_attr->max_qp_wr;
+  qp_init_attr.cap.max_recv_wr = 1;    //(uint32_t)dev_attr->max_qp_wr;
   // -- this affect the size of (TODO:tune later).
-  qp_init_attr.cap.max_send_sge = 16; // this allows 128 inline.
+  qp_init_attr.cap.max_send_sge = 16;  // this allows 128 inline.
   qp_init_attr.cap.max_recv_sge = 1;
   qp_init_attr.cap.max_inline_data = 0;
   qp_init_attr.qp_type = IBV_QPT_RC;
@@ -85,8 +85,8 @@ static inline void qp_init(struct ibv_qp* qp, int port)
 }
 
 static inline void qp_to_rtr(struct ibv_qp* qp, int dev_port,
-                         struct ibv_port_attr* port_attr,
-                         struct conn_ctx* rctx_)
+                             struct ibv_port_attr* port_attr,
+                             struct conn_ctx* rctx_)
 {
   struct ibv_qp_attr attr;
   memset(&attr, 0, sizeof(struct ibv_qp_attr));
@@ -155,9 +155,9 @@ static inline void ibv_post_recv_(lc_server* s, lc_packet* p)
   if (p == NULL) {
     if (s->recv_posted < LC_SERVER_MAX_RCVS / 2 && !lcg_deadlock) {
       lcg_deadlock = 1;
-      #ifdef LC_SERVER_DEBUG
+#ifdef LC_SERVER_DEBUG
       printf("WARNING-LC: deadlock alert\n");
-      #endif
+#endif
     }
     return;
   }
@@ -180,6 +180,5 @@ static inline void ibv_post_recv_(lc_server* s, lc_packet* p)
   struct ibv_recv_wr* bad_wr = 0;
   IBV_SAFECALL(ibv_post_srq_recv(s->dev_srq, &wr, &bad_wr));
 
-  if (++s->recv_posted == LC_SERVER_MAX_RCVS && lcg_deadlock)
-    lcg_deadlock = 0;
+  if (++s->recv_posted == LC_SERVER_MAX_RCVS && lcg_deadlock) lcg_deadlock = 0;
 }

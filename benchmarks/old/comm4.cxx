@@ -51,7 +51,7 @@ void wait_comm(intptr_t i)
   // start[i] = MPIV_Wtime();
   MPIV_Recv(buffer, SIZE, 1, i);
   MPIV_Send(buffer, SIZE, 1, i);
-// end[i] = MPIV_Wtime();
+  // end[i] = MPIV_Wtime();
 
 #if 0
     PAPI_read(eventSet, t1_value);

@@ -4,7 +4,7 @@
 #include <sys/time.h>
 
 #define MIN_MSG (1)
-#define MAX_MSG (4*1024*1024)
+#define MAX_MSG (4 * 1024 * 1024)
 
 #define LARGE 8192
 

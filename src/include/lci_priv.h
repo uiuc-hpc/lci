@@ -5,7 +5,7 @@
 
 #define SHORT_MSG_SIZE (LC_PACKET_SIZE - sizeof(struct packet_context))
 
-#define LCI_SYNCL_PTR_TO_REQ_PTR(sync) (&((LCI_syncl_t*) sync)->request)
+#define LCI_SYNCL_PTR_TO_REQ_PTR(sync) (&((LCI_syncl_t*)sync)->request)
 
 struct lc_server;
 typedef struct lc_server lc_server;
@@ -28,17 +28,17 @@ struct lc_req;
 typedef struct lc_rep lc_rep;
 
 typedef enum lc_ep_addr {
-  EP_AR_DYN = 1<<1,
-  EP_AR_EXP  = 1<<2,
-  EP_AR_IMM  = 1<<3,
+  EP_AR_DYN = 1 << 1,
+  EP_AR_EXP = 1 << 2,
+  EP_AR_IMM = 1 << 3,
 } lc_ep_addr;
 
 typedef enum lc_ep_ce {
   EP_CE_NULL = 0,
-  EP_CE_SYNC = ((1<<1) << 4),
-  EP_CE_CQ   = ((1<<2) << 4),
-  EP_CE_AM   = ((1<<3) << 4),
-  EP_CE_GLOB = ((1<<4) << 4),
+  EP_CE_SYNC = ((1 << 1) << 4),
+  EP_CE_CQ = ((1 << 2) << 4),
+  EP_CE_AM = ((1 << 3) << 4),
+  EP_CE_GLOB = ((1 << 4) << 4),
 } lc_ep_ce;
 
 LCI_endpoint_t* LCI_ENDPOINTS;
@@ -93,13 +93,13 @@ static inline void lc_dev_init(int id, lc_server** dev)
   uintptr_t base_packet;
   lc_server_init(id, dev);
   lc_server* s = *dev;
-  uintptr_t base_addr = (uintptr_t) lc_server_heap_ptr(s);
+  uintptr_t base_addr = (uintptr_t)lc_server_heap_ptr(s);
   base_packet = base_addr + 8192 - sizeof(struct packet_context);
 
   lc_pool_create(&s->pkpool);
   for (int i = 0; i < LC_SERVER_NUM_PKTS; i++) {
-    lc_packet* p = (lc_packet*) (base_packet + i * LC_PACKET_SIZE);
-    p->context.poolid  = 0;
+    lc_packet* p = (lc_packet*)(base_packet + i * LC_PACKET_SIZE);
+    p->context.poolid = 0;
     // p->context.req_s.parent = p;
     lc_pool_put(s->pkpool, p);
   }
@@ -108,9 +108,6 @@ static inline void lc_dev_init(int id, lc_server** dev)
   s->curr_addr = (s->curr_addr + 8192 - 1) / 8192 * 8192;
 }
 
-static inline void lc_dev_finalize(lc_server* dev)
-{
-  lc_server_finalize(dev);
-}
+static inline void lc_dev_finalize(lc_server* dev) { lc_server_finalize(dev); }
 
 #endif
