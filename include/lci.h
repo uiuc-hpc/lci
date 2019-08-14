@@ -22,14 +22,38 @@ extern "C" {
  */
 
 /**
- * LCI global variables.
+ * The maximum size of a buffer that can be used in immediate protocol.
  */
 int LCI_IMMEDIATE_LENGTH;
+
+/**
+ * The maximum size of a buffer that can be used in buffered protocol.
+ */
 int LCI_BUFFERED_LENGTH;
+
+/**
+ * The number of devices created intially.
+ */
 int LCI_NUM_DEVICES;
+
+/**
+ * The number of endpoints that can be created.
+ */
 int LCI_NUM_ENDPOINTS;
+
+/**
+ * The number of processes in this job.
+ */
 int LCI_NUM_PROCESSES;
+
+/**
+ * The rank of the current process w.r.t the job.
+ */
 int LCI_RANK;
+
+/**
+ * The amount of pre-registered memory for a device dedicated for communciation.
+ */
 int LCI_REGISTERED_MEMORY_SIZE;
 
 /**@}*/
@@ -110,6 +134,9 @@ typedef char LCI_idata_t[64];
 typedef void* LCI_bdata_t;
 typedef void* LCI_ddata_t;
 
+/**
+ * The type of data associated with a buffer.
+ */
 typedef union {
   LCI_idata_t immediate;
   LCI_bdata_t buffer;
