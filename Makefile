@@ -99,7 +99,7 @@ endif
 #COMM = lc.o medium.o short.o long.o tag.o cq.o misc.o ep.o lcrq.o pool.o hashtable.o coll.o glob.o
 DREG = dreg/dreg.o dreg/avl.o
 PMI = pm.o pmi/simple_pmi.o pmi/simple_pmiutil.o
-COMM = lci.o pool.o hashtable.o misc.o lcrq.o pt2pt.o 1sided.o
+COMM = lci.o config.o pool.o hashtable.o misc.o lcrq.o pt2pt.o 1sided.o
 
 ifeq ($(LCI_USE_DREG), yes)
 LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
@@ -141,6 +141,8 @@ mpiv.a: obj/mpiv.o
 
 clean:
 	rm -rf $(LIBOBJ) $(OBJDIR)/* liblwci.a liblwci.so mpiv.a
+	$(MAKE) clean -C examples
+	$(MAKE) clean -C benchmarks
 
 tests:
 	$(MAKE) -C tests && ./tests/all_test

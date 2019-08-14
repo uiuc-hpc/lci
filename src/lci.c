@@ -6,8 +6,6 @@ lc_server* lcg_dev[8];
 LCI_endpoint_t lcg_endpoint[8];
 int lcg_num_devices = 0;
 int lcg_num_endpoints= 0;
-int lcg_rank = 0;
-int lcg_size = 0;
 char lcg_name[64];
 
 int lcg_current_id = 0;
@@ -15,10 +13,16 @@ int lcg_deadlock = 0;
 volatile uint32_t next_key = 1;
 __thread int lcg_core_id = -1;
 
+void lc_config_init(int num_proc, int rank);
+
 LCI_error_t LCI_initialize(int num_devices)
 {
+  int num_proc, rank;
   // Initialize processes in this job.
-  lc_pm_master_init(&lcg_size, &lcg_rank, lcg_name);
+  lc_pm_master_init(&num_proc, &rank, lcg_name);
+
+  // Set some constant from environment variable.
+  lc_config_init(num_proc, rank);
 
   for (int i = 0; i < num_devices; i++) {
     lc_dev_init(i, &lcg_dev[i]);
@@ -111,16 +115,6 @@ LCI_error_t LCI_PL_set_sync_type(LCI_comp_t ltype, LCI_comp_t rtype, LCI_PL* pro
   (*prop)->ltype = ltype;
   (*prop)->rtype = rtype;
   return LCI_OK;
-}
-
-int LCI_Rank()
-{
-  return lcg_rank;
-}
-
-int LCI_Size()
-{
-  return lcg_size;
 }
 
 LCI_error_t LCI_sync_create(void* sync) {

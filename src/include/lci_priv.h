@@ -42,8 +42,6 @@ typedef enum lc_ep_ce {
 extern LCI_endpoint_t lcg_endpoint[];
 extern int lcg_num_devices;
 extern int lcg_num_endpoints;
-extern int lcg_rank;
-extern int lcg_size;
 
 struct LCI_PL_s {
   LCI_comm_t ctype;
@@ -85,6 +83,8 @@ struct lc_rep {
 #include "packet.h"
 #include "proto.h"
 #include "server/server.h"
+
+void lci_config_init(int num_proc, int rank);
 
 static inline void lc_dev_init(int id, lc_server** dev)
 {

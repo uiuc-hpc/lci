@@ -58,7 +58,9 @@ LDFLAGS += -L$(TACC_BOOST_LIB)
 #CXXFLAGS += -I$(PAPI_INC)
 #LDFLAGS += -L$(PAPI_LIB)
 
-TARGET = pingpong_mt_NN pingpong_mt_NN_abt pingpong_mt_NN_pth pingpong_mt_NN_osu
+TARGET = pingpong pingpong_mt pingpong_mt_NN pingpong_mt_NN_abt pingpong_mt_NN_pth pingpong_mt_NN_osu
+TARGET += write_mpi hash hash_c hash_i pool packet lqueue thread_wait thread_wait_pth
+TARGET += queue_mpi queue_mpi_msg queue_mpi_put queue_mpi_put_msg
 
 all: $(TARGET)
 

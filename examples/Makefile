@@ -3,7 +3,7 @@ FULT=$(WORK)/fult
 
 CC = gcc
 LD = $(CC)
-TARGET = init pt2pti pt2ptbc pt2ptd # tshort tmed tlong qshort qmed qlong
+TARGET = init pt2pti pt2ptbc pt2ptd 1sidediq pt2ptiq puti # tshort tmed tlong qshort qmed qlong
 
 EXTRA = -DUSE_AFFI
 

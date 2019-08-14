@@ -17,6 +17,16 @@ extern "C" {
 #define LCI_API __attribute__((visibility("default")))
 
 /**
+ * LCI global variables.
+ */
+int LCI_IMMEDIATE_LENGTH;
+int LCI_BUFFERED_LENGTH;
+int LCI_NUM_DEVICES;
+int LCI_NUM_PROCESSES;
+int LCI_RANK;
+int LCI_REGISTERED_MEMORY_SIZE;
+
+/**
  * LCI Status type.
  */
 typedef enum LCI_error_t {
@@ -74,27 +84,31 @@ typedef enum LCI_dynamic_t {
  */
 typedef uint64_t LCI_sync_t;
 
+typedef char LCI_idata_t[64];
+typedef void* LCI_bdata_t;
+typedef void* LCI_ddata_t;
+
 typedef union {
-  char immediate[8]; // may not want a full cacheline here.
-  void* buffer;
+  LCI_idata_t immediate;
+  LCI_bdata_t buffer;
+  LCI_ddata_t direct;
 } LCI_data_t;
 
 /**
  * Request object, owned by the user, unless returned from runtime (CQ_Dequeue).
  */
-typedef struct LCI_request_s {
+typedef struct {
   /* Status of the communication. */
-  LCI_data_t data;
   LCI_error_t status;
-  enum {invalid, immediate, buffered, direct} type;
-  int rank;
-  int tag;
-  size_t size;
-  void* usr_ctx;
+  uint32_t rank;
+  uint16_t tag;
+  enum {INVALID, IMMEDIATE, BUFFERED, DIRECT} type;
+  LCI_data_t data;
+  size_t length;
   void* __reserved__;
 } LCI_request_t;
 
-typedef struct LCI_sync_long {
+typedef struct {
   LCI_sync_t sync;
   LCI_request_t request;
 } LCI_syncl_t;

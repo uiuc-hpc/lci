@@ -201,11 +201,11 @@ static inline void lc_server_init(int id, lc_server** dev)
   /* Attempt to open a PSM2 endpoint. This allocates hardware resources. */
   PSM_SAFECALL(psm2_ep_open(s->uuid, &option, &s->myep, &s->myepid));
 
-  s->me = lcg_rank;
+  s->me = LCI_RANK;
   s->recv_posted = 0;
 
   posix_memalign(&s->heap, 8192,
-                 LC_SERVER_NUM_PKTS * LC_PACKET_SIZE * 2 + LC_DEV_MEM_SIZE);
+                 LC_SERVER_NUM_PKTS * LC_PACKET_SIZE * 2 + LCI_REGISTERED_MEMORY_SIZE);
 
   lcrq_init(&s->free_mr);
   for (int i = 0; i < 256; i++)
@@ -217,12 +217,12 @@ static inline void lc_server_init(int id, lc_server** dev)
   s->heap_rkey = lc_server_get_free_key();
   sprintf(ep_name, "%llu-%llu-%d", (unsigned long long)s->myepid,
           (unsigned long long) s->heap, (uint32_t) s->heap_rkey);
-  lc_pm_publish(lcg_rank, id, ep_name);
+  lc_pm_publish(LCI_RANK, id, ep_name);
 
-  posix_memalign((void**) &(s->rep), LC_CACHE_LINE, sizeof(struct lc_rep) * lcg_size);
+  posix_memalign((void**) &(s->rep), LC_CACHE_LINE, sizeof(struct lc_rep) * LCI_NUM_PROCESSES);
 
-  for (int i = 0; i < lcg_size; i++) {
-    if (i != lcg_rank) {
+  for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
+    if (i != LCI_RANK) {
       struct lc_rep* rep = &s->rep[i];
       psm2_error_t errs;
       lc_pm_getname(i, id, ep_name);
@@ -261,7 +261,7 @@ static inline int lc_server_progress(lc_server* s)
         p->context.sync = &p->context.sync_s;
         p->context.sync->request.__reserved__ = status.msg_peer;
         p->context.sync->request.rank = status.msg_tag.tag1;
-        p->context.sync->request.size = (status.msg_length);
+        p->context.sync->request.length = (status.msg_length);
         uint32_t proto = status.msg_tag.tag0;
         lc_serve_recv(p, proto);
         s->recv_posted--;

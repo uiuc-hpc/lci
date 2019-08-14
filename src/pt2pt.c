@@ -43,8 +43,8 @@ LCI_error_t LCI_recvi(void* src, size_t size, int rank, int tag, LCI_endpoint_t 
   LCI_request_t* request = LCI_SYNCL_PTR_TO_REQ_PTR(sync);
   if (!lc_hash_insert(ep->tbl, key, &value, CLIENT)) {
     lc_packet* p = (lc_packet*) value;
-    memcpy(src, p->data.buffer, p->context.sync->request.size);
-    request->size = p->context.sync->request.size;
+    memcpy(src, p->data.buffer, p->context.sync->request.length);
+    request->length = p->context.sync->request.length;
     lc_ce_dispatch(ep, p, sync, ep->property);
   }
   return LCI_OK;
@@ -58,8 +58,8 @@ LCI_error_t LCI_recvbc(void* src, size_t size, int rank, int tag, LCI_endpoint_t
   lc_value value = (lc_value) sync;
   if (!lc_hash_insert(ep->tbl, key, &value, CLIENT)) {
     lc_packet* p = (lc_packet*) value;
-    memcpy(src, p->data.buffer, p->context.sync->request.size);
-    req->size = p->context.sync->request.size;
+    memcpy(src, p->data.buffer, p->context.sync->request.length);
+    req->length = p->context.sync->request.length;
     lc_ce_dispatch(ep, p, sync, ep->property);
   }
   return LCI_OK;
@@ -75,7 +75,7 @@ LCI_error_t LCI_recvd(void* src, size_t size, int rank, int tag, LCI_endpoint_t 
   lc_value value = (lc_value) sync;
   if (!lc_hash_insert(ep->tbl, key, &value, CLIENT)) {
     lc_packet* p = (lc_packet*) value;
-    req->size = p->data.rts.size;
+    req->length = p->data.rts.size;
     p->context.sync = sync;
     lc_handle_rts(ep, p);
   }
