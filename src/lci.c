@@ -7,7 +7,7 @@ LCI_endpoint_t* LCI_ENDPOINTS;
 
 char lcg_name[64];
 int lcg_current_id = 0; int lcg_deadlock = 0;
-volatile uint32_t next_key = 1;
+volatile uint32_t lc_next_rdma_key = 1;
 __thread int lcg_core_id = -1;
 
 void lc_config_init(int num_proc, int rank);
@@ -116,5 +116,5 @@ LCI_error_t LCI_progress(int id, int count)
 }
 
 uintptr_t LCI_get_base_addr(int id) {
-  return (uintptr_t) LCI_DEVICES[id]->heap;
+  return (uintptr_t) LCI_DEVICES[id]->heap_addr;
 }

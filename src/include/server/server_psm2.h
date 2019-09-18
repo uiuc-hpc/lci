@@ -57,42 +57,21 @@ struct psm_mr {
 };
 
 typedef struct lc_server {
-  int id;
-  struct lc_rep* rep;
+  SERVER_COMMON
 
   psm2_uuid_t uuid;
-  int me;
 
   // Endpoint + Endpoint ID.
   psm2_ep_t myep;
   psm2_epid_t myepid;
   psm2_mq_t mq;
 
-  lc_pool* pkpool;
-  uintptr_t curr_addr;
-  void* heap;
   uint32_t heap_rkey;
-  size_t recv_posted;
   lcrq_t free_mr;
 } lc_server __attribute__((aligned(LC_CACHE_LINE)));
 
 static psm2_mq_tag_t LCI_PSM2_TAGSEL = {{0x0, 0x0, 0x0FFFFFFF}};
-
 static inline void lc_server_post_recv(lc_server* s, lc_packet* p);
-
-#if 0
-static inline void lc_server_rma(lc_server* s, int rank, void* from,
-                             uintptr_t addr, uint32_t rkey, size_t size,
-                             lc_packet* ctx, uint32_t proto);
-
-static inline void lc_server_rma_signal(lc_server* s, int rank, void* buf,
-                                    uintptr_t addr, size_t offset, uint32_t rkey, size_t size,
-                                    uint32_t sid, lc_packet* ctx);
-
-static inline void lc_server_finalize(lc_server* s);
-#endif
-
-extern volatile uint32_t next_key;
 
 #define PSM_RECV ((uint64_t)1 << 62)
 #define PSM_SEND ((uint64_t)1 << 63)
@@ -164,7 +143,7 @@ static inline struct psm_mr* lc_server_get_free_mr(lc_server* s)
 
 static inline uint32_t lc_server_get_free_key()
 {
-  return (__sync_fetch_and_add(&next_key, 1) & 0x0fffffff);
+  return (__sync_fetch_and_add(&lc_next_rdma_key, 1) & 0x0fffffff);
 }
 
 static inline uintptr_t _real_psm_reg(lc_server* s, void* buf, size_t size)
@@ -226,11 +205,11 @@ static inline void lc_server_init(int id, lc_server** dev)
   /* Attempt to open a PSM2 endpoint. This allocates hardware resources. */
   PSM_SAFECALL(psm2_ep_open(s->uuid, &option, &s->myep, &s->myepid));
 
-  s->me = LCI_RANK;
+  LCI_RANK = LCI_RANK;
   s->recv_posted = 0;
 
   posix_memalign(
-      &s->heap, 8192,
+      (void**) &s->heap_addr, 8192,
       LC_SERVER_NUM_PKTS * LC_PACKET_SIZE * 2 + LCI_REGISTERED_MEMORY_SIZE);
 
   lcrq_init(&s->free_mr);
@@ -242,7 +221,7 @@ static inline void lc_server_init(int id, lc_server** dev)
   char ep_name[256];
   s->heap_rkey = lc_server_get_free_key();
   sprintf(ep_name, "%llu-%llu-%d", (unsigned long long)s->myepid,
-          (unsigned long long)s->heap, (uint32_t)s->heap_rkey);
+          (unsigned long long)s->heap_addr, (uint32_t)s->heap_rkey);
   lc_pm_publish(LCI_RANK, id, ep_name);
 
   posix_memalign((void**)&(s->rep), LC_CACHE_LINE,
@@ -294,17 +273,17 @@ static inline int lc_server_progress(lc_server* s)
         s->recv_posted--;
       } else if (pk_type == PSM_RECV_RDMA) {
         p->context.sync = &p->context.sync_s;
-        uintptr_t addr = (uintptr_t)status.msg_tag.tag0 + (uintptr_t)s->heap;
+        uintptr_t addr = (uintptr_t)status.msg_tag.tag0 + (uintptr_t)s->heap_addr;
         memcpy((void*)addr, p->data.buffer, status.msg_length);
         lc_server_post_recv(s, p);
       } else if (pk_type == PSM_RECV_RDMA_SID) {
         p->context.sync = &p->context.sync_s;
-        uintptr_t addr = (uintptr_t)status.msg_tag.tag0 + (uintptr_t)s->heap;
+        uintptr_t addr = (uintptr_t)status.msg_tag.tag0 + (uintptr_t)s->heap_addr;
         memcpy((void*)addr, p->data.buffer, status.msg_length);
         lc_serve_recv_rdma(p, status.msg_tag.tag1);
         s->recv_posted--;
       } else if (pk_type == PSM_RECV_RDMA_RTP) {
-        uintptr_t addr = (uintptr_t)status.msg_tag.tag0 + (uintptr_t)s->heap;
+        uintptr_t addr = (uintptr_t)status.msg_tag.tag0 + (uintptr_t)s->heap_addr;
         uint32_t rkey = status.msg_tag.tag1;
         size_t size;
         memcpy(&size, p->data.buffer, sizeof(size_t));
@@ -313,7 +292,7 @@ static inline int lc_server_progress(lc_server* s)
         s->recv_posted--;
       } else if (status.msg_tag.tag1 == PSM_RDMA_IMM) {
         uint32_t off = status.msg_tag.tag0;
-        lc_packet* p = (lc_packet*)(s->heap + off);
+        lc_packet* p = (lc_packet*)(s->heap_addr + off);
         lc_serve_imm(p);
       } else if (status.msg_tag.tag0) {
         p->context.sync = &p->context.sync_s;
@@ -360,7 +339,7 @@ static inline void lc_server_post_recv(lc_server* s, lc_packet* p)
 static inline void lc_server_sendm(lc_server* s, void* rep, size_t size,
                                    lc_packet* ctx, uint32_t proto)
 {
-  psm2_mq_tag_t rtag = PSM_TAG_TSEND_DATA(proto, s->me);
+  psm2_mq_tag_t rtag = PSM_TAG_TSEND_DATA(proto, LCI_RANK);
 
   PSM_SAFECALL(psm2_mq_isend2(s->mq, rep, 0, /* no flags */
                               &rtag, ctx->data.buffer, size,
@@ -371,7 +350,7 @@ static inline void lc_server_sendm(lc_server* s, void* rep, size_t size,
 static inline void lc_server_sends(lc_server* s, void* rep, void* ubuf,
                                    size_t size, uint32_t proto)
 {
-  psm2_mq_tag_t rtag = PSM_TAG_TSEND_DATA(proto, s->me);
+  psm2_mq_tag_t rtag = PSM_TAG_TSEND_DATA(proto, LCI_RANK);
   PSM_SAFECALL(psm2_mq_send2(s->mq, rep, 0, &rtag, ubuf, size));
 }
 
@@ -481,7 +460,7 @@ uint32_t lc_server_heap_rkey(lc_server* s __UNUSED__, int node __UNUSED__)
 }
 #endif
 
-static inline void* lc_server_heap_ptr(lc_server* s) { return s->heap; }
+static inline void* lc_server_heap_ptr(lc_server* s) { return (void*) s->heap_addr; }
 
 #define _real_server_reg _real_psm_reg
 #define _real_server_dereg _real_psm_free

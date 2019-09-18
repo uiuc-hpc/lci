@@ -4,6 +4,16 @@
 struct lc_server;
 typedef struct lc_server lc_server;
 
+extern volatile uint32_t lc_next_rdma_key;
+
+#define SERVER_COMMON \
+  int id; \
+  lc_pool* pkpool; \
+  uintptr_t curr_addr; \
+  struct lc_rep* rep; \
+  size_t recv_posted; \
+  uintptr_t heap_addr; \
+
 static inline void lc_serve_recv(lc_packet* p, lc_proto proto);
 static inline void lc_serve_imm(lc_packet* p);
 static inline void lc_serve_recv_rdma(lc_packet*, lc_proto proto);
