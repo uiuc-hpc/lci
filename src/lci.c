@@ -32,6 +32,7 @@ LCI_error_t LCI_finalize()
   for (int i = 0; i < LCI_NUM_DEVICES; i++) {
     lc_dev_finalize(LCI_DEVICES[i]);
   }
+  lc_pm_barrier();
   return LCI_OK;
 }
 

@@ -16,7 +16,7 @@
 #define LC_MAX_INLINE 64
 #endif
 
-#define LC_DEV_MEM_SIZE (8 * 1024 * 1024)
+#define LC_DEV_MEM_SIZE (64 * 1024 * 1024)
 
 // Using LCRQ or spinlock.
 // #define USE_CCQ

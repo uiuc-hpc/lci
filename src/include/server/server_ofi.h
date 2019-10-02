@@ -4,6 +4,7 @@
 #include <rdma/fabric.h>
 #include <rdma/fi_domain.h>
 #include <rdma/fi_endpoint.h>
+#include <rdma/fi_tagged.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -16,7 +17,7 @@
 #include "pm.h"
 #include "dreg/dreg.h"
 
-// #define SERVER_FI_DEBUG
+#define SERVER_FI_DEBUG
 
 #ifdef SERVER_FI_DEBUG
 #define FI_SAFECALL(x)                                                    \
@@ -95,7 +96,7 @@ static inline void lc_server_init(int id, lc_server** dev)
   hints = fi_allocinfo();
   hints->ep_attr->type = FI_EP_RDM;
   hints->domain_attr->mr_mode = FI_MR_BASIC;
-  hints->caps = FI_RMA | FI_MSG;
+  hints->caps = FI_RMA | FI_TAGGED;
   hints->mode = FI_CONTEXT | FI_LOCAL_MR;
 
   // Create info.
@@ -113,7 +114,7 @@ static inline void lc_server_init(int id, lc_server** dev)
   // Create cq.
   struct fi_cq_attr* cq_attr = malloc(sizeof(struct fi_cq_attr));
   memset(cq_attr, 0, sizeof(struct fi_cq_attr));
-  cq_attr->format = FI_CQ_FORMAT_DATA;
+  cq_attr->format = FI_CQ_FORMAT_TAGGED;
   cq_attr->size = MAX_CQ_SIZE;
   // FI_SAFECALL(fi_cq_open(s->domain, cq_attr, &s->scq, NULL));
   FI_SAFECALL(fi_cq_open(s->domain, cq_attr, &s->rcq, NULL));
@@ -127,7 +128,7 @@ static inline void lc_server_init(int id, lc_server** dev)
   dreg_init();
 
   // Get memory for heap.
-  s->heap_addr = 0;  // std::move(unique_ptr<char[]>(new char[LCI_REGISTERED_MEMORY_SIZE]));
+  s->heap_addr = 0; 
   posix_memalign(&s->heap_addr, 4096, LCI_REGISTERED_MEMORY_SIZE);
 
   FI_SAFECALL(fi_mr_reg(s->domain, s->heap_addr, LCI_REGISTERED_MEMORY_SIZE,
@@ -159,18 +160,21 @@ static inline void lc_server_init(int id, lc_server** dev)
   posix_memalign((void**)&(s->rep), LC_CACHE_LINE,
                  sizeof(struct lc_rep) * LCI_NUM_PROCESSES);
   char tmp[256];
-  sprintf(tmp, "%llu-%llu", (unsigned long long)addr, (unsigned long long) myaddr);
+  printf("%d\n", addrlen);
+  sprintf(tmp, "%llu-%llu-%llu", ((unsigned long long*)addr)[0],
+      ((unsigned long long*) addr)[1], (unsigned long long) myaddr);
   lc_pm_publish(LCI_RANK, id, tmp);
 
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
     if (i != LCI_RANK) {
       struct lc_rep* rep = &s->rep[i];
       lc_pm_getname(i, id, tmp);
-      uintptr_t destaddr;
+      uintptr_t destaddr[2];
       uintptr_t heapaddr;
-      sscanf(tmp, "%llu-%llu", (unsigned long long*)&destaddr,
-             (unsigned long long*)&heapaddr);
-      if (fi_av_insert(s->av, destaddr, 1, &s->fi_addr[i], 0, NULL) == -1) {
+      sscanf(tmp, "%llu-%llu-%llu",
+          (unsigned long long*)&destaddr[0], (unsigned long long*) &destaddr[1],
+          (unsigned long long*)&heapaddr);
+      if (fi_av_insert(s->av, &destaddr[0], 1, &s->fi_addr[i], 0, NULL) == -1) {
         exit(-1);
       }
       rep->rank = i;
@@ -187,7 +191,7 @@ static inline void lc_server_post_recv(lc_server* s, lc_packet* p);
 static inline int lc_server_progress(lc_server* s)
 {
   // double t1 = -(MPI_Wtime());
-  struct fi_cq_data_entry entry[MAX_POLL];
+  struct fi_cq_tagged_entry entry[MAX_POLL];
   struct fi_cq_err_entry error;
   ssize_t ret;
   int rett = 0;
@@ -200,14 +204,16 @@ static inline int lc_server_progress(lc_server* s)
       for (int i = 0; i < ret; i++) {
         if (entry[i].flags & FI_RECV) {
           s->recv_posted--;
-          lc_serve_recv((lc_packet*)entry[i].op_context, entry[i].data);
+          lc_packet* p = (lc_packet*) entry[i].op_context;
+          p->context.sync = &p->context.sync_s;
+          int rank = p->context.sync->request.rank = (entry[i].tag);
+          p->context.sync->request.__reserved__ = s->fi_addr[rank];
+          p->context.sync->request.length = entry[i].len;
+          lc_serve_recv(p, entry[i].data);
         } else if (entry[i].flags & FI_REMOTE_CQ_DATA) {
           // NOTE(danghvu): In OFI, a imm data is transferred without
           // comsuming a posted receive.
           lc_serve_imm(entry[i].data);
-        } else if (entry[i].flags & FI_RECV) {
-          s->recv_posted--;
-          lc_serve_recv((lc_packet*)entry[i].op_context, entry[i].data);
         } else {
           lc_packet* p = (lc_packet*)entry[i].op_context;
           lc_serve_send(p);
@@ -240,7 +246,7 @@ static inline void lc_server_post_recv(lc_server* s, lc_packet* p)
 {
   if (p == NULL) return;
   FI_SAFECALL(
-      fi_recv(s->ep, &p->data, SHORT_MSG_SIZE, 0, FI_ADDR_UNSPEC, &p->context));
+      fi_trecv(s->ep, &p->data, SHORT_MSG_SIZE, 0, FI_ADDR_UNSPEC, /*any*/0, ~0 /*ignore*/, &p->context));
   s->recv_posted++;
 }
 
@@ -267,14 +273,14 @@ static inline void lc_server_sendm(lc_server* s, void* rep, size_t size,
                                    lc_packet* ctx, uint32_t proto)
 {
   ctx->context.proto = proto;
-  FI_SAFECALL(fi_senddata(s->ep, ctx->data.buffer, size, 0, proto, rep,
-        (struct fi_context*)ctx));
+  FI_SAFECALL(fi_tsenddata(s->ep, ctx->data.buffer, size, 0, proto, rep,
+        LCI_RANK, (struct fi_context*)ctx));
 }
 
 static inline void lc_server_sends(lc_server* s, void* rep, void* ubuf,
                                    size_t size, uint32_t proto)
 {
-  FI_SAFECALL(fi_injectdata(s->ep, ubuf, size, proto, rep));
+  FI_SAFECALL(fi_tinjectdata(s->ep, ubuf, size, proto, rep, LCI_RANK));
 }
 
 static inline void lc_server_puts(lc_server* s, void* rep, void* buf,
