@@ -96,10 +96,16 @@ ifeq ($(LCI_SERVER), psm)
 	CFLAGS += -DLCI_USE_SERVER_PSM -DAFF_DEBUG -I$(PSM_DIR)/include
 endif
 
+SYNC_FLAG = sync_flag.o
+SYNC_ABT = sync_abt.o
+CFLAGS += -labt -L$(HOME)/abt/lib -I$(HOME)/abt/include
+
+SYNC = $(SYNC_FLAG)
+
 #COMM = lc.o medium.o short.o long.o tag.o cq.o misc.o ep.o lcrq.o pool.o hashtable.o coll.o glob.o
 DREG = dreg/dreg.o dreg/avl.o
 PMI = pm.o pmi/simple_pmi.o pmi/simple_pmiutil.o
-COMM = lci.o plist.o config.o pool.o misc.o lcrq.o pt2pt.o 1sided.o cq.o mt.o
+COMM = lci.o plist.o config.o pool.o misc.o lcrq.o pt2pt.o 1sided.o cq.o mt.o $(SYNC)
 
 ifeq ($(LCI_USE_DREG), yes)
 LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))

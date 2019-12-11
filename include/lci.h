@@ -479,7 +479,7 @@ int LCI_one2one_test_empty(void* sync);
  * Wait until become full.
  */
 LCI_API
-int LCI_one2one_wait_full(void* sync);
+LCI_error_t LCI_one2one_wait_full(void* sync);
 
 /**
  * Wait until become empty.

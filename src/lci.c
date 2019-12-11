@@ -70,31 +70,6 @@ LCI_error_t LCI_endpoint_create(int device, LCI_PL_t prop, LCI_endpoint_t* ep_pt
   return LCI_OK;
 }
 
-LCI_error_t LCI_sync_create(void* sync) {
-  *(LCI_sync_t*) sync = 0;
-  return LCI_OK;
-}
-
-LCI_error_t LCI_one2one_set_full(void* sync) {
-  *(LCI_sync_t*)sync = 1;
-  return LCI_OK;
-}
-
-LCI_error_t LCI_one2one_wait_empty(void* sync) {
-  while (*(LCI_sync_t*)sync)
-    ;
-  return LCI_OK;
-}
-
-int LCI_one2one_test_empty(void* sync) {
-  return (*(LCI_sync_t*)sync == 0);
-}
-
-LCI_error_t LCI_one2one_set_empty(void* sync) {
-  *(LCI_sync_t*)sync = 0;
-  return LCI_OK;
-}
-
 LCI_error_t LCI_cq_dequeue(LCI_endpoint_t ep, LCI_request_t** req_ptr)
 {
   LCI_request_t* req = lc_cq_pop(ep->cq);

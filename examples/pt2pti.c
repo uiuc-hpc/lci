@@ -26,6 +26,7 @@ int main(int argc, char** args) {
   int tag = 99;
 
   LCI_syncl_t sync;
+  LCI_sync_create(&sync);
 
   double t1 = 0;
   size_t alignment = sysconf(_SC_PAGESIZE);
