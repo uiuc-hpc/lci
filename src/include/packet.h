@@ -4,6 +4,8 @@
 #include "config.h"
 #include <stdint.h>
 
+#define USER_MANAGED 99
+
 #define lc_pk_init(ep_, pid_, proto_, p) \
   p->context.ep = (ep_);                 \
   p->context.poolid = (pid_);            \

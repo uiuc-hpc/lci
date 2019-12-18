@@ -32,7 +32,7 @@ LCI_error_t LCI_finalize()
   for (int i = 0; i < LCI_NUM_DEVICES; i++) {
     lc_dev_finalize(LCI_DEVICES[i]);
   }
-  lc_pm_barrier();
+  LCI_PM_barrier();
   return LCI_OK;
 }
 
@@ -93,4 +93,10 @@ LCI_error_t LCI_progress(int id, int count)
 
 uintptr_t LCI_get_base_addr(int id) {
   return (uintptr_t) LCI_DEVICES[id]->heap_addr;
+}
+
+LCI_error_t LCI_buffer_get(LCI_endpoint_t ep, LCI_bdata_t* buffer) {
+  LC_POOL_GET_OR_RETN(ep->pkpool, p);
+  *buffer = (void*) p;
+  return LCI_OK;
 }

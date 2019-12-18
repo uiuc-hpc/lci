@@ -263,7 +263,11 @@ static inline void lc_serve_send(lc_packet* p)
     lc_pk_free(ep, p);
   } else {
     dprintf("SENT UNKNOWN: %p\n", p);
-    lc_pk_free_data(ep, p);
+    if (p->context.ref != USER_MANAGED) {
+      lc_pk_free_data(ep, p);
+    } else {
+      LCI_one2one_set_full(p->context.sync);  // FIXME
+    }
   }
 }
 

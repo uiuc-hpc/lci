@@ -97,8 +97,8 @@ ifeq ($(LCI_SERVER), psm)
 endif
 
 SYNC_FLAG = sync_flag.o
-SYNC_ABT = sync_abt.o
-CFLAGS += -labt -L$(HOME)/abt/lib -I$(HOME)/abt/include
+# SYNC_ABT = sync_abt.o
+# CFLAGS += -labt -L$(HOME)/abt/lib -I$(HOME)/abt/include
 
 SYNC = $(SYNC_FLAG)
 
