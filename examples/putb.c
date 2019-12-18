@@ -17,7 +17,7 @@ int main(int argc, char** args) {
   LCI_MT_t mt;
   LCI_MT_create(0, &mt);
   LCI_PL_set_mt(&mt, &prop);
-  // LCI_PL_set_completion(LCI_PORT_MESSAGE, LCI_COMPLETION_ONE2ONEL, &prop);
+  // LCI_PL_set_completion(LCI_PORT_MESSAGE, LCI_COMPLETION_QUEUE, &prop);
   // LCI_PL_set_completion(LCI_PORT_COMMAND, LCI_COMPLETION_ONE2ONEL, &prop);
 
   LCI_endpoint_create(0, prop, &ep);
@@ -58,13 +58,13 @@ int main(int argc, char** args) {
           LCI_progress(0, 1);
         rbuf[0] = -1;
         LCI_one2one_set_empty(&sync);
-        LCI_putb(p, size, 1-rank, 0, base_offset + MAX_MSG, ep, &sync);
+        LCI_putb(p, size, 1-rank, 0, base_offset + MAX_MSG, 99, ep, &sync);
         while (LCI_one2one_test_empty(&sync)) {
           LCI_progress(0, 1);
         }
       } else {
         LCI_one2one_set_empty(&sync);
-        LCI_putb(p, size, 1-rank, 0, base_offset + MAX_MSG, ep, &sync);
+        LCI_putb(p, size, 1-rank, 0, base_offset + MAX_MSG, 99, ep, &sync);
         while (LCI_one2one_test_empty(&sync)) {
           LCI_progress(0, 1);
         }

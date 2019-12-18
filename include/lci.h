@@ -367,14 +367,14 @@ LCI_error_t LCI_puti(void* src, size_t size, int rank, int rma_id, int offset,
  * endpoint, offset @offset. Complete immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
-LCI_error_t LCI_putbc(void* src, size_t size, int rank, int rma_id, int offset,
+LCI_error_t LCI_putbc(void* src, size_t size, int rank, int rma_id, int offset, uint16_t meta,
                      LCI_endpoint_t ep);
 
 /**
  * Put medium message to a remote address @rma_id available at the remote
  * endpoint, offset @offset. User must wait for sync or retry if LCI_ERR_RETRY is returned.
  */
-LCI_error_t LCI_putb(LCI_bdata_t buffer, size_t size, int rank, int rma_id, int offset,
+LCI_error_t LCI_putb(LCI_bdata_t buffer, size_t size, int rank, int rma_id, int offset, uint16_t meta,
                      LCI_endpoint_t ep, void* sync);
 
 /**

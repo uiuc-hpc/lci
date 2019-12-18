@@ -54,9 +54,9 @@ int main(int argc, char** args) {
         while (rbuf[0] == -1)
           LCI_progress(0, 1);
         rbuf[0] = -1;
-        LCI_putbc(sbuf, size, 1-rank, 0, base_offset + MAX_MSG, ep);
+        LCI_putbc(sbuf, size, 1-rank, 0, base_offset + MAX_MSG, 99, ep);
       } else {
-        LCI_putbc(sbuf, size, 1-rank, 0, base_offset + MAX_MSG, ep);
+        LCI_putbc(sbuf, size, 1-rank, 0, base_offset + MAX_MSG, 99, ep);
         while (rbuf[0] == -1)
           LCI_progress(0, 1);
         rbuf[0] = -1;
