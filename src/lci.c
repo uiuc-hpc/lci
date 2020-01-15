@@ -78,13 +78,6 @@ LCI_error_t LCI_cq_dequeue(LCI_endpoint_t ep, LCI_request_t** req_ptr)
   return LCI_OK;
 }
 
-LCI_error_t LCI_request_free(LCI_endpoint_t ep, int n, LCI_request_t** req)
-{
-  lc_packet* packet = (lc_packet*) ((*req)->__reserved__);
-  lc_pool_put(ep->pkpool, packet);
-  return LCI_OK;
-}
-
 LCI_error_t LCI_progress(int id, int count)
 {
   lc_server_progress(LCI_DEVICES[id]);
@@ -98,5 +91,12 @@ uintptr_t LCI_get_base_addr(int id) {
 LCI_error_t LCI_buffer_get(LCI_endpoint_t ep, LCI_bdata_t* buffer) {
   LC_POOL_GET_OR_RETN(ep->pkpool, p);
   *buffer = (void*) p;
+  return LCI_OK;
+}
+
+LCI_error_t LCI_buffer_free(LCI_endpoint_t ep, LCI_bdata_t buffer)
+{
+  lc_packet* packet = (lc_packet*) buffer;
+  lc_pool_put(ep->pkpool, packet);
   return LCI_OK;
 }

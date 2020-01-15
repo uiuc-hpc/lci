@@ -131,7 +131,11 @@ typedef enum { LCI_STATIC = 0, LCI_DYNAMIC } LCI_dynamic_t;
 typedef uint64_t LCI_sync_t;
 
 typedef char LCI_idata_t[64];
-typedef void* LCI_bdata_t;
+struct LCI_bdata_s {
+  char __reserved__[448]; // Need to fit src/include/packet.h PADDING.
+  char* buffer;
+};
+typedef struct LCI_bdata_s* LCI_bdata_t;
 typedef void* LCI_ddata_t;
 
 /**
@@ -139,7 +143,7 @@ typedef void* LCI_ddata_t;
  */
 typedef union {
   LCI_idata_t immediate;
-  LCI_bdata_t buffer;
+  LCI_bdata_t buffered;
   LCI_ddata_t direct;
 } LCI_data_t;
 
@@ -374,7 +378,7 @@ LCI_error_t LCI_putbc(void* src, size_t size, int rank, int rma_id, int offset, 
  * Put medium message to a remote address @rma_id available at the remote
  * endpoint, offset @offset. User must wait for sync or retry if LCI_ERR_RETRY is returned.
  */
-LCI_error_t LCI_putb(LCI_bdata_t buffer, size_t size, int rank, int rma_id, int offset, uint16_t meta,
+LCI_error_t LCI_putb(LCI_bdata_t buffer, size_t size, int rank, uint16_t tag,
                      LCI_endpoint_t ep, void* sync);
 
 /**
@@ -510,6 +514,9 @@ uintptr_t LCI_get_base_addr(int device_id);
 
 LCI_API
 LCI_error_t LCI_buffer_get(LCI_endpoint_t ep, LCI_bdata_t* buffer);
+
+LCI_API
+LCI_error_t LCI_buffer_free(LCI_endpoint_t ep, LCI_bdata_t buffer);
 
 #ifdef __cplusplus
 }

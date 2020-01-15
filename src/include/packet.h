@@ -6,6 +6,8 @@
 
 #define USER_MANAGED 99
 
+#define STATIC_ASSERT(COND,MSG) typedef char static_assertion_##MSG[(COND)?1:-1]
+
 #define lc_pk_init(ep_, pid_, proto_, p) \
   p->context.ep = (ep_);                 \
   p->context.poolid = (pid_);            \
@@ -33,6 +35,9 @@ struct __attribute__((packed)) packet_context {
   int8_t ref;
 };
 
+#define PADDING_SIZE 448
+STATIC_ASSERT(sizeof(struct packet_context) <= PADDING_SIZE, invalid_padding);
+
 struct __attribute__((packed)) packet_rts {
   intptr_t ce;
   intptr_t src_addr;
@@ -58,7 +63,10 @@ struct __attribute__((packed)) packet_data {
 };
 
 struct __attribute__((packed)) lc_packet {
-  struct packet_context context;
+  union {
+    struct packet_context context;
+    char padding[PADDING_SIZE];
+  };
   struct packet_data data;
 };
 

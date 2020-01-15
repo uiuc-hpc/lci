@@ -1,6 +1,7 @@
 #ifndef LC_PROTO_H
 #define LC_PROTO_H
 
+#include "lci.h"
 #include "debug.h"
 #include "cq.h"
 #include "lc/hashtable.h"
@@ -88,7 +89,8 @@ static inline void lc_ce_signal(LCI_endpoint_t ep, lc_packet* p, void* sync)
 static inline void lc_ce_queue(LCI_endpoint_t ep, lc_packet* p, void* sync)
 {
   LCI_request_t* req = LCI_SYNCL_PTR_TO_REQ_PTR(sync);
-  req->__reserved__ = (void*)p;
+  req->data.buffered = (struct LCI_bdata_s*) p;
+  req->type = BUFFERED;
   lc_cq_push(ep->cq, req);
 }
 
@@ -107,7 +109,7 @@ static inline void lc_handle_rts(LCI_endpoint_t ep, lc_packet* p)
   dprintf("Recv RTS: %p\n", p);
   lc_pk_init(ep, -1, LC_PROTO_RTR, p);
   lc_proto proto = MAKE_PROTO(ep->gid, LC_PROTO_RTR, 0);
-  lc_prepare_rtr(ep, p->context.sync->request.data.buffer, p->data.rts.size, p);
+  lc_prepare_rtr(ep, p->context.sync->request.data.direct, p->data.rts.size, p);
   dprintf("Send RTR: %p\n", p, p->context.sync->request.__reserved__, proto);
   lc_server_sendm(ep->server, p->context.sync->request.__reserved__,
                   sizeof(struct packet_rtr), p, proto);
@@ -117,24 +119,22 @@ static inline void lc_ce_dispatch(LCI_endpoint_t ep, lc_packet* p, void* sync,
                                   const long cap);
 
 static inline void lc_serve_recv_imm(LCI_endpoint_t ep, lc_packet* p,
-                                     lc_proto proto, const long cap)
+                                     uint16_t tag, const long cap)
 {
-  p->context.sync->request.tag = PROTO_GET_META(proto);
-  proto = PROTO_GET_PROTO(proto);
-  p->context.sync->request.data.buffer = &p->data;
+  p->context.sync->request.tag = tag;
+  p->context.sync->request.data.buffered = (struct LCI_bdata_s*) p;
   lc_ce_dispatch(ep, p, p->context.sync, cap);
 }
 
 static inline void lc_serve_recv_dyn(LCI_endpoint_t ep, lc_packet* p,
-                                     lc_proto proto, const long cap)
+                                     uint32_t proto, uint16_t tag, const long cap)
 {
-  p->context.sync->request.tag = PROTO_GET_META(proto);
-  proto = PROTO_GET_PROTO(proto);
+  p->context.sync->request.tag = tag;
 
   if (proto == LC_PROTO_DATA) {
     void* buf = ep->alloc(p->context.sync->request.length, 0);
     memcpy(buf, &p->data, p->context.sync->request.length);
-    p->context.sync->request.data.buffer = buf;
+    p->context.sync->request.data.direct = buf;
     lc_ce_dispatch(ep, p, p->context.sync, cap);
   } else if (proto == LC_PROTO_RTS) {
     void* buf = ep->alloc(p->data.rts.size, 0);
@@ -145,11 +145,11 @@ static inline void lc_serve_recv_dyn(LCI_endpoint_t ep, lc_packet* p,
   };
 }
 
-static inline void lc_serve_recv_expl(LCI_endpoint_t ep, lc_packet* p,
-                                      lc_proto proto, const long cap)
+static inline void lc_serve_recv_match(LCI_endpoint_t ep, lc_packet* p,
+                                      uint32_t proto, uint16_t tag, const long cap)
 {
-  p->context.sync->request.tag = PROTO_GET_META(proto);
-  p->context.proto = proto = PROTO_GET_PROTO(proto);
+  p->context.sync->request.tag = tag;
+  p->context.proto = proto;
 
   if (proto == LC_PROTO_DATA) {
     const lc_key key = lc_make_key(p->context.sync->request.rank,
@@ -158,7 +158,7 @@ static inline void lc_serve_recv_expl(LCI_endpoint_t ep, lc_packet* p,
     if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
       LCI_syncl_t* sync = (LCI_syncl_t*)value;
       sync->request.length = p->context.sync->request.length;
-      memcpy(sync->request.data.buffer, p->data.buffer,
+      memcpy(sync->request.data.direct, p->data.buffer,
              p->context.sync->request.length);
       lc_ce_dispatch(ep, p, sync, cap);
     }
@@ -176,21 +176,26 @@ static inline void lc_serve_recv_expl(LCI_endpoint_t ep, lc_packet* p,
 }
 
 static inline void lc_serve_recv_dispatch(LCI_endpoint_t ep, lc_packet* p,
-                                          lc_proto proto, const long cap)
+                                          uint32_t proto, uint16_t meta, const long cap)
 {
+  if (proto == LC_PROTO_LONG) {
+    lc_serve_recv_imm(ep, p, meta, cap);
+    return;
+  }
+
 #ifdef LCI_SERVER_HAS_EXP
   if (cap & EP_AR_EXP) {
-    return lc_serve_recv_expl(ep, p, proto, cap);
+    return lc_serve_recv_match(ep, p, proto, meta, cap);
   } else
 #endif
 #ifdef LCI_SERVER_HAS_DYN
-      if (cap & EP_AR_DYN) {
-    return lc_serve_recv_dyn(ep, p, proto, cap);
+  if (cap & EP_AR_DYN) {
+    return lc_serve_recv_dyn(ep, p, proto, meta, cap);
   } else
 #endif
 #ifdef LCI_SERVER_HAS_IMM
-      if (cap & EP_AR_IMM) {
-    return lc_serve_recv_imm(ep, p, proto, cap);
+  if (cap & EP_AR_IMM) {
+    return lc_serve_recv_imm(ep, p, meta, cap);
   } else
 #endif
   // placeholder for anything else.
@@ -207,7 +212,7 @@ static inline void lc_ce_dispatch(LCI_endpoint_t ep, lc_packet* p, void* sync,
   } else
 #endif
 #ifdef LCI_SERVER_HAS_CQ
-      if (cap & EP_CE_CQ) {
+  if (cap & EP_CE_CQ) {
     lc_ce_queue(ep, p, sync);
   } else
 #endif
@@ -228,11 +233,13 @@ static inline void lc_ce_dispatch(LCI_endpoint_t ep, lc_packet* p, void* sync,
 #endif
 }
 
-static inline void lc_serve_recv(lc_packet* p, lc_proto proto)
+static inline void lc_serve_recv(lc_packet* p, lc_proto raw_proto)
 {
   // NOTE: this should be RGID because it is received from remote.
-  LCI_endpoint_t ep = LCI_ENDPOINTS[PROTO_GET_RGID(proto)];
-  return lc_serve_recv_dispatch(ep, p, proto, ep->property);
+  LCI_endpoint_t ep = LCI_ENDPOINTS[PROTO_GET_RGID(raw_proto)];
+  uint16_t meta = PROTO_GET_META(raw_proto);
+  uint32_t proto = PROTO_GET_PROTO(raw_proto);
+  return lc_serve_recv_dispatch(ep, p, proto, meta, ep->property);
 }
 
 static inline void lc_serve_recv_rdma(lc_packet* p, lc_proto proto)
