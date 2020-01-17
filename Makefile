@@ -112,17 +112,20 @@ LIBOBJ += $(OBJECTS) $(addprefix $(OBJDIR)/, $(FCONTEXT)) $(addprefix $(OBJDIR)/
 
 LIBRARY = liblci.so
 ARCHIVE = liblci.a
+PKGCONFIG = liblci.pc
 
 all: $(LIBRARY) $(ARCHIVE)
 
 install: all
 	mkdir -p $(PREFIX)/bin
 	mkdir -p $(PREFIX)/lib
+	mkdir -p $(PREFIX)/lib/pkgconfig
 	mkdir -p $(PREFIX)/include
 	cp lcrun $(PREFIX)/bin
 	cp -R include/* $(PREFIX)/include
 	cp $(ARCHIVE) $(PREFIX)/lib
 	cp $(LIBRARY) $(PREFIX)/lib
+	cp $(PKGCONFIG) $(PREFIX)/lib/pkgconfig
 
 $(OBJDIR)/%.o: $(SRCDIR)/$(notdir %.c)
 	$(CC) $(CFLAGS) -c $< -o $@
