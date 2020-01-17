@@ -53,7 +53,7 @@
     __typeof__(o2) __old2 = (o2);                                       \
     __typeof__(*(ptr)) __new1 = (n1);                                   \
     __typeof__(o2) __new2 = (n2);                                       \
-    asm volatile("lock cmpxchg16b %2;setz %1"                           \
+    __asm__ __volatile__("lock cmpxchg16b %2;setz %1"                   \
                  : "=d"(__junk), "=a"(__ret), "+m"(*ptr)                \
                  : "b"(__new1), "c"(__new2), "a"(__old1), "d"(__old2)); \
     __ret;                                                              \
@@ -62,7 +62,7 @@
 #define BIT_TEST_AND_SET(ptr, b)               \
   ({                                           \
     char __ret;                                \
-    asm volatile("lock btsq $63, %0; setnc %1" \
+    __asm__ __volatile__("lock btsq $63, %0; setnc %1" \
                  : "+m"(*ptr), "=a"(__ret)     \
                  :                             \
                  : "cc");                      \

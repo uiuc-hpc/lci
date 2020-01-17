@@ -7,7 +7,7 @@
 
 #define lc_mem_fence()                   \
   {                                      \
-    asm volatile("mfence" ::: "memory"); \
+    __asm__ __volatile__("mfence" ::: "memory"); \
   }
 
 #define LC_INLINE static inline __attribute__((always_inline))
