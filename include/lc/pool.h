@@ -16,9 +16,8 @@
 #define MAX_NPOOLS 272
 #define MAX_LOCAL_POOL 32 // align to a cache line.
 
-extern int lc_pool_nkey;
-extern int32_t tls_pool_struct[MAX_NPOOLS][MAX_LOCAL_POOL];
-extern volatile int init_lock;
+LC_EXPORT extern int32_t tls_pool_struct[MAX_NPOOLS][MAX_LOCAL_POOL];
+LC_EXPORT extern volatile int init_lock;
 
 struct dequeue;
 

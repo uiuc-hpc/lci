@@ -8,8 +8,8 @@
 #include <sched.h>
 #include <stdint.h>
 
-extern int lcg_current_id;
-extern __thread int lcg_core_id;
+LC_EXPORT extern int lcg_current_id;
+LC_EXPORT extern __thread int lcg_core_id;
 
 typedef volatile int lc_sync;
 
