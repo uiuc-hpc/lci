@@ -94,6 +94,7 @@ endif
 
 ifeq ($(LC_SERVER), psm)
 	CFLAGS += -DLC_USE_SERVER_PSM -DAFF_DEBUG -I$(PSM_DIR)/include
+	LDFLAGS += -L$(PSM_DIR)/lib -lpsm2
 endif
 
 COMM = lc.o medium.o short.o long.o tag.o cq.o misc.o ep.o lcrq.o pool.o hashtable.o coll.o glob.o
