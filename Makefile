@@ -121,8 +121,8 @@ install: all
 	mkdir -p $(PREFIX)/include
 	cp lcrun $(PREFIX)/bin
 	cp -R include/* $(PREFIX)/include
-	cp liblwci.a $(PREFIX)/lib
-	cp liblwci.so $(PREFIX)/lib
+	cp $(ARCHIVE) $(PREFIX)/lib
+	cp $(LIBRARY) $(PREFIX)/lib
 
 $(OBJDIR)/%.o: $(SRCDIR)/$(notdir %.c)
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -140,7 +140,7 @@ mpiv.a: obj/mpiv.o
 	$(RANLIB) mpiv.a
 
 clean:
-	rm -rf $(LIBOBJ) $(OBJDIR)/* liblwci.a liblwci.so mpiv.a
+	rm -rf $(LIBOBJ) $(OBJDIR)/* $(ARCHIVE) $(LIBRARY) mpiv.a
 
 tests:
 	$(MAKE) -C tests && ./tests/all_test
