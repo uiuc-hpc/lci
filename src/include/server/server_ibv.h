@@ -90,7 +90,7 @@ static inline uint32_t ibv_rma_lkey(uintptr_t mem)
 
 #endif
 
-static inline int lc_server_progress(lc_server* s, const long cap)
+static inline int lc_server_progress(lc_server* s)
 {
   struct ibv_wc wc[MAX_CQ];
   int ne = ibv_poll_cq(s->recv_cq, MAX_CQ, wc);
@@ -119,12 +119,12 @@ static inline int lc_server_progress(lc_server* s, const long cap)
       p->context.req->rank = s->qp2rank[wc[i].qp_num % s->qp2rank_mod];
       p->context.req->rhandle = (void*) s->qp[p->context.req->rank];
       p->context.req->size = wc[i].byte_len;
-      lci_serve_recv(p, wc[i].imm_data, cap);
+      lci_serve_recv(p, wc[i].imm_data);
     } else {
       if (wc[i].imm_data & IBV_IMM_RTR) {
         // recv immediate protocol (3-msg rdz).
         lc_packet* p = (lc_packet*) (s->heap->addr + (wc[i].imm_data ^ IBV_IMM_RTR));
-        lci_serve_imm(p, cap);
+        lci_serve_imm(p);
         lc_pool_put(s->pkpool, (lc_packet*)wc[i].wr_id);
       } else {
         // recv rdma with signal.
@@ -384,13 +384,13 @@ static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf, uintptr
   IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
 }
 
-static inline void lc_server_init(lc_server** dev)
+static inline void lc_server_init(int id, lc_server** dev)
 {
   lc_server* s = NULL;
   posix_memalign((void**) &s, lcg_page_size, sizeof(struct lc_server));
 
   *dev = s;
-  s->id = lcg_ndev++;
+  s->id = id;
 
   int num_devices;
   struct ibv_device** dev_list = ibv_get_device_list(&num_devices);
