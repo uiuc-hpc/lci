@@ -2,6 +2,7 @@
 #define LC_POOL_H_
 
 #include <pthread.h>
+#include <sched.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
