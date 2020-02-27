@@ -216,10 +216,16 @@ LC_EXPORT
 void lc_ibarrier(lc_ep ep, lc_colreq* req);
 
 LC_EXPORT
+void lc_ibcast(void *buf, size_t count, int root, lc_ep ep, lc_colreq* req);
+
+LC_EXPORT
 void lc_alreduce(const void *sbuf, void *rbuf, size_t count, ompi_op_t op, lc_ep ep);
 
 LC_EXPORT
 void lc_barrier(lc_ep ep);
+
+LC_EXPORT
+void lc_bcast(void *buf, size_t count, int root, lc_ep ep);
 
 #ifdef __cplusplus
 }
