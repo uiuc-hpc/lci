@@ -23,6 +23,8 @@
     ;
 #endif
 
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+
 struct conn_ctx {
   uint64_t addr;
   uint32_t rkey;

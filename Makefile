@@ -94,6 +94,7 @@ endif
 
 ifeq ($(LC_SERVER), psm)
 	CFLAGS += -DLC_USE_SERVER_PSM -DAFF_DEBUG -I$(PSM_DIR)/include
+	LDFLAGS += -L$(PSM_DIR)/lib -lpsm2
 endif
 
 COMM = lc.o medium.o short.o long.o tag.o cq.o misc.o ep.o lcrq.o pool.o hashtable.o coll.o glob.o
@@ -111,17 +112,20 @@ LIBOBJ += $(OBJECTS) $(addprefix $(OBJDIR)/, $(FCONTEXT)) $(addprefix $(OBJDIR)/
 
 LIBRARY = liblci.so
 ARCHIVE = liblci.a
+PKGCONFIG = liblci.pc
 
 all: $(LIBRARY) $(ARCHIVE)
 
 install: all
 	mkdir -p $(PREFIX)/bin
 	mkdir -p $(PREFIX)/lib
+	mkdir -p $(PREFIX)/lib/pkgconfig
 	mkdir -p $(PREFIX)/include
 	cp lcrun $(PREFIX)/bin
 	cp -R include/* $(PREFIX)/include
-	cp liblwci.a $(PREFIX)/lib
-	cp liblwci.so $(PREFIX)/lib
+	cp $(ARCHIVE) $(PREFIX)/lib
+	cp $(LIBRARY) $(PREFIX)/lib
+	cp $(PKGCONFIG) $(PREFIX)/lib/pkgconfig
 
 $(OBJDIR)/%.o: $(SRCDIR)/$(notdir %.c)
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -139,7 +143,7 @@ mpiv.a: obj/mpiv.o
 	$(RANLIB) mpiv.a
 
 clean:
-	rm -rf $(LIBOBJ) $(OBJDIR)/* liblwci.a liblwci.so mpiv.a
+	rm -rf $(LIBOBJ) $(OBJDIR)/* $(ARCHIVE) $(LIBRARY) mpiv.a
 
 tests:
 	$(MAKE) -C tests && ./tests/all_test
