@@ -130,22 +130,18 @@ typedef enum { LCI_STATIC = 0, LCI_DYNAMIC } LCI_dynamic_t;
  */
 typedef uint64_t LCI_sync_t;
 
-typedef char LCI_idata_t[64];
-struct LCI_bdata_s {
-  char __reserved__[448]; // Need to fit src/include/packet.h PADDING.
-  char* buffer;
-};
-typedef struct LCI_bdata_s* LCI_bdata_t;
-typedef void* LCI_ddata_t;
+typedef uint64_t LCI_ivalue_t;
+typedef void* LCI_bbuffer_t;
+typedef void* LCI_dbuffer_t;
 
 /**
  * The type of data associated with a buffer.
  */
 typedef union {
-  LCI_idata_t immediate;
-  LCI_bdata_t buffered;
-  LCI_ddata_t direct;
-} LCI_data_t;
+  LCI_ivalue_t immediate;
+  LCI_bbuffer_t bbuffer;
+  LCI_dbuffer_t dbuffer;
+} LCI_buffer_t;
 
 /**
  * Request object, owned by the user, unless returned from runtime (CQ_Dequeue).
@@ -155,10 +151,10 @@ typedef struct {
   LCI_error_t status;
   uint32_t rank;
   uint16_t tag;
-  enum { INVALID, IMMEDIATE, BUFFERED, DIRECT } type;
-  LCI_data_t data;
   size_t length;
   void* __reserved__;
+  enum { INVALID, IMMEDIATE, BUFFERED, DIRECT } type;
+  LCI_buffer_t buffer;
 } LCI_request_t;
 
 typedef struct {
@@ -318,7 +314,7 @@ void LCI_PM_barrier();
  * Send an immediate message, completed immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
-LCI_error_t LCI_sendi(void* src, size_t size, int rank, int tag,
+LCI_error_t LCI_sendi(LCI_ivalue_t value, int rank, int tag,
                       LCI_endpoint_t ep);
 
 /**
@@ -329,17 +325,24 @@ LCI_error_t LCI_sendbc(void* src, size_t size, int rank, int tag,
                        LCI_endpoint_t ep);
 
 /**
+ * Send a buffered message, not complete until a sync/CQ is done.
+ */
+LCI_API
+LCI_error_t LCI_sendb(LCI_bbuffer_t src, size_t size, int rank, int tag,
+                      LCI_endpoint_t ep, void* sync);
+
+/**
  * Send a direct message.
  */
 LCI_API
-LCI_error_t LCI_sendd(void* src, size_t size, int rank, int tag,
+LCI_error_t LCI_sendd(LCI_dbuffer_t src, size_t size, int rank, int tag,
                       LCI_endpoint_t ep, void* sync);
 
 /**
  * Receive a immediate message.
  */
 LCI_API
-LCI_error_t LCI_recvi(void* src, size_t size, int rank, int tag,
+LCI_error_t LCI_recvi(LCI_ivalue_t* src, int rank, int tag,
                       LCI_endpoint_t ep, void* sync);
 
 /**
@@ -353,7 +356,7 @@ LCI_error_t LCI_recvbc(void* src, size_t size, int rank, int tag,
  * Receive a direct message.
  */
 LCI_API
-LCI_error_t LCI_recvd(void* src, size_t size, int rank, int tag,
+LCI_error_t LCI_recvd(LCI_dbuffer_t src, size_t size, int rank, int tag,
                       LCI_endpoint_t ep, void* sync);
 
 /* One-sided functions. */
@@ -363,7 +366,7 @@ LCI_error_t LCI_recvd(void* src, size_t size, int rank, int tag,
  * endpoint, offset @offset. Complete immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
-LCI_error_t LCI_puti(void* src, size_t size, int rank, int rma_id, int offset,
+LCI_error_t LCI_puti(LCI_ivalue_t src, int rank, int rma_id, int offset,
                      LCI_endpoint_t ep);
 
 /**
@@ -371,14 +374,14 @@ LCI_error_t LCI_puti(void* src, size_t size, int rank, int rma_id, int offset,
  * endpoint, offset @offset. Complete immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
-LCI_error_t LCI_putbc(void* src, size_t size, int rank, int rma_id, int offset, uint16_t meta,
+LCI_error_t LCI_putbc(LCI_bbuffer_t src, size_t size, int rank, int rma_id, int offset, uint16_t meta,
                      LCI_endpoint_t ep);
 
 /**
  * Put medium message to a remote address @rma_id available at the remote
  * endpoint, offset @offset. User must wait for sync or retry if LCI_ERR_RETRY is returned.
  */
-LCI_error_t LCI_putb(LCI_bdata_t buffer, size_t size, int rank, uint16_t tag,
+LCI_error_t LCI_putb(LCI_bbuffer_t buffer, size_t size, int rank, uint16_t tag,
                      LCI_endpoint_t ep, void* sync);
 
 /**
@@ -386,31 +389,8 @@ LCI_error_t LCI_putb(LCI_bdata_t buffer, size_t size, int rank, uint16_t tag,
  * endpoint, offset @offset.
  */
 LCI_API
-LCI_error_t LCI_putl(void* src, size_t size, int rank, int rma_id, int offset,
+LCI_error_t LCI_putd(LCI_dbuffer_t src, size_t size, int rank, int rma_id, int offset,
                      LCI_endpoint_t ep, void* context);
-
-/**
- * Put short message to a remote address, piggy-back data to completed request.
- * Complete immediately or LCI_ERR_RETRY.
- */
-LCI_API
-LCI_error_t LCI_putsd(void* src, size_t size, int rank, int tag,
-                      LCI_endpoint_t ep);
-
-/**
- * Put medium message to a remote address, piggy-back data to completed request.
- * Complete immediately or LCI_ERR_RETRY.
- */
-LCI_API
-LCI_error_t LCI_putmd(void* src, size_t size, int rank, int tag,
-                      LCI_endpoint_t ep);
-
-/**
- * Put long message to a remote address, required a remote allocation.
- */
-LCI_API
-LCI_error_t LCI_putld(void* src, size_t size, int rank, int tag,
-                      LCI_endpoint_t ep, void* sync_context);
 
 /**@}*/
 
@@ -513,10 +493,10 @@ LCI_API
 uintptr_t LCI_get_base_addr(int device_id);
 
 LCI_API
-LCI_error_t LCI_buffer_get(LCI_endpoint_t ep, LCI_bdata_t* buffer);
+LCI_error_t LCI_bbuffer_get(LCI_bbuffer_t* buffer, int device_id);
 
 LCI_API
-LCI_error_t LCI_buffer_free(LCI_endpoint_t ep, LCI_bdata_t buffer);
+LCI_error_t LCI_bbuffer_free(LCI_bbuffer_t buffer, int device_id);
 
 #ifdef __cplusplus
 }

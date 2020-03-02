@@ -30,8 +30,8 @@ int main(int argc, char** args) {
   LCI_PM_barrier();
 
   double t1;
-  LCI_bdata_t p;
-  LCI_buffer_get(ep, &p);
+  LCI_bbuffer_t p;
+  LCI_bbuffer_get(&p, 0);
   LCI_request_t* req_ptr;
 
   for (int size = 1; size <= MAX_MSG; size <<= 1) {
@@ -46,11 +46,11 @@ int main(int argc, char** args) {
         }
         while (LCI_CQ_dequeue(&cq, &req_ptr) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
-        LCI_buffer_free(ep, req_ptr->data.buffered);
+        LCI_bbuffer_free(req_ptr->buffer.bbuffer, 0);
       } else {
         while (LCI_CQ_dequeue(&cq, &req_ptr) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
-        LCI_buffer_free(ep, req_ptr->data.buffered);
+        LCI_bbuffer_free(req_ptr->buffer.bbuffer, 0);
         LCI_one2one_set_empty(&sync);
         LCI_putb(p, size, 1-rank, 99, ep, &sync);
         while (LCI_one2one_test_empty(&sync)) {

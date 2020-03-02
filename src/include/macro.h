@@ -3,6 +3,10 @@
 
 #define LC_EXPORT __attribute__((visibility("default")))
 
+// Converts bdata_t into lc_packet that contains it.
+#define LC_PACKET_OF(b) ((lc_packet*) ((uintptr_t)(b) - offsetof(lc_packet, data)))
+
+
 #define LC_SAFE(x)     \
   {                    \
     while (x != LC_OK) \

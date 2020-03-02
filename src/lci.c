@@ -32,7 +32,7 @@ LCI_error_t LCI_finalize()
   for (int i = 0; i < LCI_NUM_DEVICES; i++) {
     lc_dev_finalize(LCI_DEVICES[i]);
   }
-  LCI_PM_barrier();
+  // LCI_PM_barrier();
   return LCI_OK;
 }
 
@@ -95,15 +95,15 @@ uintptr_t LCI_get_base_addr(int id) {
   return (uintptr_t) LCI_DEVICES[id]->heap_addr;
 }
 
-LCI_error_t LCI_buffer_get(LCI_endpoint_t ep, LCI_bdata_t* buffer) {
-  LC_POOL_GET_OR_RETN(ep->pkpool, p);
-  *buffer = (void*) p;
+LCI_error_t LCI_bbuffer_get(LCI_bbuffer_t* buffer, int device_id) {
+  LC_POOL_GET_OR_RETN(LCI_DEVICES[device_id]->pkpool, p);
+  *buffer = (void*) &p->data;
   return LCI_OK;
 }
 
-LCI_error_t LCI_buffer_free(LCI_endpoint_t ep, LCI_bdata_t buffer)
+LCI_error_t LCI_bbuffer_free(LCI_bbuffer_t buffer, int device_id)
 {
-  lc_packet* packet = (lc_packet*) buffer;
-  lc_pool_put(ep->pkpool, packet);
+  lc_packet* packet = LC_PACKET_OF(buffer);
+  lc_pool_put(LCI_DEVICES[device_id]->pkpool, packet);
   return LCI_OK;
 }

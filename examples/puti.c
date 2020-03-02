@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 #undef MAX_MSG
-#define MAX_MSG 128
+#define MAX_MSG 8
 
 int main(int argc, char** args) {
   LCI_initialize(&argc, &args);
@@ -31,9 +31,9 @@ int main(int argc, char** args) {
   int base_offset = 64 * 1024;
   addr = LCI_get_base_addr(0) + base_offset;
 
-  LCI_sendi(&addr,  sizeof(uintptr_t), 1-rank, 0, ep);
+  LCI_sendi(addr, 1-rank, 0, ep);
   LCI_one2one_set_empty(&sync);
-  LCI_recvi(&raddr, sizeof(uintptr_t), 1-rank, 0, ep, &sync);
+  LCI_recvi(&raddr, 1-rank, 0, ep, &sync);
   while (LCI_one2one_test_empty(&sync)) {
     LCI_progress(0, 1);
   }
@@ -54,9 +54,9 @@ int main(int argc, char** args) {
         while (rbuf[0] == -1)
           LCI_progress(0, 1);
         rbuf[0] = -1;
-        LCI_puti(sbuf, size, 1-rank, 0, base_offset + MAX_MSG, ep);
+        LCI_puti(*(LCI_ivalue_t*)sbuf, 1-rank, 0, base_offset + MAX_MSG, ep);
       } else {
-        LCI_puti(sbuf, size, 1-rank, 0, base_offset + MAX_MSG, ep);
+        LCI_puti(*(LCI_ivalue_t*)sbuf, 1-rank, 0, base_offset + MAX_MSG, ep);
         while (rbuf[0] == -1)
           LCI_progress(0, 1);
         rbuf[0] = -1;

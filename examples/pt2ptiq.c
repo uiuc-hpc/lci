@@ -51,8 +51,8 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
-        LCI_sendi(src_buf, size, 1-rank, tag, ep);
-        LCI_recvi(dst_buf, size, 1-rank, tag, ep, &sync);
+        LCI_sendi(*(LCI_ivalue_t*) src_buf, 1-rank, tag, ep);
+        LCI_recvi(dst_buf, 1-rank, tag, ep, &sync);
         while (LCI_CQ_dequeue(&cq, &req_ptr) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
         if (i == 0) {
@@ -72,11 +72,11 @@ int main(int argc, char** args) {
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
 
       for (int i = 0; i < total + skip; i++) {
-        LCI_recvi(dst_buf, size, 1-rank, tag, ep, &sync);
+        LCI_recvi(dst_buf, 1-rank, tag, ep, &sync);
         while (LCI_CQ_dequeue(&cq, &req_ptr) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
         LCI_request_free(ep, 1, &req_ptr);
-        LCI_sendi(src_buf, size, 1-rank, tag, ep);
+        LCI_sendi(*(LCI_ivalue_t*) src_buf, 1-rank, tag, ep);
       }
     }
   }
