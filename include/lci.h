@@ -366,7 +366,7 @@ LCI_error_t LCI_recvd(LCI_dbuffer_t src, size_t size, int rank, int tag,
  * endpoint, offset @offset. Complete immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
-LCI_error_t LCI_puti(LCI_ivalue_t src, int rank, int rma_id, int offset,
+LCI_error_t LCI_puti(LCI_ivalue_t src, int rank, int rma_id, int offset, int meta,
                      LCI_endpoint_t ep);
 
 /**

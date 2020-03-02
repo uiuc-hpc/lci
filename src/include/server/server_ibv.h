@@ -213,28 +213,7 @@ static inline void lc_server_sendm(lc_server* s, void* rep, size_t size,
   IBV_SAFECALL(ibv_post_send((struct ibv_qp*)rep, &this_wr, &bad_wr));
 }
 
-static inline void lc_server_puts(lc_server* s __UNUSED__, void* rep, void* buf,
-                                  uintptr_t base, uint32_t offset,
-                                  uint32_t rkey, size_t size)
-{
-  struct ibv_send_wr this_wr;
-  struct ibv_send_wr* bad_wr = 0;
-
-  struct ibv_sge list = {
-      .addr = (uintptr_t)buf,
-      .length = (unsigned)size,
-      .lkey = 0,
-  };
-
-  setup_wr(this_wr, 0, &list, IBV_WR_RDMA_WRITE,
-           IBV_SEND_SIGNALED | IBV_SEND_INLINE);
-  this_wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
-  this_wr.wr.rdma.rkey = rkey;
-
-  IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
-}
-
-static inline void lc_server_putss(lc_server* s __UNUSED__, void* rep,
+static inline void lc_server_puts(lc_server* s __UNUSED__, void* rep,
                                    void* buf, uintptr_t base, uint32_t offset,
                                    uint32_t rkey, uint32_t meta, size_t size)
 {
@@ -257,27 +236,6 @@ static inline void lc_server_putss(lc_server* s __UNUSED__, void* rep,
 }
 
 static inline void lc_server_putm(lc_server* s, void* rep, uintptr_t base,
-                                  uint32_t offset, uint32_t rkey, size_t size,
-                                  lc_packet* ctx)
-{
-  struct ibv_send_wr this_wr;
-  struct ibv_send_wr* bad_wr = 0;
-
-  struct ibv_sge list = {
-      .addr = (uintptr_t)ctx->data.buffer,
-      .length = (unsigned)size,
-      .lkey = s->heap->lkey,
-  };
-
-  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE,
-           IBV_SEND_SIGNALED);
-  this_wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
-  this_wr.wr.rdma.rkey = rkey;
-
-  IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
-}
-
-static inline void lc_server_putms(lc_server* s, void* rep, uintptr_t base,
                                    uint32_t offset, uint32_t rkey, size_t size,
                                    uint32_t meta, lc_packet* ctx)
 {
@@ -299,31 +257,8 @@ static inline void lc_server_putms(lc_server* s, void* rep, uintptr_t base,
   IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
 }
 
+
 static inline void lc_server_putl(lc_server* s, void* rep, void* buf,
-                                  uintptr_t base, uint32_t offset,
-                                  uint32_t rkey, size_t size, lc_packet* ctx)
-{
-  struct ibv_send_wr this_wr;
-  struct ibv_send_wr* bad_wr = 0;
-  uint32_t lkey = 0;
-  uint32_t flag = IBV_SEND_SIGNALED;
-
-  lkey = ibv_rma_lkey(lc_server_rma_reg(s, buf, size));
-
-  struct ibv_sge list = {
-      .addr = (uintptr_t)buf,
-      .length = (unsigned)size,
-      .lkey = lkey,
-  };
-
-  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE, flag);
-  this_wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
-  this_wr.wr.rdma.rkey = rkey;
-
-  IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
-}
-
-static inline void lc_server_putls(lc_server* s, void* rep, void* buf,
                                    uintptr_t base, uint32_t offset,
                                    uint32_t rkey, size_t size, uint32_t meta,
                                    lc_packet* ctx)

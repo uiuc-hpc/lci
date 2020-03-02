@@ -284,12 +284,6 @@ static inline void lc_server_sends(lc_server* s, void* rep, void* ubuf,
 }
 
 static inline void lc_server_puts(lc_server* s, void* rep, void* buf,
-                                  uintptr_t base __UNUSED__, uint32_t offset,
-                                  uint32_t rkey __UNUSED__, size_t size)
-{
-}
-
-static inline void lc_server_putss(lc_server* s, void* rep, void* buf,
                                    uintptr_t base __UNUSED__, uint32_t offset,
                                    uint32_t rkey __UNUSED__, uint32_t meta,
                                    size_t size)
@@ -297,13 +291,6 @@ static inline void lc_server_putss(lc_server* s, void* rep, void* buf,
 }
 
 static inline void lc_server_putm(lc_server* s, void* rep,
-                                  uintptr_t base __UNUSED__, uint32_t offset,
-                                  uint32_t rkey __UNUSED__, size_t size,
-                                  lc_packet* ctx)
-{
-}
-
-static inline void lc_server_putms(lc_server* s, void* rep,
                                    uintptr_t base __UNUSED__, uint32_t offset,
                                    uint32_t rkey __UNUSED__, size_t size,
                                    uint32_t meta, lc_packet* ctx)
@@ -311,12 +298,6 @@ static inline void lc_server_putms(lc_server* s, void* rep,
 }
 
 static inline void lc_server_putl(lc_server* s, void* rep, void* buffer,
-                                  uintptr_t base __UNUSED__, uint32_t offset,
-                                  uint32_t rkey, size_t size, lc_packet* ctx)
-{
-}
-
-static inline void lc_server_putls(lc_server* s, void* rep, void* buffer,
                                    uintptr_t base __UNUSED__, uint32_t offset,
                                    uint32_t rkey, size_t size, uint32_t sid,
                                    lc_packet* ctx)

@@ -2,11 +2,11 @@
 #include "lci_priv.h"
 #include "pool.h"
 
-LCI_error_t LCI_puti(LCI_ivalue_t src, int rank, int rma_id, int offset, LCI_endpoint_t ep)  
+LCI_error_t LCI_puti(LCI_ivalue_t src, int rank, int rma_id, int offset, int meta, LCI_endpoint_t ep)  
 { 
   struct lc_rep* rep = &(ep->rep[rank]);  
   assert(rma_id == 0 && "fixme"); 
-  lc_server_puts(ep->server, rep->handle, &src, rep->base, offset, rep->rkey, sizeof(LCI_ivalue_t));  
+  lc_server_puts(ep->server, rep->handle, &src, rep->base, offset, rep->rkey, meta, sizeof(LCI_ivalue_t));  
   return LCI_OK;  
 }
 
@@ -16,7 +16,7 @@ LCI_error_t LCI_putbc(void* src, size_t size, int rank, int rma_id, int offset, 
   lc_pk_init(ep, (size > 1024) ? lc_pool_get_local(ep->pkpool) : -1, LC_PROTO_DATA, p);
   struct lc_rep* rep = &(ep->rep[rank]);
   memcpy(&p->data, src, size);
-  lc_server_putms(ep->server, rep->handle, rep->base, offset, rep->rkey, size, MAKE_PROTO(ep->gid, LC_PROTO_LONG, meta), p);
+  lc_server_putm(ep->server, rep->handle, rep->base, offset, rep->rkey, size, MAKE_PROTO(ep->gid, LC_PROTO_LONG, meta), p);
   return LCI_OK;
 }
 
