@@ -10,6 +10,7 @@
 #include "lc/macro.h"
 
 typedef struct lc_server {
+  SERVER_COMMON
   struct lc_dev* dev;
 
   // Device fields.
@@ -28,16 +29,11 @@ typedef struct lc_server {
 
   // Connections O(N)
   struct ibv_qp** qp;
-  struct lc_rep* rep;
-  lc_pool* pkpool;
-  uintptr_t curr_addr;
 
   // Helper fields.
-  int id;
   int* qp2rank;
   int qp2rank_mod;
   void* heap_ptr;
-  int recv_posted;
   size_t max_inline;
 } lc_server __attribute__((aligned(64)));
 
@@ -112,10 +108,10 @@ static inline int lc_server_progress(lc_server* s)
     if (wc[i].opcode != IBV_WC_RECV_RDMA_WITH_IMM) {
       // simple recv.
       lc_packet* p = (lc_packet*)wc[i].wr_id;
-      p->context.req = &p->context.req_s;
-      p->context.req->rank = s->qp2rank[wc[i].qp_num % s->qp2rank_mod];
-      p->context.req->__reserved__ = (void*)s->qp[p->context.req->rank];
-      p->context.req->size = wc[i].byte_len;
+      p->context.sync = &p->context.sync_s;
+      p->context.sync->request.rank = s->qp2rank[wc[i].qp_num % s->qp2rank_mod];
+      p->context.sync->request.__reserved__ = (void*)s->qp[p->context.sync->request.rank];
+      p->context.sync->request.length = wc[i].byte_len;
       lc_serve_recv(p, wc[i].imm_data);
     } else {
       if (wc[i].imm_data & IBV_IMM_RTR) {
@@ -127,7 +123,7 @@ static inline int lc_server_progress(lc_server* s)
       } else {
         // recv rdma with signal.
         lc_packet* p = (lc_packet*)wc[i].wr_id;
-        p->context.req = &p->context.req_s;
+        p->context.sync = &p->context.sync_s;
         lc_serve_recv_rdma(p, wc[i].imm_data);
       }
     }
@@ -461,10 +457,8 @@ static inline void lc_server_init(int id, lc_server** dev)
   }
 
   s->recv_posted = 0;
-  // s->qp = calloc(lcg_size, sizeof(struct ibv_qp*));
-  // s->rkey = calloc(lcg_size, sizeof(uintptr_t));
   posix_memalign((void**)&s->qp, LC_CACHE_LINE,
-                 lcg_size * sizeof(struct ibv_qp*));
+                 LCI_NUM_PROCESSES * sizeof(struct ibv_qp*));
 
   struct conn_ctx lctx, rctx;
   char ep_name[256];
@@ -472,21 +466,21 @@ static inline void lc_server_init(int id, lc_server** dev)
   lctx.rkey = s->heap->rkey;
   lctx.lid = s->port_attr.lid;
 
-  for (int i = 0; i < lcg_size; i++) {
+  for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
     s->qp[i] = qp_create(s);
     qp_init(s->qp[i], s->dev_port);
     // Use this endpoint "i" to connect to rank e.
     lctx.qp_num = s->qp[i]->qp_num;
     sprintf(ep_name, "%llu-%d-%d-%d", (unsigned long long)lctx.addr, lctx.rkey,
             lctx.qp_num, (int)lctx.lid);
-    lc_pm_publish(lcg_rank, (s->id) << 8 | i, ep_name);
+    lc_pm_publish(LCI_RANK, (s->id) << 8 | i, ep_name);
   }
 
   posix_memalign((void**)&(s->rep), LC_CACHE_LINE,
-                 sizeof(struct lc_rep) * lcg_size);
+                 sizeof(struct lc_rep) * LCI_NUM_PROCESSES);
 
-  for (int i = 0; i < lcg_size; i++) {
-    lc_pm_getname(i, (s->id << 8) | lcg_rank, ep_name);
+  for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
+    lc_pm_getname(i, (s->id << 8) | LCI_RANK, ep_name);
     sscanf(ep_name, "%llu-%d-%d-%d", (unsigned long long*)&rctx.addr,
            &rctx.rkey, &rctx.qp_num, (int*)&rctx.lid);
     qp_to_rtr(s->qp[i], s->dev_port, &s->port_attr, &rctx);
@@ -498,21 +492,21 @@ static inline void lc_server_init(int id, lc_server** dev)
     rep->handle = (void*)s->qp[i];
   }
 
-  int j = lcg_size;
+  int j = LCI_NUM_PROCESSES;
   int* b;
   while (1) {
     b = (int*)calloc(j, sizeof(int));
     int i = 0;
-    for (; i < lcg_size; i++) {
+    for (; i < LCI_NUM_PROCESSES; i++) {
       int k = (s->qp[i]->qp_num % j);
       if (b[k]) break;
       b[k] = 1;
     }
-    if (i == lcg_size) break;
+    if (i == LCI_NUM_PROCESSES) break;
     j++;
     free(b);
   }
-  for (int i = 0; i < lcg_size; i++) {
+  for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
     b[s->qp[i]->qp_num % j] = i;
   }
   s->qp2rank_mod = j;
