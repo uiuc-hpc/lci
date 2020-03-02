@@ -10,9 +10,8 @@
 
 #include "config.h"
 #include "pm.h"
-#include "lc/macro.h"
-#include "include/lcrq.h"
-#include "config.h"
+#include "macro.h"
+#include "lcrq.h"
 
 #ifdef LC_SERVER_DEBUG
 #define PSM_SAFECALL(x)                                       \

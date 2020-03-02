@@ -2,7 +2,7 @@
 # WIP, there are more configs in ./src/include/confg.h
 
 # Define server here (ofi, ibv, psm)
-LCI_SERVER ?= ibv
+LCI_SERVER ?= psm
 
 # When in doubt, enable this (yes, no)
 LCI_SERVER_DEBUG ?= no
