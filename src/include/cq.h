@@ -2,7 +2,7 @@
 #define LC_CQ_H
 
 #include "packet.h"
-#include "lc/lock.h"
+#include "lock.h"
 #include <string.h>
 #include <stdio.h>
 

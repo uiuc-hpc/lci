@@ -10,8 +10,8 @@
 #include <assert.h>
 
 #include "thread.h"
-#include "lc/lock.h"
-#include "lc/dequeue.h"
+#include "lock.h"
+#include "dequeue.h"
 
 #define MAX_NPOOLS 272
 #define MAX_LOCAL_POOL 32  // align to a cache line.

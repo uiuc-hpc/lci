@@ -4,8 +4,8 @@
 #include "lci.h"
 #include "debug.h"
 #include "cq.h"
-#include "lc/hashtable.h"
-#include "lc/macro.h"
+#include "hashtable.h"
+#include "macro.h"
 
 /* 2-bit is enough for those thing. */
 typedef enum lc_proto {

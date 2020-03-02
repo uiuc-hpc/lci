@@ -1,5 +1,5 @@
 #include "lci.h"
-#include "src/include/lci_priv.h"
+#include "lci_priv.h"
 
 LCI_error_t LCI_PL_create(LCI_PL_t* prop_ptr)
 {

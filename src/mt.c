@@ -1,8 +1,7 @@
 #include "lci.h"
-#include "lc/hashtable.h"
-
-#include "lc/lock.h"
-#include "lc/macro.h"
+#include "hashtable.h"
+#include "lock.h"
+#include "macro.h"
 
 LCI_error_t LCI_MT_create(uint32_t length, LCI_MT_t *mt) {
   struct LCI_MT_s** mt_s = (struct LCI_MT_s**) mt;

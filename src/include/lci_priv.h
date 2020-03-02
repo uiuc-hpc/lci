@@ -81,7 +81,7 @@ struct lc_rep {
   int32_t rkey;
 };
 
-#include "lc/pool.h"
+#include "pool.h"
 #include "packet.h"
 #include "proto.h"
 #include "server/server.h"

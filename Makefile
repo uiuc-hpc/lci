@@ -25,7 +25,7 @@ ifeq (,$(wildcard $(OBJDIR)/dreg))
 $(shell mkdir -p $(OBJDIR)/dreg)
 endif
 
-INCLUDE = -I./include -I./src/include -I./  -I./src/
+INCLUDE = -I./src/include -I./include
 CFLAGS += -fPIC -fvisibility=hidden -std=gnu99 $(INCLUDE) $(EXTRA) -D_GNU_SOURCE -pthread
 
 IBV_DIR = /opt/ofed/

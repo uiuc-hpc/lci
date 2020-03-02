@@ -1,6 +1,6 @@
 #include "lci.h"
-#include "src/include/lci_priv.h"
-#include "src/include/config.h"
+#include "lci_priv.h"
+#include "config.h"
 
 static inline int getenv_or(char* env, int def) {
   char* val = getenv(env);

@@ -10,8 +10,8 @@ typedef uint64_t lc_key;
 #include <assert.h>
 #include <stdlib.h>
 
-#include "lc/macro.h"
-#include "lc/lock.h"
+#include "macro.h"
+#include "lock.h"
 
 #define EMPTY ((uint64_t)-1)
 #define TBL_BIT_SIZE 16

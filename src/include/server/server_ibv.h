@@ -3,11 +3,11 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include "infiniband/verbs.h"
 
 #include "pm.h"
-#include "dreg/dreg.h"
-#include "infiniband/verbs.h"
-#include "lc/macro.h"
+#include "dreg.h"
+#include "macro.h"
 
 typedef struct lc_server {
   SERVER_COMMON

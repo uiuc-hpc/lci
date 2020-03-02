@@ -24,7 +24,7 @@ CXXFLAGS = -g3 -O3 -std=c++11
 all: $(TARGET)
 
 %: %.c $(LIB)
-	$(CC) $(CFLAGS) -c $^
+	$(CC) $(CFLAGS) -c $@.c
 	$(LD) $(LDFLAGS) $@.o $(LIB) -o $@
 
 pingpong: pingpong.c

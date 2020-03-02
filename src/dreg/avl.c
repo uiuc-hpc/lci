@@ -25,7 +25,7 @@
  */
 
 
-#include "lc/macro.h"
+#include "macro.h"
 
 #ifndef NEMESIS_BUILD
 // #include "mpichconf.h"

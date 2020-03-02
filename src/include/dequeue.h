@@ -2,7 +2,7 @@
 #define LC_DEQUEUE_H_
 
 #define MAX_SIZE (1 << 12)
-#include "lc/lock.h"
+#include "lock.h"
 #include <string.h>
 #include <stdio.h>
 

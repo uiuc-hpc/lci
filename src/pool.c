@@ -1,4 +1,4 @@
-#include "lc/pool.h"
+#include "pool.h"
 
 int32_t tls_pool_struct[MAX_NPOOLS][MAX_LOCAL_POOL]; // = {-1, -1, -1, -1, -1, -1, -1, -1};
 int lc_pool_nkey = 0;

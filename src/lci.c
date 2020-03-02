@@ -1,6 +1,6 @@
 #include "lci.h"
-#include "src/include/lci_priv.h"
-#include "src/include/cq.h"
+#include "include/lci_priv.h"
+#include "include/cq.h"
 
 lc_server** LCI_DEVICES;
 LCI_endpoint_t* LCI_ENDPOINTS;

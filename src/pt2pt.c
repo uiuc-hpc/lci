@@ -1,6 +1,6 @@
 #include "lci.h"
 #include "lci_priv.h"
-#include "lc/pool.h"
+#include "pool.h"
 
 LCI_error_t LCI_sendi(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep)
 {

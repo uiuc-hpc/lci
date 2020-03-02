@@ -1,9 +1,9 @@
 #ifndef LC_THREAD_H_
 #define LC_THREAD_H_
 
-#include "lc/affinity.h"
-#include "lc/macro.h"
-#include "lc/lock.h"
+#include "affinity.h"
+#include "macro.h"
+#include "lock.h"
 
 #include <sched.h>
 #include <stdint.h>
