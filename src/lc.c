@@ -33,8 +33,9 @@ lc_status lc_init(int ndev, lc_ep* ep)
   return LC_OK;
 }
 
-lc_status lc_finalize()
+lc_status lc_finalize(void)
 {
+  lc_pm_barrier();
   return LC_OK;
 }
 
