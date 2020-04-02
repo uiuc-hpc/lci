@@ -33,7 +33,6 @@ typedef struct lc_server {
   // Helper fields.
   int* qp2rank;
   int qp2rank_mod;
-  void* heap_ptr;
   size_t max_inline;
 } lc_server __attribute__((aligned(64)));
 
@@ -117,7 +116,7 @@ static inline int lc_server_progress(lc_server* s)
       if (wc[i].imm_data & IBV_IMM_RTR) {
         // recv immediate protocol (3-msg rdz).
         lc_packet* p =
-            (lc_packet*)(s->heap->addr + (wc[i].imm_data ^ IBV_IMM_RTR));
+            (lc_packet*)(s->heap_addr + (wc[i].imm_data ^ IBV_IMM_RTR));
         lc_serve_imm(p);
         lc_pool_put(s->pkpool, (lc_packet*)wc[i].wr_id);
       } else {
@@ -384,7 +383,7 @@ static inline void lc_server_init(int id, lc_server** dev)
 
   // Create RDMA memory.
   s->heap = ibv_mem_malloc(s, 1024 * 1024 * 1024);
-  s->heap_ptr = (void*)s->heap->addr;
+  s->heap_addr = (uintptr_t)s->heap->addr;
 
   if (s->heap == 0) {
     fprintf(stderr, "Unable to create heap\n");
@@ -397,7 +396,7 @@ static inline void lc_server_init(int id, lc_server** dev)
 
   struct conn_ctx lctx, rctx;
   char ep_name[256];
-  lctx.addr = (uintptr_t)s->heap_ptr;
+  lctx.addr = (uintptr_t)s->heap_addr;
   lctx.rkey = s->heap->rkey;
   lctx.lid = s->port_attr.lid;
 
@@ -425,6 +424,7 @@ static inline void lc_server_init(int id, lc_server** dev)
     rep->rank = i;
     rep->rkey = rctx.rkey;
     rep->handle = (void*)s->qp[i];
+    rep->base = rctx.addr;
   }
 
   int j = LCI_NUM_PROCESSES;
@@ -462,7 +462,7 @@ static inline void lc_server_finalize(lc_server* s)
   free(s);
 }
 
-static inline void* lc_server_heap_ptr(lc_server* s) { return s->heap_ptr; }
+static inline void* lc_server_heap_ptr(lc_server* s) { return (void*) s->heap_addr; }
 
 #define lc_server_post_rma(...) \
   {                             \
