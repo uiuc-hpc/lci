@@ -496,6 +496,7 @@ static inline void lc_server_init(int id, lc_server** dev)
     rep->rank = i;
     rep->handle = (void*) s->qp[i];
     rep->rkey = rctx.rkey;
+    rep->base = rctx.addr;
   }
 
   int j = lcg_size;
