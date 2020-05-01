@@ -20,7 +20,17 @@ LCI_error_t LCI_sendbc(void* src, size_t size, int rank, int tag, LCI_endpoint_t
   lc_pk_init(ep, (size > 1024) ? lc_pool_get_local(ep->pkpool) : -1,
              LC_PROTO_DATA, p);
   struct lc_rep* rep = &(ep->rep[rank]);
+#ifdef LCI_CUDA
+  int is_dev_ptr = LCI_is_dev_ptr(src);
+  if (is_dev_ptr)
+  {
+    (void)cudaMemcpy(p->data.buffer, src, size, cudaMemcpyDeviceToHost);
+  } else {
+    memcpy(p->data.buffer, src, size);
+  }
+#else
   memcpy(p->data.buffer, src, size);
+#endif
   lc_server_sendm(ep->server, rep->handle, size, p,
                   MAKE_PROTO(ep->gid, LC_PROTO_DATA, tag));
   return LCI_OK;
