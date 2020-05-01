@@ -24,6 +24,8 @@ set(LCI_MAX_EP 8 CACHE STRING "Maximum number of EP")
 set(LCI_SYNC flag CACHE STRING "Sync mechanism")
 set_property(CACHE LCI_SYNC PROPERTY STRINGS flag argobots)
 
+option(LCI_CUDA "Enable communication with CUDA buffers" OFF)
+
 if(LCI_SERVER STREQUAL "ofi")
   set(LCI_USE_SERVER_OFI ON)
 elseif(LCI_SERVER STREQUAL "ibv")
@@ -113,8 +115,13 @@ find_package(Threads REQUIRED)
 string(TOUPPER ${LCI_SERVER} FABRIC_PREFER)
 find_package(Fabric REQUIRED)
 
-find_package(Argobots)
+if(LCI_CUDA)
+  find_package(CUDA REQUIRED)
+endif()
 
+if(LCI_SYNC_ABT)
+  find_package(Argobots REQUIRED)
+endif()
 
 
 add_library(lci-obj OBJECT)
@@ -125,14 +132,19 @@ set_target_properties(lci-obj PROPERTIES
   C_EXTENSIONS              ON
 )
 target_compile_definitions(lci-obj PRIVATE _GNU_SOURCE)
-target_include_directories(lci-obj PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+target_include_directories(lci-obj
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  PRIVATE
+    $<$<BOOL:${LCI_CUDA}>:${CUDA_INCLUDE_DIRS}>
 )
-target_link_libraries(lci-obj PUBLIC
-  Threads::Threads
-  Fabric::Fabric
-  $<$<BOOL:${LCI_SYNC_ABT}>:Argobots::Argobots>
+target_link_libraries(lci-obj
+  PUBLIC
+    Threads::Threads
+    Fabric::Fabric
+    $<$<BOOL:${LCI_SYNC_ABT}>:Argobots::Argobots>
+    $<$<BOOL:${LCI_CUDA}>:${CUDA_LIBRARIES}>
 )
 
 add_library(lci_shared SHARED)
