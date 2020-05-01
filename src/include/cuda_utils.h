@@ -7,7 +7,9 @@
 
 #ifdef LCI_CUDA
 
-
+/*
+    returns 1 if the buffer referenced by ptr is allocated on the device side
+*/
 int LCI_is_dev_ptr(const void* ptr);
 
 

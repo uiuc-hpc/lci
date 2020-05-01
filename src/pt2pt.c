@@ -2,6 +2,10 @@
 #include "lci_priv.h"
 #include "pool.h"
 
+#ifdef LCI_CUDA
+#include "cuda_utils.h"
+#endif // LCI_CUDA
+
 LCI_error_t LCI_sendi(LCI_ivalue_t src, int rank, int tag, LCI_endpoint_t ep)
 {
   struct lc_rep* rep = &(ep->rep[rank]);
