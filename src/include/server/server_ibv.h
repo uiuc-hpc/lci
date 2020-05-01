@@ -1,6 +1,8 @@
 #ifndef SERVER_IBV_H_
 #define SERVER_IBV_H_
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "infiniband/verbs.h"

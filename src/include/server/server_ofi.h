@@ -1,6 +1,8 @@
 #ifndef SERVER_OFI_H_
 #define SERVER_OFI_H_
 
+#include "config.h"
+
 #include <rdma/fabric.h>
 #include <rdma/fi_domain.h>
 #include <rdma/fi_endpoint.h>
