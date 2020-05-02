@@ -54,6 +54,7 @@ static inline void busywait_cyc(unsigned long long delay)
   } while (stop_cycle < start_plus_delay);
 }
 
+#if 0
 #ifdef __cplusplus
 #include <mutex>
 #include <condition_variable>
@@ -76,5 +77,6 @@ class cpp_barrier
     }
   }
 };
+#endif
 #endif
 #endif

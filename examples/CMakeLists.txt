@@ -1,5 +1,5 @@
-function(add_example NAME)
-  add_executable(${NAME} ${NAME}.c)
+function(add_example NAME FILE)
+  add_executable(${NAME} ${FILE})
   target_compile_definitions(${NAME} PRIVATE _GNU_SOURCE)
   target_link_libraries(${NAME} PRIVATE
     Threads::Threads
@@ -18,13 +18,14 @@ function(add_example NAME)
   set_target_properties(${NAME} PROPERTIES
     C_STANDARD                99
     C_EXTENSIONS              ON
+    CUDA_STANDARD             11
   )
   install(TARGETS ${NAME} DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/lc)
 endfunction()
 
 function(add_all_examples)
   foreach(example ${ARGN})
-    add_example(${example})
+    add_example(${example} ${example}.c)
   endforeach()
 endfunction()
 
@@ -38,3 +39,7 @@ add_all_examples(
   putb
   putbc
 )
+
+if(LCI_CUDA)
+  add_example(pt2ptbc_cuda pt2ptbc_cuda.cu)
+endif()
