@@ -57,4 +57,27 @@ LCI_error_t LCI_sendbc_device(void* device_queue, void* src, size_t size, int ra
 }
 
 
+/*
+  polls GPU queue, must be launched as a thread
+*/
+void device_send_helper(void* device_queue);
+{
+  LCI_device_queue_t device_queue_host_copy;
+  while(1)
+  {
+    cudaMemcpy(&device_queue_host_copy, device_queue, sizeof(device_queue_host_copy), cudaMemcpyDeviceToHost);
+    if (device_queue_host_copy.size == 0) return; // empty device queue, exit gracefully
+
+    int entry_idx = 0 // TODO: find valid entry, remove hardcoding
+    LCI_device_queue_entry_t* request = &(device_queue_host_copy.queue[0]);
+    if (request->valid == 0) continue; // no vfalid request, keep waiting;
+
+    // work on request, simply call public API
+    request->status = LCI_sendbc(request->src, request->size, request->rank, request->tag, request->ep);
+
+    // TODO what to do with the request return code? another stream to copy status back to GPU
+  }
+}
+
+
 #endif // CUDA_UTILS_H_
