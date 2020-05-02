@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include "lci.h"
 #include "lci_priv.h"
 #include "pool.h"
@@ -21,10 +23,8 @@ LCI_error_t LCI_sendbc(void* src, size_t size, int rank, int tag, LCI_endpoint_t
              LC_PROTO_DATA, p);
   struct lc_rep* rep = &(ep->rep[rank]);
 #ifdef LCI_CUDA
-  int is_dev_ptr = LCI_is_dev_ptr(src);
-  if (is_dev_ptr)
-  {
-    (void)cudaMemcpy(p->data.buffer, src, size, cudaMemcpyDeviceToHost);
+  if (lc_is_dev_ptr(src)) {
+    cudaMemcpy(p->data.buffer, src, size, cudaMemcpyDeviceToHost);
   } else {
     memcpy(p->data.buffer, src, size);
   }
