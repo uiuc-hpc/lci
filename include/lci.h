@@ -10,6 +10,11 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#ifdef LCI_CUDA
+#include <cuda_runtime_api.h>
+#endif // LCI_CUDA
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -497,6 +502,14 @@ LCI_error_t LCI_bbuffer_get(LCI_bbuffer_t* buffer, int device_id);
 
 LCI_API
 LCI_error_t LCI_bbuffer_free(LCI_bbuffer_t buffer, int device_id);
+
+
+#ifdef LCI_CUDA
+LCI_API
+__device__
+LCI_error_t LCI_sendbc_device(void* device_queue, void* src, size_t size, int rank, int tag, LCI_endpoint_t ep);
+#endif // LCI_CUDA
+
 
 #ifdef __cplusplus
 }
