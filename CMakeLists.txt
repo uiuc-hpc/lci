@@ -109,13 +109,14 @@ mark_as_advanced(
 
 
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+#set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
 string(TOUPPER ${LCI_SERVER} FABRIC_PREFER)
 find_package(Fabric REQUIRED)
 
 if(LCI_CUDA)
+  enable_language(CUDA)
   find_package(CUDA REQUIRED)
 endif()
 
