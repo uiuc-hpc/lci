@@ -84,7 +84,9 @@ static const lc_ep_desc LC_EXP_SYNC = {EP_AR_EXP, EP_CE_SYNC};
 static const lc_ep_desc LC_EXP_CQ   = {EP_AR_EXP, EP_CE_CQ};
 static const lc_ep_desc LC_EXP_AM   = {EP_AR_EXP, EP_CE_AM};
 static const lc_ep_desc LC_DYN_CQ  = {EP_AR_DYN, EP_CE_CQ};
+static const lc_ep_desc LC_DYN_AM  = {EP_AR_DYN, EP_CE_AM};
 static const lc_ep_desc LC_IMM_CQ  = {EP_AR_IMM, EP_CE_CQ};
+static const lc_ep_desc LC_IMM_AM  = {EP_AR_IMM, EP_CE_AM};
 
 typedef struct lc_col_sched {
   void* src;
