@@ -1,4 +1,5 @@
 #include "lc.h"
+#include "config.h"
 
 #include "lc_priv.h"
 #include "lc/pool.h"
@@ -6,7 +7,8 @@
 lc_status lc_sendm(void* src, size_t size, int rank, int tag, lc_ep ep)
 {
   LC_POOL_GET_OR_RETN(ep->pkpool, p);
-  lci_pk_init(ep, lc_pool_get_local(ep->pkpool), LC_PROTO_DATA, p);
+  lci_pk_init(ep, (size > LC_PKT_RET_MED_SIZE) ? lc_pool_get_local(ep->pkpool) : -1,
+              LC_PROTO_DATA, p);
   struct lci_rep* rep = &(ep->rep[rank]);
   memcpy(p->data.buffer, src, size);
   lc_server_sendm(ep->server, rep->handle, size, p,
@@ -17,7 +19,8 @@ lc_status lc_sendm(void* src, size_t size, int rank, int tag, lc_ep ep)
 lc_status lc_putm(void* src, size_t size, int rank, uintptr_t addr, lc_ep ep)
 {
   LC_POOL_GET_OR_RETN(ep->pkpool, p);
-  lci_pk_init(ep, lc_pool_get_local(ep->pkpool), LC_PROTO_DATA, p);
+  lci_pk_init(ep, (size > LC_PKT_RET_MED_SIZE) ? lc_pool_get_local(ep->pkpool) : -1,
+              LC_PROTO_DATA, p);
   struct lci_rep* rep = &(ep->rep[rank]);
   memcpy(&p->data, src, size);
   lc_server_putm(ep->server, rep->handle, rep->base, (uint32_t) (addr - rep->base),
@@ -28,7 +31,8 @@ lc_status lc_putm(void* src, size_t size, int rank, uintptr_t addr, lc_ep ep)
 lc_status lc_putms(void* src, size_t size, int rank, uintptr_t addr, int meta, lc_ep ep)
 {
   LC_POOL_GET_OR_RETN(ep->pkpool, p);
-  lci_pk_init(ep, lc_pool_get_local(ep->pkpool), LC_PROTO_DATA, p);
+  lci_pk_init(ep, (size > LC_PKT_RET_MED_SIZE) ? lc_pool_get_local(ep->pkpool) : -1,
+              LC_PROTO_DATA, p);
   struct lci_rep* rep = &(ep->rep[rank]);
   memcpy(&p->data, src, size);
   lc_server_putms(ep->server, rep->handle, rep->base, (uint32_t) (addr - rep->base),
