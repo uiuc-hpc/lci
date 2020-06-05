@@ -32,6 +32,7 @@ struct lci_ep {
   // Cap
   long cap;
   int gid;
+  volatile int completed;
 
   // Associated hardware context.
   lc_server* server;
@@ -40,17 +41,14 @@ struct lci_ep {
 
   // Other misc data.
   union{
-    struct {
-      lc_alloc_fn alloc;
-      lc_free_fn free;
-      void* ctx;
-    };
+    lc_alloc_fn alloc;
     lc_hash* tbl;
-    lc_handler_fn handler;
   };
 
-  volatile int completed;
-  struct comp_q cq __attribute__((aligned(LC_CACHE_LINE)));
+  union {
+    lc_handler_fn handler;
+    struct comp_q cq __attribute__((aligned(LC_CACHE_LINE)));
+  };
 } __attribute__((packed, aligned(LC_CACHE_LINE)));
 
 

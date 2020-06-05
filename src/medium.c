@@ -49,8 +49,8 @@ lc_status lc_recvm(void* src, size_t size, int rank, int tag, lc_ep ep,
     lc_packet* p = (lc_packet*) value;
     memcpy(src, p->data.buffer, p->context.req->size);
     req->size = p->context.req->size;
-    lc_signal((void*) &req->sync);
-    lci_pk_free_data(ep, p);
+    p->context.req = req;
+    lci_ce_dispatch(ep, p, ep->cap);
   }
   return LC_OK;
 }
