@@ -66,7 +66,11 @@ The following cache variables may also be set:
 #]=======================================================================]
 
 include(FindPackageHandleStandardArgs)
-find_package(PkgConfig)
+if(Fabric_FIND_QUIETLY)
+  find_package(PkgConfig QUIET)
+else()
+  find_package(PkgConfig)
+endif()
 
 set(_OFI_PC libfabric)
 set(_OFI_HEADER "rdma/fabric.h")
@@ -93,6 +97,7 @@ foreach(FABRIC IN ITEMS OFI IBV PSM)
     )
     set(Fabric_${FABRIC}_VERSION ${_Fabric_${FABRIC}_PC_VERSION})
 
+    set(Fabric_${FABRIC}_FIND_QUIETLY ${Fabric_FIND_QUIETLY})
     find_package_handle_standard_args(Fabric_${FABRIC}
       REQUIRED_VARS
         Fabric_${FABRIC}_INCLUDE_DIR
