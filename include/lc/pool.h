@@ -90,35 +90,41 @@ LC_INLINE int32_t lc_pool_get_local_id(struct lc_pool* pool)
   return pid;
 }
 
-LC_INLINE int32_t lc_pool_get_steal_id(struct lc_pool* pool, int32_t pid)
+LC_INLINE int32_t lc_pool_get_steal_id(int32_t npools, int32_t pid)
 {
-  int32_t npools = pool->npools;
   if (npools == 1)
-    return pid; /* if only one pool, no one else to steal from */
+    return -1; /* if only one pool, no one else to steal from */
   int32_t r = rand() % (npools - 1);
   return (r + pid + 1) % npools;
+}
+
+LC_INLINE void* lc_pool_steal_from(struct lc_pool* pool, int32_t pid)
+{
+  void* elm = NULL;
+  if (likely(pool->lpools[pid] != NULL))
+    elm = dq_pop_bot(pool->lpools[pid]);
+  return elm;
 }
 
 LC_INLINE void* lc_pool_steal(struct lc_pool* pool, int32_t pid)
 {
   void* elm = NULL;
-  int32_t target = lc_pool_get_steal_id(pool, pid);
-  if (target != pid && likely(pool->lpools[target] != NULL))
-    elm = dq_pop_bot(pool->lpools[target]);
+  int32_t target = lc_pool_get_steal_id(pool->npools, pid);
+  if (target != -1)
+    elm = lc_pool_steal_from(pool, pid);
   return elm;
-}
-
-LC_INLINE void lc_pool_put(struct lc_pool* pool, void* elm)
-{
-  int32_t pid = lc_pool_get_local_id(pool);
-  struct dequeue* lpool = pool->lpools[pid];
-  dq_push_top(lpool, elm);
 }
 
 LC_INLINE void lc_pool_put_to(struct lc_pool* pool, void* elm, int32_t pid)
 {
   struct dequeue* lpool = pool->lpools[pid];
   dq_push_top(lpool, elm);
+}
+
+LC_INLINE void lc_pool_put(struct lc_pool* pool, void* elm)
+{
+  int32_t pid = lc_pool_get_local_id(pool);
+  lc_pool_put_to(pool, elm, pid);
 }
 
 LC_INLINE void* lc_pool_get_nb(struct lc_pool* pool)
@@ -136,12 +142,12 @@ LC_INLINE void* lc_pool_get(struct lc_pool* pool)
   int32_t pid = lc_pool_get_local_id(pool);
   struct dequeue* lpool = pool->lpools[pid];
   void* elm = NULL;
-  while (elm == NULL) {
+  do {
     /* must try self every iteration since we never steal from self */
     elm = dq_pop_top(lpool);
     if (elm == NULL)
       elm = lc_pool_steal(pool, pid);
-  }
+  } while (elm == NULL);
   return elm;
 }
 
