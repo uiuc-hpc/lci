@@ -5,7 +5,7 @@
 #include "lc/pool.h"
 
 #ifdef LC_PKT_RET_LONG
-#define LC_LONG_POOL_ID(ep) (lc_pool_get_local(ep->pkpool))
+#define LC_LONG_POOL_ID(ep) (lc_pool_get_local_id(ep->pkpool))
 #else
 #define LC_LONG_POOL_ID(ep) (-1)
 #endif

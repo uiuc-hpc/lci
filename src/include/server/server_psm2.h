@@ -321,7 +321,7 @@ static inline void lc_server_post_recv(lc_server* s, lc_packet* p)
   }
 
   psm2_mq_tag_t rtag = PSM_TAG_TRECV_DATA();
-  p->context.poolid = lc_pool_get_local(s->pkpool);
+  p->context.poolid = lc_pool_get_local_id(s->pkpool);
 
   PSM_SAFECALL(psm2_mq_irecv2(
       s->mq, PSM2_MQ_ANY_ADDR, &rtag,                       /* message tag */
