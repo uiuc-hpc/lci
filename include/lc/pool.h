@@ -111,7 +111,7 @@ LC_INLINE void* lc_pool_steal(struct lc_pool* pool, int32_t pid)
   void* elm = NULL;
   int32_t target = lc_pool_get_steal_id(pool->npools, pid);
   if (target != -1)
-    elm = lc_pool_steal_from(pool, pid);
+    elm = lc_pool_steal_from(pool, target);
   return elm;
 }
 
