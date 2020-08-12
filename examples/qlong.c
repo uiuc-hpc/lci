@@ -11,7 +11,7 @@ int skip = SKIP;
 
 void* buf;
 
-static void* no_alloc(void* ctx, size_t size)
+static void* no_alloc(size_t size, void **ctx)
 {
   return buf;
 }

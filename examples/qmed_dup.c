@@ -14,7 +14,7 @@ int skip = SKIP;
 
 void* buf;
 
-static void* alloc(size_t size, void* ctx)
+static void* alloc(size_t size, void **ctx)
 {
   return buf;
 }
