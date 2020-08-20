@@ -75,6 +75,8 @@ set(LC_DEV_MEM_SIZE "(8*1024*1024)" CACHE STRING "Size of device memory")
 set(LC_SERVER_MAX_RCVS 64 CACHE STRING "Max posted recvs")
 set(LC_SERVER_NUM_PKTS 1024 CACHE STRING "Number of packets")
 set(LC_CACHE_LINE 64 CACHE STRING "Size of cache line (bytes)")
+set(LC_PKT_RET_MED_SIZE 1024 CACHE STRING "Minimum size of medium send for packet return to sender pool")
+option(LC_PKT_RET_LONG "Return long send packets to sender pool" OFF)
 mark_as_advanced(
   LC_PACKET_SIZE
   LC_MAX_INLINE
@@ -82,6 +84,8 @@ mark_as_advanced(
   LC_SERVER_MAX_RCVS
   LC_SERVER_NUM_PKTS
   LC_CACHE_LINE
+  LC_PKT_RET_MED_SIZE
+  LC_PKT_RET_LONG
 )
 
 

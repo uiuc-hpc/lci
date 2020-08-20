@@ -30,4 +30,7 @@
 #define LC_SERVER_NUM_PKTS @LC_SERVER_NUM_PKTS@
 #define LC_CACHE_LINE      @LC_CACHE_LINE@
 
+#define LC_PKT_RET_MED_SIZE @LC_PKT_RET_MED_SIZE@
+#cmakedefine LC_PKT_RET_LONG
+
 #endif
