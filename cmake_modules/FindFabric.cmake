@@ -98,12 +98,14 @@ foreach(FABRIC IN ITEMS OFI IBV PSM)
     set(Fabric_${FABRIC}_VERSION ${_Fabric_${FABRIC}_PC_VERSION})
 
     set(Fabric_${FABRIC}_FIND_QUIETLY ${Fabric_FIND_QUIETLY})
+    set(FPHSA_NAME_MISMATCHED TRUE)
     find_package_handle_standard_args(Fabric_${FABRIC}
       REQUIRED_VARS
         Fabric_${FABRIC}_INCLUDE_DIR
         Fabric_${FABRIC}_LIBRARY
       VERSION_VAR Fabric_${FABRIC}_VERSION
     )
+    set(FPHSA_NAME_MISMATCHED FALSE)
 
     if(Fabric_${FABRIC}_FOUND)
       set(Fabric_${FABRIC}_INCLUDE_DIRS ${Fabric_${FABRIC}_INCLUDE_DIR})

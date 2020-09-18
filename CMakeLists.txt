@@ -124,12 +124,13 @@ add_subdirectory(examples)
 
 
 
+set(CMAKE_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/${CMAKE_PROJECT_NAME}")
 write_basic_package_version_file(
   "${CMAKE_CURRENT_BINARY_DIR}/LCIConfigVersion.cmake"
   COMPATIBILITY ExactVersion
 )
 configure_package_config_file(LCIConfig.cmake.in LCIConfig.cmake
-  INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake"
+  INSTALL_DESTINATION "${CMAKE_INSTALL_CMAKEDIR}"
   PATH_VARS CMAKE_INSTALL_INCLUDEDIR CMAKE_INSTALL_LIBDIR
 )
 set(PKGCONFIG_REQUIRES_PRIVATE ${Fabric_${FABRIC_PREFER}_PC_Requires})
@@ -149,9 +150,9 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/liblci.pc"
 )
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/LCIConfig.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/LCIConfigVersion.cmake"
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake
+        DESTINATION ${CMAKE_INSTALL_CMAKEDIR}
 )
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/FindFabric.cmake"
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LCI
+        DESTINATION ${CMAKE_INSTALL_CMAKEDIR}/cmake_modules
 )
 install(PROGRAMS lcrun DESTINATION ${CMAKE_INSTALL_BINDIR})
