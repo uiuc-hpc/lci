@@ -15,9 +15,9 @@
 #include <rdma/fi_rma.h>
 
 #include "config.h"
-#include "lc/macro.h"
+#include "macro.h"
 #include "pm.h"
-#include "dreg/dreg.h"
+#include "dreg.h"
 
 #define SERVER_FI_DEBUG
 
