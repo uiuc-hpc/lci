@@ -6,7 +6,7 @@
 # - Packages doxygen doxygen-doc doxygen-gui graphviz
 #   must be installed.
 # - An gh-pages branch should already exist.
-# Acknowledgement: Thank Francesco Romano for their excellent document
+# Acknowledgement: Thank Francesco Romano for the excellent document
 # https://gist.github.com/francesco-romano/351a6ae457860c14ee7e907f2b0fc1a5
 __AUTHOR__="Jiakun Yan (jiakuny3@illinois.edu)"
 #############################################################
@@ -36,7 +36,7 @@ cd ${doc_dir}
 git reset --hard "$(git rev-list --max-parents=0 --abbrev-commit HEAD)"
 
 echo "Generating Doxygen documentation..."
-( cat ../Doxyfile ; printf "OUTPUT_DIRECTORY=./\nHTML_OUTPUT=html\nGENERATE_HTML=YES\nINPUT=../" ) | \
+( cat ../Doxyfile ; printf "OUTPUT_DIRECTORY=./\nHTML_OUTPUT=html\nGENERATE_HTML=YES\nINPUT=../\nGENERATE_LATEX=NO" ) | \
 doxygen - > doxygen.log 2>&1
 
 if [ -d "html" ] && [ -f "html/index.html" ]; then

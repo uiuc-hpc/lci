@@ -23,11 +23,13 @@ extern "C" {
 
 /**
  * The maximum size of a buffer that can be used in immediate protocol.
+ * @todo API mismatch: LCI_IMMEDIATE_SIZE
  */
 int LCI_IMMEDIATE_LENGTH;
 
 /**
  * The maximum size of a buffer that can be used in buffered protocol.
+ * @todo API mismatch: LCI_BUFFERED_SIZE
  */
 int LCI_BUFFERED_LENGTH;
 
@@ -53,6 +55,7 @@ int LCI_RANK;
 
 /**
  * The amount of pre-registered memory for a device dedicated for communciation.
+ * @todo API mismatch: LCI_REGISTERED_SEGMENT_SIZE
  */
 int LCI_REGISTERED_MEMORY_SIZE;
 
@@ -105,6 +108,7 @@ typedef enum {
 
 /**
  * LCI completion type.
+ * @todo API name mismatch: LCI_comptype_t
  */
 typedef enum {
   LCI_COMPLETION_QUEUE = 0,
@@ -127,6 +131,7 @@ typedef enum { LCI_STATIC = 0, LCI_DYNAMIC } LCI_dynamic_t;
 
 /**
  * Synchronizer object, owned by the runtime.
+ * @todo API mismatch: LCI_SO_t
  */
 typedef uint64_t LCI_sync_t;
 
@@ -136,7 +141,8 @@ typedef void* LCI_dbuffer_t;
 
 /**
  * The type of data associated with a buffer.
- */
+ * @todo API mismatch: internal member names mismatch
+*/
 typedef union {
   LCI_ivalue_t immediate;
   LCI_bbuffer_t bbuffer;
@@ -145,6 +151,7 @@ typedef union {
 
 /**
  * Request object, owned by the user, unless returned from runtime (CQ_Dequeue).
+ * @todo API mismatch: internal member names mismatch
  */
 typedef struct {
   /* Status of the communication. */
@@ -157,6 +164,14 @@ typedef struct {
   LCI_buffer_t buffer;
 } LCI_request_t;
 
+/**
+ * Synchronizer, owned by the user.
+ * @todo API mismatch: typedef struct {
+                           LCI_SO_t syncobject ;
+                           uint8 request_count ;
+                           LCI_request_t requests [];
+                       } LCI_sync__t ;
+ */
 typedef struct {
   LCI_sync_t sync;
   LCI_request_t request;
@@ -188,11 +203,13 @@ typedef struct LCI_MT_s* LCI_MT_t;
 
 /**
  * Handler type
+ * @todo API mismatch: typedef LCI_error_t ( *LCI_handler_t )( LCI_request_t request );
  */
 typedef void (*LCI_Handler)(LCI_sync_t* sync, void* usr_context);
 
 /**
  * Allocator type
+ * @todo API mismatch: LCI_Allocator_t
  */
 typedef void* (*LCI_Allocator)(size_t size, void* usr_context);
 
@@ -205,12 +222,14 @@ typedef void* (*LCI_Allocator)(size_t size, void* usr_context);
 
 /**
  * Initialize LCI.
+ * @todo API mismatch: LCI_error_t LCI_Init ();
  */
 LCI_API
 LCI_error_t LCI_initialize(int* argc, char*** args);
 
 /**
  * Finalize LCI.
+ * @todo API mismatch: LCI_error_t LCI_Free ();
  */
 LCI_API
 LCI_error_t LCI_finalize();
@@ -229,6 +248,8 @@ LCI_error_t LCI_PL_free(LCI_PL_t* plist);
 
 /**
  * Set communication style (1sided, 2sided, collective).
+ * @todo API mismatch: LCI_error_t LCI_PL_set_comm_type(LCI_PL_t* plist, LCI_comm_t type);
+ *       Note: for all LCI_PL_set_*: the order of the parameter list is reversed.
  */
 LCI_API
 LCI_error_t LCI_PL_set_comm_type(LCI_comm_t type, LCI_PL_t* plist);
@@ -241,6 +262,7 @@ LCI_error_t LCI_PL_set_match_type(LCI_match_t type, LCI_PL_t* plist);
 
 /**
  * Set hash-table memory for matching.
+ * @todo name mismatch: LCI_PL_set_MT
  */
 LCI_API
 LCI_error_t LCI_PL_set_mt(LCI_MT_t* mt, LCI_PL_t* plist);
@@ -260,6 +282,7 @@ LCI_error_t LCI_PL_set_completion(LCI_port_t port, LCI_comp_t type,
 
 /**
  * Set completion mechanism.
+ * @todo name mismatch: LCI_PL_set_CQ
  */
 LCI_API
 LCI_error_t LCI_PL_set_cq(LCI_CQ_t* cq, LCI_PL_t* plist);
@@ -333,6 +356,13 @@ LCI_error_t LCI_sendb(LCI_bbuffer_t src, size_t size, int rank, int tag,
 
 /**
  * Send a direct message.
+ * @todo API mismatch: LCI_error_t LCI_sendd(LCI_endpoint_t	endpoint,
+                                             void 		*buffer,
+                                             size_t		length,
+                                             uint32_t		destination,
+                                             uint16_t		tag,
+                                             LCI_comp_t		completion);
+         Note: nearly all the communication API has parameter order mismatch.
  */
 LCI_API
 LCI_error_t LCI_sendd(LCI_dbuffer_t src, size_t size, int rank, int tag,
@@ -362,31 +392,31 @@ LCI_error_t LCI_recvd(LCI_dbuffer_t src, size_t size, int rank, int tag,
 /* One-sided functions. */
 
 /**
- * Put short message to a remote address @rma_id available at the remote
- * endpoint, offset @offset. Complete immediately, or return LCI_ERR_RETRY.
+ * Put short message to a remote address @p rma_id available at the remote
+ * endpoint, offset @p offset. Complete immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
 LCI_error_t LCI_puti(LCI_ivalue_t src, int rank, int rma_id, int offset, int meta,
                      LCI_endpoint_t ep);
 
 /**
- * Put medium message to a remote address @rma_id available at the remote
- * endpoint, offset @offset. Complete immediately, or return LCI_ERR_RETRY.
+ * Put medium message to a remote address @p rma_id available at the remote
+ * endpoint, offset @p offset. Complete immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
 LCI_error_t LCI_putbc(LCI_bbuffer_t src, size_t size, int rank, int rma_id, int offset, uint16_t meta,
                      LCI_endpoint_t ep);
 
 /**
- * Put medium message to a remote address @rma_id available at the remote
- * endpoint, offset @offset. User must wait for sync or retry if LCI_ERR_RETRY is returned.
+ * Put medium message to a remote address @p rma_id available at the remote
+ * endpoint, offset @p offset. User must wait for sync or retry if LCI_ERR_RETRY is returned.
  */
 LCI_error_t LCI_putb(LCI_bbuffer_t buffer, size_t size, int rank, uint16_t tag,
                      LCI_endpoint_t ep, void* sync);
 
 /**
- * Put long message to a remote address @rma_id available at the remote
- * endpoint, offset @offset.
+ * Put long message to a remote address @p rma_id available at the remote
+ * endpoint, offset @p offset.
  */
 LCI_API
 LCI_error_t LCI_putd(LCI_dbuffer_t src, size_t size, int rank, int rma_id, int offset,
@@ -403,6 +433,7 @@ LCI_error_t LCI_putd(LCI_dbuffer_t src, size_t size, int rank, int rma_id, int o
 
 /**
  * Create a completion queue.
+ * @todo API mismatch: LCI_error_t LCI_CQ_init ( LCIcomp_t * cq , uint32_t length );
  */
 LCI_API
 LCI_error_t LCI_CQ_create(uint32_t length, LCI_CQ_t* cq);
@@ -415,25 +446,32 @@ LCI_error_t LCI_CQ_free(LCI_CQ_t* cq);
 
 /**
  * Return first completed request in the queue.
+ * @todo API mismatch: LCI_error_t LCI_dequeue ( LCI_comp_t cq , LCI_request_t * request );
  */
 LCI_API
 LCI_error_t LCI_CQ_dequeue(LCI_CQ_t* cq, LCI_request_t** req);
 
 /**
- * Return at most @n first completed request in the queue.
+ * Return at most @p count first completed request in the queue.
+ * @todo API mismatch: LCI_error_t LCI_mult_dequeue ( LCI_comp_t cq ,
+                                                      LCI_request_t requests [] ,
+                                                      uint32_t request_count ,
+                                                      uint32_t * return_count );
+         and is not implemented
  */
 LCI_API
 LCI_error_t LCI_CQ_mul_dequeue(LCI_CQ_t* cq, LCI_request_t requests[],
                                uint8_t count);
 
 /**
- * Return @n requests to the runtime.
+ * Return @p n requests to the runtime.
  */
 LCI_API
 LCI_error_t LCI_request_free(LCI_endpoint_t ep, int n, LCI_request_t** req);
 
 /**
  * Create a matching hash-table.
+ * @todo API mismatch: LCI_error_t LCI_MT_init ( LCI_MT_t * mt , uint32_t length );
  */
 LCI_error_t LCI_MT_create(uint32_t length, LCI_MT_t* mt);
 
@@ -444,47 +482,58 @@ LCI_error_t LCI_MT_free(LCI_MT_t* mt);
 
 /**
  * Create a Sync object.
+ * @todo API mismatch: LCI_error_t LCI_sync_init ( LCI_sync_t * sync ,
+                                                   LCI_SO_t type ,
+                                                   size_t number );
+         Note: the manual also name the constructor of LCI_SO_t as LCI_sync_init,
+               which I think is a bug. I fix this by renaming it as LCI_SO_init.
+               The same applies to LCI_SO_free and LCI_SO_type
  */
 LCI_API
 LCI_error_t LCI_sync_create(void* sync);
 
 /**
  * Reset on a Sync object.
+ * @todo API mismatch: the parameter type is LCI_sync_t*
  */
 LCI_API
 LCI_error_t LCI_one2one_set_full(void* sync);
 
 /**
  * Wait on a Sync object.
- */
+ * @todo API mismatch: the parameter type is LCI_sync_t*
+*/
 LCI_API
 LCI_error_t LCI_one2one_set_empty(void* sync);
 
 /**
  * Test a Sync object, return 1 if finished.
+ * @todo API mismatch: LCI_error_t LCI_one2one_test_empty (
+                                   LCI_sync_one2one_t *sync,
+                                   __Bool * flag );
  */
 LCI_API
 int LCI_one2one_test_empty(void* sync);
 
 /**
  * Wait until become full.
+ * @todo API mismatch: the parameter type is LCI_sync_t*
  */
 LCI_API
 LCI_error_t LCI_one2one_wait_full(void* sync);
 
 /**
  * Wait until become empty.
+ * @todo API mismatch: the parameter type is LCI_sync_t*
  */
 LCI_API
 LCI_error_t LCI_one2one_wait_empty(void* sync);
 
 /**
- * Polling a specific device @device_id for at least @count time.
+ * Polling a specific device @p device_id for at least @p count time.
  */
 LCI_API
 LCI_error_t LCI_progress(int device_id, int count);
-
-/**@}*/
 
 /**
  * Querying a specific device @device_id for a base address.
@@ -492,11 +541,19 @@ LCI_error_t LCI_progress(int device_id, int count);
 LCI_API
 uintptr_t LCI_get_base_addr(int device_id);
 
+/**
+ * @todo API mismatch: LCI_error_t LCI_buffer_get(LCI_bdata_t* buffer, uint8 device_id);
+ */
 LCI_API
 LCI_error_t LCI_bbuffer_get(LCI_bbuffer_t* buffer, int device_id);
 
+/**
+ * @todo API mismatch: LCI_error_t LCI_buffer_free ( LCI_bdata_t buffer );
+ */
 LCI_API
 LCI_error_t LCI_bbuffer_free(LCI_bbuffer_t buffer, int device_id);
+
+/**@}*/
 
 #ifdef __cplusplus
 }
