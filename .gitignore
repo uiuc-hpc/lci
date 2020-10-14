@@ -34,5 +34,5 @@ cmake-build-debug
 results
 errors
 *_test
-build/
+build-*/
 code_doc/
