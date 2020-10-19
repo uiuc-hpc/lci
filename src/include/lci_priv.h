@@ -45,12 +45,14 @@ LCI_endpoint_t* LCI_ENDPOINTS;
 
 struct LCI_PL_s {
   LCI_comm_t ctype;
+  LCI_match_t match_type;
   LCI_msg_t mtype;
-  LCI_comp_t ltype;
-  LCI_comp_t rtype;
-  LCI_Handler handler;
-  LCI_Allocator allocator;
-  LCI_CQ_t cq;
+  LCI_comptype_t ltype;
+  LCI_comptype_t rtype;
+  LCI_handler_t *handler;
+  LCI_dynamic_t dtype;
+  LCI_allocator_t allocator;
+  LCI_comp_t cq;
   LCI_MT_t mt;
 };
 
@@ -66,9 +68,9 @@ struct LCI_endpoint_s {
 
   union {
     lc_cq* cq;
-    LCI_Handler handler;
+    LCI_handler_t *handler;
   };
-  LCI_Allocator alloc;
+  LCI_allocator_t alloc;
   volatile int completed;
 
   int gid;

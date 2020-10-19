@@ -10,15 +10,15 @@
 #define MAX_MSG (8 * 1024)
 
 int main(int argc, char** args) {
-  LCI_initialize(&argc, &args);
+  LCI_Init(&argc, &args);
   LCI_endpoint_t ep;
-  LCI_CQ_t cq;
-  LCI_CQ_create(0, &cq);
+  LCI_comp_t cq;
+  LCI_CQ_init(&cq, 0);
 
   LCI_PL_t prop;
   LCI_PL_create(&prop);
-  LCI_PL_set_cq(&cq, &prop);
-  LCI_PL_set_completion(LCI_PORT_MESSAGE, LCI_COMPLETION_QUEUE, &prop);
+  LCI_PL_set_CQ(prop,&cq);
+  LCI_PL_set_completion(prop,LCI_PORT_MESSAGE, LCI_COMPLETION_QUEUE);
 
   LCI_endpoint_create(0, prop, &ep);
   int rank = LCI_RANK;
@@ -44,11 +44,11 @@ int main(int argc, char** args) {
         while (LCI_one2one_test_empty(&sync)) {
           LCI_progress(0, 1);
         }
-        while (LCI_CQ_dequeue(&cq, &req_ptr) == LCI_ERR_RETRY)
+        while (LCI_dequeue(cq, &req_ptr) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
         LCI_bbuffer_free(req_ptr->buffer.bbuffer, 0);
       } else {
-        while (LCI_CQ_dequeue(&cq, &req_ptr) == LCI_ERR_RETRY)
+        while (LCI_dequeue(cq, &req_ptr) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
         LCI_bbuffer_free(req_ptr->buffer.bbuffer, 0);
         LCI_one2one_set_empty(&sync);
@@ -65,5 +65,5 @@ int main(int argc, char** args) {
     }
   }
 
-  LCI_finalize();
+  LCI_Free();
 }

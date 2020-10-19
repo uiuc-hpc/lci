@@ -211,7 +211,7 @@ static inline void lc_server_init(int id, lc_server** dev)
 
   posix_memalign(
       (void**) &s->heap_addr, 8192,
-      LC_SERVER_NUM_PKTS * LC_PACKET_SIZE * 2 + LCI_REGISTERED_MEMORY_SIZE);
+      LC_SERVER_NUM_PKTS * LC_PACKET_SIZE * 2 + LCI_REGISTERED_SEGMENT_SIZE);
 
   lcrq_init(&s->free_mr);
   for (int i = 0; i < 256; i++)

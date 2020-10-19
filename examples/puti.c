@@ -10,13 +10,13 @@
 #define MAX_MSG 8
 
 int main(int argc, char** args) {
-  LCI_initialize(&argc, &args);
+  LCI_Init(&argc, &args);
   LCI_endpoint_t ep;
   LCI_PL_t prop;
   LCI_PL_create(&prop);
   LCI_MT_t mt;
-  LCI_MT_create(0, &mt);
-  LCI_PL_set_mt(&mt, &prop);
+  LCI_MT_init(&mt, 0);
+  LCI_PL_set_MT(prop,&mt);
   // LCI_PL_set_completion(LCI_PORT_MESSAGE, LCI_COMPLETION_ONE2ONEL, &prop);
   // LCI_PL_set_completion(LCI_PORT_COMMAND, LCI_COMPLETION_ONE2ONEL, &prop);
 
@@ -69,5 +69,5 @@ int main(int argc, char** args) {
     }
   }
 
-  LCI_finalize();
+  LCI_Free();
 }

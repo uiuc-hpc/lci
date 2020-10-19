@@ -134,12 +134,12 @@ static inline void lc_serve_recv_dyn(LCI_endpoint_t ep, lc_packet* p,
   p->context.sync->request.tag = tag;
 
   if (proto == LC_PROTO_DATA) {
-    void* buf = ep->alloc(p->context.sync->request.length, 0);
+    void* buf = ep->alloc.malloc(p->context.sync->request.length, 0);
     memcpy(buf, &p->data, p->context.sync->request.length);
     p->context.sync->request.buffer.dbuffer = buf;
     lc_ce_dispatch(ep, p, p->context.sync, cap);
   } else if (proto == LC_PROTO_RTS) {
-    void* buf = ep->alloc(p->data.rts.size, 0);
+    void* buf = ep->alloc.malloc(p->data.rts.size, 0);
     lc_init_req(buf, p->data.rts.size, &p->context.sync->request);
     lc_handle_rts(ep, p);
   } else if (proto == LC_PROTO_RTR) {

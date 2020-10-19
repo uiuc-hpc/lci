@@ -24,6 +24,10 @@ set(LCI_MAX_EP 8 CACHE STRING "Maximum number of EP")
 set(LCI_SYNC flag CACHE STRING "Sync mechanism")
 set_property(CACHE LCI_SYNC PROPERTY STRINGS flag argobots)
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_compile_options("-DLCI_DEBUG")
+endif()
+
 if(LCI_SERVER STREQUAL "ofi")
   set(LCI_USE_SERVER_OFI ON)
 elseif(LCI_SERVER STREQUAL "ibv")

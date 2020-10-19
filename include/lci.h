@@ -9,6 +9,10 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <stdio.h>
+
+#include "debug.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,26 +26,9 @@ extern "C" {
  */
 
 /**
- * The maximum size of a buffer that can be used in immediate protocol.
- * @todo API mismatch: LCI_IMMEDIATE_SIZE
- */
-int LCI_IMMEDIATE_LENGTH;
-
-/**
- * The maximum size of a buffer that can be used in buffered protocol.
- * @todo API mismatch: LCI_BUFFERED_SIZE
- */
-int LCI_BUFFERED_LENGTH;
-
-/**
  * The number of devices created intially.
  */
 int LCI_NUM_DEVICES;
-
-/**
- * The number of endpoints that can be created.
- */
-int LCI_NUM_ENDPOINTS;
 
 /**
  * The number of processes in this job.
@@ -54,10 +41,69 @@ int LCI_NUM_PROCESSES;
 int LCI_RANK;
 
 /**
- * The amount of pre-registered memory for a device dedicated for communciation.
- * @todo API mismatch: LCI_REGISTERED_SEGMENT_SIZE
+ * The maximum number of endpoints that can be created.
  */
-int LCI_REGISTERED_MEMORY_SIZE;
+int LCI_MAX_ENDPOINTS;
+
+/**
+ * The largest allowed tag value.
+ * @todo integrate it into code logic
+ */
+int LCI_MAX_TAG;
+
+/**
+ * The maximum size of a buffer that can be used in immediate protocol.
+ */
+int LCI_IMMEDIATE_SIZE;
+
+/**
+ * The maximum size of a buffer that can be used in buffered protocol.
+ */
+int LCI_BUFFERED_SIZE;
+
+/**
+ * The amount of pre-registered memory for a device dedicated for communciation.
+ * @todo unimplemented logic: If the value is zero, then all memory is registered
+ *       or registration is not needed.
+ */
+int LCI_REGISTERED_SEGMENT_SIZE;
+
+/**
+ * initial address of pre-registered segment. Valid only if
+   \ref LCI_REGISTERED_SEGMENT_SIZE is non-zero.
+ * @todo unimplemented: what if there are multiple devices?
+ */
+int LCI_REGISTERED_SEGMENT_START;
+
+/**
+ * maximum length of a memory segment that can be registered with a device.
+ */
+int LCI_MAX_REGISTERED_SEGMENT_SIZE;
+
+/**
+ * maximum number of distinct memory segments that can be registered with a device.
+ */
+int LCI_MAX_REGISTERED_SEGMENT_NUMBER;
+
+/**
+ * initial number of entries in a default matching table.
+ */
+int LCI_DEFAULT_MT_LENGTH;
+
+/**
+ * maximum number of entries in a matching table.
+ */
+int LCI_MAX_MT_LENGTH;
+
+/**
+ * initial number of entries in a default completion queue.
+ */
+int LCI_DEFAULT_CQ_LENGTH;
+
+/**
+ * maximum number of entries in a completion queue.
+ */
+int LCI_MAX_CQ_LENGTH;
 
 /**@}*/
 
@@ -87,7 +133,10 @@ typedef enum {
 /**
  * LCI Matching type.
  */
-typedef enum { LCI_MATCH_RANKTAG = 0, LCI_MATCH_TAG } LCI_match_t;
+typedef enum {
+  LCI_MATCH_RANKTAG = 0,
+  LCI_MATCH_TAG,
+} LCI_match_t;
 
 /**
  * LCI Message type.
@@ -107,22 +156,26 @@ typedef enum {
 } LCI_port_t;
 
 /**
- * LCI completion type.
- * @todo API name mismatch: LCI_comptype_t
+ * LCI completion enumeration type.
  */
 typedef enum {
-  LCI_COMPLETION_QUEUE = 0,
-  LCI_COMPLETION_HANDLER,
-  LCI_COMPLETION_ONE2ONEL,
-  LCI_COMPLETION_MANY2ONES,
-  LCI_COMPLETION_MANY2ONEL,
-  LCI_COMPLETION_ANY2ONES,
-  LCI_COMPLETION_ANY2ONEL,
-  LCI_COMPLETION_ONE2MANYS,
-  LCI_COMPLETION_ONE2MANYL,
-  LCI_COMPLETION_MANY2MANYS,
-  LCI_COMPLETION_MANY2MANYL
-} LCI_comp_t;
+  LCI_COMPLETION_QUEUE = 0,  	// completion queue
+  LCI_COMPLETION_HANDLER,  	// handler
+  LCI_COMPLETION_ONE2ONES, 	// one2one SSO
+  LCI_COMPLETION_ONE2ONEL, 	// one2one LSO
+  LCI_COMPLETION_MANY2ONES,	// many2one SSO
+  LCI_COMPLETION_MANY2ONEL,	// many2one LSO
+  LCI_COMPLETION_ANY2ONES,	// any2one SSO
+  LCI_COMPLETION_ONE2MANYS,	// one2many SSO
+  LCI_COMPLETION_ONE2MANYL,	// one2many LSO
+  LCI_COMPLETION_MANY2MANYS,	// many2many SSO
+  LCI_COMPLETION_MANY2MANYL	// many2many LSO
+} LCI_comptype_t;
+
+/**
+ * LCI generic completion type.
+ */
+typedef void* LCI_comp_t;
 
 /**
  * LCI dynamic buffer.
@@ -131,7 +184,6 @@ typedef enum { LCI_STATIC = 0, LCI_DYNAMIC } LCI_dynamic_t;
 
 /**
  * Synchronizer object, owned by the runtime.
- * @todo API mismatch: LCI_SO_t
  */
 typedef uint64_t LCI_sync_t;
 
@@ -166,11 +218,6 @@ typedef struct {
 
 /**
  * Synchronizer, owned by the user.
- * @todo API mismatch: typedef struct {
-                           LCI_SO_t syncobject ;
-                           uint8 request_count ;
-                           LCI_request_t requests [];
-                       } LCI_sync__t ;
  */
 typedef struct {
   LCI_sync_t sync;
@@ -193,7 +240,7 @@ typedef struct LCI_PL_s* LCI_PL_t;
  * Completion queue object, owned by the runtime.
  */
 struct LCI_CQ_s;
-typedef struct LCI_CQ_s* LCI_CQ_t;
+// typedef struct LCI_CQ_s* LCI_CQ_t; // replaced by the generic LCI_comp_t
 
 /**
  * Hash table type, owned by the runtime.
@@ -203,15 +250,16 @@ typedef struct LCI_MT_s* LCI_MT_t;
 
 /**
  * Handler type
- * @todo API mismatch: typedef LCI_error_t ( *LCI_handler_t )( LCI_request_t request );
  */
-typedef void (*LCI_Handler)(LCI_sync_t* sync, void* usr_context);
+typedef LCI_error_t (LCI_handler_t)(LCI_request_t request);
 
 /**
  * Allocator type
- * @todo API mismatch: LCI_Allocator_t
  */
-typedef void* (*LCI_Allocator)(size_t size, void* usr_context);
+typedef struct {
+  void* (*malloc)(size_t size, uint16_t tag);
+  void (*free)(void *pointer);
+} LCI_allocator_t;
 
 /**@}*/
 
@@ -222,17 +270,15 @@ typedef void* (*LCI_Allocator)(size_t size, void* usr_context);
 
 /**
  * Initialize LCI.
- * @todo API mismatch: LCI_error_t LCI_Init ();
  */
 LCI_API
-LCI_error_t LCI_initialize(int* argc, char*** args);
+LCI_error_t LCI_Init(int* argc, char*** args);
 
 /**
  * Finalize LCI.
- * @todo API mismatch: LCI_error_t LCI_Free ();
  */
 LCI_API
-LCI_error_t LCI_finalize();
+LCI_error_t LCI_Free();
 
 /**
  * Create an endpoint Property @plist.
@@ -248,56 +294,58 @@ LCI_error_t LCI_PL_free(LCI_PL_t* plist);
 
 /**
  * Set communication style (1sided, 2sided, collective).
- * @todo API mismatch: LCI_error_t LCI_PL_set_comm_type(LCI_PL_t* plist, LCI_comm_t type);
- *       Note: for all LCI_PL_set_*: the order of the parameter list is reversed.
  */
 LCI_API
-LCI_error_t LCI_PL_set_comm_type(LCI_comm_t type, LCI_PL_t* plist);
+LCI_error_t LCI_PL_set_comm_type(LCI_PL_t plist, LCI_comm_t type);
 
 /**
  * Set matching style (ranktag, tag).
  */
 LCI_API
-LCI_error_t LCI_PL_set_match_type(LCI_match_t type, LCI_PL_t* plist);
+LCI_error_t LCI_PL_set_match_type(LCI_PL_t plist, LCI_match_t match_type);
 
 /**
  * Set hash-table memory for matching.
- * @todo name mismatch: LCI_PL_set_MT
  */
 LCI_API
-LCI_error_t LCI_PL_set_mt(LCI_MT_t* mt, LCI_PL_t* plist);
+LCI_error_t LCI_PL_set_MT(LCI_PL_t plist, LCI_MT_t* mt);
 
 /**
  * Set message type (short, medium, long).
  */
 LCI_API
-LCI_error_t LCI_PL_set_msg_type(LCI_msg_t type, LCI_PL_t* plist);
+LCI_error_t LCI_PL_set_msg_type(LCI_PL_t plist, LCI_msg_t type);
 
 /**
  * Set completion mechanism.
  */
 LCI_API
-LCI_error_t LCI_PL_set_completion(LCI_port_t port, LCI_comp_t type,
-                                  LCI_PL_t* plist);
+LCI_error_t LCI_PL_set_completion(LCI_PL_t plist, LCI_port_t port,
+                                  LCI_comptype_t type);
 
 /**
  * Set completion mechanism.
- * @todo name mismatch: LCI_PL_set_CQ
  */
 LCI_API
-LCI_error_t LCI_PL_set_cq(LCI_CQ_t* cq, LCI_PL_t* plist);
+LCI_error_t LCI_PL_set_CQ(LCI_PL_t plist, LCI_comp_t* cq);
 
 /**
  * Set handler for AM protocol.
  */
 LCI_API
-LCI_error_t LCI_PL_set_handler(LCI_Handler handler, LCI_PL_t* plist);
+LCI_error_t LCI_PL_set_handler(LCI_PL_t plist, LCI_handler_t* handler);
+
+/**
+ * Set dynamic type.
+ */
+LCI_error_t LCI_PL_set_dynamic(LCI_PL_t	plist, LCI_port_t port,
+                               LCI_dynamic_t type);
 
 /**
  * Set allocator for dynamic protocol.
  */
 LCI_API
-LCI_error_t LCI_PL_set_allocator(LCI_Allocator alloc, LCI_PL_t* plist);
+LCI_error_t LCI_PL_set_allocator(LCI_PL_t plist, LCI_allocator_t allocator);
 
 /**
  * Create an endpoint, collective calls for those involved in the endpoints.
@@ -310,13 +358,13 @@ LCI_error_t LCI_endpoint_create(int device_id, LCI_PL_t plist,
  * Query the rank of the current process.
  */
 LCI_API
-int LCI_Rank();
+int LCI_Rank() { return LCI_RANK; }
 
 /**
  * Query the number of processes.
  */
 LCI_API
-int LCI_Size();
+int LCI_Size() { return LCI_NUM_PROCESSES; }
 
 /**
  * Barrier all processes using out-of-band communications.
@@ -433,35 +481,42 @@ LCI_error_t LCI_putd(LCI_dbuffer_t src, size_t size, int rank, int rma_id, int o
 
 /**
  * Create a completion queue.
- * @todo API mismatch: LCI_error_t LCI_CQ_init ( LCIcomp_t * cq , uint32_t length );
+ * @todo Current completion queue implementation has the @p length hardcoded as CQ_MAX_SIZE.
+ *       The memory is also allocated as a static array. Do we want to change the implementation?
+ *       Or do we want to change the manual? Need to check with others.
  */
 LCI_API
-LCI_error_t LCI_CQ_create(uint32_t length, LCI_CQ_t* cq);
+LCI_error_t LCI_CQ_init(LCI_comp_t* cq, uint32_t length);
 
 /**
  * Destroy a completion queue.
  */
 LCI_API
-LCI_error_t LCI_CQ_free(LCI_CQ_t* cq);
+LCI_error_t LCI_CQ_free(LCI_comp_t cq);
 
 /**
- * Return first completed request in the queue.
+ * Return first completed request in the queue. Unblocking.
  * @todo API mismatch: LCI_error_t LCI_dequeue ( LCI_comp_t cq , LCI_request_t * request );
+ *       Do we want to return the LCI_request_t by pointers (implementation) or actual objects (manual)
  */
 LCI_API
-LCI_error_t LCI_CQ_dequeue(LCI_CQ_t* cq, LCI_request_t** req);
+LCI_error_t LCI_dequeue(LCI_comp_t cq, LCI_request_t** request);
+
+/**
+ * Return first completed request in the queue. Blocking.
+ * @todo API mismatch: Do we want to return the LCI_request_t by pointers (implementation) or actual objects (manual)
+ */
+LCI_API
+LCI_error_t LCI_wait_dequeue(LCI_comp_t cq, LCI_request_t** request);
 
 /**
  * Return at most @p count first completed request in the queue.
- * @todo API mismatch: LCI_error_t LCI_mult_dequeue ( LCI_comp_t cq ,
-                                                      LCI_request_t requests [] ,
-                                                      uint32_t request_count ,
-                                                      uint32_t * return_count );
-         and is not implemented
  */
 LCI_API
-LCI_error_t LCI_CQ_mul_dequeue(LCI_CQ_t* cq, LCI_request_t requests[],
-                               uint8_t count);
+LCI_error_t LCI_mult_dequeue(LCI_comp_t cq ,
+                             LCI_request_t requests[] ,
+                             uint32_t request_count ,
+                             uint32_t *return_count );
 
 /**
  * Return @p n requests to the runtime.
@@ -471,9 +526,12 @@ LCI_error_t LCI_request_free(LCI_endpoint_t ep, int n, LCI_request_t** req);
 
 /**
  * Create a matching hash-table.
- * @todo API mismatch: LCI_error_t LCI_MT_init ( LCI_MT_t * mt , uint32_t length );
+ * @todo Current hashtable implementation hardcodes the @p length to be (1 << TBL_BIT_SIZE)
+ *       One possible fix would be hash = hash % lc_hash_size.
+ *       Do we want to change the implementation or the manual?
+ *       need to check with others
  */
-LCI_error_t LCI_MT_create(uint32_t length, LCI_MT_t* mt);
+LCI_error_t LCI_MT_init(LCI_MT_t* mt, uint32_t length);
 
 /**
  * Destroy the matching hash-table.
@@ -482,49 +540,36 @@ LCI_error_t LCI_MT_free(LCI_MT_t* mt);
 
 /**
  * Create a Sync object.
- * @todo API mismatch: LCI_error_t LCI_sync_init ( LCI_sync_t * sync ,
-                                                   LCI_SO_t type ,
-                                                   size_t number );
-         Note: the manual also name the constructor of LCI_SO_t as LCI_sync_init,
-               which I think is a bug. I fix this by renaming it as LCI_SO_init.
-               The same applies to LCI_SO_free and LCI_SO_type
  */
 LCI_API
 LCI_error_t LCI_sync_create(void* sync);
 
 /**
  * Reset on a Sync object.
- * @todo API mismatch: the parameter type is LCI_sync_t*
  */
 LCI_API
 LCI_error_t LCI_one2one_set_full(void* sync);
 
 /**
  * Wait on a Sync object.
- * @todo API mismatch: the parameter type is LCI_sync_t*
 */
 LCI_API
 LCI_error_t LCI_one2one_set_empty(void* sync);
 
 /**
  * Test a Sync object, return 1 if finished.
- * @todo API mismatch: LCI_error_t LCI_one2one_test_empty (
-                                   LCI_sync_one2one_t *sync,
-                                   __Bool * flag );
  */
 LCI_API
 int LCI_one2one_test_empty(void* sync);
 
 /**
  * Wait until become full.
- * @todo API mismatch: the parameter type is LCI_sync_t*
  */
 LCI_API
 LCI_error_t LCI_one2one_wait_full(void* sync);
 
 /**
  * Wait until become empty.
- * @todo API mismatch: the parameter type is LCI_sync_t*
  */
 LCI_API
 LCI_error_t LCI_one2one_wait_empty(void* sync);

@@ -14,49 +14,61 @@ LCI_error_t LCI_PL_create(LCI_PL_t* prop_ptr)
   return LCI_OK;
 }
 
-LCI_error_t LCI_PL_set_cq(LCI_CQ_t* cq, LCI_PL_t* prop)
+LCI_error_t LCI_PL_set_CQ(LCI_PL_t plist, LCI_comp_t* cq)
 {
-  (*prop)->cq = *cq;
+  plist->cq = *cq;
   return LCI_OK;
 }
 
-LCI_error_t LCI_PL_set_comm_type(LCI_comm_t type, LCI_PL_t* prop)
+LCI_error_t LCI_PL_set_comm_type(LCI_PL_t plist, LCI_comm_t type)
 {
-  (*prop)->ctype = type;
+  plist->ctype = type;
   return LCI_OK;
 }
 
-LCI_error_t LCI_PL_set_msg_type(LCI_msg_t type, LCI_PL_t* prop)
+LCI_error_t LCI_PL_set_match_type(LCI_PL_t plist, LCI_match_t type)
 {
-  (*prop)->mtype = type;
+  plist->match_type = type;
   return LCI_OK;
 }
 
-LCI_error_t LCI_PL_set_mt(LCI_MT_t* mt, LCI_PL_t* prop)
+LCI_error_t LCI_PL_set_msg_type(LCI_PL_t plist, LCI_msg_t type)
 {
-  (*prop)->mt = *mt;
+  plist->mtype = type;
   return LCI_OK;
 }
 
-LCI_error_t LCI_PL_set_handler(LCI_Handler handler, LCI_PL_t* prop)
+LCI_error_t LCI_PL_set_MT(LCI_PL_t plist, LCI_MT_t* mt)
 {
-  (*prop)->handler = handler;
+  plist->mt = *mt;
   return LCI_OK;
 }
 
-LCI_error_t LCI_PL_set_allocator(LCI_Allocator handler, LCI_PL_t* prop)
+LCI_error_t LCI_PL_set_handler(LCI_PL_t plist, LCI_handler_t* handler)
 {
-  (*prop)->allocator = handler;
+  plist->handler = handler;
   return LCI_OK;
 }
 
-LCI_API
-LCI_error_t LCI_PL_set_completion(LCI_port_t port, LCI_comp_t type, LCI_PL_t* prop)
+LCI_error_t LCI_PL_set_dynamic(LCI_PL_t	plist, LCI_port_t port, LCI_dynamic_t type);
+{
+  plist->allocator = handler;
+  return LCI_OK;
+}
+
+LCI_error_t LCI_PL_set_allocator(LCI_PL_t plist, LCI_allocator_t allocator)
+{
+  plist->allocator = allocator;
+  return LCI_OK;
+}
+
+LCI_error_t LCI_PL_set_completion(LCI_PL_t plist, LCI_port_t port,
+                                  LCI_comptype_t type)
 {
   if (port == LCI_PORT_COMMAND)
-    (*prop)->ltype = type;
+    plist->ltype = type;
   else
-    (*prop)->rtype = type;
+    plist->rtype = type;
   return LCI_OK;
 }
 

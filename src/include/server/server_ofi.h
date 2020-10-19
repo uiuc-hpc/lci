@@ -131,9 +131,9 @@ static inline void lc_server_init(int id, lc_server** dev)
 
   // Get memory for heap.
   s->heap_addr = 0; 
-  posix_memalign(&s->heap_addr, 4096, LCI_REGISTERED_MEMORY_SIZE);
+  posix_memalign(&s->heap_addr, 4096, LCI_REGISTERED_SEGMENT_SIZE);
 
-  FI_SAFECALL(fi_mr_reg(s->domain, s->heap_addr, LCI_REGISTERED_MEMORY_SIZE,
+  FI_SAFECALL(fi_mr_reg(s->domain, s->heap_addr, LCI_REGISTERED_SEGMENT_SIZE,
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, 0, 0,
                         &s->mr_heap, 0));
 

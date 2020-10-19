@@ -12,7 +12,7 @@ __thread int lcg_core_id = -1;
 
 void lc_config_init(int num_proc, int rank);
 
-LCI_error_t LCI_initialize(int* argc, char*** args)
+LCI_error_t LCI_Init(int* argc, char*** args)
 {
   int num_proc, rank;
   // Initialize processes in this job.
@@ -27,7 +27,7 @@ LCI_error_t LCI_initialize(int* argc, char*** args)
   return LCI_OK;
 }
 
-LCI_error_t LCI_finalize()
+LCI_error_t LCI_Free()
 {
   for (int i = 0; i < LCI_NUM_DEVICES; i++) {
     lc_dev_finalize(LCI_DEVICES[i]);
@@ -45,6 +45,7 @@ LCI_error_t LCI_endpoint_create(int device, LCI_PL_t prop, LCI_endpoint_t* ep_pt
   ep->server = dev;
   ep->pkpool = dev->pkpool;
   ep->gid = num_endpoints++;
+  LCI_Assert(num_endpoints < LCI_MAX_ENDPOINTS);
   LCI_ENDPOINTS[ep->gid] = ep;
 
   if (prop->ctype == LCI_COMM_2SIDED || prop->ctype == LCI_COMM_COLLECTIVE) {
