@@ -78,7 +78,7 @@ static inline void lc_ce_glob(LCI_endpoint_t ep)
 
 static inline void lc_ce_am(LCI_endpoint_t ep, lc_packet* p, void* sync)
 {
-  ep->handler(sync, 0);
+  ep->handler(((LCI_syncl_t*)sync)->request);
   lc_pk_free_data(ep, p);
 }
 
@@ -219,7 +219,7 @@ static inline void lc_ce_dispatch(LCI_endpoint_t ep, lc_packet* p, void* sync,
   } else
 #endif
 #ifdef LCI_SERVER_HAS_AM
-      if (cap & EP_CE_AM) {
+  if (cap & EP_CE_AM) {
     lc_ce_am(ep, p, sync);
   } else
 #endif

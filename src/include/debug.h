@@ -19,15 +19,10 @@
   #define LCI_WARNING(Str) ;
 #endif
 
-void LCI_Assert_(const char *expr_str, bool expr, const char *file, int line) {
-  if (!expr) {
-    printf("Assert failed!\nExpected:\t %s\nSource:\t\t%s, line %d\n", expr_str, file, line);
-    abort();
-  }
-}
+LCI_API
+void LCI_Assert_(const char *expr_str, bool expr, const char *file, int line);
 
-void LCI_Warn_(const char *str, const char *file, int line) {
-  printf("WARNING!\t %s\nSource:\t\t%s, line %d\n", str, file, line);
-}
+LCI_API
+void LCI_Warn_(const char *str, const char *file, int line);
 
 #endif

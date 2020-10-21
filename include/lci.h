@@ -12,8 +12,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "debug.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -290,7 +288,15 @@ LCI_error_t LCI_PL_create(LCI_PL_t* plist);
  * Destroy an endpoint Property @plist.
  */
 LCI_API
-LCI_error_t LCI_PL_free(LCI_PL_t* plist);
+LCI_error_t LCI_PL_free(LCI_PL_t plist);
+
+/**
+ * Gets property list attached to an endpoint.
+ * @todo Not implemented. A large part of PL logic is not implemented.
+ *       The property list is returned as a string representation in XML format?
+ */
+LCI_API
+LCI_error_t LCI_PL_get(LCI_endpoint_t endpoint, LCI_PL_t plist);
 
 /**
  * Set communication style (1sided, 2sided, collective).
@@ -355,16 +361,23 @@ LCI_error_t LCI_endpoint_create(int device_id, LCI_PL_t plist,
                                 LCI_endpoint_t* ep);
 
 /**
+ * Free an endpoint, collective calls for those involved in the endpoints.
+ * @todo not implemented: endpoints are stored in an array.
+ */
+LCI_API
+LCI_error_t LCI_endpoint_free(LCI_endpoint_t *endpoint);
+
+/**
  * Query the rank of the current process.
  */
 LCI_API
-int LCI_Rank() { return LCI_RANK; }
+int LCI_Rank();
 
 /**
  * Query the number of processes.
  */
 LCI_API
-int LCI_Size() { return LCI_NUM_PROCESSES; }
+int LCI_Size();
 
 /**
  * Barrier all processes using out-of-band communications.

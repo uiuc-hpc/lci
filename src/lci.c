@@ -108,3 +108,13 @@ LCI_error_t LCI_bbuffer_free(LCI_bbuffer_t buffer, int device_id)
   lc_pool_put(LCI_DEVICES[device_id]->pkpool, packet);
   return LCI_OK;
 }
+
+int LCI_Rank()
+{
+  return LCI_RANK;
+}
+
+int LCI_Size()
+{
+  return LCI_NUM_PROCESSES;
+}

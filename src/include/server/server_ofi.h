@@ -131,9 +131,9 @@ static inline void lc_server_init(int id, lc_server** dev)
 
   // Get memory for heap.
   s->heap_addr = 0; 
-  posix_memalign(&s->heap_addr, 4096, LCI_REGISTERED_SEGMENT_SIZE);
+  posix_memalign((void**)&s->heap_addr, 4096, LCI_REGISTERED_SEGMENT_SIZE);
 
-  FI_SAFECALL(fi_mr_reg(s->domain, s->heap_addr, LCI_REGISTERED_SEGMENT_SIZE,
+  FI_SAFECALL(fi_mr_reg(s->domain, (const void *) s->heap_addr, LCI_REGISTERED_SEGMENT_SIZE,
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, 0, 0,
                         &s->mr_heap, 0));
 
@@ -210,13 +210,13 @@ static inline int lc_server_progress(lc_server* s)
           lc_packet* p = (lc_packet*) entry[i].op_context;
           p->context.sync = &p->context.sync_s;
           int rank = p->context.sync->request.rank = (entry[i].tag);
-          p->context.sync->request.__reserved__ = s->fi_addr[rank];
+          p->context.sync->request.__reserved__ = (void*) s->fi_addr[rank];
           p->context.sync->request.length = entry[i].len;
           lc_serve_recv(p, entry[i].data);
         } else if (entry[i].flags & FI_REMOTE_CQ_DATA) {
           // NOTE(danghvu): In OFI, a imm data is transferred without
           // comsuming a posted receive.
-          lc_serve_imm(entry[i].data);
+          lc_serve_imm((lc_packet*)entry[i].data);
         } else {
           lc_packet* p = (lc_packet*)entry[i].op_context;
           lc_serve_send(p);
@@ -276,14 +276,14 @@ static inline void lc_server_sendm(lc_server* s, void* rep, size_t size,
                                    lc_packet* ctx, uint32_t proto)
 {
   ctx->context.proto = proto;
-  FI_SAFECALL(fi_tsenddata(s->ep, ctx->data.buffer, size, 0, proto, rep,
+  FI_SAFECALL(fi_tsenddata(s->ep, ctx->data.buffer, size, 0, proto, (fi_addr_t) rep,
         LCI_RANK, (struct fi_context*)ctx));
 }
 
 static inline void lc_server_sends(lc_server* s, void* rep, void* ubuf,
                                    size_t size, uint32_t proto)
 {
-  FI_SAFECALL(fi_tinjectdata(s->ep, ubuf, size, proto, rep, LCI_RANK));
+  FI_SAFECALL(fi_tinjectdata(s->ep, ubuf, size, proto, (fi_addr_t) rep, LCI_RANK));
 }
 
 static inline void lc_server_puts(lc_server* s, void* rep, void* buf,

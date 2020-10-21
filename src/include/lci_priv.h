@@ -44,16 +44,17 @@ typedef enum lc_ep_ce {
 LCI_endpoint_t* LCI_ENDPOINTS;
 
 struct LCI_PL_s {
-  LCI_comm_t ctype;
-  LCI_match_t match_type;
-  LCI_msg_t mtype;
-  LCI_comptype_t ltype;
-  LCI_comptype_t rtype;
-  LCI_handler_t *handler;
-  LCI_dynamic_t dtype;
-  LCI_allocator_t allocator;
-  LCI_comp_t cq;
-  LCI_MT_t mt;
+  LCI_comm_t ctype;           // communication type
+  LCI_match_t match_type;     // matching type
+  LCI_msg_t mtype;            // message type
+  LCI_comptype_t ltype;       // local completion type
+  LCI_comptype_t rtype;       // remote completion type
+  LCI_handler_t *handler;     // completion handler
+  LCI_dynamic_t cdtype;       // dynamic type for command ports
+  LCI_dynamic_t mdtype;       // dynamic type for message ports
+  LCI_allocator_t allocator;  // dynamic allocator
+  LCI_comp_t cq;              // completion queue
+  LCI_MT_t mt;                // matching table
 };
 
 struct LCI_endpoint_s {

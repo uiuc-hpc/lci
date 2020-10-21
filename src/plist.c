@@ -14,6 +14,17 @@ LCI_error_t LCI_PL_create(LCI_PL_t* prop_ptr)
   return LCI_OK;
 }
 
+LCI_error_t LCI_PL_free(LCI_PL_t plist)
+{
+  free(plist);
+  return LCI_OK;
+}
+
+LCI_error_t LCI_PL_get(LCI_endpoint_t endpoint, LCI_PL_t plist) {
+  LCI_WARNING("Not implemented yet!");
+  return LCI_OK;
+}
+
 LCI_error_t LCI_PL_set_CQ(LCI_PL_t plist, LCI_comp_t* cq)
 {
   plist->cq = *cq;
@@ -50,9 +61,12 @@ LCI_error_t LCI_PL_set_handler(LCI_PL_t plist, LCI_handler_t* handler)
   return LCI_OK;
 }
 
-LCI_error_t LCI_PL_set_dynamic(LCI_PL_t	plist, LCI_port_t port, LCI_dynamic_t type);
+LCI_error_t LCI_PL_set_dynamic(LCI_PL_t	plist, LCI_port_t port, LCI_dynamic_t type)
 {
-  plist->allocator = handler;
+  if (port == LCI_PORT_COMMAND)
+    plist->cdtype = type;
+  else
+    plist->mdtype = type;
   return LCI_OK;
 }
 
