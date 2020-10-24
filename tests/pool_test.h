@@ -1,4 +1,4 @@
-#include "lc/pool.h"
+#include "pool.h"
 
 TEST(POOL, InitFini)
 {

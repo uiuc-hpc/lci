@@ -1,4 +1,4 @@
-#include "lc/hashtable.h"
+#include "hashtable.h"
 
 TEST(HASH, InitFini)
 {
