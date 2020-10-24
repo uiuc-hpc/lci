@@ -14,7 +14,7 @@ typedef uint64_t lc_key;
 #include "lock.h"
 
 #define EMPTY ((uint64_t)-1)
-#define TBL_BIT_SIZE 16
+#define TBL_BIT_SIZE 16 // size: 1 << 16 (1 control block 3 key-value pairs)
 #define TBL_WIDTH 4
 
 #ifdef __cplusplus
@@ -87,6 +87,11 @@ static inline struct lc_hash* create_table(size_t num_rows)
     }
   }
   return ret;
+}
+
+static inline void free_table(struct lc_hash* table)
+{
+  free((void*)table);
 }
 
 static inline int lc_hash_insert(struct lc_hash* h, lc_key key, lc_value* value,
