@@ -90,7 +90,7 @@ endif()
 
 set(LCI_PACKET_SIZE ${LCI_PACKET_SIZE} CACHE STRING "Size of packet")
 set(LCI_MAX_INLINE ${LCI_MAX_INLINE} CACHE STRING "Max inline message size")
-set(LCI_DEV_MEM_SIZE "(8*1024*1024)" CACHE STRING "Size of device memory")
+set(LCI_DEV_MEM_SIZE "(64*1024*1024)" CACHE STRING "Size of device memory")
 set(LCI_SERVER_MAX_RCVS 64 CACHE STRING "Max posted recvs")
 set(LCI_SERVER_NUM_PKTS 1024 CACHE STRING "Number of packets")
 set(LCI_CACHE_LINE 64 CACHE STRING "Size of cache line (bytes)")
