@@ -1,19 +1,26 @@
+# Acknowledgement: modified from https://crascit.com/2016/01/31/enhanced-source-file-handling-with-target_sources/
+# NOTE: This helper function assumes all the generator expressions used
+#       for the source files are written in absolute paths
 function(target_sources_relative target)
   if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.13")
+    cmake_policy(PUSH)
+    cmake_policy(SET CMP0076 NEW)
     target_sources(${target} ${ARGN})
+    cmake_policy(POP)
   else()
-    set(keywords INTERFACE PUBLIC PRIVATE)
-    cmake_parse_arguments(target_sources "" "" "${keywords}" ${ARGN})
-    foreach(kw ${keywords})
-        list(TRANSFORM target_sources_${kw}
-          PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/"
-          OUTPUT_VARIABLE ${kw}_RELATIVE
-        )
+    unset(_srcList)
+    get_target_property(_targetSourceDir ${target} SOURCE_DIR)
+
+    foreach(src ${ARGN})
+      if(NOT src STREQUAL "PRIVATE" AND
+              NOT src STREQUAL "PUBLIC" AND
+              NOT src STREQUAL "INTERFACE" AND
+              NOT IS_ABSOLUTE "${src}")
+        # Relative path to source, prepend relative to where target was defined
+        file(RELATIVE_PATH src "${_targetSourceDir}" "${CMAKE_CURRENT_LIST_DIR}/${src}")
+      endif()
+      list(APPEND _srcList ${src})
     endforeach()
-    target_sources(${target}
-      INTERFACE ${INTERFACE_RELATIVE}
-      PUBLIC ${PUBLIC_RELATIVE}
-      PRIVATE ${PRIVATE_RELATIVE}
-    )
+    target_sources(${target} ${_srcList})
   endif()
 endfunction()

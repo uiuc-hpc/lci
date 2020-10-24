@@ -11,8 +11,8 @@ target_sources_relative(lci-obj PRIVATE
   pm.c
   pool.c
   pt2pt.c
-  $<$<BOOL:${LCI_SYNC_ABT}>:sync_abt.c>
-  $<$<BOOL:${LCI_SYNC_FLAG}>:sync_flag.c>
+  ${CMAKE_CURRENT_SOURCE_DIR}/$<$<BOOL:${LCI_SYNC_ABT}>:sync_abt.c>
+  ${CMAKE_CURRENT_SOURCE_DIR}/$<$<BOOL:${LCI_SYNC_FLAG}>:sync_flag.c>
 )
 
 if(LCI_USE_DREG)
