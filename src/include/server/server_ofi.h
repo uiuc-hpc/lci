@@ -180,6 +180,7 @@ static inline void lc_server_init(int id, lc_server** dev)
       if (fi_av_insert(s->av, &destaddr[0], 1, &s->fi_addr[i], 0, NULL) == -1) {
         exit(-1);
       }
+//      printf("Rank %d/%d fi_av_insert: %d (%lu, %lu)\n", LCI_RANK, LCI_NUM_PROCESSES, i, destaddr[0], s->fi_addr[i]);
       rep->rank = i;
       rep->handle = (void*)s->fi_addr[i];
       rep->base = (uintptr_t)heapaddr;
@@ -283,6 +284,7 @@ static inline void lc_server_sendm(lc_server* s, void* rep, size_t size,
 static inline void lc_server_sends(lc_server* s, void* rep, void* ubuf,
                                    size_t size, uint32_t proto)
 {
+  printf("%lu\n", rep);
   FI_SAFECALL(fi_tinjectdata(s->ep, ubuf, size, proto, (fi_addr_t) rep, LCI_RANK));
 }
 
