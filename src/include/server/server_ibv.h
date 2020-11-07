@@ -112,7 +112,7 @@ static inline int lc_server_progress(lc_server* s)
       p->context.sync = &p->context.sync_s;
       p->context.sync->request.rank = s->qp2rank[wc[i].qp_num % s->qp2rank_mod];
       p->context.sync->request.__reserved__ = (void*)s->qp[p->context.sync->request.rank];
-      p->context.sync->request.length = wc[i].byte_len;
+      p->context.sync->request.data.buffer.length = wc[i].byte_len;
       lc_serve_recv(p, wc[i].imm_data);
     } else {
       if (wc[i].imm_data & IBV_IMM_RTR) {

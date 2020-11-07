@@ -191,27 +191,27 @@ typedef void* LCI_dbuffer_t;
 
 /**
  * The type of data associated with a buffer.
- * @todo API mismatch: internal member names mismatch
 */
 typedef union {
   LCI_ivalue_t immediate;
-  LCI_bbuffer_t bbuffer;
-  LCI_dbuffer_t dbuffer;
+  struct {
+    void* start;
+    size_t length;
+  } buffer;
 } LCI_buffer_t;
 
 /**
  * Request object, owned by the user, unless returned from runtime (CQ_Dequeue).
- * @todo API mismatch: internal member names mismatch
+ * @todo fix the __reserved__ entry
  */
 typedef struct {
   /* Status of the communication. */
-  LCI_error_t status;
+  LCI_error_t flag;
   uint32_t rank;
   uint16_t tag;
-  size_t length;
-  void* __reserved__;
   enum { INVALID, IMMEDIATE, BUFFERED, DIRECT } type;
-  LCI_buffer_t buffer;
+  LCI_buffer_t data;
+  void* __reserved__;
 } LCI_request_t;
 
 /**

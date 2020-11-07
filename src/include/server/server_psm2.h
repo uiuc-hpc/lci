@@ -268,7 +268,7 @@ static inline int lc_server_progress(lc_server* s)
         p->context.sync = &p->context.sync_s;
         p->context.sync->request.__reserved__ = status.msg_peer;
         p->context.sync->request.rank = status.msg_tag.tag1;
-        p->context.sync->request.length = (status.msg_length);
+        p->context.sync->request.data.buffer.length = (status.msg_length);
         uint32_t proto = status.msg_tag.tag0;
         lc_serve_recv(p, proto);
         s->recv_posted--;

@@ -125,7 +125,7 @@ static inline void lc_server_init(int id, lc_server** dev)
   // FI_SAFECALL(
   //    fi_ep_bind(s->ep, (fid_t)s->scq, FI_SEND | FI_TRANSMIT));
   FI_SAFECALL(
-      fi_ep_bind(s->ep, (fid_t)s->rcq, FI_SEND | FI_TRANSMIT | FI_RECV));
+      fi_ep_bind(s->ep, (fid_t)s->rcq, FI_TRANSMIT | FI_RECV));
 
   dreg_init();
 
@@ -211,7 +211,7 @@ static inline int lc_server_progress(lc_server* s)
           p->context.sync = &p->context.sync_s;
           int rank = p->context.sync->request.rank = (entry[i].tag);
           p->context.sync->request.__reserved__ = (void*) s->fi_addr[rank];
-          p->context.sync->request.length = entry[i].len;
+          p->context.sync->request.data.buffer.length = entry[i].len;
           lc_serve_recv(p, entry[i].data);
         } else if (entry[i].flags & FI_REMOTE_CQ_DATA) {
           // NOTE(danghvu): In OFI, a imm data is transferred without
@@ -249,7 +249,7 @@ static inline void lc_server_post_recv(lc_server* s, lc_packet* p)
 {
   if (p == NULL) return;
   FI_SAFECALL(
-      fi_trecv(s->ep, &p->data, SHORT_MSG_SIZE, 0, FI_ADDR_UNSPEC, /*any*/0, ~0 /*ignore*/, &p->context));
+      fi_trecv(s->ep, &p->data, SHORT_MSG_SIZE, 0, FI_ADDR_UNSPEC, /*any*/0, ~(uint64_t)0 /*ignore all*/, &p->context));
   s->recv_posted++;
 }
 

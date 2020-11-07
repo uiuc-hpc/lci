@@ -8,16 +8,15 @@
     - Synchronizer: manual (sync object, synchronizer) v.s. implementation (sync, syncl) // make users choose whether LCI allocate request; document the context
     - LCI_ivalue_t or LCI_idata_t? LCI_ivalue_t
     - The send functions pass a LCI_buffer_t* parameter? also has a length parameter? should be void*
-  - Need to discuss:
     - memory registration: We don't expose corresponding API for users to register memory region.
         - LCI_register function. return a mr_desc
     - CQ dequeue: Do we want to return the LCI_request_t by pointers (implementation) or actual objects (manual)?
     - Whether to use opaque type:
         - uint16_t or LCI_tag_t?
         - uint32_t or LCI_rank_t?
+  - Need to discuss:
     - packet free: when to free to the initial pool, when to free to the current pool? (size > 1024?)
     - server.h: what's the meaning of these interfaces?
-    - what is rma_id?
     - LCI_error_t LCI_endpoint_free ( LCI_endpoint_t endpoint );
 
   - Others:

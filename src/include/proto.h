@@ -42,9 +42,9 @@ inline uint32_t crc32c(char* buf, size_t len)
 
 static inline void lc_init_req(void* buf, size_t size, LCI_request_t* req)
 {
-  req->buffer.dbuffer = buf;
+  req->data.buffer.start = buf;
+  req->data.buffer.length = size;
   req->type = DIRECT;
-  req->length = size;
 }
 
 static inline void lc_prepare_rtr(LCI_endpoint_t ep, void* src, size_t size,
@@ -91,7 +91,7 @@ static inline void lc_ce_signal(LCI_endpoint_t ep, lc_packet* p, void* sync)
 static inline void lc_ce_queue(LCI_endpoint_t ep, lc_packet* p, void* sync)
 {
   LCI_request_t* req = LCI_SYNCL_PTR_TO_REQ_PTR(sync);
-  req->buffer.bbuffer = &p->data;
+  req->data.buffer.start = &p->data;
   req->type = BUFFERED;
   lc_cq_push(ep->cq, req);
 }
@@ -111,7 +111,7 @@ static inline void lc_handle_rts(LCI_endpoint_t ep, lc_packet* p)
   dprintf("Recv RTS: %p\n", p);
   lc_pk_init(ep, -1, LC_PROTO_RTR, p);
   lc_proto proto = MAKE_PROTO(ep->gid, LC_PROTO_RTR, 0);
-  lc_prepare_rtr(ep, p->context.sync->request.buffer.dbuffer, p->data.rts.size, p);
+  lc_prepare_rtr(ep, p->context.sync->request.data.buffer.start, p->data.rts.size, p);
   dprintf("Send RTR: %p\n", p, p->context.sync->request.__reserved__, proto);
   lc_server_sendm(ep->server, p->context.sync->request.__reserved__,
                   sizeof(struct packet_rtr), p, proto);
@@ -124,7 +124,7 @@ static inline void lc_serve_recv_imm(LCI_endpoint_t ep, lc_packet* p,
                                      uint16_t tag, const long cap)
 {
   p->context.sync->request.tag = tag;
-  p->context.sync->request.buffer.bbuffer = &p->data;
+  p->context.sync->request.data.buffer.start = &p->data;
   lc_ce_dispatch(ep, p, p->context.sync, cap);
 }
 
@@ -134,9 +134,9 @@ static inline void lc_serve_recv_dyn(LCI_endpoint_t ep, lc_packet* p,
   p->context.sync->request.tag = tag;
 
   if (proto == LC_PROTO_DATA) {
-    void* buf = ep->alloc.malloc(p->context.sync->request.length, 0);
-    memcpy(buf, &p->data, p->context.sync->request.length);
-    p->context.sync->request.buffer.dbuffer = buf;
+    void* buf = ep->alloc.malloc(p->context.sync->request.data.buffer.length, 0);
+    memcpy(buf, &p->data, p->context.sync->request.data.buffer.length);
+    p->context.sync->request.data.buffer.start = buf;
     lc_ce_dispatch(ep, p, p->context.sync, cap);
   } else if (proto == LC_PROTO_RTS) {
     void* buf = ep->alloc.malloc(p->data.rts.size, 0);
@@ -159,9 +159,9 @@ static inline void lc_serve_recv_match(LCI_endpoint_t ep, lc_packet* p,
     lc_value value = (lc_value)p;
     if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
       LCI_syncl_t* sync = (LCI_syncl_t*)value;
-      sync->request.length = p->context.sync->request.length;
-      memcpy(sync->request.buffer.dbuffer, p->data.buffer,
-             p->context.sync->request.length);
+      sync->request.data.buffer.length = p->context.sync->request.data.buffer.length;
+      memcpy(sync->request.data.buffer.start, p->data.buffer,
+             p->context.sync->request.data.buffer.length);
       lc_ce_dispatch(ep, p, sync, cap);
     }
   } else if (proto == LC_PROTO_RTS) {
