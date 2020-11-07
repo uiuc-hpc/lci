@@ -44,7 +44,6 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
-        printf("rank 0 step %d\n", i);
         LCI_sendi(*(LCI_ivalue_t*) src_buf, 1-rank, tag, ep);
         LCI_one2one_set_empty(&sync);
         LCI_recvi(dst_buf, 1-rank, tag, ep, &sync);
@@ -70,7 +69,6 @@ int main(int argc, char** args) {
         LCI_recvi(dst_buf, 1-rank, tag, ep, &sync);
         while (LCI_one2one_test_empty(&sync))
           LCI_progress(0, 1);
-        printf("rank 0 step %d\n", i);
         LCI_sendi(*(LCI_ivalue_t*) src_buf, 1-rank, tag, ep);
       }
     }

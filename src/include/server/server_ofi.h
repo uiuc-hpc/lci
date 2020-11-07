@@ -24,9 +24,10 @@
 #define FI_SAFECALL(x)                                                    \
   {                                                                       \
     int err = (x);                                                        \
+    if (err < 0) err = -err;                                              \
     if (err) {                                                            \
       printf("err : %s (%s:%d)\n", fi_strerror(err), __FILE__, __LINE__); \
-      exit(err);                                     \
+      exit(err);                                                          \
     }                                                                     \
   }                                                                       \
   while (0)                                                               \
@@ -96,12 +97,16 @@ static inline void lc_server_init(int id, lc_server** dev)
   struct fi_info* hints;
   hints = fi_allocinfo();
   hints->ep_attr->type = FI_EP_RDM;
-  hints->domain_attr->mr_mode = FI_MR_BASIC;
+  hints->domain_attr->mr_mode = FI_MR_VIRT_ADDR | FI_MR_ALLOCATED | FI_MR_PROV_KEY | FI_MR_LOCAL;
   hints->caps = FI_RMA | FI_TAGGED;
-  hints->mode = FI_CONTEXT | FI_LOCAL_MR;
+  hints->mode = FI_LOCAL_MR;
+//  printf("hints->mode %lx\n", hints->mode);
 
   // Create info.
-  FI_SAFECALL(fi_getinfo(FI_VERSION(1, 0), NULL, NULL, 0, hints, &s->fi));
+  FI_SAFECALL(fi_getinfo(FI_VERSION(1, 11), NULL, NULL, 0, hints, &s->fi));
+  fi_freeinfo(hints);
+//  printf("s->fi->mode %lx\n", s->fi->mode);
+//  printf("prov_name: %s\n", s->fi->fabric_attr->prov_name);
 
   // Create libfabric obj.
   FI_SAFECALL(fi_fabric(s->fi->fabric_attr, &s->fabric, NULL));
@@ -113,12 +118,11 @@ static inline void lc_server_init(int id, lc_server** dev)
   FI_SAFECALL(fi_endpoint(s->domain, s->fi, &s->ep, NULL));
 
   // Create cq.
-  struct fi_cq_attr* cq_attr = malloc(sizeof(struct fi_cq_attr));
-  memset(cq_attr, 0, sizeof(struct fi_cq_attr));
-  cq_attr->format = FI_CQ_FORMAT_TAGGED;
-  cq_attr->size = MAX_CQ_SIZE;
-  // FI_SAFECALL(fi_cq_open(s->domain, cq_attr, &s->scq, NULL));
-  FI_SAFECALL(fi_cq_open(s->domain, cq_attr, &s->rcq, NULL));
+  struct fi_cq_attr cq_attr;
+  memset(&cq_attr, 0, sizeof(struct fi_cq_attr));
+  cq_attr.format = FI_CQ_FORMAT_TAGGED;
+  cq_attr.size = MAX_CQ_SIZE;
+  FI_SAFECALL(fi_cq_open(s->domain, &cq_attr, &s->rcq, NULL));
 
   // Bind my ep to cq.
   // FI_SAFECALL(
@@ -151,6 +155,7 @@ static inline void lc_server_init(int id, lc_server** dev)
   fi_getname((fid_t)s->ep, NULL, &addrlen);
   void* addr = malloc(addrlen + sizeof(uintptr_t));
   FI_SAFECALL(fi_getname((fid_t)s->ep, addr, &addrlen));
+//  printf("Rank %d/%d fi_getname: %lx, %lu\n", LCI_RANK, LCI_NUM_PROCESSES, ((uint64_t*)addr)[0], addrlen);
 
   // Set heap address at the end. TODO(danghvu): Need a more generic way.
   uintptr_t myaddr = (uintptr_t)s->heap_addr;
@@ -164,7 +169,6 @@ static inline void lc_server_init(int id, lc_server** dev)
 //  printf("%d\n", addrlen);
   sprintf(tmp, "%llu-%llu-%llu", ((unsigned long long*)addr)[0],
       ((unsigned long long*) addr)[1], (unsigned long long) myaddr);
-  free(addr);
   lc_pm_publish(LCI_RANK, id, tmp);
 
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
@@ -179,12 +183,21 @@ static inline void lc_server_init(int id, lc_server** dev)
       if (fi_av_insert(s->av, &destaddr[0], 1, &s->fi_addr[i], 0, NULL) == -1) {
         exit(-1);
       }
-//      printf("Rank %d/%d fi_av_insert: %d (%lu, %lu)\n", LCI_RANK, LCI_NUM_PROCESSES, i, destaddr[0], s->fi_addr[i]);
+//      printf("Rank %d/%d fi_av_insert: %d (%lx, %lu)\n", LCI_RANK, LCI_NUM_PROCESSES, i, destaddr[0], s->fi_addr[i]);
       rep->rank = i;
       rep->handle = (void*)s->fi_addr[i];
       rep->base = (uintptr_t)heapaddr;
+    } else {
+      struct lc_rep* rep = &s->rep[i];
+      if (fi_av_insert(s->av, &addr[0], 1, &s->fi_addr[i], 0, NULL) == -1) {
+        exit(-1);
+      }
+      rep->rank = i;
+      rep->handle = (void*)s->fi_addr[i];
+      rep->base = (uintptr_t)myaddr;
     }
   }
+  free(addr);
 
   s->recv_posted = 0;
 }
@@ -276,15 +289,22 @@ static inline void lc_server_sendm(lc_server* s, void* rep, size_t size,
                                    lc_packet* ctx, uint32_t proto)
 {
   ctx->context.proto = proto;
-  FI_SAFECALL(fi_tsenddata(s->ep, ctx->data.buffer, size, 0, proto, (fi_addr_t) rep,
-        LCI_RANK, (struct fi_context*)ctx));
+  int ret;
+  do {
+    ret = fi_tsenddata(s->ep, ctx->data.buffer, size, 0, proto, (fi_addr_t) rep,
+                       LCI_RANK, (struct fi_context*)ctx);
+  } while (ret == -FI_EAGAIN);
+  if (ret) FI_SAFECALL(ret);
 }
 
 static inline void lc_server_sends(lc_server* s, void* rep, void* ubuf,
                                    size_t size, uint32_t proto)
 {
-  printf("%lu\n", rep);
-  FI_SAFECALL(fi_tinjectdata(s->ep, ubuf, size, proto, (fi_addr_t) rep, LCI_RANK));
+  int ret;
+  do {
+    ret = fi_tinjectdata(s->ep, ubuf, size, proto, (fi_addr_t) rep, LCI_RANK);
+  } while (ret == -FI_EAGAIN);
+  if (ret) FI_SAFECALL(ret);
 }
 
 static inline void lc_server_puts(lc_server* s, void* rep, void* buf,
