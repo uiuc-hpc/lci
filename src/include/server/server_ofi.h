@@ -18,7 +18,6 @@
 #include "macro.h"
 #include "pm.h"
 #include "dreg.h"
-#include <netinet/in.h>
 #define SERVER_FI_DEBUG
 
 #ifdef SERVER_FI_DEBUG
