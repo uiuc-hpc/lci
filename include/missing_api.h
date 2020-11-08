@@ -18,6 +18,8 @@
     - packet free: when to free to the initial pool, when to free to the current pool? (size > 1024?)
     - server.h: what's the meaning of these interfaces?
     - LCI_error_t LCI_endpoint_free ( LCI_endpoint_t endpoint );
+    - Do we want to handle the back pressure from the network? Currently the serve_send is a return-void function.
+    - lci_serve_cq is broken
 
   - Others:
     - Property List: A large part of property list entries are not implemented

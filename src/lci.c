@@ -81,8 +81,8 @@ LCI_error_t LCI_cq_dequeue(LCI_endpoint_t ep, LCI_request_t** req_ptr)
 
 LCI_error_t LCI_request_free(LCI_endpoint_t ep, int n, LCI_request_t** req)
 {
-  lc_packet* packet = (lc_packet*) ((*req)->__reserved__);
-  lc_pool_put(ep->pkpool, packet);
+  lc_packet* packet = LC_PACKET_OF((*req)->data.buffer.start);
+  lc_pk_free(ep, packet);
   return LCI_OK;
 }
 

@@ -43,7 +43,7 @@ int main(int argc, char** args) {
   posix_memalign(&dst_buf, alignment, MAX_MSG);
 
   if (rank == 0) {
-    for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
+    for (int size = MIN_MSG; size <= MIN_MSG; size <<= 1) {
       memset(src_buf, 'a', size);
       memset(dst_buf, 'b', size);
 
@@ -66,7 +66,7 @@ int main(int argc, char** args) {
       printf("%10.d %10.3f\n", size, t1);
     }
   } else {
-    for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
+    for (int size = MIN_MSG; size <= MIN_MSG; size <<= 1) {
       memset(src_buf, 'a', size);
       memset(dst_buf, 'b', size);
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }

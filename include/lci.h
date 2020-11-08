@@ -191,6 +191,7 @@ typedef void* LCI_dbuffer_t;
 
 /**
  * The type of data associated with a buffer.
+ * @todo should we add a flag to identify whether this buffer is allocated by users or LCI?
 */
 typedef union {
   LCI_ivalue_t immediate;
