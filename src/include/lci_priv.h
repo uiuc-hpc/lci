@@ -81,7 +81,7 @@ struct lc_rep {
   void* handle;
   int rank;
   intptr_t base;
-  int32_t rkey;
+  uint64_t rkey;
 };
 
 #include "pool.h"

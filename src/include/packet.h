@@ -47,7 +47,7 @@ struct __attribute__((packed)) packet_rtr {
   intptr_t src_addr;
   size_t size;
   intptr_t tgt_addr;
-  uint32_t rkey;
+  uint64_t rkey;
   uint32_t comm_id;
 };
 

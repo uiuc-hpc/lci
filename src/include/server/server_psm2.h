@@ -122,7 +122,7 @@ static inline void lc_server_post_recv(lc_server* s, lc_packet* p);
   }
 
 static inline void lc_server_post_recv_rma(lc_server* s, void* addr,
-                                           size_t size, uint32_t rkey,
+                                           size_t size, uint64_t rkey,
                                            uintptr_t ctx, psm2_mq_req_t* req)
 {
   psm2_mq_tag_t rtag = PSM_TAG_RRDMA_DAT(rkey);
@@ -357,7 +357,7 @@ static inline void lc_server_sends(lc_server* s, void* rep, void* ubuf,
 
 static inline void lc_server_puts(lc_server* s, void* rep, void* buf,
                                    uintptr_t base __UNUSED__, uint32_t offset,
-                                   uint32_t rkey __UNUSED__, uint32_t meta,
+                                   uint64_t rkey __UNUSED__, uint32_t meta,
                                    size_t size)
 {
   psm2_mq_tag_t rtag = PSM_TAG_SRDMA_META(offset, meta);
@@ -366,7 +366,7 @@ static inline void lc_server_puts(lc_server* s, void* rep, void* buf,
 
 static inline void lc_server_putm(lc_server* s, void* rep,
                                    uintptr_t base __UNUSED__, uint32_t offset,
-                                   uint32_t rkey __UNUSED__, size_t size,
+                                   uint64_t rkey __UNUSED__, size_t size,
                                    uint32_t meta, lc_packet* ctx)
 {
   psm2_mq_tag_t rtag = PSM_TAG_SRDMA_META(offset, meta);
@@ -377,7 +377,7 @@ static inline void lc_server_putm(lc_server* s, void* rep,
 
 static inline void lc_server_putl(lc_server* s, void* rep, void* buffer,
                                    uintptr_t base __UNUSED__, uint32_t offset,
-                                   uint32_t rkey, size_t size, uint32_t sid,
+                                   uint64_t rkey, size_t size, uint32_t sid,
                                    lc_packet* ctx)
 {
   psm2_mq_tag_t rtag = PSM_TAG_SRDMA_RTS(offset, rkey);
@@ -391,7 +391,7 @@ static inline void lc_server_putl(lc_server* s, void* rep, void* buffer,
 
 #if 0
 static inline void lc_server_get(lc_server* s, int rank, void* buf,
-                       uintptr_t addr, size_t offset, uint32_t rkey __UNUSED__, size_t size,
+                       uintptr_t addr, size_t offset, uint64_t rkey __UNUSED__, size_t size,
                        uint32_t sid, lc_packet* ctx __UNUSED__) // FIXME
 {
   psm2_mq_tag_t rtag;
@@ -409,7 +409,7 @@ static inline void lc_server_get(lc_server* s, int rank, void* buf,
 #endif
 
 static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf,
-                                     uintptr_t addr __UNUSED__, uint32_t rkey,
+                                     uintptr_t addr __UNUSED__, uint64_t rkey,
                                      size_t size, uint32_t sid, lc_packet* ctx)
 {
   psm2_mq_tag_t rtag = PSM_TAG_SRDMA_DAT_IMM(rkey, sid);
