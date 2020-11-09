@@ -273,7 +273,7 @@ static inline void lc_server_sendm(lc_server* s, void* rep, size_t size,
   ctx->context.proto = proto;
   int ret;
   do {
-    ret = fi_tsenddata(s->ep, ctx->data.buffer, size, 0, proto, (fi_addr_t) rep,
+    ret = fi_tsenddata(s->ep, ctx->data.buffer, size, 0, proto, *(fi_addr_t*) rep,
                        LCI_RANK, (struct fi_context*)ctx);
   } while (ret == -FI_EAGAIN);
   if (ret) FI_SAFECALL(ret);
@@ -284,7 +284,7 @@ static inline void lc_server_sends(lc_server* s, void* rep, void* ubuf,
 {
   int ret;
   do {
-    ret = fi_tinjectdata(s->ep, ubuf, size, proto, (fi_addr_t) rep, LCI_RANK);
+    ret = fi_tinjectdata(s->ep, ubuf, size, proto, *(fi_addr_t*) rep, LCI_RANK);
   } while (ret == -FI_EAGAIN);
   if (ret) FI_SAFECALL(ret);
 }
