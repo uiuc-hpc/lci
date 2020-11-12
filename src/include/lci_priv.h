@@ -87,7 +87,6 @@ struct lc_rep {
 #include "pool.h"
 #include "packet.h"
 #include "proto.h"
-#include "server/server.h"
 
 void lci_config_init(int num_proc, int rank);
 

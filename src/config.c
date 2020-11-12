@@ -2,6 +2,8 @@
 #include "lci_priv.h"
 #include "config.h"
 
+int LCI_LOG_LEVEL = LCI_LOG_WARN;
+
 static inline int getenv_or(char* env, int def) {
   char* val = getenv(env);
   if (val != NULL) {
@@ -27,6 +29,7 @@ void lc_config_init(int num_proc, int rank)
   LCI_REGISTERED_SEGMENT_SIZE = getenv_or("LCI_REGISTERED_SEGMENT_SIZE", LC_DEV_MEM_SIZE);
   LCI_MAX_REGISTERED_SEGMENT_SIZE = LCI_REGISTERED_SEGMENT_SIZE;
   LCI_MAX_REGISTERED_SEGMENT_NUMBER = 1;
+  LCI_LOG_LEVEL = getenv_or("LCI_LOG_LEVEL", LCI_LOG_WARN);
 
   LCI_DEVICES = calloc(sizeof(lc_server*), LCI_NUM_DEVICES);
   LCI_ENDPOINTS = calloc(sizeof(LCI_endpoint_t), LCI_MAX_ENDPOINTS);

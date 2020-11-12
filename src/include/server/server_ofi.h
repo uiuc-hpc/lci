@@ -45,6 +45,7 @@
   (void*)((((uintptr_t)x + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT))
 #define MAX_CQ_SIZE (16 * 1024)
 #define MAX_POLL 8
+#define OFI_IMM_RTR ((uint64_t)1 << 63)
 
 typedef struct lc_server {
   SERVER_COMMON
@@ -55,6 +56,7 @@ typedef struct lc_server {
   struct fid_cq* cq;
   struct fid_mr* mr_heap;
   struct fid_av* av;
+  void* mr_desc;
 } lc_server __attribute__((aligned(64)));
 
 static inline uintptr_t _real_ofi_reg(lc_server* s, void* buf, size_t size)
@@ -68,18 +70,19 @@ static inline uintptr_t _real_ofi_reg(lc_server* s, void* buf, size_t size)
 
 static inline uintptr_t lc_server_rma_reg (lc_server* s, void* buf, size_t size)
 {
-  return (uintptr_t)dreg_register(s, buf, size);
-  // return _real_ofi_reg(s, buf, size);
+//  return (uintptr_t)dreg_register(s, buf, size);
+   return _real_ofi_reg(s, buf, size);
 }
 
 static inline void lc_server_rma_dereg(uintptr_t mem)
 {
-  dreg_unregister((dreg_entry*)mem);
+//  dreg_unregister((dreg_entry*)mem);
 }
 
 static inline uint32_t lc_server_rma_key(uintptr_t mem)
 {
-  return fi_mr_key((struct fid_mr*)(((dreg_entry*)mem)->memhandle[0]));
+//  return fi_mr_key((struct fid_mr*)(((dreg_entry*)mem)->memhandle[0]));
+  return fi_mr_key((struct fid_mr*)(mem));
 }
 
 static inline void lc_server_init(int id, lc_server** dev)
@@ -99,6 +102,7 @@ static inline void lc_server_init(int id, lc_server** dev)
 
   // Create info.
   FI_SAFECALL(fi_getinfo(FI_VERSION(1, 11), NULL, NULL, 0, hints, &s->fi));
+  assert(s->fi->domain_attr->cq_data_size >= 8);
   fi_freeinfo(hints);
 //  printf("s->fi->mode %lx\n", s->fi->mode);
 //  printf("prov_name: %s\n", s->fi->fabric_attr->prov_name);
@@ -132,7 +136,7 @@ static inline void lc_server_init(int id, lc_server** dev)
   FI_SAFECALL(fi_mr_reg(s->domain, (const void *) s->heap_addr, LCI_REGISTERED_SEGMENT_SIZE,
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, 0, 0,
                         &s->mr_heap, 0));
-
+  s->mr_desc = fi_mr_desc(s->mr_heap);
   s->id = id;
 
   struct fi_av_attr av_attr;
@@ -153,8 +157,16 @@ static inline void lc_server_init(int id, lc_server** dev)
 
   posix_memalign((void**)&(s->rep), LC_CACHE_LINE,
                  sizeof(struct lc_rep) * LCI_NUM_PROCESSES);
+  uintptr_t heap_addr;
+  if (s->fi->domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
+    LCI_Log(LCI_LOG_INFO, "FI_MR_VIRT_ADDR is set.");
+    heap_addr = s->heap_addr;
+  } else {
+    LCI_Log(LCI_LOG_INFO, "FI_MR_VIRT_ADDR is not set.");
+    heap_addr = 0;
+  }
   char msg[256];
-  sprintf(msg, "%lu-%lu-%lu-%lu", my_addr[0], my_addr[1], s->heap_addr, my_rkey);
+  sprintf(msg, "%lu-%lu-%lu-%lu", my_addr[0], my_addr[1], heap_addr, my_rkey);
   lc_pm_publish(LCI_RANK, id, msg);
 
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
@@ -174,7 +186,7 @@ static inline void lc_server_init(int id, lc_server** dev)
       struct lc_rep* rep = &s->rep[i];
       rep->rank = i;
       posix_memalign((void**)&(rep->handle), LC_CACHE_LINE, sizeof(fi_addr_t));
-      rep->base = s->heap_addr;
+      rep->base = heap_addr;
       rep->rkey = my_rkey;
       int ret = fi_av_insert(s->av, (void*)my_addr, 1, rep->handle, 0, NULL);
       LCI_Assert(ret == 1);
@@ -204,15 +216,26 @@ static inline int lc_server_progress(lc_server* s)
           s->recv_posted--;
           lc_packet* p = (lc_packet*) entry[i].op_context;
           p->context.sync = &p->context.sync_s;
-          int rank = p->context.sync->request.rank = (entry[i].tag);
+          p->context.sync->request.rank = (entry[i].tag);
+          int rank = p->context.sync->request.rank;
           p->context.sync->request.__reserved__ = s->rep[rank].handle;
           p->context.sync->request.data.buffer.length = entry[i].len;
           lc_serve_recv(p, entry[i].data);
-        } else if (entry[i].flags & FI_REMOTE_CQ_DATA) {
-          // NOTE(danghvu): In OFI, a imm data is transferred without
+        } else if (entry[i].flags & FI_REMOTE_WRITE) {
+          // NOTE(danghvu): In OFI, a RDMA with completion data is transferred without
           // comsuming a posted receive.
-          lc_serve_imm((lc_packet*)entry[i].data);
-        } else {
+          if (entry[i].data & OFI_IMM_RTR) {
+            // RDMA immediate protocol (3-msg rdz).
+            lc_packet* p = (lc_packet*)(s->heap_addr + (entry[i].data ^ OFI_IMM_RTR));
+            lc_serve_imm(p);
+          } else {
+            // recv rdma with signal
+            // TODO: this is dumb. try to modify proto.h to have some smarter functions here.
+            lc_packet *p = lc_pool_get(s->pkpool);
+            p->context.sync = &p->context.sync_s;
+            lc_serve_recv_rdma(p, entry[i].data);
+          }
+        } else if (entry[i].flags & FI_SEND) {
           lc_packet* p = (lc_packet*)entry[i].op_context;
           lc_serve_send(p);
         }
@@ -290,17 +313,27 @@ static inline void lc_server_sends(lc_server* s, void* rep, void* ubuf,
 }
 
 static inline void lc_server_puts(lc_server* s, void* rep, void* buf,
-                                   uintptr_t base __UNUSED__, uint32_t offset,
-                                   uint64_t rkey __UNUSED__, uint32_t meta,
+                                   uintptr_t base, uint32_t offset,
+                                   uint64_t rkey, uint32_t meta,
                                    size_t size)
 {
+  int ret;
+  do {
+    ret = fi_inject_writedata(s->ep, buf, size, meta, *(fi_addr_t*)rep, base + offset, rkey);
+  } while (ret == -FI_EAGAIN);
+  if (ret) FI_SAFECALL(ret);
 }
 
 static inline void lc_server_putm(lc_server* s, void* rep,
-                                   uintptr_t base __UNUSED__, uint32_t offset,
-                                   uint64_t rkey __UNUSED__, size_t size,
+                                   uintptr_t base, uint32_t offset,
+                                   uint64_t rkey, size_t size,
                                    uint32_t meta, lc_packet* ctx)
 {
+  int ret;
+  do {
+    ret = fi_writedata(s->ep, ctx->data.buffer, size, s->mr_desc, meta, *(fi_addr_t*)rep, base + offset, rkey, ctx);
+  } while (ret == -FI_EAGAIN);
+  if (ret) FI_SAFECALL(ret);
 }
 
 static inline void lc_server_putl(lc_server* s, void* rep, void* buffer,
@@ -311,9 +344,21 @@ static inline void lc_server_putl(lc_server* s, void* rep, void* buffer,
 }
 
 static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf,
-                                     uintptr_t addr __UNUSED__, uint64_t rkey,
+                                     uintptr_t addr, uint64_t rkey,
                                      size_t size, uint32_t sid, lc_packet* ctx)
 {
+  // workaround without modifying server.h
+  // TODO: could be more straight forward
+  struct lc_rep *real_rep = (struct lc_rep*) rep;
+  if (!(s->fi->domain_attr->mr_mode & FI_MR_VIRT_ADDR)) {
+    addr = 0;
+  }
+  int ret;
+  do {
+    ret = fi_writedata(s->ep, (void*)ctx->data.rts.src_addr, size, s->mr_desc /*might not always be true*/,
+                       (uint64_t)sid | OFI_IMM_RTR, *(fi_addr_t*)real_rep->handle, addr, rkey, ctx);
+  } while (ret == -FI_EAGAIN);
+  if (ret) FI_SAFECALL(ret);
 }
 
 static inline void lc_server_finalize(lc_server* s) { free(s); }

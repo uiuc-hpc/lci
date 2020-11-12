@@ -10,6 +10,12 @@ void LCI_Assert_(const char *expr_str, bool expr, const char *file, int line) {
   }
 }
 
-void LCI_Warn_(const char *str, const char *file, int line) {
-  fprintf(stderr, "WARNING!\t %s\nSource:\t\t%s, line %d\n", str, file, line);
+void LCI_Log_(enum LCI_log_level_t log_level, const char *str, const char *file, int line) {
+  if (log_level <= LCI_LOG_LEVEL) {
+    if (log_level == LCI_LOG_WARN) {
+      fprintf(stderr, "WARNING!\t %s\nSource:\t\t%s, line %d\n", str, file, line);
+    } else {
+      printf("%s\n", str);
+    }
+  }
 }

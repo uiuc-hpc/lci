@@ -79,13 +79,6 @@ LCI_error_t LCI_cq_dequeue(LCI_endpoint_t ep, LCI_request_t** req_ptr)
   return LCI_OK;
 }
 
-LCI_error_t LCI_request_free(LCI_endpoint_t ep, int n, LCI_request_t** req)
-{
-  lc_packet* packet = LC_PACKET_OF((*req)->data.buffer.start);
-  lc_pk_free(ep, packet);
-  return LCI_OK;
-}
-
 LCI_error_t LCI_progress(int id, int count)
 {
   lc_server_progress(LCI_DEVICES[id]);

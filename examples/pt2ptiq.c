@@ -43,7 +43,7 @@ int main(int argc, char** args) {
   posix_memalign(&dst_buf, alignment, MAX_MSG);
 
   if (rank == 0) {
-    for (int size = MIN_MSG; size <= MIN_MSG; size <<= 1) {
+    for (int size = sizeof(LCI_ivalue_t); size <= sizeof(LCI_ivalue_t); size <<= 1) {
       memset(src_buf, 'a', size);
       memset(dst_buf, 'b', size);
 
@@ -59,14 +59,14 @@ int main(int argc, char** args) {
           for (int j = 0; j < size; j++)
             assert(((char*) src_buf)[j] == 'a' && ((char*)dst_buf)[j] == 'a');
         }
-        LCI_request_free(ep, 1, &req_ptr);
+        LCI_bbuffer_free(req_ptr->data.buffer.start, 0);
       }
 
       t1 = 1e6 * (wtime() - t1) / total / 2;
       printf("%10.d %10.3f\n", size, t1);
     }
   } else {
-    for (int size = MIN_MSG; size <= MIN_MSG; size <<= 1) {
+    for (int size = sizeof(LCI_ivalue_t); size <= sizeof(LCI_ivalue_t); size <<= 1) {
       memset(src_buf, 'a', size);
       memset(dst_buf, 'b', size);
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
@@ -75,7 +75,7 @@ int main(int argc, char** args) {
         LCI_recvi(dst_buf, 1-rank, tag, ep, &sync);
         while (LCI_dequeue(cq, &req_ptr) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
-        LCI_request_free(ep, 1, &req_ptr);
+        LCI_bbuffer_free(req_ptr->data.buffer.start, 0);
         LCI_sendi(*(LCI_ivalue_t*) src_buf, 1-rank, tag, ep);
       }
     }

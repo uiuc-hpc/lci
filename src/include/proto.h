@@ -100,8 +100,8 @@ static inline void lc_handle_rtr(LCI_endpoint_t ep, lc_packet* p)
 {
   dprintf("Recv RTR %p\n", p);
   lc_pk_init(ep, -1, LC_PROTO_LONG, p);
-
-  lc_server_rma_rtr(ep->server, p->context.sync->request.__reserved__,
+  int tgt_rank = p->context.sync->request.rank;
+  lc_server_rma_rtr(ep->server, &(ep->server->rep[tgt_rank]),
                     (void*)p->data.rts.src_addr, p->data.rtr.tgt_addr,
                     p->data.rtr.rkey, p->data.rts.size, p->data.rtr.comm_id, p);
 }
@@ -174,6 +174,7 @@ static inline void lc_serve_recv_match(LCI_endpoint_t ep, lc_packet* p,
     }
   } else if (proto == LC_PROTO_RTR) {
     lc_handle_rtr(ep, p);
+    lc_ce_dispatch(ep, p, p->context.sync, cap);
   };
 }
 
@@ -264,18 +265,22 @@ static inline void lc_serve_send(lc_packet* p)
     // Note that this messed up the order of completion.
     // If one expects MPI order, should need to split completion here.
   } else if (proto == LC_PROTO_LONG) {
-    dprintf("SENT LONG: %p\n", p);
-    LCI_one2one_set_full((LCI_sync_t*)p->data.rts.ce);  // FIXME
-    lc_pk_free(ep, p);
+    if (p->context.sync != NULL)
+      LCI_one2one_set_full(p->context.sync);
+    if (p->context.ref == 1) {
+      lc_pk_free_data(ep, p);
+    }
   } else if (proto == LC_PROTO_RTS) {
-    dprintf("SENT RTS: %p\n", p);
+    LCI_Assert((LCI_sync_t*)p->data.rts.ce != NULL);
+    LCI_one2one_set_full((LCI_sync_t*)p->data.rts.ce);
+    LCI_Assert(p->context.ref == 1);
     lc_pk_free(ep, p);
   } else {
-    dprintf("SENT UNKNOWN: %p\n", p);
-    if (p->context.ref != USER_MANAGED) {
+    LCI_Assert(proto == LC_PROTO_DATA);
+    if (p->context.sync != NULL)
+      LCI_one2one_set_full(p->context.sync);
+    if (p->context.ref == 1) {
       lc_pk_free_data(ep, p);
-    } else {
-      LCI_one2one_set_full(p->context.sync);  // FIXME
     }
   }
 }

@@ -38,25 +38,14 @@ int main(int argc, char** args) {
     for (int i = 0; i < TOTAL+SKIP; i++) {
       if (i == SKIP)
         t1 = wtime();
-      if (rank == 0) {
-        LCI_one2one_set_empty(&sync);
-        LCI_putb(p, size, 1-rank, 99, ep, &sync);
-        while (LCI_one2one_test_empty(&sync)) {
-          LCI_progress(0, 1);
-        }
-        while (LCI_dequeue(cq, &req_ptr) == LCI_ERR_RETRY)
-          LCI_progress(0, 1);
-        LCI_bbuffer_free(req_ptr->data.buffer.start, 0);
-      } else {
-        while (LCI_dequeue(cq, &req_ptr) == LCI_ERR_RETRY)
-          LCI_progress(0, 1);
-        LCI_bbuffer_free(req_ptr->data.buffer.start, 0);
-        LCI_one2one_set_empty(&sync);
-        LCI_putb(p, size, 1-rank, 99, ep, &sync);
-        while (LCI_one2one_test_empty(&sync)) {
-          LCI_progress(0, 1);
-        }
+      LCI_one2one_set_empty(&sync);
+      LCI_putb(p, size, rank, 99, ep, &sync);
+      while (LCI_one2one_test_empty(&sync)) {
+        LCI_progress(0, 1);
       }
+      while (LCI_dequeue(cq, &req_ptr) == LCI_ERR_RETRY)
+        LCI_progress(0, 1);
+      LCI_bbuffer_free(req_ptr->data.buffer.start, 0);
     }
 
     if (rank == 0) {

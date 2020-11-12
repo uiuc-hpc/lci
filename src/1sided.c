@@ -5,8 +5,8 @@
 LCI_error_t LCI_puti(LCI_ivalue_t src, int rank, int rma_id, int offset, int meta, LCI_endpoint_t ep)  
 { 
   struct lc_rep* rep = &(ep->rep[rank]);  
-  assert(rma_id == 0 && "fixme"); 
-  lc_server_puts(ep->server, rep->handle, &src, rep->base, offset, rep->rkey, meta, sizeof(LCI_ivalue_t));  
+  assert(rma_id == 0 && "fixme");
+  lc_server_puts(ep->server, rep->handle, &src, rep->base, offset, rep->rkey, meta, sizeof(LCI_ivalue_t));
   return LCI_OK;  
 }
 

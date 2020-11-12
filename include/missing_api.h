@@ -14,17 +14,28 @@
     - Whether to use opaque type:
         - uint16_t or LCI_tag_t?
         - uint32_t or LCI_rank_t?
-  - Need to discuss:
     - packet free: when to free to the initial pool, when to free to the current pool? (size > 1024?)
-    - server.h: what's the meaning of these interfaces?
+    - How the handle the LCI_request_t and the buffer returned by the completion queue?
+        - if LCI_request_t is returned by pointer, we need a LCI_request_free.
+        - need the ability to distinguish between user-managed buffers and LCI-managed packets in a completion queue entrie, which is essentially LCI_request_t.
+          Such that after we pass the LCI_request_t into the LCI_request_free function, it knows whether to return the packet to the pool/do nothing.
+          We could use a LCI_packet_free and let user optionally call it.
     - LCI_error_t LCI_endpoint_free ( LCI_endpoint_t endpoint );
-    - Do we want to handle the back pressure from the network? Currently the serve_send is a return-void function.
-    - lci_serve_cq is broken
+    - what is dreg_init()
+    - what is LC_PROTO_LONG?
+
+  - Need to discuss:
+    - remote data of RDMA：
+        - manual: remote_completion is the address of a synchronizer in remote memory or NULL
+        - implementation: 16 bits data treated as a tag
+    - what is the LCI_provided default allocator?
+        - LCI_alloc: A default memory allocator, LCI_alloc, is created on initialization. This
+                     allocator allocates registered memory.
+    - packet_data::buffer: why char[0] instead of void*
+    - packet_context::hwctx: what is it used for?
 
   - Others:
     - Property List: A large part of property list entries are not implemented
-    - LCI_alloc: A default memory allocator, LCI_alloc, is created on initialization. This
-                 allocator allocates registered memory.
     - All the group API is missing.
         - LCI_error_t LCI_group_size ( LCI_endpoint_t endpoint, uint32_t * size );
         - LCI_error_t LCI_group_ranks ( LCI_endpoint_t endpoint, char ranks []);

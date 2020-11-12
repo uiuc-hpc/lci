@@ -103,6 +103,10 @@ int LCI_DEFAULT_CQ_LENGTH;
  */
 int LCI_MAX_CQ_LENGTH;
 
+/**
+ * control the LCI log level, valid only when LCI_DEBUG is defined
+ */
+extern int LCI_LOG_LEVEL;
 /**@}*/
 
 /**
@@ -169,6 +173,17 @@ typedef enum {
   LCI_COMPLETION_MANY2MANYS,	// many2many SSO
   LCI_COMPLETION_MANY2MANYL	// many2many LSO
 } LCI_comptype_t;
+
+/**
+ * LCI log level type.
+ */
+enum LCI_log_level_t {
+  LCI_LOG_WARN = 0,
+  LCI_LOG_TRACE,
+  LCI_LOG_INFO,
+  LCI_LOG_DEBUG,
+  LCI_LOG_MAX
+};
 
 /**
  * LCI generic completion type.
@@ -531,12 +546,6 @@ LCI_error_t LCI_mult_dequeue(LCI_comp_t cq ,
                              LCI_request_t requests[] ,
                              uint32_t request_count ,
                              uint32_t *return_count );
-
-/**
- * Return @p n requests to the runtime.
- */
-LCI_API
-LCI_error_t LCI_request_free(LCI_endpoint_t ep, int n, LCI_request_t** req);
 
 /**
  * Create a matching hash-table.

@@ -29,12 +29,17 @@ function(add_all_examples)
 endfunction()
 
 add_all_examples(
-  init
-  pt2pti
-  pt2ptbc
-  pt2ptd
-  pt2ptiq
-  puti
-  putb
-  putbc
+        init
+        pt2pti-self
+        pt2pti
+        pt2ptbc-self
+        pt2ptbc
+        pt2ptd-self
+        pt2ptd
+        pt2ptiq
+        puti-self
+        puti
+        putb-self
+        putb
+        putbc
 )

@@ -21,7 +21,7 @@ LCI_error_t LCI_PL_free(LCI_PL_t plist)
 }
 
 LCI_error_t LCI_PL_get(LCI_endpoint_t endpoint, LCI_PL_t plist) {
-  LCI_WARNING("Not implemented yet!");
+  LCI_Log(LCI_LOG_WARN, "Not implemented yet!");
   return LCI_OK;
 }
 
