@@ -101,7 +101,7 @@ static inline void lc_handle_rtr(LCI_endpoint_t ep, lc_packet* p)
   dprintf("Recv RTR %p\n", p);
   lc_pk_init(ep, -1, LC_PROTO_LONG, p);
   int tgt_rank = p->context.sync->request.rank;
-  lc_server_rma_rtr(ep->server, &(ep->server->rep[tgt_rank]),
+  lc_server_rma_rtr(ep->server, ep->server->rep[tgt_rank].handle,
                     (void*)p->data.rts.src_addr, p->data.rtr.tgt_addr,
                     p->data.rtr.rkey, p->data.rts.size, p->data.rtr.comm_id, p);
 }

@@ -349,14 +349,13 @@ static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf,
 {
   // workaround without modifying server.h
   // TODO: could be more straight forward
-  struct lc_rep *real_rep = (struct lc_rep*) rep;
   if (!(s->fi->domain_attr->mr_mode & FI_MR_VIRT_ADDR)) {
     addr = 0;
   }
   int ret;
   do {
     ret = fi_writedata(s->ep, (void*)ctx->data.rts.src_addr, size, s->mr_desc /*might not always be true*/,
-                       (uint64_t)sid | OFI_IMM_RTR, *(fi_addr_t*)real_rep->handle, addr, rkey, ctx);
+                       (uint64_t)sid | OFI_IMM_RTR, *(fi_addr_t*) rep, addr, rkey, ctx);
   } while (ret == -FI_EAGAIN);
   if (ret) FI_SAFECALL(ret);
 }
