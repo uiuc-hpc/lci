@@ -30,16 +30,29 @@ endfunction()
 
 add_all_examples(
         init
-        pt2pti-self
         pt2pti
-        pt2ptbc-self
         pt2ptbc
-        pt2ptd-self
         pt2ptd
         pt2ptiq
-        puti-self
         puti
-        putb-self
+        putb
+        putbc
+)
+
+function(add_tests)
+  foreach(test ${ARGN})
+    add_test(NAME test_${test}
+             COMMAND mpirun -n 2 $<TARGET_FILE:${test}>)
+  endforeach()
+endfunction()
+
+add_tests(
+        init
+        pt2pti
+        pt2ptiq
+        pt2ptbc
+        pt2ptd
+        puti
         putb
         putbc
 )

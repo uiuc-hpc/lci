@@ -32,7 +32,6 @@
         - LCI_alloc: A default memory allocator, LCI_alloc, is created on initialization. This
                      allocator allocates registered memory.
     - packet_data::buffer: why char[0] instead of void*
-    - packet_context::hwctx: what is it used for?
 
   - Others:
     - Property List: A large part of property list entries are not implemented

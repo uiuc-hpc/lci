@@ -174,7 +174,6 @@ static inline void lc_serve_recv_match(LCI_endpoint_t ep, lc_packet* p,
     }
   } else if (proto == LC_PROTO_RTR) {
     lc_handle_rtr(ep, p);
-    lc_ce_dispatch(ep, p, p->context.sync, cap);
   };
 }
 

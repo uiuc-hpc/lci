@@ -5,7 +5,7 @@ project(LCI
   HOMEPAGE_URL "https://github.com/uiuc-hpc/LC"
   LANGUAGES C
 )
-
+#enable_testing()
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")
 
 include(GNUInstallDirs)
@@ -181,3 +181,4 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/FindFabric.cmake"
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LCI
 )
 install(PROGRAMS lcrun DESTINATION ${CMAKE_INSTALL_BINDIR})
+

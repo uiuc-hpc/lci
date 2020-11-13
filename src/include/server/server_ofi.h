@@ -238,6 +238,9 @@ static inline int lc_server_progress(lc_server* s)
         } else if (entry[i].flags & FI_SEND) {
           lc_packet* p = (lc_packet*)entry[i].op_context;
           lc_serve_send(p);
+        } else if (entry[i].flags & FI_WRITE) {
+          lc_packet* p = (lc_packet*)entry[i].op_context;
+          lc_serve_send(p);
         }
       }
       rett = 1;

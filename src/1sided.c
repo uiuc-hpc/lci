@@ -15,7 +15,7 @@ LCI_error_t LCI_putbc(void* src, size_t size, int rank, int rma_id, int offset, 
   LC_POOL_GET_OR_RETN(ep->pkpool, p);
   lc_pk_init(ep, (size > 1024) ? lc_pool_get_local(ep->pkpool) : -1, LC_PROTO_DATA, p);
   struct lc_rep* rep = &(ep->rep[rank]);
-  memcpy(&p->data, src, size);
+  memcpy(p->data.buffer, src, size);
   lc_server_putm(ep->server, rep->handle, rep->base, offset, rep->rkey, size, MAKE_PROTO(ep->gid, LC_PROTO_LONG, meta), p);
   return LCI_OK;
 }
