@@ -5,14 +5,17 @@ project(LCI
   HOMEPAGE_URL "https://github.com/uiuc-hpc/LC"
   LANGUAGES C
 )
-#enable_testing()
+
+enable_testing()
+set(EXE_RUN "ibrun")
+
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(TargetSourcesRelative)
 
-set(LCI_SERVER ofi CACHE STRING "Fabric")
+set(LCI_SERVER psm CACHE STRING "Fabric")
 set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv psm)
 option(LCI_SERVER_DEBUG "Server debug" OFF)
 option(LCI_USE_DREG "Use registration cache (only affects ibv -- only use when not-so-dynamic allocation)" ON)

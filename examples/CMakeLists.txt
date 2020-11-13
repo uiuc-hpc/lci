@@ -42,7 +42,7 @@ add_all_examples(
 function(add_tests)
   foreach(test ${ARGN})
     add_test(NAME test_${test}
-             COMMAND mpirun -n 2 $<TARGET_FILE:${test}>)
+             COMMAND ${EXE_RUN} -n 2 $<TARGET_FILE:${test}>)
   endforeach()
 endfunction()
 
