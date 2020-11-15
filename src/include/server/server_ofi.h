@@ -68,15 +68,30 @@ static inline uintptr_t _real_ofi_reg(lc_server* s, void* buf, size_t size)
   return (uintptr_t)mr;
 }
 
+static inline uintptr_t _real_server_reg(lc_server* s, void* buf, size_t size)
+{
+  struct fid_mr* mr;
+  FI_SAFECALL(fi_mr_reg(s->domain, buf, size,
+                        FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, lc_next_rdma_key++, 0,
+                        &mr, 0));
+  return (uintptr_t)mr;
+}
+
+static inline void _real_server_dereg(uintptr_t mem)
+{
+  FI_SAFECALL(fi_close((struct fid*) mem));
+}
+
 static inline uintptr_t lc_server_rma_reg (lc_server* s, void* buf, size_t size)
 {
 //  return (uintptr_t)dreg_register(s, buf, size);
-   return _real_ofi_reg(s, buf, size);
+   return _real_server_reg(s, buf, size);
 }
 
 static inline void lc_server_rma_dereg(uintptr_t mem)
 {
 //  dreg_unregister((dreg_entry*)mem);
+  _real_server_dereg(mem);
 }
 
 static inline uint32_t lc_server_rma_key(uintptr_t mem)
@@ -351,7 +366,6 @@ static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf,
                                      size_t size, uint32_t sid, lc_packet* ctx)
 {
   // workaround without modifying server.h
-  // TODO: could be more straight forward
   if (!(s->fi->domain_attr->mr_mode & FI_MR_VIRT_ADDR)) {
     addr = 0;
   }

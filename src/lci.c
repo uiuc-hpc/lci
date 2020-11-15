@@ -32,7 +32,7 @@ LCI_error_t LCI_Free()
   for (int i = 0; i < LCI_NUM_DEVICES; i++) {
     lc_dev_finalize(LCI_DEVICES[i]);
   }
-  // LCI_PM_barrier();
+   LCI_PM_barrier();
   return LCI_OK;
 }
 

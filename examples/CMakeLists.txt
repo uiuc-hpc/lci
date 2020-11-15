@@ -32,6 +32,7 @@ add_all_examples(
         init
         pt2pti
         pt2ptbc
+        pt2ptd-self
         pt2ptd
         pt2ptiq
         puti

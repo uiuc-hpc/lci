@@ -25,7 +25,7 @@ int main(int argc, char** args) {
   int rank = LCI_RANK;
   int tag = 99;
 
-  LCI_syncl_t sync;
+  LCI_syncl_t sync_send, sync_recv;
 
   double t1 = 0;
   size_t alignment = sysconf(_SC_PAGESIZE);
@@ -42,14 +42,17 @@ int main(int argc, char** args) {
 
     for (int i = 0; i < total + skip; i++) {
       if (i == skip) t1 = wtime();
-      LCI_one2one_set_empty(&sync);
-      while (LCI_sendd(src_buf, size, rank, tag, ep, &sync) != LCI_OK)
+      LCI_one2one_set_empty(&sync_send);
+      LCI_one2one_set_empty(&sync_recv);
+      LCI_recvd(dst_buf, size, rank, tag, ep, &sync_recv);
+
+      while (LCI_sendd(src_buf, size, rank, tag, ep, &sync_send) != LCI_OK)
         LCI_progress(0, 1);
-      while (LCI_one2one_test_empty(&sync))
+      while (LCI_one2one_test_empty(&sync_send))
         LCI_progress(0, 1);
-      LCI_one2one_set_empty(&sync);
-      LCI_recvd(dst_buf, size, rank, tag, ep, &sync);
-      while (LCI_one2one_test_empty(&sync))
+      LCI_one2one_set_empty(&sync_send);
+
+      while (LCI_one2one_test_empty(&sync_recv))
         LCI_progress(0, 1);
       if (i == 0) {
         for (int j = 0; j < size; j++)

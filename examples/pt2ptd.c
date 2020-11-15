@@ -60,6 +60,7 @@ int main(int argc, char** args) {
 
       t1 = 1e6 * (wtime() - t1) / total / 2;
       printf("%10.d %10.3f\n", size, t1);
+      fflush(stdout);
     }
   } else {
     for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
