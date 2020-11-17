@@ -70,7 +70,7 @@ find_package(PkgConfig)
 
 set(_OFI_PC libfabric)
 set(_OFI_HEADER "rdma/fabric.h")
-set(_OFI_LIB fabric)
+set(_OFI_LIB fabric libfabric)
 
 set(_IBV_PC libibverbs)
 set(_IBV_HEADER "infiniband/verbs.h")
