@@ -116,7 +116,7 @@ static inline void lc_server_init(int id, lc_server** dev)
 //  printf("hints->mode %lx\n", hints->mode);
 
   // Create info.
-  FI_SAFECALL(fi_getinfo(FI_VERSION(1, 11), NULL, NULL, 0, hints, &s->fi));
+  FI_SAFECALL(fi_getinfo(FI_VERSION(1, 6), NULL, NULL, 0, hints, &s->fi));
   assert(s->fi->domain_attr->cq_data_size >= 8);
   fi_freeinfo(hints);
 //  printf("s->fi->mode %lx\n", s->fi->mode);
