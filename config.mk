@@ -5,7 +5,7 @@
 LCI_SERVER ?= ibv
 
 # When in doubt, enable this (yes, no)
-LCI_SERVER_DEBUG ?= no
+LCI_DEBUG ?= no
 
 # Use registration cache ? (Only affect ibv -- only use when not-so-dynamic allocation)
 LCI_USE_DREG ?= yes

@@ -76,8 +76,8 @@ endif
 
 ### END -- ENDPOINT OPTIONS SELECTIONS
 
-ifeq ($(LCI_SERVER_DEBUG), yes)
-CFLAGS += -DLCI_SERVER_DEBUG
+ifeq ($(LCI_DEBUG), yes)
+CFLAGS += -DLCI_DEBUG
 endif
 
 ifeq ($(LCI_SERVER_INLINE), yes)

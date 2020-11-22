@@ -5,7 +5,7 @@
 
 #define IBV_IMM_RTR ((uint32_t)1 << 31)
 
-#ifdef LC_SERVER_DEBUG
+#ifdef LCI_DEBUG
 #define IBV_SAFECALL(x)                                               \
   {                                                                   \
     int err = (x);                                                    \
@@ -157,7 +157,7 @@ static inline void ibv_post_recv_(lc_server* s, lc_packet* p)
   if (p == NULL) {
     if (s->recv_posted < LC_SERVER_MAX_RCVS / 2 && !lcg_deadlock) {
       lcg_deadlock = 1;
-#ifdef LC_SERVER_DEBUG
+#ifdef LCI_DEBUG
       printf("WARNING-LC: deadlock alert\n");
 #endif
     }

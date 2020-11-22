@@ -19,7 +19,7 @@ include(TargetSourcesRelative)
 
 set(LCI_SERVER psm CACHE STRING "Fabric")
 set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv psm)
-option(LCI_SERVER_DEBUG "Server debug" OFF)
+option(LCI_DEBUG "LCI Debug Mode" OFF)
 option(LCI_USE_DREG "Use registration cache (only affects ibv -- only use when not-so-dynamic allocation)" ON)
 set(LCI_EP_AR dynamic explicit CACHE STRING "Addressing mode (dynamic, explicit, immediate)")
 set(LCI_EP_CE sync cq CACHE STRING "Completion mechanism (sync, cq, am, glob)")
@@ -28,10 +28,6 @@ set(LCI_MAX_EP 8 CACHE STRING "Maximum number of EP")
 
 set(LCI_SYNC flag CACHE STRING "Sync mechanism")
 set_property(CACHE LCI_SYNC PROPERTY STRINGS flag argobots)
-
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  add_compile_options("-DLCI_DEBUG")
-endif()
 
 if(LCI_SERVER STREQUAL "ofi")
   set(LCI_USE_SERVER_OFI ON)

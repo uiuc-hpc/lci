@@ -104,7 +104,7 @@ int LCI_DEFAULT_CQ_LENGTH;
 int LCI_MAX_CQ_LENGTH;
 
 /**
- * control the LCI log level, valid only when LCI_DEBUG is defined
+ * control the LCI log level
  */
 extern int LCI_LOG_LEVEL;
 /**@}*/

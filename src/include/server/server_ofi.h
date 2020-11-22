@@ -168,10 +168,10 @@ static inline void lc_server_init(int id, lc_server** dev)
                  sizeof(struct lc_rep) * LCI_NUM_PROCESSES);
   uintptr_t heap_addr;
   if (s->fi->domain_attr->mr_mode & FI_MR_VIRT_ADDR || s->fi->domain_attr->mr_mode & FI_MR_BASIC) {
-    LCI_Log(LCI_LOG_INFO, "FI_MR_VIRT_ADDR is set.");
+    LCI_Log(LCI_LOG_INFO, "FI_MR_VIRT_ADDR is set.\n");
     heap_addr = s->heap_addr;
   } else {
-    LCI_Log(LCI_LOG_INFO, "FI_MR_VIRT_ADDR is not set.");
+    LCI_Log(LCI_LOG_INFO, "FI_MR_VIRT_ADDR is not set.\n");
     heap_addr = 0;
   }
   char msg[256];

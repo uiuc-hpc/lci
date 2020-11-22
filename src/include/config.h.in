@@ -1,7 +1,7 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
-#cmakedefine LCI_SERVER_DEBUG
+#cmakedefine LCI_DEBUG
 
 #cmakedefine LCI_USE_SERVER_OFI
 #cmakedefine LCI_USE_SERVER_IBV
