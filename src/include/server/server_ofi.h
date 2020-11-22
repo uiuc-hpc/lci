@@ -18,9 +18,8 @@
 #include "macro.h"
 #include "pm.h"
 #include "dreg.h"
-#define SERVER_FI_DEBUG
 
-#ifdef SERVER_FI_DEBUG
+#ifdef LCI_DEBUG
 #define FI_SAFECALL(x)                                                    \
   {                                                                       \
     int err = (x);                                                        \
@@ -58,15 +57,6 @@ typedef struct lc_server {
   struct fid_av* av;
   void* mr_desc;
 } lc_server __attribute__((aligned(64)));
-
-static inline uintptr_t _real_ofi_reg(lc_server* s, void* buf, size_t size)
-{
-  struct fid_mr* mr;
-  FI_SAFECALL(fi_mr_reg(s->domain, buf, size,
-                        FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, lc_next_rdma_key++, 0,
-                        &mr, 0));
-  return (uintptr_t)mr;
-}
 
 static inline uintptr_t _real_server_reg(lc_server* s, void* buf, size_t size)
 {
@@ -110,17 +100,19 @@ static inline void lc_server_init(int id, lc_server** dev)
   struct fi_info* hints;
   hints = fi_allocinfo();
   hints->ep_attr->type = FI_EP_RDM;
+//  hints->domain_attr->mr_mode = FI_MR_BASIC;
   hints->domain_attr->mr_mode = FI_MR_VIRT_ADDR | FI_MR_ALLOCATED | FI_MR_PROV_KEY | FI_MR_LOCAL;
   hints->caps = FI_RMA | FI_TAGGED;
   hints->mode = FI_LOCAL_MR;
-//  printf("hints->mode %lx\n", hints->mode);
 
   // Create info.
   FI_SAFECALL(fi_getinfo(FI_VERSION(1, 6), NULL, NULL, 0, hints, &s->fi));
-  assert(s->fi->domain_attr->cq_data_size >= 8);
+  LCI_Log(LCI_LOG_INFO, "Provider: %s\n", s->fi->fabric_attr->prov_name);
+  LCI_Log(LCI_LOG_INFO, "Given: [%s]\n", fi_tostr(&(hints->domain_attr->mr_mode), FI_TYPE_MR_MODE));
+  LCI_Log(LCI_LOG_INFO, "Provided: [%s]\n", fi_tostr(&(s->fi->domain_attr->mr_mode), FI_TYPE_MR_MODE));
+  LCI_Assert(s->fi->domain_attr->cq_data_size >= 8, "cq_data_size = %lu\n", s->fi->domain_attr->cq_data_size);
+  LCI_Assert(s->fi->domain_attr->mr_key_size <= 8, "mr_key_size = %lu\n", s->fi->domain_attr->mr_key_size);
   fi_freeinfo(hints);
-//  printf("s->fi->mode %lx\n", s->fi->mode);
-//  printf("prov_name: %s\n", s->fi->fabric_attr->prov_name);
 
   // Create libfabric obj.
   FI_SAFECALL(fi_fabric(s->fi->fabric_attr, &s->fabric, NULL));
@@ -139,10 +131,9 @@ static inline void lc_server_init(int id, lc_server** dev)
   FI_SAFECALL(fi_cq_open(s->domain, &cq_attr, &s->cq, NULL));
 
   // Bind my ep to cq.
-  FI_SAFECALL(
-      fi_ep_bind(s->ep, (fid_t)s->cq, FI_TRANSMIT | FI_RECV));
+  FI_SAFECALL(fi_ep_bind(s->ep, (fid_t)s->cq, FI_TRANSMIT | FI_RECV));
 
-  dreg_init();
+//  dreg_init();
 
   // Get memory for heap.
   s->heap_addr = 0; 
@@ -151,6 +142,7 @@ static inline void lc_server_init(int id, lc_server** dev)
   FI_SAFECALL(fi_mr_reg(s->domain, (const void *) s->heap_addr, LCI_REGISTERED_SEGMENT_SIZE,
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, 0, 0,
                         &s->mr_heap, 0));
+
   s->mr_desc = fi_mr_desc(s->mr_heap);
   s->id = id;
 
@@ -165,15 +157,17 @@ static inline void lc_server_init(int id, lc_server** dev)
   // assume the size of the raw address no larger than 128 bits.
   size_t addrlen = 0;
   fi_getname((fid_t)s->ep, NULL, &addrlen);
-  assert(addrlen <= 16);
-  uint64_t my_addr[2];
+  LCI_Log(LCI_LOG_INFO, "addrlen = %lu\n", addrlen);
+  LCI_Assert(addrlen <= 48, "addrlen = %lu\n", addrlen);
+  const int EP_ADDR_LEN = 6;
+  uint64_t my_addr[EP_ADDR_LEN];
   FI_SAFECALL(fi_getname((fid_t)s->ep, my_addr, &addrlen));
   uint64_t my_rkey = fi_mr_key(s->mr_heap);
 
   posix_memalign((void**)&(s->rep), LC_CACHE_LINE,
                  sizeof(struct lc_rep) * LCI_NUM_PROCESSES);
   uintptr_t heap_addr;
-  if (s->fi->domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
+  if (s->fi->domain_attr->mr_mode & FI_MR_VIRT_ADDR || s->fi->domain_attr->mr_mode & FI_MR_BASIC) {
     LCI_Log(LCI_LOG_INFO, "FI_MR_VIRT_ADDR is set.");
     heap_addr = s->heap_addr;
   } else {
@@ -181,22 +175,26 @@ static inline void lc_server_init(int id, lc_server** dev)
     heap_addr = 0;
   }
   char msg[256];
-  sprintf(msg, "%lu-%lu-%lu-%lu", my_addr[0], my_addr[1], heap_addr, my_rkey);
+  const char* PARSE_STRING = "%016lx-%016lx-%016lx-%016lx-%016lx-%016lx-%lx-%lx";
+  sprintf(msg, PARSE_STRING,
+          my_addr[0], my_addr[1], my_addr[2], my_addr[3], my_addr[4], my_addr[5],
+          heap_addr, my_rkey);
   lc_pm_publish(LCI_RANK, id, msg);
 
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
     if (i != LCI_RANK) {
       lc_pm_getname(i, id, msg);
-      uint64_t peer_addr[2];
+      uint64_t peer_addr[EP_ADDR_LEN];
 
       struct lc_rep* rep = &s->rep[i];
       rep->rank = i;
       posix_memalign((void**)&(rep->handle), LC_CACHE_LINE, sizeof(fi_addr_t));
 
-      sscanf(msg, "%lu-%lu-%lu-%lu", &peer_addr[0], &peer_addr[1], &rep->base,
-             &rep->rkey);
+      sscanf(msg, PARSE_STRING,
+             &peer_addr[0], &peer_addr[1], &peer_addr[2], &peer_addr[3], &peer_addr[4], &peer_addr[5],
+             &rep->base, &rep->rkey);
       int ret = fi_av_insert(s->av, (void*)peer_addr, 1, rep->handle, 0, NULL);
-      LCI_Assert(ret == 1);
+      LCI_Assert(ret == 1, "ret = %d\n", ret);
     } else {
       struct lc_rep* rep = &s->rep[i];
       rep->rank = i;
@@ -204,7 +202,7 @@ static inline void lc_server_init(int id, lc_server** dev)
       rep->base = heap_addr;
       rep->rkey = my_rkey;
       int ret = fi_av_insert(s->av, (void*)my_addr, 1, rep->handle, 0, NULL);
-      LCI_Assert(ret == 1);
+      LCI_Assert(ret == 1, "ret = %d\n", ret);
     }
   }
 
@@ -259,9 +257,10 @@ static inline int lc_server_progress(lc_server* s)
         }
       }
       rett = 1;
-#ifdef SERVER_FI_DEBUG
+#ifdef LCI_DEBUG
     } else if (ret == -FI_EAGAIN) {
     } else {
+      LCI_DBG_Assert(ret == -FI_EAVAIL, "unexpected return error: %s\n", fi_strerror(-ret));
       fi_cq_readerr(s->cq, &error, 0);
       printf("Err: %s\n", fi_strerror(error.err));
       exit(error.err);
@@ -272,9 +271,9 @@ static inline int lc_server_progress(lc_server* s)
   if (s->recv_posted < LC_SERVER_MAX_RCVS)
     lc_server_post_recv(s, lc_pool_get_nb(s->pkpool));
 
-#ifdef SERVER_FI_DEBUG
+#ifdef LCI_DEBUG
   if (s->recv_posted == 0) {
-    fprintf(stderr, "WARNING DEADLOCK\n");
+    LCI_DBG_Log(LCI_LOG_WARN, "Run out of posted receive packets! Deadlock!\n");
   }
 #endif
 
@@ -288,25 +287,6 @@ static inline void lc_server_post_recv(lc_server* s, lc_packet* p)
       fi_trecv(s->ep, &p->data, SHORT_MSG_SIZE, 0, FI_ADDR_UNSPEC, /*any*/0, ~(uint64_t)0 /*ignore all*/, &p->context));
   s->recv_posted++;
 }
-
-/*
-static inline void ofi_write_rma(lc_server* s, int rank, void* from,
-                             uintptr_t addr, uint64_t rkey, size_t size,
-                             lc_packet* ctx, uint32_t proto)
-{
-  ctx->context.proto = proto;
-  FI_SAFECALL(fi_write(s->ep, from, size, 0, s->fi_addr[rank], 0, rkey, ctx));
-}
-
-static inline void ofi_write_rma_signal(lc_server* s, int rank, void* buf,
-                                    uintptr_t addr, uint64_t rkey, size_t size,
-                                    uint32_t sid, lc_packet* ctx,
-                                    uint32_t proto)
-{
-  ctx->context.proto = proto;
-  FI_SAFECALL(fi_writedata(s->ep, buf, size, 0, sid, s->fi_addr[rank], addr,
-                           rkey, ctx));
-}*/
 
 static inline void lc_server_sendm(lc_server* s, void* rep, size_t size,
                                    lc_packet* ctx, uint32_t proto)
@@ -366,7 +346,7 @@ static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf,
                                      size_t size, uint32_t sid, lc_packet* ctx)
 {
   // workaround without modifying server.h
-  if (!(s->fi->domain_attr->mr_mode & FI_MR_VIRT_ADDR)) {
+  if (!(s->fi->domain_attr->mr_mode & FI_MR_VIRT_ADDR || s->fi->domain_attr->mr_mode & FI_MR_BASIC)) {
     addr = 0;
   }
   int ret;

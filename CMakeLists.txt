@@ -7,7 +7,9 @@ project(LCI
 )
 
 enable_testing()
-set(EXE_RUN "ibrun")
+#set(TEST_EXE srun)
+#set(TEST_ARG --mpi=pmi2)
+set(TEST_EXE mpirun)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")
 

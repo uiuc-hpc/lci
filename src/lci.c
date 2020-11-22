@@ -24,6 +24,9 @@ LCI_error_t LCI_Init(int* argc, char*** args)
   for (int i = 0; i < LCI_NUM_DEVICES; i++) {
     lc_dev_init(i, &LCI_DEVICES[i]);
   }
+
+  LCI_DBG_Log(LCI_LOG_WARN, "Running in low-performance debug mode!\n");
+
   return LCI_OK;
 }
 
@@ -45,7 +48,7 @@ LCI_error_t LCI_endpoint_create(int device, LCI_PL_t prop, LCI_endpoint_t* ep_pt
   ep->server = dev;
   ep->pkpool = dev->pkpool;
   ep->gid = num_endpoints++;
-  LCI_Assert(num_endpoints < LCI_MAX_ENDPOINTS);
+  LCI_Assert(num_endpoints < LCI_MAX_ENDPOINTS, "Too many endpoints!\n");
   LCI_ENDPOINTS[ep->gid] = ep;
 
   if (prop->ctype == LCI_COMM_2SIDED || prop->ctype == LCI_COMM_COLLECTIVE) {

@@ -4,7 +4,7 @@
 #include "config.h"
 
 #include "lci.h"
-#include "debug.h"
+#include "log.h"
 #include "cq.h"
 #include "hashtable.h"
 #include "macro.h"
@@ -57,9 +57,6 @@ static inline void lc_prepare_rtr(LCI_endpoint_t ep, void* src, size_t size,
       ((uintptr_t)p - (uintptr_t)lc_server_heap_ptr(ep->server));
   p->data.rtr.tgt_addr = (uintptr_t)src;
   p->data.rtr.rkey = lc_server_rma_key(rma_mem);
-
-  dprintf("%d] post recv rdma %p %d via %d\n", lcg_rank, src, size,
-          p->data.rtr.rkey);
 }
 
 static inline void lc_prepare_rts(void* src, size_t size, void* usr_context,
@@ -98,7 +95,6 @@ static inline void lc_ce_queue(LCI_endpoint_t ep, lc_packet* p, void* sync)
 
 static inline void lc_handle_rtr(LCI_endpoint_t ep, lc_packet* p)
 {
-  dprintf("Recv RTR %p\n", p);
   lc_pk_init(ep, -1, LC_PROTO_LONG, p);
   int tgt_rank = p->context.sync->request.rank;
 
@@ -110,11 +106,9 @@ static inline void lc_handle_rtr(LCI_endpoint_t ep, lc_packet* p)
 
 static inline void lc_handle_rts(LCI_endpoint_t ep, lc_packet* p)
 {
-  dprintf("Recv RTS: %p\n", p);
   lc_pk_init(ep, -1, LC_PROTO_RTR, p);
   lc_proto proto = MAKE_PROTO(ep->gid, LC_PROTO_RTR, 0);
   lc_prepare_rtr(ep, p->context.sync->request.data.buffer.start, p->data.rts.size, p);
-  dprintf("Send RTR: %p\n", p, p->context.sync->request.__reserved__, proto);
   lc_server_sendm(ep->server, p->context.sync->request.__reserved__,
                   sizeof(struct packet_rtr), p, proto);
 }
@@ -275,10 +269,10 @@ static inline void lc_serve_send(lc_packet* p)
   } else if (proto == LC_PROTO_RTS) {
 //    LCI_Assert((LCI_sync_t*)p->data.rts.ce != NULL);
 //    LCI_one2one_set_full((LCI_sync_t*)p->data.rts.ce);
-    LCI_Assert(p->context.ref == 1);
+    LCI_DBG_Assert(p->context.ref == 1, "p->context.ref = %d\n", p->context.ref);
     lc_pk_free(ep, p);
   } else {
-    LCI_Assert(proto == LC_PROTO_DATA);
+    LCI_DBG_Assert(proto == LC_PROTO_DATA, "unexpected proto %d\n", proto);
     if (p->context.sync != NULL)
       LCI_one2one_set_full(p->context.sync);
     if (p->context.ref == 1) {
@@ -290,7 +284,6 @@ static inline void lc_serve_send(lc_packet* p)
 static inline void lc_serve_imm(lc_packet* p)
 {
   LCI_endpoint_t ep = p->context.ep;
-  dprintf("Recv RDMA: %p %d\n", p, lc_server_rma_key(p->context.rma_mem));
   lc_server_rma_dereg(p->context.rma_mem);
   if (--p->context.ref == 0)
     lc_ce_dispatch(ep, p, p->context.sync, ep->property);

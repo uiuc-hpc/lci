@@ -175,17 +175,6 @@ typedef enum {
 } LCI_comptype_t;
 
 /**
- * LCI log level type.
- */
-enum LCI_log_level_t {
-  LCI_LOG_WARN = 0,
-  LCI_LOG_TRACE,
-  LCI_LOG_INFO,
-  LCI_LOG_DEBUG,
-  LCI_LOG_MAX
-};
-
-/**
  * LCI generic completion type.
  */
 typedef void* LCI_comp_t;
