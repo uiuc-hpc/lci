@@ -25,7 +25,7 @@ LCI_error_t LCI_Init(int* argc, char*** args)
     lc_dev_init(i, &LCI_DEVICES[i]);
   }
 
-  LCI_DBG_Log(LCI_LOG_WARN, "Running in low-performance debug mode!\n");
+  LCI_DBG_Log(LCI_LOG_WARN, "Macro LCI_DEBUG is defined. Running in low-performance debug mode!\n");
 
   return LCI_OK;
 }

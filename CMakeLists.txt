@@ -11,6 +11,11 @@ enable_testing()
 #set(TEST_ARG --mpi=pmi2)
 set(TEST_EXE mpirun)
 
+# -ftree-slp-vectorize (enabled by -03 automatically) would cause segmentation fault for pt2ptd
+# it may create unaligned memory access
+# not sure whether it is an issue in LCI or GCC
+add_compile_options(-fno-tree-slp-vectorize)
+
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")
 
 include(GNUInstallDirs)
