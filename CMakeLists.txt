@@ -7,14 +7,8 @@ project(LCI
 )
 
 enable_testing()
-#set(TEST_EXE srun)
-#set(TEST_ARG --mpi=pmi2)
-set(TEST_EXE mpirun)
-
-# -ftree-slp-vectorize (enabled by -03 automatically) would cause segmentation fault for pt2ptd
-# it may create unaligned memory access
-# not sure whether it is an issue in LCI or GCC
-add_compile_options(-fno-tree-slp-vectorize)
+set(TEST_EXE mpirun CACHE STRING "exective to be used in ctest")
+set(TEST_ARG CACHE STRING "arguments to be used in ctest")
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")
 
@@ -22,7 +16,7 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(TargetSourcesRelative)
 
-set(LCI_SERVER psm CACHE STRING "Fabric")
+set(LCI_SERVER ofi CACHE STRING "Fabric")
 set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv psm)
 option(LCI_DEBUG "LCI Debug Mode" OFF)
 option(LCI_USE_DREG "Use registration cache (only affects ibv -- only use when not-so-dynamic allocation)" ON)

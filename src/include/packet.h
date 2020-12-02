@@ -22,7 +22,7 @@
   else                                                       \
     lc_pool_put((ep_)->pkpool, p_);
 
-struct __attribute__((packed)) packet_context {
+struct __attribute__((packed, aligned(64))) packet_context {
   // Most of the current ctx requires 128-bits (FIXME)
   int64_t hwctx[2];
   // Here is LLCI context.
