@@ -90,6 +90,7 @@ LC_INLINE int32_t lc_pool_get_local(struct lc_pool* pool)
   return pid;
 }
 
+// TODO: improve this
 LC_INLINE void* lc_pool_get_slow(struct lc_pool* pool)
 {
   void* elm = NULL;

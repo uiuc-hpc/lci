@@ -74,4 +74,5 @@ int main(int argc, char** args) {
     }
   }
   LCI_Free();
+  return 0;
 }

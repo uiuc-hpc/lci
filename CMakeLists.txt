@@ -3,7 +3,6 @@ project(LCI
   VERSION 0.2.1
   DESCRIPTION "Lightweight Communication Interface"
   HOMEPAGE_URL "https://github.com/uiuc-hpc/LC"
-  LANGUAGES C
 )
 
 enable_testing()

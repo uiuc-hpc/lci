@@ -102,14 +102,22 @@ static inline void lc_server_init(int id, lc_server** dev)
   hints->ep_attr->type = FI_EP_RDM;
 //  hints->domain_attr->mr_mode = FI_MR_BASIC;
   hints->domain_attr->mr_mode = FI_MR_VIRT_ADDR | FI_MR_ALLOCATED | FI_MR_PROV_KEY | FI_MR_LOCAL;
+  hints->domain_attr->threading = FI_THREAD_SAFE;
   hints->caps = FI_RMA | FI_TAGGED;
   hints->mode = FI_LOCAL_MR;
 
   // Create info.
   FI_SAFECALL(fi_getinfo(FI_VERSION(1, 6), NULL, NULL, 0, hints, &s->fi));
-  LCI_Log(LCI_LOG_INFO, "Provider: %s\n", s->fi->fabric_attr->prov_name);
-  LCI_Log(LCI_LOG_INFO, "Given: [%s]\n", fi_tostr(&(hints->domain_attr->mr_mode), FI_TYPE_MR_MODE));
-  LCI_Log(LCI_LOG_INFO, "Provided: [%s]\n", fi_tostr(&(s->fi->domain_attr->mr_mode), FI_TYPE_MR_MODE));
+  LCI_Log(LCI_LOG_INFO, "Provider name: %s\n", s->fi->fabric_attr->prov_name);
+  LCI_Log(LCI_LOG_INFO, "MR mode hints: [%s]\n", fi_tostr(&(hints->domain_attr->mr_mode), FI_TYPE_MR_MODE));
+  LCI_Log(LCI_LOG_INFO, "MR mode provided: [%s]\n", fi_tostr(&(s->fi->domain_attr->mr_mode), FI_TYPE_MR_MODE));
+  LCI_Log(LCI_LOG_INFO, "Thread mode: %s\n", fi_tostr(&(s->fi->domain_attr->threading), FI_TYPE_THREADING));
+  LCI_Log(LCI_LOG_INFO, "Control progress mode: %s\n", fi_tostr(&(s->fi->domain_attr->control_progress), FI_TYPE_PROGRESS));
+  LCI_Log(LCI_LOG_INFO, "Data progress mode: %s\n", fi_tostr(&(s->fi->domain_attr->data_progress), FI_TYPE_PROGRESS));
+  LCI_Log(LCI_LOG_MAX, "Fi_info provided: %s\n", fi_tostr(s->fi, FI_TYPE_INFO));
+  LCI_Log(LCI_LOG_MAX, "Fabric attributes: %s\n", fi_tostr(s->fi->fabric_attr, FI_TYPE_FABRIC_ATTR));
+  LCI_Log(LCI_LOG_MAX, "Domain attributes: %s\n", fi_tostr(s->fi->domain_attr, FI_TYPE_DOMAIN_ATTR));
+  LCI_Log(LCI_LOG_MAX, "Endpoint attributes: %s\n", fi_tostr(s->fi->ep_attr, FI_TYPE_EP_ATTR));
   LCI_Assert(s->fi->domain_attr->cq_data_size >= 8, "cq_data_size = %lu\n", s->fi->domain_attr->cq_data_size);
   LCI_Assert(s->fi->domain_attr->mr_key_size <= 8, "mr_key_size = %lu\n", s->fi->domain_attr->mr_key_size);
   fi_freeinfo(hints);
@@ -155,11 +163,11 @@ static inline void lc_server_init(int id, lc_server** dev)
 
   // Now exchange end-point address, heap address, and rkey.
   // assume the size of the raw address no larger than 128 bits.
+  const int EP_ADDR_LEN = 6;
   size_t addrlen = 0;
   fi_getname((fid_t)s->ep, NULL, &addrlen);
   LCI_Log(LCI_LOG_INFO, "addrlen = %lu\n", addrlen);
-  LCI_Assert(addrlen <= 48, "addrlen = %lu\n", addrlen);
-  const int EP_ADDR_LEN = 6;
+  LCI_Assert(addrlen <= 8 * EP_ADDR_LEN, "addrlen = %lu\n", addrlen);
   uint64_t my_addr[EP_ADDR_LEN];
   FI_SAFECALL(fi_getname((fid_t)s->ep, my_addr, &addrlen));
   uint64_t my_rkey = fi_mr_key(s->mr_heap);
