@@ -32,7 +32,7 @@ void LCI_Log_(enum LCI_log_level_t log_level, const char *file,
   char buf[1024];
   int size;
   va_list vargs;
-
+  LCI_Assert(log_level != LCI_LOG_NONE, "You should not use LCI_LOG_NONE!\n");
   if (log_level <= LCI_LOG_LEVEL) {
     size = snprintf(buf, sizeof(buf), "%d:%s:%s:%d<%s> ", LCI_RANK, file, func,
                     line, log_levels[log_level]);

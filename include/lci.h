@@ -116,6 +116,11 @@ extern int LCI_MAX_CQ_LENGTH;
  * control the LCI log level
  */
 extern int LCI_LOG_LEVEL;
+
+/**
+ * specify the PMI version used by LCI
+ */
+extern int LCI_PMI_VERSION;
 /**@}*/
 
 /**
@@ -184,14 +189,34 @@ typedef enum {
 } LCI_comptype_t;
 
 /**
- * LCI generic completion type.
- */
-typedef void* LCI_comp_t;
-
-/**
  * LCI dynamic buffer.
  */
 typedef enum { LCI_STATIC = 0, LCI_DYNAMIC } LCI_dynamic_t;
+
+/**
+ * LCI log level type.
+ */
+enum LCI_log_level_t {
+  LCI_LOG_NONE = 0,
+  LCI_LOG_WARN,
+  LCI_LOG_TRACE,
+  LCI_LOG_INFO,
+  LCI_LOG_DEBUG,
+  LCI_LOG_MAX
+};
+
+/**
+ * LCI log level type.
+ */
+enum LCI_pmi_version_t {
+  LCI_USE_PMI = 0,
+  LCI_USE_PMI2
+};
+
+/**
+ * LCI generic completion type.
+ */
+typedef void* LCI_comp_t;
 
 /**
  * Synchronizer object, owned by the runtime.
