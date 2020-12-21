@@ -30,7 +30,7 @@ find_path(
 
 find_library(
   PMI2_LIBRARY
-  NAMES pmi2
+  NAMES pmi2 pmi
   HINTS ${PMI2_ROOT}
         ENV
         PMI2_ROOT

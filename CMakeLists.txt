@@ -133,7 +133,7 @@ target_link_libraries(lci-obj PUBLIC
   Fabric::Fabric
   $<$<BOOL:${LCI_SYNC_ABT}>:Argobots::Argobots>
 )
-if(LCI_USE_PMI2)
+if(LCI_USE_PMI2 AND PMI2_FOUND)
   target_link_libraries(lci-obj PUBLIC PMI::PMI2)
 endif()
 
