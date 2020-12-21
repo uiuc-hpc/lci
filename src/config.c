@@ -19,7 +19,6 @@ int LCI_MAX_MT_LENGTH = 1u << TBL_BIT_SIZE;
 int LCI_DEFAULT_CQ_LENGTH = CQ_MAX_SIZE;
 int LCI_MAX_CQ_LENGTH = CQ_MAX_SIZE;
 int LCI_LOG_LEVEL = LCI_LOG_WARN;
-int LCI_PMI_VERSION = LCI_USE_PMI;
 
 static inline int getenv_or(char* env, int def) {
   char* val = getenv(env);
@@ -56,15 +55,6 @@ void lc_config_init(int num_proc, int rank)
     LCI_LOG_LEVEL = LCI_LOG_MAX;
   else
     LCI_Log(LCI_LOG_WARN, "unknown env LCI_LOG_LEVEL (%s against none|warn|trace|info|debug|max). use the default LCI_LOG_WARN.\n", p);
-
-  p = getenv("LCI_PMI_VERSION");
-  if (p == NULL) ;
-  else if (strcmp(p, "pmi") == 0 || strcmp(p, "PMI") == 0)
-    LCI_PMI_VERSION = LCI_USE_PMI;
-  else if (strcmp(p, "pmi2") == 0 || strcmp(p, "PMI2") == 0)
-    LCI_PMI_VERSION = LCI_USE_PMI2;
-  else
-    LCI_Log(LCI_LOG_WARN, "unknown env LCI_PMI_VERSION (%s against pmi|pmi2). use the default PMIv1.\n", p);
 
   LCI_DEVICES = calloc(sizeof(lc_server*), LCI_NUM_DEVICES);
   LCI_ENDPOINTS = calloc(sizeof(LCI_endpoint_t), LCI_MAX_ENDPOINTS);

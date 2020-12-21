@@ -5,7 +5,7 @@
 lc_server** LCI_DEVICES;
 LCI_endpoint_t* LCI_ENDPOINTS;
 
-char lcg_name[64];
+char lcg_name[256];
 int lcg_current_id = 0; int lcg_deadlock = 0;
 volatile uint32_t lc_next_rdma_key = 1;
 __thread int lcg_core_id = -1;
@@ -103,6 +103,10 @@ LCI_error_t LCI_bbuffer_free(LCI_bbuffer_t buffer, int device_id)
   lc_packet* packet = LC_PACKET_OF(buffer);
   lc_pool_put(LCI_DEVICES[device_id]->pkpool, packet);
   return LCI_OK;
+}
+
+void LCI_PM_barrier() {
+  lc_pm_barrier();
 }
 
 int LCI_Rank()

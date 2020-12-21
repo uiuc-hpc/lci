@@ -206,14 +206,6 @@ enum LCI_log_level_t {
 };
 
 /**
- * LCI log level type.
- */
-enum LCI_pmi_version_t {
-  LCI_USE_PMI = 0,
-  LCI_USE_PMI2
-};
-
-/**
  * LCI generic completion type.
  */
 typedef void* LCI_comp_t;

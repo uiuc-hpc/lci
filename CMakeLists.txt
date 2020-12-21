@@ -5,27 +5,41 @@ project(LCI
   HOMEPAGE_URL "https://github.com/uiuc-hpc/LC"
 )
 
-enable_testing()
+option(LCI_DEBUG "LCI Debug Mode" OFF)
+option(LCI_USE_DREG "Use registration cache (only affects ibv -- only use when not-so-dynamic allocation)" ON)
+option(LCI_USE_PMI2 "Enable PMI2" OFF)
 set(TEST_EXE mpirun CACHE STRING "exective to be used in ctest")
 set(TEST_ARG CACHE STRING "arguments to be used in ctest")
+set(LCI_SERVER ofi CACHE STRING "Fabric")
+set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv psm)
+set(LCI_EP_AR dynamic explicit CACHE STRING "Addressing mode (dynamic, explicit, immediate)")
+set(LCI_EP_CE sync cq CACHE STRING "Completion mechanism (sync, cq, am, glob)")
+set(LCI_MAX_DEV 1 CACHE STRING "Maximum number of devices")
+set(LCI_MAX_EP 8 CACHE STRING "Maximum number of EP")
+set(LCI_SYNC flag CACHE STRING "Sync mechanism")
+set_property(CACHE LCI_SYNC PROPERTY STRINGS flag argobots)
+
+set(LCI_PACKET_SIZE ${LCI_PACKET_SIZE} CACHE STRING "Size of packet")
+set(LCI_MAX_INLINE ${LCI_MAX_INLINE} CACHE STRING "Max inline message size")
+set(LCI_DEV_MEM_SIZE "(64*1024*1024)" CACHE STRING "Size of device memory")
+set(LCI_SERVER_MAX_RCVS 64 CACHE STRING "Max posted recvs")
+set(LCI_SERVER_NUM_PKTS 1024 CACHE STRING "Number of packets")
+set(LCI_CACHE_LINE 64 CACHE STRING "Size of cache line (bytes)")
+mark_as_advanced(
+        LCI_PACKET_SIZE
+        LCI_MAX_INLINE
+        LCI_DEV_MEM_SIZE
+        LCI_SERVER_MAX_RCVS
+        LCI_SERVER_NUM_PKTS
+        LCI_CACHE_LINE
+)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(TargetSourcesRelative)
-
-set(LCI_SERVER ofi CACHE STRING "Fabric")
-set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv psm)
-option(LCI_DEBUG "LCI Debug Mode" OFF)
-option(LCI_USE_DREG "Use registration cache (only affects ibv -- only use when not-so-dynamic allocation)" ON)
-set(LCI_EP_AR dynamic explicit CACHE STRING "Addressing mode (dynamic, explicit, immediate)")
-set(LCI_EP_CE sync cq CACHE STRING "Completion mechanism (sync, cq, am, glob)")
-set(LCI_MAX_DEV 1 CACHE STRING "Maximum number of devices")
-set(LCI_MAX_EP 8 CACHE STRING "Maximum number of EP")
-
-set(LCI_SYNC flag CACHE STRING "Sync mechanism")
-set_property(CACHE LCI_SYNC PROPERTY STRINGS flag argobots)
+enable_testing()
 
 if(LCI_SERVER STREQUAL "ofi")
   set(LCI_USE_SERVER_OFI ON)
@@ -91,24 +105,7 @@ else()
   set(LCI_MAX_INLINE "64")
 endif()
 
-set(LCI_PACKET_SIZE ${LCI_PACKET_SIZE} CACHE STRING "Size of packet")
-set(LCI_MAX_INLINE ${LCI_MAX_INLINE} CACHE STRING "Max inline message size")
-set(LCI_DEV_MEM_SIZE "(64*1024*1024)" CACHE STRING "Size of device memory")
-set(LCI_SERVER_MAX_RCVS 64 CACHE STRING "Max posted recvs")
-set(LCI_SERVER_NUM_PKTS 1024 CACHE STRING "Number of packets")
-set(LCI_CACHE_LINE 64 CACHE STRING "Size of cache line (bytes)")
-mark_as_advanced(
-  LCI_PACKET_SIZE
-  LCI_MAX_INLINE
-  LCI_DEV_MEM_SIZE
-  LCI_SERVER_MAX_RCVS
-  LCI_SERVER_NUM_PKTS
-  LCI_CACHE_LINE
-)
-
-
-
-
+# find package
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
@@ -117,8 +114,7 @@ string(TOUPPER ${LCI_SERVER} FABRIC_PREFER)
 find_package(Fabric REQUIRED)
 
 find_package(Argobots)
-
-
+find_package(PMI2)
 
 add_library(lci-obj OBJECT)
 set_target_properties(lci-obj PROPERTIES
@@ -137,6 +133,9 @@ target_link_libraries(lci-obj PUBLIC
   Fabric::Fabric
   $<$<BOOL:${LCI_SYNC_ABT}>:Argobots::Argobots>
 )
+if(LCI_USE_PMI2)
+  target_link_libraries(lci-obj PUBLIC PMI::PMI2)
+endif()
 
 add_library(lci_shared SHARED)
 add_library(lci_static STATIC)
@@ -146,8 +145,6 @@ set_target_properties(lci_shared lci_static PROPERTIES OUTPUT_NAME lci)
 
 add_subdirectory(src)
 add_subdirectory(examples)
-
-
 
 write_basic_package_version_file(
   "${CMAKE_CURRENT_BINARY_DIR}/LCIConfigVersion.cmake"
@@ -180,4 +177,3 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/FindFabric.cmake"
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LCI
 )
 install(PROGRAMS lcrun DESTINATION ${CMAKE_INSTALL_BINDIR})
-
