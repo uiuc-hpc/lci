@@ -44,7 +44,7 @@
   (void*)((((uintptr_t)x + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT))
 #define MAX_CQ_SIZE (16 * 1024)
 #define MAX_POLL 8
-#define OFI_IMM_RTR ((uint64_t)1 << 63)
+#define OFI_IMM_RTR ((uint64_t)1 << 31)
 
 typedef struct lc_server {
   SERVER_COMMON
@@ -118,7 +118,7 @@ static inline void lc_server_init(int id, lc_server** dev)
   LCI_Log(LCI_LOG_MAX, "Fabric attributes: %s\n", fi_tostr(s->fi->fabric_attr, FI_TYPE_FABRIC_ATTR));
   LCI_Log(LCI_LOG_MAX, "Domain attributes: %s\n", fi_tostr(s->fi->domain_attr, FI_TYPE_DOMAIN_ATTR));
   LCI_Log(LCI_LOG_MAX, "Endpoint attributes: %s\n", fi_tostr(s->fi->ep_attr, FI_TYPE_EP_ATTR));
-  LCI_Assert(s->fi->domain_attr->cq_data_size >= 8, "cq_data_size = %lu\n", s->fi->domain_attr->cq_data_size);
+  LCI_Assert(s->fi->domain_attr->cq_data_size >= 4, "cq_data_size = %lu\n", s->fi->domain_attr->cq_data_size);
   LCI_Assert(s->fi->domain_attr->mr_key_size <= 8, "mr_key_size = %lu\n", s->fi->domain_attr->mr_key_size);
   fi_freeinfo(hints);
 
