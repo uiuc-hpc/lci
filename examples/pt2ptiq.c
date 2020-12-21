@@ -27,7 +27,7 @@ int main(int argc, char** args) {
   LCI_PL_set_MT(prop,&mt);
 
   LCI_endpoint_create(0, prop, &ep);
-  LCI_PM_barrier();
+  LCI_barrier();
 
   int rank = LCI_RANK;
   int tag = 99;

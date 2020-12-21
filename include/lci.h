@@ -414,7 +414,7 @@ int LCI_Size();
  * Barrier all processes using out-of-band communications.
  */
 LCI_API
-void LCI_PM_barrier();
+void LCI_barrier();
 
 /**@}*/
 

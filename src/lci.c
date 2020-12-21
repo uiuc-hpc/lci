@@ -35,7 +35,7 @@ LCI_error_t LCI_Free()
   for (int i = 0; i < LCI_NUM_DEVICES; i++) {
     lc_dev_finalize(LCI_DEVICES[i]);
   }
-  LCI_PM_barrier();
+  LCI_barrier();
   return LCI_OK;
 }
 
@@ -105,7 +105,7 @@ LCI_error_t LCI_bbuffer_free(LCI_bbuffer_t buffer, int device_id)
   return LCI_OK;
 }
 
-void LCI_PM_barrier() {
+void LCI_barrier() {
   lc_pm_barrier();
 }
 

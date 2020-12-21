@@ -76,13 +76,13 @@ int main(int argc, char *argv[])
 //      for (num_threads=min_threads; num_threads <= max_threads; num_threads += (num_threads > 1 ? 2 : 1))
     {
       thread_run(send_thread, num_threads);
-      LCI_PM_barrier();
+      LCI_barrier();
     }
   } else {
     for (num_threads=min_threads; num_threads <= max_threads; num_threads *= 2)
     {
       thread_run(recv_thread, num_threads);
-      LCI_PM_barrier();
+      LCI_barrier();
     }
   }
 
@@ -115,7 +115,7 @@ void* recv_thread(void* arg)
   for (size = min_size; size <= max_size; size = (size ? size * 2 : 1)) {
     thread_barrier();
     if (thread_id() == 0)
-      LCI_PM_barrier();
+      LCI_barrier();
     thread_barrier();
 
     /* touch the data */
@@ -178,7 +178,7 @@ void* send_thread(void* arg)
   for (size = min_size; size <= max_size; size = (size ? size * 2 : 1)) {
     thread_barrier();
     if (thread_id() == 0)
-      LCI_PM_barrier();
+      LCI_barrier();
     thread_barrier();
 
     /* touch the data */

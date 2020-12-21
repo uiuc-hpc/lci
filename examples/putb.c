@@ -22,12 +22,12 @@ int main(int argc, char** args) {
 
   LCI_endpoint_create(0, prop, &ep);
   int rank = LCI_RANK;
-  LCI_PM_barrier();
+  LCI_barrier();
 
   LCI_syncl_t sync;
   LCI_sync_create(&sync);
 
-  LCI_PM_barrier();
+  LCI_barrier();
 
   double t1;
   LCI_bbuffer_t p;

@@ -22,7 +22,7 @@ int main(int argc, char** args) {
 
   LCI_endpoint_create(0, prop, &ep);
   int rank = LCI_RANK;
-  LCI_PM_barrier();
+  LCI_barrier();
 
   LCI_syncl_t sync;
   LCI_sync_create(&sync);
@@ -35,7 +35,7 @@ int main(int argc, char** args) {
   long* rbuf = (long*) (addr + MAX_MSG);
   memset(sbuf, 1, sizeof(char) * MAX_MSG);
   rbuf[0] = -1;
-  LCI_PM_barrier();
+  LCI_barrier();
 
   double t1;
 

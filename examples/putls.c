@@ -30,7 +30,7 @@ int main(int argc, char** args) {
   long* rbuf = (long*) (addr + MAX_MSG);
   memset(sbuf, 1, sizeof(char) * MAX_MSG);
   rbuf[0] = -1;
-  LCI_PM_barrier();
+  LCI_barrier();
 
   double t1;
   lc_sync sync;

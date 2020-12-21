@@ -41,7 +41,7 @@ int main(int argc, char** args) {
 
   lc_ep_query(dev[0], 1-rank, 0, &rep[0]);
   lc_ep_query(dev[1], 1-rank, 1, &rep[1]);
-  LCI_PM_barrier();
+  LCI_barrier();
 
   lc_req req;
   struct lc_wr wr = {
