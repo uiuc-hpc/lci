@@ -7,7 +7,7 @@ project(LCI
 
 option(LCI_DEBUG "LCI Debug Mode" OFF)
 option(LCI_USE_DREG "Use registration cache (only affects ibv -- only use when not-so-dynamic allocation)" ON)
-option(LCI_USE_PMI2 "Enable PMI2" OFF)
+option(LCI_USE_PMI2 "Enable PMI2" ON)
 set(TEST_EXE mpirun CACHE STRING "exective to be used in ctest")
 set(TEST_ARG CACHE STRING "arguments to be used in ctest")
 set(LCI_SERVER ofi CACHE STRING "Fabric")
@@ -115,6 +115,10 @@ find_package(Fabric REQUIRED)
 
 find_package(Argobots)
 find_package(PMI2)
+if(NOT PMI2_FOUND)
+  message("WARNING: Not found PMI2. Switch back to PMI (v1).")
+  set(LCI_USE_PMI2 OFF)
+endif()
 
 add_library(lci-obj OBJECT)
 set_target_properties(lci-obj PROPERTIES
@@ -133,7 +137,7 @@ target_link_libraries(lci-obj PUBLIC
   Fabric::Fabric
   $<$<BOOL:${LCI_SYNC_ABT}>:Argobots::Argobots>
 )
-if(LCI_USE_PMI2 AND PMI2_FOUND)
+if(LCI_USE_PMI2)
   target_link_libraries(lci-obj PUBLIC PMI::PMI2)
 endif()
 
