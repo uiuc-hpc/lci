@@ -16,6 +16,7 @@ set(LCI_SERVER psm CACHE STRING "Fabric")
 set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv psm)
 option(LCI_SERVER_DEBUG "Server debug" OFF)
 option(LCI_USE_DREG "Use registration cache (only affects ibv -- only use when not-so-dynamic allocation)" ON)
+option(LCI_USE_PMI2 "Enable PMI2" OFF)
 set(LCI_EP_AR dynamic explicit CACHE STRING "Addressing mode (dynamic, explicit, immediate)")
 set(LCI_EP_CE sync cq CACHE STRING "Completion mechanism (sync, cq, am, glob)")
 set(LCI_MAX_DEV 1 CACHE STRING "Maximum number of devices")
@@ -114,7 +115,11 @@ string(TOUPPER ${LCI_SERVER} FABRIC_PREFER)
 find_package(Fabric REQUIRED)
 
 find_package(Argobots)
-
+find_package(PMI2)
+if(NOT PMI2_FOUND)
+  message("WARNING: Not found PMI2. Switch back to PMI (v1).")
+  set(LCI_USE_PMI2 OFF)
+endif()
 
 
 add_library(lci-obj OBJECT)
@@ -134,6 +139,9 @@ target_link_libraries(lci-obj PUBLIC
   Fabric::Fabric
   $<$<BOOL:${LCI_SYNC_ABT}>:Argobots::Argobots>
 )
+if(LCI_USE_PMI2)
+  target_link_libraries(lci-obj PUBLIC PMI::PMI2)
+endif()
 
 add_library(lci_shared SHARED)
 add_library(lci_static STATIC)

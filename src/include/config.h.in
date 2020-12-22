@@ -17,6 +17,7 @@
 #cmakedefine LCI_SERVER_HAS_GLOB
 
 #cmakedefine USE_DREG
+#cmakedefine LCI_USE_PMI2
 
 #define LCI_MAX_DEV         @LCI_MAX_DEV@
 #define LCI_MAX_EP          @LCI_MAX_EP@

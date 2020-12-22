@@ -29,8 +29,10 @@
 
 # CLion related
 .idea
-cmake-build-debug
+cmake-build-*
 
 results
 errors
 *_test
+build-*/
+code_doc/

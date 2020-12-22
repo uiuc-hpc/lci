@@ -107,3 +107,7 @@ LCI_error_t LCI_bbuffer_free(LCI_bbuffer_t buffer, int device_id)
   lc_pool_put(LCI_DEVICES[device_id]->pkpool, packet);
   return LCI_OK;
 }
+
+void LCI_PM_barrier() {
+  lc_pm_barrier();
+}
