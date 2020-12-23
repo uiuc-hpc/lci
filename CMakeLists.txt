@@ -116,7 +116,7 @@ find_package(Fabric REQUIRED)
 find_package(Argobots)
 find_package(PMI2)
 if(NOT PMI2_FOUND)
-  message("WARNING: Not found PMI2. Switch back to PMI (v1).")
+  message(WARNING "Not found PMI2. Switch back to PMI (v1).")
   set(LCI_USE_PMI2 OFF)
 endif()
 
@@ -149,6 +149,7 @@ set_target_properties(lci_shared lci_static PROPERTIES OUTPUT_NAME lci)
 
 add_subdirectory(src)
 add_subdirectory(examples)
+add_subdirectory(doc)
 
 write_basic_package_version_file(
   "${CMAKE_CURRENT_BINARY_DIR}/LCIConfigVersion.cmake"

@@ -20,27 +20,29 @@ echo "Setting up the execution environment..."
 gh_remote=${1:-origin}
 echo "Set the push target to github remote ${gh_remote}"
 # work directory (WARNING: would be deleted if already existing)
-doc_dir=./code_doc
+gh_pages_dir=./gh-repo
 # remote url to be pushed to
 gh_url=$(git remote get-url ${gh_remote})
 # commit ID that generates the documentation
 gh_commit=$(git rev-parse HEAD)
 
 # Clone the current gh-pages branch here
-if [ -d ${doc_dir} ]; then
-  rm -r ${doc_dir}
+if [ -d ${gh_pages_dir} ]; then
+  rm -r ${gh_pages_dir}
 fi
-git clone -b gh-pages ${gh_url} ${doc_dir}
-cd ${doc_dir}
+git clone -b gh-pages ${gh_url} ${gh_pages_dir}
+cd ${gh_pages_dir}
 # go back to first commit
 git reset --hard "$(git rev-list --max-parents=0 --abbrev-commit HEAD)"
 
-echo "Generating Doxygen documentation..."
-( cat ../Doxyfile ; printf "OUTPUT_DIRECTORY=./\nHTML_OUTPUT=html\nGENERATE_HTML=YES\nINPUT=../\nGENERATE_LATEX=NO" ) | \
-doxygen - > doxygen.log 2>&1
+#echo "Generating Doxygen documentation..."
+#( cat ../Doxyfile ; printf "OUTPUT_DIRECTORY=./\nHTML_OUTPUT=html\nGENERATE_HTML=YES\nINPUT=../\nGENERATE_LATEX=NO" ) | \
+#doxygen - > doxygen.log 2>&1
 
-if [ -d "html" ] && [ -f "html/index.html" ]; then
+if [ -d "../html" ] && [ -f "../html/index.html" ]; then
   echo "Uploading documentation to ${gh_url}..."
+  rm -rf ./html
+  cp -r ../html ./
   git add --all
   git commit -m "Doxygen doc for ${gh_commit}" > /dev/null 2>&1
   git push --force origin
