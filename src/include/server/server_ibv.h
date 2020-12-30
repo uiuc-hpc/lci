@@ -460,7 +460,6 @@ static inline void lc_server_finalize(lc_server* s)
   ibv_destroy_cq(s->send_cq);
   ibv_destroy_cq(s->recv_cq);
   ibv_destroy_srq(s->dev_srq);
-  lc_pm_finalize();
   free(s);
 }
 

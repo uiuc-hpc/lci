@@ -36,6 +36,7 @@ LCI_error_t LCI_Free()
     lc_dev_finalize(LCI_DEVICES[i]);
   }
   LCI_barrier();
+  lc_pm_finalize();
   return LCI_OK;
 }
 
