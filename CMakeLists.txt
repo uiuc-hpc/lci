@@ -115,12 +115,6 @@ string(TOUPPER ${LCI_SERVER} FABRIC_PREFER)
 find_package(Fabric REQUIRED)
 
 find_package(Argobots)
-find_package(PMI2)
-if(NOT PMI2_FOUND)
-  message("WARNING: Not found PMI2. Switch back to PMI (v1).")
-  set(LCI_USE_PMI2 OFF)
-endif()
-
 
 add_library(lci-obj OBJECT)
 set_target_properties(lci-obj PROPERTIES
@@ -139,9 +133,6 @@ target_link_libraries(lci-obj PUBLIC
   Fabric::Fabric
   $<$<BOOL:${LCI_SYNC_ABT}>:Argobots::Argobots>
 )
-if(LCI_USE_PMI2)
-  target_link_libraries(lci-obj PUBLIC PMI::PMI2)
-endif()
 
 add_library(lci_shared SHARED)
 add_library(lci_static STATIC)
