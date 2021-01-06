@@ -24,37 +24,37 @@ extern "C" {
 /**
  * The maximum size of a buffer that can be used in immediate protocol.
  */
-int LCI_IMMEDIATE_LENGTH;
+extern int LCI_IMMEDIATE_LENGTH;
 
 /**
  * The maximum size of a buffer that can be used in buffered protocol.
  */
-int LCI_BUFFERED_LENGTH;
+extern int LCI_BUFFERED_LENGTH;
 
 /**
  * The number of devices created intially.
  */
-int LCI_NUM_DEVICES;
+extern int LCI_NUM_DEVICES;
 
 /**
  * The number of endpoints that can be created.
  */
-int LCI_NUM_ENDPOINTS;
+extern int LCI_NUM_ENDPOINTS;
 
 /**
  * The number of processes in this job.
  */
-int LCI_NUM_PROCESSES;
+extern int LCI_NUM_PROCESSES;
 
 /**
  * The rank of the current process w.r.t the job.
  */
-int LCI_RANK;
+extern int LCI_RANK;
 
 /**
  * The amount of pre-registered memory for a device dedicated for communciation.
  */
-int LCI_REGISTERED_MEMORY_SIZE;
+extern int LCI_REGISTERED_MEMORY_SIZE;
 
 /**@}*/
 

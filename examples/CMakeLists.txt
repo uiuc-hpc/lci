@@ -3,7 +3,7 @@ function(add_example NAME)
   target_compile_definitions(${NAME} PRIVATE _GNU_SOURCE)
   target_link_libraries(${NAME} PRIVATE
     Threads::Threads
-    lci_static
+    lci_shared
   )
   if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.13")
     target_link_options(${NAME} PRIVATE
