@@ -435,11 +435,13 @@ LCI_error_t LCI_request_free(LCI_endpoint_t ep, int n, LCI_request_t** req);
 /**
  * Create a matching hash-table.
  */
+LCI_API
 LCI_error_t LCI_MT_create(uint32_t length, LCI_MT_t* mt);
 
 /**
  * Destroy the matching hash-table.
  */
+LCI_API
 LCI_error_t LCI_MT_free(LCI_MT_t* mt);
 
 /**
