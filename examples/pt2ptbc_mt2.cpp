@@ -9,6 +9,9 @@
 
 /**
  * Multithreaded ping-pong benchmark with sendbc/recvbc
+ * Touch the data
+ *
+ * write the buffer before send and read the buffer after recv
  */
 
 void * send_thread(void*);
@@ -24,6 +27,21 @@ int min_threads = 1;
 int max_threads = 4;
 int min_size = 8;
 int max_size = 64;
+
+void write_buffer(char* buffer, int len, char input) {
+  for (int i = 0; i < len; ++i) {
+    buffer[i] = input;
+  }
+}
+
+bool check_buffer(const char* buffer, int len, char expect) {
+  for (int i = 0; i < len; ++i) {
+    if (buffer[i] != expect) {
+      return false;
+    }
+  }
+  return true;
+}
 
 int main(int argc, char *argv[])
 {
@@ -102,16 +120,10 @@ void* recv_thread(void* arg)
   unsigned long align_size = sysconf(_SC_PAGESIZE);
   int size, i, val;
   char * ret = NULL;
-  char *s_buf, *r_buf;
+  char *buf;
   val = thread_id();
 
-  if (_memalign((void**)&s_buf, align_size, max_size)) {
-    fprintf(stderr, "Error allocating host memory\n");
-    *ret = '1';
-    return ret;
-  }
-
-  if (_memalign((void**)&r_buf, align_size, max_size)) {
+  if (_memalign((void**)&buf, align_size, max_size)) {
     fprintf(stderr, "Error allocating host memory\n");
     *ret = '1';
     return ret;
@@ -123,28 +135,22 @@ void* recv_thread(void* arg)
       LCI_barrier();
     thread_barrier();
 
-    /* touch the data */
-    for(i = 0; i < size; i++) {
-      s_buf[i] = 'a';
-      r_buf[i] = 'b';
-    }
     LCI_syncl_t sync;
-
     thread_barrier();
 
     RUN_VARY_MSG({size, size}, 0, [&](int msg_size, int iter) {
       LCI_one2one_set_empty(&sync);
-      LCI_recvbc(r_buf, size, 1-rank, val, ep[GETDEV(val)], &sync);
+      LCI_recvbc(buf, size, 1-rank, val, ep[GETDEV(val)], &sync);
       while (LCI_one2one_test_empty(&sync)) continue;
-
-      while (LCI_sendbc(s_buf, size, 1-rank, val, ep[GETDEV(val)]) != LCI_OK) continue;
+      if(!check_buffer(buf, size, 's')) abort();
+      write_buffer(buf, size, 'r');
+      while (LCI_sendbc(buf, size, 1-rank, val, ep[GETDEV(val)]) != LCI_OK) continue;
     }, {val, num_threads});
 
     thread_barrier();
   }
 
-  _free(r_buf);
-  _free(s_buf);
+  _free(buf);
 //  printf( "rank %d omp thread %2d of %2d running on cpu %2d!\n",
 //          rank,
 //          omp_get_thread_num()+1,
@@ -159,19 +165,13 @@ void* send_thread(void* arg)
 //  printf("send thread %d/%d on rank %d/%d\n", thread_id(), thread_count(), rank, size);
   unsigned long align_size = sysconf(_SC_PAGESIZE);
   int size, i, val;
-  char *s_buf, *r_buf;
+  char *buf;
   double t_start = 0, t_end = 0, t = 0, latency;
   char *ret = NULL;
 
   val = thread_id();
 
-  if (_memalign((void**)&s_buf, align_size, max_size)) {
-    fprintf(stderr, "Error allocating host memory\n");
-    *ret = '1';
-    return ret;
-  }
-
-  if (_memalign((void**)&r_buf, align_size, max_size)) {
+  if (_memalign((void**)&buf, align_size, max_size)) {
     fprintf(stderr, "Error allocating host memory\n");
     *ret = '1';
     return ret;
@@ -188,28 +188,23 @@ void* send_thread(void* arg)
       LCI_barrier();
     thread_barrier();
 
-    /* touch the data */
-    for(i = 0; i < size; i++) {
-      s_buf[i] = 'a';
-      r_buf[i] = 'b';
-    }
     LCI_syncl_t sync;
-
     thread_barrier();
 
     RUN_VARY_MSG({size, size}, 1, [&](int msg_size, int iter) {
-      while (LCI_sendbc(s_buf, size, 1-rank, val, ep[GETDEV(val)]) != LCI_OK) continue;
+      write_buffer(buf, size, 's');
+      while (LCI_sendbc(buf, size, 1-rank, val, ep[GETDEV(val)]) != LCI_OK) continue;
 
       LCI_one2one_set_empty(&sync);
-      LCI_recvbc(r_buf, size, 1-rank, val, ep[GETDEV(val)], &sync);
+      LCI_recvbc(buf, size, 1-rank, val, ep[GETDEV(val)], &sync);
       while (LCI_one2one_test_empty(&sync)) continue;
+      if(!check_buffer(buf, size, 'r')) abort();
     }, {val, num_threads}, extra);
 
     thread_barrier();
   }
 
-  _free(r_buf);
-  _free(s_buf);
+  _free(buf);
 //  printf( "rank %d omp thread %2d of %2d running on cpu %2d!\n",
 //          rank,
 //          omp_get_thread_num()+1,
