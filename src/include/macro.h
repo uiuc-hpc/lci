@@ -18,7 +18,12 @@
     asm volatile("mfence" ::: "memory"); \
   }
 
+#ifdef LCI_USE_GPROF
+#define LC_INLINE static
+#else
 #define LC_INLINE static inline __attribute__((always_inline))
+#endif
+
 #define lc_make_key(r, t) ((((uint64_t)(r) << 32) | (uint64_t)(t)))
 
 #define likely(x) __builtin_expect(!!(x), 1)
