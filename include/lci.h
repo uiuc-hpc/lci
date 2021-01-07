@@ -503,6 +503,7 @@ LCI_error_t LCI_putbc(LCI_bbuffer_t src, size_t size, int rank, int rma_id, int 
  * Put medium message to a remote address @p rma_id available at the remote
  * endpoint, offset @p offset. User must wait for sync or retry if LCI_ERR_RETRY is returned.
  */
+LCI_API
 LCI_error_t LCI_putb(LCI_bbuffer_t buffer, size_t size, int rank, uint16_t tag,
                      LCI_endpoint_t ep, void* sync);
 
@@ -569,11 +570,13 @@ LCI_error_t LCI_mult_dequeue(LCI_comp_t cq ,
  *       Do we want to change the implementation or the manual?
  *       need to check with others
  */
+LCI_API
 LCI_error_t LCI_MT_init(LCI_MT_t* mt, uint32_t length);
 
 /**
  * Destroy the matching hash-table.
  */
+LCI_API
 LCI_error_t LCI_MT_free(LCI_MT_t* mt);
 
 /**

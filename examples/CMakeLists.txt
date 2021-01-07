@@ -3,7 +3,7 @@ function(add_c_example NAME)
   target_compile_definitions(${NAME} PRIVATE _GNU_SOURCE)
   target_link_libraries(${NAME} PRIVATE
     Threads::Threads
-    lci_static
+    lci_shared
   )
   if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.13")
     target_link_options(${NAME} PRIVATE
@@ -79,6 +79,7 @@ add_all_c_examples(
 
 add_all_cxx_examples(
         pt2ptbc_mt
+        pt2ptbc_mt2
 )
 
 add_tests(
@@ -91,4 +92,5 @@ add_tests(
         putb
         putbc
         pt2ptbc_mt
+        pt2ptbc_mt2
 )

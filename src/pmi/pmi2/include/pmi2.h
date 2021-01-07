@@ -1,4 +1,4 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /*
  *  (C) 2007 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
@@ -7,20 +7,111 @@
 #ifndef PMI2_H_INCLUDED
 #define PMI2_H_INCLUDED
 
-#ifndef LCI_USE_PMI2
-#error This header file defines the PMI2 API, but PMI2 was not selected
+#ifndef USE_PMI2_API
+/*#error This header file defines the PMI2 API, but PMI2 was not selected*/
 #endif
-#define TRUE 1
-#define FALSE 0
 
 #define PMI2_MAX_KEYLEN 64
 #define PMI2_MAX_VALLEN 1024
 #define PMI2_MAX_ATTRVALUE 1024
 #define PMI2_ID_NULL -1
 
+#define PMII_COMMANDLEN_SIZE 6
+#define PMII_MAX_COMMAND_LEN (64*1024)
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+static const char FULLINIT_CMD[]          = "fullinit";
+static const char FULLINITRESP_CMD[]      = "fullinit-response";
+static const char FINALIZE_CMD[]          = "finalize";
+static const char FINALIZERESP_CMD[]      = "finalize-response";
+static const char ABORT_CMD[]             = "abort";
+static const char JOBGETID_CMD[]          = "job-getid";
+static const char JOBGETIDRESP_CMD[]      = "job-getid-response";
+static const char JOBCONNECT_CMD[]        = "job-connect";
+static const char JOBCONNECTRESP_CMD[]    = "job-connect-response";
+static const char JOBDISCONNECT_CMD[]     = "job-disconnect";
+static const char JOBDISCONNECTRESP_CMD[] = "job-disconnect-response";
+static const char KVSPUT_CMD[]            = "kvs-put";
+static const char KVSPUTRESP_CMD[]        = "kvs-put-response";
+static const char KVSFENCE_CMD[]          = "kvs-fence";
+static const char KVSFENCERESP_CMD[]      = "kvs-fence-response";
+static const char KVSGET_CMD[]            = "kvs-get";
+static const char KVSGETRESP_CMD[]        = "kvs-get-response";
+static const char GETNODEATTR_CMD[]       = "info-getnodeattr";
+static const char GETNODEATTRRESP_CMD[]   = "info-getnodeattr-response";
+static const char PUTNODEATTR_CMD[]       = "info-putnodeattr";
+static const char PUTNODEATTRRESP_CMD[]   = "info-putnodeattr-response";
+static const char GETJOBATTR_CMD[]        = "info-getjobattr";
+static const char GETJOBATTRRESP_CMD[]    = "info-getjobattr-response";
+static const char NAMEPUBLISH_CMD[]       = "name-publish";
+static const char NAMEPUBLISHRESP_CMD[]   = "name-publish-response";
+static const char NAMEUNPUBLISH_CMD[]     = "name-unpublish";
+static const char NAMEUNPUBLISHRESP_CMD[] = "name-unpublish-response";
+static const char NAMELOOKUP_CMD[]        = "name-lookup";
+static const char NAMELOOKUPRESP_CMD[]    = "name-lookup-response";
+static const char RING_CMD[]              = "ring";
+static const char RINGRESP_CMD[]          = "ring-response";
+
+static const char PMIJOBID_KEY[]          = "pmijobid";
+static const char PMIRANK_KEY[]           = "pmirank";
+static const char SRCID_KEY[]             = "srcid";
+static const char THREADED_KEY[]          = "threaded";
+static const char RC_KEY[]                = "rc";
+static const char ERRMSG_KEY[]            = "errmsg";
+static const char PMIVERSION_KEY[]        = "pmi-version";
+static const char PMISUBVER_KEY[]         = "pmi-subversion";
+static const char RANK_KEY[]              = "rank";
+static const char SIZE_KEY[]              = "size";
+static const char APPNUM_KEY[]            = "appnum";
+static const char SPAWNERJOBID_KEY[]      = "spawner-jobid";
+static const char DEBUGGED_KEY[]          = "debugged";
+static const char PMIVERBOSE_KEY[]        = "pmiverbose";
+static const char ISWORLD_KEY[]           = "isworld";
+static const char MSG_KEY[]               = "msg";
+static const char JOBID_KEY[]             = "jobid";
+static const char KVSCOPY_KEY[]           = "kvscopy";
+static const char KEY_KEY[]               = "key";
+static const char VALUE_KEY[]             = "value";
+static const char FOUND_KEY[]             = "found";
+static const char WAIT_KEY[]              = "wait";
+static const char NAME_KEY[]              = "name";
+static const char PORT_KEY[]              = "port";
+static const char THRID_KEY[]             = "thrid";
+static const char INFOKEYCOUNT_KEY[]      = "infokeycount";
+static const char INFOKEY_KEY[]           = "infokey%d";
+static const char INFOVAL_KEY[]           = "infoval%d";
+static const char RING_COUNT_KEY[]        = "ring-count";
+static const char RING_LEFT_KEY[]         = "ring-left";
+static const char RING_RIGHT_KEY[]        = "ring-right";
+
+static const char TRUE_VAL[]              = "TRUE";
+static const char FALSE_VAL[]             = "FALSE";
+
+/* Local types */
+
+/* Parse commands are in this structure.  Fields in this structure are
+   dynamically allocated as necessary */
+typedef struct PMI2_Keyvalpair {
+  const char *key;
+  const char *value;
+  int         valueLen;  /* Length of a value (values may contain nulls, so
+                              we need this) */
+  int         isCopy;    /* The value is a copy (and will need to be freed)
+                              if this is true, otherwise,
+                              it is a null-terminated string in the original
+                              buffer */
+} PMI2_Keyvalpair;
+
+typedef struct PMI2_Command {
+  int               nPairs;   /* Number of key=value pairs */
+  char             *command;  /* Overall command buffer */
+  PMI2_Keyvalpair **pairs;    /* Array of pointers to pairs */
+  int               complete;
+} PMI2_Command;
+
 
 /*D
 PMI2_CONSTANTS - PMI2 definitions
@@ -63,11 +154,13 @@ D*/
 
 /* This is here to allow spawn multiple functions to compile.  This
    needs to be removed once those functions are fixed for pmi2 */
-    typedef struct PMI_keyval_t {
-        char *key;
-        char *val;
-    } PMI_keyval_t;
-
+/*
+typedef struct PMI_keyval_t
+{
+    char * key;
+    char * val;
+} PMI_keyval_t;
+*/
 
 /*@
   PMI2_Connect_comm_t - connection structure used when connecting to other jobs
@@ -96,14 +189,56 @@ D*/
   that it manages).
 
 @*/
-    typedef struct PMI2_Connect_comm {
-        int (*read) (void *buf, int maxlen, void *ctx);
-        int (*write) (const void *buf, int len, void *ctx);
-        void *ctx;
-        int isMaster;
-    } PMI2_Connect_comm_t;
+typedef struct PMI2_Connect_comm {
+  int (*read)( void *buf, int maxlen, void *ctx );
+  int (*write)( const void *buf, int len, void *ctx );
+  void *ctx;
+  int  isMaster;
+} PMI2_Connect_comm_t;
 
-    struct MPIR_Info;
+
+/*S
+  MPID_Info - Structure of an MPID info
+
+  Notes:
+  There is no reference count because 'MPI_Info' values, unlike other MPI
+  objects, may be changed after they are passed to a routine without
+  changing the routine''s behavior.  In other words, any routine that uses
+  an 'MPI_Info' object must make a copy or otherwise act on any info value
+  that it needs.
+
+  A linked list is used because the typical 'MPI_Info' list will be short
+  and a simple linked list is easy to implement and to maintain.  Similarly,
+  a single structure rather than separate header and element structures are
+  defined for simplicity.  No separate thread lock is provided because
+  info routines are not performance critical; they may use the single
+  critical section lock in the 'MPIR_Process' structure when they need a
+  thread lock.
+
+  This particular form of linked list (in particular, with this particular
+  choice of the first two members) is used because it allows us to use
+  the same routines to manage this list as are used to manage the
+  list of free objects (in the file 'src/util/mem/handlemem.c').  In
+  particular, if lock-free routines for updating a linked list are
+  provided, they can be used for managing the 'MPID_Info' structure as well.
+
+  The MPI standard requires that keys can be no less that 32 characters and
+  no more than 255 characters.  There is no mandated limit on the size
+  of values.
+
+  Module:
+  Info-DS
+  S*/
+typedef struct MPID_Info {
+  int                 handle;
+  int                 pobj_mutex;
+  int                 ref_count;
+  struct MPID_Info    *next;
+  char                *key;
+  char                *value;
+} MPID_Info;
+
+#define PMI2U_Info MPID_Info
 
 /*@
   PMI2_Init - initialize the Process Manager Interface
@@ -123,7 +258,7 @@ D*/
   iff this process group has a parent.
 
 @*/
-    int PMI2_Init(int *spawned, int *size, int *rank, int *appnum);
+int PMI2_Init(int *spawned, int *size, int *rank, int *appnum);
 
 /*@
   PMI2_Finalize - finalize the Process Manager Interface
@@ -135,7 +270,7 @@ D*/
   Finalize PMI for this job.
 
 @*/
-    int PMI2_Finalize(void);
+int PMI2_Finalize(void);
 
 /*@
   PMI2_Initialized - check if PMI has been initialized
@@ -144,7 +279,7 @@ D*/
   Non-zero if PMI2_Initialize has been called successfully, zero otherwise.
 
 @*/
-    int PMI2_Initialized(void);
+int PMI2_Initialized(void);
 
 /*@
   PMI2_Abort - abort the process group associated with this process
@@ -158,7 +293,7 @@ D*/
   error code otherwise.
 
 @*/
-    int PMI2_Abort(int flag, const char msg[]);
+int PMI2_Abort(int flag, const char msg[]);
 
 /*@
   PMI2_Spawn - spawn a new set of processes
@@ -197,14 +332,15 @@ D*/
   mpiexec in the MPI-2 standard.  Environment variables may be passed to the
   spawned processes through PMI implementation specific 'info_keyval' parameters.
 @*/
-    int PMI2_Job_Spawn(int count, const char *cmds[],
-                       int argcs[], const char **argvs[],
-                       const int maxprocs[],
-                       const int info_keyval_sizes[],
-                       const struct MPIR_Info *info_keyval_vectors[],
-                       int preput_keyval_size,
-                       const struct MPIR_Info *preput_keyval_vector[],
-                       char jobId[], int jobIdSize, int errors[]);
+int PMI2_Job_Spawn(int count, const char * cmds[],
+                   int argcs[], const char ** argvs[],
+                   const int maxprocs[],
+                   const int info_keyval_sizes[],
+                   const struct MPID_Info *info_keyval_vectors[],
+                   int preput_keyval_size,
+                   const struct MPID_Info *preput_keyval_vector[],
+                   char jobId[], int jobIdSize,
+                   int errors[]);
 
 
 /*@
@@ -220,7 +356,30 @@ D*/
   Returns 'MPI_SUCCESS' on success and an MPI error code on failure.
 
 @*/
-    int PMI2_Job_GetId(char jobid[], int jobid_size);
+int PMI2_Job_GetId(char jobid[], int jobid_size);
+
+/*@
+  PMI2_Job_GetRank - get rank of this job
+
+  Output parameters:
+  . rank - the rank of this job
+
+  Return values:
+  Returns 'PMI2_SUCCESS' on success and an PMI error code on failure.
+
+@*/
+int PMI2_Job_GetRank(int* rank);
+
+/*@
+  PMI2_Info_GetSize - get the number of processes on the node
+
+  Output parameters:
+  . size - the number of processes on the node
+
+  Return values:
+  Returns 'PMI2_SUCCESS' on success and an PMI error code on failure.
+@*/
+int PMI2_Info_GetSize(int* size);
 
 /*@
   PMI2_Job_Connect - connect to the parallel job with ID jobid
@@ -229,7 +388,7 @@ D*/
   . jobid - job id of the job to connect to
 
   Output parameters:
-  . conn - connection structure used to exteblish communication with
+  . conn - connection structure used to establish communication with
     the remote job
 
   Return values:
@@ -244,7 +403,7 @@ D*/
   side. Processes that are already connected may call this routine.
 
 @*/
-    int PMI2_Job_Connect(const char jobid[], PMI2_Connect_comm_t * conn);
+int PMI2_Job_Connect(const char jobid[], PMI2_Connect_comm_t *conn);
 
 /*@
   PMI2_Job_Disconnect - disconnects from the job with ID jobid
@@ -256,7 +415,42 @@ D*/
   Returns 'MPI_SUCCESS' on success and an MPI error code on failure.
 
 @*/
-    int PMI2_Job_Disconnect(const char jobid[]);
+int PMI2_Job_Disconnect(const char jobid[]);
+
+/*@
+  PMIX_Ring - execute ring exchange over processes in group
+
+  Input Parameters:
+  + value    - input string
+  - maxvalue - max size of input and output strings
+
+  Output Parameters:
+  + rank  - returns caller's rank within ring
+  . ranks - returns number of procs within ring
+  . left  - buffer to receive value provided by (rank - 1) % ranks
+  - right - buffer to receive value provided by (rank + 1) % ranks
+
+  Return values:
+  Returns 'MPI_SUCCESS' on success and an MPI error code on failure.
+
+  Notes:
+  This function is collective, but not necessarily synchronous,
+  across all processes in the process group to which the calling
+  process belongs.  All processes in the group must call this
+  function, but a process may return before all processes have called
+  the function.
+
+  The rank of a process within the ring may not be the same as its
+  rank returned by PMI2_Init.
+
+  For a process group consisting of a single process, this function
+  returns rank=0, ranks=1, and the input string in the value buffer
+  shall be copied to the left and right output buffers.  This same
+  behavior holds when the function is called in singleton mode.
+
+@*/
+#define HAVE_PMIX_RING 1 /* so one can conditionally compile with this function */
+int PMIX_Ring(const char value[], int *rank, int *ranks, char left[], char right[], int maxvalue);
 
 /*@
   PMI2_KVS_Put - put a key/value pair in the keyval space for this job
@@ -275,7 +469,7 @@ D*/
   is not defined.
 
 @*/
-    int PMI2_KVS_Put(const char key[], const char value[]);
+int PMI2_KVS_Put(const char key[], const char value[]);
 /*@
   PMI2_KVS_Fence - commit all PMI2_KVS_Put calls made before this fence
 
@@ -295,7 +489,7 @@ D*/
   implementations.
 
 @*/
-    int PMI2_KVS_Fence(void);
+int PMI2_KVS_Fence(void);
 
 /*@
   PMI2_KVS_Get - returns the value associated with key in the key-value
@@ -319,8 +513,7 @@ D*/
   Returns 'MPI_SUCCESS' on success and an MPI error code on failure.
 
 @*/
-    int PMI2_KVS_Get(const char *jobid, int src_pmi_id, const char key[], char value[],
-                     int maxvalue, int *vallen);
+int PMI2_KVS_Get(const char *jobid, int src_pmi_id, const char key[], char value [], int maxvalue, int *vallen);
 
 /*@
   PMI2_Info_GetNodeAttr - returns the value of the attribute associated
@@ -360,8 +553,7 @@ D*/
     file.  Returned as a string.
 
 @*/
-    int PMI2_Info_GetNodeAttr(const char name[], char value[], int valuelen, int *found,
-                              int waitfor);
+int PMI2_Info_GetNodeAttr(const char name[], char value[], int valuelen, int *found, int waitfor);
 
 /*@
   PMI2_Info_GetNodeAttrIntArray - returns the value of the attribute associated
@@ -395,8 +587,7 @@ D*/
     cartesian.
 
 @*/
-    int PMI2_Info_GetNodeAttrIntArray(const char name[], int array[], int arraylen, int *outlen,
-                                      int *found);
+int PMI2_Info_GetNodeAttrIntArray(const char name[], int array[], int arraylen, int *outlen, int *found);
 
 /*@
   PMI2_Info_PutNodeAttr - stores the value of the named attribute
@@ -414,7 +605,7 @@ D*/
   processes on the same SMP node.
 
 @*/
-    int PMI2_Info_PutNodeAttr(const char name[], const char value[]);
+int PMI2_Info_PutNodeAttr(const char name[], const char value[]);
 
 /*@
   PMI2_Info_GetJobAttr - returns the value of the attribute associated
@@ -432,7 +623,7 @@ D*/
   Returns 'MPI_SUCCESS' on success and an MPI error code on failure.
 
 @*/
-    int PMI2_Info_GetJobAttr(const char name[], char value[], int valuelen, int *found);
+int PMI2_Info_GetJobAttr(const char name[], char value[], int valuelen, int *found);
 
 /*@
   PMI2_Info_GetJobAttrIntArray - returns the value of the attribute associated
@@ -497,8 +688,7 @@ D*/
     underlying data models.
 
 @*/
-    int PMI2_Info_GetJobAttrIntArray(const char name[], int array[], int arraylen, int *outlen,
-                                     int *found);
+int PMI2_Info_GetJobAttrIntArray(const char name[], int array[], int arraylen, int *outlen, int *found);
 
 /*@
   PMI2_Nameserv_publish - publish a name
@@ -512,8 +702,7 @@ D*/
   Returns 'MPI_SUCCESS' on success and an MPI error code on failure.
 
 @*/
-    int PMI2_Nameserv_publish(const char service_name[], const struct MPIR_Info *info_ptr,
-                              const char port[]);
+int PMI2_Nameserv_publish(const char service_name[], const struct MPID_Info *info_ptr, const char port[]);
 
 /*@
   PMI2_Nameserv_lookup - lookup a service by name
@@ -530,8 +719,8 @@ D*/
   Returns 'MPI_SUCCESS' on success and an MPI error code on failure.
 
 @*/
-    int PMI2_Nameserv_lookup(const char service_name[], const struct MPIR_Info *info_ptr,
-                             char port[], int portLen);
+int PMI2_Nameserv_lookup(const char service_name[], const struct MPID_Info *info_ptr,
+                         char port[], int portLen);
 /*@
   PMI2_Nameserv_unpublish - unpublish a name
 
@@ -543,11 +732,13 @@ D*/
   Returns 'MPI_SUCCESS' on success and an MPI error code on failure.
 
 @*/
-    int PMI2_Nameserv_unpublish(const char service_name[], const struct MPIR_Info *info_ptr);
+int PMI2_Nameserv_unpublish(const char service_name[],
+                            const struct MPID_Info *info_ptr);
 
 
 
 #if defined(__cplusplus)
 }
 #endif
-#endif                          /* PMI2_H_INCLUDED */
+
+#endif /* PMI2_H_INCLUDED */
