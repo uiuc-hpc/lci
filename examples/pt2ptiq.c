@@ -7,7 +7,7 @@
 #include "comm_exp.h"
 
 #undef MAX_MSG
-#define MAX_MSG 128
+#define MAX_MSG 8
 
 int total = TOTAL;
 int skip = SKIP;
@@ -59,7 +59,7 @@ int main(int argc, char** args) {
           for (int j = 0; j < size; j++)
             assert(((char*) src_buf)[j] == 'a' && ((char*)dst_buf)[j] == 'a');
         }
-        LCI_request_free(ep, 1, &req_ptr);
+        LCI_bbuffer_free(req_ptr->buffer.bbuffer, 0);
       }
 
       t1 = 1e6 * (wtime() - t1) / total / 2;
@@ -75,7 +75,7 @@ int main(int argc, char** args) {
         LCI_recvi(dst_buf, 1-rank, tag, ep, &sync);
         while (LCI_CQ_dequeue(&cq, &req_ptr) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
-        LCI_request_free(ep, 1, &req_ptr);
+        LCI_bbuffer_free(req_ptr->buffer.bbuffer, 0);
         LCI_sendi(*(LCI_ivalue_t*) src_buf, 1-rank, tag, ep);
       }
     }
