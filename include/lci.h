@@ -381,6 +381,7 @@ LCI_error_t LCI_putbc(LCI_bbuffer_t src, size_t size, int rank, int rma_id, int 
  * Put medium message to a remote address @rma_id available at the remote
  * endpoint, offset @offset. User must wait for sync or retry if LCI_ERR_RETRY is returned.
  */
+LCI_API
 LCI_error_t LCI_putb(LCI_bbuffer_t buffer, size_t size, int rank, uint16_t tag,
                      LCI_endpoint_t ep, void* sync);
 
