@@ -19,6 +19,7 @@ LCI_API int LCI_MAX_MT_LENGTH = 1u << TBL_BIT_SIZE;
 LCI_API int LCI_DEFAULT_CQ_LENGTH = CQ_MAX_SIZE;
 LCI_API int LCI_MAX_CQ_LENGTH = CQ_MAX_SIZE;
 LCI_API int LCI_LOG_LEVEL = LCI_LOG_WARN;
+LCI_API int LCI_PACKET_RETURN_THRESHOLD;
 
 static inline int getenv_or(char* env, int def) {
   char* val = getenv(env);
@@ -58,4 +59,6 @@ void lc_config_init(int num_proc, int rank)
 
   LCI_DEVICES = calloc(sizeof(lc_server*), LCI_NUM_DEVICES);
   LCI_ENDPOINTS = calloc(sizeof(LCI_endpoint_t), LCI_MAX_ENDPOINTS);
+
+  LCI_PACKET_RETURN_THRESHOLD = getenv_or("LCI_PACKET_RETURN_THRESHOLD", 1024);
 }

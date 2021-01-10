@@ -13,7 +13,7 @@ LCI_error_t LCI_sendi(LCI_ivalue_t src, int rank, int tag, LCI_endpoint_t ep)
 LCI_error_t LCI_sendbc(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep)
 {
   LC_POOL_GET_OR_RETN(ep->pkpool, p);
-  lc_pk_init(ep, (size > 1024) ? lc_pool_get_local(ep->pkpool) : -1,
+  lc_pk_init(ep, (size > LCI_PACKET_RETURN_THRESHOLD) ? lc_pool_get_local(ep->pkpool) : -1,
              LC_PROTO_DATA, p);
   struct lc_rep* rep = &(ep->rep[rank]);
   memcpy(p->data.buffer, src, size);
@@ -25,7 +25,7 @@ LCI_error_t LCI_sendbc(void* src, size_t size, int rank, int tag, LCI_endpoint_t
 LCI_error_t LCI_sendb(LCI_bbuffer_t src, size_t size, int rank, int tag, LCI_endpoint_t ep, void* sync)
 {
   lc_packet* p = LC_PACKET_OF(src);
-  lc_pk_init(ep, (size > 1024) ? lc_pool_get_local(ep->pkpool) : -1,
+  lc_pk_init(ep, (size > LCI_PACKET_RETURN_THRESHOLD) ? lc_pool_get_local(ep->pkpool) : -1,
              LC_PROTO_DATA, p);
   struct lc_rep* rep = &(ep->rep[rank]);
   lc_server_sendm(ep->server, rep->handle, size, p,

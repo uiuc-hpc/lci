@@ -118,9 +118,15 @@ extern int LCI_MAX_CQ_LENGTH;
 extern int LCI_LOG_LEVEL;
 
 /**
- * specify the PMI version used by LCI
+ * specify the packet returning threshold
+ *
+ * Apply to @sendb and @sendbc
+ * if size > LCI_PACKET_RETURN_THRESHOLD:
+ *   the packet will be returned to the compute thread's pool.
+ * else:
+ *   the packet will be returned to the progress thread's pool.
  */
-extern int LCI_PMI_VERSION;
+extern int LCI_PACKET_RETURN_THRESHOLD;
 /**@}*/
 
 /**
