@@ -33,6 +33,7 @@ LCI_error_t LCI_finalize()
     lc_dev_finalize(LCI_DEVICES[i]);
   }
   LCI_PM_barrier();
+  lc_pm_finalize();
   return LCI_OK;
 }
 
