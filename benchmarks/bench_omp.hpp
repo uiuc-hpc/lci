@@ -7,14 +7,6 @@ namespace omp {
 
   typedef void* (*func_t)(void*);
 
-  static inline void thread_init()
-  {
-    #ifdef USE_PAPI
-    PAPI_library_init(PAPI_VER_CURRENT);
-    PAPI_thread_init(pthread_self);
-    #endif
-  }
-
   static inline void thread_run(func_t f, int n)
   {
       #pragma omp parallel num_threads(n)

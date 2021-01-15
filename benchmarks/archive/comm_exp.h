@@ -2,52 +2,28 @@
 #define COMM_EXP_H_
 
 #include <sys/time.h>
-#include <sched.h>
-#include <stdio.h>
-
-#include <errno.h>
-#include <pthread.h>
-#include <unistd.h>
-#define MIN_MSG (1)
-#define MAX_MSG (4*1024*1024)
-
-#define MYBUFSIZE 8192
-#define MAX_MSG_SIZE MYBUFSIZE
 
 #define LARGE 8192
 
-#define TOTAL 4000
+#define NEXP 10
+
+#define TOTAL 10000
 #define SKIP 1000
 
 #define TOTAL_LARGE 1000
 #define SKIP_LARGE 100
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
+#define DEFAULT_NUM_WORKER 4
+#define DEFAULT_NUM_THREAD 4
 
-#ifndef unlikely
-#define unlikely(x) __builtin_expect((!!x),0)
-#endif
-
-static inline int comm_set_me_to(int core_id)
-{
-  cpu_set_t cpuset;
-  CPU_ZERO(&cpuset);
-  CPU_SET(core_id, &cpuset);
-
-  pthread_t current_thread = pthread_self();
-  return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
-}
-
-static inline double wtime()
+inline double wtime()
 {
   struct timeval t1;
   gettimeofday(&t1, 0);
   return t1.tv_sec + t1.tv_usec / 1e6;
 }
 
-static inline double wutime()
+inline double wutime()
 {
   struct timeval t1;
   gettimeofday(&t1, 0);

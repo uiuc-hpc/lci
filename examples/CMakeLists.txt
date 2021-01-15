@@ -28,37 +28,6 @@ function(add_all_c_examples)
   endforeach()
 endfunction()
 
-function(add_cxx_example NAME)
-  find_package(OpenMP REQUIRED)
-  add_executable(${NAME} ${NAME}.cpp)
-  target_compile_definitions(${NAME} PRIVATE _GNU_SOURCE)
-  target_link_libraries(${NAME} PRIVATE
-          Threads::Threads
-          lci_static
-          OpenMP::OpenMP_CXX
-          )
-  if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.13")
-    target_link_options(${NAME} PRIVATE
-            LINKER:-z,now
-            LINKER:-z,relro
-            )
-  else()
-    set_property(TARGET ${NAME} APPEND_STRING PROPERTY LINK_FLAGS
-            " -Wl,-z,now -Wl,-z,relro"
-            )
-  endif()
-  set_target_properties(${NAME} PROPERTIES
-          CXX_STANDARD                11
-          )
-  install(TARGETS ${NAME} DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/lc)
-endfunction()
-
-function(add_all_cxx_examples)
-  foreach(example ${ARGN})
-    add_cxx_example(${example})
-  endforeach()
-endfunction()
-
 function(add_tests)
   foreach(test ${ARGN})
     add_test(NAME test_${test}
@@ -77,11 +46,6 @@ add_all_c_examples(
         putbc
 )
 
-add_all_cxx_examples(
-        pt2ptbc_mt
-        pt2ptbc_mt2
-)
-
 add_tests(
         init
         pt2pti
@@ -91,6 +55,4 @@ add_tests(
         puti
         putb
         putbc
-        pt2ptbc_mt
-        pt2ptbc_mt2
 )
