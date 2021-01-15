@@ -116,6 +116,7 @@ void check_buffer(const char* buffer, int len, char expect) {
 #include <mutex>
 #include <condition_variable>
 #include "bench_omp.hpp"
+#include "bench_config.h"
 using namespace omp;
 
 #define _memalign posix_memalign
