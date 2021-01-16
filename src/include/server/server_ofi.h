@@ -103,6 +103,8 @@ static inline void lc_server_init(int id, lc_server** dev)
 //  hints->domain_attr->mr_mode = FI_MR_BASIC;
   hints->domain_attr->mr_mode = FI_MR_VIRT_ADDR | FI_MR_ALLOCATED | FI_MR_PROV_KEY | FI_MR_LOCAL;
   hints->domain_attr->threading = FI_THREAD_SAFE;
+  hints->domain_attr->control_progress = FI_PROGRESS_MANUAL;
+  hints->domain_attr->data_progress = FI_PROGRESS_MANUAL;
   hints->caps = FI_RMA | FI_TAGGED;
   hints->mode = FI_LOCAL_MR;
 
