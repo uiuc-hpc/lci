@@ -56,3 +56,5 @@ add_tests(
         putb
         putbc
 )
+
+add_subdirectory(MPI_LCI)
