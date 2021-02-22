@@ -12,7 +12,7 @@ __thread int lcg_core_id = -1;
 
 void lc_config_init(int num_proc, int rank);
 
-LCI_error_t LCI_Init(int* argc, char*** args)
+LCI_error_t LCI_open()
 {
   int num_proc, rank;
   // Initialize processes in this job.
@@ -30,7 +30,7 @@ LCI_error_t LCI_Init(int* argc, char*** args)
   return LCI_OK;
 }
 
-LCI_error_t LCI_Free()
+LCI_error_t LCI_close()
 {
   for (int i = 0; i < LCI_NUM_DEVICES; i++) {
     lc_dev_finalize(LCI_DEVICES[i]);

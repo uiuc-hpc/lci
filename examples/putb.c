@@ -10,7 +10,7 @@
 #define MAX_MSG (8 * 1024)
 
 int main(int argc, char** args) {
-  LCI_Init(&argc, &args);
+  LCI_open();
   LCI_endpoint_t ep;
   LCI_comp_t cq;
   LCI_CQ_init(&cq, 0);
@@ -65,5 +65,5 @@ int main(int argc, char** args) {
     }
   }
 
-  LCI_Free();
+  LCI_close();
 }

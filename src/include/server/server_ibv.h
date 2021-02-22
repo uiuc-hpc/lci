@@ -384,7 +384,7 @@ static inline void lc_server_init(int id, lc_server** dev)
   }
 
   // Create RDMA memory.
-  s->heap = ibv_mem_malloc(s, 1024 * 1024 * 1024);
+  s->heap = ibv_mem_malloc(s, LC_SERVER_NUM_PKTS * LC_PACKET_SIZE * 2 + LCI_REGISTERED_SEGMENT_SIZE);
   s->heap_addr = (uintptr_t)s->heap->addr;
 
   if (s->heap == 0) {

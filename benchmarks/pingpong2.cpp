@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
   if (argc > 2)
     max_size = atoi(argv[2]);
 
-  LCI_Init(nullptr, nullptr);
+  LCI_open();
   LCI_PL_t prop;
   LCI_PL_create(&prop);
   LCI_MT_t mt;
@@ -73,6 +73,6 @@ int main(int argc, char *argv[]) {
 
   _free(buf);
 
-  LCI_Free();
+  LCI_close();
   return EXIT_SUCCESS;
 }

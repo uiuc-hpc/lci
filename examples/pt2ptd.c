@@ -13,7 +13,7 @@ int total = TOTAL;
 int skip = SKIP;
 
 int main(int argc, char** args) {
-  LCI_Init(&argc, &args);
+  LCI_open();
   LCI_endpoint_t ep;
   LCI_PL_t prop;
   LCI_PL_create(&prop);
@@ -81,5 +81,5 @@ int main(int argc, char** args) {
       }
     }
   }
-  LCI_Free();
+  LCI_close();
 }

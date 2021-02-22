@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
   if (argc > 4)
     max_size = atoi(argv[4]);
 
-  LCI_Init(NULL, NULL);
+  LCI_open();
   LCI_PL_t prop;
   LCI_PL_create(&prop);
   LCI_MT_t mt;
@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
   }
 
   thread_stop = 1;
-  LCI_Free();
+  LCI_close();
   return EXIT_SUCCESS;
 }
 

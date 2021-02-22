@@ -45,7 +45,6 @@ extern int LCI_MAX_ENDPOINTS;
 
 /**
  * The largest allowed tag value.
- * @todo integrate it into code logic
  * @note There is only 15 bits left for tag.
  *       The 16th bit is used to distinguish between user-issued rmas and rmas of sendd.
  */
@@ -56,35 +55,33 @@ extern int LCI_MAX_TAG;
  * @note set to 8 bytes (uint64_t) for current implementation
  * @todo should be larger (LC_MAX_INLINE)
  */
-extern int LCI_IMMEDIATE_SIZE;
+extern int LCI_SHORT_SIZE;
 
 /**
  * The maximum size (in byte) of a buffer that can be used in buffered protocol.
  */
-extern int LCI_BUFFERED_SIZE;
+extern int LCI_MEDIUM_SIZE;
+
+/**
+ * The maximum number of entries in an IO vector.
+ */
+extern int LCI_IOVEC_SIZE;
 
 /**
  * The amount of pre-registered memory for a device dedicated for communciation.
- * @todo unimplemented logic: If the value is zero, then all memory is registered
- *       or registration is not needed.
+ * @todo remove this variable
  */
 extern int LCI_REGISTERED_SEGMENT_SIZE;
 
 /**
- * initial address of pre-registered segment. Valid only if
-   \ref LCI_REGISTERED_SEGMENT_SIZE is non-zero.
- * @todo unimplemented: what if there are multiple devices?
- * @note invalid due to uncompleted specification
- */
-extern int LCI_REGISTERED_SEGMENT_START;
-
-/**
  * maximum length of a memory segment that can be registered with a device.
+ * @todo how to set this?
  */
 extern int LCI_MAX_REGISTERED_SEGMENT_SIZE;
 
 /**
  * maximum number of distinct memory segments that can be registered with a device.
+ * @todo set this
  */
 extern int LCI_MAX_REGISTERED_SEGMENT_NUMBER;
 
@@ -92,25 +89,25 @@ extern int LCI_MAX_REGISTERED_SEGMENT_NUMBER;
  * initial number of entries in a default matching table.
  * @note The matching table size is fixed in current implementation
  */
-extern int LCI_DEFAULT_MT_LENGTH;
+extern int LCI_DEFAULT_TABLE_LENGTH;
 
 /**
  * maximum number of entries in a matching table.
  * @note The matching table size is fixed in current implementation
  */
-extern int LCI_MAX_MT_LENGTH;
+extern int LCI_MAX_TABLE_LENGTH;
 
 /**
  * initial number of entries in a default completion queue.
  * @note The completion queue size is fixed in current implementation
  */
-extern int LCI_DEFAULT_CQ_LENGTH;
+extern int LCI_DEFAULT_QUEUE_LENGTH;
 
 /**
  * maximum number of entries in a completion queue.
  * @note The completion queue size is fixed in current implementation
  */
-extern int LCI_MAX_CQ_LENGTH;
+extern int LCI_MAX_QUEUE_LENGTH;
 
 /**
  * control the LCI log level
@@ -307,13 +304,13 @@ typedef struct {
  * Initialize LCI.
  */
 LCI_API
-LCI_error_t LCI_Init(int* argc, char*** args);
+LCI_error_t LCI_open();
 
 /**
  * Finalize LCI.
  */
 LCI_API
-LCI_error_t LCI_Free();
+LCI_error_t LCI_close();
 
 /**
  * Create an endpoint Property @plist.
