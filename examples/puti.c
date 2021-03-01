@@ -46,7 +46,7 @@ int main(int argc, char** args) {
 
   double t1;
 
-  for (int size = sizeof(LCI_ivalue_t); size <= sizeof(LCI_ivalue_t); size <<= 1) {
+  for (int size = sizeof(LCI_short_t); size <= sizeof(LCI_short_t); size <<= 1) {
     for (int i = 0; i < TOTAL+SKIP; i++) {
       if (i == SKIP)
         t1 = wtime();
@@ -54,9 +54,9 @@ int main(int argc, char** args) {
         while (rbuf[0] == -1)
           LCI_progress(0, 1);
         rbuf[0] = -1;
-        LCI_puti(*(LCI_ivalue_t*)sbuf, 1-rank, 0, base_offset + MAX_MSG, 0, ep);
+        LCI_puti(*(LCI_short_t*)sbuf, 1-rank, 0, base_offset + MAX_MSG, 0, ep);
       } else {
-        LCI_puti(*(LCI_ivalue_t*)sbuf, 1-rank, 0, base_offset + MAX_MSG, 0, ep);
+        LCI_puti(*(LCI_short_t*)sbuf, 1-rank, 0, base_offset + MAX_MSG, 0, ep);
         while (rbuf[0] == -1)
           LCI_progress(0, 1);
         rbuf[0] = -1;

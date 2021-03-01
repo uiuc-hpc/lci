@@ -35,7 +35,7 @@ int main(int argc, char** args) {
   posix_memalign(&src_buf, alignment, MAX_MSG);
   posix_memalign(&dst_buf, alignment, MAX_MSG);
 
-  for (int size = sizeof(LCI_ivalue_t); size <= sizeof(LCI_ivalue_t); size <<= 1) {
+  for (int size = sizeof(LCI_short_t); size <= sizeof(LCI_short_t); size <<= 1) {
     memset(src_buf, 'a', size);
     memset(dst_buf, 'b', size);
 
@@ -43,7 +43,7 @@ int main(int argc, char** args) {
 
     for (int i = 0; i < total + skip; i++) {
       if (i == skip) t1 = wtime();
-      LCI_sendi(*(LCI_ivalue_t*) src_buf, rank, tag, ep);
+      LCI_sendi(*(LCI_short_t*) src_buf, rank, tag, ep);
       LCI_one2one_set_empty(&sync);
       LCI_recvi(dst_buf, rank, tag, ep, &sync);
       while (LCI_one2one_test_empty(&sync))

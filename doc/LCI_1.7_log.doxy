@@ -5,5 +5,7 @@
 
 ## Decisions to be made
 - `const` or `#define` or `enum`: which to use? Libfabric, MPICH, and Argobots both use `#define`. Why?
-
+- `LCI_short_t`: how to use it? Allocate an object and memcpy? Do we really want a longer immediate data? Why not just
+    use `LCI_sendmn`? It doesn't simplify programming.
+  
 */

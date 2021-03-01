@@ -53,9 +53,10 @@ extern int LCI_MAX_TAG;
 /**
  * The maximum size (in byte) of a buffer that can be used in immediate protocol.
  * @note set to 8 bytes (uint64_t) for current implementation
+ * @note must be constant at compile time
  * @todo should be larger (LC_MAX_INLINE)
  */
-extern int LCI_SHORT_SIZE;
+#define LCI_SHORT_SIZE 8
 
 /**
  * The maximum size (in byte) of a buffer that can be used in buffered protocol.
@@ -218,7 +219,44 @@ typedef void* LCI_comp_t;
  */
 typedef uint64_t LCI_sync_t;
 
-typedef uint64_t LCI_ivalue_t;
+/**
+ * LCI memory segment.
+ *
+ * All LCI communication must take place in memory segments, which represent
+ * memory regions registered to devices.
+ */
+struct LCI_segment_s;
+typedef struct LCI_segment_s *LCI_segment_t;
+
+/**
+ * LCI long communication buffer
+ */
+struct LCI_lbuffer_t {
+  LCI_segment_t segment;
+  void *address;
+  size_t length;
+};
+typedef struct LCI_lbuffer_t LCI_lbuffer_t;
+
+/**
+ * LCI medium communication buffer.
+ *
+ * Medium communication buffers reside in memory managed by LCI.
+ */
+struct LCI_mbuffer_t {
+  void *address;
+  size_t length;
+};
+typedef struct LCI_mbuffer_t LCI_mbuffer_t;
+
+/**
+ * LCI short data.
+ */
+//struct LCI_short_t {
+//  char __short [ LCI_SHORT_SIZE ];
+//};
+typedef uint64_t LCI_short_t;
+
 typedef void* LCI_bbuffer_t;
 typedef void* LCI_dbuffer_t;
 
@@ -227,12 +265,12 @@ typedef void* LCI_dbuffer_t;
  * @todo should we add a flag to identify whether this buffer is allocated by users or LCI?
 */
 typedef union {
-  LCI_ivalue_t immediate;
+  LCI_short_t immediate;
   struct {
     void* start;
     size_t length;
   } buffer;
-} LCI_buffer_t;
+} LCI_data_t;
 
 /**
  * Request object, owned by the user, unless returned from runtime (CQ_Dequeue).
@@ -244,7 +282,7 @@ typedef struct {
   uint32_t rank;
   uint16_t tag;
   enum { INVALID, IMMEDIATE, BUFFERED, DIRECT } type;
-  LCI_buffer_t data;
+  LCI_data_t data;
   void* __reserved__;
 } LCI_request_t;
 
@@ -432,7 +470,7 @@ void LCI_barrier();
  * Send an immediate message, completed immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
-LCI_error_t LCI_sendi(LCI_ivalue_t value, int rank, int tag,
+LCI_error_t LCI_sendi(LCI_short_t value, int rank, int tag,
                       LCI_endpoint_t ep);
 
 /**
@@ -467,7 +505,7 @@ LCI_error_t LCI_sendd(LCI_dbuffer_t src, size_t size, int rank, int tag,
  * Receive a immediate message.
  */
 LCI_API
-LCI_error_t LCI_recvi(LCI_ivalue_t* src, int rank, int tag,
+LCI_error_t LCI_recvi(LCI_short_t* src, int rank, int tag,
                       LCI_endpoint_t ep, void* sync);
 
 /**
@@ -491,7 +529,7 @@ LCI_error_t LCI_recvd(LCI_dbuffer_t src, size_t size, int rank, int tag,
  * endpoint, offset @p offset. Complete immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
-LCI_error_t LCI_puti(LCI_ivalue_t src, int rank, int rma_id, int offset, int meta,
+LCI_error_t LCI_puti(LCI_short_t src, int rank, int rma_id, int offset, int meta,
                      LCI_endpoint_t ep);
 
 /**

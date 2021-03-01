@@ -2,10 +2,10 @@
 #include "lci_priv.h"
 #include "pool.h"
 
-LCI_error_t LCI_sendi(LCI_ivalue_t src, int rank, int tag, LCI_endpoint_t ep)
+LCI_error_t LCI_sendi(LCI_short_t src, int rank, int tag, LCI_endpoint_t ep)
 {
   struct lc_rep* rep = &(ep->rep[rank]);
-  lc_server_sends(ep->server, rep->handle, &src, sizeof(LCI_ivalue_t),
+  lc_server_sends(ep->server, rep->handle, &src, sizeof(LCI_short_t),
                   MAKE_PROTO(ep->gid, LC_PROTO_DATA, tag));
   return LCI_OK;
 }
@@ -45,9 +45,9 @@ LCI_error_t LCI_sendd(LCI_dbuffer_t src, size_t size, int rank, int tag, LCI_end
   return LCI_OK;
 }
 
-LCI_error_t LCI_recvi(LCI_ivalue_t* src, int rank, int tag, LCI_endpoint_t ep, void* sync)
+LCI_error_t LCI_recvi(LCI_short_t* src, int rank, int tag, LCI_endpoint_t ep, void* sync)
 {
-  lc_init_req(src, sizeof(LCI_ivalue_t), LCI_SYNCL_PTR_TO_REQ_PTR(sync));
+  lc_init_req(src, sizeof(LCI_short_t), LCI_SYNCL_PTR_TO_REQ_PTR(sync));
   lc_key key = LCII_MAKE_KEY(rank, tag);
   lc_value value = (lc_value) sync;
   LCI_request_t* request = LCI_SYNCL_PTR_TO_REQ_PTR(sync);
