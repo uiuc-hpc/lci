@@ -22,6 +22,9 @@
   else                                                       \
     lc_pool_put((ep_)->pkpool, p_);
 
+// Converts medium buffer into lc_packet that contains it.
+#define LCII_PACKET_OF(b) ((lc_packet*) ((uintptr_t)(b) - offsetof(lc_packet, data)))
+
 struct __attribute__((packed, aligned(64))) packet_context {
   // Most of the current ctx requires 128-bits (FIXME)
   int64_t hwctx[2];

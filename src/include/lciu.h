@@ -1,13 +1,5 @@
-#ifndef LC_MACRO_H_
-#define LC_MACRO_H_
-
-// Converts medium buffer into lc_packet that contains it.
-#define LCII_PACKET_OF(b) ((lc_packet*) ((uintptr_t)(b) - offsetof(lc_packet, data)))
-
-#define LCII_MEM_FENCE()                   \
-  {                                      \
-    asm volatile("mfence" ::: "memory"); \
-  }
+#ifndef LCI_LCIU_H
+#define LCI_LCIU_H
 
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
@@ -17,8 +9,15 @@
 
 #define __UNUSED__ __attribute__((unused))
 
-#if 0
+static inline void LCII_MEM_FENCE()
+{
+  asm volatile("mfence" ::: "memory");
+}
 
+#include "lciu_thread.h"
+#include "lciu_mem.h"
+
+#if 0
 #define LC_SET_REQ_DONE_AND_SIGNAL(t, r)                                 \
   {                                                                      \
     register void* sync = (r)->sync;                                     \
@@ -35,7 +34,6 @@
     }                                                                    \
     LCII_MEM_FENCE();                                                      \
   }
-
 #endif
 
-#endif
+#endif // LCI_LCIU_H

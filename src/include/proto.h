@@ -7,7 +7,7 @@
 #include "log.h"
 #include "cq.h"
 #include "hashtable.h"
-#include "macro.h"
+#include "lciu.h"
 
 /* 2-bit is enough for those thing. */
 typedef enum lc_proto {

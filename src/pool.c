@@ -34,7 +34,7 @@ void lc_pool_create(struct lc_pool** pool) {
 
 void lc_pool_destroy(struct lc_pool* pool) {
   for (int i = 0; i < pool->npools; i++) {
-    free(pool->lpools[i]);
+    LCIU_free(pool->lpools[i]);
   }
-  free(pool);
+  LCIU_free(pool);
 }

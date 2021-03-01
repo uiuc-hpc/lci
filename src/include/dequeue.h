@@ -2,10 +2,9 @@
 #define LC_DEQUEUE_H_
 
 #define MAX_SIZE (1 << 12)
-#include "macro.h"
-#include "lciu_thread.h"
 #include <string.h>
 #include <stdio.h>
+#include "lciu.h"
 
 struct dequeue {
   struct {

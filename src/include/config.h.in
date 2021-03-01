@@ -19,6 +19,7 @@
 #cmakedefine USE_DREG
 #cmakedefine LCI_USE_PMI2
 #cmakedefine LCI_USE_GPROF
+#cmakedefine LCI_CONFIG_USE_ALIGNED_ALLOC
 
 #define LCI_MAX_DEV         @LCI_MAX_DEV@
 #define LCI_MAX_EP          @LCI_MAX_EP@

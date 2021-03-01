@@ -11,8 +11,7 @@ typedef uint64_t lc_key;
 #include <assert.h>
 #include <stdlib.h>
 
-#include "macro.h"
-#include "lciu_thread.h"
+#include "lciu.h"
 
 #define EMPTY ((uint64_t)-1)
 #define TBL_BIT_SIZE 16 // size: 1 << 16 (1 control block 3 key-value pairs)

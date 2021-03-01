@@ -2,7 +2,7 @@
 #define LC_CQ_H
 
 #include "packet.h"
-#include "lciu_thread.h"
+#include "lciu.h"
 #include <string.h>
 #include <stdio.h>
 

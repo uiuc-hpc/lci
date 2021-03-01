@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <sched.h>
 #include <pthread.h>
-#include "macro.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -94,4 +93,4 @@ static inline int LCIU_set_me_within(int from, int to)
 }
 #endif
 
-#endif  // LCI_LCIU_THREAD_H
+#endif  // LCI_LCIU_H

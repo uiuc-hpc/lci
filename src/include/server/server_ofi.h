@@ -15,7 +15,7 @@
 #include <rdma/fi_rma.h>
 
 #include "config.h"
-#include "macro.h"
+#include "lciu.h"
 #include "pm.h"
 #include "dreg.h"
 

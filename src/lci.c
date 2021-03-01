@@ -91,6 +91,7 @@ void lc_dev_init(int id, lc_server** dev)
 
 void lc_dev_finalize(lc_server* dev)
 {
+  lc_pool_destroy(dev->pkpool);
   lc_server_finalize(dev);
 }
 
