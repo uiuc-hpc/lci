@@ -16,12 +16,12 @@ struct dequeue {
   void* container[MAX_SIZE];
 } __attribute__((aligned(64)));
 
-LC_INLINE void dq_init(struct dequeue* dq);
-LC_INLINE void dq_push_top(struct dequeue* deq, void* p);
-LC_INLINE void* dq_pop_top(struct dequeue* deq);
-LC_INLINE void* dq_pop_bot(struct dequeue* deq);
+static inline void dq_init(struct dequeue* dq);
+static inline void dq_push_top(struct dequeue* deq, void* p);
+static inline void* dq_pop_top(struct dequeue* deq);
+static inline void* dq_pop_bot(struct dequeue* deq);
 
-LC_INLINE void dq_init(struct dequeue* dq)
+static inline void dq_init(struct dequeue* dq)
 {
   memset(dq->container, 0, sizeof(void*) * MAX_SIZE);
   dq->top = 0;
@@ -30,7 +30,7 @@ LC_INLINE void dq_init(struct dequeue* dq)
   dq->spinlock = LC_SPIN_UNLOCKED;
 }
 
-LC_INLINE void* dq_pop_top(struct dequeue* deq)
+static inline void* dq_pop_top(struct dequeue* deq)
 {
   void* ret = NULL;
   lc_spin_lock(&deq->spinlock);
@@ -42,7 +42,7 @@ LC_INLINE void* dq_pop_top(struct dequeue* deq)
   return ret;
 };
 
-LC_INLINE void dq_push_top(struct dequeue* deq, void* p)
+static inline void dq_push_top(struct dequeue* deq, void* p)
 {
   lc_spin_lock(&deq->spinlock);
   deq->container[deq->top] = p;
@@ -54,7 +54,7 @@ LC_INLINE void dq_push_top(struct dequeue* deq, void* p)
   lc_spin_unlock(&deq->spinlock);
 };
 
-LC_INLINE void* dq_pop_bot(struct dequeue* deq)
+static inline void* dq_pop_bot(struct dequeue* deq)
 {
   void* ret = NULL;
   lc_spin_lock(&deq->spinlock);

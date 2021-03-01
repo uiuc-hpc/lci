@@ -6,7 +6,7 @@
 #define LC_SPIN_UNLOCKED 0
 #define LC_SPIN_LOCKED 1
 
-LC_INLINE void lc_spin_lock(volatile int* flag)
+static inline void lc_spin_lock(volatile int* flag)
 {
   if (__sync_lock_test_and_set(flag, 1)) {
     while (1) {
@@ -18,5 +18,5 @@ LC_INLINE void lc_spin_lock(volatile int* flag)
   }
 }
 
-LC_INLINE void lc_spin_unlock(volatile int* flag) { __sync_lock_release(flag); }
+static inline void lc_spin_unlock(volatile int* flag) { __sync_lock_release(flag); }
 #endif

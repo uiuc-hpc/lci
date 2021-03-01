@@ -5,7 +5,7 @@ int lc_pool_nkey = 0;
 volatile int init_lock = 0;
 static int initialized = 0;
 
-LC_INLINE void lc_pool_init() {
+static inline void lc_pool_init() {
   lc_spin_lock(&init_lock);
   if (!initialized) {
     for (int i = 0; i < MAX_NPOOLS; i++) {

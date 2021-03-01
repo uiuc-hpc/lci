@@ -17,7 +17,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-LC_INLINE int set_me_to(int core_id)
+static inline int set_me_to(int core_id)
 {
 #ifdef USE_AFFI
   cpu_set_t cpuset;
@@ -34,7 +34,7 @@ LC_INLINE int set_me_to(int core_id)
 #endif
 }
 
-LC_INLINE int set_me_within(int from, int to)
+static inline int set_me_within(int from, int to)
 {
 #ifdef USE_AFFI
   cpu_set_t cpuset;
