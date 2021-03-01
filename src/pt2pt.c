@@ -24,7 +24,7 @@ LCI_error_t LCI_sendbc(void* src, size_t size, int rank, int tag, LCI_endpoint_t
 
 LCI_error_t LCI_sendb(LCI_bbuffer_t src, size_t size, int rank, int tag, LCI_endpoint_t ep, void* sync)
 {
-  lc_packet* p = LC_PACKET_OF(src);
+  lc_packet* p = LCII_PACKET_OF(src);
   lc_pk_init(ep, (size > LCI_PACKET_RETURN_THRESHOLD) ? lc_pool_get_local(ep->pkpool) : -1,
              LC_PROTO_DATA, p);
   struct lc_rep* rep = &(ep->rep[rank]);
@@ -48,7 +48,7 @@ LCI_error_t LCI_sendd(LCI_dbuffer_t src, size_t size, int rank, int tag, LCI_end
 LCI_error_t LCI_recvi(LCI_ivalue_t* src, int rank, int tag, LCI_endpoint_t ep, void* sync)
 {
   lc_init_req(src, sizeof(LCI_ivalue_t), LCI_SYNCL_PTR_TO_REQ_PTR(sync));
-  lc_key key = lc_make_key(rank, tag);
+  lc_key key = LCII_MAKE_KEY(rank, tag);
   lc_value value = (lc_value) sync;
   LCI_request_t* request = LCI_SYNCL_PTR_TO_REQ_PTR(sync);
   if (!lc_hash_insert(ep->mt, key, &value, CLIENT)) {
@@ -64,7 +64,7 @@ LCI_error_t LCI_recvbc(void* src, size_t size, int rank, int tag, LCI_endpoint_t
 {
   LCI_request_t* req = LCI_SYNCL_PTR_TO_REQ_PTR(sync);
   lc_init_req(src, size, req);
-  lc_key key = lc_make_key(rank, tag);
+  lc_key key = LCII_MAKE_KEY(rank, tag);
   lc_value value = (lc_value) sync;
   if (!lc_hash_insert(ep->mt, key, &value, CLIENT)) {
     lc_packet* p = (lc_packet*) value;
@@ -81,7 +81,7 @@ LCI_error_t LCI_recvd(void* src, size_t size, int rank, int tag, LCI_endpoint_t 
   lc_init_req(src, size, req);
   struct lc_rep* rep = &ep->rep[rank];
   req->__reserved__ = rep->handle;
-  lc_key key = lc_make_key(rank, tag);
+  lc_key key = LCII_MAKE_KEY(rank, tag);
   lc_value value = (lc_value) sync;
   if (!lc_hash_insert(ep->mt, key, &value, CLIENT)) {
     lc_packet* p = (lc_packet*) value;

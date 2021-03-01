@@ -3,6 +3,6 @@
 
 int lc_glob_mark(lc_ep ep)
 {
-  lc_mem_fence();
+  LCII_MEM_FENCE();
   return ep->completed;
 }

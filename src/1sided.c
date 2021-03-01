@@ -22,7 +22,7 @@ LCI_error_t LCI_putbc(void* src, size_t size, int rank, int rma_id, int offset, 
 
 LCI_error_t LCI_putb(LCI_bbuffer_t buffer, size_t size, int rank, uint16_t meta, LCI_endpoint_t ep, void* sync)  
 { 
-  lc_packet* p = LC_PACKET_OF(buffer);
+  lc_packet* p = LCII_PACKET_OF(buffer);
   lc_pk_init(ep, (size > 1024) ? lc_pool_get_local(ep->pkpool) : -1, LC_PROTO_DATA, p);
   p->context.ref = USER_MANAGED;
   p->context.sync = sync;

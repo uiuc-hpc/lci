@@ -84,6 +84,8 @@ struct lc_rep {
   uint64_t rkey;
 };
 
+extern int lcg_deadlock;
+
 #include "pool.h"
 #include "packet.h"
 #include "proto.h"

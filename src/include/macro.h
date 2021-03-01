@@ -1,24 +1,13 @@
 #ifndef LC_MACRO_H_
 #define LC_MACRO_H_
 
-#define LC_EXPORT __attribute__((visibility("default")))
+// Converts medium buffer into lc_packet that contains it.
+#define LCII_PACKET_OF(b) ((lc_packet*) ((uintptr_t)(b) - offsetof(lc_packet, data)))
 
-// Converts bdata_t into lc_packet that contains it.
-#define LC_PACKET_OF(b) ((lc_packet*) ((uintptr_t)(b) - offsetof(lc_packet, data)))
-
-
-#define LC_SAFE(x)     \
-  {                    \
-    while (x != LC_OK) \
-      ;                \
-  }
-
-#define lc_mem_fence()                   \
+#define LCII_MEM_FENCE()                   \
   {                                      \
     asm volatile("mfence" ::: "memory"); \
   }
-
-#define lc_make_key(r, t) ((((uint64_t)(r) << 32) | (uint64_t)(t)))
 
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
@@ -27,13 +16,6 @@
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 
 #define __UNUSED__ __attribute__((unused))
-
-extern int lcg_deadlock;
-
-#define LC_POOL_GET_OR_RETN(p, x)         \
-  if (lcg_deadlock) return LCI_ERR_RETRY; \
-  lc_packet* x = lc_pool_get_nb((p));     \
-  if (x == NULL) return LCI_ERR_RETRY;
 
 #if 0
 
@@ -51,7 +33,7 @@ extern int lcg_deadlock;
           lc_sync_signal(((lc_cntr*)sync)->sync);                        \
       }                                                                  \
     }                                                                    \
-    lc_mem_fence();                                                      \
+    LCII_MEM_FENCE();                                                      \
   }
 
 #endif

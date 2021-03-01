@@ -6,6 +6,7 @@
 
 typedef uintptr_t lc_value;
 typedef uint64_t lc_key;
+#define LCII_MAKE_KEY(r, t) ((((uint64_t)(r) << 32) | (uint64_t)(t)))
 
 #include <assert.h>
 #include <stdlib.h>

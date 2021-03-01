@@ -65,7 +65,7 @@ static inline void lc_prepare_rts(void* src, size_t size, void* usr_context,
   p->data.rts.src_addr = (uintptr_t)src;
   p->data.rts.size = size;
   p->data.rts.ce = (uintptr_t)usr_context;
-  lc_mem_fence();
+  LCII_MEM_FENCE();
 }
 
 static inline void lc_ce_glob(LCI_endpoint_t ep)
@@ -150,7 +150,7 @@ static inline void lc_serve_recv_match(LCI_endpoint_t ep, lc_packet* p,
   p->context.proto = proto;
 
   if (proto == LC_PROTO_DATA) {
-    const lc_key key = lc_make_key(p->context.sync->request.rank,
+    const lc_key key = LCII_MAKE_KEY(p->context.sync->request.rank,
                                    p->context.sync->request.tag);
     lc_value value = (lc_value)p;
     if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
@@ -161,7 +161,7 @@ static inline void lc_serve_recv_match(LCI_endpoint_t ep, lc_packet* p,
       lc_ce_dispatch(ep, p, sync, cap);
     }
   } else if (proto == LC_PROTO_RTS) {
-    const lc_key key = lc_make_key(p->context.sync->request.rank,
+    const lc_key key = LCII_MAKE_KEY(p->context.sync->request.rank,
                                    p->context.sync->request.tag);
     lc_value value = (lc_value)p;
     if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {

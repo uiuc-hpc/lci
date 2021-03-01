@@ -101,7 +101,7 @@ LCI_error_t LCI_bbuffer_get(LCI_bbuffer_t* buffer, int device_id) {
 
 LCI_error_t LCI_bbuffer_free(LCI_bbuffer_t buffer, int device_id)
 {
-  lc_packet* packet = LC_PACKET_OF(buffer);
+  lc_packet* packet = LCII_PACKET_OF(buffer);
   lc_pool_put(LCI_DEVICES[device_id]->pkpool, packet);
   return LCI_OK;
 }
