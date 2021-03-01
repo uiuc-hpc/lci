@@ -6,7 +6,7 @@ volatile int init_lock = 0;
 static int initialized = 0;
 
 static inline void lc_pool_init() {
-  lc_spin_lock(&init_lock);
+  LCIU_acquire_spinlock(&init_lock);
   if (!initialized) {
     for (int i = 0; i < MAX_NPOOLS; i++) {
       memset(&tls_pool_struct[i][0], POOL_UNINIT,
@@ -14,7 +14,7 @@ static inline void lc_pool_init() {
     }
     initialized = 1;
   }
-  lc_spin_unlock(&init_lock);
+  LCIU_release_spinlock(&init_lock);
 }
 
 void lc_pool_create(struct lc_pool** pool) {

@@ -1,16 +1,98 @@
+#include <limits.h>
 #include "lci.h"
-#include "include/lci_priv.h"
-#include "include/cq.h"
+#include "lci_priv.h"
+#include "cq.h"
 
 lc_server** LCI_DEVICES;
 LCI_endpoint_t* LCI_ENDPOINTS;
 
 char lcg_name[256];
-int lcg_current_id = 0; int lcg_deadlock = 0;
+int lcg_deadlock = 0;
 volatile uint32_t lc_next_rdma_key = 1;
-__thread int lcg_core_id = -1;
 
-void lc_config_init(int num_proc, int rank);
+LCI_API int LCI_NUM_DEVICES;
+LCI_API int LCI_NUM_PROCESSES;
+LCI_API int LCI_RANK;
+LCI_API int LCI_MAX_ENDPOINTS;
+LCI_API int LCI_MAX_TAG = (1u << 15) - 1;
+LCI_API int LCI_SHORT_SIZE = 8;
+LCI_API int LCI_MEDIUM_SIZE = LC_PACKET_SIZE - sizeof(struct packet_context);
+LCI_API int LCI_REGISTERED_SEGMENT_SIZE;
+LCI_API int LCI_MAX_REGISTERED_SEGMENT_SIZE = INT_MAX;
+LCI_API int LCI_MAX_REGISTERED_SEGMENT_NUMBER = 1;
+LCI_API int LCI_DEFAULT_TABLE_LENGTH = 1u << TBL_BIT_SIZE;
+LCI_API int LCI_MAX_TABLE_LENGTH = 1u << TBL_BIT_SIZE;
+LCI_API int LCI_DEFAULT_QUEUE_LENGTH = CQ_MAX_SIZE;
+LCI_API int LCI_MAX_QUEUE_LENGTH = CQ_MAX_SIZE;
+LCI_API int LCI_LOG_LEVEL = LCI_LOG_WARN;
+LCI_API int LCI_PACKET_RETURN_THRESHOLD;
+
+static inline int getenv_or(char* env, int def) {
+  char* val = getenv(env);
+  if (val != NULL) {
+    return atoi(val);
+  } else {
+    return def;
+  }
+}
+
+void lc_config_init(int num_proc, int rank)
+{
+  char *p;
+
+  LCI_NUM_DEVICES = getenv_or("LCI_NUM_DEVICES", 1);
+  LCI_MAX_ENDPOINTS = getenv_or("LCI_MAX_ENDPOINTS", 8);
+  LCI_NUM_PROCESSES = num_proc;
+  LCI_RANK = rank;
+  LCI_REGISTERED_SEGMENT_SIZE = getenv_or("LCI_REGISTERED_SEGMENT_SIZE", LC_DEV_MEM_SIZE);
+
+  p = getenv("LCI_LOG_LEVEL");
+  if (p == NULL) ;
+  else if (strcmp(p, "none") == 0 || strcmp(p, "NONE") == 0)
+    LCI_LOG_LEVEL = LCI_LOG_NONE;
+  else if (strcmp(p, "warn") == 0 || strcmp(p, "WARN") == 0)
+    LCI_LOG_LEVEL = LCI_LOG_WARN;
+  else if (strcmp(p, "trace") == 0 || strcmp(p, "TRACE") == 0)
+    LCI_LOG_LEVEL = LCI_LOG_TRACE;
+  else if (strcmp(p, "info") == 0 || strcmp(p, "INFO") == 0)
+    LCI_LOG_LEVEL = LCI_LOG_INFO;
+  else if (strcmp(p, "debug") == 0 || strcmp(p, "DEBUG") == 0)
+    LCI_LOG_LEVEL = LCI_LOG_DEBUG;
+  else if (strcmp(p, "max") == 0 || strcmp(p, "MAX") == 0)
+    LCI_LOG_LEVEL = LCI_LOG_MAX;
+  else
+    LCI_Log(LCI_LOG_WARN, "unknown env LCI_LOG_LEVEL (%s against none|warn|trace|info|debug|max). use the default LCI_LOG_WARN.\n", p);
+
+  LCI_DEVICES = calloc(sizeof(lc_server*), LCI_NUM_DEVICES);
+  LCI_ENDPOINTS = calloc(sizeof(LCI_endpoint_t), LCI_MAX_ENDPOINTS);
+
+  LCI_PACKET_RETURN_THRESHOLD = getenv_or("LCI_PACKET_RETURN_THRESHOLD", 1024);
+}
+
+void lc_dev_init(int id, lc_server** dev)
+{
+  uintptr_t base_packet;
+  lc_server_init(id, dev);
+  lc_server* s = *dev;
+  uintptr_t base_addr = (uintptr_t)lc_server_heap_ptr(s);
+  base_packet = base_addr + 8192 - sizeof(struct packet_context);
+
+  lc_pool_create(&s->pkpool);
+  for (int i = 0; i < LC_SERVER_NUM_PKTS; i++) {
+    lc_packet* p = (lc_packet*)(base_packet + i * LC_PACKET_SIZE);
+    p->context.poolid = 0;
+    // p->context.req_s.parent = p;
+    lc_pool_put(s->pkpool, p);
+  }
+
+  s->curr_addr = base_packet + LC_SERVER_NUM_PKTS * LC_PACKET_SIZE;
+  s->curr_addr = (s->curr_addr + 8192 - 1) / 8192 * 8192;
+}
+
+void lc_dev_finalize(lc_server* dev)
+{
+  lc_server_finalize(dev);
+}
 
 LCI_error_t LCI_open()
 {

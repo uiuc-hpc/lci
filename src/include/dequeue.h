@@ -2,7 +2,8 @@
 #define LC_DEQUEUE_H_
 
 #define MAX_SIZE (1 << 12)
-#include "lock.h"
+#include "macro.h"
+#include "lciu_thread.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -27,42 +28,42 @@ static inline void dq_init(struct dequeue* dq)
   dq->top = 0;
   dq->bot = 0;
   dq->cache = NULL;
-  dq->spinlock = LC_SPIN_UNLOCKED;
+  dq->spinlock = LCIU_SPIN_UNLOCKED;
 }
 
 static inline void* dq_pop_top(struct dequeue* deq)
 {
   void* ret = NULL;
-  lc_spin_lock(&deq->spinlock);
+  LCIU_acquire_spinlock(&deq->spinlock);
   if (deq->top != deq->bot) {
     deq->top = (deq->top + MAX_SIZE - 1) & (MAX_SIZE - 1);
     ret = deq->container[deq->top];
   }
-  lc_spin_unlock(&deq->spinlock);
+  LCIU_release_spinlock(&deq->spinlock);
   return ret;
 };
 
 static inline void dq_push_top(struct dequeue* deq, void* p)
 {
-  lc_spin_lock(&deq->spinlock);
+  LCIU_acquire_spinlock(&deq->spinlock);
   deq->container[deq->top] = p;
   deq->top = (deq->top + 1) & (MAX_SIZE - 1);
   if (unlikely(deq->top == deq->bot)) {
     fprintf(stderr, "pool overflow\n");
     exit(EXIT_FAILURE);
   }
-  lc_spin_unlock(&deq->spinlock);
+  LCIU_release_spinlock(&deq->spinlock);
 };
 
 static inline void* dq_pop_bot(struct dequeue* deq)
 {
   void* ret = NULL;
-  lc_spin_lock(&deq->spinlock);
+  LCIU_acquire_spinlock(&deq->spinlock);
   if (deq->top != deq->bot) {
     ret = deq->container[deq->bot];
     deq->bot = (deq->bot + 1) & (MAX_SIZE - 1);
   }
-  lc_spin_unlock(&deq->spinlock);
+  LCIU_release_spinlock(&deq->spinlock);
   return ret;
 };
 

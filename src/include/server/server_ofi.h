@@ -294,7 +294,7 @@ static inline void lc_server_post_recv(lc_server* s, lc_packet* p)
 {
   if (p == NULL) return;
   FI_SAFECALL(
-      fi_trecv(s->ep, &p->data, SHORT_MSG_SIZE, 0, FI_ADDR_UNSPEC, /*any*/0, ~(uint64_t)0 /*ignore all*/, &p->context));
+      fi_trecv(s->ep, &p->data, LCI_MEDIUM_SIZE, 0, FI_ADDR_UNSPEC, /*any*/0, ~(uint64_t)0 /*ignore all*/, &p->context));
   s->recv_posted++;
 }
 

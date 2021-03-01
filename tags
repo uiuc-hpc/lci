@@ -1685,9 +1685,9 @@ lc_send_tag_p	src/tag.c	/^lc_status lc_send_tag_p(lch* mv, struct lc_pkt* pkt, l
 lc_serve_imm	src/include/proto.h	/^void lc_serve_imm(lch* mv, uint32_t imm)$/;"	f
 lc_serve_recv	src/include/proto.h	/^void lc_serve_recv(lch* mv, lc_packet* p, uint8_t proto)$/;"	f
 lc_serve_send	src/include/proto.h	/^void lc_serve_send(lch* mv, lc_packet* p, uint8_t proto)$/;"	f
-lc_server	src/include/lc_priv.h	/^typedef struct ibv_server lc_server;$/;"	t	typeref:struct:ibv_server
-lc_server	src/include/lc_priv.h	/^typedef struct ofi_server lc_server;$/;"	t	typeref:struct:ofi_server
-lc_server	src/include/lc_priv.h	/^typedef struct psm_server lc_server;$/;"	t	typeref:struct:psm_server
+LCII_server_t	src/include/lc_priv.h	/^typedef struct ibv_server LCII_server_t;$/;"	t	typeref:struct:ibv_server
+LCII_server_t	src/include/lc_priv.h	/^typedef struct ofi_server LCII_server_t;$/;"	t	typeref:struct:ofi_server
+LCII_server_t	src/include/lc_priv.h	/^typedef struct psm_server LCII_server_t;$/;"	t	typeref:struct:psm_server
 lc_server_finalize	src/include/server/server_ibv.h	699;"	d
 lc_server_finalize	src/include/server/server_ofi.h	356;"	d
 lc_server_finalize	src/include/server/server_psm2.h	382;"	d
@@ -2394,7 +2394,7 @@ sendbuf	benchmarks/pingpong_mt_NN_compute.cxx	/^char *sendbuf, *recvbuf;$/;"	v
 sendbuf	benchmarks/pingpong_mt_NN_osu.c	/^char *sendbuf, *recvbuf;$/;"	v
 sendmsg	benchmarks/msgrate-threads.c	/^void *sendmsg(void * input)$/;"	f
 server	src/dreg/dreg.h	/^    void* server;$/;"	m	struct:dreg_entry
-server	src/include/lc_priv.h	/^  lc_server* server;$/;"	m	struct:lc_struct
+server	src/include/lc_priv.h	/^  LCII_server_t* server;$/;"	m	struct:lc_struct
 server	src/include/server/server_psm2.h	/^  psm_server* server;$/;"	m	struct:psm_mr
 server_max_inline	src/lc.c	/^size_t server_max_inline;$/;"	v
 set_device_memory	benchmarks/osu_pt2pt.c	/^set_device_memory (void * ptr, int data, size_t size)$/;"	f

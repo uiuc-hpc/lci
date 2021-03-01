@@ -166,7 +166,7 @@ static inline void ibv_post_recv_(lc_server* s, lc_packet* p)
 
   struct ibv_sge sg = {
       .addr = (uintptr_t)(&p->data),
-      .length = SHORT_MSG_SIZE,
+      .length = LCI_MEDIUM_SIZE,
       .lkey = s->heap->lkey,
   };
 

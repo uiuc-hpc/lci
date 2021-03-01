@@ -12,7 +12,7 @@ typedef uint64_t lc_key;
 #include <stdlib.h>
 
 #include "macro.h"
-#include "lock.h"
+#include "lciu_thread.h"
 
 #define EMPTY ((uint64_t)-1)
 #define TBL_BIT_SIZE 16 // size: 1 << 16 (1 control block 3 key-value pairs)
@@ -78,7 +78,7 @@ static inline struct lc_hash* create_table(size_t num_rows)
   // Initialize all with EMPTY and clear lock.
   for (size_t i = 0; i < num_rows; i++) {
     // First are control.
-    ret[i * TBL_WIDTH].control.lock = LC_SPIN_UNLOCKED;
+    ret[i * TBL_WIDTH].control.lock = LCIU_SPIN_UNLOCKED;
     ret[i * TBL_WIDTH].control.next = NULL;
 
     // Remaining are slots.
@@ -111,7 +111,7 @@ static inline int lc_hash_insert(struct lc_hash* h, lc_key key, lc_value* value,
 
   lc_key cmp_key = (key << 1) | (1 - type);
 
-  lc_spin_lock(&master->control.lock);
+  LCIU_acquire_spinlock(&master->control.lock);
   while (1) {
     lc_key tag = hentry->entry.tag;
     // If the key is the same as tag, someone has inserted it.
@@ -119,7 +119,7 @@ static inline int lc_hash_insert(struct lc_hash* h, lc_key key, lc_value* value,
     if (tag == cmp_key) {
       *value = hentry->entry.val;
       hentry->entry.tag = EMPTY;
-      lc_spin_unlock(&master->control.lock);
+      LCIU_release_spinlock(&master->control.lock);
       return 0;
     } else if (tag == EMPTY) {
       // Ortherwise, if the tag is empty, we record the slot.
@@ -156,7 +156,7 @@ static inline int lc_hash_insert(struct lc_hash* h, lc_key key, lc_value* value,
   }
   empty_hentry->entry.tag = (key << 1) | type;
   empty_hentry->entry.val = *value;
-  lc_spin_unlock(&master->control.lock);
+  LCIU_release_spinlock(&master->control.lock);
   return 1;
 }
 

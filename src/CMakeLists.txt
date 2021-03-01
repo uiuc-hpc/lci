@@ -1,7 +1,6 @@
 target_include_directories(lci-obj PRIVATE include)
 target_sources_relative(lci-obj PRIVATE
   1sided.c
-  config.c
   cq.c
   lci.c
   lcrq.c
@@ -11,7 +10,8 @@ target_sources_relative(lci-obj PRIVATE
   pm.c
   pool.c
   pt2pt.c
-        log.c
+  log.c
+  lciu_thread.c
   ${CMAKE_CURRENT_SOURCE_DIR}/$<$<BOOL:${LCI_SYNC_ABT}>:sync_abt.c>
   ${CMAKE_CURRENT_SOURCE_DIR}/$<$<BOOL:${LCI_SYNC_FLAG}>:sync_flag.c>
 )

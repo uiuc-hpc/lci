@@ -3,8 +3,6 @@
 
 #include "config.h"
 
-#define SHORT_MSG_SIZE (LC_PACKET_SIZE - sizeof(struct packet_context))
-
 #define LCI_SYNCL_PTR_TO_REQ_PTR(sync) (&((LCI_syncl_t*)sync)->request)
 
 struct lc_server;
@@ -89,29 +87,5 @@ extern int lcg_deadlock;
 #include "pool.h"
 #include "packet.h"
 #include "proto.h"
-
-void lci_config_init(int num_proc, int rank);
-
-static inline void lc_dev_init(int id, lc_server** dev)
-{
-  uintptr_t base_packet;
-  lc_server_init(id, dev);
-  lc_server* s = *dev;
-  uintptr_t base_addr = (uintptr_t)lc_server_heap_ptr(s);
-  base_packet = base_addr + 8192 - sizeof(struct packet_context);
-
-  lc_pool_create(&s->pkpool);
-  for (int i = 0; i < LC_SERVER_NUM_PKTS; i++) {
-    lc_packet* p = (lc_packet*)(base_packet + i * LC_PACKET_SIZE);
-    p->context.poolid = 0;
-    // p->context.req_s.parent = p;
-    lc_pool_put(s->pkpool, p);
-  }
-
-  s->curr_addr = base_packet + LC_SERVER_NUM_PKTS * LC_PACKET_SIZE;
-  s->curr_addr = (s->curr_addr + 8192 - 1) / 8192 * 8192;
-}
-
-static inline void lc_dev_finalize(lc_server* dev) { lc_server_finalize(dev); }
 
 #endif

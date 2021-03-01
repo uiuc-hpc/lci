@@ -9,8 +9,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "thread.h"
-#include "lock.h"
+#include "lciu_thread.h"
 #include "dequeue.h"
 
 #define MAX_NPOOLS 272
@@ -25,17 +24,6 @@ struct dequeue;
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-static inline int lc_worker_id()
-{
-  if (unlikely(lcg_core_id == -1)) {
-    lcg_core_id = sched_getcpu();
-    if (lcg_core_id == -1) {
-      lcg_core_id = __sync_fetch_and_add(&lcg_current_id, 1);
-    }
-  }
-  return lcg_core_id;
-}
 
 typedef struct lc_pool {
   int key;
@@ -70,10 +58,10 @@ static inline void* lc_pool_get_nb(lc_pool* pool);
 
 static inline int32_t lc_pool_get_local(struct lc_pool* pool)
 {
-  int wid = lc_worker_id();
+  int wid = LCIU_get_thread_id();
   int32_t pid = tls_pool_struct[wid][pool->key];
   if (unlikely(pid == POOL_UNINIT)) {
-    lc_spin_lock(&init_lock);
+    LCIU_acquire_spinlock(&init_lock);
     pid = tls_pool_struct[wid][pool->key];
     if (pid == POOL_UNINIT) {
       struct dequeue* lpool = 0;
@@ -83,7 +71,7 @@ static inline int32_t lc_pool_get_local(struct lc_pool* pool)
       pool->lpools[pid] = lpool;
       tls_pool_struct[wid][pool->key] = pid;
     }
-    lc_spin_unlock(&init_lock);
+    LCIU_release_spinlock(&init_lock);
   }
   // assert(pid >= 0 && pid < pool->npools && "POOL ERROR: pid out-of-range");
   return pid;

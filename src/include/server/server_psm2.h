@@ -330,7 +330,7 @@ static inline void lc_server_post_recv(lc_server* s, lc_packet* p)
   PSM_SAFECALL(psm2_mq_irecv2(s->mq, PSM2_MQ_ANY_ADDR, &rtag, /* message tag */
                               &LCI_PSM2_TAGSEL, /* message tag mask */
                               0,                /* no flags */
-                              &p->data, SHORT_MSG_SIZE,
+                              &p->data, LCI_MEDIUM_SIZE,
                               (void*)(PSM_RECV | (uintptr_t)&p->context),
                               (psm2_mq_req_t*)p));
 

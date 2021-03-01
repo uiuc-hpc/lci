@@ -1,0 +1,5 @@
+/*! \page LCI_1.7_log Development log for LCI v1.7
+## TODO List:
+- rename symbols: `LCI_*` for export symbols, `LCII_*` for internal symbols, `LCIU_*` for utility.
+
+*/

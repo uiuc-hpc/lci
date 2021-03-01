@@ -1,6 +1,6 @@
 #include "lci.h"
 #include "hashtable.h"
-#include "lock.h"
+#include "lciu_thread.h"
 #include "macro.h"
 
 LCI_error_t LCI_MT_init(LCI_MT_t* mt, uint32_t length)
