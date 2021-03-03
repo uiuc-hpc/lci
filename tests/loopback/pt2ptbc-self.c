@@ -7,13 +7,12 @@
 #include "comm_exp.h"
 
 #undef MAX_MSG
-#define MAX_MSG (4 * 1024 * 1024)
+#define MAX_MSG (8 * 1024)
 
 int total = TOTAL;
-int skip = SKIP;
 
 int main(int argc, char** args) {
-  LCI_Init(&argc, &args);
+  LCI_open();
   LCI_endpoint_t ep;
   LCI_PL_t prop;
   LCI_PL_create(&prop);
@@ -25,7 +24,7 @@ int main(int argc, char** args) {
   int rank = LCI_RANK;
   int tag = 99;
 
-  LCI_syncl_t sync_send, sync_recv;
+  LCI_syncl_t sync;
 
   double t1 = 0;
   size_t alignment = sysconf(_SC_PAGESIZE);
@@ -38,30 +37,22 @@ int main(int argc, char** args) {
     memset(src_buf, 'a', size);
     memset(dst_buf, 'b', size);
 
-    if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
+    if (size > LARGE) { total = TOTAL_LARGE; }
 
-    for (int i = 0; i < total + skip; i++) {
-      if (i == skip) t1 = wtime();
-      LCI_one2one_set_empty(&sync_send);
-      LCI_one2one_set_empty(&sync_recv);
-      LCI_recvd(dst_buf, size, rank, tag, ep, &sync_recv);
+    for (int i = 0; i < total; i++) {
+      while (LCI_sendbc(src_buf, size, rank, tag, ep) != LCI_OK)
+        LCI_progress(0, 1);
 
-      while (LCI_sendd(src_buf, size, rank, tag, ep, &sync_send) != LCI_OK)
+      LCI_one2one_set_empty(&sync);
+      LCI_recvbc(dst_buf, size, rank, tag, ep, &sync);
+      while (LCI_one2one_test_empty(&sync))
         LCI_progress(0, 1);
-      while (LCI_one2one_test_empty(&sync_send))
-        LCI_progress(0, 1);
-      LCI_one2one_set_empty(&sync_send);
 
-      while (LCI_one2one_test_empty(&sync_recv))
-        LCI_progress(0, 1);
       if (i == 0) {
         for (int j = 0; j < size; j++)
           assert(((char*) src_buf)[j] == 'a' && ((char*)dst_buf)[j] == 'a');
       }
     }
-
-    t1 = 1e6 * (wtime() - t1) / total / 2;
-    printf("%10.d %10.3f\n", size, t1);
   }
-  LCI_Free();
+  LCI_close();
 }

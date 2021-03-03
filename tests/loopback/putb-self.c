@@ -10,7 +10,7 @@
 #define MAX_MSG (8 * 1024)
 
 int main(int argc, char** args) {
-  LCI_Init(&argc, &args);
+  LCI_open();
   LCI_endpoint_t ep;
   LCI_comp_t cq;
   LCI_CQ_init(&cq, 0);
@@ -28,16 +28,12 @@ int main(int argc, char** args) {
   LCI_sync_create(&sync);
 
   LCI_barrier();
-
-  double t1;
   LCI_bbuffer_t p;
   LCI_bbuffer_get(&p, 0);
   LCI_request_t* req_ptr;
 
   for (int size = 1; size <= MAX_MSG; size <<= 1) {
-    for (int i = 0; i < TOTAL+SKIP; i++) {
-      if (i == SKIP)
-        t1 = wtime();
+    for (int i = 0; i < TOTAL; i++) {
       LCI_one2one_set_empty(&sync);
       LCI_putb(p, size, rank, 99, ep, &sync);
       while (LCI_one2one_test_empty(&sync)) {
@@ -47,12 +43,7 @@ int main(int argc, char** args) {
         LCI_progress(0, 1);
       LCI_bbuffer_free(req_ptr->data.buffer.start, 0);
     }
-
-    if (rank == 0) {
-      t1 = 1e6 * (wtime() - t1) / TOTAL / 2;
-      printf("%10.d %10.3f\n", size, t1);
-    }
   }
 
-  LCI_Free();
+  LCI_close();
 }

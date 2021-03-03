@@ -10,7 +10,7 @@
 #define MAX_MSG (8 * 1024)
 
 int main(int argc, char** args) {
-  LCI_Init(&argc, &args);
+  LCI_open();
   LCI_endpoint_t ep;
   LCI_PL_t prop;
   LCI_PL_create(&prop);
@@ -31,9 +31,9 @@ int main(int argc, char** args) {
   int base_offset = 64 * 1024;
   addr = LCI_get_base_addr(0) + base_offset;
 
-  LCI_sendi(addr, rank, 0, ep);
+  LCI_sendi(addr, 1-rank, 0, ep);
   LCI_one2one_set_empty(&sync);
-  LCI_recvi(&raddr, rank, 0, ep, &sync);
+  LCI_recvi(&raddr, 1-rank, 0, ep, &sync);
   while (LCI_one2one_test_empty(&sync)) {
     LCI_progress(0, 1);
   }
@@ -44,24 +44,21 @@ int main(int argc, char** args) {
   rbuf[0] = -1;
   LCI_barrier();
 
-  double t1;
-
   for (int size = 8; size <= MAX_MSG; size <<= 1) {
-    for (int i = 0; i < TOTAL+SKIP; i++) {
-      if (i == SKIP)
-        t1 = wtime();
-
-      LCI_putbc(sbuf, size, rank, 0, base_offset + MAX_MSG, 99, ep);
-      while (rbuf[0] == -1)
-        LCI_progress(0, 1);
-      rbuf[0] = -1;
-    }
-
-    if (rank == 0) {
-      t1 = 1e6 * (wtime() - t1) / TOTAL / 2;
-      printf("%10.d %10.3f\n", size, t1);
+    for (int i = 0; i < TOTAL; i++) {
+      if (rank == 0) {
+        while (rbuf[0] == -1)
+          LCI_progress(0, 1);
+        rbuf[0] = -1;
+        LCI_putbc(sbuf, size, 1-rank, 0, base_offset + MAX_MSG, 99, ep);
+      } else {
+        LCI_putbc(sbuf, size, 1-rank, 0, base_offset + MAX_MSG, 99, ep);
+        while (rbuf[0] == -1)
+          LCI_progress(0, 1);
+        rbuf[0] = -1;
+      }
     }
   }
 
-  LCI_Free();
+  LCI_close();
 }

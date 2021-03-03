@@ -4,14 +4,10 @@ project(LCI
   DESCRIPTION "Lightweight Communication Interface"
   HOMEPAGE_URL "https://github.com/uiuc-hpc/LC"
 )
-
+enable_testing()
 option(LCI_DEBUG "LCI Debug Mode" OFF)
 option(LCI_USE_DREG "Use registration cache (only affects ibv -- only use when not-so-dynamic allocation)" ON)
-option(LCI_USE_PMI2 "Enable PMI2" OFF)
-option(LCI_USE_GPROF "Enable GPROF" OFF)
 option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
-set(TEST_EXE mpirun CACHE STRING "exective to be used in ctest")
-set(TEST_ARG CACHE STRING "arguments to be used in ctest")
 set(LCI_SERVER ofi CACHE STRING "Fabric")
 set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv psm)
 set(LCI_EP_AR dynamic explicit CACHE STRING "Addressing mode (dynamic, explicit, immediate)")
@@ -41,7 +37,7 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(TargetSourcesRelative)
-enable_testing()
+include(AddLCI)
 
 if(LCI_SERVER STREQUAL "ofi")
   set(LCI_USE_SERVER_OFI ON)
@@ -116,12 +112,8 @@ string(TOUPPER ${LCI_SERVER} FABRIC_PREFER)
 find_package(Fabric REQUIRED)
 
 find_package(Argobots)
-find_package(PMI2)
-if(NOT PMI2_FOUND)
-  message(NOTICE "Not found PMI2. Switch back to PMI (v1).")
-  set(LCI_USE_PMI2 OFF)
-endif()
 
+option(LCI_USE_GPROF "Enable GPROF" OFF)
 if(LCI_USE_GPROF)
   add_compile_options(-pg -fno-inline)
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
@@ -145,9 +137,6 @@ target_link_libraries(lci-obj PUBLIC
   Fabric::Fabric
   $<$<BOOL:${LCI_SYNC_ABT}>:Argobots::Argobots>
 )
-if(LCI_USE_PMI2)
-  target_link_libraries(lci-obj PUBLIC PMI::PMI2)
-endif()
 
 add_library(lci_shared SHARED)
 add_library(lci_static STATIC)
@@ -158,6 +147,7 @@ set_target_properties(lci_shared lci_static PROPERTIES OUTPUT_NAME lci)
 add_subdirectory(src)
 add_subdirectory(examples)
 add_subdirectory(benchmarks)
+add_subdirectory(tests)
 add_subdirectory(doc)
 
 write_basic_package_version_file(

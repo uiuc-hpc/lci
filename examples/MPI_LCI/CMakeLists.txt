@@ -1,6 +1,11 @@
+option(LCI_BUILD_MPLCI "build MPI/LCI interoperation examples by default" ON)
+if( NOT LCI_BUILD_MPLCI )
+    set(EXCLUDE_FROM_ALL ON)
+endif()
+
 find_package(MPI)
 
-function(add_mplci_benchmark NAME)
+function(add_mplci_example NAME)
     set(TARGET_NAME mplci_${NAME})
     add_executable(${TARGET_NAME} ${NAME}.cpp)
     target_link_libraries(${TARGET_NAME} PRIVATE lci_shared)
@@ -10,14 +15,14 @@ function(add_mplci_benchmark NAME)
     target_compile_definitions(${TARGET_NAME} PRIVATE YAMPI_MPI)
 endfunction()
 
-function(add_mplci_benchmarks)
+function(add_mplci_examples)
     foreach(name ${ARGN})
-        add_mplci_benchmark(${name})
+        add_mplci_example(${name})
     endforeach()
 endfunction()
 
 if(MPI_FOUND)
-    add_mplci_benchmarks(
+    add_mplci_examples(
             hello_world
     )
 endif()

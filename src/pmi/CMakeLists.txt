@@ -1,3 +1,4 @@
+option(LCI_USE_PMI2 "Enable PMI2" OFF)
 if(LCI_USE_PMI2)
     add_subdirectory(pmi2)
 else()

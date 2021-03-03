@@ -1,60 +1,19 @@
-function(add_c_example NAME)
-  add_executable(${NAME} ${NAME}.c)
-  target_compile_definitions(${NAME} PRIVATE _GNU_SOURCE)
-  target_link_libraries(${NAME} PRIVATE
-    Threads::Threads
-    lci_shared
-  )
-  if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.13")
-    target_link_options(${NAME} PRIVATE
-      LINKER:-z,now
-      LINKER:-z,relro
-    )
-  else()
-    set_property(TARGET ${NAME} APPEND_STRING PROPERTY LINK_FLAGS
-      " -Wl,-z,now -Wl,-z,relro"
-    )
-  endif()
-  set_target_properties(${NAME} PROPERTIES
-    C_STANDARD                99
-    C_EXTENSIONS              ON
-  )
-  install(TARGETS ${NAME} DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/lc)
-endfunction()
-
-function(add_all_c_examples)
-  foreach(example ${ARGN})
-    add_c_example(${example})
+function(add_lci_examples)
+  foreach(name ${ARGN})
+    string(REGEX REPLACE "\\.[^.]*$" "" name_without_ext ${name})
+    add_lci_executable(${name_without_ext} ${name} comm_exp.h)
   endforeach()
 endfunction()
 
-function(add_tests)
-  foreach(test ${ARGN})
-    add_test(NAME test_${test}
-             COMMAND ${TEST_EXE} ${TEST_ARG} -n 2 $<TARGET_FILE:${test}>)
-  endforeach()
-endfunction()
-
-add_all_c_examples(
-        init
-        pt2pti
-        pt2ptbc
-        pt2ptd
-        pt2ptiq
-        puti
-        putb
-        putbc
-)
-
-add_tests(
-        init
-        pt2pti
-        pt2ptiq
-        pt2ptbc
-        pt2ptd
-        puti
-        putb
-        putbc
+add_lci_examples(
+        init.c
+        pt2pti.c
+        pt2ptbc.c
+        pt2ptd.c
+        pt2ptiq.c
+        puti.c
+        putb.c
+        putbc.c
 )
 
 add_subdirectory(MPI_LCI)

@@ -6,11 +6,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#undef MAX_MSG
-#define MAX_MSG 8
-
 int main(int argc, char** args) {
-  LCI_Init(&argc, &args);
+  LCI_open();
   LCI_endpoint_t ep;
   LCI_PL_t prop;
   LCI_PL_create(&prop);
@@ -32,28 +29,17 @@ int main(int argc, char** args) {
   addr = LCI_get_base_addr(0) + base_offset;
 
   long* sbuf = (long*) (addr);
-  long* rbuf = (long*) (addr + MAX_MSG);
-  memset(sbuf, 1, sizeof(char) * MAX_MSG);
+  long* rbuf = (long*) (addr + LCI_SHORT_SIZE);
+  memset(sbuf, 1, sizeof(char) * LCI_SHORT_SIZE);
   rbuf[0] = -1;
   LCI_barrier();
 
-  double t1;
-
-  for (int size = sizeof(LCI_short_t); size <= sizeof(LCI_short_t); size <<= 1) {
-    for (int i = 0; i < TOTAL+SKIP; i++) {
-      if (i == SKIP)
-        t1 = wtime();
-      LCI_puti(*(LCI_short_t*)sbuf, rank, 0, base_offset + MAX_MSG, 123, ep);
-      while (rbuf[0] == -1)
-        LCI_progress(0, 1);
-      rbuf[0] = -1;
-    }
-
-    if (rank == 0) {
-      t1 = 1e6 * (wtime() - t1) / TOTAL / 2;
-      printf("%10.d %10.3f\n", size, t1);
-    }
+  for (int i = 0; i < TOTAL; i++) {
+    LCI_puti(*(LCI_short_t*)sbuf, rank, 0, base_offset + LCI_SHORT_SIZE, 123, ep);
+    while (rbuf[0] == -1)
+      LCI_progress(0, 1);
+    rbuf[0] = -1;
   }
 
-  LCI_Free();
+  LCI_close();
 }

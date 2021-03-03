@@ -64,7 +64,7 @@ static inline int32_t lc_pool_get_local(struct lc_pool* pool)
     LCIU_acquire_spinlock(&init_lock);
     pid = tls_pool_struct[wid][pool->key];
     if (pid == POOL_UNINIT) {
-      struct dequeue* lpool = LCIU_malloc(sizeof(struct dequeue));
+      struct dequeue* lpool = (struct dequeue*) LCIU_malloc(sizeof(struct dequeue));
       dq_init(lpool);
       pid = pool->npools++;
       pool->lpools[pid] = lpool;

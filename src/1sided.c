@@ -6,7 +6,7 @@ LCI_error_t LCI_puti(LCI_short_t src, int rank, int rma_id, int offset, int meta
 { 
   struct lc_rep* rep = &(ep->rep[rank]);  
   assert(rma_id == 0 && "fixme");
-  lc_server_puts(ep->server, rep->handle, &src, rep->base, offset, rep->rkey, meta, sizeof(LCI_short_t));
+  lc_server_puts(ep->server, rep->handle, &src, rep->base, offset, rep->rkey, MAKE_PROTO(ep->gid, LC_PROTO_LONG, meta), sizeof(LCI_short_t));
   return LCI_OK;  
 }
 
