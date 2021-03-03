@@ -1,4 +1,9 @@
 /*! \page LCI_1.7_log Development log for LCI v1.7
+
+## New in v1.7
+- new API (especially for memory registration and iovec)
+- test infrastructure
+
 ## TODO List:
 - rename symbols: `LCI_*` for export symbols, `LCII_*` for internal symbols, `LCIU_*` for utility.
 - replace all memory operations with LCIU_* memory operations.

@@ -8,5 +8,7 @@ add_lci_tests(
             puti.c
             putb.c
             putbc.c
+            pt2ptbc_mt.cpp
         LABELS pingpong
+        COMMAND "${SRUN_EXE} ${SRUN_ARG} [TARGET]"
 )

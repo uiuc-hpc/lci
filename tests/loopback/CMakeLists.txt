@@ -7,4 +7,5 @@ add_lci_tests(
             putb-self.c
             putbc-self.c
         LABELS loopback
+        COMMAND "[TARGET]"
 )
