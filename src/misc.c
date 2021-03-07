@@ -1,6 +1,6 @@
 #include "config.h"
 #include "lci.h"
-#include "lci_priv.h"
+#include "lcii.h"
 
 size_t lc_max_short(int dev __UNUSED__)
 {

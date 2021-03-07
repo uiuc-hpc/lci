@@ -9,13 +9,13 @@
 int main(int argc, char** args) {
   LCI_open();
   LCI_endpoint_t ep;
-  LCI_PL_t prop;
-  LCI_PL_create(&prop);
+  LCI_plist_t prop;
+  LCI_plist_create(&prop);
   LCI_MT_t mt;
   LCI_MT_init(&mt, 0);
-  LCI_PL_set_MT(prop,&mt);
-  // LCI_PL_set_completion(LCI_PORT_MESSAGE, LCI_COMPLETION_ONE2ONEL, &prop);
-  // LCI_PL_set_completion(LCI_PORT_COMMAND, LCI_COMPLETION_ONE2ONEL, &prop);
+  LCI_plist_set_MT(prop,&mt);
+  // LCI_plist_set_completion(LCI_PORT_MESSAGE, LCI_COMPLETION_ONE2ONEL, &prop);
+  // LCI_plist_set_completion(LCI_PORT_COMMAND, LCI_COMPLETION_ONE2ONEL, &prop);
 
   LCI_endpoint_create(0, prop, &ep);
   int rank = LCI_RANK;

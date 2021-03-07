@@ -247,6 +247,7 @@ static inline void lc_serve_recv_rdma(lc_packet* p, lc_proto proto)
   lc_ce_dispatch(ep, p, p->context.sync, ep->property);
 }
 
+// local completion
 static inline void lc_serve_send(lc_packet* p)
 {
   LCI_endpoint_t ep = p->context.ep;

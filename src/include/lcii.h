@@ -2,6 +2,7 @@
 #define LCI_PRIV_H_
 
 #include "config.h"
+#include "cq.h"
 
 #define LCI_SYNCL_PTR_TO_REQ_PTR(sync) (&((LCI_syncl_t*)sync)->request)
 
@@ -18,9 +19,6 @@ typedef struct lc_pool lc_pool;
 
 struct lc_hash;
 typedef struct lc_hash lc_hash;
-
-struct lc_cq;
-typedef struct lc_cq lc_cq;
 
 struct lc_req;
 typedef struct lc_rep lc_rep;
@@ -47,7 +45,7 @@ struct LCI_segment_s {
 
 LCI_endpoint_t* LCI_ENDPOINTS;
 
-struct LCI_PL_s {
+struct LCI_plist_s {
   LCI_comm_t ctype;           // communication type
   LCI_match_t match_type;     // matching type
   LCI_msg_t mtype;            // message type
@@ -70,12 +68,12 @@ struct LCI_endpoint_s {
   lc_pool* pkpool;
   lc_rep* rep;
   lc_hash* mt;
+  LCI_allocator_t alloc;
 
   union {
     lc_cq* cq;
     LCI_handler_t *handler;
   };
-  LCI_allocator_t alloc;
   volatile int completed;
 
   int gid;
@@ -86,6 +84,18 @@ struct lc_rep {
   int rank;
   intptr_t base;
   uint64_t rkey;
+};
+
+/**
+ * Internal context structure, Used by asynchronous operations to pass
+ * information between initialization phase and completion phase.
+ */
+struct LCII_context_t {
+  LCI_data_t data;
+  LCI_data_type_t type;
+  uint32_t src_rank;
+  LCI_tag_t tag;
+  uint64_t user_context;
 };
 
 extern int lcg_deadlock;

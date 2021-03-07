@@ -1,5 +1,5 @@
 #include "lci.h"
-#include "lci_priv.h"
+#include "lcii.h"
 
 LCI_error_t LCI_memory_register(uint8_t device, void *address, size_t length,
                                 LCI_segment_t *segment) {
@@ -20,9 +20,9 @@ LCI_error_t LCI_memory_deregister(uint8_t device, LCI_segment_t *segment) {
 }
 
 LCI_error_t LCI_malloc(size_t size, LCI_segment_t segment, void **address) {
-  return ABT_ERR_FEATURE_NA;
+  return LCI_ERR_FEATURE_NA;
 }
 
 LCI_error_t LCI_free(LCI_segment_t segment, void *address) {
-  return ABT_ERR_FEATURE_NA;
+  return LCI_ERR_FEATURE_NA;
 }

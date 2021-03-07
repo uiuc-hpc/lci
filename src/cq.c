@@ -1,5 +1,5 @@
 #include "lci.h"
-#include "include/lci_priv.h"
+#include "lcii.h"
 
 LCI_error_t LCI_CQ_init(LCI_comp_t* cq, uint32_t length)
 {

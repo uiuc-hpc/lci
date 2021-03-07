@@ -1,6 +1,6 @@
 #include <limits.h>
 #include "lci.h"
-#include "lci_priv.h"
+#include "lcii.h"
 #include "cq.h"
 
 lc_server** LCI_DEVICES;
@@ -122,46 +122,37 @@ LCI_error_t LCI_close()
   return LCI_OK;
 }
 
-LCI_error_t LCI_endpoint_create(int device, LCI_PL_t prop, LCI_endpoint_t* ep_ptr)
+LCI_error_t LCI_endpoint_create(int device, LCI_plist_t plist, LCI_endpoint_t* ep_ptr)
 {
   static int num_endpoints = 0;
-  struct LCI_endpoint_s* ep = 0;
+  struct LCI_endpoint_s* ep = LCIU_malloc(sizeof(struct LCI_endpoint_s));
   lc_server* dev = LCI_DEVICES[device];
-  posix_memalign((void**) &ep, 64, sizeof(struct LCI_endpoint_s));
   ep->server = dev;
   ep->pkpool = dev->pkpool;
   ep->gid = num_endpoints++;
   LCI_Assert(num_endpoints < LCI_MAX_ENDPOINTS, "Too many endpoints!\n");
   LCI_ENDPOINTS[ep->gid] = ep;
 
-  if (prop->ctype == LCI_COMM_2SIDED || prop->ctype == LCI_COMM_COLLECTIVE) {
+  if (plist->ctype == LCI_COMM_2SIDED || plist->ctype == LCI_COMM_COLLECTIVE) {
     ep->property = EP_AR_EXP;
-    ep->mt = (lc_hash*) prop->mt;
+    ep->mt = (lc_hash*) plist->mt;
   } else {
     ep->property = EP_AR_DYN;
-    ep->alloc = prop->allocator;
+    ep->alloc = plist->allocator;
   }
 
-  if (prop->rtype == LCI_COMPLETION_ONE2ONEL) {
+  if (plist->rtype == LCI_COMPLETION_ONE2ONEL) {
     ep->property |= EP_CE_SYNC;
-  } else if (prop->rtype == LCI_COMPLETION_HANDLER) {
+  } else if (plist->rtype == LCI_COMPLETION_HANDLER) {
     ep->property |= EP_CE_AM;
-    ep->handler = prop->handler;
-  } else if (prop->rtype == LCI_COMPLETION_QUEUE) {
+    ep->handler = plist->handler;
+  } else if (plist->rtype == LCI_COMPLETION_QUEUE) {
     ep->property |= EP_CE_CQ;
-    ep->cq = (lc_cq*) prop->cq;
+    ep->cq = (lc_cq*) plist->cq;
   }
 
   ep->rep = dev->rep;
   *ep_ptr = ep;
-  return LCI_OK;
-}
-
-LCI_error_t LCI_cq_dequeue(LCI_endpoint_t ep, LCI_request_t** req_ptr)
-{
-  LCI_request_t* req = lc_cq_pop(ep->cq);
-  if (!req) return LCI_ERR_RETRY;
-  *req_ptr = req;
   return LCI_OK;
 }
 

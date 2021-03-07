@@ -15,10 +15,10 @@ int main(int argc, char** args) {
   LCI_comp_t cq;
   LCI_CQ_init(&cq, 0);
 
-  LCI_PL_t prop;
-  LCI_PL_create(&prop);
-  LCI_PL_set_CQ(prop,&cq);
-  LCI_PL_set_completion(prop,LCI_PORT_MESSAGE, LCI_COMPLETION_QUEUE);
+  LCI_plist_t prop;
+  LCI_plist_create(&prop);
+  LCI_plist_set_CQ(prop,&cq);
+  LCI_plist_set_completion(prop,LCI_PORT_MESSAGE, LCI_COMPLETION_QUEUE);
 
   LCI_endpoint_create(0, prop, &ep);
   int rank = LCI_RANK;

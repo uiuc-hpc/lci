@@ -142,7 +142,7 @@ extern int LCI_PACKET_RETURN_THRESHOLD;
 typedef enum {
   LCI_OK = 0,
   LCI_ERR_RETRY,      /* Resource temporarily not available. Try again. */
-  ABT_ERR_FEATURE_NA, /* Feature not available */
+  LCI_ERR_FEATURE_NA, /* Feature not available */
   LCI_ERR_FATAL,
 } LCI_error_t;
 
@@ -171,6 +171,16 @@ typedef enum {
   LCI_MSG_BUFFERED,
   LCI_MSG_DIRECT,
 } LCI_msg_t;
+
+/**
+ * LCI data type.
+ */
+typedef enum {
+  LCI_IMMEDIATE = 0,
+  LCI_MEDIUM,
+  LCI_LONG,
+  LCI_IOVEC
+} LCI_data_type_t;
 
 /**
  * LCI Port type.
@@ -213,6 +223,11 @@ enum LCI_log_level_t {
   LCI_LOG_DEBUG,
   LCI_LOG_MAX
 };
+
+/**
+ * Tag type. 16 bits due to ibverbs' limitation.
+ */
+typedef uint16_t LCI_tag_t;
 
 /**
  * LCI generic completion type.
@@ -285,7 +300,7 @@ typedef struct {
   /* Status of the communication. */
   LCI_error_t flag;
   uint32_t rank;
-  uint16_t tag;
+  LCI_tag_t tag;
   enum { INVALID, IMMEDIATE, BUFFERED, DIRECT } type;
   LCI_data_t data;
   void* __reserved__;
@@ -308,8 +323,8 @@ typedef struct LCI_endpoint_s* LCI_endpoint_t;
 /**
  * Property object, owned by the runtime.
  */
-struct LCI_PL_s;
-typedef struct LCI_PL_s* LCI_PL_t;
+struct LCI_plist_s;
+typedef struct LCI_plist_s* LCI_plist_t;
 
 /**
  * Completion queue object, owned by the runtime.
@@ -405,82 +420,87 @@ LCI_error_t LCI_free(LCI_segment_t segment, void *address);
  * Create an endpoint Property @plist.
  */
 LCI_API
-LCI_error_t LCI_PL_create(LCI_PL_t* plist);
+LCI_error_t LCI_plist_create(LCI_plist_t *plist);
 
 /**
  * Destroy an endpoint Property @plist.
  */
 LCI_API
-LCI_error_t LCI_PL_free(LCI_PL_t plist);
+LCI_error_t LCI_plist_free(LCI_plist_t *plist);
 
 /**
  * Gets property list attached to an endpoint.
- * @todo Not implemented. A large part of PL logic is not implemented.
- *       The property list is returned as a string representation in XML format?
  */
 LCI_API
-LCI_error_t LCI_PL_get(LCI_endpoint_t endpoint, LCI_PL_t plist);
+LCI_error_t LCI_plist_get(LCI_endpoint_t endpoint, LCI_plist_t *plist);
+
+/**
+ * Returns a string that decodes the property list plist in a human-readable
+ * from into string.
+ */
+LCI_API
+LCI_error_t LCI_plist_decode(LCI_plist_t plist, char *string);
 
 /**
  * Set communication style (1sided, 2sided, collective).
  */
 LCI_API
-LCI_error_t LCI_PL_set_comm_type(LCI_PL_t plist, LCI_comm_t type);
+LCI_error_t LCI_plist_set_comm_type(LCI_plist_t plist, LCI_comm_t type);
 
 /**
  * Set matching style (ranktag, tag).
  */
 LCI_API
-LCI_error_t LCI_PL_set_match_type(LCI_PL_t plist, LCI_match_t match_type);
+LCI_error_t LCI_plist_set_match_type(LCI_plist_t plist, LCI_match_t match_type);
 
 /**
  * Set hash-table memory for matching.
  */
 LCI_API
-LCI_error_t LCI_PL_set_MT(LCI_PL_t plist, LCI_MT_t* mt);
+LCI_error_t LCI_plist_set_MT(LCI_plist_t plist, LCI_MT_t* mt);
 
 /**
  * Set message type (short, medium, long).
  */
 LCI_API
-LCI_error_t LCI_PL_set_msg_type(LCI_PL_t plist, LCI_msg_t type);
+LCI_error_t LCI_plist_set_msg_type(LCI_plist_t plist, LCI_msg_t type);
 
 /**
  * Set completion mechanism.
  */
 LCI_API
-LCI_error_t LCI_PL_set_completion(LCI_PL_t plist, LCI_port_t port,
+LCI_error_t LCI_plist_set_completion(LCI_plist_t plist, LCI_port_t port,
                                   LCI_comptype_t type);
 
 /**
  * Set completion mechanism.
  */
 LCI_API
-LCI_error_t LCI_PL_set_CQ(LCI_PL_t plist, LCI_comp_t* cq);
+LCI_error_t LCI_plist_set_CQ(LCI_plist_t plist, LCI_comp_t* cq);
 
 /**
  * Set handler for AM protocol.
  */
 LCI_API
-LCI_error_t LCI_PL_set_handler(LCI_PL_t plist, LCI_handler_t* handler);
+LCI_error_t LCI_plist_set_handler(LCI_plist_t plist, LCI_handler_t* handler);
 
 /**
  * Set dynamic type.
  */
-LCI_error_t LCI_PL_set_dynamic(LCI_PL_t	plist, LCI_port_t port,
+LCI_error_t LCI_plist_set_dynamic(LCI_plist_t	plist, LCI_port_t port,
                                LCI_dynamic_t type);
 
 /**
  * Set allocator for dynamic protocol.
  */
 LCI_API
-LCI_error_t LCI_PL_set_allocator(LCI_PL_t plist, LCI_allocator_t allocator);
+LCI_error_t LCI_plist_set_allocator(LCI_plist_t plist, LCI_allocator_t allocator);
 
 /**
  * Create an endpoint, collective calls for those involved in the endpoints.
  */
 LCI_API
-LCI_error_t LCI_endpoint_create(int device_id, LCI_PL_t plist,
+LCI_error_t LCI_endpoint_create(int device_id, LCI_plist_t plist,
                                 LCI_endpoint_t* ep);
 
 /**

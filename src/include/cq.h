@@ -1,7 +1,6 @@
 #ifndef LC_CQ_H
 #define LC_CQ_H
 
-#include "packet.h"
 #include "lciu.h"
 #include <string.h>
 #include <stdio.h>
@@ -16,11 +15,12 @@ struct lc_cq {
   LCIU_mutex_t spinlock;
   void* container[CQ_MAX_SIZE];
 } __attribute__((aligned(64)));
+typedef struct lc_cq lc_cq;
 
 static inline void lc_cq_create(struct lc_cq** cq_ptr)
 {
   posix_memalign((void**)cq_ptr, 64, sizeof(struct lc_cq));
-  lc_cq* cq = *cq_ptr;
+  struct lc_cq* cq = *cq_ptr;
   memset(cq->container, 0, sizeof(void*) * CQ_MAX_SIZE);
   cq->top = 0;
   cq->bot = 0;
@@ -53,6 +53,4 @@ static inline void* lc_cq_pop(struct lc_cq* cq)
   return ret;
 };
 
-#define LCI_CQ_s lc_cq
-
-#endif
+#endif // LC_CQ_H

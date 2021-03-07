@@ -1,6 +1,5 @@
 #include "lci.h"
-#include "lci_priv.h"
-#include "pool.h"
+#include "lcii.h"
 
 LCI_error_t LCI_puti(LCI_short_t src, int rank, int rma_id, int offset, int meta, LCI_endpoint_t ep)
 { 
