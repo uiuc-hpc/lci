@@ -3,6 +3,7 @@ target_sources_relative(lci-obj PRIVATE
   1sided.c
   cq.c
   lci.c
+  lcii_mem.c
   lcrq.c
   misc.c
   mt.c

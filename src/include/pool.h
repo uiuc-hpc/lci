@@ -17,7 +17,7 @@
 
 extern int lc_pool_nkey;
 extern int32_t tls_pool_struct[MAX_NPOOLS][MAX_LOCAL_POOL];
-extern volatile int init_lock;
+extern LCIU_mutex_t init_lock;
 
 struct dequeue;
 

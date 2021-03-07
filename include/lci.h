@@ -18,6 +18,10 @@ extern "C" {
 
 #define LCI_API __attribute__((visibility("default")))
 
+// "pseudo-segment" indicating the entire address space,
+// leading to dynamic (on-the-fly) registration
+#define LCI_SEGMENT_ALL 1
+
 /**
  * \defgroup LCIGlobal LCI Global variables
  * @{
@@ -137,7 +141,8 @@ extern int LCI_PACKET_RETURN_THRESHOLD;
  */
 typedef enum {
   LCI_OK = 0,
-  LCI_ERR_RETRY,
+  LCI_ERR_RETRY,      /* Resource temporarily not available. Try again. */
+  ABT_ERR_FEATURE_NA, /* Feature not available */
   LCI_ERR_FATAL,
 } LCI_error_t;
 
@@ -349,6 +354,52 @@ LCI_error_t LCI_open();
  */
 LCI_API
 LCI_error_t LCI_close();
+
+/**
+ * Register a memory segment to a device.
+ * @param[in]  device  the device to register to
+ * @param[in]  address the starting address of the registered memory segment
+ * @param[in]  length  the size in bytes of the registered memory segment
+ * @param[out] segment a descriptor to the segment
+ * @return A value of zero indicates success while a nonzero value indicates
+ *         failure. Different values may be used to indicate the type of failure.
+ */
+LCI_API
+LCI_error_t LCI_memory_register(uint8_t device, void *address, size_t length,
+                                LCI_segment_t *segment);
+
+/**
+ * Deregister a memory region from a device.
+ * @param[in] device  the device to deregister from
+ * @param[io] segment a descriptor to the segment to be deregistered, it
+ *                will be set to NULL.
+ * @return A value of zero indicates success while a nonzero value indicates
+ *         failure. Different values may be used to indicate the type of failure.
+ */
+LCI_API
+LCI_error_t LCI_memory_deregister(uint8_t device, LCI_segment_t *segment);
+
+/**
+ * Allocate a buffer from a memory segment
+ * @param[in]  size    the desired size of the allocated memory
+ * @param[in]  segment the segment where the allocation comes from
+ * @param[out] address the starting address of the allocated buffer
+ * @return A value of zero indicates success while a nonzero value indicates
+ *         failure. Different values may be used to indicate the type of failure.
+ */
+LCI_API
+LCI_error_t LCI_malloc(size_t size, LCI_segment_t segment, void **address);
+
+/**
+ * Free a allocated buffer
+ * @param[in] segment the memory segment the buffer belonging to
+ * @param[io] address the starting address of the allocated buffer, it will be
+ *            set to NULL.
+ * @return A value of zero indicates success while a nonzero value indicates
+ *         failure. Different values may be used to indicate the type of failure.
+ */
+LCI_API
+LCI_error_t LCI_free(LCI_segment_t segment, void *address);
 
 /**
  * Create an endpoint Property @plist.

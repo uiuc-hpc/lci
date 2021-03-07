@@ -28,7 +28,7 @@ struct lc_hash {
       lc_value val;
     } entry;
     struct {
-      volatile int lock;
+      LCIU_mutex_t lock;
       struct lc_hash* next;
     } control;
   };

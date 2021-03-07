@@ -13,7 +13,7 @@ struct lc_cq {
     size_t top;
     size_t bot;
   } __attribute__((aligned(64)));
-  volatile int spinlock;
+  LCIU_mutex_t spinlock;
   void* container[CQ_MAX_SIZE];
 } __attribute__((aligned(64)));
 

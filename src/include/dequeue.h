@@ -12,7 +12,7 @@ struct dequeue {
     size_t top;
     size_t bot;
   } __attribute__((aligned(64)));
-  volatile int spinlock;
+  LCIU_mutex_t spinlock;
   void* container[MAX_SIZE];
 } __attribute__((aligned(64)));
 

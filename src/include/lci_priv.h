@@ -39,6 +39,12 @@ typedef enum lc_ep_ce {
   EP_CE_GLOB = ((1 << 4) << 4),
 } lc_ep_ce;
 
+struct LCI_segment_s {
+  uintptr_t mr_p;
+  void *address;
+  size_t length;
+};
+
 LCI_endpoint_t* LCI_ENDPOINTS;
 
 struct LCI_PL_s {

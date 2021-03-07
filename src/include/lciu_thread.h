@@ -38,7 +38,9 @@ static inline int LCIU_get_thread_id()
 #define LCIU_SPIN_UNLOCKED 0
 #define LCIU_SPIN_LOCKED 1
 
-static inline void LCIU_acquire_spinlock(volatile int* flag)
+typedef volatile int LCIU_mutex_t;
+
+static inline void LCIU_acquire_spinlock(LCIU_mutex_t* flag)
 {
   if (__sync_lock_test_and_set(flag, LCIU_SPIN_LOCKED)) {
     while (1) {
@@ -50,7 +52,7 @@ static inline void LCIU_acquire_spinlock(volatile int* flag)
   }
 }
 
-static inline void LCIU_release_spinlock(volatile int* flag)
+static inline void LCIU_release_spinlock(LCIU_mutex_t* flag)
 {
   __sync_lock_release(flag);
 }

@@ -2,7 +2,7 @@
 
 int32_t tls_pool_struct[MAX_NPOOLS][MAX_LOCAL_POOL]; // = {-1, -1, -1, -1, -1, -1, -1, -1};
 int lc_pool_nkey = 0;
-volatile int init_lock = 0;
+LCIU_mutex_t init_lock = 0;
 static int initialized = 0;
 
 static inline void lc_pool_init() {

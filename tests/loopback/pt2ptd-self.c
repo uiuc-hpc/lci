@@ -29,6 +29,9 @@ int main(int argc, char** args) {
   void* dst_buf = 0;
   posix_memalign(&src_buf, alignment, MAX_MSG);
   posix_memalign(&dst_buf, alignment, MAX_MSG);
+  LCI_segment_t src_seg, dst_seg;
+  LCI_memory_register(0, src_buf, MAX_MSG, &src_seg);
+  LCI_memory_register(0, dst_buf, MAX_MSG, &dst_seg);
 
   for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
     memset(src_buf, 'a', size);
@@ -55,5 +58,9 @@ int main(int argc, char** args) {
       }
     }
   }
+  LCI_memory_deregister(0, &src_seg);
+  LCI_memory_deregister(0, &dst_seg);
+  assert(src_seg == NULL);
+  assert(dst_seg == NULL);
   LCI_close();
 }
