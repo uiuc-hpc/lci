@@ -41,24 +41,24 @@ typedef struct lc_server {
 #include "server_ibv_helper.h"
 
 #ifdef USE_DREG
-static inline uintptr_t lc_server_rma_reg(lc_server* s, void* buf, size_t size)
+static inline LCID_mr_t lc_server_rma_reg(lc_server* s, void* buf, size_t size)
 {
-  return (uintptr_t)dreg_register(s, buf, size);
+  return (LCID_mr_t)dreg_register(s, buf, size);
 }
 
-static inline void lc_server_rma_dereg(uintptr_t mem)
+static inline void lc_server_rma_dereg(LCID_mr_t mr)
 {
-  dreg_unregister((dreg_entry*)mem);
+  dreg_unregister((dreg_entry*)mr);
 }
 
-static inline uint32_t lc_server_rma_key(uintptr_t mem)
+static inline LCID_rkey_t lc_server_rma_key(LCID_mr_t mr)
 {
-  return ((struct ibv_mr*)(((dreg_entry*)mem)->memhandle[0]))->rkey;
+  return ((struct ibv_mr*)(((dreg_entry*)mr)->memhandle[0]))->rkey;
 }
 
-static inline uint32_t ibv_rma_lkey(uintptr_t mem)
+static inline uint32_t ibv_rma_lkey(LCID_mr_t mr)
 {
-  return ((struct ibv_mr*)(((dreg_entry*)mem)->memhandle[0]))->lkey;
+  return ((struct ibv_mr*)(((dreg_entry*)mr)->memhandle[0]))->lkey;
 }
 
 #else
@@ -174,15 +174,15 @@ static inline int lc_server_progress(lc_server* s)
     (w).next = NULL;            \
   }
 
-static inline void lc_server_sends(lc_server* s __UNUSED__, void* rep,
-                                   void* ubuf, size_t size, uint32_t proto)
+static inline void lc_server_sends(lc_server* s __UNUSED__, LCID_addr_t dest, void* buf,
+                                   size_t size, LCID_meta_t meta)
 {
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr;
   static int ninline = 0;
 
   struct ibv_sge list = {
-      .addr = (uintptr_t)ubuf, .length = (uint32_t)size, .lkey = 0};
+      .addr = (uintptr_t)buf, .length = (uint32_t)size, .lkey = 0};
 
   setup_wr(this_wr, (uintptr_t)0, &list, IBV_WR_SEND_WITH_IMM,
            IBV_SEND_INLINE);  // NOTE: do not signal freqly here.
@@ -192,31 +192,32 @@ static inline void lc_server_sends(lc_server* s __UNUSED__, void* rep,
     ninline = 0;
   }
 
-  this_wr.imm_data = proto;
-  IBV_SAFECALL(ibv_post_send((struct ibv_qp*)rep, &this_wr, &bad_wr));
+  this_wr.imm_data = meta;
+  IBV_SAFECALL(ibv_post_send((struct ibv_qp*)dest, &this_wr, &bad_wr));
 }
 
-static inline void lc_server_sendm(lc_server* s, void* rep, size_t size,
-                                   lc_packet* ctx, uint32_t proto)
+static inline void lc_server_send(lc_server* s __UNUSED__, LCID_addr_t dest, void* buf,
+                                  size_t size, LCID_mr_t mr, LCID_meta_t meta,
+                                  void* ctx)
 {
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr;
 
   struct ibv_sge list = {
-      .addr = (uintptr_t)ctx->data.buffer,
+      .addr = (uintptr_t)buf,
       .length = (uint32_t)size,
-      .lkey = s->heap->lkey,
+      .lkey = ibv_rma_lkey(mr),
   };
 
   setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND_WITH_IMM,
            IBV_SEND_SIGNALED);
-  this_wr.imm_data = proto;
-  IBV_SAFECALL(ibv_post_send((struct ibv_qp*)rep, &this_wr, &bad_wr));
+  this_wr.imm_data = meta;
+  IBV_SAFECALL(ibv_post_send((struct ibv_qp*) dest, &this_wr, &bad_wr));
 }
 
-static inline void lc_server_puts(lc_server* s __UNUSED__, void* rep,
-                                   void* buf, uintptr_t base, uint32_t offset,
-                                   uint64_t rkey, uint32_t meta, size_t size)
+static inline void lc_server_puts(lc_server* s __UNUSED__, LCID_addr_t dest, void* buf,
+                                  size_t size, uintptr_t base, uint32_t offset,
+                                  LCID_rkey_t rkey, uint32_t meta)
 {
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr = 0;
@@ -233,20 +234,21 @@ static inline void lc_server_puts(lc_server* s __UNUSED__, void* rep,
   this_wr.wr.rdma.rkey = rkey;
   this_wr.imm_data = meta;
 
-  IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
+  IBV_SAFECALL(ibv_post_send(dest, &this_wr, &bad_wr));
 }
 
-static inline void lc_server_putm(lc_server* s, void* rep, uintptr_t base,
-                                   uint32_t offset, uint64_t rkey, size_t size,
-                                   uint32_t meta, lc_packet* ctx)
+static inline void lc_server_put(lc_server* s, LCID_addr_t dest, void* buf,
+                                 size_t size, LCID_mr_t mr, uintptr_t base,
+                                 uint32_t offset, LCID_rkey_t rkey,
+                                 LCID_meta_t meta, void* ctx)
 {
   struct ibv_send_wr this_wr;
   struct ibv_send_wr* bad_wr = 0;
 
   struct ibv_sge list = {
-      .addr = (uintptr_t)ctx->data.buffer,
+      .addr = (uintptr_t)buf,
       .length = (unsigned)size,
-      .lkey = s->heap->lkey,
+      .lkey = ibv_rma_lkey(mr),
   };
 
   setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE_WITH_IMM,
@@ -255,34 +257,7 @@ static inline void lc_server_putm(lc_server* s, void* rep, uintptr_t base,
   this_wr.wr.rdma.rkey = rkey;
   this_wr.imm_data = meta;
 
-  IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
-}
-
-
-static inline void lc_server_putl(lc_server* s, void* rep, void* buf,
-                                   uintptr_t base, uint32_t offset,
-                                   uint64_t rkey, size_t size, uint32_t meta,
-                                   lc_packet* ctx)
-{
-  struct ibv_send_wr this_wr;
-  struct ibv_send_wr* bad_wr = 0;
-  uint32_t lkey = 0;
-  uint32_t flag = IBV_SEND_SIGNALED;
-
-  lkey = ibv_rma_lkey(lc_server_rma_reg(s, buf, size));
-
-  struct ibv_sge list = {
-      .addr = (uintptr_t)buf,
-      .length = (unsigned)size,
-      .lkey = lkey,
-  };
-
-  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE_WITH_IMM, flag);
-  this_wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
-  this_wr.wr.rdma.rkey = rkey;
-  this_wr.imm_data = meta;
-
-  IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
+  IBV_SAFECALL(ibv_post_send(dest, &this_wr, &bad_wr));
 }
 
 static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf,
@@ -462,8 +437,6 @@ static inline void lc_server_finalize(lc_server* s)
   ibv_destroy_srq(s->dev_srq);
   free(s);
 }
-
-static inline void* lc_server_heap_ptr(lc_server* s) { return (void*) s->heap_addr; }
 
 #define lc_server_post_rma(...) \
   {                             \

@@ -58,7 +58,7 @@ typedef struct lc_server {
   void* mr_desc;
 } lc_server __attribute__((aligned(64)));
 
-static inline uintptr_t _real_server_reg(lc_server* s, void* buf, size_t size)
+static inline LCID_mr_t _real_server_reg(lc_server* s, void* buf, size_t size)
 {
   struct fid_mr* mr;
   FI_SAFECALL(fi_mr_reg(s->domain, buf, size,
@@ -67,27 +67,27 @@ static inline uintptr_t _real_server_reg(lc_server* s, void* buf, size_t size)
   return (uintptr_t)mr;
 }
 
-static inline void _real_server_dereg(uintptr_t mem)
+static inline void _real_server_dereg(LCID_mr_t mr)
 {
   FI_SAFECALL(fi_close((struct fid*) mem));
 }
 
-static inline uintptr_t lc_server_rma_reg (lc_server* s, void* buf, size_t size)
+static inline LCID_mr_t lc_server_rma_reg(lc_server* s, void* buf, size_t size)
 {
 //  return (uintptr_t)dreg_register(s, buf, size);
    return _real_server_reg(s, buf, size);
 }
 
-static inline void lc_server_rma_dereg(uintptr_t mem)
+static inline void lc_server_rma_dereg(LCID_mr_t mr)
 {
 //  dreg_unregister((dreg_entry*)mem);
-  _real_server_dereg(mem);
+  _real_server_dereg(mr);
 }
 
-static inline uint32_t lc_server_rma_key(uintptr_t mem)
+static inline LCID_rkey_t lc_server_rma_key(LCID_mr_t mr)
 {
 //  return fi_mr_key((struct fid_mr*)(((dreg_entry*)mem)->memhandle[0]));
-  return fi_mr_key((struct fid_mr*)(mem));
+  return fi_mr_key((struct fid_mr*)(mr));
 }
 
 static inline void lc_server_init(int id, lc_server** dev)
@@ -219,6 +219,11 @@ static inline void lc_server_init(int id, lc_server** dev)
   s->recv_posted = 0;
 }
 
+static inline void lc_server_finalize(lc_server* s)
+{
+  free(s);
+}
+
 static inline void lc_server_post_recv(lc_server* s, lc_packet* p);
 
 static inline int lc_server_progress(lc_server* s)
@@ -237,13 +242,10 @@ static inline int lc_server_progress(lc_server* s)
       for (int i = 0; i < ret; i++) {
         if (entry[i].flags & FI_RECV) {
           s->recv_posted--;
-          lc_packet* p = (lc_packet*) entry[i].op_context;
-          p->context.sync = &p->context.sync_s;
-          p->context.sync->request.rank = (entry[i].tag);
-          int rank = p->context.sync->request.rank;
-          p->context.sync->request.__reserved__ = s->rep[rank].handle;
-          p->context.sync->request.data.buffer.length = entry[i].len;
-          lc_serve_recv(p, entry[i].data);
+          // we use tag to pass src_rank, because it is hard to get src_rank
+          // from fi_addr_t. TODO: Need to improve
+          lc_serve_recv(entry[i].op_context, entry[i].tag, entry[i].len,
+                        entry[i].data);
         } else if (entry[i].flags & FI_REMOTE_WRITE) {
           // NOTE(danghvu): In OFI, a RDMA with completion data is transferred without
           // comsuming a posted receive.
@@ -259,8 +261,7 @@ static inline int lc_server_progress(lc_server* s)
             lc_serve_recv_rdma(p, entry[i].data);
           }
         } else if (entry[i].flags & FI_SEND) {
-          lc_packet* p = (lc_packet*)entry[i].op_context;
-          lc_serve_send(p);
+          lc_serve_send(entry[i].op_context);
         } else if (entry[i].flags & FI_WRITE) {
           lc_packet* p = (lc_packet*)entry[i].op_context;
           lc_serve_send(p);
@@ -294,61 +295,55 @@ static inline void lc_server_post_recv(lc_server* s, lc_packet* p)
 {
   if (p == NULL) return;
   FI_SAFECALL(
-      fi_trecv(s->ep, &p->data, LCI_MEDIUM_SIZE, 0, FI_ADDR_UNSPEC, /*any*/0, ~(uint64_t)0 /*ignore all*/, &p->context));
+      fi_trecv(s->ep, &p->data, LCI_MEDIUM_SIZE, 0, FI_ADDR_UNSPEC, /*any*/0, ~(uint64_t)0 /*ignore all*/, p));
   s->recv_posted++;
 }
 
-static inline void lc_server_sendm(lc_server* s, void* rep, size_t size,
-                                   lc_packet* ctx, uint32_t proto)
+static inline void lc_server_sends(lc_server* s, LCID_addr_t dest, void* buf,
+                                   size_t size, LCID_meta_t meta)
 {
-  ctx->context.proto = proto;
   int ret;
   do {
-    ret = fi_tsenddata(s->ep, ctx->data.buffer, size, 0, proto, *(fi_addr_t*) rep,
-                       LCI_RANK, (struct fi_context*)ctx);
+    ret = fi_tinjectdata(s->ep, buf, size, meta, *(fi_addr_t*) dest, LCI_RANK /*tag*/);
   } while (ret == -FI_EAGAIN);
   if (ret) FI_SAFECALL(ret);
 }
 
-static inline void lc_server_sends(lc_server* s, void* rep, void* ubuf,
-                                   size_t size, uint32_t proto)
+static inline void lc_server_send(lc_server* s, LCID_addr_t dest, void* buf,
+                                  size_t size, LCID_mr_t mr, LCID_meta_t meta,
+                                  void* ctx)
 {
   int ret;
   do {
-    ret = fi_tinjectdata(s->ep, ubuf, size, proto, *(fi_addr_t*) rep, LCI_RANK);
+    ret = fi_tsenddata(s->ep, buf, size, fi_mr_desc((struct fid_mr*)mr), meta,
+                       *(fi_addr_t*) dest, LCI_RANK /*tag*/,
+                       (struct fi_context*)ctx);
   } while (ret == -FI_EAGAIN);
   if (ret) FI_SAFECALL(ret);
 }
 
-static inline void lc_server_puts(lc_server* s, void* rep, void* buf,
-                                   uintptr_t base, uint32_t offset,
-                                   uint64_t rkey, uint32_t meta,
-                                   size_t size)
+static inline void lc_server_puts(lc_server* s, LCID_addr_t dest, void* buf,
+                                  size_t size, uintptr_t base, uint32_t offset,
+                                  LCID_rkey_t rkey, uint32_t meta)
 {
   int ret;
   do {
-    ret = fi_inject_writedata(s->ep, buf, size, meta, *(fi_addr_t*)rep, base + offset, rkey);
+    ret = fi_inject_writedata(s->ep, buf, size, meta, *(fi_addr_t*)dest, base + offset, rkey);
   } while (ret == -FI_EAGAIN);
   if (ret) FI_SAFECALL(ret);
 }
 
-static inline void lc_server_putm(lc_server* s, void* rep,
-                                   uintptr_t base, uint32_t offset,
-                                   uint64_t rkey, size_t size,
-                                   uint32_t meta, lc_packet* ctx)
+static inline void lc_server_put(lc_server* s, LCID_addr_t dest, void* buf,
+                                  size_t size, LCID_mr_t mr, uintptr_t base,
+                                  uint32_t offset, LCID_rkey_t rkey,
+                                  LCID_meta_t meta, void* ctx)
 {
   int ret;
   do {
-    ret = fi_writedata(s->ep, ctx->data.buffer, size, s->mr_desc, meta, *(fi_addr_t*)rep, base + offset, rkey, ctx);
+    ret = fi_writedata(s->ep, buf, size, fi_mr_desc((struct fid_mr*)mr), meta,
+                       *(fi_addr_t*) dest, base + offset, rkey, ctx);
   } while (ret == -FI_EAGAIN);
   if (ret) FI_SAFECALL(ret);
-}
-
-static inline void lc_server_putl(lc_server* s, void* rep, void* buffer,
-                                   uintptr_t base __UNUSED__, uint32_t offset,
-                                   uint64_t rkey, size_t size, uint32_t sid,
-                                   lc_packet* ctx)
-{
 }
 
 static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf,
@@ -366,9 +361,5 @@ static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf,
   } while (ret == -FI_EAGAIN);
   if (ret) FI_SAFECALL(ret);
 }
-
-static inline void lc_server_finalize(lc_server* s) { free(s); }
-
-static inline void* lc_server_heap_ptr(lc_server* s) { return (void*) s->heap_addr; }
 
 #endif

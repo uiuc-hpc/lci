@@ -337,7 +337,7 @@ static inline void lc_server_post_recv(lc_server* s, lc_packet* p)
   if (++s->recv_posted == LC_SERVER_MAX_RCVS && lcg_deadlock) lcg_deadlock = 0;
 }
 
-static inline void lc_server_sendm(lc_server* s, void* rep, size_t size,
+static inline void lc_server_send(lc_server* s, void* rep, size_t size,
                                    lc_packet* ctx, uint32_t proto)
 {
   psm2_mq_tag_t rtag = PSM_TAG_TSEND_DATA(proto, LCI_RANK);
@@ -364,7 +364,7 @@ static inline void lc_server_puts(lc_server* s, void* rep, void* buf,
   PSM_SAFECALL(psm2_mq_send2(s->mq, rep, 0, &rtag, buf, size));
 }
 
-static inline void lc_server_putm(lc_server* s, void* rep,
+static inline void lc_server_put(lc_server* s, void* rep,
                                    uintptr_t base __UNUSED__, uint32_t offset,
                                    uint64_t rkey __UNUSED__, size_t size,
                                    uint32_t meta, lc_packet* ctx)
@@ -421,8 +421,6 @@ static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf,
 }
 
 static inline void lc_server_finalize(lc_server* s) { free(s); }
-
-static inline void* lc_server_heap_ptr(lc_server* s) { return (void*) s->heap_addr; }
 
 #define _real_server_reg _real_psm_reg
 #define _real_server_dereg _real_psm_free
