@@ -73,6 +73,15 @@ typedef enum {
 } LCI_error_t;
 
 /**
+ * LCI Initialization Status type.
+ */
+typedef enum {
+  LCI_NOT_INITIALIZED = 0,
+  LCI_INIT_COMPLETED,
+  LCI_FINALIZE_COMPLETED
+} LCI_status_t; 
+
+/**
  * LCI Communication type.
  */
 typedef enum {
@@ -214,6 +223,18 @@ LCI_error_t LCI_initialize(int* argc, char*** args);
  */
 LCI_API
 LCI_error_t LCI_finalize();
+
+/**
+ * Check LCI initialization.
+ */
+LCI_API
+LCI_error_t LCI_initialized(int* flag);
+
+/**
+ * Check LCI finalization.
+ */
+LCI_API
+LCI_error_t LCI_finalized(int*flag);
 
 /**
  * Create an endpoint Property @plist.
