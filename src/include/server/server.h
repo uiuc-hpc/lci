@@ -9,8 +9,6 @@ typedef struct lc_server lc_server;
 /**
  * Data structure containing information of peers
  */
-struct lc_req;
-typedef struct lc_rep lc_rep;
 
 typedef uintptr_t LCID_mr_t;
 typedef uint64_t LCID_rkey_t;
@@ -22,7 +20,8 @@ typedef uint32_t LCID_meta_t; // immediate data
   lc_pool* pkpool; \
   struct lc_rep* rep; \
   size_t recv_posted; \
-  uintptr_t heap_addr; \
+  uintptr_t heap_addr;\
+  LCID_mr_t heap_mr;
 
 struct lc_rep {
   LCID_addr_t handle;
@@ -38,7 +37,7 @@ extern volatile uint32_t lc_next_rdma_key;
 static inline void lc_serve_recv(lc_packet* p, uint32_t src_rank, size_t length,
                                  LCII_proto_t proto);
 static inline void lc_serve_imm(lc_packet* p);
-static inline void lc_serve_recv_rdma(lc_packet*, LCII_proto_type_t proto);
+static inline void lc_serve_recv_rdma(lc_packet*, LCI_msg_type_t proto);
 static inline void lc_serve_send(void *ctx);
 
 /* Following functions are required to be implemented by each server backend. */

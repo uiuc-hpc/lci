@@ -9,21 +9,19 @@
 #include "hashtable.h"
 #include "lciu.h"
 
-/* 2-bit is enough for those thing. */
-typedef enum lc_proto {
-  LC_PROTO_DATA = 0,
-  LC_PROTO_RTR = 1,
-  LC_PROTO_RTS = 2,
-  LC_PROTO_LONG = 3,
-} lc_proto;
+/**
+ * LCI internal protocol type
+ * used to pass information to remote side
+ */
+typedef uint32_t LCII_proto_t;
 
 #include "server/server.h"
 
-#define MAKE_PROTO(rgid, proto, tag) (proto | (rgid << 2) | (tag << 16))
+#define MAKE_PROTO(rgid, msg_type, tag) (msg_type | (rgid << 3) | (tag << 16))
 
 #define PROTO_GET_PROTO(proto) (proto & 0b011)
-#define PROTO_GET_RGID(proto) ((proto >> 2) & 0b011111111111111)
-#define PROTO_GET_META(proto) ((proto >> 16) & 0xffff)
+#define PROTO_GET_RGID(proto) ((proto >> 3) & 0b01111111111111)
+#define PROTO_GET_TAG(proto) ((proto >> 16) & 0xffff)
 
 /* CRC-32C (iSCSI) polynomial in reversed bit order. */
 #define POLY 0x82f63b78
@@ -47,50 +45,13 @@ static inline void lc_init_req(void* buf, size_t size, LCI_request_t* req)
   req->type = DIRECT;
 }
 
-static inline void lc_prepare_rtr(LCI_endpoint_t ep, void* src, size_t size,
-                                  lc_packet* p)
-{
-  uintptr_t rma_mem = lc_server_rma_reg(ep->server, src, size);
-  p->context.rma_mem = rma_mem;
-  p->context.ref = 2;
-  p->data.rtr.comm_id =
-      ((uintptr_t)p - (uintptr_t)lc_server_heap_ptr(ep->server));
-  p->data.rtr.tgt_addr = (uintptr_t)src;
-  p->data.rtr.rkey = lc_server_rma_key(rma_mem);
-}
-
 static inline void lc_prepare_rts(void* src, size_t size, void* usr_context,
                                   lc_packet* p)
 {
   p->data.rts.src_addr = (uintptr_t)src;
   p->data.rts.size = size;
-  p->data.rts.ce = (uintptr_t)usr_context;
+  p->data.rts.ctx = (uintptr_t)usr_context;
   LCII_MEM_FENCE();
-}
-
-static inline void lc_ce_glob(LCI_endpoint_t ep)
-{
-  __sync_fetch_and_add(&ep->completed, 1);
-}
-
-static inline void lc_ce_am(LCI_endpoint_t ep, lc_packet* p, void* sync)
-{
-  ep->handler(((LCI_syncl_t*)sync)->request);
-  lc_pk_free_data(ep, p);
-}
-
-static inline void lc_ce_signal(LCI_endpoint_t ep, lc_packet* p, void* sync)
-{
-  LCI_one2one_set_full(sync);
-  lc_pk_free_data(ep, p);
-}
-
-static inline void lc_ce_queue(LCI_endpoint_t ep, lc_packet* p, void* sync)
-{
-  LCI_request_t* req = LCI_SYNCL_PTR_TO_REQ_PTR(sync);
-  req->data.buffer.start = &p->data;
-  req->type = BUFFERED;
-  lc_cq_push(ep->cq, req);
 }
 
 static inline void lc_handle_rtr(LCI_endpoint_t ep, lc_packet* p)
@@ -98,23 +59,34 @@ static inline void lc_handle_rtr(LCI_endpoint_t ep, lc_packet* p)
   lc_pk_init(ep, -1, LC_PROTO_LONG, p);
   int tgt_rank = p->context.sync->request.rank;
 
-  p->context.sync = (LCI_syncl_t*) p->data.rts.ce;
+  p->context.sync = (LCI_syncl_t*) p->data.rts.ctx;
   lc_server_rma_rtr(ep->server, ep->server->rep[tgt_rank].handle,
                     (void*)p->data.rts.src_addr, p->data.rtr.tgt_addr,
                     p->data.rtr.rkey, p->data.rts.size, p->data.rtr.comm_id, p);
 }
 
-static inline void lc_handle_rts(LCI_endpoint_t ep, lc_packet* p)
+static inline void lc_handle_rts(LCI_endpoint_t ep, lc_packet* p, LCII_context_t *long_ctx)
 {
-  lc_pk_init(ep, -1, LC_PROTO_RTR, p);
-  lc_proto proto = MAKE_PROTO(ep->gid, LC_PROTO_RTR, 0);
-  lc_prepare_rtr(ep, p->context.sync->request.data.buffer.start, p->data.rts.size, p);
-  lc_server_sendm(ep->server, p->context.sync->request.__reserved__,
-                  sizeof(struct packet_rtr), p, proto);
+
+  LCI_DBG_Assert(long_ctx->data.lbuffer.length >= p->data.rts.size,
+       "the message sent by sendl is larger than the buffer posted by recvl!");
+  long_ctx->data.lbuffer.length = p->data.rts.size;
+
+  LCII_context_t *rtr_ctx = LCIU_malloc(sizeof(LCII_context_t));
+  rtr_ctx->data.mbuffer.address = &(p->data);
+  rtr_ctx->msg_type = LCI_MSG_RTR;
+
+  p->context.poolid = -1;
+  p->data.rtr.ctx_id = (uint32_t) &long_ctx; // TODO
+  p->data.rtr.tgt_addr = (uintptr_t) long_ctx->data.lbuffer.address;
+  p->data.rtr.rkey = lc_server_rma_key(long_ctx->data.lbuffer.segment->mr_p);
+
+  struct lc_rep* rep = &(ep->rep[long_ctx->rank]);
+  lc_server_send(ep->server, rep->handle, p->data.address, sizeof(struct packet_rtr),
+                  rtr_ctx, MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0));
 }
 
-static inline void lc_ce_dispatch(LCI_endpoint_t ep, lc_packet* p, void* sync,
-                                  const long cap);
+static inline void lc_ce_dispatch(LCI_endpoint_t ep, LCII_context_t *ctx);
 
 static inline void lc_serve_recv_imm(LCI_endpoint_t ep, lc_packet* p,
                                      uint16_t tag, const long cap)
@@ -134,11 +106,11 @@ static inline void lc_serve_recv_dyn(LCI_endpoint_t ep, lc_packet* p,
     memcpy(buf, &p->data, p->context.sync->request.data.buffer.length);
     p->context.sync->request.data.buffer.start = buf;
     lc_ce_dispatch(ep, p, p->context.sync, cap);
-  } else if (proto == LC_PROTO_RTS) {
+  } else if (proto == LCI_MSG_RTS) {
     void* buf = ep->alloc.malloc(p->data.rts.size, 0);
     lc_init_req(buf, p->data.rts.size, &p->context.sync->request);
     lc_handle_rts(ep, p);
-  } else if (proto == LC_PROTO_RTR) {
+  } else if (proto == LCI_MSG_RTR) {
     lc_handle_rtr(ep, p);
   };
 }
@@ -160,7 +132,7 @@ static inline void lc_serve_recv_match(LCI_endpoint_t ep, lc_packet* p,
              p->context.sync->request.data.buffer.length);
       lc_ce_dispatch(ep, p, sync, cap);
     }
-  } else if (proto == LC_PROTO_RTS) {
+  } else if (proto == LCI_MSG_RTS) {
     const lc_key key = LCII_MAKE_KEY(p->context.sync->request.rank,
                                    p->context.sync->request.tag);
     lc_value value = (lc_value)p;
@@ -168,7 +140,7 @@ static inline void lc_serve_recv_match(LCI_endpoint_t ep, lc_packet* p,
       p->context.sync = (LCI_syncl_t*)value;
       lc_handle_rts(ep, p);
     }
-  } else if (proto == LC_PROTO_RTR) {
+  } else if (proto == LCI_MSG_RTR) {
     lc_handle_rtr(ep, p);
   };
 }
@@ -201,59 +173,167 @@ static inline void lc_serve_recv_dispatch(LCI_endpoint_t ep, lc_packet* p,
   }
 }
 
-static inline void lc_ce_dispatch(LCI_endpoint_t ep, lc_packet* p, void* sync,
-                                  const long cap)
+static inline LCI_request_t LCII_ctx2req(LCII_context_t *ctx) {
+  LCI_request_t request = {
+    .flag = LCI_OK,
+    .rank = ctx->rank,
+    .tag = ctx->tag,
+    .type = ctx->data_type,
+    .data = ctx->data,
+    .user_context = ctx->user_context
+  };
+  LCIU_free(ctx);
+}
+
+static inline void lc_ce_dispatch(LCI_endpoint_t ep, LCII_context_t *ctx)
 {
+  uint64_t cap = ep->property;
 #ifdef LCI_SERVER_HAS_SYNC
   if (cap & EP_CE_SYNC) {
-    lc_ce_signal(ep, p, sync);
+    LCI_one2one_set_full(ctx->comp);
+    LCIU_free(ctx);
   } else
 #endif
 #ifdef LCI_SERVER_HAS_CQ
   if (cap & EP_CE_CQ) {
-    lc_ce_queue(ep, p, sync);
+    lc_cq_push(ep->cq, ctx);
   } else
 #endif
 #ifdef LCI_SERVER_HAS_AM
   if (cap & EP_CE_AM) {
-    lc_ce_am(ep, p, sync);
+    ep->handler(LCII_ctx2req(ctx));
+  } else
+#endif
+#ifdef LCI_SERVER_HAS_GLOB
+  if (cap & EP_CE_GLOB) {
+    __sync_fetch_and_add(&ep->completed, 1);
+    LCIU_free(ctx);
   } else
 #endif
   {
-    // If nothing is worth, return this to packet pool.
-    lc_pk_free_data(ep, p);
+    LCI_DBG_Assert(false, "unknown proto!");
   }
-
-#ifdef LCI_SERVER_HAS_GLOB
-  if (cap & EP_CE_GLOB) {
-    lc_ce_glob(ep);
-  }
-#endif
 }
 
-static inline void lc_serve_recv(lc_packet* p, lc_proto raw_proto)
+static inline void lc_serve_recv(lc_packet* packet, uint32_t src_rank,
+                                 size_t length, LCII_proto_t raw_proto)
 {
   // NOTE: this should be RGID because it is received from remote.
   LCI_endpoint_t ep = LCI_ENDPOINTS[PROTO_GET_RGID(raw_proto)];
-  uint16_t meta = PROTO_GET_META(raw_proto);
-  uint32_t proto = PROTO_GET_PROTO(raw_proto);
-  return lc_serve_recv_dispatch(ep, p, proto, meta, ep->property);
+  uint16_t tag = PROTO_GET_TAG(raw_proto);
+  LCI_msg_type_t msg_type = PROTO_GET_PROTO(raw_proto);
+
+  switch (msg_type) {
+    case LCI_MSG_SHORT:
+    {
+      LCI_DBG_Assert(length == LCI_SHORT_SIZE, "");
+      lc_key key = LCII_MAKE_KEY(src_rank, ep->gid, tag);
+      lc_value value = (lc_value)packet;
+      if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
+        LCII_context_t* ctx = (LCII_context_t*)value;
+        memcpy(&(ctx->data.immediate), packet->data.address, LCI_SHORT_SIZE);
+        LCII_free_packet(packet);
+        lc_ce_dispatch(ep, ctx);
+      }
+      break;
+    }
+    case LCI_MSG_MEDIUM:
+    {
+      lc_key key = LCII_MAKE_KEY(src_rank, ep->gid, tag);
+      lc_value value = (lc_value)packet;
+      packet->context.length = length;
+      if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
+        LCII_context_t* ctx = (LCII_context_t*)value;
+        ctx->data.mbuffer.length = length;
+        if (ctx->data.mbuffer.address != NULL) {
+          // copy to user provided buffer
+          memcpy(ctx->data.mbuffer.address, packet->data.address, ctx->data.mbuffer.length);
+          LCII_free_packet(packet);
+        } else {
+          // use LCI packet
+          ctx->data.mbuffer.address = packet->data.address;
+        }
+        lc_ce_dispatch(ep, ctx);
+      }
+      break;
+    }
+    case LCI_MSG_RTS:
+      const lc_key key = LCII_MAKE_KEY(src_rank, ep->gid, tag);
+      lc_value value = (lc_value) p;
+      if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
+        lc_handle_rts(ep, p, (LCI_comp_t) value);
+      }
+      break;
+    case LCI_MSG_RTR:
+      lc_pk_init(ep, -1, LC_PROTO_LONG, p);
+      int tgt_rank = src_rank;
+
+      p->context.sync = (LCI_syncl_t*) p->data.rts.ctx;
+      lc_server_rma_rtr(ep->server, ep->server->rep[tgt_rank].handle,
+                        (void*)p->data.rts.src_addr, p->data.rtr.tgt_addr,
+                        p->data.rtr.rkey, p->data.rts.size, p->data.rtr.comm_id, p);
+      break;
+    case LC_PROTO_LONG:
+      break;
+    default:
+      LCI_DBG_Assert(false, "unknown proto!");
+  }
+  return;
+
+  if (proto == LC_PROTO_LONG) {
+    lc_serve_recv_imm(ep, p, tag, cap);
+    return;
+  }
+
+#ifdef LCI_SERVER_HAS_EXP
+  if (cap & EP_AR_EXP) {
+    return lc_serve_recv_match(ep, p, proto, meta, cap);
+  } else
+#endif
+#ifdef LCI_SERVER_HAS_DYN
+  if (cap & EP_AR_DYN) {
+    return lc_serve_recv_dyn(ep, p, proto, meta, cap);
+  } else
+#endif
+#ifdef LCI_SERVER_HAS_IMM
+    if (cap & EP_AR_IMM) {
+    return lc_serve_recv_imm(ep, p, meta, cap);
+  } else
+#endif
+    // placeholder for anything else.
+  {
+  }
 }
 
-static inline void lc_serve_recv_rdma(lc_packet* p, lc_proto proto)
+static inline void lc_serve_recv_rdma(lc_packet* p, LCI_msg_type_t proto)
 {
   LCI_endpoint_t ep = LCI_ENDPOINTS[PROTO_GET_RGID(proto)];
-  p->context.sync->request.tag = PROTO_GET_META(proto);
+  p->context.sync->request.tag = PROTO_GET_TAG(proto);
   lc_ce_dispatch(ep, p, p->context.sync, ep->property);
 }
 
 // local completion
-static inline void lc_serve_send(lc_packet* p)
+static inline void lc_serve_send(void* raw_ctx)
 {
-  LCI_endpoint_t ep = p->context.ep;
-  lc_proto proto = p->context.proto;
-
-  if (proto == LC_PROTO_RTR) {
+  LCII_context_t *ctx = raw_ctx;
+  LCI_endpoint_t ep = ctx->ep;
+//  LCI_msg_type_t proto = p->context.proto;
+  switch (ctx->msg_type) {
+    case LCI_MSG_MEDIUM:
+      LCII_free_packet(LCII_mbuffer2packet(ctx->data.mbuffer));
+      break;
+    case LCI_MSG_RTS:
+      // sendl has not been completed locally. No need to process completion.
+      LCII_free_packet(LCII_mbuffer2packet(ctx->data.mbuffer));
+      break;
+    case LCI_MSG_RTR:
+      // recvl has not been completed locally. No need to process completion.
+      LCII_free_packet(LCII_mbuffer2packet(ctx->data.mbuffer));
+      break;
+    default:
+      LCI_DBG_Assert(false, "unexpected proto %d\n", proto);
+  }
+  if (proto == LCI_MSG_RTR) {
     if (--p->context.ref == 0)
       lc_ce_dispatch(ep, p, p->context.sync, ep->property);
     // Have to keep the ref counting here, otherwise there is a nasty race
@@ -267,8 +347,8 @@ static inline void lc_serve_send(lc_packet* p)
     if (p->context.ref == 1) {
       lc_pk_free_data(ep, p);
     }
-  } else if (proto == LC_PROTO_RTS) {
-//    LCI_Assert((LCI_sync_t*)p->data.rts.ce != NULL);
+  } else if (proto == LCI_MSG_RTS) {
+//    LCI_DBG_Assert((LCI_sync_t*)p->data.rts.ce != NULL);
 //    LCI_one2one_set_full((LCI_sync_t*)p->data.rts.ce);
     LCI_DBG_Assert(p->context.ref == 1, "p->context.ref = %d\n", p->context.ref);
     lc_pk_free(ep, p);

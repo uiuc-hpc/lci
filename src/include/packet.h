@@ -14,17 +14,6 @@
   p->context.ref = 1;                    \
   p->context.proto = (proto_);
 
-#define lc_pk_free(ep_, p_) lc_pool_put((ep_)->pkpool, p_);
-
-#define lc_pk_free_data(ep_, p_)                             \
-  if ((p_)->context.poolid != -1)                            \
-    lc_pool_put_to((ep_)->pkpool, p_, (p_)->context.poolid); \
-  else                                                       \
-    lc_pool_put((ep_)->pkpool, p_);
-
-// Converts medium buffer into lc_packet that contains it.
-#define LCII_PACKET_OF(b) ((lc_packet*) ((uintptr_t)(b) - offsetof(lc_packet, data)))
-
 struct __attribute__((packed, aligned(64))) packet_context {
   // Most of the current ctx requires 128-bits (FIXME)
   int64_t hwctx[2];
@@ -34,31 +23,31 @@ struct __attribute__((packed, aligned(64))) packet_context {
   LCI_endpoint_t ep;
   intptr_t rma_mem;
   int16_t proto;
-  int8_t poolid;
+  lc_pool *pkpool;
+  int8_t poolid;      /* id of the pool to return this packet.
+                       * -1 means returning to the local pool */
+  int length;         /* length for its payload */
   int8_t ref;
 };
 
 struct __attribute__((packed)) packet_rts {
-  intptr_t ce;
-  intptr_t src_addr;
+  uintptr_t ctx;
   size_t size;
-  intptr_t tgt_addr;
 };
 
 struct __attribute__((packed)) packet_rtr {
-  intptr_t ce;
-  intptr_t src_addr;
+  uintptr_t ctx;
   size_t size;
   intptr_t tgt_addr;
   uint64_t rkey;
-  uint32_t comm_id;
+  uint32_t ctx_id;
 };
 
 struct __attribute__((packed)) packet_data {
   union {
     struct packet_rts rts;
     struct packet_rtr rtr;
-    char buffer[0];
+    char address[0];
   };
 };
 
@@ -68,5 +57,16 @@ struct __attribute__((aligned(64))) lc_packet {
   };
   struct packet_data data;
 };
+
+static inline void LCII_free_packet(lc_packet* packet) {
+  if (packet->context.poolid != -1)
+    lc_pool_put_to(packet->context.pkpool, packet, packet->context.poolid);
+  else
+    lc_pool_put(packet->context.pkpool, packet);
+}
+
+static inline lc_packet* LCII_mbuffer2packet(LCI_mbuffer_t mbuffer) {
+  return (lc_packet*) (mbuffer.address - offsetof(lc_packet, data));
+}
 
 #endif

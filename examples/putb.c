@@ -30,7 +30,7 @@ int main(int argc, char** args) {
   LCI_barrier();
 
   double t1;
-  LCI_bbuffer_t p;
+  LCI_mbuffer_t p;
   LCI_bbuffer_get(&p, 0);
   LCI_request_t* req_ptr;
 

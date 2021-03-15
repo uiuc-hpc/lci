@@ -49,8 +49,8 @@ int main(int argc, char** args) {
       if (size > LARGE) { total = TOTAL_LARGE; }
 
       for (int i = 0; i < total; i++) {
-        LCI_sendi(*(LCI_short_t*) src_buf, 1-rank, tag, ep);
-        LCI_recvi(dst_buf, 1-rank, tag, ep, &sync);
+        LCI_sends(ep, *(LCI_short_t*)src_buf, 1 - rank, tag);
+        LCI_recvs(ep, dst_buf, tag, &sync);
         while (LCI_dequeue(cq, &req_ptr) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
         if (i == 0) {
@@ -67,11 +67,11 @@ int main(int argc, char** args) {
       if (size > LARGE) { total = TOTAL_LARGE; }
 
       for (int i = 0; i < total; i++) {
-        LCI_recvi(dst_buf, 1-rank, tag, ep, &sync);
+        LCI_recvs(ep, dst_buf, tag, &sync);
         while (LCI_dequeue(cq, &req_ptr) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
         LCI_bbuffer_free(req_ptr->data.buffer.start, 0);
-        LCI_sendi(*(LCI_short_t*) src_buf, 1-rank, tag, ep);
+        LCI_sends(ep, *(LCI_short_t*)src_buf, 1 - rank, tag);
       }
     }
   }

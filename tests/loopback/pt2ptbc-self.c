@@ -40,11 +40,11 @@ int main(int argc, char** args) {
     if (size > LARGE) { total = TOTAL_LARGE; }
 
     for (int i = 0; i < total; i++) {
-      while (LCI_sendbc(src_buf, size, rank, tag, ep) != LCI_OK)
+      while (LCI_sendm(ep, src_buf, rank, tag) != LCI_OK)
         LCI_progress(0, 1);
 
       LCI_one2one_set_empty(&sync);
-      LCI_recvbc(dst_buf, size, rank, tag, ep, &sync);
+      LCI_recvm(ep, dst_buf, rank, tag, &sync, NULL);
       while (LCI_one2one_test_empty(&sync))
         LCI_progress(0, 1);
 

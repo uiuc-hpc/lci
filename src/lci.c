@@ -73,19 +73,16 @@ void lc_dev_init(int id, lc_server** dev)
   uintptr_t base_packet;
   lc_server_init(id, dev);
   lc_server* s = *dev;
-  uintptr_t base_addr = (uintptr_t)lc_server_heap_ptr(s);
+  uintptr_t base_addr = s->heap_addr;
   base_packet = base_addr + 8192 - sizeof(struct packet_context);
 
   lc_pool_create(&s->pkpool);
   for (int i = 0; i < LC_SERVER_NUM_PKTS; i++) {
     lc_packet* p = (lc_packet*)(base_packet + i * LC_PACKET_SIZE);
+    p->context.pkpool = s->pkpool;
     p->context.poolid = 0;
-    // p->context.req_s.parent = p;
     lc_pool_put(s->pkpool, p);
   }
-
-  s->curr_addr = base_packet + LC_SERVER_NUM_PKTS * LC_PACKET_SIZE;
-  s->curr_addr = (s->curr_addr + 8192 - 1) / 8192 * 8192;
 }
 
 void lc_dev_finalize(lc_server* dev)
@@ -166,15 +163,15 @@ uintptr_t LCI_get_base_addr(int id) {
   return (uintptr_t) LCI_DEVICES[id]->heap_addr;
 }
 
-LCI_error_t LCI_bbuffer_get(LCI_bbuffer_t* buffer, int device_id) {
+LCI_error_t LCI_bbuffer_get(LCI_mbuffer_t* buffer, int device_id) {
   LC_POOL_GET_OR_RETN(LCI_DEVICES[device_id]->pkpool, p);
   *buffer = (void*) &p->data;
   return LCI_OK;
 }
 
-LCI_error_t LCI_bbuffer_free(LCI_bbuffer_t buffer, int device_id)
+LCI_error_t LCI_bbuffer_free(LCI_mbuffer_t buffer, int device_id)
 {
-  lc_packet* packet = LCII_PACKET_OF(buffer);
+  lc_packet* packet = LCII_mbuffer2packet(buffer);
   lc_pool_put(LCI_DEVICES[device_id]->pkpool, packet);
   return LCI_OK;
 }

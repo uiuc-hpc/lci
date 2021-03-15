@@ -86,11 +86,11 @@ void* recv_thread(void* arg)
 
     for (int i = 0; i < TOTAL; ++i) {
       LCI_one2one_set_empty(&sync);
-      LCI_recvbc(buf, size, 1-rank, val, ep, &sync);
+      LCI_recvm(ep, buf, 1 - rank, val, &sync, NULL);
       while (LCI_one2one_test_empty(&sync)) continue;
       check_buffer(buf, size, 's');
       write_buffer(buf, size, 'r');
-      while (LCI_sendbc(buf, size, 1-rank, val, ep) != LCI_OK) continue;
+      while (LCI_sendm(ep, buf, 1 - rank, val) != LCI_OK) continue;
     }
 
     thread_barrier();
@@ -131,10 +131,10 @@ void* send_thread(void* arg)
 
     for (int i = 0; i < TOTAL; ++i) {
       write_buffer(buf, size, 's');
-      while (LCI_sendbc(buf, size, 1-rank, val, ep) != LCI_OK) continue;
+      while (LCI_sendm(ep, buf, 1 - rank, val) != LCI_OK) continue;
 
       LCI_one2one_set_empty(&sync);
-      LCI_recvbc(buf, size, 1-rank, val, ep, &sync);
+      LCI_recvm(ep, buf, 1 - rank, val, &sync, NULL);
       while (LCI_one2one_test_empty(&sync)) continue;
       check_buffer(buf, size, 'r');
     }

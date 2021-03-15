@@ -44,7 +44,7 @@ int main(int argc, char** args) {
       LCI_one2one_set_empty(&sync_recv);
       LCI_recvd(dst_buf, size, rank, tag, ep, &sync_recv);
 
-      while (LCI_sendd(src_buf, size, rank, tag, ep, &sync_send) != LCI_OK)
+      while (LCI_sendl(ep, src_buf, rank, tag, &sync_send, 0) != LCI_OK)
         LCI_progress(0, 1);
       while (LCI_one2one_test_empty(&sync_send))
         LCI_progress(0, 1);

@@ -9,7 +9,7 @@
 struct lc_server;
 typedef struct lc_server lc_server;
 
-lc_server** LCI_DEVICES;
+extern lc_server** LCI_DEVICES;
 
 struct lc_packet;
 typedef struct lc_packet lc_packet;
@@ -43,12 +43,12 @@ struct LCI_segment_s {
   size_t length;
 };
 
-LCI_endpoint_t* LCI_ENDPOINTS;
+extern LCI_endpoint_t* LCI_ENDPOINTS;
 
 struct LCI_plist_s {
   LCI_comm_t ctype;           // communication type
   LCI_match_t match_type;     // matching type
-  LCI_msg_t mtype;            // message type
+  LCI_msg_type_t mtype;            // message type
   LCI_comptype_t ltype;       // local completion type
   LCI_comptype_t rtype;       // remote completion type
   LCI_handler_t *handler;     // completion handler
@@ -62,7 +62,7 @@ struct LCI_plist_s {
 struct LCI_endpoint_s {
   // Associated hardware context.
   lc_server* server;
-  long property;
+  uint64_t property;
 
   // Associated software components.
   lc_pool* pkpool;
@@ -79,29 +79,26 @@ struct LCI_endpoint_s {
   int gid;
 };
 
-struct lc_rep {
-  void* handle;
-  int rank;
-  intptr_t base;
-  uint64_t rkey;
-};
-
 /**
  * Internal context structure, Used by asynchronous operations to pass
  * information between initialization phase and completion phase.
  */
 struct LCII_context_t {
+  LCI_endpoint_t ep;
   LCI_data_t data;
-  LCI_data_type_t type;
-  uint32_t src_rank;
+  LCI_data_type_t data_type;
+  LCI_msg_type_t msg_type;
+  uint32_t rank;
   LCI_tag_t tag;
-  uint64_t user_context;
+  LCI_comp_t comp;
+  void* user_context;
 };
+typedef struct LCII_context_t LCII_context_t;
 
 extern int lcg_deadlock;
 
 #include "pool.h"
 #include "packet.h"
 #include "proto.h"
-
+#include "lcii_register.h"
 #endif

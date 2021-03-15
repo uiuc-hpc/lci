@@ -29,5 +29,6 @@ set(SRUN_EXE mpirun CACHE STRING "exective to be used in ctest")
 set(SRUN_ARG "-n 2" CACHE STRING "arguments to be used in ctest")
 
 include_directories(./)
+add_subdirectory(gtests)
 add_subdirectory(loopback)
 add_subdirectory(pingpong)

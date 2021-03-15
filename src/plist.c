@@ -5,7 +5,7 @@ LCI_error_t LCI_plist_create(LCI_plist_t *prop_ptr)
 {
   struct LCI_plist_s* prop = LCIU_malloc(sizeof(struct LCI_plist_s));
   prop->ctype = LCI_COMM_COLLECTIVE;
-  prop->mtype = LCI_MSG_DIRECT;
+  prop->mtype = LCI_MSG_LONG;
   prop->rtype = LCI_COMPLETION_ONE2ONEL;
   prop->ltype = LCI_COMPLETION_ONE2ONEL;
 
@@ -45,7 +45,7 @@ LCI_error_t LCI_plist_set_match_type(LCI_plist_t plist, LCI_match_t type)
   return LCI_OK;
 }
 
-LCI_error_t LCI_plist_set_msg_type(LCI_plist_t plist, LCI_msg_t type)
+LCI_error_t LCI_plist_set_msg_type(LCI_plist_t plist, LCI_msg_type_t type)
 {
   plist->mtype = type;
   return LCI_OK;

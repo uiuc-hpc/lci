@@ -53,7 +53,6 @@ typedef struct lc_server {
   struct fid_domain* domain;
   struct fid_ep* ep;
   struct fid_cq* cq;
-  struct fid_mr* mr_heap;
   struct fid_av* av;
   void* mr_desc;
 } lc_server __attribute__((aligned(64)));
@@ -69,7 +68,7 @@ static inline LCID_mr_t _real_server_reg(lc_server* s, void* buf, size_t size)
 
 static inline void _real_server_dereg(LCID_mr_t mr)
 {
-  FI_SAFECALL(fi_close((struct fid*) mem));
+  FI_SAFECALL(fi_close((struct fid*) mr));
 }
 
 static inline LCID_mr_t lc_server_rma_reg(lc_server* s, void* buf, size_t size)
@@ -151,9 +150,9 @@ static inline void lc_server_init(int id, lc_server** dev)
 
   FI_SAFECALL(fi_mr_reg(s->domain, (const void *) s->heap_addr, LC_SERVER_NUM_PKTS * LC_PACKET_SIZE * 2 + LCI_REGISTERED_SEGMENT_SIZE,
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, 0, 0,
-                        &s->mr_heap, 0));
+                        (struct fid_mr**) &s->heap_mr, 0));
 
-  s->mr_desc = fi_mr_desc(s->mr_heap);
+  s->mr_desc = fi_mr_desc(s->heap_mr);
   s->id = id;
 
   struct fi_av_attr av_attr;

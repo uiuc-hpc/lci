@@ -48,23 +48,23 @@ int main(int argc, char *argv[]) {
 
     RUN_VARY_MSG({min_size, max_size}, 1, [&](int msg_size, int iter) {
       LCI_one2one_set_empty(&sync);
-      LCI_recvbc(buf, size, 1-rank, tag, ep, &sync);
+      LCI_recvm(ep, buf, 1 - rank, tag, &sync, NULL);
       while (LCI_one2one_test_empty(&sync))
         LCI_progress(0, 1);
       check_buffer(buf, size, 's');
 
       write_buffer(buf, size, 'r');
-      while (LCI_sendbc(buf, size, 1-rank, tag, ep) != LCI_OK)
+      while (LCI_sendm(ep, buf, 1 - rank, tag) != LCI_OK)
         LCI_progress(0, 1);
     });
   } else {
     RUN_VARY_MSG({min_size, max_size}, 0, [&](int msg_size, int iter) {
       write_buffer(buf, size, 's');
-      while (LCI_sendbc(buf, size, 1-rank, tag, ep) != LCI_OK)
+      while (LCI_sendm(ep, buf, 1 - rank, tag) != LCI_OK)
         LCI_progress(0, 1);
 
       LCI_one2one_set_empty(&sync);
-      LCI_recvbc(buf, size, 1-rank, tag, ep, &sync);
+      LCI_recvm(ep, buf, 1 - rank, tag, &sync, NULL);
       while (LCI_one2one_test_empty(&sync))
         LCI_progress(0, 1);
       check_buffer(buf, size, 'r');

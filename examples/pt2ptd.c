@@ -44,7 +44,7 @@ int main(int argc, char** args) {
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
         LCI_one2one_set_empty(&sync);
-        while (LCI_sendd(src_buf, size, 1-rank, tag, ep, &sync) != LCI_OK)
+        while (LCI_sendl(ep, src_buf, 1 - rank, tag, &sync, 0) != LCI_OK)
           LCI_progress(0, 1);
         while (LCI_one2one_test_empty(&sync))
           LCI_progress(0, 1);
@@ -74,7 +74,7 @@ int main(int argc, char** args) {
         while (LCI_one2one_test_empty(&sync))
           LCI_progress(0, 1);
         LCI_one2one_set_empty(&sync);
-        while (LCI_sendd(src_buf, size, 1-rank, tag, ep, &sync) != LCI_OK)
+        while (LCI_sendl(ep, src_buf, 1 - rank, tag, &sync, 0) != LCI_OK)
           LCI_progress(0, 1);
         while (LCI_one2one_test_empty(&sync))
           LCI_progress(0, 1);

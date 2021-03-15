@@ -41,9 +41,9 @@ int main(int argc, char** args) {
     if (size > LARGE) { total = TOTAL_LARGE; }
 
     for (int i = 0; i < total; i++) {
-      LCI_sendi(*(LCI_short_t*) src_buf, rank, tag, ep);
+      LCI_sends(ep, *(LCI_short_t*)src_buf, rank, tag);
       LCI_one2one_set_empty(&sync);
-      LCI_recvi(dst_buf, rank, tag, ep, &sync);
+      LCI_recvs(ep, dst_buf, tag, &sync);
       while (LCI_one2one_test_empty(&sync))
         LCI_progress(0, 1);
       if (i == 0) {

@@ -167,10 +167,13 @@ typedef enum {
  * LCI Message type.
  */
 typedef enum {
-  LCI_MSG_IMMEDIATE,
-  LCI_MSG_BUFFERED,
-  LCI_MSG_DIRECT,
-} LCI_msg_t;
+  LCI_MSG_SHORT,
+  LCI_MSG_MEDIUM,
+  LCI_MSG_LONG,
+  LCI_MSG_RTS,
+  LCI_MSG_RTR,
+  LCI_MSG_RDMA
+} LCI_msg_type_t;
 
 /**
  * LCI data type.
@@ -277,19 +280,14 @@ typedef struct LCI_mbuffer_t LCI_mbuffer_t;
 //};
 typedef uint64_t LCI_short_t;
 
-typedef void* LCI_bbuffer_t;
-typedef void* LCI_dbuffer_t;
-
 /**
  * The type of data associated with a buffer.
  * @todo should we add a flag to identify whether this buffer is allocated by users or LCI?
 */
 typedef union {
   LCI_short_t immediate;
-  struct {
-    void* start;
-    size_t length;
-  } buffer;
+  LCI_mbuffer_t mbuffer;
+  LCI_lbuffer_t lbuffer;
 } LCI_data_t;
 
 /**
@@ -301,9 +299,9 @@ typedef struct {
   LCI_error_t flag;
   uint32_t rank;
   LCI_tag_t tag;
-  enum { INVALID, IMMEDIATE, BUFFERED, DIRECT } type;
+  LCI_data_type_t type;
   LCI_data_t data;
-  void* __reserved__;
+  void* user_context;
 } LCI_request_t;
 
 /**
@@ -463,7 +461,7 @@ LCI_error_t LCI_plist_set_MT(LCI_plist_t plist, LCI_MT_t* mt);
  * Set message type (short, medium, long).
  */
 LCI_API
-LCI_error_t LCI_plist_set_msg_type(LCI_plist_t plist, LCI_msg_t type);
+LCI_error_t LCI_plist_set_msg_type(LCI_plist_t plist, LCI_msg_type_t type);
 
 /**
  * Set completion mechanism.
@@ -541,26 +539,25 @@ void LCI_barrier();
  * Send an immediate message, completed immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
-LCI_error_t LCI_sendi(LCI_short_t value, int rank, int tag,
-                      LCI_endpoint_t ep);
+LCI_error_t LCI_sends(LCI_endpoint_t ep, LCI_short_t src, int rank, int tag);
 
 /**
  * Send a buffered-copy message, completed immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
-LCI_error_t LCI_sendbc(void* src, size_t size, int rank, int tag,
-                       LCI_endpoint_t ep);
+LCI_error_t LCI_sendm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
+                      int tag);
 
 /**
  * Send a buffered message, not complete until a sync/CQ is done.
  */
 LCI_API
-LCI_error_t LCI_sendb(LCI_bbuffer_t src, size_t size, int rank, int tag,
-                      LCI_endpoint_t ep, void* sync);
+LCI_error_t LCI_sendmn(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
+                       int tag);
 
 /**
  * Send a direct message.
- * @todo API mismatch: LCI_error_t LCI_sendd(LCI_endpoint_t	endpoint,
+ * @todo API mismatch: LCI_error_t LCI_sendl(LCI_endpoint_t	endpoint,
                                              void 		*buffer,
                                              size_t		length,
                                              uint32_t		destination,
@@ -569,28 +566,28 @@ LCI_error_t LCI_sendb(LCI_bbuffer_t src, size_t size, int rank, int tag,
          Note: nearly all the communication API has parameter order mismatch.
  */
 LCI_API
-LCI_error_t LCI_sendd(LCI_dbuffer_t src, size_t size, int rank, int tag,
-                      LCI_endpoint_t ep, void* sync);
+LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
+                      LCI_tag_t tag, LCI_comp_t completion, void* user_context);
 
 /**
  * Receive a immediate message.
  */
 LCI_API
-LCI_error_t LCI_recvi(LCI_short_t* src, int rank, int tag,
-                      LCI_endpoint_t ep, void* sync);
+LCI_error_t LCI_recvs(LCI_endpoint_t ep, int rank, int tag,
+                      LCI_comp_t completion, void* user_context);
 
 /**
  * Receive a medium message.
  */
 LCI_API
-LCI_error_t LCI_recvbc(void* src, size_t size, int rank, int tag,
-                       LCI_endpoint_t ep, void* sync);
+LCI_error_t LCI_recvm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
+                      int tag, LCI_comp_t completion, void* user_context);
 
 /**
  * Receive a direct message.
  */
 LCI_API
-LCI_error_t LCI_recvd(LCI_dbuffer_t src, size_t size, int rank, int tag,
+LCI_error_t LCI_recvd(LCI_lbuffer_t src, size_t size, int rank, int tag,
                       LCI_endpoint_t ep, void* sync);
 
 /* One-sided functions. */
@@ -608,7 +605,7 @@ LCI_error_t LCI_puti(LCI_short_t src, int rank, int rma_id, int offset, int meta
  * endpoint, offset @p offset. Complete immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
-LCI_error_t LCI_putbc(LCI_bbuffer_t src, size_t size, int rank, int rma_id, int offset, uint16_t meta,
+LCI_error_t LCI_putbc(LCI_mbuffer_t src, size_t size, int rank, int rma_id, int offset, uint16_t meta,
                      LCI_endpoint_t ep);
 
 /**
@@ -616,7 +613,7 @@ LCI_error_t LCI_putbc(LCI_bbuffer_t src, size_t size, int rank, int rma_id, int 
  * endpoint, offset @p offset. User must wait for sync or retry if LCI_ERR_RETRY is returned.
  */
 LCI_API
-LCI_error_t LCI_putb(LCI_bbuffer_t buffer, size_t size, int rank, uint16_t tag,
+LCI_error_t LCI_putb(LCI_mbuffer_t buffer, size_t size, int rank, uint16_t tag,
                      LCI_endpoint_t ep, void* sync);
 
 /**
@@ -624,7 +621,7 @@ LCI_error_t LCI_putb(LCI_bbuffer_t buffer, size_t size, int rank, uint16_t tag,
  * endpoint, offset @p offset.
  */
 LCI_API
-LCI_error_t LCI_putd(LCI_dbuffer_t src, size_t size, int rank, int rma_id, int offset,
+LCI_error_t LCI_putd(LCI_lbuffer_t src, size_t size, int rank, int rma_id, int offset,
                      LCI_endpoint_t ep, void* context);
 
 /**@}*/
@@ -743,13 +740,13 @@ uintptr_t LCI_get_base_addr(int device_id);
  * @todo API mismatch: LCI_error_t LCI_buffer_get(LCI_bdata_t* buffer, uint8 device_id);
  */
 LCI_API
-LCI_error_t LCI_bbuffer_get(LCI_bbuffer_t* buffer, int device_id);
+LCI_error_t LCI_bbuffer_get(LCI_mbuffer_t* buffer, int device_id);
 
 /**
  * @todo API mismatch: LCI_error_t LCI_buffer_free ( LCI_bdata_t buffer );
  */
 LCI_API
-LCI_error_t LCI_bbuffer_free(LCI_bbuffer_t buffer, int device_id);
+LCI_error_t LCI_bbuffer_free(LCI_mbuffer_t buffer, int device_id);
 
 /**@}*/
 
