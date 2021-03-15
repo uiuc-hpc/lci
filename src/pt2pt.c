@@ -161,6 +161,12 @@ LCI_error_t LCI_recvl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
                       int tag, LCI_comp_t completion, void* user_context)
 {
   LCII_context_t *long_ctx = LCIU_malloc(sizeof(LCII_context_t));
+  LCI_error_t ret = LCII_register_put(ep->ctx_reg, (LCII_reg_value_t)long_ctx,
+                                      (LCII_reg_key_t*)&(long_ctx->id));
+  if (ret != LCI_OK) {
+    LCIU_free(long_ctx);
+    return ret;
+  }
   long_ctx->ep = ep;
   long_ctx->data.lbuffer = buffer;
   long_ctx->data_type = LCI_LONG;

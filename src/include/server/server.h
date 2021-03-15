@@ -37,7 +37,7 @@ extern volatile uint32_t lc_next_rdma_key;
 static inline void lc_serve_recv(lc_packet* p, uint32_t src_rank, size_t length,
                                  LCII_proto_t proto);
 static inline void lc_serve_imm(lc_packet* p);
-static inline void lc_serve_recv_rdma(lc_packet*, LCI_msg_type_t proto);
+static inline void lc_serve_rdma(LCII_proto_t proto);
 static inline void lc_serve_send(void *ctx);
 
 /* Following functions are required to be implemented by each server backend. */

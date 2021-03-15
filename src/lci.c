@@ -127,6 +127,7 @@ LCI_error_t LCI_endpoint_create(int device, LCI_plist_t plist, LCI_endpoint_t* e
   ep->server = dev;
   ep->pkpool = dev->pkpool;
   ep->gid = num_endpoints++;
+  LCII_register_init(&(ep->ctx_reg), 16);
   LCI_Assert(num_endpoints < LCI_MAX_ENDPOINTS, "Too many endpoints!\n");
   LCI_ENDPOINTS[ep->gid] = ep;
 

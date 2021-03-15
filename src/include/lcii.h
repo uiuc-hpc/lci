@@ -3,6 +3,7 @@
 
 #include "config.h"
 #include "cq.h"
+#include "lcii_register.h"
 
 #define LCI_SYNCL_PTR_TO_REQ_PTR(sync) (&((LCI_syncl_t*)sync)->request)
 
@@ -69,6 +70,7 @@ struct LCI_endpoint_s {
   lc_rep* rep;
   lc_hash* mt;
   LCI_allocator_t alloc;
+  LCII_register_t ctx_reg; // used for long message protocol
 
   union {
     lc_cq* cq;
@@ -84,6 +86,7 @@ struct LCI_endpoint_s {
  * information between initialization phase and completion phase.
  */
 struct LCII_context_t {
+  int id; // used by the long message protocol
   LCI_endpoint_t ep;
   LCI_data_t data;
   LCI_data_type_t data_type;
@@ -97,8 +100,19 @@ typedef struct LCII_context_t LCII_context_t;
 
 extern int lcg_deadlock;
 
+static inline LCI_request_t LCII_ctx2req(LCII_context_t *ctx) {
+  LCI_request_t request = {
+      .flag = LCI_OK,
+      .rank = ctx->rank,
+      .tag = ctx->tag,
+      .type = ctx->data_type,
+      .data = ctx->data,
+      .user_context = ctx->user_context
+  };
+  LCIU_free(ctx);
+}
+
 #include "pool.h"
 #include "packet.h"
 #include "proto.h"
-#include "lcii_register.h"
 #endif

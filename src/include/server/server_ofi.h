@@ -171,7 +171,7 @@ static inline void lc_server_init(int id, lc_server** dev)
   LCI_Assert(addrlen <= 8 * EP_ADDR_LEN, "addrlen = %lu\n", addrlen);
   uint64_t my_addr[EP_ADDR_LEN];
   FI_SAFECALL(fi_getname((fid_t)s->ep, my_addr, &addrlen));
-  uint64_t my_rkey = fi_mr_key(s->mr_heap);
+  uint64_t my_rkey = fi_mr_key((struct fid_mr *)s->heap_mr);
 
   posix_memalign((void**)&(s->rep), LC_CACHE_LINE,
                  sizeof(struct lc_rep) * LCI_NUM_PROCESSES);
@@ -253,11 +253,7 @@ static inline int lc_server_progress(lc_server* s)
             lc_packet* p = (lc_packet*)(s->heap_addr + (entry[i].data ^ OFI_IMM_RTR));
             lc_serve_imm(p);
           } else {
-            // recv rdma with signal
-            // TODO: this is dumb. try to modify proto.h to have some smarter functions here.
-            lc_packet *p = lc_pool_get(s->pkpool);
-            p->context.sync = &p->context.sync_s;
-            lc_serve_recv_rdma(p, entry[i].data);
+            lc_serve_rdma(entry[i].data);
           }
         } else if (entry[i].flags & FI_SEND) {
           lc_serve_send(entry[i].op_context);
