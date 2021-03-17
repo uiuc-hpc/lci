@@ -18,7 +18,7 @@ int main(int argc, char** args) {
   LCI_plist_t prop;
   LCI_comp_t cq;
   LCI_plist_create(&prop);
-  LCI_CQ_init(&cq, 0);
+  LCI_queue_create(0, &cq);
   LCI_plist_set_CQ(prop,&cq);
   LCI_plist_set_completion(prop,LCI_PORT_COMMAND, LCI_COMPLETION_ONE2ONEL);
   LCI_plist_set_completion(prop,LCI_PORT_MESSAGE, LCI_COMPLETION_QUEUE);
@@ -26,11 +26,11 @@ int main(int argc, char** args) {
   LCI_MT_init(&mt, 0);
   LCI_plist_set_MT(prop,&mt);
 
-  LCI_endpoint_create(0, prop, &ep);
+  LCI_endpoint_init(&ep, 0, prop);
   LCI_barrier();
 
   int rank = LCI_RANK;
-  int tag = 99;
+  LCI_tag_t tag = 99;
 
   LCI_request_t* req_ptr;
   LCI_syncl_t sync;
@@ -53,13 +53,13 @@ int main(int argc, char** args) {
         if (i == skip) t1 = wtime();
         LCI_sends(ep, *(LCI_short_t*)src_buf, 1 - rank, tag);
         LCI_recvs(ep, dst_buf, tag, &sync);
-        while (LCI_dequeue(cq, &req_ptr) == LCI_ERR_RETRY)
+        while (LCI_queue_pop(cq, &req_ptr) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
         if (i == 0) {
           for (int j = 0; j < size; j++)
             assert(((char*) src_buf)[j] == 'a' && ((char*)dst_buf)[j] == 'a');
         }
-        LCI_bbuffer_free(req_ptr->data.buffer.start, 0);
+        LCI_mbuffer_free(0, req_ptr->data.buffer.start);
       }
 
       t1 = 1e6 * (wtime() - t1) / total / 2;
@@ -73,9 +73,9 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         LCI_recvs(ep, dst_buf, tag, &sync);
-        while (LCI_dequeue(cq, &req_ptr) == LCI_ERR_RETRY)
+        while (LCI_queue_pop(cq, &req_ptr) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
-        LCI_bbuffer_free(req_ptr->data.buffer.start, 0);
+        LCI_mbuffer_free(0, req_ptr->data.buffer.start);
         LCI_sends(ep, *(LCI_short_t*)src_buf, 1 - rank, tag);
       }
     }

@@ -17,7 +17,7 @@ typedef uint32_t LCII_proto_t;
 
 #include "server/server.h"
 
-#define MAKE_PROTO(rgid, msg_type, tag) (msg_type | (rgid << 3) | (tag << 16))
+#define LCII_MAKE_PROTO(rgid, msg_type, tag) (msg_type | (rgid << 3) | (tag << 16))
 
 #define PROTO_GET_TYPE(proto) (proto & 0b011)
 #define PROTO_GET_RGID(proto) ((proto >> 3) & 0b01111111111111)
@@ -42,7 +42,7 @@ static inline void lc_handle_rts(LCI_endpoint_t ep, lc_packet* p, LCII_context_t
   struct lc_rep* rep = &(ep->rep[long_ctx->rank]);
   lc_server_send(ep->server, rep->handle, p->data.address,
                  sizeof(struct packet_rtr), ep->server->heap_mr,
-                 MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx);
+                 LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx);
 }
 
 static inline void lc_handle_rtr(LCI_endpoint_t ep, lc_packet* packet)
@@ -53,37 +53,33 @@ static inline void lc_handle_rtr(LCI_endpoint_t ep, lc_packet* packet)
                 ctx->data.lbuffer.address, ctx->data.lbuffer.length,
                 ctx->data.lbuffer.segment->mr_p, 0,
                 packet->data.rtr.tgt_addr, packet->data.rtr.rkey,
-                MAKE_PROTO(ep->gid, LCI_MSG_LONG, packet->data.rtr.ctx_id),
+                LCII_MAKE_PROTO(ep->gid, LCI_MSG_LONG, packet->data.rtr.ctx_id),
                 ctx);
 }
 
-static inline void lc_ce_dispatch(LCI_endpoint_t ep, LCII_context_t *ctx)
+static inline void lc_ce_dispatch(LCI_comptype_t comp_type, LCII_context_t *ctx)
 {
-  uint64_t cap = ep->property;
+  switch (comp_type) {
 #ifdef LCI_SERVER_HAS_SYNC
-  if (cap & EP_CE_SYNC) {
-    LCI_one2one_set_full(ctx->comp);
-    LCIU_free(ctx);
-  } else
+    case LCI_COMPLETION_ONE2ONEL:
+      LCI_one2one_set_full(ctx->completion);
+      LCIU_free(ctx);
+      break;
 #endif
 #ifdef LCI_SERVER_HAS_CQ
-  if (cap & EP_CE_CQ) {
-    lc_cq_push(ep->cq, ctx);
-  } else
+    case LCI_COMPLETION_QUEUE:
+      lc_cq_push(ctx->completion, ctx);
+      break;
 #endif
 #ifdef LCI_SERVER_HAS_AM
-  if (cap & EP_CE_AM) {
-    ep->handler(LCII_ctx2req(ctx));
-  } else
+    case LCI_COMPLETION_HANDLER: {
+      LCI_handler_t* handler = ctx->completion;
+      handler(LCII_ctx2req(ctx));
+      break;
+    }
 #endif
-#ifdef LCI_SERVER_HAS_GLOB
-    if (cap & EP_CE_GLOB) {
-    __sync_fetch_and_add(&ep->completed, 1);
-    LCIU_free(ctx);
-  } else
-#endif
-  {
-    LCI_DBG_Assert(false, "unknown proto!");
+    default:
+      LCI_DBG_Assert(false, "unknown proto!");
   }
 }
 
@@ -99,19 +95,19 @@ static inline void lc_serve_recv(lc_packet* packet, uint32_t src_rank,
     case LCI_MSG_SHORT:
     {
       LCI_DBG_Assert(length == LCI_SHORT_SIZE, "");
-      lc_key key = LCII_MAKE_KEY(src_rank, ep->gid, tag);
+      lc_key key = LCII_MAKE_KEY(src_rank, ep->gid, tag, LCI_MSG_SHORT);
       lc_value value = (lc_value)packet;
       if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
         LCII_context_t* ctx = (LCII_context_t*)value;
         memcpy(&(ctx->data.immediate), packet->data.address, LCI_SHORT_SIZE);
         LCII_free_packet(packet);
-        lc_ce_dispatch(ep, ctx);
+        lc_ce_dispatch(ep->msg_comp_type, ctx);
       }
       break;
     }
     case LCI_MSG_MEDIUM:
     {
-      lc_key key = LCII_MAKE_KEY(src_rank, ep->gid, tag);
+      lc_key key = LCII_MAKE_KEY(src_rank, ep->gid, tag, LCI_MSG_MEDIUM);
       lc_value value = (lc_value)packet;
       packet->context.length = length;
       if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
@@ -125,13 +121,13 @@ static inline void lc_serve_recv(lc_packet* packet, uint32_t src_rank,
           // use LCI packet
           ctx->data.mbuffer.address = packet->data.address;
         }
-        lc_ce_dispatch(ep, ctx);
+        lc_ce_dispatch(ep->msg_comp_type, ctx);
       }
       break;
     }
     case LCI_MSG_RTS:
     {
-      const lc_key key = LCII_MAKE_KEY(src_rank, ep->gid, tag);
+      const lc_key key = LCII_MAKE_KEY(src_rank, ep->gid, tag, LCI_MSG_LONG);
       lc_value value = (lc_value)packet;
       if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
         lc_handle_rts(ep, packet, (LCI_comp_t)value);
@@ -155,11 +151,12 @@ static inline void lc_serve_rdma(LCII_proto_t proto)
   switch (msg_type) {
     case LCI_MSG_LONG:
     {
-      LCII_context_t *ctx = LCII_register_get(ep->ctx_reg, tag);
+      LCII_context_t *ctx =
+          (LCII_context_t*)LCII_register_get(ep->ctx_reg, tag);
       LCI_DBG_Assert(ctx->msg_type == LCI_MSG_LONG,
                      "Didn't get the right context! This might imply some bugs in the lcii_register.");
       // recvl has been completed locally. Need to process completion.
-      lc_ce_dispatch(ep, ctx);
+      lc_ce_dispatch(ep->msg_comp_type, ctx);
       break;
     }
     case LCI_MSG_RDMA:
@@ -180,6 +177,10 @@ static inline void lc_serve_send(void* raw_ctx)
   switch (ctx->msg_type) {
     case LCI_MSG_MEDIUM:
       LCII_free_packet(LCII_mbuffer2packet(ctx->data.mbuffer));
+      break;
+    case LCI_MSG_LONG:
+      // sendl has been completed locally. Need to process completion.
+      lc_ce_dispatch(ep->cmd_comp_type, ctx);
       break;
     case LCI_MSG_RTS:
       // sendl has not been completed locally. No need to process completion.

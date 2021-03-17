@@ -45,9 +45,9 @@ int main(int argc, char *argv[])
   LCI_MT_t mt;
   LCI_MT_init(&mt, 0);
   LCI_plist_set_MT(prop, &mt);
-  LCI_endpoint_create(0, prop, &ep[0]);
+  LCI_endpoint_init(&ep[0], 0, prop);
   for (int i = 1; i < NUM_DEV; i++) {
-    LCI_endpoint_create(i, prop, &ep[i]);
+    LCI_endpoint_init(&ep[i], i, prop);
   }
 
   rank = LCI_RANK;

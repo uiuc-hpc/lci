@@ -4,9 +4,9 @@
 #include "cq.h"
 
 lc_server** LCI_DEVICES;
+LCI_plist_t* LCI_PLISTS;
 LCI_endpoint_t* LCI_ENDPOINTS;
-
-char lcg_name[256];
+LCI_endpoint_t LCI_UR_ENDPOINT;
 int lcg_deadlock = 0;
 volatile uint32_t lc_next_rdma_key = 1;
 
@@ -62,17 +62,21 @@ void lc_config_init(int num_proc, int rank)
   else
     LCI_Log(LCI_LOG_WARN, "unknown env LCI_LOG_LEVEL (%s against none|warn|trace|info|debug|max). use the default LCI_LOG_WARN.\n", p);
 
-  LCI_DEVICES = calloc(sizeof(lc_server*), LCI_NUM_DEVICES);
-  LCI_ENDPOINTS = calloc(sizeof(LCI_endpoint_t), LCI_MAX_ENDPOINTS);
+  LCI_DEVICES = LCIU_calloc(sizeof(lc_server*), LCI_NUM_DEVICES);
+  LCI_PLISTS = LCIU_calloc(sizeof(LCI_plist_t), LCI_NUM_DEVICES);
+  LCI_ENDPOINTS = LCIU_calloc(sizeof(LCI_endpoint_t), LCI_MAX_ENDPOINTS);
 
   LCI_PACKET_RETURN_THRESHOLD = getenv_or("LCI_PACKET_RETURN_THRESHOLD", 1024);
 }
 
-void lc_dev_init(int id, lc_server** dev)
+void lc_dev_init(int id, lc_server** dev, LCI_plist_t *plist)
 {
   uintptr_t base_packet;
   lc_server_init(id, dev);
   lc_server* s = *dev;
+  LCI_plist_create(plist);
+
+  LCI_MT_init(&s->mt, 0);
   uintptr_t base_addr = s->heap_addr;
   base_packet = base_addr + 8192 - sizeof(struct packet_context);
 
@@ -87,6 +91,7 @@ void lc_dev_init(int id, lc_server** dev)
 
 void lc_dev_finalize(lc_server* dev)
 {
+  LCI_MT_free(&dev->mt);
   lc_pool_destroy(dev->pkpool);
   lc_server_finalize(dev);
 }
@@ -95,15 +100,16 @@ LCI_error_t LCI_open()
 {
   int num_proc, rank;
   // Initialize processes in this job.
-  lc_pm_master_init(&num_proc, &rank, lcg_name);
+  lc_pm_master_init(&num_proc, &rank);
 
   // Set some constant from environment variable.
   lc_config_init(num_proc, rank);
 
   for (int i = 0; i < LCI_NUM_DEVICES; i++) {
-    lc_dev_init(i, &LCI_DEVICES[i]);
+    lc_dev_init(i, &LCI_DEVICES[i], &LCI_PLISTS[i]);
   }
 
+  LCI_endpoint_init(&LCI_UR_ENDPOINT, 0, LCI_PLISTS[0]);
   LCI_DBG_Log(LCI_LOG_WARN, "Macro LCI_DEBUG is defined. Running in low-performance debug mode!\n");
 
   return LCI_OK;
@@ -119,38 +125,28 @@ LCI_error_t LCI_close()
   return LCI_OK;
 }
 
-LCI_error_t LCI_endpoint_create(int device, LCI_plist_t plist, LCI_endpoint_t* ep_ptr)
+LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, int device,
+                              LCI_plist_t plist)
 {
   static int num_endpoints = 0;
-  struct LCI_endpoint_s* ep = LCIU_malloc(sizeof(struct LCI_endpoint_s));
+  LCI_endpoint_t ep = LCIU_malloc(sizeof(struct LCI_endpoint_s));
+  LCI_Assert(num_endpoints < LCI_MAX_ENDPOINTS, "Too many endpoints!\n");
+  LCI_ENDPOINTS[ep->gid] = ep;
+  *ep_ptr = ep;
+
   lc_server* dev = LCI_DEVICES[device];
   ep->server = dev;
   ep->pkpool = dev->pkpool;
+  ep->rep = dev->rep;
+  ep->mt = dev->mt;
   ep->gid = num_endpoints++;
   LCII_register_init(&(ep->ctx_reg), 16);
-  LCI_Assert(num_endpoints < LCI_MAX_ENDPOINTS, "Too many endpoints!\n");
-  LCI_ENDPOINTS[ep->gid] = ep;
 
-  if (plist->ctype == LCI_COMM_2SIDED || plist->ctype == LCI_COMM_COLLECTIVE) {
-    ep->property = EP_AR_EXP;
-    ep->mt = (lc_hash*) plist->mt;
-  } else {
-    ep->property = EP_AR_DYN;
-    ep->alloc = plist->allocator;
-  }
+  ep->match_type = plist->match_type;
+  ep->cmd_comp_type = plist->cmd_comp_type;
+  ep->msg_comp_type = plist->msg_comp_type;
+  ep->allocator = plist->allocator;
 
-  if (plist->rtype == LCI_COMPLETION_ONE2ONEL) {
-    ep->property |= EP_CE_SYNC;
-  } else if (plist->rtype == LCI_COMPLETION_HANDLER) {
-    ep->property |= EP_CE_AM;
-    ep->handler = plist->handler;
-  } else if (plist->rtype == LCI_COMPLETION_QUEUE) {
-    ep->property |= EP_CE_CQ;
-    ep->cq = (lc_cq*) plist->cq;
-  }
-
-  ep->rep = dev->rep;
-  *ep_ptr = ep;
   return LCI_OK;
 }
 
@@ -160,20 +156,24 @@ LCI_error_t LCI_progress(int id, int count)
   return LCI_OK;
 }
 
-uintptr_t LCI_get_base_addr(int id) {
-  return (uintptr_t) LCI_DEVICES[id]->heap_addr;
-}
+LCI_error_t LCI_mbuffer_alloc(int device_id, LCI_mbuffer_t* mbuffer)
+{
+  lc_server *s = LCI_DEVICES[device_id];
+  lc_packet* packet = lc_pool_get_nb(s->pkpool);
+  if (packet == NULL)
+    // no packet is available
+    return LCI_ERR_RETRY;
+  packet->context.poolid = -1;
 
-LCI_error_t LCI_bbuffer_get(LCI_mbuffer_t* buffer, int device_id) {
-  LC_POOL_GET_OR_RETN(LCI_DEVICES[device_id]->pkpool, p);
-  *buffer = (void*) &p->data;
+  mbuffer->address = packet->data.address;
+  mbuffer->length = LCI_MEDIUM_SIZE;
   return LCI_OK;
 }
 
-LCI_error_t LCI_bbuffer_free(LCI_mbuffer_t buffer, int device_id)
+LCI_error_t LCI_mbuffer_free(int device_id, LCI_mbuffer_t mbuffer)
 {
-  lc_packet* packet = LCII_mbuffer2packet(buffer);
-  lc_pool_put(LCI_DEVICES[device_id]->pkpool, packet);
+  lc_packet* packet = LCII_mbuffer2packet(mbuffer);
+  LCII_free_packet(packet);
   return LCI_OK;
 }
 

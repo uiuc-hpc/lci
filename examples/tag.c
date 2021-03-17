@@ -14,7 +14,7 @@ int main(int argc, char** args) {
   lc_init(1, &ep);
   int rank = 0;
   lc_get_proc_num(&rank);
-  int tag = {99};
+  LCI_tag_t tag = {99};
 
   lc_req req;
   lc_sync sync;

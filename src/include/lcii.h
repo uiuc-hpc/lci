@@ -10,8 +10,6 @@
 struct lc_server;
 typedef struct lc_server lc_server;
 
-extern lc_server** LCI_DEVICES;
-
 struct lc_packet;
 typedef struct lc_packet lc_packet;
 
@@ -44,20 +42,12 @@ struct LCI_segment_s {
   size_t length;
 };
 
-extern LCI_endpoint_t* LCI_ENDPOINTS;
 
 struct LCI_plist_s {
-  LCI_comm_t ctype;           // communication type
   LCI_match_t match_type;     // matching type
-  LCI_msg_type_t mtype;            // message type
-  LCI_comptype_t ltype;       // local completion type
-  LCI_comptype_t rtype;       // remote completion type
-  LCI_handler_t *handler;     // completion handler
-  LCI_dynamic_t cdtype;       // dynamic type for command ports
-  LCI_dynamic_t mdtype;       // dynamic type for message ports
+  LCI_comptype_t cmd_comp_type; // source-side completion type
+  LCI_comptype_t msg_comp_type; // destination-side completion type
   LCI_allocator_t allocator;  // dynamic allocator
-  LCI_comp_t cq;              // completion queue
-  LCI_MT_t mt;                // matching table
 };
 
 struct LCI_endpoint_s {
@@ -68,14 +58,15 @@ struct LCI_endpoint_s {
   // Associated software components.
   lc_pool* pkpool;
   lc_rep* rep;
-  lc_hash* mt;
-  LCI_allocator_t alloc;
+  LCI_MT_t mt;
   LCII_register_t ctx_reg; // used for long message protocol
 
-  union {
-    lc_cq* cq;
-    LCI_handler_t *handler;
-  };
+  // user-defined components
+  LCI_match_t match_type;     // matching type (tag/ranktag)
+  LCI_comptype_t cmd_comp_type; // command-port completion type
+  LCI_comptype_t msg_comp_type; // message-port completion type
+  LCI_allocator_t allocator;  // dynamic allocator @note redundant for now
+
   volatile int completed;
 
   int gid;
@@ -93,11 +84,14 @@ struct LCII_context_t {
   LCI_msg_type_t msg_type;
   uint32_t rank;
   LCI_tag_t tag;
-  LCI_comp_t comp;
+  LCI_comp_t completion;
   void* user_context;
 };
 typedef struct LCII_context_t LCII_context_t;
 
+extern lc_server** LCI_DEVICES;
+extern LCI_plist_t* LCI_PLISTS;
+extern LCI_endpoint_t* LCI_ENDPOINTS;
 extern int lcg_deadlock;
 
 static inline LCI_request_t LCII_ctx2req(LCII_context_t *ctx) {
@@ -110,6 +104,7 @@ static inline LCI_request_t LCII_ctx2req(LCII_context_t *ctx) {
       .user_context = ctx->user_context
   };
   LCIU_free(ctx);
+  return request;
 }
 
 #include "pool.h"

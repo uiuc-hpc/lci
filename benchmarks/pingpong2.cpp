@@ -30,13 +30,13 @@ int main(int argc, char *argv[]) {
   LCI_MT_t mt;
   LCI_MT_init(&mt, 0);
   LCI_plist_set_MT(prop, &mt);
-  LCI_endpoint_create(0, prop, &ep);
+  LCI_endpoint_init(&ep, 0, prop);
   rank = LCI_RANK;
   size = LCI_NUM_PROCESSES;
   yp_init();
 
   char* buf;
-  int tag = 99;
+  LCI_tag_t tag = 99;
 
   size_t msg_size;
   LCI_syncl_t sync;

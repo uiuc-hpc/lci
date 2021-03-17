@@ -32,7 +32,7 @@ static inline void lc_colreq_init(lc_colreq* req)
   lc_signal((void*)&req->pending[1].sync);
 }
 
-static inline void lc_col_send(void* src, size_t size, int rank, int tag,
+static inline void lc_col_send(void* src, size_t size, int rank, LCI_tag_t tag,
                                lc_ep ep, lc_colreq* req)
 {
   lc_col_sched* op = &(req->next[req->total++]);
@@ -44,7 +44,7 @@ static inline void lc_col_send(void* src, size_t size, int rank, int tag,
   op->type = LC_COL_SEND;
 }
 
-static inline void lc_col_recv(void* src, size_t size, int rank, int tag,
+static inline void lc_col_recv(void* src, size_t size, int rank, LCI_tag_t tag,
                                lc_ep ep, lc_colreq* req)
 {
   lc_col_sched* op = &(req->next[req->total++]);
@@ -57,7 +57,7 @@ static inline void lc_col_recv(void* src, size_t size, int rank, int tag,
 }
 
 static inline void lc_col_sendrecv(void* src, void* dst, size_t size, int rank,
-                                   int tag, lc_ep ep, lc_colreq* req)
+                                   LCI_tag_t tag, lc_ep ep, lc_colreq* req)
 {
   lc_col_sched* op = &(req->next[req->total++]);
   op->src = src;

@@ -6,8 +6,10 @@
 
 typedef uintptr_t lc_value;
 typedef uint64_t lc_key;
-// 32 bits for rank, 16 bits for endpoint ID, 16 bits for tag
-#define LCII_MAKE_KEY(rank, epid, tag) ((((uint64_t)(rank) << 32) | ((uint64_t)(epid) << 16) | (uint64_t)(tag)))
+// 32 bits for rank, 2 bits for msg type, 14 bits for endpoint ID, 16 bits for tag
+#define LCII_MAKE_KEY(rank, epid, tag, msg_type) \
+  ((uint64_t)(rank) << 32 | (uint64_t) (msg_type) << 30 | \
+   (uint64_t)(epid) << 16 | (uint64_t)(tag))
 
 #include <assert.h>
 #include <stdlib.h>

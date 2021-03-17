@@ -19,8 +19,9 @@ typedef uint32_t LCID_meta_t; // immediate data
   int id; \
   lc_pool* pkpool; \
   struct lc_rep* rep; \
+  LCI_MT_t mt; \
   size_t recv_posted; \
-  uintptr_t heap_addr;\
+  uintptr_t heap_addr; \
   LCID_mr_t heap_mr;
 
 struct lc_rep {
@@ -36,7 +37,6 @@ extern volatile uint32_t lc_next_rdma_key;
 
 static inline void lc_serve_recv(lc_packet* p, uint32_t src_rank, size_t length,
                                  LCII_proto_t proto);
-static inline void lc_serve_imm(lc_packet* p);
 static inline void lc_serve_rdma(LCII_proto_t proto);
 static inline void lc_serve_send(void *ctx);
 
@@ -62,10 +62,6 @@ static inline void lc_server_put(lc_server* s, LCID_addr_t dest, void* buf,
                                  size_t size, LCID_mr_t mr, uintptr_t base,
                                  uint32_t offset, LCID_rkey_t rkey,
                                  LCID_meta_t meta, void* ctx);
-
-static inline void lc_server_rma_rtr(lc_server* s, LCID_addr_t rep, void* buf,
-                                     uintptr_t addr, uint64_t rkey, size_t size,
-                                     uint32_t sid, lc_packet* p);
 
 #ifdef LCI_USE_SERVER_OFI
 #include "server_ofi.h"

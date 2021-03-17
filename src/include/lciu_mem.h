@@ -2,6 +2,7 @@
 #define LCI_LCIU_MEM_H
 
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 /* Memory Utility Functions */

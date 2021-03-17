@@ -5,9 +5,9 @@
 #include "pm.h"
 #include "log.h"
 
-extern char lcg_name[];
+char lcg_name[256];
 
-void lc_pm_master_init(int* size, int* rank, char* name)
+void lc_pm_master_init(int* size, int* rank)
 {
   int spawned;
 #ifdef LCI_USE_PMI2
@@ -16,7 +16,7 @@ void lc_pm_master_init(int* size, int* rank, char* name)
   PMI2_Job_GetId(name, 255);
 #else
   PMI_Init(&spawned, size, rank);
-  PMI_KVS_Get_my_name(name, 255);
+  PMI_KVS_Get_my_name(lcg_name, 255);
 #endif
 }
 

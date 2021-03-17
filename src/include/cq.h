@@ -19,7 +19,7 @@ typedef struct lc_cq lc_cq;
 
 static inline void lc_cq_create(struct lc_cq** cq_ptr)
 {
-  posix_memalign((void**)cq_ptr, 64, sizeof(struct lc_cq));
+  cq_ptr = LCIU_malloc(sizeof(struct lc_cq));
   struct lc_cq* cq = *cq_ptr;
   memset(cq->container, 0, sizeof(void*) * CQ_MAX_SIZE);
   cq->top = 0;

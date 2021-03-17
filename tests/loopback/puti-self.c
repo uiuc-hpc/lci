@@ -17,7 +17,7 @@ int main(int argc, char** args) {
   // LCI_plist_set_completion(LCI_PORT_MESSAGE, LCI_COMPLETION_ONE2ONEL, &prop);
   // LCI_plist_set_completion(LCI_PORT_COMMAND, LCI_COMPLETION_ONE2ONEL, &prop);
 
-  LCI_endpoint_create(0, prop, &ep);
+  LCI_endpoint_init(&ep, 0, prop);
   int rank = LCI_RANK;
   LCI_barrier();
 
@@ -35,7 +35,7 @@ int main(int argc, char** args) {
   LCI_barrier();
 
   for (int i = 0; i < TOTAL; i++) {
-    LCI_puti(*(LCI_short_t*)sbuf, rank, 0, base_offset + LCI_SHORT_SIZE, 123, ep);
+    LCI_puts(ep, *(LCI_short_t*)sbuf, rank, 123, 0);
     while (rbuf[0] == -1)
       LCI_progress(0, 1);
     rbuf[0] = -1;

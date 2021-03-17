@@ -18,14 +18,227 @@ extern "C" {
 
 #define LCI_API __attribute__((visibility("default")))
 
-// "pseudo-segment" indicating the entire address space,
-// leading to dynamic (on-the-fly) registration
-#define LCI_SEGMENT_ALL 1
+/**
+ * \defgroup LCITypes LCI Data Types.
+ * @{
+ */
+
+/**
+ * LCI Status type.
+ */
+typedef enum {
+  LCI_OK = 0,
+  LCI_ERR_RETRY,      /* Resource temporarily not available. Try again. */
+  LCI_ERR_FEATURE_NA, /* Feature not available */
+  LCI_ERR_FATAL,
+} LCI_error_t;
+
+/**
+ * LCI Communication type.
+ */
+typedef enum {
+  LCI_COMM_1SIDED,
+  LCI_COMM_2SIDED,
+  LCI_COMM_COLLECTIVE,
+} LCI_comm_t;
+
+/**
+ * LCI Matching type.
+ */
+typedef enum {
+  LCI_MATCH_RANKTAG = 0,
+  LCI_MATCH_TAG,
+} LCI_match_t;
+
+/**
+ * LCI Message type.
+ *
+ * @note used by LCII_MAKE_PROTO (3 bits) for communication immediate data field
+ * and LCII_MAKE_KEY (2 bits, only use the first three entries) for the matching
+ * table key. Take care when modify this enum type.
+ */
+typedef enum {
+  LCI_MSG_SHORT,
+  LCI_MSG_MEDIUM,
+  LCI_MSG_LONG,
+  LCI_MSG_RTS,
+  LCI_MSG_RTR,
+  LCI_MSG_RDMA,
+} LCI_msg_type_t;
+
+/**
+ * LCI data type.
+ */
+typedef enum {
+  LCI_IMMEDIATE = 0,
+  LCI_MEDIUM,
+  LCI_LONG,
+  LCI_IOVEC
+} LCI_data_type_t;
+
+/**
+ * LCI Port type.
+ */
+typedef enum {
+  LCI_PORT_COMMAND = 0,
+  LCI_PORT_MESSAGE = 1,
+} LCI_port_t;
+
+/**
+ * LCI completion enumeration type.
+ */
+typedef enum {
+  LCI_COMPLETION_QUEUE = 0,  	// completion queue
+  LCI_COMPLETION_HANDLER,  	// handler
+  LCI_COMPLETION_ONE2ONES, 	// one2one SSO
+  LCI_COMPLETION_ONE2ONEL, 	// one2one LSO
+  LCI_COMPLETION_MANY2ONES,	// many2one SSO
+  LCI_COMPLETION_MANY2ONEL,	// many2one LSO
+  LCI_COMPLETION_ANY2ONES,	// any2one SSO
+  LCI_COMPLETION_ONE2MANYS,	// one2many SSO
+  LCI_COMPLETION_ONE2MANYL,	// one2many LSO
+  LCI_COMPLETION_MANY2MANYS,	// many2many SSO
+  LCI_COMPLETION_MANY2MANYL	// many2many LSO
+} LCI_comptype_t;
+
+/**
+ * LCI log level type.
+ */
+enum LCI_log_level_t {
+  LCI_LOG_NONE = 0,
+  LCI_LOG_WARN,
+  LCI_LOG_TRACE,
+  LCI_LOG_INFO,
+  LCI_LOG_DEBUG,
+  LCI_LOG_MAX
+};
+
+/**
+ * Tag type. 16 bits due to ibverbs' limitation.
+ */
+typedef uint16_t LCI_tag_t;
+
+/**
+ * LCI generic completion type.
+ */
+typedef void* LCI_comp_t;
+
+/**
+ * Synchronizer object, owned by the runtime.
+ */
+typedef volatile uint64_t LCI_sync_t;
+
+/**
+ * LCI memory segment.
+ *
+ * All LCI communication must take place in memory segments, which represent
+ * memory regions registered to devices.
+ */
+struct LCI_segment_s;
+typedef struct LCI_segment_s *LCI_segment_t;
+
+/**
+ * LCI long communication buffer
+ */
+struct LCI_lbuffer_t {
+  LCI_segment_t segment;
+  void *address;
+  size_t length;
+};
+typedef struct LCI_lbuffer_t LCI_lbuffer_t;
+
+/**
+ * LCI medium communication buffer.
+ *
+ * Medium communication buffers reside in memory managed by LCI.
+ */
+struct LCI_mbuffer_t {
+  void *address;
+  size_t length;
+};
+typedef struct LCI_mbuffer_t LCI_mbuffer_t;
+
+/**
+ * LCI short data.
+ */
+//struct LCI_short_t {
+//  char __short [ LCI_SHORT_SIZE ];
+//};
+typedef uint64_t LCI_short_t;
+
+/**
+ * The type of data associated with a buffer.
+ * @todo should we add a flag to identify whether this buffer is allocated by users or LCI?
+*/
+typedef union {
+  LCI_short_t immediate;
+  LCI_mbuffer_t mbuffer;
+  LCI_lbuffer_t lbuffer;
+} LCI_data_t;
+
+/**
+ * Request object, owned by the user, unless returned from runtime (CQ_Dequeue).
+ * @todo fix the __reserved__ entry
+ */
+typedef struct {
+  /* Status of the communication. */
+  LCI_error_t flag;
+  uint32_t rank;
+  LCI_tag_t tag;
+  LCI_data_type_t type;
+  LCI_data_t data;
+  void* user_context;
+} LCI_request_t;
+
+/**
+ * Synchronizer, owned by the user.
+ */
+typedef struct {
+  LCI_sync_t sync;
+  LCI_request_t request;
+} LCI_syncl_t;
+
+/**
+ * Endpoint object, owned by the runtime.
+ */
+struct LCI_endpoint_s;
+typedef struct LCI_endpoint_s* LCI_endpoint_t;
+
+/**
+ * Property object, owned by the runtime.
+ */
+struct LCI_plist_s;
+typedef struct LCI_plist_s* LCI_plist_t;
+
+/**
+ * Hash table type, owned by the runtime.
+ */
+struct LCI_MT_s;
+typedef struct LCI_MT_s* LCI_MT_t;
+
+/**
+ * Handler type
+ */
+typedef LCI_error_t (LCI_handler_t)(LCI_request_t request);
+
+/**
+ * Allocator type
+ */
+typedef struct {
+  void* (*malloc)(size_t size, uint16_t tag);
+  void (*free)(void *pointer);
+} LCI_allocator_t;
+
+/**@}*/
 
 /**
  * \defgroup LCIGlobal LCI Global variables
  * @{
  */
+
+// "pseudo-segment" indicating the entire address space,
+// leading to dynamic (on-the-fly) registration
+#define LCI_SEGMENT_ALL 1
 
 /**
  * The number of devices created intially.
@@ -129,226 +342,16 @@ extern int LCI_LOG_LEVEL;
  *   the packet will be returned to the progress thread's pool.
  */
 extern int LCI_PACKET_RETURN_THRESHOLD;
-/**@}*/
 
 /**
- * \defgroup LCITypes LCI Data Types.
- * @{
- */
-
-/**
- * LCI Status type.
- */
-typedef enum {
-  LCI_OK = 0,
-  LCI_ERR_RETRY,      /* Resource temporarily not available. Try again. */
-  LCI_ERR_FEATURE_NA, /* Feature not available */
-  LCI_ERR_FATAL,
-} LCI_error_t;
-
-/**
- * LCI Communication type.
- */
-typedef enum {
-  LCI_COMM_1SIDED,
-  LCI_COMM_2SIDED,
-  LCI_COMM_COLLECTIVE,
-} LCI_comm_t;
-
-/**
- * LCI Matching type.
- */
-typedef enum {
-  LCI_MATCH_RANKTAG = 0,
-  LCI_MATCH_TAG,
-} LCI_match_t;
-
-/**
- * LCI Message type.
- */
-typedef enum {
-  LCI_MSG_SHORT,
-  LCI_MSG_MEDIUM,
-  LCI_MSG_LONG,
-  LCI_MSG_RTS,
-  LCI_MSG_RTR,
-  LCI_MSG_RDMA
-} LCI_msg_type_t;
-
-/**
- * LCI data type.
- */
-typedef enum {
-  LCI_IMMEDIATE = 0,
-  LCI_MEDIUM,
-  LCI_LONG,
-  LCI_IOVEC
-} LCI_data_type_t;
-
-/**
- * LCI Port type.
- */
-typedef enum {
-  LCI_PORT_COMMAND = 0,
-  LCI_PORT_MESSAGE = 1,
-} LCI_port_t;
-
-/**
- * LCI completion enumeration type.
- */
-typedef enum {
-  LCI_COMPLETION_QUEUE = 0,  	// completion queue
-  LCI_COMPLETION_HANDLER,  	// handler
-  LCI_COMPLETION_ONE2ONES, 	// one2one SSO
-  LCI_COMPLETION_ONE2ONEL, 	// one2one LSO
-  LCI_COMPLETION_MANY2ONES,	// many2one SSO
-  LCI_COMPLETION_MANY2ONEL,	// many2one LSO
-  LCI_COMPLETION_ANY2ONES,	// any2one SSO
-  LCI_COMPLETION_ONE2MANYS,	// one2many SSO
-  LCI_COMPLETION_ONE2MANYL,	// one2many LSO
-  LCI_COMPLETION_MANY2MANYS,	// many2many SSO
-  LCI_COMPLETION_MANY2MANYL	// many2many LSO
-} LCI_comptype_t;
-
-/**
- * LCI dynamic buffer.
- */
-typedef enum { LCI_STATIC = 0, LCI_DYNAMIC } LCI_dynamic_t;
-
-/**
- * LCI log level type.
- */
-enum LCI_log_level_t {
-  LCI_LOG_NONE = 0,
-  LCI_LOG_WARN,
-  LCI_LOG_TRACE,
-  LCI_LOG_INFO,
-  LCI_LOG_DEBUG,
-  LCI_LOG_MAX
-};
-
-/**
- * Tag type. 16 bits due to ibverbs' limitation.
- */
-typedef uint16_t LCI_tag_t;
-
-/**
- * LCI generic completion type.
- */
-typedef void* LCI_comp_t;
-
-/**
- * Synchronizer object, owned by the runtime.
- */
-typedef uint64_t LCI_sync_t;
-
-/**
- * LCI memory segment.
+ * @brief The endpoint created during LCI initialization
  *
- * All LCI communication must take place in memory segments, which represent
- * memory regions registered to devices.
+ * LCI initialization creates on each process an endpoint LCI_UR_ENDPOINT on
+ * device 0 which is associated with the default completion queue LCI_QUEUE[0]
+ * and with memory segment LCI_MEMORY_ALL and supports all message types
+ * and all types of communications.
  */
-struct LCI_segment_s;
-typedef struct LCI_segment_s *LCI_segment_t;
-
-/**
- * LCI long communication buffer
- */
-struct LCI_lbuffer_t {
-  LCI_segment_t segment;
-  void *address;
-  size_t length;
-};
-typedef struct LCI_lbuffer_t LCI_lbuffer_t;
-
-/**
- * LCI medium communication buffer.
- *
- * Medium communication buffers reside in memory managed by LCI.
- */
-struct LCI_mbuffer_t {
-  void *address;
-  size_t length;
-};
-typedef struct LCI_mbuffer_t LCI_mbuffer_t;
-
-/**
- * LCI short data.
- */
-//struct LCI_short_t {
-//  char __short [ LCI_SHORT_SIZE ];
-//};
-typedef uint64_t LCI_short_t;
-
-/**
- * The type of data associated with a buffer.
- * @todo should we add a flag to identify whether this buffer is allocated by users or LCI?
-*/
-typedef union {
-  LCI_short_t immediate;
-  LCI_mbuffer_t mbuffer;
-  LCI_lbuffer_t lbuffer;
-} LCI_data_t;
-
-/**
- * Request object, owned by the user, unless returned from runtime (CQ_Dequeue).
- * @todo fix the __reserved__ entry
- */
-typedef struct {
-  /* Status of the communication. */
-  LCI_error_t flag;
-  uint32_t rank;
-  LCI_tag_t tag;
-  LCI_data_type_t type;
-  LCI_data_t data;
-  void* user_context;
-} LCI_request_t;
-
-/**
- * Synchronizer, owned by the user.
- */
-typedef struct {
-  LCI_sync_t sync;
-  LCI_request_t request;
-} LCI_syncl_t;
-
-/**
- * Endpoint object, owned by the runtime.
- */
-struct LCI_endpoint_s;
-typedef struct LCI_endpoint_s* LCI_endpoint_t;
-
-/**
- * Property object, owned by the runtime.
- */
-struct LCI_plist_s;
-typedef struct LCI_plist_s* LCI_plist_t;
-
-/**
- * Completion queue object, owned by the runtime.
- */
-struct LCI_CQ_s;
-// typedef struct LCI_CQ_s* LCI_CQ_t; // replaced by the generic LCI_comp_t
-
-/**
- * Hash table type, owned by the runtime.
- */
-struct LCI_MT_s;
-typedef struct LCI_MT_s* LCI_MT_t;
-
-/**
- * Handler type
- */
-typedef LCI_error_t (LCI_handler_t)(LCI_request_t request);
-
-/**
- * Allocator type
- */
-typedef struct {
-  void* (*malloc)(size_t size, uint16_t tag);
-  void (*free)(void *pointer);
-} LCI_allocator_t;
-
+extern LCI_endpoint_t LCI_UR_ENDPOINT;
 /**@}*/
 
 /**
@@ -430,7 +433,7 @@ LCI_error_t LCI_plist_free(LCI_plist_t *plist);
  * Gets property list attached to an endpoint.
  */
 LCI_API
-LCI_error_t LCI_plist_get(LCI_endpoint_t endpoint, LCI_plist_t *plist);
+LCI_error_t LCI_plist_get(LCI_endpoint_t ep, LCI_plist_t *plist_ptr);
 
 /**
  * Returns a string that decodes the property list plist in a human-readable
@@ -440,66 +443,35 @@ LCI_API
 LCI_error_t LCI_plist_decode(LCI_plist_t plist, char *string);
 
 /**
- * Set communication style (1sided, 2sided, collective).
- */
-LCI_API
-LCI_error_t LCI_plist_set_comm_type(LCI_plist_t plist, LCI_comm_t type);
-
-/**
  * Set matching style (ranktag, tag).
  */
 LCI_API
 LCI_error_t LCI_plist_set_match_type(LCI_plist_t plist, LCI_match_t match_type);
 
 /**
- * Set hash-table memory for matching.
+ * Set completion type
+ * @param plist the property list to set
+ * @param port specify command port or message port to set
+ * @param comp_type specify the completion type
+ * @return A value of zero indicates success while a nonzero value indicates
+ *         failure. Different values may be used to indicate the type of failure.
  */
 LCI_API
-LCI_error_t LCI_plist_set_MT(LCI_plist_t plist, LCI_MT_t* mt);
-
-/**
- * Set message type (short, medium, long).
- */
-LCI_API
-LCI_error_t LCI_plist_set_msg_type(LCI_plist_t plist, LCI_msg_type_t type);
-
-/**
- * Set completion mechanism.
- */
-LCI_API
-LCI_error_t LCI_plist_set_completion(LCI_plist_t plist, LCI_port_t port,
-                                  LCI_comptype_t type);
-
-/**
- * Set completion mechanism.
- */
-LCI_API
-LCI_error_t LCI_plist_set_CQ(LCI_plist_t plist, LCI_comp_t* cq);
-
-/**
- * Set handler for AM protocol.
- */
-LCI_API
-LCI_error_t LCI_plist_set_handler(LCI_plist_t plist, LCI_handler_t* handler);
-
-/**
- * Set dynamic type.
- */
-LCI_error_t LCI_plist_set_dynamic(LCI_plist_t	plist, LCI_port_t port,
-                               LCI_dynamic_t type);
-
+LCI_error_t LCI_plist_set_comp_type(LCI_plist_t plist, LCI_port_t port,
+                                    LCI_comptype_t comp_type);
 /**
  * Set allocator for dynamic protocol.
  */
 LCI_API
-LCI_error_t LCI_plist_set_allocator(LCI_plist_t plist, LCI_allocator_t allocator);
+LCI_error_t LCI_plist_set_allocator(LCI_plist_t plist,
+                                    LCI_allocator_t allocator);
 
 /**
  * Create an endpoint, collective calls for those involved in the endpoints.
  */
 LCI_API
-LCI_error_t LCI_endpoint_create(int device_id, LCI_plist_t plist,
-                                LCI_endpoint_t* ep);
+LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, int device,
+                              LCI_plist_t plist);
 
 /**
  * Free an endpoint, collective calls for those involved in the endpoints.
@@ -539,21 +511,21 @@ void LCI_barrier();
  * Send an immediate message, completed immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
-LCI_error_t LCI_sends(LCI_endpoint_t ep, LCI_short_t src, int rank, int tag);
+LCI_error_t LCI_sends(LCI_endpoint_t ep, LCI_short_t src, int rank, LCI_tag_t tag);
 
 /**
  * Send a buffered-copy message, completed immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
 LCI_error_t LCI_sendm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
-                      int tag);
+                      LCI_tag_t tag);
 
 /**
  * Send a buffered message, not complete until a sync/CQ is done.
  */
 LCI_API
 LCI_error_t LCI_sendmn(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
-                       int tag);
+                       LCI_tag_t tag);
 
 /**
  * Send a direct message.
@@ -573,7 +545,7 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
  * Receive a immediate message.
  */
 LCI_API
-LCI_error_t LCI_recvs(LCI_endpoint_t ep, int rank, int tag,
+LCI_error_t LCI_recvs(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
                       LCI_comp_t completion, void* user_context);
 
 /**
@@ -581,13 +553,13 @@ LCI_error_t LCI_recvs(LCI_endpoint_t ep, int rank, int tag,
  */
 LCI_API
 LCI_error_t LCI_recvm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
-                      int tag, LCI_comp_t completion, void* user_context);
+                      LCI_tag_t tag, LCI_comp_t completion, void* user_context);
 
 /**
  * Receive a direct message.
  */
 LCI_API
-LCI_error_t LCI_recvd(LCI_lbuffer_t src, size_t size, int rank, int tag,
+LCI_error_t LCI_recvd(LCI_lbuffer_t src, size_t size, int rank, LCI_tag_t tag,
                       LCI_endpoint_t ep, void* sync);
 
 /* One-sided functions. */
@@ -597,8 +569,8 @@ LCI_error_t LCI_recvd(LCI_lbuffer_t src, size_t size, int rank, int tag,
  * endpoint, offset @p offset. Complete immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
-LCI_error_t LCI_puti(LCI_short_t src, int rank, int rma_id, int offset, int meta,
-                     LCI_endpoint_t ep);
+LCI_error_t LCI_puts(LCI_endpoint_t ep, LCI_short_t src, int rank,
+                     LCI_tag_t tag, uintptr_t remote_completion);
 
 /**
  * Put medium message to a remote address @p rma_id available at the remote
@@ -640,37 +612,43 @@ LCI_error_t LCI_putd(LCI_lbuffer_t src, size_t size, int rank, int rma_id, int o
  *       Or do we want to change the manual? Need to check with others.
  */
 LCI_API
-LCI_error_t LCI_CQ_init(LCI_comp_t* cq, uint32_t length);
+LCI_error_t LCI_queue_create(uint8_t device, LCI_comp_t* cq);
 
 /**
  * Destroy a completion queue.
  */
 LCI_API
-LCI_error_t LCI_CQ_free(LCI_comp_t cq);
+LCI_error_t LCI_queue_free(LCI_comp_t* cq);
 
 /**
  * Return first completed request in the queue. Unblocking.
- * @todo API mismatch: LCI_error_t LCI_dequeue ( LCI_comp_t cq , LCI_request_t * request );
+ * @todo API mismatch: LCI_error_t LCI_queue_pop ( LCI_comp_t cq , LCI_request_t * request );
  *       Do we want to return the LCI_request_t by pointers (implementation) or actual objects (manual)
  */
 LCI_API
-LCI_error_t LCI_dequeue(LCI_comp_t cq, LCI_request_t** request);
+LCI_error_t LCI_queue_pop(LCI_comp_t cq, LCI_request_t* request);
 
 /**
  * Return first completed request in the queue. Blocking.
  * @todo API mismatch: Do we want to return the LCI_request_t by pointers (implementation) or actual objects (manual)
  */
 LCI_API
-LCI_error_t LCI_wait_dequeue(LCI_comp_t cq, LCI_request_t** request);
+LCI_error_t LCI_queue_wait(LCI_comp_t cq, LCI_request_t* request);
 
 /**
  * Return at most @p count first completed request in the queue.
  */
 LCI_API
-LCI_error_t LCI_mult_dequeue(LCI_comp_t cq ,
-                             LCI_request_t requests[] ,
-                             uint32_t request_count ,
-                             uint32_t *return_count );
+LCI_error_t LCI_queue_pop_multiple(LCI_comp_t cq, uint32_t request_count,
+                                   LCI_request_t* requests,
+                                   uint32_t* return_count);
+
+/**
+ * Blocking wait and return @p count first completed request in the queue.
+ */
+LCI_API
+LCI_error_t LCI_queue_wait_multiple(LCI_comp_t cq, uint32_t request_count,
+                                   LCI_request_t* requests);
 
 /**
  * Create a matching hash-table.
@@ -731,22 +709,16 @@ LCI_API
 LCI_error_t LCI_progress(int device_id, int count);
 
 /**
- * Querying a specific device @device_id for a base address.
- */
-LCI_API
-uintptr_t LCI_get_base_addr(int device_id);
-
-/**
  * @todo API mismatch: LCI_error_t LCI_buffer_get(LCI_bdata_t* buffer, uint8 device_id);
  */
 LCI_API
-LCI_error_t LCI_bbuffer_get(LCI_mbuffer_t* buffer, int device_id);
+LCI_error_t LCI_mbuffer_alloc(int device_id, LCI_mbuffer_t* mbuffer);
 
 /**
  * @todo API mismatch: LCI_error_t LCI_buffer_free ( LCI_bdata_t buffer );
  */
 LCI_API
-LCI_error_t LCI_bbuffer_free(LCI_mbuffer_t buffer, int device_id);
+LCI_error_t LCI_mbuffer_free(int device_id, LCI_mbuffer_t mbuffer);
 
 /**@}*/
 

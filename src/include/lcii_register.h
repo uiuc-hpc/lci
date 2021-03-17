@@ -31,8 +31,8 @@ struct LCII_register_t {
 };
 typedef struct LCII_register_t LCII_register_t;
 
-LCI_error_t LCII_register_init(LCII_register_t* reg, int nbits);
-LCI_error_t LCII_register_fini(LCII_register_t* reg);
+static LCI_error_t LCII_register_init(LCII_register_t* reg, int nbits);
+static LCI_error_t LCII_register_fini(LCII_register_t* reg);
 
 static inline LCI_error_t LCII_register_put(LCII_register_t reg,
                                             LCII_reg_value_t value,
@@ -46,7 +46,7 @@ static inline LCII_reg_value_t LCII_register_remove(LCII_register_t reg,
 }
 #endif
 
-LCI_error_t LCII_register_init(LCII_register_t* reg, int nbits)
+static LCI_error_t LCII_register_init(LCII_register_t* reg, int nbits)
 {
   assert(sizeof(struct LCII_reg_entry_t) == 64);
   size_t cap = 1 << nbits;
@@ -61,7 +61,7 @@ LCI_error_t LCII_register_init(LCII_register_t* reg, int nbits)
   return LCI_OK;
 }
 
-LCI_error_t LCII_register_fini(LCII_register_t* reg)
+static LCI_error_t LCII_register_fini(LCII_register_t* reg)
 {
   LCIU_free((void*) reg->ptr);
   reg->ptr = NULL;
@@ -112,7 +112,5 @@ static inline LCII_reg_value_t LCII_register_remove(LCII_register_t reg,
   }
   return val;
 }
-
-#define LCI_MT_s LCII_register
 
 #endif // LCI_LCII_REGISTER_H

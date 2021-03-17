@@ -152,7 +152,7 @@ static inline void lc_server_init(int id, lc_server** dev)
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, 0, 0,
                         (struct fid_mr**) &s->heap_mr, 0));
 
-  s->mr_desc = fi_mr_desc(s->heap_mr);
+  s->mr_desc = fi_mr_desc((struct fid_mr *)s->heap_mr);
   s->id = id;
 
   struct fi_av_attr av_attr;
@@ -240,26 +240,17 @@ static inline int lc_server_progress(lc_server* s)
       // Got an entry here ?
       for (int i = 0; i < ret; i++) {
         if (entry[i].flags & FI_RECV) {
-          s->recv_posted--;
+          --s->recv_posted;
           // we use tag to pass src_rank, because it is hard to get src_rank
           // from fi_addr_t. TODO: Need to improve
           lc_serve_recv(entry[i].op_context, entry[i].tag, entry[i].len,
                         entry[i].data);
         } else if (entry[i].flags & FI_REMOTE_WRITE) {
-          // NOTE(danghvu): In OFI, a RDMA with completion data is transferred without
-          // comsuming a posted receive.
-          if (entry[i].data & OFI_IMM_RTR) {
-            // RDMA immediate protocol (3-msg rdz).
-            lc_packet* p = (lc_packet*)(s->heap_addr + (entry[i].data ^ OFI_IMM_RTR));
-            lc_serve_imm(p);
-          } else {
-            lc_serve_rdma(entry[i].data);
-          }
+          lc_serve_rdma(entry[i].data);
         } else if (entry[i].flags & FI_SEND) {
           lc_serve_send(entry[i].op_context);
         } else if (entry[i].flags & FI_WRITE) {
-          lc_packet* p = (lc_packet*)entry[i].op_context;
-          lc_serve_send(p);
+          lc_serve_send(entry[i].op_context);
         }
       }
       rett = 1;
@@ -337,22 +328,6 @@ static inline void lc_server_put(lc_server* s, LCID_addr_t dest, void* buf,
   do {
     ret = fi_writedata(s->ep, buf, size, fi_mr_desc((struct fid_mr*)mr), meta,
                        *(fi_addr_t*) dest, base + offset, rkey, ctx);
-  } while (ret == -FI_EAGAIN);
-  if (ret) FI_SAFECALL(ret);
-}
-
-static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf,
-                                     uintptr_t addr, uint64_t rkey,
-                                     size_t size, uint32_t sid, lc_packet* ctx)
-{
-  // workaround without modifying server.h
-  if (!(s->fi->domain_attr->mr_mode & FI_MR_VIRT_ADDR || s->fi->domain_attr->mr_mode & FI_MR_BASIC)) {
-    addr = 0;
-  }
-  int ret;
-  do {
-    ret = fi_writedata(s->ep, (void*)ctx->data.rts.src_addr, size, s->mr_desc /*might not always be true*/,
-                       (uint64_t)sid | OFI_IMM_RTR, *(fi_addr_t*) rep, addr, rkey, ctx);
   } while (ret == -FI_EAGAIN);
   if (ret) FI_SAFECALL(ret);
 }

@@ -13,16 +13,11 @@ int total = TOTAL;
 
 int main(int argc, char** args) {
   LCI_open();
-  LCI_endpoint_t ep;
-  LCI_plist_t prop;
-  LCI_plist_create(&prop);
-  LCI_MT_t mt;
-  LCI_MT_init(&mt, 0);
-  LCI_plist_set_MT(prop,&mt);
-  LCI_endpoint_create(0, prop, &ep);
+  LCI_endpoint_t ep = LCI_UR_ENDPOINT;
 
-  int rank = LCI_RANK;
-  int tag = 99;
+  int src_rank = LCI_RANK;
+  int dst_rank = LCI_RANK;
+  LCI_tag_t tag = 99;
 
   LCI_syncl_t sync;
   LCI_sync_create(&sync);
@@ -41,15 +36,13 @@ int main(int argc, char** args) {
     if (size > LARGE) { total = TOTAL_LARGE; }
 
     for (int i = 0; i < total; i++) {
-      LCI_sends(ep, *(LCI_short_t*)src_buf, rank, tag);
+      LCI_sends(ep, *(LCI_short_t*)src_buf, src_rank, tag);
       LCI_one2one_set_empty(&sync);
-      LCI_recvs(ep, dst_buf, tag, &sync);
+      LCI_recvs(ep, dst_rank, tag, &sync, NULL);
       while (LCI_one2one_test_empty(&sync))
         LCI_progress(0, 1);
-      if (i == 0) {
-        for (int j = 0; j < size; j++)
-          assert(((char*) src_buf)[j] == 'a' && ((char*)dst_buf)[j] == 'a');
-      }
+      for (int j = 0; j < size; j++)
+        assert(((char*) src_buf)[j] == 'a' && ((char*)dst_buf)[j] == 'a');
     }
   }
   LCI_close();
