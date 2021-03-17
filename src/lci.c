@@ -6,7 +6,6 @@
 lc_server** LCI_DEVICES;
 LCI_plist_t* LCI_PLISTS;
 LCI_endpoint_t* LCI_ENDPOINTS;
-LCI_endpoint_t LCI_UR_ENDPOINT;
 int lcg_deadlock = 0;
 volatile uint32_t lc_next_rdma_key = 1;
 
@@ -25,6 +24,7 @@ LCI_API int LCI_DEFAULT_QUEUE_LENGTH = CQ_MAX_SIZE;
 LCI_API int LCI_MAX_QUEUE_LENGTH = CQ_MAX_SIZE;
 LCI_API int LCI_LOG_LEVEL = LCI_LOG_WARN;
 LCI_API int LCI_PACKET_RETURN_THRESHOLD;
+LCI_API LCI_endpoint_t LCI_UR_ENDPOINT;
 
 static inline int getenv_or(char* env, int def) {
   char* val = getenv(env);
@@ -131,6 +131,7 @@ LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, int device,
   static int num_endpoints = 0;
   LCI_endpoint_t ep = LCIU_malloc(sizeof(struct LCI_endpoint_s));
   LCI_Assert(num_endpoints < LCI_MAX_ENDPOINTS, "Too many endpoints!\n");
+  ep->gid = num_endpoints++;
   LCI_ENDPOINTS[ep->gid] = ep;
   *ep_ptr = ep;
 
@@ -139,7 +140,6 @@ LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, int device,
   ep->pkpool = dev->pkpool;
   ep->rep = dev->rep;
   ep->mt = dev->mt;
-  ep->gid = num_endpoints++;
   LCII_register_init(&(ep->ctx_reg), 16);
 
   ep->match_type = plist->match_type;

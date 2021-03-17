@@ -13,7 +13,11 @@ int total = TOTAL;
 
 int main(int argc, char** args) {
   LCI_open();
-  LCI_endpoint_t ep = LCI_UR_ENDPOINT;
+  LCI_plist_t plist;
+  LCI_plist_create(&plist);
+  LCI_plist_set_comp_type(plist, LCI_PORT_MESSAGE, LCI_COMPLETION_ONE2ONEL);
+  LCI_endpoint_t ep;
+  LCI_endpoint_init(&ep, 0, plist);
 
   int src_rank = LCI_RANK;
   int dst_rank = LCI_RANK;
@@ -23,27 +27,17 @@ int main(int argc, char** args) {
   LCI_sync_create(&sync);
 
   double t1 = 0;
-  size_t alignment = sysconf(_SC_PAGESIZE);
-  void* src_buf = 0;
-  void* dst_buf = 0;
-  posix_memalign(&src_buf, alignment, MAX_MSG);
-  posix_memalign(&dst_buf, alignment, MAX_MSG);
+  LCI_short_t src = 158;
+  LCI_short_t dst;
 
-  for (int size = sizeof(LCI_short_t); size <= sizeof(LCI_short_t); size <<= 1) {
-    memset(src_buf, 'a', size);
-    memset(dst_buf, 'b', size);
-
-    if (size > LARGE) { total = TOTAL_LARGE; }
-
-    for (int i = 0; i < total; i++) {
-      LCI_sends(ep, *(LCI_short_t*)src_buf, src_rank, tag);
-      LCI_one2one_set_empty(&sync);
-      LCI_recvs(ep, dst_rank, tag, &sync, NULL);
-      while (LCI_one2one_test_empty(&sync))
-        LCI_progress(0, 1);
-      for (int j = 0; j < size; j++)
-        assert(((char*) src_buf)[j] == 'a' && ((char*)dst_buf)[j] == 'a');
-    }
+  for (int i = 0; i < total; i++) {
+    LCI_sends(ep, src, src_rank, tag);
+    LCI_one2one_set_empty(&sync);
+    LCI_recvs(ep, dst_rank, tag, &sync, NULL);
+    while (LCI_one2one_test_empty(&sync))
+      LCI_progress(0, 1);
+    dst = sync.request.data.immediate;
+    assert(dst == 158);
   }
   LCI_close();
 }

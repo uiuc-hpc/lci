@@ -61,10 +61,12 @@ static inline void lc_ce_dispatch(LCI_comptype_t comp_type, LCII_context_t *ctx)
 {
   switch (comp_type) {
 #ifdef LCI_SERVER_HAS_SYNC
-    case LCI_COMPLETION_ONE2ONEL:
-      LCI_one2one_set_full(ctx->completion);
-      LCIU_free(ctx);
+    case LCI_COMPLETION_ONE2ONEL: {
+      LCI_syncl_t* sync = ctx->completion;
+      sync->request = LCII_ctx2req(ctx);
+      LCI_one2one_set_full(sync);
       break;
+    }
 #endif
 #ifdef LCI_SERVER_HAS_CQ
     case LCI_COMPLETION_QUEUE:
