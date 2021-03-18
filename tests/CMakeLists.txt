@@ -1,10 +1,6 @@
 find_package(OpenMP REQUIRED)
 
 function(add_lci_test name)
-    if( NOT LCI_BUILD_TESTS )
-        set(EXCLUDE_FROM_ALL ON)
-    endif()
-
     cmake_parse_arguments(ARG "" "" "COMMAND;LABELS;SOURCES" ${ARGN})
 
     add_lci_executable(${name} ${ARG_SOURCES})
@@ -25,10 +21,13 @@ function(add_lci_tests)
 endfunction()
 
 option(LCI_BUILD_TESTS "Build tests by default" ON)
+if( NOT LCI_BUILD_TESTS )
+    set(EXCLUDE_FROM_ALL ON)
+endif()
 set(SRUN_EXE mpirun CACHE STRING "exective to be used in ctest")
 set(SRUN_ARG "-n 2" CACHE STRING "arguments to be used in ctest")
 
 include_directories(./)
-add_subdirectory(gtests)
+#add_subdirectory(gtests)
 add_subdirectory(loopback)
 add_subdirectory(pingpong)

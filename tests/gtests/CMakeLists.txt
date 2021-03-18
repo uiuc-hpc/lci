@@ -32,5 +32,7 @@ endif()
 
 # Now simply link against gtest or gtest_main as needed. Eg
 add_executable(gtest-all all.cxx)
-target_link_libraries(gtest-all gtest_main lci_shared)
+target_include_directories(gtest-all PRIVATE ${CMAKE_SOURCE_DIR}/src/include)
+target_include_directories(gtest-all PRIVATE ${CMAKE_BINARY_DIR}/src/include)
+target_link_libraries(gtest-all gtest_main lci_shared lci-obj)
 add_test(NAME gtest-all COMMAND gtest-all)

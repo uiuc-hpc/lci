@@ -17,8 +17,8 @@ int main(int argc, char** args) {
   LCI_endpoint_t ep;
   LCI_endpoint_init(&ep, 0, plist);
 
-  int src_rank = LCI_RANK;
-  int dst_rank = LCI_RANK;
+  int rank = LCI_RANK;
+  int peer_rank = LCI_RANK;
   LCI_tag_t tag = 99;
 
   LCI_syncl_t sync_send, sync_recv;
@@ -33,7 +33,7 @@ int main(int argc, char** args) {
   LCI_memory_register(0, dst_buf.address, MAX_MSG, &dst_buf.segment);
 
   for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
-    printf("running %d\n", size);
+    printf("Testing message size %d...\n", size);
     src_buf.length = size;
     dst_buf.length = size;
 
@@ -45,9 +45,9 @@ int main(int argc, char** args) {
       LCI_one2one_set_empty(&sync_send);
       LCI_one2one_set_empty(&sync_recv);
 
-      while (LCI_sendl(ep, src_buf, dst_rank, tag, &sync_send, NULL) != LCI_OK)
+      while (LCI_sendl(ep, src_buf, peer_rank, tag, &sync_send, NULL) != LCI_OK)
         LCI_progress(0, 1);
-      while (LCI_recvl(ep, dst_buf, src_rank, tag, &sync_recv, NULL) != LCI_OK)
+      while (LCI_recvl(ep, dst_buf, peer_rank, tag, &sync_recv, NULL) != LCI_OK)
         LCI_progress(0, 1);
 
       while (LCI_one2one_test_empty(&sync_send))
@@ -61,4 +61,5 @@ int main(int argc, char** args) {
   LCI_memory_deregister(0, &src_buf.segment);
   LCI_memory_deregister(0, &dst_buf.segment);
   LCI_close();
+  return 0;
 }

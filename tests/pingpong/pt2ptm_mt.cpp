@@ -22,22 +22,21 @@ void * recv_thread(void*);
 static int thread_stop = 0;
 LCI_endpoint_t ep;
 
-int rank, nprocs, num_threads = NUM_THREADS;
+int rank, nprocs, peer_rank, num_threads = NUM_THREADS;
 int min_size = MIN_MSG;
 int max_size = MAX_MSG;
 
 int main(int argc, char *argv[])
 {
   LCI_open();
-  LCI_plist_t prop;
-  LCI_plist_create(&prop);
-  LCI_MT_t mt;
-  LCI_MT_init(&mt, 0);
-  LCI_plist_set_MT(prop, &mt);
-  LCI_endpoint_init(&ep, 0, prop);
+  LCI_plist_t plist;
+  LCI_plist_create(&plist);
+  LCI_plist_set_comp_type(plist, LCI_PORT_MESSAGE, LCI_COMPLETION_ONE2ONEL);
+  LCI_endpoint_init(&ep, 0, plist);
 
   rank = LCI_RANK;
   nprocs = LCI_NUM_PROCESSES;
+  peer_rank = ((1 - LCI_RANK % 2) + LCI_RANK / 2 * 2) % LCI_NUM_PROCESSES;
 
   auto prg_thread = std::thread([] {
       int spin = 64;
@@ -48,7 +47,7 @@ int main(int argc, char *argv[])
       }
     });
 
-  if(rank == 0) {
+  if(rank % 2 == 0) {
       thread_run(send_thread, num_threads);
       LCI_barrier();
   } else {
@@ -64,84 +63,83 @@ int main(int argc, char *argv[])
 
 void* recv_thread(void* arg)
 {
-  unsigned long align_size = sysconf(_SC_PAGESIZE);
-  char * ret = NULL;
-  char *buf;
-  int val = thread_id();
+  int tag = thread_id();
 
-  if (posix_memalign((void**)&buf, align_size, max_size)) {
-    fprintf(stderr, "Error allocating host memory\n");
-    *ret = '1';
-    return ret;
-  }
+  LCI_syncl_t sync;
+  LCI_sync_create(&sync);
+
+  size_t alignment = sysconf(_SC_PAGESIZE);
+  LCI_mbuffer_t src_buf, dst_buf;
+  posix_memalign(&src_buf.address, alignment, MAX_MSG);
+  posix_memalign(&dst_buf.address, alignment, MAX_MSG);
 
   for (int size = min_size; size <= max_size; size = (size ? size * 2 : 1)) {
+    src_buf.length = size;
+    dst_buf.length = size;
+
     thread_barrier();
     if (thread_id() == 0)
       LCI_barrier();
     thread_barrier();
 
-    LCI_syncl_t sync;
-    thread_barrier();
-
     for (int i = 0; i < TOTAL; ++i) {
+      write_buffer((char*)src_buf.address, size, 's');
+      write_buffer((char*)dst_buf.address, size, 'r');
+
       LCI_one2one_set_empty(&sync);
-      LCI_recvm(ep, buf, 1 - rank, val, &sync, NULL);
+      LCI_recvm(ep, dst_buf, peer_rank, tag, &sync, nullptr);
       while (LCI_one2one_test_empty(&sync)) continue;
-      check_buffer(buf, size, 's');
-      write_buffer(buf, size, 'r');
-      while (LCI_sendm(ep, buf, 1 - rank, val) != LCI_OK) continue;
+      check_buffer((char*)dst_buf.address, size, 's');
+
+      while (LCI_sendm(ep, src_buf, peer_rank, tag) != LCI_OK) continue;
     }
 
     thread_barrier();
   }
 
-  free(buf);
-  return 0;
+  free(src_buf.address);
+  free(dst_buf.address);
+  return nullptr;
 }
 
 
 void* send_thread(void* arg)
 {
-  unsigned long align_size = sysconf(_SC_PAGESIZE);
-  char *buf;
-  char *ret = NULL;
+  int tag = thread_id();
 
-  int val = thread_id();
+  LCI_syncl_t sync;
+  LCI_sync_create(&sync);
 
-  if (posix_memalign((void**)&buf, align_size, max_size)) {
-    fprintf(stderr, "Error allocating host memory\n");
-    *ret = '1';
-    return ret;
-  }
-
-  char extra[256];
-  if (val == 0) {
-    sprintf(extra, "(%d, %d)", num_threads, num_threads);
-  }
+  size_t alignment = sysconf(_SC_PAGESIZE);
+  LCI_mbuffer_t src_buf, dst_buf;
+  posix_memalign(&src_buf.address, alignment, MAX_MSG);
+  posix_memalign(&dst_buf.address, alignment, MAX_MSG);
 
   for (int size = min_size; size <= max_size; size = (size ? size * 2 : 1)) {
+    src_buf.length = size;
+    dst_buf.length = size;
+
     thread_barrier();
     if (thread_id() == 0)
       LCI_barrier();
     thread_barrier();
 
-    LCI_syncl_t sync;
-    thread_barrier();
-
     for (int i = 0; i < TOTAL; ++i) {
-      write_buffer(buf, size, 's');
-      while (LCI_sendm(ep, buf, 1 - rank, val) != LCI_OK) continue;
+      write_buffer((char*)src_buf.address, size, 's');
+      write_buffer((char*)dst_buf.address, size, 'r');
+
+      while (LCI_sendm(ep, src_buf, peer_rank, tag) != LCI_OK) continue;
 
       LCI_one2one_set_empty(&sync);
-      LCI_recvm(ep, buf, 1 - rank, val, &sync, NULL);
+      LCI_recvm(ep, dst_buf, peer_rank, tag, &sync, nullptr);
       while (LCI_one2one_test_empty(&sync)) continue;
-      check_buffer(buf, size, 'r');
+      check_buffer((char*)dst_buf.address, size, 's');
     }
 
     thread_barrier();
   }
 
-  free(buf);
-  return 0;
+  free(src_buf.address);
+  free(dst_buf.address);
+  return nullptr;
 }

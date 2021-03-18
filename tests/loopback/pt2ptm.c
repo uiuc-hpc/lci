@@ -17,8 +17,8 @@ int main(int argc, char** args) {
   LCI_endpoint_t ep;
   LCI_endpoint_init(&ep, 0, plist);
 
-  int src_rank = LCI_RANK;
-  int dst_rank = LCI_RANK;
+  int rank = LCI_RANK;
+  int peer_rank = LCI_RANK;
   LCI_tag_t tag = 99;
 
   LCI_syncl_t sync;
@@ -36,15 +36,16 @@ int main(int argc, char** args) {
     for (int i = 0; i < TOTAL; i++) {
       write_buffer(src_buf.address, size, 's');
       write_buffer(dst_buf.address, size, 'r');
-      while (LCI_sendm(ep, src_buf, dst_rank, tag) != LCI_OK)
+      while (LCI_sendm(ep, src_buf, peer_rank, tag) != LCI_OK)
         LCI_progress(0, 1);
 
       LCI_one2one_set_empty(&sync);
-      LCI_recvm(ep, dst_buf, src_rank, tag, &sync, NULL);
+      LCI_recvm(ep, dst_buf, peer_rank, tag, &sync, NULL);
       while (LCI_one2one_test_empty(&sync))
         LCI_progress(0, 1);
       check_buffer(dst_buf.address, size, 's');
     }
   }
   LCI_close();
+  return 0;
 }

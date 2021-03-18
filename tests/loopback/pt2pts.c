@@ -16,25 +16,24 @@ int main(int argc, char** args) {
   LCI_endpoint_t ep;
   LCI_endpoint_init(&ep, 0, plist);
 
-  int src_rank = LCI_RANK;
-  int dst_rank = LCI_RANK;
+  int rank = LCI_RANK;
+  int peer_rank = LCI_RANK;
   LCI_tag_t tag = 99;
 
   LCI_syncl_t sync;
   LCI_sync_create(&sync);
 
   LCI_short_t src = 158;
-  LCI_short_t dst;
   LCI_barrier();
 
   for (int i = 0; i < total; i++) {
-    LCI_sends(ep, src, dst_rank, tag);
+    LCI_sends(ep, src, peer_rank, tag);
     LCI_one2one_set_empty(&sync);
-    LCI_recvs(ep, src_rank, tag, &sync, NULL);
+    LCI_recvs(ep, rank, tag, &sync, NULL);
     while (LCI_one2one_test_empty(&sync))
       LCI_progress(0, 1);
-    dst = sync.request.data.immediate;
-    assert(dst == 158);
+    assert(sync.request.data.immediate == 158);
   }
   LCI_close();
+  return 0;
 }

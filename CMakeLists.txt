@@ -145,8 +145,8 @@ target_link_libraries(lci_static PUBLIC lci-obj)
 set_target_properties(lci_shared lci_static PROPERTIES OUTPUT_NAME lci)
 
 add_subdirectory(src)
-add_subdirectory(examples)
-add_subdirectory(benchmarks)
+#add_subdirectory(examples)
+#add_subdirectory(benchmarks)
 add_subdirectory(tests)
 add_subdirectory(doc)
 

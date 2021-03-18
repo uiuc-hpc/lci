@@ -55,4 +55,5 @@ int main(int argc, char** args) {
   }
 
   LCI_close();
+  return 0;
 }

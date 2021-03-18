@@ -5,6 +5,10 @@ function(add_lci_examples)
   endforeach()
 endfunction()
 
+option(LCI_BUILD_EXAMPLES "Build examples by default" ON)
+if( NOT LCI_BUILD_EXAMPLES )
+  set(EXCLUDE_FROM_ALL ON)
+endif()
 add_lci_examples(
         init.c
         pt2pti.c

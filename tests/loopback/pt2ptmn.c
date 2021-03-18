@@ -13,8 +13,8 @@ int main(int argc, char** args) {
   LCI_open();
   LCI_endpoint_t ep = LCI_UR_ENDPOINT; // we can directly use the default ep
 
-  int src_rank = LCI_RANK;
-  int dst_rank = LCI_RANK;
+  int rank = LCI_RANK;
+  int peer_rank = LCI_RANK;
   LCI_tag_t tag = 99;
 
   LCI_comp_t cq;
@@ -29,10 +29,9 @@ int main(int argc, char** args) {
       LCI_mbuffer_alloc(0, &mbuffer);
       write_buffer(mbuffer.address, size, 's');
       mbuffer.length = size;
-      while (LCI_sendm(ep, mbuffer, dst_rank, tag) != LCI_OK)
-        LCI_progress(0, 1);
+      LCI_sendmn(ep, mbuffer, peer_rank, tag);
 
-      LCI_recvmn(ep, src_rank, tag, cq, NULL);
+      LCI_recvmn(ep, peer_rank, tag, cq, NULL);
       while (LCI_queue_pop(cq, &request) == LCI_ERR_RETRY)
         LCI_progress(0, 1);
       assert(request.data.mbuffer.length == size);
@@ -42,4 +41,5 @@ int main(int argc, char** args) {
   }
 
   LCI_close();
+  return 0;
 }
