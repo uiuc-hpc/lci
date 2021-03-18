@@ -1,13 +1,10 @@
-#include "lci.h"
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
 
+#include "lci.h"
 #include "comm_exp.h"
-
-#undef MAX_MSG
-#define MAX_MSG 8
 
 int total = TOTAL;
 
@@ -26,14 +23,14 @@ int main(int argc, char** args) {
   LCI_syncl_t sync;
   LCI_sync_create(&sync);
 
-  double t1 = 0;
   LCI_short_t src = 158;
   LCI_short_t dst;
+  LCI_barrier();
 
   for (int i = 0; i < total; i++) {
-    LCI_sends(ep, src, src_rank, tag);
+    LCI_sends(ep, src, dst_rank, tag);
     LCI_one2one_set_empty(&sync);
-    LCI_recvs(ep, dst_rank, tag, &sync, NULL);
+    LCI_recvs(ep, src_rank, tag, &sync, NULL);
     while (LCI_one2one_test_empty(&sync))
       LCI_progress(0, 1);
     dst = sync.request.data.immediate;

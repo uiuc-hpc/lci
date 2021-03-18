@@ -52,14 +52,14 @@ LCI_error_t LCI_sendmn(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
 LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
                       LCI_tag_t tag, LCI_comp_t completion, void* user_context)
 {
-  lc_packet* p = lc_pool_get_nb(ep->pkpool);
-  if (p == NULL)
+  lc_packet* packet = lc_pool_get_nb(ep->pkpool);
+  if (packet == NULL)
     // no packet is available
     return LCI_ERR_RETRY;
-  p->context.poolid = -1;
+  packet->context.poolid = -1;
 
   LCII_context_t *rts_ctx = LCIU_malloc(sizeof(struct LCII_context_t));
-  rts_ctx->data.mbuffer.address = (void*) &(p->data);
+  rts_ctx->data.mbuffer.address = (void*) &(packet->data);
   rts_ctx->msg_type = LCI_MSG_RTS;
 
   LCII_context_t *long_ctx = LCIU_malloc(sizeof(struct LCII_context_t));
@@ -72,11 +72,11 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
   long_ctx->user_context = user_context;
   long_ctx->completion = completion;
 
-  p->data.rts.ctx = (uintptr_t) long_ctx;
-  p->data.rts.size = buffer.length;
+  packet->data.rts.ctx = (uintptr_t) long_ctx;
+  packet->data.rts.size = buffer.length;
 
   struct lc_rep* rep = &(ep->rep[rank]);
-  lc_server_send(ep->server, rep->handle, p->data.address,
+  lc_server_send(ep->server, rep->handle, packet->data.address,
                   sizeof(struct packet_rts), ep->server->heap_mr,
                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTS, tag), rts_ctx);
   return LCI_OK;
@@ -119,7 +119,7 @@ LCI_error_t LCI_recvm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   ctx->completion = completion;
 
   lc_key key = LCII_MAKE_KEY(rank, ep->gid, tag, LCI_MSG_MEDIUM);
-  lc_value value = (lc_value)completion;
+  lc_value value = (lc_value)ctx;
   if (!lc_hash_insert(ep->mt, key, &value, CLIENT)) {
     lc_packet* packet = (lc_packet*) value;
     ctx->data.mbuffer.length = packet->context.length;
@@ -145,7 +145,7 @@ LCI_error_t LCI_recvmn(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
   ctx->completion = completion;
 
   lc_key key = LCII_MAKE_KEY(rank, ep->gid, tag, LCI_MSG_MEDIUM);
-  lc_value value = (lc_value)completion;
+  lc_value value = (lc_value)ctx;
   if (!lc_hash_insert(ep->mt, key, &value, CLIENT)) {
     lc_packet* packet = (lc_packet*) value;
     ctx->data.mbuffer.length = packet->context.length;

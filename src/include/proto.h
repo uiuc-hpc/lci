@@ -19,7 +19,7 @@ typedef uint32_t LCII_proto_t;
 
 #define LCII_MAKE_PROTO(rgid, msg_type, tag) (msg_type | (rgid << 3) | (tag << 16))
 
-#define PROTO_GET_TYPE(proto) (proto & 0b011)
+#define PROTO_GET_TYPE(proto) (proto & 0b0111)
 #define PROTO_GET_RGID(proto) ((proto >> 3) & 0b01111111111111)
 #define PROTO_GET_TAG(proto) ((proto >> 16) & 0xffff)
 
@@ -36,7 +36,9 @@ static inline void lc_handle_rts(LCI_endpoint_t ep, lc_packet* p, LCII_context_t
 
   p->context.poolid = -1;
   p->data.rtr.ctx_id = long_ctx->id;
-  p->data.rtr.tgt_addr = (uintptr_t) long_ctx->data.lbuffer.address;
+  p->data.rtr.tgt_base = (uintptr_t) long_ctx->data.lbuffer.segment->address;
+  p->data.rtr.tgt_offset =
+      (uintptr_t) long_ctx->data.lbuffer.address - p->data.rtr.tgt_base;
   p->data.rtr.rkey = lc_server_rma_key(long_ctx->data.lbuffer.segment->mr_p);
 
   struct lc_rep* rep = &(ep->rep[long_ctx->rank]);
@@ -51,14 +53,19 @@ static inline void lc_handle_rtr(LCI_endpoint_t ep, lc_packet* packet)
 
   lc_server_put(ep->server, ep->rep[ctx->rank].handle,
                 ctx->data.lbuffer.address, ctx->data.lbuffer.length,
-                ctx->data.lbuffer.segment->mr_p, 0,
-                packet->data.rtr.tgt_addr, packet->data.rtr.rkey,
+                ctx->data.lbuffer.segment->mr_p,
+                packet->data.rtr.tgt_base, packet->data.rtr.tgt_offset,
+                packet->data.rtr.rkey,
                 LCII_MAKE_PROTO(ep->gid, LCI_MSG_LONG, packet->data.rtr.ctx_id),
                 ctx);
+  LCII_free_packet(packet);
 }
 
 static inline void lc_ce_dispatch(LCI_comptype_t comp_type, LCII_context_t *ctx)
 {
+  if (ctx->completion == NULL) {
+    LCIU_free(ctx);
+  }
   switch (comp_type) {
 #ifdef LCI_SERVER_HAS_SYNC
     case LCI_COMPLETION_ONE2ONEL: {
@@ -151,10 +158,9 @@ static inline void lc_serve_rdma(LCII_proto_t proto)
   LCI_msg_type_t msg_type = PROTO_GET_TYPE(proto);
 
   switch (msg_type) {
-    case LCI_MSG_LONG:
-    {
+    case LCI_MSG_LONG: {
       LCII_context_t *ctx =
-          (LCII_context_t*)LCII_register_get(ep->ctx_reg, tag);
+          (LCII_context_t*)LCII_register_remove(ep->ctx_reg, tag);
       LCI_DBG_Assert(ctx->msg_type == LCI_MSG_LONG,
                      "Didn't get the right context! This might imply some bugs in the lcii_register.");
       // recvl has been completed locally. Need to process completion.

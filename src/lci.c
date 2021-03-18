@@ -76,7 +76,7 @@ void lc_dev_init(int id, lc_server** dev, LCI_plist_t *plist)
   lc_server* s = *dev;
   LCI_plist_create(plist);
 
-  LCI_MT_init(&s->mt, 0);
+  LCII_mt_init(&s->mt, 0);
   uintptr_t base_addr = s->heap_addr;
   base_packet = base_addr + 8192 - sizeof(struct packet_context);
 
@@ -91,7 +91,7 @@ void lc_dev_init(int id, lc_server** dev, LCI_plist_t *plist)
 
 void lc_dev_finalize(lc_server* dev)
 {
-  LCI_MT_free(&dev->mt);
+  LCII_mt_free(&dev->mt);
   lc_pool_destroy(dev->pkpool);
   lc_server_finalize(dev);
 }

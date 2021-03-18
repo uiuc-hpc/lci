@@ -253,7 +253,7 @@ static inline int lc_server_progress(lc_server* s)
           lc_serve_send(entry[i].op_context);
         }
       }
-      rett = 1;
+      rett += ret;
 #ifdef LCI_DEBUG
     } else if (ret == -FI_EAGAIN) {
     } else {
@@ -312,9 +312,15 @@ static inline void lc_server_puts(lc_server* s, LCID_addr_t dest, void* buf,
                                   size_t size, uintptr_t base, uint32_t offset,
                                   LCID_rkey_t rkey, uint32_t meta)
 {
+  uintptr_t addr;
+  if (s->fi->domain_attr->mr_mode & FI_MR_VIRT_ADDR || s->fi->domain_attr->mr_mode & FI_MR_BASIC) {
+    addr = base + offset;
+  } else {
+    addr = offset;
+  }
   int ret;
   do {
-    ret = fi_inject_writedata(s->ep, buf, size, meta, *(fi_addr_t*)dest, base + offset, rkey);
+    ret = fi_inject_writedata(s->ep, buf, size, meta, *(fi_addr_t*)dest, addr, rkey);
   } while (ret == -FI_EAGAIN);
   if (ret) FI_SAFECALL(ret);
 }
@@ -324,10 +330,16 @@ static inline void lc_server_put(lc_server* s, LCID_addr_t dest, void* buf,
                                   uint32_t offset, LCID_rkey_t rkey,
                                   LCID_meta_t meta, void* ctx)
 {
+  uintptr_t addr;
+  if (s->fi->domain_attr->mr_mode & FI_MR_VIRT_ADDR || s->fi->domain_attr->mr_mode & FI_MR_BASIC) {
+    addr = base + offset;
+  } else {
+    addr = offset;
+  }
   int ret;
   do {
     ret = fi_writedata(s->ep, buf, size, fi_mr_desc((struct fid_mr*)mr), meta,
-                       *(fi_addr_t*) dest, base + offset, rkey, ctx);
+                       *(fi_addr_t*) dest, addr, rkey, ctx);
   } while (ret == -FI_EAGAIN);
   if (ret) FI_SAFECALL(ret);
 }

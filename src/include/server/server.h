@@ -18,8 +18,8 @@ typedef uint32_t LCID_meta_t; // immediate data
 #define SERVER_COMMON \
   int id; \
   lc_pool* pkpool; \
-  struct lc_rep* rep; \
-  LCI_MT_t mt; \
+  struct lc_rep* rep;  \
+  LCI_mt_t mt; \
   size_t recv_posted; \
   uintptr_t heap_addr; \
   LCID_mr_t heap_mr;

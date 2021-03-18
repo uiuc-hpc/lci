@@ -211,12 +211,6 @@ struct LCI_plist_s;
 typedef struct LCI_plist_s* LCI_plist_t;
 
 /**
- * Hash table type, owned by the runtime.
- */
-struct LCI_MT_s;
-typedef struct LCI_MT_s* LCI_MT_t;
-
-/**
  * Handler type
  */
 typedef LCI_error_t (LCI_handler_t)(LCI_request_t request);
@@ -556,11 +550,18 @@ LCI_error_t LCI_recvm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                       LCI_tag_t tag, LCI_comp_t completion, void* user_context);
 
 /**
+ * Receive a medium message with LCI-provided buffer.
+ */
+LCI_API
+LCI_error_t LCI_recvmn(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
+                       LCI_comp_t completion, void* user_context);
+
+/**
  * Receive a direct message.
  */
 LCI_API
-LCI_error_t LCI_recvd(LCI_lbuffer_t src, size_t size, int rank, LCI_tag_t tag,
-                      LCI_endpoint_t ep, void* sync);
+LCI_error_t LCI_recvl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
+                      LCI_tag_t tag, LCI_comp_t completion, void* user_context);
 
 /* One-sided functions. */
 
@@ -649,22 +650,6 @@ LCI_error_t LCI_queue_pop_multiple(LCI_comp_t cq, uint32_t request_count,
 LCI_API
 LCI_error_t LCI_queue_wait_multiple(LCI_comp_t cq, uint32_t request_count,
                                    LCI_request_t* requests);
-
-/**
- * Create a matching hash-table.
- * @todo Current hashtable implementation hardcodes the @p length to be (1 << TBL_BIT_SIZE)
- *       One possible fix would be hash = hash % lc_hash_size.
- *       Do we want to change the implementation or the manual?
- *       need to check with others
- */
-LCI_API
-LCI_error_t LCI_MT_init(LCI_MT_t* mt, uint32_t length);
-
-/**
- * Destroy the matching hash-table.
- */
-LCI_API
-LCI_error_t LCI_MT_free(LCI_MT_t* mt);
 
 /**
  * Create a Sync object.

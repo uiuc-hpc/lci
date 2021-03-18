@@ -19,12 +19,12 @@ typedef struct lc_cq lc_cq;
 
 static inline void lc_cq_create(struct lc_cq** cq_ptr)
 {
-  cq_ptr = LCIU_malloc(sizeof(struct lc_cq));
-  struct lc_cq* cq = *cq_ptr;
+  struct lc_cq* cq = LCIU_malloc(sizeof(struct lc_cq));
   memset(cq->container, 0, sizeof(void*) * CQ_MAX_SIZE);
   cq->top = 0;
   cq->bot = 0;
   cq->spinlock = LCIU_SPIN_UNLOCKED;
+  *cq_ptr = cq;
 }
 
 static inline void lc_cq_free(struct lc_cq* cq) { free(cq); }

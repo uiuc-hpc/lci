@@ -38,7 +38,8 @@ struct __attribute__((packed)) packet_rts {
 struct __attribute__((packed)) packet_rtr {
   uintptr_t ctx;
   size_t size;
-  intptr_t tgt_addr;
+  intptr_t tgt_base;
+  uint32_t tgt_offset;
   uint64_t rkey;
   uint32_t ctx_id;
 };

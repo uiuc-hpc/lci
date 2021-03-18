@@ -43,13 +43,6 @@ static inline void* lc_pool_get(lc_pool* pool);
 
 static inline void* lc_pool_get_nb(lc_pool* pool);
 
-#define POOL_EMPTY (NULL)
-
-#define LC_POOL_GET_OR_RETN(p, x)         \
-  if (lcg_deadlock) return LCI_ERR_RETRY; \
-  lc_packet* x = lc_pool_get_nb((p));     \
-  if (x == NULL) return LCI_ERR_RETRY;
-
 #ifdef __cplusplus
 }
 #endif

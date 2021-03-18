@@ -1,11 +1,10 @@
 #ifndef LCI_PRIV_H_
 #define LCI_PRIV_H_
 
+#include "lci.h"
 #include "config.h"
 #include "cq.h"
 #include "lcii_register.h"
-
-#define LCI_SYNCL_PTR_TO_REQ_PTR(sync) (&((LCI_syncl_t*)sync)->request)
 
 struct lc_server;
 typedef struct lc_server lc_server;
@@ -21,6 +20,9 @@ typedef struct lc_hash lc_hash;
 
 struct lc_req;
 typedef struct lc_rep lc_rep;
+
+struct LCI_mt_s;
+typedef struct LCI_mt_s* LCI_mt_t;
 
 typedef enum lc_ep_addr {
   EP_AR_DYN = 1 << 1,
@@ -58,7 +60,7 @@ struct LCI_endpoint_s {
   // Associated software components.
   lc_pool* pkpool;
   lc_rep* rep;
-  LCI_MT_t mt;
+  LCI_mt_t mt;
   LCII_register_t ctx_reg; // used for long message protocol
 
   // user-defined components
@@ -93,6 +95,18 @@ extern lc_server** LCI_DEVICES;
 extern LCI_plist_t* LCI_PLISTS;
 extern LCI_endpoint_t* LCI_ENDPOINTS;
 extern int lcg_deadlock;
+
+/**
+ * Create a matching hash-table.
+ */
+LCI_API
+LCI_error_t LCII_mt_init(LCI_mt_t* mt, uint32_t length);
+
+/**
+ * Destroy the matching hash-table.
+ */
+LCI_API
+LCI_error_t LCII_mt_free(LCI_mt_t* mt);
 
 static inline LCI_request_t LCII_ctx2req(LCII_context_t *ctx) {
   LCI_request_t request = {
