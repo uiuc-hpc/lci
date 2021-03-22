@@ -26,7 +26,7 @@ LCI_error_t LCI_initialize(int* argc, char*** args)
   } else {
 	  DEBUG("Starting LCI_initialize: PMI2 is not initialized");
   }
-#ifdef NO_PMI
+#ifdef LCI_NO_PMI
   DEBUG("PMI is disabled.");
 #endif
 
@@ -39,7 +39,7 @@ LCI_error_t LCI_initialize(int* argc, char*** args)
 
   int num_proc, rank;
   // Initialize processes in this job.
-#ifndef NO_PMI
+#ifndef LCI_NO_PMI
   lc_pm_master_init(&num_proc, &rank, lcg_name);
 #else
   MPI_Initialized(&is_init);
@@ -74,7 +74,7 @@ LCI_error_t LCI_finalize()
     lc_dev_finalize(LCI_DEVICES[i]);
   }
   LCI_PM_barrier();
-#ifndef NO_PMI
+#ifndef LCI_NO_PMI
   lc_pm_finalize();
 #endif
   LCI_INIT_STATUS = LCI_FINALIZE_COMPLETED;
@@ -161,7 +161,7 @@ LCI_error_t LCI_bbuffer_free(LCI_bbuffer_t buffer, int device_id)
 }
 
 void LCI_PM_barrier() {
-#ifndef NO_PMI
+#ifndef LCI_NO_PMI
   lc_pm_barrier();
 #endif
 }

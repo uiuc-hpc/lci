@@ -13,8 +13,6 @@
 
 #include "mpi.h"
 
-#define NO_PMI
-
 typedef struct lc_server {
   SERVER_COMMON
   struct lc_dev* dev;
@@ -413,7 +411,7 @@ static inline void lc_server_init(int id, lc_server** dev)
     lctx.qp_num = s->qp[i]->qp_num;
     sprintf(ep_name, "%llu-%d-%d-%d", (unsigned long long)lctx.addr, lctx.rkey,
             lctx.qp_num, (int)lctx.lid);
-#ifndef NO_PMI
+#ifndef LCI_NO_PMI
     lc_pm_publish(LCI_RANK, (s->id) << 8 | i, ep_name);
 #endif
   }
@@ -422,7 +420,7 @@ static inline void lc_server_init(int id, lc_server** dev)
                  sizeof(struct lc_rep) * LCI_NUM_PROCESSES);
 
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
-#ifndef NO_PMI
+#ifndef LCI_NO_PMI
     lc_pm_getname(i, (s->id << 8) | LCI_RANK, ep_name);
 #endif // TODO: make sure that it is okay to skip this if using MPI
     sscanf(ep_name, "%llu-%d-%d-%d", (unsigned long long*)&rctx.addr,
@@ -460,7 +458,7 @@ static inline void lc_server_init(int id, lc_server** dev)
 #ifdef USE_DREG
   dreg_init();
 #endif
-#ifndef NO_PMI
+#ifndef LCI_NO_PMI
   lc_pm_barrier();
 #else
   MPI_Barrier(MPI_COMM_WORLD);
