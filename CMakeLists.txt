@@ -107,6 +107,7 @@ mark_as_advanced(
 
 
 
+find_package(MPI REQUIRED)
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
@@ -136,8 +137,8 @@ target_link_libraries(lci-obj PUBLIC
 
 add_library(lci_shared SHARED)
 add_library(lci_static STATIC)
-target_link_libraries(lci_shared PUBLIC lci-obj)
-target_link_libraries(lci_static PUBLIC lci-obj)
+target_link_libraries(lci_shared PUBLIC lci-obj ${MPI_C_LIBRARIES})
+target_link_libraries(lci_static PUBLIC lci-obj ${MPI_C_LIBRARIES})
 set_target_properties(lci_shared lci_static PROPERTIES OUTPUT_NAME lci)
 
 add_subdirectory(src)
