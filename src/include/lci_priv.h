@@ -10,7 +10,7 @@
 struct lc_server;
 typedef struct lc_server lc_server;
 
-lc_server** LCI_DEVICES;
+extern lc_server** LCI_DEVICES;
 
 struct lc_packet;
 typedef struct lc_packet lc_packet;
@@ -41,7 +41,7 @@ typedef enum lc_ep_ce {
   EP_CE_GLOB = ((1 << 4) << 4),
 } lc_ep_ce;
 
-LCI_endpoint_t* LCI_ENDPOINTS;
+extern LCI_endpoint_t* LCI_ENDPOINTS;
 
 struct LCI_PL_s {
   LCI_comm_t ctype;
