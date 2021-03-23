@@ -404,6 +404,12 @@ static inline void lc_server_init(int id, lc_server** dev)
   lctx.rkey = s->heap->rkey;
   lctx.lid = s->port_attr.lid;
 
+#ifdef LCI_NO_PMI
+    MPI_Request send_reqs[LCI_NUM_PROCESSES];
+    MPI_Status stats[LCI_NUM_PROCESSES];
+    int count = 256; 
+#endif
+
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
     s->qp[i] = qp_create(s);
     qp_init(s->qp[i], s->dev_port);
@@ -413,6 +419,8 @@ static inline void lc_server_init(int id, lc_server** dev)
             lctx.qp_num, (int)lctx.lid);
 #ifndef LCI_NO_PMI
     lc_pm_publish(LCI_RANK, (s->id) << 8 | i, ep_name);
+#else
+    MPI_Isend(ep_name, count, MPI_CHAR, i, 0, MPI_COMM_WORLD, &send_reqs[i]);
 #endif
   }
 
@@ -422,7 +430,9 @@ static inline void lc_server_init(int id, lc_server** dev)
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
 #ifndef LCI_NO_PMI
     lc_pm_getname(i, (s->id << 8) | LCI_RANK, ep_name);
-#endif // TODO: make sure that it is okay to skip this if using MPI
+#else
+    MPI_Recv(ep_name, count, MPI_CHAR, i, 0, MPI_COMM_WORLD, &stats[i]);
+#endif 
     sscanf(ep_name, "%llu-%d-%d-%d", (unsigned long long*)&rctx.addr,
            &rctx.rkey, &rctx.qp_num, (int*)&rctx.lid);
     qp_to_rtr(s->qp[i], s->dev_port, &s->port_attr, &rctx);
