@@ -11,7 +11,9 @@
 #include "dreg.h"
 #include "macro.h"
 
+#ifdef LCI_NO_PMI
 #include "mpi.h"
+#endif
 
 typedef struct lc_server {
   SERVER_COMMON
@@ -405,11 +407,36 @@ static inline void lc_server_init(int id, lc_server** dev)
   lctx.lid = s->port_attr.lid;
 
 #ifdef LCI_NO_PMI
-    MPI_Request send_reqs[LCI_NUM_PROCESSES];
-    MPI_Status stats[LCI_NUM_PROCESSES];
-    int count = 256; 
-#endif
+  struct conn_ctx *ctx = malloc(sizeof(struct conn_ctx[LCI_NUM_PROCESSES]));
+  MPI_Datatype conn_ctx_dtype; 
+  MPI_Type_contiguous(sizeof(struct conn_ctx), MPI_BYTE, &conn_ctx_dtype);
+  MPI_Type_commit(&conn_ctx_dtype);
 
+  for (size_t i = 0; i < LCI_NUM_PROCESSES; i++) {
+    s->qp[i] = qp_create(s);
+    qp_init(s->qp[i], s->dev_port);
+    // Use this endpoint "i" to connect to rank e.
+    lctx.qp_num = s->qp[i]->qp_num;
+    ctx[i] = lctx; 
+  }
+
+  MPI_Alltoall(MPI_IN_PLACE, 1, conn_ctx_dtype, ctx, 1, conn_ctx_dtype, MPI_COMM_WORLD);
+
+  posix_memalign((void**)&(s->rep), LC_CACHE_LINE, sizeof(struct lc_rep) * LCI_NUM_PROCESSES);
+  
+  for (size_t i = 0; i < LCI_NUM_PROCESSES; i++) {
+    rctx = ctx[i];
+    qp_to_rtr(s->qp[i], s->dev_port, &s->port_attr, &rctx);
+    qp_to_rts(s->qp[i]);
+
+    struct lc_rep* rep = &s->rep[i];
+    rep->rank = i; 
+    rep->rkey = rctx.rkey;
+    rep->handle = (void*)s->qp[i];
+    rep->base = rctx.addr;
+  }
+  free(ctx);
+#else
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
     s->qp[i] = qp_create(s);
     qp_init(s->qp[i], s->dev_port);
@@ -417,22 +444,14 @@ static inline void lc_server_init(int id, lc_server** dev)
     lctx.qp_num = s->qp[i]->qp_num;
     sprintf(ep_name, "%llu-%d-%d-%d", (unsigned long long)lctx.addr, lctx.rkey,
             lctx.qp_num, (int)lctx.lid);
-#ifndef LCI_NO_PMI
     lc_pm_publish(LCI_RANK, (s->id) << 8 | i, ep_name);
-#else
-    MPI_Isend(ep_name, count, MPI_CHAR, i, 0, MPI_COMM_WORLD, &send_reqs[i]);
-#endif
   }
 
   posix_memalign((void**)&(s->rep), LC_CACHE_LINE,
                  sizeof(struct lc_rep) * LCI_NUM_PROCESSES);
 
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
-#ifndef LCI_NO_PMI
     lc_pm_getname(i, (s->id << 8) | LCI_RANK, ep_name);
-#else
-    MPI_Recv(ep_name, count, MPI_CHAR, i, 0, MPI_COMM_WORLD, &stats[i]);
-#endif 
     sscanf(ep_name, "%llu-%d-%d-%d", (unsigned long long*)&rctx.addr,
            &rctx.rkey, &rctx.qp_num, (int*)&rctx.lid);
     qp_to_rtr(s->qp[i], s->dev_port, &s->port_attr, &rctx);
@@ -444,6 +463,7 @@ static inline void lc_server_init(int id, lc_server** dev)
     rep->handle = (void*)s->qp[i];
     rep->base = rctx.addr;
   }
+#endif
 
   int j = LCI_NUM_PROCESSES;
   int* b;

@@ -1,7 +1,9 @@
 #include "lci.h"
 #include "include/lci_priv.h"
 #include "include/cq.h"
+#ifdef LCI_NO_PMI
 #include "mpi.h"
+#endif
 
 //#define DEBUG(...) fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n")
 #define DEBUG(...)
