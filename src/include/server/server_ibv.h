@@ -400,43 +400,41 @@ static inline void lc_server_init(int id, lc_server** dev)
   posix_memalign((void**)&s->qp, LC_CACHE_LINE,
                  LCI_NUM_PROCESSES * sizeof(struct ibv_qp*));
 
+#ifdef LCI_NO_PMI
+  struct conn_ctx *ctx = malloc(sizeof(struct conn_ctx[LCI_NUM_PROCESSES]));
+
+  for (size_t i = 0; i < LCI_NUM_PROCESSES; i++) {
+    ctx[i].addr = (uintptr_t)s->heap_addr;
+    ctx[i].rkey = s->heap->rkey;
+    ctx[i].lid = s->port_attr.lid;
+    s->qp[i] = qp_create(s);
+    qp_init(s->qp[i], s->dev_port);
+    // Use this endpoint "i" to connect to rank e.
+    ctx[i].qp_num = s->qp[i]->qp_num;
+  }
+
+  MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, ctx, sizeof(struct conn_ctx), MPI_BYTE, MPI_COMM_WORLD);
+
+  posix_memalign((void**)&(s->rep), LC_CACHE_LINE, sizeof(struct lc_rep) * LCI_NUM_PROCESSES);
+  
+  for (size_t i = 0; i < LCI_NUM_PROCESSES; i++) {
+    qp_to_rtr(s->qp[i], s->dev_port, &s->port_attr, &ctx[i]);
+    qp_to_rts(s->qp[i]);
+
+    struct lc_rep* rep = &s->rep[i];
+    rep->rank = i; 
+    rep->rkey = ctx[i].rkey;
+    rep->handle = (void*)s->qp[i];
+    rep->base = ctx[i].addr;
+  }
+  free(ctx);
+#else
   struct conn_ctx lctx, rctx;
   char ep_name[256];
   lctx.addr = (uintptr_t)s->heap_addr;
   lctx.rkey = s->heap->rkey;
   lctx.lid = s->port_attr.lid;
 
-#ifdef LCI_NO_PMI
-  struct conn_ctx *ctx = malloc(sizeof(struct conn_ctx[LCI_NUM_PROCESSES]));
-  MPI_Datatype conn_ctx_dtype; 
-  MPI_Type_contiguous(sizeof(struct conn_ctx), MPI_BYTE, &conn_ctx_dtype);
-  MPI_Type_commit(&conn_ctx_dtype);
-
-  for (size_t i = 0; i < LCI_NUM_PROCESSES; i++) {
-    s->qp[i] = qp_create(s);
-    qp_init(s->qp[i], s->dev_port);
-    // Use this endpoint "i" to connect to rank e.
-    lctx.qp_num = s->qp[i]->qp_num;
-    ctx[i] = lctx; 
-  }
-
-  MPI_Alltoall(MPI_IN_PLACE, 1, conn_ctx_dtype, ctx, 1, conn_ctx_dtype, MPI_COMM_WORLD);
-
-  posix_memalign((void**)&(s->rep), LC_CACHE_LINE, sizeof(struct lc_rep) * LCI_NUM_PROCESSES);
-  
-  for (size_t i = 0; i < LCI_NUM_PROCESSES; i++) {
-    rctx = ctx[i];
-    qp_to_rtr(s->qp[i], s->dev_port, &s->port_attr, &rctx);
-    qp_to_rts(s->qp[i]);
-
-    struct lc_rep* rep = &s->rep[i];
-    rep->rank = i; 
-    rep->rkey = rctx.rkey;
-    rep->handle = (void*)s->qp[i];
-    rep->base = rctx.addr;
-  }
-  free(ctx);
-#else
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
     s->qp[i] = qp_create(s);
     qp_init(s->qp[i], s->dev_port);
