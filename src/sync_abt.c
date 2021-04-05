@@ -8,7 +8,9 @@ typedef struct lci_abt_sync {
   volatile int flag;
 } lci_abt_sync;
 
-LCI_error_t LCI_sync_create(void* sync) {
+LCI_error_t LCI_sync_create(LCI_device_t device, LCI_sync_type_t sync_type,
+                            LCI_comp_t* sync)
+{
   lci_abt_sync** sync_abt = (lci_abt_sync**) sync;
   lci_abt_sync* new_sync = (lci_abt_sync*) calloc(sizeof(struct lci_abt_sync), 1);
   ABT_cond_create(&new_sync->cond);
@@ -17,8 +19,9 @@ LCI_error_t LCI_sync_create(void* sync) {
   return LCI_OK;
 }
 
-LCI_error_t LCI_one2one_set_full(void* sync) {
-  lci_abt_sync* sync_abt = *(lci_abt_sync**) sync;
+LCI_error_t LCI_sync_wait(LCI_comp_t sync, LCI_request_t* request)
+{
+  lci_abt_sync* sync_abt = *(lci_abt_sync**)request;
   ABT_mutex_lock(sync_abt->mutex);
   sync_abt->flag = 1;
   ABT_cond_signal(sync_abt->cond);

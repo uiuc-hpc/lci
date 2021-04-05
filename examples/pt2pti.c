@@ -25,7 +25,7 @@ int main(int argc, char** args) {
   int rank = LCI_RANK;
   LCI_tag_t tag = 99;
 
-  LCI_syncl_t sync;
+  LCI_comp_t sync;
   LCI_sync_create(&sync);
 
   double t1 = 0;
@@ -46,7 +46,7 @@ int main(int argc, char** args) {
         if (i == skip) t1 = wtime();
         LCI_sends(ep, *(LCI_short_t*)src_buf, 1 - rank, tag);
         LCI_one2one_set_empty(&sync);
-        LCI_recvs(ep, dst_buf, tag, &sync);
+        LCI_recvs(ep, dst_buf, tag, sync);
         while (LCI_one2one_test_empty(&sync))
           LCI_progress(0, 1);
         if (i == 0) {
@@ -66,7 +66,7 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         LCI_one2one_set_empty(&sync);
-        LCI_recvs(ep, dst_buf, tag, &sync);
+        LCI_recvs(ep, dst_buf, tag, sync);
         while (LCI_one2one_test_empty(&sync))
           LCI_progress(0, 1);
         LCI_sends(ep, *(LCI_short_t*)src_buf, 1 - rank, tag);

@@ -14,14 +14,14 @@ int main(int argc, char** args) {
   LCI_MT_t mt;
   LCI_MT_init(&mt, 0);
   LCI_plist_set_MT(prop,&mt);
-  // LCI_plist_set_completion(LCI_PORT_MESSAGE, LCI_COMPLETION_ONE2ONEL, &prop);
-  // LCI_plist_set_completion(LCI_PORT_COMMAND, LCI_COMPLETION_ONE2ONEL, &prop);
+  // LCI_plist_set_completion(LCI_PORT_MESSAGE, LCI_COMPLETION_SYNC, &prop);
+  // LCI_plist_set_completion(LCI_PORT_COMMAND, LCI_COMPLETION_SYNC, &prop);
 
   LCI_endpoint_init(&ep, 0, prop);
   int rank = LCI_RANK;
   LCI_barrier();
 
-  LCI_syncl_t sync;
+  LCI_comp_t sync;
   LCI_sync_create(&sync);
 
   uintptr_t addr;

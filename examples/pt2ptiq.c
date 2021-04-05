@@ -20,7 +20,7 @@ int main(int argc, char** args) {
   LCI_plist_create(&prop);
   LCI_queue_create(0, &cq);
   LCI_plist_set_CQ(prop,&cq);
-  LCI_plist_set_completion(prop,LCI_PORT_COMMAND, LCI_COMPLETION_ONE2ONEL);
+  LCI_plist_set_completion(prop,LCI_PORT_COMMAND, LCI_COMPLETION_SYNC);
   LCI_plist_set_completion(prop,LCI_PORT_MESSAGE, LCI_COMPLETION_QUEUE);
   LCI_MT_t mt;
   LCI_MT_init(&mt, 0);
@@ -33,7 +33,7 @@ int main(int argc, char** args) {
   LCI_tag_t tag = 99;
 
   LCI_request_t* req_ptr;
-  LCI_syncl_t sync;
+  LCI_comp_t sync;
 
   double t1 = 0;
   size_t alignment = sysconf(_SC_PAGESIZE);
@@ -52,7 +52,7 @@ int main(int argc, char** args) {
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
         LCI_sends(ep, *(LCI_short_t*)src_buf, 1 - rank, tag);
-        LCI_recvs(ep, dst_buf, tag, &sync);
+        LCI_recvs(ep, dst_buf, tag, sync);
         while (LCI_queue_pop(cq, &req_ptr) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
         if (i == 0) {
@@ -72,7 +72,7 @@ int main(int argc, char** args) {
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
 
       for (int i = 0; i < total + skip; i++) {
-        LCI_recvs(ep, dst_buf, tag, &sync);
+        LCI_recvs(ep, dst_buf, tag, sync);
         while (LCI_queue_pop(cq, &req_ptr) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
         LCI_mbuffer_free(0, req_ptr->data.buffer.start);

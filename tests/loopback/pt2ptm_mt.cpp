@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
   LCI_open();
   LCI_plist_t plist;
   LCI_plist_create(&plist);
-  LCI_plist_set_comp_type(plist, LCI_PORT_MESSAGE, LCI_COMPLETION_ONE2ONEL);
+  LCI_plist_set_comp_type(plist, LCI_PORT_MESSAGE, LCI_COMPLETION_SYNC);
   LCI_endpoint_init(&ep, 0, plist);
 
   rank = LCI_RANK;
@@ -60,8 +60,8 @@ void* send_thread(void* arg)
 {
   int tag = thread_id();
 
-  LCI_syncl_t sync;
-  LCI_sync_create(&sync);
+  LCI_comp_t sync;
+  LCI_sync_create(0, LCI_SYNC_SIMPLE, &sync);
 
   size_t alignment = sysconf(_SC_PAGESIZE);
   LCI_mbuffer_t src_buf, dst_buf;
@@ -83,9 +83,9 @@ void* send_thread(void* arg)
 
       while (LCI_sendm(ep, src_buf, peer_rank, tag) != LCI_OK) continue;
 
-      LCI_one2one_set_empty(&sync);
-      LCI_recvm(ep, dst_buf, peer_rank, tag, &sync, nullptr);
-      while (LCI_one2one_test_empty(&sync)) continue;
+      LCI_recvm(ep, dst_buf, peer_rank, tag, sync, nullptr);
+      while (LCI_sync_test(sync, NULL) == LCI_ERR_RETRY)
+          LCI_progress(0, 1);
       check_buffer((char*)dst_buf.address, size, 's');
     }
 

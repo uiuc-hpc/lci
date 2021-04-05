@@ -150,6 +150,18 @@ LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, int device,
   return LCI_OK;
 }
 
+LCI_error_t LCI_endpoint_free(LCI_endpoint_t* ep_ptr)
+{
+  LCI_endpoint_t ep = *ep_ptr;
+
+  LCII_register_fini(&(ep->ctx_reg));
+  LCI_ENDPOINTS[ep->gid] = NULL;
+  LCIU_free(ep);
+
+  *ep_ptr = NULL;
+  return LCI_OK;
+}
+
 LCI_error_t LCI_progress(int id, int count)
 {
   lc_server_progress(LCI_DEVICES[id]);

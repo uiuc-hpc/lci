@@ -17,6 +17,7 @@ LCI_error_t LCI_plist_create(LCI_plist_t* plist_ptr)
 LCI_error_t LCI_plist_free(LCI_plist_t *plist)
 {
   LCIU_free(*plist);
+  *plist = NULL;
   return LCI_OK;
 }
 
@@ -44,7 +45,7 @@ LCI_error_t LCI_plist_set_match_type(LCI_plist_t plist,
 }
 
 LCI_error_t LCI_plist_set_comp_type(LCI_plist_t plist, LCI_port_t port,
-                                    LCI_comptype_t comp_type)
+                                    LCI_comp_type_t comp_type)
 {
   switch (port) {
     case LCI_PORT_COMMAND:

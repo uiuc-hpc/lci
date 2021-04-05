@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
   LCI_tag_t tag = 99;
 
   size_t msg_size;
-  LCI_syncl_t sync;
+  LCI_comp_t sync;
 
   _memalign((void**) &s_buf, 8192, max_size);
   _memalign((void**) &r_buf, 8192, max_size);
@@ -47,8 +47,8 @@ int main(int argc, char *argv[]) {
     print_banner();
 
     RUN_VARY_MSG({min_size, max_size}, 1, [&](int msg_size, int iter) {
-      LCI_one2one_set_empty(&sync);
-      LCI_recvm(ep, r_buf, 1 - rank, tag, &sync, NULL);
+
+      LCI_recvm(ep, r_buf, 1 - rank, tag, sync, NULL);
       while (LCI_one2one_test_empty(&sync))
         LCI_progress(0, 1);
 
@@ -60,8 +60,8 @@ int main(int argc, char *argv[]) {
       while (LCI_sendm(ep, s_buf, 1 - rank, tag) != LCI_OK)
         LCI_progress(0, 1);
 
-      LCI_one2one_set_empty(&sync);
-      LCI_recvm(ep, r_buf, 1 - rank, tag, &sync, NULL);
+
+      LCI_recvm(ep, r_buf, 1 - rank, tag, sync, NULL);
       while (LCI_one2one_test_empty(&sync))
         LCI_progress(0, 1);
     });

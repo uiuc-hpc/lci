@@ -44,11 +44,10 @@ struct LCI_segment_s {
   size_t length;
 };
 
-
 struct LCI_plist_s {
   LCI_match_t match_type;     // matching type
-  LCI_comptype_t cmd_comp_type; // source-side completion type
-  LCI_comptype_t msg_comp_type; // destination-side completion type
+  LCI_comp_type_t cmd_comp_type; // source-side completion type
+  LCI_comp_type_t msg_comp_type; // destination-side completion type
   LCI_allocator_t allocator;  // dynamic allocator
 };
 
@@ -65,8 +64,8 @@ struct LCI_endpoint_s {
 
   // user-defined components
   LCI_match_t match_type;     // matching type (tag/ranktag)
-  LCI_comptype_t cmd_comp_type; // command-port completion type
-  LCI_comptype_t msg_comp_type; // message-port completion type
+  LCI_comp_type_t cmd_comp_type; // command-port completion type
+  LCI_comp_type_t msg_comp_type; // message-port completion type
   LCI_allocator_t allocator;  // dynamic allocator @note redundant for now
 
   volatile int completed;
@@ -90,6 +89,13 @@ struct LCII_context_t {
   void* user_context;
 };
 typedef struct LCII_context_t LCII_context_t;
+
+/**
+ * Synchronizer, owned by the user.
+ */
+struct LCII_sync_t;
+typedef struct LCII_sync_t LCII_sync_t;
+LCI_error_t LCI_sync_signal(LCI_comp_t completion, LCII_context_t* ctx);
 
 extern lc_server** LCI_DEVICES;
 extern LCI_plist_t* LCI_PLISTS;

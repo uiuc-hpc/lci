@@ -61,17 +61,15 @@ static inline void lc_handle_rtr(LCI_endpoint_t ep, lc_packet* packet)
   LCII_free_packet(packet);
 }
 
-static inline void lc_ce_dispatch(LCI_comptype_t comp_type, LCII_context_t *ctx)
+static inline void lc_ce_dispatch(LCI_comp_type_t comp_type, LCII_context_t *ctx)
 {
   if (ctx->completion == NULL) {
     LCIU_free(ctx);
   }
   switch (comp_type) {
 #ifdef LCI_SERVER_HAS_SYNC
-    case LCI_COMPLETION_ONE2ONEL: {
-      LCI_syncl_t* sync = ctx->completion;
-      sync->request = LCII_ctx2req(ctx);
-      LCI_one2one_set_full(sync);
+    case LCI_COMPLETION_SYNC: {
+      LCI_sync_signal(ctx->completion, ctx);
       break;
     }
 #endif

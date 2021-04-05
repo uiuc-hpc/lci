@@ -12,18 +12,19 @@ int main(int argc, char** args) {
   LCI_open();
   LCI_plist_t plist;
   LCI_plist_create(&plist);
-  LCI_plist_set_comp_type(plist, LCI_PORT_COMMAND, LCI_COMPLETION_ONE2ONEL);
-  LCI_plist_set_comp_type(plist, LCI_PORT_MESSAGE, LCI_COMPLETION_ONE2ONEL);
+  LCI_plist_set_comp_type(plist, LCI_PORT_COMMAND, LCI_COMPLETION_SYNC);
+  LCI_plist_set_comp_type(plist, LCI_PORT_MESSAGE, LCI_COMPLETION_SYNC);
   LCI_endpoint_t ep;
   LCI_endpoint_init(&ep, 0, plist);
+  LCI_plist_free(&plist);
 
   int rank = LCI_RANK;
   int peer_rank = ((1 - LCI_RANK % 2) + LCI_RANK / 2 * 2) % LCI_NUM_PROCESSES;
   LCI_tag_t tag = 99;
 
-  LCI_syncl_t sync_send, sync_recv;
-  LCI_sync_create(&sync_send);
-  LCI_sync_create(&sync_recv);
+  LCI_comp_t sync_send, sync_recv;
+  LCI_sync_create(0, LCI_SYNC_SIMPLE, &sync_send);
+  LCI_sync_create(0, LCI_SYNC_SIMPLE, &sync_recv);
 
   size_t alignment = sysconf(_SC_PAGESIZE);
   LCI_lbuffer_t src_buf, dst_buf;
@@ -43,17 +44,15 @@ int main(int argc, char** args) {
       for (int i = 0; i < total; i++) {
         write_buffer(src_buf.address, size, 's');
         write_buffer(dst_buf.address, size, 'r');
-        LCI_one2one_set_empty(&sync_send);
-        LCI_one2one_set_empty(&sync_recv);
 
-        while (LCI_sendl(ep, src_buf, peer_rank, tag, &sync_send, NULL) != LCI_OK)
+        while (LCI_sendl(ep, src_buf, peer_rank, tag, sync_send, NULL) != LCI_OK)
           LCI_progress(0, 1);
-        while (LCI_one2one_test_empty(&sync_send))
+        while (LCI_sync_test(sync_send, NULL) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
 
-        while (LCI_recvl(ep, dst_buf, peer_rank, tag, &sync_recv, NULL) != LCI_OK)
+        while (LCI_recvl(ep, dst_buf, peer_rank, tag, sync_recv, NULL) != LCI_OK)
           LCI_progress(0, 1);
-        while (LCI_one2one_test_empty(&sync_recv))
+        while (LCI_sync_test(sync_recv, NULL) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
         check_buffer(dst_buf.address, size, 's');
       }
@@ -68,18 +67,16 @@ int main(int argc, char** args) {
       for (int i = 0; i < total; i++) {
         write_buffer(src_buf.address, size, 's');
         write_buffer(dst_buf.address, size, 'r');
-        LCI_one2one_set_empty(&sync_send);
-        LCI_one2one_set_empty(&sync_recv);
 
-        while (LCI_recvl(ep, dst_buf, peer_rank, tag, &sync_recv, NULL) != LCI_OK)
+        while (LCI_recvl(ep, dst_buf, peer_rank, tag, sync_recv, NULL) != LCI_OK)
           LCI_progress(0, 1);
-        while (LCI_one2one_test_empty(&sync_recv))
+        while (LCI_sync_test(sync_recv, NULL) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
         check_buffer(dst_buf.address, size, 's');
 
-        while (LCI_sendl(ep, src_buf, peer_rank, tag, &sync_send, NULL) != LCI_OK)
+        while (LCI_sendl(ep, src_buf, peer_rank, tag, sync_send, NULL) != LCI_OK)
           LCI_progress(0, 1);
-        while (LCI_one2one_test_empty(&sync_send))
+        while (LCI_sync_test(sync_send, NULL) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
 
       }

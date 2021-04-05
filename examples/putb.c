@@ -24,7 +24,7 @@ int main(int argc, char** args) {
   int rank = LCI_RANK;
   LCI_barrier();
 
-  LCI_syncl_t sync;
+  LCI_comp_t sync;
   LCI_sync_create(&sync);
 
   LCI_barrier();

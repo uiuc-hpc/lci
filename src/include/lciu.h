@@ -9,6 +9,8 @@
 
 #define __UNUSED__ __attribute__((unused))
 
+#define STATIC_ASSERT(COND,MSG) typedef char static_assertion_##MSG[(COND)?1:-1]
+
 static inline void LCII_MEM_FENCE()
 {
   asm volatile("mfence" ::: "memory");

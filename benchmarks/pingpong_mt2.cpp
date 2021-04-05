@@ -117,13 +117,17 @@ void* recv_thread(void* arg)
       LCI_barrier();
     thread_barrier();
 
-    LCI_syncl_t sync;
+    LCI_comp_t sync;
     thread_barrier();
 
     RUN_VARY_MSG({size, size}, 0, [&](int msg_size, int iter) {
-      LCI_one2one_set_empty(&sync);
+
       LCI_recvm(ep[GETDEV(val)], buf, 1 - rank, val, &sync, NULL);
-      while (LCI_one2one_test_empty(&sync)) continue;
+      bool flag = false;
+      while (!flag) {
+        LCI_progress(0, 1);
+        LCI_sync_test(sync, NULL, &flag);
+      }
       check_buffer(buf, size, 's');
       write_buffer(buf, size, 'r');
       while (LCI_sendm(ep[GETDEV(val)], buf, 1 - rank, val) != LCI_OK) continue;
@@ -170,16 +174,20 @@ void* send_thread(void* arg)
       LCI_barrier();
     thread_barrier();
 
-    LCI_syncl_t sync;
+    LCI_comp_t sync;
     thread_barrier();
 
     RUN_VARY_MSG({size, size}, 1, [&](int msg_size, int iter) {
       write_buffer(buf, size, 's');
       while (LCI_sendm(ep[GETDEV(val)], buf, 1 - rank, val) != LCI_OK) continue;
 
-      LCI_one2one_set_empty(&sync);
+
       LCI_recvm(ep[GETDEV(val)], buf, 1 - rank, val, &sync, NULL);
-      while (LCI_one2one_test_empty(&sync)) continue;
+      bool flag = false;
+      while (!flag) {
+        LCI_progress(0, 1);
+        LCI_sync_test(sync, NULL, &flag);
+      }
       check_buffer(buf, size, 'r');
     }, {val, num_threads}, extra);
 

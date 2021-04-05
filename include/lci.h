@@ -90,28 +90,27 @@ typedef enum {
 typedef enum {
   LCI_COMPLETION_QUEUE = 0,  	// completion queue
   LCI_COMPLETION_HANDLER,  	// handler
-  LCI_COMPLETION_ONE2ONES, 	// one2one SSO
-  LCI_COMPLETION_ONE2ONEL, 	// one2one LSO
-  LCI_COMPLETION_MANY2ONES,	// many2one SSO
-  LCI_COMPLETION_MANY2ONEL,	// many2one LSO
-  LCI_COMPLETION_ANY2ONES,	// any2one SSO
-  LCI_COMPLETION_ONE2MANYS,	// one2many SSO
-  LCI_COMPLETION_ONE2MANYL,	// one2many LSO
-  LCI_COMPLETION_MANY2MANYS,	// many2many SSO
-  LCI_COMPLETION_MANY2MANYL	// many2many LSO
-} LCI_comptype_t;
+  LCI_COMPLETION_SYNC, 	        // synchronizer
+} LCI_comp_type_t;
 
 /**
  * LCI log level type.
  */
-enum LCI_log_level_t {
+typedef enum {
   LCI_LOG_NONE = 0,
   LCI_LOG_WARN,
   LCI_LOG_TRACE,
   LCI_LOG_INFO,
   LCI_LOG_DEBUG,
   LCI_LOG_MAX
-};
+} LCI_log_level_t;
+
+/**
+ * LCI synchronizer type
+ */
+typedef enum {
+  LCI_SYNC_SIMPLE = 0,
+} LCI_sync_type_t;
 
 /**
  * Tag type. 16 bits due to ibverbs' limitation.
@@ -122,11 +121,6 @@ typedef uint16_t LCI_tag_t;
  * LCI generic completion type.
  */
 typedef void* LCI_comp_t;
-
-/**
- * Synchronizer object, owned by the runtime.
- */
-typedef volatile uint64_t LCI_sync_t;
 
 /**
  * LCI memory segment.
@@ -191,12 +185,9 @@ typedef struct {
 } LCI_request_t;
 
 /**
- * Synchronizer, owned by the user.
+ * The device object
  */
-typedef struct {
-  LCI_sync_t sync;
-  LCI_request_t request;
-} LCI_syncl_t;
+typedef uint64_t LCI_device_t;
 
 /**
  * Endpoint object, owned by the runtime.
@@ -375,7 +366,7 @@ LCI_error_t LCI_close();
  *         failure. Different values may be used to indicate the type of failure.
  */
 LCI_API
-LCI_error_t LCI_memory_register(uint8_t device, void *address, size_t length,
+LCI_error_t LCI_memory_register(LCI_device_t device, void *address, size_t length,
                                 LCI_segment_t *segment);
 
 /**
@@ -387,7 +378,7 @@ LCI_error_t LCI_memory_register(uint8_t device, void *address, size_t length,
  *         failure. Different values may be used to indicate the type of failure.
  */
 LCI_API
-LCI_error_t LCI_memory_deregister(uint8_t device, LCI_segment_t *segment);
+LCI_error_t LCI_memory_deregister(LCI_segment_t* segment);
 
 /**
  * Allocate a buffer from a memory segment
@@ -452,7 +443,7 @@ LCI_error_t LCI_plist_set_match_type(LCI_plist_t plist, LCI_match_t match_type);
  */
 LCI_API
 LCI_error_t LCI_plist_set_comp_type(LCI_plist_t plist, LCI_port_t port,
-                                    LCI_comptype_t comp_type);
+                                    LCI_comp_type_t comp_type);
 /**
  * Set allocator for dynamic protocol.
  */
@@ -613,7 +604,7 @@ LCI_error_t LCI_putd(LCI_lbuffer_t src, size_t size, int rank, int rma_id, int o
  *       Or do we want to change the manual? Need to check with others.
  */
 LCI_API
-LCI_error_t LCI_queue_create(uint8_t device, LCI_comp_t* cq);
+LCI_error_t LCI_queue_create(LCI_device_t device, LCI_comp_t* cq);
 
 /**
  * Destroy a completion queue.
@@ -655,37 +646,18 @@ LCI_error_t LCI_queue_wait_multiple(LCI_comp_t cq, uint32_t request_count,
  * Create a Sync object.
  */
 LCI_API
-LCI_error_t LCI_sync_create(void* sync);
+LCI_error_t LCI_sync_create(LCI_device_t device, LCI_sync_type_t sync_type,
+                            LCI_comp_t* sync);
+LCI_API
+LCI_error_t LCI_sync_free(LCI_comp_t *completion);
 
 /**
  * Reset on a Sync object.
  */
 LCI_API
-LCI_error_t LCI_one2one_set_full(void* sync);
-
-/**
- * Wait on a Sync object.
-*/
+LCI_error_t LCI_sync_wait(LCI_comp_t sync, LCI_request_t* request);
 LCI_API
-LCI_error_t LCI_one2one_set_empty(void* sync);
-
-/**
- * Test a Sync object, return 1 if finished.
- */
-LCI_API
-int LCI_one2one_test_empty(void* sync);
-
-/**
- * Wait until become full.
- */
-LCI_API
-LCI_error_t LCI_one2one_wait_full(void* sync);
-
-/**
- * Wait until become empty.
- */
-LCI_API
-LCI_error_t LCI_one2one_wait_empty(void* sync);
+LCI_error_t LCI_sync_test(LCI_comp_t completion, LCI_request_t* request);
 
 /**
  * Polling a specific device @p device_id for at least @p count time.

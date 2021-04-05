@@ -23,7 +23,7 @@ void LCI_Assert_(const char *expr_str, bool expr, const char *file,
     __attribute__ ((__format__ (__printf__, 6, 7)));
 
 LCI_API
-void LCI_Log_(enum LCI_log_level_t log_level, const char *file,
+void LCI_Log_(LCI_log_level_t log_level, const char *file,
               const char *func, int line, const char *format, ...)
     __attribute__ ((__format__ (__printf__, 5, 6)));
 
