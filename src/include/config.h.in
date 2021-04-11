@@ -2,6 +2,7 @@
 #define CONFIG_H_
 
 #cmakedefine LC_SERVER_DEBUG
+#cmakedefine LC_SERVER_DEBUG_PRINT
 
 #cmakedefine LC_USE_SERVER_OFI
 #cmakedefine LC_USE_SERVER_IBV

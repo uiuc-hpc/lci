@@ -3,7 +3,7 @@
 
 #include "config.h"
 
-#ifdef LC_SERVER_DEBUG
+#ifdef LC_SERVER_DEBUG_PRINT
 #define dprintf printf
 #else
 #define dprintf(...) {};
