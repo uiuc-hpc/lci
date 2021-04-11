@@ -10,8 +10,9 @@
   {                                                                   \
     int err = (x);                                                    \
     if (err) {                                                        \
-      fprintf(stderr, "err : %d (%s:%d)\n", err, __FILE__, __LINE__); \
-      exit(EXIT_FAILURE);                                             \
+      fprintf(stderr, "Failed status %s (%d) for wr_id %p\n",         \
+              ibv_wc_status_str(err), err, (void*)bad_wr->wr_id);     \
+      abort();                                                        \
     }                                                                 \
   }                                                                   \
   while (0)                                                           \
@@ -152,7 +153,7 @@ static inline void _real_server_dereg(uintptr_t mem)
   ibv_dereg_mr((struct ibv_mr*)mem);
 }
 
-static inline void ibv_post_recv_(lc_server* s, lc_packet* p)
+static inline int ibv_post_recv_(lc_server* s, lc_packet* p)
 {
   if (p == NULL) {
     if (s->recv_posted < LC_SERVER_MAX_RCVS / 2 && !lcg_deadlock) {
@@ -161,7 +162,7 @@ static inline void ibv_post_recv_(lc_server* s, lc_packet* p)
       printf("WARNING-LC: deadlock alert\n");
 #endif
     }
-    return;
+    return 1;
   }
 
   struct ibv_sge sg = {
@@ -182,5 +183,7 @@ static inline void ibv_post_recv_(lc_server* s, lc_packet* p)
   struct ibv_recv_wr* bad_wr = 0;
   IBV_SAFECALL(ibv_post_srq_recv(s->dev_srq, &wr, &bad_wr));
 
-  if (++s->recv_posted == LC_SERVER_MAX_RCVS && lcg_deadlock) lcg_deadlock = 0;
+  if (++s->recv_posted == LC_SERVER_MAX_RCVS && lcg_deadlock)
+    lcg_deadlock = 0;
+  return 0;
 }
