@@ -96,7 +96,7 @@ static inline int lc_server_progress(lc_server* s)
 {
   struct ibv_wc wc[MAX_CQ];
   int ne = ibv_poll_cq(s->recv_cq, MAX_CQ, wc);
-  int ret = (ne > 0);
+  int ret = ne;
   int i;
 
 #ifdef LC_SERVER_DEBUG
@@ -106,10 +106,10 @@ static inline int lc_server_progress(lc_server* s)
   for (i = 0; i < ne; i++) {
 #ifdef LC_SERVER_DEBUG
     if (wc[i].status != IBV_WC_SUCCESS) {
-      fprintf(stderr, "Failed status %s (%d) for wr_id %d\n",
+      fprintf(stderr, "Failed status %s (%d) for wr_id %p\n",
           ibv_wc_status_str(wc[i].status), wc[i].status,
-          (int)wc[i].wr_id);
-      exit(EXIT_FAILURE);
+          (void*)wc[i].wr_id);
+      abort();
     }
 #endif
     s->recv_posted--;
@@ -138,7 +138,7 @@ static inline int lc_server_progress(lc_server* s)
   }
 
   ne = ibv_poll_cq(s->send_cq, MAX_CQ, wc);
-  ret |= (ne > 0);
+  ret += ne;
 
 #ifdef LC_SERVER_DEBUG
   assert(ne >= 0);
@@ -147,10 +147,10 @@ static inline int lc_server_progress(lc_server* s)
   for (i = 0; i < ne; i++) {
 #ifdef LC_SERVER_DEBUG
     if (wc[i].status != IBV_WC_SUCCESS) {
-      fprintf(stderr, "Failed status %s (%d) for wr_id %d\n",
+      fprintf(stderr, "Failed status %s (%d) for wr_id %p\n",
           ibv_wc_status_str(wc[i].status), wc[i].status,
-          (int)wc[i].wr_id);
-      exit(EXIT_FAILURE);
+          (void*)wc[i].wr_id);
+      abort();
     }
 #endif
     lc_packet* p = (lc_packet*)wc[i].wr_id;
@@ -159,8 +159,10 @@ static inline int lc_server_progress(lc_server* s)
 
   // Make sure we always have enough packet, but do not block.
   if (s->recv_posted < LC_SERVER_MAX_RCVS) {
-    ibv_post_recv_(s, (lc_packet*)lc_pool_get_nb(s->pkpool));  //, 0));
-    ret = 1;
+      int err = ibv_post_recv_(s, (lc_packet*)lc_pool_get_nb(s->pkpool));
+      if (err)
+          break;
+      ret++;
   }
 
 #ifdef LC_SERVER_DEBUG
