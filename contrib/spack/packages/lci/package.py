@@ -21,7 +21,7 @@ class Lci(CMakePackage):
         except ValueError:
             return val == 'auto'
 
-    variant('ipo', default=False, description='Interprocedural Optimization')
+    variant('server_debug', default=False, description='Server debug mode')
     variant('fabric', default='ibv',
             values=('ofi', 'ibv', 'psm'), multi=False,
             description='Communication fabric')
@@ -52,13 +52,14 @@ class Lci(CMakePackage):
 
     def cmake_args(self):
         args = [
-            self.define_from_variant('CMAKE_INTERPROCEDURAL_OPTIMIZATION', 'ipo'),
+            self.define_from_variant('LC_SERVER_DEBUG', 'server_debug'),
             self.define_from_variant('LC_SERVER', 'fabric'),
             self.define_from_variant('LC_USE_DREG', 'dreg'),
             self.define_from_variant('LC_EP_AR', 'addressing'),
             self.define_from_variant('LC_EP_CE', 'completion'),
             self.define_from_variant('LC_MAX_DEV', 'devices'),
-            self.define_from_variant('LC_MAX_EP', 'endpoints')
+            self.define_from_variant('LC_MAX_EP', 'endpoints'),
+            self.define_from_variant('LC_PKT_RET_LONG', 'long_pkt_ret')
         ]
 
         if self.spec.variants['max_rcvs'].value != 'auto':
@@ -71,10 +72,6 @@ class Lci(CMakePackage):
 
         if self.spec.variants['med_pkt_ret_sz'].value != 'auto':
             arg = self.define_from_variant('LC_PKT_RET_MED_SIZE', 'med_pkt_ret_sz')
-            args.append(arg)
-
-        if self.spec.variants['long_pkt_ret'].value != 'auto':
-            arg = self.define_from_variant('LC_PKT_RET_LONG', 'long_pkt_ret')
             args.append(arg)
 
         return args
