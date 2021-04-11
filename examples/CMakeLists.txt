@@ -42,4 +42,5 @@ add_all_examples(
   tag
   ibarrier
   ialreduce
+  parsec_comm
 )
