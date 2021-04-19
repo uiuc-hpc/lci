@@ -31,6 +31,7 @@ static int ep_size = 0;
 
 static size_t msg_count = 0;
 static size_t msg_size = 0;
+static size_t total_msg_count = 0;
 
 static size_t send_count = 0;
 static size_t recv_count = 0;
@@ -76,7 +77,7 @@ static inline void list_lock(list_t *list)
 
 static inline bool list_trylock(list_t *list)
 {
-    !atomic_flag_test_and_set_explicit(&list->lock, memory_order_acq_rel);
+    return !atomic_flag_test_and_set_explicit(&list->lock, memory_order_acq_rel);
 }
 
 static inline bool list_empty(list_t *list)
@@ -121,7 +122,7 @@ static inline list_item_t * list_unchain(list_t *list)
     return head;
 }
 
-static inline list_chain_back(list_t *list, list_item_t *head)
+static inline void list_chain_back(list_t *list, list_item_t *head)
 {
     list_item_t *tail = head->prev;
     tail->next = LIST_GHOST(list);
@@ -223,7 +224,8 @@ static inline void fini_progress_thread(void)
 static inline cb_handle_t * handle_alloc(void)
 {
     list_lock(&free_handle_list);
-    cb_handle_t *handle = list_pop_front(&free_handle_list);
+    list_item_t *item = list_pop_front(&free_handle_list);
+    cb_handle_t *handle = container_of(item, cb_handle_t, list_item);
     list_unlock(&free_handle_list);
     if (!handle) {
         handle = malloc(sizeof(*handle));
@@ -253,7 +255,8 @@ static inline void handle_list_free(void)
 static inline req_handle_t * req_alloc(void)
 {
     list_lock(&free_req_list);
-    req_handle_t *handle = list_pop_front(&free_req_list);
+    list_item_t *item = list_pop_front(&free_req_list);
+    req_handle_t *handle = container_of(item, req_handle_t, list_item);
     list_unlock(&free_req_list);
     if (!handle) {
         handle = malloc(sizeof(*handle));
@@ -403,9 +406,9 @@ static inline void do_all_send(void)
 
 static inline void do_all_recv(void)
 {
-    void *buffer = malloc(msg_size * msg_count * ep_size);
+    void *buffer = malloc(msg_size * total_msg_count);
     recv_data = buffer;
-    while (recv_count < msg_count * ep_size) {
+    while (recv_count < total_msg_count) {
         cb_progress();
     }
     recv_data = NULL;
@@ -414,13 +417,21 @@ static inline void do_all_recv(void)
 
 static inline void scan_size(const char *restrict buffer, size_t *dest)
 {
-    if        (1 == sscanf(buffer, "%zuG", dest)) {
-        *dest *= (1UL << 30);
-    } else if (1 == sscanf(buffer, "%zuM", dest)) {
-        *dest *= (1UL << 20);
-    } else if (1 == sscanf(buffer, "%zuK", dest)) {
-        *dest *= (1UL << 10);
-    } else if (1 == sscanf(buffer, "%zu",  dest)) {
+    char suffix = '\0';
+    int ret = sscanf(buffer, "%zu%c", dest, &suffix);
+    if (2 == ret) {
+        if        ('G' == suffix) {
+            *dest *= (1UL << 30);
+        } else if ('M' == suffix) {
+            *dest *= (1UL << 20);
+        } else if ('K' == suffix) {
+            *dest *= (1UL << 10);
+        } else {
+            printf("bad suffix: \'%c\'\n", suffix);
+            exit(EXIT_FAILURE);
+        }
+    } else if (1 != ret) {
+        printf("bad input: %s\n", buffer);
         exit(EXIT_FAILURE);
     }
 }
@@ -445,11 +456,14 @@ int main(int argc, char *argv[])
     list_init(&shared_list);
     list_init(&comm_list);
     list_init(&free_handle_list);
+    list_init(&free_req_list);
 
     lc_init(1, &default_ep);
     lc_get_num_proc(&ep_size);
     lc_get_proc_num(&ep_rank);
     init_ep();
+
+    total_msg_count = msg_count * (ep_size - 1);
 
     bind_thread(1);
     init_progress_thread(0);
