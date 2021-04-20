@@ -156,7 +156,7 @@ static inline int lc_server_progress(lc_server* s)
   }
 
   // Make sure we always have enough packet, but do not block.
-  if (s->recv_posted < LC_SERVER_MAX_RCVS) {
+  while (s->recv_posted < LC_SERVER_MAX_RCVS) {
       int err = ibv_post_recv_(s, (lc_packet*)lc_pool_get_nb(s->pkpool));
       if (err)
           break;
