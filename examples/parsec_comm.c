@@ -11,6 +11,10 @@
 
 #include "lc.h"
 
+#define LOCK_NSEC 100L
+#define PROGRESS_NSEC 500L
+#define COMM_NSEC 5000L
+
 #define container_of(ptr, type, member) ((type *)((uint8_t *)(ptr) - offsetof(type, member)))
 
 static struct {
@@ -70,7 +74,7 @@ static inline void list_unlock(list_t *list)
 
 static inline void list_lock(list_t *list)
 {
-    struct timespec ts = { .tv_sec = 0, .tv_nsec = 100 };
+    const struct timespec ts = { .tv_sec = 0, .tv_nsec = LOCK_NSEC };
     while (atomic_flag_test_and_set_explicit(&list->lock, memory_order_acq_rel))
         nanosleep(&ts, NULL);
 }
@@ -183,12 +187,16 @@ static void * progress_thread(void *arg)
         size_t progress_count = 0;
         /* progress until nothing progresses */
         while (lc_progress(0))
-            continue;
+            progress_count++;
 
         if (!list_empty(&progress_list) && list_trylock(&shared_list)) {
             list_chain_back(&shared_list, list_unchain(&progress_list));
             list_unlock(&shared_list);
         }
+
+        const struct timespec ts = { .tv_sec = 0, .tv_nsec = PROGRESS_NSEC };
+        if (0 == progress_count)
+            nanosleep(&ts, NULL);
     }
 
     free(arg);
@@ -329,8 +337,9 @@ static inline void init_ep(void)
     lc_ep_dup(&opt, default_ep, &put_ep);
 }
 
-static inline void cb_progress(void)
+static inline size_t cb_progress(void)
 {
+    size_t cb_count = 0;
     list_item_t *ring = NULL;
     req_handle_t *req_handle = NULL;
 
@@ -375,7 +384,19 @@ static inline void cb_progress(void)
             fprintf(stderr, "handle->type is wrong\n");
             abort();
         }
+
+        cb_count++;
     }
+    return cb_count;
+}
+
+static inline void cb_progress_sleep(void)
+{
+    size_t cb_count = cb_progress();
+
+    const struct timespec ts = { .tv_sec = 0, .tv_nsec = COMM_NSEC };
+    if (0 == cb_count)
+        nanosleep(&ts, NULL);
 }
 
 static inline void do_send(void *data, size_t size, int remote)
@@ -399,7 +420,7 @@ static inline void do_all_send(void)
         data += msg_size;
     }
     while (send_count < msg_count) {
-        cb_progress();
+        cb_progress_sleep();
     }
     free(buffer);
 }
@@ -409,7 +430,7 @@ static inline void do_all_recv(void)
     void *buffer = malloc(msg_size * total_msg_count);
     recv_data = buffer;
     while (recv_count < total_msg_count) {
-        cb_progress();
+        cb_progress_sleep();
     }
     recv_data = NULL;
     free(buffer);
