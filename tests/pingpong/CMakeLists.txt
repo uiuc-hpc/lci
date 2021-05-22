@@ -7,6 +7,7 @@ add_lci_tests(
             pt2ptmn.c
             pt2ptl.c
             puts.c
+            putma.c
 #            puti.c
 #            putb.c
 #            putbc.c

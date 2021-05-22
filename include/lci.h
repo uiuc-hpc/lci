@@ -573,8 +573,8 @@ LCI_error_t LCI_puts(LCI_endpoint_t ep, LCI_short_t src, int rank,
  * endpoint, offset @p offset. Complete immediately, or return LCI_ERR_RETRY.
  */
 LCI_API
-LCI_error_t LCI_putbc(LCI_mbuffer_t src, size_t size, int rank, int rma_id, int offset, uint16_t meta,
-                     LCI_endpoint_t ep);
+LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
+                      LCI_tag_t tag, uintptr_t remote_completion);
 
 /**
  * Put medium message to a remote address @p rma_id available at the remote

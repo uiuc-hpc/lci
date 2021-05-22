@@ -161,6 +161,21 @@ static inline void lc_serve_recv(lc_packet* packet, uint32_t src_rank,
       lc_ce_dispatch(ep->msg_comp_type, ctx);
       break;
     }
+    case LCI_MSG_RDMA_MEDIUM:
+    {
+      LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
+      ctx->ep = ep;
+      ctx->data.mbuffer.address = packet->data.address;
+      ctx->data.mbuffer.length = length;
+      ctx->data_type = LCI_MEDIUM;
+      ctx->msg_type = LCI_MSG_RDMA_MEDIUM;
+      ctx->rank = src_rank;
+      ctx->tag = tag;
+      ctx->completion = LCI_UR_CQ;
+      ctx->user_context = NULL;
+      lc_ce_dispatch(ep->msg_comp_type, ctx);
+      break;
+    }
     default:
       LCI_DBG_Assert(false, "unknown proto!");
   }
@@ -207,6 +222,9 @@ static inline void lc_serve_send(void* raw_ctx)
       break;
     case LCI_MSG_RTR:
       // recvl has not been completed locally. No need to process completion.
+      LCII_free_packet(LCII_mbuffer2packet(ctx->data.mbuffer));
+      break;
+    case LCI_MSG_RDMA_MEDIUM:
       LCII_free_packet(LCII_mbuffer2packet(ctx->data.mbuffer));
       break;
     default:
