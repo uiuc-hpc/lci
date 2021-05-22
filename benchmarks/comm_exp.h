@@ -8,33 +8,12 @@
 #include <errno.h>
 #include <pthread.h>
 #include <unistd.h>
-#define MIN_MSG (1)
-#define MAX_MSG (4*1024*1024)
-
-#define MYBUFSIZE 8192
-#define MAX_MSG_SIZE MYBUFSIZE
 
 #define LARGE 8192
-
-#define TOTAL 4000
-#define SKIP 1000
-
-#define TOTAL_LARGE 1000
-#define SKIP_LARGE 100
-
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
-#ifndef unlikely
-#define unlikely(x) __builtin_expect((!!x),0)
-#endif
-
-#ifdef USE_THREAD
-#define TBARRIER() thread_barrier();
-#else
-#define TBARRIER() ;
-#endif
+#define TOTAL 40000
+#define SKIP 10000
+#define TOTAL_LARGE 10000
+#define SKIP_LARGE 1000
 
 static inline int comm_set_me_to(int core_id)
 {
@@ -59,10 +38,6 @@ static inline double wutime()
   gettimeofday(&t1, 0);
   return t1.tv_sec * 1e6 + t1.tv_usec;
 }
-
-#ifndef MAX
-#define MAX(a, b) ((a > b) ? (a) : (b))
-#endif
 
 static inline unsigned long long get_rdtsc()
 {
@@ -117,29 +92,12 @@ void check_buffer(const char* buffer, int len, char expect) {
 #include <condition_variable>
 #include "bench_omp.hpp"
 #include "bench_config.h"
-using namespace omp;
 
-#define _memalign posix_memalign
-#define _free free
-
-class cpp_barrier
-{
- private:
-  std::mutex _mutex;
-  std::condition_variable _cv;
-  std::size_t _count;
- public:
-  explicit cpp_barrier(std::size_t count) : _count{count} { }
-  void wait()
-  {
-    std::unique_lock<std::mutex> lock{_mutex};
-    if (--_count == 0) {
-      _cv.notify_all();
-    } else {
-      _cv.wait(lock, [this] { return _count == 0; });
-    }
-  }
-};
+#ifdef USE_THREAD
+#define TBARRIER() omp::thread_barrier();
+#else
+#define TBARRIER() ;
+#endif
 
 namespace {
 #ifdef USE_PAPI
@@ -232,7 +190,7 @@ static inline void RUN_VARY_MSG(std::pair<size_t, size_t>&& range,
     PAPI_SAFECALL(PAPI_stop(papi_eventSet, papi_values));
 #endif
 
-    if (report && thread_id() == 0) {
+    if (report && omp::thread_id() == 0) {
       double latency = 1e6 * get_latency(t, 2.0 * loop);
       double msgrate = get_msgrate(t, 2.0 * loop) / 1e6;
       double bw = get_bw(t, msg_size, 2.0 * loop) / 1024 / 1024;

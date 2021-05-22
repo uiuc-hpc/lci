@@ -86,10 +86,14 @@ foreach(FABRIC IN ITEMS OFI IBV PSM)
     find_path(Fabric_${FABRIC}_INCLUDE_DIR
               NAMES ${_${FABRIC}_HEADER}
               PATHS ${_Fabric_${FABRIC}_PC_INCLUDE_DIRS}
+              HINTS ENV FABRIC_ROOT
+              PATH_SUFFIXES include
     )
     find_library(Fabric_${FABRIC}_LIBRARY
                  NAMES ${_${FABRIC}_LIB}
                  PATHS ${_Fabric_${FABRIC}_PC_LIBRARY_DIRS}
+                 HINTS ENV FABRIC_ROOT
+                 PATH_SUFFIXES lib
     )
     set(Fabric_${FABRIC}_VERSION ${_Fabric_${FABRIC}_PC_VERSION})
 

@@ -15,12 +15,12 @@ int skip = SKIP;
 int main(int argc, char** args) {
   LCI_open();
   LCI_endpoint_t ep;
-  LCI_plist_t prop;
-  LCI_plist_create(&prop);
+  LCI_plist_t plist;
+  LCI_plist_create(&plist);
   LCI_MT_t mt;
   LCI_MT_init(&mt, 0);
-  LCI_plist_set_MT(prop,&mt);
-  LCI_endpoint_init(&ep, 0, prop);
+  LCI_plist_set_MT(plist,&mt);
+  LCI_endpoint_init(&ep, 0, plist);
 
   int rank = LCI_RANK;
   LCI_tag_t tag = 99;

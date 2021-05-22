@@ -15,12 +15,12 @@ int main(int argc, char** args) {
   LCI_comp_t cq;
   LCI_queue_create(0, &cq);
 
-  LCI_plist_t prop;
-  LCI_plist_create(&prop);
-  LCI_plist_set_CQ(prop,&cq);
-  LCI_plist_set_completion(prop,LCI_PORT_MESSAGE, LCI_COMPLETION_QUEUE);
+  LCI_plist_t plist;
+  LCI_plist_create(&plist);
+  LCI_plist_set_CQ(plist,&cq);
+  LCI_plist_set_completion(plist,LCI_PORT_MESSAGE, LCI_COMPLETION_QUEUE);
 
-  LCI_endpoint_init(&ep, 0, prop);
+  LCI_endpoint_init(&ep, 0, plist);
   int rank = LCI_RANK;
   LCI_barrier();
 

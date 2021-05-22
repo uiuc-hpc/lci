@@ -21,7 +21,5 @@ endfunction()
 
 add_lci_benchmarks(
         pingpong.cpp
-        pingpong2.cpp
         pingpong_mt.cpp
-        pingpong_mt2.cpp
 )

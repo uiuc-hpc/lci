@@ -9,7 +9,6 @@
 
 #include "pm.h"
 #include "dreg.h"
-#include "macro.h"
 
 typedef struct lc_server {
   SERVER_COMMON
@@ -92,61 +91,36 @@ static inline int lc_server_progress(lc_server* s)
   int ret = (ne > 0);
   int i;
 
-#ifdef LCI_DEBUG
-  assert(ne >= 0);
-#endif
-
+  LCI_DBG_Assert(ne >= 0, "ibv_poll_cq returns error");
   for (i = 0; i < ne; i++) {
-#ifdef LCI_DEBUG
-    if (wc[i].status != IBV_WC_SUCCESS) {
-      fprintf(stderr, "Failed status %s (%d) for wr_id %d\n",
-              ibv_wc_status_str(wc[i].status), wc[i].status, (int)wc[i].wr_id);
-      exit(EXIT_FAILURE);
-    }
-#endif
+    LCI_DBG_Assert(wc[i].status == IBV_WC_SUCCESS,
+                   "Failed status %s (%d) for wr_id %d\n",
+                   ibv_wc_status_str(wc[i].status), wc[i].status,
+                   (int)wc[i].wr_id);
     s->recv_posted--;
     __builtin_prefetch((void*)wc[i].wr_id);
-    if (wc[i].opcode != IBV_WC_RECV_RDMA_WITH_IMM) {
-      // simple recv.
-      lc_packet* p = (lc_packet*)wc[i].wr_id;
-      p->context.sync = &p->context.sync_s;
-      p->context.sync->request.rank = s->qp2rank[wc[i].qp_num % s->qp2rank_mod];
-      p->context.sync->request.__reserved__ = (void*)s->qp[p->context.sync->request.rank];
-      p->context.sync->request.data.buffer.length = wc[i].byte_len;
-      lc_serve_recv(p, wc[i].imm_data);
+    if (wc[i].opcode == IBV_WC_RECV) {
+      // two-sided recv.
+      lc_packet* packet = (lc_packet*)wc[i].wr_id;
+      int src_rank = s->qp2rank[wc[i].qp_num % s->qp2rank_mod];
+      lc_serve_recv(packet, src_rank, wc[i].byte_len, wc[i].imm_data);
     } else {
-      if (wc[i].imm_data & IBV_IMM_RTR) {
-        // recv immediate protocol (3-msg rdz).
-        lc_packet* p =
-            (lc_packet*)(s->heap_addr + (wc[i].imm_data ^ IBV_IMM_RTR));
-        lc_serve_imm(p);
-        lc_pool_put(s->pkpool, (lc_packet*)wc[i].wr_id);
-      } else {
-        // recv rdma with signal.
-        lc_packet* p = (lc_packet*)wc[i].wr_id;
-        p->context.sync = &p->context.sync_s;
-        lc_serve_recv_rdma(p, wc[i].imm_data);
-      }
+      LCI_DBG_Assert(wc[i].opcode == IBV_WC_RECV_RDMA_WITH_IMM, "unexpected opcode");
+      lc_serve_rdma(wc[i].imm_data);
     }
   }
 
   ne = ibv_poll_cq(s->send_cq, MAX_CQ, wc);
   ret |= (ne > 0);
 
-#ifdef LCI_DEBUG
-  assert(ne >= 0);
-#endif
-
+  LCI_DBG_Assert(ne >= 0, "ibv_poll_cq returns error");
   for (i = 0; i < ne; i++) {
-#ifdef LCI_DEBUG
-    if (wc[i].status != IBV_WC_SUCCESS) {
-      fprintf(stderr, "Failed status %s (%d) for wr_id %d\n",
-              ibv_wc_status_str(wc[i].status), wc[i].status, (int)wc[i].wr_id);
-      exit(EXIT_FAILURE);
-    }
-#endif
-    lc_packet* p = (lc_packet*)wc[i].wr_id;
-    if (p) lc_serve_send(p);
+    LCI_DBG_Assert(wc[i].status == IBV_WC_SUCCESS,
+                   "Failed status %s (%d) for wr_id %d\n",
+                   ibv_wc_status_str(wc[i].status), wc[i].status,
+                   (int)wc[i].wr_id);
+    LCI_DBG_Assert(wc[i].wr_id != 0, "ibv send/write: don't receive any context");
+    lc_serve_send((void*)wc[i].wr_id);
   }
 
   // Make sure we always have enough packet, but do not block.
@@ -155,11 +129,7 @@ static inline int lc_server_progress(lc_server* s)
     ret = 1;
   }
 
-#ifdef LCI_DEBUG
-  if (s->recv_posted == 0) {
-    fprintf(stderr, "WARNING DEADLOCK %d\n", s->recv_posted);
-  }
-#endif
+  LCI_DBG_Log(LCI_LOG_WARN, "WARNING DEADLOCK %lu\n", s->recv_posted);
 
   return ret;
 }

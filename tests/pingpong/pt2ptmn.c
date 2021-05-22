@@ -59,6 +59,7 @@ int main(int argc, char** args) {
       }
     }
   }
+  LCI_queue_free(&cq);
   LCI_close();
   return 0;
 }

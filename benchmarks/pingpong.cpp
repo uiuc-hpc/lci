@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <assert.h>
 #include "lci.h"
 #include "comm_exp.h"
 
@@ -13,63 +14,66 @@
 LCI_endpoint_t ep;
 
 int main(int argc, char *argv[]) {
-  int rank, size;
   int min_size = 8;
   int max_size = 8192;
+  bool touch_data = false;
   if (argc > 1)
     min_size = atoi(argv[1]);
   if (argc > 2)
     max_size = atoi(argv[2]);
+  if (argc > 3)
+    touch_data = atoi(argv[3]);
 
   LCI_open();
-  LCI_plist_t prop;
-  LCI_plist_create(&prop);
-  LCI_MT_t mt;
-  LCI_MT_init(&mt, 0);
-  LCI_plist_set_MT(prop, &mt);
-  LCI_endpoint_init(&ep, 0, prop);
-  rank = LCI_RANK;
-  size = LCI_NUM_PROCESSES;
-  yp_init();
+  ep = LCI_UR_ENDPOINT;
 
-  char* s_buf, *r_buf;
+  int rank = LCI_RANK;
+  int nranks = LCI_NUM_PROCESSES;
+  int peer_rank = (rank + nranks / 2) % nranks;
   LCI_tag_t tag = 99;
 
-  size_t msg_size;
-  LCI_comp_t sync;
+  LCI_comp_t cq;
+  LCI_queue_create(0, &cq);
 
-  _memalign((void**) &s_buf, 8192, max_size);
-  _memalign((void**) &r_buf, 8192, max_size);
-  memset(s_buf, 'A', max_size);
-  memset(r_buf, 'B', max_size);
+  LCI_mbuffer_t mbuffer;
+  LCI_request_t request;
 
-  if(rank == 0) {
+  yp_init();
+  LCI_barrier();
+
+  if (rank < nranks / 2) {
     print_banner();
 
     RUN_VARY_MSG({min_size, max_size}, 1, [&](int msg_size, int iter) {
+      LCI_mbuffer_alloc(0, &mbuffer);
+      if (touch_data) write_buffer((char*) mbuffer.address, msg_size, 's');
+      mbuffer.length = msg_size;
+      LCI_sendmn(ep, mbuffer, peer_rank, tag);
 
-      LCI_recvm(ep, r_buf, 1 - rank, tag, sync, NULL);
-      while (LCI_one2one_test_empty(&sync))
+      LCI_recvmn(ep, peer_rank, tag, cq, NULL);
+      while (LCI_queue_pop(cq, &request) == LCI_ERR_RETRY)
         LCI_progress(0, 1);
-
-      while (LCI_sendm(ep, s_buf, 1 - rank, tag) != LCI_OK)
-        LCI_progress(0, 1);
-    });
+      assert(request.data.mbuffer.length == msg_size);
+      if (touch_data) check_buffer((char*) request.data.mbuffer.address, msg_size, 's');
+      LCI_mbuffer_free(0, request.data.mbuffer);
+    }, {rank % (nranks / 2), nranks / 2});
   } else {
     RUN_VARY_MSG({min_size, max_size}, 0, [&](int msg_size, int iter) {
-      while (LCI_sendm(ep, s_buf, 1 - rank, tag) != LCI_OK)
+      LCI_recvmn(ep, peer_rank, tag, cq, NULL);
+      while (LCI_queue_pop(cq, &request) == LCI_ERR_RETRY)
         LCI_progress(0, 1);
+      assert(request.data.mbuffer.length == msg_size);
+      if (touch_data) check_buffer((char*) request.data.mbuffer.address, msg_size, 's');
+      LCI_mbuffer_free(0, request.data.mbuffer);
 
-
-      LCI_recvm(ep, r_buf, 1 - rank, tag, sync, NULL);
-      while (LCI_one2one_test_empty(&sync))
-        LCI_progress(0, 1);
-    });
+      LCI_mbuffer_alloc(0, &mbuffer);
+      if (touch_data) write_buffer((char*) mbuffer.address, msg_size, 's');
+      mbuffer.length = msg_size;
+      LCI_sendmn(ep, mbuffer, peer_rank, tag);
+    }, {rank % (nranks / 2), nranks / 2});
   }
 
-  _free(s_buf);
-  _free(r_buf);
-
+  LCI_queue_free(&cq);
   LCI_close();
   return EXIT_SUCCESS;
 }
