@@ -4,9 +4,10 @@
 LCI_error_t LCI_puts(LCI_endpoint_t ep, LCI_short_t src, int rank,
                      LCI_tag_t tag, uintptr_t remote_completion)
 {
-//  struct lc_rep* rep = &(ep->rep[rank]);
-//  lc_server_sends(ep->server, rep->handle, &src, sizeof(LCI_short_t),
-//                  LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_SHORT, tag));
+  LCI_DBG_Assert(remote_completion == LCI_UR_CQ_REMOTE, "Only support default remote completion (dynamic put to default cq)\n");
+  struct lc_rep* rep = &(ep->rep[rank]);
+  lc_server_sends(ep->server, rep->handle, &src, sizeof(LCI_short_t),
+                  LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_SHORT, tag));
   return LCI_ERR_FEATURE_NA;
 }
 

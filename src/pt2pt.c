@@ -20,7 +20,7 @@ LCI_error_t LCI_sendm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                           lc_pool_get_local(ep->pkpool) : -1;
   memcpy(packet->data.address, buffer.address, buffer.length);
 
-  LCII_context_t *ctx = LCIU_malloc(sizeof(struct LCII_context_t));
+  LCII_context_t *ctx = LCIU_malloc(sizeof(LCII_context_t));
   ctx->data.mbuffer.address = (void*) packet->data.address;
   ctx->msg_type = LCI_MSG_MEDIUM;
 
@@ -38,7 +38,7 @@ LCI_error_t LCI_sendmn(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   packet->context.poolid = (buffer.length > LCI_PACKET_RETURN_THRESHOLD) ?
                            lc_pool_get_local(ep->pkpool) : -1;
 
-  LCII_context_t *ctx = LCIU_malloc(sizeof(struct LCII_context_t));
+  LCII_context_t *ctx = LCIU_malloc(sizeof(LCII_context_t));
   ctx->data.mbuffer.address = (void*) packet->data.address;
   ctx->msg_type = LCI_MSG_MEDIUM;
 
@@ -58,11 +58,11 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
     return LCI_ERR_RETRY;
   packet->context.poolid = -1;
 
-  LCII_context_t *rts_ctx = LCIU_malloc(sizeof(struct LCII_context_t));
+  LCII_context_t *rts_ctx = LCIU_malloc(sizeof(LCII_context_t));
   rts_ctx->data.mbuffer.address = (void*) &(packet->data);
   rts_ctx->msg_type = LCI_MSG_RTS;
 
-  LCII_context_t *long_ctx = LCIU_malloc(sizeof(struct LCII_context_t));
+  LCII_context_t *long_ctx = LCIU_malloc(sizeof(LCII_context_t));
   long_ctx->ep = ep;
   long_ctx->data.lbuffer = buffer;
   long_ctx->data_type = LCI_LONG;

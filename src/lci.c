@@ -25,6 +25,7 @@ LCI_API int LCI_MAX_QUEUE_LENGTH = CQ_MAX_SIZE;
 LCI_API int LCI_LOG_LEVEL = LCI_LOG_WARN;
 LCI_API int LCI_PACKET_RETURN_THRESHOLD;
 LCI_API LCI_endpoint_t LCI_UR_ENDPOINT;
+LCI_API LCI_comp_t LCI_UR_CQ;
 
 static inline int getenv_or(char* env, int def) {
   char* val = getenv(env);
@@ -110,6 +111,7 @@ LCI_error_t LCI_open()
   }
 
   LCI_endpoint_init(&LCI_UR_ENDPOINT, 0, LCI_PLISTS[0]);
+  LCI_queue_create(0, &LCI_UR_CQ);
   LCI_DBG_Log(LCI_LOG_WARN, "Macro LCI_DEBUG is defined. Running in low-performance debug mode!\n");
 
   return LCI_OK;
@@ -117,6 +119,8 @@ LCI_error_t LCI_open()
 
 LCI_error_t LCI_close()
 {
+  LCI_queue_free(&LCI_UR_CQ);
+  LCI_endpoint_free(&LCI_UR_ENDPOINT);
   for (int i = 0; i < LCI_NUM_DEVICES; i++) {
     lc_dev_finalize(LCI_DEVICES[i]);
   }

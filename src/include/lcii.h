@@ -77,18 +77,17 @@ struct LCI_endpoint_s {
  * Internal context structure, Used by asynchronous operations to pass
  * information between initialization phase and completion phase.
  */
-struct LCII_context_t {
+typedef struct {
+  LCI_endpoint_t ep;          // 8 bytes
+  LCI_data_t data;            // 24 bytes
+  LCI_data_type_t data_type;  // 4 bytes
+  LCI_msg_type_t msg_type;    // 4 bytes
+  uint32_t rank;              // 4 bytes
+  LCI_tag_t tag;              // 4 bytes
+  LCI_comp_t completion;      // 8 bytes
+  void* user_context;         // 8 bytes
   int id; // used by the long message protocol
-  LCI_endpoint_t ep;
-  LCI_data_t data;
-  LCI_data_type_t data_type;
-  LCI_msg_type_t msg_type;
-  uint32_t rank;
-  LCI_tag_t tag;
-  LCI_comp_t completion;
-  void* user_context;
-};
-typedef struct LCII_context_t LCII_context_t;
+} LCII_context_t;
 
 /**
  * Synchronizer, owned by the user.
@@ -105,13 +104,11 @@ extern int lcg_deadlock;
 /**
  * Create a matching hash-table.
  */
-LCI_API
 LCI_error_t LCII_mt_init(LCI_mt_t* mt, uint32_t length);
 
 /**
  * Destroy the matching hash-table.
  */
-LCI_API
 LCI_error_t LCII_mt_free(LCI_mt_t* mt);
 
 static inline LCI_request_t LCII_ctx2req(LCII_context_t *ctx) {

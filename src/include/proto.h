@@ -144,6 +144,23 @@ static inline void lc_serve_recv(lc_packet* packet, uint32_t src_rank,
     case LCI_MSG_RTR:
       lc_handle_rtr(ep, packet);
       break;
+    case LCI_MSG_RDMA_SHORT:
+    {
+      // dynamic put
+      LCI_DBG_Assert(length == LCI_SHORT_SIZE, "");
+      LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
+      ctx->ep = ep;
+      memcpy(&(ctx->data.immediate), packet->data.address, LCI_SHORT_SIZE);
+      LCII_free_packet(packet);
+      ctx->data_type = LCI_IMMEDIATE;
+      ctx->msg_type = LCI_MSG_RDMA_SHORT;
+      ctx->rank = src_rank;
+      ctx->tag = tag;
+      ctx->completion = LCI_UR_CQ;
+      ctx->user_context = NULL;
+      lc_ce_dispatch(ep->msg_comp_type, ctx);
+      break;
+    }
     default:
       LCI_DBG_Assert(false, "unknown proto!");
   }
@@ -163,10 +180,6 @@ static inline void lc_serve_rdma(LCII_proto_t proto)
                      "Didn't get the right context! This might imply some bugs in the lcii_register.");
       // recvl has been completed locally. Need to process completion.
       lc_ce_dispatch(ep->msg_comp_type, ctx);
-      break;
-    }
-    case LCI_MSG_RDMA:
-    {
       break;
     }
     default:

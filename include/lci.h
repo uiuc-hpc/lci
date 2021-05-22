@@ -18,6 +18,8 @@ extern "C" {
 
 #define LCI_API __attribute__((visibility("default")))
 
+#define LCI_UR_CQ_REMOTE 0
+
 /**
  * \defgroup LCITypes LCI Data Types.
  * @{
@@ -63,7 +65,9 @@ typedef enum {
   LCI_MSG_LONG,
   LCI_MSG_RTS,
   LCI_MSG_RTR,
-  LCI_MSG_RDMA,
+  LCI_MSG_RDMA_SHORT,
+  LCI_MSG_RDMA_MEDIUM,
+  LCI_MSG_RDMA_LONG,
 } LCI_msg_type_t;
 
 /**
@@ -165,9 +169,9 @@ typedef uint64_t LCI_short_t;
  * @todo should we add a flag to identify whether this buffer is allocated by users or LCI?
 */
 typedef union {
-  LCI_short_t immediate;
-  LCI_mbuffer_t mbuffer;
-  LCI_lbuffer_t lbuffer;
+  LCI_short_t immediate;  // 8 bytes
+  LCI_mbuffer_t mbuffer;  // 16 bytes
+  LCI_lbuffer_t lbuffer;  // 24 bytes
 } LCI_data_t;
 
 /**
@@ -337,6 +341,7 @@ extern int LCI_PACKET_RETURN_THRESHOLD;
  * and all types of communications.
  */
 extern LCI_endpoint_t LCI_UR_ENDPOINT;
+extern LCI_comp_t LCI_UR_CQ;
 /**@}*/
 
 /**
@@ -460,7 +465,6 @@ LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, int device,
 
 /**
  * Free an endpoint, collective calls for those involved in the endpoints.
- * @todo not implemented: endpoints are stored in an array.
  */
 LCI_API
 LCI_error_t LCI_endpoint_free(LCI_endpoint_t *endpoint);
