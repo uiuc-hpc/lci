@@ -88,8 +88,7 @@ void* recv_thread(void* arg)
 
 
       LCI_recvm(ep, dst_buf, peer_rank, tag, sync, nullptr);
-      while (LCI_sync_test(sync, NULL) == LCI_ERR_RETRY)
-          LCI_progress(0, 1);
+      while (LCI_sync_test(sync, NULL) == LCI_ERR_RETRY) continue;
       check_buffer((char*)dst_buf.address, size, 's');
 
       while (LCI_sendm(ep, src_buf, peer_rank, tag) != LCI_OK) continue;
@@ -133,8 +132,7 @@ void* send_thread(void* arg)
 
 
       LCI_recvm(ep, dst_buf, peer_rank, tag, sync, nullptr);
-      while (LCI_sync_test(sync, NULL) == LCI_ERR_RETRY)
-          LCI_progress(0, 1);
+      while (LCI_sync_test(sync, NULL) == LCI_ERR_RETRY) continue;
       check_buffer((char*)dst_buf.address, size, 's');
     }
 

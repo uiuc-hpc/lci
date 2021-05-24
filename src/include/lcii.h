@@ -3,6 +3,7 @@
 
 #include "lci.h"
 #include "config.h"
+#include "lcm_log.h"
 #include "cq.h"
 #include "lcii_register.h"
 
@@ -76,17 +77,21 @@ struct LCI_endpoint_s {
 /**
  * Internal context structure, Used by asynchronous operations to pass
  * information between initialization phase and completion phase.
+ * (1) for issue_send->send_completion, go through user_context field of backends
+ * (2) for issue_recv->recv_completion, go through the matching table
+ * (3) for issue_recvl->issue_rtr->rdma_completion, go through the matching table and register
  */
 typedef struct {
-  LCI_endpoint_t ep;          // 8 bytes
+  // LCI_request_t fields, 44 bytes
+  void* user_context;         // 8 bytes
   LCI_data_t data;            // 24 bytes
   LCI_data_type_t data_type;  // 4 bytes
-  LCI_msg_type_t msg_type;    // 4 bytes
   uint32_t rank;              // 4 bytes
   LCI_tag_t tag;              // 4 bytes
+  // used by LCI internally
+  LCI_comp_type_t comp_type;  // 4 bytes
   LCI_comp_t completion;      // 8 bytes
-  void* user_context;         // 8 bytes
-  int id; // used by the long message protocol
+  int reg_key;                // 4 bytes
 } LCII_context_t;
 
 /**
@@ -124,6 +129,7 @@ static inline LCI_request_t LCII_ctx2req(LCII_context_t *ctx) {
   return request;
 }
 
+#include "hashtable.h"
 #include "pool.h"
 #include "packet.h"
 #include "proto.h"

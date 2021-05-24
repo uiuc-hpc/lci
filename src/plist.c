@@ -55,7 +55,7 @@ LCI_error_t LCI_plist_set_comp_type(LCI_plist_t plist, LCI_port_t port,
       plist->msg_comp_type = comp_type;
       break;
     default:
-      LCI_DBG_Assert(false, "unknown port!");
+      LCM_DBG_Assert(false, "unknown port!");
   }
   return LCI_OK;
 }

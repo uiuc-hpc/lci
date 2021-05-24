@@ -16,7 +16,7 @@ static inline void LCII_MEM_FENCE()
   asm volatile("mfence" ::: "memory");
 }
 
-#include "lciu_thread.h"
+#include "lcm_spinlock.h"
 #include "lciu_mem.h"
 
 #if 0

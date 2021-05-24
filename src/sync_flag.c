@@ -13,7 +13,7 @@ LCI_error_t LCI_sync_create(LCI_device_t device, LCI_sync_type_t sync_type,
 {
   // we don't need device for this simple synchronizer
   (void) device;
-  LCI_DBG_Assert(sync_type == LCI_SYNC_SIMPLE, "Currently LCI only supports LCI_SYNC_SIMPLE type.\n");
+  LCM_DBG_Assert(sync_type == LCI_SYNC_SIMPLE, "Currently LCI only supports LCI_SYNC_SIMPLE type.\n");
   LCII_sync_t *sync = LCIU_malloc(sizeof(LCII_sync_t));
   sync->flag = LCII_SYNC_EMPTY;
   *completion = sync;

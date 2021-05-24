@@ -1,14 +1,6 @@
 #ifndef LC_PROTO_H
 #define LC_PROTO_H
 
-#include "config.h"
-
-#include "lci.h"
-#include "log.h"
-#include "cq.h"
-#include "hashtable.h"
-#include "lciu.h"
-
 /**
  * LCI internal protocol type
  * used to pass information to remote side
@@ -26,16 +18,16 @@ typedef uint32_t LCII_proto_t;
 static inline void lc_handle_rts(LCI_endpoint_t ep, lc_packet* p, LCII_context_t *long_ctx)
 {
 
-  LCI_DBG_Assert(long_ctx->data.lbuffer.length >= p->data.rts.size,
+  LCM_DBG_Assert(long_ctx->data.lbuffer.length >= p->data.rts.size,
        "the message sent by sendl is larger than the buffer posted by recvl!");
   long_ctx->data.lbuffer.length = p->data.rts.size;
 
   LCII_context_t *rtr_ctx = LCIU_malloc(sizeof(LCII_context_t));
   rtr_ctx->data.mbuffer.address = &(p->data);
-  rtr_ctx->msg_type = LCI_MSG_RTR;
+  rtr_ctx->comp_type = LCI_COMPLETION_FREE;
 
   p->context.poolid = -1;
-  p->data.rtr.ctx_id = long_ctx->id;
+  p->data.rtr.ctx_id = long_ctx->reg_key;
   p->data.rtr.tgt_base = (uintptr_t) long_ctx->data.lbuffer.segment->address;
   p->data.rtr.tgt_offset =
       (uintptr_t) long_ctx->data.lbuffer.address - p->data.rtr.tgt_base;
@@ -61,12 +53,16 @@ static inline void lc_handle_rtr(LCI_endpoint_t ep, lc_packet* packet)
   LCII_free_packet(packet);
 }
 
-static inline void lc_ce_dispatch(LCI_comp_type_t comp_type, LCII_context_t *ctx)
+static inline void lc_ce_dispatch(LCII_context_t *ctx)
 {
-  if (ctx->completion == NULL) {
-    LCIU_free(ctx);
-  }
-  switch (comp_type) {
+  switch (ctx->comp_type) {
+    case LCI_COMPLETION_NONE:
+      LCIU_free(ctx);
+      break;
+    case LCI_COMPLETION_FREE:
+      LCII_free_packet(LCII_mbuffer2packet(ctx->data.mbuffer));
+      LCIU_free(ctx);
+      break;
 #ifdef LCI_SERVER_HAS_SYNC
     case LCI_COMPLETION_SYNC: {
       LCI_sync_signal(ctx->completion, ctx);
@@ -82,11 +78,12 @@ static inline void lc_ce_dispatch(LCI_comp_type_t comp_type, LCII_context_t *ctx
     case LCI_COMPLETION_HANDLER: {
       LCI_handler_t* handler = ctx->completion;
       handler(LCII_ctx2req(ctx));
+      LCIU_free(ctx);
       break;
     }
 #endif
     default:
-      LCI_DBG_Assert(false, "unknown proto!");
+      LCM_DBG_Assert(false, "Unknown completion type: %d!\n", ctx->comp_type);
   }
 }
 
@@ -101,14 +98,14 @@ static inline void lc_serve_recv(lc_packet* packet, uint32_t src_rank,
   switch (msg_type) {
     case LCI_MSG_SHORT:
     {
-      LCI_DBG_Assert(length == LCI_SHORT_SIZE, "");
+      LCM_DBG_Assert(length == LCI_SHORT_SIZE, "");
       lc_key key = LCII_MAKE_KEY(src_rank, ep->gid, tag, LCI_MSG_SHORT);
       lc_value value = (lc_value)packet;
       if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
         LCII_context_t* ctx = (LCII_context_t*)value;
         memcpy(&(ctx->data.immediate), packet->data.address, LCI_SHORT_SIZE);
         LCII_free_packet(packet);
-        lc_ce_dispatch(ep->msg_comp_type, ctx);
+        lc_ce_dispatch(ctx);
       }
       break;
     }
@@ -128,7 +125,7 @@ static inline void lc_serve_recv(lc_packet* packet, uint32_t src_rank,
           // use LCI packet
           ctx->data.mbuffer.address = packet->data.address;
         }
-        lc_ce_dispatch(ep->msg_comp_type, ctx);
+        lc_ce_dispatch(ctx);
       }
       break;
     }
@@ -147,37 +144,35 @@ static inline void lc_serve_recv(lc_packet* packet, uint32_t src_rank,
     case LCI_MSG_RDMA_SHORT:
     {
       // dynamic put
-      LCI_DBG_Assert(length == LCI_SHORT_SIZE, "");
+      LCM_DBG_Assert(length == LCI_SHORT_SIZE, "");
       LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
-      ctx->ep = ep;
       memcpy(&(ctx->data.immediate), packet->data.address, LCI_SHORT_SIZE);
       LCII_free_packet(packet);
       ctx->data_type = LCI_IMMEDIATE;
-      ctx->msg_type = LCI_MSG_RDMA_SHORT;
       ctx->rank = src_rank;
       ctx->tag = tag;
+      ctx->comp_type = ep->msg_comp_type;
       ctx->completion = LCI_UR_CQ;
       ctx->user_context = NULL;
-      lc_ce_dispatch(ep->msg_comp_type, ctx);
+      lc_ce_dispatch(ctx);
       break;
     }
     case LCI_MSG_RDMA_MEDIUM:
     {
       LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
-      ctx->ep = ep;
       ctx->data.mbuffer.address = packet->data.address;
       ctx->data.mbuffer.length = length;
       ctx->data_type = LCI_MEDIUM;
-      ctx->msg_type = LCI_MSG_RDMA_MEDIUM;
       ctx->rank = src_rank;
       ctx->tag = tag;
+      ctx->comp_type = ep->msg_comp_type;
       ctx->completion = LCI_UR_CQ;
       ctx->user_context = NULL;
-      lc_ce_dispatch(ep->msg_comp_type, ctx);
+      lc_ce_dispatch(ctx);
       break;
     }
     default:
-      LCI_DBG_Assert(false, "unknown proto!");
+      LCM_DBG_Assert(false, "unknown proto!");
   }
 }
 
@@ -191,14 +186,14 @@ static inline void lc_serve_rdma(LCII_proto_t proto)
     case LCI_MSG_LONG: {
       LCII_context_t *ctx =
           (LCII_context_t*)LCII_register_remove(ep->ctx_reg, tag);
-      LCI_DBG_Assert(ctx->msg_type == LCI_MSG_LONG,
+      LCM_DBG_Assert(ctx->data_type == LCI_LONG,
                      "Didn't get the right context! This might imply some bugs in the lcii_register.");
       // recvl has been completed locally. Need to process completion.
-      lc_ce_dispatch(ep->msg_comp_type, ctx);
+      lc_ce_dispatch(ctx);
       break;
     }
     default:
-      LCI_DBG_Assert(false, "unknown proto!");
+      LCM_DBG_Assert(false, "unknown proto!");
   }
 }
 
@@ -206,30 +201,7 @@ static inline void lc_serve_rdma(LCII_proto_t proto)
 static inline void lc_serve_send(void* raw_ctx)
 {
   LCII_context_t *ctx = raw_ctx;
-  LCI_endpoint_t ep = ctx->ep;
-//  LCI_msg_type_t proto = p->context.proto;
-  switch (ctx->msg_type) {
-    case LCI_MSG_MEDIUM:
-      LCII_free_packet(LCII_mbuffer2packet(ctx->data.mbuffer));
-      break;
-    case LCI_MSG_LONG:
-      // sendl has been completed locally. Need to process completion.
-      lc_ce_dispatch(ep->cmd_comp_type, ctx);
-      break;
-    case LCI_MSG_RTS:
-      // sendl has not been completed locally. No need to process completion.
-      LCII_free_packet(LCII_mbuffer2packet(ctx->data.mbuffer));
-      break;
-    case LCI_MSG_RTR:
-      // recvl has not been completed locally. No need to process completion.
-      LCII_free_packet(LCII_mbuffer2packet(ctx->data.mbuffer));
-      break;
-    case LCI_MSG_RDMA_MEDIUM:
-      LCII_free_packet(LCII_mbuffer2packet(ctx->data.mbuffer));
-      break;
-    default:
-      LCI_DBG_Assert(false, "unexpected message type %d\n", ctx->msg_type);
-  }
+  lc_ce_dispatch(ctx);
 }
 
 #endif

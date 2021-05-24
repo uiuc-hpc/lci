@@ -31,7 +31,7 @@ struct lc_hash {
       lc_value val;
     } entry;
     struct {
-      LCIU_mutex_t lock;
+      LCIU_spinlock_t lock;
       struct lc_hash* next;
     } control;
   };
@@ -80,7 +80,7 @@ static inline struct lc_hash* create_table(size_t num_rows)
   // Initialize all with EMPTY and clear lock.
   for (size_t i = 0; i < num_rows; i++) {
     // First are control.
-    ret[i * TBL_WIDTH].control.lock = LCIU_SPIN_UNLOCKED;
+    LCIU_spinlock_init(&ret[i * TBL_WIDTH].control.lock);
     ret[i * TBL_WIDTH].control.next = NULL;
 
     // Remaining are slots.
@@ -94,6 +94,7 @@ static inline struct lc_hash* create_table(size_t num_rows)
 
 static inline void free_table(struct lc_hash* p)
 {
+  // TODO: LCIU_spinlock_init(&ret[i * TBL_WIDTH].control.lock);
   free(p);
 }
 

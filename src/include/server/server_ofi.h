@@ -109,18 +109,18 @@ static inline void lc_server_init(int id, lc_server** dev)
 
   // Create info.
   FI_SAFECALL(fi_getinfo(FI_VERSION(1, 6), NULL, NULL, 0, hints, &s->fi));
-  LCI_Log(LCI_LOG_INFO, "Provider name: %s\n", s->fi->fabric_attr->prov_name);
-  LCI_Log(LCI_LOG_INFO, "MR mode hints: [%s]\n", fi_tostr(&(hints->domain_attr->mr_mode), FI_TYPE_MR_MODE));
-  LCI_Log(LCI_LOG_INFO, "MR mode provided: [%s]\n", fi_tostr(&(s->fi->domain_attr->mr_mode), FI_TYPE_MR_MODE));
-  LCI_Log(LCI_LOG_INFO, "Thread mode: %s\n", fi_tostr(&(s->fi->domain_attr->threading), FI_TYPE_THREADING));
-  LCI_Log(LCI_LOG_INFO, "Control progress mode: %s\n", fi_tostr(&(s->fi->domain_attr->control_progress), FI_TYPE_PROGRESS));
-  LCI_Log(LCI_LOG_INFO, "Data progress mode: %s\n", fi_tostr(&(s->fi->domain_attr->data_progress), FI_TYPE_PROGRESS));
-  LCI_Log(LCI_LOG_MAX, "Fi_info provided: %s\n", fi_tostr(s->fi, FI_TYPE_INFO));
-  LCI_Log(LCI_LOG_MAX, "Fabric attributes: %s\n", fi_tostr(s->fi->fabric_attr, FI_TYPE_FABRIC_ATTR));
-  LCI_Log(LCI_LOG_MAX, "Domain attributes: %s\n", fi_tostr(s->fi->domain_attr, FI_TYPE_DOMAIN_ATTR));
-  LCI_Log(LCI_LOG_MAX, "Endpoint attributes: %s\n", fi_tostr(s->fi->ep_attr, FI_TYPE_EP_ATTR));
-  LCI_Assert(s->fi->domain_attr->cq_data_size >= 4, "cq_data_size = %lu\n", s->fi->domain_attr->cq_data_size);
-  LCI_Assert(s->fi->domain_attr->mr_key_size <= 8, "mr_key_size = %lu\n", s->fi->domain_attr->mr_key_size);
+  LCM_Log(LCM_LOG_INFO, "Provider name: %s\n", s->fi->fabric_attr->prov_name);
+  LCM_Log(LCM_LOG_INFO, "MR mode hints: [%s]\n", fi_tostr(&(hints->domain_attr->mr_mode), FI_TYPE_MR_MODE));
+  LCM_Log(LCM_LOG_INFO, "MR mode provided: [%s]\n", fi_tostr(&(s->fi->domain_attr->mr_mode), FI_TYPE_MR_MODE));
+  LCM_Log(LCM_LOG_INFO, "Thread mode: %s\n", fi_tostr(&(s->fi->domain_attr->threading), FI_TYPE_THREADING));
+  LCM_Log(LCM_LOG_INFO, "Control progress mode: %s\n", fi_tostr(&(s->fi->domain_attr->control_progress), FI_TYPE_PROGRESS));
+  LCM_Log(LCM_LOG_INFO, "Data progress mode: %s\n", fi_tostr(&(s->fi->domain_attr->data_progress), FI_TYPE_PROGRESS));
+  LCM_Log(LCM_LOG_MAX, "Fi_info provided: %s\n", fi_tostr(s->fi, FI_TYPE_INFO));
+  LCM_Log(LCM_LOG_MAX, "Fabric attributes: %s\n", fi_tostr(s->fi->fabric_attr, FI_TYPE_FABRIC_ATTR));
+  LCM_Log(LCM_LOG_MAX, "Domain attributes: %s\n", fi_tostr(s->fi->domain_attr, FI_TYPE_DOMAIN_ATTR));
+  LCM_Log(LCM_LOG_MAX, "Endpoint attributes: %s\n", fi_tostr(s->fi->ep_attr, FI_TYPE_EP_ATTR));
+  LCM_Assert(s->fi->domain_attr->cq_data_size >= 4, "cq_data_size = %lu\n", s->fi->domain_attr->cq_data_size);
+  LCM_Assert(s->fi->domain_attr->mr_key_size <= 8, "mr_key_size = %lu\n", s->fi->domain_attr->mr_key_size);
   fi_freeinfo(hints);
 
   // Create libfabric obj.
@@ -167,8 +167,8 @@ static inline void lc_server_init(int id, lc_server** dev)
   const int EP_ADDR_LEN = 6;
   size_t addrlen = 0;
   fi_getname((fid_t)s->ep, NULL, &addrlen);
-  LCI_Log(LCI_LOG_INFO, "addrlen = %lu\n", addrlen);
-  LCI_Assert(addrlen <= 8 * EP_ADDR_LEN, "addrlen = %lu\n", addrlen);
+  LCM_Log(LCM_LOG_INFO, "addrlen = %lu\n", addrlen);
+  LCM_Assert(addrlen <= 8 * EP_ADDR_LEN, "addrlen = %lu\n", addrlen);
   uint64_t my_addr[EP_ADDR_LEN];
   FI_SAFECALL(fi_getname((fid_t)s->ep, my_addr, &addrlen));
   uint64_t my_rkey = fi_mr_key((struct fid_mr *)s->heap_mr);
@@ -177,10 +177,10 @@ static inline void lc_server_init(int id, lc_server** dev)
                  sizeof(struct lc_rep) * LCI_NUM_PROCESSES);
   uintptr_t heap_addr;
   if (s->fi->domain_attr->mr_mode & FI_MR_VIRT_ADDR || s->fi->domain_attr->mr_mode & FI_MR_BASIC) {
-    LCI_Log(LCI_LOG_INFO, "FI_MR_VIRT_ADDR is set.\n");
+    LCM_Log(LCM_LOG_INFO, "FI_MR_VIRT_ADDR is set.\n");
     heap_addr = s->heap_addr;
   } else {
-    LCI_Log(LCI_LOG_INFO, "FI_MR_VIRT_ADDR is not set.\n");
+    LCM_Log(LCM_LOG_INFO, "FI_MR_VIRT_ADDR is not set.\n");
     heap_addr = 0;
   }
   char msg[256];
@@ -203,7 +203,7 @@ static inline void lc_server_init(int id, lc_server** dev)
              &peer_addr[0], &peer_addr[1], &peer_addr[2], &peer_addr[3], &peer_addr[4], &peer_addr[5],
              &rep->base, &rep->rkey);
       int ret = fi_av_insert(s->av, (void*)peer_addr, 1, rep->handle, 0, NULL);
-      LCI_Assert(ret == 1, "ret = %d\n", ret);
+      LCM_Assert(ret == 1, "ret = %d\n", ret);
     } else {
       struct lc_rep* rep = &s->rep[i];
       rep->rank = i;
@@ -211,7 +211,7 @@ static inline void lc_server_init(int id, lc_server** dev)
       rep->base = heap_addr;
       rep->rkey = my_rkey;
       int ret = fi_av_insert(s->av, (void*)my_addr, 1, rep->handle, 0, NULL);
-      LCI_Assert(ret == 1, "ret = %d\n", ret);
+      LCM_Assert(ret == 1, "ret = %d\n", ret);
     }
   }
 
@@ -257,7 +257,7 @@ static inline int lc_server_progress(lc_server* s)
 #ifdef LCI_DEBUG
     } else if (ret == -FI_EAGAIN) {
     } else {
-      LCI_DBG_Assert(ret == -FI_EAVAIL, "unexpected return error: %s\n", fi_strerror(-ret));
+      LCM_DBG_Assert(ret == -FI_EAVAIL, "unexpected return error: %s\n", fi_strerror(-ret));
       fi_cq_readerr(s->cq, &error, 0);
       printf("Err: %s\n", fi_strerror(error.err));
       exit(error.err);
@@ -270,7 +270,7 @@ static inline int lc_server_progress(lc_server* s)
 
 #ifdef LCI_DEBUG
   if (s->recv_posted == 0) {
-    LCI_DBG_Log(LCI_LOG_WARN, "Run out of posted receive packets! Deadlock!\n");
+    LCM_DBG_Log(LCM_LOG_WARN, "Run out of posted receive packets! Potentially deadlock!\n");
   }
 #endif
 

@@ -1,5 +1,4 @@
 #include <limits.h>
-#include "lci.h"
 #include "lcii.h"
 #include "cq.h"
 
@@ -22,7 +21,6 @@ LCI_API int LCI_DEFAULT_TABLE_LENGTH = 1u << TBL_BIT_SIZE;
 LCI_API int LCI_MAX_TABLE_LENGTH = 1u << TBL_BIT_SIZE;
 LCI_API int LCI_DEFAULT_QUEUE_LENGTH = CQ_MAX_SIZE;
 LCI_API int LCI_MAX_QUEUE_LENGTH = CQ_MAX_SIZE;
-LCI_API int LCI_LOG_LEVEL = LCI_LOG_WARN;
 LCI_API int LCI_PACKET_RETURN_THRESHOLD;
 LCI_API LCI_endpoint_t LCI_UR_ENDPOINT;
 LCI_API LCI_comp_t LCI_UR_CQ;
@@ -45,23 +43,6 @@ void lc_config_init(int num_proc, int rank)
   LCI_NUM_PROCESSES = num_proc;
   LCI_RANK = rank;
   LCI_REGISTERED_SEGMENT_SIZE = getenv_or("LCI_REGISTERED_SEGMENT_SIZE", LC_DEV_MEM_SIZE);
-
-  p = getenv("LCI_LOG_LEVEL");
-  if (p == NULL) ;
-  else if (strcmp(p, "none") == 0 || strcmp(p, "NONE") == 0)
-    LCI_LOG_LEVEL = LCI_LOG_NONE;
-  else if (strcmp(p, "warn") == 0 || strcmp(p, "WARN") == 0)
-    LCI_LOG_LEVEL = LCI_LOG_WARN;
-  else if (strcmp(p, "trace") == 0 || strcmp(p, "TRACE") == 0)
-    LCI_LOG_LEVEL = LCI_LOG_TRACE;
-  else if (strcmp(p, "info") == 0 || strcmp(p, "INFO") == 0)
-    LCI_LOG_LEVEL = LCI_LOG_INFO;
-  else if (strcmp(p, "debug") == 0 || strcmp(p, "DEBUG") == 0)
-    LCI_LOG_LEVEL = LCI_LOG_DEBUG;
-  else if (strcmp(p, "max") == 0 || strcmp(p, "MAX") == 0)
-    LCI_LOG_LEVEL = LCI_LOG_MAX;
-  else
-    LCI_Log(LCI_LOG_WARN, "unknown env LCI_LOG_LEVEL (%s against none|warn|trace|info|debug|max). use the default LCI_LOG_WARN.\n", p);
 
   LCI_DEVICES = LCIU_calloc(sizeof(lc_server*), LCI_NUM_DEVICES);
   LCI_PLISTS = LCIU_calloc(sizeof(LCI_plist_t), LCI_NUM_DEVICES);
@@ -92,6 +73,9 @@ void lc_dev_init(int id, lc_server** dev, LCI_plist_t *plist)
 
 void lc_dev_finalize(lc_server* dev)
 {
+  int total_num = lc_pool_count(dev->pkpool) + dev->recv_posted;
+  if (total_num != LC_SERVER_NUM_PKTS)
+    LCM_DBG_Log(LCM_LOG_WARN, "Potentially losing packets %d != %d\n", total_num, LC_SERVER_NUM_PKTS);
   LCII_mt_free(&dev->mt);
   lc_pool_destroy(dev->pkpool);
   lc_server_finalize(dev);
@@ -112,7 +96,7 @@ LCI_error_t LCI_open()
 
   LCI_endpoint_init(&LCI_UR_ENDPOINT, 0, LCI_PLISTS[0]);
   LCI_queue_create(0, &LCI_UR_CQ);
-  LCI_DBG_Log(LCI_LOG_WARN, "Macro LCI_DEBUG is defined. Running in low-performance debug mode!\n");
+  LCM_DBG_Log(LCM_LOG_WARN, "Macro LCI_DEBUG is defined. Running in low-performance debug mode!\n");
 
   return LCI_OK;
 }
@@ -134,7 +118,7 @@ LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, int device,
 {
   static int num_endpoints = 0;
   LCI_endpoint_t ep = LCIU_malloc(sizeof(struct LCI_endpoint_s));
-  LCI_Assert(num_endpoints < LCI_MAX_ENDPOINTS, "Too many endpoints!\n");
+  LCM_Assert(num_endpoints < LCI_MAX_ENDPOINTS, "Too many endpoints!\n");
   ep->gid = num_endpoints++;
   LCI_ENDPOINTS[ep->gid] = ep;
   *ep_ptr = ep;

@@ -320,7 +320,7 @@ static inline void lc_server_post_recv(lc_server* s, lc_packet* p)
   if (p == NULL) {
     if (s->recv_posted == LC_SERVER_MAX_RCVS / 2 && !lcg_deadlock) {
       lcg_deadlock = 1;
-      LCI_DBG_Log(LCI_LOG_WARN, "deadlock alert\n");
+      LCM_DBG_Log(LCM_LOG_WARN, "deadlock alert\n");
     }
     return;
   }

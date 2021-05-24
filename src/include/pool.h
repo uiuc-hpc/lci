@@ -9,38 +9,37 @@
 #include <string.h>
 #include <assert.h>
 
-#include "lciu.h"
-#include "dequeue.h"
-
 #define MAX_NPOOLS 272
 #define MAX_LOCAL_POOL 32  // align to a cache line.
 
+#include "lcm_dequeue.h"
+
 extern int lc_pool_nkey;
 extern int32_t tls_pool_struct[MAX_NPOOLS][MAX_LOCAL_POOL];
-extern LCIU_mutex_t init_lock;
-
-struct dequeue;
+extern LCIU_spinlock_t init_lock;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+typedef struct {
+  LCIU_spinlock_t lock;
+  LCM_dequeue_t dq;
+  char padding[64 - sizeof(LCIU_spinlock_t) - sizeof(LCM_dequeue_t)];
+} LCII_local_pool_t __attribute__((aligned(64)));
+
 typedef struct lc_pool {
   int key;
   int32_t npools;
-  struct dequeue* lpools[MAX_NPOOLS];
+  LCII_local_pool_t lpools[MAX_NPOOLS] __attribute__((aligned(64)));
 } lc_pool __attribute__((aligned(64)));
 
 void lc_pool_create(lc_pool** pool);
-
 void lc_pool_destroy(lc_pool* pool);
-
+int lc_pool_count(const struct lc_pool* pool);
 static inline void lc_pool_put(lc_pool* pool, void* elm);
-
 static inline void lc_pool_put_to(lc_pool* pool, void* elm, int32_t pid);
-
 static inline void* lc_pool_get(lc_pool* pool);
-
 static inline void* lc_pool_get_nb(lc_pool* pool);
 
 #ifdef __cplusplus
@@ -48,6 +47,26 @@ static inline void* lc_pool_get_nb(lc_pool* pool);
 #endif
 
 #define POOL_UNINIT ((int32_t)-1)
+
+/*
+ * We would like to hide these two global variable,
+ * but we cannot do it easily, because:
+ * - we want to make LCIU_thread_id an inline function
+ */
+extern int LCIU_nthreads;
+extern __thread int LCIU_thread_id;
+
+/* thread id */
+static inline int LCIU_get_thread_id()
+{
+  if (unlikely(LCIU_thread_id == -1)) {
+    LCIU_thread_id = sched_getcpu();
+    if (LCIU_thread_id == -1) {
+      LCIU_thread_id = __sync_fetch_and_add(&LCIU_nthreads, 1);
+    }
+  }
+  return LCIU_thread_id;
+}
 
 static inline int32_t lc_pool_get_local(struct lc_pool* pool)
 {
@@ -57,10 +76,9 @@ static inline int32_t lc_pool_get_local(struct lc_pool* pool)
     LCIU_acquire_spinlock(&init_lock);
     pid = tls_pool_struct[wid][pool->key];
     if (pid == POOL_UNINIT) {
-      struct dequeue* lpool = (struct dequeue*) LCIU_malloc(sizeof(struct dequeue));
-      dq_init(lpool);
       pid = pool->npools++;
-      pool->lpools[pid] = lpool;
+      LCIU_spinlock_init(&pool->lpools[pid].lock);
+      LCM_dq_init(&pool->lpools[pid].dq, LC_SERVER_NUM_PKTS);
       tls_pool_struct[wid][pool->key] = pid;
     }
     LCIU_release_spinlock(&init_lock);
@@ -72,49 +90,46 @@ static inline int32_t lc_pool_get_local(struct lc_pool* pool)
 // TODO: improve this
 static inline void* lc_pool_get_slow(struct lc_pool* pool)
 {
-  void* elm = NULL;
-  while (!elm) {
-    int steal = rand() % (pool->npools);
-    if (likely(pool->lpools[steal] != NULL))
-      elm = dq_pop_bot(pool->lpools[steal]);
-  }
-  return elm;
+  void *ret = NULL;
+  int steal = rand() % (pool->npools);
+  LCIU_acquire_spinlock(&pool->lpools[steal].lock);
+  ret = LCM_dq_pop_bot(&pool->lpools[steal].dq);
+  LCIU_release_spinlock(&pool->lpools[steal].lock);
+  return ret;
+}
+
+static inline void lc_pool_put_to(struct lc_pool* pool, void* elm, int32_t pid)
+{
+  LCIU_acquire_spinlock(&pool->lpools[pid].lock);
+  LCM_dq_push_top(&pool->lpools[pid].dq, elm);
+  LCIU_release_spinlock(&pool->lpools[pid].lock);
 }
 
 static inline void lc_pool_put(struct lc_pool* pool, void* elm)
 {
   int32_t pid = lc_pool_get_local(pool);
-  struct dequeue* lpool = pool->lpools[pid];
-  dq_push_top(lpool, elm);
-}
-
-static inline void lc_pool_put_to(struct lc_pool* pool, void* elm, int32_t pid)
-{
-  struct dequeue* lpool = pool->lpools[pid];
-  dq_push_top(lpool, elm);
+  lc_pool_put_to(pool, elm, pid);
 }
 
 static inline void* lc_pool_get(struct lc_pool* pool)
 {
   int32_t pid = lc_pool_get_local(pool);
-  struct dequeue* lpool = pool->lpools[pid];
-  void* elm = NULL;
-  elm = dq_pop_top(lpool);
-  if (elm == NULL) elm = lc_pool_get_slow(pool);
+  LCIU_acquire_spinlock(&pool->lpools[pid].lock);
+  void* elm = LCM_dq_pop_top(&pool->lpools[pid].dq);
+  LCIU_release_spinlock(&pool->lpools[pid].lock);
+  while (elm == NULL)
+    elm = lc_pool_get_slow(pool);
   return elm;
 }
 
 static inline void* lc_pool_get_nb(struct lc_pool* pool)
 {
   int32_t pid = lc_pool_get_local(pool);
-  struct dequeue* lpool = pool->lpools[pid];
-  void* elm = NULL;
-  elm = dq_pop_top(lpool);
-  if (elm == NULL) {
-    int steal = rand() % (pool->npools);
-    if (likely(pool->lpools[steal] != NULL))
-      elm = dq_pop_bot(pool->lpools[steal]);
-  }
+  LCIU_acquire_spinlock(&pool->lpools[pid].lock);
+  void* elm = LCM_dq_pop_top(&pool->lpools[pid].dq);
+  LCIU_release_spinlock(&pool->lpools[pid].lock);
+  if (elm == NULL)
+    elm = lc_pool_get_slow(pool);
   return elm;
 }
 

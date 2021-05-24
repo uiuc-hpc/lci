@@ -28,7 +28,6 @@
  * registration cache implementation
  */
 
-#include "lciu.h"
 #include "dreg.h"
 #include <stdlib.h>
 #include <stdio.h>

@@ -95,19 +95,9 @@ typedef enum {
   LCI_COMPLETION_QUEUE = 0,  	// completion queue
   LCI_COMPLETION_HANDLER,  	// handler
   LCI_COMPLETION_SYNC, 	        // synchronizer
+  LCI_COMPLETION_FREE, 	        // just free the packet, no completion reported to users
+  LCI_COMPLETION_NONE
 } LCI_comp_type_t;
-
-/**
- * LCI log level type.
- */
-typedef enum {
-  LCI_LOG_NONE = 0,
-  LCI_LOG_WARN,
-  LCI_LOG_TRACE,
-  LCI_LOG_INFO,
-  LCI_LOG_DEBUG,
-  LCI_LOG_MAX
-} LCI_log_level_t;
 
 /**
  * LCI synchronizer type
@@ -180,12 +170,12 @@ typedef union {
  */
 typedef struct {
   /* Status of the communication. */
-  LCI_error_t flag;
-  uint32_t rank;
-  LCI_tag_t tag;
-  LCI_data_type_t type;
-  LCI_data_t data;
-  void* user_context;
+  LCI_error_t flag;       // 4 bytes
+  uint32_t rank;          // 4 bytes
+  LCI_tag_t tag;          // 4 bytes
+  LCI_data_type_t type;   // 4 bytes
+  LCI_data_t data;        // 24 bytes
+  void* user_context;     // 8 bytes
 } LCI_request_t;
 
 /**
@@ -315,11 +305,6 @@ extern int LCI_DEFAULT_QUEUE_LENGTH;
  * @note The completion queue size is fixed in current implementation
  */
 extern int LCI_MAX_QUEUE_LENGTH;
-
-/**
- * control the LCI log level
- */
-extern int LCI_LOG_LEVEL;
 
 /**
  * specify the packet returning threshold

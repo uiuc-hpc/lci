@@ -1,9 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "lci.h"
 #include "pm.h"
-#include "log.h"
 
 char lcg_name[256];
 
@@ -57,7 +55,7 @@ void lc_pm_getname(int rank, int gid, char* value)
 
 void lc_pm_barrier() {
 #ifdef LCI_USE_PMI2
-  LCI_Log(LCI_LOG_WARN, "Switching to PMI2 breaks this barrier\n");
+  LCM_Log(LCM_LOG_WARN, "Switching to PMI2 breaks this barrier\n");
   PMI2_KVS_Fence();
 #else
   PMI_Barrier();

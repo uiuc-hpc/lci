@@ -12,7 +12,7 @@ struct lc_cq {
     size_t top;
     size_t bot;
   } __attribute__((aligned(64)));
-  LCIU_mutex_t spinlock;
+  LCIU_spinlock_t spinlock;
   void* container[CQ_MAX_SIZE];
 } __attribute__((aligned(64)));
 typedef struct lc_cq lc_cq;
@@ -23,11 +23,14 @@ static inline void lc_cq_create(struct lc_cq** cq_ptr)
   memset(cq->container, 0, sizeof(void*) * CQ_MAX_SIZE);
   cq->top = 0;
   cq->bot = 0;
-  cq->spinlock = LCIU_SPIN_UNLOCKED;
+  LCIU_spinlock_init(&cq->spinlock);
   *cq_ptr = cq;
 }
 
-static inline void lc_cq_free(struct lc_cq* cq) { free(cq); }
+static inline void lc_cq_free(struct lc_cq* cq) {
+  LCIU_spinlock_fina(&cq->spinlock);
+  free(cq);
+}
 
 static inline void lc_cq_push(struct lc_cq* cq, void* req)
 {
