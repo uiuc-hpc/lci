@@ -36,7 +36,7 @@ int main(int argc, char** args) {
         LCI_progress(0, 1);
       assert(request.data.mbuffer.length == size);
       check_buffer(request.data.mbuffer.address, size, 's');
-      LCI_mbuffer_free(0, request.data.mbuffer);
+      LCI_mbuffer_free(request.data.mbuffer);
     }
   }
 

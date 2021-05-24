@@ -1,0 +1,45 @@
+#include <limits.h>
+#include "lcii.h"
+
+LCI_API int LCI_NUM_DEVICES;
+LCI_API int LCI_NUM_PROCESSES;
+LCI_API int LCI_RANK;
+LCI_API int LCI_MAX_ENDPOINTS;
+LCI_API int LCI_MAX_TAG = (1u << 15) - 1;
+LCI_API int LCI_MEDIUM_SIZE = LC_PACKET_SIZE - sizeof(struct packet_context);
+LCI_API int LCI_REGISTERED_SEGMENT_SIZE;
+LCI_API int LCI_MAX_REGISTERED_SEGMENT_SIZE = INT_MAX;
+LCI_API int LCI_MAX_REGISTERED_SEGMENT_NUMBER = 1;
+LCI_API int LCI_DEFAULT_TABLE_LENGTH = 1u << TBL_BIT_SIZE;
+LCI_API int LCI_MAX_TABLE_LENGTH = 1u << TBL_BIT_SIZE;
+LCI_API int LCI_DEFAULT_QUEUE_LENGTH = CQ_MAX_SIZE;
+LCI_API int LCI_MAX_QUEUE_LENGTH = CQ_MAX_SIZE;
+LCI_API int LCI_PACKET_RETURN_THRESHOLD;
+LCI_API LCI_endpoint_t LCI_UR_ENDPOINT;
+LCI_API LCI_comp_t LCI_UR_CQ;
+
+static inline int getenv_or(char* env, int def) {
+  char* val = getenv(env);
+  if (val != NULL) {
+    return atoi(val);
+  } else {
+    return def;
+  }
+}
+
+void lc_env_init(int num_proc, int rank)
+{
+  char *p;
+
+  LCI_NUM_DEVICES = getenv_or("LCI_NUM_DEVICES", 1);
+  LCI_MAX_ENDPOINTS = getenv_or("LCI_MAX_ENDPOINTS", 8);
+  LCI_NUM_PROCESSES = num_proc;
+  LCI_RANK = rank;
+  LCI_REGISTERED_SEGMENT_SIZE = getenv_or("LCI_REGISTERED_SEGMENT_SIZE", LC_DEV_MEM_SIZE);
+
+  LCI_DEVICES = LCIU_calloc(sizeof(lc_server*), LCI_NUM_DEVICES);
+  LCI_PLISTS = LCIU_calloc(sizeof(LCI_plist_t), LCI_NUM_DEVICES);
+  LCI_ENDPOINTS = LCIU_calloc(sizeof(LCI_endpoint_t), LCI_MAX_ENDPOINTS);
+
+  LCI_PACKET_RETURN_THRESHOLD = getenv_or("LCI_PACKET_RETURN_THRESHOLD", 1024);
+}

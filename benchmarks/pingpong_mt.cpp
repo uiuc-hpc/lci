@@ -114,7 +114,7 @@ void* send_thread(void* arg)
         LCI_progress(0, 1);
       assert(request.data.mbuffer.length == msg_size);
       if (touch_data) check_buffer((char*) request.data.mbuffer.address, msg_size, 's');
-      LCI_mbuffer_free(0, request.data.mbuffer);
+      LCI_mbuffer_free(request.data.mbuffer);
     }, {rank % (size / 2) * thread_count + thread_id, (size / 2) * thread_count});
 
     omp::thread_barrier();
@@ -154,7 +154,7 @@ void* recv_thread(void* arg)
         LCI_progress(0, 1);
       assert(request.data.mbuffer.length == msg_size);
       if (touch_data) check_buffer((char*) request.data.mbuffer.address, msg_size, 's');
-      LCI_mbuffer_free(0, request.data.mbuffer);
+      LCI_mbuffer_free(request.data.mbuffer);
 
       LCI_mbuffer_alloc(0, &mbuffer);
       if (touch_data) write_buffer((char*) mbuffer.address, msg_size, 's');

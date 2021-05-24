@@ -3,7 +3,7 @@ target_sources_relative(lci-obj PRIVATE
   1sided.c
   cq.c
   lci.c
-  lcii_mem.c
+  memory.c
   lcrq.c
   misc.c
   mt.c
@@ -11,7 +11,10 @@ target_sources_relative(lci-obj PRIVATE
   pm.c
   pool.c
   pt2pt.c
-        lcm_log.c
+  log.c
+  env.c
+  device.c
+  endpoint.c
   ${CMAKE_CURRENT_SOURCE_DIR}/$<$<BOOL:${LCI_SYNC_ABT}>:sync_abt.c>
   ${CMAKE_CURRENT_SOURCE_DIR}/$<$<BOOL:${LCI_SYNC_FLAG}>:sync_flag.c>
 )

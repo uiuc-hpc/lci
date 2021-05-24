@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
         LCI_progress(0, 1);
       assert(request.data.mbuffer.length == msg_size);
       if (touch_data) check_buffer((char*) request.data.mbuffer.address, msg_size, 's');
-      LCI_mbuffer_free(0, request.data.mbuffer);
+      LCI_mbuffer_free(request.data.mbuffer);
     }, {rank % (nranks / 2), nranks / 2});
   } else {
     RUN_VARY_MSG({min_size, max_size}, 0, [&](int msg_size, int iter) {
@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
         LCI_progress(0, 1);
       assert(request.data.mbuffer.length == msg_size);
       if (touch_data) check_buffer((char*) request.data.mbuffer.address, msg_size, 's');
-      LCI_mbuffer_free(0, request.data.mbuffer);
+      LCI_mbuffer_free(request.data.mbuffer);
 
       LCI_mbuffer_alloc(0, &mbuffer);
       if (touch_data) write_buffer((char*) mbuffer.address, msg_size, 's');

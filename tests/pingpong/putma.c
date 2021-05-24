@@ -34,7 +34,7 @@ int main(int argc, char** args) {
         while (LCI_queue_pop(LCI_UR_CQ, &request) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
         check_buffer(request.data.mbuffer.address, size, 's');
-        LCI_mbuffer_free(0, request.data.mbuffer);
+        LCI_mbuffer_free(request.data.mbuffer);
       }
     }
   } else {
@@ -45,7 +45,7 @@ int main(int argc, char** args) {
         while (LCI_queue_pop(LCI_UR_CQ, &request) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
         check_buffer(request.data.mbuffer.address, size, 's');
-        LCI_mbuffer_free(0, request.data.mbuffer);
+        LCI_mbuffer_free(request.data.mbuffer);
         LCI_putma(ep, src_buf, peer_rank, tag, LCI_UR_CQ_REMOTE);
       }
     }

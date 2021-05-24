@@ -3,7 +3,7 @@
 
 #include "lci.h"
 #include "config.h"
-#include "lcm_log.h"
+#include "log.h"
 #include "cq.h"
 #include "lcii_register.h"
 
@@ -106,15 +106,13 @@ extern LCI_plist_t* LCI_PLISTS;
 extern LCI_endpoint_t* LCI_ENDPOINTS;
 extern int lcg_deadlock;
 
-/**
- * Create a matching hash-table.
- */
+// matching table
 LCI_error_t LCII_mt_init(LCI_mt_t* mt, uint32_t length);
-
-/**
- * Destroy the matching hash-table.
- */
 LCI_error_t LCII_mt_free(LCI_mt_t* mt);
+// device
+void lc_env_init(int num_proc, int rank);
+void lc_dev_init(int id, lc_server** dev, LCI_plist_t *plist);
+void lc_dev_finalize(lc_server* dev);
 
 static inline LCI_request_t LCII_ctx2req(LCII_context_t *ctx) {
   LCI_request_t request = {

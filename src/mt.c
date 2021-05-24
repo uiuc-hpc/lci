@@ -1,6 +1,4 @@
 #include "lcii.h"
-#include "hashtable.h"
-#include "lciu.h"
 
 LCI_error_t LCII_mt_init(LCI_mt_t* mt, uint32_t length)
 {

@@ -1,5 +1,6 @@
-#include "lci.h"
 #include "lcii.h"
+
+LCI_plist_t* LCI_PLISTS;
 
 LCI_error_t LCI_plist_create(LCI_plist_t* plist_ptr)
 {
