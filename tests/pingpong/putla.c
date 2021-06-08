@@ -6,7 +6,7 @@
 #include "lci.h"
 #include "comm_exp.h"
 
-int total = TOTAL_LARGE;
+int total = 10;
 
 int main(int argc, char** args) {
   LCI_open();

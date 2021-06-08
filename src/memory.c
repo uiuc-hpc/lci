@@ -39,6 +39,7 @@ LCI_error_t LCI_memory_register(LCI_device_t device, void *address, size_t lengt
 LCI_error_t LCI_memory_deregister(LCI_segment_t* segment)
 {
   lc_server_rma_dereg((*segment)->mr_p);
+  LCIU_free(*segment);
   *segment = NULL;
   return LCI_OK;
 }
@@ -105,6 +106,6 @@ LCI_error_t LCI_lbuffer_alloc(LCI_device_t device, size_t size, LCI_lbuffer_t* l
 LCI_error_t LCI_lbuffer_free(LCI_lbuffer_t lbuffer)
 {
   LCI_memory_deregister(&lbuffer.segment);
-  free(lbuffer.address);
+  LCIU_free(lbuffer.address);
   return LCI_OK;
 }
