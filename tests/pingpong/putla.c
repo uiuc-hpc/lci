@@ -1,15 +1,12 @@
-#include "lci.h"
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
 
+#include "lci.h"
 #include "comm_exp.h"
 
-#undef MAX_MSG
-#define MAX_MSG (8 * 1024)
-
-int total = TOTAL;
+int total = TOTAL_LARGE;
 
 int main(int argc, char** args) {
   LCI_open();
@@ -20,21 +17,24 @@ int main(int argc, char** args) {
   LCI_tag_t tag = 99;
 
   size_t alignment = sysconf(_SC_PAGESIZE);
-  LCI_mbuffer_t src_buf;
-  posix_memalign(&src_buf.address, alignment, MAX_MSG);
+  LCI_lbuffer_t src_buf;
+  LCI_lbuffer_alloc(0, MAX_MSG, &src_buf);
   LCI_request_t request;
   LCI_barrier();
 
   if (rank % 2 == 0) {
     for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
+      printf("Testing message size %d...\n", size);
       src_buf.length = size;
       for (int i = 0; i < total; i++) {
         write_buffer(src_buf.address, size, 's');
-        LCI_putma(ep, src_buf, peer_rank, tag, LCI_UR_CQ_REMOTE);
+        LCI_putla(ep, src_buf, LCI_UR_CQ, peer_rank, tag, LCI_UR_CQ_REMOTE, NULL);
         while (LCI_queue_pop(LCI_UR_CQ, &request) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
-        check_buffer(request.data.mbuffer.address, size, 's');
-        LCI_mbuffer_free(request.data.mbuffer);
+        while (LCI_queue_pop(LCI_UR_CQ, &request) == LCI_ERR_RETRY)
+          LCI_progress(0, 1);
+        check_buffer(request.data.lbuffer.address, size, 's');
+        LCI_lbuffer_free(request.data.lbuffer);
       }
     }
   } else {
@@ -44,9 +44,11 @@ int main(int argc, char** args) {
         write_buffer(src_buf.address, size, 's');
         while (LCI_queue_pop(LCI_UR_CQ, &request) == LCI_ERR_RETRY)
           LCI_progress(0, 1);
-        check_buffer(request.data.mbuffer.address, size, 's');
-        LCI_mbuffer_free(request.data.mbuffer);
-        LCI_putma(ep, src_buf, peer_rank, tag, LCI_UR_CQ_REMOTE);
+        check_buffer(request.data.lbuffer.address, size, 's');
+        LCI_lbuffer_free(request.data.lbuffer);
+        LCI_putla(ep, src_buf, LCI_UR_CQ, peer_rank, tag, LCI_UR_CQ_REMOTE, NULL);
+        while (LCI_queue_pop(LCI_UR_CQ, &request) == LCI_ERR_RETRY)
+          LCI_progress(0, 1);
       }
     }
   }

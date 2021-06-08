@@ -3,9 +3,9 @@
 
 #include "lci.h"
 #include "config.h"
-#include "log.h"
+#include "lcm_log.h"
 #include "cq.h"
-#include "lcii_register.h"
+#include "lcm_register.h"
 
 struct lc_server;
 typedef struct lc_server lc_server;
@@ -54,6 +54,7 @@ struct LCI_plist_s {
 
 struct LCI_endpoint_s {
   // Associated hardware context.
+  LCI_device_t device;
   lc_server* server;
   uint64_t property;
 
@@ -61,7 +62,7 @@ struct LCI_endpoint_s {
   lc_pool* pkpool;
   lc_rep* rep;
   LCI_mt_t mt;
-  LCII_register_t ctx_reg; // used for long message protocol
+  LCM_archive_t ctx_archive; // used for long message protocol
 
   // user-defined components
   LCI_match_t match_type;     // matching type (tag/ranktag)
@@ -91,7 +92,6 @@ typedef struct {
   // used by LCI internally
   LCI_comp_type_t comp_type;  // 4 bytes
   LCI_comp_t completion;      // 8 bytes
-  int reg_key;                // 4 bytes
 } LCII_context_t;
 
 /**
@@ -127,8 +127,24 @@ static inline LCI_request_t LCII_ctx2req(LCII_context_t *ctx) {
   return request;
 }
 
+// proto
+typedef uint32_t LCII_proto_t;
+// 16 bits for tag, 13 bits for rgid, 3 bits for msg_type
+#define LCII_MAKE_PROTO(rgid, msg_type, tag) (msg_type | (rgid << 3) | (tag << 16))
+#define PROTO_GET_TYPE(proto) (proto & 0b0111)
+#define PROTO_GET_RGID(proto) ((proto >> 3) & 0b01111111111111)
+#define PROTO_GET_TAG(proto) ((proto >> 16) & 0xffff)
+// backend service
+static inline void lc_ce_dispatch(LCII_context_t *ctx);
+// rendezvous
+static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, LCII_context_t *long_ctx);
+static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep, lc_packet* packet);
+static inline void LCII_handle_2sided_writeImm(LCI_endpoint_t ep, uint64_t ctx_key);
+
 #include "hashtable.h"
 #include "pool.h"
 #include "packet.h"
+#include "server/server.h"
+#include "lcii_rdv.h"
 #include "proto.h"
 #endif

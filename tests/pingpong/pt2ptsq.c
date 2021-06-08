@@ -6,9 +6,6 @@
 
 #include "comm_exp.h"
 
-#undef MAX_MSG
-#define MAX_MSG 8
-
 int total = TOTAL;
 
 int main(int argc, char** args) {

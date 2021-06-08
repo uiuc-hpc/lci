@@ -62,16 +62,17 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
   rts_ctx->data.mbuffer.address = (void*) &(packet->data);
   rts_ctx->comp_type = LCI_COMPLETION_FREE;
 
-  LCII_context_t *long_ctx = LCIU_malloc(sizeof(LCII_context_t));
-  long_ctx->data.lbuffer = buffer;
-  long_ctx->data_type = LCI_LONG;
-  long_ctx->rank = rank;
-  long_ctx->tag = tag;
-  long_ctx->user_context = user_context;
-  long_ctx->comp_type = ep->cmd_comp_type;
-  long_ctx->completion = completion;
+  LCII_context_t *rdv_ctx = LCIU_malloc(sizeof(LCII_context_t));
+  rdv_ctx->data.lbuffer = buffer;
+  rdv_ctx->data_type = LCI_LONG;
+  rdv_ctx->rank = rank;
+  rdv_ctx->tag = tag;
+  rdv_ctx->user_context = user_context;
+  rdv_ctx->comp_type = ep->cmd_comp_type;
+  rdv_ctx->completion = completion;
 
-  packet->data.rts.ctx = (uintptr_t) long_ctx;
+  packet->data.rts.msg_type = LCI_MSG_LONG;
+  packet->data.rts.send_ctx = (uintptr_t) rdv_ctx;
   packet->data.rts.size = buffer.length;
 
   struct lc_rep* rep = &(ep->rep[rank]);
@@ -155,26 +156,20 @@ LCI_error_t LCI_recvmn(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
 LCI_error_t LCI_recvl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
                       LCI_tag_t tag, LCI_comp_t completion, void* user_context)
 {
-  LCII_context_t *long_ctx = LCIU_malloc(sizeof(LCII_context_t));
-  LCI_error_t ret = LCII_register_put(ep->ctx_reg, (LCII_reg_value_t)long_ctx,
-                                      (LCII_reg_key_t*)&(long_ctx->reg_key));
-  if (ret != LCI_OK) {
-    LCIU_free(long_ctx);
-    return ret;
-  }
-  long_ctx->data.lbuffer = buffer;
-  long_ctx->data_type = LCI_LONG;
-  long_ctx->rank = rank;
-  long_ctx->tag = tag;
-  long_ctx->user_context = user_context;
-  long_ctx->comp_type = ep->msg_comp_type;
-  long_ctx->completion = completion;
+  LCII_context_t *rdv_ctx = LCIU_malloc(sizeof(LCII_context_t));
+  rdv_ctx->data.lbuffer = buffer;
+  rdv_ctx->data_type = LCI_LONG;
+  rdv_ctx->rank = rank;
+  rdv_ctx->tag = tag;
+  rdv_ctx->user_context = user_context;
+  rdv_ctx->comp_type = ep->msg_comp_type;
+  rdv_ctx->completion = completion;
 
   lc_key key = LCII_MAKE_KEY(rank, ep->gid, tag, LCI_MSG_LONG);
-  lc_value value = (lc_value)long_ctx;
+  lc_value value = (lc_value)rdv_ctx;
   if (!lc_hash_insert(ep->mt, key, &value, CLIENT)) {
     lc_packet* p = (lc_packet*) value;
-    lc_handle_rts(ep, p, long_ctx);
+    LCII_handle_2sided_rts(ep, p, rdv_ctx);
   }
   return LCI_OK;
 }

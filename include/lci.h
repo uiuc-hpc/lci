@@ -399,7 +399,7 @@ LCI_error_t LCI_plist_set_allocator(LCI_plist_t plist,
  * Create an endpoint, collective calls for those involved in the endpoints.
  */
 LCI_API
-LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, int device,
+LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, LCI_device_t device,
                               LCI_plist_t plist);
 
 /**
@@ -498,38 +498,16 @@ LCI_error_t LCI_recvl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
                       LCI_tag_t tag, LCI_comp_t completion, void* user_context);
 
 /* One-sided functions. */
-
-/**
- * Put short message to a remote address @p rma_id available at the remote
- * endpoint, offset @p offset. Complete immediately, or return LCI_ERR_RETRY.
- */
 LCI_API
 LCI_error_t LCI_puts(LCI_endpoint_t ep, LCI_short_t src, int rank,
                      LCI_tag_t tag, uintptr_t remote_completion);
-
-/**
- * Put medium message to a remote address @p rma_id available at the remote
- * endpoint, offset @p offset. Complete immediately, or return LCI_ERR_RETRY.
- */
 LCI_API
 LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                       LCI_tag_t tag, uintptr_t remote_completion);
-
-/**
- * Put medium message to a remote address @p rma_id available at the remote
- * endpoint, offset @p offset. User must wait for sync or retry if LCI_ERR_RETRY is returned.
- */
 LCI_API
-LCI_error_t LCI_putb(LCI_mbuffer_t buffer, size_t size, int rank, uint16_t tag,
-                     LCI_endpoint_t ep, void* sync);
-
-/**
- * Put long message to a remote address @p rma_id available at the remote
- * endpoint, offset @p offset.
- */
-LCI_API
-LCI_error_t LCI_putd(LCI_lbuffer_t src, size_t size, int rank, int rma_id, int offset,
-                     LCI_endpoint_t ep, void* context);
+LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
+                      LCI_comp_t completion, int rank, LCI_tag_t tag,
+                      uintptr_t remote_completion, void* user_context);
 
 /**@}*/
 

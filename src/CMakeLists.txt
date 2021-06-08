@@ -11,7 +11,7 @@ target_sources_relative(lci-obj PRIVATE
   pm.c
   pool.c
   pt2pt.c
-  log.c
+        lcm_log.c
   env.c
   device.c
   endpoint.c

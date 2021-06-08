@@ -4,7 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "log.h"
+#include "lcm_log.h"
 
 static const char * const log_levels[] = {
     [LCM_LOG_WARN] = "warn",

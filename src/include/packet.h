@@ -12,17 +12,18 @@ struct __attribute__((packed, aligned(64))) packet_context {
 };
 
 struct __attribute__((packed)) packet_rts {
-  uintptr_t ctx;  /* the address of the related context on the source side */
+  LCI_msg_type_t msg_type;  /* type of the long message */
+  uintptr_t send_ctx;  /* the address of the related context on the source side */
   size_t size;
 };
 
 struct __attribute__((packed)) packet_rtr {
-  uintptr_t ctx;  /* the address of the related context on the source side */
-  size_t size;
-  intptr_t tgt_base;
-  uint32_t tgt_offset;
+  LCI_msg_type_t msg_type;  /* type of the long message */
+  uintptr_t send_ctx;  /* the address of the related context on the source side */
+  intptr_t remote_addr_base;
+  uint32_t remote_addr_offset;
   uint64_t rkey;
-  uint32_t ctx_id;  /* the id of the related context on the target side */
+  uint32_t recv_ctx_key;  /* the id of the related context on the target side */
 };
 
 struct __attribute__((packed)) packet_data {

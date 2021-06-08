@@ -1,4 +1,4 @@
-#include "lcii_register.h"
+#include "lcm_register.h"
 
 TEST(REG, Basic)
 {

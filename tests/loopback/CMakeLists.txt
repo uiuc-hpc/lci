@@ -5,6 +5,7 @@ add_lci_tests(
             pt2ptm_mt.cpp
             pt2ptl.c
             pt2ptmn.c
+            putla.c
 #            puti-self.c
 #            putbc-self.c
         LABELS loopback

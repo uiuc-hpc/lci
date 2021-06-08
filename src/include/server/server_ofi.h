@@ -243,7 +243,7 @@ static inline int lc_server_progress(lc_server* s)
           --s->recv_posted;
           // we use tag to pass src_rank, because it is hard to get src_rank
           // from fi_addr_t. TODO: Need to improve
-          lc_serve_recv(entry[i].op_context, entry[i].tag, entry[i].len,
+          lc_serve_recv(s->id, entry[i].op_context, entry[i].tag, entry[i].len,
                         entry[i].data);
         } else if (entry[i].flags & FI_REMOTE_WRITE) {
           lc_serve_rdma(entry[i].data);
