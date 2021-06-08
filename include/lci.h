@@ -505,6 +505,9 @@ LCI_API
 LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                       LCI_tag_t tag, uintptr_t remote_completion);
 LCI_API
+LCI_error_t LCI_putmna(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
+                      LCI_tag_t tag, uintptr_t remote_completion);
+LCI_API
 LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
                       LCI_comp_t completion, int rank, LCI_tag_t tag,
                       uintptr_t remote_completion, void* user_context);

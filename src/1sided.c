@@ -45,15 +45,22 @@ LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   return LCI_OK;
 }
 
-LCI_error_t LCI_putb(LCI_mbuffer_t buffer, size_t size, int rank, uint16_t meta, LCI_endpoint_t ep, void* sync)
-{ 
-//  lc_packet* p = LCII_mbuffer2packet(buffer);
-//  lc_pk_init(ep, (size > 1024) ? lc_pool_get_local(ep->pkpool) : -1, LC_PROTO_DATA, p);
-//  p->context.ref = USER_MANAGED;
-//  p->context.sync = sync;
-//  struct lc_rep* rep = &(ep->rep[rank]);
-//  lc_server_send(ep->server, rep->handle, size, p, LCII_MAKE_PROTO(ep->gid, LC_PROTO_LONG, meta));
-  return LCI_ERR_FEATURE_NA;
+LCI_error_t LCI_putmna(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
+                      LCI_tag_t tag, uintptr_t remote_completion) {
+    LCM_DBG_Assert(remote_completion == LCI_UR_CQ_REMOTE, "Only support default remote completion (dynamic put to remote LCI_UR_CQ)\n");
+    lc_packet* packet = LCII_mbuffer2packet(buffer);
+    packet->context.poolid = (buffer.length > LCI_PACKET_RETURN_THRESHOLD) ?
+                             lc_pool_get_local(ep->pkpool) : -1;
+
+    LCII_context_t *ctx = LCIU_malloc(sizeof(LCII_context_t));
+    ctx->data.mbuffer.address = (void*) packet->data.address;
+    ctx->comp_type = LCI_COMPLETION_FREE;
+
+    struct lc_rep* rep = &(ep->rep[rank]);
+    lc_server_send(ep->server, rep->handle, packet->data.address, buffer.length,
+                   ep->server->heap_mr,
+                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_MEDIUM, tag), ctx);
+    return LCI_OK;
 }
 
 LCI_error_t LCI_putl(LCI_endpoint_t ep, LCI_lbuffer_t local_buffer,

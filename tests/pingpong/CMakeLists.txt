@@ -8,6 +8,7 @@ add_lci_tests(
             pt2ptl.c
             puts.c
             putma.c
+            putmna.c
             putla.c
             pt2ptm_mt.cpp
         LABELS pingpong
