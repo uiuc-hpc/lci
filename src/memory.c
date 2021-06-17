@@ -19,8 +19,7 @@ LCI_error_t LCI_memory_register(LCI_device_t device, void *address, size_t lengt
                                 LCI_segment_t *segment) {
   LCI_segment_t mr = (LCI_segment_t) LCIU_malloc(sizeof(struct LCI_segment_s));
   *segment = mr;
-  lc_server* dev = LCI_DEVICES[device];
-  uintptr_t rma_mem = lc_server_rma_reg(dev, address, length);
+  uintptr_t rma_mem = lc_server_rma_reg(device->server, address, length);
   mr->mr_p = rma_mem;
   mr->address = address;
   mr->length = length;
@@ -53,8 +52,7 @@ LCI_error_t LCI_memory_deregister(LCI_segment_t* segment)
  */
 LCI_error_t LCI_mbuffer_alloc(LCI_device_t device, LCI_mbuffer_t* mbuffer)
 {
-  lc_server *s = LCI_DEVICES[device];
-  lc_packet* packet = lc_pool_get_nb(s->pkpool);
+  lc_packet* packet = lc_pool_get_nb(device->pkpool);
   if (packet == NULL)
     // no packet is available
     return LCI_ERR_RETRY;
@@ -92,6 +90,14 @@ LCI_error_t LCI_lbuffer_alloc(LCI_device_t device, size_t size, LCI_lbuffer_t* l
 {
   lbuffer->length = size;
   lbuffer->address = LCIU_malloc(size);
+  LCI_memory_register(device, lbuffer->address, lbuffer->length, &lbuffer->segment);
+  return LCI_OK;
+}
+
+LCI_error_t LCI_lbuffer_memalign(LCI_device_t device, size_t size, size_t alignment, LCI_lbuffer_t* lbuffer)
+{
+  lbuffer->length = size;
+  lbuffer->address = LCIU_memalign(alignment, size);
   LCI_memory_register(device, lbuffer->address, lbuffer->length, &lbuffer->segment);
   return LCI_OK;
 }

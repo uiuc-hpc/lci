@@ -18,7 +18,7 @@ int main(int argc, char** args) {
 
   size_t alignment = sysconf(_SC_PAGESIZE);
   LCI_lbuffer_t src_buf;
-  LCI_lbuffer_alloc(0, MAX_MSG, &src_buf);
+  LCI_lbuffer_alloc(LCI_UR_DEVICE, MAX_MSG, &src_buf);
   LCI_request_t request;
   LCI_barrier();
 
@@ -27,15 +27,17 @@ int main(int argc, char** args) {
     src_buf.length = size;
     for (int i = 0; i < total; i++) {
       write_buffer(src_buf.address, size, 's');
-      LCI_putla(ep, src_buf, LCI_UR_CQ, peer_rank, tag, LCI_UR_CQ_REMOTE, NULL);
+      while (LCI_putla(ep, src_buf, LCI_UR_CQ, peer_rank, tag, LCI_UR_CQ_REMOTE, NULL) == LCI_ERR_RETRY)
+        LCI_progress(LCI_UR_DEVICE);
       while (LCI_queue_pop(LCI_UR_CQ, &request) == LCI_ERR_RETRY)
-        LCI_progress(0, 1);
+        LCI_progress(LCI_UR_DEVICE);
       while (LCI_queue_pop(LCI_UR_CQ, &request) == LCI_ERR_RETRY)
-        LCI_progress(0, 1);
+        LCI_progress(LCI_UR_DEVICE);
       check_buffer(request.data.lbuffer.address, size, 's');
       LCI_lbuffer_free(request.data.lbuffer);
     }
   }
+  LCI_lbuffer_free(src_buf);
   LCI_close();
   return 0;
 }

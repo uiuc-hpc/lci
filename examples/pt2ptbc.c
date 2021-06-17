@@ -20,7 +20,7 @@ int main(int argc, char** args) {
   LCI_MT_t mt;
   LCI_MT_init(&mt, 0);
   LCI_plist_set_MT(plist,&mt);
-  LCI_endpoint_init(&ep, 0, plist);
+  LCI_endpoint_init(&ep, LCI_UR_DEVICE, plist);
 
   int rank = LCI_RANK;
   LCI_tag_t tag = 99;
@@ -44,12 +44,12 @@ int main(int argc, char** args) {
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
         while (LCI_sendm(ep, src_buf, 1 - rank, tag) != LCI_OK)
-          LCI_progress(0, 1);
+          LCI_progress(LCI_UR_DEVICE);
 
         LCI_one2one_set_empty(&sync);
         LCI_recvm(ep, dst_buf, 1 - rank, tag, sync, NULL);
         while (LCI_one2one_test_empty(&sync))
-          LCI_progress(0, 1);
+          LCI_progress(LCI_UR_DEVICE);
 
         if (i == 0) {
           for (int j = 0; j < size; j++)
@@ -70,10 +70,10 @@ int main(int argc, char** args) {
         LCI_one2one_set_empty(&sync);
         LCI_recvm(ep, dst_buf, 1 - rank, tag, sync, NULL);
         while (LCI_one2one_test_empty(&sync))
-          LCI_progress(0, 1);
+          LCI_progress(LCI_UR_DEVICE);
 
         while (LCI_sendm(ep, src_buf, 1 - rank, tag) != LCI_OK)
-          LCI_progress(0, 1);
+          LCI_progress(LCI_UR_DEVICE);
       }
     }
   }

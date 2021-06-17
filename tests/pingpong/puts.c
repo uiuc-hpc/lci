@@ -24,13 +24,13 @@ int main(int argc, char** args) {
     for (int i = 0; i < total; i++) {
       LCI_puts(ep, src, peer_rank, tag, LCI_UR_CQ_REMOTE);
       while (LCI_queue_pop(LCI_UR_CQ, &request) == LCI_ERR_RETRY)
-        LCI_progress(0, 1);
+        LCI_progress(LCI_UR_DEVICE);
       assert(request.data.immediate == peer_rank);
     }
   } else {
     for (int i = 0; i < total; i++) {
       while (LCI_queue_pop(LCI_UR_CQ, &request) == LCI_ERR_RETRY)
-        LCI_progress(0, 1);
+        LCI_progress(LCI_UR_DEVICE);
       assert(request.data.immediate == peer_rank);
       LCI_puts(ep, src, peer_rank, tag, LCI_UR_CQ_REMOTE);
     }

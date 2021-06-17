@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
   LCI_plist_t plist;
   LCI_plist_create(&plist);
   LCI_plist_set_comp_type(plist, LCI_PORT_MESSAGE, LCI_COMPLETION_SYNC);
-  LCI_endpoint_init(&ep, 0, plist);
+  LCI_endpoint_init(&ep, LCI_UR_DEVICE, plist);
 
   rank = LCI_RANK;
   nprocs = LCI_NUM_PROCESSES;
@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
   auto prg_thread = std::thread([] {
       int spin = 64;
       while (!thread_stop) {
-        LCI_progress(0, 1);
+        LCI_progress(LCI_UR_DEVICE);
         if (spin-- == 0)
         { sched_yield(); spin = 64; }
       }
@@ -66,7 +66,7 @@ void* recv_thread(void* arg)
   int tag = thread_id();
 
   LCI_comp_t sync;
-  LCI_sync_create(0, LCI_SYNC_SIMPLE, &sync);
+  LCI_sync_create(LCI_UR_DEVICE, LCI_SYNC_SIMPLE, &sync);
 
   size_t alignment = sysconf(_SC_PAGESIZE);
   LCI_mbuffer_t src_buf, dst_buf;
@@ -108,7 +108,7 @@ void* send_thread(void* arg)
   int tag = thread_id();
 
   LCI_comp_t sync;
-  LCI_sync_create(0, LCI_SYNC_SIMPLE, &sync);
+  LCI_sync_create(LCI_UR_DEVICE, LCI_SYNC_SIMPLE, &sync);
 
   size_t alignment = sysconf(_SC_PAGESIZE);
   LCI_mbuffer_t src_buf, dst_buf;

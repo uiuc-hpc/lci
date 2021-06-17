@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
     comm_set_me_to(core); // only for hyper-threaded. FIXME.
     started++;
     while (!thread_stop) {
-      LCI_progress(0, 1);
+      LCI_progress(LCI_UR_DEVICE);
       if (spin-- == 0)
       { sched_yield(); spin = 64; }
     }
@@ -104,14 +104,14 @@ void* send_thread(void* arg)
     omp::thread_barrier();
 
     RUN_VARY_MSG({size, size}, 0, [&](int msg_size, int iter) {
-      LCI_mbuffer_alloc(0, &mbuffer);
+      LCI_mbuffer_alloc(LCI_UR_DEVICE, &mbuffer);
       if (touch_data) write_buffer((char*) mbuffer.address, msg_size, 's');
       mbuffer.length = msg_size;
       LCI_sendmn(ep, mbuffer, peer_rank, tag);
 
       LCI_recvmn(ep, peer_rank, tag, cq, NULL);
       while (LCI_queue_pop(cq, &request) == LCI_ERR_RETRY)
-        LCI_progress(0, 1);
+        LCI_progress(LCI_UR_DEVICE);
       assert(request.data.mbuffer.length == msg_size);
       if (touch_data) check_buffer((char*) request.data.mbuffer.address, msg_size, 's');
       LCI_mbuffer_free(request.data.mbuffer);
@@ -151,12 +151,12 @@ void* recv_thread(void* arg)
     RUN_VARY_MSG({size, size}, 1, [&](int msg_size, int iter) {
       LCI_recvmn(ep, peer_rank, tag, cq, NULL);
       while (LCI_queue_pop(cq, &request) == LCI_ERR_RETRY)
-        LCI_progress(0, 1);
+        LCI_progress(LCI_UR_DEVICE);
       assert(request.data.mbuffer.length == msg_size);
       if (touch_data) check_buffer((char*) request.data.mbuffer.address, msg_size, 's');
       LCI_mbuffer_free(request.data.mbuffer);
 
-      LCI_mbuffer_alloc(0, &mbuffer);
+      LCI_mbuffer_alloc(LCI_UR_DEVICE, &mbuffer);
       if (touch_data) write_buffer((char*) mbuffer.address, msg_size, 's');
       mbuffer.length = msg_size;
       LCI_sendmn(ep, mbuffer, peer_rank, tag);

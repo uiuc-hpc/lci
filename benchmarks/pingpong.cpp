@@ -45,14 +45,14 @@ int main(int argc, char *argv[]) {
     print_banner();
 
     RUN_VARY_MSG({min_size, max_size}, 1, [&](int msg_size, int iter) {
-      LCI_mbuffer_alloc(0, &mbuffer);
+      LCI_mbuffer_alloc(LCI_UR_DEVICE, &mbuffer);
       if (touch_data) write_buffer((char*) mbuffer.address, msg_size, 's');
       mbuffer.length = msg_size;
       LCI_sendmn(ep, mbuffer, peer_rank, tag);
 
       LCI_recvmn(ep, peer_rank, tag, cq, NULL);
       while (LCI_queue_pop(cq, &request) == LCI_ERR_RETRY)
-        LCI_progress(0, 1);
+        LCI_progress(LCI_UR_DEVICE);
       assert(request.data.mbuffer.length == msg_size);
       if (touch_data) check_buffer((char*) request.data.mbuffer.address, msg_size, 's');
       LCI_mbuffer_free(request.data.mbuffer);
@@ -61,12 +61,12 @@ int main(int argc, char *argv[]) {
     RUN_VARY_MSG({min_size, max_size}, 0, [&](int msg_size, int iter) {
       LCI_recvmn(ep, peer_rank, tag, cq, NULL);
       while (LCI_queue_pop(cq, &request) == LCI_ERR_RETRY)
-        LCI_progress(0, 1);
+        LCI_progress(LCI_UR_DEVICE);
       assert(request.data.mbuffer.length == msg_size);
       if (touch_data) check_buffer((char*) request.data.mbuffer.address, msg_size, 's');
       LCI_mbuffer_free(request.data.mbuffer);
 
-      LCI_mbuffer_alloc(0, &mbuffer);
+      LCI_mbuffer_alloc(LCI_UR_DEVICE, &mbuffer);
       if (touch_data) write_buffer((char*) mbuffer.address, msg_size, 's');
       mbuffer.length = msg_size;
       LCI_sendmn(ep, mbuffer, peer_rank, tag);

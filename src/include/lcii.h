@@ -4,11 +4,12 @@
 #include "lci.h"
 #include "config.h"
 #include "lcm_log.h"
+#include "pm.h"
 #include "cq.h"
 #include "lcm_register.h"
 
-struct lc_server;
-typedef struct lc_server lc_server;
+struct LCID_server_opaque_t;
+typedef struct LCID_server_opaque_t* LCID_server_t;
 
 struct lc_packet;
 typedef struct lc_packet lc_packet;
@@ -22,8 +23,8 @@ typedef struct lc_hash lc_hash;
 struct lc_req;
 typedef struct lc_rep lc_rep;
 
-struct LCI_mt_s;
-typedef struct LCI_mt_s* LCI_mt_t;
+struct lc_hash;
+typedef struct lc_hash* LCI_mt_t;
 
 typedef enum lc_ep_addr {
   EP_AR_DYN = 1 << 1,
@@ -45,6 +46,13 @@ struct LCI_segment_s {
   size_t length;
 };
 
+struct LCI_device_s {
+  LCID_server_t server;
+  lc_pool* pkpool;
+  LCI_mt_t mt;
+  LCI_lbuffer_t heap;
+};
+
 struct LCI_plist_s {
   LCI_match_t match_type;     // matching type
   LCI_comp_type_t cmd_comp_type; // source-side completion type
@@ -55,12 +63,10 @@ struct LCI_plist_s {
 struct LCI_endpoint_s {
   // Associated hardware context.
   LCI_device_t device;
-  lc_server* server;
   uint64_t property;
 
   // Associated software components.
   lc_pool* pkpool;
-  lc_rep* rep;
   LCI_mt_t mt;
   LCM_archive_t ctx_archive; // used for long message protocol
 
@@ -101,9 +107,7 @@ struct LCII_sync_t;
 typedef struct LCII_sync_t LCII_sync_t;
 LCI_error_t LCI_sync_signal(LCI_comp_t completion, LCII_context_t* ctx);
 
-extern lc_server** LCI_DEVICES;
-extern LCI_plist_t* LCI_PLISTS;
-extern LCI_endpoint_t* LCI_ENDPOINTS;
+extern LCI_endpoint_t *LCI_ENDPOINTS;
 extern int lcg_deadlock;
 
 // matching table
@@ -111,8 +115,8 @@ LCI_error_t LCII_mt_init(LCI_mt_t* mt, uint32_t length);
 LCI_error_t LCII_mt_free(LCI_mt_t* mt);
 // device
 void lc_env_init(int num_proc, int rank);
-void lc_dev_init(int id, lc_server** dev, LCI_plist_t *plist);
-void lc_dev_finalize(lc_server* dev);
+void lc_dev_init(LCI_device_t *device);
+void lc_dev_finalize(LCI_device_t device);
 
 static inline LCI_request_t LCII_ctx2req(LCII_context_t *ctx) {
   LCI_request_t request = {

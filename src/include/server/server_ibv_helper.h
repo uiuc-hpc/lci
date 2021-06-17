@@ -35,7 +35,7 @@ struct conn_ctx {
 
 extern int lcg_ndev;
 
-static inline struct ibv_mr* ibv_mem_malloc(lc_server* s, size_t size)
+static inline struct ibv_mr* ibv_mem_malloc(LCID_server_t s, size_t size)
 {
   int mr_flags =
       IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
@@ -44,7 +44,7 @@ static inline struct ibv_mr* ibv_mem_malloc(lc_server* s, size_t size)
   return ibv_reg_mr(s->dev_pd, ptr, size, mr_flags);
 }
 
-static inline struct ibv_qp* qp_create(lc_server* s)
+static inline struct ibv_qp* qp_create(LCID_server_t s)
 {
   struct ibv_qp_init_attr qp_init_attr;
   qp_init_attr.qp_context = 0;
@@ -140,7 +140,7 @@ static inline void qp_to_rts(struct ibv_qp* qp)
   }
 }
 
-static inline uintptr_t _real_server_reg(lc_server* s, void* buf, size_t size)
+static inline uintptr_t _real_server_reg(LCID_server_t s, void* buf, size_t size)
 {
   int mr_flags =
       IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
@@ -152,7 +152,7 @@ static inline void _real_server_dereg(uintptr_t mem)
   ibv_dereg_mr((struct ibv_mr*)mem);
 }
 
-static inline void ibv_post_recv_(lc_server* s, lc_packet* p)
+static inline void ibv_post_recv_(LCID_server_t s, lc_packet* p)
 {
   if (p == NULL) {
     if (s->recv_posted < LC_SERVER_MAX_RCVS / 2 && !lcg_deadlock) {

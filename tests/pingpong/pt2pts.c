@@ -14,7 +14,7 @@ int main(int argc, char** args) {
   LCI_plist_create(&plist);
   LCI_plist_set_comp_type(plist, LCI_PORT_MESSAGE, LCI_COMPLETION_SYNC);
   LCI_endpoint_t ep;
-  LCI_endpoint_init(&ep, 0, plist);
+  LCI_endpoint_init(&ep, LCI_UR_DEVICE, plist);
   LCI_plist_free(&plist);
 
   int rank = LCI_RANK;
@@ -22,30 +22,32 @@ int main(int argc, char** args) {
   LCI_tag_t tag = 99;
 
   LCI_comp_t sync;
-  LCI_sync_create(0, LCI_SYNC_SIMPLE, &sync);
+  LCI_sync_create(LCI_UR_DEVICE, LCI_SYNC_SIMPLE, &sync);
 
   LCI_short_t src = rank;
   LCI_barrier();
 
   if (rank % 2 == 0) {
     for (int i = 0; i < total; i++) {
-      LCI_sends(ep, src, peer_rank, tag);
+      while (LCI_sends(ep, src, peer_rank, tag) == LCI_ERR_RETRY)
+        LCI_progress(LCI_UR_DEVICE);
 
       LCI_recvs(ep, peer_rank, tag, sync, NULL);
       LCI_request_t request;
       while (LCI_sync_test(sync, &request) == LCI_ERR_RETRY)
-        LCI_progress(0, 1);
+        LCI_progress(LCI_UR_DEVICE);
       assert(request.data.immediate == peer_rank);
     }
   } else {
     for (int i = 0; i < total; i++) {
-
       LCI_recvs(ep, peer_rank, tag, sync, NULL);
       LCI_request_t request;
       while (LCI_sync_test(sync, &request) == LCI_ERR_RETRY)
-        LCI_progress(0, 1);
+        LCI_progress(LCI_UR_DEVICE);
       assert(request.data.immediate == peer_rank);
-      LCI_sends(ep, src, peer_rank, tag);
+
+      while (LCI_sends(ep, src, peer_rank, tag) == LCI_ERR_RETRY)
+        LCI_progress(LCI_UR_DEVICE);
     }
   }
   LCI_close();

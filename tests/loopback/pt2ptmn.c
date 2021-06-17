@@ -26,14 +26,15 @@ int main(int argc, char** args) {
 
   for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
     for (int i = 0; i < TOTAL; i++) {
-      LCI_mbuffer_alloc(0, &mbuffer);
+      LCI_mbuffer_alloc(LCI_UR_DEVICE, &mbuffer);
       write_buffer(mbuffer.address, size, 's');
       mbuffer.length = size;
-      LCI_sendmn(ep, mbuffer, peer_rank, tag);
+      while (LCI_sendmn(ep, mbuffer, peer_rank, tag) == LCI_ERR_RETRY)
+        LCI_progress(LCI_UR_DEVICE);
 
       LCI_recvmn(ep, peer_rank, tag, cq, NULL);
       while (LCI_queue_pop(cq, &request) == LCI_ERR_RETRY)
-        LCI_progress(0, 1);
+        LCI_progress(LCI_UR_DEVICE);
       assert(request.data.mbuffer.length == size);
       check_buffer(request.data.mbuffer.address, size, 's');
       LCI_mbuffer_free(request.data.mbuffer);

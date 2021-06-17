@@ -15,15 +15,15 @@ int main(int argc, char** args) {
   LCI_plist_create(&plist);
   LCI_plist_set_comp_type(plist, LCI_PORT_MESSAGE, LCI_COMPLETION_SYNC);
   LCI_endpoint_t ep;
-  LCI_endpoint_init(&ep, 0, plist);
+  LCI_endpoint_init(&ep, LCI_UR_DEVICE, plist);
   LCI_plist_free(&plist);
 
   int rank = LCI_RANK;
-  int peer_rank = LCI_RANK;
+  int peer_rank = ((1 - LCI_RANK % 2) + LCI_RANK / 2 * 2) % LCI_NUM_PROCESSES;
   LCI_tag_t tag = 99;
 
   LCI_comp_t sync;
-  LCI_sync_create(0, LCI_SYNC_SIMPLE, &sync);
+  LCI_sync_create(LCI_UR_DEVICE, LCI_SYNC_SIMPLE, &sync);
 
   size_t alignment = sysconf(_SC_PAGESIZE);
   LCI_mbuffer_t src_buf, dst_buf;
@@ -37,12 +37,12 @@ int main(int argc, char** args) {
     for (int i = 0; i < TOTAL; i++) {
       write_buffer(src_buf.address, size, 's');
       write_buffer(dst_buf.address, size, 'r');
-      while (LCI_sendm(ep, src_buf, peer_rank, tag) != LCI_OK)
-        LCI_progress(0, 1);
+      while (LCI_sendm(ep, src_buf, peer_rank, tag) == LCI_ERR_RETRY)
+        LCI_progress(LCI_UR_DEVICE);
 
       LCI_recvm(ep, dst_buf, peer_rank, tag, sync, NULL);
       while (LCI_sync_test(sync, NULL) == LCI_ERR_RETRY)
-          LCI_progress(0, 1);
+          LCI_progress(LCI_UR_DEVICE);
       check_buffer(dst_buf.address, size, 's');
     }
   }

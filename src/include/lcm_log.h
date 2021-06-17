@@ -20,7 +20,8 @@ extern "C" {
 #define LCM_DBG_Log(...)
 #endif
 
-enum LCM_API LCM_log_level_t {
+LCM_API
+enum LCM_log_level_t {
   LCM_LOG_NONE = 0,
   LCM_LOG_WARN,
   LCM_LOG_TRACE,

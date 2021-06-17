@@ -45,13 +45,13 @@ int main(int argc, char** args) {
         if (i == skip) t1 = wtime();
         LCI_one2one_set_empty(&sync);
         while (LCI_sendl(ep, src_buf, 1 - rank, tag, sync, 0) != LCI_OK)
-          LCI_progress(0, 1);
+          LCI_progress(LCI_UR_DEVICE);
         while (LCI_one2one_test_empty(&sync))
-          LCI_progress(0, 1);
+          LCI_progress(LCI_UR_DEVICE);
         LCI_one2one_set_empty(&sync);
         LCI_recvd(dst_buf, size, 1-rank, tag, ep, &sync);
         while (LCI_one2one_test_empty(&sync))
-          LCI_progress(0, 1);
+          LCI_progress(LCI_UR_DEVICE);
         if (i == 0) {
           for (int j = 0; j < size; j++)
             assert(((char*) src_buf)[j] == 'a' && ((char*)dst_buf)[j] == 'a');
@@ -72,12 +72,12 @@ int main(int argc, char** args) {
         LCI_one2one_set_empty(&sync);
         LCI_recvd(dst_buf, size, 1-rank, tag, ep, &sync);
         while (LCI_one2one_test_empty(&sync))
-          LCI_progress(0, 1);
+          LCI_progress(LCI_UR_DEVICE);
         LCI_one2one_set_empty(&sync);
         while (LCI_sendl(ep, src_buf, 1 - rank, tag, sync, 0) != LCI_OK)
-          LCI_progress(0, 1);
+          LCI_progress(LCI_UR_DEVICE);
         while (LCI_one2one_test_empty(&sync))
-          LCI_progress(0, 1);
+          LCI_progress(LCI_UR_DEVICE);
       }
     }
   }

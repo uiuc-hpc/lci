@@ -40,7 +40,7 @@ typedef struct lc_server {
 #include "server_ibv_helper.h"
 
 #ifdef USE_DREG
-static inline LCID_mr_t lc_server_rma_reg(lc_server* s, void* buf, size_t size)
+static inline LCID_mr_t lc_server_rma_reg(LCID_server_t s, void* buf, size_t size)
 {
   return (LCID_mr_t)dreg_register(s, buf, size);
 }
@@ -50,7 +50,7 @@ static inline void lc_server_rma_dereg(LCID_mr_t mr)
   dreg_unregister((dreg_entry*)mr);
 }
 
-static inline LCID_rkey_t lc_server_rma_key(LCID_mr_t mr)
+static inline LCID_rkey_t lc_server_rma_rkey(LCID_mr_t mr)
 {
   return ((struct ibv_mr*)(((dreg_entry*)mr)->memhandle[0]))->rkey;
 }
@@ -62,7 +62,7 @@ static inline uint32_t ibv_rma_lkey(LCID_mr_t mr)
 
 #else
 
-static inline uintptr_t lc_server_rma_reg(lc_server* s, void* buf, size_t size)
+static inline uintptr_t lc_server_rma_reg(LCID_server_t s, void* buf, size_t size)
 {
   return _real_server_reg(s, buf, size);
 }
@@ -72,7 +72,7 @@ static inline void lc_server_rma_dereg(uintptr_t mem)
   _real_server_dereg(mem);
 }
 
-static inline uint32_t lc_server_rma_key(uintptr_t mem)
+static inline uint32_t lc_server_rma_rkey(uintptr_t mem)
 {
   return ((struct ibv_mr*)mem)->rkey;
 }
@@ -84,7 +84,7 @@ static inline uint32_t ibv_rma_lkey(uintptr_t mem)
 
 #endif
 
-static inline int lc_server_progress(lc_server* s)
+static inline int lc_server_progress(LCID_server_t s)
 {
   struct ibv_wc wc[MAX_CQ];
   int ne = ibv_poll_cq(s->recv_cq, MAX_CQ, wc);
@@ -144,7 +144,7 @@ static inline int lc_server_progress(lc_server* s)
     (w).next = NULL;            \
   }
 
-static inline void lc_server_sends(lc_server* s __UNUSED__, LCID_addr_t dest, void* buf,
+static inline void lc_server_sends(LCID_server_t s __UNUSED__, LCID_addr_t dest, void* buf,
                                    size_t size, LCID_meta_t meta)
 {
   struct ibv_send_wr this_wr;
@@ -166,7 +166,7 @@ static inline void lc_server_sends(lc_server* s __UNUSED__, LCID_addr_t dest, vo
   IBV_SAFECALL(ibv_post_send((struct ibv_qp*)dest, &this_wr, &bad_wr));
 }
 
-static inline void lc_server_send(lc_server* s __UNUSED__, LCID_addr_t dest, void* buf,
+static inline void lc_server_send(LCID_server_t s __UNUSED__, LCID_addr_t dest, void* buf,
                                   size_t size, LCID_mr_t mr, LCID_meta_t meta,
                                   void* ctx)
 {
@@ -185,7 +185,7 @@ static inline void lc_server_send(lc_server* s __UNUSED__, LCID_addr_t dest, voi
   IBV_SAFECALL(ibv_post_send((struct ibv_qp*) dest, &this_wr, &bad_wr));
 }
 
-static inline void lc_server_puts(lc_server* s __UNUSED__, LCID_addr_t dest, void* buf,
+static inline void lc_server_puts(LCID_server_t s __UNUSED__, LCID_addr_t dest, void* buf,
                                   size_t size, uintptr_t base, uint32_t offset,
                                   LCID_rkey_t rkey, uint32_t meta)
 {
@@ -207,7 +207,7 @@ static inline void lc_server_puts(lc_server* s __UNUSED__, LCID_addr_t dest, voi
   IBV_SAFECALL(ibv_post_send(dest, &this_wr, &bad_wr));
 }
 
-static inline void lc_server_put(lc_server* s, LCID_addr_t dest, void* buf,
+static inline void lc_server_put(LCID_server_t s, LCID_addr_t dest, void* buf,
                                  size_t size, LCID_mr_t mr, uintptr_t base,
                                  uint32_t offset, LCID_rkey_t rkey,
                                  LCID_meta_t meta, void* ctx)
@@ -230,7 +230,7 @@ static inline void lc_server_put(lc_server* s, LCID_addr_t dest, void* buf,
   IBV_SAFECALL(ibv_post_send(dest, &this_wr, &bad_wr));
 }
 
-static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf,
+static inline void lc_server_rma_rtr(LCID_server_t s, void* rep, void* buf,
                                      uintptr_t addr, uint64_t rkey, size_t size,
                                      uint32_t sid, lc_packet* ctx)
 {
@@ -259,9 +259,9 @@ static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf,
   IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
 }
 
-static inline void lc_server_init(int id, lc_server** dev)
+static inline void lc_server_init(int id, LCID_server_t* dev)
 {
-  lc_server* s = NULL;
+  LCID_server_t s = NULL;
   posix_memalign((void**)&s, 8192, sizeof(struct lc_server));
 
   *dev = s;
@@ -400,7 +400,7 @@ static inline void lc_server_init(int id, lc_server** dev)
   lc_pm_barrier();
 }
 
-static inline void lc_server_finalize(lc_server* s)
+static inline void lc_server_finalize(LCID_server_t s)
 {
   ibv_destroy_cq(s->send_cq);
   ibv_destroy_cq(s->recv_cq);

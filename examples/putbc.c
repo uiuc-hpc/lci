@@ -35,7 +35,7 @@ int main(int argc, char** args) {
   LCI_one2one_set_empty(&sync);
   LCI_recvs(ep, &raddr, 0, &sync);
   while (LCI_one2one_test_empty(&sync)) {
-    LCI_progress(0, 1);
+    LCI_progress(LCI_UR_DEVICE);
   }
 
   long* sbuf = (long*) (addr);
@@ -52,13 +52,13 @@ int main(int argc, char** args) {
         t1 = wtime();
       if (rank == 0) {
         while (rbuf[0] == -1)
-          LCI_progress(0, 1);
+          LCI_progress(LCI_UR_DEVICE);
         rbuf[0] = -1;
         LCI_putbc(sbuf, size, 1-rank, 0, base_offset + MAX_MSG, 99, ep);
       } else {
         LCI_putbc(sbuf, size, 1-rank, 0, base_offset + MAX_MSG, 99, ep);
         while (rbuf[0] == -1)
-          LCI_progress(0, 1);
+          LCI_progress(LCI_UR_DEVICE);
         rbuf[0] = -1;
       }
     }

@@ -12,12 +12,9 @@ LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, LCI_device_t device,
   LCI_ENDPOINTS[ep->gid] = ep;
   *ep_ptr = ep;
 
-  lc_server* dev = LCI_DEVICES[device];
   ep->device = device;
-  ep->server = dev;
-  ep->pkpool = dev->pkpool;
-  ep->rep = dev->rep;
-  ep->mt = dev->mt;
+  ep->pkpool = device->pkpool;
+  ep->mt = device->mt;
   LCM_archive_init(&(ep->ctx_archive), 16);
 
   ep->match_type = plist->match_type;

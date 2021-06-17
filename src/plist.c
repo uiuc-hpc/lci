@@ -1,7 +1,5 @@
 #include "lcii.h"
 
-LCI_plist_t* LCI_PLISTS;
-
 LCI_error_t LCI_plist_create(LCI_plist_t* plist_ptr)
 {
   struct LCI_plist_s* plist = LCIU_malloc(sizeof(struct LCI_plist_s));

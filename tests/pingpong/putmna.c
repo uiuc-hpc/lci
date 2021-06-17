@@ -26,12 +26,12 @@ int main(int argc, char** args) {
   if (rank % 2 == 0) {
     for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
       for (int i = 0; i < total; i++) {
-        LCI_mbuffer_alloc(0, &mbuffer);
+        LCI_mbuffer_alloc(LCI_UR_DEVICE, &mbuffer);
         mbuffer.length = size;
         write_buffer(mbuffer.address, size, 's');
         LCI_putmna(ep, mbuffer, peer_rank, tag, LCI_UR_CQ_REMOTE);
         while (LCI_queue_pop(LCI_UR_CQ, &request) == LCI_ERR_RETRY)
-          LCI_progress(0, 1);
+          LCI_progress(LCI_UR_DEVICE);
         check_buffer(request.data.mbuffer.address, size, 's');
         LCI_mbuffer_free(request.data.mbuffer);
       }
@@ -39,11 +39,11 @@ int main(int argc, char** args) {
   } else {
     for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
       for (int i = 0; i < total; i++) {
-        LCI_mbuffer_alloc(0, &mbuffer);
+        LCI_mbuffer_alloc(LCI_UR_DEVICE, &mbuffer);
         mbuffer.length = size;
         write_buffer(mbuffer.address, size, 's');
         while (LCI_queue_pop(LCI_UR_CQ, &request) == LCI_ERR_RETRY)
-          LCI_progress(0, 1);
+          LCI_progress(LCI_UR_DEVICE);
         check_buffer(request.data.mbuffer.address, size, 's');
         LCI_mbuffer_free(request.data.mbuffer);
         LCI_putmna(ep, mbuffer, peer_rank, tag, LCI_UR_CQ_REMOTE);

@@ -50,7 +50,7 @@
 struct lc_server;
 
 struct psm_mr {
-  struct lc_server* server;
+  struct LCID_server_t server;
   uintptr_t addr;
   size_t size;
   uint32_t rkey;
@@ -72,7 +72,7 @@ typedef struct lc_server {
 } lc_server __attribute__((aligned(LC_CACHE_LINE)));
 
 static psm2_mq_tag_t LCI_PSM2_TAGSEL = {{0x0, 0x0, 0x0FFFFFFF}};
-static inline void lc_server_post_recv(lc_server* s, lc_packet* p);
+static inline void lc_server_post_recv(LCID_server_t s, lc_packet* p);
 
 #define PSM_RECV ((uint64_t)1 << 62)
 #define PSM_SEND ((uint64_t)1 << 63)
@@ -121,7 +121,7 @@ static inline void lc_server_post_recv(lc_server* s, lc_packet* p);
     .tag0 = 0, .tag1 = 0, .tag2 = rkey \
   }
 
-static inline void lc_server_post_recv_rma(lc_server* s, void* addr,
+static inline void lc_server_post_recv_rma(LCID_server_t s, void* addr,
                                            size_t size, uint64_t rkey,
                                            uintptr_t ctx, psm2_mq_req_t* req)
 {
@@ -133,7 +133,7 @@ static inline void lc_server_post_recv_rma(lc_server* s, void* addr,
                               addr, size, (void*)(PSM_RECV | ctx), req));
 }
 
-static inline struct psm_mr* lc_server_get_free_mr(lc_server* s)
+static inline struct psm_mr* lc_server_get_free_mr(LCID_server_t s)
 {
   struct psm_mr* mr = (struct psm_mr*)lcrq_dequeue(&s->free_mr);
   if (!mr) {
@@ -147,7 +147,7 @@ static inline uint32_t lc_server_get_free_key()
   return (__sync_fetch_and_add(&lc_next_rdma_key, 1) & 0x0fffffff);
 }
 
-static inline uintptr_t _real_psm_reg(lc_server* s, void* buf, size_t size)
+static inline uintptr_t _real_psm_reg(LCID_server_t s, void* buf, size_t size)
 {
   struct psm_mr* mr = lc_server_get_free_mr(s);
   mr->server = s;
@@ -165,24 +165,24 @@ static inline int _real_psm_free(uintptr_t mem)
   return 1;
 }
 
-static inline uintptr_t lc_server_rma_reg(lc_server* s, void* buf, size_t size)
+static inline uintptr_t lc_server_rma_reg(LCID_server_t s, void* buf, size_t size)
 {
   return _real_psm_reg(s, buf, size);
 }
 
 static inline void lc_server_rma_dereg(uintptr_t mem) { _real_psm_free(mem); }
 
-static inline uint32_t lc_server_rma_key(uintptr_t mem)
+static inline uint32_t lc_server_rma_rkey(uintptr_t mem)
 {
   return ((struct psm_mr*)mem)->rkey;
 }
 
-static inline void lc_server_init(int id, lc_server** dev)
+static inline void lc_server_init(int id, LCID_server_t* dev)
 {
   // setenv("I_MPI_FABRICS", "ofa", 1);
   // setenv("PSM2_SHAREDCONTEXTS", "0", 1);
   // setenv("PSM2_RCVTHREAD", "0", 1);
-  lc_server* s = NULL;
+  LCID_server_t s = NULL;
   posix_memalign((void**)&s, 8192, sizeof(struct lc_server));
   *dev = s;
 
@@ -249,7 +249,7 @@ static inline void lc_server_init(int id, lc_server** dev)
   }
 }
 
-static inline int lc_server_progress(lc_server* s)
+static inline int lc_server_progress(LCID_server_t s)
 {
   psm2_mq_req_t req;
   psm2_mq_status2_t status;
@@ -315,7 +315,7 @@ static inline int lc_server_progress(lc_server* s)
   return (err == PSM2_OK);
 }
 
-static inline void lc_server_post_recv(lc_server* s, lc_packet* p)
+static inline void lc_server_post_recv(LCID_server_t s, lc_packet* p)
 {
   if (p == NULL) {
     if (s->recv_posted == LC_SERVER_MAX_RCVS / 2 && !lcg_deadlock) {
@@ -337,7 +337,7 @@ static inline void lc_server_post_recv(lc_server* s, lc_packet* p)
   if (++s->recv_posted == LC_SERVER_MAX_RCVS && lcg_deadlock) lcg_deadlock = 0;
 }
 
-static inline void lc_server_send(lc_server* s, void* rep, size_t size,
+static inline void lc_server_send(LCID_server_t s, void* rep, size_t size,
                                    lc_packet* ctx, uint32_t proto)
 {
   psm2_mq_tag_t rtag = PSM_TAG_TSEND_DATA(proto, LCI_RANK);
@@ -348,14 +348,14 @@ static inline void lc_server_send(lc_server* s, void* rep, size_t size,
                               (psm2_mq_req_t*)ctx));
 }
 
-static inline void lc_server_sends(lc_server* s, void* rep, void* ubuf,
+static inline void lc_server_sends(LCID_server_t s, void* rep, void* ubuf,
                                    size_t size, uint32_t proto)
 {
   psm2_mq_tag_t rtag = PSM_TAG_TSEND_DATA(proto, LCI_RANK);
   PSM_SAFECALL(psm2_mq_send2(s->mq, rep, 0, &rtag, ubuf, size));
 }
 
-static inline void lc_server_puts(lc_server* s, void* rep, void* buf,
+static inline void lc_server_puts(LCID_server_t s, void* rep, void* buf,
                                    uintptr_t base __UNUSED__, uint32_t offset,
                                    uint64_t rkey __UNUSED__, uint32_t meta,
                                    size_t size)
@@ -364,7 +364,7 @@ static inline void lc_server_puts(lc_server* s, void* rep, void* buf,
   PSM_SAFECALL(psm2_mq_send2(s->mq, rep, 0, &rtag, buf, size));
 }
 
-static inline void lc_server_put(lc_server* s, void* rep,
+static inline void lc_server_put(LCID_server_t s, void* rep,
                                    uintptr_t base __UNUSED__, uint32_t offset,
                                    uint64_t rkey __UNUSED__, size_t size,
                                    uint32_t meta, lc_packet* ctx)
@@ -375,7 +375,7 @@ static inline void lc_server_put(lc_server* s, void* rep,
                               (psm2_mq_req_t*)ctx));
 }
 
-static inline void lc_server_putl(lc_server* s, void* rep, void* buffer,
+static inline void lc_server_putl(LCID_server_t s, void* rep, void* buffer,
                                    uintptr_t base __UNUSED__, uint32_t offset,
                                    uint64_t rkey, size_t size, uint32_t sid,
                                    lc_packet* ctx)
@@ -390,7 +390,7 @@ static inline void lc_server_putl(lc_server* s, void* rep, void* buffer,
 }
 
 #if 0
-static inline void lc_server_get(lc_server* s, int rank, void* buf,
+static inline void lc_server_get(LCID_server_t s, int rank, void* buf,
                        uintptr_t addr, size_t offset, uint64_t rkey __UNUSED__, size_t size,
                        uint32_t sid, lc_packet* ctx __UNUSED__) // FIXME
 {
@@ -408,7 +408,7 @@ static inline void lc_server_get(lc_server* s, int rank, void* buf,
 }
 #endif
 
-static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf,
+static inline void lc_server_rma_rtr(LCID_server_t s, void* rep, void* buf,
                                      uintptr_t addr __UNUSED__, uint64_t rkey,
                                      size_t size, uint32_t sid, lc_packet* ctx)
 {
@@ -420,7 +420,7 @@ static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf,
                               (psm2_mq_req_t*)ctx));
 }
 
-static inline void lc_server_finalize(lc_server* s) { free(s); }
+static inline void lc_server_finalize(LCID_server_t s) { free(s); }
 
 #define _real_server_reg _real_psm_reg
 #define _real_server_dereg _real_psm_free

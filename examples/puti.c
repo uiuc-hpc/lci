@@ -20,7 +20,7 @@ int main(int argc, char** args) {
   // LCI_plist_set_completion(LCI_PORT_MESSAGE, LCI_COMPLETION_SYNC, &plist);
   // LCI_plist_set_completion(LCI_PORT_COMMAND, LCI_COMPLETION_SYNC, &plist);
 
-  LCI_endpoint_init(&ep, 0, plist);
+  LCI_endpoint_init(&ep, LCI_UR_DEVICE, plist);
   int rank = LCI_RANK;
   LCI_barrier();
 
@@ -35,7 +35,7 @@ int main(int argc, char** args) {
   LCI_one2one_set_empty(&sync);
   LCI_recvs(ep, &raddr, 0, &sync);
   while (LCI_one2one_test_empty(&sync)) {
-    LCI_progress(0, 1);
+    LCI_progress(LCI_UR_DEVICE);
   }
 
   long* sbuf = (long*) (addr);
@@ -52,13 +52,13 @@ int main(int argc, char** args) {
         t1 = wtime();
       if (rank == 0) {
         while (rbuf[0] == -1)
-          LCI_progress(0, 1);
+          LCI_progress(LCI_UR_DEVICE);
         rbuf[0] = -1;
         LCI_puts(ep, *(LCI_short_t*)sbuf, 1 - rank, 0, 0);
       } else {
         LCI_puts(ep, *(LCI_short_t*)sbuf, 1 - rank, 0, 0);
         while (rbuf[0] == -1)
-          LCI_progress(0, 1);
+          LCI_progress(LCI_UR_DEVICE);
         rbuf[0] = -1;
       }
     }

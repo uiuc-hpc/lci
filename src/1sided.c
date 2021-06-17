@@ -5,10 +5,8 @@ LCI_error_t LCI_puts(LCI_endpoint_t ep, LCI_short_t src, int rank,
                      LCI_tag_t tag, uintptr_t remote_completion)
 {
   LCM_DBG_Assert(remote_completion == LCI_UR_CQ_REMOTE, "Only support default remote completion (dynamic put to remote LCI_UR_CQ)\n");
-  struct lc_rep* rep = &(ep->rep[rank]);
-  lc_server_sends(ep->server, rep->handle, &src, sizeof(LCI_short_t),
+  return lc_server_sends(ep->device->server, rank, &src, sizeof(LCI_short_t),
                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_SHORT, tag));
-  return LCI_OK;
 }
 
 LCI_error_t LCI_putm(LCI_endpoint_t ep, LCI_mbuffer_t mbuffer, int rank,
@@ -38,11 +36,9 @@ LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   ctx->data.mbuffer.address = (void*) packet->data.address;
   ctx->comp_type = LCI_COMPLETION_FREE;
 
-  struct lc_rep* rep = &(ep->rep[rank]);
-  lc_server_send(ep->server, rep->handle, packet->data.address, buffer.length,
-                 ep->server->heap_mr,
+  return lc_server_send(ep->device->server, rank, packet->data.address, buffer.length,
+                 ep->device->heap.segment->mr_p,
                  LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_MEDIUM, tag), ctx);
-  return LCI_OK;
 }
 
 LCI_error_t LCI_putmna(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
@@ -56,11 +52,9 @@ LCI_error_t LCI_putmna(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
     ctx->data.mbuffer.address = (void*) packet->data.address;
     ctx->comp_type = LCI_COMPLETION_FREE;
 
-    struct lc_rep* rep = &(ep->rep[rank]);
-    lc_server_send(ep->server, rep->handle, packet->data.address, buffer.length,
-                   ep->server->heap_mr,
+    return lc_server_send(ep->device->server, rank, packet->data.address, buffer.length,
+                   ep->device->heap.segment->mr_p,
                    LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_MEDIUM, tag), ctx);
-    return LCI_OK;
 }
 
 LCI_error_t LCI_putl(LCI_endpoint_t ep, LCI_lbuffer_t local_buffer,
@@ -98,9 +92,7 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
   packet->data.rts.send_ctx = (uintptr_t) rdv_ctx;
   packet->data.rts.size = buffer.length;
 
-  struct lc_rep* rep = &(ep->rep[rank]);
-  lc_server_send(ep->server, rep->handle, packet->data.address,
-                 sizeof(struct packet_rts), ep->server->heap_mr,
+  return lc_server_send(ep->device->server, rank, packet->data.address,
+                 sizeof(struct packet_rts), ep->device->heap.segment->mr_p,
                  LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTS, tag), rts_ctx);
-  return LCI_OK;
 }

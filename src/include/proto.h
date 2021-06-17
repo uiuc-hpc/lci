@@ -36,7 +36,7 @@ static inline void lc_ce_dispatch(LCII_context_t *ctx)
 }
 
 static inline void lc_serve_recv(LCI_device_t device, lc_packet* packet,
-                                 uint32_t src_rank, size_t length,
+                                 int src_rank, size_t length,
                                  LCII_proto_t proto)
 {
   // NOTE: this should be RGID because it is received from remote.
@@ -47,7 +47,7 @@ static inline void lc_serve_recv(LCI_device_t device, lc_packet* packet,
   switch (msg_type) {
     case LCI_MSG_SHORT:
     {
-      LCM_DBG_Assert(length == LCI_SHORT_SIZE, "");
+      LCM_DBG_Assert(length == LCI_SHORT_SIZE, "Unexpected message length %lu\n", length);
       lc_key key = LCII_MAKE_KEY(src_rank, ep->gid, tag, LCI_MSG_SHORT);
       lc_value value = (lc_value)packet;
       if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
@@ -119,7 +119,7 @@ static inline void lc_serve_recv(LCI_device_t device, lc_packet* packet,
     case LCI_MSG_RDMA_SHORT:
     {
       // dynamic put
-      LCM_DBG_Assert(length == LCI_SHORT_SIZE, "");
+      LCM_DBG_Assert(length == LCI_SHORT_SIZE, "Unexpected message length %lu\n", length);
       LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
       memcpy(&(ctx->data.immediate), packet->data.address, LCI_SHORT_SIZE);
       LCII_free_packet(packet);

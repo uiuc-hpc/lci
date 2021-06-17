@@ -181,7 +181,8 @@ typedef struct {
 /**
  * The device object
  */
-typedef uint64_t LCI_device_t;
+struct LCI_device_s;
+typedef struct LCI_device_s* LCI_device_t;
 
 /**
  * Endpoint object, owned by the runtime.
@@ -218,11 +219,6 @@ typedef struct {
 // "pseudo-segment" indicating the entire address space,
 // leading to dynamic (on-the-fly) registration
 #define LCI_SEGMENT_ALL 1
-
-/**
- * The number of devices created intially.
- */
-extern int LCI_NUM_DEVICES;
 
 /**
  * The number of processes in this job.
@@ -325,6 +321,7 @@ extern int LCI_PACKET_RETURN_THRESHOLD;
  * and with memory segment LCI_MEMORY_ALL and supports all message types
  * and all types of communications.
  */
+extern LCI_device_t LCI_UR_DEVICE;
 extern LCI_endpoint_t LCI_UR_ENDPOINT;
 extern LCI_comp_t LCI_UR_CQ;
 /**@}*/
@@ -587,7 +584,7 @@ LCI_error_t LCI_sync_test(LCI_comp_t completion, LCI_request_t* request);
  * Polling a specific device @p device_id for at least @p count time.
  */
 LCI_API
-LCI_error_t LCI_progress(int device_id, int count);
+LCI_error_t LCI_progress(LCI_device_t device);
 
 // memory management
 LCI_API
@@ -601,6 +598,8 @@ LCI_API
 LCI_error_t LCI_mbuffer_free(LCI_mbuffer_t mbuffer);
 LCI_API
 LCI_error_t LCI_lbuffer_alloc(LCI_device_t device, size_t size, LCI_lbuffer_t* lbuffer);
+LCI_API
+LCI_error_t LCI_lbuffer_memalign(LCI_device_t device, size_t size, size_t alignment, LCI_lbuffer_t* lbuffer);
 LCI_API
 LCI_error_t LCI_lbuffer_free(LCI_lbuffer_t lbuffer);
 
