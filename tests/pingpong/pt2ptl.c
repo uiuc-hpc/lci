@@ -36,6 +36,7 @@ int main(int argc, char** args) {
   if (rank % 2 == 0) {
     for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
       printf("Testing message size %d...\n", size);
+      fflush(stdout);
       src_buf.length = size;
       dst_buf.length = size;
 
@@ -82,6 +83,11 @@ int main(int argc, char** args) {
       }
     }
   }
+  LCI_memory_deregister(&src_buf.segment);
+  LCI_memory_deregister(&dst_buf.segment);
+  LCI_sync_free(&sync_recv);
+  LCI_sync_free(&sync_send);
+  LCI_endpoint_free(&ep);
   LCI_close();
   return 0;
 }

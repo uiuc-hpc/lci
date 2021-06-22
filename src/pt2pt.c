@@ -4,7 +4,7 @@
 LCI_error_t LCI_sends(LCI_endpoint_t ep, LCI_short_t src, int rank, LCI_tag_t tag)
 {
   return lc_server_sends(ep->device->server, rank, &src, sizeof(LCI_short_t),
-                  LCII_MAKE_PROTO(ep->gid, LCI_MSG_SHORT, tag));
+                         LCII_MAKE_PROTO(ep->gid, LCI_MSG_SHORT, tag));
 }
 
 LCI_error_t LCI_sendm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
@@ -15,16 +15,21 @@ LCI_error_t LCI_sendm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
     // no packet is available
     return LCI_ERR_RETRY;
   packet->context.poolid = (buffer.length > LCI_PACKET_RETURN_THRESHOLD) ?
-                          lc_pool_get_local(ep->pkpool) : -1;
+                           lc_pool_get_local(ep->pkpool) : -1;
   memcpy(packet->data.address, buffer.address, buffer.length);
 
   LCII_context_t *ctx = LCIU_malloc(sizeof(LCII_context_t));
   ctx->data.mbuffer.address = (void*) packet->data.address;
   ctx->comp_type = LCI_COMPLETION_FREE;
 
-  return lc_server_send(ep->device->server, rank, packet->data.address, buffer.length,
-                  ep->device->heap.segment->mr_p,
-                 LCII_MAKE_PROTO(ep->gid, LCI_MSG_MEDIUM, tag), ctx);
+  LCI_error_t ret = lc_server_send(ep->device->server, rank, packet->data.address, buffer.length,
+                                   ep->device->heap.segment->mr_p,
+                                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_MEDIUM, tag), ctx);
+  if (ret == LCI_ERR_RETRY) {
+    LCII_free_packet(packet);
+    LCIU_free(ctx);
+  }
+  return ret;
 }
 
 LCI_error_t LCI_sendmn(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
@@ -38,9 +43,13 @@ LCI_error_t LCI_sendmn(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   ctx->data.mbuffer.address = (void*) packet->data.address;
   ctx->comp_type = LCI_COMPLETION_FREE;
 
-  return lc_server_send(ep->device->server, rank, packet->data.address, buffer.length,
-                 ep->device->heap.segment->mr_p,
-                 LCII_MAKE_PROTO(ep->gid, LCI_MSG_MEDIUM, tag), ctx);
+  LCI_error_t ret = lc_server_send(ep->device->server, rank, packet->data.address, buffer.length,
+                                   ep->device->heap.segment->mr_p,
+                                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_MEDIUM, tag), ctx);
+  if (ret == LCI_ERR_RETRY) {
+    LCIU_free(ctx);
+  }
+  return ret;
 }
 
 LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
@@ -69,9 +78,15 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
   packet->data.rts.send_ctx = (uintptr_t) rdv_ctx;
   packet->data.rts.size = buffer.length;
 
-  return lc_server_send(ep->device->server, rank, packet->data.address,
-                  sizeof(struct packet_rts), ep->device->heap.segment->mr_p,
-                  LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTS, tag), rts_ctx);
+  LCI_error_t ret = lc_server_send(ep->device->server, rank, packet->data.address,
+                                   sizeof(struct packet_rts), ep->device->heap.segment->mr_p,
+                                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTS, tag), rts_ctx);
+  if (ret == LCI_ERR_RETRY) {
+    LCII_free_packet(packet);
+    LCIU_free(rts_ctx);
+    LCIU_free(rdv_ctx);
+  }
+  return ret;
 }
 
 LCI_error_t LCI_recvs(LCI_endpoint_t ep, int rank, LCI_tag_t tag,

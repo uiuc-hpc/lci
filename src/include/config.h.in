@@ -17,7 +17,7 @@
 #cmakedefine LCI_SERVER_HAS_GLOB
 
 #cmakedefine USE_DREG
-#cmakedefine LCI_USE_PMI2
+
 #cmakedefine LCI_USE_GPROF
 #cmakedefine LCI_CONFIG_USE_ALIGNED_ALLOC
 

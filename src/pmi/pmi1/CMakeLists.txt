@@ -1,5 +1,5 @@
-target_include_directories(lci-obj PRIVATE include)
-target_sources_relative(lci-obj PRIVATE
+target_include_directories(pmi-obj PRIVATE include)
+target_sources_relative(pmi-obj PRIVATE
         simple/simple_pmi.c
         simple/simple_pmiutil.c
 )

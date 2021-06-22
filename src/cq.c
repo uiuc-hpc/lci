@@ -3,7 +3,6 @@
 
 LCI_error_t LCI_queue_create(LCI_device_t device, LCI_comp_t* cq)
 {
-  // using LCI_comp_t = lc_cq*
   lc_cq* cq_ptr;
   lc_cq_create(&cq_ptr);
   *cq = cq_ptr;

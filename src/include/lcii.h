@@ -4,7 +4,7 @@
 #include "lci.h"
 #include "config.h"
 #include "lcm_log.h"
-#include "pm.h"
+#include "pmi_wrapper.h"
 #include "cq.h"
 #include "lcm_register.h"
 

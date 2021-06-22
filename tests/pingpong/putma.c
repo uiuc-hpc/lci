@@ -30,7 +30,8 @@ int main(int argc, char** args) {
       src_buf.length = size;
       for (int i = 0; i < total; i++) {
         write_buffer(src_buf.address, size, 's');
-        LCI_putma(ep, src_buf, peer_rank, tag, LCI_UR_CQ_REMOTE);
+        while (LCI_putma(ep, src_buf, peer_rank, tag, LCI_UR_CQ_REMOTE) == LCI_ERR_RETRY)
+          LCI_progress(LCI_UR_DEVICE);
         while (LCI_queue_pop(LCI_UR_CQ, &request) == LCI_ERR_RETRY)
           LCI_progress(LCI_UR_DEVICE);
         check_buffer(request.data.mbuffer.address, size, 's');
@@ -46,7 +47,8 @@ int main(int argc, char** args) {
           LCI_progress(LCI_UR_DEVICE);
         check_buffer(request.data.mbuffer.address, size, 's');
         LCI_mbuffer_free(request.data.mbuffer);
-        LCI_putma(ep, src_buf, peer_rank, tag, LCI_UR_CQ_REMOTE);
+        while (LCI_putma(ep, src_buf, peer_rank, tag, LCI_UR_CQ_REMOTE) == LCI_ERR_RETRY)
+          LCI_progress(LCI_UR_DEVICE);
       }
     }
   }

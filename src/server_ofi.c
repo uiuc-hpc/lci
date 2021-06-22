@@ -80,6 +80,7 @@ void lc_server_init(LCI_device_t device, LCID_server_t* s)
   sprintf(msg, PARSE_STRING,
           my_addr[0], my_addr[1], my_addr[2], my_addr[3], my_addr[4], my_addr[5]);
   lc_pm_publish(LCI_RANK, device_id, msg);
+  lc_pm_barrier();
 
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
     if (i != LCI_RANK) {
@@ -103,9 +104,9 @@ void lc_server_finalize(LCID_server_t s)
 {
   LCIDI_server_t *server = (LCIDI_server_t*) s;
   LCIU_free(server->peer_addrs);
-  FI_SAFECALL(fi_close((struct fid*) server->ep));
-  FI_SAFECALL(fi_close((struct fid*) server->cq));
-  FI_SAFECALL(fi_close((struct fid*) server->av));
-  FI_SAFECALL(fi_close((struct fid*) server->domain));
+  FI_SAFECALL(fi_close((struct fid*) &server->ep->fid));
+  FI_SAFECALL(fi_close((struct fid*) &server->cq->fid));
+  FI_SAFECALL(fi_close((struct fid*) &server->av->fid));
+  FI_SAFECALL(fi_close((struct fid*) &server->domain->fid));
   free(s);
 }

@@ -59,9 +59,10 @@ static inline LCID_mr_t _real_server_reg(LCID_server_t s, void* buf, size_t size
   return (uintptr_t)mr;
 }
 
-static inline void _real_server_dereg(LCID_mr_t mr)
+static inline void _real_server_dereg(LCID_mr_t mr_opaque)
 {
-  FI_SAFECALL(fi_close((struct fid*) mr));
+  struct fid_mr *mr = (struct fid_mr*) mr_opaque;
+  FI_SAFECALL(fi_close((struct fid*) &mr->fid));
 }
 
 static inline LCID_mr_t lc_server_rma_reg(LCID_server_t s, void* buf, size_t size)

@@ -1,12 +1,10 @@
-#ifndef _LC_PM_H_
-#define _LC_PM_H_
+#ifndef LCI_PMI_WRAPPER_H_IN
+#define LCI_PMI_WRAPPER_H_IN
 
-#include "config.h"
-#ifdef LCI_USE_PMI2
-#include "pmi2.h"
-#else
-#include "pmi.h"
-#endif
+#cmakedefine LCI_USE_PMI1
+#cmakedefine LCI_USE_PMI2
+#cmakedefine LCI_USE_MPI_AS_PM
+#cmakedefine LCI_USE_FILE_AS_PM
 
 void lc_pm_master_init(int* size, int* rank);
 void lc_pm_publish(int prank, int erank, char* value);

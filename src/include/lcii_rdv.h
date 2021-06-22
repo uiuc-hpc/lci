@@ -1,6 +1,14 @@
 #ifndef LCI_LCII_RDV_H
 #define LCI_LCII_RDV_H
 
+#define LCII_RDV_RETRY(stat, n, msg) \
+  LCI_error_t ret;                   \
+  do {                               \
+      ret = stat;                    \
+      if (ret == LCI_OK) break;      \
+  } while (ret == LCI_ERR_RETRY);    \
+  LCM_Assert(ret == LCI_OK, msg);
+
 static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, LCII_context_t *rdv_ctx)
 {
 
@@ -23,10 +31,10 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, 
       (uintptr_t) rdv_ctx->data.lbuffer.address - packet->data.rtr.remote_addr_base;
   packet->data.rtr.rkey = lc_server_rma_rkey(rdv_ctx->data.lbuffer.segment->mr_p);
 
-  LCI_error_t ret = lc_server_send(ep->device->server, rdv_ctx->rank, packet->data.address,
-                                   sizeof(struct packet_rtr), ep->device->heap.segment->mr_p,
-                                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx);
-  LCM_Assert(ret == LCI_OK, "Cannot send RTR message!\n");
+  LCII_RDV_RETRY(lc_server_send(ep->device->server, rdv_ctx->rank, packet->data.address,
+                                    sizeof(struct packet_rtr), ep->device->heap.segment->mr_p,
+                                    LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx),
+                 10, "Cannot send RTR message!\n")
 
 }
 
@@ -34,14 +42,13 @@ static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
 {
   LCII_context_t *ctx = (LCII_context_t*) packet->data.rtr.send_ctx;
 
-  LCI_error_t ret = lc_server_put(ep->device->server, ctx->rank,
+  LCII_RDV_RETRY(lc_server_put(ep->device->server, ctx->rank,
                                   ctx->data.lbuffer.address, ctx->data.lbuffer.length,
                                   ctx->data.lbuffer.segment->mr_p,
                                   packet->data.rtr.remote_addr_base, packet->data.rtr.remote_addr_offset,
                                   packet->data.rtr.rkey,
                                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_LONG, packet->data.rtr.recv_ctx_key),
-                                  ctx);
-  LCM_Assert(ret == LCI_OK, "Cannot post RDMA writeImm\n");
+                                  ctx), 10, "Cannot post RDMA writeImm\n");
   LCII_free_packet(packet);
 }
 
@@ -84,24 +91,24 @@ static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep, lc_packet* packet,
       (uintptr_t) rdv_ctx->data.lbuffer.address - packet->data.rtr.remote_addr_base;
   packet->data.rtr.rkey = lc_server_rma_rkey(rdv_ctx->data.lbuffer.segment->mr_p);
 
-  LCI_error_t ret = lc_server_send(ep->device->server, rdv_ctx->rank, packet->data.address,
+  LCII_RDV_RETRY(lc_server_send(ep->device->server, rdv_ctx->rank, packet->data.address,
                                    sizeof(struct packet_rtr), ep->device->heap.segment->mr_p,
-                                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx);
-  LCM_Assert(ret == LCI_OK, "Cannot send RTR message!\n");
+                                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx),
+                 10, "Cannot send RTR message!\n");
 }
 
 static inline void LCII_handle_1sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
 {
   LCII_context_t *ctx = (LCII_context_t*) packet->data.rtr.send_ctx;
 
-  LCI_error_t ret = lc_server_put(ep->device->server, ctx->rank,
+  LCII_RDV_RETRY(lc_server_put(ep->device->server, ctx->rank,
                                   ctx->data.lbuffer.address, ctx->data.lbuffer.length,
                                   ctx->data.lbuffer.segment->mr_p,
                                   packet->data.rtr.remote_addr_base, packet->data.rtr.remote_addr_offset,
                                   packet->data.rtr.rkey,
                                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_LONG, packet->data.rtr.recv_ctx_key),
-                                  ctx);
-  LCM_Assert(ret == LCI_OK, "Cannot post RDMA writeImm!\n");
+                                  ctx),
+                 10, "Cannot post RDMA writeImm!\n");
   LCII_free_packet(packet);
 }
 

@@ -25,6 +25,7 @@ int main(int argc, char** args) {
   if (rank % 2 == 0) {
     for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
       printf("Testing message size %d...\n", size);
+      fflush(stdout);
       src_buf.length = size;
       for (int i = 0; i < total; i++) {
         write_buffer(src_buf.address, size, 's');

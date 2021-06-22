@@ -38,6 +38,7 @@ int main(int argc, char** args) {
       dst_buf.length = size;
 
       for (int i = 0; i < TOTAL; i++) {
+        fflush(stdout);
         write_buffer(src_buf.address, size, 's');
         write_buffer(dst_buf.address, size, 'r');
 
