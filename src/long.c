@@ -30,7 +30,7 @@ lc_status lc_putl(void* src, size_t size, int rank, uintptr_t addr,
   lci_pk_init(ep, LC_LONG_POOL_ID(ep), LC_PROTO_LONG, p);
   p->data.rts.cb = cb;
   p->data.rts.ce = (uintptr_t) ce;
-
+  p->context.rma_mem = lc_server_rma_reg(ep->server, src, size);
   struct lci_rep* rep = &(ep->rep[rank]);
   lc_server_putl(ep->server, rep->handle, src, rep->base, (uint32_t) (addr - rep->base),
                  rep->rkey, size, p);
@@ -44,6 +44,7 @@ lc_status lc_putls(void* src, size_t size, int rank, uintptr_t addr, int meta,
   lci_pk_init(ep, LC_LONG_POOL_ID(ep), LC_PROTO_LONG, p);
   p->data.rts.cb = cb;
   p->data.rts.ce = (uintptr_t) ce;
+  p->context.rma_mem = lc_server_rma_reg(ep->server, src, size);
   struct lci_rep* rep = &(ep->rep[rank]);
   lc_server_putls(ep->server, rep->handle, src, rep->base, (uint32_t) (addr - rep->base),
                   rep->rkey, size,

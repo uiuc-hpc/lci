@@ -112,6 +112,8 @@ static inline void lci_handle_rtr(struct lci_ep* ep, lc_packet* p)
 {
   dprintf("Recv RTR %p\n", p);
   lci_pk_init(ep, p->context.poolid, LC_PROTO_LONG, p);
+  p->context.rma_mem = lc_server_rma_reg(ep->server, (void*)p->data.rts.src_addr,
+                                         p->data.rts.size);
   // dprintf("%d] rma %p --> %p %.4x via %d\n", lcg_rank, p->data.rts.src_addr, p->data.rtr.tgt_addr, crc32c((char*) p->data.rts.src_addr, p->data.rts.size), p->data.rtr.rkey);
 
   lc_server_rma_rtr(ep->server, p->context.req->rhandle,
@@ -265,6 +267,7 @@ static inline void lci_serve_send(lc_packet* p)
     // If one expects MPI order, should need to split completion here.
   } else if (proto == LC_PROTO_LONG) {
     dprintf("SENT LONG: %p\n", p);
+    lc_server_rma_dereg(p->context.rma_mem);
     p->data.rts.cb((void*) p->data.rts.ce);
     lci_pk_free_data(ep, p);
   } else if (proto == LC_PROTO_RTS) {

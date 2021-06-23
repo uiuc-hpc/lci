@@ -322,7 +322,7 @@ static inline void lc_server_putl(lc_server* s, void* rep, void* buf,
   uint32_t lkey = 0;
   uint32_t flag = IBV_SEND_SIGNALED;
 
-  lkey = ibv_rma_lkey(lc_server_rma_reg(s, buf, size));
+  lkey = ibv_rma_lkey(ctx->context.rma_mem);
 
   struct ibv_sge list = {
     .addr = (uintptr_t)buf,
@@ -346,7 +346,7 @@ static inline void lc_server_putls(lc_server* s, void* rep, void* buf,
   uint32_t lkey = 0;
   uint32_t flag = IBV_SEND_SIGNALED;
 
-  lkey = ibv_rma_lkey(lc_server_rma_reg(s, buf, size));
+  lkey = ibv_rma_lkey(ctx->context.rma_mem);
 
   struct ibv_sge list = {
     .addr = (uintptr_t)buf,
@@ -369,11 +369,7 @@ static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf, uintptr
   uint32_t lkey = 0;
   uint32_t flag = IBV_SEND_SIGNALED;
 
-  if (size > s->max_inline) {
-    lkey = ibv_rma_lkey(lc_server_rma_reg(s, buf, size));
-  } else {
-    flag |= IBV_SEND_INLINE;
-  }
+  lkey = ibv_rma_lkey(ctx->context.rma_mem);
 
   struct ibv_sge list = {
       .addr = (uintptr_t)buf,

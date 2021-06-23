@@ -35,7 +35,7 @@ lc_status lc_putms(void* src, size_t size, int rank, uintptr_t addr, int meta, l
   struct lci_rep* rep = &(ep->rep[rank]);
   memcpy(&p->data, src, size);
   lc_server_putms(ep->server, rep->handle, rep->base, (uint32_t) (addr - rep->base),
-                  rep->rkey, size, MAKE_PROTO(ep->gid, LC_PROTO_LONG, meta), p);
+                  rep->rkey, size, MAKE_PROTO(ep->gid, LC_PROTO_DATA, meta), p);
   return LC_OK;
 }
 
