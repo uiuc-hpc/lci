@@ -11,7 +11,7 @@ elseif(LCI_PM_BACKEND STREQUAL "file")
     set(LCI_USE_FILE_AS_PM ON)
     message("set LCI_USE_FILE_AS_PM ON")
 else()
-    message(FATAL_ERROR "Fabric ${LCI_PM_BACKEND} not supported")
+    message(FATAL_ERROR "LCI_PM_BACKEND ${LCI_PM_BACKEND} not supported")
 endif()
 
 add_library(pmi-obj OBJECT)

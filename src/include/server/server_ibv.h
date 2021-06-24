@@ -1,43 +1,70 @@
 #ifndef SERVER_IBV_H_
 #define SERVER_IBV_H_
 
-#include "config.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include "infiniband/verbs.h"
-
-#include "pm.h"
 #include "dreg.h"
 
-typedef struct lc_server {
-  SERVER_COMMON
-  struct lc_dev* dev;
+#ifdef LCI_DEBUG
+#define IBV_SAFECALL(x)                                               \
+  {                                                                   \
+    int err = (x);                                                    \
+    if (err) {                                                        \
+      fprintf(stderr, "err : %d (%s:%d)\n", err, __FILE__, __LINE__); \
+      exit(EXIT_FAILURE);                                             \
+    }                                                                 \
+  }                                                                   \
+  while (0)                                                           \
+    ;
+#else
+#define IBV_SAFECALL(x) \
+  {                     \
+    x;                  \
+  }                     \
+  while (0)             \
+    ;
+#endif
+
+#define MAX_POLL 16
+
+typedef struct LCIDI_server_t {
+  LCI_device_t device;
+  int recv_posted;
 
   // Device fields.
+  struct ibv_device **dev_list;
+  struct ibv_device *ib_dev;
   struct ibv_context* dev_ctx;
   struct ibv_pd* dev_pd;
+  struct ibv_device_attr dev_attr;
+  struct ibv_port_attr port_attr;
   struct ibv_srq* dev_srq;
   struct ibv_cq* send_cq;
   struct ibv_cq* recv_cq;
-  struct ibv_mr* sbuf;
-  struct ibv_mr* heap;
-
-  struct ibv_port_attr port_attr;
-  struct ibv_device_attr dev_attr;
-
   uint8_t dev_port;
 
   // Connections O(N)
-  struct ibv_qp** qp;
+  struct ibv_qp** qps;
 
   // Helper fields.
   int* qp2rank;
   int qp2rank_mod;
   size_t max_inline;
-} lc_server __attribute__((aligned(64)));
+} LCIDI_server_t __attribute__((aligned(64)));
 
-#include "server_ibv_helper.h"
+static inline uintptr_t _real_server_reg(LCID_server_t s, void* buf, size_t size)
+{
+  LCIDI_server_t *server = (LCIDI_server_t*) s;
+  int mr_flags =
+      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+  return (uintptr_t)ibv_reg_mr(server->dev_pd, buf, size, mr_flags);
+}
+
+static inline void _real_server_dereg(uintptr_t mem)
+{
+  ibv_dereg_mr((struct ibv_mr*)mem);
+}
 
 #ifdef USE_DREG
 static inline LCID_mr_t lc_server_rma_reg(LCID_server_t s, void* buf, size_t size)
@@ -84,332 +111,220 @@ static inline uint32_t ibv_rma_lkey(uintptr_t mem)
 
 #endif
 
+static inline void lc_server_post_recv(LCID_server_t s, void *buf, uint32_t size, LCID_mr_t mr, void *user_context);
+
 static inline int lc_server_progress(LCID_server_t s)
 {
-  struct ibv_wc wc[MAX_CQ];
-  int ne = ibv_poll_cq(s->recv_cq, MAX_CQ, wc);
+  LCIDI_server_t *server = (LCIDI_server_t*) s;
+  struct ibv_wc wc[MAX_POLL];
+  int ne = ibv_poll_cq(server->recv_cq, MAX_POLL, wc);
+  LCM_DBG_Assert(ne >= 0, "ibv_poll_cq returns error\n");
   int ret = (ne > 0);
-  int i;
-
-  LCM_DBG_Assert(ne >= 0, "ibv_poll_cq returns error");
-  for (i = 0; i < ne; i++) {
+  for (int i = 0; i < ne; i++) {
     LCM_DBG_Assert(wc[i].status == IBV_WC_SUCCESS,
                    "Failed status %s (%d) for wr_id %d\n",
                    ibv_wc_status_str(wc[i].status), wc[i].status,
                    (int)wc[i].wr_id);
-    s->recv_posted--;
-    __builtin_prefetch((void*)wc[i].wr_id);
+    server->recv_posted--;
     if (wc[i].opcode == IBV_WC_RECV) {
       // two-sided recv.
       lc_packet* packet = (lc_packet*)wc[i].wr_id;
-      int src_rank = s->qp2rank[wc[i].qp_num % s->qp2rank_mod];
+      int src_rank = server->qp2rank[wc[i].qp_num % server->qp2rank_mod];
+      LCM_DBG_Log(LCM_LOG_DEBUG, "complete recv: packet %p rank %d size %u imm_data %u\n",
+                  packet, src_rank, wc[i].byte_len, wc[i].imm_data);
       lc_serve_recv(packet, src_rank, wc[i].byte_len, wc[i].imm_data);
     } else {
-      LCM_DBG_Assert(wc[i].opcode == IBV_WC_RECV_RDMA_WITH_IMM, "unexpected opcode");
+      LCM_DBG_Assert(wc[i].opcode == IBV_WC_RECV_RDMA_WITH_IMM, "Unexpected opcode! %d\n", wc[i].opcode);
+      LCM_DBG_Log(LCM_LOG_DEBUG, "complete writeImm: imm_data %u\n", wc[i].imm_data);
+      LCII_free_packet((lc_packet*)wc[i].wr_id);
       lc_serve_rdma(wc[i].imm_data);
     }
   }
 
-  ne = ibv_poll_cq(s->send_cq, MAX_CQ, wc);
+  ne = ibv_poll_cq(server->send_cq, MAX_POLL, wc);
   ret |= (ne > 0);
 
-  LCM_DBG_Assert(ne >= 0, "ibv_poll_cq returns error");
-  for (i = 0; i < ne; i++) {
+  LCM_DBG_Assert(ne >= 0, "ibv_poll_cq returns error!\n");
+  for (int i = 0; i < ne; i++) {
     LCM_DBG_Assert(wc[i].status == IBV_WC_SUCCESS,
                    "Failed status %s (%d) for wr_id %d\n",
                    ibv_wc_status_str(wc[i].status), wc[i].status,
                    (int)wc[i].wr_id);
-    LCM_DBG_Assert(wc[i].wr_id != 0, "ibv send/write: don't receive any context");
+    LCM_DBG_Log(LCM_LOG_DEBUG, "complete send: wr_id %p\n", (void*) wc[i].wr_id);
+    if (wc[i].wr_id == 0) continue;
     lc_serve_send((void*)wc[i].wr_id);
   }
 
   // Make sure we always have enough packet, but do not block.
-  if (s->recv_posted < LC_SERVER_MAX_RCVS) {
-    ibv_post_recv_(s, (lc_packet*)lc_pool_get_nb(s->pkpool));  //, 0));
+  while (server->recv_posted < LC_SERVER_MAX_RCVS) {
+    lc_packet *packet = lc_pool_get_nb(server->device->pkpool);
+    if (packet == NULL) {
+      if (server->recv_posted < LC_SERVER_MAX_RCVS / 2 && !g_server_no_recv_packets) {
+        g_server_no_recv_packets = 1;
+        LCM_DBG_Log(LCM_LOG_DEBUG, "WARNING-LC: deadlock alert. There is only"
+                                   "%d packets left for post_recv\n", server->recv_posted);
+      }
+      break;
+    }
+    packet->context.poolid = lc_pool_get_local(server->device->pkpool);
+    lc_server_post_recv(s, packet->data.address, LCI_MEDIUM_SIZE,
+                        server->device->heap.segment->mr_p, packet);
     ret = 1;
   }
-
-  LCM_DBG_Log(LCM_LOG_WARN, "WARNING DEADLOCK %lu\n", s->recv_posted);
+  if (server->recv_posted == LC_SERVER_MAX_RCVS && g_server_no_recv_packets)
+    g_server_no_recv_packets = 0;
 
   return ret;
 }
 
-#define setup_wr(w, d, l, m, f) \
-  {                             \
-    (w).wr_id = (d);            \
-    (w).sg_list = (l);          \
-    (w).num_sge = (1);          \
-    (w).opcode = (m);           \
-    (w).send_flags = (f);       \
-    (w).next = NULL;            \
-  }
-
-static inline void lc_server_sends(LCID_server_t s __UNUSED__, LCID_addr_t dest, void* buf,
-                                   size_t size, LCID_meta_t meta)
+static inline void lc_server_post_recv(LCID_server_t s, void *buf, uint32_t size, LCID_mr_t mr, void *user_context)
 {
-  struct ibv_send_wr this_wr;
-  struct ibv_send_wr* bad_wr;
+  LCM_DBG_Log(LCM_LOG_DEBUG, "post recv: buf %p size %u lkey %u user_context %p\n",
+              buf, size, ibv_rma_lkey(mr), user_context);
+  LCIDI_server_t *server = (LCIDI_server_t*) s;
+  struct ibv_sge list;
+  list.addr	= (uint64_t) buf;
+  list.length = size;
+  list.lkey	= ibv_rma_lkey(mr);
+  struct ibv_recv_wr wr;
+  wr.wr_id	    = (uint64_t) user_context;
+  wr.next       = NULL;
+  wr.sg_list    = &list;
+  wr.num_sge    = 1;
+  struct ibv_recv_wr *bad_wr;
+  IBV_SAFECALL(ibv_post_srq_recv(server->dev_srq, &wr, &bad_wr));
+  ++server->recv_posted;
+}
+
+static inline LCI_error_t lc_server_sends(LCID_server_t s, int rank, void* buf,
+                                          size_t size, LCID_meta_t meta)
+{
+  LCM_DBG_Log(LCM_LOG_DEBUG, "post sends: rank %d buf %p size %lu meta %d\n",
+              rank, buf, size, meta);
+  LCIDI_server_t *server = (LCIDI_server_t*) s;
+  LCM_DBG_Assert(size <= server->max_inline, "%lu exceed the inline message size"
+                                             "limit! %lu\n", size, server->max_inline);
+
+  struct ibv_sge list;
+  list.addr	= (uint64_t) buf;
+  list.length   = size;
+  list.lkey	= 0;
+  struct ibv_send_wr wr;
+  wr.wr_id	= 0;
+  wr.next       = NULL;
+  wr.sg_list    = &list;
+  wr.num_sge    = 1;
+  wr.opcode     = IBV_WR_SEND_WITH_IMM;
+  wr.send_flags = IBV_SEND_INLINE;
+  wr.imm_data   = meta;
+
   static int ninline = 0;
-
-  struct ibv_sge list = {
-      .addr = (uintptr_t)buf, .length = (uint32_t)size, .lkey = 0};
-
-  setup_wr(this_wr, (uintptr_t)0, &list, IBV_WR_SEND_WITH_IMM,
-           IBV_SEND_INLINE);  // NOTE: do not signal freqly here.
-
-  if (unlikely(ninline++ == 64)) {
-    this_wr.send_flags |= IBV_SEND_SIGNALED;
+  __sync_fetch_and_add(&ninline, 1);
+  if (ninline == 64) {
+    wr.send_flags |= IBV_SEND_SIGNALED;
     ninline = 0;
   }
 
-  this_wr.imm_data = meta;
-  IBV_SAFECALL(ibv_post_send((struct ibv_qp*)dest, &this_wr, &bad_wr));
+  struct ibv_send_wr *bad_wr;
+  IBV_SAFECALL(ibv_post_send(server->qps[rank], &wr, &bad_wr));
+  return LCI_OK;
 }
 
-static inline void lc_server_send(LCID_server_t s __UNUSED__, LCID_addr_t dest, void* buf,
-                                  size_t size, LCID_mr_t mr, LCID_meta_t meta,
-                                  void* ctx)
+static inline LCI_error_t lc_server_send(LCID_server_t s, int rank, void* buf,
+                                         size_t size, LCID_mr_t mr, LCID_meta_t meta,
+                                         void* ctx)
 {
-  struct ibv_send_wr this_wr;
+  LCM_DBG_Log(LCM_LOG_DEBUG, "post send: rank %d buf %p size %lu lkey %d meta %d ctx %p\n",
+              rank, buf, size, ibv_rma_lkey(mr), meta, ctx);
+  LCIDI_server_t *server = (LCIDI_server_t*) s;
+
+  struct ibv_sge list;
+  list.addr	= (uint64_t) buf;
+  list.length   = size;
+  list.lkey	= ibv_rma_lkey(mr);
+  struct ibv_send_wr wr;
+  wr.wr_id	= (uintptr_t) ctx;
+  wr.next       = NULL;
+  wr.sg_list    = &list;
+  wr.num_sge    = 1;
+  wr.opcode     = IBV_WR_SEND_WITH_IMM;
+  wr.send_flags = IBV_SEND_SIGNALED;
+  wr.imm_data   = meta;
+  if (size <= server->max_inline) {
+    wr.send_flags |= IBV_SEND_INLINE;
+  }
+
   struct ibv_send_wr* bad_wr;
-
-  struct ibv_sge list = {
-      .addr = (uintptr_t)buf,
-      .length = (uint32_t)size,
-      .lkey = ibv_rma_lkey(mr),
-  };
-
-  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND_WITH_IMM,
-           IBV_SEND_SIGNALED);
-  this_wr.imm_data = meta;
-  IBV_SAFECALL(ibv_post_send((struct ibv_qp*) dest, &this_wr, &bad_wr));
+  IBV_SAFECALL(ibv_post_send(server->qps[rank], &wr, &bad_wr));
+  return LCI_OK;
 }
 
-static inline void lc_server_puts(LCID_server_t s __UNUSED__, LCID_addr_t dest, void* buf,
-                                  size_t size, uintptr_t base, uint32_t offset,
-                                  LCID_rkey_t rkey, uint32_t meta)
+static inline LCI_error_t lc_server_puts(LCID_server_t s, int rank, void* buf,
+                                         size_t size, uintptr_t base, uint32_t offset,
+                                         LCID_rkey_t rkey, uint32_t meta)
 {
-  struct ibv_send_wr this_wr;
-  struct ibv_send_wr* bad_wr = 0;
+  LCM_DBG_Log(LCM_LOG_DEBUG, "post puts: rank %d buf %p size %lu base %p offset %d "
+              "rkey %lu meta %d\n", rank, buf,
+              size, (void*) base, offset, rkey, meta);
+  LCIDI_server_t *server = (LCIDI_server_t*) s;
+  LCM_DBG_Assert(size <= server->max_inline, "%lu exceed the inline message size"
+                                             "limit! %lu\n", size, server->max_inline);
+  struct ibv_sge list;
+  list.addr	= (uint64_t) buf;
+  list.length   = size;
+  list.lkey	= 0;
+  struct ibv_send_wr wr;
+  wr.wr_id	= 0;
+  wr.next       = NULL;
+  wr.sg_list    = &list;
+  wr.num_sge    = 1;
+  wr.opcode     = IBV_WR_RDMA_WRITE_WITH_IMM;
+  wr.send_flags = IBV_SEND_SIGNALED | IBV_SEND_INLINE;
+  wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
+  wr.wr.rdma.rkey = rkey;
+  wr.imm_data   = meta;
 
-  struct ibv_sge list = {
-      .addr = (uintptr_t)buf,
-      .length = (unsigned)size,
-      .lkey = 0,
-  };
-
-  setup_wr(this_wr, 0, &list, IBV_WR_RDMA_WRITE_WITH_IMM,
-           IBV_SEND_SIGNALED | IBV_SEND_INLINE);
-  this_wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
-  this_wr.wr.rdma.rkey = rkey;
-  this_wr.imm_data = meta;
-
-  IBV_SAFECALL(ibv_post_send(dest, &this_wr, &bad_wr));
+  struct ibv_send_wr *bad_wr;
+  IBV_SAFECALL(ibv_post_send(server->qps[rank], &wr, &bad_wr));
+  return LCI_OK;
 }
 
-static inline void lc_server_put(LCID_server_t s, LCID_addr_t dest, void* buf,
-                                 size_t size, LCID_mr_t mr, uintptr_t base,
-                                 uint32_t offset, LCID_rkey_t rkey,
-                                 LCID_meta_t meta, void* ctx)
+static inline LCI_error_t lc_server_put(LCID_server_t s, int rank, void* buf,
+                                        size_t size, LCID_mr_t mr, uintptr_t base,
+                                        uint32_t offset, LCID_rkey_t rkey,
+                                        LCID_meta_t meta, void* ctx)
 {
-  struct ibv_send_wr this_wr;
-  struct ibv_send_wr* bad_wr = 0;
+  LCM_DBG_Log(LCM_LOG_DEBUG, "post put: rank %d buf %p size %lu lkey %u base %p "
+              "offset %d rkey %lu meta %u ctx %p\n", rank, buf,
+              size, ibv_rma_lkey(mr), (void*) base, offset, rkey, meta, ctx);
+  LCIDI_server_t *server = (LCIDI_server_t*) s;
 
-  struct ibv_sge list = {
-      .addr = (uintptr_t)buf,
-      .length = (unsigned)size,
-      .lkey = ibv_rma_lkey(mr),
-  };
+  struct ibv_sge list;
+  list.addr	= (uint64_t) buf;
+  list.length   = size;
+  list.lkey	= ibv_rma_lkey(mr);
+  struct ibv_send_wr wr;
+  wr.wr_id      = (uint64_t) ctx;
+  wr.next       = NULL;
+  wr.sg_list    = &list;
+  wr.num_sge    = 1;
+  wr.opcode     = IBV_WR_RDMA_WRITE_WITH_IMM;
+  wr.send_flags = IBV_SEND_SIGNALED;
+  wr.imm_data   = meta;
+  wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
+  wr.wr.rdma.rkey = rkey;
+  if (size <= server->max_inline) {
+    wr.send_flags |= IBV_SEND_INLINE;
+  }
+  struct ibv_send_wr *bad_wr;
 
-  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE_WITH_IMM,
-           IBV_SEND_SIGNALED);
-  this_wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
-  this_wr.wr.rdma.rkey = rkey;
-  this_wr.imm_data = meta;
-
-  IBV_SAFECALL(ibv_post_send(dest, &this_wr, &bad_wr));
+  IBV_SAFECALL(ibv_post_send(server->qps[rank], &wr, &bad_wr));
+  return LCI_OK;
 }
 
-static inline void lc_server_rma_rtr(LCID_server_t s, void* rep, void* buf,
-                                     uintptr_t addr, uint64_t rkey, size_t size,
-                                     uint32_t sid, lc_packet* ctx)
-{
-  struct ibv_send_wr this_wr;
-  struct ibv_send_wr* bad_wr = 0;
-  uint32_t lkey = 0;
-  uint32_t flag = IBV_SEND_SIGNALED;
-
-  if (size > s->max_inline) {
-    lkey = ibv_rma_lkey(lc_server_rma_reg(s, buf, size));
-  } else {
-    flag |= IBV_SEND_INLINE;
-  }
-
-  struct ibv_sge list = {
-      .addr = (uintptr_t)buf,
-      .length = (unsigned)size,
-      .lkey = lkey,
-  };
-
-  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE_WITH_IMM, flag);
-  this_wr.wr.rdma.remote_addr = (uintptr_t)addr;
-  this_wr.wr.rdma.rkey = rkey;
-  this_wr.imm_data = sid | IBV_IMM_RTR;
-
-  IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
+static inline int lc_server_recv_posted_num(LCID_server_t s) {
+  LCIDI_server_t *server = (LCIDI_server_t*) s;
+  return server->recv_posted;
 }
-
-static inline void lc_server_init(int id, LCID_server_t* dev)
-{
-  LCID_server_t s = NULL;
-  posix_memalign((void**)&s, 8192, sizeof(struct lc_server));
-
-  *dev = s;
-  s->id = id;
-
-  int num_devices;
-  struct ibv_device** dev_list = ibv_get_device_list(&num_devices);
-  if (num_devices <= 0) {
-    fprintf(stderr, "Unable to find any ibv devices\n");
-    exit(EXIT_FAILURE);
-  }
-
-  // Use the last one by default.
-  s->dev_ctx = ibv_open_device(dev_list[num_devices - 1]);
-  if (s->dev_ctx == 0) {
-    fprintf(stderr, "Unable to find any ibv devices\n");
-    exit(EXIT_FAILURE);
-  }
-  ibv_free_device_list(dev_list);
-
-  struct ibv_device_attr* dev_attr = &s->dev_attr;
-  int rc = ibv_query_device(s->dev_ctx, dev_attr);
-  if (rc != 0) {
-    fprintf(stderr, "Unable to query device\n");
-    exit(EXIT_FAILURE);
-  }
-
-  struct ibv_port_attr* port_attr = &s->port_attr;
-  uint8_t dev_port = 0;
-  for (; dev_port < 128; dev_port++) {
-    rc = ibv_query_port(s->dev_ctx, dev_port, port_attr);
-    if (rc == 0) break;
-  }
-  s->dev_port = dev_port;
-
-  if (rc != 0) {
-    fprintf(stderr, "Unable to query port\n");
-    exit(EXIT_FAILURE);
-  }
-
-  s->dev_pd = ibv_alloc_pd(s->dev_ctx);
-  if (s->dev_pd == 0) {
-    fprintf(stderr, "Could not create protection domain for context\n");
-    exit(EXIT_FAILURE);
-  }
-
-  // Create shared-receive queue, **number here affect performance**.
-  struct ibv_srq_init_attr srq_attr;
-  srq_attr.srq_context = 0;
-  srq_attr.attr.max_wr = LC_SERVER_MAX_RCVS;
-  srq_attr.attr.max_sge = 1;
-  srq_attr.attr.srq_limit = 0;
-  s->dev_srq = ibv_create_srq(s->dev_pd, &srq_attr);
-  if (s->dev_srq == 0) {
-    fprintf(stderr, "Could not create shared received queue\n");
-    exit(EXIT_FAILURE);
-  }
-
-  // Create completion queues.
-  s->send_cq = ibv_create_cq(s->dev_ctx, 64 * 1024, 0, 0, 0);
-  s->recv_cq = ibv_create_cq(s->dev_ctx, 64 * 1024, 0, 0, 0);
-  if (s->send_cq == 0 || s->recv_cq == 0) {
-    fprintf(stderr, "Unable to create cq\n");
-    exit(EXIT_FAILURE);
-  }
-
-  // Create RDMA memory.
-  s->heap = ibv_mem_malloc(s, LC_SERVER_NUM_PKTS * LC_PACKET_SIZE * 2 + LCI_REGISTERED_SEGMENT_SIZE);
-  s->heap_addr = (uintptr_t)s->heap->addr;
-
-  if (s->heap == 0) {
-    fprintf(stderr, "Unable to create heap\n");
-    exit(EXIT_FAILURE);
-  }
-
-  s->recv_posted = 0;
-  posix_memalign((void**)&s->qp, LC_CACHE_LINE,
-                 LCI_NUM_PROCESSES * sizeof(struct ibv_qp*));
-
-  struct conn_ctx lctx, rctx;
-  char ep_name[256];
-  lctx.addr = (uintptr_t)s->heap_addr;
-  lctx.rkey = s->heap->rkey;
-  lctx.lid = s->port_attr.lid;
-
-  for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
-    s->qp[i] = qp_create(s);
-    qp_init(s->qp[i], s->dev_port);
-    // Use this endpoint "i" to connect to rank e.
-    lctx.qp_num = s->qp[i]->qp_num;
-    sprintf(ep_name, "%llu-%d-%d-%d", (unsigned long long)lctx.addr, lctx.rkey,
-            lctx.qp_num, (int)lctx.lid);
-    lc_pm_publish(LCI_RANK, (s->id) << 8 | i, ep_name);
-  }
-
-  posix_memalign((void**)&(s->rep), LC_CACHE_LINE,
-                 sizeof(struct lc_rep) * LCI_NUM_PROCESSES);
-
-  for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
-    lc_pm_getname(i, (s->id << 8) | LCI_RANK, ep_name);
-    sscanf(ep_name, "%llu-%d-%d-%d", (unsigned long long*)&rctx.addr,
-           &rctx.rkey, &rctx.qp_num, (int*)&rctx.lid);
-    qp_to_rtr(s->qp[i], s->dev_port, &s->port_attr, &rctx);
-    qp_to_rts(s->qp[i]);
-
-    struct lc_rep* rep = &s->rep[i];
-    rep->rank = i;
-    rep->rkey = rctx.rkey;
-    rep->handle = (void*)s->qp[i];
-    rep->base = rctx.addr;
-  }
-
-  int j = LCI_NUM_PROCESSES;
-  int* b;
-  while (1) {
-    b = (int*)calloc(j, sizeof(int));
-    int i = 0;
-    for (; i < LCI_NUM_PROCESSES; i++) {
-      int k = (s->qp[i]->qp_num % j);
-      if (b[k]) break;
-      b[k] = 1;
-    }
-    if (i == LCI_NUM_PROCESSES) break;
-    j++;
-    free(b);
-  }
-  for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
-    b[s->qp[i]->qp_num % j] = i;
-  }
-  s->qp2rank_mod = j;
-  s->qp2rank = b;
-
-#ifdef USE_DREG
-  dreg_init();
-#endif
-  lc_pm_barrier();
-}
-
-static inline void lc_server_finalize(LCID_server_t s)
-{
-  ibv_destroy_cq(s->send_cq);
-  ibv_destroy_cq(s->recv_cq);
-  ibv_destroy_srq(s->dev_srq);
-  free(s);
-}
-
-#define lc_server_post_rma(...) \
-  {                             \
-  }
 
 #endif

@@ -25,7 +25,7 @@ if( NOT LCI_BUILD_TESTS )
     set(EXCLUDE_FROM_ALL ON)
 endif()
 set(SRUN_EXE mpirun CACHE STRING "exective to be used in ctest")
-set(SRUN_ARG "-n 2" CACHE STRING "arguments to be used in ctest")
+set(SRUN_EXTRA_ARG "" CACHE STRING "arguments to be used in ctest")
 
 include_directories(./)
 #add_subdirectory(gtests)

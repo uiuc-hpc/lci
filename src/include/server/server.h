@@ -14,9 +14,7 @@ typedef uint32_t LCID_meta_t; // immediate data
 
 /* Following functions are required to be implemented by LCI */
 
-static inline void lc_serve_recv(LCI_device_t device, lc_packet* p,
-                                 int rank, size_t length,
-                                 LCII_proto_t proto);
+static inline void lc_serve_recv(lc_packet* p, int rank, size_t length, LCII_proto_t proto);
 static inline void lc_serve_rdma(LCII_proto_t proto);
 static inline void lc_serve_send(void *ctx);
 

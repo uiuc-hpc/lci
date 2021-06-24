@@ -9,6 +9,8 @@
 void lc_pm_master_init(int* size, int* rank);
 void lc_pm_publish(int prank, int erank, char* value);
 void lc_pm_getname(int prank, int erank, char* value);
+void lc_pm_publish_key(char* key, char* value);
+void lc_pm_getname_key(char* key, char* value);
 void lc_pm_barrier();
 void lc_pm_finalize();
 #endif

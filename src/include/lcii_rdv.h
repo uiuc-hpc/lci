@@ -91,6 +91,11 @@ static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep, lc_packet* packet,
       (uintptr_t) rdv_ctx->data.lbuffer.address - packet->data.rtr.remote_addr_base;
   packet->data.rtr.rkey = lc_server_rma_rkey(rdv_ctx->data.lbuffer.segment->mr_p);
 
+  LCM_DBG_Log(LCM_LOG_DEBUG, "send rtr: type %d sctx %p base %p offset %d "
+              "rkey %lu rctx_key %u\n", packet->data.rtr.msg_type,
+              (void*) packet->data.rtr.send_ctx, (void*) packet->data.rtr.remote_addr_base,
+              packet->data.rtr.remote_addr_offset, packet->data.rtr.rkey,
+              packet->data.rtr.recv_ctx_key);
   LCII_RDV_RETRY(lc_server_send(ep->device->server, rdv_ctx->rank, packet->data.address,
                                    sizeof(struct packet_rtr), ep->device->heap.segment->mr_p,
                                    LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx),

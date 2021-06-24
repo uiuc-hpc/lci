@@ -45,6 +45,7 @@ typedef struct LCIDI_server_t {
   struct fid_cq* cq;
   struct fid_av* av;
   fi_addr_t *peer_addrs;
+  void *heap_desc;
 } LCIDI_server_t __attribute__((aligned(64)));
 
 extern int g_next_rdma_key;
@@ -88,19 +89,19 @@ static inline int lc_server_progress(LCID_server_t s)
   LCIDI_server_t *server = (LCIDI_server_t*) s;
   struct fi_cq_tagged_entry entry[MAX_POLL];
   struct fi_cq_err_entry error;
-  ssize_t ret;
-  int rett = 0;
+  ssize_t ne;
+  int ret = 0;
 
   do {
-    ret = fi_cq_read(server->cq, &entry, MAX_POLL);
-    if (ret > 0) {
+    ne = fi_cq_read(server->cq, &entry, MAX_POLL);
+    if (ne > 0) {
       // Got an entry here
-      for (int i = 0; i < ret; i++) {
+      for (int i = 0; i < ne; i++) {
         if (entry[i].flags & FI_RECV) {
           --server->recv_posted;
           // we use tag to pass src_rank, because it is hard to get src_rank
           // from fi_addr_t. TODO: Need to improve
-          lc_serve_recv(server->device, entry[i].op_context, entry[i].tag, entry[i].len,
+          lc_serve_recv(entry[i].op_context, entry[i].tag, entry[i].len,
                         entry[i].data);
         } else if (entry[i].flags & FI_REMOTE_WRITE) {
           lc_serve_rdma(entry[i].data);
@@ -108,32 +109,34 @@ static inline int lc_server_progress(LCID_server_t s)
           lc_serve_send(entry[i].op_context);
         }
       }
-      rett += ret;
+      ret |= (ne > 0);
 #ifdef LCI_DEBUG
-    } else if (ret == -FI_EAGAIN) {
+    } else if (ne == -FI_EAGAIN) {
     } else {
-      LCM_DBG_Assert(ret == -FI_EAVAIL, "unexpected return error: %s\n", fi_strerror(-ret));
+      LCM_DBG_Assert(ne == -FI_EAVAIL, "unexpected return error: %s\n", fi_strerror(-ne));
       fi_cq_readerr(server->cq, &error, 0);
       printf("Err: %s\n", fi_strerror(error.err));
       exit(error.err);
 #endif
     }
-  } while (ret > 0);
+  } while (ne > 0);
 
   while (server->recv_posted < LC_SERVER_MAX_RCVS) {
     lc_packet *packet = lc_pool_get_nb(server->device->pkpool);
     if (packet == NULL) break;
-    FI_SAFECALL(fi_trecv(server->ep, &packet->data, LCI_MEDIUM_SIZE, 0,
+    FI_SAFECALL(fi_trecv(server->ep, &packet->data, LCI_MEDIUM_SIZE,
+                         server->device->heap.segment->mr_p,
                          FI_ADDR_UNSPEC, /*any*/0, ~(uint64_t)0 /*ignore all*/,
                          packet));
     server->recv_posted++;
+    ret = 1;
   }
 
   if (server->recv_posted == 0) {
     LCM_DBG_Log(LCM_LOG_WARN, "Run out of posted receive packets! Potentially deadlock!\n");
   }
 
-  return rett;
+  return ret;
 }
 
 static inline LCI_error_t lc_server_sends(LCID_server_t s, int rank, void* buf,

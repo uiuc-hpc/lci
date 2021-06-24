@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "pmi_wrapper.h"
 #ifdef LCI_USE_PMI1
-#include "pmi1.h"
+#include "pmi.h"
 #endif
 #ifdef LCI_USE_PMI2
 #include "pmi2.h"

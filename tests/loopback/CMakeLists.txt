@@ -9,5 +9,5 @@ add_lci_tests(
 #            puti-self.c
 #            putbc-self.c
         LABELS loopback
-        COMMAND "[TARGET]"
+        COMMAND "${SRUN_EXE} -n 1 ${SRUN_EXTRA_ARG} [TARGET]"
 )

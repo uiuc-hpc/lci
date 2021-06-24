@@ -108,7 +108,7 @@ typedef struct LCII_sync_t LCII_sync_t;
 LCI_error_t LCI_sync_signal(LCI_comp_t completion, LCII_context_t* ctx);
 
 extern LCI_endpoint_t *LCI_ENDPOINTS;
-extern int lcg_deadlock;
+extern int g_server_no_recv_packets;
 
 // matching table
 LCI_error_t LCII_mt_init(LCI_mt_t* mt, uint32_t length);

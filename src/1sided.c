@@ -101,6 +101,9 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
   packet->data.rts.send_ctx = (uintptr_t) rdv_ctx;
   packet->data.rts.size = buffer.length;
 
+  LCM_DBG_Log(LCM_LOG_DEBUG, "send rts: type %d sctx %p size %lu\n",
+              packet->data.rts.msg_type, (void*) packet->data.rts.send_ctx,
+              packet->data.rts.size);
   LCI_error_t ret = lc_server_send(ep->device->server, rank, packet->data.address,
                                    sizeof(struct packet_rts), ep->device->heap.segment->mr_p,
                                    LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTS, tag), rts_ctx);

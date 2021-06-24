@@ -35,7 +35,7 @@ static inline void lc_ce_dispatch(LCII_context_t *ctx)
   }
 }
 
-static inline void lc_serve_recv(LCI_device_t device, lc_packet* packet,
+static inline void lc_serve_recv(lc_packet* packet,
                                  int src_rank, size_t length,
                                  LCII_proto_t proto)
 {

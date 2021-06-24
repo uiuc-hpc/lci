@@ -124,7 +124,7 @@ add_library(lci-obj OBJECT)
 set_target_properties(lci-obj PROPERTIES
         POSITION_INDEPENDENT_CODE ON
         C_VISIBILITY_PRESET       hidden
-        C_STANDARD                99
+        C_STANDARD                11
         C_EXTENSIONS              ON
         )
 target_compile_definitions(lci-obj PRIVATE _GNU_SOURCE)
@@ -147,7 +147,7 @@ set_target_properties(lci_shared lci_static PROPERTIES OUTPUT_NAME lci)
 
 add_subdirectory(src)
 #add_subdirectory(examples)
-add_subdirectory(benchmarks)
+#add_subdirectory(benchmarks)
 add_subdirectory(tests)
 add_subdirectory(doc)
 

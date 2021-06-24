@@ -318,8 +318,8 @@ static inline int lc_server_progress(LCID_server_t s)
 static inline void lc_server_post_recv(LCID_server_t s, lc_packet* p)
 {
   if (p == NULL) {
-    if (s->recv_posted == LC_SERVER_MAX_RCVS / 2 && !lcg_deadlock) {
-      lcg_deadlock = 1;
+    if (s->recv_posted == LC_SERVER_MAX_RCVS / 2 && !g_server_no_recv_packets) {
+      g_server_no_recv_packets = 1;
       LCM_DBG_Log(LCM_LOG_WARN, "deadlock alert\n");
     }
     return;
@@ -334,7 +334,7 @@ static inline void lc_server_post_recv(LCID_server_t s, lc_packet* p)
                               (void*)(PSM_RECV | (uintptr_t)&p->context),
                               (psm2_mq_req_t*)p));
 
-  if (++s->recv_posted == LC_SERVER_MAX_RCVS && lcg_deadlock) lcg_deadlock = 0;
+  if (++s->recv_posted == LC_SERVER_MAX_RCVS && g_server_no_recv_packets) g_server_no_recv_packets = 0;
 }
 
 static inline void lc_server_send(LCID_server_t s, void* rep, size_t size,

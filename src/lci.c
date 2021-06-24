@@ -1,5 +1,7 @@
 #include "lcii.h"
 
+int g_server_no_recv_packets;
+
 LCI_error_t LCI_open()
 {
   int num_proc, rank;

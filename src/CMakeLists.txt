@@ -15,11 +15,17 @@ target_sources_relative(lci-obj PRIVATE
         env.c
         device.c
         endpoint.c
-        server_ofi.c
         ${CMAKE_CURRENT_SOURCE_DIR}/$<$<BOOL:${LCI_SYNC_ABT}>:sync_abt.c>
         ${CMAKE_CURRENT_SOURCE_DIR}/$<$<BOOL:${LCI_SYNC_FLAG}>:sync_flag.c>
         $<TARGET_OBJECTS:pmi-obj>
         )
+
+if(LCI_USE_SERVER_OFI)
+  target_sources_relative(lci-obj PRIVATE server_ofi.c)
+elseif(LCI_USE_SERVER_IBV)
+  target_sources_relative(lci-obj PRIVATE server_ibv.c)
+elseif(LCI_USE_SERVER_PSM)
+endif()
 
 if(LCI_USE_DREG)
   add_subdirectory(dreg)

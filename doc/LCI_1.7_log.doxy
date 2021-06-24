@@ -17,7 +17,7 @@
 
 ## Caveat
 - I deleted the back pressure when progress thread doesn't have enough recv posted.
-  (The logic related to lcg_deadlock). I don't think it makes sense. If progress
+  (The logic related to g_server_no_recv_packets). I don't think it makes sense. If progress
   thread doesn't have enough recv posted. This is because progress thread doesn't 
   have available packets. It can steal from other threads. Also, the local completion
   of send transfer packets from compute threads to progress threads.
