@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.19)
 project(LCI
   VERSION 0.2.0
   DESCRIPTION "Lightweight Communication Interface"
@@ -10,6 +10,8 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
+include(CheckLinkerFlag)
+include(CheckCompilerFlag)
 
 set(LC_SERVER psm CACHE STRING "Fabric")
 set_property(CACHE LC_SERVER PROPERTY STRINGS ofi ibv psm)
@@ -101,6 +103,11 @@ find_package(Fabric REQUIRED)
 
 
 
+check_linker_flag(C "LINKER:-Bsymbolic-functions" BSYMBOLIC_FUNCTIONS)
+check_compiler_flag(C "-fno-semantic-interposition" FNO_SEMANTIC_INTERPOSITION)
+
+
+
 add_library(lci-obj OBJECT)
 set_target_properties(lci-obj PROPERTIES
   POSITION_INDEPENDENT_CODE ON
@@ -108,6 +115,9 @@ set_target_properties(lci-obj PROPERTIES
   C_STANDARD                99
   C_EXTENSIONS              ON
 )
+if(FNO_SEMANTIC_INTERPOSITION)
+  target_compile_options(lci-obj PRIVATE "-fno-semantic-interposition")
+endif()
 target_compile_definitions(lci-obj PRIVATE _GNU_SOURCE)
 target_include_directories(lci-obj PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -122,6 +132,9 @@ add_library(lci_shared SHARED)
 add_library(lci_static STATIC)
 target_link_libraries(lci_shared PUBLIC lci-obj)
 target_link_libraries(lci_static PUBLIC lci-obj)
+if(BSYMBOLIC_FUNCTIONS)
+  target_link_options(lci_shared PRIVATE "LINKER:-Bsymbolic-functions")
+endif()
 set_target_properties(lci_shared lci_static PROPERTIES OUTPUT_NAME lci)
 
 add_subdirectory(src)
