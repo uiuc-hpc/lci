@@ -223,7 +223,7 @@ static inline void lc_server_init(int id, LCID_server_t* dev)
   s->heap_rkey = lc_server_get_free_key();
   sprintf(ep_name, "%llu-%llu-%d", (unsigned long long)s->myepid,
           (unsigned long long)s->heap_addr, (uint32_t)s->heap_rkey);
-  lc_pm_publish(LCI_RANK, id, ep_name);
+  lcm_pm_publish(LCI_RANK, id, ep_name);
 
   posix_memalign((void**)&(s->rep), LC_CACHE_LINE,
                  sizeof(struct lc_rep) * LCI_NUM_PROCESSES);
@@ -232,7 +232,7 @@ static inline void lc_server_init(int id, LCID_server_t* dev)
     if (i != LCI_RANK) {
       struct lc_rep* rep = &s->rep[i];
       psm2_error_t errs;
-      lc_pm_getname(i, id, ep_name);
+      lcm_pm_getname(i, id, ep_name);
       psm2_epid_t destaddr;
       psm2_epaddr_t epaddr;
       unsigned long long baseaddr;

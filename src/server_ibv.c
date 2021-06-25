@@ -170,18 +170,18 @@ void lc_server_init(LCI_device_t device, LCID_server_t* s)
     char value[256];
     sprintf(value, "%x:%hx", server->qps[i]->qp_num,
             server->port_attr.lid);
-    lc_pm_publish_key(key, value);
+    lcm_pm_publish(key, value);
   }
   LCM_Log(LCM_LOG_INFO, "Current inline data size is %d\n",
           inline_size);
   server->max_inline = inline_size;
-  lc_pm_barrier();
+  lcm_pm_barrier();
 
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
     char key[256];
     sprintf(key, "LCI_KEY_%d_%d_%d", device_id, i, LCI_RANK);
     char value[256];
-    lc_pm_getname_key(key, value);
+    lcm_pm_getname(key, value);
     uint32_t dest_qpn;
     uint16_t dest_lid;
     sscanf(value, "%x:%hx", &dest_qpn, &dest_lid);
@@ -269,7 +269,7 @@ void lc_server_init(LCI_device_t device, LCID_server_t* s)
 #ifdef USE_DREG
   dreg_init();
 #endif
-  lc_pm_barrier();
+  lcm_pm_barrier();
 }
 
 void lc_server_finalize(LCID_server_t s)

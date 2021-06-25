@@ -6,7 +6,10 @@ LCI_error_t LCI_open()
 {
   int num_proc, rank;
   // Initialize processes in this job.
-  lc_pm_master_init(&num_proc, &rank);
+  if (!lcm_pm_initialized())
+    lcm_pm_initialize();
+  rank = lcm_pm_rank_me();
+  num_proc = lcm_pm_nranks();
   LCM_Init();
 
   // Set some constant from environment variable.
@@ -29,7 +32,7 @@ LCI_error_t LCI_close()
   LCI_endpoint_free(&LCI_UR_ENDPOINT);
   lc_dev_finalize(LCI_UR_DEVICE);
   LCI_barrier();
-  lc_pm_finalize();
+  lcm_pm_finalize();
   return LCI_OK;
 }
 
@@ -40,7 +43,7 @@ LCI_error_t LCI_progress(LCI_device_t device)
 }
 
 void LCI_barrier() {
-  lc_pm_barrier();
+  lcm_pm_barrier();
 }
 
 int LCI_Rank()

@@ -75,19 +75,22 @@ void lc_server_init(LCI_device_t device, LCID_server_t* s)
   FI_SAFECALL(fi_getname((fid_t)server->ep, my_addr, &addrlen));
 
   server->peer_addrs = LCIU_malloc(sizeof(fi_addr_t) * LCI_NUM_PROCESSES);
-  char msg[256];
+  char key[256];
+  sprintf(key, "LCI_KEY_%d_%d", device_id, LCI_RANK);
+  char value[256];
   const char* PARSE_STRING = "%016lx-%016lx-%016lx-%016lx-%016lx-%016lx";
-  sprintf(msg, PARSE_STRING,
+  sprintf(value, PARSE_STRING,
           my_addr[0], my_addr[1], my_addr[2], my_addr[3], my_addr[4], my_addr[5]);
-  lc_pm_publish(LCI_RANK, device_id, msg);
-  lc_pm_barrier();
+  lcm_pm_publish(key, value);
+  lcm_pm_barrier();
 
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
     if (i != LCI_RANK) {
-      lc_pm_getname(i, device_id, msg);
+      sprintf(key, "LCI_KEY_%d_%d", device_id, i);
+      lcm_pm_getname(key, value);
       uint64_t peer_addr[EP_ADDR_LEN];
 
-      sscanf(msg, PARSE_STRING,
+      sscanf(value, PARSE_STRING,
              &peer_addr[0], &peer_addr[1], &peer_addr[2], &peer_addr[3], &peer_addr[4], &peer_addr[5]);
       int ret = fi_av_insert(server->av, (void*)peer_addr, 1, &server->peer_addrs[i], 0, NULL);
       LCM_Assert(ret == 1, "fi_av_insert failed! ret = %d\n", ret);
