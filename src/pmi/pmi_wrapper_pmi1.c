@@ -14,16 +14,16 @@ int lcm_pm_initialized() {
   PMI_Initialized(&initialized);
   return initialized;
 }
-int lcm_pm_rank_me() {
-  int rank_me;
-  PMI_Get_rank(&rank_me);
-  return rank_me;
+int lcm_pm_get_rank() {
+  int rank;
+  PMI_Get_rank(&rank);
+  return rank;
 }
 
-int lcm_pm_nranks() {
-  int nranks;
-  PMI_Get_universe_size(&nranks);
-  return nranks;
+int lcm_pm_get_size() {
+  int size;
+  PMI_Get_universe_size(&size);
+  return size;
 }
 
 void lcm_pm_publish(char* key, char* value)

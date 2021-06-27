@@ -23,29 +23,29 @@ void lc_server_init(LCI_device_t device, LCID_server_t* s)
   hints->mode = FI_LOCAL_MR;
 
   // Create info.
-  FI_SAFECALL(fi_getinfo(FI_VERSION(1, 6), NULL, NULL, 0, hints, &server->fi));
-  LCM_Log(LCM_LOG_INFO, "Provider name: %s\n", server->fi->fabric_attr->prov_name);
+  FI_SAFECALL(fi_getinfo(FI_VERSION(1, 6), NULL, NULL, 0, hints, &server->info));
+  LCM_Log(LCM_LOG_INFO, "Provider name: %s\n", server->info->fabric_attr->prov_name);
   LCM_Log(LCM_LOG_INFO, "MR mode hints: [%s]\n", fi_tostr(&(hints->domain_attr->mr_mode), FI_TYPE_MR_MODE));
-  LCM_Log(LCM_LOG_INFO, "MR mode provided: [%s]\n", fi_tostr(&(server->fi->domain_attr->mr_mode), FI_TYPE_MR_MODE));
-  LCM_Log(LCM_LOG_INFO, "Thread mode: %s\n", fi_tostr(&(server->fi->domain_attr->threading), FI_TYPE_THREADING));
-  LCM_Log(LCM_LOG_INFO, "Control progress mode: %s\n", fi_tostr(&(server->fi->domain_attr->control_progress), FI_TYPE_PROGRESS));
-  LCM_Log(LCM_LOG_INFO, "Data progress mode: %s\n", fi_tostr(&(server->fi->domain_attr->data_progress), FI_TYPE_PROGRESS));
-  LCM_Log(LCM_LOG_MAX, "Fi_info provided: %s\n", fi_tostr(server->fi, FI_TYPE_INFO));
-  LCM_Log(LCM_LOG_MAX, "Fabric attributes: %s\n", fi_tostr(server->fi->fabric_attr, FI_TYPE_FABRIC_ATTR));
-  LCM_Log(LCM_LOG_MAX, "Domain attributes: %s\n", fi_tostr(server->fi->domain_attr, FI_TYPE_DOMAIN_ATTR));
-  LCM_Log(LCM_LOG_MAX, "Endpoint attributes: %s\n", fi_tostr(server->fi->ep_attr, FI_TYPE_EP_ATTR));
-  LCM_Assert(server->fi->domain_attr->cq_data_size >= 4, "cq_data_size = %lu\n", server->fi->domain_attr->cq_data_size);
-  LCM_Assert(server->fi->domain_attr->mr_key_size <= 8, "mr_key_size = %lu\n", server->fi->domain_attr->mr_key_size);
+  LCM_Log(LCM_LOG_INFO, "MR mode provided: [%s]\n", fi_tostr(&(server->info->domain_attr->mr_mode), FI_TYPE_MR_MODE));
+  LCM_Log(LCM_LOG_INFO, "Thread mode: %s\n", fi_tostr(&(server->info->domain_attr->threading), FI_TYPE_THREADING));
+  LCM_Log(LCM_LOG_INFO, "Control progress mode: %s\n", fi_tostr(&(server->info->domain_attr->control_progress), FI_TYPE_PROGRESS));
+  LCM_Log(LCM_LOG_INFO, "Data progress mode: %s\n", fi_tostr(&(server->info->domain_attr->data_progress), FI_TYPE_PROGRESS));
+  LCM_Log(LCM_LOG_MAX, "Fi_info provided: %s\n", fi_tostr(server->info, FI_TYPE_INFO));
+  LCM_Log(LCM_LOG_MAX, "Fabric attributes: %s\n", fi_tostr(server->info->fabric_attr, FI_TYPE_FABRIC_ATTR));
+  LCM_Log(LCM_LOG_MAX, "Domain attributes: %s\n", fi_tostr(server->info->domain_attr, FI_TYPE_DOMAIN_ATTR));
+  LCM_Log(LCM_LOG_MAX, "Endpoint attributes: %s\n", fi_tostr(server->info->ep_attr, FI_TYPE_EP_ATTR));
+  LCM_Assert(server->info->domain_attr->cq_data_size >= 4, "cq_data_size = %lu\n", server->info->domain_attr->cq_data_size);
+  LCM_Assert(server->info->domain_attr->mr_key_size <= 8, "mr_key_size = %lu\n", server->info->domain_attr->mr_key_size);
   fi_freeinfo(hints);
 
   // Create libfabric obj.
-  FI_SAFECALL(fi_fabric(server->fi->fabric_attr, &server->fabric, NULL));
+  FI_SAFECALL(fi_fabric(server->info->fabric_attr, &server->fabric, NULL));
 
   // Create domain.
-  FI_SAFECALL(fi_domain(server->fabric, server->fi, &server->domain, NULL));
+  FI_SAFECALL(fi_domain(server->fabric, server->info, &server->domain, NULL));
 
   // Create end-point;
-  FI_SAFECALL(fi_endpoint(server->domain, server->fi, &server->ep, NULL));
+  FI_SAFECALL(fi_endpoint(server->domain, server->info, &server->ep, NULL));
 
   // Create cq.
   struct fi_cq_attr cq_attr;
@@ -111,5 +111,7 @@ void lc_server_finalize(LCID_server_t s)
   FI_SAFECALL(fi_close((struct fid*) &server->cq->fid));
   FI_SAFECALL(fi_close((struct fid*) &server->av->fid));
   FI_SAFECALL(fi_close((struct fid*) &server->domain->fid));
+  FI_SAFECALL(fi_close((struct fid*) &server->fabric->fid));
+  fi_freeinfo(server->info);
   free(s);
 }

@@ -5,23 +5,23 @@
 
 void lcm_pm_initialize()
 {
-  int spawned, appnum, rank_me, nranks;
-  PMI2_Init(&spawned, &nranks, &rank_me, &appnum);
+  int spawned, appnum, rank, size;
+  PMI2_Init(&spawned, &size, &rank, &appnum);
 }
 
 int lcm_pm_initialized() {
   return PMI2_Initialized();
 }
-int lcm_pm_rank_me() {
-  int rank_me;
-  PMI2_Job_GetRank(&rank_me);
-  return rank_me;
+int lcm_pm_get_rank() {
+  int rank;
+  PMI2_Job_GetRank(&rank);
+  return rank;
 }
 
-int lcm_pm_nranks() {
-  int nranks;
-  PMI2_Info_GetSize(&nranks);
-  return nranks;
+int lcm_pm_get_size() {
+  int size;
+  PMI2_Info_GetSize(&size);
+  return size;
 }
 
 void lcm_pm_publish(char* key, char* value)

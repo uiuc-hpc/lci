@@ -8,8 +8,8 @@ LCI_error_t LCI_open()
   // Initialize processes in this job.
   if (!lcm_pm_initialized())
     lcm_pm_initialize();
-  rank = lcm_pm_rank_me();
-  num_proc = lcm_pm_nranks();
+  rank = lcm_pm_get_rank();
+  num_proc = lcm_pm_get_size();
   LCM_Init();
 
   // Set some constant from environment variable.
@@ -20,6 +20,7 @@ LCI_error_t LCI_open()
   LCI_plist_t plist;
   LCI_plist_create(&plist);
   LCI_endpoint_init(&LCI_UR_ENDPOINT, LCI_UR_DEVICE, plist);
+  LCI_plist_free(&plist);
   LCI_queue_create(LCI_UR_DEVICE, &LCI_UR_CQ);
   LCM_DBG_Log(LCM_LOG_WARN, "Macro LCI_DEBUG is defined. Running in low-performance debug mode!\n");
 

@@ -38,7 +38,7 @@
 typedef struct LCIDI_server_t {
   LCI_device_t device;
   int recv_posted;
-  struct fi_info* fi;
+  struct fi_info* info;
   struct fid_fabric* fabric;
   struct fid_domain* domain;
   struct fid_ep* ep;
@@ -169,7 +169,7 @@ static inline LCI_error_t lc_server_puts(LCID_server_t s, int rank, void* buf,
 {
   LCIDI_server_t *server = (LCIDI_server_t*) s;
   uintptr_t addr;
-  if (server->fi->domain_attr->mr_mode & FI_MR_VIRT_ADDR || server->fi->domain_attr->mr_mode & FI_MR_BASIC) {
+  if (server->info->domain_attr->mr_mode & FI_MR_VIRT_ADDR || server->info->domain_attr->mr_mode & FI_MR_BASIC) {
     addr = base + offset;
   } else {
     addr = offset;
@@ -187,7 +187,7 @@ static inline LCI_error_t lc_server_put(LCID_server_t s, int rank, void* buf,
 {
   LCIDI_server_t *server = (LCIDI_server_t*) s;
   uintptr_t addr;
-  if (server->fi->domain_attr->mr_mode & FI_MR_VIRT_ADDR || server->fi->domain_attr->mr_mode & FI_MR_BASIC) {
+  if (server->info->domain_attr->mr_mode & FI_MR_VIRT_ADDR || server->info->domain_attr->mr_mode & FI_MR_BASIC) {
     addr = base + offset;
   } else {
     addr = offset;
