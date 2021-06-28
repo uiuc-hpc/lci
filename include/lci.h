@@ -19,6 +19,9 @@ extern "C" {
 #define LCI_API __attribute__((visibility("default")))
 
 #define LCI_UR_CQ_REMOTE 0
+// "pseudo-segment" indicating the entire address space,
+// leading to dynamic (on-the-fly) registration
+#define LCI_SEGMENT_ALL NULL
 
 /**
  * \defgroup LCITypes LCI Data Types.
@@ -216,10 +219,6 @@ typedef struct {
  * @{
  */
 
-// "pseudo-segment" indicating the entire address space,
-// leading to dynamic (on-the-fly) registration
-#define LCI_SEGMENT_ALL 1
-
 /**
  * The number of processes in this job.
  */
@@ -336,6 +335,8 @@ extern LCI_comp_t LCI_UR_CQ;
  */
 LCI_API
 LCI_error_t LCI_open();
+LCI_API
+LCI_error_t LCI_opened(int *flag);
 
 /**
  * Finalize LCI.

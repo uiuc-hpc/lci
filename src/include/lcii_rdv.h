@@ -26,6 +26,14 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, 
   // TODO: be able to pass back pressure to user
   LCM_Assert(result == LCM_SUCCESS, "Archive is full!\n");
   packet->data.rtr.recv_ctx_key = ctx_key;
+  if (rdv_ctx->data.lbuffer.segment == LCI_SEGMENT_ALL) {
+    rdv_ctx->is_dynamic = true;
+    LCI_memory_register(ep->device, rdv_ctx->data.lbuffer.address,
+                        rdv_ctx->data.lbuffer.length,
+                        &rdv_ctx->data.lbuffer.segment);
+  } else {
+    rdv_ctx->is_dynamic = false;
+  }
   packet->data.rtr.remote_addr_base = (uintptr_t) rdv_ctx->data.lbuffer.segment->address;
   packet->data.rtr.remote_addr_offset =
       (uintptr_t) rdv_ctx->data.lbuffer.address - packet->data.rtr.remote_addr_base;
@@ -35,13 +43,19 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, 
                                     sizeof(struct packet_rtr), ep->device->heap.segment->mr_p,
                                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx),
                  10, "Cannot send RTR message!\n")
-
 }
 
 static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
 {
   LCII_context_t *ctx = (LCII_context_t*) packet->data.rtr.send_ctx;
-
+  if (ctx->data.lbuffer.segment == LCI_SEGMENT_ALL) {
+    ctx->is_dynamic = true;
+    LCI_memory_register(ep->device, ctx->data.lbuffer.address,
+                        ctx->data.lbuffer.length,
+                        &ctx->data.lbuffer.segment);
+  } else {
+    ctx->is_dynamic = false;
+  }
   LCII_RDV_RETRY(lc_server_put(ep->device->server, ctx->rank,
                                   ctx->data.lbuffer.address, ctx->data.lbuffer.length,
                                   ctx->data.lbuffer.segment->mr_p,
@@ -49,6 +63,9 @@ static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
                                   packet->data.rtr.rkey,
                                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_LONG, packet->data.rtr.recv_ctx_key),
                                   ctx), 10, "Cannot post RDMA writeImm\n");
+  if (ctx->is_dynamic) {
+    LCI_memory_deregister(&ctx->data.lbuffer.segment);
+  }
   LCII_free_packet(packet);
 }
 
@@ -59,6 +76,9 @@ static inline void LCII_handle_2sided_writeImm(LCI_endpoint_t ep, uint64_t ctx_k
   LCM_DBG_Assert(ctx->data_type == LCI_LONG,
                  "Didn't get the right context! This might imply some bugs in the LCM_archive_t.");
   // recvl has been completed locally. Need to process completion.
+  if (ctx->is_dynamic) {
+    LCI_memory_deregister(&ctx->data.lbuffer.segment);
+  }
   lc_ce_dispatch(ctx);
 }
 
@@ -105,7 +125,14 @@ static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep, lc_packet* packet,
 static inline void LCII_handle_1sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
 {
   LCII_context_t *ctx = (LCII_context_t*) packet->data.rtr.send_ctx;
-
+  if (ctx->data.lbuffer.segment == LCI_SEGMENT_ALL) {
+    ctx->is_dynamic = true;
+    LCI_memory_register(ep->device, ctx->data.lbuffer.address,
+                        ctx->data.lbuffer.length,
+                        &ctx->data.lbuffer.segment);
+  } else {
+    ctx->is_dynamic = false;
+  }
   LCII_RDV_RETRY(lc_server_put(ep->device->server, ctx->rank,
                                   ctx->data.lbuffer.address, ctx->data.lbuffer.length,
                                   ctx->data.lbuffer.segment->mr_p,
@@ -114,6 +141,9 @@ static inline void LCII_handle_1sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
                                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_LONG, packet->data.rtr.recv_ctx_key),
                                   ctx),
                  10, "Cannot post RDMA writeImm!\n");
+  if (ctx->is_dynamic) {
+    LCI_memory_deregister(&ctx->data.lbuffer.segment);
+  }
   LCII_free_packet(packet);
 }
 

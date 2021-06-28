@@ -136,7 +136,7 @@ target_link_libraries(lci-obj PUBLIC
         Threads::Threads
         Fabric::Fabric
         $<$<BOOL:${LCI_SYNC_ABT}>:Argobots::Argobots>
-        pmi_shared
+        pmi_static
         )
 
 add_library(lci_shared SHARED)

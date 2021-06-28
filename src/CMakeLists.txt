@@ -18,7 +18,6 @@ target_sources_relative(lci-obj PRIVATE
         endpoint.c
         ${CMAKE_CURRENT_SOURCE_DIR}/$<$<BOOL:${LCI_SYNC_ABT}>:sync_abt.c>
         ${CMAKE_CURRENT_SOURCE_DIR}/$<$<BOOL:${LCI_SYNC_FLAG}>:sync_flag.c>
-        $<TARGET_OBJECTS:pmi-obj>
         )
 
 if(LCI_USE_SERVER_OFI)

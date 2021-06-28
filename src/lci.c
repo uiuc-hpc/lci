@@ -1,6 +1,7 @@
 #include "lcii.h"
 
 int g_server_no_recv_packets;
+static int opened = 0;
 
 LCI_error_t LCI_open()
 {
@@ -24,6 +25,13 @@ LCI_error_t LCI_open()
   LCI_queue_create(LCI_UR_DEVICE, &LCI_UR_CQ);
   LCM_DBG_Log(LCM_LOG_WARN, "Macro LCI_DEBUG is defined. Running in low-performance debug mode!\n");
 
+  opened = 1;
+
+  return LCI_OK;
+}
+
+LCI_error_t LCI_opened(int *flag) {
+  *flag = opened;
   return LCI_OK;
 }
 
@@ -34,6 +42,8 @@ LCI_error_t LCI_close()
   lc_dev_finalize(LCI_UR_DEVICE);
   LCI_barrier();
   lcm_pm_finalize();
+
+  opened = 0;
   return LCI_OK;
 }
 

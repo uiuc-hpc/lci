@@ -89,7 +89,7 @@ struct LCI_endpoint_s {
  * (3) for issue_recvl->issue_rtr->rdma_completion, go through the matching table and register
  */
 typedef struct {
-  // LCI_request_t fields, 44 bytes
+  // LCI_request_t fields, 45 bytes
   void* user_context;         // 8 bytes
   LCI_data_t data;            // 24 bytes
   LCI_data_type_t data_type;  // 4 bytes
@@ -98,6 +98,7 @@ typedef struct {
   // used by LCI internally
   LCI_comp_type_t comp_type;  // 4 bytes
   LCI_comp_t completion;      // 8 bytes
+  bool is_dynamic;            // 1 byte
 } LCII_context_t;
 
 /**
