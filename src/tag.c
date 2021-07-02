@@ -21,10 +21,16 @@ lc_status lc_send(void* src, size_t size, int rank, int tag, lc_ep ep, lc_send_c
 
 lc_status lc_recv(void* src, size_t size, int rank, int tag, lc_ep ep, lc_req* req)
 {
+  if(ep->match == LCI_MATCH_TAG) {
+    DEBUG_MSG("lc_recv and match type is LCI_MATCH_TAG");
+  } else {
+    DEBUG_MSG("lc_recv and match type is LCI_MATCH_RANKTAG");
+  }
+  // NOTE: this never gets called in the current version of HPX
   lci_init_req(src, size, req);
   struct lci_rep* rep = &ep->rep[rank];
   req->rhandle = rep->handle;
-  lc_key key = lc_make_key(rank, tag);
+  lc_key key = (ep->match == LCI_MATCH_TAG) ? lc_make_key(0,tag) : lc_make_key(rank, tag);
   lc_value value = (lc_value)req;
   if (!lc_hash_insert(ep->tbl, key, &value, CLIENT)) {
     lc_packet* p = (lc_packet*) value;

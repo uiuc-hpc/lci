@@ -2,6 +2,9 @@
 #include "lci_priv.h"
 #include "pool.h"
 
+#define DEBUG_MSG(...) { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); }
+
+
 LCI_error_t LCI_sendi(LCI_ivalue_t src, int rank, int tag, LCI_endpoint_t ep)
 {
   struct lc_rep* rep = &(ep->rep[rank]);
@@ -47,8 +50,14 @@ LCI_error_t LCI_sendd(LCI_dbuffer_t src, size_t size, int rank, int tag, LCI_end
 
 LCI_error_t LCI_recvi(LCI_ivalue_t* src, int rank, int tag, LCI_endpoint_t ep, void* sync)
 {
+  if(ep->match == LCI_MATCH_TAG) {
+    DEBUG_MSG("LCI_recvi and match type is LCI_MATCH_TAG");
+  } else {
+    DEBUG_MSG("LCI_recvi and match type is LCI_MATCH_RANKTAG");
+  }
+
   lc_init_req(src, sizeof(LCI_ivalue_t), LCI_SYNCL_PTR_TO_REQ_PTR(sync));
-  lc_key key = lc_make_key(rank, tag);
+  lc_key key = (ep->match == LCI_MATCH_TAG) ? lc_make_key(0,tag) : lc_make_key(rank, tag);
   lc_value value = (lc_value) sync;
   LCI_request_t* request = LCI_SYNCL_PTR_TO_REQ_PTR(sync);
   if (!lc_hash_insert(ep->mt, key, &value, CLIENT)) {
@@ -62,9 +71,15 @@ LCI_error_t LCI_recvi(LCI_ivalue_t* src, int rank, int tag, LCI_endpoint_t ep, v
 
 LCI_error_t LCI_recvbc(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep, void* sync)
 {
+ if(ep->match == LCI_MATCH_TAG) {
+    DEBUG_MSG("LCI_recvbc and match type is LCI_MATCH_TAG");
+  } else {
+    DEBUG_MSG("LCI_recvbc and match type is LCI_MATCH_RANKTAG");
+  }
+
   LCI_request_t* req = LCI_SYNCL_PTR_TO_REQ_PTR(sync);
   lc_init_req(src, size, req);
-  lc_key key = lc_make_key(rank, tag);
+  lc_key key = (ep->match == LCI_MATCH_TAG) ? lc_make_key(0,tag) : lc_make_key(rank, tag);
   lc_value value = (lc_value) sync;
   if (!lc_hash_insert(ep->mt, key, &value, CLIENT)) {
     lc_packet* p = (lc_packet*) value;
@@ -77,11 +92,19 @@ LCI_error_t LCI_recvbc(void* src, size_t size, int rank, int tag, LCI_endpoint_t
 
 LCI_error_t LCI_recvd(void* src, size_t size, int rank, int tag, LCI_endpoint_t ep, void* sync)
 {
+  // NOTE: This is currently used in HPX
+  if(ep->match == LCI_MATCH_TAG) {
+    DEBUG_MSG("LCI_recvd and match type is LCI_MATCH_TAG");
+  } else {
+    DEBUG_MSG("LCI_recvd and match type is LCI_MATCH_RANKTAG");
+  }
+
   LCI_request_t* req = LCI_SYNCL_PTR_TO_REQ_PTR(sync);
   lc_init_req(src, size, req);
   struct lc_rep* rep = &ep->rep[rank];
   req->__reserved__ = rep->handle;
-  lc_key key = lc_make_key(rank, tag);
+  lc_key key = (ep->match == LCI_MATCH_TAG) ? lc_make_key(0,tag) : lc_make_key(rank, tag);
+  DEBUG_MSG("LCI_recvd key = %lu", (long unsigned)key);
   lc_value value = (lc_value) sync;
   if (!lc_hash_insert(ep->mt, key, &value, CLIENT)) {
     lc_packet* p = (lc_packet*) value;

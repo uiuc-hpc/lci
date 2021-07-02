@@ -5,8 +5,8 @@
 #include "mpi.h"
 #endif
 
-//#define DEBUG(...) fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n")
-#define DEBUG(...)
+#define DEBUG_MSG(...) { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); }
+//#define DEBUG_MSG(...)
 
 lc_server** LCI_DEVICES;
 LCI_endpoint_t* LCI_ENDPOINTS;
@@ -22,32 +22,15 @@ void lc_config_init(int num_proc, int rank);
 LCI_error_t LCI_initialize(int* argc, char*** args)
 {
   int is_init;
-  is_init = PMI2_Initialized();
-  if (is_init) {
-	  DEBUG("Starting LCI_initialize: PMI2 is already initialized");
-  } else {
-	  DEBUG("Starting LCI_initialize: PMI2 is not initialized");
-  }
-#ifdef LCI_NO_PMI
-  DEBUG("PMI is disabled.");
-#endif
 
   MPI_Initialized(&is_init);
-  if(is_init) {
-	  DEBUG("Starting LCI_initialize: MPI is already initialized");
-  } else {
-	  DEBUG("Starting LCI_initialize: MPI is not initialized");
-  }
 
   int num_proc, rank;
   // Initialize processes in this job.
 #ifndef LCI_NO_PMI
+  // NOTE: If you are using LCI alongside MPI, if initialization is failing, then it's probably because PMI is turned on.
   lc_pm_master_init(&num_proc, &rank, lcg_name);
 #else
-  MPI_Initialized(&is_init);
-  if(!is_init) {
-    MPI_Init(argc, args);
-  }
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_proc);
   // TODO: find out what lcg_name is supposed to be and set it too
@@ -61,12 +44,6 @@ LCI_error_t LCI_initialize(int* argc, char*** args)
   }
   LCI_INIT_STATUS = LCI_INIT_COMPLETED;
 
-  is_init = PMI2_Initialized();
-  if (is_init) {
-          DEBUG("Ending LCI_initialize: PMI2 is already initialized");
-  } else {
-          DEBUG("Ending LCI_initialize: PMI2 is not initialized");
-  }
   return LCI_OK;
 }
 
@@ -107,6 +84,7 @@ LCI_error_t LCI_endpoint_create(int device, LCI_PL_t prop, LCI_endpoint_t* ep_pt
   ep->pkpool = dev->pkpool;
   ep->gid = num_endpoints++;
   LCI_ENDPOINTS[ep->gid] = ep;
+  ep->match = prop->match;
 
   if (prop->ctype == LCI_COMM_2SIDED || prop->ctype == LCI_COMM_COLLECTIVE) {
     ep->property = EP_AR_EXP;

@@ -52,6 +52,7 @@ struct LCI_PL_s {
   LCI_Allocator allocator;
   LCI_CQ_t cq;
   LCI_MT_t mt;
+  LCI_match_t match;
 };
 
 struct LCI_endpoint_s {
@@ -70,6 +71,7 @@ struct LCI_endpoint_s {
   };
   LCI_Allocator alloc;
   volatile int completed;
+  LCI_match_t match;
 
   int gid;
 };

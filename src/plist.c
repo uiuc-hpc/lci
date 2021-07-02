@@ -9,6 +9,7 @@ LCI_error_t LCI_PL_create(LCI_PL_t* prop_ptr)
   prop->mtype = LCI_MSG_DIRECT;
   prop->rtype = LCI_COMPLETION_ONE2ONEL;
   prop->ltype = LCI_COMPLETION_ONE2ONEL;
+  prop->match = LCI_MATCH_RANKTAG;
 
   *prop_ptr = prop;
   return LCI_OK;
@@ -30,6 +31,10 @@ LCI_error_t LCI_PL_set_msg_type(LCI_msg_t type, LCI_PL_t* prop)
 {
   (*prop)->mtype = type;
   return LCI_OK;
+}
+
+LCI_error_t LCI_PL_set_match_type(LCI_match_t type, LCI_PL_t* prop) {
+  (*prop)->match = type;
 }
 
 LCI_error_t LCI_PL_set_mt(LCI_MT_t* mt, LCI_PL_t* prop)
