@@ -21,11 +21,11 @@ lc_status lc_send(void* src, size_t size, int rank, int tag, lc_ep ep, lc_send_c
 
 lc_status lc_recv(void* src, size_t size, int rank, int tag, lc_ep ep, lc_req* req)
 {
-  if(ep->match == LCI_MATCH_TAG) {
-    DEBUG_MSG("lc_recv and match type is LCI_MATCH_TAG");
-  } else {
-    DEBUG_MSG("lc_recv and match type is LCI_MATCH_RANKTAG");
-  }
+  // if(ep->match == LCI_MATCH_TAG) {
+  //   DEBUG_MSG("lc_recv and match type is LCI_MATCH_TAG");
+  // } else {
+  //   DEBUG_MSG("lc_recv and match type is LCI_MATCH_RANKTAG");
+  // }
   // NOTE: this never gets called in the current version of HPX
   lci_init_req(src, size, req);
   struct lci_rep* rep = &ep->rep[rank];

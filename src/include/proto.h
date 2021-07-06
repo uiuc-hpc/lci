@@ -155,18 +155,18 @@ static inline void lc_serve_recv_match(LCI_endpoint_t ep, lc_packet* p,
   p->context.sync->request.tag = tag;
   p->context.proto = proto;
 
-  if(ep->match == LCI_MATCH_TAG) {
-    DEBUG_MSG("lc_serve_recv_match and match type is LCI_MATCH_TAG");
-  } else {
-    DEBUG_MSG("lc_serve_recv_match and match type is LCI_MATCH_RANKTAG");
-  }
+  // if(ep->match == LCI_MATCH_TAG) {
+  //   DEBUG_MSG("lc_serve_recv_match and match type is LCI_MATCH_TAG");
+  // } else {
+  //   DEBUG_MSG("lc_serve_recv_match and match type is LCI_MATCH_RANKTAG");
+  // }
 
   if (proto == LC_PROTO_DATA) {
     const lc_key key = (ep->match == LCI_MATCH_TAG)
                         ? lc_make_key(0,p->context.sync->request.tag)
                         : lc_make_key(p->context.sync->request.rank,
                                       p->context.sync->request.tag);
-    DEBUG_MSG("lc_serve_recv_match A key = %lu", (long unsigned)key);
+    // DEBUG_MSG("lc_serve_recv_match A key = %lu", (long unsigned)key);
     lc_value value = (lc_value)p;
     if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
       LCI_syncl_t* sync = (LCI_syncl_t*)value;
@@ -180,7 +180,7 @@ static inline void lc_serve_recv_match(LCI_endpoint_t ep, lc_packet* p,
                         ? lc_make_key(0,p->context.sync->request.tag)
                         : lc_make_key(p->context.sync->request.rank,
                                       p->context.sync->request.tag);
-    DEBUG_MSG("lc_serve_recv_match B key = %lu", (long unsigned)key);
+    // DEBUG_MSG("lc_serve_recv_match B key = %lu", (long unsigned)key);
     lc_value value = (lc_value)p;
     if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
       p->context.sync = (LCI_syncl_t*)value;
