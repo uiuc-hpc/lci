@@ -38,4 +38,5 @@ add_all_examples(
   puti
   putb
   putbc
+  qmed
 )
