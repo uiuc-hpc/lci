@@ -33,6 +33,7 @@ add_all_examples(
   pt2pti
   pt2ptbc
   pt2ptd
+  pt2ptd_anyrank
   pt2ptiq
   puti
   putb
