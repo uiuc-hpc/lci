@@ -13,8 +13,7 @@ int total = TOTAL;
 int skip = SKIP;
 void* buf;
 
-static void* alloc(size_t size, void* ctx)
-{
+static void* alloc(size_t size, void* ctx) {
   return buf;
 }
 
@@ -42,7 +41,6 @@ int main(int argc, char** args) {
   posix_memalign(&buf, alignment, MAX_MSG + alignment);
 
   if(rank == 0) {
-    printf("MIN_MSG = %d, MAX_MSG = %d\n", MIN_MSG, MAX_MSG);
     for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
       memset(buf, 'a', size);
 
@@ -60,14 +58,12 @@ int main(int argc, char** args) {
           ) != LCI_OK) {
           LCI_progress(0,1);
         }
-        // printf("rank 0 sent\n");
         LCI_request_t* req_ptr;
         while(LCI_CQ_dequeue(&cq, &req_ptr) != LCI_OK) {
           LCI_progress(0,1);
         }
-        // printf("rank 0 received\n");
         assert(req_ptr->tag == i);
-        // LCI_request_free(ep, 1, req_ptr);
+        LCI_bbuffer_free(req_ptr->buffer.bbuffer,0);
       }
 
       t1 = 1e6 * (wtime() - t1) / total / 2;
@@ -83,9 +79,10 @@ int main(int argc, char** args) {
         while(LCI_CQ_dequeue(&cq, &req_ptr) != LCI_OK) {
           LCI_progress(0,1);
         }
-        // printf("rank 1 received\n");
+        
         assert(req_ptr->tag == i);
-        // LCI_request_free(ep, 1, req_ptr);
+
+        LCI_bbuffer_free(req_ptr->buffer.bbuffer,0);
         tag = i;
         while(LCI_sendbc(
           buf,
@@ -96,7 +93,6 @@ int main(int argc, char** args) {
         ) != LCI_OK) {
           LCI_progress(0,1);
         }
-        // printf("rank 1 sent\n");
       }
     }
   }
