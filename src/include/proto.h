@@ -34,7 +34,7 @@ static inline void lc_ce_dispatch(LCII_context_t *ctx)
 #endif
 #ifdef LCI_SERVER_HAS_CQ
     case LCI_COMPLETION_QUEUE:
-      lc_cq_push(ctx->completion, ctx);
+      LCII_queue_push(ctx->completion, ctx);
       break;
 #endif
 #ifdef LCI_SERVER_HAS_AM

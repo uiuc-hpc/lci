@@ -32,7 +32,7 @@ extern "C" {
  */
 
 /**
- * LCI Status type.
+ * LCI Error type.
  */
 typedef enum {
   LCI_OK = 0,
@@ -48,24 +48,6 @@ typedef enum {
   LCI_MATCH_RANKTAG = 0,
   LCI_MATCH_TAG,
 } LCI_match_t;
-
-/**
- * LCI Message type.
- *
- * @note used by LCII_MAKE_PROTO (3 bits) for communication immediate data field
- * and LCII_make_key (2 bits, only use the first three entries) for the matching
- * table key. Take care when modify this enum type.
- */
-typedef enum {
-  LCI_MSG_SHORT,
-  LCI_MSG_MEDIUM,
-  LCI_MSG_LONG,
-  LCI_MSG_RTS,
-  LCI_MSG_RTR,
-  LCI_MSG_RDMA_SHORT,
-  LCI_MSG_RDMA_MEDIUM,
-  LCI_MSG_RDMA_LONG,
-} LCI_msg_type_t;
 
 /**
  * LCI data type.
@@ -163,7 +145,6 @@ typedef union {
 
 /**
  * Request object, owned by the user, unless returned from runtime (CQ_Dequeue).
- * @todo fix the __reserved__ entry
  */
 typedef struct {
   /* Status of the communication. */
@@ -515,9 +496,6 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
 
 /**
  * Create a completion queue.
- * @todo Current completion queue implementation has the @p length hardcoded as CQ_MAX_SIZE.
- *       The memory is also allocated as a static array. Do we want to change the implementation?
- *       Or do we want to change the manual? Need to check with others.
  */
 LCI_API
 LCI_error_t LCI_queue_create(LCI_device_t device, LCI_comp_t* cq);
@@ -530,15 +508,12 @@ LCI_error_t LCI_queue_free(LCI_comp_t* cq);
 
 /**
  * Return first completed request in the queue. Unblocking.
- * @todo API mismatch: LCI_error_t LCI_queue_pop ( LCI_comp_t cq , LCI_request_t * request );
- *       Do we want to return the LCI_request_t by pointers (implementation) or actual objects (manual)
  */
 LCI_API
 LCI_error_t LCI_queue_pop(LCI_comp_t cq, LCI_request_t* request);
 
 /**
  * Return first completed request in the queue. Blocking.
- * @todo API mismatch: Do we want to return the LCI_request_t by pointers (implementation) or actual objects (manual)
  */
 LCI_API
 LCI_error_t LCI_queue_wait(LCI_comp_t cq, LCI_request_t* request);
@@ -557,6 +532,8 @@ LCI_error_t LCI_queue_pop_multiple(LCI_comp_t cq, uint32_t request_count,
 LCI_API
 LCI_error_t LCI_queue_wait_multiple(LCI_comp_t cq, uint32_t request_count,
                                    LCI_request_t* requests);
+LCI_API
+LCI_error_t LCI_queue_len(LCI_comp_t cq, size_t *len);
 
 /**
  * Create a Sync object.

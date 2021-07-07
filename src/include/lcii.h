@@ -2,10 +2,11 @@
 #define LCI_PRIV_H_
 
 #include "lci.h"
+#include "lciu.h"
 #include "config.h"
 #include "lcm_log.h"
+#include "lcm_dequeue.h"
 #include "pmi_wrapper.h"
-#include "cq.h"
 #include "lcm_register.h"
 
 struct LCID_server_opaque_t;
@@ -111,6 +112,8 @@ LCI_error_t LCI_sync_signal(LCI_comp_t completion, LCII_context_t* ctx);
 extern LCI_endpoint_t *LCI_ENDPOINTS;
 extern int g_server_no_recv_packets;
 
+// completion queue
+static inline void LCII_queue_push(LCI_comp_t cq, LCII_context_t *ctx);
 // matching table
 LCI_error_t LCII_mt_init(LCI_mt_t* mt, uint32_t length);
 LCI_error_t LCII_mt_free(LCI_mt_t* mt);
@@ -133,6 +136,21 @@ static inline LCI_request_t LCII_ctx2req(LCII_context_t *ctx) {
 }
 
 // proto
+/*
+ * used by LCII_MAKE_PROTO (3 bits) for communication immediate data field
+ * and LCII_make_key (2 bits, only use the first three entries) for the matching
+ * table key. Take care when modify this enum type.
+ */
+typedef enum {
+  LCI_MSG_SHORT,
+  LCI_MSG_MEDIUM,
+  LCI_MSG_LONG,
+  LCI_MSG_RTS,
+  LCI_MSG_RTR,
+  LCI_MSG_RDMA_SHORT,
+  LCI_MSG_RDMA_MEDIUM,
+  LCI_MSG_RDMA_LONG,
+} LCI_msg_type_t;
 typedef uint32_t LCII_proto_t;
 // 16 bits for tag, 13 bits for rgid, 3 bits for msg_type
 #define LCII_MAKE_PROTO(rgid, msg_type, tag) (msg_type | (rgid << 3) | (tag << 16))
@@ -149,6 +167,7 @@ static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep, lc_packet* packet);
 static inline void LCII_handle_2sided_writeImm(LCI_endpoint_t ep, uint64_t ctx_key);
 
 #include "hashtable.h"
+#include "cq.h"
 #include "pool.h"
 #include "packet.h"
 #include "server/server.h"
