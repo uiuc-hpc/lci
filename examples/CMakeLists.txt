@@ -39,4 +39,5 @@ add_all_examples(
   putb
   putbc
   qmed
+  qlong
 )

@@ -1,4 +1,4 @@
-#include "lc.h"
+#include "lci.h"
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -11,23 +11,32 @@ int skip = SKIP;
 
 void* buf;
 
-static void* no_alloc(void* ctx, size_t size)
+static void* alloc(void* ctx, size_t size)
 {
   return buf;
 }
 
 int main(int argc, char** args) {
-  lc_ep ep, ep_q;
-  lc_init(1, &ep);
-  lc_opt opt = {.dev = 0, .desc = LC_DYN_CQ, .alloc = no_alloc };
-  lc_ep_dup(&opt, ep, &ep_q);
+  LCI_initialize(&argc, &args);
+  LCI_endpoint_t ep;
+  LCI_PL_t prop;
+  LCI_MT_t mt;
+  LCI_CQ_t cq;
+  LCI_PL_create(&prop);
+  LCI_MT_create(0, &mt);
+  LCI_PL_set_comm_type(LCI_COMM_1SIDED, &prop);
+  LCI_PL_set_allocator(&alloc, &prop);
+  LCI_CQ_create(5, &cq);
+  LCI_PL_set_completion(LCI_PORT_MESSAGE, LCI_COMPLETION_QUEUE, &prop);
+  LCI_PL_set_cq(&cq, &prop);
+  LCI_PL_set_mt(&mt, &prop);
+  LCI_endpoint_create(0, prop, &ep);
 
-  int rank = 0;
-  lc_get_proc_num(&rank);
-  int meta = {99};
+  int rank = LCI_RANK;
+  int tag = {99};
 
-  lc_req req;
-  lc_sync sync;
+  LCI_request_t req;
+  LCI_syncl_t sync;
   double t1;
   size_t alignment = sysconf(_SC_PAGESIZE);
   void* sbuf;
@@ -42,18 +51,28 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
-        meta = i;
-        sync = 0;
-        while (lc_sendl(sbuf, size, 1-rank, meta, ep_q, lc_signal, &sync) != LC_OK)
-          lc_progress(0);
-        while (sync == 0)
-          lc_progress(0);
+        tag = i;
+        LCI_one2one_set_empty(&sync);
+        while(LCI_sendd(
+          sbuf,
+          size,
+          1-rank,
+          tag,
+          ep,
+          &sync
+        ) != LCI_OK) {
+          LCI_progress(0,1);
+        }
+        while(LCI_one2one_test_empty(&sync)) {
+          LCI_progress(0,1);
+        };
 
-        lc_req* req_ptr;
-        while (lc_cq_pop(ep_q, &req_ptr) != LC_OK)
-          lc_progress(0);
-        assert(req_ptr->meta == i);
-        lc_cq_reqfree(ep_q, req_ptr);
+        LCI_request_t* req_ptr;
+        while(LCI_CQ_dequeue(&cq, &req_ptr) != LCI_OK) {
+          LCI_progress(0,1);
+        }
+        assert(req_ptr->tag == i);
+        LCI_bbuffer_free(req_ptr->buffer.bbuffer,0);
       }
 
       t1 = 1e6 * (wtime() - t1) / total / 2;
@@ -65,20 +84,29 @@ int main(int argc, char** args) {
       if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
 
       for (int i = 0; i < total + skip; i++) {
-        lc_req* req_ptr;
-        while (lc_cq_pop(ep_q, &req_ptr) != LC_OK)
-          lc_progress(0);
-        assert(req_ptr->meta == i);
-        lc_cq_reqfree(ep_q, req_ptr);
-
-        meta = i;
-        sync = 0;
-        while (lc_sendl(sbuf, size, 1-rank, meta, ep_q, lc_signal, &sync) != LC_OK)
-          lc_progress(0);
-        while (sync == 0)
-          lc_progress(0);
+        LCI_request_t* req_ptr;
+        while(LCI_CQ_dequeue(&cq, &req_ptr) != LCI_OK) {
+          LCI_progress(0,1);
+        }
+        assert(req_ptr->tag == i);
+        LCI_bbuffer_free(req_ptr->buffer.bbuffer,0);
+        tag = i;
+        LCI_one2one_set_empty(&sync);
+        while(LCI_sendd(
+          sbuf,
+          size,
+          1-rank,
+          tag,
+          ep,
+          &sync
+        ) != LCI_OK) {
+          LCI_progress(0,1);
+        }
+        while(LCI_one2one_test_empty(&sync)) {
+          LCI_progress(0,1);
+        };
       }
     }
   }
-  lc_finalize();
+  LCI_finalize();
 }
