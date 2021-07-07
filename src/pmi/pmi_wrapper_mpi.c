@@ -29,17 +29,27 @@ void archive_init(Archive_t *archive) {
 }
 
 void archive_fina(Archive_t *archive) {
-  for (int i = 0; i < archive->size; ++i) {
-    free(archive->ptr[i].key);
-    free(archive->ptr[i].value);
+  if (archive->ptr != NULL) {
+    for (int i = 0; i < archive->size; ++i) {
+      free(archive->ptr[i].key);
+      archive->ptr[i].key = NULL;
+      free(archive->ptr[i].value);
+      archive->ptr[i].value = NULL;
+    }
+    free(archive->ptr);
+    archive->ptr = NULL;
   }
-  free(archive->ptr);
-  archive->ptr = NULL;
   archive->size = 0;
   archive->capacity = 0;
 }
 
 void archive_clear(Archive_t *archive) {
+  for (int i = 0; i < archive->size; ++i) {
+    free(archive->ptr[i].key);
+    archive->ptr[i].key = NULL;
+    free(archive->ptr[i].value);
+    archive->ptr[i].value = NULL;
+  }
   archive->size = 0;
 }
 

@@ -1,6 +1,8 @@
 /**
  * @file lci.h
  * @author Hoang-Vu Dang (danghvu@gmail.com)
+ *         Omri Mor (omrimor2@illinois.edu)
+ *         Jiakun Yan (jiakuny3@illinois.edu)
  * @brief Header file for all LCI code.
  */
 
@@ -22,6 +24,7 @@ extern "C" {
 // "pseudo-segment" indicating the entire address space,
 // leading to dynamic (on-the-fly) registration
 #define LCI_SEGMENT_ALL NULL
+#define LCI_RANK_ANY (-1)
 
 /**
  * \defgroup LCITypes LCI Data Types.
@@ -39,15 +42,6 @@ typedef enum {
 } LCI_error_t;
 
 /**
- * LCI Communication type.
- */
-typedef enum {
-  LCI_COMM_1SIDED,
-  LCI_COMM_2SIDED,
-  LCI_COMM_COLLECTIVE,
-} LCI_comm_t;
-
-/**
  * LCI Matching type.
  */
 typedef enum {
@@ -59,7 +53,7 @@ typedef enum {
  * LCI Message type.
  *
  * @note used by LCII_MAKE_PROTO (3 bits) for communication immediate data field
- * and LCII_MAKE_KEY (2 bits, only use the first three entries) for the matching
+ * and LCII_make_key (2 bits, only use the first three entries) for the matching
  * table key. Take care when modify this enum type.
  */
 typedef enum {

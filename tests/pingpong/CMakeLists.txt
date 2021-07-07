@@ -4,6 +4,7 @@ add_lci_tests(
             pt2pts.c
             pt2ptsq.c
             pt2ptm.c
+            pt2ptm_wildcast.c
             pt2ptmn.c
             pt2ptl.c
             pt2ptl_dyn.c

@@ -139,6 +139,8 @@ typedef uint32_t LCII_proto_t;
 #define PROTO_GET_TYPE(proto) (proto & 0b0111)
 #define PROTO_GET_RGID(proto) ((proto >> 3) & 0b01111111111111)
 #define PROTO_GET_TAG(proto) ((proto >> 16) & 0xffff)
+static inline uint64_t LCII_make_key(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
+                       LCI_msg_type_t msg_type);
 // backend service
 static inline void lc_ce_dispatch(LCII_context_t *ctx);
 // rendezvous

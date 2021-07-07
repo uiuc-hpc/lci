@@ -36,6 +36,7 @@ int main(int argc, char** args) {
       LCI_progress(LCI_UR_DEVICE);
     assert(request.data.immediate == 158);
   }
+  LCI_sync_free(&sync);
   LCI_close();
   return 0;
 }

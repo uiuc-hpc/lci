@@ -100,10 +100,11 @@ LCI_error_t LCI_recvs(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
   ctx->comp_type = ep->msg_comp_type;
   ctx->completion = completion;
 
-  lc_key key = LCII_MAKE_KEY(rank, ep->gid, tag, LCI_MSG_SHORT);
+  lc_key key = LCII_make_key(ep, rank, tag, LCI_MSG_SHORT);
   lc_value value = (lc_value)ctx;
   if (!lc_hash_insert(ep->mt, key, &value, CLIENT)) {
     lc_packet* packet = (lc_packet*) value;
+    ctx->rank = packet->context.src_rank;
     memcpy(&(ctx->data.immediate), packet->data.address, LCI_SHORT_SIZE);
     LCII_free_packet(packet);
     lc_ce_dispatch(ctx);
@@ -123,10 +124,11 @@ LCI_error_t LCI_recvm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   ctx->comp_type = ep->msg_comp_type;
   ctx->completion = completion;
 
-  lc_key key = LCII_MAKE_KEY(rank, ep->gid, tag, LCI_MSG_MEDIUM);
+  lc_key key = LCII_make_key(ep, rank, tag, LCI_MSG_MEDIUM);
   lc_value value = (lc_value)ctx;
   if (!lc_hash_insert(ep->mt, key, &value, CLIENT)) {
     lc_packet* packet = (lc_packet*) value;
+    ctx->rank = packet->context.src_rank;
     ctx->data.mbuffer.length = packet->context.length;
     // copy to user provided buffer
     memcpy(ctx->data.mbuffer.address, packet->data.address, ctx->data.mbuffer.length);
@@ -148,10 +150,11 @@ LCI_error_t LCI_recvmn(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
   ctx->comp_type = ep->msg_comp_type;
   ctx->completion = completion;
 
-  lc_key key = LCII_MAKE_KEY(rank, ep->gid, tag, LCI_MSG_MEDIUM);
+  lc_key key = LCII_make_key(ep, rank, tag, LCI_MSG_MEDIUM);
   lc_value value = (lc_value)ctx;
   if (!lc_hash_insert(ep->mt, key, &value, CLIENT)) {
     lc_packet* packet = (lc_packet*) value;
+    ctx->rank = packet->context.src_rank;
     ctx->data.mbuffer.length = packet->context.length;
     // use LCI packet
     ctx->data.mbuffer.address = packet->data.address;
@@ -172,7 +175,7 @@ LCI_error_t LCI_recvl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
   rdv_ctx->comp_type = ep->msg_comp_type;
   rdv_ctx->completion = completion;
 
-  lc_key key = LCII_MAKE_KEY(rank, ep->gid, tag, LCI_MSG_LONG);
+  lc_key key = LCII_make_key(ep, rank, tag, LCI_MSG_LONG);
   lc_value value = (lc_value)rdv_ctx;
   if (!lc_hash_insert(ep->mt, key, &value, CLIENT)) {
     lc_packet* p = (lc_packet*) value;

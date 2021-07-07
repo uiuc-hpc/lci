@@ -4,10 +4,11 @@
 struct __attribute__((packed, aligned(64))) packet_context {
   // Most of the current ctx requires 128-bits (FIXME)
   int64_t hwctx[2];
-  // Here is LLCI context.
+  // Here is LCI context.
   lc_pool *pkpool;    /* the packet pool this packet belongs to */
   int8_t poolid;      /* id of the pool to return this packet.
                        * -1 means returning to the local pool */
+  int src_rank;
   int length;         /* length for its payload */
 };
 

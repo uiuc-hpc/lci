@@ -1,21 +1,6 @@
 #ifndef ARR_HASHTBL_H_
 #define ARR_HASHTBL_H_
 
-#include <stdint.h>
-#include <stdlib.h>
-
-typedef uintptr_t lc_value;
-typedef uint64_t lc_key;
-// 32 bits for rank, 2 bits for msg type, 14 bits for endpoint ID, 16 bits for tag
-#define LCII_MAKE_KEY(rank, epid, tag, msg_type) \
-  ((uint64_t)(rank) << 32 | (uint64_t) (msg_type) << 30 | \
-   (uint64_t)(epid) << 16 | (uint64_t)(tag))
-
-#include <assert.h>
-#include <stdlib.h>
-
-#include "lciu.h"
-
 #define EMPTY ((uint64_t)-1)
 #define TBL_BIT_SIZE 16 // size: 1 << 16 (1 control block 3 key-value pairs)
 #define TBL_WIDTH 4
@@ -23,6 +8,8 @@ typedef uint64_t lc_key;
 #ifdef __cplusplus
 extern "C" {
 #endif
+typedef uintptr_t lc_value;
+typedef uint64_t lc_key;
 
 struct lc_hash {
   union {

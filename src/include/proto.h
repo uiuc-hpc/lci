@@ -1,6 +1,21 @@
 #ifndef LC_PROTO_H
 #define LC_PROTO_H
 
+// 32 bits for rank, 2 bits for msg type, 14 bits for endpoint ID, 16 bits for tag
+static inline uint64_t LCII_make_key(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
+                                     LCI_msg_type_t msg_type) {
+  uint64_t ret = 0;
+  if (ep->match_type == LCI_MATCH_RANKTAG) {
+    ret = (uint64_t)(rank) << 32 | (uint64_t) (msg_type) << 30 |
+          (uint64_t)(ep->gid) << 16 | (uint64_t)(tag);
+  } else {
+    LCM_DBG_Assert(ep->match_type == LCI_MATCH_TAG, "Unknown match_type %d\n", ep->match_type);
+    ret = (uint64_t)(-1) << 32 | (uint64_t) (msg_type) << 30 |
+          (uint64_t)(ep->gid) << 16 | (uint64_t)(tag);
+  }
+  return ret;
+}
+
 static inline void lc_ce_dispatch(LCII_context_t *ctx)
 {
   switch (ctx->comp_type) {
@@ -41,17 +56,20 @@ static inline void lc_serve_recv(lc_packet* packet,
 {
   // NOTE: this should be RGID because it is received from remote.
   LCI_endpoint_t ep = LCI_ENDPOINTS[PROTO_GET_RGID(proto)];
-  uint16_t tag = PROTO_GET_TAG(proto);
+  LCI_tag_t tag = PROTO_GET_TAG(proto);
   LCI_msg_type_t msg_type = PROTO_GET_TYPE(proto);
+  packet->context.src_rank = src_rank;
 
   switch (msg_type) {
     case LCI_MSG_SHORT:
     {
       LCM_DBG_Assert(length == LCI_SHORT_SIZE, "Unexpected message length %lu\n", length);
-      lc_key key = LCII_MAKE_KEY(src_rank, ep->gid, tag, LCI_MSG_SHORT);
+      lc_key key = LCII_make_key(ep, src_rank, tag, LCI_MSG_SHORT);
       lc_value value = (lc_value)packet;
       if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
         LCII_context_t* ctx = (LCII_context_t*)value;
+        // If the receiver uses LCI_MATCH_TAG, we have to set the rank here.
+        ctx->rank = src_rank;
         memcpy(&(ctx->data.immediate), packet->data.address, LCI_SHORT_SIZE);
         LCII_free_packet(packet);
         lc_ce_dispatch(ctx);
@@ -60,11 +78,12 @@ static inline void lc_serve_recv(lc_packet* packet,
     }
     case LCI_MSG_MEDIUM:
     {
-      lc_key key = LCII_MAKE_KEY(src_rank, ep->gid, tag, LCI_MSG_MEDIUM);
+      lc_key key = LCII_make_key(ep, src_rank, tag, LCI_MSG_MEDIUM);
       lc_value value = (lc_value)packet;
       packet->context.length = length;
       if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
         LCII_context_t* ctx = (LCII_context_t*)value;
+        ctx->rank = src_rank;
         ctx->data.mbuffer.length = length;
         if (ctx->data.mbuffer.address != NULL) {
           // copy to user provided buffer
@@ -84,7 +103,7 @@ static inline void lc_serve_recv(lc_packet* packet,
         case LCI_MSG_LONG:
         {
           const lc_key key =
-              LCII_MAKE_KEY(src_rank, ep->gid, tag, LCI_MSG_LONG);
+              LCII_make_key(ep, src_rank, tag, LCI_MSG_LONG);
           lc_value value = (lc_value)packet;
           if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
             LCII_handle_2sided_rts(ep, packet, (LCI_comp_t)value);
@@ -97,7 +116,7 @@ static inline void lc_serve_recv(lc_packet* packet,
           break;
         }
         default:
-            LCM_Assert(false, "Unknown message type %d!\n", packet->data.rts.msg_type);
+          LCM_Assert(false, "Unknown message type %d!\n", packet->data.rts.msg_type);
       }
       break;
     }

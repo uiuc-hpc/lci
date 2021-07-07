@@ -37,10 +37,10 @@ LCI_error_t LCI_opened(int *flag) {
 
 LCI_error_t LCI_close()
 {
+  LCI_barrier();
   LCI_queue_free(&LCI_UR_CQ);
   LCI_endpoint_free(&LCI_UR_ENDPOINT);
   lc_dev_finalize(LCI_UR_DEVICE);
-  LCI_barrier();
   lcm_pm_finalize();
 
   opened = 0;
