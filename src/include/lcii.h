@@ -58,7 +58,6 @@ struct LCI_plist_s {
   LCI_match_t match_type;     // matching type
   LCI_comp_type_t cmd_comp_type; // source-side completion type
   LCI_comp_type_t msg_comp_type; // destination-side completion type
-  LCI_allocator_t allocator;  // dynamic allocator
 };
 
 struct LCI_endpoint_s {
@@ -75,7 +74,6 @@ struct LCI_endpoint_s {
   LCI_match_t match_type;     // matching type (tag/ranktag)
   LCI_comp_type_t cmd_comp_type; // command-port completion type
   LCI_comp_type_t msg_comp_type; // message-port completion type
-  LCI_allocator_t allocator;  // dynamic allocator @note redundant for now
 
   volatile int completed;
 

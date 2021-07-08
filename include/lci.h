@@ -71,11 +71,11 @@ typedef enum {
  * LCI completion enumeration type.
  */
 typedef enum {
-  LCI_COMPLETION_QUEUE = 0,  	// completion queue
+  LCI_COMPLETION_NONE = 0,
+  LCI_COMPLETION_QUEUE,  	// completion queue
   LCI_COMPLETION_HANDLER,  	// handler
   LCI_COMPLETION_SYNC, 	        // synchronizer
   LCI_COMPLETION_FREE, 	        // just free the packet, no completion reported to users
-  LCI_COMPLETION_NONE
 } LCI_comp_type_t;
 
 /**
@@ -144,7 +144,7 @@ typedef union {
 } LCI_data_t;
 
 /**
- * Request object, owned by the user, unless returned from runtime (CQ_Dequeue).
+ * Request object, owned by the user.
  */
 typedef struct {
   /* Status of the communication. */
@@ -178,14 +178,6 @@ typedef struct LCI_plist_s* LCI_plist_t;
  * Handler type
  */
 typedef LCI_error_t (LCI_handler_t)(LCI_request_t request);
-
-/**
- * Allocator type
- */
-typedef struct {
-  void* (*malloc)(size_t size, uint16_t tag);
-  void (*free)(void *pointer);
-} LCI_allocator_t;
 
 /**@}*/
 
@@ -277,6 +269,11 @@ extern int LCI_DEFAULT_QUEUE_LENGTH;
 extern int LCI_MAX_QUEUE_LENGTH;
 
 /**
+ * maximum number of request a synchronizer may be waiting for.
+ */
+extern int LCI_MAX_SYNC_LENGTH;
+
+/**
  * specify the packet returning threshold
  *
  * Apply to @sendb and @sendbc
@@ -287,14 +284,6 @@ extern int LCI_MAX_QUEUE_LENGTH;
  */
 extern int LCI_PACKET_RETURN_THRESHOLD;
 
-/**
- * @brief The endpoint created during LCI initialization
- *
- * LCI initialization creates on each process an endpoint LCI_UR_ENDPOINT on
- * device 0 which is associated with the default completion queue LCI_QUEUE[0]
- * and with memory segment LCI_MEMORY_ALL and supports all message types
- * and all types of communications.
- */
 extern LCI_device_t LCI_UR_DEVICE;
 extern LCI_endpoint_t LCI_UR_ENDPOINT;
 extern LCI_comp_t LCI_UR_CQ;
@@ -309,64 +298,30 @@ extern LCI_comp_t LCI_UR_CQ;
  * Initialize LCI.
  */
 LCI_API
-LCI_error_t LCI_open();
+LCI_error_t LCI_initialize();
 LCI_API
-LCI_error_t LCI_opened(int *flag);
+LCI_error_t LCI_initialized(int *flag);
 
 /**
  * Finalize LCI.
  */
 LCI_API
-LCI_error_t LCI_close();
+LCI_error_t LCI_finalize();
 
-/**
- * Create an endpoint Property @plist.
- */
+// plist
 LCI_API
 LCI_error_t LCI_plist_create(LCI_plist_t *plist);
-
-/**
- * Destroy an endpoint Property @plist.
- */
 LCI_API
 LCI_error_t LCI_plist_free(LCI_plist_t *plist);
-
-/**
- * Gets property list attached to an endpoint.
- */
 LCI_API
 LCI_error_t LCI_plist_get(LCI_endpoint_t ep, LCI_plist_t *plist_ptr);
-
-/**
- * Returns a string that decodes the property list plist in a human-readable
- * from into string.
- */
 LCI_API
 LCI_error_t LCI_plist_decode(LCI_plist_t plist, char *string);
-
-/**
- * Set matching style (ranktag, tag).
- */
 LCI_API
 LCI_error_t LCI_plist_set_match_type(LCI_plist_t plist, LCI_match_t match_type);
-
-/**
- * Set completion type
- * @param plist the property list to set
- * @param port specify command port or message port to set
- * @param comp_type specify the completion type
- * @return A value of zero indicates success while a nonzero value indicates
- *         failure. Different values may be used to indicate the type of failure.
- */
 LCI_API
 LCI_error_t LCI_plist_set_comp_type(LCI_plist_t plist, LCI_port_t port,
                                     LCI_comp_type_t comp_type);
-/**
- * Set allocator for dynamic protocol.
- */
-LCI_API
-LCI_error_t LCI_plist_set_allocator(LCI_plist_t plist,
-                                    LCI_allocator_t allocator);
 
 /**
  * Create an endpoint, collective calls for those involved in the endpoints.
@@ -534,24 +489,20 @@ LCI_error_t LCI_queue_wait_multiple(LCI_comp_t cq, uint32_t request_count,
                                    LCI_request_t* requests);
 LCI_API
 LCI_error_t LCI_queue_len(LCI_comp_t cq, size_t *len);
-
-/**
- * Create a Sync object.
- */
+// synchronizer
 LCI_API
 LCI_error_t LCI_sync_create(LCI_device_t device, LCI_sync_type_t sync_type,
                             LCI_comp_t* sync);
 LCI_API
 LCI_error_t LCI_sync_free(LCI_comp_t *completion);
-
-/**
- * Reset on a Sync object.
- */
 LCI_API
 LCI_error_t LCI_sync_wait(LCI_comp_t sync, LCI_request_t* request);
 LCI_API
 LCI_error_t LCI_sync_test(LCI_comp_t completion, LCI_request_t* request);
-
+// handler
+LCI_API
+LCI_error_t LCI_handler_create(LCI_device_t device, LCI_handler_t handler,
+                               LCI_comp_t *completion);
 /**
  * Polling a specific device @p device_id for at least @p count time.
  */

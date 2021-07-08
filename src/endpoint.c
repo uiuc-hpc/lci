@@ -20,7 +20,6 @@ LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, LCI_device_t device,
   ep->match_type = plist->match_type;
   ep->cmd_comp_type = plist->cmd_comp_type;
   ep->msg_comp_type = plist->msg_comp_type;
-  ep->allocator = plist->allocator;
 
   return LCI_OK;
 }

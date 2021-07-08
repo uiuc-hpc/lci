@@ -10,7 +10,7 @@
 #define MAX_MSG (8 * 1024)
 
 int main(int argc, char** args) {
-  LCI_open();
+  LCI_initialize();
   LCI_endpoint_t ep = LCI_UR_ENDPOINT; // we can directly use the default ep
 
   int rank = LCI_RANK;
@@ -41,6 +41,6 @@ int main(int argc, char** args) {
     }
   }
 
-  LCI_close();
+  LCI_finalize();
   return 0;
 }

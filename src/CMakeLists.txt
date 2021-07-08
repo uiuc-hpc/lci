@@ -16,6 +16,7 @@ target_sources_relative(lci-obj PRIVATE
         env.c
         device.c
         endpoint.c
+        handler.c
         ${CMAKE_CURRENT_SOURCE_DIR}/$<$<BOOL:${LCI_SYNC_ABT}>:sync_abt.c>
         ${CMAKE_CURRENT_SOURCE_DIR}/$<$<BOOL:${LCI_SYNC_FLAG}>:sync_flag.c>
         )

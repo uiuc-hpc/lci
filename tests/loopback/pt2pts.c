@@ -9,7 +9,7 @@
 int total = TOTAL;
 
 int main(int argc, char** args) {
-  LCI_open();
+  LCI_initialize();
   LCI_plist_t plist;
   LCI_plist_create(&plist);
   LCI_plist_set_comp_type(plist, LCI_PORT_MESSAGE, LCI_COMPLETION_SYNC);
@@ -37,6 +37,6 @@ int main(int argc, char** args) {
     assert(request.data.immediate == 158);
   }
   LCI_sync_free(&sync);
-  LCI_close();
+  LCI_finalize();
   return 0;
 }

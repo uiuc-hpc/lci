@@ -9,7 +9,7 @@
 int total = 10;
 
 int main(int argc, char** args) {
-  LCI_open();
+  LCI_initialize();
   LCI_endpoint_t ep = LCI_UR_ENDPOINT; // we can directly use the default ep
   LCI_comp_t send_cq;
   LCI_queue_create(LCI_UR_DEVICE, &send_cq);
@@ -57,6 +57,6 @@ int main(int argc, char** args) {
     }
   }
   LCI_lbuffer_free(src_buf);
-  LCI_close();
+  LCI_finalize();
   return 0;
 }

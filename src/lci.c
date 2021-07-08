@@ -3,12 +3,11 @@
 int g_server_no_recv_packets;
 static int opened = 0;
 
-LCI_error_t LCI_open()
+LCI_error_t LCI_initialize()
 {
   int num_proc, rank;
   // Initialize processes in this job.
-  if (!lcm_pm_initialized())
-    lcm_pm_initialize();
+  lcm_pm_initialize();
   rank = lcm_pm_get_rank();
   num_proc = lcm_pm_get_size();
   LCM_Init();
@@ -30,12 +29,12 @@ LCI_error_t LCI_open()
   return LCI_OK;
 }
 
-LCI_error_t LCI_opened(int *flag) {
+LCI_error_t LCI_initialized(int *flag) {
   *flag = opened;
   return LCI_OK;
 }
 
-LCI_error_t LCI_close()
+LCI_error_t LCI_finalize()
 {
   LCI_barrier();
   LCI_queue_free(&LCI_UR_CQ);

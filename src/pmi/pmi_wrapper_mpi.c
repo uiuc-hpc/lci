@@ -14,6 +14,7 @@ typedef struct Archive_t {
   int size;
   int capacity;
 } Archive_t;
+static int initialized = 0;
 Archive_t l_archive, g_archive;
 const int STRING_LIMIT=256;
 
@@ -83,15 +84,19 @@ char* archive_search(Archive_t *archive, char *key) {
 
 void lcm_pm_initialize()
 {
-  MPI_Init(NULL, NULL);
+  int mpi_initialized = 0;
+  MPI_Initialized(&mpi_initialized);
+  if (!mpi_initialized) {
+    fprintf(stderr, "Must initial MPI before LCI when using MPI as a PMI backend!\n");
+    abort();
+  }
   archive_init(&l_archive);
   archive_init(&g_archive);
+  initialized = 1;
 }
 
 int lcm_pm_initialized() {
-  int flag;
-  MPI_Initialized(&flag);
-  return flag;
+  return initialized;
 }
 int lcm_pm_get_rank() {
   int rank;
@@ -164,5 +169,5 @@ void lcm_pm_barrier() {
 void lcm_pm_finalize() {
   archive_fina(&l_archive);
   archive_fina(&g_archive);
-  MPI_Finalize();
+  initialized = 0;
 }
