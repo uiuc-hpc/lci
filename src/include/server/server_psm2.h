@@ -15,7 +15,7 @@
 #include "macro.h"
 #include "lcrq.h"
 
-#ifdef LC_SERVER_DEBUG
+#ifdef LCI_SERVER_DEBUG
 #define PSM_SAFECALL(x)                                       \
   {                                                           \
     int err = (x);                                            \

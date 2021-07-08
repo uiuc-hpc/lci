@@ -96,12 +96,12 @@ static inline int lc_server_progress(lc_server* s)
   int ret = ne;
   int i;
 
-#ifdef LC_SERVER_DEBUG
+#ifdef LCI_SERVER_DEBUG
   assert(ne >= 0);
 #endif
 
   for (i = 0; i < ne; i++) {
-#ifdef LC_SERVER_DEBUG
+#ifdef LCI_SERVER_DEBUG
     if (wc[i].status != IBV_WC_SUCCESS) {
       fprintf(stderr, "Failed status %s (%d) for wr_id %p\n",
           ibv_wc_status_str(wc[i].status), wc[i].status,
@@ -138,12 +138,12 @@ static inline int lc_server_progress(lc_server* s)
   ne = ibv_poll_cq(s->send_cq, MAX_CQ, wc);
   ret += ne;
 
-#ifdef LC_SERVER_DEBUG
+#ifdef LCI_SERVER_DEBUG
   assert(ne >= 0);
 #endif
 
   for (i = 0; i < ne; i++) {
-#ifdef LC_SERVER_DEBUG
+#ifdef LCI_SERVER_DEBUG
     if (wc[i].status != IBV_WC_SUCCESS) {
       fprintf(stderr, "Failed status %s (%d) for wr_id %p\n",
           ibv_wc_status_str(wc[i].status), wc[i].status,
@@ -163,7 +163,7 @@ static inline int lc_server_progress(lc_server* s)
       ret++;
   }
 
-#ifdef LC_SERVER_DEBUG
+#ifdef LCI_SERVER_DEBUG
   if (s->recv_posted == 0) {
     fprintf(stderr, "WARNING DEADLOCK %d\n", s->recv_posted);
   }
