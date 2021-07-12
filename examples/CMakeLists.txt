@@ -1,3 +1,19 @@
+set(example_list
+  init
+  pt2pti
+  pt2ptbc
+  pt2ptd
+  pt2ptd_anyrank
+#  pt2ptiq
+  puti
+  putb
+  putbc
+  qshort
+  qmed
+  qlong
+  buffer
+)
+
 function(add_example NAME)
   add_executable(${NAME} ${NAME}.c)
   target_compile_definitions(${NAME} PRIVATE _GNU_SOURCE)
@@ -29,15 +45,6 @@ function(add_all_examples)
 endfunction()
 
 add_all_examples(
-  init
-  pt2pti
-  pt2ptbc
-  pt2ptd
-  pt2ptd_anyrank
-  pt2ptiq
-  puti
-  putb
-  putbc
-  qmed
-  qlong
+  ${example_list}
 )
+

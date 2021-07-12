@@ -17,7 +17,6 @@ int main(int argc, char** args) {
   LCI_endpoint_t ep;
   LCI_PL_t prop;
   LCI_PL_create(&prop);
-  LCI_PL_set_match_type(LCI_MATCH_TAG, &prop);
   LCI_MT_t mt;
   LCI_MT_create(0, &mt);
   LCI_PL_set_mt(&mt, &prop);
@@ -50,7 +49,7 @@ int main(int argc, char** args) {
         while (LCI_one2one_test_empty(&sync))
           LCI_progress(0, 1);
         LCI_one2one_set_empty(&sync);
-        LCI_recvd(dst_buf, size, 2, tag, ep, &sync);
+        LCI_recvd(dst_buf, size, 1-rank, tag, ep, &sync);
         while (LCI_one2one_test_empty(&sync))
           LCI_progress(0, 1);
         if (i == 0) {
@@ -70,7 +69,7 @@ int main(int argc, char** args) {
 
       for (int i = 0; i < total + skip; i++) {
         LCI_one2one_set_empty(&sync);
-        LCI_recvd(dst_buf, size, 2, tag, ep, &sync);
+        LCI_recvd(dst_buf, size, 1-rank, tag, ep, &sync);
         while (LCI_one2one_test_empty(&sync))
           LCI_progress(0, 1);
         LCI_one2one_set_empty(&sync);

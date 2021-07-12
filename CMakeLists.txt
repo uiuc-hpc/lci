@@ -178,3 +178,24 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/FindFabric.cmake"
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LCI
 )
 install(PROGRAMS lcrun DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+set(example_list
+  init
+  pt2pti
+  pt2ptbc
+  pt2ptd
+#  pt2ptd_anyrank
+#  pt2ptiq
+  puti
+  putb
+  putbc
+  qshort
+  qmed
+  qlong
+)
+
+enable_testing()
+foreach(test IN LISTS example_list)
+    add_test(test.${test} "srun" "-n" "2" "--mpi=pmi2" "./examples/${test}")
+endforeach()
+
