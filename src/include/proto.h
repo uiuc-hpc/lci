@@ -28,7 +28,7 @@ static inline void lc_ce_dispatch(LCII_context_t *ctx)
       break;
 #ifdef LCI_SERVER_HAS_SYNC
     case LCI_COMPLETION_SYNC: {
-      LCI_sync_signal(ctx->completion, ctx);
+      LCII_sync_signal(ctx->completion, ctx);
       break;
     }
 #endif

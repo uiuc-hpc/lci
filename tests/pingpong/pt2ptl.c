@@ -23,8 +23,8 @@ int main(int argc, char** args) {
   LCI_tag_t tag = 99;
 
   LCI_comp_t sync_send, sync_recv;
-  LCI_sync_create(LCI_UR_DEVICE, LCI_SYNC_SIMPLE, &sync_send);
-  LCI_sync_create(LCI_UR_DEVICE, LCI_SYNC_SIMPLE, &sync_recv);
+  LCI_sync_create(LCI_UR_DEVICE, 1, &sync_send);
+  LCI_sync_create(LCI_UR_DEVICE, 1, &sync_recv);
 
   size_t alignment = sysconf(_SC_PAGESIZE);
   LCI_lbuffer_t src_buf, dst_buf;

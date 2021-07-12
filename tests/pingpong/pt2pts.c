@@ -22,7 +22,7 @@ int main(int argc, char** args) {
   LCI_tag_t tag = 99;
 
   LCI_comp_t sync;
-  LCI_sync_create(LCI_UR_DEVICE, LCI_SYNC_SIMPLE, &sync);
+  LCI_sync_create(LCI_UR_DEVICE, 1, &sync);
 
   LCI_short_t src = rank;
   LCI_barrier();

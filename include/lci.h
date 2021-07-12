@@ -79,13 +79,6 @@ typedef enum {
 } LCI_comp_type_t;
 
 /**
- * LCI synchronizer type
- */
-typedef enum {
-  LCI_SYNC_SIMPLE = 0,
-} LCI_sync_type_t;
-
-/**
  * Tag type. 16 bits due to ibverbs' limitation.
  */
 typedef uint16_t LCI_tag_t;
@@ -491,14 +484,16 @@ LCI_API
 LCI_error_t LCI_queue_len(LCI_comp_t cq, size_t *len);
 // synchronizer
 LCI_API
-LCI_error_t LCI_sync_create(LCI_device_t device, LCI_sync_type_t sync_type,
+LCI_error_t LCI_sync_create(LCI_device_t device, int threshold,
                             LCI_comp_t* sync);
 LCI_API
 LCI_error_t LCI_sync_free(LCI_comp_t *completion);
 LCI_API
-LCI_error_t LCI_sync_wait(LCI_comp_t sync, LCI_request_t* request);
+LCI_error_t LCI_sync_signal(LCI_comp_t completion, LCI_request_t request);
 LCI_API
-LCI_error_t LCI_sync_test(LCI_comp_t completion, LCI_request_t* request);
+LCI_error_t LCI_sync_wait(LCI_comp_t sync, LCI_request_t request[]);
+LCI_API
+LCI_error_t LCI_sync_test(LCI_comp_t completion, LCI_request_t request[]);
 // handler
 LCI_API
 LCI_error_t LCI_handler_create(LCI_device_t device, LCI_handler_t handler,

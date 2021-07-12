@@ -266,7 +266,7 @@ LCI_comp_t initComp(Context ep, LCI_comp_type_t comp_type) {
   if (comp_type == LCI_COMPLETION_QUEUE) {
     LCI_queue_create(ep.device, &comp);
   } else if (comp_type == LCI_COMPLETION_SYNC) {
-    LCI_sync_create(ep.device, LCI_SYNC_SIMPLE, &comp);
+    LCI_sync_create(ep.device, 1, &comp);
   } else if (comp_type == LCI_COMPLETION_HANDLER) {
     LCI_handler_create(ep.device, ep.config.comp_handler, &comp);
   } else {

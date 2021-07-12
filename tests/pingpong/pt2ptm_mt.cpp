@@ -66,7 +66,7 @@ void* recv_thread(void* arg)
   int tag = thread_id();
 
   LCI_comp_t sync;
-  LCI_sync_create(LCI_UR_DEVICE, LCI_SYNC_SIMPLE, &sync);
+  LCI_sync_create(LCI_UR_DEVICE, 1, &sync);
 
   size_t alignment = sysconf(_SC_PAGESIZE);
   LCI_mbuffer_t src_buf, dst_buf;
@@ -108,7 +108,7 @@ void* send_thread(void* arg)
   int tag = thread_id();
 
   LCI_comp_t sync;
-  LCI_sync_create(LCI_UR_DEVICE, LCI_SYNC_SIMPLE, &sync);
+  LCI_sync_create(LCI_UR_DEVICE, 1, &sync);
 
   size_t alignment = sysconf(_SC_PAGESIZE);
   LCI_mbuffer_t src_buf, dst_buf;
