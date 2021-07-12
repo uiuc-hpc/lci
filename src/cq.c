@@ -63,7 +63,7 @@ LCI_error_t LCI_queue_pop_multiple(LCI_comp_t cq, uint32_t request_count,
 }
 
 LCI_error_t LCI_queue_wait_multiple(LCI_comp_t cq, uint32_t request_count,
-                                    LCI_request_t* requests)
+                                    LCI_request_t requests[])
 {
   LCII_cq_t* cq_ptr = cq;
   int count = 0;

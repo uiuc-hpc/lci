@@ -177,7 +177,7 @@ typedef struct LCI_plist_s* LCI_plist_t;
 /**
  * Handler type
  */
-typedef LCI_error_t (LCI_handler_t)(LCI_request_t request);
+typedef void (*LCI_handler_t)(LCI_request_t request);
 
 /**@}*/
 
@@ -478,7 +478,7 @@ LCI_error_t LCI_queue_wait(LCI_comp_t cq, LCI_request_t* request);
  */
 LCI_API
 LCI_error_t LCI_queue_pop_multiple(LCI_comp_t cq, uint32_t request_count,
-                                   LCI_request_t* requests,
+                                   LCI_request_t requests[],
                                    uint32_t* return_count);
 
 /**
@@ -486,7 +486,7 @@ LCI_error_t LCI_queue_pop_multiple(LCI_comp_t cq, uint32_t request_count,
  */
 LCI_API
 LCI_error_t LCI_queue_wait_multiple(LCI_comp_t cq, uint32_t request_count,
-                                   LCI_request_t* requests);
+                                   LCI_request_t requests[]);
 LCI_API
 LCI_error_t LCI_queue_len(LCI_comp_t cq, size_t *len);
 // synchronizer

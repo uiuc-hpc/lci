@@ -125,9 +125,9 @@ static inline int lc_server_progress(LCID_server_t s)
     lc_packet *packet = lc_pool_get_nb(server->device->pkpool);
     if (packet == NULL) break;
     FI_SAFECALL(fi_trecv(server->ep, &packet->data, LCI_MEDIUM_SIZE,
-                         server->device->heap.segment->mr_p,
-                         FI_ADDR_UNSPEC, /*any*/0, ~(uint64_t)0 /*ignore all*/,
-                         packet));
+                           (void*) server->device->heap.segment->mr_p,
+                           FI_ADDR_UNSPEC, /*any*/0, ~(uint64_t)0 /*ignore all*/,
+                           packet));
     server->recv_posted++;
     ret = 1;
   }
