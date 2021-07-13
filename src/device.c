@@ -1,6 +1,6 @@
 #include "lcii.h"
 
-void lc_dev_init(LCI_device_t *device_ptr)
+LCI_error_t LCI_device_init(LCI_device_t * device_ptr)
 {
   LCI_device_t device = LCIU_malloc(sizeof(struct LCI_device_s));
   *device_ptr = device;
@@ -24,10 +24,12 @@ void lc_dev_init(LCI_device_t *device_ptr)
     p->context.poolid = 0;
     lc_pool_put(device->pkpool, p);
   }
+  return LCI_OK;
 }
 
-void lc_dev_finalize(LCI_device_t device)
+LCI_error_t LCI_device_free(LCI_device_t *device_ptr)
 {
+  LCI_device_t device = *device_ptr;
   int total_num = lc_pool_count(device->pkpool) +
                   lc_server_recv_posted_num(device->server);
   if (total_num != LC_SERVER_NUM_PKTS)
@@ -37,4 +39,6 @@ void lc_dev_finalize(LCI_device_t device)
   lc_pool_destroy(device->pkpool);
   lc_server_finalize(device->server);
   LCIU_free(device);
+  *device = NULL;
+  return LCI_OK;
 }

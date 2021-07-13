@@ -115,10 +115,7 @@ static inline void LCII_queue_push(LCI_comp_t cq, LCII_context_t *ctx);
 // matching table
 LCI_error_t LCII_mt_init(LCI_mt_t* mt, uint32_t length);
 LCI_error_t LCII_mt_free(LCI_mt_t* mt);
-// device
 void lc_env_init(int num_proc, int rank);
-void lc_dev_init(LCI_device_t *device);
-void lc_dev_finalize(LCI_device_t device);
 
 static inline LCI_request_t LCII_ctx2req(LCII_context_t *ctx) {
   LCI_request_t request = {

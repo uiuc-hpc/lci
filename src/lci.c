@@ -15,7 +15,7 @@ LCI_error_t LCI_initialize()
   // Set some constant from environment variable.
   lc_env_init(num_proc, rank);
 
-  lc_dev_init(&LCI_UR_DEVICE);
+  LCI_device_init(&LCI_UR_DEVICE);
 
   LCI_plist_t plist;
   LCI_plist_create(&plist);
@@ -39,7 +39,7 @@ LCI_error_t LCI_finalize()
   LCI_barrier();
   LCI_queue_free(&LCI_UR_CQ);
   LCI_endpoint_free(&LCI_UR_ENDPOINT);
-  lc_dev_finalize(LCI_UR_DEVICE);
+  LCI_device_free(&LCI_UR_DEVICE);
   lcm_pm_finalize();
 
   opened = 0;
@@ -52,16 +52,17 @@ LCI_error_t LCI_progress(LCI_device_t device)
   return LCI_OK;
 }
 
-void LCI_barrier() {
+LCI_error_t LCI_barrier() {
   lcm_pm_barrier();
+  return LCI_OK;
 }
 
-int LCI_Rank()
+int LCI_rank()
 {
   return LCI_RANK;
 }
 
-int LCI_Size()
+int LCI_size()
 {
   return LCI_NUM_PROCESSES;
 }
