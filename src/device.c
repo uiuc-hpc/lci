@@ -39,6 +39,6 @@ LCI_error_t LCI_device_free(LCI_device_t *device_ptr)
   lc_pool_destroy(device->pkpool);
   lc_server_finalize(device->server);
   LCIU_free(device);
-  *device = NULL;
+  *device_ptr = NULL;
   return LCI_OK;
 }
