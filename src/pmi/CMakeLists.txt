@@ -1,5 +1,5 @@
 set(LCI_PM_BACKEND pmi1 CACHE STRING "Process management backend to use")
-set_property(CACHE LCI_PM_BACKEND PROPERTY STRINGS pmi1 pmi2)
+set_property(CACHE LCI_PM_BACKEND PROPERTY STRINGS pmi1 pmi2 mpi)
 
 add_library(pmi-obj OBJECT)
 set_target_properties(pmi-obj PROPERTIES

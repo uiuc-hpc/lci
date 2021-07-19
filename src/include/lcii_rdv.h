@@ -12,7 +12,8 @@
 static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, LCII_context_t *rdv_ctx)
 {
 
-  LCM_DBG_Assert(rdv_ctx->data.lbuffer.length >= packet->data.rts.size,
+  LCM_DBG_Assert(rdv_ctx->data.lbuffer.address == NULL ||
+                 rdv_ctx->data.lbuffer.length >= packet->data.rts.size,
                  "the message sent by sendl is larger than the buffer posted by recvl!");
   rdv_ctx->rank = packet->context.src_rank;
   rdv_ctx->data.lbuffer.length = packet->data.rts.size;
@@ -34,6 +35,9 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, 
                         &rdv_ctx->data.lbuffer.segment);
   } else {
     rdv_ctx->is_dynamic = false;
+  }
+  if (rdv_ctx->data.lbuffer.address == NULL) {
+    LCI_lbuffer_alloc(ep->device, packet->data.rts.size, &rdv_ctx->data.lbuffer);
   }
   packet->data.rtr.remote_addr_base = (uintptr_t) rdv_ctx->data.lbuffer.segment->address;
   packet->data.rtr.remote_addr_offset =

@@ -15,6 +15,7 @@ typedef struct Archive_t {
   int capacity;
 } Archive_t;
 static int initialized = 0;
+static int to_finalize_mpi = 0;
 Archive_t l_archive, g_archive;
 const int STRING_LIMIT=256;
 
@@ -87,8 +88,8 @@ void lcm_pm_initialize()
   int mpi_initialized = 0;
   MPI_Initialized(&mpi_initialized);
   if (!mpi_initialized) {
-    fprintf(stderr, "Must initial MPI before LCI when using MPI as a PMI backend!\n");
-    abort();
+    MPI_Init(NULL, NULL);
+    to_finalize_mpi = 1;
   }
   archive_init(&l_archive);
   archive_init(&g_archive);
@@ -167,6 +168,13 @@ void lcm_pm_barrier() {
 }
 
 void lcm_pm_finalize() {
+  if (to_finalize_mpi) {
+    int mpi_finalized = 0;
+    MPI_Finalized(&mpi_finalized);
+    if (!mpi_finalized) {
+      MPI_Finalize();
+    }
+  }
   archive_fina(&l_archive);
   archive_fina(&g_archive);
   initialized = 0;

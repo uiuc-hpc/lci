@@ -25,7 +25,7 @@ LCI_error_t LCI_initialize()
   LCM_DBG_Log(LCM_LOG_WARN, "Macro LCI_DEBUG is defined. Running in low-performance debug mode!\n");
 
   opened = 1;
-
+  LCI_barrier();
   return LCI_OK;
 }
 
