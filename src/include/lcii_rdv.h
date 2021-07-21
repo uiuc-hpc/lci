@@ -28,6 +28,9 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, 
   // TODO: be able to pass back pressure to user
   LCM_Assert(result == LCM_SUCCESS, "Archive is full!\n");
   packet->data.rtr.recv_ctx_key = ctx_key;
+  if (rdv_ctx->data.lbuffer.address == NULL) {
+    LCI_lbuffer_alloc(ep->device, packet->data.rts.size, &rdv_ctx->data.lbuffer);
+  }
   if (rdv_ctx->data.lbuffer.segment == LCI_SEGMENT_ALL) {
     rdv_ctx->is_dynamic = true;
     LCI_memory_register(ep->device, rdv_ctx->data.lbuffer.address,
@@ -35,9 +38,6 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, 
                         &rdv_ctx->data.lbuffer.segment);
   } else {
     rdv_ctx->is_dynamic = false;
-  }
-  if (rdv_ctx->data.lbuffer.address == NULL) {
-    LCI_lbuffer_alloc(ep->device, packet->data.rts.size, &rdv_ctx->data.lbuffer);
   }
   packet->data.rtr.remote_addr_base = (uintptr_t) rdv_ctx->data.lbuffer.segment->address;
   packet->data.rtr.remote_addr_offset =
