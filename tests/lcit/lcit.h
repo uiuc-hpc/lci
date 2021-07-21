@@ -611,7 +611,8 @@ void set_affinity(pthread_t pthread_handler, size_t target) {
   CPU_SET(target, &cpuset);
   int rv = pthread_setaffinity_np(pthread_handler, sizeof(cpuset), &cpuset);
   if (rv != 0) {
-    throw std::runtime_error("ERROR thread affinity didn't work.");
+    fprintf(stderr, "ERROR %d thread affinity didn't work.\n", rv);
+    exit(1);
   }
 }
 

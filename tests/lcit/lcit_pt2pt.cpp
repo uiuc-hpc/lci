@@ -40,7 +40,7 @@ void test(Context ctx) {
         std::vector<LCI_comp_t> comps;
         // recv
         for (int j = 0; j < ctx.config.send_window; ++j) {
-          LCI_comp_t comp = postRecv(ctx, peer_rank, size);
+          LCI_comp_t comp = postRecv(ctx, peer_rank, size, tag);
           comps.push_back(comp);
         }
         for (auto comp : comps) {
@@ -49,7 +49,7 @@ void test(Context ctx) {
         // send
         comps.clear();
         for (int j = 0; j < ctx.config.recv_window; ++j) {
-          LCI_comp_t comp = postSend(ctx, peer_rank, size);
+          LCI_comp_t comp = postSend(ctx, peer_rank, size, tag);
           comps.push_back(comp);
         }
         for (auto comp : comps) {
