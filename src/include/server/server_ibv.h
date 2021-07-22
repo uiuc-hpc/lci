@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
 #include "infiniband/verbs.h"
 #include "dreg.h"
 
@@ -11,7 +12,8 @@
   {                                                                   \
     int err = (x);                                                    \
     if (err) {                                                        \
-      fprintf(stderr, "err : %d (%s:%d)\n", err, __FILE__, __LINE__); \
+      fprintf(stderr, "err %d : %s (%s:%d)\n",                        \
+              err, strerror(err), __FILE__, __LINE__);                \
       exit(EXIT_FAILURE);                                             \
     }                                                                 \
   }                                                                   \
@@ -226,8 +228,10 @@ static inline LCI_error_t lc_server_sends(LCID_server_t s, int rank, void* buf,
   }
 
   struct ibv_send_wr *bad_wr;
-  IBV_SAFECALL(ibv_post_send(server->qps[rank], &wr, &bad_wr));
-  return LCI_OK;
+  int ret = ibv_post_send(server->qps[rank], &wr, &bad_wr);
+  if (ret == 0) return LCI_OK;
+  else if (ret == ENOMEM) return LCI_ERR_RETRY; // exceed send queue capacity
+  else IBV_SAFECALL(ret);
 }
 
 static inline LCI_error_t lc_server_send(LCID_server_t s, int rank, void* buf,
@@ -255,8 +259,10 @@ static inline LCI_error_t lc_server_send(LCID_server_t s, int rank, void* buf,
   }
 
   struct ibv_send_wr* bad_wr;
-  IBV_SAFECALL(ibv_post_send(server->qps[rank], &wr, &bad_wr));
-  return LCI_OK;
+  int ret = ibv_post_send(server->qps[rank], &wr, &bad_wr);
+  if (ret == 0) return LCI_OK;
+  else if (ret == ENOMEM) return LCI_ERR_RETRY; // exceed send queue capacity
+  else IBV_SAFECALL(ret);
 }
 
 static inline LCI_error_t lc_server_puts(LCID_server_t s, int rank, void* buf,
@@ -285,8 +291,10 @@ static inline LCI_error_t lc_server_puts(LCID_server_t s, int rank, void* buf,
   wr.imm_data   = meta;
 
   struct ibv_send_wr *bad_wr;
-  IBV_SAFECALL(ibv_post_send(server->qps[rank], &wr, &bad_wr));
-  return LCI_OK;
+  int ret = ibv_post_send(server->qps[rank], &wr, &bad_wr);
+  if (ret == 0) return LCI_OK;
+  else if (ret == ENOMEM) return LCI_ERR_RETRY; // exceed send queue capacity
+  else IBV_SAFECALL(ret);
 }
 
 static inline LCI_error_t lc_server_put(LCID_server_t s, int rank, void* buf,
@@ -317,9 +325,10 @@ static inline LCI_error_t lc_server_put(LCID_server_t s, int rank, void* buf,
     wr.send_flags |= IBV_SEND_INLINE;
   }
   struct ibv_send_wr *bad_wr;
-
-  IBV_SAFECALL(ibv_post_send(server->qps[rank], &wr, &bad_wr));
-  return LCI_OK;
+  int ret = ibv_post_send(server->qps[rank], &wr, &bad_wr);
+  if (ret == 0) return LCI_OK;
+  else if (ret == ENOMEM) return LCI_ERR_RETRY; // exceed send queue capacity
+  else IBV_SAFECALL(ret);
 }
 
 static inline int lc_server_recv_posted_num(LCID_server_t s) {
