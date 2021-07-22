@@ -54,8 +54,9 @@ static inline LCID_mr_t _real_server_reg(LCID_server_t s, void* buf, size_t size
 {
   LCIDI_server_t *server = (LCIDI_server_t*) s;
   struct fid_mr* mr;
+  int rdma_key = __sync_fetch_and_add(&g_next_rdma_key, 1);
   FI_SAFECALL(fi_mr_reg(server->domain, buf, size,
-                        FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, g_next_rdma_key++, 0,
+                        FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, rdma_key, 0,
                         &mr, 0));
   return (uintptr_t)mr;
 }

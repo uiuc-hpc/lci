@@ -1,9 +1,9 @@
 #ifndef LCI_PRIV_H_
 #define LCI_PRIV_H_
 
+#include "config.h"
 #include "lci.h"
 #include "lciu.h"
-#include "config.h"
 #include "lcm_log.h"
 #include "lcm_dequeue.h"
 #include "pmi_wrapper.h"

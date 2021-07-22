@@ -16,6 +16,7 @@
 #include <cstring>
 #include "lci.h"
 #include "lcm_log.h"
+#include "lcit_threadbarrier.h"
 
 namespace lcit {
 const size_t CACHESIZE_L1 = sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
@@ -261,6 +262,7 @@ struct Context {
   LCI_comp_t recv_comp;
   LCI_data_t send_data;
   LCI_data_t recv_data;
+  ThreadBarrier *threadBarrier = nullptr;
 };
 
 LCI_comp_t initComp(Context ctx, LCI_comp_type_t comp_type) {
@@ -409,11 +411,15 @@ Context initCtx(Config config) {
   }
 
   initData(ctx);
+  if (config.nthreads > 1)
+    ctx.threadBarrier = new ThreadBarrier(config.nthreads - 1);
 
   return ctx;
 }
 
 void freeCtx(Context &ctx) {
+  if (ctx.config.nthreads > 1)
+    delete ctx.threadBarrier;
   freeData(ctx);
   freeComp(ctx.config.send_comp_type, &ctx.send_comp);
   if (ctx.config.op == LCIT_OP_1SIDED_L ||
@@ -424,6 +430,15 @@ void freeCtx(Context &ctx) {
     freeComp(ctx.config.recv_comp_type, &ctx.recv_comp);
   }
   LCI_endpoint_free(&ctx.ep);
+}
+
+void threadBarrier(Context &ctx) {
+  if (ctx.config.nthreads > 1) {
+    if (to_progress)
+      ctx.threadBarrier->wait(LCI_progress, ctx.device);
+    else
+      ctx.threadBarrier->wait();
+  }
 }
 
 LCI_comp_t postSend(Context &ctx, int rank, size_t size, LCI_tag_t tag) {

@@ -10,6 +10,7 @@ void test(Context ctx) {
 
   if (rank % 2 == 0) {
     for (int size = ctx.config.min_msg_size; size <= ctx.config.max_msg_size; size <<= 1) {
+      threadBarrier(ctx);
       printf("Testing message size %d...\n", size);
       fflush(stdout);
 
@@ -36,6 +37,7 @@ void test(Context ctx) {
     }
   } else {
     for (int size = ctx.config.min_msg_size; size <= ctx.config.max_msg_size; size <<= 1) {
+      threadBarrier(ctx);
       for (int i = 0; i < ctx.config.nsteps; ++i) {
         std::vector<LCI_comp_t> comps;
         // recv

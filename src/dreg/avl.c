@@ -25,7 +25,7 @@
  */
 
 
-#include "lciu.h"
+#define __UNUSED__ __attribute__((unused))
 
 #ifndef NEMESIS_BUILD
 // #include "mpichconf.h"

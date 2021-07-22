@@ -14,7 +14,8 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, 
 
   LCM_DBG_Assert(rdv_ctx->data.lbuffer.address == NULL ||
                  rdv_ctx->data.lbuffer.length >= packet->data.rts.size,
-                 "the message sent by sendl is larger than the buffer posted by recvl!");
+                 "the message sent by sendl (%lu) is larger than the buffer posted by recvl (%lu)!",
+                 packet->data.rts.size, rdv_ctx->data.lbuffer.length);
   rdv_ctx->rank = packet->context.src_rank;
   rdv_ctx->data.lbuffer.length = packet->data.rts.size;
 

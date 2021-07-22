@@ -15,5 +15,5 @@ add_lci_tests(
             putla_dyn.c
             pt2ptm_mt.cpp
         LABELS pingpong
-        COMMAND "${SRUN_EXE} -n 2 ${SRUN_EXTRA_ARG} [TARGET]"
+        COMMANDS "${SRUN_EXE} -n 2 ${SRUN_EXTRA_ARG} [TARGET]"
 )
