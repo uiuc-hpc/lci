@@ -393,22 +393,17 @@ Context initCtx(Config config) {
   Context ctx;
   ctx.config = config;
   ctx.device = LCI_UR_DEVICE;
+  ctx.send_comp = initComp(ctx, config.send_comp_type);
+  ctx.recv_comp = initComp(ctx, config.recv_comp_type);
+
   LCI_plist_t plist;
   LCI_plist_create(&plist);
   LCI_plist_set_match_type(plist, config.match_type);
   LCI_plist_set_comp_type(plist, LCI_PORT_COMMAND, config.send_comp_type);
   LCI_plist_set_comp_type(plist, LCI_PORT_MESSAGE, config.recv_comp_type);
+  LCI_plist_set_default_comp(plist, ctx.recv_comp);
   LCI_endpoint_init(&ctx.ep, ctx.device, plist);
   LCI_plist_free(&plist);
-
-  ctx.send_comp = initComp(ctx, config.send_comp_type);
-  if (ctx.config.op == LCIT_OP_1SIDED_L ||
-      ctx.config.op == LCIT_OP_1SIDED_M ||
-      ctx.config.op == LCIT_OP_1SIDED_S) {
-    ctx.recv_comp = LCI_UR_CQ;
-  } else {
-    ctx.recv_comp = initComp(ctx, config.recv_comp_type);
-  }
 
   initData(ctx);
   if (config.nthreads > 1)
@@ -422,13 +417,7 @@ void freeCtx(Context &ctx) {
     delete ctx.threadBarrier;
   freeData(ctx);
   freeComp(ctx.config.send_comp_type, &ctx.send_comp);
-  if (ctx.config.op == LCIT_OP_1SIDED_L ||
-      ctx.config.op == LCIT_OP_1SIDED_M ||
-      ctx.config.op == LCIT_OP_1SIDED_S) {
-    // do nothing
-  } else {
-    freeComp(ctx.config.recv_comp_type, &ctx.recv_comp);
-  }
+  freeComp(ctx.config.recv_comp_type, &ctx.recv_comp);
   LCI_endpoint_free(&ctx.ep);
 }
 
@@ -479,7 +468,7 @@ LCI_comp_t postSend(Context &ctx, int rank, size_t size, LCI_tag_t tag) {
       break;
     }
     case LCIT_OP_1SIDED_S:
-      while (LCI_puts(ctx.ep, ctx.send_data.immediate, rank, tag, LCI_UR_CQ_REMOTE) == LCI_ERR_RETRY)
+      while (LCI_puts(ctx.ep, ctx.send_data.immediate, rank, tag, LCI_DEFAULT_COMP_REMOTE) == LCI_ERR_RETRY)
         if (to_progress) LCI_progress(ctx.device);
       break;
     case LCIT_OP_1SIDED_M: {
@@ -490,10 +479,10 @@ LCI_comp_t postSend(Context &ctx, int rank, size_t size, LCI_tag_t tag) {
       LCI_mbuffer_t send_buffer = ctx.send_data.mbuffer;
       send_buffer.length = size;
       if (ctx.config.send_dyn) {
-        while (LCI_putmna(ctx.ep, send_buffer, rank, tag, LCI_UR_CQ_REMOTE) == LCI_ERR_RETRY)
+        while (LCI_putmna(ctx.ep, send_buffer, rank, tag, LCI_DEFAULT_COMP_REMOTE) == LCI_ERR_RETRY)
           if (to_progress) LCI_progress(ctx.device);
       } else {
-        while (LCI_putma(ctx.ep, send_buffer, rank, tag, LCI_UR_CQ_REMOTE) == LCI_ERR_RETRY)
+        while (LCI_putma(ctx.ep, send_buffer, rank, tag, LCI_DEFAULT_COMP_REMOTE) == LCI_ERR_RETRY)
           if (to_progress) LCI_progress(ctx.device);
       }
       break;
@@ -502,7 +491,7 @@ LCI_comp_t postSend(Context &ctx, int rank, size_t size, LCI_tag_t tag) {
       LCI_lbuffer_t send_buffer = ctx.send_data.lbuffer;
       send_buffer.length = size;
       while (LCI_putla(ctx.ep, ctx.send_data.lbuffer, comp, rank, tag,
-                       LCI_UR_CQ_REMOTE, (void*)USER_CONTEXT) == LCI_ERR_RETRY)
+                       LCI_DEFAULT_COMP_REMOTE, (void*)USER_CONTEXT) == LCI_ERR_RETRY)
         if (to_progress) LCI_progress(ctx.device);
       break;
     }

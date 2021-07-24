@@ -17,11 +17,11 @@ LCI_error_t LCI_initialize()
 
   LCI_device_init(&LCI_UR_DEVICE);
 
+  LCI_queue_create(LCI_UR_DEVICE, &LCI_UR_CQ);
   LCI_plist_t plist;
   LCI_plist_create(&plist);
   LCI_endpoint_init(&LCI_UR_ENDPOINT, LCI_UR_DEVICE, plist);
   LCI_plist_free(&plist);
-  LCI_queue_create(LCI_UR_DEVICE, &LCI_UR_CQ);
   LCM_DBG_Log(LCM_LOG_WARN, "Macro LCI_DEBUG is defined. Running in low-performance debug mode!\n");
 
   opened = 1;
@@ -37,8 +37,8 @@ LCI_error_t LCI_initialized(int *flag) {
 LCI_error_t LCI_finalize()
 {
   LCI_barrier();
-  LCI_queue_free(&LCI_UR_CQ);
   LCI_endpoint_free(&LCI_UR_ENDPOINT);
+  LCI_queue_free(&LCI_UR_CQ);
   LCI_device_free(&LCI_UR_DEVICE);
   lcm_pm_finalize();
 

@@ -146,7 +146,7 @@ static inline void lc_serve_recv(lc_packet* packet,
       ctx->rank = src_rank;
       ctx->tag = tag;
       ctx->comp_type = LCI_COMPLETION_QUEUE;
-      ctx->completion = LCI_UR_CQ;
+      ctx->completion = ep->default_comp;
       ctx->user_context = NULL;
       lc_ce_dispatch(ctx);
       break;
@@ -160,7 +160,7 @@ static inline void lc_serve_recv(lc_packet* packet,
       ctx->rank = src_rank;
       ctx->tag = tag;
       ctx->comp_type = LCI_COMPLETION_QUEUE;
-      ctx->completion = LCI_UR_CQ;
+      ctx->completion = ep->default_comp;
       ctx->user_context = NULL;
       lc_ce_dispatch(ctx);
       break;

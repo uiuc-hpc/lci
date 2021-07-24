@@ -99,7 +99,7 @@ static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep, lc_packet* packet,
   rdv_ctx->tag = tag;
   rdv_ctx->user_context = NULL;
   rdv_ctx->comp_type = LCI_COMPLETION_QUEUE;
-  rdv_ctx->completion = LCI_UR_CQ;
+  rdv_ctx->completion = ep->default_comp;
 
   LCII_context_t *rtr_ctx = LCIU_malloc(sizeof(LCII_context_t));
   rtr_ctx->data.mbuffer.address = &(packet->data);

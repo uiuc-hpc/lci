@@ -20,7 +20,7 @@ extern "C" {
 
 #define LCI_API __attribute__((visibility("default")))
 
-#define LCI_UR_CQ_REMOTE 0
+#define LCI_DEFAULT_COMP_REMOTE 0
 // "pseudo-segment" indicating the entire address space,
 // leading to dynamic (on-the-fly) registration
 #define LCI_SEGMENT_ALL NULL
@@ -300,6 +300,8 @@ LCI_error_t LCI_plist_set_match_type(LCI_plist_t plist, LCI_match_t match_type);
 LCI_API
 LCI_error_t LCI_plist_set_comp_type(LCI_plist_t plist, LCI_port_t port,
                                     LCI_comp_type_t comp_type);
+LCI_API
+LCI_error_t LCI_plist_set_default_comp(LCI_plist_t plist, LCI_comp_t comp);
 // endpoint
 LCI_API
 LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, LCI_device_t device,

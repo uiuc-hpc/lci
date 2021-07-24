@@ -56,9 +56,10 @@ struct LCI_device_s {
 };
 
 struct LCI_plist_s {
-  LCI_match_t match_type;     // matching type
+  LCI_match_t match_type;        // matching type
   LCI_comp_type_t cmd_comp_type; // source-side completion type
   LCI_comp_type_t msg_comp_type; // destination-side completion type
+  LCI_comp_t default_comp;       // default comp for one-sided communication
 };
 
 struct LCI_endpoint_s {
@@ -72,9 +73,10 @@ struct LCI_endpoint_s {
   LCM_archive_t ctx_archive; // used for long message protocol
 
   // user-defined components
-  LCI_match_t match_type;     // matching type (tag/ranktag)
+  LCI_match_t match_type;        // matching type (tag/ranktag)
   LCI_comp_type_t cmd_comp_type; // command-port completion type
   LCI_comp_type_t msg_comp_type; // message-port completion type
+  LCI_comp_t default_comp;       // default comp for one-sided communication
 
   volatile int completed;
 

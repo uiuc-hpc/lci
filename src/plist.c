@@ -6,7 +6,7 @@ LCI_error_t LCI_plist_create(LCI_plist_t* plist_ptr)
   plist->match_type = LCI_MATCH_TAG;
   plist->cmd_comp_type = LCI_COMPLETION_QUEUE;
   plist->msg_comp_type = LCI_COMPLETION_QUEUE;
-
+  plist->default_comp = LCI_UR_CQ;
   *plist_ptr = plist;
   return LCI_OK;
 }
@@ -24,6 +24,7 @@ LCI_error_t LCI_plist_get(LCI_endpoint_t ep, LCI_plist_t *plist_ptr)
   plist->match_type = ep->match_type;
   plist->cmd_comp_type = ep->cmd_comp_type;
   plist->msg_comp_type = ep->msg_comp_type;
+  plist->default_comp = ep->default_comp;
   *plist_ptr = plist;
   return LCI_OK;
 }
@@ -61,6 +62,11 @@ LCI_error_t LCI_plist_set_comp_type(LCI_plist_t plist, LCI_port_t port,
     default:
       LCM_DBG_Assert(false, "unknown port!");
   }
+  return LCI_OK;
+}
+
+LCI_error_t LCI_plist_set_default_comp(LCI_plist_t plist, LCI_comp_t comp) {
+  plist->default_comp = comp;
   return LCI_OK;
 }
 
