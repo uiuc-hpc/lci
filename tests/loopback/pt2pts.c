@@ -24,7 +24,8 @@ int main(int argc, char** args) {
   LCI_comp_t sync;
   LCI_sync_create(LCI_UR_DEVICE, 1, &sync);
 
-  LCI_short_t src = 158;
+  LCI_short_t src;
+  *(int*)&src = 158;
   LCI_barrier();
 
   for (int i = 0; i < total; i++) {
@@ -34,7 +35,7 @@ int main(int argc, char** args) {
     LCI_request_t request;
     while (LCI_sync_test(sync, &request) == LCI_ERR_RETRY)
       LCI_progress(LCI_UR_DEVICE);
-    assert(request.data.immediate == 158);
+    assert(*(int*)&request.data.immediate == 158);
   }
   LCI_sync_free(&sync);
   LCI_finalize();

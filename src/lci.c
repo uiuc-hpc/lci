@@ -50,13 +50,3 @@ LCI_error_t LCI_barrier() {
   lcm_pm_barrier();
   return LCI_OK;
 }
-
-int LCI_rank()
-{
-  return LCI_RANK;
-}
-
-int LCI_size()
-{
-  return LCI_NUM_PROCESSES;
-}

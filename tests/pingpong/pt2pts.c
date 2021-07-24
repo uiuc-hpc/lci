@@ -24,7 +24,8 @@ int main(int argc, char** args) {
   LCI_comp_t sync;
   LCI_sync_create(LCI_UR_DEVICE, 1, &sync);
 
-  LCI_short_t src = rank;
+  LCI_short_t src;
+  *(int*)&src = rank;
   LCI_barrier();
 
   if (rank % 2 == 0) {
@@ -36,7 +37,7 @@ int main(int argc, char** args) {
       LCI_request_t request;
       while (LCI_sync_test(sync, &request) == LCI_ERR_RETRY)
         LCI_progress(LCI_UR_DEVICE);
-      assert(request.data.immediate == peer_rank);
+      assert(*(int*)&request.data.immediate == peer_rank);
     }
   } else {
     for (int i = 0; i < total; i++) {
@@ -44,7 +45,7 @@ int main(int argc, char** args) {
       LCI_request_t request;
       while (LCI_sync_test(sync, &request) == LCI_ERR_RETRY)
         LCI_progress(LCI_UR_DEVICE);
-      assert(request.data.immediate == peer_rank);
+      assert(*(int*)&request.data.immediate == peer_rank);
 
       while (LCI_sends(ep, src, peer_rank, tag) == LCI_ERR_RETRY)
         LCI_progress(LCI_UR_DEVICE);

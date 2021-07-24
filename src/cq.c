@@ -40,9 +40,9 @@ LCI_error_t LCI_queue_wait(LCI_comp_t cq, LCI_request_t* request) {
   return LCI_OK;
 }
 
-LCI_error_t LCI_queue_pop_multiple(LCI_comp_t cq, uint32_t request_count,
+LCI_error_t LCI_queue_pop_multiple(LCI_comp_t cq, size_t request_count,
                                    LCI_request_t* requests,
-                                   uint32_t* return_count)
+                                   size_t* return_count)
 {
   LCII_cq_t* cq_ptr = cq;
   int count = 0;
@@ -62,8 +62,8 @@ LCI_error_t LCI_queue_pop_multiple(LCI_comp_t cq, uint32_t request_count,
   return LCI_OK;
 }
 
-LCI_error_t LCI_queue_wait_multiple(LCI_comp_t cq, uint32_t request_count,
-                                    LCI_request_t requests[])
+LCI_error_t LCI_queue_wait_multiple(LCI_comp_t cq, size_t request_count,
+                                    LCI_request_t* requests)
 {
   LCII_cq_t* cq_ptr = cq;
   int count = 0;

@@ -16,7 +16,8 @@ int main(int argc, char** args) {
   int peer_rank = ((1 - LCI_RANK % 2) + LCI_RANK / 2 * 2) % LCI_NUM_PROCESSES;
   LCI_tag_t tag = 99;
 
-  LCI_short_t src = rank;
+  LCI_short_t src;
+  *(int*)&src = rank;
   LCI_request_t request;
   LCI_barrier();
 
@@ -26,13 +27,13 @@ int main(int argc, char** args) {
         LCI_progress(LCI_UR_DEVICE);
       while (LCI_queue_pop(LCI_UR_CQ, &request) == LCI_ERR_RETRY)
         LCI_progress(LCI_UR_DEVICE);
-      assert(request.data.immediate == peer_rank);
+      assert(*(int*)&request.data.immediate == peer_rank);
     }
   } else {
     for (int i = 0; i < total; i++) {
       while (LCI_queue_pop(LCI_UR_CQ, &request) == LCI_ERR_RETRY)
         LCI_progress(LCI_UR_DEVICE);
-      assert(request.data.immediate == peer_rank);
+      assert(*(int*)&request.data.immediate == peer_rank);
       while (LCI_puts(ep, src, peer_rank, tag, LCI_UR_CQ_REMOTE) == LCI_ERR_RETRY)
         LCI_progress(LCI_UR_DEVICE);
     }

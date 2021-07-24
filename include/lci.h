@@ -79,9 +79,9 @@ typedef enum {
 } LCI_comp_type_t;
 
 /**
- * Tag type. 16 bits due to ibverbs' limitation.
+ * Tag type. the lower 16 bits are actually used due to ibverbs' limitation.
  */
-typedef uint16_t LCI_tag_t;
+typedef uint32_t LCI_tag_t;
 
 /**
  * LCI generic completion type.
@@ -121,10 +121,11 @@ typedef struct LCI_mbuffer_t LCI_mbuffer_t;
 /**
  * LCI short data.
  */
-//struct LCI_short_t {
-//  char __short [ LCI_SHORT_SIZE ];
-//};
-typedef uint64_t LCI_short_t;
+#define LCI_SHORT_SIZE 32
+typedef struct {
+  char __short [ LCI_SHORT_SIZE ];
+} LCI_short_t;
+//typedef uint64_t LCI_short_t;
 
 /**
  * The type of data associated with a buffer.
@@ -142,7 +143,7 @@ typedef union {
 typedef struct {
   /* Status of the communication. */
   LCI_error_t flag;       // 4 bytes
-  int rank;          // 4 bytes
+  int rank;               // 4 bytes
   LCI_tag_t tag;          // 4 bytes
   LCI_data_type_t type;   // 4 bytes
   LCI_data_t data;        // 24 bytes
@@ -200,14 +201,6 @@ extern int LCI_MAX_ENDPOINTS;
  *       The 16th bit is used to distinguish between user-issued rmas and rmas of sendd.
  */
 extern int LCI_MAX_TAG;
-
-/**
- * The maximum size (in byte) of a buffer that can be used in immediate protocol.
- * @note set to 8 bytes (uint64_t) for current implementation
- * @note must be constant at compile time
- * @todo should be larger (LC_MAX_INLINE)
- */
-#define LCI_SHORT_SIZE 8
 
 /**
  * The maximum size (in byte) of a buffer that can be used in buffered protocol.
@@ -287,10 +280,6 @@ LCI_error_t LCI_initialized(int *flag);
 LCI_API
 LCI_error_t LCI_finalize();
 LCI_API
-int LCI_rank();
-LCI_API
-int LCI_size();
-LCI_API
 LCI_error_t LCI_barrier();
 // device
 LCI_API
@@ -366,12 +355,12 @@ LCI_error_t LCI_queue_pop(LCI_comp_t cq, LCI_request_t* request);
 LCI_API
 LCI_error_t LCI_queue_wait(LCI_comp_t cq, LCI_request_t* request);
 LCI_API
-LCI_error_t LCI_queue_pop_multiple(LCI_comp_t cq, uint32_t request_count,
-                                   LCI_request_t requests[],
-                                   uint32_t* return_count);
+LCI_error_t LCI_queue_pop_multiple(LCI_comp_t cq, size_t request_count,
+                                   LCI_request_t* requests,
+                                   size_t* return_count);
 LCI_API
-LCI_error_t LCI_queue_wait_multiple(LCI_comp_t cq, uint32_t request_count,
-                                   LCI_request_t requests[]);
+LCI_error_t LCI_queue_wait_multiple(LCI_comp_t cq, size_t request_count,
+                                    LCI_request_t* requests);
 LCI_API
 LCI_error_t LCI_queue_len(LCI_comp_t cq, size_t *len);
 // synchronizer
