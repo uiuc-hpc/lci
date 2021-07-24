@@ -33,11 +33,9 @@
 #endif
 
 #define MAX_CQ_SIZE (16 * 1024)
-#define MAX_POLL 8
 
-typedef struct LCIDI_server_t {
+typedef struct LCISI_server_t {
   LCI_device_t device;
-  int recv_posted;
   struct fi_info* info;
   struct fid_fabric* fabric;
   struct fid_domain* domain;
@@ -46,13 +44,13 @@ typedef struct LCIDI_server_t {
   struct fid_av* av;
   fi_addr_t *peer_addrs;
   void *heap_desc;
-} LCIDI_server_t __attribute__((aligned(64)));
+} LCISI_server_t __attribute__((aligned(64)));
 
 extern int g_next_rdma_key;
 
-static inline LCID_mr_t _real_server_reg(LCID_server_t s, void* buf, size_t size)
+static inline LCIS_mr_t _real_server_reg(LCIS_server_t s, void* buf, size_t size)
 {
-  LCIDI_server_t *server = (LCIDI_server_t*) s;
+  LCISI_server_t *server = (LCISI_server_t*) s;
   struct fid_mr* mr;
   int rdma_key = __sync_fetch_and_add(&g_next_rdma_key, 1);
   FI_SAFECALL(fi_mr_reg(server->domain, buf, size,
@@ -61,89 +59,84 @@ static inline LCID_mr_t _real_server_reg(LCID_server_t s, void* buf, size_t size
   return (uintptr_t)mr;
 }
 
-static inline void _real_server_dereg(LCID_mr_t mr_opaque)
+static inline void _real_server_dereg(LCIS_mr_t mr_opaque)
 {
   struct fid_mr *mr = (struct fid_mr*) mr_opaque;
   FI_SAFECALL(fi_close((struct fid*) &mr->fid));
 }
 
-static inline LCID_mr_t lc_server_rma_reg(LCID_server_t s, void* buf, size_t size)
+static inline LCIS_mr_t lc_server_rma_reg(LCIS_server_t s, void* buf, size_t size)
 {
 //  return (uintptr_t)dreg_register(s, buf, size);
   return _real_server_reg(s, buf, size);
 }
 
-static inline void lc_server_rma_dereg(LCID_mr_t mr)
+static inline void lc_server_rma_dereg(LCIS_mr_t mr)
 {
 //  dreg_unregister((dreg_entry*)mem);
   _real_server_dereg(mr);
 }
 
-static inline LCID_rkey_t lc_server_rma_rkey(LCID_mr_t mr)
+static inline LCIS_rkey_t lc_server_rma_rkey(LCIS_mr_t mr)
 {
 //  return fi_mr_key((struct fid_mr*)(((dreg_entry*)mem)->memhandle[0]));
   return fi_mr_key((struct fid_mr*)(mr));
 }
 
-static inline int lc_server_progress(LCID_server_t s)
-{
-  LCIDI_server_t *server = (LCIDI_server_t*) s;
-  struct fi_cq_tagged_entry entry[MAX_POLL];
+static inline int LCID_poll_cq(LCIS_server_t s, LCIS_cq_entry_t*entry) {
+  LCISI_server_t *server = (LCISI_server_t*) s;
+  struct fi_cq_tagged_entry fi_entry[LCI_CQ_MAX_POLL];
   struct fi_cq_err_entry error;
   ssize_t ne;
-  int ret = 0;
+  int ret;
 
-  do {
-    ne = fi_cq_read(server->cq, &entry, MAX_POLL);
-    if (ne > 0) {
-      // Got an entry here
-      for (int i = 0; i < ne; i++) {
-        if (entry[i].flags & FI_RECV) {
-          --server->recv_posted;
-          // we use tag to pass src_rank, because it is hard to get src_rank
-          // from fi_addr_t. TODO: Need to improve
-          lc_serve_recv(entry[i].op_context, entry[i].tag, entry[i].len,
-                        entry[i].data);
-        } else if (entry[i].flags & FI_REMOTE_WRITE) {
-          lc_serve_rdma(entry[i].data);
-        } else if (entry[i].flags & FI_SEND || entry[i].flags & FI_WRITE) {
-          lc_serve_send(entry[i].op_context);
-        }
+  ne = fi_cq_read(server->cq, &fi_entry, LCI_CQ_MAX_POLL);
+  ret = ne;
+  if (ne > 0) {
+    // Got an entry here
+    for (int i = 0; i < ne; i++) {
+      if (fi_entry[i].flags & FI_RECV) {
+        // we use tag to pass src_rank, because it is hard to get src_rank
+        // from fi_addr_t. TODO: Need to improve
+        entry[i].opcode = LCII_OP_RECV;
+        entry[i].ctx = fi_entry[i].op_context;
+        entry[i].length = fi_entry[i].len;
+        entry[i].imm_data = fi_entry[i].data;
+        entry[i].rank = fi_entry[i].tag;
+      } else if (fi_entry[i].flags & FI_REMOTE_WRITE) {
+        entry[i].opcode = LCII_OP_RDMA_WRITE;
+        entry[i].ctx = NULL;
+        entry[i].imm_data = fi_entry[i].data;
+      } else {
+        LCM_DBG_Assert(fi_entry[i].flags & FI_SEND ||
+                       fi_entry[i].flags & FI_WRITE,
+                       "Unexpected OFI opcode!\n");
+        entry[i].opcode = LCII_OP_SEND;
+        entry[i].ctx = fi_entry[i].op_context;
       }
-      ret |= (ne > 0);
-#ifdef LCI_DEBUG
-    } else if (ne == -FI_EAGAIN) {
-    } else {
-      LCM_DBG_Assert(ne == -FI_EAVAIL, "unexpected return error: %s\n", fi_strerror(-ne));
-      fi_cq_readerr(server->cq, &error, 0);
-      printf("Err: %s\n", fi_strerror(error.err));
-      exit(error.err);
-#endif
     }
-  } while (ne > 0);
-
-  while (server->recv_posted < LC_SERVER_MAX_RCVS) {
-    lc_packet *packet = lc_pool_get_nb(server->device->pkpool);
-    if (packet == NULL) break;
-    FI_SAFECALL(fi_trecv(server->ep, &packet->data, LCI_MEDIUM_SIZE,
-                           (void*) server->device->heap.segment->mr_p,
-                           FI_ADDR_UNSPEC, /*any*/0, ~(uint64_t)0 /*ignore all*/,
-                           packet));
-    server->recv_posted++;
-    ret = 1;
+  } else if (ne == -FI_EAGAIN) {
+    ret = 0;
+  } else {
+    LCM_DBG_Assert(ne == -FI_EAVAIL, "unexpected return error: %s\n", fi_strerror(-ne));
+    fi_cq_readerr(server->cq, &error, 0);
+    printf("Err: %s\n", fi_strerror(error.err));
+    exit(error.err);
   }
-
-  if (server->recv_posted == 0) {
-    LCM_DBG_Log(LCM_LOG_WARN, "Run out of posted receive packets! Potentially deadlock!\n");
-  }
-
   return ret;
 }
 
-static inline LCI_error_t lc_server_sends(LCID_server_t s, int rank, void* buf,
-                                          size_t size, LCID_meta_t meta)
+static inline void lc_server_post_recv(LCIS_server_t s, void *buf, uint32_t size, LCIS_mr_t mr, void *ctx) {
+  LCISI_server_t *server = (LCISI_server_t*) s;
+  FI_SAFECALL(fi_trecv(server->ep, buf, LCI_MEDIUM_SIZE, (void*) mr,
+                       FI_ADDR_UNSPEC, /*any*/0, ~(uint64_t)0 /*ignore all*/,
+                       ctx));
+}
+
+static inline LCI_error_t lc_server_sends(LCIS_server_t s, int rank, void* buf,
+                                          size_t size, LCIS_meta_t meta)
 {
-  LCIDI_server_t *server = (LCIDI_server_t*) s;
+  LCISI_server_t *server = (LCISI_server_t*) s;
   int ret = fi_tinjectdata(server->ep, buf, size, meta, server->peer_addrs[rank],
                            LCI_RANK /*tag*/);
   if (ret == FI_SUCCESS) return LCI_OK;
@@ -151,11 +144,12 @@ static inline LCI_error_t lc_server_sends(LCID_server_t s, int rank, void* buf,
   else FI_SAFECALL(ret);
 }
 
-static inline LCI_error_t lc_server_send(LCID_server_t s, int rank, void* buf,
-                                         size_t size, LCID_mr_t mr, LCID_meta_t meta,
+static inline LCI_error_t lc_server_send(LCIS_server_t s, int rank, void* buf,
+                                         size_t size, LCIS_mr_t mr,
+                                         LCIS_meta_t meta,
                                          void* ctx)
 {
-  LCIDI_server_t *server = (LCIDI_server_t*) s;
+  LCISI_server_t *server = (LCISI_server_t*) s;
   int ret = fi_tsenddata(server->ep, buf, size, fi_mr_desc((struct fid_mr*)mr),
                          meta, server->peer_addrs[rank], LCI_RANK /*tag*/,
                          (struct fi_context*)ctx);
@@ -164,11 +158,10 @@ static inline LCI_error_t lc_server_send(LCID_server_t s, int rank, void* buf,
   else FI_SAFECALL(ret);
 }
 
-static inline LCI_error_t lc_server_puts(LCID_server_t s, int rank, void* buf,
-                                         size_t size, uintptr_t base, uint32_t offset,
-                                         LCID_rkey_t rkey, uint32_t meta)
+static inline LCI_error_t lc_server_puts(LCIS_server_t s, int rank, void* buf,
+                                         size_t size, uintptr_t base, uint32_t offset, LCIS_rkey_t rkey, uint32_t meta)
 {
-  LCIDI_server_t *server = (LCIDI_server_t*) s;
+  LCISI_server_t *server = (LCISI_server_t*) s;
   uintptr_t addr;
   if (server->info->domain_attr->mr_mode & FI_MR_VIRT_ADDR || server->info->domain_attr->mr_mode & FI_MR_BASIC) {
     addr = base + offset;
@@ -181,12 +174,12 @@ static inline LCI_error_t lc_server_puts(LCID_server_t s, int rank, void* buf,
   else FI_SAFECALL(ret);
 }
 
-static inline LCI_error_t lc_server_put(LCID_server_t s, int rank, void* buf,
-                                        size_t size, LCID_mr_t mr, uintptr_t base,
-                                        uint32_t offset, LCID_rkey_t rkey,
-                                        LCID_meta_t meta, void* ctx)
+static inline LCI_error_t lc_server_put(LCIS_server_t s, int rank, void* buf,
+                                        size_t size, LCIS_mr_t mr, uintptr_t base,
+                                        uint32_t offset,
+                                        LCIS_rkey_t rkey, LCIS_meta_t meta, void* ctx)
 {
-  LCIDI_server_t *server = (LCIDI_server_t*) s;
+  LCISI_server_t *server = (LCISI_server_t*) s;
   uintptr_t addr;
   if (server->info->domain_attr->mr_mode & FI_MR_VIRT_ADDR || server->info->domain_attr->mr_mode & FI_MR_BASIC) {
     addr = base + offset;
@@ -198,11 +191,6 @@ static inline LCI_error_t lc_server_put(LCID_server_t s, int rank, void* buf,
   if (ret == FI_SUCCESS) return LCI_OK;
   else if (ret == -FI_EAGAIN) return LCI_ERR_RETRY;
   else FI_SAFECALL(ret);
-}
-
-static inline int lc_server_recv_posted_num(LCID_server_t s) {
-  LCIDI_server_t *server = (LCIDI_server_t*) s;
-  return server->recv_posted;
 }
 
 

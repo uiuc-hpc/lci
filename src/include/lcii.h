@@ -10,7 +10,7 @@
 #include "lcm_register.h"
 
 struct LCID_server_opaque_t;
-typedef struct LCID_server_opaque_t* LCID_server_t;
+typedef struct LCID_server_opaque_t* LCIS_server_t;
 
 struct lc_packet;
 typedef struct lc_packet lc_packet;
@@ -48,10 +48,11 @@ struct LCI_segment_s {
 };
 
 struct LCI_device_s {
-  LCID_server_t server;
+  LCIS_server_t server;
   lc_pool* pkpool;
   LCI_mt_t mt;
   LCI_lbuffer_t heap;
+  int recv_posted;
 };
 
 struct LCI_plist_s {

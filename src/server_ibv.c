@@ -4,8 +4,7 @@ static const int max_send_num = LC_SERVER_MAX_RCVS;
 static const int max_recv_num = LC_SERVER_MAX_RCVS;
 static const int max_sge_num = 1;
 static const int inline_size = 236;
-static const int max_scqe_num = 64 * 1024;
-static const int max_rcqe_num = 64 * 1024;
+static const int max_cqe_num = 64 * 1024;
 
 static int g_device_num = 0;
 
@@ -21,11 +20,11 @@ const char *mtu_str(enum ibv_mtu mtu)
   }
 }
 
-void lc_server_init(LCI_device_t device, LCID_server_t* s)
+void lc_server_init(LCI_device_t device, LCIS_server_t* s)
 {
   int device_id = g_device_num++;
-  LCIDI_server_t *server = LCIU_malloc(sizeof(LCIDI_server_t));
-  *s = (LCID_server_t) server;
+  LCISI_server_t *server = LCIU_malloc(sizeof(LCISI_server_t));
+  *s = (LCIS_server_t) server;
   server->device = device;
 
   int num_devices;
@@ -100,9 +99,8 @@ void lc_server_init(LCI_device_t device, LCID_server_t* s)
   }
 
   // Create completion queues.
-  server->send_cq = ibv_create_cq(server->dev_ctx, max_scqe_num, NULL, NULL, 0);
-  server->recv_cq = ibv_create_cq(server->dev_ctx, max_rcqe_num, NULL, NULL, 0);
-  if (!server->send_cq || !server->recv_cq) {
+  server->cq = ibv_create_cq(server->dev_ctx, max_cqe_num, NULL, NULL, 0);
+  if (!server->cq) {
     fprintf(stderr, "Unable to create cq\n");
     exit(EXIT_FAILURE);
   }
@@ -115,8 +113,8 @@ void lc_server_init(LCI_device_t device, LCID_server_t* s)
       // Create a queue pair
       struct ibv_qp_init_attr init_attr;
       memset(&init_attr, 0, sizeof(init_attr));
-      init_attr.send_cq = server->send_cq;
-      init_attr.recv_cq = server->recv_cq;
+      init_attr.send_cq = server->cq;
+      init_attr.recv_cq = server->cq;
       init_attr.srq = server->dev_srq;
       init_attr.cap.max_send_wr  = max_send_num;
       init_attr.cap.max_recv_wr  = max_recv_num;
@@ -272,12 +270,11 @@ void lc_server_init(LCI_device_t device, LCID_server_t* s)
   lcm_pm_barrier();
 }
 
-void lc_server_finalize(LCID_server_t s)
+void lc_server_finalize(LCIS_server_t s)
 {
-  LCIDI_server_t *server = (LCIDI_server_t*) s;
+  LCISI_server_t *server = (LCISI_server_t*) s;
   free(server->qp2rank);
-  ibv_destroy_cq(server->send_cq);
-  ibv_destroy_cq(server->recv_cq);
+  ibv_destroy_cq(server->cq);
   ibv_destroy_srq(server->dev_srq);
   ibv_free_device_list(server->dev_list);
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {

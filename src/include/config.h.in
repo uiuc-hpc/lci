@@ -33,6 +33,8 @@
 #define LC_SERVER_NUM_PKTS @LCI_SERVER_NUM_PKTS@
 #define LC_CACHE_LINE      @LCI_CACHE_LINE@
 
+#define LCI_CQ_MAX_POLL 16
+
 #ifdef LCI_DEBUG
 #define LCM_DEBUG
 #endif

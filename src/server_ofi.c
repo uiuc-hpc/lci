@@ -3,11 +3,11 @@
 static int g_device_num = 0;
 int g_next_rdma_key = 0;
 
-void lc_server_init(LCI_device_t device, LCID_server_t* s)
+void lc_server_init(LCI_device_t device, LCIS_server_t* s)
 {
   int device_id = g_device_num++;
-  LCIDI_server_t *server = LCIU_malloc(sizeof(LCIDI_server_t));
-  *s = (LCID_server_t) server;
+  LCISI_server_t *server = LCIU_malloc(sizeof(LCISI_server_t));
+  *s = (LCIS_server_t) server;
   server->device = device;
 
   // Create hint.
@@ -99,13 +99,11 @@ void lc_server_init(LCI_device_t device, LCID_server_t* s)
       LCM_Assert(ret == 1, "fi_av_insert failed! ret = %d\n", ret);
     }
   }
-
-  server->recv_posted = 0;
 }
 
-void lc_server_finalize(LCID_server_t s)
+void lc_server_finalize(LCIS_server_t s)
 {
-  LCIDI_server_t *server = (LCIDI_server_t*) s;
+  LCISI_server_t *server = (LCISI_server_t*) s;
   LCIU_free(server->peer_addrs);
   FI_SAFECALL(fi_close((struct fid*) &server->ep->fid));
   FI_SAFECALL(fi_close((struct fid*) &server->cq->fid));

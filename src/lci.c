@@ -46,12 +46,6 @@ LCI_error_t LCI_finalize()
   return LCI_OK;
 }
 
-LCI_error_t LCI_progress(LCI_device_t device)
-{
-  lc_server_progress(device->server);
-  return LCI_OK;
-}
-
 LCI_error_t LCI_barrier() {
   lcm_pm_barrier();
   return LCI_OK;
