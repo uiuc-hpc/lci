@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
   if (argc > 5)
     touch_data = atoi(argv[5]);
 
-  LCI_open();
+  LCI_initialize();
   ep = LCI_UR_ENDPOINT;
 
   rank = LCI_RANK;
@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 
   thread_stop = 1;
   prg_thread.join();
-  LCI_close();
+  LCI_finalize();
   return EXIT_SUCCESS;
 }
 
@@ -104,14 +104,16 @@ void* send_thread(void* arg)
     omp::thread_barrier();
 
     RUN_VARY_MSG({size, size}, 0, [&](int msg_size, int iter) {
-      LCI_mbuffer_alloc(LCI_UR_DEVICE, &mbuffer);
+      while (LCI_mbuffer_alloc(LCI_UR_DEVICE, &mbuffer) == LCI_ERR_RETRY)
+        continue;
       if (touch_data) write_buffer((char*) mbuffer.address, msg_size, 's');
       mbuffer.length = msg_size;
-      LCI_sendmn(ep, mbuffer, peer_rank, tag);
+      while (LCI_sendmn(ep, mbuffer, peer_rank, tag) == LCI_ERR_RETRY)
+        continue;
 
       LCI_recvmn(ep, peer_rank, tag, cq, NULL);
       while (LCI_queue_pop(cq, &request) == LCI_ERR_RETRY)
-        LCI_progress(LCI_UR_DEVICE);
+        continue;
       assert(request.data.mbuffer.length == msg_size);
       if (touch_data) check_buffer((char*) request.data.mbuffer.address, msg_size, 's');
       LCI_mbuffer_free(request.data.mbuffer);
@@ -151,15 +153,18 @@ void* recv_thread(void* arg)
     RUN_VARY_MSG({size, size}, 1, [&](int msg_size, int iter) {
       LCI_recvmn(ep, peer_rank, tag, cq, NULL);
       while (LCI_queue_pop(cq, &request) == LCI_ERR_RETRY)
-        LCI_progress(LCI_UR_DEVICE);
+        continue;
       assert(request.data.mbuffer.length == msg_size);
       if (touch_data) check_buffer((char*) request.data.mbuffer.address, msg_size, 's');
       LCI_mbuffer_free(request.data.mbuffer);
 
-      LCI_mbuffer_alloc(LCI_UR_DEVICE, &mbuffer);
+      while (LCI_mbuffer_alloc(LCI_UR_DEVICE, &mbuffer) == LCI_ERR_RETRY)
+        continue;
       if (touch_data) write_buffer((char*) mbuffer.address, msg_size, 's');
       mbuffer.length = msg_size;
-      LCI_sendmn(ep, mbuffer, peer_rank, tag);
+      while (LCI_sendmn(ep, mbuffer, peer_rank, tag) == LCI_ERR_RETRY)
+        continue;
+
     }, {rank % (size / 2) * thread_count + thread_id, (size / 2) * thread_count});
 
     omp::thread_barrier();
