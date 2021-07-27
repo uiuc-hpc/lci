@@ -23,3 +23,25 @@ add_lci_benchmarks(
         pingpong.cpp
         pingpong_mt.cpp
 )
+
+function(add_lcit_benchmark name)
+  string(REGEX REPLACE "\\.[^.]*$" "" name_without_ext ${name})
+  add_lci_executable(${name_without_ext} ${name} comm_exp.h)
+  target_include_directories(${name_without_ext} PRIVATE
+          ${CMAKE_CURRENT_BINARY_DIR}
+          ${CMAKE_SOURCE_DIR}/tests/lcit
+          ${CMAKE_SOURCE_DIR}/src/include)
+  if(USE_PAPI)
+    target_link_libraries(${name_without_ext} PRIVATE Papi::papi)
+  endif()
+endfunction()
+
+function(add_lcit_benchmarks)
+  foreach(name ${ARGN})
+    add_lcit_benchmark(${name})
+  endforeach()
+endfunction()
+
+add_lcit_benchmarks(
+        lcitb_pt2pt.cpp
+)
