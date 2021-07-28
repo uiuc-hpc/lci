@@ -1,6 +1,8 @@
 init
 run
+data
 draw
 summary
 summary.tar.gz
 *-install
+__pycache__

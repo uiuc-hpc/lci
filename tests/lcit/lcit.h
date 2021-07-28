@@ -14,9 +14,16 @@
 #include <atomic>
 #include <type_traits>
 #include <cstring>
+#include <sys/time.h>
 #include "lci.h"
 #include "lcm_log.h"
 #include "lcit_threadbarrier.h"
+
+#ifndef LCIT_BENCH
+#define LCIT_Assert LCM_Assert
+#else
+#define LCIT_Assert
+#endif
 
 namespace lcit {
 const size_t CACHESIZE_L1 = sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
@@ -58,7 +65,7 @@ struct Config {
 
 void checkConfig(const Config& config) {
   if (config.op >= LCIT_OP_1SIDED_S) {
-    LCM_Assert(config.recv_comp_type == LCI_COMPLETION_QUEUE,
+    LCIT_Assert(config.recv_comp_type == LCI_COMPLETION_QUEUE,
                "Currently one-sided communication only support --recv-comp=queue\n");
   }
 }
@@ -249,8 +256,6 @@ Config parseArgs(int argc, char **argv) {
     }
   }
   checkConfig(config);
-  if (LCI_RANK == 0)
-    printConfig(config);
   return config;
 }
 
@@ -490,7 +495,7 @@ LCI_comp_t postSend(Context &ctx, int rank, size_t size, LCI_tag_t tag) {
     case LCIT_OP_1SIDED_L: {
       LCI_lbuffer_t send_buffer = ctx.send_data.lbuffer;
       send_buffer.length = size;
-      while (LCI_putla(ctx.ep, ctx.send_data.lbuffer, comp, rank, tag,
+      while (LCI_putla(ctx.ep, send_buffer, comp, rank, tag,
                        LCI_DEFAULT_COMP_REMOTE, (void*)USER_CONTEXT) == LCI_ERR_RETRY)
         if (to_progress) LCI_progress(ctx.device);
       break;
@@ -510,11 +515,11 @@ void waitSend(Context &ctx, LCI_comp_t comp) {
     case LCIT_OP_2SIDED_L:
     case LCIT_OP_1SIDED_L:
       LCI_request_t request = waitComp(ctx, comp, ctx.config.send_comp_type);
-      LCM_Assert(request.flag == LCI_OK, "flag is wrong\n");
-      LCM_Assert(request.type == LCI_LONG, "type is wrong\n");
-      LCM_Assert(request.data.lbuffer.address == ctx.send_data.lbuffer.address, "address is wrong\n");
-      LCM_Assert(request.data.lbuffer.segment == ctx.send_data.lbuffer.segment, "segment is wrong\n");
-      LCM_Assert((uint64_t) request.user_context == USER_CONTEXT, "user_context is wrong\n");
+      LCIT_Assert(request.flag == LCI_OK, "flag is wrong\n");
+      LCIT_Assert(request.type == LCI_LONG, "type is wrong\n");
+      LCIT_Assert(request.data.lbuffer.address == ctx.send_data.lbuffer.address, "address is wrong\n");
+      LCIT_Assert(request.data.lbuffer.segment == ctx.send_data.lbuffer.segment, "segment is wrong\n");
+      LCIT_Assert((uint64_t) request.user_context == USER_CONTEXT, "user_context is wrong\n");
       break;
   }
 }
@@ -558,34 +563,34 @@ LCI_comp_t postRecv(Context &ctx, int rank, size_t size, LCI_tag_t tag) {
 void waitRecv(Context &ctx, LCI_comp_t comp) {
   LCM_DBG_Log(LCM_LOG_DEBUG, "%d/%d: waitRecv\n", LCI_RANK, TRD_RANK_ME);
   LCI_request_t request = waitComp(ctx, comp, ctx.config.recv_comp_type);
-  LCM_Assert(request.flag == LCI_OK, "flag is wrong\n");
+  LCIT_Assert(request.flag == LCI_OK, "flag is wrong\n");
   if (ctx.config.op == LCIT_OP_2SIDED_L ||
       ctx.config.op == LCIT_OP_2SIDED_M ||
       ctx.config.op == LCIT_OP_2SIDED_S)
-    LCM_Assert((uint64_t) request.user_context == USER_CONTEXT, "user_context is wrong\n");
+    LCIT_Assert((uint64_t) request.user_context == USER_CONTEXT, "user_context is wrong\n");
   switch (ctx.config.op) {
     case LCIT_OP_2SIDED_S:
     case LCIT_OP_1SIDED_S:
-      LCM_Assert(request.type == LCI_IMMEDIATE, "type is wrong\n");
+      LCIT_Assert(request.type == LCI_IMMEDIATE, "type is wrong\n");
       break;
     case LCIT_OP_2SIDED_M:
-      LCM_Assert(request.type == LCI_MEDIUM, "type is wrong\n");
+      LCIT_Assert(request.type == LCI_MEDIUM, "type is wrong\n");
       if (ctx.config.recv_dyn) {
         LCI_mbuffer_free(request.data.mbuffer);
       }
       break;
     case LCIT_OP_1SIDED_M:
-      LCM_Assert(request.type == LCI_MEDIUM, "type is wrong\n");
+      LCIT_Assert(request.type == LCI_MEDIUM, "type is wrong\n");
       LCI_mbuffer_free(request.data.mbuffer);
       break;
     case LCIT_OP_2SIDED_L:
-      LCM_Assert(request.type == LCI_LONG, "type is wrong\n");
+      LCIT_Assert(request.type == LCI_LONG, "type is wrong\n");
       if (ctx.config.recv_dyn) {
         LCI_lbuffer_free(request.data.lbuffer);
       }
       break;
     case LCIT_OP_1SIDED_L:
-      LCM_Assert(request.type == LCI_LONG, "type is wrong\n");
+      LCIT_Assert(request.type == LCI_LONG, "type is wrong\n");
       LCI_lbuffer_free(request.data.lbuffer);
       break;
   }
@@ -658,6 +663,32 @@ void run(Context &ctx, Fn &&fn, Args &&... args) {
     to_progress = true;
     fn(std::forward<Args>(args)...);
   }
+}
+
+static inline double wtime()
+{
+  struct timeval t1;
+  gettimeofday(&t1, 0);
+  return t1.tv_sec + t1.tv_usec / 1e6;
+}
+
+template<typename FUNC>
+static inline double RUN_VARY_MSG(Context &ctx, FUNC&& f)
+{
+  int loop = ctx.config.nsteps;
+  int skip = loop / 10;
+  for (int i = 0; i < skip; ++i) {
+    f();
+  }
+  threadBarrier(ctx);
+  double t = wtime();
+  for (int i = 0; i < loop; ++i) {
+    f();
+  }
+  threadBarrier(ctx);
+  t = wtime() - t;
+
+  return t / loop;
 }
 
 } // namespace lcit

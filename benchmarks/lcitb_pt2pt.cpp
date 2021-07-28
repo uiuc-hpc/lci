@@ -12,7 +12,6 @@ void test(Context ctx) {
   if (rank % 2 == 0) {
     for (int size = ctx.config.min_msg_size; size <= ctx.config.max_msg_size; size <<= 1) {
       threadBarrier(ctx);
-      fflush(stdout);
 
       double time = RUN_VARY_MSG(ctx, [&]() {
         std::vector<LCI_comp_t> comps;
@@ -35,7 +34,8 @@ void test(Context ctx) {
         }
       });
       if (TRD_RANK_ME == 0 && LCI_RANK == 0) {
-        double bw = size * ctx.config.send_window / time / 1e6;
+        int worker_thread_num = ctx.config.nthreads == 1? 1 : ctx.config.nthreads - 1;
+        double bw = size * ctx.config.send_window / time / 1e6 * worker_thread_num;
         printf("%d %.2f %.2f\n", size, time * 1e6, bw);
       }
     }
@@ -70,6 +70,8 @@ int main(int argc, char** args) {
   LCI_initialize();
   Config config = parseArgs(argc, args);
   Context ctx = initCtx(config);
+  if (LCI_RANK == 0)
+    printConfig(config);
 
   run(ctx, test, ctx);
 

@@ -45,3 +45,9 @@ endfunction()
 add_lcit_benchmarks(
         lcitb_pt2pt.cpp
 )
+
+find_package(MPI)
+if(MPI_FOUND)
+  add_lcit_benchmark(mpi_pt2pt mpi_pt2pt.cpp)
+  target_link_libraries(mpi_pt2pt PRIVATE MPI::MPI_CXX)
+endif()
