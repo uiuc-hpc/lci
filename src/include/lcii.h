@@ -7,7 +7,7 @@
 #include "lcm_log.h"
 #include "lcm_dequeue.h"
 #include "pmi_wrapper.h"
-#include "lcm_register.h"
+#include "lcm_archive.h"
 
 struct LCID_server_opaque_t;
 typedef struct LCID_server_opaque_t* LCIS_server_t;

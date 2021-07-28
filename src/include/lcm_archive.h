@@ -15,7 +15,6 @@ extern "C" {
 #define LCM_SUCCESS 1
 #define LCM_RETRY 0
 
-#define LCM_ARCHIVE_NTRY 3
 #define LCM_ARCHIVE_EMPTY 0
 
 typedef uint64_t LCM_archive_key_t;
@@ -27,7 +26,9 @@ struct LCM_archive_entry_t {
 };
 
 struct LCM_archive_t {
-  volatile struct LCM_archive_entry_t* ptr;
+  volatile uint64_t head;
+  char padding[64-sizeof(int64_t)];
+  struct LCM_archive_entry_t* ptr;
   int nbits;
 };
 typedef struct LCM_archive_t LCM_archive_t;
@@ -35,12 +36,12 @@ typedef struct LCM_archive_t LCM_archive_t;
 static int LCM_archive_init(LCM_archive_t* archive, int nbits);
 static int LCM_archive_fini(LCM_archive_t* archive);
 
-static inline int LCM_archive_put(LCM_archive_t archive,
+static inline int LCM_archive_put(LCM_archive_t* archive,
                                   LCM_archive_val_t value,
                                   LCM_archive_key_t* key);
-static inline LCM_archive_val_t LCM_archive_get(LCM_archive_t archive,
+static inline LCM_archive_val_t LCM_archive_get(LCM_archive_t* archive,
                                                 LCM_archive_key_t key);
-static inline LCM_archive_val_t LCM_archive_remove(LCM_archive_t archive,
+static inline LCM_archive_val_t LCM_archive_remove(LCM_archive_t* archive,
                                                    LCM_archive_key_t key);
 
 #ifdef __cplusplus
@@ -53,6 +54,7 @@ static int LCM_archive_init(LCM_archive_t* archive, int nbits)
   size_t cap = 1 << nbits;
   int ret = posix_memalign((void **) &archive->ptr, 64, cap * sizeof(struct LCM_archive_entry_t));
   LCM_Assert(ret == 0, "Memory allocation failed!\n");
+  archive->head = 0;
   archive->nbits = nbits;
 
   // Initialize all with EMPTY and clear lock.
@@ -68,44 +70,41 @@ static int LCM_archive_fini(LCM_archive_t* archive)
   free((void*) archive->ptr);
   archive->ptr = NULL;
   archive->nbits = 0;
+  archive->head = 0;
   return LCM_SUCCESS;
 }
 
-static inline int LCM_archive_put(LCM_archive_t archive,
+static inline int LCM_archive_put(LCM_archive_t* archive,
                                   LCM_archive_val_t value,
                                   LCM_archive_key_t* key_ptr)
 {
-  LCM_archive_key_t key = (value >> 6) & ((1 << archive.nbits) - 1);
-  for (int i = 1; i <= LCM_ARCHIVE_NTRY; ++i) {
-    LCM_DBG_Log(LCM_LOG_DEBUG, "Archive try (%lu, %lu)\n", key, value);
-    if (archive.ptr[key].val == LCM_ARCHIVE_EMPTY) {
-      if (__sync_bool_compare_and_swap(&(archive.ptr[key].val), LCM_ARCHIVE_EMPTY,
-                                       value)) {
-        *key_ptr = key;
-        LCM_DBG_Log(LCM_LOG_DEBUG, "Archive (%lu, %lu) succeed!\n", key, value);
-        return LCM_SUCCESS;
-      }
-    }
-    // quadratic probe
-    key += i * i;
+  uint64_t head = __sync_fetch_and_add(&archive->head, 1);
+  LCM_DBG_Assert(head != UINT64_MAX, "head %lu overflow!\n", head);
+  LCM_archive_key_t key = head & ((1 << archive->nbits) - 1);
+  if (archive->ptr[key].val == LCM_ARCHIVE_EMPTY) {
+    archive->ptr[key].val = value;
+    *key_ptr = key;
+    LCM_DBG_Log(LCM_LOG_DEBUG, "Archive (%lu, %p) succeed!\n", key, (void*)value);
+    return LCM_SUCCESS;
+  } else {
+    LCM_DBG_Log(LCM_LOG_DEBUG, "Archive (%lu, %p) conflicting with %p RETRY!\n", key, (void*)value, (void*)archive->ptr[key].val);
+    return LCM_RETRY;
   }
-  LCM_DBG_Log(LCM_LOG_DEBUG, "Archive %lu RETRY!\n", value);
-  return LCM_RETRY;
 }
 
-static inline LCM_archive_val_t LCM_archive_get(LCM_archive_t archive,
+static inline LCM_archive_val_t LCM_archive_get(LCM_archive_t* archive,
                                                 LCM_archive_key_t key)
 {
-  return archive.ptr[key].val;
+  return archive->ptr[key].val;
 }
 
-static inline LCM_archive_val_t LCM_archive_remove(LCM_archive_t archive,
+static inline LCM_archive_val_t LCM_archive_remove(LCM_archive_t* archive,
                                                    LCM_archive_key_t key)
 {
   // A key will be hold by only one thread
   // so no data race should occur here
-  LCM_archive_val_t val = archive.ptr[key].val;
-  archive.ptr[key].val = LCM_ARCHIVE_EMPTY;
+  LCM_archive_val_t val = archive->ptr[key].val;
+  archive->ptr[key].val = LCM_ARCHIVE_EMPTY;
   LCM_DBG_Log(LCM_LOG_DEBUG, "Archive remove (%lu, %lu)\n", key, val);
 //    LCM_archive_val_t old;
 //    while (true) {
