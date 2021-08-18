@@ -122,8 +122,17 @@ typedef struct LCI_mbuffer_t LCI_mbuffer_t;
  * LCI short data.
  */
 #define LCI_SHORT_SIZE 32
-typedef struct {
-  char __short [ LCI_SHORT_SIZE ];
+typedef union {
+  uint8_t u8 __attribute__((vector_size(32)));
+  uint16_t u16 __attribute__((vector_size(32)));
+  uint32_t u32 __attribute__((vector_size(32)));
+  uint64_t u64 __attribute__((vector_size(32)));
+  int8_t s8 __attribute__((vector_size(32)));
+  int16_t s16 __attribute__((vector_size(32)));
+  int32_t s32 __attribute__((vector_size(32)));
+  int64_t s64 __attribute__((vector_size(32)));
+  double dbl __attribute__((vector_size(32)));
+  float flt __attribute__((vector_size(32)));
 } LCI_short_t;
 //typedef uint64_t LCI_short_t;
 
