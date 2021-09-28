@@ -184,12 +184,12 @@ static inline LCI_error_t lc_server_sends(LCIS_server_t s, int rank, void* buf,
   wr.send_flags = IBV_SEND_INLINE;
   wr.imm_data   = meta;
 
-  static int ninline = 0;
-  __sync_fetch_and_add(&ninline, 1);
-  if (ninline == 64) {
+//  static int ninline = 0;
+//  int ninline_old = __sync_fetch_and_add(&ninline, 1);
+//  if (ninline_old == 63) {
     wr.send_flags |= IBV_SEND_SIGNALED;
-    ninline = 0;
-  }
+//    ninline = 0;
+//  }
 
   struct ibv_send_wr *bad_wr;
   int ret = ibv_post_send(server->qps[rank], &wr, &bad_wr);
