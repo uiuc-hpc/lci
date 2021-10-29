@@ -1,14 +1,17 @@
 #ifndef SERVER_H_
 #define SERVER_H_
 
-//struct LCID_server_opaque_t;
-//typedef struct LCID_server_opaque_t* LCIS_server_t;
+struct LCID_server_opaque_t;
+typedef struct LCID_server_opaque_t* LCIS_server_t;
 
-/**
- * Data structure containing information of peers
- */
+typedef struct LCIS_mr_t {
+  // an opaque handler representing a dreg_entry (if USE_DREG is defined)
+  // or a server-specific mr object
+  uintptr_t mr_p;
+  void * address;
+  size_t length;
+} LCIS_mr_t;
 
-typedef uintptr_t LCIS_mr_t;
 typedef uint64_t LCIS_rkey_t;
 typedef uint32_t LCIS_meta_t; // immediate data
 enum LCIS_opcode_t {
@@ -26,8 +29,8 @@ typedef struct LCIS_cq_entry_t {
 
 /* Following functions are required to be implemented by LCI */
 
-static inline void lc_serve_recv(lc_packet* p, int rank, size_t length, LCII_proto_t proto);
-static inline void lc_serve_rdma(LCII_proto_t proto);
+static inline void lc_serve_recv(void* p, int rank, size_t length, uint32_t imm_data);
+static inline void lc_serve_rdma(uint32_t imm_data);
 static inline void lc_serve_send(void *ctx);
 
 /* Following functions are required to be implemented by each server backend. */

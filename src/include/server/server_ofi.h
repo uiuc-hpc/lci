@@ -7,6 +7,9 @@
 #include <rdma/fi_tagged.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef USE_DREG
+#include "dreg.h"
+#endif
 
 #include <rdma/fi_cm.h>
 #include <rdma/fi_errno.h>
@@ -48,7 +51,7 @@ typedef struct LCISI_server_t {
 
 extern int g_next_rdma_key;
 
-static inline LCIS_mr_t _real_server_reg(LCIS_server_t s, void* buf, size_t size)
+static inline uintptr_t _real_server_reg(LCIS_server_t s, void* buf, size_t size)
 {
   LCISI_server_t *server = (LCISI_server_t*) s;
   struct fid_mr* mr;
@@ -56,32 +59,91 @@ static inline LCIS_mr_t _real_server_reg(LCIS_server_t s, void* buf, size_t size
   FI_SAFECALL(fi_mr_reg(server->domain, buf, size,
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, rdma_key, 0,
                         &mr, 0));
+  LCM_DBG_Log(LCM_LOG_DEBUG, "real mem reg: mr %p buf %p size %lu lkey %p rkey %lu\n",
+              mr, buf, size, fi_mr_desc(mr), fi_mr_key(mr));
   return (uintptr_t)mr;
 }
 
-static inline void _real_server_dereg(LCIS_mr_t mr_opaque)
+static inline void _real_server_dereg(uintptr_t mr_opaque)
 {
   struct fid_mr *mr = (struct fid_mr*) mr_opaque;
+  LCM_DBG_Log(LCM_LOG_DEBUG, "real mem dereg: mr %p lkey %p rkey %lu\n",
+              mr, fi_mr_desc(mr), fi_mr_key(mr));
   FI_SAFECALL(fi_close((struct fid*) &mr->fid));
 }
 
+#ifdef USE_DREG
 static inline LCIS_mr_t lc_server_rma_reg(LCIS_server_t s, void* buf, size_t size)
 {
-//  return (uintptr_t)dreg_register(s, buf, size);
-  return _real_server_reg(s, buf, size);
+  dreg_entry *entry = dreg_register(s, buf, size);
+  LCM_DBG_Assert(entry != NULL, "Unable to register more memory!");
+  LCIS_mr_t mr;
+  mr.mr_p = (uintptr_t) entry;
+  mr.address = (void*) (entry->pagenum << DREG_PAGEBITS);
+  mr.length = entry->npages << DREG_PAGEBITS;
+  return mr;
 }
 
 static inline void lc_server_rma_dereg(LCIS_mr_t mr)
 {
-//  dreg_unregister((dreg_entry*)mem);
-  _real_server_dereg(mr);
+  dreg_unregister((dreg_entry*)mr.mr_p);
 }
 
 static inline LCIS_rkey_t lc_server_rma_rkey(LCIS_mr_t mr)
 {
-//  return fi_mr_key((struct fid_mr*)(((dreg_entry*)mem)->memhandle[0]));
-  return fi_mr_key((struct fid_mr*)(mr));
+  return fi_mr_key((struct fid_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]));
 }
+
+static inline void* ofi_rma_lkey(LCIS_mr_t mr)
+{
+  return fi_mr_desc((struct fid_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]));
+}
+
+#else
+
+static inline LCIS_mr_t lc_server_rma_reg(LCIS_server_t s, void* buf, size_t size)
+{
+  LCIS_mr_t mr;
+  mr.mr_p = _real_server_reg(s, buf, size);
+  mr.address = buf;
+  mr.length = size;
+  return mr;
+}
+
+static inline void lc_server_rma_dereg(LCIS_mr_t mr)
+{
+  _real_server_dereg(mr.mr_p);
+}
+
+static inline LCIS_rkey_t lc_server_rma_rkey(LCIS_mr_t mr)
+{
+  return fi_mr_key((struct fid_mr*)(mr.mr_p));
+}
+
+static inline void* ofi_rma_lkey(LCIS_mr_t mr)
+{
+  return fi_mr_desc((struct fid_mr*)mr.mr_p);
+}
+
+#endif
+
+//static inline LCIS_mr_t lc_server_rma_reg(LCIS_server_t s, void* buf, size_t size)
+//{
+////  return (uintptr_t)dreg_register(s, buf, size);
+//  return _real_server_reg(s, buf, size);
+//}
+//
+//static inline void lc_server_rma_dereg(LCIS_mr_t mr)
+//{
+////  dreg_unregister((dreg_entry*)mem);
+//  _real_server_dereg(mr);
+//}
+//
+//static inline LCIS_rkey_t lc_server_rma_rkey(LCIS_mr_t mr)
+//{
+////  return fi_mr_key((struct fid_mr*)(((dreg_entry*)mem)->memhandle[0]));
+//  return fi_mr_key((struct fid_mr*)(mr));
+//}
 
 static inline int LCID_poll_cq(LCIS_server_t s, LCIS_cq_entry_t*entry) {
   LCISI_server_t *server = (LCISI_server_t*) s;
@@ -128,7 +190,7 @@ static inline int LCID_poll_cq(LCIS_server_t s, LCIS_cq_entry_t*entry) {
 
 static inline void lc_server_post_recv(LCIS_server_t s, void *buf, uint32_t size, LCIS_mr_t mr, void *ctx) {
   LCISI_server_t *server = (LCISI_server_t*) s;
-  FI_SAFECALL(fi_trecv(server->ep, buf, LCI_MEDIUM_SIZE, (void*) mr,
+  FI_SAFECALL(fi_trecv(server->ep, buf, LCI_MEDIUM_SIZE, ofi_rma_lkey(mr),
                        FI_ADDR_UNSPEC, /*any*/0, ~(uint64_t)0 /*ignore all*/,
                        ctx));
 }
@@ -136,6 +198,8 @@ static inline void lc_server_post_recv(LCIS_server_t s, void *buf, uint32_t size
 static inline LCI_error_t lc_server_sends(LCIS_server_t s, int rank, void* buf,
                                           size_t size, LCIS_meta_t meta)
 {
+  LCM_DBG_Log(LCM_LOG_DEBUG, "post sends: rank %d buf %p size %lu meta %d\n",
+              rank, buf, size, meta);
   LCISI_server_t *server = (LCISI_server_t*) s;
   int ret = fi_tinjectdata(server->ep, buf, size, meta, server->peer_addrs[rank],
                            LCI_RANK /*tag*/);
@@ -149,8 +213,10 @@ static inline LCI_error_t lc_server_send(LCIS_server_t s, int rank, void* buf,
                                          LCIS_meta_t meta,
                                          void* ctx)
 {
+  LCM_DBG_Log(LCM_LOG_DEBUG, "post send: rank %d buf %p size %lu lkey %p meta %d ctx %p\n",
+              rank, buf, size, ofi_rma_lkey(mr), meta, ctx);
   LCISI_server_t *server = (LCISI_server_t*) s;
-  int ret = fi_tsenddata(server->ep, buf, size, fi_mr_desc((struct fid_mr*)mr),
+  int ret = fi_tsenddata(server->ep, buf, size, ofi_rma_lkey(mr),
                          meta, server->peer_addrs[rank], LCI_RANK /*tag*/,
                          (struct fi_context*)ctx);
   if (ret == FI_SUCCESS) return LCI_OK;
@@ -161,6 +227,9 @@ static inline LCI_error_t lc_server_send(LCIS_server_t s, int rank, void* buf,
 static inline LCI_error_t lc_server_puts(LCIS_server_t s, int rank, void* buf,
                                          size_t size, uintptr_t base, uint32_t offset, LCIS_rkey_t rkey, uint32_t meta)
 {
+  LCM_DBG_Log(LCM_LOG_DEBUG, "post puts: rank %d buf %p size %lu base %p offset %d "
+                             "rkey %lu meta %d\n", rank, buf,
+              size, (void*) base, offset, rkey, meta);
   LCISI_server_t *server = (LCISI_server_t*) s;
   uintptr_t addr;
   if (server->info->domain_attr->mr_mode & FI_MR_VIRT_ADDR || server->info->domain_attr->mr_mode & FI_MR_BASIC) {
@@ -179,6 +248,11 @@ static inline LCI_error_t lc_server_put(LCIS_server_t s, int rank, void* buf,
                                         uint32_t offset,
                                         LCIS_rkey_t rkey, LCIS_meta_t meta, void* ctx)
 {
+  LCM_DBG_Log(LCM_LOG_DEBUG, "post put: rank %d buf %p size %lu lkey %p base %p "
+                             "offset %d rkey %lu meta %u ctx %p\n", rank, buf,
+              size, ofi_rma_lkey(mr), (void*) base, offset, rkey, meta, ctx);
+  LCM_DBG_Log(LCM_LOG_DEBUG, "post put: the first 8 bytes of the send buffer %p is %p\n",
+              buf, *(void**) buf);
   LCISI_server_t *server = (LCISI_server_t*) s;
   uintptr_t addr;
   if (server->info->domain_attr->mr_mode & FI_MR_VIRT_ADDR || server->info->domain_attr->mr_mode & FI_MR_BASIC) {
@@ -186,7 +260,7 @@ static inline LCI_error_t lc_server_put(LCIS_server_t s, int rank, void* buf,
   } else {
     addr = offset;
   }
-  int ret = fi_writedata(server->ep, buf, size, fi_mr_desc((struct fid_mr*)mr), meta,
+  int ret = fi_writedata(server->ep, buf, size, ofi_rma_lkey(mr), meta,
                          server->peer_addrs[rank], addr, rkey, ctx);
   if (ret == FI_SUCCESS) return LCI_OK;
   else if (ret == -FI_EAGAIN) return LCI_ERR_RETRY;

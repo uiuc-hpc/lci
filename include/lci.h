@@ -94,8 +94,8 @@ typedef void* LCI_comp_t;
  * All LCI communication must take place in memory segments, which represent
  * memory regions registered to devices.
  */
-struct LCI_segment_s;
-typedef struct LCI_segment_s *LCI_segment_t;
+struct LCIS_mr_t;
+typedef struct LCIS_mr_t *LCI_segment_t;
 
 /**
  * LCI long communication buffer

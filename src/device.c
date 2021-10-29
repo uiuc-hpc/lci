@@ -25,12 +25,14 @@ LCI_error_t LCI_device_init(LCI_device_t * device_ptr)
     p->context.poolid = 0;
     lc_pool_put(device->pkpool, p);
   }
+  LCM_DBG_Log(LCM_LOG_DEBUG, "device %p initialized\n", device);
   return LCI_OK;
 }
 
 LCI_error_t LCI_device_free(LCI_device_t *device_ptr)
 {
   LCI_device_t device = *device_ptr;
+  LCM_DBG_Log(LCM_LOG_DEBUG, "free device %p\n", device);
   int total_num = lc_pool_count(device->pkpool) + device->recv_posted;
   if (total_num != LC_SERVER_NUM_PKTS)
     LCM_DBG_Log(LCM_LOG_WARN, "Potentially losing packets %d != %d\n", total_num, LC_SERVER_NUM_PKTS);
@@ -87,11 +89,13 @@ LCI_error_t LCI_progress(LCI_device_t device)
     }
     packet->context.poolid = lc_pool_get_local(device->pkpool);
     lc_server_post_recv(device->server, packet->data.address, LCI_MEDIUM_SIZE,
-                        device->heap.segment->mr_p, packet);
+                        *(device->heap.segment), packet);
     ++device->recv_posted;
   }
-  if (device->recv_posted == LC_SERVER_MAX_RCVS && g_server_no_recv_packets)
+  if (device->recv_posted == LC_SERVER_MAX_RCVS && g_server_no_recv_packets) {
     g_server_no_recv_packets = 0;
+    LCM_DBG_Log(LCM_LOG_DEBUG, "WARNING-LC: recovered from deadlock alert.\n");
+  }
 
   return ret;
 }

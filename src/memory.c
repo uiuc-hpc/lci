@@ -17,12 +17,9 @@
  */
 LCI_error_t LCI_memory_register(LCI_device_t device, void *address, size_t length,
                                 LCI_segment_t *segment) {
-  LCI_segment_t mr = (LCI_segment_t) LCIU_malloc(sizeof(struct LCI_segment_s));
+  LCI_segment_t mr = (LCI_segment_t) LCIU_malloc(sizeof(struct LCIS_mr_t));
+  *mr = lc_server_rma_reg(device->server, address, length);
   *segment = mr;
-  uintptr_t rma_mem = lc_server_rma_reg(device->server, address, length);
-  mr->mr_p = rma_mem;
-  mr->address = address;
-  mr->length = length;
   return LCI_OK;
 }
 
@@ -37,7 +34,7 @@ LCI_error_t LCI_memory_register(LCI_device_t device, void *address, size_t lengt
  */
 LCI_error_t LCI_memory_deregister(LCI_segment_t* segment)
 {
-  lc_server_rma_dereg((*segment)->mr_p);
+  lc_server_rma_dereg(**segment);
   LCIU_free(*segment);
   *segment = NULL;
   return LCI_OK;

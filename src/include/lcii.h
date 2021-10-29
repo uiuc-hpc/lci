@@ -8,9 +8,7 @@
 #include "lcm_dequeue.h"
 #include "pmi_wrapper.h"
 #include "lcm_archive.h"
-
-struct LCID_server_opaque_t;
-typedef struct LCID_server_opaque_t* LCIS_server_t;
+#include "server/server.h"
 
 struct lc_packet;
 typedef struct lc_packet lc_packet;
@@ -40,12 +38,6 @@ typedef enum lc_ep_ce {
   EP_CE_AM = ((1 << 3) << 4),
   EP_CE_GLOB = ((1 << 4) << 4),
 } lc_ep_ce;
-
-struct LCI_segment_s {
-  uintptr_t mr_p;
-  void *address;
-  size_t length;
-};
 
 struct LCI_device_s {
   LCIS_server_t server;
@@ -168,7 +160,6 @@ static inline void LCII_handle_2sided_writeImm(LCI_endpoint_t ep, uint64_t ctx_k
 #include "cq.h"
 #include "pool.h"
 #include "packet.h"
-#include "server/server.h"
 #include "lcii_rdv.h"
 #include "proto.h"
 #endif

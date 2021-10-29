@@ -43,10 +43,10 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, 
   packet->data.rtr.remote_addr_base = (uintptr_t) rdv_ctx->data.lbuffer.segment->address;
   packet->data.rtr.remote_addr_offset =
       (uintptr_t) rdv_ctx->data.lbuffer.address - packet->data.rtr.remote_addr_base;
-  packet->data.rtr.rkey = lc_server_rma_rkey(rdv_ctx->data.lbuffer.segment->mr_p);
+  packet->data.rtr.rkey = lc_server_rma_rkey(*(rdv_ctx->data.lbuffer.segment));
 
   LCII_RDV_RETRY(lc_server_send(ep->device->server, rdv_ctx->rank, packet->data.address,
-                                    sizeof(struct packet_rtr), ep->device->heap.segment->mr_p,
+                                    sizeof(struct packet_rtr), *(ep->device->heap.segment),
                                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx),
                  10, "Cannot send RTR message!\n")
 }
@@ -64,7 +64,7 @@ static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
   }
   LCII_RDV_RETRY(lc_server_put(ep->device->server, ctx->rank,
                                   ctx->data.lbuffer.address, ctx->data.lbuffer.length,
-                                  ctx->data.lbuffer.segment->mr_p,
+                                  *(ctx->data.lbuffer.segment),
                                   packet->data.rtr.remote_addr_base, packet->data.rtr.remote_addr_offset,
                                   packet->data.rtr.rkey,
                                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_LONG, packet->data.rtr.recv_ctx_key),
@@ -85,6 +85,12 @@ static inline void LCII_handle_2sided_writeImm(LCI_endpoint_t ep, uint64_t ctx_k
   if (ctx->is_dynamic) {
     LCI_memory_deregister(&ctx->data.lbuffer.segment);
   }
+  LCM_DBG_Log(LCM_LOG_DEBUG, "complete recvl: ctx %p rank %d buf %p size %lu "
+                             "tag %d user_ctx %p completion type %d completion %p\n",
+              ctx, ctx->rank, ctx->data.lbuffer.address, ctx->data.lbuffer.length,
+              ctx->tag, ctx->user_context, ctx->comp_type, ctx->completion);
+  LCM_DBG_Log(LCM_LOG_DEBUG, "complete recvl: the first 8 bytes of the recv buffer %p is %p\n",
+              ctx->data.lbuffer.address, *(void**) ctx->data.lbuffer.address);
   lc_ce_dispatch(ctx);
 }
 
@@ -115,7 +121,7 @@ static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep, lc_packet* packet,
   packet->data.rtr.remote_addr_base = (uintptr_t) rdv_ctx->data.lbuffer.segment->address;
   packet->data.rtr.remote_addr_offset =
       (uintptr_t) rdv_ctx->data.lbuffer.address - packet->data.rtr.remote_addr_base;
-  packet->data.rtr.rkey = lc_server_rma_rkey(rdv_ctx->data.lbuffer.segment->mr_p);
+  packet->data.rtr.rkey = lc_server_rma_rkey(*(rdv_ctx->data.lbuffer.segment));
 
   LCM_DBG_Log(LCM_LOG_DEBUG, "send rtr: type %d sctx %p base %p offset %d "
               "rkey %lu rctx_key %u\n", packet->data.rtr.msg_type,
@@ -123,7 +129,7 @@ static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep, lc_packet* packet,
               packet->data.rtr.remote_addr_offset, packet->data.rtr.rkey,
               packet->data.rtr.recv_ctx_key);
   LCII_RDV_RETRY(lc_server_send(ep->device->server, rdv_ctx->rank, packet->data.address,
-                                   sizeof(struct packet_rtr), ep->device->heap.segment->mr_p,
+                                   sizeof(struct packet_rtr), *(ep->device->heap.segment),
                                    LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx),
                  10, "Cannot send RTR message!\n");
 }
@@ -141,7 +147,7 @@ static inline void LCII_handle_1sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
   }
   LCII_RDV_RETRY(lc_server_put(ep->device->server, ctx->rank,
                                   ctx->data.lbuffer.address, ctx->data.lbuffer.length,
-                                  ctx->data.lbuffer.segment->mr_p,
+                                  *(ctx->data.lbuffer.segment),
                                   packet->data.rtr.remote_addr_base, packet->data.rtr.remote_addr_offset,
                                   packet->data.rtr.rkey,
                                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_LONG, packet->data.rtr.recv_ctx_key),

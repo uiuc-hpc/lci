@@ -50,10 +50,12 @@ static inline void lc_ce_dispatch(LCII_context_t *ctx)
   }
 }
 
-static inline void lc_serve_recv(lc_packet* packet,
+static inline void lc_serve_recv(void* p,
                                  int src_rank, size_t length,
-                                 LCII_proto_t proto)
+                                 uint32_t imm_data)
 {
+  lc_packet *packet = (lc_packet*) p;
+  LCII_proto_t proto = imm_data;
   // NOTE: this should be RGID because it is received from remote.
   LCI_endpoint_t ep = LCI_ENDPOINTS[PROTO_GET_RGID(proto)];
   LCI_tag_t tag = PROTO_GET_TAG(proto);
@@ -170,8 +172,9 @@ static inline void lc_serve_recv(lc_packet* packet,
   }
 }
 
-static inline void lc_serve_rdma(LCII_proto_t proto)
+static inline void lc_serve_rdma(uint32_t imm_data)
 {
+  LCII_proto_t proto = imm_data;
   LCI_endpoint_t ep = LCI_ENDPOINTS[PROTO_GET_RGID(proto)];
   uint16_t tag = PROTO_GET_TAG(proto);
   LCI_msg_type_t msg_type = PROTO_GET_TYPE(proto);

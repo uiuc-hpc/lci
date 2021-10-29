@@ -4,6 +4,7 @@
 LCI_error_t LCI_puts(LCI_endpoint_t ep, LCI_short_t src, int rank,
                      LCI_tag_t tag, uintptr_t remote_completion)
 {
+  LCM_DBG_Assert(tag <= LCI_MAX_TAG, "tag %d is too large (maximum: %d)\n", tag, LCI_MAX_TAG);
   LCM_DBG_Assert(remote_completion == LCI_DEFAULT_COMP_REMOTE,
                  "Only support default remote completion "
                  "(set by LCI_plist_set_default_comp, "
@@ -26,6 +27,7 @@ LCI_error_t LCI_putm(LCI_endpoint_t ep, LCI_mbuffer_t mbuffer, int rank,
 
 LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                       LCI_tag_t tag, uintptr_t remote_completion) {
+  LCM_DBG_Assert(tag <= LCI_MAX_TAG, "tag %d is too large (maximum: %d)\n", tag, LCI_MAX_TAG);
   LCM_DBG_Assert(remote_completion == LCI_DEFAULT_COMP_REMOTE,
                  "Only support default remote completion "
                  "(set by LCI_plist_set_default_comp, "
@@ -43,7 +45,7 @@ LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   ctx->comp_type = LCI_COMPLETION_FREE;
 
   LCI_error_t ret = lc_server_send(ep->device->server, rank, packet->data.address, buffer.length,
-                                   ep->device->heap.segment->mr_p,
+                                   *(ep->device->heap.segment),
                                    LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_MEDIUM, tag), ctx);
   if (ret == LCI_ERR_RETRY) {
     LCII_free_packet(packet);
@@ -54,6 +56,7 @@ LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
 
 LCI_error_t LCI_putmna(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                        LCI_tag_t tag, uintptr_t remote_completion) {
+  LCM_DBG_Assert(tag <= LCI_MAX_TAG, "tag %d is too large (maximum: %d)\n", tag, LCI_MAX_TAG);
   LCM_DBG_Assert(remote_completion == LCI_DEFAULT_COMP_REMOTE,
                  "Only support default remote completion "
                  "(set by LCI_plist_set_default_comp, "
@@ -67,7 +70,7 @@ LCI_error_t LCI_putmna(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   ctx->comp_type = LCI_COMPLETION_FREE;
 
   LCI_error_t ret = lc_server_send(ep->device->server, rank, packet->data.address, buffer.length,
-                                   ep->device->heap.segment->mr_p,
+                                   *(ep->device->heap.segment),
                                    LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_MEDIUM, tag), ctx);
   if (ret == LCI_ERR_RETRY) {
     LCIU_free(ctx);
@@ -85,6 +88,7 @@ LCI_error_t LCI_putl(LCI_endpoint_t ep, LCI_lbuffer_t local_buffer,
 LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
                       LCI_comp_t completion, int rank, LCI_tag_t tag,
                       uintptr_t remote_completion, void* user_context) {
+  LCM_DBG_Assert(tag <= LCI_MAX_TAG, "tag %d is too large (maximum: %d)\n", tag, LCI_MAX_TAG);
   LCM_DBG_Assert(remote_completion == LCI_DEFAULT_COMP_REMOTE,
                  "Only support default remote completion "
                  "(set by LCI_plist_set_default_comp, "
@@ -117,7 +121,7 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
               packet->data.rts.msg_type, (void*) packet->data.rts.send_ctx,
               packet->data.rts.size);
   LCI_error_t ret = lc_server_send(ep->device->server, rank, packet->data.address,
-                                   sizeof(struct packet_rts), ep->device->heap.segment->mr_p,
+                                   sizeof(struct packet_rts), *(ep->device->heap.segment),
                                    LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTS, tag), rts_ctx);
   if (ret == LCI_ERR_RETRY) {
     LCII_free_packet(packet);

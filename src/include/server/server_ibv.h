@@ -5,7 +5,9 @@
 #include <stdio.h>
 #include <errno.h>
 #include "infiniband/verbs.h"
+#ifdef USE_DREG
 #include "dreg.h"
+#endif
 
 #ifdef LCI_DEBUG
 #define IBV_SAFECALL(x)                                               \
@@ -68,44 +70,54 @@ static inline void _real_server_dereg(uintptr_t mem)
 #ifdef USE_DREG
 static inline LCIS_mr_t lc_server_rma_reg(LCIS_server_t s, void* buf, size_t size)
 {
-  return (LCIS_mr_t)dreg_register(s, buf, size);
+  dreg_entry *entry = dreg_register(s, buf, size);
+  LCM_DBG_Assert(entry != NULL, "Unable to register more memory!");
+  LCIS_mr_t mr;
+  mr.mr_p = (uintptr_t) entry;
+  mr.address = (void*) (entry->pagenum << DREG_PAGEBITS);
+  mr.length = entry->npages << DREG_PAGEBITS;
+  return mr;
 }
 
 static inline void lc_server_rma_dereg(LCIS_mr_t mr)
 {
-  dreg_unregister((dreg_entry*)mr);
+  dreg_unregister((dreg_entry*)mr.mr_p);
 }
 
 static inline LCIS_rkey_t lc_server_rma_rkey(LCIS_mr_t mr)
 {
-  return ((struct ibv_mr*)(((dreg_entry*)mr)->memhandle[0]))->rkey;
+  return ((struct ibv_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]))->rkey;
 }
 
 static inline uint32_t ibv_rma_lkey(LCIS_mr_t mr)
 {
-  return ((struct ibv_mr*)(((dreg_entry*)mr)->memhandle[0]))->lkey;
+  return ((struct ibv_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]))->lkey;
 }
 
 #else
 
-static inline uintptr_t lc_server_rma_reg(LCIS_server_t s, void* buf, size_t size)
+static inline LCIS_mr_t lc_server_rma_reg(LCIS_server_t s, void* buf, size_t size)
 {
-  return _real_server_reg(s, buf, size);
+  LCIS_mr_t mr;
+  mr.mr_p = _real_server_reg(s, buf, size);
+  mr.address = buf;
+  mr.length = size;
+  return mr;
 }
 
-static inline void lc_server_rma_dereg(uintptr_t mem)
+static inline void lc_server_rma_dereg(LCIS_mr_t mr)
 {
-  _real_server_dereg(mem);
+  _real_server_dereg(mr.mr_p);
 }
 
-static inline uint32_t lc_server_rma_rkey(uintptr_t mem)
+static inline LCIS_rkey_t lc_server_rma_rkey(LCIS_mr_t mr)
 {
-  return ((struct ibv_mr*)mem)->rkey;
+  return ((struct ibv_mr*)mr.mr_p)->rkey;
 }
 
-static inline uint32_t ibv_rma_lkey(uintptr_t mem)
+static inline uint32_t ibv_rma_lkey(LCIS_mr_t mr)
 {
-  return ((struct ibv_mr*)mem)->lkey;
+  return ((struct ibv_mr*)mr.mr_p)->lkey;
 }
 
 #endif
