@@ -82,11 +82,15 @@ struct LCI_endpoint_s {
  * (1) for issue_send->send_completion, go through user_context field of backends
  * (2) for issue_recv->recv_completion, go through the matching table
  * (3) for issue_recvl->issue_rtr->rdma_completion, go through the matching table and register
+ * It is also used by rendezvous protocol to pass information between different steps
+ * (1) for sending_RTS->sending_WriteImm, go through the send_ctx field of the RTS and RTR messages
+ * (2) for sending_RTR->complet_WriteImm, go through the ctx_archive. Its key is
+ *     passed by the recv_ctx_key field of RTR messages/as meta data of WriteImm.
  */
 typedef struct {
-  // LCI_request_t fields, 45 bytes
+  // LCI_request_t fields, 52 bytes
   void* user_context;         // 8 bytes
-  LCI_data_t data;            // 24 bytes
+  LCI_data_t data;            // 32 bytes
   LCI_data_type_t data_type;  // 4 bytes
   uint32_t rank;              // 4 bytes
   LCI_tag_t tag;              // 4 bytes

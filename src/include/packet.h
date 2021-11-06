@@ -43,6 +43,7 @@ struct __attribute__((aligned(64))) lc_packet {
 };
 
 static inline void LCII_free_packet(lc_packet* packet) {
+  LCM_DBG_Assert(((uint64_t) packet + sizeof(struct packet_context)) % LC_CACHE_LINE == 0, "Not a packet (address %p)!\n", packet);
   if (packet->context.poolid != -1)
     lc_pool_put_to(packet->context.pkpool, packet, packet->context.poolid);
   else

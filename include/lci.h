@@ -155,7 +155,7 @@ typedef struct {
   int rank;               // 4 bytes
   LCI_tag_t tag;          // 4 bytes
   LCI_data_type_t type;   // 4 bytes
-  LCI_data_t data;        // 24 bytes
+  LCI_data_t data;        // 32 bytes
   void* user_context;     // 8 bytes
 } LCI_request_t;
 
