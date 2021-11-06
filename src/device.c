@@ -8,6 +8,7 @@ LCI_error_t LCI_device_init(LCI_device_t * device_ptr)
   lc_server_init(device, &device->server);
 
   LCII_mt_init(&device->mt, 0);
+  LCM_archive_init(&(device->ctx_archive), 16);
 
   const size_t heap_size = LC_CACHE_LINE + LC_SERVER_NUM_PKTS * LC_PACKET_SIZE + LCI_REGISTERED_SEGMENT_SIZE;
   LCI_error_t ret = LCI_lbuffer_memalign(device, heap_size, 4096, &device->heap);
@@ -37,6 +38,7 @@ LCI_error_t LCI_device_free(LCI_device_t *device_ptr)
   if (total_num != LC_SERVER_NUM_PKTS)
     LCM_DBG_Log(LCM_LOG_WARN, "Potentially losing packets %d != %d\n", total_num, LC_SERVER_NUM_PKTS);
   LCII_mt_free(&device->mt);
+  LCM_archive_fini(&(device->ctx_archive));
   LCI_lbuffer_free(device->heap);
   lc_pool_destroy(device->pkpool);
   lc_server_finalize(device->server);
@@ -81,7 +83,7 @@ LCI_error_t LCI_progress(LCI_device_t device)
     if (packet == NULL) {
       if (device->recv_posted < LC_SERVER_MAX_RCVS / 2 && !g_server_no_recv_packets) {
         g_server_no_recv_packets = 1;
-        LCM_DBG_Log(LCM_LOG_DEBUG, "WARNING-LC: deadlock alert. There is only"
+        LCM_DBG_Log(LCM_LOG_DEBUG, "WARNING-LC: deadlock alert. There is only "
                                    "%d packets left for post_recv\n",
                     device->recv_posted);
       }

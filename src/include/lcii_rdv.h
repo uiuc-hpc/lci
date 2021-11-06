@@ -25,7 +25,7 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, 
 
   packet->context.poolid = -1;
   uint64_t ctx_key;
-  int result = LCM_archive_put(&ep->ctx_archive, (uintptr_t)rdv_ctx, &ctx_key);
+  int result = LCM_archive_put(ep->ctx_archive_p, (uintptr_t)rdv_ctx, &ctx_key);
   // TODO: be able to pass back pressure to user
   LCM_Assert(result == LCM_SUCCESS, "Archive is full!\n");
   packet->data.rtr.recv_ctx_key = ctx_key;
@@ -48,7 +48,7 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, 
   LCII_RDV_RETRY(lc_server_send(ep->device->server, rdv_ctx->rank, packet->data.address,
                                     sizeof(struct packet_rtr), *(ep->device->heap.segment),
                                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx),
-                 10, "Cannot send RTR message!\n")
+                 10, "Cannot post RTR message!\n");
 }
 
 static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
@@ -78,7 +78,7 @@ static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
 static inline void LCII_handle_2sided_writeImm(LCI_endpoint_t ep, uint64_t ctx_key)
 {
   LCII_context_t *ctx =
-      (LCII_context_t*)LCM_archive_remove(&ep->ctx_archive, ctx_key);
+      (LCII_context_t*)LCM_archive_remove(ep->ctx_archive_p, ctx_key);
   LCM_DBG_Assert(ctx->data_type == LCI_LONG,
                  "Didn't get the right context! This might imply some bugs in the LCM_archive_t.");
   // recvl has been completed locally. Need to process completion.
@@ -114,7 +114,7 @@ static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep, lc_packet* packet,
   // reuse the rts packet as rtr packet
   packet->context.poolid = -1;
   uint64_t ctx_key;
-  int result = LCM_archive_put(&ep->ctx_archive, (uintptr_t)rdv_ctx, &ctx_key);
+  int result = LCM_archive_put(ep->ctx_archive_p, (uintptr_t)rdv_ctx, &ctx_key);
   // TODO: be able to pass back pressure to user
   LCM_Assert(result == LCM_SUCCESS, "Archive is full!\n");
   packet->data.rtr.recv_ctx_key = ctx_key;
@@ -162,7 +162,7 @@ static inline void LCII_handle_1sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
 static inline void LCII_handle_1sided_writeImm(LCI_endpoint_t ep, uint64_t ctx_key)
 {
   LCII_context_t *ctx =
-      (LCII_context_t*)LCM_archive_remove(&ep->ctx_archive, ctx_key);
+      (LCII_context_t*)LCM_archive_remove(ep->ctx_archive_p, ctx_key);
   LCM_DBG_Assert(ctx->data_type == LCI_LONG,
                  "Didn't get the right context! This might imply some bugs in the LCM_archive_t.");
   // recvl has been completed locally. Need to process completion.

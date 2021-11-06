@@ -15,8 +15,7 @@ LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, LCI_device_t device,
   ep->device = device;
   ep->pkpool = device->pkpool;
   ep->mt = device->mt;
-  LCM_archive_init(&(ep->ctx_archive), 16);
-
+  ep->ctx_archive_p = &device->ctx_archive;
   ep->match_type = plist->match_type;
   ep->cmd_comp_type = plist->cmd_comp_type;
   ep->msg_comp_type = plist->msg_comp_type;
@@ -29,7 +28,6 @@ LCI_error_t LCI_endpoint_free(LCI_endpoint_t* ep_ptr)
 {
   LCI_endpoint_t ep = *ep_ptr;
 
-  LCM_archive_fini(&(ep->ctx_archive));
   LCI_ENDPOINTS[ep->gid] = NULL;
   LCIU_free(ep);
 

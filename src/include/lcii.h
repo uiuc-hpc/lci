@@ -44,6 +44,7 @@ struct LCI_device_s {
   lc_pool* pkpool;
   LCI_mt_t mt;
   LCI_lbuffer_t heap;
+  LCM_archive_t ctx_archive; // used for long message protocol
   int recv_posted;
 };
 
@@ -62,7 +63,7 @@ struct LCI_endpoint_s {
   // Associated software components.
   lc_pool* pkpool;
   LCI_mt_t mt;
-  LCM_archive_t ctx_archive; // used for long message protocol
+  LCM_archive_t *ctx_archive_p; // used for long message protocol
 
   // user-defined components
   LCI_match_t match_type;        // matching type (tag/ranktag)
