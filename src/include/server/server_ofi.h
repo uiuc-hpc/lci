@@ -251,8 +251,6 @@ static inline LCI_error_t lc_server_put(LCIS_server_t s, int rank, void* buf,
   LCM_DBG_Log(LCM_LOG_DEBUG, "post put: rank %d buf %p size %lu lkey %p base %p "
                              "offset %d rkey %lu meta %u ctx %p\n", rank, buf,
               size, ofi_rma_lkey(mr), (void*) base, offset, rkey, meta, ctx);
-  LCM_DBG_Log(LCM_LOG_DEBUG, "post put: the first 8 bytes of the send buffer %p is %p\n",
-              buf, *(void**) buf);
   LCISI_server_t *server = (LCISI_server_t*) s;
   uintptr_t addr;
   if (server->info->domain_attr->mr_mode & FI_MR_VIRT_ADDR || server->info->domain_attr->mr_mode & FI_MR_BASIC) {

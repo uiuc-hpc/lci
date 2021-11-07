@@ -3,11 +3,11 @@
 
 #include "config.h"
 #include "lci.h"
-#include "lciu.h"
 #include "lcm_log.h"
 #include "lcm_dequeue.h"
-#include "pmi_wrapper.h"
 #include "lcm_archive.h"
+#include "pmi_wrapper.h"
+#include "lciu.h"
 #include "server/server.h"
 
 struct lc_packet;
@@ -95,10 +95,21 @@ typedef struct {
   uint32_t rank;              // 4 bytes
   LCI_tag_t tag;              // 4 bytes
   // used by LCI internally
-  LCI_comp_type_t comp_type;  // 4 bytes
+  uint32_t comp_attr;         // 4 bytes
   LCI_comp_t completion;      // 8 bytes
-  bool is_dynamic;            // 1 byte
-} LCII_context_t;
+} LCII_context_t __attribute__((aligned(64)));
+/**
+ * comp_type: user-defined comp_type
+ * free_packet: free mbuffer as a packet.
+ * dereg: deregister the lbuffer.
+ */
+#define LCII_initilize_comp_attr(comp_attr) comp_attr = 0
+#define LCII_comp_attr_set_comp_type(comp_attr, comp_type) comp_attr = LCIU_set_bits32(comp_attr, comp_type, 3, 0)
+#define LCII_comp_attr_set_free_packet(comp_attr, free_packet) comp_attr = LCIU_set_bits32(comp_attr, free_packet, 1, 3)
+#define LCII_comp_attr_set_dereg(comp_attr, dereg) comp_attr = LCIU_set_bits32(comp_attr, dereg, 1 ,4)
+#define LCII_comp_attr_get_comp_type(comp_attr) LCIU_get_bits32(comp_attr, 3, 0)
+#define LCII_comp_attr_get_free_packet(comp_attr) LCIU_get_bits32(comp_attr, 1 ,3)
+#define LCII_comp_attr_get_dereg(comp_attr) LCIU_get_bits32(comp_attr, 1 ,4)
 
 /**
  * Synchronizer, owned by the user.

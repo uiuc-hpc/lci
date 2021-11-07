@@ -18,12 +18,14 @@ static inline uint64_t LCII_make_key(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
 
 static inline void lc_ce_dispatch(LCII_context_t *ctx)
 {
-  switch (ctx->comp_type) {
-    case LCI_COMPLETION_NONE:
-      LCIU_free(ctx);
-      break;
-    case LCI_COMPLETION_FREE:
+  if (LCII_comp_attr_get_free_packet(ctx->comp_attr) == 1) {
       LCII_free_packet(LCII_mbuffer2packet(ctx->data.mbuffer));
+  }
+  if (LCII_comp_attr_get_dereg(ctx->comp_attr) == 1) {
+    LCI_memory_deregister(&ctx->data.lbuffer.segment);
+  }
+  switch (LCII_comp_attr_get_comp_type(ctx->comp_attr)) {
+    case LCI_COMPLETION_NONE:
       LCIU_free(ctx);
       break;
 #ifdef LCI_SERVER_HAS_SYNC
@@ -46,7 +48,7 @@ static inline void lc_ce_dispatch(LCII_context_t *ctx)
     }
 #endif
     default:
-      LCM_DBG_Assert(false, "Unknown completion type: %d!\n", ctx->comp_type);
+      LCM_DBG_Assert(false, "Unknown completion type: %d!\n", (int)LCII_comp_attr_get_comp_type(ctx->comp_attr));
   }
 }
 
@@ -147,7 +149,8 @@ static inline void lc_serve_recv(void* p,
       ctx->data_type = LCI_IMMEDIATE;
       ctx->rank = src_rank;
       ctx->tag = tag;
-      ctx->comp_type = LCI_COMPLETION_QUEUE;
+      LCII_initilize_comp_attr(ctx->comp_attr);
+      LCII_comp_attr_set_comp_type(ctx->comp_attr, LCI_COMPLETION_QUEUE);
       ctx->completion = ep->default_comp;
       ctx->user_context = NULL;
       lc_ce_dispatch(ctx);
@@ -161,7 +164,8 @@ static inline void lc_serve_recv(void* p,
       ctx->data_type = LCI_MEDIUM;
       ctx->rank = src_rank;
       ctx->tag = tag;
-      ctx->comp_type = LCI_COMPLETION_QUEUE;
+      LCII_initilize_comp_attr(ctx->comp_attr);
+      LCII_comp_attr_set_comp_type(ctx->comp_attr, LCI_COMPLETION_QUEUE);
       ctx->completion = ep->default_comp;
       ctx->user_context = NULL;
       lc_ce_dispatch(ctx);

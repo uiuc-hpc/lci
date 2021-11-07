@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <assert.h>
 
 #define LCM_SUCCESS 1
 #define LCM_RETRY 0

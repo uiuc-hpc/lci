@@ -21,7 +21,8 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, 
 
   LCII_context_t *rtr_ctx = LCIU_malloc(sizeof(LCII_context_t));
   rtr_ctx->data.mbuffer.address = &(packet->data);
-  rtr_ctx->comp_type = LCI_COMPLETION_FREE;
+  LCII_initilize_comp_attr(rtr_ctx->comp_attr);
+  LCII_comp_attr_set_free_packet(rtr_ctx->comp_attr, 1);
 
   packet->context.poolid = -1;
   uint64_t ctx_key;
@@ -33,12 +34,12 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, 
     LCI_lbuffer_alloc(ep->device, packet->data.rts.size, &rdv_ctx->data.lbuffer);
   }
   if (rdv_ctx->data.lbuffer.segment == LCI_SEGMENT_ALL) {
-    rdv_ctx->is_dynamic = true;
+    LCM_DBG_Assert(LCII_comp_attr_get_dereg(rdv_ctx->comp_attr) == 1, "");
     LCI_memory_register(ep->device, rdv_ctx->data.lbuffer.address,
                         rdv_ctx->data.lbuffer.length,
                         &rdv_ctx->data.lbuffer.segment);
   } else {
-    rdv_ctx->is_dynamic = false;
+    LCM_DBG_Assert(LCII_comp_attr_get_dereg(rdv_ctx->comp_attr) == 0, "");
   }
   packet->data.rtr.remote_addr_base = (uintptr_t) rdv_ctx->data.lbuffer.segment->address;
   packet->data.rtr.remote_addr_offset =
@@ -55,12 +56,12 @@ static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
 {
   LCII_context_t *ctx = (LCII_context_t*) packet->data.rtr.send_ctx;
   if (ctx->data.lbuffer.segment == LCI_SEGMENT_ALL) {
-    ctx->is_dynamic = true;
+    LCM_DBG_Assert(LCII_comp_attr_get_dereg(ctx->comp_attr) == 1, "");
     LCI_memory_register(ep->device, ctx->data.lbuffer.address,
                         ctx->data.lbuffer.length,
                         &ctx->data.lbuffer.segment);
   } else {
-    ctx->is_dynamic = false;
+    LCM_DBG_Assert(LCII_comp_attr_get_dereg(ctx->comp_attr) == 0, "");
   }
   LCII_RDV_RETRY(lc_server_put(ep->device->server, ctx->rank,
                                   ctx->data.lbuffer.address, ctx->data.lbuffer.length,
@@ -69,9 +70,6 @@ static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
                                   packet->data.rtr.rkey,
                                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_LONG, packet->data.rtr.recv_ctx_key),
                                   ctx), 10, "Cannot post RDMA writeImm\n");
-  if (ctx->is_dynamic) {
-    LCI_memory_deregister(&ctx->data.lbuffer.segment);
-  }
   LCII_free_packet(packet);
 }
 
@@ -81,16 +79,10 @@ static inline void LCII_handle_2sided_writeImm(LCI_endpoint_t ep, uint64_t ctx_k
       (LCII_context_t*)LCM_archive_remove(ep->ctx_archive_p, ctx_key);
   LCM_DBG_Assert(ctx->data_type == LCI_LONG,
                  "Didn't get the right context! This might imply some bugs in the LCM_archive_t.");
-  // recvl has been completed locally. Need to process completion.
-  if (ctx->is_dynamic) {
-    LCI_memory_deregister(&ctx->data.lbuffer.segment);
-  }
   LCM_DBG_Log(LCM_LOG_DEBUG, "complete recvl: ctx %p rank %d buf %p size %lu "
-                             "tag %d user_ctx %p completion type %d completion %p\n",
+                             "tag %d user_ctx %p completion attr %p completion %p\n",
               ctx, ctx->rank, ctx->data.lbuffer.address, ctx->data.lbuffer.length,
-              ctx->tag, ctx->user_context, ctx->comp_type, ctx->completion);
-  LCM_DBG_Log(LCM_LOG_DEBUG, "complete recvl: the first 8 bytes of the recv buffer %p is %p\n",
-              ctx->data.lbuffer.address, *(void**) ctx->data.lbuffer.address);
+              ctx->tag, ctx->user_context, ctx->comp_attr, ctx->completion);
   lc_ce_dispatch(ctx);
 }
 
@@ -104,12 +96,14 @@ static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep, lc_packet* packet,
   rdv_ctx->rank = src_rank;
   rdv_ctx->tag = tag;
   rdv_ctx->user_context = NULL;
-  rdv_ctx->comp_type = LCI_COMPLETION_QUEUE;
+  LCII_initilize_comp_attr(rdv_ctx->comp_attr);
+  LCII_comp_attr_set_comp_type(rdv_ctx->comp_attr, LCI_COMPLETION_QUEUE);
   rdv_ctx->completion = ep->default_comp;
 
   LCII_context_t *rtr_ctx = LCIU_malloc(sizeof(LCII_context_t));
   rtr_ctx->data.mbuffer.address = &(packet->data);
-  rtr_ctx->comp_type = LCI_COMPLETION_FREE;
+  LCII_initilize_comp_attr(rtr_ctx->comp_attr);
+  LCII_comp_attr_set_free_packet(rtr_ctx->comp_attr, 1);
 
   // reuse the rts packet as rtr packet
   packet->context.poolid = -1;
@@ -138,12 +132,12 @@ static inline void LCII_handle_1sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
 {
   LCII_context_t *ctx = (LCII_context_t*) packet->data.rtr.send_ctx;
   if (ctx->data.lbuffer.segment == LCI_SEGMENT_ALL) {
-    ctx->is_dynamic = true;
+    LCM_DBG_Assert(LCII_comp_attr_get_dereg(ctx->comp_attr) == 1, "");
     LCI_memory_register(ep->device, ctx->data.lbuffer.address,
                         ctx->data.lbuffer.length,
                         &ctx->data.lbuffer.segment);
   } else {
-    ctx->is_dynamic = false;
+    LCM_DBG_Assert(LCII_comp_attr_get_dereg(ctx->comp_attr) == 0, "");
   }
   LCII_RDV_RETRY(lc_server_put(ep->device->server, ctx->rank,
                                   ctx->data.lbuffer.address, ctx->data.lbuffer.length,
@@ -153,9 +147,6 @@ static inline void LCII_handle_1sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
                                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_LONG, packet->data.rtr.recv_ctx_key),
                                   ctx),
                  10, "Cannot post RDMA writeImm!\n");
-  if (ctx->is_dynamic) {
-    LCI_memory_deregister(&ctx->data.lbuffer.segment);
-  }
   LCII_free_packet(packet);
 }
 

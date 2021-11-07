@@ -75,7 +75,6 @@ typedef enum {
   LCI_COMPLETION_QUEUE,  	// completion queue
   LCI_COMPLETION_HANDLER,  	// handler
   LCI_COMPLETION_SYNC, 	        // synchronizer
-  LCI_COMPLETION_FREE, 	        // just free the packet, no completion reported to users
 } LCI_comp_type_t;
 
 /**

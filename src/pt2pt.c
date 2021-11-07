@@ -22,7 +22,8 @@ LCI_error_t LCI_sendm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
 
   LCII_context_t *ctx = LCIU_malloc(sizeof(LCII_context_t));
   ctx->data.mbuffer.address = (void*) packet->data.address;
-  ctx->comp_type = LCI_COMPLETION_FREE;
+  LCII_initilize_comp_attr(ctx->comp_attr);
+  LCII_comp_attr_set_free_packet(ctx->comp_attr, 1);
 
   LCI_error_t ret = lc_server_send(ep->device->server, rank, packet->data.address, buffer.length,
                                    *(ep->device->heap.segment),
@@ -44,7 +45,8 @@ LCI_error_t LCI_sendmn(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
 
   LCII_context_t *ctx = LCIU_malloc(sizeof(LCII_context_t));
   ctx->data.mbuffer.address = (void*) packet->data.address;
-  ctx->comp_type = LCI_COMPLETION_FREE;
+  LCII_initilize_comp_attr(ctx->comp_attr);
+  LCII_comp_attr_set_free_packet(ctx->comp_attr, 1);
 
   LCI_error_t ret = lc_server_send(ep->device->server, rank, packet->data.address, buffer.length,
                                    *(ep->device->heap.segment),
@@ -67,7 +69,8 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
 
   LCII_context_t *rts_ctx = LCIU_malloc(sizeof(LCII_context_t));
   rts_ctx->data.mbuffer.address = (void*) &(packet->data);
-  rts_ctx->comp_type = LCI_COMPLETION_FREE;
+  LCII_initilize_comp_attr(rts_ctx->comp_attr);
+  LCII_comp_attr_set_free_packet(rts_ctx->comp_attr, 1);
 
   LCII_context_t *rdv_ctx = LCIU_malloc(sizeof(LCII_context_t));
   rdv_ctx->data.lbuffer = buffer;
@@ -75,7 +78,9 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
   rdv_ctx->rank = rank;
   rdv_ctx->tag = tag;
   rdv_ctx->user_context = user_context;
-  rdv_ctx->comp_type = ep->cmd_comp_type;
+  LCII_initilize_comp_attr(rdv_ctx->comp_attr);
+  LCII_comp_attr_set_comp_type(rdv_ctx->comp_attr, ep->cmd_comp_type);
+  LCII_comp_attr_set_dereg(rdv_ctx->comp_attr, buffer.segment == LCI_SEGMENT_ALL);
   rdv_ctx->completion = completion;
 
   packet->data.rts.msg_type = LCI_MSG_LONG;
@@ -102,7 +107,8 @@ LCI_error_t LCI_recvs(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
   ctx->rank = rank;
   ctx->tag = tag;
   ctx->user_context = user_context;
-  ctx->comp_type = ep->msg_comp_type;
+  LCII_initilize_comp_attr(ctx->comp_attr);
+  LCII_comp_attr_set_comp_type(ctx->comp_attr, ep->msg_comp_type);
   ctx->completion = completion;
 
   lc_key key = LCII_make_key(ep, rank, tag, LCI_MSG_SHORT);
@@ -127,7 +133,8 @@ LCI_error_t LCI_recvm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   ctx->rank = rank;
   ctx->tag = tag;
   ctx->user_context = user_context;
-  ctx->comp_type = ep->msg_comp_type;
+  LCII_initilize_comp_attr(ctx->comp_attr);
+  LCII_comp_attr_set_comp_type(ctx->comp_attr, ep->msg_comp_type);
   ctx->completion = completion;
 
   lc_key key = LCII_make_key(ep, rank, tag, LCI_MSG_MEDIUM);
@@ -154,7 +161,8 @@ LCI_error_t LCI_recvmn(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
   ctx->rank = rank;
   ctx->tag = tag;
   ctx->user_context = user_context;
-  ctx->comp_type = ep->msg_comp_type;
+  LCII_initilize_comp_attr(ctx->comp_attr);
+  LCII_comp_attr_set_comp_type(ctx->comp_attr, ep->msg_comp_type);
   ctx->completion = completion;
 
   lc_key key = LCII_make_key(ep, rank, tag, LCI_MSG_MEDIUM);
@@ -180,7 +188,9 @@ LCI_error_t LCI_recvl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
   rdv_ctx->rank = rank;
   rdv_ctx->tag = tag;
   rdv_ctx->user_context = user_context;
-  rdv_ctx->comp_type = ep->msg_comp_type;
+  LCII_initilize_comp_attr(rdv_ctx->comp_attr);
+  LCII_comp_attr_set_comp_type(rdv_ctx->comp_attr, ep->msg_comp_type);
+  LCII_comp_attr_set_dereg(rdv_ctx->comp_attr, buffer.address != NULL && buffer.segment == LCI_SEGMENT_ALL);
   rdv_ctx->completion = completion;
 
   lc_key key = LCII_make_key(ep, rank, tag, LCI_MSG_LONG);

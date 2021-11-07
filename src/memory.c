@@ -34,6 +34,7 @@ LCI_error_t LCI_memory_register(LCI_device_t device, void *address, size_t lengt
  */
 LCI_error_t LCI_memory_deregister(LCI_segment_t* segment)
 {
+  LCM_DBG_Assert(*segment != NULL, "*segment is NULL\n");
   lc_server_rma_dereg(**segment);
   LCIU_free(*segment);
   *segment = NULL;
