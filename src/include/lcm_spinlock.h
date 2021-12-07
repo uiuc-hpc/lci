@@ -40,6 +40,12 @@ static inline void LCIU_acquire_spinlock(LCIU_spinlock_t* lock)
   }
 }
 
+// return 1: succeed; return 0: unsucceed
+static inline int LCIU_try_acquire_spinlock(LCIU_spinlock_t* lock)
+{
+  return (__sync_lock_test_and_set(lock, LCIU_SPIN_LOCKED) == LCIU_SPIN_UNLOCKED);
+}
+
 static inline void LCIU_release_spinlock(LCIU_spinlock_t* lock)
 {
   __sync_lock_release(lock);

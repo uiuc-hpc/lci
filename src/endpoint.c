@@ -16,6 +16,8 @@ LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, LCI_device_t device,
   ep->pkpool = device->pkpool;
   ep->mt = device->mt;
   ep->ctx_archive_p = &device->ctx_archive;
+  ep->bq_p = &device->bq;
+  ep->bq_spinlock_p = &device->bq_spinlock;
   ep->match_type = plist->match_type;
   ep->cmd_comp_type = plist->cmd_comp_type;
   ep->msg_comp_type = plist->msg_comp_type;

@@ -32,7 +32,6 @@
 
 typedef struct LCISI_server_t {
   LCI_device_t device;
-  int recv_posted;
 
   // Device fields.
   struct ibv_device **dev_list;
@@ -171,7 +170,6 @@ static inline void lc_server_post_recv(LCIS_server_t s, void *buf, uint32_t size
   wr.num_sge    = 1;
   struct ibv_recv_wr *bad_wr;
   IBV_SAFECALL(ibv_post_srq_recv(server->dev_srq, &wr, &bad_wr));
-  ++server->recv_posted;
 }
 
 static inline LCI_error_t lc_server_sends(LCIS_server_t s, int rank, void* buf,

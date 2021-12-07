@@ -95,7 +95,8 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
                  "Only support default remote completion "
                  "(set by LCI_plist_set_default_comp, "
                  "the default value is LCI_UR_CQ)\n");
-
+  if (!LCII_bq_is_empty(ep->bq_p))
+    return LCI_ERR_RETRY;
   lc_packet* packet = lc_pool_get_nb(ep->pkpool);
   if (packet == NULL)
     // no packet is available

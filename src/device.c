@@ -9,6 +9,8 @@ LCI_error_t LCI_device_init(LCI_device_t * device_ptr)
 
   LCII_mt_init(&device->mt, 0);
   LCM_archive_init(&(device->ctx_archive), 16);
+  LCII_bq_init(&device->bq);
+  LCIU_spinlock_init(&device->bq_spinlock);
 
   const size_t heap_size = LC_CACHE_LINE + LC_SERVER_NUM_PKTS * LC_PACKET_SIZE + LCI_REGISTERED_SEGMENT_SIZE;
   LCI_error_t ret = LCI_lbuffer_memalign(device, heap_size, 4096, &device->heap);
@@ -39,12 +41,38 @@ LCI_error_t LCI_device_free(LCI_device_t *device_ptr)
     LCM_DBG_Log(LCM_LOG_WARN, "Potentially losing packets %d != %d\n", total_num, LC_SERVER_NUM_PKTS);
   LCII_mt_free(&device->mt);
   LCM_archive_fini(&(device->ctx_archive));
+  LCII_bq_fini(&device->bq);
+  LCIU_spinlock_fina(&device->bq_spinlock);
   LCI_lbuffer_free(device->heap);
   lc_pool_destroy(device->pkpool);
   lc_server_finalize(device->server);
   LCIU_free(device);
   *device_ptr = NULL;
   return LCI_OK;
+}
+
+static inline LCI_error_t LCII_progress_bq(LCI_device_t device) {
+  if (LCII_bq_is_empty(&device->bq))
+    return LCI_ERR_RETRY;
+  if (!LCIU_try_acquire_spinlock(&device->bq_spinlock))
+    return LCI_ERR_RETRY;
+  LCI_error_t ret = LCI_ERR_RETRY;
+  LCII_bq_entry_t *entry = LCII_bq_top(&device->bq);
+  if (entry != NULL) {
+    if (entry->bqe_type == LCII_BQ_SEND) {
+      ret = lc_server_send(entry->s, entry->rank, entry->buf, entry->size,
+                           entry->mr, entry->meta, entry->ctx);
+    } else {
+      ret = lc_server_put(entry->s, entry->rank, entry->buf, entry->size,
+                          entry->mr, entry->base, entry->offset, entry->rkey,
+                          entry->meta, entry->ctx);
+    }
+    if (ret == LCI_OK) {
+      LCII_bq_pop(&device->bq);
+    }
+  }
+  LCIU_release_spinlock(&device->bq_spinlock);
+  return ret;
 }
 
 LCI_error_t LCI_progress(LCI_device_t device)
@@ -76,6 +104,10 @@ LCI_error_t LCI_progress(LCI_device_t device)
       if (entry[i].ctx == NULL) continue;
       lc_serve_send((void*)entry[i].ctx);
     }
+  }
+  // make progress on backlog queue
+  while (LCII_progress_bq(device) == LCI_OK) {
+    ret = LCI_OK;
   }
   // Make sure we always have enough packet, but do not block.
   while (device->recv_posted < LC_SERVER_MAX_RCVS) {

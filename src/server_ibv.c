@@ -105,7 +105,6 @@ void lc_server_init(LCI_device_t device, LCIS_server_t* s)
     exit(EXIT_FAILURE);
   }
 
-  server->recv_posted = 0;
   server->qps = LCIU_malloc(LCI_NUM_PROCESSES * sizeof(struct ibv_qp*));
 
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {

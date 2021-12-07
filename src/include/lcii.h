@@ -9,6 +9,7 @@
 #include "pmi_wrapper.h"
 #include "lciu.h"
 #include "server/server.h"
+#include "backlog_queue.h"
 
 struct lc_packet;
 typedef struct lc_packet lc_packet;
@@ -40,13 +41,22 @@ typedef enum lc_ep_ce {
 } lc_ep_ce;
 
 struct LCI_device_s {
-  LCIS_server_t server;
-  lc_pool* pkpool;
-  LCI_mt_t mt;
-  LCI_lbuffer_t heap;
+  // the following will not be changed after initialization
+  LCIS_server_t server;   // 8B
+  lc_pool* pkpool;        // 8B
+  LCI_mt_t mt;            // 8B
+  LCI_lbuffer_t heap;     // 24B
+  char padding0[64-sizeof(LCIS_server_t)-sizeof(lc_pool*)-sizeof(LCI_mt_t)-sizeof(LCI_lbuffer_t)];
+  // the following will be changed locally by a progress thread
+  int recv_posted;        // 4B
+  char padding1[64-sizeof(int)];
+  // the following is shared by both progress threads and worker threads
   LCM_archive_t ctx_archive; // used for long message protocol
-  int recv_posted;
-};
+  char padding2[64-(sizeof(LCM_archive_t) % 64)];
+  LCII_backlog_queue_t bq;
+  LCIU_spinlock_t bq_spinlock;
+  char padding3[64-((sizeof(LCII_backlog_queue_t) + sizeof(LCIU_spinlock_t)) % 64)];
+}  __attribute__((aligned(64)));
 
 struct LCI_plist_s {
   LCI_match_t match_type;        // matching type
@@ -63,7 +73,10 @@ struct LCI_endpoint_s {
   // Associated software components.
   lc_pool* pkpool;
   LCI_mt_t mt;
-  LCM_archive_t *ctx_archive_p; // used for long message protocol
+  // used for the rendezvous protocol
+  LCM_archive_t *ctx_archive_p;
+  LCII_backlog_queue_t *bq_p;
+  LCIU_spinlock_t *bq_spinlock_p;
 
   // user-defined components
   LCI_match_t match_type;        // matching type (tag/ranktag)

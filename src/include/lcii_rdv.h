@@ -1,13 +1,65 @@
 #ifndef LCI_LCII_RDV_H
 #define LCI_LCII_RDV_H
 
-#define LCII_RDV_RETRY(stat, n, msg) \
-  LCI_error_t ret;                   \
-  do {                               \
-      ret = stat;                    \
-      if (ret == LCI_OK) break;      \
-  } while (ret == LCI_ERR_RETRY);    \
-  LCM_Assert(ret == LCI_OK, msg);
+// wrapper for send and put
+static inline void lc_server_send_bq(LCII_backlog_queue_t *bq_p,
+                                     LCIU_spinlock_t *bq_spinlock_p,
+                                     LCIS_server_t s, int rank, void* buf,
+                                     size_t size, LCIS_mr_t mr,
+                                     LCIS_meta_t meta,
+                                     void* ctx) {
+  if (LCII_bq_is_empty(bq_p)) {
+    LCI_error_t ret = lc_server_send(s, rank, buf, size, mr, meta, ctx);
+    if (ret == LCI_OK) return;
+    else {
+      LCM_Assert(ret == LCI_ERR_RETRY, "fatal error!\n");
+    }
+  }
+  // push to backlog queue
+  LCII_bq_entry_t *entry = LCIU_malloc(sizeof(struct LCII_bq_entry_t));
+  entry->bqe_type = LCII_BQ_SEND;
+  entry->s = s;
+  entry->rank = rank;
+  entry->buf = buf;
+  entry->size = size;
+  entry->mr = mr;
+  entry->meta = meta;
+  entry->ctx = ctx;
+  LCIU_acquire_spinlock(bq_spinlock_p);
+  LCII_bq_push(bq_p, entry);
+  LCIU_release_spinlock(bq_spinlock_p);
+}
+
+static inline void lc_server_put_bq(LCII_backlog_queue_t *bq_p,
+                                    LCIU_spinlock_t *bq_spinlock_p,
+                                    LCIS_server_t s, int rank, void* buf,
+                                    size_t size, LCIS_mr_t mr, uintptr_t base,
+                                    uint32_t offset,LCIS_rkey_t rkey,
+                                    LCIS_meta_t meta, void* ctx) {
+  if (LCII_bq_is_empty(bq_p)) {
+    LCI_error_t ret = lc_server_put(s, rank, buf, size, mr, base, offset, rkey, meta, ctx);
+    if (ret == LCI_OK) return;
+    else {
+      LCM_Assert(ret == LCI_ERR_RETRY, "fatal error!\n");
+    }
+  }
+  // push to backlog queue
+  LCII_bq_entry_t *entry = LCIU_malloc(sizeof(struct LCII_bq_entry_t));
+  entry->bqe_type = LCII_BQ_PUT;
+  entry->s = s;
+  entry->rank = rank;
+  entry->buf = buf;
+  entry->size = size;
+  entry->mr = mr;
+  entry->meta = meta;
+  entry->ctx = ctx;
+  entry->base = base;
+  entry->offset = offset;
+  entry->rkey = rkey;
+  LCIU_acquire_spinlock(bq_spinlock_p);
+  LCII_bq_push(bq_p, entry);
+  LCIU_release_spinlock(bq_spinlock_p);
+}
 
 static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, LCII_context_t *rdv_ctx)
 {
@@ -46,10 +98,11 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, 
       (uintptr_t) rdv_ctx->data.lbuffer.address - packet->data.rtr.remote_addr_base;
   packet->data.rtr.rkey = lc_server_rma_rkey(*(rdv_ctx->data.lbuffer.segment));
 
-  LCII_RDV_RETRY(lc_server_send(ep->device->server, rdv_ctx->rank, packet->data.address,
-                                    sizeof(struct packet_rtr), *(ep->device->heap.segment),
-                                    LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx),
-                 10, "Cannot post RTR message!\n");
+  lc_server_send_bq(ep->bq_p, ep->bq_spinlock_p,
+                    ep->device->server, rdv_ctx->rank, packet->data.address,
+                    sizeof(struct packet_rtr), *(ep->device->heap.segment),
+                    LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx);
+
 }
 
 static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
@@ -63,13 +116,13 @@ static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
   } else {
     LCM_DBG_Assert(LCII_comp_attr_get_dereg(ctx->comp_attr) == 0, "");
   }
-  LCII_RDV_RETRY(lc_server_put(ep->device->server, ctx->rank,
-                                  ctx->data.lbuffer.address, ctx->data.lbuffer.length,
-                                  *(ctx->data.lbuffer.segment),
-                                  packet->data.rtr.remote_addr_base, packet->data.rtr.remote_addr_offset,
-                                  packet->data.rtr.rkey,
-                                  LCII_MAKE_PROTO(ep->gid, LCI_MSG_LONG, packet->data.rtr.recv_ctx_key),
-                                  ctx), 10, "Cannot post RDMA writeImm\n");
+  lc_server_put_bq(ep->bq_p, ep->bq_spinlock_p, ep->device->server, ctx->rank,
+                   ctx->data.lbuffer.address, ctx->data.lbuffer.length,
+                   *(ctx->data.lbuffer.segment),
+                   packet->data.rtr.remote_addr_base, packet->data.rtr.remote_addr_offset,
+                   packet->data.rtr.rkey,
+                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_LONG, packet->data.rtr.recv_ctx_key),
+                   ctx);
   LCII_free_packet(packet);
 }
 
@@ -122,10 +175,10 @@ static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep, lc_packet* packet,
               (void*) packet->data.rtr.send_ctx, (void*) packet->data.rtr.remote_addr_base,
               packet->data.rtr.remote_addr_offset, packet->data.rtr.rkey,
               packet->data.rtr.recv_ctx_key);
-  LCII_RDV_RETRY(lc_server_send(ep->device->server, rdv_ctx->rank, packet->data.address,
-                                   sizeof(struct packet_rtr), *(ep->device->heap.segment),
-                                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx),
-                 10, "Cannot send RTR message!\n");
+  lc_server_send_bq(ep->bq_p, ep->bq_spinlock_p,
+                    ep->device->server, rdv_ctx->rank, packet->data.address,
+                    sizeof(struct packet_rtr), *(ep->device->heap.segment),
+                    LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx);
 }
 
 static inline void LCII_handle_1sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
@@ -139,14 +192,13 @@ static inline void LCII_handle_1sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
   } else {
     LCM_DBG_Assert(LCII_comp_attr_get_dereg(ctx->comp_attr) == 0, "");
   }
-  LCII_RDV_RETRY(lc_server_put(ep->device->server, ctx->rank,
-                                  ctx->data.lbuffer.address, ctx->data.lbuffer.length,
-                                  *(ctx->data.lbuffer.segment),
-                                  packet->data.rtr.remote_addr_base, packet->data.rtr.remote_addr_offset,
-                                  packet->data.rtr.rkey,
-                                  LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_LONG, packet->data.rtr.recv_ctx_key),
-                                  ctx),
-                 10, "Cannot post RDMA writeImm!\n");
+  lc_server_put_bq(ep->bq_p, ep->bq_spinlock_p, ep->device->server, ctx->rank,
+                   ctx->data.lbuffer.address, ctx->data.lbuffer.length,
+                   *(ctx->data.lbuffer.segment),
+                   packet->data.rtr.remote_addr_base, packet->data.rtr.remote_addr_offset,
+                   packet->data.rtr.rkey,
+                   LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_LONG, packet->data.rtr.recv_ctx_key),
+                   ctx);
   LCII_free_packet(packet);
 }
 

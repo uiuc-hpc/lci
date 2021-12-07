@@ -61,6 +61,8 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
                       LCI_tag_t tag, LCI_comp_t completion, void* user_context)
 {
   LCM_DBG_Assert(tag <= LCI_MAX_TAG, "tag %d is too large (maximum: %d)\n", tag, LCI_MAX_TAG);
+  if (!LCII_bq_is_empty(ep->bq_p))
+    return LCI_ERR_RETRY;
   lc_packet* packet = lc_pool_get_nb(ep->pkpool);
   if (packet == NULL)
     // no packet is available
