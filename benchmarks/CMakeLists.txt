@@ -48,6 +48,6 @@ add_lcit_benchmarks(
 
 find_package(MPI)
 if(MPI_FOUND)
-  add_lcit_benchmark(mpi_pt2pt mpi_pt2pt.cpp)
+  add_lcit_benchmark(mpi_pt2pt.cpp)
   target_link_libraries(mpi_pt2pt PRIVATE MPI::MPI_CXX)
 endif()

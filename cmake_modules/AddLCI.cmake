@@ -1,10 +1,7 @@
 function(add_lci_executable name)
     add_executable(${name} ${ARGN})
     target_compile_definitions(${name} PRIVATE _GNU_SOURCE)
-    target_link_libraries(${name} PRIVATE
-            Threads::Threads
-            lci_shared
-            )
+    target_link_libraries(${name} PRIVATE LCI)
     if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.13")
         target_link_options(${name} PRIVATE
                 LINKER:-z,now

@@ -1,7 +1,7 @@
 add_subdirectory(pmi)
 
-target_include_directories(lci-obj PRIVATE include)
-target_sources_relative(lci-obj PRIVATE
+target_include_directories(LCI PRIVATE include)
+target_sources_relative(LCI PRIVATE
         1sided.c
         cq.c
         lci.c
@@ -22,9 +22,9 @@ target_sources_relative(lci-obj PRIVATE
         )
 
 if(LCI_USE_SERVER_OFI)
-  target_sources_relative(lci-obj PRIVATE server_ofi.c)
+  target_sources_relative(LCI PRIVATE server_ofi.c)
 elseif(LCI_USE_SERVER_IBV)
-  target_sources_relative(lci-obj PRIVATE server_ibv.c)
+  target_sources_relative(LCI PRIVATE server_ibv.c)
 elseif(LCI_USE_SERVER_PSM)
 endif()
 

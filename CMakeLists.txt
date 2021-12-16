@@ -1,13 +1,21 @@
 cmake_minimum_required(VERSION 3.12)
+if( CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
 project(LCI
         VERSION 0.2.1
         DESCRIPTION "Lightweight Communication Interface"
         HOMEPAGE_URL "https://github.com/uiuc-hpc/LC"
         )
 enable_testing()
+option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+endif()
+
 option(LCI_DEBUG "LCI Debug Mode" OFF)
 option(LCI_USE_DREG "Use registration cache (only affects ibv -- only use when not-so-dynamic allocation)" ON)
 option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
+option(LCI_WITH_EXAMPLES "Build LCI examples" ON)
+option(LCI_WITH_TESTS "Build LCI tests" ON)
+option(LCI_WITH_BENCHMARKS "Build LCI benchmarks" ON)
+option(LCI_WITH_DOC "Build LCI documentation" ON)
 set(LCI_SERVER ofi CACHE STRING "Fabric")
 set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv psm)
 set(LCI_EP_AR dynamic explicit CACHE STRING "Addressing mode (dynamic, explicit, immediate)")
@@ -104,8 +112,8 @@ else()
 endif()
 
 # find package
-set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+#set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+#set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
 string(TOUPPER ${LCI_SERVER} FABRIC_PREFER)
@@ -120,37 +128,43 @@ if(LCI_USE_GPROF)
   SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 endif()
 
-add_library(lci-obj OBJECT)
-set_target_properties(lci-obj PROPERTIES
-        POSITION_INDEPENDENT_CODE ON
+add_library(LCI)
+set_target_properties(LCI PROPERTIES
         C_VISIBILITY_PRESET       hidden
         C_STANDARD                11
         C_EXTENSIONS              ON
         )
-target_compile_definitions(lci-obj PRIVATE _GNU_SOURCE)
-target_include_directories(lci-obj PUBLIC
+target_compile_definitions(LCI PRIVATE _GNU_SOURCE)
+target_include_directories(LCI PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         )
-target_link_libraries(lci-obj PUBLIC
+target_link_libraries(LCI PUBLIC
         Threads::Threads
         Fabric::Fabric
         $<$<BOOL:${LCI_SYNC_ABT}>:Argobots::Argobots>
-        pmi_static
+        )
+target_link_libraries(LCI PRIVATE
+        pmi
         )
 
-add_library(lci_shared SHARED)
-add_library(lci_static STATIC)
-target_link_libraries(lci_shared PUBLIC lci-obj)
-target_link_libraries(lci_static PUBLIC lci-obj)
-set_target_properties(lci_shared lci_static PROPERTIES OUTPUT_NAME lci)
+#set_target_properties(LCI PROPERTIES OUTPUT_NAME lci)
 
 add_subdirectory(src)
-#add_subdirectory(examples)
-add_subdirectory(benchmarks)
-add_subdirectory(tests)
-add_subdirectory(doc)
+if(LCI_WITH_EXAMPLES)
+  #add_subdirectory(examples)
+endif()
+if(LCI_WITH_BENCHMARKS)
+  add_subdirectory(benchmarks)
+endif()
+if(LCI_WITH_TESTS)
+  add_subdirectory(tests)
+endif()
+if(LCI_WITH_DOC)
+  add_subdirectory(doc)
+endif()
 
+if( CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
 write_basic_package_version_file(
         "${CMAKE_CURRENT_BINARY_DIR}/LCIConfigVersion.cmake"
         COMPATIBILITY ExactVersion
@@ -163,9 +177,15 @@ set(PKGCONFIG_REQUIRES_PRIVATE ${Fabric_${FABRIC_PREFER}_PC_Requires})
 set(PKGCONFIG_LIBS_PRIVATE ${Fabric_${FABRIC_PREFER}_PC_Libs})
 configure_file(liblci.pc.in liblci.pc @ONLY)
 
-install(TARGETS lci_shared lci_static
+install(TARGETS LCI
+        EXPORT LCITargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        )
+install(EXPORT LCITargets
+        FILE LCITargets.cmake
+        NAMESPACE LCI::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LCI
         )
 install(DIRECTORY include/
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
@@ -182,3 +202,4 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/FindFabric.cmake"
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LCI
         )
 install(PROGRAMS lcrun DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()

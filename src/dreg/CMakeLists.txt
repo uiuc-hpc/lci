@@ -1,4 +1,4 @@
-target_sources_relative(lci-obj PRIVATE
+target_sources_relative(LCI PRIVATE
   avl.c
   dreg.c
 )
