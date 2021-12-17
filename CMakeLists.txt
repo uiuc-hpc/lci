@@ -6,9 +6,9 @@ project(LCI
         HOMEPAGE_URL "https://github.com/uiuc-hpc/LC"
         )
 enable_testing()
-option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 endif()
 
+option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 option(LCI_DEBUG "LCI Debug Mode" OFF)
 option(LCI_USE_DREG "Use registration cache (only affects ibv -- only use when not-so-dynamic allocation)" ON)
 option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
@@ -144,9 +144,6 @@ target_link_libraries(LCI PUBLIC
         Fabric::Fabric
         $<$<BOOL:${LCI_SYNC_ABT}>:Argobots::Argobots>
         )
-target_link_libraries(LCI PRIVATE
-        pmi
-        )
 
 #set_target_properties(LCI PROPERTIES OUTPUT_NAME lci)
 
@@ -165,41 +162,41 @@ if(LCI_WITH_DOC)
 endif()
 
 if( CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
-write_basic_package_version_file(
-        "${CMAKE_CURRENT_BINARY_DIR}/LCIConfigVersion.cmake"
-        COMPATIBILITY ExactVersion
-)
-configure_package_config_file(LCIConfig.cmake.in LCIConfig.cmake
-        INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake"
-        PATH_VARS CMAKE_INSTALL_INCLUDEDIR CMAKE_INSTALL_LIBDIR
-        )
-set(PKGCONFIG_REQUIRES_PRIVATE ${Fabric_${FABRIC_PREFER}_PC_Requires})
-set(PKGCONFIG_LIBS_PRIVATE ${Fabric_${FABRIC_PREFER}_PC_Libs})
-configure_file(liblci.pc.in liblci.pc @ONLY)
+  write_basic_package_version_file(
+          "${CMAKE_CURRENT_BINARY_DIR}/LCIConfigVersion.cmake"
+          COMPATIBILITY ExactVersion
+  )
+  configure_package_config_file(LCIConfig.cmake.in LCIConfig.cmake
+          INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake"
+          PATH_VARS CMAKE_INSTALL_INCLUDEDIR CMAKE_INSTALL_LIBDIR
+          )
+  set(PKGCONFIG_REQUIRES_PRIVATE ${Fabric_${FABRIC_PREFER}_PC_Requires})
+  set(PKGCONFIG_LIBS_PRIVATE ${Fabric_${FABRIC_PREFER}_PC_Libs})
+  configure_file(liblci.pc.in liblci.pc @ONLY)
 
-install(TARGETS LCI
-        EXPORT LCITargets
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        )
-install(EXPORT LCITargets
-        FILE LCITargets.cmake
-        NAMESPACE LCI::
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LCI
-        )
-install(DIRECTORY include/
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-        FILES_MATCHING PATTERN "*.h"
-        )
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/liblci.pc"
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
-        )
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/LCIConfig.cmake"
-        "${CMAKE_CURRENT_BINARY_DIR}/LCIConfigVersion.cmake"
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake
-        )
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/FindFabric.cmake"
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LCI
-        )
-install(PROGRAMS lcrun DESTINATION ${CMAKE_INSTALL_BINDIR})
+  install(TARGETS LCI
+          EXPORT LCITargets
+          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          )
+  install(EXPORT LCITargets
+          FILE LCITargets.cmake
+          NAMESPACE LCI::
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LCI
+          )
+  install(DIRECTORY include/
+          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+          FILES_MATCHING PATTERN "*.h"
+          )
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/liblci.pc"
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+          )
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/LCIConfig.cmake"
+          "${CMAKE_CURRENT_BINARY_DIR}/LCIConfigVersion.cmake"
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake
+          )
+  install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/FindFabric.cmake"
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LCI
+          )
+  install(PROGRAMS lcrun DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
