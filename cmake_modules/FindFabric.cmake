@@ -124,8 +124,7 @@ foreach(FABRIC IN ITEMS OFI IBV PSM)
       endif()
 
       if(FABRIC STREQUAL FABRIC_PREFER AND NOT TARGET Fabric::Fabric)
-        add_library(Fabric::Fabric INTERFACE IMPORTED)
-        target_link_libraries(Fabric::Fabric INTERFACE Fabric::${FABRIC})
+        add_library(Fabric::Fabric ALIAS Fabric::${FABRIC})
       endif()
     endif()
 

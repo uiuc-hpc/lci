@@ -21,14 +21,14 @@ extern "C" {
 #endif
 
 typedef struct {
-  LCIU_spinlock_t lock;
-  LCM_dequeue_t dq;
-  char padding[64 - sizeof(LCIU_spinlock_t) - sizeof(LCM_dequeue_t)];
+  LCIU_spinlock_t lock; // size 4 align 4
+  LCM_dequeue_t dq;     // size 32 align 8
+  char padding[24];
 } LCII_local_pool_t __attribute__((aligned(64)));
 
 typedef struct lc_pool {
   int key;
-  int32_t npools;
+  int npools;
   LCII_local_pool_t lpools[MAX_NPOOLS] __attribute__((aligned(64)));
 } lc_pool __attribute__((aligned(64)));
 
