@@ -35,8 +35,6 @@
   }
 #endif
 
-#define MAX_CQ_SIZE (16 * 1024)
-
 typedef struct LCISI_server_t {
   LCI_device_t device;
   struct fi_info* info;

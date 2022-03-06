@@ -51,7 +51,7 @@ void lc_server_init(LCI_device_t device, LCIS_server_t* s)
   struct fi_cq_attr cq_attr;
   memset(&cq_attr, 0, sizeof(struct fi_cq_attr));
   cq_attr.format = FI_CQ_FORMAT_TAGGED;
-  cq_attr.size = MAX_CQ_SIZE;
+  cq_attr.size = LC_SERVER_MAX_CQES;
   FI_SAFECALL(fi_cq_open(server->domain, &cq_attr, &server->cq, NULL));
 
   // Bind my ep to cq.

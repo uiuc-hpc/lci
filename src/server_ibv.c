@@ -4,7 +4,7 @@ static const int max_send_num = LC_SERVER_MAX_RCVS;
 static const int max_recv_num = LC_SERVER_MAX_RCVS;
 static const int max_sge_num = 1;
 static const int inline_size = 236;
-static const int max_cqe_num = 64 * 1024;
+static const int max_cqe_num = LC_SERVER_MAX_CQES;
 
 static int g_device_num = 0;
 
