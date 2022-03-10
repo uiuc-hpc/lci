@@ -1,7 +1,7 @@
 #ifndef PACKET_H_
 #define PACKET_H_
 
-struct __attribute__((packed, aligned(64))) packet_context {
+struct __attribute__((packed)) packet_context {
   // Most of the current ctx requires 128-bits (FIXME)
   int64_t hwctx[2];
   // Here is LCI context.
@@ -27,7 +27,7 @@ struct __attribute__((packed)) packet_rtr {
   uint32_t recv_ctx_key;  /* the id of the related context on the target side */
 };
 
-struct __attribute__((packed)) packet_data {
+struct __attribute__((packed, aligned(LC_CACHE_LINE))) packet_data {
   union {
     struct packet_rts rts;
     struct packet_rtr rtr;
@@ -35,10 +35,8 @@ struct __attribute__((packed)) packet_data {
   };
 };
 
-struct __attribute__((aligned(64))) lc_packet {
-  union {
-    struct packet_context context;
-  };
+struct __attribute__((packed)) lc_packet {
+  struct packet_context context;
   struct packet_data data;
 };
 
