@@ -27,6 +27,7 @@ module load cmake
 module load openmpi
 export CC=gcc
 export CXX=g++
+export Fabric_ROOT="${HOME}/opt/libfabric"
 
 # record build status
 record_env

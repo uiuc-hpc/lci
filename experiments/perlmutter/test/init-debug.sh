@@ -21,13 +21,16 @@ mkdir_s ./init
 cd init
 
 # setup module environment
-module purge
-module load gcc
-module load cmake
-module load openmpi
+#module purge
+#module load gcc
+#module load cmake
+#module load libfabric
+#module load craype-network-ofi
+#module load craype
+#module load cray-mpich
 export CC=gcc
 export CXX=g++
-export Fabric_ROOT="${HOME}/opt/libfabric"
+export Fabric_ROOT=""
 
 # record build status
 record_env
