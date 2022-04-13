@@ -94,7 +94,7 @@ ifeq ($(LCI_SERVER), ibv)
 	LDFLAGS += -L$(IBV_DIR)/lib -libverbs
 endif
 
-ifeq ($(LCI_SERVER), psm)
+ifeq ($(LCI_SERVER), psm2)
 	CFLAGS += -DLCI_USE_SERVER_PSM -DAFF_DEBUG -I$(PSM_DIR)/include
 	LDFLAGS += -L$(PSM_DIR)/lib -lpsm2
 endif

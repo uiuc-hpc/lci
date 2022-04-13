@@ -17,7 +17,7 @@ option(LCI_WITH_TESTS "Build LCI tests" ON)
 option(LCI_WITH_BENCHMARKS "Build LCI benchmarks" ON)
 option(LCI_WITH_DOC "Build LCI documentation" ON)
 set(LCI_SERVER ofi CACHE STRING "Fabric")
-set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv psm)
+set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv psm2)
 set(LCI_EP_AR dynamic explicit CACHE STRING "Addressing mode (dynamic, explicit, immediate)")
 set(LCI_EP_CE sync cq am CACHE STRING "Completion mechanism (sync, cq, am, glob)")
 set(LCI_MAX_DEV 1 CACHE STRING "Maximum number of devices")
@@ -53,7 +53,7 @@ if(LCI_SERVER STREQUAL "ofi")
   set(LCI_USE_SERVER_OFI ON)
 elseif(LCI_SERVER STREQUAL "ibv")
   set(LCI_USE_SERVER_IBV ON)
-elseif(LCI_SERVER STREQUAL "psm")
+elseif(LCI_SERVER STREQUAL "psm2")
   set(LCI_USE_SERVER_PSM ON)
 else()
   message(FATAL_ERROR "Fabric ${LCI_SERVER} not supported")
@@ -116,8 +116,8 @@ endif()
 #set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
-string(TOUPPER ${LCI_SERVER} FABRIC_PREFER)
-find_package(Fabric REQUIRED)
+string(TOUPPER ${LCI_SERVER} FABRIC)
+find_package(${FABRIC} REQUIRED)
 
 find_package(Argobots)
 
@@ -142,7 +142,7 @@ target_include_directories(LCI PUBLIC
         )
 target_link_libraries(LCI PUBLIC
         Threads::Threads
-        Fabric::Fabric
+        ${FABRIC}::${FABRIC}
         $<$<BOOL:${LCI_SYNC_ABT}>:Argobots::Argobots>
         )
 if(LCI_USE_AVX)
