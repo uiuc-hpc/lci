@@ -1,5 +1,5 @@
-#ifndef CONFIG_H_
-#define CONFIG_H_
+#ifndef LCII_CONFIG_H_
+#define LCII_CONFIG_H_
 
 #cmakedefine LCI_DEBUG
 
@@ -40,4 +40,4 @@
 #define LCM_DEBUG
 #endif
 
-#endif
+#endif // LCII_CONFIG_H_

@@ -136,7 +136,7 @@ install: all
 	cp $(LIBRARY) $(PREFIX)/lib
 	cp $(PKGCONFIG) $(PREFIX)/lib/pkgconfig
 
-$(OBJDIR)/%.o: $(SRCDIR)/$(notdir %.c) $(SRCDIR)/include/config.h
+$(OBJDIR)/%.o: $(SRCDIR)/$(notdir %.c) $(SRCDIR)/include/lcii_config.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(LIBRARY): $(LIBOBJ)
@@ -147,7 +147,7 @@ $(ARCHIVE): $(LIBOBJ)
 	$(AR) q $(ARCHIVE) $(LIBOBJ) $(MALLOC)
 	$(RANLIB) $(ARCHIVE)
 
-$(SRCDIR)/include/config.h:: $(SRCDIR)/include/config.h.mk
+$(SRCDIR)/include/lcii_config.h:: $(SRCDIR)/include/lcii_config.h.mk
 	cp $< $@
 
 mpiv.a: obj/mpiv.o
@@ -155,7 +155,7 @@ mpiv.a: obj/mpiv.o
 	$(RANLIB) mpiv.a
 
 clean:
-	rm -rf $(LIBOBJ) $(OBJDIR)/* $(SRCDIR)/include/config.h $(ARCHIVE) $(LIBRARY) mpiv.a
+	rm -rf $(LIBOBJ) $(OBJDIR)/* $(SRCDIR)/include/lcii_config.h $(ARCHIVE) $(LIBRARY) mpiv.a
 	$(MAKE) clean -C examples
 	$(MAKE) clean -C benchmarks
 

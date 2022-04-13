@@ -6,7 +6,7 @@
 #include "lc/profiler.h"
 
 #define LC_USE_SERVER_PSM
-#include "config.h"
+#include "lcii_config.h"
 
 #include "packet/packet_manager_misc.h"
 

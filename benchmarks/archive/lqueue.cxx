@@ -1,6 +1,6 @@
 #include "comm_exp.h"
 #include "mv.h"
-#include "config.h"
+#include "lcii_config.h"
 #include "lcrq.h"
 #include "dequeue.h"
 

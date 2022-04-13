@@ -1,4 +1,4 @@
-#include "config.h"
+#include "lcii_config.h"
 #include "lci.h"
 #include "lcii.h"
 
