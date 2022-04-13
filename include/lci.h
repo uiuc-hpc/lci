@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include "lci_config.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -122,6 +123,7 @@ typedef struct LCI_mbuffer_t LCI_mbuffer_t;
  */
 #define LCI_SHORT_SIZE 32
 typedef union {
+#ifdef LCI_USE_AVX
   uint8_t u8 __attribute__((vector_size(32)));
   uint16_t u16 __attribute__((vector_size(32)));
   uint32_t u32 __attribute__((vector_size(32)));
@@ -132,6 +134,9 @@ typedef union {
   int64_t s64 __attribute__((vector_size(32)));
   double dbl __attribute__((vector_size(32)));
   float flt __attribute__((vector_size(32)));
+#else
+  char val[LCI_SHORT_SIZE];
+#endif
 } LCI_short_t;
 //typedef uint64_t LCI_short_t;
 
@@ -140,7 +145,7 @@ typedef union {
  * @todo should we add a flag to identify whether this buffer is allocated by users or LCI?
 */
 typedef union {
-  LCI_short_t immediate;  // 8 bytes
+  LCI_short_t immediate;  // 32 bytes
   LCI_mbuffer_t mbuffer;  // 16 bytes
   LCI_lbuffer_t lbuffer;  // 24 bytes
 } LCI_data_t;

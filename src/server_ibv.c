@@ -263,7 +263,7 @@ void lc_server_init(LCI_device_t device, LCIS_server_t* s)
   server->qp2rank = b;
   LCM_Log(LCM_LOG_INFO, "qp2rank_mod is %d\n", j);
 
-#ifdef USE_DREG
+#ifdef LCI_USE_DREG
   dreg_init();
 #endif
   lcm_pm_barrier();
@@ -271,7 +271,7 @@ void lc_server_init(LCI_device_t device, LCIS_server_t* s)
 
 void lc_server_finalize(LCIS_server_t s)
 {
-#ifdef USE_DREG
+#ifdef LCI_USE_DREG
   dreg_finalize();
 #endif
   LCISI_server_t *server = (LCISI_server_t*) s;

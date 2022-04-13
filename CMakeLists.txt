@@ -10,7 +10,7 @@ endif()
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 option(LCI_DEBUG "LCI Debug Mode" OFF)
-option(LCI_USE_DREG "Use registration cache (only affects ibv -- only use when not-so-dynamic allocation)" ON)
+option(LCI_USE_DREG "Use registration cache (can be buggy when the allocation/free is too dynamic)" ON)
 option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
 option(LCI_WITH_EXAMPLES "Build LCI examples" ON)
 option(LCI_WITH_TESTS "Build LCI tests" ON)
@@ -32,6 +32,7 @@ set(LCI_SERVER_MAX_RCVS 64 CACHE STRING "Max posted recvs")
 set(LCI_SERVER_MAX_CQES 65536 CACHE STRING "Max posted cqes")
 set(LCI_SERVER_NUM_PKTS 1024 CACHE STRING "Number of packets")
 set(LCI_CACHE_LINE 64 CACHE STRING "Size of cache line (bytes)")
+option(LCI_USE_AVX "Use GCC vector extension for the immediate field" ON)
 mark_as_advanced(
         LCI_PACKET_SIZE
         LCI_MAX_INLINE
@@ -96,8 +97,6 @@ if(USE_AFFI)
   add_compile_definitions(USE_AFFI AFF_DEBUG)
 endif()
 
-set(USE_DREG ${LCI_USE_DREG})
-
 #NOTE(danghvu): These numbers are tweaked for performance and some alignment.
 #Update at our own risk.
 if(LCI_USE_SERVER_OFI)
@@ -138,6 +137,7 @@ set_target_properties(LCI PROPERTIES
 target_compile_definitions(LCI PRIVATE _GNU_SOURCE)
 target_include_directories(LCI PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         )
 target_link_libraries(LCI PUBLIC
@@ -145,9 +145,12 @@ target_link_libraries(LCI PUBLIC
         Fabric::Fabric
         $<$<BOOL:${LCI_SYNC_ABT}>:Argobots::Argobots>
         )
+if(LCI_USE_AVX)
+  target_compile_options(LCI PRIVATE -mavx)
+endif()
 
 #set_target_properties(LCI PROPERTIES OUTPUT_NAME lci)
-
+add_subdirectory(include)
 add_subdirectory(src)
 if(LCI_WITH_EXAMPLES)
   #add_subdirectory(examples)

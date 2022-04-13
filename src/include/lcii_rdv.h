@@ -66,7 +66,7 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, 
 
   LCM_DBG_Assert(rdv_ctx->data.lbuffer.address == NULL ||
                  rdv_ctx->data.lbuffer.length >= packet->data.rts.size,
-                 "the message sent by sendl (%lu) is larger than the buffer posted by recvl (%lu)!",
+                 "the message sent by sendl (%lu) is larger than the buffer posted by recvl (%lu)!\n",
                  packet->data.rts.size, rdv_ctx->data.lbuffer.length);
   rdv_ctx->rank = packet->context.src_rank;
   rdv_ctx->data.lbuffer.length = packet->data.rts.size;
@@ -86,12 +86,12 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, 
     LCI_lbuffer_alloc(ep->device, packet->data.rts.size, &rdv_ctx->data.lbuffer);
   }
   if (rdv_ctx->data.lbuffer.segment == LCI_SEGMENT_ALL) {
-    LCM_DBG_Assert(LCII_comp_attr_get_dereg(rdv_ctx->comp_attr) == 1, "");
+    LCM_DBG_Assert(LCII_comp_attr_get_dereg(rdv_ctx->comp_attr) == 1, "\n");
     LCI_memory_register(ep->device, rdv_ctx->data.lbuffer.address,
                         rdv_ctx->data.lbuffer.length,
                         &rdv_ctx->data.lbuffer.segment);
   } else {
-    LCM_DBG_Assert(LCII_comp_attr_get_dereg(rdv_ctx->comp_attr) == 0, "");
+    LCM_DBG_Assert(LCII_comp_attr_get_dereg(rdv_ctx->comp_attr) == 0, "\n");
   }
   packet->data.rtr.remote_addr_base = (uintptr_t) rdv_ctx->data.lbuffer.segment->address;
   packet->data.rtr.remote_addr_offset =
@@ -109,12 +109,12 @@ static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
 {
   LCII_context_t *ctx = (LCII_context_t*) packet->data.rtr.send_ctx;
   if (ctx->data.lbuffer.segment == LCI_SEGMENT_ALL) {
-    LCM_DBG_Assert(LCII_comp_attr_get_dereg(ctx->comp_attr) == 1, "");
+    LCM_DBG_Assert(LCII_comp_attr_get_dereg(ctx->comp_attr) == 1, "\n");
     LCI_memory_register(ep->device, ctx->data.lbuffer.address,
                         ctx->data.lbuffer.length,
                         &ctx->data.lbuffer.segment);
   } else {
-    LCM_DBG_Assert(LCII_comp_attr_get_dereg(ctx->comp_attr) == 0, "");
+    LCM_DBG_Assert(LCII_comp_attr_get_dereg(ctx->comp_attr) == 0, "\n");
   }
   lc_server_put_bq(ep->bq_p, ep->bq_spinlock_p, ep->device->server, ctx->rank,
                    ctx->data.lbuffer.address, ctx->data.lbuffer.length,
@@ -131,9 +131,9 @@ static inline void LCII_handle_2sided_writeImm(LCI_endpoint_t ep, uint64_t ctx_k
   LCII_context_t *ctx =
       (LCII_context_t*)LCM_archive_remove(ep->ctx_archive_p, ctx_key);
   LCM_DBG_Assert(ctx->data_type == LCI_LONG,
-                 "Didn't get the right context! This might imply some bugs in the LCM_archive_t.");
+                 "Didn't get the right context! This might imply some bugs in the LCM_archive_t.\n");
   LCM_DBG_Log(LCM_LOG_DEBUG, "complete recvl: ctx %p rank %d buf %p size %lu "
-                             "tag %d user_ctx %p completion attr %p completion %p\n",
+                             "tag %d user_ctx %p completion attr %x completion %p\n",
               ctx, ctx->rank, ctx->data.lbuffer.address, ctx->data.lbuffer.length,
               ctx->tag, ctx->user_context, ctx->comp_attr, ctx->completion);
   lc_ce_dispatch(ctx);
@@ -185,12 +185,12 @@ static inline void LCII_handle_1sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
 {
   LCII_context_t *ctx = (LCII_context_t*) packet->data.rtr.send_ctx;
   if (ctx->data.lbuffer.segment == LCI_SEGMENT_ALL) {
-    LCM_DBG_Assert(LCII_comp_attr_get_dereg(ctx->comp_attr) == 1, "");
+    LCM_DBG_Assert(LCII_comp_attr_get_dereg(ctx->comp_attr) == 1, "\n");
     LCI_memory_register(ep->device, ctx->data.lbuffer.address,
                         ctx->data.lbuffer.length,
                         &ctx->data.lbuffer.segment);
   } else {
-    LCM_DBG_Assert(LCII_comp_attr_get_dereg(ctx->comp_attr) == 0, "");
+    LCM_DBG_Assert(LCII_comp_attr_get_dereg(ctx->comp_attr) == 0, "\n");
   }
   lc_server_put_bq(ep->bq_p, ep->bq_spinlock_p, ep->device->server, ctx->rank,
                    ctx->data.lbuffer.address, ctx->data.lbuffer.length,
@@ -207,7 +207,7 @@ static inline void LCII_handle_1sided_writeImm(LCI_endpoint_t ep, uint64_t ctx_k
   LCII_context_t *ctx =
       (LCII_context_t*)LCM_archive_remove(ep->ctx_archive_p, ctx_key);
   LCM_DBG_Assert(ctx->data_type == LCI_LONG,
-                 "Didn't get the right context! This might imply some bugs in the LCM_archive_t.");
+                 "Didn't get the right context! This might imply some bugs in the LCM_archive_t.\n");
   // recvl has been completed locally. Need to process completion.
   lc_ce_dispatch(ctx);
 }

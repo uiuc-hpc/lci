@@ -5,7 +5,7 @@ struct LCID_server_opaque_t;
 typedef struct LCID_server_opaque_t* LCIS_server_t;
 
 typedef struct LCIS_mr_t {
-  // an opaque handler representing a dreg_entry (if USE_DREG is defined)
+  // an opaque handler representing a dreg_entry (if LCI_USE_DREG is defined)
   // or a server-specific mr object
   uintptr_t mr_p;
   void * address;

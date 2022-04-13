@@ -1,0 +1,1 @@
+configure_file(lci_config.h.in lci_config.h @ONLY)

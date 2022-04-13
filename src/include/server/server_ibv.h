@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include "infiniband/verbs.h"
-#ifdef USE_DREG
+#ifdef LCI_USE_DREG
 #include "dreg.h"
 #endif
 
@@ -66,7 +66,7 @@ static inline void _real_server_dereg(uintptr_t mem)
   ibv_dereg_mr((struct ibv_mr*)mem);
 }
 
-#ifdef USE_DREG
+#ifdef LCI_USE_DREG
 static inline LCIS_mr_t lc_server_rma_reg(LCIS_server_t s, void* buf, size_t size)
 {
   dreg_entry *entry = dreg_register(s, buf, size);

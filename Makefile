@@ -112,7 +112,7 @@ COMM = lci.o plist.o config.o pool.o misc.o lcrq.o pt2pt.o 1sided.o cq.o mt.o $(
 
 ifeq ($(LCI_USE_DREG), yes)
 LIBOBJ += $(addprefix $(OBJDIR)/, $(DREG))
-CFLAGS += -DUSE_DREG
+CFLAGS += -DLCI_USE_DREG
 endif
 
 OBJECTS = $(addprefix $(OBJDIR)/, $(COMM))
