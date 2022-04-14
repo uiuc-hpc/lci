@@ -146,7 +146,7 @@ target_link_libraries(LCI PUBLIC
         $<$<BOOL:${LCI_SYNC_ABT}>:Argobots::Argobots>
         )
 if(LCI_USE_AVX)
-  target_compile_options(LCI PRIVATE -mavx)
+  target_compile_options(LCI PUBLIC -mavx)
 endif()
 
 #set_target_properties(LCI PROPERTIES OUTPUT_NAME lci)
