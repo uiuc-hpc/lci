@@ -3,7 +3,7 @@
 LCI_error_t LCI_plist_create(LCI_plist_t* plist_ptr)
 {
   struct LCI_plist_s* plist = LCIU_malloc(sizeof(struct LCI_plist_s));
-  plist->match_type = LCI_MATCH_TAG;
+  plist->match_type = LCI_MATCH_RANKTAG;
   plist->cmd_comp_type = LCI_COMPLETION_QUEUE;
   plist->msg_comp_type = LCI_COMPLETION_QUEUE;
   plist->default_comp = LCI_UR_CQ;
