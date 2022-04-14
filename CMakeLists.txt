@@ -10,7 +10,7 @@ endif()
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 option(LCI_DEBUG "LCI Debug Mode" OFF)
-option(LCI_USE_DREG "Use registration cache (can be buggy when the allocation/free is too dynamic)" ON)
+option(LCI_USE_DREG "Use registration cache (can be buggy when the allocation/free is too dynamic)" OFF)
 option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
 option(LCI_WITH_EXAMPLES "Build LCI examples" ON)
 option(LCI_WITH_TESTS "Build LCI tests" ON)
