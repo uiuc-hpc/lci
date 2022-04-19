@@ -31,6 +31,7 @@ void lc_server_init(LCI_device_t device, LCIS_server_t* s)
   LCM_Log(LCM_LOG_INFO, "Control progress mode: %s\n", fi_tostr(&(server->info->domain_attr->control_progress), FI_TYPE_PROGRESS));
   LCM_Log(LCM_LOG_INFO, "Data progress mode: %s\n", fi_tostr(&(server->info->domain_attr->data_progress), FI_TYPE_PROGRESS));
   LCM_Log(LCM_LOG_INFO, "Capacities: %s\n", fi_tostr(&(server->info->caps), FI_TYPE_CAPS));
+  LCM_Log(LCM_LOG_INFO, "Mode: %s\n", fi_tostr(&(server->info->mode), FI_TYPE_MODE));
   LCM_Log(LCM_LOG_MAX, "Fi_info provided: %s\n", fi_tostr(server->info, FI_TYPE_INFO));
   LCM_Log(LCM_LOG_MAX, "Fabric attributes: %s\n", fi_tostr(server->info->fabric_attr, FI_TYPE_FABRIC_ATTR));
   LCM_Log(LCM_LOG_MAX, "Domain attributes: %s\n", fi_tostr(server->info->domain_attr, FI_TYPE_DOMAIN_ATTR));

@@ -14,9 +14,8 @@
   {                                                                   \
     int err = (x);                                                    \
     if (err) {                                                        \
-      fprintf(stderr, "err %d : %s (%s:%d)\n",                        \
+      LCM_Assert(false, "err %d : %s (%s:%d)\n",                      \
               err, strerror(err), __FILE__, __LINE__);                \
-      exit(EXIT_FAILURE);                                             \
     }                                                                 \
   }                                                                   \
   while (0)                                                           \

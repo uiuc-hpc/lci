@@ -21,8 +21,8 @@
     int err = (x);                                                        \
     if (err < 0) err = -err;                                              \
     if (err) {                                                            \
-      printf("err : %s (%s:%d)\n", fi_strerror(err), __FILE__, __LINE__); \
-      exit(err);                                                          \
+      LCM_Assert(false, "err : %s (%s:%d)\n",                             \
+              fi_strerror(err), __FILE__, __LINE__);                      \
     }                                                                     \
   }                                                                       \
   while (0)                                                               \
@@ -180,8 +180,7 @@ static inline int LCID_poll_cq(LCIS_server_t s, LCIS_cq_entry_t*entry) {
   } else {
     LCM_DBG_Assert(ne == -FI_EAVAIL, "unexpected return error: %s\n", fi_strerror(-ne));
     fi_cq_readerr(server->cq, &error, 0);
-    printf("Err: %s\n", fi_strerror(error.err));
-    exit(error.err);
+    LCM_Assert(false, "Err %d: %s\n", error.err, fi_strerror(error.err));
   }
   return ret;
 }
