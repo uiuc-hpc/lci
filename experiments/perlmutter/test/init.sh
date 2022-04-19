@@ -28,6 +28,7 @@ cd init
 #module load craype-network-ofi
 #module load craype
 #module load cray-mpich
+module load cmake
 export CC=gcc
 export CXX=g++
 export Fabric_ROOT=""
