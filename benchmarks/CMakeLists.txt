@@ -22,6 +22,7 @@ endfunction()
 add_lci_benchmarks(
         pingpong.cpp
         pingpong_mt.cpp
+        mem_reg_lat.cpp
 )
 
 function(add_lcit_benchmark name)
