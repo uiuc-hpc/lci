@@ -1,5 +1,5 @@
-target_include_directories(pmi-obj PRIVATE include)
-target_sources_relative(pmi-obj PRIVATE
+target_include_directories(${LIBRARY_NAME} PRIVATE include)
+target_sources_relative(${LIBRARY_NAME} PRIVATE
         simple/simple_pmi.c
         simple/simple_pmiutil.c
 )
