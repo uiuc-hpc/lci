@@ -125,24 +125,6 @@ static inline void* ofi_rma_lkey(LCIS_mr_t mr)
 
 #endif
 
-//static inline LCIS_mr_t lc_server_rma_reg(LCIS_server_t s, void* buf, size_t size)
-//{
-////  return (uintptr_t)dreg_register(s, buf, size);
-//  return _real_server_reg(s, buf, size);
-//}
-//
-//static inline void lc_server_rma_dereg(LCIS_mr_t mr)
-//{
-////  dreg_unregister((dreg_entry*)mem);
-//  _real_server_dereg(mr);
-//}
-//
-//static inline LCIS_rkey_t lc_server_rma_rkey(LCIS_mr_t mr)
-//{
-////  return fi_mr_key((struct fid_mr*)(((dreg_entry*)mem)->memhandle[0]));
-//  return fi_mr_key((struct fid_mr*)(mr));
-//}
-
 static inline int LCID_poll_cq(LCIS_server_t s, LCIS_cq_entry_t*entry) {
   LCISI_server_t *server = (LCISI_server_t*) s;
   struct fi_cq_tagged_entry fi_entry[LCI_CQ_MAX_POLL];
