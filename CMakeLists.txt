@@ -32,6 +32,7 @@ set(LCI_SERVER_MAX_RCVS 64 CACHE STRING "Max posted recvs")
 set(LCI_SERVER_MAX_CQES 65536 CACHE STRING "Max posted cqes")
 set(LCI_SERVER_NUM_PKTS 1024 CACHE STRING "Number of packets")
 set(LCI_CACHE_LINE 64 CACHE STRING "Size of cache line (bytes)")
+option(LCI_OPTIMIZE_FOR_NATIVE "Build with -march=native" OFF)
 option(LCI_USE_AVX "Use GCC vector extension for the immediate field" ON)
 mark_as_advanced(
         LCI_PACKET_SIZE
@@ -126,6 +127,14 @@ if(LCI_USE_GPROF)
   add_compile_options(-pg -fno-inline)
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
   SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
+endif()
+
+if(LCI_OPTIMIZE_FOR_NATIVE)
+  include(CheckCXXCompilerFlag)
+  CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
+  if(COMPILER_SUPPORTS_MARCH_NATIVE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+  endif()
 endif()
 
 add_library(LCI)
