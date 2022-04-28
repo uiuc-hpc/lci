@@ -69,7 +69,7 @@ typedef struct lc_server {
 
   uint32_t heap_rkey;
   lcrq_t free_mr;
-} lc_server __attribute__((aligned(LC_CACHE_LINE)));
+} lc_server __attribute__((aligned(LCI_CACHE_LINE)));
 
 static psm2_mq_tag_t LCI_PSM2_TAGSEL = {{0x0, 0x0, 0x0FFFFFFF}};
 static inline void lc_server_post_recv(LCIS_server_t s, lc_packet* p);
@@ -137,7 +137,7 @@ static inline struct psm_mr* lc_server_get_free_mr(LCIS_server_t s)
 {
   struct psm_mr* mr = (struct psm_mr*)lcrq_dequeue(&s->free_mr);
   if (!mr) {
-    posix_memalign((void**)&mr, LC_CACHE_LINE, sizeof(struct psm_mr));
+    posix_memalign((void**)&mr, LCI_CACHE_LINE, sizeof(struct psm_mr));
   }
   return mr;
 }
@@ -211,7 +211,7 @@ static inline void lc_server_init(int id, LCIS_server_t* dev)
 
   posix_memalign(
       (void**) &s->heap_addr, 8192,
-      LC_SERVER_NUM_PKTS * LC_PACKET_SIZE * 2 + LCI_REGISTERED_SEGMENT_SIZE);
+      LCI_SERVER_MAX_PKTS * LCI_PACKET_SIZE * 2 + LCI_REGISTERED_SEGMENT_SIZE);
 
   lcrq_init(&s->free_mr);
   for (int i = 0; i < 256; i++)
@@ -225,7 +225,7 @@ static inline void lc_server_init(int id, LCIS_server_t* dev)
           (unsigned long long)s->heap_addr, (uint32_t)s->heap_rkey);
   lcm_pm_publish(LCI_RANK, id, ep_name);
 
-  posix_memalign((void**)&(s->rep), LC_CACHE_LINE,
+  posix_memalign((void**)&(s->rep), LCI_CACHE_LINE,
                  sizeof(struct lc_rep) * LCI_NUM_PROCESSES);
 
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
@@ -309,7 +309,7 @@ static inline int lc_server_progress(LCIS_server_t s)
   }
 
   // Post receive if any.
-  if (s->recv_posted < LC_SERVER_MAX_RCVS)
+  if (s->recv_posted < LCI_SERVER_MAX_RCVS)
     lc_server_post_recv(s, lc_pool_get_nb(s->pkpool));
 
   return (err == PSM2_OK);
@@ -318,7 +318,7 @@ static inline int lc_server_progress(LCIS_server_t s)
 static inline void lc_server_post_recv(LCIS_server_t s, lc_packet* p)
 {
   if (p == NULL) {
-    if (s->recv_posted == LC_SERVER_MAX_RCVS / 2 && !g_server_no_recv_packets) {
+    if (s->recv_posted == LCI_SERVER_MAX_RCVS / 2 && !g_server_no_recv_packets) {
       g_server_no_recv_packets = 1;
       LCM_DBG_Log(LCM_LOG_WARN, "deadlock alert\n");
     }
@@ -334,7 +334,7 @@ static inline void lc_server_post_recv(LCIS_server_t s, lc_packet* p)
                               (void*)(PSM_RECV | (uintptr_t)&p->context),
                               (psm2_mq_req_t*)p));
 
-  if (++s->recv_posted == LC_SERVER_MAX_RCVS && g_server_no_recv_packets) g_server_no_recv_packets = 0;
+  if (++s->recv_posted == LCI_SERVER_MAX_RCVS && g_server_no_recv_packets) g_server_no_recv_packets = 0;
 }
 
 static inline void lc_server_send(LCIS_server_t s, void* rep, size_t size,

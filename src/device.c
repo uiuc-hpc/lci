@@ -12,20 +12,20 @@ LCI_error_t LCI_device_init(LCI_device_t * device_ptr)
   LCII_bq_init(&device->bq);
   LCIU_spinlock_init(&device->bq_spinlock);
 
-  const size_t heap_size = LC_CACHE_LINE + LC_SERVER_NUM_PKTS * LC_PACKET_SIZE + LCI_REGISTERED_SEGMENT_SIZE;
+  const size_t heap_size = LCI_CACHE_LINE + LCI_SERVER_MAX_PKTS * LCI_PACKET_SIZE + LCI_REGISTERED_SEGMENT_SIZE;
   LCI_error_t ret = LCI_lbuffer_memalign(device, heap_size, 4096, &device->heap);
   LCM_Assert(ret == LCI_OK, "Device heap memory allocation failed\n");
   uintptr_t base_addr = (uintptr_t) device->heap.address;
 
   uintptr_t base_packet;
-  LCM_Assert(sizeof(struct packet_context) <= LC_CACHE_LINE, "Unexpected packet_context size\n");
-  base_packet = base_addr + LC_CACHE_LINE - sizeof(struct packet_context);
-  LCM_Assert(LC_PACKET_SIZE % LC_CACHE_LINE == 0, "The size of packets should be a multiple of cache line size\n");
+  LCM_Assert(sizeof(struct packet_context) <= LCI_CACHE_LINE, "Unexpected packet_context size\n");
+  base_packet = base_addr + LCI_CACHE_LINE - sizeof(struct packet_context);
+  LCM_Assert(LCI_PACKET_SIZE % LCI_CACHE_LINE == 0, "The size of packets should be a multiple of cache line size\n");
 
   lc_pool_create(&device->pkpool);
-  for (int i = 0; i < LC_SERVER_NUM_PKTS; i++) {
-    lc_packet* p = (lc_packet*)(base_packet + i * LC_PACKET_SIZE);
-    LCM_Assert(((uint64_t)&(p->data)) % LC_CACHE_LINE == 0, "packet.data is not well-aligned\n");
+  for (int i = 0; i < LCI_SERVER_MAX_PKTS; i++) {
+    lc_packet* p = (lc_packet*)(base_packet + i * LCI_PACKET_SIZE );
+    LCM_Assert(((uint64_t)&(p->data)) % LCI_CACHE_LINE == 0, "packet.data is not well-aligned\n");
     p->context.pkpool = device->pkpool;
     p->context.poolid = 0;
     lc_pool_put(device->pkpool, p);
@@ -39,8 +39,8 @@ LCI_error_t LCI_device_free(LCI_device_t *device_ptr)
   LCI_device_t device = *device_ptr;
   LCM_DBG_Log(LCM_LOG_DEBUG, "free device %p\n", device);
   int total_num = lc_pool_count(device->pkpool) + device->recv_posted;
-  if (total_num != LC_SERVER_NUM_PKTS)
-    LCM_DBG_Log(LCM_LOG_WARN, "Potentially losing packets %d != %d\n", total_num, LC_SERVER_NUM_PKTS);
+  if (total_num != LCI_SERVER_MAX_PKTS)
+    LCM_DBG_Log(LCM_LOG_WARN, "Potentially losing packets %d != %d\n", total_num, LCI_SERVER_MAX_PKTS);
   LCII_mt_free(&device->mt);
   LCM_archive_fini(&(device->ctx_archive));
   LCII_bq_fini(&device->bq);
@@ -112,10 +112,10 @@ LCI_error_t LCI_progress(LCI_device_t device)
     ret = LCI_OK;
   }
   // Make sure we always have enough packet, but do not block.
-  while (device->recv_posted < LC_SERVER_MAX_RCVS) {
+  while (device->recv_posted < LCI_SERVER_MAX_RCVS) {
     lc_packet *packet = lc_pool_get_nb(device->pkpool);
     if (packet == NULL) {
-      if (device->recv_posted < LC_SERVER_MAX_RCVS / 2 && !g_server_no_recv_packets) {
+      if (device->recv_posted < LCI_SERVER_MAX_RCVS / 2 && !g_server_no_recv_packets) {
         g_server_no_recv_packets = 1;
         LCM_DBG_Log(LCM_LOG_DEBUG, "WARNING-LC: deadlock alert. There is only "
                                    "%d packets left for post_recv\n",
@@ -128,7 +128,7 @@ LCI_error_t LCI_progress(LCI_device_t device)
                         *(device->heap.segment), packet);
     ++device->recv_posted;
   }
-  if (device->recv_posted == LC_SERVER_MAX_RCVS && g_server_no_recv_packets) {
+  if (device->recv_posted == LCI_SERVER_MAX_RCVS && g_server_no_recv_packets) {
     g_server_no_recv_packets = 0;
     LCM_DBG_Log(LCM_LOG_DEBUG, "WARNING-LC: recovered from deadlock alert.\n");
   }

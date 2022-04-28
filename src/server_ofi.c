@@ -36,8 +36,9 @@ void lc_server_init(LCI_device_t device, LCIS_server_t* s)
   LCM_Log(LCM_LOG_MAX, "Fabric attributes: %s\n", fi_tostr(server->info->fabric_attr, FI_TYPE_FABRIC_ATTR));
   LCM_Log(LCM_LOG_MAX, "Domain attributes: %s\n", fi_tostr(server->info->domain_attr, FI_TYPE_DOMAIN_ATTR));
   LCM_Log(LCM_LOG_MAX, "Endpoint attributes: %s\n", fi_tostr(server->info->ep_attr, FI_TYPE_EP_ATTR));
-  LCM_Assert(server->info->domain_attr->cq_data_size >= 4, "cq_data_size = %lu\n", server->info->domain_attr->cq_data_size);
-  LCM_Assert(server->info->domain_attr->mr_key_size <= 8, "mr_key_size = %lu\n", server->info->domain_attr->mr_key_size);
+  LCM_Assert(server->info->domain_attr->cq_data_size >= 4, "cq_data_size (%lu) is too small!\n", server->info->domain_attr->cq_data_size);
+  LCM_Assert(server->info->domain_attr->mr_key_size <= 8, "mr_key_size (%lu) is too large!\n", server->info->domain_attr->mr_key_size);
+  LCM_Assert(server->info->tx_attr->inject_size >= sizeof(LCI_short_t), "inject_size (%lu) < sizeof(LCI_short_t) (%lu)!\n", server->info->tx_attr->inject_size, sizeof(LCI_short_t));
   fi_freeinfo(hints);
 
   // Create libfabric obj.
@@ -53,7 +54,7 @@ void lc_server_init(LCI_device_t device, LCIS_server_t* s)
   struct fi_cq_attr cq_attr;
   memset(&cq_attr, 0, sizeof(struct fi_cq_attr));
   cq_attr.format = FI_CQ_FORMAT_TAGGED;
-  cq_attr.size = LC_SERVER_MAX_CQES;
+  cq_attr.size = LCI_SERVER_MAX_CQES;
   FI_SAFECALL(fi_cq_open(server->domain, &cq_attr, &server->cq, NULL));
 
   // Bind my ep to cq.

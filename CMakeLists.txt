@@ -9,36 +9,35 @@ enable_testing()
 endif()
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
-option(LCI_DEBUG "LCI Debug Mode" OFF)
-option(LCI_USE_DREG "Use registration cache (can be buggy when the allocation/free is too dynamic)" OFF)
-option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
 option(LCI_WITH_EXAMPLES "Build LCI examples" ON)
 option(LCI_WITH_TESTS "Build LCI tests" ON)
 option(LCI_WITH_BENCHMARKS "Build LCI benchmarks" ON)
 option(LCI_WITH_DOC "Build LCI documentation" ON)
+
 set(LCI_SERVER ofi CACHE STRING "Fabric")
 set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv psm2)
-set(LCI_EP_AR dynamic explicit CACHE STRING "Addressing mode (dynamic, explicit, immediate)")
+option(LCI_DEBUG "LCI Debug Mode" OFF)
+option(LCI_OPTIMIZE_FOR_NATIVE "Build with -march=native" OFF)
+option(LCI_USE_AVX "Use GCC vector extension for the immediate field" ON)
+option(LCI_USE_DREG "Use registration cache (can be buggy when the allocation/free is too dynamic)" OFF)
+
 set(LCI_EP_CE sync cq am CACHE STRING "Completion mechanism (sync, cq, am, glob)")
-set(LCI_MAX_DEV 1 CACHE STRING "Maximum number of devices")
-set(LCI_MAX_EP 8 CACHE STRING "Maximum number of EP")
 set(LCI_SYNC flag CACHE STRING "Sync mechanism")
 set_property(CACHE LCI_SYNC PROPERTY STRINGS flag argobots)
 
-set(LCI_PACKET_SIZE ${LCI_PACKET_SIZE} CACHE STRING "Size of packet")
-set(LCI_MAX_INLINE ${LCI_MAX_INLINE} CACHE STRING "Max inline message size")
+option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
+set(LCI_PACKET_SIZE 8192 CACHE STRING "Size of packet")
 set(LCI_DEV_MEM_SIZE "(64*1024*1024)" CACHE STRING "Size of device memory")
 set(LCI_SERVER_MAX_RCVS 64 CACHE STRING "Max posted recvs")
 set(LCI_SERVER_MAX_CQES 65536 CACHE STRING "Max posted cqes")
 set(LCI_SERVER_NUM_PKTS 1024 CACHE STRING "Number of packets")
 set(LCI_CACHE_LINE 64 CACHE STRING "Size of cache line (bytes)")
-option(LCI_OPTIMIZE_FOR_NATIVE "Build with -march=native" OFF)
-option(LCI_USE_AVX "Use GCC vector extension for the immediate field" ON)
 mark_as_advanced(
+        LCI_CONFIG_USE_ALIGNED_ALLOC
         LCI_PACKET_SIZE
-        LCI_MAX_INLINE
         LCI_DEV_MEM_SIZE
         LCI_SERVER_MAX_RCVS
+        LCI_SERVER_MAX_CQES
         LCI_SERVER_NUM_PKTS
         LCI_CACHE_LINE
 )
@@ -58,16 +57,6 @@ elseif(LCI_SERVER STREQUAL "psm2")
   set(LCI_USE_SERVER_PSM ON)
 else()
   message(FATAL_ERROR "Fabric ${LCI_SERVER} not supported")
-endif()
-
-if("dynamic" IN_LIST LCI_EP_AR)
-  set(LCI_SERVER_HAS_DYN ON)
-endif()
-if("explicit" IN_LIST LCI_EP_AR)
-  set(LCI_SERVER_HAS_EXP ON)
-endif()
-if("immediate" IN_LIST LCI_EP_AR)
-  set(LCI_SERVER_HAS_IMM ON)
 endif()
 
 if("sync" IN_LIST LCI_EP_CE)
@@ -96,20 +85,6 @@ mark_as_advanced(USE_AFFI)
 if(USE_AFFI)
   set(AFF_DEBUG ON)
   add_compile_definitions(USE_AFFI AFF_DEBUG)
-endif()
-
-#NOTE(danghvu): These numbers are tweaked for performance and some alignment.
-#Update at our own risk.
-if(LCI_USE_SERVER_OFI)
-  set(LCI_PACKET_SIZE "(32 * 1024 + 4096)")
-else()
-  set(LCI_PACKET_SIZE "(8 * 1024 + 4096)")
-endif()
-
-if(LCI_USE_SERVER_PSM)
-  set(LCI_MAX_INLINE "1024")
-else()
-  set(LCI_MAX_INLINE "64")
 endif()
 
 # find package

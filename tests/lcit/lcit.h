@@ -56,7 +56,7 @@ struct Config {
   int nthreads = 1;
   bool thread_pin = false;
   size_t min_msg_size = 8;
-  size_t max_msg_size = 8192;
+  size_t max_msg_size = LCI_MEDIUM_SIZE;
   int send_window = 1;
   int recv_window = 1;
   bool touch_data = false;

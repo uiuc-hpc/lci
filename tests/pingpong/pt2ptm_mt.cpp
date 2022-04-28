@@ -6,7 +6,7 @@
 #include "comm_exp.h"
 
 #undef MAX_MSG
-#define MAX_MSG (8 * 1024)
+#define MAX_MSG LCI_MEDIUM_SIZE
 
 /**
  * Multithreaded ping-pong test with sendbc/recvbc

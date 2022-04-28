@@ -12,6 +12,7 @@ LCI_error_t LCI_sendm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                       LCI_tag_t tag)
 {
   LCM_DBG_Assert(tag <= LCI_MAX_TAG, "tag %d is too large (maximum: %d)\n", tag, LCI_MAX_TAG);
+  LCM_DBG_Assert(buffer.length <= LCI_MEDIUM_SIZE, "buffer is too large %lu (maximum: %d)\n", buffer.length, LCI_MEDIUM_SIZE);
   lc_packet* packet = lc_pool_get_nb(ep->pkpool);
   if (packet == NULL)
     // no packet is available
@@ -39,6 +40,7 @@ LCI_error_t LCI_sendmn(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                        LCI_tag_t tag)
 {
   LCM_DBG_Assert(tag <= LCI_MAX_TAG, "tag %d is too large (maximum: %d)\n", tag, LCI_MAX_TAG);
+  LCM_DBG_Assert(buffer.length <= LCI_MEDIUM_SIZE, "buffer is too large %lu (maximum: %d)\n", buffer.length, LCI_MEDIUM_SIZE);
   lc_packet* packet = LCII_mbuffer2packet(buffer);
   packet->context.poolid = (buffer.length > LCI_PACKET_RETURN_THRESHOLD) ?
                            lc_pool_get_local(ep->pkpool) : -1;
@@ -129,6 +131,7 @@ LCI_error_t LCI_recvm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                       LCI_tag_t tag, LCI_comp_t completion, void* user_context)
 {
   LCM_DBG_Assert(tag <= LCI_MAX_TAG, "tag %d is too large (maximum: %d)\n", tag, LCI_MAX_TAG);
+  LCM_DBG_Assert(buffer.length <= LCI_MEDIUM_SIZE, "buffer is too large %lu (maximum: %d)\n", buffer.length, LCI_MEDIUM_SIZE);
   LCII_context_t *ctx = LCIU_malloc(sizeof(LCII_context_t));
   ctx->data.mbuffer = buffer;
   ctx->data_type = LCI_MEDIUM;

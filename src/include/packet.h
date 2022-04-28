@@ -27,7 +27,7 @@ struct __attribute__((packed)) packet_rtr {
   uint32_t recv_ctx_key;  /* the id of the related context on the target side */
 };
 
-struct __attribute__((packed, aligned(LC_CACHE_LINE))) packet_data {
+struct __attribute__((packed, aligned(LCI_CACHE_LINE))) packet_data {
   union {
     struct packet_rts rts;
     struct packet_rtr rtr;
@@ -41,7 +41,7 @@ struct __attribute__((packed)) lc_packet {
 };
 
 static inline void LCII_free_packet(lc_packet* packet) {
-  LCM_DBG_Assert(((uint64_t) packet + sizeof(struct packet_context)) % LC_CACHE_LINE == 0, "Not a packet (address %p)!\n", packet);
+  LCM_DBG_Assert(((uint64_t) packet + sizeof(struct packet_context)) % LCI_CACHE_LINE == 0, "Not a packet (address %p)!\n", packet);
   if (packet->context.poolid != -1)
     lc_pool_put_to(packet->context.pkpool, packet, packet->context.poolid);
   else

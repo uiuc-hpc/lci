@@ -26,9 +26,9 @@ static inline void *LCIU_malloc(size_t size)
     /* Round up to the smallest multiple of LCI_CACHE_LINE
      * which is greater than or equal to size in order to avoid any
      * false-sharing. */
-    size = (size + LC_CACHE_LINE - 1) &
-           (~(LC_CACHE_LINE - 1));
-    return LCIU_memalign(LC_CACHE_LINE, size);
+    size = (size + LCI_CACHE_LINE - 1) &
+           (~(LCI_CACHE_LINE - 1));
+    return LCIU_memalign(LCI_CACHE_LINE, size);
 }
 
 static inline void *LCIU_calloc(size_t num, size_t size)

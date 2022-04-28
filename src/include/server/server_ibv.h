@@ -66,6 +66,17 @@ static inline void _real_server_dereg(uintptr_t mem)
 }
 
 #ifdef LCI_USE_DREG
+static inline uintptr_t get_dma_mem(void* server, void* buf, size_t s)
+{
+  return _real_server_reg(server, buf, s);
+}
+
+static inline int free_dma_mem(uintptr_t mem)
+{
+  _real_server_dereg(mem);
+  return 1;
+}
+
 static inline LCIS_mr_t lc_server_rma_reg(LCIS_server_t s, void* buf, size_t size)
 {
   dreg_entry *entry = dreg_register(s, buf, size);

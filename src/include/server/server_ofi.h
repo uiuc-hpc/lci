@@ -71,6 +71,17 @@ static inline void _real_server_dereg(uintptr_t mr_opaque)
 }
 
 #ifdef LCI_USE_DREG
+static inline uintptr_t get_dma_mem(void* server, void* buf, size_t s)
+{
+  return _real_server_reg(server, buf, s);
+}
+
+static inline int free_dma_mem(uintptr_t mem)
+{
+  _real_server_dereg(mem);
+  return 1;
+}
+
 static inline LCIS_mr_t lc_server_rma_reg(LCIS_server_t s, void* buf, size_t size)
 {
   dreg_entry *entry = dreg_register(s, buf, size);
@@ -169,7 +180,7 @@ static inline int LCID_poll_cq(LCIS_server_t s, LCIS_cq_entry_t*entry) {
 
 static inline void lc_server_post_recv(LCIS_server_t s, void *buf, uint32_t size, LCIS_mr_t mr, void *ctx) {
   LCISI_server_t *server = (LCISI_server_t*) s;
-  FI_SAFECALL(fi_trecv(server->ep, buf, LCI_MEDIUM_SIZE, ofi_rma_lkey(mr),
+  FI_SAFECALL(fi_trecv(server->ep, buf, size, ofi_rma_lkey(mr),
                        FI_ADDR_UNSPEC, /*any*/0, ~(uint64_t)0 /*ignore all*/,
                        ctx));
 }

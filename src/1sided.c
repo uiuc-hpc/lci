@@ -28,6 +28,7 @@ LCI_error_t LCI_putm(LCI_endpoint_t ep, LCI_mbuffer_t mbuffer, int rank,
 LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                       LCI_tag_t tag, uintptr_t remote_completion) {
   LCM_DBG_Assert(tag <= LCI_MAX_TAG, "tag %d is too large (maximum: %d)\n", tag, LCI_MAX_TAG);
+  LCM_DBG_Assert(buffer.length <= LCI_MEDIUM_SIZE, "buffer is too large %lu (maximum: %d)\n", buffer.length, LCI_MEDIUM_SIZE);
   LCM_DBG_Assert(remote_completion == LCI_DEFAULT_COMP_REMOTE,
                  "Only support default remote completion "
                  "(set by LCI_plist_set_default_comp, "
@@ -58,6 +59,7 @@ LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
 LCI_error_t LCI_putmna(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                        LCI_tag_t tag, uintptr_t remote_completion) {
   LCM_DBG_Assert(tag <= LCI_MAX_TAG, "tag %d is too large (maximum: %d)\n", tag, LCI_MAX_TAG);
+  LCM_DBG_Assert(buffer.length <= LCI_MEDIUM_SIZE, "buffer is too large %lu (maximum: %d)\n", buffer.length, LCI_MEDIUM_SIZE);
   LCM_DBG_Assert(remote_completion == LCI_DEFAULT_COMP_REMOTE,
                  "Only support default remote completion "
                  "(set by LCI_plist_set_default_comp, "
