@@ -51,12 +51,18 @@ static inline LCI_error_t lc_server_send(LCIS_server_t s, int rank, void* buf,
                                          void* ctx);
 static inline LCI_error_t lc_server_puts(LCIS_server_t s, int rank, void* buf,
                                          size_t size, uintptr_t base,
-                                         uint32_t offset, LCIS_rkey_t rkey,
-                                         uint32_t meta);
+                                         uint32_t offset, LCIS_rkey_t rkey);
 static inline LCI_error_t lc_server_put(LCIS_server_t s, int rank, void* buf,
                                         size_t size, LCIS_mr_t mr, uintptr_t base,
-                                        uint32_t offset,LCIS_rkey_t rkey,
-                                        LCIS_meta_t meta, void* ctx);
+                                        uint32_t offset,LCIS_rkey_t rkey, void* ctx);
+static inline LCI_error_t lc_server_putImms(LCIS_server_t s, int rank, void* buf,
+                                            size_t size, uintptr_t base,
+                                            uint32_t offset, LCIS_rkey_t rkey,
+                                            uint32_t meta);
+static inline LCI_error_t lc_server_putImm(LCIS_server_t s, int rank, void* buf,
+                                           size_t size, LCIS_mr_t mr, uintptr_t base,
+                                           uint32_t offset,LCIS_rkey_t rkey,
+                                           LCIS_meta_t meta, void* ctx);
 static inline void lc_server_post_recv(LCIS_server_t s, void *buf,
                                        uint32_t size, LCIS_mr_t mr,
                                        void *ctx);

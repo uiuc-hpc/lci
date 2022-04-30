@@ -18,11 +18,17 @@ static inline uint64_t LCII_make_key(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
 
 static inline void lc_ce_dispatch(LCII_context_t *ctx)
 {
+  if (LCII_comp_attr_get_extended(ctx->comp_attr)) {
+    // extended context for iovec
+    LCII_handle_iovec_put_comp((LCII_extended_context_t*) ctx);
+    return;
+  }
   if (LCII_comp_attr_get_free_packet(ctx->comp_attr) == 1) {
       LCII_free_packet(LCII_mbuffer2packet(ctx->data.mbuffer));
   }
   if (LCII_comp_attr_get_dereg(ctx->comp_attr) == 1) {
     LCI_memory_deregister(&ctx->data.lbuffer.segment);
+    ctx->data.lbuffer.segment = LCI_SEGMENT_ALL;
   }
   switch (LCII_comp_attr_get_comp_type(ctx->comp_attr)) {
     case LCI_COMPLETION_NONE:
@@ -119,6 +125,11 @@ static inline void lc_serve_recv(void* p,
           LCII_handle_1sided_rts(ep, packet, src_rank, tag);
           break;
         }
+        case LCI_MSG_IOVEC:
+        {
+          LCII_handle_iovec_rts(ep, packet, src_rank, tag);
+          break;
+        }
         default:
           LCM_Assert(false, "Unknown message type %d!\n", packet->data.rts.msg_type);
       }
@@ -133,6 +144,11 @@ static inline void lc_serve_recv(void* p,
         case LCI_MSG_RDMA_LONG:
         {
           LCII_handle_1sided_rtr(ep, packet);
+          break;
+        }
+        case LCI_MSG_IOVEC:
+        {
+          LCII_handle_iovec_rtr(ep, packet);
           break;
         }
         default:
@@ -169,6 +185,13 @@ static inline void lc_serve_recv(void* p,
       ctx->completion = ep->default_comp;
       ctx->user_context = NULL;
       lc_ce_dispatch(ctx);
+      break;
+    }
+    case LCI_MSG_FIN:
+    {
+      LCM_DBG_Assert(length == sizeof(LCII_context_t*),
+                     "Unexpected FIN message length (%lu)!\n", length);
+      LCII_handle_iovec_recv_FIN(packet);
       break;
     }
     default:

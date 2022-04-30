@@ -6,7 +6,7 @@ struct __attribute__((packed)) packet_context {
   int64_t hwctx[2];
   // Here is LCI context.
   lc_pool *pkpool;    /* the packet pool this packet belongs to */
-  int8_t poolid;      /* id of the pool to return this packet.
+  int poolid;         /* id of the pool to return this packet.
                        * -1 means returning to the local pool */
   int src_rank;
   int length;         /* length for its payload */
@@ -15,16 +15,40 @@ struct __attribute__((packed)) packet_context {
 struct __attribute__((packed)) packet_rts {
   LCI_msg_type_t msg_type;  /* type of the long message */
   uintptr_t send_ctx;  /* the address of the related context on the source side */
-  size_t size;
+  union {
+    // for LCI_LONG
+    size_t size;
+    // for LCI_IOVEC
+    struct {
+      int count;
+      size_t piggy_back_size;
+      size_t size_p[0];
+    };
+  };
 };
 
 struct __attribute__((packed)) packet_rtr {
   LCI_msg_type_t msg_type;  /* type of the long message */
   uintptr_t send_ctx;  /* the address of the related context on the source side */
-  intptr_t remote_addr_base;
-  uint32_t remote_addr_offset;
-  uint64_t rkey;
-  uint32_t recv_ctx_key;  /* the id of the related context on the target side */
+  union {
+    // for LCI_LONG
+    struct {
+      intptr_t remote_addr_base;
+      uint32_t remote_addr_offset;
+      uint64_t rkey;
+      uint32_t
+          recv_ctx_key; /* the id of the related context on the target side */
+    };
+    // for LCI_IOVEC
+    struct {
+      uintptr_t recv_ctx;
+      struct {
+        intptr_t remote_addr_base;
+        uint32_t remote_addr_offset;
+        uint64_t rkey;
+      } remote_iovecs_p[0];
+    };
+  };
 };
 
 struct __attribute__((packed, aligned(LCI_CACHE_LINE))) packet_data {

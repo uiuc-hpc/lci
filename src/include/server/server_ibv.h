@@ -239,6 +239,70 @@ static inline LCI_error_t lc_server_send(LCIS_server_t s, int rank, void* buf,
 }
 
 static inline LCI_error_t lc_server_puts(LCIS_server_t s, int rank, void* buf,
+                                         size_t size, uintptr_t base,
+                                         uint32_t offset, LCIS_rkey_t rkey)
+{
+  LCM_DBG_Log(LCM_LOG_DEBUG, "post puts: rank %d buf %p size %lu base %p offset %d "
+              "rkey %lu\n", rank, buf,
+              size, (void*) base, offset, rkey);
+  LCISI_server_t *server = (LCISI_server_t*) s;
+  LCM_DBG_Assert(size <= server->max_inline, "%lu exceed the inline message size"
+                 "limit! %lu\n", size, server->max_inline);
+  struct ibv_sge list;
+  list.addr	= (uint64_t) buf;
+  list.length   = size;
+  list.lkey	= 0;
+  struct ibv_send_wr wr;
+  wr.wr_id	= 0;
+  wr.next       = NULL;
+  wr.sg_list    = &list;
+  wr.num_sge    = 1;
+  wr.opcode     = IBV_WR_RDMA_WRITE;
+  wr.send_flags = IBV_SEND_SIGNALED | IBV_SEND_INLINE;
+  wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
+  wr.wr.rdma.rkey = rkey;
+
+  struct ibv_send_wr *bad_wr;
+  int ret = ibv_post_send(server->qps[rank], &wr, &bad_wr);
+  if (ret == 0) return LCI_OK;
+  else if (ret == ENOMEM) return LCI_ERR_RETRY; // exceed send queue capacity
+  else IBV_SAFECALL(ret);
+}
+
+static inline LCI_error_t lc_server_put(LCIS_server_t s, int rank, void* buf,
+                                        size_t size, LCIS_mr_t mr, uintptr_t base,
+                                        uint32_t offset, LCIS_rkey_t rkey,
+                                        void* ctx)
+{
+  LCM_DBG_Log(LCM_LOG_DEBUG, "post put: rank %d buf %p size %lu lkey %u base %p "
+              "offset %d rkey %lu ctx %p\n", rank, buf,
+              size, ibv_rma_lkey(mr), (void*) base, offset, rkey, ctx);
+  LCISI_server_t *server = (LCISI_server_t*) s;
+
+  struct ibv_sge list;
+  list.addr	= (uint64_t) buf;
+  list.length   = size;
+  list.lkey	= ibv_rma_lkey(mr);
+  struct ibv_send_wr wr;
+  wr.wr_id      = (uint64_t) ctx;
+  wr.next       = NULL;
+  wr.sg_list    = &list;
+  wr.num_sge    = 1;
+  wr.opcode     = IBV_WR_RDMA_WRITE;
+  wr.send_flags = IBV_SEND_SIGNALED;
+  wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
+  wr.wr.rdma.rkey = rkey;
+  if (size <= server->max_inline) {
+    wr.send_flags |= IBV_SEND_INLINE;
+  }
+  struct ibv_send_wr *bad_wr;
+  int ret = ibv_post_send(server->qps[rank], &wr, &bad_wr);
+  if (ret == 0) return LCI_OK;
+  else if (ret == ENOMEM) return LCI_ERR_RETRY; // exceed send queue capacity
+  else IBV_SAFECALL(ret);
+}
+
+static inline LCI_error_t lc_server_putImms(LCIS_server_t s, int rank, void* buf,
                                          size_t size, uintptr_t base, uint32_t offset,
                                          LCIS_rkey_t rkey, uint32_t meta)
 {
@@ -270,7 +334,7 @@ static inline LCI_error_t lc_server_puts(LCIS_server_t s, int rank, void* buf,
   else IBV_SAFECALL(ret);
 }
 
-static inline LCI_error_t lc_server_put(LCIS_server_t s, int rank, void* buf,
+static inline LCI_error_t lc_server_putImm(LCIS_server_t s, int rank, void* buf,
                                         size_t size, LCIS_mr_t mr, uintptr_t base,
                                         uint32_t offset, LCIS_rkey_t rkey,
                                         LCIS_meta_t meta, void* ctx)

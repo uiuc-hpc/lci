@@ -355,7 +355,7 @@ static inline void lc_server_sends(LCIS_server_t s, void* rep, void* ubuf,
   PSM_SAFECALL(psm2_mq_send2(s->mq, rep, 0, &rtag, ubuf, size));
 }
 
-static inline void lc_server_puts(LCIS_server_t s, void* rep, void* buf,
+static inline void lc_server_putImms(LCIS_server_t s, void* rep, void* buf,
                                    uintptr_t base __UNUSED__, uint32_t offset,
                                    uint64_t rkey __UNUSED__, uint32_t meta,
                                    size_t size)
@@ -364,7 +364,7 @@ static inline void lc_server_puts(LCIS_server_t s, void* rep, void* buf,
   PSM_SAFECALL(psm2_mq_send2(s->mq, rep, 0, &rtag, buf, size));
 }
 
-static inline void lc_server_put(LCIS_server_t s, void* rep,
+static inline void lc_server_putImm(LCIS_server_t s, void* rep,
                                    uintptr_t base __UNUSED__, uint32_t offset,
                                    uint64_t rkey __UNUSED__, size_t size,
                                    uint32_t meta, lc_packet* ctx)
@@ -375,7 +375,7 @@ static inline void lc_server_put(LCIS_server_t s, void* rep,
                               (psm2_mq_req_t*)ctx));
 }
 
-static inline void lc_server_putl(LCIS_server_t s, void* rep, void* buffer,
+static inline void lc_server_putImml(LCIS_server_t s, void* rep, void* buffer,
                                    uintptr_t base __UNUSED__, uint32_t offset,
                                    uint64_t rkey, size_t size, uint32_t sid,
                                    lc_packet* ctx)

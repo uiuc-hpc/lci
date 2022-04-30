@@ -72,7 +72,7 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
   packet->context.poolid = -1;
 
   LCII_context_t *rts_ctx = LCIU_malloc(sizeof(LCII_context_t));
-  rts_ctx->data.mbuffer.address = (void*) &(packet->data);
+  rts_ctx->data.mbuffer.address = (void*) packet->data.address;
   LCII_initilize_comp_attr(rts_ctx->comp_attr);
   LCII_comp_attr_set_free_packet(rts_ctx->comp_attr, 1);
 

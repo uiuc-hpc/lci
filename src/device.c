@@ -61,13 +61,22 @@ static inline LCI_error_t LCII_progress_bq(LCI_device_t device) {
   LCI_error_t ret = LCI_ERR_RETRY;
   LCII_bq_entry_t *entry = LCII_bq_top(&device->bq);
   if (entry != NULL) {
-    if (entry->bqe_type == LCII_BQ_SEND) {
+    if (entry->bqe_type == LCII_BQ_SENDS) {
+      ret = lc_server_sends(entry->s, entry->rank, entry->buf, entry->size,
+                           entry->meta);
+    } else if (entry->bqe_type == LCII_BQ_SEND) {
       ret = lc_server_send(entry->s, entry->rank, entry->buf, entry->size,
                            entry->mr, entry->meta, entry->ctx);
-    } else {
+    } else if (entry->bqe_type == LCII_BQ_PUT) {
       ret = lc_server_put(entry->s, entry->rank, entry->buf, entry->size,
                           entry->mr, entry->base, entry->offset, entry->rkey,
+                          entry->ctx);
+    } else if (entry->bqe_type == LCII_BQ_PUTIMM) {
+      ret = lc_server_putImm(entry->s, entry->rank, entry->buf, entry->size,
+                          entry->mr, entry->base, entry->offset, entry->rkey,
                           entry->meta, entry->ctx);
+    } else {
+      LCM_DBG_Assert(false, "Unknown bqe_type (%d)!\n", entry->bqe_type);
     }
     if (ret == LCI_OK) {
       LCII_bq_pop(&device->bq);

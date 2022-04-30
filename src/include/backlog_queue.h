@@ -2,8 +2,10 @@
 #define LCI_BACKLOG_QUEUE_H
 
 typedef enum {
+  LCII_BQ_SENDS,
   LCII_BQ_SEND,
   LCII_BQ_PUT,
+  LCII_BQ_PUTIMM,
 } LCII_bqe_type_t;
 
 // backlog queue entry, 84 B

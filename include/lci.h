@@ -141,6 +141,16 @@ typedef union {
 //typedef uint64_t LCI_short_t;
 
 /**
+ * LCI IOVEC.
+ */
+struct LCI_iovec_t {
+  LCI_mbuffer_t piggy_back; // 16 bytes
+  LCI_lbuffer_t *lbuffers;  // 8 bytes
+  int count;                // 4 bytes
+};
+typedef struct LCI_iovec_t LCI_iovec_t; // 28 bytes
+
+/**
  * The type of data associated with a buffer.
  * @todo should we add a flag to identify whether this buffer is allocated by users or LCI?
 */
@@ -148,6 +158,7 @@ typedef union {
   LCI_short_t immediate;  // 32 bytes
   LCI_mbuffer_t mbuffer;  // 16 bytes
   LCI_lbuffer_t lbuffer;  // 24 bytes
+  LCI_iovec_t iovec;      // 28 bytes
 } LCI_data_t;
 
 /**
@@ -359,7 +370,10 @@ LCI_API
 LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
                       LCI_comp_t completion, int rank, LCI_tag_t tag,
                       uintptr_t remote_completion, void* user_context);
-
+LCI_API
+LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
+                     LCI_comp_t completion, int rank, LCI_tag_t tag,
+                     uintptr_t remote_completion, void* user_context);
 // Completion queue
 LCI_API
 LCI_error_t LCI_queue_create(LCI_device_t device, LCI_comp_t* cq);
@@ -413,6 +427,9 @@ LCI_API
 LCI_error_t LCI_lbuffer_memalign(LCI_device_t device, size_t size, size_t alignment, LCI_lbuffer_t* lbuffer);
 LCI_API
 LCI_error_t LCI_lbuffer_free(LCI_lbuffer_t lbuffer);
+// other helper functions
+LCI_API
+size_t LCI_get_iovec_piggy_back_size(int count);
 
 #ifdef __cplusplus
 }

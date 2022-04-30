@@ -7,6 +7,7 @@ add_lci_tests(
             pt2ptl_dyn.c
             pt2ptmn.c
             putla.c
+            putva.c
 #            puti-self.c
 #            putbc-self.c
         LABELS loopback

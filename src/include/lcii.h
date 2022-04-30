@@ -96,33 +96,49 @@ struct LCI_endpoint_s {
  * (2) for issue_recv->recv_completion, go through the matching table
  * (3) for issue_recvl->issue_rtr->rdma_completion, go through the matching table and register
  * It is also used by rendezvous protocol to pass information between different steps
- * (1) for sending_RTS->sending_WriteImm, go through the send_ctx field of the RTS and RTR messages
- * (2) for sending_RTR->complet_WriteImm, go through the ctx_archive. Its key is
+ * (1) for sending_RTS->sending_WriteImm (long,iovec), go through the send_ctx field of the RTS and RTR messages
+ * (2) for sending_RTR->complet_WriteImm (long), go through the ctx_archive. Its key is
  *     passed by the recv_ctx_key field of RTR messages/as meta data of WriteImm.
+ * (3) for recving_RTR->complet_All_Write (iovec), go through the ctx_archiveMulti.
+ * (4) for sending_RTR->recving_FIN (iovec), go through the recv_ctx field of RTR and FIN messages.
  */
 typedef struct {
+  // used by LCI internally
+  uint32_t comp_attr;         // 4 bytes
   // LCI_request_t fields, 52 bytes
+  LCI_data_type_t data_type;  // 4 bytes
   void* user_context;         // 8 bytes
   LCI_data_t data;            // 32 bytes
-  LCI_data_type_t data_type;  // 4 bytes
   uint32_t rank;              // 4 bytes
   LCI_tag_t tag;              // 4 bytes
   // used by LCI internally
-  uint32_t comp_attr;         // 4 bytes
   LCI_comp_t completion;      // 8 bytes
 } LCII_context_t __attribute__((aligned(64)));
 /**
  * comp_type: user-defined comp_type
  * free_packet: free mbuffer as a packet.
  * dereg: deregister the lbuffer.
+ * extended: extended context for iovec.
  */
 #define LCII_initilize_comp_attr(comp_attr) comp_attr = 0
 #define LCII_comp_attr_set_comp_type(comp_attr, comp_type) comp_attr = LCIU_set_bits32(comp_attr, comp_type, 3, 0)
 #define LCII_comp_attr_set_free_packet(comp_attr, free_packet) comp_attr = LCIU_set_bits32(comp_attr, free_packet, 1, 3)
 #define LCII_comp_attr_set_dereg(comp_attr, dereg) comp_attr = LCIU_set_bits32(comp_attr, dereg, 1 ,4)
+#define LCII_comp_attr_set_extended(comp_attr, flag) comp_attr = LCIU_set_bits32(comp_attr, flag, 1 ,5)
 #define LCII_comp_attr_get_comp_type(comp_attr) LCIU_get_bits32(comp_attr, 3, 0)
 #define LCII_comp_attr_get_free_packet(comp_attr) LCIU_get_bits32(comp_attr, 1 ,3)
 #define LCII_comp_attr_get_dereg(comp_attr) LCIU_get_bits32(comp_attr, 1 ,4)
+#define LCII_comp_attr_get_extended(comp_attr) LCIU_get_bits32(comp_attr, 1 ,5)
+
+// Extended context for iovec
+typedef struct {
+  uint32_t comp_attr;         // 4 bytes
+  int signal_count;           // 4 bytes
+  int signal_expected;        // 4 bytes
+  uintptr_t recv_ctx;         // 8 bytes
+  LCI_endpoint_t ep;          // 8 bytes
+  LCII_context_t *context;    // 8 bytes
+} LCII_extended_context_t __attribute__((aligned(64)));
 
 /**
  * Synchronizer, owned by the user.
@@ -156,7 +172,7 @@ static inline LCI_request_t LCII_ctx2req(LCII_context_t *ctx) {
 
 // proto
 /*
- * used by LCII_MAKE_PROTO (3 bits) for communication immediate data field
+ * used by LCII_MAKE_PROTO (4 bits) for communication immediate data field
  * and LCII_make_key (2 bits, only use the first three entries) for the matching
  * table key. Take care when modify this enum type.
  */
@@ -166,15 +182,17 @@ typedef enum {
   LCI_MSG_LONG,
   LCI_MSG_RTS,
   LCI_MSG_RTR,
+  LCI_MSG_FIN,
   LCI_MSG_RDMA_SHORT,
   LCI_MSG_RDMA_MEDIUM,
   LCI_MSG_RDMA_LONG,
+  LCI_MSG_IOVEC,
 } LCI_msg_type_t;
 typedef uint32_t LCII_proto_t;
 // 16 bits for tag, 13 bits for rgid, 3 bits for msg_type
-#define LCII_MAKE_PROTO(rgid, msg_type, tag) (msg_type | (rgid << 3) | (tag << 16))
-#define PROTO_GET_TYPE(proto) (proto & 0b0111)
-#define PROTO_GET_RGID(proto) ((proto >> 3) & 0b01111111111111)
+#define LCII_MAKE_PROTO(rgid, msg_type, tag) (msg_type | (rgid << 4) | (tag << 16))
+#define PROTO_GET_TYPE(proto) (proto & 0b01111)
+#define PROTO_GET_RGID(proto) ((proto >> 4) & 0b0111111111111)
 #define PROTO_GET_TAG(proto) ((proto >> 16) & 0xffff)
 static inline uint64_t LCII_make_key(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
                        LCI_msg_type_t msg_type);
