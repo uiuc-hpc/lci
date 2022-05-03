@@ -7,6 +7,7 @@ target_sources_relative(LCI PRIVATE
         lci.c
         memory.c
         lcrq.c
+        misc.c
         mt.c
         plist.c
         pool.c
