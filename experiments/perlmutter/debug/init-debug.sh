@@ -21,13 +21,16 @@ mkdir_s ./init
 cd init
 
 # setup module environment
-module purge
-module load gcc
+#module purge
+#module load gcc
+#module load cmake
+#module load libfabric
+#module load craype-network-ofi
+#module load craype
+#module load cray-mpich
 module load cmake
-module load openmpi
 export CC=gcc
 export CXX=g++
-export Fabric_ROOT="${HOME}/opt/libfabric"
 
 # record build status
 record_env
@@ -41,10 +44,11 @@ cd build
 echo "Running cmake..."
 LCI_INSTALL_PATH=$(realpath "../install")
 cmake -DCMAKE_INSTALL_PREFIX=${LCI_INSTALL_PATH} \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DLCI_DEBUG=OFF \
+      -DCMAKE_BUILD_TYPE=Debug \
+      -DLCI_DEBUG=ON \
       -DLCI_SERVER=ofi \
       -DLCI_PM_BACKEND=mpi \
+      -DLCI_USE_DREG=OFF \
       -DSRUN_EXE=srun \
       -L \
       ${LCI_SOURCE_PATH} | tee init-cmake.log 2>&1 || { echo "cmake error!"; exit 1; }

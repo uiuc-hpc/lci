@@ -31,7 +31,6 @@ cd init
 module load cmake
 export CC=gcc
 export CXX=g++
-export Fabric_ROOT=""
 
 # record build status
 record_env
