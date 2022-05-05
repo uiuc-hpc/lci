@@ -148,6 +148,8 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
                  "(set by LCI_plist_set_default_comp, "
                  "the default value is LCI_UR_CQ)\n");
   LCM_DBG_Assert(iovec.count > 0, "iovec.count = %d!\n", iovec.count);
+  LCM_DBG_Assert(iovec.count <= LCI_IOVEC_SIZE, "iovec.count = %d > "
+                 "LCI_IOVEC_SIZE %d!\n", iovec.count, LCI_IOVEC_SIZE);
   LCM_DBG_Assert(iovec.piggy_back.length <=
                  LCI_get_iovec_piggy_back_size(iovec.count),
                  "iovec's piggy back is too large! (%lu > %lu)\n",

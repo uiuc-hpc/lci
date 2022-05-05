@@ -8,10 +8,10 @@
 #include "comm_exp.h"
 
 int main(int argc, char** args) {
-  int lbuffers_num = 8;
+  int lbuffers_num = LCI_IOVEC_SIZE;
   int piggy_back_size = (int) LCI_get_iovec_piggy_back_size(lbuffers_num);
   int lbuffer_length = 64 * 1024;
-  int loop = 1000;
+  int loop = 10;
 
   LCI_initialize();
   LCI_endpoint_t ep = LCI_UR_ENDPOINT; // we can directly use the default ep

@@ -6,8 +6,9 @@ LCI_API int LCI_RANK;
 LCI_API int LCI_MAX_ENDPOINTS;
 LCI_API int LCI_MAX_TAG = (1u << 15) - 1;
 LCI_API int LCI_MEDIUM_SIZE = LCI_PACKET_SIZE - sizeof(struct packet_context);
-LCI_API int LCI_IOVEC_SIZE = (LCI_PACKET_SIZE - sizeof(struct packet_context) -
-                              sizeof(struct packet_rts)) / sizeof(size_t);
+LCI_API int LCI_IOVEC_SIZE = LCIU_MIN(
+    (LCI_PACKET_SIZE - sizeof(struct packet_context) - sizeof(struct packet_rts)) / sizeof(size_t),
+    (LCI_PACKET_SIZE - sizeof(struct packet_context) - sizeof(struct packet_rtr)) / sizeof(struct packet_rtr_iovec_info));
 LCI_API int LCI_REGISTERED_SEGMENT_SIZE;
 LCI_API int LCI_MAX_REGISTERED_SEGMENT_SIZE = INT_MAX;
 LCI_API int LCI_MAX_REGISTERED_SEGMENT_NUMBER = 1;

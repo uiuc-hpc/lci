@@ -309,9 +309,9 @@ static inline void LCII_handle_iovec_rts(LCI_endpoint_t ep, lc_packet* packet,
         lc_server_rma_rkey(*(rdv_ctx->data.iovec.lbuffers[i].segment));
   }
 
-  LCM_DBG_Log(LCM_LOG_DEBUG, "send rtr: type %d sctx %p rctx %p\n",
+  LCM_DBG_Log(LCM_LOG_DEBUG, "send rtr: type %d sctx %p count %d rctx %p\n",
               packet->data.rtr.msg_type, (void*) packet->data.rtr.send_ctx,
-              (void*) packet->data.rtr.recv_ctx);
+              rdv_ctx->data.iovec.count, (void*) packet->data.rtr.recv_ctx);
   size_t length = (uintptr_t) &packet->data.rtr.remote_iovecs_p[rdv_ctx->data.iovec.count] - (uintptr_t) packet->data.address;
   lc_server_send_bq(ep->bq_p, ep->bq_spinlock_p,
                     ep->device->server, rdv_ctx->rank, packet->data.address,

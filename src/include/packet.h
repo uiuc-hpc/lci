@@ -27,26 +27,28 @@ struct __attribute__((packed)) packet_rts {
   };
 };
 
+struct __attribute__((packed)) packet_rtr_iovec_info {
+  uint64_t rkey;
+  intptr_t remote_addr_base;
+  uint32_t remote_addr_offset;
+};
+
 struct __attribute__((packed)) packet_rtr {
   LCI_msg_type_t msg_type;  /* type of the long message */
   uintptr_t send_ctx;  /* the address of the related context on the source side */
   union {
     // for LCI_LONG
     struct {
+      uint64_t rkey;
       intptr_t remote_addr_base;
       uint32_t remote_addr_offset;
-      uint64_t rkey;
       uint32_t
           recv_ctx_key; /* the id of the related context on the target side */
     };
     // for LCI_IOVEC
     struct {
       uintptr_t recv_ctx;
-      struct {
-        intptr_t remote_addr_base;
-        uint32_t remote_addr_offset;
-        uint64_t rkey;
-      } remote_iovecs_p[0];
+      struct packet_rtr_iovec_info remote_iovecs_p[0];
     };
   };
 };
