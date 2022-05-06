@@ -18,7 +18,8 @@ static inline void lc_server_sends_bq(LCII_backlog_queue_t *bq_p,
   entry->bqe_type = LCII_BQ_SENDS;
   entry->s = s;
   entry->rank = rank;
-  entry->buf = buf;
+  entry->buf = LCIU_malloc(size);
+  memcpy(entry->buf, buf, size);
   entry->size = size;
   entry->meta = meta;
   LCIU_acquire_spinlock(bq_spinlock_p);

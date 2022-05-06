@@ -80,6 +80,8 @@ static inline LCI_error_t LCII_progress_bq(LCI_device_t device) {
     }
     if (ret == LCI_OK) {
       LCII_bq_pop(&device->bq);
+      if (entry->bqe_type == LCII_BQ_SENDS)
+        LCIU_free(entry->buf);
     }
   }
   LCIU_release_spinlock(&device->bq_spinlock);
