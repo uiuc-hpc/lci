@@ -189,7 +189,7 @@ typedef enum {
   LCI_MSG_IOVEC,
 } LCI_msg_type_t;
 typedef uint32_t LCII_proto_t;
-// 16 bits for tag, 13 bits for rgid, 3 bits for msg_type
+// 16 bits for tag, 12 bits for rgid, 4 bits for msg_type
 #define LCII_MAKE_PROTO(rgid, msg_type, tag) (msg_type | (rgid << 4) | (tag << 16))
 #define PROTO_GET_TYPE(proto) (proto & 0b01111)
 #define PROTO_GET_RGID(proto) ((proto >> 4) & 0b0111111111111)

@@ -18,7 +18,7 @@ static inline uint64_t LCII_make_key(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
 
 static inline void lc_ce_dispatch(LCII_context_t *ctx)
 {
-  if (LCII_comp_attr_get_extended(ctx->comp_attr)) {
+  if (LCII_comp_attr_get_extended(ctx->comp_attr) == 1) {
     // extended context for iovec
     LCII_handle_iovec_put_comp((LCII_extended_context_t*) ctx);
     return;

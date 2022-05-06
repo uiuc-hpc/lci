@@ -356,6 +356,7 @@ static inline void LCII_handle_iovec_put_comp(LCII_extended_context_t *ectx)
   if (ectx->signal_count < ectx->signal_expected) {
     return;
   }
+  LCM_DBG_Assert(ectx->signal_count == ectx->signal_expected, "Unexpected signal!\n");
   LCII_context_t *ctx = ectx->context;
   if (LCII_comp_attr_get_dereg(ectx->comp_attr) == 1) {
     for (int i = 0; i < ctx->data.iovec.count; ++i) {
@@ -363,6 +364,7 @@ static inline void LCII_handle_iovec_put_comp(LCII_extended_context_t *ectx)
       ctx->data.iovec.lbuffers[i].segment = LCI_SEGMENT_ALL;
     }
   }
+  LCM_DBG_Log(LCM_LOG_DEBUG, "send FIN: rctx %p\n", (void*) ectx->recv_ctx);
   lc_server_sends_bq(ectx->ep->bq_p, ectx->ep->bq_spinlock_p,
                      ectx->ep->device->server, ctx->rank, &ectx->recv_ctx,
                   sizeof(ectx->recv_ctx),
@@ -375,8 +377,9 @@ static inline void LCII_handle_iovec_recv_FIN(lc_packet* packet)
 {
   LCII_context_t *ctx;
   memcpy(&ctx, packet->data.address, sizeof(ctx));
+  LCM_DBG_Log(LCM_LOG_DEBUG, "recv FIN: rctx %p\n", ctx);
   LCM_DBG_Assert(ctx->data_type == LCI_IOVEC,
-                 "Didn't get the right context!.\n");
+                 "Didn't get the right context (%p type=%d)!.\n", ctx, ctx->data_type);
   // recvl has been completed locally. Need to process completion.
   LCII_free_packet(packet);
   lc_ce_dispatch(ctx);
