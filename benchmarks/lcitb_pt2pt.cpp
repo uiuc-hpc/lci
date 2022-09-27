@@ -5,7 +5,7 @@
 using namespace lcit;
 
 void test(Context ctx) {
-  int tag = 245;
+  int tag = 245 + TRD_RANK_ME;
   //  int peer_rank = ((1 - LCI_RANK % 2) + LCI_RANK / 2 * 2) % LCI_NUM_PROCESSES; // 0 <-> 1, 2 <-> 3
   int peer_rank = (LCI_RANK + LCI_NUM_PROCESSES / 2) % LCI_NUM_PROCESSES; // 0 <-> 2 1 <-> 3
 

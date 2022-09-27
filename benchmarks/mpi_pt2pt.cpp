@@ -17,7 +17,7 @@ using namespace lcit;
 int rank, nranks;
 
 void test(Context ctx) {
-  int tag = 245;
+  int tag = 245 + TRD_RANK_ME;
 //  int peer_rank = ((1 - rank % 2) + rank / 2 * 2) % nranks; // 0 <-> 1, 2 <-> 3
   int peer_rank = (rank + nranks / 2) % nranks; // 0 <-> 2 1 <-> 3
   char *send_buf;
