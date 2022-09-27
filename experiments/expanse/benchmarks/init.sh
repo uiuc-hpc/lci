@@ -35,7 +35,7 @@ record_env
 mkdir -p log
 mv *.log log
 
-# build FB
+# build LCI
 mkdir -p build
 cd build
 echo "Running cmake..."
