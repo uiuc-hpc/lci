@@ -8,7 +8,4 @@
 #SBATCH --output=slurm_output.%x-o%j
 #SBATCH --error=slurm_error.%x-o%j
 
-export PATH_TO_BUILD_DIR=${1:-./init/build/}
-export PATH_TO_EXE=${PATH_TO_BUILD_DIR}/benchmarks
-
-srun --mpi=pmi2 profile_wrapper.sh
+srun --mpi=pmi2 bash ${ROOT_PATH}/profile_wrapper.sh

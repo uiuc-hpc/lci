@@ -5,7 +5,7 @@ set -e
 # import the the script containing common functions
 source ../../include/scripts.sh
 
-TASKS=("mt.slurm")
+TASKS=("mbw.slurm")
 sbatch_path=$(realpath "${sbatch_path:-.}")
 build_path=$(realpath "${exe_path:-init/build/}")
 

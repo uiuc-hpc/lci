@@ -5,13 +5,13 @@ set -e
 # import the the script containing common functions
 source ../../include/scripts.sh
 
-sbatch_path=$(realpath "${sbatch_path:-.}")
-build_path=$(realpath "${exe_path:-init/build/}")
+ROOT_PATH=$(realpath "${ROOT_PATH:-.}")
+export ROOT_PATH=$ROOT_PATH
 
-if [[ -d "${build_path}" ]]; then
-  echo "Run LCI profile at ${exe_path}"
+if [[ -d "${ROOT_PATH}" ]]; then
+  echo "Run LCI profile at ${ROOT_PATH}"
 else
-  echo "Did not find profile at ${exe_path}!"
+  echo "Did not find profile at ${ROOT_PATH}!"
   exit 1
 fi
 
@@ -19,5 +19,5 @@ fi
 mkdir_s ./profile
 cd profile
 
-sbatch ${sbatch_path}/profile.slurm ${build_path} || { echo "sbatch error!"; exit 1; }
+sbatch ${ROOT_PATH}/profile.slurm || { echo "sbatch error!"; exit 1; }
 cd ..

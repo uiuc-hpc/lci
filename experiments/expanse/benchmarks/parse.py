@@ -7,16 +7,16 @@ import os,sys
 sys.path.append("../../include")
 from draw_simple import *
 
-name = "bw"
-input_path = "run/slurm_output.bw-*"
+name = "all"
+input_path = "run/slurm_output.*-o*"
 output_path = "data/"
 edge_srun = {
-    "format": "srun (.+)",
-    "label": ["task"],
+    "format": "srun (\S+) (.+)",
+    "label": ["job", "task"],
 }
 edge_data = {
-    "format": "(\d+)\s+(\S+)\s+(\S+).+",
-    "label": ["Size(B)", "latency(us)", "bandwidth(MB/s)"]
+    "format": "(\d+)\s+(\S+)\s+(\S+)\s+(\S+).+",
+    "label": ["Size(B)", "latency(us)", "message rate(mps)", "bandwidth(MB/s)"]
 }
 all_labels = edge_srun["label"] + edge_data["label"]
 
@@ -64,4 +64,5 @@ if __name__ == "__main__":
     else:
         print("get {} entries".format(df.shape[0]))
     df["Size(B)"] = np.log2(df["Size(B)"].astype(np.float32)).astype(np.int)
+    df["latency(us)"] = df["latency(us)"] / 2
     df.to_csv(os.path.join(output_path, "{}.csv".format(name)))
