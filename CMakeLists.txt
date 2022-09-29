@@ -183,7 +183,7 @@ if( CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
           "${CMAKE_CURRENT_BINARY_DIR}/LCIConfigVersion.cmake"
           DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake
           )
-  install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/FindFabric.cmake"
+  install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/Find${FABRIC}.cmake"
           DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LCI
           )
   install(PROGRAMS lcrun DESTINATION ${CMAKE_INSTALL_BINDIR})
