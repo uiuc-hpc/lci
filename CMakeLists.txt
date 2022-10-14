@@ -26,11 +26,11 @@ set(LCI_SYNC flag CACHE STRING "Sync mechanism")
 set_property(CACHE LCI_SYNC PROPERTY STRINGS flag argobots)
 
 option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
-set(LCI_PACKET_SIZE 8192 CACHE STRING "Size of packet")
+set(LCI_PACKET_SIZE 12288 CACHE STRING "Size of packet")
 set(LCI_DEV_MEM_SIZE "(64*1024*1024)" CACHE STRING "Size of device memory")
-set(LCI_SERVER_MAX_RCVS 64 CACHE STRING "Max posted recvs")
+set(LCI_SERVER_MAX_RCVS 1024 CACHE STRING "Max posted recvs")
 set(LCI_SERVER_MAX_CQES 65536 CACHE STRING "Max posted cqes")
-set(LCI_SERVER_NUM_PKTS 1024 CACHE STRING "Number of packets")
+set(LCI_SERVER_NUM_PKTS 8192 CACHE STRING "Number of packets")
 set(LCI_CACHE_LINE 64 CACHE STRING "Size of cache line (bytes)")
 mark_as_advanced(
         LCI_CONFIG_USE_ALIGNED_ALLOC
