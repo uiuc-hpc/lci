@@ -6,13 +6,20 @@ int g_next_rdma_key = 0;
 void lc_server_init(LCI_device_t device, LCIS_server_t* s)
 {
   int device_id = g_device_num++;
-  LCISI_server_t *server = LCIU_malloc(sizeof(LCISI_server_t));
-  *s = (LCIS_server_t) server;
+  LCISI_server_t* server = LCIU_malloc(sizeof(LCISI_server_t));
+  *s = (LCIS_server_t)server;
   server->device = device;
 
   // Create hint.
+  char *p = getenv("LCI_OFI_PROVIDER_HINT");
+  char *prov_name_hint = NULL;
+  if (p != NULL) {
+    prov_name_hint = malloc(strlen(p) + 1);
+    strcpy(prov_name_hint, p);
+  }
   struct fi_info* hints;
   hints = fi_allocinfo();
+  hints->fabric_attr->prov_name = prov_name_hint;
   hints->ep_attr->type = FI_EP_RDM;
 //  hints->domain_attr->mr_mode = FI_MR_BASIC;
   hints->domain_attr->mr_mode = FI_MR_VIRT_ADDR | FI_MR_ALLOCATED | FI_MR_PROV_KEY | FI_MR_LOCAL;
