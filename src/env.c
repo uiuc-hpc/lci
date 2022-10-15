@@ -33,8 +33,6 @@ static inline int getenv_or(char* env, int def) {
 
 void lc_env_init(int num_proc, int rank)
 {
-  char *p;
-
   LCI_MAX_ENDPOINTS = getenv_or("LCI_MAX_ENDPOINTS", 8);
   LCI_NUM_PROCESSES = num_proc;
   LCI_RANK = rank;

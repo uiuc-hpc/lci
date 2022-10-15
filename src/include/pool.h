@@ -53,6 +53,7 @@ static inline void* lc_pool_get_nb(lc_pool* pool);
  */
 extern int LCIU_nthreads;
 extern __thread int LCIU_thread_id;
+extern __thread unsigned int LCIU_rand_seed;
 
 /* thread id */
 static inline int LCIU_get_thread_id()
@@ -64,6 +65,14 @@ static inline int LCIU_get_thread_id()
     }
   }
   return LCIU_thread_id;
+}
+
+static inline int LCIU_rand()
+{
+  if (LCIU_rand_seed == 0) {
+    LCIU_rand_seed = time(NULL) + LCIU_get_thread_id() + rand();
+  }
+  return rand_r(&LCIU_rand_seed);
 }
 
 static inline int32_t lc_pool_get_local(struct lc_pool* pool)
@@ -89,7 +98,7 @@ static inline int32_t lc_pool_get_local(struct lc_pool* pool)
 static inline void* lc_pool_get_slow(struct lc_pool* pool)
 {
   void *ret = NULL;
-  int steal = rand() % (pool->npools);
+  int steal = LCIU_rand() % (pool->npools);
   LCIU_acquire_spinlock(&pool->lpools[steal].lock);
   ret = LCM_dq_pop_bot(&pool->lpools[steal].dq);
   LCIU_release_spinlock(&pool->lpools[steal].lock);
