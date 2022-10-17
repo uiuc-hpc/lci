@@ -263,17 +263,17 @@ void lc_server_init(LCI_device_t device, LCIS_server_t* s)
   server->qp2rank = b;
   LCM_Log(LCM_LOG_INFO, "qp2rank_mod is %d\n", j);
 
-#ifdef LCI_USE_DREG
-  dreg_init();
-#endif
+  if (LCI_USE_DREG == 1) {
+    dreg_init();
+  }
   lcm_pm_barrier();
 }
 
 void lc_server_finalize(LCIS_server_t s)
 {
-#ifdef LCI_USE_DREG
-  dreg_finalize();
-#endif
+  if (LCI_USE_DREG == 1) {
+    dreg_finalize();
+  }
   LCISI_server_t *server = (LCISI_server_t*) s;
   free(server->qp2rank);
   ibv_destroy_cq(server->cq);

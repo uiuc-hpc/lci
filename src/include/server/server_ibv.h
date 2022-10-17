@@ -5,9 +5,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include "infiniband/verbs.h"
-#ifdef LCI_USE_DREG
 #include "dreg.h"
-#endif
 
 #ifdef LCI_DEBUG
 #define IBV_SAFECALL(x)                                               \
@@ -65,60 +63,49 @@ static inline void _real_server_dereg(uintptr_t mem)
   ibv_dereg_mr((struct ibv_mr*)mem);
 }
 
-#ifdef LCI_USE_DREG
 static inline LCIS_mr_t lc_server_rma_reg(LCIS_server_t s, void* buf, size_t size)
 {
-  dreg_entry *entry = dreg_register(s, buf, size);
-  LCM_DBG_Assert(entry != NULL, "Unable to register more memory!");
   LCIS_mr_t mr;
-  mr.mr_p = (uintptr_t) entry;
-  mr.address = (void*) (entry->pagenum << DREG_PAGEBITS);
-  mr.length = entry->npages << DREG_PAGEBITS;
+  if (LCI_USE_DREG == 1) {
+    dreg_entry *entry = dreg_register(s, buf, size);
+    LCM_DBG_Assert(entry != NULL, "Unable to register more memory!");
+    mr.mr_p = (uintptr_t) entry;
+    mr.address = (void*) (entry->pagenum << DREG_PAGEBITS);
+    mr.length = entry->npages << DREG_PAGEBITS;
+  } else {
+    mr.mr_p = _real_server_reg(s, buf, size);
+    mr.address = buf;
+    mr.length = size;
+  }
   return mr;
 }
 
 static inline void lc_server_rma_dereg(LCIS_mr_t mr)
 {
-  dreg_unregister((dreg_entry*)mr.mr_p);
+  if (LCI_USE_DREG == 1) {
+    dreg_unregister((dreg_entry*)mr.mr_p);
+  } else {
+    _real_server_dereg(mr.mr_p);
+  }
 }
 
 static inline LCIS_rkey_t lc_server_rma_rkey(LCIS_mr_t mr)
 {
-  return ((struct ibv_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]))->rkey;
+  if (LCI_USE_DREG == 1) {
+    return ((struct ibv_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]))->rkey;
+  } else {
+    return ((struct ibv_mr*)mr.mr_p)->rkey;
+  }
 }
 
 static inline uint32_t ibv_rma_lkey(LCIS_mr_t mr)
 {
-  return ((struct ibv_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]))->lkey;
+  if (LCI_USE_DREG == 1) {
+    return ((struct ibv_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]))->lkey;
+  } else {
+    return ((struct ibv_mr*)mr.mr_p)->lkey;
+  }
 }
-
-#else
-
-static inline LCIS_mr_t lc_server_rma_reg(LCIS_server_t s, void* buf, size_t size)
-{
-  LCIS_mr_t mr;
-  mr.mr_p = _real_server_reg(s, buf, size);
-  mr.address = buf;
-  mr.length = size;
-  return mr;
-}
-
-static inline void lc_server_rma_dereg(LCIS_mr_t mr)
-{
-  _real_server_dereg(mr.mr_p);
-}
-
-static inline LCIS_rkey_t lc_server_rma_rkey(LCIS_mr_t mr)
-{
-  return ((struct ibv_mr*)mr.mr_p)->rkey;
-}
-
-static inline uint32_t ibv_rma_lkey(LCIS_mr_t mr)
-{
-  return ((struct ibv_mr*)mr.mr_p)->lkey;
-}
-
-#endif
 
 static inline int LCID_poll_cq(LCIS_server_t s, LCIS_cq_entry_t *entry)
 {

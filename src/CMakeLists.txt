@@ -28,7 +28,5 @@ elseif(LCI_USE_SERVER_IBV)
 elseif(LCI_USE_SERVER_PSM)
 endif()
 
-if(LCI_USE_DREG)
-  add_subdirectory(dreg)
-endif()
+add_subdirectory(dreg)
 add_subdirectory(include)

@@ -19,7 +19,6 @@ set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv psm2)
 option(LCI_DEBUG "LCI Debug Mode" OFF)
 option(LCI_OPTIMIZE_FOR_NATIVE "Build with -march=native" OFF)
 option(LCI_USE_AVX "Use GCC vector extension for the immediate field" ON)
-option(LCI_USE_DREG "Use registration cache (can be buggy when the allocation/free is too dynamic)" OFF)
 
 set(LCI_EP_CE sync cq am CACHE STRING "Completion mechanism (sync, cq, am, glob)")
 set(LCI_SYNC flag CACHE STRING "Sync mechanism")

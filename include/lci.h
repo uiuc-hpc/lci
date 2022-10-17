@@ -291,6 +291,13 @@ extern int LCI_MAX_SYNC_LENGTH;
  */
 extern int LCI_PACKET_RETURN_THRESHOLD;
 
+/**
+ * Whether to use the registration cache
+ * 0: turn off.
+ * 1: turn on.
+ */
+extern int LCI_USE_DREG;
+
 extern LCI_device_t LCI_UR_DEVICE;
 extern LCI_endpoint_t LCI_UR_ENDPOINT;
 extern LCI_comp_t LCI_UR_CQ;

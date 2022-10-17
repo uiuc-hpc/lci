@@ -7,9 +7,7 @@
 #include <rdma/fi_tagged.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef LCI_USE_DREG
 #include "dreg.h"
-#endif
 
 #include <rdma/fi_cm.h>
 #include <rdma/fi_errno.h>
@@ -70,60 +68,49 @@ static inline void _real_server_dereg(uintptr_t mr_opaque)
   FI_SAFECALL(fi_close((struct fid*) &mr->fid));
 }
 
-#ifdef LCI_USE_DREG
 static inline LCIS_mr_t lc_server_rma_reg(LCIS_server_t s, void* buf, size_t size)
 {
-  dreg_entry *entry = dreg_register(s, buf, size);
-  LCM_DBG_Assert(entry != NULL, "Unable to register more memory!");
   LCIS_mr_t mr;
-  mr.mr_p = (uintptr_t) entry;
-  mr.address = (void*) (entry->pagenum << DREG_PAGEBITS);
-  mr.length = entry->npages << DREG_PAGEBITS;
+  if (LCI_USE_DREG == 1) {
+    dreg_entry *entry = dreg_register(s, buf, size);
+    LCM_DBG_Assert(entry != NULL, "Unable to register more memory!");
+    mr.mr_p = (uintptr_t) entry;
+    mr.address = (void*) (entry->pagenum << DREG_PAGEBITS);
+    mr.length = entry->npages << DREG_PAGEBITS;
+  } else {
+    mr.mr_p = _real_server_reg(s, buf, size);
+    mr.address = buf;
+    mr.length = size;
+  }
   return mr;
 }
 
 static inline void lc_server_rma_dereg(LCIS_mr_t mr)
 {
-  dreg_unregister((dreg_entry*)mr.mr_p);
+  if (LCI_USE_DREG == 1) {
+    dreg_unregister((dreg_entry*)mr.mr_p);
+  } else {
+    _real_server_dereg(mr.mr_p);
+  }
 }
 
 static inline LCIS_rkey_t lc_server_rma_rkey(LCIS_mr_t mr)
 {
-  return fi_mr_key((struct fid_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]));
+  if (LCI_USE_DREG == 1) {
+    return fi_mr_key((struct fid_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]));
+  }else {
+    return fi_mr_key((struct fid_mr*)(mr.mr_p));
+  }
 }
 
 static inline void* ofi_rma_lkey(LCIS_mr_t mr)
 {
-  return fi_mr_desc((struct fid_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]));
+  if (LCI_USE_DREG == 1) {
+    return fi_mr_desc((struct fid_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]));
+  } else {
+    return fi_mr_desc((struct fid_mr*)mr.mr_p);
+  }
 }
-
-#else
-
-static inline LCIS_mr_t lc_server_rma_reg(LCIS_server_t s, void* buf, size_t size)
-{
-  LCIS_mr_t mr;
-  mr.mr_p = _real_server_reg(s, buf, size);
-  mr.address = buf;
-  mr.length = size;
-  return mr;
-}
-
-static inline void lc_server_rma_dereg(LCIS_mr_t mr)
-{
-  _real_server_dereg(mr.mr_p);
-}
-
-static inline LCIS_rkey_t lc_server_rma_rkey(LCIS_mr_t mr)
-{
-  return fi_mr_key((struct fid_mr*)(mr.mr_p));
-}
-
-static inline void* ofi_rma_lkey(LCIS_mr_t mr)
-{
-  return fi_mr_desc((struct fid_mr*)mr.mr_p);
-}
-
-#endif
 
 static inline int LCID_poll_cq(LCIS_server_t s, LCIS_cq_entry_t*entry) {
   LCISI_server_t *server = (LCISI_server_t*) s;
