@@ -31,18 +31,18 @@ void lc_server_init(LCI_device_t device, LCIS_server_t* s)
 
   // Create info.
   FI_SAFECALL(fi_getinfo(FI_VERSION(1, 6), NULL, NULL, 0, hints, &server->info));
-  LCM_Log(LCM_LOG_INFO, "Provider name: %s\n", server->info->fabric_attr->prov_name);
-  LCM_Log(LCM_LOG_INFO, "MR mode hints: [%s]\n", fi_tostr(&(hints->domain_attr->mr_mode), FI_TYPE_MR_MODE));
-  LCM_Log(LCM_LOG_INFO, "MR mode provided: [%s]\n", fi_tostr(&(server->info->domain_attr->mr_mode), FI_TYPE_MR_MODE));
-  LCM_Log(LCM_LOG_INFO, "Thread mode: %s\n", fi_tostr(&(server->info->domain_attr->threading), FI_TYPE_THREADING));
-  LCM_Log(LCM_LOG_INFO, "Control progress mode: %s\n", fi_tostr(&(server->info->domain_attr->control_progress), FI_TYPE_PROGRESS));
-  LCM_Log(LCM_LOG_INFO, "Data progress mode: %s\n", fi_tostr(&(server->info->domain_attr->data_progress), FI_TYPE_PROGRESS));
-  LCM_Log(LCM_LOG_INFO, "Capacities: %s\n", fi_tostr(&(server->info->caps), FI_TYPE_CAPS));
-  LCM_Log(LCM_LOG_INFO, "Mode: %s\n", fi_tostr(&(server->info->mode), FI_TYPE_MODE));
-  LCM_Log(LCM_LOG_MAX, "Fi_info provided: %s\n", fi_tostr(server->info, FI_TYPE_INFO));
-  LCM_Log(LCM_LOG_MAX, "Fabric attributes: %s\n", fi_tostr(server->info->fabric_attr, FI_TYPE_FABRIC_ATTR));
-  LCM_Log(LCM_LOG_MAX, "Domain attributes: %s\n", fi_tostr(server->info->domain_attr, FI_TYPE_DOMAIN_ATTR));
-  LCM_Log(LCM_LOG_MAX, "Endpoint attributes: %s\n", fi_tostr(server->info->ep_attr, FI_TYPE_EP_ATTR));
+  LCM_Log_default(LCM_LOG_INFO, "Provider name: %s\n", server->info->fabric_attr->prov_name);
+  LCM_Log_default(LCM_LOG_INFO, "MR mode hints: [%s]\n", fi_tostr(&(hints->domain_attr->mr_mode), FI_TYPE_MR_MODE));
+  LCM_Log_default(LCM_LOG_INFO, "MR mode provided: [%s]\n", fi_tostr(&(server->info->domain_attr->mr_mode), FI_TYPE_MR_MODE));
+  LCM_Log_default(LCM_LOG_INFO, "Thread mode: %s\n", fi_tostr(&(server->info->domain_attr->threading), FI_TYPE_THREADING));
+  LCM_Log_default(LCM_LOG_INFO, "Control progress mode: %s\n", fi_tostr(&(server->info->domain_attr->control_progress), FI_TYPE_PROGRESS));
+  LCM_Log_default(LCM_LOG_INFO, "Data progress mode: %s\n", fi_tostr(&(server->info->domain_attr->data_progress), FI_TYPE_PROGRESS));
+  LCM_Log_default(LCM_LOG_INFO, "Capacities: %s\n", fi_tostr(&(server->info->caps), FI_TYPE_CAPS));
+  LCM_Log_default(LCM_LOG_INFO, "Mode: %s\n", fi_tostr(&(server->info->mode), FI_TYPE_MODE));
+  LCM_Log_default(LCM_LOG_MAX, "Fi_info provided: %s\n", fi_tostr(server->info, FI_TYPE_INFO));
+  LCM_Log_default(LCM_LOG_MAX, "Fabric attributes: %s\n", fi_tostr(server->info->fabric_attr, FI_TYPE_FABRIC_ATTR));
+  LCM_Log_default(LCM_LOG_MAX, "Domain attributes: %s\n", fi_tostr(server->info->domain_attr, FI_TYPE_DOMAIN_ATTR));
+  LCM_Log_default(LCM_LOG_MAX, "Endpoint attributes: %s\n", fi_tostr(server->info->ep_attr, FI_TYPE_EP_ATTR));
   LCM_Assert(server->info->domain_attr->cq_data_size >= 4, "cq_data_size (%lu) is too small!\n", server->info->domain_attr->cq_data_size);
   LCM_Assert(server->info->domain_attr->mr_key_size <= 8, "mr_key_size (%lu) is too large!\n", server->info->domain_attr->mr_key_size);
   LCM_Assert(server->info->tx_attr->inject_size >= sizeof(LCI_short_t), "inject_size (%lu) < sizeof(LCI_short_t) (%lu)!\n", server->info->tx_attr->inject_size, sizeof(LCI_short_t));
@@ -79,7 +79,7 @@ void lc_server_init(LCI_device_t device, LCIS_server_t* s)
   const int EP_ADDR_LEN = 6;
   size_t addrlen = 0;
   fi_getname((fid_t)server->ep, NULL, &addrlen);
-  LCM_Log(LCM_LOG_INFO, "addrlen = %lu\n", addrlen);
+  LCM_Log_default(LCM_LOG_INFO, "addrlen = %lu\n", addrlen);
   LCM_Assert(addrlen <= 8 * EP_ADDR_LEN, "addrlen = %lu\n", addrlen);
   uint64_t my_addr[EP_ADDR_LEN];
   FI_SAFECALL(fi_getname((fid_t)server->ep, my_addr, &addrlen));

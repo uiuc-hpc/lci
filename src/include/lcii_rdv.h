@@ -187,7 +187,7 @@ static inline void LCII_handle_2sided_writeImm(LCI_endpoint_t ep, uint64_t ctx_k
       (LCII_context_t*)LCM_archive_remove(ep->ctx_archive_p, ctx_key);
   LCM_DBG_Assert(ctx->data_type == LCI_LONG,
                  "Didn't get the right context! This might imply some bugs in the LCM_archive_t.\n");
-  LCM_DBG_Log(LCM_LOG_DEBUG, "complete recvl: ctx %p rank %d buf %p size %lu "
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "complete recvl: ctx %p rank %d buf %p size %lu "
                              "tag %d user_ctx %p completion attr %x completion %p\n",
               ctx, ctx->rank, ctx->data.lbuffer.address, ctx->data.lbuffer.length,
               ctx->tag, ctx->user_context, ctx->comp_attr, ctx->completion);
@@ -225,7 +225,7 @@ static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep, lc_packet* packet,
       (uintptr_t) rdv_ctx->data.lbuffer.address - packet->data.rtr.remote_addr_base;
   packet->data.rtr.rkey = lc_server_rma_rkey(*(rdv_ctx->data.lbuffer.segment));
 
-  LCM_DBG_Log(LCM_LOG_DEBUG, "send rtr: type %d sctx %p base %p offset %d "
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "send rtr: type %d sctx %p base %p offset %d "
               "rkey %lu rctx_key %u\n", packet->data.rtr.msg_type,
               (void*) packet->data.rtr.send_ctx, (void*) packet->data.rtr.remote_addr_base,
               packet->data.rtr.remote_addr_offset, packet->data.rtr.rkey,
@@ -310,7 +310,7 @@ static inline void LCII_handle_iovec_rts(LCI_endpoint_t ep, lc_packet* packet,
         lc_server_rma_rkey(*(rdv_ctx->data.iovec.lbuffers[i].segment));
   }
 
-  LCM_DBG_Log(LCM_LOG_DEBUG, "send rtr: type %d sctx %p count %d rctx %p\n",
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "send rtr: type %d sctx %p count %d rctx %p\n",
               packet->data.rtr.msg_type, (void*) packet->data.rtr.send_ctx,
               rdv_ctx->data.iovec.count, (void*) packet->data.rtr.recv_ctx);
   size_t length = (uintptr_t) &packet->data.rtr.remote_iovecs_p[rdv_ctx->data.iovec.count] - (uintptr_t) packet->data.address;
@@ -365,7 +365,7 @@ static inline void LCII_handle_iovec_put_comp(LCII_extended_context_t *ectx)
       ctx->data.iovec.lbuffers[i].segment = LCI_SEGMENT_ALL;
     }
   }
-  LCM_DBG_Log(LCM_LOG_DEBUG, "send FIN: rctx %p\n", (void*) ectx->recv_ctx);
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "send FIN: rctx %p\n", (void*) ectx->recv_ctx);
   lc_server_sends_bq(ectx->ep->bq_p, ectx->ep->bq_spinlock_p,
                      ectx->ep->device->server, ctx->rank, &ectx->recv_ctx,
                   sizeof(ectx->recv_ctx),
@@ -378,7 +378,7 @@ static inline void LCII_handle_iovec_recv_FIN(lc_packet* packet)
 {
   LCII_context_t *ctx;
   memcpy(&ctx, packet->data.address, sizeof(ctx));
-  LCM_DBG_Log(LCM_LOG_DEBUG, "recv FIN: rctx %p\n", ctx);
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "recv FIN: rctx %p\n", ctx);
   LCM_DBG_Assert(ctx->data_type == LCI_IOVEC,
                  "Didn't get the right context (%p type=%d)!.\n", ctx, ctx->data_type);
   // recvl has been completed locally. Need to process completion.

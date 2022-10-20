@@ -142,7 +142,7 @@ static inline int LCID_poll_cq(LCIS_server_t s, LCIS_cq_entry_t *entry)
 
 static inline void lc_server_post_recv(LCIS_server_t s, void *buf, uint32_t size, LCIS_mr_t mr, void *ctx)
 {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "post recv: buf %p size %u lkey %u user_context %p\n",
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "post recv: buf %p size %u lkey %u user_context %p\n",
               buf, size, ibv_rma_lkey(mr), ctx);
   LCISI_server_t *server = (LCISI_server_t*) s;
   struct ibv_sge list;
@@ -161,7 +161,7 @@ static inline void lc_server_post_recv(LCIS_server_t s, void *buf, uint32_t size
 static inline LCI_error_t lc_server_sends(LCIS_server_t s, int rank, void* buf,
                                           size_t size, LCIS_meta_t meta)
 {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "post sends: rank %d buf %p size %lu meta %d\n",
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "post sends: rank %d buf %p size %lu meta %d\n",
               rank, buf, size, meta);
   LCISI_server_t *server = (LCISI_server_t*) s;
   LCM_DBG_Assert(size <= server->max_inline, "%lu exceed the inline message size"
@@ -198,7 +198,7 @@ static inline LCI_error_t lc_server_send(LCIS_server_t s, int rank, void* buf,
                                          size_t size, LCIS_mr_t mr, LCIS_meta_t meta,
                                          void* ctx)
 {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "post send: rank %d buf %p size %lu lkey %d meta %d ctx %p\n",
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "post send: rank %d buf %p size %lu lkey %d meta %d ctx %p\n",
               rank, buf, size, ibv_rma_lkey(mr), meta, ctx);
   LCISI_server_t *server = (LCISI_server_t*) s;
 
@@ -229,7 +229,7 @@ static inline LCI_error_t lc_server_puts(LCIS_server_t s, int rank, void* buf,
                                          size_t size, uintptr_t base,
                                          uint32_t offset, LCIS_rkey_t rkey)
 {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "post puts: rank %d buf %p size %lu base %p offset %d "
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "post puts: rank %d buf %p size %lu base %p offset %d "
               "rkey %lu\n", rank, buf,
               size, (void*) base, offset, rkey);
   LCISI_server_t *server = (LCISI_server_t*) s;
@@ -261,7 +261,7 @@ static inline LCI_error_t lc_server_put(LCIS_server_t s, int rank, void* buf,
                                         uint32_t offset, LCIS_rkey_t rkey,
                                         void* ctx)
 {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "post put: rank %d buf %p size %lu lkey %u base %p "
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "post put: rank %d buf %p size %lu lkey %u base %p "
               "offset %d rkey %lu ctx %p\n", rank, buf,
               size, ibv_rma_lkey(mr), (void*) base, offset, rkey, ctx);
   LCISI_server_t *server = (LCISI_server_t*) s;
@@ -293,7 +293,7 @@ static inline LCI_error_t lc_server_putImms(LCIS_server_t s, int rank, void* buf
                                          size_t size, uintptr_t base, uint32_t offset,
                                          LCIS_rkey_t rkey, uint32_t meta)
 {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "post puts: rank %d buf %p size %lu base %p offset %d "
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "post puts: rank %d buf %p size %lu base %p offset %d "
               "rkey %lu meta %d\n", rank, buf,
               size, (void*) base, offset, rkey, meta);
   LCISI_server_t *server = (LCISI_server_t*) s;
@@ -326,7 +326,7 @@ static inline LCI_error_t lc_server_putImm(LCIS_server_t s, int rank, void* buf,
                                         uint32_t offset, LCIS_rkey_t rkey,
                                         LCIS_meta_t meta, void* ctx)
 {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "post put: rank %d buf %p size %lu lkey %u base %p "
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "post put: rank %d buf %p size %lu lkey %u base %p "
               "offset %d rkey %lu meta %u ctx %p\n", rank, buf,
               size, ibv_rma_lkey(mr), (void*) base, offset, rkey, meta, ctx);
   LCISI_server_t *server = (LCISI_server_t*) s;

@@ -10,7 +10,7 @@ LCI_error_t LCI_initialize()
   lcm_pm_initialize();
   rank = lcm_pm_get_rank();
   num_proc = lcm_pm_get_size();
-  LCM_Init();
+  LCM_Init(rank);
 
   // Set some constant from environment variable.
   lc_env_init(num_proc, rank);
@@ -22,7 +22,7 @@ LCI_error_t LCI_initialize()
   LCI_plist_create(&plist);
   LCI_endpoint_init(&LCI_UR_ENDPOINT, LCI_UR_DEVICE, plist);
   LCI_plist_free(&plist);
-  LCM_DBG_Log(LCM_LOG_WARN, "Macro LCI_DEBUG is defined. Running in low-performance debug mode!\n");
+  LCM_DBG_Log_default(LCM_LOG_WARN, "Macro LCI_DEBUG is defined. Running in low-performance debug mode!\n");
 
   opened = 1;
   LCI_barrier();
@@ -40,6 +40,7 @@ LCI_error_t LCI_finalize()
   LCI_endpoint_free(&LCI_UR_ENDPOINT);
   LCI_queue_free(&LCI_UR_CQ);
   LCI_device_free(&LCI_UR_DEVICE);
+  LCM_Fina();
   lcm_pm_finalize();
 
   opened = 0;

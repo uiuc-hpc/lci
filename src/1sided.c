@@ -125,7 +125,7 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
   packet->data.rts.send_ctx = (uintptr_t) rdv_ctx;
   packet->data.rts.size = buffer.length;
 
-  LCM_DBG_Log(LCM_LOG_DEBUG, "send rts: type %d sctx %p size %lu\n",
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "send rts: type %d sctx %p size %lu\n",
               packet->data.rts.msg_type, (void*) packet->data.rts.send_ctx,
               packet->data.rts.size);
   LCI_error_t ret = lc_server_send(ep->device->server, rank, packet->data.address,
@@ -197,7 +197,7 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
   memcpy((void*) &packet->data.rts.size_p[iovec.count], iovec.piggy_back.address,
          iovec.piggy_back.length);
 
-  LCM_DBG_Log(LCM_LOG_DEBUG, "send rts: type %d sctx %p count %d "
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "send rts: type %d sctx %p count %d "
               "piggy_back_size %lu\n", packet->data.rts.msg_type,
               (void*) packet->data.rts.send_ctx, packet->data.rts.count,
               packet->data.rts.piggy_back_size);

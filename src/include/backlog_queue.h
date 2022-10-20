@@ -42,7 +42,7 @@ static inline void LCII_bq_init(LCII_backlog_queue_t *bq_p) {
 
 static inline void LCII_bq_fini(LCII_backlog_queue_t *bq_p) {
   if (bq_p->length != 0) {
-    LCM_Log(LCM_LOG_WARN, "There are still %d pending entries in the backlog queue\n", bq_p->length);
+    LCM_Log_default(LCM_LOG_WARN, "There are still %d pending entries in the backlog queue\n", bq_p->length);
     LCII_bq_entry_t *p = bq_p->head;
     LCII_bq_entry_t *q;
     while (p != NULL) {
@@ -55,7 +55,7 @@ static inline void LCII_bq_fini(LCII_backlog_queue_t *bq_p) {
     bq_p->tail = NULL;
     LCM_Assert(bq_p->length == 0, "backlog queue is in a incosistent state\n");
   }
-  LCM_Log(LCM_LOG_INFO, "backlog queue's maximum length is %d\n", bq_p->max_length);
+  LCM_Log_default(LCM_LOG_INFO, "backlog queue's maximum length is %d\n", bq_p->max_length);
 }
 
 // this can be called by both the worker threads and progress threads

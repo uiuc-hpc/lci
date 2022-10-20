@@ -84,10 +84,10 @@ static inline int LCM_archive_put(LCM_archive_t* archive,
   if (archive->ptr[key].val == LCM_ARCHIVE_EMPTY) {
     archive->ptr[key].val = value;
     *key_ptr = key;
-    LCM_DBG_Log(LCM_LOG_DEBUG, "Archive (%lu, %p) succeed!\n", key, (void*)value);
+    LCM_DBG_Log_default(LCM_LOG_DEBUG, "Archive (%lu, %p) succeed!\n", key, (void*)value);
     return LCM_SUCCESS;
   } else {
-    LCM_DBG_Log(LCM_LOG_DEBUG, "Archive (%lu, %p) conflicting with %p RETRY!\n", key, (void*)value, (void*)archive->ptr[key].val);
+    LCM_DBG_Log_default(LCM_LOG_DEBUG, "Archive (%lu, %p) conflicting with %p RETRY!\n", key, (void*)value, (void*)archive->ptr[key].val);
     return LCM_RETRY;
   }
 }
@@ -105,7 +105,7 @@ static inline LCM_archive_val_t LCM_archive_remove(LCM_archive_t* archive,
   // so no data race should occur here
   LCM_archive_val_t val = archive->ptr[key].val;
   archive->ptr[key].val = LCM_ARCHIVE_EMPTY;
-  LCM_DBG_Log(LCM_LOG_DEBUG, "Archive remove (%lu, %p)\n", key, (void*)val);
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "Archive remove (%lu, %p)\n", key, (void*)val);
 //    LCM_archive_val_t old;
 //    while (true) {
 //        old = __sync_val_compare_and_swap(&(archive.ptr[key].val), val,

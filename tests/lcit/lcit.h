@@ -436,7 +436,7 @@ void threadBarrier(Context &ctx) {
 }
 
 LCI_comp_t postSend(Context &ctx, int rank, size_t size, LCI_tag_t tag) {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "%d/%d: postSend rank %d size %lu\n", LCI_RANK, TRD_RANK_ME, rank, size);
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "%d/%d: postSend rank %d size %lu\n", LCI_RANK, TRD_RANK_ME, rank, size);
   LCI_comp_t comp;
   if (ctx.config.send_comp_type == LCI_COMPLETION_SYNC) {
     LCI_sync_create(ctx.device, 1, &comp);
@@ -505,7 +505,7 @@ LCI_comp_t postSend(Context &ctx, int rank, size_t size, LCI_tag_t tag) {
 }
 
 void waitSend(Context &ctx, LCI_comp_t comp) {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "%d/%d: waitSend\n", LCI_RANK, TRD_RANK_ME);
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "%d/%d: waitSend\n", LCI_RANK, TRD_RANK_ME);
   switch (ctx.config.op) {
     case LCIT_OP_2SIDED_S:
     case LCIT_OP_2SIDED_M:
@@ -525,7 +525,7 @@ void waitSend(Context &ctx, LCI_comp_t comp) {
 }
 
 LCI_comp_t postRecv(Context &ctx, int rank, size_t size, LCI_tag_t tag) {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "%d/%d: postRecv rank %d size %lu\n", LCI_RANK, TRD_RANK_ME , rank, size);
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "%d/%d: postRecv rank %d size %lu\n", LCI_RANK, TRD_RANK_ME , rank, size);
   LCI_comp_t comp;
   if (ctx.config.recv_comp_type == LCI_COMPLETION_SYNC) {
     LCI_sync_create(ctx.device, 1, &comp);
@@ -561,7 +561,7 @@ LCI_comp_t postRecv(Context &ctx, int rank, size_t size, LCI_tag_t tag) {
 }
 
 void waitRecv(Context &ctx, LCI_comp_t comp) {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "%d/%d: waitRecv\n", LCI_RANK, TRD_RANK_ME);
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "%d/%d: waitRecv\n", LCI_RANK, TRD_RANK_ME);
   LCI_request_t request = waitComp(ctx, comp, ctx.config.recv_comp_type);
   LCIT_Assert(request.flag == LCI_OK, "flag is wrong\n");
   if (ctx.config.op == LCIT_OP_2SIDED_L ||

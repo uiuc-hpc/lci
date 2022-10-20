@@ -43,7 +43,7 @@ void lc_env_init(int num_proc, int rank)
   LCI_PACKET_RETURN_THRESHOLD = getenv_or("LCI_PACKET_RETURN_THRESHOLD", 1024);
   LCI_USE_DREG = getenv_or("LCI_USE_DREG", 0);
   if (LCI_USE_DREG == 1) {
-    LCM_Log(LCM_LOG_WARN, "The registration cache is enabled. The program might "
+    LCM_Log_default(LCM_LOG_WARN, "The registration cache is enabled. The program might "
             "be buggy when the allocation/free is too dynamic\n");
   }
 }
