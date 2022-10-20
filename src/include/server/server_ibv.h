@@ -50,15 +50,15 @@ typedef struct LCISI_server_t {
   size_t max_inline;
 } LCISI_server_t __attribute__((aligned(64)));
 
-static inline uintptr_t _real_server_reg(LCIS_server_t s, void* buf, size_t size)
+static inline void *LCISI_real_server_reg(LCIS_server_t s, void* buf, size_t size)
 {
   LCISI_server_t *server = (LCISI_server_t*) s;
   int mr_flags =
       IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-  return (uintptr_t)ibv_reg_mr(server->dev_pd, buf, size, mr_flags);
+  return (void*)ibv_reg_mr(server->dev_pd, buf, size, mr_flags);
 }
 
-static inline void _real_server_dereg(uintptr_t mem)
+static inline void LCISI_real_server_dereg(void *mem)
 {
   ibv_dereg_mr((struct ibv_mr*)mem);
 }
@@ -69,11 +69,11 @@ static inline LCIS_mr_t LCISD_rma_reg(LCIS_server_t s, void* buf, size_t size)
   if (LCI_USE_DREG == 1) {
     dreg_entry *entry = dreg_register(s, buf, size);
     LCM_DBG_Assert(entry != NULL, "Unable to register more memory!");
-    mr.mr_p = (uintptr_t) entry;
+    mr.mr_p = entry;
     mr.address = (void*) (entry->pagenum << DREG_PAGEBITS);
     mr.length = entry->npages << DREG_PAGEBITS;
   } else {
-    mr.mr_p = _real_server_reg(s, buf, size);
+    mr.mr_p = LCISI_real_server_reg(s, buf, size);
     mr.address = buf;
     mr.length = size;
   }
@@ -85,7 +85,7 @@ static inline void LCISD_rma_dereg(LCIS_mr_t mr)
   if (LCI_USE_DREG == 1) {
     dreg_unregister((dreg_entry*)mr.mr_p);
   } else {
-    _real_server_dereg(mr.mr_p);
+    LCISI_real_server_dereg(mr.mr_p);
   }
 }
 

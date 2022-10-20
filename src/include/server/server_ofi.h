@@ -47,7 +47,7 @@ typedef struct LCISI_server_t {
 
 extern int g_next_rdma_key;
 
-static inline uintptr_t _real_server_reg(LCIS_server_t s, void* buf, size_t size)
+static inline void *LCISI_real_server_reg(LCIS_server_t s, void* buf, size_t size)
 {
   LCISI_server_t *server = (LCISI_server_t*) s;
   struct fid_mr* mr;
@@ -55,16 +55,12 @@ static inline uintptr_t _real_server_reg(LCIS_server_t s, void* buf, size_t size
   FI_SAFECALL(fi_mr_reg(server->domain, buf, size,
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, rdma_key, 0,
                         &mr, 0));
-  LCM_DBG_Log_default(LCM_LOG_DEBUG, "real mem reg: mr %p buf %p size %lu lkey %p rkey %lu\n",
-              mr, buf, size, fi_mr_desc(mr), fi_mr_key(mr));
-  return (uintptr_t)mr;
+  return (void*)mr;
 }
 
-static inline void _real_server_dereg(uintptr_t mr_opaque)
+static inline void LCISI_real_server_dereg(void *mr_opaque)
 {
   struct fid_mr *mr = (struct fid_mr*) mr_opaque;
-  LCM_DBG_Log_default(LCM_LOG_DEBUG, "real mem dereg: mr %p lkey %p rkey %lu\n",
-              mr, fi_mr_desc(mr), fi_mr_key(mr));
   FI_SAFECALL(fi_close((struct fid*) &mr->fid));
 }
 
@@ -74,11 +70,11 @@ static inline LCIS_mr_t LCISD_rma_reg(LCIS_server_t s, void* buf, size_t size)
   if (LCI_USE_DREG == 1) {
     dreg_entry *entry = dreg_register(s, buf, size);
     LCM_DBG_Assert(entry != NULL, "Unable to register more memory!");
-    mr.mr_p = (uintptr_t) entry;
+    mr.mr_p = entry;
     mr.address = (void*) (entry->pagenum << DREG_PAGEBITS);
     mr.length = entry->npages << DREG_PAGEBITS;
   } else {
-    mr.mr_p = _real_server_reg(s, buf, size);
+    mr.mr_p = LCISI_real_server_reg(s, buf, size);
     mr.address = buf;
     mr.length = size;
   }
@@ -90,7 +86,7 @@ static inline void LCISD_rma_dereg(LCIS_mr_t mr)
   if (LCI_USE_DREG == 1) {
     dreg_unregister((dreg_entry*)mr.mr_p);
   } else {
-    _real_server_dereg(mr.mr_p);
+    LCISI_real_server_dereg(mr.mr_p);
   }
 }
 

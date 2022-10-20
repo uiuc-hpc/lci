@@ -30,14 +30,14 @@ LCI_error_t LCI_device_init(LCI_device_t * device_ptr)
     p->context.poolid = 0;
     lc_pool_put(device->pkpool, p);
   }
-  LCM_DBG_Log_default(LCM_LOG_DEBUG, "device %p initialized\n", device);
+  LCM_DBG_Log(LCM_LOG_DEBUG, "device", "device %p initialized\n", device);
   return LCI_OK;
 }
 
 LCI_error_t LCI_device_free(LCI_device_t *device_ptr)
 {
   LCI_device_t device = *device_ptr;
-  LCM_DBG_Log_default(LCM_LOG_DEBUG, "free device %p\n", device);
+  LCM_DBG_Log(LCM_LOG_DEBUG, "device", "free device %p\n", device);
   int total_num = lc_pool_count(device->pkpool) + device->recv_posted;
   if (total_num != LCI_SERVER_MAX_PKTS)
     LCM_DBG_Log_default(LCM_LOG_WARN, "Potentially losing packets %d != %d\n", total_num, LCI_SERVER_MAX_PKTS);
@@ -100,12 +100,12 @@ LCI_error_t LCI_progress(LCI_device_t device)
   for (int i = 0; i < count; i++) {
     if (entry[i].opcode == LCII_OP_RECV) {
       // two-sided recv.
-      LCM_DBG_Log_default(LCM_LOG_DEBUG, "complete recv: packet %p rank %d length %lu imm_data %u\n",
+      LCM_DBG_Log(LCM_LOG_DEBUG, "device", "complete recv: packet %p rank %d length %lu imm_data %u\n",
                   entry[i].ctx, entry[i].rank, entry[i].length, entry[i].imm_data);
       LCIS_serve_recv((lc_packet*)entry[i].ctx, entry[i].rank, entry[i].length, entry[i].imm_data);
       --device->recv_posted;
     } else if (entry[i].opcode == LCII_OP_RDMA_WRITE) {
-      LCM_DBG_Log_default(LCM_LOG_DEBUG, "complete write: imm_data %u\n", entry[i].imm_data);
+      LCM_DBG_Log(LCM_LOG_DEBUG, "device", "complete write: imm_data %u\n", entry[i].imm_data);
       if (entry[i].ctx != NULL) {
         LCII_free_packet((lc_packet*)entry[i].ctx);
         --device->recv_posted;
@@ -113,7 +113,7 @@ LCI_error_t LCI_progress(LCI_device_t device)
       LCIS_serve_rdma(entry[i].imm_data);
     } else {
       // entry[i].opcode == LCII_OP_SEND
-      LCM_DBG_Log_default(LCM_LOG_DEBUG, "complete send: address %p\n", (void*) entry[i].ctx);
+      LCM_DBG_Log(LCM_LOG_DEBUG, "device", "complete send: address %p\n", (void*) entry[i].ctx);
       if (entry[i].ctx == NULL) continue;
       LCIS_serve_send((void*)entry[i].ctx);
     }
@@ -128,7 +128,7 @@ LCI_error_t LCI_progress(LCI_device_t device)
     if (packet == NULL) {
       if (device->recv_posted < LCI_SERVER_MAX_RCVS / 2 && !g_server_no_recv_packets) {
         g_server_no_recv_packets = 1;
-        LCM_DBG_Log_default(LCM_LOG_DEBUG, "WARNING-LC: deadlock alert. There is only "
+        LCM_DBG_Log(LCM_LOG_DEBUG, "device", "WARNING-LC: deadlock alert. There is only "
                                    "%d packets left for post_recv\n",
                     device->recv_posted);
       }
@@ -141,7 +141,7 @@ LCI_error_t LCI_progress(LCI_device_t device)
   }
   if (device->recv_posted == LCI_SERVER_MAX_RCVS && g_server_no_recv_packets) {
     g_server_no_recv_packets = 0;
-    LCM_DBG_Log_default(LCM_LOG_DEBUG, "WARNING-LC: recovered from deadlock alert.\n");
+    LCM_DBG_Log(LCM_LOG_DEBUG, "device", "WARNING-LC: recovered from deadlock alert.\n");
   }
 
   return ret;

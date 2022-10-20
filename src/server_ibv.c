@@ -40,7 +40,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
     fprintf(stderr, "No IB devices found\n");
     exit(EXIT_FAILURE);
   }
-  LCM_Log_default(LCM_LOG_INFO, "Use IB server: %s\n", ibv_get_device_name(server->ib_dev));
+  LCM_Log(LCM_LOG_INFO, "ibv", "Use IB server: %s\n", ibv_get_device_name(server->ib_dev));
 
   // ibv_open_device provides the user with a verbs context which is the object that will be used for
   // all other verb operations.
@@ -81,7 +81,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
     exit(EXIT_FAILURE);
   }
   server->dev_port = dev_port;
-  LCM_Log_default(LCM_LOG_INFO, "Maximum MTU: %s; Active MTU: %s\n",
+  LCM_Log(LCM_LOG_INFO, "ibv", "Maximum MTU: %s; Active MTU: %s\n",
            mtu_str(server->port_attr.max_mtu),
            mtu_str(server->port_attr.active_mtu));
 
@@ -136,7 +136,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
                   "Specified inline size %d is too large (maximum %d)", inline_size,
                   init_attr.cap.max_inline_data);
       if (inline_size < attr.cap.max_inline_data) {
-        LCM_Log_default(LCM_LOG_INFO, "Maximum inline-size(%d) > requested inline-size(%d)\n",
+        LCM_Log(LCM_LOG_INFO, "ibv", "Maximum inline-size(%d) > requested inline-size(%d)\n",
                  attr.cap.max_inline_data, inline_size);
       }
     }
@@ -169,7 +169,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
             server->port_attr.lid);
     lcm_pm_publish(key, value);
   }
-  LCM_Log_default(LCM_LOG_INFO, "Current inline data size is %d\n",
+  LCM_Log(LCM_LOG_INFO, "ibv", "Current inline data size is %d\n",
           inline_size);
   server->max_inline = inline_size;
   lcm_pm_barrier();
@@ -261,7 +261,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
   }
   server->qp2rank_mod = j;
   server->qp2rank = b;
-  LCM_Log_default(LCM_LOG_INFO, "qp2rank_mod is %d\n", j);
+  LCM_Log(LCM_LOG_INFO, "ibv", "qp2rank_mod is %d\n", j);
 
   if (LCI_USE_DREG == 1) {
     dreg_init();
