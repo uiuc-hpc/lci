@@ -2,12 +2,12 @@
 #define LCI_LCII_RDV_H
 
 // wrapper for send and put
-static inline void lc_server_sends_bq(LCII_backlog_queue_t *bq_p,
+static inline void LCIS_post_sends_bq(LCII_backlog_queue_t *bq_p,
                                      LCIU_spinlock_t *bq_spinlock_p,
                                      LCIS_server_t s, int rank, void* buf,
                                      size_t size, LCIS_meta_t meta) {
   if (LCII_bq_is_empty(bq_p)) {
-    LCI_error_t ret = lc_server_sends(s, rank, buf, size, meta);
+    LCI_error_t ret = LCIS_post_sends(s, rank, buf, size, meta);
     if (ret == LCI_OK) return;
     else {
       LCM_Assert(ret == LCI_ERR_RETRY, "fatal error!\n");
@@ -27,14 +27,14 @@ static inline void lc_server_sends_bq(LCII_backlog_queue_t *bq_p,
   LCIU_release_spinlock(bq_spinlock_p);
 }
 
-static inline void lc_server_send_bq(LCII_backlog_queue_t *bq_p,
+static inline void LCIS_post_send_bq(LCII_backlog_queue_t *bq_p,
                                      LCIU_spinlock_t *bq_spinlock_p,
                                      LCIS_server_t s, int rank, void* buf,
                                      size_t size, LCIS_mr_t mr,
                                      LCIS_meta_t meta,
                                      void* ctx) {
   if (LCII_bq_is_empty(bq_p)) {
-    LCI_error_t ret = lc_server_send(s, rank, buf, size, mr, meta, ctx);
+    LCI_error_t ret = LCIS_post_send(s, rank, buf, size, mr, meta, ctx);
     if (ret == LCI_OK) return;
     else {
       LCM_Assert(ret == LCI_ERR_RETRY, "fatal error!\n");
@@ -55,14 +55,14 @@ static inline void lc_server_send_bq(LCII_backlog_queue_t *bq_p,
   LCIU_release_spinlock(bq_spinlock_p);
 }
 
-static inline void lc_server_put_bq(LCII_backlog_queue_t *bq_p,
+static inline void LCIS_post_put_bq(LCII_backlog_queue_t *bq_p,
                                     LCIU_spinlock_t *bq_spinlock_p,
                                     LCIS_server_t s, int rank, void* buf,
                                     size_t size, LCIS_mr_t mr, uintptr_t base,
                                     uint32_t offset,LCIS_rkey_t rkey,
                                     void* ctx) {
   if (LCII_bq_is_empty(bq_p)) {
-    LCI_error_t ret = lc_server_put(s, rank, buf, size, mr, base, offset, rkey, ctx);
+    LCI_error_t ret = LCIS_post_put(s, rank, buf, size, mr, base, offset, rkey, ctx);
     if (ret == LCI_OK) return;
     else {
       LCM_Assert(ret == LCI_ERR_RETRY, "fatal error!\n");
@@ -85,14 +85,14 @@ static inline void lc_server_put_bq(LCII_backlog_queue_t *bq_p,
   LCIU_release_spinlock(bq_spinlock_p);
 }
 
-static inline void lc_server_putImm_bq(LCII_backlog_queue_t *bq_p,
+static inline void LCIS_post_putImm_bq(LCII_backlog_queue_t *bq_p,
                                     LCIU_spinlock_t *bq_spinlock_p,
                                     LCIS_server_t s, int rank, void* buf,
                                     size_t size, LCIS_mr_t mr, uintptr_t base,
                                     uint32_t offset,LCIS_rkey_t rkey,
                                     LCIS_meta_t meta, void* ctx) {
   if (LCII_bq_is_empty(bq_p)) {
-    LCI_error_t ret = lc_server_putImm(s, rank, buf, size, mr, base, offset, rkey, meta, ctx);
+    LCI_error_t ret = LCIS_post_putImm(s, rank, buf, size, mr, base, offset, rkey, meta, ctx);
     if (ret == LCI_OK) return;
     else {
       LCM_Assert(ret == LCI_ERR_RETRY, "fatal error!\n");
@@ -151,9 +151,9 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, 
   packet->data.rtr.remote_addr_base = (uintptr_t) rdv_ctx->data.lbuffer.segment->address;
   packet->data.rtr.remote_addr_offset =
       (uintptr_t) rdv_ctx->data.lbuffer.address - packet->data.rtr.remote_addr_base;
-  packet->data.rtr.rkey = lc_server_rma_rkey(*(rdv_ctx->data.lbuffer.segment));
+  packet->data.rtr.rkey = LCIS_rma_rkey(*(rdv_ctx->data.lbuffer.segment));
 
-  lc_server_send_bq(ep->bq_p, ep->bq_spinlock_p,
+  LCIS_post_send_bq(ep->bq_p, ep->bq_spinlock_p,
                     ep->device->server, rdv_ctx->rank, packet->data.address,
                     sizeof(struct packet_rtr), *(ep->device->heap.segment),
                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx);
@@ -171,7 +171,7 @@ static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
   } else {
     LCM_DBG_Assert(LCII_comp_attr_get_dereg(ctx->comp_attr) == 0, "\n");
   }
-  lc_server_putImm_bq(ep->bq_p, ep->bq_spinlock_p, ep->device->server, ctx->rank,
+  LCIS_post_putImm_bq(ep->bq_p, ep->bq_spinlock_p, ep->device->server, ctx->rank,
                    ctx->data.lbuffer.address, ctx->data.lbuffer.length,
                    *(ctx->data.lbuffer.segment),
                    packet->data.rtr.remote_addr_base, packet->data.rtr.remote_addr_offset,
@@ -223,14 +223,14 @@ static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep, lc_packet* packet,
   packet->data.rtr.remote_addr_base = (uintptr_t) rdv_ctx->data.lbuffer.segment->address;
   packet->data.rtr.remote_addr_offset =
       (uintptr_t) rdv_ctx->data.lbuffer.address - packet->data.rtr.remote_addr_base;
-  packet->data.rtr.rkey = lc_server_rma_rkey(*(rdv_ctx->data.lbuffer.segment));
+  packet->data.rtr.rkey = LCIS_rma_rkey(*(rdv_ctx->data.lbuffer.segment));
 
   LCM_DBG_Log_default(LCM_LOG_DEBUG, "send rtr: type %d sctx %p base %p offset %d "
               "rkey %lu rctx_key %u\n", packet->data.rtr.msg_type,
               (void*) packet->data.rtr.send_ctx, (void*) packet->data.rtr.remote_addr_base,
               packet->data.rtr.remote_addr_offset, packet->data.rtr.rkey,
               packet->data.rtr.recv_ctx_key);
-  lc_server_send_bq(ep->bq_p, ep->bq_spinlock_p,
+  LCIS_post_send_bq(ep->bq_p, ep->bq_spinlock_p,
                     ep->device->server, rdv_ctx->rank, packet->data.address,
                     sizeof(struct packet_rtr), *(ep->device->heap.segment),
                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx);
@@ -247,7 +247,7 @@ static inline void LCII_handle_1sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
   } else {
     LCM_DBG_Assert(LCII_comp_attr_get_dereg(ctx->comp_attr) == 0, "\n");
   }
-  lc_server_putImm_bq(ep->bq_p, ep->bq_spinlock_p, ep->device->server, ctx->rank,
+  LCIS_post_putImm_bq(ep->bq_p, ep->bq_spinlock_p, ep->device->server, ctx->rank,
                    ctx->data.lbuffer.address, ctx->data.lbuffer.length,
                    *(ctx->data.lbuffer.segment),
                    packet->data.rtr.remote_addr_base, packet->data.rtr.remote_addr_offset,
@@ -307,14 +307,14 @@ static inline void LCII_handle_iovec_rts(LCI_endpoint_t ep, lc_packet* packet,
         (uintptr_t) rdv_ctx->data.iovec.lbuffers[i].address -
         packet->data.rtr.remote_iovecs_p[i].remote_addr_base;
     packet->data.rtr.remote_iovecs_p[i].rkey =
-        lc_server_rma_rkey(*(rdv_ctx->data.iovec.lbuffers[i].segment));
+        LCIS_rma_rkey(*(rdv_ctx->data.iovec.lbuffers[i].segment));
   }
 
   LCM_DBG_Log_default(LCM_LOG_DEBUG, "send rtr: type %d sctx %p count %d rctx %p\n",
               packet->data.rtr.msg_type, (void*) packet->data.rtr.send_ctx,
               rdv_ctx->data.iovec.count, (void*) packet->data.rtr.recv_ctx);
   size_t length = (uintptr_t) &packet->data.rtr.remote_iovecs_p[rdv_ctx->data.iovec.count] - (uintptr_t) packet->data.address;
-  lc_server_send_bq(ep->bq_p, ep->bq_spinlock_p,
+  LCIS_post_send_bq(ep->bq_p, ep->bq_spinlock_p,
                     ep->device->server, rdv_ctx->rank, packet->data.address,
                     length, *(ep->device->heap.segment),
                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx);
@@ -341,7 +341,7 @@ static inline void LCII_handle_iovec_rtr(LCI_endpoint_t ep, lc_packet* packet)
     } else {
       LCM_DBG_Assert(LCII_comp_attr_get_dereg(ectx->comp_attr) == 0, "\n");
     }
-    lc_server_put_bq(ep->bq_p, ep->bq_spinlock_p, ep->device->server, ctx->rank,
+    LCIS_post_put_bq(ep->bq_p, ep->bq_spinlock_p, ep->device->server, ctx->rank,
                      ctx->data.iovec.lbuffers[i].address, ctx->data.iovec.lbuffers[i].length,
                      *(ctx->data.iovec.lbuffers[i].segment),
                      packet->data.rtr.remote_iovecs_p[i].remote_addr_base,
@@ -366,7 +366,7 @@ static inline void LCII_handle_iovec_put_comp(LCII_extended_context_t *ectx)
     }
   }
   LCM_DBG_Log_default(LCM_LOG_DEBUG, "send FIN: rctx %p\n", (void*) ectx->recv_ctx);
-  lc_server_sends_bq(ectx->ep->bq_p, ectx->ep->bq_spinlock_p,
+  LCIS_post_sends_bq(ectx->ep->bq_p, ectx->ep->bq_spinlock_p,
                      ectx->ep->device->server, ctx->rank, &ectx->recv_ctx,
                   sizeof(ectx->recv_ctx),
                   LCII_MAKE_PROTO(ectx->ep->gid, LCI_MSG_FIN, 0));

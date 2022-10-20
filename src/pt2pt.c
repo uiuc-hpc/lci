@@ -4,7 +4,7 @@
 LCI_error_t LCI_sends(LCI_endpoint_t ep, LCI_short_t src, int rank, LCI_tag_t tag)
 {
   LCM_DBG_Assert(tag <= LCI_MAX_TAG, "tag %d is too large (maximum: %d)\n", tag, LCI_MAX_TAG);
-  return lc_server_sends(ep->device->server, rank, &src, sizeof(LCI_short_t),
+  return LCIS_post_sends(ep->device->server, rank, &src, sizeof(LCI_short_t),
                          LCII_MAKE_PROTO(ep->gid, LCI_MSG_SHORT, tag));
 }
 
@@ -26,7 +26,7 @@ LCI_error_t LCI_sendm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   LCII_initilize_comp_attr(ctx->comp_attr);
   LCII_comp_attr_set_free_packet(ctx->comp_attr, 1);
 
-  LCI_error_t ret = lc_server_send(ep->device->server, rank, packet->data.address, buffer.length,
+  LCI_error_t ret = LCIS_post_send(ep->device->server, rank, packet->data.address, buffer.length,
                                    *(ep->device->heap.segment),
                                    LCII_MAKE_PROTO(ep->gid, LCI_MSG_MEDIUM, tag), ctx);
   if (ret == LCI_ERR_RETRY) {
@@ -50,7 +50,7 @@ LCI_error_t LCI_sendmn(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   LCII_initilize_comp_attr(ctx->comp_attr);
   LCII_comp_attr_set_free_packet(ctx->comp_attr, 1);
 
-  LCI_error_t ret = lc_server_send(ep->device->server, rank, packet->data.address, buffer.length,
+  LCI_error_t ret = LCIS_post_send(ep->device->server, rank, packet->data.address, buffer.length,
                                    *(ep->device->heap.segment),
                                    LCII_MAKE_PROTO(ep->gid, LCI_MSG_MEDIUM, tag), ctx);
   if (ret == LCI_ERR_RETRY) {
@@ -91,7 +91,7 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
   packet->data.rts.send_ctx = (uintptr_t) rdv_ctx;
   packet->data.rts.size = buffer.length;
 
-  LCI_error_t ret = lc_server_send(ep->device->server, rank, packet->data.address,
+  LCI_error_t ret = LCIS_post_send(ep->device->server, rank, packet->data.address,
                                    sizeof(struct packet_rts), *(ep->device->heap.segment),
                                    LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTS, tag), rts_ctx);
   if (ret == LCI_ERR_RETRY) {

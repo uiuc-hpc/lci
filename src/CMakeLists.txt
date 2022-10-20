@@ -25,7 +25,6 @@ if(LCI_USE_SERVER_OFI)
   target_sources_relative(LCI PRIVATE server_ofi.c)
 elseif(LCI_USE_SERVER_IBV)
   target_sources_relative(LCI PRIVATE server_ibv.c)
-elseif(LCI_USE_SERVER_PSM)
 endif()
 
 add_subdirectory(dreg)

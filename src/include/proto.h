@@ -58,7 +58,7 @@ static inline void lc_ce_dispatch(LCII_context_t *ctx)
   }
 }
 
-static inline void lc_serve_recv(void* p,
+static inline void LCIS_serve_recv(void* p,
                                  int src_rank, size_t length,
                                  uint32_t imm_data)
 {
@@ -199,7 +199,7 @@ static inline void lc_serve_recv(void* p,
   }
 }
 
-static inline void lc_serve_rdma(uint32_t imm_data)
+static inline void LCIS_serve_rdma(uint32_t imm_data)
 {
   LCII_proto_t proto = imm_data;
   LCI_endpoint_t ep = LCI_ENDPOINTS[PROTO_GET_RGID(proto)];
@@ -221,7 +221,7 @@ static inline void lc_serve_rdma(uint32_t imm_data)
 }
 
 // local completion
-static inline void lc_serve_send(void* raw_ctx)
+static inline void LCIS_serve_send(void* raw_ctx)
 {
   LCII_context_t *ctx = raw_ctx;
   lc_ce_dispatch(ctx);

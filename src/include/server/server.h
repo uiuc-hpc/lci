@@ -29,52 +29,132 @@ typedef struct LCIS_cq_entry_t {
 
 /* Following functions are required to be implemented by LCI */
 
-static inline void lc_serve_recv(void* p, int rank, size_t length, uint32_t imm_data);
-static inline void lc_serve_rdma(uint32_t imm_data);
-static inline void lc_serve_send(void *ctx);
+static inline void LCIS_serve_recv(void* p, int rank, size_t length, uint32_t imm_data);
+static inline void LCIS_serve_rdma(uint32_t imm_data);
+static inline void LCIS_serve_send(void *ctx);
 
 /* Following functions are required to be implemented by each server backend. */
 
-void lc_server_init(LCI_device_t device, LCIS_server_t* s);
-void lc_server_finalize(LCIS_server_t s);
-static inline int LCID_poll_cq(LCIS_server_t s, LCIS_cq_entry_t *entry);
+void LCISD_init(LCI_device_t device, LCIS_server_t* s);
+void LCISD_finalize(LCIS_server_t s);
+static inline int LCISD_poll_cq(LCIS_server_t s, LCIS_cq_entry_t *entry);
 
-static inline LCIS_mr_t lc_server_rma_reg(LCIS_server_t s, void* buf, size_t size);
-static inline void lc_server_rma_dereg(LCIS_mr_t mr);
-static inline LCIS_rkey_t lc_server_rma_rkey(LCIS_mr_t mr);
+static inline LCIS_mr_t LCISD_rma_reg(LCIS_server_t s, void* buf, size_t size);
+static inline void LCISD_rma_dereg(LCIS_mr_t mr);
+static inline LCIS_rkey_t LCISD_rma_rkey(LCIS_mr_t mr);
 
-static inline LCI_error_t lc_server_sends(LCIS_server_t s, int rank, void* buf,
-                                          size_t size, LCIS_meta_t meta);
-static inline LCI_error_t lc_server_send(LCIS_server_t s, int rank, void* buf,
-                                         size_t size, LCIS_mr_t mr,
-                                         LCIS_meta_t meta,
-                                         void* ctx);
-static inline LCI_error_t lc_server_puts(LCIS_server_t s, int rank, void* buf,
-                                         size_t size, uintptr_t base,
-                                         uint32_t offset, LCIS_rkey_t rkey);
-static inline LCI_error_t lc_server_put(LCIS_server_t s, int rank, void* buf,
-                                        size_t size, LCIS_mr_t mr, uintptr_t base,
-                                        uint32_t offset,LCIS_rkey_t rkey, void* ctx);
-static inline LCI_error_t lc_server_putImms(LCIS_server_t s, int rank, void* buf,
-                                            size_t size, uintptr_t base,
-                                            uint32_t offset, LCIS_rkey_t rkey,
-                                            uint32_t meta);
-static inline LCI_error_t lc_server_putImm(LCIS_server_t s, int rank, void* buf,
-                                           size_t size, LCIS_mr_t mr, uintptr_t base,
-                                           uint32_t offset,LCIS_rkey_t rkey,
-                                           LCIS_meta_t meta, void* ctx);
-static inline void lc_server_post_recv(LCIS_server_t s, void *buf,
-                                       uint32_t size, LCIS_mr_t mr,
-                                       void *ctx);
+static inline LCI_error_t LCISD_post_sends(LCIS_server_t s, int rank, void* buf,
+                                      size_t size, LCIS_meta_t meta);
+static inline LCI_error_t LCISD_post_send(LCIS_server_t s, int rank, void* buf,
+                                     size_t size, LCIS_mr_t mr,
+                                     LCIS_meta_t meta, void* ctx);
+static inline LCI_error_t LCISD_post_puts(LCIS_server_t s, int rank, void* buf,
+                                     size_t size, uintptr_t base,
+                                     uint32_t offset, LCIS_rkey_t rkey);
+static inline LCI_error_t LCISD_post_put(LCIS_server_t s, int rank, void* buf,
+                                    size_t size, LCIS_mr_t mr, uintptr_t base,
+                                    uint32_t offset, LCIS_rkey_t rkey,
+                                    void* ctx);
+static inline LCI_error_t LCISD_post_putImms(LCIS_server_t s, int rank, void* buf,
+                                        size_t size, uintptr_t base,
+                                        uint32_t offset, LCIS_rkey_t rkey,
+                                        uint32_t meta);
+static inline LCI_error_t LCISD_post_putImm(LCIS_server_t s, int rank, void* buf,
+                                       size_t size, LCIS_mr_t mr,
+                                       uintptr_t base, uint32_t offset,
+                                       LCIS_rkey_t rkey, LCIS_meta_t meta,
+                                       void* ctx);
+static inline void LCISD_post_recv(LCIS_server_t s, void *buf, uint32_t size,
+                                   LCIS_mr_t mr, void *ctx);
 
 #ifdef LCI_USE_SERVER_OFI
 #include "server_ofi.h"
 #endif
-#ifdef LCI_USE_SERVER_PSM
-#include "erver_psm2.h"
-#endif
 #ifdef LCI_USE_SERVER_IBV
 #include "server_ibv.h"
 #endif
+
+/* Wrapper functions */
+static inline void LCIS_init(LCI_device_t device, LCIS_server_t* s) {
+  LCISD_init(device, s);
+}
+
+static inline void LCIS_finalize(LCIS_server_t s) {
+  LCISD_finalize(s);
+}
+
+static inline int LCIS_poll_cq(LCIS_server_t s, LCIS_cq_entry_t *entry) {
+  return LCISD_poll_cq(s, entry);
+}
+
+static inline LCIS_mr_t LCIS_rma_reg(LCIS_server_t s, void* buf, size_t size) {
+  return LCISD_rma_reg(s, buf, size);
+}
+static inline void LCIS_rma_dereg(LCIS_mr_t mr) {
+  LCISD_rma_dereg(mr);
+}
+static inline LCIS_rkey_t LCIS_rma_rkey(LCIS_mr_t mr) {
+  return LCISD_rma_rkey(mr);
+}
+
+static inline LCI_error_t LCIS_post_sends(LCIS_server_t s, int rank, void* buf,
+                                            size_t size, LCIS_meta_t meta) {
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "LCIS_post_sends: rank %d buf %p size %lu meta %d\n",
+                      rank, buf, size, meta);
+  return LCISD_post_sends(s, rank, buf, size, meta);
+}
+static inline LCI_error_t LCIS_post_send(LCIS_server_t s, int rank, void* buf,
+                                           size_t size, LCIS_mr_t mr,
+                                           LCIS_meta_t meta, void* ctx) {
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "LCIS_post_send: rank %d buf %p size %lu mr %p meta %d ctx %p\n",
+                      rank, buf, size, (void*)mr.mr_p, meta, ctx);
+  return LCISD_post_send(s, rank, buf, size, mr, meta, ctx);
+}
+static inline LCI_error_t LCIS_post_puts(LCIS_server_t s, int rank, void* buf,
+                                           size_t size, uintptr_t base,
+                                           uint32_t offset, LCIS_rkey_t rkey) {
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "LCIS_post_puts: rank %d buf %p size %lu base %p offset %d "
+                      "rkey %lu\n", rank, buf,
+                      size, (void*) base, offset, rkey);
+  return LCISD_post_puts(s, rank, buf, size, base, offset, rkey);
+}
+static inline LCI_error_t LCIS_post_put(LCIS_server_t s, int rank, void* buf,
+                                          size_t size, LCIS_mr_t mr,
+                                          uintptr_t base, uint32_t offset,
+                                          LCIS_rkey_t rkey, void* ctx) {
+
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "LCIS_post_put: rank %d buf %p size %lu mr %p base %p "
+                      "offset %d rkey %lu ctx %p\n", rank, buf,
+                      size, (void*)mr.mr_p, (void*) base, offset, rkey, ctx);
+  return LCISD_post_put(s, rank, buf, size, mr, base, offset, rkey, ctx);
+}
+static inline LCI_error_t LCIS_post_putImms(LCIS_server_t s, int rank,
+                                              void* buf, size_t size,
+                                              uintptr_t base, uint32_t offset,
+                                              LCIS_rkey_t rkey, uint32_t meta) {
+
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "LCIS_post_putImms: rank %d buf %p size %lu base %p offset %d "
+                      "rkey %lu meta %d\n", rank, buf,
+                      size, (void*) base, offset, rkey, meta);
+  return LCISD_post_putImms(s, rank, buf, size, base, offset, rkey, meta);
+}
+static inline LCI_error_t LCIS_post_putImm(LCIS_server_t s, int rank,
+                                             void* buf, size_t size,
+                                             LCIS_mr_t mr, uintptr_t base,
+                                             uint32_t offset,LCIS_rkey_t rkey,
+                                             LCIS_meta_t meta, void* ctx) {
+
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "LCIS_post_putImm: rank %d buf %p size %lu mr %p base %p "
+                      "offset %d rkey %lu meta %u ctx %p\n", rank, buf,
+                      size, (void*)mr.mr_p, (void*) base, offset, rkey, meta, ctx);
+  return LCISD_post_putImm(s, rank, buf, size, mr, base, offset, rkey, meta, ctx);
+}
+static inline void LCIS_post_recv(LCIS_server_t s, void *buf,
+                                         uint32_t size, LCIS_mr_t mr,
+                                         void *ctx) {
+  LCM_DBG_Log_default(LCM_LOG_DEBUG, "LCIS_post_recv: buf %p size %u mr %p user_context %p\n",
+                      buf, size, (void*)mr.mr_p, ctx);
+  return LCISD_post_recv(s, buf, size, mr, ctx);
+}
 
 #endif

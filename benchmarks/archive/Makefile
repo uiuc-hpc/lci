@@ -24,11 +24,6 @@ ifeq ($(LC_SERVER), ibv)
 	# LDFLAGS += -L$(HOME)/tcmalloc_sb/lib -ltcmalloc
 endif
 
-ifeq ($(LC_SERVER), psm)
-	CFLAGS += -DLC_USE_SERVER_PSM
-	LDFLAGS += -lpsm2 # -L$(HOME)/libfab/lib -lfabric
-endif
-
 ### FOR TESTING HASH TABLE ###
 #FACEBOOK_INC = -I$(HOME)/facebook/include -I$(HOME)/glog/include -I$(HOME)/folly/folly/double-conversion #-DNDEBUG
 #FACEBOOK_LIB = -L$(HOME)/gflags/lib -lgflags -L$(HOME)/glog/lib -lglog -L$(HOME)/facebook/lib -lfolly -lpthread

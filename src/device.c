@@ -5,7 +5,7 @@ LCI_error_t LCI_device_init(LCI_device_t * device_ptr)
   LCI_device_t device = LCIU_malloc(sizeof(struct LCI_device_s));
   *device_ptr = device;
   device->recv_posted = 0;
-  lc_server_init(device, &device->server);
+  LCIS_init(device, &device->server);
 
   LCII_mt_init(&device->mt, 0);
   LCM_archive_init(&(device->ctx_archive), 16);
@@ -47,7 +47,7 @@ LCI_error_t LCI_device_free(LCI_device_t *device_ptr)
   LCIU_spinlock_fina(&device->bq_spinlock);
   LCI_lbuffer_free(device->heap);
   lc_pool_destroy(device->pkpool);
-  lc_server_finalize(device->server);
+  LCIS_finalize(device->server);
   LCIU_free(device);
   *device_ptr = NULL;
   return LCI_OK;
@@ -62,17 +62,17 @@ static inline LCI_error_t LCII_progress_bq(LCI_device_t device) {
   LCII_bq_entry_t *entry = LCII_bq_top(&device->bq);
   if (entry != NULL) {
     if (entry->bqe_type == LCII_BQ_SENDS) {
-      ret = lc_server_sends(entry->s, entry->rank, entry->buf, entry->size,
+      ret = LCIS_post_sends(entry->s, entry->rank, entry->buf, entry->size,
                            entry->meta);
     } else if (entry->bqe_type == LCII_BQ_SEND) {
-      ret = lc_server_send(entry->s, entry->rank, entry->buf, entry->size,
+      ret = LCIS_post_send(entry->s, entry->rank, entry->buf, entry->size,
                            entry->mr, entry->meta, entry->ctx);
     } else if (entry->bqe_type == LCII_BQ_PUT) {
-      ret = lc_server_put(entry->s, entry->rank, entry->buf, entry->size,
+      ret = LCIS_post_put(entry->s, entry->rank, entry->buf, entry->size,
                           entry->mr, entry->base, entry->offset, entry->rkey,
                           entry->ctx);
     } else if (entry->bqe_type == LCII_BQ_PUTIMM) {
-      ret = lc_server_putImm(entry->s, entry->rank, entry->buf, entry->size,
+      ret = LCIS_post_putImm(entry->s, entry->rank, entry->buf, entry->size,
                           entry->mr, entry->base, entry->offset, entry->rkey,
                           entry->meta, entry->ctx);
     } else {
@@ -92,7 +92,7 @@ LCI_error_t LCI_progress(LCI_device_t device)
 {
   int ret = LCI_ERR_RETRY;
   LCIS_cq_entry_t entry[LCI_CQ_MAX_POLL];
-  int count = LCID_poll_cq(device->server, entry);
+  int count = LCIS_poll_cq(device->server, entry);
   LCM_DBG_Assert(count >= 0, "ibv_poll_cq returns error %d\n", count);
   if (count > 0) {
     ret = LCI_OK;
@@ -102,7 +102,7 @@ LCI_error_t LCI_progress(LCI_device_t device)
       // two-sided recv.
       LCM_DBG_Log_default(LCM_LOG_DEBUG, "complete recv: packet %p rank %d length %lu imm_data %u\n",
                   entry[i].ctx, entry[i].rank, entry[i].length, entry[i].imm_data);
-      lc_serve_recv((lc_packet*)entry[i].ctx, entry[i].rank, entry[i].length, entry[i].imm_data);
+      LCIS_serve_recv((lc_packet*)entry[i].ctx, entry[i].rank, entry[i].length, entry[i].imm_data);
       --device->recv_posted;
     } else if (entry[i].opcode == LCII_OP_RDMA_WRITE) {
       LCM_DBG_Log_default(LCM_LOG_DEBUG, "complete write: imm_data %u\n", entry[i].imm_data);
@@ -110,12 +110,12 @@ LCI_error_t LCI_progress(LCI_device_t device)
         LCII_free_packet((lc_packet*)entry[i].ctx);
         --device->recv_posted;
       }
-      lc_serve_rdma(entry[i].imm_data);
+      LCIS_serve_rdma(entry[i].imm_data);
     } else {
       // entry[i].opcode == LCII_OP_SEND
       LCM_DBG_Log_default(LCM_LOG_DEBUG, "complete send: address %p\n", (void*) entry[i].ctx);
       if (entry[i].ctx == NULL) continue;
-      lc_serve_send((void*)entry[i].ctx);
+      LCIS_serve_send((void*)entry[i].ctx);
     }
   }
   // make progress on backlog queue
@@ -135,7 +135,7 @@ LCI_error_t LCI_progress(LCI_device_t device)
       break;
     }
     packet->context.poolid = lc_pool_get_local(device->pkpool);
-    lc_server_post_recv(device->server, packet->data.address, LCI_MEDIUM_SIZE,
+    LCIS_post_recv(device->server, packet->data.address, LCI_MEDIUM_SIZE,
                         *(device->heap.segment), packet);
     ++device->recv_posted;
   }

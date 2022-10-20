@@ -18,7 +18,7 @@
 LCI_error_t LCI_memory_register(LCI_device_t device, void *address, size_t length,
                                 LCI_segment_t *segment) {
   LCI_segment_t mr = (LCI_segment_t) LCIU_malloc(sizeof(struct LCIS_mr_t));
-  *mr = lc_server_rma_reg(device->server, address, length);
+  *mr = LCIS_rma_reg(device->server, address, length);
   *segment = mr;
   return LCI_OK;
 }
@@ -35,7 +35,7 @@ LCI_error_t LCI_memory_register(LCI_device_t device, void *address, size_t lengt
 LCI_error_t LCI_memory_deregister(LCI_segment_t* segment)
 {
   LCM_DBG_Assert(*segment != NULL, "*segment is NULL\n");
-  lc_server_rma_dereg(**segment);
+  LCIS_rma_dereg(**segment);
   LCIU_free(*segment);
   *segment = NULL;
   return LCI_OK;

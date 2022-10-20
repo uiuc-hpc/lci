@@ -20,7 +20,7 @@ const char *mtu_str(enum ibv_mtu mtu)
   }
 }
 
-void lc_server_init(LCI_device_t device, LCIS_server_t* s)
+void LCISD_init(LCI_device_t device, LCIS_server_t* s)
 {
   int device_id = g_device_num++;
   LCISI_server_t *server = LCIU_malloc(sizeof(LCISI_server_t));
@@ -269,7 +269,7 @@ void lc_server_init(LCI_device_t device, LCIS_server_t* s)
   lcm_pm_barrier();
 }
 
-void lc_server_finalize(LCIS_server_t s)
+void LCISD_finalize(LCIS_server_t s)
 {
   if (LCI_USE_DREG == 1) {
     dreg_finalize();

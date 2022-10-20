@@ -68,7 +68,7 @@ static inline void _real_server_dereg(uintptr_t mr_opaque)
   FI_SAFECALL(fi_close((struct fid*) &mr->fid));
 }
 
-static inline LCIS_mr_t lc_server_rma_reg(LCIS_server_t s, void* buf, size_t size)
+static inline LCIS_mr_t LCISD_rma_reg(LCIS_server_t s, void* buf, size_t size)
 {
   LCIS_mr_t mr;
   if (LCI_USE_DREG == 1) {
@@ -85,7 +85,7 @@ static inline LCIS_mr_t lc_server_rma_reg(LCIS_server_t s, void* buf, size_t siz
   return mr;
 }
 
-static inline void lc_server_rma_dereg(LCIS_mr_t mr)
+static inline void LCISD_rma_dereg(LCIS_mr_t mr)
 {
   if (LCI_USE_DREG == 1) {
     dreg_unregister((dreg_entry*)mr.mr_p);
@@ -94,7 +94,7 @@ static inline void lc_server_rma_dereg(LCIS_mr_t mr)
   }
 }
 
-static inline LCIS_rkey_t lc_server_rma_rkey(LCIS_mr_t mr)
+static inline LCIS_rkey_t LCISD_rma_rkey(LCIS_mr_t mr)
 {
   if (LCI_USE_DREG == 1) {
     return fi_mr_key((struct fid_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]));
@@ -112,7 +112,7 @@ static inline void* ofi_rma_lkey(LCIS_mr_t mr)
   }
 }
 
-static inline int LCID_poll_cq(LCIS_server_t s, LCIS_cq_entry_t*entry) {
+static inline int LCISD_poll_cq(LCIS_server_t s, LCIS_cq_entry_t*entry) {
   LCISI_server_t *server = (LCISI_server_t*) s;
   struct fi_cq_tagged_entry fi_entry[LCI_CQ_MAX_POLL];
   struct fi_cq_err_entry error;
@@ -154,18 +154,16 @@ static inline int LCID_poll_cq(LCIS_server_t s, LCIS_cq_entry_t*entry) {
   return ret;
 }
 
-static inline void lc_server_post_recv(LCIS_server_t s, void *buf, uint32_t size, LCIS_mr_t mr, void *ctx) {
+static inline void LCISD_post_recv(LCIS_server_t s, void *buf, uint32_t size, LCIS_mr_t mr, void *ctx) {
   LCISI_server_t *server = (LCISI_server_t*) s;
   FI_SAFECALL(fi_trecv(server->ep, buf, size, ofi_rma_lkey(mr),
                        FI_ADDR_UNSPEC, /*any*/0, ~(uint64_t)0 /*ignore all*/,
                        ctx));
 }
 
-static inline LCI_error_t lc_server_sends(LCIS_server_t s, int rank, void* buf,
+static inline LCI_error_t LCISD_post_sends(LCIS_server_t s, int rank, void* buf,
                                           size_t size, LCIS_meta_t meta)
 {
-  LCM_DBG_Log_default(LCM_LOG_DEBUG, "post sends: rank %d buf %p size %lu meta %d\n",
-              rank, buf, size, meta);
   LCISI_server_t *server = (LCISI_server_t*) s;
   int ret = fi_tinjectdata(server->ep, buf, size, meta, server->peer_addrs[rank],
                            LCI_RANK /*tag*/);
@@ -174,13 +172,11 @@ static inline LCI_error_t lc_server_sends(LCIS_server_t s, int rank, void* buf,
   else FI_SAFECALL(ret);
 }
 
-static inline LCI_error_t lc_server_send(LCIS_server_t s, int rank, void* buf,
+static inline LCI_error_t LCISD_post_send(LCIS_server_t s, int rank, void* buf,
                                          size_t size, LCIS_mr_t mr,
                                          LCIS_meta_t meta,
                                          void* ctx)
 {
-  LCM_DBG_Log_default(LCM_LOG_DEBUG, "post send: rank %d buf %p size %lu lkey %p meta %d ctx %p\n",
-              rank, buf, size, ofi_rma_lkey(mr), meta, ctx);
   LCISI_server_t *server = (LCISI_server_t*) s;
   int ret = fi_tsenddata(server->ep, buf, size, ofi_rma_lkey(mr),
                          meta, server->peer_addrs[rank], LCI_RANK /*tag*/,
@@ -190,13 +186,10 @@ static inline LCI_error_t lc_server_send(LCIS_server_t s, int rank, void* buf,
   else FI_SAFECALL(ret);
 }
 
-static inline LCI_error_t lc_server_puts(LCIS_server_t s, int rank, void* buf,
+static inline LCI_error_t LCISD_post_puts(LCIS_server_t s, int rank, void* buf,
                                          size_t size, uintptr_t base,
                                          uint32_t offset, LCIS_rkey_t rkey)
 {
-  LCM_DBG_Log_default(LCM_LOG_DEBUG, "post puts: rank %d buf %p size %lu base %p offset %d "
-              "rkey %lu\n", rank, buf,
-              size, (void*) base, offset, rkey);
   LCISI_server_t *server = (LCISI_server_t*) s;
   uintptr_t addr;
   if (server->info->domain_attr->mr_mode & FI_MR_VIRT_ADDR || server->info->domain_attr->mr_mode & FI_MR_BASIC) {
@@ -210,14 +203,11 @@ static inline LCI_error_t lc_server_puts(LCIS_server_t s, int rank, void* buf,
   else FI_SAFECALL(ret);
 }
 
-static inline LCI_error_t lc_server_put(LCIS_server_t s, int rank, void* buf,
+static inline LCI_error_t LCISD_post_put(LCIS_server_t s, int rank, void* buf,
                                         size_t size, LCIS_mr_t mr,
                                         uintptr_t base, uint32_t offset,
                                         LCIS_rkey_t rkey, void* ctx)
 {
-  LCM_DBG_Log_default(LCM_LOG_DEBUG, "post put: rank %d buf %p size %lu lkey %p base %p "
-              "offset %d rkey %lu ctx %p\n", rank, buf,
-              size, ofi_rma_lkey(mr), (void*) base, offset, rkey, ctx);
   LCISI_server_t *server = (LCISI_server_t*) s;
   uintptr_t addr;
   if (server->info->domain_attr->mr_mode & FI_MR_VIRT_ADDR || server->info->domain_attr->mr_mode & FI_MR_BASIC) {
@@ -232,14 +222,11 @@ static inline LCI_error_t lc_server_put(LCIS_server_t s, int rank, void* buf,
   else FI_SAFECALL(ret);
 }
 
-static inline LCI_error_t lc_server_putImms(LCIS_server_t s, int rank, void* buf,
+static inline LCI_error_t LCISD_post_putImms(LCIS_server_t s, int rank, void* buf,
                                             size_t size, uintptr_t base,
                                             uint32_t offset, LCIS_rkey_t rkey,
                                             uint32_t meta)
 {
-  LCM_DBG_Log_default(LCM_LOG_DEBUG, "post puts: rank %d buf %p size %lu base %p offset %d "
-                             "rkey %lu meta %d\n", rank, buf,
-              size, (void*) base, offset, rkey, meta);
   LCISI_server_t *server = (LCISI_server_t*) s;
   uintptr_t addr;
   if (server->info->domain_attr->mr_mode & FI_MR_VIRT_ADDR || server->info->domain_attr->mr_mode & FI_MR_BASIC) {
@@ -253,15 +240,12 @@ static inline LCI_error_t lc_server_putImms(LCIS_server_t s, int rank, void* buf
   else FI_SAFECALL(ret);
 }
 
-static inline LCI_error_t lc_server_putImm(LCIS_server_t s, int rank, void* buf,
+static inline LCI_error_t LCISD_post_putImm(LCIS_server_t s, int rank, void* buf,
                                            size_t size, LCIS_mr_t mr,
                                            uintptr_t base, uint32_t offset,
                                            LCIS_rkey_t rkey, LCIS_meta_t meta,
                                            void* ctx)
 {
-  LCM_DBG_Log_default(LCM_LOG_DEBUG, "post put: rank %d buf %p size %lu lkey %p base %p "
-                             "offset %d rkey %lu meta %u ctx %p\n", rank, buf,
-              size, ofi_rma_lkey(mr), (void*) base, offset, rkey, meta, ctx);
   LCISI_server_t *server = (LCISI_server_t*) s;
   uintptr_t addr;
   if (server->info->domain_attr->mr_mode & FI_MR_VIRT_ADDR || server->info->domain_attr->mr_mode & FI_MR_BASIC) {
