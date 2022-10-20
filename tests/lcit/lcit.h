@@ -667,9 +667,13 @@ void run(Context &ctx, Fn &&fn, Args &&... args) {
 
 static inline double wtime()
 {
-  struct timeval t1;
-  gettimeofday(&t1, 0);
-  return t1.tv_sec + t1.tv_usec / 1e6;
+  struct timespec t1;
+  int ret = clock_gettime(CLOCK_MONOTONIC, &t1);
+  if (ret != 0) {
+    fprintf(stderr, "Cannot get time!\n");
+    abort();
+  }
+  return t1.tv_sec + t1.tv_nsec / 1e9;
 }
 
 template<typename FUNC>
