@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <pthread.h>
 #include "lcm_log.h"
 
 LCM_API const char * const log_levels[] = {
@@ -13,6 +15,29 @@ LCM_API int LCM_LOG_LEVEL = LCM_LOG_WARN;
 LCM_API char *LCM_LOG_whitelist_p = NULL;
 LCM_API char *LCM_LOG_blacklist_p = NULL;
 LCM_API FILE *LCM_LOG_OUTFILE = NULL;
+// needed by the flush threads
+pthread_t thread_id;
+volatile bool thread_run;
+bool LCM_LOG_ENABLE_FLUSH_THREAD = false;
+int LCM_LOG_FLUSH_INTERVAL;
+
+static inline int getenv_or(char* env, int def) {
+  char* val = getenv(env);
+  if (val != NULL) {
+    return atoi(val);
+  } else {
+    return def;
+  }
+}
+
+void *LCM_Log_flush_fn(void *vargp)
+{
+  while (thread_run) {
+    sleep(LCM_LOG_FLUSH_INTERVAL);
+    LCM_Log_flush();
+  }
+  return NULL;
+}
 
 void LCM_Init(int rank)  {
   {
@@ -68,9 +93,20 @@ void LCM_Init(int rank)  {
       }
     }
   }
+  // flush threads
+  LCM_LOG_ENABLE_FLUSH_THREAD = getenv_or("LCM_LOG_ENABLE_FLUSH_THREAD", false);
+  if (LCM_LOG_ENABLE_FLUSH_THREAD) {
+    LCM_LOG_FLUSH_INTERVAL = getenv_or("LCM_LOG_FLUSH_INTERVAL", 60);
+    thread_run = true;
+    pthread_create(&thread_id, NULL, LCM_Log_flush_fn, NULL);
+  }
 }
 
 void LCM_Fina() {
+  if (LCM_LOG_ENABLE_FLUSH_THREAD) {
+    thread_run = false;
+    pthread_join(thread_id, NULL);
+  }
   if (fclose(LCM_LOG_OUTFILE) != 0) {
     fprintf(stderr, "The log file did not close successfully!\n");
   }
