@@ -1,23 +1,18 @@
 #include <stdio.h>
-#include <stdarg.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 #include "lcm_log.h"
 
-static const char * const log_levels[] = {
+LCM_API const char * const log_levels[] = {
     [LCM_LOG_WARN] = "warn",
     [LCM_LOG_TRACE] = "trace",
     [LCM_LOG_INFO] = "info",
     [LCM_LOG_DEBUG] = "debug",
     [LCM_LOG_MAX] = NULL
 };
-
-static int LCM_LOG_LEVEL = LCM_LOG_WARN;
-static char *LCM_LOG_whitelist_p = NULL;
-static char *LCM_LOG_blacklist_p = NULL;
-static FILE *LCM_LOG_OUTFILE = NULL;
+LCM_API int LCM_LOG_LEVEL = LCM_LOG_WARN;
+LCM_API char *LCM_LOG_whitelist_p = NULL;
+LCM_API char *LCM_LOG_blacklist_p = NULL;
+LCM_API FILE *LCM_LOG_OUTFILE = NULL;
 
 void LCM_Init(int rank)  {
   {
@@ -79,55 +74,4 @@ void LCM_Fina() {
   if (fclose(LCM_LOG_OUTFILE) != 0) {
     fprintf(stderr, "The log file did not close successfully!\n");
   }
-}
-
-void LCM_Assert_(const char *expr_str, int expr, const char *file,
-                  const char *func, int line, const char *format, ...) {
-  if (expr)
-    return;
-
-  char buf[1024];
-  int size;
-  va_list vargs;
-
-  size = snprintf(buf, sizeof(buf), "%d:%s:%s:%d<Assert failed: %s> ", getpid(), file, func,
-                  line, expr_str);
-
-  va_start(vargs, format);
-  vsnprintf(buf + size, sizeof(buf) - size, format, vargs);
-  va_end(vargs);
-
-  fprintf(stderr, "%s", buf);
-  abort();
-}
-
-void LCM_Log_(enum LCM_log_level_t log_level, const char *log_type,
-              const char *file, const char *func, int line,
-              const char *format, ...) {
-  char buf[1024];
-  int size;
-  va_list vargs;
-  LCM_Assert(log_level != LCM_LOG_NONE, "You should not use LCM_LOG_NONE!\n");
-  // if log_level is weaker than the configured log level, do nothing.
-  if (log_level > LCM_LOG_LEVEL)
-    return;
-  // if whitelist is enabled and log_type is not include in the whitelist,
-  // do nothing.
-  if (LCM_LOG_whitelist_p != NULL &&
-      strstr(LCM_LOG_whitelist_p, log_type) == NULL)
-    return;
-  // if blacklist is enabled and log_type is not include in the blacklist,
-  // do nothing.
-  if (LCM_LOG_blacklist_p != NULL &&
-      strstr(LCM_LOG_blacklist_p, log_type) != NULL)
-    return;
-  // print the log
-  size = snprintf(buf, sizeof(buf), "%d:%s:%s:%d<%s:%s> ",
-                  getpid(), file, func, line, log_levels[log_level], log_type);
-
-  va_start(vargs, format);
-  vsnprintf(buf + size, sizeof(buf) - size, format, vargs);
-  va_end(vargs);
-
-  fprintf(LCM_LOG_OUTFILE, "%s", buf);
 }
