@@ -20,7 +20,9 @@ int iompi_coll_base_allreduce_intra_recursivedoubling(
 
   /* Special case for size == 1 */
   if (1 == size) {
-    memmove(rbuf, sbuf, count);
+    if (LC_COL_IN_PLACE != sbuf) {
+      memmove(rbuf, sbuf, count);
+    }
     req->flag = 1;
     return 0;
   }

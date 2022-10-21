@@ -111,7 +111,7 @@ void lc_col_progress(lc_colreq* req)
       case LC_COL_SENDRECV:
         lc_reset((void*) &req->pending[0].sync);
         LC_SAFE(lc_send(op->src, op->size, op->rank, op->tag, op->ep, lc_signal, (void*) &req->pending[0].sync));
-        lc_recv(op->dst, op->size, op->rank, op->tag, op->ep, &req->pending[1]);
+        LC_SAFE(lc_recv(op->dst, op->size, op->rank, op->tag, op->ep, &req->pending[1]));
         break;
       case LC_COL_OP:
         req->op(op->dst, op->src, op->size);
