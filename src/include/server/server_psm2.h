@@ -327,7 +327,7 @@ static inline void lc_server_post_recv(lc_server* s, lc_packet* p)
       s->mq, PSM2_MQ_ANY_ADDR, &rtag,                       /* message tag */
       &LCI_PSM2_TAGSEL, /* message tag mask */
       0,       /* no flags */
-      &p->data, POST_MSG_SIZE, (void*)(PSM_RECV | (uintptr_t)&p->context),
+      &p->data, PACKET_DATA_SIZE, (void*)(PSM_RECV | (uintptr_t)&p->context),
       (psm2_mq_req_t*)p));
 
   if (++s->recv_posted == LC_SERVER_MAX_RCVS && lcg_deadlock)

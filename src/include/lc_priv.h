@@ -8,9 +8,6 @@
 
 #include "cq.h"
 
-#define SHORT_MSG_SIZE (LC_PACKET_SIZE - sizeof(struct packet_context))
-#define POST_MSG_SIZE (SHORT_MSG_SIZE)
-
 extern int lcg_nep;
 extern int lcg_size;
 extern int lcg_rank;
@@ -23,9 +20,9 @@ typedef struct lc_server lc_server;
 // remote endpoint is just a handle.
 struct lci_rep {
   void* handle;
-  int rank;
   uintptr_t base;
   uint32_t rkey;
+  int rank;
 } __attribute__((packed, aligned(LC_CACHE_LINE)));
 
 struct lci_ep {

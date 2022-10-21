@@ -9,7 +9,7 @@ size_t lc_max_short(int dev __UNUSED__)
 
 size_t lc_max_medium(int dev __UNUSED__)
 {
-  return LC_PACKET_SIZE;
+  return PACKET_DATA_SIZE;
 }
 
 #ifdef USE_DREG

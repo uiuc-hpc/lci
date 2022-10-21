@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include "lc.h"
 
+#define PACKET_DATA_SIZE (LC_PACKET_SIZE - sizeof(struct packet_context))
+
 #define lci_pk_init(ep_, pid_, proto_, p)  \
   p->context.ep = (ep_);                   \
   p->context.poolid = (pid_);              \

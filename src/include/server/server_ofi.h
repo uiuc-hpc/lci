@@ -303,8 +303,7 @@ LC_INLINE int ofi_progress(ofi_server* s)
 LC_INLINE void ofi_post_recv(ofi_server* s, lc_packet* p)
 {
   if (p == NULL) return;
-  FI_SAFECALL(
-      fi_recv(s->ep, &p->data, POST_MSG_SIZE, 0, FI_ADDR_UNSPEC, &p->context));
+  FI_SAFECALL(fi_recv(s->ep, &p->data, PACKET_DATA_SIZE, 0, FI_ADDR_UNSPEC, &p->context));
   s->recv_posted++;
 }
 
