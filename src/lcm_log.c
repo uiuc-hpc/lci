@@ -16,10 +16,10 @@ LCM_API char *LCM_LOG_whitelist_p = NULL;
 LCM_API char *LCM_LOG_blacklist_p = NULL;
 LCM_API FILE *LCM_LOG_OUTFILE = NULL;
 // needed by the flush threads
-pthread_t thread_id;
-volatile bool thread_run;
-bool LCM_LOG_ENABLE_FLUSH_THREAD = false;
-int LCM_LOG_FLUSH_INTERVAL;
+static pthread_t LCM_LOG_thread_id;
+static volatile bool LCM_LOG_thread_run;
+static bool LCM_LOG_ENABLE_FLUSH_THREAD = false;
+static int LCM_LOG_FLUSH_INTERVAL;
 
 static inline int getenv_or(char* env, int def) {
   char* val = getenv(env);
@@ -37,7 +37,7 @@ void *LCM_Log_flush_fn(void *vargp)
   LCM_Log(LCM_LOG_INFO, "log", "Start the flush thread at %lu.%lu s\n",
           start_time.tv_sec, start_time.tv_nsec);
   LCM_Log_flush();
-  while (thread_run) {
+  while (LCM_LOG_thread_run) {
     sleep(LCM_LOG_FLUSH_INTERVAL);
     clock_gettime(CLOCK_MONOTONIC, &now);
     if (now.tv_nsec >= start_time.tv_nsec) {
@@ -51,6 +51,17 @@ void *LCM_Log_flush_fn(void *vargp)
             diff.tv_sec, diff.tv_nsec);
     LCM_Log_flush();
   }
+  clock_gettime(CLOCK_MONOTONIC, &now);
+  if (now.tv_nsec >= start_time.tv_nsec) {
+    diff.tv_sec = now.tv_sec - start_time.tv_sec;
+    diff.tv_nsec = now.tv_nsec - start_time.tv_nsec;
+  } else {
+    diff.tv_sec = now.tv_sec - start_time.tv_sec - 1;
+    diff.tv_nsec = now.tv_nsec - start_time.tv_nsec + 1000000000;
+  }
+  LCM_Log(LCM_LOG_INFO, "log", "Finish the flush thread at %lu.%lu s\n",
+          diff.tv_sec, diff.tv_nsec);
+  LCM_Log_flush();
   return NULL;
 }
 
@@ -112,15 +123,15 @@ void LCM_Init(int rank)  {
   LCM_LOG_ENABLE_FLUSH_THREAD = getenv_or("LCM_LOG_ENABLE_FLUSH_THREAD", false);
   if (LCM_LOG_ENABLE_FLUSH_THREAD) {
     LCM_LOG_FLUSH_INTERVAL = getenv_or("LCM_LOG_FLUSH_INTERVAL", 60);
-    thread_run = true;
-    pthread_create(&thread_id, NULL, LCM_Log_flush_fn, NULL);
+    LCM_LOG_thread_run = true;
+    pthread_create(&LCM_LOG_thread_id, NULL, LCM_Log_flush_fn, NULL);
   }
 }
 
 void LCM_Fina() {
   if (LCM_LOG_ENABLE_FLUSH_THREAD) {
-    thread_run = false;
-    pthread_join(thread_id, NULL);
+    LCM_LOG_thread_run = false;
+    pthread_join(LCM_LOG_thread_id, NULL);
   }
   if (fclose(LCM_LOG_OUTFILE) != 0) {
     fprintf(stderr, "The log file did not close successfully!\n");
