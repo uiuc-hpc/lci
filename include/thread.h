@@ -11,7 +11,7 @@
 LC_EXPORT extern int lcg_current_id;
 LC_EXPORT extern __thread int lcg_core_id;
 
-typedef volatile int lc_sync;
+typedef _Atomic(intptr_t) lc_sync;
 
 LC_INLINE void lc_wait(void* ce)
 {
