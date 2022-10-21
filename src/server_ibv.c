@@ -64,6 +64,38 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
     exit(EXIT_FAILURE);
   }
 
+  if (ibv_query_device_ex(server->dev_ctx, NULL, &server->dev_attrx)) {
+    fprintf(stderr, "Unable to query device for its extended features\n");
+    exit(EXIT_FAILURE);
+  }
+
+  server->odp_mr = NULL;
+  if (LCI_USE_DREG == 2) {
+    const uint32_t rc_caps_mask = IBV_ODP_SUPPORT_SEND |
+                                  IBV_ODP_SUPPORT_RECV |
+                                  IBV_ODP_SUPPORT_WRITE |
+                                  IBV_ODP_SUPPORT_READ |
+                                  IBV_ODP_SUPPORT_SRQ_RECV;
+    if (!(server->dev_attrx.odp_caps.general_caps & IBV_ODP_SUPPORT) ||
+        (server->dev_attrx.odp_caps.per_transport_caps.rc_odp_caps & rc_caps_mask) != rc_caps_mask) {
+      fprintf(stderr, "The device isn't ODP capable\n");
+      exit(EXIT_FAILURE);
+    }
+    if (!(server->dev_attrx.odp_caps.general_caps & IBV_ODP_SUPPORT_IMPLICIT)) {
+      fprintf(stderr, "The device doesn't support implicit ODP\n");
+      exit(EXIT_FAILURE);
+    }
+    server->odp_mr = ibv_reg_mr(server->dev_pd, NULL, SIZE_MAX,
+                                IBV_ACCESS_LOCAL_WRITE |
+                                IBV_ACCESS_REMOTE_READ |
+                                IBV_ACCESS_REMOTE_WRITE |
+                                IBV_ACCESS_ON_DEMAND);
+    if (!server->odp_mr) {
+      fprintf(stderr, "Couldn't register MR\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+
   // query port attribute
   uint8_t dev_port = 0;
   for (; dev_port < 128; dev_port++) {
@@ -276,14 +308,16 @@ void LCISD_finalize(LCIS_server_t s)
   }
   LCISI_server_t *server = (LCISI_server_t*) s;
   free(server->qp2rank);
-  ibv_destroy_cq(server->cq);
-  ibv_destroy_srq(server->dev_srq);
-  ibv_free_device_list(server->dev_list);
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
-    ibv_destroy_qp(server->qps[i]);
+    IBV_SAFECALL(ibv_destroy_qp(server->qps[i]));
   }
   LCIU_free(server->qps);
-  ibv_dealloc_pd(server->dev_pd);
-  ibv_close_device(server->dev_ctx);
-  free(server);
+  IBV_SAFECALL(ibv_destroy_cq(server->cq));
+  IBV_SAFECALL(ibv_destroy_srq(server->dev_srq));
+  ibv_free_device_list(server->dev_list);
+  if (server->odp_mr != NULL)
+    IBV_SAFECALL(ibv_dereg_mr(server->odp_mr));
+  IBV_SAFECALL(ibv_dealloc_pd(server->dev_pd));
+  IBV_SAFECALL(ibv_close_device(server->dev_ctx));
+  LCIU_free(server);
 }

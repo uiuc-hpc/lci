@@ -14,6 +14,9 @@ static inline void LCIS_post_sends_bq(LCII_backlog_queue_t *bq_p,
     }
   }
   // push to backlog queue
+  LCM_DBG_Log(LCM_LOG_INFO, "bq", "Pushed to backlog queue (sends): "
+              "post sends: rank %d buf %p size %lu meta %d\n",
+              rank, buf, size, meta);
   LCII_bq_entry_t *entry = LCIU_malloc(sizeof(struct LCII_bq_entry_t));
   entry->bqe_type = LCII_BQ_SENDS;
   entry->s = s;
@@ -41,6 +44,9 @@ static inline void LCIS_post_send_bq(LCII_backlog_queue_t *bq_p,
     }
   }
   // push to backlog queue
+  LCM_DBG_Log(LCM_LOG_INFO, "bq", "Pushed to backlog queue (send): "
+              "rank %d buf %p size %lu mr %p meta %d ctx %p\n",
+              rank, buf, size, mr.mr_p, meta, ctx);
   LCII_bq_entry_t *entry = LCIU_malloc(sizeof(struct LCII_bq_entry_t));
   entry->bqe_type = LCII_BQ_SEND;
   entry->s = s;
@@ -59,7 +65,7 @@ static inline void LCIS_post_put_bq(LCII_backlog_queue_t *bq_p,
                                     LCIU_spinlock_t *bq_spinlock_p,
                                     LCIS_server_t s, int rank, void* buf,
                                     size_t size, LCIS_mr_t mr, uintptr_t base,
-                                    uint32_t offset,LCIS_rkey_t rkey,
+                                    LCIS_offset_t offset, LCIS_rkey_t rkey,
                                     void* ctx) {
   if (LCII_bq_is_empty(bq_p)) {
     LCI_error_t ret = LCIS_post_put(s, rank, buf, size, mr, base, offset, rkey, ctx);
@@ -69,6 +75,10 @@ static inline void LCIS_post_put_bq(LCII_backlog_queue_t *bq_p,
     }
   }
   // push to backlog queue
+  LCM_DBG_Log(LCM_LOG_INFO, "bq", "Pushed to backlog queue: "
+              "rank %d buf %p size %lu mr %p base %p "
+              "offset %lu rkey %lu ctx %p\n", rank, buf,
+              size, mr.mr_p, (void*) base, offset, rkey, ctx);
   LCII_bq_entry_t *entry = LCIU_malloc(sizeof(struct LCII_bq_entry_t));
   entry->bqe_type = LCII_BQ_PUT;
   entry->s = s;
@@ -89,7 +99,7 @@ static inline void LCIS_post_putImm_bq(LCII_backlog_queue_t *bq_p,
                                     LCIU_spinlock_t *bq_spinlock_p,
                                     LCIS_server_t s, int rank, void* buf,
                                     size_t size, LCIS_mr_t mr, uintptr_t base,
-                                    uint32_t offset,LCIS_rkey_t rkey,
+                                    LCIS_offset_t offset, LCIS_rkey_t rkey,
                                     LCIS_meta_t meta, void* ctx) {
   if (LCII_bq_is_empty(bq_p)) {
     LCI_error_t ret = LCIS_post_putImm(s, rank, buf, size, mr, base, offset, rkey, meta, ctx);
@@ -99,6 +109,10 @@ static inline void LCIS_post_putImm_bq(LCII_backlog_queue_t *bq_p,
     }
   }
   // push to backlog queue
+  LCM_DBG_Log(LCM_LOG_INFO, "bq", "Pushed to backlog queue (putImm): "
+              "rank %d buf %p size %lu mr %p base %p "
+              "offset %lu rkey %lu meta %u ctx %p\n", rank, buf,
+              size, mr.mr_p, (void*) base, offset, rkey, meta, ctx);
   LCII_bq_entry_t *entry = LCIU_malloc(sizeof(struct LCII_bq_entry_t));
   entry->bqe_type = LCII_BQ_PUTIMM;
   entry->s = s;
@@ -225,7 +239,7 @@ static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep, lc_packet* packet,
       (uintptr_t) rdv_ctx->data.lbuffer.address - packet->data.rtr.remote_addr_base;
   packet->data.rtr.rkey = LCIS_rma_rkey(*(rdv_ctx->data.lbuffer.segment));
 
-  LCM_DBG_Log(LCM_LOG_DEBUG, "rdv", "send rtr: type %d sctx %p base %p offset %d "
+  LCM_DBG_Log(LCM_LOG_DEBUG, "rdv", "send rtr: type %d sctx %p base %p offset %lu "
               "rkey %lu rctx_key %u\n", packet->data.rtr.msg_type,
               (void*) packet->data.rtr.send_ctx, (void*) packet->data.rtr.remote_addr_base,
               packet->data.rtr.remote_addr_offset, packet->data.rtr.rkey,
@@ -381,7 +395,7 @@ static inline void LCII_handle_iovec_recv_FIN(lc_packet* packet)
   LCM_DBG_Log(LCM_LOG_DEBUG, "rdv", "recv FIN: rctx %p\n", ctx);
   LCM_DBG_Assert(ctx->data_type == LCI_IOVEC,
                  "Didn't get the right context (%p type=%d)!.\n", ctx, ctx->data_type);
-  // recvl has been completed locally. Need to process completion.
+  // putva has been completed locally. Need to process completion.
   LCII_free_packet(packet);
   lc_ce_dispatch(ctx);
 }

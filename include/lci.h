@@ -292,9 +292,10 @@ extern int LCI_MAX_SYNC_LENGTH;
 extern int LCI_PACKET_RETURN_THRESHOLD;
 
 /**
- * Whether to use the registration cache
- * 0: turn off.
- * 1: turn on.
+ * How to handle the memory registration:
+ * 0: Explicit user registration.
+ * 1: Explicit user registration and LCI-provided registration cache.
+ * 2: On-demand paging.
  */
 extern int LCI_USE_DREG;
 

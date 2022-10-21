@@ -8,19 +8,19 @@ typedef enum {
   LCII_BQ_PUTIMM,
 } LCII_bqe_type_t;
 
-// backlog queue entry, 84 B
+// backlog queue entry, 100 B
 // TODO: should further reduce to one cache line
 typedef struct LCII_bq_entry_t {
   LCII_bqe_type_t bqe_type; // 4B
   LCIS_server_t s;   // 8B
   void* buf;         // 8B
-  int size;          // 4B
+  size_t size;       // 8B
   int rank;          // 4B
   LCIS_mr_t mr;      // 24B
   void* ctx;         // 8B
   LCIS_meta_t meta;  // 4B
   // only need by put
-  uint32_t offset;   // 4B
+  LCIS_offset_t offset;   // 8B
   uintptr_t base;    // 8B
   LCIS_rkey_t rkey;  // 8B
   struct LCII_bq_entry_t* next; // 8B

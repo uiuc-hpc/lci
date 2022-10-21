@@ -36,10 +36,12 @@ typedef struct LCISI_server_t {
   struct ibv_context* dev_ctx;
   struct ibv_pd* dev_pd;
   struct ibv_device_attr dev_attr;
+  struct ibv_device_attr_ex dev_attrx;
   struct ibv_port_attr port_attr;
   struct ibv_srq* dev_srq;
   struct ibv_cq* cq;
   uint8_t dev_port;
+  struct ibv_mr *odp_mr;
 
   // Connections O(N)
   struct ibv_qp** qps;
@@ -72,6 +74,11 @@ static inline LCIS_mr_t LCISD_rma_reg(LCIS_server_t s, void* buf, size_t size)
     mr.mr_p = entry;
     mr.address = (void*) (entry->pagenum << DREG_PAGEBITS);
     mr.length = entry->npages << DREG_PAGEBITS;
+  } else if (LCI_USE_DREG == 2) {
+    LCISI_server_t *server = (LCISI_server_t*) s;
+    mr.mr_p = server->odp_mr;
+    mr.address = buf;
+    mr.length = SIZE_MAX;
   } else {
     mr.mr_p = LCISI_real_server_reg(s, buf, size);
     mr.address = buf;
@@ -84,6 +91,8 @@ static inline void LCISD_rma_dereg(LCIS_mr_t mr)
 {
   if (LCI_USE_DREG == 1) {
     dreg_unregister((dreg_entry*)mr.mr_p);
+  } else if (LCI_USE_DREG == 2) {
+    // do nothing
   } else {
     LCISI_real_server_dereg(mr.mr_p);
   }
@@ -195,6 +204,8 @@ static inline LCI_error_t LCISD_post_send(LCIS_server_t s, int rank, void* buf,
                                          void* ctx)
 {
   LCISI_server_t *server = (LCISI_server_t*) s;
+  if (LCI_USE_DREG == 2)
+    LCM_DBG_Assert(mr.mr_p == server->odp_mr, "Unexpected mr!\n");
 
   struct ibv_sge list;
   list.addr	= (uint64_t) buf;
@@ -221,7 +232,7 @@ static inline LCI_error_t LCISD_post_send(LCIS_server_t s, int rank, void* buf,
 
 static inline LCI_error_t LCISD_post_puts(LCIS_server_t s, int rank, void* buf,
                                          size_t size, uintptr_t base,
-                                         uint32_t offset, LCIS_rkey_t rkey)
+                                         LCIS_offset_t offset, LCIS_rkey_t rkey)
 {
   LCISI_server_t *server = (LCISI_server_t*) s;
   LCM_DBG_Assert(size <= server->max_inline, "%lu exceed the inline message size"
@@ -249,10 +260,12 @@ static inline LCI_error_t LCISD_post_puts(LCIS_server_t s, int rank, void* buf,
 
 static inline LCI_error_t LCISD_post_put(LCIS_server_t s, int rank, void* buf,
                                         size_t size, LCIS_mr_t mr, uintptr_t base,
-                                        uint32_t offset, LCIS_rkey_t rkey,
+                                        LCIS_offset_t offset, LCIS_rkey_t rkey,
                                         void* ctx)
 {
   LCISI_server_t *server = (LCISI_server_t*) s;
+  if (LCI_USE_DREG == 2)
+    LCM_DBG_Assert(mr.mr_p == server->odp_mr, "Unexpected mr!\n");
 
   struct ibv_sge list;
   list.addr	= (uint64_t) buf;
@@ -277,9 +290,11 @@ static inline LCI_error_t LCISD_post_put(LCIS_server_t s, int rank, void* buf,
   else IBV_SAFECALL(ret);
 }
 
-static inline LCI_error_t LCISD_post_putImms(LCIS_server_t s, int rank, void* buf,
-                                         size_t size, uintptr_t base, uint32_t offset,
-                                         LCIS_rkey_t rkey, uint32_t meta)
+static inline LCI_error_t LCISD_post_putImms(LCIS_server_t s, int rank,
+                                             void* buf, size_t size,
+                                             uintptr_t base,
+                                             LCIS_offset_t offset,
+                                             LCIS_rkey_t rkey, uint32_t meta)
 {
   LCISI_server_t *server = (LCISI_server_t*) s;
   LCM_DBG_Assert(size <= server->max_inline, "%lu exceed the inline message size"
@@ -308,7 +323,7 @@ static inline LCI_error_t LCISD_post_putImms(LCIS_server_t s, int rank, void* bu
 
 static inline LCI_error_t LCISD_post_putImm(LCIS_server_t s, int rank, void* buf,
                                         size_t size, LCIS_mr_t mr, uintptr_t base,
-                                        uint32_t offset, LCIS_rkey_t rkey,
+                                        LCIS_offset_t offset, LCIS_rkey_t rkey,
                                         LCIS_meta_t meta, void* ctx)
 {
   LCISI_server_t *server = (LCISI_server_t*) s;

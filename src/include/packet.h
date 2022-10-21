@@ -29,8 +29,8 @@ struct __attribute__((packed)) packet_rts {
 
 struct __attribute__((packed)) packet_rtr_iovec_info {
   uint64_t rkey;
-  intptr_t remote_addr_base;
-  uint32_t remote_addr_offset;
+  uintptr_t remote_addr_base;
+  LCIS_offset_t remote_addr_offset;
 };
 
 struct __attribute__((packed)) packet_rtr {
@@ -40,8 +40,8 @@ struct __attribute__((packed)) packet_rtr {
     // for LCI_LONG
     struct {
       uint64_t rkey;
-      intptr_t remote_addr_base;
-      uint32_t remote_addr_offset;
+      uintptr_t remote_addr_base;
+      LCIS_offset_t remote_addr_offset;
       uint32_t
           recv_ctx_key; /* the id of the related context on the target side */
     };

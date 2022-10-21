@@ -184,7 +184,7 @@ static inline LCI_error_t LCISD_post_send(LCIS_server_t s, int rank, void* buf,
 
 static inline LCI_error_t LCISD_post_puts(LCIS_server_t s, int rank, void* buf,
                                          size_t size, uintptr_t base,
-                                         uint32_t offset, LCIS_rkey_t rkey)
+                                         LCIS_offset_t offset, LCIS_rkey_t rkey)
 {
   LCISI_server_t *server = (LCISI_server_t*) s;
   uintptr_t addr;
@@ -201,7 +201,7 @@ static inline LCI_error_t LCISD_post_puts(LCIS_server_t s, int rank, void* buf,
 
 static inline LCI_error_t LCISD_post_put(LCIS_server_t s, int rank, void* buf,
                                         size_t size, LCIS_mr_t mr,
-                                        uintptr_t base, uint32_t offset,
+                                        uintptr_t base, LCIS_offset_t offset,
                                         LCIS_rkey_t rkey, void* ctx)
 {
   LCISI_server_t *server = (LCISI_server_t*) s;
@@ -220,7 +220,7 @@ static inline LCI_error_t LCISD_post_put(LCIS_server_t s, int rank, void* buf,
 
 static inline LCI_error_t LCISD_post_putImms(LCIS_server_t s, int rank, void* buf,
                                             size_t size, uintptr_t base,
-                                            uint32_t offset, LCIS_rkey_t rkey,
+                                            LCIS_offset_t offset, LCIS_rkey_t rkey,
                                             uint32_t meta)
 {
   LCISI_server_t *server = (LCISI_server_t*) s;
@@ -238,7 +238,7 @@ static inline LCI_error_t LCISD_post_putImms(LCIS_server_t s, int rank, void* bu
 
 static inline LCI_error_t LCISD_post_putImm(LCIS_server_t s, int rank, void* buf,
                                            size_t size, LCIS_mr_t mr,
-                                           uintptr_t base, uint32_t offset,
+                                           uintptr_t base, LCIS_offset_t offset,
                                            LCIS_rkey_t rkey, LCIS_meta_t meta,
                                            void* ctx)
 {
