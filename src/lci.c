@@ -1,10 +1,12 @@
 #include "lcii.h"
 
-int g_server_no_recv_packets;
 static int opened = 0;
 
 LCI_error_t LCI_initialize()
 {
+#ifdef LCI_USE_HANG_DETECTOR
+  LCII_hang_detector_init();
+#endif
   int num_proc, rank;
   // Initialize processes in this job.
   lcm_pm_initialize();
@@ -22,7 +24,7 @@ LCI_error_t LCI_initialize()
   LCI_plist_create(&plist);
   LCI_endpoint_init(&LCI_UR_ENDPOINT, LCI_UR_DEVICE, plist);
   LCI_plist_free(&plist);
-  LCM_DBG_Log_default(LCM_LOG_WARN, "Macro LCI_DEBUG is defined. Running in low-performance debug mode!\n");
+  LCM_DBG_Warn("Macro LCI_DEBUG is defined. Running in low-performance debug mode!\n");
 
   opened = 1;
   LCI_barrier();
@@ -42,6 +44,9 @@ LCI_error_t LCI_finalize()
   LCI_device_free(&LCI_UR_DEVICE);
   LCM_Fina();
   lcm_pm_finalize();
+#ifdef LCI_USE_HANG_DETECTOR
+  LCII_hang_detector_fina();
+#endif
 
   opened = 0;
   return LCI_OK;

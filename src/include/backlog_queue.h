@@ -42,7 +42,7 @@ static inline void LCII_bq_init(LCII_backlog_queue_t *bq_p) {
 
 static inline void LCII_bq_fini(LCII_backlog_queue_t *bq_p) {
   if (bq_p->length != 0) {
-    LCM_Log_default(LCM_LOG_WARN, "There are still %d pending entries in the backlog queue\n", bq_p->length);
+    LCM_Warn("There are still %d pending entries in the backlog queue\n", bq_p->length);
     LCII_bq_entry_t *p = bq_p->head;
     LCII_bq_entry_t *q;
     while (p != NULL) {

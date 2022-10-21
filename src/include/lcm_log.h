@@ -17,15 +17,19 @@ extern "C" {
         LCM_Log_(log_level, log_type, __FILE__, __func__, __LINE__, __VA_ARGS__)
 #define LCM_Log_default(log_level, ...) \
         LCM_Log(log_level, "default", __VA_ARGS__)
+#define LCM_Warn(...) \
+        LCM_Log(LCM_LOG_WARN, "warn", __VA_ARGS__)
 
 #ifdef LCM_DEBUG
 #define LCM_DBG_Assert(...) LCM_Assert(__VA_ARGS__)
 #define LCM_DBG_Log(...) LCM_Log(__VA_ARGS__)
 #define LCM_DBG_Log_default(...) LCM_Log_default(__VA_ARGS__)
+#define LCM_DBG_Warn(...) LCM_Warn(__VA_ARGS__)
 #else
 #define LCM_DBG_Assert(...)
 #define LCM_DBG_Log(...)
 #define LCM_DBG_Log_default(...)
+#define LCM_DBG_Warn(...)
 #endif
 
 enum LCM_log_level_t {
@@ -91,16 +95,19 @@ void LCM_Log_(enum LCM_log_level_t log_level, const char *log_type,
   // if log_level is weaker than the configured log level, do nothing.
   if (log_level > LCM_LOG_LEVEL)
     return;
-  // if whitelist is enabled and log_type is not include in the whitelist,
-  // do nothing.
-  if (LCM_LOG_whitelist_p != NULL &&
-      strstr(LCM_LOG_whitelist_p, log_type) == NULL)
-    return;
-  // if blacklist is enabled and log_type is not include in the blacklist,
-  // do nothing.
-  if (LCM_LOG_blacklist_p != NULL &&
-      strstr(LCM_LOG_blacklist_p, log_type) != NULL)
-    return;
+  // always show LCM_LOG_WARN message
+  if (log_level != LCM_LOG_WARN) {
+    // if whitelist is enabled and log_type is not include in the whitelist,
+    // do nothing.
+    if (LCM_LOG_whitelist_p != NULL &&
+        strstr(LCM_LOG_whitelist_p, log_type) == NULL)
+      return;
+    // if blacklist is enabled and log_type is not include in the blacklist,
+    // do nothing.
+    if (LCM_LOG_blacklist_p != NULL &&
+        strstr(LCM_LOG_blacklist_p, log_type) != NULL)
+      return;
+  }
   // print the log
   size = snprintf(buf, sizeof(buf), "%d:%s:%s:%d<%s:%s> ",
                   getpid(), file, func, line, log_levels[log_level], log_type);

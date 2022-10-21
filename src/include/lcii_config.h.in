@@ -25,6 +25,7 @@
 
 #ifdef LCI_DEBUG
 #define LCM_DEBUG
+#define LCI_USE_HANG_DETECTOR
 #endif
 
 #endif // LCII_CONFIG_H_

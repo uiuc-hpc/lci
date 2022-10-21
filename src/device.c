@@ -40,7 +40,7 @@ LCI_error_t LCI_device_free(LCI_device_t *device_ptr)
   LCM_DBG_Log(LCM_LOG_DEBUG, "device", "free device %p\n", device);
   int total_num = lc_pool_count(device->pkpool) + device->recv_posted;
   if (total_num != LCI_SERVER_MAX_PKTS)
-    LCM_DBG_Log_default(LCM_LOG_WARN, "Potentially losing packets %d != %d\n", total_num, LCI_SERVER_MAX_PKTS);
+    LCM_Warn("Potentially losing packets %d != %d\n", total_num, LCI_SERVER_MAX_PKTS);
   LCII_mt_free(&device->mt);
   LCM_archive_fini(&(device->ctx_archive));
   LCII_bq_fini(&device->bq);
@@ -90,6 +90,8 @@ static inline LCI_error_t LCII_progress_bq(LCI_device_t device) {
 
 LCI_error_t LCI_progress(LCI_device_t device)
 {
+  static int g_server_no_recv_packets;
+
   int ret = LCI_ERR_RETRY;
   LCIS_cq_entry_t entry[LCI_CQ_MAX_POLL];
   int count = LCIS_poll_cq(device->server, entry);
@@ -138,11 +140,17 @@ LCI_error_t LCI_progress(LCI_device_t device)
     LCIS_post_recv(device->server, packet->data.address, LCI_MEDIUM_SIZE,
                         *(device->heap.segment), packet);
     ++device->recv_posted;
+    ret = LCI_OK;
   }
   if (device->recv_posted == LCI_SERVER_MAX_RCVS && g_server_no_recv_packets) {
     g_server_no_recv_packets = 0;
     LCM_DBG_Log(LCM_LOG_DEBUG, "device", "WARNING-LC: recovered from deadlock alert.\n");
   }
 
+#ifdef LCI_USE_HANG_DETECTOR
+  if (ret == LCI_OK) {
+    LCII_hang_detector_heartbeat();
+  }
+#endif
   return ret;
 }
