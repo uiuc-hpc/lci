@@ -16,6 +16,7 @@ void lc_hash_destroy(lc_hash* h)
 }
 
 #include <stdio.h>
+#include <stdint.h>
 LC_EXPORT uint32_t lc_hash_compute(const uint64_t k) { return myhash(k); }
 /* only call during debug, all threads stopped - not thread safe */
 LC_EXPORT void lc_hash_dump(lc_hash* h, size_t num_rows)
@@ -37,7 +38,7 @@ LC_EXPORT void lc_hash_dump(lc_hash* h, size_t num_rows)
             if (h[j].entry.tag != EMPTY) {
                 int server = (h[j].entry.tag & SERVER);
                 lc_key key = (h[j].entry.tag >> 1);
-                int tag = (key & ((1 << 32) - 1));
+                int tag = (key & UINT32_MAX);
                 int rank = (key >> 32);
                 void *pointer = (void *)(h[j].entry.val);
                 if (server) {
