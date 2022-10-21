@@ -32,8 +32,23 @@ static inline int getenv_or(char* env, int def) {
 
 void *LCM_Log_flush_fn(void *vargp)
 {
+  struct timespec start_time, now, diff;
+  clock_gettime(CLOCK_MONOTONIC, &start_time);
+  LCM_Log(LCM_LOG_INFO, "log", "Start the flush thread at %lu.%lu s\n",
+          start_time.tv_sec, start_time.tv_nsec);
+  LCM_Log_flush();
   while (thread_run) {
     sleep(LCM_LOG_FLUSH_INTERVAL);
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    if (now.tv_nsec >= start_time.tv_nsec) {
+      diff.tv_sec = now.tv_sec - start_time.tv_sec;
+      diff.tv_nsec = now.tv_nsec - start_time.tv_nsec;
+    } else {
+      diff.tv_sec = now.tv_sec - start_time.tv_sec - 1;
+      diff.tv_nsec = now.tv_nsec - start_time.tv_nsec + 1000000000;
+    }
+    LCM_Log(LCM_LOG_INFO, "log", "Flush the log at %lu.%lu s\n",
+            diff.tv_sec, diff.tv_nsec);
     LCM_Log_flush();
   }
   return NULL;
