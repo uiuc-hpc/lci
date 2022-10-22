@@ -78,7 +78,16 @@ static inline LCIS_mr_t LCISD_rma_reg(LCIS_server_t s, void* buf, size_t size)
     LCISI_server_t *server = (LCISI_server_t*) s;
     mr.mr_p = server->odp_mr;
     mr.address = buf;
-    mr.length = SIZE_MAX;
+    mr.length = size;
+    struct ibv_sge list = {
+        .addr = (uintptr_t)buf,
+        .length = (uint32_t)size,
+        .lkey = server->odp_mr->lkey,
+    };
+    IBV_SAFECALL(
+        ibv_advise_mr(server->dev_pd, IBV_ADVISE_MR_ADVICE_PREFETCH_WRITE,
+                      0, &list, 1)
+        );
   } else {
     mr.mr_p = LCISI_real_server_reg(s, buf, size);
     mr.address = buf;
