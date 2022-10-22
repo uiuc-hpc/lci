@@ -79,6 +79,8 @@ static inline LCI_error_t LCII_progress_bq(LCI_device_t device) {
       LCM_DBG_Assert(false, "Unknown bqe_type (%d)!\n", entry->bqe_type);
     }
     if (ret == LCI_OK) {
+      LCM_Log(LCM_LOG_INFO, "bq", "Pop from backlog queue: type %d\n",
+              entry->bqe_type);
       LCII_bq_pop(&device->bq);
       if (entry->bqe_type == LCII_BQ_SENDS)
         LCIU_free(entry->buf);

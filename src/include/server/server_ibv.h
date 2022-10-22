@@ -7,7 +7,6 @@
 #include "infiniband/verbs.h"
 #include "dreg.h"
 
-#ifdef LCI_DEBUG
 #define IBV_SAFECALL(x)                                               \
   {                                                                   \
     int err = (x);                                                    \
@@ -18,14 +17,6 @@
   }                                                                   \
   while (0)                                                           \
     ;
-#else
-#define IBV_SAFECALL(x) \
-  {                     \
-    x;                  \
-  }                     \
-  while (0)             \
-    ;
-#endif
 
 typedef struct LCISI_server_t {
   LCI_device_t device;

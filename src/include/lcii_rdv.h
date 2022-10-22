@@ -14,7 +14,7 @@ static inline void LCIS_post_sends_bq(LCII_backlog_queue_t *bq_p,
     }
   }
   // push to backlog queue
-  LCM_DBG_Log(LCM_LOG_INFO, "bq", "Pushed to backlog queue (sends): "
+  LCM_Log(LCM_LOG_INFO, "bq", "Pushed to backlog queue (sends): "
               "post sends: rank %d buf %p size %lu meta %d\n",
               rank, buf, size, meta);
   LCII_bq_entry_t *entry = LCIU_malloc(sizeof(struct LCII_bq_entry_t));
@@ -44,7 +44,7 @@ static inline void LCIS_post_send_bq(LCII_backlog_queue_t *bq_p,
     }
   }
   // push to backlog queue
-  LCM_DBG_Log(LCM_LOG_INFO, "bq", "Pushed to backlog queue (send): "
+  LCM_Log(LCM_LOG_INFO, "bq", "Pushed to backlog queue (send): "
               "rank %d buf %p size %lu mr %p meta %d ctx %p\n",
               rank, buf, size, mr.mr_p, meta, ctx);
   LCII_bq_entry_t *entry = LCIU_malloc(sizeof(struct LCII_bq_entry_t));
@@ -75,10 +75,10 @@ static inline void LCIS_post_put_bq(LCII_backlog_queue_t *bq_p,
     }
   }
   // push to backlog queue
-  LCM_DBG_Log(LCM_LOG_INFO, "bq", "Pushed to backlog queue: "
-              "rank %d buf %p size %lu mr %p base %p "
-              "offset %lu rkey %lu ctx %p\n", rank, buf,
-              size, mr.mr_p, (void*) base, offset, rkey, ctx);
+  LCM_Log(LCM_LOG_INFO, "bq", "Pushed to backlog queue (put): "
+          "rank %d buf %p size %lu mr %p base %p "
+          "offset %lu rkey %lu ctx %p\n", rank, buf,
+          size, mr.mr_p, (void*) base, offset, rkey, ctx);
   LCII_bq_entry_t *entry = LCIU_malloc(sizeof(struct LCII_bq_entry_t));
   entry->bqe_type = LCII_BQ_PUT;
   entry->s = s;
@@ -109,7 +109,7 @@ static inline void LCIS_post_putImm_bq(LCII_backlog_queue_t *bq_p,
     }
   }
   // push to backlog queue
-  LCM_DBG_Log(LCM_LOG_INFO, "bq", "Pushed to backlog queue (putImm): "
+  LCM_Log(LCM_LOG_INFO, "bq", "Pushed to backlog queue (putImm): "
               "rank %d buf %p size %lu mr %p base %p "
               "offset %lu rkey %lu meta %u ctx %p\n", rank, buf,
               size, mr.mr_p, (void*) base, offset, rkey, meta, ctx);
