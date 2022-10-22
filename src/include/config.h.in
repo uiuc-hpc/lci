@@ -18,6 +18,7 @@
 #cmakedefine LC_SERVER_HAS_GLOB
 
 #cmakedefine USE_DREG
+#cmakedefine IBV_ODP
 
 #define LC_MAX_DEV         @LC_MAX_DEV@
 #define LC_MAX_EP          @LC_MAX_EP@

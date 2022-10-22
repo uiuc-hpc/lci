@@ -25,6 +25,9 @@ typedef struct lc_server {
   struct ibv_cq* send_cq;
   struct ibv_cq* recv_cq;
   struct ibv_mr* heap;
+#ifdef IBV_ODP
+  struct ibv_mr* odp;
+#endif
 
   struct ibv_port_attr port_attr;
   struct ibv_device_attr dev_attr;
@@ -87,6 +90,30 @@ static inline uint32_t ibv_rma_lkey(uintptr_t mem)
 
 #else
 
+#ifdef IBV_ODP
+static inline uintptr_t lc_server_rma_reg(lc_server* s, void* buf, size_t size)
+{
+  if (!size) return 0;
+  int ret = 0;
+  struct ibv_sge list = {
+    .addr = (uintptr_t)buf,
+    .length = (uint32_t)size,
+    .lkey = s->odp->lkey,
+  };
+  ret = ibv_advise_mr(s->dev_pd, IBV_ADVISE_MR_ADVICE_PREFETCH_WRITE, 0, &list, 1);
+#ifdef LC_SERVER_DEBUG
+  switch (ret) {
+  case  0: break;
+  default: abort();
+  }
+#endif
+  return (uintptr_t)s->odp;
+}
+
+static inline void lc_server_rma_dereg(uintptr_t mem)
+{
+}
+#else
 static inline uintptr_t lc_server_rma_reg(lc_server* s, void* buf, size_t size)
 {
   return size ? _real_server_reg(s, buf, size) : 0;
@@ -96,6 +123,7 @@ static inline void lc_server_rma_dereg(uintptr_t mem)
 {
   if (mem) _real_server_dereg(mem);
 }
+#endif
 
 static inline uint32_t lc_server_rma_key(uintptr_t mem)
 {
@@ -512,6 +540,15 @@ static inline void lc_server_init(int id, lc_server** dev)
     exit(EXIT_FAILURE);
   }
 
+#ifdef IBV_ODP
+  int odp_flags = IBV_ACCESS_ON_DEMAND | IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+  s->odp = ibv_reg_mr(s->dev_pd, 0, SIZE_MAX, odp_flags);
+  if (s->odp == NULL) {
+    fprintf(stderr, "Unable to create odp mr\n");
+    exit(EXIT_FAILURE);
+  }
+#endif
+
   s->recv_posted = 0;
   atomic_store_explicit(&s->send_avail, MAX_SEND, memory_order_release);
   // s->qp = calloc(lcg_size, sizeof(struct ibv_qp*));
@@ -578,6 +615,9 @@ static inline void lc_server_init(int id, lc_server** dev)
 
 static inline void lc_server_finalize(lc_server* s)
 {
+#ifdef IBV_ODP
+  ibv_dereg_mr(s->odp);
+#endif
   ibv_destroy_cq(s->send_cq);
   ibv_destroy_cq(s->recv_cq);
   ibv_destroy_srq(s->dev_srq);

@@ -18,6 +18,16 @@ set_property(CACHE LC_SERVER PROPERTY STRINGS ofi ibv psm)
 option(LC_SERVER_DEBUG "Server debug" OFF)
 option(LC_SERVER_DEBUG_PRINT "Server debug print" OFF)
 option(LC_USE_DREG "Use registration cache (only affects ibv -- only use when not-so-dynamic allocation)" ON)
+option(LC_IBV_ODP "Use IBVerbs On-Demand Paging (ODP) (disables dreg)" ON)
+if(NOT LC_SERVER STREQUAL "ibv")
+  # disable ODP when not using IBVerbs
+  set(LC_IBV_ODP  OFF CACHE INTERNAL "Use IBVerbs On-Demand Paging (ODP) (disables dreg)")
+endif()
+if(NOT LC_SERVER STREQUAL "ibv" OR LC_IBV_ODP)
+  # disable dreg cache when not using IBVerbs or when using ODP
+  set(LC_USE_DREG OFF CACHE INTERNAL "Use registration cache (only affects ibv -- only use when not-so-dynamic allocation)")
+endif()
+
 set(LC_EP_AR dynamic explicit CACHE STRING "Addressing mode (dynamic, explicit, immediate)")
 set(LC_EP_CE sync cq CACHE STRING "Completion mechanism (sync, cq, am, glob)")
 set(LC_MAX_DEV 1 CACHE STRING "Maximum number of devices")
@@ -64,6 +74,7 @@ if(USE_AFFI)
 endif()
 
 set(USE_DREG ${LC_USE_DREG})
+set(IBV_ODP ${LC_IBV_ODP})
 
 #NOTE(danghvu): These numbers are tweaked for performance and some alignment.
 #Update at our own risk.
