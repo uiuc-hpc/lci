@@ -3,7 +3,9 @@
 
 #include "config.h"
 
+#include <stdatomic.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include "pm.h"
@@ -22,7 +24,6 @@ typedef struct lc_server {
   struct ibv_srq* dev_srq;
   struct ibv_cq* send_cq;
   struct ibv_cq* recv_cq;
-  struct ibv_mr* sbuf;
   struct ibv_mr* heap;
 
   struct ibv_port_attr port_attr;
@@ -37,11 +38,12 @@ typedef struct lc_server {
   uintptr_t curr_addr;
 
   // Helper fields.
-  int id;
   int* qp2rank;
   int qp2rank_mod;
-  void* heap_ptr;
+  int id;
   int recv_posted;
+  atomic_int send_avail;
+  void* heap_ptr;
   size_t max_inline;
 } lc_server __attribute__((aligned(64)));
 
@@ -55,55 +57,61 @@ static inline uintptr_t lc_server_rma_reg(lc_server* s, void* buf, size_t size)
 
 static inline void lc_server_rma_dereg(uintptr_t mem)
 {
-  dreg_unregister((dreg_entry*)mem);
+  if (mem) dreg_unregister((dreg_entry*)mem);
 }
 
 static inline uint32_t lc_server_rma_key(uintptr_t mem)
 {
-  return ((struct ibv_mr*)(((dreg_entry*)mem)->memhandle[0]))->rkey;
+  return mem ? ((struct ibv_mr*)(((dreg_entry*)mem)->memhandle[0]))->rkey : 0;
 }
 
 static inline uint32_t ibv_rma_lkey(uintptr_t mem)
 {
-  return ((struct ibv_mr*)(((dreg_entry*)mem)->memhandle[0]))->lkey;
+  return mem ? ((struct ibv_mr*)(((dreg_entry*)mem)->memhandle[0]))->lkey : 0;
 }
 
 #else
 
 static inline uintptr_t lc_server_rma_reg(lc_server* s, void* buf, size_t size)
 {
-  return _real_server_reg(s, buf, size);
+  return size ? _real_server_reg(s, buf, size) : 0;
 }
 
 static inline void lc_server_rma_dereg(uintptr_t mem)
 {
-  _real_server_dereg(mem);
+  if (mem) _real_server_dereg(mem);
 }
 
 static inline uint32_t lc_server_rma_key(uintptr_t mem)
 {
-  return ((struct ibv_mr*)mem)->rkey;
+  return mem ? ((struct ibv_mr*)mem)->rkey : 0;
 }
 
 static inline uint32_t ibv_rma_lkey(uintptr_t mem)
 {
-  return ((struct ibv_mr*)mem)->lkey;
+  return mem ? ((struct ibv_mr*)mem)->lkey : 0;
 }
 
 #endif
 
-static inline int lc_server_progress(lc_server* s)
+static inline int lc_server_can_send(lc_server* s, int n)
 {
-  struct ibv_wc wc[MAX_CQ];
-  int ne = ibv_poll_cq(s->recv_cq, MAX_CQ, wc);
-  int ret = ne;
-  int i;
+  int avail = atomic_load_explicit(&s->send_avail, memory_order_acquire);
+  while (avail >= n) {
+    if (atomic_compare_exchange_weak_explicit(&s->send_avail, &avail, avail-n, memory_order_acq_rel, memory_order_acquire))
+        return 1;
+  }
+  return 0;
+}
 
+static inline int ibv_progress_recv(lc_server* s, struct ibv_wc *wc)
+{
+  int ne = ibv_poll_cq(s->recv_cq, MAX_CQ, wc);
 #ifdef LC_SERVER_DEBUG
   assert(ne >= 0);
 #endif
 
-  for (i = 0; i < ne; i++) {
+  for (int i = 0; i < ne; i++) {
 #ifdef LC_SERVER_DEBUG
     if (wc[i].status != IBV_WC_SUCCESS) {
       fprintf(stderr, "Failed status %s (%d) for wr_id %p\n",
@@ -137,14 +145,17 @@ static inline int lc_server_progress(lc_server* s)
     }
   }
 
-  ne = ibv_poll_cq(s->send_cq, MAX_CQ, wc);
-  ret += ne;
+  return ne;
+}
 
+static inline int ibv_progress_send(lc_server* s, struct ibv_wc *wc)
+{
+  int ne = ibv_poll_cq(s->send_cq, MAX_CQ, wc);
 #ifdef LC_SERVER_DEBUG
   assert(ne >= 0);
 #endif
 
-  for (i = 0; i < ne; i++) {
+  for (int i = 0; i < ne; i++) {
 #ifdef LC_SERVER_DEBUG
     if (wc[i].status != IBV_WC_SUCCESS) {
       fprintf(stderr, "Failed status %s (%d) for wr_id %p\n",
@@ -154,14 +165,31 @@ static inline int lc_server_progress(lc_server* s)
     }
 #endif
     lc_packet* p = (lc_packet*)wc[i].wr_id;
-    if (p) lci_serve_send(p);
+    if (p) {
+      lci_serve_send(p);
+      atomic_fetch_add_explicit(&s->send_avail, 1, memory_order_acq_rel);
+    } else if (wc[i].opcode == IBV_WC_SEND) {
+      atomic_fetch_add_explicit(&s->send_avail, SIGNAL_N, memory_order_acq_rel);
+    } else {
+      atomic_fetch_add_explicit(&s->send_avail, 1, memory_order_acq_rel);
+    }
   }
 
+  return ne;
+}
+
+static inline int lc_server_progress(lc_server* s)
+{
+  int ret = 0;
+  struct ibv_wc wc[MAX_CQ];
+  ret += ibv_progress_send(s, wc);
+  ret += ibv_progress_recv(s, wc);
+
   // Make sure we always have enough packet, but do not block.
-  if (s->recv_posted < LC_SERVER_MAX_RCVS) {
-      int err = ibv_post_recv_(s, (lc_packet*)lc_pool_get_nb(s->pkpool));
-#if 0
-      if (err)
+  while (s->recv_posted < LC_SERVER_MAX_RCVS) {
+      int err = ibv_post_packet_(s, (lc_packet*)lc_pool_get_nb(s->pkpool));
+#if 1
+      if (err != LC_OK)
           break;
 #endif
       ret++;
@@ -180,18 +208,18 @@ static inline int lc_server_progress(lc_server* s)
   {                             \
     (w).wr_id = (d);            \
     (w).sg_list = (l);          \
-    (w).num_sge = (1);          \
+    (w).num_sge = ((l) ? 1 : 0);\
     (w).opcode = (m);           \
     (w).send_flags = (f);       \
     (w).next = NULL;            \
   }
 
-static inline void lc_server_sends(lc_server* s __UNUSED__, void* rep,
+static inline lc_status lc_server_sends(lc_server* s __UNUSED__, void* rep,
                         void* ubuf, size_t size, uint32_t proto)
 {
   struct ibv_send_wr this_wr;
-  struct ibv_send_wr* bad_wr;
-  static int ninline = 0;
+  static atomic_size_t ninline = 0;
+  unsigned int flags = IBV_SEND_INLINE;
 
   struct ibv_sge list = {
       .addr = (uintptr_t)ubuf,
@@ -199,23 +227,22 @@ static inline void lc_server_sends(lc_server* s __UNUSED__, void* rep,
       .lkey = 0
   };
 
-  setup_wr(this_wr, (uintptr_t)0, &list, IBV_WR_SEND_WITH_IMM,
-           IBV_SEND_INLINE); // NOTE: do not signal freqly here.
-
-  if (unlikely(ninline++ == 64)) {
-    this_wr.send_flags |= IBV_SEND_SIGNALED;
-    ninline = 0;
+  /* signal infrequently */
+  if (unlikely((atomic_fetch_add_explicit(&ninline, 1, memory_order_relaxed) % SIGNAL_N) == (SIGNAL_N - 1))) {
+    flags |= IBV_SEND_SIGNALED;
   }
 
+  struct ibv_sge *sge_ptr = (size ? &list : NULL);
+  setup_wr(this_wr, (uintptr_t)0, sge_ptr, IBV_WR_SEND_WITH_IMM, flags);
+
   this_wr.imm_data = proto;
-  IBV_SAFECALL(ibv_post_send((struct ibv_qp*) rep, &this_wr, &bad_wr));
+  return ibv_post_send_(rep, &this_wr);
 }
 
-static inline void lc_server_sendm(lc_server* s, void* rep, size_t size,
+static inline lc_status lc_server_sendm(lc_server* s, void* rep, size_t size,
                         lc_packet* ctx, uint32_t proto)
 {
   struct ibv_send_wr this_wr;
-  struct ibv_send_wr* bad_wr;
 
   struct ibv_sge list = {
       .addr = (uintptr_t)ctx->data.buffer,
@@ -223,17 +250,16 @@ static inline void lc_server_sendm(lc_server* s, void* rep, size_t size,
       .lkey = s->heap->lkey,
   };
 
-  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_SEND_WITH_IMM,
-           IBV_SEND_SIGNALED);
+  struct ibv_sge *sge_ptr = (size ? &list : NULL);
+  setup_wr(this_wr, (uintptr_t)ctx, sge_ptr, IBV_WR_SEND_WITH_IMM, IBV_SEND_SIGNALED);
   this_wr.imm_data = proto;
-  IBV_SAFECALL(ibv_post_send((struct ibv_qp*) rep, &this_wr, &bad_wr));
+  return ibv_post_send_(rep, &this_wr);
 }
 
-static inline void lc_server_puts(lc_server* s __UNUSED__, void* rep, void* buf,
+static inline lc_status lc_server_puts(lc_server* s __UNUSED__, void* rep, void* buf,
     uintptr_t base, uint32_t offset, uint32_t rkey, size_t size)
 {
   struct ibv_send_wr this_wr;
-  struct ibv_send_wr* bad_wr = 0;
 
   struct ibv_sge list = {
     .addr = (uintptr_t) buf,
@@ -241,19 +267,19 @@ static inline void lc_server_puts(lc_server* s __UNUSED__, void* rep, void* buf,
     .lkey = 0,
   };
 
-  setup_wr(this_wr, 0, &list, IBV_WR_RDMA_WRITE,
+  struct ibv_sge *sge_ptr = (size ? &list : NULL);
+  setup_wr(this_wr, 0, sge_ptr, IBV_WR_RDMA_WRITE,
            IBV_SEND_SIGNALED | IBV_SEND_INLINE);
   this_wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
   this_wr.wr.rdma.rkey = rkey;
 
-  IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
+  return ibv_post_send_(rep, &this_wr);
 }
 
-static inline void lc_server_putss(lc_server* s __UNUSED__, void* rep, void* buf,
+static inline lc_status lc_server_putss(lc_server* s __UNUSED__, void* rep, void* buf,
     uintptr_t base, uint32_t offset, uint32_t rkey, uint32_t meta, size_t size)
 {
   struct ibv_send_wr this_wr;
-  struct ibv_send_wr* bad_wr = 0;
 
   struct ibv_sge list = {
     .addr = (uintptr_t)buf,
@@ -261,21 +287,20 @@ static inline void lc_server_putss(lc_server* s __UNUSED__, void* rep, void* buf
     .lkey = 0,
   };
 
-  setup_wr(this_wr, 0, &list, IBV_WR_RDMA_WRITE_WITH_IMM,
-           IBV_SEND_SIGNALED | IBV_SEND_INLINE);
+  struct ibv_sge *sge_ptr = (size ? &list : NULL);
+  setup_wr(this_wr, 0, sge_ptr, IBV_WR_RDMA_WRITE_WITH_IMM, IBV_SEND_SIGNALED | IBV_SEND_INLINE);
   this_wr.wr.rdma.remote_addr = (uintptr_t) (base + offset);
   this_wr.wr.rdma.rkey = rkey;
   this_wr.imm_data = meta;
 
-  IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
+  return ibv_post_send_(rep, &this_wr);
 }
 
-static inline void lc_server_putm(lc_server* s, void* rep,
+static inline lc_status lc_server_putm(lc_server* s, void* rep,
     uintptr_t base, uint32_t offset, uint32_t rkey, size_t size,
     lc_packet* ctx)
 {
   struct ibv_send_wr this_wr;
-  struct ibv_send_wr* bad_wr = 0;
 
   struct ibv_sge list = {
     .addr = (uintptr_t)ctx->data.buffer,
@@ -283,19 +308,19 @@ static inline void lc_server_putm(lc_server* s, void* rep,
     .lkey = s->heap->lkey,
   };
 
-  setup_wr(this_wr, (uintptr_t) ctx, &list, IBV_WR_RDMA_WRITE, IBV_SEND_SIGNALED);
+  struct ibv_sge *sge_ptr = (size ? &list : NULL);
+  setup_wr(this_wr, (uintptr_t) ctx, sge_ptr, IBV_WR_RDMA_WRITE, IBV_SEND_SIGNALED);
   this_wr.wr.rdma.remote_addr = (uintptr_t) (base + offset);
   this_wr.wr.rdma.rkey = rkey;
 
-  IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
+  return ibv_post_send_(rep, &this_wr);
 }
 
-static inline void lc_server_putms(lc_server* s, void* rep,
+static inline lc_status lc_server_putms(lc_server* s, void* rep,
                          uintptr_t base, uint32_t offset, uint32_t rkey, size_t size,
                          uint32_t meta, lc_packet* ctx)
 {
   struct ibv_send_wr this_wr;
-  struct ibv_send_wr* bad_wr = 0;
 
   struct ibv_sge list = {
     .addr = (uintptr_t)ctx->data.buffer,
@@ -303,24 +328,22 @@ static inline void lc_server_putms(lc_server* s, void* rep,
     .lkey = s->heap->lkey,
   };
 
-  setup_wr(this_wr, (uintptr_t) ctx, &list,
-           IBV_WR_RDMA_WRITE_WITH_IMM, IBV_SEND_SIGNALED);
+  struct ibv_sge *sge_ptr = (size ? &list : NULL);
+  setup_wr(this_wr, (uintptr_t) ctx, sge_ptr, IBV_WR_RDMA_WRITE_WITH_IMM, IBV_SEND_SIGNALED);
   this_wr.wr.rdma.remote_addr = (uintptr_t) (base + offset);
   this_wr.wr.rdma.rkey = rkey;
   this_wr.imm_data = meta;
 
-  IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
+  return ibv_post_send_(rep, &this_wr);
 }
 
 
-static inline void lc_server_putl(lc_server* s, void* rep, void* buf,
+static inline lc_status lc_server_putl(lc_server* s, void* rep, void* buf,
                         uintptr_t base, uint32_t offset, uint32_t rkey, size_t size,
                         lc_packet* ctx)
 {
   struct ibv_send_wr this_wr;
-  struct ibv_send_wr* bad_wr = 0;
   uint32_t lkey = 0;
-  uint32_t flag = IBV_SEND_SIGNALED;
 
   lkey = ibv_rma_lkey(ctx->context.rma_mem);
 
@@ -330,21 +353,20 @@ static inline void lc_server_putl(lc_server* s, void* rep, void* buf,
     .lkey = lkey,
   };
 
-  setup_wr(this_wr, (uintptr_t) ctx, &list, IBV_WR_RDMA_WRITE, flag);
+  struct ibv_sge *sge_ptr = (size ? &list : NULL);
+  setup_wr(this_wr, (uintptr_t) ctx, sge_ptr, IBV_WR_RDMA_WRITE, IBV_SEND_SIGNALED);
   this_wr.wr.rdma.remote_addr = (uintptr_t) (base + offset);
   this_wr.wr.rdma.rkey = rkey;
 
-  IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
+  return ibv_post_send_(rep, &this_wr);
 }
 
-static inline void lc_server_putls(lc_server* s, void* rep, void* buf,
+static inline lc_status lc_server_putls(lc_server* s, void* rep, void* buf,
                          uintptr_t base, uint32_t offset, uint32_t rkey, size_t size,
                          uint32_t meta, lc_packet* ctx)
 {
   struct ibv_send_wr this_wr;
-  struct ibv_send_wr* bad_wr = 0;
   uint32_t lkey = 0;
-  uint32_t flag = IBV_SEND_SIGNALED;
 
   lkey = ibv_rma_lkey(ctx->context.rma_mem);
 
@@ -354,20 +376,31 @@ static inline void lc_server_putls(lc_server* s, void* rep, void* buf,
     .lkey = lkey,
   };
 
-  setup_wr(this_wr, (uintptr_t) ctx, &list, IBV_WR_RDMA_WRITE_WITH_IMM, flag);
+  struct ibv_sge *sge_ptr = (size ? &list : NULL);
+  setup_wr(this_wr, (uintptr_t) ctx, sge_ptr, IBV_WR_RDMA_WRITE_WITH_IMM, IBV_SEND_SIGNALED);
   this_wr.wr.rdma.remote_addr = (uintptr_t) (base + offset);
   this_wr.wr.rdma.rkey = rkey;
   this_wr.imm_data = meta;
 
-  IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
+  return ibv_post_send_(rep, &this_wr);
 }
 
-static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf, uintptr_t addr, uint32_t rkey, size_t size, uint32_t sid, lc_packet* ctx)
+static inline lc_status lc_server_send_rts(lc_server* s, void* rep, size_t size,
+                        lc_packet* ctx, uint32_t proto)
+{
+  return lc_server_sendm(s, rep, size, ctx, proto);
+}
+
+static inline lc_status lc_server_send_rtr(lc_server* s, void* rep, size_t size,
+                        lc_packet* ctx, uint32_t proto)
+{
+  return lc_server_sendm(s, rep, size, ctx, proto);
+}
+
+static inline lc_status lc_server_send_rma(lc_server* s, void* rep, void* buf, uintptr_t addr, uint32_t rkey, size_t size, uint32_t sid, lc_packet* ctx)
 {
   struct ibv_send_wr this_wr;
-  struct ibv_send_wr* bad_wr = 0;
   uint32_t lkey = 0;
-  uint32_t flag = IBV_SEND_SIGNALED;
 
   lkey = ibv_rma_lkey(ctx->context.rma_mem);
 
@@ -377,13 +410,13 @@ static inline void lc_server_rma_rtr(lc_server* s, void* rep, void* buf, uintptr
       .lkey = lkey,
   };
 
-  setup_wr(this_wr, (uintptr_t)ctx, &list, IBV_WR_RDMA_WRITE_WITH_IMM,
-           flag);
+  struct ibv_sge *sge_ptr = (size ? &list : NULL);
+  setup_wr(this_wr, (uintptr_t)ctx, sge_ptr, IBV_WR_RDMA_WRITE_WITH_IMM, IBV_SEND_SIGNALED);
   this_wr.wr.rdma.remote_addr = (uintptr_t) addr;
   this_wr.wr.rdma.rkey = rkey;
   this_wr.imm_data = sid | IBV_IMM_RTR;
 
-  IBV_SAFECALL(ibv_post_send(rep, &this_wr, &bad_wr));
+  return ibv_post_send_(rep, &this_wr);
 }
 
 static inline void lc_server_init(int id, lc_server** dev)
@@ -465,6 +498,7 @@ static inline void lc_server_init(int id, lc_server** dev)
   }
 
   s->recv_posted = 0;
+  atomic_store_explicit(&s->send_avail, MAX_SEND, memory_order_release);
   // s->qp = calloc(lcg_size, sizeof(struct ibv_qp*));
   // s->rkey = calloc(lcg_size, sizeof(uintptr_t));
   posix_memalign((void**)&s->qp, LC_CACHE_LINE, lcg_size * sizeof(struct ibv_qp*));

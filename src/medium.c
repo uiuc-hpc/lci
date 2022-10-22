@@ -9,34 +9,44 @@
 lc_status lc_sendm(void* src, size_t size, int rank, int tag, lc_ep ep)
 {
   LC_POOL_GET_OR_RETN(ep->pkpool, p);
+  LC_SERVER_CAN_SEND_OR_RET(ep, 1, p);
   lci_pk_init(ep, LC_MED_POOL_ID(ep, size), LC_PROTO_DATA, p);
   struct lci_rep* rep = &(ep->rep[rank]);
   memcpy(p->data.buffer, src, size);
-  lc_server_sendm(ep->server, rep->handle, size, p,
-                  MAKE_PROTO(ep->gid, LC_PROTO_DATA, tag));
-  return LC_OK;
+  lc_status ret = lc_server_sendm(ep->server, rep->handle, size, p,
+                                  MAKE_PROTO(ep->gid, LC_PROTO_DATA, tag));
+  if (ret != LC_OK)
+      lc_pool_put(ep->pkpool, p);
+  return ret;
 }
 
 lc_status lc_putm(void* src, size_t size, int rank, uintptr_t addr, lc_ep ep)
 {
   LC_POOL_GET_OR_RETN(ep->pkpool, p);
+  LC_SERVER_CAN_SEND_OR_RET(ep, 1, p);
   lci_pk_init(ep, LC_MED_POOL_ID(ep, size), LC_PROTO_DATA, p);
   struct lci_rep* rep = &(ep->rep[rank]);
   memcpy(&p->data, src, size);
-  lc_server_putm(ep->server, rep->handle, rep->base, (uint32_t) (addr - rep->base),
-                 rep->rkey, size, p);
-  return LC_OK;
+  lc_status ret = lc_server_putm(ep->server, rep->handle, rep->base,
+                                 (uint32_t)(addr - rep->base), rep->rkey, size, p);
+  if (ret != LC_OK)
+      lc_pool_put(ep->pkpool, p);
+  return ret;
 }
 
 lc_status lc_putms(void* src, size_t size, int rank, uintptr_t addr, int meta, lc_ep ep)
 {
   LC_POOL_GET_OR_RETN(ep->pkpool, p);
+  LC_SERVER_CAN_SEND_OR_RET(ep, 1, p);
   lci_pk_init(ep, LC_MED_POOL_ID(ep, size), LC_PROTO_DATA, p);
   struct lci_rep* rep = &(ep->rep[rank]);
   memcpy(&p->data, src, size);
-  lc_server_putms(ep->server, rep->handle, rep->base, (uint32_t) (addr - rep->base),
-                  rep->rkey, size, MAKE_PROTO(ep->gid, LC_PROTO_DATA, meta), p);
-  return LC_OK;
+  lc_status ret = lc_server_putms(ep->server, rep->handle, rep->base,
+                                  (uint32_t)(addr - rep->base), rep->rkey, size,
+                                  MAKE_PROTO(ep->gid, LC_PROTO_DATA, meta), p);
+  if (ret != LC_OK)
+      lc_pool_put(ep->pkpool, p);
+  return ret;
 }
 
 lc_status lc_recvm(void* src, size_t size, int rank, int tag, lc_ep ep,

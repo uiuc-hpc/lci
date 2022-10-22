@@ -25,6 +25,15 @@ extern int lcg_deadlock;
   lc_packet* x = lc_pool_get_nb((p)); \
   if (x == NULL) return LC_ERR_RETRY;
 
+#define LC_SERVER_CAN_SEND_OR_RET(ep, n, p)     \
+  do {                                          \
+      if (!lc_server_can_send(ep->server, n)) { \
+          if (!__builtin_constant_p(p))         \
+              lc_pool_put(ep->pkpool, p);       \
+          return LC_ERR_RETRY;                  \
+      }                                         \
+  } while (0)
+
 #if 0
 
 #define LC_SET_REQ_DONE_AND_SIGNAL(t, r)                                 \

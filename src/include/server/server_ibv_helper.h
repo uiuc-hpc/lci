@@ -1,30 +1,50 @@
 #include "config.h"
 
 #define ALIGNMENT (lcg_page_size)
+#define MAX_SEND 1024
 #define MAX_CQ 16
+
+#define SIGNAL_N 64
 
 #define IBV_IMM_RTR ((uint32_t) 1<<31)
 
+static inline
+lc_status ibv_post_send_(struct ibv_qp *qp, struct ibv_send_wr *wr)
+{
+    struct ibv_send_wr *bad_wr;
+    int ret = ibv_post_send(qp, wr, &bad_wr);
 #ifdef LC_SERVER_DEBUG
-#define IBV_SAFECALL(x)                                               \
-  {                                                                   \
-    int err = (x);                                                    \
-    if (err) {                                                        \
-      fprintf(stderr, "Failed status %s (%d) for wr_id %p\n",         \
-              ibv_wc_status_str(err), err, (void*)bad_wr->wr_id);     \
-      abort();                                                        \
-    }                                                                 \
-  }                                                                   \
-  while (0)                                                           \
-    ;
-#else
-#define IBV_SAFECALL(x) \
-  {                     \
-    x;                  \
-  }                     \
-  while (0)             \
-    ;
+    switch (ret) {
+    case 0:
+        return LC_OK;
+    case ENOMEM:
+        return LC_ERR_RETRY;
+    default:
+        abort();
+        return LC_ERR_FATAL;
+    }
 #endif
+    return LC_OK;
+}
+
+static inline
+lc_status ibv_post_srq_recv_(struct ibv_srq *srq, struct ibv_recv_wr *wr)
+{
+    struct ibv_recv_wr *bad_wr;
+    int ret = ibv_post_srq_recv(srq, wr, &bad_wr);
+#ifdef LC_SERVER_DEBUG
+    switch (ret) {
+    case 0:
+        return LC_OK;
+    case ENOMEM:
+        return LC_ERR_RETRY;
+    default:
+        abort();
+        return LC_ERR_FATAL;
+    }
+#endif
+    return LC_OK;
+}
 
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
@@ -54,7 +74,7 @@ static inline struct ibv_qp* qp_create(lc_server* s)
   qp_init_attr.send_cq = s->send_cq;
   qp_init_attr.recv_cq = s->recv_cq;
   qp_init_attr.srq = s->dev_srq;
-  qp_init_attr.cap.max_send_wr = 256; //(uint32_t)dev_attr->max_qp_wr;
+  qp_init_attr.cap.max_send_wr = MAX_SEND;
   qp_init_attr.cap.max_recv_wr = 1; //(uint32_t)dev_attr->max_qp_wr;
   // -- this affect the size of (TODO:tune later).
   qp_init_attr.cap.max_send_sge = 16; // this allows 128 inline.
@@ -155,16 +175,16 @@ static inline void _real_server_dereg(uintptr_t mem)
   ibv_dereg_mr((struct ibv_mr*)mem);
 }
 
-static inline int ibv_post_recv_(lc_server* s, lc_packet* p)
+static inline lc_status ibv_post_packet_(lc_server* s, lc_packet* p)
 {
   if (p == NULL) {
     if (s->recv_posted < LC_SERVER_MAX_RCVS / 2 && !lcg_deadlock) {
       lcg_deadlock = 1;
       #ifdef LC_SERVER_DEBUG
-      printf("WARNING-LC: deadlock alert\n");
+      fprintf(stderr, "WARNING-LC: deadlock alert\n");
       #endif
     }
-    return 1;
+    return LC_ERR_RETRY;
   }
 
   struct ibv_sge sg = {
@@ -182,10 +202,9 @@ static inline int ibv_post_recv_(lc_server* s, lc_packet* p)
 
   p->context.poolid = lc_pool_get_local_id(s->pkpool);
 
-  struct ibv_recv_wr* bad_wr = 0;
-  IBV_SAFECALL(ibv_post_srq_recv(s->dev_srq, &wr, &bad_wr));
+  lc_status ret = ibv_post_srq_recv_(s->dev_srq, &wr);
 
   if (++s->recv_posted == LC_SERVER_MAX_RCVS && lcg_deadlock)
     lcg_deadlock = 0;
-  return 0;
+  return ret;
 }

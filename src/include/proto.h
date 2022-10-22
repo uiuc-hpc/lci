@@ -108,28 +108,27 @@ static inline void lci_ce_queue(lc_ep ep, lc_packet* p)
   cq_push(&ep->cq, req);
 }
 
-static inline void lci_handle_rtr(struct lci_ep* ep, lc_packet* p)
+static inline lc_status lci_handle_rtr(struct lci_ep* ep, lc_packet* p)
 {
   dprintf("Recv RTR %p\n", p);
   lci_pk_init(ep, p->context.poolid, LC_PROTO_LONG, p);
-  p->context.rma_mem = lc_server_rma_reg(ep->server, (void*)p->data.rts.src_addr,
-                                         p->data.rts.size);
+  p->context.rma_mem = p->data.rts.rma_mem;
   // dprintf("%d] rma %p --> %p %.4x via %d\n", lcg_rank, p->data.rts.src_addr, p->data.rtr.tgt_addr, crc32c((char*) p->data.rts.src_addr, p->data.rts.size), p->data.rtr.rkey);
 
-  lc_server_rma_rtr(ep->server, p->context.req->rhandle,
-      (void*) p->data.rts.src_addr,
-      p->data.rtr.tgt_addr, p->data.rtr.rkey, p->data.rts.size,
-      p->data.rtr.comm_id, p);
+  return lc_server_send_rma(ep->server, p->context.req->rhandle,
+                            (void*)p->data.rts.src_addr,
+                            p->data.rtr.tgt_addr, p->data.rtr.rkey,
+                            p->data.rts.size, p->data.rtr.comm_id, p);
 }
 
-static inline void lci_handle_rts(struct lci_ep* ep, lc_packet* p)
+static inline lc_status lci_handle_rts(struct lci_ep* ep, lc_packet* p)
 {
   dprintf("Recv RTS: %p\n", p);
   lci_pk_init(ep, p->context.poolid, LC_PROTO_RTR, p);
   lc_proto proto = MAKE_PROTO(ep->gid, LC_PROTO_RTR, 0);
   lci_prepare_rtr(ep, p->context.req->buffer, p->data.rts.size, p);
-  lc_server_sendm(ep->server, p->context.req->rhandle,
-      sizeof(struct packet_rtr), p, proto);
+  return lc_server_send_rtr(ep->server, p->context.req->rhandle,
+                            sizeof(struct packet_rtr), p, proto);
 }
 
 static inline void lci_ce_dispatch(lc_ep ep, lc_packet* p, const long cap);
@@ -155,9 +154,11 @@ static inline void lci_serve_recv_dyn(struct lci_ep* ep, lc_packet* p, lc_proto 
   } else if (proto == LC_PROTO_RTS) {
     void* buf = ep->alloc(p->data.rts.size, &(p->context.req->ctx));
     lci_init_req(buf, p->data.rts.size, p->context.req);
-    lci_handle_rts(ep, p);
+    if (LC_OK != lci_handle_rts(ep, p))
+      abort();
   } else if (proto == LC_PROTO_RTR) {
-    lci_handle_rtr(ep, p);
+    if (LC_OK != lci_handle_rtr(ep, p))
+      abort();
   };
 }
 
@@ -181,10 +182,12 @@ static inline void lci_serve_recv_expl(struct lci_ep* ep, lc_packet* p, lc_proto
     lc_value value = (lc_value)p;
     if (!lc_hash_insert(ep->tbl, key, &value, SERVER)) {
       p->context.req = (lc_req*) value;
-      lci_handle_rts(ep, p);
+      if (LC_OK != lci_handle_rts(ep, p))
+        abort();
     }
   } else if (proto == LC_PROTO_RTR) {
-    lci_handle_rtr(ep, p);
+    if (LC_OK != lci_handle_rtr(ep, p))
+      abort();
   };
 }
 
@@ -192,17 +195,17 @@ static inline void lci_serve_recv_dispatch(lc_ep ep, lc_packet* p, lc_proto prot
 {
 #ifdef LC_SERVER_HAS_EXP
   if (cap & EP_AR_EXP) {
-    return lci_serve_recv_expl(ep, p, proto, cap);
+    lci_serve_recv_expl(ep, p, proto, cap);
   } else
 #endif
 #ifdef LC_SERVER_HAS_DYN
   if (cap & EP_AR_DYN) {
-    return lci_serve_recv_dyn(ep, p, proto, cap);
+    lci_serve_recv_dyn(ep, p, proto, cap);
   } else
 #endif
 #ifdef LC_SERVER_HAS_IMM
   if (cap & EP_AR_IMM) {
-    return lci_serve_recv_imm(ep, p, proto, cap);
+    lci_serve_recv_imm(ep, p, proto, cap);
   } else
 #endif
   // placeholder for anything else.
@@ -243,7 +246,7 @@ static inline void lci_serve_recv(lc_packet* p, lc_proto proto)
 {
   // NOTE: this should be RGID because it is received from remote.
   struct lci_ep* ep = lcg_ep[PROTO_GET_RGID(proto)];
-  return lci_serve_recv_dispatch(ep, p, proto, ep->cap);
+  lci_serve_recv_dispatch(ep, p, proto, ep->cap);
 }
 
 static inline void lci_serve_recv_rdma(lc_packet* p, lc_proto proto)

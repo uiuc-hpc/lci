@@ -20,7 +20,7 @@ struct __attribute__((packed)) packet_context {
   struct lc_req req_s;
   struct lc_req* req;
   struct lci_ep* ep;
-  uint64_t rma_mem;
+  uintptr_t rma_mem;
   int16_t proto;
   int8_t poolid;
   int8_t ref;
@@ -32,6 +32,7 @@ struct __attribute__((packed)) packet_rts {
   uintptr_t src_addr;
   size_t size;
   uintptr_t tgt_addr;
+  uintptr_t rma_mem;
 };
 
 struct __attribute__((packed)) packet_rtr {
@@ -40,6 +41,7 @@ struct __attribute__((packed)) packet_rtr {
   uintptr_t src_addr;
   size_t size;
   uintptr_t tgt_addr;
+  uintptr_t rma_mem;
   uint32_t rkey;
   uint32_t comm_id;
 };
