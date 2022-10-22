@@ -1,10 +1,7 @@
 #include "lcii.h"
 
-static const int max_send_num = LCI_SERVER_MAX_RCVS;
-static const int max_recv_num = LCI_SERVER_MAX_RCVS;
 static const int max_sge_num = 1;
 static const int inline_size = 236;
-static const int max_cqe_num = LCI_SERVER_MAX_CQES;
 
 static int g_device_num = 0;
 
@@ -121,7 +118,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
   struct ibv_srq_init_attr srq_attr;
   memset(&srq_attr, 0, sizeof(srq_attr));
   srq_attr.srq_context = NULL;
-  srq_attr.attr.max_wr = max_recv_num;
+  srq_attr.attr.max_wr = LCI_SERVER_MAX_RECVS;
   srq_attr.attr.max_sge = max_sge_num;
   srq_attr.attr.srq_limit = 0;
   server->dev_srq = ibv_create_srq(server->dev_pd, &srq_attr);
@@ -131,7 +128,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
   }
 
   // Create completion queues.
-  server->cq = ibv_create_cq(server->dev_ctx, max_cqe_num, NULL, NULL, 0);
+  server->cq = ibv_create_cq(server->dev_ctx, LCI_SERVER_MAX_CQES, NULL, NULL, 0);
   if (!server->cq) {
     fprintf(stderr, "Unable to create cq\n");
     exit(EXIT_FAILURE);
@@ -147,8 +144,8 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
       init_attr.send_cq = server->cq;
       init_attr.recv_cq = server->cq;
       init_attr.srq = server->dev_srq;
-      init_attr.cap.max_send_wr  = max_send_num;
-      init_attr.cap.max_recv_wr  = max_recv_num;
+      init_attr.cap.max_send_wr  = LCI_SERVER_MAX_SENDS;
+      init_attr.cap.max_recv_wr  = LCI_SERVER_MAX_RECVS;
       init_attr.cap.max_send_sge = max_sge_num;
       init_attr.cap.max_recv_sge = max_sge_num;
       init_attr.cap.max_inline_data = inline_size;

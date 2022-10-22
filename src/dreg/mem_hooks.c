@@ -10,6 +10,9 @@
  *
  */
 
+#define HAVE_SYSCALL 1
+#define HAVE_SYSCALL_H 1
+
 #ifdef HAVE_SYS_SYSCALL_H
 #include <sys/syscall.h>
 #elif HAVE_SYSCALL_H
@@ -154,15 +157,15 @@ int mvapich2_minit()
 
     memset(&mvapich2_minfo, 0, sizeof(mvapich2_malloc_info_t));
 
-    if(!(mvapich2_minfo.is_our_malloc &&
-            mvapich2_minfo.is_our_calloc &&
-            mvapich2_minfo.is_our_realloc &&
-            mvapich2_minfo.is_our_valloc &&
-            mvapich2_minfo.is_our_memalign &&
-            mvapich2_minfo.is_our_free)) {
-        unlock_hooks();
-        return 1;
-    }
+//    if(!(mvapich2_minfo.is_our_malloc &&
+//            mvapich2_minfo.is_our_calloc &&
+//            mvapich2_minfo.is_our_realloc &&
+//            mvapich2_minfo.is_our_valloc &&
+//            mvapich2_minfo.is_our_memalign &&
+//            mvapich2_minfo.is_our_free)) {
+//        unlock_hooks();
+//        return 1;
+//    }
 
 #if !(defined(HAVE_SYSCALL) && defined(__NR_munmap))
     dlerror(); /* Clear the error string */
@@ -259,7 +262,8 @@ int mvapich2_munmap(void *buf, size_t len)
 
 int munmap(void *buf, size_t len)
 {
-    return mvapich2_munmap(buf, len);
+  LCM_Log(LCM_LOG_INFO, "hooks", "Use memory hooks!\n");
+  return mvapich2_munmap(buf, len);
 }
 
 #if !defined(DISABLE_TRAP_SBRK)
@@ -277,4 +281,8 @@ void *mvapich2_sbrk(intptr_t delta)
 
     return sbrk(delta);
 }
+
+//void *sbrk(intptr_t increment) {
+//  return mvapich2_sbrk(increment);
+//}
 #endif /* !defined(DISABLE_TRAP_SBRK) */

@@ -85,7 +85,7 @@ static inline int32_t lc_pool_get_local(struct lc_pool* pool)
     if (pid == POOL_UNINIT) {
       pid = pool->npools++;
       LCIU_spinlock_init(&pool->lpools[pid].lock);
-      LCM_dq_init(&pool->lpools[pid].dq, LCI_SERVER_MAX_PKTS);
+      LCM_dq_init(&pool->lpools[pid].dq, LCI_SERVER_NUM_PKTS);
       tls_pool_struct[wid][pool->key] = pid;
     }
     LCIU_release_spinlock(&init_lock);

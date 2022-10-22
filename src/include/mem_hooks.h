@@ -21,12 +21,12 @@
 typedef int (*munmap_t)(void*, size_t);
 
 typedef struct {
-    int         is_our_malloc;
-    int         is_our_free;
-    int         is_our_calloc;
-    int         is_our_realloc;
-    int         is_our_valloc;
-    int         is_our_memalign;
+//    int         is_our_malloc;
+//    int         is_our_free;
+//    int         is_our_calloc;
+//    int         is_our_realloc;
+//    int         is_our_valloc;
+//    int         is_our_memalign;
     int         is_inside_free;
     int         is_mem_hook_finalized;
     munmap_t    munmap;

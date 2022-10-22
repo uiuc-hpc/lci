@@ -320,6 +320,26 @@ extern int LCI_USE_DREG_HOOKS;
  */
 extern int LCI_IBV_USE_PREFETCH;
 
+/**
+ * Total number of packets
+ */
+extern int LCI_SERVER_NUM_PKTS;
+
+/**
+ * Server's send queue length
+ */
+extern int LCI_SERVER_MAX_SENDS;
+
+/**
+ * Server's recv queue length
+ */
+extern int LCI_SERVER_MAX_RECVS;
+
+/**
+ * Server's completion queue length
+ */
+extern int LCI_SERVER_MAX_CQES;
+
 extern LCI_device_t LCI_UR_DEVICE;
 extern LCI_endpoint_t LCI_UR_ENDPOINT;
 extern LCI_comp_t LCI_UR_CQ;

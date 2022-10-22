@@ -214,12 +214,15 @@ static inline void LCII_hang_detector_heartbeat() {
 }
 // getenv
 static inline int getenv_or(char* env, int def) {
+  int ret;
   char* val = getenv(env);
   if (val != NULL) {
-    return atoi(val);
+    ret = atoi(val);
   } else {
-    return def;
+    ret = def;
   }
+  LCM_Log(LCM_LOG_INFO, "env", "set %s to be %d\n", env, ret);
+  return ret;
 }
 
 #include "hashtable.h"
