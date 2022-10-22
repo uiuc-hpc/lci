@@ -307,6 +307,13 @@ extern int LCI_IBV_USE_ODP;
 extern int LCI_USE_DREG;
 
 /**
+ * Whether or what to use memory hooks for munmap and sbrk:
+ * 0: Don't use.
+ * 1: Use.
+ */
+extern int LCI_USE_DREG_HOOKS;
+
+/**
  * Whether or what to use IBV prefetch:
  * 0: Don't use.
  * 1: Use. (Only make sense when LCI_IBV_USE_ODP is 1 or 2)

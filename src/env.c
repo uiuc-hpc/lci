@@ -20,6 +20,7 @@ LCI_API int LCI_MAX_SYNC_LENGTH = INT_MAX;
 LCI_API int LCI_PACKET_RETURN_THRESHOLD;
 LCI_API int LCI_IBV_USE_ODP;
 LCI_API int LCI_USE_DREG;
+LCI_API int LCI_USE_DREG_HOOKS;
 LCI_API int LCI_IBV_USE_PREFETCH;
 LCI_API LCI_device_t LCI_UR_DEVICE;
 LCI_API LCI_endpoint_t LCI_UR_ENDPOINT;
@@ -36,8 +37,10 @@ void lc_env_init(int num_proc, int rank)
   LCI_PACKET_RETURN_THRESHOLD = getenv_or("LCI_PACKET_RETURN_THRESHOLD", 1024);
   LCI_IBV_USE_ODP = getenv_or("LCI_IBV_USE_ODP", 0);
   LCI_USE_DREG = getenv_or("LCI_USE_DREG", 0);
-  if (LCI_USE_DREG && LCI_IBV_USE_ODP == 0) {
-    LCM_Warn("The registration cache is enabled. The program might "
+  LCI_USE_DREG_HOOKS = getenv_or("LCI_USE_DREG_HOOKS", LCI_USE_DREG && !LCI_IBV_USE_ODP);
+  if (LCI_USE_DREG && LCI_IBV_USE_ODP == 0 && LCI_USE_DREG_HOOKS == 0) {
+    LCM_Warn("The registration cache is enabled "
+             "but the memory hooks is disabled. The program might "
              "be buggy when the allocation/free is too dynamic\n");
   }
   if (LCI_USE_DREG && LCI_IBV_USE_ODP == 3) {

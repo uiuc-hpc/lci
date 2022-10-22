@@ -8,6 +8,8 @@
 #include "lcm_archive.h"
 #include "pmi_wrapper.h"
 #include "lciu.h"
+#include "mem_hooks.h"
+#include "dreg.h"
 #include "server/server.h"
 #include "backlog_queue.h"
 

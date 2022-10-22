@@ -16,7 +16,10 @@ LCI_error_t LCI_initialize()
 
   // Set some constant from environment variable.
   lc_env_init(num_proc, rank);
-
+  if (LCI_USE_DREG) {
+    mvapich2_minit();
+    dreg_init();
+  }
   LCI_device_init(&LCI_UR_DEVICE);
 
   LCI_queue_create(LCI_UR_DEVICE, &LCI_UR_CQ);
@@ -42,6 +45,10 @@ LCI_error_t LCI_finalize()
   LCI_endpoint_free(&LCI_UR_ENDPOINT);
   LCI_queue_free(&LCI_UR_CQ);
   LCI_device_free(&LCI_UR_DEVICE);
+  if (LCI_USE_DREG) {
+    dreg_finalize();
+    mvapich2_mfin();
+  }
   LCM_Fina();
   lcm_pm_finalize();
 #ifdef LCI_USE_HANG_DETECTOR

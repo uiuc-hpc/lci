@@ -130,9 +130,9 @@ LCI_error_t LCI_progress(LCI_device_t device)
     if (packet == NULL) {
       if (device->recv_posted < LCI_SERVER_MAX_RCVS / 2 && !g_server_no_recv_packets) {
         g_server_no_recv_packets = 1;
-        LCM_DBG_Log(LCM_LOG_DEBUG, "device", "WARNING-LC: deadlock alert. There is only "
-                                   "%d packets left for post_recv\n",
-                    device->recv_posted);
+        LCM_Warn("WARNING-LC: deadlock alert. There is only "
+                  "%d packets left for post_recv\n",
+                  device->recv_posted);
       }
       break;
     }
@@ -144,7 +144,7 @@ LCI_error_t LCI_progress(LCI_device_t device)
   }
   if (device->recv_posted == LCI_SERVER_MAX_RCVS && g_server_no_recv_packets) {
     g_server_no_recv_packets = 0;
-    LCM_DBG_Log(LCM_LOG_DEBUG, "device", "WARNING-LC: recovered from deadlock alert.\n");
+    LCM_Warn("WARNING-LC: recovered from deadlock alert.\n");
   }
 
 #ifdef LCI_USE_HANG_DETECTOR

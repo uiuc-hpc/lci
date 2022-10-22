@@ -295,17 +295,11 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
   server->qp2rank = b;
   LCM_Log(LCM_LOG_INFO, "ibv", "qp2rank_mod is %d\n", j);
 
-  if (LCI_USE_DREG) {
-    dreg_init();
-  }
   lcm_pm_barrier();
 }
 
 void LCISD_finalize(LCIS_server_t s)
 {
-  if (LCI_USE_DREG) {
-    dreg_finalize();
-  }
   LCISI_server_t *server = (LCISI_server_t*) s;
   free(server->qp2rank);
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
