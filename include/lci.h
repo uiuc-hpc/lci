@@ -300,6 +300,11 @@ extern int LCI_PACKET_RETURN_THRESHOLD;
 extern int LCI_IBV_USE_ODP;
 
 /**
+ * Whether touch every page of lbuffers allocated by LCI_lbuffer_alloc
+ */
+extern int LCI_TOUCH_LBUFFER;
+
+/**
  * Whether or what to use LCI-provided registration cache:
  * 0: Don't use.
  * 1: Use.
