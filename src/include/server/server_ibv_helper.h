@@ -165,8 +165,8 @@ static inline void qp_to_rts(struct ibv_qp* qp)
 
 static inline uintptr_t _real_server_reg(lc_server* s, void* buf, size_t size)
 {
-  int mr_flags =
-      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+  int mr_flags = IBV_ACCESS_ON_DEMAND   | IBV_ACCESS_LOCAL_WRITE |
+                 IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
   return (uintptr_t)ibv_reg_mr(s->dev_pd, buf, size, mr_flags);
 }
 

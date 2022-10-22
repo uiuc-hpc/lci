@@ -52,7 +52,22 @@ typedef struct lc_server {
 #ifdef USE_DREG
 static inline uintptr_t lc_server_rma_reg(lc_server* s, void* buf, size_t size)
 {
-  return (uintptr_t)dreg_register(s, buf, size);
+  if (!size) return 0;
+  int ret = 0;
+  dreg_entry *dreg = dreg_register(s, buf, size);
+  struct ibv_sge list = {
+    .addr = (uintptr_t)buf,
+    .length = (uint32_t)size,
+    .lkey = ((struct ibv_mr*)dreg->memhandle[0])->lkey,
+  };
+  ret = ibv_advise_mr(s->dev_pd, IBV_ADVISE_MR_ADVICE_PREFETCH_WRITE, 0, &list, 1);
+#ifdef LC_SERVER_DEBUG
+  switch (ret) {
+  case  0: break;
+  default: abort();
+  }
+#endif
+  return (uintptr_t)dreg;
 }
 
 static inline void lc_server_rma_dereg(uintptr_t mem)
