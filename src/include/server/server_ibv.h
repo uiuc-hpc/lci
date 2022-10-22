@@ -55,8 +55,18 @@ typedef struct LCISI_server_t {
 static inline void *LCISI_real_server_reg(LCIS_server_t s, void* buf, size_t size)
 {
   LCISI_server_t *server = (LCISI_server_t*) s;
-  int mr_flags =
-      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+  int mr_flags;
+  if (LCI_IBV_USE_ODP) {
+    mr_flags = IBV_ACCESS_ON_DEMAND |
+               IBV_ACCESS_LOCAL_WRITE |
+               IBV_ACCESS_REMOTE_READ |
+               IBV_ACCESS_REMOTE_WRITE;
+  }
+  else {
+    mr_flags = IBV_ACCESS_LOCAL_WRITE |
+               IBV_ACCESS_REMOTE_READ |
+               IBV_ACCESS_REMOTE_WRITE;
+  }
   return (void*)ibv_reg_mr(server->dev_pd, buf, size, mr_flags);
 }
 
@@ -65,43 +75,54 @@ static inline void LCISI_real_server_dereg(void *mem)
   ibv_dereg_mr((struct ibv_mr*)mem);
 }
 
+static inline uint32_t ibv_rma_lkey(LCIS_mr_t mr)
+{
+  if (LCI_USE_DREG) {
+    return ((struct ibv_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]))->lkey;
+  } else {
+    return ((struct ibv_mr*)mr.mr_p)->lkey;
+  }
+}
+
 static inline LCIS_mr_t LCISD_rma_reg(LCIS_server_t s, void* buf, size_t size)
 {
+  LCISI_server_t *server = (LCISI_server_t*) s;
   LCIS_mr_t mr;
-  if (LCI_USE_DREG == 1) {
+  if (LCI_IBV_USE_ODP == 2) {
+    mr.mr_p = server->odp_mr;
+    mr.address = buf;
+    mr.length = size;
+  } else if (LCI_USE_DREG) {
     dreg_entry *entry = dreg_register(s, buf, size);
     LCM_DBG_Assert(entry != NULL, "Unable to register more memory!");
     mr.mr_p = entry;
     mr.address = (void*) (entry->pagenum << DREG_PAGEBITS);
     mr.length = entry->npages << DREG_PAGEBITS;
-  } else if (LCI_USE_DREG == 2) {
-    LCISI_server_t *server = (LCISI_server_t*) s;
-    mr.mr_p = server->odp_mr;
-    mr.address = buf;
-    mr.length = size;
-    struct ibv_sge list = {
-        .addr = (uintptr_t)buf,
-        .length = (uint32_t)size,
-        .lkey = server->odp_mr->lkey,
-    };
-    IBV_SAFECALL(
-        ibv_advise_mr(server->dev_pd, IBV_ADVISE_MR_ADVICE_PREFETCH_WRITE,
-                      0, &list, 1)
-        );
   } else {
     mr.mr_p = LCISI_real_server_reg(s, buf, size);
     mr.address = buf;
     mr.length = size;
+  }
+  if (LCI_IBV_USE_PREFETCH) {
+    struct ibv_sge list = {
+        .addr = (uintptr_t)buf,
+        .length = (uint32_t)size,
+        .lkey = ibv_rma_lkey(mr),
+    };
+    IBV_SAFECALL(
+        ibv_advise_mr(server->dev_pd, IBV_ADVISE_MR_ADVICE_PREFETCH_WRITE,
+                      0, &list, 1)
+    );
   }
   return mr;
 }
 
 static inline void LCISD_rma_dereg(LCIS_mr_t mr)
 {
-  if (LCI_USE_DREG == 1) {
-    dreg_unregister((dreg_entry*)mr.mr_p);
-  } else if (LCI_USE_DREG == 2) {
+  if (LCI_IBV_USE_ODP == 2) {
     // do nothing
+  } else if (LCI_USE_DREG) {
+    dreg_unregister((dreg_entry*)mr.mr_p);
   } else {
     LCISI_real_server_dereg(mr.mr_p);
   }
@@ -109,19 +130,10 @@ static inline void LCISD_rma_dereg(LCIS_mr_t mr)
 
 static inline LCIS_rkey_t LCISD_rma_rkey(LCIS_mr_t mr)
 {
-  if (LCI_USE_DREG == 1) {
+  if (LCI_USE_DREG) {
     return ((struct ibv_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]))->rkey;
   } else {
     return ((struct ibv_mr*)mr.mr_p)->rkey;
-  }
-}
-
-static inline uint32_t ibv_rma_lkey(LCIS_mr_t mr)
-{
-  if (LCI_USE_DREG == 1) {
-    return ((struct ibv_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]))->lkey;
-  } else {
-    return ((struct ibv_mr*)mr.mr_p)->lkey;
   }
 }
 
@@ -213,8 +225,6 @@ static inline LCI_error_t LCISD_post_send(LCIS_server_t s, int rank, void* buf,
                                          void* ctx)
 {
   LCISI_server_t *server = (LCISI_server_t*) s;
-  if (LCI_USE_DREG == 2)
-    LCM_DBG_Assert(mr.mr_p == server->odp_mr, "Unexpected mr!\n");
 
   struct ibv_sge list;
   list.addr	= (uint64_t) buf;
@@ -273,8 +283,6 @@ static inline LCI_error_t LCISD_post_put(LCIS_server_t s, int rank, void* buf,
                                         void* ctx)
 {
   LCISI_server_t *server = (LCISI_server_t*) s;
-  if (LCI_USE_DREG == 2)
-    LCM_DBG_Assert(mr.mr_p == server->odp_mr, "Unexpected mr!\n");
 
   struct ibv_sge list;
   list.addr	= (uint64_t) buf;

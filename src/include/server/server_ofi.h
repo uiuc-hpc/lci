@@ -67,7 +67,7 @@ static inline void LCISI_real_server_dereg(void *mr_opaque)
 static inline LCIS_mr_t LCISD_rma_reg(LCIS_server_t s, void* buf, size_t size)
 {
   LCIS_mr_t mr;
-  if (LCI_USE_DREG == 1) {
+  if (LCI_USE_DREG) {
     dreg_entry *entry = dreg_register(s, buf, size);
     LCM_DBG_Assert(entry != NULL, "Unable to register more memory!");
     mr.mr_p = entry;
@@ -83,7 +83,7 @@ static inline LCIS_mr_t LCISD_rma_reg(LCIS_server_t s, void* buf, size_t size)
 
 static inline void LCISD_rma_dereg(LCIS_mr_t mr)
 {
-  if (LCI_USE_DREG == 1) {
+  if (LCI_USE_DREG) {
     dreg_unregister((dreg_entry*)mr.mr_p);
   } else {
     LCISI_real_server_dereg(mr.mr_p);
@@ -92,7 +92,7 @@ static inline void LCISD_rma_dereg(LCIS_mr_t mr)
 
 static inline LCIS_rkey_t LCISD_rma_rkey(LCIS_mr_t mr)
 {
-  if (LCI_USE_DREG == 1) {
+  if (LCI_USE_DREG) {
     return fi_mr_key((struct fid_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]));
   }else {
     return fi_mr_key((struct fid_mr*)(mr.mr_p));
@@ -101,7 +101,7 @@ static inline LCIS_rkey_t LCISD_rma_rkey(LCIS_mr_t mr)
 
 static inline void* ofi_rma_lkey(LCIS_mr_t mr)
 {
-  if (LCI_USE_DREG == 1) {
+  if (LCI_USE_DREG) {
     return fi_mr_desc((struct fid_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]));
   } else {
     return fi_mr_desc((struct fid_mr*)mr.mr_p);

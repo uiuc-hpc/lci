@@ -110,7 +110,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
     }
   }
 
-  if (LCI_USE_DREG == 1) {
+  if (LCI_USE_DREG) {
     dreg_init();
   }
   lcm_pm_barrier();
@@ -118,7 +118,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
 
 void LCISD_finalize(LCIS_server_t s)
 {
-  if (LCI_USE_DREG == 1) {
+  if (LCI_USE_DREG) {
     dreg_finalize();
   }
   LCISI_server_t *server = (LCISI_server_t*) s;

@@ -70,7 +70,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
   }
 
   server->odp_mr = NULL;
-  if (LCI_USE_DREG == 2) {
+  if (LCI_IBV_USE_ODP == 2) {
     const uint32_t rc_caps_mask = IBV_ODP_SUPPORT_SEND |
                                   IBV_ODP_SUPPORT_RECV |
                                   IBV_ODP_SUPPORT_WRITE |
@@ -295,7 +295,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
   server->qp2rank = b;
   LCM_Log(LCM_LOG_INFO, "ibv", "qp2rank_mod is %d\n", j);
 
-  if (LCI_USE_DREG == 1) {
+  if (LCI_USE_DREG) {
     dreg_init();
   }
   lcm_pm_barrier();
@@ -303,7 +303,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
 
 void LCISD_finalize(LCIS_server_t s)
 {
-  if (LCI_USE_DREG == 1) {
+  if (LCI_USE_DREG) {
     dreg_finalize();
   }
   LCISI_server_t *server = (LCISI_server_t*) s;

@@ -292,12 +292,26 @@ extern int LCI_MAX_SYNC_LENGTH;
 extern int LCI_PACKET_RETURN_THRESHOLD;
 
 /**
- * How to handle the memory registration:
- * 0: Explicit user registration.
- * 1: Explicit user registration and LCI-provided registration cache.
- * 2: On-demand paging.
+ * Whether or what to use IBV on-demand paging:
+ * 0: Don't use ODP
+ * 1: Use explicit ODP
+ * 2: Use implicit ODP
+ */
+extern int LCI_IBV_USE_ODP;
+
+/**
+ * Whether or what to use LCI-provided registration cache:
+ * 0: Don't use.
+ * 1: Use.
  */
 extern int LCI_USE_DREG;
+
+/**
+ * Whether or what to use IBV prefetch:
+ * 0: Don't use.
+ * 1: Use. (Only make sense when LCI_IBV_USE_ODP is 1 or 2)
+ */
+extern int LCI_IBV_USE_PREFETCH;
 
 extern LCI_device_t LCI_UR_DEVICE;
 extern LCI_endpoint_t LCI_UR_ENDPOINT;
