@@ -148,11 +148,5 @@ LCI_error_t LCI_progress(LCI_device_t device)
     g_server_no_recv_packets = 0;
     LCM_Warn("WARNING-LC: recovered from deadlock alert.\n");
   }
-
-#ifdef LCI_USE_HANG_DETECTOR
-  if (ret == LCI_OK) {
-    LCII_hang_detector_heartbeat();
-  }
-#endif
   return ret;
 }

@@ -11,6 +11,7 @@ LCM_API const char * const log_levels[] = {
     [LCM_LOG_DEBUG] = "debug",
     [LCM_LOG_MAX] = NULL
 };
+LCM_API int LCM_LOG_RANK;
 LCM_API int LCM_LOG_LEVEL = LCM_LOG_WARN;
 LCM_API char *LCM_LOG_whitelist_p = NULL;
 LCM_API char *LCM_LOG_blacklist_p = NULL;
@@ -18,6 +19,7 @@ LCM_API FILE *LCM_LOG_OUTFILE = NULL;
 
 void LCM_Init(int rank)  {
   {
+    LCM_LOG_RANK = rank;
     char* p = getenv("LCM_LOG_LEVEL");
     if (p == NULL)
       ;

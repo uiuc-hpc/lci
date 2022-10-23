@@ -7,20 +7,17 @@ __thread unsigned int LCIU_rand_seed = 0;
 
 LCI_error_t LCI_initialize()
 {
-#ifdef LCI_USE_HANG_DETECTOR
-  LCII_hang_detector_init();
-#endif
   int num_proc, rank;
   // Initialize processes in this job.
   lcm_pm_initialize();
   rank = lcm_pm_get_rank();
   num_proc = lcm_pm_get_size();
   LCM_Init(rank);
+  lc_env_init(num_proc, rank);
   LCII_pcounters_init();
   LCII_monitor_thread_init();
 
   // Set some constant from environment variable.
-  lc_env_init(num_proc, rank);
   if (LCI_USE_DREG_HOOKS) {
     mvapich2_minit();
   }
@@ -61,9 +58,6 @@ LCI_error_t LCI_finalize()
   LCII_monitor_thread_fina();
   LCM_Fina();
   lcm_pm_finalize();
-#ifdef LCI_USE_HANG_DETECTOR
-  LCII_hang_detector_fina();
-#endif
 
   opened = 0;
   return LCI_OK;

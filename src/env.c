@@ -27,12 +27,15 @@ LCI_API int LCI_SERVER_NUM_PKTS;
 LCI_API int LCI_SERVER_MAX_SENDS;
 LCI_API int LCI_SERVER_MAX_RECVS;
 LCI_API int LCI_SERVER_MAX_CQES;
+LCI_API uint64_t LCI_PAGESIZE;
 LCI_API LCI_device_t LCI_UR_DEVICE;
 LCI_API LCI_endpoint_t LCI_UR_ENDPOINT;
 LCI_API LCI_comp_t LCI_UR_CQ;
 
 void lc_env_init(int num_proc, int rank)
 {
+  LCI_PAGESIZE = sysconf(_SC_PAGESIZE);
+
   LCI_MAX_ENDPOINTS = getenv_or("LCI_MAX_ENDPOINTS", 8);
   LCI_NUM_PROCESSES = num_proc;
   LCI_RANK = rank;

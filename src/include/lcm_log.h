@@ -60,6 +60,7 @@ static inline void LCM_Log_flush();
 
 /* =============== Implementation ================*/
 
+extern int LCM_LOG_RANK;
 extern int LCM_LOG_LEVEL;
 extern char *LCM_LOG_whitelist_p;
 extern char *LCM_LOG_blacklist_p;
@@ -74,8 +75,8 @@ void LCM_Assert_(const char *expr_str, int expr, const char *file,
   int size;
   va_list vargs;
 
-  size = snprintf(buf, sizeof(buf), "%d:%s:%s:%d<Assert failed: %s> ", getpid(), file, func,
-                  line, expr_str);
+  size = snprintf(buf, sizeof(buf), "%d:%d:%s:%s:%d<Assert failed: %s> ",
+                  LCM_LOG_RANK, getpid(), file, func, line, expr_str);
 
   va_start(vargs, format);
   vsnprintf(buf + size, sizeof(buf) - size, format, vargs);
@@ -109,8 +110,8 @@ void LCM_Log_(enum LCM_log_level_t log_level, const char *log_type,
       return;
   }
   // print the log
-  size = snprintf(buf, sizeof(buf), "%d:%s:%s:%d<%s:%s> ",
-                  getpid(), file, func, line, log_levels[log_level], log_type);
+  size = snprintf(buf, sizeof(buf), "%d:%d:%s:%s:%d<%s:%s> ",
+                  LCM_LOG_RANK, getpid(), file, func, line, log_levels[log_level], log_type);
 
   va_start(vargs, format);
   vsnprintf(buf + size, sizeof(buf) - size, format, vargs);

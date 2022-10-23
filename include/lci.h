@@ -205,6 +205,11 @@ typedef void (*LCI_handler_t)(LCI_request_t request);
  */
 
 /**
+ * Basic configuration
+ */
+extern uint64_t LCI_PAGESIZE;
+
+/**
  * The number of processes in this job.
  */
 extern int LCI_NUM_PROCESSES;

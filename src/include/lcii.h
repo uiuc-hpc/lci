@@ -204,15 +204,6 @@ static inline void lc_ce_dispatch(LCII_context_t *ctx);
 static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet, LCII_context_t *long_ctx);
 static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep, lc_packet* packet);
 static inline void LCII_handle_2sided_writeImm(LCI_endpoint_t ep, uint64_t ctx_key);
-// hang detector
-extern bool LCII_enable_hang_detector;
-extern volatile int LCII_hang_detector_signal;
-void LCII_hang_detector_init();
-void LCII_hang_detector_fina();
-static inline void LCII_hang_detector_heartbeat() {
-  if (LCII_enable_hang_detector && LCII_hang_detector_signal == 0)
-    LCII_hang_detector_signal = 1;
-}
 // getenv
 static inline int getenv_or(char* env, int def) {
   int ret;

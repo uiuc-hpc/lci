@@ -32,7 +32,7 @@ set(LCI_SERVER_MAX_RECVS_DEFAULT 1024 CACHE STRING "Max posted recvs")
 set(LCI_SERVER_MAX_CQES_DEFAULT 65536 CACHE STRING "Max posted cqes")
 set(LCI_SERVER_NUM_PKTS_DEFAULT 8192 CACHE STRING "Number of packets")
 set(LCI_CACHE_LINE 64 CACHE STRING "Size of cache line (bytes)")
-set(LCI_PAGESIZE 4096 CACHE STRING "Size of page (bytes)")
+option(LCI_USE_PERFORMANCE_COUNTER "Use performance counter" ON)
 mark_as_advanced(
         LCI_CONFIG_USE_ALIGNED_ALLOC
         LCI_PACKET_SIZE
