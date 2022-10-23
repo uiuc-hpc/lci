@@ -205,6 +205,9 @@ static inline void LCII_handle_2sided_writeImm(LCI_endpoint_t ep, uint64_t ctx_k
                              "tag %d user_ctx %p completion attr %x completion %p\n",
               ctx, ctx->rank, ctx->data.lbuffer.address, ctx->data.lbuffer.length,
               ctx->tag, ctx->user_context, ctx->comp_attr, ctx->completion);
+
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_recv += 1);
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_recv += ctx->data.lbuffer.length);
   lc_ce_dispatch(ctx);
 }
 
@@ -277,7 +280,9 @@ static inline void LCII_handle_1sided_writeImm(LCI_endpoint_t ep, uint64_t ctx_k
       (LCII_context_t*)LCM_archive_remove(ep->ctx_archive_p, ctx_key);
   LCM_DBG_Assert(ctx->data_type == LCI_LONG,
                  "Didn't get the right context! This might imply some bugs in the LCM_archive_t.\n");
-  // recvl has been completed locally. Need to process completion.
+  // putl has been completed locally. Need to process completion.
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_recv += 1);
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_recv += ctx->data.lbuffer.length);
   lc_ce_dispatch(ctx);
 }
 

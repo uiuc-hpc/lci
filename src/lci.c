@@ -1,6 +1,9 @@
 #include "lcii.h"
 
 static int opened = 0;
+int LCIU_nthreads = 0;
+__thread int LCIU_thread_id = -1;
+__thread unsigned int LCIU_rand_seed = 0;
 
 LCI_error_t LCI_initialize()
 {
@@ -13,6 +16,8 @@ LCI_error_t LCI_initialize()
   rank = lcm_pm_get_rank();
   num_proc = lcm_pm_get_size();
   LCM_Init(rank);
+  LCII_pcounters_init();
+  LCII_monitor_thread_init();
 
   // Set some constant from environment variable.
   lc_env_init(num_proc, rank);
@@ -53,6 +58,7 @@ LCI_error_t LCI_finalize()
   if (LCI_USE_DREG_HOOKS) {
     mvapich2_mfin();
   }
+  LCII_monitor_thread_fina();
   LCM_Fina();
   lcm_pm_finalize();
 #ifdef LCI_USE_HANG_DETECTOR

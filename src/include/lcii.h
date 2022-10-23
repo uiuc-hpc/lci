@@ -4,10 +4,11 @@
 #include "lcii_config.h"
 #include "lci.h"
 #include "lcm_log.h"
+#include "lciu.h"
+#include "pcounter.h"
 #include "lcm_dequeue.h"
 #include "lcm_archive.h"
 #include "pmi_wrapper.h"
-#include "lciu.h"
 #include "mem_hooks.h"
 #include "dreg.h"
 #include "server/server.h"
@@ -224,6 +225,9 @@ static inline int getenv_or(char* env, int def) {
   LCM_Log(LCM_LOG_INFO, "env", "set %s to be %d\n", env, ret);
   return ret;
 }
+// monitor thread
+void LCII_monitor_thread_init();
+void LCII_monitor_thread_fina();
 
 #include "hashtable.h"
 #include "cq.h"

@@ -62,6 +62,8 @@ static inline void LCIS_serve_recv(void* p,
                                  int src_rank, size_t length,
                                  uint32_t imm_data)
 {
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_recv += 1);
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_recv += length);
   lc_packet *packet = (lc_packet*) p;
   LCII_proto_t proto = imm_data;
   // NOTE: this should be RGID because it is received from remote.

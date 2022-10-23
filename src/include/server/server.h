@@ -108,14 +108,24 @@ static inline LCI_error_t LCIS_post_sends(LCIS_server_t s, int rank, void* buf,
                                           size_t size, LCIS_meta_t meta) {
   LCM_DBG_Log(LCM_LOG_DEBUG, "server", "LCIS_post_sends: rank %d buf %p size %lu meta %d\n",
                       rank, buf, size, meta);
-  return LCISD_post_sends(s, rank, buf, size, meta);
+  LCI_error_t ret = LCISD_post_sends(s, rank, buf, size, meta);
+  if (ret == LCI_OK) {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_send += 1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_send += size);
+  }
+  return ret;
 }
 static inline LCI_error_t LCIS_post_send(LCIS_server_t s, int rank, void* buf,
                                          size_t size, LCIS_mr_t mr,
                                          LCIS_meta_t meta, void* ctx) {
   LCM_DBG_Log(LCM_LOG_DEBUG, "server", "LCIS_post_send: rank %d buf %p size %lu mr %p meta %d ctx %p\n",
                       rank, buf, size, mr.mr_p, meta, ctx);
-  return LCISD_post_send(s, rank, buf, size, mr, meta, ctx);
+  LCI_error_t ret = LCISD_post_send(s, rank, buf, size, mr, meta, ctx);
+  if (ret == LCI_OK) {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_send += 1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_send += size);
+  }
+  return ret;
 }
 static inline LCI_error_t LCIS_post_puts(LCIS_server_t s, int rank, void* buf,
                                          size_t size, uintptr_t base,
@@ -123,7 +133,12 @@ static inline LCI_error_t LCIS_post_puts(LCIS_server_t s, int rank, void* buf,
   LCM_DBG_Log(LCM_LOG_DEBUG, "server", "LCIS_post_puts: rank %d buf %p size %lu base %p offset %lu "
                       "rkey %lu\n", rank, buf,
                       size, (void*) base, offset, rkey);
-  return LCISD_post_puts(s, rank, buf, size, base, offset, rkey);
+  LCI_error_t ret = LCISD_post_puts(s, rank, buf, size, base, offset, rkey);
+  if (ret == LCI_OK) {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_send += 1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_send += size);
+  }
+  return ret;
 }
 static inline LCI_error_t LCIS_post_put(LCIS_server_t s, int rank, void* buf,
                                         size_t size, LCIS_mr_t mr,
@@ -133,7 +148,12 @@ static inline LCI_error_t LCIS_post_put(LCIS_server_t s, int rank, void* buf,
   LCM_DBG_Log(LCM_LOG_DEBUG, "server", "LCIS_post_put: rank %d buf %p size %lu mr %p base %p "
                       "offset %lu rkey %lu ctx %p\n", rank, buf,
                       size, mr.mr_p, (void*) base, offset, rkey, ctx);
-  return LCISD_post_put(s, rank, buf, size, mr, base, offset, rkey, ctx);
+  LCI_error_t ret = LCISD_post_put(s, rank, buf, size, mr, base, offset, rkey, ctx);
+  if (ret == LCI_OK) {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_send += 1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_send += size);
+  }
+  return ret;
 }
 static inline LCI_error_t LCIS_post_putImms(LCIS_server_t s, int rank,
                                             void* buf, size_t size,
@@ -143,7 +163,12 @@ static inline LCI_error_t LCIS_post_putImms(LCIS_server_t s, int rank,
   LCM_DBG_Log(LCM_LOG_DEBUG, "server", "LCIS_post_putImms: rank %d buf %p size %lu base %p offset %lu "
                       "rkey %lu meta %d\n", rank, buf,
                       size, (void*) base, offset, rkey, meta);
-  return LCISD_post_putImms(s, rank, buf, size, base, offset, rkey, meta);
+  LCI_error_t ret = LCISD_post_putImms(s, rank, buf, size, base, offset, rkey, meta);
+  if (ret == LCI_OK) {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_send += 1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_send += size);
+  }
+  return ret;
 }
 static inline LCI_error_t LCIS_post_putImm(LCIS_server_t s, int rank,
                                            void* buf, size_t size,
@@ -155,7 +180,12 @@ static inline LCI_error_t LCIS_post_putImm(LCIS_server_t s, int rank,
   LCM_DBG_Log(LCM_LOG_DEBUG, "server", "LCIS_post_putImm: rank %d buf %p size %lu mr %p base %p "
                       "offset %lu rkey %lu meta %u ctx %p\n", rank, buf,
                       size, mr.mr_p, (void*) base, offset, rkey, meta, ctx);
-  return LCISD_post_putImm(s, rank, buf, size, mr, base, offset, rkey, meta, ctx);
+  LCI_error_t ret = LCISD_post_putImm(s, rank, buf, size, mr, base, offset, rkey, meta, ctx);
+  if (ret == LCI_OK) {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_send += 1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_send += size);
+  }
+  return ret;
 }
 static inline void LCIS_post_recv(LCIS_server_t s, void *buf,
                                   uint32_t size, LCIS_mr_t mr,

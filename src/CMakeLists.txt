@@ -18,6 +18,8 @@ target_sources_relative(LCI PRIVATE
         endpoint.c
         handler.c
         hang_detector.c
+        pcounter.c
+        monitor_thread.c
         ${CMAKE_CURRENT_SOURCE_DIR}/$<$<BOOL:${LCI_SYNC_ABT}>:sync_abt.c>
         ${CMAKE_CURRENT_SOURCE_DIR}/$<$<BOOL:${LCI_SYNC_FLAG}>:sync_flag.c>
         )

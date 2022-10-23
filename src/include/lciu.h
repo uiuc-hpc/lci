@@ -2,6 +2,7 @@
 #define LCI_LCIU_H
 
 #include <assert.h>
+#include <time.h>
 
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
@@ -62,6 +63,35 @@ static inline uint64_t LCIU_get_bits64(uint64_t flag, int width, int offset) {
   assert(offset <= 64);
   assert(offset + width <= 64);
   return (flag >> offset) & ((1UL << width) - 1);
+}
+
+/*
+ * We would like to hide these two global variable,
+ * but we cannot do it easily, because:
+ * - we want to make LCIU_thread_id an inline function
+ */
+extern int LCIU_nthreads;
+extern __thread int LCIU_thread_id;
+
+/* thread id */
+static inline int LCIU_get_thread_id()
+{
+  if (unlikely(LCIU_thread_id == -1)) {
+//    LCIU_thread_id = sched_getcpu();
+//    if (LCIU_thread_id == -1) {
+    LCIU_thread_id = __sync_fetch_and_add(&LCIU_nthreads, 1);
+//    }
+  }
+  return LCIU_thread_id;
+}
+
+extern __thread unsigned int LCIU_rand_seed;
+static inline int LCIU_rand()
+{
+  if (LCIU_rand_seed == 0) {
+    LCIU_rand_seed = time(NULL) + LCIU_get_thread_id() + rand();
+  }
+  return rand_r(&LCIU_rand_seed);
 }
 
 #include "lcm_spinlock.h"

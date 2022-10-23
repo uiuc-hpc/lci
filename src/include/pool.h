@@ -46,35 +46,6 @@ static inline void* lc_pool_get_nb(lc_pool* pool);
 
 #define POOL_UNINIT ((int32_t)-1)
 
-/*
- * We would like to hide these two global variable,
- * but we cannot do it easily, because:
- * - we want to make LCIU_thread_id an inline function
- */
-extern int LCIU_nthreads;
-extern __thread int LCIU_thread_id;
-extern __thread unsigned int LCIU_rand_seed;
-
-/* thread id */
-static inline int LCIU_get_thread_id()
-{
-  if (unlikely(LCIU_thread_id == -1)) {
-    LCIU_thread_id = sched_getcpu();
-    if (LCIU_thread_id == -1) {
-      LCIU_thread_id = __sync_fetch_and_add(&LCIU_nthreads, 1);
-    }
-  }
-  return LCIU_thread_id;
-}
-
-static inline int LCIU_rand()
-{
-  if (LCIU_rand_seed == 0) {
-    LCIU_rand_seed = time(NULL) + LCIU_get_thread_id() + rand();
-  }
-  return rand_r(&LCIU_rand_seed);
-}
-
 static inline int32_t lc_pool_get_local(struct lc_pool* pool)
 {
   int wid = LCIU_get_thread_id();

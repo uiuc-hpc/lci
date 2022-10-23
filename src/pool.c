@@ -4,9 +4,6 @@ int32_t tls_pool_struct[MAX_NPOOLS][MAX_LOCAL_POOL]; // = {-1, -1, -1, -1, -1, -
 int lc_pool_nkey = 0;
 LCIU_spinlock_t init_lock;
 static int initialized = 0;
-int LCIU_nthreads = 0;
-__thread int LCIU_thread_id = -1;
-__thread unsigned int LCIU_rand_seed = 0;
 
 static inline void lc_pool_init() {
   LCIU_spinlock_init(&init_lock);
