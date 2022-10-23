@@ -23,7 +23,7 @@ LCI_error_t LCI_device_init(LCI_device_t * device_ptr)
   LCM_Assert(LCI_PACKET_SIZE % LCI_CACHE_LINE == 0, "The size of packets should be a multiple of cache line size\n");
 
   lc_pool_create(&device->pkpool);
-  for (int i = 0; i < LCI_SERVER_NUM_PKTS; i++) {
+  for (size_t i = 0; i < LCI_SERVER_NUM_PKTS; i++) {
     lc_packet* p = (lc_packet*)(base_packet + i * LCI_PACKET_SIZE );
     LCM_Assert(((uint64_t)&(p->data)) % LCI_CACHE_LINE == 0, "packet.data is not well-aligned\n");
     p->context.pkpool = device->pkpool;
