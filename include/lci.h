@@ -350,6 +350,11 @@ extern int LCI_SERVER_MAX_RECVS;
  */
 extern int LCI_SERVER_MAX_CQES;
 
+/**
+ * whether to enable ibv's event polling thread
+ */
+extern bool LCI_IBV_ENABLE_EVENT_POLLING_THREAD;
+
 extern LCI_device_t LCI_UR_DEVICE;
 extern LCI_endpoint_t LCI_UR_ENDPOINT;
 extern LCI_comp_t LCI_UR_CQ;

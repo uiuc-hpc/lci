@@ -41,6 +41,10 @@ typedef struct LCISI_server_t {
   int* qp2rank;
   int qp2rank_mod;
   size_t max_inline;
+
+  // event polling thread
+  pthread_t event_polling_thread;
+  volatile bool event_polling_thread_run;
 } LCISI_server_t __attribute__((aligned(64)));
 
 static inline void *LCISI_real_server_reg(LCIS_server_t s, void* buf, size_t size)

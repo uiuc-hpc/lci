@@ -17,6 +17,47 @@ const char *mtu_str(enum ibv_mtu mtu)
   }
 }
 
+static inline void *LCISI_event_polling_thread_fn(void *argp) {
+  LCISI_server_t *server = (LCISI_server_t*) argp;
+  LCM_Log(LCM_LOG_INFO, "event", "Start ibv event polling thread!\n");
+  struct ibv_async_event event;
+  while (server->event_polling_thread_run) {
+    IBV_SAFECALL(ibv_get_async_event(server->dev_ctx, &event));
+    switch (event.event_type) {
+      case IBV_EVENT_CQ_ERR:
+      case IBV_EVENT_QP_FATAL:
+      case IBV_EVENT_QP_REQ_ERR:
+      case IBV_EVENT_QP_ACCESS_ERR:
+      case IBV_EVENT_PATH_MIG_ERR:
+      case IBV_EVENT_DEVICE_FATAL:
+      case IBV_EVENT_SRQ_ERR:
+        LCM_Assert(false, "Got ibv async event error %d: %s\n",
+                   event.event_type, ibv_event_type_str(event.event_type));
+        break;
+      default:
+        LCM_Log(LCM_LOG_INFO, "event", "Got ibv async event %d: %s\n",
+                event.event_type, ibv_event_type_str(event.event_type));
+    }
+    ibv_ack_async_event(&event);
+  }
+  LCM_Log(LCM_LOG_INFO, "event", "End ibv event polling thread!\n");
+}
+
+void LCISI_event_polling_thread_init(LCISI_server_t* server) {
+  if (LCI_IBV_ENABLE_EVENT_POLLING_THREAD) {
+    server->event_polling_thread_run = true;
+    pthread_create(&server->event_polling_thread, NULL,
+                   LCISI_event_polling_thread_fn, server);
+  }
+}
+
+void LCISI_event_polling_thread_fina(LCISI_server_t* server) {
+  if (LCI_IBV_ENABLE_EVENT_POLLING_THREAD) {
+    server->event_polling_thread_run = false;
+    pthread_join(server->event_polling_thread, NULL);
+  }
+}
+
 void LCISD_init(LCI_device_t device, LCIS_server_t* s)
 {
   int device_id = g_device_num++;
@@ -292,12 +333,14 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
   server->qp2rank = b;
   LCM_Log(LCM_LOG_INFO, "ibv", "qp2rank_mod is %d\n", j);
 
+  LCISI_event_polling_thread_init(server);
   lcm_pm_barrier();
 }
 
 void LCISD_finalize(LCIS_server_t s)
 {
   LCISI_server_t *server = (LCISI_server_t*) s;
+  LCISI_event_polling_thread_fina(server);
   free(server->qp2rank);
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
     IBV_SAFECALL(ibv_destroy_qp(server->qps[i]));

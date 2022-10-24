@@ -1,6 +1,6 @@
 #include "lcii.h"
 
-// needed by the flush threads
+// needed by the monitor threads
 static pthread_t LCII_monitor_thread;
 static volatile bool LCII_monitor_thread_run;
 static bool LCI_ENABLE_MONITOR_THREAD = false;
@@ -54,7 +54,6 @@ void *LCII_monitor_thread_fn(void *vargp)
 }
 
 void LCII_monitor_thread_init() {
-  // flush threads
   LCI_ENABLE_MONITOR_THREAD = getenv_or("LCI_ENABLE_MONITOR_THREAD", false);
   if (LCI_ENABLE_MONITOR_THREAD) {
     LCI_MONITOR_THREAD_INTERVAL = getenv_or("LCI_MONITOR_THREAD_INTERVAL", 60);
