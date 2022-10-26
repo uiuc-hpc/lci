@@ -206,8 +206,9 @@ static inline void LCII_handle_2sided_writeImm(LCI_endpoint_t ep, uint64_t ctx_k
               ctx, ctx->rank, ctx->data.lbuffer.address, ctx->data.lbuffer.length,
               ctx->tag, ctx->user_context, ctx->comp_attr, ctx->completion);
 
-  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_recv += 1);
-  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_recv += ctx->data.lbuffer.length);
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_rx += 1);
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_rx += ctx->data.lbuffer.length);
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_1sided_rx += 1);
   lc_ce_dispatch(ctx);
 }
 
@@ -281,8 +282,9 @@ static inline void LCII_handle_1sided_writeImm(LCI_endpoint_t ep, uint64_t ctx_k
   LCM_DBG_Assert(ctx->data_type == LCI_LONG,
                  "Didn't get the right context! This might imply some bugs in the LCM_archive_t.\n");
   // putl has been completed locally. Need to process completion.
-  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_recv += 1);
-  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_recv += ctx->data.lbuffer.length);
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_rx += 1);
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_rx += ctx->data.lbuffer.length);
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_1sided_rx += 1);
   lc_ce_dispatch(ctx);
 }
 
@@ -401,9 +403,10 @@ static inline void LCII_handle_iovec_recv_FIN(lc_packet* packet)
   LCM_DBG_Assert(ctx->data_type == LCI_IOVEC,
                  "Didn't get the right context (%p type=%d)!.\n", ctx, ctx->data_type);
   // putva has been completed locally. Need to process completion.
-  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_recv += ctx->data.iovec.count);
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_rx += ctx->data.iovec.count);
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_1sided_rx += ctx->data.iovec.count);
   for (int i = 0; i < ctx->data.iovec.count; ++i)
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_recv += ctx->data.iovec.lbuffers[i].length);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_rx += ctx->data.iovec.lbuffers[i].length);
   LCII_free_packet(packet);
   lc_ce_dispatch(ctx);
 }

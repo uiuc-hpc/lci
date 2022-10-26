@@ -83,6 +83,7 @@ void LCM_Assert_(const char *expr_str, int expr, const char *file,
   va_end(vargs);
 
   fprintf(stderr, "%s", buf);
+  fflush(stderr);
   abort();
 }
 

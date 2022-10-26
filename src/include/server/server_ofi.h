@@ -69,7 +69,7 @@ static inline LCIS_mr_t LCISD_rma_reg(LCIS_server_t s, void* buf, size_t size)
   LCIS_mr_t mr;
   if (LCI_USE_DREG) {
     dreg_entry *entry = dreg_register(s, buf, size);
-    LCM_DBG_Assert(entry != NULL, "Unable to register more memory!");
+    LCM_DBG_Assert(entry != NULL, "Unable to register more memory!\n");
     mr.mr_p = entry;
     mr.address = (void*) (entry->pagenum << DREG_PAGEBITS);
     mr.length = entry->npages << DREG_PAGEBITS;

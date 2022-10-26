@@ -89,7 +89,7 @@ static inline LCIS_mr_t LCISD_rma_reg(LCIS_server_t s, void* buf, size_t size)
     mr.length = size;
   } else if (LCI_USE_DREG) {
     dreg_entry *entry = dreg_register(s, buf, size);
-    LCM_DBG_Assert(entry != NULL, "Unable to register more memory!");
+    LCM_DBG_Assert(entry != NULL, "Unable to register more memory!\n");
     mr.mr_p = entry;
     mr.address = (void*) (entry->pagenum << DREG_PAGEBITS);
     mr.length = entry->npages << DREG_PAGEBITS;
@@ -137,13 +137,13 @@ static inline int LCISD_poll_cq(LCIS_server_t s, LCIS_cq_entry_t *entry)
   LCISI_server_t *server = (LCISI_server_t*) s;
   struct ibv_wc wc[LCI_CQ_MAX_POLL];
   int ne = ibv_poll_cq(server->cq, LCI_CQ_MAX_POLL, wc);
-  LCM_DBG_Assert(ne >= 0, "ibv_poll_cq returns error\n");
+  LCM_Assert(ne >= 0, "ibv_poll_cq returns error %d\n", ne);
 
   for (int i = 0; i < ne; i++) {
-    LCM_DBG_Assert(wc[i].status == IBV_WC_SUCCESS,
-                   "Failed status %s (%d) for wr_id %d\n",
-                   ibv_wc_status_str(wc[i].status), wc[i].status,
-                   (int)wc[i].wr_id);
+    LCM_Assert(wc[i].status == IBV_WC_SUCCESS,
+               "Failed status %s (%d) for wr_id %d\n",
+               ibv_wc_status_str(wc[i].status), wc[i].status,
+               (int)wc[i].wr_id);
     if (wc[i].opcode == IBV_WC_RECV) {
       entry[i].opcode = LCII_OP_RECV;
       entry[i].ctx = (void*)wc[i].wr_id;
@@ -155,9 +155,9 @@ static inline int LCISD_poll_cq(LCIS_server_t s, LCIS_cq_entry_t *entry)
       entry[i].ctx = (void*) wc[i].wr_id;
       entry[i].imm_data = wc[i].imm_data;
     } else {
-      LCM_DBG_Assert(wc[i].opcode == IBV_WC_SEND ||
-                     wc[i].opcode == IBV_WC_RDMA_WRITE,
-                     "Unexpected IBV opcode!\n");
+      LCM_Assert(wc[i].opcode == IBV_WC_SEND ||
+                 wc[i].opcode == IBV_WC_RDMA_WRITE,
+                 "Unexpected IBV opcode!\n");
       entry[i].opcode = LCII_OP_SEND;
       entry[i].ctx = (void*) wc[i].wr_id;
     }
@@ -185,7 +185,7 @@ static inline LCI_error_t LCISD_post_sends(LCIS_server_t s, int rank, void* buf,
                                           size_t size, LCIS_meta_t meta)
 {
   LCISI_server_t *server = (LCISI_server_t*) s;
-  LCM_DBG_Assert(size <= server->max_inline, "%lu exceed the inline message size"
+  LCM_DBG_Assert(size <= server->max_inline, "%lu exceed the inline message size\n"
                                              "limit! %lu\n", size, server->max_inline);
 
   struct ibv_sge list;
@@ -249,7 +249,7 @@ static inline LCI_error_t LCISD_post_puts(LCIS_server_t s, int rank, void* buf,
                                          LCIS_offset_t offset, LCIS_rkey_t rkey)
 {
   LCISI_server_t *server = (LCISI_server_t*) s;
-  LCM_DBG_Assert(size <= server->max_inline, "%lu exceed the inline message size"
+  LCM_DBG_Assert(size <= server->max_inline, "%lu exceed the inline message size\n"
                  "limit! %lu\n", size, server->max_inline);
   struct ibv_sge list;
   list.addr	= (uint64_t) buf;
@@ -309,7 +309,7 @@ static inline LCI_error_t LCISD_post_putImms(LCIS_server_t s, int rank,
                                              LCIS_rkey_t rkey, uint32_t meta)
 {
   LCISI_server_t *server = (LCISI_server_t*) s;
-  LCM_DBG_Assert(size <= server->max_inline, "%lu exceed the inline message size"
+  LCM_DBG_Assert(size <= server->max_inline, "%lu exceed the inline message size\n"
                                              "limit! %lu\n", size, server->max_inline);
   struct ibv_sge list;
   list.addr	= (uint64_t) buf;

@@ -110,8 +110,9 @@ static inline LCI_error_t LCIS_post_sends(LCIS_server_t s, int rank, void* buf,
                       rank, buf, size, meta);
   LCI_error_t ret = LCISD_post_sends(s, rank, buf, size, meta);
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_send += 1);
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_send += size);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_tx += 1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_tx += size);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_2sided_tx += 1);
   }
   return ret;
 }
@@ -122,8 +123,9 @@ static inline LCI_error_t LCIS_post_send(LCIS_server_t s, int rank, void* buf,
                       rank, buf, size, mr.mr_p, meta, ctx);
   LCI_error_t ret = LCISD_post_send(s, rank, buf, size, mr, meta, ctx);
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_send += 1);
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_send += size);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_tx += 1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_tx += size);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_2sided_tx += 1);
   }
   return ret;
 }
@@ -135,8 +137,9 @@ static inline LCI_error_t LCIS_post_puts(LCIS_server_t s, int rank, void* buf,
                       size, (void*) base, offset, rkey);
   LCI_error_t ret = LCISD_post_puts(s, rank, buf, size, base, offset, rkey);
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_send += 1);
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_send += size);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_tx += 1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_tx += size);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_1sided_tx += 1);
   }
   return ret;
 }
@@ -150,8 +153,9 @@ static inline LCI_error_t LCIS_post_put(LCIS_server_t s, int rank, void* buf,
                       size, mr.mr_p, (void*) base, offset, rkey, ctx);
   LCI_error_t ret = LCISD_post_put(s, rank, buf, size, mr, base, offset, rkey, ctx);
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_send += 1);
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_send += size);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_tx += 1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_tx += size);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_1sided_tx += 1);
   }
   return ret;
 }
@@ -165,8 +169,9 @@ static inline LCI_error_t LCIS_post_putImms(LCIS_server_t s, int rank,
                       size, (void*) base, offset, rkey, meta);
   LCI_error_t ret = LCISD_post_putImms(s, rank, buf, size, base, offset, rkey, meta);
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_send += 1);
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_send += size);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_tx += 1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_tx += size);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_1sided_tx += 1);
   }
   return ret;
 }
@@ -182,8 +187,9 @@ static inline LCI_error_t LCIS_post_putImm(LCIS_server_t s, int rank,
                       size, mr.mr_p, (void*) base, offset, rkey, meta, ctx);
   LCI_error_t ret = LCISD_post_putImm(s, rank, buf, size, mr, base, offset, rkey, meta, ctx);
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_send += 1);
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_send += size);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_tx += 1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_tx += size);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_1sided_tx += 1);
   }
   return ret;
 }

@@ -97,9 +97,10 @@ LCI_error_t LCI_progress(LCI_device_t device)
   int ret = LCI_ERR_RETRY;
   LCIS_cq_entry_t entry[LCI_CQ_MAX_POLL];
   int count = LCIS_poll_cq(device->server, entry);
-  LCM_DBG_Assert(count >= 0, "ibv_poll_cq returns error %d\n", count);
   if (count > 0) {
     ret = LCI_OK;
+  } else {
+    LCM_DBG_Assert(count >= 0, "ibv_poll_cq returns error %d\n", count);
   }
   for (int i = 0; i < count; i++) {
     if (entry[i].opcode == LCII_OP_RECV) {
@@ -127,7 +128,7 @@ LCI_error_t LCI_progress(LCI_device_t device)
     ret = LCI_OK;
   }
   // Make sure we always have enough packet, but do not block.
-  while (device->recv_posted < LCI_SERVER_MAX_RECVS) {
+  if (device->recv_posted < LCI_SERVER_MAX_RECVS) {
     lc_packet *packet = lc_pool_get_nb(device->pkpool);
     if (packet == NULL) {
       if (device->recv_posted < LCI_SERVER_MAX_RECVS / 2 && !g_server_no_recv_packets) {
@@ -136,17 +137,18 @@ LCI_error_t LCI_progress(LCI_device_t device)
                   "%d packets left for post_recv\n",
                   device->recv_posted);
       }
-      break;
+    } else {
+      packet->context.poolid = lc_pool_get_local(device->pkpool);
+      LCIS_post_recv(device->server, packet->data.address, LCI_MEDIUM_SIZE,
+                     *(device->heap.segment), packet);
+      ++device->recv_posted;
+      ret = LCI_OK;
     }
-    packet->context.poolid = lc_pool_get_local(device->pkpool);
-    LCIS_post_recv(device->server, packet->data.address, LCI_MEDIUM_SIZE,
-                        *(device->heap.segment), packet);
-    ++device->recv_posted;
-    ret = LCI_OK;
   }
   if (device->recv_posted == LCI_SERVER_MAX_RECVS && g_server_no_recv_packets) {
     g_server_no_recv_packets = 0;
     LCM_Warn("WARNING-LC: recovered from deadlock alert.\n");
   }
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].progress_call += 1);
   return ret;
 }

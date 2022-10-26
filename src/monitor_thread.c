@@ -32,23 +32,31 @@ void *LCII_monitor_thread_fn(void *vargp)
     pcounter = LCII_pcounters_accumulate();
     clock_gettime(CLOCK_MONOTONIC, &now);
     struct timespec diff = LCIU_timespec_diff(now, start_time);
-    LCM_Log(LCM_LOG_INFO, "monitor", "Time %lu.%lu s: msgs_send %ld "
-            "bytes_send %ld msgs_recv %ld bytes_recv %ld\n",
+    LCM_Log(LCM_LOG_INFO, "monitor", "Time %lu.%lu s: msgs_tx %ld/%ld/%ld/%ld "
+            "bytes_tx %ld/%ld msgs_rx %ld/%ld/%ld/%ld bytes_rx %ld/%ld "
+            "packet_stealing %ld progress_call %ld\n",
             diff.tv_sec, diff.tv_nsec,
-            pcounter.msgs_send - old.msgs_send,
-            pcounter.bytes_send - old.bytes_send,
-            pcounter.msgs_recv - old.msgs_recv,
-            pcounter.bytes_recv - old.bytes_recv);
+            pcounter.msgs_tx - old.msgs_tx, pcounter.msgs_tx,
+            pcounter.msgs_2sided_tx, pcounter.msgs_1sided_tx,
+            pcounter.bytes_tx - old.bytes_tx, pcounter.bytes_tx,
+            pcounter.msgs_rx - old.msgs_rx, pcounter.msgs_rx,
+            pcounter.msgs_2sided_rx, pcounter.msgs_1sided_rx,
+            pcounter.bytes_rx - old.bytes_rx, pcounter.bytes_rx,
+            pcounter.packet_stealing - old.packet_stealing,
+            pcounter.progress_call - old.progress_call);
     old = pcounter;
     LCM_Log_flush();
   }
   clock_gettime(CLOCK_MONOTONIC, &now);
   struct timespec diff = LCIU_timespec_diff(now, start_time);
   LCM_Log(LCM_LOG_INFO, "monitor", "Finish the monitor thread at %lu.%lu s: "
-          "msgs_send %ld bytes_send %ld msgs_recv %ld bytes_recv %ld in total\n",
+          "msgs_tx %ld/%ld/%ld bytes_tx %ld "
+          "msgs_rx %ld/%ld/%ld bytes_rx %ld "
+          "packet_stealing %ld progress_call %ld\n",
           diff.tv_sec, diff.tv_nsec,
-          pcounter.msgs_send, pcounter.bytes_send,
-          pcounter.msgs_recv, pcounter.bytes_recv);
+          pcounter.msgs_tx, pcounter.msgs_2sided_tx, pcounter.msgs_1sided_tx, pcounter.bytes_tx,
+          pcounter.msgs_rx, pcounter.msgs_2sided_rx, pcounter.msgs_1sided_rx, pcounter.bytes_rx,
+          pcounter.packet_stealing, pcounter.progress_call);
   LCM_Log_flush();
   return NULL;
 }

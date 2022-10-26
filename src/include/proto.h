@@ -62,8 +62,9 @@ static inline void LCIS_serve_recv(void* p,
                                  int src_rank, size_t length,
                                  uint32_t imm_data)
 {
-  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_recv += 1);
-  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_recv += length);
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_rx += 1);
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_rx += length);
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_2sided_rx += 1);
   lc_packet *packet = (lc_packet*) p;
   LCII_proto_t proto = imm_data;
   // NOTE: this should be RGID because it is received from remote.
@@ -197,7 +198,7 @@ static inline void LCIS_serve_recv(void* p,
       break;
     }
     default:
-      LCM_Assert(false, "Unknown proto!");
+      LCM_Assert(false, "Unknown proto!\n");
   }
 }
 
@@ -218,7 +219,7 @@ static inline void LCIS_serve_rdma(uint32_t imm_data)
       break;
     }
     default:
-      LCM_DBG_Assert(false, "unknown proto!");
+      LCM_DBG_Assert(false, "unknown proto!\n");
   }
 }
 

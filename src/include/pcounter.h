@@ -8,11 +8,16 @@
 #endif
 
 typedef struct {
-  int64_t msgs_send;
-  int64_t bytes_send;
-  int64_t msgs_recv;
-  int64_t bytes_recv;
-  char padding[32];
+  int64_t msgs_tx;
+  int64_t bytes_tx;
+  int64_t msgs_rx;
+  int64_t bytes_rx;
+  int64_t msgs_2sided_tx;
+  int64_t msgs_1sided_tx;
+  int64_t msgs_2sided_rx;
+  int64_t msgs_1sided_rx;
+  int64_t packet_stealing;
+  int64_t progress_call;
 } LCII_pcounters_per_thread_t __attribute__((aligned(64)));
 
 #define LCI_PCOUNTER_MAX_NTHREADS 256

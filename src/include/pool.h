@@ -73,6 +73,7 @@ static inline void* lc_pool_get_slow(struct lc_pool* pool)
   LCIU_acquire_spinlock(&pool->lpools[steal].lock);
   ret = LCM_dq_pop_bot(&pool->lpools[steal].dq);
   LCIU_release_spinlock(&pool->lpools[steal].lock);
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].packet_stealing += 1);
   return ret;
 }
 

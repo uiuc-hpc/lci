@@ -53,7 +53,7 @@ void lc_env_init(int num_proc, int rank)
              "but the memory hooks is disabled. The program might "
              "be buggy when the allocation/free is too dynamic\n");
   }
-  if (LCI_USE_DREG && LCI_IBV_USE_ODP == 3) {
+  if (LCI_USE_DREG && LCI_IBV_USE_ODP == 2) {
     LCM_Warn("It doesn't make too much sense to use registration cache "
              "with implicit on-demand paging\n");
   }
