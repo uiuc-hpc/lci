@@ -128,7 +128,7 @@ LCI_error_t LCI_progress(LCI_device_t device)
     ret = LCI_OK;
   }
   // Make sure we always have enough packet, but do not block.
-  if (device->recv_posted < LCI_SERVER_MAX_RECVS) {
+  while (device->recv_posted < LCI_SERVER_MAX_RECVS) {
     lc_packet *packet = lc_pool_get_nb(device->pkpool);
     if (packet == NULL) {
       if (device->recv_posted < LCI_SERVER_MAX_RECVS / 2 && !g_server_no_recv_packets) {
@@ -137,6 +137,7 @@ LCI_error_t LCI_progress(LCI_device_t device)
                   "%d packets left for post_recv\n",
                   device->recv_posted);
       }
+      break;
     } else {
       packet->context.poolid = lc_pool_get_local(device->pkpool);
       LCIS_post_recv(device->server, packet->data.address, LCI_MEDIUM_SIZE,

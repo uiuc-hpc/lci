@@ -18,6 +18,7 @@ typedef struct {
   int64_t msgs_1sided_rx;
   int64_t packet_stealing;
   int64_t progress_call;
+  char padding[48];
 } LCII_pcounters_per_thread_t __attribute__((aligned(64)));
 
 #define LCI_PCOUNTER_MAX_NTHREADS 256

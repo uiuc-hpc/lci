@@ -13,7 +13,6 @@
 #include <rdma/fi_errno.h>
 #include <rdma/fi_rma.h>
 
-#ifdef LCI_DEBUG
 #define FI_SAFECALL(x)                                                    \
   {                                                                       \
     int err = (x);                                                        \
@@ -26,13 +25,6 @@
   while (0)                                                               \
     ;
 
-#else
-#define FI_SAFECALL(x) \
-  {                    \
-    (x);               \
-  }
-#endif
-
 typedef struct LCISI_server_t {
   LCI_device_t device;
   struct fi_info* info;
@@ -42,7 +34,6 @@ typedef struct LCISI_server_t {
   struct fid_cq* cq;
   struct fid_av* av;
   fi_addr_t *peer_addrs;
-  void *heap_desc;
 } LCISI_server_t __attribute__((aligned(64)));
 
 extern int g_next_rdma_key;
