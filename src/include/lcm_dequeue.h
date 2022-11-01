@@ -66,7 +66,7 @@ static inline int LCM_dq_push_top(LCM_dequeue_t* dq, void* p)
   dq->container[dq->top] = p;
   dq->top = new_top;
   return LCM_SUCCESS;
-};
+}
 
 static inline int LCM_dq_push_bot(LCM_dequeue_t* dq, void* p)
 {
@@ -77,7 +77,7 @@ static inline int LCM_dq_push_bot(LCM_dequeue_t* dq, void* p)
   dq->bot = new_bot;
   dq->container[dq->bot] = p;
   return LCM_SUCCESS;
-};
+}
 
 static inline void* LCM_dq_pop_top(LCM_dequeue_t* dq)
 {
@@ -87,7 +87,7 @@ static inline void* LCM_dq_pop_top(LCM_dequeue_t* dq)
     ret = dq->container[dq->top];
   }
   return ret;
-};
+}
 
 static inline void* LCM_dq_pop_bot(LCM_dequeue_t* dq)
 {
@@ -97,7 +97,7 @@ static inline void* LCM_dq_pop_bot(LCM_dequeue_t* dq)
     dq->bot = (dq->bot + 1) % dq->length;
   }
   return ret;
-};
+}
 
 static inline void* LCM_dq_peek_bot(LCM_dequeue_t* dq)
 {
@@ -106,6 +106,21 @@ static inline void* LCM_dq_peek_bot(LCM_dequeue_t* dq)
     ret = dq->container[dq->bot];
   }
   return ret;
-};
+}
+
+static inline size_t LCM_dq_steal(LCM_dequeue_t* dst, LCM_dequeue_t* src)
+{
+  size_t src_size = LCM_dq_size(*src);
+  size_t dst_size = LCM_dq_size(*dst);
+  if (src_size <= dst_size)
+    return 0;
+  size_t size_to_steal = (src_size - dst_size) / 2;
+  for (int i = 0; i < size_to_steal; ++i) {
+    dst->container[dst->top] = src->container[src->bot];
+    src->bot = (src->bot + 1) % src->length;
+    dst->top = (dst->top + 1) % dst->length;
+  }
+  return size_to_steal;
+}
 
 #endif

@@ -54,10 +54,11 @@ static inline int32_t lc_pool_get_local(struct lc_pool* pool)
     LCIU_acquire_spinlock(&init_lock);
     pid = tls_pool_struct[wid][pool->key];
     if (pid == POOL_UNINIT) {
-      pid = pool->npools++;
+      pid = pool->npools;
       LCIU_spinlock_init(&pool->lpools[pid].lock);
       LCM_dq_init(&pool->lpools[pid].dq, LCI_SERVER_NUM_PKTS);
       tls_pool_struct[wid][pool->key] = pid;
+      ++pool->npools;
     }
     LCIU_release_spinlock(&init_lock);
   }
@@ -65,15 +66,24 @@ static inline int32_t lc_pool_get_local(struct lc_pool* pool)
   return pid;
 }
 
-// TODO: improve this
-static inline void* lc_pool_get_slow(struct lc_pool* pool)
+static inline void* lc_pool_get_slow(struct lc_pool* pool, int32_t pid)
 {
   void *ret = NULL;
-  int steal = LCIU_rand() % (pool->npools);
-  LCIU_acquire_spinlock(&pool->lpools[steal].lock);
-  ret = LCM_dq_pop_bot(&pool->lpools[steal].dq);
-  LCIU_release_spinlock(&pool->lpools[steal].lock);
-  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].packet_stealing += 1);
+  int32_t steal = LCIU_rand() % (pool->npools);
+  size_t target_size = LCM_dq_size(pool->lpools[steal].dq);
+  if (steal != pid && target_size > 0) {
+    if (LCIU_try_acquire_spinlock(&pool->lpools[steal].lock)) {
+      size_t steal_size = LCM_dq_steal(&pool->lpools[pid].dq, &pool->lpools[steal].dq);
+      if (steal_size > 0) {
+        LCM_DBG_Log(LCM_LOG_DEBUG, "packet", "Packet steal %d->%d: %lu\n",
+                    steal, pid, steal_size);
+        ret = LCM_dq_pop_top(&pool->lpools[pid].dq);
+      }
+      LCIU_release_spinlock(&pool->lpools[steal].lock);
+    }
+  }
+  LCII_PCOUNTERS_WRAPPER(
+      LCII_pcounters[LCIU_get_thread_id()].packet_stealing += 1);
   return ret;
 }
 
@@ -90,25 +100,18 @@ static inline void lc_pool_put(struct lc_pool* pool, void* elm)
   lc_pool_put_to(pool, elm, pid);
 }
 
-static inline void* lc_pool_get(struct lc_pool* pool)
-{
-  int32_t pid = lc_pool_get_local(pool);
-  LCIU_acquire_spinlock(&pool->lpools[pid].lock);
-  void* elm = LCM_dq_pop_top(&pool->lpools[pid].dq);
-  LCIU_release_spinlock(&pool->lpools[pid].lock);
-  while (elm == NULL)
-    elm = lc_pool_get_slow(pool);
-  return elm;
-}
-
 static inline void* lc_pool_get_nb(struct lc_pool* pool)
 {
   int32_t pid = lc_pool_get_local(pool);
   LCIU_acquire_spinlock(&pool->lpools[pid].lock);
   void* elm = LCM_dq_pop_top(&pool->lpools[pid].dq);
+  if (elm == NULL) {
+    LCM_DBG_Assert(LCM_dq_size(pool->lpools[pid].dq) == 0,
+                   "Unexpected pool length! %lu\n",
+                   LCM_dq_size(pool->lpools[pid].dq));
+    elm = lc_pool_get_slow(pool, pid);
+  }
   LCIU_release_spinlock(&pool->lpools[pid].lock);
-  if (elm == NULL)
-    elm = lc_pool_get_slow(pool);
   return elm;
 }
 
