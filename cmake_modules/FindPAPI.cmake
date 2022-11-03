@@ -14,10 +14,10 @@ if(NOT TARGET Papi::papi)
   find_path(
           PAPI_INCLUDE_DIR papi.h
           HINTS ${PAPI_ROOT}
-                ENV PAPI_ROOT
+                $ENV{PAPI_ROOT}
                 ${PC_PAPI_INCLUDEDIR}
                 ${PC_PAPI_INCLUDE_DIRS}
-                ENV PAPIHOME
+                $ENV{PAPIHOME}
           PATH_SUFFIXES include
   )
 
@@ -25,10 +25,10 @@ if(NOT TARGET Papi::papi)
           PAPI_LIBRARY
           NAMES papi libpapi
           HINTS ${PAPI_ROOT}
-                ENV PAPI_ROOT
+                $ENV{PAPI_ROOT}
                 ${PC_PAPI_LIBDIR}
                 ${PC_PAPI_LIBRARY_DIRS}
-                ENV PAPIHOME
+                $ENV{PAPIHOME}
           PATH_SUFFIXES lib lib64
   )
 

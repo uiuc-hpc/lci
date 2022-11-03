@@ -47,7 +47,7 @@ pkg_check_modules(_Argobots_PC QUIET argobots)
 find_path(Argobots_INCLUDE_DIR
         NAMES "abt.h"
         HINTS
-        ENV ARGOBOTS_ROOT
+        $ENV{ARGOBOTS_ROOT}
         PATHS
         ${_Argobots_PC_INCLUDE_DIRS}
         PATH_SUFFIXES
@@ -56,7 +56,7 @@ find_path(Argobots_INCLUDE_DIR
 find_library(Argobots_LIBRARY
         NAMES "abt"
         HINTS
-        ENV ARGOBOTS_ROOT
+        $ENV{ARGOBOTS_ROOT}
         PATHS
         ${_Argobots_PC_LIBRARY_DIRS}
         PATH_SUFFIXES

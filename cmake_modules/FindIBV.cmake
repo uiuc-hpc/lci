@@ -47,13 +47,13 @@ pkg_check_modules(_IBV_PC QUIET libibverbs)
 find_path(IBV_INCLUDE_DIR
           NAMES "infiniband/verbs.h"
           PATHS ${_IBV_PC_INCLUDE_DIRS}
-          HINTS ENV IBV_ROOT
+          HINTS $ENV{IBV_ROOT} $ENV{LIBIBVERBS_ROOT}
           PATH_SUFFIXES include
 )
 find_library(IBV_LIBRARY
              NAMES ibverbs
              PATHS ${_IBV_PC_LIBRARY_DIRS}
-             HINTS ENV IBV_ROOT
+             HINTS $ENV{IBV_ROOT} $ENV{LIBIBVERBS_ROOT}
              PATH_SUFFIXES lib
 )
 set(IBV_VERSION ${_IBV_PC_VERSION})

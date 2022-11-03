@@ -47,13 +47,13 @@ pkg_check_modules(_PSM2_PC QUIET libpsm2)
 find_path(PSM2_INCLUDE_DIR
           NAMES "psm2.h"
           PATHS ${_PSM2_PC_INCLUDE_DIRS}
-          HINTS ENV PSM2_ROOT
+          HINTS $ENV{PSM2_ROOT}
           PATH_SUFFIXES include
 )
 find_library(PSM2_LIBRARY
              NAMES psm2
              PATHS ${_PSM2_PC_LIBRARY_DIRS}
-             HINTS ENV PSM2_ROOT
+             HINTS $ENV{PSM2_ROOT}
              PATH_SUFFIXES lib
 )
 set(PSM2_VERSION ${_PSM2_PC_VERSION})

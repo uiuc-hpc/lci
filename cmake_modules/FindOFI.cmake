@@ -47,13 +47,13 @@ pkg_check_modules(_OFI_PC QUIET libfabric)
 find_path(OFI_INCLUDE_DIR
           NAMES "rdma/fabric.h"
           PATHS ${_OFI_PC_INCLUDE_DIRS}
-          HINTS ENV OFI_ROOT
+          HINTS $ENV{OFI_ROOT} $ENV{LIBFABRIC_ROOT}
           PATH_SUFFIXES include
 )
 find_library(OFI_LIBRARY
              NAMES fabric
              PATHS ${_OFI_PC_LIBRARY_DIRS}
-             HINTS ENV OFI_ROOT
+             HINTS $ENV{OFI_ROOT} $ENV{LIBFABRIC_ROOT}
              PATH_SUFFIXES lib
 )
 set(OFI_VERSION ${_OFI_PC_VERSION})

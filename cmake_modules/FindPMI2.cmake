@@ -15,11 +15,9 @@ endif()
 find_path(
   PMI2_INCLUDE_DIR pmi2.h
   HINTS ${PMI2_ROOT}
-        ENV
-        PMI2_ROOT
+        $ENV{PMI2_ROOT}
         ${PMI2_DIR}
-        ENV
-        PMI2_DIR
+        $ENV{PMI2_DIR}
         ${PC_PMI_CRAY_INCLUDEDIR}
         ${PC_PMI_CRAY_INCLUDE_DIRS}
         ${PC_PMI_INCLUDEDIR}
@@ -32,8 +30,7 @@ find_library(
   PMI2_LIBRARY
   NAMES pmi2 pmi
   HINTS ${PMI2_ROOT}
-        ENV
-        PMI2_ROOT
+        $ENV{PMI2_ROOT}
         ${PC_PMI_CRAY_LIBDIR}
         ${PC_PMI_CRAY_LIBRARY_DIRS}
         ${PC_PMI_LIBDIR}
