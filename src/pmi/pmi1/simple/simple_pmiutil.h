@@ -31,4 +31,4 @@ void PMIU_dump_keyvals(void);
 char* PMIU_getval(const char* keystr, char* valstr, int vallen);
 void PMIU_chgval(const char* keystr, char* valstr);
 int MPIU_Strnapp(char* dest, const char* src, size_t n);
-int MPIU_Strncpy(char* dest, const char* src, size_t n);
+int MPI1U_Strncpy(char* dest, const char* src, size_t n);

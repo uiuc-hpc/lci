@@ -510,7 +510,7 @@ cmd=spawn;thrid=string;ncmds=count;preputcount=n;ppkey0=name;ppval0=string;...;\
     if (jobId && jobIdSize) {
         found = getval(resp_cmd.pairs, resp_cmd.nPairs, JOBID_KEY, &jid, &jidlen);
         PMI2U_ERR_CHKANDJUMP(found != 1, pmi2_errno, PMI2_ERR_OTHER, "**intern");
-        MPIU_Strncpy(jobId, jid, jobIdSize);
+        MPI2U_Strncpy(jobId, jid, jobIdSize);
     }
 
     if (PMI2U_getval("errcodes", tempbuf, PMI2_MAXLINE)) {
@@ -563,7 +563,7 @@ int PMI2_Job_GetId(char jobid[], int jobid_size)
     found = getval(cmd.pairs, cmd.nPairs, JOBID_KEY, &jid, &jidlen);
     PMI2U_ERR_CHKANDJUMP(found != 1, pmi2_errno, PMI2_ERR_OTHER, "**intern");
 
-    MPIU_Strncpy(jobid, jid, jobid_size);
+    MPI2U_Strncpy(jobid, jid, jobid_size);
 
 fn_exit:
     free(cmd.command);
@@ -662,8 +662,8 @@ int PMIX_Ring(const char value[], int *rank, int *ranks, char left[], char right
     if (PMI2_initialized == SINGLETON_INIT_BUT_NO_PM) {
         *rank  = 0;
         *ranks = 1;
-        MPIU_Strncpy(left,  value, maxvalue);
-        MPIU_Strncpy(right, value, maxvalue);
+        MPI2U_Strncpy(left,  value, maxvalue);
+        MPI2U_Strncpy(right, value, maxvalue);
         goto fn_exit_singleton;
     }
 
@@ -690,12 +690,12 @@ int PMIX_Ring(const char value[], int *rank, int *ranks, char left[], char right
     /* lookup left value and copy to caller's buffer */
     found = getval(cmd.pairs, cmd.nPairs, RING_LEFT_KEY, &kvsvalue, &kvsvallen);
     PMI2U_ERR_CHKANDJUMP(found != 1, pmi2_errno, PMI2_ERR_OTHER, "**intern");
-    MPIU_Strncpy(left, kvsvalue, maxvalue);
+    MPI2U_Strncpy(left, kvsvalue, maxvalue);
 
     /* lookup right value and copy to caller's buffer */
     found = getval(cmd.pairs, cmd.nPairs, RING_RIGHT_KEY, &kvsvalue, &kvsvallen);
     PMI2U_ERR_CHKANDJUMP(found != 1, pmi2_errno, PMI2_ERR_OTHER, "**intern");
-    MPIU_Strncpy(right, kvsvalue, maxvalue);
+    MPI2U_Strncpy(right, kvsvalue, maxvalue);
 
 fn_exit:
     free(cmd.command);
@@ -792,7 +792,7 @@ int PMI2_KVS_Get(const char *jobid, int src_pmi_id, const char key[], char value
     found = getval(cmd.pairs, cmd.nPairs, VALUE_KEY, &kvsvalue, &kvsvallen);
     PMI2U_ERR_CHKANDJUMP(found != 1, pmi2_errno, PMI2_ERR_OTHER, "**intern");
 
-    ret = MPIU_Strncpy(value, kvsvalue, maxValue);
+    ret = MPI2U_Strncpy(value, kvsvalue, maxValue);
     *valLen = ret ? -kvsvallen : kvsvallen;
 
  fn_exit:
@@ -833,7 +833,7 @@ int PMI2_Info_GetNodeAttr(const char name[], char value[], int valuelen, int *fl
         found = getval(cmd.pairs, cmd.nPairs, VALUE_KEY, &kvsvalue, &kvsvallen);
         PMI2U_ERR_CHKANDJUMP(found != 1, pmi2_errno, PMI2_ERR_OTHER, "**intern");
 
-        MPIU_Strncpy(value, kvsvalue, valuelen);
+        MPI2U_Strncpy(value, kvsvalue, valuelen);
     }
 
 fn_exit:
@@ -956,7 +956,7 @@ int PMI2_Info_GetJobAttr(const char name[], char value[], int valuelen, int *fla
         found = getval(cmd.pairs, cmd.nPairs, VALUE_KEY, &kvsvalue, &kvsvallen);
         PMI2U_ERR_CHKANDJUMP(found != 1, pmi2_errno, PMI2_ERR_OTHER, "**intern");
 
-        MPIU_Strncpy(value, kvsvalue, valuelen);
+        MPI2U_Strncpy(value, kvsvalue, valuelen);
     }
 
 fn_exit:
@@ -1079,7 +1079,7 @@ int PMI2_Nameserv_lookup(const char service_name[], const PMI2U_Info *info_ptr,
 
     found = getval(cmd.pairs, cmd.nPairs, VALUE_KEY, &found_port, &plen);
     PMI2U_ERR_CHKANDJUMP(!found, pmi2_errno, PMI2_ERR_OTHER, "**pmi2_nameservlookup %s", "not found");
-    MPIU_Strncpy(port, found_port, portLen);
+    MPI2U_Strncpy(port, found_port, portLen);
 
 fn_exit:
     free(cmd.command);
@@ -1327,7 +1327,7 @@ static int create_keyval(PMI2_Keyvalpair **kv, const char *key, const char *val,
     PMI2U_CHKMEM_MALLOC(*kv, PMI2_Keyvalpair *, sizeof(PMI2_Keyvalpair), pmi2_errno, "pair");
 
     PMI2U_CHKMEM_MALLOC(key_p, char *, key_len+1, pmi2_errno, "key");
-    MPIU_Strncpy(key_p, key, key_len+1);
+    MPI2U_Strncpy(key_p, key, key_len+1);
     key_p[key_len] = '\0';
 
     PMI2U_CHKMEM_MALLOC(value_p, char *, vallen+1, pmi2_errno, "value");

@@ -7,7 +7,8 @@
 
 #undef MAX_MSG
 #define MAX_MSG LCI_MEDIUM_SIZE
-
+#undef TOTAL
+#define TOTAL 100
 /**
  * Multithreaded ping-pong test with sendbc/recvbc
  * Touch the data
@@ -35,6 +36,7 @@ int main(int argc, char *argv[])
   LCI_endpoint_init(&ep, LCI_UR_DEVICE, plist);
 
   rank = LCI_RANK;
+  printf("%d start!\n", rank);
   nprocs = LCI_NUM_PROCESSES;
   peer_rank = ((1 - LCI_RANK % 2) + LCI_RANK / 2 * 2) % LCI_NUM_PROCESSES;
 
@@ -92,6 +94,9 @@ void* recv_thread(void* arg)
       check_buffer((char*)dst_buf.address, size, 's');
 
       while (LCI_sendm(ep, src_buf, peer_rank, tag) != LCI_OK) continue;
+      if (i % 1000 == 0) {
+        printf("size %d iter %d done\n", size, i);
+      }
     }
 
     thread_barrier();

@@ -195,7 +195,7 @@ char *PMI2U_getval(const char *keystr, char *valstr, int vallen) {
 
     for (i = 0; i < PMI2U_keyval_tab_idx; i++) {
         if (strcmp(keystr, PMI2U_keyval_tab[i].key) == 0) {
-	        MPIU_Strncpy(valstr, PMI2U_keyval_tab[i].value, vallen);
+	        MPI2U_Strncpy(valstr, PMI2U_keyval_tab[i].value, vallen);
             PMI2U_keyval_tab[i].value[vallen-1] = '\0';
             return valstr;
         }
@@ -219,7 +219,7 @@ void PMI2U_chgval(const char *keystr, char *valstr) {
    The reason is to keep the save code logic around strncpy() as
    as in the original PMI2 implementation.
 
-  @ MPIU_Strncpy - Copy a string with a maximum length
+  @ MPI2U_Strncpy - Copy a string with a maximum length
     Input Parameters:
 +   instr - String to copy
 -   maxlen - Maximum total length of 'outstr'
@@ -244,7 +244,7 @@ void PMI2U_chgval(const char *keystr, char *valstr) {
   Utility
   @*/
 int
-MPIU_Strncpy(char *dest, const char *src, size_t n)
+MPI2U_Strncpy(char *dest, const char *src, size_t n)
 {
 	char *d_ptr = dest;
     const char *s_ptr = src;

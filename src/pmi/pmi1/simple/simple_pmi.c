@@ -375,9 +375,9 @@ int PMI_KVS_Put( const char kvsname[], const char key[], const char value[] )
 
   /* This is a special hack to support singleton initialization */
   if (PMI_initialized == SINGLETON_INIT_BUT_NO_PM) {
-    rc = MPIU_Strncpy(cached_singinit_key,key,PMI_keylen_max);
+    rc = MPI1U_Strncpy(cached_singinit_key,key,PMI_keylen_max);
     if (rc != 0) return PMI_FAIL;
-    rc = MPIU_Strncpy(cached_singinit_val,value,PMI_vallen_max);
+    rc = MPI1U_Strncpy(cached_singinit_val,value,PMI_vallen_max);
     if (rc != 0) return PMI_FAIL;
     return 0;
   }
@@ -719,7 +719,7 @@ int PMI_Spawn_multiple(int count,
 /* FIXME: This mixes init with get maxes */
 static int PMII_getmaxes( int *kvsname_max, int *keylen_max, int *vallen_max )
 {
-  char buf[PMIU_MAXLINE], cmd[PMIU_MAXLINE], errmsg[PMIU_MAXLINE];
+  char buf[PMIU_MAXLINE], cmd[PMIU_MAXLINE], errmsg[3*PMIU_MAXLINE];
   int err, rc;
 
   rc = snprintf( buf, PMIU_MAXLINE,
@@ -745,7 +745,7 @@ static int PMII_getmaxes( int *kvsname_max, int *keylen_max, int *vallen_max )
   cmd[0] = 0;
   PMIU_getval( "cmd", cmd, PMIU_MAXLINE );
   if ( strncmp( cmd, "response_to_init", PMIU_MAXLINE ) != 0 ) {
-    snprintf(errmsg, PMIU_MAXLINE,
+    snprintf(errmsg, 3*PMIU_MAXLINE,
         "got unexpected response to init :%s: (full line = %s)",
         cmd, buf  );
     PMI_Abort( -1, errmsg );
@@ -756,7 +756,7 @@ static int PMII_getmaxes( int *kvsname_max, int *keylen_max, int *vallen_max )
     if ( strncmp( buf, "0", PMIU_MAXLINE ) != 0 ) {
       PMIU_getval( "pmi_version", buf, PMIU_MAXLINE );
       PMIU_getval( "pmi_subversion", buf1, PMIU_MAXLINE );
-      snprintf(errmsg, PMIU_MAXLINE,
+      snprintf(errmsg, 3*PMIU_MAXLINE,
           "pmi_version mismatch; client=%d.%d mgr=%s.%s",
           PMI_VERSION, PMI_SUBVERSION, buf, buf1 );
       PMI_Abort( -1, errmsg );

@@ -83,7 +83,7 @@ char* archive_search(Archive_t *archive, char *key) {
   return NULL;
 }
 
-void lcm_pm_initialize()
+void lcm_pm_mpi_initialize()
 {
   int mpi_initialized = 0;
   MPI_Initialized(&mpi_initialized);
@@ -96,35 +96,35 @@ void lcm_pm_initialize()
   initialized = 1;
 }
 
-int lcm_pm_initialized() {
+int lcm_pm_mpi_initialized() {
   return initialized;
 }
-int lcm_pm_get_rank() {
+int lcm_pm_mpi_get_rank() {
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   return rank;
 }
 
-int lcm_pm_get_size() {
+int lcm_pm_mpi_get_size() {
   int size;
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   return size;
 }
 
-void lcm_pm_publish(char* key, char* value)
+void lcm_pm_mpi_publish(char* key, char* value)
 {
   archive_push(&l_archive, key, value);
 }
 
-void lcm_pm_getname(char* key, char* value)
+void lcm_pm_mpi_getname(char* key, char* value)
 {
   char *ret = archive_search(&g_archive, key);
   strcpy(value, ret);
 }
 
-void lcm_pm_barrier() {
-  int rank = lcm_pm_get_rank();
-  int size = lcm_pm_get_size();
+void lcm_pm_mpi_barrier() {
+  int rank = lcm_pm_mpi_get_rank();
+  int size = lcm_pm_mpi_get_size();
   // exchange the counts
   int my_count = l_archive.size;
   int *count_buf = malloc(size * sizeof(int));
@@ -167,7 +167,7 @@ void lcm_pm_barrier() {
   archive_clear(&l_archive);
 }
 
-void lcm_pm_finalize() {
+void lcm_pm_mpi_finalize() {
   if (to_finalize_mpi) {
     int mpi_finalized = 0;
     MPI_Finalized(&mpi_finalized);
@@ -178,4 +178,15 @@ void lcm_pm_finalize() {
   archive_fina(&l_archive);
   archive_fina(&g_archive);
   initialized = 0;
+}
+
+void lcm_pm_mpi_setup_ops(struct LCM_PM_ops_t *ops) {
+  ops->initialize = lcm_pm_mpi_initialize;
+  ops->is_initialized = lcm_pm_mpi_initialized;
+  ops->get_rank = lcm_pm_mpi_get_rank;
+  ops->get_size = lcm_pm_mpi_get_size;
+  ops->publish = lcm_pm_mpi_publish;
+  ops->getname = lcm_pm_mpi_getname;
+  ops->barrier = lcm_pm_mpi_barrier;
+  ops->finalize = lcm_pm_mpi_finalize;
 }

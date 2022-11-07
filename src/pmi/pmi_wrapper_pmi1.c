@@ -3,47 +3,58 @@
 #include "pmi_wrapper.h"
 #include "pmi.h"
 
-void lcm_pm_initialize()
+void lcm_pm_pmi1_initialize()
 {
   int spawned, rank_me, nranks;
   PMI_Init(&spawned, &nranks, &rank_me);
 }
 
-int lcm_pm_initialized() {
+int lcm_pm_pmi1_initialized() {
   int initialized;
   PMI_Initialized(&initialized);
   return initialized;
 }
-int lcm_pm_get_rank() {
+int lcm_pm_pmi1_get_rank() {
   int rank;
   PMI_Get_rank(&rank);
   return rank;
 }
 
-int lcm_pm_get_size() {
+int lcm_pm_pmi1_get_size() {
   int size;
   PMI_Get_universe_size(&size);
   return size;
 }
 
-void lcm_pm_publish(char* key, char* value)
+void lcm_pm_pmi1_publish(char* key, char* value)
 {
   char lcg_name[256];
   PMI_KVS_Get_my_name(lcg_name, 255);
   PMI_KVS_Put(lcg_name, key, value);
 }
 
-void lcm_pm_getname(char* key, char* value)
+void lcm_pm_pmi1_getname(char* key, char* value)
 {
   char lcg_name[256];
   PMI_KVS_Get_my_name(lcg_name, 255);
   PMI_KVS_Get(lcg_name, key, value, 255);
 }
 
-void lcm_pm_barrier() {
+void lcm_pm_pmi1_barrier() {
   PMI_Barrier();
 }
 
-void lcm_pm_finalize() {
+void lcm_pm_pmi1_finalize() {
   PMI_Finalize();
+}
+
+void lcm_pm_pmi1_setup_ops(struct LCM_PM_ops_t *ops) {
+  ops->initialize = lcm_pm_pmi1_initialize;
+  ops->is_initialized = lcm_pm_pmi1_initialized;
+  ops->get_rank = lcm_pm_pmi1_get_rank;
+  ops->get_size = lcm_pm_pmi1_get_size;
+  ops->publish = lcm_pm_pmi1_publish;
+  ops->getname = lcm_pm_pmi1_getname;
+  ops->barrier = lcm_pm_pmi1_barrier;
+  ops->finalize = lcm_pm_pmi1_finalize;
 }

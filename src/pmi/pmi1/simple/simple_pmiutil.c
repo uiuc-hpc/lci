@@ -47,7 +47,7 @@ void PMIU_Set_rank( int PMI_rank )
 }
 void PMIU_SetServer( void )
 {
-  MPIU_Strncpy( PMIU_print_id, "server", PMIU_IDSIZE );
+  MPI1U_Strncpy( PMIU_print_id, "server", PMIU_IDSIZE );
 }
 
 /* Note that vfprintf is part of C89 */
@@ -227,14 +227,14 @@ int PMIU_parse_keyvals( char *st )
     /* Null terminate the key */
     *p = 0;
     /* store key */
-    MPIU_Strncpy( PMIU_keyval_tab[PMIU_keyval_tab_idx].key, keystart,
+    MPI1U_Strncpy( PMIU_keyval_tab[PMIU_keyval_tab_idx].key, keystart,
         MAXKEYLEN );
 
     valstart = ++p;			/* start of value */
     while ( *p != ' ' && *p != '\n' && *p != '\0' )
       p++;
     /* store value */
-    MPIU_Strncpy( PMIU_keyval_tab[PMIU_keyval_tab_idx].value, valstart,
+    MPI1U_Strncpy( PMIU_keyval_tab[PMIU_keyval_tab_idx].value, valstart,
         MAXVALLEN );
     offset = (int)(p - valstart);
     /* When compiled with -fPIC, the pgcc compiler generates incorrect
@@ -262,9 +262,9 @@ char *PMIU_getval( const char *keystr, char *valstr, int vallen )
 
   for (i = 0; i < PMIU_keyval_tab_idx; i++) {
     if ( strcmp( keystr, PMIU_keyval_tab[i].key ) == 0 ) {
-      rc = MPIU_Strncpy( valstr, PMIU_keyval_tab[i].value, vallen );
+      rc = MPI1U_Strncpy( valstr, PMIU_keyval_tab[i].value, vallen );
       if (rc != 0) {
-        PMIU_printf( 1, "MPIU_Strncpy failed in PMIU_getval\n" );
+        PMIU_printf( 1, "MPI1U_Strncpy failed in PMIU_getval\n" );
         return NULL;
       }
       return valstr;
@@ -280,14 +280,14 @@ void PMIU_chgval( const char *keystr, char *valstr )
 
   for ( i = 0; i < PMIU_keyval_tab_idx; i++ ) {
     if ( strcmp( keystr, PMIU_keyval_tab[i].key ) == 0 ) {
-      MPIU_Strncpy( PMIU_keyval_tab[i].value, valstr, MAXVALLEN - 1 );
+      MPI1U_Strncpy( PMIU_keyval_tab[i].value, valstr, MAXVALLEN - 1 );
       PMIU_keyval_tab[i].value[MAXVALLEN - 1] = '\0';
     }
   }
 }
 
 /*
- * MPIU_Strncpy - Copy at most n characters.  Stop once a null is reached.
+ * MPI1U_Strncpy - Copy at most n characters.  Stop once a null is reached.
  *
  * This is different from strncpy, which null pads so that exactly
  * n characters are copied.  The strncpy behavior is correct for many
@@ -300,7 +300,7 @@ void PMIU_chgval( const char *keystr, char *valstr )
  * Question: should we provide a way to request the length of the string,
  * since we know it?
  */
-/*@ MPIU_Strncpy - Copy a string with a maximum length
+/*@ MPI1U_Strncpy - Copy a string with a maximum length
 
 Input Parameters:
 +   instr - String to copy
@@ -325,7 +325,7 @@ Output Parameters:
   Module:
   Utility
   @*/
-int MPIU_Strncpy( char *dest, const char *src, size_t n )
+int MPI1U_Strncpy( char *dest, const char *src, size_t n )
 {
     char * restrict d_ptr = dest;
     const char * restrict s_ptr = src;
