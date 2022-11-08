@@ -7,6 +7,8 @@
 
 #undef MAX_MSG
 #define MAX_MSG LCI_MEDIUM_SIZE
+#undef TOTAL
+#define TOTAL 100
 
 /**
  * Multithreaded ping-pong test with sendbc/recvbc
