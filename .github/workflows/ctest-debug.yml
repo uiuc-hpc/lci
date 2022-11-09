@@ -1,4 +1,4 @@
-name: CTest
+name: CTest-Debug
 
 on:
   push:
