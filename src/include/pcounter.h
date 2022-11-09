@@ -24,7 +24,6 @@ typedef struct {
 #define LCI_PCOUNTER_MAX_NTHREADS 256
 extern LCII_pcounters_per_thread_t LCII_pcounters[LCI_PCOUNTER_MAX_NTHREADS];
 
-
 void LCII_pcounters_init();
 LCII_pcounters_per_thread_t LCII_pcounters_accumulate();
 

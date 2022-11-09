@@ -9,7 +9,8 @@
 #undef MAX_MSG
 #define MAX_MSG LCI_MEDIUM_SIZE
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   LCI_initialize();
   LCI_plist_t plist;
   LCI_plist_create(&plist);
@@ -42,7 +43,7 @@ int main(int argc, char** args) {
 
       LCI_recvm(ep, dst_buf, peer_rank, tag, sync, NULL);
       while (LCI_sync_test(sync, NULL) == LCI_ERR_RETRY)
-          LCI_progress(LCI_UR_DEVICE);
+        LCI_progress(LCI_UR_DEVICE);
       check_buffer(dst_buf.address, size, 's');
     }
   }

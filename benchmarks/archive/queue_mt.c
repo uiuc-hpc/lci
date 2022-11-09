@@ -97,11 +97,10 @@ void main_task(intptr_t arg)
   thread_tag_t tags[THREADS];
 
   lc_qid qid;
-  for (i = 0; i < THREADS; i++)
-      lc_queue_create(lc_hdl, &qid);
+  for (i = 0; i < THREADS; i++) lc_queue_create(lc_hdl, &qid);
 
   if (myid == 0) {
-      STHREADS = THREADS;
+    STHREADS = THREADS;
     fprintf(stdout, HEADER);
     fprintf(stdout, "%-*s%*s\n", 10, "# Size", FIELD_WIDTH, "Latency (us)");
     fflush(stdout);
@@ -111,9 +110,9 @@ void main_task(intptr_t arg)
       double t1 = MPI_Wtime();
       int i = 0;
       for (i = 0; i < STHREADS; i++)
-          sr_threads[i] = MPIV_spawn(i % WORKERS, send_thread, (intptr_t)i);
+        sr_threads[i] = MPIV_spawn(i % WORKERS, send_thread, (intptr_t)i);
       for (i = 0; i < STHREADS; i++) {
-          MPIV_join(sr_threads[i]);
+        MPIV_join(sr_threads[i]);
       }
       MPI_Barrier(MPI_COMM_WORLD);
       t1 = MPI_Wtime() - t1;
@@ -160,34 +159,34 @@ void recv_thread(intptr_t arg)
     r_buf[i] = 'b';
   }
 
-   lc_ctx ctxs;
-   void* buf = malloc(size);
-   memset(buf, 0, size);
-   int len, rank, tag;
+  lc_ctx ctxs;
+  void* buf = malloc(size);
+  memset(buf, 0, size);
+  int len, rank, tag;
 
-  for (i = val; i < loop + skip; i+=THREADS) {
+  for (i = val; i < loop + skip; i += THREADS) {
     // recv
-    for (int j = 0; j< WINDOWS; j++) {
-        while (!lc_recv_queue(lc_hdl, &len, &rank, &tag, val, &ctxs))
-            ;
-        if (!lc_recv_queue_post(lc_hdl, buf, &ctxs)) {
-            while (!lc_test(&ctxs))
-                ;
-        }
+    for (int j = 0; j < WINDOWS; j++) {
+      while (!lc_recv_queue(lc_hdl, &len, &rank, &tag, val, &ctxs))
+        ;
+      if (!lc_recv_queue_post(lc_hdl, buf, &ctxs)) {
+        while (!lc_test(&ctxs))
+          ;
+      }
     }
 
-    //if (i == 1) {
-        assert(len == size);
-        assert(tag == i);
-        // for (int j = 0; j < len; j++)
-        //    assert(((char*) buf)[j] == 'a');
+    // if (i == 1) {
+    assert(len == size);
+    assert(tag == i);
+    // for (int j = 0; j < len; j++)
+    //    assert(((char*) buf)[j] == 'a');
     //}
 
     while (!lc_send_queue(lc_hdl, s_buf, size, 0, 0, val, &ctxs))
-        ; //thread_yield();
+      ;  // thread_yield();
 
     while (!lc_test(&ctxs))
-        ; //thread_yield();
+      ;  // thread_yield();
   }
   free(buf);
 }
@@ -221,17 +220,17 @@ void send_thread(intptr_t arg)
   void* buf = malloc(size);
   int len, rank, tag;
 
-  for (i = val; i < loop + skip; i+=STHREADS) {
+  for (i = val; i < loop + skip; i += STHREADS) {
     if (i == skip) {
       t_start = MPI_Wtime();
     }
     // send
     for (int j = 0; j < WINDOWS; j++) {
-        while (!lc_send_queue(lc_hdl, s_buf, size, 1, i, val, &ctxr))
-            ;
+      while (!lc_send_queue(lc_hdl, s_buf, size, 1, i, val, &ctxr))
+        ;
 
-        while (!lc_test(&ctxr))
-            ;
+      while (!lc_test(&ctxr))
+        ;
     }
 
     // fprintf(stderr, "Send %d\n", i);
@@ -239,11 +238,11 @@ void send_thread(intptr_t arg)
     // recv.
     // for (int j = 0; j < WINDOWS; j++) {
     while (!lc_recv_queue(lc_hdl, &len, &rank, &tag, val, &ctxr))
-        ; // thread_yield();
+      ;  // thread_yield();
 
     lc_recv_queue_post(lc_hdl, buf, &ctxr);
     while (!lc_test(&ctxr))
-        ; // thread_yield();
+      ;  // thread_yield();
   }
 
   free(buf);

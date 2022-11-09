@@ -8,7 +8,8 @@
 
 int total = TOTAL_LARGE;
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   LCI_initialize();
   LCI_plist_t plist;
   LCI_plist_create(&plist);
@@ -30,15 +31,19 @@ int main(int argc, char** args) {
   LCI_lbuffer_t src_buf, dst_buf;
   posix_memalign(&src_buf.address, alignment, MAX_MSG);
   posix_memalign(&dst_buf.address, alignment, MAX_MSG);
-  LCI_memory_register(LCI_UR_DEVICE, src_buf.address, MAX_MSG, &src_buf.segment);
-  LCI_memory_register(LCI_UR_DEVICE, dst_buf.address, MAX_MSG, &dst_buf.segment);
+  LCI_memory_register(LCI_UR_DEVICE, src_buf.address, MAX_MSG,
+                      &src_buf.segment);
+  LCI_memory_register(LCI_UR_DEVICE, dst_buf.address, MAX_MSG,
+                      &dst_buf.segment);
 
   for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
     printf("Testing message size %d...\n", size);
     src_buf.length = size;
     dst_buf.length = size;
 
-    if (size > LARGE) { total = TOTAL_LARGE; }
+    if (size > LARGE) {
+      total = TOTAL_LARGE;
+    }
 
     for (int i = 0; i < total; i++) {
       write_buffer(src_buf.address, size, 's');

@@ -15,7 +15,7 @@ __thread struct tls_t tlself;
 typedef struct thread_data_t {
   long val;
   long ret;
-} thread_data_t ;
+} thread_data_t;
 
 int number;
 int nfworker;
@@ -29,10 +29,10 @@ void ffibo(intptr_t arg)
     thread_data_t data[2];
     data[0].val = td->val - 1;
     data[1].val = td->val - 2;
-    fthread* s1 =
-        fworker_spawn(w[(tlself.worker->id + 1) % nfworker], ffibo, (intptr_t)&data[0], F_STACK_SIZE);
-    fthread* s2 =
-        fworker_spawn(w[(tlself.worker->id + 2) % nfworker], ffibo, (intptr_t)&data[1], F_STACK_SIZE);
+    fthread* s1 = fworker_spawn(w[(tlself.worker->id + 1) % nfworker], ffibo,
+                                (intptr_t)&data[0], F_STACK_SIZE);
+    fthread* s2 = fworker_spawn(w[(tlself.worker->id + 2) % nfworker], ffibo,
+                                (intptr_t)&data[1], F_STACK_SIZE);
     fthread_join(s1);
     fthread_join(s2);
     td->ret = data[0].ret + data[1].ret;

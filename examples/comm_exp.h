@@ -9,7 +9,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #define MIN_MSG (1)
-#define MAX_MSG (4*1024*1024)
+#define MAX_MSG (4 * 1024 * 1024)
 
 #define MYBUFSIZE 8192
 #define MAX_MSG_SIZE MYBUFSIZE
@@ -27,7 +27,7 @@
 #endif
 
 #ifndef unlikely
-#define unlikely(x) __builtin_expect((!!x),0)
+#define unlikely(x) __builtin_expect((!!x), 0)
 #endif
 
 static inline int comm_set_me_to(int core_id)

@@ -50,29 +50,29 @@ static inline uint64_t rdtsc()
   return ((uint64_t)hi << 32) | lo;
 }
 
-static long find_prime(int n) {
-  int count=0;
+static long find_prime(int n)
+{
+  int count = 0;
   long a = 2;
-  while(count<n) {
+  while (count < n) {
     long b = 2;
     int prime = 1;
-    while(b * b <= a) {
-      if(a % b == 0)
-      {
+    while (b * b <= a) {
+      if (a % b == 0) {
         prime = 0;
         break;
       }
       b++;
     }
-    if(prime > 0)
-      count++;
+    if (prime > 0) count++;
     a++;
   }
   return (--a);
 }
 
 // __attribute__((noinline))
-static int compute(uint64_t size) {
+static int compute(uint64_t size)
+{
   uint64_t start = rdtsc();
   while (rdtsc() - start < size) {
     ;
@@ -133,10 +133,9 @@ void main_task(intptr_t a)
   for (nthreads = min_nthreads; nthreads <= max_nthreads; nthreads *= 2)
     for (work = WORK; work <= 8192 * 1000; work *= 2) {
       cache_invalidate();
-      int loop = TOTAL_MSG/nthreads*nthreads;
+      int loop = TOTAL_MSG / nthreads * nthreads;
       double t3 = wtime();
-      for (int i = 0; i < loop; i++)
-        compute(work);
+      for (int i = 0; i < loop; i++) compute(work);
       t3 = (wtime() - t3) / loop;
       tcomp = 0;
 
@@ -145,12 +144,13 @@ void main_task(intptr_t a)
         double t1 = wtime();
         for (i = 0; i < nthreads; i++)
           id[i] = MPIV_spawn(i % nworkers, runfunc, (intptr_t)i);
-        for (i = 0; i < nthreads; i++)
-          MPIV_join(id[i]);
+        for (i = 0; i < nthreads; i++) MPIV_join(id[i]);
 
         MPI_Barrier(MPI_COMM_WORLD);
         t1 = wtime() - t1;
-        if (rank == 1) printf("%d \t %d \t %.2f \t %.2f\n", work, nthreads, (double) loop * 2 / t1, tcomp / t1 * 100);
+        if (rank == 1)
+          printf("%d \t %d \t %.2f \t %.2f\n", work, nthreads,
+                 (double)loop * 2 / t1, tcomp / t1 * 100);
       }
     }
   free(id);
@@ -173,11 +173,11 @@ void runfunc(intptr_t thread_rank)
   int src, dest, tag, i;
   /* All even ranks send to (and recv from) rank i+1 many times */
   tag = (int)thread_rank;
-  int loop = TOTAL_MSG/nthreads*nthreads; //max(TOTAL, nthreads * 100);
+  int loop = TOTAL_MSG / nthreads * nthreads;  // max(TOTAL, nthreads * 100);
   // loop = nthreads;
 
-  void* lsendbuf = ((char*) sendbuf + thread_rank * 64);
-  void* lrecvbuf = ((char*) recvbuf + thread_rank * 64);
+  void* lsendbuf = ((char*)sendbuf + thread_rank * 64);
+  void* lrecvbuf = ((char*)recvbuf + thread_rank * 64);
 
   if ((rank % 2) == 0) { /* even */
     // memset(recvbuf, 'a', size);
@@ -185,14 +185,14 @@ void runfunc(intptr_t thread_rank)
     dest = rank + 1;
     for (i = tag; i < loop; i += nthreads) {
       MPIV_Recv(lrecvbuf, size, MPI_BYTE, dest, i, MPI_COMM_WORLD,
-          MPI_STATUS_IGNORE);
-      tcomp-=wtime();
+                MPI_STATUS_IGNORE);
+      tcomp -= wtime();
       compute(work);
-      tcomp+=wtime();
+      tcomp += wtime();
       MPIV_Send(lsendbuf, size, MPI_BYTE, dest, i, MPI_COMM_WORLD);
-      tcomp-=wtime();
+      tcomp -= wtime();
       compute(work);
-      tcomp+=wtime();
+      tcomp += wtime();
     }
   } else { /* odd */
     // memset(sendbuf, 'a', size);
@@ -200,17 +200,17 @@ void runfunc(intptr_t thread_rank)
     src = rank - 1;
     for (i = tag; i < loop; i += nthreads) {
       MPIV_Send(lsendbuf, size, MPI_BYTE, src, i, MPI_COMM_WORLD);
-      tcomp-=wtime();
+      tcomp -= wtime();
       compute(work);
-      tcomp+=wtime();
+      tcomp += wtime();
       MPIV_Recv(lrecvbuf, size, MPI_BYTE, src, i, MPI_COMM_WORLD,
-          MPI_STATUS_IGNORE);
-      tcomp-=wtime();
+                MPI_STATUS_IGNORE);
+      tcomp -= wtime();
       compute(work);
-      tcomp+=wtime();
+      tcomp += wtime();
     }
   }
 
   // if (rank == 0 && tag == 0)
-    // printf("%.5f\n", work);
+  // printf("%.5f\n", work);
 }

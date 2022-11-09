@@ -55,7 +55,7 @@ void main_task(intptr_t arg)
 
   double t = 0;
   int loop = 100;
-  //for (int tt = 0; tt < loop; tt++) {
+  // for (int tt = 0; tt < loop; tt++) {
   total = 0;
   t -= wutime();
   for (int i = 0; i < total_threads; i++) {

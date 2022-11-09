@@ -5,20 +5,27 @@ static const int inline_size = 236;
 
 static int g_device_num = 0;
 
-const char *mtu_str(enum ibv_mtu mtu)
+const char* mtu_str(enum ibv_mtu mtu)
 {
   switch (mtu) {
-    case IBV_MTU_256:  return "256";
-    case IBV_MTU_512:  return "512";
-    case IBV_MTU_1024: return "1024";
-    case IBV_MTU_2048: return "2048";
-    case IBV_MTU_4096: return "4096";
-    default:           return "invalid MTU";
+    case IBV_MTU_256:
+      return "256";
+    case IBV_MTU_512:
+      return "512";
+    case IBV_MTU_1024:
+      return "1024";
+    case IBV_MTU_2048:
+      return "2048";
+    case IBV_MTU_4096:
+      return "4096";
+    default:
+      return "invalid MTU";
   }
 }
 
-static inline void *LCISI_event_polling_thread_fn(void *argp) {
-  LCISI_server_t *server = (LCISI_server_t*) argp;
+static inline void* LCISI_event_polling_thread_fn(void* argp)
+{
+  LCISI_server_t* server = (LCISI_server_t*)argp;
   LCM_Log(LCM_LOG_INFO, "event", "Start ibv event polling thread!\n");
   struct ibv_async_event event;
   while (server->event_polling_thread_run) {
@@ -43,7 +50,8 @@ static inline void *LCISI_event_polling_thread_fn(void *argp) {
   LCM_Log(LCM_LOG_INFO, "event", "End ibv event polling thread!\n");
 }
 
-void LCISI_event_polling_thread_init(LCISI_server_t* server) {
+void LCISI_event_polling_thread_init(LCISI_server_t* server)
+{
   if (LCI_IBV_ENABLE_EVENT_POLLING_THREAD) {
     server->event_polling_thread_run = true;
     pthread_create(&server->event_polling_thread, NULL,
@@ -51,7 +59,8 @@ void LCISI_event_polling_thread_init(LCISI_server_t* server) {
   }
 }
 
-void LCISI_event_polling_thread_fina(LCISI_server_t* server) {
+void LCISI_event_polling_thread_fina(LCISI_server_t* server)
+{
   if (LCI_IBV_ENABLE_EVENT_POLLING_THREAD) {
     server->event_polling_thread_run = false;
     pthread_join(server->event_polling_thread, NULL);
@@ -61,8 +70,8 @@ void LCISI_event_polling_thread_fina(LCISI_server_t* server) {
 void LCISD_init(LCI_device_t device, LCIS_server_t* s)
 {
   int device_id = g_device_num++;
-  LCISI_server_t *server = LCIU_malloc(sizeof(LCISI_server_t));
-  *s = (LCIS_server_t) server;
+  LCISI_server_t* server = LCIU_malloc(sizeof(LCISI_server_t));
+  *s = (LCIS_server_t)server;
   server->device = device;
 
   int num_devices;
@@ -78,13 +87,15 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
     fprintf(stderr, "No IB devices found\n");
     exit(EXIT_FAILURE);
   }
-  LCM_Log(LCM_LOG_INFO, "ibv", "Use IB server: %s\n", ibv_get_device_name(server->ib_dev));
+  LCM_Log(LCM_LOG_INFO, "ibv", "Use IB server: %s\n",
+          ibv_get_device_name(server->ib_dev));
 
-  // ibv_open_device provides the user with a verbs context which is the object that will be used for
-  // all other verb operations.
+  // ibv_open_device provides the user with a verbs context which is the object
+  // that will be used for all other verb operations.
   server->dev_ctx = ibv_open_device(server->ib_dev);
   if (!server->dev_ctx) {
-    fprintf(stderr, "Couldn't get context for %s\n", ibv_get_device_name(server->ib_dev));
+    fprintf(stderr, "Couldn't get context for %s\n",
+            ibv_get_device_name(server->ib_dev));
     exit(EXIT_FAILURE);
   }
 
@@ -109,13 +120,12 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
 
   server->odp_mr = NULL;
   if (LCI_IBV_USE_ODP == 2) {
-    const uint32_t rc_caps_mask = IBV_ODP_SUPPORT_SEND |
-                                  IBV_ODP_SUPPORT_RECV |
-                                  IBV_ODP_SUPPORT_WRITE |
-                                  IBV_ODP_SUPPORT_READ |
+    const uint32_t rc_caps_mask = IBV_ODP_SUPPORT_SEND | IBV_ODP_SUPPORT_RECV |
+                                  IBV_ODP_SUPPORT_WRITE | IBV_ODP_SUPPORT_READ |
                                   IBV_ODP_SUPPORT_SRQ_RECV;
     if (!(server->dev_attrx.odp_caps.general_caps & IBV_ODP_SUPPORT) ||
-        (server->dev_attrx.odp_caps.per_transport_caps.rc_odp_caps & rc_caps_mask) != rc_caps_mask) {
+        (server->dev_attrx.odp_caps.per_transport_caps.rc_odp_caps &
+         rc_caps_mask) != rc_caps_mask) {
       fprintf(stderr, "The device isn't ODP capable\n");
       exit(EXIT_FAILURE);
     }
@@ -123,11 +133,10 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
       fprintf(stderr, "The device doesn't support implicit ODP\n");
       exit(EXIT_FAILURE);
     }
-    server->odp_mr = ibv_reg_mr(server->dev_pd, NULL, SIZE_MAX,
-                                IBV_ACCESS_LOCAL_WRITE |
-                                IBV_ACCESS_REMOTE_READ |
-                                IBV_ACCESS_REMOTE_WRITE |
-                                IBV_ACCESS_ON_DEMAND);
+    server->odp_mr =
+        ibv_reg_mr(server->dev_pd, NULL, SIZE_MAX,
+                   IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ |
+                       IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_ON_DEMAND);
     if (!server->odp_mr) {
       fprintf(stderr, "Couldn't register MR\n");
       exit(EXIT_FAILURE);
@@ -152,8 +161,8 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
   }
   server->dev_port = dev_port;
   LCM_Log(LCM_LOG_INFO, "ibv", "Maximum MTU: %s; Active MTU: %s\n",
-           mtu_str(server->port_attr.max_mtu),
-           mtu_str(server->port_attr.active_mtu));
+          mtu_str(server->port_attr.max_mtu),
+          mtu_str(server->port_attr.active_mtu));
 
   // Create shared-receive queue, **number here affect performance**.
   struct ibv_srq_init_attr srq_attr;
@@ -169,7 +178,8 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
   }
 
   // Create completion queues.
-  server->cq = ibv_create_cq(server->dev_ctx, LCI_SERVER_MAX_CQES, NULL, NULL, 0);
+  server->cq =
+      ibv_create_cq(server->dev_ctx, LCI_SERVER_MAX_CQES, NULL, NULL, 0);
   if (!server->cq) {
     fprintf(stderr, "Unable to create cq\n");
     exit(EXIT_FAILURE);
@@ -185,8 +195,8 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
       init_attr.send_cq = server->cq;
       init_attr.recv_cq = server->cq;
       init_attr.srq = server->dev_srq;
-      init_attr.cap.max_send_wr  = LCI_SERVER_MAX_SENDS;
-      init_attr.cap.max_recv_wr  = LCI_SERVER_MAX_RECVS;
+      init_attr.cap.max_send_wr = LCI_SERVER_MAX_SENDS;
+      init_attr.cap.max_recv_wr = LCI_SERVER_MAX_RECVS;
       init_attr.cap.max_send_sge = max_sge_num;
       init_attr.cap.max_recv_sge = max_sge_num;
       init_attr.cap.max_inline_data = inline_size;
@@ -194,7 +204,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
       init_attr.sq_sig_all = 0;
       server->qps[i] = ibv_create_qp(server->dev_pd, &init_attr);
 
-      if (!server->qps[i])  {
+      if (!server->qps[i]) {
         fprintf(stderr, "Couldn't create QP\n");
         exit(EXIT_FAILURE);
       }
@@ -203,11 +213,12 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
       memset(&attr, 0, sizeof(attr));
       ibv_query_qp(server->qps[i], &attr, IBV_QP_CAP, &init_attr);
       LCM_Assert(init_attr.cap.max_inline_data >= inline_size,
-                  "Specified inline size %d is too large (maximum %d)", inline_size,
-                  init_attr.cap.max_inline_data);
+                 "Specified inline size %d is too large (maximum %d)",
+                 inline_size, init_attr.cap.max_inline_data);
       if (inline_size < attr.cap.max_inline_data) {
-        LCM_Log(LCM_LOG_INFO, "ibv", "Maximum inline-size(%d) > requested inline-size(%d)\n",
-                 attr.cap.max_inline_data, inline_size);
+        LCM_Log(LCM_LOG_INFO, "ibv",
+                "Maximum inline-size(%d) > requested inline-size(%d)\n",
+                attr.cap.max_inline_data, inline_size);
       }
     }
     {
@@ -216,15 +227,14 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
       // bring the QP in the INIT state.
       struct ibv_qp_attr attr;
       memset(&attr, 0, sizeof(attr));
-      attr.qp_state        = IBV_QPS_INIT;
-      attr.qp_access_flags = IBV_ACCESS_LOCAL_WRITE |
-                             IBV_ACCESS_REMOTE_READ |
+      attr.qp_state = IBV_QPS_INIT;
+      attr.qp_access_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ |
                              IBV_ACCESS_REMOTE_WRITE;
-      attr.pkey_index      = 0;
-      attr.port_num        = server->dev_port;
+      attr.pkey_index = 0;
+      attr.port_num = server->dev_port;
 
-      int flags = IBV_QP_STATE | IBV_QP_PKEY_INDEX |
-                  IBV_QP_PORT | IBV_QP_ACCESS_FLAGS;
+      int flags =
+          IBV_QP_STATE | IBV_QP_PKEY_INDEX | IBV_QP_PORT | IBV_QP_ACCESS_FLAGS;
       rc = ibv_modify_qp(server->qps[i], &attr, flags);
       if (rc != 0) {
         fprintf(stderr, "Failed to modify QP to INIT\n");
@@ -235,12 +245,10 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
     char key[256];
     sprintf(key, "LCI_KEY_%d_%d_%d", device_id, LCI_RANK, i);
     char value[256];
-    sprintf(value, "%x:%hx", server->qps[i]->qp_num,
-            server->port_attr.lid);
+    sprintf(value, "%x:%hx", server->qps[i]->qp_num, server->port_attr.lid);
     lcm_pm_publish(key, value);
   }
-  LCM_Log(LCM_LOG_INFO, "ibv", "Current inline data size is %d\n",
-          inline_size);
+  LCM_Log(LCM_LOG_INFO, "ibv", "Current inline data size is %d\n", inline_size);
   server->max_inline = inline_size;
   lcm_pm_barrier();
 
@@ -257,30 +265,31 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
     {
       struct ibv_qp_attr attr;
       memset(&attr, 0, sizeof(attr));
-      attr.qp_state		= IBV_QPS_RTR;
-      attr.path_mtu		= server->port_attr.active_mtu;
+      attr.qp_state = IBV_QPS_RTR;
+      attr.path_mtu = server->port_attr.active_mtu;
       // starting receive packet sequence number
       // (should match remote QP's sq_psn)
-      attr.rq_psn			= 0;
-      attr.dest_qp_num	= dest_qpn;
+      attr.rq_psn = 0;
+      attr.dest_qp_num = dest_qpn;
       // an address handle (AH) needs to be created and filled in as
       // appropriate. Minimally; ah_attr.dlid needs to be filled in.
-      attr.ah_attr.dlid		= dest_lid;
-      attr.ah_attr.sl		= 0;
-      attr.ah_attr.src_path_bits	= 0;
-      attr.ah_attr.is_global	= 0;
+      attr.ah_attr.dlid = dest_lid;
+      attr.ah_attr.sl = 0;
+      attr.ah_attr.src_path_bits = 0;
+      attr.ah_attr.is_global = 0;
       attr.ah_attr.static_rate = 0;
-      attr.ah_attr.port_num	= server->dev_port;
+      attr.ah_attr.port_num = server->dev_port;
       // maximum number of resources for incoming RDMA requests
       // don't know what this is
-      attr.max_dest_rd_atomic	= 1;
+      attr.max_dest_rd_atomic = 1;
       // minimum RNR NAK timer (recommended value: 12)
-      attr.min_rnr_timer		= 12;
+      attr.min_rnr_timer = 12;
       // should not be necessary to set these, given is_global = 0
       memset(&attr.ah_attr.grh, 0, sizeof attr.ah_attr.grh);
 
       int flags = IBV_QP_STATE | IBV_QP_AV | IBV_QP_PATH_MTU | IBV_QP_DEST_QPN |
-                  IBV_QP_RQ_PSN | IBV_QP_MAX_DEST_RD_ATOMIC | IBV_QP_MIN_RNR_TIMER;
+                  IBV_QP_RQ_PSN | IBV_QP_MAX_DEST_RD_ATOMIC |
+                  IBV_QP_MIN_RNR_TIMER;
 
       rc = ibv_modify_qp(server->qps[i], &attr, flags);
       if (rc != 0) {
@@ -325,7 +334,8 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
     j++;
     free(b);
   }
-  LCM_Assert(j != INT32_MAX, "Cannot find a suitable mod to hold qp2rank map\n");
+  LCM_Assert(j != INT32_MAX,
+             "Cannot find a suitable mod to hold qp2rank map\n");
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
     b[server->qps[i]->qp_num % j] = i;
   }
@@ -339,7 +349,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
 
 void LCISD_finalize(LCIS_server_t s)
 {
-  LCISI_server_t *server = (LCISI_server_t*) s;
+  LCISI_server_t* server = (LCISI_server_t*)s;
   LCISI_event_polling_thread_fina(server);
   free(server->qp2rank);
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
@@ -349,8 +359,7 @@ void LCISD_finalize(LCIS_server_t s)
   IBV_SAFECALL(ibv_destroy_cq(server->cq));
   IBV_SAFECALL(ibv_destroy_srq(server->dev_srq));
   ibv_free_device_list(server->dev_list);
-  if (server->odp_mr != NULL)
-    IBV_SAFECALL(ibv_dereg_mr(server->odp_mr));
+  if (server->odp_mr != NULL) IBV_SAFECALL(ibv_dereg_mr(server->odp_mr));
   IBV_SAFECALL(ibv_dealloc_pd(server->dev_pd));
   IBV_SAFECALL(ibv_close_device(server->dev_ctx));
   LCIU_free(server);

@@ -3,12 +3,14 @@
 
 using namespace lcit;
 
-void test(Context ctx) {
+void test(Context ctx)
+{
   int rank = LCI_RANK;
   int tag = 245 + TRD_RANK_ME;
 
   if (rank == 0) {
-    for (int size = ctx.config.min_msg_size; size <= ctx.config.max_msg_size; size <<= 1) {
+    for (int size = ctx.config.min_msg_size; size <= ctx.config.max_msg_size;
+         size <<= 1) {
       printf("Testing message size %d...\n", size);
       fflush(stdout);
 
@@ -17,7 +19,8 @@ void test(Context ctx) {
         // recv
         threadBarrier(ctx);
         for (int j = 0; j < ctx.config.recv_window; ++j) {
-          for (int target_rank = 1; target_rank < LCI_NUM_PROCESSES; ++target_rank) {
+          for (int target_rank = 1; target_rank < LCI_NUM_PROCESSES;
+               ++target_rank) {
             LCI_comp_t comp = postRecv(ctx, target_rank, size, tag);
             comps.push_back(comp);
           }
@@ -29,7 +32,8 @@ void test(Context ctx) {
         threadBarrier(ctx);
         comps.clear();
         for (int j = 0; j < ctx.config.send_window; ++j) {
-          for (int target_rank = 1; target_rank < LCI_NUM_PROCESSES; ++target_rank) {
+          for (int target_rank = 1; target_rank < LCI_NUM_PROCESSES;
+               ++target_rank) {
             LCI_comp_t comp = postSend(ctx, target_rank, size, tag);
             comps.push_back(comp);
           }
@@ -40,7 +44,8 @@ void test(Context ctx) {
       }
     }
   } else {
-    for (int size = ctx.config.min_msg_size; size <= ctx.config.max_msg_size; size <<= 1) {
+    for (int size = ctx.config.min_msg_size; size <= ctx.config.max_msg_size;
+         size <<= 1) {
       for (int i = 0; i < ctx.config.nsteps; ++i) {
         std::vector<LCI_comp_t> comps;
         // send
@@ -67,7 +72,8 @@ void test(Context ctx) {
   }
 }
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   LCI_initialize();
   Config config = parseArgs(argc, args);
   Context ctx = initCtx(config);

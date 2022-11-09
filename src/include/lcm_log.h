@@ -12,13 +12,12 @@ extern "C" {
 #define LCM_API __attribute__((visibility("default")))
 
 #define LCM_Assert(Expr, ...) \
-        LCM_Assert_(#Expr, Expr, __FILE__, __func__, __LINE__, __VA_ARGS__)
+  LCM_Assert_(#Expr, Expr, __FILE__, __func__, __LINE__, __VA_ARGS__)
 #define LCM_Log(log_level, log_type, ...) \
-        LCM_Log_(log_level, log_type, __FILE__, __func__, __LINE__, __VA_ARGS__)
+  LCM_Log_(log_level, log_type, __FILE__, __func__, __LINE__, __VA_ARGS__)
 #define LCM_Log_default(log_level, ...) \
-        LCM_Log(log_level, "default", __VA_ARGS__)
-#define LCM_Warn(...) \
-        LCM_Log(LCM_LOG_WARN, "warn", __VA_ARGS__)
+  LCM_Log(log_level, "default", __VA_ARGS__)
+#define LCM_Warn(...) LCM_Log(LCM_LOG_WARN, "warn", __VA_ARGS__)
 
 #ifdef LCM_DEBUG
 #define LCM_DBG_Assert(...) LCM_Assert(__VA_ARGS__)
@@ -41,20 +40,21 @@ enum LCM_log_level_t {
   LCM_LOG_MAX
 };
 
-extern const char * const log_levels[LCM_LOG_MAX + 1];
+extern const char* const log_levels[LCM_LOG_MAX + 1];
 
 void LCM_Init(int rank);
 
 void LCM_Fina();
 
-static inline void LCM_Assert_(const char *expr_str, int expr, const char *file,
-                  const char *func, int line, const char *format, ...)
-__attribute__((__format__(__printf__, 6, 7)));
+static inline void LCM_Assert_(const char* expr_str, int expr, const char* file,
+                               const char* func, int line, const char* format,
+                               ...)
+    __attribute__((__format__(__printf__, 6, 7)));
 
-static inline void LCM_Log_(enum LCM_log_level_t log_level, const char *log_type,
-              const char *file, const char *func, int line,
-              const char *format, ...)
-__attribute__((__format__(__printf__, 6, 7)));
+static inline void LCM_Log_(enum LCM_log_level_t log_level,
+                            const char* log_type, const char* file,
+                            const char* func, int line, const char* format, ...)
+    __attribute__((__format__(__printf__, 6, 7)));
 
 static inline void LCM_Log_flush();
 
@@ -62,14 +62,14 @@ static inline void LCM_Log_flush();
 
 extern int LCM_LOG_RANK;
 extern int LCM_LOG_LEVEL;
-extern char *LCM_LOG_whitelist_p;
-extern char *LCM_LOG_blacklist_p;
-extern FILE *LCM_LOG_OUTFILE;
+extern char* LCM_LOG_whitelist_p;
+extern char* LCM_LOG_blacklist_p;
+extern FILE* LCM_LOG_OUTFILE;
 
-void LCM_Assert_(const char *expr_str, int expr, const char *file,
-                 const char *func, int line, const char *format, ...) {
-  if (expr)
-    return;
+void LCM_Assert_(const char* expr_str, int expr, const char* file,
+                 const char* func, int line, const char* format, ...)
+{
+  if (expr) return;
 
   char buf[1024];
   int size;
@@ -87,16 +87,16 @@ void LCM_Assert_(const char *expr_str, int expr, const char *file,
   abort();
 }
 
-void LCM_Log_(enum LCM_log_level_t log_level, const char *log_type,
-              const char *file, const char *func, int line,
-              const char *format, ...) {
+void LCM_Log_(enum LCM_log_level_t log_level, const char* log_type,
+              const char* file, const char* func, int line, const char* format,
+              ...)
+{
   char buf[1024];
   int size;
   va_list vargs;
   LCM_Assert(log_level != LCM_LOG_NONE, "You should not use LCM_LOG_NONE!\n");
   // if log_level is weaker than the configured log level, do nothing.
-  if (log_level > LCM_LOG_LEVEL)
-    return;
+  if (log_level > LCM_LOG_LEVEL) return;
   // always show LCM_LOG_WARN message
   if (log_level != LCM_LOG_WARN) {
     // if whitelist is enabled and log_type is not include in the whitelist,
@@ -111,8 +111,8 @@ void LCM_Log_(enum LCM_log_level_t log_level, const char *log_type,
       return;
   }
   // print the log
-  size = snprintf(buf, sizeof(buf), "%d:%d:%s:%s:%d<%s:%s> ",
-                  LCM_LOG_RANK, getpid(), file, func, line, log_levels[log_level], log_type);
+  size = snprintf(buf, sizeof(buf), "%d:%d:%s:%s:%d<%s:%s> ", LCM_LOG_RANK,
+                  getpid(), file, func, line, log_levels[log_level], log_type);
 
   va_start(vargs, format);
   vsnprintf(buf + size, sizeof(buf) - size, format, vargs);
@@ -121,12 +121,10 @@ void LCM_Log_(enum LCM_log_level_t log_level, const char *log_type,
   fprintf(LCM_LOG_OUTFILE, "%s", buf);
 }
 
-static inline void LCM_Log_flush() {
-  fflush(LCM_LOG_OUTFILE);
-}
+static inline void LCM_Log_flush() { fflush(LCM_LOG_OUTFILE); }
 
 #if defined(__cplusplus)
 }
 #endif
 
-#endif // LCM_LOG_H_
+#endif  // LCM_LOG_H_

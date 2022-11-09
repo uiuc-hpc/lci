@@ -17,8 +17,8 @@
  */
 using namespace omp;
 
-void * send_thread(void*);
-void * recv_thread(void*);
+void* send_thread(void*);
+void* recv_thread(void*);
 
 static int thread_stop = 0;
 LCI_endpoint_t ep;
@@ -27,7 +27,7 @@ int rank, nprocs, peer_rank, num_threads = NUM_THREADS;
 int min_size = MIN_MSG;
 int max_size = MAX_MSG;
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   LCI_initialize();
   LCI_plist_t plist;
@@ -41,20 +41,22 @@ int main(int argc, char *argv[])
   peer_rank = ((1 - LCI_RANK % 2) + LCI_RANK / 2 * 2) % LCI_NUM_PROCESSES;
 
   auto prg_thread = std::thread([] {
-      int spin = 64;
-      while (!thread_stop) {
-        LCI_progress(LCI_UR_DEVICE);
-        if (spin-- == 0)
-        { sched_yield(); spin = 64; }
+    int spin = 64;
+    while (!thread_stop) {
+      LCI_progress(LCI_UR_DEVICE);
+      if (spin-- == 0) {
+        sched_yield();
+        spin = 64;
       }
-    });
+    }
+  });
 
-  if(rank % 2 == 0) {
-      thread_run(send_thread, num_threads);
-      LCI_barrier();
+  if (rank % 2 == 0) {
+    thread_run(send_thread, num_threads);
+    LCI_barrier();
   } else {
-      thread_run(recv_thread, num_threads);
-      LCI_barrier();
+    thread_run(recv_thread, num_threads);
+    LCI_barrier();
   }
 
   thread_stop = 1;
@@ -80,14 +82,12 @@ void* recv_thread(void* arg)
     dst_buf.length = size;
 
     thread_barrier();
-    if (thread_id() == 0)
-      LCI_barrier();
+    if (thread_id() == 0) LCI_barrier();
     thread_barrier();
 
     for (int i = 0; i < TOTAL; ++i) {
       write_buffer((char*)src_buf.address, size, 's');
       write_buffer((char*)dst_buf.address, size, 'r');
-
 
       LCI_recvm(ep, dst_buf, peer_rank, tag, sync, nullptr);
       while (LCI_sync_test(sync, NULL) == LCI_ERR_RETRY) continue;
@@ -107,7 +107,6 @@ void* recv_thread(void* arg)
   return nullptr;
 }
 
-
 void* send_thread(void* arg)
 {
   int tag = thread_id();
@@ -125,8 +124,7 @@ void* send_thread(void* arg)
     dst_buf.length = size;
 
     thread_barrier();
-    if (thread_id() == 0)
-      LCI_barrier();
+    if (thread_id() == 0) LCI_barrier();
     thread_barrier();
 
     for (int i = 0; i < TOTAL; ++i) {
@@ -134,7 +132,6 @@ void* send_thread(void* arg)
       write_buffer((char*)dst_buf.address, size, 'r');
 
       while (LCI_sendm(ep, src_buf, peer_rank, tag) != LCI_OK) continue;
-
 
       LCI_recvm(ep, dst_buf, peer_rank, tag, sync, nullptr);
       while (LCI_sync_test(sync, NULL) == LCI_ERR_RETRY) continue;

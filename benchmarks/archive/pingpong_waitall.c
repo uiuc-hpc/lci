@@ -66,8 +66,7 @@ int main(int argc, char** args)
           // MPI_Send(s_buf, size, MPI_CHAR, 1, k, MPI_COMM_WORLD);
         }
         MPI_Waitall(WIN, r, 0);
-        MPI_Recv(r_buf, 4, MPI_CHAR, 1, WIN + 1, MPI_COMM_WORLD,
-                 0);
+        MPI_Recv(r_buf, 4, MPI_CHAR, 1, WIN + 1, MPI_COMM_WORLD, 0);
       }
       times = wtime() - times;
       printf("%d %f\n", size, (total * WIN) / times);
@@ -78,7 +77,8 @@ int main(int argc, char** args)
       for (int t = 0; t < total + skip; t++) {
         for (int k = 0; k < WIN; k++) {
           MPI_Irecv(r_buf, size, MPI_CHAR, 0, k, MPI_COMM_WORLD, &r[k]);
-          // MPI_Recv(r_buf, size, MPI_CHAR, 0, k, MPI_COMM_WORLD, MPI_STATUS_IGNORE);//, &r[k]);
+          // MPI_Recv(r_buf, size, MPI_CHAR, 0, k, MPI_COMM_WORLD,
+          // MPI_STATUS_IGNORE);//, &r[k]);
         }
         MPI_Waitall(WIN, r, 0);
         MPI_Send(s_buf, 4, MPI_CHAR, 0, WIN + 1, MPI_COMM_WORLD);

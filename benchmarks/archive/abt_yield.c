@@ -9,19 +9,18 @@
 #include <math.h>
 #include "abt.h"
 
-#define DEFAULT_NUM_XSTREAMS    4
-#define DEFAULT_NUM_THREADS     4
+#define DEFAULT_NUM_XSTREAMS 4
+#define DEFAULT_NUM_THREADS 4
 
 #include "comm_exp.h"
 
-void thread_func(void *arg)
+void thread_func(void* arg)
 {
   int i;
-  for (i = 0; i < TOTAL; i++)
-    ABT_thread_yield();
+  for (i = 0; i < TOTAL; i++) ABT_thread_yield();
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   ABT_init(argc, argv);
 
@@ -34,11 +33,11 @@ int main(int argc, char *argv[])
 
   int total_threads = num_threads * num_xstreams;
 
-  ABT_xstream *xstreams;
-  xstreams = (ABT_xstream *)malloc(sizeof(ABT_xstream) * (num_xstreams));
+  ABT_xstream* xstreams;
+  xstreams = (ABT_xstream*)malloc(sizeof(ABT_xstream) * (num_xstreams));
 
-  ABT_pool *pools;
-  pools = (ABT_pool *)malloc(sizeof(ABT_pool) * (num_xstreams));
+  ABT_pool* pools;
+  pools = (ABT_pool*)malloc(sizeof(ABT_pool) * (num_xstreams));
 
   /* Initialize */
 
@@ -50,16 +49,15 @@ int main(int argc, char *argv[])
 
   /* Get the pools attached to an execution stream */
   for (i = 0; i < num_xstreams; i++) {
-    ret = ABT_xstream_get_main_pools(xstreams[i], 1, pools+i);
+    ret = ABT_xstream_get_main_pools(xstreams[i], 1, pools + i);
   }
 
   ABT_thread thread[num_threads * num_xstreams];
   double t = wtime();
 
   for (i = 0; i < num_threads * num_xstreams; i++) {
-    ret = ABT_thread_create(pools[i % num_xstreams],
-        thread_func, (void*) (size_t) i, ABT_THREAD_ATTR_NULL,
-        &thread[i]);
+    ret = ABT_thread_create(pools[i % num_xstreams], thread_func,
+                            (void*)(size_t)i, ABT_THREAD_ATTR_NULL, &thread[i]);
   }
 
   /* Switch to other user level threads */
@@ -84,4 +82,4 @@ int main(int argc, char *argv[])
   free(xstreams);
 
   return ret;
-  }
+}

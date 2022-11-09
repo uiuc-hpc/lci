@@ -9,18 +9,21 @@ void lcm_pm_pmi1_initialize()
   PMI_Init(&spawned, &nranks, &rank_me);
 }
 
-int lcm_pm_pmi1_initialized() {
+int lcm_pm_pmi1_initialized()
+{
   int initialized;
   PMI_Initialized(&initialized);
   return initialized;
 }
-int lcm_pm_pmi1_get_rank() {
+int lcm_pm_pmi1_get_rank()
+{
   int rank;
   PMI_Get_rank(&rank);
   return rank;
 }
 
-int lcm_pm_pmi1_get_size() {
+int lcm_pm_pmi1_get_size()
+{
   int size;
   PMI_Get_universe_size(&size);
   return size;
@@ -40,15 +43,12 @@ void lcm_pm_pmi1_getname(char* key, char* value)
   PMI_KVS_Get(lcg_name, key, value, 255);
 }
 
-void lcm_pm_pmi1_barrier() {
-  PMI_Barrier();
-}
+void lcm_pm_pmi1_barrier() { PMI_Barrier(); }
 
-void lcm_pm_pmi1_finalize() {
-  PMI_Finalize();
-}
+void lcm_pm_pmi1_finalize() { PMI_Finalize(); }
 
-void lcm_pm_pmi1_setup_ops(struct LCM_PM_ops_t *ops) {
+void lcm_pm_pmi1_setup_ops(struct LCM_PM_ops_t* ops)
+{
   ops->initialize = lcm_pm_pmi1_initialize;
   ops->is_initialized = lcm_pm_pmi1_initialized;
   ops->get_rank = lcm_pm_pmi1_get_rank;

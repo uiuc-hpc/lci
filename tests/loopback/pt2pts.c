@@ -8,7 +8,8 @@
 
 int total = TOTAL;
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   LCI_initialize();
   LCI_plist_t plist;
   LCI_plist_create(&plist);

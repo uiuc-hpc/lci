@@ -80,14 +80,15 @@ void main_task(intptr_t a)
       double t1 = MPI_Wtime();
       MPI_Barrier(MPI_COMM_WORLD);
       for (i = 0; i < nthreads; i++) {
-        pthread_create(&id[i], NULL, runfunc, (void*) i);
+        pthread_create(&id[i], NULL, runfunc, (void*)i);
       }
       for (i = 0; i < nthreads; i++) {
         pthread_join(id[i], 0);
       }
       t1 = MPI_Wtime() - t1;
       MPI_Barrier(MPI_COMM_WORLD);
-      if (rank == 0) printf("%d \t %d \t %.2f\n", size, nthreads, (2 * loop) / t1);
+      if (rank == 0)
+        printf("%d \t %d \t %.2f\n", size, nthreads, (2 * loop) / t1);
     }
   free(id);
   free(sendbuf);
@@ -96,7 +97,7 @@ void main_task(intptr_t a)
 
 void* runfunc(void* arg)
 {
-  intptr_t thread_rank = (intptr_t) arg;
+  intptr_t thread_rank = (intptr_t)arg;
   set_me_to_(thread_rank);
 
   int src, dest, tag, i;
@@ -110,7 +111,7 @@ void* runfunc(void* arg)
     for (i = tag; i < loop; i += nthreads) {
       MPI_Send(sendbuf, size, MPI_BYTE, dest, tag, MPI_COMM_WORLD);
       MPI_Recv(recvbuf, size, MPI_BYTE, dest, tag, MPI_COMM_WORLD,
-                MPI_STATUS_IGNORE);
+               MPI_STATUS_IGNORE);
     }
   } else { /* odd */
     memset(sendbuf, 'a', size);
@@ -118,7 +119,7 @@ void* runfunc(void* arg)
     src = rank - 1;
     for (i = tag; i < loop; i += nthreads) {
       MPI_Recv(recvbuf, size, MPI_BYTE, src, tag, MPI_COMM_WORLD,
-                MPI_STATUS_IGNORE);
+               MPI_STATUS_IGNORE);
       MPI_Send(sendbuf, size, MPI_BYTE, src, tag, MPI_COMM_WORLD);
     }
   }

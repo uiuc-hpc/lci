@@ -8,7 +8,8 @@
 
 int total = TOTAL_LARGE;
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   LCI_initialize();
   LCI_plist_t plist;
   LCI_plist_create(&plist);
@@ -40,18 +41,22 @@ int main(int argc, char** args) {
       src_buf.length = size;
       dst_buf.length = size;
 
-      if (size > LARGE) { total = TOTAL_LARGE; }
+      if (size > LARGE) {
+        total = TOTAL_LARGE;
+      }
 
       for (int i = 0; i < total; i++) {
         write_buffer(src_buf.address, size, 's');
         write_buffer(dst_buf.address, size, 'r');
 
-        while (LCI_sendl(ep, src_buf, peer_rank, tag, sync_send, NULL) != LCI_OK)
+        while (LCI_sendl(ep, src_buf, peer_rank, tag, sync_send, NULL) !=
+               LCI_OK)
           LCI_progress(LCI_UR_DEVICE);
         while (LCI_sync_test(sync_send, NULL) == LCI_ERR_RETRY)
           LCI_progress(LCI_UR_DEVICE);
 
-        while (LCI_recvl(ep, dst_buf, peer_rank, tag, sync_recv, NULL) != LCI_OK)
+        while (LCI_recvl(ep, dst_buf, peer_rank, tag, sync_recv, NULL) !=
+               LCI_OK)
           LCI_progress(LCI_UR_DEVICE);
         while (LCI_sync_test(sync_recv, NULL) == LCI_ERR_RETRY)
           LCI_progress(LCI_UR_DEVICE);
@@ -63,23 +68,26 @@ int main(int argc, char** args) {
       src_buf.length = size;
       dst_buf.length = size;
 
-      if (size > LARGE) { total = TOTAL_LARGE; }
+      if (size > LARGE) {
+        total = TOTAL_LARGE;
+      }
 
       for (int i = 0; i < total; i++) {
         write_buffer(src_buf.address, size, 's');
         write_buffer(dst_buf.address, size, 'r');
 
-        while (LCI_recvl(ep, dst_buf, peer_rank, tag, sync_recv, NULL) != LCI_OK)
+        while (LCI_recvl(ep, dst_buf, peer_rank, tag, sync_recv, NULL) !=
+               LCI_OK)
           LCI_progress(LCI_UR_DEVICE);
         while (LCI_sync_test(sync_recv, NULL) == LCI_ERR_RETRY)
           LCI_progress(LCI_UR_DEVICE);
         check_buffer(dst_buf.address, size, 's');
 
-        while (LCI_sendl(ep, src_buf, peer_rank, tag, sync_send, NULL) != LCI_OK)
+        while (LCI_sendl(ep, src_buf, peer_rank, tag, sync_send, NULL) !=
+               LCI_OK)
           LCI_progress(LCI_UR_DEVICE);
         while (LCI_sync_test(sync_send, NULL) == LCI_ERR_RETRY)
           LCI_progress(LCI_UR_DEVICE);
-
       }
     }
   }

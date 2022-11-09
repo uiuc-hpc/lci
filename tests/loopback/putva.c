@@ -7,14 +7,15 @@
 #include "lci.h"
 #include "comm_exp.h"
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   int lbuffers_num = LCI_IOVEC_SIZE;
-  int piggy_back_size = (int) LCI_get_iovec_piggy_back_size(lbuffers_num);
+  int piggy_back_size = (int)LCI_get_iovec_piggy_back_size(lbuffers_num);
   int lbuffer_length = 64 * 1024;
   int loop = 10;
 
   LCI_initialize();
-  LCI_endpoint_t ep = LCI_UR_ENDPOINT; // we can directly use the default ep
+  LCI_endpoint_t ep = LCI_UR_ENDPOINT;  // we can directly use the default ep
   LCI_comp_t send_cq;
   LCI_queue_create(LCI_UR_DEVICE, &send_cq);
 
@@ -38,7 +39,8 @@ int main(int argc, char** args) {
   LCI_barrier();
 
   for (int i = 0; i < loop; i++) {
-    while (LCI_putva(ep, iovec, send_cq, peer_rank, tag, LCI_DEFAULT_COMP_REMOTE, NULL) == LCI_ERR_RETRY)
+    while (LCI_putva(ep, iovec, send_cq, peer_rank, tag,
+                     LCI_DEFAULT_COMP_REMOTE, NULL) == LCI_ERR_RETRY)
       LCI_progress(LCI_UR_DEVICE);
     while (LCI_queue_pop(send_cq, &request) == LCI_ERR_RETRY)
       LCI_progress(LCI_UR_DEVICE);

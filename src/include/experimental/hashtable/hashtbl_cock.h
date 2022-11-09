@@ -21,12 +21,13 @@ bool ck_hash_insert(lc_hash* hash, lc_key key, lc_value* value, int type)
 {
   ck_hash_val* h = (ck_hash_val*)hash;
   bool ret = true;
-  h->tbl_.upsert(key,
-                 [&ret, &value](lc_value& v) {
-                   *value = v;
-                   ret = false;
-                 },
-                 *value);
+  h->tbl_.upsert(
+      key,
+      [&ret, &value](lc_value& v) {
+        *value = v;
+        ret = false;
+      },
+      *value);
   if (!ret) {
     h->tbl_.erase(key);
   }

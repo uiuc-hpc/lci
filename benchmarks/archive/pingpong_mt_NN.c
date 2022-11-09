@@ -81,7 +81,8 @@ void main_task(intptr_t a)
       for (i = 0; i < nthreads; i++) MPIV_join(id[i]);
       MPI_Barrier(MPI_COMM_WORLD);
       t1 = wtime() - t1;
-      if (rank == 0) printf("%d \t %d \t %.2f\n", size, nthreads, (2 * loop) / t1);
+      if (rank == 0)
+        printf("%d \t %d \t %.2f\n", size, nthreads, (2 * loop) / t1);
     }
   free(id);
 }
@@ -91,10 +92,10 @@ void runfunc(intptr_t thread_rank)
   int src, dest, tag, i;
   /* All even ranks send to (and recv from) rank i+1 many times */
   tag = (int)thread_rank;
-  int loop = TOTAL_MSG; //max(TOTAL, nthreads * 100);
+  int loop = TOTAL_MSG;  // max(TOTAL, nthreads * 100);
 
-  void* lsendbuf = ((char*) sendbuf + thread_rank * 64);
-  void* lrecvbuf = ((char*) recvbuf + thread_rank * 64);
+  void* lsendbuf = ((char*)sendbuf + thread_rank * 64);
+  void* lrecvbuf = ((char*)recvbuf + thread_rank * 64);
 
   if ((rank % 2) == 0) { /* even */
     // memset(recvbuf, 'a', size);

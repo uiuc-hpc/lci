@@ -9,9 +9,10 @@
 #undef MAX_MSG
 #define MAX_MSG LCI_MEDIUM_SIZE
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   LCI_initialize();
-  LCI_endpoint_t ep = LCI_UR_ENDPOINT; // we can directly use the default ep
+  LCI_endpoint_t ep = LCI_UR_ENDPOINT;  // we can directly use the default ep
 
   int rank = LCI_RANK;
   int peer_rank = LCI_RANK;

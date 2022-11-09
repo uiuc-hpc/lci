@@ -25,7 +25,8 @@
 #define LCIT_Assert
 #endif
 
-namespace lcit {
+namespace lcit
+{
 const size_t CACHESIZE_L1 = sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
 const size_t PAGESIZE = sysconf(_SC_PAGESIZE);
 const size_t NPROCESSORS = sysconf(_SC_NPROCESSORS_ONLN);
@@ -63,47 +64,40 @@ struct Config {
   size_t nsteps = 1000;
 };
 
-void checkConfig(const Config& config) {
+void checkConfig(const Config& config)
+{
   if (config.op >= LCIT_OP_1SIDED_S) {
-    LCIT_Assert(config.recv_comp_type == LCI_COMPLETION_QUEUE,
-               "Currently one-sided communication only support --recv-comp=queue\n");
+    LCIT_Assert(
+        config.recv_comp_type == LCI_COMPLETION_QUEUE,
+        "Currently one-sided communication only support --recv-comp=queue\n");
   }
 }
 
-void printConfig(const Config& config) {
-    printf("Configuration:\n"
-           "op: %d\n"
-           "send_dyn: %d\n"
-           "recv_dyn: %d\n"
-           "send_reg: %d\n"
-           "recv_reg: %d\n"
-           "match_type: %d\n"
-           "send_comp_type: %d\n"
-           "recv_comp_type: %d\n"
-           "nthreads: %d\n"
-           "thread_pin: %d\n"
-           "min_msg_size: %lu\n"
-           "max_msg_size: %lu\n"
-           "send_window: %d\n"
-           "recv_window: %d\n"
-           "touch_data: %d\n"
-           "steps: %lu\n",
-           config.op,
-           config.send_dyn,
-           config.recv_dyn,
-           config.send_reg,
-           config.recv_reg,
-           config.match_type,
-           config.send_comp_type,
-           config.recv_comp_type,
-           config.nthreads,
-           config.thread_pin,
-           config.min_msg_size,
-           config.max_msg_size,
-           config.send_window,
-           config.recv_window,
-           config.touch_data,
-           config.nsteps);
+void printConfig(const Config& config)
+{
+  printf(
+      "Configuration:\n"
+      "op: %d\n"
+      "send_dyn: %d\n"
+      "recv_dyn: %d\n"
+      "send_reg: %d\n"
+      "recv_reg: %d\n"
+      "match_type: %d\n"
+      "send_comp_type: %d\n"
+      "recv_comp_type: %d\n"
+      "nthreads: %d\n"
+      "thread_pin: %d\n"
+      "min_msg_size: %lu\n"
+      "max_msg_size: %lu\n"
+      "send_window: %d\n"
+      "recv_window: %d\n"
+      "touch_data: %d\n"
+      "steps: %lu\n",
+      config.op, config.send_dyn, config.recv_dyn, config.send_reg,
+      config.recv_reg, config.match_type, config.send_comp_type,
+      config.recv_comp_type, config.nthreads, config.thread_pin,
+      config.min_msg_size, config.max_msg_size, config.send_window,
+      config.recv_window, config.touch_data, config.nsteps);
 };
 
 enum LongFlags {
@@ -125,7 +119,8 @@ enum LongFlags {
   NSTEPS,
 };
 
-Config parseArgs(int argc, char **argv) {
+Config parseArgs(int argc, char** argv)
+{
   Config config;
   int opt;
   int long_flag;
@@ -146,10 +141,9 @@ Config parseArgs(int argc, char **argv) {
       {"max-msg-size", required_argument, &long_flag, MAX_MSG_SIZE},
       {"send-window", required_argument, &long_flag, SEND_WINDOW},
       {"recv-window", required_argument, &long_flag, RECV_WINDOW},
-      {"touch-data",   required_argument, &long_flag, TOUCH_DATA},
-      {"nsteps",   required_argument, &long_flag, NSTEPS},
-      {0, 0, 0, 0}
-  };
+      {"touch-data", required_argument, &long_flag, TOUCH_DATA},
+      {"nsteps", required_argument, &long_flag, NSTEPS},
+      {0, 0, 0, 0}};
   while ((opt = getopt_long(argc, argv, "t:", long_options, NULL)) != -1) {
     switch (opt) {
       case 0:
@@ -191,7 +185,8 @@ Config parseArgs(int argc, char **argv) {
             else if (strcmp(optarg, "tag") == 0)
               config.match_type = LCI_MATCH_TAG;
             else {
-              fprintf(stderr, "Unknown long option (--match-type %s)\n", optarg);
+              fprintf(stderr, "Unknown long option (--match-type %s)\n",
+                      optarg);
               abort();
             }
             break;
@@ -203,7 +198,8 @@ Config parseArgs(int argc, char **argv) {
             else if (strcmp(optarg, "handler") == 0)
               config.send_comp_type = LCI_COMPLETION_HANDLER;
             else {
-              fprintf(stderr, "Unknown long option (--send-comp-type %s)\n", optarg);
+              fprintf(stderr, "Unknown long option (--send-comp-type %s)\n",
+                      optarg);
               abort();
             }
             break;
@@ -215,7 +211,8 @@ Config parseArgs(int argc, char **argv) {
             else if (strcmp(optarg, "handler") == 0)
               config.recv_comp_type = LCI_COMPLETION_HANDLER;
             else {
-              fprintf(stderr, "Unknown long option (--send-comp-type %s)\n", optarg);
+              fprintf(stderr, "Unknown long option (--send-comp-type %s)\n",
+                      optarg);
               abort();
             }
             break;
@@ -267,10 +264,11 @@ struct Context {
   LCI_comp_t recv_comp;
   LCI_data_t send_data;
   LCI_data_t recv_data;
-  ThreadBarrier *threadBarrier = nullptr;
+  ThreadBarrier* threadBarrier = nullptr;
 };
 
-LCI_comp_t initComp(Context ctx, LCI_comp_type_t comp_type) {
+LCI_comp_t initComp(Context ctx, LCI_comp_type_t comp_type)
+{
   LCI_comp_t comp;
   if (comp_type == LCI_COMPLETION_QUEUE) {
     LCI_queue_create(ctx.device, &comp);
@@ -285,7 +283,8 @@ LCI_comp_t initComp(Context ctx, LCI_comp_type_t comp_type) {
   return comp;
 }
 
-void freeComp(LCI_comp_type_t comp_type, LCI_comp_t *comp) {
+void freeComp(LCI_comp_type_t comp_type, LCI_comp_t* comp)
+{
   if (comp_type == LCI_COMPLETION_QUEUE) {
     LCI_queue_free(comp);
   } else if (comp_type == LCI_COMPLETION_SYNC) {
@@ -297,7 +296,8 @@ void freeComp(LCI_comp_type_t comp_type, LCI_comp_t *comp) {
   }
 }
 
-LCI_request_t waitComp(Context &ctx, LCI_comp_t comp, LCI_comp_type_t comp_type) {
+LCI_request_t waitComp(Context& ctx, LCI_comp_t comp, LCI_comp_type_t comp_type)
+{
   LCI_request_t request;
   if (comp_type == LCI_COMPLETION_QUEUE) {
     while (LCI_queue_pop(comp, &request) == LCI_ERR_RETRY)
@@ -313,7 +313,8 @@ LCI_request_t waitComp(Context &ctx, LCI_comp_t comp, LCI_comp_type_t comp_type)
   return request;
 }
 
-void initData(Context& ctx) {
+void initData(Context& ctx)
+{
   switch (ctx.config.op) {
     case LCIT_OP_2SIDED_S:
     case LCIT_OP_1SIDED_S:
@@ -321,34 +322,41 @@ void initData(Context& ctx) {
     case LCIT_OP_2SIDED_M:
     case LCIT_OP_1SIDED_M:
       if (ctx.config.send_dyn) {
-        while (LCI_mbuffer_alloc(ctx.device, &ctx.send_data.mbuffer) == LCI_ERR_RETRY)
+        while (LCI_mbuffer_alloc(ctx.device, &ctx.send_data.mbuffer) ==
+               LCI_ERR_RETRY)
           if (to_progress) LCI_progress(ctx.device);
       } else {
-        posix_memalign(&ctx.send_data.mbuffer.address, PAGESIZE, ctx.config.max_msg_size);
+        posix_memalign(&ctx.send_data.mbuffer.address, PAGESIZE,
+                       ctx.config.max_msg_size);
         ctx.send_data.mbuffer.length = ctx.config.max_msg_size;
       }
       if (ctx.config.recv_dyn) {
         // do nothing
       } else {
-        posix_memalign(&ctx.recv_data.mbuffer.address, PAGESIZE, ctx.config.max_msg_size);
+        posix_memalign(&ctx.recv_data.mbuffer.address, PAGESIZE,
+                       ctx.config.max_msg_size);
         ctx.recv_data.mbuffer.length = ctx.config.max_msg_size;
       }
       break;
     case LCIT_OP_2SIDED_L:
     case LCIT_OP_1SIDED_L:
       if (ctx.config.send_reg) {
-        LCI_lbuffer_memalign(ctx.device, ctx.config.max_msg_size, PAGESIZE, &ctx.send_data.lbuffer);
+        LCI_lbuffer_memalign(ctx.device, ctx.config.max_msg_size, PAGESIZE,
+                             &ctx.send_data.lbuffer);
       } else {
-        posix_memalign(&ctx.send_data.lbuffer.address, PAGESIZE, ctx.config.max_msg_size);
+        posix_memalign(&ctx.send_data.lbuffer.address, PAGESIZE,
+                       ctx.config.max_msg_size);
         ctx.send_data.lbuffer.length = ctx.config.max_msg_size;
         ctx.send_data.lbuffer.segment = LCI_SEGMENT_ALL;
       }
       if (ctx.config.recv_dyn) {
         ctx.recv_data.lbuffer.address = NULL;
       } else if (ctx.config.recv_reg) {
-        LCI_lbuffer_memalign(ctx.device, ctx.config.max_msg_size, PAGESIZE, &ctx.recv_data.lbuffer);
+        LCI_lbuffer_memalign(ctx.device, ctx.config.max_msg_size, PAGESIZE,
+                             &ctx.recv_data.lbuffer);
       } else {
-        posix_memalign(&ctx.recv_data.lbuffer.address, PAGESIZE, ctx.config.max_msg_size);
+        posix_memalign(&ctx.recv_data.lbuffer.address, PAGESIZE,
+                       ctx.config.max_msg_size);
         ctx.recv_data.lbuffer.length = ctx.config.max_msg_size;
         ctx.recv_data.lbuffer.segment = LCI_SEGMENT_ALL;
       }
@@ -356,7 +364,8 @@ void initData(Context& ctx) {
   }
 }
 
-void freeData(Context &ctx) {
+void freeData(Context& ctx)
+{
   switch (ctx.config.op) {
     case LCIT_OP_2SIDED_S:
     case LCIT_OP_1SIDED_S:
@@ -394,7 +403,8 @@ void freeData(Context &ctx) {
   }
 }
 
-Context initCtx(Config config) {
+Context initCtx(Config config)
+{
   Context ctx;
   ctx.config = config;
   ctx.device = LCI_UR_DEVICE;
@@ -417,16 +427,17 @@ Context initCtx(Config config) {
   return ctx;
 }
 
-void freeCtx(Context &ctx) {
-  if (ctx.config.nthreads > 1)
-    delete ctx.threadBarrier;
+void freeCtx(Context& ctx)
+{
+  if (ctx.config.nthreads > 1) delete ctx.threadBarrier;
   freeData(ctx);
   freeComp(ctx.config.send_comp_type, &ctx.send_comp);
   freeComp(ctx.config.recv_comp_type, &ctx.recv_comp);
   LCI_endpoint_free(&ctx.ep);
 }
 
-void threadBarrier(Context &ctx) {
+void threadBarrier(Context& ctx)
+{
   if (ctx.config.nthreads > 1) {
     if (to_progress)
       ctx.threadBarrier->wait(LCI_progress, ctx.device);
@@ -435,8 +446,10 @@ void threadBarrier(Context &ctx) {
   }
 }
 
-LCI_comp_t postSend(Context &ctx, int rank, size_t size, LCI_tag_t tag) {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "lcit", "%d/%d: postSend rank %d size %lu\n", LCI_RANK, TRD_RANK_ME, rank, size);
+LCI_comp_t postSend(Context& ctx, int rank, size_t size, LCI_tag_t tag)
+{
+  LCM_DBG_Log(LCM_LOG_DEBUG, "lcit", "%d/%d: postSend rank %d size %lu\n",
+              LCI_RANK, TRD_RANK_ME, rank, size);
   LCI_comp_t comp;
   if (ctx.config.send_comp_type == LCI_COMPLETION_SYNC) {
     LCI_sync_create(ctx.device, 1, &comp);
@@ -445,12 +458,14 @@ LCI_comp_t postSend(Context &ctx, int rank, size_t size, LCI_tag_t tag) {
   }
   switch (ctx.config.op) {
     case LCIT_OP_2SIDED_S:
-      while (LCI_sends(ctx.ep, ctx.send_data.immediate, rank, tag) == LCI_ERR_RETRY)
+      while (LCI_sends(ctx.ep, ctx.send_data.immediate, rank, tag) ==
+             LCI_ERR_RETRY)
         if (to_progress) LCI_progress(ctx.device);
       break;
     case LCIT_OP_2SIDED_M: {
       if (ctx.config.send_dyn) {
-        while (LCI_mbuffer_alloc(ctx.device, &ctx.send_data.mbuffer) == LCI_ERR_RETRY)
+        while (LCI_mbuffer_alloc(ctx.device, &ctx.send_data.mbuffer) ==
+               LCI_ERR_RETRY)
           if (to_progress) LCI_progress(ctx.device);
       }
       LCI_mbuffer_t send_buffer = ctx.send_data.mbuffer;
@@ -473,21 +488,25 @@ LCI_comp_t postSend(Context &ctx, int rank, size_t size, LCI_tag_t tag) {
       break;
     }
     case LCIT_OP_1SIDED_S:
-      while (LCI_puts(ctx.ep, ctx.send_data.immediate, rank, tag, LCI_DEFAULT_COMP_REMOTE) == LCI_ERR_RETRY)
+      while (LCI_puts(ctx.ep, ctx.send_data.immediate, rank, tag,
+                      LCI_DEFAULT_COMP_REMOTE) == LCI_ERR_RETRY)
         if (to_progress) LCI_progress(ctx.device);
       break;
     case LCIT_OP_1SIDED_M: {
       if (ctx.config.send_dyn) {
-        while (LCI_mbuffer_alloc(ctx.device, &ctx.send_data.mbuffer) == LCI_ERR_RETRY)
+        while (LCI_mbuffer_alloc(ctx.device, &ctx.send_data.mbuffer) ==
+               LCI_ERR_RETRY)
           if (to_progress) LCI_progress(ctx.device);
       }
       LCI_mbuffer_t send_buffer = ctx.send_data.mbuffer;
       send_buffer.length = size;
       if (ctx.config.send_dyn) {
-        while (LCI_putmna(ctx.ep, send_buffer, rank, tag, LCI_DEFAULT_COMP_REMOTE) == LCI_ERR_RETRY)
+        while (LCI_putmna(ctx.ep, send_buffer, rank, tag,
+                          LCI_DEFAULT_COMP_REMOTE) == LCI_ERR_RETRY)
           if (to_progress) LCI_progress(ctx.device);
       } else {
-        while (LCI_putma(ctx.ep, send_buffer, rank, tag, LCI_DEFAULT_COMP_REMOTE) == LCI_ERR_RETRY)
+        while (LCI_putma(ctx.ep, send_buffer, rank, tag,
+                         LCI_DEFAULT_COMP_REMOTE) == LCI_ERR_RETRY)
           if (to_progress) LCI_progress(ctx.device);
       }
       break;
@@ -496,7 +515,8 @@ LCI_comp_t postSend(Context &ctx, int rank, size_t size, LCI_tag_t tag) {
       LCI_lbuffer_t send_buffer = ctx.send_data.lbuffer;
       send_buffer.length = size;
       while (LCI_putla(ctx.ep, send_buffer, comp, rank, tag,
-                       LCI_DEFAULT_COMP_REMOTE, (void*)USER_CONTEXT) == LCI_ERR_RETRY)
+                       LCI_DEFAULT_COMP_REMOTE,
+                       (void*)USER_CONTEXT) == LCI_ERR_RETRY)
         if (to_progress) LCI_progress(ctx.device);
       break;
     }
@@ -504,8 +524,10 @@ LCI_comp_t postSend(Context &ctx, int rank, size_t size, LCI_tag_t tag) {
   return comp;
 }
 
-void waitSend(Context &ctx, LCI_comp_t comp) {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "lcit", "%d/%d: waitSend\n", LCI_RANK, TRD_RANK_ME);
+void waitSend(Context& ctx, LCI_comp_t comp)
+{
+  LCM_DBG_Log(LCM_LOG_DEBUG, "lcit", "%d/%d: waitSend\n", LCI_RANK,
+              TRD_RANK_ME);
   switch (ctx.config.op) {
     case LCIT_OP_2SIDED_S:
     case LCIT_OP_2SIDED_M:
@@ -517,15 +539,20 @@ void waitSend(Context &ctx, LCI_comp_t comp) {
       LCI_request_t request = waitComp(ctx, comp, ctx.config.send_comp_type);
       LCIT_Assert(request.flag == LCI_OK, "flag is wrong\n");
       LCIT_Assert(request.type == LCI_LONG, "type is wrong\n");
-      LCIT_Assert(request.data.lbuffer.address == ctx.send_data.lbuffer.address, "address is wrong\n");
-      LCIT_Assert(request.data.lbuffer.segment == ctx.send_data.lbuffer.segment, "segment is wrong\n");
-      LCIT_Assert((uint64_t) request.user_context == USER_CONTEXT, "user_context is wrong\n");
+      LCIT_Assert(request.data.lbuffer.address == ctx.send_data.lbuffer.address,
+                  "address is wrong\n");
+      LCIT_Assert(request.data.lbuffer.segment == ctx.send_data.lbuffer.segment,
+                  "segment is wrong\n");
+      LCIT_Assert((uint64_t)request.user_context == USER_CONTEXT,
+                  "user_context is wrong\n");
       break;
   }
 }
 
-LCI_comp_t postRecv(Context &ctx, int rank, size_t size, LCI_tag_t tag) {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "lcit", "%d/%d: postRecv rank %d size %lu\n", LCI_RANK, TRD_RANK_ME , rank, size);
+LCI_comp_t postRecv(Context& ctx, int rank, size_t size, LCI_tag_t tag)
+{
+  LCM_DBG_Log(LCM_LOG_DEBUG, "lcit", "%d/%d: postRecv rank %d size %lu\n",
+              LCI_RANK, TRD_RANK_ME, rank, size);
   LCI_comp_t comp;
   if (ctx.config.recv_comp_type == LCI_COMPLETION_SYNC) {
     LCI_sync_create(ctx.device, 1, &comp);
@@ -534,22 +561,22 @@ LCI_comp_t postRecv(Context &ctx, int rank, size_t size, LCI_tag_t tag) {
   }
   switch (ctx.config.op) {
     case LCIT_OP_2SIDED_S:
-      LCI_recvs(ctx.ep, rank, tag, comp, (void*) USER_CONTEXT);
+      LCI_recvs(ctx.ep, rank, tag, comp, (void*)USER_CONTEXT);
       break;
     case LCIT_OP_2SIDED_M: {
       LCI_mbuffer_t recv_buffer = ctx.send_data.mbuffer;
       recv_buffer.length = size;
       if (ctx.config.recv_dyn) {
-        LCI_recvmn(ctx.ep, rank, tag, comp, (void*) USER_CONTEXT);
+        LCI_recvmn(ctx.ep, rank, tag, comp, (void*)USER_CONTEXT);
       } else {
-        LCI_recvm(ctx.ep, recv_buffer, rank, tag, comp, (void*) USER_CONTEXT);
+        LCI_recvm(ctx.ep, recv_buffer, rank, tag, comp, (void*)USER_CONTEXT);
       }
       break;
     }
     case LCIT_OP_2SIDED_L: {
       LCI_lbuffer_t recv_buffer = ctx.recv_data.lbuffer;
       recv_buffer.length = size;
-      LCI_recvl(ctx.ep, recv_buffer, rank, tag, comp, (void*) USER_CONTEXT);
+      LCI_recvl(ctx.ep, recv_buffer, rank, tag, comp, (void*)USER_CONTEXT);
       break;
     }
     case LCIT_OP_1SIDED_S:
@@ -560,14 +587,16 @@ LCI_comp_t postRecv(Context &ctx, int rank, size_t size, LCI_tag_t tag) {
   return comp;
 }
 
-void waitRecv(Context &ctx, LCI_comp_t comp) {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "lcit", "%d/%d: waitRecv\n", LCI_RANK, TRD_RANK_ME);
+void waitRecv(Context& ctx, LCI_comp_t comp)
+{
+  LCM_DBG_Log(LCM_LOG_DEBUG, "lcit", "%d/%d: waitRecv\n", LCI_RANK,
+              TRD_RANK_ME);
   LCI_request_t request = waitComp(ctx, comp, ctx.config.recv_comp_type);
   LCIT_Assert(request.flag == LCI_OK, "flag is wrong\n");
-  if (ctx.config.op == LCIT_OP_2SIDED_L ||
-      ctx.config.op == LCIT_OP_2SIDED_M ||
+  if (ctx.config.op == LCIT_OP_2SIDED_L || ctx.config.op == LCIT_OP_2SIDED_M ||
       ctx.config.op == LCIT_OP_2SIDED_S)
-    LCIT_Assert((uint64_t) request.user_context == USER_CONTEXT, "user_context is wrong\n");
+    LCIT_Assert((uint64_t)request.user_context == USER_CONTEXT,
+                "user_context is wrong\n");
   switch (ctx.config.op) {
     case LCIT_OP_2SIDED_S:
     case LCIT_OP_1SIDED_S:
@@ -596,25 +625,27 @@ void waitRecv(Context &ctx, LCI_comp_t comp) {
   }
 }
 
-
 template <typename Fn, typename... Args>
-void worker_handler(Fn &&fn, int id, Args &&... args) {
+void worker_handler(Fn&& fn, int id, Args&&... args)
+{
   TRD_RANK_ME = id;
   to_progress = false;
   fn(std::forward<Args>(args)...);
-//  std::invoke(std::forward<Fn>(fn),
-//              std::forward<Args>(args)...);
+  //  std::invoke(std::forward<Fn>(fn),
+  //              std::forward<Args>(args)...);
 }
 
 // progress thread
-void progress_handler(LCI_device_t device) {
+void progress_handler(LCI_device_t device)
+{
   to_progress = true;
   while (!progress_exit) {
     LCI_progress(device);
   }
 }
 
-void set_affinity(pthread_t pthread_handler, size_t target) {
+void set_affinity(pthread_t pthread_handler, size_t target)
+{
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
   CPU_SET(target, &cpuset);
@@ -626,8 +657,10 @@ void set_affinity(pthread_t pthread_handler, size_t target) {
 }
 
 template <typename Fn, typename... Args>
-void run(Context &ctx, Fn &&fn, Args &&... args) {
-  using fn_t = decltype(+std::declval<typename std::remove_reference<Fn>::type>());
+void run(Context& ctx, Fn&& fn, Args&&... args)
+{
+  using fn_t =
+      decltype(+std::declval<typename std::remove_reference<Fn>::type>());
   std::vector<std::thread> worker_pool;
   std::vector<std::thread> progress_pool;
 
@@ -636,14 +669,14 @@ void run(Context &ctx, Fn &&fn, Args &&... args) {
     // initialize progress thread
     progress_exit = false;
     std::thread t(progress_handler, ctx.device);
-    if (ctx.config.thread_pin)
-      set_affinity(t.native_handle(), 0);
+    if (ctx.config.thread_pin) set_affinity(t.native_handle(), 0);
     progress_pool.push_back(std::move(t));
 
     // initialize worker threads
     for (size_t i = 0; i < ctx.config.nthreads - 1; ++i) {
-      std::thread t(worker_handler<fn_t, typename std::remove_reference<Args>::type...>,
-                    +fn, i, args...);
+      std::thread t(
+          worker_handler<fn_t, typename std::remove_reference<Args>::type...>,
+          +fn, i, args...);
       if (ctx.config.thread_pin)
         set_affinity(t.native_handle(), (i + 1) % NPROCESSORS);
       worker_pool.push_back(std::move(t));
@@ -676,8 +709,8 @@ static inline double wtime()
   return t1.tv_sec + t1.tv_nsec / 1e9;
 }
 
-template<typename FUNC>
-static inline double RUN_VARY_MSG(Context &ctx, FUNC&& f)
+template <typename FUNC>
+static inline double RUN_VARY_MSG(Context& ctx, FUNC&& f)
 {
   int loop = ctx.config.nsteps;
   int skip = loop / 10;
@@ -695,6 +728,6 @@ static inline double RUN_VARY_MSG(Context &ctx, FUNC&& f)
   return t / loop;
 }
 
-} // namespace lcit
+}  // namespace lcit
 
 #endif  // LCI_LCIT_H

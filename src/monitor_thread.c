@@ -6,7 +6,8 @@ static volatile bool LCII_monitor_thread_run;
 static bool LCI_ENABLE_MONITOR_THREAD = false;
 static int LCI_MONITOR_THREAD_INTERVAL;
 
-struct timespec LCIU_timespec_diff(struct timespec new, struct timespec old) {
+struct timespec LCIU_timespec_diff(struct timespec new, struct timespec old)
+{
   struct timespec diff;
   if (new.tv_nsec >= old.tv_nsec) {
     diff.tv_sec = new.tv_sec - old.tv_sec;
@@ -18,7 +19,7 @@ struct timespec LCIU_timespec_diff(struct timespec new, struct timespec old) {
   return diff;
 }
 
-void *LCII_monitor_thread_fn(void *vargp)
+void* LCII_monitor_thread_fn(void* vargp)
 {
   struct timespec start_time, now;
   LCII_pcounters_per_thread_t pcounter, old;
@@ -32,12 +33,12 @@ void *LCII_monitor_thread_fn(void *vargp)
     pcounter = LCII_pcounters_accumulate();
     clock_gettime(CLOCK_MONOTONIC, &now);
     struct timespec diff = LCIU_timespec_diff(now, start_time);
-    LCM_Log(LCM_LOG_INFO, "monitor", "Time %lu.%lu s: msgs_tx %ld/%ld/%ld/%ld "
+    LCM_Log(LCM_LOG_INFO, "monitor",
+            "Time %lu.%lu s: msgs_tx %ld/%ld/%ld/%ld "
             "bytes_tx %ld/%ld msgs_rx %ld/%ld/%ld/%ld bytes_rx %ld/%ld "
             "packet_stealing %ld progress_call %ld\n",
-            diff.tv_sec, diff.tv_nsec,
-            pcounter.msgs_tx - old.msgs_tx, pcounter.msgs_tx,
-            pcounter.msgs_2sided_tx, pcounter.msgs_1sided_tx,
+            diff.tv_sec, diff.tv_nsec, pcounter.msgs_tx - old.msgs_tx,
+            pcounter.msgs_tx, pcounter.msgs_2sided_tx, pcounter.msgs_1sided_tx,
             pcounter.bytes_tx - old.bytes_tx, pcounter.bytes_tx,
             pcounter.msgs_rx - old.msgs_rx, pcounter.msgs_rx,
             pcounter.msgs_2sided_rx, pcounter.msgs_1sided_rx,
@@ -49,19 +50,21 @@ void *LCII_monitor_thread_fn(void *vargp)
   }
   clock_gettime(CLOCK_MONOTONIC, &now);
   struct timespec diff = LCIU_timespec_diff(now, start_time);
-  LCM_Log(LCM_LOG_INFO, "monitor", "Finish the monitor thread at %lu.%lu s: "
+  LCM_Log(LCM_LOG_INFO, "monitor",
+          "Finish the monitor thread at %lu.%lu s: "
           "msgs_tx %ld/%ld/%ld bytes_tx %ld "
           "msgs_rx %ld/%ld/%ld bytes_rx %ld "
           "packet_stealing %ld progress_call %ld\n",
-          diff.tv_sec, diff.tv_nsec,
-          pcounter.msgs_tx, pcounter.msgs_2sided_tx, pcounter.msgs_1sided_tx, pcounter.bytes_tx,
-          pcounter.msgs_rx, pcounter.msgs_2sided_rx, pcounter.msgs_1sided_rx, pcounter.bytes_rx,
+          diff.tv_sec, diff.tv_nsec, pcounter.msgs_tx, pcounter.msgs_2sided_tx,
+          pcounter.msgs_1sided_tx, pcounter.bytes_tx, pcounter.msgs_rx,
+          pcounter.msgs_2sided_rx, pcounter.msgs_1sided_rx, pcounter.bytes_rx,
           pcounter.packet_stealing, pcounter.progress_call);
   LCM_Log_flush();
   return NULL;
 }
 
-void LCII_monitor_thread_init() {
+void LCII_monitor_thread_init()
+{
   LCI_ENABLE_MONITOR_THREAD = getenv_or("LCI_ENABLE_MONITOR_THREAD", false);
   if (LCI_ENABLE_MONITOR_THREAD) {
     LCI_MONITOR_THREAD_INTERVAL = getenv_or("LCI_MONITOR_THREAD_INTERVAL", 60);
@@ -70,7 +73,8 @@ void LCII_monitor_thread_init() {
   }
 }
 
-void LCII_monitor_thread_fina() {
+void LCII_monitor_thread_fina()
+{
   if (LCI_ENABLE_MONITOR_THREAD) {
     LCII_monitor_thread_run = false;
     pthread_join(LCII_monitor_thread, NULL);

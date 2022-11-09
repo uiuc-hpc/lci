@@ -26,7 +26,7 @@
 
 #define MESSAGE_ALIGNMENT 64
 #define MIN_MSG_SIZE 64
-#define MAX_MSG_SIZE 64 //(1 << 22)
+#define MAX_MSG_SIZE 64  //(1 << 22)
 #define MYBUFSIZE (MAX_MSG_SIZE + MESSAGE_ALIGNMENT)
 #define LARGE_MESSAGE_SIZE 8192
 
@@ -103,38 +103,40 @@ void main_task(intptr_t arg)
 
   if (myid == 0) {
     fprintf(stdout, HEADER);
-    fprintf(stdout, "%-*s%*s\n", 10, "# THREAD", FIELD_WIDTH, "Msg rate (msg/s)");
+    fprintf(stdout, "%-*s%*s\n", 10, "# THREAD", FIELD_WIDTH,
+            "Msg rate (msg/s)");
     fflush(stdout);
     for (THREADS = 1; THREADS <= NTHREADS; THREADS *= 2)
-    for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
-         size = (size ? size * 2 : 1)) {
-      WIN = max(1, MAX_WIN / THREADS);
-      MPI_Barrier(MPI_COMM_WORLD);
-      for (int i = 0; i < THREADS; i++) {
-        pthread_create(&sr_threads[i], NULL, send_thread, (void*) i);
+      for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
+           size = (size ? size * 2 : 1)) {
+        WIN = max(1, MAX_WIN / THREADS);
+        MPI_Barrier(MPI_COMM_WORLD);
+        for (int i = 0; i < THREADS; i++) {
+          pthread_create(&sr_threads[i], NULL, send_thread, (void*)i);
+        }
+        for (int i = 0; i < THREADS; i++) {
+          pthread_join(sr_threads[i], NULL);
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
       }
-      for (int i = 0; i < THREADS; i++) {
-        pthread_join(sr_threads[i], NULL);
-      }
-      MPI_Barrier(MPI_COMM_WORLD);
-    }
   } else {
     for (THREADS = 1; THREADS <= NTHREADS; THREADS *= 2)
-    for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
-         size = (size ? size * 2 : 1)) {
-      WIN = max(1, MAX_WIN / THREADS);
-      MPI_Barrier(MPI_COMM_WORLD);
-      double t_start = MPI_Wtime();
-      for (int i = 0; i < THREADS; i++) {
-        pthread_create(&sr_threads[i], NULL, recv_thread, (void*) i);
+      for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
+           size = (size ? size * 2 : 1)) {
+        WIN = max(1, MAX_WIN / THREADS);
+        MPI_Barrier(MPI_COMM_WORLD);
+        double t_start = MPI_Wtime();
+        for (int i = 0; i < THREADS; i++) {
+          pthread_create(&sr_threads[i], NULL, recv_thread, (void*)i);
+        }
+        for (int i = 0; i < THREADS; i++) {
+          pthread_join(sr_threads[i], NULL);
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
+        double t = MPI_Wtime() - t_start;
+        printf("%d %d \t %.5f \n", WIN, THREADS,
+               (loop + skip + (loop + skip) / WIN) / t);
       }
-      for (int i = 0; i < THREADS; i++) {
-        pthread_join(sr_threads[i], NULL);
-      }
-      MPI_Barrier(MPI_COMM_WORLD);
-      double t = MPI_Wtime() - t_start;
-      printf("%d %d \t %.5f \n", WIN, THREADS,  (loop + skip + (loop+skip)/WIN) / t);
-    }
   }
 
   free(sr_threads);
@@ -172,10 +174,11 @@ void* recv_thread(void* arg)
   MPI_Request req[WIN];
   for (i = val; i < (loop + skip) / WIN; i += THREADS) {
     for (int k = 0; k < WIN; k++) {
-      MPI_Irecv(r_buf, size, MPI_CHAR, 0, val * WIN + k, MPI_COMM_WORLD, &req[k]);
+      MPI_Irecv(r_buf, size, MPI_CHAR, 0, val * WIN + k, MPI_COMM_WORLD,
+                &req[k]);
     }
     MPI_Waitall(WIN, req, MPI_STATUSES_IGNORE);
-    MPI_Send(s_buf, size, MPI_CHAR, 0, ((WIN+1) << 8) | val, MPI_COMM_WORLD);
+    MPI_Send(s_buf, size, MPI_CHAR, 0, ((WIN + 1) << 8) | val, MPI_COMM_WORLD);
   }
   return 0;
 }
@@ -212,10 +215,12 @@ void* send_thread(void* arg)
   MPI_Request req[WIN];
   for (i = val; i < (loop + skip) / WIN; i += THREADS) {
     for (int k = 0; k < WIN; k++) {
-      MPI_Isend(r_buf, size, MPI_CHAR, 1, val * WIN + k, MPI_COMM_WORLD, &req[k]);
+      MPI_Isend(r_buf, size, MPI_CHAR, 1, val * WIN + k, MPI_COMM_WORLD,
+                &req[k]);
     }
     MPI_Waitall(WIN, req, MPI_STATUSES_IGNORE);
-    MPI_Recv(r_buf, size, MPI_CHAR, 1, ((WIN+1) << 8) | val, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(r_buf, size, MPI_CHAR, 1, ((WIN + 1) << 8) | val, MPI_COMM_WORLD,
+             MPI_STATUS_IGNORE);
   }
   return 0;
 }

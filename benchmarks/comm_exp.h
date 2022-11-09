@@ -73,13 +73,15 @@ static inline double get_bw(double time, size_t size, double n_msg)
   return n_msg * size / time;
 }
 
-void write_buffer(char* buffer, int len, char input) {
+void write_buffer(char* buffer, int len, char input)
+{
   for (int i = 0; i < len; ++i) {
     buffer[i] = input;
   }
 }
 
-void check_buffer(const char* buffer, int len, char expect) {
+void check_buffer(const char* buffer, int len, char expect)
+{
   for (int i = 0; i < len; ++i) {
     if (buffer[i] != expect) {
       abort();
@@ -99,27 +101,30 @@ void check_buffer(const char* buffer, int len, char expect) {
 #define TBARRIER() ;
 #endif
 
-namespace {
+namespace
+{
 #ifdef USE_PAPI
 #include <papi.h>
-int papi_events[] = { PAPI_L1_TCM, PAPI_L2_TCM, PAPI_L3_TCM };
+int papi_events[] = {PAPI_L1_TCM, PAPI_L2_TCM, PAPI_L3_TCM};
 const int PAPI_NUM = sizeof(papi_events) / sizeof(papi_events[0]);
-char papi_event_names[PAPI_NUM][10] = { "L1_TCM", "L2_TCM", "L3_TCM" };
+char papi_event_names[PAPI_NUM][10] = {"L1_TCM", "L2_TCM", "L3_TCM"};
 
-#define PAPI_SAFECALL(x)                                                    \
-  {                                                                         \
-    int err = (x);                                                          \
-    if (err != PAPI_OK) {                                                   \
-      printf("err : %d/%s (%s:%d)\n", err, PAPI_strerror(err), __FILE__, __LINE__); \
-      exit(err);                                                            \
-    }                                                                       \
-  }                                                                         \
-  while (0)                                                                 \
+#define PAPI_SAFECALL(x)                                                 \
+  {                                                                      \
+    int err = (x);                                                       \
+    if (err != PAPI_OK) {                                                \
+      printf("err : %d/%s (%s:%d)\n", err, PAPI_strerror(err), __FILE__, \
+             __LINE__);                                                  \
+      exit(err);                                                         \
+    }                                                                    \
+  }                                                                      \
+  while (0)                                                              \
     ;
 #endif
-}
+}  // namespace
 
-static inline void yp_init() {
+static inline void yp_init()
+{
 #ifdef USE_PAPI
   int retval = PAPI_library_init(PAPI_VER_CURRENT);
   if (retval != PAPI_VER_CURRENT) {
@@ -136,20 +141,22 @@ inline void print_banner()
 {
   char str[256];
   int used = 0;
-  used += snprintf(str+used, 256-used, "%-10s %-10s %-10s %-10s", "Size", "us", "Mmsg/s", "MB/s");
+  used += snprintf(str + used, 256 - used, "%-10s %-10s %-10s %-10s", "Size",
+                   "us", "Mmsg/s", "MB/s");
 #ifdef USE_PAPI
   for (int i = 0; i < PAPI_NUM; ++i) {
-    used += snprintf(str+used, 256-used, " %-10s", papi_event_names[i]);
+    used += snprintf(str + used, 256 - used, " %-10s", papi_event_names[i]);
   }
 #endif
   printf("%s\n", str);
   fflush(stdout);
 }
 
-template<typename FUNC>
+template <typename FUNC>
 static inline void RUN_VARY_MSG(std::pair<size_t, size_t>&& range,
-                         const int report,
-                         FUNC&& f, std::pair<int, int>&& iter = {0, 1}, char* extra_str = NULL)
+                                const int report, FUNC&& f,
+                                std::pair<int, int>&& iter = {0, 1},
+                                char* extra_str = NULL)
 {
   double t = 0;
   int loop = TOTAL;
@@ -164,7 +171,8 @@ static inline void RUN_VARY_MSG(std::pair<size_t, size_t>&& range,
   PAPI_SAFECALL(PAPI_add_events(papi_eventSet, papi_events, PAPI_NUM));
 #endif
 
-  for (size_t msg_size = range.first; msg_size <= range.second; msg_size <<= 1) {
+  for (size_t msg_size = range.first; msg_size <= range.second;
+       msg_size <<= 1) {
     if (msg_size >= LARGE) {
       loop = TOTAL_LARGE;
       skip = SKIP_LARGE;

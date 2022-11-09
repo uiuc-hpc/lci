@@ -26,7 +26,7 @@
 
 #define MESSAGE_ALIGNMENT 64
 #define MIN_MSG_SIZE 64
-#define MAX_MSG_SIZE 64 //(1 << 22)
+#define MAX_MSG_SIZE 64  //(1 << 22)
 #define MYBUFSIZE (MAX_MSG_SIZE + MESSAGE_ALIGNMENT)
 #define LARGE_MESSAGE_SIZE 8192
 
@@ -104,38 +104,40 @@ void main_task(intptr_t arg)
 
   if (myid == 0) {
     fprintf(stdout, HEADER);
-    fprintf(stdout, "%-*s%*s\n", 10, "# THREAD", FIELD_WIDTH, "Msg rate (msg/s)");
+    fprintf(stdout, "%-*s%*s\n", 10, "# THREAD", FIELD_WIDTH,
+            "Msg rate (msg/s)");
     fflush(stdout);
-    for (THREADS = 1 ; THREADS <= NTHREADS; THREADS *= 2)
-    for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
-         size = (size ? size * 2 : 1)) {
-      WIN = max(1, MAX_WIN / THREADS);
-      MPI_Barrier(MPI_COMM_WORLD);
-      for (int i = 0; i < THREADS; i++) {
-        sr_threads[i] = MPIV_spawn(i % WORKERS, send_thread, (intptr_t)i);
+    for (THREADS = 1; THREADS <= NTHREADS; THREADS *= 2)
+      for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
+           size = (size ? size * 2 : 1)) {
+        WIN = max(1, MAX_WIN / THREADS);
+        MPI_Barrier(MPI_COMM_WORLD);
+        for (int i = 0; i < THREADS; i++) {
+          sr_threads[i] = MPIV_spawn(i % WORKERS, send_thread, (intptr_t)i);
+        }
+        for (int i = 0; i < THREADS; i++) {
+          MPIV_join(sr_threads[i]);
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
       }
-      for (int i = 0; i < THREADS; i++) {
-        MPIV_join(sr_threads[i]);
-      }
-      MPI_Barrier(MPI_COMM_WORLD);
-    }
   } else {
-    for (THREADS = 1 ; THREADS <= NTHREADS; THREADS *= 2)
-    for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
-         size = (size ? size * 2 : 1)) {
-      WIN = max(1, MAX_WIN / THREADS);
-      MPI_Barrier(MPI_COMM_WORLD);
-      double t_start = MPI_Wtime();
-      for (int i = 0; i < THREADS; i++) {
-        sr_threads[i] = MPIV_spawn(i % WORKERS, recv_thread, (intptr_t)i);
+    for (THREADS = 1; THREADS <= NTHREADS; THREADS *= 2)
+      for (size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE;
+           size = (size ? size * 2 : 1)) {
+        WIN = max(1, MAX_WIN / THREADS);
+        MPI_Barrier(MPI_COMM_WORLD);
+        double t_start = MPI_Wtime();
+        for (int i = 0; i < THREADS; i++) {
+          sr_threads[i] = MPIV_spawn(i % WORKERS, recv_thread, (intptr_t)i);
+        }
+        for (int i = 0; i < THREADS; i++) {
+          MPIV_join(sr_threads[i]);
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
+        double t = MPI_Wtime() - t_start;
+        printf("%d %d \t %.5f \n", WIN, THREADS,
+               (loop + skip + (loop + skip) / WIN) / t);
       }
-      for (int i = 0; i < THREADS; i++) {
-        MPIV_join(sr_threads[i]);
-      }
-      MPI_Barrier(MPI_COMM_WORLD);
-      double t = MPI_Wtime() - t_start;
-      printf("%d %d \t %.5f \n", WIN, THREADS,  (loop + skip + (loop+skip)/WIN) / t);
-    }
   }
 
   free(sr_threads);
@@ -172,8 +174,10 @@ void recv_thread(intptr_t arg)
   MPIV_Request req[WIN];
   for (i = val; i < (loop + skip) / WIN; i += THREADS) {
     for (int k = 0; k < WIN; k++) {
-      MPIV_Irecv(r_buf, size, MPI_CHAR, 0, (i << 8) | k, MPI_COMM_WORLD, &req[k]);
-      // MPIV_Recv(r_buf, size, MPI_CHAR, 0, i << 8 | k, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPIV_Irecv(r_buf, size, MPI_CHAR, 0, (i << 8) | k, MPI_COMM_WORLD,
+                 &req[k]);
+      // MPIV_Recv(r_buf, size, MPI_CHAR, 0, i << 8 | k, MPI_COMM_WORLD,
+      // MPI_STATUS_IGNORE);
     }
     // printf("%d Wait\n", val);
     MPIV_Waitall(WIN, req, MPI_STATUSES_IGNORE);
@@ -214,11 +218,12 @@ void send_thread(intptr_t arg)
   MPIV_Request req[WIN];
   for (i = val; i < (loop + skip) / WIN; i += THREADS) {
     for (int k = 0; k < WIN; k++) {
-      MPIV_Isend(r_buf, size, MPI_CHAR, 1, (i << 8) | k, MPI_COMM_WORLD, &req[k]);
+      MPIV_Isend(r_buf, size, MPI_CHAR, 1, (i << 8) | k, MPI_COMM_WORLD,
+                 &req[k]);
     }
     // printf("%d Wait\n", val);
     MPIV_Waitall(WIN, req, MPI_STATUSES_IGNORE);
-    //printf("%d Done Wait\n", val);
+    // printf("%d Done Wait\n", val);
     MPIV_Recv(r_buf, size, MPI_CHAR, 1, val, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     // printf("%d Done Recv\n", val);
   }

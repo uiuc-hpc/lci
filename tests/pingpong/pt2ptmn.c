@@ -11,9 +11,10 @@
 
 int total = TOTAL;
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   LCI_initialize();
-  LCI_endpoint_t ep = LCI_UR_ENDPOINT; // we can directly use the default ep
+  LCI_endpoint_t ep = LCI_UR_ENDPOINT;  // we can directly use the default ep
 
   int rank = LCI_RANK;
   int peer_rank = ((1 - LCI_RANK % 2) + LCI_RANK / 2 * 2) % LCI_NUM_PROCESSES;

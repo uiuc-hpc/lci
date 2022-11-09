@@ -9,7 +9,8 @@
 #undef MAX_MSG
 #define MAX_MSG (8 * 1024)
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   LCI_open();
   LCI_endpoint_t ep;
   LCI_comp_t cq;
@@ -17,8 +18,8 @@ int main(int argc, char** args) {
 
   LCI_plist_t plist;
   LCI_plist_create(&plist);
-  LCI_plist_set_CQ(plist,&cq);
-  LCI_plist_set_completion(plist,LCI_PORT_MESSAGE, LCI_COMPLETION_QUEUE);
+  LCI_plist_set_CQ(plist, &cq);
+  LCI_plist_set_completion(plist, LCI_PORT_MESSAGE, LCI_COMPLETION_QUEUE);
 
   LCI_endpoint_init(&ep, LCI_UR_DEVICE, plist);
   int rank = LCI_RANK;
@@ -35,12 +36,11 @@ int main(int argc, char** args) {
   LCI_request_t* req_ptr;
 
   for (int size = 1; size <= MAX_MSG; size <<= 1) {
-    for (int i = 0; i < TOTAL+SKIP; i++) {
-      if (i == SKIP)
-        t1 = wtime();
+    for (int i = 0; i < TOTAL + SKIP; i++) {
+      if (i == SKIP) t1 = wtime();
       if (rank == 0) {
         LCI_one2one_set_empty(&sync);
-        LCI_putb(p, size, 1-rank, 99, ep, &sync);
+        LCI_putb(p, size, 1 - rank, 99, ep, &sync);
         while (LCI_one2one_test_empty(&sync)) {
           LCI_progress(LCI_UR_DEVICE);
         }
@@ -52,7 +52,7 @@ int main(int argc, char** args) {
           LCI_progress(LCI_UR_DEVICE);
         LCI_mbuffer_free(0, req_ptr->data.buffer.start);
         LCI_one2one_set_empty(&sync);
-        LCI_putb(p, size, 1-rank, 99, ep, &sync);
+        LCI_putb(p, size, 1 - rank, 99, ep, &sync);
         while (LCI_one2one_test_empty(&sync)) {
           LCI_progress(LCI_UR_DEVICE);
         }

@@ -18,8 +18,8 @@
  */
 using namespace omp;
 
-void * send_thread(void*);
-void * recv_thread(void*);
+void* send_thread(void*);
+void* recv_thread(void*);
 
 static int thread_stop = 0;
 LCI_endpoint_t ep;
@@ -28,7 +28,7 @@ int rank, nprocs, peer_rank, num_threads = NUM_THREADS;
 int min_size = MIN_MSG;
 int max_size = MAX_MSG;
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   LCI_initialize();
   LCI_plist_t plist;
@@ -41,13 +41,15 @@ int main(int argc, char *argv[])
   peer_rank = LCI_RANK;
 
   auto prg_thread = std::thread([] {
-      int spin = 64;
-      while (!thread_stop) {
-        LCI_progress(LCI_UR_DEVICE);
-        if (spin-- == 0)
-        { sched_yield(); spin = 64; }
+    int spin = 64;
+    while (!thread_stop) {
+      LCI_progress(LCI_UR_DEVICE);
+      if (spin-- == 0) {
+        sched_yield();
+        spin = 64;
       }
-    });
+    }
+  });
 
   thread_run(send_thread, num_threads);
   LCI_barrier();
@@ -75,8 +77,7 @@ void* send_thread(void* arg)
     dst_buf.length = size;
 
     thread_barrier();
-    if (thread_id() == 0)
-      LCI_barrier();
+    if (thread_id() == 0) LCI_barrier();
     thread_barrier();
 
     for (int i = 0; i < TOTAL; ++i) {

@@ -2,7 +2,7 @@
 #define ARR_HASHTBL_H_
 
 #define EMPTY ((uint64_t)-1)
-#define TBL_BIT_SIZE 16 // size: 1 << 16 (1 control block 3 key-value pairs)
+#define TBL_BIT_SIZE 16  // size: 1 << 16 (1 control block 3 key-value pairs)
 #define TBL_WIDTH 4
 
 #ifdef __cplusplus

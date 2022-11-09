@@ -20,11 +20,13 @@ extern "C" {
 
 typedef volatile int LCIU_spinlock_t;
 
-static inline void LCIU_spinlock_init(LCIU_spinlock_t* lock) {
+static inline void LCIU_spinlock_init(LCIU_spinlock_t* lock)
+{
   *lock = LCIU_SPIN_UNLOCKED;
 }
 
-static inline void LCIU_spinlock_fina(LCIU_spinlock_t* lock) {
+static inline void LCIU_spinlock_fina(LCIU_spinlock_t* lock)
+{
   *lock = LCIU_SPIN_UNLOCKED;
 }
 
@@ -35,7 +37,9 @@ static inline void LCIU_acquire_spinlock(LCIU_spinlock_t* lock)
       while (*lock) {
         asm("pause");
       }
-      if (!__sync_val_compare_and_swap(lock, LCIU_SPIN_UNLOCKED, LCIU_SPIN_LOCKED)) break;
+      if (!__sync_val_compare_and_swap(lock, LCIU_SPIN_UNLOCKED,
+                                       LCIU_SPIN_LOCKED))
+        break;
     }
   }
 }
@@ -43,7 +47,8 @@ static inline void LCIU_acquire_spinlock(LCIU_spinlock_t* lock)
 // return 1: succeed; return 0: unsucceed
 static inline int LCIU_try_acquire_spinlock(LCIU_spinlock_t* lock)
 {
-  return (__sync_lock_test_and_set(lock, LCIU_SPIN_LOCKED) == LCIU_SPIN_UNLOCKED);
+  return (__sync_lock_test_and_set(lock, LCIU_SPIN_LOCKED) ==
+          LCIU_SPIN_UNLOCKED);
 }
 
 static inline void LCIU_release_spinlock(LCIU_spinlock_t* lock)

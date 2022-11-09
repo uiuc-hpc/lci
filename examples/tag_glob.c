@@ -9,7 +9,8 @@
 int total = TOTAL;
 int skip = SKIP;
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   lc_ep def, ep;
   lc_init(1, &def);
   lc_opt opt = {.dev = 0, .desc = LC_EXP_NULL, .glob = 1};
@@ -32,24 +33,26 @@ int main(int argc, char** args) {
       memset(src_buf, 'a', size);
       memset(dst_buf, 'b', size);
 
-      if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
+      if (size > LARGE) {
+        total = TOTAL_LARGE;
+        skip = SKIP_LARGE;
+      }
 
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
         sync = 0;
-        while (lc_send(src_buf, size, 1-rank, tag, ep, lc_signal, &sync) != LC_OK)
+        while (lc_send(src_buf, size, 1 - rank, tag, ep, lc_signal, &sync) !=
+               LC_OK)
           lc_progress(0);
-        while (!sync)
-          lc_progress(0);
+        while (!sync) lc_progress(0);
 
         int c = lc_glob_mark(ep);
-        lc_recv(dst_buf, size, 1-rank, tag, ep, &req);
-        while (c == lc_glob_mark(ep))
-          lc_progress(0);
+        lc_recv(dst_buf, size, 1 - rank, tag, ep, &req);
+        while (c == lc_glob_mark(ep)) lc_progress(0);
 
         if (i == 0) {
           for (int j = 0; j < size; j++)
-            assert(((char*) src_buf)[j] == 'a' && ((char*)dst_buf)[j] == 'a');
+            assert(((char*)src_buf)[j] == 'a' && ((char*)dst_buf)[j] == 'a');
         }
       }
 
@@ -60,20 +63,21 @@ int main(int argc, char** args) {
     for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
       memset(src_buf, 'a', size);
       memset(dst_buf, 'b', size);
-      if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
+      if (size > LARGE) {
+        total = TOTAL_LARGE;
+        skip = SKIP_LARGE;
+      }
 
       for (int i = 0; i < total + skip; i++) {
         int c = lc_glob_mark(ep);
-        lc_recv(dst_buf, size, 1-rank, tag, ep, &req);
-        while (c == lc_glob_mark(ep))
-          lc_progress(0);
+        lc_recv(dst_buf, size, 1 - rank, tag, ep, &req);
+        while (c == lc_glob_mark(ep)) lc_progress(0);
 
         sync = 0;
-        while (lc_send(src_buf, size, 1-rank, tag, ep, lc_signal, &sync) != LC_OK)
+        while (lc_send(src_buf, size, 1 - rank, tag, ep, lc_signal, &sync) !=
+               LC_OK)
           lc_progress(0);
-        while (!sync)
-          lc_progress(0);
-
+        while (!sync) lc_progress(0);
       }
     }
   }

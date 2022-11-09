@@ -44,7 +44,7 @@ int main(int argc, char** args)
   total_threads = num_threads * num_worker;
   MPIV_Start_worker(num_worker + 1);
 
-  lc_thread* tid = (lc_thread*) malloc(total_threads * sizeof(lc_thread));
+  lc_thread* tid = (lc_thread*)malloc(total_threads * sizeof(lc_thread));
   set_me_to(0);
 
   double t = 0;
@@ -62,7 +62,7 @@ int main(int argc, char** args)
     // usleep(10);
     times[tt] = wutime();
     for (int i = 0; i < total_threads; i++) {
-      lc_sync* sync = (lc_sync*) tid[i];
+      lc_sync* sync = (lc_sync*)tid[i];
       thread_signal(sync);
     }
     times[tt] = (wutime() - times[tt]) / total_threads;
@@ -73,12 +73,10 @@ int main(int argc, char** args)
   free(tid);
 
   double sum = 0;
-  for (int i = 0; i < loop; i++)
-    sum += times[i];
+  for (int i = 0; i < loop; i++) sum += times[i];
   double mean = sum / loop;
   sum = 0;
-  for (int i = 0; i < loop; i++)
-    sum += (times[i] - mean) * (times[i] - mean);
+  for (int i = 0; i < loop; i++) sum += (times[i] - mean) * (times[i] - mean);
   double std = sqrt(sum / (loop - 1));
   printf("%.2f %.2f\n", mean, std);
   MPIV_Stop_worker();

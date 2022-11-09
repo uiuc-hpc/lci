@@ -2,7 +2,8 @@
 
 LCII_pcounters_per_thread_t LCII_pcounters[LCI_PCOUNTER_MAX_NTHREADS];
 
-void LCII_pcounters_init() {
+void LCII_pcounters_init()
+{
   for (int i = 0; i < LCI_PCOUNTER_MAX_NTHREADS; ++i) {
     LCII_pcounters[i].msgs_tx = 0;
     LCII_pcounters[i].bytes_tx = 0;
@@ -17,7 +18,8 @@ void LCII_pcounters_init() {
   }
 }
 
-LCII_pcounters_per_thread_t LCII_pcounters_accumulate() {
+LCII_pcounters_per_thread_t LCII_pcounters_accumulate()
+{
   LCII_pcounters_per_thread_t ret;
   memset(&ret, 0, sizeof(ret));
   for (int i = 0; i < LCIU_nthreads; ++i) {

@@ -13,11 +13,10 @@ int total = TOTAL;
 int skip = SKIP;
 void* buf;
 
-static void* alloc(size_t size, void* ctx) {
-  return buf;
-}
+static void* alloc(size_t size, void* ctx) { return buf; }
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   lc_ep ep, ep_q;
   lc_init(1, &ep);
   lc_opt opt = {.dev = 0, .desc = LC_DYN_CQ, .alloc = alloc};
@@ -36,16 +35,18 @@ int main(int argc, char** args) {
     for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
       memset(buf, 'a', size);
 
-      if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
+      if (size > LARGE) {
+        total = TOTAL_LARGE;
+        skip = SKIP_LARGE;
+      }
 
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
         meta = i;
-        lc_sends(buf, size, 1-rank, meta, ep_q);
+        lc_sends(buf, size, 1 - rank, meta, ep_q);
 
         lc_req* req_ptr;
-        while (lc_cq_pop(ep_q, &req_ptr) != LC_OK)
-          lc_progress(0);
+        while (lc_cq_pop(ep_q, &req_ptr) != LC_OK) lc_progress(0);
         assert(req_ptr->meta == i);
         lc_cq_reqfree(ep_q, req_ptr);
       }
@@ -56,17 +57,19 @@ int main(int argc, char** args) {
   } else {
     for (int size = MIN_MSG; size <= MAX_MSG; size <<= 1) {
       memset(buf, 'a', size);
-      if (size > LARGE) { total = TOTAL_LARGE; skip = SKIP_LARGE; }
+      if (size > LARGE) {
+        total = TOTAL_LARGE;
+        skip = SKIP_LARGE;
+      }
 
       for (int i = 0; i < total + skip; i++) {
         lc_req* req_ptr;
-        while (lc_cq_pop(ep_q, &req_ptr) != LC_OK)
-          lc_progress(0);
+        while (lc_cq_pop(ep_q, &req_ptr) != LC_OK) lc_progress(0);
         assert(req_ptr->meta == i);
         lc_cq_reqfree(ep_q, req_ptr);
 
         meta = i;
-        lc_sends(buf, size, 1-rank, meta, ep_q);
+        lc_sends(buf, size, 1 - rank, meta, ep_q);
       }
     }
   }

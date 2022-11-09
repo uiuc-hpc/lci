@@ -6,8 +6,8 @@
 
 void op_sum(void* dst, void* src, size_t count)
 {
-  int* dst_int = (int*) dst;
-  int* src_int = (int*) src;
+  int* dst_int = (int*)dst;
+  int* src_int = (int*)src;
   int i = 0;
   for (i = 0; i < count / sizeof(int); i++) {
     dst_int[i] += src_int[i];
@@ -17,27 +17,28 @@ volatile int cont = 1;
 
 void* poll_thread(void* arg)
 {
-    while (cont) {
-        lc_progress(0);
-        sched_yield();
-    }
-    return 0;
+  while (cont) {
+    lc_progress(0);
+    sched_yield();
+  }
+  return 0;
 }
 
 size_t total = TOTAL;
 size_t skip = SKIP;
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   lc_ep ep;
   lc_init(1, &ep);
   pthread_t thread;
-  pthread_create(&thread, NULL, poll_thread, (void*) ep);
+  pthread_create(&thread, NULL, poll_thread, (void*)ep);
 
   int t;
   lc_get_proc_num(&t);
 
   int* dst;
-  posix_memalign((void**) &dst, 4096, 1 << 22);
+  posix_memalign((void**)&dst, 4096, 1 << 22);
   lc_colreq colreq;
 
   double t1;
@@ -59,8 +60,7 @@ int main(int argc, char** args) {
   }
 
   t1 = wtime() - t1;
-  if (t == 0)
-    printf("%10.2f \n", 1e6 * t1 / total);
+  if (t == 0) printf("%10.2f \n", 1e6 * t1 / total);
 
   cont = 0;
   pthread_join(thread, 0);

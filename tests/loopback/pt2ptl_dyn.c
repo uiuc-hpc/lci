@@ -8,7 +8,8 @@
 
 int total = TOTAL_LARGE;
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   LCI_initialize();
   LCI_plist_t plist;
   LCI_plist_create(&plist);
@@ -38,7 +39,9 @@ int main(int argc, char** args) {
     src_buf.length = size;
     dst_buf.length = size;
 
-    if (size > LARGE) { total = TOTAL_LARGE; }
+    if (size > LARGE) {
+      total = TOTAL_LARGE;
+    }
 
     for (int i = 0; i < total; i++) {
       write_buffer(src_buf.address, size, 's');

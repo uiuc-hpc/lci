@@ -17,8 +17,7 @@ int main(int argc, char** args)
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   int total, skip;
 
-  if (argc > 2)
-    WINDOWS = atoi(args[1]);
+  if (argc > 2) WINDOWS = atoi(args[1]);
 
   void* buffer = 0;
   posix_memalign(&buffer, 4096, 1 << 22);
@@ -37,7 +36,7 @@ int main(int argc, char** args)
       int rank, tag, size;
       for (int i = 0; i < skip + total; i++) {
         if (i == skip) t1 = MPI_Wtime();
-        for (int j = 0 ; j < WINDOWS; j++)
+        for (int j = 0; j < WINDOWS; j++)
           // send
           MPI_Send(buffer, len, MPI_BYTE, 1, 0, MPI_COMM_WORLD);
 
@@ -47,19 +46,22 @@ int main(int argc, char** args)
         MPI_Get_count(&stat, MPI_BYTE, &size);
         rank = stat.MPI_SOURCE;
         tag = stat.MPI_TAG;
-        MPI_Recv(buffer, size, MPI_BYTE, rank, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(buffer, size, MPI_BYTE, rank, tag, MPI_COMM_WORLD,
+                 MPI_STATUS_IGNORE);
       }
-      printf("%d \t %.5f\n", len, (MPI_Wtime() - t1)/total / (WINDOWS+1) * 1e6);
+      printf("%d \t %.5f\n", len,
+             (MPI_Wtime() - t1) / total / (WINDOWS + 1) * 1e6);
     } else {
       for (int i = 0; i < skip + total; i++) {
-        for (int j = 0 ; j < WINDOWS; j++) {
+        for (int j = 0; j < WINDOWS; j++) {
           int rank, tag, size;
           MPI_Status stat;
           MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &stat);
           MPI_Get_count(&stat, MPI_BYTE, &size);
           rank = stat.MPI_SOURCE;
           tag = stat.MPI_TAG;
-          MPI_Recv(buffer, size, MPI_BYTE, rank, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+          MPI_Recv(buffer, size, MPI_BYTE, rank, tag, MPI_COMM_WORLD,
+                   MPI_STATUS_IGNORE);
         }
 
         // send

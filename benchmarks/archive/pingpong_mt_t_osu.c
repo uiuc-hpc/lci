@@ -14,7 +14,7 @@
 #include "lc/macro.h"
 #include "lc/helper.h"
 
-#define max(a,b) ((a)>(b)?(a):(b))
+#define max(a, b) ((a) > (b) ? (a) : (b))
 
 #include <pthread.h>
 #include <stdio.h>

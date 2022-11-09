@@ -31,14 +31,16 @@ LCI_error_t LCI_initialize()
   LCI_plist_create(&plist);
   LCI_endpoint_init(&LCI_UR_ENDPOINT, LCI_UR_DEVICE, plist);
   LCI_plist_free(&plist);
-  LCM_DBG_Warn("Macro LCI_DEBUG is defined. Running in low-performance debug mode!\n");
+  LCM_DBG_Warn(
+      "Macro LCI_DEBUG is defined. Running in low-performance debug mode!\n");
 
   opened = 1;
   LCI_barrier();
   return LCI_OK;
 }
 
-LCI_error_t LCI_initialized(int *flag) {
+LCI_error_t LCI_initialized(int* flag)
+{
   *flag = opened;
   return LCI_OK;
 }
@@ -63,7 +65,8 @@ LCI_error_t LCI_finalize()
   return LCI_OK;
 }
 
-LCI_error_t LCI_barrier() {
+LCI_error_t LCI_barrier()
+{
   lcm_pm_barrier();
   return LCI_OK;
 }

@@ -21,8 +21,8 @@ extern "C" {
 #endif
 
 typedef struct {
-  LCIU_spinlock_t lock; // size 4 align 4
-  LCM_dequeue_t dq;     // size 32 align 8
+  LCIU_spinlock_t lock;  // size 4 align 4
+  LCM_dequeue_t dq;      // size 32 align 8
   char padding[24];
 } LCII_local_pool_t __attribute__((aligned(64)));
 
@@ -68,12 +68,13 @@ static inline int32_t lc_pool_get_local(struct lc_pool* pool)
 
 static inline void* lc_pool_get_slow(struct lc_pool* pool, int32_t pid)
 {
-  void *ret = NULL;
+  void* ret = NULL;
   int32_t steal = LCIU_rand() % (pool->npools);
   size_t target_size = LCM_dq_size(pool->lpools[steal].dq);
   if (steal != pid && target_size > 0) {
     if (LCIU_try_acquire_spinlock(&pool->lpools[steal].lock)) {
-      size_t steal_size = LCM_dq_steal(&pool->lpools[pid].dq, &pool->lpools[steal].dq);
+      size_t steal_size =
+          LCM_dq_steal(&pool->lpools[pid].dq, &pool->lpools[steal].dq);
       if (steal_size > 0) {
         LCM_DBG_Log(LCM_LOG_DEBUG, "packet", "Packet steal %d->%d: %lu\n",
                     steal, pid, steal_size);
@@ -82,8 +83,8 @@ static inline void* lc_pool_get_slow(struct lc_pool* pool, int32_t pid)
       LCIU_release_spinlock(&pool->lpools[steal].lock);
     }
   }
-  LCII_PCOUNTERS_WRAPPER(
-      LCII_pcounters[LCIU_get_thread_id()].packet_stealing += 1);
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].packet_stealing +=
+                         1);
   return ret;
 }
 
@@ -115,4 +116,4 @@ static inline void* lc_pool_get_nb(struct lc_pool* pool)
   return elm;
 }
 
-#endif // LC_POOL_H_
+#endif  // LC_POOL_H_

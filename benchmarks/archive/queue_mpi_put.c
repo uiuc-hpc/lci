@@ -17,13 +17,12 @@ int main(int argc, char** args)
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   int total, skip;
 
-  if (argc > 2)
-    WINDOWS = atoi(args[1]);
+  if (argc > 2) WINDOWS = atoi(args[1]);
 
   MPI_Win win;
   MPI_Group comm_group, group;
-  MPI_Comm_group(MPI_COMM_WORLD,&comm_group);
-  int destrank = 1-rank;
+  MPI_Comm_group(MPI_COMM_WORLD, &comm_group);
+  int destrank = 1 - rank;
   MPI_Group_incl(comm_group, 1, &destrank, &group);
 
   for (size_t len = 1; len <= (1 << 22); len <<= 1) {
@@ -42,8 +41,7 @@ int main(int argc, char** args)
     MPI_Info_set(info, "no_locks", "true");
     MPI_Info_set(info, "same_disp_unit", "true");
 
-    MPI_Win_create(buffer, len, 1,
-      info, MPI_COMM_WORLD, &win);
+    MPI_Win_create(buffer, len, 1, info, MPI_COMM_WORLD, &win);
     MPI_Info_free(&info);
     MPI_Barrier(MPI_COMM_WIRLD);
 
@@ -57,7 +55,8 @@ int main(int argc, char** args)
         MPI_Win_post(group, 0, win);
         MPI_Win_wait(win);
       }
-      printf("%d \t %.5f\n", len, (MPI_Wtime() - t1)/total / (WINDOWS+1) * 1e6);
+      printf("%d \t %.5f\n", len,
+             (MPI_Wtime() - t1) / total / (WINDOWS + 1) * 1e6);
     } else {
       void* recv = malloc(len);
       for (int i = 0; i < skip + total; i++) {

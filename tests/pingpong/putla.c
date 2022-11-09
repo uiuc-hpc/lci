@@ -8,9 +8,10 @@
 
 int total = 10;
 
-int main(int argc, char** args) {
+int main(int argc, char** args)
+{
   LCI_initialize();
-  LCI_endpoint_t ep = LCI_UR_ENDPOINT; // we can directly use the default ep
+  LCI_endpoint_t ep = LCI_UR_ENDPOINT;  // we can directly use the default ep
   LCI_comp_t send_cq;
   LCI_queue_create(LCI_UR_DEVICE, &send_cq);
 
@@ -30,7 +31,8 @@ int main(int argc, char** args) {
       src_buf.length = size;
       for (int i = 0; i < total; i++) {
         write_buffer(src_buf.address, size, 's');
-        while (LCI_putla(ep, src_buf, send_cq, peer_rank, tag, LCI_DEFAULT_COMP_REMOTE, NULL) == LCI_ERR_RETRY)
+        while (LCI_putla(ep, src_buf, send_cq, peer_rank, tag,
+                         LCI_DEFAULT_COMP_REMOTE, NULL) == LCI_ERR_RETRY)
           LCI_progress(LCI_UR_DEVICE);
         while (LCI_queue_pop(send_cq, &request) == LCI_ERR_RETRY)
           LCI_progress(LCI_UR_DEVICE);
@@ -49,7 +51,8 @@ int main(int argc, char** args) {
           LCI_progress(LCI_UR_DEVICE);
         check_buffer(request.data.lbuffer.address, size, 's');
         LCI_lbuffer_free(request.data.lbuffer);
-        while (LCI_putla(ep, src_buf, send_cq, peer_rank, tag, LCI_DEFAULT_COMP_REMOTE, NULL) == LCI_ERR_RETRY)
+        while (LCI_putla(ep, src_buf, send_cq, peer_rank, tag,
+                         LCI_DEFAULT_COMP_REMOTE, NULL) == LCI_ERR_RETRY)
           LCI_progress(LCI_UR_DEVICE);
         while (LCI_queue_pop(send_cq, &request) == LCI_ERR_RETRY)
           LCI_progress(LCI_UR_DEVICE);

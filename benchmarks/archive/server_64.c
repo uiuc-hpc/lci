@@ -35,7 +35,7 @@ int main(int argc, char** args)
     p_send[i] = mv_pool_get(mv->pkpool);
     p_recv[i] = mv_pool_get(mv->pkpool);
   }
-    // mv_server_post_recv(mv->server, mv_pool_get(mv->pkpool));
+  // mv_server_post_recv(mv->server, mv_pool_get(mv->pkpool));
 
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -51,9 +51,9 @@ int main(int argc, char** args)
   for (int size = MIN_MSG_SIZE; size <= MAX_MSG_SIZE; size <<= 1) {
     double time = 0;
     MPI_Barrier(MPI_COMM_WORLD);
-    for (int exp = 0; exp < NEXP; exp ++) {
+    for (int exp = 0; exp < NEXP; exp++) {
       printf("%d..\n", exp);
-      if (rank == 0)  {
+      if (rank == 0) {
         for (int i = 0; i < TOTAL + SKIP; i++) {
           if (i == SKIP) {
             times[exp] = MPI_Wtime();
@@ -62,8 +62,9 @@ int main(int argc, char** args)
 
           // memcpy((void*) &p_send->data, src, size);
           for (int k = 0; k < WINDOWS; k++)
-            mv_server_send(mv->server, 1-rank, &p_send[k]->data,
-              (size_t)(size + sizeof(struct packet_header)), &p_send[k]->context);
+            mv_server_send(mv->server, 1 - rank, &p_send[k]->data,
+                           (size_t)(size + sizeof(struct packet_header)),
+                           &p_send[k]->context);
 
           MPI_Barrier(MPI_COMM_WORLD);
 
@@ -95,7 +96,6 @@ int main(int argc, char** args)
           for (int k = 0; k < WINDOWS; k++)
             mv_server_post_recv(mv->server, p_recv[k]);
 
-
           count = 0;
           times_p[exp] -= MPI_Wtime();
           while (count < WINDOWS) {
@@ -118,8 +118,7 @@ int main(int argc, char** args)
       MPI_Barrier(MPI_COMM_WORLD);
     }
     double sum = 0;
-    for (int i = 0; i < NEXP; i++)
-      sum += times_p[i];
+    for (int i = 0; i < NEXP; i++) sum += times_p[i];
     double mean = sum / NEXP;
     sum = 0;
     for (int i = 0; i < NEXP; i++)
@@ -136,5 +135,4 @@ int main(int argc, char** args)
   return 0;
 }
 
-void main_task(intptr_t arg) { }
-
+void main_task(intptr_t arg) {}
