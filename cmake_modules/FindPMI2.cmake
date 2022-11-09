@@ -1,8 +1,8 @@
 # Copyright (c)      2017 Thomas Heller
 #
-# SPDX-License-Identifier: BSL-1.0
-# Distributed under the Boost Software License, Version 1.0. (See accompanying
-# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+# SPDX-License-Identifier: BSL-1.0 Distributed under the Boost Software License,
+# Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
 
 find_package(PkgConfig QUIET)
 # look for cray pmi...
@@ -23,20 +23,14 @@ find_path(
         ${PC_PMI_INCLUDEDIR}
         ${PC_PMI_INCLUDE_DIRS}
         ${CMAKE_SOURCE_DIR}/src/pmi/pmi2/
-  PATH_SUFFIXES include
-)
+  PATH_SUFFIXES include)
 
 find_library(
   PMI2_LIBRARY
   NAMES pmi2 pmi
-  HINTS ${PMI2_ROOT}
-        $ENV{PMI2_ROOT}
-        ${PC_PMI_CRAY_LIBDIR}
-        ${PC_PMI_CRAY_LIBRARY_DIRS}
-        ${PC_PMI_LIBDIR}
-        ${PC_PMI_LIBRARY_DIRS}
-  PATH_SUFFIXES lib lib64
-)
+  HINTS ${PMI2_ROOT} $ENV{PMI2_ROOT} ${PC_PMI_CRAY_LIBDIR}
+        ${PC_PMI_CRAY_LIBRARY_DIRS} ${PC_PMI_LIBDIR} ${PC_PMI_LIBRARY_DIRS}
+  PATH_SUFFIXES lib lib64)
 
 # Set PMI2_ROOT in case the other hints are used
 if(PMI2_ROOT)
@@ -50,7 +44,8 @@ else()
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(PMI2 DEFAULT_MSG PMI2_LIBRARY PMI2_INCLUDE_DIR)
+find_package_handle_standard_args(PMI2 DEFAULT_MSG PMI2_LIBRARY
+                                  PMI2_INCLUDE_DIR)
 
 mark_as_advanced(PMI2_ROOT PMI2_LIBRARY PMI2_INCLUDE_DIR)
 

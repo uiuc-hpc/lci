@@ -1,17 +1,23 @@
-set(LCI_PM_BACKEND_DEFAULT pmi2 CACHE STRING "Process management backend to use")
+set(LCI_PM_BACKEND_DEFAULT
+    pmi2
+    CACHE STRING "Process management backend to use")
 set_property(CACHE LCI_PM_BACKEND_DEFAULT PROPERTY STRINGS pmi1 pmi2 mpi)
 
 set(LIBRARY_NAME LCI)
-target_sources_relative(${LIBRARY_NAME} PRIVATE pmi_wrapper.c pmi_wrapper_pmi1.c pmi_wrapper_pmi2.c)
+target_sources_relative(${LIBRARY_NAME} PRIVATE pmi_wrapper.c
+                        pmi_wrapper_pmi1.c pmi_wrapper_pmi2.c)
 add_subdirectory(pmi1)
 add_subdirectory(pmi2)
 find_package(MPI COMPONENTS C)
 if(MPI_FOUND)
-    set(LCI_PM_BACKEND_ENABLE_MPI ON CACHE STRING "Enable MPI as the process management backend")
-    target_sources_relative(${LIBRARY_NAME} PRIVATE pmi_wrapper_mpi.c)
-    cmake_policy(SET CMP0079 NEW)
-    target_link_libraries(${LIBRARY_NAME} PRIVATE MPI::MPI_C)
+  set(LCI_PM_BACKEND_ENABLE_MPI
+      ON
+      CACHE STRING "Enable MPI as the process management backend")
+  target_sources_relative(${LIBRARY_NAME} PRIVATE pmi_wrapper_mpi.c)
+  cmake_policy(SET CMP0079 NEW)
+  target_link_libraries(${LIBRARY_NAME} PRIVATE MPI::MPI_C)
 elseif(LCI_PM_BACKEND_DEFAULT STREQUAL "mpi")
-    message( FATAL_ERROR "LCI_PM_BACKEND_DEFAULT is set to MPI but MPI is not found." )
+  message(
+    FATAL_ERROR "LCI_PM_BACKEND_DEFAULT is set to MPI but MPI is not found.")
 endif()
 target_include_directories(${LIBRARY_NAME} PRIVATE .)

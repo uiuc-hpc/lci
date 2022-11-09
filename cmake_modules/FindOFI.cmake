@@ -44,26 +44,24 @@ include(FindPackageHandleStandardArgs)
 find_package(PkgConfig)
 
 pkg_check_modules(_OFI_PC QUIET libfabric)
-find_path(OFI_INCLUDE_DIR
-          NAMES "rdma/fabric.h"
-          PATHS ${_OFI_PC_INCLUDE_DIRS}
-          HINTS $ENV{OFI_ROOT} $ENV{LIBFABRIC_ROOT}
-          PATH_SUFFIXES include
-)
-find_library(OFI_LIBRARY
-             NAMES fabric
-             PATHS ${_OFI_PC_LIBRARY_DIRS}
-             HINTS $ENV{OFI_ROOT} $ENV{LIBFABRIC_ROOT}
-             PATH_SUFFIXES lib
-)
+find_path(
+  OFI_INCLUDE_DIR
+  NAMES "rdma/fabric.h"
+  PATHS ${_OFI_PC_INCLUDE_DIRS}
+  HINTS $ENV{OFI_ROOT} $ENV{LIBFABRIC_ROOT}
+  PATH_SUFFIXES include)
+find_library(
+  OFI_LIBRARY
+  NAMES fabric
+  PATHS ${_OFI_PC_LIBRARY_DIRS}
+  HINTS $ENV{OFI_ROOT} $ENV{LIBFABRIC_ROOT}
+  PATH_SUFFIXES lib)
 set(OFI_VERSION ${_OFI_PC_VERSION})
 
-find_package_handle_standard_args(OFI
-  REQUIRED_VARS
-    OFI_INCLUDE_DIR
-    OFI_LIBRARY
-  VERSION_VAR OFI_VERSION
-)
+find_package_handle_standard_args(
+  OFI
+  REQUIRED_VARS OFI_INCLUDE_DIR OFI_LIBRARY
+  VERSION_VAR OFI_VERSION)
 
 if(OFI_FOUND)
   set(OFI_INCLUDE_DIRS ${OFI_INCLUDE_DIR})
@@ -72,11 +70,11 @@ if(OFI_FOUND)
 
   if(NOT TARGET OFI::OFI)
     add_library(OFI::OFI UNKNOWN IMPORTED)
-    set_target_properties(OFI::OFI PROPERTIES
-      IMPORTED_LOCATION "${OFI_LIBRARY}"
-      INTERFACE_INCLUDE_DIRECTORIES "${OFI_INCLUDE_DIR}"
-      INTERFACE_COMPILE_OPTIONS "${_OFI_PC_CFLAGS_OTHER}"
-    )
+    set_target_properties(
+      OFI::OFI
+      PROPERTIES IMPORTED_LOCATION "${OFI_LIBRARY}"
+                 INTERFACE_INCLUDE_DIRECTORIES "${OFI_INCLUDE_DIR}"
+                 INTERFACE_COMPILE_OPTIONS "${_OFI_PC_CFLAGS_OTHER}")
   endif()
 
   mark_as_advanced(OFI_INCLUDE_DIR OFI_LIBRARY)

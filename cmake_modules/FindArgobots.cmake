@@ -44,32 +44,24 @@ include(FindPackageHandleStandardArgs)
 find_package(PkgConfig)
 
 pkg_check_modules(_Argobots_PC QUIET argobots)
-find_path(Argobots_INCLUDE_DIR
-        NAMES "abt.h"
-        HINTS
-        $ENV{ARGOBOTS_ROOT}
-        PATHS
-        ${_Argobots_PC_INCLUDE_DIRS}
-        PATH_SUFFIXES
-        include
-        )
-find_library(Argobots_LIBRARY
-        NAMES "abt"
-        HINTS
-        $ENV{ARGOBOTS_ROOT}
-        PATHS
-        ${_Argobots_PC_LIBRARY_DIRS}
-        PATH_SUFFIXES
-        lib
-        )
+find_path(
+  Argobots_INCLUDE_DIR
+  NAMES "abt.h"
+  HINTS $ENV{ARGOBOTS_ROOT}
+  PATHS ${_Argobots_PC_INCLUDE_DIRS}
+  PATH_SUFFIXES include)
+find_library(
+  Argobots_LIBRARY
+  NAMES "abt"
+  HINTS $ENV{ARGOBOTS_ROOT}
+  PATHS ${_Argobots_PC_LIBRARY_DIRS}
+  PATH_SUFFIXES lib)
 set(Argobots_VERSION ${_Argobots_PC_VERSION})
 
-find_package_handle_standard_args(Argobots
-        REQUIRED_VARS
-        Argobots_INCLUDE_DIR
-        Argobots_LIBRARY
-        VERSION_VAR Argobots_VERSION
-        )
+find_package_handle_standard_args(
+  Argobots
+  REQUIRED_VARS Argobots_INCLUDE_DIR Argobots_LIBRARY
+  VERSION_VAR Argobots_VERSION)
 
 if(Argobots_FOUND)
   set(Argobots_INCLUDE_DIRS ${Argobots_INCLUDE_DIR})
@@ -78,11 +70,11 @@ if(Argobots_FOUND)
 
   if(NOT TARGET Argobots::Argobots)
     add_library(Argobots::Argobots UNKNOWN IMPORTED)
-    set_target_properties(Argobots::Argobots PROPERTIES
-            IMPORTED_LOCATION "${Argobots_LIBRARY}"
-            INTERFACE_INCLUDE_DIRECTORIES "${Argobots_INCLUDE_DIR}"
-            INTERFACE_COMPILE_OPTIONS "${_Argobots_PC_CFLAGS_OTHER}"
-            )
+    set_target_properties(
+      Argobots::Argobots
+      PROPERTIES IMPORTED_LOCATION "${Argobots_LIBRARY}"
+                 INTERFACE_INCLUDE_DIRECTORIES "${Argobots_INCLUDE_DIR}"
+                 INTERFACE_COMPILE_OPTIONS "${_Argobots_PC_CFLAGS_OTHER}")
   endif()
 
   mark_as_advanced(Argobots_INCLUDE_DIR Argobots_LIBRARY)
