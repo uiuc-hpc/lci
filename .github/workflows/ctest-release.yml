@@ -50,4 +50,4 @@ jobs:
         run: |
             module load cmake ninja libfabric openmpi
             cd build
-            ctest --extra-verbose --timeout 60 --exclude-regex test-lcit.medium
+            ctest --extra-verbose --timeout 120 --exclude-regex test-lcit.medium
