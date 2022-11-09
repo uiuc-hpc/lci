@@ -1,0 +1,157 @@
+docker_default: &docker_default
+  docker:
+    - image: iampapadi/lci:latest
+
+# Use the latest 2.1 version of CircleCI pipeline process engine.
+# See: https://circleci.com/docs/2.0/configuration-reference
+version: 2.1
+
+jobs:
+  checkout_code:
+    <<: *docker_default
+    working_directory: /lci
+    steps:
+      - checkout:
+          path: /lci/source-full
+      # Make a shallow clone of the current commit so that we don't have to copy
+      # the whole repository between work steps.
+      - run:
+          name: Creating shallow clone
+          command: |
+            git clone --depth=1 file:///lci/source-full source
+      - persist_to_workspace:
+          root: /lci
+          paths:
+            - ./source
+
+  # Ensure that the modules stay clang-formatted
+  clang_format:
+    <<: *docker_default
+    working_directory: /lci/source
+    steps:
+      - attach_workspace:
+          at: /lci
+      - run:
+          name: Check that the source code is well clang-formatted
+          command: |
+            shopt -s globstar # to activate the ** globbing
+            clang-format-11 --version
+            clang-format-11 -i **/*.{c,h,cpp,hpp}
+            git diff --exit-code > /tmp/clang_format_results.txt
+      - store_artifacts:
+          path: /tmp/clang_format_results.txt
+          destination: /lci/artifacts/clang_format_results.txt
+
+  # Ensure that CMake files stay cmake-formatted
+  cmake_format:
+    <<: *docker_default
+    working_directory: /lci/source
+    steps:
+      - attach_workspace:
+          at: /lci
+      - run:
+          name: Check that CMake files are well cmake-formatted
+          command: |
+            shopt -s globstar # to activate the ** globbing
+            cmake-format --version
+            cmake-format -i **/*.cmake **/CMakeLists.txt
+            git diff --exit-code > /tmp/cmake_format_results.txt
+      - store_artifacts:
+          path: /tmp/cmake_format_results.txt
+          destination: /lci/artifacts/cmake_format_results.txt
+
+  configure:
+    <<: *docker_default
+    working_directory: /lci/build
+    steps:
+      - attach_workspace:
+          at: /lci
+      - run:
+          name: Running CMake Configure
+          command: |
+            module load cmake ninja libfabric openmpi
+            cmake \
+                -S /lci/source \
+                -B /lci/build \
+                -GNinja \
+                -DCMAKE_BUILD_TYPE=Debug \
+                -DLCI_SERVER=ofi \
+                -DLCI_DEBUG=ON
+      - persist_to_workspace:
+          root: /lci
+          paths:
+            - ./build
+
+  build:
+    <<: *docker_default
+    working_directory: /lci/build
+    steps:
+      - attach_workspace:
+          at: /lci
+      - run:
+          name: Running CMake Build
+          command: |
+            module load cmake ninja libfabric openmpi
+            cmake --build /lci/build --target all
+      - persist_to_workspace:
+          root: /lci
+          paths:
+            - ./build
+
+  ctest-small:
+    <<: *docker_default
+    working_directory: /lci/build
+    resource_class: medium
+    steps:
+      - attach_workspace:
+          at: /lci
+      - run:
+          name: Running CTest
+          command: |
+            ulimit -c unlimited
+            module load cmake ninja libfabric openmpi
+            ctest --extra-verbose --timeout 120 --exclude-regex test-lcit.medium \
+                  --test-dir /lci/build --output-junit out.xml
+      - store_test_results:
+          path: /lci/build/out.xml
+
+  ctest-medium:
+    <<: *docker_default
+    working_directory: /lci/build
+    resource_class: large
+    steps:
+      - attach_workspace:
+          at: /lci
+      - run:
+          name: Running CTest
+          command: |
+            ulimit -c unlimited
+            module load cmake ninja libfabric openmpi
+            ctest --extra-verbose --timeout 120 --tests-regex test-lcit.medium \
+                  --test-dir /lci/build --output-junit out.xml
+      - store_test_results:
+          path: /lci/build/out.xml
+
+workflows:
+  version: 2
+  build-and-test:
+    jobs:
+      - checkout_code
+      - clang_format:
+          requires:
+            - checkout_code
+      - cmake_format:
+          requires:
+            - checkout_code
+      - configure:
+          requires:
+            - checkout_code
+      - build:
+          requires:
+            - configure
+      - ctest-small:
+          requires:
+            - build
+#      - ctest-medium:
+#          requires:
+#            - build
