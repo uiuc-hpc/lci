@@ -12,6 +12,11 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
 
   // Create hint.
   char* p = getenv("LCI_OFI_PROVIDER_HINT");
+#ifdef LCI_OFI_PROVIDER_HINT_DEFAULT
+  if (p == NULL) {
+    p = LCI_OFI_PROVIDER_HINT_DEFAULT;
+  }
+#endif
   char* prov_name_hint = NULL;
   if (p != NULL) {
     prov_name_hint = malloc(strlen(p) + 1);
@@ -24,6 +29,9 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
   //  hints->domain_attr->mr_mode = FI_MR_BASIC;
   hints->domain_attr->mr_mode =
       FI_MR_VIRT_ADDR | FI_MR_ALLOCATED | FI_MR_PROV_KEY | FI_MR_LOCAL;
+  if (strcmp(prov_name_hint, "cxi") == 0) {
+    hints->domain_attr->mr_mode |= FI_MR_ENDPOINT;
+  }
   hints->domain_attr->threading = FI_THREAD_SAFE;
   hints->domain_attr->control_progress = FI_PROGRESS_MANUAL;
   hints->domain_attr->data_progress = FI_PROGRESS_MANUAL;

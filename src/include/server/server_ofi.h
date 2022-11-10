@@ -47,6 +47,10 @@ static inline void* LCISI_real_server_reg(LCIS_server_t s, void* buf,
   FI_SAFECALL(fi_mr_reg(server->domain, buf, size,
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, rdma_key, 0,
                         &mr, 0));
+  if (server->info->domain_attr->mr_mode & FI_MR_ENDPOINT) {
+    FI_SAFECALL(fi_mr_bind(mr, &server->ep->fid, 0));
+    FI_SAFECALL(fi_mr_enable(mr));
+  }
   return (void*)mr;
 }
 
