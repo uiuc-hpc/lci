@@ -34,8 +34,6 @@ typedef struct LCISI_server_t {
   struct fid_cq* cq;
   struct fid_av* av;
   fi_addr_t* peer_addrs;
-  int* qp2rank;
-  int qp2rank_mod;
 } LCISI_server_t __attribute__((aligned(64)));
 
 extern int g_next_rdma_key;
@@ -110,12 +108,11 @@ static inline int LCISD_poll_cq(LCIS_server_t s, LCIS_cq_entry_t* entry)
 {
   LCISI_server_t* server = (LCISI_server_t*)s;
   struct fi_cq_data_entry fi_entry[LCI_CQ_MAX_POLL];
-  fi_addr_t src_addrs[LCI_CQ_MAX_POLL];
   struct fi_cq_err_entry error;
   ssize_t ne;
   int ret;
 
-  ne = fi_cq_readfrom(server->cq, &fi_entry, LCI_CQ_MAX_POLL, src_addrs);
+  ne = fi_cq_read(server->cq, &fi_entry, LCI_CQ_MAX_POLL);
   ret = ne;
   if (ne > 0) {
     // Got an entry here
@@ -124,9 +121,8 @@ static inline int LCISD_poll_cq(LCIS_server_t s, LCIS_cq_entry_t* entry)
         entry[i].opcode = LCII_OP_RECV;
         entry[i].ctx = fi_entry[i].op_context;
         entry[i].length = fi_entry[i].len;
-        entry[i].imm_data = fi_entry[i].data;
-        LCM_Assert(src_addrs[i] != FI_ADDR_NOTAVAIL, "cannot get source address!");
-        entry[i].rank = server->qp2rank[src_addrs[i] % server->qp2rank_mod];
+        entry[i].imm_data = fi_entry[i].data & ((1ULL << 32) - 1);
+        entry[i].rank = (int) (fi_entry[i].data >> 32);
       } else if (fi_entry[i].flags & FI_REMOTE_WRITE) {
         entry[i].opcode = LCII_OP_RDMA_WRITE;
         entry[i].ctx = NULL;
@@ -161,7 +157,7 @@ static inline LCI_error_t LCISD_post_sends(LCIS_server_t s, int rank, void* buf,
                                            size_t size, LCIS_meta_t meta)
 {
   LCISI_server_t* server = (LCISI_server_t*)s;
-  ssize_t ret = fi_injectdata(server->ep, buf, size, meta,
+  ssize_t ret = fi_injectdata(server->ep, buf, size, (uint64_t)LCI_RANK << 32 | meta,
                            server->peer_addrs[rank]);
   if (ret == FI_SUCCESS)
     return LCI_OK;
@@ -176,7 +172,7 @@ static inline LCI_error_t LCISD_post_send(LCIS_server_t s, int rank, void* buf,
                                           LCIS_meta_t meta, void* ctx)
 {
   LCISI_server_t* server = (LCISI_server_t*)s;
-  ssize_t ret = fi_senddata(server->ep, buf, size, ofi_rma_lkey(mr), meta,
+  ssize_t ret = fi_senddata(server->ep, buf, size, ofi_rma_lkey(mr), (uint64_t)LCI_RANK << 32 | meta,
                          server->peer_addrs[rank], (struct fi_context*)ctx);
   if (ret == FI_SUCCESS)
     return LCI_OK;

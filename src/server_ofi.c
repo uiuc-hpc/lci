@@ -35,7 +35,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
   hints->domain_attr->threading = FI_THREAD_SAFE;
   hints->domain_attr->control_progress = FI_PROGRESS_MANUAL;
   hints->domain_attr->data_progress = FI_PROGRESS_MANUAL;
-  hints->caps = FI_RMA | FI_MSG | FI_SOURCE;
+  hints->caps = FI_RMA | FI_MSG;
   hints->mode = FI_LOCAL_MR;
 
   // Create info.
@@ -67,7 +67,6 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
           fi_tostr(server->info->domain_attr, FI_TYPE_DOMAIN_ATTR));
   LCM_Log(LCM_LOG_MAX, "ofi", "Endpoint attributes: %s\n",
           fi_tostr(server->info->ep_attr, FI_TYPE_EP_ATTR));
-  LCM_Assert((server->info->caps & FI_SOURCE) != 0UL, "caps: %lx, did not get FI_SOURCE!\n", server->info->caps);
   LCM_Assert(server->info->domain_attr->cq_data_size >= 4,
              "cq_data_size (%lu) is too small!\n",
              server->info->domain_attr->cq_data_size);
@@ -142,29 +141,6 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
       LCM_Assert(ret == 1, "fi_av_insert failed! ret = %d\n", ret);
     }
   }
-
-  int j = LCI_NUM_PROCESSES;
-  int* b;
-  while (j < INT32_MAX) {
-    b = (int*)calloc(j, sizeof(int));
-    int i = 0;
-    for (; i < LCI_NUM_PROCESSES; i++) {
-      int k = (int) (server->peer_addrs[i] % j);
-      if (b[k]) break;
-      b[k] = 1;
-    }
-    if (i == LCI_NUM_PROCESSES) break;
-    j++;
-    free(b);
-  }
-  LCM_Assert(j != INT32_MAX,
-             "Cannot find a suitable mod to hold qp2rank map\n");
-  for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
-    b[server->peer_addrs[i] % j] = i;
-  }
-  server->qp2rank_mod = j;
-  server->qp2rank = b;
-  LCM_Log(LCM_LOG_INFO, "ofi", "qp2rank_mod is %d\n", j);
 
   lcm_pm_barrier();
 }
