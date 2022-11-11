@@ -122,7 +122,7 @@ static inline int LCISD_poll_cq(LCIS_server_t s, LCIS_cq_entry_t* entry)
         entry[i].ctx = fi_entry[i].op_context;
         entry[i].length = fi_entry[i].len;
         entry[i].imm_data = fi_entry[i].data & ((1ULL << 32) - 1);
-        entry[i].rank = (int) (fi_entry[i].data >> 32);
+        entry[i].rank = (int)(fi_entry[i].data >> 32);
       } else if (fi_entry[i].flags & FI_REMOTE_WRITE) {
         entry[i].opcode = LCII_OP_RDMA_WRITE;
         entry[i].ctx = NULL;
@@ -150,15 +150,17 @@ static inline void LCISD_post_recv(LCIS_server_t s, void* buf, uint32_t size,
                                    LCIS_mr_t mr, void* ctx)
 {
   LCISI_server_t* server = (LCISI_server_t*)s;
-  FI_SAFECALL(fi_recv(server->ep, buf, size, ofi_rma_lkey(mr), FI_ADDR_UNSPEC, ctx));
+  FI_SAFECALL(
+      fi_recv(server->ep, buf, size, ofi_rma_lkey(mr), FI_ADDR_UNSPEC, ctx));
 }
 
 static inline LCI_error_t LCISD_post_sends(LCIS_server_t s, int rank, void* buf,
                                            size_t size, LCIS_meta_t meta)
 {
   LCISI_server_t* server = (LCISI_server_t*)s;
-  ssize_t ret = fi_injectdata(server->ep, buf, size, (uint64_t)LCI_RANK << 32 | meta,
-                           server->peer_addrs[rank]);
+  ssize_t ret =
+      fi_injectdata(server->ep, buf, size, (uint64_t)LCI_RANK << 32 | meta,
+                    server->peer_addrs[rank]);
   if (ret == FI_SUCCESS)
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
@@ -172,8 +174,9 @@ static inline LCI_error_t LCISD_post_send(LCIS_server_t s, int rank, void* buf,
                                           LCIS_meta_t meta, void* ctx)
 {
   LCISI_server_t* server = (LCISI_server_t*)s;
-  ssize_t ret = fi_senddata(server->ep, buf, size, ofi_rma_lkey(mr), (uint64_t)LCI_RANK << 32 | meta,
-                         server->peer_addrs[rank], (struct fi_context*)ctx);
+  ssize_t ret = fi_senddata(server->ep, buf, size, ofi_rma_lkey(mr),
+                            (uint64_t)LCI_RANK << 32 | meta,
+                            server->peer_addrs[rank], (struct fi_context*)ctx);
   if (ret == FI_SUCCESS)
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
@@ -196,7 +199,7 @@ static inline LCI_error_t LCISD_post_puts(LCIS_server_t s, int rank, void* buf,
     addr = offset;
   }
   ssize_t ret = fi_inject_write(server->ep, buf, size, server->peer_addrs[rank],
-                            addr, rkey);
+                                addr, rkey);
   if (ret == FI_SUCCESS)
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
@@ -219,7 +222,7 @@ static inline LCI_error_t LCISD_post_put(LCIS_server_t s, int rank, void* buf,
     addr = offset;
   }
   ssize_t ret = fi_write(server->ep, buf, size, ofi_rma_lkey(mr),
-                     server->peer_addrs[rank], addr, rkey, ctx);
+                         server->peer_addrs[rank], addr, rkey, ctx);
   if (ret == FI_SUCCESS)
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
@@ -243,7 +246,7 @@ static inline LCI_error_t LCISD_post_putImms(LCIS_server_t s, int rank,
     addr = offset;
   }
   ssize_t ret = fi_inject_writedata(server->ep, buf, size, meta,
-                                server->peer_addrs[rank], addr, rkey);
+                                    server->peer_addrs[rank], addr, rkey);
   if (ret == FI_SUCCESS)
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
@@ -268,7 +271,7 @@ static inline LCI_error_t LCISD_post_putImm(LCIS_server_t s, int rank,
     addr = offset;
   }
   ssize_t ret = fi_writedata(server->ep, buf, size, ofi_rma_lkey(mr), meta,
-                         server->peer_addrs[rank], addr, rkey, ctx);
+                             server->peer_addrs[rank], addr, rkey, ctx);
   if (ret == FI_SUCCESS)
     return LCI_OK;
   else if (ret == -FI_EAGAIN)

@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdint.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -46,9 +47,9 @@ void LCM_Init(int rank);
 
 void LCM_Fina();
 
-static inline void LCM_Assert_(const char* expr_str, int expr, const char* file,
-                               const char* func, int line, const char* format,
-                               ...)
+static inline void LCM_Assert_(const char* expr_str, uint64_t expr,
+                               const char* file, const char* func, int line,
+                               const char* format, ...)
     __attribute__((__format__(__printf__, 6, 7)));
 
 static inline void LCM_Log_(enum LCM_log_level_t log_level,
@@ -66,7 +67,7 @@ extern char* LCM_LOG_whitelist_p;
 extern char* LCM_LOG_blacklist_p;
 extern FILE* LCM_LOG_OUTFILE;
 
-void LCM_Assert_(const char* expr_str, int expr, const char* file,
+void LCM_Assert_(const char* expr_str, uint64_t expr, const char* file,
                  const char* func, int line, const char* format, ...)
 {
   if (expr) return;
