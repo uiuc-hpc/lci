@@ -106,16 +106,16 @@ jobs:
       - attach_workspace:
           at: /lci
       - run:
-          name: Running CTest
+          name: Running CTest excluding LCIT tests
           command: |
             ulimit -c unlimited
             module load cmake ninja libfabric openmpi
-            ctest --extra-verbose --timeout 120 --exclude-regex test-lcit.medium \
-                  --test-dir /lci/build --output-junit out.xml
+            ctest --extra-verbose --timeout 60 --exclude-regex test-lcit \
+                  --test-dir /lci/build --output-junit ctest-small.out.xml
       - store_test_results:
-          path: /lci/build/out.xml
+          path: /lci/build/ctest-small.out.xml
 
-  ctest-medium:
+  ctest-lcit-small:
     <<: *docker_default
     working_directory: /lci/build
     resource_class: large
@@ -123,14 +123,31 @@ jobs:
       - attach_workspace:
           at: /lci
       - run:
-          name: Running CTest
+          name: Running CTest LCIT small tests
+          command: |
+            ulimit -c unlimited
+            module load cmake ninja libfabric openmpi
+            ctest --extra-verbose --timeout 120 --tests-regex test-lcit.small \
+                  --test-dir /lci/build --output-junit ctest-lcit-small.out.xml
+      - store_test_results:
+          path: /lci/build/ctest-lcit-small.out.xml
+
+  ctest-lcit-medium:
+    <<: *docker_default
+    working_directory: /lci/build
+    resource_class: large
+    steps:
+      - attach_workspace:
+          at: /lci
+      - run:
+          name: Running CTest LCIT medium tests
           command: |
             ulimit -c unlimited
             module load cmake ninja libfabric openmpi
             ctest --extra-verbose --timeout 120 --tests-regex test-lcit.medium \
-                  --test-dir /lci/build --output-junit out.xml
+                  --test-dir /lci/build --output-junit ctest-lcit-medium.out.xml
       - store_test_results:
-          path: /lci/build/out.xml
+          path: /lci/build/ctest-lcit-medium.out.xml
 
 workflows:
   version: 2
@@ -150,6 +167,9 @@ workflows:
           requires:
             - configure
       - ctest-small:
+          requires:
+            - build
+      - ctest-lcit-small:
           requires:
             - build
 #      - ctest-medium:
