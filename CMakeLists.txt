@@ -153,6 +153,8 @@ endif()
 # set_target_properties(LCI PROPERTIES OUTPUT_NAME lci)
 add_subdirectory(include)
 add_subdirectory(src)
+add_subdirectory(dependency)
+target_link_libraries(LCI PRIVATE lci-ucx)
 if(LCI_WITH_EXAMPLES)
   # add_subdirectory(examples)
 endif()
@@ -180,6 +182,11 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 
   install(
     TARGETS LCI
+    EXPORT LCITargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+  install(
+    TARGETS lci-ucx
     EXPORT LCITargets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
