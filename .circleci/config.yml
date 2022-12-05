@@ -10,6 +10,7 @@ jobs:
   checkout_code:
     <<: *docker_default
     working_directory: /lci
+    resource_class: small
     steps:
       - checkout:
           path: /lci/source-full
@@ -36,6 +37,22 @@ jobs:
           command: |
             shopt -s globstar # to activate the ** globbing
             clang-format-11 --version
+            pwd
+            ls
+            cd /lci/source/include
+            ls **/*.{c,h,cpp,hpp}
+            clang-format-11 -i **/*.{c,h,cpp,hpp}
+            cd /lci/source/src
+            ls **/*.{c,h,cpp,hpp}
+            clang-format-11 -i **/*.{c,h,cpp,hpp}
+            cd /lci/source/tests
+            ls **/*.{c,h,cpp,hpp}
+            clang-format-11 -i **/*.{c,h,cpp,hpp}
+            cd /lci/source/examples
+            ls **/*.{c,h,cpp,hpp}
+            clang-format-11 -i **/*.{c,h,cpp,hpp}
+            cd /lci/source/benchmarks
+            ls **/*.{c,h,cpp,hpp}
             clang-format-11 -i **/*.{c,h,cpp,hpp}
             git diff --exit-code > /tmp/clang_format_results.txt
       - store_artifacts:
@@ -46,6 +63,7 @@ jobs:
   cmake_format:
     <<: *docker_default
     working_directory: /lci/source
+    resource_class: small
     steps:
       - attach_workspace:
           at: /lci
@@ -63,6 +81,7 @@ jobs:
   configure:
     <<: *docker_default
     working_directory: /lci/build
+    resource_class: small
     steps:
       - attach_workspace:
           at: /lci
@@ -85,6 +104,7 @@ jobs:
   build:
     <<: *docker_default
     working_directory: /lci/build
+    resource_class: small
     steps:
       - attach_workspace:
           at: /lci
