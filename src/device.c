@@ -6,6 +6,9 @@ LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
   *device_ptr = device;
   device->recv_posted = 0;
   LCIS_init(device, &device->server);
+  if (LCI_USE_DREG) {
+    LCII_rcache_init(device);
+  }
 
   LCII_mt_init(&device->mt, 0);
   LCM_archive_init(&(device->ctx_archive), 16);
@@ -54,6 +57,9 @@ LCI_error_t LCI_device_free(LCI_device_t* device_ptr)
   LCIU_spinlock_fina(&device->bq_spinlock);
   LCI_lbuffer_free(device->heap);
   lc_pool_destroy(device->pkpool);
+  if (LCI_USE_DREG) {
+    LCII_rcache_fina(device);
+  }
   LCIS_finalize(device->server);
   LCIU_free(device);
   *device_ptr = NULL;
@@ -153,7 +159,7 @@ LCI_error_t LCI_progress(LCI_device_t device)
     } else {
       packet->context.poolid = lc_pool_get_local(device->pkpool);
       LCIS_post_recv(device->server, packet->data.address, LCI_MEDIUM_SIZE,
-                     *(device->heap.segment), packet);
+                     device->heap.segment->mr, packet);
       ++device->recv_posted;
       ret = LCI_OK;
     }

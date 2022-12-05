@@ -31,6 +31,9 @@ set(LCI_SYNC
 set_property(CACHE LCI_SYNC PROPERTY STRINGS flag argobots)
 
 option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
+set(LCI_USE_DREG_DEFAULT
+    1
+    CACHE STRING "Whether to use registration cache")
 set(LCI_PACKET_SIZE
     12288
     CACHE STRING "Size of packet")
@@ -132,7 +135,7 @@ if(LCI_OPTIMIZE_FOR_NATIVE)
   endif()
 endif()
 
-add_library(LCI)
+add_library(LCI src/include/lcii_rcache.h)
 set_target_properties(
   LCI
   PROPERTIES C_VISIBILITY_PRESET hidden
@@ -154,6 +157,7 @@ endif()
 add_subdirectory(include)
 add_subdirectory(src)
 add_subdirectory(dependency)
+target_include_directories(LCI PRIVATE dependency/ucx)
 target_link_libraries(LCI PRIVATE lci-ucx)
 if(LCI_WITH_EXAMPLES)
   # add_subdirectory(examples)

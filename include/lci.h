@@ -94,8 +94,8 @@ typedef void* LCI_comp_t;
  * All LCI communication must take place in memory segments, which represent
  * memory regions registered to devices.
  */
-struct LCIS_mr_t;
-typedef struct LCIS_mr_t* LCI_segment_t;
+struct LCII_mr_t;
+typedef struct LCII_mr_t* LCI_segment_t;
 
 /**
  * LCI long communication buffer
@@ -318,13 +318,6 @@ extern int LCI_TOUCH_LBUFFER;
  * 1: Use.
  */
 extern int LCI_USE_DREG;
-
-/**
- * Whether or what to use memory hooks for munmap and sbrk:
- * 0: Don't use.
- * 1: Use.
- */
-extern int LCI_USE_DREG_HOOKS;
 
 /**
  * Whether or what to use IBV prefetch:

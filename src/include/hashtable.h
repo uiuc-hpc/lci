@@ -110,6 +110,8 @@ static inline int lc_hash_insert(struct lc_hash* h, lc_key key, lc_value* value,
       *value = hentry->entry.val;
       hentry->entry.tag = EMPTY;
       LCIU_release_spinlock(&master->control.lock);
+      LCM_DBG_Log(LCM_LOG_DEBUG, "hashtable",
+                  "insert (%lx, %p, %d), return 0\n", key, value, type);
       return 0;
     } else if (tag == EMPTY) {
       // Ortherwise, if the tag is empty, we record the slot.
@@ -147,6 +149,8 @@ static inline int lc_hash_insert(struct lc_hash* h, lc_key key, lc_value* value,
   empty_hentry->entry.tag = (key << 1) | type;
   empty_hentry->entry.val = *value;
   LCIU_release_spinlock(&master->control.lock);
+  LCM_DBG_Log(LCM_LOG_DEBUG, "hashtable", "insert (%lx, %p, %d), return 1\n",
+              key, value, type);
   return 1;
 }
 

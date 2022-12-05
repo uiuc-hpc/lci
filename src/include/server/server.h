@@ -7,8 +7,7 @@ typedef struct LCID_server_opaque_t* LCIS_server_t;
 typedef uint64_t LCIS_offset_t;
 
 typedef struct LCIS_mr_t {
-  // an opaque handler representing a dreg_entry (if env LCI_USE_DREG is 1)
-  // or a server-specific mr object
+  // server-specific mr object
   void* mr_p;
   void* address;
   size_t length;

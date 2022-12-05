@@ -25,7 +25,6 @@ LCI_API int LCI_PACKET_RETURN_THRESHOLD;
 LCI_API int LCI_IBV_USE_ODP;
 LCI_API int LCI_TOUCH_LBUFFER;
 LCI_API int LCI_USE_DREG;
-LCI_API int LCI_USE_DREG_HOOKS;
 LCI_API int LCI_IBV_USE_PREFETCH;
 LCI_API int LCI_SERVER_NUM_PKTS;
 LCI_API int LCI_SERVER_MAX_SENDS;
@@ -51,15 +50,7 @@ void lc_env_init(int num_proc, int rank)
   LCI_PACKET_RETURN_THRESHOLD = getenv_or("LCI_PACKET_RETURN_THRESHOLD", 1024);
   LCI_IBV_USE_ODP = getenv_or("LCI_IBV_USE_ODP", 0);
   LCI_TOUCH_LBUFFER = getenv_or("LCI_TOUCH_LBUFFER", 0);
-  LCI_USE_DREG = getenv_or("LCI_USE_DREG", 0);
-  LCI_USE_DREG_HOOKS =
-      getenv_or("LCI_USE_DREG_HOOKS", LCI_USE_DREG && !LCI_IBV_USE_ODP);
-  if (LCI_USE_DREG && LCI_IBV_USE_ODP == 0 && LCI_USE_DREG_HOOKS == 0) {
-    LCM_Warn(
-        "The registration cache is enabled "
-        "but the memory hooks is disabled. The program might "
-        "be buggy when the allocation/free is too dynamic\n");
-  }
+  LCI_USE_DREG = getenv_or("LCI_USE_DREG", LCI_USE_DREG_DEFAULT);
   if (LCI_USE_DREG && LCI_IBV_USE_ODP == 2) {
     LCM_Warn(
         "It doesn't make too much sense to use registration cache "

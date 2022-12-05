@@ -176,15 +176,15 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet,
     LCM_DBG_Assert(LCII_comp_attr_get_dereg(rdv_ctx->comp_attr) == 0, "\n");
   }
   packet->data.rtr.remote_addr_base =
-      (uintptr_t)rdv_ctx->data.lbuffer.segment->address;
+      (uintptr_t)rdv_ctx->data.lbuffer.segment->mr.address;
   packet->data.rtr.remote_addr_offset =
       (uintptr_t)rdv_ctx->data.lbuffer.address -
       packet->data.rtr.remote_addr_base;
-  packet->data.rtr.rkey = LCIS_rma_rkey(*(rdv_ctx->data.lbuffer.segment));
+  packet->data.rtr.rkey = LCIS_rma_rkey(rdv_ctx->data.lbuffer.segment->mr);
 
   LCIS_post_send_bq(ep->bq_p, ep->bq_spinlock_p, ep->device->server,
                     rdv_ctx->rank, packet->data.address,
-                    sizeof(struct packet_rtr), *(ep->device->heap.segment),
+                    sizeof(struct packet_rtr), ep->device->heap.segment->mr,
                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx);
 }
 
@@ -201,7 +201,7 @@ static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
   LCIS_post_putImm_bq(
       ep->bq_p, ep->bq_spinlock_p, ep->device->server, ctx->rank,
       ctx->data.lbuffer.address, ctx->data.lbuffer.length,
-      *(ctx->data.lbuffer.segment), packet->data.rtr.remote_addr_base,
+      ctx->data.lbuffer.segment->mr, packet->data.rtr.remote_addr_base,
       packet->data.rtr.remote_addr_offset, packet->data.rtr.rkey,
       LCII_MAKE_PROTO(ep->gid, LCI_MSG_LONG, packet->data.rtr.recv_ctx_key),
       ctx);
@@ -257,11 +257,11 @@ static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep, lc_packet* packet,
   LCM_Assert(result == LCM_SUCCESS, "Archive is full!\n");
   packet->data.rtr.recv_ctx_key = ctx_key;
   packet->data.rtr.remote_addr_base =
-      (uintptr_t)rdv_ctx->data.lbuffer.segment->address;
+      (uintptr_t)rdv_ctx->data.lbuffer.segment->mr.address;
   packet->data.rtr.remote_addr_offset =
       (uintptr_t)rdv_ctx->data.lbuffer.address -
       packet->data.rtr.remote_addr_base;
-  packet->data.rtr.rkey = LCIS_rma_rkey(*(rdv_ctx->data.lbuffer.segment));
+  packet->data.rtr.rkey = LCIS_rma_rkey(rdv_ctx->data.lbuffer.segment->mr);
 
   LCM_DBG_Log(LCM_LOG_DEBUG, "rdv",
               "send rtr: type %d sctx %p base %p offset %lu "
@@ -272,7 +272,7 @@ static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep, lc_packet* packet,
               packet->data.rtr.recv_ctx_key);
   LCIS_post_send_bq(ep->bq_p, ep->bq_spinlock_p, ep->device->server,
                     rdv_ctx->rank, packet->data.address,
-                    sizeof(struct packet_rtr), *(ep->device->heap.segment),
+                    sizeof(struct packet_rtr), ep->device->heap.segment->mr,
                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx);
 }
 
@@ -289,7 +289,7 @@ static inline void LCII_handle_1sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
   LCIS_post_putImm_bq(
       ep->bq_p, ep->bq_spinlock_p, ep->device->server, ctx->rank,
       ctx->data.lbuffer.address, ctx->data.lbuffer.length,
-      *(ctx->data.lbuffer.segment), packet->data.rtr.remote_addr_base,
+      ctx->data.lbuffer.segment->mr, packet->data.rtr.remote_addr_base,
       packet->data.rtr.remote_addr_offset, packet->data.rtr.rkey,
       LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_LONG,
                       packet->data.rtr.recv_ctx_key),
@@ -349,12 +349,12 @@ static inline void LCII_handle_iovec_rts(LCI_endpoint_t ep, lc_packet* packet,
   packet->data.rtr.recv_ctx = (uintptr_t)rdv_ctx;
   for (int i = 0; i < rdv_ctx->data.iovec.count; ++i) {
     packet->data.rtr.remote_iovecs_p[i].remote_addr_base =
-        (uintptr_t)rdv_ctx->data.iovec.lbuffers[i].segment->address;
+        (uintptr_t)rdv_ctx->data.iovec.lbuffers[i].segment->mr.address;
     packet->data.rtr.remote_iovecs_p[i].remote_addr_offset =
         (uintptr_t)rdv_ctx->data.iovec.lbuffers[i].address -
         packet->data.rtr.remote_iovecs_p[i].remote_addr_base;
     packet->data.rtr.remote_iovecs_p[i].rkey =
-        LCIS_rma_rkey(*(rdv_ctx->data.iovec.lbuffers[i].segment));
+        LCIS_rma_rkey(rdv_ctx->data.iovec.lbuffers[i].segment->mr);
   }
 
   LCM_DBG_Log(LCM_LOG_DEBUG, "rdv",
@@ -366,7 +366,7 @@ static inline void LCII_handle_iovec_rts(LCI_endpoint_t ep, lc_packet* packet,
       (uintptr_t)packet->data.address;
   LCIS_post_send_bq(ep->bq_p, ep->bq_spinlock_p, ep->device->server,
                     rdv_ctx->rank, packet->data.address, length,
-                    *(ep->device->heap.segment),
+                    ep->device->heap.segment->mr,
                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx);
 }
 
@@ -395,7 +395,7 @@ static inline void LCII_handle_iovec_rtr(LCI_endpoint_t ep, lc_packet* packet)
     LCIS_post_put_bq(ep->bq_p, ep->bq_spinlock_p, ep->device->server, ctx->rank,
                      ctx->data.iovec.lbuffers[i].address,
                      ctx->data.iovec.lbuffers[i].length,
-                     *(ctx->data.iovec.lbuffers[i].segment),
+                     ctx->data.iovec.lbuffers[i].segment->mr,
                      packet->data.rtr.remote_iovecs_p[i].remote_addr_base,
                      packet->data.rtr.remote_iovecs_p[i].remote_addr_offset,
                      packet->data.rtr.remote_iovecs_p[i].rkey, ectx);

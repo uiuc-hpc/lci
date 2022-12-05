@@ -9,9 +9,8 @@
 #include "lcm_dequeue.h"
 #include "lcm_archive.h"
 #include "pmi_wrapper.h"
-#include "mem_hooks.h"
-#include "dreg.h"
 #include "server/server.h"
+#include "lcii_rcache.h"
 #include "backlog_queue.h"
 
 struct lc_packet;
@@ -22,9 +21,6 @@ typedef struct lc_pool lc_pool;
 
 struct lc_hash;
 typedef struct lc_hash lc_hash;
-
-struct lc_req;
-typedef struct lc_rep lc_rep;
 
 struct lc_hash;
 typedef struct lc_hash* LCI_mt_t;
@@ -48,9 +44,11 @@ struct LCI_device_s {
   LCIS_server_t server;  // 8B
   lc_pool* pkpool;       // 8B
   LCI_mt_t mt;           // 8B
+  LCII_rcache_t rcache;  // 8B
   LCI_lbuffer_t heap;    // 24B
   char padding0[64 - sizeof(LCIS_server_t) - sizeof(lc_pool*) -
-                sizeof(LCI_mt_t) - sizeof(LCI_lbuffer_t)];
+                sizeof(LCI_mt_t) - sizeof(LCII_rcache_t*) -
+                sizeof(LCI_lbuffer_t)];
   // the following will be changed locally by a progress thread
   int recv_posted;  // 4B
   char padding1[64 - sizeof(int)];
@@ -93,6 +91,13 @@ struct LCI_endpoint_s {
 
   int gid;
 };
+
+struct LCII_mr_t {
+  LCI_device_t device;
+  void* region;
+  LCIS_mr_t mr;
+};
+typedef struct LCII_mr_t LCII_mr_t;
 
 /**
  * Internal context structure, Used by asynchronous operations to pass

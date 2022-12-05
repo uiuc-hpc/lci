@@ -21,6 +21,7 @@ target_sources_relative(
   handler.c
   pcounter.c
   monitor_thread.c
+  lcii_rcache.c
   ${CMAKE_CURRENT_SOURCE_DIR}/$<$<BOOL:${LCI_SYNC_ABT}>:sync_abt.c>
   ${CMAKE_CURRENT_SOURCE_DIR}/$<$<BOOL:${LCI_SYNC_FLAG}>:sync_flag.c>)
 
@@ -30,5 +31,4 @@ elseif(LCI_USE_SERVER_IBV)
   target_sources_relative(LCI PRIVATE server_ibv.c)
 endif()
 
-add_subdirectory(dreg)
 add_subdirectory(include)

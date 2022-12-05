@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <errno.h>
 #include "infiniband/verbs.h"
-#include "dreg.h"
 
 #define IBV_SAFECALL(x)                                                        \
   {                                                                            \
@@ -69,11 +68,7 @@ static inline void LCISI_real_server_dereg(void* mem)
 
 static inline uint32_t ibv_rma_lkey(LCIS_mr_t mr)
 {
-  if (LCI_USE_DREG) {
-    return ((struct ibv_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]))->lkey;
-  } else {
-    return ((struct ibv_mr*)mr.mr_p)->lkey;
-  }
+  return ((struct ibv_mr*)mr.mr_p)->lkey;
 }
 
 static inline LCIS_mr_t LCISD_rma_reg(LCIS_server_t s, void* buf, size_t size)
@@ -84,12 +79,6 @@ static inline LCIS_mr_t LCISD_rma_reg(LCIS_server_t s, void* buf, size_t size)
     mr.mr_p = server->odp_mr;
     mr.address = buf;
     mr.length = size;
-  } else if (LCI_USE_DREG) {
-    dreg_entry* entry = dreg_register(s, buf, size);
-    LCM_DBG_Assert(entry != NULL, "Unable to register more memory!\n");
-    mr.mr_p = entry;
-    mr.address = (void*)(entry->pagenum << DREG_PAGEBITS);
-    mr.length = entry->npages << DREG_PAGEBITS;
   } else {
     mr.mr_p = LCISI_real_server_reg(s, buf, size);
     mr.address = buf;
@@ -111,8 +100,6 @@ static inline void LCISD_rma_dereg(LCIS_mr_t mr)
 {
   if (LCI_IBV_USE_ODP == 2) {
     // do nothing
-  } else if (LCI_USE_DREG) {
-    dreg_unregister((dreg_entry*)mr.mr_p);
   } else {
     LCISI_real_server_dereg(mr.mr_p);
   }
@@ -120,11 +107,7 @@ static inline void LCISD_rma_dereg(LCIS_mr_t mr)
 
 static inline LCIS_rkey_t LCISD_rma_rkey(LCIS_mr_t mr)
 {
-  if (LCI_USE_DREG) {
-    return ((struct ibv_mr*)(((dreg_entry*)mr.mr_p)->memhandle[0]))->rkey;
-  } else {
-    return ((struct ibv_mr*)mr.mr_p)->rkey;
-  }
+  return ((struct ibv_mr*)mr.mr_p)->rkey;
 }
 
 static inline int LCISD_poll_cq(LCIS_server_t s, LCIS_cq_entry_t* entry)

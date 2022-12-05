@@ -18,12 +18,6 @@ LCI_error_t LCI_initialize()
   LCII_monitor_thread_init();
 
   // Set some constant from environment variable.
-  if (LCI_USE_DREG_HOOKS) {
-    mvapich2_minit();
-  }
-  if (LCI_USE_DREG) {
-    dreg_init();
-  }
   LCI_device_init(&LCI_UR_DEVICE);
 
   LCI_queue_create(LCI_UR_DEVICE, &LCI_UR_CQ);
@@ -51,12 +45,6 @@ LCI_error_t LCI_finalize()
   LCI_endpoint_free(&LCI_UR_ENDPOINT);
   LCI_queue_free(&LCI_UR_CQ);
   LCI_device_free(&LCI_UR_DEVICE);
-  if (LCI_USE_DREG) {
-    dreg_finalize();
-  }
-  if (LCI_USE_DREG_HOOKS) {
-    mvapich2_mfin();
-  }
   LCII_monitor_thread_fina();
   LCM_Fina();
   lcm_pm_finalize();
