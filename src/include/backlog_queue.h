@@ -56,7 +56,7 @@ static inline void LCII_bq_fini(LCII_backlog_queue_t* bq_p)
     }
     bq_p->head = NULL;
     bq_p->tail = NULL;
-    LCM_Assert(bq_p->length == 0, "backlog queue is in a incosistent state\n");
+    LCM_Assert(bq_p->length == 0, "backlog queue is in an incosistent state\n");
   }
   LCM_Log(LCM_LOG_INFO, "bq", "backlog queue's maximum length is %d\n",
           bq_p->max_length);

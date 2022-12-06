@@ -6,15 +6,15 @@
 #include <errno.h>
 #include "infiniband/verbs.h"
 
-#define IBV_SAFECALL(x)                                                        \
-  {                                                                            \
-    int err = (x);                                                             \
-    if (err) {                                                                 \
-      LCM_Assert(false, "err %d : %s (%s:%d)\n", err, strerror(err), __FILE__, \
-                 __LINE__);                                                    \
-    }                                                                          \
-  }                                                                            \
-  while (0)                                                                    \
+#define IBV_SAFECALL(x)                                                            \
+  {                                                                                \
+    int err = (x);                                                                 \
+    if (err) {                                                                     \
+      LCM_DBG_Assert(false, "err %d : %s (%s:%d)\n", err, strerror(err), __FILE__, \
+                 __LINE__);                                                        \
+    }                                                                              \
+  }                                                                                \
+  while (0)                                                                        \
     ;
 
 typedef struct LCISI_server_t {
@@ -115,10 +115,10 @@ static inline int LCISD_poll_cq(LCIS_server_t s, LCIS_cq_entry_t* entry)
   LCISI_server_t* server = (LCISI_server_t*)s;
   struct ibv_wc wc[LCI_CQ_MAX_POLL];
   int ne = ibv_poll_cq(server->cq, LCI_CQ_MAX_POLL, wc);
-  LCM_Assert(ne >= 0, "ibv_poll_cq returns error %d\n", ne);
+  LCM_DBG_Assert(ne >= 0, "ibv_poll_cq returns error %d\n", ne);
 
   for (int i = 0; i < ne; i++) {
-    LCM_Assert(wc[i].status == IBV_WC_SUCCESS,
+    LCM_DBG_Assert(wc[i].status == IBV_WC_SUCCESS,
                "Failed status %s (%d) for wr_id %d\n",
                ibv_wc_status_str(wc[i].status), wc[i].status, (int)wc[i].wr_id);
     if (wc[i].opcode == IBV_WC_RECV) {
@@ -132,7 +132,7 @@ static inline int LCISD_poll_cq(LCIS_server_t s, LCIS_cq_entry_t* entry)
       entry[i].ctx = (void*)wc[i].wr_id;
       entry[i].imm_data = wc[i].imm_data;
     } else {
-      LCM_Assert(
+      LCM_DBG_Assert(
           wc[i].opcode == IBV_WC_SEND || wc[i].opcode == IBV_WC_RDMA_WRITE,
           "Unexpected IBV opcode!\n");
       entry[i].opcode = LCII_OP_SEND;

@@ -12,16 +12,16 @@
 #include <rdma/fi_errno.h>
 #include <rdma/fi_rma.h>
 
-#define FI_SAFECALL(x)                                                    \
-  {                                                                       \
-    int err = (x);                                                        \
-    if (err < 0) err = -err;                                              \
-    if (err) {                                                            \
-      LCM_Assert(false, "err : %s (%s:%d)\n", fi_strerror(err), __FILE__, \
-                 __LINE__);                                               \
-    }                                                                     \
-  }                                                                       \
-  while (0)                                                               \
+#define FI_SAFECALL(x)                                                        \
+  {                                                                           \
+    int err = (x);                                                            \
+    if (err < 0) err = -err;                                                  \
+    if (err) {                                                                \
+      LCM_DBG_Assert(false, "err : %s (%s:%d)\n", fi_strerror(err), __FILE__, \
+                 __LINE__);                                                   \
+    }                                                                         \
+  }                                                                           \
+  while (0)                                                                   \
     ;
 
 typedef struct LCISI_server_t {
