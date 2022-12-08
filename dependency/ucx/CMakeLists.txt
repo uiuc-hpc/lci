@@ -15,6 +15,7 @@ target_compile_definitions(lci-ucx PRIVATE HAVE_CONFIG_H)
 target_compile_definitions(lci-ucx PRIVATE UCX_SHARED_LIBRARY)
 target_compile_definitions(lci-ucx PRIVATE "UCM_MALLOC_PREFIX=ucm_dl")
 target_compile_definitions(lci-ucx PRIVATE "CPU_FLAGS=")
+target_compile_options(lci-ucx PRIVATE "-Wno-deprecated-declarations")
 
 include(GNUInstallDirs)
 set(UCX_MODULE_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/lci-ucx)
