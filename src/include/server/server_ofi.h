@@ -18,7 +18,7 @@
     if (err < 0) err = -err;                                                  \
     if (err) {                                                                \
       LCM_DBG_Assert(false, "err : %s (%s:%d)\n", fi_strerror(err), __FILE__, \
-                 __LINE__);                                                   \
+                     __LINE__);                                               \
     }                                                                         \
   }                                                                           \
   while (0)                                                                   \

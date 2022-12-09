@@ -21,7 +21,9 @@ set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv)
 option(LCI_DEBUG "LCI Debug Mode" OFF)
 option(LCI_OPTIMIZE_FOR_NATIVE "Build with -march=native" OFF)
 option(LCI_USE_AVX "Use GCC vector extension for the immediate field" ON)
-option(LCI_USE_MUTEX_CQ "Use mutex lock to ensure the thread safety of the completion queue." OFF)
+option(LCI_USE_MUTEX_CQ
+       "Use mutex lock to ensure the thread safety of the completion queue."
+       OFF)
 
 set(LCI_EP_CE
     sync cq am

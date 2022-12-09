@@ -37,23 +37,10 @@ jobs:
           command: |
             shopt -s globstar # to activate the ** globbing
             clang-format-11 --version
-            pwd
-            ls
-            cd /lci/source/include
-            ls **/*.{c,h,cpp,hpp}
-            clang-format-11 -i **/*.{c,h,cpp,hpp}
-            cd /lci/source/src
-            ls **/*.{c,h,cpp,hpp}
-            clang-format-11 -i **/*.{c,h,cpp,hpp}
-            cd /lci/source/tests
-            ls **/*.{c,h,cpp,hpp}
-            clang-format-11 -i **/*.{c,h,cpp,hpp}
-            cd /lci/source/examples
-            ls **/*.{c,h,cpp,hpp}
-            clang-format-11 -i **/*.{c,h,cpp,hpp}
-            cd /lci/source/benchmarks
-            ls **/*.{c,h,cpp,hpp}
-            clang-format-11 -i **/*.{c,h,cpp,hpp}
+            clang-format-11 -i $(find include -type f -name "*.h" -o -name "*.c" -o -name "*.hpp" -o -name "*.cpp")
+            clang-format-11 -i $(find src -type f -name "*.h" -o -name "*.c" -o -name "*.hpp" -o -name "*.cpp")
+            clang-format-11 -i $(find examples -type f -name "*.h" -o -name "*.c" -o -name "*.hpp" -o -name "*.cpp")
+            clang-format-11 -i $(find tests -type f -name "*.h" -o -name "*.c" -o -name "*.hpp" -o -name "*.cpp")
             git diff --exit-code > /tmp/clang_format_results.txt
       - store_artifacts:
           path: /tmp/clang_format_results.txt
