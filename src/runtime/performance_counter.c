@@ -1,4 +1,4 @@
-#include "lcii.h"
+#include "runtime/lcii.h"
 
 LCII_pcounters_per_thread_t LCII_pcounters[LCI_PCOUNTER_MAX_NTHREADS];
 

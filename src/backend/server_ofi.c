@@ -1,4 +1,4 @@
-#include "lcii.h"
+#include "runtime/lcii.h"
 
 static int g_device_num = 0;
 int g_next_rdma_key = 0;

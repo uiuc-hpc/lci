@@ -1,5 +1,5 @@
 #include <limits.h>
-#include "lcii.h"
+#include "runtime/lcii.h"
 
 LCI_API int LCI_NUM_PROCESSES;
 LCI_API int LCI_RANK;

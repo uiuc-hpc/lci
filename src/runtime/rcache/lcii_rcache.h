@@ -1,6 +1,6 @@
 #ifndef LCI_LCII_RCACHE_H
 #define LCI_LCII_RCACHE_H
-#include "lcii.h"
+#include "runtime/lcii.h"
 
 typedef void* LCII_rcache_t;
 

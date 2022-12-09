@@ -1,35 +1,33 @@
+add_subdirectory(include)
 add_subdirectory(pmi)
 
-target_include_directories(LCI PRIVATE include)
 target_include_directories(LCI PRIVATE .)
 target_sources_relative(
   LCI
   PRIVATE
-  1sided.c
-  cq.c
-  lci.c
-  memory.c
-  lcrq.c
-  misc.c
-  mt.c
-  plist.c
-  pool.c
-  pt2pt.c
-  lcm_log.c
-  env.c
-  device.c
-  endpoint.c
-  handler.c
-  pcounter.c
-  monitor_thread.c
-  lcii_rcache.c
-  ${CMAKE_CURRENT_SOURCE_DIR}/$<$<BOOL:${LCI_SYNC_ABT}>:sync_abt.c>
-  ${CMAKE_CURRENT_SOURCE_DIR}/$<$<BOOL:${LCI_SYNC_FLAG}>:sync_flag.c>)
+  runtime/1sided_primitive.c
+  runtime/completion/cq.c
+  runtime/lci.c
+  runtime/memory_registration.c
+  runtime/matching_table.c
+  runtime/property_list.c
+  runtime/packet_pool.c
+  runtime/2sided_primitive.c
+  sys/lcm_log.c
+  runtime/env.c
+  runtime/device.c
+  runtime/endpoint.c
+  runtime/completion/amhandler.c
+  runtime/performance_counter.c
+  runtime/monitor_thread.c
+  runtime/rcache/lcii_rcache.c
+  runtime/completion/sync_flag.c)
 
 if(LCI_USE_SERVER_OFI)
-  target_sources_relative(LCI PRIVATE server_ofi.c)
+  target_sources_relative(LCI PRIVATE backend/server_ofi.c)
 elseif(LCI_USE_SERVER_IBV)
-  target_sources_relative(LCI PRIVATE server_ibv.c)
+  target_sources_relative(LCI PRIVATE backend/server_ibv.c)
 endif()
 
-add_subdirectory(include)
+configure_file(lcii_config.h.in lcii_config.h @ONLY)
+target_include_directories(LCI PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

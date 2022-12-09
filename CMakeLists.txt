@@ -19,7 +19,7 @@ set(LCI_SERVER
     CACHE STRING "Fabric")
 set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv)
 option(LCI_DEBUG "LCI Debug Mode" OFF)
-option(LCI_OPTIMIZE_FOR_NATIVE "Build with -march=native" OFF)
+option(LCI_OPTIMIZE_FOR_NATIVE "Build with -march=native" ON)
 option(LCI_USE_AVX "Use GCC vector extension for the immediate field" ON)
 option(LCI_USE_MUTEX_CQ
        "Use mutex lock to ensure the thread safety of the completion queue."
@@ -28,10 +28,6 @@ option(LCI_USE_MUTEX_CQ
 set(LCI_EP_CE
     sync cq am
     CACHE STRING "Completion mechanism (sync, cq, am, glob)")
-set(LCI_SYNC
-    flag
-    CACHE STRING "Sync mechanism")
-set_property(CACHE LCI_SYNC PROPERTY STRINGS flag argobots)
 
 option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
 set(LCI_USE_DREG_DEFAULT
@@ -58,7 +54,7 @@ set(LCI_SERVER_NUM_PKTS_DEFAULT
 set(LCI_CACHE_LINE
     64
     CACHE STRING "Size of cache line (bytes)")
-option(LCI_USE_PERFORMANCE_COUNTER "Use performance counter" ON)
+option(LCI_USE_PERFORMANCE_COUNTER "Use performance counter" OFF)
 mark_as_advanced(
   LCI_CONFIG_USE_ALIGNED_ALLOC
   LCI_PACKET_SIZE
@@ -97,31 +93,12 @@ if("glob" IN_LIST LCI_EP_CE)
   set(LCI_SERVER_HAS_GLOB ON)
 endif()
 
-if(LCI_SYNC STREQUAL "flag")
-  set(LCI_SYNC_FLAG ON)
-elseif(LCI_SYNC STREQUAL "argobots")
-  set(LCI_SYNC_ABT ON)
-else()
-  message(FATAL_ERROR "Sync mechanism ${LCI_SYNC} not supported")
-endif()
-
-set(USE_AFFI
-    ON
-    CACHE BOOL "CPU affinity")
-mark_as_advanced(USE_AFFI)
-if(USE_AFFI)
-  set(AFF_DEBUG ON)
-  add_compile_definitions(USE_AFFI AFF_DEBUG)
-endif()
-
 # find package set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 # set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
 string(TOUPPER ${LCI_SERVER} FABRIC)
 find_package(${FABRIC} REQUIRED)
-
-find_package(Argobots)
 
 option(LCI_USE_GPROF "Enable GPROF" OFF)
 if(LCI_USE_GPROF)
@@ -138,29 +115,21 @@ if(LCI_OPTIMIZE_FOR_NATIVE)
   endif()
 endif()
 
-add_library(LCI src/include/lcii_rcache.h)
+add_library(LCI src/runtime/rcache/lcii_rcache.h)
 set_target_properties(
   LCI
   PROPERTIES C_VISIBILITY_PRESET hidden
              C_STANDARD 11
              C_EXTENSIONS ON)
 target_compile_definitions(LCI PRIVATE _GNU_SOURCE)
-target_include_directories(
-  LCI
-  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
-         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-target_link_libraries(LCI PUBLIC Threads::Threads ${FABRIC}::${FABRIC}
-                                 $<$<BOOL:${LCI_SYNC_ABT}>:Argobots::Argobots>)
+target_link_libraries(LCI PUBLIC Threads::Threads ${FABRIC}::${FABRIC})
 if(LCI_USE_AVX)
   target_compile_options(LCI PUBLIC -mavx)
 endif()
 
 # set_target_properties(LCI PROPERTIES OUTPUT_NAME lci)
-add_subdirectory(include)
 add_subdirectory(src)
 add_subdirectory(dependency)
-target_include_directories(LCI PRIVATE dependency/ucx)
 target_link_libraries(LCI PRIVATE lci-ucx)
 if(LCI_WITH_EXAMPLES)
   # add_subdirectory(examples)
@@ -203,12 +172,12 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     NAMESPACE LCI::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LCI)
   install(
-    DIRECTORY include/
+    DIRECTORY src/include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     FILES_MATCHING
     PATTERN "*.h")
   install(
-    DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/
+    DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/src/include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     FILES_MATCHING
     PATTERN "*.h")

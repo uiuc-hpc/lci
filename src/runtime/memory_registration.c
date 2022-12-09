@@ -1,5 +1,5 @@
 #include "lci.h"
-#include "lcii.h"
+#include "runtime/lcii.h"
 
 /** @defgroup LCIMemory LCI memory management
  * This group is for LCI memory and buffer management.

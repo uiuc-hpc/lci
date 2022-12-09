@@ -1,4 +1,4 @@
-#include "lcii.h"
+#include "runtime/lcii.h"
 
 LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
 {

@@ -1,7 +1,7 @@
 #ifndef LCI_PMI_WRAPPER_H
 #define LCI_PMI_WRAPPER_H
 
-#include "lcii.h"
+#include "runtime/lcii.h"
 
 #if defined(__cplusplus)
 extern "C" {

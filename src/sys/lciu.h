@@ -98,8 +98,8 @@ static inline int LCIU_rand()
   return rand_r(&LCIU_rand_seed);
 }
 
-#include "lcm_spinlock.h"
-#include "lciu_mem.h"
+#include "sys/lcm_spinlock.h"
+#include "sys/lciu_mem.h"
 
 #if 0
 #define LC_SET_REQ_DONE_AND_SIGNAL(t, r)                                 \

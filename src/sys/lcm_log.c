@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <pthread.h>
-#include "lcm_log.h"
+#include "sys/lcm_log.h"
 
 LCM_API const char* const log_levels[] = {[LCM_LOG_WARN] = "warn",
                                           [LCM_LOG_TRACE] = "trace",

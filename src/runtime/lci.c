@@ -1,4 +1,4 @@
-#include "lcii.h"
+#include "runtime/lcii.h"
 
 static int opened = 0;
 int LCIU_nthreads = 0;

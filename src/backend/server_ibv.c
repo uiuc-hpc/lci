@@ -1,4 +1,4 @@
-#include "lcii.h"
+#include "runtime/lcii.h"
 
 static const int max_sge_num = 1;
 static const int inline_size = 236;

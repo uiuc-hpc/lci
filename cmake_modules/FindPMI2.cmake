@@ -40,7 +40,7 @@ elseif("$ENV{PMI2_ROOT}")
   file(TO_CMAKE_PATH $ENV{PMI2_ROOT} PMI2_ROOT)
 else()
   file(TO_CMAKE_PATH "${PMI2_INCLUDE_DIR}" PMI2_INCLUDE_DIR)
-  string(REPLACE "/include" "" PMI2_ROOT "${PMI2_INCLUDE_DIR}")
+  string(REPLACE "/src/include" "" PMI2_ROOT "${PMI2_INCLUDE_DIR}")
 endif()
 
 include(FindPackageHandleStandardArgs)

@@ -1,4 +1,4 @@
-#include "pool.h"
+#include "runtime/packet_pool.h"
 
 TEST(POOL, InitFini)
 {

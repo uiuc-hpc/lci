@@ -1,5 +1,5 @@
 #include "lci.h"
-#include "lcii.h"
+#include "runtime/lcii.h"
 
 LCI_error_t LCI_sends(LCI_endpoint_t ep, LCI_short_t src, int rank,
                       LCI_tag_t tag)

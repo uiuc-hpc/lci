@@ -3,15 +3,15 @@
 
 #include "lcii_config.h"
 #include "lci.h"
-#include "lcm_log.h"
-#include "lciu.h"
-#include "pcounter.h"
+#include "sys/lcm_log.h"
+#include "sys/lciu.h"
+#include "performance_counter.h"
 #include "datastructure/lcm_dequeue.h"
 #include "datastructure/lcm_aqueue.h"
 #include "datastructure/lcm_archive.h"
 #include "pmi_wrapper.h"
-#include "server/server.h"
-#include "lcii_rcache.h"
+#include "backend/server.h"
+#include "runtime/rcache/lcii_rcache.h"
 #include "backlog_queue.h"
 
 struct lc_packet;
@@ -239,9 +239,9 @@ void LCII_monitor_thread_init();
 void LCII_monitor_thread_fina();
 
 #include "datastructure/hashtable.h"
-#include "cq.h"
-#include "pool.h"
+#include "runtime/completion/cq.h"
+#include "packet_pool.h"
 #include "packet.h"
 #include "lcii_rdv.h"
-#include "proto.h"
+#include "protocol.h"
 #endif

@@ -1,4 +1,4 @@
-#include "lcii.h"
+#include "runtime/lcii.h"
 
 int32_t tls_pool_struct[MAX_NPOOLS]
                        [MAX_LOCAL_POOL];  // = {-1, -1, -1, -1, -1, -1, -1, -1};

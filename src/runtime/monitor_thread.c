@@ -1,4 +1,4 @@
-#include "lcii.h"
+#include "runtime/lcii.h"
 
 // needed by the monitor threads
 static pthread_t LCII_monitor_thread;

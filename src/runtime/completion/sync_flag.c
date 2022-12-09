@@ -1,4 +1,4 @@
-#include "lcii.h"
+#include "runtime/lcii.h"
 
 struct LCII_sync_t {
   volatile int count;

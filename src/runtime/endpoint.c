@@ -1,4 +1,4 @@
-#include "lcii.h"
+#include "runtime/lcii.h"
 
 LCI_endpoint_t* LCI_ENDPOINTS;
 
