@@ -16,7 +16,7 @@
 #include <cstring>
 #include <sys/time.h>
 #include "lci.h"
-#include "../../src/sys/lcm_log.h"
+#include "../../src/log/lcm_log.h"
 #include "lcit_threadbarrier.h"
 
 #ifndef LCIT_BENCH

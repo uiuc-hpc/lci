@@ -1,6 +1,6 @@
 #ifndef LCIT_THREADBARRIER_HPP
 #define LCIT_THREADBARRIER_HPP
-#include "../../src/sys/lcm_log.h"
+#include "../../src/log/lcm_log.h"
 
 class ThreadBarrier
 {

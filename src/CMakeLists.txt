@@ -1,10 +1,11 @@
-add_subdirectory(include)
+add_subdirectory(api)
 add_subdirectory(pmi)
 
 target_include_directories(LCI PRIVATE .)
 target_sources_relative(
   LCI
   PRIVATE
+  log/lcm_log.c
   runtime/1sided_primitive.c
   runtime/completion/cq.c
   runtime/lci.c
@@ -13,7 +14,6 @@ target_sources_relative(
   runtime/property_list.c
   runtime/packet_pool.c
   runtime/2sided_primitive.c
-  sys/lcm_log.c
   runtime/env.c
   runtime/device.c
   runtime/endpoint.c

@@ -12,10 +12,8 @@
 
 #define __UNUSED__ __attribute__((unused))
 
-#define STATIC_ASSERT(COND, MSG) \
+#define LCIU_STATIC_ASSERT(COND, MSG) \
   typedef char static_assertion_##MSG[(COND) ? 1 : -1]
-
-static inline void LCII_MEM_FENCE() { asm volatile("mfence" ::: "memory"); }
 
 static inline uint32_t LCIU_set_bits32(uint32_t flag, uint32_t val, int width,
                                        int offset)
@@ -98,8 +96,21 @@ static inline int LCIU_rand()
   return rand_r(&LCIU_rand_seed);
 }
 
-#include "sys/lcm_spinlock.h"
-#include "sys/lciu_mem.h"
+// getenv
+static inline int LCIU_getenv_or(char* env, int def)
+{
+  int ret;
+  char* val = getenv(env);
+  if (val != NULL) {
+    ret = atoi(val);
+  } else {
+    ret = def;
+  }
+  LCM_Log(LCM_LOG_INFO, "env", "set %s to be %d\n", env, ret);
+  return ret;
+}
+#include "sys/lciu_spinlock.h"
+#include "sys/lciu_malloc.h"
 
 #if 0
 #define LC_SET_REQ_DONE_AND_SIGNAL(t, r)                                 \

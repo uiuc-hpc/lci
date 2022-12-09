@@ -26,7 +26,7 @@ if(NOT TARGET Papi::papi)
   if(NOT PAPI_ROOT AND "$ENV{PAPI_ROOT}")
     set(PAPI_ROOT $ENV{PAPI_ROOT})
   elseif(NOT PAPI_ROOT)
-    string(REPLACE "/src/include" "" PAPI_ROOT "${PAPI_INCLUDE_DIR}")
+    string(REPLACE "/src/api" "" PAPI_ROOT "${PAPI_INCLUDE_DIR}")
   endif()
 
   # Set PAPI_ROOT in case the other hints are used
@@ -37,7 +37,7 @@ if(NOT TARGET Papi::papi)
     file(TO_CMAKE_PATH $ENV{PAPI_ROOT} PAPI_ROOT)
   else()
     file(TO_CMAKE_PATH "${PAPI_INCLUDE_DIR}" PAPI_INCLUDE_DIR)
-    string(REPLACE "/src/include" "" PAPI_ROOT "${PAPI_INCLUDE_DIR}")
+    string(REPLACE "/src/api" "" PAPI_ROOT "${PAPI_INCLUDE_DIR}")
   endif()
 
   set(PAPI_LIBRARIES ${PAPI_LIBRARY})

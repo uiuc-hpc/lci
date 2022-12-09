@@ -1,18 +1,18 @@
 #ifndef PACKET_H_
 #define PACKET_H_
 
-struct __attribute__((packed)) packet_context {
+struct __attribute__((packed)) LCII_packet_context {
   // Most of the current ctx requires 128-bits (FIXME)
   int64_t hwctx[2];
   // Here is LCI context.
-  lc_pool* pkpool; /* the packet pool this packet belongs to */
-  int poolid;      /* id of the pool to return this packet.
-                    * -1 means returning to the local pool */
+  LCII_pool_t* pkpool; /* the packet pool this packet belongs to */
+  int poolid;          /* id of the pool to return this packet.
+                        * -1 means returning to the local pool */
   int src_rank;
   int length; /* length for its payload */
 };
 
-struct __attribute__((packed)) packet_rts {
+struct __attribute__((packed)) LCII_packet_rts_t {
   LCI_msg_type_t msg_type; /* type of the long message */
   uintptr_t
       send_ctx; /* the address of the related context on the source side */
@@ -28,13 +28,13 @@ struct __attribute__((packed)) packet_rts {
   };
 };
 
-struct __attribute__((packed)) packet_rtr_iovec_info {
+struct __attribute__((packed)) LCII_packet_rtr_iovec_info_t {
   uint64_t rkey;
   uintptr_t remote_addr_base;
   LCIS_offset_t remote_addr_offset;
 };
 
-struct __attribute__((packed)) packet_rtr {
+struct __attribute__((packed)) LCII_packet_rtr_t {
   LCI_msg_type_t msg_type; /* type of the long message */
   uintptr_t
       send_ctx; /* the address of the related context on the source side */
@@ -50,38 +50,39 @@ struct __attribute__((packed)) packet_rtr {
     // for LCI_IOVEC
     struct {
       uintptr_t recv_ctx;
-      struct packet_rtr_iovec_info remote_iovecs_p[0];
+      struct LCII_packet_rtr_iovec_info_t remote_iovecs_p[0];
     };
   };
 };
 
-struct __attribute__((packed, aligned(LCI_CACHE_LINE))) packet_data {
+struct __attribute__((packed, aligned(LCI_CACHE_LINE))) LCII_packet_data_t {
   union {
-    struct packet_rts rts;
-    struct packet_rtr rtr;
+    struct LCII_packet_rts_t rts;
+    struct LCII_packet_rtr_t rtr;
     char address[0];
   };
 };
 
-struct __attribute__((packed)) lc_packet {
-  struct packet_context context;
-  struct packet_data data;
-};
+typedef struct __attribute__((packed)) LCII_packet_t {
+  struct LCII_packet_context context;
+  struct LCII_packet_data_t data;
+} LCII_packet_t;
 
-static inline void LCII_free_packet(lc_packet* packet)
+static inline void LCII_free_packet(LCII_packet_t* packet)
 {
-  LCM_DBG_Assert(
-      ((uint64_t)packet + sizeof(struct packet_context)) % LCI_CACHE_LINE == 0,
-      "Not a packet (address %p)!\n", packet);
+  LCM_DBG_Assert(((uint64_t)packet + sizeof(struct LCII_packet_context)) %
+                         LCI_CACHE_LINE ==
+                     0,
+                 "Not a packet (address %p)!\n", packet);
   if (packet->context.poolid != -1)
-    lc_pool_put_to(packet->context.pkpool, packet, packet->context.poolid);
+    LCII_pool_put_to(packet->context.pkpool, packet, packet->context.poolid);
   else
-    lc_pool_put(packet->context.pkpool, packet);
+    LCII_pool_put(packet->context.pkpool, packet);
 }
 
-static inline lc_packet* LCII_mbuffer2packet(LCI_mbuffer_t mbuffer)
+static inline LCII_packet_t* LCII_mbuffer2packet(LCI_mbuffer_t mbuffer)
 {
-  return (lc_packet*)(mbuffer.address - offsetof(lc_packet, data));
+  return (LCII_packet_t*)(mbuffer.address - offsetof(LCII_packet_t, data));
 }
 
 #endif

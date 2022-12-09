@@ -39,7 +39,7 @@ LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                  "Only support default remote completion "
                  "(set by LCI_plist_set_default_comp, "
                  "the default value is LCI_UR_CQ)\n");
-  lc_packet* packet = lc_pool_get_nb(ep->pkpool);
+  LCII_packet_t* packet = LCII_pool_get_nb(ep->pkpool);
   if (packet == NULL)
     // no packet is available
     return LCI_ERR_RETRY;
@@ -76,7 +76,7 @@ LCI_error_t LCI_putmna(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                  "Only support default remote completion "
                  "(set by LCI_plist_set_default_comp, "
                  "the default value is LCI_UR_CQ)\n");
-  lc_packet* packet = LCII_mbuffer2packet(buffer);
+  LCII_packet_t* packet = LCII_mbuffer2packet(buffer);
   packet->context.poolid = (buffer.length > LCI_PACKET_RETURN_THRESHOLD)
                                ? lc_pool_get_local(ep->pkpool)
                                : -1;
@@ -114,7 +114,7 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
                  "(set by LCI_plist_set_default_comp, "
                  "the default value is LCI_UR_CQ)\n");
   if (!LCII_bq_is_empty(ep->bq_p)) return LCI_ERR_RETRY;
-  lc_packet* packet = lc_pool_get_nb(ep->pkpool);
+  LCII_packet_t* packet = LCII_pool_get_nb(ep->pkpool);
   if (packet == NULL)
     // no packet is available
     return LCI_ERR_RETRY;
@@ -144,10 +144,10 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
   LCM_DBG_Log(LCM_LOG_DEBUG, "rdv", "send rts: type %d sctx %p size %lu\n",
               packet->data.rts.msg_type, (void*)packet->data.rts.send_ctx,
               packet->data.rts.size);
-  LCI_error_t ret =
-      LCIS_post_send(ep->device->server, rank, packet->data.address,
-                     sizeof(struct packet_rts), ep->device->heap.segment->mr,
-                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTS, tag), rts_ctx);
+  LCI_error_t ret = LCIS_post_send(
+      ep->device->server, rank, packet->data.address,
+      sizeof(struct LCII_packet_rts_t), ep->device->heap.segment->mr,
+      LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTS, tag), rts_ctx);
   if (ret == LCI_ERR_RETRY) {
     LCII_free_packet(packet);
     LCIU_free(rts_ctx);
@@ -185,7 +185,7 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
         "all of them are LCI_SEGMENT_ALL\n");
   }
   if (!LCII_bq_is_empty(ep->bq_p)) return LCI_ERR_RETRY;
-  lc_packet* packet = lc_pool_get_nb(ep->pkpool);
+  LCII_packet_t* packet = LCII_pool_get_nb(ep->pkpool);
   if (packet == NULL)
     // no packet is available
     return LCI_ERR_RETRY;
@@ -240,5 +240,6 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
 
 size_t LCI_get_iovec_piggy_back_size(int count)
 {
-  return LCI_MEDIUM_SIZE - sizeof(struct packet_rts) - sizeof(size_t) * count;
+  return LCI_MEDIUM_SIZE - sizeof(struct LCII_packet_rts_t) -
+         sizeof(size_t) * count;
 }

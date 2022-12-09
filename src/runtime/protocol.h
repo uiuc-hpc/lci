@@ -70,7 +70,7 @@ static inline void LCIS_serve_recv(void* p, int src_rank, size_t length,
                          length);
   LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_2sided_rx +=
                          1);
-  lc_packet* packet = (lc_packet*)p;
+  LCII_packet_t* packet = (LCII_packet_t*)p;
   LCII_proto_t proto = imm_data;
   // NOTE: this should be RGID because it is received from remote.
   LCI_endpoint_t ep = LCI_ENDPOINTS[PROTO_GET_RGID(proto)];
@@ -82,9 +82,9 @@ static inline void LCIS_serve_recv(void* p, int src_rank, size_t length,
     case LCI_MSG_SHORT: {
       LCM_DBG_Assert(length == LCI_SHORT_SIZE,
                      "Unexpected message length %lu\n", length);
-      lc_key key = LCII_make_key(ep, src_rank, tag, LCI_MSG_SHORT);
-      lc_value value = (lc_value)packet;
-      if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
+      LCM_hashtable_key key = LCII_make_key(ep, src_rank, tag, LCI_MSG_SHORT);
+      LCM_hashtable_val value = (LCM_hashtable_val)packet;
+      if (!LCM_hashtable_insert(ep->mt, key, &value, SERVER)) {
         LCII_context_t* ctx = (LCII_context_t*)value;
         // If the receiver uses LCI_MATCH_TAG, we have to set the rank here.
         ctx->rank = src_rank;
@@ -95,10 +95,10 @@ static inline void LCIS_serve_recv(void* p, int src_rank, size_t length,
       break;
     }
     case LCI_MSG_MEDIUM: {
-      lc_key key = LCII_make_key(ep, src_rank, tag, LCI_MSG_MEDIUM);
-      lc_value value = (lc_value)packet;
+      LCM_hashtable_key key = LCII_make_key(ep, src_rank, tag, LCI_MSG_MEDIUM);
+      LCM_hashtable_val value = (LCM_hashtable_val)packet;
       packet->context.length = length;
-      if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
+      if (!LCM_hashtable_insert(ep->mt, key, &value, SERVER)) {
         LCII_context_t* ctx = (LCII_context_t*)value;
         ctx->rank = src_rank;
         ctx->data.mbuffer.length = length;
@@ -118,9 +118,10 @@ static inline void LCIS_serve_recv(void* p, int src_rank, size_t length,
     case LCI_MSG_RTS: {
       switch (packet->data.rts.msg_type) {
         case LCI_MSG_LONG: {
-          const lc_key key = LCII_make_key(ep, src_rank, tag, LCI_MSG_LONG);
-          lc_value value = (lc_value)packet;
-          if (!lc_hash_insert(ep->mt, key, &value, SERVER)) {
+          const LCM_hashtable_key key =
+              LCII_make_key(ep, src_rank, tag, LCI_MSG_LONG);
+          LCM_hashtable_val value = (LCM_hashtable_val)packet;
+          if (!LCM_hashtable_insert(ep->mt, key, &value, SERVER)) {
             LCII_handle_2sided_rts(ep, packet, (LCI_comp_t)value);
           }
           break;

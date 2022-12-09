@@ -1,5 +1,5 @@
-#ifndef LCI_LCII_RDV_H
-#define LCI_LCII_RDV_H
+#ifndef LCI_RENDEZVOUS_H
+#define LCI_RENDEZVOUS_H
 
 // wrapper for send and put
 static inline void LCIS_post_sends_bq(LCII_backlog_queue_t* bq_p,
@@ -141,7 +141,8 @@ static inline void LCIS_post_putImm_bq(
   LCIU_release_spinlock(bq_spinlock_p);
 }
 
-static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet,
+static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep,
+                                          LCII_packet_t* packet,
                                           LCII_context_t* rdv_ctx)
 {
   LCM_DBG_Assert(rdv_ctx->data.lbuffer.address == NULL ||
@@ -184,11 +185,13 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet,
 
   LCIS_post_send_bq(ep->bq_p, ep->bq_spinlock_p, ep->device->server,
                     rdv_ctx->rank, packet->data.address,
-                    sizeof(struct packet_rtr), ep->device->heap.segment->mr,
+                    sizeof(struct LCII_packet_rtr_t),
+                    ep->device->heap.segment->mr,
                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx);
 }
 
-static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
+static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep,
+                                          LCII_packet_t* packet)
 {
   LCII_context_t* ctx = (LCII_context_t*)packet->data.rtr.send_ctx;
   if (ctx->data.lbuffer.segment == LCI_SEGMENT_ALL) {
@@ -231,7 +234,8 @@ static inline void LCII_handle_2sided_writeImm(LCI_endpoint_t ep,
   lc_ce_dispatch(ctx);
 }
 
-static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep, lc_packet* packet,
+static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep,
+                                          LCII_packet_t* packet,
                                           uint32_t src_rank, uint16_t tag)
 {
   LCII_context_t* rdv_ctx = LCIU_malloc(sizeof(LCII_context_t));
@@ -272,11 +276,13 @@ static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep, lc_packet* packet,
               packet->data.rtr.recv_ctx_key);
   LCIS_post_send_bq(ep->bq_p, ep->bq_spinlock_p, ep->device->server,
                     rdv_ctx->rank, packet->data.address,
-                    sizeof(struct packet_rtr), ep->device->heap.segment->mr,
+                    sizeof(struct LCII_packet_rtr_t),
+                    ep->device->heap.segment->mr,
                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx);
 }
 
-static inline void LCII_handle_1sided_rtr(LCI_endpoint_t ep, lc_packet* packet)
+static inline void LCII_handle_1sided_rtr(LCI_endpoint_t ep,
+                                          LCII_packet_t* packet)
 {
   LCII_context_t* ctx = (LCII_context_t*)packet->data.rtr.send_ctx;
   if (ctx->data.lbuffer.segment == LCI_SEGMENT_ALL) {
@@ -314,7 +320,8 @@ static inline void LCII_handle_1sided_writeImm(LCI_endpoint_t ep,
   lc_ce_dispatch(ctx);
 }
 
-static inline void LCII_handle_iovec_rts(LCI_endpoint_t ep, lc_packet* packet,
+static inline void LCII_handle_iovec_rts(LCI_endpoint_t ep,
+                                         LCII_packet_t* packet,
                                          uint32_t src_rank, uint16_t tag)
 {
   LCII_context_t* rdv_ctx = LCIU_malloc(sizeof(LCII_context_t));
@@ -370,7 +377,8 @@ static inline void LCII_handle_iovec_rts(LCI_endpoint_t ep, lc_packet* packet,
                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx);
 }
 
-static inline void LCII_handle_iovec_rtr(LCI_endpoint_t ep, lc_packet* packet)
+static inline void LCII_handle_iovec_rtr(LCI_endpoint_t ep,
+                                         LCII_packet_t* packet)
 {
   LCII_context_t* ctx = (LCII_context_t*)packet->data.rtr.send_ctx;
   LCII_extended_context_t* ectx = LCIU_malloc(sizeof(LCII_extended_context_t));
@@ -428,7 +436,7 @@ static inline void LCII_handle_iovec_put_comp(LCII_extended_context_t* ectx)
   lc_ce_dispatch(ctx);
 }
 
-static inline void LCII_handle_iovec_recv_FIN(lc_packet* packet)
+static inline void LCII_handle_iovec_recv_FIN(LCII_packet_t* packet)
 {
   LCII_context_t* ctx;
   memcpy(&ctx, packet->data.address, sizeof(ctx));
@@ -448,4 +456,4 @@ static inline void LCII_handle_iovec_recv_FIN(lc_packet* packet)
   lc_ce_dispatch(ctx);
 }
 
-#endif  // LCI_LCII_RDV_H
+#endif  // LCI_RENDEZVOUS_H

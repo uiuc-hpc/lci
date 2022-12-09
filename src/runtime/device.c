@@ -24,20 +24,20 @@ LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
   uintptr_t base_addr = (uintptr_t)device->heap.address;
 
   uintptr_t base_packet;
-  LCM_Assert(sizeof(struct packet_context) <= LCI_CACHE_LINE,
+  LCM_Assert(sizeof(struct LCII_packet_context) <= LCI_CACHE_LINE,
              "Unexpected packet_context size\n");
-  base_packet = base_addr + LCI_CACHE_LINE - sizeof(struct packet_context);
+  base_packet = base_addr + LCI_CACHE_LINE - sizeof(struct LCII_packet_context);
   LCM_Assert(LCI_PACKET_SIZE % LCI_CACHE_LINE == 0,
              "The size of packets should be a multiple of cache line size\n");
 
-  lc_pool_create(&device->pkpool);
+  LCII_pool_create(&device->pkpool);
   for (size_t i = 0; i < LCI_SERVER_NUM_PKTS; i++) {
-    lc_packet* p = (lc_packet*)(base_packet + i * LCI_PACKET_SIZE);
+    LCII_packet_t* p = (LCII_packet_t*)(base_packet + i * LCI_PACKET_SIZE);
     LCM_Assert(((uint64_t) & (p->data)) % LCI_CACHE_LINE == 0,
                "packet.data is not well-aligned\n");
     p->context.pkpool = device->pkpool;
     p->context.poolid = 0;
-    lc_pool_put(device->pkpool, p);
+    LCII_pool_put(device->pkpool, p);
   }
   LCM_DBG_Log(LCM_LOG_DEBUG, "device", "device %p initialized\n", device);
   return LCI_OK;
@@ -47,7 +47,7 @@ LCI_error_t LCI_device_free(LCI_device_t* device_ptr)
 {
   LCI_device_t device = *device_ptr;
   LCM_DBG_Log(LCM_LOG_DEBUG, "device", "free device %p\n", device);
-  int total_num = lc_pool_count(device->pkpool) + device->recv_posted;
+  int total_num = LCII_pool_count(device->pkpool) + device->recv_posted;
   if (total_num != LCI_SERVER_NUM_PKTS)
     LCM_Warn("Potentially losing packets %d != %d\n", total_num,
              LCI_SERVER_NUM_PKTS);
@@ -56,7 +56,7 @@ LCI_error_t LCI_device_free(LCI_device_t* device_ptr)
   LCII_bq_fini(&device->bq);
   LCIU_spinlock_fina(&device->bq_spinlock);
   LCI_lbuffer_free(device->heap);
-  lc_pool_destroy(device->pkpool);
+  LCII_pool_destroy(device->pkpool);
   if (LCI_USE_DREG) {
     LCII_rcache_fina(device);
   }
@@ -120,14 +120,14 @@ LCI_error_t LCI_progress(LCI_device_t device)
                   "complete recv: packet %p rank %d length %lu imm_data %u\n",
                   entry[i].ctx, entry[i].rank, entry[i].length,
                   entry[i].imm_data);
-      LCIS_serve_recv((lc_packet*)entry[i].ctx, entry[i].rank, entry[i].length,
-                      entry[i].imm_data);
+      LCIS_serve_recv((LCII_packet_t*)entry[i].ctx, entry[i].rank,
+                      entry[i].length, entry[i].imm_data);
       --device->recv_posted;
     } else if (entry[i].opcode == LCII_OP_RDMA_WRITE) {
       LCM_DBG_Log(LCM_LOG_DEBUG, "device", "complete write: imm_data %u\n",
                   entry[i].imm_data);
       if (entry[i].ctx != NULL) {
-        LCII_free_packet((lc_packet*)entry[i].ctx);
+        LCII_free_packet((LCII_packet_t*)entry[i].ctx);
         --device->recv_posted;
       }
       LCIS_serve_rdma(entry[i].imm_data);
@@ -145,7 +145,7 @@ LCI_error_t LCI_progress(LCI_device_t device)
   }
   // Make sure we always have enough packet, but do not block.
   while (device->recv_posted < LCI_SERVER_MAX_RECVS) {
-    lc_packet* packet = lc_pool_get_nb(device->pkpool);
+    LCII_packet_t* packet = LCII_pool_get_nb(device->pkpool);
     if (packet == NULL) {
       if (device->recv_posted < LCI_SERVER_MAX_RECVS / 2 &&
           !g_server_no_recv_packets) {

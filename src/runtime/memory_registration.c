@@ -61,7 +61,7 @@ LCI_error_t LCI_memory_deregister(LCI_segment_t* segment)
  */
 LCI_error_t LCI_mbuffer_alloc(LCI_device_t device, LCI_mbuffer_t* mbuffer)
 {
-  lc_packet* packet = lc_pool_get_nb(device->pkpool);
+  LCII_packet_t* packet = LCII_pool_get_nb(device->pkpool);
   if (packet == NULL)
     // no packet is available
     return LCI_ERR_RETRY;
@@ -82,7 +82,7 @@ LCI_error_t LCI_mbuffer_alloc(LCI_device_t device, LCI_mbuffer_t* mbuffer)
  */
 LCI_error_t LCI_mbuffer_free(LCI_mbuffer_t mbuffer)
 {
-  lc_packet* packet = LCII_mbuffer2packet(mbuffer);
+  LCII_packet_t* packet = LCII_mbuffer2packet(mbuffer);
   LCII_free_packet(packet);
   return LCI_OK;
 }

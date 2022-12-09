@@ -2,8 +2,9 @@
 
 LCI_error_t LCII_mt_init(LCI_mt_t* mt, uint32_t length)
 {
-  struct LCI_MT_s** mt_s = (struct LCI_MT_s**)mt;
-  *mt_s = (struct LCI_MT_s*)create_table(1 << TBL_BIT_SIZE);
+  LCM_hashtable_t** mt_s = (LCM_hashtable_t**)mt;
+  *mt_s = (LCM_hashtable_t*)LCMI_hashtable_create_table(
+      1 << LCM_HASHTABLE_BIT_SIZE);
   return LCI_OK;
 }
 

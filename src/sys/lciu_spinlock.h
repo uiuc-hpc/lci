@@ -1,5 +1,5 @@
-#ifndef LCI_LCM_SPINLOCK_H
-#define LCI_LCM_SPINLOCK_H
+#ifndef LCI_LCIU_SPINLOCK_H
+#define LCI_LCIU_SPINLOCK_H
 
 #include <stdio.h>
 #include <sched.h>

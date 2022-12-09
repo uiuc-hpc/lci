@@ -3,7 +3,7 @@
 
 #include "lcii_config.h"
 #include "lci.h"
-#include "sys/lcm_log.h"
+#include "log/lcm_log.h"
 #include "sys/lciu.h"
 #include "performance_counter.h"
 #include "datastructure/lcm_dequeue.h"
@@ -14,40 +14,24 @@
 #include "runtime/rcache/lcii_rcache.h"
 #include "backlog_queue.h"
 
-struct lc_packet;
-typedef struct lc_packet lc_packet;
+struct LCII_packet_t;
+typedef struct LCII_packet_t LCII_packet_t;
 
-struct lc_pool;
-typedef struct lc_pool lc_pool;
+struct LCII_pool_t;
+typedef struct LCII_pool_t LCII_pool_t;
 
-struct lc_hash;
-typedef struct lc_hash lc_hash;
-
-struct lc_hash;
-typedef struct lc_hash* LCI_mt_t;
-
-typedef enum lc_ep_addr {
-  EP_AR_DYN = 1 << 1,
-  EP_AR_EXP = 1 << 2,
-  EP_AR_IMM = 1 << 3,
-} lc_ep_addr;
-
-typedef enum lc_ep_ce {
-  EP_CE_NULL = 0,
-  EP_CE_SYNC = ((1 << 1) << 4),
-  EP_CE_CQ = ((1 << 2) << 4),
-  EP_CE_AM = ((1 << 3) << 4),
-  EP_CE_GLOB = ((1 << 4) << 4),
-} lc_ep_ce;
+struct LCM_hashtable_t;
+typedef struct LCM_hashtable_t LCM_hashtable_t;
+typedef struct LCM_hashtable_t* LCI_mt_t;
 
 struct LCI_device_s {
   // the following will not be changed after initialization
   LCIS_server_t server;  // 8B
-  lc_pool* pkpool;       // 8B
+  LCII_pool_t* pkpool;   // 8B
   LCI_mt_t mt;           // 8B
   LCII_rcache_t rcache;  // 8B
   LCI_lbuffer_t heap;    // 24B
-  char padding0[64 - sizeof(LCIS_server_t) - sizeof(lc_pool*) -
+  char padding0[64 - sizeof(LCIS_server_t) - sizeof(LCII_pool_t*) -
                 sizeof(LCI_mt_t) - sizeof(LCII_rcache_t*) -
                 sizeof(LCI_lbuffer_t)];
   // the following will be changed locally by a progress thread
@@ -75,7 +59,7 @@ struct LCI_endpoint_s {
   uint64_t property;
 
   // Associated software components.
-  lc_pool* pkpool;
+  LCII_pool_t* pkpool;
   LCI_mt_t mt;
   // used for the rendezvous protocol
   LCM_archive_t* ctx_archive_p;
@@ -172,7 +156,7 @@ static inline void LCII_queue_push(LCI_comp_t cq, LCII_context_t* ctx);
 // matching table
 LCI_error_t LCII_mt_init(LCI_mt_t* mt, uint32_t length);
 LCI_error_t LCII_mt_free(LCI_mt_t* mt);
-void lc_env_init(int num_proc, int rank);
+void LCII_env_init(int num_proc, int rank);
 
 static inline LCI_request_t LCII_ctx2req(LCII_context_t* ctx)
 {
@@ -216,32 +200,22 @@ static inline uint64_t LCII_make_key(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
 // backend service
 static inline void lc_ce_dispatch(LCII_context_t* ctx);
 // rendezvous
-static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep, lc_packet* packet,
+static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep,
+                                          LCII_packet_t* packet,
                                           LCII_context_t* long_ctx);
-static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep, lc_packet* packet);
+static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep,
+                                          LCII_packet_t* packet);
 static inline void LCII_handle_2sided_writeImm(LCI_endpoint_t ep,
                                                uint64_t ctx_key);
-// getenv
-static inline int getenv_or(char* env, int def)
-{
-  int ret;
-  char* val = getenv(env);
-  if (val != NULL) {
-    ret = atoi(val);
-  } else {
-    ret = def;
-  }
-  LCM_Log(LCM_LOG_INFO, "env", "set %s to be %d\n", env, ret);
-  return ret;
-}
+
 // monitor thread
 void LCII_monitor_thread_init();
 void LCII_monitor_thread_fina();
 
-#include "datastructure/hashtable.h"
+#include "datastructure/lcm_hashtable.h"
 #include "runtime/completion/cq.h"
 #include "packet_pool.h"
 #include "packet.h"
-#include "lcii_rdv.h"
+#include "rendezvous.h"
 #include "protocol.h"
 #endif

@@ -65,9 +65,11 @@ void* LCII_monitor_thread_fn(void* vargp)
 
 void LCII_monitor_thread_init()
 {
-  LCI_ENABLE_MONITOR_THREAD = getenv_or("LCI_ENABLE_MONITOR_THREAD", false);
+  LCI_ENABLE_MONITOR_THREAD =
+      LCIU_getenv_or("LCI_ENABLE_MONITOR_THREAD", false);
   if (LCI_ENABLE_MONITOR_THREAD) {
-    LCI_MONITOR_THREAD_INTERVAL = getenv_or("LCI_MONITOR_THREAD_INTERVAL", 60);
+    LCI_MONITOR_THREAD_INTERVAL =
+        LCIU_getenv_or("LCI_MONITOR_THREAD_INTERVAL", 60);
     LCII_monitor_thread_run = true;
     pthread_create(&LCII_monitor_thread, NULL, LCII_monitor_thread_fn, NULL);
   }

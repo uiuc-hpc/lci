@@ -3,7 +3,7 @@
 
 #include <tbb/concurrent_hash_map.h>
 #include <unordered_map>
-#include "datastructure/hashtable.h"
+#include "datastructure/lcm_hashtable.h"
 
 struct hash_compare {
   static size_t hash(const lc_key& k) { return myhash(k); }

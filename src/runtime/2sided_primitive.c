@@ -18,7 +18,7 @@ LCI_error_t LCI_sendm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   LCM_DBG_Assert(buffer.length <= LCI_MEDIUM_SIZE,
                  "buffer is too large %lu (maximum: %d)\n", buffer.length,
                  LCI_MEDIUM_SIZE);
-  lc_packet* packet = lc_pool_get_nb(ep->pkpool);
+  LCII_packet_t* packet = LCII_pool_get_nb(ep->pkpool);
   if (packet == NULL)
     // no packet is available
     return LCI_ERR_RETRY;
@@ -51,7 +51,7 @@ LCI_error_t LCI_sendmn(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   LCM_DBG_Assert(buffer.length <= LCI_MEDIUM_SIZE,
                  "buffer is too large %lu (maximum: %d)\n", buffer.length,
                  LCI_MEDIUM_SIZE);
-  lc_packet* packet = LCII_mbuffer2packet(buffer);
+  LCII_packet_t* packet = LCII_mbuffer2packet(buffer);
   packet->context.poolid = (buffer.length > LCI_PACKET_RETURN_THRESHOLD)
                                ? lc_pool_get_local(ep->pkpool)
                                : -1;
@@ -77,7 +77,7 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
   LCM_DBG_Assert(tag <= LCI_MAX_TAG, "tag %d is too large (maximum: %d)\n", tag,
                  LCI_MAX_TAG);
   if (!LCII_bq_is_empty(ep->bq_p)) return LCI_ERR_RETRY;
-  lc_packet* packet = lc_pool_get_nb(ep->pkpool);
+  LCII_packet_t* packet = LCII_pool_get_nb(ep->pkpool);
   if (packet == NULL)
     // no packet is available
     return LCI_ERR_RETRY;
@@ -104,10 +104,10 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
   packet->data.rts.send_ctx = (uintptr_t)rdv_ctx;
   packet->data.rts.size = buffer.length;
 
-  LCI_error_t ret =
-      LCIS_post_send(ep->device->server, rank, packet->data.address,
-                     sizeof(struct packet_rts), ep->device->heap.segment->mr,
-                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTS, tag), rts_ctx);
+  LCI_error_t ret = LCIS_post_send(
+      ep->device->server, rank, packet->data.address,
+      sizeof(struct LCII_packet_rts_t), ep->device->heap.segment->mr,
+      LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTS, tag), rts_ctx);
   if (ret == LCI_ERR_RETRY) {
     LCII_free_packet(packet);
     LCIU_free(rts_ctx);
@@ -130,10 +130,10 @@ LCI_error_t LCI_recvs(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
   LCII_comp_attr_set_comp_type(ctx->comp_attr, ep->msg_comp_type);
   ctx->completion = completion;
 
-  lc_key key = LCII_make_key(ep, rank, tag, LCI_MSG_SHORT);
-  lc_value value = (lc_value)ctx;
-  if (!lc_hash_insert(ep->mt, key, &value, CLIENT)) {
-    lc_packet* packet = (lc_packet*)value;
+  LCM_hashtable_key key = LCII_make_key(ep, rank, tag, LCI_MSG_SHORT);
+  LCM_hashtable_val value = (LCM_hashtable_val)ctx;
+  if (!LCM_hashtable_insert(ep->mt, key, &value, CLIENT)) {
+    LCII_packet_t* packet = (LCII_packet_t*)value;
     ctx->rank = packet->context.src_rank;
     memcpy(&(ctx->data.immediate), packet->data.address, LCI_SHORT_SIZE);
     LCII_free_packet(packet);
@@ -160,10 +160,10 @@ LCI_error_t LCI_recvm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   LCII_comp_attr_set_comp_type(ctx->comp_attr, ep->msg_comp_type);
   ctx->completion = completion;
 
-  lc_key key = LCII_make_key(ep, rank, tag, LCI_MSG_MEDIUM);
-  lc_value value = (lc_value)ctx;
-  if (!lc_hash_insert(ep->mt, key, &value, CLIENT)) {
-    lc_packet* packet = (lc_packet*)value;
+  LCM_hashtable_key key = LCII_make_key(ep, rank, tag, LCI_MSG_MEDIUM);
+  LCM_hashtable_val value = (LCM_hashtable_val)ctx;
+  if (!LCM_hashtable_insert(ep->mt, key, &value, CLIENT)) {
+    LCII_packet_t* packet = (LCII_packet_t*)value;
     ctx->rank = packet->context.src_rank;
     ctx->data.mbuffer.length = packet->context.length;
     // copy to user provided buffer
@@ -190,10 +190,10 @@ LCI_error_t LCI_recvmn(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
   LCII_comp_attr_set_comp_type(ctx->comp_attr, ep->msg_comp_type);
   ctx->completion = completion;
 
-  lc_key key = LCII_make_key(ep, rank, tag, LCI_MSG_MEDIUM);
-  lc_value value = (lc_value)ctx;
-  if (!lc_hash_insert(ep->mt, key, &value, CLIENT)) {
-    lc_packet* packet = (lc_packet*)value;
+  LCM_hashtable_key key = LCII_make_key(ep, rank, tag, LCI_MSG_MEDIUM);
+  LCM_hashtable_val value = (LCM_hashtable_val)ctx;
+  if (!LCM_hashtable_insert(ep->mt, key, &value, CLIENT)) {
+    LCII_packet_t* packet = (LCII_packet_t*)value;
     ctx->rank = packet->context.src_rank;
     ctx->data.mbuffer.length = packet->context.length;
     // use LCI packet
@@ -221,10 +221,10 @@ LCI_error_t LCI_recvl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
       buffer.address != NULL && buffer.segment == LCI_SEGMENT_ALL);
   rdv_ctx->completion = completion;
 
-  lc_key key = LCII_make_key(ep, rank, tag, LCI_MSG_LONG);
-  lc_value value = (lc_value)rdv_ctx;
-  if (!lc_hash_insert(ep->mt, key, &value, CLIENT)) {
-    lc_packet* p = (lc_packet*)value;
+  LCM_hashtable_key key = LCII_make_key(ep, rank, tag, LCI_MSG_LONG);
+  LCM_hashtable_val value = (LCM_hashtable_val)rdv_ctx;
+  if (!LCM_hashtable_insert(ep->mt, key, &value, CLIENT)) {
+    LCII_packet_t* p = (LCII_packet_t*)value;
     LCII_handle_2sided_rts(ep, p, rdv_ctx);
   }
   return LCI_OK;

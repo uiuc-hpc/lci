@@ -13,7 +13,7 @@ LCI_error_t LCI_initialize()
   rank = lcm_pm_get_rank();
   num_proc = lcm_pm_get_size();
   LCM_Init(rank);
-  lc_env_init(num_proc, rank);
+  LCII_env_init(num_proc, rank);
   LCII_pcounters_init();
   LCII_monitor_thread_init();
 

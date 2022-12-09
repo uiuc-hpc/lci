@@ -1,11 +1,13 @@
-#ifndef LCI_LCIU_MEM_H
-#define LCI_LCIU_MEM_H
+#ifndef LCI_LCIU_MALLOC_H
+#define LCI_LCIU_MALLOC_H
 
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
 /* Memory Utility Functions */
+
+static inline void LCII_MEM_FENCE() { asm volatile("mfence" ::: "memory"); }
 
 static inline void* LCIU_memalign(size_t alignment, size_t size)
 {
@@ -58,13 +60,4 @@ static inline void* LCIU_realloc(void* ptr, size_t old_size, size_t new_size)
 }
 
 #endif /* !LCI_CONFIG_USE_ALIGNED_ALLOC */
-
-#define LCIU_strcpy(d, s) strcpy(d, s)
-#define LCIU_strncpy(d, s, n) strncpy(d, s, n)
-
-/* The caller should free the memory returned. */
-char* LCIU_get_indent_str(int indent);
-
-int LCIU_get_int_len(size_t num);
-
-#endif /* LCI_LCIU_MEM_H */
+#endif /* LCI_LCIU_MALLOC_H */
