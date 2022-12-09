@@ -1,4 +1,4 @@
-#include "lcm_archive.h"
+#include "../../src/datastructure/lcm_archive.h"
 
 TEST(REG, Basic)
 {

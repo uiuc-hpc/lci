@@ -6,8 +6,9 @@
 #include "lcm_log.h"
 #include "lciu.h"
 #include "pcounter.h"
-#include "lcm_dequeue.h"
-#include "lcm_archive.h"
+#include "datastructure/lcm_dequeue.h"
+#include "datastructure/lcm_aqueue.h"
+#include "datastructure/lcm_archive.h"
 #include "pmi_wrapper.h"
 #include "server/server.h"
 #include "lcii_rcache.h"
@@ -237,7 +238,7 @@ static inline int getenv_or(char* env, int def)
 void LCII_monitor_thread_init();
 void LCII_monitor_thread_fina();
 
-#include "hashtable.h"
+#include "datastructure/hashtable.h"
 #include "cq.h"
 #include "pool.h"
 #include "packet.h"

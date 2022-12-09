@@ -1,6 +1,7 @@
 add_subdirectory(pmi)
 
 target_include_directories(LCI PRIVATE include)
+target_include_directories(LCI PRIVATE .)
 target_sources_relative(
   LCI
   PRIVATE

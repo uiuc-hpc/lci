@@ -1,4 +1,4 @@
-#include "hashtable.h"
+#include "datastructure/hashtable.h"
 
 TEST(HASH, InitFini)
 {
