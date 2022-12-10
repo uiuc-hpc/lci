@@ -28,23 +28,24 @@ typedef struct LCISI_server_t {
   struct ibv_device_attr dev_attr;
   struct ibv_device_attr_ex dev_attrx;
   struct ibv_port_attr port_attr;
-  struct ibv_srq* dev_srq;
-  struct ibv_cq* cq;
   uint8_t dev_port;
   struct ibv_mr* odp_mr;
-
-  // Connections O(N)
-  struct ibv_qp** qps;
-
-  // Helper fields.
-  int* qp2rank;
-  int qp2rank_mod;
   size_t max_inline;
-
   // event polling thread
   pthread_t event_polling_thread;
   volatile bool event_polling_thread_run;
-} LCISI_server_t __attribute__((aligned(64)));
+} LCISI_server_t __attribute__((aligned(LCI_CACHE_LINE)));
+
+typedef struct LCISI_endpoint_t {
+  struct LCISI_server_t* server;
+  // Connections O(N)
+  struct ibv_qp** qps;
+  struct ibv_cq* cq;
+  struct ibv_srq* srq;
+  // Helper fields.
+  int* qp2rank;
+  int qp2rank_mod;
+} LCISI_endpoint_t;
 
 static inline void* LCISI_real_server_reg(LCIS_server_t s, void* buf,
                                           size_t size)
@@ -110,11 +111,12 @@ static inline LCIS_rkey_t LCISD_rma_rkey(LCIS_mr_t mr)
   return ((struct ibv_mr*)mr.mr_p)->rkey;
 }
 
-static inline int LCISD_poll_cq(LCIS_server_t s, LCIS_cq_entry_t* entry)
+static inline int LCISD_poll_cq(LCIS_endpoint_t endpoint_pp,
+                                LCIS_cq_entry_t* entry)
 {
-  LCISI_server_t* server = (LCISI_server_t*)s;
+  LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
   struct ibv_wc wc[LCI_CQ_MAX_POLL];
-  int ne = ibv_poll_cq(server->cq, LCI_CQ_MAX_POLL, wc);
+  int ne = ibv_poll_cq(endpoint_p->cq, LCI_CQ_MAX_POLL, wc);
   LCM_DBG_Assert(ne >= 0, "ibv_poll_cq returns error %d\n", ne);
 
   for (int i = 0; i < ne; i++) {
@@ -126,7 +128,8 @@ static inline int LCISD_poll_cq(LCIS_server_t s, LCIS_cq_entry_t* entry)
       entry[i].ctx = (void*)wc[i].wr_id;
       entry[i].length = wc[i].byte_len;
       entry[i].imm_data = wc[i].imm_data;
-      entry[i].rank = server->qp2rank[wc[i].qp_num % server->qp2rank_mod];
+      entry[i].rank =
+          endpoint_p->qp2rank[wc[i].qp_num % endpoint_p->qp2rank_mod];
     } else if (wc[i].opcode == IBV_WC_RECV_RDMA_WITH_IMM) {
       entry[i].opcode = LCII_OP_RDMA_WRITE;
       entry[i].ctx = (void*)wc[i].wr_id;
@@ -142,10 +145,10 @@ static inline int LCISD_poll_cq(LCIS_server_t s, LCIS_cq_entry_t* entry)
   return ne;
 }
 
-static inline void LCISD_post_recv(LCIS_server_t s, void* buf, uint32_t size,
-                                   LCIS_mr_t mr, void* ctx)
+static inline void LCISD_post_recv(LCIS_endpoint_t endpoint_pp, void* buf,
+                                   uint32_t size, LCIS_mr_t mr, void* ctx)
 {
-  LCISI_server_t* server = (LCISI_server_t*)s;
+  LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
   struct ibv_sge list;
   list.addr = (uint64_t)buf;
   list.length = size;
@@ -156,17 +159,18 @@ static inline void LCISD_post_recv(LCIS_server_t s, void* buf, uint32_t size,
   wr.sg_list = &list;
   wr.num_sge = 1;
   struct ibv_recv_wr* bad_wr;
-  IBV_SAFECALL(ibv_post_srq_recv(server->dev_srq, &wr, &bad_wr));
+  IBV_SAFECALL(ibv_post_srq_recv(endpoint_p->srq, &wr, &bad_wr));
 }
 
-static inline LCI_error_t LCISD_post_sends(LCIS_server_t s, int rank, void* buf,
-                                           size_t size, LCIS_meta_t meta)
+static inline LCI_error_t LCISD_post_sends(LCIS_endpoint_t endpoint_pp,
+                                           int rank, void* buf, size_t size,
+                                           LCIS_meta_t meta)
 {
-  LCISI_server_t* server = (LCISI_server_t*)s;
-  LCM_DBG_Assert(size <= server->max_inline,
+  LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
+  LCM_DBG_Assert(size <= endpoint_p->server->max_inline,
                  "%lu exceed the inline message size\n"
                  "limit! %lu\n",
-                 size, server->max_inline);
+                 size, endpoint_p->server->max_inline);
 
   struct ibv_sge list;
   list.addr = (uint64_t)buf;
@@ -189,7 +193,7 @@ static inline LCI_error_t LCISD_post_sends(LCIS_server_t s, int rank, void* buf,
   //  }
 
   struct ibv_send_wr* bad_wr;
-  int ret = ibv_post_send(server->qps[rank], &wr, &bad_wr);
+  int ret = ibv_post_send(endpoint_p->qps[rank], &wr, &bad_wr);
   if (ret == 0)
     return LCI_OK;
   else if (ret == ENOMEM)
@@ -198,11 +202,11 @@ static inline LCI_error_t LCISD_post_sends(LCIS_server_t s, int rank, void* buf,
     IBV_SAFECALL(ret);
 }
 
-static inline LCI_error_t LCISD_post_send(LCIS_server_t s, int rank, void* buf,
-                                          size_t size, LCIS_mr_t mr,
+static inline LCI_error_t LCISD_post_send(LCIS_endpoint_t endpoint_pp, int rank,
+                                          void* buf, size_t size, LCIS_mr_t mr,
                                           LCIS_meta_t meta, void* ctx)
 {
-  LCISI_server_t* server = (LCISI_server_t*)s;
+  LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
 
   struct ibv_sge list;
   list.addr = (uint64_t)buf;
@@ -216,12 +220,12 @@ static inline LCI_error_t LCISD_post_send(LCIS_server_t s, int rank, void* buf,
   wr.opcode = IBV_WR_SEND_WITH_IMM;
   wr.send_flags = IBV_SEND_SIGNALED;
   wr.imm_data = meta;
-  if (size <= server->max_inline) {
+  if (size <= endpoint_p->server->max_inline) {
     wr.send_flags |= IBV_SEND_INLINE;
   }
 
   struct ibv_send_wr* bad_wr;
-  int ret = ibv_post_send(server->qps[rank], &wr, &bad_wr);
+  int ret = ibv_post_send(endpoint_p->qps[rank], &wr, &bad_wr);
   if (ret == 0)
     return LCI_OK;
   else if (ret == ENOMEM)
@@ -230,16 +234,16 @@ static inline LCI_error_t LCISD_post_send(LCIS_server_t s, int rank, void* buf,
     IBV_SAFECALL(ret);
 }
 
-static inline LCI_error_t LCISD_post_puts(LCIS_server_t s, int rank, void* buf,
-                                          size_t size, uintptr_t base,
-                                          LCIS_offset_t offset,
+static inline LCI_error_t LCISD_post_puts(LCIS_endpoint_t endpoint_pp, int rank,
+                                          void* buf, size_t size,
+                                          uintptr_t base, LCIS_offset_t offset,
                                           LCIS_rkey_t rkey)
 {
-  LCISI_server_t* server = (LCISI_server_t*)s;
-  LCM_DBG_Assert(size <= server->max_inline,
+  LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
+  LCM_DBG_Assert(size <= endpoint_p->server->max_inline,
                  "%lu exceed the inline message size\n"
                  "limit! %lu\n",
-                 size, server->max_inline);
+                 size, endpoint_p->server->max_inline);
   struct ibv_sge list;
   list.addr = (uint64_t)buf;
   list.length = size;
@@ -255,7 +259,7 @@ static inline LCI_error_t LCISD_post_puts(LCIS_server_t s, int rank, void* buf,
   wr.wr.rdma.rkey = rkey;
 
   struct ibv_send_wr* bad_wr;
-  int ret = ibv_post_send(server->qps[rank], &wr, &bad_wr);
+  int ret = ibv_post_send(endpoint_p->qps[rank], &wr, &bad_wr);
   if (ret == 0)
     return LCI_OK;
   else if (ret == ENOMEM)
@@ -264,12 +268,12 @@ static inline LCI_error_t LCISD_post_puts(LCIS_server_t s, int rank, void* buf,
     IBV_SAFECALL(ret);
 }
 
-static inline LCI_error_t LCISD_post_put(LCIS_server_t s, int rank, void* buf,
-                                         size_t size, LCIS_mr_t mr,
+static inline LCI_error_t LCISD_post_put(LCIS_endpoint_t endpoint_pp, int rank,
+                                         void* buf, size_t size, LCIS_mr_t mr,
                                          uintptr_t base, LCIS_offset_t offset,
                                          LCIS_rkey_t rkey, void* ctx)
 {
-  LCISI_server_t* server = (LCISI_server_t*)s;
+  LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
 
   struct ibv_sge list;
   list.addr = (uint64_t)buf;
@@ -284,11 +288,11 @@ static inline LCI_error_t LCISD_post_put(LCIS_server_t s, int rank, void* buf,
   wr.send_flags = IBV_SEND_SIGNALED;
   wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
   wr.wr.rdma.rkey = rkey;
-  if (size <= server->max_inline) {
+  if (size <= endpoint_p->server->max_inline) {
     wr.send_flags |= IBV_SEND_INLINE;
   }
   struct ibv_send_wr* bad_wr;
-  int ret = ibv_post_send(server->qps[rank], &wr, &bad_wr);
+  int ret = ibv_post_send(endpoint_p->qps[rank], &wr, &bad_wr);
   if (ret == 0)
     return LCI_OK;
   else if (ret == ENOMEM)
@@ -297,17 +301,17 @@ static inline LCI_error_t LCISD_post_put(LCIS_server_t s, int rank, void* buf,
     IBV_SAFECALL(ret);
 }
 
-static inline LCI_error_t LCISD_post_putImms(LCIS_server_t s, int rank,
-                                             void* buf, size_t size,
+static inline LCI_error_t LCISD_post_putImms(LCIS_endpoint_t endpoint_pp,
+                                             int rank, void* buf, size_t size,
                                              uintptr_t base,
                                              LCIS_offset_t offset,
                                              LCIS_rkey_t rkey, uint32_t meta)
 {
-  LCISI_server_t* server = (LCISI_server_t*)s;
-  LCM_DBG_Assert(size <= server->max_inline,
+  LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
+  LCM_DBG_Assert(size <= endpoint_p->server->max_inline,
                  "%lu exceed the inline message size\n"
                  "limit! %lu\n",
-                 size, server->max_inline);
+                 size, endpoint_p->server->max_inline);
   struct ibv_sge list;
   list.addr = (uint64_t)buf;
   list.length = size;
@@ -324,7 +328,7 @@ static inline LCI_error_t LCISD_post_putImms(LCIS_server_t s, int rank,
   wr.imm_data = meta;
 
   struct ibv_send_wr* bad_wr;
-  int ret = ibv_post_send(server->qps[rank], &wr, &bad_wr);
+  int ret = ibv_post_send(endpoint_p->qps[rank], &wr, &bad_wr);
   if (ret == 0)
     return LCI_OK;
   else if (ret == ENOMEM)
@@ -333,14 +337,14 @@ static inline LCI_error_t LCISD_post_putImms(LCIS_server_t s, int rank,
     IBV_SAFECALL(ret);
 }
 
-static inline LCI_error_t LCISD_post_putImm(LCIS_server_t s, int rank,
-                                            void* buf, size_t size,
+static inline LCI_error_t LCISD_post_putImm(LCIS_endpoint_t endpoint_pp,
+                                            int rank, void* buf, size_t size,
                                             LCIS_mr_t mr, uintptr_t base,
                                             LCIS_offset_t offset,
                                             LCIS_rkey_t rkey, LCIS_meta_t meta,
                                             void* ctx)
 {
-  LCISI_server_t* server = (LCISI_server_t*)s;
+  LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
 
   struct ibv_sge list;
   list.addr = (uint64_t)buf;
@@ -356,11 +360,11 @@ static inline LCI_error_t LCISD_post_putImm(LCIS_server_t s, int rank,
   wr.imm_data = meta;
   wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
   wr.wr.rdma.rkey = rkey;
-  if (size <= server->max_inline) {
+  if (size <= endpoint_p->server->max_inline) {
     wr.send_flags |= IBV_SEND_INLINE;
   }
   struct ibv_send_wr* bad_wr;
-  int ret = ibv_post_send(server->qps[rank], &wr, &bad_wr);
+  int ret = ibv_post_send(endpoint_p->qps[rank], &wr, &bad_wr);
   if (ret == 0)
     return LCI_OK;
   else if (ret == ENOMEM)

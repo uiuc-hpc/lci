@@ -36,7 +36,7 @@ class packetManagerMPMCQ
 
  protected:
   ppl::MPMCQueue<uint64_t> pool_;
-} __attribute__((aligned(64)));
+} __attribute__((aligned(LCI_CACHE_LINE)));
 
 class packetManagerLfQueue
 {
@@ -71,7 +71,7 @@ class packetManagerLfQueue
 
  protected:
   boost::lockfree::queue<void*, boost::lockfree::capacity<MAX_PACKET>> pool_;
-} __attribute__((aligned(64)));
+} __attribute__((aligned(LCI_CACHE_LINE)));
 
 class packetManagerLfStack
 {
@@ -106,6 +106,6 @@ class packetManagerLfStack
 
  protected:
   boost::lockfree::stack<void*, boost::lockfree::capacity<MAX_PACKET>> pool_;
-} __attribute__((aligned(64)));
+} __attribute__((aligned(LCI_CACHE_LINE)));
 
 #endif

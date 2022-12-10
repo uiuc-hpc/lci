@@ -3,7 +3,7 @@
 static const int max_sge_num = 1;
 static const int inline_size = 236;
 
-static int g_device_num = 0;
+static int g_endpoint_num = 0;
 
 const char* mtu_str(enum ibv_mtu mtu)
 {
@@ -67,9 +67,8 @@ void LCISI_event_polling_thread_fina(LCISI_server_t* server)
   }
 }
 
-void LCISD_init(LCI_device_t device, LCIS_server_t* s)
+void LCISD_server_init(LCI_device_t device, LCIS_server_t* s)
 {
-  int device_id = g_device_num++;
   LCISI_server_t* server = LCIU_malloc(sizeof(LCISI_server_t));
   *s = (LCIS_server_t)server;
   server->device = device;
@@ -163,6 +162,26 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
   LCM_Log(LCM_LOG_INFO, "ibv", "Maximum MTU: %s; Active MTU: %s\n",
           mtu_str(server->port_attr.max_mtu),
           mtu_str(server->port_attr.active_mtu));
+  LCISI_event_polling_thread_init(server);
+}
+
+void LCISD_server_fina(LCIS_server_t s)
+{
+  LCISI_server_t* server = (LCISI_server_t*)s;
+  LCISI_event_polling_thread_fina(server);
+  ibv_free_device_list(server->dev_list);
+  if (server->odp_mr != NULL) IBV_SAFECALL(ibv_dereg_mr(server->odp_mr));
+  IBV_SAFECALL(ibv_dealloc_pd(server->dev_pd));
+  IBV_SAFECALL(ibv_close_device(server->dev_ctx));
+  LCIU_free(server);
+}
+
+void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp)
+{
+  int endpoint_id = g_endpoint_num++;
+  LCISI_endpoint_t* endpoint_p = LCIU_malloc(sizeof(LCISI_endpoint_t));
+  *endpoint_pp = (LCIS_endpoint_t)endpoint_p;
+  endpoint_p->server = (LCISI_server_t*)server_pp;
 
   // Create shared-receive queue, **number here affect performance**.
   struct ibv_srq_init_attr srq_attr;
@@ -171,30 +190,30 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
   srq_attr.attr.max_wr = LCI_SERVER_MAX_RECVS;
   srq_attr.attr.max_sge = max_sge_num;
   srq_attr.attr.srq_limit = 0;
-  server->dev_srq = ibv_create_srq(server->dev_pd, &srq_attr);
-  if (!server->dev_srq) {
+  endpoint_p->srq = ibv_create_srq(endpoint_p->server->dev_pd, &srq_attr);
+  if (!endpoint_p->srq) {
     fprintf(stderr, "Could not create shared received queue\n");
     exit(EXIT_FAILURE);
   }
 
   // Create completion queues.
-  server->cq =
-      ibv_create_cq(server->dev_ctx, LCI_SERVER_MAX_CQES, NULL, NULL, 0);
-  if (!server->cq) {
+  endpoint_p->cq = ibv_create_cq(endpoint_p->server->dev_ctx,
+                                 LCI_SERVER_MAX_CQES, NULL, NULL, 0);
+  if (!endpoint_p->cq) {
     fprintf(stderr, "Unable to create cq\n");
     exit(EXIT_FAILURE);
   }
 
-  server->qps = LCIU_malloc(LCI_NUM_PROCESSES * sizeof(struct ibv_qp*));
+  endpoint_p->qps = LCIU_malloc(LCI_NUM_PROCESSES * sizeof(struct ibv_qp*));
 
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
     {
       // Create a queue pair
       struct ibv_qp_init_attr init_attr;
       memset(&init_attr, 0, sizeof(init_attr));
-      init_attr.send_cq = server->cq;
-      init_attr.recv_cq = server->cq;
-      init_attr.srq = server->dev_srq;
+      init_attr.send_cq = endpoint_p->cq;
+      init_attr.recv_cq = endpoint_p->cq;
+      init_attr.srq = endpoint_p->srq;
       init_attr.cap.max_send_wr = LCI_SERVER_MAX_SENDS;
       init_attr.cap.max_recv_wr = LCI_SERVER_MAX_RECVS;
       init_attr.cap.max_send_sge = max_sge_num;
@@ -202,16 +221,17 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
       init_attr.cap.max_inline_data = inline_size;
       init_attr.qp_type = IBV_QPT_RC;
       init_attr.sq_sig_all = 0;
-      server->qps[i] = ibv_create_qp(server->dev_pd, &init_attr);
+      endpoint_p->qps[i] =
+          ibv_create_qp(endpoint_p->server->dev_pd, &init_attr);
 
-      if (!server->qps[i]) {
+      if (!endpoint_p->qps[i]) {
         fprintf(stderr, "Couldn't create QP\n");
         exit(EXIT_FAILURE);
       }
 
       struct ibv_qp_attr attr;
       memset(&attr, 0, sizeof(attr));
-      ibv_query_qp(server->qps[i], &attr, IBV_QP_CAP, &init_attr);
+      ibv_query_qp(endpoint_p->qps[i], &attr, IBV_QP_CAP, &init_attr);
       LCM_Assert(init_attr.cap.max_inline_data >= inline_size,
                  "Specified inline size %d is too large (maximum %d)",
                  inline_size, init_attr.cap.max_inline_data);
@@ -231,11 +251,11 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
       attr.qp_access_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ |
                              IBV_ACCESS_REMOTE_WRITE;
       attr.pkey_index = 0;
-      attr.port_num = server->dev_port;
+      attr.port_num = endpoint_p->server->dev_port;
 
       int flags =
           IBV_QP_STATE | IBV_QP_PKEY_INDEX | IBV_QP_PORT | IBV_QP_ACCESS_FLAGS;
-      rc = ibv_modify_qp(server->qps[i], &attr, flags);
+      int rc = ibv_modify_qp(endpoint_p->qps[i], &attr, flags);
       if (rc != 0) {
         fprintf(stderr, "Failed to modify QP to INIT\n");
         exit(EXIT_FAILURE);
@@ -243,18 +263,19 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
     }
     // Use this queue pair "i" to connect to rank e.
     char key[256];
-    sprintf(key, "LCI_KEY_%d_%d_%d", device_id, LCI_RANK, i);
+    sprintf(key, "LCI_KEY_%d_%d_%d", endpoint_id, LCI_RANK, i);
     char value[256];
-    sprintf(value, "%x:%hx", server->qps[i]->qp_num, server->port_attr.lid);
+    sprintf(value, "%x:%hx", endpoint_p->qps[i]->qp_num,
+            endpoint_p->server->port_attr.lid);
     lcm_pm_publish(key, value);
   }
   LCM_Log(LCM_LOG_INFO, "ibv", "Current inline data size is %d\n", inline_size);
-  server->max_inline = inline_size;
+  endpoint_p->server->max_inline = inline_size;
   lcm_pm_barrier();
 
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
     char key[256];
-    sprintf(key, "LCI_KEY_%d_%d_%d", device_id, i, LCI_RANK);
+    sprintf(key, "LCI_KEY_%d_%d_%d", endpoint_id, i, LCI_RANK);
     char value[256];
     lcm_pm_getname(key, value);
     uint32_t dest_qpn;
@@ -266,7 +287,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
       struct ibv_qp_attr attr;
       memset(&attr, 0, sizeof(attr));
       attr.qp_state = IBV_QPS_RTR;
-      attr.path_mtu = server->port_attr.active_mtu;
+      attr.path_mtu = endpoint_p->server->port_attr.active_mtu;
       // starting receive packet sequence number
       // (should match remote QP's sq_psn)
       attr.rq_psn = 0;
@@ -278,7 +299,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
       attr.ah_attr.src_path_bits = 0;
       attr.ah_attr.is_global = 0;
       attr.ah_attr.static_rate = 0;
-      attr.ah_attr.port_num = server->dev_port;
+      attr.ah_attr.port_num = endpoint_p->server->dev_port;
       // maximum number of resources for incoming RDMA requests
       // don't know what this is
       attr.max_dest_rd_atomic = 1;
@@ -291,7 +312,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
                   IBV_QP_RQ_PSN | IBV_QP_MAX_DEST_RD_ATOMIC |
                   IBV_QP_MIN_RNR_TIMER;
 
-      rc = ibv_modify_qp(server->qps[i], &attr, flags);
+      int rc = ibv_modify_qp(endpoint_p->qps[i], &attr, flags);
       if (rc != 0) {
         fprintf(stderr, "failed to modify QP state to RTR\n");
         exit(EXIT_FAILURE);
@@ -312,7 +333,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
 
       int flags = IBV_QP_STATE | IBV_QP_TIMEOUT | IBV_QP_RETRY_CNT |
                   IBV_QP_RNR_RETRY | IBV_QP_SQ_PSN | IBV_QP_MAX_QP_RD_ATOMIC;
-      rc = ibv_modify_qp(server->qps[i], &attr, flags);
+      int rc = ibv_modify_qp(endpoint_p->qps[i], &attr, flags);
       if (rc != 0) {
         fprintf(stderr, "failed to modify QP state to RTS\n");
         exit(EXIT_FAILURE);
@@ -326,7 +347,7 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
     b = (int*)calloc(j, sizeof(int));
     int i = 0;
     for (; i < LCI_NUM_PROCESSES; i++) {
-      int k = (server->qps[i]->qp_num % j);
+      int k = (endpoint_p->qps[i]->qp_num % j);
       if (b[k]) break;
       b[k] = 1;
     }
@@ -337,30 +358,25 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
   LCM_Assert(j != INT32_MAX,
              "Cannot find a suitable mod to hold qp2rank map\n");
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
-    b[server->qps[i]->qp_num % j] = i;
+    b[endpoint_p->qps[i]->qp_num % j] = i;
   }
-  server->qp2rank_mod = j;
-  server->qp2rank = b;
+  endpoint_p->qp2rank_mod = j;
+  endpoint_p->qp2rank = b;
   LCM_Log(LCM_LOG_INFO, "ibv", "qp2rank_mod is %d\n", j);
 
-  LCISI_event_polling_thread_init(server);
   lcm_pm_barrier();
 }
 
-void LCISD_finalize(LCIS_server_t s)
+void LCISD_endpoint_fina(LCIS_endpoint_t endpoint_pp)
 {
-  LCISI_server_t* server = (LCISI_server_t*)s;
-  LCISI_event_polling_thread_fina(server);
-  free(server->qp2rank);
+  lcm_pm_barrier();
+  LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
+  free(endpoint_p->qp2rank);
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
-    IBV_SAFECALL(ibv_destroy_qp(server->qps[i]));
+    IBV_SAFECALL(ibv_destroy_qp(endpoint_p->qps[i]));
   }
-  LCIU_free(server->qps);
-  IBV_SAFECALL(ibv_destroy_cq(server->cq));
-  IBV_SAFECALL(ibv_destroy_srq(server->dev_srq));
-  ibv_free_device_list(server->dev_list);
-  if (server->odp_mr != NULL) IBV_SAFECALL(ibv_dereg_mr(server->odp_mr));
-  IBV_SAFECALL(ibv_dealloc_pd(server->dev_pd));
-  IBV_SAFECALL(ibv_close_device(server->dev_ctx));
-  LCIU_free(server);
+  LCIU_free(endpoint_p->qps);
+  IBV_SAFECALL(ibv_destroy_cq(endpoint_p->cq));
+  IBV_SAFECALL(ibv_destroy_srq(endpoint_p->srq));
+  LCIU_free(endpoint_p);
 }

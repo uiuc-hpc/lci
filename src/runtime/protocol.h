@@ -122,7 +122,7 @@ static inline void LCIS_serve_recv(void* p, int src_rank, size_t length,
               LCII_make_key(ep, src_rank, tag, LCI_MSG_LONG);
           LCM_hashtable_val value = (LCM_hashtable_val)packet;
           if (!LCM_hashtable_insert(ep->mt, key, &value, SERVER)) {
-            LCII_handle_2sided_rts(ep, packet, (LCI_comp_t)value);
+            LCII_handle_2sided_rts(ep, packet, (LCI_comp_t)value, true);
           }
           break;
         }

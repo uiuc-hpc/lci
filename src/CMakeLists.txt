@@ -9,6 +9,7 @@ target_sources_relative(
   runtime/1sided_primitive.c
   runtime/completion/cq.c
   runtime/lci.c
+  runtime/progress.c
   runtime/memory_registration.c
   runtime/matching_table.c
   runtime/property_list.c

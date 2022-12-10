@@ -19,7 +19,7 @@ typedef struct {
   int64_t packet_stealing;
   int64_t progress_call;
   char padding[48];
-} LCII_pcounters_per_thread_t __attribute__((aligned(64)));
+} LCII_pcounters_per_thread_t __attribute__((aligned(LCI_CACHE_LINE)));
 
 #define LCI_PCOUNTER_MAX_NTHREADS 256
 extern LCII_pcounters_per_thread_t LCII_pcounters[LCI_PCOUNTER_MAX_NTHREADS];

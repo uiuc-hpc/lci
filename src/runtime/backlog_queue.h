@@ -8,30 +8,29 @@ typedef enum {
   LCII_BQ_PUTIMM,
 } LCII_bqe_type_t;
 
-// backlog queue entry, 100 B
+// backlog queue entry, 96 B
 // TODO: should further reduce to one cache line
 typedef struct LCII_bq_entry_t {
-  LCII_bqe_type_t bqe_type;  // 4B
-  LCIS_server_t s;           // 8B
   void* buf;                 // 8B
   size_t size;               // 8B
+  LCII_bqe_type_t bqe_type;  // 4B
   int rank;                  // 4B
   LCIS_mr_t mr;              // 24B
   void* ctx;                 // 8B
   LCIS_meta_t meta;          // 4B
-  // only need by put
+  // only needed by put
   LCIS_offset_t offset;          // 8B
   uintptr_t base;                // 8B
   LCIS_rkey_t rkey;              // 8B
   struct LCII_bq_entry_t* next;  // 8B
-} LCII_bq_entry_t __attribute__((aligned(64)));
+} LCII_bq_entry_t __attribute__((aligned(LCI_CACHE_LINE)));
 
 typedef struct LCII_backlog_queue_t {
   int length;
   int max_length;  // for profile
   LCII_bq_entry_t* head;
   LCII_bq_entry_t* tail;
-} LCII_backlog_queue_t __attribute__((aligned(64)));
+} LCII_backlog_queue_t __attribute__((aligned(LCI_CACHE_LINE)));
 
 static inline void LCII_bq_init(LCII_backlog_queue_t* bq_p)
 {

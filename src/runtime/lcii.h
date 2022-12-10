@@ -24,27 +24,38 @@ struct LCM_hashtable_t;
 typedef struct LCM_hashtable_t LCM_hashtable_t;
 typedef struct LCM_hashtable_t* LCI_mt_t;
 
+struct LCII_endpoint_t {
+  LCI_device_t device;
+  LCIS_endpoint_t endpoint;
+  int recv_posted;
+};
+typedef struct LCII_endpoint_t LCII_endpoint_t;
+
 struct LCI_device_s {
   // the following will not be changed after initialization
-  LCIS_server_t server;  // 8B
-  LCII_pool_t* pkpool;   // 8B
-  LCI_mt_t mt;           // 8B
-  LCII_rcache_t rcache;  // 8B
-  LCI_lbuffer_t heap;    // 24B
-  char padding0[64 - sizeof(LCIS_server_t) - sizeof(LCII_pool_t*) -
-                sizeof(LCI_mt_t) - sizeof(LCII_rcache_t*) -
-                sizeof(LCI_lbuffer_t)];
+  LCIS_server_t server;               // 8B
+  LCII_endpoint_t endpoint_worker;    // 8B
+  LCII_endpoint_t endpoint_progress;  // 8B
+  LCII_pool_t* pkpool;                // 8B
+  LCI_mt_t mt;                        // 8B
+  LCII_rcache_t rcache;               // 8B
+  LCI_lbuffer_t heap;                 // 24B
+  char padding0[LCI_CACHE_LINE -
+                (sizeof(LCIS_server_t) - 2 * sizeof(LCIS_endpoint_t) -
+                 sizeof(LCII_pool_t*) - sizeof(LCI_mt_t) -
+                 sizeof(LCII_rcache_t*) - sizeof(LCI_lbuffer_t)) %
+                    LCI_CACHE_LINE];
   // the following will be changed locally by a progress thread
-  int recv_posted;  // 4B
-  char padding1[64 - sizeof(int)];
+  char padding1[LCI_CACHE_LINE - sizeof(int)];
   // the following is shared by both progress threads and worker threads
   LCM_archive_t ctx_archive;  // used for long message protocol
-  char padding2[64 - (sizeof(LCM_archive_t) % 64)];
+  char padding2[LCI_CACHE_LINE - (sizeof(LCM_archive_t) % LCI_CACHE_LINE)];
   LCII_backlog_queue_t bq;
   LCIU_spinlock_t bq_spinlock;
-  char padding3[64 - ((sizeof(LCII_backlog_queue_t) + sizeof(LCIU_spinlock_t)) %
-                      64)];
-} __attribute__((aligned(64)));
+  char padding3[LCI_CACHE_LINE -
+                ((sizeof(LCII_backlog_queue_t) + sizeof(LCIU_spinlock_t)) %
+                 LCI_CACHE_LINE)];
+} __attribute__((aligned(LCI_CACHE_LINE)));
 
 struct LCI_plist_s {
   LCI_match_t match_type;         // matching type
@@ -110,7 +121,7 @@ typedef struct {
   LCI_tag_t tag;              // 4 bytes
   // used by LCI internally
   LCI_comp_t completion;  // 8 bytes
-} LCII_context_t __attribute__((aligned(64)));
+} LCII_context_t __attribute__((aligned(LCI_CACHE_LINE)));
 /**
  * comp_type: user-defined comp_type
  * free_packet: free mbuffer as a packet.
@@ -140,7 +151,7 @@ typedef struct {
   uintptr_t recv_ctx;       // 8 bytes
   LCI_endpoint_t ep;        // 8 bytes
   LCII_context_t* context;  // 8 bytes
-} LCII_extended_context_t __attribute__((aligned(64)));
+} LCII_extended_context_t __attribute__((aligned(LCI_CACHE_LINE)));
 
 /**
  * Synchronizer, owned by the user.
@@ -202,7 +213,8 @@ static inline void lc_ce_dispatch(LCII_context_t* ctx);
 // rendezvous
 static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep,
                                           LCII_packet_t* packet,
-                                          LCII_context_t* long_ctx);
+                                          LCII_context_t* rdv_ctx,
+                                          bool is_progress);
 static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep,
                                           LCII_packet_t* packet);
 static inline void LCII_handle_2sided_writeImm(LCI_endpoint_t ep,

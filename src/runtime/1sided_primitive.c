@@ -10,7 +10,8 @@ LCI_error_t LCI_puts(LCI_endpoint_t ep, LCI_short_t src, int rank,
                  "Only support default remote completion "
                  "(set by LCI_plist_set_default_comp, "
                  "the default value is LCI_UR_CQ)\n");
-  return LCIS_post_sends(ep->device->server, rank, &src, sizeof(LCI_short_t),
+  return LCIS_post_sends(ep->device->endpoint_worker.endpoint, rank, &src,
+                         sizeof(LCI_short_t),
                          LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_SHORT, tag));
 }
 
@@ -53,10 +54,10 @@ LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   LCII_initilize_comp_attr(ctx->comp_attr);
   LCII_comp_attr_set_free_packet(ctx->comp_attr, 1);
 
-  LCI_error_t ret =
-      LCIS_post_send(ep->device->server, rank, packet->data.address,
-                     buffer.length, ep->device->heap.segment->mr,
-                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_MEDIUM, tag), ctx);
+  LCI_error_t ret = LCIS_post_send(
+      ep->device->endpoint_worker.endpoint, rank, packet->data.address,
+      buffer.length, ep->device->heap.segment->mr,
+      LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_MEDIUM, tag), ctx);
   if (ret == LCI_ERR_RETRY) {
     LCII_free_packet(packet);
     LCIU_free(ctx);
@@ -86,10 +87,10 @@ LCI_error_t LCI_putmna(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   LCII_initilize_comp_attr(ctx->comp_attr);
   LCII_comp_attr_set_free_packet(ctx->comp_attr, 1);
 
-  LCI_error_t ret =
-      LCIS_post_send(ep->device->server, rank, packet->data.address,
-                     buffer.length, ep->device->heap.segment->mr,
-                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_MEDIUM, tag), ctx);
+  LCI_error_t ret = LCIS_post_send(
+      ep->device->endpoint_worker.endpoint, rank, packet->data.address,
+      buffer.length, ep->device->heap.segment->mr,
+      LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_MEDIUM, tag), ctx);
   if (ret == LCI_ERR_RETRY) {
     LCIU_free(ctx);
   }
@@ -145,7 +146,7 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
               packet->data.rts.msg_type, (void*)packet->data.rts.send_ctx,
               packet->data.rts.size);
   LCI_error_t ret = LCIS_post_send(
-      ep->device->server, rank, packet->data.address,
+      ep->device->endpoint_worker.endpoint, rank, packet->data.address,
       sizeof(struct LCII_packet_rts_t), ep->device->heap.segment->mr,
       LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTS, tag), rts_ctx);
   if (ret == LCI_ERR_RETRY) {
@@ -227,8 +228,8 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
   size_t length = (uintptr_t)&packet->data.rts.size_p[iovec.count] -
                   (uintptr_t)packet->data.address + iovec.piggy_back.length;
   LCI_error_t ret =
-      LCIS_post_send(ep->device->server, rank, packet->data.address, length,
-                     ep->device->heap.segment->mr,
+      LCIS_post_send(ep->device->endpoint_worker.endpoint, rank,
+                     packet->data.address, length, ep->device->heap.segment->mr,
                      LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTS, tag), rts_ctx);
   if (ret == LCI_ERR_RETRY) {
     LCII_free_packet(packet);

@@ -5,7 +5,7 @@
 struct LCII_cq_t {
   LCM_dequeue_t dequeue;
   LCIU_spinlock_t spinlock;
-} __attribute__((aligned(64)));
+} __attribute__((aligned(LCI_CACHE_LINE)));
 typedef struct LCII_cq_t LCII_cq_t;
 #else
 typedef LCM_aqueue_t LCII_cq_t;

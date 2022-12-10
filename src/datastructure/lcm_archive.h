@@ -22,12 +22,12 @@ typedef uintptr_t LCM_archive_val_t;
 
 struct LCM_archive_entry_t {
   LCM_archive_val_t val;  // 8 bytes
-  char padding[64 - sizeof(LCM_archive_val_t)];
+  char padding[LCI_CACHE_LINE - sizeof(LCM_archive_val_t)];
 };
 
 struct LCM_archive_t {
   volatile uint64_t head;
-  char padding[64 - sizeof(int64_t)];
+  char padding[LCI_CACHE_LINE - sizeof(int64_t)];
   struct LCM_archive_entry_t* ptr;
   int nbits;
 };
@@ -50,9 +50,9 @@ static inline LCM_archive_val_t LCM_archive_remove(LCM_archive_t* archive,
 
 static int LCM_archive_init(LCM_archive_t* archive, int nbits)
 {
-  assert(sizeof(struct LCM_archive_entry_t) == 64);
+  assert(sizeof(struct LCM_archive_entry_t) == LCI_CACHE_LINE);
   size_t cap = 1 << nbits;
-  int ret = posix_memalign((void**)&archive->ptr, 64,
+  int ret = posix_memalign((void**)&archive->ptr, LCI_CACHE_LINE,
                            cap * sizeof(struct LCM_archive_entry_t));
   LCM_Assert(ret == 0, "Memory allocation failed!\n");
   archive->head = 0;

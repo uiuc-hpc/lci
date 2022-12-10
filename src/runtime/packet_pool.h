@@ -24,13 +24,13 @@ typedef struct {
   LCIU_spinlock_t lock;  // size 4 align 4
   LCM_dequeue_t dq;      // size 32 align 8
   char padding[24];
-} LCII_local_pool_t __attribute__((aligned(64)));
+} LCII_local_pool_t __attribute__((aligned(LCI_CACHE_LINE)));
 
 typedef struct LCII_pool_t {
   int key;
   int npools;
-  LCII_local_pool_t lpools[MAX_NPOOLS] __attribute__((aligned(64)));
-} LCII_pool_t __attribute__((aligned(64)));
+  LCII_local_pool_t lpools[MAX_NPOOLS] __attribute__((aligned(LCI_CACHE_LINE)));
+} LCII_pool_t __attribute__((aligned(LCI_CACHE_LINE)));
 
 void LCII_pool_create(LCII_pool_t** pool);
 void LCII_pool_destroy(LCII_pool_t* pool);

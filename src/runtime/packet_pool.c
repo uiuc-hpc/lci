@@ -26,7 +26,7 @@ void LCII_pool_create(struct LCII_pool_t** pool)
 {
   if (unlikely(!initialized)) LCII_pool_init();
   struct LCII_pool_t* p = 0;
-  posix_memalign((void**)&p, 64, sizeof(struct LCII_pool_t));
+  posix_memalign((void**)&p, LCI_CACHE_LINE, sizeof(struct LCII_pool_t));
   p->npools = 0;
   p->key = LCII_pool_nkey++;
   if (p->key < 0 || p->key > MAX_LOCAL_POOL) {

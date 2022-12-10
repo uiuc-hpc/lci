@@ -24,16 +24,24 @@
   while (0)                                                                   \
     ;
 
+struct LCISI_endpoint_t;
+
 typedef struct LCISI_server_t {
   LCI_device_t device;
   struct fi_info* info;
   struct fid_fabric* fabric;
   struct fid_domain* domain;
+  struct LCISI_endpoint_t* endpoints[LCI_SERVER_MAX_ENDPOINTS];
+  int endpoint_count;
+} LCISI_server_t __attribute__((aligned(LCI_CACHE_LINE)));
+
+typedef struct LCISI_endpoint_t {
+  LCISI_server_t* server;
   struct fid_ep* ep;
   struct fid_cq* cq;
   struct fid_av* av;
   fi_addr_t* peer_addrs;
-} LCISI_server_t __attribute__((aligned(64)));
+} LCISI_endpoint_t __attribute__((aligned(LCI_CACHE_LINE)));
 
 extern int g_next_rdma_key;
 
@@ -47,7 +55,9 @@ static inline void* LCISI_real_server_reg(LCIS_server_t s, void* buf,
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, rdma_key, 0,
                         &mr, 0));
   if (server->info->domain_attr->mr_mode & FI_MR_ENDPOINT) {
-    FI_SAFECALL(fi_mr_bind(mr, &server->ep->fid, 0));
+    for (int i = 0; i < server->endpoint_count; ++i) {
+      FI_SAFECALL(fi_mr_bind(mr, &server->endpoints[i]->ep->fid, 0));
+    }
     FI_SAFECALL(fi_mr_enable(mr));
   }
   return (void*)mr;
@@ -83,15 +93,16 @@ static inline void* ofi_rma_lkey(LCIS_mr_t mr)
   return fi_mr_desc((struct fid_mr*)mr.mr_p);
 }
 
-static inline int LCISD_poll_cq(LCIS_server_t s, LCIS_cq_entry_t* entry)
+static inline int LCISD_poll_cq(LCIS_endpoint_t endpoint_pp,
+                                LCIS_cq_entry_t* entry)
 {
-  LCISI_server_t* server = (LCISI_server_t*)s;
+  LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
   struct fi_cq_data_entry fi_entry[LCI_CQ_MAX_POLL];
   struct fi_cq_err_entry error;
   ssize_t ne;
   int ret;
 
-  ne = fi_cq_read(server->cq, &fi_entry, LCI_CQ_MAX_POLL);
+  ne = fi_cq_read(endpoint_p->cq, &fi_entry, LCI_CQ_MAX_POLL);
   ret = ne;
   if (ne > 0) {
     // Got an entry here
@@ -119,27 +130,28 @@ static inline int LCISD_poll_cq(LCIS_server_t s, LCIS_cq_entry_t* entry)
   } else {
     LCM_DBG_Assert(ne == -FI_EAVAIL, "unexpected return error: %s\n",
                    fi_strerror(-ne));
-    fi_cq_readerr(server->cq, &error, 0);
+    fi_cq_readerr(endpoint_p->cq, &error, 0);
     LCM_Assert(false, "Err %d: %s\n", error.err, fi_strerror(error.err));
   }
   return ret;
 }
 
-static inline void LCISD_post_recv(LCIS_server_t s, void* buf, uint32_t size,
-                                   LCIS_mr_t mr, void* ctx)
+static inline void LCISD_post_recv(LCIS_endpoint_t endpoint_pp, void* buf,
+                                   uint32_t size, LCIS_mr_t mr, void* ctx)
 {
-  LCISI_server_t* server = (LCISI_server_t*)s;
-  FI_SAFECALL(
-      fi_recv(server->ep, buf, size, ofi_rma_lkey(mr), FI_ADDR_UNSPEC, ctx));
+  LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
+  FI_SAFECALL(fi_recv(endpoint_p->ep, buf, size, ofi_rma_lkey(mr),
+                      FI_ADDR_UNSPEC, ctx));
 }
 
-static inline LCI_error_t LCISD_post_sends(LCIS_server_t s, int rank, void* buf,
-                                           size_t size, LCIS_meta_t meta)
+static inline LCI_error_t LCISD_post_sends(LCIS_endpoint_t endpoint_pp,
+                                           int rank, void* buf, size_t size,
+                                           LCIS_meta_t meta)
 {
-  LCISI_server_t* server = (LCISI_server_t*)s;
+  LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
   ssize_t ret =
-      fi_injectdata(server->ep, buf, size, (uint64_t)LCI_RANK << 32 | meta,
-                    server->peer_addrs[rank]);
+      fi_injectdata(endpoint_p->ep, buf, size, (uint64_t)LCI_RANK << 32 | meta,
+                    endpoint_p->peer_addrs[rank]);
   if (ret == FI_SUCCESS)
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
@@ -148,14 +160,15 @@ static inline LCI_error_t LCISD_post_sends(LCIS_server_t s, int rank, void* buf,
     FI_SAFECALL(ret);
 }
 
-static inline LCI_error_t LCISD_post_send(LCIS_server_t s, int rank, void* buf,
-                                          size_t size, LCIS_mr_t mr,
+static inline LCI_error_t LCISD_post_send(LCIS_endpoint_t endpoint_pp, int rank,
+                                          void* buf, size_t size, LCIS_mr_t mr,
                                           LCIS_meta_t meta, void* ctx)
 {
-  LCISI_server_t* server = (LCISI_server_t*)s;
-  ssize_t ret = fi_senddata(server->ep, buf, size, ofi_rma_lkey(mr),
-                            (uint64_t)LCI_RANK << 32 | meta,
-                            server->peer_addrs[rank], (struct fi_context*)ctx);
+  LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
+  ssize_t ret =
+      fi_senddata(endpoint_p->ep, buf, size, ofi_rma_lkey(mr),
+                  (uint64_t)LCI_RANK << 32 | meta, endpoint_p->peer_addrs[rank],
+                  (struct fi_context*)ctx);
   if (ret == FI_SUCCESS)
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
@@ -164,21 +177,21 @@ static inline LCI_error_t LCISD_post_send(LCIS_server_t s, int rank, void* buf,
     FI_SAFECALL(ret);
 }
 
-static inline LCI_error_t LCISD_post_puts(LCIS_server_t s, int rank, void* buf,
-                                          size_t size, uintptr_t base,
-                                          LCIS_offset_t offset,
+static inline LCI_error_t LCISD_post_puts(LCIS_endpoint_t endpoint_pp, int rank,
+                                          void* buf, size_t size,
+                                          uintptr_t base, LCIS_offset_t offset,
                                           LCIS_rkey_t rkey)
 {
-  LCISI_server_t* server = (LCISI_server_t*)s;
+  LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
   uintptr_t addr;
-  if (server->info->domain_attr->mr_mode & FI_MR_VIRT_ADDR ||
-      server->info->domain_attr->mr_mode & FI_MR_BASIC) {
+  if (endpoint_p->server->info->domain_attr->mr_mode & FI_MR_VIRT_ADDR ||
+      endpoint_p->server->info->domain_attr->mr_mode & FI_MR_BASIC) {
     addr = base + offset;
   } else {
     addr = offset;
   }
-  ssize_t ret = fi_inject_write(server->ep, buf, size, server->peer_addrs[rank],
-                                addr, rkey);
+  ssize_t ret = fi_inject_write(endpoint_p->ep, buf, size,
+                                endpoint_p->peer_addrs[rank], addr, rkey);
   if (ret == FI_SUCCESS)
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
@@ -187,21 +200,21 @@ static inline LCI_error_t LCISD_post_puts(LCIS_server_t s, int rank, void* buf,
     FI_SAFECALL(ret);
 }
 
-static inline LCI_error_t LCISD_post_put(LCIS_server_t s, int rank, void* buf,
-                                         size_t size, LCIS_mr_t mr,
+static inline LCI_error_t LCISD_post_put(LCIS_endpoint_t endpoint_pp, int rank,
+                                         void* buf, size_t size, LCIS_mr_t mr,
                                          uintptr_t base, LCIS_offset_t offset,
                                          LCIS_rkey_t rkey, void* ctx)
 {
-  LCISI_server_t* server = (LCISI_server_t*)s;
+  LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
   uintptr_t addr;
-  if (server->info->domain_attr->mr_mode & FI_MR_VIRT_ADDR ||
-      server->info->domain_attr->mr_mode & FI_MR_BASIC) {
+  if (endpoint_p->server->info->domain_attr->mr_mode & FI_MR_VIRT_ADDR ||
+      endpoint_p->server->info->domain_attr->mr_mode & FI_MR_BASIC) {
     addr = base + offset;
   } else {
     addr = offset;
   }
-  ssize_t ret = fi_write(server->ep, buf, size, ofi_rma_lkey(mr),
-                         server->peer_addrs[rank], addr, rkey, ctx);
+  ssize_t ret = fi_write(endpoint_p->ep, buf, size, ofi_rma_lkey(mr),
+                         endpoint_p->peer_addrs[rank], addr, rkey, ctx);
   if (ret == FI_SUCCESS)
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
@@ -210,22 +223,22 @@ static inline LCI_error_t LCISD_post_put(LCIS_server_t s, int rank, void* buf,
     FI_SAFECALL(ret);
 }
 
-static inline LCI_error_t LCISD_post_putImms(LCIS_server_t s, int rank,
-                                             void* buf, size_t size,
+static inline LCI_error_t LCISD_post_putImms(LCIS_endpoint_t endpoint_pp,
+                                             int rank, void* buf, size_t size,
                                              uintptr_t base,
                                              LCIS_offset_t offset,
                                              LCIS_rkey_t rkey, uint32_t meta)
 {
-  LCISI_server_t* server = (LCISI_server_t*)s;
+  LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
   uintptr_t addr;
-  if (server->info->domain_attr->mr_mode & FI_MR_VIRT_ADDR ||
-      server->info->domain_attr->mr_mode & FI_MR_BASIC) {
+  if (endpoint_p->server->info->domain_attr->mr_mode & FI_MR_VIRT_ADDR ||
+      endpoint_p->server->info->domain_attr->mr_mode & FI_MR_BASIC) {
     addr = base + offset;
   } else {
     addr = offset;
   }
-  ssize_t ret = fi_inject_writedata(server->ep, buf, size, meta,
-                                    server->peer_addrs[rank], addr, rkey);
+  ssize_t ret = fi_inject_writedata(endpoint_p->ep, buf, size, meta,
+                                    endpoint_p->peer_addrs[rank], addr, rkey);
   if (ret == FI_SUCCESS)
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
@@ -234,23 +247,23 @@ static inline LCI_error_t LCISD_post_putImms(LCIS_server_t s, int rank,
     FI_SAFECALL(ret);
 }
 
-static inline LCI_error_t LCISD_post_putImm(LCIS_server_t s, int rank,
-                                            void* buf, size_t size,
+static inline LCI_error_t LCISD_post_putImm(LCIS_endpoint_t endpoint_pp,
+                                            int rank, void* buf, size_t size,
                                             LCIS_mr_t mr, uintptr_t base,
                                             LCIS_offset_t offset,
                                             LCIS_rkey_t rkey, LCIS_meta_t meta,
                                             void* ctx)
 {
-  LCISI_server_t* server = (LCISI_server_t*)s;
+  LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
   uintptr_t addr;
-  if (server->info->domain_attr->mr_mode & FI_MR_VIRT_ADDR ||
-      server->info->domain_attr->mr_mode & FI_MR_BASIC) {
+  if (endpoint_p->server->info->domain_attr->mr_mode & FI_MR_VIRT_ADDR ||
+      endpoint_p->server->info->domain_attr->mr_mode & FI_MR_BASIC) {
     addr = base + offset;
   } else {
     addr = offset;
   }
-  ssize_t ret = fi_writedata(server->ep, buf, size, ofi_rma_lkey(mr), meta,
-                             server->peer_addrs[rank], addr, rkey, ctx);
+  ssize_t ret = fi_writedata(endpoint_p->ep, buf, size, ofi_rma_lkey(mr), meta,
+                             endpoint_p->peer_addrs[rank], addr, rkey, ctx);
   if (ret == FI_SUCCESS)
     return LCI_OK;
   else if (ret == -FI_EAGAIN)

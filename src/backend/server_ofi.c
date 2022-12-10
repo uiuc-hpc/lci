@@ -1,11 +1,10 @@
 #include "runtime/lcii.h"
 
-static int g_device_num = 0;
+static int g_endpoint_num = 0;
 int g_next_rdma_key = 0;
 
-void LCISD_init(LCI_device_t device, LCIS_server_t* s)
+void LCISD_server_init(LCI_device_t device, LCIS_server_t* s)
 {
-  int device_id = g_device_num++;
   LCISI_server_t* server = LCIU_malloc(sizeof(LCISI_server_t));
   *s = (LCIS_server_t)server;
   server->device = device;
@@ -84,39 +83,65 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
   // Create domain.
   FI_SAFECALL(fi_domain(server->fabric, server->info, &server->domain, NULL));
 
+  server->endpoint_count = 0;
+}
+
+void LCISD_server_fina(LCIS_server_t s)
+{
+  LCISI_server_t* server = (LCISI_server_t*)s;
+  LCM_Assert(server->endpoint_count == 0, "Endpoint count is not zero (%d)\n",
+             server->endpoint_count);
+  FI_SAFECALL(fi_close((struct fid*)&server->domain->fid));
+  FI_SAFECALL(fi_close((struct fid*)&server->fabric->fid));
+  fi_freeinfo(server->info);
+  free(s);
+}
+
+void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp)
+{
+  int endpoint_id = g_endpoint_num++;
+  LCISI_endpoint_t* endpoint_p = LCIU_malloc(sizeof(LCISI_endpoint_t));
+  *endpoint_pp = (LCIS_endpoint_t)endpoint_p;
+  endpoint_p->server = (LCISI_server_t*)server_pp;
+  endpoint_p->server->endpoints[endpoint_p->server->endpoint_count++] =
+      endpoint_p;
   // Create end-point;
-  FI_SAFECALL(fi_endpoint(server->domain, server->info, &server->ep, NULL));
+  FI_SAFECALL(fi_endpoint(endpoint_p->server->domain, endpoint_p->server->info,
+                          &endpoint_p->ep, NULL));
 
   // Create cq.
   struct fi_cq_attr cq_attr;
   memset(&cq_attr, 0, sizeof(struct fi_cq_attr));
   cq_attr.format = FI_CQ_FORMAT_DATA;
   cq_attr.size = LCI_SERVER_MAX_CQES;
-  FI_SAFECALL(fi_cq_open(server->domain, &cq_attr, &server->cq, NULL));
+  FI_SAFECALL(
+      fi_cq_open(endpoint_p->server->domain, &cq_attr, &endpoint_p->cq, NULL));
 
   // Bind my ep to cq.
-  FI_SAFECALL(fi_ep_bind(server->ep, (fid_t)server->cq, FI_TRANSMIT | FI_RECV));
+  FI_SAFECALL(
+      fi_ep_bind(endpoint_p->ep, (fid_t)endpoint_p->cq, FI_TRANSMIT | FI_RECV));
 
   struct fi_av_attr av_attr;
   memset(&av_attr, 0, sizeof(av_attr));
   av_attr.type = FI_AV_MAP;
-  FI_SAFECALL(fi_av_open(server->domain, &av_attr, &server->av, NULL));
-  FI_SAFECALL(fi_ep_bind(server->ep, (fid_t)server->av, 0));
-  FI_SAFECALL(fi_enable(server->ep));
+  FI_SAFECALL(
+      fi_av_open(endpoint_p->server->domain, &av_attr, &endpoint_p->av, NULL));
+  FI_SAFECALL(fi_ep_bind(endpoint_p->ep, (fid_t)endpoint_p->av, 0));
+  FI_SAFECALL(fi_enable(endpoint_p->ep));
 
   // Now exchange end-point address.
   // assume the size of the raw address no larger than 128 bits.
   const int EP_ADDR_LEN = 6;
   size_t addrlen = 0;
-  fi_getname((fid_t)server->ep, NULL, &addrlen);
+  fi_getname((fid_t)endpoint_p->ep, NULL, &addrlen);
   LCM_Log(LCM_LOG_INFO, "ofi", "addrlen = %lu\n", addrlen);
   LCM_Assert(addrlen <= 8 * EP_ADDR_LEN, "addrlen = %lu\n", addrlen);
   uint64_t my_addr[EP_ADDR_LEN];
-  FI_SAFECALL(fi_getname((fid_t)server->ep, my_addr, &addrlen));
+  FI_SAFECALL(fi_getname((fid_t)endpoint_p->ep, my_addr, &addrlen));
 
-  server->peer_addrs = LCIU_malloc(sizeof(fi_addr_t) * LCI_NUM_PROCESSES);
+  endpoint_p->peer_addrs = LCIU_malloc(sizeof(fi_addr_t) * LCI_NUM_PROCESSES);
   char key[256];
-  sprintf(key, "LCI_KEY_%d_%d", device_id, LCI_RANK);
+  sprintf(key, "LCI_KEY_%d_%d", endpoint_id, LCI_RANK);
   char value[256];
   const char* PARSE_STRING = "%016lx-%016lx-%016lx-%016lx-%016lx-%016lx";
   sprintf(value, PARSE_STRING, my_addr[0], my_addr[1], my_addr[2], my_addr[3],
@@ -126,18 +151,18 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
 
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
     if (i != LCI_RANK) {
-      sprintf(key, "LCI_KEY_%d_%d", device_id, i);
+      sprintf(key, "LCI_KEY_%d_%d", endpoint_id, i);
       lcm_pm_getname(key, value);
       uint64_t peer_addr[EP_ADDR_LEN];
 
       sscanf(value, PARSE_STRING, &peer_addr[0], &peer_addr[1], &peer_addr[2],
              &peer_addr[3], &peer_addr[4], &peer_addr[5]);
-      int ret = fi_av_insert(server->av, (void*)peer_addr, 1,
-                             &server->peer_addrs[i], 0, NULL);
+      int ret = fi_av_insert(endpoint_p->av, (void*)peer_addr, 1,
+                             &endpoint_p->peer_addrs[i], 0, NULL);
       LCM_Assert(ret == 1, "fi_av_insert failed! ret = %d\n", ret);
     } else {
-      int ret = fi_av_insert(server->av, (void*)my_addr, 1,
-                             &server->peer_addrs[i], 0, NULL);
+      int ret = fi_av_insert(endpoint_p->av, (void*)my_addr, 1,
+                             &endpoint_p->peer_addrs[i], 0, NULL);
       LCM_Assert(ret == 1, "fi_av_insert failed! ret = %d\n", ret);
     }
   }
@@ -145,15 +170,16 @@ void LCISD_init(LCI_device_t device, LCIS_server_t* s)
   lcm_pm_barrier();
 }
 
-void LCISD_finalize(LCIS_server_t s)
+void LCISD_endpoint_fina(LCIS_endpoint_t endpoint_pp)
 {
-  LCISI_server_t* server = (LCISI_server_t*)s;
-  LCIU_free(server->peer_addrs);
-  FI_SAFECALL(fi_close((struct fid*)&server->ep->fid));
-  FI_SAFECALL(fi_close((struct fid*)&server->cq->fid));
-  FI_SAFECALL(fi_close((struct fid*)&server->av->fid));
-  FI_SAFECALL(fi_close((struct fid*)&server->domain->fid));
-  FI_SAFECALL(fi_close((struct fid*)&server->fabric->fid));
-  fi_freeinfo(server->info);
-  free(s);
+  lcm_pm_barrier();
+  LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
+  LCIU_free(endpoint_p->peer_addrs);
+  int my_idx = --endpoint_p->server->endpoint_count;
+  LCM_Assert(endpoint_p->server->endpoints[my_idx] == endpoint_p,
+             "This is not me!\n");
+  endpoint_p->server->endpoints[my_idx] = NULL;
+  FI_SAFECALL(fi_close((struct fid*)&endpoint_p->ep->fid));
+  FI_SAFECALL(fi_close((struct fid*)&endpoint_p->cq->fid));
+  FI_SAFECALL(fi_close((struct fid*)&endpoint_p->av->fid));
 }

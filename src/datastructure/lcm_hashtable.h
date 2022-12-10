@@ -64,7 +64,7 @@ static inline uint32_t myhash(const uint64_t k)
 static inline LCM_hashtable_t* LCMI_hashtable_create_table(size_t num_rows)
 {
   LCM_hashtable_t* ret = 0;
-  posix_memalign((void**)&ret, 64,
+  posix_memalign((void**)&ret, LCI_CACHE_LINE,
                  num_rows * LCM_HASHTABLE_WIDTH * sizeof(LCM_hashtable_t));
 
   // Initialize all with EMPTY and clear lock.
