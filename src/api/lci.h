@@ -351,6 +351,11 @@ extern int LCI_SERVER_MAX_CQES;
  */
 extern bool LCI_IBV_ENABLE_EVENT_POLLING_THREAD;
 
+/**
+ * LCI_progress will not be called by multiple threads simultaneously
+ */
+extern int LCI_SINGLE_THREAD_PROGRESS;
+
 extern LCI_device_t LCI_UR_DEVICE;
 extern LCI_endpoint_t LCI_UR_ENDPOINT;
 extern LCI_comp_t LCI_UR_CQ;

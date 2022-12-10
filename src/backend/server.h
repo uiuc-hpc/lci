@@ -46,7 +46,8 @@ static inline LCIS_mr_t LCISD_rma_reg(LCIS_server_t s, void* buf, size_t size);
 static inline void LCISD_rma_dereg(LCIS_mr_t mr);
 static inline LCIS_rkey_t LCISD_rma_rkey(LCIS_mr_t mr);
 
-void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp);
+void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
+                         bool single_threaded);
 void LCISD_endpoint_fina(LCIS_endpoint_t endpoint_pp);
 static inline int LCISD_poll_cq(LCIS_endpoint_t endpoint_pp,
                                 LCIS_cq_entry_t* entry);
@@ -116,9 +117,10 @@ static inline void LCIS_rma_dereg(LCIS_mr_t mr)
 }
 
 static inline void LCIS_endpoint_init(LCIS_server_t server_pp,
-                                      LCIS_endpoint_t* endpoint_pp)
+                                      LCIS_endpoint_t* endpoint_pp,
+                                      bool single_threaded)
 {
-  return LCISD_endpoint_init(server_pp, endpoint_pp);
+  return LCISD_endpoint_init(server_pp, endpoint_pp, single_threaded);
 }
 
 static inline void LCIS_endpoint_fina(LCIS_endpoint_t endpoint_pp)

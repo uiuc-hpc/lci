@@ -97,7 +97,8 @@ void LCISD_server_fina(LCIS_server_t s)
   free(s);
 }
 
-void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp)
+void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
+                         bool single_threaded)
 {
   int endpoint_id = g_endpoint_num++;
   LCISI_endpoint_t* endpoint_p = LCIU_malloc(sizeof(LCISI_endpoint_t));

@@ -176,7 +176,8 @@ void LCISD_server_fina(LCIS_server_t s)
   LCIU_free(server);
 }
 
-void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp)
+void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
+                         bool single_threaded)
 {
   int endpoint_id = g_endpoint_num++;
   LCISI_endpoint_t* endpoint_p = LCIU_malloc(sizeof(LCISI_endpoint_t));
@@ -204,6 +205,31 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp)
     exit(EXIT_FAILURE);
   }
 
+  if (single_threaded) {
+    // allocate thread domain
+    struct ibv_td_init_attr td_attr;
+    td_attr.comp_mask = 0;
+    endpoint_p->td = ibv_alloc_td(endpoint_p->server->dev_ctx, &td_attr);
+    if (endpoint_p->td == NULL) {
+      fprintf(stderr, "ibv_alloc_td() on failed\n");
+      exit(EXIT_FAILURE);
+    }
+
+    struct ibv_parent_domain_init_attr attr;
+    attr.td = endpoint_p->td;
+    attr.pd = endpoint_p->server->dev_pd;
+    attr.comp_mask = 0;
+    endpoint_p->pd =
+        ibv_alloc_parent_domain(endpoint_p->server->dev_ctx, &attr);
+    if (endpoint_p->pd == NULL) {
+      fprintf(stderr, "ibv_alloc_parent_domain() failed\n");
+      exit(EXIT_FAILURE);
+    }
+  } else {
+    endpoint_p->td = NULL;
+    endpoint_p->pd = endpoint_p->server->dev_pd;
+  }
+
   endpoint_p->qps = LCIU_malloc(LCI_NUM_PROCESSES * sizeof(struct ibv_qp*));
 
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
@@ -221,8 +247,7 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp)
       init_attr.cap.max_inline_data = inline_size;
       init_attr.qp_type = IBV_QPT_RC;
       init_attr.sq_sig_all = 0;
-      endpoint_p->qps[i] =
-          ibv_create_qp(endpoint_p->server->dev_pd, &init_attr);
+      endpoint_p->qps[i] = ibv_create_qp(endpoint_p->pd, &init_attr);
 
       if (!endpoint_p->qps[i]) {
         fprintf(stderr, "Couldn't create QP\n");
@@ -376,6 +401,10 @@ void LCISD_endpoint_fina(LCIS_endpoint_t endpoint_pp)
     IBV_SAFECALL(ibv_destroy_qp(endpoint_p->qps[i]));
   }
   LCIU_free(endpoint_p->qps);
+  if (endpoint_p->td) {
+    IBV_SAFECALL(ibv_dealloc_pd(endpoint_p->pd));
+    IBV_SAFECALL(ibv_dealloc_td(endpoint_p->td));
+  }
   IBV_SAFECALL(ibv_destroy_cq(endpoint_p->cq));
   IBV_SAFECALL(ibv_destroy_srq(endpoint_p->srq));
   LCIU_free(endpoint_p);

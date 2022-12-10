@@ -39,6 +39,8 @@ typedef struct LCISI_server_t {
 typedef struct LCISI_endpoint_t {
   struct LCISI_server_t* server;
   // Connections O(N)
+  struct ibv_td* td;
+  struct ibv_pd* pd;
   struct ibv_qp** qps;
   struct ibv_cq* cq;
   struct ibv_srq* srq;

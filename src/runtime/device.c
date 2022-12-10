@@ -7,10 +7,11 @@ LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
   LCIS_server_init(device, &device->server);
   device->endpoint_progress.recv_posted = 0;
   device->endpoint_progress.device = device;
-  LCIS_endpoint_init(device->server, &device->endpoint_progress.endpoint);
+  LCIS_endpoint_init(device->server, &device->endpoint_progress.endpoint,
+                     LCI_SINGLE_THREAD_PROGRESS);
   device->endpoint_worker.recv_posted = 0;
   device->endpoint_worker.device = device;
-  LCIS_endpoint_init(device->server, &device->endpoint_worker.endpoint);
+  LCIS_endpoint_init(device->server, &device->endpoint_worker.endpoint, false);
   if (LCI_USE_DREG) {
     LCII_rcache_init(device);
   }

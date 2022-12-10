@@ -24,6 +24,8 @@ option(LCI_USE_AVX "Use GCC vector extension for the immediate field" ON)
 option(LCI_USE_MUTEX_CQ
        "Use mutex lock to ensure the thread safety of the completion queue."
        OFF)
+option(LCI_SINGLE_THREAD_PROGRESS_DEFAULT
+       "LCI_progress will not be called by multiple threads simultaneously" ON)
 
 set(LCI_EP_CE
     sync cq am
