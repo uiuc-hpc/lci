@@ -6,7 +6,8 @@ include(CheckTypeSize)
 
 file(GLOB_RECURSE lci-ucx_SRC CONFIGURE_DEPENDS "*.h" "*.c")
 
-add_library(lci-ucx SHARED ${lci-ucx_SRC})
+add_library(lci-ucx SHARED ${lci-ucx_SRC} lci_ucx_api.c)
+set_target_properties(lci-ucx PROPERTIES C_VISIBILITY_PRESET hidden)
 target_link_libraries(lci-ucx rt)
 target_include_directories(lci-ucx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
                                            ${CMAKE_CURRENT_BINARY_DIR})

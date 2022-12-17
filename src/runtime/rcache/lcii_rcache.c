@@ -1,6 +1,5 @@
 #include "runtime/lcii.h"
-#include "ucm/api/ucm.h"
-#include "ucs/memory/rcache.h"
+#include "lci_ucx_api.h"
 
 typedef struct {
   ucs_rcache_region_t super;
@@ -69,9 +68,9 @@ LCI_error_t LCII_rcache_init(LCI_device_t device)
   rcache_params.flags = UCS_RCACHE_FLAG_PURGE_ON_FORK;
   rcache_params.alignment = UCS_RCACHE_MIN_ALIGNMENT;
 
-  ucs_status_t ret =
-      ucs_rcache_create(&rcache_params, "lci_rcache", ucs_stats_get_root(),
-                        (ucs_rcache_t**)&device->rcache);
+  ucs_status_t ret = LCII_ucs_rcache_create(&rcache_params, "lci_rcache",
+                                            LCII_ucs_stats_get_root(),
+                                            (ucs_rcache_t**)&device->rcache);
   LCM_Assert(ret == UCS_OK, "Unexpected return value %d\n", ret);
   return LCI_OK;
 }
@@ -79,16 +78,16 @@ LCI_error_t LCII_rcache_init(LCI_device_t device)
 void LCII_rcache_fina(LCI_device_t device)
 {
   if (device->rcache != NULL) {
-    ucs_rcache_destroy(device->rcache);
+    LCII_ucs_rcache_destroy(device->rcache);
   }
 }
 
 void LCII_rcache_reg(LCI_device_t device, void* address, size_t length,
                      LCI_segment_t segment)
 {
-  ucs_status_t ret =
-      ucs_rcache_get(device->rcache, address, length, PROT_READ | PROT_WRITE,
-                     NULL, (ucs_rcache_region_t**)&segment->region);
+  ucs_status_t ret = LCII_ucs_rcache_get(
+      device->rcache, address, length, PROT_READ | PROT_WRITE, NULL,
+      (ucs_rcache_region_t**)&segment->region);
   LCII_rcache_entry_t* region =
       ucs_derived_of(segment->region, LCII_rcache_entry_t);
   segment->device = device;
@@ -98,5 +97,5 @@ void LCII_rcache_reg(LCI_device_t device, void* address, size_t length,
 
 LCI_error_t LCII_rcache_dereg(LCI_segment_t segment)
 {
-  ucs_rcache_region_put(segment->device->rcache, segment->region);
+  LCII_ucs_rcache_region_put(segment->device->rcache, segment->region);
 }
