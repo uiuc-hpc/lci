@@ -1,4 +1,5 @@
 #include "runtime/lcii.h"
+#include "lci_ucx_api.h"
 
 static int opened = 0;
 int LCIU_nthreads = 0;
@@ -13,11 +14,14 @@ LCI_error_t LCI_initialize()
   rank = lcm_pm_get_rank();
   num_proc = lcm_pm_get_size();
   LCM_Init(rank);
+  // Set some constant from environment variable.
   LCII_env_init(num_proc, rank);
   LCII_pcounters_init();
   LCII_monitor_thread_init();
+  if (LCI_USE_DREG) {
+    LCII_ucs_init();
+  }
 
-  // Set some constant from environment variable.
   LCI_device_init(&LCI_UR_DEVICE);
 
   LCI_queue_create(LCI_UR_DEVICE, &LCI_UR_CQ);
@@ -45,6 +49,9 @@ LCI_error_t LCI_finalize()
   LCI_endpoint_free(&LCI_UR_ENDPOINT);
   LCI_queue_free(&LCI_UR_CQ);
   LCI_device_free(&LCI_UR_DEVICE);
+  if (LCI_USE_DREG) {
+    LCII_ucs_cleanup();
+  }
   LCII_monitor_thread_fina();
   LCM_Fina();
   lcm_pm_finalize();

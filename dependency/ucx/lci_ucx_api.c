@@ -1,5 +1,16 @@
 #include "lci_ucx_api.h"
 
+extern void ucs_init();
+extern void ucs_cleanup();
+
+LCII_API void LCII_ucs_init(void) {
+  ucs_init();
+}
+
+LCII_API void LCII_ucs_cleanup(void) {
+  ucs_cleanup();
+}
+
 ucs_stats_node_t* LCII_ucs_stats_get_root(void) { return ucs_stats_get_root(); }
 
 ucs_status_t LCII_ucs_rcache_create(const ucs_rcache_params_t* params,

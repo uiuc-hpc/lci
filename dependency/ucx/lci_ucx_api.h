@@ -5,6 +5,9 @@
 
 #define LCII_API __attribute__((visibility("default")))
 
+LCII_API void LCII_ucs_init(void);
+LCII_API void LCII_ucs_cleanup(void);
+
 LCII_API ucs_stats_node_t* LCII_ucs_stats_get_root(void);
 
 LCII_API ucs_status_t LCII_ucs_rcache_create(const ucs_rcache_params_t* params,
