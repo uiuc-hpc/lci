@@ -205,27 +205,27 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
     exit(EXIT_FAILURE);
   }
 
+  endpoint_p->pd = NULL;
   if (single_threaded) {
     // allocate thread domain
     struct ibv_td_init_attr td_attr;
     td_attr.comp_mask = 0;
     endpoint_p->td = ibv_alloc_td(endpoint_p->server->dev_ctx, &td_attr);
-    if (endpoint_p->td == NULL) {
-      fprintf(stderr, "ibv_alloc_td() on failed\n");
-      exit(EXIT_FAILURE);
+    if (endpoint_p->td != NULL) {
+      struct ibv_parent_domain_init_attr attr;
+      attr.td = endpoint_p->td;
+      attr.pd = endpoint_p->server->dev_pd;
+      attr.comp_mask = 0;
+      endpoint_p->pd =
+          ibv_alloc_parent_domain(endpoint_p->server->dev_ctx, &attr);
+      if (endpoint_p->pd == NULL) {
+        LCM_Warn("ibv_alloc_parent_domain() failed (%s)\n", strerror(errno));
+      }
+    } else {
+      LCM_Warn("ibv_alloc_td() failed (%s)\n", strerror(errno));
     }
-
-    struct ibv_parent_domain_init_attr attr;
-    attr.td = endpoint_p->td;
-    attr.pd = endpoint_p->server->dev_pd;
-    attr.comp_mask = 0;
-    endpoint_p->pd =
-        ibv_alloc_parent_domain(endpoint_p->server->dev_ctx, &attr);
-    if (endpoint_p->pd == NULL) {
-      fprintf(stderr, "ibv_alloc_parent_domain() failed\n");
-      exit(EXIT_FAILURE);
-    }
-  } else {
+  }
+  if (endpoint_p->pd == NULL) {
     endpoint_p->td = NULL;
     endpoint_p->pd = endpoint_p->server->dev_pd;
   }
