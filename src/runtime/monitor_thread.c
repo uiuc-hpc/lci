@@ -16,6 +16,8 @@ struct timespec LCIU_timespec_diff(struct timespec new, struct timespec old)
     diff.tv_sec = new.tv_sec - old.tv_sec - 1;
     diff.tv_nsec = new.tv_nsec - old.tv_nsec + 1000000000;
   }
+  diff.tv_sec += diff.tv_nsec / 1000000000;
+  diff.tv_nsec %= 1000000000;
   return diff;
 }
 
