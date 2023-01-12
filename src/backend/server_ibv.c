@@ -231,6 +231,12 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
   }
 
   endpoint_p->qps = LCIU_malloc(LCI_NUM_PROCESSES * sizeof(struct ibv_qp*));
+#ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
+  endpoint_p->qp_locks = LCIU_malloc(LCI_NUM_PROCESSES * sizeof(struct LCISI_ibv_qp_lock_t));
+  for (int i = 0; i < LCI_NUM_PROCESSES; ++i) {
+    LCIU_spinlock_init(&endpoint_p->qp_locks[i].lock);
+  }
+#endif
 
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
     {
@@ -400,6 +406,12 @@ void LCISD_endpoint_fina(LCIS_endpoint_t endpoint_pp)
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
     IBV_SAFECALL(ibv_destroy_qp(endpoint_p->qps[i]));
   }
+#ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
+  for (int i = 0; i < LCI_NUM_PROCESSES; ++i) {
+    LCIU_spinlock_fina(&endpoint_p->qp_locks[i].lock);
+  }
+  LCIU_free(endpoint_p->qp_locks);
+#endif
   LCIU_free(endpoint_p->qps);
   if (endpoint_p->td) {
     IBV_SAFECALL(ibv_dealloc_pd(endpoint_p->pd));
