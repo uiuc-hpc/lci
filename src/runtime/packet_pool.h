@@ -68,6 +68,8 @@ static inline int32_t lc_pool_get_local(struct LCII_pool_t* pool)
 
 static inline void* lc_pool_get_slow(struct LCII_pool_t* pool, int32_t pid)
 {
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].packet_stealing +=
+                         1);
   void* ret = NULL;
   int32_t steal = LCIU_rand() % (pool->npools);
   size_t target_size = LCM_dq_size(pool->lpools[steal].dq);
@@ -83,8 +85,6 @@ static inline void* lc_pool_get_slow(struct LCII_pool_t* pool, int32_t pid)
       LCIU_release_spinlock(&pool->lpools[steal].lock);
     }
   }
-  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].packet_stealing +=
-                         1);
   return ret;
 }
 

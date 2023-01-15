@@ -23,44 +23,30 @@ struct timespec LCIU_timespec_diff(struct timespec new, struct timespec old)
 
 void* LCII_monitor_thread_fn(void* vargp)
 {
-  struct timespec start_time, now;
-  LCII_pcounters_per_thread_t pcounter, old;
-  memset(&old, 0, sizeof(old));
+  struct timespec start_time, time_now;
+  LCII_pcounters_per_thread_t pcounter_now, pcounter_old, pcounter_diff;
+  memset(&pcounter_old, 0, sizeof(pcounter_old));
   clock_gettime(CLOCK_MONOTONIC, &start_time);
   LCM_Log(LCM_LOG_INFO, "monitor", "Start the monitor thread at %lu.%lu s\n",
           start_time.tv_sec, start_time.tv_nsec);
   LCM_Log_flush();
   while (LCII_monitor_thread_run) {
     sleep(LCI_MONITOR_THREAD_INTERVAL);
-    pcounter = LCII_pcounters_accumulate();
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    struct timespec diff = LCIU_timespec_diff(now, start_time);
+    pcounter_now = LCII_pcounters_accumulate();
+    pcounter_diff = LCII_pcounters_diff(pcounter_now, pcounter_old);
+    pcounter_old = pcounter_now;
+    clock_gettime(CLOCK_MONOTONIC, &time_now);
+    struct timespec time_diff = LCIU_timespec_diff(time_now, start_time);
     LCM_Log(LCM_LOG_INFO, "monitor",
-            "Time %lu.%lu s: msgs_tx %ld/%ld/%ld/%ld "
-            "bytes_tx %ld/%ld msgs_rx %ld/%ld/%ld/%ld bytes_rx %ld/%ld "
-            "packet_stealing %ld progress_call %ld\n",
-            diff.tv_sec, diff.tv_nsec, pcounter.msgs_tx - old.msgs_tx,
-            pcounter.msgs_tx, pcounter.msgs_2sided_tx, pcounter.msgs_1sided_tx,
-            pcounter.bytes_tx - old.bytes_tx, pcounter.bytes_tx,
-            pcounter.msgs_rx - old.msgs_rx, pcounter.msgs_rx,
-            pcounter.msgs_2sided_rx, pcounter.msgs_1sided_rx,
-            pcounter.bytes_rx - old.bytes_rx, pcounter.bytes_rx,
-            pcounter.packet_stealing - old.packet_stealing,
-            pcounter.progress_call - old.progress_call);
-    old = pcounter;
+            "Time %lu.%lu s\n%s",
+            time_diff.tv_sec, time_diff.tv_nsec, LCII_pcounters_to_string(pcounter_diff));
     LCM_Log_flush();
   }
-  clock_gettime(CLOCK_MONOTONIC, &now);
-  struct timespec diff = LCIU_timespec_diff(now, start_time);
+  clock_gettime(CLOCK_MONOTONIC, &time_now);
+  struct timespec time_diff = LCIU_timespec_diff(time_now, start_time);
   LCM_Log(LCM_LOG_INFO, "monitor",
-          "Finish the monitor thread at %lu.%lu s: "
-          "msgs_tx %ld/%ld/%ld bytes_tx %ld "
-          "msgs_rx %ld/%ld/%ld bytes_rx %ld "
-          "packet_stealing %ld progress_call %ld\n",
-          diff.tv_sec, diff.tv_nsec, pcounter.msgs_tx, pcounter.msgs_2sided_tx,
-          pcounter.msgs_1sided_tx, pcounter.bytes_tx, pcounter.msgs_rx,
-          pcounter.msgs_2sided_rx, pcounter.msgs_1sided_rx, pcounter.bytes_rx,
-          pcounter.packet_stealing, pcounter.progress_call);
+          "Finish the monitor thread at %lu.%lu s\n",
+          time_diff.tv_sec, time_diff.tv_nsec);
   LCM_Log_flush();
   return NULL;
 }

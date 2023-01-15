@@ -46,6 +46,7 @@ LCI_error_t LCI_initialized(int* flag)
 LCI_error_t LCI_finalize()
 {
   LCI_barrier();
+  LCM_Log(LCM_LOG_INFO, "monitor", "\nPerformance counters:\n%s", LCII_pcounters_to_string(LCII_pcounters_accumulate()));
   LCI_endpoint_free(&LCI_UR_ENDPOINT);
   LCI_queue_free(&LCI_UR_CQ);
   LCI_device_free(&LCI_UR_DEVICE);

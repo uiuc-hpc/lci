@@ -16,9 +16,13 @@ typedef struct {
   int64_t msgs_1sided_tx;
   int64_t msgs_2sided_rx;
   int64_t msgs_1sided_rx;
+  // 64 bytes
   int64_t packet_stealing;
   int64_t progress_call;
-  char padding[48];
+  int64_t send_succeeded_lci;
+  int64_t send_failed_lci;
+  int64_t send_failed_backend;
+  char padding[LCI_CACHE_LINE - (8 * 13) & LCI_CACHE_LINE];
 } LCII_pcounters_per_thread_t __attribute__((aligned(LCI_CACHE_LINE)));
 
 #define LCI_PCOUNTER_MAX_NTHREADS 256
@@ -26,5 +30,8 @@ extern LCII_pcounters_per_thread_t LCII_pcounters[LCI_PCOUNTER_MAX_NTHREADS];
 
 void LCII_pcounters_init();
 LCII_pcounters_per_thread_t LCII_pcounters_accumulate();
+LCII_pcounters_per_thread_t LCII_pcounters_diff(LCII_pcounters_per_thread_t c1,
+                                                LCII_pcounters_per_thread_t c2);
+char* LCII_pcounters_to_string(LCII_pcounters_per_thread_t pcounter);
 
 #endif  // LCI_PERFORMANCE_COUNTER_H

@@ -6,9 +6,17 @@ LCI_error_t LCI_sends(LCI_endpoint_t ep, LCI_short_t src, int rank,
 {
   LCM_DBG_Assert(tag <= LCI_MAX_TAG, "tag %d is too large (maximum: %d)\n", tag,
                  LCI_MAX_TAG);
-  return LCIS_post_sends(ep->device->endpoint_worker.endpoint, rank, &src,
+  LCI_error_t ret = LCIS_post_sends(ep->device->endpoint_worker.endpoint, rank, &src,
                          sizeof(LCI_short_t),
                          LCII_MAKE_PROTO(ep->gid, LCI_MSG_SHORT, tag));
+  if (ret == LCI_OK) {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_succeeded_lci +=
+                           1);
+  } else {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_failed_lci +=
+                           1);
+  }
+  return ret;
 }
 
 LCI_error_t LCI_sendm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
@@ -41,6 +49,13 @@ LCI_error_t LCI_sendm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
     LCII_free_packet(packet);
     LCIU_free(ctx);
   }
+  if (ret == LCI_OK) {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_succeeded_lci +=
+                           1);
+  } else {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_failed_lci +=
+                           1);
+  }
   return ret;
 }
 
@@ -68,6 +83,13 @@ LCI_error_t LCI_sendmn(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
       LCII_MAKE_PROTO(ep->gid, LCI_MSG_MEDIUM, tag), ctx);
   if (ret == LCI_ERR_RETRY) {
     LCIU_free(ctx);
+  }
+  if (ret == LCI_OK) {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_succeeded_lci +=
+                           1);
+  } else {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_failed_lci +=
+                           1);
   }
   return ret;
 }
@@ -113,6 +135,13 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
     LCII_free_packet(packet);
     LCIU_free(rts_ctx);
     LCIU_free(rdv_ctx);
+  }
+  if (ret == LCI_OK) {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_succeeded_lci +=
+                           1);
+  } else {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_failed_lci +=
+                           1);
   }
   return ret;
 }
