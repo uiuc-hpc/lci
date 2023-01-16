@@ -18,9 +18,10 @@ typedef struct {
   int64_t msgs_1sided_rx;
   // 8x8 bytes
   int64_t packet_stealing;
-  int64_t send_succeeded_lci;
-  int64_t send_failed_lci;
-  int64_t send_failed_backend;
+  int64_t send_lci_succeeded;
+  int64_t send_lci_failed;
+  int64_t send_backend_failed_lock;
+  int64_t send_backend_failed_nomem;
   int64_t lci_cq_pop_succeeded;
   int64_t lci_cq_pop_failed_empty;
   int64_t lci_cq_pop_failed_contention;

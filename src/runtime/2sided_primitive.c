@@ -10,10 +10,10 @@ LCI_error_t LCI_sends(LCI_endpoint_t ep, LCI_short_t src, int rank,
                          sizeof(LCI_short_t),
                          LCII_MAKE_PROTO(ep->gid, LCI_MSG_SHORT, tag));
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_succeeded_lci +=
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded +=
                            1);
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_failed_lci +=
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_failed +=
                            1);
   }
   return ret;
@@ -50,10 +50,10 @@ LCI_error_t LCI_sendm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
     LCIU_free(ctx);
   }
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_succeeded_lci +=
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded +=
                            1);
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_failed_lci +=
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_failed +=
                            1);
   }
   return ret;
@@ -85,10 +85,10 @@ LCI_error_t LCI_sendmn(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
     LCIU_free(ctx);
   }
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_succeeded_lci +=
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded +=
                            1);
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_failed_lci +=
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_failed +=
                            1);
   }
   return ret;
@@ -137,10 +137,10 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
     LCIU_free(rdv_ctx);
   }
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_succeeded_lci +=
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded +=
                            1);
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_failed_lci +=
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_failed +=
                            1);
   }
   return ret;

@@ -22,9 +22,10 @@ LCII_pcounters_per_thread_t LCII_pcounters_accumulate()
     LCII_PCOUNTERS_FIELD_ADD(msgs_1sided_tx);
     LCII_PCOUNTERS_FIELD_ADD(msgs_1sided_rx);
     LCII_PCOUNTERS_FIELD_ADD(packet_stealing);
-    LCII_PCOUNTERS_FIELD_ADD(send_succeeded_lci);
-    LCII_PCOUNTERS_FIELD_ADD(send_failed_lci);
-    LCII_PCOUNTERS_FIELD_ADD(send_failed_backend);
+    LCII_PCOUNTERS_FIELD_ADD(send_lci_succeeded);
+    LCII_PCOUNTERS_FIELD_ADD(send_lci_failed);
+    LCII_PCOUNTERS_FIELD_ADD(send_backend_failed_lock);
+    LCII_PCOUNTERS_FIELD_ADD(send_backend_failed_nomem);
     LCII_PCOUNTERS_FIELD_ADD(lci_cq_pop_succeeded);
     LCII_PCOUNTERS_FIELD_ADD(lci_cq_pop_failed_empty);
     LCII_PCOUNTERS_FIELD_ADD(lci_cq_pop_failed_contention);
@@ -53,9 +54,10 @@ LCII_pcounters_per_thread_t LCII_pcounters_diff(LCII_pcounters_per_thread_t c1,
     LCII_PCOUNTERS_FIELD_DIFF(msgs_1sided_tx);
     LCII_PCOUNTERS_FIELD_DIFF(msgs_1sided_rx);
     LCII_PCOUNTERS_FIELD_DIFF(packet_stealing);
-    LCII_PCOUNTERS_FIELD_DIFF(send_succeeded_lci);
-    LCII_PCOUNTERS_FIELD_DIFF(send_failed_lci);
-    LCII_PCOUNTERS_FIELD_DIFF(send_failed_backend);
+    LCII_PCOUNTERS_FIELD_DIFF(send_lci_succeeded);
+    LCII_PCOUNTERS_FIELD_DIFF(send_lci_failed);
+    LCII_PCOUNTERS_FIELD_DIFF(send_backend_failed_lock);
+    LCII_PCOUNTERS_FIELD_DIFF(send_backend_failed_nomem);
     LCII_PCOUNTERS_FIELD_DIFF(lci_cq_pop_succeeded);
     LCII_PCOUNTERS_FIELD_DIFF(lci_cq_pop_failed_empty);
     LCII_PCOUNTERS_FIELD_DIFF(lci_cq_pop_failed_contention);
@@ -95,11 +97,16 @@ char* LCII_pcounters_to_string(LCII_pcounters_per_thread_t pcounter) {
   LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
   consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
                        "\t\tLCI send attempts (succeeded/failed): %ld/%ld;\n",
-                       pcounter.send_succeeded_lci, pcounter.send_failed_lci);
+                       pcounter.send_lci_succeeded, pcounter.send_lci_failed);
   LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
   consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
-                       "\t\tbackend send attempts (succeeded/failed): %ld/%ld;\n",
-                       pcounter.msgs_tx, pcounter.send_failed_backend);
+                       "\t\tbackend send attempts:\n"
+                       "\t\t\tSucceeded: %ld\n"
+                       "\t\t\tFailed due to lock: %ld\n"
+                       "\t\t\tFailed due to no memory: %ld\n",
+                       pcounter.msgs_tx,
+                       pcounter.send_backend_failed_lock,
+                       pcounter.send_backend_failed_nomem);
   LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
   consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
                        "\t\tLCI cq pop:\n"
@@ -115,7 +122,7 @@ char* LCII_pcounters_to_string(LCII_pcounters_per_thread_t pcounter) {
   consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
                        "\t\tLCI progress function:\n"
                        "\t\t\tCalled: %ld\n"
-                       "\t\t\tUseful called: %ld\n"
+                       "\t\t\tUseful calls: %ld\n"
                        "\t\t\tConsecutive useful calls (max/sum): %ld/%ld\n",
                        pcounter.progress_call,
                        pcounter.progress_useful_call,

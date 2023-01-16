@@ -209,7 +209,7 @@ static inline LCI_error_t LCISD_post_sends(LCIS_endpoint_t endpoint_pp,
 #ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
   if (endpoint_p->qp_extras &&
       !LCIU_try_acquire_spinlock(&endpoint_p->qp_extras[rank].lock))
-    return LCI_ERR_RETRY;
+    return LCI_ERR_RETRY_LOCK;
 #endif
   int ret = ibv_post_send(endpoint_p->qps[rank], &wr, &bad_wr);
 #ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
@@ -219,7 +219,7 @@ static inline LCI_error_t LCISD_post_sends(LCIS_endpoint_t endpoint_pp,
   if (ret == 0)
     return LCI_OK;
   else if (ret == ENOMEM)
-    return LCI_ERR_RETRY;  // exceed send queue capacity
+    return LCI_ERR_RETRY_NOMEM;  // exceed send queue capacity
   else
     IBV_SAFECALL(ret);
 }
@@ -250,7 +250,7 @@ static inline LCI_error_t LCISD_post_send(LCIS_endpoint_t endpoint_pp, int rank,
 #ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
   if (endpoint_p->qp_extras &&
       !LCIU_try_acquire_spinlock(&endpoint_p->qp_extras[rank].lock))
-    return LCI_ERR_RETRY;
+    return LCI_ERR_RETRY_LOCK;
 #endif
   int ret = ibv_post_send(endpoint_p->qps[rank], &wr, &bad_wr);
 #ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
@@ -260,7 +260,7 @@ static inline LCI_error_t LCISD_post_send(LCIS_endpoint_t endpoint_pp, int rank,
   if (ret == 0)
     return LCI_OK;
   else if (ret == ENOMEM)
-    return LCI_ERR_RETRY;  // exceed send queue capacity
+    return LCI_ERR_RETRY_NOMEM;  // exceed send queue capacity
   else
     IBV_SAFECALL(ret);
 }
@@ -293,7 +293,7 @@ static inline LCI_error_t LCISD_post_puts(LCIS_endpoint_t endpoint_pp, int rank,
 #ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
   if (endpoint_p->qp_extras &&
       !LCIU_try_acquire_spinlock(&endpoint_p->qp_extras[rank].lock))
-    return LCI_ERR_RETRY;
+    return LCI_ERR_RETRY_LOCK;
 #endif
   int ret = ibv_post_send(endpoint_p->qps[rank], &wr, &bad_wr);
 #ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
@@ -303,7 +303,7 @@ static inline LCI_error_t LCISD_post_puts(LCIS_endpoint_t endpoint_pp, int rank,
   if (ret == 0)
     return LCI_OK;
   else if (ret == ENOMEM)
-    return LCI_ERR_RETRY;  // exceed send queue capacity
+    return LCI_ERR_RETRY_NOMEM;  // exceed send queue capacity
   else
     IBV_SAFECALL(ret);
 }
@@ -335,7 +335,7 @@ static inline LCI_error_t LCISD_post_put(LCIS_endpoint_t endpoint_pp, int rank,
 #ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
   if (endpoint_p->qp_extras &&
       !LCIU_try_acquire_spinlock(&endpoint_p->qp_extras[rank].lock))
-    return LCI_ERR_RETRY;
+    return LCI_ERR_RETRY_LOCK;
 #endif
   int ret = ibv_post_send(endpoint_p->qps[rank], &wr, &bad_wr);
 #ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
@@ -345,7 +345,7 @@ static inline LCI_error_t LCISD_post_put(LCIS_endpoint_t endpoint_pp, int rank,
   if (ret == 0)
     return LCI_OK;
   else if (ret == ENOMEM)
-    return LCI_ERR_RETRY;  // exceed send queue capacity
+    return LCI_ERR_RETRY_NOMEM;  // exceed send queue capacity
   else
     IBV_SAFECALL(ret);
 }
@@ -380,7 +380,7 @@ static inline LCI_error_t LCISD_post_putImms(LCIS_endpoint_t endpoint_pp,
 #ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
   if (endpoint_p->qp_extras &&
       !LCIU_try_acquire_spinlock(&endpoint_p->qp_extras[rank].lock))
-    return LCI_ERR_RETRY;
+    return LCI_ERR_RETRY_LOCK;
 #endif
   int ret = ibv_post_send(endpoint_p->qps[rank], &wr, &bad_wr);
 #ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
@@ -390,7 +390,7 @@ static inline LCI_error_t LCISD_post_putImms(LCIS_endpoint_t endpoint_pp,
   if (ret == 0)
     return LCI_OK;
   else if (ret == ENOMEM)
-    return LCI_ERR_RETRY;  // exceed send queue capacity
+    return LCI_ERR_RETRY_NOMEM;  // exceed send queue capacity
   else
     IBV_SAFECALL(ret);
 }
@@ -425,7 +425,7 @@ static inline LCI_error_t LCISD_post_putImm(LCIS_endpoint_t endpoint_pp,
 #ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
   if (endpoint_p->qp_extras &&
       !LCIU_try_acquire_spinlock(&endpoint_p->qp_extras[rank].lock))
-    return LCI_ERR_RETRY;
+    return LCI_ERR_RETRY_LOCK;
 #endif
   int ret = ibv_post_send(endpoint_p->qps[rank], &wr, &bad_wr);
 #ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
@@ -435,7 +435,7 @@ static inline LCI_error_t LCISD_post_putImm(LCIS_endpoint_t endpoint_pp,
   if (ret == 0)
     return LCI_OK;
   else if (ret == ENOMEM)
-    return LCI_ERR_RETRY;  // exceed send queue capacity
+    return LCI_ERR_RETRY_NOMEM;  // exceed send queue capacity
   else
     IBV_SAFECALL(ret);
 }

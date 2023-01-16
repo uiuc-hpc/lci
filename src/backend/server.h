@@ -143,14 +143,17 @@ static inline LCI_error_t LCIS_post_sends(LCIS_endpoint_t endpoint_pp, int rank,
               size, meta);
   LCI_error_t ret = LCISD_post_sends(endpoint_pp, rank, buf, size, meta);
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_tx += 1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_tx++);
     LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].bytes_tx +=
                            size);
     LCII_PCOUNTERS_WRAPPER(
-        LCII_pcounters[LCIU_get_thread_id()].msgs_2sided_tx += 1);
+        LCII_pcounters[LCIU_get_thread_id()].msgs_2sided_tx++);
+  } else if (ret == LCI_ERR_RETRY_LOCK) {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_backend_failed_lock++);
+    ret = LCI_ERR_RETRY;
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_failed_backend +=
-                           1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_backend_failed_nomem++);
+    ret = LCI_ERR_RETRY;
   }
   return ret;
 }
@@ -169,9 +172,12 @@ static inline LCI_error_t LCIS_post_send(LCIS_endpoint_t endpoint_pp, int rank,
                            size);
     LCII_PCOUNTERS_WRAPPER(
         LCII_pcounters[LCIU_get_thread_id()].msgs_2sided_tx += 1);
+  } else if (ret == LCI_ERR_RETRY_LOCK) {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_backend_failed_lock++);
+    ret = LCI_ERR_RETRY;
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_failed_backend +=
-                           1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_backend_failed_nomem++);
+    ret = LCI_ERR_RETRY;
   }
   return ret;
 }
@@ -191,9 +197,12 @@ static inline LCI_error_t LCIS_post_puts(LCIS_endpoint_t endpoint_pp, int rank,
                            size);
     LCII_PCOUNTERS_WRAPPER(
         LCII_pcounters[LCIU_get_thread_id()].msgs_1sided_tx += 1);
+  } else if (ret == LCI_ERR_RETRY_LOCK) {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_backend_failed_lock++);
+    ret = LCI_ERR_RETRY;
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_failed_backend +=
-                           1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_backend_failed_nomem++);
+    ret = LCI_ERR_RETRY;
   }
   return ret;
 }
@@ -214,9 +223,12 @@ static inline LCI_error_t LCIS_post_put(LCIS_endpoint_t endpoint_pp, int rank,
                            size);
     LCII_PCOUNTERS_WRAPPER(
         LCII_pcounters[LCIU_get_thread_id()].msgs_1sided_tx += 1);
+  } else if (ret == LCI_ERR_RETRY_LOCK) {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_backend_failed_lock++);
+    ret = LCI_ERR_RETRY;
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_failed_backend +=
-                           1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_backend_failed_nomem++);
+    ret = LCI_ERR_RETRY;
   }
   return ret;
 }
@@ -238,9 +250,12 @@ static inline LCI_error_t LCIS_post_putImms(LCIS_endpoint_t endpoint_pp,
                            size);
     LCII_PCOUNTERS_WRAPPER(
         LCII_pcounters[LCIU_get_thread_id()].msgs_1sided_tx += 1);
+  } else if (ret == LCI_ERR_RETRY_LOCK) {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_backend_failed_lock++);
+    ret = LCI_ERR_RETRY;
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_failed_backend +=
-                           1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_backend_failed_nomem++);
+    ret = LCI_ERR_RETRY;
   }
   return ret;
 }
@@ -263,9 +278,12 @@ static inline LCI_error_t LCIS_post_putImm(LCIS_endpoint_t endpoint_pp,
                            size);
     LCII_PCOUNTERS_WRAPPER(
         LCII_pcounters[LCIU_get_thread_id()].msgs_1sided_tx += 1);
+  } else if (ret == LCI_ERR_RETRY_LOCK) {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_backend_failed_lock++);
+    ret = LCI_ERR_RETRY;
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_failed_backend +=
-                           1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_backend_failed_nomem++);
+    ret = LCI_ERR_RETRY;
   }
   return ret;
 }
