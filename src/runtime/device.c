@@ -45,6 +45,7 @@ LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
     p->context.poolid = 0;
     LCII_pool_put(device->pkpool, p);
   }
+  device->did_work_consecutive = 0;
   LCM_DBG_Log(LCM_LOG_DEBUG, "device", "device %p initialized\n", device);
   return LCI_OK;
 }

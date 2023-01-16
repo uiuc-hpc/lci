@@ -9,6 +9,7 @@
 
 #define LCIU_MIN(x, y) ((x) < (y) ? (x) : (y))
 #define LCIU_MAX(x, y) ((x) > (y) ? (x) : (y))
+#define LCIU_MAX_ASSIGN(x, y) x = LCIU_MAX(x, y)
 
 #define __UNUSED__ __attribute__((unused))
 

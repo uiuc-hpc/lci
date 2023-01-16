@@ -46,7 +46,8 @@ struct LCI_device_s {
                  sizeof(LCII_rcache_t*) - sizeof(LCI_lbuffer_t)) %
                     LCI_CACHE_LINE];
   // the following will be changed locally by a progress thread
-  char padding1[LCI_CACHE_LINE - sizeof(int)];
+  uint64_t did_work_consecutive;
+  char padding1[LCI_CACHE_LINE - sizeof(uint64_t)];
   // the following is shared by both progress threads and worker threads
   LCM_archive_t ctx_archive;  // used for long message protocol
   char padding2[LCI_CACHE_LINE - (sizeof(LCM_archive_t) % LCI_CACHE_LINE)];

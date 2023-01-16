@@ -16,13 +16,21 @@ typedef struct {
   int64_t msgs_1sided_tx;
   int64_t msgs_2sided_rx;
   int64_t msgs_1sided_rx;
-  // 64 bytes
+  // 8x8 bytes
   int64_t packet_stealing;
-  int64_t progress_call;
   int64_t send_succeeded_lci;
   int64_t send_failed_lci;
   int64_t send_failed_backend;
-  char padding[LCI_CACHE_LINE - (8 * 13) & LCI_CACHE_LINE];
+  int64_t lci_cq_pop_succeeded;
+  int64_t lci_cq_pop_failed_empty;
+  int64_t lci_cq_pop_failed_contention;
+  int64_t lci_cq_pop_len_accumulated;
+  // 8x8 bytes
+  int64_t progress_call;
+  int64_t progress_useful_call;
+  int64_t progress_useful_call_consecutive_max;
+  int64_t progress_useful_call_consecutive_sum;
+  char padding[LCI_CACHE_LINE - (8 * 19) & LCI_CACHE_LINE];
 } LCII_pcounters_per_thread_t __attribute__((aligned(LCI_CACHE_LINE)));
 
 #define LCI_PCOUNTER_MAX_NTHREADS 256

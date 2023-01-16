@@ -132,5 +132,18 @@ LCI_error_t LCI_progress(LCI_device_t device)
   }
   LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].progress_call +=
                          1);
+#ifdef LCI_USE_PERFORMANCE_COUNTER
+  if (ret == LCI_OK) {
+    ++device->did_work_consecutive;
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].progress_useful_call++);
+  } else {
+    LCIU_MAX_ASSIGN(
+        LCII_pcounters[LCIU_get_thread_id()].progress_useful_call_consecutive_max,
+        device->did_work_consecutive);
+    LCII_pcounters[LCIU_get_thread_id()].progress_useful_call_consecutive_sum +=
+        device->did_work_consecutive;
+    device->did_work_consecutive = 0;
+  }
+#endif
   return ret;
 }

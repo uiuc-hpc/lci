@@ -94,6 +94,7 @@ static inline void* LCM_aqueue_pop(LCM_aqueue_t* queue)
   uint64_t current_bot = queue->bot;
   if (current_top2 <= current_bot) {
     // the queue is empty
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].lci_cq_pop_failed_empty++);
     return NULL;
   }
   //  LCM_DBG_Assert(current_top2 > current_bot, "bot %lu is ahead of top2
@@ -102,6 +103,7 @@ static inline void* LCM_aqueue_pop(LCM_aqueue_t* queue)
       __sync_val_compare_and_swap(&queue->bot, current_bot, current_bot + 1);
   if (ret != current_bot) {
     // other thread is ahead of us
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].lci_cq_pop_failed_contention++);
     return NULL;
   }
   // we have successfully reserve an entry
@@ -121,6 +123,9 @@ static inline void* LCM_aqueue_pop(LCM_aqueue_t* queue)
       break;
     }
   }
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].lci_cq_pop_len_accumulated +=
+                         current_top2 - current_bot);
+  LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].lci_cq_pop_succeeded++);
   return result;
 }
 
