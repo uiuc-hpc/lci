@@ -258,7 +258,7 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
       } else {
         LCM_Warn("ibv_alloc_td() failed (%s)\n", strerror(errno));
       }
-      if (endpoint_p->pd == NULL) {
+      if (endpoint_p->qp_extras[i].pd == NULL) {
         endpoint_p->qp_extras[i].td = NULL;
         endpoint_p->qp_extras[i].pd = endpoint_p->server->dev_pd;
       }
