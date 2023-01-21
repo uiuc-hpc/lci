@@ -21,9 +21,9 @@ extern "C" {
 #endif
 
 typedef struct {
-  LCIU_spinlock_t lock;  // size 4 align 4
   LCM_dequeue_t dq;      // size 32 align 8
-  char padding[24];
+  LCIU_spinlock_t lock;  // size 4 align 4
+  char padding[LCI_CACHE_LINE - 36 % LCI_CACHE_LINE];
 } LCII_local_pool_t __attribute__((aligned(LCI_CACHE_LINE)));
 
 typedef struct LCII_pool_t {

@@ -25,13 +25,13 @@ typedef struct {
   int64_t lci_cq_pop_succeeded;
   int64_t lci_cq_pop_failed_empty;
   int64_t lci_cq_pop_failed_contention;
-  int64_t lci_cq_pop_len_accumulated;
   // 8x8 bytes
+  int64_t lci_cq_pop_len_accumulated;
   int64_t progress_call;
   int64_t progress_useful_call;
   int64_t progress_useful_call_consecutive_max;
   int64_t progress_useful_call_consecutive_sum;
-  char padding[LCI_CACHE_LINE - (8 * 19) & LCI_CACHE_LINE];
+  char padding[LCI_CACHE_LINE - (8 * 21) % LCI_CACHE_LINE];
 } LCII_pcounters_per_thread_t __attribute__((aligned(LCI_CACHE_LINE)));
 
 #define LCI_PCOUNTER_MAX_NTHREADS 256
