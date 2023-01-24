@@ -14,11 +14,9 @@ LCI_error_t LCI_puts(LCI_endpoint_t ep, LCI_short_t src, int rank,
                          sizeof(LCI_short_t),
                          LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_SHORT, tag));
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded +=
-                           1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded++);
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_failed +=
-                           1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
   }
   return ret;
 }
@@ -49,9 +47,12 @@ LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                  "(set by LCI_plist_set_default_comp, "
                  "the default value is LCI_UR_CQ)\n");
   LCII_packet_t* packet = LCII_pool_get_nb(ep->pkpool);
-  if (packet == NULL)
+  if (packet == NULL) {
     // no packet is available
+    LCII_PCOUNTERS_WRAPPER(
+        LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_packet++);
     return LCI_ERR_RETRY;
+  }
   packet->context.poolid = (buffer.length > LCI_PACKET_RETURN_THRESHOLD)
                                ? lc_pool_get_local(ep->pkpool)
                                : -1;
@@ -71,11 +72,9 @@ LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
     LCIU_free(ctx);
   }
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded +=
-                           1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded++);
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_failed +=
-                           1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
   }
   return ret;
 }
@@ -110,11 +109,9 @@ LCI_error_t LCI_putmna(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
     LCIU_free(ctx);
   }
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded +=
-                           1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded++);
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_failed +=
-                           1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
   }
   return ret;
 }
@@ -136,11 +133,18 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
                  "Only support default remote completion "
                  "(set by LCI_plist_set_default_comp, "
                  "the default value is LCI_UR_CQ)\n");
-  if (!LCII_bq_is_empty(ep->bq_p)) return LCI_ERR_RETRY;
-  LCII_packet_t* packet = LCII_pool_get_nb(ep->pkpool);
-  if (packet == NULL)
-    // no packet is available
+  if (!LCII_bq_is_empty(ep->bq_p)) {
+    LCII_PCOUNTERS_WRAPPER(
+        LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_bq++);
     return LCI_ERR_RETRY;
+  }
+  LCII_packet_t* packet = LCII_pool_get_nb(ep->pkpool);
+  if (packet == NULL) {
+    // no packet is available
+    LCII_PCOUNTERS_WRAPPER(
+        LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_packet++);
+    return LCI_ERR_RETRY;
+  }
   packet->context.poolid = -1;
 
   LCII_context_t* rts_ctx = LCIU_malloc(sizeof(LCII_context_t));
@@ -177,11 +181,9 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
     LCIU_free(rdv_ctx);
   }
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded +=
-                           1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded++);
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_failed +=
-                           1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
   }
   return ret;
 }
@@ -215,11 +217,18 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
         "all of them are LCI_SEGMENT_ALL\n");
     LCM_DBG_Assert(iovec.lbuffers[i].length > 0, "Invalid lbuffer length\n");
   }
-  if (!LCII_bq_is_empty(ep->bq_p)) return LCI_ERR_RETRY;
-  LCII_packet_t* packet = LCII_pool_get_nb(ep->pkpool);
-  if (packet == NULL)
-    // no packet is available
+  if (!LCII_bq_is_empty(ep->bq_p)) {
+    LCII_PCOUNTERS_WRAPPER(
+        LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_bq++);
     return LCI_ERR_RETRY;
+  }
+  LCII_packet_t* packet = LCII_pool_get_nb(ep->pkpool);
+  if (packet == NULL) {
+    // no packet is available
+    LCII_PCOUNTERS_WRAPPER(
+        LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_packet++);
+    return LCI_ERR_RETRY;
+  }
   packet->context.poolid =
       (iovec.piggy_back.length > LCI_PACKET_RETURN_THRESHOLD)
           ? lc_pool_get_local(ep->pkpool)
@@ -267,11 +276,9 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
     LCIU_free(rdv_ctx);
   }
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded +=
-                           1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded++);
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_failed +=
-                           1);
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
   }
   return ret;
 }

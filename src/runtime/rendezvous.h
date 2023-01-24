@@ -16,7 +16,7 @@ static inline void LCIS_post_sends_bq(LCII_backlog_queue_t* bq_p,
     }
   }
   // push to backlog queue
-  LCM_Log(LCM_LOG_INFO, "bq",
+  LCM_DBG_Log(LCM_LOG_DEBUG, "bq",
           "Pushed to backlog queue (sends): "
           "post sends: rank %d buf %p size %lu meta %d\n",
           rank, buf, size, meta);
@@ -47,7 +47,7 @@ static inline void LCIS_post_send_bq(LCII_backlog_queue_t* bq_p,
     }
   }
   // push to backlog queue
-  LCM_Log(LCM_LOG_INFO, "bq",
+  LCM_DBG_Log(LCM_LOG_DEBUG, "bq",
           "Pushed to backlog queue (send): "
           "rank %d buf %p size %lu mr %p meta %d ctx %p\n",
           rank, buf, size, mr.mr_p, meta, ctx);
@@ -81,7 +81,7 @@ static inline void LCIS_post_put_bq(LCII_backlog_queue_t* bq_p,
     }
   }
   // push to backlog queue
-  LCM_Log(LCM_LOG_INFO, "bq",
+  LCM_DBG_Log(LCM_LOG_DEBUG, "bq",
           "Pushed to backlog queue (put): "
           "rank %d buf %p size %lu mr %p base %p "
           "offset %lu rkey %lu ctx %p\n",
@@ -119,7 +119,7 @@ static inline void LCIS_post_putImm_bq(LCII_backlog_queue_t* bq_p,
     }
   }
   // push to backlog queue
-  LCM_Log(LCM_LOG_INFO, "bq",
+  LCM_DBG_Log(LCM_LOG_DEBUG, "bq",
           "Pushed to backlog queue (putImm): "
           "rank %d buf %p size %lu mr %p base %p "
           "offset %lu rkey %lu meta %u ctx %p\n",

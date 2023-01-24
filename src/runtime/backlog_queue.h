@@ -27,7 +27,6 @@ typedef struct LCII_bq_entry_t {
 
 typedef struct LCII_backlog_queue_t {
   int length;
-  int max_length;  // for profile
   LCII_bq_entry_t* head;
   LCII_bq_entry_t* tail;
 } LCII_backlog_queue_t __attribute__((aligned(LCI_CACHE_LINE)));
@@ -35,7 +34,6 @@ typedef struct LCII_backlog_queue_t {
 static inline void LCII_bq_init(LCII_backlog_queue_t* bq_p)
 {
   bq_p->length = 0;
-  bq_p->max_length = 0;
   bq_p->head = NULL;
   bq_p->tail = NULL;
 }
@@ -57,8 +55,6 @@ static inline void LCII_bq_fini(LCII_backlog_queue_t* bq_p)
     bq_p->tail = NULL;
     LCM_Assert(bq_p->length == 0, "backlog queue is in an incosistent state\n");
   }
-  LCM_Log(LCM_LOG_INFO, "bq", "backlog queue's maximum length is %d\n",
-          bq_p->max_length);
 }
 
 // this can be called by both the worker threads and progress threads
@@ -66,7 +62,11 @@ static inline void LCII_bq_push(LCII_backlog_queue_t* bq_p,
                                 LCII_bq_entry_t* entry)
 {
   ++bq_p->length;
-  if (bq_p->max_length < bq_p->length) bq_p->max_length = bq_p->length;
+#ifdef LCI_USE_PERFORMANCE_COUNTER
+  LCII_pcounters[LCIU_get_thread_id()].backlog_queue_total_count++;
+  LCIU_MAX_ASSIGN(
+      LCII_pcounters[LCIU_get_thread_id()].backlog_queue_max_len, bq_p->length);
+#endif
   entry->next = NULL;
   if (bq_p->head == NULL) {
     bq_p->head = entry;
@@ -82,13 +82,13 @@ static inline int LCII_bq_is_empty(LCII_backlog_queue_t* bq_p)
   return bq_p->length == 0;
 }
 
-// this should not be called by one progress threads
+// this should only be called by one progress threads
 static inline LCII_bq_entry_t* LCII_bq_top(LCII_backlog_queue_t* bq_p)
 {
   return bq_p->head;
 }
 
-// this should not be called by one progress threads
+// this should only be called by one progress threads
 static inline LCII_bq_entry_t* LCII_bq_pop(LCII_backlog_queue_t* bq_p)
 {
   if (bq_p->length == 0) {

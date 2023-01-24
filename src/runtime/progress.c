@@ -7,6 +7,7 @@ static inline LCI_error_t LCII_progress_bq(LCI_device_t device)
   LCI_error_t ret = LCI_ERR_RETRY;
   LCII_bq_entry_t* entry = LCII_bq_top(&device->bq);
   if (entry != NULL) {
+    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].backlog_queue_send_attempts++);
     if (entry->bqe_type == LCII_BQ_SENDS) {
       ret = LCIS_post_sends(device->endpoint_progress.endpoint, entry->rank,
                             entry->buf, entry->size, entry->meta);
@@ -27,7 +28,7 @@ static inline LCI_error_t LCII_progress_bq(LCI_device_t device)
       LCM_DBG_Assert(false, "Unknown bqe_type (%d)!\n", entry->bqe_type);
     }
     if (ret == LCI_OK) {
-      LCM_Log(LCM_LOG_INFO, "bq", "Pop from backlog queue: type %d\n",
+      LCM_DBG_Log(LCM_LOG_DEBUG, "bq", "Pop from backlog queue: type %d\n",
               entry->bqe_type);
       LCII_bq_pop(&device->bq);
       if (entry->bqe_type == LCII_BQ_SENDS) LCIU_free(entry->buf);
@@ -85,6 +86,7 @@ LCI_error_t LCII_fill_rq(LCII_endpoint_t* endpoint)
   while (endpoint->recv_posted < LCI_SERVER_MAX_RECVS) {
     LCII_packet_t* packet = LCII_pool_get_nb(endpoint->device->pkpool);
     if (packet == NULL) {
+      LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].recv_backend_no_packet++);
       if (endpoint->recv_posted < LCI_SERVER_MAX_RECVS / 2 &&
           !g_server_no_recv_packets) {
         g_server_no_recv_packets = 1;
@@ -135,7 +137,7 @@ LCI_error_t LCI_progress(LCI_device_t device)
 #ifdef LCI_USE_PERFORMANCE_COUNTER
   if (ret == LCI_OK) {
     ++device->did_work_consecutive;
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].progress_useful_call++);
+    LCII_pcounters[LCIU_get_thread_id()].progress_useful_call++;
   } else {
     LCIU_MAX_ASSIGN(
         LCII_pcounters[LCIU_get_thread_id()].progress_useful_call_consecutive_max,

@@ -23,7 +23,9 @@ LCII_pcounters_per_thread_t LCII_pcounters_accumulate()
     LCII_PCOUNTERS_FIELD_ADD(msgs_1sided_rx);
     LCII_PCOUNTERS_FIELD_ADD(packet_stealing);
     LCII_PCOUNTERS_FIELD_ADD(send_lci_succeeded);
-    LCII_PCOUNTERS_FIELD_ADD(send_lci_failed);
+    LCII_PCOUNTERS_FIELD_ADD(send_lci_failed_packet);
+    LCII_PCOUNTERS_FIELD_ADD(send_lci_failed_bq);
+    LCII_PCOUNTERS_FIELD_ADD(send_lci_failed_backend);
     LCII_PCOUNTERS_FIELD_ADD(send_backend_failed_lock);
     LCII_PCOUNTERS_FIELD_ADD(send_backend_failed_nomem);
     LCII_PCOUNTERS_FIELD_ADD(lci_cq_pop_succeeded);
@@ -34,6 +36,10 @@ LCII_pcounters_per_thread_t LCII_pcounters_accumulate()
     LCII_PCOUNTERS_FIELD_ADD(progress_useful_call);
     LCII_PCOUNTERS_FIELD_ADD(progress_useful_call_consecutive_max);
     LCII_PCOUNTERS_FIELD_ADD(progress_useful_call_consecutive_sum);
+    LCII_PCOUNTERS_FIELD_ADD(recv_backend_no_packet);
+    LCII_PCOUNTERS_FIELD_ADD(backlog_queue_total_count);
+    LCII_PCOUNTERS_FIELD_ADD(backlog_queue_send_attempts);
+    LCII_PCOUNTERS_FIELD_ADD(backlog_queue_max_len);
   }
   return ret;
 }
@@ -55,7 +61,9 @@ LCII_pcounters_per_thread_t LCII_pcounters_diff(LCII_pcounters_per_thread_t c1,
     LCII_PCOUNTERS_FIELD_DIFF(msgs_1sided_rx);
     LCII_PCOUNTERS_FIELD_DIFF(packet_stealing);
     LCII_PCOUNTERS_FIELD_DIFF(send_lci_succeeded);
-    LCII_PCOUNTERS_FIELD_DIFF(send_lci_failed);
+    LCII_PCOUNTERS_FIELD_DIFF(send_lci_failed_packet);
+    LCII_PCOUNTERS_FIELD_DIFF(send_lci_failed_bq);
+    LCII_PCOUNTERS_FIELD_DIFF(send_lci_failed_backend);
     LCII_PCOUNTERS_FIELD_DIFF(send_backend_failed_lock);
     LCII_PCOUNTERS_FIELD_DIFF(send_backend_failed_nomem);
     LCII_PCOUNTERS_FIELD_DIFF(lci_cq_pop_succeeded);
@@ -66,6 +74,10 @@ LCII_pcounters_per_thread_t LCII_pcounters_diff(LCII_pcounters_per_thread_t c1,
     LCII_PCOUNTERS_FIELD_DIFF(progress_useful_call);
     LCII_PCOUNTERS_FIELD_DIFF(progress_useful_call_consecutive_max);
     LCII_PCOUNTERS_FIELD_DIFF(progress_useful_call_consecutive_sum);
+    LCII_PCOUNTERS_FIELD_DIFF(recv_backend_no_packet);
+    LCII_PCOUNTERS_FIELD_DIFF(backlog_queue_total_count);
+    LCII_PCOUNTERS_FIELD_DIFF(backlog_queue_send_attempts);
+    LCII_PCOUNTERS_FIELD_DIFF(backlog_queue_max_len);
   }
   return ret;
 }
@@ -96,8 +108,15 @@ char* LCII_pcounters_to_string(LCII_pcounters_per_thread_t pcounter) {
                        pcounter.packet_stealing);
   LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
   consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
-                       "\t\tLCI send attempts (succeeded/failed): %ld/%ld;\n",
-                       pcounter.send_lci_succeeded, pcounter.send_lci_failed);
+                       "\t\tLCI send attempts:\n"
+                       "\t\t\tSucceeded: %ld\n"
+                       "\t\t\tFailed due to no packet: %ld\n"
+                       "\t\t\tFailed due to non-empty backlog queue: %ld\n"
+                       "\t\t\tFailed due to failed backend send: %ld\n",
+                       pcounter.send_lci_succeeded,
+                       pcounter.send_lci_failed_packet,
+                       pcounter.send_lci_failed_bq,
+                       pcounter.send_lci_failed_backend);
   LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
   consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
                        "\t\tbackend send attempts:\n"
@@ -128,6 +147,20 @@ char* LCII_pcounters_to_string(LCII_pcounters_per_thread_t pcounter) {
                        pcounter.progress_useful_call,
                        pcounter.progress_useful_call_consecutive_max,
                        pcounter.progress_useful_call_consecutive_sum);
+  LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
+  consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
+                       "\t\tbackend post recv attempts: \n"
+                       "\t\t\tFailed due to no packet: %ld\n",
+                       pcounter.recv_backend_no_packet);
+  LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
+  consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
+                       "\t\tBacklog queue statistics: \n"
+                       "\t\t\tTotal item count: %ld\n"
+                       "\t\t\tMaximum length: %ld\n"
+                       "\t\t\tSend attempts: %ld\n",
+                       pcounter.backlog_queue_total_count,
+                       pcounter.backlog_queue_max_len,
+                       pcounter.backlog_queue_send_attempts);
   LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
   return buf;
 }

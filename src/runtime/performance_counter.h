@@ -19,19 +19,26 @@ typedef struct {
   // 8x8 bytes
   int64_t packet_stealing;
   int64_t send_lci_succeeded;
-  int64_t send_lci_failed;
+  int64_t send_lci_failed_packet;
+  int64_t send_lci_failed_bq;
+  int64_t send_lci_failed_backend;
   int64_t send_backend_failed_lock;
   int64_t send_backend_failed_nomem;
   int64_t lci_cq_pop_succeeded;
+  // 8x8 bytes
   int64_t lci_cq_pop_failed_empty;
   int64_t lci_cq_pop_failed_contention;
-  // 8x8 bytes
   int64_t lci_cq_pop_len_accumulated;
   int64_t progress_call;
   int64_t progress_useful_call;
   int64_t progress_useful_call_consecutive_max;
   int64_t progress_useful_call_consecutive_sum;
-  char padding[LCI_CACHE_LINE - (8 * 21) % LCI_CACHE_LINE];
+  int64_t recv_backend_no_packet;
+  // 8x8 bytes
+  int64_t backlog_queue_total_count;
+  int64_t backlog_queue_send_attempts;
+  int64_t backlog_queue_max_len;
+  char padding[LCI_CACHE_LINE - (8 * 27) % LCI_CACHE_LINE];
 } LCII_pcounters_per_thread_t __attribute__((aligned(LCI_CACHE_LINE)));
 
 #define LCI_PCOUNTER_MAX_NTHREADS 256
