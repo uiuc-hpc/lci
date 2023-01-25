@@ -358,6 +358,16 @@ extern bool LCI_IBV_ENABLE_EVENT_POLLING_THREAD;
  */
 extern int LCI_SINGLE_THREAD_PROGRESS;
 
+/**
+ * Manually slow down LCI backend send function
+ */
+extern int LCI_SEND_SLOW_DOWN_USEC;
+
+/**
+ * Manually slow down LCI backend recv function
+ */
+extern int LCI_RECV_SLOW_DOWN_USEC;
+
 extern LCI_device_t LCI_UR_DEVICE;
 extern LCI_endpoint_t LCI_UR_ENDPOINT;
 extern LCI_comp_t LCI_UR_CQ;

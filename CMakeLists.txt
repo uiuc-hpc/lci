@@ -60,6 +60,7 @@ set(LCI_CACHE_LINE
     64
     CACHE STRING "Size of cache line (bytes)")
 option(LCI_USE_PERFORMANCE_COUNTER "Use performance counter" OFF)
+option(LCI_ENABLE_SLOWDOWN "Enable manually slowdown" OFF)
 mark_as_advanced(
   LCI_CONFIG_USE_ALIGNED_ALLOC
   LCI_PACKET_SIZE

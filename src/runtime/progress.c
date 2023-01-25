@@ -50,6 +50,9 @@ LCI_error_t LCII_poll_cq(LCII_endpoint_t* endpoint)
     LCM_DBG_Assert(count >= 0, "ibv_poll_cq returns error %d\n", count);
   }
   for (int i = 0; i < count; i++) {
+#ifdef LCI_ENABLE_SLOWDOWN
+    LCIU_spin_for_nsec(LCI_RECV_SLOW_DOWN_USEC * 1000);
+#endif
     if (entry[i].opcode == LCII_OP_RECV) {
       // two-sided recv.
       LCM_DBG_Log(LCM_LOG_DEBUG, "device",

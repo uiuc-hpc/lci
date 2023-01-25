@@ -141,6 +141,9 @@ static inline LCI_error_t LCIS_post_sends(LCIS_endpoint_t endpoint_pp, int rank,
   LCM_DBG_Log(LCM_LOG_DEBUG, "server",
               "LCIS_post_sends: rank %d buf %p size %lu meta %d\n", rank, buf,
               size, meta);
+#ifdef LCI_ENABLE_SLOWDOWN
+  LCIU_spin_for_nsec(LCI_SEND_SLOW_DOWN_USEC * 1000);
+#endif
   LCI_error_t ret = LCISD_post_sends(endpoint_pp, rank, buf, size, meta);
   if (ret == LCI_OK) {
     LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_tx++);
@@ -164,6 +167,9 @@ static inline LCI_error_t LCIS_post_send(LCIS_endpoint_t endpoint_pp, int rank,
   LCM_DBG_Log(LCM_LOG_DEBUG, "server",
               "LCIS_post_send: rank %d buf %p size %lu mr %p meta %d ctx %p\n",
               rank, buf, size, mr.mr_p, meta, ctx);
+#ifdef LCI_ENABLE_SLOWDOWN
+  LCIU_spin_for_nsec(LCI_SEND_SLOW_DOWN_USEC * 1000);
+#endif
   LCI_error_t ret =
       LCISD_post_send(endpoint_pp, rank, buf, size, mr, meta, ctx);
   if (ret == LCI_OK) {
@@ -189,6 +195,9 @@ static inline LCI_error_t LCIS_post_puts(LCIS_endpoint_t endpoint_pp, int rank,
               "LCIS_post_puts: rank %d buf %p size %lu base %p offset %lu "
               "rkey %lu\n",
               rank, buf, size, (void*)base, offset, rkey);
+#ifdef LCI_ENABLE_SLOWDOWN
+  LCIU_spin_for_nsec(LCI_SEND_SLOW_DOWN_USEC * 1000);
+#endif
   LCI_error_t ret =
       LCISD_post_puts(endpoint_pp, rank, buf, size, base, offset, rkey);
   if (ret == LCI_OK) {
@@ -215,6 +224,9 @@ static inline LCI_error_t LCIS_post_put(LCIS_endpoint_t endpoint_pp, int rank,
               "LCIS_post_put: rank %d buf %p size %lu mr %p base %p "
               "offset %lu rkey %lu ctx %p\n",
               rank, buf, size, mr.mr_p, (void*)base, offset, rkey, ctx);
+#ifdef LCI_ENABLE_SLOWDOWN
+  LCIU_spin_for_nsec(LCI_SEND_SLOW_DOWN_USEC * 1000);
+#endif
   LCI_error_t ret =
       LCISD_post_put(endpoint_pp, rank, buf, size, mr, base, offset, rkey, ctx);
   if (ret == LCI_OK) {
@@ -242,6 +254,9 @@ static inline LCI_error_t LCIS_post_putImms(LCIS_endpoint_t endpoint_pp,
               "LCIS_post_putImms: rank %d buf %p size %lu base %p offset %lu "
               "rkey %lu meta %d\n",
               rank, buf, size, (void*)base, offset, rkey, meta);
+#ifdef LCI_ENABLE_SLOWDOWN
+  LCIU_spin_for_nsec(LCI_SEND_SLOW_DOWN_USEC * 1000);
+#endif
   LCI_error_t ret = LCISD_post_putImms(endpoint_pp, rank, buf, size, base,
                                        offset, rkey, meta);
   if (ret == LCI_OK) {
@@ -270,6 +285,9 @@ static inline LCI_error_t LCIS_post_putImm(LCIS_endpoint_t endpoint_pp,
               "LCIS_post_putImm: rank %d buf %p size %lu mr %p base %p "
               "offset %lu rkey %lu meta %u ctx %p\n",
               rank, buf, size, mr.mr_p, (void*)base, offset, rkey, meta, ctx);
+#ifdef LCI_ENABLE_SLOWDOWN
+  LCIU_spin_for_nsec(LCI_SEND_SLOW_DOWN_USEC * 1000);
+#endif
   LCI_error_t ret = LCISD_post_putImm(endpoint_pp, rank, buf, size, mr, base,
                                       offset, rkey, meta, ctx);
   if (ret == LCI_OK) {
