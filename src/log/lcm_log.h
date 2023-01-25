@@ -92,7 +92,7 @@ void LCM_Log_(enum LCM_log_level_t log_level, const char* log_type,
               const char* file, const char* func, int line, const char* format,
               ...)
 {
-  char buf[1024];
+  char buf[2048];
   int size;
   va_list vargs;
   LCM_Assert(log_level != LCM_LOG_NONE, "You should not use LCM_LOG_NONE!\n");

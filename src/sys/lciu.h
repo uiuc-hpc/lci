@@ -16,6 +16,16 @@
 #define LCIU_STATIC_ASSERT(COND, MSG) \
   typedef char static_assertion_##MSG[(COND) ? 1 : -1]
 
+static inline void LCIU_update_average(int64_t *average0, int64_t *count0,
+                                       int64_t average1, int64_t count1)
+{
+  if (*count0 + count1 == 0) {
+    return;
+  }
+  *average0 = (*average0 * *count0 + average1 * count1) / (*count0 + count1);
+  *count0 += count1;
+}
+
 static inline uint32_t LCIU_set_bits32(uint32_t flag, uint32_t val, int width,
                                        int offset)
 {

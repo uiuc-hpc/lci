@@ -44,3 +44,28 @@ void LCII_ucs_rcache_region_put(ucs_rcache_t* rcache,
 {
   ucs_rcache_region_put(rcache, region);
 }
+
+ucs_time_t LCII_ucs_get_time()
+{
+  return ucs_get_time();
+}
+
+double LCII_ucs_time_to_nsec(ucs_time_t t)
+{
+  return ucs_time_to_nsec(t);
+}
+
+double LCII_ucs_time_to_usec(ucs_time_t t)
+{
+  return ucs_time_to_usec(t);
+}
+
+double LCII_ucs_time_to_msec(ucs_time_t t)
+{
+  return ucs_time_to_msec(t);
+}
+
+double LCII_ucs_time_to_sec(ucs_time_t t)
+{
+  return ucs_time_to_sec(t);
+}

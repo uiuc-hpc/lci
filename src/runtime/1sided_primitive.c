@@ -60,7 +60,9 @@ LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
 
   LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
   ctx->data.mbuffer.address = (void*)packet->data.address;
+  LCII_PCOUNTERS_WRAPPER(ctx->timer = LCII_ucs_get_time());
   LCII_initilize_comp_attr(ctx->comp_attr);
+  LCII_comp_attr_set_msg_type(ctx->comp_attr, LCI_MSG_RDMA_MEDIUM);
   LCII_comp_attr_set_free_packet(ctx->comp_attr, 1);
 
   LCI_error_t ret = LCIS_post_send(
@@ -97,8 +99,10 @@ LCI_error_t LCI_putmna(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                                : -1;
 
   LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
+  LCII_PCOUNTERS_WRAPPER(ctx->timer = LCII_ucs_get_time());
   ctx->data.mbuffer.address = (void*)packet->data.address;
   LCII_initilize_comp_attr(ctx->comp_attr);
+  LCII_comp_attr_set_msg_type(ctx->comp_attr, LCI_MSG_RDMA_MEDIUM);
   LCII_comp_attr_set_free_packet(ctx->comp_attr, 1);
 
   LCI_error_t ret = LCIS_post_send(
@@ -150,6 +154,7 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
   LCII_context_t* rts_ctx = LCIU_malloc(sizeof(LCII_context_t));
   rts_ctx->data.mbuffer.address = (void*)packet->data.address;
   LCII_initilize_comp_attr(rts_ctx->comp_attr);
+  LCII_comp_attr_set_msg_type(rts_ctx->comp_attr, LCI_MSG_RTS);
   LCII_comp_attr_set_free_packet(rts_ctx->comp_attr, 1);
 
   LCII_context_t* rdv_ctx = LCIU_malloc(sizeof(LCII_context_t));
@@ -159,6 +164,7 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
   rdv_ctx->tag = tag;
   rdv_ctx->user_context = user_context;
   LCII_initilize_comp_attr(rdv_ctx->comp_attr);
+  LCII_comp_attr_set_msg_type(rdv_ctx->comp_attr, LCI_MSG_RDMA_LONG);
   LCII_comp_attr_set_comp_type(rdv_ctx->comp_attr, ep->cmd_comp_type);
   LCII_comp_attr_set_dereg(rdv_ctx->comp_attr,
                            buffer.segment == LCI_SEGMENT_ALL);
@@ -237,15 +243,18 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
   LCII_context_t* rts_ctx = LCIU_malloc(sizeof(LCII_context_t));
   rts_ctx->data.mbuffer.address = (void*)packet->data.address;
   LCII_initilize_comp_attr(rts_ctx->comp_attr);
+  LCII_comp_attr_set_msg_type(rts_ctx->comp_attr, LCI_MSG_RTS);
   LCII_comp_attr_set_free_packet(rts_ctx->comp_attr, 1);
 
   LCII_context_t* rdv_ctx = LCIU_malloc(sizeof(LCII_context_t));
+  LCII_PCOUNTERS_WRAPPER(rdv_ctx->timer = LCII_ucs_get_time());
   rdv_ctx->data.iovec = iovec;
   rdv_ctx->data_type = LCI_IOVEC;
   rdv_ctx->rank = rank;
   rdv_ctx->tag = tag;
   rdv_ctx->user_context = user_context;
   LCII_initilize_comp_attr(rdv_ctx->comp_attr);
+  LCII_comp_attr_set_msg_type(rdv_ctx->comp_attr, LCI_MSG_IOVEC);
   LCII_comp_attr_set_comp_type(rdv_ctx->comp_attr, ep->cmd_comp_type);
   rdv_ctx->completion = completion;
 

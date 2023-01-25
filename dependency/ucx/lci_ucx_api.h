@@ -2,6 +2,7 @@
 #define LCI_LCI_UCX_API_H
 #include "ucm/api/ucm.h"
 #include "ucs/memory/rcache.h"
+#include "ucs/time/time.h"
 
 #define LCII_API __attribute__((visibility("default")))
 
@@ -26,5 +27,11 @@ LCII_API void LCII_ucs_rcache_region_hold(ucs_rcache_t* rcache,
 
 LCII_API void LCII_ucs_rcache_region_put(ucs_rcache_t* rcache,
                                          ucs_rcache_region_t* region);
+
+LCII_API ucs_time_t LCII_ucs_get_time();
+LCII_API double LCII_ucs_time_to_nsec(ucs_time_t t);
+LCII_API double LCII_ucs_time_to_usec(ucs_time_t t);
+LCII_API double LCII_ucs_time_to_msec(ucs_time_t t);
+LCII_API double LCII_ucs_time_to_sec(ucs_time_t t);
 
 #endif  // LCI_LCI_UCX_API_H

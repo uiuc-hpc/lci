@@ -21,14 +21,6 @@ static inline uint64_t LCII_make_key(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
 
 static inline void lc_ce_dispatch(LCII_context_t* ctx)
 {
-  if (LCII_comp_attr_get_extended(ctx->comp_attr) == 1) {
-    // extended context for iovec
-    LCII_handle_iovec_put_comp((LCII_extended_context_t*)ctx);
-    return;
-  }
-  if (LCII_comp_attr_get_free_packet(ctx->comp_attr) == 1) {
-    LCII_free_packet(LCII_mbuffer2packet(ctx->data.mbuffer));
-  }
   if (LCII_comp_attr_get_dereg(ctx->comp_attr) == 1) {
     LCI_memory_deregister(&ctx->data.lbuffer.segment);
     ctx->data.lbuffer.segment = LCI_SEGMENT_ALL;
@@ -226,6 +218,22 @@ static inline void LCIS_serve_rdma(uint32_t imm_data)
 static inline void LCIS_serve_send(void* raw_ctx)
 {
   LCII_context_t* ctx = raw_ctx;
+  if (LCII_comp_attr_get_extended(ctx->comp_attr) == 1) {
+    // extended context for iovec
+    LCII_handle_iovec_put_comp((LCII_extended_context_t*)ctx);
+    return;
+  }
+  if (LCII_comp_attr_get_free_packet(ctx->comp_attr) == 1) {
+    LCII_free_packet(LCII_mbuffer2packet(ctx->data.mbuffer));
+  }
+#ifdef LCI_USE_PERFORMANCE_COUNTER
+  if (LCII_comp_attr_get_msg_type(ctx->comp_attr) == LCI_MSG_RDMA_MEDIUM) {
+    LCIU_update_average(
+        &LCII_pcounters[LCIU_get_thread_id()].send_eager_latency_nsec_ave,
+        &LCII_pcounters[LCIU_get_thread_id()].send_eager_latency_nsec_count,
+        (int64_t)LCII_ucs_time_to_nsec(LCII_ucs_get_time() - ctx->timer), 1);
+  }
+#endif
   lc_ce_dispatch(ctx);
 }
 

@@ -156,6 +156,7 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep,
   LCII_context_t* rtr_ctx = LCIU_malloc(sizeof(LCII_context_t));
   rtr_ctx->data.mbuffer.address = &(packet->data);
   LCII_initilize_comp_attr(rtr_ctx->comp_attr);
+  LCII_comp_attr_set_msg_type(rtr_ctx->comp_attr, LCI_MSG_RTR);
   LCII_comp_attr_set_free_packet(rtr_ctx->comp_attr, 1);
 
   packet->context.poolid = -1;
@@ -250,12 +251,14 @@ static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep,
   rdv_ctx->tag = tag;
   rdv_ctx->user_context = NULL;
   LCII_initilize_comp_attr(rdv_ctx->comp_attr);
+  LCII_comp_attr_set_msg_type(rdv_ctx->comp_attr, LCI_MSG_NONE);
   LCII_comp_attr_set_comp_type(rdv_ctx->comp_attr, LCI_COMPLETION_QUEUE);
   rdv_ctx->completion = ep->default_comp;
 
   LCII_context_t* rtr_ctx = LCIU_malloc(sizeof(LCII_context_t));
   rtr_ctx->data.mbuffer.address = &(packet->data);
   LCII_initilize_comp_attr(rtr_ctx->comp_attr);
+  LCII_comp_attr_set_msg_type(rtr_ctx->comp_attr, LCI_MSG_RTR);
   LCII_comp_attr_set_free_packet(rtr_ctx->comp_attr, 1);
 
   // reuse the rts packet as rtr packet
@@ -330,6 +333,7 @@ static inline void LCII_handle_iovec_rts(LCI_endpoint_t ep,
                                          uint32_t src_rank, uint16_t tag)
 {
   LCII_context_t* rdv_ctx = LCIU_malloc(sizeof(LCII_context_t));
+  LCII_PCOUNTERS_WRAPPER(rdv_ctx->timer = LCII_ucs_get_time());
   rdv_ctx->data.iovec.count = packet->data.rts.count;
   rdv_ctx->data.iovec.piggy_back.length = packet->data.rts.piggy_back_size;
   rdv_ctx->data.iovec.piggy_back.address =
@@ -348,12 +352,14 @@ static inline void LCII_handle_iovec_rts(LCI_endpoint_t ep,
   rdv_ctx->tag = tag;
   rdv_ctx->user_context = NULL;
   LCII_initilize_comp_attr(rdv_ctx->comp_attr);
+  LCII_comp_attr_set_msg_type(rdv_ctx->comp_attr, LCI_MSG_NONE);
   LCII_comp_attr_set_comp_type(rdv_ctx->comp_attr, LCI_COMPLETION_QUEUE);
   rdv_ctx->completion = ep->default_comp;
 
   LCII_context_t* rtr_ctx = LCIU_malloc(sizeof(LCII_context_t));
   rtr_ctx->data.mbuffer.address = &(packet->data);
   LCII_initilize_comp_attr(rtr_ctx->comp_attr);
+  LCII_comp_attr_set_msg_type(rtr_ctx->comp_attr, LCI_MSG_RTR);
   LCII_comp_attr_set_free_packet(rtr_ctx->comp_attr, 1);
 
   // reuse the rts packet as rtr packet
@@ -386,6 +392,12 @@ static inline void LCII_handle_iovec_rtr(LCI_endpoint_t ep,
                                          LCII_packet_t* packet)
 {
   LCII_context_t* ctx = (LCII_context_t*)packet->data.rtr.send_ctx;
+#ifdef LCI_USE_PERFORMANCE_COUNTER
+  LCIU_update_average(
+      &LCII_pcounters[LCIU_get_thread_id()].send_iovec_handshake_nsec_ave,
+      &LCII_pcounters[LCIU_get_thread_id()].send_iovec_handshake_nsec_count,
+      (int64_t)LCII_ucs_time_to_nsec(LCII_ucs_get_time() - ctx->timer), 1);
+#endif
   LCII_extended_context_t* ectx = LCIU_malloc(sizeof(LCII_extended_context_t));
   LCII_initilize_comp_attr(ectx->comp_attr);
   LCII_comp_attr_set_extended(ectx->comp_attr, 1);
@@ -426,6 +438,12 @@ static inline void LCII_handle_iovec_put_comp(LCII_extended_context_t* ectx)
   LCM_DBG_Assert(ectx->signal_count == ectx->signal_expected,
                  "Unexpected signal!\n");
   LCII_context_t* ctx = ectx->context;
+#ifdef LCI_USE_PERFORMANCE_COUNTER
+  LCIU_update_average(
+      &LCII_pcounters[LCIU_get_thread_id()].send_iovec_latency_nsec_ave,
+      &LCII_pcounters[LCIU_get_thread_id()].send_iovec_latency_nsec_count,
+      (int64_t)LCII_ucs_time_to_nsec(LCII_ucs_get_time() - ctx->timer), 1);
+#endif
   if (LCII_comp_attr_get_dereg(ectx->comp_attr) == 1) {
     for (int i = 0; i < ctx->data.iovec.count; ++i) {
       LCI_memory_deregister(&ctx->data.iovec.lbuffers[i].segment);
@@ -451,6 +469,12 @@ static inline void LCII_handle_iovec_recv_FIN(LCII_packet_t* packet)
                  "Didn't get the right context (%p type=%d)!.\n", ctx,
                  ctx->data_type);
   // putva has been completed locally. Need to process completion.
+#ifdef LCI_USE_PERFORMANCE_COUNTER
+  LCIU_update_average(
+      &LCII_pcounters[LCIU_get_thread_id()].recv_iovec_latency_nsec_ave,
+      &LCII_pcounters[LCIU_get_thread_id()].recv_iovec_latency_nsec_count,
+      (int64_t)LCII_ucs_time_to_nsec(LCII_ucs_get_time() - ctx->timer), 1);
+#endif
   LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_rx +=
                          ctx->data.iovec.count);
   LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].msgs_1sided_rx +=

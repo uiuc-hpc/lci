@@ -3,6 +3,7 @@
 
 #include "lcii_config.h"
 #include "lci.h"
+#include "lci_ucx_api.h"
 #include "log/lcm_log.h"
 #include "sys/lciu.h"
 #include "performance_counter.h"
@@ -13,6 +14,29 @@
 #include "backend/server.h"
 #include "runtime/rcache/lcii_rcache.h"
 #include "backlog_queue.h"
+
+/*
+ * used by
+ * - LCII_MAKE_PROTO (4 bits) for communication immediate data field
+ * - LCII_make_key (2 bits, only use the first three entries) for the matching
+ * table key.
+ * - LCII_comp_attr_set/get_msg_type (4 bits) for context attribute field
+ * Be careful when modify this enum type LCI_msg_type_t.
+ */
+typedef enum {
+  LCI_MSG_NONE,
+  LCI_MSG_SHORT,
+  LCI_MSG_MEDIUM,
+  LCI_MSG_LONG,
+  LCI_MSG_RTS,
+  LCI_MSG_RTR,
+  LCI_MSG_FIN,
+  LCI_MSG_RDMA_SHORT,
+  LCI_MSG_RDMA_MEDIUM,
+  LCI_MSG_RDMA_LONG,
+  LCI_MSG_IOVEC,
+  LCI_MSG_MAX,
+} LCI_msg_type_t;
 
 struct LCII_packet_t;
 typedef struct LCII_packet_t LCII_packet_t;
@@ -122,6 +146,9 @@ typedef struct {
   LCI_tag_t tag;              // 4 bytes
   // used by LCI internally
   LCI_comp_t completion;  // 8 bytes
+#ifdef LCI_USE_PERFORMANCE_COUNTER
+  ucs_time_t timer;
+#endif
 } LCII_context_t __attribute__((aligned(LCI_CACHE_LINE)));
 /**
  * comp_type: user-defined comp_type
@@ -138,11 +165,15 @@ typedef struct {
   comp_attr = LCIU_set_bits32(comp_attr, dereg, 1, 4)
 #define LCII_comp_attr_set_extended(comp_attr, flag) \
   comp_attr = LCIU_set_bits32(comp_attr, flag, 1, 5)
+#define LCII_comp_attr_set_msg_type(comp_attr, flag) \
+  comp_attr = LCIU_set_bits32(comp_attr, flag, 4, 6)
 #define LCII_comp_attr_get_comp_type(comp_attr) LCIU_get_bits32(comp_attr, 3, 0)
 #define LCII_comp_attr_get_free_packet(comp_attr) \
   LCIU_get_bits32(comp_attr, 1, 3)
 #define LCII_comp_attr_get_dereg(comp_attr) LCIU_get_bits32(comp_attr, 1, 4)
 #define LCII_comp_attr_get_extended(comp_attr) LCIU_get_bits32(comp_attr, 1, 5)
+#define LCII_comp_attr_get_msg_type(comp_attr) \
+  LCIU_get_bits32(comp_attr, 4, 6)
 
 // Extended context for iovec
 typedef struct {
@@ -183,23 +214,6 @@ static inline LCI_request_t LCII_ctx2req(LCII_context_t* ctx)
 }
 
 // proto
-/*
- * used by LCII_MAKE_PROTO (4 bits) for communication immediate data field
- * and LCII_make_key (2 bits, only use the first three entries) for the matching
- * table key. Take care when modify this enum type.
- */
-typedef enum {
-  LCI_MSG_SHORT,
-  LCI_MSG_MEDIUM,
-  LCI_MSG_LONG,
-  LCI_MSG_RTS,
-  LCI_MSG_RTR,
-  LCI_MSG_FIN,
-  LCI_MSG_RDMA_SHORT,
-  LCI_MSG_RDMA_MEDIUM,
-  LCI_MSG_RDMA_LONG,
-  LCI_MSG_IOVEC,
-} LCI_msg_type_t;
 typedef uint32_t LCII_proto_t;
 // 16 bits for tag, 12 bits for rgid, 4 bits for msg_type
 #define LCII_MAKE_PROTO(rgid, msg_type, tag) \

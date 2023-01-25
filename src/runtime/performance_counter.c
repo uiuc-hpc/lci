@@ -8,6 +8,8 @@ void LCII_pcounters_init()
 }
 
 #define LCII_PCOUNTERS_FIELD_ADD(field) ret.field += LCII_pcounters[i].field
+#define LCII_PCOUNTERS_FIELD_MAX(field) LCIU_MAX_ASSIGN(ret.field, LCII_pcounters[i].field)
+#define LCII_PCOUNTERS_FIELD_AVE(ave, count) LCIU_update_average(&ret.ave, &ret.count, LCII_pcounters[i].ave, LCII_pcounters[i].count)
 LCII_pcounters_per_thread_t LCII_pcounters_accumulate()
 {
   LCII_pcounters_per_thread_t ret;
@@ -34,12 +36,20 @@ LCII_pcounters_per_thread_t LCII_pcounters_accumulate()
     LCII_PCOUNTERS_FIELD_ADD(lci_cq_pop_len_accumulated);
     LCII_PCOUNTERS_FIELD_ADD(progress_call);
     LCII_PCOUNTERS_FIELD_ADD(progress_useful_call);
-    LCII_PCOUNTERS_FIELD_ADD(progress_useful_call_consecutive_max);
+    LCII_PCOUNTERS_FIELD_MAX(progress_useful_call_consecutive_max);
     LCII_PCOUNTERS_FIELD_ADD(progress_useful_call_consecutive_sum);
     LCII_PCOUNTERS_FIELD_ADD(recv_backend_no_packet);
     LCII_PCOUNTERS_FIELD_ADD(backlog_queue_total_count);
     LCII_PCOUNTERS_FIELD_ADD(backlog_queue_send_attempts);
-    LCII_PCOUNTERS_FIELD_ADD(backlog_queue_max_len);
+    LCII_PCOUNTERS_FIELD_MAX(backlog_queue_max_len);
+    LCII_PCOUNTERS_FIELD_AVE(send_eager_latency_nsec_ave,
+                             send_eager_latency_nsec_count);
+    LCII_PCOUNTERS_FIELD_AVE(send_iovec_handshake_nsec_ave,
+                             send_iovec_handshake_nsec_count);
+    LCII_PCOUNTERS_FIELD_AVE(send_iovec_latency_nsec_ave,
+                             send_iovec_latency_nsec_count);
+    LCII_PCOUNTERS_FIELD_AVE(recv_iovec_latency_nsec_ave,
+                             recv_iovec_latency_nsec_count);
   }
   return ret;
 }
@@ -72,18 +82,26 @@ LCII_pcounters_per_thread_t LCII_pcounters_diff(LCII_pcounters_per_thread_t c1,
     LCII_PCOUNTERS_FIELD_DIFF(lci_cq_pop_len_accumulated);
     LCII_PCOUNTERS_FIELD_DIFF(progress_call);
     LCII_PCOUNTERS_FIELD_DIFF(progress_useful_call);
-    LCII_PCOUNTERS_FIELD_DIFF(progress_useful_call_consecutive_max);
+    // progress_useful_call_consecutive_max
     LCII_PCOUNTERS_FIELD_DIFF(progress_useful_call_consecutive_sum);
     LCII_PCOUNTERS_FIELD_DIFF(recv_backend_no_packet);
     LCII_PCOUNTERS_FIELD_DIFF(backlog_queue_total_count);
     LCII_PCOUNTERS_FIELD_DIFF(backlog_queue_send_attempts);
-    LCII_PCOUNTERS_FIELD_DIFF(backlog_queue_max_len);
+    // backlog_queue_max_len
+    // send_eager_latency_nsec_ave
+    LCII_PCOUNTERS_FIELD_DIFF(send_eager_latency_nsec_count);
+    // send_iovec_handshake_nsec_ave
+    LCII_PCOUNTERS_FIELD_DIFF(send_iovec_handshake_nsec_count);
+    // send_iovec_latency_nsec_ave
+    LCII_PCOUNTERS_FIELD_DIFF(send_iovec_latency_nsec_count);
+    // recv_iovec_latency_nsec_ave
+    LCII_PCOUNTERS_FIELD_DIFF(recv_iovec_latency_nsec_count);
   }
   return ret;
 }
 
 char* LCII_pcounters_to_string(LCII_pcounters_per_thread_t pcounter) {
-  static char buf[1024];
+  static char buf[2048];
   size_t consumed = 0;
   consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
                        "\t\tmessage sent (total/2sided/1sided): %ld/%ld/%ld;\n",
@@ -161,6 +179,21 @@ char* LCII_pcounters_to_string(LCII_pcounters_per_thread_t pcounter) {
                        pcounter.backlog_queue_total_count,
                        pcounter.backlog_queue_max_len,
                        pcounter.backlog_queue_send_attempts);
+  LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
+  consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
+                       "\t\tTimer (average * count in nsec): \n"
+                       "\t\t\tsend eager latency: %ld * %ld\n"
+                       "\t\t\tsend iovec handshake: %ld * %ld\n"
+                       "\t\t\tsend iovec latency: %ld * %ld\n"
+                       "\t\t\trecv iovec latency: %ld * %ld\n",
+                       pcounter.send_eager_latency_nsec_ave,
+                       pcounter.send_eager_latency_nsec_count,
+                       pcounter.send_iovec_handshake_nsec_ave,
+                       pcounter.send_iovec_handshake_nsec_count,
+                       pcounter.send_iovec_latency_nsec_ave,
+                       pcounter.send_iovec_latency_nsec_count,
+                       pcounter.recv_iovec_latency_nsec_ave,
+                       pcounter.recv_iovec_latency_nsec_count);
   LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
   return buf;
 }
