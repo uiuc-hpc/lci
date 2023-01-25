@@ -386,6 +386,12 @@ static inline void LCII_handle_iovec_rts(LCI_endpoint_t ep,
                     ep->device->endpoint_progress.endpoint, rdv_ctx->rank,
                     packet->data.address, length, ep->device->heap.segment->mr,
                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx);
+#ifdef LCI_USE_PERFORMANCE_COUNTER
+  LCIU_update_average(
+      &LCII_pcounters[LCIU_get_thread_id()].recv_iovec_handle_rts_nsec_ave,
+      &LCII_pcounters[LCIU_get_thread_id()].recv_iovec_handle_rts_nsec_count,
+      (int64_t)LCII_ucs_time_to_nsec(LCII_ucs_get_time() - rdv_ctx->timer), 1);
+#endif
 }
 
 static inline void LCII_handle_iovec_rtr(LCI_endpoint_t ep,
@@ -438,18 +444,6 @@ static inline void LCII_handle_iovec_put_comp(LCII_extended_context_t* ectx)
   LCM_DBG_Assert(ectx->signal_count == ectx->signal_expected,
                  "Unexpected signal!\n");
   LCII_context_t* ctx = ectx->context;
-#ifdef LCI_USE_PERFORMANCE_COUNTER
-  LCIU_update_average(
-      &LCII_pcounters[LCIU_get_thread_id()].send_iovec_latency_nsec_ave,
-      &LCII_pcounters[LCIU_get_thread_id()].send_iovec_latency_nsec_count,
-      (int64_t)LCII_ucs_time_to_nsec(LCII_ucs_get_time() - ctx->timer), 1);
-#endif
-  if (LCII_comp_attr_get_dereg(ectx->comp_attr) == 1) {
-    for (int i = 0; i < ctx->data.iovec.count; ++i) {
-      LCI_memory_deregister(&ctx->data.iovec.lbuffers[i].segment);
-      ctx->data.iovec.lbuffers[i].segment = LCI_SEGMENT_ALL;
-    }
-  }
   LCM_DBG_Log(LCM_LOG_DEBUG, "rdv", "send FIN: rctx %p\n",
               (void*)ectx->recv_ctx);
   LCIS_post_sends_bq(ectx->ep->bq_p, ectx->ep->bq_spinlock_p,
@@ -457,7 +451,19 @@ static inline void LCII_handle_iovec_put_comp(LCII_extended_context_t* ectx)
                      &ectx->recv_ctx, sizeof(ectx->recv_ctx),
                      LCII_MAKE_PROTO(ectx->ep->gid, LCI_MSG_FIN, 0));
   LCIU_free(ectx);
+  if (LCII_comp_attr_get_dereg(ectx->comp_attr) == 1) {
+    for (int i = 0; i < ctx->data.iovec.count; ++i) {
+      LCI_memory_deregister(&ctx->data.iovec.lbuffers[i].segment);
+      ctx->data.iovec.lbuffers[i].segment = LCI_SEGMENT_ALL;
+    }
+  }
   lc_ce_dispatch(ctx);
+#ifdef LCI_USE_PERFORMANCE_COUNTER
+  LCIU_update_average(
+      &LCII_pcounters[LCIU_get_thread_id()].send_iovec_latency_nsec_ave,
+      &LCII_pcounters[LCIU_get_thread_id()].send_iovec_latency_nsec_count,
+      (int64_t)LCII_ucs_time_to_nsec(LCII_ucs_get_time() - ctx->timer), 1);
+#endif
 }
 
 static inline void LCII_handle_iovec_recv_FIN(LCII_packet_t* packet)

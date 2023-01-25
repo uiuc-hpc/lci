@@ -45,6 +45,8 @@ typedef struct {
   int64_t send_iovec_latency_nsec_ave; // send rts -> send fin
   // 8x8 bytes
   int64_t send_iovec_latency_nsec_count; // send rts -> send fin
+  int64_t recv_iovec_handle_rts_nsec_ave; // recv rts -> send rtr
+  int64_t recv_iovec_handle_rts_nsec_count; // recv rts -> send rtr
   int64_t recv_iovec_latency_nsec_ave; // recv rts -> recv fin
   int64_t recv_iovec_latency_nsec_count; // recv rts -> recv fin
   char padding[LCI_CACHE_LINE - (8 * 35) % LCI_CACHE_LINE];

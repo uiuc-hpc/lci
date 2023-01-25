@@ -48,13 +48,15 @@ LCII_pcounters_per_thread_t LCII_pcounters_accumulate()
                              send_iovec_handshake_nsec_count);
     LCII_PCOUNTERS_FIELD_AVE(send_iovec_latency_nsec_ave,
                              send_iovec_latency_nsec_count);
+    LCII_PCOUNTERS_FIELD_AVE(recv_iovec_handle_rts_nsec_ave,
+                             recv_iovec_handle_rts_nsec_count);
     LCII_PCOUNTERS_FIELD_AVE(recv_iovec_latency_nsec_ave,
                              recv_iovec_latency_nsec_count);
   }
   return ret;
 }
 
-#define LCII_PCOUNTERS_FIELD_DIFF(field) ret.field = c1.field - c2.field
+#define LCII_PCOUNTERS_FIELD_DIFF(field) ret.field = (c1.field - c2.field)
 LCII_pcounters_per_thread_t LCII_pcounters_diff(LCII_pcounters_per_thread_t c1,
                                                 LCII_pcounters_per_thread_t c2)
 {
@@ -94,6 +96,8 @@ LCII_pcounters_per_thread_t LCII_pcounters_diff(LCII_pcounters_per_thread_t c1,
     LCII_PCOUNTERS_FIELD_DIFF(send_iovec_handshake_nsec_count);
     // send_iovec_latency_nsec_ave
     LCII_PCOUNTERS_FIELD_DIFF(send_iovec_latency_nsec_count);
+    // recv_iovec_handle_rts_nsec_ave
+    LCII_PCOUNTERS_FIELD_DIFF(recv_iovec_handle_rts_nsec_count);
     // recv_iovec_latency_nsec_ave
     LCII_PCOUNTERS_FIELD_DIFF(recv_iovec_latency_nsec_count);
   }
@@ -185,6 +189,7 @@ char* LCII_pcounters_to_string(LCII_pcounters_per_thread_t pcounter) {
                        "\t\t\tsend eager latency: %ld * %ld\n"
                        "\t\t\tsend iovec handshake: %ld * %ld\n"
                        "\t\t\tsend iovec latency: %ld * %ld\n"
+                       "\t\t\trecv iovec handle rts overhead: %ld * %ld\n"
                        "\t\t\trecv iovec latency: %ld * %ld\n",
                        pcounter.send_eager_latency_nsec_ave,
                        pcounter.send_eager_latency_nsec_count,
@@ -192,6 +197,8 @@ char* LCII_pcounters_to_string(LCII_pcounters_per_thread_t pcounter) {
                        pcounter.send_iovec_handshake_nsec_count,
                        pcounter.send_iovec_latency_nsec_ave,
                        pcounter.send_iovec_latency_nsec_count,
+                       pcounter.recv_iovec_handle_rts_nsec_ave,
+                       pcounter.recv_iovec_handle_rts_nsec_count,
                        pcounter.recv_iovec_latency_nsec_ave,
                        pcounter.recv_iovec_latency_nsec_count);
   LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
