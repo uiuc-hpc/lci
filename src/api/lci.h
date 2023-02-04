@@ -37,10 +37,12 @@ extern "C" {
  */
 typedef enum {
   LCI_OK = 0,
-  LCI_ERR_RETRY,      /* Resource temporarily not available. Try again. */
-  LCI_ERR_RETRY_LOCK,      /* Resource temporarily not available due to lock contention. Try again. */
-  LCI_ERR_RETRY_NOMEM,      /* Resource temporarily not available due to no memory. Try again. */
-  LCI_ERR_FEATURE_NA, /* Feature not available */
+  LCI_ERR_RETRY,       /* Resource temporarily not available. Try again. */
+  LCI_ERR_RETRY_LOCK,  /* Resource temporarily not available due to lock
+                          contention. Try again. */
+  LCI_ERR_RETRY_NOMEM, /* Resource temporarily not available due to no memory.
+                          Try again. */
+  LCI_ERR_FEATURE_NA,  /* Feature not available */
   LCI_ERR_FATAL,
 } LCI_error_t;
 

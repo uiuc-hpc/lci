@@ -64,8 +64,8 @@ static inline void LCII_bq_push(LCII_backlog_queue_t* bq_p,
   ++bq_p->length;
 #ifdef LCI_USE_PERFORMANCE_COUNTER
   LCII_pcounters[LCIU_get_thread_id()].backlog_queue_total_count++;
-  LCIU_MAX_ASSIGN(
-      LCII_pcounters[LCIU_get_thread_id()].backlog_queue_max_len, bq_p->length);
+  LCIU_MAX_ASSIGN(LCII_pcounters[LCIU_get_thread_id()].backlog_queue_max_len,
+                  bq_p->length);
 #endif
   entry->next = NULL;
   if (bq_p->head == NULL) {

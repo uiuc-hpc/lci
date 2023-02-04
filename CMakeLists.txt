@@ -27,8 +27,7 @@ option(LCI_USE_MUTEX_CQ
 option(LCI_SINGLE_THREAD_PROGRESS_DEFAULT
        "LCI_progress will not be called by multiple threads simultaneously" ON)
 option(LCI_IBV_ENABLE_TRY_LOCK_QP
-        "Try to lock the queue pair before access it."
-        ON)
+       "Try to lock the queue pair before access it." ON)
 
 set(LCI_EP_CE
     sync cq am

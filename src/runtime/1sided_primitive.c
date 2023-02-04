@@ -10,13 +10,15 @@ LCI_error_t LCI_puts(LCI_endpoint_t ep, LCI_short_t src, int rank,
                  "Only support default remote completion "
                  "(set by LCI_plist_set_default_comp, "
                  "the default value is LCI_UR_CQ)\n");
-  LCI_error_t ret = LCIS_post_sends(ep->device->endpoint_worker.endpoint, rank, &src,
-                         sizeof(LCI_short_t),
-                         LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_SHORT, tag));
+  LCI_error_t ret = LCIS_post_sends(
+      ep->device->endpoint_worker.endpoint, rank, &src, sizeof(LCI_short_t),
+      LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_SHORT, tag));
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded++);
+    LCII_PCOUNTERS_WRAPPER(
+        LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded++);
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
+    LCII_PCOUNTERS_WRAPPER(
+        LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
   }
   return ret;
 }
@@ -74,9 +76,11 @@ LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
     LCIU_free(ctx);
   }
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded++);
+    LCII_PCOUNTERS_WRAPPER(
+        LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded++);
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
+    LCII_PCOUNTERS_WRAPPER(
+        LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
   }
   return ret;
 }
@@ -113,9 +117,11 @@ LCI_error_t LCI_putmna(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
     LCIU_free(ctx);
   }
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded++);
+    LCII_PCOUNTERS_WRAPPER(
+        LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded++);
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
+    LCII_PCOUNTERS_WRAPPER(
+        LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
   }
   return ret;
 }
@@ -187,9 +193,11 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
     LCIU_free(rdv_ctx);
   }
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded++);
+    LCII_PCOUNTERS_WRAPPER(
+        LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded++);
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
+    LCII_PCOUNTERS_WRAPPER(
+        LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
   }
   return ret;
 }
@@ -285,9 +293,11 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
     LCIU_free(rdv_ctx);
   }
   if (ret == LCI_OK) {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded++);
+    LCII_PCOUNTERS_WRAPPER(
+        LCII_pcounters[LCIU_get_thread_id()].send_lci_succeeded++);
   } else {
-    LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
+    LCII_PCOUNTERS_WRAPPER(
+        LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
   }
   return ret;
 }

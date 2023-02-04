@@ -173,8 +173,7 @@ typedef struct {
   LCIU_get_bits32(comp_attr, 1, 3)
 #define LCII_comp_attr_get_dereg(comp_attr) LCIU_get_bits32(comp_attr, 1, 4)
 #define LCII_comp_attr_get_extended(comp_attr) LCIU_get_bits32(comp_attr, 1, 5)
-#define LCII_comp_attr_get_msg_type(comp_attr) \
-  LCIU_get_bits32(comp_attr, 4, 6)
+#define LCII_comp_attr_get_msg_type(comp_attr) LCIU_get_bits32(comp_attr, 4, 6)
 
 // Extended context for iovec
 typedef struct {

@@ -8,8 +8,11 @@ void LCII_pcounters_init()
 }
 
 #define LCII_PCOUNTERS_FIELD_ADD(field) ret.field += LCII_pcounters[i].field
-#define LCII_PCOUNTERS_FIELD_MAX(field) LCIU_MAX_ASSIGN(ret.field, LCII_pcounters[i].field)
-#define LCII_PCOUNTERS_FIELD_AVE(ave, count) LCIU_update_average(&ret.ave, &ret.count, LCII_pcounters[i].ave, LCII_pcounters[i].count)
+#define LCII_PCOUNTERS_FIELD_MAX(field) \
+  LCIU_MAX_ASSIGN(ret.field, LCII_pcounters[i].field)
+#define LCII_PCOUNTERS_FIELD_AVE(ave, count)                       \
+  LCIU_update_average(&ret.ave, &ret.count, LCII_pcounters[i].ave, \
+                      LCII_pcounters[i].count)
 LCII_pcounters_per_thread_t LCII_pcounters_accumulate()
 {
   LCII_pcounters_per_thread_t ret;
@@ -104,7 +107,8 @@ LCII_pcounters_per_thread_t LCII_pcounters_diff(LCII_pcounters_per_thread_t c1,
   return ret;
 }
 
-char* LCII_pcounters_to_string(LCII_pcounters_per_thread_t pcounter) {
+char* LCII_pcounters_to_string(LCII_pcounters_per_thread_t pcounter)
+{
   static char buf[2048];
   size_t consumed = 0;
   consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
@@ -113,8 +117,7 @@ char* LCII_pcounters_to_string(LCII_pcounters_per_thread_t pcounter) {
                        pcounter.msgs_1sided_tx);
   LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
   consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
-                       "\t\tbytes sent: %ld;\n",
-                       pcounter.bytes_tx);
+                       "\t\tbytes sent: %ld;\n", pcounter.bytes_tx);
   LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
   consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
                        "\t\tmessage recv (total/2sided/1sided): %ld/%ld/%ld;\n",
@@ -122,51 +125,47 @@ char* LCII_pcounters_to_string(LCII_pcounters_per_thread_t pcounter) {
                        pcounter.msgs_1sided_rx);
   LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
   consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
-                       "\t\tbytes recv: %ld;\n",
-                       pcounter.bytes_rx);
+                       "\t\tbytes recv: %ld;\n", pcounter.bytes_rx);
   LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
   consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
                        "\t\tpacket stealing attempts: %ld;\n",
                        pcounter.packet_stealing);
   LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
-  consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
-                       "\t\tLCI send attempts:\n"
-                       "\t\t\tSucceeded: %ld\n"
-                       "\t\t\tFailed due to no packet: %ld\n"
-                       "\t\t\tFailed due to non-empty backlog queue: %ld\n"
-                       "\t\t\tFailed due to failed backend send: %ld\n",
-                       pcounter.send_lci_succeeded,
-                       pcounter.send_lci_failed_packet,
-                       pcounter.send_lci_failed_bq,
-                       pcounter.send_lci_failed_backend);
+  consumed +=
+      snprintf(buf + consumed, sizeof(buf) - consumed,
+               "\t\tLCI send attempts:\n"
+               "\t\t\tSucceeded: %ld\n"
+               "\t\t\tFailed due to no packet: %ld\n"
+               "\t\t\tFailed due to non-empty backlog queue: %ld\n"
+               "\t\t\tFailed due to failed backend send: %ld\n",
+               pcounter.send_lci_succeeded, pcounter.send_lci_failed_packet,
+               pcounter.send_lci_failed_bq, pcounter.send_lci_failed_backend);
   LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
   consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
                        "\t\tbackend send attempts:\n"
                        "\t\t\tSucceeded: %ld\n"
                        "\t\t\tFailed due to lock: %ld\n"
                        "\t\t\tFailed due to no memory: %ld\n",
-                       pcounter.msgs_tx,
-                       pcounter.send_backend_failed_lock,
+                       pcounter.msgs_tx, pcounter.send_backend_failed_lock,
                        pcounter.send_backend_failed_nomem);
   LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
-  consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
-                       "\t\tLCI cq pop:\n"
-                       "\t\t\tSucceeded: %ld\n"
-                       "\t\t\tFailed due to empty queue: %ld\n"
-                       "\t\t\tFailed due to thread contention: %ld\n"
-                       "\t\t\tPending counts accumulated: %ld\n",
-                       pcounter.lci_cq_pop_succeeded,
-                       pcounter.lci_cq_pop_failed_empty,
-                       pcounter.lci_cq_pop_failed_contention,
-                       pcounter.lci_cq_pop_len_accumulated);
+  consumed +=
+      snprintf(buf + consumed, sizeof(buf) - consumed,
+               "\t\tLCI cq pop:\n"
+               "\t\t\tSucceeded: %ld\n"
+               "\t\t\tFailed due to empty queue: %ld\n"
+               "\t\t\tFailed due to thread contention: %ld\n"
+               "\t\t\tPending counts accumulated: %ld\n",
+               pcounter.lci_cq_pop_succeeded, pcounter.lci_cq_pop_failed_empty,
+               pcounter.lci_cq_pop_failed_contention,
+               pcounter.lci_cq_pop_len_accumulated);
   LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
   consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
                        "\t\tLCI progress function:\n"
                        "\t\t\tCalled: %ld\n"
                        "\t\t\tUseful calls: %ld\n"
                        "\t\t\tConsecutive useful calls (max/sum): %ld/%ld\n",
-                       pcounter.progress_call,
-                       pcounter.progress_useful_call,
+                       pcounter.progress_call, pcounter.progress_useful_call,
                        pcounter.progress_useful_call_consecutive_max,
                        pcounter.progress_useful_call_consecutive_sum);
   LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");

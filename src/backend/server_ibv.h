@@ -40,8 +40,8 @@ struct LCISI_ibv_qp_extra_t {
   LCIU_spinlock_t lock;
   struct ibv_td* td;
   struct ibv_pd* pd;
-  char padding[LCI_CACHE_LINE - sizeof(LCIU_spinlock_t)
-               - sizeof(struct ibv_td*) - sizeof(struct ibv_pd*)];
+  char padding[LCI_CACHE_LINE - sizeof(LCIU_spinlock_t) -
+               sizeof(struct ibv_td*) - sizeof(struct ibv_pd*)];
 } __attribute__((aligned(LCI_CACHE_LINE)));
 
 typedef struct LCISI_endpoint_t {
@@ -51,7 +51,7 @@ typedef struct LCISI_endpoint_t {
   struct ibv_pd* pd;
   struct ibv_qp** qps;
 #ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
-  struct LCISI_ibv_qp_extra_t *qp_extras;
+  struct LCISI_ibv_qp_extra_t* qp_extras;
 #endif
   struct ibv_cq* cq;
   struct ibv_srq* srq;

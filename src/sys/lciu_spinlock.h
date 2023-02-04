@@ -47,8 +47,7 @@ static inline void LCIU_acquire_spinlock(LCIU_spinlock_t* lock)
 // return 1: succeed; return 0: unsucceed
 static inline int LCIU_try_acquire_spinlock(LCIU_spinlock_t* lock)
 {
-  if (*lock == LCIU_SPIN_LOCKED)
-    return false;
+  if (*lock == LCIU_SPIN_LOCKED) return false;
   return (__sync_lock_test_and_set(lock, LCIU_SPIN_LOCKED) ==
           LCIU_SPIN_UNLOCKED);
 }

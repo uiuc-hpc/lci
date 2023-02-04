@@ -49,7 +49,8 @@ LCI_error_t LCI_finalize()
   LCI_barrier();
   LCII_papi_fina();
 #ifdef LCI_USE_PERFORMANCE_COUNTER
-  LCM_Log(LCM_LOG_TRACE, "monitor", "\nPerformance counters:\n%s", LCII_pcounters_to_string(LCII_pcounters_accumulate()));
+  LCM_Log(LCM_LOG_TRACE, "monitor", "\nPerformance counters:\n%s",
+          LCII_pcounters_to_string(LCII_pcounters_accumulate()));
 #endif
   LCI_endpoint_free(&LCI_UR_ENDPOINT);
   LCI_queue_free(&LCI_UR_CQ);

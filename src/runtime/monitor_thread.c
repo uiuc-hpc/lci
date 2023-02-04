@@ -37,15 +37,13 @@ void* LCII_monitor_thread_fn(void* vargp)
     pcounter_old = pcounter_now;
     clock_gettime(CLOCK_MONOTONIC, &time_now);
     struct timespec time_diff = LCIU_timespec_diff(time_now, start_time);
-    LCM_Log(LCM_LOG_INFO, "monitor",
-            "Time %lu.%lu s\n%s",
-            time_diff.tv_sec, time_diff.tv_nsec, LCII_pcounters_to_string(pcounter_diff));
+    LCM_Log(LCM_LOG_INFO, "monitor", "Time %lu.%lu s\n%s", time_diff.tv_sec,
+            time_diff.tv_nsec, LCII_pcounters_to_string(pcounter_diff));
     LCM_Log_flush();
   }
   clock_gettime(CLOCK_MONOTONIC, &time_now);
   struct timespec time_diff = LCIU_timespec_diff(time_now, start_time);
-  LCM_Log(LCM_LOG_INFO, "monitor",
-          "Finish the monitor thread at %lu.%lu s\n",
+  LCM_Log(LCM_LOG_INFO, "monitor", "Finish the monitor thread at %lu.%lu s\n",
           time_diff.tv_sec, time_diff.tv_nsec);
   LCM_Log_flush();
   return NULL;

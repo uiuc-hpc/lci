@@ -243,7 +243,8 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
       endpoint_p->qp_extras[i].pd = NULL;
       struct ibv_td_init_attr td_attr;
       td_attr.comp_mask = 0;
-      endpoint_p->qp_extras[i].td = ibv_alloc_td(endpoint_p->server->dev_ctx, &td_attr);
+      endpoint_p->qp_extras[i].td =
+          ibv_alloc_td(endpoint_p->server->dev_ctx, &td_attr);
       if (endpoint_p->qp_extras[i].td != NULL) {
         struct ibv_parent_domain_init_attr attr;
         attr.td = endpoint_p->qp_extras[i].td;

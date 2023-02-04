@@ -16,7 +16,7 @@
 #define LCIU_STATIC_ASSERT(COND, MSG) \
   typedef char static_assertion_##MSG[(COND) ? 1 : -1]
 
-static inline void LCIU_update_average(int64_t *average0, int64_t *count0,
+static inline void LCIU_update_average(int64_t* average0, int64_t* count0,
                                        int64_t average1, int64_t count1)
 {
   if (*count0 + count1 == 0) {
@@ -123,11 +123,9 @@ static inline int LCIU_getenv_or(char* env, int def)
 
 static inline void LCIU_spin_for_nsec(double t)
 {
-  if (t <= 0)
-    return;
+  if (t <= 0) return;
   ucs_time_t start = LCII_ucs_get_time();
-  while (LCII_ucs_time_to_nsec(LCII_ucs_get_time() - start) < t)
-    continue;
+  while (LCII_ucs_time_to_nsec(LCII_ucs_get_time() - start) < t) continue;
 }
 #include "sys/lciu_spinlock.h"
 #include "sys/lciu_malloc.h"
