@@ -450,13 +450,13 @@ static inline void LCII_handle_iovec_put_comp(LCII_extended_context_t* ectx)
                      ectx->ep->device->endpoint_progress.endpoint, ctx->rank,
                      &ectx->recv_ctx, sizeof(ectx->recv_ctx),
                      LCII_MAKE_PROTO(ectx->ep->gid, LCI_MSG_FIN, 0));
-  LCIU_free(ectx);
   if (LCII_comp_attr_get_dereg(ectx->comp_attr) == 1) {
     for (int i = 0; i < ctx->data.iovec.count; ++i) {
       LCI_memory_deregister(&ctx->data.iovec.lbuffers[i].segment);
       ctx->data.iovec.lbuffers[i].segment = LCI_SEGMENT_ALL;
     }
   }
+  LCIU_free(ectx);
   lc_ce_dispatch(ctx);
 #ifdef LCI_USE_PERFORMANCE_COUNTER
   LCIU_update_average(
