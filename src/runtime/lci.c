@@ -18,6 +18,7 @@ LCI_error_t LCI_initialize()
   LCII_env_init(num_proc, rank);
   LCII_pcounters_init();
   LCII_monitor_thread_init();
+  LCII_papi_init();
   if (LCI_USE_DREG) {
     LCII_ucs_init();
   }
@@ -46,6 +47,7 @@ LCI_error_t LCI_initialized(int* flag)
 LCI_error_t LCI_finalize()
 {
   LCI_barrier();
+  LCII_papi_fina();
 #ifdef LCI_USE_PERFORMANCE_COUNTER
   LCM_Log(LCM_LOG_TRACE, "monitor", "\nPerformance counters:\n%s", LCII_pcounters_to_string(LCII_pcounters_accumulate()));
 #endif

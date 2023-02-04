@@ -61,6 +61,7 @@ set(LCI_CACHE_LINE
     CACHE STRING "Size of cache line (bytes)")
 option(LCI_USE_PERFORMANCE_COUNTER "Use performance counter" OFF)
 option(LCI_ENABLE_SLOWDOWN "Enable manually slowdown" OFF)
+
 mark_as_advanced(
   LCI_CONFIG_USE_ALIGNED_ALLOC
   LCI_PACKET_SIZE
@@ -106,6 +107,12 @@ find_package(Threads REQUIRED)
 string(TOUPPER ${LCI_SERVER} FABRIC)
 find_package(${FABRIC} REQUIRED)
 
+find_package(PAPI)
+option(LCI_USE_PAPI "Use PAPI to collect hardware counters" ${PAPI_FOUND})
+if(LCI_USE_PAPI AND NOT PAPI_FOUND)
+  message(FATAL_ERROR "LCI_USE_PAPI is enabled but papi is not found")
+endif()
+
 option(LCI_USE_GPROF "Enable GPROF" OFF)
 if(LCI_USE_GPROF)
   add_compile_options(-pg -fno-inline)
@@ -131,6 +138,9 @@ target_compile_definitions(LCI PRIVATE _GNU_SOURCE)
 target_link_libraries(LCI PUBLIC Threads::Threads ${FABRIC}::${FABRIC})
 if(LCI_USE_AVX)
   target_compile_options(LCI PUBLIC -mavx)
+endif()
+if(LCI_USE_PAPI)
+  target_link_libraries(LCI PRIVATE Papi::papi)
 endif()
 
 # set_target_properties(LCI PROPERTIES OUTPUT_NAME lci)

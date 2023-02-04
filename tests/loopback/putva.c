@@ -56,6 +56,7 @@ int main(int argc, char** args)
                  request.data.iovec.piggy_back.length, 'p');
     free(request.data.iovec.piggy_back.address);
   }
+  LCI_barrier();
   for (int j = 0; j < iovec.count; ++j) {
     free(iovec.lbuffers[j].address);
   }

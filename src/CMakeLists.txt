@@ -6,6 +6,8 @@ target_sources_relative(
   LCI
   PRIVATE
   log/lcm_log.c
+  profile/papi_wrapper.c
+  profile/performance_counter.c
   runtime/1sided_primitive.c
   runtime/completion/cq.c
   runtime/lci.c
@@ -19,7 +21,6 @@ target_sources_relative(
   runtime/device.c
   runtime/endpoint.c
   runtime/completion/amhandler.c
-  runtime/performance_counter.c
   runtime/monitor_thread.c
   runtime/rcache/lcii_rcache.c
   runtime/completion/sync_flag.c)
