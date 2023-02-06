@@ -102,8 +102,6 @@ LCI_error_t LCI_lbuffer_alloc(LCI_device_t device, size_t size,
 {
   lbuffer->length = size;
   lbuffer->address = LCIU_malloc(size);
-  LCI_memory_register(device, lbuffer->address, lbuffer->length,
-                      &lbuffer->segment);
   if (LCI_TOUCH_LBUFFER) {
     char* p = (char*)lbuffer->address;
     if ((uint64_t)p % LCI_PAGESIZE != 0) *(char*)p = 'a';
@@ -113,6 +111,8 @@ LCI_error_t LCI_lbuffer_alloc(LCI_device_t device, size_t size,
       *(char*)p = 'a';
     }
   }
+  LCI_memory_register(device, lbuffer->address, lbuffer->length,
+                      &lbuffer->segment);
   return LCI_OK;
 }
 
@@ -121,6 +121,15 @@ LCI_error_t LCI_lbuffer_memalign(LCI_device_t device, size_t size,
 {
   lbuffer->length = size;
   lbuffer->address = LCIU_memalign(alignment, size);
+  if (LCI_TOUCH_LBUFFER) {
+    char* p = (char*)lbuffer->address;
+    if ((uint64_t)p % LCI_PAGESIZE != 0) *(char*)p = 'a';
+    p = (char*)((uintptr_t)(p + LCI_PAGESIZE - 1) / LCI_PAGESIZE *
+                LCI_PAGESIZE);
+    for (; p < (char*)lbuffer->address + size; p += LCI_PAGESIZE) {
+      *(char*)p = 'a';
+    }
+  }
   LCI_memory_register(device, lbuffer->address, lbuffer->length,
                       &lbuffer->segment);
   return LCI_OK;
