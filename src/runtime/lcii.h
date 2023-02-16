@@ -56,7 +56,7 @@ struct LCII_endpoint_t {
 };
 typedef struct LCII_endpoint_t LCII_endpoint_t;
 
-struct LCI_device_s {
+struct __attribute__((aligned(LCI_CACHE_LINE))) LCI_device_s {
   // the following will not be changed after initialization
   LCIS_server_t server;               // 8B
   LCII_endpoint_t endpoint_worker;    // 8B
@@ -81,7 +81,7 @@ struct LCI_device_s {
   char padding3[LCI_CACHE_LINE -
                 ((sizeof(LCII_backlog_queue_t) + sizeof(LCIU_spinlock_t)) %
                  LCI_CACHE_LINE)];
-} __attribute__((aligned(LCI_CACHE_LINE)));
+};
 
 struct LCI_plist_s {
   LCI_match_t match_type;         // matching type
@@ -136,7 +136,7 @@ typedef struct LCII_mr_t LCII_mr_t;
  * ctx_archiveMulti. (4) for sending_RTR->recving_FIN (iovec), go through the
  * recv_ctx field of RTR and FIN messages.
  */
-typedef struct {
+typedef struct __attribute__((aligned(LCI_CACHE_LINE))) {
   // used by LCI internally
   uint32_t comp_attr;  // 4 bytes
   // LCI_request_t fields, 52 bytes
@@ -150,7 +150,7 @@ typedef struct {
 #ifdef LCI_USE_PERFORMANCE_COUNTER
   ucs_time_t timer;
 #endif
-} LCII_context_t __attribute__((aligned(LCI_CACHE_LINE)));
+} LCII_context_t;
 /**
  * comp_type: user-defined comp_type
  * free_packet: free mbuffer as a packet.
@@ -176,14 +176,14 @@ typedef struct {
 #define LCII_comp_attr_get_msg_type(comp_attr) LCIU_get_bits32(comp_attr, 4, 6)
 
 // Extended context for iovec
-typedef struct {
+typedef struct __attribute__((aligned(LCI_CACHE_LINE))) {
   uint32_t comp_attr;       // 4 bytes
   int signal_count;         // 4 bytes
   int signal_expected;      // 4 bytes
   uintptr_t recv_ctx;       // 8 bytes
   LCI_endpoint_t ep;        // 8 bytes
   LCII_context_t* context;  // 8 bytes
-} LCII_extended_context_t __attribute__((aligned(LCI_CACHE_LINE)));
+} LCII_extended_context_t;
 
 /**
  * Synchronizer, owned by the user.

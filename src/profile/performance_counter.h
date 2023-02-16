@@ -7,7 +7,7 @@
 #define LCII_PCOUNTERS_WRAPPER(stat)
 #endif
 
-typedef struct {
+typedef struct __attribute__((aligned(LCI_CACHE_LINE))) {
   int64_t msgs_tx;
   int64_t bytes_tx;
   int64_t msgs_rx;
@@ -49,8 +49,8 @@ typedef struct {
   int64_t recv_iovec_handle_rts_nsec_count;  // recv rts -> send rtr
   int64_t recv_iovec_latency_nsec_ave;       // recv rts -> recv fin
   int64_t recv_iovec_latency_nsec_count;     // recv rts -> recv fin
-  char padding[LCI_CACHE_LINE - (8 * 35) % LCI_CACHE_LINE];
-} LCII_pcounters_per_thread_t __attribute__((aligned(LCI_CACHE_LINE)));
+  char padding[LCI_CACHE_LINE - (8 * 37) % LCI_CACHE_LINE];
+} LCII_pcounters_per_thread_t;
 
 #define LCI_PCOUNTER_MAX_NTHREADS 256
 extern LCII_pcounters_per_thread_t LCII_pcounters[LCI_PCOUNTER_MAX_NTHREADS];

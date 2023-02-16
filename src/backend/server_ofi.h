@@ -26,22 +26,22 @@
 
 struct LCISI_endpoint_t;
 
-typedef struct LCISI_server_t {
+typedef struct __attribute__((aligned(LCI_CACHE_LINE))) LCISI_server_t {
   LCI_device_t device;
   struct fi_info* info;
   struct fid_fabric* fabric;
   struct fid_domain* domain;
   struct LCISI_endpoint_t* endpoints[LCI_SERVER_MAX_ENDPOINTS];
   int endpoint_count;
-} LCISI_server_t __attribute__((aligned(LCI_CACHE_LINE)));
+} LCISI_server_t;
 
-typedef struct LCISI_endpoint_t {
+typedef struct __attribute__((aligned(LCI_CACHE_LINE))) LCISI_endpoint_t {
   LCISI_server_t* server;
   struct fid_ep* ep;
   struct fid_cq* cq;
   struct fid_av* av;
   fi_addr_t* peer_addrs;
-} LCISI_endpoint_t __attribute__((aligned(LCI_CACHE_LINE)));
+} LCISI_endpoint_t;
 
 extern int g_next_rdma_key;
 

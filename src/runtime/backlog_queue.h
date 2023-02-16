@@ -10,7 +10,7 @@ typedef enum {
 
 // backlog queue entry, 96 B
 // TODO: should further reduce to one cache line
-typedef struct LCII_bq_entry_t {
+typedef struct __attribute__((aligned(LCI_CACHE_LINE))) LCII_bq_entry_t {
   void* buf;                 // 8B
   size_t size;               // 8B
   LCII_bqe_type_t bqe_type;  // 4B
@@ -23,13 +23,13 @@ typedef struct LCII_bq_entry_t {
   uintptr_t base;                // 8B
   LCIS_rkey_t rkey;              // 8B
   struct LCII_bq_entry_t* next;  // 8B
-} LCII_bq_entry_t __attribute__((aligned(LCI_CACHE_LINE)));
+} LCII_bq_entry_t;
 
-typedef struct LCII_backlog_queue_t {
+typedef struct __attribute__((aligned(LCI_CACHE_LINE))) LCII_backlog_queue_t {
   int length;
   LCII_bq_entry_t* head;
   LCII_bq_entry_t* tail;
-} LCII_backlog_queue_t __attribute__((aligned(LCI_CACHE_LINE)));
+} LCII_backlog_queue_t;
 
 static inline void LCII_bq_init(LCII_backlog_queue_t* bq_p)
 {

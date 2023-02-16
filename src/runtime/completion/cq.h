@@ -2,10 +2,10 @@
 #define LC_CQ_H
 
 #ifdef LCI_USE_MUTEX_CQ
-struct LCII_cq_t {
+struct __attribute__((aligned(LCI_CACHE_LINE))) LCII_cq_t {
   LCM_dequeue_t dequeue;
   LCIU_spinlock_t spinlock;
-} __attribute__((aligned(LCI_CACHE_LINE)));
+};
 typedef struct LCII_cq_t LCII_cq_t;
 #else
 typedef LCM_aqueue_t LCII_cq_t;

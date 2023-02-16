@@ -20,17 +20,17 @@ extern LCIU_spinlock_t init_lock;
 extern "C" {
 #endif
 
-typedef struct {
+typedef struct __attribute__((aligned(LCI_CACHE_LINE))) {
   LCM_dequeue_t dq;      // size 32 align 8
   LCIU_spinlock_t lock;  // size 4 align 4
   char padding[LCI_CACHE_LINE - 36 % LCI_CACHE_LINE];
-} LCII_local_pool_t __attribute__((aligned(LCI_CACHE_LINE)));
+} LCII_local_pool_t;
 
-typedef struct LCII_pool_t {
+typedef struct __attribute__((aligned(LCI_CACHE_LINE))) LCII_pool_t {
   int key;
   int npools;
   LCII_local_pool_t lpools[MAX_NPOOLS] __attribute__((aligned(LCI_CACHE_LINE)));
-} LCII_pool_t __attribute__((aligned(LCI_CACHE_LINE)));
+} LCII_pool_t;
 
 void LCII_pool_create(LCII_pool_t** pool);
 void LCII_pool_destroy(LCII_pool_t* pool);
