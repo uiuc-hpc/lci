@@ -9,12 +9,12 @@
 
 int main(int argc, char** args)
 {
+  LCI_initialize();
   int lbuffers_num = LCI_IOVEC_SIZE;
   int piggy_back_size = (int)LCI_get_iovec_piggy_back_size(lbuffers_num);
   int lbuffer_length = 64 * 1024;
   int loop = 10;
 
-  LCI_initialize();
   LCI_endpoint_t ep = LCI_UR_ENDPOINT;  // we can directly use the default ep
   LCI_comp_t send_cq;
   LCI_queue_create(LCI_UR_DEVICE, &send_cq);

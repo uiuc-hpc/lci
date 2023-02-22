@@ -5,15 +5,8 @@ LCI_API int LCI_NUM_PROCESSES;
 LCI_API int LCI_RANK;
 LCI_API int LCI_MAX_ENDPOINTS;
 LCI_API int LCI_MAX_TAG = (1u << 15) - 1;
-LCI_API int LCI_MEDIUM_SIZE =
-    LCI_PACKET_SIZE - sizeof(struct LCII_packet_context);
-LCI_API int LCI_IOVEC_SIZE =
-    LCIU_MIN((LCI_PACKET_SIZE - sizeof(struct LCII_packet_context) -
-              sizeof(struct LCII_packet_rts_t)) /
-                 sizeof(size_t),
-             (LCI_PACKET_SIZE - sizeof(struct LCII_packet_context) -
-              sizeof(struct LCII_packet_rtr_t)) /
-                 sizeof(struct LCII_packet_rtr_iovec_info_t));
+LCI_API int LCI_MEDIUM_SIZE = -1;
+LCI_API int LCI_IOVEC_SIZE = -1;
 LCI_API int LCI_REGISTERED_SEGMENT_SIZE;
 LCI_API int LCI_MAX_REGISTERED_SEGMENT_SIZE = INT_MAX;
 LCI_API int LCI_MAX_REGISTERED_SEGMENT_NUMBER = 1;
@@ -27,6 +20,7 @@ LCI_API int LCI_IBV_USE_ODP;
 LCI_API int LCI_TOUCH_LBUFFER;
 LCI_API int LCI_USE_DREG;
 LCI_API int LCI_IBV_USE_PREFETCH;
+LCI_API int LCI_PACKET_SIZE;
 LCI_API int LCI_SERVER_NUM_PKTS;
 LCI_API int LCI_SERVER_MAX_SENDS;
 LCI_API int LCI_SERVER_MAX_RECVS;
@@ -67,6 +61,7 @@ void LCII_env_init(int num_proc, int rank)
         "It doesn't make too much sense to use prefetch "
         "without on-demand paging\n");
   }
+  LCI_PACKET_SIZE = LCIU_getenv_or("LCI_PACKET_SIZE", LCI_PACKET_SIZE_DEFAULT);
   LCI_SERVER_NUM_PKTS =
       LCIU_getenv_or("LCI_SERVER_NUM_PKTS", LCI_SERVER_NUM_PKTS_DEFAULT);
   LCI_DEFAULT_QUEUE_LENGTH =
@@ -90,4 +85,12 @@ void LCII_env_init(int num_proc, int rank)
   LCI_SEND_SLOW_DOWN_USEC = 0;
   LCI_RECV_SLOW_DOWN_USEC = 0;
 #endif
+  LCI_MEDIUM_SIZE = LCI_PACKET_SIZE - sizeof(struct LCII_packet_context);
+  LCI_IOVEC_SIZE =
+      LCIU_MIN((LCI_PACKET_SIZE - sizeof(struct LCII_packet_context) -
+                sizeof(struct LCII_packet_rts_t)) /
+                   sizeof(size_t),
+               (LCI_PACKET_SIZE - sizeof(struct LCII_packet_context) -
+                sizeof(struct LCII_packet_rtr_t)) /
+                   sizeof(struct LCII_packet_rtr_iovec_info_t));
 }

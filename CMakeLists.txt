@@ -37,14 +37,14 @@ option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
 set(LCI_USE_DREG_DEFAULT
     1
     CACHE STRING "Whether to use registration cache")
-set(LCI_PACKET_SIZE
+set(LCI_PACKET_SIZE_DEFAULT
     12288
     CACHE STRING "Size of packet")
 set(LCI_DEV_MEM_SIZE
     "(64*1024*1024)"
     CACHE STRING "Size of device memory")
 set(LCI_SERVER_MAX_SENDS_DEFAULT
-    1024
+    64
     CACHE STRING "Max posted sends")
 set(LCI_SERVER_MAX_RECVS_DEFAULT
     1024

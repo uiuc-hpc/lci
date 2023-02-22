@@ -304,6 +304,9 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
 
 size_t LCI_get_iovec_piggy_back_size(int count)
 {
+  LCM_DBG_Assert(LCI_MEDIUM_SIZE > 0,
+                 "LCI_MEDIUM_SIZE <=0! You should run "
+                 "LCI_initialize() before calling this function\n");
   return LCI_MEDIUM_SIZE - sizeof(struct LCII_packet_rts_t) -
          sizeof(size_t) * count;
 }

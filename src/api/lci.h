@@ -333,6 +333,11 @@ extern int LCI_IBV_USE_PREFETCH;
 /**
  * Total number of packets
  */
+extern int LCI_PACKET_SIZE;
+
+/**
+ * Total number of packets
+ */
 extern int LCI_SERVER_NUM_PKTS;
 
 /**
