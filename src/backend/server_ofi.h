@@ -156,8 +156,10 @@ static inline LCI_error_t LCISD_post_sends(LCIS_endpoint_t endpoint_pp,
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
     return LCI_ERR_RETRY_NOMEM;
-  else
+  else {
     FI_SAFECALL(ret);
+    return LCI_ERR_FATAL;
+  }
 }
 
 static inline LCI_error_t LCISD_post_send(LCIS_endpoint_t endpoint_pp, int rank,
@@ -173,8 +175,10 @@ static inline LCI_error_t LCISD_post_send(LCIS_endpoint_t endpoint_pp, int rank,
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
     return LCI_ERR_RETRY_NOMEM;
-  else
+  else {
     FI_SAFECALL(ret);
+    return LCI_ERR_FATAL;
+  }
 }
 
 static inline LCI_error_t LCISD_post_puts(LCIS_endpoint_t endpoint_pp, int rank,
@@ -196,8 +200,10 @@ static inline LCI_error_t LCISD_post_puts(LCIS_endpoint_t endpoint_pp, int rank,
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
     return LCI_ERR_RETRY_NOMEM;
-  else
+  else {
     FI_SAFECALL(ret);
+    return LCI_ERR_FATAL;
+  }
 }
 
 static inline LCI_error_t LCISD_post_put(LCIS_endpoint_t endpoint_pp, int rank,
@@ -219,8 +225,10 @@ static inline LCI_error_t LCISD_post_put(LCIS_endpoint_t endpoint_pp, int rank,
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
     return LCI_ERR_RETRY_NOMEM;
-  else
+  else {
     FI_SAFECALL(ret);
+    return LCI_ERR_FATAL;
+  }
 }
 
 static inline LCI_error_t LCISD_post_putImms(LCIS_endpoint_t endpoint_pp,
@@ -243,8 +251,10 @@ static inline LCI_error_t LCISD_post_putImms(LCIS_endpoint_t endpoint_pp,
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
     return LCI_ERR_RETRY_NOMEM;
-  else
+  else {
     FI_SAFECALL(ret);
+    return LCI_ERR_FATAL;
+  }
 }
 
 static inline LCI_error_t LCISD_post_putImm(LCIS_endpoint_t endpoint_pp,
@@ -268,8 +278,10 @@ static inline LCI_error_t LCISD_post_putImm(LCIS_endpoint_t endpoint_pp,
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
     return LCI_ERR_RETRY_NOMEM;
-  else
+  else {
     FI_SAFECALL(ret);
+    return LCI_ERR_FATAL;
+  }
 }
 
 #endif
