@@ -35,6 +35,8 @@ LCI_error_t LCI_initialize()
 
   opened = 1;
   LCI_barrier();
+  if (LCI_RANK == 0)
+    LCM_Log(LCM_LOG_INFO, "device", "LCI_initialize is called\n");
   return LCI_OK;
 }
 
