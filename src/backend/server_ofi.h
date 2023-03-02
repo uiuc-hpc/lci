@@ -55,8 +55,16 @@ static inline void* LCISI_real_server_reg(LCIS_server_t s, void* buf,
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, rdma_key, 0,
                         &mr, 0));
   if (server->info->domain_attr->mr_mode & FI_MR_ENDPOINT) {
-    for (int i = 0; i < server->endpoint_count; ++i) {
-      FI_SAFECALL(fi_mr_bind(mr, &server->endpoints[i]->ep->fid, 0));
+    LCM_DBG_Assert(server->endpoint_count >= 1, "No endpoints available!\n");
+    if (strcmp(server->info->fabric_attr->prov_name, "cxi") == 0) {
+      // A temporary fix for the cxi provider. It appears cxi cannot bind a
+      // memory region to more than one endpoint, but other endpoints can still
+      // use this memory region to send and recv messages.
+      FI_SAFECALL(fi_mr_bind(mr, &server->endpoints[0]->ep->fid, 0));
+    } else {
+      for (int i = 0; i < server->endpoint_count; ++i) {
+        FI_SAFECALL(fi_mr_bind(mr, &server->endpoints[i]->ep->fid, 0));
+      }
     }
     FI_SAFECALL(fi_mr_enable(mr));
   }
