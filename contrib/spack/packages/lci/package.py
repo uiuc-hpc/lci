@@ -1,4 +1,5 @@
 from spack import *
+import os
 
 class Lci(CMakePackage):
     """LCI: the Lightweight Communication Interface"""
@@ -25,7 +26,8 @@ class Lci(CMakePackage):
     variant('fabric', default='ibv',
             values=('ofi', 'ibv', 'psm'), multi=False,
             description='Communication fabric')
-    variant('dreg', default=True, description='Use registration cache')
+    variant('dreg', default=False, description='Use registration cache')
+    variant('odp', default=False, description='Use IBVerbs On-Demand Paging')
     variant('addressing', default='dynamic,explicit',
             values=('dynamic', 'explicit', 'immediate'), multi=True,
             description='Endpoint addressing mode')
@@ -45,16 +47,28 @@ class Lci(CMakePackage):
     variant('long_pkt_ret', default=False,
             description='Return long packets to sender pool')
 
+    conflicts('+dreg', when='+odp')
+    conflicts('+odp', when='fabric=ofi')
+    conflicts('+odp', when='fabric=psm')
+
+    generator = 'Ninja'
+    depends_on('ninja', type='build')
+
     depends_on('cmake@3.13:', type='build')
     depends_on('libfabric', when='fabric=ofi')
     depends_on('rdma-core', when='fabric=ibv')
     depends_on('opa-psm2',  when='fabric=psm')
+
+    @property
+    def build_directory(self):
+        return os.path.join(self.stage.path, 'spack-build', self.spec.dag_hash(7))
 
     def cmake_args(self):
         args = [
             self.define_from_variant('LC_SERVER_DEBUG', 'server_debug'),
             self.define_from_variant('LC_SERVER', 'fabric'),
             self.define_from_variant('LC_USE_DREG', 'dreg'),
+            self.define_from_variant('LC_IBV_ODP', 'odp'),
             self.define_from_variant('LC_EP_AR', 'addressing'),
             self.define_from_variant('LC_EP_CE', 'completion'),
             self.define_from_variant('LC_MAX_DEV', 'devices'),
