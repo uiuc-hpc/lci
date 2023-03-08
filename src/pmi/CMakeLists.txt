@@ -8,6 +8,7 @@ target_sources_relative(${LIBRARY_NAME} PRIVATE pmi_wrapper.c
                         pmi_wrapper_pmi1.c pmi_wrapper_pmi2.c)
 add_subdirectory(pmi1)
 add_subdirectory(pmi2)
+
 find_package(MPI COMPONENTS C)
 if(MPI_FOUND)
   set(LCI_PM_BACKEND_ENABLE_MPI
@@ -20,4 +21,18 @@ elseif(LCI_PM_BACKEND_DEFAULT STREQUAL "mpi")
   message(
     FATAL_ERROR "LCI_PM_BACKEND_DEFAULT is set to MPI but MPI is not found.")
 endif()
+
+find_package(PMIx COMPONENTS C)
+if(PMIX_FOUND)
+  set(LCI_PM_BACKEND_ENABLE_PMIX
+      ON
+      CACHE STRING "Enable PMIx as the process management backend")
+  target_sources_relative(${LIBRARY_NAME} PRIVATE pmi_wrapper_pmix.c)
+  cmake_policy(SET CMP0079 NEW)
+  target_link_libraries(${LIBRARY_NAME} PRIVATE PMIx::PMIx)
+elseif(LCI_PM_BACKEND_DEFAULT STREQUAL "pmix")
+  message(
+    FATAL_ERROR "LCI_PM_BACKEND_DEFAULT is set to PMIx but PMIx is not found.")
+endif()
+
 target_include_directories(${LIBRARY_NAME} PRIVATE .)

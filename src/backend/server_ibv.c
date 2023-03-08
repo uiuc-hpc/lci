@@ -330,9 +330,9 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
       }
     }
     // Use this queue pair "i" to connect to rank e.
-    char key[256];
+    char key[LCM_PMI_STRING_LIMIT + 1];
     sprintf(key, "LCI_KEY_%d_%d_%d", endpoint_id, LCI_RANK, i);
-    char value[256];
+    char value[LCM_PMI_STRING_LIMIT + 1];
     sprintf(value, "%x:%hx", endpoint_p->qps[i]->qp_num,
             endpoint_p->server->port_attr.lid);
     lcm_pm_publish(key, value);
@@ -342,10 +342,10 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
   lcm_pm_barrier();
 
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
-    char key[256];
+    char key[LCM_PMI_STRING_LIMIT + 1];
     sprintf(key, "LCI_KEY_%d_%d_%d", endpoint_id, i, LCI_RANK);
-    char value[256];
-    lcm_pm_getname(key, value);
+    char value[LCM_PMI_STRING_LIMIT + 1];
+    lcm_pm_getname(i, key, value);
     uint32_t dest_qpn;
     uint16_t dest_lid;
     sscanf(value, "%x:%hx", &dest_qpn, &dest_lid);

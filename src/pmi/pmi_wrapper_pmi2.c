@@ -26,10 +26,11 @@ int lcm_pm_pmi2_get_size()
 
 void lcm_pm_pmi2_publish(char* key, char* value) { PMI2_KVS_Put(key, value); }
 
-void lcm_pm_pmi2_getname(char* key, char* value)
+void lcm_pm_pmi2_getname(int rank, char* key, char* value)
 {
   int vallen;
-  PMI2_KVS_Get(NULL, PMI2_ID_NULL, key, value, 255, &vallen);
+  PMI2_KVS_Get(NULL, rank /* PMI2_ID_NULL */, key, value, LCM_PMI_STRING_LIMIT,
+               &vallen);
 }
 
 void lcm_pm_pmi2_barrier()

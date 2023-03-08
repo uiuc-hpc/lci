@@ -141,9 +141,9 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
   FI_SAFECALL(fi_getname((fid_t)endpoint_p->ep, my_addr, &addrlen));
 
   endpoint_p->peer_addrs = LCIU_malloc(sizeof(fi_addr_t) * LCI_NUM_PROCESSES);
-  char key[256];
+  char key[LCM_PMI_STRING_LIMIT + 1];
   sprintf(key, "LCI_KEY_%d_%d", endpoint_id, LCI_RANK);
-  char value[256];
+  char value[LCM_PMI_STRING_LIMIT + 1];
   const char* PARSE_STRING = "%016lx-%016lx-%016lx-%016lx-%016lx-%016lx";
   sprintf(value, PARSE_STRING, my_addr[0], my_addr[1], my_addr[2], my_addr[3],
           my_addr[4], my_addr[5]);
@@ -153,7 +153,7 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
   for (int i = 0; i < LCI_NUM_PROCESSES; i++) {
     if (i != LCI_RANK) {
       sprintf(key, "LCI_KEY_%d_%d", endpoint_id, i);
-      lcm_pm_getname(key, value);
+      lcm_pm_getname(i, key, value);
       uint64_t peer_addr[EP_ADDR_LEN];
 
       sscanf(value, PARSE_STRING, &peer_addr[0], &peer_addr[1], &peer_addr[2],

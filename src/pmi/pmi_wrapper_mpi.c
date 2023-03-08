@@ -122,7 +122,7 @@ void lcm_pm_mpi_publish(char* key, char* value)
   archive_push(&l_archive, key, value);
 }
 
-void lcm_pm_mpi_getname(char* key, char* value)
+void lcm_pm_mpi_getname(int rank, char* key, char* value)
 {
   char* ret = archive_search(&g_archive, key);
   strcpy(value, ret);

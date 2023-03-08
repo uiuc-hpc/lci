@@ -25,22 +25,22 @@ int lcm_pm_pmi1_get_rank()
 int lcm_pm_pmi1_get_size()
 {
   int size;
-  PMI_Get_universe_size(&size);
+  PMI_Get_size(&size);
   return size;
 }
 
 void lcm_pm_pmi1_publish(char* key, char* value)
 {
-  char lcg_name[256];
-  PMI_KVS_Get_my_name(lcg_name, 255);
+  char lcg_name[LCM_PMI_STRING_LIMIT + 1];
+  PMI_KVS_Get_my_name(lcg_name, LCM_PMI_STRING_LIMIT);
   PMI_KVS_Put(lcg_name, key, value);
 }
 
-void lcm_pm_pmi1_getname(char* key, char* value)
+void lcm_pm_pmi1_getname(int rank, char* key, char* value)
 {
-  char lcg_name[256];
-  PMI_KVS_Get_my_name(lcg_name, 255);
-  PMI_KVS_Get(lcg_name, key, value, 255);
+  char lcg_name[LCM_PMI_STRING_LIMIT + 1];
+  PMI_KVS_Get_my_name(lcg_name, LCM_PMI_STRING_LIMIT);
+  PMI_KVS_Get(lcg_name, key, value, LCM_PMI_STRING_LIMIT);
 }
 
 void lcm_pm_pmi1_barrier() { PMI_Barrier(); }
