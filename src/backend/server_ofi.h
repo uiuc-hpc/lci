@@ -49,8 +49,13 @@ static inline void* LCISI_real_server_reg(LCIS_server_t s, void* buf,
                                           size_t size)
 {
   LCISI_server_t* server = (LCISI_server_t*)s;
+  int rdma_key;
+  if (server->info->domain_attr->mr_mode & FI_MR_PROV_KEY) {
+    rdma_key = 0;
+  } else {
+    rdma_key = __sync_fetch_and_add(&g_next_rdma_key, 1);
+  }
   struct fid_mr* mr;
-  int rdma_key = __sync_fetch_and_add(&g_next_rdma_key, 1);
   FI_SAFECALL(fi_mr_reg(server->domain, buf, size,
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, rdma_key, 0,
                         &mr, 0));
