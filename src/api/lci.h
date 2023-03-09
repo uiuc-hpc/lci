@@ -40,34 +40,6 @@ extern "C" {
  * @}
  */
 
-/**
- * @defgroup LCI_QUEUE LCI completion queue
- * @ingroup LCI_COMP
- * @{
- * One of the completion mechanisms.
- *
- * Every completion queue can be associated with one or more
- * asynchronous operations. When operations are completed,
- * the LCI runtime will push an entry into the queue, users can
- * get completion notification by polling the queue.
- *
- * @}
- */
-
-/**
- * @defgroup LCI_HANDLER LCI completion queue
- * @ingroup LCI_COMP
- * @{
- * One of the completion mechanisms.
- *
- * Every active message handler can be associated with one or more
- * asynchronous operations. When operations are completed,
- * the LCI runtime will execute the handler with the completion entry
- * as the input.
- *
- * @}
- */
-
 #define LCI_API __attribute__((visibility("default")))
 
 #define LCI_DEFAULT_COMP_REMOTE 0
@@ -563,24 +535,6 @@ LCI_API
 LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
                       LCI_comp_t completion, int rank, LCI_tag_t tag,
                       uintptr_t remote_completion, void* user_context);
-// Completion queue
-LCI_API
-LCI_error_t LCI_queue_create(LCI_device_t device, LCI_comp_t* cq);
-LCI_API
-LCI_error_t LCI_queue_free(LCI_comp_t* cq);
-LCI_API
-LCI_error_t LCI_queue_pop(LCI_comp_t cq, LCI_request_t* request);
-LCI_API
-LCI_error_t LCI_queue_wait(LCI_comp_t cq, LCI_request_t* request);
-LCI_API
-LCI_error_t LCI_queue_pop_multiple(LCI_comp_t cq, size_t request_count,
-                                   LCI_request_t* requests,
-                                   size_t* return_count);
-LCI_API
-LCI_error_t LCI_queue_wait_multiple(LCI_comp_t cq, size_t request_count,
-                                    LCI_request_t* requests);
-LCI_API
-LCI_error_t LCI_queue_len(LCI_comp_t cq, size_t* len);
 
 /**
  * @defgroup LCI_SYNC LCI synchronizer
@@ -596,33 +550,202 @@ LCI_error_t LCI_queue_len(LCI_comp_t cq, size_t* len);
  *
  * It can also be scheduler-aware when executing in the context of
  * a task-based runtime (This is still an ongoing work).
- *
  * @}
  */
+
+/**
+ * @defgroup LCI_QUEUE LCI completion queue
+ * @ingroup LCI_COMP
+ * @{
+ * One of the completion mechanisms.
+ *
+ * Every completion queue can be associated with one or more
+ * asynchronous operations. When a operation is completed,
+ * the LCI runtime will push an entry into the queue, users can
+ * get completion notification by calling @ref LCI_cq_pop.
+ * @}
+ */
+
+/**
+ * @ingroup LCI_QUEUE
+ * @brief Create a completion queue.
+ *
+ * @param [in]  device The device it should be associated to.
+ * @param [out] cq     The pointer to the completion queue to be created.
+ * @return Error code as defined by @ref LCI_error_t.
+ */
+LCI_API
+LCI_error_t LCI_queue_create(LCI_device_t device, LCI_comp_t* cq);
+/**
+ * @ingroup LCI_QUEUE
+ * @brief Free a completion queue.
+ *
+ * @param [in] cq The pointer to the completion queue to be freed.
+ * @return Error code as defined by @ref LCI_error_t.
+ */
+LCI_API
+LCI_error_t LCI_queue_free(LCI_comp_t* cq);
+/**
+ * @ingroup LCI_QUEUE
+ * @brief Pop one entry from the completion queue. This call is nonblocking.
+ *
+ * @param [in]  cq      The completion queue to pop.
+ * @param [out] request The pointer to a request object. The completion
+ * information of the completed operation will be written into it.
+ * @return LCI_OK if successfully popped one. LCI_ERR_RETRY if there is no entry
+ * to be popped in the queue. All the other errors are fatal as defined by
+ * @ref LCI_error_t.
+ */
+LCI_API
+LCI_error_t LCI_queue_pop(LCI_comp_t cq, LCI_request_t* request);
+/**
+ * @ingroup LCI_QUEUE
+ * @brief Pop one entry from the completion queue. This call will block until
+ * there is an entry to be popped.
+ *
+ * @param [in]  cq      The completion queue to pop.
+ * @param [out] request The pointer to a request object. The completion
+ * information of the completed operation will be written into it.
+ * @return LCI_OK if successfully popped one. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
+LCI_API
+LCI_error_t LCI_queue_wait(LCI_comp_t cq, LCI_request_t* request);
+/**
+ * @ingroup LCI_QUEUE
+ * @brief Pop multiple entry from the completion queue. This call is
+ * nonblocking.
+ *
+ * @param [in]  cq            The completion queue to pop.
+ * @param [in]  request_count The maximum entries to be popped.
+ * @param [out] request       An array of request objects of length at least
+ * `request_count`.Each of the fist `return_count` entries of the array will
+ * contain the completion information of one completed operation.
+ * @param [out] request_count The number of entries that has been popped.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
+LCI_API
+LCI_error_t LCI_queue_pop_multiple(LCI_comp_t cq, size_t request_count,
+                                   LCI_request_t* requests,
+                                   size_t* return_count);
+/**
+ * @ingroup LCI_QUEUE
+ * @brief Pop multiple entry from the completion queue.This call will block
+ * until `request_count` entries has been popped.
+ *
+ * @param [in]  cq            The completion queue to pop.
+ * @param [in]  request_count The number of entries to be popped.
+ * @param [out] request       An array of request objects of length at least
+ * `request_count`.Each entry of the array will contain the completion
+ * information of one completed operation.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
+LCI_API
+LCI_error_t LCI_queue_wait_multiple(LCI_comp_t cq, size_t request_count,
+                                    LCI_request_t* requests);
+/**
+ * @ingroup LCI_QUEUE
+ * @brief Query the number of entries in a completion queue.
+ *
+ * @param [in]  cq  The completion queue to query.
+ * @param [out] len Return the number of entries in the queue.
+ * @return No available yet. Should always be LCI_ERR_FEATURE_NA.
+ */
+LCI_API
+LCI_error_t LCI_queue_len(LCI_comp_t cq, size_t* len);
 
 /**
  * @ingroup LCI_SYNC
  * @brief Create a synchronizer.
  *
- * @param [in]  device    The device it should be associated to
- * @param [in]  threshold How many asynchronous operations it will be associated
- * to.
- * @param [out] sync The pointer to the synchronizer to be created (or more
- * precisely, initialized)
- * @return Error code as defined by @ref LCI_error_t
+ * @param [in]  device     The device it should be associated to.
+ * @param [in]  threshold  How many asynchronous operations it will be
+ * associated to.
+ * @param [out] completion The pointer to the synchronizer to be created.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
  */
 LCI_API
 LCI_error_t LCI_sync_create(LCI_device_t device, int threshold,
-                            LCI_comp_t* sync);
+                            LCI_comp_t* completion);
+/**
+ * @ingroup LCI_SYNC
+ * @brief Free a synchronizer.
+ *
+ * @param [in] completion The pointer to the synchronizer to be freed.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_sync_free(LCI_comp_t* completion);
+/**
+ * @ingroup LCI_SYNC
+ * @brief Trigger a synchronizer.
+ *
+ * @param [in]  completion The synchronizer to be triggered.
+ * @param [in] request     An array of size `threshold` passed to
+ * @ref LCI_sync_create. Every entry of the array will contain the completion
+ * information of one completed operation.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_sync_signal(LCI_comp_t completion, LCI_request_t request);
+/**
+ * @ingroup LCI_SYNC
+ * @brief Wait for a synchronizer to be triggered. A synchronizer will
+ * be triggered if all the associated operations are completed.
+ *
+ * @param [in]  completion The synchronizer to be waited.
+ * @param [out] request    An array of length `threshold` passed to
+ * @ref LCI_sync_create. Every entry of the array will contain the completion
+ * information of one completed operation.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
-LCI_error_t LCI_sync_wait(LCI_comp_t sync, LCI_request_t request[]);
+LCI_error_t LCI_sync_wait(LCI_comp_t completion, LCI_request_t request[]);
+/**
+ * @ingroup LCI_SYNC
+ * @brief Test whether a synchronizer has been triggered. A synchronizer will
+ * be triggered if all the associated operations are completed.
+ *
+ * @param [in]  completion The synchronizer to be tested.
+ * @param [out] request    An array of length `threshold` passed to
+ * @ref LCI_sync_create. Every entry of the array will contain the completion
+ * information of one completed operation.
+ * @return LCI_OK if successfully popped one. LCI_ERR_RETRY if there is no entry
+ * to be popped in the queue. All the other errors are fatal as defined by
+ * @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_sync_test(LCI_comp_t completion, LCI_request_t request[]);
-// handler
+
+/**
+ * @defgroup LCI_HANDLER LCI active message handler
+ * @ingroup LCI_COMP
+ * @{
+ * One of the completion mechanisms.
+ *
+ * Every active message handler can be associated with one or more
+ * asynchronous operations. When operations are completed,
+ * the LCI runtime will execute the handler with the completion entry
+ * as the input.
+ * @}
+ */
+/**
+ * @ingroup LCI_HANDLER
+ * @brief Create an active message handler.
+ *
+ * @param [in]  device     The device it should be associated to.
+ * @param [in]  handler    The function handler to invoke when an operation
+ * completes.
+ * @param [out] completion The pointer to the completion queue to be created.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_handler_create(LCI_device_t device, LCI_handler_t handler,
                                LCI_comp_t* completion);

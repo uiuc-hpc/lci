@@ -10,7 +10,8 @@ if(NOT LCI_BUILD_EXAMPLES)
   set(EXCLUDE_FROM_ALL ON)
 endif()
 add_lci_examples(
-        hello_world.c pt2pts_sync.c # pt2ptbc.c pt2ptd.c pt2ptiq.c puti.c putb.c putbc.c
+  hello_world.c pt2pts_sync.c pt2ptm_queue.c # pt2ptbc.c pt2ptd.c pt2ptiq.c
+                                             # puti.c putb.c putbc.c
 )
 
 add_subdirectory(MPI_LCI)

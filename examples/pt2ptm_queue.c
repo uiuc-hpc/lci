@@ -1,12 +1,15 @@
 #include "lci.h"
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 
 int main(int argc, char** args)
 {
   // number of messages to send
   int num_msgs = 10;
+  int msgs_size = 8192;
   if (argc > 1) num_msgs = atoi(args[1]);
+  if (argc > 2) msgs_size = atoi(args[1]);
   // call `LCI_initialize` to initialize the runtime
   LCI_initialize();
   // Initialize a device. A LCI device is associated with a set of communication
@@ -25,10 +28,11 @@ int main(int argc, char** args)
   // configurations.
   LCI_plist_t plist;
   LCI_plist_create(&plist);
-  // We set the completion mechanism on the sender side to be synchronizer.
-  LCI_plist_set_comp_type(plist, LCI_PORT_COMMAND, LCI_COMPLETION_SYNC);
-  // We set the completion mechanism on the receiver side to be synchronizer.
-  LCI_plist_set_comp_type(plist, LCI_PORT_MESSAGE, LCI_COMPLETION_SYNC);
+  // We set the completion mechanism on the sender side to be completion queue.
+  LCI_plist_set_comp_type(plist, LCI_PORT_COMMAND, LCI_COMPLETION_QUEUE);
+  // We set the completion mechanism on the receiver side to be completion
+  // queue.
+  LCI_plist_set_comp_type(plist, LCI_PORT_MESSAGE, LCI_COMPLETION_QUEUE);
   // We set the matching rule to be rank+tag, so a pair of LCI send and recv
   // will be matched through (source rank, destination rank, tag).
   // Alternatively, you can set the matching rule to tag-only by LCI_MATCH_TAG.
@@ -39,20 +43,30 @@ int main(int argc, char** args)
   // Create a synchronizer. You can treat it as an MPI_Request for now.
   // Setting the threshold to 1 means it will be triggered by the completion
   // of one asynchronous operation.
-  LCI_comp_t sync;
-  LCI_sync_create(device, 1, &sync);
+  LCI_comp_t cq;
+  LCI_queue_create(device, &cq);
 
-  // For short messages (up to LCI_SHORT_SIZE bytes), we can use LCI_sends
-  // and LCI_recvs to send and receive messages.
-  LCI_short_t message;
-  // Suppose we want to send an uint64_t.
-  if (sizeof(uint64_t) > LCI_SHORT_SIZE) {
+  // For medium messages (up to LCI_MEDIUM_SIZE bytes), we can use LCI_sendm(n)
+  // and LCI_recvm(n) to send and receive messages. The difference between the
+  // "copy" version (LCI_sendm/recvm) and the "no copy" version
+  // (LCI_sendmn/recvmn) is whether the send/recv buffers are provided by users
+  // or the LCI runtime. LCI_sendm can be paired with LCI_recvmn and LCI_sendmn
+  // can be paired with LCI_recvm.
+  if (msgs_size > LCI_MEDIUM_SIZE) {
     fprintf(stderr,
             "The message is too long to be sent/received"
             "using LCI_sends/LCI_recvis");
     exit(1);
   }
-  *(uint64_t*)&message = 9527 + LCI_RANK;
+  // We are using LCI_sendm/recvm in this example, so we need to allocate our
+  // own send/recv buffers
+  LCI_mbuffer_t src_buf, dst_buf;
+  src_buf.address = malloc(msgs_size);
+  src_buf.length = msgs_size;
+  memset(src_buf.address, 'a' + LCI_RANK, msgs_size);
+  dst_buf.address = malloc(msgs_size);
+  dst_buf.length = msgs_size;
+  memset(dst_buf.address, 0, msgs_size);
 
   int peer_rank;
   if (LCI_NUM_PROCESSES == 1) {
@@ -73,19 +87,19 @@ int main(int argc, char** args)
   void* user_context = (void*)9527;
   if (LCI_RANK == 0) {
     for (int i = 0; i < num_msgs; i++) {
-      // Send a short message using LCI_sends
+      // Send a medium message using LCI_sendm
       // A LCI send function can return LCI_ERR_RETRY, so we use a while loop
       // here to make sure the message is sent
-      while (LCI_sends(ep, message, peer_rank, tag) == LCI_ERR_RETRY)
+      while (LCI_sendm(ep, src_buf, peer_rank, tag) == LCI_ERR_RETRY)
         // Users have to call LCI_progress frequently to make progress on the
         // background work.
         LCI_progress(device);
       // Recv a short message using LCI_recvs
-      LCI_recvs(ep, peer_rank, tag, sync, user_context);
+      LCI_recvm(ep, dst_buf, peer_rank, tag, cq, user_context);
 
       LCI_request_t request;
-      // Test whether a synchronizer has been triggered.
-      while (LCI_sync_test(sync, &request) == LCI_ERR_RETRY)
+      // Try to pop a entry from the completion queue.
+      while (LCI_queue_pop(cq, &request) == LCI_ERR_RETRY)
         // Users have to call LCI_progress frequently to make progress on the
         // background work.
         LCI_progress(device);
@@ -94,28 +108,37 @@ int main(int argc, char** args)
       assert(request.flag == LCI_OK);
       assert(request.rank == peer_rank);
       assert(request.tag == tag);
-      assert(request.type == LCI_IMMEDIATE);
+      assert(request.type == LCI_MEDIUM);
       assert(request.user_context == user_context);
-      assert(*(uint64_t*)&request.data.immediate == 9527 + peer_rank);
+      assert(request.data.mbuffer.address == dst_buf.address);
+      assert(request.data.mbuffer.length == dst_buf.length);
+      for (int j = 0; j < msgs_size; ++j) {
+        assert(((char*)dst_buf.address)[j] == 'a' + peer_rank);
+      }
     }
   } else {
     for (int i = 0; i < num_msgs; i++) {
-      LCI_recvs(ep, peer_rank, tag, sync, user_context);
+      LCI_recvm(ep, dst_buf, peer_rank, tag, cq, user_context);
       LCI_request_t request;
-      while (LCI_sync_test(sync, &request) == LCI_ERR_RETRY)
-        LCI_progress(device);
+      while (LCI_queue_pop(cq, &request) == LCI_ERR_RETRY) LCI_progress(device);
       assert(request.flag == LCI_OK);
       assert(request.rank == peer_rank);
       assert(request.tag == tag);
-      assert(request.type == LCI_IMMEDIATE);
+      assert(request.type == LCI_MEDIUM);
       assert(request.user_context == user_context);
-      assert(*(uint64_t*)&request.data.immediate == 9527 + peer_rank);
-      while (LCI_sends(ep, message, peer_rank, tag) == LCI_ERR_RETRY)
+      assert(request.data.mbuffer.address == dst_buf.address);
+      assert(request.data.mbuffer.length == dst_buf.length);
+      for (int j = 0; j < msgs_size; ++j) {
+        assert(((char*)dst_buf.address)[j] == 'a' + peer_rank);
+      }
+      while (LCI_sendm(ep, src_buf, peer_rank, tag) == LCI_ERR_RETRY)
         LCI_progress(device);
     }
   }
   // Free all the resources
-  LCI_sync_free(&sync);
+  free(src_buf.address);
+  free(dst_buf.address);
+  LCI_queue_free(&cq);
   LCI_endpoint_free(&ep);
   LCI_device_free(&device);
   // call `LCI_finalize` to finalize the runtime
