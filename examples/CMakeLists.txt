@@ -14,4 +14,4 @@ add_lci_examples(
                                              # puti.c putb.c putbc.c
 )
 
-add_subdirectory(MPI_LCI)
+# add_subdirectory(MPI_LCI)
