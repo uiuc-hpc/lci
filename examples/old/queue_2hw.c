@@ -4,7 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "comm_exp.h"
+#include "../comm_exp.h"
 
 int total = TOTAL;
 int skip = SKIP;

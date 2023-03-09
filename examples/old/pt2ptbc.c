@@ -1,30 +1,37 @@
-#include "lc.h"
+#include "lci.h"
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
 
-#include "comm_exp.h"
+#include "../comm_exp.h"
+
+#undef MAX_MSG
+#define MAX_MSG (8 * 1024)
 
 int total = TOTAL;
 int skip = SKIP;
 
 int main(int argc, char** args)
 {
-  lc_ep def, ep;
-  lc_init(1, &def);
-  lc_opt opt = {.dev = 0, .desc = LC_EXP_NULL, .glob = 1};
-  lc_ep_dup(&opt, def, &ep);
-  int rank = 0;
-  lc_get_proc_num(&rank);
-  LCI_tag_t tag = {99};
+  LCI_open();
+  LCI_endpoint_t ep;
+  LCI_plist_t plist;
+  LCI_plist_create(&plist);
+  LCI_MT_t mt;
+  LCI_MT_init(&mt, 0);
+  LCI_plist_set_MT(plist, &mt);
+  LCI_endpoint_init(&ep, LCI_UR_DEVICE, plist);
 
-  lc_req req;
-  lc_sync sync;
-  double t1;
+  int rank = LCI_RANK;
+  LCI_tag_t tag = 99;
+
+  LCI_comp_t sync;
+
+  double t1 = 0;
   size_t alignment = sysconf(_SC_PAGESIZE);
-  void* src_buf;
-  void* dst_buf;
+  void* src_buf = 0;
+  void* dst_buf = 0;
   posix_memalign(&src_buf, alignment, MAX_MSG);
   posix_memalign(&dst_buf, alignment, MAX_MSG);
 
@@ -40,15 +47,12 @@ int main(int argc, char** args)
 
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
-        sync = 0;
-        while (lc_send(src_buf, size, 1 - rank, tag, ep, lc_signal, &sync) !=
-               LC_OK)
-          lc_progress(0);
-        while (!sync) lc_progress(0);
+        while (LCI_sendm(ep, src_buf, 1 - rank, tag) != LCI_OK)
+          LCI_progress(LCI_UR_DEVICE);
 
-        int c = lc_glob_mark(ep);
-        lc_recv(dst_buf, size, 1 - rank, tag, ep, &req);
-        while (c == lc_glob_mark(ep)) lc_progress(0);
+        LCI_one2one_set_empty(&sync);
+        LCI_recvm(ep, dst_buf, 1 - rank, tag, sync, NULL);
+        while (LCI_one2one_test_empty(&sync)) LCI_progress(LCI_UR_DEVICE);
 
         if (i == 0) {
           for (int j = 0; j < size; j++)
@@ -69,17 +73,14 @@ int main(int argc, char** args)
       }
 
       for (int i = 0; i < total + skip; i++) {
-        int c = lc_glob_mark(ep);
-        lc_recv(dst_buf, size, 1 - rank, tag, ep, &req);
-        while (c == lc_glob_mark(ep)) lc_progress(0);
+        LCI_one2one_set_empty(&sync);
+        LCI_recvm(ep, dst_buf, 1 - rank, tag, sync, NULL);
+        while (LCI_one2one_test_empty(&sync)) LCI_progress(LCI_UR_DEVICE);
 
-        sync = 0;
-        while (lc_send(src_buf, size, 1 - rank, tag, ep, lc_signal, &sync) !=
-               LC_OK)
-          lc_progress(0);
-        while (!sync) lc_progress(0);
+        while (LCI_sendm(ep, src_buf, 1 - rank, tag) != LCI_OK)
+          LCI_progress(LCI_UR_DEVICE);
       }
     }
   }
-  lc_finalize();
+  LCI_close();
 }

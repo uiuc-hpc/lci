@@ -4,10 +4,10 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "comm_exp.h"
+#include "../comm_exp.h"
 
 #undef MAX_MSG
-#define MAX_MSG (128)
+#define MAX_MSG (8 * 1024)
 
 int total = TOTAL;
 int skip = SKIP;
@@ -43,7 +43,8 @@ int main(int argc, char** args)
       for (int i = 0; i < total + skip; i++) {
         if (i == skip) t1 = wtime();
         meta = i;
-        lc_sends(buf, size, 1 - rank, meta, ep_q);
+        while (lc_sendm(buf, size, 1 - rank, meta, ep_q) != LC_OK)
+          lc_progress(0);
 
         lc_req* req_ptr;
         while (lc_cq_pop(ep_q, &req_ptr) != LC_OK) lc_progress(0);
@@ -69,7 +70,8 @@ int main(int argc, char** args)
         lc_cq_reqfree(ep_q, req_ptr);
 
         meta = i;
-        lc_sends(buf, size, 1 - rank, meta, ep_q);
+        while (lc_sendm(buf, size, 1 - rank, meta, ep_q) != LC_OK)
+          lc_progress(0);
       }
     }
   }

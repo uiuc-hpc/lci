@@ -19,6 +19,55 @@
 extern "C" {
 #endif
 
+/**
+ * @defgroup LCI_API Lightweight Communication Interface (LCI) API
+ * @{
+ * This section describes LCI API.
+ * @}
+ */
+
+/**
+ * @defgroup LCI_COMP LCI completion mechanisms
+ * @ingroup LCI_API
+ * @{
+ * The LCI runtime notifies users about the completion of an asynchronous
+ * operations (e.g. communication operations) through completion
+ * mechanisms.
+ *
+ * LCI provides three completion mechanisms: synchronizers,
+ * completion queues, and active message handlers.
+ *
+ * @}
+ */
+
+/**
+ * @defgroup LCI_QUEUE LCI completion queue
+ * @ingroup LCI_COMP
+ * @{
+ * One of the completion mechanisms.
+ *
+ * Every completion queue can be associated with one or more
+ * asynchronous operations. When operations are completed,
+ * the LCI runtime will push an entry into the queue, users can
+ * get completion notification by polling the queue.
+ *
+ * @}
+ */
+
+/**
+ * @defgroup LCI_HANDLER LCI completion queue
+ * @ingroup LCI_COMP
+ * @{
+ * One of the completion mechanisms.
+ *
+ * Every active message handler can be associated with one or more
+ * asynchronous operations. When operations are completed,
+ * the LCI runtime will execute the handler with the completion entry
+ * as the input.
+ *
+ * @}
+ */
+
 #define LCI_API __attribute__((visibility("default")))
 
 #define LCI_DEFAULT_COMP_REMOTE 0
@@ -380,18 +429,73 @@ extern LCI_endpoint_t LCI_UR_ENDPOINT;
 extern LCI_comp_t LCI_UR_CQ;
 /**@}*/
 
-// base
+/**
+ * @defgroup LCI_SETUP LCI environment setup
+ * @ingroup LCI_API
+ * @{
+ * In order to use LCI, users need to first setup a few communication resources
+ * and configurations, including devices and endpoints.
+ *
+ * @}
+ */
+
+/**
+ * @ingroup LCI_SETUP
+ * @brief Initialize the LCI runtime. No LCI calls are allowed to be called
+ * before LCI_initialize except @ref LCI_initialized.
+ * @return Error code as defined by @ref LCI_error_t
+ */
 LCI_API
 LCI_error_t LCI_initialize();
+/**
+ * @ingroup LCI_SETUP
+ * @brief Check whether the LCI runtime has been initialized
+ * @param [in] flag If the runtime has been initialized, it will be set to true.
+ * Otherwise, it will be set to false.
+ * @return Error code as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_initialized(int* flag);
+/**
+ * @ingroup LCI_SETUP
+ * @brief Finalize the LCI runtime. No LCI calls are allowed to be called
+ * after LCI_finalize except @ref LCI_initialized.
+ * @return Error code as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_finalize();
+/**
+ * @ingroup LCI_SETUP
+ * @brief Invoke a barrier across all LCI processes in the same job. This is
+ * not thread-safe.
+ * @return Error code as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_barrier();
-// device
+
+/**
+ * @defgroup LCI_DEVICE LCI device
+ * @ingroup LCI_API
+ * @{
+ * A device is a physical or logical resource that can be used for
+ * communication. Communications that use the same device share a resource and
+ * may affect each other's performance.
+ * @}
+ */
+/**
+ * @ingroup LCI_SETUP
+ * @brief Initialize a device.
+ * @param [out] device pointer to a device to be initialized.
+ * @return Error code as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_device_init(LCI_device_t* device);
+/**
+ * @ingroup LCI_SETUP
+ * @brief Initialize a device.
+ * @param [out] device pointer to a device to be freed.
+ * @return Error code as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_device_free(LCI_device_t* device);
 // plist
@@ -477,7 +581,36 @@ LCI_error_t LCI_queue_wait_multiple(LCI_comp_t cq, size_t request_count,
                                     LCI_request_t* requests);
 LCI_API
 LCI_error_t LCI_queue_len(LCI_comp_t cq, size_t* len);
-// synchronizer
+
+/**
+ * @defgroup LCI_SYNC LCI synchronizer
+ * @ingroup LCI_COMP
+ * @{
+ * One of the completion mechanisms.
+ *
+ * In its simplest form, it is an object similar to MPI_Request.
+ * Every synchronizer can be associated with one or more
+ * asynchronous operations. The synchronizer will be triggered after all the
+ * associated operations are completed. Users can know whether the corresponding
+ * operations have been completed by querying the synchronizer.
+ *
+ * It can also be scheduler-aware when executing in the context of
+ * a task-based runtime (This is still an ongoing work).
+ *
+ * @}
+ */
+
+/**
+ * @ingroup LCI_SYNC
+ * @brief Create a synchronizer.
+ *
+ * @param [in]  device    The device it should be associated to
+ * @param [in]  threshold How many asynchronous operations it will be associated
+ * to.
+ * @param [out] sync The pointer to the synchronizer to be created (or more
+ * precisely, initialized)
+ * @return Error code as defined by @ref LCI_error_t
+ */
 LCI_API
 LCI_error_t LCI_sync_create(LCI_device_t device, int threshold,
                             LCI_comp_t* sync);

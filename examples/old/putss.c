@@ -1,5 +1,5 @@
 #include "lc.h"
-#include "comm_exp.h"
+#include "../comm_exp.h"
 
 #include <stdio.h>
 #include <assert.h>
@@ -7,25 +7,27 @@
 #include <unistd.h>
 
 #undef MAX_MSG
-#define MAX_MSG 8192
+#define MAX_MSG lc_max_short(0)
 
 int main(int argc, char** args)
 {
-  lc_ep ep;
+  lc_ep ep, ep2;
   lc_req req;
+  lc_req* req_ptr;
   int rank;
 
-  lc_init(1, &ep);
+  lc_init(1, &ep2);
+  lc_opt opt = {.dev = 0, .desc = LC_IMM_CQ};
+  lc_ep_dup(&opt, ep2, &ep);
+
   lc_get_proc_num(&rank);
 
   uintptr_t addr, raddr;
   lc_ep_get_baseaddr(ep, MAX_MSG, &addr);
 
-  lc_sendm(&addr, sizeof(uintptr_t), 1 - rank, 0, ep);
-  lc_recvm(&raddr, sizeof(uintptr_t), 1 - rank, 0, ep, &req);
-  while (!req.sync) {
-    lc_progress(0);
-  }
+  lc_sendm(&addr, sizeof(uintptr_t), 1 - rank, 0, ep2);
+  lc_recvm(&raddr, sizeof(uintptr_t), 1 - rank, 0, ep2, &req);
+  while (req.sync == 0) lc_progress(0);
 
   long* sbuf = (long*)addr;
   long* rbuf = (long*)(addr + MAX_MSG);
@@ -39,15 +41,15 @@ int main(int argc, char** args)
     for (int i = 0; i < TOTAL + SKIP; i++) {
       if (i == SKIP) t1 = wtime();
       if (rank == 0) {
-        while (rbuf[0] == -1) lc_progress(0);
-        rbuf[0] = -1;
-        while (lc_putm(sbuf, size, 1 - rank, raddr + MAX_MSG, ep) != LC_OK)
-          lc_progress(0);
+        while (lc_cq_pop(ep, &req_ptr) != LC_OK) lc_progress(0);
+        assert(req_ptr->meta == i);
+        lc_cq_reqfree(ep, req_ptr);
+        lc_putss(sbuf, size, 1 - rank, raddr + MAX_MSG, i, ep);
       } else {
-        while (lc_putm(sbuf, size, 1 - rank, raddr + MAX_MSG, ep) != LC_OK)
-          lc_progress(0);
-        while (rbuf[0] == -1) lc_progress(0);
-        rbuf[0] = -1;
+        lc_putss(sbuf, size, 1 - rank, raddr + MAX_MSG, i, ep);
+        while (lc_cq_pop(ep, &req_ptr) != LC_OK) lc_progress(0);
+        assert(req_ptr->meta == i);
+        lc_cq_reqfree(ep, req_ptr);
       }
     }
 

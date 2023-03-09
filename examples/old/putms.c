@@ -1,5 +1,5 @@
 #include "lc.h"
-#include "comm_exp.h"
+#include "../comm_exp.h"
 
 #include <stdio.h>
 #include <assert.h>
@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 #undef MAX_MSG
-#define MAX_MSG lc_max_short(0)
+#define MAX_MSG lc_max_medium(0)
 
 int main(int argc, char** args)
 {
@@ -25,9 +25,10 @@ int main(int argc, char** args)
   uintptr_t addr, raddr;
   lc_ep_get_baseaddr(ep, MAX_MSG, &addr);
 
-  lc_sendm(&addr, sizeof(uintptr_t), 1 - rank, 0, ep2);
-  lc_recvm(&raddr, sizeof(uintptr_t), 1 - rank, 0, ep2, &req);
-  while (req.sync == 0) lc_progress(0);
+  lc_sendm(&addr, sizeof(uintptr_t), 1 - rank, 0, ep);
+  while (lc_cq_pop(ep, &req_ptr) != LC_OK) lc_progress(0);
+  memcpy(&raddr, req_ptr->buffer, req_ptr->size);
+  lc_cq_reqfree(ep, req_ptr);
 
   long* sbuf = (long*)addr;
   long* rbuf = (long*)(addr + MAX_MSG);
@@ -44,9 +45,11 @@ int main(int argc, char** args)
         while (lc_cq_pop(ep, &req_ptr) != LC_OK) lc_progress(0);
         assert(req_ptr->meta == i);
         lc_cq_reqfree(ep, req_ptr);
-        lc_putss(sbuf, size, 1 - rank, raddr + MAX_MSG, i, ep);
+        while (lc_putms(sbuf, size, 1 - rank, raddr + MAX_MSG, i, ep) != LC_OK)
+          lc_progress(0);
       } else {
-        lc_putss(sbuf, size, 1 - rank, raddr + MAX_MSG, i, ep);
+        while (lc_putms(sbuf, size, 1 - rank, raddr + MAX_MSG, i, ep) != LC_OK)
+          lc_progress(0);
         while (lc_cq_pop(ep, &req_ptr) != LC_OK) lc_progress(0);
         assert(req_ptr->meta == i);
         lc_cq_reqfree(ep, req_ptr);

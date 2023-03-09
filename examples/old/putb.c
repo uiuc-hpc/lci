@@ -1,5 +1,5 @@
 #include "lci.h"
-#include "comm_exp.h"
+#include "../comm_exp.h"
 
 #include <stdio.h>
 #include <assert.h>

@@ -1,5 +1,5 @@
 #include "lc.h"
-#include "comm_exp.h"
+#include "../comm_exp.h"
 
 #include <stdio.h>
 #include <assert.h>
@@ -7,22 +7,15 @@
 #include <unistd.h>
 
 #undef MAX_MSG
-#define MAX_MSG lc_max_short(0)
-
-volatile int counter = 0;
-
-static void counting(lc_req* req) { counter++; }
+#define MAX_MSG 128
 
 int main(int argc, char** args)
 {
-  lc_ep ep, ep_am;
+  lc_ep ep;
   lc_req req;
   int rank;
 
   lc_init(1, &ep);
-  lc_opt opt = {.dev = 0, .desc = LC_EXP_AM, .handler = counting};
-  lc_ep_dup(&opt, ep, &ep_am);
-
   lc_get_proc_num(&rank);
 
   uintptr_t addr, raddr;
@@ -30,7 +23,9 @@ int main(int argc, char** args)
 
   lc_sendm(&addr, sizeof(uintptr_t), 1 - rank, 0, ep);
   lc_recvm(&raddr, sizeof(uintptr_t), 1 - rank, 0, ep, &req);
-  while (req.sync == 0) lc_progress(0);
+  while (!req.sync) {
+    lc_progress(0);
+  }
 
   long* sbuf = (long*)addr;
   long* rbuf = (long*)(addr + MAX_MSG);
@@ -44,13 +39,13 @@ int main(int argc, char** args)
     for (int i = 0; i < TOTAL + SKIP; i++) {
       if (i == SKIP) t1 = wtime();
       if (rank == 0) {
-        int old = counter;
-        while (counter == old) lc_progress(0);
-        lc_putss(sbuf, size, 1 - rank, raddr + MAX_MSG, i, ep_am);
+        while (rbuf[0] == -1) lc_progress(0);
+        rbuf[0] = -1;
+        lc_puts(sbuf, size, 1 - rank, raddr + MAX_MSG, ep);
       } else {
-        lc_putss(sbuf, size, 1 - rank, raddr + MAX_MSG, i, ep_am);
-        int old = counter;
-        while (counter == old) lc_progress(0);
+        lc_puts(sbuf, size, 1 - rank, raddr + MAX_MSG, ep);
+        while (rbuf[0] == -1) lc_progress(0);
+        rbuf[0] = -1;
       }
     }
 

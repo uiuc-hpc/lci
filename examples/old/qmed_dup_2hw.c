@@ -4,7 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "comm_exp.h"
+#include "../comm_exp.h"
 
 #undef MAX_MSG
 #define MAX_MSG (8 * 1024)

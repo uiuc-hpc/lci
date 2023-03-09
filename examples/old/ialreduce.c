@@ -1,5 +1,5 @@
 #include "lc.h"
-#include "comm_exp.h"
+#include "../comm_exp.h"
 #include <assert.h>
 #include <string.h>
 #include <pthread.h>
@@ -43,24 +43,41 @@ int main(int argc, char** args)
 
   double t1;
   unsigned i;
-  for (i = 0; i < total + skip; i++) {
-    if (i == skip) {
-      t1 = wtime();
+  for (size_t size = 1; size < (1 << 22) / 4; size <<= 1) {
+    if (size >= LARGE) {
+      total = TOTAL_LARGE;
+      skip = SKIP_LARGE;
+    }
+    for (i = 0; i < total + skip; i++) {
+      if (i == skip) {
+        t1 = wtime();
+        for (int j = 0; j < size; j++) dst[j] = t;
+      }
+
+      lc_ialreduce(LC_COL_IN_PLACE, dst, size * sizeof(int), op_sum, ep,
+                   &colreq);
+      while (colreq.flag == 0) {
+        lc_col_progress(&colreq);
+        // lc_progress(0);
+      }
+
+      if (i == skip && size == 1) {
+        int sum;
+        lc_get_num_proc(&sum);
+        sum = (sum * (sum - 1) / 2);
+        for (int j = 0; j < size; j++) assert(dst[j] == sum);
+      }
     }
 
     lc_ibarrier(ep, &colreq);
     while (colreq.flag == 0) {
       lc_col_progress(&colreq);
+      // lc_progress(0);
     }
-  }
 
-  lc_ibarrier(ep, &colreq);
-  while (colreq.flag == 0) {
-    lc_col_progress(&colreq);
+    t1 = wtime() - t1;
+    if (t == 0) printf("%10d %10.2f \n", size * sizeof(int), 1e6 * t1 / total);
   }
-
-  t1 = wtime() - t1;
-  if (t == 0) printf("%10.2f \n", 1e6 * t1 / total);
 
   cont = 0;
   pthread_join(thread, 0);

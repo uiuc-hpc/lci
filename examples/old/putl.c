@@ -1,22 +1,23 @@
 #include "lc.h"
-#include "comm_exp.h"
+#include "../comm_exp.h"
 
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
 
+static inline uintptr_t pagealign(uintptr_t addr)
+{
+  return (addr + 4096 - 1) / 4096 * 4096;
+}
+
 int main(int argc, char** args)
 {
-  lc_ep def, ep;
+  lc_ep ep;
   lc_req req;
-  lc_req* req_ptr;
   int rank;
 
-  lc_init(1, &def);
-  lc_opt opt = {.dev = 0, .desc = LC_EXP_CQ};
-  lc_ep_dup(&opt, def, &ep);
-
+  lc_init(1, &ep);
   lc_get_proc_num(&rank);
 
   uintptr_t addr, raddr;
@@ -24,10 +25,14 @@ int main(int argc, char** args)
 
   lc_sendm(&addr, sizeof(uintptr_t), 1 - rank, 0, ep);
   lc_recvm(&raddr, sizeof(uintptr_t), 1 - rank, 0, ep, &req);
-  while (lc_cq_pop(ep, &req_ptr) != LC_OK) lc_progress(0);
+  while (!req.sync) {
+    lc_progress(0);
+  }
 
-  long* sbuf = (long*)addr;
-  long* rbuf = (long*)(addr + MAX_MSG);
+  long* sbuf = (long*)pagealign(addr);
+  long* rbuf = (long*)((uintptr_t)sbuf + MAX_MSG);
+  raddr = pagealign(raddr);
+
   memset(sbuf, 1, sizeof(char) * MAX_MSG);
   rbuf[0] = -1;
   LCI_barrier();
@@ -39,22 +44,21 @@ int main(int argc, char** args)
     for (int i = 0; i < TOTAL + SKIP; i++) {
       if (i == SKIP) t1 = wtime();
       if (rank == 0) {
-        while (lc_cq_pop(ep, &req_ptr) != LC_OK) lc_progress(0);
-        assert(req_ptr->meta == i);
-        lc_cq_reqfree(ep, req_ptr);
-        while (lc_putls(sbuf, size, 1 - rank, raddr + MAX_MSG, i, ep, lc_signal,
-                        &sync) != LC_OK)
+        while (rbuf[0] == -1) lc_progress(0);
+        rbuf[0] = -1;
+        sync = 0;
+        while (lc_putl(sbuf, size, 1 - rank, raddr + MAX_MSG, ep, lc_signal,
+                       &sync) != LC_OK)
           lc_progress(0);
         while (!sync) lc_progress(0);
       } else {
         sync = 0;
-        while (lc_putls(sbuf, size, 1 - rank, raddr + MAX_MSG, i, ep, lc_signal,
-                        &sync) != LC_OK)
+        while (lc_putl(sbuf, size, 1 - rank, raddr + MAX_MSG, ep, lc_signal,
+                       &sync) != LC_OK)
           lc_progress(0);
         while (!sync) lc_progress(0);
-        while (lc_cq_pop(ep, &req_ptr) != LC_OK) lc_progress(0);
-        assert(req_ptr->meta == i);
-        lc_cq_reqfree(ep, req_ptr);
+        while (rbuf[0] == -1) lc_progress(0);
+        rbuf[0] = -1;
       }
     }
 
