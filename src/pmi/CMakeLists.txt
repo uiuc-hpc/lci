@@ -1,7 +1,7 @@
 set(LCI_PM_BACKEND_DEFAULT
     pmi2
     CACHE STRING "Process management backend to use")
-set_property(CACHE LCI_PM_BACKEND_DEFAULT PROPERTY STRINGS pmi1 pmi2 mpi)
+set_property(CACHE LCI_PM_BACKEND_DEFAULT PROPERTY STRINGS pmi1 pmi2 pmix mpi)
 
 set(LIBRARY_NAME LCI)
 target_sources_relative(${LIBRARY_NAME} PRIVATE pmi_wrapper.c
