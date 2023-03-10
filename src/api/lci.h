@@ -26,20 +26,6 @@ extern "C" {
  * @}
  */
 
-/**
- * @defgroup LCI_COMP LCI completion mechanisms
- * @ingroup LCI_API
- * @{
- * The LCI runtime notifies users about the completion of an asynchronous
- * operations (e.g. communication operations) through completion
- * mechanisms.
- *
- * LCI provides three completion mechanisms: synchronizers,
- * completion queues, and active message handlers.
- *
- * @}
- */
-
 #define LCI_API __attribute__((visibility("default")))
 
 #define LCI_DEFAULT_COMP_REMOTE 0
@@ -54,47 +40,51 @@ extern "C" {
  */
 
 /**
- * LCI Error type.
+ * @brief LCI Error type.
  */
 typedef enum {
-  LCI_OK = 0,
-  LCI_ERR_RETRY,       /* Resource temporarily not available. Try again. */
-  LCI_ERR_RETRY_LOCK,  /* Resource temporarily not available due to lock
-                          contention. Try again. */
-  LCI_ERR_RETRY_NOMEM, /* Resource temporarily not available due to no memory.
-                          Try again. */
-  LCI_ERR_FEATURE_NA,  /* Feature not available */
-  LCI_ERR_FATAL,
+  LCI_OK = 0,         /**< Okay. No error. */
+  LCI_ERR_RETRY,      /**< Resource temporarily not available. Try again. */
+  LCI_ERR_RETRY_LOCK, /**< Internal use only. Resource temporarily not available
+                         due to lock  contention. Try again. */
+  LCI_ERR_RETRY_NOMEM, /**< Internal use only. Resource temporarily not
+                          available due to no memory. Try again. */
+  LCI_ERR_FEATURE_NA,  /**< Feature not available */
+  LCI_ERR_FATAL,       /**< Fatal error */
 } LCI_error_t;
 
 /**
- * LCI Matching type.
+ * @brief LCI Match type. Define the matching rule between sends and receives.
  */
 typedef enum {
-  LCI_MATCH_RANKTAG = 0,
-  LCI_MATCH_TAG,
+  LCI_MATCH_RANKTAG = 0, /**< Match send and receive by
+                            (source rank, target rank, tag) */
+  LCI_MATCH_TAG,         /**< Match send and receive by (tag) */
 } LCI_match_t;
 
 /**
- * LCI data type.
+ * @brief LCI data type.
  */
 typedef enum {
-  LCI_IMMEDIATE = 0,
-  LCI_MEDIUM,
-  LCI_LONG,
-  LCI_IOVEC
+  LCI_IMMEDIATE = 0, /**< Immediate data (up to LCI_IMMEDIATE_SIZE bytes) sent
+                        by short messages */
+  LCI_MEDIUM,        /**< Medium buffers (up to LCI_MEDIUM_SIZE bytes) sent by
+                        medium messages */
+  LCI_LONG,          /**< Long buffers sent by long messages */
+  LCI_IOVEC          /**< Iovecs (A medium buffer + multiple long buffers) sent
+                        by iovec messages */
 } LCI_data_type_t;
 
 /**
- * LCI Port type.
+ * @brief LCI Port type.
  */
 typedef enum {
-  LCI_PORT_COMMAND = 0,
-  LCI_PORT_MESSAGE = 1,
+  LCI_PORT_COMMAND = 0, /**< The send side */
+  LCI_PORT_MESSAGE = 1, /**< The receive side */
 } LCI_port_t;
 
 /**
- * LCI completion enumeration type.
+ * @brief LCI completion enumeration type.
  */
 typedef enum {
   LCI_COMPLETION_NONE = 0,
@@ -123,7 +113,9 @@ struct LCII_mr_t;
 typedef struct LCII_mr_t* LCI_segment_t;
 
 /**
- * LCI long communication buffer
+ * LCI long communication buffer. All long buffer passed to a communication
+ * operation needs to be registered to the device (or set the segment to
+ * LCI_SEGMENT_ALL and LCI will register and deregister the buffer).
  */
 struct LCI_lbuffer_t {
   LCI_segment_t segment;
@@ -415,7 +407,8 @@ extern LCI_comp_t LCI_UR_CQ;
  * @ingroup LCI_SETUP
  * @brief Initialize the LCI runtime. No LCI calls are allowed to be called
  * before LCI_initialize except @ref LCI_initialized.
- * @return Error code as defined by @ref LCI_error_t
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
  */
 LCI_API
 LCI_error_t LCI_initialize();
@@ -424,7 +417,8 @@ LCI_error_t LCI_initialize();
  * @brief Check whether the LCI runtime has been initialized
  * @param [in] flag If the runtime has been initialized, it will be set to true.
  * Otherwise, it will be set to false.
- * @return Error code as defined by @ref LCI_error_t.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
  */
 LCI_API
 LCI_error_t LCI_initialized(int* flag);
@@ -432,15 +426,18 @@ LCI_error_t LCI_initialized(int* flag);
  * @ingroup LCI_SETUP
  * @brief Finalize the LCI runtime. No LCI calls are allowed to be called
  * after LCI_finalize except @ref LCI_initialized.
- * @return Error code as defined by @ref LCI_error_t.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
  */
 LCI_API
 LCI_error_t LCI_finalize();
 /**
  * @ingroup LCI_SETUP
- * @brief Invoke a barrier across all LCI processes in the same job. This is
- * not thread-safe.
- * @return Error code as defined by @ref LCI_error_t.
+ * @brief Invoke a barrier across all LCI processes in the same job. The call
+ * will block the calling thread until the barrier completes. This is not
+ * thread-safe.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
  */
 LCI_API
 LCI_error_t LCI_barrier();
@@ -457,84 +454,381 @@ LCI_error_t LCI_barrier();
 /**
  * @ingroup LCI_SETUP
  * @brief Initialize a device.
- * @param [out] device pointer to a device to be initialized.
- * @return Error code as defined by @ref LCI_error_t.
+ * @param [out] device_ptr Pointer to a device to be initialized.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
  */
 LCI_API
-LCI_error_t LCI_device_init(LCI_device_t* device);
+LCI_error_t LCI_device_init(LCI_device_t* device_ptr);
 /**
  * @ingroup LCI_SETUP
  * @brief Initialize a device.
- * @param [out] device pointer to a device to be freed.
- * @return Error code as defined by @ref LCI_error_t.
+ * @param [in,out] device_ptr Pointer to a device to free.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
  */
 LCI_API
-LCI_error_t LCI_device_free(LCI_device_t* device);
-// plist
+LCI_error_t LCI_device_free(LCI_device_t* device_ptr);
+/**
+ * @ingroup LCI_SETUP
+ * @brief Create a property list.
+ * @param [out] plist_ptr Pointer to a property list to create.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
-LCI_error_t LCI_plist_create(LCI_plist_t* plist);
+LCI_error_t LCI_plist_create(LCI_plist_t* plist_ptr);
+/**
+ * @ingroup LCI_SETUP
+ * @brief Free a property list.
+ * @param [in,out] plist_ptr Pointer to a property list to free.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
-LCI_error_t LCI_plist_free(LCI_plist_t* plist);
+LCI_error_t LCI_plist_free(LCI_plist_t* plist_ptr);
+/**
+ * @ingroup LCI_SETUP
+ * @brief Query the property list of an endpoint.
+ * @param [in]  ep    The endpoint to query.
+ * @param [out] plist Pointer to the property list to write the query result.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_plist_get(LCI_endpoint_t ep, LCI_plist_t* plist_ptr);
+/**
+ * @ingroup LCI_SETUP
+ * @brief Decode a property list into a string.
+ * @param [in]  plist  The property list to decode.
+ * @param [out] string Pointer to an array of chars to write the decode result.
+ * @return No available yet. Should always be LCI_ERR_FEATURE_NA.
+ */
 LCI_API
 LCI_error_t LCI_plist_decode(LCI_plist_t plist, char* string);
+/**
+ * @ingroup LCI_SETUP
+ * @brief Set the tag matching rule of the property list.
+ * @param [in] plist      The property list to set.
+ * @param [in] match_type The matching type to set.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_plist_set_match_type(LCI_plist_t plist, LCI_match_t match_type);
+/**
+ * @ingroup LCI_SETUP
+ * @brief Set the completion mechanism of the property list.
+ * @param [in] plist      The property list to set.
+ * @param [in] port       Whether to set the completion mechanism for send or
+ * receive.
+ * @param [in] match_type The matching type to set.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_plist_set_comp_type(LCI_plist_t plist, LCI_port_t port,
                                     LCI_comp_type_t comp_type);
+/**
+ * @ingroup LCI_SETUP
+ * @brief Set the default completion mechanism of the property list. The default
+ * completion mechanism will be triggered by a remote one-sided communication
+ * operation through LCI_DEFAULT_COMP_REMOTE.
+ * @param [in] plist The property list to set.
+ * @param [in] comp  The default completion mechanism to set.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_plist_set_default_comp(LCI_plist_t plist, LCI_comp_t comp);
-// endpoint
+/**
+ * @ingroup LCI_SETUP
+ * @brief Create an endpoint according to a property list.
+ * @param [out] ep_ptr Pointer to the endpoint to create.
+ * @param [in]  device The device it should be associated to.
+ * @param [in]  plist  The property list to create according to.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, LCI_device_t device,
                               LCI_plist_t plist);
+/**
+ * @ingroup LCI_SETUP
+ * @brief Free an endpoint.
+ * @param [in,out] ep_ptr Pointer to the endpoint to free.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
-LCI_error_t LCI_endpoint_free(LCI_endpoint_t* endpoint);
-// two-sided functions
+LCI_error_t LCI_endpoint_free(LCI_endpoint_t* ep_ptr);
+
+/**
+ * @defgroup LCI_COMM LCI communication operations
+ * @ingroup LCI_API
+ * @{
+ * The LCI runtime offers users various communication operations for
+ * sending and receiving messages. According to the size and number, the
+ * messages can be divided into short, medium, long, and iovec messages. LCI
+ * provided different operations (with s, m, l, v as suffix) for those messages.
+ * LCI uses different protocols for these messages. According to who provides
+ * the send and receive buffers, the operations can be divided into 2sided and
+ * 1sided operations (send/recv v.s. put/get). For medium send/recv buffers and
+ * long recv buffers, the communication operations can either use user-allocated
+ * buffer or LCI-provided buffer. The later one can save one memory copy.
+ * @}
+ */
+/**
+ * @ingroup LCI_COMM
+ * @brief Send a short message (up to LCI_SHORT_SIZE bytes). The send buffer
+ * can be immediately reused.
+ * @param [in] ep   The endpoint to post this send to.
+ * @param [in] src  The data to send.
+ * @param [in] rank The rank of the destination process.
+ * @param [in] tag  The tag of this message.
+ * @return LCI_OK if the send succeeds. LCI_ERR_RETRY if the send fails due to
+ * temporarily unavailable resources. All the other errors are fatal as defined
+ * by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_sends(LCI_endpoint_t ep, LCI_short_t src, int rank,
                       LCI_tag_t tag);
+/**
+ * @ingroup LCI_COMM
+ * @brief Send a medium message with a user-provided buffer (up to
+ * LCI_MEDIUM_SIZE bytes). The send buffer can be immediately reused.
+ * @param [in] ep     The endpoint to post this send to.
+ * @param [in] buffer The buffer to send.
+ * @param [in] rank   The rank of the destination process.
+ * @param [in] tag    The tag of this message.
+ * @return LCI_OK if the send succeeds. LCI_ERR_RETRY if the send fails due to
+ * temporarily unavailable resources. All the other errors are fatal as defined
+ * by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_sendm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                       LCI_tag_t tag);
+/**
+ * @ingroup LCI_COMM
+ * @brief Send a medium message with a LCI-provided buffer (allocated by
+ * @ref LCI_mbuffer_alloc, up to LCI_MEDIUM_SIZE bytes). The send buffer will be
+ * directly returned to LCI if send succeeds so users should not use it anymore.
+ * @param [in] ep     The endpoint to post this send to.
+ * @param [in] buffer The buffer to send. The buffer should be allocated by
+ * @ref LCI_mbuffer_alloc.
+ * @param [in] rank   The rank of the destination process.
+ * @param [in] tag    The tag of this message.
+ * @return LCI_OK if the send succeeds. LCI_ERR_RETRY if the send fails due to
+ * temporarily unavailable resources. All the other errors are fatal as defined
+ * by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_sendmn(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                        LCI_tag_t tag);
+/**
+ * @ingroup LCI_COMM
+ * @brief Send a long message with a user-provided buffer. The send buffer
+ * cannot be reused until the associated completion object marks this
+ * operation as completed.
+ * @param [in] ep           The endpoint to post this send to.
+ * @param [in] buffer       The buffer to send.
+ * @param [in] rank         The rank of the destination process.
+ * @param [in] tag          The tag of this message.
+ * @param [in] completion   The completion object to be associated with.
+ * @param [in] user_context Arbitrary data the user want to attach to this
+ * operation. It will be returned the user through the completion object.
+ * @return LCI_OK if the send succeeds. LCI_ERR_RETRY if the send fails due to
+ * temporarily unavailable resources. All the other errors are fatal as defined
+ * by @ref LCI_error_t.
+ */
 LCI_API
-LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
+LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, int rank,
                       LCI_tag_t tag, LCI_comp_t completion, void* user_context);
+/**
+ * @ingroup LCI_COMM
+ * @brief Receive a short message (up to LCI_SHORT_SIZE bytes). The received
+ * message will be delivered through the completion object.
+ * @param [in] ep           The endpoint to post this receive to.
+ * @param [in] rank         The rank of the destination process.
+ * @param [in] tag          The tag of this message.
+ * @param [in] completion   The completion object to be associated with.
+ * @param [in] user_context Arbitrary data the user want to attach to this
+ * operation. It will be returned the user through the completion object.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_recvs(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
                       LCI_comp_t completion, void* user_context);
+/**
+ * @ingroup LCI_COMM
+ * @brief Receive a medium message (up to LCI_MEDIUM_SIZE bytes) into a
+ * user-provided buffer.
+ * @param [in] ep           The endpoint to post this receive to.
+ * @param [in] buffer       The user-provided buffer to receive the message.
+ * @param [in] rank         The rank of the destination process.
+ * @param [in] tag          The tag of this message.
+ * @param [in] completion   The completion object to be associated with.
+ * @param [in] user_context Arbitrary data the user want to attach to this
+ * operation. It will be returned the user through the completion object.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_recvm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                       LCI_tag_t tag, LCI_comp_t completion, void* user_context);
+/**
+ * @ingroup LCI_COMM
+ * @brief Receive a medium message (up to LCI_MEDIUM_SIZE bytes) into a
+ * LCI-provided buffer. The receive buffer will be delivered to users through
+ * the completion object and should be returned to the runtime through
+ * @ref LCI_mbuffer_free.
+ * @param [in] ep           The endpoint to post this receive to.
+ * @param [in] rank         The rank of the destination process.
+ * @param [in] tag          The tag of this message.
+ * @param [in] completion   The completion object to be associated with.
+ * @param [in] user_context Arbitrary data the user want to attach to this
+ * operation. It will be returned the user through the completion object.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_recvmn(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
                        LCI_comp_t completion, void* user_context);
+/**
+ * @ingroup LCI_COMM
+ * @brief Receive a long message into a user-provided buffer.
+ * @param [in] ep           The endpoint to post this receive to.
+ * @param [in] buffer       The user-provided buffer to receive the message.
+ * @param [in] rank         The rank of the destination process.
+ * @param [in] tag          The tag of this message.
+ * @param [in] completion   The completion object to be associated with.
+ * @param [in] user_context Arbitrary data the user want to attach to this
+ * operation. It will be returned the user through the completion object.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
-LCI_error_t LCI_recvl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, uint32_t rank,
+LCI_error_t LCI_recvl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, int rank,
                       LCI_tag_t tag, LCI_comp_t completion, void* user_context);
-// one-sided functions
+/**
+ * @ingroup LCI_COMM
+ * @brief Send a short message (up to LCI_SHORT_SIZE bytes).  The send buffer
+ * can be immediately reused. On the receive side, No receive needs to be posted
+ * and the data will be delivered through the remote completion object.
+ * @param [in] ep           The endpoint to post this receive to.
+ * @param [in] src          The data to send.
+ * @param [in] rank         The rank of the destination process.
+ * @param [in] tag          The tag of this message.
+ * @param [in] remote_completion The completion object to signal on the receiver
+ * side. It has to be LCI_DEFAULT_COMP_REMOTE for now.
+ * @return LCI_OK if the send succeeds. LCI_ERR_RETRY if the send fails due to
+ * temporarily unavailable resources. All the other errors are fatal as defined
+ * by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_puts(LCI_endpoint_t ep, LCI_short_t src, int rank,
                      LCI_tag_t tag, uintptr_t remote_completion);
+/**
+ * @ingroup LCI_COMM
+ * @brief Send a medium message with a user-provided buffer (up to
+ * LCI_MEDIUM_SIZE bytes). The send buffer can be immediately reused. On the
+ * receive side, No receive needs to be posted and the data will be delivered
+ * through the remote completion object.
+ * @param [in] ep           The endpoint to post this receive to.
+ * @param [in] buffer       The buffer to send.
+ * @param [in] rank         The rank of the destination process.
+ * @param [in] tag          The tag of this message.
+ * @param [in] remote_completion The completion object to signal on the receiver
+ * side. It has to be LCI_DEFAULT_COMP_REMOTE for now.
+ * @return LCI_OK if the send succeeds. LCI_ERR_RETRY if the send fails due to
+ * temporarily unavailable resources. All the other errors are fatal as defined
+ * by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                       LCI_tag_t tag, uintptr_t remote_completion);
+/**
+ * @ingroup LCI_COMM
+ * @brief Send a medium message with a LCI-provided buffer (allocated by
+ * @ref LCI_mbuffer_alloc, up to LCI_MEDIUM_SIZE bytes). The send buffer will be
+ * directly returned to LCI if send succeeds so users should not use it anymore.
+ * On the receive side, No receive needs to be posted and the data will be
+ * delivered through the remote completion object.
+ * @param [in] ep           The endpoint to post this receive to.
+ * @param [in] buffer       The buffer to send.
+ * @param [in] rank         The rank of the destination process.
+ * @param [in] tag          The tag of this message.
+ * @param [in] remote_completion The completion object to signal on the receiver
+ * side. It has to be LCI_DEFAULT_COMP_REMOTE for now.
+ * @return LCI_OK if the send succeeds. LCI_ERR_RETRY if the send fails due to
+ * temporarily unavailable resources. All the other errors are fatal as defined
+ * by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_putmna(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                        LCI_tag_t tag, uintptr_t remote_completion);
+/**
+ * @ingroup LCI_COMM
+ * @brief Send a long message with a user-provided buffer. The send buffer
+ * cannot be reused until the associated completion object marks this
+ * operation as completed. On the receive side, No receive needs to be posted
+ * and the data will be delivered through the remote completion object.
+ * @param [in] ep           The endpoint to post this send to.
+ * @param [in] buffer       The buffer to send.
+ * @param [in] completion   The completion object to be associated with.
+ * @param [in] rank         The rank of the destination process.
+ * @param [in] tag          The tag of this message.
+ * @param [in] remote_completion The completion object to signal on the receiver
+ * side. It has to be LCI_DEFAULT_COMP_REMOTE for now.
+ * @param [in] user_context Arbitrary data the user want to attach to this
+ * operation. It will be returned the user through the completion object.
+ * @return LCI_OK if the send succeeds. LCI_ERR_RETRY if the send fails due to
+ * temporarily unavailable resources. All the other errors are fatal as defined
+ * by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
                       LCI_comp_t completion, int rank, LCI_tag_t tag,
                       uintptr_t remote_completion, void* user_context);
+/**
+ * @ingroup LCI_COMM
+ * @brief Send an iovec with user-provided buffers. The piggyback buffer can be
+ * immediately reused. The long buffers cannot be reused until the associated
+ * completion object marks this operation as completed. On the receive side, No
+ * receive needs to be posted and the data will be delivered through the remote
+ * completion object.
+ * @param [in] ep           The endpoint to post this send to.
+ * @param [in] iovec        The iovec to send.
+ * @param [in] completion   The completion object to be associated with.
+ * @param [in] rank         The rank of the destination process.
+ * @param [in] tag          The tag of this message.
+ * @param [in] remote_completion The completion object to signal on the receiver
+ * side. It has to be LCI_DEFAULT_COMP_REMOTE for now.
+ * @param [in] user_context Arbitrary data the user want to attach to this
+ * operation. It will be returned the user through the completion object.
+ * @return LCI_OK if the send succeeds. LCI_ERR_RETRY if the send fails due to
+ * temporarily unavailable resources. All the other errors are fatal as defined
+ * by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
                       LCI_comp_t completion, int rank, LCI_tag_t tag,
                       uintptr_t remote_completion, void* user_context);
+
+/**
+ * @defgroup LCI_COMP LCI completion mechanisms
+ * @ingroup LCI_API
+ * @{
+ * The LCI runtime notifies users about the completion of an asynchronous
+ * operations (e.g. communication operations) through completion
+ * mechanisms.
+ *
+ * LCI provides three completion mechanisms: synchronizers,
+ * completion queues, and active message handlers.
+ *
+ * @}
+ */
 
 /**
  * @defgroup LCI_SYNC LCI synchronizer
@@ -571,8 +865,9 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
  * @brief Create a completion queue.
  *
  * @param [in]  device The device it should be associated to.
- * @param [out] cq     The pointer to the completion queue to be created.
- * @return Error code as defined by @ref LCI_error_t.
+ * @param [out] cq     The pointer to the completion queue to create.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
  */
 LCI_API
 LCI_error_t LCI_queue_create(LCI_device_t device, LCI_comp_t* cq);
@@ -580,8 +875,9 @@ LCI_error_t LCI_queue_create(LCI_device_t device, LCI_comp_t* cq);
  * @ingroup LCI_QUEUE
  * @brief Free a completion queue.
  *
- * @param [in] cq The pointer to the completion queue to be freed.
- * @return Error code as defined by @ref LCI_error_t.
+ * @param [in,out] cq The pointer to the completion queue to free.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
  */
 LCI_API
 LCI_error_t LCI_queue_free(LCI_comp_t* cq);
@@ -600,8 +896,8 @@ LCI_API
 LCI_error_t LCI_queue_pop(LCI_comp_t cq, LCI_request_t* request);
 /**
  * @ingroup LCI_QUEUE
- * @brief Pop one entry from the completion queue. This call will block until
- * there is an entry to be popped.
+ * @brief Pop one entry from the completion queue. This call will block the
+ * calling thread until there is an entry to be popped.
  *
  * @param [in]  cq      The completion queue to pop.
  * @param [out] request The pointer to a request object. The completion
@@ -631,8 +927,8 @@ LCI_error_t LCI_queue_pop_multiple(LCI_comp_t cq, size_t request_count,
                                    size_t* return_count);
 /**
  * @ingroup LCI_QUEUE
- * @brief Pop multiple entry from the completion queue.This call will block
- * until `request_count` entries has been popped.
+ * @brief Pop multiple entry from the completion queue.This call will block the
+ * calling thread until `request_count` entries has been popped.
  *
  * @param [in]  cq            The completion queue to pop.
  * @param [in]  request_count The number of entries to be popped.
@@ -663,7 +959,7 @@ LCI_error_t LCI_queue_len(LCI_comp_t cq, size_t* len);
  * @param [in]  device     The device it should be associated to.
  * @param [in]  threshold  How many asynchronous operations it will be
  * associated to.
- * @param [out] completion The pointer to the synchronizer to be created.
+ * @param [out] completion The pointer to the synchronizer to create.
  * @return Should always be LCI_OK. All the other errors are fatal
  * as defined by @ref LCI_error_t.
  */
@@ -674,7 +970,7 @@ LCI_error_t LCI_sync_create(LCI_device_t device, int threshold,
  * @ingroup LCI_SYNC
  * @brief Free a synchronizer.
  *
- * @param [in] completion The pointer to the synchronizer to be freed.
+ * @param [in,out] completion The pointer to the synchronizer to free.
  * @return Should always be LCI_OK. All the other errors are fatal
  * as defined by @ref LCI_error_t.
  */
@@ -742,7 +1038,7 @@ LCI_error_t LCI_sync_test(LCI_comp_t completion, LCI_request_t request[]);
  * @param [in]  device     The device it should be associated to.
  * @param [in]  handler    The function handler to invoke when an operation
  * completes.
- * @param [out] completion The pointer to the completion queue to be created.
+ * @param [out] completion The pointer to the completion queue to create.
  * @return Should always be LCI_OK. All the other errors are fatal
  * as defined by @ref LCI_error_t.
  */
