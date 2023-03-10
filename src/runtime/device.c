@@ -21,9 +21,8 @@ LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
   LCII_bq_init(&device->bq);
   LCIU_spinlock_init(&device->bq_spinlock);
 
-  const size_t heap_size = LCI_CACHE_LINE +
-                           (size_t)LCI_SERVER_NUM_PKTS * LCI_PACKET_SIZE +
-                           LCI_REGISTERED_SEGMENT_SIZE;
+  const size_t heap_size =
+      LCI_CACHE_LINE + (size_t)LCI_SERVER_NUM_PKTS * LCI_PACKET_SIZE;
   LCI_error_t ret =
       LCI_lbuffer_memalign(device, heap_size, LCI_PAGESIZE, &device->heap);
   LCM_Assert(ret == LCI_OK, "Device heap memory allocation failed\n");

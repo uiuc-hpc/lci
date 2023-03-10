@@ -4,23 +4,10 @@
 - new API (especially for memory registration and iovec)
 - test infrastructure
 
-## TODO List:
-- rename symbols: `LCI_*` for export symbols, `LCII_*` for internal symbols, `LCIU_*` for utility.
-- replace all memory operations with LCIU_* memory operations.
-- fix psm2 backend.
-
 ## Decisions to be made
 - `const` or `#define` or `enum`: which to use? Libfabric, MPICH, and Argobots both use `#define`. Why?
 - The immediate data for libibverbs has only 32 bits. It remains unknown how to pass
   a handle to a completion object in remote memory.
-- I didn't see any API about the dynamic allocator.
-
-## Caveat
-- I deleted the back pressure when progress thread doesn't have enough recv posted.
-  (The logic related to g_server_no_recv_packets). I don't think it makes sense. If progress
-  thread doesn't have enough recv posted. This is because progress thread doesn't 
-  have available packets. It can steal from other threads. Also, the local completion
-  of send transfer packets from compute threads to progress threads.
   
 ### Design
 #### LCII_context_t
@@ -32,7 +19,7 @@ ssize_t fi_send(struct fid_ep *ep, const void *buf, size_t len,
         void *desc, fi_addr_t dest_addr, void *context);
 ```
 to initialize a send operation. Then, you will poll the completion queue with 
-`fi_read`.
+`fi_cq_read`.
 ```
 ssize_t fi_cq_read(struct fid_cq *cq, void *buf, size_t count);
 ```

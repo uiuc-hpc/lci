@@ -21,9 +21,152 @@ extern "C" {
 
 /**
  * @defgroup LCI_API Lightweight Communication Interface (LCI) API
- * @{
- * This section describes LCI API.
- * @}
+ * @brief This section describes LCI API.
+ */
+
+/**
+ * @defgroup LCI_SETUP LCI environment setup
+ * @ingroup LCI_API
+ * @brief Setup the communication resources and configurations.
+ *
+ * In order to use LCI, users need to first setup a few communication resources
+ * and configurations, including devices and endpoints.
+ */
+
+/**
+ * @defgroup LCI_DEVICE LCI device
+ * @ingroup LCI_SETUP
+ * @brief A device is a physical or logical resource that can be used for
+ * communication. Communications that use the same device share a resource and
+ * may affect each other's performance.
+ */
+
+/**
+ * @defgroup LCI_PLIST LCI property list
+ * @ingroup LCI_SETUP
+ * @brief A property list is a collection of properties used to create an
+ * endpoint.
+ */
+
+/**
+ * @defgroup LCI_ENDPOINT LCI endpoint
+ * @ingroup LCI_SETUP
+ * @brief Currently, a LCI endpoint is not associated with any low-level
+ * communication resources, it is just a way to specify a bunch of
+ * configurations.
+ */
+
+/**
+ * @defgroup LCI_COMM LCI communication operations
+ * @ingroup LCI_API
+ * @brief Communication operations to send and receive messages across
+ * processes.
+ *
+ * The LCI runtime offers users various communication operations for
+ * sending and receiving messages. According to the size and number, the
+ * messages can be divided into short, medium, long, and iovec messages. LCI
+ * provided different operations (with s, m, l, v as suffix) for those messages.
+ * LCI uses different protocols for these messages. According to who provides
+ * the send and receive buffers, the operations can be divided into 2sided and
+ * 1sided operations (send/recv v.s. put/get). For medium send/recv buffers and
+ * long recv buffers, the communication operations can either use user-allocated
+ * buffer or LCI-provided buffer. The later one can save one memory copy.
+ */
+
+/**
+ * @defgroup LCI_COMP LCI completion mechanisms
+ * @ingroup LCI_API
+ * @brief The LCI runtime notifies users about the completion of an asynchronous
+ * operations (e.g. communication operations) through completion
+ * mechanisms.
+ *
+ * LCI provides three completion mechanisms: synchronizers,
+ * completion queues, and active message handlers.
+ */
+
+/**
+ * @defgroup LCI_SYNC LCI synchronizer
+ * @ingroup LCI_COMP
+ * @brief One of the completion mechanisms.
+ *
+ * In its simplest form, it is an object similar to MPI_Request.
+ * Every synchronizer can be associated with one or more
+ * asynchronous operations. The synchronizer will be triggered after all the
+ * associated operations are completed. Users can know whether the corresponding
+ * operations have been completed by querying the synchronizer.
+ *
+ * It can also be scheduler-aware when executing in the context of
+ * a task-based runtime (This is still an ongoing work).
+ */
+
+/**
+ * @defgroup LCI_QUEUE LCI completion queue
+ * @ingroup LCI_COMP
+ * @brief One of the completion mechanisms.
+ *
+ * Every completion queue can be associated with one or more
+ * asynchronous operations. When a operation is completed,
+ * the LCI runtime will push an entry into the queue, users can
+ * get completion notification by calling @ref LCI_cq_pop.
+ */
+
+/**
+ * @defgroup LCI_HANDLER LCI active message handler
+ * @ingroup LCI_COMP
+ * @brief One of the completion mechanisms.
+ *
+ * Every active message handler can be associated with one or more
+ * asynchronous operations. When operations are completed,
+ * the LCI runtime will execute the handler with the completion entry
+ * as the input.
+ */
+
+/**
+ * @defgroup LCI_PROGRESS LCI progress functions
+ * @ingroup LCI_API
+ * @brief Make progress on the background works to make sure the runtime
+ * functioning properly.
+ *
+ * All communication runtimes have some background work to do, such as
+ * pre-posting some receive buffers to the network, polling the network
+ * completion queue, serving for some communication protocols, and executing
+ * active message handlers. MPI chooses to do them as a side effect of some MPI
+ * function calls (such as MPI_Test, MPI_Wait). LCI chooses to provide users
+ * with an explicit function so that users can control when and how to make
+ * progress on these background works.
+ *
+ * Caveat: The progress functions have to be called frequently to make sure
+ * all communication operations can complete.
+ */
+
+/**
+ * @defgroup LCI_MEM LCI memory management
+ * @ingroup LCI_API
+ * @brief Management for memory buffers registered to the network.
+ *
+ * In most of the cases, memory buffers participated in a network operations
+ * need to be registered to the network. The LCI runtime can do this for
+ * users through either memory copies to a pre-registered buffers or dynamical
+ * registering and deregistering. LCI also exposes relevant functions regarding
+ * registered memory allocation and memory registration to the users so users
+ * can do communication operations more efficiently.
+ *
+ * For small messages, the send data does not need to be registered since the
+ * data will be packed into the low-level network operation descriptors.
+ *
+ * For medium messages, the send and receive buffers need to be registered. If
+ * users are using the "copy" version of operations (e.g. @ref LCI_sendm, @ref
+ * LCI_putm, @ref LCI_recvm), the data will be copied to/from pre-registered
+ * buffers by the runtime. If users are using the "no-copy"version of operations
+ * (e.g. @ref LCI_sendmn, @ref LCI_putmn, @ref LCI_recvmn), users will directly
+ * get access to the LCI internal pre-registered buffers through either
+ * @ref LCI_mbuffer_alloc (for send buffers) or completion mechanisms (for
+ * receive buffers).
+ *
+ * For long messages, the send and receive buffers need to be registered, and
+ * the cost of memory copies to pre-registered buffers is considered unworthy.
+ * As a result, either users or the runtime needs to explicitly register the
+ * buffers.
  */
 
 #define LCI_API __attribute__((visibility("default")))
@@ -35,11 +178,7 @@ extern "C" {
 #define LCI_RANK_ANY (-1)
 
 /**
- * \defgroup LCITypes LCI Data Types.
- * @{
- */
-
-/**
+ * @ingroup LCI_API
  * @brief LCI Error type.
  */
 typedef enum {
@@ -54,6 +193,7 @@ typedef enum {
 } LCI_error_t;
 
 /**
+ * @ingroup LCI_COMM
  * @brief LCI Match type. Define the matching rule between sends and receives.
  */
 typedef enum {
@@ -63,6 +203,27 @@ typedef enum {
 } LCI_match_t;
 
 /**
+ * @ingroup LCI_COMP
+ * @brief LCI Port type.
+ */
+typedef enum {
+  LCI_PORT_COMMAND = 0, /**< The send side */
+  LCI_PORT_MESSAGE = 1, /**< The receive side */
+} LCI_port_t;
+
+/**
+ * @ingroup LCI_COMP
+ * @brief LCI completion enumeration type.
+ */
+typedef enum {
+  LCI_COMPLETION_NONE = 0,
+  LCI_COMPLETION_QUEUE,    // completion queue
+  LCI_COMPLETION_HANDLER,  // handler
+  LCI_COMPLETION_SYNC,     // synchronizer
+} LCI_comp_type_t;
+
+/**
+ * @ingroup LCI_COMP
  * @brief LCI data type.
  */
 typedef enum {
@@ -76,46 +237,36 @@ typedef enum {
 } LCI_data_type_t;
 
 /**
- * @brief LCI Port type.
- */
-typedef enum {
-  LCI_PORT_COMMAND = 0, /**< The send side */
-  LCI_PORT_MESSAGE = 1, /**< The receive side */
-} LCI_port_t;
-
-/**
- * @brief LCI completion enumeration type.
- */
-typedef enum {
-  LCI_COMPLETION_NONE = 0,
-  LCI_COMPLETION_QUEUE,    // completion queue
-  LCI_COMPLETION_HANDLER,  // handler
-  LCI_COMPLETION_SYNC,     // synchronizer
-} LCI_comp_type_t;
-
-/**
- * Tag type. the lower 16 bits are actually used due to ibverbs' limitation.
+ * @ingroup LCI_COMM
+ * @brief Tag type.
+ *
+ * The largest tag allowed by the runtime is defined by LCI_MAX_TAG.
  */
 typedef uint32_t LCI_tag_t;
 
 /**
- * LCI generic completion type.
+ * @ingroup LCI_COMP
+ * @brief LCI generic completion type.
  */
 typedef void* LCI_comp_t;
 
+struct LCII_mr_t;
 /**
- * LCI memory segment.
+ * @ingroup LCI_MEM
+ * @brief LCI memory segment.
  *
  * All LCI communication must take place in memory segments, which represent
  * memory regions registered to devices.
  */
-struct LCII_mr_t;
 typedef struct LCII_mr_t* LCI_segment_t;
 
 /**
- * LCI long communication buffer. All long buffer passed to a communication
- * operation needs to be registered to the device (or set the segment to
- * LCI_SEGMENT_ALL and LCI will register and deregister the buffer).
+ * @ingroup LCI_COMM
+ * @brief LCI long communication buffer.
+ *
+ * All long buffer passed to a communication operation needs to be registered
+ * to the device (or set the segment to LCI_SEGMENT_ALL and LCI will register
+ * and deregister the buffer).
  */
 struct LCI_lbuffer_t {
   LCI_segment_t segment;
@@ -125,7 +276,8 @@ struct LCI_lbuffer_t {
 typedef struct LCI_lbuffer_t LCI_lbuffer_t;
 
 /**
- * LCI medium communication buffer.
+ * @ingroup LCI_COMM
+ * @brief LCI medium communication buffer.
  *
  * Medium communication buffers reside in memory managed by LCI.
  */
@@ -136,9 +288,15 @@ struct LCI_mbuffer_t {
 typedef struct LCI_mbuffer_t LCI_mbuffer_t;
 
 /**
- * LCI short data.
+ * @ingroup LCI_COMM
+ * @brief The size of LCI short data
  */
 #define LCI_SHORT_SIZE 32
+
+/**
+ * @ingroup LCI_COMM
+ * @brief LCI short data.
+ */
 typedef union {
 #ifdef LCI_USE_AVX
   uint8_t u8 __attribute__((vector_size(32)));
@@ -158,7 +316,14 @@ typedef union {
 // typedef uint64_t LCI_short_t;
 
 /**
- * LCI IOVEC.
+ * @ingroup LCI_COMM
+ * @brief LCI iovec, which is comprised of a piggyback buffer and multiple long
+ * buffers.
+ *
+ * The maximum number of long buffers is defined by @ref LCI_IOVEC_SIZE.
+ *
+ * The maximum size of the piggyback buffer depends on the number of long
+ * buffers and can be queried via @ref LCI_get_iovec_piggy_back_size.
  */
 struct LCI_iovec_t {
   LCI_mbuffer_t piggy_back;  // 16 bytes
@@ -168,9 +333,8 @@ struct LCI_iovec_t {
 typedef struct LCI_iovec_t LCI_iovec_t;  // 28 bytes
 
 /**
- * The type of data associated with a buffer.
- * @todo should we add a flag to identify whether this buffer is allocated by
- * users or LCI?
+ * @ingroup LCI_COMP
+ * @brief A generic type for communication buffers.
  */
 typedef union {
   LCI_short_t immediate;  // 32 bytes
@@ -180,7 +344,9 @@ typedef union {
 } LCI_data_t;
 
 /**
- * Request object, owned by the user.
+ * @ingroup LCI_COMP
+ * @brief Request object. Completion mechanisms will write completion
+ * information to it.
  */
 typedef struct {
   /* Status of the communication. */
@@ -192,123 +358,112 @@ typedef struct {
   void* user_context;    // 8 bytes
 } LCI_request_t;
 
-/**
- * The device object
- */
 struct LCI_device_s;
+/**
+ * @ingroup LCI_DEVICE
+ * @brief The device type.
+ */
 typedef struct LCI_device_s* LCI_device_t;
 
-/**
- * Endpoint object, owned by the runtime.
- */
 struct LCI_endpoint_s;
+/**
+ * @ingroup LCI_ENDPOINT
+ * @brief The endpoint type.
+ */
 typedef struct LCI_endpoint_s* LCI_endpoint_t;
 
-/**
- * Property object, owned by the runtime.
- */
 struct LCI_plist_s;
+/**
+ * @ingroup LCI_PLIST
+ * @brief The property list type.
+ */
 typedef struct LCI_plist_s* LCI_plist_t;
 
 /**
- * Handler type
+ * @ingroup LCI_HANDLER
+ * @brief The active message handler type
  */
 typedef void (*LCI_handler_t)(LCI_request_t request);
 
-/**@}*/
-
 /**
- * \defgroup LCIGlobal LCI Global variables
- * @{
- */
-
-/**
- * Basic configuration
- */
-extern uint64_t LCI_PAGESIZE;
-
-/**
- * The number of processes in this job.
+ * @ingroup LCI_SETUP
+ * @brief The number of processes in this job.
  */
 extern int LCI_NUM_PROCESSES;
 
 /**
- * The rank of the current process w.r.t the job.
+ * @ingroup LCI_SETUP
+ * @brief The rank of the current process w.r.t the job.
  */
 extern int LCI_RANK;
 
 /**
- * The maximum number of endpoints that can be created.
+ * @ingroup LCI_ENDPOINT
+ * @brief The maximum number of endpoints that can be created.
  */
 extern int LCI_MAX_ENDPOINTS;
 
 /**
- * The largest allowed tag value.
- * @note There is only 15 bits left for tag.
- *       The 16th bit is used to distinguish between user-issued rmas and rmas
- * of sendd.
+ * @ingroup LCI_COMM
+ * @brief The largest allowed tag value.
  */
 extern int LCI_MAX_TAG;
 
 /**
- * The maximum size (in byte) of a buffer that can be used in buffered protocol.
+ * @ingroup LCI_COMM
+ * @brief The maximum size (in byte) of a buffer that can be used in medium
+ * messages.
  */
 extern int LCI_MEDIUM_SIZE;
 
 /**
- * The maximum number of entries in an IO vector.
+ * @ingroup LCI_COMM
+ * @brief The maximum number of long buffers in an IO vector.
  */
 extern int LCI_IOVEC_SIZE;
 
 /**
- * The amount of pre-registered memory for a device dedicated for communciation.
- */
-extern int LCI_REGISTERED_SEGMENT_SIZE;
-
-/**
- * maximum length of a memory segment that can be registered with a device.
- */
-extern int LCI_MAX_REGISTERED_SEGMENT_SIZE;
-
-/**
- * maximum number of distinct memory segments that can be registered with a
- * device.
- */
-extern int LCI_MAX_REGISTERED_SEGMENT_NUMBER;
-
-/**
- * initial number of entries in a default matching table.
- * @note The matching table size is fixed in current implementation
+ * @ingroup LCI_SETUP
+ * @brief Initial number of entries in a default matching table.
+ * @note The matching table width is fixed in current implementation, but the
+ * number of entries is unlimited due to list-based buckets.
  */
 extern int LCI_DEFAULT_TABLE_LENGTH;
 
 /**
- * maximum number of entries in a matching table.
- * @note The matching table size is fixed in current implementation
+ * @ingroup LCI_SETUP
+ * @brief Maximum number of entries in a matching table.
+ * @note The matching table width is fixed in current implementation, but the
+ * number of entries is unlimited due to list-based buckets.
  */
 extern int LCI_MAX_TABLE_LENGTH;
 
 /**
- * initial number of entries in a default completion queue.
- * @note The completion queue size is fixed in current implementation
+ * @ingroup LCI_QUEUE
+ * @brief Initial number of entries in a default completion queue.
+ * @note The completion queue size is fixed in current implementation.
  */
 extern int LCI_DEFAULT_QUEUE_LENGTH;
 
 /**
- * maximum number of entries in a completion queue.
- * @note The completion queue size is fixed in current implementation
+ * @ingroup LCI_QUEUE
+ * @brief Maximum number of entries in a completion queue.
+ * @note The completion queue size is fixed in current implementation.
  */
 extern int LCI_MAX_QUEUE_LENGTH;
 
 /**
- * maximum number of request a synchronizer may be waiting for.
+ * @ingroup LCI_SYNC
+ * @brief Maximum number of request a synchronizer may be waiting for.
+ * @note Unlimited for now.
  */
 extern int LCI_MAX_SYNC_LENGTH;
 
 /**
- * specify the packet returning threshold
+ * @ingroup LCI_MEM
+ * @brief The packet returning threshold.
  *
- * Apply to @sendb and @sendbc
+ * Apply to @ref LCI_sendm and @ref LCI_sendmn.
  * if size > LCI_PACKET_RETURN_THRESHOLD:
  *   the packet will be returned to the compute thread's pool.
  * else:
@@ -317,7 +472,9 @@ extern int LCI_MAX_SYNC_LENGTH;
 extern int LCI_PACKET_RETURN_THRESHOLD;
 
 /**
- * Whether or what to use IBV on-demand paging:
+ * @ingroup LCI_MEM
+ * @brief Whether or what to use IBV on-demand paging.
+ *
  * 0: Don't use ODP
  * 1: Use explicit ODP
  * 2: Use implicit ODP
@@ -325,83 +482,103 @@ extern int LCI_PACKET_RETURN_THRESHOLD;
 extern int LCI_IBV_USE_ODP;
 
 /**
- * Whether touch every page of lbuffers allocated by LCI_lbuffer_alloc
+ * @ingroup LCI_MEM
+ * @brief Whether touch every page of lbuffers allocated by LCI_lbuffer_alloc
  */
 extern int LCI_TOUCH_LBUFFER;
 
 /**
- * Whether or what to use LCI-provided registration cache:
+ * @ingroup LCI_MEM
+ * @brief Whether or what to use LCI-provided registration cache.
+ *
  * 0: Don't use.
  * 1: Use.
  */
 extern int LCI_USE_DREG;
 
 /**
- * Whether or what to use IBV prefetch:
+ * @ingroup LCI_MEM
+ * @brief Whether or what to use IBV prefetch.
+ *
  * 0: Don't use.
  * 1: Use. (Only make sense when LCI_IBV_USE_ODP is 1 or 2)
  */
 extern int LCI_IBV_USE_PREFETCH;
 
 /**
- * Total number of packets
+ * @ingroup LCI_MEM
+ * @brief Size of each packet.
  */
 extern int LCI_PACKET_SIZE;
 
 /**
- * Total number of packets
+ * @ingroup LCI_MEM
+ * @brief Total number of packets.
  */
 extern int LCI_SERVER_NUM_PKTS;
 
 /**
- * Server's send queue length
+ * @ingroup LCI_DEVICE
+ * @brief Server's send queue length
  */
 extern int LCI_SERVER_MAX_SENDS;
 
 /**
- * Server's recv queue length
+ * @ingroup LCI_DEVICE
+ * @brief Server's recv queue length
  */
 extern int LCI_SERVER_MAX_RECVS;
 
 /**
- * Server's completion queue length
+ * @ingroup LCI_DEVICE
+ * @brief Server's completion queue length
  */
 extern int LCI_SERVER_MAX_CQES;
 
 /**
- * whether to enable ibv's event polling thread
+ * @ingroup LCI_DEVICE
+ * @brief whether to enable ibv's event polling thread.
  */
 extern bool LCI_IBV_ENABLE_EVENT_POLLING_THREAD;
 
 /**
- * LCI_progress will not be called by multiple threads simultaneously
+ * @ingroup LCI_DEVICE
+ * @brief LCI_progress on the same device will not be called by multiple threads
+ * simultaneously.
+ * @note It has to be true for now.
  */
 extern int LCI_SINGLE_THREAD_PROGRESS;
 
 /**
- * Manually slow down LCI backend send function
+ * @ingroup LCI_COMM
+ * @brief Manually slow down LCI backend send function
  */
 extern int LCI_SEND_SLOW_DOWN_USEC;
 
 /**
- * Manually slow down LCI backend recv function
+ * @ingroup LCI_COMM
+ * @brief Manually slow down LCI backend recv function
  */
 extern int LCI_RECV_SLOW_DOWN_USEC;
 
+/**
+ * @ingroup LCI_DEVICE
+ * @brief Default device initialized by LCI_initialize. Just for convenience.
+ */
 extern LCI_device_t LCI_UR_DEVICE;
-extern LCI_endpoint_t LCI_UR_ENDPOINT;
-extern LCI_comp_t LCI_UR_CQ;
-/**@}*/
 
 /**
- * @defgroup LCI_SETUP LCI environment setup
- * @ingroup LCI_API
- * @{
- * In order to use LCI, users need to first setup a few communication resources
- * and configurations, including devices and endpoints.
- *
- * @}
+ * @ingroup LCI_ENDPOINT
+ * @brief Default endpoint initialized by LCI_initialize. Just for convenience.
  */
+extern LCI_endpoint_t LCI_UR_ENDPOINT;
+
+/**
+ * @ingroup LCI_QUEUE
+ * @brief Default completion queue initialized by LCI_initialize. Just for
+ * convenience.
+ */
+extern LCI_comp_t LCI_UR_CQ;
 
 /**
  * @ingroup LCI_SETUP
@@ -441,18 +618,8 @@ LCI_error_t LCI_finalize();
  */
 LCI_API
 LCI_error_t LCI_barrier();
-
 /**
- * @defgroup LCI_DEVICE LCI device
- * @ingroup LCI_API
- * @{
- * A device is a physical or logical resource that can be used for
- * communication. Communications that use the same device share a resource and
- * may affect each other's performance.
- * @}
- */
-/**
- * @ingroup LCI_SETUP
+ * @ingroup LCI_DEVICE
  * @brief Initialize a device.
  * @param [out] device_ptr Pointer to a device to be initialized.
  * @return Should always be LCI_OK. All the other errors are fatal
@@ -461,7 +628,7 @@ LCI_error_t LCI_barrier();
 LCI_API
 LCI_error_t LCI_device_init(LCI_device_t* device_ptr);
 /**
- * @ingroup LCI_SETUP
+ * @ingroup LCI_DEVICE
  * @brief Initialize a device.
  * @param [in,out] device_ptr Pointer to a device to free.
  * @return Should always be LCI_OK. All the other errors are fatal
@@ -470,7 +637,7 @@ LCI_error_t LCI_device_init(LCI_device_t* device_ptr);
 LCI_API
 LCI_error_t LCI_device_free(LCI_device_t* device_ptr);
 /**
- * @ingroup LCI_SETUP
+ * @ingroup LCI_PLIST
  * @brief Create a property list.
  * @param [out] plist_ptr Pointer to a property list to create.
  * @return Should always be LCI_OK. All the other errors are fatal
@@ -479,7 +646,7 @@ LCI_error_t LCI_device_free(LCI_device_t* device_ptr);
 LCI_API
 LCI_error_t LCI_plist_create(LCI_plist_t* plist_ptr);
 /**
- * @ingroup LCI_SETUP
+ * @ingroup LCI_PLIST
  * @brief Free a property list.
  * @param [in,out] plist_ptr Pointer to a property list to free.
  * @return Should always be LCI_OK. All the other errors are fatal
@@ -488,7 +655,7 @@ LCI_error_t LCI_plist_create(LCI_plist_t* plist_ptr);
 LCI_API
 LCI_error_t LCI_plist_free(LCI_plist_t* plist_ptr);
 /**
- * @ingroup LCI_SETUP
+ * @ingroup LCI_PLIST
  * @brief Query the property list of an endpoint.
  * @param [in]  ep    The endpoint to query.
  * @param [out] plist Pointer to the property list to write the query result.
@@ -498,7 +665,7 @@ LCI_error_t LCI_plist_free(LCI_plist_t* plist_ptr);
 LCI_API
 LCI_error_t LCI_plist_get(LCI_endpoint_t ep, LCI_plist_t* plist_ptr);
 /**
- * @ingroup LCI_SETUP
+ * @ingroup LCI_PLIST
  * @brief Decode a property list into a string.
  * @param [in]  plist  The property list to decode.
  * @param [out] string Pointer to an array of chars to write the decode result.
@@ -507,7 +674,7 @@ LCI_error_t LCI_plist_get(LCI_endpoint_t ep, LCI_plist_t* plist_ptr);
 LCI_API
 LCI_error_t LCI_plist_decode(LCI_plist_t plist, char* string);
 /**
- * @ingroup LCI_SETUP
+ * @ingroup LCI_PLIST
  * @brief Set the tag matching rule of the property list.
  * @param [in] plist      The property list to set.
  * @param [in] match_type The matching type to set.
@@ -517,7 +684,7 @@ LCI_error_t LCI_plist_decode(LCI_plist_t plist, char* string);
 LCI_API
 LCI_error_t LCI_plist_set_match_type(LCI_plist_t plist, LCI_match_t match_type);
 /**
- * @ingroup LCI_SETUP
+ * @ingroup LCI_PLIST
  * @brief Set the completion mechanism of the property list.
  * @param [in] plist      The property list to set.
  * @param [in] port       Whether to set the completion mechanism for send or
@@ -530,7 +697,7 @@ LCI_API
 LCI_error_t LCI_plist_set_comp_type(LCI_plist_t plist, LCI_port_t port,
                                     LCI_comp_type_t comp_type);
 /**
- * @ingroup LCI_SETUP
+ * @ingroup LCI_PLIST
  * @brief Set the default completion mechanism of the property list. The default
  * completion mechanism will be triggered by a remote one-sided communication
  * operation through LCI_DEFAULT_COMP_REMOTE.
@@ -542,7 +709,7 @@ LCI_error_t LCI_plist_set_comp_type(LCI_plist_t plist, LCI_port_t port,
 LCI_API
 LCI_error_t LCI_plist_set_default_comp(LCI_plist_t plist, LCI_comp_t comp);
 /**
- * @ingroup LCI_SETUP
+ * @ingroup LCI_ENDPOINT
  * @brief Create an endpoint according to a property list.
  * @param [out] ep_ptr Pointer to the endpoint to create.
  * @param [in]  device The device it should be associated to.
@@ -554,7 +721,7 @@ LCI_API
 LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, LCI_device_t device,
                               LCI_plist_t plist);
 /**
- * @ingroup LCI_SETUP
+ * @ingroup LCI_ENDPOINT
  * @brief Free an endpoint.
  * @param [in,out] ep_ptr Pointer to the endpoint to free.
  * @return Should always be LCI_OK. All the other errors are fatal
@@ -562,22 +729,6 @@ LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, LCI_device_t device,
  */
 LCI_API
 LCI_error_t LCI_endpoint_free(LCI_endpoint_t* ep_ptr);
-
-/**
- * @defgroup LCI_COMM LCI communication operations
- * @ingroup LCI_API
- * @{
- * The LCI runtime offers users various communication operations for
- * sending and receiving messages. According to the size and number, the
- * messages can be divided into short, medium, long, and iovec messages. LCI
- * provided different operations (with s, m, l, v as suffix) for those messages.
- * LCI uses different protocols for these messages. According to who provides
- * the send and receive buffers, the operations can be divided into 2sided and
- * 1sided operations (send/recv v.s. put/get). For medium send/recv buffers and
- * long recv buffers, the communication operations can either use user-allocated
- * buffer or LCI-provided buffer. The later one can save one memory copy.
- * @}
- */
 /**
  * @ingroup LCI_COMM
  * @brief Send a short message (up to LCI_SHORT_SIZE bytes). The send buffer
@@ -815,51 +966,15 @@ LCI_API
 LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
                       LCI_comp_t completion, int rank, LCI_tag_t tag,
                       uintptr_t remote_completion, void* user_context);
-
 /**
- * @defgroup LCI_COMP LCI completion mechanisms
- * @ingroup LCI_API
- * @{
- * The LCI runtime notifies users about the completion of an asynchronous
- * operations (e.g. communication operations) through completion
- * mechanisms.
- *
- * LCI provides three completion mechanisms: synchronizers,
- * completion queues, and active message handlers.
- *
- * @}
+ * @ingroup LCI_COMM
+ * @brief Return the maximum size of the piggyback buffer in an iovec with given
+ * number of long buffers.
+ * @param [in] count The number of long buffers in this iovec.
+ * @return The maximum size of the piggyback buffer.
  */
-
-/**
- * @defgroup LCI_SYNC LCI synchronizer
- * @ingroup LCI_COMP
- * @{
- * One of the completion mechanisms.
- *
- * In its simplest form, it is an object similar to MPI_Request.
- * Every synchronizer can be associated with one or more
- * asynchronous operations. The synchronizer will be triggered after all the
- * associated operations are completed. Users can know whether the corresponding
- * operations have been completed by querying the synchronizer.
- *
- * It can also be scheduler-aware when executing in the context of
- * a task-based runtime (This is still an ongoing work).
- * @}
- */
-
-/**
- * @defgroup LCI_QUEUE LCI completion queue
- * @ingroup LCI_COMP
- * @{
- * One of the completion mechanisms.
- *
- * Every completion queue can be associated with one or more
- * asynchronous operations. When a operation is completed,
- * the LCI runtime will push an entry into the queue, users can
- * get completion notification by calling @ref LCI_cq_pop.
- * @}
- */
-
+LCI_API
+size_t LCI_get_iovec_piggy_back_size(int count);
 /**
  * @ingroup LCI_QUEUE
  * @brief Create a completion queue.
@@ -1018,19 +1133,6 @@ LCI_error_t LCI_sync_wait(LCI_comp_t completion, LCI_request_t request[]);
  */
 LCI_API
 LCI_error_t LCI_sync_test(LCI_comp_t completion, LCI_request_t request[]);
-
-/**
- * @defgroup LCI_HANDLER LCI active message handler
- * @ingroup LCI_COMP
- * @{
- * One of the completion mechanisms.
- *
- * Every active message handler can be associated with one or more
- * asynchronous operations. When operations are completed,
- * the LCI runtime will execute the handler with the completion entry
- * as the input.
- * @}
- */
 /**
  * @ingroup LCI_HANDLER
  * @brief Create an active message handler.
@@ -1045,30 +1147,97 @@ LCI_error_t LCI_sync_test(LCI_comp_t completion, LCI_request_t request[]);
 LCI_API
 LCI_error_t LCI_handler_create(LCI_device_t device, LCI_handler_t handler,
                                LCI_comp_t* completion);
-// progress
+/**
+ * @ingroup LCI_PROGRESS
+ * @brief Make progress on the background works of a device. This function
+ * is not thread-safe.
+ * @param device The device to make progress on.
+ * @return LCI_OK if it made progress on something. LCI_ERR_RETRY if there was
+ * background work to make progress on. All the other errors are fatal as
+ * defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_progress(LCI_device_t device);
-// memory management
+/**
+ * @ingroup LCI_MEM
+ * @brief Register a memory region to a device.
+ * @param [in]  device  The device to register.
+ * @param [in]  address The starting address of the memory region.
+ * @param [in]  length  The length of the memory region.
+ * @param [out] segment The registration descriptor.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_memory_register(LCI_device_t device, void* address,
                                 size_t length, LCI_segment_t* segment);
+/**
+ * @ingroup LCI_MEM
+ * @brief Deregister a memory region.
+ * @param [in,out] segment The registration descriptor to deregister.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_memory_deregister(LCI_segment_t* segment);
+/**
+ * @ingroup LCI_MEM
+ * @brief Get a pre-registered memory buffer of size LCI_MEDIUM_SIZE.
+ * @param [in]  device  The device the buffer is registered to.
+ * @param [out] mbuffer The pre-registered memory buffer.
+ * @return LCI_OK if successfully get one. LCI_ERR_RETRY if buffers are
+ * temporarily unavailable. All the other errors are fatal as defined by
+ * @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_mbuffer_alloc(LCI_device_t device, LCI_mbuffer_t* mbuffer);
+/**
+ * @ingroup LCI_MEM
+ * @brief Return a pre-registered memory buffer to the LCI runtime.
+ * @param [in] mbuffer The pre-registered memory buffer to return.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_mbuffer_free(LCI_mbuffer_t mbuffer);
+/**
+ * @ingroup LCI_MEM
+ * @brief Allocate a memory buffer of arbitrary size and register it.
+ * @note This is just a convenient function for now.
+ * @param [in]  device  The device to register the buffer.
+ * @param [in]  size    The size of the buffer to allocate.
+ * @param [out] lbuffer The resulting buffer.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_lbuffer_alloc(LCI_device_t device, size_t size,
                               LCI_lbuffer_t* lbuffer);
+/**
+ * @ingroup LCI_MEM
+ * @brief Allocate a memory buffer of arbitrary size with a specific alignment
+ * and register it.
+ * @note This is just a convenient function for now.
+ * @param [in]  device    The device to register the buffer.
+ * @param [in]  size      The size of the buffer to allocate.
+ * @param [in]  alignment The alignment of the buffer to allocate.
+ * @param [out] lbuffer   The resulting buffer.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_lbuffer_memalign(LCI_device_t device, size_t size,
                                  size_t alignment, LCI_lbuffer_t* lbuffer);
+/**
+ * @ingroup LCI_MEM
+ * @brief Deregister and free a memory buffer.
+ * @note This is just a convenient function for now.
+ * @param [in] lbuffer The buffer to deregister and free.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
 LCI_API
 LCI_error_t LCI_lbuffer_free(LCI_lbuffer_t lbuffer);
-// other helper functions
-LCI_API
-size_t LCI_get_iovec_piggy_back_size(int count);
 
 #ifdef __cplusplus
 }

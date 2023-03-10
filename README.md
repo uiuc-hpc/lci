@@ -75,7 +75,7 @@ See `examples` and `tests` for some example code.
 
 See `src/api/lci.h` for public APIs.
 
-`doxygen` for a full documentation.
+`doxygen` for a full [documentation](https://uiuc-hpc.github.io/LC/).
 
 ## LICENSE
 See LICENSE file.

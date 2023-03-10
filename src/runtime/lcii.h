@@ -16,6 +16,7 @@
 #include "runtime/rcache/lcii_rcache.h"
 #include "backlog_queue.h"
 
+extern uint64_t LCI_PAGESIZE;
 /*
  * used by
  * - LCII_MAKE_PROTO (4 bits) for communication immediate data field
