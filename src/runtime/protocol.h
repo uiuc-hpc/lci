@@ -44,7 +44,6 @@ static inline void lc_ce_dispatch(LCII_context_t* ctx)
     case LCI_COMPLETION_HANDLER: {
       LCI_handler_t handler = ctx->completion;
       (*handler)(LCII_ctx2req(ctx));
-      LCIU_free(ctx);
       break;
     }
 #endif
