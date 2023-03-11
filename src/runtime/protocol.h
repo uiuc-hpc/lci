@@ -162,7 +162,7 @@ static inline void LCIS_serve_recv(void* p, int src_rank, size_t length,
       ctx->rank = src_rank;
       ctx->tag = tag;
       LCII_initilize_comp_attr(ctx->comp_attr);
-      LCII_comp_attr_set_comp_type(ctx->comp_attr, LCI_COMPLETION_QUEUE);
+      LCII_comp_attr_set_comp_type(ctx->comp_attr, ep->msg_comp_type);
       ctx->completion = ep->default_comp;
       ctx->user_context = NULL;
       lc_ce_dispatch(ctx);
@@ -176,7 +176,7 @@ static inline void LCIS_serve_recv(void* p, int src_rank, size_t length,
       ctx->rank = src_rank;
       ctx->tag = tag;
       LCII_initilize_comp_attr(ctx->comp_attr);
-      LCII_comp_attr_set_comp_type(ctx->comp_attr, LCI_COMPLETION_QUEUE);
+      LCII_comp_attr_set_comp_type(ctx->comp_attr, ep->msg_comp_type);
       ctx->completion = ep->default_comp;
       ctx->user_context = NULL;
       lc_ce_dispatch(ctx);

@@ -252,7 +252,7 @@ static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep,
   rdv_ctx->user_context = NULL;
   LCII_initilize_comp_attr(rdv_ctx->comp_attr);
   LCII_comp_attr_set_msg_type(rdv_ctx->comp_attr, LCI_MSG_NONE);
-  LCII_comp_attr_set_comp_type(rdv_ctx->comp_attr, LCI_COMPLETION_QUEUE);
+  LCII_comp_attr_set_comp_type(rdv_ctx->comp_attr, ep->msg_comp_type);
   rdv_ctx->completion = ep->default_comp;
 
   LCII_context_t* rtr_ctx = LCIU_malloc(sizeof(LCII_context_t));
@@ -353,7 +353,7 @@ static inline void LCII_handle_iovec_rts(LCI_endpoint_t ep,
   rdv_ctx->user_context = NULL;
   LCII_initilize_comp_attr(rdv_ctx->comp_attr);
   LCII_comp_attr_set_msg_type(rdv_ctx->comp_attr, LCI_MSG_NONE);
-  LCII_comp_attr_set_comp_type(rdv_ctx->comp_attr, LCI_COMPLETION_QUEUE);
+  LCII_comp_attr_set_comp_type(rdv_ctx->comp_attr, ep->msg_comp_type);
   rdv_ctx->completion = ep->default_comp;
 
   LCII_context_t* rtr_ctx = LCIU_malloc(sizeof(LCII_context_t));
