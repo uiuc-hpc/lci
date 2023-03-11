@@ -13,7 +13,7 @@ int main(int argc, char** args)
   // call `LCI_initialize` to initialize the runtime
   LCI_initialize();
   // Initialize a device. A LCI device is associated with a set of communication
-  // resources (matching table, low-leve network resources, etc).
+  // resources (matching table, low-level network resources, etc).
   // Alternatively, users can use LCI_UR_DEVICE, which
   // has been initialized by the runtime in LCI_initialize().
   LCI_device_t device;
@@ -40,9 +40,7 @@ int main(int argc, char** args)
   LCI_endpoint_init(&ep, device, plist);
   LCI_plist_free(&plist);
 
-  // Create a synchronizer. You can treat it as an MPI_Request for now.
-  // Setting the threshold to 1 means it will be triggered by the completion
-  // of one asynchronous operation.
+  // Create a completion queue.
   LCI_comp_t cq;
   LCI_queue_create(device, &cq);
 
@@ -77,7 +75,7 @@ int main(int argc, char** args)
     // The destination rank to send and recv messages.
     peer_rank = 1 - LCI_RANK;
   } else {
-    fprintf(stderr, "Unexpected message number!");
+    fprintf(stderr, "Unexpected process number!");
   }
   // The tag of the messages. Send and recv will be matched based on the tag
   // or rank+tag, depending on the matching rule. You can set the match rule by
@@ -94,7 +92,7 @@ int main(int argc, char** args)
         // Users have to call LCI_progress frequently to make progress on the
         // background work.
         LCI_progress(device);
-      // Recv a short message using LCI_recvs
+      // Recv a medium message using LCI_recvm
       LCI_recvm(ep, dst_buf, peer_rank, tag, cq, user_context);
 
       LCI_request_t request;

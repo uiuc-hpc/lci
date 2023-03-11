@@ -10,7 +10,7 @@ int main(int argc, char** args)
   // call `LCI_initialize` to initialize the runtime
   LCI_initialize();
   // Initialize a device. A LCI device is associated with a set of communication
-  // resources (matching table, low-leve network resources, etc).
+  // resources (matching table, low-level network resources, etc).
   // Alternatively, users can use LCI_UR_DEVICE, which
   // has been initialized by the runtime in LCI_initialize().
   LCI_device_t device;
@@ -63,7 +63,7 @@ int main(int argc, char** args)
     // The destination rank to send and recv messages.
     peer_rank = 1 - LCI_RANK;
   } else {
-    fprintf(stderr, "Unexpected message number!");
+    fprintf(stderr, "Unexpected process number!");
   }
   // The tag of the messages. Send and recv will be matched based on the tag
   // or rank+tag, depending on the matching rule. You can set the match rule by
