@@ -3,6 +3,8 @@ function(add_lci_examples)
     string(REGEX REPLACE "\\.[^.]*$" "" name_without_ext ${name})
     add_lci_executable(${name_without_ext} ${name} comm_exp.h)
   endforeach()
+  add_lci_tests(TESTS ${ARGN} LABELS example COMMANDS
+                "${SRUN_EXE} -n 2 ${SRUN_EXTRA_ARG} [TARGET]")
 endfunction()
 
 option(LCI_BUILD_EXAMPLES "Build examples by default" ON)

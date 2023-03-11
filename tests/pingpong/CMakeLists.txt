@@ -18,4 +18,6 @@ add_lci_tests(
   LABELS
   pingpong
   COMMANDS
-  "${SRUN_EXE} -n 2 ${SRUN_EXTRA_ARG} [TARGET]")
+  "${SRUN_EXE} -n 2 ${SRUN_EXTRA_ARG} [TARGET]"
+  DEPENDENCIES
+  OpenMP::OpenMP_CXX)

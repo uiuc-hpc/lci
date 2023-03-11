@@ -58,6 +58,13 @@ set(LCI_CACHE_LINE
 option(LCI_USE_PERFORMANCE_COUNTER "Use performance counter" OFF)
 option(LCI_ENABLE_SLOWDOWN "Enable manually slowdown" OFF)
 
+set(SRUN_EXE
+    mpirun
+    CACHE STRING "exective to be used in ctest")
+set(SRUN_EXTRA_ARG
+    ""
+    CACHE STRING "arguments to be used in ctest")
+
 mark_as_advanced(
   LCI_CONFIG_USE_ALIGNED_ALLOC
   LCI_PACKET_SIZE
