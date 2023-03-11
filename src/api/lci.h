@@ -227,8 +227,8 @@ typedef enum {
  * @brief LCI data type.
  */
 typedef enum {
-  LCI_IMMEDIATE = 0, /**< Immediate data (up to LCI_IMMEDIATE_SIZE bytes) sent
-                        by short messages */
+  LCI_IMMEDIATE = 0, /**< Immediate data (up to LCI_SHORT_SIZE bytes) sent by
+                        short messages */
   LCI_MEDIUM,        /**< Medium buffers (up to LCI_MEDIUM_SIZE bytes) sent by
                         medium messages */
   LCI_LONG,          /**< Long buffers sent by long messages */
