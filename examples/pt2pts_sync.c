@@ -4,10 +4,10 @@
 
 int main(int argc, char** args)
 {
-  // number of messages to send
+  // Number of messages to send
   int num_msgs = 10;
   if (argc > 1) num_msgs = atoi(args[1]);
-  // call `LCI_initialize` to initialize the runtime
+  // Call `LCI_initialize` to initialize the runtime
   LCI_initialize();
   // Initialize a device. A LCI device is associated with a set of communication
   // resources (matching table, low-level network resources, etc).

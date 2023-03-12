@@ -5,12 +5,12 @@
 
 int main(int argc, char** args)
 {
-  // number of messages to send
+  // Number of messages to send
   int num_msgs = 10;
   int msgs_size = 8192;
   if (argc > 1) num_msgs = atoi(args[1]);
   if (argc > 2) msgs_size = atoi(args[1]);
-  // call `LCI_initialize` to initialize the runtime
+  // Call `LCI_initialize` to initialize the runtime
   LCI_initialize();
   // Initialize a device. A LCI device is associated with a set of communication
   // resources (matching table, low-level network resources, etc).
@@ -38,6 +38,7 @@ int main(int argc, char** args)
   // We set the completion mechanism on the sender side to be synchronizer.
   LCI_plist_set_comp_type(plist, LCI_PORT_COMMAND, LCI_COMPLETION_SYNC);
   // We set the completion mechanism on the receiver side to be synchronizer.
+  // This also sets the completion type of LCI_DEFAULT_COMP_REMOTE.
   LCI_plist_set_comp_type(plist, LCI_PORT_MESSAGE, LCI_COMPLETION_SYNC);
   // Set the default completion object to be triggered by
   // LCI_DEFAULT_COMP_REMOTE.

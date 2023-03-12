@@ -5,12 +5,12 @@
 
 int main(int argc, char** args)
 {
-  // number of messages to send
+  // Number of messages to send
   int num_msgs = 10;
   int msgs_size = 8192;
   if (argc > 1) num_msgs = atoi(args[1]);
   if (argc > 2) msgs_size = atoi(args[1]);
-  // call `LCI_initialize` to initialize the runtime
+  // Call `LCI_initialize` to initialize the runtime
   LCI_initialize();
   // Initialize a device. A LCI device is associated with a set of communication
   // resources (matching table, low-level network resources, etc).
@@ -101,7 +101,7 @@ int main(int argc, char** args)
         // Users have to call LCI_progress frequently to make progress on the
         // background work.
         LCI_progress(device);
-      // Once a synchronizer is triggered, the completion information will be
+      // Once an entry is popped, the completion information will be
       // written to the request object.
       assert(request.flag == LCI_OK);
       assert(request.rank == peer_rank);

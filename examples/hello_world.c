@@ -3,7 +3,7 @@
 
 int main(int argc, char** args)
 {
-  // call `LCI_initialize` to initialize the runtime
+  // Call `LCI_initialize` to initialize the runtime
   LCI_initialize();
   // After initialization, `LCI_RANK` and `LCI_NUM_PROCESSES` are available to
   // use.
