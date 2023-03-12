@@ -49,7 +49,7 @@ int main(int argc, char** args)
   if (sizeof(uint64_t) > LCI_SHORT_SIZE) {
     fprintf(stderr,
             "The message is too long to be sent/received"
-            "using LCI_sends/LCI_recvis");
+            "using LCI_sends/LCI_recvs");
     exit(1);
   }
   *(uint64_t*)&message = 9527 + LCI_RANK;

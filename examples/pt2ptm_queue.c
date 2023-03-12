@@ -53,7 +53,7 @@ int main(int argc, char** args)
   if (msgs_size > LCI_MEDIUM_SIZE) {
     fprintf(stderr,
             "The message is too long to be sent/received"
-            "using LCI_sends/LCI_recvis");
+            "using LCI_sendm/LCI_recvm");
     exit(1);
   }
   // We are using LCI_sendm/recvm in this example, so we need to allocate our
