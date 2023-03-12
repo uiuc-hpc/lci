@@ -35,8 +35,8 @@ int main(int argc, char** args)
   // configurations.
   LCI_plist_t plist;
   LCI_plist_create(&plist);
-  // We set the completion mechanism on the sender side to be synchronizer.
-  LCI_plist_set_comp_type(plist, LCI_PORT_COMMAND, LCI_COMPLETION_SYNC);
+  // Completion mechanism on the sender side does not matter.
+  // LCI_plist_set_comp_type(plist, LCI_PORT_COMMAND, LCI_COMPLETION_SYNC);
   // We set the completion mechanism on the receiver side to be synchronizer.
   // This also sets the completion type of LCI_DEFAULT_COMP_REMOTE.
   LCI_plist_set_comp_type(plist, LCI_PORT_MESSAGE, LCI_COMPLETION_SYNC);
@@ -150,7 +150,7 @@ int main(int argc, char** args)
   LCI_sync_free(&sync);
   LCI_endpoint_free(&ep);
   LCI_device_free(&device);
-  // call `LCI_finalize` to finalize the runtime
+  // Call `LCI_finalize` to finalize the runtime
   LCI_finalize();
   return 0;
 }

@@ -139,7 +139,7 @@ int main(int argc, char** args)
   LCI_queue_free(&cq);
   LCI_endpoint_free(&ep);
   LCI_device_free(&device);
-  // call `LCI_finalize` to finalize the runtime
+  // Call `LCI_finalize` to finalize the runtime
   LCI_finalize();
   return 0;
 }

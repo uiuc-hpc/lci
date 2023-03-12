@@ -73,9 +73,9 @@ int main(int argc, char** args)
   void* user_context = (void*)9527;
   if (LCI_RANK == 0) {
     for (int i = 0; i < num_msgs; i++) {
-      // Send a short message using LCI_sends
+      // Send a short message using LCI_sends.
       // A LCI send function can return LCI_ERR_RETRY, so we use a while loop
-      // here to make sure the message is sent
+      // here to make sure the message is sent.
       while (LCI_sends(ep, message, peer_rank, tag) == LCI_ERR_RETRY)
         // Users have to call LCI_progress frequently to make progress on the
         // background work.
@@ -118,7 +118,7 @@ int main(int argc, char** args)
   LCI_sync_free(&sync);
   LCI_endpoint_free(&ep);
   LCI_device_free(&device);
-  // call `LCI_finalize` to finalize the runtime
+  // Call `LCI_finalize` to finalize the runtime
   LCI_finalize();
   return 0;
 }
