@@ -107,99 +107,83 @@ LCII_pcounters_per_thread_t LCII_pcounters_diff(LCII_pcounters_per_thread_t c1,
   return ret;
 }
 
+#define LCII_PCOUNTERS_FIELD_TO_STRING(field, annotation)                     \
+  consumed += snprintf(buf + consumed, sizeof(buf) - consumed, "%d,%s,%ld\n", \
+                       LCI_RANK, annotation, pcounter.field);                 \
+  LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
 char* LCII_pcounters_to_string(LCII_pcounters_per_thread_t pcounter)
 {
   static char buf[2048];
   size_t consumed = 0;
-  consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
-                       "\t\tmessage sent (total/2sided/1sided): %ld/%ld/%ld;\n",
-                       pcounter.msgs_tx, pcounter.msgs_2sided_tx,
-                       pcounter.msgs_1sided_tx);
-  LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
-  consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
-                       "\t\tbytes sent: %ld;\n", pcounter.bytes_tx);
-  LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
-  consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
-                       "\t\tmessage recv (total/2sided/1sided): %ld/%ld/%ld;\n",
-                       pcounter.msgs_rx, pcounter.msgs_2sided_rx,
-                       pcounter.msgs_1sided_rx);
-  LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
-  consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
-                       "\t\tbytes recv: %ld;\n", pcounter.bytes_rx);
-  LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
-  consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
-                       "\t\tpacket stealing attempts: %ld;\n",
-                       pcounter.packet_stealing);
-  LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
-  consumed +=
-      snprintf(buf + consumed, sizeof(buf) - consumed,
-               "\t\tLCI send attempts:\n"
-               "\t\t\tSucceeded: %ld\n"
-               "\t\t\tFailed due to no packet: %ld\n"
-               "\t\t\tFailed due to non-empty backlog queue: %ld\n"
-               "\t\t\tFailed due to failed backend send: %ld\n",
-               pcounter.send_lci_succeeded, pcounter.send_lci_failed_packet,
-               pcounter.send_lci_failed_bq, pcounter.send_lci_failed_backend);
-  LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
-  consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
-                       "\t\tbackend send attempts:\n"
-                       "\t\t\tSucceeded: %ld\n"
-                       "\t\t\tFailed due to lock: %ld\n"
-                       "\t\t\tFailed due to no memory: %ld\n",
-                       pcounter.msgs_tx, pcounter.send_backend_failed_lock,
-                       pcounter.send_backend_failed_nomem);
-  LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
-  consumed +=
-      snprintf(buf + consumed, sizeof(buf) - consumed,
-               "\t\tLCI cq pop:\n"
-               "\t\t\tSucceeded: %ld\n"
-               "\t\t\tFailed due to empty queue: %ld\n"
-               "\t\t\tFailed due to thread contention: %ld\n"
-               "\t\t\tPending counts accumulated: %ld\n",
-               pcounter.lci_cq_pop_succeeded, pcounter.lci_cq_pop_failed_empty,
-               pcounter.lci_cq_pop_failed_contention,
-               pcounter.lci_cq_pop_len_accumulated);
-  LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
-  consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
-                       "\t\tLCI progress function:\n"
-                       "\t\t\tCalled: %ld\n"
-                       "\t\t\tUseful calls: %ld\n"
-                       "\t\t\tConsecutive useful calls (max/sum): %ld/%ld\n",
-                       pcounter.progress_call, pcounter.progress_useful_call,
-                       pcounter.progress_useful_call_consecutive_max,
-                       pcounter.progress_useful_call_consecutive_sum);
-  LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
-  consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
-                       "\t\tbackend post recv attempts: \n"
-                       "\t\t\tFailed due to no packet: %ld\n",
-                       pcounter.recv_backend_no_packet);
-  LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
-  consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
-                       "\t\tBacklog queue statistics: \n"
-                       "\t\t\tTotal item count: %ld\n"
-                       "\t\t\tMaximum length: %ld\n"
-                       "\t\t\tSend attempts: %ld\n",
-                       pcounter.backlog_queue_total_count,
-                       pcounter.backlog_queue_max_len,
-                       pcounter.backlog_queue_send_attempts);
-  LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
-  consumed += snprintf(buf + consumed, sizeof(buf) - consumed,
-                       "\t\tTimer (average * count in nsec): \n"
-                       "\t\t\tsend eager latency: %ld * %ld\n"
-                       "\t\t\tsend iovec handshake: %ld * %ld\n"
-                       "\t\t\tsend iovec latency: %ld * %ld\n"
-                       "\t\t\trecv iovec handle rts overhead: %ld * %ld\n"
-                       "\t\t\trecv iovec latency: %ld * %ld\n",
-                       pcounter.send_eager_latency_nsec_ave,
-                       pcounter.send_eager_latency_nsec_count,
-                       pcounter.send_iovec_handshake_nsec_ave,
-                       pcounter.send_iovec_handshake_nsec_count,
-                       pcounter.send_iovec_latency_nsec_ave,
-                       pcounter.send_iovec_latency_nsec_count,
-                       pcounter.recv_iovec_handle_rts_nsec_ave,
-                       pcounter.recv_iovec_handle_rts_nsec_count,
-                       pcounter.recv_iovec_latency_nsec_ave,
-                       pcounter.recv_iovec_latency_nsec_count);
-  LCM_Assert(sizeof(buf) > consumed, "buffer overflowed!\n");
+  LCII_PCOUNTERS_FIELD_TO_STRING(msgs_tx, "Total message sent");
+  LCII_PCOUNTERS_FIELD_TO_STRING(msgs_2sided_tx, "2sided message sent");
+  LCII_PCOUNTERS_FIELD_TO_STRING(msgs_1sided_tx, "1sided message sent");
+  LCII_PCOUNTERS_FIELD_TO_STRING(bytes_tx, "Bytes sent");
+  LCII_PCOUNTERS_FIELD_TO_STRING(msgs_rx, "Total message recved");
+  LCII_PCOUNTERS_FIELD_TO_STRING(msgs_2sided_rx, "2sided message recved");
+  LCII_PCOUNTERS_FIELD_TO_STRING(msgs_1sided_rx, "1sided message recved");
+  LCII_PCOUNTERS_FIELD_TO_STRING(bytes_rx, "Bytes recved");
+  LCII_PCOUNTERS_FIELD_TO_STRING(packet_stealing, "Packet stealing attempts");
+  LCII_PCOUNTERS_FIELD_TO_STRING(send_lci_succeeded,
+                                 "LCI send attempts succeeded");
+  LCII_PCOUNTERS_FIELD_TO_STRING(send_lci_failed_packet,
+                                 "LCI send attempts failed due to no packet");
+  LCII_PCOUNTERS_FIELD_TO_STRING(
+      send_lci_failed_bq,
+      "LCI send attempts failed due to non-empty backlog queue");
+  LCII_PCOUNTERS_FIELD_TO_STRING(
+      send_lci_failed_backend,
+      "LCI send attempts failed due to failed backend send");
+  LCII_PCOUNTERS_FIELD_TO_STRING(msgs_tx, "Backend send attempts succeeded");
+  LCII_PCOUNTERS_FIELD_TO_STRING(send_backend_failed_lock,
+                                 "Backend send attempts failed due to lock");
+  LCII_PCOUNTERS_FIELD_TO_STRING(
+      send_backend_failed_nomem,
+      "Backend send attempts failed due to no memory");
+  LCII_PCOUNTERS_FIELD_TO_STRING(lci_cq_pop_succeeded, "LCI cq pop succeeded");
+  LCII_PCOUNTERS_FIELD_TO_STRING(lci_cq_pop_failed_empty,
+                                 "LCI cq pop failed due to empty queue");
+  LCII_PCOUNTERS_FIELD_TO_STRING(lci_cq_pop_failed_contention,
+                                 "LCI cq pop failed due to thread contention");
+  LCII_PCOUNTERS_FIELD_TO_STRING(lci_cq_pop_len_accumulated,
+                                 "LCI cq pop pending counts accumulated");
+  LCII_PCOUNTERS_FIELD_TO_STRING(progress_call, "LCI progress function called");
+  LCII_PCOUNTERS_FIELD_TO_STRING(progress_useful_call,
+                                 "LCI progress function useful calls");
+  LCII_PCOUNTERS_FIELD_TO_STRING(
+      progress_useful_call_consecutive_max,
+      "LCI progress function Consecutive useful calls max");
+  LCII_PCOUNTERS_FIELD_TO_STRING(
+      progress_useful_call_consecutive_sum,
+      "LCI progress function Consecutive useful calls sum");
+  LCII_PCOUNTERS_FIELD_TO_STRING(
+      recv_backend_no_packet,
+      "Backend post recv attempts failed due to no packet");
+  LCII_PCOUNTERS_FIELD_TO_STRING(backlog_queue_total_count,
+                                 "Backlog queue total item count");
+  LCII_PCOUNTERS_FIELD_TO_STRING(backlog_queue_max_len,
+                                 "Backlog queue maximum length");
+  LCII_PCOUNTERS_FIELD_TO_STRING(backlog_queue_send_attempts,
+                                 "Backlog queue send attempts");
+  LCII_PCOUNTERS_FIELD_TO_STRING(send_eager_latency_nsec_ave,
+                                 "Send eager time average");
+  LCII_PCOUNTERS_FIELD_TO_STRING(send_eager_latency_nsec_count,
+                                 "Send eager time count");
+  LCII_PCOUNTERS_FIELD_TO_STRING(send_iovec_handshake_nsec_ave,
+                                 "Send iovec handshake time average");
+  LCII_PCOUNTERS_FIELD_TO_STRING(send_iovec_handshake_nsec_count,
+                                 "Send iovec handshake time count");
+  LCII_PCOUNTERS_FIELD_TO_STRING(send_iovec_latency_nsec_ave,
+                                 "Send iovec time average");
+  LCII_PCOUNTERS_FIELD_TO_STRING(send_iovec_latency_nsec_count,
+                                 "Send iovec time count");
+  LCII_PCOUNTERS_FIELD_TO_STRING(recv_iovec_handle_rts_nsec_ave,
+                                 "Recv iovec handle rts time average");
+  LCII_PCOUNTERS_FIELD_TO_STRING(recv_iovec_handle_rts_nsec_count,
+                                 "Recv iovec handle rts time count");
+  LCII_PCOUNTERS_FIELD_TO_STRING(recv_iovec_latency_nsec_ave,
+                                 "Recv iovec time average");
+  LCII_PCOUNTERS_FIELD_TO_STRING(recv_iovec_latency_nsec_count,
+                                 "Recv iovec time count");
   return buf;
 }
