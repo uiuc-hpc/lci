@@ -1,6 +1,7 @@
 #include "runtime/lcii.h"
 
-LCII_pcounters_per_thread_t LCII_pcounters[LCI_PCOUNTER_MAX_NTHREADS];
+LCII_pcounters_per_thread_t LCII_pcounters[LCI_PCOUNTER_MAX_NTHREADS]
+    __attribute__((aligned(LCI_CACHE_LINE)));
 
 void LCII_pcounters_init()
 {
