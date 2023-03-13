@@ -4,10 +4,10 @@
 
 int main(int argc, char** args)
 {
-  // number of messages to send
+  // Number of messages to send
   int num_msgs = 10;
   if (argc > 1) num_msgs = atoi(args[1]);
-  // call `LCI_initialize` to initialize the runtime
+  // Call `LCI_initialize` to initialize the runtime
   LCI_initialize();
   // Initialize a device. A LCI device is associated with a set of communication
   // resources (matching table, low-level network resources, etc).
@@ -49,7 +49,7 @@ int main(int argc, char** args)
   if (sizeof(uint64_t) > LCI_SHORT_SIZE) {
     fprintf(stderr,
             "The message is too long to be sent/received"
-            "using LCI_sends/LCI_recvis");
+            "using LCI_sends/LCI_recvs");
     exit(1);
   }
   *(uint64_t*)&message = 9527 + LCI_RANK;
@@ -73,9 +73,9 @@ int main(int argc, char** args)
   void* user_context = (void*)9527;
   if (LCI_RANK == 0) {
     for (int i = 0; i < num_msgs; i++) {
-      // Send a short message using LCI_sends
+      // Send a short message using LCI_sends.
       // A LCI send function can return LCI_ERR_RETRY, so we use a while loop
-      // here to make sure the message is sent
+      // here to make sure the message is sent.
       while (LCI_sends(ep, message, peer_rank, tag) == LCI_ERR_RETRY)
         // Users have to call LCI_progress frequently to make progress on the
         // background work.
@@ -118,7 +118,7 @@ int main(int argc, char** args)
   LCI_sync_free(&sync);
   LCI_endpoint_free(&ep);
   LCI_device_free(&device);
-  // call `LCI_finalize` to finalize the runtime
+  // Call `LCI_finalize` to finalize the runtime
   LCI_finalize();
   return 0;
 }

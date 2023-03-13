@@ -50,12 +50,12 @@ void recv_handler(LCI_request_t request)
 
 int main(int argc, char** args)
 {
-  // number of messages to send
+  // Number of messages to send
   int num_msgs = 10;
   int msgs_size = 65536;
   if (argc > 1) num_msgs = atoi(args[1]);
   if (argc > 2) msgs_size = atoi(args[1]);
-  // call `LCI_initialize` to initialize the runtime
+  // Call `LCI_initialize` to initialize the runtime
   LCI_initialize();
   // Initialize a device. A LCI device is associated with a set of communication
   // resources (matching table, low-level network resources, etc).
@@ -201,7 +201,7 @@ int main(int argc, char** args)
   free(dst_buf.address);
   LCI_endpoint_free(&ep);
   LCI_device_free(&device);
-  // call `LCI_finalize` to finalize the runtime
+  // Call `LCI_finalize` to finalize the runtime
   LCI_finalize();
   return 0;
 }
