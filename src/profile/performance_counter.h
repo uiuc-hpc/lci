@@ -7,7 +7,7 @@
 #define LCII_PCOUNTERS_WRAPPER(stat)
 #endif
 
-typedef struct __attribute__((aligned(LCI_CACHE_LINE))) {
+typedef struct {
   int64_t msgs_tx;
   int64_t bytes_tx;
   int64_t msgs_rx;
