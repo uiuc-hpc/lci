@@ -1093,12 +1093,12 @@ LCI_API
 LCI_error_t LCI_sync_free(LCI_comp_t* completion);
 /**
  * @ingroup LCI_SYNC
- * @brief Trigger a synchronizer.
+ * @brief Signal a synchronizer once. A synchronizer needs to be signaled
+ * `threshold` time to be considered triggered.
  *
  * @param [in]  completion The synchronizer to be triggered.
- * @param [in] request     An array of size `threshold` passed to
- * @ref LCI_sync_create. Every entry of the array will contain the completion
- * information of one completed operation.
+ * @param [in]  request    A request containing the completion information of
+ * one completed operation.
  * @return Should always be LCI_OK. All the other errors are fatal
  * as defined by @ref LCI_error_t.
  */
