@@ -19,6 +19,15 @@
 pmix_proc_t proc_me;
 pmix_proc_t proc_wild;
 
+int lcm_pm_pmix_check_availability()
+{
+  char* p = getenv("PMIX_RANK");
+  if (p)
+    return true;
+  else
+    return false;
+}
+
 void lcm_pm_pmix_initialize()
 {
   PMIX_SAFECALL(PMIx_Init(&proc_me, NULL, 0));
@@ -78,6 +87,7 @@ void lcm_pm_pmix_finalize() { PMIX_SAFECALL(PMIx_Finalize(NULL, 0)); }
 
 void lcm_pm_pmix_setup_ops(struct LCM_PM_ops_t* ops)
 {
+  ops->check_availability = lcm_pm_pmix_check_availability;
   ops->initialize = lcm_pm_pmix_initialize;
   ops->is_initialized = lcm_pm_pmix_initialized;
   ops->get_rank = lcm_pm_pmix_get_rank;
