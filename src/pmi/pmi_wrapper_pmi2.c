@@ -3,6 +3,15 @@
 #include "pmi_wrapper.h"
 #include "pmi2.h"
 
+int lcm_pm_pmi2_check_availability()
+{
+  char* p = getenv("PMI_RANK");
+  if (p)
+    return true;
+  else
+    return false;
+}
+
 void lcm_pm_pmi2_initialize()
 {
   int spawned, appnum, rank, size;
@@ -43,6 +52,7 @@ void lcm_pm_pmi2_finalize() { PMI2_Finalize(); }
 
 void lcm_pm_pmi2_setup_ops(struct LCM_PM_ops_t* ops)
 {
+  ops->check_availability = lcm_pm_pmi2_check_availability;
   ops->initialize = lcm_pm_pmi2_initialize;
   ops->is_initialized = lcm_pm_pmi2_initialized;
   ops->get_rank = lcm_pm_pmi2_get_rank;

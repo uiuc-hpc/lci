@@ -19,6 +19,7 @@ void lcm_pm_barrier();
 void lcm_pm_finalize();
 
 struct LCM_PM_ops_t {
+  int (*check_availability)();
   void (*initialize)();
   int (*is_initialized)();
   int (*get_rank)();
@@ -28,6 +29,8 @@ struct LCM_PM_ops_t {
   void (*barrier)();
   void (*finalize)();
 };
+
+void lcm_pm_local_setup_ops(struct LCM_PM_ops_t* ops);
 
 void lcm_pm_pmi1_setup_ops(struct LCM_PM_ops_t* ops);
 

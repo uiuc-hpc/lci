@@ -1,11 +1,15 @@
 set(LCI_PM_BACKEND_DEFAULT
-    pmi2
-    CACHE STRING "Process management backend to use")
-set_property(CACHE LCI_PM_BACKEND_DEFAULT PROPERTY STRINGS pmi1 pmi2 pmix mpi)
+    "pmix;pmi2;pmi1;mpi;local"
+    CACHE
+      STRING
+      "A list of process management backend with comma/space/semicolon as delimitors.
+      LCI will try each entry one by one until it found an available backend to use
+      (available entries: pmi1, pmi2, pmix, mpi, local)")
 
 set(LIBRARY_NAME LCI)
-target_sources_relative(${LIBRARY_NAME} PRIVATE pmi_wrapper.c
-                        pmi_wrapper_pmi1.c pmi_wrapper_pmi2.c)
+target_sources_relative(
+  ${LIBRARY_NAME} PRIVATE pmi_wrapper.c pmi_wrapper_pmi1.c pmi_wrapper_pmi2.c
+  pmi_wrapper_local.c)
 add_subdirectory(pmi1)
 add_subdirectory(pmi2)
 
@@ -17,9 +21,6 @@ if(MPI_FOUND)
   target_sources_relative(${LIBRARY_NAME} PRIVATE pmi_wrapper_mpi.c)
   cmake_policy(SET CMP0079 NEW)
   target_link_libraries(${LIBRARY_NAME} PRIVATE MPI::MPI_C)
-elseif(LCI_PM_BACKEND_DEFAULT STREQUAL "mpi")
-  message(
-    FATAL_ERROR "LCI_PM_BACKEND_DEFAULT is set to MPI but MPI is not found.")
 endif()
 
 find_package(PMIx COMPONENTS C)
@@ -30,9 +31,6 @@ if(PMIX_FOUND)
   target_sources_relative(${LIBRARY_NAME} PRIVATE pmi_wrapper_pmix.c)
   cmake_policy(SET CMP0079 NEW)
   target_link_libraries(${LIBRARY_NAME} PRIVATE PMIx::PMIx)
-elseif(LCI_PM_BACKEND_DEFAULT STREQUAL "pmix")
-  message(
-    FATAL_ERROR "LCI_PM_BACKEND_DEFAULT is set to PMIx but PMIx is not found.")
 endif()
 
 target_include_directories(${LIBRARY_NAME} PRIVATE .)
