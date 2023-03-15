@@ -18,7 +18,8 @@ make install
 ### Important CMake variables
 - `CMAKE_INSTALL_PREFIX=/path/to/install`: Where to install LCI
   - This is the same across all the cmake projects.
-- `LCI_SERVER=ibv/ofi`: The network backend to use.
+- `LCI_SERVER=ibv/ofi`: Hint to which network backend to use. If both `ibv` and `ofi` are found, LCI will use the one
+indicated by this variable. The default value is `ibv`.
   - ibv: libibverbs, typically for infiniband.
   - ofi: libfabrics, for all other networks (slingshot-11, ethernet, shared memory).
 - `LCI_PM_BACKEND_DEFAULT=pmi1/pmi2/pmix/mpi`: The default PMI backend to use.

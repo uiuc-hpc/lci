@@ -15,7 +15,7 @@ option(LCI_WITH_BENCHMARKS "Build LCI benchmarks" ON)
 option(LCI_WITH_DOC "Build LCI documentation" ON)
 
 set(LCI_SERVER
-    ofi
+    ibv
     CACHE STRING "Fabric")
 set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv)
 option(LCI_DEBUG "LCI Debug Mode" OFF)
@@ -81,14 +81,6 @@ include(CMakePackageConfigHelpers)
 include(TargetSourcesRelative)
 include(AddLCI)
 
-if(LCI_SERVER STREQUAL "ofi")
-  set(LCI_USE_SERVER_OFI ON)
-elseif(LCI_SERVER STREQUAL "ibv")
-  set(LCI_USE_SERVER_IBV ON)
-else()
-  message(FATAL_ERROR "Fabric ${LCI_SERVER} not supported")
-endif()
-
 if("sync" IN_LIST LCI_EP_CE)
   set(LCI_SERVER_HAS_SYNC ON)
 endif()
@@ -102,12 +94,32 @@ if("glob" IN_LIST LCI_EP_CE)
   set(LCI_SERVER_HAS_GLOB ON)
 endif()
 
-# find package set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-# set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
-string(TOUPPER ${LCI_SERVER} FABRIC)
-find_package(${FABRIC} REQUIRED)
+# Figure out which network backend to use
+find_package(OFI)
+find_package(IBV)
+if(IBV_FOUND AND OFI_FOUND)
+  if(LCI_SERVER STREQUAL "ofi")
+    set(FABRIC OFI)
+  else()
+    set(FABRIC IBV)
+  endif()
+elseif(IBV_FOUND)
+  set(FABRIC IBV)
+elseif(OFI_FOUND)
+  set(FABRIC OFI)
+else()
+  message(FATAL_ERROR "Find neither libfabric nor libibverbs. Give up!")
+endif()
+
+if(FABRIC STREQUAL OFI)
+  set(LCI_USE_SERVER_OFI ON)
+  message("Use ofi(libfabric) as the network backend")
+else()
+  set(LCI_USE_SERVER_IBV ON)
+  message("Use ibv(libibverbs) as the network backend")
+endif()
 
 find_package(PAPI)
 option(LCI_USE_PAPI "Use PAPI to collect hardware counters" ${PAPI_FOUND})
@@ -130,7 +142,7 @@ if(LCI_OPTIMIZE_FOR_NATIVE)
   endif()
 endif()
 
-add_library(LCI src/runtime/rcache/lcii_rcache.h)
+add_library(LCI)
 set_target_properties(
   LCI
   PROPERTIES C_VISIBILITY_PRESET hidden
