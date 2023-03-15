@@ -40,8 +40,8 @@ srun -n 2 ./hello_world
 ```
 
 ### Choose the right PMI backend
-Choosing the right PMI backend to use is important. LCI offers three PMI backends: pmi1,
-pmi2, pmix. You can use `LCI_PM_BACKEND_DEFAULT` to specify the default
+Choosing the right PMI backend to use is important. LCI offers four PMI backends: pmi1,
+pmi2, pmix, and mpi. You can use `LCI_PM_BACKEND_DEFAULT` to specify the default
 backend when running `cmake`, or the environment variable `LCI_PM_BACKEND` to specify
 the backend when executing the program.
 
