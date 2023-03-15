@@ -80,7 +80,6 @@ jobs:
                 -B /lci/build \
                 -GNinja \
                 -DCMAKE_BUILD_TYPE=Release \
-                -DLCI_SERVER=ofi \
                 -DLCI_DEBUG=OFF
       - persist_to_workspace:
           root: /lci
