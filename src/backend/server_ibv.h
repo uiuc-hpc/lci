@@ -184,16 +184,23 @@ static inline LCI_error_t LCISD_post_sends(LCIS_endpoint_t endpoint_pp,
                  "%lu exceed the inline message size\n"
                  "limit! %lu\n",
                  size, endpoint_p->server->max_inline);
-
   struct ibv_sge list;
-  list.addr = (uint64_t)buf;
-  list.length = size;
-  list.lkey = 0;
   struct ibv_send_wr wr;
+  if (likely(size > 0)) {
+    list.addr = (uint64_t)buf;
+    list.length = size;
+    list.lkey = 0;
+    wr.sg_list = &list;
+    wr.num_sge = 1;
+  } else {
+    // With mlx4 backend, sge.length = 0 will be treated as 0x80000000.
+    // With mlx5 backend, it will just be 0.
+    // So we better just set num_sge to 0 here.
+    wr.sg_list = NULL;
+    wr.num_sge = 0;
+  }
   wr.wr_id = 0;
   wr.next = NULL;
-  wr.sg_list = &list;
-  wr.num_sge = 1;
   wr.opcode = IBV_WR_SEND_WITH_IMM;
   wr.send_flags = IBV_SEND_INLINE;
   wr.imm_data = meta;
@@ -233,14 +240,22 @@ static inline LCI_error_t LCISD_post_send(LCIS_endpoint_t endpoint_pp, int rank,
   LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
 
   struct ibv_sge list;
-  list.addr = (uint64_t)buf;
-  list.length = size;
-  list.lkey = ibv_rma_lkey(mr);
   struct ibv_send_wr wr;
+  if (likely(size > 0)) {
+    list.addr = (uint64_t)buf;
+    list.length = size;
+    list.lkey = ibv_rma_lkey(mr);
+    wr.sg_list = &list;
+    wr.num_sge = 1;
+  } else {
+    // With mlx4 backend, sge.length = 0 will be treated as 0x80000000.
+    // With mlx5 backend, it will just be 0.
+    // So we better just set num_sge to 0 here.
+    wr.sg_list = NULL;
+    wr.num_sge = 0;
+  }
   wr.wr_id = (uintptr_t)ctx;
   wr.next = NULL;
-  wr.sg_list = &list;
-  wr.num_sge = 1;
   wr.opcode = IBV_WR_SEND_WITH_IMM;
   wr.send_flags = IBV_SEND_SIGNALED;
   wr.imm_data = meta;
@@ -279,15 +294,24 @@ static inline LCI_error_t LCISD_post_puts(LCIS_endpoint_t endpoint_pp, int rank,
                  "%lu exceed the inline message size\n"
                  "limit! %lu\n",
                  size, endpoint_p->server->max_inline);
+
   struct ibv_sge list;
-  list.addr = (uint64_t)buf;
-  list.length = size;
-  list.lkey = 0;
   struct ibv_send_wr wr;
+  if (likely(size > 0)) {
+    list.addr = (uint64_t)buf;
+    list.length = size;
+    list.lkey = 0;
+    wr.sg_list = &list;
+    wr.num_sge = 1;
+  } else {
+    // With mlx4 backend, sge.length = 0 will be treated as 0x80000000.
+    // With mlx5 backend, it will just be 0.
+    // So we better just set num_sge to 0 here.
+    wr.sg_list = NULL;
+    wr.num_sge = 0;
+  }
   wr.wr_id = 0;
   wr.next = NULL;
-  wr.sg_list = &list;
-  wr.num_sge = 1;
   wr.opcode = IBV_WR_RDMA_WRITE;
   wr.send_flags = IBV_SEND_SIGNALED | IBV_SEND_INLINE;
   wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
@@ -322,14 +346,22 @@ static inline LCI_error_t LCISD_post_put(LCIS_endpoint_t endpoint_pp, int rank,
   LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
 
   struct ibv_sge list;
-  list.addr = (uint64_t)buf;
-  list.length = size;
-  list.lkey = ibv_rma_lkey(mr);
   struct ibv_send_wr wr;
+  if (likely(size > 0)) {
+    list.addr = (uint64_t)buf;
+    list.length = size;
+    list.lkey = ibv_rma_lkey(mr);
+    wr.sg_list = &list;
+    wr.num_sge = 1;
+  } else {
+    // With mlx4 backend, sge.length = 0 will be treated as 0x80000000.
+    // With mlx5 backend, it will just be 0.
+    // So we better just set num_sge to 0 here.
+    wr.sg_list = NULL;
+    wr.num_sge = 0;
+  }
   wr.wr_id = (uint64_t)ctx;
   wr.next = NULL;
-  wr.sg_list = &list;
-  wr.num_sge = 1;
   wr.opcode = IBV_WR_RDMA_WRITE;
   wr.send_flags = IBV_SEND_SIGNALED;
   wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
@@ -370,14 +402,22 @@ static inline LCI_error_t LCISD_post_putImms(LCIS_endpoint_t endpoint_pp,
                  "limit! %lu\n",
                  size, endpoint_p->server->max_inline);
   struct ibv_sge list;
-  list.addr = (uint64_t)buf;
-  list.length = size;
-  list.lkey = 0;
   struct ibv_send_wr wr;
+  if (likely(size > 0)) {
+    list.addr = (uint64_t)buf;
+    list.length = size;
+    list.lkey = 0;
+    wr.sg_list = &list;
+    wr.num_sge = 1;
+  } else {
+    // With mlx4 backend, sge.length = 0 will be treated as 0x80000000.
+    // With mlx5 backend, it will just be 0.
+    // So we better just set num_sge to 0 here.
+    wr.sg_list = NULL;
+    wr.num_sge = 0;
+  }
   wr.wr_id = 0;
   wr.next = NULL;
-  wr.sg_list = &list;
-  wr.num_sge = 1;
   wr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
   wr.send_flags = IBV_SEND_SIGNALED | IBV_SEND_INLINE;
   wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
@@ -415,14 +455,22 @@ static inline LCI_error_t LCISD_post_putImm(LCIS_endpoint_t endpoint_pp,
   LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
 
   struct ibv_sge list;
-  list.addr = (uint64_t)buf;
-  list.length = size;
-  list.lkey = ibv_rma_lkey(mr);
   struct ibv_send_wr wr;
+  if (likely(size > 0)) {
+    list.addr = (uint64_t)buf;
+    list.length = size;
+    list.lkey = ibv_rma_lkey(mr);
+    wr.sg_list = &list;
+    wr.num_sge = 1;
+  } else {
+    // With mlx4 backend, sge.length = 0 will be treated as 0x80000000.
+    // With mlx5 backend, it will just be 0.
+    // So we better just set num_sge to 0 here.
+    wr.sg_list = NULL;
+    wr.num_sge = 0;
+  }
   wr.wr_id = (uint64_t)ctx;
   wr.next = NULL;
-  wr.sg_list = &list;
-  wr.num_sge = 1;
   wr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
   wr.send_flags = IBV_SEND_SIGNALED;
   wr.imm_data = meta;
