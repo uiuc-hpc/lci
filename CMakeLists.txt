@@ -112,6 +112,12 @@ elseif(OFI_FOUND)
 else()
   message(FATAL_ERROR "Find neither libfabric nor libibverbs. Give up!")
 endif()
+set(LCI_FABRIC
+    ${FABRIC}
+    CACHE
+      STRING
+      "Used as an output variable if LCI is included in a larger project via FetchContent"
+      FORCE)
 
 if(FABRIC STREQUAL OFI)
   set(LCI_USE_SERVER_OFI ON)
