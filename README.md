@@ -25,6 +25,8 @@ make install
   modify this variable as if `libibverbs` presents, it is likely to be the recommended one to use.
   - `ibv`: libibverbs, typically for infiniband.
   - `ofi`: libfabrics, for all other networks (slingshot-11, ethernet, shared memory).
+- `LCI_FORCE_SERVER=ON/OFF`: Default value is `OFF`. If it is set to `ON`, 
+  `LCI_SERVER` will not be treated as a hint but a requirement.
 
 ## Run LCI applications
 

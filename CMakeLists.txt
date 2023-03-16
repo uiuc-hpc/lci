@@ -16,7 +16,14 @@ option(LCI_WITH_DOC "Build LCI documentation" ON)
 
 set(LCI_SERVER
     ibv
-    CACHE STRING "Fabric")
+    CACHE
+      STRING
+      "Network backend to use. If LCI_FORCE_SERVER is set to OFF (default value),
+    this variable is treated as a hint. Otherwise, it is treated as a requirement."
+)
+set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv)
+option(LCI_FORCE_SERVER
+       "Force LCI to use the network backend specified by LCI_SERVER" OFF)
 set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv)
 option(LCI_DEBUG "LCI Debug Mode" OFF)
 option(LCI_OPTIMIZE_FOR_NATIVE "Build with -march=native" ON)
@@ -112,6 +119,13 @@ elseif(OFI_FOUND)
 else()
   message(FATAL_ERROR "Find neither libfabric nor libibverbs. Give up!")
 endif()
+string(TOUPPER ${LCI_SERVER} LCI_SERVER_UPPER)
+if(LCI_FORCE_SERVER AND NOT LCI_SERVER_UPPER STREQUAL FABRIC)
+  message(
+    FATAL_ERROR
+      "LCI_FORCE_SERVER is set but the only available backend (${FABRIC})
+  is different from what is set in LCI_SERVER (${LCI_SERVER_UPPER}). Give up!")
+endif()
 set(LCI_FABRIC
     ${FABRIC}
     CACHE
@@ -121,10 +135,10 @@ set(LCI_FABRIC
 
 if(FABRIC STREQUAL OFI)
   set(LCI_USE_SERVER_OFI ON)
-  message("Use ofi(libfabric) as the network backend")
+  message(STATUS "Use ofi(libfabric) as the network backend")
 else()
   set(LCI_USE_SERVER_IBV ON)
-  message("Use ibv(libibverbs) as the network backend")
+  message(STATUS "Use ibv(libibverbs) as the network backend")
 endif()
 
 find_package(PAPI)
