@@ -18,7 +18,7 @@ make install
 ### Important CMake variables
 - `CMAKE_INSTALL_PREFIX=/path/to/install`: Where to install LCI
   - This is the same across all the cmake projects.
-- `LCI_DEBUG=ON/OFF`: Enable/disable the debug mode (more assertions and log).
+- `LCI_DEBUG=ON/OFF`: Enable/disable the debug mode (more assertions and logs).
   The default value is `OFF`.
 - `LCI_SERVER=ibv/ofi`: Hint to which network backend to use. If both `ibv` and `ofi` are found, LCI will use the one
   indicated by this variable. The default value is `ibv`. Typically, you don't need to
@@ -39,7 +39,7 @@ or
 srun -n 2 ./hello_world
 ```
 
-## Write a LCI program
+## Write an LCI program
 
 See `examples` and `tests` for some example code.
 
