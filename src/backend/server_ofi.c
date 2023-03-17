@@ -3,6 +3,18 @@
 static int g_endpoint_num = 0;
 int g_next_rdma_key = 0;
 
+static struct fi_info* search_for_prov(struct fi_info* info, char* prov_name)
+{
+  struct fi_info* cur;
+
+  for (cur = info; cur; cur = cur->next) {
+    if (strcmp(cur->fabric_attr->prov_name, prov_name) == 0) {
+      return cur;
+    }
+  }
+  return NULL;
+}
+
 void LCISD_server_init(LCI_device_t device, LCIS_server_t* s)
 {
   LCISI_server_t* server = LCIU_malloc(sizeof(LCISI_server_t));
@@ -37,8 +49,21 @@ void LCISD_server_init(LCI_device_t device, LCIS_server_t* s)
   hints->mode = FI_LOCAL_MR;
 
   // Create info.
-  FI_SAFECALL(
-      fi_getinfo(FI_VERSION(1, 6), NULL, NULL, 0, hints, &server->info));
+  struct fi_info* all_infos;
+  FI_SAFECALL(fi_getinfo(FI_VERSION(1, 6), NULL, NULL, 0, hints, &all_infos));
+  // According to the libfabric documentation, fi_getinfo call should
+  // return the endpoints that are highest performing first.
+  // But it appears cxi provider doesn't follow this rule,
+  // so we have to do the search ourselves.
+  struct fi_info* cxi_info = search_for_prov(all_infos, "cxi");
+  if (cxi_info) {
+    // Found the cxi provider.
+    server->info = fi_dupinfo(cxi_info);
+  } else {
+    // Just use the first info.
+    server->info = fi_dupinfo(all_infos);
+  }
+  fi_freeinfo(all_infos);
   LCM_Log(LCM_LOG_INFO, "ofi", "Provider name: %s\n",
           server->info->fabric_attr->prov_name);
   LCM_Log(LCM_LOG_INFO, "ofi", "MR mode hints: [%s]\n",
