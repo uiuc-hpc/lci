@@ -168,29 +168,6 @@ set(LCI_FABRIC
 if(FABRIC STREQUAL OFI)
   set(LCI_USE_SERVER_OFI ON)
   message(STATUS "Use ofi(libfabric) as the network backend")
-  # Detect whether the libfabric cxi provider is available
-  find_path(
-    OFI_BIN_DIR
-    NAMES "fi_info"
-    PATHS ${OFI_INCLUDE_DIRS}/../bin
-    HINTS $ENV{OFI_ROOT} $ENV{LIBFABRIC_ROOT}
-    PATH_SUFFIXES bin)
-  if(OFI_BIN_DIR)
-    execute_process(
-      COMMAND sh -c "${OFI_BIN_DIR}/fi_info | grep cxi"
-      RESULT_VARIABLE GREP_RESULT
-      OUTPUT_QUIET ERROR_QUIET)
-    if(${GREP_RESULT} EQUAL "0")
-      # Found libfabric/cxi.
-      if(NOT LCI_OFI_PROVIDER_HINT_DEFAULT)
-        message(
-          STATUS
-            "Found libfabric/cxi. Give hint to LCI to use the libfabric cxi provider."
-        )
-        set(LCI_OFI_PROVIDER_HINT_DEFAULT "cxi")
-      endif()
-    endif()
-  endif()
 else()
   set(LCI_USE_SERVER_IBV ON)
   message(STATUS "Use ibv(libibverbs) as the network backend")
