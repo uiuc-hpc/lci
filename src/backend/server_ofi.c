@@ -19,6 +19,8 @@ void LCISD_server_init(LCI_device_t device, LCIS_server_t* s)
   char* prov_name_hint = NULL;
   if (p != NULL) {
     prov_name_hint = malloc(strlen(p) + 1);
+    // we don't need to explicitly free prov_name_hint later.
+    // fi_freeinfo(hints) will help us free it.
     strcpy(prov_name_hint, p);
   }
   struct fi_info* hints;
