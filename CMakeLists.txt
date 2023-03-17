@@ -8,25 +8,26 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   enable_testing()
 endif()
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")
+
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+include(TargetSourcesRelative)
+include(AddLCI)
+
+# ##############################################################################
+# What parts of LCI to build
+# ##############################################################################
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 option(LCI_WITH_EXAMPLES "Build LCI examples" ON)
 option(LCI_WITH_TESTS "Build LCI tests" ON)
 option(LCI_WITH_BENCHMARKS "Build LCI benchmarks" ON)
 option(LCI_WITH_DOC "Build LCI documentation" ON)
 
-set(LCI_SERVER
-    ibv
-    CACHE
-      STRING
-      "Network backend to use. If LCI_FORCE_SERVER is set to OFF (default value),
-    this variable is treated as a hint. Otherwise, it is treated as a requirement."
-)
-set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv)
-option(LCI_FORCE_SERVER
-       "Force LCI to use the network backend specified by LCI_SERVER" OFF)
-set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv)
+# ##############################################################################
+# LCI Optimization Options
+# ##############################################################################
 option(LCI_DEBUG "LCI Debug Mode" OFF)
-option(LCI_OPTIMIZE_FOR_NATIVE "Build with -march=native" ON)
 option(LCI_USE_AVX "Use GCC vector extension for the immediate field" ON)
 option(LCI_USE_MUTEX_CQ
        "Use mutex lock to ensure the thread safety of the completion queue."
@@ -35,11 +36,6 @@ option(LCI_SINGLE_THREAD_PROGRESS_DEFAULT
        "LCI_progress will not be called by multiple threads simultaneously" ON)
 option(LCI_IBV_ENABLE_TRY_LOCK_QP
        "Try to lock the queue pair before access it." ON)
-
-set(LCI_EP_CE
-    sync cq am
-    CACHE STRING "Completion mechanism (sync, cq, am, glob)")
-
 option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
 set(LCI_USE_DREG_DEFAULT
     1
@@ -65,12 +61,21 @@ set(LCI_CACHE_LINE
 option(LCI_USE_PERFORMANCE_COUNTER "Use performance counter" OFF)
 option(LCI_ENABLE_SLOWDOWN "Enable manually slowdown" OFF)
 
-set(SRUN_EXE
-    mpirun
-    CACHE STRING "exective to be used in ctest")
-set(SRUN_EXTRA_ARG
-    ""
-    CACHE STRING "arguments to be used in ctest")
+option(LCI_USE_GPROF "Enable GPROF" OFF)
+if(LCI_USE_GPROF)
+  add_compile_options(-pg -fno-inline)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
+endif()
+
+option(LCI_OPTIMIZE_FOR_NATIVE "Build with -march=native" ON)
+if(LCI_OPTIMIZE_FOR_NATIVE)
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
+  if(COMPILER_SUPPORTS_MARCH_NATIVE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+  endif()
+endif()
 
 mark_as_advanced(
   LCI_CONFIG_USE_ALIGNED_ALLOC
@@ -81,13 +86,22 @@ mark_as_advanced(
   LCI_SERVER_NUM_PKTS_DEFAULT
   LCI_CACHE_LINE)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")
+# ##############################################################################
+# LCI Testing related options
+# ##############################################################################
+set(SRUN_EXE
+    mpirun
+    CACHE STRING "exective to be used in ctest")
+set(SRUN_EXTRA_ARG
+    ""
+    CACHE STRING "arguments to be used in ctest")
 
-include(GNUInstallDirs)
-include(CMakePackageConfigHelpers)
-include(TargetSourcesRelative)
-include(AddLCI)
-
+# ##############################################################################
+# LCI Specific Components to build
+# ##############################################################################
+set(LCI_EP_CE
+    sync cq am
+    CACHE STRING "Completion mechanism (sync, cq, am, glob)")
 if("sync" IN_LIST LCI_EP_CE)
   set(LCI_SERVER_HAS_SYNC ON)
 endif()
@@ -101,9 +115,27 @@ if("glob" IN_LIST LCI_EP_CE)
   set(LCI_SERVER_HAS_GLOB ON)
 endif()
 
-find_package(Threads REQUIRED)
-
+# ##############################################################################
 # Figure out which network backend to use
+# ##############################################################################
+set(LCI_SERVER
+    ibv
+    CACHE
+      STRING
+      "Network backend to use. If LCI_FORCE_SERVER is set to OFF (default value),
+    this variable is treated as a hint. Otherwise, it is treated as a requirement."
+)
+set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv)
+option(LCI_FORCE_SERVER
+       "Force LCI to use the network backend specified by LCI_SERVER" OFF)
+set(LCI_OFI_PROVIDER_HINT_DEFAULT
+    ""
+    CACHE
+      STRING
+      "If using the ofi(libfabric) backend, provide a hint for the provider to use"
+)
+set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv)
+
 find_package(OFI)
 find_package(IBV)
 if(IBV_FOUND AND OFI_FOUND)
@@ -136,32 +168,47 @@ set(LCI_FABRIC
 if(FABRIC STREQUAL OFI)
   set(LCI_USE_SERVER_OFI ON)
   message(STATUS "Use ofi(libfabric) as the network backend")
+  # Detect whether the libfabric cxi provider is available
+  find_path(
+    OFI_BIN_DIR
+    NAMES "fi_info"
+    PATHS ${OFI_INCLUDE_DIRS}/../bin
+    HINTS $ENV{OFI_ROOT} $ENV{LIBFABRIC_ROOT}
+    PATH_SUFFIXES bin)
+  if(OFI_BIN_DIR)
+    execute_process(
+      COMMAND sh -c "${OFI_BIN_DIR}/fi_info | grep cxi"
+      RESULT_VARIABLE GREP_RESULT
+      OUTPUT_QUIET ERROR_QUIET)
+    if(${GREP_RESULT} EQUAL "0")
+      # Found libfabric/cxi.
+      if(NOT LCI_OFI_PROVIDER_HINT_DEFAULT)
+        message(
+          STATUS
+            "Found libfabric/cxi. Give hint to LCI to use the libfabric cxi provider."
+        )
+        set(LCI_OFI_PROVIDER_HINT_DEFAULT "cxi")
+      endif()
+    endif()
+  endif()
 else()
   set(LCI_USE_SERVER_IBV ON)
   message(STATUS "Use ibv(libibverbs) as the network backend")
 endif()
 
+# ##############################################################################
+# Find More Libraries
+# ##############################################################################
+find_package(Threads REQUIRED)
 find_package(PAPI)
 option(LCI_USE_PAPI "Use PAPI to collect hardware counters" ${PAPI_FOUND})
 if(LCI_USE_PAPI AND NOT PAPI_FOUND)
   message(FATAL_ERROR "LCI_USE_PAPI is enabled but papi is not found")
 endif()
 
-option(LCI_USE_GPROF "Enable GPROF" OFF)
-if(LCI_USE_GPROF)
-  add_compile_options(-pg -fno-inline)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
-endif()
-
-if(LCI_OPTIMIZE_FOR_NATIVE)
-  include(CheckCXXCompilerFlag)
-  check_cxx_compiler_flag("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
-  if(COMPILER_SUPPORTS_MARCH_NATIVE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-  endif()
-endif()
-
+# ##############################################################################
+# Add the actual LCI library
+# ##############################################################################
 add_library(LCI)
 set_target_properties(
   LCI
