@@ -26,11 +26,8 @@ void LCISD_server_init(LCI_device_t device, LCIS_server_t* s)
   hints->fabric_attr->prov_name = prov_name_hint;
   hints->ep_attr->type = FI_EP_RDM;
   //  hints->domain_attr->mr_mode = FI_MR_BASIC;
-  hints->domain_attr->mr_mode =
-      FI_MR_VIRT_ADDR | FI_MR_ALLOCATED | FI_MR_PROV_KEY | FI_MR_LOCAL;
-  if (prov_name_hint != NULL && strcmp(prov_name_hint, "cxi") == 0) {
-    hints->domain_attr->mr_mode |= FI_MR_ENDPOINT;
-  }
+  hints->domain_attr->mr_mode = FI_MR_VIRT_ADDR | FI_MR_ALLOCATED |
+                                FI_MR_PROV_KEY | FI_MR_LOCAL | FI_MR_ENDPOINT;
   hints->domain_attr->threading = FI_THREAD_SAFE;
   hints->domain_attr->control_progress = FI_PROGRESS_MANUAL;
   hints->domain_attr->data_progress = FI_PROGRESS_MANUAL;
