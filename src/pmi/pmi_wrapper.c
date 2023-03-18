@@ -19,6 +19,7 @@ void lcm_pm_initialize()
   char* str = strdup(p);
   char* word;
   char* rest = str;
+  bool found_valid_backend = false;
   while ((word = strtok_r(rest, " ;,", &rest))) {
     if (strcmp(word, "local") == 0) {
       lcm_pm_local_setup_ops(&LCM_PM_ops);
@@ -30,15 +31,19 @@ void lcm_pm_initialize()
 #ifdef LCI_PM_BACKEND_ENABLE_PMIX
       lcm_pm_pmix_setup_ops(&LCM_PM_ops);
 #else
-      LCM_Log(LCM_LOG_INFO, "pmi",
-              "LCI is not compiled with the %s backend. Skip.\n", word);
+      if (enable_log)
+        fprintf(stderr, "LCI is not compiled with the %s backend. Skip.\n",
+                word);
+      continue;
 #endif
     } else if (strcmp(word, "mpi") == 0) {
 #ifdef LCI_PM_BACKEND_ENABLE_MPI
       lcm_pm_mpi_setup_ops(&LCM_PM_ops);
 #else
-      LCM_Log(LCM_LOG_INFO, "pmi",
-              "LCI is not compiled with the %s backend. Skip.\n", word);
+      if (enable_log)
+        fprintf(stderr, "LCI is not compiled with the %s backend. Skip.\n",
+                word);
+      continue;
 #endif
     } else
       LCM_Assert(
@@ -47,6 +52,7 @@ void lcm_pm_initialize()
           word);
     if (LCM_PM_ops.check_availability()) {
       if (enable_log) fprintf(stderr, "Use %s as the PMI backend.\n", word);
+      found_valid_backend = true;
       break;
     } else {
       if (enable_log)
@@ -55,6 +61,8 @@ void lcm_pm_initialize()
     }
   }
   free(str);
+  LCM_Assert(found_valid_backend,
+             "Tried [%s]. Did not find valid PMI backend! Give up!\n", p);
   LCM_PM_ops.initialize();
 }
 
