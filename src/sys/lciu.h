@@ -124,7 +124,7 @@ static inline int LCIU_getenv_or(char* env, int def)
 static inline void LCIU_spin_for_nsec(double t)
 {
   if (t <= 0) return;
-  ucs_time_t start = LCII_ucs_get_time();
+  LCII_ucs_time_t start = LCII_ucs_get_time();
   while (LCII_ucs_time_to_nsec(LCII_ucs_get_time() - start) < t) continue;
 }
 #include "sys/lciu_spinlock.h"

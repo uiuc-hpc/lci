@@ -149,7 +149,7 @@ typedef struct __attribute__((aligned(LCI_CACHE_LINE))) {
   // used by LCI internally
   LCI_comp_t completion;  // 8 bytes
 #ifdef LCI_USE_PERFORMANCE_COUNTER
-  ucs_time_t timer;
+  LCII_ucs_time_t timer;
 #endif
 } LCII_context_t;
 /**
