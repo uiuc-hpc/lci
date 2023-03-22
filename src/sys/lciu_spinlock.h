@@ -35,7 +35,11 @@ static inline void LCIU_acquire_spinlock(LCIU_spinlock_t* lock)
   if (__sync_lock_test_and_set(lock, LCIU_SPIN_LOCKED)) {
     while (1) {
       while (*lock) {
+#if defined(__x86_64__)
         asm("pause");
+#elif defined(__aarch64__)
+        asm("yield");
+#endif
       }
       if (!__sync_val_compare_and_swap(lock, LCIU_SPIN_UNLOCKED,
                                        LCIU_SPIN_LOCKED))
