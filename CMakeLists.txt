@@ -28,7 +28,6 @@ option(LCI_WITH_DOC "Build LCI documentation" ON)
 # LCI Optimization Options
 # ##############################################################################
 option(LCI_DEBUG "LCI Debug Mode" OFF)
-option(LCI_USE_AVX "Use GCC vector extension for the immediate field" ON)
 option(LCI_USE_MUTEX_CQ
        "Use mutex lock to ensure the thread safety of the completion queue."
        OFF)
@@ -68,12 +67,30 @@ if(LCI_USE_GPROF)
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 endif()
 
-option(LCI_OPTIMIZE_FOR_NATIVE "Build with -march=native" ON)
+include(CheckCCompilerFlag)
+check_c_compiler_flag("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
+option(LCI_OPTIMIZE_FOR_NATIVE "Build with -march=native"
+       ${COMPILER_SUPPORTS_MARCH_NATIVE})
 if(LCI_OPTIMIZE_FOR_NATIVE)
-  include(CheckCXXCompilerFlag)
-  check_cxx_compiler_flag("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
   if(COMPILER_SUPPORTS_MARCH_NATIVE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+  else()
+    message(
+      FATAL_ERROR
+        "LCI_OPTIMIZE_FOR_NATIVE is set explicitly but the C compiler doesn't support -march=native"
+    )
+  endif()
+endif()
+
+check_c_compiler_flag("-mavx" COMPILER_SUPPORTS_MAVX)
+option(LCI_USE_AVX "Use GCC vector extension for the immediate field"
+       ${COMPILER_SUPPORTS_MAVX})
+if(LCI_USE_AVX)
+  if(NOT COMPILER_SUPPORTS_MAVX)
+    message(
+      FATAL_ERROR
+        "COMPILER_SUPPORTS_MAVX is set explicitly but the C compiler doesn't support -mavx"
+    )
   endif()
 endif()
 
