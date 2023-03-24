@@ -48,32 +48,41 @@ LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                  "Only support default remote completion "
                  "(set by LCI_plist_set_default_comp, "
                  "the default value is LCI_UR_CQ)\n");
-  LCII_packet_t* packet = LCII_pool_get_nb(ep->pkpool);
-  if (packet == NULL) {
-    // no packet is available
-    LCII_PCOUNTERS_WRAPPER(
-        LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_packet++);
-    return LCI_ERR_RETRY;
-  }
-  packet->context.poolid = (buffer.length > LCI_PACKET_RETURN_THRESHOLD)
-                               ? lc_pool_get_local(ep->pkpool)
-                               : -1;
-  memcpy(packet->data.address, buffer.address, buffer.length);
+  LCI_error_t ret = LCI_OK;
+  if (buffer.length <= LCI_SHORT_SIZE) {
+    /* if data is this short, we will be able to inline it
+     * no reason to get a packet, allocate a ctx, etc */
+    ret = LCIS_post_sends(ep->device->endpoint_worker.endpoint, rank,
+                          buffer.address, buffer.length,
+                          LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_MEDIUM, tag));
+  } else {
+    LCII_packet_t* packet = LCII_pool_get_nb(ep->pkpool);
+    if (packet == NULL) {
+      // no packet is available
+      LCII_PCOUNTERS_WRAPPER(
+          LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_packet++);
+      return LCI_ERR_RETRY;
+    }
+    packet->context.poolid = (buffer.length > LCI_PACKET_RETURN_THRESHOLD)
+                                 ? lc_pool_get_local(ep->pkpool)
+                                 : -1;
+    memcpy(packet->data.address, buffer.address, buffer.length);
 
-  LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
-  ctx->data.mbuffer.address = (void*)packet->data.address;
-  LCII_PCOUNTERS_WRAPPER(ctx->timer = LCII_ucs_get_time());
-  LCII_initilize_comp_attr(ctx->comp_attr);
-  LCII_comp_attr_set_msg_type(ctx->comp_attr, LCI_MSG_RDMA_MEDIUM);
-  LCII_comp_attr_set_free_packet(ctx->comp_attr, 1);
+    LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
+    ctx->data.mbuffer.address = (void*)packet->data.address;
+    LCII_PCOUNTERS_WRAPPER(ctx->timer = LCII_ucs_get_time());
+    LCII_initilize_comp_attr(ctx->comp_attr);
+    LCII_comp_attr_set_msg_type(ctx->comp_attr, LCI_MSG_RDMA_MEDIUM);
+    LCII_comp_attr_set_free_packet(ctx->comp_attr, 1);
 
-  LCI_error_t ret = LCIS_post_send(
-      ep->device->endpoint_worker.endpoint, rank, packet->data.address,
-      buffer.length, ep->device->heap.segment->mr,
-      LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_MEDIUM, tag), ctx);
-  if (ret == LCI_ERR_RETRY) {
-    LCII_free_packet(packet);
-    LCIU_free(ctx);
+    ret = LCIS_post_send(
+        ep->device->endpoint_worker.endpoint, rank, packet->data.address,
+        buffer.length, ep->device->heap.segment->mr,
+        LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_MEDIUM, tag), ctx);
+    if (ret == LCI_ERR_RETRY) {
+      LCII_free_packet(packet);
+      LCIU_free(ctx);
+    }
   }
   if (ret == LCI_OK) {
     LCII_PCOUNTERS_WRAPPER(
