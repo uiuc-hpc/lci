@@ -88,7 +88,7 @@ LCI_error_t LCII_fill_rq(LCII_endpoint_t* endpoint)
   // Make sure we always have enough packet, but do not block.
   int ret = LCI_ERR_RETRY;
   while (endpoint->recv_posted < LCI_SERVER_MAX_RECVS) {
-    LCII_packet_t* packet = LCII_pool_get_nb(endpoint->device->pkpool);
+    LCII_packet_t* packet = LCII_alloc_packet_nb(endpoint->device->pkpool);
     if (packet == NULL) {
       LCII_PCOUNTERS_WRAPPER(
           LCII_pcounters[LCIU_get_thread_id()].recv_backend_no_packet++);
