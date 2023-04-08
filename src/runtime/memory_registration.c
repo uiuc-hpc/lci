@@ -29,7 +29,7 @@ LCI_error_t LCI_memory_deregister(LCI_segment_t* segment)
 
 LCI_error_t LCI_mbuffer_alloc(LCI_device_t device, LCI_mbuffer_t* mbuffer)
 {
-  LCII_packet_t* packet = LCII_pool_get_nb(device->pkpool);
+  LCII_packet_t* packet = LCII_alloc_packet_nb(device->pkpool);
   if (packet == NULL)
     // no packet is available
     return LCI_ERR_RETRY;

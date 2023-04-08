@@ -10,6 +10,9 @@ struct __attribute__((packed)) LCII_packet_context {
                         * -1 means returning to the local pool */
   int src_rank;
   int length; /* length for its payload */
+#ifdef LCI_DEBUG
+  bool isInPool; /* Debug use only. Whether this packet is in the packet pool */
+#endif
 };
 
 struct __attribute__((packed)) LCII_packet_rts_t {
@@ -68,12 +71,30 @@ typedef struct __attribute__((packed)) LCII_packet_t {
   struct LCII_packet_data_t data;
 } LCII_packet_t;
 
+static inline LCII_packet_t* LCII_alloc_packet_nb(struct LCII_pool_t* pool)
+{
+  LCII_packet_t* packet = LCII_pool_get_nb(pool);
+#ifdef LCI_DEBUG
+  if (packet != NULL) {
+    LCM_DBG_Assert(packet->context.isInPool,
+                   "This packet has already been allocated!\n");
+    packet->context.isInPool = false;
+  }
+#endif
+  return packet;
+}
+
 static inline void LCII_free_packet(LCII_packet_t* packet)
 {
   LCM_DBG_Assert(((uint64_t)packet + sizeof(struct LCII_packet_context)) %
                          LCI_CACHE_LINE ==
                      0,
                  "Not a packet (address %p)!\n", packet);
+#ifdef LCI_DEBUG
+  LCM_DBG_Assert(!packet->context.isInPool,
+                 "This packet has already been freed!\n");
+  packet->context.isInPool = true;
+#endif
   if (packet->context.poolid != -1)
     LCII_pool_put_to(packet->context.pkpool, packet, packet->context.poolid);
   else

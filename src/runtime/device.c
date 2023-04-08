@@ -37,12 +37,15 @@ LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
 
   LCII_pool_create(&device->pkpool);
   for (size_t i = 0; i < LCI_SERVER_NUM_PKTS; i++) {
-    LCII_packet_t* p = (LCII_packet_t*)(base_packet + i * LCI_PACKET_SIZE);
-    LCM_Assert(((uint64_t) & (p->data)) % LCI_CACHE_LINE == 0,
+    LCII_packet_t* packet = (LCII_packet_t*)(base_packet + i * LCI_PACKET_SIZE);
+    LCM_Assert(((uint64_t) & (packet->data)) % LCI_CACHE_LINE == 0,
                "packet.data is not well-aligned\n");
-    p->context.pkpool = device->pkpool;
-    p->context.poolid = 0;
-    LCII_pool_put(device->pkpool, p);
+    packet->context.pkpool = device->pkpool;
+    packet->context.poolid = 0;
+#ifdef LCI_DEBUG
+    packet->context.isInPool = true;
+#endif
+    LCII_pool_put(device->pkpool, packet);
   }
   device->did_work_consecutive = 0;
   LCM_Log(LCM_LOG_INFO, "device", "device %p initialized\n", device);

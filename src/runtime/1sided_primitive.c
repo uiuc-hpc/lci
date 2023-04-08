@@ -56,7 +56,7 @@ LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                           buffer.address, buffer.length,
                           LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_MEDIUM, tag));
   } else {
-    LCII_packet_t* packet = LCII_pool_get_nb(ep->pkpool);
+    LCII_packet_t* packet = LCII_alloc_packet_nb(ep->pkpool);
     if (packet == NULL) {
       // no packet is available
       LCII_PCOUNTERS_WRAPPER(
@@ -157,7 +157,7 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
         LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_bq++);
     return LCI_ERR_RETRY;
   }
-  LCII_packet_t* packet = LCII_pool_get_nb(ep->pkpool);
+  LCII_packet_t* packet = LCII_alloc_packet_nb(ep->pkpool);
   if (packet == NULL) {
     // no packet is available
     LCII_PCOUNTERS_WRAPPER(
@@ -245,7 +245,7 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
         LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_bq++);
     return LCI_ERR_RETRY;
   }
-  LCII_packet_t* packet = LCII_pool_get_nb(ep->pkpool);
+  LCII_packet_t* packet = LCII_alloc_packet_nb(ep->pkpool);
   if (packet == NULL) {
     // no packet is available
     LCII_PCOUNTERS_WRAPPER(

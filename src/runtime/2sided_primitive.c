@@ -35,7 +35,7 @@ LCI_error_t LCI_sendm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                           buffer.address, buffer.length,
                           LCII_MAKE_PROTO(ep->gid, LCI_MSG_MEDIUM, tag));
   } else {
-    LCII_packet_t* packet = LCII_pool_get_nb(ep->pkpool);
+    LCII_packet_t* packet = LCII_alloc_packet_nb(ep->pkpool);
     if (packet == NULL) {
       // no packet is available
       LCII_PCOUNTERS_WRAPPER(
@@ -118,7 +118,7 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, int rank,
         LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_bq++);
     return LCI_ERR_RETRY;
   }
-  LCII_packet_t* packet = LCII_pool_get_nb(ep->pkpool);
+  LCII_packet_t* packet = LCII_alloc_packet_nb(ep->pkpool);
   if (packet == NULL) {
     // no packet is available
     LCII_PCOUNTERS_WRAPPER(
