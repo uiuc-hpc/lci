@@ -37,8 +37,14 @@ void* LCII_monitor_thread_fn(void* vargp)
     pcounter_old = pcounter_now;
     clock_gettime(CLOCK_MONOTONIC, &time_now);
     struct timespec time_diff = LCIU_timespec_diff(time_now, start_time);
+    char* p = NULL;
+#ifdef LCI_USE_PERFORMANCE_COUNTER
+    p = LCII_pcounters_to_string(pcounter_diff);
+#else
+    p = "No performance counter available.\n";
+#endif
     LCM_Log(LCM_LOG_INFO, "monitor", "Time %lu.%lu s\n%s", time_diff.tv_sec,
-            time_diff.tv_nsec, LCII_pcounters_to_string(pcounter_diff));
+            time_diff.tv_nsec, p);
     LCM_Log_flush();
   }
   clock_gettime(CLOCK_MONOTONIC, &time_now);
