@@ -16,6 +16,9 @@ LCI_error_t LCI_sends(LCI_endpoint_t ep, LCI_short_t src, int rank,
     LCII_PCOUNTERS_WRAPPER(
         LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
   }
+  LCM_DBG_Log(LCM_LOG_DEBUG, "comm",
+              "LCI_sends(ep %p, src %p, rank %d, tag %u) -> %d\n", ep, src,
+              rank, tag, ret);
   return ret;
 }
 
@@ -69,6 +72,9 @@ LCI_error_t LCI_sendm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
     LCII_PCOUNTERS_WRAPPER(
         LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
   }
+  LCM_DBG_Log(LCM_LOG_DEBUG, "comm",
+              "LCI_sendm(ep %p, buffer {%p, %lu}, rank %d, tag %u) -> %d\n", ep,
+              buffer.address, buffer.length, rank, tag, ret);
   return ret;
 }
 
@@ -105,6 +111,9 @@ LCI_error_t LCI_sendmn(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
     LCII_PCOUNTERS_WRAPPER(
         LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
   }
+  LCM_DBG_Log(LCM_LOG_DEBUG, "comm",
+              "LCI_sendmn(ep %p, buffer {%p, %lu}, rank %d, tag %u) -> %d\n",
+              ep, buffer.address, buffer.length, rank, tag, ret);
   return ret;
 }
 
@@ -166,6 +175,11 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, int rank,
     LCII_PCOUNTERS_WRAPPER(
         LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
   }
+  LCM_DBG_Log(LCM_LOG_DEBUG, "comm",
+              "LCI_sendl(ep %p, buffer {%p, %lu, %p}, rank %d, tag %u, "
+              "completion %p, user_context %p) -> %d\n",
+              ep, buffer.address, buffer.length, buffer.segment, rank, tag,
+              completion, user_context, ret);
   return ret;
 }
 
@@ -193,6 +207,10 @@ LCI_error_t LCI_recvs(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
     LCII_free_packet(packet);
     lc_ce_dispatch(ctx);
   }
+  LCM_DBG_Log(LCM_LOG_DEBUG, "comm",
+              "LCI_recvs(ep %p, rank %d, tag %u, completion %p, user_context "
+              "%p) -> %d\n",
+              ep, rank, tag, completion, user_context, LCI_OK);
   return LCI_OK;
 }
 
@@ -227,6 +245,11 @@ LCI_error_t LCI_recvm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
     LCII_free_packet(packet);
     lc_ce_dispatch(ctx);
   }
+  LCM_DBG_Log(LCM_LOG_DEBUG, "comm",
+              "LCI_recvm(ep %p, buffer {%p, %lu}, rank %d, tag %u, completion "
+              "%p, user_context %p) -> %d\n",
+              ep, buffer.address, buffer.length, rank, tag, completion,
+              user_context, LCI_OK);
   return LCI_OK;
 }
 
@@ -256,6 +279,10 @@ LCI_error_t LCI_recvmn(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
     ctx->data.mbuffer.address = packet->data.address;
     lc_ce_dispatch(ctx);
   }
+  LCM_DBG_Log(LCM_LOG_DEBUG, "comm",
+              "LCI_recvmn(ep %p, rank %d, tag %u, completion %p, user_context "
+              "%p) -> %d\n",
+              ep, rank, tag, completion, user_context, LCI_OK);
   return LCI_OK;
 }
 
@@ -284,5 +311,10 @@ LCI_error_t LCI_recvl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, int rank,
     LCII_packet_t* p = (LCII_packet_t*)value;
     LCII_handle_2sided_rts(ep, p, rdv_ctx, false);
   }
+  LCM_DBG_Log(LCM_LOG_DEBUG, "comm",
+              "LCI_recvl(ep %p, buffer {%p, %lu, %p}, rank %d, tag %u, "
+              "completion %p, user_context %p) -> %d\n",
+              ep, buffer.address, buffer.length, buffer.segment, rank, tag,
+              completion, user_context, LCI_OK);
   return LCI_OK;
 }
