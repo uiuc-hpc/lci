@@ -1255,6 +1255,10 @@ LCI_API
 LCI_error_t LCI_lbuffer_free(LCI_lbuffer_t lbuffer);
 
 struct LCIX_collective_s;
+/**
+ * @ingroup LCI_COLL
+ * @brief Handler of a collective operation.
+ */
 typedef struct LCIX_collective_s* LCIX_collective_t;
 
 /**
