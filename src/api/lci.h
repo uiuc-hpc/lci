@@ -169,6 +169,21 @@ extern "C" {
  * buffers.
  */
 
+/**
+ * @defgroup LCIX_API LCI Experimental API
+ * @brief This section describes LCI experimental APIs that may be under
+ * development, poorly documented, or otherwise incomplete.
+ */
+
+/**
+ * @defgroup LCI_COLL LCI Collectives
+ * @ingroup LCIX_API
+ * @brief MPI-style collective communications; these are provided for the
+ * purpose of compatability and ease of porting to LCI and are not expected to
+ * be used in performance-critical code. Collective completion uses the message
+ * port. Use this API with caution.
+ */
+
 #define LCI_API __attribute__((visibility("default")))
 
 #define LCI_DEFAULT_COMP_REMOTE 0
@@ -1238,6 +1253,151 @@ LCI_error_t LCI_lbuffer_memalign(LCI_device_t device, size_t size,
  */
 LCI_API
 LCI_error_t LCI_lbuffer_free(LCI_lbuffer_t lbuffer);
+
+struct LCIX_collective_s;
+/**
+ * @ingroup LCI_COLL
+ * @brief Handler of a collective operation.
+ */
+typedef struct LCIX_collective_s* LCIX_collective_t;
+
+/**
+ * @ingroup LCI_COLL
+ * @brief Make progress on a specified collective operation.
+ * @param coll The collective to make progress on.
+ * @return LCI_OK if it made progress on something. LCI_ERR_RETRY if there was
+ * background work to make progress on. All the other errors are fatal as
+ * defined by @ref LCI_error_t.
+ */
+LCI_API
+LCI_error_t LCIX_coll_progress(LCIX_collective_t* coll);
+
+/**
+ * @ingroup LCI_COLL
+ * @brief Notify all processes that this barrier has been reached. Completion
+ * indicates that all processes have reached this barrier.
+ * @param [in] ep           The endpoint to post this barrier to.
+ * @param [in] tag          The tag of this collective. This should be the same
+ * at all processes participating in this collective and distinct from all
+ * other communications concurrently executing on this endpoint.
+ * @param [in] completion   The completion object to be associated with.
+ * @param [in] user_context Arbitrary data the user want to attach to this
+ * operation. It will be returned the user through the completion object.
+ * @param [out] coll        The collective progress structure.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
+LCI_API
+LCI_error_t LCIX_barrier(LCI_endpoint_t ep, LCI_tag_t tag,
+                         LCI_comp_t completion, void* user_context,
+                         LCIX_collective_t* coll);
+
+/**
+ * @ingroup LCI_COLL
+ * @brief Broadcast a medium message (up to LCI_MEDIUM_SIZE bytes) with a
+ * user-provided buffer from root to all processes. The buffer cannot be reused
+ * until the associated completion object marks this operation as completed.
+ * @param [in] ep           The endpoint to post this broadcast to.
+ * @param [in] buffer       The user-provided buffer to communicate the message.
+ * This will be the send buffer at the root and the receive buffer at all other
+ * processes. The length of the buffer should be the same at all processes.
+ * @param [in] root         The root of the broadcast. This should be the same
+ * on all processes participating in this broadcast.
+ * @param [in] tag          The tag of this collective. This should be the same
+ * at all processes participating in this collective and distinct from all
+ * other communications concurrently executing on this endpoint.
+ * @param [in] completion   The completion object to be associated with.
+ * @param [in] user_context Arbitrary data the user want to attach to this
+ * operation. It will be returned the user through the completion object.
+ * @param [out] coll        The collective progress structure.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
+LCI_API
+LCI_error_t LCIX_bcastm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int root,
+                        LCI_tag_t tag, LCI_comp_t completion,
+                        void* user_context, LCIX_collective_t* coll);
+
+/**
+ * @ingroup LCI_COLL
+ * @brief Broadcast a long message with a user-provided buffer from root to all
+ * processes. The buffer cannot be reused until the associated completion
+ * object marks this operation as completed.
+ * @param [in] ep           The endpoint to post this broadcast to.
+ * @param [in] buffer       The user-provided buffer to communicate the message.
+ * This will be the send buffer at the root and the receive buffer at all other
+ * processes. The length of the buffer should be the same at all processes.
+ * @param [in] root         The root of the broadcast.
+ * @param [in] tag          The tag of this collective. This should be the same
+ * at all processes participating in this collective and distinct from all
+ * other communications concurrently executing on this endpoint.
+ * @param [in] completion   The completion object to be associated with.
+ * @param [in] user_context Arbitrary data the user want to attach to this
+ * operation. It will be returned the user through the completion object.
+ * @param [out] coll        The collective progress structure.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
+LCI_API
+LCI_error_t LCIX_bcastl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, int root,
+                        LCI_tag_t tag, LCI_comp_t completion,
+                        void* user_context, LCIX_collective_t* coll);
+
+/**
+ * @ingroup LCI_COLL
+ * @brief The reduction operation type. It is assumed to be commutative.
+ * @param [in,out] dest   The buffer containing the current reduction output.
+ * @param [in]     src    The buffer containing new input to reduce.
+ * @param [in]     length The size of both buffers, in bytes.
+ */
+typedef void (*LCI_op_t)(void* dest, const void* src, size_t length);
+
+/**
+ * @ingroup LCI_COLL
+ * @brief Reduce a medium message (up to LCI_MEDIUM_SIZE bytes) with a
+ * user-provided buffer across all processes. The buffer cannot be reused
+ * until the associated completion object marks this operation as completed.
+ * @param [in] ep           The endpoint to post this reduction to.
+ * @param [in] buffer       The user-provided buffer to communicate the message.
+ * The length of the buffer should be the same at all processes.
+ * @param [in] tag          The tag of this collective. This should be the same
+ * at all processes participating in this collective and distinct from all
+ * other communications concurrently executing on this endpoint.
+ * @param [in] completion   The completion object to be associated with.
+ * @param [in] user_context Arbitrary data the user want to attach to this
+ * operation. It will be returned the user through the completion object.
+ * @param [out] coll        The collective progress structure.
+ * @return LCI_OK if successfully started. LCI_ERR_RETRY if buffers are
+ * temporarily unavailable. All the other errors are fatal as defined by
+ * @ref LCI_error_t.
+ */
+LCI_API
+LCI_error_t LCIX_allreducem(LCI_endpoint_t ep, LCI_mbuffer_t buffer,
+                            LCI_op_t op, LCI_tag_t tag, LCI_comp_t completion,
+                            void* user_context, LCIX_collective_t* coll);
+
+/**
+ * @ingroup LCI_COLL
+ * @brief Reduce a long message with a user-provided buffer across all
+ * processes. The buffer cannot be reused until the associated completion
+ * object marks this operation as completed.
+ * @param [in] ep           The endpoint to post this reduction to.
+ * @param [in] buffer       The user-provided buffer to communicate the message.
+ * The length of the buffer should be the same at all processes.
+ * @param [in] tag          The tag of this collective. This should be the same
+ * at all processes participating in this collective and distinct from all
+ * other communications concurrently executing on this endpoint.
+ * @param [in] completion   The completion object to be associated with.
+ * @param [in] user_context Arbitrary data the user want to attach to this
+ * operation. It will be returned the user through the completion object.
+ * @param [out] coll        The collective progress structure.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
+LCI_API
+LCI_error_t LCIX_allreducel(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
+                            LCI_op_t op, LCI_tag_t tag, LCI_comp_t completion,
+                            void* user_context, LCIX_collective_t* coll);
 
 #ifdef __cplusplus
 }
