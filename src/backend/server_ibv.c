@@ -219,11 +219,13 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
       endpoint_p->pd =
           ibv_alloc_parent_domain(endpoint_p->server->dev_ctx, &attr);
       if (endpoint_p->pd == NULL) {
-        LCM_Warn("ibv_alloc_parent_domain() failed (%s)\n", strerror(errno));
+        LCM_Log(LCM_LOG_INFO, "ibv", "ibv_alloc_parent_domain() failed (%s)\n",
+                strerror(errno));
         IBV_SAFECALL(ibv_dealloc_td(endpoint_p->td));
       }
     } else {
-      LCM_Warn("ibv_alloc_td() failed (%s)\n", strerror(errno));
+      LCM_Log(LCM_LOG_INFO, "ibv", "ibv_alloc_td() failed (%s)\n",
+              strerror(errno));
     }
   }
   if (endpoint_p->pd == NULL) {
@@ -253,11 +255,13 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
         endpoint_p->qp_extras[i].pd =
             ibv_alloc_parent_domain(endpoint_p->server->dev_ctx, &attr);
         if (endpoint_p->qp_extras[i].pd == NULL) {
-          LCM_Warn("ibv_alloc_parent_domain() failed (%s)\n", strerror(errno));
+          LCM_Log(LCM_LOG_INFO, "ibv",
+                  "ibv_alloc_parent_domain() failed (%s)\n", strerror(errno));
           IBV_SAFECALL(ibv_dealloc_td(endpoint_p->qp_extras[i].td));
         }
       } else {
-        LCM_Warn("ibv_alloc_td() failed (%s)\n", strerror(errno));
+        LCM_Log(LCM_LOG_INFO, "ibv", "ibv_alloc_td() failed (%s)\n",
+                strerror(errno));
       }
       if (endpoint_p->qp_extras[i].pd == NULL) {
         endpoint_p->qp_extras[i].td = NULL;
@@ -395,7 +399,9 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
       attr.sq_psn = 0;
       // number of outstanding RDMA reads and atomic operations allowed
       attr.max_rd_atomic = 1;
-      attr.timeout = 14;
+      // TODO: Try to fix the error on Ookami
+      // "Failed status transport retry counter exceeded (12) for wr_id"
+      attr.timeout = 18;
       attr.retry_cnt = 7;
       attr.rnr_retry = 7;
 
