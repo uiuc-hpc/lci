@@ -1,5 +1,7 @@
 #include "runtime/lcii.h"
 
+LCI_error_t LCII_fill_rq(LCII_endpoint_t* endpoint, bool block);
+
 LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
 {
   LCI_device_t device = LCIU_malloc(sizeof(struct LCI_device_s));
@@ -48,6 +50,11 @@ LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
     LCII_pool_put(device->pkpool, packet);
   }
   device->did_work_consecutive = 0;
+  LCM_Assert(LCI_SERVER_NUM_PKTS > 2 * LCI_SERVER_MAX_RECVS,
+             "The packet number is too small!\n");
+  LCII_fill_rq(&device->endpoint_progress, true);
+  LCII_fill_rq(&device->endpoint_worker, true);
+  LCI_barrier();
   LCM_Log(LCM_LOG_INFO, "device", "device %p initialized\n", device);
   return LCI_OK;
 }

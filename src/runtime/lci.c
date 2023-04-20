@@ -68,8 +68,67 @@ LCI_error_t LCI_finalize()
   return LCI_OK;
 }
 
+// This function is not thread-safe.
+LCI_error_t LCII_barrier()
+{
+  if (LCI_NUM_PROCESSES <= 1) return LCI_OK;
+
+  static LCI_tag_t next_tag = 0;
+  static LCI_endpoint_t ep = NULL;
+  if (ep == NULL) {
+    LCI_plist_t plist;
+    LCI_plist_create(&plist);
+    LCI_plist_set_comp_type(plist, LCI_PORT_COMMAND, LCI_COMPLETION_SYNC);
+    LCI_plist_set_comp_type(plist, LCI_PORT_MESSAGE, LCI_COMPLETION_SYNC);
+    LCI_endpoint_init(&ep, LCI_UR_DEVICE, plist);
+    LCI_plist_free(&plist);
+  }
+  LCI_tag_t tag = next_tag++;
+  LCM_Log(LCM_LOG_INFO, "coll", "Start barrier (%d, %p).\n", tag, ep);
+  LCI_mbuffer_t buffer;
+  int nonsense;
+  buffer.address = &nonsense;
+  buffer.length = sizeof(nonsense);
+
+  if (LCI_RANK != 0) {
+    // Other ranks
+    // Phase 1: all the other ranks send a message to rank 0.
+    while (LCI_sendm(ep, buffer, 0, tag) != LCI_OK) {
+      LCI_progress(LCI_UR_DEVICE);
+    }
+    // Phase 2: rank 0 send a message to all the other ranks.
+    LCI_comp_t sync;
+    LCI_sync_create(LCI_UR_DEVICE, 1, &sync);
+    LCI_recvm(ep, buffer, 0, tag, sync, NULL);
+    while (LCI_sync_test(sync, NULL) != LCI_OK) {
+      LCI_progress(LCI_UR_DEVICE);
+    }
+    LCI_sync_free(&sync);
+  } else {
+    // rank 0
+    // Phase 1: all the other ranks send a message to rank 0.
+    LCI_comp_t sync;
+    LCI_sync_create(LCI_UR_DEVICE, LCI_NUM_PROCESSES - 1, &sync);
+    for (int i = 1; i < LCI_NUM_PROCESSES; ++i) {
+      LCI_recvm(ep, buffer, i, tag, sync, NULL);
+    }
+    while (LCI_sync_test(sync, NULL) != LCI_OK) {
+      LCI_progress(LCI_UR_DEVICE);
+    }
+    LCI_sync_free(&sync);
+    // Phase 2: rank 0 send a message to all the other ranks.
+    for (int i = 1; i < LCI_NUM_PROCESSES; ++i) {
+      while (LCI_sendm(ep, buffer, i, tag) != LCI_OK)
+        LCI_progress(LCI_UR_DEVICE);
+    }
+  }
+  LCM_Log(LCM_LOG_INFO, "coll", "End barrier (%d, %p).\n", tag, ep);
+  return LCI_OK;
+}
+
 LCI_error_t LCI_barrier()
 {
-  lcm_pm_barrier();
-  return LCI_OK;
+  //  lcm_pm_barrier();
+  //  return LCI_OK;
+  return LCII_barrier();
 }

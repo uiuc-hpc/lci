@@ -82,25 +82,29 @@ LCI_error_t LCII_poll_cq(LCII_endpoint_t* endpoint)
   return ret;
 }
 
-LCI_error_t LCII_fill_rq(LCII_endpoint_t* endpoint)
+LCI_error_t LCII_fill_rq(LCII_endpoint_t* endpoint, bool block)
 {
   static int g_server_no_recv_packets;
-  // Make sure we always have enough packet, but do not block.
   int ret = LCI_ERR_RETRY;
   while (endpoint->recv_posted < LCI_SERVER_MAX_RECVS) {
     LCII_packet_t* packet = LCII_alloc_packet_nb(endpoint->device->pkpool);
     if (packet == NULL) {
-      LCII_PCOUNTERS_WRAPPER(
-          LCII_pcounters[LCIU_get_thread_id()].recv_backend_no_packet++);
-      if (endpoint->recv_posted < LCI_SERVER_MAX_RECVS / 2 &&
-          !g_server_no_recv_packets) {
-        g_server_no_recv_packets = 1;
-        LCM_Warn(
-            "WARNING-LC: deadlock alert. There is only "
-            "%d packets left for post_recv\n",
-            endpoint->recv_posted);
+      if (block) {
+        // Try again
+        continue;
+      } else {
+        LCII_PCOUNTERS_WRAPPER(
+            LCII_pcounters[LCIU_get_thread_id()].recv_backend_no_packet++);
+        if (endpoint->recv_posted < LCI_SERVER_MAX_RECVS / 2 &&
+            !g_server_no_recv_packets) {
+          g_server_no_recv_packets = 1;
+          LCM_Warn(
+              "WARNING-LC: deadlock alert. There is only "
+              "%d packets left for post_recv\n",
+              endpoint->recv_posted);
+        }
+        break;
       }
-      break;
     } else {
       packet->context.poolid = lc_pool_get_local(endpoint->device->pkpool);
       LCIS_post_recv(endpoint->endpoint, packet->data.address, LCI_MEDIUM_SIZE,
@@ -128,13 +132,15 @@ LCI_error_t LCI_progress(LCI_device_t device)
   while (LCII_progress_bq(device) == LCI_OK) {
     ret = LCI_OK;
   }
-  if (LCII_fill_rq(&device->endpoint_progress) == LCI_OK) {
+  // Make sure we always have enough packet, but do not block.
+  if (LCII_fill_rq(&device->endpoint_progress, false) == LCI_OK) {
     ret = LCI_OK;
   }
   if (LCII_poll_cq(&device->endpoint_worker) == LCI_OK) {
     ret = LCI_OK;
   }
-  if (LCII_fill_rq(&device->endpoint_worker) == LCI_OK) {
+  // Make sure we always have enough packet, but do not block.
+  if (LCII_fill_rq(&device->endpoint_worker, false) == LCI_OK) {
     ret = LCI_OK;
   }
   LCII_PCOUNTERS_WRAPPER(LCII_pcounters[LCIU_get_thread_id()].progress_call +=
