@@ -80,14 +80,9 @@ void LCISD_server_init(LCI_device_t device, LCIS_server_t* s)
     exit(EXIT_FAILURE);
   }
 
-  // Use the last one by default.
-  server->ib_dev = server->dev_list[num_devices - 1];
-  if (!server->ib_dev) {
-    fprintf(stderr, "No IB devices found\n");
-    exit(EXIT_FAILURE);
-  }
-  LCM_Log(LCM_LOG_INFO, "ibv", "Use IB server: %s\n",
-          ibv_get_device_name(server->ib_dev));
+  bool ret = LCISI_ibv_select_best_device_port(
+      server->dev_list, num_devices, &server->ib_dev, &server->dev_port);
+  LCM_Assert(ret, "Cannot find available ibv device/port!\n");
 
   // ibv_open_device provides the user with a verbs context which is the object
   // that will be used for all other verb operations.

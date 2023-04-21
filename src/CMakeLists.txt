@@ -27,9 +27,10 @@ target_sources_relative(
   runtime/completion/sync_flag.c)
 
 if(LCI_USE_SERVER_OFI)
-  target_sources_relative(LCI PRIVATE backend/server_ofi.c)
+  target_sources_relative(LCI PRIVATE backend/ofi/server_ofi.c)
 elseif(LCI_USE_SERVER_IBV)
-  target_sources_relative(LCI PRIVATE backend/server_ibv.c)
+  target_sources_relative(LCI PRIVATE backend/ibv/server_ibv.c)
+  target_sources_relative(LCI PRIVATE backend/ibv/lcisi_ibv_detail.c)
 endif()
 
 configure_file(lcii_config.h.in lcii_config.h @ONLY)

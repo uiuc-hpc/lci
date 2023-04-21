@@ -80,10 +80,11 @@ static inline void LCISD_post_recv(LCIS_endpoint_t endpoint_pp, void* buf,
                                    uint32_t size, LCIS_mr_t mr, void* ctx);
 
 #ifdef LCI_USE_SERVER_OFI
-#include "server_ofi.h"
+#include "backend/ofi/server_ofi.h"
 #endif
 #ifdef LCI_USE_SERVER_IBV
-#include "server_ibv.h"
+#include "backend/ibv/server_ibv.h"
+#include "backend/ibv/lcisi_ibv_detail.h"
 #endif
 
 /* Wrapper functions */
