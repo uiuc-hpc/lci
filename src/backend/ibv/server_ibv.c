@@ -63,6 +63,9 @@ void LCISI_event_polling_thread_init(LCISI_server_t* server)
 void LCISI_event_polling_thread_fina(LCISI_server_t* server)
 {
   if (LCI_IBV_ENABLE_EVENT_POLLING_THREAD) {
+    LCM_Warn(
+        "IBV event polling thread is enabled! The application may never "
+        "finish!\n");
     atomic_store_explicit(&server->event_polling_thread_run, false,
                           LCIU_memory_order_release);
     pthread_join(server->event_polling_thread, NULL);
@@ -201,6 +204,9 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
     fprintf(stderr, "Unable to create cq\n");
     exit(EXIT_FAILURE);
   }
+#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+  LCIU_spinlock_init(&endpoint_p->cq_lock);
+#endif
 
   endpoint_p->pd = NULL;
   if (single_threaded) {
@@ -396,7 +402,6 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
       attr.sq_psn = 0;
       // number of outstanding RDMA reads and atomic operations allowed
       attr.max_rd_atomic = 1;
-      // TODO: Try to fix the error on Ookami
       // "Failed status transport retry counter exceeded (12) for wr_id"
       attr.timeout = 18;
       attr.retry_cnt = 7;
@@ -434,7 +439,6 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
   endpoint_p->qp2rank_mod = j;
   endpoint_p->qp2rank = b;
   LCM_Log(LCM_LOG_INFO, "ibv", "qp2rank_mod is %d\n", j);
-
   lcm_pm_barrier();
 }
 
@@ -463,6 +467,9 @@ void LCISD_endpoint_fina(LCIS_endpoint_t endpoint_pp)
     IBV_SAFECALL(ibv_dealloc_pd(endpoint_p->pd));
     IBV_SAFECALL(ibv_dealloc_td(endpoint_p->td));
   }
+#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+  LCIU_spinlock_fina(&endpoint_p->cq_lock);
+#endif
   IBV_SAFECALL(ibv_destroy_cq(endpoint_p->cq));
   IBV_SAFECALL(ibv_destroy_srq(endpoint_p->srq));
   LCIU_free(endpoint_p);

@@ -35,8 +35,7 @@ LCI_error_t LCI_initialize()
 
   opened = 1;
   LCI_barrier();
-  if (LCI_RANK == 0)
-    LCM_Log(LCM_LOG_INFO, "device", "LCI_initialize is called\n");
+  LCM_Log(LCM_LOG_INFO, "device", "LCI_initialize is called\n");
   return LCI_OK;
 }
 
@@ -48,6 +47,7 @@ LCI_error_t LCI_initialized(int* flag)
 
 LCI_error_t LCI_finalize()
 {
+  LCM_Log(LCM_LOG_INFO, "device", "LCI_finalize is called\n");
   LCI_barrier();
   LCII_papi_fina();
 #ifdef LCI_USE_PERFORMANCE_COUNTER

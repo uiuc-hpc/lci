@@ -46,8 +46,8 @@ class Lci(CMakePackage):
                 ('auto',), ('pmix', 'pmi2', 'pmi1', 'mpi', 'local')
             ).prohibit_empty_set(
             ).with_default('auto').with_non_feature_values('auto'))
-    variant('default-progress', default='single', values=('single', 'multi'),
-            multi=False, description='Default: LCI_progress thread safety')
+    variant('multithread-progress', default=False,
+            description='Enable thread-safe LCI_progress function')
     variant('default-dreg', default=True,
             description='Default: Whether to use registration cache')
     variant('default-packet-size', default='auto', values=is_positive_int,
@@ -99,8 +99,7 @@ class Lci(CMakePackage):
             self.define('LCI_USE_MUTEX_CQ',
                         self.spec.variants['cq'].value == 'mutex-dq'),
             self.define_from_variant('LCI_IBV_ENABLE_TRY_LOCK_QP', 'qp-lock'),
-            self.define('LCI_SINGLE_THREAD_PROGRESS_DEFAULT',
-                        self.spec.variants['default-progress'].value == 'single'),
+            self.define('LCI_ENABLE_MULTITHREAD_PROGRESS', 'multithread-progress'),
             self.define('LCI_USE_DREG_DEFAULT',
                         1 if self.spec.variants['default-dreg'].value else 0),
             self.define_from_variant('LCI_DEBUG', 'debug'),

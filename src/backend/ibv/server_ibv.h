@@ -54,6 +54,9 @@ typedef struct LCISI_endpoint_t {
   struct LCISI_ibv_qp_extra_t* qp_extras;
 #endif
   struct ibv_cq* cq;
+#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+  LCIU_spinlock_t cq_lock;
+#endif
   struct ibv_srq* srq;
   // Helper fields.
   int* qp2rank;
@@ -129,9 +132,14 @@ static inline int LCISD_poll_cq(LCIS_endpoint_t endpoint_pp,
 {
   LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
   struct ibv_wc wc[LCI_CQ_MAX_POLL];
+#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+  if (!LCIU_try_acquire_spinlock(&endpoint_p->cq_lock)) return 0;
+#endif
   int ne = ibv_poll_cq(endpoint_p->cq, LCI_CQ_MAX_POLL, wc);
   LCM_DBG_Assert(ne >= 0, "ibv_poll_cq returns error %d\n", ne);
-
+#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+  LCIU_release_spinlock(&endpoint_p->cq_lock);
+#endif
   for (int i = 0; i < ne; i++) {
     LCM_DBG_Assert(
         wc[i].status == IBV_WC_SUCCESS, "Failed status %s (%d) for wr_id %d\n",

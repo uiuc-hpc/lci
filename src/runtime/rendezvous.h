@@ -407,7 +407,11 @@ static inline void LCII_handle_iovec_rtr(LCI_endpoint_t ep,
   LCII_extended_context_t* ectx = LCIU_malloc(sizeof(LCII_extended_context_t));
   LCII_initilize_comp_attr(ectx->comp_attr);
   LCII_comp_attr_set_extended(ectx->comp_attr, 1);
+#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+  atomic_init(&ectx->signal_count, 0);
+#else
   ectx->signal_count = 0;
+#endif
   ectx->signal_expected = ctx->data.iovec.count;
   ectx->context = ctx;
   ectx->ep = ep;
@@ -437,12 +441,19 @@ static inline void LCII_handle_iovec_rtr(LCI_endpoint_t ep,
 
 static inline void LCII_handle_iovec_put_comp(LCII_extended_context_t* ectx)
 {
-  ++ectx->signal_count;
-  if (ectx->signal_count < ectx->signal_expected) {
+#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+  int signal_count = atomic_fetch_add_explicit(&ectx->signal_count, 1,
+                                               LCIU_memory_order_relaxed) +
+                     1;
+#else
+  int signal_count = ++ectx->signal_count;
+#endif
+  // Assuming ibv_post_send will act as a full memory barrier, signal_expected
+  // doesn't need to be an atomic variable.
+  if (signal_count < ectx->signal_expected) {
     return;
   }
-  LCM_DBG_Assert(ectx->signal_count == ectx->signal_expected,
-                 "Unexpected signal!\n");
+  LCM_DBG_Assert(signal_count == ectx->signal_expected, "Unexpected signal!\n");
   LCII_context_t* ctx = ectx->context;
   LCM_DBG_Log(LCM_LOG_DEBUG, "rdv", "send FIN: rctx %p\n",
               (void*)ectx->recv_ctx);

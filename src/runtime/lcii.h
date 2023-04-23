@@ -56,7 +56,11 @@ typedef struct LCM_hashtable_t* LCI_mt_t;
 struct LCII_endpoint_t {
   LCI_device_t device;
   LCIS_endpoint_t endpoint;
+#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+  atomic_int recv_posted;
+#else
   int recv_posted;
+#endif
 };
 typedef struct LCII_endpoint_t LCII_endpoint_t;
 
@@ -175,8 +179,12 @@ typedef struct __attribute__((aligned(LCI_CACHE_LINE))) {
 
 // Extended context for iovec
 typedef struct __attribute__((aligned(LCI_CACHE_LINE))) {
-  uint32_t comp_attr;       // 4 bytes
-  int signal_count;         // 4 bytes
+  uint32_t comp_attr;  // 4 bytes
+#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+  atomic_int signal_count;  // ~4 bytes
+#else
+  int signal_count;  // 4 bytes
+#endif
   int signal_expected;      // 4 bytes
   uintptr_t recv_ctx;       // 8 bytes
   LCI_endpoint_t ep;        // 8 bytes

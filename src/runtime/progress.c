@@ -62,13 +62,23 @@ LCI_error_t LCII_poll_cq(LCII_endpoint_t* endpoint)
                   entry[i].imm_data);
       LCIS_serve_recv((LCII_packet_t*)entry[i].ctx, entry[i].rank,
                       entry[i].length, entry[i].imm_data);
+#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+      atomic_fetch_sub_explicit(&endpoint->recv_posted, 1,
+                                LCIU_memory_order_relaxed);
+#else
       --endpoint->recv_posted;
+#endif
     } else if (entry[i].opcode == LCII_OP_RDMA_WRITE) {
       LCM_DBG_Log(LCM_LOG_DEBUG, "device", "complete write: imm_data %u\n",
                   entry[i].imm_data);
       if (entry[i].ctx != NULL) {
         LCII_free_packet((LCII_packet_t*)entry[i].ctx);
+#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+        atomic_fetch_sub_explicit(&endpoint->recv_posted, 1,
+                                  LCIU_memory_order_relaxed);
+#else
         --endpoint->recv_posted;
+#endif
       }
       LCIS_serve_rdma(entry[i].imm_data);
     } else {
@@ -84,39 +94,36 @@ LCI_error_t LCII_poll_cq(LCII_endpoint_t* endpoint)
 
 LCI_error_t LCII_fill_rq(LCII_endpoint_t* endpoint, bool block)
 {
-  static int g_server_no_recv_packets;
   int ret = LCI_ERR_RETRY;
+#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+  while (atomic_load_explicit(&endpoint->recv_posted, memory_order_relaxed) <
+         LCI_SERVER_MAX_RECVS) {
+#else
   while (endpoint->recv_posted < LCI_SERVER_MAX_RECVS) {
+#endif
     LCII_packet_t* packet = LCII_alloc_packet_nb(endpoint->device->pkpool);
     if (packet == NULL) {
+      LCII_PCOUNTERS_WRAPPER(
+          LCII_pcounters[LCIU_get_thread_id()].recv_backend_no_packet++);
       if (block) {
         // Try again
         continue;
       } else {
-        LCII_PCOUNTERS_WRAPPER(
-            LCII_pcounters[LCIU_get_thread_id()].recv_backend_no_packet++);
-        if (endpoint->recv_posted < LCI_SERVER_MAX_RECVS / 2 &&
-            !g_server_no_recv_packets) {
-          g_server_no_recv_packets = 1;
-          LCM_Warn(
-              "WARNING-LC: deadlock alert. There is only "
-              "%d packets left for post_recv\n",
-              endpoint->recv_posted);
-        }
         break;
       }
     } else {
+      // TODO: figure out what is the right poolid to set
       packet->context.poolid = lc_pool_get_local(endpoint->device->pkpool);
       LCIS_post_recv(endpoint->endpoint, packet->data.address, LCI_MEDIUM_SIZE,
                      endpoint->device->heap.segment->mr, packet);
+#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+      atomic_fetch_add_explicit(&endpoint->recv_posted, 1,
+                                LCIU_memory_order_relaxed);
+#else
       ++endpoint->recv_posted;
+#endif
       ret = LCI_OK;
     }
-  }
-  if (endpoint->recv_posted == LCI_SERVER_MAX_RECVS &&
-      g_server_no_recv_packets) {
-    g_server_no_recv_packets = 0;
-    LCM_Warn("WARNING-LC: recovered from deadlock alert.\n");
   }
   return ret;
 }

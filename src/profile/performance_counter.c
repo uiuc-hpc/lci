@@ -60,6 +60,7 @@ LCII_pcounters_per_thread_t LCII_pcounters_accumulate()
   return ret;
 }
 
+#define LCII_PCOUNTERS_FIELD_KEEP(field) ret.field = c1.field
 #define LCII_PCOUNTERS_FIELD_DIFF(field) ret.field = (c1.field - c2.field)
 LCII_pcounters_per_thread_t LCII_pcounters_diff(LCII_pcounters_per_thread_t c1,
                                                 LCII_pcounters_per_thread_t c2)
@@ -88,21 +89,21 @@ LCII_pcounters_per_thread_t LCII_pcounters_diff(LCII_pcounters_per_thread_t c1,
     LCII_PCOUNTERS_FIELD_DIFF(lci_cq_pop_len_accumulated);
     LCII_PCOUNTERS_FIELD_DIFF(progress_call);
     LCII_PCOUNTERS_FIELD_DIFF(progress_useful_call);
-    // progress_useful_call_consecutive_max
+    LCII_PCOUNTERS_FIELD_KEEP(progress_useful_call_consecutive_max);
     LCII_PCOUNTERS_FIELD_DIFF(progress_useful_call_consecutive_sum);
     LCII_PCOUNTERS_FIELD_DIFF(recv_backend_no_packet);
     LCII_PCOUNTERS_FIELD_DIFF(backlog_queue_total_count);
     LCII_PCOUNTERS_FIELD_DIFF(backlog_queue_send_attempts);
-    // backlog_queue_max_len
-    // send_eager_latency_nsec_ave
+    LCII_PCOUNTERS_FIELD_KEEP(backlog_queue_max_len);
+    LCII_PCOUNTERS_FIELD_KEEP(send_eager_latency_nsec_ave);
     LCII_PCOUNTERS_FIELD_DIFF(send_eager_latency_nsec_count);
-    // send_iovec_handshake_nsec_ave
+    LCII_PCOUNTERS_FIELD_KEEP(send_iovec_handshake_nsec_ave);
     LCII_PCOUNTERS_FIELD_DIFF(send_iovec_handshake_nsec_count);
-    // send_iovec_latency_nsec_ave
+    LCII_PCOUNTERS_FIELD_KEEP(send_iovec_latency_nsec_ave);
     LCII_PCOUNTERS_FIELD_DIFF(send_iovec_latency_nsec_count);
-    // recv_iovec_handle_rts_nsec_ave
+    LCII_PCOUNTERS_FIELD_KEEP(recv_iovec_handle_rts_nsec_ave);
     LCII_PCOUNTERS_FIELD_DIFF(recv_iovec_handle_rts_nsec_count);
-    // recv_iovec_latency_nsec_ave
+    LCII_PCOUNTERS_FIELD_KEEP(recv_iovec_latency_nsec_ave);
     LCII_PCOUNTERS_FIELD_DIFF(recv_iovec_latency_nsec_count);
   }
   return ret;

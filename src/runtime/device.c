@@ -6,12 +6,22 @@ LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
 {
   LCI_device_t device = LCIU_malloc(sizeof(struct LCI_device_s));
   *device_ptr = device;
+
+  bool single_threaded = true;
+#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+  single_threaded = false;
+#endif
   LCIS_server_init(device, &device->server);
+#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+  atomic_init(&device->endpoint_progress.recv_posted, 0);
+  atomic_init(&device->endpoint_worker.recv_posted, 0);
+#else
   device->endpoint_progress.recv_posted = 0;
+  device->endpoint_worker.recv_posted = 0;
+#endif
   device->endpoint_progress.device = device;
   LCIS_endpoint_init(device->server, &device->endpoint_progress.endpoint,
-                     LCI_SINGLE_THREAD_PROGRESS);
-  device->endpoint_worker.recv_posted = 0;
+                     single_threaded);
   device->endpoint_worker.device = device;
   LCIS_endpoint_init(device->server, &device->endpoint_worker.endpoint, false);
   if (LCI_USE_DREG) {
@@ -62,10 +72,16 @@ LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
 LCI_error_t LCI_device_free(LCI_device_t* device_ptr)
 {
   LCI_device_t device = *device_ptr;
-  LCM_DBG_Log(LCM_LOG_DEBUG, "device", "free device %p\n", device);
+  LCM_Log(LCM_LOG_INFO, "device", "free device %p\n", device);
+  LCI_barrier();
   int total_num = LCII_pool_count(device->pkpool) +
+#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+                  atomic_load(&device->endpoint_progress.recv_posted) +
+                  atomic_load(&device->endpoint_worker.recv_posted);
+#else
                   device->endpoint_progress.recv_posted +
                   device->endpoint_worker.recv_posted;
+#endif
   if (total_num != LCI_SERVER_NUM_PKTS)
     LCM_Warn("Potentially losing packets %d != %d\n", total_num,
              LCI_SERVER_NUM_PKTS);

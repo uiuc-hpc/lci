@@ -557,14 +557,6 @@ extern int LCI_SERVER_MAX_CQES;
 extern bool LCI_IBV_ENABLE_EVENT_POLLING_THREAD;
 
 /**
- * @ingroup LCI_DEVICE
- * @brief LCI_progress on the same device will not be called by multiple threads
- * simultaneously.
- * @note It has to be true for now.
- */
-extern int LCI_SINGLE_THREAD_PROGRESS;
-
-/**
  * @ingroup LCI_COMM
  * @brief Manually slow down LCI backend send function
  */
