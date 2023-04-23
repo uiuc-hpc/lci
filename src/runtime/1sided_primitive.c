@@ -20,10 +20,9 @@ LCI_error_t LCI_puts(LCI_endpoint_t ep, LCI_short_t src, int rank,
     LCII_PCOUNTERS_WRAPPER(
         LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
   }
-  LCM_DBG_Log(
-      LCM_LOG_DEBUG, "comm",
-      "LCI_puts(ep %p, src %p, rank %d, tag %u, remote_completion %p) -> %d\n",
-      ep, src, rank, tag, remote_completion, ret);
+  LCM_DBG_Log(LCM_LOG_DEBUG, "comm",
+              "LCI_puts(ep %p, rank %d, tag %u, remote_completion %p) -> %d\n",
+              ep, rank, tag, (void*)remote_completion, ret);
   return ret;
 }
 
@@ -98,8 +97,8 @@ LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   LCM_DBG_Log(LCM_LOG_DEBUG, "comm",
               "LCI_putm(ep %p, buffer {%p, %lu}, rank %d, tag %u, "
               "remote_completion %p) -> %d\n",
-              ep, buffer.address, buffer.length, rank, tag, remote_completion,
-              ret);
+              ep, buffer.address, buffer.length, rank, tag,
+              (void*)remote_completion, ret);
   return ret;
 }
 
@@ -144,8 +143,8 @@ LCI_error_t LCI_putmna(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   LCM_DBG_Log(LCM_LOG_DEBUG, "comm",
               "LCI_putmna(ep %p, buffer {%p, %lu}, rank %d, tag %u, "
               "remote_completion %p) -> %d\n",
-              ep, buffer.address, buffer.length, rank, tag, remote_completion,
-              ret);
+              ep, buffer.address, buffer.length, rank, tag,
+              (void*)remote_completion, ret);
   return ret;
 }
 
@@ -226,7 +225,7 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
               "LCI_putla(ep %p, buffer {%p, %lu, %p}, completion %p, rank %d, "
               "tag %u, remote_completion %p, user_context %p) -> %d\n",
               ep, buffer.address, buffer.length, buffer.segment, completion,
-              rank, tag, remote_completion, user_context, ret);
+              rank, tag, (void*)remote_completion, user_context, ret);
   return ret;
 }
 
@@ -332,7 +331,7 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
               "%d, tag %u, remote_completion %p, user_context %p) -> %d\n",
               ep, iovec.piggy_back.address, iovec.piggy_back.length,
               iovec.count, iovec.lbuffers, completion, rank, tag,
-              remote_completion, user_context, ret);
+              (void*)remote_completion, user_context, ret);
   return ret;
 }
 

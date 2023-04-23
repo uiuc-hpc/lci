@@ -2,7 +2,7 @@
 
 // needed by the monitor threads
 static pthread_t LCII_monitor_thread;
-static volatile bool LCII_monitor_thread_run;
+static atomic_bool LCII_monitor_thread_run;
 static bool LCI_ENABLE_MONITOR_THREAD = false;
 static int LCI_MONITOR_THREAD_INTERVAL;
 
@@ -30,7 +30,8 @@ void* LCII_monitor_thread_fn(void* vargp)
   LCM_Log(LCM_LOG_INFO, "monitor", "Start the monitor thread at %lu.%lu s\n",
           start_time.tv_sec, start_time.tv_nsec);
   LCM_Log_flush();
-  while (LCII_monitor_thread_run) {
+  while (atomic_load_explicit(&LCII_monitor_thread_run,
+                              LCIU_memory_order_acquire)) {
     sleep(LCI_MONITOR_THREAD_INTERVAL);
     pcounter_now = LCII_pcounters_accumulate();
     pcounter_diff = LCII_pcounters_diff(pcounter_now, pcounter_old);
@@ -62,7 +63,7 @@ void LCII_monitor_thread_init()
   if (LCI_ENABLE_MONITOR_THREAD) {
     LCI_MONITOR_THREAD_INTERVAL =
         LCIU_getenv_or("LCI_MONITOR_THREAD_INTERVAL", 60);
-    LCII_monitor_thread_run = true;
+    atomic_init(&LCII_monitor_thread_run, true);
     pthread_create(&LCII_monitor_thread, NULL, LCII_monitor_thread_fn, NULL);
   }
 }
@@ -70,7 +71,8 @@ void LCII_monitor_thread_init()
 void LCII_monitor_thread_fina()
 {
   if (LCI_ENABLE_MONITOR_THREAD) {
-    LCII_monitor_thread_run = false;
+    atomic_store_explicit(&LCII_monitor_thread_run, false,
+                          LCIU_memory_order_release);
     pthread_join(LCII_monitor_thread, NULL);
   }
 }

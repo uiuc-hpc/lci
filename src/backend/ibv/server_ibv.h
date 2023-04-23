@@ -33,15 +33,15 @@ typedef struct __attribute__((aligned(LCI_CACHE_LINE))) LCISI_server_t {
   size_t max_inline;
   // event polling thread
   pthread_t event_polling_thread;
-  volatile bool event_polling_thread_run;
+  atomic_bool event_polling_thread_run;
 } LCISI_server_t;
 
 struct __attribute__((aligned(LCI_CACHE_LINE))) LCISI_ibv_qp_extra_t {
   LCIU_spinlock_t lock;
   struct ibv_td* td;
   struct ibv_pd* pd;
-  char padding[LCI_CACHE_LINE - sizeof(LCIU_spinlock_t) -
-               sizeof(struct ibv_td*) - sizeof(struct ibv_pd*)];
+  LCIU_CACHE_PADDING(sizeof(LCIU_spinlock_t) + sizeof(struct ibv_td*) +
+                     sizeof(struct ibv_pd*));
 };
 
 typedef struct LCISI_endpoint_t {

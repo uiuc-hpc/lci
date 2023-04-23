@@ -18,51 +18,58 @@ extern "C" {
 #define LCIU_SPIN_UNLOCKED 0
 #define LCIU_SPIN_LOCKED 1
 
-typedef volatile int LCIU_spinlock_t;
+typedef atomic_int LCIU_spinlock_t;
 
 static inline void LCIU_spinlock_init(LCIU_spinlock_t* lock)
 {
-  *lock = LCIU_SPIN_UNLOCKED;
+  atomic_init(lock, LCIU_SPIN_UNLOCKED);
+  atomic_thread_fence(LCIU_memory_order_seq_cst);
 }
 
 static inline void LCIU_spinlock_fina(LCIU_spinlock_t* lock)
 {
-  *lock = LCIU_SPIN_UNLOCKED;
+  atomic_thread_fence(LCIU_memory_order_seq_cst);
+  atomic_init(lock, LCIU_SPIN_UNLOCKED);
 }
 
 static inline void LCIU_acquire_spinlock(LCIU_spinlock_t* lock)
 {
-  if (__sync_lock_test_and_set(lock, LCIU_SPIN_LOCKED)) {
-    while (1) {
-      while (*lock) {
+  while (true) {
+    while (atomic_load_explicit(lock, LCIU_memory_order_relaxed) ==
+           LCIU_SPIN_LOCKED) {
 #if defined(__x86_64__)
-        asm("pause");
+      asm("pause");
 #elif defined(__aarch64__)
-        asm("yield");
+      asm("yield");
 #endif
-      }
-      if (!__sync_val_compare_and_swap(lock, LCIU_SPIN_UNLOCKED,
-                                       LCIU_SPIN_LOCKED))
-        break;
     }
+    int expected = LCIU_SPIN_UNLOCKED;
+    _Bool succeed = atomic_compare_exchange_weak_explicit(
+        lock, &expected, LCIU_SPIN_LOCKED, LCIU_memory_order_acquire,
+        LCIU_memory_order_relaxed);
+    if (succeed) break;
   }
 }
 
 // return 1: succeed; return 0: unsucceed
 static inline int LCIU_try_acquire_spinlock(LCIU_spinlock_t* lock)
 {
-  if (*lock == LCIU_SPIN_LOCKED) return false;
-  return (__sync_lock_test_and_set(lock, LCIU_SPIN_LOCKED) ==
-          LCIU_SPIN_UNLOCKED);
+  if (atomic_load_explicit(lock, LCIU_memory_order_relaxed) == LCIU_SPIN_LOCKED)
+    return false;
+  int expected = LCIU_SPIN_UNLOCKED;
+  _Bool succeed = atomic_compare_exchange_weak_explicit(
+      lock, &expected, LCIU_SPIN_LOCKED, LCIU_memory_order_acquire,
+      LCIU_memory_order_relaxed);
+  return succeed;
 }
 
 static inline void LCIU_release_spinlock(LCIU_spinlock_t* lock)
 {
-  __sync_lock_release(lock);
+  atomic_store_explicit(lock, LCIU_SPIN_UNLOCKED, LCIU_memory_order_release);
 }
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  // LCI_LCIU_H
+#endif  // LCI_LCIU_MISC_H

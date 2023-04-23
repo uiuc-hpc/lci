@@ -4,7 +4,7 @@
 void LCIXC_coll_handler(LCI_request_t req)
 {
   LCIX_collective_t coll = req.user_context;
-  atomic_fetch_sub_explicit(&coll->inprogress, 1, memory_order_relaxed);
+  atomic_fetch_sub_explicit(&coll->inprogress, 1, LCIU_memory_order_relaxed);
 }
 
 static inline void LCIXC_check_inprogress(LCI_comp_t comp,
@@ -22,7 +22,7 @@ static inline void LCIXC_check_inprogress(LCI_comp_t comp,
   }
   if (LCI_OK == ret) {
     LCIX_collective_t coll = req.user_context;
-    atomic_fetch_sub_explicit(&coll->inprogress, 1, memory_order_relaxed);
+    atomic_fetch_sub_explicit(&coll->inprogress, 1, LCIU_memory_order_relaxed);
   }
 }
 
@@ -35,7 +35,8 @@ static inline LCI_error_t LCIXC_mcoll_progress(LCIX_collective_t* collp)
   LCIXC_check_inprogress(coll->recv_comp, coll->ep->msg_comp_type);
 
   /* check if operation in progress and bail out early */
-  inprogress = atomic_load_explicit(&coll->inprogress, memory_order_relaxed);
+  inprogress =
+      atomic_load_explicit(&coll->inprogress, LCIU_memory_order_relaxed);
   if (inprogress) return ret;
 
   if (coll->cur < coll->total) {
@@ -46,12 +47,12 @@ static inline LCI_error_t LCIXC_mcoll_progress(LCIX_collective_t* collp)
         ret = LCI_sendm(coll->ep, sched->src, sched->rank, coll->tag);
         break;
       case LCIXC_COLL_RECV:
-        atomic_store_explicit(&coll->inprogress, 1, memory_order_relaxed);
+        atomic_store_explicit(&coll->inprogress, 1, LCIU_memory_order_relaxed);
         ret = LCI_recvm(coll->ep, sched->src, sched->rank, coll->tag,
                         coll->recv_comp, coll);
         break;
       case LCIXC_COLL_SENDRECV:
-        atomic_store_explicit(&coll->inprogress, 1, memory_order_relaxed);
+        atomic_store_explicit(&coll->inprogress, 1, LCIU_memory_order_relaxed);
         ret = LCI_sendm(coll->ep, sched->src, sched->rank, coll->tag);
         if (LCI_OK != ret) break;
         ret = LCI_recvm(coll->ep, sched->dst, sched->rank, coll->tag,
@@ -76,7 +77,7 @@ static inline LCI_error_t LCIXC_mcoll_progress(LCIX_collective_t* collp)
       coll->cur++;
     } else {
       /* operation failed, stay at current one and reset inprogress */
-      atomic_store_explicit(&coll->inprogress, 0, memory_order_relaxed);
+      atomic_store_explicit(&coll->inprogress, 0, LCIU_memory_order_relaxed);
     }
   } else {
     /* we're done, set user completion and free collective resources */
@@ -95,7 +96,8 @@ static inline LCI_error_t LCIXC_lcoll_progress(LCIX_collective_t* collp)
   LCIXC_check_inprogress(coll->recv_comp, coll->ep->msg_comp_type);
 
   /* check if operation in progress and bail out early */
-  inprogress = atomic_load_explicit(&coll->inprogress, memory_order_relaxed);
+  inprogress =
+      atomic_load_explicit(&coll->inprogress, LCIU_memory_order_relaxed);
   if (inprogress) return ret;
 
   if (coll->cur < coll->total) {
@@ -103,17 +105,17 @@ static inline LCI_error_t LCIXC_lcoll_progress(LCIX_collective_t* collp)
     LCIXC_lcoll_sched_t* sched = &coll->next.lsched[coll->cur];
     switch (sched->type) {
       case LCIXC_COLL_SEND:
-        atomic_store_explicit(&coll->inprogress, 1, memory_order_relaxed);
+        atomic_store_explicit(&coll->inprogress, 1, LCIU_memory_order_relaxed);
         ret = LCI_sendl(coll->ep, sched->src, sched->rank, coll->tag,
                         coll->send_comp, coll);
         break;
       case LCIXC_COLL_RECV:
-        atomic_store_explicit(&coll->inprogress, 1, memory_order_relaxed);
+        atomic_store_explicit(&coll->inprogress, 1, LCIU_memory_order_relaxed);
         ret = LCI_recvl(coll->ep, sched->src, sched->rank, coll->tag,
                         coll->recv_comp, coll);
         break;
       case LCIXC_COLL_SENDRECV:
-        atomic_store_explicit(&coll->inprogress, 2, memory_order_relaxed);
+        atomic_store_explicit(&coll->inprogress, 2, LCIU_memory_order_relaxed);
         ret = LCI_sendl(coll->ep, sched->src, sched->rank, coll->tag,
                         coll->send_comp, coll);
         if (LCI_OK != ret) break;
@@ -139,7 +141,7 @@ static inline LCI_error_t LCIXC_lcoll_progress(LCIX_collective_t* collp)
       coll->cur++;
     } else {
       /* operation failed, stay at current one and reset inprogress */
-      atomic_store_explicit(&coll->inprogress, 0, memory_order_relaxed);
+      atomic_store_explicit(&coll->inprogress, 0, LCIU_memory_order_relaxed);
     }
   } else {
     /* we're done, set user completion and free collective resources */

@@ -28,7 +28,8 @@ static inline void* LCISI_event_polling_thread_fn(void* argp)
   LCISI_server_t* server = (LCISI_server_t*)argp;
   LCM_Log(LCM_LOG_INFO, "event", "Start ibv event polling thread!\n");
   struct ibv_async_event event;
-  while (server->event_polling_thread_run) {
+  while (atomic_load_explicit(&server->event_polling_thread_run,
+                              LCIU_memory_order_acquire)) {
     IBV_SAFECALL(ibv_get_async_event(server->dev_ctx, &event));
     switch (event.event_type) {
       case IBV_EVENT_CQ_ERR:
@@ -53,7 +54,7 @@ static inline void* LCISI_event_polling_thread_fn(void* argp)
 void LCISI_event_polling_thread_init(LCISI_server_t* server)
 {
   if (LCI_IBV_ENABLE_EVENT_POLLING_THREAD) {
-    server->event_polling_thread_run = true;
+    atomic_init(&server->event_polling_thread_run, true);
     pthread_create(&server->event_polling_thread, NULL,
                    LCISI_event_polling_thread_fn, server);
   }
@@ -62,7 +63,8 @@ void LCISI_event_polling_thread_init(LCISI_server_t* server)
 void LCISI_event_polling_thread_fina(LCISI_server_t* server)
 {
   if (LCI_IBV_ENABLE_EVENT_POLLING_THREAD) {
-    server->event_polling_thread_run = false;
+    atomic_store_explicit(&server->event_polling_thread_run, false,
+                          LCIU_memory_order_release);
     pthread_join(server->event_polling_thread, NULL);
   }
 }

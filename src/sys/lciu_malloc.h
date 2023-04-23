@@ -7,8 +7,6 @@
 
 /* Memory Utility Functions */
 
-static inline void LCII_MEM_FENCE() { asm volatile("mfence" ::: "memory"); }
-
 static inline void* LCIU_memalign(size_t alignment, size_t size)
 {
   void* p_ptr;

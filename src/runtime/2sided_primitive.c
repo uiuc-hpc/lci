@@ -17,8 +17,7 @@ LCI_error_t LCI_sends(LCI_endpoint_t ep, LCI_short_t src, int rank,
         LCII_pcounters[LCIU_get_thread_id()].send_lci_failed_backend++);
   }
   LCM_DBG_Log(LCM_LOG_DEBUG, "comm",
-              "LCI_sends(ep %p, src %p, rank %d, tag %u) -> %d\n", ep, src,
-              rank, tag, ret);
+              "LCI_sends(ep %p, rank %d, tag %u) -> %d\n", ep, rank, tag, ret);
   return ret;
 }
 

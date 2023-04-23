@@ -151,7 +151,6 @@ set(LCI_OFI_PROVIDER_HINT_DEFAULT
       STRING
       "If using the ofi(libfabric) backend, provide a hint for the provider to use"
 )
-set_property(CACHE LCI_SERVER PROPERTY STRINGS ofi ibv)
 
 find_package(OFI)
 find_package(IBV)

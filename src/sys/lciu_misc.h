@@ -1,5 +1,5 @@
-#ifndef LCI_LCIU_H
-#define LCI_LCIU_H
+#ifndef LCI_LCIU_MISC_H
+#define LCI_LCIU_MISC_H
 
 #include <assert.h>
 #include <time.h>
@@ -15,6 +15,13 @@
 
 #define LCIU_STATIC_ASSERT(COND, MSG) \
   typedef char static_assertion_##MSG[(COND) ? 1 : -1]
+
+#define LCIU_CONCAT3(a, b, c) LCIU_CONCAT_INNER3(a, b, c)
+#define LCIU_CONCAT2(a, b) LCIU_CONCAT_INNER2(a, b)
+#define LCIU_CONCAT_INNER3(a, b, c) a##b##c
+#define LCIU_CONCAT_INNER2(a, b) a##b
+#define LCIU_CACHE_PADDING(size) \
+  char LCIU_CONCAT2(padding, __LINE__)[LCI_CACHE_LINE - (size) % LCI_CACHE_LINE]
 
 static inline void LCIU_update_average(int64_t* average0, int64_t* count0,
                                        int64_t average1, int64_t count1)
@@ -127,8 +134,6 @@ static inline void LCIU_spin_for_nsec(double t)
   LCII_ucs_time_t start = LCII_ucs_get_time();
   while (LCII_ucs_time_to_nsec(LCII_ucs_get_time() - start) < t) continue;
 }
-#include "sys/lciu_spinlock.h"
-#include "sys/lciu_malloc.h"
 
 #if 0
 #define LC_SET_REQ_DONE_AND_SIGNAL(t, r)                                 \
@@ -149,4 +154,4 @@ static inline void LCIU_spin_for_nsec(double t)
   }
 #endif
 
-#endif  // LCI_LCIU_H
+#endif  // LCI_LCIU_MISC_H

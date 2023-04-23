@@ -23,7 +23,7 @@ extern "C" {
 typedef struct __attribute__((aligned(LCI_CACHE_LINE))) {
   LCM_dequeue_t dq;      // size 32 align 8
   LCIU_spinlock_t lock;  // size 4 align 4
-  char padding[LCI_CACHE_LINE - 36 % LCI_CACHE_LINE];
+  LCIU_CACHE_PADDING(sizeof(LCM_dequeue_t) + sizeof(LCIU_spinlock_t));
 } LCII_local_pool_t;
 
 typedef struct __attribute__((aligned(LCI_CACHE_LINE))) LCII_pool_t {

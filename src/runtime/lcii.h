@@ -5,7 +5,10 @@
 #include "lci.h"
 #include "lci_ucx_api.h"
 #include "log/lcm_log.h"
-#include "sys/lciu.h"
+#include "sys/lciu_misc.h"
+#include "sys/lciu_atomic.h"
+#include "sys/lciu_spinlock.h"
+#include "sys/lciu_malloc.h"
 #include "profile/performance_counter.h"
 #include "profile/papi_wrapper.h"
 #include "datastructure/lcm_dequeue.h"
@@ -66,22 +69,18 @@ struct __attribute__((aligned(LCI_CACHE_LINE))) LCI_device_s {
   LCI_mt_t mt;                        // 8B
   LCII_rcache_t rcache;               // 8B
   LCI_lbuffer_t heap;                 // 24B
-  char padding0[LCI_CACHE_LINE -
-                (sizeof(LCIS_server_t) - 2 * sizeof(LCIS_endpoint_t) -
-                 sizeof(LCII_pool_t*) - sizeof(LCI_mt_t) -
-                 sizeof(LCII_rcache_t*) - sizeof(LCI_lbuffer_t)) %
-                    LCI_CACHE_LINE];
+  LCIU_CACHE_PADDING(sizeof(LCIS_server_t) + 2 * sizeof(LCIS_endpoint_t) -
+                     sizeof(LCII_pool_t*) + sizeof(LCI_mt_t) -
+                     sizeof(LCII_rcache_t*) + sizeof(LCI_lbuffer_t));
   // the following will be changed locally by a progress thread
   uint64_t did_work_consecutive;  // for performance counter
-  char padding1[LCI_CACHE_LINE - sizeof(uint64_t)];
+  LCIU_CACHE_PADDING(sizeof(uint64_t));
   // the following is shared by both progress threads and worker threads
   LCM_archive_t ctx_archive;  // used for long message protocol
-  char padding2[LCI_CACHE_LINE - (sizeof(LCM_archive_t) % LCI_CACHE_LINE)];
+  LCIU_CACHE_PADDING(sizeof(LCM_archive_t));
   LCII_backlog_queue_t bq;
   LCIU_spinlock_t bq_spinlock;
-  char padding3[LCI_CACHE_LINE -
-                ((sizeof(LCII_backlog_queue_t) + sizeof(LCIU_spinlock_t)) %
-                 LCI_CACHE_LINE)];
+  LCIU_CACHE_PADDING((sizeof(LCII_backlog_queue_t) + sizeof(LCIU_spinlock_t)));
 };
 
 struct LCI_plist_s {
@@ -109,8 +108,6 @@ struct LCI_endpoint_s {
   LCI_comp_type_t cmd_comp_type;  // command-port completion type
   LCI_comp_type_t msg_comp_type;  // message-port completion type
   LCI_comp_t default_comp;        // default comp for one-sided communication
-
-  volatile int completed;
 
   int gid;
 };

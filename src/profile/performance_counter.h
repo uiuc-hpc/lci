@@ -49,7 +49,7 @@ typedef struct {
   int64_t recv_iovec_handle_rts_nsec_count;  // recv rts -> send rtr
   int64_t recv_iovec_latency_nsec_ave;       // recv rts -> recv fin
   int64_t recv_iovec_latency_nsec_count;     // recv rts -> recv fin
-  char padding[LCI_CACHE_LINE - (8 * 37) % LCI_CACHE_LINE];
+  LCIU_CACHE_PADDING(8 * 37);
 } LCII_pcounters_per_thread_t;
 
 #define LCI_PCOUNTER_MAX_NTHREADS 256
