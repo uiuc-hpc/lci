@@ -42,6 +42,9 @@ option(LCI_SINGLE_THREAD_PROGRESS_DEFAULT
 option(LCI_IBV_ENABLE_TRY_LOCK_QP
        "Try to lock the queue pair before access it." ON)
 option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
+set(LCI_MAX_ENDPOINTS_DEFAULT
+    8
+    CACHE STRING "Max endpoints")
 set(LCI_USE_DREG_DEFAULT
     1
     CACHE STRING "Whether to use registration cache")
