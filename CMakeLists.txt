@@ -292,6 +292,7 @@ endif() # if (NOT LCI_WITH_LCT_ONLY)
 # ##############################################################################
 # Install
 # ##############################################################################
+set(CMAKE_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/${CMAKE_PROJECT_NAME}")
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   set(PKGCONFIG_REQUIRES_PRIVATE ${Fabric_${FABRIC}_PC_Requires})
   set(PKGCONFIG_LIBS_PRIVATE ${Fabric_${FABRIC}_PC_Libs})
@@ -302,7 +303,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     COMPATIBILITY ExactVersion)
   configure_package_config_file(
     LCIConfig.cmake.in LCIConfig.cmake
-    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_CMAKEDIR}"
     PATH_VARS CMAKE_INSTALL_INCLUDEDIR CMAKE_INSTALL_LIBDIR)
   install(
     TARGETS LCT
@@ -330,15 +331,15 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
     install(
       FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/Find${FABRIC}.cmake"
-      DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LCI)
+      DESTINATION ${CMAKE_INSTALL_CMAKEDIR}/cmake_modules)
     install(PROGRAMS lcrun DESTINATION ${CMAKE_INSTALL_BINDIR})
   endif()
   install(
     EXPORT LCITargets
     FILE LCITargets.cmake
     NAMESPACE LCI::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LCI)
+    DESTINATION ${CMAKE_INSTALL_CMAKEDIR})
   install(FILES "${CMAKE_CURRENT_BINARY_DIR}/LCIConfig.cmake"
                 "${CMAKE_CURRENT_BINARY_DIR}/LCIConfigVersion.cmake"
-          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake)
+          DESTINATION ${CMAKE_INSTALL_CMAKEDIR})
 endif()
