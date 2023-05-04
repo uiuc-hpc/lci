@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.19)
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   project(
     LCI
@@ -13,7 +13,12 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(TargetSourcesRelative)
+include(CheckLinkerFlag)
+include(CheckCompilerFlag)
 include(AddLCI)
+
+check_linker_flag(C "LINKER:-Bsymbolic-functions" BSYMBOLIC_FUNCTIONS)
+check_compiler_flag(C "-fno-semantic-interposition" FNO_SEMANTIC_INTERPOSITION)
 
 # ##############################################################################
 # General Options
@@ -258,6 +263,9 @@ if(NOT LCI_WITH_LCT_ONLY)
     PROPERTIES C_VISIBILITY_PRESET hidden
                C_STANDARD 11
                C_EXTENSIONS ON)
+  if(FALSE AND FNO_SEMANTIC_INTERPOSITION)
+    target_compile_options(LCI PRIVATE "-fno-semantic-interposition")
+  endif()
   target_compile_definitions(LCI PRIVATE _GNU_SOURCE)
   target_link_libraries(LCI PUBLIC Threads::Threads ${FABRIC}::${FABRIC} LCT)
   if(LCI_USE_AVX)
@@ -265,6 +273,9 @@ if(NOT LCI_WITH_LCT_ONLY)
   endif()
   if(LCI_USE_PAPI)
     target_link_libraries(LCI PRIVATE Papi::papi)
+  endif()
+  if(BUILD_SHARED_LIBS AND BSYMBOLIC_FUNCTIONS)
+    target_link_options(LCI PRIVATE "LINKER:-Bsymbolic-functions")
   endif()
 
   set_target_properties(LCI PROPERTIES OUTPUT_NAME lci)
