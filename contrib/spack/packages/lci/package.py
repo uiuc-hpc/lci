@@ -42,12 +42,11 @@ class Lci(CMakePackage):
             description='Lock queue pairs before access')
 
     variant('default-pm', description='Default: Process management backend',
-            values=disjoint_sets(
-                ('auto',), ('pmix', 'pmi2', 'pmi1', 'mpi', 'local')
-            ).prohibit_empty_set(
-            ).with_default('auto').with_non_feature_values('auto'))
+            values=auto_or_any_combination_of('pmix', 'pmi2', 'pmi1', 'mpi', 'local'))
     variant('default-progress', default='single', values=('single', 'multi'),
             multi=False, description='Default: LCI_progress thread safety')
+    variant('default-max-endpoints', default='auto', values=is_positive_int,
+            description='Default: Max endpoints')
     variant('default-dreg', default=True,
             description='Default: Whether to use registration cache')
     variant('default-packet-size', default='auto', values=is_positive_int,
@@ -116,6 +115,10 @@ class Lci(CMakePackage):
 
         if 'auto' not in self.spec.variants['default-pm'].value:
             arg = self.define_from_variant('LCI_PM_BACKEND_DEFAULT', 'default-pm')
+            args.append(arg)
+
+        if self.spec.variants['default-max-endpoints'].value != 'auto':
+            arg = self.define_from_variant('LCI_MAX_ENDPOINTS_DEFAULT', 'default-max-endpoints')
             args.append(arg)
 
         if self.spec.variants['default-packet-size'].value != 'auto':
