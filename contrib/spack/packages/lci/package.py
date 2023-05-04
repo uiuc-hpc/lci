@@ -54,6 +54,8 @@ class Lci(CMakePackage):
             ).with_default('auto').with_non_feature_values('auto'))
     variant('multithread-progress', default=True,
             description='Enable thread-safe LCI_progress function')
+    variant('default-max-endpoints', default='auto', values=is_positive_int,
+            description='Default: Max endpoints')
     variant('default-dreg', default=True,
             description='Default: Whether to use registration cache')
     variant('default-packet-size', default='auto', values=is_positive_int,
@@ -122,6 +124,10 @@ class Lci(CMakePackage):
             args.append(arg)
         elif 'auto' not in self.spec.variants['default-pm'].value:
             arg = self.define_from_variant('LCI_PMI_BACKEND_DEFAULT', 'default-pm')
+            args.append(arg)
+
+        if self.spec.variants['default-max-endpoints'].value != 'auto':
+            arg = self.define_from_variant('LCI_MAX_ENDPOINTS_DEFAULT', 'default-max-endpoints')
             args.append(arg)
 
         if self.spec.variants['default-packet-size'].value != 'auto':
