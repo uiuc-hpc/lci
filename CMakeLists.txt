@@ -134,6 +134,9 @@ if(NOT LCI_WITH_LCT_ONLY)
   option(LCI_ENABLE_MULTITHREAD_PROGRESS
          "LCI_progress can be called by multiple threads simultaneously" ON)
   option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
+  set(LCI_MAX_ENDPOINTS_DEFAULT
+      1024
+      CACHE STRING "Max endpoints")
   set(LCI_USE_DREG_DEFAULT
       ${LCI_USE_SERVER_IBV}
       CACHE STRING "Whether to use registration cache")

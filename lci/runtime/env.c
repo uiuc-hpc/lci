@@ -39,7 +39,7 @@ void LCII_env_init(int num_proc, int rank)
 {
   LCI_PAGESIZE = sysconf(_SC_PAGESIZE);
 
-  LCI_MAX_ENDPOINTS = LCIU_getenv_or("LCI_MAX_ENDPOINTS", 1024);
+  LCI_MAX_ENDPOINTS = LCIU_getenv_or("LCI_MAX_ENDPOINTS", LCI_MAX_ENDPOINTS_DEFAULT);
   LCI_NUM_PROCESSES = num_proc;
   LCI_RANK = rank;
   LCI_ENDPOINTS = LCIU_calloc(sizeof(LCI_endpoint_t), LCI_MAX_ENDPOINTS);
