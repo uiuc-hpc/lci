@@ -98,6 +98,7 @@ static inline int LCM_hashtable_insert(LCM_hashtable_t* h,
   const uint32_t hash = myhash(key);
   const int bucket = hash * LCM_HASHTABLE_WIDTH;
   int checked_slot = 0;
+  bool found = false;
 
   LCM_hashtable_t* master = &tbl_[bucket];
   LCM_hashtable_t* hcontrol = &tbl_[bucket];
@@ -114,24 +115,23 @@ static inline int LCM_hashtable_insert(LCM_hashtable_t* h,
     if (tag == cmp_key) {
       *value = hentry->entry.val;
       hentry->entry.tag = LCM_HASHTABLE_EMPTY;
-      LCIU_release_spinlock(&master->control.lock);
-      LCM_DBG_Log(LCM_LOG_DEBUG, "hashtable",
-                  "insert (%lx, %p, %d), return 0\n", key, value, type);
-      return 0;
+      found = true;
+      break;
     } else if (tag == LCM_HASHTABLE_EMPTY) {
-      // Ortherwise, if the tag is empty, we record the slot.
+      // Otherwise, if the tag is empty, we record the slot.
       // We can't return until we go over all entries.
       if (empty_hentry == NULL) empty_hentry = hentry;
     } else {
       // If we are still seeing some non-empty,
       // push that empty entry even further.
-      empty_hentry = NULL;
+      // FIXME: Why pushing the empty entry further?
+      //      empty_hentry = NULL;
     }
 
     hentry++;
     checked_slot++;
     // If we go over all entry, means no empty slot.
-    if (checked_slot == (LCM_HASHTABLE_WIDTH - 1)) {
+    if (checked_slot % (LCM_HASHTABLE_WIDTH - 1) == 0) {
       // Moving on to the next.
       // *** SLOWISH ***
       if (hcontrol->control.next == NULL) {
@@ -147,16 +147,29 @@ static inline int LCM_hashtable_insert(LCM_hashtable_t* h,
         // Otherwise, moving on.
         hcontrol = hcontrol->control.next;
         hentry = hcontrol + 1;
-        checked_slot = 0;
       }
     }
   }
-  empty_hentry->entry.tag = (key << 1) | type;
-  empty_hentry->entry.val = *value;
-  LCIU_release_spinlock(&master->control.lock);
-  LCM_DBG_Log(LCM_LOG_DEBUG, "hashtable", "insert (%lx, %p, %d), return 1\n",
-              key, value, type);
-  return 1;
+  LCII_PCOUNTERS_WRAPPER(
+      LCII_pcounters[LCIU_get_thread_id()].hashtable_insert_num++);
+  LCII_PCOUNTERS_WRAPPER(
+      LCII_pcounters[LCIU_get_thread_id()].hashtable_walk_steps_total +=
+      checked_slot);
+  LCII_PCOUNTERS_WRAPPER(LCIU_MAX_ASSIGN(
+      LCII_pcounters[LCIU_get_thread_id()].hashtable_walk_steps_max,
+      checked_slot));
+  if (found) {
+    LCIU_release_spinlock(&master->control.lock);
+    LCM_DBG_Log(LCM_LOG_DEBUG, "hashtable", "insert (%lx, %p, %d), return 0\n",
+                key, value, type);
+  } else {
+    empty_hentry->entry.tag = (key << 1) | type;
+    empty_hentry->entry.val = *value;
+    LCIU_release_spinlock(&master->control.lock);
+    LCM_DBG_Log(LCM_LOG_DEBUG, "hashtable", "insert (%lx, %p, %d), return 1\n",
+                key, value, type);
+  }
+  return !found;
 }
 
 #endif

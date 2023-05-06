@@ -38,18 +38,22 @@ typedef struct {
   int64_t backlog_queue_total_count;
   int64_t backlog_queue_send_attempts;
   int64_t backlog_queue_max_len;
-  int64_t send_eager_latency_nsec_ave;      // post send -> send comp
-  int64_t send_eager_latency_nsec_count;    // post send -> send comp
-  int64_t send_iovec_handshake_nsec_ave;    // send rts -> recv rtr
-  int64_t send_iovec_handshake_nsec_count;  // send rts -> recv rtr
-  int64_t send_iovec_latency_nsec_ave;      // send rts -> send fin
+  int64_t hashtable_insert_num;
+  int64_t hashtable_walk_steps_total;
+  int64_t hashtable_walk_steps_max;
+  int64_t send_eager_latency_nsec_ave;    // post send -> send comp
+  int64_t send_eager_latency_nsec_count;  // post send -> send comp
   // 8x8 bytes
+  int64_t send_iovec_handshake_nsec_ave;     // send rts -> recv rtr
+  int64_t send_iovec_handshake_nsec_count;   // send rts -> recv rtr
+  int64_t send_iovec_latency_nsec_ave;       // send rts -> send fin
   int64_t send_iovec_latency_nsec_count;     // send rts -> send fin
   int64_t recv_iovec_handle_rts_nsec_ave;    // recv rts -> send rtr
   int64_t recv_iovec_handle_rts_nsec_count;  // recv rts -> send rtr
   int64_t recv_iovec_latency_nsec_ave;       // recv rts -> recv fin
   int64_t recv_iovec_latency_nsec_count;     // recv rts -> recv fin
-  LCIU_CACHE_PADDING(8 * 37);
+  // 8x8 bytes
+  LCIU_CACHE_PADDING(8 * 40);
 } LCII_pcounters_per_thread_t;
 
 #define LCI_PCOUNTER_MAX_NTHREADS 256

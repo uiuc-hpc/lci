@@ -46,6 +46,9 @@ LCII_pcounters_per_thread_t LCII_pcounters_accumulate()
     LCII_PCOUNTERS_FIELD_ADD(backlog_queue_total_count);
     LCII_PCOUNTERS_FIELD_ADD(backlog_queue_send_attempts);
     LCII_PCOUNTERS_FIELD_MAX(backlog_queue_max_len);
+    LCII_PCOUNTERS_FIELD_ADD(hashtable_insert_num);
+    LCII_PCOUNTERS_FIELD_ADD(hashtable_walk_steps_total);
+    LCII_PCOUNTERS_FIELD_MAX(hashtable_walk_steps_max);
     LCII_PCOUNTERS_FIELD_AVE(send_eager_latency_nsec_ave,
                              send_eager_latency_nsec_count);
     LCII_PCOUNTERS_FIELD_AVE(send_iovec_handshake_nsec_ave,
@@ -95,6 +98,9 @@ LCII_pcounters_per_thread_t LCII_pcounters_diff(LCII_pcounters_per_thread_t c1,
     LCII_PCOUNTERS_FIELD_DIFF(backlog_queue_total_count);
     LCII_PCOUNTERS_FIELD_DIFF(backlog_queue_send_attempts);
     LCII_PCOUNTERS_FIELD_KEEP(backlog_queue_max_len);
+    LCII_PCOUNTERS_FIELD_DIFF(hashtable_insert_num);
+    LCII_PCOUNTERS_FIELD_DIFF(hashtable_walk_steps_total);
+    LCII_PCOUNTERS_FIELD_KEEP(hashtable_walk_steps_max);
     LCII_PCOUNTERS_FIELD_KEEP(send_eager_latency_nsec_ave);
     LCII_PCOUNTERS_FIELD_DIFF(send_eager_latency_nsec_count);
     LCII_PCOUNTERS_FIELD_KEEP(send_iovec_handshake_nsec_ave);
@@ -167,6 +173,12 @@ char* LCII_pcounters_to_string(LCII_pcounters_per_thread_t pcounter)
                                  "Backlog queue maximum length");
   LCII_PCOUNTERS_FIELD_TO_STRING(backlog_queue_send_attempts,
                                  "Backlog queue send attempts");
+  LCII_PCOUNTERS_FIELD_TO_STRING(hashtable_insert_num,
+                                 "Matching table insert operation number");
+  LCII_PCOUNTERS_FIELD_TO_STRING(hashtable_walk_steps_total,
+                                 "Matching table total walking step count");
+  LCII_PCOUNTERS_FIELD_TO_STRING(hashtable_walk_steps_max,
+                                 "Matching table maximum walking step count");
   LCII_PCOUNTERS_FIELD_TO_STRING(send_eager_latency_nsec_ave,
                                  "Send eager time average");
   LCII_PCOUNTERS_FIELD_TO_STRING(send_eager_latency_nsec_count,
