@@ -99,6 +99,7 @@ static inline int LCM_hashtable_insert(LCM_hashtable_t* h,
   const int bucket = hash * LCM_HASHTABLE_WIDTH;
   int checked_slot = 0;
   bool found = false;
+  bool cannot_found = false;
   int n_empty_slots = 0;
 
   LCM_hashtable_t* master = &tbl_[bucket];
@@ -107,6 +108,7 @@ static inline int LCM_hashtable_insert(LCM_hashtable_t* h,
   LCM_hashtable_t* empty_hentry = NULL;
   LCM_hashtable_t* pre_hcontrol = NULL;
 
+  LCM_hashtable_key my_key = (key << 1) | type;
   LCM_hashtable_key cmp_key = (key << 1) | (1 - type);
 
   LCIU_acquire_spinlock(&master->control.lock);
@@ -119,6 +121,9 @@ static inline int LCM_hashtable_insert(LCM_hashtable_t* h,
       hentry->entry.tag = LCM_HASHTABLE_EMPTY;
       found = true;
       break;
+    } else if (tag == my_key) {
+      // We will not find what we want, just find an empty slot.
+      cannot_found = true;
     } else if (tag == LCM_HASHTABLE_EMPTY) {
       // Otherwise, if the tag is empty, we record the slot.
       // We can't return until we go over all entries.
@@ -132,6 +137,8 @@ static inline int LCM_hashtable_insert(LCM_hashtable_t* h,
       // FIXME: Why pushing the empty entry further?
       //      empty_hentry = NULL;
     }
+
+    if (cannot_found && empty_hentry) break;
 
     hentry++;
     checked_slot++;
@@ -171,6 +178,8 @@ static inline int LCM_hashtable_insert(LCM_hashtable_t* h,
   LCII_PCOUNTERS_WRAPPER(LCIU_MAX_ASSIGN(
       LCII_pcounters[LCIU_get_thread_id()].hashtable_walk_steps_max,
       checked_slot));
+  LCM_DBG_Assert(!(found && cannot_found),
+                 "Unexpected result! Something is wrong!\n");
   if (found) {
     LCIU_release_spinlock(&master->control.lock);
     LCM_DBG_Log(LCM_LOG_DEBUG, "hashtable", "insert (%lx, %p, %d), return 0\n",
