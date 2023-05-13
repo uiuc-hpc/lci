@@ -84,7 +84,7 @@ static inline LCM_hashtable_t* LCMI_hashtable_create_table(size_t num_rows)
 
 static inline void LCMI_hashtable_free_table(LCM_hashtable_t* p)
 {
-  // TODO: LCIU_spinlock_init(&ret[i * TBL_WIDTH].control.lock);
+  // TODO: LCIU_spinlock_fina(&ret[i * TBL_WIDTH].control.lock);
   free(p);
 }
 
@@ -99,11 +99,13 @@ static inline int LCM_hashtable_insert(LCM_hashtable_t* h,
   const int bucket = hash * LCM_HASHTABLE_WIDTH;
   int checked_slot = 0;
   bool found = false;
+  int n_empty_slots = 0;
 
   LCM_hashtable_t* master = &tbl_[bucket];
   LCM_hashtable_t* hcontrol = &tbl_[bucket];
   LCM_hashtable_t* hentry = hcontrol + 1;
   LCM_hashtable_t* empty_hentry = NULL;
+  LCM_hashtable_t* pre_hcontrol = NULL;
 
   LCM_hashtable_key cmp_key = (key << 1) | (1 - type);
 
@@ -120,7 +122,10 @@ static inline int LCM_hashtable_insert(LCM_hashtable_t* h,
     } else if (tag == LCM_HASHTABLE_EMPTY) {
       // Otherwise, if the tag is empty, we record the slot.
       // We can't return until we go over all entries.
-      if (empty_hentry == NULL) empty_hentry = hentry;
+      if (empty_hentry == NULL)
+        empty_hentry = hentry;
+      else
+        ++n_empty_slots;
     } else {
       // If we are still seeing some non-empty,
       // push that empty entry even further.
@@ -130,14 +135,20 @@ static inline int LCM_hashtable_insert(LCM_hashtable_t* h,
 
     hentry++;
     checked_slot++;
-    // If we go over all entry, means no empty slot.
+    // If we go over all entry, means no matched slot.
     if (checked_slot % (LCM_HASHTABLE_WIDTH - 1) == 0) {
+      // Check whether we can remove this table
+      if (pre_hcontrol != NULL && n_empty_slots == LCM_HASHTABLE_WIDTH - 1) {
+        pre_hcontrol->control.next = hcontrol->control.next;
+        LCMI_hashtable_free_table(hcontrol);
+        hcontrol = pre_hcontrol;
+      }
       // Moving on to the next.
       // *** SLOWISH ***
       if (hcontrol->control.next == NULL) {
-        // This is the end of the table, if we still not found
-        // create new table.
+        // This is the end of the table,
         if (empty_hentry == NULL) {
+          // if we still not found an empty entry, create new table.
           hcontrol->control.next = LCMI_hashtable_create_table(1);
           hcontrol = hcontrol->control.next;
           empty_hentry = hcontrol + 1;
@@ -145,6 +156,8 @@ static inline int LCM_hashtable_insert(LCM_hashtable_t* h,
         break;
       } else {
         // Otherwise, moving on.
+        n_empty_slots = 0;
+        pre_hcontrol = hcontrol;
         hcontrol = hcontrol->control.next;
         hentry = hcontrol + 1;
       }
