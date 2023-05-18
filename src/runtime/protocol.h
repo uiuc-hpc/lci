@@ -73,9 +73,10 @@ static inline void LCIS_serve_recv(void* p, int src_rank, size_t length,
     case LCI_MSG_SHORT: {
       LCM_DBG_Assert(length == LCI_SHORT_SIZE,
                      "Unexpected message length %lu\n", length);
-      LCM_hashtable_key key = LCII_make_key(ep, src_rank, tag, LCI_MSG_SHORT);
-      LCM_hashtable_val value = (LCM_hashtable_val)packet;
-      if (!LCM_hashtable_insert(ep->mt, key, &value, SERVER)) {
+      uint64_t key = LCII_make_key(ep, src_rank, tag, LCI_MSG_SHORT);
+      uint64_t value = (uint64_t)packet;
+      if (LCII_matchtable_insert(ep->mt, key, &value, LCII_MATCHTABLE_SEND) ==
+          LCI_OK) {
         LCII_context_t* ctx = (LCII_context_t*)value;
         // If the receiver uses LCI_MATCH_TAG, we have to set the rank here.
         ctx->rank = src_rank;
@@ -86,10 +87,11 @@ static inline void LCIS_serve_recv(void* p, int src_rank, size_t length,
       break;
     }
     case LCI_MSG_MEDIUM: {
-      LCM_hashtable_key key = LCII_make_key(ep, src_rank, tag, LCI_MSG_MEDIUM);
-      LCM_hashtable_val value = (LCM_hashtable_val)packet;
+      uint64_t key = LCII_make_key(ep, src_rank, tag, LCI_MSG_MEDIUM);
+      uint64_t value = (uint64_t)packet;
       packet->context.length = length;
-      if (!LCM_hashtable_insert(ep->mt, key, &value, SERVER)) {
+      if (LCII_matchtable_insert(ep->mt, key, &value, LCII_MATCHTABLE_SEND) ==
+          LCI_OK) {
         LCII_context_t* ctx = (LCII_context_t*)value;
         ctx->rank = src_rank;
         ctx->data.mbuffer.length = length;
@@ -109,10 +111,10 @@ static inline void LCIS_serve_recv(void* p, int src_rank, size_t length,
     case LCI_MSG_RTS: {
       switch (packet->data.rts.msg_type) {
         case LCI_MSG_LONG: {
-          const LCM_hashtable_key key =
-              LCII_make_key(ep, src_rank, tag, LCI_MSG_LONG);
-          LCM_hashtable_val value = (LCM_hashtable_val)packet;
-          if (!LCM_hashtable_insert(ep->mt, key, &value, SERVER)) {
+          const uint64_t key = LCII_make_key(ep, src_rank, tag, LCI_MSG_LONG);
+          uint64_t value = (uint64_t)packet;
+          if (LCII_matchtable_insert(ep->mt, key, &value,
+                                     LCII_MATCHTABLE_SEND) == LCI_OK) {
             LCII_handle_2sided_rts(ep, packet, (LCI_comp_t)value, true);
           }
           break;

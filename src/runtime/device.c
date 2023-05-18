@@ -28,7 +28,7 @@ LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
     LCII_rcache_init(device);
   }
 
-  LCII_mt_init(&device->mt, 0);
+  LCII_matchtable_create(&device->mt);
   LCM_archive_init(&(device->ctx_archive), 16);
   LCII_bq_init(&device->bq);
   LCIU_spinlock_init(&device->bq_spinlock);
@@ -85,7 +85,7 @@ LCI_error_t LCI_device_free(LCI_device_t* device_ptr)
   if (total_num != LCI_SERVER_NUM_PKTS)
     LCM_Warn("Potentially losing packets %d != %d\n", total_num,
              LCI_SERVER_NUM_PKTS);
-  LCII_mt_free(&device->mt);
+  LCII_matchtable_free(&device->mt);
   LCM_archive_fini(&(device->ctx_archive));
   LCII_bq_fini(&device->bq);
   LCIU_spinlock_fina(&device->bq_spinlock);

@@ -49,9 +49,8 @@ typedef struct LCII_packet_t LCII_packet_t;
 struct LCII_pool_t;
 typedef struct LCII_pool_t LCII_pool_t;
 
-struct LCM_hashtable_t;
-typedef struct LCM_hashtable_t LCM_hashtable_t;
-typedef struct LCM_hashtable_t* LCI_mt_t;
+struct LCII_matchtable_opaque_t;
+typedef struct LCII_matchtable_opaque_t* LCI_matchtable_t;
 
 struct LCII_endpoint_t {
   LCI_device_t device;
@@ -70,11 +69,11 @@ struct __attribute__((aligned(LCI_CACHE_LINE))) LCI_device_s {
   LCII_endpoint_t endpoint_worker;    // 8B
   LCII_endpoint_t endpoint_progress;  // 8B
   LCII_pool_t* pkpool;                // 8B
-  LCI_mt_t mt;                        // 8B
+  LCI_matchtable_t mt;                // 8B
   LCII_rcache_t rcache;               // 8B
   LCI_lbuffer_t heap;                 // 24B
   LCIU_CACHE_PADDING(sizeof(LCIS_server_t) + 2 * sizeof(LCIS_endpoint_t) -
-                     sizeof(LCII_pool_t*) + sizeof(LCI_mt_t) -
+                     sizeof(LCII_pool_t*) + sizeof(LCI_matchtable_t) -
                      sizeof(LCII_rcache_t*) + sizeof(LCI_lbuffer_t));
   // the following will be changed locally by a progress thread
   uint64_t did_work_consecutive;  // for performance counter
@@ -101,7 +100,7 @@ struct LCI_endpoint_s {
 
   // Associated software components.
   LCII_pool_t* pkpool;
-  LCI_mt_t mt;
+  LCI_matchtable_t mt;
   // used for the rendezvous protocol
   LCM_archive_t* ctx_archive_p;
   LCII_backlog_queue_t* bq_p;
@@ -202,9 +201,7 @@ extern LCI_endpoint_t* LCI_ENDPOINTS;
 
 // completion queue
 static inline void LCII_queue_push(LCI_comp_t cq, LCII_context_t* ctx);
-// matching table
-LCI_error_t LCII_mt_init(LCI_mt_t* mt, uint32_t length);
-LCI_error_t LCII_mt_free(LCI_mt_t* mt);
+
 void LCII_env_init(int num_proc, int rank);
 
 static inline LCI_request_t LCII_ctx2req(LCII_context_t* ctx)
@@ -245,8 +242,8 @@ static inline void LCII_handle_2sided_writeImm(LCI_endpoint_t ep,
 void LCII_monitor_thread_init();
 void LCII_monitor_thread_fina();
 
-#include "datastructure/lcm_hashtable.h"
 #include "runtime/completion/cq.h"
+#include "runtime/matchtable/matchtable.h"
 #include "packet_pool.h"
 #include "packet.h"
 #include "rendezvous.h"

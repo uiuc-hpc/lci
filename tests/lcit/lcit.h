@@ -51,8 +51,8 @@ struct Config {
   bool send_reg = false;
   bool recv_reg = false;
   LCI_match_t match_type = LCI_MATCH_RANKTAG;
-  LCI_comp_type_t send_comp_type = LCI_COMPLETION_QUEUE;
-  LCI_comp_type_t recv_comp_type = LCI_COMPLETION_QUEUE;
+  LCI_comp_type_t send_comp_type = LCI_COMPLETION_SYNC;
+  LCI_comp_type_t recv_comp_type = LCI_COMPLETION_SYNC;
   LCI_handler_t comp_handler = NULL;
   int nthreads = 1;
   bool thread_pin = false;
@@ -64,12 +64,21 @@ struct Config {
   size_t nsteps = 1000;
 };
 
-void checkConfig(const Config& config)
+void checkConfig(Config& config)
 {
-  if (config.op >= LCIT_OP_1SIDED_S) {
-    LCIT_Assert(
-        config.recv_comp_type == LCI_COMPLETION_QUEUE,
-        "Currently one-sided communication only support --recv-comp=queue\n");
+  if (config.op >= LCIT_OP_1SIDED_S &&
+      config.recv_comp_type != LCI_COMPLETION_QUEUE) {
+    LCM_Warn(
+        "Currently one-sided communication only support "
+        "--recv-comp-type=queue. Change the receive completion to queue \n");
+    config.recv_comp_type = LCI_COMPLETION_QUEUE;
+  }
+  if (config.op < LCIT_OP_1SIDED_S &&
+      (config.send_comp_type == LCI_COMPLETION_QUEUE ||
+       config.recv_comp_type == LCI_COMPLETION_QUEUE)) {
+    LCM_Warn(
+        "Completion queue does not work well with 2-sided ping-pong tests."
+        "You may encounter deadlock!\n");
   }
 }
 
@@ -448,8 +457,9 @@ void threadBarrier(Context& ctx)
 
 LCI_comp_t postSend(Context& ctx, int rank, size_t size, LCI_tag_t tag)
 {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "lcit", "%d/%d: postSend rank %d size %lu\n",
-              LCI_RANK, TRD_RANK_ME, rank, size);
+  LCM_DBG_Log(LCM_LOG_DEBUG, "lcit",
+              "%d/%d: postSend rank %d size %lu tag %d\n", LCI_RANK,
+              TRD_RANK_ME, rank, size, tag);
   LCI_comp_t comp;
   if (ctx.config.send_comp_type == LCI_COMPLETION_SYNC) {
     LCI_sync_create(ctx.device, 1, &comp);
@@ -551,8 +561,9 @@ void waitSend(Context& ctx, LCI_comp_t comp)
 
 LCI_comp_t postRecv(Context& ctx, int rank, size_t size, LCI_tag_t tag)
 {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "lcit", "%d/%d: postRecv rank %d size %lu\n",
-              LCI_RANK, TRD_RANK_ME, rank, size);
+  LCM_DBG_Log(LCM_LOG_DEBUG, "lcit",
+              "%d/%d: postRecv rank %d size %lu tag %d\n", LCI_RANK,
+              TRD_RANK_ME, rank, size, tag);
   LCI_comp_t comp;
   if (ctx.config.recv_comp_type == LCI_COMPLETION_SYNC) {
     LCI_sync_create(ctx.device, 1, &comp);

@@ -23,6 +23,7 @@ add_lci_tests(
   "${SRUN_EXE} -n 2 ${SRUN_EXTRA_ARG} [TARGET] --op 2s --nthreads 4 --nsteps 10"
   "${SRUN_EXE} -n 2 ${SRUN_EXTRA_ARG} [TARGET] --op 2m --nthreads 4 --nsteps 10"
   "${SRUN_EXE} -n 2 ${SRUN_EXTRA_ARG} [TARGET] --op 2m --nthreads 4 --send-dyn 1 --recv-dyn 1 --nsteps 10"
+  "${SRUN_EXE} -n 2 ${SRUN_EXTRA_ARG} [TARGET] --op 2m --nthreads 4 --send-window 20 --recv-window 20 --nsteps 10"
   "${SRUN_EXE} -n 2 ${SRUN_EXTRA_ARG} [TARGET] --op 2l --nthreads 4 --nsteps 10"
   "${SRUN_EXE} -n 2 ${SRUN_EXTRA_ARG} [TARGET] --op 2l --nthreads 4 --send-reg 1 --recv--reg 1 --nsteps 10"
   "${SRUN_EXE} -n 2 ${SRUN_EXTRA_ARG} [TARGET] --op 2l --nthreads 4 --recv-dyn 1 --nsteps 10"

@@ -54,6 +54,10 @@ set(LCI_SERVER_MAX_CQES_DEFAULT
 set(LCI_SERVER_NUM_PKTS_DEFAULT
     8192
     CACHE STRING "Number of packets")
+set(LCI_MT_BACKEND_DEFAULT
+    "hashqueue"
+    CACHE STRING "The default matching table backend to use.")
+set_property(CACHE LCI_MT_BACKEND_DEFAULT PROPERTY STRINGS hash queue hashqueue)
 set(LCI_CACHE_LINE
     64
     CACHE STRING "Size of cache line (bytes)")
