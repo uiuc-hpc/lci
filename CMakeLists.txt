@@ -86,10 +86,9 @@ if(LCI_OPTIMIZE_FOR_NATIVE)
   endif()
 endif()
 
-check_c_compiler_flag("-mavx" COMPILER_SUPPORTS_MAVX)
-option(LCI_USE_AVX "Use GCC vector extension for the immediate field"
-       ${COMPILER_SUPPORTS_MAVX})
+option(LCI_USE_AVX "Use GCC vector extension for the immediate field" OFF)
 if(LCI_USE_AVX)
+  check_c_compiler_flag("-mavx" COMPILER_SUPPORTS_MAVX)
   if(NOT COMPILER_SUPPORTS_MAVX)
     message(
       FATAL_ERROR
