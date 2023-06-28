@@ -49,6 +49,7 @@ static inline void* LCISI_event_polling_thread_fn(void* argp)
     ibv_ack_async_event(&event);
   }
   LCM_Log(LCM_LOG_INFO, "event", "End ibv event polling thread!\n");
+  return NULL;
 }
 
 void LCISI_event_polling_thread_init(LCISI_server_t* server)
