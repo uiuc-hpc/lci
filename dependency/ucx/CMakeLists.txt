@@ -213,6 +213,12 @@ if(LCI_UCX_WITH_ALLOCATOR STREQUAL "ptmalloc286")
   set(HAVE_UCM_PTMALLOC286 ON)
 endif()
 
+if(HAVE_UCM_PTMALLOC286)
+  target_compile_options(lci-ucx PRIVATE "-fno-strict-aliasing")
+  target_compile_options(lci-ucx PRIVATE "-DUSE_LOCKS=1")
+  target_compile_options(lci-ucx PRIVATE "-DMALLINFO_FIELD_TYPE=int")
+endif()
+
 # Madvise flags
 check_symbol_exists(MADV_FREE "sys/mman.h" HAVE_DECL_MADV_FREE)
 check_symbol_exists(MADV_REMOVE "sys/mman.h" HAVE_DECL_MADV_REMOVE)
