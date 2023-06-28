@@ -7,7 +7,23 @@
 static int initialized = 0;
 static Archive_t l_archive;
 
-int lcm_pm_local_check_availability() { return true; }
+int lcm_pm_local_check_availability()
+{
+#ifndef LCI_PM_BACKEND_ENABLE_PMIX
+  if (getenv("PMIX_RANK"))
+    LCM_Warn(
+        "LCI detects the PMIx environment. However, the LCI PMIx support is "
+        "not enabled. LCI assumes the number of processes of this job is 1. If "
+        "you intended to run more than one processes, please do one of the "
+        "followings:\n"
+        "\t(a) set up the PMI2 environment by `srun --mpi=pmi2 "
+        "[application]`.\n"
+        "\t(b) set PMIX_ROOT when configuring LCI to enable the PMIx support.\n"
+        "\t(c) set MPI_ROOT when configuring LCI to enable the MPI support "
+        "(last resort).\n");
+#endif
+  return true;
+}
 
 void lcm_pm_local_initialize()
 {
