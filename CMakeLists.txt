@@ -27,8 +27,22 @@ option(LCI_WITH_DOC "Build LCI documentation" ON)
 # ##############################################################################
 # Figure out which network backend to use
 # ##############################################################################
+set(LCI_SERVER_DEFAULT ibv)
+# If user has explicitly defined LCI_SERVER, we can skip the tests for the
+# default option
+if(NOT DEFINED LCI_SERVER)
+  # If we find the libfabric/cxi provider, set the default backend to OFI
+  execute_process(COMMAND bash "-c" "fi_info -l | grep cxi -q"
+                  RESULT_VARIABLE OFI_CXI_NOT_FOUND)
+  if(NOT OFI_CXI_NOT_FOUND)
+    message(
+      STATUS "Found the libfabric/cxi provider, set the default backend to OFI")
+    set(LCI_SERVER_DEFAULT ofi)
+  endif()
+endif()
+
 set(LCI_SERVER
-    ibv
+    ${LCI_SERVER_DEFAULT}
     CACHE
       STRING
       "Network backend to use. If LCI_FORCE_SERVER is set to OFF (default value),
