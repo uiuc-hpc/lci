@@ -98,4 +98,5 @@ void LCII_rcache_reg(LCI_device_t device, void* address, size_t length,
 LCI_error_t LCII_rcache_dereg(LCI_segment_t segment)
 {
   LCII_ucs_rcache_region_put(segment->device->rcache, segment->region);
+  return LCI_OK;
 }
