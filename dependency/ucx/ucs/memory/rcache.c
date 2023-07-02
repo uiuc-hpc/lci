@@ -413,8 +413,8 @@ static void ucs_mem_region_destroy_internal(ucs_rcache_t *rcache,
     if (region->flags & UCS_RCACHE_REGION_FLAG_REGISTERED) {
         UCS_STATS_UPDATE_COUNTER(rcache->stats, UCS_RCACHE_DEREGS, 1);
         {
-            UCS_PROFILE_CODE("mem_dereg") {
-                rcache->params.ops->mem_dereg(rcache->params.context, rcache,
+            UCS_PROFILE_CODE("mem_dereg_timer") {
+                rcache->params.ops->mem_dereg_timer(rcache->params.context, rcache,
                 region);
             }
         }
@@ -795,7 +795,7 @@ ucs_rcache_check_overlap(ucs_rcache_t *rcache, ucs_pgt_addr_t *start,
                                         UCS_RCACHE_PROT_ARG(*prot),
                                         UCS_RCACHE_PROT_ARG(mem_prot));
                 /* The memory protection can not satisfy that of the
-                 * region. However mem_reg still may be able to deal with it.
+                 * region. However mem_reg_timer still may be able to deal with it.
                  * Do the safest thing: invalidate cached region
                  */
                 ucs_rcache_region_invalidate_internal(
@@ -952,7 +952,7 @@ retry:
     distribution_bin->total_size += region_size;
 
     region->status = status =
-        UCS_PROFILE_NAMED_CALL("mem_reg", rcache->params.ops->mem_reg,
+        UCS_PROFILE_NAMED_CALL("mem_reg_timer", rcache->params.ops->mem_reg_timer,
                                rcache->params.context, rcache, arg, region,
                                merged ? UCS_RCACHE_MEM_REG_HIDE_ERRORS : 0);
     if (status != UCS_OK) {

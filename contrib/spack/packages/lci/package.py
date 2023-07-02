@@ -96,7 +96,7 @@ class Lci(CMakePackage):
             self.define_from_variant('LCI_USE_AVX', 'vector'),
             self.define_from_variant('LCI_CONFIG_USE_ALIGNED_ALLOC', 'aligned'),
             self.define_from_variant('LCI_OPTIMIZE_FOR_NATIVE', 'native'),
-            self.define('LCI_USE_MUTEX_CQ',
+            self.define('LCI_USE_INLINE_CQ',
                         self.spec.variants['cq'].value == 'mutex-dq'),
             self.define_from_variant('LCI_IBV_ENABLE_TRY_LOCK_QP', 'qp-lock'),
             self.define('LCI_ENABLE_MULTITHREAD_PROGRESS', 'multithread-progress'),

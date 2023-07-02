@@ -120,6 +120,13 @@ if(LCI_UCX_ENABLE_TUNING)
   set(ENABLE_TUNING ON)
 endif()
 
+set(LCI_UCX_ENABLE_PROFILING
+    OFF
+    CACHE STRING "Enable profiling")
+if(LCI_UCX_ENABLE_PROFILING)
+  set(HAVE_PROFILING ON)
+endif()
+
 set(LCI_UCX_MAX_LOG_LEVEL
     debug
     CACHE STRING "Highest log level")

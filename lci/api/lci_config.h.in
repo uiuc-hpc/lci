@@ -1,0 +1,6 @@
+#ifndef LCI_LCI_CONFIG_H
+#define LCI_LCI_CONFIG_H
+
+#cmakedefine LCI_USE_AVX
+
+#endif  // LCI_LCI_CONFIG_H

@@ -45,7 +45,7 @@ srun -n 2 ./hello_world
 
 See `examples` and `tests` for some example code.
 
-See `src/api/lci.h` for public APIs.
+See `lci/apilci.h` for public APIs.
 
 `doxygen` for a full [documentation](https://uiuc-hpc.github.io/LC/).
 

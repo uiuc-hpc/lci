@@ -93,7 +93,7 @@ struct ucs_rcache_ops {
      *       and return error status in this case, without any destructive consequences
      *       such as error messages or fatal failure.
      */
-    ucs_status_t           (*mem_reg)(void *context, ucs_rcache_t *rcache,
+    ucs_status_t           (*mem_reg_timer)(void *context, ucs_rcache_t *rcache,
                                       void *arg, ucs_rcache_region_t *region,
                                       uint16_t flags);
    /**
@@ -103,7 +103,7 @@ struct ucs_rcache_ops {
     * @param [in]  rcache     Pointer to the registration cache.
     * @param [in]  region     Memory region to deregister.
     */
-    void                   (*mem_dereg)(void *context, ucs_rcache_t *rcache,
+    void                   (*mem_dereg_timer)(void *context, ucs_rcache_t *rcache,
                                         ucs_rcache_region_t *region);
 
     /**
@@ -136,7 +136,7 @@ struct ucs_rcache_params {
     int                    ucm_event_priority;  /**< Priority of memory events */
     const ucs_rcache_ops_t *ops;                /**< Memory operations functions */
     void                   *context;            /**< User-defined context that will
-                                                     be passed to mem_reg/mem_dereg */
+                                                     be passed to mem_reg_timer/mem_dereg_timer */
     int                    flags;               /**< Flags */
     unsigned long          max_regions;         /**< Maximal number of regions */
     size_t                 max_size;            /**< Maximal total size of regions */
@@ -198,7 +198,7 @@ void ucs_rcache_destroy(ucs_rcache_t *rcache);
  *                          this call.
  * @param [out] region_p    On success, filled with a pointer to the memory
  *                          region. The user could put more data in the region
- *                          structure in mem_reg() function.
+ *                          structure in mem_reg_timer() function.
  *
  * On success succeeds, the memory region reference count is incremented by 1.
  *
