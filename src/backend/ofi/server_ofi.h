@@ -149,12 +149,21 @@ static inline int LCISD_poll_cq(LCIS_endpoint_t endpoint_pp,
   return ret;
 }
 
-static inline void LCISD_post_recv(LCIS_endpoint_t endpoint_pp, void* buf,
-                                   uint32_t size, LCIS_mr_t mr, void* ctx)
+static inline LCI_error_t LCISD_post_recv(LCIS_endpoint_t endpoint_pp,
+                                          void* buf, uint32_t size,
+                                          LCIS_mr_t mr, void* ctx)
 {
   LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
-  FI_SAFECALL(fi_recv(endpoint_p->ep, buf, size, ofi_rma_lkey(mr),
-                      FI_ADDR_UNSPEC, ctx));
+  ssize_t ret =
+      fi_recv(endpoint_p->ep, buf, size, ofi_rma_lkey(mr), FI_ADDR_UNSPEC, ctx);
+  if (ret == FI_SUCCESS)
+    return LCI_OK;
+  else if (ret == -FI_EAGAIN)
+    return LCI_ERR_RETRY;
+  else {
+    FI_SAFECALL(ret);
+    return LCI_ERR_FATAL;
+  }
 }
 
 static inline LCI_error_t LCISD_post_sends(LCIS_endpoint_t endpoint_pp,

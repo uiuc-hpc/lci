@@ -166,8 +166,9 @@ static inline int LCISD_poll_cq(LCIS_endpoint_t endpoint_pp,
   return ne;
 }
 
-static inline void LCISD_post_recv(LCIS_endpoint_t endpoint_pp, void* buf,
-                                   uint32_t size, LCIS_mr_t mr, void* ctx)
+static inline LCI_error_t LCISD_post_recv(LCIS_endpoint_t endpoint_pp,
+                                          void* buf, uint32_t size,
+                                          LCIS_mr_t mr, void* ctx)
 {
   LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
   struct ibv_sge list;
@@ -181,6 +182,7 @@ static inline void LCISD_post_recv(LCIS_endpoint_t endpoint_pp, void* buf,
   wr.num_sge = 1;
   struct ibv_recv_wr* bad_wr;
   IBV_SAFECALL(ibv_post_srq_recv(endpoint_p->srq, &wr, &bad_wr));
+  return LCI_OK;
 }
 
 static inline LCI_error_t LCISD_post_sends(LCIS_endpoint_t endpoint_pp,

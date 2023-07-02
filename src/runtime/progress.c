@@ -101,28 +101,35 @@ LCI_error_t LCII_fill_rq(LCII_endpoint_t* endpoint, bool block)
 #else
   while (endpoint->recv_posted < LCI_SERVER_MAX_RECVS) {
 #endif
+    bool post_recv_succeed = false;
+
     LCII_packet_t* packet = LCII_alloc_packet_nb(endpoint->device->pkpool);
     if (packet == NULL) {
       LCII_PCOUNTERS_WRAPPER(
           LCII_pcounters[LCIU_get_thread_id()].recv_backend_no_packet++);
-      if (block) {
-        // Try again
-        continue;
-      } else {
-        break;
-      }
     } else {
       // TODO: figure out what is the right poolid to set
-      packet->context.poolid = lc_pool_get_local(endpoint->device->pkpool);
-      LCIS_post_recv(endpoint->endpoint, packet->data.address, LCI_MEDIUM_SIZE,
-                     endpoint->device->heap.segment->mr, packet);
+      // packet->context.poolid = lc_pool_get_local(endpoint->device->pkpool);
+      LCI_error_t rc = LCIS_post_recv(
+          endpoint->endpoint, packet->data.address, LCI_MEDIUM_SIZE,
+          endpoint->device->heap.segment->mr, packet);
+      if (rc == LCI_OK) {
 #ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
-      atomic_fetch_add_explicit(&endpoint->recv_posted, 1,
-                                LCIU_memory_order_relaxed);
+        atomic_fetch_add_explicit(&endpoint->recv_posted, 1,
+                                  LCIU_memory_order_relaxed);
 #else
-      ++endpoint->recv_posted;
+        ++endpoint->recv_posted;
 #endif
-      ret = LCI_OK;
+        post_recv_succeed = true;
+        ret = LCI_OK;
+      } else {
+        LCII_free_packet(packet);
+      }
+    }
+    if (post_recv_succeed || block) {
+      continue;
+    } else {
+      break;
     }
   }
   return ret;
