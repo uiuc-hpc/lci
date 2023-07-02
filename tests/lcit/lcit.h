@@ -2,7 +2,7 @@
 #define LCI_LCIT_H
 
 #ifndef NDEBUG
-#define LCM_DEBUG
+#define LCI_DEBUG
 #endif
 
 #include <iostream>
@@ -16,14 +16,7 @@
 #include <cstring>
 #include <sys/time.h>
 #include "lci.h"
-#include "../../src/log/lcm_log.h"
 #include "lcit_threadbarrier.h"
-
-#ifndef LCIT_BENCH
-#define LCIT_Assert LCM_Assert
-#else
-#define LCIT_Assert
-#endif
 
 namespace lcit
 {
@@ -68,7 +61,8 @@ void checkConfig(Config& config)
 {
   if (config.op >= LCIT_OP_1SIDED_S &&
       config.recv_comp_type != LCI_COMPLETION_QUEUE) {
-    LCM_Warn(
+    LCT_Warn(
+        LCT_log_ctx_default,
         "Currently one-sided communication only support "
         "--recv-comp-type=queue. Change the receive completion to queue \n");
     config.recv_comp_type = LCI_COMPLETION_QUEUE;
@@ -76,9 +70,9 @@ void checkConfig(Config& config)
   if (config.op < LCIT_OP_1SIDED_S &&
       (config.send_comp_type == LCI_COMPLETION_QUEUE ||
        config.recv_comp_type == LCI_COMPLETION_QUEUE)) {
-    LCM_Warn(
-        "Completion queue does not work well with 2-sided ping-pong tests."
-        "You may encounter deadlock!\n");
+    LCT_Warn(LCT_log_ctx_default,
+             "Completion queue does not work well with 2-sided ping-pong tests."
+             "You may encounter deadlock!\n");
   }
 }
 
@@ -127,6 +121,10 @@ enum LongFlags {
   TOUCH_DATA,
   NSTEPS,
 };
+
+void init() { LCI_initialize(); }
+
+void fina() { LCI_finalize(); }
 
 Config parseArgs(int argc, char** argv)
 {
@@ -457,7 +455,7 @@ void threadBarrier(Context& ctx)
 
 LCI_comp_t postSend(Context& ctx, int rank, size_t size, LCI_tag_t tag)
 {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "lcit",
+  LCT_DBG_Log(LCT_log_ctx_default, LCT_LOG_DEBUG, "lcit",
               "%d/%d: postSend rank %d size %lu tag %d\n", LCI_RANK,
               TRD_RANK_ME, rank, size, tag);
   LCI_comp_t comp;
@@ -536,8 +534,8 @@ LCI_comp_t postSend(Context& ctx, int rank, size_t size, LCI_tag_t tag)
 
 void waitSend(Context& ctx, LCI_comp_t comp)
 {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "lcit", "%d/%d: waitSend\n", LCI_RANK,
-              TRD_RANK_ME);
+  LCT_DBG_Log(LCT_log_ctx_default, LCT_LOG_DEBUG, "lcit", "%d/%d: waitSend\n",
+              LCI_RANK, TRD_RANK_ME);
   switch (ctx.config.op) {
     case LCIT_OP_2SIDED_S:
     case LCIT_OP_2SIDED_M:
@@ -547,21 +545,26 @@ void waitSend(Context& ctx, LCI_comp_t comp)
     case LCIT_OP_2SIDED_L:
     case LCIT_OP_1SIDED_L:
       LCI_request_t request = waitComp(ctx, comp, ctx.config.send_comp_type);
-      LCIT_Assert(request.flag == LCI_OK, "flag is wrong\n");
-      LCIT_Assert(request.type == LCI_LONG, "type is wrong\n");
-      LCIT_Assert(request.data.lbuffer.address == ctx.send_data.lbuffer.address,
-                  "address is wrong\n");
-      LCIT_Assert(request.data.lbuffer.segment == ctx.send_data.lbuffer.segment,
-                  "segment is wrong\n");
-      LCIT_Assert((uint64_t)request.user_context == USER_CONTEXT,
-                  "user_context is wrong\n");
+      LCT_Assert(LCT_log_ctx_default, request.flag == LCI_OK,
+                 "flag is wrong\n");
+      LCT_Assert(LCT_log_ctx_default, request.type == LCI_LONG,
+                 "type is wrong\n");
+      LCT_Assert(LCT_log_ctx_default,
+                 request.data.lbuffer.address == ctx.send_data.lbuffer.address,
+                 "address is wrong\n");
+      LCT_Assert(LCT_log_ctx_default,
+                 request.data.lbuffer.segment == ctx.send_data.lbuffer.segment,
+                 "segment is wrong\n");
+      LCT_Assert(LCT_log_ctx_default,
+                 (uint64_t)request.user_context == USER_CONTEXT,
+                 "user_context is wrong\n");
       break;
   }
 }
 
 LCI_comp_t postRecv(Context& ctx, int rank, size_t size, LCI_tag_t tag)
 {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "lcit",
+  LCT_DBG_Log(LCT_log_ctx_default, LCT_LOG_DEBUG, "lcit",
               "%d/%d: postRecv rank %d size %lu tag %d\n", LCI_RANK,
               TRD_RANK_ME, rank, size, tag);
   LCI_comp_t comp;
@@ -600,37 +603,43 @@ LCI_comp_t postRecv(Context& ctx, int rank, size_t size, LCI_tag_t tag)
 
 void waitRecv(Context& ctx, LCI_comp_t comp)
 {
-  LCM_DBG_Log(LCM_LOG_DEBUG, "lcit", "%d/%d: waitRecv\n", LCI_RANK,
-              TRD_RANK_ME);
+  LCT_DBG_Log(LCT_log_ctx_default, LCT_LOG_DEBUG, "lcit", "%d/%d: waitRecv\n",
+              LCI_RANK, TRD_RANK_ME);
   LCI_request_t request = waitComp(ctx, comp, ctx.config.recv_comp_type);
-  LCIT_Assert(request.flag == LCI_OK, "flag is wrong\n");
+  LCT_Assert(LCT_log_ctx_default, request.flag == LCI_OK, "flag is wrong\n");
   if (ctx.config.op == LCIT_OP_2SIDED_L || ctx.config.op == LCIT_OP_2SIDED_M ||
       ctx.config.op == LCIT_OP_2SIDED_S)
-    LCIT_Assert((uint64_t)request.user_context == USER_CONTEXT,
-                "user_context is wrong\n");
+    LCT_Assert(LCT_log_ctx_default,
+               (uint64_t)request.user_context == USER_CONTEXT,
+               "user_context is wrong\n");
   switch (ctx.config.op) {
     case LCIT_OP_2SIDED_S:
     case LCIT_OP_1SIDED_S:
-      LCIT_Assert(request.type == LCI_IMMEDIATE, "type is wrong\n");
+      LCT_Assert(LCT_log_ctx_default, request.type == LCI_IMMEDIATE,
+                 "type is wrong\n");
       break;
     case LCIT_OP_2SIDED_M:
-      LCIT_Assert(request.type == LCI_MEDIUM, "type is wrong\n");
+      LCT_Assert(LCT_log_ctx_default, request.type == LCI_MEDIUM,
+                 "type is wrong\n");
       if (ctx.config.recv_dyn) {
         LCI_mbuffer_free(request.data.mbuffer);
       }
       break;
     case LCIT_OP_1SIDED_M:
-      LCIT_Assert(request.type == LCI_MEDIUM, "type is wrong\n");
+      LCT_Assert(LCT_log_ctx_default, request.type == LCI_MEDIUM,
+                 "type is wrong\n");
       LCI_mbuffer_free(request.data.mbuffer);
       break;
     case LCIT_OP_2SIDED_L:
-      LCIT_Assert(request.type == LCI_LONG, "type is wrong\n");
+      LCT_Assert(LCT_log_ctx_default, request.type == LCI_LONG,
+                 "type is wrong\n");
       if (ctx.config.recv_dyn) {
         LCI_lbuffer_free(request.data.lbuffer);
       }
       break;
     case LCIT_OP_1SIDED_L:
-      LCIT_Assert(request.type == LCI_LONG, "type is wrong\n");
+      LCT_Assert(LCT_log_ctx_default, request.type == LCI_LONG,
+                 "type is wrong\n");
       LCI_lbuffer_free(request.data.lbuffer);
       break;
   }

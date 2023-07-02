@@ -67,13 +67,13 @@ void test(Context ctx)
 
 int main(int argc, char** args)
 {
-  LCI_initialize();
+  init();
   Config config = parseArgs(argc, args);
   Context ctx = initCtx(config);
 
   run(ctx, test, ctx);
 
   freeCtx(ctx);
-  LCI_finalize();
+  fina();
   return 0;
 }

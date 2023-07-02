@@ -99,9 +99,10 @@ endif()
 # LCI Optimization Options
 # ##############################################################################
 option(LCI_DEBUG "LCI Debug Mode" OFF)
-option(LCI_USE_MUTEX_CQ
-       "Use mutex lock to ensure the thread safety of the completion queue."
-       OFF)
+option(
+  LCI_USE_INLINE_CQ
+  "Use the C version of the completion queue so that it could be compiled inline."
+  OFF)
 option(LCI_ENABLE_MULTITHREAD_PROGRESS
        "LCI_progress can be called by multiple threads simultaneously" OFF)
 option(LCI_IBV_ENABLE_TRY_LOCK_QP
@@ -221,6 +222,11 @@ endif()
 # ##############################################################################
 # Add the actual LCI library
 # ##############################################################################
+add_library(LCT)
+set_target_properties(LCT PROPERTIES CXX_VISIBILITY_PRESET hidden CXX_STANDARD
+                                                                  17)
+target_link_libraries(LCT PUBLIC Threads::Threads)
+
 add_library(LCI)
 set_target_properties(
   LCI
@@ -228,7 +234,7 @@ set_target_properties(
              C_STANDARD 11
              C_EXTENSIONS ON)
 target_compile_definitions(LCI PRIVATE _GNU_SOURCE)
-target_link_libraries(LCI PUBLIC Threads::Threads ${FABRIC}::${FABRIC})
+target_link_libraries(LCI PUBLIC Threads::Threads ${FABRIC}::${FABRIC} LCT)
 if(LCI_USE_AVX)
   target_compile_options(LCI PUBLIC -mavx)
 endif()
@@ -237,8 +243,10 @@ if(LCI_USE_PAPI)
 endif()
 
 # set_target_properties(LCI PROPERTIES OUTPUT_NAME lci)
-add_subdirectory(src)
+add_subdirectory(lct)
+add_subdirectory(lci)
 add_subdirectory(dependency)
+target_link_libraries(LCT PRIVATE lci-ucx)
 target_link_libraries(LCI PRIVATE lci-ucx)
 if(LCI_WITH_EXAMPLES)
   add_subdirectory(examples)
@@ -266,12 +274,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   configure_file(liblci.pc.in liblci.pc @ONLY)
 
   install(
-    TARGETS LCI
-    EXPORT LCITargets
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-  install(
-    TARGETS lci-ucx
+    TARGETS LCI lci-ucx LCT
     EXPORT LCITargets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
@@ -281,12 +284,8 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     NAMESPACE LCI::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LCI)
   install(
-    DIRECTORY src/api/
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    FILES_MATCHING
-    PATTERN "*.h")
-  install(
-    DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/src/api/
+    DIRECTORY lci/api/ lct/api/ ${CMAKE_CURRENT_BINARY_DIR}/lct/api/
+              ${CMAKE_CURRENT_BINARY_DIR}/lci/api/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     FILES_MATCHING
     PATTERN "*.h")

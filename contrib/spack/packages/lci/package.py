@@ -36,8 +36,8 @@ class Lci(CMakePackage):
             description='Cache line size, in bytes')
     variant('native', default=True, description='Build with -march=native')
 
-    variant('cq', default='aqueue', values=('aqueue', 'mutex-dq'), multi=False,
-            description='Completion queue implementation')
+    variant('inline-cq', default=False,
+            description='Use the inline C completion queue implementation')
     variant('qp-lock', default=True,
             description='Lock queue pairs before access')
 
@@ -96,10 +96,9 @@ class Lci(CMakePackage):
             self.define_from_variant('LCI_USE_AVX', 'vector'),
             self.define_from_variant('LCI_CONFIG_USE_ALIGNED_ALLOC', 'aligned'),
             self.define_from_variant('LCI_OPTIMIZE_FOR_NATIVE', 'native'),
-            self.define('LCI_USE_MUTEX_CQ',
-                        self.spec.variants['cq'].value == 'mutex-dq'),
+            self.define_from_variant('LCI_USE_INLINE_CQ', 'inline-cq'),
             self.define_from_variant('LCI_IBV_ENABLE_TRY_LOCK_QP', 'qp-lock'),
-            self.define('LCI_ENABLE_MULTITHREAD_PROGRESS', 'multithread-progress'),
+            self.define_from_variant('LCI_ENABLE_MULTITHREAD_PROGRESS', 'multithread-progress'),
             self.define('LCI_USE_DREG_DEFAULT',
                         1 if self.spec.variants['default-dreg'].value else 0),
             self.define_from_variant('LCI_DEBUG', 'debug'),

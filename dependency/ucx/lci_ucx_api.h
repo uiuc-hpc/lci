@@ -5,6 +5,10 @@
 
 #define LCII_API __attribute__((visibility("default")))
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 LCII_API void LCII_ucs_init(void);
 LCII_API void LCII_ucs_cleanup(void);
 
@@ -33,5 +37,9 @@ LCII_API double LCII_ucs_time_to_nsec(LCII_ucs_time_t t);
 LCII_API double LCII_ucs_time_to_usec(LCII_ucs_time_t t);
 LCII_API double LCII_ucs_time_to_msec(LCII_ucs_time_t t);
 LCII_API double LCII_ucs_time_to_sec(LCII_ucs_time_t t);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // LCI_LCI_UCX_API_H
