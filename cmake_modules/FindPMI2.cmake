@@ -5,11 +5,11 @@
 # http://www.boost.org/LICENSE_1_0.txt)
 
 find_package(PkgConfig QUIET)
-# look for cray pmi...
+# look for cray pmi... cray pmi has both pmi and pmi2
 pkg_check_modules(PC_PMI_CRAY QUIET cray-pmi)
 # look for the rest if we couldn't find the cray package
 if(NOT PC_PMI_CRAY_FOUND)
-  pkg_check_modules(PC_PMI QUIET pmi)
+  pkg_check_modules(PC_PMI2 QUIET pmi2)
 endif()
 
 find_path(
@@ -20,17 +20,24 @@ find_path(
         $ENV{PMI2_DIR}
         ${PC_PMI_CRAY_INCLUDEDIR}
         ${PC_PMI_CRAY_INCLUDE_DIRS}
-        ${PC_PMI_INCLUDEDIR}
-        ${PC_PMI_INCLUDE_DIRS}
-        ${CMAKE_SOURCE_DIR}/src/pmi/pmi2/
-  PATH_SUFFIXES include)
+        ${PC_PMI2_INCLUDEDIR}
+        ${PC_PMI2_INCLUDE_DIRS}
+        ENV
+        CPATH
+  PATH_SUFFIXES include slurm include/slurm)
 
 find_library(
   PMI2_LIBRARY
-  NAMES pmi2 pmi
-  HINTS ${PMI2_ROOT} $ENV{PMI2_ROOT} ${PC_PMI_CRAY_LIBDIR}
-        ${PC_PMI_CRAY_LIBRARY_DIRS} ${PC_PMI_LIBDIR} ${PC_PMI_LIBRARY_DIRS}
-  PATH_SUFFIXES lib lib64)
+  NAMES pmi2
+  HINTS ${PMI2_ROOT}
+        $ENV{PMI2_ROOT}
+        ${PC_PMI_CRAY_LIBDIR}
+        ${PC_PMI_CRAY_LIBRARY_DIRS}
+        ${PC_PMI2_LIBDIR}
+        ${PC_PMI2_LIBRARY_DIRS}
+        ENV
+        LD_LIBRARY_PATH
+  PATH_SUFFIXES lib lib64 slurm lib/slurm lib64/slurm)
 
 # Set PMI2_ROOT in case the other hints are used
 if(PMI2_ROOT)
@@ -40,7 +47,7 @@ elseif("$ENV{PMI2_ROOT}")
   file(TO_CMAKE_PATH $ENV{PMI2_ROOT} PMI2_ROOT)
 else()
   file(TO_CMAKE_PATH "${PMI2_INCLUDE_DIR}" PMI2_INCLUDE_DIR)
-  string(REPLACE "/src/api" "" PMI2_ROOT "${PMI2_INCLUDE_DIR}")
+  string(REPLACE "/include" "" PMI2_ROOT "${PMI2_INCLUDE_DIR}")
 endif()
 
 include(FindPackageHandleStandardArgs)
@@ -49,6 +56,6 @@ find_package_handle_standard_args(PMI2 DEFAULT_MSG PMI2_LIBRARY
 
 mark_as_advanced(PMI2_ROOT PMI2_LIBRARY PMI2_INCLUDE_DIR)
 
-add_library(PMI::PMI2 INTERFACE IMPORTED)
-target_include_directories(PMI::PMI2 SYSTEM INTERFACE ${PMI2_INCLUDE_DIR})
-target_link_libraries(PMI::PMI2 INTERFACE ${PMI2_LIBRARY})
+add_library(PMI2::PMI2 INTERFACE IMPORTED)
+target_include_directories(PMI2::PMI2 SYSTEM INTERFACE ${PMI2_INCLUDE_DIR})
+target_link_libraries(PMI2::PMI2 INTERFACE ${PMI2_LIBRARY})

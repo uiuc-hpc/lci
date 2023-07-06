@@ -14,8 +14,8 @@ int lcm_pm_pmi1_check_availability()
 
 void lcm_pm_pmi1_initialize()
 {
-  int spawned, rank_me, nranks;
-  PMI_Init(&spawned, &nranks, &rank_me);
+  int spawned;
+  PMI_Init(&spawned);
 }
 
 int lcm_pm_pmi1_initialized()

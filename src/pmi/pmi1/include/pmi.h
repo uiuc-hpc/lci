@@ -76,7 +76,7 @@ if
 this process group has a parent and 'PMI_FALSE' if it does not.
 
 @*/
-int PMI_Init(int* spawned, int* size, int* rank);
+int PMI_Init(int* spawned);
 
 /*@
 PMI_Initialized - check if PMI has been initialized

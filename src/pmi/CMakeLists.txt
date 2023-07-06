@@ -7,11 +7,26 @@ set(LCI_PM_BACKEND_DEFAULT
       (available entries: pmi1, pmi2, pmix, mpi, local)")
 
 set(LIBRARY_NAME LCI)
+
+find_package(PMI)
+if(PMI_FOUND)
+  cmake_policy(SET CMP0079 NEW)
+  target_link_libraries(${LIBRARY_NAME} PRIVATE PMI::PMI)
+else()
+  add_subdirectory(pmi1)
+endif()
+
+find_package(PMI2)
+if(PMI2_FOUND)
+  cmake_policy(SET CMP0079 NEW)
+  target_link_libraries(${LIBRARY_NAME} PRIVATE PMI2::PMI2)
+else()
+  add_subdirectory(pmi2)
+endif()
+
 target_sources_relative(
   ${LIBRARY_NAME} PRIVATE pmi_wrapper.c pmi_wrapper_pmi1.c pmi_wrapper_pmi2.c
   pmi_wrapper_local.c)
-add_subdirectory(pmi1)
-add_subdirectory(pmi2)
 
 find_package(MPI COMPONENTS C)
 option(LCI_PM_BACKEND_ENABLE_MPI "Enable MPI as the process management backend"

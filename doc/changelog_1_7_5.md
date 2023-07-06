@@ -45,3 +45,4 @@
   en using ptmalloc.
 - fix(rcache): fix compilation warning of non-void function no return.
 - fix(ofi): correctly handle the case when fi_recv returns -FI_EAGAIN.
+- fix(pmi): use cray/slurm pmi if found; update the embedded pmi API to new version.

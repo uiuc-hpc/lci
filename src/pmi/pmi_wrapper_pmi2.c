@@ -3,6 +3,8 @@
 #include "pmi_wrapper.h"
 #include "pmi2.h"
 
+int g_rank, g_size;
+
 int lcm_pm_pmi2_check_availability()
 {
   char* p = getenv("PMI_RANK");
@@ -14,24 +16,14 @@ int lcm_pm_pmi2_check_availability()
 
 void lcm_pm_pmi2_initialize()
 {
-  int spawned, appnum, rank, size;
-  PMI2_Init(&spawned, &size, &rank, &appnum);
+  int spawned, appnum;
+  PMI2_Init(&spawned, &g_size, &g_rank, &appnum);
 }
 
 int lcm_pm_pmi2_initialized() { return PMI2_Initialized(); }
-int lcm_pm_pmi2_get_rank()
-{
-  int rank;
-  PMI2_Job_GetRank(&rank);
-  return rank;
-}
+int lcm_pm_pmi2_get_rank() { return g_rank; }
 
-int lcm_pm_pmi2_get_size()
-{
-  int size;
-  PMI2_Info_GetSize(&size);
-  return size;
-}
+int lcm_pm_pmi2_get_size() { return g_size; }
 
 void lcm_pm_pmi2_publish(char* key, char* value) { PMI2_KVS_Put(key, value); }
 

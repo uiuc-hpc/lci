@@ -87,7 +87,7 @@ static char cached_singinit_val[PMIU_MAXLINE];
 
 /******************************** Group functions *************************/
 
-int PMI_Init(int* spawned, int* size, int* rank)
+int PMI_Init(int* spawned)
 {
   char* p;
   int notset = 1;
@@ -119,8 +119,6 @@ int PMI_Init(int* spawned, int* size, int* rank)
     PMI_size = 1;
     PMI_rank = 0;
     *spawned = 0;
-    *rank = PMI_rank;
-    *size = PMI_size;
 
     PMI_initialized = SINGLETON_INIT_BUT_NO_PM;
     /* 256 is picked as the minimum allowed length by the PMI servers */
@@ -155,9 +153,6 @@ int PMI_Init(int* spawned, int* size, int* rank)
     /* Leave unchanged otherwise, which indicates that no value
        was set */
   }
-
-  *rank = PMI_rank;
-  *size = PMI_size;
 
   /* FIXME: Why does this depend on their being a port??? */
   /* FIXME: What is this for? */

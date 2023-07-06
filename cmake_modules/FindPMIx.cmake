@@ -5,30 +5,19 @@
 # http://www.boost.org/LICENSE_1_0.txt)
 
 find_package(PkgConfig QUIET)
-# look for cray pmi...
-pkg_check_modules(PC_PMI_CRAY QUIET cray-pmi)
-# look for the rest if we couldn't find the cray package
-if(NOT PC_PMI_CRAY_FOUND)
-  pkg_check_modules(PC_PMI QUIET pmi)
-endif()
+
+pkg_check_modules(PC_PMIX QUIET pmix)
 
 find_path(
   PMIX_INCLUDE_DIR pmix.h
-  HINTS ${PMIX_ROOT}
-        $ENV{PMIX_ROOT}
-        ${PMIX_DIR}
-        $ENV{PMIX_DIR}
-        ${PC_PMI_CRAY_INCLUDEDIR}
-        ${PC_PMI_CRAY_INCLUDE_DIRS}
-        ${PC_PMI_INCLUDEDIR}
-        ${PC_PMI_INCLUDE_DIRS}
+  HINTS ${PMIX_ROOT} $ENV{PMIX_ROOT} ${PMIX_DIR} $ENV{PMIX_DIR}
+        ${PC_PMIX_INCLUDEDIR} ${PC_PMIX_INCLUDE_DIRS}
   PATH_SUFFIXES include)
 
 find_library(
   PMIX_LIBRARY
   NAMES pmix
-  HINTS ${PMIX_ROOT} $ENV{PMIX_ROOT} ${PC_PMI_CRAY_LIBDIR}
-        ${PC_PMI_CRAY_LIBRARY_DIRS} ${PC_PMI_LIBDIR} ${PC_PMI_LIBRARY_DIRS}
+  HINTS ${PMIX_ROOT} $ENV{PMIX_ROOT} ${PC_PMIX_LIBDIR} ${PC_PMIX_LIBRARY_DIRS}
   PATH_SUFFIXES lib lib64)
 
 # Set PMIX_ROOT in case the other hints are used

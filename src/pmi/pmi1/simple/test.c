@@ -6,7 +6,9 @@ int main(int argc, char** args)
   int spawned;
   int size;
   int rank;
-  PMI_Init(&spawned, &size, &rank);
+  PMI_Init(&spawned);
+  PMI_Get_rank(&rank);
+  PMI_Get_size(&size);
   printf("%d %d %d\n", spawned, size, rank);
 
   char key[256];
