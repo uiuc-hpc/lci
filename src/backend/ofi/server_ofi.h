@@ -41,6 +41,8 @@ typedef struct __attribute__((aligned(LCI_CACHE_LINE))) LCISI_endpoint_t {
   struct fid_cq* cq;
   struct fid_av* av;
   fi_addr_t* peer_addrs;
+  bool is_single_threaded;
+  LCIU_spinlock_t lock;
 } LCISI_endpoint_t;
 
 extern int g_next_rdma_key;
@@ -171,9 +173,17 @@ static inline LCI_error_t LCISD_post_sends(LCIS_endpoint_t endpoint_pp,
                                            LCIS_meta_t meta)
 {
   LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
+#ifdef LCI_OFI_ENABLE_TRY_LOCK_EP
+  if (!endpoint_p->is_single_threaded &&
+      !LCIU_try_acquire_spinlock(&endpoint_p->lock))
+    return LCI_ERR_RETRY_LOCK;
+#endif
   ssize_t ret =
       fi_injectdata(endpoint_p->ep, buf, size, (uint64_t)LCI_RANK << 32 | meta,
                     endpoint_p->peer_addrs[rank]);
+#ifdef LCI_OFI_ENABLE_TRY_LOCK_EP
+  if (!endpoint_p->is_single_threaded) LCIU_release_spinlock(&endpoint_p->lock);
+#endif
   if (ret == FI_SUCCESS)
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
@@ -189,10 +199,18 @@ static inline LCI_error_t LCISD_post_send(LCIS_endpoint_t endpoint_pp, int rank,
                                           LCIS_meta_t meta, void* ctx)
 {
   LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
+#ifdef LCI_OFI_ENABLE_TRY_LOCK_EP
+  if (!endpoint_p->is_single_threaded &&
+      !LCIU_try_acquire_spinlock(&endpoint_p->lock))
+    return LCI_ERR_RETRY_LOCK;
+#endif
   ssize_t ret =
       fi_senddata(endpoint_p->ep, buf, size, ofi_rma_lkey(mr),
                   (uint64_t)LCI_RANK << 32 | meta, endpoint_p->peer_addrs[rank],
                   (struct fi_context*)ctx);
+#ifdef LCI_OFI_ENABLE_TRY_LOCK_EP
+  if (!endpoint_p->is_single_threaded) LCIU_release_spinlock(&endpoint_p->lock);
+#endif
   if (ret == FI_SUCCESS)
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
@@ -216,8 +234,16 @@ static inline LCI_error_t LCISD_post_puts(LCIS_endpoint_t endpoint_pp, int rank,
   } else {
     addr = offset;
   }
+#ifdef LCI_OFI_ENABLE_TRY_LOCK_EP
+  if (!endpoint_p->is_single_threaded &&
+      !LCIU_try_acquire_spinlock(&endpoint_p->lock))
+    return LCI_ERR_RETRY_LOCK;
+#endif
   ssize_t ret = fi_inject_write(endpoint_p->ep, buf, size,
                                 endpoint_p->peer_addrs[rank], addr, rkey);
+#ifdef LCI_OFI_ENABLE_TRY_LOCK_EP
+  if (!endpoint_p->is_single_threaded) LCIU_release_spinlock(&endpoint_p->lock);
+#endif
   if (ret == FI_SUCCESS)
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
@@ -241,8 +267,16 @@ static inline LCI_error_t LCISD_post_put(LCIS_endpoint_t endpoint_pp, int rank,
   } else {
     addr = offset;
   }
+#ifdef LCI_OFI_ENABLE_TRY_LOCK_EP
+  if (!endpoint_p->is_single_threaded &&
+      !LCIU_try_acquire_spinlock(&endpoint_p->lock))
+    return LCI_ERR_RETRY_LOCK;
+#endif
   ssize_t ret = fi_write(endpoint_p->ep, buf, size, ofi_rma_lkey(mr),
                          endpoint_p->peer_addrs[rank], addr, rkey, ctx);
+#ifdef LCI_OFI_ENABLE_TRY_LOCK_EP
+  if (!endpoint_p->is_single_threaded) LCIU_release_spinlock(&endpoint_p->lock);
+#endif
   if (ret == FI_SUCCESS)
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
@@ -267,8 +301,16 @@ static inline LCI_error_t LCISD_post_putImms(LCIS_endpoint_t endpoint_pp,
   } else {
     addr = offset;
   }
+#ifdef LCI_OFI_ENABLE_TRY_LOCK_EP
+  if (!endpoint_p->is_single_threaded &&
+      !LCIU_try_acquire_spinlock(&endpoint_p->lock))
+    return LCI_ERR_RETRY_LOCK;
+#endif
   ssize_t ret = fi_inject_writedata(endpoint_p->ep, buf, size, meta,
                                     endpoint_p->peer_addrs[rank], addr, rkey);
+#ifdef LCI_OFI_ENABLE_TRY_LOCK_EP
+  if (!endpoint_p->is_single_threaded) LCIU_release_spinlock(&endpoint_p->lock);
+#endif
   if (ret == FI_SUCCESS)
     return LCI_OK;
   else if (ret == -FI_EAGAIN)
@@ -294,8 +336,16 @@ static inline LCI_error_t LCISD_post_putImm(LCIS_endpoint_t endpoint_pp,
   } else {
     addr = offset;
   }
+#ifdef LCI_OFI_ENABLE_TRY_LOCK_EP
+  if (!endpoint_p->is_single_threaded &&
+      !LCIU_try_acquire_spinlock(&endpoint_p->lock))
+    return LCI_ERR_RETRY_LOCK;
+#endif
   ssize_t ret = fi_writedata(endpoint_p->ep, buf, size, ofi_rma_lkey(mr), meta,
                              endpoint_p->peer_addrs[rank], addr, rkey, ctx);
+#ifdef LCI_OFI_ENABLE_TRY_LOCK_EP
+  if (!endpoint_p->is_single_threaded) LCIU_release_spinlock(&endpoint_p->lock);
+#endif
   if (ret == FI_SUCCESS)
     return LCI_OK;
   else if (ret == -FI_EAGAIN)

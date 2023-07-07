@@ -34,6 +34,7 @@
   rovider, use ofi by default
 - improve(pmi): add warning to users when PMIx environment is detected but PM
   Ix support is not enabled.
+- improve(ofi): use try lock wrapping the endpoint when posting sends and puts.
 
 ## Fixed Issues
 - Fix LCI compilation on AArch64.

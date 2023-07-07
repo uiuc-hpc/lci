@@ -20,6 +20,7 @@
 #cmakedefine LCI_USE_MUTEX_CQ
 #cmakedefine LCI_ENABLE_MULTITHREAD_PROGRESS
 #cmakedefine LCI_IBV_ENABLE_TRY_LOCK_QP
+#cmakedefine LCI_OFI_ENABLE_TRY_LOCK_EP
 #cmakedefine LCI_ENABLE_SLOWDOWN
 #cmakedefine LCI_USE_PAPI
 #cmakedefine01 LCI_USE_DREG_DEFAULT

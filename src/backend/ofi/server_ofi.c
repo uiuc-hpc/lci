@@ -130,6 +130,8 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
   endpoint_p->server = (LCISI_server_t*)server_pp;
   endpoint_p->server->endpoints[endpoint_p->server->endpoint_count++] =
       endpoint_p;
+  endpoint_p->is_single_threaded = single_threaded;
+  LCIU_spinlock_init(&endpoint_p->lock);
   // Create end-point;
   FI_SAFECALL(fi_endpoint(endpoint_p->server->domain, endpoint_p->server->info,
                           &endpoint_p->ep, NULL));
@@ -207,4 +209,5 @@ void LCISD_endpoint_fina(LCIS_endpoint_t endpoint_pp)
   FI_SAFECALL(fi_close((struct fid*)&endpoint_p->ep->fid));
   FI_SAFECALL(fi_close((struct fid*)&endpoint_p->cq->fid));
   FI_SAFECALL(fi_close((struct fid*)&endpoint_p->av->fid));
+  LCIU_spinlock_fina(&endpoint_p->lock);
 }
