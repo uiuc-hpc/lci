@@ -195,21 +195,66 @@ void record_thread_fn(ctx_t* ctx, uint64_t record_interval);
 
 struct ctx_t {
   explicit ctx_t(const char* name_)
-      : name(name_),
+      : dump_ofile(nullptr),
+        dump_record_on_the_fly(false),
+        name(name_),
         id(next_id++),
         record_thread(nullptr),
         do_record(false),
         total_record_time(0),
         total_initialize_time(0)
   {
+    std::string dump_ofilename;
     uint64_t record_interval = 0;
-    char* p = getenv("LCT_PCOUNTER_RECORD_INTERVAL");
-    if (p) {
-      record_interval = std::stoull(p);
+    // Pre-defined mode for convenience
+    {
+      std::string mode_str;
+      char* p = getenv("LCT_PCOUNTER_MODE");
+      if (p) {
+        mode_str = p;
+      }
+      if (mode_str == "on-the-fly") {
+        dump_ofilename = "lct_pcounter.%.out";
+        dump_record_on_the_fly = true;
+        record_interval = 1000000;
+      }
+    }
+    // Output file to dump
+    {
+      char* p = getenv("LCT_PCOUNTER_AUTO_DUMP");
+      if (p) dump_ofilename = p;
+    }
+    if (!dump_ofilename.empty()) {
+      if (dump_ofilename == "stderr")
+        dump_ofile = stderr;
+      else if (dump_ofilename == "stdout")
+        dump_ofile = stdout;
+      else {
+        std::string ofilename =
+            replaceOne(dump_ofilename, "%", std::to_string(LCT_get_rank()));
+        dump_ofile = fopen(ofilename.c_str(), "a");
+        if (dump_ofile == nullptr) {
+          fprintf(stderr, "Cannot open the logfile %s!\n", ofilename.c_str());
+        }
+      }
+    }
+    // Record interval
+    if (dump_ofile && record_interval == 0) {
+      record_interval = 1000000;  // by default 1s.
+    }
+    {
+      char* p = getenv("LCT_PCOUNTER_RECORD_INTERVAL");
+      if (p) {
+        record_interval = std::stoull(p);
+      }
     }
     if (record_interval > 0) {
       keep_recording = true;
       record_thread = new std::thread(record_thread_fn, this, record_interval);
+    }
+    // Whether to dump on the fly
+    if (getenv("LCT_PCOUNTER_DUMP_ON_THE_FLY")) {
+      dump_record_on_the_fly = true;
     }
     // For now, we just assume there will only be a single thread initializing.
     if (start_time == -1) {
@@ -223,24 +268,9 @@ struct ctx_t {
       record_thread->join();
     }
     record();
-    char* result = getenv("LCT_PCOUNTER_AUTO_DUMP");
-    if (result) {
-      FILE* fp;
-      if (strcmp(result, "stderr") == 0)
-        fp = stderr;
-      else if (strcmp(result, "stdout") == 0)
-        fp = stdout;
-      else {
-        std::string ofilename =
-            replaceOne(result, "%", std::to_string(LCT_get_rank()));
-        fp = fopen(ofilename.c_str(), "a");
-        if (fp == nullptr) {
-          fprintf(stderr, "Cannot open the logfile %s!\n", ofilename.c_str());
-        }
-      }
-      dump(fp);
-      if (fp != stdout && fp != stderr) fclose(fp);
-    }
+    dump(dump_ofile);
+    if (dump_ofile && dump_ofile != stdout && dump_ofile != stderr)
+      fclose(dump_ofile);
     for (auto thread_ctx : thread_ctxs) {
       delete thread_ctx;
     }
@@ -296,7 +326,10 @@ struct ctx_t {
     // check whether to record
     if (handle.type == LCT_PCOUNTER_TREND && do_record) {
       bool expected = true;
-      if (do_record.compare_exchange_weak(expected, false)) record();
+      if (do_record.compare_exchange_weak(expected, false)) {
+        record();
+        if (dump_record_on_the_fly) dump(dump_ofile);
+      }
     }
   }
 
@@ -367,6 +400,7 @@ struct ctx_t {
                     record.entries[i]);
       }
     }
+    records.clear();
     // dump all counters and timers
     std::vector<entry_t> counters;
     std::vector<entry_t> timers;
@@ -393,6 +427,8 @@ struct ctx_t {
     lock.unlock();
   }
 
+  FILE* dump_ofile;
+  bool dump_record_on_the_fly;
   std::vector<std::string> counter_names;
   std::vector<std::string> trend_names;
   std::vector<std::string> timer_names;

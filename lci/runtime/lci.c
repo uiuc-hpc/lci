@@ -10,13 +10,13 @@ LCI_error_t LCI_initialize()
 {
   LCT_init();
   LCII_log_init();
-  LCII_pcounters_init();
   // Initialize PMI.
   int num_proc, rank;
   lcm_pm_initialize();
   rank = lcm_pm_get_rank();
   num_proc = lcm_pm_get_size();
   LCT_set_rank(rank);
+  LCII_pcounters_init();
   // Set some constant from environment variable.
   LCII_env_init(num_proc, rank);
   LCII_papi_init();
