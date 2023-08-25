@@ -32,6 +32,7 @@ jobs:
                 -GNinja \
                 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
                 -DLCI_DEBUG=ON \
+                -DLCI_USE_PERFORMANCE_COUNTER=ON \
                 -DSRUN_EXTRA_ARG="--oversubscribe" \
                 .
 

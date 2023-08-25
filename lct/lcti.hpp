@@ -2,7 +2,6 @@
 #define LCI_LCTI_H
 
 #include "lct.h"
-#include "lcti_config.h"
 #include "util/misc.hpp"
 #include "util/spinlock.hpp"
 #include "util/mem.hpp"

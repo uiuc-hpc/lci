@@ -1,6 +1,0 @@
-#ifndef LCTI_CONFIG_H_
-#define LCTI_CONFIG_H_
-
-#cmakedefine LCTI_CONFIG_USE_ALIGNED_ALLOC
-
-#endif // LCTI_CONFIG_H_

@@ -1,6 +1,15 @@
-option(LCTI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
+option(LCT_DEBUG "Enable LCT debug mode" OFF)
+if(LCI_DEBUG)
+  set(LCT_DEBUG ON)
+endif()
+set(LCT_CACHE_LINE
+    64
+    CACHE STRING "LCT: Size of cache line (bytes)")
+if(LCI_CACHE_LINE)
+  set(LCT_CACHE_LINE)
+endif()
+option(LCT_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
 
-add_subdirectory(api)
 add_subdirectory(data_structure)
 
 target_include_directories(LCT PRIVATE . api)
@@ -14,5 +23,6 @@ target_sources_relative(
   util/time.cpp
   util/string.cpp)
 
-configure_file(lcti_config.hpp.in lcti_config.h @ONLY)
 target_include_directories(LCT PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
+add_subdirectory(api)

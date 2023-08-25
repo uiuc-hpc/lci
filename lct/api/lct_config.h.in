@@ -1,7 +1,8 @@
 #ifndef LCI_LCT_CONFIG_H
 #define LCI_LCT_CONFIG_H
 
-#define LCT_CACHE_LINE @LCI_CACHE_LINE@
 #cmakedefine LCT_DEBUG
+#define LCT_CACHE_LINE @LCT_CACHE_LINE@
+#cmakedefine LCT_CONFIG_USE_ALIGNED_ALLOC
 
 #endif  // LCI_LCT_CONFIG_H

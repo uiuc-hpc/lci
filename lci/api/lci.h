@@ -13,8 +13,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include "lci_config.h"
 #include "lct.h"
+#include "lci_config.h"
 
 #ifdef __cplusplus
 extern "C" {

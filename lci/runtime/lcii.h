@@ -1,7 +1,6 @@
 #ifndef LCI_PRIV_H_
 #define LCI_PRIV_H_
 
-#include "lcii_config.h"
 #include "lci.h"
 #include "lci_ucx_api.h"
 #include "log/logger.h"

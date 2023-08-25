@@ -268,7 +268,7 @@ struct ctx_t {
       record_thread->join();
     }
     record();
-    dump(dump_ofile);
+    if (dump_ofile) dump(dump_ofile);
     if (dump_ofile && dump_ofile != stdout && dump_ofile != stderr)
       fclose(dump_ofile);
     for (auto thread_ctx : thread_ctxs) {

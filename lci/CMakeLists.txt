@@ -1,4 +1,3 @@
-add_subdirectory(api)
 add_subdirectory(pmi)
 add_subdirectory(experimental)
 
@@ -35,5 +34,6 @@ elseif(LCI_USE_SERVER_IBV)
   target_sources_relative(LCI PRIVATE backend/ibv/lcisi_ibv_detail.c)
 endif()
 
-configure_file(lcii_config.h.in lcii_config.h @ONLY)
 target_include_directories(LCI PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
+add_subdirectory(api)

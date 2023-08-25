@@ -23,7 +23,7 @@ struct queue_array_atomic_faa_t : public queue_base_t {
 };
 
 struct alignas(LCT_CACHE_LINE) queue_array_atomic_faa_t::entry_t {
-  entry_t() : data(nullptr), tag(-1) {}
+  entry_t() : data(nullptr), tag(0) {}
   void* data;
   std::atomic<uint_fast64_t> tag;
 };
@@ -36,6 +36,10 @@ queue_array_atomic_faa_t::queue_array_atomic_faa_t(size_t capacity)
   LCT_ASSERT_SAME_CACHE_LINE(&length, &container);
   static_assert(sizeof(queue_array_atomic_faa_t::entry_t) == LCT_CACHE_LINE,
                 "unexpected sizeof(LCM_aqueue_entry_t)");
+  // Initialize the tag to be in the empty state
+  for (int i = 0; i < container.size(); ++i) {
+    container[i].tag.store(i - length + 1);
+  }
 }
 
 void queue_array_atomic_faa_t::push(void* val)
@@ -44,8 +48,8 @@ void queue_array_atomic_faa_t::push(void* val)
   // make sure the queue is not full
   LCT_DBG_Assert(LCT_log_ctx_default,
                  container[current_top % length].tag.load(
-                     std::memory_order_acquire) != current_top - length,
-                 std::memory_order_acquire, "wrote to a nonempty value!\n");
+                     std::memory_order_acquire) == current_top - length + 1,
+                 "wrote to a nonempty value!\n");
   // write to the slot
   container[current_top % length].data = val;
   // update tag to tell the consumers they can safely read this slot.

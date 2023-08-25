@@ -16,7 +16,7 @@ static inline void* LCTI_memalign(size_t alignment, size_t size)
 }
 static inline void LCTI_free(void* ptr) { free(ptr); }
 
-#ifdef LCTI_CONFIG_USE_ALIGNED_ALLOC
+#ifdef LCT_CONFIG_USE_ALIGNED_ALLOC
 
 static inline void* LCTI_malloc(size_t size)
 {
@@ -42,7 +42,7 @@ static inline void* LCTI_realloc(void* ptr, size_t old_size, size_t new_size)
   return new_ptr;
 }
 
-#else /* LCTI_CONFIG_USE_ALIGNED_ALLOC */
+#else /* LCT_CONFIG_USE_ALIGNED_ALLOC */
 
 static inline void* LCTI_malloc(size_t size) { return malloc(size); }
 
@@ -57,5 +57,5 @@ static inline void* LCTI_realloc(void* ptr, size_t old_size, size_t new_size)
   return realloc(ptr, new_size);
 }
 
-#endif /* !LCTI_CONFIG_USE_ALIGNED_ALLOC */
+#endif /* !LCT_CONFIG_USE_ALIGNED_ALLOC */
 #endif /* LCT_MEM_HPP */
