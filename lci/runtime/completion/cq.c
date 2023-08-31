@@ -35,6 +35,19 @@ LCI_error_t LCI_queue_create(LCI_device_t device, LCI_comp_t* cq)
   return LCI_OK;
 }
 
+LCI_error_t LCI_queue_createx(LCI_device_t device, size_t max_length,
+                              LCI_comp_t* cq)
+{
+#ifdef LCI_USE_INLINE_CQ
+  LCII_cq_t* cq_ptr = LCIU_malloc(sizeof(LCII_cq_t));
+  LCM_aqueue_init(cq_ptr, max_length);
+  *cq = cq_ptr;
+#else
+  *cq = LCT_queue_alloc(cq_type, max_length);
+#endif
+  return LCI_OK;
+}
+
 LCI_error_t LCI_queue_free(LCI_comp_t* cq_ptr)
 {
 #ifdef LCI_USE_INLINE_CQ
