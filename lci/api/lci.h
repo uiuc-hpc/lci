@@ -996,6 +996,19 @@ LCI_API
 LCI_error_t LCI_queue_create(LCI_device_t device, LCI_comp_t* cq);
 /**
  * @ingroup LCI_QUEUE
+ * @brief Create a completion queue with the specified max queue length.
+ *
+ * @param [in]  device     The device it should be associated to.
+ * @param [in]  max_length The maximum length of the queue.
+ * @param [out] cq         The pointer to the completion queue to create.
+ * @return Should always be LCI_OK. All the other errors are fatal
+ * as defined by @ref LCI_error_t.
+ */
+LCI_API
+LCI_error_t LCI_queue_createx(LCI_device_t device, size_t max_length,
+                              LCI_comp_t* cq);
+/**
+ * @ingroup LCI_QUEUE
  * @brief Free a completion queue.
  *
  * @param [in,out] cq The pointer to the completion queue to free.
