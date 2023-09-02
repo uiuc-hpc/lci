@@ -50,9 +50,7 @@ typedef struct LCISI_endpoint_t {
   struct ibv_td* td;
   struct ibv_pd* pd;
   struct ibv_qp** qps;
-#ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
   struct LCISI_ibv_qp_extra_t* qp_extras;
-#endif
   struct ibv_cq* cq;
 #ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
   LCIU_spinlock_t cq_lock;
@@ -223,16 +221,12 @@ static inline LCI_error_t LCISD_post_sends(LCIS_endpoint_t endpoint_pp,
   //  }
 
   struct ibv_send_wr* bad_wr;
-#ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
   if (endpoint_p->qp_extras &&
       !LCIU_try_acquire_spinlock(&endpoint_p->qp_extras[rank].lock))
     return LCI_ERR_RETRY_LOCK;
-#endif
   int ret = ibv_post_send(endpoint_p->qps[rank], &wr, &bad_wr);
-#ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
   if (endpoint_p->qp_extras)
     LCIU_release_spinlock(&endpoint_p->qp_extras[rank].lock);
-#endif
   if (ret == 0)
     return LCI_OK;
   else if (ret == ENOMEM)
@@ -274,16 +268,12 @@ static inline LCI_error_t LCISD_post_send(LCIS_endpoint_t endpoint_pp, int rank,
   }
 
   struct ibv_send_wr* bad_wr;
-#ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
   if (endpoint_p->qp_extras &&
       !LCIU_try_acquire_spinlock(&endpoint_p->qp_extras[rank].lock))
     return LCI_ERR_RETRY_LOCK;
-#endif
   int ret = ibv_post_send(endpoint_p->qps[rank], &wr, &bad_wr);
-#ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
   if (endpoint_p->qp_extras)
     LCIU_release_spinlock(&endpoint_p->qp_extras[rank].lock);
-#endif
   if (ret == 0)
     return LCI_OK;
   else if (ret == ENOMEM)
@@ -328,16 +318,12 @@ static inline LCI_error_t LCISD_post_puts(LCIS_endpoint_t endpoint_pp, int rank,
   wr.wr.rdma.rkey = rkey;
 
   struct ibv_send_wr* bad_wr;
-#ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
   if (endpoint_p->qp_extras &&
       !LCIU_try_acquire_spinlock(&endpoint_p->qp_extras[rank].lock))
     return LCI_ERR_RETRY_LOCK;
-#endif
   int ret = ibv_post_send(endpoint_p->qps[rank], &wr, &bad_wr);
-#ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
   if (endpoint_p->qp_extras)
     LCIU_release_spinlock(&endpoint_p->qp_extras[rank].lock);
-#endif
   if (ret == 0)
     return LCI_OK;
   else if (ret == ENOMEM)
@@ -380,16 +366,12 @@ static inline LCI_error_t LCISD_post_put(LCIS_endpoint_t endpoint_pp, int rank,
     wr.send_flags |= IBV_SEND_INLINE;
   }
   struct ibv_send_wr* bad_wr;
-#ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
   if (endpoint_p->qp_extras &&
       !LCIU_try_acquire_spinlock(&endpoint_p->qp_extras[rank].lock))
     return LCI_ERR_RETRY_LOCK;
-#endif
   int ret = ibv_post_send(endpoint_p->qps[rank], &wr, &bad_wr);
-#ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
   if (endpoint_p->qp_extras)
     LCIU_release_spinlock(&endpoint_p->qp_extras[rank].lock);
-#endif
   if (ret == 0)
     return LCI_OK;
   else if (ret == ENOMEM)
@@ -435,16 +417,12 @@ static inline LCI_error_t LCISD_post_putImms(LCIS_endpoint_t endpoint_pp,
   wr.imm_data = meta;
 
   struct ibv_send_wr* bad_wr;
-#ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
   if (endpoint_p->qp_extras &&
       !LCIU_try_acquire_spinlock(&endpoint_p->qp_extras[rank].lock))
     return LCI_ERR_RETRY_LOCK;
-#endif
   int ret = ibv_post_send(endpoint_p->qps[rank], &wr, &bad_wr);
-#ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
   if (endpoint_p->qp_extras)
     LCIU_release_spinlock(&endpoint_p->qp_extras[rank].lock);
-#endif
   if (ret == 0)
     return LCI_OK;
   else if (ret == ENOMEM)
@@ -490,16 +468,12 @@ static inline LCI_error_t LCISD_post_putImm(LCIS_endpoint_t endpoint_pp,
     wr.send_flags |= IBV_SEND_INLINE;
   }
   struct ibv_send_wr* bad_wr;
-#ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
   if (endpoint_p->qp_extras &&
       !LCIU_try_acquire_spinlock(&endpoint_p->qp_extras[rank].lock))
     return LCI_ERR_RETRY_LOCK;
-#endif
   int ret = ibv_post_send(endpoint_p->qps[rank], &wr, &bad_wr);
-#ifdef LCI_IBV_ENABLE_TRY_LOCK_QP
   if (endpoint_p->qp_extras)
     LCIU_release_spinlock(&endpoint_p->qp_extras[rank].lock);
-#endif
   if (ret == 0)
     return LCI_OK;
   else if (ret == ENOMEM)

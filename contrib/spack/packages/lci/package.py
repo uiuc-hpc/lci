@@ -38,8 +38,8 @@ class Lci(CMakePackage):
 
     variant('inline-cq', default=False,
             description='Use the inline C completion queue implementation')
-    variant('qp-lock', default=True,
-            description='Lock queue pairs before access')
+    variant('ibv-td', default=True,
+            description='Enable IBV thread domain')
 
     variant('default-pm', description='Default: Process management backend',
             values=disjoint_sets(
@@ -97,7 +97,7 @@ class Lci(CMakePackage):
             self.define_from_variant('LCI_CONFIG_USE_ALIGNED_ALLOC', 'aligned'),
             self.define_from_variant('LCI_OPTIMIZE_FOR_NATIVE', 'native'),
             self.define_from_variant('LCI_USE_INLINE_CQ', 'inline-cq'),
-            self.define_from_variant('LCI_IBV_ENABLE_TRY_LOCK_QP', 'qp-lock'),
+            self.define_from_variant('LCI_IBV_ENABLE_TD', 'ibv-td'),
             self.define_from_variant('LCI_ENABLE_MULTITHREAD_PROGRESS', 'multithread-progress'),
             self.define('LCI_USE_DREG_DEFAULT',
                         1 if self.spec.variants['default-dreg'].value else 0),
