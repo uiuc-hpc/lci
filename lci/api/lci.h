@@ -570,6 +570,13 @@ extern int LCI_SEND_SLOW_DOWN_USEC;
 extern int LCI_RECV_SLOW_DOWN_USEC;
 
 /**
+ * @ingroup LCI_COMM
+ * @brief Whether to enable the per-cq lock (and thread domain if possible)
+ * when using IBV backend.
+ */
+extern bool LCI_IBV_ENABLE_TD;
+
+/**
  * @ingroup LCI_DEVICE
  * @brief Default device initialized by LCI_initialize. Just for convenience.
  */

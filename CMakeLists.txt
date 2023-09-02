@@ -128,7 +128,7 @@ if(NOT LCI_WITH_LCT_ONLY)
     OFF)
   option(LCI_ENABLE_MULTITHREAD_PROGRESS
          "LCI_progress can be called by multiple threads simultaneously" OFF)
-  option(LCI_IBV_ENABLE_TRY_LOCK_QP
+  option(LCI_IBV_ENABLE_TD_DEFAULT
          "Try to lock the IBV queue pair before access it." ON)
   option(LCI_OFI_ENABLE_TRY_LOCK_EP
          "Try to lock the OFI endpoint before access it." ON)
