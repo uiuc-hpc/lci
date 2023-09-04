@@ -60,13 +60,13 @@ static inline void LCM_aqueue_fina(LCM_aqueue_t* queue)
 
 static inline void LCM_aqueue_push(LCM_aqueue_t* queue, void* val)
 {
-  LCT_time_t time0 = LCT_now();
+  LCII_PCOUNTER_NOW(time0);
   LCII_PCOUNTER_STARTT(cq_push_internal, time0);
   // reserve a slot to write
   LCII_PCOUNTER_STARTT(cq_push_faa, time0);
   uint_fast64_t current_top =
       atomic_fetch_add_explicit(&queue->top, 1, LCIU_memory_order_relaxed);
-  LCT_time_t time1 = LCT_now();
+  LCII_PCOUNTER_NOW(time1);
   LCII_PCOUNTER_ENDT(cq_push_faa, time1);
   // write to the slot
   LCII_PCOUNTER_STARTT(cq_push_write, time1);
@@ -75,13 +75,13 @@ static inline void LCM_aqueue_push(LCM_aqueue_t* queue, void* val)
                      LCIU_memory_order_acquire) != current_top - queue->length,
                  "wrote to a nonempty value!\n");
   queue->container[current_top % queue->length].data = val;
-  LCT_time_t time2 = LCT_now();
+  LCII_PCOUNTER_NOW(time2);
   LCII_PCOUNTER_ENDT(cq_push_write, time2);
   // update top2 to tell the consumers they can safely read this slot.
   LCII_PCOUNTER_STARTT(cq_push_store, time2);
   atomic_store_explicit(&queue->container[current_top % queue->length].tag,
                         current_top, LCIU_memory_order_release);
-  LCT_time_t time3 = LCT_now();
+  LCII_PCOUNTER_NOW(time3);
   LCII_PCOUNTER_ENDT(cq_push_store, time3);
   LCII_PCOUNTER_ENDT(cq_push_internal, time3);
 }
