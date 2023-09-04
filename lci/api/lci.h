@@ -577,6 +577,12 @@ extern int LCI_RECV_SLOW_DOWN_USEC;
 extern bool LCI_IBV_ENABLE_TD;
 
 /**
+ * @ingroup LCI_COMM
+ * @brief Whether to enable the progress specific network endpoint.
+ */
+extern bool LCI_ENABLE_PRG_NET_ENDPOINT;
+
+/**
  * @ingroup LCI_DEVICE
  * @brief Default device initialized by LCI_initialize. Just for convenience.
  */

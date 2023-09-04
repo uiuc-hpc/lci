@@ -2,28 +2,55 @@
 
 LCI_error_t LCII_fill_rq(LCII_endpoint_t* endpoint, bool block);
 
+void LCII_endpoint_init(LCI_device_t device, bool single_threaded,
+                        LCII_endpoint_t** endpoint_pp)
+{
+  // This is not LCI_endpoint_t which is just a wrapper of parameters,
+  // but LCII_endpoint_t which maps to an underlying network context.
+  LCII_endpoint_t* endpoint_p = LCIU_malloc(sizeof(LCII_endpoint_t));
+  *endpoint_pp = endpoint_p;
+#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+  atomic_init(&endpoint_p->recv_posted, 0);
+#else
+  endpoint_p->recv_posted = 0;
+#endif
+  endpoint_p->device = device;
+  LCIS_endpoint_init(device->server, &endpoint_p->endpoint, single_threaded);
+}
+
+void LCII_endpoint_fina(LCII_endpoint_t** endpoint_pp)
+{
+  LCII_endpoint_t* endpoint_p = *endpoint_pp;
+  LCIS_endpoint_fina(endpoint_p->endpoint);
+  LCIU_free(endpoint_p);
+  *endpoint_pp = NULL;
+}
+
+int LCII_endpoint_get_recv_posted(LCII_endpoint_t* endpoint_p)
+{
+#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+  return atomic_load(&endpoint_p->recv_posted);
+#else
+  return endpoint_p->recv_posted;
+#endif
+}
+
 LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
 {
   LCI_device_t device = LCIU_malloc(sizeof(struct LCI_device_s));
   *device_ptr = device;
 
-  bool single_threaded = true;
+  bool single_threaded_prg = true;
 #ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
-  single_threaded = false;
+  single_threaded_prg = false;
 #endif
   LCIS_server_init(device, &device->server);
-#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
-  atomic_init(&device->endpoint_progress.recv_posted, 0);
-  atomic_init(&device->endpoint_worker.recv_posted, 0);
-#else
-  device->endpoint_progress.recv_posted = 0;
-  device->endpoint_worker.recv_posted = 0;
-#endif
-  device->endpoint_progress.device = device;
-  LCIS_endpoint_init(device->server, &device->endpoint_progress.endpoint,
-                     single_threaded);
-  device->endpoint_worker.device = device;
-  LCIS_endpoint_init(device->server, &device->endpoint_worker.endpoint, false);
+  LCII_endpoint_init(device, false, &device->endpoint_worker);
+  if (LCI_ENABLE_PRG_NET_ENDPOINT) {
+    LCII_endpoint_init(device, single_threaded_prg, &device->endpoint_progress);
+  } else {
+    device->endpoint_progress = device->endpoint_worker;
+  }
   if (LCI_USE_DREG) {
     LCII_rcache_init(device);
   }
@@ -61,8 +88,9 @@ LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
   }
   LCI_Assert(LCI_SERVER_NUM_PKTS > 2 * LCI_SERVER_MAX_RECVS,
              "The packet number is too small!\n");
-  LCII_fill_rq(&device->endpoint_progress, true);
-  LCII_fill_rq(&device->endpoint_worker, true);
+  if (LCI_ENABLE_PRG_NET_ENDPOINT)
+    LCII_fill_rq(device->endpoint_progress, true);
+  LCII_fill_rq(device->endpoint_worker, true);
   LCI_barrier();
   LCI_Log(LCI_LOG_INFO, "device", "device %p initialized\n", device);
   return LCI_OK;
@@ -73,14 +101,13 @@ LCI_error_t LCI_device_free(LCI_device_t* device_ptr)
   LCI_device_t device = *device_ptr;
   LCI_Log(LCI_LOG_INFO, "device", "free device %p\n", device);
   LCI_barrier();
-  int total_num = LCII_pool_count(device->pkpool) +
-#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
-                  atomic_load(&device->endpoint_progress.recv_posted) +
-                  atomic_load(&device->endpoint_worker.recv_posted);
-#else
-                  device->endpoint_progress.recv_posted +
-                  device->endpoint_worker.recv_posted;
-#endif
+  int total_recv_posted =
+      LCII_endpoint_get_recv_posted(device->endpoint_worker);
+  if (LCI_ENABLE_PRG_NET_ENDPOINT) {
+    total_recv_posted +=
+        LCII_endpoint_get_recv_posted(device->endpoint_progress);
+  }
+  int total_num = LCII_pool_count(device->pkpool) + total_recv_posted;
   if (total_num != LCI_SERVER_NUM_PKTS)
     LCI_Warn("Potentially losing packets %d != %d\n", total_num,
              LCI_SERVER_NUM_PKTS);
@@ -93,8 +120,10 @@ LCI_error_t LCI_device_free(LCI_device_t* device_ptr)
   if (LCI_USE_DREG) {
     LCII_rcache_fina(device);
   }
-  LCIS_endpoint_fina(device->endpoint_worker.endpoint);
-  LCIS_endpoint_fina(device->endpoint_progress.endpoint);
+  if (LCI_ENABLE_PRG_NET_ENDPOINT) {
+    LCII_endpoint_fina(&device->endpoint_progress);
+  }
+  LCII_endpoint_fina(&device->endpoint_worker);
   LCIS_server_fina(device->server);
   LCIU_free(device);
   *device_ptr = NULL;

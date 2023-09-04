@@ -8,19 +8,19 @@ static inline LCI_error_t LCII_progress_bq(LCI_device_t device)
   LCII_bq_entry_t* entry = LCII_bq_top(&device->bq);
   if (entry != NULL) {
     if (entry->bqe_type == LCII_BQ_SENDS) {
-      ret = LCIS_post_sends(device->endpoint_progress.endpoint, entry->rank,
+      ret = LCIS_post_sends(device->endpoint_progress->endpoint, entry->rank,
                             entry->buf, entry->size, entry->meta);
     } else if (entry->bqe_type == LCII_BQ_SEND) {
-      ret = LCIS_post_send(device->endpoint_progress.endpoint, entry->rank,
+      ret = LCIS_post_send(device->endpoint_progress->endpoint, entry->rank,
                            entry->buf, entry->size, entry->mr, entry->meta,
                            entry->ctx);
     } else if (entry->bqe_type == LCII_BQ_PUT) {
-      ret = LCIS_post_put(device->endpoint_progress.endpoint, entry->rank,
+      ret = LCIS_post_put(device->endpoint_progress->endpoint, entry->rank,
                           entry->buf, entry->size, entry->mr, entry->base,
                           entry->offset, entry->rkey, entry->ctx);
     } else if (entry->bqe_type == LCII_BQ_PUTIMM) {
       ret =
-          LCIS_post_putImm(device->endpoint_progress.endpoint, entry->rank,
+          LCIS_post_putImm(device->endpoint_progress->endpoint, entry->rank,
                            entry->buf, entry->size, entry->mr, entry->base,
                            entry->offset, entry->rkey, entry->meta, entry->ctx);
     } else {
@@ -156,21 +156,23 @@ LCI_error_t LCI_progress(LCI_device_t device)
   int ret = LCI_ERR_RETRY;
   // we want to make progress on the endpoint_progress as much as possible
   // to speed up rendezvous protocol
-  while (LCII_poll_cq(&device->endpoint_progress) == LCI_OK) {
+  while (LCI_ENABLE_PRG_NET_ENDPOINT &&
+         LCII_poll_cq(device->endpoint_progress) == LCI_OK) {
     ret = LCI_OK;
   }
   while (LCII_progress_bq(device) == LCI_OK) {
     ret = LCI_OK;
   }
   // Make sure we always have enough packet, but do not block.
-  if (LCII_fill_rq(&device->endpoint_progress, false) == LCI_OK) {
+  if (LCI_ENABLE_PRG_NET_ENDPOINT &&
+      LCII_fill_rq(device->endpoint_progress, false) == LCI_OK) {
     ret = LCI_OK;
   }
-  if (LCII_poll_cq(&device->endpoint_worker) == LCI_OK) {
+  if (LCII_poll_cq(device->endpoint_worker) == LCI_OK) {
     ret = LCI_OK;
   }
   // Make sure we always have enough packet, but do not block.
-  if (LCII_fill_rq(&device->endpoint_worker, false) == LCI_OK) {
+  if (LCII_fill_rq(device->endpoint_worker, false) == LCI_OK) {
     ret = LCI_OK;
   }
   LCII_PCOUNTER_ADD(progress_call, 1);
