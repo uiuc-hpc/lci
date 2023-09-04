@@ -108,19 +108,19 @@ static inline void LCII_pool_put(struct LCII_pool_t* pool, void* elm)
 
 static inline void* LCII_pool_get_nb(struct LCII_pool_t* pool)
 {
-  LCT_time_t time0 = LCT_now();
+  LCII_PCOUNTER_NOW(time0);
   LCII_PCOUNTER_STARTT(get_packet_timer, time0);
   LCII_PCOUNTER_STARTT(get_packet_pool_id_timer, time0);
   int32_t pid = lc_pool_get_local(pool);
-  LCT_time_t time1 = LCT_now();
+  LCII_PCOUNTER_NOW(time1);
   LCII_PCOUNTER_ENDT(get_packet_pool_id_timer, time1);
   LCII_PCOUNTER_STARTT(get_packet_lock_timer, time1);
   LCIU_acquire_spinlock(&pool->lpools[pid].lock);
-  LCT_time_t time2 = LCT_now();
+  LCII_PCOUNTER_NOW(time2);
   LCII_PCOUNTER_ENDT(get_packet_lock_timer, time2);
   LCII_PCOUNTER_STARTT(get_packet_local_timer, time2);
   void* elm = LCM_dq_pop_top(&pool->lpools[pid].dq);
-  LCT_time_t time3 = LCT_now();
+  LCII_PCOUNTER_NOW(time3);
   LCII_PCOUNTER_ENDT(get_packet_local_timer, time3);
   if (elm == NULL) {
     LCI_DBG_Assert(LCM_dq_size(pool->lpools[pid].dq) == 0,
@@ -128,10 +128,10 @@ static inline void* LCII_pool_get_nb(struct LCII_pool_t* pool)
                    LCM_dq_size(pool->lpools[pid].dq));
     elm = lc_pool_get_slow(pool, pid);
   }
-  LCT_time_t time4 = LCT_now();
+  LCII_PCOUNTER_NOW(time4);
   LCII_PCOUNTER_STARTT(get_packet_unlock_timer, time4);
   LCIU_release_spinlock(&pool->lpools[pid].lock);
-  LCT_time_t time5 = LCT_now();
+  LCII_PCOUNTER_NOW(time5);
   LCII_PCOUNTER_ENDT(get_packet_unlock_timer, time5);
   LCII_PCOUNTER_ENDT(get_packet_timer, time5);
   return elm;

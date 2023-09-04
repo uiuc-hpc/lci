@@ -75,6 +75,7 @@ LCII_PCOUNTER_TIMER_FOR_EACH(LCII_PCOUNTER_HANDLE_DECL)
   LCT_pcounter_start(LCII_pcounter_ctx, LCII_pcounter_handle_##name);
 #define LCII_PCOUNTER_END(name) \
   LCT_pcounter_end(LCII_pcounter_ctx, LCII_pcounter_handle_##name);
+#define LCII_PCOUNTER_NOW(time) LCT_time_t time = LCT_now();
 #define LCII_PCOUNTER_STARTT(name, time) \
   LCT_pcounter_startt(LCII_pcounter_ctx, LCII_pcounter_handle_##name, time);
 #define LCII_PCOUNTER_ENDT(name, time) \
@@ -83,6 +84,7 @@ LCII_PCOUNTER_TIMER_FOR_EACH(LCII_PCOUNTER_HANDLE_DECL)
 #define LCII_PCOUNTER_ADD(name, val)
 #define LCII_PCOUNTER_START(name)
 #define LCII_PCOUNTER_END(name)
+#define LCII_PCOUNTER_NOW(time)
 #define LCII_PCOUNTER_STARTT(name, time)
 #define LCII_PCOUNTER_ENDT(name, time)
 #endif
