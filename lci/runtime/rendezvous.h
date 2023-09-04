@@ -188,9 +188,9 @@ static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep,
 
   LCIS_endpoint_t endpoint_to_use;
   if (is_progress) {
-    endpoint_to_use = ep->device->endpoint_progress.endpoint;
+    endpoint_to_use = ep->device->endpoint_progress->endpoint;
   } else {
-    endpoint_to_use = ep->device->endpoint_worker.endpoint;
+    endpoint_to_use = ep->device->endpoint_worker->endpoint;
   }
   LCII_PCOUNTER_START(rts_send_timer);
   LCIS_post_send_bq(ep->bq_p, ep->bq_spinlock_p, endpoint_to_use, rdv_ctx->rank,
@@ -215,7 +215,7 @@ static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep,
   LCII_PCOUNTER_END(rtr_mem_reg_timer);
   LCII_PCOUNTER_START(rtr_putimm_timer);
   LCIS_post_putImm_bq(
-      ep->bq_p, ep->bq_spinlock_p, ep->device->endpoint_progress.endpoint,
+      ep->bq_p, ep->bq_spinlock_p, ep->device->endpoint_progress->endpoint,
       ctx->rank, ctx->data.lbuffer.address, ctx->data.lbuffer.length,
       ctx->data.lbuffer.segment->mr, packet->data.rtr.remote_addr_base,
       packet->data.rtr.remote_addr_offset, packet->data.rtr.rkey,
@@ -286,7 +286,7 @@ static inline void LCII_handle_1sided_rts(LCI_endpoint_t ep,
               packet->data.rtr.remote_addr_offset, packet->data.rtr.rkey,
               packet->data.rtr.recv_ctx_key);
   LCIS_post_send_bq(ep->bq_p, ep->bq_spinlock_p,
-                    ep->device->endpoint_progress.endpoint, rdv_ctx->rank,
+                    ep->device->endpoint_progress->endpoint, rdv_ctx->rank,
                     packet->data.address, sizeof(struct LCII_packet_rtr_t),
                     ep->device->heap.segment->mr,
                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx);
@@ -304,7 +304,7 @@ static inline void LCII_handle_1sided_rtr(LCI_endpoint_t ep,
     LCI_DBG_Assert(LCII_comp_attr_get_dereg(ctx->comp_attr) == 0, "\n");
   }
   LCIS_post_putImm_bq(
-      ep->bq_p, ep->bq_spinlock_p, ep->device->endpoint_progress.endpoint,
+      ep->bq_p, ep->bq_spinlock_p, ep->device->endpoint_progress->endpoint,
       ctx->rank, ctx->data.lbuffer.address, ctx->data.lbuffer.length,
       ctx->data.lbuffer.segment->mr, packet->data.rtr.remote_addr_base,
       packet->data.rtr.remote_addr_offset, packet->data.rtr.rkey,
@@ -381,7 +381,7 @@ static inline void LCII_handle_iovec_rts(LCI_endpoint_t ep,
       (uintptr_t)&packet->data.rtr.remote_iovecs_p[rdv_ctx->data.iovec.count] -
       (uintptr_t)packet->data.address;
   LCIS_post_send_bq(ep->bq_p, ep->bq_spinlock_p,
-                    ep->device->endpoint_progress.endpoint, rdv_ctx->rank,
+                    ep->device->endpoint_progress->endpoint, rdv_ctx->rank,
                     packet->data.address, length, ep->device->heap.segment->mr,
                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx);
 }
@@ -414,7 +414,7 @@ static inline void LCII_handle_iovec_rtr(LCI_endpoint_t ep,
       LCI_DBG_Assert(LCII_comp_attr_get_dereg(ectx->comp_attr) == 0, "\n");
     }
     LCIS_post_put_bq(ep->bq_p, ep->bq_spinlock_p,
-                     ep->device->endpoint_progress.endpoint, ctx->rank,
+                     ep->device->endpoint_progress->endpoint, ctx->rank,
                      ctx->data.iovec.lbuffers[i].address,
                      ctx->data.iovec.lbuffers[i].length,
                      ctx->data.iovec.lbuffers[i].segment->mr,
@@ -444,7 +444,7 @@ static inline void LCII_handle_iovec_put_comp(LCII_extended_context_t* ectx)
   LCI_DBG_Log(LCI_LOG_TRACE, "rdv", "send FIN: rctx %p\n",
               (void*)ectx->recv_ctx);
   LCIS_post_sends_bq(ectx->ep->bq_p, ectx->ep->bq_spinlock_p,
-                     ectx->ep->device->endpoint_progress.endpoint, ctx->rank,
+                     ectx->ep->device->endpoint_progress->endpoint, ctx->rank,
                      &ectx->recv_ctx, sizeof(ectx->recv_ctx),
                      LCII_MAKE_PROTO(ectx->ep->gid, LCI_MSG_FIN, 0));
   if (LCII_comp_attr_get_dereg(ectx->comp_attr) == 1) {

@@ -63,13 +63,13 @@ typedef struct LCII_endpoint_t LCII_endpoint_t;
 
 struct __attribute__((aligned(LCI_CACHE_LINE))) LCI_device_s {
   // the following will not be changed after initialization
-  LCIS_server_t server;               // 8B
-  LCII_endpoint_t endpoint_worker;    // 8B
-  LCII_endpoint_t endpoint_progress;  // 8B
-  LCII_pool_t* pkpool;                // 8B
-  LCI_matchtable_t mt;                // 8B
-  LCII_rcache_t rcache;               // 8B
-  LCI_lbuffer_t heap;                 // 24B
+  LCIS_server_t server;                // 8B
+  LCII_endpoint_t* endpoint_worker;    // 8B
+  LCII_endpoint_t* endpoint_progress;  // 8B
+  LCII_pool_t* pkpool;                 // 8B
+  LCI_matchtable_t mt;                 // 8B
+  LCII_rcache_t rcache;                // 8B
+  LCI_lbuffer_t heap;                  // 24B
   LCIU_CACHE_PADDING(sizeof(LCIS_server_t) + 2 * sizeof(LCIS_endpoint_t) -
                      sizeof(LCII_pool_t*) + sizeof(LCI_matchtable_t) -
                      sizeof(LCII_rcache_t*) + sizeof(LCI_lbuffer_t));
