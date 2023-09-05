@@ -120,6 +120,7 @@ void LCISD_server_init(LCI_device_t device, LCIS_server_t* s)
 
   server->odp_mr = NULL;
   if (LCI_IBV_USE_ODP == 2) {
+#ifdef IBV_ODP_SUPPORT_SRQ_RECV
     const uint32_t rc_caps_mask = IBV_ODP_SUPPORT_SEND | IBV_ODP_SUPPORT_RECV |
                                   IBV_ODP_SUPPORT_WRITE | IBV_ODP_SUPPORT_READ |
                                   IBV_ODP_SUPPORT_SRQ_RECV;
@@ -141,6 +142,10 @@ void LCISD_server_init(LCI_device_t device, LCIS_server_t* s)
       fprintf(stderr, "Couldn't register MR\n");
       exit(EXIT_FAILURE);
     }
+#else
+    fprintf(stderr, "ODP is not supported on this platform!\n");
+    exit(EXIT_FAILURE);
+#endif
   }
 
   // query port attribute
