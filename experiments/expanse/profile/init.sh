@@ -8,7 +8,7 @@ source ../../include/scripts.sh
 # get the ibvBench source path via environment variable or default value
 LCI_SOURCE_PATH=$(realpath "${LCI_SOURCE_PATH:-../../../}")
 
-if [[ -f "${LCI_SOURCE_PATH}/include/lci.h" ]]; then
+if [[ -f "${LCI_SOURCE_PATH}/lci/api/lci.h" ]]; then
   echo "Found LCI at ${LCI_SOURCE_PATH}"
 else
   echo "Did not find LCI at ${LCI_SOURCE_PATH}!"
@@ -47,7 +47,7 @@ cmake -DCMAKE_INSTALL_PREFIX=${LCI_INSTALL_PATH} \
       -DLCI_PM_BACKEND=pmi1 \
       -DSRUN_EXE=srun \
       -DSRUN_EXTRA_ARG="--mpi=pmi2" \
-      -DLCI_PACKET_SIZE=69632 \
+      -DLCI_PACKET_SIZE_DEFAULT=69632 \
       -L \
       ${LCI_SOURCE_PATH} | tee init-cmake.log 2>&1 || { echo "cmake error!"; exit 1; }
 cmake -LAH . >> init-cmake.log

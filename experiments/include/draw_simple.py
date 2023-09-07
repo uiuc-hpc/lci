@@ -8,6 +8,7 @@ from matplotlib.ticker import ScalarFormatter, FormatStrFormatter
 import pandas as pd
 import sys,os
 import json
+import math
 
 def plot(title, xlabel, ylabel, data, fname='out.pdf', is_show=False, is_save=False, xscale="log", yscale="log"):
     fig, ax = plt.subplots()
@@ -175,14 +176,16 @@ def parse_tag(df, x_key, y_key, tag_key):
         current_value = []
         current_error = []
         for x in df1[x_key].unique():
-            y = df1[df1[x_key] == x].median()[y_key]
-            error = df1[df1[x_key] == x].std()[y_key]
+            y = df1[df1[x_key] == x].mean(numeric_only=True)[y_key]
+            error = df1[df1[x_key] == x].std(numeric_only=True)[y_key]
             if y is np.nan:
                 continue
             if y == 0:
                 continue
             current_domain.append(float(x))
             current_value.append(float(y))
+            if math.isnan(error):
+                error = 0
             current_error.append(float(error))
         lines.append({'label': str(tag), 'x': current_domain, 'y': current_value, 'error': current_error})
     return lines

@@ -15,7 +15,7 @@ source ../../include/scripts.sh
 # get the LCI source path via environment variable or default value
 LCI_SOURCE_PATH=$(realpath "${LCI_SOURCE_PATH:-../../../}")
 
-if [[ -f "${LCI_SOURCE_PATH}/include/lci.h" ]]; then
+if [[ -f "${LCI_SOURCE_PATH}/lci/api/lci.h" ]]; then
   echo "Found LCI at ${LCI_SOURCE_PATH}"
 else
   echo "Did not find LCI at ${LCI_SOURCE_PATH}!"

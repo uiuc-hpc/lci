@@ -56,7 +56,7 @@ if __name__ == "__main__":
             current_label = edge_data["label"]
             for label, data in zip(current_label, current_data):
                 current_entry[label] = data
-            df = df.append(current_entry, ignore_index=True, sort=True)
+            df = pd.concat([df, pd.DataFrame([current_entry])], ignore_index=True, sort=True)
             continue
     if df.shape[0] == 0:
         print("Error! Get 0 entries!")
