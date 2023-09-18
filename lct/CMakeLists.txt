@@ -1,14 +1,20 @@
-option(LCT_DEBUG "Enable LCT debug mode" OFF)
-if(LCI_DEBUG)
-  set(LCT_DEBUG ON)
-endif()
-set(LCT_CACHE_LINE
-    64
-    CACHE STRING "LCT: Size of cache line (bytes)")
-if(LCI_CACHE_LINE)
-  set(LCT_CACHE_LINE)
-endif()
-option(LCT_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
+function(lct_option option type description default)
+  # If the corresponding LCI_option is defined, just use it. Otherwise, use the
+  # default value.
+  if(LCI_${option})
+    set(LCT_${option}
+        ${LCI_${option}}
+        CACHE ${type} ${description})
+  else()
+    set(LCT_${option}
+        ${default}
+        CACHE ${type} ${description})
+  endif()
+endfunction()
+
+lct_option(DEBUG BOOL "Enable LCT debug mode" OFF)
+lct_option(CACHE_LINE STRING "LCT: Size of cache line (bytes)" 64)
+lct_option(CONFIG_USE_ALIGNED_ALLOC BOOL "Enable memory alignment" ON)
 
 add_subdirectory(data_structure)
 
