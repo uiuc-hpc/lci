@@ -12,9 +12,9 @@ LCI_error_t LCI_initialize()
   LCII_log_init();
   // Initialize PMI.
   int num_proc, rank;
-  lcm_pm_initialize();
-  rank = lcm_pm_get_rank();
-  num_proc = lcm_pm_get_size();
+  LCT_pmi_initialize();
+  rank = LCT_pmi_get_rank();
+  num_proc = LCT_pmi_get_size();
   LCT_set_rank(rank);
   LCII_pcounters_init();
   // Set some constant from environment variable.
@@ -57,7 +57,7 @@ LCI_error_t LCI_finalize()
   if (LCI_USE_DREG) {
     LCII_ucs_cleanup();
   }
-  lcm_pm_finalize();
+  LCT_pmi_finalize();
   LCII_pcounters_fina();
   LCII_log_fina();
   LCT_fina();
@@ -126,7 +126,7 @@ LCI_error_t LCII_barrier()
 
 LCI_error_t LCI_barrier()
 {
-  //  lcm_pm_barrier();
+  //  LCT_pmi_barrier();
   //  return LCI_OK;
   return LCII_barrier();
 }

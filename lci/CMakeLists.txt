@@ -1,4 +1,3 @@
-add_subdirectory(pmi)
 add_subdirectory(experimental)
 
 target_include_directories(LCI PRIVATE .)

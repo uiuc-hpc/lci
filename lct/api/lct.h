@@ -158,6 +158,17 @@ LCT_API void LCT_queue_free(LCT_queue_t* queue_p);
 LCT_API void LCT_queue_push(LCT_queue_t queue, void* val);
 LCT_API void* LCT_queue_pop(LCT_queue_t queue);
 
+// PMI
+#define LCT_PMI_STRING_LIMIT 255
+LCT_API void LCT_pmi_initialize();
+LCT_API int LCT_pmi_initialized();
+LCT_API int LCT_pmi_get_rank();
+LCT_API int LCT_pmi_get_size();
+LCT_API void LCT_pmi_publish(char* key, char* value);
+LCT_API void LCT_pmi_getname(int rank, char* key, char* value);
+LCT_API void LCT_pmi_barrier();
+LCT_API void LCT_pmi_finalize();
+
 #ifdef __cplusplus
 }
 #endif

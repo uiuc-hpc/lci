@@ -13,7 +13,6 @@
 #include "datastructure/lcm_dequeue.h"
 #include "datastructure/lcm_aqueue.h"
 #include "datastructure/lcm_archive.h"
-#include "pmi_wrapper.h"
 #include "backend/server.h"
 #include "runtime/rcache/lcii_rcache.h"
 #include "backlog_queue.h"

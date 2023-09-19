@@ -1,13 +1,13 @@
 # Choose the right PMI backend
 Choosing the right PMI backend used to be important. However, after the upgrade of 
-cmake variable `LCM_PM_BACKEND_DEFAULT` and environment variable `LCI_PM_BACKEND` into a list
+cmake variable `<LCT|LCI>_PMI_BACKEND_DEFAULT` and environment variable `LCT_PMI_BACKEND` into a list
 of options for LCI to try. The default value can handle most of the cases so users don't need
 to care too much about it anymore. Nevertheless, we keep the old documents here in case users
 want to manually decide which PMI backend to use.
 
 LCI offers five PMI backends: pmi1,
-pmi2, pmix, mpi, and local. You can use `LCI_PM_BACKEND_DEFAULT` to specify the default
-backend when running `cmake`, or the environment variable `LCI_PM_BACKEND` to specify
+pmi2, pmix, mpi, and local. You can use `<LCT|LCI>_PMI_BACKEND_DEFAULT` to specify the default
+backend when running `cmake`, or the environment variable `LCT_PMI_BACKEND` to specify
 the backend when executing the program.
 
 An easy way to decide the right PMI backend is to run

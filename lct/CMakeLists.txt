@@ -17,6 +17,7 @@ lct_option(CACHE_LINE STRING "LCT: Size of cache line (bytes)" 64)
 lct_option(CONFIG_USE_ALIGNED_ALLOC BOOL "Enable memory alignment" ON)
 
 add_subdirectory(data_structure)
+add_subdirectory(pmi)
 
 target_include_directories(LCT PRIVATE . api)
 target_sources_relative(

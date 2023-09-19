@@ -113,7 +113,7 @@ class Lci(CMakePackage):
             args.append(arg)
 
         if 'auto' not in self.spec.variants['default-pm'].value:
-            arg = self.define_from_variant('LCI_PM_BACKEND_DEFAULT', 'default-pm')
+            arg = self.define_from_variant('LCI_PMI_BACKEND_DEFAULT', 'default-pm')
             args.append(arg)
 
         if self.spec.variants['default-packet-size'].value != 'auto':

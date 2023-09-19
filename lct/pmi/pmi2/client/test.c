@@ -1,5 +1,4 @@
 #include <stdio.h>
-#define LCI_USE_PMI2
 #include "pmi2.h"
 
 int main(int argc, char** args)
