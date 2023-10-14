@@ -5,6 +5,7 @@
 #include <mutex>
 #include <thread>
 #include <unistd.h>
+#include <stdexcept>
 #include "lcti.hpp"
 
 namespace lct::pcounter
