@@ -5,11 +5,17 @@ class Lci(CMakePackage):
     """LCI: the Lightweight Communication Interface"""
 
     homepage = "https://github.com/uiuc-hpc/LC"
-    url      = "https://github.com/uiuc-hpc/LC/archive/refs/tags/v1.7.4.tar.gz"
-    git      = "git@github.com:uiuc-hpc/LC.git"
+    url      = "https://github.com/uiuc-hpc/LC/archive/refs/tags/v1.7.6.tar.gz"
+    git      = "https://github.com/uiuc-hpc/LC.git"
+
+    maintainers("omor1", "JiakunYan")
 
     version('master', branch='master')
     version('coll', branch='topic/coll')
+    version("1.7.6", sha256="2cc6ebd2034cbdc4a1e6da3f0121092e27690851749bfa59ee70fa82309a8a2a")
+    version("1.7.5", sha256="a7a2aaec8ed2de31dabfbcbf1ff4dda219cb6c49a661a9072a8364ca10fe622c")
+    version("1.7.4", sha256="843f53c4d5f00653b466ca142679d2652cc93205e021d8d890513b3a44c44669")
+    version("1.7.3", sha256="329c24e75d9e61a694b7ff3cebe57272b6e39204fa10c7d4db151183f04b5fe8")
 
     def is_positive_int(val):
         try:
@@ -43,10 +49,10 @@ class Lci(CMakePackage):
 
     variant('default-pm', description='Default: Process management backend',
             values=disjoint_sets(
-                ('auto',), ('pmix', 'pmi2', 'pmi1', 'mpi', 'local')
+                ('auto',), ('pmix', 'pmi2', 'pmi1', 'mpi', 'local'), ('cray',),
             ).prohibit_empty_set(
             ).with_default('auto').with_non_feature_values('auto'))
-    variant('multithread-progress', default=False,
+    variant('multithread-progress', default=True,
             description='Enable thread-safe LCI_progress function')
     variant('default-dreg', default=True,
             description='Default: Whether to use registration cache')
@@ -69,8 +75,7 @@ class Lci(CMakePackage):
             description='Use PAPI to collect hardware counters')
     variant('gprof', default=False, description='Enable GPROF')
 
-    generator = 'Ninja'
-    depends_on('ninja', type='build')
+    generator("ninja", "make", default="ninja")
 
     depends_on('cmake@3.19:', type='build')
     depends_on('libfabric', when='fabric=ofi')
@@ -78,10 +83,8 @@ class Lci(CMakePackage):
     depends_on('mpi', when='default-pm=mpi')
     depends_on('papi', when='+papi')
     depends_on('doxygen', when='+docs')
-
-    @property
-    def build_directory(self):
-        return os.path.join(self.stage.path, 'spack-build', self.spec.dag_hash(7))
+    depends_on('cray-mpich', when='platform=cray')
+    depends_on('cray-pmi', when='default-pm=cray')
 
     def cmake_args(self):
         args = [
@@ -112,7 +115,10 @@ class Lci(CMakePackage):
             arg = self.define_from_variant('LCI_CACHE_LINE', 'cache-line')
             args.append(arg)
 
-        if 'auto' not in self.spec.variants['default-pm'].value:
+        if self.spec.satisfies("platform=cray") or self.spec.satisfies("default-pm=cray"):
+            arg = self.define('LCI_PMI_BACKEND_DEFAULT', 'pmi1')
+            args.append(arg)
+        elif 'auto' not in self.spec.variants['default-pm'].value:
             arg = self.define_from_variant('LCI_PMI_BACKEND_DEFAULT', 'default-pm')
             args.append(arg)
 

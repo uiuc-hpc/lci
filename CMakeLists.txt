@@ -127,7 +127,7 @@ if(NOT LCI_WITH_LCT_ONLY)
     "Use the C version of the completion queue so that it could be compiled inline."
     OFF)
   option(LCI_ENABLE_MULTITHREAD_PROGRESS
-         "LCI_progress can be called by multiple threads simultaneously" OFF)
+         "LCI_progress can be called by multiple threads simultaneously" ON)
   option(LCI_OFI_ENABLE_TRY_LOCK_EP
          "Try to lock the OFI endpoint before access it." ON)
   option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)

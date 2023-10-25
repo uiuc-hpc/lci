@@ -31,8 +31,12 @@
 .idea
 cmake-build-*
 
+# Spack related
+spack-*
+
 results
 errors
 *_test
 build-*/
 code_doc/
+__pycache__
