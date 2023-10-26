@@ -15,6 +15,8 @@ function(add_lci_executable name)
     PROPERTIES C_STANDARD 99
                C_EXTENSIONS ON
                CXX_STANDARD 11)
+  set_target_properties(${name} PROPERTIES OUTPUT_NAME "lci_${name}")
+  install(TARGETS ${name} RUNTIME)
 endfunction()
 
 function(add_lci_test name)
