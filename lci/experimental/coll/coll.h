@@ -141,7 +141,6 @@ static inline void LCIXC_mcoll_complete(LCI_endpoint_t ep, LCI_mbuffer_t buffer,
 {
   LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
   LCII_initilize_comp_attr(ctx->comp_attr);
-  LCII_comp_attr_set_msg_type(ctx->comp_attr, LCI_MSG_NONE);
   LCII_comp_attr_set_comp_type(ctx->comp_attr, ep->msg_comp_type);
   ctx->data_type = LCI_MEDIUM;
   ctx->user_context = user_context;
@@ -158,7 +157,6 @@ static inline void LCIXC_lcoll_complete(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
 {
   LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
   LCII_initilize_comp_attr(ctx->comp_attr);
-  LCII_comp_attr_set_msg_type(ctx->comp_attr, LCI_MSG_NONE);
   LCII_comp_attr_set_comp_type(ctx->comp_attr, ep->msg_comp_type);
   ctx->data_type = LCI_LONG;
   ctx->user_context = user_context;

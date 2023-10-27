@@ -583,6 +583,16 @@ extern bool LCI_IBV_ENABLE_TD;
 extern bool LCI_ENABLE_PRG_NET_ENDPOINT;
 
 /**
+ * @ingroup LCI_COMM
+ * @brief Rendezvous protocol to use.
+ */
+typedef enum {
+  LCI_RDV_WRITE,
+  LCI_RDV_WRITEIMM,
+} LCI_rdv_protocol_t;
+extern LCI_rdv_protocol_t LCI_RDV_PROTOCOL;
+
+/**
  * @ingroup LCI_DEVICE
  * @brief Default device initialized by LCI_initialize. Just for convenience.
  */

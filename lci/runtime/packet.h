@@ -1,6 +1,7 @@
 #ifndef PACKET_H_
 #define PACKET_H_
 
+#define LCII_POOLID_LOCAL (-1)
 struct __attribute__((packed)) LCII_packet_context {
   // Most of the current ctx requires 128-bits (FIXME)
   int64_t hwctx[2];
@@ -16,9 +17,9 @@ struct __attribute__((packed)) LCII_packet_context {
 };
 
 struct __attribute__((packed)) LCII_packet_rts_t {
-  LCI_msg_type_t msg_type; /* type of the long message */
   uintptr_t
       send_ctx; /* the address of the related context on the source side */
+  LCII_rdv_type_t rdv_type; /* type of this rendezvous message */
   union {
     // for LCI_LONG
     size_t size;
@@ -31,31 +32,23 @@ struct __attribute__((packed)) LCII_packet_rts_t {
   };
 };
 
-struct __attribute__((packed)) LCII_packet_rtr_iovec_info_t {
+struct __attribute__((packed)) LCII_packet_rtr_rbuffer_info_t {
   uint64_t rkey;
   uintptr_t remote_addr_base;
   LCIS_offset_t remote_addr_offset;
 };
 
 struct __attribute__((packed)) LCII_packet_rtr_t {
-  LCI_msg_type_t msg_type; /* type of the long message */
   uintptr_t
       send_ctx; /* the address of the related context on the source side */
   union {
-    // for LCI_LONG
-    struct {
-      uint64_t rkey;
-      uintptr_t remote_addr_base;
-      LCIS_offset_t remote_addr_offset;
-      uint32_t
-          recv_ctx_key; /* the id of the related context on the target side */
-    };
-    // for LCI_IOVEC
-    struct {
-      uintptr_t recv_ctx;
-      struct LCII_packet_rtr_iovec_info_t remote_iovecs_p[0];
-    };
+    // When using writeimm protocol
+    uint32_t
+        recv_ctx_key; /* the id of the related context on the target side */
+    // when using write protocol
+    uintptr_t recv_ctx;
   };
+  struct LCII_packet_rtr_rbuffer_info_t rbuffer_info_p[0];
 };
 
 struct __attribute__((packed, aligned(LCI_CACHE_LINE))) LCII_packet_data_t {
@@ -97,7 +90,7 @@ static inline void LCII_free_packet(LCII_packet_t* packet)
   packet->context.isInPool = true;
 #endif
   LCII_PCOUNTER_ADD(packet_put, 1);
-  if (packet->context.poolid != -1)
+  if (packet->context.poolid != LCII_POOLID_LOCAL)
     LCII_pool_put_to(packet->context.pkpool, packet, packet->context.poolid);
   else
     LCII_pool_put(packet->context.pkpool, packet);

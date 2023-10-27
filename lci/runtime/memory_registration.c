@@ -37,7 +37,7 @@ LCI_error_t LCI_mbuffer_alloc(LCI_device_t device, LCI_mbuffer_t* mbuffer)
   if (packet == NULL)
     // no packet is available
     return LCI_ERR_RETRY;
-  packet->context.poolid = -1;
+  packet->context.poolid = LCII_POOLID_LOCAL;
 
   mbuffer->address = packet->data.address;
   mbuffer->length = LCI_MEDIUM_SIZE;

@@ -26,6 +26,7 @@ LCI_API int LCI_SEND_SLOW_DOWN_USEC;
 LCI_API int LCI_RECV_SLOW_DOWN_USEC;
 LCI_API bool LCI_IBV_ENABLE_TD;
 LCI_API bool LCI_ENABLE_PRG_NET_ENDPOINT;
+LCI_API LCI_rdv_protocol_t LCI_RDV_PROTOCOL;
 LCI_API LCI_device_t LCI_UR_DEVICE;
 LCI_API LCI_endpoint_t LCI_UR_ENDPOINT;
 LCI_API LCI_comp_t LCI_UR_CQ;
@@ -89,7 +90,8 @@ void LCII_env_init(int num_proc, int rank)
                    sizeof(size_t),
                (LCI_PACKET_SIZE - sizeof(struct LCII_packet_context) -
                 sizeof(struct LCII_packet_rtr_t)) /
-                   sizeof(struct LCII_packet_rtr_iovec_info_t));
+                   sizeof(struct LCII_packet_rtr_rbuffer_info_t));
 
   LCII_env_init_cq_type();
+  LCII_env_init_rdv_protocol();
 }

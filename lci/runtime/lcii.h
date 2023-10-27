@@ -30,14 +30,12 @@ typedef enum {
   LCI_MSG_NONE,
   LCI_MSG_SHORT,
   LCI_MSG_MEDIUM,
-  LCI_MSG_LONG,
-  LCI_MSG_RTS,
-  LCI_MSG_RTR,
-  LCI_MSG_FIN,
   LCI_MSG_RDMA_SHORT,
   LCI_MSG_RDMA_MEDIUM,
-  LCI_MSG_RDMA_LONG,
-  LCI_MSG_IOVEC,
+  LCI_MSG_RTS,
+  LCI_MSG_RTR,
+  LCI_MSG_RDV_DATA,
+  LCI_MSG_FIN,
   LCI_MSG_MAX,
 } LCI_msg_type_t;
 
@@ -134,6 +132,7 @@ typedef struct LCII_mr_t LCII_mr_t;
  */
 typedef struct __attribute__((aligned(LCI_CACHE_LINE))) {
   // used by LCI internally
+  // make sure comp_attr is in the same offset as LCII_context_t
   uint32_t comp_attr;  // 4 bytes
   // LCI_request_t fields, 52 bytes
   LCI_data_type_t data_type;  // 4 bytes
@@ -162,24 +161,20 @@ typedef struct __attribute__((aligned(LCI_CACHE_LINE))) {
   comp_attr = LCIU_set_bits32(comp_attr, dereg, 1, 4)
 #define LCII_comp_attr_set_extended(comp_attr, flag) \
   comp_attr = LCIU_set_bits32(comp_attr, flag, 1, 5)
-#define LCII_comp_attr_set_msg_type(comp_attr, flag) \
-  comp_attr = LCIU_set_bits32(comp_attr, flag, 4, 6)
+#define LCII_comp_attr_set_rdv_type(comp_attr, rdv_type) \
+  comp_attr = LCIU_set_bits32(comp_attr, rdv_type, 2, 6)
 #define LCII_comp_attr_get_comp_type(comp_attr) LCIU_get_bits32(comp_attr, 3, 0)
 #define LCII_comp_attr_get_free_packet(comp_attr) \
   LCIU_get_bits32(comp_attr, 1, 3)
 #define LCII_comp_attr_get_dereg(comp_attr) LCIU_get_bits32(comp_attr, 1, 4)
 #define LCII_comp_attr_get_extended(comp_attr) LCIU_get_bits32(comp_attr, 1, 5)
-#define LCII_comp_attr_get_msg_type(comp_attr) LCIU_get_bits32(comp_attr, 4, 6)
+#define LCII_comp_attr_get_rdv_type(comp_attr) LCIU_get_bits32(comp_attr, 2, 6)
 
 // Extended context for iovec
 typedef struct __attribute__((aligned(LCI_CACHE_LINE))) {
-  uint32_t comp_attr;  // 4 bytes
-#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+  // make sure comp_attr is in the same offset as LCII_context_t
+  uint32_t comp_attr;       // 4 bytes
   atomic_int signal_count;  // ~4 bytes
-#else
-  int signal_count;  // 4 bytes
-#endif
-  int signal_expected;      // 4 bytes
   uintptr_t recv_ctx;       // 8 bytes
   LCI_endpoint_t ep;        // 8 bytes
   LCII_context_t* context;  // 8 bytes
@@ -219,19 +214,20 @@ typedef uint32_t LCII_proto_t;
 #define PROTO_GET_TYPE(proto) (proto & 0b01111)
 #define PROTO_GET_RGID(proto) ((proto >> 4) & 0b0111111111111)
 #define PROTO_GET_TAG(proto) ((proto >> 16) & 0xffff)
-static inline uint64_t LCII_make_key(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
-                                     LCI_msg_type_t msg_type);
+static inline uint64_t LCII_make_key(LCI_endpoint_t ep, int rank,
+                                     LCI_tag_t tag);
 // backend service
 static inline void lc_ce_dispatch(LCII_context_t* ctx);
 // rendezvous
-static inline void LCII_handle_2sided_rts(LCI_endpoint_t ep,
-                                          LCII_packet_t* packet,
-                                          LCII_context_t* rdv_ctx,
-                                          bool is_progress);
-static inline void LCII_handle_2sided_rtr(LCI_endpoint_t ep,
-                                          LCII_packet_t* packet);
-static inline void LCII_handle_2sided_writeImm(LCI_endpoint_t ep,
-                                               uint64_t ctx_key);
+typedef enum {
+  LCII_RDV_2SIDED,
+  LCII_RDV_1SIDED,
+  LCII_RDV_IOVEC
+} LCII_rdv_type_t;
+static inline void LCII_handle_rts(LCI_endpoint_t ep, LCII_packet_t* packet,
+                                   int src_rank, uint16_t tag,
+                                   LCII_context_t* rdv_ctx,
+                                   bool is_in_progress);
 
 #include "runtime/completion/cq.h"
 #include "runtime/matchtable/matchtable.h"

@@ -46,7 +46,6 @@ LCI_error_t LCI_sendm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
     LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
     ctx->data.mbuffer.address = (void*)packet->data.address;
     LCII_initilize_comp_attr(ctx->comp_attr);
-    LCII_comp_attr_set_msg_type(ctx->comp_attr, LCI_MSG_MEDIUM);
     LCII_comp_attr_set_free_packet(ctx->comp_attr, 1);
 
     ret = LCIS_post_send(ep->device->endpoint_worker->endpoint, rank,
@@ -83,7 +82,6 @@ LCI_error_t LCI_sendmn(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
   ctx->data.mbuffer.address = (void*)packet->data.address;
   LCII_initilize_comp_attr(ctx->comp_attr);
-  LCII_comp_attr_set_msg_type(ctx->comp_attr, LCI_MSG_MEDIUM);
   LCII_comp_attr_set_free_packet(ctx->comp_attr, 1);
 
   LCI_error_t ret = LCIS_post_send(
@@ -115,12 +113,11 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, int rank,
     // no packet is available
     return LCI_ERR_RETRY;
   }
-  packet->context.poolid = -1;
+  packet->context.poolid = LCII_POOLID_LOCAL;
 
   LCII_context_t* rts_ctx = LCIU_malloc(sizeof(LCII_context_t));
   rts_ctx->data.mbuffer.address = (void*)packet->data.address;
   LCII_initilize_comp_attr(rts_ctx->comp_attr);
-  LCII_comp_attr_set_msg_type(rts_ctx->comp_attr, LCI_MSG_RTS);
   LCII_comp_attr_set_free_packet(rts_ctx->comp_attr, 1);
 
   LCII_context_t* rdv_ctx = LCIU_malloc(sizeof(LCII_context_t));
@@ -130,13 +127,13 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, int rank,
   rdv_ctx->tag = tag;
   rdv_ctx->user_context = user_context;
   LCII_initilize_comp_attr(rdv_ctx->comp_attr);
-  LCII_comp_attr_set_msg_type(rdv_ctx->comp_attr, LCI_MSG_LONG);
   LCII_comp_attr_set_comp_type(rdv_ctx->comp_attr, ep->cmd_comp_type);
   LCII_comp_attr_set_dereg(rdv_ctx->comp_attr,
                            buffer.segment == LCI_SEGMENT_ALL);
+  LCII_comp_attr_set_rdv_type(rdv_ctx->comp_attr, LCII_RDV_2SIDED);
   rdv_ctx->completion = completion;
 
-  packet->data.rts.msg_type = LCI_MSG_LONG;
+  packet->data.rts.rdv_type = LCII_RDV_2SIDED;
   packet->data.rts.send_ctx = (uintptr_t)rdv_ctx;
   packet->data.rts.size = buffer.length;
 
@@ -171,11 +168,10 @@ LCI_error_t LCI_recvs(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
   ctx->tag = tag;
   ctx->user_context = user_context;
   LCII_initilize_comp_attr(ctx->comp_attr);
-  LCII_comp_attr_set_msg_type(ctx->comp_attr, LCI_MSG_NONE);
   LCII_comp_attr_set_comp_type(ctx->comp_attr, ep->msg_comp_type);
   ctx->completion = completion;
 
-  uint64_t key = LCII_make_key(ep, rank, tag, LCI_MSG_SHORT);
+  uint64_t key = LCII_make_key(ep, rank, tag);
   uint64_t value = (uint64_t)ctx;
   if (LCII_matchtable_insert(ep->mt, key, &value, LCII_MATCHTABLE_RECV) ==
       LCI_OK) {
@@ -208,11 +204,10 @@ LCI_error_t LCI_recvm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   ctx->tag = tag;
   ctx->user_context = user_context;
   LCII_initilize_comp_attr(ctx->comp_attr);
-  LCII_comp_attr_set_msg_type(ctx->comp_attr, LCI_MSG_NONE);
   LCII_comp_attr_set_comp_type(ctx->comp_attr, ep->msg_comp_type);
   ctx->completion = completion;
 
-  uint64_t key = LCII_make_key(ep, rank, tag, LCI_MSG_MEDIUM);
+  uint64_t key = LCII_make_key(ep, rank, tag);
   uint64_t value = (uint64_t)ctx;
   if (LCII_matchtable_insert(ep->mt, key, &value, LCII_MATCHTABLE_RECV) ==
       LCI_OK) {
@@ -246,11 +241,10 @@ LCI_error_t LCI_recvmn(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
   ctx->tag = tag;
   ctx->user_context = user_context;
   LCII_initilize_comp_attr(ctx->comp_attr);
-  LCII_comp_attr_set_msg_type(ctx->comp_attr, LCI_MSG_NONE);
   LCII_comp_attr_set_comp_type(ctx->comp_attr, ep->msg_comp_type);
   ctx->completion = completion;
 
-  uint64_t key = LCII_make_key(ep, rank, tag, LCI_MSG_MEDIUM);
+  uint64_t key = LCII_make_key(ep, rank, tag);
   uint64_t value = (uint64_t)ctx;
   if (LCII_matchtable_insert(ep->mt, key, &value, LCII_MATCHTABLE_RECV) ==
       LCI_OK) {
@@ -281,19 +275,19 @@ LCI_error_t LCI_recvl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, int rank,
   rdv_ctx->tag = tag;
   rdv_ctx->user_context = user_context;
   LCII_initilize_comp_attr(rdv_ctx->comp_attr);
-  LCII_comp_attr_set_msg_type(rdv_ctx->comp_attr, LCI_MSG_NONE);
   LCII_comp_attr_set_comp_type(rdv_ctx->comp_attr, ep->msg_comp_type);
   LCII_comp_attr_set_dereg(
       rdv_ctx->comp_attr,
       buffer.address != NULL && buffer.segment == LCI_SEGMENT_ALL);
+  LCII_comp_attr_set_rdv_type(rdv_ctx->comp_attr, LCII_RDV_2SIDED);
   rdv_ctx->completion = completion;
 
-  uint64_t key = LCII_make_key(ep, rank, tag, LCI_MSG_LONG);
+  uint64_t key = LCII_make_key(ep, rank, tag);
   uint64_t value = (uint64_t)rdv_ctx;
   if (LCII_matchtable_insert(ep->mt, key, &value, LCII_MATCHTABLE_RECV) ==
       LCI_OK) {
-    LCII_packet_t* p = (LCII_packet_t*)value;
-    LCII_handle_2sided_rts(ep, p, rdv_ctx, false);
+    LCII_packet_t* packet = (LCII_packet_t*)value;
+    LCII_handle_rts(ep, packet, packet->context.src_rank, tag, rdv_ctx, false);
   }
   LCII_PCOUNTER_ADD(recv, 1);
   LCI_DBG_Log(LCI_LOG_TRACE, "comm",

@@ -1,20 +1,20 @@
 #ifndef LC_PROTO_H
 #define LC_PROTO_H
 
-// 32 bits for rank, 2 bits for msg type, 14 bits for endpoint ID, 16 bits for
-// tag
-static inline uint64_t LCII_make_key(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
-                                     LCI_msg_type_t msg_type)
+// 32 bits for rank, 16 bits for endpoint ID, 16 bits for tag
+static inline uint64_t LCII_make_key(LCI_endpoint_t ep, int rank, LCI_tag_t tag)
 {
   uint64_t ret = 0;
   if (ep->match_type == LCI_MATCH_RANKTAG) {
-    ret = (uint64_t)(rank) << 32 | (uint64_t)(msg_type) << 30 |
-          (uint64_t)(ep->gid) << 16 | (uint64_t)(tag);
+    ret = (uint64_t)(rank) & (((uint64_t)1 << 32) - 1) << 32 |
+          (uint64_t)(ep->gid) & (((uint64_t)1 << 16) - 1) << 16 |
+          (uint64_t)(tag) & (((uint64_t)1 << 16) - 1);
   } else {
     LCI_DBG_Assert(ep->match_type == LCI_MATCH_TAG, "Unknown match_type %d\n",
                    ep->match_type);
-    ret = (uint64_t)(-1) << 32 | (uint64_t)(msg_type) << 30 |
-          (uint64_t)(ep->gid) << 16 | (uint64_t)(tag);
+    ret = (uint64_t)(-1) & (((uint64_t)1 << 32) - 1) << 32 |
+          (uint64_t)(ep->gid) & (((uint64_t)1 << 16) - 1) << 16 |
+          (uint64_t)(tag) & (((uint64_t)1 << 16) - 1);
   }
   return ret;
 }
@@ -22,8 +22,19 @@ static inline uint64_t LCII_make_key(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
 static inline void lc_ce_dispatch(LCII_context_t* ctx)
 {
   if (LCII_comp_attr_get_dereg(ctx->comp_attr) == 1) {
-    LCI_memory_deregister(&ctx->data.lbuffer.segment);
-    ctx->data.lbuffer.segment = LCI_SEGMENT_ALL;
+    int niters = (ctx->data_type == LCI_IOVEC) ? ctx->data.iovec.count : 1;
+    for (int i = 0; i < niters; ++i) {
+      LCI_lbuffer_t* lbuffer;
+      if (ctx->data_type == LCI_LONG) {
+        lbuffer = &ctx->data.lbuffer;
+      } else {
+        LCI_DBG_Assert(ctx->data_type == LCI_IOVEC, "");
+        lbuffer = &ctx->data.iovec.lbuffers[i];
+      }
+      // register the buffer if necessary
+      LCI_memory_deregister(&lbuffer->segment);
+      lbuffer->segment = LCI_SEGMENT_ALL;
+    }
   }
   switch (LCII_comp_attr_get_comp_type(ctx->comp_attr)) {
     case LCI_COMPLETION_NONE:
@@ -71,7 +82,7 @@ static inline void LCIS_serve_recv(void* p, int src_rank, size_t length,
     case LCI_MSG_SHORT: {
       LCI_DBG_Assert(length == LCI_SHORT_SIZE,
                      "Unexpected message length %lu\n", length);
-      uint64_t key = LCII_make_key(ep, src_rank, tag, LCI_MSG_SHORT);
+      uint64_t key = LCII_make_key(ep, src_rank, tag);
       uint64_t value = (uint64_t)packet;
       if (LCII_matchtable_insert(ep->mt, key, &value, LCII_MATCHTABLE_SEND) ==
           LCI_OK) {
@@ -85,7 +96,7 @@ static inline void LCIS_serve_recv(void* p, int src_rank, size_t length,
       break;
     }
     case LCI_MSG_MEDIUM: {
-      uint64_t key = LCII_make_key(ep, src_rank, tag, LCI_MSG_MEDIUM);
+      uint64_t key = LCII_make_key(ep, src_rank, tag);
       uint64_t value = (uint64_t)packet;
       packet->context.length = length;
       if (LCII_matchtable_insert(ep->mt, key, &value, LCII_MATCHTABLE_SEND) ==
@@ -108,50 +119,22 @@ static inline void LCIS_serve_recv(void* p, int src_rank, size_t length,
     }
     case LCI_MSG_RTS: {
       LCII_PCOUNTER_START(serve_rts_timer);
-      switch (packet->data.rts.msg_type) {
-        case LCI_MSG_LONG: {
-          const uint64_t key = LCII_make_key(ep, src_rank, tag, LCI_MSG_LONG);
-          uint64_t value = (uint64_t)packet;
-          if (LCII_matchtable_insert(ep->mt, key, &value,
-                                     LCII_MATCHTABLE_SEND) == LCI_OK) {
-            LCII_handle_2sided_rts(ep, packet, (LCI_comp_t)value, true);
-          }
-          break;
+      if (packet->data.rts.rdv_type == LCII_RDV_2SIDED) {
+        const uint64_t key = LCII_make_key(ep, src_rank, tag);
+        uint64_t value = (uint64_t)packet;
+        if (LCII_matchtable_insert(ep->mt, key, &value, LCII_MATCHTABLE_SEND) ==
+            LCI_OK) {
+          LCII_handle_rts(ep, packet, src_rank, tag, (LCI_comp_t)value, true);
         }
-        case LCI_MSG_RDMA_LONG: {
-          LCII_handle_1sided_rts(ep, packet, src_rank, tag);
-          break;
-        }
-        case LCI_MSG_IOVEC: {
-          LCII_handle_iovec_rts(ep, packet, src_rank, tag);
-          break;
-        }
-        default:
-          LCI_Assert(false, "Unknown message type %d!\n",
-                     packet->data.rts.msg_type);
+      } else {
+        LCII_handle_rts(ep, packet, src_rank, tag, NULL, true);
       }
       LCII_PCOUNTER_END(serve_rts_timer);
       break;
     }
     case LCI_MSG_RTR: {
       LCII_PCOUNTER_START(serve_rtr_timer);
-      switch (packet->data.rts.msg_type) {
-        case LCI_MSG_LONG: {
-          LCII_handle_2sided_rtr(ep, packet);
-          break;
-        }
-        case LCI_MSG_RDMA_LONG: {
-          LCII_handle_1sided_rtr(ep, packet);
-          break;
-        }
-        case LCI_MSG_IOVEC: {
-          LCII_handle_iovec_rtr(ep, packet);
-          break;
-        }
-        default:
-          LCI_Assert(false, "Unknown message type %d!\n",
-                     packet->data.rts.msg_type);
-      }
+      LCII_handle_rtr(ep, packet);
       LCII_PCOUNTER_END(serve_rtr_timer);
       break;
     }
@@ -189,7 +172,7 @@ static inline void LCIS_serve_recv(void* p, int src_rank, size_t length,
     case LCI_MSG_FIN: {
       LCI_DBG_Assert(length == sizeof(LCII_context_t*),
                      "Unexpected FIN message length (%lu)!\n", length);
-      LCII_handle_iovec_recv_FIN(packet);
+      LCII_handle_fin(packet);
       break;
     }
     default:
@@ -204,19 +187,9 @@ static inline void LCIS_serve_rdma(uint32_t imm_data)
   LCI_endpoint_t ep = LCI_ENDPOINTS[PROTO_GET_RGID(proto)];
   uint16_t tag = PROTO_GET_TAG(proto);
   LCI_msg_type_t msg_type = PROTO_GET_TYPE(proto);
+  LCI_DBG_Assert(msg_type == LCI_MSG_RDV_DATA, "");
 
-  switch (msg_type) {
-    case LCI_MSG_LONG: {
-      LCII_handle_2sided_writeImm(ep, tag);
-      break;
-    }
-    case LCI_MSG_RDMA_LONG: {
-      LCII_handle_1sided_writeImm(ep, tag);
-      break;
-    }
-    default:
-      LCI_DBG_Assert(false, "unknown proto!\n");
-  }
+  LCII_handle_writeImm(ep, tag);
   LCII_PCOUNTER_END(serve_rdma_timer);
 }
 
@@ -225,8 +198,8 @@ static inline void LCIS_serve_send(void* raw_ctx)
 {
   LCII_context_t* ctx = raw_ctx;
   if (LCII_comp_attr_get_extended(ctx->comp_attr) == 1) {
-    // extended context for iovec
-    LCII_handle_iovec_put_comp((LCII_extended_context_t*)ctx);
+    // handle extended context
+    LCII_handle_rdv_data_local_comp((LCII_extended_context_t*)ctx);
     return;
   }
   if (LCII_comp_attr_get_free_packet(ctx->comp_attr) == 1) {

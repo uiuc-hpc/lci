@@ -23,7 +23,7 @@ LCI_error_t LCI_puts(LCI_endpoint_t ep, LCI_short_t src, int rank,
 }
 
 LCI_error_t LCI_putm(LCI_endpoint_t ep, LCI_mbuffer_t mbuffer, int rank,
-                     LCI_tag_t tag, LCI_lbuffer_t remote_buffer,
+                     LCI_tag_t tag, LCI_lbuffer_t rbuffer,
                      uintptr_t remote_completion)
 {
   //  LC_POOL_GET_OR_RETN(ep->pkpool, p);
@@ -68,7 +68,6 @@ LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
     LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
     ctx->data.mbuffer.address = (void*)packet->data.address;
     LCII_initilize_comp_attr(ctx->comp_attr);
-    LCII_comp_attr_set_msg_type(ctx->comp_attr, LCI_MSG_RDMA_MEDIUM);
     LCII_comp_attr_set_free_packet(ctx->comp_attr, 1);
 
     ret = LCIS_post_send(
@@ -111,7 +110,6 @@ LCI_error_t LCI_putmna(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
   ctx->data.mbuffer.address = (void*)packet->data.address;
   LCII_initilize_comp_attr(ctx->comp_attr);
-  LCII_comp_attr_set_msg_type(ctx->comp_attr, LCI_MSG_RDMA_MEDIUM);
   LCII_comp_attr_set_free_packet(ctx->comp_attr, 1);
 
   LCI_error_t ret = LCIS_post_send(
@@ -134,7 +132,7 @@ LCI_error_t LCI_putmna(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
 
 LCI_error_t LCI_putl(LCI_endpoint_t ep, LCI_lbuffer_t local_buffer,
                      LCI_comp_t local_completion, int rank, LCI_tag_t tag,
-                     LCI_lbuffer_t remote_buffer, uintptr_t remote_completion)
+                     LCI_lbuffer_t rbuffer, uintptr_t remote_completion)
 {
   return LCI_ERR_FEATURE_NA;
 }
@@ -157,12 +155,11 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
     // no packet is available
     return LCI_ERR_RETRY;
   }
-  packet->context.poolid = -1;
+  packet->context.poolid = LCII_POOLID_LOCAL;
 
   LCII_context_t* rts_ctx = LCIU_malloc(sizeof(LCII_context_t));
   rts_ctx->data.mbuffer.address = (void*)packet->data.address;
   LCII_initilize_comp_attr(rts_ctx->comp_attr);
-  LCII_comp_attr_set_msg_type(rts_ctx->comp_attr, LCI_MSG_RTS);
   LCII_comp_attr_set_free_packet(rts_ctx->comp_attr, 1);
 
   LCII_context_t* rdv_ctx = LCIU_malloc(sizeof(LCII_context_t));
@@ -172,18 +169,18 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
   rdv_ctx->tag = tag;
   rdv_ctx->user_context = user_context;
   LCII_initilize_comp_attr(rdv_ctx->comp_attr);
-  LCII_comp_attr_set_msg_type(rdv_ctx->comp_attr, LCI_MSG_RDMA_LONG);
+  LCII_comp_attr_set_rdv_type(rdv_ctx->comp_attr, LCII_RDV_1SIDED);
   LCII_comp_attr_set_comp_type(rdv_ctx->comp_attr, ep->cmd_comp_type);
   LCII_comp_attr_set_dereg(rdv_ctx->comp_attr,
                            buffer.segment == LCI_SEGMENT_ALL);
   rdv_ctx->completion = completion;
 
-  packet->data.rts.msg_type = LCI_MSG_RDMA_LONG;
+  packet->data.rts.rdv_type = LCII_RDV_1SIDED;
   packet->data.rts.send_ctx = (uintptr_t)rdv_ctx;
   packet->data.rts.size = buffer.length;
 
   LCI_DBG_Log(LCI_LOG_TRACE, "rdv", "send rts: type %d sctx %p size %lu\n",
-              packet->data.rts.msg_type, (void*)packet->data.rts.send_ctx,
+              packet->data.rts.rdv_type, (void*)packet->data.rts.send_ctx,
               packet->data.rts.size);
   LCI_error_t ret = LCIS_post_send(
       ep->device->endpoint_worker->endpoint, rank, packet->data.address,
@@ -250,7 +247,6 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
   LCII_context_t* rts_ctx = LCIU_malloc(sizeof(LCII_context_t));
   rts_ctx->data.mbuffer.address = (void*)packet->data.address;
   LCII_initilize_comp_attr(rts_ctx->comp_attr);
-  LCII_comp_attr_set_msg_type(rts_ctx->comp_attr, LCI_MSG_RTS);
   LCII_comp_attr_set_free_packet(rts_ctx->comp_attr, 1);
 
   LCII_context_t* rdv_ctx = LCIU_malloc(sizeof(LCII_context_t));
@@ -260,11 +256,15 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
   rdv_ctx->tag = tag;
   rdv_ctx->user_context = user_context;
   LCII_initilize_comp_attr(rdv_ctx->comp_attr);
-  LCII_comp_attr_set_msg_type(rdv_ctx->comp_attr, LCI_MSG_IOVEC);
+  LCII_comp_attr_set_rdv_type(rdv_ctx->comp_attr, LCII_RDV_IOVEC);
   LCII_comp_attr_set_comp_type(rdv_ctx->comp_attr, ep->cmd_comp_type);
+  // Currently, for iovec, if one buffer uses LCI_SEGMENT_ALL,
+  // all buffers need to use LCI_SEGMENT_ALL
+  LCII_comp_attr_set_dereg(rdv_ctx->comp_attr,
+                           iovec.lbuffers[0].segment == LCI_SEGMENT_ALL);
   rdv_ctx->completion = completion;
 
-  packet->data.rts.msg_type = LCI_MSG_IOVEC;
+  packet->data.rts.rdv_type = LCII_RDV_IOVEC;
   packet->data.rts.send_ctx = (uintptr_t)rdv_ctx;
   packet->data.rts.count = iovec.count;
   packet->data.rts.piggy_back_size = iovec.piggy_back.length;
@@ -277,7 +277,7 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
   LCI_DBG_Log(LCI_LOG_TRACE, "rdv",
               "send rts: type %d sctx %p count %d "
               "piggy_back_size %lu\n",
-              packet->data.rts.msg_type, (void*)packet->data.rts.send_ctx,
+              packet->data.rts.rdv_type, (void*)packet->data.rts.send_ctx,
               packet->data.rts.count, packet->data.rts.piggy_back_size);
   size_t length = (uintptr_t)&packet->data.rts.size_p[iovec.count] -
                   (uintptr_t)packet->data.address + iovec.piggy_back.length;

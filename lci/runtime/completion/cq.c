@@ -6,7 +6,7 @@ void LCII_env_init_cq_type()
 {
   const LCT_queue_type_t cq_type_default = LCT_QUEUE_ARRAY_ATOMIC_FAA;
   LCT_dict_str_int_t dict[] = {
-      {NULL, LCT_QUEUE_ARRAY_ATOMIC_FAA},
+      {NULL, cq_type_default},
       {"array_atomic_faa", LCT_QUEUE_ARRAY_ATOMIC_FAA},
       {"array_atomic_cas", LCT_QUEUE_ARRAY_ATOMIC_CAS},
       {"array_atomic_basic", LCT_QUEUE_ARRAY_ATOMIC_BASIC},
@@ -18,7 +18,7 @@ void LCII_env_init_cq_type()
                                     (int*)&cq_type);
   if (!succeed) {
     LCI_Warn("Unknown LCI_CQ_TYPE %s. Use the default type: array_atomic_faa\n",
-             cq_type);
+             getenv("LCI_CQ_TYPE"));
   }
   LCI_Log(LCI_LOG_INFO, "comp", "Set LCI_CQ_TYPE to %d\n", cq_type);
 }
