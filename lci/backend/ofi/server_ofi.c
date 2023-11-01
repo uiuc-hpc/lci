@@ -100,6 +100,19 @@ void LCISD_server_init(LCI_device_t device, LCIS_server_t* s)
              "inject_size (%lu) < sizeof(LCI_short_t) (%lu)!\n",
              server->info->tx_attr->inject_size, sizeof(LCI_short_t));
   fi_freeinfo(hints);
+  if (strcmp(server->info->fabric_attr->prov_name, "cxi") == 0) {
+    LCI_Assert(LCI_USE_DREG == 0,
+               "The registration cache should be turned off "
+               "for libfabric cxi backend. Use `export LCI_USE_DREG=0`.\n");
+    LCI_Assert(LCI_RDV_PROTOCOL == LCI_RDV_WRITE,
+               "The libfabric cxi backend "
+               "only supports rendezvous protocol \"write\". Use "
+               "`export LCI_RDV_PROTOCOL=write`.");
+    LCI_Assert(LCI_ENABLE_PRG_NET_ENDPOINT == 0,
+               "The libfabric cxi backend "
+               "does not support multiple server endpoint for the same device. "
+               "Use `export LCI_ENABLE_PRG_NET_ENDPOINT=0`");
+  }
 
   // Create libfabric obj.
   FI_SAFECALL(fi_fabric(server->info->fabric_attr, &server->fabric, NULL));

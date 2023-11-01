@@ -173,6 +173,7 @@ static inline void LCII_handle_rts(LCI_endpoint_t ep, LCII_packet_t* packet,
 {
   // Extract information from the received RTS packet
   LCII_rdv_type_t rdv_type = packet->data.rts.rdv_type;
+  LCI_DBG_Log(LCI_LOG_TRACE, "rdv", "handle rts: rdv_type %d\n", rdv_type);
   if (!rdv_ctx) {
     LCI_DBG_Assert(rdv_type == LCII_RDV_1SIDED || rdv_type == LCII_RDV_IOVEC,
                    "");

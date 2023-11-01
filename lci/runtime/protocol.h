@@ -6,15 +6,14 @@ static inline uint64_t LCII_make_key(LCI_endpoint_t ep, int rank, LCI_tag_t tag)
 {
   uint64_t ret = 0;
   if (ep->match_type == LCI_MATCH_RANKTAG) {
-    ret = (uint64_t)(rank) & (((uint64_t)1 << 32) - 1) << 32 |
-          (uint64_t)(ep->gid) & (((uint64_t)1 << 16) - 1) << 16 |
-          (uint64_t)(tag) & (((uint64_t)1 << 16) - 1);
+    ret = LCIU_set_bits64(0, rank, 32, 32) |
+          LCIU_set_bits64(0, ep->gid, 16, 16) | LCIU_set_bits64(0, tag, 16, 0);
   } else {
     LCI_DBG_Assert(ep->match_type == LCI_MATCH_TAG, "Unknown match_type %d\n",
                    ep->match_type);
-    ret = (uint64_t)(-1) & (((uint64_t)1 << 32) - 1) << 32 |
-          (uint64_t)(ep->gid) & (((uint64_t)1 << 16) - 1) << 16 |
-          (uint64_t)(tag) & (((uint64_t)1 << 16) - 1);
+    const uint32_t rank_any = -1;
+    ret = LCIU_set_bits64(0, rank_any, 32, 32) |
+          LCIU_set_bits64(0, ep->gid, 16, 16) | LCIU_set_bits64(0, tag, 16, 0);
   }
   return ret;
 }
