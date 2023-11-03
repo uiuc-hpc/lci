@@ -108,10 +108,6 @@ void LCISD_server_init(LCI_device_t device, LCIS_server_t* s)
                "The libfabric cxi backend "
                "only supports rendezvous protocol \"write\". Use "
                "`export LCI_RDV_PROTOCOL=write`.");
-    LCI_Assert(LCI_ENABLE_PRG_NET_ENDPOINT == 0,
-               "The libfabric cxi backend "
-               "does not support multiple server endpoint for the same device. "
-               "Use `export LCI_ENABLE_PRG_NET_ENDPOINT=0`");
   }
 
   // Create libfabric obj.
@@ -145,6 +141,16 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
       endpoint_p;
   endpoint_p->is_single_threaded = single_threaded;
   LCIU_spinlock_init(&endpoint_p->lock);
+  if (!LCI_OFI_CXI_TRY_NO_HACK &&
+      strcmp(endpoint_p->server->info->fabric_attr->prov_name, "cxi") == 0 &&
+      endpoint_p->server->info->domain_attr->mr_mode & FI_MR_ENDPOINT &&
+      endpoint_p->server->endpoint_count > 1) {
+    // We are using more than one endpoint per server, but the cxi provider
+    // can only bind mr to one endpoint. We have to guess here.
+    endpoint_p->server->cxi_mr_bind_hack = true;
+  } else {
+    endpoint_p->server->cxi_mr_bind_hack = false;
+  }
   // Create end-point;
   FI_SAFECALL(fi_endpoint(endpoint_p->server->domain, endpoint_p->server->info,
                           &endpoint_p->ep, NULL));

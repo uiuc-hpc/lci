@@ -593,6 +593,13 @@ typedef enum {
 extern LCI_rdv_protocol_t LCI_RDV_PROTOCOL;
 
 /**
+ * @ingroup
+ * @brief For the libfabric cxi provider, Try turning off the hacking to see
+ * whether cxi has fixed the double mr_bind error.
+ */
+extern bool LCI_OFI_CXI_TRY_NO_HACK;
+
+/**
  * @ingroup LCI_DEVICE
  * @brief Default device initialized by LCI_initialize. Just for convenience.
  */
