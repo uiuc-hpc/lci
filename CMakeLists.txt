@@ -128,8 +128,6 @@ if(NOT LCI_WITH_LCT_ONLY)
     OFF)
   option(LCI_ENABLE_MULTITHREAD_PROGRESS
          "LCI_progress can be called by multiple threads simultaneously" ON)
-  option(LCI_OFI_ENABLE_TRY_LOCK_EP
-         "Try to lock the OFI endpoint before access it." ON)
   option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
   set(LCI_USE_DREG_DEFAULT
       ${LCI_USE_SERVER_IBV}

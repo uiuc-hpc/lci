@@ -41,6 +41,8 @@ typedef struct {
 } LCT_dict_str_int_t;
 LCT_API int LCT_str_int_search(LCT_dict_str_int_t dict[], int count,
                                const char* key, int default_val, int* val);
+LCT_API uint64_t LCT_parse_arg(LCT_dict_str_int_t dict[], int count,
+                               const char* key, const char* delimiter);
 
 // thread
 LCT_API int LCT_get_thread_id();

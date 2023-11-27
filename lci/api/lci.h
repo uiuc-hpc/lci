@@ -600,6 +600,17 @@ extern LCI_rdv_protocol_t LCI_RDV_PROTOCOL;
 extern bool LCI_OFI_CXI_TRY_NO_HACK;
 
 /**
+ * @ingroup LCI_COMM
+ * @brief Try_lock mode of network backend.
+ */
+typedef enum {
+  LCI_BACKEND_TRY_LOCK_SEND = 1,
+  LCI_BACKEND_TRY_LOCK_RECV = 1 << 1,
+  LCI_BACKEND_TRY_LOCK_POLL = 1 << 2,
+} LCI_backend_try_lock_mode_t;
+extern uint64_t LCI_BACKEND_TRY_LOCK_MODE;
+
+/**
  * @ingroup LCI_DEVICE
  * @brief Default device initialized by LCI_initialize. Just for convenience.
  */

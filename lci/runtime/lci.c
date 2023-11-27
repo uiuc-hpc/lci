@@ -8,6 +8,11 @@ __thread unsigned int LCIU_rand_seed = 0;
 
 LCI_error_t LCI_initialize()
 {
+  if (getenv("LCI_INIT_ATTACH_DEBUGGER")) {
+    int i = 1;
+    printf("PID %d is waiting to be attached\n", getpid());
+    while (i) continue;
+  }
   LCT_init();
   LCII_log_init();
   // Initialize PMI.

@@ -28,6 +28,7 @@ LCI_API bool LCI_IBV_ENABLE_TD;
 LCI_API bool LCI_ENABLE_PRG_NET_ENDPOINT;
 LCI_API LCI_rdv_protocol_t LCI_RDV_PROTOCOL;
 LCI_API bool LCI_OFI_CXI_TRY_NO_HACK;
+LCI_API uint64_t LCI_BACKEND_TRY_LOCK_MODE;
 LCI_API LCI_device_t LCI_UR_DEVICE;
 LCI_API LCI_endpoint_t LCI_UR_ENDPOINT;
 LCI_API LCI_comp_t LCI_UR_CQ;
@@ -94,6 +95,23 @@ void LCII_env_init(int num_proc, int rank)
                    sizeof(struct LCII_packet_rtr_rbuffer_info_t));
   LCI_OFI_CXI_TRY_NO_HACK = LCIU_getenv_or("LCI_OFI_CXI_TRY_NO_HACK", false);
 
+  {
+    // default value
+    LCI_BACKEND_TRY_LOCK_MODE = LCI_BACKEND_TRY_LOCK_SEND |
+                                LCI_BACKEND_TRY_LOCK_RECV |
+                                LCI_BACKEND_TRY_LOCK_POLL;
+    // if users explicitly set the value
+    char* p = getenv("LCI_BACKEND_TRY_LOCK_MODE");
+    if (p) {
+      LCT_dict_str_int_t dict[] = {
+          {"send", LCI_BACKEND_TRY_LOCK_SEND},
+          {"recv", LCI_BACKEND_TRY_LOCK_RECV},
+          {"poll", LCI_BACKEND_TRY_LOCK_POLL},
+      };
+      LCI_BACKEND_TRY_LOCK_MODE =
+          LCT_parse_arg(dict, sizeof(dict) / sizeof(dict[0]), p, ";");
+    }
+  }
   LCII_env_init_cq_type();
   LCII_env_init_rdv_protocol();
 }
