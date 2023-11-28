@@ -142,15 +142,14 @@ static inline void LCIS_post_putImm_bq(LCII_backlog_queue_t* bq_p,
 
 static void LCII_env_init_rdv_protocol()
 {
-  const LCI_rdv_protocol_t rdv_protocol_default = LCI_RDV_WRITE;
   LCT_dict_str_int_t dict[] = {
-      {NULL, rdv_protocol_default},
       {"write", LCI_RDV_WRITE},
       {"writeimm", LCI_RDV_WRITEIMM},
   };
-  bool succeed = LCT_str_int_search(
-      dict, sizeof(dict) / sizeof(dict[0]), getenv("LCI_RDV_PROTOCOL"),
-      rdv_protocol_default, (int*)&LCI_RDV_PROTOCOL);
+  char* p = getenv("LCI_RDV_PROTOCOL");
+  if (!p) p = LCI_RDV_PROTOCOL_DEFAULT;
+  bool succeed = LCT_str_int_search(dict, sizeof(dict) / sizeof(dict[0]), p,
+                                    LCI_RDV_WRITE, (int*)&LCI_RDV_PROTOCOL);
   if (!succeed) {
     LCI_Warn("Unknown LCI_RDV_PROTOCOL %s. Use the default type: write\n",
              getenv("LCI_RDV_PROTOCOL"));

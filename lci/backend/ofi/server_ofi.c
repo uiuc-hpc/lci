@@ -104,10 +104,12 @@ void LCISD_server_init(LCI_device_t device, LCIS_server_t* s)
     LCI_Assert(LCI_USE_DREG == 0,
                "The registration cache should be turned off "
                "for libfabric cxi backend. Use `export LCI_USE_DREG=0`.\n");
-    LCI_Assert(LCI_RDV_PROTOCOL == LCI_RDV_WRITE,
-               "The libfabric cxi backend "
-               "only supports rendezvous protocol \"write\". Use "
-               "`export LCI_RDV_PROTOCOL=write`.");
+    if (LCI_RDV_PROTOCOL != LCI_RDV_WRITE) {
+      LCI_RDV_PROTOCOL = LCI_RDV_WRITE;
+      LCI_Warn(
+          "Switch LCI_RDV_PROTOCOL to \"write\" "
+          "as required by the libfabric cxi backend\n");
+    }
   }
 
   // Create libfabric obj.
