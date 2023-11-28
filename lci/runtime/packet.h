@@ -41,6 +41,7 @@ struct __attribute__((packed)) LCII_packet_rtr_rbuffer_info_t {
 struct __attribute__((packed)) LCII_packet_rtr_t {
   uintptr_t
       send_ctx; /* the address of the related context on the source side */
+  LCII_rdv_type_t rdv_type; /* type of this rendezvous message */
   union {
     // When using writeimm protocol
     uint32_t

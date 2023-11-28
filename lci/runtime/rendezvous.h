@@ -294,10 +294,11 @@ static inline void LCII_handle_rts(LCI_endpoint_t ep, LCII_packet_t* packet,
 
 static inline void LCII_handle_rtr(LCI_endpoint_t ep, LCII_packet_t* packet)
 {
+  LCII_rdv_type_t rdv_type = packet->data.rtr.rdv_type;
   LCII_context_t* ctx = (LCII_context_t*)packet->data.rtr.send_ctx;
   // Set up the "extended context" for write protocol
   void* ctx_to_pass = ctx;
-  if (LCI_RDV_PROTOCOL == LCI_RDV_WRITE) {
+  if (LCI_RDV_PROTOCOL == LCI_RDV_WRITE || rdv_type == LCII_RDV_IOVEC) {
     LCII_extended_context_t* ectx =
         LCIU_malloc(sizeof(LCII_extended_context_t));
     LCII_initilize_comp_attr(ectx->comp_attr);
@@ -333,7 +334,7 @@ static inline void LCII_handle_rtr(LCI_endpoint_t ep, LCII_packet_t* packet)
     LCII_PCOUNTER_END(rtr_mem_reg_timer);
     // issue the put/putimm
     LCII_PCOUNTER_START(rtr_put_timer);
-    if (LCI_RDV_PROTOCOL == LCI_RDV_WRITE) {
+    if (LCI_RDV_PROTOCOL == LCI_RDV_WRITE || rdv_type == LCII_RDV_IOVEC) {
       LCIS_post_put_bq(ep->bq_p, ep->bq_spinlock_p,
                        ep->device->endpoint_progress->endpoint, (int)ctx->rank,
                        lbuffer->address, lbuffer->length, lbuffer->segment->mr,
@@ -341,8 +342,9 @@ static inline void LCII_handle_rtr(LCI_endpoint_t ep, LCII_packet_t* packet)
                        packet->data.rtr.rbuffer_info_p[i].remote_addr_offset,
                        packet->data.rtr.rbuffer_info_p[i].rkey, ctx_to_pass);
     } else {
-      LCI_DBG_Assert(LCI_RDV_PROTOCOL == LCI_RDV_WRITEIMM,
-                     "Unexpected rdv protocol!\n");
+      LCI_DBG_Assert(
+          LCI_RDV_PROTOCOL == LCI_RDV_WRITEIMM && rdv_type != LCII_RDV_IOVEC,
+          "Unexpected rdv protocol!\n");
       LCIS_post_putImm_bq(ep->bq_p, ep->bq_spinlock_p,
                           ep->device->endpoint_progress->endpoint,
                           (int)ctx->rank, lbuffer->address, lbuffer->length,
