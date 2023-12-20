@@ -137,7 +137,15 @@ typedef struct __attribute__((aligned(LCI_CACHE_LINE))) {
   // LCI_request_t fields, 52 bytes
   LCI_data_type_t data_type;  // 4 bytes
   void* user_context;         // 8 bytes
-  LCI_data_t data;            // 32 bytes
+  union {
+    LCI_short_t immediate;    // 32 bytes
+    struct {                  // 24 bytes
+      LCI_mbuffer_t mbuffer;
+      LCII_packet_t *packet;
+    };
+    LCI_lbuffer_t lbuffer;    // 24 bytes
+    LCI_iovec_t iovec;        // 28 bytes
+  } data;                     // 32 bytes
   uint32_t rank;              // 4 bytes
   LCI_tag_t tag;              // 4 bytes
   // used by LCI internally
@@ -200,8 +208,11 @@ static inline LCI_request_t LCII_ctx2req(LCII_context_t* ctx)
                            .rank = ctx->rank,
                            .tag = ctx->tag,
                            .type = ctx->data_type,
-                           .data = ctx->data,
                            .user_context = ctx->user_context};
+  LCI_DBG_Assert(sizeof(request.data) == sizeof(ctx->data), "Unexpected size!\n");
+  memcpy(&request.data, &ctx->data, sizeof(request.data));
+  LCI_DBG_Assert(request.data.mbuffer.address == ctx->data.mbuffer.address, "Invalid conversion!");
+  LCI_DBG_Assert(request.data.mbuffer.length == ctx->data.mbuffer.length, "Invalid conversion!");
   LCIU_free(ctx);
   return request;
 }

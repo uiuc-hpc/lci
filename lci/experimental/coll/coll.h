@@ -144,7 +144,7 @@ static inline void LCIXC_mcoll_complete(LCI_endpoint_t ep, LCI_mbuffer_t buffer,
   LCII_comp_attr_set_comp_type(ctx->comp_attr, ep->msg_comp_type);
   ctx->data_type = LCI_MEDIUM;
   ctx->user_context = user_context;
-  ctx->data = (LCI_data_t){.mbuffer = buffer};
+  ctx->data.mbuffer = buffer;
   ctx->rank = -1; /* this doesn't make much sense for collectives */
   ctx->tag = tag;
   ctx->completion = completion;
@@ -160,7 +160,7 @@ static inline void LCIXC_lcoll_complete(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
   LCII_comp_attr_set_comp_type(ctx->comp_attr, ep->msg_comp_type);
   ctx->data_type = LCI_LONG;
   ctx->user_context = user_context;
-  ctx->data = (LCI_data_t){.lbuffer = buffer};
+  ctx->data.lbuffer = buffer;
   ctx->rank = -1; /* this doesn't make much sense for collectives */
   ctx->tag = tag;
   ctx->completion = completion;

@@ -57,9 +57,8 @@ LCI_error_t LCI_sync_signal(LCI_comp_t completion, LCI_request_t request)
   ctx->rank = request.rank;
   ctx->tag = request.tag;
   ctx->data_type = request.type;
-  ctx->data = request.data;
+  memcpy(&ctx->data, &request.data, sizeof(ctx->data));
   ctx->user_context = request.user_context;
-
   LCII_sync_signal(completion, ctx);
   return LCI_OK;
 }
