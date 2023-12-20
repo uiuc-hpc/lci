@@ -102,4 +102,14 @@ static inline LCII_packet_t* LCII_mbuffer2packet(LCI_mbuffer_t mbuffer)
   return (LCII_packet_t*)(mbuffer.address - offsetof(LCII_packet_t, data));
 }
 
+static inline bool LCII_is_packet(LCI_device_t device, void* address)
+{
+  void* packet_address =
+      (LCII_packet_t*)(address - offsetof(LCII_packet_t, data));
+  uintptr_t offset = (uintptr_t)packet_address - device->base_packet;
+  return (uintptr_t)packet_address >= device->base_packet &&
+         offset % LCI_PACKET_SIZE == 0 &&
+         offset / LCI_PACKET_SIZE < LCI_SERVER_NUM_PKTS;
+}
+
 #endif

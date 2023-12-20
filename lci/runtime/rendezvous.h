@@ -238,7 +238,7 @@ static inline void LCII_handle_rts(LCI_endpoint_t ep, LCII_packet_t* packet,
 
   // Prepare the RTR context
   LCII_context_t* rtr_ctx = LCIU_malloc(sizeof(LCII_context_t));
-  rtr_ctx->data.mbuffer.address = &(packet->data);
+  rtr_ctx->data.packet = packet;
   LCII_initilize_comp_attr(rtr_ctx->comp_attr);
   LCII_comp_attr_set_free_packet(rtr_ctx->comp_attr, 1);
 

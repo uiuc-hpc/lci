@@ -66,7 +66,7 @@ LCI_error_t LCI_putma(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
     memcpy(packet->data.address, buffer.address, buffer.length);
 
     LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
-    ctx->data.mbuffer.address = (void*)packet->data.address;
+    ctx->data.packet = packet;
     LCII_initilize_comp_attr(ctx->comp_attr);
     LCII_comp_attr_set_free_packet(ctx->comp_attr, 1);
 
@@ -108,7 +108,7 @@ LCI_error_t LCI_putmna(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                                : -1;
 
   LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
-  ctx->data.mbuffer.address = (void*)packet->data.address;
+  ctx->data.packet = packet;
   LCII_initilize_comp_attr(ctx->comp_attr);
   LCII_comp_attr_set_free_packet(ctx->comp_attr, 1);
 
@@ -158,7 +158,7 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
   packet->context.poolid = LCII_POOLID_LOCAL;
 
   LCII_context_t* rts_ctx = LCIU_malloc(sizeof(LCII_context_t));
-  rts_ctx->data.mbuffer.address = (void*)packet->data.address;
+  rts_ctx->data.packet = packet;
   LCII_initilize_comp_attr(rts_ctx->comp_attr);
   LCII_comp_attr_set_free_packet(rts_ctx->comp_attr, 1);
 
@@ -245,7 +245,7 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
           : -1;
 
   LCII_context_t* rts_ctx = LCIU_malloc(sizeof(LCII_context_t));
-  rts_ctx->data.mbuffer.address = (void*)packet->data.address;
+  rts_ctx->data.packet = packet;
   LCII_initilize_comp_attr(rts_ctx->comp_attr);
   LCII_comp_attr_set_free_packet(rts_ctx->comp_attr, 1);
 

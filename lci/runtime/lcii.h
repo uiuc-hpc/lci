@@ -68,9 +68,11 @@ struct __attribute__((aligned(LCI_CACHE_LINE))) LCI_device_s {
   LCI_matchtable_t mt;                 // 8B
   LCII_rcache_t rcache;                // 8B
   LCI_lbuffer_t heap;                  // 24B
+  uintptr_t base_packet;               // 8B
   LCIU_CACHE_PADDING(sizeof(LCIS_server_t) + 2 * sizeof(LCIS_endpoint_t) -
                      sizeof(LCII_pool_t*) + sizeof(LCI_matchtable_t) -
-                     sizeof(LCII_rcache_t*) + sizeof(LCI_lbuffer_t));
+                     sizeof(LCII_rcache_t*) + sizeof(LCI_lbuffer_t) +
+                     sizeof(uintptr_t));
   // the following is shared by both progress threads and worker threads
   LCM_archive_t ctx_archive;  // used for long message protocol
   LCIU_CACHE_PADDING(sizeof(LCM_archive_t));
@@ -138,16 +140,16 @@ typedef struct __attribute__((aligned(LCI_CACHE_LINE))) {
   LCI_data_type_t data_type;  // 4 bytes
   void* user_context;         // 8 bytes
   union {
-    LCI_short_t immediate;    // 32 bytes
-    struct {                  // 24 bytes
+    LCI_short_t immediate;  // 32 bytes
+    struct {                // 24 bytes
       LCI_mbuffer_t mbuffer;
-      LCII_packet_t *packet;
+      LCII_packet_t* packet;
     };
-    LCI_lbuffer_t lbuffer;    // 24 bytes
-    LCI_iovec_t iovec;        // 28 bytes
-  } data;                     // 32 bytes
-  uint32_t rank;              // 4 bytes
-  LCI_tag_t tag;              // 4 bytes
+    LCI_lbuffer_t lbuffer;  // 24 bytes
+    LCI_iovec_t iovec;      // 28 bytes
+  } data;                   // 32 bytes
+  uint32_t rank;            // 4 bytes
+  LCI_tag_t tag;            // 4 bytes
   // used by LCI internally
   LCI_comp_t completion;  // 8 bytes
 #ifdef LCI_USE_PERFORMANCE_COUNTER
@@ -209,10 +211,13 @@ static inline LCI_request_t LCII_ctx2req(LCII_context_t* ctx)
                            .tag = ctx->tag,
                            .type = ctx->data_type,
                            .user_context = ctx->user_context};
-  LCI_DBG_Assert(sizeof(request.data) == sizeof(ctx->data), "Unexpected size!\n");
+  LCI_DBG_Assert(sizeof(request.data) == sizeof(ctx->data),
+                 "Unexpected size!\n");
   memcpy(&request.data, &ctx->data, sizeof(request.data));
-  LCI_DBG_Assert(request.data.mbuffer.address == ctx->data.mbuffer.address, "Invalid conversion!");
-  LCI_DBG_Assert(request.data.mbuffer.length == ctx->data.mbuffer.length, "Invalid conversion!");
+  LCI_DBG_Assert(request.data.mbuffer.address == ctx->data.mbuffer.address,
+                 "Invalid conversion!");
+  LCI_DBG_Assert(request.data.mbuffer.length == ctx->data.mbuffer.length,
+                 "Invalid conversion!");
   LCIU_free(ctx);
   return request;
 }

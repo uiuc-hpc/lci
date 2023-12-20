@@ -41,6 +41,7 @@ LCI_error_t LCI_mbuffer_alloc(LCI_device_t device, LCI_mbuffer_t* mbuffer)
 
   mbuffer->address = packet->data.address;
   mbuffer->length = LCI_MEDIUM_SIZE;
+  LCI_DBG_Assert(LCII_is_packet(device, mbuffer->address), "");
   return LCI_OK;
 }
 

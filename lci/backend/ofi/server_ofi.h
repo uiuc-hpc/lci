@@ -246,10 +246,28 @@ static inline LCI_error_t LCISD_post_puts(LCIS_endpoint_t endpoint_pp, int rank,
   } else {
     addr = offset;
   }
+  struct fi_msg_rma msg;
+  struct iovec iov;
+  struct fi_rma_iov riov;
+  iov.iov_base = buf;
+  iov.iov_len = size;
+  msg.msg_iov = &iov;
+  msg.desc = NULL;
+  msg.iov_count = 1;
+  msg.addr = endpoint_p->peer_addrs[rank];
+  riov.addr = addr;
+  riov.len = size;
+  riov.key = rkey;
+  msg.rma_iov = &riov;
+  msg.rma_iov_count = 1;
+  msg.context = NULL;
+  msg.data = 0;
   LCISI_OFI_CS_TRY_ENTER(endpoint_p, LCI_BACKEND_TRY_LOCK_SEND,
                          LCI_ERR_RETRY_LOCK)
-  ssize_t ret = fi_inject_write(endpoint_p->ep, buf, size,
-                                endpoint_p->peer_addrs[rank], addr, rkey);
+  //  ssize_t ret = fi_inject_write(endpoint_p->ep, buf, size,
+  //                                endpoint_p->peer_addrs[rank], addr, rkey);
+  ssize_t ret =
+      fi_writemsg(endpoint_p->ep, &msg, FI_INJECT | FI_DELIVERY_COMPLETE);
   LCISI_OFI_CS_EXIT(endpoint_p, LCI_BACKEND_TRY_LOCK_SEND)
   if (ret == FI_SUCCESS)
     return LCI_OK;
@@ -280,10 +298,28 @@ static inline LCI_error_t LCISD_post_put(LCIS_endpoint_t endpoint_pp, int rank,
   } else {
     addr = offset;
   }
+  struct fi_msg_rma msg;
+  struct iovec iov;
+  struct fi_rma_iov riov;
+  void* desc = ofi_rma_lkey(mr);
+  iov.iov_base = buf;
+  iov.iov_len = size;
+  msg.msg_iov = &iov;
+  msg.desc = &desc;
+  msg.iov_count = 1;
+  msg.addr = endpoint_p->peer_addrs[rank];
+  riov.addr = addr;
+  riov.len = size;
+  riov.key = rkey;
+  msg.rma_iov = &riov;
+  msg.rma_iov_count = 1;
+  msg.context = ctx;
+  msg.data = 0;
   LCISI_OFI_CS_TRY_ENTER(endpoint_p, LCI_BACKEND_TRY_LOCK_SEND,
                          LCI_ERR_RETRY_LOCK)
-  ssize_t ret = fi_write(endpoint_p->ep, buf, size, ofi_rma_lkey(mr),
-                         endpoint_p->peer_addrs[rank], addr, rkey, ctx);
+  //  ssize_t ret = fi_write(endpoint_p->ep, buf, size, ofi_rma_lkey(mr),
+  //                         endpoint_p->peer_addrs[rank], addr, rkey, ctx);
+  ssize_t ret = fi_writemsg(endpoint_p->ep, &msg, FI_DELIVERY_COMPLETE);
   LCISI_OFI_CS_EXIT(endpoint_p, LCI_BACKEND_TRY_LOCK_SEND)
   if (ret == FI_SUCCESS)
     return LCI_OK;

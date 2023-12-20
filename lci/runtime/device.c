@@ -67,18 +67,21 @@ LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
   LCI_Assert(ret == LCI_OK, "Device heap memory allocation failed\n");
   uintptr_t base_addr = (uintptr_t)device->heap.address;
 
-  uintptr_t base_packet;
   LCI_Assert(sizeof(struct LCII_packet_context) <= LCI_CACHE_LINE,
              "Unexpected packet_context size\n");
-  base_packet = base_addr + LCI_CACHE_LINE - sizeof(struct LCII_packet_context);
+  device->base_packet =
+      base_addr + LCI_CACHE_LINE - sizeof(struct LCII_packet_context);
   LCI_Assert(LCI_PACKET_SIZE % LCI_CACHE_LINE == 0,
              "The size of packets should be a multiple of cache line size\n");
 
   LCII_pool_create(&device->pkpool);
   for (size_t i = 0; i < LCI_SERVER_NUM_PKTS; i++) {
-    LCII_packet_t* packet = (LCII_packet_t*)(base_packet + i * LCI_PACKET_SIZE);
+    LCII_packet_t* packet =
+        (LCII_packet_t*)(device->base_packet + i * LCI_PACKET_SIZE);
     LCI_Assert(((uint64_t) & (packet->data)) % LCI_CACHE_LINE == 0,
                "packet.data is not well-aligned\n");
+    LCI_Assert(LCII_is_packet(device, packet->data.address),
+               "Not a packet. The computation is wrong!\n");
     packet->context.pkpool = device->pkpool;
     packet->context.poolid = 0;
 #ifdef LCI_DEBUG

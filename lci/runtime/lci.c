@@ -118,12 +118,15 @@ LCI_error_t LCII_barrier()
     while (LCI_sync_test(sync, NULL) != LCI_OK) {
       LCI_progress(LCI_UR_DEVICE);
     }
-    LCI_sync_free(&sync);
     // Phase 2: rank 0 send a message to all the other ranks.
     for (int i = 1; i < LCI_NUM_PROCESSES; ++i) {
-      while (LCI_sendm(ep, buffer, i, tag) != LCI_OK)
+      while (LCI_sendmc(ep, buffer, i, tag, sync, NULL) != LCI_OK)
         LCI_progress(LCI_UR_DEVICE);
     }
+    while (LCI_sync_test(sync, NULL) != LCI_OK) {
+      LCI_progress(LCI_UR_DEVICE);
+    }
+    LCI_sync_free(&sync);
   }
   LCI_Log(LCI_LOG_INFO, "coll", "End barrier (%d, %p).\n", tag, ep);
   return LCI_OK;

@@ -202,7 +202,7 @@ static inline void LCIS_serve_send(void* raw_ctx)
     return;
   }
   if (LCII_comp_attr_get_free_packet(ctx->comp_attr) == 1) {
-    LCII_free_packet(LCII_mbuffer2packet(ctx->data.mbuffer));
+    LCII_free_packet(ctx->data.packet);
   }
   lc_ce_dispatch(ctx);
 }

@@ -796,6 +796,26 @@ LCI_error_t LCI_sends(LCI_endpoint_t ep, LCI_short_t src, int rank,
 /**
  * @ingroup LCI_COMM
  * @brief Send a medium message with a user-provided buffer (up to
+ * LCI_MEDIUM_SIZE bytes). The send buffer can be reused after completion
+ * notification.
+ * @param [in] ep     The endpoint to post this send to.
+ * @param [in] buffer The buffer to send.
+ * @param [in] rank   The rank of the destination process.
+ * @param [in] tag    The tag of this message.
+ * @param [in] completion   The completion object to be associated with.
+ * @param [in] user_context Arbitrary data the user want to attach to this
+ * operation. It will be returned the user through the completion object.
+ * @return LCI_OK if the send succeeds. LCI_ERR_RETRY if the send fails due to
+ * temporarily unavailable resources. All the other errors are fatal as defined
+ * by @ref LCI_error_t.
+ */
+LCI_API
+LCI_error_t LCI_sendmc(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
+                       LCI_tag_t tag, LCI_comp_t completion,
+                       void* user_context);
+/**
+ * @ingroup LCI_COMM
+ * @brief Send a medium message with a user-provided buffer (up to
  * LCI_MEDIUM_SIZE bytes). The send buffer can be immediately reused.
  * @param [in] ep     The endpoint to post this send to.
  * @param [in] buffer The buffer to send.
