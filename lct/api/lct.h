@@ -19,8 +19,13 @@ LCT_API void LCT_init();
 LCT_API void LCT_fina();
 
 // rank
+extern int LCT_rank;
 LCT_API void LCT_set_rank(int rank);
 LCT_API int LCT_get_rank();
+
+// hostname
+#define LCT_HOSTNAME_MAX_LENGTH 128
+extern char LCT_hostname[LCT_HOSTNAME_MAX_LENGTH];
 
 // time
 typedef uint64_t LCT_time_t;

@@ -3,6 +3,8 @@
 #include <unistd.h>
 
 LCT_API LCT_log_ctx_t LCT_log_ctx_default = nullptr;
+LCT_API int LCT_rank = -1;
+LCT_API char LCT_hostname[LCT_HOSTNAME_MAX_LENGTH] = "uninitialized";
 
 namespace lct
 {
@@ -13,6 +15,9 @@ void init()
   if (lct::init_count.fetch_add(1) > 0)
     // init has been called
     return;
+
+  // initialize hostname
+  gethostname(LCT_hostname, LCT_HOSTNAME_MAX_LENGTH);
 
   // initialize LCT_log_ctx_default
   const char* const log_levels[] = {
@@ -49,8 +54,6 @@ void LCT_init() { lct::init(); }
 
 void LCT_fina() { lct::fina(); }
 
-int LCTI_rank = -1;
+void LCT_set_rank(int rank) { LCT_rank = rank; }
 
-void LCT_set_rank(int rank) { LCTI_rank = rank; }
-
-int LCT_get_rank() { return LCTI_rank; }
+int LCT_get_rank() { return LCT_rank; }

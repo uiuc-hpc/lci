@@ -91,10 +91,10 @@ struct ctx_t {
     // do nothing.
     if (blacklist != nullptr && strstr(blacklist, log_tag) != nullptr) return;
     // print the log
-    size = snprintf(buf, sizeof(buf), "%d:%d:%d:%s:%s:%d<%s:%s:%s> ",
-                    LCT_get_rank(), getpid(), LCT_get_thread_id(), file, func,
-                    line, ctx_name.c_str(), log_levels[log_level].c_str(),
-                    log_tag);
+    size = snprintf(buf, sizeof(buf), "%d:%s:%d:%d:%s:%s:%d<%s:%s:%s> ",
+                    LCT_get_rank(), LCT_hostname, getpid(), LCT_get_thread_id(),
+                    file, func, line, ctx_name.c_str(),
+                    log_levels[log_level].c_str(), log_tag);
 
     vsnprintf(buf + size, sizeof(buf) - size, format, vargs);
 
