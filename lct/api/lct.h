@@ -7,6 +7,7 @@ extern "C" {
 
 #include <stdint.h>
 #include <stdio.h>
+#include <limits.h>
 
 #include "lct_config.h"
 
@@ -24,8 +25,7 @@ LCT_API void LCT_set_rank(int rank);
 LCT_API int LCT_get_rank();
 
 // hostname
-#define LCT_HOSTNAME_MAX_LENGTH 128
-extern char LCT_hostname[LCT_HOSTNAME_MAX_LENGTH];
+extern char LCT_hostname[HOST_NAME_MAX + 1];
 
 // time
 typedef uint64_t LCT_time_t;

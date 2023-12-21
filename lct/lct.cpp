@@ -4,7 +4,7 @@
 
 LCT_API LCT_log_ctx_t LCT_log_ctx_default = nullptr;
 LCT_API int LCT_rank = -1;
-LCT_API char LCT_hostname[LCT_HOSTNAME_MAX_LENGTH] = "uninitialized";
+LCT_API char LCT_hostname[HOST_NAME_MAX + 1] = "uninitialized";
 
 namespace lct
 {
@@ -17,7 +17,8 @@ void init()
     return;
 
   // initialize hostname
-  gethostname(LCT_hostname, LCT_HOSTNAME_MAX_LENGTH);
+  memset(LCT_hostname, 0, HOST_NAME_MAX + 1);
+  gethostname(LCT_hostname, HOST_NAME_MAX);
 
   // initialize LCT_log_ctx_default
   const char* const log_levels[] = {
