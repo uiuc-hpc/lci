@@ -152,7 +152,7 @@ static inline LCI_error_t LCIS_post_sends(LCIS_endpoint_t endpoint_pp, int rank,
 #endif
   LCI_error_t ret = LCISD_post_sends(endpoint_pp, rank, buf, size, meta);
   if (ret == LCI_OK) {
-    LCII_PCOUNTER_ADD(net_send_posted, (int64_t)size);
+    LCII_PCOUNTER_ADD(net_sends_posted, (int64_t)size);
   } else if (ret == LCI_ERR_RETRY_LOCK) {
     LCII_PCOUNTER_ADD(net_send_failed_lock, 1);
     ret = LCI_ERR_RETRY;
@@ -199,7 +199,7 @@ static inline LCI_error_t LCIS_post_puts(LCIS_endpoint_t endpoint_pp, int rank,
   LCI_error_t ret =
       LCISD_post_puts(endpoint_pp, rank, buf, size, base, offset, rkey);
   if (ret == LCI_OK) {
-    LCII_PCOUNTER_ADD(net_send_posted, (int64_t)size);
+    LCII_PCOUNTER_ADD(net_sends_posted, (int64_t)size);
   } else if (ret == LCI_ERR_RETRY_LOCK) {
     LCII_PCOUNTER_ADD(net_send_failed_lock, 1);
     ret = LCI_ERR_RETRY;

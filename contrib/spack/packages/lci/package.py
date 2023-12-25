@@ -68,7 +68,7 @@ class Lci(CMakePackage):
             description='Default: Max posted cqes')
 
     variant('debug', default=False, description='Enable debug mode')
-    variant('debug-perfcounter', default=False,
+    variant('pcounter', default=False,
             description='Use performance counter')
     variant('debug-slow', default=False, description='Enable manual slowdown')
     variant('papi', default=False,
@@ -105,7 +105,7 @@ class Lci(CMakePackage):
             self.define('LCI_USE_DREG_DEFAULT',
                         1 if self.spec.variants['default-dreg'].value else 0),
             self.define_from_variant('LCI_DEBUG', 'debug'),
-            self.define_from_variant('LCI_USE_PERFORMANCE_COUNTER', 'debug-perfcounter'),
+            self.define_from_variant('LCI_USE_PERFORMANCE_COUNTER', 'pcounter'),
             self.define_from_variant('LCI_ENABLE_SLOWDOWN', 'debug-slow'),
             self.define_from_variant('LCI_USE_PAPI', 'papi'),
             self.define_from_variant('LCI_USE_GPROF', 'gprof'),

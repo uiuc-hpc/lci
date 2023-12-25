@@ -198,6 +198,7 @@ struct ctx_t {
   explicit ctx_t(const char* name_)
       : dump_ofile(nullptr),
         dump_record_on_the_fly(false),
+        dump_record_on_the_fly_lw(false),
         name(name_),
         id(next_id++),
         record_thread(nullptr),
@@ -217,6 +218,11 @@ struct ctx_t {
       if (mode_str == "on-the-fly") {
         dump_ofilename = "lct_pcounter.%.out";
         dump_record_on_the_fly = true;
+        record_interval = 1000000;
+      } else if (mode_str == "on-the-fly-lw") {
+        dump_ofilename = "lct_pcounter.%.out";
+        dump_record_on_the_fly = true;
+        dump_record_on_the_fly_lw = true;
         record_interval = 1000000;
       }
     }
@@ -256,6 +262,10 @@ struct ctx_t {
     // Whether to dump on the fly
     if (getenv("LCT_PCOUNTER_DUMP_ON_THE_FLY")) {
       dump_record_on_the_fly = true;
+    }
+    if (getenv("LCT_PCOUNTER_DUMP_ON_THE_FLY_LW")) {
+      dump_record_on_the_fly = true;
+      dump_record_on_the_fly_lw = true;
     }
     // For now, we just assume there will only be a single thread initializing.
     if (start_time == -1) {
@@ -329,7 +339,7 @@ struct ctx_t {
       bool expected = true;
       if (do_record.compare_exchange_weak(expected, false)) {
         record();
-        if (dump_record_on_the_fly) dump(dump_ofile);
+        if (dump_record_on_the_fly_lw) dump(dump_ofile);
       }
     }
   }
@@ -430,6 +440,7 @@ struct ctx_t {
 
   FILE* dump_ofile;
   bool dump_record_on_the_fly;
+  bool dump_record_on_the_fly_lw;
   std::vector<std::string> counter_names;
   std::vector<std::string> trend_names;
   std::vector<std::string> timer_names;
@@ -452,7 +463,12 @@ struct ctx_t {
 void record_thread_fn(ctx_t* ctx, uint64_t record_interval)
 {
   while (ctx->keep_recording) {
-    ctx->do_record = true;
+    if (ctx->dump_record_on_the_fly_lw)
+      ctx->do_record = true;
+    else if (ctx->dump_record_on_the_fly) {
+      ctx->record();
+      ctx->dump(ctx->dump_ofile);
+    }
     usleep(record_interval);
   }
 }

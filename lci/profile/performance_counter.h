@@ -21,6 +21,7 @@ extern LCT_pcounter_ctx_t LCII_pcounter_ctx;
     _macro(recv)                             \
     _macro(comp_produce)                     \
     _macro(comp_consume)                     \
+    _macro(net_sends_posted)                 \
     _macro(net_send_posted)                  \
     _macro(net_recv_posted)                  \
     _macro(net_send_comp)                    \
