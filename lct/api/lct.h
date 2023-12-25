@@ -176,6 +176,18 @@ LCT_API void LCT_pmi_getname(int rank, char* key, char* value);
 LCT_API void LCT_pmi_barrier();
 LCT_API void LCT_pmi_finalize();
 
+// Args Parsing
+typedef void* LCT_args_parser_t;
+LCT_API LCT_args_parser_t LCT_args_parser_alloc();
+LCT_API void LCT_args_parser_free(LCT_args_parser_t parser);
+LCT_API void LCT_args_parser_add(LCT_args_parser_t parser, const char* name,
+                                 int has_arg, int* ptr);
+LCT_API void LCT_args_parser_add_dict(LCT_args_parser_t parser,
+                                      const char* name, int has_arg, int* ptr,
+                                      LCT_dict_str_int_t dict[], int count);
+LCT_API void LCT_args_parser_parse(LCT_args_parser_t parser, int argc,
+                                   char* argv[]);
+LCT_API void LCT_args_parser_print(LCT_args_parser_t parser, bool verbose);
 #ifdef __cplusplus
 }
 #endif
