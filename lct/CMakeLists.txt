@@ -27,6 +27,7 @@ target_sources_relative(
   log/logger.cpp
   pcounter/pcounter.cpp
   args_parser/args_parser.cpp
+  tbarrier/tbarrier.cpp
   util/thread.cpp
   util/time.cpp
   util/string.cpp)

@@ -188,6 +188,15 @@ LCT_API void LCT_args_parser_add_dict(LCT_args_parser_t parser,
 LCT_API void LCT_args_parser_parse(LCT_args_parser_t parser, int argc,
                                    char* argv[]);
 LCT_API void LCT_args_parser_print(LCT_args_parser_t parser, bool verbose);
+
+// Thread barrier
+typedef void* LCT_tbarrier_t;
+LCT_API LCT_tbarrier_t LCT_tbarrier_alloc(int nthreads);
+LCT_API int64_t LCT_tbarrier_arrive(LCT_tbarrier_t tbarrier);
+LCT_API bool LCT_tbarrier_test(LCT_tbarrier_t tbarrier, int64_t ticket);
+LCT_API void LCT_tbarrier_wait(LCT_tbarrier_t tbarrier, int64_t ticket);
+LCT_API void LCT_tbarrier_arrive_and_wait(LCT_tbarrier_t tbarrier);
+
 #ifdef __cplusplus
 }
 #endif

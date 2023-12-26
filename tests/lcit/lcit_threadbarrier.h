@@ -16,6 +16,7 @@ class ThreadBarrier
     LCT_Assert(LCT_log_ctx_default, thread_num_ > 0,
                "Error: thread_num cannot be 0.\n");
   }
+
   void wait()
   {
     LCT_Assert(LCT_log_ctx_default, thread_num_ > 0,
