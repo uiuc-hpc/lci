@@ -74,6 +74,7 @@ class Lci(CMakePackage):
     variant('papi', default=False,
             description='Use PAPI to collect hardware counters')
     variant('gprof', default=False, description='Enable GPROF')
+    variant('enable-pmix', default=True, description='Enable PMIx as the process management backend')
 
     generator("ninja", "make", default="ninja")
 
@@ -109,6 +110,7 @@ class Lci(CMakePackage):
             self.define_from_variant('LCI_ENABLE_SLOWDOWN', 'debug-slow'),
             self.define_from_variant('LCI_USE_PAPI', 'papi'),
             self.define_from_variant('LCI_USE_GPROF', 'gprof'),
+            self.define_from_variant('LCT_PMI_BACKEND_ENABLE_PMIX', 'enable-pmix'),
         ]
 
         if self.spec.variants['cache-line'].value != 'auto':

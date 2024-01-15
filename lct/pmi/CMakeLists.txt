@@ -55,7 +55,7 @@ if(LCT_PMI_BACKEND_ENABLE_PMIX)
   else()
     message(
       FATAL_ERROR
-        "Users explicitly ask to enable PMIx as the process management backend, but MPI is not found."
+        "Users explicitly ask to enable PMIx as the process management backend, but PMIx is not found."
     )
   endif()
 endif()
