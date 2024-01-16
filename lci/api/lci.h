@@ -952,6 +952,28 @@ LCI_error_t LCI_puts(LCI_endpoint_t ep, LCI_short_t src, int rank,
 /**
  * @ingroup LCI_COMM
  * @brief Send a medium message with a user-provided buffer (up to
+ * LCI_MEDIUM_SIZE bytes) with completion object.
+ * @param [in] ep           The endpoint to post this receive to.
+ * @param [in] buffer       The buffer to send.
+ * @param [in] rank         The rank of the destination process.
+ * @param [in] tag          The tag of this message.
+ * @param [in] remote_completion The completion object to signal on the receiver
+ * side. It has to be LCI_DEFAULT_COMP_REMOTE for now.
+ * @param [in] local_completion The local completion object to be associated
+ * with.
+ * @param [in] user_context Arbitrary data the user want to attach to this
+ * operation. It will be returned the user through the completion object.
+ * @return LCI_OK if the send succeeds. LCI_ERR_RETRY if the send fails due to
+ * temporarily unavailable resources. All the other errors are fatal as defined
+ * by @ref LCI_error_t.
+ */
+LCI_API
+LCI_error_t LCI_putmac(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
+                       LCI_tag_t tag, uintptr_t remote_completion,
+                       LCI_comp_t local_completion, void* user_context);
+/**
+ * @ingroup LCI_COMM
+ * @brief Send a medium message with a user-provided buffer (up to
  * LCI_MEDIUM_SIZE bytes). The send buffer can be immediately reused. On the
  * receive side, No receive needs to be posted and the data will be delivered
  * through the remote completion object.
