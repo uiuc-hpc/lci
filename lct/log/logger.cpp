@@ -137,6 +137,7 @@ void LCT_log_ctx_free(LCT_log_ctx_t* log_ctx_p)
       LCT_Warn(LCT_log_ctx_default, "LCT_log_ctx_free: Invalid log context!\n");
     else
       fprintf(stderr, "LCT_log_ctx_free: LCT_log_ctx_default is invalid!\n");
+    return;
   }
   auto* ctx = static_cast<lct::log::ctx_t*>(*log_ctx_p);
   delete ctx;
@@ -151,6 +152,7 @@ int LCT_log_get_level(LCT_log_ctx_t log_ctx)
                "LCT_log_get_level: Invalid log context!\n");
     else
       fprintf(stderr, "LCT_log_get_level: LCT_log_ctx_default is invalid!\n");
+    return 0;
   }
   auto* ctx = static_cast<lct::log::ctx_t*>(log_ctx);
   return ctx->log_level_setting;
@@ -166,6 +168,7 @@ void LCT_Assert_(LCT_log_ctx_t log_ctx, const char* expr_str, uint64_t expr,
     else
       fprintf(stderr, "LCT_Assert_: LCT_log_ctx_default is invalid! %s:%s:%d\n",
               file, func, line);
+    return;
   }
   auto* ctx = static_cast<lct::log::ctx_t*>(log_ctx);
   va_list vargs;
@@ -184,6 +187,7 @@ void LCT_Logv_(LCT_log_ctx_t log_ctx, int log_level, const char* log_tag,
     else
       fprintf(stderr, "LCT_Logv_: LCT_log_ctx_default is invalid! %s:%s:%d\n",
               file, func, line);
+    return;
   }
   auto* ctx = static_cast<lct::log::ctx_t*>(log_ctx);
   ctx->do_log(log_level, log_tag, file, func, line, format, vargs);
@@ -206,6 +210,7 @@ void LCT_Log_flush(LCT_log_ctx_t log_ctx)
       LCT_Warn(LCT_log_ctx_default, "LCT_Log_flush: Invalid log context!\n");
     else
       fprintf(stderr, "LCT_Log_flush: LCT_log_ctx_default is invalid!\n");
+    return;
   }
   auto* ctx = static_cast<lct::log::ctx_t*>(log_ctx);
   ctx->do_flush();
