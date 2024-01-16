@@ -35,9 +35,7 @@ LCI_error_t LCI_sendmc(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                           LCII_MAKE_PROTO(ep->gid, LCI_MSG_MEDIUM, tag));
     if (ret == LCI_OK && is_user_provided_packet) {
       LCII_packet_t* packet = LCII_mbuffer2packet(buffer);
-      packet->context.poolid = (buffer.length > LCI_PACKET_RETURN_THRESHOLD)
-                                   ? lc_pool_get_local(ep->pkpool)
-                                   : -1;
+      packet->context.poolid = -1;
       LCII_free_packet(packet);
     }
   } else {
