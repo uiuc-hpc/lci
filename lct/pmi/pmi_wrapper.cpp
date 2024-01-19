@@ -64,6 +64,9 @@ void LCT_pmi_initialize()
              "Tried [%s]. Did not find valid PMI backend! Give up!\n",
              backends_str.c_str());
   lcti_pmi_ops.initialize();
+  LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "pmi",
+          "This process is initialized as %d/%d.\n", LCT_pmi_get_rank(),
+          LCT_pmi_get_size());
 }
 
 int LCT_pmi_initialized() { return lcti_pmi_ops.is_initialized(); }

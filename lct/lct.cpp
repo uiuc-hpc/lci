@@ -26,7 +26,7 @@ void init()
   };
   LCT_log_ctx_default = LCT_log_ctx_alloc(
       log_levels, sizeof(log_levels) / sizeof(log_levels[0]), LCT_LOG_WARN,
-      "lci", getenv("LCT_LOG_OUTFILE"), getenv("LCT_LOG_LEVEL"),
+      "lct", getenv("LCT_LOG_OUTFILE"), getenv("LCT_LOG_LEVEL"),
       getenv("LCT_LOG_WHITELIST"), getenv("LCT_LOG_BLACKLIST"));
 
   // check cache size
