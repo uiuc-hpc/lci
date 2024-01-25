@@ -215,7 +215,7 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
 #endif
 
   endpoint_p->pd = NULL;
-  if (single_threaded) {
+  if (LCI_IBV_ENABLE_TD && single_threaded) {
     // allocate thread domain
     struct ibv_td_init_attr td_attr;
     td_attr.comp_mask = 0;
