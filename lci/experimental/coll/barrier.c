@@ -20,8 +20,8 @@ LCI_error_t LCIX_barrier(LCI_endpoint_t ep, LCI_tag_t tag,
     return LCI_OK;
   }
 
-  /* We have at most 2 * ilog2(size) scheduled operations */
-  sched_ops = 2 * ilog2(size);
+  /* We have at most 2 * (1 + ilog2(size)) scheduled operations */
+  sched_ops = 2 * (1 + ilog2(size));
 
   LCIX_collective_t coll = LCIU_malloc(sizeof(struct LCIX_collective_s));
   LCIXC_mcoll_init(coll, ep, tag, NULL, completion, user_context, empty,
