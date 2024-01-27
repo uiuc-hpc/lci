@@ -70,7 +70,6 @@ struct ctx_t {
     vsnprintf(buf + size, sizeof(buf) - size, format, vargs);
 
     fprintf(stderr, "%s", buf);
-    fflush(stderr);
     abort();
   }
 
