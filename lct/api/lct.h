@@ -62,8 +62,13 @@ LCT_API LCT_log_ctx_t LCT_log_ctx_alloc(const char* const log_levels_[],
                                         char* blacklist);
 LCT_API void LCT_log_ctx_free(LCT_log_ctx_t* log_ctx_p);
 LCT_API int LCT_log_get_level(LCT_log_ctx_t log_ctx);
-#define LCT_Assert(log_ctx, Expr, ...) \
-  LCT_Assert_(log_ctx, #Expr, Expr, __FILE__, __func__, __LINE__, __VA_ARGS__)
+#define LCT_Assert(log_ctx, Expr, ...)                                      \
+  do {                                                                      \
+    if (!(Expr))                                                            \
+      LCT_Report_false_assert(log_ctx, #Expr, __FILE__, __func__, __LINE__, \
+                              __VA_ARGS__);                                 \
+  } while (0)
+
 #define LCT_Log(log_ctx, log_level, log_tag, ...)                     \
   LCT_Log_(log_ctx, log_level, log_tag, __FILE__, __func__, __LINE__, \
            __VA_ARGS__)
@@ -72,9 +77,10 @@ LCT_API int LCT_log_get_level(LCT_log_ctx_t log_ctx);
 #define LCT_Logv(log_ctx, log_level, log_tag, format, vargs)                   \
   LCT_Logv_(log_ctx, log_level, log_tag, __FILE__, __func__, __LINE__, format, \
             vargs)
-LCT_API void LCT_Assert_(LCT_log_ctx_t log_ctx, const char* expr_str,
-                         uint64_t expr, const char* file, const char* func,
-                         int line, const char* format, ...);
+LCT_API void LCT_Report_false_assert(LCT_log_ctx_t log_ctx,
+                                     const char* expr_str, const char* file,
+                                     const char* func, int line,
+                                     const char* format, ...);
 LCT_API void LCT_Log_(LCT_log_ctx_t log_ctx, int log_level, const char* log_tag,
                       const char* file, const char* func, int line,
                       const char* format, ...);

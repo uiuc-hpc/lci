@@ -55,11 +55,10 @@ struct ctx_t {
     }
   }
 
-  void do_assert(const char* expr_str, uint64_t expr, const char* file,
-                 const char* func, int line, const char* format, va_list vargs)
+  void report_false_assert(const char* expr_str, const char* file,
+                           const char* func, int line, const char* format,
+                           va_list vargs)
   {
-    if (expr) return;
-
     char buf[1024];
     int size;
 
@@ -158,22 +157,25 @@ int LCT_log_get_level(LCT_log_ctx_t log_ctx)
   return ctx->log_level_setting;
 }
 
-void LCT_Assert_(LCT_log_ctx_t log_ctx, const char* expr_str, uint64_t expr,
-                 const char* file, const char* func, int line,
-                 const char* format, ...)
+void LCT_Report_false_assert(LCT_log_ctx_t log_ctx, const char* expr_str,
+                             const char* file, const char* func, int line,
+                             const char* format, ...)
 {
   if (LCT_unlikely(log_ctx == nullptr)) {
     if (LCT_log_ctx_default)
-      LCT_Warn(LCT_log_ctx_default, "LCT_Assert_: Invalid log context!\n");
+      LCT_Warn(LCT_log_ctx_default,
+               "LCT_Report_false_assert: Invalid log context!\n");
     else
-      fprintf(stderr, "LCT_Assert_: LCT_log_ctx_default is invalid! %s:%s:%d\n",
-              file, func, line);
+      fprintf(
+          stderr,
+          "LCT_Report_false_assert: LCT_log_ctx_default is invalid! %s:%s:%d\n",
+          file, func, line);
     return;
   }
   auto* ctx = static_cast<lct::log::ctx_t*>(log_ctx);
   va_list vargs;
   va_start(vargs, format);
-  ctx->do_assert(expr_str, expr, file, func, line, format, vargs);
+  ctx->report_false_assert(expr_str, file, func, line, format, vargs);
   va_end(vargs);
 }
 
