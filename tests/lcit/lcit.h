@@ -55,6 +55,7 @@ struct Config {
   int recv_window = 1;
   bool touch_data = false;
   size_t nsteps = 1000;
+  int no_progress_thread = 0;
 };
 
 void checkConfig(Config& config)
@@ -95,12 +96,13 @@ void printConfig(const Config& config)
       "send_window: %d\n"
       "recv_window: %d\n"
       "touch_data: %d\n"
-      "steps: %lu\n",
+      "steps: %lu\n"
+      "no_progress_thread: %d\n",
       config.op, config.send_dyn, config.recv_dyn, config.send_reg,
       config.recv_reg, config.match_type, config.send_comp_type,
       config.recv_comp_type, config.nthreads, config.thread_pin,
       config.min_msg_size, config.max_msg_size, config.send_window,
-      config.recv_window, config.touch_data, config.nsteps);
+      config.recv_window, config.touch_data, config.nsteps, config.no_progress_thread);
 };
 
 enum LongFlags {
@@ -120,6 +122,7 @@ enum LongFlags {
   RECV_WINDOW,
   TOUCH_DATA,
   NSTEPS,
+  NO_PROGRESS_THREAD,
 };
 
 void init() { LCI_initialize(); }
@@ -150,6 +153,7 @@ Config parseArgs(int argc, char** argv)
       {"recv-window", required_argument, &long_flag, RECV_WINDOW},
       {"touch-data", required_argument, &long_flag, TOUCH_DATA},
       {"nsteps", required_argument, &long_flag, NSTEPS},
+      {"no-progress-thread", required_argument, &long_flag, NO_PROGRESS_THREAD}, 
       {0, 0, 0, 0}};
   while ((opt = getopt_long(argc, argv, "t:", long_options, NULL)) != -1) {
     switch (opt) {
@@ -246,6 +250,14 @@ Config parseArgs(int argc, char** argv)
             break;
           case NSTEPS:
             config.nsteps = atoi(optarg);
+            break;
+          case NO_PROGRESS_THREAD:
+            #ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
+              config.no_progress_thread = atoi(optarg);
+            #else
+              if (atoi(optarg)) fprintf(stderr, "Every thread will call progress but LCI_MULTITHREAD_PROGRESS is not set, using default!");
+              config.no_progress_thread = 0;
+            #endif
             break;
           default:
             fprintf(stderr, "Unknown long flag %d\n", long_flag);
@@ -428,9 +440,13 @@ Context initCtx(Config config)
   LCI_plist_free(&plist);
 
   initData(ctx);
-  if (config.nthreads > 1)
-    ctx.threadBarrier = new ThreadBarrier(config.nthreads - 1);
-
+  if (config.nthreads > 1) {
+    if (config.no_progress_thread == 0) {
+      ctx.threadBarrier = new ThreadBarrier(config.nthreads - 1);
+    } else {
+      ctx.threadBarrier = new ThreadBarrier(config.nthreads);
+    }
+  }
   return ctx;
 }
 
@@ -664,6 +680,17 @@ void progress_handler(LCI_device_t device)
   }
 }
 
+// worker+progress thread
+// used for the case when all threads call LCI_progress (when no_progress_thread is on)
+template <typename Fn, typename... Args>
+void worker_progress_handler(Fn&& fn, int id, Args&&... args)
+{
+  fprintf(stderr, "worker_progress thread is created");
+  TRD_RANK_ME = id;
+  to_progress = true;
+  fn(std::forward<Args>(args)...);
+}
+
 void set_affinity(pthread_t pthread_handler, size_t target)
 {
   cpu_set_t cpuset;
@@ -685,31 +712,50 @@ void run(Context& ctx, Fn&& fn, Args&&... args)
   std::vector<std::thread> progress_pool;
 
   if (ctx.config.nthreads > 1) {
-    // Multithreaded version
-    // initialize progress thread
-    progress_exit = false;
-    std::thread t(progress_handler, ctx.device);
-    if (ctx.config.thread_pin) set_affinity(t.native_handle(), 0);
-    progress_pool.push_back(std::move(t));
+  // Multithreaded version
+    if (ctx.config.no_progress_thread == 0) {
 
-    // initialize worker threads
-    for (size_t i = 0; i < ctx.config.nthreads - 1; ++i) {
-      std::thread t(
+      // One progress thread, the others are worker
+      // initialize progress thread
+      progress_exit = false;
+      std::thread t(progress_handler, ctx.device);
+      if (ctx.config.thread_pin) set_affinity(t.native_handle(), 0);
+      progress_pool.push_back(std::move(t));
+      // initialize worker threads
+      // number of worker threads = nthreads - 1
+      for (size_t i = 0; i < ctx.config.nthreads - 1; ++i) {
+        std::thread t(
           worker_handler<fn_t, typename std::remove_reference<Args>::type...>,
           +fn, i, args...);
-      if (ctx.config.thread_pin)
+      if (ctx.config.thread_pin) 
         set_affinity(t.native_handle(), (i + 1) % NPROCESSORS);
       worker_pool.push_back(std::move(t));
+      }
+      // wait for workers to finish
+      for (size_t i = 0; i < ctx.config.nthreads - 1; ++i) {
+        worker_pool[i].join();
+      }
+      // wait for progress threads to finish
+      progress_exit = true;
+      progress_pool[0].join();
+
+    } else {
+
+      // all threads will call progress and send/recv
+      for (size_t i = 0; i < ctx.config.nthreads; ++i) {
+        std::thread t(
+          worker_progress_handler<fn_t, typename std::remove_reference<Args>::type...>,
+          +fn, i, args...);
+      if (ctx.config.thread_pin) set_affinity(t.native_handle(), (i + 1) % NPROCESSORS);
+      worker_pool.push_back(std::move(t));
+      }
+      // wait for all threads to finish
+      for (size_t i = 0; i < ctx.config.nthreads; ++i) {
+        worker_pool[i].join();
+      }
+      
     }
 
-    // wait for workers to finish
-    for (size_t i = 0; i < ctx.config.nthreads - 1; ++i) {
-      worker_pool[i].join();
-    }
-
-    // wait for progress threads to finish
-    progress_exit = true;
-    progress_pool[0].join();
   } else {
     // Singlethreaded version
     TRD_RANK_ME = 0;

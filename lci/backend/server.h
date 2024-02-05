@@ -16,7 +16,13 @@ typedef struct LCIS_mr_t {
   size_t length;
 } LCIS_mr_t;
 
+#ifdef LCI_USE_SERVER_UCX
+typedef struct {
+  char tmp[128];
+} LCIS_rkey_t;
+#else
 typedef uint64_t LCIS_rkey_t;
+#endif
 typedef uint32_t LCIS_meta_t;  // immediate data
 enum LCIS_opcode_t {
   LCII_OP_SEND,
@@ -86,6 +92,9 @@ static inline LCI_error_t LCISD_post_recv(LCIS_endpoint_t endpoint_pp,
 #ifdef LCI_USE_SERVER_IBV
 #include "backend/ibv/server_ibv.h"
 #include "backend/ibv/lcisi_ibv_detail.h"
+#endif
+#ifdef LCI_USE_SERVER_UCX
+#include "backend/ucx/server_ucx.h"
 #endif
 
 /* Wrapper functions */

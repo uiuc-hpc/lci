@@ -27,6 +27,9 @@
 *.out
 *.app
 
+# Vscode related
+.vscode/
+
 # CLion related
 .idea
 cmake-build-*

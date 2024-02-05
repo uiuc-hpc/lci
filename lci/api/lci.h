@@ -629,6 +629,10 @@ extern LCI_endpoint_t LCI_UR_ENDPOINT;
  */
 extern LCI_comp_t LCI_UR_CQ;
 
+extern bool LCI_UCX_USE_TRY_LOCK;
+
+extern bool LCI_UCX_PROGRESS_FOCUSED;
+
 /**
  * @ingroup LCI_SETUP
  * @brief Initialize the LCI runtime. No LCI calls are allowed to be called

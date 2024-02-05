@@ -31,6 +31,8 @@ if(LCI_USE_SERVER_OFI)
 elseif(LCI_USE_SERVER_IBV)
   target_sources_relative(LCI PRIVATE backend/ibv/server_ibv.c)
   target_sources_relative(LCI PRIVATE backend/ibv/lcisi_ibv_detail.c)
+elseif(LCI_USE_SERVER_UCX)
+  target_sources_relative(LCI PRIVATE backend/ucx/server_ucx.c)
 endif()
 
 target_include_directories(LCI PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
