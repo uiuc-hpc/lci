@@ -48,8 +48,14 @@ static void LCII_rcache_dump_region_cb(void* context, ucs_rcache_t* rcache,
 {
   LCII_rcache_entry_t* region = ucs_derived_of(rregion, LCII_rcache_entry_t);
 
+  LCIS_rkey_t rkey = LCIS_rma_rkey(region->mr);
+#ifdef LCI_USE_SERVER_UCX
+  snprintf(buf, max, "(%p, %lu) mr_p %p rkey [%lx,%lx]", region->mr.address,
+           region->mr.length, region->mr.mr_p, rkey.val[0], rkey.val[1]);
+#else
   snprintf(buf, max, "(%p, %lu) mr_p %p rkey %lx", region->mr.address,
            region->mr.length, region->mr.mr_p, LCIS_rma_rkey(region->mr));
+#endif
 }
 
 LCI_error_t LCII_rcache_init(LCI_device_t device)

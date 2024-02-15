@@ -593,11 +593,24 @@ typedef enum {
 extern LCI_rdv_protocol_t LCI_RDV_PROTOCOL;
 
 /**
- * @ingroup
+ * @ingroup LCI_COMM
  * @brief For the libfabric cxi provider, Try turning off the hacking to see
  * whether cxi has fixed the double mr_bind error.
  */
 extern bool LCI_OFI_CXI_TRY_NO_HACK;
+
+/**
+ * @ingroup LCI_COMM
+ * @brief For the UCX backend, use try_lock to wrap the ucx function calls.
+ */
+extern bool LCI_UCX_USE_TRY_LOCK;
+
+/**
+ * @ingroup LCI_COMM
+ * @brief For the UCX backend, use blocking lock to wrap the ucx_progress
+ * function calls.
+ */
+extern bool LCI_UCX_PROGRESS_FOCUSED;
 
 /**
  * @ingroup LCI_COMM
@@ -628,10 +641,6 @@ extern LCI_endpoint_t LCI_UR_ENDPOINT;
  * convenience.
  */
 extern LCI_comp_t LCI_UR_CQ;
-
-extern bool LCI_UCX_USE_TRY_LOCK;
-
-extern bool LCI_UCX_PROGRESS_FOCUSED;
 
 /**
  * @ingroup LCI_SETUP

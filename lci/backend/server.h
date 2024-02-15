@@ -18,7 +18,7 @@ typedef struct LCIS_mr_t {
 
 #ifdef LCI_USE_SERVER_UCX
 typedef struct {
-  char tmp[128];
+  uint64_t val[2];
 } LCIS_rkey_t;
 #else
 typedef uint64_t LCIS_rkey_t;
@@ -95,6 +95,7 @@ static inline LCI_error_t LCISD_post_recv(LCIS_endpoint_t endpoint_pp,
 #endif
 #ifdef LCI_USE_SERVER_UCX
 #include "backend/ucx/server_ucx.h"
+#include "backend/ucx/lcisi_ucx_detail.h"
 #endif
 
 /* Wrapper functions */

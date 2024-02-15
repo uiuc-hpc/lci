@@ -74,11 +74,17 @@ make install
   - This is the same across all the cmake projects.
 - `LCI_DEBUG=ON/OFF`: Enable/disable the debug mode (more assertions and logs).
   The default value is `OFF`.
-- `LCI_SERVER=ibv/ofi`: Hint to which network backend to use. If both `ibv` and `ofi` are found, LCI will use the one
-  indicated by this variable. The default value is `ibv`. Typically, you don't need to
+- `LCI_SERVER=ibv/ofi/ucx`: Hint to which network backend to use. 
+  If the backend indicated by this variable are found, LCI will just use it.
+  Otherwise, LCI will use whatever are found with the priority `ibv` > `ofi` > `ucx`.
+  The default value is `ibv`. Typically, you don't need to
   modify this variable as if `libibverbs` presents, it is likely to be the recommended one to use.
-  - `ibv`: libibverbs, typically for infiniband.
-  - `ofi`: libfabrics, for all other networks (slingshot-11, ethernet, shared memory).
+  - `ibv`: [libibverbs](https://github.com/linux-rdma/rdma-core/blob/master/Documentation/libibverbs.md), 
+    typically for infiniband.
+  - `ofi`: [libfabrics](https://ofiwg.github.io/libfabric/), 
+    for all other networks (slingshot-11, ethernet, shared memory).
+  - `ucx`: [UCX](https://openucx.org/). 
+    Currently, the backend is in the experimental state.
 - `LCI_FORCE_SERVER=ON/OFF`: Default value is `OFF`. If it is set to `ON`, 
   `LCI_SERVER` will not be treated as a hint but a requirement.
 - `LCI_WITH_LCT_ONLY=ON/OFF`: Whether to only build LCT (The Lightweight Communication Tools). 

@@ -23,7 +23,7 @@ class Lci(CMakePackage):
         except ValueError:
             return val == 'auto'
 
-    variant('fabric', default='ibv', values=('ofi', 'ibv'), multi=False,
+    variant('fabric', default='ibv', values=('ofi', 'ibv', 'ucx'), multi=False,
             description='Communication fabric')
     variant('completion', default='sync,cq,am',
             values=('sync', 'cq', 'am', 'glob'), multi=True,
@@ -82,6 +82,7 @@ class Lci(CMakePackage):
     depends_on('cmake@3.19:', type='build')
     depends_on('libfabric', when='fabric=ofi')
     depends_on('rdma-core', when='fabric=ibv')
+    depends_on('ucx', when='fabric=ucx')
     depends_on('mpi', when='default-pm=mpi')
     depends_on('papi', when='+papi')
     depends_on('doxygen', when='+docs')
