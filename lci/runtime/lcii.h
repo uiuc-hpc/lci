@@ -69,8 +69,8 @@ struct __attribute__((aligned(LCI_CACHE_LINE))) LCI_device_s {
   LCII_rcache_t rcache;                // 8B
   LCI_lbuffer_t heap;                  // 24B
   uintptr_t base_packet;               // 8B
-  LCIU_CACHE_PADDING(sizeof(LCIS_server_t) + 2 * sizeof(LCIS_endpoint_t) -
-                     sizeof(LCII_pool_t*) + sizeof(LCI_matchtable_t) -
+  LCIU_CACHE_PADDING(sizeof(LCIS_server_t) + 2 * sizeof(LCIS_endpoint_t) +
+                     sizeof(LCII_pool_t*) + sizeof(LCI_matchtable_t) +
                      sizeof(LCII_rcache_t*) + sizeof(LCI_lbuffer_t) +
                      sizeof(uintptr_t));
   // the following is shared by both progress threads and worker threads

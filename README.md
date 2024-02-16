@@ -81,7 +81,7 @@ make install
   - `ofi`: libfabrics, for all other networks (slingshot-11, ethernet, shared memory).
 - `LCI_FORCE_SERVER=ON/OFF`: Default value is `OFF`. If it is set to `ON`, 
   `LCI_SERVER` will not be treated as a hint but a requirement.
-- `LCI_WITH_LCT_ONLY=ON/OFF`: Whether to only build LCT (The Lightweight COmmunication Tools). 
+- `LCI_WITH_LCT_ONLY=ON/OFF`: Whether to only build LCT (The Lightweight Communication Tools). 
   Default is `OFF` (build both LCT and LCI).
 
 ## Run LCI applications
