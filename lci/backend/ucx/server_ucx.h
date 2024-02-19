@@ -162,7 +162,6 @@ static void flush_handler(void* request, ucs_status_t status, void* args)
   ucp_request_free(request);
 }
 
-#ifndef LCI_UCX_USE_SEGMENTED_PUT
 static void put_handler(void* request, ucs_status_t status, void* args)
 {
   UCX_SAFECALL(status);
@@ -203,47 +202,6 @@ static void put_handler(void* request, ucs_status_t status, void* args)
   LCIU_free(cb_args);
   if (request) ucp_request_free(request);
 }
-#else
-// Add entry to local completion queue, send LCIS_meta and source rank to remote
-// CQ
-static void put_handler(void* request, ucs_status_t status, void* args)
-{
-  // push_cq is not invoked in this handler, as there is a chance that it is
-  // called by the worker thread cq entry will be pushed in the callback of
-  // send, where LCIS_meta and rank are sent to remote
-  LCISI_cb_args* cb_args = (LCISI_cb_args*)args;
-  LCISI_cq_entry* cq_entry = cb_args->entry;
-  LCISI_endpoint_t* ep = cq_entry->ep;
-  ucp_worker_fence(ep->worker);
-
-  // Set arguments of am send callback to free allocated resources
-  LCISI_cb_args* am_cb_args = LCIU_malloc(sizeof(LCISI_cb_args));
-  am_cb_args->imm_data = cb_args->imm_data;
-  am_cb_args->buf = NULL;
-  am_cb_args->entry = cq_entry;
-
-  // Send data to remote (there are pre-posted recv, so we can simply send)
-  // Data to send is stored in imm_data member of cb_args (already prepared in
-  // post_put function)
-  ucs_status_ptr_t put_request;
-  ucp_request_param_t params;
-  params.op_attr_mask = UCP_OP_ATTR_FIELD_CALLBACK |
-                        UCP_OP_ATTR_FIELD_USER_DATA |
-                        UCP_OP_ATTR_FLAG_NO_IMM_CMPL;
-  // cq_entry related to put is pushed in this callback
-  params.cb.send = send_handler;
-  params.user_data = (void*)am_cb_args;
-  put_request =
-      ucp_tag_send_nbx(ep->peers[cq_entry->rank], cb_args->imm_data, 0,
-                       *((ucp_tag_t*)(cb_args->imm_data)), &params);
-  LCI_Assert(put_request, "");
-  LCI_Assert(!UCS_PTR_IS_ERR(put_request),
-             "Error in sending LCIS_meta during rma!");
-  LCIU_free(cb_args);
-  LCI_Assert(request, "");
-  ucp_request_free(request);
-}
-#endif
 
 static void failure_handler(void* request, ucp_ep_h ep, ucs_status_t status)
 {
@@ -273,7 +231,6 @@ static inline LCIS_mr_t LCISD_rma_reg(LCIS_server_t s, void* buf, size_t size)
   params.flags = UCP_MEM_MAP_NONBLOCK;
   // params.exported_memh_buffer = LCIU_malloc(sizeof(ucp_mem_h));
   UCX_SAFECALL(ucp_mem_map(server->context, &params, &memh));
-  LCI_Log(LCI_LOG_DEBUG, "ucp_mem_map: %p %lu\n", buf, size);
   mr.address = buf;
   mr.length = size;
   wrapper->context = server->context;
@@ -286,7 +243,6 @@ static inline void LCISD_rma_dereg(LCIS_mr_t mr)
 {
   LCISI_memh_wrapper* wrapper = (LCISI_memh_wrapper*)mr.mr_p;
   UCX_SAFECALL(ucp_mem_unmap(wrapper->context, wrapper->memh));
-  LCI_Log(LCI_LOG_DEBUG, "ucp_mem_unmap: %p %lu\n", mr.address, mr.length);
   LCIU_free(wrapper);
 }
 
@@ -566,7 +522,6 @@ static inline LCI_error_t LCISD_post_put(LCIS_endpoint_t endpoint_pp, int rank,
   UCX_SAFECALL(
       ucp_ep_rkey_unpack(endpoint_p->peers[rank], &rkey, &cb_args->rkey));
 
-#ifndef LCI_UCX_USE_SEGMENTED_PUT
   // Setup send parameters
   ucp_request_param_t put_param;
   put_param.op_attr_mask = UCP_OP_ATTR_FIELD_CALLBACK |
@@ -595,49 +550,6 @@ static inline LCI_error_t LCISD_post_put(LCIS_endpoint_t endpoint_pp, int rank,
   if (LCI_UCX_USE_TRY_LOCK) {
     LCIU_release_spinlock(&(endpoint_p->wrapper_lock));
   }
-#else
-  if (LCI_UCX_USE_TRY_LOCK) {
-    if (!LCIU_try_acquire_spinlock(&(endpoint_p->try_lock))) {
-      return LCI_ERR_RETRY_LOCK;
-    }
-  }
-  uint64_t remote_addr = base + offset;
-  int num_segments = (size + 65536 - 1) / (65536 - 1);
-  for (int i = 0; i < num_segments; i++) {
-    ucs_status_ptr_t request;
-    if (i == num_segments - 1) {
-      // put message in chunks with size 65536
-      // only use callback to signal completion in the last put
-      // Use ucp_worker_fence to ensure that this is the last completed
-      // operation
-      ucp_worker_fence(endpoint_p->worker);
-      ucp_request_param_t put_param;
-      put_param.op_attr_mask = UCP_OP_ATTR_FIELD_CALLBACK |
-                               UCP_OP_ATTR_FIELD_MEMORY_TYPE |
-                               UCP_OP_ATTR_FIELD_USER_DATA;
-      // No need to signal remote completion
-      put_param.cb.send = send_handler;
-      put_param.user_data = cb_args;
-      put_param.memory_type = UCS_MEMORY_TYPE_HOST;
-      request = ucp_put_nbx(endpoint_p->peers[rank], buf + i * 65536,
-                            size - i * 65536, remote_addr + i * 65536, rkey_ptr,
-                            &put_param);
-    } else {
-      // do not signal remote completion in callback
-      // send_handler is just used to free resources
-      ucp_request_param_t put_param;
-      put_param.op_attr_mask = UCP_OP_ATTR_FIELD_MEMORY_TYPE;
-      put_param.cb.send = send_handler;
-      put_param.user_data = cb_args;
-      put_param.memory_type = UCS_MEMORY_TYPE_HOST;
-      request = ucp_put_nbx(endpoint_p->peers[rank], buf + i * 65536, 65536,
-                            remote_addr + i * 65536, rkey_ptr, &put_param);
-    }
-  }
-  if (LCI_UCX_USE_TRY_LOCK) {
-    LCIU_release_spinlock(&(endpoint_p->try_lock));
-  }
-#endif
 
   return LCI_OK;
 }
@@ -676,7 +588,6 @@ static inline LCI_error_t LCISD_post_putImms(LCIS_endpoint_t endpoint_pp,
   put_param.user_data = cb_args;
   put_param.memory_type = UCS_MEMORY_TYPE_HOST;
 
-#ifndef LCI_UCX_USE_SEGMENTED_PUT
   // Send message, check for errors
   uint64_t remote_addr = (uint64_t)((char*)base + offset);
   ucs_status_ptr_t request;
@@ -695,50 +606,6 @@ static inline LCI_error_t LCISD_post_putImms(LCIS_endpoint_t endpoint_pp,
   if (LCI_UCX_USE_TRY_LOCK) {
     LCIU_release_spinlock(&(endpoint_p->wrapper_lock));
   }
-#else
-  uint64_t remote_addr = base + offset;
-  if (LCI_UCX_USE_TRY_LOCK) {
-    if (!LCIU_try_acquire_spinlock(&(endpoint_p->try_lock))) {
-      return LCI_ERR_RETRY_LOCK;
-    }
-  }
-  int num_segments = (size + 65536 - 1) / (65536 - 1);
-  for (int i = 0; i < num_segments; i++) {
-    ucs_status_ptr_t request;
-    if (i == num_segments - 1) {
-      // put message in chunks with size 65536
-      // only use callback to signal completion in the last put
-      // Use ucp_worker_fence to ensure that this is the last completed
-      // operation
-      ucp_worker_fence(endpoint_p->worker);
-      ucp_request_param_t put_param;
-      put_param.op_attr_mask = UCP_OP_ATTR_FIELD_CALLBACK |
-                               UCP_OP_ATTR_FIELD_MEMORY_TYPE |
-                               UCP_OP_ATTR_FIELD_USER_DATA;
-      put_param.cb.send = put_handler;
-      put_param.user_data = cb_args;
-      put_param.memory_type = UCS_MEMORY_TYPE_HOST;
-      request = ucp_put_nbx(endpoint_p->peers[rank], buf + i * 65536,
-                            size - i * 65536, remote_addr + i * 65536, rkey_ptr,
-                            &put_param);
-    } else {
-      // do not signal remote completion in callback
-      // send_handler is just used to free resources
-      ucp_request_param_t put_param;
-      put_param.op_attr_mask = UCP_OP_ATTR_FIELD_CALLBACK |
-                               UCP_OP_ATTR_FIELD_MEMORY_TYPE |
-                               UCP_OP_ATTR_FIELD_USER_DATA;
-      put_param.cb.send = send_handler;
-      put_param.user_data = cb_args;
-      put_param.memory_type = UCS_MEMORY_TYPE_HOST;
-      request = ucp_put_nbx(endpoint_p->peers[rank], buf + i * 65536, 65536,
-                            remote_addr + i * 65536, rkey_ptr, &put_param);
-    }
-  }
-  if (LCI_UCX_USE_TRY_LOCK) {
-    LCIU_release_spinlock(&(endpoint_p->try_lock));
-  }
-#endif
 
   return LCI_OK;
 }
@@ -776,7 +643,6 @@ static inline LCI_error_t LCISD_post_putImm(LCIS_endpoint_t endpoint_pp,
   put_param.cb.send = put_handler;
   put_param.user_data = cb_args;
   put_param.memory_type = UCS_MEMORY_TYPE_HOST;
-#ifndef LCI_UCX_USE_SEGMENTED_PUT
   // Send message, check for errors
   uint64_t remote_addr = (uint64_t)((char*)base + offset);
   ucs_status_ptr_t request;
@@ -795,50 +661,6 @@ static inline LCI_error_t LCISD_post_putImm(LCIS_endpoint_t endpoint_pp,
   if (LCI_UCX_USE_TRY_LOCK) {
     LCIU_release_spinlock(&(endpoint_p->wrapper_lock));
   }
-#else
-  if (LCI_UCX_USE_TRY_LOCK) {
-    if (!LCIU_try_acquire_spinlock(&(endpoint_p->try_lock))) {
-      return LCI_ERR_RETRY_LOCK;
-    }
-  }
-  uint64_t remote_addr = base + offset;
-  int num_segments = (size + 65536 - 1) / (65536 - 1);
-  for (int i = 0; i < num_segments; i++) {
-    ucs_status_ptr_t request;
-    if (i == num_segments - 1) {
-      // put message in chunks with size 65536
-      // only use callback to signal completion in the last put
-      // Use ucp_worker_fence to ensure that this is the last completed
-      // operation
-      ucp_worker_fence(endpoint_p->worker);
-      ucp_request_param_t put_param;
-      put_param.op_attr_mask = UCP_OP_ATTR_FIELD_CALLBACK |
-                               UCP_OP_ATTR_FIELD_MEMORY_TYPE |
-                               UCP_OP_ATTR_FIELD_USER_DATA;
-      put_param.cb.send = put_handler;
-      put_param.user_data = cb_args;
-      put_param.memory_type = UCS_MEMORY_TYPE_HOST;
-      request = ucp_put_nbx(endpoint_p->peers[rank], buf + i * 65536,
-                            size - i * 65536, remote_addr + i * 65536, rkey_ptr,
-                            &put_param);
-    } else {
-      // do not signal remote completion in callback
-      // send_handler is just used to free resources
-      ucp_request_param_t put_param;
-      put_param.op_attr_mask = UCP_OP_ATTR_FIELD_CALLBACK |
-                               UCP_OP_ATTR_FIELD_MEMORY_TYPE |
-                               UCP_OP_ATTR_FIELD_USER_DATA;
-      put_param.cb.send = send_handler;
-      put_param.user_data = cb_args;
-      put_param.memory_type = UCS_MEMORY_TYPE_HOST;
-      request = ucp_put_nbx(endpoint_p->peers[rank], buf + i * 65536, 65536,
-                            remote_addr + i * 65536, rkey_ptr, &put_param);
-    }
-  }
-  if (LCI_UCX_USE_TRY_LOCK) {
-    LCIU_release_spinlock(&(endpoint_p->try_lock));
-  }
-#endif
 
   return LCI_OK;
 }
