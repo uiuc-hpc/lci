@@ -20,6 +20,7 @@ LCI_error_t LCI_initialize()
   LCT_pmi_initialize();
   rank = LCT_pmi_get_rank();
   num_proc = LCT_pmi_get_size();
+  LCI_Assert(num_proc > 0, "PMI ran into an error (num_proc=%d)\n", num_proc);
   LCT_set_rank(rank);
   LCII_pcounters_init();
   // Set some constant from environment variable.
