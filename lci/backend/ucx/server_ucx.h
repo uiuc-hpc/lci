@@ -128,8 +128,7 @@ static void send_handler(void* request, ucs_status_t status, void* args)
     ucp_rkey_destroy(cb_args->rkey);
   }
   LCIU_free(cb_args);
-  LCI_Assert(request, "");
-  ucp_request_free(request);
+  if (request) ucp_request_free(request);
 }
 
 static void flush_handler(void* request, ucs_status_t status, void* args)
@@ -155,7 +154,7 @@ static void flush_handler(void* request, ucs_status_t status, void* args)
   params.cb.send = send_handler;
   params.user_data = (void*)ack_cb_args;
   send_request = ucp_tag_send_nbx(ep->peers[cq_entry->rank], NULL, 0,
-                                  *((ucp_tag_t*)(cb_args->imm_data)), &params);
+                                  cb_args->imm_data, &params);
   LCI_Assert(send_request, "");
   LCI_Assert(!UCS_PTR_IS_ERR(send_request),
              "Error in sending LCIS_meta during rma!");
@@ -196,9 +195,13 @@ static void put_handler(void* request, ucs_status_t status, void* args)
   LCI_Assert(!UCS_PTR_IS_ERR(flush_request),
              "Error in flushing the put request during rma!");
 
+  if (cb_args->rkey != NULL) {
+    // FIXME: not sure whether we need to destroy the rkey after the flush.
+    // Maybe buggy
+    ucp_rkey_destroy(cb_args->rkey);
+  }
   LCIU_free(cb_args);
-  LCI_Assert(request, "");
-  ucp_request_free(request);
+  if (request) ucp_request_free(request);
 }
 #else
 // Add entry to local completion queue, send LCIS_meta and source rank to remote
@@ -247,6 +250,7 @@ static void failure_handler(void* request, ucp_ep_h ep, ucs_status_t status)
   LCI_Warn("\nUCS returned the following error: %s\n",
            ucs_status_string(status));
   ucp_request_free(request);
+  abort();
 }
 
 static inline LCIS_mr_t LCISD_rma_reg(LCIS_server_t s, void* buf, size_t size)
@@ -269,6 +273,7 @@ static inline LCIS_mr_t LCISD_rma_reg(LCIS_server_t s, void* buf, size_t size)
   params.flags = UCP_MEM_MAP_NONBLOCK;
   // params.exported_memh_buffer = LCIU_malloc(sizeof(ucp_mem_h));
   UCX_SAFECALL(ucp_mem_map(server->context, &params, &memh));
+  LCI_Log(LCI_LOG_DEBUG, "ucp_mem_map: %p %lu\n", buf, size);
   mr.address = buf;
   mr.length = size;
   wrapper->context = server->context;
@@ -281,6 +286,7 @@ static inline void LCISD_rma_dereg(LCIS_mr_t mr)
 {
   LCISI_memh_wrapper* wrapper = (LCISI_memh_wrapper*)mr.mr_p;
   UCX_SAFECALL(ucp_mem_unmap(wrapper->context, wrapper->memh));
+  LCI_Log(LCI_LOG_DEBUG, "ucp_mem_unmap: %p %lu\n", mr.address, mr.length);
   LCIU_free(wrapper);
 }
 
@@ -359,6 +365,7 @@ static inline LCI_error_t LCISD_post_recv(LCIS_endpoint_t endpoint_pp,
   // Set argument for recv callback
   LCISI_cb_args* cb_args = LCIU_malloc(sizeof(LCISI_cb_args));
   cb_args->entry = cq_entry;
+  cb_args->imm_data = 0;
   cb_args->rkey = NULL;
 
   // Setup recv parameters

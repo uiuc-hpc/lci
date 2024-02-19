@@ -108,8 +108,8 @@ static inline int LCIU_getenv_or(char* env, int def)
 static inline void LCIU_spin_for_nsec(double t)
 {
   if (t <= 0) return;
-  LCII_ucs_time_t start = LCII_ucs_get_time();
-  while (LCII_ucs_time_to_nsec(LCII_ucs_get_time() - start) < t) continue;
+  LCT_time_t start = LCT_now();
+  while (LCT_time_to_ns(LCT_now() - start) < t) continue;
 }
 
 #if 0

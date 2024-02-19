@@ -2,7 +2,6 @@
 #define LCI_PRIV_H_
 
 #include "lci.h"
-#include "lci_ucx_api.h"
 #include "log/logger.h"
 #include "sys/lciu_misc.h"
 #include "sys/lciu_atomic.h"
@@ -109,6 +108,8 @@ struct LCI_endpoint_s {
 
   int gid;
 };
+LCI_error_t LCII_endpoint_init(LCI_endpoint_t* ep_ptr, LCI_device_t device,
+                               LCI_plist_t plist, bool enable_barrier);
 
 struct LCII_mr_t {
   LCI_device_t device;
@@ -152,9 +153,6 @@ typedef struct __attribute__((aligned(LCI_CACHE_LINE))) {
   LCI_tag_t tag;            // 4 bytes
   // used by LCI internally
   LCI_comp_t completion;  // 8 bytes
-#ifdef LCI_USE_PERFORMANCE_COUNTER
-  LCII_ucs_time_t timer;
-#endif
 } LCII_context_t;
 /**
  * comp_type: user-defined comp_type

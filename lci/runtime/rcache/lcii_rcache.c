@@ -1,4 +1,6 @@
 #include "runtime/lcii.h"
+
+#ifdef LCI_COMPILE_DREG
 #include "lci_ucx_api.h"
 
 typedef struct {
@@ -106,3 +108,23 @@ LCI_error_t LCII_rcache_dereg(LCI_segment_t segment)
   LCII_ucs_rcache_region_put(segment->device->rcache, segment->region);
   return LCI_OK;
 }
+#else
+LCI_error_t LCII_rcache_init(LCI_device_t device)
+{
+  LCI_Assert(false, "LCI_COMPILE_DREG is not enabled!\n");
+  return LCI_ERR_FATAL;
+}
+void LCII_rcache_fina(LCI_device_t device)
+{
+  LCI_Assert(false, "LCI_COMPILE_DREG is not enabled!\n");
+}
+void LCII_rcache_reg(LCI_device_t device, void* address, size_t length,
+                     LCI_segment_t segment)
+{
+  LCI_Assert(false, "LCI_COMPILE_DREG is not enabled!\n");
+}
+LCI_error_t LCII_rcache_dereg(LCI_segment_t segment)
+{
+  LCI_Assert(false, "LCI_COMPILE_DREG is not enabled!\n");
+}
+#endif

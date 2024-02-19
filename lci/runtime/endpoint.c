@@ -2,8 +2,9 @@
 
 LCI_endpoint_t* LCI_ENDPOINTS;
 
-LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, LCI_device_t device,
-                              LCI_plist_t plist)
+// We cannot use LCI_barrier() in the implementation of LCII_barrier().
+LCI_error_t LCII_endpoint_init(LCI_endpoint_t* ep_ptr, LCI_device_t device,
+                               LCI_plist_t plist, bool enable_barrier)
 {
   static int num_endpoints = 0;
   LCI_endpoint_t ep = LCIU_malloc(sizeof(struct LCI_endpoint_s));
@@ -23,7 +24,15 @@ LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, LCI_device_t device,
   ep->msg_comp_type = plist->msg_comp_type;
   ep->default_comp = plist->default_comp;
 
+  if (enable_barrier) LCI_barrier();
+
   return LCI_OK;
+}
+
+LCI_error_t LCI_endpoint_init(LCI_endpoint_t* ep_ptr, LCI_device_t device,
+                              LCI_plist_t plist)
+{
+  return LCII_endpoint_init(ep_ptr, device, plist, true);
 }
 
 LCI_error_t LCI_endpoint_free(LCI_endpoint_t* ep_ptr)

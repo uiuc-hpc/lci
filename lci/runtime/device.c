@@ -2,8 +2,8 @@
 
 LCI_error_t LCII_fill_rq(LCII_endpoint_t* endpoint, bool block);
 
-void LCII_endpoint_init(LCI_device_t device, bool single_threaded,
-                        LCII_endpoint_t** endpoint_pp)
+void LCII_device_endpoint_init(LCI_device_t device, bool single_threaded,
+                               LCII_endpoint_t** endpoint_pp)
 {
   // This is not LCI_endpoint_t which is just a wrapper of parameters,
   // but LCII_endpoint_t which maps to an underlying network context.
@@ -45,9 +45,10 @@ LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
   single_threaded_prg = false;
 #endif
   LCIS_server_init(device, &device->server);
-  LCII_endpoint_init(device, false, &device->endpoint_worker);
+  LCII_device_endpoint_init(device, false, &device->endpoint_worker);
   if (LCI_ENABLE_PRG_NET_ENDPOINT) {
-    LCII_endpoint_init(device, single_threaded_prg, &device->endpoint_progress);
+    LCII_device_endpoint_init(device, single_threaded_prg,
+                              &device->endpoint_progress);
   } else {
     device->endpoint_progress = device->endpoint_worker;
   }

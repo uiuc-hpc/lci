@@ -54,7 +54,7 @@ class Lci(CMakePackage):
             ).with_default('auto').with_non_feature_values('auto'))
     variant('multithread-progress', default=True,
             description='Enable thread-safe LCI_progress function')
-    variant('default-dreg', default=True,
+    variant('default-dreg', default='auto', values=is_positive_int,
             description='Default: Whether to use registration cache')
     variant('default-packet-size', default='auto', values=is_positive_int,
             description='Default: Size of packet')
@@ -105,14 +105,16 @@ class Lci(CMakePackage):
             self.define_from_variant('LCI_USE_INLINE_CQ', 'inline-cq'),
             self.define_from_variant('LCI_IBV_ENABLE_TD', 'ibv-td'),
             self.define_from_variant('LCI_ENABLE_MULTITHREAD_PROGRESS', 'multithread-progress'),
-            self.define('LCI_USE_DREG_DEFAULT',
-                        1 if self.spec.variants['default-dreg'].value else 0),
             self.define_from_variant('LCI_DEBUG', 'debug'),
             self.define_from_variant('LCI_USE_PERFORMANCE_COUNTER', 'pcounter'),
             self.define_from_variant('LCI_ENABLE_SLOWDOWN', 'debug-slow'),
             self.define_from_variant('LCI_USE_PAPI', 'papi'),
             self.define_from_variant('LCI_USE_GPROF', 'gprof'),
         ]
+
+        if self.spec.variants['default-dreg'].value != 'auto':
+            arg = self.define_from_variant('LCI_USE_DREG_DEFAULT', 'default-dreg')
+            args.append(arg)
 
         if self.spec.variants['enable-pmix'].value != 'auto':
             arg = self.define_from_variant('LCT_PMI_BACKEND_ENABLE_PMIX', 'enable-pmix')

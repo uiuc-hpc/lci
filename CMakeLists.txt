@@ -8,6 +8,8 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   enable_testing()
 endif()
 
+cmake_policy(SET CMP0079 NEW)
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")
 
 include(GNUInstallDirs)
@@ -133,6 +135,13 @@ if(NOT LCI_WITH_LCT_ONLY)
   option(LCI_ENABLE_MULTITHREAD_PROGRESS
          "LCI_progress can be called by multiple threads simultaneously" ON)
   option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
+  set(LCI_COMPILE_DREG_DEFAULT ON)
+  if(LCI_USE_SERVER_UCX)
+    set(LCI_COMPILE_DREG_DEFAULT OFF)
+  endif()
+  set(LCI_COMPILE_DREG
+      ${LCI_COMPILE_DREG_DEFAULT}
+      CACHE STRING "Whether to compile the registration cache code")
   set(LCI_USE_DREG_DEFAULT
       ${LCI_USE_SERVER_IBV}
       CACHE STRING "Whether to use registration cache")
@@ -279,7 +288,6 @@ if(NOT LCI_WITH_LCT_ONLY)
   set_target_properties(LCI PROPERTIES OUTPUT_NAME lci)
   add_subdirectory(lci)
   add_subdirectory(dependency)
-  target_link_libraries(LCI PRIVATE lci-ucx)
 
   # ############################################################################
   # Build other targets
@@ -326,10 +334,17 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 
   if(NOT LCI_WITH_LCT_ONLY)
     install(
-      TARGETS LCI lci-ucx
+      TARGETS LCI
       EXPORT LCITargets
       ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
       LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    if(TARGET lci-ucx)
+      install(
+        TARGETS lci-ucx
+        EXPORT LCITargets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    endif()
     install(
       DIRECTORY lci/api/ ${CMAKE_CURRENT_BINARY_DIR}/lci/api/
       DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}

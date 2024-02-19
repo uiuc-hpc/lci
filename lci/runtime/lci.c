@@ -1,5 +1,7 @@
 #include "runtime/lcii.h"
+#ifdef LCI_COMPILE_DREG
 #include "lci_ucx_api.h"
+#endif
 
 static int opened = 0;
 int LCIU_nthreads = 0;
@@ -27,7 +29,11 @@ LCI_error_t LCI_initialize()
   LCII_env_init(num_proc, rank);
   LCII_papi_init();
   if (LCI_USE_DREG) {
+#ifdef LCI_COMPILE_DREG
     LCII_ucs_init();
+#else
+    LCI_Assert(false, "LCI_COMPILE_DREG is not enabled!\n");
+#endif
   }
 
   LCI_device_init(&LCI_UR_DEVICE);
@@ -61,7 +67,9 @@ LCI_error_t LCI_finalize()
   LCI_queue_free(&LCI_UR_CQ);
   LCI_device_free(&LCI_UR_DEVICE);
   if (LCI_USE_DREG) {
+#ifdef LCI_COMPILE_DREG
     LCII_ucs_cleanup();
+#endif
   }
   LCT_pmi_finalize();
   LCII_pcounters_fina();
@@ -84,8 +92,9 @@ LCI_error_t LCII_barrier()
     LCI_plist_create(&plist);
     LCI_plist_set_comp_type(plist, LCI_PORT_COMMAND, LCI_COMPLETION_SYNC);
     LCI_plist_set_comp_type(plist, LCI_PORT_MESSAGE, LCI_COMPLETION_SYNC);
-    LCI_endpoint_init(&ep, LCI_UR_DEVICE, plist);
+    LCII_endpoint_init(&ep, LCI_UR_DEVICE, plist, false);
     LCI_plist_free(&plist);
+    LCT_pmi_barrier();
   }
   LCI_tag_t tag = next_tag++;
   LCI_Log(LCI_LOG_INFO, "coll", "Start barrier (%d, %p).\n", tag, ep);

@@ -98,8 +98,10 @@ void LCISD_server_init(LCI_device_t device, LCIS_server_t* s)
   ucp_config_t* config;
   UCX_SAFECALL(ucp_config_read(NULL, NULL, &config));
   ucp_params_t params;
-  params.field_mask = UCP_PARAM_FIELD_FEATURES;
+  params.field_mask =
+      UCP_PARAM_FIELD_FEATURES | UCP_PARAM_FIELD_MT_WORKERS_SHARED;
   params.features = UCP_FEATURE_TAG | UCP_FEATURE_RMA | UCP_FEATURE_AM;
+  params.mt_workers_shared = 1;
   ucp_context_h context;
   UCX_SAFECALL(ucp_init(&params, config, &context));
   server->context = context;
@@ -110,6 +112,7 @@ void LCISD_server_init(LCI_device_t device, LCIS_server_t* s)
 // result in errors
 void LCISD_server_fina(LCIS_server_t s)
 {
+  LCT_pmi_barrier();
   LCISI_server_t* server = (LCISI_server_t*)s;
   LCI_Assert(server->endpoint_count == 0, "Endpoint count is not zero (%d)\n",
              server->endpoint_count);
