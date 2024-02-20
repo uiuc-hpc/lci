@@ -124,6 +124,7 @@ static inline int LCISD_poll_cq(LCIS_endpoint_t endpoint_pp,
   LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
   struct fi_cq_data_entry fi_entry[LCI_CQ_MAX_POLL];
   struct fi_cq_err_entry error;
+  char err_data[64];
   ssize_t ne;
   int ret;
 
@@ -155,9 +156,14 @@ static inline int LCISD_poll_cq(LCIS_endpoint_t endpoint_pp,
   } else if (ne == -FI_EAGAIN) {
     ret = 0;
   } else {
-    LCI_DBG_Assert(ne == -FI_EAVAIL, "unexpected return error: %s\n",
-                   fi_strerror(-ne));
-    fi_cq_readerr(endpoint_p->cq, &error, 0);
+    LCI_Assert(ne == -FI_EAVAIL, "unexpected return error: %s\n",
+               fi_strerror(-ne));
+    error.err_data = err_data;
+    error.err_data_size = sizeof(err_data);
+    ssize_t ret_cqerr = fi_cq_readerr(endpoint_p->cq, &error, 0);
+    // The error was already consumed, most likely by another thread,
+    if (ret_cqerr == -FI_EAGAIN) return 0;
+    //    LCI_Warn("Err %d: %s\n", error.err, fi_strerror(error.err));
     LCI_Assert(false, "Err %d: %s\n", error.err, fi_strerror(error.err));
   }
   return ret;
