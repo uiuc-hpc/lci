@@ -18,6 +18,5 @@ add_lci_examples(
   pt2ptl_handler.c
   puts_handler.c
   putmna_sync.c
-  putla_queue.c)
-
-# add_subdirectory(MPI_LCI)
+  putla_queue.c
+  many2many_random.cpp)
