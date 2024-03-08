@@ -281,8 +281,6 @@ struct Context {
   LCI_endpoint_t ep;
   LCI_comp_t send_comp;
   LCI_comp_t recv_comp;
-  LCI_data_t send_data;
-  LCI_data_t recv_data;
   ThreadBarrier* threadBarrier = nullptr;
 };
 
@@ -301,6 +299,11 @@ LCI_comp_t initComp(Context ctx, LCI_comp_type_t comp_type)
   }
   return comp;
 }
+
+struct Data {
+  LCI_data_t send_data;
+  LCI_data_t recv_data;
+};
 
 void freeComp(LCI_comp_type_t comp_type, LCI_comp_t* comp)
 {
@@ -332,8 +335,9 @@ LCI_request_t waitComp(Context& ctx, LCI_comp_t comp, LCI_comp_type_t comp_type)
   return request;
 }
 
-void initData(Context& ctx)
+Data initData(const Context& ctx)
 {
+  Data data;
   switch (ctx.config.op) {
     case LCIT_OP_2SIDED_S:
     case LCIT_OP_1SIDED_S:
@@ -341,49 +345,48 @@ void initData(Context& ctx)
     case LCIT_OP_2SIDED_M:
     case LCIT_OP_1SIDED_M:
       if (ctx.config.send_dyn) {
-        while (LCI_mbuffer_alloc(ctx.device, &ctx.send_data.mbuffer) ==
-               LCI_ERR_RETRY)
-          if (to_progress) LCI_progress(ctx.device);
+        // do nothing
       } else {
-        posix_memalign(&ctx.send_data.mbuffer.address, PAGESIZE,
+        posix_memalign(&data.send_data.mbuffer.address, PAGESIZE,
                        ctx.config.max_msg_size);
-        ctx.send_data.mbuffer.length = ctx.config.max_msg_size;
+        data.send_data.mbuffer.length = ctx.config.max_msg_size;
       }
       if (ctx.config.recv_dyn) {
         // do nothing
       } else {
-        posix_memalign(&ctx.recv_data.mbuffer.address, PAGESIZE,
+        posix_memalign(&data.recv_data.mbuffer.address, PAGESIZE,
                        ctx.config.max_msg_size);
-        ctx.recv_data.mbuffer.length = ctx.config.max_msg_size;
+        data.recv_data.mbuffer.length = ctx.config.max_msg_size;
       }
       break;
     case LCIT_OP_2SIDED_L:
     case LCIT_OP_1SIDED_L:
       if (ctx.config.send_reg) {
         LCI_lbuffer_memalign(ctx.device, ctx.config.max_msg_size, PAGESIZE,
-                             &ctx.send_data.lbuffer);
+                             &data.send_data.lbuffer);
       } else {
-        posix_memalign(&ctx.send_data.lbuffer.address, PAGESIZE,
+        posix_memalign(&data.send_data.lbuffer.address, PAGESIZE,
                        ctx.config.max_msg_size);
-        ctx.send_data.lbuffer.length = ctx.config.max_msg_size;
-        ctx.send_data.lbuffer.segment = LCI_SEGMENT_ALL;
+        data.send_data.lbuffer.length = ctx.config.max_msg_size;
+        data.send_data.lbuffer.segment = LCI_SEGMENT_ALL;
       }
       if (ctx.config.recv_dyn) {
-        ctx.recv_data.lbuffer.address = NULL;
+        data.recv_data.lbuffer.address = NULL;
       } else if (ctx.config.recv_reg) {
         LCI_lbuffer_memalign(ctx.device, ctx.config.max_msg_size, PAGESIZE,
-                             &ctx.recv_data.lbuffer);
+                             &data.recv_data.lbuffer);
       } else {
-        posix_memalign(&ctx.recv_data.lbuffer.address, PAGESIZE,
+        posix_memalign(&data.recv_data.lbuffer.address, PAGESIZE,
                        ctx.config.max_msg_size);
-        ctx.recv_data.lbuffer.length = ctx.config.max_msg_size;
-        ctx.recv_data.lbuffer.segment = LCI_SEGMENT_ALL;
+        data.recv_data.lbuffer.length = ctx.config.max_msg_size;
+        data.recv_data.lbuffer.segment = LCI_SEGMENT_ALL;
       }
       break;
   }
+  return data;
 }
 
-void freeData(Context& ctx)
+void freeData(const Context& ctx, Data& data)
 {
   switch (ctx.config.op) {
     case LCIT_OP_2SIDED_S:
@@ -392,31 +395,31 @@ void freeData(Context& ctx)
     case LCIT_OP_2SIDED_M:
     case LCIT_OP_1SIDED_M:
       if (ctx.config.send_dyn) {
-        LCI_mbuffer_free(ctx.send_data.mbuffer);
+        // do nothing
       } else {
-        free(ctx.send_data.mbuffer.address);
-        ctx.send_data.mbuffer.length = 0;
+        free(data.send_data.mbuffer.address);
+        data.send_data.mbuffer.length = 0;
       }
       if (ctx.config.recv_dyn) {
         // do nothing
       } else {
-        free(ctx.recv_data.mbuffer.address);
-        ctx.recv_data.mbuffer.length = 0;
+        free(data.recv_data.mbuffer.address);
+        data.recv_data.mbuffer.length = 0;
       }
       break;
     case LCIT_OP_2SIDED_L:
     case LCIT_OP_1SIDED_L:
       if (ctx.config.send_reg) {
-        LCI_lbuffer_free(ctx.send_data.lbuffer);
+        LCI_lbuffer_free(data.send_data.lbuffer);
       } else {
-        free(ctx.send_data.lbuffer.address);
-        ctx.send_data.lbuffer.length = 0;
+        free(data.send_data.lbuffer.address);
+        data.send_data.lbuffer.length = 0;
       }
       if (ctx.config.recv_reg) {
-        LCI_lbuffer_free(ctx.recv_data.lbuffer);
+        LCI_lbuffer_free(data.recv_data.lbuffer);
       } else {
-        free(ctx.recv_data.lbuffer.address);
-        ctx.recv_data.lbuffer.length = 0;
+        free(data.recv_data.lbuffer.address);
+        data.recv_data.lbuffer.length = 0;
       }
       break;
   }
@@ -439,7 +442,6 @@ Context initCtx(Config config)
   LCI_endpoint_init(&ctx.ep, ctx.device, plist);
   LCI_plist_free(&plist);
 
-  initData(ctx);
   if (config.nthreads - config.nprgthreads > 1) {
     ctx.threadBarrier = new ThreadBarrier(config.nthreads - config.nprgthreads);
   }
@@ -450,7 +452,6 @@ void freeCtx(Context& ctx)
 {
   delete ctx.threadBarrier;
   ctx.threadBarrier = nullptr;
-  freeData(ctx);
   freeComp(ctx.config.send_comp_type, &ctx.send_comp);
   freeComp(ctx.config.recv_comp_type, &ctx.recv_comp);
   LCI_endpoint_free(&ctx.ep);
@@ -466,7 +467,8 @@ void threadBarrier(Context& ctx)
   }
 }
 
-LCI_comp_t postSend(Context& ctx, int rank, size_t size, LCI_tag_t tag)
+LCI_comp_t postSend(Context& ctx, int rank, Data& data, size_t size,
+                    LCI_tag_t tag)
 {
   LCT_DBG_Log(LCT_log_ctx_default, LCT_LOG_DEBUG, "lcit",
               "%d/%d: postSend rank %d size %lu tag %d\n", LCI_RANK,
@@ -479,17 +481,17 @@ LCI_comp_t postSend(Context& ctx, int rank, size_t size, LCI_tag_t tag)
   }
   switch (ctx.config.op) {
     case LCIT_OP_2SIDED_S:
-      while (LCI_sends(ctx.ep, ctx.send_data.immediate, rank, tag) ==
+      while (LCI_sends(ctx.ep, data.send_data.immediate, rank, tag) ==
              LCI_ERR_RETRY)
         if (to_progress) LCI_progress(ctx.device);
       break;
     case LCIT_OP_2SIDED_M: {
       if (ctx.config.send_dyn) {
-        while (LCI_mbuffer_alloc(ctx.device, &ctx.send_data.mbuffer) ==
+        while (LCI_mbuffer_alloc(ctx.device, &data.send_data.mbuffer) ==
                LCI_ERR_RETRY)
           if (to_progress) LCI_progress(ctx.device);
       }
-      LCI_mbuffer_t send_buffer = ctx.send_data.mbuffer;
+      LCI_mbuffer_t send_buffer = data.send_data.mbuffer;
       send_buffer.length = size;
       if (ctx.config.send_dyn) {
         while (LCI_sendmn(ctx.ep, send_buffer, rank, tag) == LCI_ERR_RETRY)
@@ -501,7 +503,7 @@ LCI_comp_t postSend(Context& ctx, int rank, size_t size, LCI_tag_t tag)
       break;
     }
     case LCIT_OP_2SIDED_L: {
-      LCI_lbuffer_t send_buffer = ctx.send_data.lbuffer;
+      LCI_lbuffer_t send_buffer = data.send_data.lbuffer;
       send_buffer.length = size;
       while (LCI_sendl(ctx.ep, send_buffer, rank, tag, comp,
                        (void*)USER_CONTEXT) == LCI_ERR_RETRY)
@@ -509,17 +511,17 @@ LCI_comp_t postSend(Context& ctx, int rank, size_t size, LCI_tag_t tag)
       break;
     }
     case LCIT_OP_1SIDED_S:
-      while (LCI_puts(ctx.ep, ctx.send_data.immediate, rank, tag,
+      while (LCI_puts(ctx.ep, data.send_data.immediate, rank, tag,
                       LCI_DEFAULT_COMP_REMOTE) == LCI_ERR_RETRY)
         if (to_progress) LCI_progress(ctx.device);
       break;
     case LCIT_OP_1SIDED_M: {
       if (ctx.config.send_dyn) {
-        while (LCI_mbuffer_alloc(ctx.device, &ctx.send_data.mbuffer) ==
+        while (LCI_mbuffer_alloc(ctx.device, &data.send_data.mbuffer) ==
                LCI_ERR_RETRY)
           if (to_progress) LCI_progress(ctx.device);
       }
-      LCI_mbuffer_t send_buffer = ctx.send_data.mbuffer;
+      LCI_mbuffer_t send_buffer = data.send_data.mbuffer;
       send_buffer.length = size;
       if (ctx.config.send_dyn) {
         while (LCI_putmna(ctx.ep, send_buffer, rank, tag,
@@ -533,7 +535,7 @@ LCI_comp_t postSend(Context& ctx, int rank, size_t size, LCI_tag_t tag)
       break;
     }
     case LCIT_OP_1SIDED_L: {
-      LCI_lbuffer_t send_buffer = ctx.send_data.lbuffer;
+      LCI_lbuffer_t send_buffer = data.send_data.lbuffer;
       send_buffer.length = size;
       while (LCI_putla(ctx.ep, send_buffer, comp, rank, tag,
                        LCI_DEFAULT_COMP_REMOTE,
@@ -545,7 +547,7 @@ LCI_comp_t postSend(Context& ctx, int rank, size_t size, LCI_tag_t tag)
   return comp;
 }
 
-void waitSend(Context& ctx, LCI_comp_t comp)
+void waitSend(Context& ctx, Data& data, LCI_comp_t comp)
 {
   LCT_DBG_Log(LCT_log_ctx_default, LCT_LOG_DEBUG, "lcit", "%d/%d: waitSend\n",
               LCI_RANK, TRD_RANK_ME);
@@ -563,10 +565,10 @@ void waitSend(Context& ctx, LCI_comp_t comp)
       LCT_Assert(LCT_log_ctx_default, request.type == LCI_LONG,
                  "type is wrong\n");
       LCT_Assert(LCT_log_ctx_default,
-                 request.data.lbuffer.address == ctx.send_data.lbuffer.address,
+                 request.data.lbuffer.address == data.send_data.lbuffer.address,
                  "address is wrong\n");
       LCT_Assert(LCT_log_ctx_default,
-                 request.data.lbuffer.segment == ctx.send_data.lbuffer.segment,
+                 request.data.lbuffer.segment == data.send_data.lbuffer.segment,
                  "segment is wrong\n");
       LCT_Assert(LCT_log_ctx_default,
                  (uint64_t)request.user_context == USER_CONTEXT,
@@ -575,7 +577,8 @@ void waitSend(Context& ctx, LCI_comp_t comp)
   }
 }
 
-LCI_comp_t postRecv(Context& ctx, int rank, size_t size, LCI_tag_t tag)
+LCI_comp_t postRecv(Context& ctx, int rank, Data& data, size_t size,
+                    LCI_tag_t tag)
 {
   LCT_DBG_Log(LCT_log_ctx_default, LCT_LOG_DEBUG, "lcit",
               "%d/%d: postRecv rank %d size %lu tag %d\n", LCI_RANK,
@@ -591,7 +594,7 @@ LCI_comp_t postRecv(Context& ctx, int rank, size_t size, LCI_tag_t tag)
       LCI_recvs(ctx.ep, rank, tag, comp, (void*)USER_CONTEXT);
       break;
     case LCIT_OP_2SIDED_M: {
-      LCI_mbuffer_t recv_buffer = ctx.send_data.mbuffer;
+      LCI_mbuffer_t recv_buffer = data.recv_data.mbuffer;
       recv_buffer.length = size;
       if (ctx.config.recv_dyn) {
         LCI_recvmn(ctx.ep, rank, tag, comp, (void*)USER_CONTEXT);
@@ -601,7 +604,7 @@ LCI_comp_t postRecv(Context& ctx, int rank, size_t size, LCI_tag_t tag)
       break;
     }
     case LCIT_OP_2SIDED_L: {
-      LCI_lbuffer_t recv_buffer = ctx.recv_data.lbuffer;
+      LCI_lbuffer_t recv_buffer = data.recv_data.lbuffer;
       recv_buffer.length = size;
       LCI_recvl(ctx.ep, recv_buffer, rank, tag, comp, (void*)USER_CONTEXT);
       break;
@@ -614,7 +617,7 @@ LCI_comp_t postRecv(Context& ctx, int rank, size_t size, LCI_tag_t tag)
   return comp;
 }
 
-void waitRecv(Context& ctx, LCI_comp_t comp)
+void waitRecv(Context& ctx, Data& data, LCI_comp_t comp)
 {
   LCT_DBG_Log(LCT_log_ctx_default, LCT_LOG_DEBUG, "lcit", "%d/%d: waitRecv\n",
               LCI_RANK, TRD_RANK_ME);
@@ -636,6 +639,11 @@ void waitRecv(Context& ctx, LCI_comp_t comp)
                  "type is wrong\n");
       if (ctx.config.recv_dyn) {
         LCI_mbuffer_free(request.data.mbuffer);
+      } else {
+        LCT_Assert(
+            LCT_log_ctx_default,
+            request.data.mbuffer.address == data.recv_data.mbuffer.address,
+            "address is wrong\n");
       }
       break;
     case LCIT_OP_1SIDED_M:
@@ -648,6 +656,15 @@ void waitRecv(Context& ctx, LCI_comp_t comp)
                  "type is wrong\n");
       if (ctx.config.recv_dyn) {
         LCI_lbuffer_free(request.data.lbuffer);
+      } else {
+        LCT_Assert(
+            LCT_log_ctx_default,
+            request.data.lbuffer.address == data.recv_data.lbuffer.address,
+            "address is wrong\n");
+        LCT_Assert(
+            LCT_log_ctx_default,
+            request.data.lbuffer.segment == data.recv_data.lbuffer.segment,
+            "segment is wrong\n");
       }
       break;
     case LCIT_OP_1SIDED_L:

@@ -5,6 +5,7 @@ using namespace lcit;
 
 void test(Context ctx)
 {
+  Data data = initData(ctx);
   int rank = LCI_RANK;
   int tag = 245 + TRD_RANK_ME;
   int peer_rank = ((1 - LCI_RANK % 2) + LCI_RANK / 2 * 2) % LCI_NUM_PROCESSES;
@@ -20,20 +21,20 @@ void test(Context ctx)
         std::vector<LCI_comp_t> comps;
         // send
         for (int j = 0; j < ctx.config.send_window; ++j) {
-          LCI_comp_t comp = postSend(ctx, peer_rank, size, tag);
+          LCI_comp_t comp = postSend(ctx, peer_rank, data, size, tag);
           comps.push_back(comp);
         }
         for (auto comp : comps) {
-          waitSend(ctx, comp);
+          waitSend(ctx, data, comp);
         }
         // recv
         comps.clear();
         for (int j = 0; j < ctx.config.recv_window; ++j) {
-          LCI_comp_t comp = postRecv(ctx, peer_rank, size, tag);
+          LCI_comp_t comp = postRecv(ctx, peer_rank, data, size, tag);
           comps.push_back(comp);
         }
         for (auto comp : comps) {
-          waitRecv(ctx, comp);
+          waitRecv(ctx, data, comp);
         }
       }
     }
@@ -45,24 +46,25 @@ void test(Context ctx)
         std::vector<LCI_comp_t> comps;
         // recv
         for (int j = 0; j < ctx.config.send_window; ++j) {
-          LCI_comp_t comp = postRecv(ctx, peer_rank, size, tag);
+          LCI_comp_t comp = postRecv(ctx, peer_rank, data, size, tag);
           comps.push_back(comp);
         }
         for (auto comp : comps) {
-          waitRecv(ctx, comp);
+          waitRecv(ctx, data, comp);
         }
         // send
         comps.clear();
         for (int j = 0; j < ctx.config.recv_window; ++j) {
-          LCI_comp_t comp = postSend(ctx, peer_rank, size, tag);
+          LCI_comp_t comp = postSend(ctx, peer_rank, data, size, tag);
           comps.push_back(comp);
         }
         for (auto comp : comps) {
-          waitSend(ctx, comp);
+          waitSend(ctx, data, comp);
         }
       }
     }
   }
+  freeData(ctx, data);
 }
 
 int main(int argc, char** args)
