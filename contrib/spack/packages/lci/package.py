@@ -74,7 +74,7 @@ class Lci(CMakePackage):
     variant('papi', default=False,
             description='Use PAPI to collect hardware counters')
     variant('gprof', default=False, description='Enable GPROF')
-    variant('enable-pmix', default='auto', values=is_positive_int,
+    variant('enable-pmix', default='auto',
             description='Enable PMIx as the process management backend')
 
     generator("ninja", "make", default="ninja")
