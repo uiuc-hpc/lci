@@ -462,6 +462,8 @@ struct ctx_t {
 
 void record_thread_fn(ctx_t* ctx, uint64_t record_interval)
 {
+  LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "pcounter",
+          "recording thread init\n");
   while (ctx->keep_recording) {
     if (ctx->dump_record_on_the_fly_lw)
       ctx->do_record = true;
@@ -471,6 +473,8 @@ void record_thread_fn(ctx_t* ctx, uint64_t record_interval)
     }
     usleep(record_interval);
   }
+  LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "pcounter",
+          "recording thread exit\n");
 }
 std::atomic<int> ctx_t::next_id(0);
 LCT_time_t ctx_t::start_time = -1;
