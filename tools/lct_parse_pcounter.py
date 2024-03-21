@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import argparse
 import ast
 import glob
@@ -64,12 +66,14 @@ if __name__ == "__main__":
         with open(filename) as f:
             for line in f.readlines():
                 line = line.strip()
-                m = re.match("pcounter,trend,(\S+)", line)
+                m = re.match("pcounter,trend,(\d+),(\w+),(\d+),(\w+),(\d+),(\d+),(\d+),(\d+),(\d+)", line)
                 if m:
-                    data = m.groups()[0].split(",")
+                    # data = m.groups()[0].split(",")
+                    # if len(labels) != len(data):
+                    #     continue
                     current_entry = dict()
-                    for label, data in zip(labels, data):
-                        current_entry[label] = get_typed_value(data)
+                    for label, d in zip(labels, m.groups()):
+                        current_entry[label] = get_typed_value(d)
                     rows.append(current_entry)
                     if len(rows) % 10000 == 0:
                         print("Processing..." + str(len(rows)))
@@ -80,7 +84,8 @@ if __name__ == "__main__":
                           row["rank"] == args.rank,
                           axis=1)]
     df1 = df1_tmp.copy()
-    df1["ctx_counter_name"] = df1_tmp["ctx_name"] +":" + df1_tmp["counter_name"]
+    # df1["ctx_counter_name"] = df1_tmp["ctx_name"] + ":" + df1_tmp["counter_name"]
+    df1["ctx_counter_name"] = df.apply(lambda row: str(row["ctx_name"]) + ":" + str(row["counter_name"]), axis=1)
     line_entries_all = parse_tag(df1, "time", "count", "ctx_counter_name")
 
 
