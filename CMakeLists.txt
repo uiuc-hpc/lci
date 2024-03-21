@@ -352,9 +352,11 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
       PATTERN "*.h")
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/liblci.pc"
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
-    install(
-      FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/Find${FABRIC}.cmake"
-      DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LCI)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/Find${FABRIC}.cmake")
+      install(
+        FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/Find${FABRIC}.cmake"
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LCI)
+    endif()
     install(PROGRAMS lcrun DESTINATION ${CMAKE_INSTALL_BINDIR})
   endif()
   install(
