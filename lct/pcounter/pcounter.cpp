@@ -216,11 +216,11 @@ struct ctx_t {
         mode_str = p;
       }
       if (mode_str == "on-the-fly") {
-        dump_ofilename = "lct_pcounter.%.out";
+        dump_ofilename = std::string("lct_pcounter.") + LCT_hostname + ".%.out";
         dump_record_on_the_fly = true;
         record_interval = 1000000;
       } else if (mode_str == "on-the-fly-lw") {
-        dump_ofilename = "lct_pcounter.%.out";
+        dump_ofilename = std::string("lct_pcounter.") + LCT_hostname + ".%.out";
         dump_record_on_the_fly = true;
         dump_record_on_the_fly_lw = true;
         record_interval = 1000000;

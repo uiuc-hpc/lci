@@ -82,8 +82,8 @@ void LCT_pmi_getname(int rank, char* key, char* value)
 }
 void LCT_pmi_barrier()
 {
-  LCT_DBG_Log(LCT_log_ctx_default, LCT_LOG_TRACE, "pmi", "enter pmi barrier\n");
+  LCT_Log(LCT_log_ctx_default, LCT_LOG_DEBUG, "pmi", "enter pmi barrier\n");
   lcti_pmi_ops.barrier();
-  LCT_DBG_Log(LCT_log_ctx_default, LCT_LOG_TRACE, "pmi", "leave pmi barrier\n");
+  LCT_Log(LCT_log_ctx_default, LCT_LOG_DEBUG, "pmi", "leave pmi barrier\n");
 }
 void LCT_pmi_finalize() { lcti_pmi_ops.finalize(); }

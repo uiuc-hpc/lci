@@ -142,7 +142,6 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
   endpoint_p->server->endpoints[endpoint_p->server->endpoint_count++] =
       endpoint_p;
   endpoint_p->is_single_threaded = single_threaded;
-  LCIU_spinlock_init(&endpoint_p->lock);
   if (!LCI_OFI_CXI_TRY_NO_HACK &&
       strcmp(endpoint_p->server->info->fabric_attr->prov_name, "cxi") == 0 &&
       endpoint_p->server->info->domain_attr->mr_mode & FI_MR_ENDPOINT &&
@@ -230,5 +229,4 @@ void LCISD_endpoint_fina(LCIS_endpoint_t endpoint_pp)
   FI_SAFECALL(fi_close((struct fid*)&endpoint_p->ep->fid));
   FI_SAFECALL(fi_close((struct fid*)&endpoint_p->cq->fid));
   FI_SAFECALL(fi_close((struct fid*)&endpoint_p->av->fid));
-  LCIU_spinlock_fina(&endpoint_p->lock);
 }

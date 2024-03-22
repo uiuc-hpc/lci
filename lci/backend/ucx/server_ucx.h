@@ -38,6 +38,7 @@ typedef struct __attribute__((aligned(LCI_CACHE_LINE))) LCISI_server_t {
 } LCISI_server_t;
 
 typedef struct __attribute__((aligned(LCI_CACHE_LINE))) LCISI_endpoint_t {
+  struct LCISI_endpoint_super_t super;
   LCISI_server_t* server;
   ucp_worker_h worker;
   ucp_address_t* if_address;

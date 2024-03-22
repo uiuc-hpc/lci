@@ -24,6 +24,7 @@ extern LCT_pcounter_ctx_t LCII_pcounter_ctx;
     _macro(net_sends_posted)                 \
     _macro(net_send_posted)                  \
     _macro(net_recv_posted)                  \
+    _macro(net_recv_failed_lock)             \
     _macro(net_send_comp)                    \
     _macro(net_recv_comp)                    \
     _macro(net_send_failed_lock)             \

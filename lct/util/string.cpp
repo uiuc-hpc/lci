@@ -55,14 +55,13 @@ uint64_t LCT_parse_arg(LCT_dict_str_int_t dict[], int count, const char* key,
     }
     start_pos = end_pos + 1;
     // process the word
-    uint64_t cur_val;
-    bool succeed = LCT_str_int_search(dict, count, word.c_str(), 0,
-                                      reinterpret_cast<int*>(&cur_val));
+    int cur_val;
+    bool succeed = LCT_str_int_search(dict, count, word.c_str(), 0, &cur_val);
     if (!succeed)
       LCT_Warn(LCT_log_ctx_default, "Unknown word %s in key %s\n", word.c_str(),
                key);
     else
-      ret |= cur_val;
+      ret |= (uint64_t)cur_val;
   }
   return ret;
 }

@@ -98,20 +98,26 @@ void LCII_env_init(int num_proc, int rank)
   LCI_OFI_CXI_TRY_NO_HACK = LCIU_getenv_or("LCI_OFI_CXI_TRY_NO_HACK", false);
   {
     // default value
-    LCI_BACKEND_TRY_LOCK_MODE = LCI_BACKEND_TRY_LOCK_SEND |
-                                LCI_BACKEND_TRY_LOCK_RECV |
-                                LCI_BACKEND_TRY_LOCK_POLL;
+    LCI_BACKEND_TRY_LOCK_MODE = 0;
     // if users explicitly set the value
     char* p = getenv("LCI_BACKEND_TRY_LOCK_MODE");
     if (p) {
       LCT_dict_str_int_t dict[] = {
+          {"none", 0},
           {"send", LCI_BACKEND_TRY_LOCK_SEND},
           {"recv", LCI_BACKEND_TRY_LOCK_RECV},
           {"poll", LCI_BACKEND_TRY_LOCK_POLL},
+          {"global", LCI_BACKEND_TRY_LOCK_GLOBAL},
+          {"global_b", LCI_BACKEND_LOCK_GLOBAL},
       };
       LCI_BACKEND_TRY_LOCK_MODE =
-          LCT_parse_arg(dict, sizeof(dict) / sizeof(dict[0]), p, ";");
+          LCT_parse_arg(dict, sizeof(dict) / sizeof(dict[0]), p, ",");
     }
+    LCI_Assert(LCI_BACKEND_TRY_LOCK_MODE < LCI_BACKEND_TRY_LOCK_MODE_MAX,
+               "Unexpected LCI_BACKEND_TRY_LOCK_MODE %d",
+               LCI_BACKEND_TRY_LOCK_MODE);
+    LCI_Log(LCI_LOG_INFO, "env", "set LCI_BACKEND_TRY_LOCK_MODE to be %d\n",
+            LCI_BACKEND_TRY_LOCK_MODE);
   }
   LCI_UCX_USE_TRY_LOCK = LCIU_getenv_or("LCI_UCX_USE_TRY_LOCK", 0);
   LCI_UCX_PROGRESS_FOCUSED = LCIU_getenv_or("LCI_UCX_PROGRESS_FOCUSED", 0);

@@ -45,6 +45,7 @@ struct __attribute__((aligned(LCI_CACHE_LINE))) LCISI_ibv_qp_extra_t {
 };
 
 typedef struct LCISI_endpoint_t {
+  struct LCISI_endpoint_super_t super;
   struct LCISI_server_t* server;
   // Connections O(N)
   struct ibv_td* td;

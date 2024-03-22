@@ -26,12 +26,12 @@
 
 #define LCISI_OFI_CS_TRY_ENTER(endpoint_p, mode, ret)                        \
   if (LCI_BACKEND_TRY_LOCK_MODE & mode && !endpoint_p->is_single_threaded && \
-      !LCIU_try_acquire_spinlock(&endpoint_p->lock))                         \
+      !LCIU_try_acquire_spinlock(&endpoint_p->super.lock))                   \
     return ret;
 
 #define LCISI_OFI_CS_EXIT(endpoint_p, mode)                                \
   if (LCI_BACKEND_TRY_LOCK_MODE & mode && !endpoint_p->is_single_threaded) \
-    LCIU_release_spinlock(&endpoint_p->lock);
+    LCIU_release_spinlock(&endpoint_p->super.lock);
 
 struct LCISI_endpoint_t;
 
@@ -46,13 +46,13 @@ typedef struct __attribute__((aligned(LCI_CACHE_LINE))) LCISI_server_t {
 } LCISI_server_t;
 
 typedef struct __attribute__((aligned(LCI_CACHE_LINE))) LCISI_endpoint_t {
+  struct LCISI_endpoint_super_t super;
   LCISI_server_t* server;
   struct fid_ep* ep;
   struct fid_cq* cq;
   struct fid_av* av;
   fi_addr_t* peer_addrs;
   bool is_single_threaded;
-  LCIU_spinlock_t lock;
 } LCISI_endpoint_t;
 
 extern int g_next_rdma_key;
