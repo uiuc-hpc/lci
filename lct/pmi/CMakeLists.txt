@@ -8,23 +8,32 @@ lct_option(
 
 set(LIBRARY_NAME LCT)
 
+target_sources_relative(${LIBRARY_NAME} PRIVATE pmi_wrapper.cpp
+                        pmi_wrapper_local.cpp)
+
 find_package(PMI)
-if(PMI_FOUND)
-  target_link_libraries(${LIBRARY_NAME} PRIVATE PMI::PMI)
-else()
-  add_subdirectory(pmi1)
+option(LCT_PMI_BACKEND_ENABLE_PMI1
+       "Enable PMI as the process management backend" ON)
+if(LCT_PMI_BACKEND_ENABLE_PMI1)
+  if(PMI_FOUND)
+    target_link_libraries(${LIBRARY_NAME} PRIVATE PMI::PMI)
+  else()
+    add_subdirectory(pmi1)
+  endif()
+  target_sources_relative(${LIBRARY_NAME} PRIVATE pmi_wrapper_pmi1.cpp)
 endif()
 
 find_package(PMI2)
-if(PMI2_FOUND)
-  target_link_libraries(${LIBRARY_NAME} PRIVATE PMI2::PMI2)
-else()
-  add_subdirectory(pmi2)
+option(LCT_PMI_BACKEND_ENABLE_PMI2
+       "Enable PMI2 as the process management backend" ON)
+if(LCT_PMI_BACKEND_ENABLE_PMI2)
+  if(PMI2_FOUND)
+    target_link_libraries(${LIBRARY_NAME} PRIVATE PMI2::PMI2)
+  else()
+    add_subdirectory(pmi2)
+  endif()
+  target_sources_relative(${LIBRARY_NAME} PRIVATE pmi_wrapper_pmi2.cpp)
 endif()
-
-target_sources_relative(
-  ${LIBRARY_NAME} PRIVATE pmi_wrapper.cpp pmi_wrapper_pmi1.cpp
-  pmi_wrapper_pmi2.cpp pmi_wrapper_local.cpp)
 
 find_package(MPI COMPONENTS CXX)
 option(LCT_PMI_BACKEND_ENABLE_MPI

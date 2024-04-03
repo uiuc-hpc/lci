@@ -24,9 +24,21 @@ void LCT_pmi_initialize()
     if (strcmp(word, "local") == 0) {
       lct::pmi::local_setup_ops(&lcti_pmi_ops);
     } else if (strcmp(word, "pmi1") == 0) {
+#ifdef LCT_PMI_BACKEND_ENABLE_PMI1
       lct::pmi::pmi1_setup_ops(&lcti_pmi_ops);
+#else
+      LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "pmi",
+              "LCT is not compiled with the %s backend. Skip.\n", word);
+      continue;
+#endif
     } else if (strcmp(word, "pmi2") == 0) {
+#ifdef LCT_PMI_BACKEND_ENABLE_PMI2
       lct::pmi::pmi2_setup_ops(&lcti_pmi_ops);
+#else
+      LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "pmi",
+              "LCT is not compiled with the %s backend. Skip.\n", word);
+      continue;
+#endif
     } else if (strcmp(word, "pmix") == 0) {
 #ifdef LCT_PMI_BACKEND_ENABLE_PMIX
       lct::pmi::pmix_setup_ops(&lcti_pmi_ops);

@@ -20,9 +20,13 @@ struct ops_t {
 
 void local_setup_ops(struct ops_t* ops);
 
+#ifdef LCT_PMI_BACKEND_ENABLE_PMI1
 void pmi1_setup_ops(struct ops_t* ops);
+#endif
 
+#ifdef LCT_PMI_BACKEND_ENABLE_PMI2
 void pmi2_setup_ops(struct ops_t* ops);
+#endif
 
 #ifdef LCT_PMI_BACKEND_ENABLE_PMIX
 void pmix_setup_ops(struct ops_t* ops);
