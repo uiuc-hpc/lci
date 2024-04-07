@@ -12,6 +12,7 @@ class Lci(CMakePackage):
 
     version('master', branch='master')
     version('coll', branch='topic/coll')
+    version("1.7.7", sha256="3bdff45eb0ccff5d89863f6c7eb0000e702f4b63b37c8db601d7be257417dc5a")
     version('1.7.6', sha256='2cc6ebd2034cbdc4a1e6da3f0121092e27690851749bfa59ee70fa82309a8a2a')
     version('1.7.5', sha256='a7a2aaec8ed2de31dabfbcbf1ff4dda219cb6c49a661a9072a8364ca10fe622c')
     version('1.7.4', sha256='843f53c4d5f00653b466ca142679d2652cc93205e021d8d890513b3a44c44669')
