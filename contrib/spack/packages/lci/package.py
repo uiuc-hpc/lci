@@ -117,7 +117,7 @@ class Lci(CMakePackage):
             self.define_from_variant('LCI_USE_GPROF', 'gprof'),
         ]
 
-        if self.spec.variants['default-dreg'].value != 'auto':
+        if not self.spec.satisfies('default-dreg=auto'):
             arg = self.define_from_variant('LCI_USE_DREG_DEFAULT', 'default-dreg')
             args.append(arg)
 
