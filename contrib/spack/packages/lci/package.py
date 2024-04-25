@@ -4,9 +4,9 @@ import os
 class Lci(CMakePackage):
     """LCI: the Lightweight Communication Interface"""
 
-    homepage = 'https://github.com/uiuc-hpc/LC'
-    url      = 'https://github.com/uiuc-hpc/LC/archive/refs/tags/v1.7.6.tar.gz'
-    git      = 'https://github.com/uiuc-hpc/LC.git'
+    homepage = 'https://github.com/uiuc-hpc/lci'
+    url      = 'https://github.com/uiuc-hpc/lci/archive/refs/tags/v1.7.7.tar.gz'
+    git      = 'https://github.com/uiuc-hpc/lci.git'
 
     maintainers('omor1', 'JiakunYan')
 

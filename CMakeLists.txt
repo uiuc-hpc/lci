@@ -4,7 +4,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     LCI
     VERSION 1.7.7
     DESCRIPTION "Lightweight Communication Interface"
-    HOMEPAGE_URL "https://github.com/uiuc-hpc/LC")
+    HOMEPAGE_URL "https://github.com/uiuc-hpc/lci")
   enable_testing()
 endif()
 
