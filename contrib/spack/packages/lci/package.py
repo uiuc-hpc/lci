@@ -12,11 +12,11 @@ class Lci(CMakePackage):
 
     version('master', branch='master')
     version('coll', branch='topic/coll')
-    version("1.7.7", sha256="3bdff45eb0ccff5d89863f6c7eb0000e702f4b63b37c8db601d7be257417dc5a")
-    version('1.7.6', sha256='2cc6ebd2034cbdc4a1e6da3f0121092e27690851749bfa59ee70fa82309a8a2a')
-    version('1.7.5', sha256='a7a2aaec8ed2de31dabfbcbf1ff4dda219cb6c49a661a9072a8364ca10fe622c')
-    version('1.7.4', sha256='843f53c4d5f00653b466ca142679d2652cc93205e021d8d890513b3a44c44669')
-    version('1.7.3', sha256='329c24e75d9e61a694b7ff3cebe57272b6e39204fa10c7d4db151183f04b5fe8')
+    version("1.7.7", sha256="c310f699b7b4317a2f5c3557f85c240fe3c85d2d06618dd248434ef807d53779")
+    version("1.7.6", sha256="c88ccea2ad277ed38fc23187771b52b6fb212ed4429114717bfa8887ed21665c")
+    version("1.7.5", sha256="13e4084c9e7aaf55966ba5aa0423164b8fd21ee7526fc62017b3c9b3db99cb83")
+    version("1.7.4", sha256="00c6ef06bf90a02b55c72076dedf912580dcb1fb59fdc0e771d9e1a71283b72f")
+    version("1.7.3", sha256="3c47d51d4925e6700294ac060c88a73c26ca6e9df5b4010d0e90b0bf5e505040")
 
     def is_positive_int(val):
         try:
