@@ -55,7 +55,7 @@ class Lci(CMakePackage):
             ).with_default('auto').with_non_feature_values('auto'))
     variant('multithread-progress', default=True,
             description='Enable thread-safe LCI_progress function')
-    variant('default-dreg', default='auto', values=is_positive_int,
+    variant('default-dreg', default='auto',
             description='Default: Whether to use registration cache')
     variant('default-packet-size', default='auto', values=is_positive_int,
             description='Default: Size of packet')
