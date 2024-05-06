@@ -80,6 +80,7 @@ class Lci(CMakePackage):
                 ('auto',), ('pmix', 'pmi2', 'pmi1', 'mpi', 'local'),
             ).prohibit_empty_set(
             ).with_default('auto').with_non_feature_values('auto'))
+    variant('mpi-benchmarks', default=False, description='Enable MPI benchmark', when="@1.7.8:")
 
     generator('ninja', 'make', default='ninja')
 
@@ -87,8 +88,8 @@ class Lci(CMakePackage):
     depends_on('libfabric', when='fabric=ofi')
     depends_on('rdma-core', when='fabric=ibv')
     depends_on('ucx', when='fabric=ucx')
-    depends_on('mpi', when='default-pm=mpi')
     depends_on('mpi', when='enable-pm=mpi')
+    depends_on('mpi', when='+mpi-benchmarks')
     depends_on('papi', when='+papi')
     depends_on('doxygen', when='+docs')
     depends_on('cray-mpich', when='platform=cray')
@@ -103,6 +104,7 @@ class Lci(CMakePackage):
             self.define_from_variant('LCI_WITH_EXAMPLES', 'examples'),
             self.define_from_variant('LCI_WITH_TESTS', 'tests'),
             self.define_from_variant('LCI_WITH_BENCHMARKS', 'benchmarks'),
+            self.define_from_variant('LCI_WITH_MPI_BENCHMARKS', 'mpi-benchmarks'),
             self.define_from_variant('LCI_WITH_DOC', 'docs'),
             self.define_from_variant('LCI_USE_AVX', 'vector'),
             self.define_from_variant('LCI_CONFIG_USE_ALIGNED_ALLOC', 'aligned'),

@@ -82,6 +82,7 @@ jobs:
                 -GNinja \
                 -DCMAKE_BUILD_TYPE=Debug \
                 -DLCI_USE_PERFORMANCE_COUNTER=ON \
+                -DLCT_PMI_BACKEND_ENABLE_MPI=ON \
                 -DLCI_DEBUG=ON
       - persist_to_workspace:
           root: /lci

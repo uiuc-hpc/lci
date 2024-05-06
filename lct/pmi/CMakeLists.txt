@@ -35,10 +35,10 @@ if(LCT_PMI_BACKEND_ENABLE_PMI2)
   target_sources_relative(${LIBRARY_NAME} PRIVATE pmi_wrapper_pmi2.cpp)
 endif()
 
-find_package(MPI COMPONENTS CXX)
 option(LCT_PMI_BACKEND_ENABLE_MPI
-       "Enable MPI as the process management backend" ${MPI_FOUND})
+       "Enable MPI as the process management backend" OFF)
 if(LCT_PMI_BACKEND_ENABLE_MPI)
+  find_package(MPI COMPONENTS CXX)
   if(MPI_FOUND)
     target_sources_relative(${LIBRARY_NAME} PRIVATE pmi_wrapper_mpi.cpp)
     target_link_libraries(${LIBRARY_NAME} PRIVATE MPI::MPI_CXX)

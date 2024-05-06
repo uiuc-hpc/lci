@@ -33,6 +33,7 @@ jobs:
                 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
                 -DLCI_DEBUG=ON \
                 -DLCI_USE_PERFORMANCE_COUNTER=ON \
+                -DLCT_PMI_BACKEND_ENABLE_MPI=ON \
                 -DSRUN_EXTRA_ARG="--oversubscribe" \
                 .
 
