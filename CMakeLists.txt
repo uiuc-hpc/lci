@@ -84,7 +84,7 @@ if(NOT LCI_WITH_LCT_ONLY)
 
   find_package(IBV)
   find_package(OFI)
-  find_package(UCX)
+  find_package(UCX CONFIG)
   string(TOUPPER ${LCI_SERVER} LCI_SERVER_UPPER)
   if(${LCI_SERVER_UPPER}_FOUND)
     # If the user-specified server are found, just use it.
@@ -174,13 +174,6 @@ if(NOT LCI_WITH_LCT_ONLY)
          "Try to lock the IBV queue pair before access it." ON)
   option(LCI_ENABLE_PRG_NET_ENDPOINT_DEFAULT
          "Enable the progress specific network endpoint by default." ON)
-
-  option(LCI_USE_GPROF "Enable GPROF" OFF)
-  if(LCI_USE_GPROF)
-    add_compile_options(-pg -fno-inline)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
-  endif()
 
   include(CheckCCompilerFlag)
   check_c_compiler_flag("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)

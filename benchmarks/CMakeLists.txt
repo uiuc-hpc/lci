@@ -41,12 +41,3 @@ function(add_lcit_benchmarks)
 endfunction()
 
 add_lcit_benchmarks(lcitb_pt2pt.cpp)
-
-option(LCI_WITH_MPI_BENCHMARKS "Build MPI Benchmarks by default" ON)
-if(LCI_WITH_MPI_BENCHMARKS)
-  find_package(MPI)
-  if(MPI_FOUND)
-    add_lcit_benchmark(mpi_pt2pt.cpp)
-    target_link_libraries(mpi_pt2pt PRIVATE MPI::MPI_CXX)
-  endif()
-endif()
