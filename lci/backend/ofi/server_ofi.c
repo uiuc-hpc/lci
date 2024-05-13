@@ -153,6 +153,8 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
     endpoint_p->server->cxi_mr_bind_hack = false;
   }
   // Create end-point;
+  endpoint_p->server->info->tx_attr->size = LCI_SERVER_MAX_SENDS;
+  endpoint_p->server->info->rx_attr->size = LCI_SERVER_MAX_RECVS;
   FI_SAFECALL(fi_endpoint(endpoint_p->server->domain, endpoint_p->server->info,
                           &endpoint_p->ep, NULL));
 
