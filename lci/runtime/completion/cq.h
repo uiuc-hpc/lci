@@ -11,6 +11,9 @@ static inline void LCII_queue_push(LCI_comp_t cq, LCII_context_t* ctx)
 #ifdef LCI_USE_INLINE_CQ
   LCM_aqueue_push(cq, ctx);
 #else
+#ifdef LCI_USE_PERFORMANCE_COUNTER
+  ctx->time = LCT_now();
+#endif
   LCT_queue_push(cq, ctx);
 #endif
   LCII_PCOUNTER_END(cq_push_timer);

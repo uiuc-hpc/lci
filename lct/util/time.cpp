@@ -10,7 +10,7 @@ LCT_time_t LCT_now()
     fprintf(stderr, "Cannot get time!\n");
     abort();
   }
-  return t1.tv_sec * long(1e9) + t1.tv_nsec;
+  return (LCT_time_t)t1.tv_sec * (LCT_time_t)1e9 + (LCT_time_t)t1.tv_nsec;
 }
 
 double LCT_time_to_ns(LCT_time_t time) { return (double)time; }

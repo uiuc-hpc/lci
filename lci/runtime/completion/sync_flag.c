@@ -45,6 +45,9 @@ LCI_error_t LCII_sync_signal(LCI_comp_t completion, LCII_context_t* ctx)
 {
   LCII_sync_t* sync = completion;
   LCI_DBG_Assert(sync != NULL, "synchronizer is a NULL pointer!\n");
+#ifdef LCI_USE_PERFORMANCE_COUNTER
+  ctx->time = LCT_now();
+#endif
   uint_fast64_t tail = 0;
   uint_fast64_t pos = 0;
   if (sync->threshold > 1) {
@@ -98,14 +101,13 @@ LCI_error_t LCI_sync_test(LCI_comp_t completion, LCI_request_t request[])
         &sync->tail, &expected, top2, LCIU_memory_order_release,
         LCIU_memory_order_relaxed);
     if (succeed) {
-      if (request)
-        for (int i = 0; i < sync->threshold; ++i) {
+      for (int i = 0; i < sync->threshold; ++i) {
+        LCII_PCOUNTER_ADD(sync_stay_timer, LCT_now() - sync->ctx[i]->time);
+        if (request)
           request[i] = LCII_ctx2req(sync->ctx[i]);
-        }
-      else
-        for (int i = 0; i < sync->threshold; ++i) {
+        else
           LCIU_free(sync->ctx[i]);
-        }
+      }
       LCII_PCOUNTER_ADD(comp_consume, sync->threshold);
       return LCI_OK;
     } else {

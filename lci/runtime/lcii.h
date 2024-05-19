@@ -153,6 +153,9 @@ typedef struct __attribute__((aligned(LCI_CACHE_LINE))) {
   LCI_tag_t tag;            // 4 bytes
   // used by LCI internally
   LCI_comp_t completion;  // 8 bytes
+#ifdef LCI_USE_PERFORMANCE_COUNTER
+  LCT_time_t time;  // 8 bytes
+#endif
 } LCII_context_t;
 /**
  * comp_type: user-defined comp_type

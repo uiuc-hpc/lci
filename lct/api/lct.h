@@ -28,7 +28,7 @@ LCT_API int LCT_get_rank();
 extern char LCT_hostname[HOST_NAME_MAX + 1];
 
 // time
-typedef uint64_t LCT_time_t;
+typedef int64_t LCT_time_t;
 LCT_API LCT_time_t LCT_now();
 LCT_API double LCT_time_to_ns(LCT_time_t time);
 LCT_API double LCT_time_to_us(LCT_time_t time);

@@ -133,6 +133,7 @@ static inline int LCISD_poll_cq(LCIS_endpoint_t endpoint_pp,
   LCISI_OFI_CS_EXIT(endpoint_p, LCI_BACKEND_TRY_LOCK_POLL)
   ret = ne;
   if (ne > 0) {
+    LCII_PCOUNTER_ADD(net_poll_cq_num, ne);
     // Got an entry here
     for (int i = 0; i < ne; i++) {
       if (fi_entry[i].flags & FI_RECV) {

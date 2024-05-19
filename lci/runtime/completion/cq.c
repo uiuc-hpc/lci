@@ -68,6 +68,7 @@ LCI_error_t LCI_queue_pop(LCI_comp_t cq, LCI_request_t* request)
   LCII_context_t* ctx = LCT_queue_pop(cq);
 #endif
   if (ctx == NULL) return LCI_ERR_RETRY;
+  LCII_PCOUNTER_ADD(cq_stay_timer, LCT_now() - ctx->time);
   *request = LCII_ctx2req(ctx);
   LCII_PCOUNTER_ADD(comp_consume, 1);
   return LCI_OK;
@@ -83,6 +84,7 @@ LCI_error_t LCI_queue_wait(LCI_comp_t cq, LCI_request_t* request)
     ctx = LCT_queue_pop(cq);
 #endif
   }
+  LCII_PCOUNTER_ADD(cq_stay_timer, LCT_now() - ctx->time);
   *request = LCII_ctx2req(ctx);
   LCII_PCOUNTER_ADD(comp_consume, 1);
   return LCI_OK;
@@ -101,6 +103,7 @@ LCI_error_t LCI_queue_pop_multiple(LCI_comp_t cq, size_t request_count,
     ctx = LCT_queue_pop(cq);
 #endif
     if (ctx != NULL) {
+      LCII_PCOUNTER_ADD(cq_stay_timer, LCT_now() - ctx->time);
       requests[count] = LCII_ctx2req(ctx);
       ++count;
     } else {
@@ -124,6 +127,7 @@ LCI_error_t LCI_queue_wait_multiple(LCI_comp_t cq, size_t request_count,
     ctx = LCT_queue_pop(cq);
 #endif
     if (ctx != NULL) {
+      LCII_PCOUNTER_ADD(cq_stay_timer, LCT_now() - ctx->time);
       requests[count] = LCII_ctx2req(ctx);
       ++count;
     } else {

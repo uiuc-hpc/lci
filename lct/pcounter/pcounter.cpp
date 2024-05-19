@@ -59,20 +59,25 @@ struct timer_t {
   }
   void end(LCT_time_t time)
   {
-    entry.add(static_cast<int64_t>(time - start_time));
+    entry.add(time - start_time);
     start_time = 0;
     --start_count;
   }
-  void add(LCT_time_t time) { entry.add(static_cast<int64_t>(time)); }
+  void add(LCT_time_t time) { entry.add(time); }
   [[nodiscard]] entry_t get() const
   {
     entry_t ret = entry;
     if (consecutive_start) {
       // min and max is not valid
-      ret.min = -1;
-      ret.max = -1;
+      ret.min = 1;
+      ret.max = 0;
     }
-    ret.total = static_cast<int64_t>(LCT_time_to_ns(ret.total));
+    //    else {
+    //      ret.min = static_cast<int64_t>(LCT_time_to_ns(ret.min));
+    //      ret.max = static_cast<int64_t>(LCT_time_to_ns(ret.max));
+    //    }
+    //    ret.total = static_cast<int64_t>(LCT_time_to_ns(ret.total));
+    // Here we exploit the fact that LCT_time_to_ns is an identity function.
     return ret;
   }
   bool consecutive_start;

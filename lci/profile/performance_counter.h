@@ -30,6 +30,7 @@ extern LCT_pcounter_ctx_t LCII_pcounter_ctx;
     _macro(net_send_failed_lock)             \
     _macro(net_send_failed_nomem)            \
     _macro(net_recv_failed_nopacket)         \
+    _macro(net_poll_cq_num)                  \
     _macro(progress_call)                    \
     _macro(packet_get)                       \
     _macro(packet_put)                       \
@@ -42,6 +43,8 @@ extern LCT_pcounter_ctx_t LCII_pcounter_ctx;
     _macro(unexpected_msg)
 
 #define LCII_PCOUNTER_TIMER_FOR_EACH(_macro) \
+    _macro(sync_stay_timer)                  \
+    _macro(cq_stay_timer)                    \
     _macro(useful_progress_timer)            \
     _macro(refill_rq_timer)                  \
     _macro(update_posted_recv)               \
@@ -50,11 +53,11 @@ extern LCT_pcounter_ctx_t LCII_pcounter_ctx;
     _macro(cq_push_timer)                    \
     _macro(cq_pop_timer)                     \
     _macro(serve_rts_timer)                  \
-    _macro(rts_mem_timer)                \
+    _macro(rts_mem_timer)                    \
     _macro(rts_send_timer)                   \
     _macro(serve_rtr_timer)                  \
     _macro(rtr_mem_reg_timer)                \
-    _macro(rtr_put_timer)                 \
+    _macro(rtr_put_timer)                    \
     _macro(serve_rdma_timer)                 \
     _macro(packet_stealing_timer)            \
     _macro(mem_reg_timer)                    \
