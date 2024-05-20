@@ -113,7 +113,7 @@ LCI_error_t LCII_fill_rq(LCII_endpoint_t* endpoint, bool block)
 
     // First, get a packet.
     LCII_PCOUNTER_START(get_recv_packet_timer);
-    LCII_packet_t* packet = LCII_alloc_packet_nb(g_pkpool);
+    LCII_packet_t* packet = LCII_alloc_packet_nb(endpoint->device->heap->pool);
     LCII_PCOUNTER_END(get_recv_packet_timer);
     if (packet == NULL) {
       LCII_PCOUNTER_ADD(net_recv_failed_nopacket, 1);

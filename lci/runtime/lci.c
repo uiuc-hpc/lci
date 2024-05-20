@@ -8,11 +8,47 @@ int LCIU_nthreads = 0;
 __thread int LCIU_thread_id = -1;
 __thread unsigned int LCIU_rand_seed = 0;
 LCIS_server_t g_server;
-void *g_heap;
-size_t g_heap_size;
-void *g_base_packet;
-LCII_pool_t* g_pkpool;
-int g_total_recv_posted;
+LCII_packet_heap_t g_heap;
+
+void initialize_packet_heap(LCII_packet_heap_t* heap)
+{
+  heap->length = LCI_CACHE_LINE + (size_t)LCI_SERVER_NUM_PKTS * LCI_PACKET_SIZE;
+  heap->address = LCIU_memalign(LCI_PAGESIZE, heap->length);
+  LCI_Assert(LCI_CACHE_LINE >= sizeof(struct LCII_packet_context),
+             "packet context is too large!\n");
+  heap->base_packet_p =
+      heap->address + LCI_CACHE_LINE - sizeof(struct LCII_packet_context);
+  LCI_Assert(LCI_PACKET_SIZE % LCI_CACHE_LINE == 0,
+             "The size of packets should be a multiple of cache line size\n");
+  LCII_pool_create(&heap->pool);
+  for (size_t i = 0; i < LCI_SERVER_NUM_PKTS; i++) {
+    LCII_packet_t* packet =
+        (LCII_packet_t*)(heap->base_packet_p + i * LCI_PACKET_SIZE);
+    LCI_Assert(((uint64_t) & (packet->data)) % LCI_CACHE_LINE == 0,
+               "packet.data is not well-aligned\n");
+    LCI_Assert(LCII_is_packet(heap, packet->data.address),
+               "Not a packet. The computation is wrong!\n");
+    packet->context.pkpool = heap->pool;
+    packet->context.poolid = 0;
+#ifdef LCI_DEBUG
+    packet->context.isInPool = true;
+#endif
+    LCII_pool_put(heap->pool, packet);
+  }
+  LCI_Assert(LCI_SERVER_NUM_PKTS > 2 * LCI_SERVER_MAX_RECVS,
+             "The packet number is too small!\n");
+  heap->total_recv_posted = 0;
+}
+
+void finalize_packet_heap(LCII_packet_heap_t* heap)
+{
+  int total_num = LCII_pool_count(heap->pool) + heap->total_recv_posted;
+  if (total_num != LCI_SERVER_NUM_PKTS)
+    LCI_Warn("Potentially losing packets %d != %d\n", total_num,
+             LCI_SERVER_NUM_PKTS);
+  LCII_pool_destroy(heap->pool);
+  LCIU_free(heap->address);
+}
 
 LCI_error_t LCI_initialize()
 {
@@ -43,34 +79,7 @@ LCI_error_t LCI_initialize()
   }
   // initialize global data structure
   LCIS_server_init(&g_server);
-  g_heap_size =
-      LCI_CACHE_LINE + (size_t)LCI_SERVER_NUM_PKTS * LCI_PACKET_SIZE;
-  g_heap = LCIU_memalign(LCI_PAGESIZE, g_heap_size);
-  LCI_Assert(LCI_CACHE_LINE >= sizeof(struct LCII_packet_context),
-             "packet context is too large!\n");
-  g_base_packet =
-      g_heap + LCI_CACHE_LINE - sizeof(struct LCII_packet_context);
-  LCI_Assert(LCI_PACKET_SIZE % LCI_CACHE_LINE == 0,
-             "The size of packets should be a multiple of cache line size\n");
-
-  LCII_pool_create(&g_pkpool);
-  for (size_t i = 0; i < LCI_SERVER_NUM_PKTS; i++) {
-    LCII_packet_t* packet =
-        (LCII_packet_t*)(g_base_packet + i * LCI_PACKET_SIZE);
-    LCI_Assert(((uint64_t) & (packet->data)) % LCI_CACHE_LINE == 0,
-               "packet.data is not well-aligned\n");
-    LCI_Assert(LCII_is_packet(packet->data.address),
-               "Not a packet. The computation is wrong!\n");
-    packet->context.pkpool = g_pkpool;
-    packet->context.poolid = 0;
-#ifdef LCI_DEBUG
-    packet->context.isInPool = true;
-#endif
-    LCII_pool_put(g_pkpool, packet);
-  }
-  LCI_Assert(LCI_SERVER_NUM_PKTS > 2 * LCI_SERVER_MAX_RECVS,
-             "The packet number is too small!\n");
-  g_total_recv_posted = 0;
+  initialize_packet_heap(&g_heap);
   // UR objects
   LCI_device_init(&LCI_UR_DEVICE);
   LCI_queue_create(LCI_UR_DEVICE, &LCI_UR_CQ);
@@ -101,13 +110,8 @@ LCI_error_t LCI_finalize()
   LCI_endpoint_free(&LCI_UR_ENDPOINT);
   LCI_queue_free(&LCI_UR_CQ);
   LCI_device_free(&LCI_UR_DEVICE);
-  int total_num = LCII_pool_count(g_pkpool) + g_total_recv_posted;
-  if (total_num != LCI_SERVER_NUM_PKTS)
-    LCI_Warn("Potentially losing packets %d != %d\n", total_num,
-             LCI_SERVER_NUM_PKTS);
-  LCII_pool_destroy(g_pkpool);
-  LCIU_free(g_heap);
   LCIS_server_fina(g_server);
+  finalize_packet_heap(&g_heap);
   if (LCI_USE_DREG) {
 #ifdef LCI_COMPILE_DREG
     LCII_ucs_cleanup();

@@ -60,7 +60,9 @@ LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
   LCII_bq_init(&device->bq);
   LCIU_spinlock_init(&device->bq_spinlock);
 
-  LCI_memory_register(device, g_heap, g_heap_size, &device->heap_segment);
+  device->heap = &g_heap;
+  LCI_memory_register(device, device->heap->address, device->heap->length,
+                      &device->heap_segment);
 
   if (LCI_ENABLE_PRG_NET_ENDPOINT)
     LCII_fill_rq(device->endpoint_progress, true);
@@ -80,10 +82,10 @@ LCI_error_t LCI_device_free(LCI_device_t* device_ptr)
   LCI_device_t device = *device_ptr;
   LCI_Log(LCI_LOG_INFO, "device", "free device %p\n", device);
   LCI_barrier();
-  g_total_recv_posted +=
+  device->heap->total_recv_posted +=
       LCII_endpoint_get_recv_posted(device->endpoint_worker);
   if (LCI_ENABLE_PRG_NET_ENDPOINT) {
-    g_total_recv_posted +=
+    device->heap->total_recv_posted +=
         LCII_endpoint_get_recv_posted(device->endpoint_progress);
   }
   LCII_matchtable_free(&device->mt);

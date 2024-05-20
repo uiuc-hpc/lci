@@ -49,7 +49,8 @@ LCI_error_t LCI_putmac(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                  "(set by LCI_plist_set_default_comp, "
                  "the default value is LCI_UR_CQ)\n");
   LCI_error_t ret = LCI_OK;
-  bool is_user_provided_packet = LCII_is_packet(buffer.address);
+  bool is_user_provided_packet =
+      LCII_is_packet(ep->device->heap, buffer.address);
   if (local_completion == NULL && buffer.length <= LCI_SHORT_SIZE) {
     /* if data is this short, we will be able to inline it
      * no reason to get a packet, allocate a ctx, etc */

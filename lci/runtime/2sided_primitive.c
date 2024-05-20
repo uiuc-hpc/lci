@@ -26,7 +26,8 @@ LCI_error_t LCI_sendmc(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                  "buffer is too large %lu (maximum: %d)\n", buffer.length,
                  LCI_MEDIUM_SIZE);
   LCI_error_t ret = LCI_OK;
-  bool is_user_provided_packet = LCII_is_packet(buffer.address);
+  bool is_user_provided_packet =
+      LCII_is_packet(ep->device->heap, buffer.address);
   if (completion == NULL && buffer.length <= LCI_SHORT_SIZE) {
     /* if data is this short, we will be able to inline it
      * no reason to get a packet, allocate a ctx, etc */

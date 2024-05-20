@@ -33,7 +33,7 @@ LCI_error_t LCI_memory_deregister(LCI_segment_t* segment)
 
 LCI_error_t LCI_mbuffer_alloc(LCI_device_t device, LCI_mbuffer_t* mbuffer)
 {
-  LCII_packet_t* packet = LCII_alloc_packet_nb(g_pkpool);
+  LCII_packet_t* packet = LCII_alloc_packet_nb(device->heap->pool);
   if (packet == NULL)
     // no packet is available
     return LCI_ERR_RETRY;
@@ -41,7 +41,7 @@ LCI_error_t LCI_mbuffer_alloc(LCI_device_t device, LCI_mbuffer_t* mbuffer)
 
   mbuffer->address = packet->data.address;
   mbuffer->length = LCI_MEDIUM_SIZE;
-  LCI_DBG_Assert(LCII_is_packet(mbuffer->address), "");
+  LCI_DBG_Assert(LCII_is_packet(device->heap, mbuffer->address), "");
   return LCI_OK;
 }
 
