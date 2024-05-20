@@ -58,9 +58,10 @@ struct LCII_endpoint_t {
 };
 typedef struct LCII_endpoint_t LCII_endpoint_t;
 
+extern LCIS_server_t g_server;
+
 struct __attribute__((aligned(LCI_CACHE_LINE))) LCI_device_s {
   // the following will not be changed after initialization
-  LCIS_server_t server;                // 8B
   LCII_endpoint_t* endpoint_worker;    // 8B
   LCII_endpoint_t* endpoint_progress;  // 8B
   LCII_pool_t* pkpool;                 // 8B

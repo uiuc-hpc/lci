@@ -15,7 +15,7 @@ void LCII_device_endpoint_init(LCI_device_t device, bool single_threaded,
   endpoint_p->recv_posted = 0;
 #endif
   endpoint_p->device = device;
-  LCIS_endpoint_init(device->server, &endpoint_p->endpoint, single_threaded);
+  LCIS_endpoint_init(g_server, &endpoint_p->endpoint, single_threaded);
 }
 
 void LCII_endpoint_fina(LCII_endpoint_t** endpoint_pp)
@@ -44,7 +44,6 @@ LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
 #ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
   single_threaded_prg = false;
 #endif
-  LCIS_server_init(device, &device->server);
   LCII_device_endpoint_init(device, false, &device->endpoint_worker);
   if (LCI_ENABLE_PRG_NET_ENDPOINT) {
     LCII_device_endpoint_init(device, single_threaded_prg,
@@ -128,7 +127,6 @@ LCI_error_t LCI_device_free(LCI_device_t* device_ptr)
     LCII_endpoint_fina(&device->endpoint_progress);
   }
   LCII_endpoint_fina(&device->endpoint_worker);
-  LCIS_server_fina(device->server);
   LCIU_free(device);
   *device_ptr = NULL;
   return LCI_OK;

@@ -36,7 +36,6 @@
 struct LCISI_endpoint_t;
 
 typedef struct __attribute__((aligned(LCI_CACHE_LINE))) LCISI_server_t {
-  LCI_device_t device;
   struct fi_info* info;
   struct fid_fabric* fabric;
   struct fid_domain* domain;
@@ -57,10 +56,11 @@ typedef struct __attribute__((aligned(LCI_CACHE_LINE))) LCISI_endpoint_t {
 
 extern int g_next_rdma_key;
 
-static inline void* LCISI_real_server_reg(LCIS_server_t s, void* buf,
-                                          size_t size)
+static inline void* LCISI_real_server_reg(LCIS_endpoint_t endpoint_pp,
+                                          void* buf, size_t size)
 {
-  LCISI_server_t* server = (LCISI_server_t*)s;
+  LCISI_endpoint_t* endpoint_p = (LCISI_endpoint_t*)endpoint_pp;
+  LCISI_server_t* server = endpoint_p->server;
   int rdma_key;
   if (server->info->domain_attr->mr_mode & FI_MR_PROV_KEY) {
     rdma_key = 0;
@@ -76,8 +76,7 @@ static inline void* LCISI_real_server_reg(LCIS_server_t s, void* buf,
     if (server->cxi_mr_bind_hack) {
       // A temporary fix for the cxi provider, currently cxi cannot bind a
       // memory region to more than one endpoint.
-      FI_SAFECALL(fi_mr_bind(
-          mr, &server->endpoints[server->endpoint_count - 1]->ep->fid, 0));
+      FI_SAFECALL(fi_mr_bind(mr, &endpoint_p->ep->fid, 0));
     } else {
       for (int i = 0; i < server->endpoint_count; ++i) {
         FI_SAFECALL(fi_mr_bind(mr, &server->endpoints[i]->ep->fid, 0));
@@ -94,10 +93,11 @@ static inline void LCISI_real_server_dereg(void* mr_opaque)
   FI_SAFECALL(fi_close((struct fid*)&mr->fid));
 }
 
-static inline LCIS_mr_t LCISD_rma_reg(LCIS_server_t s, void* buf, size_t size)
+static inline LCIS_mr_t LCISD_rma_reg(LCIS_endpoint_t endpoint_pp, void* buf,
+                                      size_t size)
 {
   LCIS_mr_t mr;
-  mr.mr_p = LCISI_real_server_reg(s, buf, size);
+  mr.mr_p = LCISI_real_server_reg(endpoint_pp, buf, size);
   mr.address = buf;
   mr.length = size;
   return mr;

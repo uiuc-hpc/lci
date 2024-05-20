@@ -9,7 +9,7 @@ LCI_error_t LCI_memory_register(LCI_device_t device, void* address,
   if (LCI_USE_DREG)
     LCII_rcache_reg(device, address, length, mr);
   else {
-    mr->mr = LCIS_rma_reg(device->server, address, length);
+    mr->mr = LCIS_rma_reg(device->endpoint_progress->endpoint, address, length);
   }
   *segment = mr;
   LCII_PCOUNTER_END(mem_reg_timer);

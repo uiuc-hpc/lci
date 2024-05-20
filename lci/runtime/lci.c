@@ -7,6 +7,7 @@ static int opened = 0;
 int LCIU_nthreads = 0;
 __thread int LCIU_thread_id = -1;
 __thread unsigned int LCIU_rand_seed = 0;
+LCIS_server_t g_server;
 
 LCI_error_t LCI_initialize()
 {
@@ -36,6 +37,7 @@ LCI_error_t LCI_initialize()
 #endif
   }
 
+  LCIS_server_init(&g_server);
   LCI_device_init(&LCI_UR_DEVICE);
 
   LCI_queue_create(LCI_UR_DEVICE, &LCI_UR_CQ);
@@ -66,6 +68,7 @@ LCI_error_t LCI_finalize()
   LCI_endpoint_free(&LCI_UR_ENDPOINT);
   LCI_queue_free(&LCI_UR_CQ);
   LCI_device_free(&LCI_UR_DEVICE);
+  LCIS_server_fina(g_server);
   if (LCI_USE_DREG) {
 #ifdef LCI_COMPILE_DREG
     LCII_ucs_cleanup();

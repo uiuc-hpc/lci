@@ -15,11 +15,10 @@ static struct fi_info* search_for_prov(struct fi_info* info, char* prov_name)
   return NULL;
 }
 
-void LCISD_server_init(LCI_device_t device, LCIS_server_t* s)
+void LCISD_server_init(LCIS_server_t* s)
 {
   LCISI_server_t* server = LCIU_malloc(sizeof(LCISI_server_t));
   *s = (LCIS_server_t)server;
-  server->device = device;
 
   // Create hint.
   char* p = getenv("LCI_OFI_PROVIDER_HINT");
