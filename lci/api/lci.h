@@ -692,6 +692,8 @@ LCI_error_t LCI_barrier();
  */
 LCI_API
 LCI_error_t LCI_device_init(LCI_device_t* device_ptr);
+LCI_API
+LCI_error_t LCI_device_initx(LCI_device_t* device_ptr);
 /**
  * @ingroup LCI_DEVICE
  * @brief Initialize a device.

@@ -59,20 +59,21 @@ struct LCII_endpoint_t {
 typedef struct LCII_endpoint_t LCII_endpoint_t;
 
 extern LCIS_server_t g_server;
+extern void *g_heap;
+extern size_t g_heap_size;
+extern void *g_base_packet;
+extern LCII_pool_t* g_pkpool;
+extern int g_total_recv_posted;
 
 struct __attribute__((aligned(LCI_CACHE_LINE))) LCI_device_s {
   // the following will not be changed after initialization
   LCII_endpoint_t* endpoint_worker;    // 8B
   LCII_endpoint_t* endpoint_progress;  // 8B
-  LCII_pool_t* pkpool;                 // 8B
   LCI_matchtable_t mt;                 // 8B
   LCII_rcache_t rcache;                // 8B
-  LCI_lbuffer_t heap;                  // 24B
-  uintptr_t base_packet;               // 8B
-  LCIU_CACHE_PADDING(sizeof(LCIS_server_t) + 2 * sizeof(LCIS_endpoint_t) +
-                     sizeof(LCII_pool_t*) + sizeof(LCI_matchtable_t) +
-                     sizeof(LCII_rcache_t*) + sizeof(LCI_lbuffer_t) +
-                     sizeof(uintptr_t));
+  LCI_segment_t heap_segment;          // 8B
+  LCIU_CACHE_PADDING(2 * sizeof(LCIS_endpoint_t) + sizeof(LCI_matchtable_t) +
+                     sizeof(LCII_rcache_t) + sizeof(LCI_segment_t));
   // the following is shared by both progress threads and worker threads
   LCM_archive_t ctx_archive;  // used for long message protocol
   LCIU_CACHE_PADDING(sizeof(LCM_archive_t));
