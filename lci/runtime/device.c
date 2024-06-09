@@ -88,6 +88,7 @@ LCI_error_t LCI_device_free(LCI_device_t* device_ptr)
     device->heap->total_recv_posted +=
         LCII_endpoint_get_recv_posted(device->endpoint_progress);
   }
+  LCI_memory_deregister(&device->heap_segment);
   LCII_matchtable_free(&device->mt);
   LCM_archive_fini(&(device->ctx_archive));
   LCII_bq_fini(&device->bq);
