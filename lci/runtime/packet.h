@@ -70,6 +70,7 @@ static inline LCII_packet_t* LCII_alloc_packet_nb(struct LCII_pool_t* pool)
   LCII_packet_t* packet = LCII_pool_get_nb(pool);
   if (packet != NULL) {
     LCII_PCOUNTER_ADD(packet_get, 1);
+    packet->context.poolid = LCII_POOLID_LOCAL;
 #ifdef LCI_DEBUG
     LCI_DBG_Assert(packet->context.isInPool,
                    "This packet has already been allocated!\n");
