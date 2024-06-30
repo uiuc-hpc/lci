@@ -38,12 +38,12 @@ struct LCISI_endpoint_t;
 typedef struct __attribute__((aligned(LCI_CACHE_LINE))) LCISI_server_t {
   struct fi_info* info;
   struct fid_fabric* fabric;
-  struct fid_domain* domain;
 } LCISI_server_t;
 
 typedef struct __attribute__((aligned(LCI_CACHE_LINE))) LCISI_endpoint_t {
   struct LCISI_endpoint_super_t super;
   LCISI_server_t* server;
+  struct fid_domain* domain;
   struct fid_ep* ep;
   struct fid_cq* cq;
   struct fid_av* av;
@@ -65,7 +65,7 @@ static inline void* LCISI_real_server_reg(LCIS_endpoint_t endpoint_pp,
     rdma_key = __sync_fetch_and_add(&g_next_rdma_key, 1);
   }
   struct fid_mr* mr;
-  FI_SAFECALL(fi_mr_reg(server->domain, buf, size,
+  FI_SAFECALL(fi_mr_reg(endpoint_p->domain, buf, size,
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, rdma_key, 0,
                         &mr, 0));
   if (server->info->domain_attr->mr_mode & FI_MR_ENDPOINT) {
