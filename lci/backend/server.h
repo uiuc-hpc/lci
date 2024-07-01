@@ -165,6 +165,7 @@ static inline void LCIS_endpoint_fina(LCIS_endpoint_t endpoint_pp)
 static inline int LCIS_poll_cq(LCIS_endpoint_t endpoint_pp,
                                LCIS_cq_entry_t* entry)
 {
+  LCII_PCOUNTER_ADD(net_poll_cq_attempts, 1);
   LCISI_CS_ENTER(endpoint_pp, 0);
   int ret = LCISD_poll_cq(endpoint_pp, entry);
   LCISI_CS_EXIT(endpoint_pp);

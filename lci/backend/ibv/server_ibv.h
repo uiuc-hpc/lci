@@ -140,7 +140,8 @@ static inline int LCISD_poll_cq(LCIS_endpoint_t endpoint_pp,
 #ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
   LCIU_release_spinlock(&endpoint_p->cq_lock);
 #endif
-  if (ne > 0) LCII_PCOUNTER_ADD(net_poll_cq_num, ne);
+  LCII_PCOUNTER_ADD(net_poll_cq_calls, 1);
+  if (ne > 0) LCII_PCOUNTER_ADD(net_poll_cq_entry_count, ne);
   for (int i = 0; i < ne; i++) {
     LCI_DBG_Assert(
         wc[i].status == IBV_WC_SUCCESS, "Failed status %s (%d) for wr_id %d\n",

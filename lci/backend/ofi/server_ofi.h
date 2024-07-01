@@ -120,8 +120,9 @@ static inline int LCISD_poll_cq(LCIS_endpoint_t endpoint_pp,
   ne = fi_cq_read(endpoint_p->cq, &fi_entry, LCI_CQ_MAX_POLL);
   LCISI_OFI_CS_EXIT(endpoint_p, LCI_BACKEND_TRY_LOCK_POLL)
   ret = ne;
+  LCII_PCOUNTER_ADD(net_poll_cq_calls, 1);
   if (ne > 0) {
-    LCII_PCOUNTER_ADD(net_poll_cq_num, ne);
+    LCII_PCOUNTER_ADD(net_poll_cq_entry_count, ne);
     // Got an entry here
     for (int i = 0; i < ne; i++) {
       if (fi_entry[i].flags & FI_RECV) {
