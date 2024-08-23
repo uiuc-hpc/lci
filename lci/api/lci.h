@@ -578,6 +578,12 @@ extern bool LCI_IBV_ENABLE_TD;
 
 /**
  * @ingroup LCI_COMM
+ * @brief Which gid index to use for the ibv backend.
+ */
+extern int LCI_IBV_GID_IDX;
+
+/**
+ * @ingroup LCI_COMM
  * @brief Whether to enable the progress specific network endpoint.
  */
 extern bool LCI_ENABLE_PRG_NET_ENDPOINT;

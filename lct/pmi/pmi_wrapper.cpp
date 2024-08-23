@@ -86,11 +86,15 @@ int LCT_pmi_get_rank() { return lcti_pmi_ops.get_rank(); }
 int LCT_pmi_get_size() { return lcti_pmi_ops.get_size(); }
 void LCT_pmi_publish(char* key, char* value)
 {
+  LCT_Log(LCT_log_ctx_default, LCT_LOG_DEBUG, "pmi", "publish %s %s\n", key,
+          value);
   lcti_pmi_ops.publish(key, value);
 }
 void LCT_pmi_getname(int rank, char* key, char* value)
 {
   lcti_pmi_ops.getname(rank, key, value);
+  LCT_Log(LCT_log_ctx_default, LCT_LOG_DEBUG, "pmi", "getname %d %s %s\n", rank,
+          key, value);
 }
 void LCT_pmi_barrier()
 {

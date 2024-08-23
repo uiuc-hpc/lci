@@ -1,4 +1,5 @@
 #include "runtime/lcii.h"
+#include "backend/ibv/lcisi_ibv_detail.h"
 
 static const int max_sge_num = 1;
 static const int inline_size = 236;
@@ -85,8 +86,8 @@ void LCISD_server_init(LCIS_server_t* s)
     exit(EXIT_FAILURE);
   }
 
-  bool ret = LCISI_ibv_select_best_device_port(
-      server->dev_list, num_devices, &server->ib_dev, &server->dev_port);
+  bool ret = select_best_device_port(server->dev_list, num_devices,
+                                     &server->ib_dev, &server->dev_port);
   LCI_Assert(ret, "Cannot find available ibv device/port!\n");
 
   // ibv_open_device provides the user with a verbs context which is the object
@@ -167,6 +168,20 @@ void LCISD_server_init(LCIS_server_t* s)
   LCI_Log(LCI_LOG_INFO, "ibv", "Maximum MTU: %s; Active MTU: %s\n",
           mtu_str(server->port_attr.max_mtu),
           mtu_str(server->port_attr.active_mtu));
+
+  // query the gid
+  server->gid_idx = LCI_IBV_GID_IDX;
+  if (server->gid_idx >= 0) {
+    LCI_Log(LCI_LOG_INFO, "ibv", "Use GID index: %d\n", server->gid_idx);
+    if (ibv_query_gid(server->dev_ctx, server->dev_port, server->gid_idx,
+                      &server->gid)) {
+      fprintf(stderr, "can't read sgid of index %d\n", server->gid_idx);
+      exit(EXIT_FAILURE);
+    }
+  } else
+    memset(&server->gid, 0, sizeof(server->gid));
+
+  // Initialize the event polling thread
   LCISI_event_polling_thread_init(server);
 }
 
@@ -337,12 +352,15 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
         exit(EXIT_FAILURE);
       }
     }
+    char wgid[33];
+    memset(wgid, 0, sizeof(wgid));
+    gid_to_wire_gid(&endpoint_p->server->gid, wgid);
     // Use this queue pair "i" to connect to rank e.
     char key[LCT_PMI_STRING_LIMIT + 1];
     sprintf(key, "LCI_KEY_%d_%d_%d", endpoint_id, LCI_RANK, i);
     char value[LCT_PMI_STRING_LIMIT + 1];
-    sprintf(value, "%x:%hx", endpoint_p->qps[i]->qp_num,
-            endpoint_p->server->port_attr.lid);
+    sprintf(value, "%x:%hx:%s", endpoint_p->qps[i]->qp_num,
+            endpoint_p->server->port_attr.lid, wgid);
     LCT_pmi_publish(key, value);
   }
   LCI_Log(LCI_LOG_INFO, "ibv", "Current inline data size is %d\n", inline_size);
@@ -356,7 +374,10 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
     LCT_pmi_getname(i, key, value);
     uint32_t dest_qpn;
     uint16_t dest_lid;
-    sscanf(value, "%x:%hx", &dest_qpn, &dest_lid);
+    union ibv_gid gid;
+    char wgid[33];
+    sscanf(value, "%x:%hx:%s", &dest_qpn, &dest_lid, wgid);
+    wire_gid_to_gid(wgid, &gid);
     // Once a queue pair (QP) has receive buffers posted to it, it is now
     // possible to transition the QP into the ready to receive (RTR) state.
     {
@@ -383,6 +404,13 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
       attr.min_rnr_timer = 12;
       // should not be necessary to set these, given is_global = 0
       memset(&attr.ah_attr.grh, 0, sizeof attr.ah_attr.grh);
+      // If we are using gid
+      if (gid.global.interface_id) {
+        attr.ah_attr.is_global = 1;
+        attr.ah_attr.grh.hop_limit = 1;
+        attr.ah_attr.grh.dgid = gid;
+        attr.ah_attr.grh.sgid_index = endpoint_p->server->gid_idx;
+      }
 
       int flags = IBV_QP_STATE | IBV_QP_AV | IBV_QP_PATH_MTU | IBV_QP_DEST_QPN |
                   IBV_QP_RQ_PSN | IBV_QP_MAX_DEST_RD_ATOMIC |

@@ -45,10 +45,8 @@ static double translate_speed(uint8_t speed)
   }
 }
 
-bool LCISI_ibv_select_best_device_port(struct ibv_device** dev_list,
-                                       int num_devices,
-                                       struct ibv_device** device_o,
-                                       uint8_t* port_o)
+bool select_best_device_port(struct ibv_device** dev_list, int num_devices,
+                             struct ibv_device** device_o, uint8_t* port_o)
 {
   struct ibv_device* best_device;
   uint8_t best_port;

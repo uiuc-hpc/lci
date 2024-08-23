@@ -29,6 +29,8 @@ typedef struct __attribute__((aligned(LCI_CACHE_LINE))) LCISI_server_t {
   uint8_t dev_port;
   struct ibv_mr* odp_mr;
   size_t max_inline;
+  int gid_idx;
+  union ibv_gid gid;
   // event polling thread
   pthread_t event_polling_thread;
   atomic_bool event_polling_thread_run;
