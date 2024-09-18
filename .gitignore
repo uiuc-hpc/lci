@@ -29,6 +29,7 @@
 
 # Vscode related
 .vscode/
+build/
 
 # CLion related
 .idea

@@ -159,7 +159,7 @@ void LCISD_server_init(LCIS_server_t* s)
   if (rc != 0) {
     fprintf(stderr, "Unable to query port\n");
     exit(EXIT_FAILURE);
-  } else if (server->port_attr.link_layer != IBV_LINK_LAYER_ETHERNET &&
+  } else if (server->port_attr.link_layer == IBV_LINK_LAYER_INFINIBAND &&
              !server->port_attr.lid) {
     fprintf(stderr, "Couldn't get local LID\n");
     exit(EXIT_FAILURE);
@@ -171,6 +171,11 @@ void LCISD_server_init(LCIS_server_t* s)
 
   // query the gid
   server->gid_idx = LCI_IBV_GID_IDX;
+  if (server->gid_idx < 0 &&
+      server->port_attr.link_layer == IBV_LINK_LAYER_ETHERNET) {
+    // User did not explicitly specify the gid to use and we are using RoCE
+    server->gid_idx = select_best_gid_for_roce(server);
+  }
   if (server->gid_idx >= 0) {
     LCI_Log(LCI_LOG_INFO, "ibv", "Use GID index: %d\n", server->gid_idx);
     if (ibv_query_gid(server->dev_ctx, server->dev_port, server->gid_idx,
@@ -352,7 +357,7 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
         exit(EXIT_FAILURE);
       }
     }
-    char wgid[33];
+    char wgid[WIRE_GID_NBYTES + 1];
     memset(wgid, 0, sizeof(wgid));
     gid_to_wire_gid(&endpoint_p->server->gid, wgid);
     // Use this queue pair "i" to connect to rank e.
@@ -375,7 +380,7 @@ void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
     uint32_t dest_qpn;
     uint16_t dest_lid;
     union ibv_gid gid;
-    char wgid[33];
+    char wgid[WIRE_GID_NBYTES + 1];
     sscanf(value, "%x:%hx:%s", &dest_qpn, &dest_lid, wgid);
     wire_gid_to_gid(wgid, &gid);
     // Once a queue pair (QP) has receive buffers posted to it, it is now

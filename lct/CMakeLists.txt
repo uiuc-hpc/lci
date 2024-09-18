@@ -30,7 +30,8 @@ target_sources_relative(
   tbarrier/tbarrier.cpp
   util/thread.cpp
   util/time.cpp
-  util/string.cpp)
+  util/string.cpp
+  util/io.cpp)
 
 target_include_directories(LCT PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 

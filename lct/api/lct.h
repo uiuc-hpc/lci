@@ -203,6 +203,10 @@ LCT_API bool LCT_tbarrier_test(LCT_tbarrier_t tbarrier, int64_t ticket);
 LCT_API void LCT_tbarrier_wait(LCT_tbarrier_t tbarrier, int64_t ticket);
 LCT_API void LCT_tbarrier_arrive_and_wait(LCT_tbarrier_t tbarrier);
 
+// File IO
+LCT_API ssize_t LCT_read_file(char* buffer, size_t max,
+                              const char* filename_fmt, ...);
+
 #ifdef __cplusplus
 }
 #endif
