@@ -118,6 +118,32 @@ void LCISD_server_init(LCIS_server_t* s)
     exit(EXIT_FAILURE);
   }
 
+  // adjust max_send, max_recv, max_cqe
+  // Note: the max value reported by device attributes might still not be the
+  // strict upper bound.
+  if (LCI_SERVER_MAX_SENDS > server->dev_attr.max_qp_wr) {
+    LCI_Log(LCI_LOG_INFO, "ibv",
+            "The configured LCI_SERVER_MAX_SENDS (%d) is adjusted as it is "
+            "larger than the maximum allowable value by the device (%d).\n",
+            LCI_SERVER_MAX_SENDS, server->dev_attr.max_qp_wr);
+    LCI_SERVER_MAX_SENDS = server->dev_attr.max_qp_wr;
+  }
+  if (LCI_SERVER_MAX_RECVS > server->dev_attr.max_srq_wr) {
+    LCI_Log(LCI_LOG_INFO, "ibv",
+            "The configured LCI_SERVER_MAX_RECVS (%d) is adjusted as it is "
+            "larger than the maximum allowable value by the device (%d).\n",
+            LCI_SERVER_MAX_RECVS, server->dev_attr.max_srq_wr);
+    LCI_SERVER_MAX_RECVS = server->dev_attr.max_srq_wr;
+  }
+  if (LCI_SERVER_MAX_CQES > server->dev_attr.max_cqe) {
+    LCI_Log(LCI_LOG_INFO, "ibv",
+            "The configured LCI_SERVER_MAX_CQES (%d) is adjusted as it is "
+            "larger than the maximum allowable value by the device (%d).\n",
+            LCI_SERVER_MAX_CQES, server->dev_attr.max_cqe);
+    LCI_SERVER_MAX_CQES = server->dev_attr.max_cqe;
+  }
+
+  // configure on-demand paging
   server->odp_mr = NULL;
   if (LCI_IBV_USE_ODP == 2) {
 #ifdef IBV_ODP_SUPPORT_SRQ_RECV
