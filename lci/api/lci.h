@@ -584,6 +584,12 @@ extern int LCI_IBV_GID_IDX;
 
 /**
  * @ingroup LCI_COMM
+ * @brief Enable gid index auto selection for both ib and RoCE.
+ */
+extern int LCI_IBV_FORCE_GID_AUTO_SELECT;
+
+/**
+ * @ingroup LCI_COMM
  * @brief Whether to enable the progress specific network endpoint.
  */
 extern bool LCI_ENABLE_PRG_NET_ENDPOINT;

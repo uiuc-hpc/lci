@@ -172,7 +172,8 @@ void LCISD_server_init(LCIS_server_t* s)
   // query the gid
   server->gid_idx = LCI_IBV_GID_IDX;
   if (server->gid_idx < 0 &&
-      server->port_attr.link_layer == IBV_LINK_LAYER_ETHERNET) {
+      (LCI_IBV_FORCE_GID_AUTO_SELECT ||
+       server->port_attr.link_layer == IBV_LINK_LAYER_ETHERNET)) {
     // User did not explicitly specify the gid to use and we are using RoCE
     server->gid_idx = select_best_gid_for_roce(server);
   }

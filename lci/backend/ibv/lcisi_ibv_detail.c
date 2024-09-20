@@ -137,9 +137,10 @@ bool select_best_device_port(struct ibv_device** dev_list, int num_devices,
 }
 
 typedef enum roce_version_t {
-  ROCE_V1,
   ROCE_V2,
-  ROCE_VER_UNKNOWN
+  ROCE_V1,
+  ROCE_VER_UNKNOWN,
+  ROCE_VER_MAX,
 } roce_version_t;
 
 roce_version_t query_gid_roce_version(LCISI_server_t* server,
@@ -157,8 +158,13 @@ roce_version_t query_gid_roce_version(LCISI_server_t* server,
                         dev_name, server->dev_port, gid_index);
     if (ret > 0) {
       if (!strncmp(buf, "IB/RoCE v1", 10)) {
+        LCI_Log(LCI_LOG_DEBUG, "ibv",
+                "dev %s port %d index %d uses IB/Roce v1\n", dev_name,
+                server->dev_port, gid_index);
         return ROCE_V1;
       } else if (!strncmp(buf, "RoCE v2", 7)) {
+        LCI_Log(LCI_LOG_DEBUG, "ibv", "dev %s port %d index %d uses Roce v2\n",
+                dev_name, server->dev_port, gid_index);
         return ROCE_V2;
       }
     }
@@ -200,25 +206,34 @@ bool test_roce_gid_index(LCISI_server_t* server, uint8_t gid_index)
 
 int select_best_gid_for_roce(LCISI_server_t* server)
 {
-  static const roce_version_t roce_prio[] = {
-      ROCE_V2,
-      ROCE_V1,
-      ROCE_VER_UNKNOWN,
+  static const int roce_prio[] = {
+      [ROCE_V2] = 0,
+      [ROCE_V1] = 1,
+      [ROCE_VER_UNKNOWN] = 2,
   };
   int gid_tbl_len = server->port_attr.gid_tbl_len;
+  int best_priority = 100;
+  int best_gid_idx = -1;
 
   LCI_Log(LCI_LOG_DEBUG, "ibv", "RoCE gid auto selection among %d gids\n",
           gid_tbl_len);
-  for (int prio_idx = 0; prio_idx < sizeof(roce_prio); prio_idx++) {
-    for (int i = 0; i < gid_tbl_len; i++) {
-      roce_version_t version = query_gid_roce_version(server, i);
+  for (int i = 0; i < gid_tbl_len; ++i) {
+    roce_version_t version = query_gid_roce_version(server, i);
+    int priority = roce_prio[version];
 
-      if ((roce_prio[prio_idx] == version) && test_roce_gid_index(server, i)) {
-        LCI_Log(LCI_LOG_INFO, "ibv", "RoCE gid auto selection: use %d %d\n", i,
-                version);
-        return i;
-      }
+    if (priority == 0 && test_roce_gid_index(server, i)) {
+      best_gid_idx = i;
+      best_priority = priority;
+      break;
+    } else if (priority < best_priority && test_roce_gid_index(server, i)) {
+      best_gid_idx = i;
+      best_priority = priority;
     }
+  }
+  if (best_gid_idx >= 0) {
+    LCI_Log(LCI_LOG_INFO, "ibv", "RoCE gid auto selection: use gid %d\n",
+            best_gid_idx);
+    return best_gid_idx;
   }
 
   const int default_gid = 0;
