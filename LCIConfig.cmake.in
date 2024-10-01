@@ -29,14 +29,14 @@ if (NOT TARGET LCI::LCT)
         set_and_check(LCI_SHARED_LIBRARY "@PACKAGE_CMAKE_INSTALL_LIBDIR@/@CMAKE_SHARED_LIBRARY_PREFIX@lci@CMAKE_SHARED_LIBRARY_SUFFIX@")
         # set_and_check(LCI_STATIC_LIBRARY "@PACKAGE_CMAKE_INSTALL_LIBDIR@/@CMAKE_STATIC_LIBRARY_PREFIX@lci@CMAKE_STATIC_LIBRARY_SUFFIX@")
 
-        add_library(LCI::Shared SHARED IMPORTED)
-        set_target_properties(LCI::Shared PROPERTIES
+        add_library(LCI::LCI SHARED IMPORTED)
+        set_target_properties(LCI::LCI PROPERTIES
           IMPORTED_LOCATION ${LCI_SHARED_LIBRARY}
         )
-        target_include_directories(LCI::Shared INTERFACE ${LCI_INCLUDE_DIRS})
-        target_link_libraries(LCI::Shared INTERFACE Threads::Threads @FABRIC@::@FABRIC@ LCI::LCT)
+        target_include_directories(LCI::LCI INTERFACE ${LCI_INCLUDE_DIRS})
+        target_link_libraries(LCI::LCI INTERFACE Threads::Threads @FABRIC@::@FABRIC@ LCI::LCT)
 
-        add_library(LCI::LCI ALIAS LCI::Shared)
+        # add_library(LCI::LCI ALIAS LCI::Shared)
 
         # add_library(LCI::Static STATIC IMPORTED)
         # set_target_properties(LCI::Static PROPERTIES
