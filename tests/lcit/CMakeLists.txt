@@ -43,3 +43,13 @@ add_lci_tests(
   "${SRUN_EXE} -n 3 ${SRUN_EXTRA_ARG} [TARGET] --op 1m --nthreads 3 --send-window 1 --recv-window 100 --nsteps 10"
   "${SRUN_EXE} -n 3 ${SRUN_EXTRA_ARG} [TARGET] --op 1l --nthreads 3 --send-window 1 --recv-window 100 --nsteps 10"
 )
+
+add_lci_tests(
+  TESTS
+  lcit_pt2pt.cpp
+  LABELS
+  lcit.bigmsg
+  COMMANDS
+  "${SRUN_EXE} -n 2 ${SRUN_EXTRA_ARG} env LCI_MAX_SINGLE_MESSAGE_SIZE=1002 [TARGET] --op 2l --min-msg-size=1001 --max-msg-size=4004 --nsteps 1"
+  "${SRUN_EXE} -n 2 ${SRUN_EXTRA_ARG} env LCI_MAX_SINGLE_MESSAGE_SIZE=1002 [TARGET] --op 1l --min-msg-size=1001 --max-msg-size=4004 --nsteps 1"
+)

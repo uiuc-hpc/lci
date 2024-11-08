@@ -76,6 +76,16 @@ void LCISI_event_polling_thread_fina(LCISI_server_t* server)
 
 void LCISD_server_init(LCIS_server_t* s)
 {
+  // Check configurations
+  if (LCI_MAX_SINGLE_MESSAGE_SIZE >= 2 << 31) {
+    // ibverbs' max message is 2GiB (or 2GB?)
+    LCI_MAX_SINGLE_MESSAGE_SIZE = 2 << 31 - 1;
+    LCI_Warn(
+        "Reduce LCI_MAX_SINGLE_MESSAGE_SIZE to %lu"
+        "as required by libibverbs max message size\n",
+        LCI_MAX_SINGLE_MESSAGE_SIZE);
+  }
+
   LCISI_server_t* server = LCIU_malloc(sizeof(LCISI_server_t));
   *s = (LCIS_server_t)server;
 

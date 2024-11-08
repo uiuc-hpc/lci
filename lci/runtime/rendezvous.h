@@ -158,6 +158,24 @@ static void LCII_env_init_rdv_protocol()
           LCI_RDV_PROTOCOL);
 }
 
+static inline int LCII_calculate_rdma_num(LCII_context_t* ctx)
+{
+  int nrdmas = 0;
+  int nbuffers = (ctx->data_type == LCI_IOVEC) ? ctx->data.iovec.count : 1;
+  for (int i = 0; i < nbuffers; ++i) {
+    LCI_lbuffer_t* lbuffer;
+    if (ctx->data_type == LCI_LONG) {
+      lbuffer = &ctx->data.lbuffer;
+    } else {
+      LCI_DBG_Assert(ctx->data_type == LCI_IOVEC, "");
+      lbuffer = &ctx->data.iovec.lbuffers[i];
+    }
+    nrdmas += (lbuffer->length + LCI_MAX_SINGLE_MESSAGE_SIZE - 1) /
+              LCI_MAX_SINGLE_MESSAGE_SIZE;
+  }
+  return nrdmas;
+}
+
 static inline void LCII_rts_fill_rbuffer_info(
     struct LCII_packet_rtr_rbuffer_info_t* p, LCI_lbuffer_t lbuffer)
 {
@@ -219,6 +237,7 @@ static inline void LCII_handle_rts(LCI_endpoint_t ep, LCII_packet_t* packet,
                       &rdv_ctx->data.lbuffer);
     rdv_ctx->data_type = LCI_LONG;
   } else {
+    // rdv_type == LCII_RDV_IOVEC
     rdv_ctx->data.iovec.count = packet->data.rts.count;
     rdv_ctx->data.iovec.piggy_back.length = packet->data.rts.piggy_back_size;
     rdv_ctx->data.iovec.piggy_back.address =
@@ -245,7 +264,10 @@ static inline void LCII_handle_rts(LCI_endpoint_t ep, LCII_packet_t* packet,
   // Prepare the RTR packet
   // reuse the rts packet as rtr packet
   packet->context.poolid = LCII_POOLID_LOCAL;
-  if (LCI_RDV_PROTOCOL == LCI_RDV_WRITEIMM && rdv_type != LCII_RDV_IOVEC) {
+  int nrdmas = LCII_calculate_rdma_num(rdv_ctx);
+  if (nrdmas == 1 && LCI_RDV_PROTOCOL == LCI_RDV_WRITEIMM &&
+      rdv_type != LCII_RDV_IOVEC) {
+    // We cannot use writeimm for more than 1 rdma messages.
     // IOVEC does not support writeimm for now
     uint64_t ctx_key;
     int result =
@@ -298,16 +320,14 @@ static inline void LCII_handle_rtr(LCI_endpoint_t ep, LCII_packet_t* packet)
   LCII_context_t* ctx = (LCII_context_t*)packet->data.rtr.send_ctx;
   // Set up the "extended context" for write protocol
   void* ctx_to_pass = ctx;
-  if (LCI_RDV_PROTOCOL == LCI_RDV_WRITE || rdv_type == LCII_RDV_IOVEC) {
+  int nrdmas = LCII_calculate_rdma_num(ctx);
+  if (nrdmas > 1 || LCI_RDV_PROTOCOL == LCI_RDV_WRITE ||
+      rdv_type == LCII_RDV_IOVEC) {
     LCII_extended_context_t* ectx =
         LCIU_malloc(sizeof(LCII_extended_context_t));
     LCII_initilize_comp_attr(ectx->comp_attr);
     LCII_comp_attr_set_extended(ectx->comp_attr, 1);
-    if (ctx->data_type == LCI_LONG) {
-      atomic_init(&ectx->signal_count, 1);
-    } else {
-      atomic_init(&ectx->signal_count, ctx->data.iovec.count);
-    }
+    atomic_init(&ectx->signal_count, nrdmas);
     ectx->context = ctx;
     ectx->ep = ep;
     ectx->recv_ctx = packet->data.rtr.recv_ctx;
@@ -334,17 +354,31 @@ static inline void LCII_handle_rtr(LCI_endpoint_t ep, LCII_packet_t* packet)
     LCII_PCOUNTER_END(rtr_mem_reg_timer);
     // issue the put/putimm
     LCII_PCOUNTER_START(rtr_put_timer);
-    if (LCI_RDV_PROTOCOL == LCI_RDV_WRITE || rdv_type == LCII_RDV_IOVEC) {
-      LCIS_post_put_bq(ep->bq_p, ep->bq_spinlock_p,
-                       ep->device->endpoint_progress->endpoint, (int)ctx->rank,
-                       lbuffer->address, lbuffer->length, lbuffer->segment->mr,
-                       packet->data.rtr.rbuffer_info_p[i].remote_addr_base,
-                       packet->data.rtr.rbuffer_info_p[i].remote_addr_offset,
-                       packet->data.rtr.rbuffer_info_p[i].rkey, ctx_to_pass);
+    if (nrdmas > 1 || LCI_RDV_PROTOCOL == LCI_RDV_WRITE ||
+        rdv_type == LCII_RDV_IOVEC) {
+      if (lbuffer->length > LCI_MAX_SINGLE_MESSAGE_SIZE) {
+        LCI_DBG_Log(LCI_LOG_TRACE, "rdv",
+                    "Splitting a large message of %lu bytes\n",
+                    lbuffer->length);
+      }
+      for (size_t offset = 0; offset < lbuffer->length;
+           offset += LCI_MAX_SINGLE_MESSAGE_SIZE) {
+        char* address = (char*)lbuffer->address + offset;
+        size_t length =
+            LCIU_MIN(lbuffer->length - offset, LCI_MAX_SINGLE_MESSAGE_SIZE);
+        LCIS_post_put_bq(
+            ep->bq_p, ep->bq_spinlock_p,
+            ep->device->endpoint_progress->endpoint, (int)ctx->rank, address,
+            length, lbuffer->segment->mr,
+            packet->data.rtr.rbuffer_info_p[i].remote_addr_base,
+            packet->data.rtr.rbuffer_info_p[i].remote_addr_offset + offset,
+            packet->data.rtr.rbuffer_info_p[i].rkey, ctx_to_pass);
+      }
     } else {
-      LCI_DBG_Assert(
-          LCI_RDV_PROTOCOL == LCI_RDV_WRITEIMM && rdv_type != LCII_RDV_IOVEC,
-          "Unexpected rdv protocol!\n");
+      LCI_DBG_Assert(lbuffer->length <= LCI_MAX_SINGLE_MESSAGE_SIZE &&
+                         LCI_RDV_PROTOCOL == LCI_RDV_WRITEIMM &&
+                         rdv_type != LCII_RDV_IOVEC,
+                     "Unexpected rdv protocol!\n");
       LCIS_post_putImm_bq(ep->bq_p, ep->bq_spinlock_p,
                           ep->device->endpoint_progress->endpoint,
                           (int)ctx->rank, lbuffer->address, lbuffer->length,

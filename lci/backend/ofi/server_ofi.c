@@ -99,6 +99,13 @@ void LCISD_server_init(LCIS_server_t* s)
              "inject_size (%lu) < sizeof(LCI_short_t) (%lu)!\n",
              server->info->tx_attr->inject_size, sizeof(LCI_short_t));
   fi_freeinfo(hints);
+  if (server->info->ep_attr->max_msg_size < LCI_MAX_SINGLE_MESSAGE_SIZE) {
+    LCI_MAX_SINGLE_MESSAGE_SIZE = server->info->ep_attr->max_msg_size;
+    LCI_Warn(
+        "Reduce LCI_MAX_SINGLE_MESSAGE_SIZE to %lu"
+        "as required by the libfabric max_msg_size attribute\n",
+        LCI_MAX_SINGLE_MESSAGE_SIZE);
+  }
   if (strcmp(server->info->fabric_attr->prov_name, "cxi") == 0) {
     LCI_Assert(LCI_USE_DREG == 0,
                "The registration cache should be turned off "

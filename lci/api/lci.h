@@ -439,6 +439,13 @@ extern int LCI_MEDIUM_SIZE;
 extern int LCI_IOVEC_SIZE;
 
 /**
+ * @ingroup LCI_COMM
+ * @brief The maximum size (in byte) of a buffer that can be used in long
+ * messages without being broken.
+ */
+extern size_t LCI_MAX_SINGLE_MESSAGE_SIZE;
+
+/**
  * @ingroup LCI_SETUP
  * @brief Initial number of entries in a default matching table.
  * @note The matching table width is fixed in current implementation, but the

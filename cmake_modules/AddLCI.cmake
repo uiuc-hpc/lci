@@ -20,8 +20,8 @@ function(add_lci_executable name)
 endfunction()
 
 function(add_lci_test name)
-  cmake_parse_arguments(ARG "" "" "COMMANDS;LABELS;SOURCES;DEPENDENCIES"
-                        ${ARGN})
+  cmake_parse_arguments(
+    ARG "" "" "COMMANDS;LABELS;SOURCES;DEPENDENCIES;ENVIRONMENT" ${ARGN})
 
   add_lci_executable(${name} ${ARG_SOURCES})
   target_include_directories(${name} PRIVATE ${CMAKE_SOURCE_DIR}/src/include)
@@ -47,11 +47,15 @@ function(add_lci_test name)
     string(REPLACE " " ";" TEST_COMMAND ${TEST_COMMAND})
     add_test(NAME ${test_name} COMMAND ${TEST_COMMAND})
     set_property(TEST ${test_name} PROPERTY LABELS ${ARG_LABELS})
+    if(ENVIRONMENT)
+      set_tests_properties(${test_name} PROPERTIES ENVIRONMENT ${ENVIRONMENT})
+    endif()
   endwhile()
 endfunction()
 
 function(add_lci_tests)
-  cmake_parse_arguments(ARG "" "" "COMMANDS;LABELS;TESTS;DEPENDENCIES" ${ARGN})
+  cmake_parse_arguments(
+    ARG "" "" "COMMANDS;LABELS;TESTS;DEPENDENCIES;ENVIRONMENT" ${ARGN})
   foreach(name ${ARG_TESTS})
     string(REGEX REPLACE "\\.[^.]*$" "" name_without_ext ${name})
     add_lci_test(
@@ -63,6 +67,8 @@ function(add_lci_tests)
       COMMANDS
       ${ARG_COMMANDS}
       DEPENDENCIES
-      ${ARG_DEPENDENCIES})
+      ${ARG_DEPENDENCIES}
+      ENVIRONMENT
+      ${ENVIRONMENT})
   endforeach()
 endfunction()

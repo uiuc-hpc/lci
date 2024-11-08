@@ -206,6 +206,10 @@ if(NOT LCI_WITH_LCT_ONLY)
       CACHE STRING "The default rendezvous protocol to use (write, writeimm).")
   set_property(CACHE LCI_RDV_PROTOCOL_DEFAULT PROPERTY STRINGS write writeimm)
 
+  set(LCI_MAX_SINGLE_MESSAGE_SIZE_DEFAULT
+      2000000000
+      CACHE STRING "Default single low-level message max size")
+
   mark_as_advanced(
     LCI_CONFIG_USE_ALIGNED_ALLOC
     LCI_PACKET_SIZE_DEFAULT
@@ -214,7 +218,8 @@ if(NOT LCI_WITH_LCT_ONLY)
     LCI_SERVER_MAX_CQES_DEFAULT
     LCI_SERVER_NUM_PKTS_DEFAULT
     LCI_CACHE_LINE
-    LCI_RDV_PROTOCOL_DEFAULT)
+    LCI_RDV_PROTOCOL_DEFAULT
+    LCI_MAX_SINGLE_MESSAGE_SIZE_DEFAULT)
 
   # ############################################################################
   # LCI Testing related options
