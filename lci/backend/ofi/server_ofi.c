@@ -102,7 +102,7 @@ void LCISD_server_init(LCIS_server_t* s)
   if (server->info->ep_attr->max_msg_size < LCI_MAX_SINGLE_MESSAGE_SIZE) {
     LCI_MAX_SINGLE_MESSAGE_SIZE = server->info->ep_attr->max_msg_size;
     LCI_Warn(
-        "Reduce LCI_MAX_SINGLE_MESSAGE_SIZE to %lu"
+        "Reduce LCI_MAX_SINGLE_MESSAGE_SIZE to %lu "
         "as required by the libfabric max_msg_size attribute\n",
         LCI_MAX_SINGLE_MESSAGE_SIZE);
   }

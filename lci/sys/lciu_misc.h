@@ -104,6 +104,18 @@ static inline int LCIU_getenv_or(char* env, int def)
   LCI_Log(LCI_LOG_INFO, "env", "set %s to be %d\n", env, ret);
   return ret;
 }
+static inline size_t LCIU_getenv_or_ul(char* env, size_t def)
+{
+  size_t ret;
+  char* val = getenv(env);
+  if (val != NULL) {
+    LCI_Assert(sscanf(val, "%zu", &ret) == 1, "Unknown value: %lu\n", val);
+  } else {
+    ret = def;
+  }
+  LCI_Log(LCI_LOG_INFO, "env", "set %s to be %lu\n", env, ret);
+  return ret;
+}
 
 static inline void LCIU_spin_for_nsec(double t)
 {

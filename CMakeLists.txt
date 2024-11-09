@@ -207,7 +207,7 @@ if(NOT LCI_WITH_LCT_ONLY)
   set_property(CACHE LCI_RDV_PROTOCOL_DEFAULT PROPERTY STRINGS write writeimm)
 
   set(LCI_MAX_SINGLE_MESSAGE_SIZE_DEFAULT
-      2000000000
+      0x7FFFFFFF
       CACHE STRING "Default single low-level message max size")
 
   mark_as_advanced(

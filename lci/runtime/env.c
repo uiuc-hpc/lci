@@ -101,7 +101,7 @@ void LCII_env_init(int num_proc, int rank)
                (LCI_PACKET_SIZE - sizeof(struct LCII_packet_context) -
                 sizeof(struct LCII_packet_rtr_t)) /
                    sizeof(struct LCII_packet_rtr_rbuffer_info_t));
-  LCI_MAX_SINGLE_MESSAGE_SIZE = LCIU_getenv_or(
+  LCI_MAX_SINGLE_MESSAGE_SIZE = LCIU_getenv_or_ul(
       "LCI_MAX_SINGLE_MESSAGE_SIZE", LCI_MAX_SINGLE_MESSAGE_SIZE_DEFAULT);
   LCI_OFI_CXI_TRY_NO_HACK = LCIU_getenv_or("LCI_OFI_CXI_TRY_NO_HACK", false);
   {
