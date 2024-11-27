@@ -137,7 +137,9 @@ static inline int LCISD_poll_cq(LCIS_endpoint_t endpoint_pp,
 #ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
   if (!LCIU_try_acquire_spinlock(&endpoint_p->cq_lock)) return 0;
 #endif
+  LCII_PCOUNTER_START(net_poll_cq_succeed_timer);
   int ne = ibv_poll_cq(endpoint_p->cq, LCI_CQ_MAX_POLL, wc);
+  LCII_PCOUNTER_END(net_poll_cq_succeed_timer);
   LCI_DBG_Assert(ne >= 0, "ibv_poll_cq returns error %d\n", ne);
 #ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
   LCIU_release_spinlock(&endpoint_p->cq_lock);
