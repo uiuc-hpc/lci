@@ -166,7 +166,9 @@ static inline int LCIS_poll_cq(LCIS_endpoint_t endpoint_pp,
 {
   LCII_PCOUNTER_ADD(net_poll_cq_attempts, 1);
   LCISI_CS_ENTER(endpoint_pp, 0);
+  LCII_PCOUNTER_NOW(start);
   int ret = LCISD_poll_cq(endpoint_pp, entry);
+  LCII_PCOUNTER_SINCE(net_poll_cq_timer, start);
   LCISI_CS_EXIT(endpoint_pp);
   return ret;
 }
@@ -182,8 +184,14 @@ static inline LCI_error_t LCIS_post_sends(LCIS_endpoint_t endpoint_pp, int rank,
 #ifdef LCI_ENABLE_SLOWDOWN
   LCIU_spin_for_nsec(LCI_SEND_SLOW_DOWN_USEC * 1000);
 #endif
+
+  LCII_PCOUNTER_NOW(start);
   LCI_error_t ret = LCISD_post_sends(endpoint_pp, rank, buf, size, meta);
+  LCII_PCOUNTER_NOW(end);
+  LCII_PCOUNTER_ADD(net_post_send_timer, end - start);
+
   if (ret == LCI_OK) {
+    LCII_PCOUNTER_ADD(net_post_send_succeed_timer, end - start);
     LCII_PCOUNTER_ADD(net_sends_posted, (int64_t)size);
   } else if (ret == LCI_ERR_RETRY_LOCK) {
     LCII_PCOUNTER_ADD(net_send_failed_lock, 1);
@@ -206,9 +214,15 @@ static inline LCI_error_t LCIS_post_send(LCIS_endpoint_t endpoint_pp, int rank,
 #ifdef LCI_ENABLE_SLOWDOWN
   LCIU_spin_for_nsec(LCI_SEND_SLOW_DOWN_USEC * 1000);
 #endif
+
+  LCII_PCOUNTER_NOW(start);
   LCI_error_t ret =
       LCISD_post_send(endpoint_pp, rank, buf, size, mr, meta, ctx);
+  LCII_PCOUNTER_NOW(end);
+  LCII_PCOUNTER_ADD(net_post_send_timer, end - start);
+
   if (ret == LCI_OK) {
+    LCII_PCOUNTER_ADD(net_post_send_succeed_timer, end - start);
     LCII_PCOUNTER_ADD(net_send_posted, (int64_t)size);
   } else if (ret == LCI_ERR_RETRY_LOCK) {
     LCII_PCOUNTER_ADD(net_send_failed_lock, 1);
@@ -232,9 +246,15 @@ static inline LCI_error_t LCIS_post_puts(LCIS_endpoint_t endpoint_pp, int rank,
 #ifdef LCI_ENABLE_SLOWDOWN
   LCIU_spin_for_nsec(LCI_SEND_SLOW_DOWN_USEC * 1000);
 #endif
+
+  LCII_PCOUNTER_NOW(start);
   LCI_error_t ret =
       LCISD_post_puts(endpoint_pp, rank, buf, size, base, offset, rkey);
+  LCII_PCOUNTER_NOW(end);
+  LCII_PCOUNTER_ADD(net_post_send_timer, end - start);
+
   if (ret == LCI_OK) {
+    LCII_PCOUNTER_ADD(net_post_send_succeed_timer, end - start);
     LCII_PCOUNTER_ADD(net_sends_posted, (int64_t)size);
   } else if (ret == LCI_ERR_RETRY_LOCK) {
     LCII_PCOUNTER_ADD(net_send_failed_lock, 1);
@@ -259,9 +279,15 @@ static inline LCI_error_t LCIS_post_put(LCIS_endpoint_t endpoint_pp, int rank,
 #ifdef LCI_ENABLE_SLOWDOWN
   LCIU_spin_for_nsec(LCI_SEND_SLOW_DOWN_USEC * 1000);
 #endif
+
+  LCII_PCOUNTER_NOW(start);
   LCI_error_t ret =
       LCISD_post_put(endpoint_pp, rank, buf, size, mr, base, offset, rkey, ctx);
+  LCII_PCOUNTER_NOW(end);
+  LCII_PCOUNTER_ADD(net_post_send_timer, end - start);
+
   if (ret == LCI_OK) {
+    LCII_PCOUNTER_ADD(net_post_send_succeed_timer, end - start);
     LCII_PCOUNTER_ADD(net_send_posted, (int64_t)size);
   } else if (ret == LCI_ERR_RETRY_LOCK) {
     LCII_PCOUNTER_ADD(net_send_failed_lock, 1);
@@ -287,9 +313,15 @@ static inline LCI_error_t LCIS_post_putImms(LCIS_endpoint_t endpoint_pp,
 #ifdef LCI_ENABLE_SLOWDOWN
   LCIU_spin_for_nsec(LCI_SEND_SLOW_DOWN_USEC * 1000);
 #endif
+
+  LCII_PCOUNTER_NOW(start);
   LCI_error_t ret = LCISD_post_putImms(endpoint_pp, rank, buf, size, base,
                                        offset, rkey, meta);
+  LCII_PCOUNTER_NOW(end);
+  LCII_PCOUNTER_ADD(net_post_send_timer, end - start);
+
   if (ret == LCI_OK) {
+    LCII_PCOUNTER_ADD(net_post_send_succeed_timer, end - start);
     LCII_PCOUNTER_ADD(net_send_posted, (int64_t)size);
   } else if (ret == LCI_ERR_RETRY_LOCK) {
     LCII_PCOUNTER_ADD(net_send_failed_lock, 1);
@@ -316,9 +348,15 @@ static inline LCI_error_t LCIS_post_putImm(LCIS_endpoint_t endpoint_pp,
 #ifdef LCI_ENABLE_SLOWDOWN
   LCIU_spin_for_nsec(LCI_SEND_SLOW_DOWN_USEC * 1000);
 #endif
+
+  LCII_PCOUNTER_NOW(start);
   LCI_error_t ret = LCISD_post_putImm(endpoint_pp, rank, buf, size, mr, base,
                                       offset, rkey, meta, ctx);
+  LCII_PCOUNTER_NOW(end);
+  LCII_PCOUNTER_ADD(net_post_send_timer, end - start);
+
   if (ret == LCI_OK) {
+    LCII_PCOUNTER_ADD(net_post_send_succeed_timer, end - start);
     LCII_PCOUNTER_ADD(net_send_posted, (int64_t)size);
   } else if (ret == LCI_ERR_RETRY_LOCK) {
     LCII_PCOUNTER_ADD(net_send_failed_lock, 1);
@@ -337,8 +375,14 @@ static inline LCI_error_t LCIS_post_recv(LCIS_endpoint_t endpoint_pp, void* buf,
   LCI_DBG_Log(LCI_LOG_TRACE, "server",
               "LCIS_post_recv: buf %p size %u mr %p user_context %p\n", buf,
               size, mr.mr_p, ctx);
+
+  LCII_PCOUNTER_NOW(start);
   LCI_error_t ret = LCISD_post_recv(endpoint_pp, buf, size, mr, ctx);
+  LCII_PCOUNTER_NOW(end);
+  LCII_PCOUNTER_ADD(net_post_recv_timer, end - start);
+
   if (ret == LCI_OK) {
+    LCII_PCOUNTER_ADD(net_post_recv_succeed_timer, end - start);
     LCII_PCOUNTER_ADD(net_recv_posted, 1);
   } else if (ret == LCI_ERR_RETRY_LOCK) {
     LCII_PCOUNTER_ADD(net_recv_failed_lock, 1);

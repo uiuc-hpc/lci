@@ -45,6 +45,12 @@ extern LCT_pcounter_ctx_t LCII_pcounter_ctx;
     _macro(unexpected_msg)
 
 #define LCII_PCOUNTER_TIMER_FOR_EACH(_macro) \
+    _macro(net_post_send_timer)              \
+    _macro(net_post_send_succeed_timer)      \
+    _macro(net_post_recv_timer)              \
+    _macro(net_post_recv_succeed_timer)      \
+    _macro(net_poll_cq_timer)                \
+    _macro(net_poll_cq_succeed_timer)        \
     _macro(sync_stay_timer)                  \
     _macro(cq_stay_timer)                    \
     _macro(useful_progress_timer)            \
@@ -55,7 +61,9 @@ extern LCT_pcounter_ctx_t LCII_pcounter_ctx;
     _macro(cq_push_timer)                    \
     _macro(cq_pop_timer)                     \
     _macro(serve_rts_timer)                  \
+    _macro(handle_rts_timer)                \
     _macro(rts_mem_timer)                    \
+    _macro(rts_archive_timer)                \
     _macro(rts_send_timer)                   \
     _macro(serve_rtr_timer)                  \
     _macro(rtr_mem_reg_timer)                \
@@ -87,6 +95,9 @@ LCII_PCOUNTER_TIMER_FOR_EACH(LCII_PCOUNTER_HANDLE_DECL)
   LCT_pcounter_startt(LCII_pcounter_ctx, LCII_pcounter_handle_##name, time);
 #define LCII_PCOUNTER_ENDT(name, time) \
   LCT_pcounter_endt(LCII_pcounter_ctx, LCII_pcounter_handle_##name, time);
+#define LCII_PCOUNTER_SINCE(name, time)                            \
+  LCT_pcounter_add(LCII_pcounter_ctx, LCII_pcounter_handle_##name, \
+                   LCT_now() - time);
 #else
 #define LCII_PCOUNTER_ADD(name, val)
 #define LCII_PCOUNTER_START(name)
@@ -94,6 +105,7 @@ LCII_PCOUNTER_TIMER_FOR_EACH(LCII_PCOUNTER_HANDLE_DECL)
 #define LCII_PCOUNTER_NOW(time)
 #define LCII_PCOUNTER_STARTT(name, time)
 #define LCII_PCOUNTER_ENDT(name, time)
+#define LCII_PCOUNTER_SINCE(name, time)
 #endif
 
 void LCII_pcounters_init();
