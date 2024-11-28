@@ -207,6 +207,16 @@ LCT_API void LCT_tbarrier_arrive_and_wait(LCT_tbarrier_t tbarrier);
 LCT_API ssize_t LCT_read_file(char* buffer, size_t max,
                               const char* filename_fmt, ...);
 
+// Tracing
+typedef void* LCT_tracer_t;
+LCT_API LCT_tracer_t LCT_tracer_init(char* name, const char* typenames[],
+                                     int ntypes);
+LCT_API void LCT_tracer_fina(LCT_tracer_t tracer);
+LCT_API void LCT_tracer_send(LCT_tracer_t tracer, int32_t type, int32_t rank,
+                             uint64_t size);
+LCT_API void LCT_tracer_recv(LCT_tracer_t tracer, int32_t type, int32_t rank,
+                             uint64_t size);
+
 #ifdef __cplusplus
 }
 #endif

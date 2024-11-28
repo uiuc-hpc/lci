@@ -28,6 +28,8 @@ target_sources_relative(
   pcounter/pcounter.cpp
   args_parser/args_parser.cpp
   tbarrier/tbarrier.cpp
+  tlptr/tlptr.cpp
+  tracer/tracer.cpp
   util/thread.cpp
   util/time.cpp
   util/string.cpp

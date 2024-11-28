@@ -5,5 +5,6 @@
 #include "util/misc.hpp"
 #include "util/spinlock.hpp"
 #include "util/mem.hpp"
+#include "tlptr/tlptr.hpp"
 
 #endif  // LCI_LCTI_H

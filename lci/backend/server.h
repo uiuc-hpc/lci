@@ -170,6 +170,11 @@ static inline int LCIS_poll_cq(LCIS_endpoint_t endpoint_pp,
   int ret = LCISD_poll_cq(endpoint_pp, entry);
   LCII_PCOUNTER_SINCE(net_poll_cq_timer, start);
   LCISI_CS_EXIT(endpoint_pp);
+  for (int i = 0; i < ret; ++i) {
+    if (entry[i].opcode == LCII_OP_RECV) {
+      LCT_tracer_recv(LCII_tracer, 0, entry[i].rank, entry[i].length);
+    }
+  }
   return ret;
 }
 
@@ -191,6 +196,7 @@ static inline LCI_error_t LCIS_post_sends(LCIS_endpoint_t endpoint_pp, int rank,
   LCII_PCOUNTER_ADD(net_post_send_timer, end - start);
 
   if (ret == LCI_OK) {
+    LCT_tracer_send(LCII_tracer, 0, rank, size);
     LCII_PCOUNTER_ADD(net_post_send_succeed_timer, end - start);
     LCII_PCOUNTER_ADD(net_sends_posted, (int64_t)size);
   } else if (ret == LCI_ERR_RETRY_LOCK) {
@@ -222,6 +228,7 @@ static inline LCI_error_t LCIS_post_send(LCIS_endpoint_t endpoint_pp, int rank,
   LCII_PCOUNTER_ADD(net_post_send_timer, end - start);
 
   if (ret == LCI_OK) {
+    LCT_tracer_send(LCII_tracer, 0, rank, size);
     LCII_PCOUNTER_ADD(net_post_send_succeed_timer, end - start);
     LCII_PCOUNTER_ADD(net_send_posted, (int64_t)size);
   } else if (ret == LCI_ERR_RETRY_LOCK) {

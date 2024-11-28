@@ -12,6 +12,8 @@
 #include "datastructure/lcm_dequeue.h"
 #include "datastructure/lcm_aqueue.h"
 #include "datastructure/lcm_archive.h"
+
+extern LCT_tracer_t LCII_tracer;
 #include "backend/server.h"
 #include "runtime/rcache/lcii_rcache.h"
 #include "backlog_queue.h"
