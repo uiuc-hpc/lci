@@ -7,6 +7,7 @@ target_sources_relative(
   log/logger.c
   profile/papi_wrapper.c
   profile/performance_counter.c
+  profile/tracer.c
   runtime/1sided_primitive.c
   runtime/completion/cq.c
   runtime/lci.c

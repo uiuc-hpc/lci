@@ -22,7 +22,9 @@ LCT_API void LCT_fina();
 // rank
 extern int LCT_rank;
 LCT_API void LCT_set_rank(int rank);
+LCT_API void LCT_set_nranks(int nranks);
 LCT_API int LCT_get_rank();
+LCT_API int LCT_get_nranks();
 
 // hostname
 extern char LCT_hostname[HOST_NAME_MAX + 1];
@@ -210,7 +212,8 @@ LCT_API ssize_t LCT_read_file(char* buffer, size_t max,
 // Tracing
 typedef void* LCT_tracer_t;
 LCT_API LCT_tracer_t LCT_tracer_init(char* name, const char* typenames[],
-                                     int ntypes);
+                                     int ntypes, const char* filename, 
+                                     bool write_binary);
 LCT_API void LCT_tracer_fina(LCT_tracer_t tracer);
 LCT_API void LCT_tracer_send(LCT_tracer_t tracer, int32_t type, int32_t rank,
                              uint64_t size);

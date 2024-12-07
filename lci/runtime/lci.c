@@ -9,7 +9,6 @@ __thread int LCIU_thread_id = -1;
 __thread unsigned int LCIU_rand_seed = 0;
 LCIS_server_t g_server;
 LCII_packet_heap_t g_heap;
-LCT_tracer_t LCII_tracer;
 
 void initialize_packet_heap(LCII_packet_heap_t* heap)
 {
@@ -67,7 +66,8 @@ LCI_error_t LCI_initialize()
   num_proc = LCT_pmi_get_size();
   LCI_Assert(num_proc > 0, "PMI ran into an error (num_proc=%d)\n", num_proc);
   LCT_set_rank(rank);
-  LCII_tracer = LCT_tracer_init("lci", (const char*[]){"net"}, 1);
+  LCT_set_nranks(num_proc);
+  LCII_tracer_init();
   LCII_pcounters_init();
   // Set some constant from environment variable.
   LCII_env_init(num_proc, rank);
@@ -120,7 +120,7 @@ LCI_error_t LCI_finalize()
 #endif
   }
   LCII_pcounters_fina();
-  LCT_tracer_fina(LCII_tracer);
+  LCII_tracer_fina();
   LCT_pmi_finalize();
   LCII_log_fina();
   LCT_fina();

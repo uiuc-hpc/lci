@@ -1,4 +1,5 @@
 #include <vector>
+#include <fstream>
 #include "lcti.hpp"
 
 namespace lct::tracer
@@ -168,8 +169,8 @@ struct tls_tracer_t {
 };
 
 struct tracer_t {
-  tracer_t(std::string name_, std::vector<std::string> typenames_)
-      : name(name_), typenames(typenames_), time_init(LCT_now()){};
+  tracer_t(std::string name_, std::vector<std::string> typenames_, const char* filename_, bool write_binary_)
+      : name(name_), typenames(typenames_), filename(filename_), write_binary(write_binary_), time_init(LCT_now()){};
   ~tracer_t(){};
   void record_send(int32_t user_type, int32_t rank, uint64_t size)
   {
@@ -191,8 +192,42 @@ struct tracer_t {
                      .size = size};
     tracer_p->output_archive& event;
   }
-  void dump(FILE* outfile)
-  {
+  
+  void dump_binary(std::string ofilename) {
+    std::ofstream outfile(ofilename, std::ofstream::binary);
+    if (!outfile.is_open()) {
+        fprintf(stderr, "Cannot open the logfile %s!\n", ofilename.c_str());
+    }
+    outfile << LCT_get_rank() << LCT_get_nranks() << LCT_time_to_s(LCT_now() - time_init);
+    auto all_ptrs = tls_tracer.get_all();
+    for (int i = 0; i < all_ptrs.size(); ++i) {
+      auto tracer = reinterpret_cast<tls_tracer_t*>(all_ptrs[i]);
+      if (tracer == nullptr) continue;
+      outfile << i << tracer->output_archive.nbytes();
+      input_archive_t ar(&tracer->storage);
+      event_t event;
+      while (ar.nbytes() < tracer->output_archive.nbytes()) {
+        ar& event;
+        outfile.write(reinterpret_cast<const char*>(&event), sizeof(event));
+      }
+    }
+    outfile.close();
+  }
+
+  void dump_string(std::string ofilename) {
+    FILE *outfile;
+    if (ofilename == "stderr")
+      outfile = stderr;
+    else if (ofilename == "stdout")
+      outfile = stdout;
+    else {
+      outfile = fopen(ofilename.c_str(), "a");
+      if (outfile == nullptr) {
+        fprintf(stderr, "Cannot open the logfile %s!\n", ofilename.c_str());
+      }
+    }
+
+    fprintf(outfile, "lct::tracer::dump: rank %d/%d time %.9lf\n", LCT_get_rank(), LCT_get_nranks(), LCT_time_to_s(LCT_now() - time_init));
     auto all_ptrs = tls_tracer.get_all();
     for (int i = 0; i < all_ptrs.size(); ++i) {
       auto tracer = reinterpret_cast<tls_tracer_t*>(all_ptrs[i]);
@@ -219,27 +254,39 @@ struct tracer_t {
     }
   }
 
+  void dump()
+  {
+    std::string ofilename =
+            replaceOne(filename, "%", std::to_string(LCT_get_rank()));
+    if (write_binary)
+      dump_binary(ofilename);
+    else
+      dump_string(ofilename);
+  }
+
  private:
   tlptr::tlptr_t tls_tracer;
   std::string name;
   std::vector<std::string> typenames;
   LCT_time_t time_init;
+  const char* filename;
+  bool write_binary;
 };
 }  // namespace lct::tracer
 
-LCT_tracer_t LCT_tracer_init(char* name, const char* typenames[], int ntypes)
+LCT_tracer_t LCT_tracer_init(char* name, const char* typenames[], int ntypes, const char* filename, bool write_binary)
 {
   std::vector<std::string> typenames_;
   for (int i = 0; i < ntypes; ++i) {
     typenames_.emplace_back(typenames[i]);
   }
-  auto* tracer = new lct::tracer::tracer_t(name, typenames_);
+  auto* tracer = new lct::tracer::tracer_t(name, typenames_, filename, write_binary);
   return tracer;
 }
 void LCT_tracer_fina(LCT_tracer_t tracer)
 {
   auto tracer_p = reinterpret_cast<lct::tracer::tracer_t*>(tracer);
-  tracer_p->dump(stderr);
+  tracer_p->dump();
   delete tracer_p;
 }
 void LCT_tracer_send(LCT_tracer_t tracer, int32_t type, int32_t rank,

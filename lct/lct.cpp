@@ -4,6 +4,7 @@
 
 LCT_API LCT_log_ctx_t LCT_log_ctx_default = nullptr;
 LCT_API int LCT_rank = -1;
+LCT_API int LCT_nranks = -1;
 LCT_API char LCT_hostname[HOST_NAME_MAX + 1] = "uninitialized";
 
 namespace lct
@@ -57,4 +58,8 @@ void LCT_fina() { lct::fina(); }
 
 void LCT_set_rank(int rank) { LCT_rank = rank; }
 
+void LCT_set_nranks(int nranks) { LCT_nranks = nranks; }
+
 int LCT_get_rank() { return LCT_rank; }
+
+int LCT_get_nranks() { return LCT_nranks; }

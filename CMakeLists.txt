@@ -169,6 +169,7 @@ if(NOT LCI_WITH_LCT_ONLY)
       64
       CACHE STRING "Size of cache line (bytes)")
   option(LCI_USE_PERFORMANCE_COUNTER "Use performance counter" OFF)
+  option(LCI_USE_TRACER "Use tracer" OFF)
   option(LCI_ENABLE_SLOWDOWN "Enable manually slowdown" OFF)
   option(LCI_IBV_ENABLE_TD_DEFAULT
          "Try to lock the IBV queue pair before access it." ON)

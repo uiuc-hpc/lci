@@ -8,12 +8,11 @@
 #include "sys/lciu_spinlock.h"
 #include "sys/lciu_malloc.h"
 #include "profile/performance_counter.h"
+#include "profile/tracer.h"
 #include "profile/papi_wrapper.h"
 #include "datastructure/lcm_dequeue.h"
 #include "datastructure/lcm_aqueue.h"
 #include "datastructure/lcm_archive.h"
-
-extern LCT_tracer_t LCII_tracer;
 #include "backend/server.h"
 #include "runtime/rcache/lcii_rcache.h"
 #include "backlog_queue.h"
