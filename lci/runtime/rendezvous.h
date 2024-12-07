@@ -188,6 +188,7 @@ static inline void LCII_handle_rts(LCI_endpoint_t ep, LCII_packet_t* packet,
                                    int src_rank, uint16_t tag,
                                    LCII_context_t* rdv_ctx, bool is_in_progress)
 {
+  LCII_PCOUNTER_START(handle_rts_timer);
   // Extract information from the received RTS packet
   LCII_rdv_type_t rdv_type = packet->data.rts.rdv_type;
   LCI_DBG_Log(LCI_LOG_TRACE, "rdv", "handle rts: rdv_type %d\n", rdv_type);
@@ -270,8 +271,10 @@ static inline void LCII_handle_rts(LCI_endpoint_t ep, LCII_packet_t* packet,
     // We cannot use writeimm for more than 1 rdma messages.
     // IOVEC does not support writeimm for now
     uint64_t ctx_key;
+    LCII_PCOUNTER_START(rts_archive_timer);
     int result =
         LCM_archive_put(ep->ctx_archive_p, (uintptr_t)rdv_ctx, &ctx_key);
+    LCII_PCOUNTER_END(rts_archive_timer);
     // TODO: be able to pass back pressure to user
     LCI_Assert(result == LCM_SUCCESS, "Archive is full!\n");
     packet->data.rtr.recv_ctx_key = ctx_key;
@@ -312,6 +315,7 @@ static inline void LCII_handle_rts(LCI_endpoint_t ep, LCII_packet_t* packet,
                     ep->device->heap_segment->mr,
                     LCII_MAKE_PROTO(ep->gid, LCI_MSG_RTR, 0), rtr_ctx);
   LCII_PCOUNTER_END(rts_send_timer);
+  LCII_PCOUNTER_END(handle_rts_timer);
 }
 
 static inline void LCII_handle_rtr(LCI_endpoint_t ep, LCII_packet_t* packet)

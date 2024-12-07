@@ -109,19 +109,19 @@ struct tls_ctx_t {
     switch (handle.type) {
       case LCT_PCOUNTER_COUNTER:
         if (handle.idx >= counters.size()) {
-          counters.resize(handle.idx + 1);
+          counters.resize(handle.idx * 2 + 1);
         }
         counters[handle.idx].add(val);
         break;
       case LCT_PCOUNTER_TREND:
         if (handle.idx >= trends.size()) {
-          trends.resize(handle.idx + 1);
+          trends.resize(handle.idx * 2 + 1);
         }
         trends[handle.idx].add(val);
         break;
       case LCT_PCOUNTER_TIMER:
         if (handle.idx >= timers.size()) {
-          timers.resize(handle.idx + 1);
+          timers.resize(handle.idx * 2 + 1);
         }
         timers[handle.idx].add(val);
         break;
@@ -141,7 +141,7 @@ struct tls_ctx_t {
                                ", type: " + std::to_string(handle.type) + ", " +
                                std::to_string(handle.idx));
     if (handle.idx >= timers.size()) {
-      timers.resize(handle.idx + 1);
+      timers.resize(handle.idx * 2 + 1);
     }
     timers[handle.idx].start(time);
     lock.unlock();
@@ -155,7 +155,7 @@ struct tls_ctx_t {
                                std::to_string(handle.type) + " " +
                                std::to_string(handle.idx));
     if (handle.idx >= timers.size()) {
-      timers.resize(handle.idx + 1);
+      timers.resize(handle.idx * 2 + 1);
     }
     timers[handle.idx].end(time);
     lock.unlock();
