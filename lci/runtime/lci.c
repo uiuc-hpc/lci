@@ -79,7 +79,7 @@ LCI_error_t LCI_initialize()
   }
   // initialize global data structure
   LCIS_server_init(&g_server);
-  initialize_packet_heap(&g_heap);
+  if (LCI_USE_GLOBAL_PACKET_POOL) initialize_packet_heap(&g_heap);
   // UR objects
   LCI_device_init(&LCI_UR_DEVICE);
   LCI_queue_create(LCI_UR_DEVICE, &LCI_UR_CQ);
@@ -111,7 +111,7 @@ LCI_error_t LCI_finalize()
   LCI_queue_free(&LCI_UR_CQ);
   LCI_device_free(&LCI_UR_DEVICE);
   LCIS_server_fina(g_server);
-  finalize_packet_heap(&g_heap);
+  if (LCI_USE_GLOBAL_PACKET_POOL) finalize_packet_heap(&g_heap);
   if (LCI_USE_DREG) {
 #ifdef LCI_COMPILE_DREG
     LCII_ucs_cleanup();

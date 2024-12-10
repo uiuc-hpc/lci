@@ -66,6 +66,8 @@ struct LCII_packet_heap_t {
   int total_recv_posted;  // for debugging purpose
 };
 typedef struct LCII_packet_heap_t LCII_packet_heap_t;
+extern void initialize_packet_heap(LCII_packet_heap_t* heap);
+extern void finalize_packet_heap(LCII_packet_heap_t* heap);
 
 extern LCIS_server_t g_server;
 extern LCII_packet_heap_t g_heap;
