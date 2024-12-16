@@ -625,6 +625,12 @@ extern bool LCI_UCX_USE_TRY_LOCK;
 extern bool LCI_UCX_PROGRESS_FOCUSED;
 
 /**
+ * @ingroup LCI_DEVICE
+ * @brief Whether to use global packet pool.
+ */
+extern bool LCI_USE_GLOBAL_PACKET_POOL;
+
+/**
  * @ingroup LCI_COMM
  * @brief Try_lock mode of network backend.
  */

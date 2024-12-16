@@ -60,7 +60,12 @@ LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
   LCII_bq_init(&device->bq);
   LCIU_spinlock_init(&device->bq_spinlock);
 
-  device->heap = &g_heap;
+  if (LCI_USE_GLOBAL_PACKET_POOL) {
+    device->heap = &g_heap;
+  } else {
+    device->heap = LCIU_malloc(sizeof(LCII_packet_heap_t));
+    initialize_packet_heap(device->heap);
+  }
   LCI_memory_register(device, device->heap->address, device->heap->length,
                       &device->heap_segment);
 
@@ -89,6 +94,10 @@ LCI_error_t LCI_device_free(LCI_device_t* device_ptr)
         LCII_endpoint_get_recv_posted(device->endpoint_progress);
   }
   LCI_memory_deregister(&device->heap_segment);
+  if (!LCI_USE_GLOBAL_PACKET_POOL) {
+    finalize_packet_heap(device->heap);
+    LCIU_free(device->heap);
+  }
   LCII_matchtable_free(&device->mt);
   LCM_archive_fini(&(device->ctx_archive));
   LCII_bq_fini(&device->bq);

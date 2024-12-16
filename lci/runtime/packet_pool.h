@@ -10,7 +10,7 @@
 #include <assert.h>
 
 #define MAX_NPOOLS 272
-#define MAX_LOCAL_POOL 32  // align to a cache line.
+#define MAX_LOCAL_POOL 128
 
 extern int LCII_pool_nkey;
 extern int32_t LCII_tls_pool_metadata[MAX_NPOOLS][MAX_LOCAL_POOL];
