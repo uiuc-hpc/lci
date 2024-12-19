@@ -32,6 +32,7 @@ LCI_API bool LCI_ENABLE_PRG_NET_ENDPOINT;
 LCI_API LCI_rdv_protocol_t LCI_RDV_PROTOCOL;
 LCI_API bool LCI_OFI_CXI_TRY_NO_HACK;
 LCI_API uint64_t LCI_BACKEND_TRY_LOCK_MODE;
+LCI_API uint64_t LCI_DEVICE_LOCK_MODE;
 LCI_API bool LCI_UCX_USE_TRY_LOCK;
 LCI_API bool LCI_UCX_PROGRESS_FOCUSED;
 LCI_API bool LCI_USE_GLOBAL_PACKET_POOL;
@@ -127,6 +128,25 @@ void LCII_env_init(int num_proc, int rank)
                LCI_BACKEND_TRY_LOCK_MODE);
     LCI_Log(LCI_LOG_INFO, "env", "set LCI_BACKEND_TRY_LOCK_MODE to be %d\n",
             LCI_BACKEND_TRY_LOCK_MODE);
+  }
+  {
+    // default value
+    LCI_DEVICE_LOCK_MODE = 0;
+    // if users explicitly set the value
+    char* p = getenv("LCI_DEVICE_LOCK_MODE");
+    if (p) {
+      LCT_dict_str_int_t dict[] = {
+          {"none", LCI_DEVICE_LOCK_MODE_NONE},
+          {"try", LCI_DEVICE_LOCK_MODE_TRY},
+          {"block", LCI_DEVICE_LOCK_MODE_BLOCK},
+      };
+      LCI_DEVICE_LOCK_MODE =
+          LCT_parse_arg(dict, sizeof(dict) / sizeof(dict[0]), p, ",");
+    }
+    LCI_Assert(LCI_DEVICE_LOCK_MODE < LCI_DEVICE_LOCK_MODE_MAX,
+               "Unexpected LCI_DEVICE_LOCK_MODE %d", LCI_DEVICE_LOCK_MODE);
+    LCI_Log(LCI_LOG_INFO, "env", "set LCI_DEVICE_LOCK_MODE to be %d\n",
+            LCI_DEVICE_LOCK_MODE);
   }
   LCI_UCX_USE_TRY_LOCK = LCIU_getenv_or("LCI_UCX_USE_TRY_LOCK", 0);
   LCI_UCX_PROGRESS_FOCUSED = LCIU_getenv_or("LCI_UCX_PROGRESS_FOCUSED", 0);

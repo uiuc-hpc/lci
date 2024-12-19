@@ -10,9 +10,11 @@ LCI_error_t LCI_puts(LCI_endpoint_t ep, LCI_short_t src, int rank,
                  "Only support default remote completion "
                  "(set by LCI_plist_set_default_comp, "
                  "the default value is LCI_UR_CQ)\n");
+  LCII_DEVICE_CS_ENTER(ep->device);
   LCI_error_t ret = LCIS_post_sends(
       ep->device->endpoint_worker->endpoint, rank, &src, sizeof(LCI_short_t),
       LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDMA_SHORT, tag));
+  LCII_DEVICE_CS_EXIT(ep->device);
   if (ret == LCI_OK) {
     LCII_PCOUNTER_ADD(put, sizeof(LCI_short_t));
   }
@@ -48,6 +50,7 @@ LCI_error_t LCI_putmac(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
                  "Only support default remote completion "
                  "(set by LCI_plist_set_default_comp, "
                  "the default value is LCI_UR_CQ)\n");
+  LCII_DEVICE_CS_ENTER(ep->device);
   LCI_error_t ret = LCI_OK;
   bool is_user_provided_packet =
       LCII_is_packet(ep->device->heap, buffer.address);
@@ -70,6 +73,7 @@ LCI_error_t LCI_putmac(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
       packet = LCII_alloc_packet_nb(ep->pkpool);
       if (packet == NULL) {
         // no packet is available
+        LCII_DEVICE_CS_EXIT(ep->device);
         return LCI_ERR_RETRY;
       }
       memcpy(packet->data.address, buffer.address, buffer.length);
@@ -102,6 +106,7 @@ LCI_error_t LCI_putmac(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
       LCIU_free(ctx);
     }
   }
+  LCII_DEVICE_CS_EXIT(ep->device);
   if (ret == LCI_OK) {
     LCII_PCOUNTER_ADD(put, (int64_t)buffer.length);
   }
@@ -143,12 +148,15 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
                  "Only support default remote completion "
                  "(set by LCI_plist_set_default_comp, "
                  "the default value is LCI_UR_CQ)\n");
+  LCII_DEVICE_CS_ENTER(ep->device);
   if (!LCII_bq_is_empty(ep->bq_p)) {
+    LCII_DEVICE_CS_EXIT(ep->device);
     return LCI_ERR_RETRY;
   }
   LCII_packet_t* packet = LCII_alloc_packet_nb(ep->pkpool);
   if (packet == NULL) {
     // no packet is available
+    LCII_DEVICE_CS_EXIT(ep->device);
     return LCI_ERR_RETRY;
   }
   packet->context.poolid = LCII_POOLID_LOCAL;
@@ -187,6 +195,7 @@ LCI_error_t LCI_putla(LCI_endpoint_t ep, LCI_lbuffer_t buffer,
     LCIU_free(rts_ctx);
     LCIU_free(rdv_ctx);
   }
+  LCII_DEVICE_CS_EXIT(ep->device);
   if (ret == LCI_OK) {
     LCII_PCOUNTER_ADD(put, (int64_t)buffer.length);
   }
@@ -217,6 +226,7 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
       iovec.piggy_back.length <= LCI_get_iovec_piggy_back_size(iovec.count),
       "iovec's piggy back is too large! (%lu > %lu)\n", iovec.piggy_back.length,
       LCI_get_iovec_piggy_back_size(iovec.count));
+  LCII_DEVICE_CS_ENTER(ep->device);
   for (int i = 0; i < iovec.count; ++i) {
     LCI_DBG_Assert(
         (iovec.lbuffers[0].segment == LCI_SEGMENT_ALL &&
@@ -228,11 +238,13 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
     LCI_DBG_Assert(iovec.lbuffers[i].length > 0, "Invalid lbuffer length\n");
   }
   if (!LCII_bq_is_empty(ep->bq_p)) {
+    LCII_DEVICE_CS_EXIT(ep->device);
     return LCI_ERR_RETRY;
   }
   LCII_packet_t* packet = LCII_alloc_packet_nb(ep->pkpool);
   if (packet == NULL) {
     // no packet is available
+    LCII_DEVICE_CS_EXIT(ep->device);
     return LCI_ERR_RETRY;
   }
   packet->context.poolid =
@@ -286,6 +298,7 @@ LCI_error_t LCI_putva(LCI_endpoint_t ep, LCI_iovec_t iovec,
     LCIU_free(rts_ctx);
     LCIU_free(rdv_ctx);
   }
+  LCII_DEVICE_CS_EXIT(ep->device);
   if (ret == LCI_OK) {
     uint64_t total_length = iovec.piggy_back.length;
     for (int i = 0; i < iovec.count; ++i) {

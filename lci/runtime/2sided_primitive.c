@@ -6,9 +6,11 @@ LCI_error_t LCI_sends(LCI_endpoint_t ep, LCI_short_t src, int rank,
 {
   LCI_DBG_Assert(tag <= LCI_MAX_TAG, "tag %d is too large (maximum: %d)\n", tag,
                  LCI_MAX_TAG);
+  LCII_DEVICE_CS_ENTER(ep->device);
   LCI_error_t ret = LCIS_post_sends(
       ep->device->endpoint_worker->endpoint, rank, &src, sizeof(LCI_short_t),
       LCII_MAKE_PROTO(ep->gid, LCI_MSG_SHORT, tag));
+  LCII_DEVICE_CS_EXIT(ep->device);
   if (ret == LCI_OK) {
     LCII_PCOUNTER_ADD(send, sizeof(LCI_short_t));
   }
@@ -25,6 +27,7 @@ LCI_error_t LCI_sendmc(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   LCI_DBG_Assert(buffer.length <= LCI_MEDIUM_SIZE,
                  "buffer is too large %lu (maximum: %d)\n", buffer.length,
                  LCI_MEDIUM_SIZE);
+  LCII_DEVICE_CS_ENTER(ep->device);
   LCI_error_t ret = LCI_OK;
   bool is_user_provided_packet =
       LCII_is_packet(ep->device->heap, buffer.address);
@@ -47,6 +50,7 @@ LCI_error_t LCI_sendmc(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
       packet = LCII_alloc_packet_nb(ep->pkpool);
       if (packet == NULL) {
         // no packet is available
+        LCII_DEVICE_CS_EXIT(ep->device);
         return LCI_ERR_RETRY;
       }
       memcpy(packet->data.address, buffer.address, buffer.length);
@@ -80,6 +84,7 @@ LCI_error_t LCI_sendmc(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
       LCIU_free(ctx);
     }
   }
+  LCII_DEVICE_CS_EXIT(ep->device);
   if (ret == LCI_OK) {
     LCII_PCOUNTER_ADD(send, (int64_t)buffer.length);
   }
@@ -108,12 +113,15 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, int rank,
 {
   LCI_DBG_Assert(tag <= LCI_MAX_TAG, "tag %d is too large (maximum: %d)\n", tag,
                  LCI_MAX_TAG);
+  LCII_DEVICE_CS_ENTER(ep->device);
   if (!LCII_bq_is_empty(ep->bq_p)) {
+    LCII_DEVICE_CS_EXIT(ep->device);
     return LCI_ERR_RETRY;
   }
   LCII_packet_t* packet = LCII_alloc_packet_nb(ep->pkpool);
   if (packet == NULL) {
     // no packet is available
+    LCII_DEVICE_CS_EXIT(ep->device);
     return LCI_ERR_RETRY;
   }
   packet->context.poolid = LCII_POOLID_LOCAL;
@@ -149,6 +157,7 @@ LCI_error_t LCI_sendl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, int rank,
     LCIU_free(rts_ctx);
     LCIU_free(rdv_ctx);
   }
+  LCII_DEVICE_CS_EXIT(ep->device);
   if (ret == LCI_OK) {
     LCII_PCOUNTER_ADD(send, (int64_t)buffer.length);
   }
@@ -165,6 +174,7 @@ LCI_error_t LCI_recvs(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
 {
   LCI_DBG_Assert(tag <= LCI_MAX_TAG, "tag %d is too large (maximum: %d)\n", tag,
                  LCI_MAX_TAG);
+  LCII_DEVICE_CS_ENTER(ep->device);
   LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
   ctx->data_type = LCI_IMMEDIATE;
   ctx->rank = rank;
@@ -184,6 +194,7 @@ LCI_error_t LCI_recvs(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
     LCII_free_packet(packet);
     lc_ce_dispatch(ctx);
   }
+  LCII_DEVICE_CS_EXIT(ep->device);
   LCII_PCOUNTER_ADD(recv, 1);
   LCI_DBG_Log(LCI_LOG_TRACE, "comm",
               "LCI_recvs(ep %p, rank %d, tag %u, completion %p, user_context "
@@ -200,6 +211,7 @@ LCI_error_t LCI_recvm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
   LCI_DBG_Assert(buffer.length <= LCI_MEDIUM_SIZE,
                  "buffer is too large %lu (maximum: %d)\n", buffer.length,
                  LCI_MEDIUM_SIZE);
+  LCII_DEVICE_CS_ENTER(ep->device);
   LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
   ctx->data.mbuffer = buffer;
   ctx->data_type = LCI_MEDIUM;
@@ -223,6 +235,7 @@ LCI_error_t LCI_recvm(LCI_endpoint_t ep, LCI_mbuffer_t buffer, int rank,
     LCII_free_packet(packet);
     lc_ce_dispatch(ctx);
   }
+  LCII_DEVICE_CS_EXIT(ep->device);
   LCII_PCOUNTER_ADD(recv, 1);
   LCI_DBG_Log(LCI_LOG_TRACE, "comm",
               "LCI_recvm(ep %p, buffer {%p, %lu}, rank %d, tag %u, completion "
@@ -237,6 +250,7 @@ LCI_error_t LCI_recvmn(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
 {
   LCI_DBG_Assert(tag <= LCI_MAX_TAG, "tag %d is too large (maximum: %d)\n", tag,
                  LCI_MAX_TAG);
+  LCII_DEVICE_CS_ENTER(ep->device);
   LCII_context_t* ctx = LCIU_malloc(sizeof(LCII_context_t));
   ctx->data.mbuffer.address = NULL;
   ctx->data_type = LCI_MEDIUM;
@@ -258,6 +272,7 @@ LCI_error_t LCI_recvmn(LCI_endpoint_t ep, int rank, LCI_tag_t tag,
     ctx->data.mbuffer.address = packet->data.address;
     lc_ce_dispatch(ctx);
   }
+  LCII_DEVICE_CS_EXIT(ep->device);
   LCII_PCOUNTER_ADD(recv, 1);
   LCI_DBG_Log(LCI_LOG_TRACE, "comm",
               "LCI_recvmn(ep %p, rank %d, tag %u, completion %p, user_context "
@@ -271,6 +286,7 @@ LCI_error_t LCI_recvl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, int rank,
 {
   LCI_DBG_Assert(tag <= LCI_MAX_TAG, "tag %d is too large (maximum: %d)\n", tag,
                  LCI_MAX_TAG);
+  LCII_DEVICE_CS_ENTER(ep->device);
   LCII_context_t* rdv_ctx = LCIU_malloc(sizeof(LCII_context_t));
   rdv_ctx->data.lbuffer = buffer;
   rdv_ctx->data_type = LCI_LONG;
@@ -292,6 +308,7 @@ LCI_error_t LCI_recvl(LCI_endpoint_t ep, LCI_lbuffer_t buffer, int rank,
     LCII_packet_t* packet = (LCII_packet_t*)value;
     LCII_handle_rts(ep, packet, packet->context.src_rank, tag, rdv_ctx, false);
   }
+  LCII_DEVICE_CS_EXIT(ep->device);
   LCII_PCOUNTER_ADD(recv, 1);
   LCI_DBG_Log(LCI_LOG_TRACE, "comm",
               "LCI_recvl(ep %p, buffer {%p, %lu, %p}, rank %d, tag %u, "

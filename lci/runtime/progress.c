@@ -154,6 +154,8 @@ LCI_error_t LCII_fill_rq(LCII_endpoint_t* endpoint, bool block)
 LCI_error_t LCI_progress(LCI_device_t device)
 {
   int ret = LCI_ERR_RETRY;
+  LCII_PCOUNTER_ADD(progress_call, 1);
+  LCII_DEVICE_CS_ENTER_PROGRESS(device, ret);
   // we want to make progress on the endpoint_progress as much as possible
   // to speed up rendezvous protocol
   while (LCI_ENABLE_PRG_NET_ENDPOINT &&
@@ -175,6 +177,6 @@ LCI_error_t LCI_progress(LCI_device_t device)
   if (LCII_fill_rq(device->endpoint_worker, false) == LCI_OK) {
     ret = LCI_OK;
   }
-  LCII_PCOUNTER_ADD(progress_call, 1);
+  LCII_DEVICE_CS_EXIT(device);
   return ret;
 }

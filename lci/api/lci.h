@@ -645,6 +645,18 @@ typedef enum {
 extern uint64_t LCI_BACKEND_TRY_LOCK_MODE;
 
 /**
+ * @ingroup LCI_COMM
+ * @brief Try_lock mode of LCI runtime.
+ */
+typedef enum {
+  LCI_DEVICE_LOCK_MODE_NONE,
+  LCI_DEVICE_LOCK_MODE_BLOCK,
+  LCI_DEVICE_LOCK_MODE_TRY,
+  LCI_DEVICE_LOCK_MODE_MAX,
+} LCI_DEVICE_LOCK_MODE_t;
+extern uint64_t LCI_DEVICE_LOCK_MODE;
+
+/**
  * @ingroup LCI_DEVICE
  * @brief Default device initialized by LCI_initialize. Just for convenience.
  */

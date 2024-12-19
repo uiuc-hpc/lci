@@ -17,6 +17,7 @@
 #include "backlog_queue.h"
 
 extern uint64_t LCI_PAGESIZE;
+
 /*
  * used by
  * - LCII_MAKE_PROTO (4 bits) for communication immediate data field
@@ -89,7 +90,26 @@ struct __attribute__((aligned(LCI_CACHE_LINE))) LCI_device_s {
   LCII_backlog_queue_t bq;
   LCIU_spinlock_t bq_spinlock;
   LCIU_CACHE_PADDING((sizeof(LCII_backlog_queue_t) + sizeof(LCIU_spinlock_t)));
+  LCIU_spinlock_t device_lock;  // used for device lock
+  LCIU_CACHE_PADDING((sizeof(LCIU_spinlock_t)));
 };
+
+// device lock mode
+#define LCII_DEVICE_CS_ENTER_PROGRESS(device_p, ret)           \
+  if (LCI_DEVICE_LOCK_MODE == LCI_DEVICE_LOCK_MODE_TRY &&      \
+      !LCIU_try_acquire_spinlock(&device_p->device_lock))      \
+    return ret;                                                \
+  else if (LCI_DEVICE_LOCK_MODE == LCI_DEVICE_LOCK_MODE_BLOCK) \
+    LCIU_acquire_spinlock(&device_p->device_lock);
+
+#define LCII_DEVICE_CS_ENTER(device_p)                    \
+  if (LCI_DEVICE_LOCK_MODE == LCI_DEVICE_LOCK_MODE_TRY || \
+      LCI_DEVICE_LOCK_MODE == LCI_DEVICE_LOCK_MODE_BLOCK) \
+    LCIU_acquire_spinlock(&device_p->device_lock);
+
+#define LCII_DEVICE_CS_EXIT(device_p)                    \
+  if (LCI_DEVICE_LOCK_MODE != LCI_DEVICE_LOCK_MODE_NONE) \
+    LCIU_release_spinlock(&device_p->device_lock);
 
 struct LCI_plist_s {
   LCI_match_t match_type;         // matching type

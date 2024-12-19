@@ -59,6 +59,7 @@ LCI_error_t LCI_device_init(LCI_device_t* device_ptr)
   LCM_archive_init(&(device->ctx_archive), 16);
   LCII_bq_init(&device->bq);
   LCIU_spinlock_init(&device->bq_spinlock);
+  LCIU_spinlock_init(&device->device_lock);
 
   if (LCI_USE_GLOBAL_PACKET_POOL) {
     device->heap = &g_heap;
@@ -101,6 +102,7 @@ LCI_error_t LCI_device_free(LCI_device_t* device_ptr)
   LCII_matchtable_free(&device->mt);
   LCM_archive_fini(&(device->ctx_archive));
   LCII_bq_fini(&device->bq);
+  LCIU_spinlock_fina(&device->device_lock);
   LCIU_spinlock_fina(&device->bq_spinlock);
   if (LCI_USE_DREG) {
     LCII_rcache_fina(device);
