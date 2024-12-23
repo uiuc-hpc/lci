@@ -6,6 +6,7 @@
 #include "data_structure/queue/queue_array_atomic_basic.hpp"
 #include "data_structure/queue/queue_array.hpp"
 #include "data_structure/queue/queue_std.hpp"
+#include "data_structure/queue/queue_lprq.hpp"
 
 LCT_queue_t LCT_queue_alloc(LCT_queue_type_t type, size_t length)
 {
@@ -31,6 +32,9 @@ LCT_queue_t LCT_queue_alloc(LCT_queue_type_t type, size_t length)
       break;
     case LCT_QUEUE_STD_MUTEX:
       q = new lct::queue_std_t<true>();
+      break;
+    case LCT_QUEUE_LPRQ:
+      q = new lct::queue_lprq_t();
       break;
     default:
       throw std::runtime_error("unknown queue type " + std::to_string(type));
