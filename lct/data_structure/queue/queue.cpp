@@ -6,7 +6,9 @@
 #include "data_structure/queue/queue_array_atomic_basic.hpp"
 #include "data_structure/queue/queue_array.hpp"
 #include "data_structure/queue/queue_std.hpp"
-#include "data_structure/queue/queue_lprq.hpp"
+#include "data_structure/queue/queue_concurrency_freaks.hpp"
+// #include "data_structure/queue/queue_faaarray.hpp"
+// #include "data_structure/queue/queue_lazy_index.hpp"
 
 LCT_queue_t LCT_queue_alloc(LCT_queue_type_t type, size_t length)
 {
@@ -33,8 +35,20 @@ LCT_queue_t LCT_queue_alloc(LCT_queue_type_t type, size_t length)
     case LCT_QUEUE_STD_MUTEX:
       q = new lct::queue_std_t<true>();
       break;
+    case LCT_QUEUE_MS:
+      q = new lct::queue_concurrency_freaks_t<MichaelScottQueue<void>>();
+      break;
+    case LCT_QUEUE_LCRQ:
+      q = new lct::queue_concurrency_freaks_t<LCRQueue<void>>();
+      break;
     case LCT_QUEUE_LPRQ:
-      q = new lct::queue_lprq_t();
+      q = new lct::queue_concurrency_freaks_t<LPRQueue<void>>();
+      break;
+    case LCT_QUEUE_FAAARRAY:
+      q = new lct::queue_concurrency_freaks_t<FAAArrayQueue<void>>();
+      break;
+    case LCT_QUEUE_LAZY_INDEX:
+      q = new lct::queue_concurrency_freaks_t<LazyIndexArrayQueue<void>>();
       break;
     default:
       throw std::runtime_error("unknown queue type " + std::to_string(type));

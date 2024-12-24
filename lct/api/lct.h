@@ -163,7 +163,11 @@ typedef enum {
   LCT_QUEUE_ARRAY_MUTEX,
   LCT_QUEUE_STD,
   LCT_QUEUE_STD_MUTEX,
+  LCT_QUEUE_MS,
+  LCT_QUEUE_LCRQ,
   LCT_QUEUE_LPRQ,
+  LCT_QUEUE_FAAARRAY,
+  LCT_QUEUE_LAZY_INDEX,
 } LCT_queue_type_t;
 struct LCT_queue_opaque_t;
 typedef struct LCT_queue_opaque_t* LCT_queue_t;

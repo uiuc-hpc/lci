@@ -35,6 +35,7 @@ set_target_properties(LCT PROPERTIES OUTPUT_NAME lct)
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
+target_include_directories(LCT PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(LCT PUBLIC Threads::Threads)
 add_subdirectory(lct)
 
