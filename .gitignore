@@ -1,0 +1,47 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Vscode related
+.vscode/
+build/
+
+# CLion related
+.idea
+cmake-build-*
+
+# Spack related
+spack-*
+
+results
+errors
+*_test
+build-*/
+vscode-build/
+code_doc/
+__pycache__

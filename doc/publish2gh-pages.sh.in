@@ -1,0 +1,54 @@
+#!/bin/bash
+#############################################################
+# This is a bash script to update the doxygen documentation
+# on gh-pages
+# Prerequisite:
+# - Packages doxygen doxygen-doc doxygen-gui graphviz
+#   must be installed.
+# - An gh-pages branch should already exist.
+# Acknowledgement: Thank Francesco Romano for the excellent document
+# https://gist.github.com/francesco-romano/351a6ae457860c14ee7e907f2b0fc1a5
+__AUTHOR__="Jiakun Yan (jiakuny3@illinois.edu)"
+#############################################################
+
+# Exit with nonzero exit code if anything fails
+set -e
+
+echo "Setting up the execution environment..."
+# Necessary variables
+# the remote to be pushed to
+gh_remote=${1:-origin}
+echo "Set the push target to github remote ${gh_remote}"
+# work directory (WARNING: would be deleted if already existing)
+gh_pages_dir=./gh-repo
+# remote url to be pushed to
+gh_url=$(git remote get-url ${gh_remote})
+# commit ID that generates the documentation
+gh_commit=$(git rev-parse HEAD)
+
+# Clone the current gh-pages branch here
+if [ -d ${gh_pages_dir} ]; then
+  rm -r ${gh_pages_dir}
+fi
+git clone -b gh-pages ${gh_url} ${gh_pages_dir}
+cd ${gh_pages_dir}
+# go back to first commit
+git reset --hard "$(git rev-list --max-parents=0 --abbrev-commit HEAD)"
+
+#echo "Generating Doxygen documentation..."
+#( cat ../Doxyfile ; printf "OUTPUT_DIRECTORY=./\nHTML_OUTPUT=html\nGENERATE_HTML=YES\nINPUT=../\nGENERATE_LATEX=NO" ) | \
+#doxygen - > doxygen.log 2>&1
+
+if [ -d "../html" ] && [ -f "../html/index.html" ]; then
+  echo "Uploading documentation to ${gh_url}..."
+  rm -rf ./html
+  cp -r ../html ./
+  git add --all
+  git commit -m "Doxygen doc for ${gh_commit}" > /dev/null 2>&1
+  git push --force origin
+else
+    echo '' >&2
+    echo 'Warning: No documentation (html) files have been found!' >&2
+    echo 'Warning: Not going to push the documentation to GitHub!' >&2
+    exit 1
+fi

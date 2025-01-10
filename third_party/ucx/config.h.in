@@ -1,0 +1,165 @@
+#ifndef UCX_CONFIG_H
+#define UCX_CONFIG_H
+
+#define ucs_MODULES ""
+#define ucm_MODULES ""
+
+/*
+ * configure.m4
+ */
+
+/* Enable collecting data */
+#cmakedefine01 ENABLE_DEBUG_DATA
+
+/*
+ * config/m4/sysdep.m4
+*/
+
+/* Define to 1 to disable Valgrind annotations. */
+#cmakedefine NVALGRIND 1
+
+/* struct sigevent has _sigev_un._tid */
+#cmakedefine HAVE_SIGEVENT_SIGEV_UN_TID 1
+
+/* struct sigevent has sigev_notify_thread_id */
+#cmakedefine HAVE_SIGEVENT_SIGEV_NOTIFY_THREAD_ID 1
+
+#define UCX_MODULE_DIR "@UCX_MODULE_DIR@"
+#define UCX_CONFIG_DIR "@UCX_CONFIG_DIR@"
+
+/* Define to 1 if you have the <malloc.h> header file. */
+#cmakedefine HAVE_MALLOC_H 1
+
+/* Define to 1 if you have the <malloc_np.h> header file. */
+#cmakedefine HAVE_MALLOC_NP_H 1
+
+/* malloc hooks support */
+#cmakedefine HAVE_MALLOC_HOOK 1
+
+/* Define to 1 if you have the `clearenv' function. */
+#cmakedefine HAVE_CLEARENV 1
+
+/* Define to 1 if you have the `malloc_trim' function. */
+#cmakedefine HAVE_MALLOC_TRIM 1
+
+/* Define to 1 if you have the `memalign' function. */
+#cmakedefine HAVE_MEMALIGN 1
+
+/* Define to 1 if you have the `posix_memalign' function. */
+#cmakedefine HAVE_POSIX_MEMALIGN 1
+
+/* Define to 1 if you have the `mremap' function. */
+#cmakedefine HAVE_MREMAP 1
+
+/* Define to 1 if you have the `sched_getaffinity' function. */
+#cmakedefine HAVE_SCHED_GETAFFINITY 1
+
+/* Define to 1 if you have the `sched_setaffinity' function. */
+#cmakedefine HAVE_SCHED_SETAFFINITY 1
+
+/* Define to 1 if you have the `cpuset_getaffinity' function. */
+#cmakedefine HAVE_CPUSET_GETAFFINITY 1
+
+/* Define to 1 if you have the `cpuset_setaffinity' function. */
+#cmakedefine HAVE_CPUSET_SETAFFINITY 1
+
+/* Define to 1 if the system has the type `sighandler_t'. */
+#cmakedefine HAVE_SIGHANDLER_T 1
+
+/* Define to 1 if the system has the type `__sighandler_t'. */
+#cmakedefine HAVE___SIGHANDLER_T 1
+
+/*
+ * src/ucs/configure.m4
+ */
+
+/* Enable profiling */
+#cmakedefine HAVE_PROFILING 1
+
+/* Define to 1 if you have the `bfd' library (-lbfd). */
+/* #undef HAVE_LIBBFD */
+
+/* Enable statistics */
+#cmakedefine ENABLE_STATS 1
+
+/* Enable tuning */
+#cmakedefine ENABLE_TUNING 1
+
+/* Highest log level */
+#define UCS_MAX_LOG_LEVEL @UCS_MAX_LOG_LEVEL@
+
+/* Enable assertions */
+#cmakedefine ENABLE_ASSERT 1
+
+/* user defined cache line size */
+#cmakedefine HAVE_CACHE_LINE_SIZE @HAVE_CACHE_LINE_SIZE@
+
+/* high-resolution hardware timer enabled/disabled */
+#cmakedefine01 HAVE_HW_TIMER
+
+/* Enable/disable builtin memcpy */
+#cmakedefine01 ENABLE_BUILTIN_MEMCPY
+
+/* Define to 1 if you have the `__clear_cache' function. */
+#cmakedefine HAVE___CLEAR_CACHE 1
+
+/* Define to 1 if you have the `__aarch64_sync_cache_range' function. */
+#cmakedefine HAVE___AARCH64_SYNC_CACHE_RANGE 1
+
+/*
+ * config/m4/ucm.m4
+ */
+
+#cmakedefine HAVE_UCM_PTMALLOC286 1
+
+/* Define to 1 if you have the declaration of `MADV_FREE', and to 0 if you
+   don't. */
+#cmakedefine01 HAVE_DECL_MADV_FREE
+
+/* Define to 1 if you have the declaration of `MADV_REMOVE', and to 0 if you
+   don't. */
+#cmakedefine01 HAVE_DECL_MADV_REMOVE
+
+/* Define to 1 if you have the declaration of `POSIX_MADV_DONTNEED', and to 0
+   if you don't. */
+#cmakedefine01 HAVE_DECL_POSIX_MADV_DONTNEED
+
+/* Define to 1 if you have the declaration of `getauxval', and to 0 if you
+   don't. */
+#cmakedefine01 HAVE_DECL_GETAUXVAL
+
+/* Define to 1 if you have the declaration of `SYS_mmap', and to 0 if you
+   don't. */
+#cmakedefine01 HAVE_DECL_SYS_MMAP
+
+/* Define to 1 if you have the declaration of `SYS_mremap', and to 0 if you
+   don't. */
+#cmakedefine01 HAVE_DECL_SYS_MREMAP
+
+/* Define to 1 if you have the declaration of `SYS_munmap', and to 0 if you
+   don't. */
+#cmakedefine01 HAVE_DECL_SYS_MUNMAP
+/* Define to 1 if you have the declaration of `SYS_brk', and to 0 if you
+   don't. */
+#cmakedefine01 HAVE_DECL_SYS_BRK
+
+/* Define to 1 if you have the declaration of `SYS_madvise', and to 0 if you
+   don't. */
+#cmakedefine01 HAVE_DECL_SYS_MADVISE
+
+/* Define to 1 if you have the declaration of `SYS_shmat', and to 0 if you
+   don't. */
+#cmakedefine01 HAVE_DECL_SYS_SHMAT
+
+/* Define to 1 if you have the declaration of `SYS_shmdt', and to 0 if you
+   don't. */
+#cmakedefine01 HAVE_DECL_SYS_SHMDT
+
+/* Define to 1 if you have the declaration of `SYS_ipc', and to 0 if you
+   don't. */
+#cmakedefine01 HAVE_DECL_SYS_IPC
+
+/* Enable BISTRO hooks */
+#cmakedefine01 UCM_BISTRO_HOOKS
+
+#endif /* UCX_CONFIG_H */
