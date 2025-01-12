@@ -72,7 +72,8 @@ if(NOT LCIXX_WITH_LCT_ONLY)
         "If using the ofi(libfabric) backend, provide a hint for the provider to use"
   )
 
-  set(LCIXX_NETWORK_BACKENDS_ENABLED)
+  set(LCIXX_NETWORK_BACKENDS_ENABLED "")
+  message(STATUS "Looking for network backends ${LCIXX_NETWORK_BACKENDS_ENABLED}")
   foreach(BACKEND ${LCIXX_NETWORK_BACKENDS})
     message(STATUS "Looking for ${BACKEND} backend")
     string(TOUPPER ${BACKEND} BACKEND)

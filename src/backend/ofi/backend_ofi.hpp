@@ -27,7 +27,13 @@ class ofi_net_context_impl_t : public lcixx::net_context_impl_t
 {
  public:
   ofi_net_context_impl_t(runtime_t runtime_, net_context_t::config_t config_);
-  ~ofi_net_context_impl_t();
+  ~ofi_net_context_impl_t() override;
+  net_context_t get_handler()
+  {
+    net_context_t ret;
+    ret.p_impl = this;
+    return ret;
+  }
   net_device_t alloc_net_device(net_device_t::config_t config) override;
 
   struct fi_info* ofi_info;
@@ -40,8 +46,7 @@ class ofi_net_device_impl_t : public lcixx::net_device_impl_t
   static std::atomic<uint64_t> g_next_rdma_key;
 
   ofi_net_device_impl_t(net_context_t context_, net_device_t::config_t config_);
-  ~ofi_net_device_impl_t();
-
+  ~ofi_net_device_impl_t() override;
   mr_t register_memory(void* address, size_t size) override;
   void deregister_memory(mr_t) override;
 

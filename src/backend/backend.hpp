@@ -8,8 +8,7 @@ class net_context_impl_t
  public:
   net_context_impl_t(runtime_t runtime_, net_context_t::config_t config_)
       : runtime(runtime_), config(config_){};
-  ~net_context_impl_t() = default;
-
+  virtual ~net_context_impl_t() = default;
   virtual net_device_t alloc_net_device(net_device_t::config_t config) = 0;
 
   runtime_t runtime;
@@ -29,7 +28,7 @@ class net_device_impl_t
     net_device_id = g_ndevices++;
     runtime = context.p_impl->runtime;
   };
-
+  virtual ~net_device_impl_t() = default;
   virtual mr_t register_memory(void* address, size_t size) = 0;
   virtual void deregister_memory(mr_t) = 0;
 
@@ -42,9 +41,9 @@ class net_device_impl_t
 class mr_impl_t
 {
  public:
+  net_device_t device;
   // TODO: add memory registration cache
   // For memory registration cache.
-  // net_device_t device;
   // void* region;
 };
 

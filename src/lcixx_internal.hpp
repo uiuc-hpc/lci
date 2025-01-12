@@ -11,6 +11,7 @@
 #include "util/log.hpp"
 #include "backend/backend.hpp"
 #include "backend/ofi/backend_ofi.hpp"
+#include "core/global.hpp"
 #include "core/runtime.hpp"
 
 #endif  // LCIXX_LCIXX_INTERNAL_HPP

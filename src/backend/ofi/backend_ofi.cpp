@@ -121,7 +121,7 @@ net_device_t ofi_net_context_impl_t::alloc_net_device(
     net_device_t::config_t config)
 {
   net_device_t ret;
-  ret.p_impl = new ofi_net_device_impl_t(net_context_t(this), config);
+  ret.p_impl = new ofi_net_device_impl_t(get_handler(), config);
   return ret;
 }
 

@@ -60,7 +60,6 @@ class runtime_t
   struct config_t {
     bool use_reg_cache;
     bool use_control_channel;
-    option_backend_t backend;
     option_rdv_protocol_t rdv_protocol;
   };
 
@@ -115,8 +114,6 @@ class net_context_t
     int64_t max_msg_size;
   } config;
 
-  net_context_t() : p_impl(nullptr) {}
-  net_context_t(net_context_impl_t* p_impl_) : p_impl(p_impl_) {}
   config_t get_config() const;
 
   net_context_impl_t* p_impl;
@@ -145,14 +142,6 @@ class free_net_context_x
   net_context_t net_context;
   free_net_context_x&& set_context(net_context_t);
   void call();
-};
-
-// memory region
-class mr_impl_t;
-class mr_t
-{
- public:
-  mr_impl_t* p_impl;
 };
 
 class net_device_impl_t;
@@ -206,6 +195,36 @@ class free_net_device_x
 {
  public:
   net_device_t device;
+  free_net_device_x(net_device_t device_) : device(device_) {}
+  void call();
+};
+
+// memory region
+class mr_impl_t;
+class mr_t
+{
+ public:
+  mr_impl_t* p_impl;
+};
+
+class register_memory_x
+{
+ public:
+  net_device_t device;
+  void* address;
+  size_t size;
+  register_memory_x(net_device_t device_, void* address_, size_t size_)
+      : device(device_), address(address_), size(size_)
+  {
+  }
+  mr_t call();
+};
+
+class deregister_memory_x
+{
+ public:
+  mr_t mr;
+  deregister_memory_x(mr_t mr_) : mr(mr_) {}
   void call();
 };
 

@@ -1,35 +1,7 @@
 #include "lcixx_internal.hpp"
-#include <unistd.h>
 
 namespace lcixx
 {
-/*************************************************************
- * Global Initialization and Finalization
- *************************************************************/
-void global_initialize()
-{
-  if (getenv("LCIXX_INIT_ATTACH_DEBUGGER")) {
-    int i = 1;
-    printf("PID %d is waiting to be attached\n", getpid());
-    while (i) continue;
-  }
-  LCT_init();
-  log_initialize();
-  // Initialize PMI.
-  LCT_pmi_initialize();
-  int rank = LCT_pmi_get_rank();
-  int num_proc = LCT_pmi_get_size();
-  LCIXX_Assert(num_proc > 0, "PMI ran into an error (num_proc=%d)\n", num_proc);
-  LCT_set_rank(rank);
-}
-
-void global_finalize()
-{
-  LCT_pmi_finalize();
-  log_finalize();
-  LCT_fina();
-}
-
 /*************************************************************
  * runtime: User wrappers
  *************************************************************/
@@ -85,10 +57,7 @@ void runtime_impl_t::initialize(runtime_t runtime_)
 {
   runtime = runtime_;
 
-  if (config.backend != option_backend_t::none) {
-    net_context =
-        alloc_net_context_x(runtime).set_backend(config.backend).call();
-  }
+  net_context = alloc_net_context_x(runtime).call();
 
   if (net_context.get_config().backend == option_backend_t::ofi &&
       net_context.get_config().provider_name == "cxi") {

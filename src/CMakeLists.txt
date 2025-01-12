@@ -6,6 +6,7 @@ target_sources_relative(
   backend/backend.cpp
   backend/ofi/backend_ofi.cpp
   core/lcixx.cpp
+  core/global.cpp
   core/runtime.cpp)
 
 target_include_directories(LCIXX PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
