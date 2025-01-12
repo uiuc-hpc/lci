@@ -38,7 +38,7 @@ int runtime_t::get_nranks() const {
     return p_impl->get_nranks();
 }
 
-config_t runtime_t::get_config() const {
+runtime_t::config_t runtime_t::get_config() const {
     return p_impl->config;
 }
 
@@ -53,13 +53,13 @@ net_device_t runtime_t::get_default_net_device() const {
 runtime_t alloc_runtime_x::call() {
     runtime_t runtime;
     runtime_t::config_t config;
-    runtime.p_impl = std::make_shared<runtime_impl_t>(config);
+    runtime.p_impl = new runtime_impl_t(config);
     runtime.p_impl->initialize(runtime);
     return runtime;
 }
 
 void free_runtime_x::call() {
-    runtime.p_impl.reset();
+    delete runtime.p_impl;
 }
 
 /*************************************************************

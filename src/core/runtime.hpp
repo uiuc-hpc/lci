@@ -19,7 +19,7 @@ public:
     runtime_t::config_t config;
     int rank, nranks;
     net_context_t net_context;
-    net_context_t net_device;
+    net_device_t net_device;
 };
 } // namespace lcixx
 

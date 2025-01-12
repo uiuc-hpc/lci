@@ -46,6 +46,12 @@ struct default_config_t {
 };
 extern default_config_t g_default_config;
 
+// Forward declaration
+class runtime_t;
+class net_context_t;
+class net_device_t;
+class net_endpoint_t;
+
 class runtime_impl_t;
 class runtime_t {
 public:
@@ -62,7 +68,7 @@ public:
     net_context_t get_default_net_context() const;
     net_device_t get_default_net_device() const;
 
-    std::shared_ptr<runtime_impl_t> p_impl;
+    runtime_impl_t* p_impl;
 };
 
 /**
@@ -104,9 +110,11 @@ public:
         int64_t max_msg_size;
     } config;
 
+    net_context_t() : p_impl(nullptr) {}
+    net_context_t(net_context_impl_t* p_impl_) : p_impl(p_impl_) {}
     config_t get_config() const;
     
-    std::shared_ptr<net_context_impl_t> p_impl;
+    net_context_impl_t* p_impl;
 };
 
 class alloc_net_context_x {
@@ -135,7 +143,7 @@ public:
 class mr_impl_t;
 class mr_t {
 public:
-    std::shared_ptr<mr_impl_t> p_impl;
+    mr_impl_t *p_impl;
 };
 
 class net_device_impl_t;
@@ -146,7 +154,7 @@ public:
         int64_t max_recvs;
         int64_t max_cqes;
     } config;
-    std::shared_ptr<net_device_impl_t> p_impl;
+    net_device_impl_t* p_impl;
 };
 
 class alloc_net_device_x {
@@ -187,7 +195,7 @@ public:
 
 class net_endpoint_impl_t;
 class net_endpoint_t {
-    std::shared_ptr<net_endpoint_impl_t> p_impl;
+    net_endpoint_impl_t* p_impl;
 };
 
 class alloc_net_endpoint_x {

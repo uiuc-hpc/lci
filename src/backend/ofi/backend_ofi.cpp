@@ -111,11 +111,17 @@ ofi_net_context_impl_t::~ofi_net_context_impl_t() {
   fi_freeinfo(ofi_info);
 }
 
+net_device_t ofi_net_context_impl_t::alloc_net_device(net_device_t::config_t config) {
+    net_device_t ret;
+    ret.p_impl = new ofi_net_device_impl_t(net_context_t(this), config);
+    return ret;
+}
+
 std::atomic<uint64_t> ofi_net_device_impl_t::g_next_rdma_key(0);
 
 ofi_net_device_impl_t::ofi_net_device_impl_t(net_context_t context_, net_device_t::config_t config_) 
 : net_device_impl_t(context_, config_) {
-  auto p_ofi_context = reinterpret_cast<ofi_net_context_impl_t*>(context.p_impl.get());
+  auto p_ofi_context = reinterpret_cast<ofi_net_context_impl_t*>(context.p_impl);
   // Create domain.
   FI_SAFECALL(fi_domain(p_ofi_context->ofi_fabric, p_ofi_context->ofi_info,
                         &ofi_domain, nullptr));
@@ -213,12 +219,12 @@ mr_t ofi_net_device_impl_t::register_memory(void* address, size_t size) {
     }
 
     mr_t ret;
-    ret.p_impl = std::make_shared<ofi_mr_impl_t>();
-    std::static_pointer_cast<ofi_mr_impl_t>(ret.p_impl)->ofi_mr = mr;
+    ret.p_impl = new ofi_mr_impl_t();
+    static_cast<ofi_mr_impl_t*>(ret.p_impl)->ofi_mr = mr;
     return ret;
 }
 
 void ofi_net_device_impl_t::deregister_memory(mr_t mr) {
-    FI_SAFECALL(fi_close((struct fid*)&std::static_pointer_cast<ofi_mr_impl_t>(mr.p_impl)->ofi_mr->fid));
+    FI_SAFECALL(fi_close((struct fid*)&static_cast<ofi_mr_impl_t*>(mr.p_impl)->ofi_mr->fid));
 }
 } // namespace lcixx

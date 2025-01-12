@@ -23,15 +23,12 @@
 
 
 namespace lcixx {
+
 class ofi_net_context_impl_t : public lcixx::net_context_impl_t {
 public:
     ofi_net_context_impl_t(runtime_t runtime_, net_context_t::config_t config_);
     ~ofi_net_context_impl_t();
-    net_device_t alloc_net_device(net_device_t::config_t config) override {
-        net_device_t ret;
-        ret.p_impl = std::make_shared<ofi_net_device_impl_t>(runtime, config);
-        return ret;
-    }
+    net_device_t alloc_net_device(net_device_t::config_t config) override;
 
     struct fi_info* ofi_info;
     struct fid_fabric* ofi_fabric;
