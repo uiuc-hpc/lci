@@ -12,7 +12,8 @@ add_lci_tests(
   "${LCIXX_USE_CTEST_EXE} -n 2 ${LCIXX_USE_CTEST_ARGS} [TARGET] --op 2l --nthreads 4 --recv-dyn 1"
   "${LCIXX_USE_CTEST_EXE} -n 2 ${LCIXX_USE_CTEST_ARGS} [TARGET] --op 1s --nthreads 4"
   "${LCIXX_USE_CTEST_EXE} -n 2 ${LCIXX_USE_CTEST_ARGS} [TARGET] --op 1m --nthreads 4"
-  "${LCIXX_USE_CTEST_EXE} -n 2 ${LCIXX_USE_CTEST_ARGS} [TARGET] --op 1l --nthreads 4")
+  "${LCIXX_USE_CTEST_EXE} -n 2 ${LCIXX_USE_CTEST_ARGS} [TARGET] --op 1l --nthreads 4"
+)
 
 add_lci_tests(
   TESTS

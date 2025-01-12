@@ -13,4 +13,4 @@
 #include "backend/ofi/backend_ofi.hpp"
 #include "core/runtime.hpp"
 
-#endif // LCIXX_LCIXX_INTERNAL_HPP
+#endif  // LCIXX_LCIXX_INTERNAL_HPP

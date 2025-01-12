@@ -1,5 +1,6 @@
 #include "lcixx_internal.hpp"
 
-namespace lcixx {
+namespace lcixx
+{
 default_config_t g_default_config;
-} // namespace lcixx
+}  // namespace lcixx

@@ -45,10 +45,7 @@ if(NOT LCIXX_WITH_LCT_ONLY)
   # ############################################################################
 
   add_library(LCIXX)
-  set_target_properties(
-    LCIXX
-    PROPERTIES CXX_STANDARD 11
-               CXX_EXTENSIONS ON)
+  set_target_properties(LCIXX PROPERTIES CXX_STANDARD 11 CXX_EXTENSIONS ON)
   target_compile_definitions(LCIXX PRIVATE _GNU_SOURCE)
   target_link_libraries(LCIXX PUBLIC LCT)
   set_target_properties(LCIXX PROPERTIES OUTPUT_NAME lcixx)
@@ -66,24 +63,21 @@ if(NOT LCIXX_WITH_LCT_ONLY)
   # ############################################################################
   set(LCIXX_NETWORK_BACKENDS
       ibv ofi ucx
-      CACHE
-        STRING
-        "Network backends to build."
-  )
-  
+      CACHE STRING "Network backends to build.")
+
   set(LCIXX_OFI_PROVIDER_HINT_DEFAULT
       ""
       CACHE
         STRING
         "If using the ofi(libfabric) backend, provide a hint for the provider to use"
   )
-  
+
   set(LCIXX_NETWORK_BACKENDS_ENABLED)
   foreach(BACKEND ${LCIXX_NETWORK_BACKENDS})
     message(STATUS "Looking for ${BACKEND} backend")
     string(TOUPPER ${BACKEND} BACKEND)
     find_package(${BACKEND})
-    
+
     if(NOT ${BACKEND}_FOUND)
       message(STATUS "Did not find ${BACKEND} backend")
       continue()
@@ -99,8 +93,8 @@ if(NOT LCIXX_WITH_LCT_ONLY)
       target_link_libraries(LCIXX PUBLIC ${BACKEND}::${BACKEND})
     endif()
   endforeach()
-  
-  if (NOT LCIXX_NETWORK_BACKENDS_ENABLED)
+
+  if(NOT LCIXX_NETWORK_BACKENDS_ENABLED)
     message(FATAL_ERROR "Cannot find any backends. Give up!")
   endif()
 
@@ -117,7 +111,7 @@ if(NOT LCIXX_WITH_LCT_ONLY)
 
   # debug
   option(LCIXX_DEBUG "LCIXX Debug Mode" OFF)
-  
+
   # performance counter
   option(LCIXX_USE_PERFORMANCE_COUNTER "Use performance counter" OFF)
 
@@ -125,10 +119,10 @@ if(NOT LCIXX_WITH_LCT_ONLY)
   set(LCIXX_CACHE_LINE
       64
       CACHE STRING "Size of cache line (bytes)")
-  
+
   # memory allocation with alignment
   option(LCIXX_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
-  
+
   # registration cache
   set(LCIXX_COMPILE_DREG_DEFAULT ON)
   if(LCIXX_BACKEND_ENABLE_UCX)
@@ -140,7 +134,7 @@ if(NOT LCIXX_WITH_LCT_ONLY)
   set(LCIXX_USE_DREG_DEFAULT
       ${LCIXX_USE_SERVER_IBV}
       CACHE STRING "Whether to use registration cache")
-  
+
   # packet size/number
   set(LCIXX_PACKET_SIZE_DEFAULT
       12288
@@ -165,8 +159,8 @@ if(NOT LCIXX_WITH_LCT_ONLY)
       "hashqueue"
       CACHE STRING "The default matching table backend to use.")
   set_property(CACHE LCIXX_USE_MT_BACKEND_DEFAULT PROPERTY STRINGS hash queue
-                                                     hashqueue)
-  
+                                                           hashqueue)
+
   # ibv thread domain
   option(LCIXX_USE_IBV_TD_DEFAULT
          "Try to lock the IBV queue pair before access it." ON)
@@ -210,7 +204,8 @@ if(NOT LCIXX_WITH_LCT_ONLY)
   set(LCIXX_USE_RDV_PROTOCOL_DEFAULT
       writeimm
       CACHE STRING "The default rendezvous protocol to use (write, writeimm).")
-  set_property(CACHE LCIXX_USE_RDV_PROTOCOL_DEFAULT PROPERTY STRINGS write writeimm)
+  set_property(CACHE LCIXX_USE_RDV_PROTOCOL_DEFAULT PROPERTY STRINGS write
+                                                             writeimm)
 
   # max single message size
   set(LCIXX_USE_MAX_SINGLE_MESSAGE_SIZE_DEFAULT
@@ -227,7 +222,7 @@ if(NOT LCIXX_WITH_LCT_ONLY)
     target_link_libraries(LCIXX PRIVATE Papi::papi)
   endif()
 
-  ############################################################################
+  # ############################################################################
   mark_as_advanced(
     LCIXX_CONFIG_USE_ALIGNED_ALLOC
     LCIXX_PACKET_SIZE_DEFAULT

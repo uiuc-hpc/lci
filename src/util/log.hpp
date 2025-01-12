@@ -1,8 +1,8 @@
 #ifndef LCIXX_UTIL_LOG_HPP
 #define LCIXX_UTIL_LOG_HPP
 
-namespace lcixx {
-
+namespace lcixx
+{
 enum log_level_t {
   LOG_ERROR,
   LOG_WARN,
@@ -32,6 +32,6 @@ static inline void log_flush() { LCT_Log_flush(log_ctx); }
 #define LCIXX_DBG_Warn(...)
 #endif
 
-} // namespace lcixx
+}  // namespace lcixx
 
 #endif  // LCIXX_UTIL_LOG_HPP
