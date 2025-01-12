@@ -38,6 +38,18 @@ int runtime_t::get_nranks() const {
     return p_impl->get_nranks();
 }
 
+config_t runtime_t::get_config() const {
+    return p_impl->config;
+}
+
+net_context_t runtime_t::get_default_net_context() const {
+    return p_impl->net_context;
+}
+
+net_device_t runtime_t::get_default_net_device() const {
+    return p_impl->net_device;
+}
+
 runtime_t alloc_runtime_x::call() {
     runtime_t runtime;
     runtime_t::config_t config;

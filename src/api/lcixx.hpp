@@ -59,6 +59,8 @@ public:
     int get_rank() const;
     int get_nranks() const;
     config_t get_config() const;
+    net_context_t get_default_net_context() const;
+    net_device_t get_default_net_device() const;
 
     std::shared_ptr<runtime_impl_t> p_impl;
 };
@@ -129,6 +131,13 @@ public:
     void call();
 };
 
+// memory region
+class mr_impl_t;
+class mr_t {
+public:
+    std::shared_ptr<mr_impl_t> p_impl;
+};
+
 class net_device_impl_t;
 class net_device_t {
 public:
@@ -142,6 +151,31 @@ public:
 
 class alloc_net_device_x {
 public:
+    // mandatory
+    runtime_t runtime;
+    // optional
+    option_t<net_context_t> context;
+    option_t<int64_t> max_sends;
+    option_t<int64_t> max_recvs;
+    option_t<int64_t> max_cqes;
+
+    alloc_net_device_x(runtime_t runtime_) : runtime(runtime_) {}
+    alloc_net_device_x&& set_context(net_context_t context_) {
+        context = context_;
+        return std::move(*this);
+    };
+    alloc_net_device_x&& set_max_sends(int64_t max_sends_) {
+        max_sends = max_sends_;
+        return std::move(*this);
+    };
+    alloc_net_device_x&& set_max_recvs(int64_t max_recvs_) {
+        max_recvs = max_recvs_;
+        return std::move(*this);
+    };
+    alloc_net_device_x&& set_max_cqes(int64_t max_cqes_) {
+        max_cqes = max_cqes_;
+        return std::move(*this);
+    };
     net_device_t call();
 };
 
