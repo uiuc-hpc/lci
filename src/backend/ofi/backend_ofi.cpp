@@ -132,53 +132,6 @@ ofi_net_device_impl_t::ofi_net_device_impl_t(net_context_t context_,
 {
   auto p_ofi_context = static_cast<ofi_net_context_impl_t*>(context.p_impl);
   ofi_domain_attr = p_ofi_context->ofi_info->domain_attr;
-}
-
-ofi_net_device_impl_t::~ofi_net_device_impl_t() {}
-
-mr_t ofi_net_device_impl_t::register_memory(void* address, size_t size)
-{
-  uint64_t rdma_key;
-  if (ofi_domain_attr->mr_mode & FI_MR_PROV_KEY) {
-    rdma_key = 0;
-  } else {
-    rdma_key = g_next_rdma_key++;
-  }
-
-  mr_t ret;
-  ret.p_impl = new ofi_mr_impl_t();
-  auto& ofi_mrs = static_cast<ofi_mr_impl_t*>(ret.p_impl)->ofi_mrs;
-
-  for (auto& endpoint : net_endpoints) {
-    auto p_ofi_endpoint =
-        static_cast<ofi_net_endpoint_impl_t*>(endpoint.p_impl);
-    struct fid_mr* ofi_mr;
-    FI_SAFECALL(fi_mr_reg(p_ofi_endpoint->ofi_domain, address, size,
-                          FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, rdma_key, 0,
-                          &ofi_mr, 0));
-    if (ofi_domain_attr->mr_mode & FI_MR_ENDPOINT) {
-      FI_SAFECALL(fi_mr_bind(ofi_mr, &p_ofi_endpoint->ofi_ep->fid, 0));
-      FI_SAFECALL(fi_mr_enable(ofi_mr));
-    }
-    ofi_mrs.push_back(ofi_mr);
-  }
-  return ret;
-}
-
-void ofi_net_device_impl_t::deregister_memory(mr_t mr)
-{
-  for (auto& ofi_mr : static_cast<ofi_mr_impl_t*>(mr.p_impl)->ofi_mrs) {
-    FI_SAFECALL(fi_close(&ofi_mr->fid));
-  }
-}
-
-ofi_net_endpoint_impl_t::ofi_net_endpoint_impl_t(net_device_t device_,
-                                                 attr_t attr_)
-    : net_endpoint_impl_t(device_, attr_)
-{
-  auto p_ofi_device = reinterpret_cast<ofi_net_device_impl_t*>(device.p_impl);
-  auto p_ofi_context =
-      reinterpret_cast<ofi_net_context_impl_t*>(p_ofi_device->context.p_impl);
   // Create domain.
   FI_SAFECALL(fi_domain(p_ofi_context->ofi_fabric, p_ofi_context->ofi_info,
                         &ofi_domain, nullptr));
@@ -221,7 +174,7 @@ ofi_net_endpoint_impl_t::ofi_net_endpoint_impl_t(net_device_t device_,
   get_nranks_x(&nranks).call();
   peer_addrs.resize(nranks);
   char key[LCT_PMI_STRING_LIMIT + 1];
-  sprintf(key, "LCI_KEY_%d_%d", net_endpoint_id, rank);
+  sprintf(key, "LCI_KEY_%d_%d", net_device_id, rank);
   char value[LCT_PMI_STRING_LIMIT + 1];
   const char* PARSE_STRING = "%016lx-%016lx-%016lx-%016lx-%016lx-%016lx";
   sprintf(value, PARSE_STRING, my_addr[0], my_addr[1], my_addr[2], my_addr[3],
@@ -231,7 +184,7 @@ ofi_net_endpoint_impl_t::ofi_net_endpoint_impl_t(net_device_t device_,
 
   for (int i = 0; i < nranks; i++) {
     if (i != rank) {
-      sprintf(key, "LCI_KEY_%d_%d", net_endpoint_id, i);
+      sprintf(key, "LCI_KEY_%d_%d", net_device_id, i);
       LCT_pmi_getname(i, key, value);
       uint64_t peer_addr[EP_ADDR_LEN];
 
@@ -246,13 +199,10 @@ ofi_net_endpoint_impl_t::ofi_net_endpoint_impl_t(net_device_t device_,
       LCIXX_Assert(ret == 1, "fi_av_insert failed! ret = %d\n", ret);
     }
   }
-
-  // register this endpoint to the device.
-  p_ofi_device->net_endpoints.push_back(get_handler());
   LCT_pmi_barrier();
 }
 
-ofi_net_endpoint_impl_t::~ofi_net_endpoint_impl_t()
+ofi_net_device_impl_t::~ofi_net_device_impl_t()
 {
   LCT_pmi_barrier();
   FI_SAFECALL(fi_close((struct fid*)&ofi_ep->fid));
@@ -260,4 +210,47 @@ ofi_net_endpoint_impl_t::~ofi_net_endpoint_impl_t()
   FI_SAFECALL(fi_close((struct fid*)&ofi_av->fid));
   FI_SAFECALL(fi_close((struct fid*)&ofi_domain->fid));
 }
+
+mr_t ofi_net_device_impl_t::register_memory(void* address, size_t size)
+{
+  uint64_t rdma_key;
+  if (ofi_domain_attr->mr_mode & FI_MR_PROV_KEY) {
+    rdma_key = 0;
+  } else {
+    rdma_key = g_next_rdma_key++;
+  }
+
+  mr_t ret;
+  ret.p_impl = new ofi_mr_impl_t();
+
+  struct fid_mr* ofi_mr;
+  FI_SAFECALL(fi_mr_reg(ofi_domain, address, size,
+                        FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, rdma_key, 0,
+                        &ofi_mr, 0));
+  if (ofi_domain_attr->mr_mode & FI_MR_ENDPOINT) {
+    FI_SAFECALL(fi_mr_bind(ofi_mr, &ofi_ep->fid, 0));
+    FI_SAFECALL(fi_mr_enable(ofi_mr));
+  }
+  static_cast<ofi_mr_impl_t*>(ret.p_impl)->ofi_mr = ofi_mr;
+  return ret;
+}
+
+void ofi_net_device_impl_t::deregister_memory(mr_t mr)
+{
+  FI_SAFECALL(fi_close(&static_cast<ofi_mr_impl_t*>(mr.p_impl)->ofi_mr->fid));
+}
+
+ofi_net_endpoint_impl_t::ofi_net_endpoint_impl_t(net_device_t device_,
+                                                 attr_t attr_)
+    : net_endpoint_impl_t(device_, attr_)
+{
+  auto p_ofi_device = reinterpret_cast<ofi_net_device_impl_t*>(device.p_impl);
+  auto p_ofi_context =
+      reinterpret_cast<ofi_net_context_impl_t*>(p_ofi_device->context.p_impl);
+
+  ofi_ep = p_ofi_device->ofi_ep;
+  peer_addrs = p_ofi_device->peer_addrs;
+}
+
+ofi_net_endpoint_impl_t::~ofi_net_endpoint_impl_t() {}
 }  // namespace lcixx
