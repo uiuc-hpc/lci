@@ -117,8 +117,8 @@ LCI_error_t LCI_finalize()
     LCII_ucs_cleanup();
 #endif
   }
-  LCT_pmi_finalize();
   LCII_pcounters_fina();
+  LCT_pmi_finalize();
   LCII_log_fina();
   LCT_fina();
 

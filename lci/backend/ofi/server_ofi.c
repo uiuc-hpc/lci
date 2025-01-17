@@ -131,7 +131,7 @@ void LCISD_server_fina(LCIS_server_t s)
   LCISI_server_t* server = (LCISI_server_t*)s;
   FI_SAFECALL(fi_close((struct fid*)&server->fabric->fid));
   fi_freeinfo(server->info);
-  free(s);
+  LCIU_free(server);
 }
 
 void LCISD_endpoint_init(LCIS_server_t server_pp, LCIS_endpoint_t* endpoint_pp,
@@ -221,4 +221,5 @@ void LCISD_endpoint_fina(LCIS_endpoint_t endpoint_pp)
   FI_SAFECALL(fi_close((struct fid*)&endpoint_p->cq->fid));
   FI_SAFECALL(fi_close((struct fid*)&endpoint_p->av->fid));
   FI_SAFECALL(fi_close((struct fid*)&endpoint_p->domain->fid));
+  LCIU_free(endpoint_p);
 }
