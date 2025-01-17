@@ -3,8 +3,6 @@
 
 namespace lcixx
 {
-default_config_t g_default_config;
-
 namespace
 {
 void global_config_initialize()
@@ -26,11 +24,11 @@ void global_config_initialize()
     }
   }
   if (default_backend == "ofi" || default_backend == "OFI") {
-    g_default_config.backend = option_backend_t::ofi;
+    g_default_attr.net_context_attr.backend = option_backend_t::ofi;
   } else if (default_backend == "ibv" || default_backend == "IBV") {
-    g_default_config.backend = option_backend_t::ibv;
+    g_default_attr.net_context_attr.backend = option_backend_t::ibv;
   } else if (default_backend == "ucx" || default_backend == "UCX") {
-    g_default_config.backend = option_backend_t::ucx;
+    g_default_attr.net_context_attr.backend = option_backend_t::ucx;
   } else {
     LCIXX_Assert(false, "Unknown backend: %s\n", default_backend.c_str());
   }

@@ -1,3 +1,6 @@
+# Generated binding layer
+src/binding/generated/*
+
 # Compiled Object files
 *.slo
 *.lo

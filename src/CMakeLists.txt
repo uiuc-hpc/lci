@@ -2,6 +2,7 @@ target_include_directories(LCIXX PRIVATE .)
 target_sources_relative(
   LCIXX
   PRIVATE
+  binding/generated/binding.cpp
   util/log.cpp
   backend/backend.cpp
   backend/ofi/backend_ofi.cpp
@@ -12,3 +13,4 @@ target_sources_relative(
 target_include_directories(LCIXX PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 add_subdirectory(api)
+add_subdirectory(binding)

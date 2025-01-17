@@ -8,8 +8,8 @@ namespace lcixx
 class runtime_impl_t
 {
  public:
-  using config_t = runtime_t::config_t;
-  runtime_impl_t(config_t);
+  using attr_t = runtime_t::attr_t;
+  runtime_impl_t(attr_t);
   ~runtime_impl_t();
   int get_rank() const { return rank; }
   int get_nranks() const { return nranks; }
@@ -18,7 +18,7 @@ class runtime_impl_t
   static int g_nruntimes;
 
   runtime_t runtime;
-  runtime_t::config_t config;
+  runtime_t::attr_t attr;
   int rank, nranks;
   net_context_t net_context;
   net_device_t net_device;

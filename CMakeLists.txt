@@ -73,7 +73,8 @@ if(NOT LCIXX_WITH_LCT_ONLY)
   )
 
   set(LCIXX_NETWORK_BACKENDS_ENABLED "")
-  message(STATUS "Looking for network backends ${LCIXX_NETWORK_BACKENDS_ENABLED}")
+  message(
+    STATUS "Looking for network backends ${LCIXX_NETWORK_BACKENDS_ENABLED}")
   foreach(BACKEND ${LCIXX_NETWORK_BACKENDS})
     message(STATUS "Looking for ${BACKEND} backend")
     string(TOUPPER ${BACKEND} BACKEND)
@@ -305,7 +306,8 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
     endif()
     install(
-      DIRECTORY lcixx/api/ ${CMAKE_CURRENT_BINARY_DIR}/lcixx/api/
+      DIRECTORY src/api/ ${CMAKE_CURRENT_BINARY_DIR}/src/api/
+                src/binding/generated/
       DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
       FILES_MATCHING
       PATTERN "*.hpp")
