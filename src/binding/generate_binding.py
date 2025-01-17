@@ -63,7 +63,7 @@ class {resource_name}_t {{
   // attribute getter
   attr_t get_attr() const;
 {attr_getter}
-  {impl_class_name}* p_impl;
+  {impl_class_name}* p_impl = nullptr;
 }};
 """
   return text

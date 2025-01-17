@@ -9,7 +9,7 @@ TEST(NET_DEVICE, reg_mem)
   lcixx::register_memory_x(device, address, size, &mr).call();
   lcixx::deregister_memory_x(mr).call();
   free(address);
-  lcixx::free_net_device_x(device).call();
+  lcixx::free_net_device_x(&device).call();
   lcixx::g_runtime_fina_x().call();
 }
 
@@ -21,6 +21,6 @@ TEST(NET_DEVICE, poll_cq)
   std::vector<lcixx::net_status_t> statuses;
   lcixx::net_poll_cq_x(device, &statuses).call();
   ASSERT_EQ(statuses.size(), 0);
-  lcixx::free_net_device_x(device).call();
+  lcixx::free_net_device_x(&device).call();
   lcixx::g_runtime_fina_x().call();
 }

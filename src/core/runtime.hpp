@@ -15,8 +15,6 @@ class runtime_impl_t
   int get_nranks() const { return nranks; }
   void initialize(runtime_t);
 
-  static int g_nruntimes;
-
   runtime_t runtime;
   runtime_t::attr_t attr;
   int rank, nranks;

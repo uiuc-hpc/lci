@@ -5,6 +5,8 @@ namespace lcixx
 {
 namespace
 {
+std::atomic<int> global_ini_counter(0);
+
 void global_config_initialize()
 {
   // backend
@@ -37,6 +39,8 @@ void global_config_initialize()
 
 void global_initialize()
 {
+  if (global_ini_counter++ > 0) return;
+
   if (getenv("LCIXX_INIT_ATTACH_DEBUGGER")) {
     int i = 1;
     printf("PID %d is waiting to be attached\n", getpid());
@@ -56,6 +60,8 @@ void global_initialize()
 
 void global_finalize()
 {
+  if (--global_ini_counter > 0) return;
+
   LCT_pmi_finalize();
   log_finalize();
   LCT_fina();

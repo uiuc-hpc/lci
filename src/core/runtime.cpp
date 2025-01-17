@@ -8,6 +8,7 @@ namespace lcixx
 
 void alloc_runtime_x::call() const
 {
+  global_initialize();
   runtime_t::attr_t attr;
   attr.rdv_protocol =
       rdv_protocol_.get_value_or(g_default_attr.runtime_attr.rdv_protocol);
@@ -24,12 +25,16 @@ void alloc_runtime_x::call() const
 
 void free_runtime_x::call() const
 {
-  delete runtime_.p_impl;
-  runtime_.p_impl = nullptr;
+  delete runtime_->p_impl;
+  runtime_->p_impl = nullptr;
+  global_finalize();
 }
 
 void g_runtime_init_x::call() const
 {
+  global_initialize();
+  LCIXX_Assert(g_default_runtime.p_impl == nullptr,
+               "g_default_runtime has been initialized!\n");
   runtime_t::attr_t attr;
   attr.rdv_protocol =
       rdv_protocol_.get_value_or(g_default_attr.runtime_attr.rdv_protocol);
@@ -48,18 +53,14 @@ void g_runtime_fina_x::call() const
 {
   delete g_default_runtime.p_impl;
   g_default_runtime.p_impl = nullptr;
+  global_finalize();
 }
 
 /*************************************************************
  * runtime implementation
  *************************************************************/
-int runtime_impl_t::g_nruntimes = 0;
-
 runtime_impl_t::runtime_impl_t(attr_t attr_) : attr(attr_)
 {
-  if (g_nruntimes++ == 0) {
-    global_initialize();
-  }
   rank = LCT_pmi_get_rank();
   nranks = LCT_pmi_get_size();
 
@@ -86,12 +87,7 @@ runtime_impl_t::runtime_impl_t(attr_t attr_) : attr(attr_)
   }
 }
 
-runtime_impl_t::~runtime_impl_t()
-{
-  if (--g_nruntimes == 0) {
-    global_finalize();
-  }
-}
+runtime_impl_t::~runtime_impl_t() {}
 
 void get_rank_x::call() const
 {

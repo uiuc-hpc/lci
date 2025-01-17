@@ -47,7 +47,7 @@ def operation_free(resource, add_runtime_args=True):
         "name": f"free_{resource_name}",
         "args": args + [
             error_args,
-            positional_args(f"{resource_name}_t", resource_name)
+            positional_args(f"{resource_name}_t*", resource_name)
         ]
     }
 
