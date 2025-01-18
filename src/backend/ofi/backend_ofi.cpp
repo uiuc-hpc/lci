@@ -120,7 +120,7 @@ ofi_net_context_impl_t::~ofi_net_context_impl_t()
 net_device_t ofi_net_context_impl_t::alloc_net_device(net_device_t::attr_t attr)
 {
   net_device_t ret;
-  ret.p_impl = new ofi_net_device_impl_t(get_handler(), attr);
+  ret.p_impl = new ofi_net_device_impl_t(net_context, attr);
   return ret;
 }
 
@@ -128,7 +128,7 @@ std::atomic<uint64_t> ofi_net_device_impl_t::g_next_rdma_key(0);
 
 ofi_net_device_impl_t::ofi_net_device_impl_t(net_context_t context_,
                                              net_device_t::attr_t attr_)
-    : net_device_impl_t(context_, attr_)
+    : net_device_impl_t(context_, attr_), lock_mode(attr.lock_mode)
 {
   auto p_ofi_context = static_cast<ofi_net_context_impl_t*>(context.p_impl);
   ofi_domain_attr = p_ofi_context->ofi_info->domain_attr;
@@ -137,8 +137,8 @@ ofi_net_device_impl_t::ofi_net_device_impl_t(net_context_t context_,
                         &ofi_domain, nullptr));
 
   // Create end-point;
-  p_ofi_context->ofi_info->tx_attr->size = 0;  // attr.max_sends;
-  p_ofi_context->ofi_info->rx_attr->size = 0;  // attr.max_recvs;
+  p_ofi_context->ofi_info->tx_attr->size = attr.max_sends;
+  p_ofi_context->ofi_info->rx_attr->size = attr.max_recvs;
   FI_SAFECALL(
       fi_endpoint(ofi_domain, p_ofi_context->ofi_info, &ofi_ep, nullptr));
 
@@ -146,7 +146,7 @@ ofi_net_device_impl_t::ofi_net_device_impl_t(net_context_t context_,
   struct fi_cq_attr cq_attr;
   memset(&cq_attr, 0, sizeof(struct fi_cq_attr));
   cq_attr.format = FI_CQ_FORMAT_DATA;
-  cq_attr.size = 0;  // attr.max_cqes;
+  cq_attr.size = attr.max_cqes;
   FI_SAFECALL(fi_cq_open(ofi_domain, &cq_attr, &ofi_cq, nullptr));
 
   // Bind my ep to cq.
@@ -211,7 +211,15 @@ ofi_net_device_impl_t::~ofi_net_device_impl_t()
   FI_SAFECALL(fi_close((struct fid*)&ofi_domain->fid));
 }
 
-mr_t ofi_net_device_impl_t::register_memory(void* address, size_t size)
+net_endpoint_t ofi_net_device_impl_t::alloc_net_endpoint(
+    net_endpoint_t::attr_t attr)
+{
+  net_endpoint_t ret;
+  ret.p_impl = new ofi_net_endpoint_impl_t(net_device, attr);
+  return ret;
+}
+
+mr_t ofi_net_device_impl_t::register_memory(void* buffer, size_t size)
 {
   uint64_t rdma_key;
   if (ofi_domain_attr->mr_mode & FI_MR_PROV_KEY) {
@@ -224,7 +232,7 @@ mr_t ofi_net_device_impl_t::register_memory(void* address, size_t size)
   ret.p_impl = new ofi_mr_impl_t();
 
   struct fid_mr* ofi_mr;
-  FI_SAFECALL(fi_mr_reg(ofi_domain, address, size,
+  FI_SAFECALL(fi_mr_reg(ofi_domain, buffer, size,
                         FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, rdma_key, 0,
                         &ofi_mr, 0));
   if (ofi_domain_attr->mr_mode & FI_MR_ENDPOINT) {
@@ -237,19 +245,25 @@ mr_t ofi_net_device_impl_t::register_memory(void* address, size_t size)
 
 void ofi_net_device_impl_t::deregister_memory(mr_t mr)
 {
-  FI_SAFECALL(fi_close(&static_cast<ofi_mr_impl_t*>(mr.p_impl)->ofi_mr->fid));
+  auto p_ofi_mr = static_cast<ofi_mr_impl_t*>(mr.p_impl);
+  FI_SAFECALL(fi_close(&p_ofi_mr->ofi_mr->fid));
+  delete p_ofi_mr;
 }
 
-ofi_net_endpoint_impl_t::ofi_net_endpoint_impl_t(net_device_t device_,
+ofi_net_endpoint_impl_t::ofi_net_endpoint_impl_t(net_device_t net_device_,
                                                  attr_t attr_)
-    : net_endpoint_impl_t(device_, attr_)
+    : net_endpoint_impl_t(net_device_, attr_),
+      p_ofi_device(reinterpret_cast<ofi_net_device_impl_t*>(net_device.p_impl)),
+      ofi_domain_attr(p_ofi_device->ofi_domain_attr),
+      ofi_ep(p_ofi_device->ofi_ep),
+      peer_addrs(p_ofi_device->peer_addrs),
+      lock_mode(p_ofi_device->lock_mode),
+      lock(p_ofi_device->lock)
 {
-  auto p_ofi_device = reinterpret_cast<ofi_net_device_impl_t*>(device.p_impl);
   auto p_ofi_context =
       reinterpret_cast<ofi_net_context_impl_t*>(p_ofi_device->context.p_impl);
 
-  ofi_ep = p_ofi_device->ofi_ep;
-  peer_addrs = p_ofi_device->peer_addrs;
+  get_rank_x(&my_rank).call();
 }
 
 ofi_net_endpoint_impl_t::~ofi_net_endpoint_impl_t() {}

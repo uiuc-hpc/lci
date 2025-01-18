@@ -21,6 +21,7 @@ void alloc_runtime_x::call() const
   attr.use_default_net_device = use_default_net_device_.get_value_or(
       g_default_attr.runtime_attr.use_default_net_device);
   runtime_->p_impl = new runtime_impl_t(attr);
+  runtime_->p_impl->initialize();
 }
 
 void free_runtime_x::call() const
@@ -47,6 +48,7 @@ void g_runtime_init_x::call() const
   attr.use_default_net_device = use_default_net_device_.get_value_or(
       g_default_attr.runtime_attr.use_default_net_device);
   g_default_runtime.p_impl = new runtime_impl_t(attr);
+  g_default_runtime.p_impl->initialize();
 }
 
 void g_runtime_fina_x::call() const
@@ -61,12 +63,14 @@ void g_runtime_fina_x::call() const
  *************************************************************/
 runtime_impl_t::runtime_impl_t(attr_t attr_) : attr(attr_)
 {
-  rank = LCT_pmi_get_rank();
-  nranks = LCT_pmi_get_size();
-
   runtime.p_impl = this;
+}
 
+void runtime_impl_t::initialize()
+{
   alloc_net_context_x(&net_context).runtime(runtime).call();
+  alloc_net_device_x(&net_device).runtime(runtime).call();
+  alloc_net_endpoint_x(&net_endpoint).runtime(runtime).call();
 
   if (net_context.get_attr().backend == option_backend_t::ofi &&
       net_context.get_attr().provider_name == "cxi") {
@@ -89,16 +93,6 @@ runtime_impl_t::runtime_impl_t(attr_t attr_) : attr(attr_)
 
 runtime_impl_t::~runtime_impl_t() {}
 
-void get_rank_x::call() const
-{
-  *rank_ = runtime_.get_value_or(g_default_runtime).p_impl->rank;
-}
-
-void get_nranks_x::call() const
-{
-  *nranks_ = runtime_.get_value_or(g_default_runtime).p_impl->nranks;
-}
-
 void get_default_net_context_x::call() const
 {
   *net_context_ = runtime_.get_value_or(g_default_runtime).p_impl->net_context;
@@ -107,6 +101,12 @@ void get_default_net_context_x::call() const
 void get_default_net_device_x::call() const
 {
   *net_device_ = runtime_.get_value_or(g_default_runtime).p_impl->net_device;
+}
+
+void get_default_net_endpoint_x::call() const
+{
+  *net_endpoint_ =
+      runtime_.get_value_or(g_default_runtime).p_impl->net_endpoint;
 }
 
 }  // namespace lcixx

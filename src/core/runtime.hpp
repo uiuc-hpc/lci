@@ -11,15 +11,13 @@ class runtime_impl_t
   using attr_t = runtime_t::attr_t;
   runtime_impl_t(attr_t);
   ~runtime_impl_t();
-  int get_rank() const { return rank; }
-  int get_nranks() const { return nranks; }
-  void initialize(runtime_t);
+  void initialize();
 
   runtime_t runtime;
   runtime_t::attr_t attr;
-  int rank, nranks;
   net_context_t net_context;
   net_device_t net_device;
+  net_endpoint_t net_endpoint;
 };
 }  // namespace lcixx
 

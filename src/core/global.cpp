@@ -3,6 +3,9 @@
 
 namespace lcixx
 {
+int g_rank = -1, g_nranks = -1;
+global_attr_t g_default_attr;
+runtime_t g_default_runtime;
 namespace
 {
 std::atomic<int> global_ini_counter(0);
@@ -34,6 +37,7 @@ void global_config_initialize()
   } else {
     LCIXX_Assert(false, "Unknown backend: %s\n", default_backend.c_str());
   }
+  //
 }
 }  // namespace
 
@@ -50,10 +54,10 @@ void global_initialize()
   log_initialize();
   // Initialize PMI.
   LCT_pmi_initialize();
-  int rank = LCT_pmi_get_rank();
-  int num_proc = LCT_pmi_get_size();
-  LCIXX_Assert(num_proc > 0, "PMI ran into an error (num_proc=%d)\n", num_proc);
-  LCT_set_rank(rank);
+  g_rank = LCT_pmi_get_rank();
+  g_nranks = LCT_pmi_get_size();
+  LCIXX_Assert(g_nranks > 0, "PMI ran into an error (num_proc=%d)\n", g_nranks);
+  LCT_set_rank(g_rank);
   // Initialize global configuration.
   global_config_initialize();
 }
@@ -66,5 +70,9 @@ void global_finalize()
   log_finalize();
   LCT_fina();
 }
+
+void get_rank_x::call() const { *rank_ = g_rank; }
+
+void get_nranks_x::call() const { *nranks_ = g_nranks; }
 
 }  // namespace lcixx

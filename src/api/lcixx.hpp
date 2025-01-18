@@ -33,37 +33,42 @@ struct option_t {
   bool is_set;
 };
 
-template <typename T>
-struct result_t {
-  T value;
-  bool success;
-  T unwrap()
-  {
-    if (!success) {
-      // TODO: replace with LCIXX_Assert
-      throw std::runtime_error("Unwrap failed\n");
-    }
-    return value;
-  }
+enum class errorcode_t {
+  ok,
+  init,
+  retry_min,
+  retry,
+  retry_lock,
+  retry_nomem,
+  retry_max,
+  fatal_min,
+  fatal,
+  fatal_max
 };
 
-template <typename T>
-struct result3_t {
-  T value;
-  enum class status_t {
-    success,
-    retry,
-    fatal,
-  } status;
-  T unwrap()
+struct error_t {
+  errorcode_t errorcode;
+  error_t() : errorcode(errorcode_t::init) {}
+  error_t(errorcode_t errorcode_) : errorcode(errorcode_) {}
+  void reset(errorcode_t errorcode_ = errorcode_t::init)
   {
-    if (status != status_t::success) {
-      // TODO: replace with LCIXX_Assert
-      throw std::runtime_error("Unwrap failed\n");
-    }
-    return value;
+    errorcode = errorcode_;
   }
-  bool is_retry() { return status == status_t::retry; }
+  bool is_ok() const { return errorcode == errorcode_t::ok; }
+  bool is_retry() const
+  {
+    return errorcode >= errorcode_t::retry_min &&
+           errorcode < errorcode_t::retry_max;
+  }
+  bool is_fatal() const
+  {
+    return errorcode >= errorcode_t::fatal_min &&
+           errorcode < errorcode_t::fatal_max;
+  }
+  void assert_no_fatal() const
+  {
+    if (is_fatal()) throw std::runtime_error("Fatal error encountered");
+  }
 };
 
 enum class option_backend_t {
@@ -76,6 +81,12 @@ enum class option_backend_t {
 enum class option_rdv_protocol_t {
   write,
   writeimm,
+};
+
+enum option_net_lock_mode_t {
+  LCIXX_NET_TRYLOCK_SEND = 1,
+  LCIXX_NET_TRYLOCK_RECV = 1 << 1,
+  LCIXX_NET_TRYLOCK_POLL = 1 << 2,
 };
 
 // net cq entry
@@ -94,7 +105,7 @@ struct net_status_t {
   size_t length;
   net_imm_data_t imm_data;
 };
-using rkey_t = std::vector<char>;
+using rkey_t = uint64_t;
 }  // namespace lcixx
 
 #include "lcixx_binding.hpp"

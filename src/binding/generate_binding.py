@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os
+import os, sys
 import glob
 import importlib
 
@@ -40,7 +40,6 @@ struct {resource_name}_attr_t {{
       resource_name = item["name"]
       text += f"  {resource_name}_attr_t {resource_name}_attr;\n"
   text += "};\n"
-  text += "extern global_attr_t g_default_attr;\n"
   return text
   
 
@@ -141,7 +140,6 @@ def generate_header(input):
 namespace lcixx {{
 {}
 
-extern runtime_t g_default_runtime;
 }} // namespace lcixx
 
 #endif // LCIXX_BINDING_H_
@@ -161,8 +159,6 @@ def generate_impl(input):
 #include "lcixx_internal.hpp"
 
 namespace lcixx {{
-global_attr_t g_default_attr;
-runtime_t g_default_runtime;
 {}
 }} // namespace lcixx
 """
@@ -183,13 +179,21 @@ def generate_binding(input):
     print(f"Generated binding source in {os.path.abspath(f.name)}")
 
 if __name__ == "__main__":
-  input_dir = "input"
-  output_dir = "generated"
+  dir_path = os.path.dirname(os.path.realpath(__file__))
+  input_dir =  dir_path + "/input"
+  output_dir = dir_path + "/generated"
 
   input = []
+  sys.path.append(input_dir)
   for filename in glob.glob(os.path.join(input_dir, "*.py")):
-    module_path = filename.replace("/", ".").replace("\\", ".").replace(".py", "")
+    module_basename = os.path.basename(filename).replace(".py", "")
+    # module_path = filename.replace("/", ".").replace("\\", ".").replace(".py", "")
+    module_path = "input.{}".format(module_basename)
     module = importlib.import_module(module_path)
     if hasattr(module, "get_input"):
+      print("Reading input from", filename)
       input += module.get_input()
+  if len(input) == 0:
+    print("No input found. Exiting.")
+    exit(1)
   generate_binding(input)

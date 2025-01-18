@@ -63,7 +63,9 @@ void alloc_net_device_x::call() const
       max_recvs_.get_value_or(g_default_attr.net_device_attr.max_recvs);
   attr.max_cqes =
       max_cqes_.get_value_or(g_default_attr.net_device_attr.max_cqes);
-  net_device_->p_impl = new ofi_net_device_impl_t(context, attr);
+  attr.lock_mode =
+      lock_mode_.get_value_or(g_default_attr.net_device_attr.lock_mode);
+  *net_device_ = context.p_impl->alloc_net_device(attr);
 }
 
 void free_net_device_x::call() const
@@ -74,20 +76,134 @@ void free_net_device_x::call() const
 
 void register_memory_x::call() const
 {
-  *mr_ = device_.p_impl->register_memory(address_, size_);
-  mr_->p_impl->device = device_;
+  runtime_t runtime = runtime_.get_value_or(g_default_runtime);
+  net_device_t net_device;
+  if (!net_device_.get_value(&net_device)) {
+    get_default_net_device_x(&net_device).runtime(runtime).call();
+  }
+  *mr_ = net_device.p_impl->register_memory(address_, size_);
+  mr_->p_impl->device = net_device;
 }
 
 void deregister_memory_x::call() const
 {
-  mr_.p_impl->device.p_impl->deregister_memory(mr_);
+  mr_->p_impl->device.p_impl->deregister_memory(*mr_);
+  mr_->p_impl = nullptr;
 }
 
 void net_poll_cq_x::call() const
 {
-  *statuses_ = device_.p_impl->poll_comp(max_polls_.get_value_or(1));
+  runtime_t runtime = runtime_.get_value_or(g_default_runtime);
+  net_device_t net_device;
+  if (!net_device_.get_value(&net_device)) {
+    get_default_net_device_x(&net_device).runtime(runtime).call();
+  }
+  const int default_max_polls = 20;
+  int max_polls = max_polls_.get_value_or(default_max_polls);
+  *statuses_ = net_device.p_impl->poll_comp(max_polls);
 }
 
 std::atomic<int> net_endpoint_impl_t::g_nendpoints(0);
 
+void alloc_net_endpoint_x::call() const
+{
+  runtime_t runtime = runtime_.get_value_or(g_default_runtime);
+  net_device_t device;
+  if (!net_device_.get_value(&device)) {
+    get_default_net_device_x(&device).runtime(runtime).call();
+  }
+  net_endpoint_t::attr_t attr;
+  *net_endpoint_ = device.p_impl->alloc_net_endpoint(attr);
+}
+
+void free_net_endpoint_x::call() const
+{
+  delete net_endpoint_->p_impl;
+  net_endpoint_->p_impl = nullptr;
+}
+
+void net_post_recv_x::call() const
+{
+  runtime_t runtime = runtime_.get_value_or(g_default_runtime);
+  net_device_t net_device;
+  if (!net_device_.get_value(&net_device)) {
+    get_default_net_device_x(&net_device).runtime(runtime).call();
+  }
+  void* ctx = ctx_.get_value_or(nullptr);
+  *error_ = net_device.p_impl->post_recv(buffer_, size_, mr_, ctx);
+  fprintf(stderr, "net_post_recv_x returned %d\n", (int)error_->errorcode);
+}
+
+void net_post_sends_x::call() const
+{
+  runtime_t runtime = runtime_.get_value_or(g_default_runtime);
+  net_endpoint_t net_endpoint;
+  if (!net_endpoint_.get_value(&net_endpoint)) {
+    get_default_net_endpoint_x(&net_endpoint).runtime(runtime).call();
+  }
+  net_imm_data_t imm_data = imm_data_.get_value_or(0);
+  *error_ = net_endpoint.p_impl->post_sends(rank_, buffer_, size_, imm_data);
+}
+
+void net_post_send_x::call() const
+{
+  runtime_t runtime = runtime_.get_value_or(g_default_runtime);
+  net_endpoint_t net_endpoint;
+  if (!net_endpoint_.get_value(&net_endpoint)) {
+    get_default_net_endpoint_x(&net_endpoint).runtime(runtime).call();
+  }
+  void* ctx = ctx_.get_value_or(nullptr);
+  net_imm_data_t imm_data = imm_data_.get_value_or(0);
+  *error_ =
+      net_endpoint.p_impl->post_send(rank_, buffer_, size_, mr_, imm_data, ctx);
+  fprintf(stderr, "net_post_send_x returned %d\n", (int)error_->errorcode);
+}
+
+void net_post_puts_x::call() const
+{
+  runtime_t runtime = runtime_.get_value_or(g_default_runtime);
+  net_endpoint_t net_endpoint;
+  if (!net_endpoint_.get_value(&net_endpoint)) {
+    get_default_net_endpoint_x(&net_endpoint).runtime(runtime).call();
+  }
+  *error_ = net_endpoint.p_impl->post_puts(rank_, buffer_, size_, base_,
+                                           offset_, rkey_);
+}
+
+void net_post_put_x::call() const
+{
+  runtime_t runtime = runtime_.get_value_or(g_default_runtime);
+  net_endpoint_t net_endpoint;
+  if (!net_endpoint_.get_value(&net_endpoint)) {
+    get_default_net_endpoint_x(&net_endpoint).runtime(runtime).call();
+  }
+  void* ctx = ctx_.get_value_or(nullptr);
+  *error_ = net_endpoint.p_impl->post_put(rank_, buffer_, size_, mr_, base_,
+                                          offset_, rkey_, ctx);
+}
+
+void net_post_putImms_x::call() const
+{
+  runtime_t runtime = runtime_.get_value_or(g_default_runtime);
+  net_endpoint_t net_endpoint;
+  if (!net_endpoint_.get_value(&net_endpoint)) {
+    get_default_net_endpoint_x(&net_endpoint).runtime(runtime).call();
+  }
+  net_imm_data_t imm_data = imm_data_.get_value_or(0);
+  *error_ = net_endpoint.p_impl->post_putImms(rank_, buffer_, size_, base_,
+                                              offset_, rkey_, imm_data);
+}
+
+void net_post_putImm_x::call() const
+{
+  runtime_t runtime = runtime_.get_value_or(g_default_runtime);
+  net_endpoint_t net_endpoint;
+  if (!net_endpoint_.get_value(&net_endpoint)) {
+    get_default_net_endpoint_x(&net_endpoint).runtime(runtime).call();
+  }
+  void* ctx = ctx_.get_value_or(nullptr);
+  net_imm_data_t imm_data = imm_data_.get_value_or(0);
+  *error_ = net_endpoint.p_impl->post_putImm(rank_, buffer_, size_, mr_, base_,
+                                             offset_, rkey_, imm_data, ctx);
+}
 }  // namespace lcixx

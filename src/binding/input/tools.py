@@ -32,7 +32,7 @@ def operation_alloc(resource, additiona_args=[], add_runtime_args=True):
         "type": "operation",
         "name": f"alloc_{resource_name}",
         "args": args + [
-            error_args,
+            optional_error_args,
             positional_args(f"{resource_name}_t*", resource_name)
         ] + additiona_args
     }
@@ -46,11 +46,12 @@ def operation_free(resource, add_runtime_args=True):
         "type": "operation",
         "name": f"free_{resource_name}",
         "args": args + [
-            error_args,
+            optional_error_args,
             positional_args(f"{resource_name}_t*", resource_name)
         ]
     }
 
 runtime_attr = attr("runtime_t", "runtime")
 runtime_args = optional_args("runtime_t", "runtime")
-error_args = optional_args("error_t*", "error")
+optional_error_args = optional_args("error_t*", "error")
+positional_error_args = positional_args("error_t*", "error")
