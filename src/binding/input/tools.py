@@ -4,8 +4,8 @@ def optional_args(type, name):
 def positional_args(type, name):
     return (type, name, True)
 
-def attr(type, name):
-    return (type, name)
+def attr(type, name, default_var=None, env_var=None):
+    return (type, name, default_var, env_var)
 
 def resource(name, attrs):
     return {

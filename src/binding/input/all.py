@@ -18,11 +18,12 @@ operation("get_nranks", [
 # # Runtime
 # ##############################################################################
 resource_runtime := resource("runtime", [
-    attr("bool", "use_reg_cache"),
-    attr("bool", "use_control_channel"),
-    attr("bool", "use_default_net_context"),
-    attr("bool", "use_default_net_device"),
-    attr("option_rdv_protocol_t", "rdv_protocol")
+    attr("bool", "use_reg_cache", "LCIXX_USE_REG_CACHE_DEFAULT"),
+    attr("bool", "use_control_channel", 1),
+    attr("bool", "use_default_net_context", 1),
+    attr("bool", "use_default_net_device", 1),
+    attr("bool", "use_default_net_endpoint", 1),
+    attr("option_rdv_protocol_t", "rdv_protocol") #TODO
 ]),
 operation_alloc(resource_runtime, add_runtime_args=False),
 operation_free(resource_runtime, add_runtime_args=False),
@@ -57,18 +58,18 @@ operation("get_default_net_endpoint", [
 # ##############################################################################
 # net context
 resource_net_context := resource("net_context", [
-    attr("option_backend_t", "backend"),
+    attr("option_backend_t", "backend"), #TODO
     attr("std::string", "provider_name"),
-    attr("int64_t", "max_msg_size"),
+    attr("int64_t", "max_msg_size", "LCIXX_USE_MAX_SINGLE_MESSAGE_SIZE_DEFAULT"),
 ]),
 operation_alloc(resource_net_context),
 operation_free(resource_net_context),
 # net device
 resource_net_device := resource("net_device", [
-    attr("int64_t", "max_sends"),
-    attr("int64_t", "max_recvs"),
-    attr("int64_t", "max_cqes"),
-    attr("uint64_t", "lock_mode")
+    attr("int64_t", "max_sends", "LCIXX_BACKEND_MAX_SENDS_DEFAULT"),
+    attr("int64_t", "max_recvs", "LCIXX_BACKEND_MAX_RECVS_DEFAULT"),
+    attr("int64_t", "max_cqes", "LCIXX_BACKEND_MAX_CQES_DEFAULT"),
+    attr("uint64_t", "lock_mode") #TODO
 ]),
 operation_alloc(resource_net_device, [
     optional_args("net_context_t", "net_context")

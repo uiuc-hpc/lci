@@ -54,10 +54,8 @@ TEST(NETWORK, loopback)
     std::vector<lcixx::net_status_t> tmp;
     lcixx::net_poll_cq_x(&tmp).call();
     if (!tmp.empty()) {
-      fprintf(stderr, "Got %lu statuses\n", tmp.size());
-      continue;
+      statuses.insert(statuses.end(), tmp.begin(), tmp.end());
     }
-    statuses.insert(statuses.end(), tmp.begin(), tmp.end());
   }
   lcixx::deregister_memory_x(&mr).call();
   lcixx::g_runtime_fina_x().call();

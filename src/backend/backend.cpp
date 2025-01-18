@@ -131,7 +131,6 @@ void net_post_recv_x::call() const
   }
   void* ctx = ctx_.get_value_or(nullptr);
   *error_ = net_device.p_impl->post_recv(buffer_, size_, mr_, ctx);
-  fprintf(stderr, "net_post_recv_x returned %d\n", (int)error_->errorcode);
 }
 
 void net_post_sends_x::call() const
@@ -156,7 +155,6 @@ void net_post_send_x::call() const
   net_imm_data_t imm_data = imm_data_.get_value_or(0);
   *error_ =
       net_endpoint.p_impl->post_send(rank_, buffer_, size_, mr_, imm_data, ctx);
-  fprintf(stderr, "net_post_send_x returned %d\n", (int)error_->errorcode);
 }
 
 void net_post_puts_x::call() const

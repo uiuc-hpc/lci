@@ -1,7 +1,7 @@
-if(LCI_COMPILE_DREG)
+if(LCIXX_COMPILE_REG_CACHE)
   add_subdirectory(ucx)
-  target_include_directories(LCI PRIVATE ucx)
-  target_link_libraries(LCI PRIVATE lci-ucx)
+  target_include_directories(LCIXX PRIVATE ucx)
+  target_link_libraries(LCIXX PRIVATE lci-ucx)
 endif()
 
 add_subdirectory(ConcurrencyFreaks)

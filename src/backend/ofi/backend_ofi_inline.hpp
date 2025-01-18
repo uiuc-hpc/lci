@@ -53,7 +53,6 @@ inline std::vector<net_status_t> ofi_net_device_impl_t::poll_comp(int max_polls)
       }
     }
     statuses.push_back(status);
-    fprintf(stderr, "statuses.push_back(status);\n");
   } else if (ne == -FI_EAGAIN) {
   } else {
     struct fi_cq_err_entry error;
@@ -125,8 +124,6 @@ inline error_t ofi_net_endpoint_impl_t::post_send(int rank, void* buffer,
   ssize_t ret = fi_senddata(ofi_ep, buffer, size, ofi_detail::get_mr_desc(mr),
                             (uint64_t)my_rank << 32 | imm_data,
                             peer_addrs[rank], (struct fi_context*)ctx);
-  fprintf(stderr,
-          "fi_senddata(ofi_ep, buffer, size, ofi_detail::get_mr_desc(mr),\n");
   LCIXX_OFI_CS_EXIT(LCIXX_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
     return errorcode_t::ok;

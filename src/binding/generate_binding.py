@@ -23,12 +23,17 @@ def generate_attr_decl(input):
     attrs = item["attrs"]
 
     # build attributes list
-    attr_list = "\n".join([f"    {attr[0]} {attr[1]};" for attr in attrs])
+    attr_list = ""
+    for attr in attrs:
+      if attr[2] is not None:
+        # default variable is provided
+        attr_list += f"  {attr[0]} {attr[1]} = {attr[2]};\n"
+      else:
+        attr_list += f"  {attr[0]} {attr[1]};\n"
 
     text += f"""
 struct {resource_name}_attr_t {{
-{attr_list}
-}};
+{attr_list}}};
 """
     
   # declare global attribute struct

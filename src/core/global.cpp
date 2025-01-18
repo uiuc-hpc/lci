@@ -10,8 +10,25 @@ namespace
 {
 std::atomic<int> global_ini_counter(0);
 
+namespace
+{
+template <typename T>
+bool set_var_with_env(const char* env, T& val)
+{
+  const char* s = getenv(env);
+  if (s) {
+    val = atoi(s);
+    return true;
+  } else {
+    return false;
+  }
+}
+}  // namespace
+
 void global_config_initialize()
 {
+  set_var_with_env("LCIXX_USE_REG_CACHE",
+                   g_default_attr.runtime_attr.use_reg_cache);
   // backend
   std::string default_backend;
   const char* env = getenv("LCIXX_NETWORK_BACKEND_DEFAULT");
@@ -37,7 +54,6 @@ void global_config_initialize()
   } else {
     LCIXX_Assert(false, "Unknown backend: %s\n", default_backend.c_str());
   }
-  //
 }
 }  // namespace
 
