@@ -195,6 +195,28 @@ operation("net_post_putImm", [
 # ##############################################################################
 resource("packet_pool", []),
 resource("comp", []),
+operation("comp_signal", [
+    runtime_args,
+    optional_error_args,
+    positional_args("comp_t", "comp"),
+    positional_args("status_t", "status")
+]),
+operation("alloc_cq", [
+    runtime_args,
+    optional_error_args,
+    positional_args("comp_t*", "comp")
+]),
+operation("free_cq", [
+    runtime_args,
+    optional_error_args,
+    positional_args("comp_t*", "comp")
+]),
+operation("cq_pop", [
+    runtime_args,
+    positional_args("comp_t", "comp"),
+    positional_error_args,
+    positional_args("status_t*", "status"),
+]),
 operation("communicate", [
     runtime_args,
     positional_args("direction_t", "direction"),
