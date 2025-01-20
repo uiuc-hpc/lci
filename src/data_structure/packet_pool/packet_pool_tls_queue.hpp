@@ -20,21 +20,17 @@ class packet_pool_tls_queue_t : public packet_pool_impl_t
                    "Insufficient size in destination queue: %lu (need %ld)\n",
                    new_queue.size(), n);
       int64_t head_idx = src->head % src->queue.size();
-      for (int64_t i = 0; i < n; i++) {
-        void* val = src->pop();
-        LCIXX_Assert(val, "val must not be nullptr\n");
-        new_queue[i] = val;
+      if (head_idx + n <= src->queue.size()) {
+        // no wrap around
+        memcpy(new_queue.data(), &src->queue[head_idx], n * sizeof(void*));
+      } else {
+        int64_t first_segment_size = src->queue.size() - head_idx;
+        memcpy(new_queue.data(), &src->queue[head_idx],
+               first_segment_size * sizeof(void*));
+        memcpy(new_queue.data() + first_segment_size, &src->queue[0],
+               (n - first_segment_size) * sizeof(void*));
       }
-      // if (head_idx + n <= src->queue.size()) {
-      // no wrap around
-      // memcpy(new_queue.data(), &src->queue[head_idx], n * sizeof(void*));
-      // } else {
-      // int64_t first_segment_size = src->queue.size() - head_idx;
-      // memcpy(new_queue.data(), &src->queue[head_idx], first_segment_size *
-      // sizeof(void*)); memcpy(new_queue.data() + first_segment_size,
-      // &src->queue[0], (n - first_segment_size) * sizeof(void*));
-      // }
-      // random_pool->head += n;
+      src->head += n;
     }
     local_pool_t(int64_t default_size = 1024) : head(0), tail(0)
     {
