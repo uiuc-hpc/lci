@@ -4,6 +4,7 @@ target_sources_relative(
   PRIVATE
   binding/generated/binding.cpp
   util/log.cpp
+  util/random.cpp
   backend/backend.cpp
   backend/ofi/backend_ofi.cpp
   core/lcixx.cpp

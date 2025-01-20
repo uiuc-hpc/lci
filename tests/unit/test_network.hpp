@@ -20,7 +20,6 @@ TEST(NETWORK, poll_cq)
 
 TEST(NETWORK, loopback)
 {
-  fprintf(stderr, "Starting loopback test\n");
   lcixx::g_runtime_init_x().call();
   const int size = 1024;
   void* address = malloc(size);

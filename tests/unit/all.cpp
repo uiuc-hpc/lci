@@ -1,7 +1,9 @@
 #include <gtest/gtest.h>
 #include "lcixx.hpp"
-#include "basic.hpp"
-#include "net_device.hpp"
+#include "test_basic.hpp"
+#include "test_network.hpp"
+#include "test_packet_pool.hpp"
+#include "test_mpmc_array.hpp"
 
 int main(int argc, char** argv)
 {

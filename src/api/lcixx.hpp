@@ -106,6 +106,33 @@ struct net_status_t {
   net_imm_data_t imm_data;
 };
 using rkey_t = uint64_t;
+using tag_t = uint32_t;
+enum class direction_t {
+  SEND,
+  RECV,
+};
+using rcomp_t = uint32_t;
+struct status_t {
+  error_t error;
+  int rank;
+  void* buffer;
+  size_t size;
+  tag_t tag;
+  void* ctx;
+};
+class comp_impl_t
+{
+ public:
+  virtual ~comp_impl_t() = default;
+  virtual void signal(status_t) = 0;
+};
+class packet_pool_impl_t
+{
+ public:
+  virtual ~packet_pool_impl_t() = default;
+  virtual void* get() = 0;
+  virtual void put(void*) = 0;
+};
 }  // namespace lcixx
 
 #include "lcixx_binding.hpp"

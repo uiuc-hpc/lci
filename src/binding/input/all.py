@@ -191,6 +191,25 @@ operation("net_post_putImm", [
     positional_error_args,
 ]),
 # ##############################################################################
+# # Core Layer
+# ##############################################################################
+resource("packet_pool", []),
+resource("comp", []),
+operation("communicate", [
+    runtime_args,
+    positional_args("direction_t", "direction"),
+    positional_args("int", "rank"),
+    positional_args("void*", "local_buffer"),
+    positional_args("size_t", "size"),
+    positional_args("comp_t", "local_comp"),
+    optional_args("net_endpoint_t", "net_endpoint"),
+    optional_args("void*", "remote_buffer"),
+    optional_args("tag_t", "tag"),
+    optional_args("rcomp_t", "remote_comp"),
+    optional_args("void*", "ctx"),
+    positional_error_args,
+]),
+# ##############################################################################
 # # End of the definition
 # ##############################################################################
 ]

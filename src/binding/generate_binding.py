@@ -58,6 +58,8 @@ def generate_resource_decl(item):
   attr_getter = ""
   for attr in attrs:
     attr_getter += f"  {attr[0]} get_attr_{attr[1]}() const;\n"
+  if len(attrs) > 0:
+    attr_getter += "  attr_t get_attr() const;"
 
   text = f"""
 class {impl_class_name};
@@ -65,7 +67,6 @@ class {resource_name}_t {{
  public:
   using attr_t = {resource_name}_attr_t;
   // attribute getter
-  attr_t get_attr() const;
 {attr_getter}
   {impl_class_name}* p_impl = nullptr;
 }};
@@ -77,9 +78,11 @@ def generate_resource_impl(item):
   class_name = item["name"] + "_t"
   attrs = item["attrs"]
 
-  getter_impl = "\n{}::attr_t {}::get_attr() const {{ return p_impl->attr; }}\n".format(class_name, class_name)
+  getter_impl = ""
   for attr in attrs:
     getter_impl += f"{attr[0]} {class_name}::get_attr_{attr[1]}() const {{ return p_impl->attr.{attr[1]}; }}\n"
+  if len(attrs) > 0:
+    getter_impl += "\n{}::attr_t {}::get_attr() const {{ return p_impl->attr; }}\n".format(class_name, class_name)
   return getter_impl
 
 
