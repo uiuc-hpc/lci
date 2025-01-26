@@ -120,21 +120,18 @@ struct status_t {
   tag_t tag;
   void* ctx;
 };
+}  // namespace lcixx
+
+#include "lcixx_binding.hpp"
+
+namespace lcixx
+{
 class comp_impl_t
 {
  public:
   virtual ~comp_impl_t() = default;
   virtual void signal(status_t) = 0;
 };
-class packet_pool_impl_t
-{
- public:
-  virtual ~packet_pool_impl_t() = default;
-  virtual void* get() = 0;
-  virtual void put(void*) = 0;
-};
 }  // namespace lcixx
-
-#include "lcixx_binding.hpp"
 
 #endif  // LCIXX_API_LCIXX_HPP

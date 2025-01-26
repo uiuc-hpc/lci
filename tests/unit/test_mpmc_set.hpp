@@ -6,7 +6,7 @@ namespace test_packet_pool
 TEST(PACKET_POOL, singlethread)
 {
   lcixx::global_initialize();
-  lcixx::packet_pool_tls_queue_t pool(0, 1);
+  lcixx::mpmc_set_t pool(0, 1);
   const int n = 1000;
   for (int i = 0; i < n; i++) {
     pool.put(reinterpret_cast<void*>(i + 1));
@@ -18,8 +18,7 @@ TEST(PACKET_POOL, singlethread)
 }
 
 // all threads put and get
-void test_multithread0(lcixx::packet_pool_tls_queue_t& pool, int start, int n,
-                       bool flags[])
+void test_multithread0(lcixx::mpmc_set_t& pool, int start, int n, bool flags[])
 {
   for (uint64_t i = 0; i < n; i++) {
     pool.put(reinterpret_cast<void*>(start + i + 1));
@@ -45,7 +44,7 @@ TEST(PACKET_POOL, multithread0)
   const int n_per_thread = n / nthreads;
   bool flags[n];
   memset(flags, 0, sizeof(flags));
-  lcixx::packet_pool_tls_queue_t pool(0, 1);
+  lcixx::mpmc_set_t pool(0, 1);
   std::vector<std::thread> threads;
   for (int i = 0; i < nthreads; i++) {
     std::thread t(test_multithread0, std::ref(pool), i * n_per_thread,
@@ -62,8 +61,7 @@ TEST(PACKET_POOL, multithread0)
 }
 
 // 1 thread put and all threads get (testing work stealing)
-void test_multithread1(lcixx::packet_pool_tls_queue_t& pool, int start, int n,
-                       bool flags[])
+void test_multithread1(lcixx::mpmc_set_t& pool, int start, int n, bool flags[])
 {
   int ncomps = 0;
   while (ncomps < n) {
@@ -86,7 +84,7 @@ TEST(PACKET_POOL, multithread1)
   const int n_per_thread = n / nthreads;
   bool flags[n];
   memset(flags, 0, sizeof(flags));
-  lcixx::packet_pool_tls_queue_t pool(0, 1);
+  lcixx::mpmc_set_t pool(0, 1);
   for (int i = 0; i < n; i++) {
     pool.put(reinterpret_cast<void*>(i + 1));
   }
@@ -106,8 +104,7 @@ TEST(PACKET_POOL, multithread1)
 }
 
 // all threads put and all threads get
-void test_multithread2(lcixx::packet_pool_tls_queue_t& pool, int start, int n,
-                       bool flags[])
+void test_multithread2(lcixx::mpmc_set_t& pool, int start, int n, bool flags[])
 {
   for (int i = 0; i < n; i++) {
     pool.put(reinterpret_cast<void*>(start + i + 1));
@@ -123,7 +120,7 @@ TEST(PACKET_POOL, multithread2)
   const int n_per_thread = n / nthreads;
   bool flags[n];
   memset(flags, 0, sizeof(flags));
-  lcixx::packet_pool_tls_queue_t pool(0, 1);
+  lcixx::mpmc_set_t pool(0, 1);
   // all other threads will and put to pool
   std::vector<std::thread> threads;
   for (int i = 0; i < nthreads; i++) {
@@ -152,10 +149,8 @@ TEST(PACKET_POOL, multithread2)
 }
 
 // all threads put and all threads get
-void test_multithread3(lcixx::packet_pool_tls_queue_t& pool0,
-                       lcixx::packet_pool_tls_queue_t& pool1,
-                       lcixx::packet_pool_tls_queue_t& pool2, int start, int n,
-                       bool flags[])
+void test_multithread3(lcixx::mpmc_set_t& pool0, lcixx::mpmc_set_t& pool1,
+                       lcixx::mpmc_set_t& pool2, int start, int n, bool flags[])
 {
   int ncomps = 0;
   while (ncomps < n) {
@@ -186,9 +181,9 @@ TEST(PACKET_POOL, multithread3)
   const int n_per_thread = n / nthreads;
   bool flags[n];
   memset(flags, 0, sizeof(flags));
-  lcixx::packet_pool_tls_queue_t pool0(0, 1);
-  lcixx::packet_pool_tls_queue_t pool1(0, 1);
-  lcixx::packet_pool_tls_queue_t pool2(0, 1);
+  lcixx::mpmc_set_t pool0(0, 1);
+  lcixx::mpmc_set_t pool1(0, 1);
+  lcixx::mpmc_set_t pool2(0, 1);
   // the main thread will put to pool0
   for (int i = 0; i < n; i++) {
     pool0.put(reinterpret_cast<void*>(i + 1));

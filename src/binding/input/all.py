@@ -193,7 +193,41 @@ operation("net_post_putImm", [
 # ##############################################################################
 # # Core Layer
 # ##############################################################################
-resource("packet_pool", []),
+# packet pool
+resource_packet_pool := resource("packet_pool", [
+    attr("size_t", "packet_size", "LCIXX_PACKET_SIZE_DEFAULT"),
+    attr("size_t", "npackets", "LCIXX_PACKET_NUM_DEFAULT"),
+]),
+operation_alloc(resource_packet_pool),
+operation_free(resource_packet_pool),
+operation("register_packets", [
+    runtime_args,
+    optional_error_args,
+    positional_args("packet_pool_t", "packet_pool"),
+    positional_args("net_device_t", "net_device"),
+],
+"""Register a packet pool to a network device.
+This is only needed for explicit packet pool.
+Implicit packet pool (the one allocated by the runtime) 
+is automatically registered to all network device.
+"""),
+operation("get_packet", [
+    runtime_args,
+    optional_error_args,
+    optional_args("packet_pool_t", "packet_pool"),
+    positional_args("void*", "packet")
+]),
+operation("put_packet", [
+    runtime_args,
+    optional_error_args,
+    positional_args("void*", "packet")
+]),
+# device
+resource_device := resource("device", [
+    attr("packet_pool_t", "packet_pool"),
+    attr("net_device_t", "net_device")
+]),
+# comp
 resource("comp", []),
 operation("comp_signal", [
     runtime_args,
@@ -201,6 +235,7 @@ operation("comp_signal", [
     positional_args("comp_t", "comp"),
     positional_args("status_t", "status")
 ]),
+# cq
 operation("alloc_cq", [
     runtime_args,
     optional_error_args,
@@ -217,6 +252,7 @@ operation("cq_pop", [
     positional_error_args,
     positional_args("status_t*", "status"),
 ]),
+# communicate
 operation("communicate", [
     runtime_args,
     positional_args("direction_t", "direction"),
@@ -230,6 +266,11 @@ operation("communicate", [
     optional_args("rcomp_t", "remote_comp"),
     optional_args("void*", "ctx"),
     positional_error_args,
+]),
+operation("progress", [
+    runtime_args,
+    optional_error_args,
+    optional_args("device_t", "device"),
 ]),
 # ##############################################################################
 # # End of the definition

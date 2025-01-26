@@ -1,16 +1,16 @@
-#ifndef LCIXX_PACKET_POOL_TLS_QUEUE_HPP
-#define LCIXX_PACKET_POOL_TLS_QUEUE_HPP
+#ifndef LCIXX_MPMC_SET_HPP
+#define LCIXX_MPMC_SET_HPP
 
 namespace lcixx
 {
-class packet_pool_tls_queue_t : public packet_pool_impl_t
+class mpmc_set_t
 {
-  struct alignas(LCIXX_CACHE_LINE) local_pool_t {
+  struct alignas(LCIXX_CACHE_LINE) local_set_t {
     int id;
     std::vector<void*> queue;
     int64_t head, tail;
     spinlock_t lock;
-    static void copy_to_new(local_pool_t* src, std::vector<void*>& new_queue,
+    static void copy_to_new(local_set_t* src, std::vector<void*>& new_queue,
                             int64_t n)
     {
       LCIXX_Assert(src->size() >= n,
@@ -32,7 +32,7 @@ class packet_pool_tls_queue_t : public packet_pool_impl_t
       }
       src->head += n;
     }
-    local_pool_t(int64_t default_size = 1024) : head(0), tail(0)
+    local_set_t(int64_t default_size = 1024) : head(0), tail(0)
     {
       LCIXX_Assert(default_size > 0, "default_size must be positive");
       queue.resize(default_size + 1, nullptr);
@@ -44,7 +44,7 @@ class packet_pool_tls_queue_t : public packet_pool_impl_t
       if (current_size == queue.size() - 1) {
         // resize the queue
         std::vector<void*> new_queue(queue.size() * 2);
-        local_pool_t::copy_to_new(this, new_queue, current_size);
+        local_set_t::copy_to_new(this, new_queue, current_size);
         head = 0;
         tail = current_size;
         LCIXX_Assert(head < tail, "header (%ld) > tail (%ld)\n", head, tail);
@@ -72,26 +72,27 @@ class packet_pool_tls_queue_t : public packet_pool_impl_t
   };
 
  public:
-  packet_pool_tls_queue_t(int default_nthreads = 256,
-                          int64_t default_lpool_size_ = 1024)
+  mpmc_set_t(int default_nthreads = 256, int64_t default_lpool_size_ = 1024)
       : npools(0),
         pools(default_nthreads),
         tid_to_pools(default_nthreads),
         default_lpool_size(default_lpool_size_)
   {
   }
-  ~packet_pool_tls_queue_t() override
+  ~mpmc_set_t()
   {
     for (int i = 0; i < npools; i++) {
-      delete static_cast<local_pool_t*>(pools.get(i));
+      delete static_cast<local_set_t*>(pools.get(i));
     }
   };
-  void* get() override;
-  void put(void*) override;
+  const static int LOCAL_SET_ID_NULL = -1;
+  int get_local_set_id() { return LCT_get_thread_id(); }
+  void* get();
+  void put(void* packet, int tid);
 
  private:
-  local_pool_t* get_local_pool();
-  local_pool_t* get_random_pool();
+  local_set_t* get_local_pool();
+  local_set_t* get_random_pool();
 
   int64_t default_lpool_size;
   std::atomic<int> npools;
@@ -99,35 +100,33 @@ class packet_pool_tls_queue_t : public packet_pool_impl_t
   mpmc_array_t tid_to_pools;
 };
 
-inline packet_pool_tls_queue_t::local_pool_t*
-packet_pool_tls_queue_t::get_local_pool()
+inline mpmc_set_t::local_set_t* mpmc_set_t::get_local_pool()
 {
-  int tid = LCT_get_thread_id();
+  int tid = get_local_set_id();
   void* ptr = tid_to_pools.get(tid);
   if (LCT_likely(ptr)) {
-    return static_cast<local_pool_t*>(ptr);
+    return static_cast<local_set_t*>(ptr);
   }
   // we need to allocate a new one
-  ptr = new local_pool_t(default_lpool_size);
+  ptr = new local_set_t(default_lpool_size);
   int pool_id = npools++;
-  static_cast<local_pool_t*>(ptr)->id = pool_id;
+  static_cast<local_set_t*>(ptr)->id = pool_id;
   pools.put(pool_id, ptr);
   tid_to_pools.put(tid, ptr);
-  return static_cast<local_pool_t*>(ptr);
+  return static_cast<local_set_t*>(ptr);
 }
 
-inline packet_pool_tls_queue_t::local_pool_t*
-packet_pool_tls_queue_t::get_random_pool()
+inline mpmc_set_t::local_set_t* mpmc_set_t::get_random_pool()
 {
   int pool_id = rand_mt() % npools;
-  return static_cast<local_pool_t*>(pools.get(pool_id));
+  return static_cast<local_set_t*>(pools.get(pool_id));
 }
 
-inline void* packet_pool_tls_queue_t::get()
+inline void* mpmc_set_t::get()
 {
-  int tid = LCT_get_thread_id();
-  local_pool_t* local_pool = get_local_pool();
-  local_pool_t* random_pool;
+  int tid = get_local_set_id();
+  local_set_t* local_pool = get_local_pool();
+  local_set_t* random_pool;
   int64_t n;
 
   if (!local_pool->lock.try_lock()) {
@@ -152,7 +151,7 @@ inline void* packet_pool_tls_queue_t::get()
                  "n (%ld) > random_pool->size() (%ld)\n", n,
                  random_pool->size());
     local_pool->queue.resize(std::max(default_lpool_size, n * 2) + 1);
-    local_pool_t::copy_to_new(random_pool, local_pool->queue, n);
+    local_set_t::copy_to_new(random_pool, local_pool->queue, n);
     LCIXX_Assert(random_pool->head <= random_pool->tail,
                  "header (%ld) > tail (%ld)\n", random_pool->head,
                  random_pool->tail);
@@ -174,11 +173,14 @@ unlock_local_pool:
   return ret;
 }
 
-inline void packet_pool_tls_queue_t::put(void* packet)
+inline void mpmc_set_t::put(void* packet,
+                            int tid = mpmc_set_t::LOCAL_SET_ID_NULL)
 {
   LCIXX_Assert(packet, "packet must not be nullptr\n");
-  int tid = LCT_get_thread_id();
-  local_pool_t* local_pool = get_local_pool();
+  if (tid < 0) {
+    tid = get_local_set_id();
+  }
+  local_set_t* local_pool = get_local_pool();
 
   local_pool->lock.lock();
   local_pool->push(packet);
@@ -186,4 +188,4 @@ inline void packet_pool_tls_queue_t::put(void* packet)
 }
 }  // namespace lcixx
 
-#endif  // LCIXX_PACKET_POOL_TLS_QUEUE_HPP
+#endif  // LCIXX_MPMC_SET_HPP

@@ -18,6 +18,7 @@ class runtime_impl_t
   net_context_t net_context;
   net_device_t net_device;
   net_endpoint_t net_endpoint;
+  packet_pool_t packet_pool;
 };
 }  // namespace lcixx
 

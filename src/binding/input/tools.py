@@ -14,7 +14,7 @@ def resource(name, attrs):
         "attrs": attrs
     }
 
-def operation(name, args):
+def operation(name, args, comment=None):
     return {
         "type": "operation",
         "name": name,

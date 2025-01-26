@@ -1,5 +1,5 @@
-#ifndef LCIXX_BASIC_MPMC_ARRAY_HPP
-#define LCIXX_BASIC_MPMC_ARRAY_HPP
+#ifndef LCIXX_MPMC_ARRAY_HPP
+#define LCIXX_MPMC_ARRAY_HPP
 
 namespace lcixx
 {
@@ -55,6 +55,8 @@ class mpmc_array_t
     return ret;
   }
 
+  size_t get_size() { return length; }
+
  private:
   spinlock_t lock;
   std::atomic<entry_t*> ptr;
@@ -63,4 +65,4 @@ class mpmc_array_t
 };
 }  // namespace lcixx
 
-#endif  // LCIXX_BASIC_MPMC_ARRAY_HPP
+#endif  // LCIXX_MPMC_ARRAY_HPP

@@ -71,6 +71,8 @@ void runtime_impl_t::initialize()
   alloc_net_context_x(&net_context).runtime(runtime).call();
   alloc_net_device_x(&net_device).runtime(runtime).call();
   alloc_net_endpoint_x(&net_endpoint).runtime(runtime).call();
+  alloc_packet_pool_x(&packet_pool).runtime(runtime).call();
+  register_packets_x(packet_pool, net_device).runtime(runtime).call();
 
   if (net_context.get_attr().backend == option_backend_t::ofi &&
       net_context.get_attr().provider_name == "cxi") {
@@ -91,7 +93,13 @@ void runtime_impl_t::initialize()
   }
 }
 
-runtime_impl_t::~runtime_impl_t() {}
+runtime_impl_t::~runtime_impl_t()
+{
+  free_packet_pool_x(&packet_pool).runtime(runtime).call();
+  free_net_endpoint_x(&net_endpoint).runtime(runtime).call();
+  free_net_device_x(&net_device).runtime(runtime).call();
+  free_net_context_x(&net_context).runtime(runtime).call();
+}
 
 void get_default_net_context_x::call() const
 {
