@@ -16,6 +16,7 @@
     if (err) {                                                              \
       LCIXX_Assert(false, "err : %s (%s:%d)\n", fi_strerror(err), __FILE__, \
                    __LINE__);                                               \
+      abort();                                                              \
     }                                                                       \
   }                                                                         \
   while (0)                                                                 \

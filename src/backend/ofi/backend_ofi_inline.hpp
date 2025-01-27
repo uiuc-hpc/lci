@@ -92,7 +92,6 @@ inline error_t ofi_net_device_impl_t::post_recv(void* buffer, size_t size,
     return errorcode_t::retry_nomem;
   else {
     FI_SAFECALL(ret);
-    return errorcode_t::fatal;
   }
 }
 
@@ -111,7 +110,6 @@ inline error_t ofi_net_endpoint_impl_t::post_sends(int rank, void* buffer,
     return errorcode_t::retry_nomem;
   else {
     FI_SAFECALL(ret);
-    return errorcode_t::fatal;
   }
 }
 
@@ -131,7 +129,6 @@ inline error_t ofi_net_endpoint_impl_t::post_send(int rank, void* buffer,
     return errorcode_t::retry_nomem;
   else {
     FI_SAFECALL(ret);
-    return errorcode_t::fatal;
   }
 }
 
@@ -171,7 +168,6 @@ inline error_t ofi_net_endpoint_impl_t::post_puts(int rank, void* buffer,
     return errorcode_t::retry_nomem;
   else {
     FI_SAFECALL(ret);
-    return errorcode_t::fatal;
   }
 }
 
@@ -214,7 +210,6 @@ inline error_t ofi_net_endpoint_impl_t::post_put(int rank, void* buffer,
     return errorcode_t::retry_nomem;
   else {
     FI_SAFECALL(ret);
-    return errorcode_t::fatal;
   }
 }
 
@@ -239,7 +234,6 @@ inline error_t ofi_net_endpoint_impl_t::post_putImms(
     return errorcode_t::retry_nomem;
   else {
     FI_SAFECALL(ret);
-    return errorcode_t::fatal;
   }
 }
 
@@ -264,7 +258,6 @@ inline error_t ofi_net_endpoint_impl_t::post_putImm(
     return errorcode_t::retry_nomem;
   else {
     FI_SAFECALL(ret);
-    return errorcode_t::fatal;
   }
 }
 }  // namespace lcixx

@@ -12,7 +12,9 @@ target_sources_relative(
   core/packet_pool.cpp
   core/cq.cpp
   core/comp.cpp
-  core/runtime.cpp)
+  core/runtime.cpp
+  core/communicate.cpp
+  core/progress.cpp)
 
 target_include_directories(LCIXX PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 

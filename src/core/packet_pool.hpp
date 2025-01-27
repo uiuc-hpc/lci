@@ -10,7 +10,7 @@ class packet_pool_impl_t
   attr_t attr;
   packet_pool_impl_t(const attr_t& attr);
   ~packet_pool_impl_t();
-  void register_packets(net_device_t net_device);
+  mr_t register_packets(net_device_t net_device);
   void* get() { return pool.get(); }
   void put(void* packet_address)
   {
@@ -23,7 +23,7 @@ class packet_pool_impl_t
     pool.put(packet, packet->local_context.local_id);
   }
 
-  inline bool is_packet(void* address, bool include_lcontext = false)
+  bool is_packet(void* address, bool include_lcontext = false)
   {
     void* packet_address;
     if (!include_lcontext) {
@@ -37,7 +37,18 @@ class packet_pool_impl_t
            offset / attr.packet_size < attr.npackets;
   }
 
- private:
+  mr_t get_or_register_mr(net_device_t net_device)
+  {
+    mr_t mr;
+    void* p = mrs.get(net_device.p_impl->net_device_id);
+    if (!p) {
+      mr = register_packets(net_device);
+    } else {
+      mr.p_impl = static_cast<mr_impl_t*>(p);
+    }
+    return mr;
+  }
+
   mpmc_set_t pool;
   void* heap;
   // std::unique_ptr<char[]> heap;

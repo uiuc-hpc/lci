@@ -41,9 +41,6 @@ enum class errorcode_t {
   retry_lock,
   retry_nomem,
   retry_max,
-  fatal_min,
-  fatal,
-  fatal_max
 };
 
 struct error_t {
@@ -59,15 +56,6 @@ struct error_t {
   {
     return errorcode >= errorcode_t::retry_min &&
            errorcode < errorcode_t::retry_max;
-  }
-  bool is_fatal() const
-  {
-    return errorcode >= errorcode_t::fatal_min &&
-           errorcode < errorcode_t::fatal_max;
-  }
-  void assert_no_fatal() const
-  {
-    if (is_fatal()) throw std::runtime_error("Fatal error encountered");
   }
 };
 

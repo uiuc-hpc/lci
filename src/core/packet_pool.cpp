@@ -48,11 +48,12 @@ packet_pool_impl_t::~packet_pool_impl_t()
   free(heap);
 }
 
-void packet_pool_impl_t::register_packets(net_device_t net_device)
+mr_t packet_pool_impl_t::register_packets(net_device_t net_device)
 {
   mr_t mr;
   register_memory_x(heap, heap_size, &mr).net_device(net_device).call();
   mrs.put(net_device.p_impl->net_device_id, mr.p_impl);
+  return mr;
 }
 
 void alloc_packet_pool_x::call() const

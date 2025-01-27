@@ -1,5 +1,5 @@
-#ifndef LCIXX_CORE_PACKET_HPP
-#define LCIXX_CORE_PACKET_HPP
+#ifndef LCIXX_CORE_PACKET_PRE_HPP
+#define LCIXX_CORE_PACKET_PRE_HPP
 
 namespace lcixx
 {
@@ -17,8 +17,6 @@ struct __attribute__((packed)) packet_remote_context_t {
   uintptr_t rcomp;
   uintptr_t matching_engine;
 };
-
-enum class packet_data_rdv_type_t { single_2sided, single_1sided, iovec };
 
 struct __attribute__((packed)) packet_data_rts_t {
   uintptr_t
@@ -77,6 +75,8 @@ struct __attribute__((packed)) packet_t {
   };
 
   void* get_message_address() { return &fast; }
+
+  mr_t get_mr(net_device_t net_device);
 };
 
 static inline packet_t* address2packet(void* address)
@@ -86,4 +86,4 @@ static inline packet_t* address2packet(void* address)
 
 }  // namespace lcixx
 
-#endif  // LCIXX_CORE_PACKET_HPP
+#endif  // LCIXX_CORE_PACKET_PRE_HPP

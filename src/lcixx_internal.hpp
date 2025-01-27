@@ -19,10 +19,12 @@
 #include "data_structure/mpmc_array.hpp"
 #include "data_structure/mpmc_set.hpp"
 #include "core/global.hpp"
+#include "core/protocol.hpp"
 #include "core/cq.hpp"
-#include "core/packet.hpp"
+#include "core/packet_pre.hpp"
 #include "core/packet_pool.hpp"
-#include "core/device.hpp"
 #include "core/runtime.hpp"
+
+#include "core/packet_post.hpp"
 
 #endif  // LCIXX_LCIXX_INTERNAL_HPP

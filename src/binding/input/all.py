@@ -23,6 +23,8 @@ resource_runtime := resource("runtime", [
     attr("bool", "use_default_net_context", 1),
     attr("bool", "use_default_net_device", 1),
     attr("bool", "use_default_net_endpoint", 1),
+    attr("bool", "use_default_packet_pool", 1),
+    attr("int", "packet_return_threshold", 1024),
     attr("option_rdv_protocol_t", "rdv_protocol") #TODO
 ]),
 operation_alloc(resource_runtime, add_runtime_args=False),
@@ -52,6 +54,11 @@ operation("get_default_net_endpoint", [
     runtime_args,
     optional_error_args,
     positional_args("net_endpoint_t*", "net_endpoint")
+]),
+operation("get_default_packet_pool", [
+    runtime_args,
+    optional_error_args,
+    positional_args("packet_pool_t*", "packet_pool")
 ]),
 # ##############################################################################
 # # Network Layer
@@ -222,11 +229,6 @@ operation("put_packet", [
     optional_error_args,
     positional_args("void*", "packet")
 ]),
-# device
-resource_device := resource("device", [
-    attr("packet_pool_t", "packet_pool"),
-    attr("net_device_t", "net_device")
-]),
 # comp
 resource("comp", []),
 operation("comp_signal", [
@@ -260,6 +262,7 @@ operation("communicate", [
     positional_args("void*", "local_buffer"),
     positional_args("size_t", "size"),
     positional_args("comp_t", "local_comp"),
+    optional_args("packet_pool_t", "packet_pool"),
     optional_args("net_endpoint_t", "net_endpoint"),
     optional_args("void*", "remote_buffer"),
     optional_args("tag_t", "tag"),
@@ -270,7 +273,7 @@ operation("communicate", [
 operation("progress", [
     runtime_args,
     optional_error_args,
-    optional_args("device_t", "device"),
+    optional_args("net_device_t", "net_device"),
 ]),
 # ##############################################################################
 # # End of the definition
