@@ -91,7 +91,7 @@ inline error_t ofi_net_device_impl_t::post_recv(void* buffer, size_t size,
   else if (ret == -FI_EAGAIN)
     return errorcode_t::retry_nomem;
   else {
-    FI_SAFECALL(ret);
+    FI_SAFECALL_RET(ret);
   }
 }
 
@@ -109,7 +109,7 @@ inline error_t ofi_net_endpoint_impl_t::post_sends(int rank, void* buffer,
   else if (ret == -FI_EAGAIN)
     return errorcode_t::retry_nomem;
   else {
-    FI_SAFECALL(ret);
+    FI_SAFECALL_RET(ret);
   }
 }
 
@@ -128,7 +128,7 @@ inline error_t ofi_net_endpoint_impl_t::post_send(int rank, void* buffer,
   else if (ret == -FI_EAGAIN)
     return errorcode_t::retry_nomem;
   else {
-    FI_SAFECALL(ret);
+    FI_SAFECALL_RET(ret);
   }
 }
 
@@ -167,7 +167,7 @@ inline error_t ofi_net_endpoint_impl_t::post_puts(int rank, void* buffer,
   else if (ret == -FI_EAGAIN)
     return errorcode_t::retry_nomem;
   else {
-    FI_SAFECALL(ret);
+    FI_SAFECALL_RET(ret);
   }
 }
 
@@ -209,7 +209,7 @@ inline error_t ofi_net_endpoint_impl_t::post_put(int rank, void* buffer,
   else if (ret == -FI_EAGAIN)
     return errorcode_t::retry_nomem;
   else {
-    FI_SAFECALL(ret);
+    FI_SAFECALL_RET(ret);
   }
 }
 
@@ -233,7 +233,7 @@ inline error_t ofi_net_endpoint_impl_t::post_putImms(
   else if (ret == -FI_EAGAIN)
     return errorcode_t::retry_nomem;
   else {
-    FI_SAFECALL(ret);
+    FI_SAFECALL_RET(ret);
   }
 }
 
@@ -257,7 +257,7 @@ inline error_t ofi_net_endpoint_impl_t::post_putImm(
   else if (ret == -FI_EAGAIN)
     return errorcode_t::retry_nomem;
   else {
-    FI_SAFECALL(ret);
+    FI_SAFECALL_RET(ret);
   }
 }
 }  // namespace lcixx

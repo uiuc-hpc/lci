@@ -11,12 +11,19 @@ class packet_pool_impl_t
   packet_pool_impl_t(const attr_t& attr);
   ~packet_pool_impl_t();
   mr_t register_packets(net_device_t net_device);
-  void* get() { return pool.get(); }
-  void put(void* packet_address)
+  packet_t* get()
   {
-    LCIXX_Assert(is_packet(packet_address, true),
-                 "Not a packet (address %p)!\n", packet_address);
-    packet_t* packet = static_cast<packet_t*>(packet_address);
+    auto* packet = static_cast<packet_t*>(pool.get());
+    packet->local_context.packet_pool_impl = this;
+    packet->local_context.isInPool = false;
+    packet->local_context.local_id = mpmc_set_t::LOCAL_SET_ID_NULL;
+    return packet;
+  }
+  void put(packet_t* p_packet)
+  {
+    LCIXX_Assert(is_packet(p_packet, true), "Not a packet (address %p)!\n",
+                 p_packet);
+    packet_t* packet = static_cast<packet_t*>(p_packet);
     LCIXX_Assert(!packet->local_context.isInPool,
                  "This packet has already been freed!\n");
     packet->local_context.isInPool = true;

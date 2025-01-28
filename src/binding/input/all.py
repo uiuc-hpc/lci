@@ -222,12 +222,12 @@ operation("get_packet", [
     runtime_args,
     optional_error_args,
     optional_args("packet_pool_t", "packet_pool"),
-    positional_args("void*", "packet")
+    positional_args("void**", "address")
 ]),
 operation("put_packet", [
     runtime_args,
     optional_error_args,
-    positional_args("void*", "packet")
+    positional_args("void*", "address")
 ]),
 # comp
 resource("comp", []),
@@ -236,6 +236,12 @@ operation("comp_signal", [
     optional_error_args,
     positional_args("comp_t", "comp"),
     positional_args("status_t", "status")
+]),
+operation("register_rcomp", [
+    runtime_args,
+    optional_error_args,
+    positional_args("comp_t", "comp"),
+    positional_args("rcomp_t*", "rcomp")
 ]),
 # cq
 operation("alloc_cq", [

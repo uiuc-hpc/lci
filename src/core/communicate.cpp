@@ -44,7 +44,7 @@ void communicate_x::call() const
       internal_ctx->buffer = nullptr;  // users do not own the packet anymore
     } else {
       // allocate a packet
-      get_packet_x(&packet).runtime(runtime).packet_pool(packet_pool).call();
+      packet = packet_pool.p_impl->get();
       if (!packet) {
         error_->reset(errorcode_t::retry_nomem);
         goto exit_free_ctx;
@@ -80,7 +80,7 @@ exit_free_packet:
   put_packet_x(packet).runtime(runtime).call();
 
 exit_free_ctx:
-  delete ctx_;
+  delete internal_ctx;
 
 exit:
   return;

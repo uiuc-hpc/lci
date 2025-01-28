@@ -10,25 +10,16 @@ void progress_recv(const net_status_t& net_status)
   rcomp_t remote_comp = get_bits32(imm_data, 15, 16);
   bool is_eager = get_bits32(imm_data, 1, 31);
   if (is_eager) {
-    rhandler_t rhandler = g_default_runtime.rhandler_table.get(
-        remote_comp) if (rhandler.is_comp())
-    {
-      comp_t comp = rhandler.get_comp();
-      status_t status;
-      status.error = errorcode_t::ok;
-      status.rank = net_status.rank;
-      status.tag = tag;
-      status.buffer = malloc(net_status.length);
-      memcpy(status.buffer, packet->get_message_address(), net_status.length);
-      status.size = net_status.length;
-      status.ctx = nullptr;
-      internal_ctx->comp.p_impl->signal(status);
-    }
-    else
-    {
-      // matching table
-      throw std::logic_error("Not implemented");
-    }
+    comp_t comp = g_default_runtime.p_impl->rcomp_registry.get(remote_comp);
+    status_t status;
+    status.error = errorcode_t::ok;
+    status.rank = net_status.rank;
+    status.tag = tag;
+    status.buffer = malloc(net_status.length);
+    memcpy(status.buffer, packet->get_message_address(), net_status.length);
+    status.size = net_status.length;
+    status.ctx = nullptr;
+    comp.p_impl->signal(status);
   } else {
     // rts, rtr, or fin
     throw std::logic_error("Not implemented");

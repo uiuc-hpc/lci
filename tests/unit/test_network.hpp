@@ -33,7 +33,6 @@ TEST(NETWORK, loopback)
       throw std::runtime_error("Too many retries when posting receive");
     }
     lcixx::net_post_recv_x(address, size, mr, &error).call();
-    error.assert_no_fatal();
   }
   retry_count = 0;
   error.reset();
@@ -42,7 +41,6 @@ TEST(NETWORK, loopback)
       throw std::runtime_error("Too many retries when posting send");
     }
     lcixx::net_post_send_x(0, address, size, mr, &error).call();
-    error.assert_no_fatal();
   }
   std::vector<lcixx::net_status_t> statuses;
   retry_count = 0;

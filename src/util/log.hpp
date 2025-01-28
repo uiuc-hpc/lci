@@ -19,6 +19,7 @@ void log_finalize();
 static inline void log_flush() { LCT_Log_flush(log_ctx); }
 
 #define LCIXX_Assert(...) LCT_Assert(::lcixx::log_ctx, __VA_ARGS__)
+#define LCIXX_Asserts(expr) LCT_Assert(::lcixx::log_ctx, expr, #expr)
 #define LCIXX_Log(...) LCT_Log(::lcixx::log_ctx, __VA_ARGS__)
 #define LCIXX_Warn(...) LCIXX_Log(::lcixx::LOG_WARN, "warn", __VA_ARGS__)
 

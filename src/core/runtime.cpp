@@ -117,4 +117,9 @@ void get_default_net_endpoint_x::call() const
       runtime_.get_value_or(g_default_runtime).p_impl->net_endpoint;
 }
 
+void get_default_packet_pool_x::call() const
+{
+  *packet_pool_ = runtime_.get_value_or(g_default_runtime).p_impl->packet_pool;
+}
+
 }  // namespace lcixx

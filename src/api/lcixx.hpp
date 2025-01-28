@@ -41,6 +41,7 @@ enum class errorcode_t {
   retry_lock,
   retry_nomem,
   retry_max,
+  fatal,
 };
 
 struct error_t {

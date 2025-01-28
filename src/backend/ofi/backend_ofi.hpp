@@ -16,8 +16,20 @@
     if (err) {                                                              \
       LCIXX_Assert(false, "err : %s (%s:%d)\n", fi_strerror(err), __FILE__, \
                    __LINE__);                                               \
-      abort();                                                              \
     }                                                                       \
+  }                                                                         \
+  while (0)                                                                 \
+    ;
+
+#define FI_SAFECALL_RET(x)                                                  \
+  {                                                                         \
+    int err = (x);                                                          \
+    if (err < 0) err = -err;                                                \
+    if (err) {                                                              \
+      LCIXX_Assert(false, "err : %s (%s:%d)\n", fi_strerror(err), __FILE__, \
+                   __LINE__);                                               \
+    }                                                                       \
+    return errorcode_t::fatal;                                              \
   }                                                                         \
   while (0)                                                                 \
     ;

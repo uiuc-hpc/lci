@@ -18,6 +18,7 @@
 #include "backend/ofi/backend_ofi_inline.hpp"
 #include "data_structure/mpmc_array.hpp"
 #include "data_structure/mpmc_set.hpp"
+#include "core/rcomp_registry.hpp"
 #include "core/global.hpp"
 #include "core/protocol.hpp"
 #include "core/cq.hpp"
