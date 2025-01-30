@@ -20,6 +20,10 @@ void alloc_runtime_x::call() const
       g_default_attr.runtime_attr.use_default_net_context);
   attr.use_default_net_device = use_default_net_device_.get_value_or(
       g_default_attr.runtime_attr.use_default_net_device);
+  attr.use_default_net_endpoint = use_default_net_endpoint_.get_value_or(
+      g_default_attr.runtime_attr.use_default_net_endpoint);
+  attr.use_default_packet_pool = use_default_packet_pool_.get_value_or(
+      g_default_attr.runtime_attr.use_default_packet_pool);
   runtime_->p_impl = new runtime_impl_t(attr);
   runtime_->p_impl->initialize();
 }
@@ -47,6 +51,10 @@ void g_runtime_init_x::call() const
       g_default_attr.runtime_attr.use_default_net_context);
   attr.use_default_net_device = use_default_net_device_.get_value_or(
       g_default_attr.runtime_attr.use_default_net_device);
+  attr.use_default_net_endpoint = use_default_net_endpoint_.get_value_or(
+      g_default_attr.runtime_attr.use_default_net_endpoint);
+  attr.use_default_packet_pool = use_default_packet_pool_.get_value_or(
+      g_default_attr.runtime_attr.use_default_packet_pool);
   g_default_runtime.p_impl = new runtime_impl_t(attr);
   g_default_runtime.p_impl->initialize();
 }
@@ -68,11 +76,27 @@ runtime_impl_t::runtime_impl_t(attr_t attr_) : attr(attr_)
 
 void runtime_impl_t::initialize()
 {
-  alloc_net_context_x(&net_context).runtime(runtime).call();
-  alloc_net_device_x(&net_device).runtime(runtime).call();
-  alloc_net_endpoint_x(&net_endpoint).runtime(runtime).call();
-  alloc_packet_pool_x(&packet_pool).runtime(runtime).call();
-  register_packets_x(packet_pool, net_device).runtime(runtime).call();
+  if (attr.use_default_net_context) {
+    alloc_net_context_x(&net_context).runtime(runtime).call();
+  }
+  if (attr.use_default_net_device) {
+    LCIXX_Assert(attr.use_default_net_context,
+                 "The default net context should be used "
+                 "when the default net device is used.\n");
+    alloc_net_device_x(&net_device).runtime(runtime).call();
+  }
+  if (attr.use_default_net_endpoint) {
+    LCIXX_Assert(attr.use_default_net_device,
+                 "The default net device should be used "
+                 "when the default net endpoint is used.\n");
+    alloc_net_endpoint_x(&net_endpoint).runtime(runtime).call();
+  }
+  if (attr.use_default_packet_pool) {
+    alloc_packet_pool_x(&packet_pool).runtime(runtime).call();
+    if (net_device.p_impl) {
+      net_device.p_impl->bind_packet_pool(packet_pool);
+    }
+  }
 
   if (net_context.get_attr().backend == option_backend_t::ofi &&
       net_context.get_attr().provider_name == "cxi") {
@@ -95,10 +119,21 @@ void runtime_impl_t::initialize()
 
 runtime_impl_t::~runtime_impl_t()
 {
-  free_packet_pool_x(&packet_pool).runtime(runtime).call();
-  free_net_endpoint_x(&net_endpoint).runtime(runtime).call();
-  free_net_device_x(&net_device).runtime(runtime).call();
-  free_net_context_x(&net_context).runtime(runtime).call();
+  if (attr.use_default_packet_pool) {
+    if (net_device.p_impl) {
+      net_device.p_impl->unbind_packet_pool();
+    }
+    free_packet_pool_x(&packet_pool).runtime(runtime).call();
+  }
+  if (attr.use_default_net_endpoint) {
+    free_net_endpoint_x(&net_endpoint).runtime(runtime).call();
+  }
+  if (attr.use_default_net_device) {
+    free_net_device_x(&net_device).runtime(runtime).call();
+  }
+  if (attr.use_default_net_context) {
+    free_net_context_x(&net_context).runtime(runtime).call();
+  }
 }
 
 void get_default_net_context_x::call() const

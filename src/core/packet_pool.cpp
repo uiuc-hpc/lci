@@ -9,12 +9,11 @@ packet_pool_impl_t::packet_pool_impl_t(const attr_t& attr_)
       mrs(64),
       heap(nullptr),
       base_packet_p(nullptr),
-      heap_size(0)
+      heap_size(0),
+      npacket_lost(0)
 {
   if (attr.npackets > 0) {
     heap_size = attr.npackets * attr.packet_size + LCIXX_CACHE_LINE;
-    // heap = std::unique_ptr<char[]>(new char[heap_size]);
-    // heap = std::make_unique<char[]>(heap_size);
     heap = alloc_memalign(get_page_size(), heap_size);
     base_packet_p =
         (char*)heap + LCIXX_CACHE_LINE - sizeof(packet_local_context_t);
@@ -37,6 +36,13 @@ packet_pool_impl_t::packet_pool_impl_t(const attr_t& attr_)
 
 packet_pool_impl_t::~packet_pool_impl_t()
 {
+  // check whether there are any packets missing
+  if (attr.npackets > 0) {
+    int total = pool.size() + npacket_lost;
+    if (total != attr.npackets) {
+      LCIXX_Warn("Lost %d packets\n", attr.npackets - total);
+    }
+  }
   for (int i = 0; i < mrs.get_size(); i++) {
     mr_impl_t* p_mr = static_cast<mr_impl_t*>(mrs.get(i));
     if (p_mr) {
@@ -51,9 +57,23 @@ packet_pool_impl_t::~packet_pool_impl_t()
 mr_t packet_pool_impl_t::register_packets(net_device_t net_device)
 {
   mr_t mr;
-  register_memory_x(heap, heap_size, &mr).net_device(net_device).call();
-  mrs.put(net_device.p_impl->net_device_id, mr.p_impl);
+  if (heap) {
+    register_memory_x(heap, heap_size, &mr).net_device(net_device).call();
+    mrs.put(net_device.p_impl->net_device_id, mr.p_impl);
+  }
   return mr;
+}
+
+void packet_pool_impl_t::deregister_packets(net_device_t net_device)
+{
+  mr_impl_t* p_mr =
+      static_cast<mr_impl_t*>(mrs.get(net_device.p_impl->net_device_id));
+  if (p_mr) {
+    mr_t mr;
+    mr.p_impl = p_mr;
+    deregister_memory_x(&mr).call();
+    mrs.put(net_device.p_impl->net_device_id, nullptr);
+  }
 }
 
 void alloc_packet_pool_x::call() const

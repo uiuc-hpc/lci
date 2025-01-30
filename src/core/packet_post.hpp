@@ -3,19 +3,20 @@
 
 namespace lcixx
 {
+inline void packet_t::put_back() { local_context.packet_pool_impl->put(this); }
+
 inline mr_t packet_t::get_mr(net_device_t net_device)
 {
   return local_context.packet_pool_impl->get_or_register_mr(net_device);
 }
 
-inline void put_packet_x::call() const
+inline void free_pbuffer_x::call() const
 {
-  runtime_t runtime = runtime_.get_value_or(g_default_runtime);
   packet_t* packet = address2packet(address_);
-  packet->local_context.packet_pool_impl->put(packet);
+  packet->put_back();
 }
 
-inline void get_packet_x::call() const
+inline void alloc_pbuffer_x::call() const
 {
   runtime_t runtime = runtime_.get_value_or(g_default_runtime);
   packet_pool_t packet_pool =

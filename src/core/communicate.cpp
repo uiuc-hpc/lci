@@ -77,12 +77,17 @@ void communicate_x::call() const
   }
 
 exit_free_packet:
-  put_packet_x(packet).runtime(runtime).call();
+  packet->put_back();
 
 exit_free_ctx:
   delete internal_ctx;
 
 exit:
+  if (error_->is_retry()) {
+    LCIXX_PCOUNTER_ADD(communicate_retry, 1);
+  } else {
+    LCIXX_PCOUNTER_ADD(communicate, 1);
+  }
   return;
 }
 }  // namespace lcixx

@@ -5,6 +5,7 @@ target_sources_relative(
   binding/generated/binding.cpp
   util/log.cpp
   util/random.cpp
+  monitor/performance_counter.cpp
   backend/backend.cpp
   backend/ofi/backend_ofi.cpp
   core/lcixx.cpp
@@ -12,6 +13,7 @@ target_sources_relative(
   core/packet_pool.cpp
   core/cq.cpp
   core/comp.cpp
+  core/rcomp_registry.cpp
   core/runtime.cpp
   core/communicate.cpp
   core/progress.cpp)

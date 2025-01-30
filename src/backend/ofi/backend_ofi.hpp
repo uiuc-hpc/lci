@@ -64,8 +64,9 @@ class ofi_net_device_impl_t : public lcixx::net_device_impl_t
   mr_t register_memory(void* buffer, size_t size) override;
   void deregister_memory(mr_t) override;
   rkey_t get_rkey(mr_t mr) override;
-  std::vector<net_status_t> poll_comp(int max_polls) override;
-  error_t post_recv(void* buffer, size_t size, mr_t mr, void* ctx) override;
+  std::vector<net_status_t> poll_comp_impl(int max_polls) override;
+  error_t post_recv_impl(void* buffer, size_t size, mr_t mr,
+                         void* ctx) override;
 
   struct fi_domain_attr* ofi_domain_attr;
   struct fid_domain* ofi_domain;
@@ -82,20 +83,21 @@ class ofi_net_endpoint_impl_t : public lcixx::net_endpoint_impl_t
  public:
   ofi_net_endpoint_impl_t(net_device_t device_, attr_t attr_);
   ~ofi_net_endpoint_impl_t() override;
-  error_t post_sends(int rank, void* buffer, size_t size,
-                     net_imm_data_t imm_data) override;
-  error_t post_send(int rank, void* buffer, size_t size, mr_t mr,
-                    net_imm_data_t imm_data, void* ctx) override;
-  error_t post_puts(int rank, void* buffer, size_t size, uintptr_t base,
-                    uint64_t offset, rkey_t rkey) override;
-  error_t post_put(int rank, void* buffer, size_t size, mr_t mr, uintptr_t base,
-                   uint64_t offset, rkey_t rkey, void* ctx) override;
-  error_t post_putImms(int rank, void* buffer, size_t size, uintptr_t base,
-                       uint64_t offset, rkey_t rkey,
-                       net_imm_data_t imm_data) override;
-  error_t post_putImm(int rank, void* buffer, size_t size, mr_t mr,
-                      uintptr_t base, uint64_t offset, rkey_t rkey,
-                      net_imm_data_t imm_data, void* ctx) override;
+  error_t post_sends_impl(int rank, void* buffer, size_t size,
+                          net_imm_data_t imm_data) override;
+  error_t post_send_impl(int rank, void* buffer, size_t size, mr_t mr,
+                         net_imm_data_t imm_data, void* ctx) override;
+  error_t post_puts_impl(int rank, void* buffer, size_t size, uintptr_t base,
+                         uint64_t offset, rkey_t rkey) override;
+  error_t post_put_impl(int rank, void* buffer, size_t size, mr_t mr,
+                        uintptr_t base, uint64_t offset, rkey_t rkey,
+                        void* ctx) override;
+  error_t post_putImms_impl(int rank, void* buffer, size_t size, uintptr_t base,
+                            uint64_t offset, rkey_t rkey,
+                            net_imm_data_t imm_data) override;
+  error_t post_putImm_impl(int rank, void* buffer, size_t size, mr_t mr,
+                           uintptr_t base, uint64_t offset, rkey_t rkey,
+                           net_imm_data_t imm_data, void* ctx) override;
 
   ofi_net_device_impl_t* p_ofi_device;
   int my_rank;

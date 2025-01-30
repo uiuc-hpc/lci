@@ -13,6 +13,7 @@
 #include "util/random.hpp"
 #include "util/misc.hpp"
 #include "util/spinlock.hpp"
+#include "monitor/performance_counter.hpp"
 #include "backend/backend.hpp"
 #include "backend/ofi/backend_ofi.hpp"
 #include "backend/ofi/backend_ofi_inline.hpp"

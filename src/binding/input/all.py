@@ -35,6 +35,8 @@ operation("g_runtime_init", [
     optional_args("bool", "use_control_channel"),
     optional_args("bool", "use_default_net_context"),
     optional_args("bool", "use_default_net_device"),
+    optional_args("bool", "use_default_net_endpoint"),
+    optional_args("bool", "use_default_packet_pool"),
     optional_args("option_rdv_protocol_t", "rdv_protocol")
 ]),
 operation("g_runtime_fina", [
@@ -218,13 +220,13 @@ This is only needed for explicit packet pool.
 Implicit packet pool (the one allocated by the runtime) 
 is automatically registered to all network device.
 """),
-operation("get_packet", [
+operation("alloc_pbuffer", [
     runtime_args,
     optional_error_args,
     optional_args("packet_pool_t", "packet_pool"),
     positional_args("void**", "address")
 ]),
-operation("put_packet", [
+operation("free_pbuffer", [
     runtime_args,
     optional_error_args,
     positional_args("void*", "address")

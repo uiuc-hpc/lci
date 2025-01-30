@@ -54,6 +54,28 @@ void global_config_initialize()
   } else {
     LCIXX_Assert(false, "Unknown backend: %s\n", default_backend.c_str());
   }
+  {
+    // default value
+    g_default_attr.net_device_attr.lock_mode = 0;
+    // if users explicitly set the value
+    char* p = getenv("LCIXX_NET_LOCK_MODE");
+    if (p) {
+      LCT_dict_str_int_t dict[] = {
+          {"none", 0},
+          {"send", LCIXX_NET_TRYLOCK_SEND},
+          {"recv", LCIXX_NET_TRYLOCK_RECV},
+          {"poll", LCIXX_NET_TRYLOCK_POLL},
+      };
+      g_default_attr.net_device_attr.lock_mode =
+          LCT_parse_arg(dict, sizeof(dict) / sizeof(dict[0]), p, ",");
+    }
+    LCIXX_Assert(
+        g_default_attr.net_device_attr.lock_mode < LCIXX_NET_TRYLOCK_MAX,
+        "Unexpected LCIXX_NET_LOCK_MODE %d",
+        g_default_attr.net_device_attr.lock_mode);
+    LCIXX_Log(LOG_INFO, "env", "set LCIXX_NET_LOCK_MODE to be %d\n",
+              g_default_attr.net_device_attr.lock_mode);
+  }
 }
 }  // namespace
 
@@ -76,12 +98,14 @@ void global_initialize()
   LCT_set_rank(g_rank);
   // Initialize global configuration.
   global_config_initialize();
+  pcounter_init();
 }
 
 void global_finalize()
 {
   if (--global_ini_counter > 0) return;
 
+  pcounter_fina();
   LCT_pmi_finalize();
   log_finalize();
   LCT_fina();

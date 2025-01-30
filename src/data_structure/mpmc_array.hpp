@@ -46,7 +46,7 @@ class mpmc_array_t
     lock.unlock();
   }
 
-  entry_t get(size_t idx)
+  entry_t get(size_t idx) const
   {
     if (idx >= length) {
       return nullptr;

@@ -2,8 +2,9 @@
 
 namespace lcixx
 {
-void progress_recv(const net_status_t& net_status)
+void progress_recv(net_device_t net_device, const net_status_t& net_status)
 {
+  LCIXX_PCOUNTER_ADD(net_recv_comp, 1)
   packet_t* packet = static_cast<packet_t*>(net_status.ctx);
   uint32_t imm_data = net_status.imm_data;
   tag_t tag = get_bits32(imm_data, 16, 0);
@@ -19,26 +20,28 @@ void progress_recv(const net_status_t& net_status)
     memcpy(status.buffer, packet->get_message_address(), net_status.length);
     status.size = net_status.length;
     status.ctx = nullptr;
+    packet->put_back();
     comp.p_impl->signal(status);
   } else {
     // rts, rtr, or fin
     throw std::logic_error("Not implemented");
   }
-  put_packet_x(packet).call();
 }
 
 void progress_send(const net_status_t& net_status)
 {
+  LCIXX_PCOUNTER_ADD(net_send_comp, 1)
   internal_context_t* internal_ctx =
       static_cast<internal_context_t*>(net_status.ctx);
   if (internal_ctx->packet) {
-    put_packet_x(internal_ctx->packet).call();
+    internal_ctx->packet->put_back();
   }
   if (internal_ctx->comp.p_impl) {
     status_t status = internal_ctx->get_status();
-    internal_ctx->comp.p_impl->signal(status);
+    comp_t comp = internal_ctx->comp;
+    delete internal_ctx;
+    comp.p_impl->signal(status);
   }
-  delete internal_ctx;
 }
 
 void progress_write(const net_status_t& status)
@@ -58,6 +61,7 @@ void progress_read(const net_status_t& status)
 
 void progress_x::call() const
 {
+  LCIXX_PCOUNTER_ADD(progress, 1);
   runtime_t runtime = runtime_.get_value_or(g_default_runtime);
   net_device_t net_device;
   if (!net_device_.get_value(&net_device)) {
@@ -72,7 +76,8 @@ void progress_x::call() const
       .call();
   for (auto& status : statuses) {
     if (status.opcode == net_opcode_t::RECV) {
-      progress_recv(status);
+      net_device.p_impl->consume_recvs(1);
+      progress_recv(net_device, status);
     } else if (status.opcode == net_opcode_t::SEND) {
       progress_send(status);
     } else if (status.opcode == net_opcode_t::WRITE) {
@@ -83,6 +88,7 @@ void progress_x::call() const
       progress_read(status);
     }
   }
+  net_device.p_impl->refill_recvs();
   return;
 }
 

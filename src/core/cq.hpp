@@ -14,6 +14,7 @@ class cq_impl_t : public comp_impl_t
   ~cq_impl_t() { LCT_queue_free(&queue); }
   void signal(status_t status) override
   {
+    LCIXX_PCOUNTER_ADD(comp_produce, 1);
     status_t* p = new status_t(status);
     LCT_queue_push(queue, p);
   }
@@ -25,6 +26,8 @@ class cq_impl_t : public comp_impl_t
       return false;
     } else {
       *status = *p;
+      delete p;
+      LCIXX_PCOUNTER_ADD(comp_consume, 1);
       return true;
     }
   }

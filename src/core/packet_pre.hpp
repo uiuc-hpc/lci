@@ -76,6 +76,8 @@ struct __attribute__((packed)) packet_t {
 
   void* get_message_address() { return &fast; }
 
+  void put_back();
+
   mr_t get_mr(net_device_t net_device);
 };
 

@@ -9,9 +9,10 @@ inline rkey_t ofi_net_device_impl_t::get_rkey(mr_t mr)
   return fi_mr_key((struct fid_mr*)(p_mr.ofi_mr));
 }
 
-inline std::vector<net_status_t> ofi_net_device_impl_t::poll_comp(int max_polls)
+inline std::vector<net_status_t> ofi_net_device_impl_t::poll_comp_impl(
+    int max_polls)
 {
-  // Investigate the overhead of using a vector here.
+  // TODO: Investigate the overhead of using a vector here.
   std::vector<net_status_t> statuses;
   if (max_polls > 0)
     statuses.reserve(max_polls);
@@ -20,12 +21,10 @@ inline std::vector<net_status_t> ofi_net_device_impl_t::poll_comp(int max_polls)
   }
   std::vector<struct fi_cq_data_entry> fi_entry(max_polls);
 
-  // LCISI_OFI_CS_TRY_ENTER(endpoint_p, LCI_BACKEND_TRY_LOCK_POLL, 0)
+  LCIXX_OFI_CS_TRY_ENTER(LCIXX_NET_TRYLOCK_POLL, statuses);
   ssize_t ne = fi_cq_read(ofi_cq, fi_entry.data(), max_polls);
-  // LCISI_OFI_CS_EXIT(endpoint_p, LCI_BACKEND_TRY_LOCK_POLL)
-  // LCII_PCOUNTER_ADD(net_poll_cq_calls, 1);
+  LCIXX_OFI_CS_EXIT(LCIXX_NET_TRYLOCK_POLL);
   if (ne > 0) {
-    // LCII_PCOUNTER_ADD(net_poll_cq_entry_count, ne);
     net_status_t status;
     // Got an entry here
     for (int j = 0; j < ne; j++) {
@@ -79,8 +78,8 @@ inline void* get_mr_desc(mr_t mr)
 }
 }  // namespace ofi_detail
 
-inline error_t ofi_net_device_impl_t::post_recv(void* buffer, size_t size,
-                                                mr_t mr, void* ctx)
+inline error_t ofi_net_device_impl_t::post_recv_impl(void* buffer, size_t size,
+                                                     mr_t mr, void* ctx)
 {
   auto mr_desc = fi_mr_desc(static_cast<ofi_mr_impl_t*>(mr.p_impl)->ofi_mr);
   LCIXX_OFI_CS_TRY_ENTER(LCIXX_NET_TRYLOCK_RECV, errorcode_t::retry_lock);
@@ -95,9 +94,9 @@ inline error_t ofi_net_device_impl_t::post_recv(void* buffer, size_t size,
   }
 }
 
-inline error_t ofi_net_endpoint_impl_t::post_sends(int rank, void* buffer,
-                                                   size_t size,
-                                                   net_imm_data_t imm_data)
+inline error_t ofi_net_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
+                                                        size_t size,
+                                                        net_imm_data_t imm_data)
 {
   LCIXX_OFI_CS_TRY_ENTER(LCIXX_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
   ssize_t ret =
@@ -113,10 +112,10 @@ inline error_t ofi_net_endpoint_impl_t::post_sends(int rank, void* buffer,
   }
 }
 
-inline error_t ofi_net_endpoint_impl_t::post_send(int rank, void* buffer,
-                                                  size_t size, mr_t mr,
-                                                  net_imm_data_t imm_data,
-                                                  void* ctx)
+inline error_t ofi_net_endpoint_impl_t::post_send_impl(int rank, void* buffer,
+                                                       size_t size, mr_t mr,
+                                                       net_imm_data_t imm_data,
+                                                       void* ctx)
 {
   LCIXX_OFI_CS_TRY_ENTER(LCIXX_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
   ssize_t ret = fi_senddata(ofi_ep, buffer, size, ofi_detail::get_mr_desc(mr),
@@ -132,9 +131,11 @@ inline error_t ofi_net_endpoint_impl_t::post_send(int rank, void* buffer,
   }
 }
 
-inline error_t ofi_net_endpoint_impl_t::post_puts(int rank, void* buffer,
-                                                  size_t size, uintptr_t base,
-                                                  uint64_t offset, rkey_t rkey)
+inline error_t ofi_net_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
+                                                       size_t size,
+                                                       uintptr_t base,
+                                                       uint64_t offset,
+                                                       rkey_t rkey)
 {
   uintptr_t addr;
   if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR ||
@@ -171,11 +172,11 @@ inline error_t ofi_net_endpoint_impl_t::post_puts(int rank, void* buffer,
   }
 }
 
-inline error_t ofi_net_endpoint_impl_t::post_put(int rank, void* buffer,
-                                                 size_t size, mr_t mr,
-                                                 uintptr_t base,
-                                                 uint64_t offset, rkey_t rkey,
-                                                 void* ctx)
+inline error_t ofi_net_endpoint_impl_t::post_put_impl(int rank, void* buffer,
+                                                      size_t size, mr_t mr,
+                                                      uintptr_t base,
+                                                      uint64_t offset,
+                                                      rkey_t rkey, void* ctx)
 {
   uintptr_t addr;
   if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR ||
@@ -213,7 +214,7 @@ inline error_t ofi_net_endpoint_impl_t::post_put(int rank, void* buffer,
   }
 }
 
-inline error_t ofi_net_endpoint_impl_t::post_putImms(
+inline error_t ofi_net_endpoint_impl_t::post_putImms_impl(
     int rank, void* buffer, size_t size, uintptr_t base, uint64_t offset,
     rkey_t rkey, net_imm_data_t imm_data)
 {
@@ -237,7 +238,7 @@ inline error_t ofi_net_endpoint_impl_t::post_putImms(
   }
 }
 
-inline error_t ofi_net_endpoint_impl_t::post_putImm(
+inline error_t ofi_net_endpoint_impl_t::post_putImm_impl(
     int rank, void* buffer, size_t size, mr_t mr, uintptr_t base,
     uint64_t offset, rkey_t rkey, net_imm_data_t imm_data, void* ctx)
 {

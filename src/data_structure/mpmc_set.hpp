@@ -89,6 +89,8 @@ class mpmc_set_t
   int get_local_set_id() { return LCT_get_thread_id(); }
   void* get();
   void put(void* packet, int tid);
+  // not thread safe
+  int64_t size() const;
 
  private:
   local_set_t* get_local_pool();
@@ -185,6 +187,17 @@ inline void mpmc_set_t::put(void* packet,
   local_pool->lock.lock();
   local_pool->push(packet);
   local_pool->lock.unlock();
+}
+
+inline int64_t mpmc_set_t::size() const
+{
+  int64_t total = 0;
+  for (int i = 0; i < npools; i++) {
+    local_set_t* pool = static_cast<local_set_t*>(pools.get(i));
+    LCIXX_Assert(pool, "pool must not be nullptr\n");
+    total += pool->size();
+  }
+  return total;
 }
 }  // namespace lcixx
 

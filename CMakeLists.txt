@@ -115,7 +115,7 @@ if(NOT LCIXX_WITH_LCT_ONLY)
   option(LCIXX_DEBUG "LCIXX Debug Mode" OFF)
 
   # performance counter
-  option(LCIXX_USE_PERFORMANCE_COUNTER "Use performance counter" OFF)
+  option(LCIXX_USE_PERFORMANCE_COUNTER "Use performance counter" ${LCIXX_DEBUG})
 
   # cache line
   set(LCIXX_CACHE_LINE

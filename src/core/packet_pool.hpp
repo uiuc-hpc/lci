@@ -11,12 +11,22 @@ class packet_pool_impl_t
   packet_pool_impl_t(const attr_t& attr);
   ~packet_pool_impl_t();
   mr_t register_packets(net_device_t net_device);
+  void deregister_packets(net_device_t net_device);
+  size_t get_pmessage_size() const
+  {
+    return attr.packet_size - sizeof(packet_local_context_t);
+  }
   packet_t* get()
   {
     auto* packet = static_cast<packet_t*>(pool.get());
-    packet->local_context.packet_pool_impl = this;
-    packet->local_context.isInPool = false;
-    packet->local_context.local_id = mpmc_set_t::LOCAL_SET_ID_NULL;
+    if (packet) {
+      packet->local_context.packet_pool_impl = this;
+      packet->local_context.isInPool = false;
+      packet->local_context.local_id = mpmc_set_t::LOCAL_SET_ID_NULL;
+      LCIXX_PCOUNTER_ADD(packet_get, 1);
+    } else {
+      LCIXX_PCOUNTER_ADD(packet_get_retry, 1);
+    }
     return packet;
   }
   void put(packet_t* p_packet)
@@ -28,6 +38,7 @@ class packet_pool_impl_t
                  "This packet has already been freed!\n");
     packet->local_context.isInPool = true;
     pool.put(packet, packet->local_context.local_id);
+    LCIXX_PCOUNTER_ADD(packet_put, 1);
   }
 
   bool is_packet(void* address, bool include_lcontext = false)
@@ -56,12 +67,15 @@ class packet_pool_impl_t
     return mr;
   }
 
+  void report_lost_packets(int npackets) { npacket_lost += npackets; }
+
   mpmc_set_t pool;
   void* heap;
   // std::unique_ptr<char[]> heap;
   void* base_packet_p;
   size_t heap_size;
   mpmc_array_t mrs;
+  std::atomic<int> npacket_lost;
 };
 }  // namespace lcixx
 

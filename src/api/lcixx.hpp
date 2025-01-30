@@ -76,6 +76,7 @@ enum option_net_lock_mode_t {
   LCIXX_NET_TRYLOCK_SEND = 1,
   LCIXX_NET_TRYLOCK_RECV = 1 << 1,
   LCIXX_NET_TRYLOCK_POLL = 1 << 2,
+  LCIXX_NET_TRYLOCK_MAX = 1 << 3,
 };
 
 // net cq entry

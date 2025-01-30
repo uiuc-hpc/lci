@@ -45,6 +45,7 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_,
   hints->domain_attr->threading = FI_THREAD_SAFE;
   hints->domain_attr->control_progress = FI_PROGRESS_MANUAL;
   hints->domain_attr->data_progress = FI_PROGRESS_MANUAL;
+  hints->domain_attr->threading = FI_THREAD_SAFE;
   hints->caps = FI_RMA | FI_MSG;
   hints->mode = FI_LOCAL_MR;
 
