@@ -1,7 +1,7 @@
-#ifndef LCIXX_DATA_STRUCTURE_CQ_CQ_HPP
-#define LCIXX_DATA_STRUCTURE_CQ_CQ_HPP
+#ifndef LCI_DATA_STRUCTURE_CQ_CQ_HPP
+#define LCI_DATA_STRUCTURE_CQ_CQ_HPP
 
-namespace lcixx
+namespace lci
 {
 class cq_impl_t : public comp_impl_t
 {
@@ -14,7 +14,7 @@ class cq_impl_t : public comp_impl_t
   ~cq_impl_t() { LCT_queue_free(&queue); }
   void signal(status_t status) override
   {
-    LCIXX_PCOUNTER_ADD(comp_produce, 1);
+    LCI_PCOUNTER_ADD(comp_produce, 1);
     status_t* p = new status_t(status);
     LCT_queue_push(queue, p);
   }
@@ -27,7 +27,7 @@ class cq_impl_t : public comp_impl_t
     } else {
       *status = *p;
       delete p;
-      LCIXX_PCOUNTER_ADD(comp_consume, 1);
+      LCI_PCOUNTER_ADD(comp_consume, 1);
       return true;
     }
   }
@@ -36,6 +36,6 @@ class cq_impl_t : public comp_impl_t
   size_t default_length;
   LCT_queue_t queue;
 };
-}  // namespace lcixx
+}  // namespace lci
 
-#endif  // LCIXX_DATA_STRUCTURE_CQ_CQ_HPP
+#endif  // LCI_DATA_STRUCTURE_CQ_CQ_HPP

@@ -4,7 +4,7 @@ function(add_lci_examples)
     add_lci_executable(${name_without_ext} ${name} comm_exp.h)
   endforeach()
   add_lci_tests(TESTS ${ARGN} LABELS example COMMANDS
-                "${LCIXX_USE_CTEST_EXE} -n 2 ${LCIXX_USE_CTEST_ARGS} [TARGET]")
+                "${LCI_USE_CTEST_EXE} -n 2 ${LCI_USE_CTEST_ARGS} [TARGET]")
 endfunction()
 
 option(LCI_BUILD_EXAMPLES "Build examples by default" ON)

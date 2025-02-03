@@ -2,5 +2,4 @@
 
 namespace lci
 {
-__thread unsigned int random_seed = 0;
 }  // namespace lci

@@ -1,7 +1,7 @@
-#ifndef LCIXX_BACKEND_OFI_BACKEND_OFI_INLINE_HPP
-#define LCIXX_BACKEND_OFI_BACKEND_OFI_INLINE_HPP
+#ifndef LCI_BACKEND_OFI_BACKEND_OFI_INLINE_HPP
+#define LCI_BACKEND_OFI_BACKEND_OFI_INLINE_HPP
 
-namespace lcixx
+namespace lci
 {
 inline rkey_t ofi_net_device_impl_t::get_rkey(mr_t mr)
 {
@@ -17,13 +17,13 @@ inline std::vector<net_status_t> ofi_net_device_impl_t::poll_comp_impl(
   if (max_polls > 0)
     statuses.reserve(max_polls);
   else {
-    LCIXX_Assert(false, "max_polls must be greater than 0\n");
+    LCI_Assert(false, "max_polls must be greater than 0\n");
   }
   std::vector<struct fi_cq_data_entry> fi_entry(max_polls);
 
-  LCIXX_OFI_CS_TRY_ENTER(LCIXX_NET_TRYLOCK_POLL, statuses);
+  LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_POLL, statuses);
   ssize_t ne = fi_cq_read(ofi_cq, fi_entry.data(), max_polls);
-  LCIXX_OFI_CS_EXIT(LCIXX_NET_TRYLOCK_POLL);
+  LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_POLL);
   if (ne > 0) {
     // Got an entry here
     for (int j = 0; j < ne; j++) {
@@ -39,14 +39,14 @@ inline std::vector<net_status_t> ofi_net_device_impl_t::poll_comp_impl(
         status.ctx = NULL;
         status.imm_data = fi_entry[j].data;
       } else if (fi_entry[j].flags & FI_SEND) {
-        LCIXX_DBG_Assert(
+        LCI_DBG_Assert(
             fi_entry[j].flags & FI_SEND || fi_entry[j].flags & FI_WRITE,
             "Unexpected OFI opcode!\n");
         status.opcode = net_opcode_t::SEND;
         status.ctx = fi_entry[j].op_context;
       } else {
-        LCIXX_DBG_Assert(fi_entry[j].flags & FI_WRITE,
-                         "Unexpected OFI opcode!\n");
+        LCI_DBG_Assert(fi_entry[j].flags & FI_WRITE,
+                       "Unexpected OFI opcode!\n");
         status.opcode = net_opcode_t::WRITE;
         status.ctx = fi_entry[j].op_context;
       }
@@ -61,10 +61,10 @@ inline std::vector<net_status_t> ofi_net_device_impl_t::poll_comp_impl(
     ssize_t ret_cqerr = fi_cq_readerr(ofi_cq, &error, 0);
     // The error was already consumed, most likely by another thread,
     if (ret_cqerr == -FI_EAGAIN) {
-      LCIXX_Assert(ne == -FI_EAVAIL, "unexpected return error: %s\n",
-                   fi_strerror(-ne));
+      LCI_Assert(ne == -FI_EAVAIL, "unexpected return error: %s\n",
+                 fi_strerror(-ne));
     } else {
-      LCIXX_Assert(false, "Err %d: %s\n", error.err, fi_strerror(error.err));
+      LCI_Assert(false, "Err %d: %s\n", error.err, fi_strerror(error.err));
     }
   }
   return statuses;
@@ -82,9 +82,9 @@ inline error_t ofi_net_device_impl_t::post_recv_impl(void* buffer, size_t size,
                                                      mr_t mr, void* ctx)
 {
   auto mr_desc = fi_mr_desc(static_cast<ofi_mr_impl_t*>(mr.p_impl)->ofi_mr);
-  LCIXX_OFI_CS_TRY_ENTER(LCIXX_NET_TRYLOCK_RECV, errorcode_t::retry_lock);
+  LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_RECV, errorcode_t::retry_lock);
   ssize_t ret = fi_recv(ofi_ep, buffer, size, mr_desc, FI_ADDR_UNSPEC, ctx);
-  LCIXX_OFI_CS_EXIT(LCIXX_NET_TRYLOCK_RECV);
+  LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_RECV);
   if (ret == FI_SUCCESS)
     return errorcode_t::ok;
   else if (ret == -FI_EAGAIN)
@@ -98,11 +98,11 @@ inline error_t ofi_net_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
                                                         size_t size,
                                                         net_imm_data_t imm_data)
 {
-  LCIXX_OFI_CS_TRY_ENTER(LCIXX_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
+  LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
   ssize_t ret =
       fi_injectdata(ofi_ep, buffer, size, (uint64_t)my_rank << 32 | imm_data,
                     peer_addrs[rank]);
-  LCIXX_OFI_CS_EXIT(LCIXX_NET_TRYLOCK_SEND);
+  LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
     return errorcode_t::ok;
   else if (ret == -FI_EAGAIN)
@@ -117,11 +117,11 @@ inline error_t ofi_net_endpoint_impl_t::post_send_impl(int rank, void* buffer,
                                                        net_imm_data_t imm_data,
                                                        void* ctx)
 {
-  LCIXX_OFI_CS_TRY_ENTER(LCIXX_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
+  LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
   ssize_t ret = fi_senddata(ofi_ep, buffer, size, ofi_detail::get_mr_desc(mr),
                             (uint64_t)my_rank << 32 | imm_data,
                             peer_addrs[rank], (struct fi_context*)ctx);
-  LCIXX_OFI_CS_EXIT(LCIXX_NET_TRYLOCK_SEND);
+  LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
     return errorcode_t::ok;
   else if (ret == -FI_EAGAIN)
@@ -160,9 +160,9 @@ inline error_t ofi_net_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
   msg.rma_iov_count = 1;
   msg.context = NULL;
   msg.data = 0;
-  LCIXX_OFI_CS_TRY_ENTER(LCIXX_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
+  LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
   ssize_t ret = fi_writemsg(ofi_ep, &msg, FI_INJECT | FI_DELIVERY_COMPLETE);
-  LCIXX_OFI_CS_EXIT(LCIXX_NET_TRYLOCK_SEND);
+  LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
     return errorcode_t::ok;
   else if (ret == -FI_EAGAIN)
@@ -202,9 +202,9 @@ inline error_t ofi_net_endpoint_impl_t::post_put_impl(int rank, void* buffer,
   msg.rma_iov_count = 1;
   msg.context = ctx;
   msg.data = 0;
-  LCIXX_OFI_CS_TRY_ENTER(LCIXX_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
+  LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
   ssize_t ret = fi_writemsg(ofi_ep, &msg, FI_DELIVERY_COMPLETE);
-  LCIXX_OFI_CS_EXIT(LCIXX_NET_TRYLOCK_SEND);
+  LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
     return errorcode_t::ok;
   else if (ret == -FI_EAGAIN)
@@ -225,10 +225,10 @@ inline error_t ofi_net_endpoint_impl_t::post_putImms_impl(
   } else {
     addr = offset;
   }
-  LCIXX_OFI_CS_TRY_ENTER(LCIXX_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
+  LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
   ssize_t ret = fi_inject_writedata(ofi_ep, buffer, size, imm_data,
                                     peer_addrs[rank], addr, rkey);
-  LCIXX_OFI_CS_EXIT(LCIXX_NET_TRYLOCK_SEND);
+  LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
     return errorcode_t::ok;
   else if (ret == -FI_EAGAIN)
@@ -249,10 +249,10 @@ inline error_t ofi_net_endpoint_impl_t::post_putImm_impl(
   } else {
     addr = offset;
   }
-  LCIXX_OFI_CS_TRY_ENTER(LCIXX_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
+  LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
   ssize_t ret = fi_writedata(ofi_ep, buffer, size, ofi_detail::get_mr_desc(mr),
                              imm_data, peer_addrs[rank], addr, rkey, ctx);
-  LCIXX_OFI_CS_EXIT(LCIXX_NET_TRYLOCK_SEND);
+  LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
     return errorcode_t::ok;
   else if (ret == -FI_EAGAIN)
@@ -261,6 +261,6 @@ inline error_t ofi_net_endpoint_impl_t::post_putImm_impl(
     FI_SAFECALL_RET(ret);
   }
 }
-}  // namespace lcixx
+}  // namespace lci
 
-#endif  // LCIXX_BACKEND_OFI_BACKEND_OFI_INLINE_HPP
+#endif  // LCI_BACKEND_OFI_BACKEND_OFI_INLINE_HPP

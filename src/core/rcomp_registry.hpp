@@ -1,7 +1,7 @@
-#ifndef LCIXX_RCOMP_REGISTRY_HPP
-#define LCIXX_RCOMP_REGISTRY_HPP
+#ifndef LCI_RCOMP_REGISTRY_HPP
+#define LCI_RCOMP_REGISTRY_HPP
 
-namespace lcixx
+namespace lci
 {
 class rcomp_registry_t
 {
@@ -19,15 +19,15 @@ class rcomp_registry_t
   // this is not thread-safe
   void deregister_rcomp(rcomp_t rcomp)
   {
-    LCIXX_Assert(rcomp < comps.size(), "rcomp (%u) >= rcomps.size() (%lu)\n",
-                 rcomp, comps.size());
+    LCI_Assert(rcomp < comps.size(), "rcomp (%u) >= rcomps.size() (%lu)\n",
+               rcomp, comps.size());
     comps[rcomp].p_impl = nullptr;
   }
 
   comp_t get(rcomp_t rcomp)
   {
-    LCIXX_Assert(rcomp < comps.size(), "rcomp (%u) >= rcomps.size() (%lu)\n",
-                 rcomp, comps.size());
+    LCI_Assert(rcomp < comps.size(), "rcomp (%u) >= rcomps.size() (%lu)\n",
+               rcomp, comps.size());
     return comps[rcomp];
   }
 
@@ -35,6 +35,6 @@ class rcomp_registry_t
   std::vector<comp_t> comps;
 };
 
-}  // namespace lcixx
+}  // namespace lci
 
-#endif  // LCIXX_RCOMP_REGISTRY_HPP
+#endif  // LCI_RCOMP_REGISTRY_HPP

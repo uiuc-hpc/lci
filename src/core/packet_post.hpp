@@ -1,7 +1,7 @@
-#ifndef LCIXX_CORE_PACKET_POST_HPP
-#define LCIXX_CORE_PACKET_POST_HPP
+#ifndef LCI_CORE_PACKET_POST_HPP
+#define LCI_CORE_PACKET_POST_HPP
 
-namespace lcixx
+namespace lci
 {
 inline void packet_t::put_back() { local_context.packet_pool_impl->put(this); }
 
@@ -23,6 +23,6 @@ inline void* alloc_pbuffer_x::call_impl(runtime_t runtime,
   return packet->get_message_address();
 }
 
-}  // namespace lcixx
+}  // namespace lci
 
-#endif  // LCIXX_CORE_PACKET_POST_HPP
+#endif  // LCI_CORE_PACKET_POST_HPP

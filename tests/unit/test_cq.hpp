@@ -1,37 +1,37 @@
 namespace test_cq
 {
-void my_cq_push(lcixx::comp_t comp, uint64_t i)
+void my_cq_push(lci::comp_t comp, uint64_t i)
 {
-  lcixx::status_t status;
+  lci::status_t status;
   status.ctx = reinterpret_cast<void*>(i + 1);
-  lcixx::comp_signal_x(comp, status).call();
+  lci::comp_signal_x(comp, status).call();
 }
 
-uint64_t my_cq_pop(lcixx::comp_t comp)
+uint64_t my_cq_pop(lci::comp_t comp)
 {
-  lcixx::error_t error(lcixx::errorcode_t::retry);
-  lcixx::status_t status;
-  while (!error.is_ok()) std::tie(error, status) = lcixx::cq_pop(comp);
+  lci::error_t error(lci::errorcode_t::retry);
+  lci::status_t status;
+  while (!error.is_ok()) std::tie(error, status) = lci::cq_pop(comp);
   return reinterpret_cast<uint64_t>(status.ctx) - 1;
 }
 
 TEST(CQ, singlethread)
 {
   const int n = 100;
-  lcixx::g_runtime_init();
-  auto comp = lcixx::alloc_cq();
+  lci::g_runtime_init();
+  auto comp = lci::alloc_cq();
   for (uint64_t i = 0; i < n; i++) {
     my_cq_push(comp, i);
   }
   for (uint64_t i = 0; i < n; i++) {
     ASSERT_EQ(my_cq_pop(comp), i);
   }
-  lcixx::free_cq_x(&comp).call();
-  lcixx::g_runtime_fina();
+  lci::free_cq_x(&comp).call();
+  lci::g_runtime_fina();
 }
 
 // all threads put and get
-void test_multithread0(lcixx::comp_t cq, int start, int n, bool flags[])
+void test_multithread0(lci::comp_t cq, int start, int n, bool flags[])
 {
   for (uint64_t i = 0; i < n; i++) {
     my_cq_push(cq, start + i);
@@ -45,14 +45,14 @@ void test_multithread0(lcixx::comp_t cq, int start, int n, bool flags[])
 
 TEST(CQ, multithread0)
 {
-  lcixx::global_initialize();
+  lci::global_initialize();
   const int nthreads = 16;
   const int n = 100000;
   ASSERT_EQ(n % nthreads, 0);
   const int n_per_thread = n / nthreads;
   bool flags[n];
   memset(flags, 0, sizeof(flags));
-  lcixx::comp_t comp = lcixx::alloc_cq();
+  lci::comp_t comp = lci::alloc_cq();
   std::vector<std::thread> threads;
   for (int i = 0; i < nthreads; i++) {
     std::thread t(test_multithread0, std::ref(comp), i * n_per_thread,
@@ -65,7 +65,7 @@ TEST(CQ, multithread0)
   for (int i = 0; i < n; i++) {
     ASSERT_EQ(flags[i], true);
   }
-  lcixx::global_finalize();
+  lci::global_finalize();
 }
 
 }  // namespace test_cq

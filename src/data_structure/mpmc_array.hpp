@@ -1,7 +1,7 @@
-#ifndef LCIXX_MPMC_ARRAY_HPP
-#define LCIXX_MPMC_ARRAY_HPP
+#ifndef LCI_MPMC_ARRAY_HPP
+#define LCI_MPMC_ARRAY_HPP
 
-namespace lcixx
+namespace lci
 {
 // A thread-safe vector supporting efficient read
 // We never free old array to ensure read safety
@@ -26,8 +26,8 @@ class mpmc_array_t
 
   void resize_nolock(size_t new_length)
   {
-    LCIXX_Assert(new_length > length, "new_length (%lu) <= length (%lu)\n",
-                 new_length, length.load());
+    LCI_Assert(new_length > length, "new_length (%lu) <= length (%lu)\n",
+               new_length, length.load());
     entry_t* new_ptr = new entry_t[new_length];
     memset(new_ptr, 0, new_length * sizeof(entry_t));
     memcpy(new_ptr, ptr, length * sizeof(entry_t));
@@ -63,6 +63,6 @@ class mpmc_array_t
   std::atomic<size_t> length;
   std::vector<entry_t*> old_ptrs;
 };
-}  // namespace lcixx
+}  // namespace lci
 
-#endif  // LCIXX_MPMC_ARRAY_HPP
+#endif  // LCI_MPMC_ARRAY_HPP

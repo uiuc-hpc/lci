@@ -1,6 +1,6 @@
-#include "lcixx_internal.hpp"
+#include "lci_internal.hpp"
 
-namespace lcixx
+namespace lci
 {
 rcomp_t register_rcomp_x::call_impl(comp_t comp, runtime_t runtime) const
 {
@@ -12,4 +12,4 @@ void deregister_rcomp_x::call_impl(rcomp_t rcomp, runtime_t runtime) const
   runtime.p_impl->rcomp_registry.deregister_rcomp(rcomp);
 }
 
-}  // namespace lcixx
+}  // namespace lci

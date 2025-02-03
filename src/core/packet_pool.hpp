@@ -1,7 +1,7 @@
-#ifndef LCIXX_CORE_PACKET_POOL_HPP
-#define LCIXX_CORE_PACKET_POOL_HPP
+#ifndef LCI_CORE_PACKET_POOL_HPP
+#define LCI_CORE_PACKET_POOL_HPP
 
-namespace lcixx
+namespace lci
 {
 class packet_pool_impl_t
 {
@@ -23,22 +23,22 @@ class packet_pool_impl_t
       packet->local_context.packet_pool_impl = this;
       packet->local_context.isInPool = false;
       packet->local_context.local_id = mpmc_set_t::LOCAL_SET_ID_NULL;
-      LCIXX_PCOUNTER_ADD(packet_get, 1);
+      LCI_PCOUNTER_ADD(packet_get, 1);
     } else {
-      LCIXX_PCOUNTER_ADD(packet_get_retry, 1);
+      LCI_PCOUNTER_ADD(packet_get_retry, 1);
     }
     return packet;
   }
   void put(packet_t* p_packet)
   {
-    LCIXX_Assert(is_packet(p_packet, true), "Not a packet (address %p)!\n",
-                 p_packet);
+    LCI_Assert(is_packet(p_packet, true), "Not a packet (address %p)!\n",
+               p_packet);
     packet_t* packet = static_cast<packet_t*>(p_packet);
-    LCIXX_Assert(!packet->local_context.isInPool,
-                 "This packet has already been freed!\n");
+    LCI_Assert(!packet->local_context.isInPool,
+               "This packet has already been freed!\n");
     packet->local_context.isInPool = true;
     pool.put(packet, packet->local_context.local_id);
-    LCIXX_PCOUNTER_ADD(packet_put, 1);
+    LCI_PCOUNTER_ADD(packet_put, 1);
   }
 
   bool is_packet(void* address, bool include_lcontext = false)
@@ -77,6 +77,6 @@ class packet_pool_impl_t
   mpmc_array_t mrs;
   std::atomic<int> npacket_lost;
 };
-}  // namespace lcixx
+}  // namespace lci
 
-#endif  // LCIXX_CORE_PACKET_POOL_HPP
+#endif  // LCI_CORE_PACKET_POOL_HPP

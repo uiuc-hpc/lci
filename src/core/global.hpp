@@ -1,7 +1,7 @@
-#ifndef LCIXX_CORE_GLOBAL_HPP
-#define LCIXX_CORE_GLOBAL_HPP
+#ifndef LCI_CORE_GLOBAL_HPP
+#define LCI_CORE_GLOBAL_HPP
 
-namespace lcixx
+namespace lci
 {
 extern int g_rank, g_nranks;
 extern global_attr_t g_default_attr;
@@ -9,6 +9,6 @@ extern runtime_t g_default_runtime;
 
 void global_initialize();
 void global_finalize();
-}  // namespace lcixx
+}  // namespace lci
 
-#endif  // LCIXX_CORE_GLOBAL_HPP
+#endif  // LCI_CORE_GLOBAL_HPP

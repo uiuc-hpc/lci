@@ -1,7 +1,7 @@
-#ifndef LCIXX_CORE_PROTOCOL_HPP
-#define LCIXX_CORE_PROTOCOL_HPP
+#ifndef LCI_CORE_PROTOCOL_HPP
+#define LCI_CORE_PROTOCOL_HPP
 
-namespace lcixx
+namespace lci
 {
 enum class packet_data_rdv_type_t { single_2sided, single_1sided, iovec };
 
@@ -21,7 +21,7 @@ enum class packet_data_rdv_type_t { single_2sided, single_1sided, iovec };
  * recv_ctx field of RTR and FIN messages.
  */
 struct packet_t;
-struct alignas(LCIXX_CACHE_LINE) internal_context_t {
+struct alignas(LCI_CACHE_LINE) internal_context_t {
   packet_t* packet = nullptr;    // 8 bytes
   int rank;                      // 4 bytes
   tag_t tag;                     // 4 bytes
@@ -43,6 +43,6 @@ struct alignas(LCIXX_CACHE_LINE) internal_context_t {
   }
 };
 
-}  // namespace lcixx
+}  // namespace lci
 
-#endif  // LCIXX_CORE_PROTOCOL_HPP
+#endif  // LCI_CORE_PROTOCOL_HPP

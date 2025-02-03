@@ -1,9 +1,9 @@
-#ifndef LCIXX_CORE_RUNTIME_HPP
-#define LCIXX_CORE_RUNTIME_HPP
+#ifndef LCI_CORE_RUNTIME_HPP
+#define LCI_CORE_RUNTIME_HPP
 
-#include "lcixx_internal.hpp"
+#include "lci_internal.hpp"
 
-namespace lcixx
+namespace lci
 {
 class runtime_impl_t
 {
@@ -21,6 +21,6 @@ class runtime_impl_t
   packet_pool_t packet_pool;
   rcomp_registry_t rcomp_registry;
 };
-}  // namespace lcixx
+}  // namespace lci
 
-#endif  // LCIXX_CORE_RUNTIME_HPP
+#endif  // LCI_CORE_RUNTIME_HPP

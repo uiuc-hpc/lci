@@ -1,5 +1,5 @@
-#ifndef LCIXX_LCIXX_INTERNAL_HPP
-#define LCIXX_LCIXX_INTERNAL_HPP
+#ifndef LCI_LCI_INTERNAL_HPP
+#define LCI_LCI_INTERNAL_HPP
 
 #include <memory>
 #include <vector>
@@ -7,7 +7,7 @@
 #include <cstring>
 #include <unistd.h>
 
-#include "lcixx.hpp"
+#include "lci.hpp"
 #include "lct.h"
 #include "util/log.hpp"
 #include "util/random.hpp"
@@ -29,4 +29,4 @@
 
 #include "core/packet_post.hpp"
 
-#endif  // LCIXX_LCIXX_INTERNAL_HPP
+#endif  // LCI_LCI_INTERNAL_HPP

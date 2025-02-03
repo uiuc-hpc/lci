@@ -6,5 +6,5 @@ execute_process(
 # message(STATUS "Generate binding: ${py_result}")
 
 target_include_directories(
-  LCIXX PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/generated>
-               $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+  LCI PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/generated>
+             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)

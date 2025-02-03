@@ -1,7 +1,7 @@
-#ifndef LCIXX_BACKEND_BACKEND_HPP
-#define LCIXX_BACKEND_BACKEND_HPP
+#ifndef LCI_BACKEND_BACKEND_HPP
+#define LCI_BACKEND_BACKEND_HPP
 
-namespace lcixx
+namespace lci
 {
 class net_context_impl_t
 {
@@ -42,7 +42,7 @@ class net_device_impl_t
   inline std::vector<net_status_t> poll_comp(int max_polls)
   {
     auto statuses = poll_comp_impl(max_polls);
-    LCIXX_PCOUNTER_ADD(net_poll_cq_entry_count, statuses.size());
+    LCI_PCOUNTER_ADD(net_poll_cq_entry_count, statuses.size());
     return statuses;
   }
   virtual error_t post_recv_impl(void* buffer, size_t size, mr_t mr,
@@ -51,9 +51,9 @@ class net_device_impl_t
   {
     error_t error = post_recv_impl(buffer, size, mr, ctx);
     if (error.is_retry()) {
-      LCIXX_PCOUNTER_ADD(net_recv_post_retry, 1);
+      LCI_PCOUNTER_ADD(net_recv_post_retry, 1);
     } else {
-      LCIXX_PCOUNTER_ADD(net_recv_post, 1);
+      LCI_PCOUNTER_ADD(net_recv_post, 1);
     }
     return error;
   }
@@ -122,9 +122,9 @@ class net_endpoint_impl_t
   {
     auto error = post_sends_impl(rank, buffer, size, imm_data);
     if (error.is_retry()) {
-      LCIXX_PCOUNTER_ADD(net_send_post_retry, 1);
+      LCI_PCOUNTER_ADD(net_send_post_retry, 1);
     } else {
-      LCIXX_PCOUNTER_ADD(net_send_post, 1);
+      LCI_PCOUNTER_ADD(net_send_post, 1);
     }
     return error;
   }
@@ -134,9 +134,9 @@ class net_endpoint_impl_t
   {
     auto error = post_send_impl(rank, buffer, size, mr, imm_data, ctx);
     if (error.is_retry()) {
-      LCIXX_PCOUNTER_ADD(net_send_post_retry, 1);
+      LCI_PCOUNTER_ADD(net_send_post_retry, 1);
     } else {
-      LCIXX_PCOUNTER_ADD(net_send_post, 1);
+      LCI_PCOUNTER_ADD(net_send_post, 1);
     }
     return error;
   }
@@ -146,9 +146,9 @@ class net_endpoint_impl_t
   {
     auto error = post_puts_impl(rank, buffer, size, base, offset, rkey);
     if (error.is_retry()) {
-      LCIXX_PCOUNTER_ADD(net_send_post_retry, 1);
+      LCI_PCOUNTER_ADD(net_send_post_retry, 1);
     } else {
-      LCIXX_PCOUNTER_ADD(net_send_post, 1);
+      LCI_PCOUNTER_ADD(net_send_post, 1);
     }
     return error;
   }
@@ -159,9 +159,9 @@ class net_endpoint_impl_t
   {
     auto error = post_put_impl(rank, buffer, size, mr, base, offset, rkey, ctx);
     if (error.is_retry()) {
-      LCIXX_PCOUNTER_ADD(net_send_post_retry, 1);
+      LCI_PCOUNTER_ADD(net_send_post_retry, 1);
     } else {
-      LCIXX_PCOUNTER_ADD(net_send_post, 1);
+      LCI_PCOUNTER_ADD(net_send_post, 1);
     }
     return error;
   }
@@ -173,9 +173,9 @@ class net_endpoint_impl_t
     auto error =
         post_putImms_impl(rank, buffer, size, base, offset, rkey, imm_data);
     if (error.is_retry()) {
-      LCIXX_PCOUNTER_ADD(net_send_post_retry, 1);
+      LCI_PCOUNTER_ADD(net_send_post_retry, 1);
     } else {
-      LCIXX_PCOUNTER_ADD(net_send_post, 1);
+      LCI_PCOUNTER_ADD(net_send_post, 1);
     }
     return error;
   }
@@ -187,9 +187,9 @@ class net_endpoint_impl_t
     auto error = post_putImm_impl(rank, buffer, size, mr, base, offset, rkey,
                                   imm_data, ctx);
     if (error.is_retry()) {
-      LCIXX_PCOUNTER_ADD(net_send_post_retry, 1);
+      LCI_PCOUNTER_ADD(net_send_post_retry, 1);
     } else {
-      LCIXX_PCOUNTER_ADD(net_send_post, 1);
+      LCI_PCOUNTER_ADD(net_send_post, 1);
     }
     return error;
   }
@@ -201,6 +201,6 @@ class net_endpoint_impl_t
   int net_endpoint_id;
 };
 
-}  // namespace lcixx
+}  // namespace lci
 
-#endif  // LCIXX_BACKEND_BACKEND_HPP
+#endif  // LCI_BACKEND_BACKEND_HPP

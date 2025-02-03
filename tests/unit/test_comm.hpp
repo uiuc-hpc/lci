@@ -1,82 +1,81 @@
-#include "lcixx_internal.hpp"
+#include "lci_internal.hpp"
 
 namespace test_comm
 {
 TEST(COMM, am_st)
 {
-  lcixx::g_runtime_init();
+  lci::g_runtime_init();
 
   const int nmsgs = 1000;
-  int rank = lcixx::get_rank();
-  int nranks = lcixx::get_nranks();
+  int rank = lci::get_rank();
+  int nranks = lci::get_nranks();
   ASSERT_EQ(rank, 0);
   ASSERT_EQ(nranks, 1);
   // local cq
-  lcixx::comp_t lcq = lcixx::alloc_cq();
+  lci::comp_t lcq = lci::alloc_cq();
 
-  lcixx::comp_t rcq = lcixx::alloc_cq();
-  lcixx::rcomp_t rcomp = lcixx::register_rcomp(rcq);
+  lci::comp_t rcq = lci::alloc_cq();
+  lci::rcomp_t rcomp = lci::register_rcomp(rcq);
   // loopback message
   for (int i = 0; i < nmsgs; i++) {
     uint64_t data = 0xdeadbeef;
-    lcixx::error_t error(lcixx::errorcode_t::retry);
+    lci::error_t error(lci::errorcode_t::retry);
     while (error.is_retry()) {
-      lcixx::status_t status;
-      std::tie(error, status) =
-          lcixx::communicate_x(lcixx::direction_t::SEND, rank, &data,
-                               sizeof(data), lcq)
-              .remote_comp(rcomp)();
-      lcixx::progress_x().call();
+      lci::status_t status;
+      std::tie(error, status) = lci::communicate_x(lci::direction_t::SEND, rank,
+                                                   &data, sizeof(data), lcq)
+                                    .remote_comp(rcomp)();
+      lci::progress_x().call();
     }
     // poll local cq
-    error.reset(lcixx::errorcode_t::retry);
-    lcixx::status_t status;
+    error.reset(lci::errorcode_t::retry);
+    lci::status_t status;
     while (error.is_retry()) {
-      lcixx::progress_x().call();
-      std::tie(error, status) = lcixx::cq_pop(lcq);
+      lci::progress_x().call();
+      std::tie(error, status) = lci::cq_pop(lcq);
     }
     ASSERT_EQ(*(uint64_t*)status.buffer, data);
     // poll remote cq
-    error.reset(lcixx::errorcode_t::retry);
+    error.reset(lci::errorcode_t::retry);
     while (error.is_retry()) {
-      lcixx::status_t status;
-      std::tie(error, status) = lcixx::cq_pop(rcq);
-      lcixx::progress_x().call();
+      lci::status_t status;
+      std::tie(error, status) = lci::cq_pop(rcq);
+      lci::progress_x().call();
     }
     ASSERT_EQ(*(uint64_t*)status.buffer, data);
   }
 
-  lcixx::free_cq(&lcq);
-  lcixx::free_cq(&rcq);
-  lcixx::g_runtime_fina();
+  lci::free_cq(&lcq);
+  lci::free_cq(&rcq);
+  lci::g_runtime_fina();
 }
 
-void test_am_mt(int id, int nmsgs, lcixx::comp_t lcq, lcixx::comp_t rcq,
-                lcixx::rcomp_t rcomp, uint64_t* p_data)
+void test_am_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
+                lci::rcomp_t rcomp, uint64_t* p_data)
 {
-  int rank = lcixx::get_rank();
-  lcixx::tag_t tag = id;
+  int rank = lci::get_rank();
+  lci::tag_t tag = id;
 
   for (int i = 0; i < nmsgs; i++) {
-    lcixx::error_t error(lcixx::errorcode_t::retry);
+    lci::error_t error(lci::errorcode_t::retry);
     while (error.is_retry()) {
-      lcixx::status_t status;
+      lci::status_t status;
       std::tie(error, status) =
-          lcixx::communicate_x(lcixx::direction_t::SEND, rank, p_data,
-                               sizeof(uint64_t), lcq)
+          lci::communicate_x(lci::direction_t::SEND, rank, p_data,
+                             sizeof(uint64_t), lcq)
               .remote_comp(rcomp)
               .tag(tag)();
-      lcixx::progress();
+      lci::progress();
     }
     // poll cqs
     bool lcq_done = false;
     bool rcq_done = false;
-    lcixx::status_t status;
+    lci::status_t status;
     while (!lcq_done || !rcq_done) {
-      lcixx::progress();
+      lci::progress();
       if (!lcq_done) {
-        error.reset(lcixx::errorcode_t::retry);
-        std::tie(error, status) = lcixx::cq_pop(lcq);
+        error.reset(lci::errorcode_t::retry);
+        std::tie(error, status) = lci::cq_pop(lcq);
         if (error.is_ok()) {
           ASSERT_EQ(status.buffer, p_data);
           ASSERT_EQ(*(uint64_t*)status.buffer, *p_data);
@@ -85,8 +84,8 @@ void test_am_mt(int id, int nmsgs, lcixx::comp_t lcq, lcixx::comp_t rcq,
         }
       }
       if (!rcq_done) {
-        error.reset(lcixx::errorcode_t::retry);
-        std::tie(error, status) = lcixx::cq_pop(rcq);
+        error.reset(lci::errorcode_t::retry);
+        std::tie(error, status) = lci::cq_pop(rcq);
         if (error.is_ok()) {
           ASSERT_EQ(*(uint64_t*)status.buffer, *p_data);
           // ASSERT_EQ(status.tag, tag);
@@ -100,25 +99,25 @@ void test_am_mt(int id, int nmsgs, lcixx::comp_t lcq, lcixx::comp_t rcq,
 
 TEST(COMM, am_mt)
 {
-  lcixx::g_runtime_init();
+  lci::g_runtime_init();
 
   const int nmsgs = 20000;
   const int nthreads = 16;
   ASSERT_EQ(nmsgs % nthreads, 0);
-  int rank = lcixx::get_rank();
-  int nranks = lcixx::get_nranks();
+  int rank = lci::get_rank();
+  int nranks = lci::get_nranks();
   ASSERT_EQ(rank, 0);
   ASSERT_EQ(nranks, 1);
-  lcixx::comp_t lcq = lcixx::alloc_cq();
-  lcixx::comp_t rcq = lcixx::alloc_cq();
-  lcixx::rcomp_t rcomp = lcixx::register_rcomp(rcq);
-  // std::vector<lcixx::comp_t> lcqs;
-  // std::vector<lcixx::comp_t> rcqs;
-  // std::vector<lcixx::rcomp_t> rcomps;
+  lci::comp_t lcq = lci::alloc_cq();
+  lci::comp_t rcq = lci::alloc_cq();
+  lci::rcomp_t rcomp = lci::register_rcomp(rcq);
+  // std::vector<lci::comp_t> lcqs;
+  // std::vector<lci::comp_t> rcqs;
+  // std::vector<lci::rcomp_t> rcomps;
   // for (int i = 0; i < nthreads; i++) {
-  // lcqs.push_back(lcixx::alloc_cq());
-  // rcqs.push_back(lcixx::alloc_cq());
-  // rcomps.push_back(lcixx::register_rcomp(rcqs[i]));
+  // lcqs.push_back(lci::alloc_cq());
+  // rcqs.push_back(lci::alloc_cq());
+  // rcomps.push_back(lci::register_rcomp(rcqs[i]));
   // }
 
   // uint64_t data = 0xdeadbeef;
@@ -135,14 +134,14 @@ TEST(COMM, am_mt)
     t.join();
   }
 
-  lcixx::free_cq(&lcq);
-  lcixx::free_cq(&rcq);
+  lci::free_cq(&lcq);
+  lci::free_cq(&rcq);
   // for (int i = 0; i < nthreads; i++) {
-  // lcixx::deregister_rcomp(rcomps[i]);
-  // lcixx::free_cq(&rcqs[i]);
-  // lcixx::free_cq(&lcqs[i]);
+  // lci::deregister_rcomp(rcomps[i]);
+  // lci::free_cq(&rcqs[i]);
+  // lci::free_cq(&lcqs[i]);
   // }
-  lcixx::g_runtime_fina();
+  lci::g_runtime_fina();
 }
 
 }  // namespace test_comm

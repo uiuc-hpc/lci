@@ -1,7 +1,7 @@
-#ifndef LCIXX_UTIL_RANDOM_HPP
-#define LCIXX_UTIL_RANDOM_HPP
+#ifndef LCI_UTIL_RANDOM_HPP
+#define LCI_UTIL_RANDOM_HPP
 
-namespace lcixx
+namespace lci
 {
 extern __thread unsigned int random_seed;
 static inline int rand_mt()
@@ -11,6 +11,6 @@ static inline int rand_mt()
   }
   return rand_r(&random_seed);
 }
-}  // namespace lcixx
+}  // namespace lci
 
-#endif  // LCIXX_UTIL_RANDOM_HPP
+#endif  // LCI_UTIL_RANDOM_HPP

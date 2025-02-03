@@ -1,7 +1,7 @@
-#include "lcixx_internal.hpp"
+#include "lci_internal.hpp"
 #include <memory>
 
-namespace lcixx
+namespace lci
 {
 packet_pool_impl_t::packet_pool_impl_t(const attr_t& attr_)
     : attr(attr_),
@@ -13,19 +13,19 @@ packet_pool_impl_t::packet_pool_impl_t(const attr_t& attr_)
       npacket_lost(0)
 {
   if (attr.npackets > 0) {
-    heap_size = attr.npackets * attr.packet_size + LCIXX_CACHE_LINE;
+    heap_size = attr.npackets * attr.packet_size + LCI_CACHE_LINE;
     heap = alloc_memalign(get_page_size(), heap_size);
     base_packet_p =
-        (char*)heap + LCIXX_CACHE_LINE - sizeof(packet_local_context_t);
+        (char*)heap + LCI_CACHE_LINE - sizeof(packet_local_context_t);
     for (size_t i = 0; i < attr.npackets; i++) {
       packet_t* packet =
           (packet_t*)((char*)base_packet_p + i * attr.packet_size);
-      LCIXX_Assert(
-          ((uint64_t)packet->get_message_address()) % LCIXX_CACHE_LINE == 0,
+      LCI_Assert(
+          ((uint64_t)packet->get_message_address()) % LCI_CACHE_LINE == 0,
           "packet.data is not well-aligned %p\n",
           packet->get_message_address());
-      LCIXX_Assert(is_packet(packet->get_message_address()),
-                   "Not a packet. The computation is wrong!\n");
+      LCI_Assert(is_packet(packet->get_message_address()),
+                 "Not a packet. The computation is wrong!\n");
       packet->local_context.packet_pool_impl = this;
       packet->local_context.local_id = pool.get_local_set_id();
       packet->local_context.isInPool = true;
@@ -40,7 +40,7 @@ packet_pool_impl_t::~packet_pool_impl_t()
   if (attr.npackets > 0) {
     int total = pool.size() + npacket_lost;
     if (total != attr.npackets) {
-      LCIXX_Warn("Lost %d packets\n", attr.npackets - total);
+      LCI_Warn("Lost %d packets\n", attr.npackets - total);
     }
   }
   for (int i = 0; i < mrs.get_size(); i++) {
@@ -105,4 +105,4 @@ void unbind_packet_pool_x::call_impl(net_device_t net_device,
   net_device.p_impl->unbind_packet_pool();
 }
 
-}  // namespace lcixx
+}  // namespace lci

@@ -7,6 +7,6 @@ add_lci_tests(
   LABELS
   pingpong
   COMMANDS
-  "${LCIXX_USE_CTEST_EXE} -n 2 ${LCIXX_USE_CTEST_ARGS} [TARGET]"
+  "${LCI_USE_CTEST_EXE} -n 2 ${LCI_USE_CTEST_ARGS} [TARGET]"
   DEPENDENCIES
   OpenMP::OpenMP_CXX)

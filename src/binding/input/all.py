@@ -3,7 +3,7 @@ sys.path.append(os.path.dirname(__file__))
 from tools import *
 
 runtime_attr = [
-    attr("bool", "use_reg_cache", default_value="LCIXX_USE_REG_CACHE_DEFAULT", comment="Whether to use the registration cache."),
+    attr("bool", "use_reg_cache", default_value="LCI_USE_REG_CACHE_DEFAULT", comment="Whether to use the registration cache."),
     attr("bool", "use_control_channel", default_value=0, comment="Whether to use the control channel."),
     attr("int", "packet_return_threshold", default_value=1024, comment="The threshold for returning packets to its original pool."),
     attr_enum("runtime_mode", enum_options=["basic", "network", "full"], default_value="full", comment="The runtime mode."),
@@ -60,8 +60,8 @@ resource_net_context := resource(
     "net_context", 
     [
         attr("option_backend_t", "backend", comment="The network backend."),
-        attr("std::string", "provider_name", default_value="LCIXX_OFI_PROVIDER_HINT_DEFAULT", comment="The provider name."),
-        attr("int64_t", "max_msg_size", default_value="LCIXX_USE_MAX_SINGLE_MESSAGE_SIZE_DEFAULT", comment="The maximum message size."),
+        attr("std::string", "provider_name", default_value="LCI_OFI_PROVIDER_HINT_DEFAULT", comment="The provider name."),
+        attr("int64_t", "max_msg_size", default_value="LCI_USE_MAX_SINGLE_MESSAGE_SIZE_DEFAULT", comment="The maximum message size."),
     ],
     comment="The network context resource."
 ),
@@ -72,9 +72,9 @@ operation_free(resource_net_context),
 resource_net_device := resource(
     "net_device", 
     [
-        attr("int64_t", "net_max_sends", default_value="LCIXX_BACKEND_MAX_SENDS_DEFAULT"),
-        attr("int64_t", "net_max_recvs", default_value="LCIXX_BACKEND_MAX_RECVS_DEFAULT"),
-        attr("int64_t", "net_max_cqes", default_value="LCIXX_BACKEND_MAX_CQES_DEFAULT"),
+        attr("int64_t", "net_max_sends", default_value="LCI_BACKEND_MAX_SENDS_DEFAULT"),
+        attr("int64_t", "net_max_recvs", default_value="LCI_BACKEND_MAX_RECVS_DEFAULT"),
+        attr("int64_t", "net_max_cqes", default_value="LCI_BACKEND_MAX_CQES_DEFAULT"),
         attr("uint64_t", "net_lock_mode"),
     ],
     comment="The network device resource."
@@ -252,8 +252,8 @@ operation(
 resource_packet_pool := resource(
     "packet_pool", 
     [
-        attr("size_t", "packet_size", default_value="LCIXX_PACKET_SIZE_DEFAULT"),
-        attr("size_t", "npackets", default_value="LCIXX_PACKET_NUM_DEFAULT"),
+        attr("size_t", "packet_size", default_value="LCI_PACKET_SIZE_DEFAULT"),
+        attr("size_t", "npackets", default_value="LCI_PACKET_NUM_DEFAULT"),
     ],
     comment="The packet pool resource."
 ),

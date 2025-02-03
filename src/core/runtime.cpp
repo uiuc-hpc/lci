@@ -1,6 +1,6 @@
-#include "lcixx_internal.hpp"
+#include "lci_internal.hpp"
 
-namespace lcixx
+namespace lci
 {
 /*************************************************************
  * runtime: User wrappers
@@ -35,8 +35,8 @@ void g_runtime_init_x::call_impl(bool use_reg_cache, bool use_control_channel,
                                  attr_runtime_mode_t runtime_mode,
                                  attr_rdv_protocol_t rdv_protocol) const
 {
-  LCIXX_Assert(g_default_runtime.p_impl == nullptr,
-               "g_default_runtime has been initialized!\n");
+  LCI_Assert(g_default_runtime.p_impl == nullptr,
+             "g_default_runtime has been initialized!\n");
   runtime_t::attr_t attr;
   attr.use_reg_cache = use_reg_cache;
   attr.use_control_channel = use_control_channel;
@@ -71,18 +71,17 @@ void runtime_impl_t::initialize()
     if (net_context.get_attr().backend == option_backend_t::ofi &&
         net_context.get_attr().provider_name == "cxi") {
       // special setting for libfabric/cxi
-      LCIXX_Assert(
-          attr.use_reg_cache == false,
-          "The registration cache should be turned off "
-          "for libfabric cxi backend. Use `export LCIXX_USE_DREG=0`.\n");
-      LCIXX_Assert(attr.use_control_channel == 0,
-                   "The progress-specific network endpoint "
-                   "for libfabric cxi backend. Use `export "
-                   "LCIXX_ENABLE_PRG_NET_ENDPOINT=0`.\n");
+      LCI_Assert(attr.use_reg_cache == false,
+                 "The registration cache should be turned off "
+                 "for libfabric cxi backend. Use `export LCI_USE_DREG=0`.\n");
+      LCI_Assert(attr.use_control_channel == 0,
+                 "The progress-specific network endpoint "
+                 "for libfabric cxi backend. Use `export "
+                 "LCI_ENABLE_PRG_NET_ENDPOINT=0`.\n");
       if (attr.rdv_protocol != attr_rdv_protocol_t::write) {
         attr.rdv_protocol = attr_rdv_protocol_t::write;
-        LCIXX_Warn(
-            "Switch LCIXX_RDV_PROTOCOL to \"write\" "
+        LCI_Warn(
+            "Switch LCI_RDV_PROTOCOL to \"write\" "
             "as required by the libfabric cxi backend\n");
       }
     }
@@ -126,4 +125,4 @@ packet_pool_t get_default_packet_pool_x::call_impl(runtime_t runtime) const
   return runtime.p_impl->packet_pool;
 }
 
-}  // namespace lcixx
+}  // namespace lci

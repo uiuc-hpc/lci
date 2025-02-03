@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <thread>
 #include <vector>
-#include "lcixx.hpp"
+#include "lci.hpp"
 #include "test_basic.hpp"
 #include "test_network.hpp"
 #include "test_mpmc_array.hpp"

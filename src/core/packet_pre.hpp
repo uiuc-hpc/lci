@@ -1,7 +1,7 @@
-#ifndef LCIXX_CORE_PACKET_PRE_HPP
-#define LCIXX_CORE_PACKET_PRE_HPP
+#ifndef LCI_CORE_PACKET_PRE_HPP
+#define LCI_CORE_PACKET_PRE_HPP
 
-namespace lcixx
+namespace lci
 {
 const int POOLID_LOCAL = -1;
 
@@ -64,7 +64,7 @@ struct __attribute__((packed)) packet_data_t {
 
 struct __attribute__((packed)) packet_t {
   packet_local_context_t local_context;
-  union alignas(LCIXX_CACHE_LINE) {
+  union alignas(LCI_CACHE_LINE) {
     struct {
       packet_data_t data;
     } fast;
@@ -86,6 +86,6 @@ static inline packet_t* address2packet(void* address)
   return (packet_t*)((char*)address - offsetof(packet_t, fast));
 }
 
-}  // namespace lcixx
+}  // namespace lci
 
-#endif  // LCIXX_CORE_PACKET_PRE_HPP
+#endif  // LCI_CORE_PACKET_PRE_HPP

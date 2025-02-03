@@ -1,11 +1,11 @@
-#ifndef LCIXX_MPMC_SET_HPP
-#define LCIXX_MPMC_SET_HPP
+#ifndef LCI_MPMC_SET_HPP
+#define LCI_MPMC_SET_HPP
 
-namespace lcixx
+namespace lci
 {
 class mpmc_set_t
 {
-  struct alignas(LCIXX_CACHE_LINE) local_set_t {
+  struct alignas(LCI_CACHE_LINE) local_set_t {
     int id;
     std::vector<void*> queue;
     int64_t head, tail;
@@ -13,12 +13,12 @@ class mpmc_set_t
     static void copy_to_new(local_set_t* src, std::vector<void*>& new_queue,
                             int64_t n)
     {
-      LCIXX_Assert(src->size() >= n,
-                   "Insufficient packets in source pool: %ld (need %ld)\n",
-                   src->size(), n);
-      LCIXX_Assert(new_queue.size() > n,
-                   "Insufficient size in destination queue: %lu (need %ld)\n",
-                   new_queue.size(), n);
+      LCI_Assert(src->size() >= n,
+                 "Insufficient packets in source pool: %ld (need %ld)\n",
+                 src->size(), n);
+      LCI_Assert(new_queue.size() > n,
+                 "Insufficient size in destination queue: %lu (need %ld)\n",
+                 new_queue.size(), n);
       int64_t head_idx = src->head % src->queue.size();
       if (head_idx + n <= src->queue.size()) {
         // no wrap around
@@ -34,12 +34,12 @@ class mpmc_set_t
     }
     local_set_t(int64_t default_size = 1024) : head(0), tail(0)
     {
-      LCIXX_Assert(default_size > 0, "default_size must be positive");
+      LCI_Assert(default_size > 0, "default_size must be positive");
       queue.resize(default_size + 1, nullptr);
     }
     void push(void* packet)
     {
-      LCIXX_Assert(packet, "push found a nullptr\n");
+      LCI_Assert(packet, "push found a nullptr\n");
       int64_t current_size = size();
       if (current_size == queue.size() - 1) {
         // resize the queue
@@ -47,11 +47,11 @@ class mpmc_set_t
         local_set_t::copy_to_new(this, new_queue, current_size);
         head = 0;
         tail = current_size;
-        LCIXX_Assert(head < tail, "header (%ld) > tail (%ld)\n", head, tail);
+        LCI_Assert(head < tail, "header (%ld) > tail (%ld)\n", head, tail);
         queue.swap(new_queue);
         for (int i = 0; i < current_size; i++) {
           void* val = queue[i];
-          LCIXX_Assert(val, "val must not be nullptr\n");
+          LCI_Assert(val, "val must not be nullptr\n");
         }
       }
       queue[tail++ % queue.size()] = packet;
@@ -61,9 +61,9 @@ class mpmc_set_t
       if (head == tail) {
         return nullptr;
       }
-      LCIXX_Assert(head < tail, "header (%ld) > tail (%ld)\n", head, tail);
+      LCI_Assert(head < tail, "header (%ld) > tail (%ld)\n", head, tail);
       void* ret = queue[head++ % queue.size()];
-      LCIXX_Assert(ret, "pop a nullptr\n");
+      LCI_Assert(ret, "pop a nullptr\n");
       return ret;
     }
     bool empty() const { return head == tail; }
@@ -139,7 +139,7 @@ inline void* mpmc_set_t::get()
     goto unlock_local_pool;
   }
   // random packet stealing
-  LCIXX_Assert(local_pool->empty(), "local pool must be empty\n");
+  LCI_Assert(local_pool->empty(), "local pool must be empty\n");
   random_pool = get_random_pool();
   if (!random_pool || random_pool == local_pool || random_pool->size() <= 0) {
     goto unlock_local_pool;
@@ -149,22 +149,21 @@ inline void* mpmc_set_t::get()
   // steal half packets from random_pool
   n = (random_pool->size() + 1) / 2;
   if (n > 0) {
-    LCIXX_Assert(n <= random_pool->size(),
-                 "n (%ld) > random_pool->size() (%ld)\n", n,
-                 random_pool->size());
+    LCI_Assert(n <= random_pool->size(),
+               "n (%ld) > random_pool->size() (%ld)\n", n, random_pool->size());
     local_pool->queue.resize(std::max(default_lpool_size, n * 2) + 1);
     local_set_t::copy_to_new(random_pool, local_pool->queue, n);
-    LCIXX_Assert(random_pool->head <= random_pool->tail,
-                 "header (%ld) > tail (%ld)\n", random_pool->head,
-                 random_pool->tail);
+    LCI_Assert(random_pool->head <= random_pool->tail,
+               "header (%ld) > tail (%ld)\n", random_pool->head,
+               random_pool->tail);
     local_pool->tail = n;
     local_pool->head = 0;
     for (int i = 0; i < n; i++) {
       void* val = local_pool->queue[i];
-      LCIXX_Assert(val, "val must not be nullptr\n");
+      LCI_Assert(val, "val must not be nullptr\n");
     }
     ret = local_pool->pop();
-    LCIXX_Assert(ret, "this pop has to succeed\n");
+    LCI_Assert(ret, "this pop has to succeed\n");
   }
 
 unlock_random_pool:
@@ -178,7 +177,7 @@ unlock_local_pool:
 inline void mpmc_set_t::put(void* packet,
                             int tid = mpmc_set_t::LOCAL_SET_ID_NULL)
 {
-  LCIXX_Assert(packet, "packet must not be nullptr\n");
+  LCI_Assert(packet, "packet must not be nullptr\n");
   if (tid < 0) {
     tid = get_local_set_id();
   }
@@ -194,11 +193,11 @@ inline int64_t mpmc_set_t::size() const
   int64_t total = 0;
   for (int i = 0; i < npools; i++) {
     local_set_t* pool = static_cast<local_set_t*>(pools.get(i));
-    LCIXX_Assert(pool, "pool must not be nullptr\n");
+    LCI_Assert(pool, "pool must not be nullptr\n");
     total += pool->size();
   }
   return total;
 }
-}  // namespace lcixx
+}  // namespace lci
 
-#endif  // LCIXX_MPMC_SET_HPP
+#endif  // LCI_MPMC_SET_HPP

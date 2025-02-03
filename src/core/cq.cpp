@@ -1,6 +1,6 @@
-#include "lcixx_internal.hpp"
+#include "lci_internal.hpp"
 
-namespace lcixx
+namespace lci
 {
 comp_t alloc_cq_x::call_impl(runtime_t runtime) const
 {
@@ -31,4 +31,4 @@ std::tuple<error_t, status_t> cq_pop_x::call_impl(comp_t comp,
   return {error, status};
 }
 
-}  // namespace lcixx
+}  // namespace lci

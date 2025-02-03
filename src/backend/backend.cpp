@@ -1,6 +1,6 @@
-#include "lcixx_internal.hpp"
+#include "lci_internal.hpp"
 
-namespace lcixx
+namespace lci
 {
 net_device_impl_t::~net_device_impl_t()
 {
@@ -54,7 +54,7 @@ void net_device_impl_t::refill_recvs(bool is_blocking)
       if (is_blocking) {
         ++niters;
         if (niters > max_retries) {
-          LCIXX_Warn(
+          LCI_Warn(
               "Deadlock alert! The device failed to refill the recvs to the "
               "maximum (current %d)\n",
               nrecvs_posted);
@@ -68,7 +68,7 @@ void net_device_impl_t::refill_recvs(bool is_blocking)
   }
   if (nrecvs_posted == 0) {
     int64_t npackets = packet_pool.p_impl->pool.size();
-    LCIXX_Warn(
+    LCI_Warn(
         "Deadlock alert! The device does not have any posted recvs. (current "
         "packet pool size %ld)\n",
         npackets);
@@ -104,28 +104,30 @@ net_context_t alloc_net_context_x::call_impl(runtime_t runtime,
     case option_backend_t::none:
       break;
     case option_backend_t::ibv:
-#ifdef LCIXX_BACKEND_ENABLE_IBV
+#ifdef LCI_BACKEND_ENABLE_IBV
+      throw std::runtime_error("IBV backend is not implemented\n");
       // ret.p_impl = new ibv_net_context_impl_t(runtime, attr);
 #else
-      LCIXX_Assert(false, "IBV backend is not enabled\n");
+      LCI_Assert(false, "IBV backend is not enabled\n");
 #endif
       break;
     case option_backend_t::ofi:
-#ifdef LCIXX_BACKEND_ENABLE_OFI
+#ifdef LCI_BACKEND_ENABLE_OFI
       net_context.p_impl = new ofi_net_context_impl_t(runtime, attr);
 #else
-      LCIXX_Assert(false, "OFI backend is not enabled\n");
+      LCI_Assert(false, "OFI backend is not enabled\n");
 #endif
       break;
     case option_backend_t::ucx:
-#ifdef LCIXX_BACKEND_ENABLE_UCX
+#ifdef LCI_BACKEND_ENABLE_UCX
+      throw std::runtime_error("UCX backend is not implemented\n");
       // ret.p_impl = new ucx_net_context_impl_t(runtime, attr);
 #else
-      LCIXX_Assert(false, "UCX backend is not enabled\n");
+      LCI_Assert(false, "UCX backend is not enabled\n");
 #endif
       break;
     default:
-      LCIXX_Assert(false, "Unsupported backend %d\n", attr.backend);
+      LCI_Assert(false, "Unsupported backend %d\n", attr.backend);
   }
   return net_context;
 }
@@ -264,4 +266,4 @@ error_t net_post_putImm_x::call_impl(int rank, void* buffer, size_t size,
   return net_endpoint.p_impl->post_putImm(rank, buffer, size, mr, base, offset,
                                           rkey, imm_data, ctx);
 }
-}  // namespace lcixx
+}  // namespace lci

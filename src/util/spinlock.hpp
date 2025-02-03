@@ -1,9 +1,9 @@
-#ifndef LCIXX_SPINLOCK_HPP
-#define LCIXX_SPINLOCK_HPP
+#ifndef LCI_SPINLOCK_HPP
+#define LCI_SPINLOCK_HPP
 
 #include <pthread.h>
 
-namespace lcixx
+namespace lci
 {
 class spinlock_t
 {
@@ -21,6 +21,6 @@ class spinlock_t
  private:
   pthread_spinlock_t l;
 };
-}  // namespace lcixx
+}  // namespace lci
 
-#endif  // LCIXX_SPINLOCK_HPP
+#endif  // LCI_SPINLOCK_HPP

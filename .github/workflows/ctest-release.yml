@@ -33,7 +33,7 @@ jobs:
                 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
                 -DLCI_DEBUG=OFF \
                 -DLCT_PMI_BACKEND_ENABLE_MPI=ON \
-                -DLCIXX_USE_CTEST_ARGS="--oversubscribe" \
+                -DLCI_USE_CTEST_ARGS="--oversubscribe" \
                 .
 
       - name: Build

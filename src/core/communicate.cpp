@@ -1,6 +1,6 @@
-#include "lcixx_internal.hpp"
+#include "lci_internal.hpp"
 
-namespace lcixx
+namespace lci
 {
 std::tuple<error_t, status_t> communicate_x::call_impl(
     direction_t direction, int rank, void* local_buffer, size_t size,
@@ -68,10 +68,10 @@ exit_free_ctx:
 
 exit:
   if (error.is_retry()) {
-    LCIXX_PCOUNTER_ADD(communicate_retry, 1);
+    LCI_PCOUNTER_ADD(communicate_retry, 1);
   } else {
-    LCIXX_PCOUNTER_ADD(communicate, 1);
+    LCI_PCOUNTER_ADD(communicate, 1);
   }
   return std::make_tuple(error, status_t());
 }
-}  // namespace lcixx
+}  // namespace lci

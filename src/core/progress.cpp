@@ -1,10 +1,10 @@
-#include "lcixx_internal.hpp"
+#include "lci_internal.hpp"
 
-namespace lcixx
+namespace lci
 {
 void progress_recv(net_device_t net_device, const net_status_t& net_status)
 {
-  LCIXX_PCOUNTER_ADD(net_recv_comp, 1)
+  LCI_PCOUNTER_ADD(net_recv_comp, 1)
   packet_t* packet = static_cast<packet_t*>(net_status.ctx);
   uint32_t imm_data = net_status.imm_data;
   tag_t tag = get_bits32(imm_data, 16, 0);
@@ -30,7 +30,7 @@ void progress_recv(net_device_t net_device, const net_status_t& net_status)
 
 void progress_send(const net_status_t& net_status)
 {
-  LCIXX_PCOUNTER_ADD(net_send_comp, 1)
+  LCI_PCOUNTER_ADD(net_send_comp, 1)
   internal_context_t* internal_ctx =
       static_cast<internal_context_t*>(net_status.ctx);
   if (internal_ctx->packet) {
@@ -63,7 +63,7 @@ void progress_read(const net_status_t& status)
 
 error_t progress_x::call_impl(runtime_t runtime, net_device_t net_device) const
 {
-  LCIXX_PCOUNTER_ADD(progress, 1);
+  LCI_PCOUNTER_ADD(progress, 1);
   error_t error(errorcode_t::retry);
   std::vector<net_status_t> statuses = net_poll_cq_x()
                                            .net_device(net_device)
@@ -91,4 +91,4 @@ error_t progress_x::call_impl(runtime_t runtime, net_device_t net_device) const
   return error;
 }
 
-}  // namespace lcixx
+}  // namespace lci

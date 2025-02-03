@@ -1,5 +1,5 @@
-#ifndef LCIXX_BACKEND_OFI_BACKEND_OFI_HPP
-#define LCIXX_BACKEND_OFI_BACKEND_OFI_HPP
+#ifndef LCI_BACKEND_OFI_BACKEND_OFI_HPP
+#define LCI_BACKEND_OFI_BACKEND_OFI_HPP
 
 #include <rdma/fabric.h>
 #include <rdma/fi_domain.h>
@@ -9,40 +9,40 @@
 #include <rdma/fi_errno.h>
 #include <rdma/fi_rma.h>
 
-#define FI_SAFECALL(x)                                                      \
-  {                                                                         \
-    int err = (x);                                                          \
-    if (err < 0) err = -err;                                                \
-    if (err) {                                                              \
-      LCIXX_Assert(false, "err : %s (%s:%d)\n", fi_strerror(err), __FILE__, \
-                   __LINE__);                                               \
-    }                                                                       \
-  }                                                                         \
-  while (0)                                                                 \
+#define FI_SAFECALL(x)                                                    \
+  {                                                                       \
+    int err = (x);                                                        \
+    if (err < 0) err = -err;                                              \
+    if (err) {                                                            \
+      LCI_Assert(false, "err : %s (%s:%d)\n", fi_strerror(err), __FILE__, \
+                 __LINE__);                                               \
+    }                                                                     \
+  }                                                                       \
+  while (0)                                                               \
     ;
 
-#define FI_SAFECALL_RET(x)                                                  \
-  {                                                                         \
-    int err = (x);                                                          \
-    if (err < 0) err = -err;                                                \
-    if (err) {                                                              \
-      LCIXX_Assert(false, "err : %s (%s:%d)\n", fi_strerror(err), __FILE__, \
-                   __LINE__);                                               \
-    }                                                                       \
-    return errorcode_t::fatal;                                              \
-  }                                                                         \
-  while (0)                                                                 \
+#define FI_SAFECALL_RET(x)                                                \
+  {                                                                       \
+    int err = (x);                                                        \
+    if (err < 0) err = -err;                                              \
+    if (err) {                                                            \
+      LCI_Assert(false, "err : %s (%s:%d)\n", fi_strerror(err), __FILE__, \
+                 __LINE__);                                               \
+    }                                                                     \
+    return errorcode_t::fatal;                                            \
+  }                                                                       \
+  while (0)                                                               \
     ;
 
-#define LCIXX_OFI_CS_TRY_ENTER(mode, ret) \
+#define LCI_OFI_CS_TRY_ENTER(mode, ret) \
   if (net_lock_mode & mode && !lock.try_lock()) return ret;
 
-#define LCIXX_OFI_CS_EXIT(mode) \
+#define LCI_OFI_CS_EXIT(mode) \
   if (net_lock_mode & mode) lock.unlock();
 
-namespace lcixx
+namespace lci
 {
-class ofi_net_context_impl_t : public lcixx::net_context_impl_t
+class ofi_net_context_impl_t : public lci::net_context_impl_t
 {
  public:
   ofi_net_context_impl_t(runtime_t runtime_, net_context_t::attr_t attr_);
@@ -53,7 +53,7 @@ class ofi_net_context_impl_t : public lcixx::net_context_impl_t
   struct fid_fabric* ofi_fabric;
 };
 
-class ofi_net_device_impl_t : public lcixx::net_device_impl_t
+class ofi_net_device_impl_t : public lci::net_device_impl_t
 {
  public:
   static std::atomic<uint64_t> g_next_rdma_key;
@@ -78,7 +78,7 @@ class ofi_net_device_impl_t : public lcixx::net_device_impl_t
   spinlock_t lock;
 };
 
-class ofi_net_endpoint_impl_t : public lcixx::net_endpoint_impl_t
+class ofi_net_endpoint_impl_t : public lci::net_endpoint_impl_t
 {
  public:
   ofi_net_endpoint_impl_t(net_device_t device_, attr_t attr_);
@@ -108,12 +108,12 @@ class ofi_net_endpoint_impl_t : public lcixx::net_endpoint_impl_t
   spinlock_t& lock;
 };
 
-class ofi_mr_impl_t : public lcixx::mr_impl_t
+class ofi_mr_impl_t : public lci::mr_impl_t
 {
  public:
   struct fid_mr* ofi_mr;
 };
 
-}  // namespace lcixx
+}  // namespace lci
 
-#endif  // LCIXX_BACKEND_OFI_BACKEND_OFI_HPP
+#endif  // LCI_BACKEND_OFI_BACKEND_OFI_HPP

@@ -45,8 +45,8 @@ cmake -DCMAKE_INSTALL_PREFIX=${LCI_INSTALL_PATH} \
       -DLCI_DEBUG=OFF \
       -DLCI_SERVER=ibv \
       -DLCI_PM_BACKEND=pmi1 \
-      -DLCIXX_USE_CTEST_EXE=srun \
-      -DLCIXX_USE_CTEST_ARGS="--mpi=pmi2" \
+      -DLCI_USE_CTEST_EXE=srun \
+      -DLCI_USE_CTEST_ARGS="--mpi=pmi2" \
       -DLCI_PACKET_SIZE_DEFAULT=69632 \
       -L \
       ${LCI_SOURCE_PATH} | tee init-cmake.log 2>&1 || { echo "cmake error!"; exit 1; }

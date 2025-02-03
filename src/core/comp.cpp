@@ -1,6 +1,6 @@
-#include "lcixx_internal.hpp"
+#include "lci_internal.hpp"
 
-namespace lcixx
+namespace lci
 {
 void comp_signal_x::call_impl(comp_t comp, status_t status,
                               runtime_t runtime) const
@@ -8,4 +8,4 @@ void comp_signal_x::call_impl(comp_t comp, status_t status,
   comp.p_impl->signal(status);
 }
 
-}  // namespace lcixx
+}  // namespace lci

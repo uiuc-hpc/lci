@@ -43,8 +43,8 @@ cmake -DCMAKE_INSTALL_PREFIX=${LCI_INSTALL_PATH} \
       -DLCI_DEBUG=OFF \
       -DLCI_USE_PERFORMANCE_COUNTER=OFF \
       -DLCI_SERVER=ofi \
-      -DLCIXX_USE_CTEST_EXE=srun \
-      -DLCIXX_USE_CTEST_ARGS="--mpi=pmi2" \
+      -DLCI_USE_CTEST_EXE=srun \
+      -DLCI_USE_CTEST_ARGS="--mpi=pmi2" \
       -DLCI_OFI_PROVIDER_HINT_DEFAULT=cxi \
       -L \
       ${LCI_SOURCE_PATH} | tee init-cmake.log 2>&1 || { echo "cmake error!"; exit 1; }

@@ -12,6 +12,6 @@ add_lci_tests(
   LABELS
   loopback
   COMMANDS
-  "${LCIXX_USE_CTEST_EXE} -n 1 ${LCIXX_USE_CTEST_ARGS} [TARGET]"
+  "${LCI_USE_CTEST_EXE} -n 1 ${LCI_USE_CTEST_ARGS} [TARGET]"
   DEPENDENCIES
   OpenMP::OpenMP_CXX)

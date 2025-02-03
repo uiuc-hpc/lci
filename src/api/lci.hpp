@@ -1,16 +1,16 @@
-#ifndef LCIXX_API_LCIXX_HPP
-#define LCIXX_API_LCIXX_HPP
+#ifndef LCI_API_LCI_HPP
+#define LCI_API_LCI_HPP
 
 #include <memory>
 
-#include "lcixx_config.hpp"
+#include "lci_config.hpp"
 
 /**
- * @defgroup LCIXX_API Lightweight Communication Interface++ (LCI++) API
- * @brief This section describes LCI++ API.
+ * @defgroup LCI_API Lightweight Communication Interface (LCI) API
+ * @brief This section describes LCI API.
  */
 
-namespace lcixx
+namespace lci
 {
 // mimic std::optional as we don't want to force c++17 for now
 template <typename T>
@@ -72,10 +72,10 @@ enum class option_backend_t {
 };
 
 enum option_net_lock_mode_t {
-  LCIXX_NET_TRYLOCK_SEND = 1,
-  LCIXX_NET_TRYLOCK_RECV = 1 << 1,
-  LCIXX_NET_TRYLOCK_POLL = 1 << 2,
-  LCIXX_NET_TRYLOCK_MAX = 1 << 3,
+  LCI_NET_TRYLOCK_SEND = 1,
+  LCI_NET_TRYLOCK_RECV = 1 << 1,
+  LCI_NET_TRYLOCK_POLL = 1 << 2,
+  LCI_NET_TRYLOCK_MAX = 1 << 3,
 };
 
 // net cq entry
@@ -109,11 +109,11 @@ struct status_t {
   tag_t tag = 0;
   void* ctx = nullptr;
 };
-}  // namespace lcixx
+}  // namespace lci
 
-#include "lcixx_binding.hpp"
+#include "lci_binding.hpp"
 
-namespace lcixx
+namespace lci
 {
 class comp_impl_t
 {
@@ -121,6 +121,6 @@ class comp_impl_t
   virtual ~comp_impl_t() = default;
   virtual void signal(status_t) = 0;
 };
-}  // namespace lcixx
+}  // namespace lci
 
-#endif  // LCIXX_API_LCIXX_HPP
+#endif  // LCI_API_LCI_HPP

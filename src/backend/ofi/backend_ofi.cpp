@@ -1,6 +1,6 @@
-#include "lcixx_internal.hpp"
+#include "lci_internal.hpp"
 
-namespace lcixx
+namespace lci
 {
 namespace
 {
@@ -22,10 +22,10 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_,
     : net_context_impl_t(runtime_, attr_)
 {
   // Create hint.
-  //   const char* p = getenv("LCIXX_OFI_PROVIDER_HINT");
-  // #ifdef LCIXX_OFI_PROVIDER_HINT_DEFAULT
+  //   const char* p = getenv("LCI_OFI_PROVIDER_HINT");
+  // #ifdef LCI_OFI_PROVIDER_HINT_DEFAULT
   //   if (p == nullptr) {
-  //     p = LCIXX_OFI_PROVIDER_HINT_DEFAULT;
+  //     p = LCI_OFI_PROVIDER_HINT_DEFAULT;
   //   }
   // #endif
   const char* p = attr.provider_name.c_str();
@@ -67,38 +67,37 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_,
     ofi_info = fi_dupinfo(all_infos);
   }
   fi_freeinfo(all_infos);
-  LCIXX_Log(LOG_INFO, "ofi", "Provider name: %s\n",
-            ofi_info->fabric_attr->prov_name);
-  LCIXX_Log(LOG_INFO, "ofi", "MR mode hints: [%s]\n",
-            fi_tostr(&(hints->domain_attr->mr_mode), FI_TYPE_MR_MODE));
-  LCIXX_Log(LOG_INFO, "ofi", "MR mode provided: [%s]\n",
-            fi_tostr(&(ofi_info->domain_attr->mr_mode), FI_TYPE_MR_MODE));
-  LCIXX_Log(LOG_INFO, "ofi", "Thread mode: %s\n",
-            fi_tostr(&(ofi_info->domain_attr->threading), FI_TYPE_THREADING));
-  LCIXX_Log(
+  LCI_Log(LOG_INFO, "ofi", "Provider name: %s\n",
+          ofi_info->fabric_attr->prov_name);
+  LCI_Log(LOG_INFO, "ofi", "MR mode hints: [%s]\n",
+          fi_tostr(&(hints->domain_attr->mr_mode), FI_TYPE_MR_MODE));
+  LCI_Log(LOG_INFO, "ofi", "MR mode provided: [%s]\n",
+          fi_tostr(&(ofi_info->domain_attr->mr_mode), FI_TYPE_MR_MODE));
+  LCI_Log(LOG_INFO, "ofi", "Thread mode: %s\n",
+          fi_tostr(&(ofi_info->domain_attr->threading), FI_TYPE_THREADING));
+  LCI_Log(
       LOG_INFO, "ofi", "Control progress mode: %s\n",
       fi_tostr(&(ofi_info->domain_attr->control_progress), FI_TYPE_PROGRESS));
-  LCIXX_Log(
-      LOG_INFO, "ofi", "Data progress mode: %s\n",
-      fi_tostr(&(ofi_info->domain_attr->data_progress), FI_TYPE_PROGRESS));
-  LCIXX_Log(LOG_INFO, "ofi", "Capacities: %s\n",
-            fi_tostr(&(ofi_info->caps), FI_TYPE_CAPS));
-  LCIXX_Log(LOG_INFO, "ofi", "Mode: %s\n",
-            fi_tostr(&(ofi_info->mode), FI_TYPE_MODE));
-  LCIXX_Log(LOG_INFO, "ofi", "Fi_info provided: %s\n",
-            fi_tostr(ofi_info, FI_TYPE_INFO));
-  LCIXX_Log(LOG_INFO, "ofi", "Fabric attributes: %s\n",
-            fi_tostr(ofi_info->fabric_attr, FI_TYPE_FABRIC_ATTR));
-  LCIXX_Log(LOG_INFO, "ofi", "Domain attributes: %s\n",
-            fi_tostr(ofi_info->domain_attr, FI_TYPE_DOMAIN_ATTR));
-  LCIXX_Log(LOG_INFO, "ofi", "Endpoint attributes: %s\n",
-            fi_tostr(ofi_info->ep_attr, FI_TYPE_EP_ATTR));
-  LCIXX_Assert(ofi_info->domain_attr->cq_data_size >= 4,
-               "cq_data_size (%lu) is too small!\n",
-               ofi_info->domain_attr->cq_data_size);
-  LCIXX_Assert(ofi_info->domain_attr->mr_key_size <= 8,
-               "mr_key_size (%lu) is too large!\n",
-               ofi_info->domain_attr->mr_key_size);
+  LCI_Log(LOG_INFO, "ofi", "Data progress mode: %s\n",
+          fi_tostr(&(ofi_info->domain_attr->data_progress), FI_TYPE_PROGRESS));
+  LCI_Log(LOG_INFO, "ofi", "Capacities: %s\n",
+          fi_tostr(&(ofi_info->caps), FI_TYPE_CAPS));
+  LCI_Log(LOG_INFO, "ofi", "Mode: %s\n",
+          fi_tostr(&(ofi_info->mode), FI_TYPE_MODE));
+  LCI_Log(LOG_INFO, "ofi", "Fi_info provided: %s\n",
+          fi_tostr(ofi_info, FI_TYPE_INFO));
+  LCI_Log(LOG_INFO, "ofi", "Fabric attributes: %s\n",
+          fi_tostr(ofi_info->fabric_attr, FI_TYPE_FABRIC_ATTR));
+  LCI_Log(LOG_INFO, "ofi", "Domain attributes: %s\n",
+          fi_tostr(ofi_info->domain_attr, FI_TYPE_DOMAIN_ATTR));
+  LCI_Log(LOG_INFO, "ofi", "Endpoint attributes: %s\n",
+          fi_tostr(ofi_info->ep_attr, FI_TYPE_EP_ATTR));
+  LCI_Assert(ofi_info->domain_attr->cq_data_size >= 4,
+             "cq_data_size (%lu) is too small!\n",
+             ofi_info->domain_attr->cq_data_size);
+  LCI_Assert(ofi_info->domain_attr->mr_key_size <= 8,
+             "mr_key_size (%lu) is too large!\n",
+             ofi_info->domain_attr->mr_key_size);
   fi_freeinfo(hints);
 
   // Create libfabric obj.
@@ -106,7 +105,7 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_,
 
   if (ofi_info->ep_attr->max_msg_size < attr.max_msg_size) {
     attr.max_msg_size = ofi_info->ep_attr->max_msg_size;
-    LCIXX_Warn(
+    LCI_Warn(
         "Reduce max_msg_size to %lu "
         "as required by the libfabric max_msg_size attribute\n",
         attr.max_msg_size);
@@ -166,8 +165,8 @@ ofi_net_device_impl_t::ofi_net_device_impl_t(net_context_t context_,
   const int EP_ADDR_LEN = 6;
   size_t addrlen = 0;
   fi_getname((fid_t)ofi_ep, nullptr, &addrlen);
-  LCIXX_Log(LOG_INFO, "ofi", "addrlen = %lu\n", addrlen);
-  LCIXX_Assert(addrlen <= 8 * EP_ADDR_LEN, "addrlen = %lu\n", addrlen);
+  LCI_Log(LOG_INFO, "ofi", "addrlen = %lu\n", addrlen);
+  LCI_Assert(addrlen <= 8 * EP_ADDR_LEN, "addrlen = %lu\n", addrlen);
   uint64_t my_addr[EP_ADDR_LEN];
   FI_SAFECALL(fi_getname((fid_t)ofi_ep, my_addr, &addrlen));
 
@@ -193,11 +192,11 @@ ofi_net_device_impl_t::ofi_net_device_impl_t(net_context_t context_,
              &peer_addr[3], &peer_addr[4], &peer_addr[5]);
       int ret =
           fi_av_insert(ofi_av, (void*)peer_addr, 1, &peer_addrs[i], 0, nullptr);
-      LCIXX_Assert(ret == 1, "fi_av_insert failed! ret = %d\n", ret);
+      LCI_Assert(ret == 1, "fi_av_insert failed! ret = %d\n", ret);
     } else {
       int ret =
           fi_av_insert(ofi_av, (void*)my_addr, 1, &peer_addrs[i], 0, nullptr);
-      LCIXX_Assert(ret == 1, "fi_av_insert failed! ret = %d\n", ret);
+      LCI_Assert(ret == 1, "fi_av_insert failed! ret = %d\n", ret);
     }
   }
   LCT_pmi_barrier();
@@ -268,4 +267,4 @@ ofi_net_endpoint_impl_t::ofi_net_endpoint_impl_t(net_device_t net_device_,
 }
 
 ofi_net_endpoint_impl_t::~ofi_net_endpoint_impl_t() {}
-}  // namespace lcixx
+}  // namespace lci
