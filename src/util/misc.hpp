@@ -3,6 +3,29 @@
 
 namespace lcixx
 {
+template <typename T>
+T get_env_or(const char* env, T default_val)
+{
+  static_assert(std::is_integral<T>::value, "T must be an integral type");
+  const char* s = getenv(env);
+  if (s) {
+    return atoi(s);
+  } else {
+    return default_val;
+  }
+}
+
+template <>
+inline const char* get_env_or(const char* env, const char* default_val)
+{
+  const char* s = getenv(env);
+  if (s) {
+    return s;
+  } else {
+    return default_val;
+  }
+}
+
 static inline size_t get_page_size()
 {
   static size_t page_size = sysconf(_SC_PAGESIZE);

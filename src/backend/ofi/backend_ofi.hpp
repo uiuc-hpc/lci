@@ -35,10 +35,10 @@
     ;
 
 #define LCIXX_OFI_CS_TRY_ENTER(mode, ret) \
-  if (lock_mode & mode && !lock.try_lock()) return ret;
+  if (net_lock_mode & mode && !lock.try_lock()) return ret;
 
 #define LCIXX_OFI_CS_EXIT(mode) \
-  if (lock_mode & mode) lock.unlock();
+  if (net_lock_mode & mode) lock.unlock();
 
 namespace lcixx
 {
@@ -74,7 +74,7 @@ class ofi_net_device_impl_t : public lcixx::net_device_impl_t
   struct fid_cq* ofi_cq;
   struct fid_av* ofi_av;
   std::vector<fi_addr_t> peer_addrs;
-  uint64_t& lock_mode;
+  uint64_t& net_lock_mode;
   spinlock_t lock;
 };
 
@@ -104,7 +104,7 @@ class ofi_net_endpoint_impl_t : public lcixx::net_endpoint_impl_t
   struct fi_domain_attr* ofi_domain_attr;
   struct fid_ep* ofi_ep;
   std::vector<fi_addr_t>& peer_addrs;
-  uint64_t& lock_mode;
+  uint64_t& net_lock_mode;
   spinlock_t& lock;
 };
 

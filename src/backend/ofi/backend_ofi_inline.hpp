@@ -25,9 +25,9 @@ inline std::vector<net_status_t> ofi_net_device_impl_t::poll_comp_impl(
   ssize_t ne = fi_cq_read(ofi_cq, fi_entry.data(), max_polls);
   LCIXX_OFI_CS_EXIT(LCIXX_NET_TRYLOCK_POLL);
   if (ne > 0) {
-    net_status_t status;
     // Got an entry here
     for (int j = 0; j < ne; j++) {
+      net_status_t status;
       if (fi_entry[j].flags & FI_RECV) {
         status.opcode = net_opcode_t::RECV;
         status.ctx = fi_entry[j].op_context;
@@ -50,8 +50,8 @@ inline std::vector<net_status_t> ofi_net_device_impl_t::poll_comp_impl(
         status.opcode = net_opcode_t::WRITE;
         status.ctx = fi_entry[j].op_context;
       }
+      statuses.push_back(status);
     }
-    statuses.push_back(status);
   } else if (ne == -FI_EAGAIN) {
   } else {
     struct fi_cq_err_entry error;

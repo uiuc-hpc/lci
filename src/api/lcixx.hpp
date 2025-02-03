@@ -17,11 +17,13 @@ template <typename T>
 struct option_t {
   option_t() : value(), is_set(false) {}
   option_t(T value_) : value(value_), is_set(true) {}
+  option_t(T value_, bool is_set_)
+      : value(value_), is_set(is_set_) {}  // set default value
   T get_value_or(T default_value) const
   {
     return is_set ? value : default_value;
   }
-  bool get_value(T* value) const
+  bool get_set_value(T* value) const
   {
     if (is_set) {
       *value = this->value;
@@ -29,6 +31,8 @@ struct option_t {
     }
     return false;
   }
+  T get_value() const { return value; }
+  operator T() const { return value; }
   T value;
   bool is_set;
 };
@@ -67,11 +71,6 @@ enum class option_backend_t {
   ucx,
 };
 
-enum class option_rdv_protocol_t {
-  write,
-  writeimm,
-};
-
 enum option_net_lock_mode_t {
   LCIXX_NET_TRYLOCK_SEND = 1,
   LCIXX_NET_TRYLOCK_RECV = 1 << 1,
@@ -103,12 +102,12 @@ enum class direction_t {
 };
 using rcomp_t = uint32_t;
 struct status_t {
-  error_t error;
-  int rank;
-  void* buffer;
-  size_t size;
-  tag_t tag;
-  void* ctx;
+  error_t error = errorcode_t::init;
+  int rank = -1;
+  void* buffer = nullptr;
+  size_t size = 0;
+  tag_t tag = 0;
+  void* ctx = nullptr;
 };
 }  // namespace lcixx
 

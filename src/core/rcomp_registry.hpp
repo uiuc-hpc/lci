@@ -16,6 +16,14 @@ class rcomp_registry_t
     return comps.size() - 1;
   }
 
+  // this is not thread-safe
+  void deregister_rcomp(rcomp_t rcomp)
+  {
+    LCIXX_Assert(rcomp < comps.size(), "rcomp (%u) >= rcomps.size() (%lu)\n",
+                 rcomp, comps.size());
+    comps[rcomp].p_impl = nullptr;
+  }
+
   comp_t get(rcomp_t rcomp)
   {
     LCIXX_Assert(rcomp < comps.size(), "rcomp (%u) >= rcomps.size() (%lu)\n",

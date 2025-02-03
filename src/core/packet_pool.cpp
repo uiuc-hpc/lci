@@ -58,7 +58,7 @@ mr_t packet_pool_impl_t::register_packets(net_device_t net_device)
 {
   mr_t mr;
   if (heap) {
-    register_memory_x(heap, heap_size, &mr).net_device(net_device).call();
+    mr = register_memory_x(heap, heap_size).net_device(net_device)();
     mrs.put(net_device.p_impl->net_device_id, mr.p_impl);
   }
   return mr;
@@ -76,25 +76,33 @@ void packet_pool_impl_t::deregister_packets(net_device_t net_device)
   }
 }
 
-void alloc_packet_pool_x::call() const
+packet_pool_t alloc_packet_pool_x::call_impl(runtime_t runtime,
+                                             size_t packet_size,
+                                             size_t npackets) const
 {
-  packet_pool_attr_t attr;
-  attr.packet_size =
-      packet_size_.get_value_or(g_default_attr.packet_pool_attr.packet_size);
-  attr.npackets =
-      npackets_.get_value_or(g_default_attr.packet_pool_attr.npackets);
-  packet_pool_->p_impl = new packet_pool_impl_t(attr);
+  packet_pool_t packet_pool;
+  packet_pool.p_impl = new packet_pool_impl_t({packet_size, npackets});
+  return packet_pool;
 }
 
-void free_packet_pool_x::call() const
+void free_packet_pool_x::call_impl(packet_pool_t* packet_pool,
+                                   runtime_t runtime) const
 {
-  delete packet_pool_->p_impl;
-  packet_pool_->p_impl = nullptr;
+  delete packet_pool->p_impl;
+  packet_pool->p_impl = nullptr;
 }
 
-void register_packets_x::call() const
+void bind_packet_pool_x::call_impl(net_device_t net_device,
+                                   packet_pool_t packet_pool,
+                                   runtime_t runtime) const
 {
-  packet_pool_.p_impl->register_packets(net_device_);
+  net_device.p_impl->bind_packet_pool(packet_pool);
+}
+
+void unbind_packet_pool_x::call_impl(net_device_t net_device,
+                                     runtime_t runtime) const
+{
+  net_device.p_impl->unbind_packet_pool();
 }
 
 }  // namespace lcixx

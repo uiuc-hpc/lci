@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <thread>
+#include <vector>
 #include "lcixx.hpp"
 #include "test_basic.hpp"
 #include "test_network.hpp"

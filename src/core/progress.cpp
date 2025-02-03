@@ -41,6 +41,8 @@ void progress_send(const net_status_t& net_status)
     comp_t comp = internal_ctx->comp;
     delete internal_ctx;
     comp.p_impl->signal(status);
+  } else {
+    throw std::runtime_error("Should not happen");
   }
 }
 
@@ -59,21 +61,18 @@ void progress_read(const net_status_t& status)
   throw std::runtime_error("progress_read not implemented");
 }
 
-void progress_x::call() const
+error_t progress_x::call_impl(runtime_t runtime, net_device_t net_device) const
 {
   LCIXX_PCOUNTER_ADD(progress, 1);
-  runtime_t runtime = runtime_.get_value_or(g_default_runtime);
-  net_device_t net_device;
-  if (!net_device_.get_value(&net_device)) {
-    get_default_net_device_x(&net_device).runtime(runtime).call();
+  error_t error(errorcode_t::retry);
+  std::vector<net_status_t> statuses = net_poll_cq_x()
+                                           .net_device(net_device)
+                                           .runtime(runtime)
+                                           .max_polls(20)
+                                           .call();
+  if (!statuses.empty()) {
+    error.reset(errorcode_t::ok);
   }
-
-  std::vector<net_status_t> statuses;
-  net_poll_cq_x(&statuses)
-      .net_device(net_device)
-      .runtime(runtime)
-      .max_polls(20)
-      .call();
   for (auto& status : statuses) {
     if (status.opcode == net_opcode_t::RECV) {
       net_device.p_impl->consume_recvs(1);
@@ -89,7 +88,7 @@ void progress_x::call() const
     }
   }
   net_device.p_impl->refill_recvs();
-  return;
+  return error;
 }
 
 }  // namespace lcixx

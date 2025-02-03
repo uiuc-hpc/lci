@@ -6,64 +6,51 @@ namespace lcixx
  * runtime: User wrappers
  *************************************************************/
 
-void alloc_runtime_x::call() const
+runtime_t alloc_runtime_x::call_impl(bool use_reg_cache,
+                                     bool use_control_channel,
+                                     int packet_return_threshold,
+                                     attr_runtime_mode_t runtime_mode,
+                                     attr_rdv_protocol_t rdv_protocol) const
 {
-  global_initialize();
   runtime_t::attr_t attr;
-  attr.rdv_protocol =
-      rdv_protocol_.get_value_or(g_default_attr.runtime_attr.rdv_protocol);
-  attr.use_reg_cache =
-      use_reg_cache_.get_value_or(g_default_attr.runtime_attr.use_reg_cache);
-  attr.use_control_channel = use_control_channel_.get_value_or(
-      g_default_attr.runtime_attr.use_control_channel);
-  attr.use_default_net_context = use_default_net_context_.get_value_or(
-      g_default_attr.runtime_attr.use_default_net_context);
-  attr.use_default_net_device = use_default_net_device_.get_value_or(
-      g_default_attr.runtime_attr.use_default_net_device);
-  attr.use_default_net_endpoint = use_default_net_endpoint_.get_value_or(
-      g_default_attr.runtime_attr.use_default_net_endpoint);
-  attr.use_default_packet_pool = use_default_packet_pool_.get_value_or(
-      g_default_attr.runtime_attr.use_default_packet_pool);
-  runtime_->p_impl = new runtime_impl_t(attr);
-  runtime_->p_impl->initialize();
+  attr.use_reg_cache = use_reg_cache;
+  attr.use_control_channel = use_control_channel;
+  attr.runtime_mode = runtime_mode;
+  attr.packet_return_threshold = packet_return_threshold;
+  attr.rdv_protocol = rdv_protocol;
+  runtime_t runtime;
+  runtime.p_impl = new runtime_impl_t(attr);
+  runtime.p_impl->initialize();
+  return runtime;
 }
 
-void free_runtime_x::call() const
+void free_runtime_x::call_impl(runtime_t* runtime) const
 {
-  delete runtime_->p_impl;
-  runtime_->p_impl = nullptr;
-  global_finalize();
+  delete runtime->p_impl;
+  runtime->p_impl = nullptr;
 }
 
-void g_runtime_init_x::call() const
+void g_runtime_init_x::call_impl(bool use_reg_cache, bool use_control_channel,
+                                 int packet_return_threshold,
+                                 attr_runtime_mode_t runtime_mode,
+                                 attr_rdv_protocol_t rdv_protocol) const
 {
-  global_initialize();
   LCIXX_Assert(g_default_runtime.p_impl == nullptr,
                "g_default_runtime has been initialized!\n");
   runtime_t::attr_t attr;
-  attr.rdv_protocol =
-      rdv_protocol_.get_value_or(g_default_attr.runtime_attr.rdv_protocol);
-  attr.use_reg_cache =
-      use_reg_cache_.get_value_or(g_default_attr.runtime_attr.use_reg_cache);
-  attr.use_control_channel = use_control_channel_.get_value_or(
-      g_default_attr.runtime_attr.use_control_channel);
-  attr.use_default_net_context = use_default_net_context_.get_value_or(
-      g_default_attr.runtime_attr.use_default_net_context);
-  attr.use_default_net_device = use_default_net_device_.get_value_or(
-      g_default_attr.runtime_attr.use_default_net_device);
-  attr.use_default_net_endpoint = use_default_net_endpoint_.get_value_or(
-      g_default_attr.runtime_attr.use_default_net_endpoint);
-  attr.use_default_packet_pool = use_default_packet_pool_.get_value_or(
-      g_default_attr.runtime_attr.use_default_packet_pool);
+  attr.use_reg_cache = use_reg_cache;
+  attr.use_control_channel = use_control_channel;
+  attr.runtime_mode = runtime_mode;
+  attr.packet_return_threshold = packet_return_threshold;
+  attr.rdv_protocol = rdv_protocol;
   g_default_runtime.p_impl = new runtime_impl_t(attr);
   g_default_runtime.p_impl->initialize();
 }
 
-void g_runtime_fina_x::call() const
+void g_runtime_fina_x::call_impl() const
 {
   delete g_default_runtime.p_impl;
   g_default_runtime.p_impl = nullptr;
-  global_finalize();
 }
 
 /*************************************************************
@@ -76,85 +63,67 @@ runtime_impl_t::runtime_impl_t(attr_t attr_) : attr(attr_)
 
 void runtime_impl_t::initialize()
 {
-  if (attr.use_default_net_context) {
-    alloc_net_context_x(&net_context).runtime(runtime).call();
-  }
-  if (attr.use_default_net_device) {
-    LCIXX_Assert(attr.use_default_net_context,
-                 "The default net context should be used "
-                 "when the default net device is used.\n");
-    alloc_net_device_x(&net_device).runtime(runtime).call();
-  }
-  if (attr.use_default_net_endpoint) {
-    LCIXX_Assert(attr.use_default_net_device,
-                 "The default net device should be used "
-                 "when the default net endpoint is used.\n");
-    alloc_net_endpoint_x(&net_endpoint).runtime(runtime).call();
-  }
-  if (attr.use_default_packet_pool) {
-    alloc_packet_pool_x(&packet_pool).runtime(runtime).call();
-    if (net_device.p_impl) {
-      net_device.p_impl->bind_packet_pool(packet_pool);
-    }
-  }
+  if (attr.runtime_mode >= attr_runtime_mode_t::network) {
+    net_context = alloc_net_context_x().runtime(runtime)();
+    net_device = alloc_net_device_x().runtime(runtime)();
+    net_endpoint = alloc_net_endpoint_x().runtime(runtime)();
 
-  if (net_context.get_attr().backend == option_backend_t::ofi &&
-      net_context.get_attr().provider_name == "cxi") {
-    // special setting for libfabric/cxi
-    LCIXX_Assert(attr.use_reg_cache == false,
-                 "The registration cache should be turned off "
-                 "for libfabric cxi backend. Use `export LCIXX_USE_DREG=0`.\n");
-    LCIXX_Assert(attr.use_control_channel == 0,
-                 "The progress-specific network endpoint "
-                 "for libfabric cxi backend. Use `export "
-                 "LCIXX_ENABLE_PRG_NET_ENDPOINT=0`.\n");
-    if (attr.rdv_protocol != option_rdv_protocol_t::write) {
-      attr.rdv_protocol = option_rdv_protocol_t::write;
-      LCIXX_Warn(
-          "Switch LCIXX_RDV_PROTOCOL to \"write\" "
-          "as required by the libfabric cxi backend\n");
+    if (net_context.get_attr().backend == option_backend_t::ofi &&
+        net_context.get_attr().provider_name == "cxi") {
+      // special setting for libfabric/cxi
+      LCIXX_Assert(
+          attr.use_reg_cache == false,
+          "The registration cache should be turned off "
+          "for libfabric cxi backend. Use `export LCIXX_USE_DREG=0`.\n");
+      LCIXX_Assert(attr.use_control_channel == 0,
+                   "The progress-specific network endpoint "
+                   "for libfabric cxi backend. Use `export "
+                   "LCIXX_ENABLE_PRG_NET_ENDPOINT=0`.\n");
+      if (attr.rdv_protocol != attr_rdv_protocol_t::write) {
+        attr.rdv_protocol = attr_rdv_protocol_t::write;
+        LCIXX_Warn(
+            "Switch LCIXX_RDV_PROTOCOL to \"write\" "
+            "as required by the libfabric cxi backend\n");
+      }
     }
+  }
+  if (attr.runtime_mode == attr_runtime_mode_t::full) {
+    packet_pool = alloc_packet_pool_x().runtime(runtime)();
+    bind_packet_pool_x(net_device, packet_pool).runtime(runtime)();
   }
 }
 
 runtime_impl_t::~runtime_impl_t()
 {
-  if (attr.use_default_packet_pool) {
-    if (net_device.p_impl) {
-      net_device.p_impl->unbind_packet_pool();
-    }
-    free_packet_pool_x(&packet_pool).runtime(runtime).call();
+  if (attr.runtime_mode == attr_runtime_mode_t::full) {
+    unbind_packet_pool_x(net_device).runtime(runtime)();
+    free_packet_pool_x(&packet_pool).runtime(runtime)();
   }
-  if (attr.use_default_net_endpoint) {
-    free_net_endpoint_x(&net_endpoint).runtime(runtime).call();
-  }
-  if (attr.use_default_net_device) {
-    free_net_device_x(&net_device).runtime(runtime).call();
-  }
-  if (attr.use_default_net_context) {
-    free_net_context_x(&net_context).runtime(runtime).call();
+  if (attr.runtime_mode >= attr_runtime_mode_t::network) {
+    free_net_endpoint_x(&net_endpoint).runtime(runtime)();
+    free_net_device_x(&net_device).runtime(runtime)();
+    free_net_context_x(&net_context).runtime(runtime)();
   }
 }
 
-void get_default_net_context_x::call() const
+net_context_t get_default_net_context_x::call_impl(runtime_t runtime) const
 {
-  *net_context_ = runtime_.get_value_or(g_default_runtime).p_impl->net_context;
+  return runtime.p_impl->net_context;
 }
 
-void get_default_net_device_x::call() const
+net_device_t get_default_net_device_x::call_impl(runtime_t runtime) const
 {
-  *net_device_ = runtime_.get_value_or(g_default_runtime).p_impl->net_device;
+  return runtime.p_impl->net_device;
 }
 
-void get_default_net_endpoint_x::call() const
+net_endpoint_t get_default_net_endpoint_x::call_impl(runtime_t runtime) const
 {
-  *net_endpoint_ =
-      runtime_.get_value_or(g_default_runtime).p_impl->net_endpoint;
+  return runtime.p_impl->net_endpoint;
 }
 
-void get_default_packet_pool_x::call() const
+packet_pool_t get_default_packet_pool_x::call_impl(runtime_t runtime) const
 {
-  *packet_pool_ = runtime_.get_value_or(g_default_runtime).p_impl->packet_pool;
+  return runtime.p_impl->packet_pool;
 }
 
 }  // namespace lcixx

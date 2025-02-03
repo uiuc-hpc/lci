@@ -4,31 +4,16 @@
 namespace lcixx
 {
 int g_rank = -1, g_nranks = -1;
-global_attr_t g_default_attr;
 runtime_t g_default_runtime;
+
+void init_global_attr();
 namespace
 {
 std::atomic<int> global_ini_counter(0);
 
-namespace
-{
-template <typename T>
-bool set_var_with_env(const char* env, T& val)
-{
-  const char* s = getenv(env);
-  if (s) {
-    val = atoi(s);
-    return true;
-  } else {
-    return false;
-  }
-}
-}  // namespace
-
 void global_config_initialize()
 {
-  set_var_with_env("LCIXX_USE_REG_CACHE",
-                   g_default_attr.runtime_attr.use_reg_cache);
+  init_global_attr();
   // backend
   std::string default_backend;
   const char* env = getenv("LCIXX_NETWORK_BACKEND_DEFAULT");
@@ -46,17 +31,17 @@ void global_config_initialize()
     }
   }
   if (default_backend == "ofi" || default_backend == "OFI") {
-    g_default_attr.net_context_attr.backend = option_backend_t::ofi;
+    g_default_attr.backend = option_backend_t::ofi;
   } else if (default_backend == "ibv" || default_backend == "IBV") {
-    g_default_attr.net_context_attr.backend = option_backend_t::ibv;
+    g_default_attr.backend = option_backend_t::ibv;
   } else if (default_backend == "ucx" || default_backend == "UCX") {
-    g_default_attr.net_context_attr.backend = option_backend_t::ucx;
+    g_default_attr.backend = option_backend_t::ucx;
   } else {
     LCIXX_Assert(false, "Unknown backend: %s\n", default_backend.c_str());
   }
   {
     // default value
-    g_default_attr.net_device_attr.lock_mode = 0;
+    g_default_attr.net_lock_mode = 0;
     // if users explicitly set the value
     char* p = getenv("LCIXX_NET_LOCK_MODE");
     if (p) {
@@ -66,15 +51,14 @@ void global_config_initialize()
           {"recv", LCIXX_NET_TRYLOCK_RECV},
           {"poll", LCIXX_NET_TRYLOCK_POLL},
       };
-      g_default_attr.net_device_attr.lock_mode =
+      g_default_attr.net_lock_mode =
           LCT_parse_arg(dict, sizeof(dict) / sizeof(dict[0]), p, ",");
     }
-    LCIXX_Assert(
-        g_default_attr.net_device_attr.lock_mode < LCIXX_NET_TRYLOCK_MAX,
-        "Unexpected LCIXX_NET_LOCK_MODE %d",
-        g_default_attr.net_device_attr.lock_mode);
+    LCIXX_Assert(g_default_attr.net_lock_mode < LCIXX_NET_TRYLOCK_MAX,
+                 "Unexpected LCIXX_NET_LOCK_MODE %d",
+                 g_default_attr.net_lock_mode);
     LCIXX_Log(LOG_INFO, "env", "set LCIXX_NET_LOCK_MODE to be %d\n",
-              g_default_attr.net_device_attr.lock_mode);
+              g_default_attr.net_lock_mode);
   }
 }
 }  // namespace
@@ -111,8 +95,8 @@ void global_finalize()
   LCT_fina();
 }
 
-void get_rank_x::call() const { *rank_ = g_rank; }
+int get_rank_x::call_impl() const { return g_rank; }
 
-void get_nranks_x::call() const { *nranks_ = g_nranks; }
+int get_nranks_x::call_impl() const { return g_nranks; }
 
 }  // namespace lcixx

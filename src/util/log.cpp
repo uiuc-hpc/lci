@@ -11,8 +11,8 @@ void log_initialize()
       [LOG_INFO] = "info",   [LOG_DEBUG] = "debug", [LOG_TRACE] = "trace"};
   log_ctx = LCT_log_ctx_alloc(
       log_levels, sizeof(log_levels) / sizeof(log_levels[0]), LOG_WARN, "lci",
-      getenv("LCI_LOG_OUTFILE"), getenv("LCI_LOG_LEVEL"),
-      getenv("LCI_LOG_WHITELIST"), getenv("LCI_LOG_BLACKLIST"));
+      getenv("LCIXX_LOG_OUTFILE"), getenv("LCIXX_LOG_LEVEL"),
+      getenv("LCIXX_LOG_WHITELIST"), getenv("LCIXX_LOG_BLACKLIST"));
 }
 
 void log_finalize() { LCT_log_ctx_free(&log_ctx); }

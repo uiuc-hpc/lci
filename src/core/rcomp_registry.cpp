@@ -2,10 +2,14 @@
 
 namespace lcixx
 {
-void register_rcomp_x::call() const
+rcomp_t register_rcomp_x::call_impl(comp_t comp, runtime_t runtime) const
 {
-  runtime_t runtime = runtime_.get_value_or(g_default_runtime);
-  *rcomp_ = runtime.p_impl->rcomp_registry.register_rcomp(comp_);
+  return runtime.p_impl->rcomp_registry.register_rcomp(comp);
+}
+
+void deregister_rcomp_x::call_impl(rcomp_t rcomp, runtime_t runtime) const
+{
+  runtime.p_impl->rcomp_registry.deregister_rcomp(rcomp);
 }
 
 }  // namespace lcixx

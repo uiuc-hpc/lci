@@ -2,287 +2,419 @@ import sys, os
 sys.path.append(os.path.dirname(__file__))
 from tools import *
 
+runtime_attr = [
+    attr("bool", "use_reg_cache", default_value="LCIXX_USE_REG_CACHE_DEFAULT", comment="Whether to use the registration cache."),
+    attr("bool", "use_control_channel", default_value=0, comment="Whether to use the control channel."),
+    attr("int", "packet_return_threshold", default_value=1024, comment="The threshold for returning packets to its original pool."),
+    attr_enum("runtime_mode", enum_options=["basic", "network", "full"], default_value="full", comment="The runtime mode."),
+    attr_enum("rdv_protocol", enum_options=["write", "writeimm"], default_value="write", comment="The rendezvous protocol to use."),
+]
+
 input = [
 # ##############################################################################
 # # Global
 # ##############################################################################
-operation("get_rank", [
-    optional_error_args,
-    positional_args("int*", "rank")
-]),
-operation("get_nranks", [
-    optional_error_args,
-    positional_args("int*", "nranks")
-]),
+operation(
+    "get_rank", 
+    [
+        return_val("int", "rank", comment="the rank of the current process")
+    ],
+    comment = "Get the rank of the current process."
+),
+operation(
+    "get_nranks",
+    [
+        return_val("int", "nranks", comment="the number of ranks in the current application/job")
+    ],
+    comment="Get the number of ranks in the current application/job."
+),
 # ##############################################################################
 # # Runtime
 # ##############################################################################
-resource_runtime := resource("runtime", [
-    attr("bool", "use_reg_cache", "LCIXX_USE_REG_CACHE_DEFAULT"),
-    attr("bool", "use_control_channel", 1),
-    attr("bool", "use_default_net_context", 1),
-    attr("bool", "use_default_net_device", 1),
-    attr("bool", "use_default_net_endpoint", 1),
-    attr("bool", "use_default_packet_pool", 1),
-    attr("int", "packet_return_threshold", 1024),
-    attr("option_rdv_protocol_t", "rdv_protocol") #TODO
-]),
-operation_alloc(resource_runtime, add_runtime_args=False),
-operation_free(resource_runtime, add_runtime_args=False),
-operation("g_runtime_init", [
-    optional_error_args,
-    optional_args("bool", "use_reg_cache"),
-    optional_args("bool", "use_control_channel"),
-    optional_args("bool", "use_default_net_context"),
-    optional_args("bool", "use_default_net_device"),
-    optional_args("bool", "use_default_net_endpoint"),
-    optional_args("bool", "use_default_packet_pool"),
-    optional_args("option_rdv_protocol_t", "rdv_protocol")
-]),
-operation("g_runtime_fina", [
-    optional_error_args,
-]),
-operation("get_default_net_context", [
-    runtime_args,
-    optional_error_args,
-    positional_args("net_context_t*", "net_context")
-]),
-operation("get_default_net_device", [
-    runtime_args,
-    optional_error_args,
-    positional_args("net_device_t*", "net_device")
-]),
-operation("get_default_net_endpoint", [
-    runtime_args,
-    optional_error_args,
-    positional_args("net_endpoint_t*", "net_endpoint")
-]),
-operation("get_default_packet_pool", [
-    runtime_args,
-    optional_error_args,
-    positional_args("packet_pool_t*", "packet_pool")
-]),
+resource_runtime := resource(
+    "runtime", 
+    runtime_attr,
+    comment="The runtime resource."
+),
+operation_alloc(resource_runtime, add_runtime_args=False, init_global=True),
+operation_free(resource_runtime, add_runtime_args=False, fina_global=True),
+
+operation(
+    "g_runtime_init", 
+    [
+        attr_to_arg(attr) for attr in runtime_attr
+    ],
+    init_global=True,
+    comment="Initialize the global default runtime object."
+),
+operation(
+    "g_runtime_fina", [],
+    fina_global=True,
+    comment="Finalize the global default runtime object."
+),
 # ##############################################################################
 # # Network Layer
 # ##############################################################################
 # net context
-resource_net_context := resource("net_context", [
-    attr("option_backend_t", "backend"), #TODO
-    attr("std::string", "provider_name"),
-    attr("int64_t", "max_msg_size", "LCIXX_USE_MAX_SINGLE_MESSAGE_SIZE_DEFAULT"),
-]),
+resource_net_context := resource(
+    "net_context", 
+    [
+        attr("option_backend_t", "backend", comment="The network backend."),
+        attr("std::string", "provider_name", default_value="LCIXX_OFI_PROVIDER_HINT_DEFAULT", comment="The provider name."),
+        attr("int64_t", "max_msg_size", default_value="LCIXX_USE_MAX_SINGLE_MESSAGE_SIZE_DEFAULT", comment="The maximum message size."),
+    ],
+    comment="The network context resource."
+),
 operation_alloc(resource_net_context),
 operation_free(resource_net_context),
+
 # net device
-resource_net_device := resource("net_device", [
-    attr("int64_t", "max_sends", "LCIXX_BACKEND_MAX_SENDS_DEFAULT"),
-    attr("int64_t", "max_recvs", "LCIXX_BACKEND_MAX_RECVS_DEFAULT"),
-    attr("int64_t", "max_cqes", "LCIXX_BACKEND_MAX_CQES_DEFAULT"),
-    attr("uint64_t", "lock_mode") #TODO
-]),
-operation_alloc(resource_net_device, [
-    optional_args("net_context_t", "net_context")
-]),
+resource_net_device := resource(
+    "net_device", 
+    [
+        attr("int64_t", "net_max_sends", default_value="LCIXX_BACKEND_MAX_SENDS_DEFAULT"),
+        attr("int64_t", "net_max_recvs", default_value="LCIXX_BACKEND_MAX_RECVS_DEFAULT"),
+        attr("int64_t", "net_max_cqes", default_value="LCIXX_BACKEND_MAX_CQES_DEFAULT"),
+        attr("uint64_t", "net_lock_mode"),
+    ],
+    comment="The network device resource."
+),
+operation_alloc(
+    resource_net_device, 
+    [
+        optional_arg("net_context_t", "net_context", "runtime.p_impl->net_context")
+    ]
+),
 operation_free(resource_net_device),
 # memory region
-resource("mr", [
-]),
-operation("register_memory", [
-    runtime_args,
-    optional_error_args,
-    optional_args("net_device_t", "net_device"),
-    positional_args("void*", "address"),
-    positional_args("size_t", "size"),
-    positional_args("mr_t*", "mr")
-]),
-operation("deregister_memory", [
-    runtime_args,
-    optional_error_args,
-    positional_args("mr_t*", "mr")
-]),
-operation("get_rkey", [
-    runtime_args,
-    optional_error_args,
-    positional_args("rkey_t*", "rkey")
-]),
+resource("mr", []),
+operation(
+    "register_memory", 
+    [
+        optional_runtime_args,
+        optional_arg("net_device_t", "net_device", "runtime.p_impl->net_device"),
+        positional_arg("void*", "address"),
+        positional_arg("size_t", "size"),
+        return_val("mr_t", "mr")
+    ],
+    comment="Register a memory region to a network device."
+),
+operation(
+    "deregister_memory", 
+    [
+        optional_runtime_args,
+        positional_arg("mr_t*", "mr", inout_trait="inout")
+    ],
+    comment="Deregister a memory region from a network device."
+),
+operation(
+    "get_rkey", 
+    [
+        positional_arg("mr_t", "mr"),
+        optional_runtime_args,
+        return_val("rkey_t", "rkey")
+    ],
+    comment="Get the rkey of a memory region."
+),
 # net endpoint
-resource_net_endpoint := resource("net_endpoint", [
-]),
-operation_alloc(resource_net_endpoint, [
-    optional_args("net_device_t", "net_device")
-]),
+resource_net_endpoint := resource(
+    "net_endpoint", []
+),
+operation_alloc(
+    resource_net_endpoint, 
+    [
+        optional_arg("net_device_t", "net_device", "runtime.p_impl->net_device")
+    ]
+),
 operation_free(resource_net_endpoint),
 # operation
-operation("net_poll_cq", [
-    runtime_args,
-    optional_error_args,
-    optional_args("net_device_t", "net_device"),
-    optional_args("int", "max_polls"),
-    positional_args("std::vector<net_status_t>*", "statuses")
-]),
-operation("net_post_recv", [
-    runtime_args,
-    optional_args("net_device_t", "net_device"),
-    positional_args("void*", "buffer"),
-    positional_args("size_t", "size"),
-    positional_args("mr_t", "mr"),
-    optional_args("void*", "ctx"),
-    positional_error_args,
-]),
-operation("net_post_sends", [
-    runtime_args,
-    optional_args("net_endpoint_t", "net_endpoint"),
-    positional_args("int", "rank"),
-    positional_args("void*", "buffer"),
-    positional_args("size_t", "size"),
-    optional_args("net_imm_data_t", "imm_data"),
-    positional_error_args,
-]),
-operation("net_post_send", [
-    runtime_args,
-    optional_args("net_endpoint_t", "net_endpoint"),
-    positional_args("int", "rank"),
-    positional_args("void*", "buffer"),
-    positional_args("size_t", "size"),
-    positional_args("mr_t", "mr"),
-    optional_args("net_imm_data_t", "imm_data"),
-    optional_args("void*", "ctx"),
-    positional_error_args,
-]),
-operation("net_post_puts", [
-    runtime_args,
-    optional_args("net_endpoint_t", "net_endpoint"),
-    positional_args("int", "rank"),
-    positional_args("void*", "buffer"),
-    positional_args("size_t", "size"),
-    positional_args("uintptr_t", "base"),
-    positional_args("uint64_t", "offset"),
-    positional_args("rkey_t", "rkey"),
-    positional_error_args,
-]),
-operation("net_post_put", [
-    runtime_args,
-    optional_args("net_endpoint_t", "net_endpoint"),
-    positional_args("int", "rank"),
-    positional_args("void*", "buffer"),
-    positional_args("size_t", "size"),
-    positional_args("mr_t", "mr"),
-    positional_args("uintptr_t", "base"),
-    positional_args("uint64_t", "offset"),
-    positional_args("rkey_t", "rkey"),
-    optional_args("void*", "ctx"),
-    positional_error_args,
-]),
-operation("net_post_putImms", [
-    runtime_args,
-    optional_args("net_endpoint_t", "net_endpoint"),
-    positional_args("int", "rank"),
-    positional_args("void*", "buffer"),
-    positional_args("size_t", "size"),
-    positional_args("uintptr_t", "base"),
-    positional_args("uint64_t", "offset"),
-    positional_args("rkey_t", "rkey"),
-    optional_args("net_imm_data_t", "imm_data"),
-    positional_error_args,
-]),
-operation("net_post_putImm", [
-    runtime_args,
-    optional_args("net_endpoint_t", "net_endpoint"),
-    positional_args("int", "rank"),
-    positional_args("void*", "buffer"),
-    positional_args("size_t", "size"),
-    positional_args("mr_t", "mr"),
-    positional_args("uintptr_t", "base"),
-    positional_args("uint64_t", "offset"),
-    positional_args("rkey_t", "rkey"),
-    optional_args("net_imm_data_t", "imm_data"),
-    optional_args("void*", "ctx"),
-    positional_error_args,
-]),
+operation(
+    "net_poll_cq", 
+    [
+        optional_runtime_args,
+        optional_arg("net_device_t", "net_device", "runtime.p_impl->net_device"),
+        optional_arg("int", "max_polls", 20),
+        return_val("std::vector<net_status_t>", "statuses")
+    ],
+    comment="Poll the netowrk completion queue."
+),
+operation(
+    "net_post_recv", 
+    [
+        optional_runtime_args,
+        positional_arg("void*", "buffer"),
+        positional_arg("size_t", "size"),
+        positional_arg("mr_t", "mr"),
+        optional_arg("net_device_t", "net_device", "runtime.p_impl->net_device"),
+        optional_arg("void*", "ctx", "nullptr"),
+        return_val("error_t", "error")
+    ],
+    comment="Post a network receive operation."
+),
+operation(
+    "net_post_sends", 
+    [
+        optional_runtime_args,
+        positional_arg("int", "rank"),
+        positional_arg("void*", "buffer"),
+        positional_arg("size_t", "size"),
+        optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
+        optional_arg("net_imm_data_t", "imm_data", "0"),
+        return_val("error_t", "error")
+    ],
+    comment="Post a network short send operation."
+),
+operation(
+    "net_post_send", 
+    [
+        optional_runtime_args,
+        positional_arg("int", "rank"),
+        positional_arg("void*", "buffer"),
+        positional_arg("size_t", "size"),
+        positional_arg("mr_t", "mr"),
+        optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
+        optional_arg("net_imm_data_t", "imm_data", "0"),
+        optional_arg("void*", "ctx", "nullptr"),
+        return_val("error_t", "error")
+    ],
+    comment="Post a network send operation."
+),
+operation(
+    "net_post_puts", 
+    [
+        optional_runtime_args,
+        positional_arg("int", "rank"),
+        positional_arg("void*", "buffer"),
+        positional_arg("size_t", "size"),
+        positional_arg("uintptr_t", "base"),
+        positional_arg("uint64_t", "offset"),
+        positional_arg("rkey_t", "rkey"),
+        optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
+        return_val("error_t", "error"),
+    ],
+    comment="Post a network short put operation."
+),
+operation(
+    "net_post_put", 
+    [
+        optional_runtime_args,
+        positional_arg("int", "rank"),
+        positional_arg("void*", "buffer"),
+        positional_arg("size_t", "size"),
+        positional_arg("mr_t", "mr"),
+        positional_arg("uintptr_t", "base"),
+        positional_arg("uint64_t", "offset"),
+        positional_arg("rkey_t", "rkey"),
+        optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
+        optional_arg("void*", "ctx", "nullptr"),
+        return_val("error_t", "error"),
+    ],
+    comment="Post a network put operation."
+),
+operation(
+    "net_post_putImms", 
+    [
+        optional_runtime_args,
+        positional_arg("int", "rank"),
+        positional_arg("void*", "buffer"),
+        positional_arg("size_t", "size"),
+        positional_arg("uintptr_t", "base"),
+        positional_arg("uint64_t", "offset"),
+        positional_arg("rkey_t", "rkey"),
+        optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
+        optional_arg("net_imm_data_t", "imm_data", "0"),
+        return_val("error_t", "error"),
+    ],
+    comment="Post a network short put with immediate data operation."
+),
+operation(
+    "net_post_putImm", 
+    [
+        optional_runtime_args,
+        positional_arg("int", "rank"),
+        positional_arg("void*", "buffer"),
+        positional_arg("size_t", "size"),
+        positional_arg("mr_t", "mr"),
+        positional_arg("uintptr_t", "base"),
+        positional_arg("uint64_t", "offset"),
+        positional_arg("rkey_t", "rkey"),
+        optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
+        optional_arg("net_imm_data_t", "imm_data", "0"),
+        optional_arg("void*", "ctx", "nullptr"),
+        return_val("error_t", "error"),
+    ],
+    comment="Post a network put with immediate data operation."
+),
 # ##############################################################################
 # # Core Layer
 # ##############################################################################
 # packet pool
-resource_packet_pool := resource("packet_pool", [
-    attr("size_t", "packet_size", "LCIXX_PACKET_SIZE_DEFAULT"),
-    attr("size_t", "npackets", "LCIXX_PACKET_NUM_DEFAULT"),
-]),
+resource_packet_pool := resource(
+    "packet_pool", 
+    [
+        attr("size_t", "packet_size", default_value="LCIXX_PACKET_SIZE_DEFAULT"),
+        attr("size_t", "npackets", default_value="LCIXX_PACKET_NUM_DEFAULT"),
+    ],
+    comment="The packet pool resource."
+),
 operation_alloc(resource_packet_pool),
 operation_free(resource_packet_pool),
-operation("register_packets", [
-    runtime_args,
-    optional_error_args,
-    positional_args("packet_pool_t", "packet_pool"),
-    positional_args("net_device_t", "net_device"),
-],
-"""Register a packet pool to a network device.
+
+operation(
+    "bind_packet_pool", 
+    [
+        positional_arg("net_device_t", "net_device"),
+        positional_arg("packet_pool_t", "packet_pool"),
+        optional_runtime_args,
+    ],
+    comment="""Bind a packet pool to a network device.
 This is only needed for explicit packet pool.
 Implicit packet pool (the one allocated by the runtime) 
-is automatically registered to all network device.
-"""),
-operation("alloc_pbuffer", [
-    runtime_args,
-    optional_error_args,
-    optional_args("packet_pool_t", "packet_pool"),
-    positional_args("void**", "address")
-]),
-operation("free_pbuffer", [
-    runtime_args,
-    optional_error_args,
-    positional_args("void*", "address")
-]),
+is automatically bound to all network device.
+"""
+),
+operation(
+    "unbind_packet_pool",
+    [
+        positional_arg("net_device_t", "net_device"),
+        optional_runtime_args,
+    ],
+    comment="Unbind the packet pool from a network device."
+),
+operation(
+    "alloc_pbuffer", 
+    [
+        optional_runtime_args,
+        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
+        return_val("void*", "address")
+    ],
+    comment="Allocate a packet buffer."
+),
+operation(
+    "free_pbuffer", 
+    [
+        optional_runtime_args,
+        positional_arg("void*", "address", inout_trait="inout")
+    ],
+    comment="Free a packet buffer."
+),
 # comp
 resource("comp", []),
-operation("comp_signal", [
-    runtime_args,
-    optional_error_args,
-    positional_args("comp_t", "comp"),
-    positional_args("status_t", "status")
-]),
-operation("register_rcomp", [
-    runtime_args,
-    optional_error_args,
-    positional_args("comp_t", "comp"),
-    positional_args("rcomp_t*", "rcomp")
-]),
+operation(
+    "comp_signal", 
+    [
+        optional_runtime_args,
+        positional_arg("comp_t", "comp"),
+        positional_arg("status_t", "status")
+    ],
+    comment="Signal a completion object."
+),
+operation(
+    "register_rcomp", 
+    [
+        optional_runtime_args,
+        positional_arg("comp_t", "comp"),
+        return_val("rcomp_t", "rcomp")
+    ],
+    comment="Register a completion object into a remote completion object."
+),
+operation(
+    "deregister_rcomp", 
+    [
+        optional_runtime_args,
+        positional_arg("rcomp_t", "rcomp"),
+    ],
+    comment="Deregister a remote completion object."
+),
 # cq
-operation("alloc_cq", [
-    runtime_args,
-    optional_error_args,
-    positional_args("comp_t*", "comp")
-]),
-operation("free_cq", [
-    runtime_args,
-    optional_error_args,
-    positional_args("comp_t*", "comp")
-]),
-operation("cq_pop", [
-    runtime_args,
-    positional_args("comp_t", "comp"),
-    positional_error_args,
-    positional_args("status_t*", "status"),
-]),
+operation(
+    "alloc_cq", 
+    [
+        optional_runtime_args,
+        return_val("comp_t", "comp")
+    ],
+    comment="Allocate a completion queue."
+),
+operation(
+    "free_cq", 
+    [
+        optional_runtime_args,
+        positional_arg("comp_t*", "comp", inout_trait="inout"),
+    ],
+    comment="Free a completion queue."
+),
+operation(
+    "cq_pop", 
+    [
+        optional_runtime_args,
+        positional_arg("comp_t", "comp"),
+        return_val("error_t", "error"),
+        return_val("status_t", "status")
+    ]
+),
 # communicate
-operation("communicate", [
-    runtime_args,
-    positional_args("direction_t", "direction"),
-    positional_args("int", "rank"),
-    positional_args("void*", "local_buffer"),
-    positional_args("size_t", "size"),
-    positional_args("comp_t", "local_comp"),
-    optional_args("packet_pool_t", "packet_pool"),
-    optional_args("net_endpoint_t", "net_endpoint"),
-    optional_args("void*", "remote_buffer"),
-    optional_args("tag_t", "tag"),
-    optional_args("rcomp_t", "remote_comp"),
-    optional_args("void*", "ctx"),
-    positional_error_args,
-]),
-operation("progress", [
-    runtime_args,
-    optional_error_args,
-    optional_args("net_device_t", "net_device"),
-]),
+operation(
+    "communicate", 
+    [
+        optional_runtime_args,
+        positional_arg("direction_t", "direction"),
+        positional_arg("int", "rank"),
+        positional_arg("void*", "local_buffer"),
+        positional_arg("size_t", "size"),
+        positional_arg("comp_t", "local_comp"),
+        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
+        optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
+        optional_arg("void*", "remote_buffer", "nullptr"),
+        optional_arg("tag_t", "tag", "0"),
+        optional_arg("rcomp_t", "remote_comp", "-1"),
+        optional_arg("void*", "ctx", "nullptr"),
+        return_val("error_t", "error"),
+        return_val("status_t", "status"),
+    ]
+),
+operation(
+    "progress", 
+    [
+        optional_runtime_args,
+        optional_arg("net_device_t", "net_device", "runtime.p_impl->net_device"),
+        return_val("error_t", "error")
+    ]
+),
+# ##############################################################################
+# # Helper functions
+# ##############################################################################
+operation(
+    "get_default_net_context", 
+    [
+        optional_runtime_args,
+        return_val("net_context_t", "net_context")
+    ],
+    comment="Get the default net context."
+),
+operation(
+    "get_default_net_device", 
+    [
+        optional_runtime_args,
+        return_val("net_device_t", "net_device")
+    ],
+    comment="Get the default net device."
+),
+operation(
+    "get_default_net_endpoint", 
+    [
+        optional_runtime_args,
+        return_val("net_endpoint_t", "net_endpoint")
+    ],
+    comment="Get the default net endpoint."
+),
+operation(
+    "get_default_packet_pool", 
+    [
+        optional_runtime_args,
+        return_val("packet_pool_t", "packet_pool")
+    ],
+    comment="Get the default packet pool."
+),
 # ##############################################################################
 # # End of the definition
 # ##############################################################################

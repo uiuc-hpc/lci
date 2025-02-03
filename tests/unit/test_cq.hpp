@@ -1,44 +1,43 @@
 namespace test_cq
 {
-void cq_push(lcixx::comp_t comp, uint64_t i)
+void my_cq_push(lcixx::comp_t comp, uint64_t i)
 {
   lcixx::status_t status;
   status.ctx = reinterpret_cast<void*>(i + 1);
   lcixx::comp_signal_x(comp, status).call();
 }
 
-uint64_t cq_pop(lcixx::comp_t comp)
+uint64_t my_cq_pop(lcixx::comp_t comp)
 {
   lcixx::error_t error(lcixx::errorcode_t::retry);
   lcixx::status_t status;
-  while (!error.is_ok()) lcixx::cq_pop_x(comp, &error, &status).call();
+  while (!error.is_ok()) std::tie(error, status) = lcixx::cq_pop(comp);
   return reinterpret_cast<uint64_t>(status.ctx) - 1;
 }
 
 TEST(CQ, singlethread)
 {
   const int n = 100;
-  lcixx::g_runtime_init_x().call();
-  lcixx::comp_t comp;
-  lcixx::alloc_cq_x(&comp).call();
+  lcixx::g_runtime_init();
+  auto comp = lcixx::alloc_cq();
   for (uint64_t i = 0; i < n; i++) {
-    cq_push(comp, i);
+    my_cq_push(comp, i);
   }
   for (uint64_t i = 0; i < n; i++) {
-    ASSERT_EQ(cq_pop(comp), i);
+    ASSERT_EQ(my_cq_pop(comp), i);
   }
   lcixx::free_cq_x(&comp).call();
-  lcixx::g_runtime_fina_x().call();
+  lcixx::g_runtime_fina();
 }
 
 // all threads put and get
 void test_multithread0(lcixx::comp_t cq, int start, int n, bool flags[])
 {
   for (uint64_t i = 0; i < n; i++) {
-    cq_push(cq, start + i);
+    my_cq_push(cq, start + i);
   }
   for (int i = 0; i < n; i++) {
-    uint64_t idx = cq_pop(cq);
+    uint64_t idx = my_cq_pop(cq);
     ASSERT_EQ(flags[idx], false);
     flags[idx] = true;
   }
@@ -53,8 +52,7 @@ TEST(CQ, multithread0)
   const int n_per_thread = n / nthreads;
   bool flags[n];
   memset(flags, 0, sizeof(flags));
-  lcixx::comp_t comp;
-  lcixx::alloc_cq_x(&comp).call();
+  lcixx::comp_t comp = lcixx::alloc_cq();
   std::vector<std::thread> threads;
   for (int i = 0; i < nthreads; i++) {
     std::thread t(test_multithread0, std::ref(comp), i * n_per_thread,

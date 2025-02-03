@@ -10,19 +10,17 @@ inline mr_t packet_t::get_mr(net_device_t net_device)
   return local_context.packet_pool_impl->get_or_register_mr(net_device);
 }
 
-inline void free_pbuffer_x::call() const
+inline void free_pbuffer_x::call_impl(void* address, runtime_t runtime) const
 {
-  packet_t* packet = address2packet(address_);
+  packet_t* packet = address2packet(address);
   packet->put_back();
 }
 
-inline void alloc_pbuffer_x::call() const
+inline void* alloc_pbuffer_x::call_impl(runtime_t runtime,
+                                        packet_pool_t packet_pool) const
 {
-  runtime_t runtime = runtime_.get_value_or(g_default_runtime);
-  packet_pool_t packet_pool =
-      packet_pool_.get_value_or(runtime.p_impl->packet_pool);
   packet_t* packet = static_cast<packet_t*>(packet_pool.p_impl->get());
-  *address_ = packet->get_message_address();
+  return packet->get_message_address();
 }
 
 }  // namespace lcixx

@@ -2,30 +2,14 @@
 
 namespace lcixx
 {
-void communicate_x::call() const
+std::tuple<error_t, status_t> communicate_x::call_impl(
+    direction_t direction, int rank, void* local_buffer, size_t size,
+    comp_t local_comp, runtime_t runtime, packet_pool_t packet_pool,
+    net_endpoint_t net_endpoint, void* remote_buffer, tag_t tag,
+    rcomp_t remote_comp, void* ctx) const
 {
-  // positional arguments
-  direction_t direction = direction_;
-  int rank = rank_;
-  void* local_buffer = local_buffer_;
-  size_t size = size_;
-  comp_t local_comp = local_comp_;
-  // get a packet
-  // optional arguments
-  runtime_t runtime = runtime_.get_value_or(g_default_runtime);
-  net_endpoint_t net_endpoint;
-  if (!net_endpoint_.get_value(&net_endpoint)) {
-    get_default_net_endpoint_x(&net_endpoint).runtime(runtime).call();
-  }
   net_device_t net_device = net_endpoint.p_impl->net_device;
-  packet_pool_t packet_pool;
-  if (!packet_pool_.get_value(&packet_pool)) {
-    get_default_packet_pool_x(&packet_pool).runtime(runtime).call();
-  }
-  void* ctx = ctx_.get_value_or(nullptr);
-  tag_t tag = tag_.get_value_or(0);
-  rcomp_t remote_comp = remote_comp_.get_value_or(0);
-
+  error_t error;
   // allocate internal status object
   internal_context_t* internal_ctx = new internal_context_t;
   internal_ctx->rank = rank;
@@ -46,7 +30,7 @@ void communicate_x::call() const
       // allocate a packet
       packet = packet_pool.p_impl->get();
       if (!packet) {
-        error_->reset(errorcode_t::retry_nomem);
+        error.reset(errorcode_t::retry_nomem);
         goto exit_free_ctx;
       }
       memcpy(packet->get_message_address(), local_buffer, size);
@@ -64,10 +48,10 @@ void communicate_x::call() const
     imm_data = set_bits32(imm_data, remote_comp, 15, 16);
     imm_data = set_bits32(imm_data, is_eager, 1, 31);
     // post send
-    *error_ = net_endpoint.p_impl->post_send(
-        rank, packet->get_message_address(), size, packet->get_mr(net_device),
-        imm_data, internal_ctx);
-    if (error_->is_retry()) {
+    error = net_endpoint.p_impl->post_send(rank, packet->get_message_address(),
+                                           size, packet->get_mr(net_device),
+                                           imm_data, internal_ctx);
+    if (error.is_retry()) {
       goto exit_free_packet;
     } else {
       goto exit;
@@ -83,11 +67,11 @@ exit_free_ctx:
   delete internal_ctx;
 
 exit:
-  if (error_->is_retry()) {
+  if (error.is_retry()) {
     LCIXX_PCOUNTER_ADD(communicate_retry, 1);
   } else {
     LCIXX_PCOUNTER_ADD(communicate, 1);
   }
-  return;
+  return std::make_tuple(error, status_t());
 }
 }  // namespace lcixx

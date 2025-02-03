@@ -22,12 +22,13 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_,
     : net_context_impl_t(runtime_, attr_)
 {
   // Create hint.
-  char* p = getenv("LCIXX_OFI_PROVIDER_HINT");
-#ifdef LCIXX_OFI_PROVIDER_HINT_DEFAULT
-  if (p == nullptr) {
-    p = LCIXX_OFI_PROVIDER_HINT_DEFAULT;
-  }
-#endif
+  //   const char* p = getenv("LCIXX_OFI_PROVIDER_HINT");
+  // #ifdef LCIXX_OFI_PROVIDER_HINT_DEFAULT
+  //   if (p == nullptr) {
+  //     p = LCIXX_OFI_PROVIDER_HINT_DEFAULT;
+  //   }
+  // #endif
+  const char* p = attr.provider_name.c_str();
   char* prov_name_hint = nullptr;
   if (p != nullptr) {
     prov_name_hint = (char*)malloc(std::strlen(p) + 1);
@@ -129,7 +130,7 @@ std::atomic<uint64_t> ofi_net_device_impl_t::g_next_rdma_key(0);
 
 ofi_net_device_impl_t::ofi_net_device_impl_t(net_context_t context_,
                                              net_device_t::attr_t attr_)
-    : net_device_impl_t(context_, attr_), lock_mode(attr.lock_mode)
+    : net_device_impl_t(context_, attr_), net_lock_mode(attr.net_lock_mode)
 {
   auto p_ofi_context = static_cast<ofi_net_context_impl_t*>(context.p_impl);
   ofi_domain_attr = p_ofi_context->ofi_info->domain_attr;
@@ -138,8 +139,8 @@ ofi_net_device_impl_t::ofi_net_device_impl_t(net_context_t context_,
                         &ofi_domain, nullptr));
 
   // Create end-point;
-  p_ofi_context->ofi_info->tx_attr->size = attr.max_sends;
-  p_ofi_context->ofi_info->rx_attr->size = attr.max_recvs;
+  p_ofi_context->ofi_info->tx_attr->size = attr.net_max_sends;
+  p_ofi_context->ofi_info->rx_attr->size = attr.net_max_recvs;
   FI_SAFECALL(
       fi_endpoint(ofi_domain, p_ofi_context->ofi_info, &ofi_ep, nullptr));
 
@@ -147,7 +148,7 @@ ofi_net_device_impl_t::ofi_net_device_impl_t(net_context_t context_,
   struct fi_cq_attr cq_attr;
   memset(&cq_attr, 0, sizeof(struct fi_cq_attr));
   cq_attr.format = FI_CQ_FORMAT_DATA;
-  cq_attr.size = attr.max_cqes;
+  cq_attr.size = attr.net_max_cqes;
   FI_SAFECALL(fi_cq_open(ofi_domain, &cq_attr, &ofi_cq, nullptr));
 
   // Bind my ep to cq.
@@ -170,9 +171,8 @@ ofi_net_device_impl_t::ofi_net_device_impl_t(net_context_t context_,
   uint64_t my_addr[EP_ADDR_LEN];
   FI_SAFECALL(fi_getname((fid_t)ofi_ep, my_addr, &addrlen));
 
-  int rank, nranks;
-  get_rank_x(&rank).call();
-  get_nranks_x(&nranks).call();
+  int rank = get_rank();
+  int nranks = get_nranks();
   peer_addrs.resize(nranks);
   char key[LCT_PMI_STRING_LIMIT + 1];
   sprintf(key, "LCI_KEY_%d_%d", net_device_id, rank);
@@ -258,13 +258,13 @@ ofi_net_endpoint_impl_t::ofi_net_endpoint_impl_t(net_device_t net_device_,
       ofi_domain_attr(p_ofi_device->ofi_domain_attr),
       ofi_ep(p_ofi_device->ofi_ep),
       peer_addrs(p_ofi_device->peer_addrs),
-      lock_mode(p_ofi_device->lock_mode),
+      net_lock_mode(p_ofi_device->net_lock_mode),
       lock(p_ofi_device->lock)
 {
   auto p_ofi_context =
       reinterpret_cast<ofi_net_context_impl_t*>(p_ofi_device->context.p_impl);
 
-  get_rank_x(&my_rank).call();
+  my_rank = get_rank();
 }
 
 ofi_net_endpoint_impl_t::~ofi_net_endpoint_impl_t() {}
