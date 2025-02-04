@@ -356,7 +356,7 @@ operation(
 ),
 # communicate
 operation(
-    "communicate", 
+    "post_comm", 
     [
         optional_runtime_args,
         positional_arg("direction_t", "direction"),
