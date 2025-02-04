@@ -350,7 +350,6 @@ operation(
     [
         optional_runtime_args,
         positional_arg("comp_t", "comp"),
-        return_val("error_t", "error"),
         return_val("status_t", "status")
     ]
 ),
@@ -370,7 +369,6 @@ operation(
         optional_arg("tag_t", "tag", "0"),
         optional_arg("rcomp_t", "remote_comp", "-1"),
         optional_arg("void*", "ctx", "nullptr"),
-        return_val("error_t", "error"),
         return_val("status_t", "status"),
     ]
 ),
@@ -387,7 +385,6 @@ operation(
         optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
         optional_arg("tag_t", "tag", "0"),
         optional_arg("void*", "ctx", "nullptr"),
-        return_val("error_t", "error"),
         return_val("status_t", "status"),
     ]
 ),

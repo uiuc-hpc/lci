@@ -2,7 +2,7 @@
 
 namespace lci
 {
-std::tuple<error_t, status_t> post_comm_x::call_impl(
+status_t post_comm_x::call_impl(
     direction_t direction, int rank, void* local_buffer, size_t size,
     comp_t local_comp, runtime_t runtime, packet_pool_t packet_pool,
     net_endpoint_t net_endpoint, void* remote_buffer, tag_t tag,
@@ -72,10 +72,12 @@ exit:
   } else {
     LCI_PCOUNTER_ADD(communicate, 1);
   }
-  return std::make_tuple(error, status_t());
+  status_t status;
+  status.error = error;
+  return status;
 }
 
-std::tuple<error_t, status_t> post_am_x::call_impl(
+status_t post_am_x::call_impl(
     int rank, void* local_buffer, size_t size, comp_t local_comp,
     rcomp_t remote_comp, runtime_t runtime, packet_pool_t packet_pool,
     net_endpoint_t net_endpoint, tag_t tag, void* ctx) const

@@ -123,7 +123,7 @@ inline error_t ofi_net_endpoint_impl_t::post_send_impl(int rank, void* buffer,
                             peer_addrs[rank], (struct fi_context*)ctx);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
-    return errorcode_t::ok;
+    return errorcode_t::posted;
   else if (ret == -FI_EAGAIN)
     return errorcode_t::retry_nomem;
   else {
@@ -206,7 +206,7 @@ inline error_t ofi_net_endpoint_impl_t::post_put_impl(int rank, void* buffer,
   ssize_t ret = fi_writemsg(ofi_ep, &msg, FI_DELIVERY_COMPLETE);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
-    return errorcode_t::ok;
+    return errorcode_t::posted;
   else if (ret == -FI_EAGAIN)
     return errorcode_t::retry_nomem;
   else {
@@ -254,7 +254,7 @@ inline error_t ofi_net_endpoint_impl_t::post_putImm_impl(
                              imm_data, peer_addrs[rank], addr, rkey, ctx);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
-    return errorcode_t::ok;
+    return errorcode_t::posted;
   else if (ret == -FI_EAGAIN)
     return errorcode_t::retry_nomem;
   else {

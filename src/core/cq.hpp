@@ -15,21 +15,25 @@ class cq_impl_t : public comp_impl_t
   ~cq_impl_t() { LCT_queue_free(&queue); }
   void signal(status_t status) override
   {
+    LCI_Assert(status.error.is_ok(), "status.error is not ok!\n");
     LCI_PCOUNTER_ADD(comp_produce, 1);
     status_t* p = new status_t(status);
     LCT_queue_push(queue, p);
   }
-  bool pop(status_t* status)
+  status_t pop()
   {
     // TODO: let cq directly store status_t instead of a pointer
+    status_t status;
     status_t* p = static_cast<status_t*>(LCT_queue_pop(queue));
     if (p == nullptr) {
-      return false;
+      LCI_Assert(status.error.is_retry(), "status.error is not retry!\n");
+      return status;
     } else {
-      *status = *p;
+      status = *p;
       delete p;
       LCI_PCOUNTER_ADD(comp_consume, 1);
-      return true;
+      LCI_Assert(status.error.is_ok(), "status.error is not ok!\n");
+      return status;
     }
   }
 

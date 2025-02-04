@@ -3,15 +3,17 @@ namespace test_cq
 void my_cq_push(lci::comp_t comp, uint64_t i)
 {
   lci::status_t status;
+  status.error = lci::errorcode_t::ok;
   status.user_context = reinterpret_cast<void*>(i + 1);
   lci::comp_signal_x(comp, status).call();
 }
 
 uint64_t my_cq_pop(lci::comp_t comp)
 {
-  lci::error_t error(lci::errorcode_t::retry);
   lci::status_t status;
-  while (!error.is_ok()) std::tie(error, status) = lci::cq_pop(comp);
+  do {
+    status = lci::cq_pop(comp);
+  } while (status.error.is_retry());
   return reinterpret_cast<uint64_t>(status.user_context) - 1;
 }
 

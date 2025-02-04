@@ -19,28 +19,23 @@ TEST(COMM, am_st)
   // loopback message
   for (int i = 0; i < nmsgs; i++) {
     uint64_t data = 0xdeadbeef;
-    lci::error_t error(lci::errorcode_t::retry);
-    while (error.is_retry()) {
-      lci::status_t status;
-      std::tie(error, status) =
+    lci::status_t status;
+    do {
+      status =
           lci::post_am(rank, &data, sizeof(data), lcq, rcomp);
       lci::progress_x().call();
-    }
+    } while (status.error.is_retry());
     // poll local cq
-    error.reset(lci::errorcode_t::retry);
-    lci::status_t status;
-    while (error.is_retry()) {
+    do {
       lci::progress_x().call();
-      std::tie(error, status) = lci::cq_pop(lcq);
-    }
+      status = lci::cq_pop(lcq);
+    } while (status.error.is_retry());
     ASSERT_EQ(*(uint64_t*)status.buffer, data);
     // poll remote cq
-    error.reset(lci::errorcode_t::retry);
-    while (error.is_retry()) {
-      lci::status_t status;
-      std::tie(error, status) = lci::cq_pop(rcq);
+    do {
+      status = lci::cq_pop(rcq);
       lci::progress_x().call();
-    }
+    } while (status.error.is_retry());
     ASSERT_EQ(*(uint64_t*)status.buffer, data);
   }
 
@@ -56,23 +51,20 @@ void test_am_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
   lci::tag_t tag = id;
 
   for (int i = 0; i < nmsgs; i++) {
-    lci::error_t error(lci::errorcode_t::retry);
-    while (error.is_retry()) {
-      lci::status_t status;
-      std::tie(error, status) =
+    lci::status_t status;
+    do {
+      status =
           lci::post_am_x(rank, p_data, sizeof(uint64_t), lcq, rcomp).tag(tag)();
       lci::progress();
-    }
+    } while (status.error.is_retry());
     // poll cqs
     bool lcq_done = false;
     bool rcq_done = false;
-    lci::status_t status;
     while (!lcq_done || !rcq_done) {
       lci::progress();
       if (!lcq_done) {
-        error.reset(lci::errorcode_t::retry);
-        std::tie(error, status) = lci::cq_pop(lcq);
-        if (error.is_ok()) {
+        status = lci::cq_pop(lcq);
+        if (status.error.is_ok()) {
           ASSERT_EQ(status.buffer, p_data);
           ASSERT_EQ(*(uint64_t*)status.buffer, *p_data);
           // ASSERT_EQ(status.tag, tag);
@@ -80,9 +72,8 @@ void test_am_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
         }
       }
       if (!rcq_done) {
-        error.reset(lci::errorcode_t::retry);
-        std::tie(error, status) = lci::cq_pop(rcq);
-        if (error.is_ok()) {
+        status = lci::cq_pop(rcq);
+        if (status.error.is_ok()) {
           ASSERT_EQ(*(uint64_t*)status.buffer, *p_data);
           // ASSERT_EQ(status.tag, tag);
           free(status.buffer);

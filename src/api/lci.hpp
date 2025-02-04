@@ -39,9 +39,10 @@ struct option_t {
 
 enum class errorcode_t {
   ok,
-  init,
+  posted,
   retry_min,
   retry,
+  retry_init,
   retry_lock,
   retry_nomem,
   retry_max,
@@ -50,13 +51,14 @@ enum class errorcode_t {
 
 struct error_t {
   errorcode_t errorcode;
-  error_t() : errorcode(errorcode_t::init) {}
+  error_t() : errorcode(errorcode_t::retry_init) {}
   error_t(errorcode_t errorcode_) : errorcode(errorcode_) {}
-  void reset(errorcode_t errorcode_ = errorcode_t::init)
+  void reset(errorcode_t errorcode_ = errorcode_t::retry_init)
   {
     errorcode = errorcode_;
   }
   bool is_ok() const { return errorcode == errorcode_t::ok; }
+  bool is_posted() const { return errorcode == errorcode_t::posted; }
   bool is_retry() const
   {
     return errorcode >= errorcode_t::retry_min &&
@@ -102,7 +104,7 @@ enum class direction_t {
 };
 using rcomp_t = uint32_t;
 struct status_t {
-  error_t error = errorcode_t::init;
+  error_t error = errorcode_t::retry_init;
   int rank = -1;
   void* buffer = nullptr;
   size_t size = 0;

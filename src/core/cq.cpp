@@ -18,19 +18,10 @@ void free_cq_x::call_impl(comp_t* comp, runtime_t runtime) const
   comp->p_impl = nullptr;
 }
 
-std::tuple<error_t, status_t> cq_pop_x::call_impl(comp_t comp,
-                                                  runtime_t runtime) const
+status_t cq_pop_x::call_impl(comp_t comp, runtime_t runtime) const
 {
-  error_t error;
   cq_impl_t* p_cq = static_cast<cq_impl_t*>(comp.p_impl);
-  status_t status;
-  bool succeed = p_cq->pop(&status);
-  if (!succeed) {
-    error.reset(errorcode_t::retry);
-  } else {
-    error.reset(errorcode_t::ok);
-  }
-  return {error, status};
+  return p_cq->pop();
 }
 
 }  // namespace lci
