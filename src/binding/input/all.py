@@ -375,6 +375,24 @@ operation(
     ]
 ),
 operation(
+    "post_am", 
+    [
+        optional_runtime_args,
+        positional_arg("int", "rank"),
+        positional_arg("void*", "local_buffer"),
+        positional_arg("size_t", "size"),
+        positional_arg("comp_t", "local_comp"),
+        positional_arg("rcomp_t", "remote_comp", "-1"),
+        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
+        optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
+        optional_arg("tag_t", "tag", "0"),
+        optional_arg("void*", "ctx", "nullptr"),
+        return_val("error_t", "error"),
+        return_val("status_t", "status"),
+    ]
+),
+# progress
+operation(
     "progress", 
     [
         optional_runtime_args,

@@ -22,9 +22,8 @@ TEST(COMM, am_st)
     lci::error_t error(lci::errorcode_t::retry);
     while (error.is_retry()) {
       lci::status_t status;
-      std::tie(error, status) = lci::communicate_x(lci::direction_t::SEND, rank,
-                                                   &data, sizeof(data), lcq)
-                                    .remote_comp(rcomp)();
+      std::tie(error, status) =
+          lci::post_am(rank, &data, sizeof(data), lcq, rcomp);
       lci::progress_x().call();
     }
     // poll local cq
@@ -61,10 +60,7 @@ void test_am_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
     while (error.is_retry()) {
       lci::status_t status;
       std::tie(error, status) =
-          lci::communicate_x(lci::direction_t::SEND, rank, p_data,
-                             sizeof(uint64_t), lcq)
-              .remote_comp(rcomp)
-              .tag(tag)();
+          lci::post_am_x(rank, p_data, sizeof(uint64_t), lcq, rcomp).tag(tag)();
       lci::progress();
     }
     // poll cqs

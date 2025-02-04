@@ -74,4 +74,18 @@ exit:
   }
   return std::make_tuple(error, status_t());
 }
+
+std::tuple<error_t, status_t> post_am_x::call_impl(
+    int rank, void* local_buffer, size_t size, comp_t local_comp,
+    rcomp_t remote_comp, runtime_t runtime, packet_pool_t packet_pool,
+    net_endpoint_t net_endpoint, tag_t tag, void* ctx) const
+{
+  return communicate_x(direction_t::SEND, rank, local_buffer, size, local_comp)
+      .runtime(runtime)
+      .packet_pool(packet_pool)
+      .net_endpoint(net_endpoint)
+      .tag(tag)
+      .remote_comp(remote_comp)
+      .ctx(ctx)();
+}
 }  // namespace lci
