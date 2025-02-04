@@ -14,7 +14,7 @@ if (NOT TARGET LCI::LCT)
 
     add_library(LCI::LCT SHARED IMPORTED)
     set_target_properties(LCI::LCT PROPERTIES
-      IMPORTED_LOCATION ${LCT_SHARED_LIBRARY}
+        IMPORTED_LOCATION ${LCT_SHARED_LIBRARY}
     )
     target_include_directories(LCI::LCT INTERFACE ${LCT_INCLUDE_DIRS})
     target_link_libraries(LCI::LCT INTERFACE Threads::Threads)
@@ -23,8 +23,6 @@ if (NOT TARGET LCI::LCT)
 
     set(LCI_WITH_LCT_ONLY @LCI_WITH_LCT_ONLY@)
     if (NOT LCI_WITH_LCT_ONLY)
-        find_dependency(@FABRIC@)
-
         set_and_check(LCI_INCLUDE_DIRS "@PACKAGE_CMAKE_INSTALL_INCLUDEDIR@")
         set_and_check(LCI_SHARED_LIBRARY "@PACKAGE_CMAKE_INSTALL_LIBDIR@/@CMAKE_SHARED_LIBRARY_PREFIX@lci@CMAKE_SHARED_LIBRARY_SUFFIX@")
         # set_and_check(LCI_STATIC_LIBRARY "@PACKAGE_CMAKE_INSTALL_LIBDIR@/@CMAKE_STATIC_LIBRARY_PREFIX@lci@CMAKE_STATIC_LIBRARY_SUFFIX@")
@@ -34,16 +32,13 @@ if (NOT TARGET LCI::LCT)
           IMPORTED_LOCATION ${LCI_SHARED_LIBRARY}
         )
         target_include_directories(LCI::LCI INTERFACE ${LCI_INCLUDE_DIRS})
-        target_link_libraries(LCI::LCI INTERFACE Threads::Threads @FABRIC@::@FABRIC@ LCI::LCT)
 
-        # add_library(LCI::LCI ALIAS LCI::Shared)
-
-        # add_library(LCI::Static STATIC IMPORTED)
-        # set_target_properties(LCI::Static PROPERTIES
-        #   IMPORTED_LOCATION ${LCI_STATIC_LIBRARY}
-        # )
-        # target_include_directories(LCI::Static INTERFACE ${LCI_INCLUDE_DIRS})
-        # target_link_libraries(LCI::Static INTERFACE Threads::Threads @FABRIC@::@FABRIC@)
+        set(LCI_NETWORK_BACKENDS_ENABLED "@LCI_NETWORK_BACKENDS_ENABLED@")
+        foreach(BACKEND IN LISTS LCI_NETWORK_BACKENDS_ENABLED)
+            find_dependency(${BACKEND})
+            target_link_libraries(LCI::LCI INTERFACE ${BACKEND}::${BACKEND})
+        endforeach()
+        target_link_libraries(LCI::LCI INTERFACE Threads::Threads LCI::LCT)
 
         check_required_components(LCI)
     endif()

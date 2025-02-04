@@ -2,10 +2,12 @@
 
 namespace lci
 {
-comp_t alloc_cq_x::call_impl(runtime_t runtime) const
+comp_t alloc_cq_x::call_impl(runtime_t runtime, void* user_context) const
 {
+  comp_attr_t attr;
+  attr.user_context = user_context;
   comp_t comp;
-  comp.p_impl = new cq_impl_t();
+  comp.p_impl = new cq_impl_t(attr);
   return comp;
 }
 

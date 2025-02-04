@@ -28,10 +28,12 @@ def return_val(type, name, comment=""):
         "comment": comment
     }
 
-def attr(type, name, default_value=None, inout_trait="inout", comment=""):
+def attr(type, name, default_value=None, inout_trait="inout", extra_trait=None, comment=""):
+    if extra_trait is None:
+        extra_trait = []
     return {
         "category": "attribute",
-        "trait": [inout_trait],
+        "trait": [inout_trait] + extra_trait,
         "default_value": default_value,
         "type": type,
         "name": name,
@@ -51,10 +53,15 @@ def attr_enum(name, enum_options, default_value=None, inout_trait="inout", comme
     }
 
 def attr_to_arg(attr):
+    assert "out" not in attr["trait"]
+    if "not_global" in attr["trait"]:
+        default_value = attr["default_value"]
+    else:
+        default_value = f"g_default_attr.{attr['name']}"
     return {
         "category": "argument",
         "trait": ["optional"] + attr["trait"],
-        "default_value": "g_default_attr.{}".format(attr["name"]),
+        "default_value": default_value,
         "type": attr["type"],
         "name": attr["name"],
         "comment": "argument for the corresponding attribute"
@@ -64,7 +71,9 @@ def resource(name, attrs, comment=""):
     return {
         "category": "resource",
         "name": name,
-        "attrs": attrs,
+        "attrs": attrs + [
+            attr("void*", "user_context", comment="User context for the resource.", default_value="nullptr", extra_trait=["not_global"])
+            ],
         "comment": comment
     }
 
@@ -84,7 +93,8 @@ def operation_alloc(resource, additiona_args=[], add_runtime_args=True, init_glo
     if add_runtime_args:
         args.append(optional_runtime_args)
     for attr in resource["attrs"]:
-        args.append(attr_to_arg(attr))
+        if "out" not in attr["trait"]:
+            args.append(attr_to_arg(attr))
     args.append(return_val(f"{resource_name}_t", resource_name, comment="The allocated object."))
     return operation(f"alloc_{resource_name}", args + additiona_args, 
                      init_global=init_global, fina_global=fina_global, 

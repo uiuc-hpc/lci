@@ -6,7 +6,7 @@ runtime_attr = [
     attr("bool", "use_reg_cache", default_value="LCI_USE_REG_CACHE_DEFAULT", comment="Whether to use the registration cache."),
     attr("bool", "use_control_channel", default_value=0, comment="Whether to use the control channel."),
     attr("int", "packet_return_threshold", default_value=1024, comment="The threshold for returning packets to its original pool."),
-    attr_enum("runtime_mode", enum_options=["basic", "network", "full"], default_value="full", comment="The runtime mode."),
+    attr_enum("runtime_mode", enum_options=["none", "net_context_only", "network_only", "full"], default_value="full", comment="The runtime mode."),
     attr_enum("rdv_protocol", enum_options=["write", "writeimm"], default_value="write", comment="The rendezvous protocol to use."),
 ]
 
@@ -254,6 +254,7 @@ resource_packet_pool := resource(
     [
         attr("size_t", "packet_size", default_value="LCI_PACKET_SIZE_DEFAULT"),
         attr("size_t", "npackets", default_value="LCI_PACKET_NUM_DEFAULT"),
+        attr("size_t", "pbuffer_size", inout_trait="out", comment="The size of the packet buffer."),
     ],
     comment="The packet pool resource."
 ),
@@ -331,6 +332,7 @@ operation(
     "alloc_cq", 
     [
         optional_runtime_args,
+        optional_arg("void*", "user_context", "nullptr"),
         return_val("comp_t", "comp")
     ],
     comment="Allocate a completion queue."

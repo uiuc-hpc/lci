@@ -90,7 +90,7 @@ using net_imm_data_t = uint32_t;
 struct net_status_t {
   net_opcode_t opcode;
   int rank;
-  void* ctx;
+  void* user_context;
   size_t length;
   net_imm_data_t imm_data;
 };
@@ -107,7 +107,7 @@ struct status_t {
   void* buffer = nullptr;
   size_t size = 0;
   tag_t tag = 0;
-  void* ctx = nullptr;
+  void* user_context = nullptr;
 };
 }  // namespace lci
 
@@ -118,8 +118,11 @@ namespace lci
 class comp_impl_t
 {
  public:
+  using attr_t = comp_attr_t;
+  comp_impl_t(const attr_t& attr_) : attr(attr_) {}
   virtual ~comp_impl_t() = default;
   virtual void signal(status_t) = 0;
+  comp_attr_t attr;
 };
 }  // namespace lci
 

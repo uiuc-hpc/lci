@@ -13,6 +13,7 @@ packet_pool_impl_t::packet_pool_impl_t(const attr_t& attr_)
       npacket_lost(0)
 {
   if (attr.npackets > 0) {
+    attr.pbuffer_size = attr.packet_size - sizeof(packet_local_context_t);
     heap_size = attr.npackets * attr.packet_size + LCI_CACHE_LINE;
     heap = alloc_memalign(get_page_size(), heap_size);
     base_packet_p =
@@ -32,6 +33,7 @@ packet_pool_impl_t::packet_pool_impl_t(const attr_t& attr_)
       pool.put(packet);
     }
   }
+  attr.pbuffer_size = 0;
 }
 
 packet_pool_impl_t::~packet_pool_impl_t()
@@ -78,10 +80,15 @@ void packet_pool_impl_t::deregister_packets(net_device_t net_device)
 
 packet_pool_t alloc_packet_pool_x::call_impl(runtime_t runtime,
                                              size_t packet_size,
-                                             size_t npackets) const
+                                             size_t npackets,
+                                             void* user_context) const
 {
+  packet_pool_attr_t attr;
+  attr.packet_size = packet_size;
+  attr.npackets = npackets;
+  attr.user_context = user_context;
   packet_pool_t packet_pool;
-  packet_pool.p_impl = new packet_pool_impl_t({packet_size, npackets});
+  packet_pool.p_impl = new packet_pool_impl_t(attr);
   return packet_pool;
 }
 

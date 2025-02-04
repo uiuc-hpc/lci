@@ -30,25 +30,25 @@ inline std::vector<net_status_t> ofi_net_device_impl_t::poll_comp_impl(
       net_status_t status;
       if (fi_entry[j].flags & FI_RECV) {
         status.opcode = net_opcode_t::RECV;
-        status.ctx = fi_entry[j].op_context;
+        status.user_context = fi_entry[j].op_context;
         status.length = fi_entry[j].len;
         status.imm_data = fi_entry[j].data & ((1ULL << 32) - 1);
         status.rank = (int)(fi_entry[j].data >> 32);
       } else if (fi_entry[j].flags & FI_REMOTE_WRITE) {
         status.opcode = net_opcode_t::REMOTE_WRITE;
-        status.ctx = NULL;
+        status.user_context = NULL;
         status.imm_data = fi_entry[j].data;
       } else if (fi_entry[j].flags & FI_SEND) {
         LCI_DBG_Assert(
             fi_entry[j].flags & FI_SEND || fi_entry[j].flags & FI_WRITE,
             "Unexpected OFI opcode!\n");
         status.opcode = net_opcode_t::SEND;
-        status.ctx = fi_entry[j].op_context;
+        status.user_context = fi_entry[j].op_context;
       } else {
         LCI_DBG_Assert(fi_entry[j].flags & FI_WRITE,
                        "Unexpected OFI opcode!\n");
         status.opcode = net_opcode_t::WRITE;
-        status.ctx = fi_entry[j].op_context;
+        status.user_context = fi_entry[j].op_context;
       }
       statuses.push_back(status);
     }

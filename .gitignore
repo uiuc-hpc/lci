@@ -44,7 +44,7 @@ spack-*
 results
 errors
 *_test
-build-*/
+build-*
 vscode-build/
 code_doc/
 __pycache__

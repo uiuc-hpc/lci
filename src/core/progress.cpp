@@ -5,7 +5,7 @@ namespace lci
 void progress_recv(net_device_t net_device, const net_status_t& net_status)
 {
   LCI_PCOUNTER_ADD(net_recv_comp, 1)
-  packet_t* packet = static_cast<packet_t*>(net_status.ctx);
+  packet_t* packet = static_cast<packet_t*>(net_status.user_context);
   uint32_t imm_data = net_status.imm_data;
   tag_t tag = get_bits32(imm_data, 16, 0);
   rcomp_t remote_comp = get_bits32(imm_data, 15, 16);
@@ -19,7 +19,7 @@ void progress_recv(net_device_t net_device, const net_status_t& net_status)
     status.buffer = malloc(net_status.length);
     memcpy(status.buffer, packet->get_message_address(), net_status.length);
     status.size = net_status.length;
-    status.ctx = nullptr;
+    status.user_context = nullptr;
     packet->put_back();
     comp.p_impl->signal(status);
   } else {
@@ -32,7 +32,7 @@ void progress_send(const net_status_t& net_status)
 {
   LCI_PCOUNTER_ADD(net_send_comp, 1)
   internal_context_t* internal_ctx =
-      static_cast<internal_context_t*>(net_status.ctx);
+      static_cast<internal_context_t*>(net_status.user_context);
   if (internal_ctx->packet) {
     internal_ctx->packet->put_back();
   }

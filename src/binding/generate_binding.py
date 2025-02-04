@@ -22,7 +22,6 @@ def generate_resource_attr_decl(item):
   attr_list = ""
   for attr in attrs:
     attr_list += f"  {attr['type']} {attr['name']};\n"
-
   text = f"""
 struct {resource_name}_attr_t {{
 {attr_list}}};
@@ -36,6 +35,8 @@ def generate_global_attr_decl(input):
   for item in input:
     if item["category"] == "resource":
       for attr in item["attrs"]:
+        if "not_global" in attr["trait"]:
+          continue
         type_name = attr["type"]
         var_name = attr["name"]
         # declare enum class
@@ -55,6 +56,8 @@ def generate_global_attr_impl(input):
   for item in input:
     if item["category"] == "resource":
       for attr in item["attrs"]:
+        if "not_global" in attr["trait"]:
+          continue
         if "default_value" in attr and attr["default_value"] is not None:
           type_name = attr["type"]
           env_var = f"LCI_ATTR_{attr['name'].upper()}"
@@ -118,7 +121,11 @@ class {resource_name}_t {{
 {attr_getter}
   {impl_class_name}* p_impl = nullptr;
 
+  {resource_name}_t() = default;
+  {resource_name}_t(void* p) : p_impl(static_cast<{impl_class_name}*>(p)) {{}}
   inline bool is_empty() const {{ return p_impl == nullptr; }}
+  inline void *get_p() const {{ return p_impl; }}
+  inline void set_p(void* p) {{ p_impl = static_cast<{impl_class_name}*>(p); }}
 }};
 """
   return text

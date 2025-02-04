@@ -51,7 +51,7 @@ void test_loopback_mt(int id, int nmsgs, int size, void* address, lci::mr_t mr)
     while (count.load() < 2) {
       auto statuses = lci::net_poll_cq();
       for (auto& status : statuses) {
-        auto* p = (std::atomic<int>*)status.ctx;
+        auto* p = (std::atomic<int>*)status.user_context;
         p->fetch_add(1);
       }
     }
@@ -61,7 +61,8 @@ void test_loopback_mt(int id, int nmsgs, int size, void* address, lci::mr_t mr)
 
 TEST(NETWORK, loopback_mt)
 {
-  lci::g_runtime_init_x().runtime_mode(lci::attr_runtime_mode_t::network)();
+  lci::g_runtime_init_x().runtime_mode(
+      lci::attr_runtime_mode_t::network_only)();
   const int size = 1024;
   const int nthreads = 16;
   const int nmsgs = 10000;

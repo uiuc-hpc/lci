@@ -38,7 +38,7 @@ struct alignas(LCI_CACHE_LINE) internal_context_t {
     status.tag = tag;
     status.buffer = buffer;
     status.size = size;
-    status.ctx = user_context;
+    status.user_context = user_context;
     return status;
   }
 };

@@ -10,7 +10,8 @@ runtime_t alloc_runtime_x::call_impl(bool use_reg_cache,
                                      bool use_control_channel,
                                      int packet_return_threshold,
                                      attr_runtime_mode_t runtime_mode,
-                                     attr_rdv_protocol_t rdv_protocol) const
+                                     attr_rdv_protocol_t rdv_protocol,
+                                     void* user_context) const
 {
   runtime_t::attr_t attr;
   attr.use_reg_cache = use_reg_cache;
@@ -18,6 +19,7 @@ runtime_t alloc_runtime_x::call_impl(bool use_reg_cache,
   attr.runtime_mode = runtime_mode;
   attr.packet_return_threshold = packet_return_threshold;
   attr.rdv_protocol = rdv_protocol;
+  attr.user_context = user_context;
   runtime_t runtime;
   runtime.p_impl = new runtime_impl_t(attr);
   runtime.p_impl->initialize();
@@ -43,6 +45,7 @@ void g_runtime_init_x::call_impl(bool use_reg_cache, bool use_control_channel,
   attr.runtime_mode = runtime_mode;
   attr.packet_return_threshold = packet_return_threshold;
   attr.rdv_protocol = rdv_protocol;
+  attr.user_context = nullptr;
   g_default_runtime.p_impl = new runtime_impl_t(attr);
   g_default_runtime.p_impl->initialize();
 }
@@ -63,10 +66,8 @@ runtime_impl_t::runtime_impl_t(attr_t attr_) : attr(attr_)
 
 void runtime_impl_t::initialize()
 {
-  if (attr.runtime_mode >= attr_runtime_mode_t::network) {
+  if (attr.runtime_mode >= attr_runtime_mode_t::net_context_only) {
     net_context = alloc_net_context_x().runtime(runtime)();
-    net_device = alloc_net_device_x().runtime(runtime)();
-    net_endpoint = alloc_net_endpoint_x().runtime(runtime)();
 
     if (net_context.get_attr().backend == option_backend_t::ofi &&
         net_context.get_attr().provider_name == "cxi") {
@@ -86,6 +87,10 @@ void runtime_impl_t::initialize()
       }
     }
   }
+  if (attr.runtime_mode >= attr_runtime_mode_t::network_only) {
+    net_device = alloc_net_device_x().runtime(runtime)();
+    net_endpoint = alloc_net_endpoint_x().runtime(runtime)();
+  }
   if (attr.runtime_mode == attr_runtime_mode_t::full) {
     packet_pool = alloc_packet_pool_x().runtime(runtime)();
     bind_packet_pool_x(net_device, packet_pool).runtime(runtime)();
@@ -98,9 +103,11 @@ runtime_impl_t::~runtime_impl_t()
     unbind_packet_pool_x(net_device).runtime(runtime)();
     free_packet_pool_x(&packet_pool).runtime(runtime)();
   }
-  if (attr.runtime_mode >= attr_runtime_mode_t::network) {
+  if (attr.runtime_mode >= attr_runtime_mode_t::network_only) {
     free_net_endpoint_x(&net_endpoint).runtime(runtime)();
     free_net_device_x(&net_device).runtime(runtime)();
+  }
+  if (attr.runtime_mode >= attr_runtime_mode_t::net_context_only) {
     free_net_context_x(&net_context).runtime(runtime)();
   }
 }

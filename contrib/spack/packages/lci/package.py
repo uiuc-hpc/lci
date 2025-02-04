@@ -28,7 +28,7 @@ class Lci(CMakePackage):
         "fabric",
         default="ibv",
         values=("ofi", "ibv", "ucx"),
-        multi=False,
+        multi=True,
         description="Communication fabric",
     )
 
@@ -120,8 +120,9 @@ class Lci(CMakePackage):
 
     def cmake_args(self):
         args = [
-            self.define_from_variant("LCI_SERVER", "fabric"),
-            self.define("LCI_FORCE_SERVER", True),
+            self.define_from_variant("LCI_SERVER", "fabric", when="@1"),
+            self.define("LCI_FORCE_SERVER", True, when="@1"),
+            self.define_from_variant("LCI_NETWORK_BACKENDS", "fabric", when="@2"),
             self.define_from_variant("LCI_WITH_EXAMPLES", "examples"),
             self.define_from_variant("LCI_WITH_TESTS", "tests"),
             self.define_from_variant("LCI_WITH_BENCHMARKS", "benchmarks"),

@@ -91,7 +91,8 @@ void net_device_impl_t::unbind_packet_pool()
 net_context_t alloc_net_context_x::call_impl(runtime_t runtime,
                                              option_backend_t backend,
                                              std::string provider_name,
-                                             int64_t max_msg_size) const
+                                             int64_t max_msg_size,
+                                             void* user_context) const
 {
   net_context_t net_context;
 
@@ -99,6 +100,7 @@ net_context_t alloc_net_context_x::call_impl(runtime_t runtime,
   attr.backend = backend;
   attr.provider_name = provider_name;
   attr.max_msg_size = max_msg_size;
+  attr.user_context = user_context;
 
   switch (attr.backend) {
     case option_backend_t::none:
@@ -141,18 +143,17 @@ void free_net_context_x::call_impl(net_context_t* net_context,
 
 std::atomic<int> net_device_impl_t::g_ndevices(0);
 
-net_device_t alloc_net_device_x::call_impl(runtime_t runtime,
-                                           int64_t net_max_sends,
-                                           int64_t net_max_recvs,
-                                           int64_t net_max_cqes,
-                                           uint64_t net_lock_mode,
-                                           net_context_t net_context) const
+net_device_t alloc_net_device_x::call_impl(
+    runtime_t runtime, int64_t net_max_sends, int64_t net_max_recvs,
+    int64_t net_max_cqes, uint64_t net_lock_mode, void* user_context,
+    net_context_t net_context) const
 {
   net_device_t::attr_t attr;
   attr.net_max_sends = net_max_sends;
   attr.net_max_recvs = net_max_recvs;
   attr.net_max_cqes = net_max_cqes;
   attr.net_lock_mode = net_lock_mode;
+  attr.user_context = user_context;
   auto net_device = net_context.p_impl->alloc_net_device(attr);
   return net_device;
 }
@@ -193,9 +194,11 @@ std::vector<net_status_t> net_poll_cq_x::call_impl(runtime_t runtime,
 std::atomic<int> net_endpoint_impl_t::g_nendpoints(0);
 
 net_endpoint_t alloc_net_endpoint_x::call_impl(runtime_t runtime,
+                                               void* user_context,
                                                net_device_t net_device) const
 {
   net_endpoint_t::attr_t attr;
+  attr.user_context = user_context;
   auto net_endpoint = net_device.p_impl->alloc_net_endpoint(attr);
   return net_endpoint;
 }
