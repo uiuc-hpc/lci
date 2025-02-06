@@ -9,7 +9,8 @@ extern LCT_pcounter_ctx_t pcounter_ctx;
 #define LCI_PCOUNTER_NONE_FOR_EACH(_macro) 
 
 #define LCI_PCOUNTER_TREND_FOR_EACH(_macro) \
-    _macro(communicate)                       \
+    _macro(communicate_ok)                    \
+    _macro(communicate_posted)                \
     _macro(communicate_retry)                 \
     _macro(net_send_post)                     \
     _macro(net_send_post_retry)               \

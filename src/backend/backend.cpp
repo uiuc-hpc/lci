@@ -2,15 +2,6 @@
 
 namespace lci
 {
-net_device_impl_t::~net_device_impl_t()
-{
-  // if we have been using packet pool, report lost packets
-  if (packet_pool.p_impl) {
-    packet_pool.p_impl->deregister_packets(net_device);
-    packet_pool.p_impl->report_lost_packets(nrecvs_posted);
-  }
-}
-
 bool net_device_impl_t::post_recv_packet()
 {
   packet_t* packet;
@@ -84,8 +75,12 @@ void net_device_impl_t::bind_packet_pool(packet_pool_t packet_pool_)
 
 void net_device_impl_t::unbind_packet_pool()
 {
-  packet_pool.p_impl->report_lost_packets(nrecvs_posted);
-  packet_pool.p_impl = nullptr;
+  // if we have been using packet pool, report lost packets
+  if (packet_pool.p_impl) {
+    packet_pool.p_impl->deregister_packets(net_device);
+    packet_pool.p_impl->report_lost_packets(nrecvs_posted);
+    packet_pool.p_impl = nullptr;
+  }
 }
 
 net_context_t alloc_net_context_x::call_impl(runtime_t runtime,
@@ -155,6 +150,10 @@ net_device_t alloc_net_device_x::call_impl(
   attr.net_lock_mode = net_lock_mode;
   attr.user_context = user_context;
   auto net_device = net_context.p_impl->alloc_net_device(attr);
+  packet_pool_t packet_pool = get_default_packet_pool_x().runtime(runtime)();
+  if (!packet_pool.is_empty()) {
+    bind_packet_pool_x(net_device, packet_pool).runtime(runtime)();
+  }
   return net_device;
 }
 

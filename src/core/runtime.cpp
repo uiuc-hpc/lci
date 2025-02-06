@@ -6,20 +6,24 @@ namespace lci
  * runtime: User wrappers
  *************************************************************/
 
-runtime_t alloc_runtime_x::call_impl(bool use_reg_cache,
-                                     bool use_control_channel,
-                                     int packet_return_threshold,
-                                     attr_runtime_mode_t runtime_mode,
-                                     attr_rdv_protocol_t rdv_protocol,
-                                     void* user_context) const
+runtime_t alloc_runtime_x::call_impl(
+    bool use_reg_cache, bool use_control_channel, int packet_return_threshold,
+    int imm_nbits_tag, int imm_nbits_rcomp, bool alloc_default_device,
+    bool alloc_default_packet_pool, attr_rdv_protocol_t rdv_protocol,
+    void* user_context) const
 {
+  LCI_Assert(imm_nbits_tag + imm_nbits_rcomp <= 31,
+             "imm_nbits_tag + imm_nbits_rcomp should be less than 31!\n");
   runtime_t::attr_t attr;
   attr.use_reg_cache = use_reg_cache;
   attr.use_control_channel = use_control_channel;
-  attr.runtime_mode = runtime_mode;
   attr.packet_return_threshold = packet_return_threshold;
+  attr.imm_nbits_rcomp = imm_nbits_rcomp;
+  attr.imm_nbits_tag = imm_nbits_tag;
   attr.rdv_protocol = rdv_protocol;
   attr.user_context = user_context;
+  attr.alloc_default_device = alloc_default_device;
+  attr.alloc_default_packet_pool = alloc_default_packet_pool;
   runtime_t runtime;
   runtime.p_impl = new runtime_impl_t(attr);
   runtime.p_impl->initialize();
@@ -33,19 +37,25 @@ void free_runtime_x::call_impl(runtime_t* runtime) const
 }
 
 void g_runtime_init_x::call_impl(bool use_reg_cache, bool use_control_channel,
-                                 int packet_return_threshold,
-                                 attr_runtime_mode_t runtime_mode,
+                                 int packet_return_threshold, int imm_nbits_tag,
+                                 int imm_nbits_rcomp, bool alloc_default_device,
+                                 bool alloc_default_packet_pool,
                                  attr_rdv_protocol_t rdv_protocol) const
 {
   LCI_Assert(g_default_runtime.p_impl == nullptr,
              "g_default_runtime has been initialized!\n");
+  LCI_Assert(imm_nbits_tag + imm_nbits_rcomp <= 31,
+             "imm_nbits_tag + imm_nbits_rcomp should be less than 31!\n");
   runtime_t::attr_t attr;
   attr.use_reg_cache = use_reg_cache;
   attr.use_control_channel = use_control_channel;
-  attr.runtime_mode = runtime_mode;
   attr.packet_return_threshold = packet_return_threshold;
+  attr.imm_nbits_rcomp = imm_nbits_rcomp;
+  attr.imm_nbits_tag = imm_nbits_tag;
   attr.rdv_protocol = rdv_protocol;
   attr.user_context = nullptr;
+  attr.alloc_default_device = alloc_default_device;
+  attr.alloc_default_packet_pool = alloc_default_packet_pool;
   g_default_runtime.p_impl = new runtime_impl_t(attr);
   g_default_runtime.p_impl->initialize();
 }
@@ -54,6 +64,11 @@ void g_runtime_fina_x::call_impl() const
 {
   delete g_default_runtime.p_impl;
   g_default_runtime.p_impl = nullptr;
+}
+
+runtime_t get_g_default_runtime_x::call_impl() const
+{
+  return g_default_runtime;
 }
 
 /*************************************************************
@@ -66,48 +81,48 @@ runtime_impl_t::runtime_impl_t(attr_t attr_) : attr(attr_)
 
 void runtime_impl_t::initialize()
 {
-  if (attr.runtime_mode >= attr_runtime_mode_t::net_context_only) {
-    net_context = alloc_net_context_x().runtime(runtime)();
+  attr.max_imm_tag = (1 << attr.imm_nbits_tag) - 1;
+  attr.max_imm_rcomp = (1 << attr.imm_nbits_rcomp) - 1;
+  net_context = alloc_net_context_x().runtime(runtime)();
 
-    if (net_context.get_attr().backend == option_backend_t::ofi &&
-        net_context.get_attr().provider_name == "cxi") {
-      // special setting for libfabric/cxi
-      LCI_Assert(attr.use_reg_cache == false,
-                 "The registration cache should be turned off "
-                 "for libfabric cxi backend. Use `export LCI_USE_DREG=0`.\n");
-      LCI_Assert(attr.use_control_channel == 0,
-                 "The progress-specific network endpoint "
-                 "for libfabric cxi backend. Use `export "
-                 "LCI_ENABLE_PRG_NET_ENDPOINT=0`.\n");
-      if (attr.rdv_protocol != attr_rdv_protocol_t::write) {
-        attr.rdv_protocol = attr_rdv_protocol_t::write;
-        LCI_Warn(
-            "Switch LCI_RDV_PROTOCOL to \"write\" "
-            "as required by the libfabric cxi backend\n");
-      }
+  if (net_context.get_attr().backend == option_backend_t::ofi &&
+      net_context.get_attr().provider_name == "cxi") {
+    // special setting for libfabric/cxi
+    LCI_Assert(attr.use_reg_cache == false,
+               "The registration cache should be turned off "
+               "for libfabric cxi backend. Use `export LCI_USE_DREG=0`.\n");
+    LCI_Assert(attr.use_control_channel == 0,
+               "The progress-specific network endpoint "
+               "for libfabric cxi backend. Use `export "
+               "LCI_ENABLE_PRG_NET_ENDPOINT=0`.\n");
+    if (attr.rdv_protocol != attr_rdv_protocol_t::write) {
+      attr.rdv_protocol = attr_rdv_protocol_t::write;
+      LCI_Warn(
+          "Switch LCI_RDV_PROTOCOL to \"write\" "
+          "as required by the libfabric cxi backend\n");
     }
   }
-  if (attr.runtime_mode >= attr_runtime_mode_t::network_only) {
+  if (attr.alloc_default_packet_pool) {
+    packet_pool = alloc_packet_pool_x().runtime(runtime)();
+  }
+  if (attr.alloc_default_device) {
     net_device = alloc_net_device_x().runtime(runtime)();
     net_endpoint = alloc_net_endpoint_x().runtime(runtime)();
-  }
-  if (attr.runtime_mode == attr_runtime_mode_t::full) {
-    packet_pool = alloc_packet_pool_x().runtime(runtime)();
-    bind_packet_pool_x(net_device, packet_pool).runtime(runtime)();
   }
 }
 
 runtime_impl_t::~runtime_impl_t()
 {
-  if (attr.runtime_mode == attr_runtime_mode_t::full) {
-    unbind_packet_pool_x(net_device).runtime(runtime)();
-    free_packet_pool_x(&packet_pool).runtime(runtime)();
-  }
-  if (attr.runtime_mode >= attr_runtime_mode_t::network_only) {
+  if (!net_endpoint.is_empty()) {
     free_net_endpoint_x(&net_endpoint).runtime(runtime)();
+  }
+  if (!net_device.is_empty()) {
     free_net_device_x(&net_device).runtime(runtime)();
   }
-  if (attr.runtime_mode >= attr_runtime_mode_t::net_context_only) {
+  if (!packet_pool.is_empty()) {
+    free_packet_pool_x(&packet_pool).runtime(runtime)();
+  }
+  if (!net_context.is_empty()) {
     free_net_context_x(&net_context).runtime(runtime)();
   }
 }

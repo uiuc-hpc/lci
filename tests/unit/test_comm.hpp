@@ -21,15 +21,16 @@ TEST(COMM, am_st)
     uint64_t data = 0xdeadbeef;
     lci::status_t status;
     do {
-      status =
-          lci::post_am(rank, &data, sizeof(data), lcq, rcomp);
+      status = lci::post_am(rank, &data, sizeof(data), lcq, rcomp);
       lci::progress_x().call();
     } while (status.error.is_retry());
-    // poll local cq
-    do {
-      lci::progress_x().call();
-      status = lci::cq_pop(lcq);
-    } while (status.error.is_retry());
+    if (status.error.is_posted()) {
+      // poll local cq
+      do {
+        lci::progress_x().call();
+        status = lci::cq_pop(lcq);
+      } while (status.error.is_retry());
+    }
     ASSERT_EQ(*(uint64_t*)status.buffer, data);
     // poll remote cq
     do {
@@ -58,7 +59,7 @@ void test_am_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
       lci::progress();
     } while (status.error.is_retry());
     // poll cqs
-    bool lcq_done = false;
+    bool lcq_done = status.error.is_ok();
     bool rcq_done = false;
     while (!lcq_done || !rcq_done) {
       lci::progress();

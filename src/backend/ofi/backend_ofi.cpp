@@ -30,7 +30,7 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_,
   // #endif
   const char* p = attr.provider_name.c_str();
   char* prov_name_hint = nullptr;
-  if (p != nullptr) {
+  if (p != nullptr && std::strlen(p) > 0) {
     prov_name_hint = (char*)malloc(std::strlen(p) + 1);
     // we don't need to explicitly free prov_name_hint later.
     // fi_freeinfo(hints) will help us free it.
@@ -200,10 +200,12 @@ ofi_net_device_impl_t::ofi_net_device_impl_t(net_context_t context_,
     }
   }
   LCT_pmi_barrier();
+  attr.max_inject_size = p_ofi_context->ofi_info->tx_attr->inject_size;
 }
 
 ofi_net_device_impl_t::~ofi_net_device_impl_t()
 {
+  unbind_packet_pool();
   LCT_pmi_barrier();
   FI_SAFECALL(fi_close((struct fid*)&ofi_ep->fid));
   FI_SAFECALL(fi_close((struct fid*)&ofi_cq->fid));

@@ -6,9 +6,21 @@ runtime_attr = [
     attr("bool", "use_reg_cache", default_value="LCI_USE_REG_CACHE_DEFAULT", comment="Whether to use the registration cache."),
     attr("bool", "use_control_channel", default_value=0, comment="Whether to use the control channel."),
     attr("int", "packet_return_threshold", default_value=1024, comment="The threshold for returning packets to its original pool."),
-    attr_enum("runtime_mode", enum_options=["none", "net_context_only", "network_only", "full"], default_value="full", comment="The runtime mode."),
+    attr("int", "imm_nbits_tag", default_value=16, comment="The number of bits for the immediate data tag."),
+    attr("int", "imm_nbits_rcomp", default_value=15, comment="The number of bits for the immediate data remote completion handle."),
+    attr("int", "max_imm_tag", inout_trait="out", comment="The max tag that can be put into the immediate data field."),
+    attr("int", "max_imm_rcomp", inout_trait="out", comment="The max rcomp that can be put into the immediate data field."),
+    attr("bool", "alloc_default_device", default_value=1, comment="Whether to allocate the default network device."),
+    attr("bool", "alloc_default_packet_pool", default_value=1, comment="Whether to allocate the default packet pool."),
     attr_enum("rdv_protocol", enum_options=["write", "writeimm"], default_value="write", comment="The rendezvous protocol to use."),
 ]
+
+def get_g_runtime_init_args(runtime_attr):
+    g_runtime_init_args = []
+    for attr in runtime_attr:
+        if "out" not in attr["trait"]:
+            g_runtime_init_args.append(attr_to_arg(attr))
+    return g_runtime_init_args
 
 input = [
 # ##############################################################################
@@ -41,9 +53,7 @@ operation_free(resource_runtime, add_runtime_args=False, fina_global=True),
 
 operation(
     "g_runtime_init", 
-    [
-        attr_to_arg(attr) for attr in runtime_attr
-    ],
+    get_g_runtime_init_args(runtime_attr),
     init_global=True,
     comment="Initialize the global default runtime object."
 ),
@@ -52,6 +62,7 @@ operation(
     fina_global=True,
     comment="Finalize the global default runtime object."
 ),
+operation("get_g_default_runtime", [return_val("runtime_t", "runtime")], comment="Get the global default runtime object."),
 # ##############################################################################
 # # Network Layer
 # ##############################################################################
@@ -75,6 +86,7 @@ resource_net_device := resource(
         attr("int64_t", "net_max_sends", default_value="LCI_BACKEND_MAX_SENDS_DEFAULT"),
         attr("int64_t", "net_max_recvs", default_value="LCI_BACKEND_MAX_RECVS_DEFAULT"),
         attr("int64_t", "net_max_cqes", default_value="LCI_BACKEND_MAX_CQES_DEFAULT"),
+        attr("int64_t", "max_inject_size", inout_trait="out", comment="The maximum inject size."),
         attr("uint64_t", "net_lock_mode"),
     ],
     comment="The network device resource."
@@ -369,6 +381,7 @@ operation(
         optional_arg("tag_t", "tag", "0"),
         optional_arg("rcomp_t", "remote_comp", "-1"),
         optional_arg("void*", "ctx", "nullptr"),
+        optional_arg("bool", "allow_ok", "true"),
         return_val("status_t", "status"),
     ]
 ),
@@ -385,6 +398,7 @@ operation(
         optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
         optional_arg("tag_t", "tag", "0"),
         optional_arg("void*", "ctx", "nullptr"),
+        optional_arg("bool", "allow_ok", "true"),
         return_val("status_t", "status"),
     ]
 ),

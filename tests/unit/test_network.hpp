@@ -61,8 +61,7 @@ void test_loopback_mt(int id, int nmsgs, int size, void* address, lci::mr_t mr)
 
 TEST(NETWORK, loopback_mt)
 {
-  lci::g_runtime_init_x().runtime_mode(
-      lci::attr_runtime_mode_t::network_only)();
+  lci::g_runtime_init_x().alloc_default_packet_pool(false)();
   const int size = 1024;
   const int nthreads = 16;
   const int nmsgs = 10000;

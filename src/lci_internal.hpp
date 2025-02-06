@@ -6,6 +6,7 @@
 #include <atomic>
 #include <cstring>
 #include <unistd.h>
+#include <cstdlib>
 
 #include "lci.hpp"
 #include "lct.h"

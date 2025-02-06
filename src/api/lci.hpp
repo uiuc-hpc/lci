@@ -2,6 +2,8 @@
 #define LCI_API_LCI_HPP
 
 #include <memory>
+#include <stdexcept>
+#include <string>
 
 #include "lci_config.hpp"
 
