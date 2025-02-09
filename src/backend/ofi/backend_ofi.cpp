@@ -21,14 +21,7 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_,
                                                net_context_t::attr_t attr_)
     : net_context_impl_t(runtime_, attr_)
 {
-  // Create hint.
-  //   const char* p = getenv("LCI_OFI_PROVIDER_HINT");
-  // #ifdef LCI_OFI_PROVIDER_HINT_DEFAULT
-  //   if (p == nullptr) {
-  //     p = LCI_OFI_PROVIDER_HINT_DEFAULT;
-  //   }
-  // #endif
-  const char* p = attr.provider_name.c_str();
+  const char* p = attr.ofi_provider_name.c_str();
   char* prov_name_hint = nullptr;
   if (p != nullptr && std::strlen(p) > 0) {
     prov_name_hint = (char*)malloc(std::strlen(p) + 1);
@@ -47,6 +40,7 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_,
   hints->domain_attr->control_progress = FI_PROGRESS_MANUAL;
   hints->domain_attr->data_progress = FI_PROGRESS_MANUAL;
   hints->domain_attr->threading = FI_THREAD_SAFE;
+  hints->tx_attr->inject_size = attr.max_inject_size;
   hints->caps = FI_RMA | FI_MSG;
   hints->mode = FI_LOCAL_MR;
 
@@ -99,6 +93,7 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_,
              "mr_key_size (%lu) is too large!\n",
              ofi_info->domain_attr->mr_key_size);
   fi_freeinfo(hints);
+  attr.max_inject_size = ofi_info->tx_attr->inject_size;
 
   // Create libfabric obj.
   FI_SAFECALL(fi_fabric(ofi_info->fabric_attr, &ofi_fabric, nullptr));
@@ -129,7 +124,7 @@ std::atomic<uint64_t> ofi_net_device_impl_t::g_next_rdma_key(0);
 
 ofi_net_device_impl_t::ofi_net_device_impl_t(net_context_t context_,
                                              net_device_t::attr_t attr_)
-    : net_device_impl_t(context_, attr_), net_lock_mode(attr.net_lock_mode)
+    : net_device_impl_t(context_, attr_), ofi_lock_mode(attr.ofi_lock_mode)
 {
   auto p_ofi_context = static_cast<ofi_net_context_impl_t*>(context.p_impl);
   ofi_domain_attr = p_ofi_context->ofi_info->domain_attr;
@@ -200,7 +195,6 @@ ofi_net_device_impl_t::ofi_net_device_impl_t(net_context_t context_,
     }
   }
   LCT_pmi_barrier();
-  attr.max_inject_size = p_ofi_context->ofi_info->tx_attr->inject_size;
 }
 
 ofi_net_device_impl_t::~ofi_net_device_impl_t()
@@ -259,7 +253,7 @@ ofi_net_endpoint_impl_t::ofi_net_endpoint_impl_t(net_device_t net_device_,
       ofi_domain_attr(p_ofi_device->ofi_domain_attr),
       ofi_ep(p_ofi_device->ofi_ep),
       peer_addrs(p_ofi_device->peer_addrs),
-      net_lock_mode(p_ofi_device->net_lock_mode),
+      ofi_lock_mode(p_ofi_device->ofi_lock_mode),
       lock(p_ofi_device->lock)
 {
   auto p_ofi_context =

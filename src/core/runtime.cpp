@@ -86,7 +86,7 @@ void runtime_impl_t::initialize()
   net_context = alloc_net_context_x().runtime(runtime)();
 
   if (net_context.get_attr().backend == option_backend_t::ofi &&
-      net_context.get_attr().provider_name == "cxi") {
+      net_context.get_attr().ofi_provider_name == "cxi") {
     // special setting for libfabric/cxi
     LCI_Assert(attr.use_reg_cache == false,
                "The registration cache should be turned off "

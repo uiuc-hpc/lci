@@ -35,6 +35,8 @@ exit_retry:
 
 void net_device_impl_t::refill_recvs(bool is_blocking)
 {
+  // TODO: post multiple receives at the same time to alleviate the atomic
+  // overhead
   const double refill_threshold = 0.8;
   const int max_retries = 100000;
   int nrecvs_posted = this->nrecvs_posted;
@@ -83,36 +85,42 @@ void net_device_impl_t::unbind_packet_pool()
   }
 }
 
-net_context_t alloc_net_context_x::call_impl(runtime_t runtime,
-                                             option_backend_t backend,
-                                             std::string provider_name,
-                                             int64_t max_msg_size,
-                                             void* user_context) const
+net_context_t alloc_net_context_x::call_impl(
+    runtime_t runtime, option_backend_t backend, std::string ofi_provider_name,
+    int64_t max_msg_size, int ibv_gid_idx, bool ibv_force_gid_auto_select,
+    attr_ibv_odp_strategy_t ibv_odp_strategy,
+    attr_ibv_td_strategy_t ibv_td_strategy,
+    attr_ibv_prefetch_strategy_t ibv_prefetch_strategy,
+    void* user_context) const
 {
   net_context_t net_context;
 
   net_context_t::attr_t attr;
   attr.backend = backend;
-  attr.provider_name = provider_name;
+  attr.ofi_provider_name = ofi_provider_name;
   attr.max_msg_size = max_msg_size;
   attr.user_context = user_context;
+  attr.ibv_gid_idx = ibv_gid_idx;
+  attr.ibv_force_gid_auto_select = ibv_force_gid_auto_select;
+  attr.ibv_odp_strategy = ibv_odp_strategy;
+  attr.ibv_td_strategy = ibv_td_strategy;
+  attr.ibv_prefetch_strategy = ibv_prefetch_strategy;
 
   switch (attr.backend) {
     case option_backend_t::none:
       break;
     case option_backend_t::ibv:
 #ifdef LCI_BACKEND_ENABLE_IBV
-      throw std::runtime_error("IBV backend is not implemented\n");
-      // ret.p_impl = new ibv_net_context_impl_t(runtime, attr);
+      net_context.p_impl = new ibv_net_context_impl_t(runtime, attr);
 #else
-      LCI_Assert(false, "IBV backend is not enabled\n");
+      LCI_Assert(false, "IBV backend is not enabled");
 #endif
       break;
     case option_backend_t::ofi:
 #ifdef LCI_BACKEND_ENABLE_OFI
       net_context.p_impl = new ofi_net_context_impl_t(runtime, attr);
 #else
-      LCI_Assert(false, "OFI backend is not enabled\n");
+      LCI_Assert(false, "OFI backend is not enabled");
 #endif
       break;
     case option_backend_t::ucx:
@@ -120,11 +128,11 @@ net_context_t alloc_net_context_x::call_impl(runtime_t runtime,
       throw std::runtime_error("UCX backend is not implemented\n");
       // ret.p_impl = new ucx_net_context_impl_t(runtime, attr);
 #else
-      LCI_Assert(false, "UCX backend is not enabled\n");
+      LCI_Assert(false, "UCX backend is not enabled");
 #endif
       break;
     default:
-      LCI_Assert(false, "Unsupported backend %d\n", attr.backend);
+      LCI_Assert(false, "Unsupported backend %d", attr.backend);
   }
   return net_context;
 }
@@ -140,14 +148,14 @@ std::atomic<int> net_device_impl_t::g_ndevices(0);
 
 net_device_t alloc_net_device_x::call_impl(
     runtime_t runtime, int64_t net_max_sends, int64_t net_max_recvs,
-    int64_t net_max_cqes, uint64_t net_lock_mode, void* user_context,
+    int64_t net_max_cqes, uint64_t ofi_lock_mode, void* user_context,
     net_context_t net_context) const
 {
   net_device_t::attr_t attr;
   attr.net_max_sends = net_max_sends;
   attr.net_max_recvs = net_max_recvs;
   attr.net_max_cqes = net_max_cqes;
-  attr.net_lock_mode = net_lock_mode;
+  attr.ofi_lock_mode = ofi_lock_mode;
   attr.user_context = user_context;
   auto net_device = net_context.p_impl->alloc_net_device(attr);
   packet_pool_t packet_pool = get_default_packet_pool_x().runtime(runtime)();

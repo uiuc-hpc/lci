@@ -41,6 +41,7 @@ def attr(type, name, default_value=None, inout_trait="inout", extra_trait=None, 
     }
 
 def attr_enum(name, enum_options, default_value=None, inout_trait="inout", comment=""):
+    assert default_value is None or default_value in enum_options
     type = get_enum_attr_type(name)
     return {
         "category": "attribute",

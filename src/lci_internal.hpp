@@ -16,8 +16,14 @@
 #include "util/spinlock.hpp"
 #include "monitor/performance_counter.hpp"
 #include "backend/backend.hpp"
+#ifdef LCI_BACKEND_ENABLE_IBV
+#include "backend/ibv/backend_ibv.hpp"
+#include "backend/ibv/backend_ibv_inline.hpp"
+#endif
+#ifdef LCI_BACKEND_ENABLE_OFI
 #include "backend/ofi/backend_ofi.hpp"
 #include "backend/ofi/backend_ofi_inline.hpp"
+#endif
 #include "data_structure/mpmc_array.hpp"
 #include "data_structure/mpmc_set.hpp"
 #include "core/rcomp_registry.hpp"

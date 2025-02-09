@@ -1,6 +1,13 @@
 #ifndef LCI_UTIL_MISC_HPP
 #define LCI_UTIL_MISC_HPP
 
+#define LCIU_CONCAT3(a, b, c) LCIU_CONCAT_INNER3(a, b, c)
+#define LCIU_CONCAT2(a, b) LCIU_CONCAT_INNER2(a, b)
+#define LCIU_CONCAT_INNER3(a, b, c) a##b##c
+#define LCIU_CONCAT_INNER2(a, b) a##b
+#define LCIU_CACHE_PADDING(size) \
+  char LCIU_CONCAT2(padding, __LINE__)[LCI_CACHE_LINE - (size) % LCI_CACHE_LINE]
+
 namespace lci
 {
 template <typename T>

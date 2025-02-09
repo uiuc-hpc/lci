@@ -9,6 +9,7 @@ status_t post_comm_x::call_impl(
     rcomp_t remote_comp, void* ctx, bool allow_ok) const
 {
   net_device_t net_device = net_endpoint.p_impl->net_device;
+  net_context_t net_context = net_device.p_impl->context;
   status_t status;
   error_t& error = status.error;
   // allocate internal status object
@@ -31,7 +32,7 @@ status_t post_comm_x::call_impl(
                           runtime.get_attr_imm_nbits_rcomp(), 16);
     imm_data = set_bits32(imm_data, is_eager, 1, 31);
 
-    if (size <= net_device.get_attr_max_inject_size()) {
+    if (size <= net_context.get_attr_max_inject_size()) {
       // fast path
       error =
           net_endpoint.p_impl->post_sends(rank, local_buffer, size, imm_data);

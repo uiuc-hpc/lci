@@ -71,8 +71,14 @@ resource_net_context := resource(
     "net_context", 
     [
         attr("option_backend_t", "backend", comment="The network backend."),
-        attr("std::string", "provider_name", default_value="LCI_OFI_PROVIDER_HINT_DEFAULT", comment="The provider name."),
+        attr("std::string", "ofi_provider_name", default_value="LCI_OFI_PROVIDER_HINT_DEFAULT", comment="For the OFI backend: the provider name."),
         attr("int64_t", "max_msg_size", default_value="LCI_USE_MAX_SINGLE_MESSAGE_SIZE_DEFAULT", comment="The maximum message size."),
+        attr("int64_t", "max_inject_size", inout_trait="out", comment="The maximum inject size."),
+        attr("int", "ibv_gid_idx", default_value=-1, comment="For the IBV backend: the GID index by default (only needed by RoCE)."),
+        attr("bool", "ibv_force_gid_auto_select", default_value=0, comment="For the IBV backend: whether to force GID auto selection."),
+        attr_enum("ibv_odp_strategy", enum_options=["none", "explicit_odp", "implicit_odp"], default_value="none", comment="For the IBV backend: the on-demand paging strategy."),
+        attr_enum("ibv_td_strategy", enum_options=["none", "all_qp", "per_qp"], default_value="per_qp", comment="For the IBV backend: the thread domain strategy."),
+        attr_enum("ibv_prefetch_strategy", enum_options=["none", "prefetch", "prefetch_write", "prefetch_no_fault"], default_value="none", comment="For the IBV backend: the mr prefetch strategy."),
     ],
     comment="The network context resource."
 ),
@@ -86,8 +92,7 @@ resource_net_device := resource(
         attr("int64_t", "net_max_sends", default_value="LCI_BACKEND_MAX_SENDS_DEFAULT"),
         attr("int64_t", "net_max_recvs", default_value="LCI_BACKEND_MAX_RECVS_DEFAULT"),
         attr("int64_t", "net_max_cqes", default_value="LCI_BACKEND_MAX_CQES_DEFAULT"),
-        attr("int64_t", "max_inject_size", inout_trait="out", comment="The maximum inject size."),
-        attr("uint64_t", "net_lock_mode"),
+        attr("uint64_t", "ofi_lock_mode", comment="For the OFI backend: the lock mode for the network device."),
     ],
     comment="The network device resource."
 ),

@@ -41,7 +41,7 @@ void global_config_initialize()
   }
   {
     // default value
-    g_default_attr.net_lock_mode = 0;
+    g_default_attr.ofi_lock_mode = 0;
     // if users explicitly set the value
     char* p = getenv("LCI_NET_LOCK_MODE");
     if (p) {
@@ -51,13 +51,13 @@ void global_config_initialize()
           {"recv", LCI_NET_TRYLOCK_RECV},
           {"poll", LCI_NET_TRYLOCK_POLL},
       };
-      g_default_attr.net_lock_mode =
+      g_default_attr.ofi_lock_mode =
           LCT_parse_arg(dict, sizeof(dict) / sizeof(dict[0]), p, ",");
     }
-    LCI_Assert(g_default_attr.net_lock_mode < LCI_NET_TRYLOCK_MAX,
-               "Unexpected LCI_NET_LOCK_MODE %d", g_default_attr.net_lock_mode);
+    LCI_Assert(g_default_attr.ofi_lock_mode < LCI_NET_TRYLOCK_MAX,
+               "Unexpected LCI_NET_LOCK_MODE %d", g_default_attr.ofi_lock_mode);
     LCI_Log(LOG_INFO, "env", "set LCI_NET_LOCK_MODE to be %d\n",
-            g_default_attr.net_lock_mode);
+            g_default_attr.ofi_lock_mode);
   }
 }
 }  // namespace

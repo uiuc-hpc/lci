@@ -7,7 +7,6 @@ target_sources_relative(
   util/random.cpp
   monitor/performance_counter.cpp
   backend/backend.cpp
-  backend/ofi/backend_ofi.cpp
   core/lci.cpp
   core/global.cpp
   core/packet_pool.cpp
@@ -17,6 +16,13 @@ target_sources_relative(
   core/runtime.cpp
   core/communicate.cpp
   core/progress.cpp)
+if(LCI_BACKEND_ENABLE_OFI)
+  target_sources_relative(LCI PRIVATE backend/ofi/backend_ofi.cpp)
+endif()
+if(LCI_BACKEND_ENABLE_IBV)
+  target_sources_relative(LCI PRIVATE backend/ibv/backend_ibv.cpp
+                          backend/ibv/backend_ibv_detail.cpp)
+endif()
 
 target_include_directories(LCI PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 

@@ -39,9 +39,6 @@ inline std::vector<net_status_t> ofi_net_device_impl_t::poll_comp_impl(
         status.user_context = NULL;
         status.imm_data = fi_entry[j].data;
       } else if (fi_entry[j].flags & FI_SEND) {
-        LCI_DBG_Assert(
-            fi_entry[j].flags & FI_SEND || fi_entry[j].flags & FI_WRITE,
-            "Unexpected OFI opcode!\n");
         status.opcode = net_opcode_t::SEND;
         status.user_context = fi_entry[j].op_context;
       } else {

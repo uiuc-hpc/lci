@@ -64,6 +64,7 @@ if(NOT LCI_WITH_LCT_ONLY)
   set(LCI_NETWORK_BACKENDS
       ibv ofi ucx
       CACHE STRING "Network backends to build.")
+  string(REPLACE "," ";" LCI_NETWORK_BACKENDS "${LCI_NETWORK_BACKENDS}")
 
   set(LCI_OFI_PROVIDER_HINT_DEFAULT
       ""
