@@ -87,8 +87,8 @@ void net_device_impl_t::unbind_packet_pool()
 
 net_context_t alloc_net_context_x::call_impl(
     runtime_t runtime, option_backend_t backend, std::string ofi_provider_name,
-    int64_t max_msg_size, int ibv_gid_idx, bool ibv_force_gid_auto_select,
-    attr_ibv_odp_strategy_t ibv_odp_strategy,
+    int64_t max_msg_size, int64_t max_inject_size, int ibv_gid_idx,
+    bool ibv_force_gid_auto_select, attr_ibv_odp_strategy_t ibv_odp_strategy,
     attr_ibv_td_strategy_t ibv_td_strategy,
     attr_ibv_prefetch_strategy_t ibv_prefetch_strategy,
     void* user_context) const
@@ -105,6 +105,7 @@ net_context_t alloc_net_context_x::call_impl(
   attr.ibv_odp_strategy = ibv_odp_strategy;
   attr.ibv_td_strategy = ibv_td_strategy;
   attr.ibv_prefetch_strategy = ibv_prefetch_strategy;
+  attr.max_inject_size = max_inject_size;
 
   switch (attr.backend) {
     case option_backend_t::none:

@@ -28,7 +28,7 @@ struct {resource_name}_attr_t {{
 """
   return text
 
-def generate_global_attr_decl(input):    
+def generate_global_attr_decl(input):
   # declare global attribute struct
   enum_delcaration = ""
   variable_decl = "struct global_attr_t {\n"

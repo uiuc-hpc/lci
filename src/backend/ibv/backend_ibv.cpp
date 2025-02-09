@@ -271,6 +271,7 @@ ibv_net_device_impl_t::ibv_net_device_impl_t(net_context_t net_context_,
     }
   }
 
+  ib_qps.resize(get_nranks());
   for (int i = 0; i < get_nranks(); i++) {
     {
       // Create a queue pair
@@ -453,6 +454,7 @@ ibv_net_device_impl_t::ibv_net_device_impl_t(net_context_t net_context_,
 ibv_net_device_impl_t::~ibv_net_device_impl_t()
 {
   LCT_pmi_barrier();
+  unbind_packet_pool();
   free(qp2rank);
   for (int i = 0; i < get_nranks(); i++) {
     IBV_SAFECALL(ibv_destroy_qp(ib_qps[i]));

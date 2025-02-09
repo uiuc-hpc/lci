@@ -73,7 +73,7 @@ resource_net_context := resource(
         attr("option_backend_t", "backend", comment="The network backend."),
         attr("std::string", "ofi_provider_name", default_value="LCI_OFI_PROVIDER_HINT_DEFAULT", comment="For the OFI backend: the provider name."),
         attr("int64_t", "max_msg_size", default_value="LCI_USE_MAX_SINGLE_MESSAGE_SIZE_DEFAULT", comment="The maximum message size."),
-        attr("int64_t", "max_inject_size", inout_trait="out", comment="The maximum inject size."),
+        attr("int64_t", "max_inject_size", default_value=64, comment="The maximum inject size."),
         attr("int", "ibv_gid_idx", default_value=-1, comment="For the IBV backend: the GID index by default (only needed by RoCE)."),
         attr("bool", "ibv_force_gid_auto_select", default_value=0, comment="For the IBV backend: whether to force GID auto selection."),
         attr_enum("ibv_odp_strategy", enum_options=["none", "explicit_odp", "implicit_odp"], default_value="none", comment="For the IBV backend: the on-demand paging strategy."),
