@@ -22,7 +22,7 @@ status_t post_comm_x::call_impl(
   internal_ctx->user_context = ctx;
 
   packet_t* packet;
-  if (direction == direction_t::SEND) {
+  if (direction == direction_t::OUT) {
     bool is_eager = true;
     // set immediate data
     // is_imm (1) ; remote_comp (15) ; tag (16)
@@ -107,7 +107,7 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
                               net_endpoint_t net_endpoint, tag_t tag, void* ctx,
                               bool allow_ok) const
 {
-  return post_comm_x(direction_t::SEND, rank, local_buffer, size, local_comp)
+  return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .runtime(runtime)
       .packet_pool(packet_pool)
       .net_endpoint(net_endpoint)

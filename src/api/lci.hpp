@@ -101,8 +101,8 @@ struct net_status_t {
 using rkey_t = uint64_t;
 using tag_t = uint32_t;
 enum class direction_t {
-  SEND,
-  RECV,
+  OUT,
+  IN,
 };
 using rcomp_t = uint32_t;
 struct status_t {
