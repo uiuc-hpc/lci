@@ -11,8 +11,7 @@
                  __LINE__);                                                    \
     }                                                                          \
   }                                                                            \
-  while (0)                                                                    \
-    ;
+  while (0)
 
 #define IBV_SAFECALL_RET(x)                                                    \
   {                                                                            \
@@ -23,8 +22,7 @@
     }                                                                          \
     return errorcode_t::fatal;                                                 \
   }                                                                            \
-  while (0)                                                                    \
-    ;
+  while (0)
 
 namespace lci
 {

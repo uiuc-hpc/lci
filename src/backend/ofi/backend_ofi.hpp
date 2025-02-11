@@ -18,8 +18,7 @@
                  __LINE__);                                               \
     }                                                                     \
   }                                                                       \
-  while (0)                                                               \
-    ;
+  while (0)
 
 #define FI_SAFECALL_RET(x)                                                \
   {                                                                       \
@@ -31,8 +30,7 @@
     }                                                                     \
     return errorcode_t::fatal;                                            \
   }                                                                       \
-  while (0)                                                               \
-    ;
+  while (0)
 
 #define LCI_OFI_CS_TRY_ENTER(mode, ret) \
   if (ofi_lock_mode & mode && !lock.try_lock()) return ret;
