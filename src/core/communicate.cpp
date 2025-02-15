@@ -2,6 +2,23 @@
 
 namespace lci
 {
+size_t get_max_inject_size_x::call_impl(runtime_t runtime,
+                                        net_endpoint_t net_endpoint, tag_t tag,
+                                        rcomp_t remote_comp) const
+{
+  size_t net_max_inject_size = net_endpoint.p_impl->net_device.p_impl
+                                   ->net_context.get_attr_max_inject_size();
+  return net_max_inject_size;
+}
+
+size_t get_max_eager_size_x::call_impl(runtime_t runtime,
+                                       net_endpoint_t net_endpoint,
+                                       packet_pool_t packet_pool, tag_t tag,
+                                       rcomp_t remote_comp) const
+{
+  return packet_pool.p_impl->get_pmessage_size();
+}
+
 status_t post_comm_x::call_impl(
     direction_t direction, int rank, void* local_buffer, size_t size,
     comp_t local_comp, runtime_t runtime, packet_pool_t packet_pool,
@@ -9,7 +26,7 @@ status_t post_comm_x::call_impl(
     rcomp_t remote_comp, void* ctx, bool allow_ok) const
 {
   net_device_t net_device = net_endpoint.p_impl->net_device;
-  net_context_t net_context = net_device.p_impl->context;
+  net_context_t net_context = net_device.p_impl->net_context;
   status_t status;
   error_t& error = status.error;
   // allocate internal status object
@@ -25,14 +42,30 @@ status_t post_comm_x::call_impl(
   if (direction == direction_t::OUT) {
     bool is_eager = true;
     // set immediate data
-    // is_imm (1) ; remote_comp (15) ; tag (16)
-    uint32_t imm_data =
-        set_bits32(imm_data, tag, runtime.get_attr_imm_nbits_tag(), 0);
-    imm_data = set_bits32(imm_data, remote_comp,
-                          runtime.get_attr_imm_nbits_rcomp(), 16);
-    imm_data = set_bits32(imm_data, is_eager, 1, 31);
+    uint32_t imm_data = 0;
+    if (tag <= runtime.get_attr_max_imm_tag() &&
+        remote_comp <= runtime.get_attr_max_imm_rcomp()) {
+      // is_imm (1) ; remote_comp (15) ; tag (16)
+      imm_data = set_bits32(imm_data, tag, runtime.get_attr_imm_nbits_tag(), 0);
+      imm_data = set_bits32(imm_data, remote_comp,
+                            runtime.get_attr_imm_nbits_rcomp(), 16);
+      imm_data = set_bits32(imm_data, is_eager, 1, 31);
+    } else {
+      throw std::logic_error("Not implemented");
+    }
 
-    if (size <= net_context.get_attr_max_inject_size()) {
+    size_t max_inject_size = get_max_inject_size_x()
+                                 .runtime(runtime)
+                                 .net_endpoint(net_endpoint)
+                                 .tag(tag)
+                                 .remote_comp(remote_comp)();
+    size_t max_eager_size = get_max_eager_size_x()
+                                .runtime(runtime)
+                                .net_endpoint(net_endpoint)
+                                .packet_pool(packet_pool)
+                                .tag(tag)
+                                .remote_comp(remote_comp)();
+    if (size <= max_inject_size) {
       // fast path
       error =
           net_endpoint.p_impl->post_sends(rank, local_buffer, size, imm_data);
@@ -48,7 +81,8 @@ status_t post_comm_x::call_impl(
         }
       }
       goto exit;
-    } else {
+    } else if (size <= max_eager_size) {
+      // eager protocol
       // get a packet
       if (packet_pool.p_impl->is_packet(local_buffer)) {
         // users provide a packet
@@ -78,6 +112,9 @@ status_t post_comm_x::call_impl(
         LCI_Assert(error.is_posted(), "Unexpected error value\n");
         goto exit;
       }
+    } else {
+      // rendezvous protocol
+      throw std::logic_error("Not implemented");
     }
   } else {
     // recv

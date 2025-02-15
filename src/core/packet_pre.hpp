@@ -15,7 +15,6 @@ struct __attribute__((packed)) packet_local_context_t {
 struct __attribute__((packed)) packet_remote_context_t {
   uint64_t tag;
   uintptr_t rcomp;
-  uintptr_t matching_engine;
 };
 
 struct __attribute__((packed)) packet_data_rts_t {

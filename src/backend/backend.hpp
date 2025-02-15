@@ -27,10 +27,10 @@ class net_device_impl_t
   using attr_t = net_device_t::attr_t;
 
   net_device_impl_t(net_context_t context_, attr_t attr_)
-      : context(context_), attr(attr_), nrecvs_posted(0)
+      : net_context(context_), attr(attr_), nrecvs_posted(0)
   {
     net_device_id = g_ndevices++;
-    runtime = context.p_impl->runtime;
+    runtime = net_context.p_impl->runtime;
     net_device.p_impl = this;
   };
   virtual ~net_device_impl_t(){};
@@ -65,7 +65,7 @@ class net_device_impl_t
 
   runtime_t runtime;
   net_device_t net_device;
-  net_context_t context;
+  net_context_t net_context;
   attr_t attr;
   int net_device_id;
   packet_pool_t packet_pool;

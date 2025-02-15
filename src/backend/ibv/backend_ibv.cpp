@@ -160,9 +160,9 @@ ibv_net_device_impl_t::ibv_net_device_impl_t(net_context_t net_context_,
                                              net_device_t::attr_t attr_)
     : net_device_impl_t(net_context_, attr_)
 {
-  net_context_attr = context.get_attr();
+  net_context_attr = net_context.get_attr();
   ibv_net_context_impl_t* p_net_context =
-      static_cast<ibv_net_context_impl_t*>(context.p_impl);
+      static_cast<ibv_net_context_impl_t*>(net_context.p_impl);
 
   odp_mr.ibv_mr = p_net_context->ib_odp_mr;
 
@@ -554,8 +554,8 @@ ibv_net_endpoint_impl_t::ibv_net_endpoint_impl_t(net_device_t net_device_,
       ib_qp_extras(p_ibv_device->ib_qp_extras),
       net_context_attr(p_ibv_device->net_context_attr)
 {
-  auto p_ibv_context =
-      reinterpret_cast<ibv_net_context_impl_t*>(p_ibv_device->context.p_impl);
+  auto p_ibv_context = reinterpret_cast<ibv_net_context_impl_t*>(
+      p_ibv_device->net_context.p_impl);
 }
 
 ibv_net_endpoint_impl_t::~ibv_net_endpoint_impl_t() {}

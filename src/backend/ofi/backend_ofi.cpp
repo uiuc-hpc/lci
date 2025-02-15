@@ -126,7 +126,7 @@ ofi_net_device_impl_t::ofi_net_device_impl_t(net_context_t context_,
                                              net_device_t::attr_t attr_)
     : net_device_impl_t(context_, attr_), ofi_lock_mode(attr.ofi_lock_mode)
 {
-  auto p_ofi_context = static_cast<ofi_net_context_impl_t*>(context.p_impl);
+  auto p_ofi_context = static_cast<ofi_net_context_impl_t*>(net_context.p_impl);
   ofi_domain_attr = p_ofi_context->ofi_info->domain_attr;
   // Create domain.
   FI_SAFECALL(fi_domain(p_ofi_context->ofi_fabric, p_ofi_context->ofi_info,
@@ -256,8 +256,8 @@ ofi_net_endpoint_impl_t::ofi_net_endpoint_impl_t(net_device_t net_device_,
       ofi_lock_mode(p_ofi_device->ofi_lock_mode),
       lock(p_ofi_device->lock)
 {
-  auto p_ofi_context =
-      reinterpret_cast<ofi_net_context_impl_t*>(p_ofi_device->context.p_impl);
+  auto p_ofi_context = reinterpret_cast<ofi_net_context_impl_t*>(
+      p_ofi_device->net_context.p_impl);
 
   my_rank = get_rank();
 }

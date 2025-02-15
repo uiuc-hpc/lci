@@ -451,6 +451,29 @@ operation(
     ],
     comment="Get the default packet pool."
 ),
+operation(
+    "get_max_inject_size", 
+    [
+        optional_runtime_args,
+        optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
+        optional_arg("tag_t", "tag", "0"),
+        optional_arg("rcomp_t", "remote_comp", "0"),
+        return_val("size_t", "size")
+    ],
+    comment="Get the maximum message size for the inject protocol."
+),
+operation(
+    "get_max_eager_size", 
+    [
+        optional_runtime_args,
+        optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
+        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
+        optional_arg("tag_t", "tag", "0"),
+        optional_arg("rcomp_t", "remote_comp", "0"),
+        return_val("size_t", "size")
+    ],
+    comment="Get the maximum message size for the eager protocol."
+),
 # ##############################################################################
 # # End of the definition
 # ##############################################################################
