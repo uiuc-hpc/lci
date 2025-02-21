@@ -61,6 +61,7 @@ class ofi_net_device_impl_t : public lci::net_device_impl_t
   net_endpoint_t alloc_net_endpoint(net_endpoint_t::attr_t attr) override;
   mr_t register_memory(void* buffer, size_t size) override;
   void deregister_memory(mr_t) override;
+  void deregister_memory(mr_impl_t*) override;
   rkey_t get_rkey(mr_t mr) override;
   std::vector<net_status_t> poll_comp_impl(int max_polls) override;
   error_t post_recv_impl(void* buffer, size_t size, mr_t mr,

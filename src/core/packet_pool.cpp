@@ -22,10 +22,10 @@ packet_pool_impl_t::packet_pool_impl_t(const attr_t& attr_)
       packet_t* packet =
           (packet_t*)((char*)base_packet_p + i * attr.packet_size);
       LCI_Assert(
-          ((uint64_t)packet->get_message_address()) % LCI_CACHE_LINE == 0,
+          ((uint64_t)packet->get_payload_address()) % LCI_CACHE_LINE == 0,
           "packet.data is not well-aligned %p\n",
-          packet->get_message_address());
-      LCI_Assert(is_packet(packet->get_message_address()),
+          packet->get_payload_address());
+      LCI_Assert(is_packet(packet->get_payload_address()),
                  "Not a packet. The computation is wrong!\n");
       packet->local_context.packet_pool_impl = this;
       packet->local_context.local_id = pool.get_local_set_id();

@@ -124,8 +124,8 @@ class {resource_name}_t {{
   {resource_name}_t() = default;
   {resource_name}_t(void* p) : p_impl(static_cast<{impl_class_name}*>(p)) {{}}
   inline bool is_empty() const {{ return p_impl == nullptr; }}
-  inline void *get_p() const {{ return p_impl; }}
-  inline void set_p(void* p) {{ p_impl = static_cast<{impl_class_name}*>(p); }}
+  inline {impl_class_name} *get_impl() const {{ if (!p_impl) throw std::runtime_error("p_impl is nullptr!"); return p_impl; }}
+  inline void set_impl({impl_class_name}* p) {{ p_impl = p; }}
 }};
 """
   return text

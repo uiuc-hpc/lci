@@ -7,6 +7,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <cstdlib>
+#include <algorithm>
 
 #include "lci.hpp"
 #include "lct.h"
@@ -33,6 +34,7 @@
 #include "core/packet_pre.hpp"
 #include "core/packet_pool.hpp"
 #include "core/runtime.hpp"
+#include "core/rendezvous.hpp"
 
 #include "core/packet_post.hpp"
 

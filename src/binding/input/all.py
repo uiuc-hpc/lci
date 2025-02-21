@@ -299,23 +299,6 @@ operation(
     ],
     comment="Unbind the packet pool from a network device."
 ),
-operation(
-    "alloc_pbuffer", 
-    [
-        optional_runtime_args,
-        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
-        return_val("void*", "address")
-    ],
-    comment="Allocate a packet buffer."
-),
-operation(
-    "free_pbuffer", 
-    [
-        optional_runtime_args,
-        positional_arg("void*", "address", inout_trait="inout")
-    ],
-    comment="Free a packet buffer."
-),
 # comp
 resource("comp", []),
 operation(
@@ -382,11 +365,14 @@ operation(
         positional_arg("comp_t", "local_comp"),
         optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
         optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
+        optional_arg("mr_t", "mr", "mr_t()"),
         optional_arg("void*", "remote_buffer", "nullptr"),
         optional_arg("tag_t", "tag", "0"),
         optional_arg("rcomp_t", "remote_comp", "-1"),
         optional_arg("void*", "ctx", "nullptr"),
         optional_arg("bool", "allow_ok", "true"),
+        optional_arg("bool", "assert_eager", "false"),
+        optional_arg("bool", "force_rdv", "false"),
         return_val("status_t", "status"),
     ]
 ),
@@ -401,9 +387,12 @@ operation(
         positional_arg("rcomp_t", "remote_comp", "-1"),
         optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
         optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
+        optional_arg("mr_t", "mr", "mr_t()"),
         optional_arg("tag_t", "tag", "0"),
         optional_arg("void*", "ctx", "nullptr"),
         optional_arg("bool", "allow_ok", "true"),
+        optional_arg("bool", "assert_eager", "false"),
+        optional_arg("bool", "force_rdv", "false"),
         return_val("status_t", "status"),
     ]
 ),
@@ -413,6 +402,7 @@ operation(
     [
         optional_runtime_args,
         optional_arg("net_device_t", "net_device", "runtime.p_impl->net_device"),
+        optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
         return_val("error_t", "error")
     ]
 ),

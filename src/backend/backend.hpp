@@ -37,6 +37,7 @@ class net_device_impl_t
   virtual net_endpoint_t alloc_net_endpoint(net_endpoint_t::attr_t attr) = 0;
   virtual mr_t register_memory(void* buffer, size_t size) = 0;
   virtual void deregister_memory(mr_t) = 0;
+  virtual void deregister_memory(mr_impl_t*) = 0;
   virtual rkey_t get_rkey(mr_t mr) = 0;
   virtual std::vector<net_status_t> poll_comp_impl(int max_polls) = 0;
   inline std::vector<net_status_t> poll_comp(int max_polls)
@@ -78,9 +79,17 @@ class mr_impl_t
   using attr_t = mr_t::attr_t;
   attr_t attr;
   net_device_t device;
+  void* address;
+  size_t size;
   // TODO: add memory registration cache
   // For memory registration cache.
   // void* region;
+  inline void deregister()
+  {
+    device.get_impl()->deregister_memory(this);
+    address = nullptr;
+    size = 0;
+  }
 };
 
 class net_endpoint_impl_t

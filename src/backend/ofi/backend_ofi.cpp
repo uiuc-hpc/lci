@@ -246,6 +246,13 @@ void ofi_net_device_impl_t::deregister_memory(mr_t mr)
   delete p_ofi_mr;
 }
 
+void ofi_net_device_impl_t::deregister_memory(mr_impl_t* mr_impl)
+{
+  auto p_ofi_mr = static_cast<ofi_mr_impl_t*>(mr_impl);
+  FI_SAFECALL(fi_close(&p_ofi_mr->ofi_mr->fid));
+  delete p_ofi_mr;
+}
+
 ofi_net_endpoint_impl_t::ofi_net_endpoint_impl_t(net_device_t net_device_,
                                                  attr_t attr_)
     : net_endpoint_impl_t(net_device_, attr_),

@@ -20,7 +20,9 @@ struct __attribute__((packed)) packet_remote_context_t {
 struct __attribute__((packed)) packet_data_rts_t {
   uintptr_t
       send_ctx; /* the address of the related context on the source side */
-  packet_data_rdv_type_t rdv_type; /* type of this rendezvous message */
+  rdv_type_t rdv_type; /* type of this rendezvous message */
+  tag_t tag;
+  rcomp_t rcomp;
   union {
     // for a single message
     size_t size;
@@ -42,7 +44,7 @@ struct __attribute__((packed)) packet_data_rtr_rbuffer_info_t {
 struct __attribute__((packed)) packet_data_rtr_t {
   uintptr_t
       send_ctx; /* the address of the related context on the source side */
-  packet_data_rdv_type_t rdv_type; /* type of this rendezvous message */
+  rdv_type_t rdv_type; /* type of this rendezvous message */
   union {
     // When using writeimm protocol
     uint32_t
@@ -73,11 +75,12 @@ struct __attribute__((packed)) packet_t {
     } full;
   };
 
-  void* get_message_address() { return &fast; }
+  void* get_payload_address() { return &fast; }
 
   void put_back();
 
   mr_t get_mr(net_device_t net_device);
+  mr_t get_mr(net_endpoint_t net_endpoint);
 };
 
 static inline packet_t* address2packet(void* address)

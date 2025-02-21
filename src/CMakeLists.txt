@@ -15,6 +15,7 @@ target_sources_relative(
   core/rcomp_registry.cpp
   core/runtime.cpp
   core/communicate.cpp
+  core/memory.cpp
   core/progress.cpp)
 if(LCI_BACKEND_ENABLE_OFI)
   target_sources_relative(LCI PRIVATE backend/ofi/backend_ofi.cpp)

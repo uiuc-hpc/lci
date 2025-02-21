@@ -21,7 +21,7 @@ bool net_device_impl_t::post_recv_packet()
 
   mr = packet_pool.p_impl->get_or_register_mr(net_device);
   size = packet_pool.p_impl->get_pmessage_size();
-  error = post_recv(packet->get_message_address(), size, mr, packet);
+  error = post_recv(packet->get_payload_address(), size, mr, packet);
   if (error.is_retry()) {
     packet->put_back();
     goto exit_retry;
@@ -178,6 +178,8 @@ mr_t register_memory_x::call_impl(void* address, size_t size, runtime_t runtime,
 {
   mr_t mr = net_device.p_impl->register_memory(address, size);
   mr.p_impl->device = net_device;
+  mr.p_impl->address = address;
+  mr.p_impl->size = size;
   return mr;
 }
 

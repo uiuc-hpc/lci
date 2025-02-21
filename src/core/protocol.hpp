@@ -3,7 +3,14 @@
 
 namespace lci
 {
-enum class packet_data_rdv_type_t { single_2sided, single_1sided, iovec };
+enum class rdv_type_t { single_2sided, single_1sided, iovec };
+
+enum imm_data_msg_type_t {
+  IMM_DATA_MSG_EAGER = 0,
+  IMM_DATA_MSG_RTS = 1,
+  IMM_DATA_MSG_RTR = 2,
+  IMM_DATA_MSG_FIN = 3
+};
 
 /**
  * Internal context structure, Used by asynchronous operations to pass
@@ -22,6 +29,11 @@ enum class packet_data_rdv_type_t { single_2sided, single_1sided, iovec };
  */
 struct packet_t;
 struct alignas(LCI_CACHE_LINE) internal_context_t {
+  // 56 bytes, 4 bit
+  // is_extended has to be the first bit (be the same as internal_context_t)
+  bool is_extended : 1;          // 1 bit
+  bool mr_on_the_fly : 1;        // 1 bit
+  rdv_type_t rdv_type : 2;       // 2 bits
   packet_t* packet = nullptr;    // 8 bytes
   int rank;                      // 4 bytes
   tag_t tag;                     // 4 bytes
@@ -29,6 +41,21 @@ struct alignas(LCI_CACHE_LINE) internal_context_t {
   size_t size;                   // 8 bytes
   comp_t comp;                   // 8 bytes
   void* user_context = nullptr;  // 8 bytes
+  mr_t mr;                       // 8 bytes
+
+  internal_context_t()
+      : is_extended(false),
+        mr_on_the_fly(false),
+        rdv_type(rdv_type_t::single_2sided),
+        rank(-1),
+        tag(0),
+        buffer(nullptr),
+        size(0),
+        comp(comp_t()),
+        user_context(nullptr),
+        mr(mr_t())
+  {
+  }
 
   inline status_t get_status() const
   {
@@ -40,6 +67,34 @@ struct alignas(LCI_CACHE_LINE) internal_context_t {
     status.size = size;
     status.user_context = user_context;
     return status;
+  }
+};
+
+inline void free_ctx_and_signal_comp(internal_context_t* internal_ctx)
+{
+  if (internal_ctx->mr_on_the_fly) {
+    internal_ctx->mr.get_impl()->deregister();
+  }
+  if (!internal_ctx->comp.is_empty()) {
+    status_t status = internal_ctx->get_status();
+    comp_t comp = internal_ctx->comp;
+    delete internal_ctx;
+    comp.p_impl->signal(status);
+  } else {
+    delete internal_ctx;
+  }
+}
+
+struct alignas(LCI_CACHE_LINE) internal_context_extended_t {
+  // is_extended has to be the first bit (be the same as internal_context_t)
+  bool is_extended : 1;              // 1 bit
+  internal_context_t* internal_ctx;  // 8 bytes
+  std::atomic<int> signal_count;     // 4 bytes
+  uint64_t recv_ctx;                 // 8 bytes
+
+  internal_context_extended_t()
+      : is_extended(true), internal_ctx(nullptr), signal_count(0)
+  {
   }
 };
 
