@@ -104,7 +104,7 @@ operation_alloc(
 ),
 operation_free(resource_net_device),
 # memory region
-resource("mr", []),
+# resource("mr", []),
 operation(
     "register_memory", 
     [
@@ -370,8 +370,9 @@ operation(
         optional_arg("tag_t", "tag", "0"),
         optional_arg("rcomp_t", "remote_comp", "-1"),
         optional_arg("void*", "ctx", "nullptr"),
+        optional_arg("buffers_t", "buffers", "buffers_t()"),
+        optional_arg("rbuffers_t", "rbuffers", "rbuffers_t()"),
         optional_arg("bool", "allow_ok", "true"),
-        optional_arg("bool", "assert_eager", "false"),
         optional_arg("bool", "force_rdv", "false"),
         return_val("status_t", "status"),
     ]
@@ -390,8 +391,9 @@ operation(
         optional_arg("mr_t", "mr", "mr_t()"),
         optional_arg("tag_t", "tag", "0"),
         optional_arg("void*", "ctx", "nullptr"),
+        optional_arg("buffers_t", "buffers", "buffers_t()"),
+        optional_arg("rbuffers_t", "rbuffers", "rbuffers_t()"),
         optional_arg("bool", "allow_ok", "true"),
-        optional_arg("bool", "assert_eager", "false"),
         optional_arg("bool", "force_rdv", "false"),
         return_val("status_t", "status"),
     ]

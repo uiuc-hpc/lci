@@ -19,37 +19,51 @@ size_t get_max_eager_size_x::call_impl(runtime_t runtime,
   return packet_pool.p_impl->get_pmessage_size();
 }
 
-status_t post_comm_x::call_impl(direction_t direction, int rank,
-                                void* local_buffer, size_t size,
-                                comp_t local_comp, runtime_t runtime,
-                                packet_pool_t packet_pool,
-                                net_endpoint_t net_endpoint, mr_t mr,
-                                void* remote_buffer, tag_t tag,
-                                rcomp_t remote_comp, void* ctx, bool allow_ok,
-                                bool assert_eager, bool force_rdv) const
+status_t post_comm_x::call_impl(
+    direction_t direction, int rank, void* local_buffer, size_t size,
+    comp_t local_comp, runtime_t runtime, packet_pool_t packet_pool,
+    net_endpoint_t net_endpoint, mr_t mr, void* remote_buffer, tag_t tag,
+    rcomp_t remote_comp, void* ctx, buffers_t buffers, rbuffers_t rbuffers,
+    bool allow_ok, bool force_rdv) const
 {
+  packet_t* packet = nullptr;
+  internal_context_t* internal_ctx = nullptr;
+  internal_context_t* rts_ctx = nullptr;
+  bool user_provided_packet = false;
+
   net_device_t net_device = net_endpoint.p_impl->net_device;
   net_context_t net_context = net_device.p_impl->net_context;
   status_t status;
-  status.buffer = local_buffer;
-  status.size = size;
   status.rank = rank;
   status.tag = tag;
   status.user_context = ctx;
   error_t& error = status.error;
   // allocate internal status object
-  internal_context_t* internal_ctx = new internal_context_t;
+  internal_ctx = new internal_context_t;
   internal_ctx->rank = rank;
   internal_ctx->tag = tag;
-  internal_ctx->buffer = local_buffer;
-  internal_ctx->size = size;
   internal_ctx->comp =
       comp_t();  // eager protocol do not need a local completion object
   internal_ctx->user_context = ctx;
-  internal_ctx->mr = mr;
 
-  packet_t* packet = nullptr;
-  bool user_provided_packet = false;
+  // determine data type
+  data_t data;
+  if (buffers.empty()) {
+    if (size < data_t::MAX_SCALAR_SIZE && !force_rdv) {
+      data.type = data_t::type_t::scalar;
+      memcpy(data.scalar.data, local_buffer, size);
+    } else {
+      data = data_t(buffer_t(local_buffer, size, mr));
+    }
+  } else if (!buffers.empty()) {
+    LCI_Assert(local_buffer == nullptr, "The local buffer should be nullptr\n");
+    LCI_Assert(size == 0, "The size should be 0\n");
+    LCI_Assert(rbuffers.empty() || buffers.size() == rbuffers.size(),
+               "The number of buffers and rbuffers should be the same\n");
+    data = data_t(buffers);
+  }
+  status.data = data;
+  internal_ctx->data = data;
   if (direction == direction_t::OUT) {
     size_t max_inject_size = get_max_inject_size_x()
                                  .runtime(runtime)
@@ -62,45 +76,64 @@ status_t post_comm_x::call_impl(direction_t direction, int rank,
                                 .packet_pool(packet_pool)
                                 .tag(tag)
                                 .remote_comp(remote_comp)();
+
+    // determine protocol
+    enum class protocol_t {
+      inject,
+      eager,
+      rendezvous,
+    } protocol;
+    if (!buffers.empty() || force_rdv || size > max_eager_size) {
+      protocol = protocol_t::rendezvous;
+    } else if (size <= max_inject_size && !force_rdv) {
+      protocol = protocol_t::inject;
+    } else {
+      protocol = protocol_t::eager;
+    }
+    // set local completion object
+    // For now only the rendezvous protocol needs to signal the local completion
+    // object
+    if (protocol == protocol_t::rendezvous) {
+      internal_ctx->comp = local_comp;
+    }
     // set immediate data
     uint32_t imm_data = 0;
     static_assert(IMM_DATA_MSG_EAGER == 0);
-    if (size <= max_eager_size && tag <= runtime.get_attr_max_imm_tag() &&
-        remote_comp <= runtime.get_attr_max_imm_rcomp() && !force_rdv) {
+    if (protocol != protocol_t::rendezvous &&
+        tag <= runtime.get_attr_max_imm_tag() &&
+        remote_comp <= runtime.get_attr_max_imm_rcomp()) {
       // is_fastpath (1) ; remote_comp (15) ; tag (16)
       imm_data = set_bits32(imm_data, 1, 1, 31);  // is_fastpath
       imm_data = set_bits32(imm_data, tag, runtime.get_attr_imm_nbits_tag(), 0);
       imm_data = set_bits32(imm_data, remote_comp,
                             runtime.get_attr_imm_nbits_rcomp(), 16);
     } else {
-      imm_data = 0;
       // bit 29-30: imm_data_msg_type_t
-      if (size > max_eager_size || force_rdv) {
-        imm_data = set_bits32(imm_data, IMM_DATA_MSG_RTS, 2, 29);
+      if (protocol == protocol_t::rendezvous) {
+        imm_data = set_bits32(0, IMM_DATA_MSG_RTS, 2, 29);
       } else {
         throw std::logic_error("Not implemented");
       }
     }
 
-    if (size <= max_inject_size && !force_rdv) {
-      // fast path
+    if (protocol == protocol_t::inject) {
+      // inject protocol, return retry or ok
       error =
           net_endpoint.p_impl->post_sends(rank, local_buffer, size, imm_data);
       goto exit;
-    } else if (size <= max_eager_size && !force_rdv) {
-      // eager protocol
+    } else if (protocol == protocol_t::eager) {
+      // eager protocol, return retry or ok
       // get a packet
       if (packet_pool.p_impl->is_packet(local_buffer)) {
         // users provide a packet
         user_provided_packet = true;
         packet = address2packet(local_buffer);
-        internal_ctx->buffer = nullptr;  // users do not own the packet anymore
       } else {
         // allocate a packet
         packet = packet_pool.p_impl->get();
         if (!packet) {
-          error.reset(errorcode_t::retry_nomem);
-          goto exit_free_ctx;
+          error.reset(errorcode_t::retry_nopacket);
+          goto exit_retry;
         }
         memcpy(packet->get_payload_address(), local_buffer, size);
       }
@@ -114,7 +147,7 @@ status_t post_comm_x::call_impl(direction_t direction, int rank,
           rank, packet->get_payload_address(), size, packet->get_mr(net_device),
           imm_data, internal_ctx);
       if (error.is_retry()) {
-        goto exit_free_packet;
+        goto exit_retry;
       } else {
         LCI_Assert(error.is_posted() || error.is_ok(),
                    "Unexpected error value\n");
@@ -127,29 +160,50 @@ status_t post_comm_x::call_impl(direction_t direction, int rank,
       }
     } else {
       // rendezvous protocol
-      LCI_Assert(!assert_eager, "We are not using the eager protocol!\n");
 
       // TODO wait for backlog queue
 
-      internal_ctx->comp = local_comp;
       // build the rts message
-      rts_msg_t rts;
-      rts.send_ctx = (uintptr_t)internal_ctx;
-      rts.rdv_type = rdv_type_t::single_1sided;
-      rts.tag = tag;
-      rts.rcomp = remote_comp;
-      rts.size = size;
-      // post send
-      LCI_Assert(rts_msg_t::get_size_plain() <= max_inject_size,
-                 "The rts message is too large\n");
-      error = net_endpoint.p_impl->post_sends(
-          rank, &rts, rts_msg_t::get_size_plain(), imm_data);
+      size_t rts_size = rts_msg_t::get_size(data);
+      rts_msg_t plain_rts;
+      rts_msg_t* p_rts;
+      if (rts_size <= max_inject_size) {
+        p_rts = &plain_rts;
+      } else {
+        LCI_Assert(rts_size <= max_eager_size,
+                   "The rts message is too large\n");
+        packet = packet_pool.p_impl->get();
+        if (!packet) {
+          error.reset(errorcode_t::retry_nopacket);
+          goto exit_retry;
+          p_rts = static_cast<rts_msg_t*>(packet->get_payload_address());
+        }
+        rts_ctx = new internal_context_t;
+        rts_ctx->packet = packet;
+      }
+      p_rts->send_ctx = (uintptr_t)internal_ctx;
+      p_rts->rdv_type = rdv_type_t::single_1sided;
+      p_rts->tag = tag;
+      p_rts->rcomp = remote_comp;
+      if (local_buffer) {
+        p_rts->load_buffer(size);
+      } else {
+        p_rts->load_buffers(buffers);
+      }
+      // post send for the rts message
+      if (rts_size <= max_inject_size) {
+        error =
+            net_endpoint.p_impl->post_sends(rank, p_rts, rts_size, imm_data);
+      } else {
+        error = net_endpoint.p_impl->post_send(rank, p_rts, rts_size,
+                                               packet->get_mr(net_device),
+                                               imm_data, rts_ctx);
+      }
       if (error.is_ok()) {
         error.reset(errorcode_t::posted);
       }
-
       if (error.is_retry()) {
-        goto exit_free_ctx;
+        goto exit_retry;
       } else {
         LCI_Assert(error.is_posted(), "Unexpected error value\n");
         goto exit;
@@ -160,12 +214,11 @@ status_t post_comm_x::call_impl(direction_t direction, int rank,
     throw std::logic_error("Not implemented");
   }
 
-exit_free_packet:
+exit_retry:
   if (!user_provided_packet && packet) {
     packet->put_back();
   }
-
-exit_free_ctx:
+  delete rts_ctx;
   delete internal_ctx;
 
 exit:
@@ -187,8 +240,8 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
                               comp_t local_comp, rcomp_t remote_comp,
                               runtime_t runtime, packet_pool_t packet_pool,
                               net_endpoint_t net_endpoint, mr_t mr, tag_t tag,
-                              void* ctx, bool allow_ok, bool assert_eager,
-                              bool force_rdv) const
+                              void* ctx, buffers_t buffers, rbuffers_t rbuffers,
+                              bool allow_ok, bool force_rdv) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .runtime(runtime)
@@ -198,8 +251,9 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
       .tag(tag)
       .remote_comp(remote_comp)
       .ctx(ctx)
+      .buffers(buffers)
+      .rbuffers(rbuffers)
       .allow_ok(allow_ok)
-      .assert_eager(assert_eager)
       .force_rdv(force_rdv)();
 }
 }  // namespace lci

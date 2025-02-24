@@ -536,14 +536,7 @@ mr_t ibv_net_device_impl_t::register_memory(void* buffer, size_t size)
 
 void ibv_net_device_impl_t::deregister_memory(mr_t mr)
 {
-  if (net_context_attr.ibv_odp_strategy ==
-      attr_ibv_odp_strategy_t::implicit_odp) {
-    return;
-  } else {
-    auto p_ibv_mr = static_cast<ibv_mr_impl_t*>(mr.p_impl);
-    IBV_SAFECALL(ibv_dereg_mr(p_ibv_mr->ibv_mr));
-    delete p_ibv_mr;
-  }
+  deregister_memory(mr.p_impl);
 }
 
 void ibv_net_device_impl_t::deregister_memory(mr_impl_t* mr_impl)

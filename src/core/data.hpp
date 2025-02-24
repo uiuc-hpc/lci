@@ -1,0 +1,36 @@
+#ifndef LCI_CORE_DATA_HPP
+#define LCI_CORE_DATA_HPP
+
+namespace lci
+{
+inline void register_data(data_t& data, net_device_t net_device)
+{
+  if (data.is_buffer()) {
+    data.buffer.mr = register_memory_x(data.buffer.base, data.buffer.size)
+                         .net_device(net_device)();
+  } else if (data.is_buffers()) {
+    for (size_t i = 0; i < data.buffers.count; i++) {
+      data.buffers.buffers[i].mr =
+          register_memory_x(data.buffers.buffers[i].base,
+                            data.buffers.buffers[i].size)
+              .net_device(net_device)();
+    }
+  }
+}
+
+inline void deregister_data(data_t& data)
+{
+  if (data.is_buffer()) {
+    deregister_memory(&data.buffer.mr);
+    data.buffer.mr.set_impl(nullptr);
+  } else if (data.is_buffers()) {
+    for (size_t i = 0; i < data.buffers.count; i++) {
+      deregister_memory(&data.buffers.buffers[i].mr);
+      data.buffers.buffers[i].mr.set_impl(nullptr);
+    }
+  }
+}
+
+}  // namespace lci
+
+#endif  // LCI_CORE_DATA_HPP

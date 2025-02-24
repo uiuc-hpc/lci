@@ -27,6 +27,7 @@
 #endif
 #include "data_structure/mpmc_array.hpp"
 #include "data_structure/mpmc_set.hpp"
+#include "core/data.hpp"
 #include "core/rcomp_registry.hpp"
 #include "core/global.hpp"
 #include "core/protocol.hpp"

@@ -31,12 +31,10 @@ void progress_recv(runtime_t runtime, net_device_t net_device,
       status.error = errorcode_t::ok;
       status.rank = net_status.rank;
       status.tag = tag;
-      status.buffer = malloc(net_status.length);
-      memcpy(status.buffer, packet->get_payload_address(), net_status.length);
-      status.size = net_status.length;
+      status.data.copy_from(packet->get_payload_address(), net_status.length);
       status.user_context = nullptr;
       packet->put_back();
-      comp.get_impl()->signal(status);
+      comp.get_impl()->signal(std::move(status));
       break;
     }
     case IMM_DATA_MSG_RTS:

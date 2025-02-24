@@ -76,8 +76,6 @@ class net_device_impl_t
 class mr_impl_t
 {
  public:
-  using attr_t = mr_t::attr_t;
-  attr_t attr;
   net_device_t device;
   void* address;
   size_t size;

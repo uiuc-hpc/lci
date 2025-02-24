@@ -45,7 +45,8 @@ class packet_pool_impl_t
   {
     void* packet_address;
     if (!include_lcontext) {
-      packet_address = (packet_t*)((char*)address - offsetof(packet_t, fast));
+      packet_address =
+          (packet_t*)((char*)address - offsetof(packet_t, payload));
     } else {
       packet_address = address;
     }
