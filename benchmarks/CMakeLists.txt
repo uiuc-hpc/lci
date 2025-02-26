@@ -1,4 +1,9 @@
-find_package(OpenMP REQUIRED)
+find_package(OpenMP)
+if(NOT OpenMP_CXX_FOUND)
+  message(WARNING "OpenMP not found. Disabling benchmarks.")
+  return()
+endif()
+
 find_package(PAPI)
 option(USE_PAPI "Use PAPI to collect hardware counters" ${PAPI_FOUND})
 configure_file(bench_config.h.in bench_config.h @ONLY)
