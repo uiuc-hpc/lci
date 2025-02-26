@@ -353,6 +353,10 @@ operation(
         return_val("status_t", "status")
     ]
 ),
+# matching engine
+resource_matching_engine := resource("matching_engine", []),
+operation_alloc(resource_matching_engine),
+operation_free(resource_matching_engine),
 # communicate
 operation(
     "post_comm", 

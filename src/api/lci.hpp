@@ -493,6 +493,7 @@ class comp_impl_t
   virtual void signal(status_t) = 0;
   comp_attr_t attr;
 };
+
 }  // namespace lci
 
 #endif  // LCI_API_LCI_HPP

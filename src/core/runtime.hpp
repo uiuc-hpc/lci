@@ -20,6 +20,7 @@ class runtime_impl_t
   net_endpoint_t net_endpoint;
   packet_pool_t packet_pool;
   rcomp_registry_t rcomp_registry;
+  matching_engine_t matching_engine;
 };
 }  // namespace lci
 

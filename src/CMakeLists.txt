@@ -7,6 +7,7 @@ target_sources_relative(
   util/random.cpp
   monitor/performance_counter.cpp
   backend/backend.cpp
+  matching_engine/matching_engine.cpp
   core/lci.cpp
   core/global.cpp
   core/packet_pool.cpp

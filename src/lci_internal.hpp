@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <vector>
+#include <list>
 #include <atomic>
 #include <cstring>
 #include <unistd.h>
@@ -27,6 +28,7 @@
 #endif
 #include "data_structure/mpmc_array.hpp"
 #include "data_structure/mpmc_set.hpp"
+#include "matching_engine/matching_engine.hpp"
 #include "core/data.hpp"
 #include "core/rcomp_registry.hpp"
 #include "core/global.hpp"

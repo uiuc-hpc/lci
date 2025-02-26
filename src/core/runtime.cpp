@@ -109,6 +109,7 @@ void runtime_impl_t::initialize()
     net_device = alloc_net_device_x().runtime(runtime)();
     net_endpoint = alloc_net_endpoint_x().runtime(runtime)();
   }
+  matching_engine = alloc_matching_engine_x().runtime(runtime)();
 }
 
 runtime_impl_t::~runtime_impl_t()
