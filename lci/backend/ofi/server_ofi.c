@@ -103,22 +103,30 @@ void LCISD_server_init(LCIS_server_t* s)
     LCI_MAX_SINGLE_MESSAGE_SIZE = server->info->ep_attr->max_msg_size;
     LCI_Warn(
         "Reduce LCI_MAX_SINGLE_MESSAGE_SIZE to %lu "
-        "as required by the libfabric max_msg_size attribute\n",
-        LCI_MAX_SINGLE_MESSAGE_SIZE);
+        "as required by the libfabric max_msg_size attribute. Turn off this "
+        "warning by `export LCI_MAX_SINGLE_MESSAGE_SIZE=%lu`\n",
+        LCI_MAX_SINGLE_MESSAGE_SIZE, LCI_MAX_SINGLE_MESSAGE_SIZE);
   }
   if (strcmp(server->info->fabric_attr->prov_name, "cxi") == 0) {
-    LCI_Assert(LCI_USE_DREG == 0,
-               "The registration cache should be turned off "
-               "for libfabric cxi backend. Use `export LCI_USE_DREG=0`.\n");
-    LCI_Assert(LCI_ENABLE_PRG_NET_ENDPOINT == 0,
-               "The progress-specific network endpoint "
-               "for libfabric cxi backend. Use `export "
-               "LCI_ENABLE_PRG_NET_ENDPOINT=0`.\n");
+    if (LCI_USE_DREG) {
+      LCI_USE_DREG = 0;
+      LCI_Warn(
+          "Turn off LCI_USE_DREG as required by the libfabric cxi backend. "
+          "Turn off this warning by `export LCI_USE_DREG=0`\n");
+    }
+    if (LCI_ENABLE_PRG_NET_ENDPOINT) {
+      LCI_ENABLE_PRG_NET_ENDPOINT = 0;
+      LCI_Warn(
+          "Turn off LCI_ENABLE_PRG_NET_ENDPOINT as required by the libfabric "
+          "cxi backend. Turn off this warning by `export "
+          "LCI_ENABLE_PRG_NET_ENDPOINT=0`\n");
+    }
     if (LCI_RDV_PROTOCOL != LCI_RDV_WRITE) {
       LCI_RDV_PROTOCOL = LCI_RDV_WRITE;
       LCI_Warn(
           "Switch LCI_RDV_PROTOCOL to \"write\" "
-          "as required by the libfabric cxi backend\n");
+          "as required by the libfabric cxi backend. Turn off this warning by "
+          "`export LCI_RDV_PROTOCOL=write`\n");
     }
   }
 

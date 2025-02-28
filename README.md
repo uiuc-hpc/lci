@@ -78,7 +78,7 @@ make install
   If the backend indicated by this variable are found, LCI will just use it.
   Otherwise, LCI will use whatever are found with the priority `ibv` > `ofi` > `ucx`.
   The default value is `ibv`. Typically, you don't need to
-  modify this variable as if `libibverbs` presents, it is likely to be the recommended one to use.
+  modify this variable, because if `libibverbs` presents, it is likely to be the recommended one to use.
   - `ibv`: [libibverbs](https://github.com/linux-rdma/rdma-core/blob/master/Documentation/libibverbs.md), 
     typically for infiniband.
   - `ofi`: [libfabrics](https://ofiwg.github.io/libfabric/), 
@@ -113,3 +113,19 @@ See `lci/api/lci.h` for public APIs.
 
 ## LICENSE
 See LICENSE file.
+
+## FAQs
+### What to do when LCI cannot find IBV/OFI/UCX?
+This typically happens when libibverbs/libfabric/UCX is not installed or not installed in the standard 
+location. Make sure the backend is installed and specify `IBV_ROOT`, `OFI_ROOT`, or `UCX_ROOT` 
+(either through environment variables or CMake variables) to point CMake to the correct location.
+
+A common trick for finding whether/where they are installed is
+```
+# where libibverbs is installed
+which ibv_devinfo
+# where libfabric is installed
+which fi_info
+# where ucx is installed
+which ucx_info
+```

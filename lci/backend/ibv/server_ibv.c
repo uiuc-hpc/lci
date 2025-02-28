@@ -82,7 +82,10 @@ void LCISD_server_init(LCIS_server_t* s)
   int num_devices;
   server->dev_list = ibv_get_device_list(&num_devices);
   if (num_devices <= 0) {
-    fprintf(stderr, "Unable to find any IB devices\n");
+    fprintf(stderr,
+            "Unable to find any IB devices. Are you running on an Infiniband "
+            "machine? Try the LCI ofi backend by building LCI with "
+            "`-DLCI_SERVER=ofi` and `-DLCI_FORCE_SERVER=ON`.\n");
     exit(EXIT_FAILURE);
   }
 
