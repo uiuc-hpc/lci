@@ -105,7 +105,7 @@ enum class direction_t {
   OUT,
   IN,
 };
-using rcomp_t = uint64_t;
+using rcomp_t = uint32_t;
 
 class mr_impl_t;
 class mr_t
@@ -407,7 +407,7 @@ struct data_t {
       static_assert(sizeof(T) <= 23, "Scalar size is too large");
       return *reinterpret_cast<const T*>(scalar.data);
     } else {
-      throw std::logic_error("Cannot convert multiple buffers to a scalar");
+      throw std::logic_error("Cannot convert to a scalar");
     }
   }
   buffer_t get_buffer(get_semantic_t semantic = get_semantic_t::move)
@@ -431,7 +431,7 @@ struct data_t {
         ret = buffer_t(buffer.base, buffer.size, buffer.mr);
       }
     } else {
-      throw std::logic_error("Cannot convert multiple buffers to a buffer");
+      throw std::logic_error("Cannot convert to a buffer");
     }
     if (semantic == get_semantic_t::move) {
       own_data = false;

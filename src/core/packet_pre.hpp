@@ -11,6 +11,11 @@ struct packet_local_context_t {
   int local_id : 31;    /* id of the local pool to return this packet */
   bool isInPool : 1;    /* Debug use only. Whether this packet is in the packet
                            pool */
+  // context of the ongoing communication
+  bool is_eager : 1; /* whether this packet is used for eager protocol */
+  int rank;
+  tag_t tag;
+  data_t data;
 };
 
 struct packet_t {

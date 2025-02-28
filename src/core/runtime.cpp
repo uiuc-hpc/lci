@@ -110,6 +110,7 @@ void runtime_impl_t::initialize()
     net_endpoint = alloc_net_endpoint_x().runtime(runtime)();
   }
   matching_engine = alloc_matching_engine_x().runtime(runtime)();
+  matching_engine_rhandler = matching_engine.get_impl()->get_rhandler();
 }
 
 runtime_impl_t::~runtime_impl_t()

@@ -22,9 +22,9 @@ size_t get_max_eager_size_x::call_impl(runtime_t runtime,
 status_t post_comm_x::call_impl(
     direction_t direction, int rank, void* local_buffer, size_t size,
     comp_t local_comp, runtime_t runtime, packet_pool_t packet_pool,
-    net_endpoint_t net_endpoint, mr_t mr, void* remote_buffer, tag_t tag,
-    rcomp_t remote_comp, void* ctx, buffers_t buffers, rbuffers_t rbuffers,
-    bool allow_ok, bool force_rdv) const
+    net_endpoint_t net_endpoint, matching_engine_t matching_engine, mr_t mr,
+    void* remote_buffer, tag_t tag, rcomp_t remote_comp, void* ctx,
+    buffers_t buffers, rbuffers_t rbuffers, bool allow_ok, bool force_rdv) const
 {
   packet_t* packet = nullptr;
   internal_context_t* internal_ctx = nullptr;
@@ -49,12 +49,7 @@ status_t post_comm_x::call_impl(
   // determine data type
   data_t data;
   if (buffers.empty()) {
-    if (size < data_t::MAX_SCALAR_SIZE && !force_rdv) {
-      data.type = data_t::type_t::scalar;
-      memcpy(data.scalar.data, local_buffer, size);
-    } else {
-      data = data_t(buffer_t(local_buffer, size, mr));
-    }
+    data = data_t(buffer_t(local_buffer, size, mr));
   } else if (!buffers.empty()) {
     LCI_Assert(local_buffer == nullptr, "The local buffer should be nullptr\n");
     LCI_Assert(size == 0, "The size should be 0\n");
@@ -65,6 +60,7 @@ status_t post_comm_x::call_impl(
   status.data = data;
   internal_ctx->data = data;
   if (direction == direction_t::OUT) {
+    // send
     size_t max_inject_size = get_max_inject_size_x()
                                  .runtime(runtime)
                                  .net_endpoint(net_endpoint)
@@ -182,7 +178,7 @@ status_t post_comm_x::call_impl(
         rts_ctx->packet = packet;
       }
       p_rts->send_ctx = (uintptr_t)internal_ctx;
-      p_rts->rdv_type = rdv_type_t::single_1sided;
+      p_rts->rdv_type = rdv_type_t::single;
       p_rts->tag = tag;
       p_rts->rcomp = remote_comp;
       if (local_buffer) {
@@ -211,7 +207,17 @@ status_t post_comm_x::call_impl(
     }
   } else {
     // recv
-    throw std::logic_error("Not implemented");
+    status.error.reset(errorcode_t::posted);
+    internal_ctx->comp = local_comp;
+    auto key = matching_engine.get_impl()->make_key(rank, tag);
+    auto ret = matching_engine.get_impl()->insert(
+        key, internal_ctx, matching_engine_impl_t::type_t::recv);
+    if (ret) {
+      handle_matched_sendrecv(runtime, net_endpoint,
+                              reinterpret_cast<packet_t*>(ret), internal_ctx,
+                              &status);
+    }
+    goto exit;
   }
 
 exit_retry:
@@ -233,15 +239,15 @@ exit:
   } else {
     LCI_PCOUNTER_ADD(communicate_retry, 1);
   }
-  return status;
+  return std::move(status);
 }
 
 status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
                               comp_t local_comp, rcomp_t remote_comp,
                               runtime_t runtime, packet_pool_t packet_pool,
                               net_endpoint_t net_endpoint, mr_t mr, tag_t tag,
-                              void* ctx, buffers_t buffers, rbuffers_t rbuffers,
-                              bool allow_ok, bool force_rdv) const
+                              void* ctx, buffers_t buffers, bool allow_ok,
+                              bool force_rdv) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .runtime(runtime)
@@ -252,8 +258,50 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
       .remote_comp(remote_comp)
       .ctx(ctx)
       .buffers(buffers)
-      .rbuffers(rbuffers)
       .allow_ok(allow_ok)
       .force_rdv(force_rdv)();
 }
+
+status_t post_send_x::call_impl(int rank, void* local_buffer, size_t size,
+                                comp_t local_comp, runtime_t runtime,
+                                packet_pool_t packet_pool,
+                                net_endpoint_t net_endpoint,
+                                matching_engine_t matching_engine, mr_t mr,
+                                tag_t tag, void* ctx, buffers_t buffers,
+                                bool allow_ok, bool force_rdv) const
+{
+  return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
+      .runtime(runtime)
+      .packet_pool(packet_pool)
+      .net_endpoint(net_endpoint)
+      .matching_engine(matching_engine)
+      .mr(mr)
+      .tag(tag)
+      .ctx(ctx)
+      .buffers(buffers)
+      .allow_ok(allow_ok)
+      .force_rdv(force_rdv)();
+}
+
+status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
+                                comp_t local_comp, runtime_t runtime,
+                                packet_pool_t packet_pool,
+                                net_endpoint_t net_endpoint,
+                                matching_engine_t matching_engine, mr_t mr,
+                                tag_t tag, void* ctx, buffers_t buffers,
+                                bool allow_ok, bool force_rdv) const
+{
+  return post_comm_x(direction_t::IN, rank, local_buffer, size, local_comp)
+      .runtime(runtime)
+      .packet_pool(packet_pool)
+      .net_endpoint(net_endpoint)
+      .matching_engine(matching_engine)
+      .mr(mr)
+      .tag(tag)
+      .ctx(ctx)
+      .buffers(buffers)
+      .allow_ok(allow_ok)
+      .force_rdv(force_rdv)();
+}
+
 }  // namespace lci

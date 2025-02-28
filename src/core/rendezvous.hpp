@@ -3,11 +3,49 @@
 
 namespace lci
 {
+inline void handle_rdv_rts_post(runtime_t runtime, net_endpoint_t net_endpoint,
+                                packet_t* packet, internal_context_t* rdv_ctx);
+// Also for eager protocol
+inline void handle_matched_sendrecv(runtime_t runtime,
+                                    net_endpoint_t net_endpoint,
+                                    packet_t* packet,
+                                    internal_context_t* recv_ctx,
+                                    status_t* p_status = nullptr)
+{
+  if (packet->local_context.is_eager) {
+    // information needed from the incoming send packet
+    // rank, tag, actual size, packet buffer, eager or rendezvous
+    // information needed from the posted recv
+    // user buffer, user_context, comp
+    comp_t comp = recv_ctx->comp;
+
+    status_t status;
+    status.error = errorcode_t::ok;
+    status.data = recv_ctx->data;
+    status.user_context = recv_ctx->user_context;
+    delete recv_ctx;
+    status.rank = packet->local_context.rank;
+    status.tag = packet->local_context.tag;
+    LCI_Assert(status.data.is_buffer(), "Unexpected data type\n");
+    std::memcpy(status.data.buffer.base, packet->get_payload_address(),
+                packet->local_context.data.buffer.size);
+    status.data.buffer.size = packet->local_context.data.buffer.size;
+    packet->put_back();
+    if (!p_status) {
+      comp.get_impl()->signal(status);
+    } else {
+      *p_status = status;
+    }
+  } else {
+    handle_rdv_rts_post(runtime, net_endpoint, packet, recv_ctx);
+  }
+}
+
 struct rts_msg_t {
   rdv_type_t rdv_type : 2;
   int count : 30;
-  uintptr_t send_ctx;
   rcomp_t rcomp;
+  uintptr_t send_ctx;
   tag_t tag;
   size_t size_p[0];
 
@@ -80,7 +118,7 @@ struct rtr_msg_t {
   {
     LCI_Assert(!data.is_scalar(), "Unexpected scalar data\n");
     if (data.is_buffer()) {
-      rdv_type = rdv_type_t::single_1sided;
+      rdv_type = rdv_type_t::single;
       fill_rtr_rbuffer_info(&rbuffer_info_p[0], data.buffer.base,
                             data.buffer.mr);
       count = 1;
@@ -95,79 +133,83 @@ struct rtr_msg_t {
   }
 };
 
+inline void handle_rdv_rts_post(runtime_t runtime, net_endpoint_t net_endpoint,
+                                packet_t* packet, internal_context_t* rdv_ctx);
+
 inline void handle_rdv_rts(runtime_t runtime, net_endpoint_t net_endpoint,
-                           packet_t* packet, int src_rank,
-                           internal_context_t* rdv_ctx, bool is_in_progress)
+                           packet_t* packet)
 {
   net_device_t net_device = net_endpoint.get_impl()->net_device;
   // Extract information from the received RTS packet
   rts_msg_t* rts = reinterpret_cast<rts_msg_t*>(packet->payload);
   rdv_type_t rdv_type = rts->rdv_type;
   LCI_DBG_Log(LOG_TRACE, "rdv", "handle rts: rdv_type %d\n", rdv_type);
-  if (!rdv_ctx) {
-    LCI_Assert(rdv_type == rdv_type_t::single_1sided ||
-                   rdv_type == rdv_type_t::multiple,
-               "");
-    rdv_ctx = new internal_context_t;
-  }
-  if (rdv_type == rdv_type_t::single_2sided) {
-    throw std::logic_error("Not implemented");
-    // LCI_DBG_Assert(rdv_ctx->data.lbuffer.address == NULL ||
-    //                    rdv_ctx->data.lbuffer.length >= packet->data.rts.size,
-    //                "the message sent by sendl (%lu) is larger than the buffer
-    //                " "posted by recvl (%lu)!\n", packet->data.rts.size,
-    //                rdv_ctx->data.lbuffer.length);
-    // LCI_DBG_Assert(packet->context.src_rank == src_rank, "");
-    // LCI_DBG_Assert(rdv_ctx->tag == tag, "");
-  }
-  rdv_ctx->data = rts->alloc_data();
-  rdv_ctx->rank = src_rank;
-  if (rdv_type == rdv_type_t::single_1sided ||
-      rdv_type == rdv_type_t::multiple) {
-    // For 2sided, we already set these fields when posting the recvl.
-    rdv_ctx->tag = rts->tag;
-    rdv_ctx->user_context = NULL;
-    rdv_ctx->comp = runtime.p_impl->rcomp_registry.get(rts->rcomp);
-    rdv_ctx->rdv_type = rdv_type;
-  }
 
-  // Prepare the data
-  // if (rdv_type == LCII_RDV_2SIDED) {
-  //   if (rdv_ctx->data.lbuffer.address == NULL) {
-  //     LCI_lbuffer_alloc(ep->device, packet->data.rts.size,
-  //                       &rdv_ctx->data.lbuffer);
-  //   }
-  //   if (rdv_ctx->data.lbuffer.segment == LCI_SEGMENT_ALL) {
-  //     LCI_DBG_Assert(LCII_comp_attr_get_dereg(rdv_ctx->comp_attr) == 1,
-  //     "\n"); LCI_memory_register(ep->device, rdv_ctx->data.lbuffer.address,
-  //                         rdv_ctx->data.lbuffer.length,
-  //                         &rdv_ctx->data.lbuffer.segment);
-  //   } else {
-  //     LCI_DBG_Assert(LCII_comp_attr_get_dereg(rdv_ctx->comp_attr) == 0,
-  //     "\n");
-  //   }
-  // } else if (rdv_type == LCII_RDV_1SIDED) {
-  // allocate a buffer and register it with the endpoint that we are going to
-  // use
-  register_data(rdv_ctx->data, net_device);
-  rdv_ctx->mr_on_the_fly = true;
-  // } else {
-  //   // rdv_type == LCII_RDV_IOVEC
-  //   rdv_ctx->data.iovec.count = packet->data.rts.count;
-  //   rdv_ctx->data.iovec.piggy_back.length = packet->data.rts.piggy_back_size;
-  //   rdv_ctx->data.iovec.piggy_back.address =
-  //       LCIU_malloc(packet->data.rts.piggy_back_size);
-  //   memcpy(rdv_ctx->data.iovec.piggy_back.address,
-  //          (void*)&packet->data.rts.size_p[packet->data.rts.count],
-  //          packet->data.rts.piggy_back_size);
-  //   rdv_ctx->data.iovec.lbuffers =
-  //       LCIU_malloc(sizeof(LCI_lbuffer_t) * packet->data.rts.count);
-  //   for (int i = 0; i < packet->data.rts.count; ++i) {
-  //     LCI_lbuffer_alloc(ep->device, packet->data.rts.size_p[i],
-  //                       &rdv_ctx->data.iovec.lbuffers[i]);
-  //   }
-  //   rdv_ctx->data_type = LCI_IOVEC;
-  // }
+  auto entry = runtime.p_impl->rhandler_registry.get(rts->rcomp);
+  if (entry.type == rhandler_registry_t::type_t::matching_engine) {
+    // send recv
+    packet->local_context.tag = rts->tag;
+    packet->local_context.is_eager = false;
+
+    // get the matching engine
+    matching_engine_impl_t* p_matching_engine =
+        reinterpret_cast<matching_engine_impl_t*>(entry.value);
+    // insert into the matching engine
+    auto key = p_matching_engine->make_key(packet->local_context.rank,
+                                           packet->local_context.tag);
+    auto ret = p_matching_engine->insert(key, packet,
+                                         matching_engine_impl_t::type_t::send);
+    if (!ret) return;
+    handle_rdv_rts_post(runtime, net_endpoint, packet,
+                        reinterpret_cast<internal_context_t*>(ret));
+  } else {
+    // am
+    handle_rdv_rts_post(runtime, net_endpoint, packet, nullptr);
+  }
+}
+
+inline void handle_rdv_rts_post(runtime_t runtime, net_endpoint_t net_endpoint,
+                                packet_t* packet, internal_context_t* rdv_ctx)
+{
+  net_device_t net_device = net_endpoint.get_impl()->net_device;
+  // Extract information from the received RTS packet
+  rts_msg_t* rts = reinterpret_cast<rts_msg_t*>(packet->payload);
+  rdv_type_t rdv_type = rts->rdv_type;
+  LCI_DBG_Log(LOG_TRACE, "rdv", "handle rts: rdv_type %d\n", rdv_type);
+  // build the rdv context
+  if (!rdv_ctx) {
+    rdv_ctx = new internal_context_t;
+    rdv_ctx->data = rts->alloc_data();
+    rdv_ctx->user_context = NULL;
+    rdv_ctx->rdv_type = rdv_type;
+    auto entry = runtime.p_impl->rhandler_registry.get(rts->rcomp);
+    LCI_DBG_Assert(entry.type == rhandler_registry_t::type_t::comp, "");
+    rdv_ctx->comp.p_impl = reinterpret_cast<comp_impl_t*>(entry.value);
+  } else {
+    // needed from incoming send
+    // packet, src_rank, tag
+    // needed from posted recv
+    // user_data, user_context, comp
+
+    // set rdv_ctx->data size(s) based on rts->size_p
+    if (rdv_ctx->data.is_buffer()) {
+      LCI_Assert(rts->count == 1, "");
+      LCI_Assert(rdv_ctx->data.buffer.size >= rts->size_p[0], "");
+      rdv_ctx->data.buffer.size = rts->size_p[0];
+    } else {
+      LCI_Assert(rdv_ctx->data.is_buffers(), "");
+      LCI_Assert(rdv_ctx->data.get_buffers_count() == rts->count, "");
+      for (int i = 0; i < rts->count; i++) {
+        LCI_Assert(rdv_ctx->data.buffers.buffers[i].size >= rts->size_p[i], "");
+        rdv_ctx->data.buffers.buffers[i].size = rts->size_p[i];
+      }
+    }
+  }
+  rdv_ctx->tag = rts->tag;
+  rdv_ctx->rank = packet->local_context.rank;
+
+  // Register the data
+  rdv_ctx->mr_on_the_fly = register_data(rdv_ctx->data, net_device);
 
   // Prepare the RTR packet
   // reuse the rts packet as rtr packet
@@ -201,13 +243,6 @@ inline void handle_rdv_rts(runtime_t runtime, net_endpoint_t net_endpoint,
               (void*)packet->data.rtr.send_ctx);
 
   // send the rtr packet
-  // endpoint_t endpoint_to_use;
-  // if (is_in_progress) {
-  //   endpoint_to_use = ep->device->endpoint_progress->endpoint;
-  // } else {
-  //   LCI_Assert(rdv_type == LCII_RDV_2SIDED, "");
-  //   endpoint_to_use = ep->device->endpoint_worker->endpoint;
-  // }
   internal_context_t* rtr_ctx = new internal_context_t;
   rtr_ctx->packet = packet;
 

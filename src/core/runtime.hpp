@@ -19,8 +19,9 @@ class runtime_impl_t
   net_device_t net_device;
   net_endpoint_t net_endpoint;
   packet_pool_t packet_pool;
-  rcomp_registry_t rcomp_registry;
+  rhandler_registry_t rhandler_registry;
   matching_engine_t matching_engine;
+  rcomp_t matching_engine_rhandler;
 };
 }  // namespace lci
 

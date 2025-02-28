@@ -30,7 +30,7 @@
 #include "data_structure/mpmc_set.hpp"
 #include "matching_engine/matching_engine.hpp"
 #include "core/data.hpp"
-#include "core/rcomp_registry.hpp"
+#include "core/rhandler_registry.hpp"
 #include "core/global.hpp"
 #include "core/protocol.hpp"
 #include "core/cq.hpp"

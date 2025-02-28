@@ -26,20 +26,36 @@ void progress_recv(runtime_t runtime, net_device_t net_device,
   }
   switch (msg_type) {
     case IMM_DATA_MSG_EAGER: {
-      comp_t comp = runtime.p_impl->rcomp_registry.get(remote_comp);
-      status_t status;
-      status.error = errorcode_t::ok;
-      status.rank = net_status.rank;
-      status.tag = tag;
-      status.data.copy_from(packet->get_payload_address(), net_status.length);
-      status.user_context = nullptr;
-      packet->put_back();
-      comp.get_impl()->signal(std::move(status));
+      auto entry = runtime.p_impl->rhandler_registry.get(remote_comp);
+      if (entry.type == rhandler_registry_t::type_t::comp) {
+        status_t status;
+        status.error = errorcode_t::ok;
+        status.rank = net_status.rank;
+        status.tag = tag;
+        status.data.copy_from(packet->get_payload_address(), net_status.length);
+        status.user_context = nullptr;
+        packet->put_back();
+        reinterpret_cast<comp_impl_t*>(entry.value)->signal(std::move(status));
+      } else {
+        // we get a matching table entry
+        matching_engine_impl_t* p_matching_engine =
+            reinterpret_cast<matching_engine_impl_t*>(entry.value);
+        auto key = p_matching_engine->make_key(net_status.rank, tag);
+        packet->local_context.is_eager = true;
+        packet->local_context.rank = net_status.rank;
+        packet->local_context.tag = tag;
+        packet->local_context.data = buffer_t(nullptr, net_status.length);
+        auto ret = p_matching_engine->insert(
+            key, packet, matching_engine_impl_t::type_t::send);
+        if (ret)
+          handle_matched_sendrecv(runtime, net_endpoint, packet,
+                                  reinterpret_cast<internal_context_t*>(ret));
+      }
       break;
     }
     case IMM_DATA_MSG_RTS:
-      handle_rdv_rts(runtime, net_endpoint, packet, net_status.rank, nullptr,
-                     true);
+      packet->local_context.rank = net_status.rank;
+      handle_rdv_rts(runtime, net_endpoint, packet);
       break;
     case IMM_DATA_MSG_RTR:
       handle_rdv_rtr(runtime, net_endpoint, packet);

@@ -37,8 +37,8 @@ class matching_engine_queue_t : public matching_engine_impl_t
 
  private:
   struct entry_t {
-    uint64_t key;
-    void* value;
+    key_t key;
+    val_t value;
   };
   std::list<entry_t> send_queue;
   std::list<entry_t> recv_queue;

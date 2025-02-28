@@ -1,8 +1,8 @@
 #include "lci_internal.hpp"
 
-namespace test_comm
+namespace test_comm_am
 {
-TEST(COMM, am_eager_st)
+TEST(COMM_AM, am_eager_st)
 {
   lci::g_runtime_init();
 
@@ -22,12 +22,12 @@ TEST(COMM, am_eager_st)
     lci::status_t status;
     do {
       status = lci::post_am(rank, &data, sizeof(data), lcq, rcomp);
-      lci::progress_x().call();
+      lci::progress();
     } while (status.error.is_retry());
     if (status.error.is_posted()) {
       // poll local cq
       do {
-        lci::progress_x().call();
+        lci::progress();
         status = lci::cq_pop(lcq);
       } while (status.error.is_retry());
     }
@@ -35,7 +35,7 @@ TEST(COMM, am_eager_st)
     // poll remote cq
     do {
       status = lci::cq_pop(rcq);
-      lci::progress_x().call();
+      lci::progress();
     } while (status.error.is_retry());
     ASSERT_EQ(status.data.get_scalar<uint64_t>(), data);
   }
@@ -83,7 +83,7 @@ void test_am_eager_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
   }
 }
 
-TEST(COMM, am_eager_mt)
+TEST(COMM_AM, am_eager_mt)
 {
   lci::g_runtime_init();
 
@@ -115,7 +115,7 @@ TEST(COMM, am_eager_mt)
   lci::g_runtime_fina();
 }
 
-TEST(COMM, am_rdv_st)
+TEST(COMM_AM, am_rdv_st)
 {
   lci::g_runtime_init();
 
@@ -136,12 +136,12 @@ TEST(COMM, am_rdv_st)
     do {
       status = lci::post_am_x(rank, &data, sizeof(data), lcq, rcomp)
                    .force_rdv(true)();
-      lci::progress_x().call();
+      lci::progress();
     } while (status.error.is_retry());
     if (status.error.is_posted()) {
       // poll local cq
       do {
-        lci::progress_x().call();
+        lci::progress();
         status = lci::cq_pop(lcq);
       } while (status.error.is_retry());
     }
@@ -149,7 +149,7 @@ TEST(COMM, am_rdv_st)
     // poll remote cq
     do {
       status = lci::cq_pop(rcq);
-      lci::progress_x().call();
+      lci::progress();
     } while (status.error.is_retry());
     ASSERT_EQ(status.data.get_scalar<uint64_t>(), data);
   }
@@ -198,7 +198,7 @@ void test_am_rdv_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
   }
 }
 
-TEST(COMM, am_rdv_mt)
+TEST(COMM_AM, am_rdv_mt)
 {
   lci::g_runtime_init();
 
@@ -229,7 +229,7 @@ TEST(COMM, am_rdv_mt)
   lci::g_runtime_fina();
 }
 
-TEST(COMM, am_buffers_st)
+TEST(COMM_AM, am_buffers_st)
 {
   lci::g_runtime_init();
 
@@ -256,12 +256,12 @@ TEST(COMM, am_buffers_st)
     lci::status_t status;
     do {
       status = lci::post_am_x(rank, nullptr, 0, lcq, rcomp).buffers(buffers)();
-      lci::progress_x().call();
+      lci::progress();
     } while (status.error.is_retry());
     if (status.error.is_posted()) {
       // poll local cq
       do {
-        lci::progress_x().call();
+        lci::progress();
         status = lci::cq_pop(lcq);
       } while (status.error.is_retry());
     }
@@ -274,7 +274,7 @@ TEST(COMM, am_buffers_st)
     // poll remote cq
     do {
       status = lci::cq_pop(rcq);
-      lci::progress_x().call();
+      lci::progress();
     } while (status.error.is_retry());
     ret_buffers = status.data.get_buffers();
     ASSERT_EQ(ret_buffers.size(), buffers.size());
@@ -339,7 +339,7 @@ void test_am_buffers_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
   }
 }
 
-TEST(COMM, am_buffers_mt)
+TEST(COMM_AM, am_buffers_mt)
 {
   lci::g_runtime_init();
 
@@ -377,4 +377,4 @@ TEST(COMM, am_buffers_mt)
   lci::g_runtime_fina();
 }
 
-}  // namespace test_comm
+}  // namespace test_comm_am

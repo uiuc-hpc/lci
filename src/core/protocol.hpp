@@ -3,7 +3,7 @@
 
 namespace lci
 {
-enum class rdv_type_t : unsigned int { single_2sided, single_1sided, multiple };
+enum class rdv_type_t : unsigned int { single, multiple };
 
 enum imm_data_msg_type_t {
   IMM_DATA_MSG_EAGER = 0,
@@ -44,7 +44,7 @@ struct alignas(LCI_CACHE_LINE) internal_context_t {
   internal_context_t()
       : is_extended(false),
         mr_on_the_fly(false),
-        rdv_type(rdv_type_t::single_2sided),
+        rdv_type(rdv_type_t::single),
         rank(-1),
         tag(0),
         comp(comp_t()),

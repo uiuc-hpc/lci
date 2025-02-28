@@ -13,7 +13,7 @@ target_sources_relative(
   core/packet_pool.cpp
   core/cq.cpp
   core/comp.cpp
-  core/rcomp_registry.cpp
+  core/rhandler_registry.cpp
   core/runtime.cpp
   core/communicate.cpp
   core/memory.cpp
