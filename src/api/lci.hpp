@@ -17,26 +17,27 @@ namespace lci
 // mimic std::optional as we don't want to force c++17 for now
 template <typename T>
 struct option_t {
-  option_t() : value(), is_set(false) {}
-  option_t(T value_) : value(value_), is_set(true) {}
+  option_t() : m_value(), m_is_set(false) {}
+  option_t(T value_) : m_value(value_), m_is_set(true) {}
   option_t(T value_, bool is_set_)
-      : value(value_), is_set(is_set_) {}  // set default value
+      : m_value(value_), m_is_set(is_set_) {}  // set default value
   T get_value_or(T default_value) const
   {
-    return is_set ? value : default_value;
+    return m_is_set ? m_value : default_value;
   }
   bool get_set_value(T* value) const
   {
-    if (is_set) {
-      *value = this->value;
+    if (m_is_set) {
+      *value = this->m_value;
       return true;
     }
     return false;
   }
-  T get_value() const { return value; }
-  operator T() const { return value; }
-  T value;
-  bool is_set;
+  T get_value() const { return m_value; }
+  bool is_set() const { return m_is_set; }
+  operator T() const { return m_value; }
+  T m_value;
+  bool m_is_set;
 };
 
 enum class errorcode_t {
@@ -452,7 +453,7 @@ struct data_t {
   buffers_t get_buffers(get_semantic_t semantic = get_semantic_t::move)
   {
     if (!is_buffers()) {
-      throw std::logic_error("Not a buffers");
+      throw std::logic_error("Not buffers");
     }
     if (semantic == get_semantic_t::move) {
       own_data = false;

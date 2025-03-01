@@ -105,9 +105,32 @@ void progress_write(net_endpoint_t net_endpoint, const net_status_t& net_status)
   }
 }
 
-void progress_remote_write(const net_status_t& status)
+void progress_remote_write(runtime_t runtime, const net_status_t& net_status)
 {
-  throw std::runtime_error("progress_remote_write not implemented");
+  LCI_PCOUNTER_ADD(net_remote_write_comp, 1)
+  packet_t* packet = static_cast<packet_t*>(net_status.user_context);
+  if (packet) {
+    packet->put_back();
+  }
+  // decode immediate data
+  uint32_t imm_data = net_status.imm_data;
+  tag_t tag;
+  rcomp_t remote_comp;
+  bool is_fastpath = get_bits32(imm_data, 1, 31);
+  if (is_fastpath) {
+    // user posted RDMA write with immediate data
+    tag = get_bits32(imm_data, 16, 0);
+    remote_comp = get_bits32(imm_data, 15, 16);
+    auto entry = runtime.get_impl()->rhandler_registry.get(remote_comp);
+    status_t status;
+    status.error = errorcode_t::ok;
+    status.rank = net_status.rank;
+    status.tag = tag;
+    status.user_context = nullptr;
+    reinterpret_cast<comp_impl_t*>(entry.value)->signal(std::move(status));
+  } else {
+    throw std::logic_error("Not implemented");
+  }
 }
 
 void progress_read(const net_status_t& status)
@@ -137,7 +160,7 @@ error_t progress_x::call_impl(runtime_t runtime, net_device_t net_device,
     } else if (status.opcode == net_opcode_t::WRITE) {
       progress_write(net_endpoint, status);
     } else if (status.opcode == net_opcode_t::REMOTE_WRITE) {
-      progress_remote_write(status);
+      progress_remote_write(runtime, status);
     } else if (status.opcode == net_opcode_t::READ) {
       progress_read(status);
     }

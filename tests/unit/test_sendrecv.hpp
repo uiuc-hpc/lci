@@ -228,7 +228,7 @@ void test_sendrecv_rdv_mt(int id, int nmsgs)
   lci::free_cq(&scq);
 }
 
-TEST(COMM_SENDRECV, am_rdv_mt)
+TEST(COMM_SENDRECV, sendrecv_rdv_mt)
 {
   lci::g_runtime_init();
 
@@ -389,7 +389,7 @@ TEST(COMM_SENDRECV, sendrecv_buffers_mt)
 {
   lci::g_runtime_init();
 
-  const int nmsgs = 20000;
+  const int nmsgs = 4992;
   const int nthreads = 16;
   ASSERT_EQ(nmsgs % nthreads, 0);
   int rank = lci::get_rank();

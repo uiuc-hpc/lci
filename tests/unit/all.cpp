@@ -10,6 +10,8 @@
 #include "test_cq.hpp"
 #include "test_am.hpp"
 #include "test_sendrecv.hpp"
+#include "test_put.hpp"
+#include "test_putImm.hpp"
 
 int main(int argc, char** argv)
 {

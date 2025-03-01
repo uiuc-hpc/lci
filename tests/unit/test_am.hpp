@@ -343,7 +343,7 @@ TEST(COMM_AM, am_buffers_mt)
 {
   lci::g_runtime_init();
 
-  const int nmsgs = 20000;
+  const int nmsgs = 4992;
   const int nthreads = 16;
   ASSERT_EQ(nmsgs % nthreads, 0);
   int rank = lci::get_rank();

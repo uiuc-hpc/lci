@@ -311,13 +311,23 @@ operation(
     comment="Signal a completion object."
 ),
 operation(
+    "reserve_rcomps", 
+    [
+        optional_runtime_args,
+        positional_arg("rcomp_t", "n"),
+        return_val("rcomp_t", "start")
+    ],
+    comment="Reserve spaces for n remote completion handlers."
+),
+operation(
     "register_rcomp", 
     [
         optional_runtime_args,
         positional_arg("comp_t", "comp"),
-        return_val("rcomp_t", "rcomp")
+        optional_arg("rcomp_t", "rcomp", "0"),
+        return_val("rcomp_t", "rcomp_out")
     ],
-    comment="Register a completion object into a remote completion object."
+    comment="Register a completion object into a remote completion handler."
 ),
 operation(
     "deregister_rcomp", 
@@ -325,7 +335,7 @@ operation(
         optional_runtime_args,
         positional_arg("rcomp_t", "rcomp"),
     ],
-    comment="Deregister a remote completion object."
+    comment="Deregister a remote completion handler."
 ),
 # cq
 operation(
@@ -375,7 +385,7 @@ operation(
         optional_arg("uintptr_t", "remote_buffer", "0"),
         optional_arg("rkey_t", "rkey", "0"),
         optional_arg("tag_t", "tag", "0"),
-        optional_arg("rcomp_t", "remote_comp", "matching_engine.is_empty() ? rcomp_t() : matching_engine.get_impl()->get_rhandler()"),
+        optional_arg("rcomp_t", "remote_comp", "0"),
         optional_arg("void*", "ctx", "nullptr"),
         optional_arg("buffers_t", "buffers", "buffers_t()"),
         optional_arg("rbuffers_t", "rbuffers", "rbuffers_t()"),
@@ -392,7 +402,7 @@ operation(
         positional_arg("void*", "local_buffer"),
         positional_arg("size_t", "size"),
         positional_arg("comp_t", "local_comp"),
-        positional_arg("rcomp_t", "remote_comp", "-1"),
+        positional_arg("rcomp_t", "remote_comp"),
         optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
         optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
         optional_arg("out_comp_type_t", "out_comp_type", "out_comp_type_t::buffer"),
@@ -458,10 +468,10 @@ operation(
         positional_arg("rkey_t", "rkey", "0"),
         optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
         optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
-        optional_arg("out_comp_type_t", "out_comp_type", "out_comp_type_t::network"),
+        optional_arg("out_comp_type_t", "out_comp_type", "out_comp_type_t::buffer"),
         optional_arg("mr_t", "mr", "mr_t()"),
         optional_arg("tag_t", "tag", "0"),
-        optional_arg("rcomp_t", "remote_comp", "rcomp_t()"),
+        optional_arg("rcomp_t", "remote_comp", "0"),
         optional_arg("void*", "ctx", "nullptr"),
         optional_arg("buffers_t", "buffers", "buffers_t()"),
         optional_arg("rbuffers_t", "rbuffers", "rbuffers_t()"),
