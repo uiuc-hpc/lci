@@ -23,8 +23,8 @@ status_t post_comm_x::call_impl(
     direction_t direction, int rank, void* local_buffer, size_t size,
     comp_t local_comp, runtime_t runtime, packet_pool_t packet_pool,
     net_endpoint_t net_endpoint, matching_engine_t matching_engine,
-    out_comp_type_t out_comp_type, mr_t mr, void* remote_buffer, rkey_t rkey,
-    tag_t tag, rcomp_t remote_comp, void* ctx, buffers_t buffers,
+    out_comp_type_t out_comp_type, mr_t mr, uintptr_t remote_buffer,
+    rkey_t rkey, tag_t tag, rcomp_t remote_comp, void* ctx, buffers_t buffers,
     rbuffers_t rbuffers, bool allow_ok, bool force_rdv) const
 {
   packet_t* packet = nullptr;
@@ -166,7 +166,7 @@ status_t post_comm_x::call_impl(
       // end of eager protocol
     } else {
       // buffer longer than max_eager_size or buffers
-      if (remote_buffer) {
+      if (remote_buffer || !rbuffers.empty()) {
         // RDMA write
         if (mr.is_empty()) {
           internal_ctx->mr_on_the_fly =
@@ -188,6 +188,9 @@ status_t post_comm_x::call_impl(
                 data.buffers.buffers[i].size, data.buffers.buffers[i].mr,
                 reinterpret_cast<uintptr_t>(rbuffers[i].base), 0,
                 rbuffers[i].rkey, extended_ctx);
+            if (i == 0 && error.is_retry()) {
+              goto exit;
+            }
             LCI_Assert(error.is_posted(), "Need to implement backlog queue\n");
           }
         }
@@ -348,7 +351,7 @@ status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
 }
 
 status_t post_put_x::call_impl(int rank, void* local_buffer, size_t size,
-                               comp_t local_comp, void* remote_buffer,
+                               comp_t local_comp, uintptr_t remote_buffer,
                                rkey_t rkey, runtime_t runtime,
                                packet_pool_t packet_pool,
                                net_endpoint_t net_endpoint,

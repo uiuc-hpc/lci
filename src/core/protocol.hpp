@@ -72,7 +72,7 @@ struct alignas(LCI_CACHE_LINE) internal_context_extended_t {
   uint64_t recv_ctx;                 // 8 bytes
 
   internal_context_extended_t()
-      : is_extended(true), internal_ctx(nullptr), signal_count(0)
+      : is_extended(true), internal_ctx(nullptr), signal_count(0), recv_ctx(0)
   {
   }
 };
