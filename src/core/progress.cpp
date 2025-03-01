@@ -76,9 +76,6 @@ void progress_send(const net_status_t& net_status)
   if (!internal_ctx)
     // an ibv inject
     return;
-  if (internal_ctx->packet) {
-    internal_ctx->packet->put_back();
-  }
   free_ctx_and_signal_comp(internal_ctx);
 }
 
@@ -87,12 +84,24 @@ void progress_write(net_endpoint_t net_endpoint, const net_status_t& net_status)
   LCI_PCOUNTER_ADD(net_write_comp, 1)
   internal_context_t* internal_ctx =
       static_cast<internal_context_t*>(net_status.user_context);
+
   if (internal_ctx->is_extended) {
+    // extended internal context
     internal_context_extended_t* ectx =
         reinterpret_cast<internal_context_extended_t*>(internal_ctx);
-    handle_rdv_local_write(net_endpoint, ectx);
+    int signal_count = --ectx->signal_count;
+    if (signal_count > 0) {
+      return;
+    }
+    LCI_DBG_Assert(signal_count == 0, "Unexpected signal!\n");
+    internal_context_t* ctx = ectx->internal_ctx;
+    if (ectx->recv_ctx) {
+      handle_rdv_local_write(net_endpoint, ectx);
+    }  // else: this is a RDMA write buffers
+    delete ectx;
+    free_ctx_and_signal_comp(ctx);
   } else {
-    throw std::logic_error("progress_write Not implemented");
+    free_ctx_and_signal_comp(internal_ctx);
   }
 }
 

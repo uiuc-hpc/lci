@@ -107,6 +107,13 @@ enum class direction_t {
 };
 using rcomp_t = uint32_t;
 
+// completion semantics when we are pushing data out
+enum class out_comp_type_t {
+  buffer,   // send buffer can be reused
+  network,  // completion was reported by the network layer
+};
+// for pulling data in, completion always means the data is ready
+
 class mr_impl_t;
 class mr_t
 {
@@ -139,14 +146,10 @@ struct buffer_t {
 };
 struct rbuffer_t {
   uintptr_t base;
-  size_t size;
   rkey_t rkey;
-  rbuffer_t() : base(0), size(0), rkey(0) {}
-  rbuffer_t(uintptr_t base_, size_t size_) : base(base_), size(size_) {}
-  rbuffer_t(uintptr_t base_, size_t size_, rkey_t rkey_)
-      : base(base_), size(size_), rkey(rkey_)
-  {
-  }
+  rbuffer_t() : base(0), rkey(0) {}
+  rbuffer_t(uintptr_t base_) : base(base_) {}
+  rbuffer_t(uintptr_t base_, rkey_t rkey_) : base(base_), rkey(rkey_) {}
 };
 using buffers_t = std::vector<buffer_t>;
 using rbuffers_t = std::vector<rbuffer_t>;

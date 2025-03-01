@@ -155,7 +155,7 @@ inline error_t ofi_net_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
   riov.key = rkey;
   msg.rma_iov = &riov;
   msg.rma_iov_count = 1;
-  msg.context = NULL;
+  msg.context = nullptr;
   msg.data = 0;
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
   ssize_t ret = fi_writemsg(ofi_ep, &msg, FI_INJECT | FI_DELIVERY_COMPLETE);

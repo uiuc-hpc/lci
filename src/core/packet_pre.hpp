@@ -35,6 +35,8 @@ static inline packet_t* address2packet(void* address)
   return (packet_t*)((char*)address - offsetof(packet_t, payload));
 }
 
+inline void free_ctx_and_signal_comp(internal_context_t* internal_ctx);
+
 }  // namespace lci
 
 #endif  // LCI_CORE_PACKET_PRE_HPP

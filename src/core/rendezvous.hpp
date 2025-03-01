@@ -244,7 +244,7 @@ inline void handle_rdv_rts_post(runtime_t runtime, net_endpoint_t net_endpoint,
 
   // send the rtr packet
   internal_context_t* rtr_ctx = new internal_context_t;
-  rtr_ctx->packet = packet;
+  rtr_ctx->packet_to_free = packet;
 
   size_t length = rtr->get_size();
   net_imm_data_t imm_data = set_bits32(0, IMM_DATA_MSG_RTR, 2, 29);
@@ -340,19 +340,13 @@ inline void handle_rdv_rtr(runtime_t runtime, net_endpoint_t net_endpoint,
 inline void handle_rdv_local_write(net_endpoint_t net_endpoint,
                                    internal_context_extended_t* ectx)
 {
-  int signal_count = --ectx->signal_count;
-  if (signal_count > 0) {
-    return;
-  }
-  LCI_DBG_Assert(signal_count == 0, "Unexpected signal!\n");
   internal_context_t* ctx = ectx->internal_ctx;
+  LCI_Assert(ectx->recv_ctx, "Unexpected recv_ctx\n");
   LCI_DBG_Log(LOG_TRACE, "rdv", "send FIN: rctx %p\n", (void*)ectx->recv_ctx);
   net_imm_data_t imm_data = set_bits32(0, IMM_DATA_MSG_FIN, 2, 29);
   error_t error = net_endpoint.get_impl()->post_sends(
       (int)ctx->rank, &ectx->recv_ctx, sizeof(ectx->recv_ctx), imm_data);
-  LCI_Assert(error.is_ok(), "Unexpected error value\n");
-  delete ectx;
-  free_ctx_and_signal_comp(ctx);
+  LCI_Assert(error.is_ok(), "Need to implement backlog queue\n");
 }
 
 inline void handle_rdv_remote_comp(internal_context_t* ctx)
