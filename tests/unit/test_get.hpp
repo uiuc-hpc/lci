@@ -241,12 +241,12 @@ TEST(COMM_GET, get_buffers_st)
   for (int i = 0; i < buffers_count; i++) {
     send_buffers[i].base = malloc(msg_size);
     send_buffers[i].size = msg_size;
+    send_buffers[i].mr = lci::register_memory(send_buffers[i].base, msg_size);
     util::write_buffer(send_buffers[i].base, send_buffers[i].size, 'b');
     recv_buffers[i].base = malloc(msg_size);
     recv_buffers[i].size = msg_size;
-    recv_buffers[i].mr = lci::register_memory(send_buffers[i].base, msg_size);
     rbuffers[i].base = reinterpret_cast<uintptr_t>(send_buffers[i].base);
-    rbuffers[i].rkey = lci::get_rkey(recv_buffers[i].mr);
+    rbuffers[i].rkey = lci::get_rkey(send_buffers[i].mr);
   }
   // loopback message
   for (int i = 0; i < nmsgs; i++) {
@@ -275,7 +275,7 @@ TEST(COMM_GET, get_buffers_st)
   }
   // clean up
   for (int i = 0; i < buffers_count; i++) {
-    lci::deregister_memory(&recv_buffers[i].mr);
+    lci::deregister_memory(&send_buffers[i].mr);
     free(send_buffers[i].base);
     free(recv_buffers[i].base);
   }
@@ -297,12 +297,12 @@ void test_get_buffers_mt(int id, int nmsgs)
   for (int i = 0; i < buffers_count; i++) {
     send_buffers[i].base = malloc(msg_size);
     send_buffers[i].size = msg_size;
+    send_buffers[i].mr = lci::register_memory(send_buffers[i].base, msg_size);
     util::write_buffer(send_buffers[i].base, send_buffers[i].size, 'b');
     recv_buffers[i].base = malloc(msg_size);
     recv_buffers[i].size = msg_size;
-    recv_buffers[i].mr = lci::register_memory(send_buffers[i].base, msg_size);
     rbuffers[i].base = reinterpret_cast<uintptr_t>(send_buffers[i].base);
-    rbuffers[i].rkey = lci::get_rkey(recv_buffers[i].mr);
+    rbuffers[i].rkey = lci::get_rkey(send_buffers[i].mr);
   }
   // loopback message
   for (int i = 0; i < nmsgs; i++) {
@@ -331,7 +331,7 @@ void test_get_buffers_mt(int id, int nmsgs)
   }
   // clean up
   for (int i = 0; i < buffers_count; i++) {
-    lci::deregister_memory(&recv_buffers[i].mr);
+    lci::deregister_memory(&send_buffers[i].mr);
     free(send_buffers[i].base);
     free(recv_buffers[i].base);
   }

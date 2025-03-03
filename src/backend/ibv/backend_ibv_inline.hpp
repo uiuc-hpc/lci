@@ -36,6 +36,7 @@ inline std::vector<net_status_t> ibv_net_device_impl_t::poll_comp_impl(
         status.imm_data = wcs[i].imm_data;
         status.rank = qp2rank[wcs[i].qp_num % qp2rank_mod];
       } else if (wcs[i].opcode == IBV_WC_RECV_RDMA_WITH_IMM) {
+        consume_recvs(1);
         status.opcode = net_opcode_t::REMOTE_WRITE;
         status.user_context = (void*)wcs[i].wr_id;
         status.imm_data = wcs[i].imm_data;
@@ -194,7 +195,7 @@ inline error_t ibv_net_endpoint_impl_t::post_send_impl(int rank, void* buffer,
   int ret = ibv_post_send(ib_qps[rank], &wr, &bad_wr);
   unlock_qp(rank);
   if (ret == 0)
-    return errorcode_t::ok;
+    return errorcode_t::posted;
   else if (ret == ENOMEM)
     return errorcode_t::retry_nomem;  // exceed send queue capacity
   else {
@@ -284,7 +285,7 @@ inline error_t ibv_net_endpoint_impl_t::post_put_impl(int rank, void* buffer,
   int ret = ibv_post_send(ib_qps[rank], &wr, &bad_wr);
   unlock_qp(rank);
   if (ret == 0)
-    return errorcode_t::ok;
+    return errorcode_t::posted;
   else if (ret == ENOMEM)
     return errorcode_t::retry_nomem;  // exceed send queue capacity
   else {
@@ -371,7 +372,7 @@ inline error_t ibv_net_endpoint_impl_t::post_putImm_impl(
   int ret = ibv_post_send(ib_qps[rank], &wr, &bad_wr);
   unlock_qp(rank);
   if (ret == 0)
-    return errorcode_t::ok;
+    return errorcode_t::posted;
   else if (ret == ENOMEM)
     return errorcode_t::retry_nomem;  // exceed send queue capacity
   else {
@@ -415,7 +416,7 @@ inline error_t ibv_net_endpoint_impl_t::post_get_impl(int rank, void* buffer,
   int ret = ibv_post_send(ib_qps[rank], &wr, &bad_wr);
   unlock_qp(rank);
   if (ret == 0)
-    return errorcode_t::ok;
+    return errorcode_t::posted;
   else if (ret == ENOMEM)
     return errorcode_t::retry_nomem;  // exceed send queue capacity
   else {

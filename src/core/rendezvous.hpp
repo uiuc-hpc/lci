@@ -251,7 +251,7 @@ inline void handle_rdv_rts_post(runtime_t runtime, net_endpoint_t net_endpoint,
   error_t status = net_endpoint.get_impl()->post_send(
       (int)rdv_ctx->rank, packet->payload, length, packet->get_mr(net_endpoint),
       imm_data, rtr_ctx);
-  LCI_Assert(status.is_posted(), "Unexpected error value\n");
+  LCI_Assert(status.is_posted(), "Need backlog queue\n");
 }
 
 inline void handle_rdv_rtr(runtime_t runtime, net_endpoint_t net_endpoint,

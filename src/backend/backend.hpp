@@ -33,7 +33,7 @@ class net_device_impl_t
     runtime = net_context.p_impl->runtime;
     net_device.p_impl = this;
   };
-  virtual ~net_device_impl_t(){};
+  virtual ~net_device_impl_t() = default;
   virtual net_endpoint_t alloc_net_endpoint(net_endpoint_t::attr_t attr) = 0;
   virtual mr_t register_memory(void* buffer, size_t size) = 0;
   virtual void deregister_memory(mr_t) = 0;

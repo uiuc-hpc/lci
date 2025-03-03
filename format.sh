@@ -2,11 +2,14 @@
 
 echo "Formating c/c++ files..."
 shopt -s globstar # to activate the ** globbing
-clang-format-11 --version
-clang-format-11 -i $(find lct -type f -name "*.h" -o -name "*.c" -o -name "*.hpp" -o -name "*.cpp")
-clang-format-11 -i $(find src -type f -name "*.h" -o -name "*.c" -o -name "*.hpp" -o -name "*.cpp")
-clang-format-11 -i $(find examples -type f -name "*.h" -o -name "*.c" -o -name "*.hpp" -o -name "*.cpp")
-clang-format-11 -i $(find tests -type f -name "*.h" -o -name "*.c" -o -name "*.hpp" -o -name "*.cpp")
+if ! command -v clang-format &> /dev/null; then
+    alias clang-format='clang-format-11'
+fi
+clang-format --version
+clang-format -i $(find lct -type f -name "*.h" -o -name "*.c" -o -name "*.hpp" -o -name "*.cpp")
+clang-format -i $(find src -type f -name "*.h" -o -name "*.c" -o -name "*.hpp" -o -name "*.cpp")
+clang-format -i $(find examples -type f -name "*.h" -o -name "*.c" -o -name "*.hpp" -o -name "*.cpp")
+clang-format -i $(find tests -type f -name "*.h" -o -name "*.c" -o -name "*.hpp" -o -name "*.cpp")
 
 echo "Formating cmake files..."
 cmake-format --version
