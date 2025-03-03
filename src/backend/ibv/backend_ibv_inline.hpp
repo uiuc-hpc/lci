@@ -3,9 +3,9 @@
 
 namespace lci
 {
-inline rkey_t ibv_device_impl_t::get_rkey(mr_t mr)
+inline rkey_t ibv_device_impl_t::get_rkey(mr_impl_t* mr)
 {
-  ibv_mr_impl_t& p_mr = *static_cast<ibv_mr_impl_t*>(mr.p_impl);
+  ibv_mr_impl_t& p_mr = *static_cast<ibv_mr_impl_t*>(mr);
   return p_mr.ibv_mr->rkey;
 }
 

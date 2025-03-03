@@ -17,8 +17,7 @@ struct fi_info* search_for_prov(struct fi_info* ofi_info, const char* prov_name)
 }
 }  // namespace
 
-ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_,
-                                               net_context_t::attr_t attr_)
+ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
     : net_context_impl_t(runtime_, attr_)
 {
   const char* p = attr.ofi_provider_name.c_str();
@@ -214,7 +213,7 @@ endpoint_t ofi_device_impl_t::alloc_endpoint(endpoint_t::attr_t attr)
   return ret;
 }
 
-mr_t ofi_device_impl_t::register_memory(void* buffer, size_t size)
+mr_t ofi_device_impl_t::register_memory_impl(void* buffer, size_t size)
 {
   uint64_t rdma_key;
   if (ofi_domain_attr->mr_mode & FI_MR_PROV_KEY) {
@@ -239,12 +238,7 @@ mr_t ofi_device_impl_t::register_memory(void* buffer, size_t size)
   return ret;
 }
 
-void ofi_device_impl_t::deregister_memory(mr_t mr)
-{
-  deregister_memory(mr.p_impl);
-}
-
-void ofi_device_impl_t::deregister_memory(mr_impl_t* mr_impl)
+void ofi_device_impl_t::deregister_memory_impl(mr_impl_t* mr_impl)
 {
   auto p_ofi_mr = static_cast<ofi_mr_impl_t*>(mr_impl);
   FI_SAFECALL(fi_close(&p_ofi_mr->ofi_mr->fid));

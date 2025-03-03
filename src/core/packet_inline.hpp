@@ -1,5 +1,5 @@
-#ifndef LCI_CORE_PACKET_POST_HPP
-#define LCI_CORE_PACKET_POST_HPP
+#ifndef LCI_CORE_PACKET_INLINE_HPP
+#define LCI_CORE_PACKET_INLINE_HPP
 
 namespace lci
 {
@@ -49,4 +49,4 @@ inline void free_ctx_and_signal_comp(internal_context_t* internal_ctx)
 
 }  // namespace lci
 
-#endif  // LCI_CORE_PACKET_POST_HPP
+#endif  // LCI_CORE_PACKET_INLINE_HPP

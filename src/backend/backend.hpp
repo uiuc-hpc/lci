@@ -6,70 +6,56 @@ namespace lci
 class net_context_impl_t
 {
  public:
-  net_context_impl_t(runtime_t runtime_, net_context_t::attr_t attr_)
-      : runtime(runtime_), attr(attr_)
-  {
-    net_context.p_impl = this;
-  };
+  using attr_t = net_context_t::attr_t;
+
+  // functions for backends to implement
+  net_context_impl_t(runtime_t runtime_, attr_t attr_);
   virtual ~net_context_impl_t() = default;
   virtual device_t alloc_device(device_t::attr_t attr) = 0;
 
-  runtime_t runtime;
+  attr_t attr;
   net_context_t net_context;
-  net_context_t::attr_t attr;
+  runtime_t runtime;
 };
 
 class device_impl_t
 {
  public:
-  static std::atomic<int> g_ndevices;
-
   using attr_t = device_t::attr_t;
 
-  device_impl_t(net_context_t context_, attr_t attr_)
-      : net_context(context_), attr(attr_), nrecvs_posted(0)
-  {
-    device_id = g_ndevices++;
-    runtime = net_context.p_impl->runtime;
-    device.p_impl = this;
-  };
+  // functions for backends to implement
+  device_impl_t(net_context_t context_, attr_t attr_);
   virtual ~device_impl_t() = default;
   virtual endpoint_t alloc_endpoint(endpoint_t::attr_t attr) = 0;
-  virtual mr_t register_memory(void* buffer, size_t size) = 0;
-  virtual void deregister_memory(mr_t) = 0;
-  virtual void deregister_memory(mr_impl_t*) = 0;
-  virtual rkey_t get_rkey(mr_t mr) = 0;
+  virtual mr_t register_memory_impl(void* buffer, size_t size) = 0;
+  virtual void deregister_memory_impl(mr_impl_t* mr) = 0;
+  virtual rkey_t get_rkey(mr_impl_t* mr) = 0;
   virtual std::vector<net_status_t> poll_comp_impl(int max_polls) = 0;
-  inline std::vector<net_status_t> poll_comp(int max_polls)
-  {
-    auto statuses = poll_comp_impl(max_polls);
-    LCI_PCOUNTER_ADD(net_poll_cq_entry_count, statuses.size());
-    return statuses;
-  }
   virtual error_t post_recv_impl(void* buffer, size_t size, mr_t mr,
                                  void* ctx) = 0;
-  inline error_t post_recv(void* buffer, size_t size, mr_t mr, void* ctx)
-  {
-    error_t error = post_recv_impl(buffer, size, mr, ctx);
-    if (error.is_retry()) {
-      LCI_PCOUNTER_ADD(net_recv_post_retry, 1);
-    } else {
-      LCI_PCOUNTER_ADD(net_recv_post, 1);
-    }
-    return error;
-  }
-  bool post_recv_packet();
-  void refill_recvs(bool is_blocking = false);
-  void consume_recvs(int n) { nrecvs_posted -= n; }
-  void bind_packet_pool(packet_pool_t packet_pool_);
-  void unbind_packet_pool();
 
-  runtime_t runtime;
-  device_t device;
-  net_context_t net_context;
+  // wrapper functions
+  inline mr_t register_memory(void* buffer, size_t size);
+  inline void deregister_memory(mr_impl_t* mr);
+  inline std::vector<net_status_t> poll_comp(int max_polls);
+  inline error_t post_recv(void* buffer, size_t size, mr_t mr, void* ctx);
+
+  // LCI layer functions
+  inline void bind_packet_pool(packet_pool_t packet_pool_);
+  inline void unbind_packet_pool();
+  inline bool post_recv_packet();
+  inline void refill_recvs(bool is_blocking = false);
+  inline void consume_recvs(int n) { nrecvs_posted -= n; }
+
   attr_t attr;
-  int device_id;
+  device_t device;
+  runtime_t runtime;
+  net_context_t net_context;
   packet_pool_t packet_pool;
+
+  static std::atomic<int> g_ndevices;
+
+  int device_id;
   std::atomic<int> nrecvs_posted;
 };
 
@@ -82,29 +68,20 @@ class mr_impl_t
   // TODO: add memory registration cache
   // For memory registration cache.
   // void* region;
-  inline void deregister()
-  {
-    device.get_impl()->deregister_memory(this);
-    address = nullptr;
-    size = 0;
-  }
+
+  // convenience functions
+  inline void deregister();
+  inline rkey_t get_rkey();
 };
 
 class endpoint_impl_t
 {
  public:
-  static std::atomic<int> g_nendpoints;
-
   using attr_t = endpoint_t::attr_t;
 
-  endpoint_impl_t(device_t device_, attr_t attr_)
-      : runtime(device_.p_impl->runtime), device(device_), attr(attr_)
-  {
-    endpoint_id = g_nendpoints++;
-    endpoint.p_impl = this;
-  }
+  // functions for backends to implement
+  endpoint_impl_t(device_t device_, attr_t attr_);
   virtual ~endpoint_impl_t() = default;
-
   virtual error_t post_sends_impl(int rank, void* buffer, size_t size,
                                   net_imm_data_t imm_data) = 0;
   virtual error_t post_send_impl(int rank, void* buffer, size_t size, mr_t mr,
@@ -125,100 +102,32 @@ class endpoint_impl_t
                                 uintptr_t base, uint64_t offset, rkey_t rkey,
                                 void* ctx) = 0;
 
+  // wrapper functions
   inline error_t post_sends(int rank, void* buffer, size_t size,
-                            net_imm_data_t imm_data)
-  {
-    auto error = post_sends_impl(rank, buffer, size, imm_data);
-    if (error.is_retry()) {
-      LCI_PCOUNTER_ADD(net_send_post_retry, 1);
-    } else {
-      LCI_PCOUNTER_ADD(net_send_post, 1);
-    }
-    return error;
-  }
-
+                            net_imm_data_t imm_data);
   inline error_t post_send(int rank, void* buffer, size_t size, mr_t mr,
-                           net_imm_data_t imm_data, void* ctx)
-  {
-    auto error = post_send_impl(rank, buffer, size, mr, imm_data, ctx);
-    if (error.is_retry()) {
-      LCI_PCOUNTER_ADD(net_send_post_retry, 1);
-    } else {
-      LCI_PCOUNTER_ADD(net_send_post, 1);
-    }
-    return error;
-  }
-
+                           net_imm_data_t imm_data, void* ctx);
   inline error_t post_puts(int rank, void* buffer, size_t size, uintptr_t base,
-                           uint64_t offset, rkey_t rkey)
-  {
-    auto error = post_puts_impl(rank, buffer, size, base, offset, rkey);
-    if (error.is_retry()) {
-      LCI_PCOUNTER_ADD(net_send_post_retry, 1);
-    } else {
-      LCI_PCOUNTER_ADD(net_send_post, 1);
-    }
-    return error;
-  }
-
+                           uint64_t offset, rkey_t rkey);
   inline error_t post_put(int rank, void* buffer, size_t size, mr_t mr,
                           uintptr_t base, uint64_t offset, rkey_t rkey,
-                          void* ctx)
-  {
-    auto error = post_put_impl(rank, buffer, size, mr, base, offset, rkey, ctx);
-    if (error.is_retry()) {
-      LCI_PCOUNTER_ADD(net_send_post_retry, 1);
-    } else {
-      LCI_PCOUNTER_ADD(net_send_post, 1);
-    }
-    return error;
-  }
-
+                          void* ctx);
   inline error_t post_putImms(int rank, void* buffer, size_t size,
                               uintptr_t base, uint64_t offset, rkey_t rkey,
-                              net_imm_data_t imm_data)
-  {
-    auto error =
-        post_putImms_impl(rank, buffer, size, base, offset, rkey, imm_data);
-    if (error.is_retry()) {
-      LCI_PCOUNTER_ADD(net_send_post_retry, 1);
-    } else {
-      LCI_PCOUNTER_ADD(net_send_post, 1);
-    }
-    return error;
-  }
-
+                              net_imm_data_t imm_data);
   inline error_t post_putImm(int rank, void* buffer, size_t size, mr_t mr,
                              uintptr_t base, uint64_t offset, rkey_t rkey,
-                             net_imm_data_t imm_data, void* ctx)
-  {
-    auto error = post_putImm_impl(rank, buffer, size, mr, base, offset, rkey,
-                                  imm_data, ctx);
-    if (error.is_retry()) {
-      LCI_PCOUNTER_ADD(net_send_post_retry, 1);
-    } else {
-      LCI_PCOUNTER_ADD(net_send_post, 1);
-    }
-    return error;
-  }
-
+                             net_imm_data_t imm_data, void* ctx);
   inline error_t post_get(int rank, void* buffer, size_t size, mr_t mr,
                           uintptr_t base, uint64_t offset, rkey_t rkey,
-                          void* ctx)
-  {
-    auto error = post_get_impl(rank, buffer, size, mr, base, offset, rkey, ctx);
-    if (error.is_retry()) {
-      LCI_PCOUNTER_ADD(net_send_post_retry, 1);
-    } else {
-      LCI_PCOUNTER_ADD(net_send_post, 1);
-    }
-    return error;
-  }
+                          void* ctx);
 
   runtime_t runtime;
   device_t device;
   endpoint_t endpoint;
   attr_t attr;
+
+  static std::atomic<int> g_nendpoints;
   int endpoint_id;
 };
 

@@ -2,87 +2,25 @@
 
 namespace lci
 {
-bool device_impl_t::post_recv_packet()
+net_context_impl_t::net_context_impl_t(runtime_t runtime_, attr_t attr_)
+    : runtime(runtime_), attr(attr_)
 {
-  packet_t* packet;
-  mr_t mr;
-  size_t size;
-  error_t error;
-  if (nrecvs_posted >= attr.net_max_recvs) {
-    return false;
-  }
-  if (++nrecvs_posted > attr.net_max_recvs) {
-    goto exit_retry;
-  }
-  packet = packet_pool.p_impl->get();
-  if (!packet) {
-    goto exit_retry;
-  }
-
-  mr = packet_pool.p_impl->get_or_register_mr(device);
-  size = packet_pool.p_impl->get_pmessage_size();
-  error = post_recv(packet->get_payload_address(), size, mr, packet);
-  if (error.is_retry()) {
-    packet->put_back();
-    goto exit_retry;
-  }
-  return true;
-
-exit_retry:
-  --nrecvs_posted;
-  return false;
+  net_context.p_impl = this;
 }
 
-void device_impl_t::refill_recvs(bool is_blocking)
+device_impl_t::device_impl_t(net_context_t context_, attr_t attr_)
+    : net_context(context_), attr(attr_), nrecvs_posted(0)
 {
-  // TODO: post multiple receives at the same time to alleviate the atomic
-  // overhead
-  const double refill_threshold = 0.8;
-  const int max_retries = 100000;
-  int nrecvs_posted = this->nrecvs_posted;
-  int niters = 0;
-  while (nrecvs_posted < attr.net_max_recvs * refill_threshold) {
-    bool succeed = post_recv_packet();
-    if (!succeed) {
-      if (is_blocking) {
-        ++niters;
-        if (niters > max_retries) {
-          LCI_Warn(
-              "Deadlock alert! The device failed to refill the recvs to the "
-              "maximum (current %d)\n",
-              nrecvs_posted);
-          break;
-        }
-      } else {
-        break;
-      }
-    }
-    nrecvs_posted = this->nrecvs_posted;
-  }
-  if (nrecvs_posted == 0) {
-    int64_t npackets = packet_pool.p_impl->pool.size();
-    LCI_Warn(
-        "Deadlock alert! The device does not have any posted recvs. (current "
-        "packet pool size %ld)\n",
-        npackets);
-  }
-}
+  device_id = g_ndevices++;
+  runtime = net_context.p_impl->runtime;
+  device.p_impl = this;
+};
 
-void device_impl_t::bind_packet_pool(packet_pool_t packet_pool_)
+endpoint_impl_t::endpoint_impl_t(device_t device_, attr_t attr_)
+    : runtime(device_.p_impl->runtime), device(device_), attr(attr_)
 {
-  packet_pool = packet_pool_;
-  packet_pool.p_impl->register_packets(device);
-  refill_recvs(true);
-}
-
-void device_impl_t::unbind_packet_pool()
-{
-  // if we have been using packet pool, report lost packets
-  if (packet_pool.p_impl) {
-    packet_pool.p_impl->deregister_packets(device);
-    packet_pool.p_impl->report_lost_packets(nrecvs_posted);
-    packet_pool.p_impl = nullptr;
-  }
+  endpoint_id = g_nendpoints++;
+  endpoint.p_impl = this;
 }
 
 net_context_t alloc_net_context_x::call_impl(
@@ -176,21 +114,18 @@ mr_t register_memory_x::call_impl(void* address, size_t size, runtime_t runtime,
                                   device_t device) const
 {
   mr_t mr = device.p_impl->register_memory(address, size);
-  mr.p_impl->device = device;
-  mr.p_impl->address = address;
-  mr.p_impl->size = size;
   return mr;
 }
 
 void deregister_memory_x::call_impl(mr_t* mr, runtime_t runtime) const
 {
-  mr->p_impl->device.p_impl->deregister_memory(*mr);
+  mr->p_impl->deregister();
   mr->p_impl = nullptr;
 }
 
 rkey_t get_rkey_x::call_impl(mr_t mr, runtime_t runtime) const
 {
-  return mr.p_impl->device.p_impl->get_rkey(mr);
+  return mr.p_impl->get_rkey();
 }
 
 std::vector<net_status_t> net_poll_cq_x::call_impl(runtime_t runtime,

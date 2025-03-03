@@ -29,7 +29,7 @@ namespace lci
 class ibv_net_context_impl_t : public lci::net_context_impl_t
 {
  public:
-  ibv_net_context_impl_t(runtime_t runtime_, net_context_t::attr_t attr_);
+  ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_);
   ~ibv_net_context_impl_t() override;
   device_t alloc_device(device_t::attr_t attr) override;
 
@@ -66,10 +66,9 @@ class ibv_device_impl_t : public lci::device_impl_t
   ibv_device_impl_t(net_context_t context_, device_t::attr_t attr_);
   ~ibv_device_impl_t() override;
   endpoint_t alloc_endpoint(endpoint_t::attr_t attr) override;
-  mr_t register_memory(void* buffer, size_t size) override;
-  void deregister_memory(mr_t) override;
-  void deregister_memory(mr_impl_t*) override;
-  rkey_t get_rkey(mr_t mr) override;
+  mr_t register_memory_impl(void* buffer, size_t size) override;
+  void deregister_memory_impl(mr_impl_t*) override;
+  rkey_t get_rkey(mr_impl_t* mr) override;
   std::vector<net_status_t> poll_comp_impl(int max_polls) override;
   error_t post_recv_impl(void* buffer, size_t size, mr_t mr,
                          void* ctx) override;

@@ -3,9 +3,9 @@
 
 namespace lci
 {
-inline rkey_t ofi_device_impl_t::get_rkey(mr_t mr)
+inline rkey_t ofi_device_impl_t::get_rkey(mr_impl_t* mr)
 {
-  ofi_mr_impl_t& p_mr = *static_cast<ofi_mr_impl_t*>(mr.p_impl);
+  ofi_mr_impl_t& p_mr = *static_cast<ofi_mr_impl_t*>(mr);
   return fi_mr_key((struct fid_mr*)(p_mr.ofi_mr));
 }
 

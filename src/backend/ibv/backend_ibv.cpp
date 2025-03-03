@@ -26,8 +26,7 @@ const char* mtu_str(enum ibv_mtu mtu)
 }
 }  // namespace
 
-ibv_net_context_impl_t::ibv_net_context_impl_t(runtime_t runtime_,
-                                               net_context_t::attr_t attr_)
+ibv_net_context_impl_t::ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_)
     : net_context_impl_t(runtime_, attr_)
 {
   int num_devices;
@@ -485,7 +484,7 @@ endpoint_t ibv_device_impl_t::alloc_endpoint(endpoint_t::attr_t attr)
   return ret;
 }
 
-mr_t ibv_device_impl_t::register_memory(void* buffer, size_t size)
+mr_t ibv_device_impl_t::register_memory_impl(void* buffer, size_t size)
 {
   ibv_mr_impl_t* mr;
 
@@ -533,12 +532,7 @@ mr_t ibv_device_impl_t::register_memory(void* buffer, size_t size)
   return ret;
 }
 
-void ibv_device_impl_t::deregister_memory(mr_t mr)
-{
-  deregister_memory(mr.p_impl);
-}
-
-void ibv_device_impl_t::deregister_memory(mr_impl_t* mr_impl)
+void ibv_device_impl_t::deregister_memory_impl(mr_impl_t* mr_impl)
 {
   if (net_context_attr.ibv_odp_strategy ==
       attr_ibv_odp_strategy_t::implicit_odp) {

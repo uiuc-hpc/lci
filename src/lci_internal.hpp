@@ -20,11 +20,9 @@
 #include "backend/backend.hpp"
 #ifdef LCI_BACKEND_ENABLE_IBV
 #include "backend/ibv/backend_ibv.hpp"
-#include "backend/ibv/backend_ibv_inline.hpp"
 #endif
 #ifdef LCI_BACKEND_ENABLE_OFI
 #include "backend/ofi/backend_ofi.hpp"
-#include "backend/ofi/backend_ofi_inline.hpp"
 #endif
 #include "data_structure/mpmc_array.hpp"
 #include "data_structure/mpmc_set.hpp"
@@ -39,6 +37,14 @@
 #include "core/runtime.hpp"
 #include "core/rendezvous.hpp"
 
-#include "core/packet_post.hpp"
+// inline implementation
+#include "backend/backend_inline.hpp"
+#include "core/packet_inline.hpp"
+#ifdef LCI_BACKEND_ENABLE_IBV
+#include "backend/ibv/backend_ibv_inline.hpp"
+#endif
+#ifdef LCI_BACKEND_ENABLE_OFI
+#include "backend/ofi/backend_ofi_inline.hpp"
+#endif
 
 #endif  // LCI_LCI_INTERNAL_HPP
