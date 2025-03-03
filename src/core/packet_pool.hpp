@@ -10,8 +10,8 @@ class packet_pool_impl_t
   attr_t attr;
   packet_pool_impl_t(const attr_t& attr);
   ~packet_pool_impl_t();
-  mr_t register_packets(net_device_t net_device);
-  void deregister_packets(net_device_t net_device);
+  mr_t register_packets(device_t device);
+  void deregister_packets(device_t device);
   size_t get_pmessage_size() const
   {
     return attr.packet_size - sizeof(packet_local_context_t);
@@ -56,12 +56,12 @@ class packet_pool_impl_t
            offset / attr.packet_size < attr.npackets;
   }
 
-  mr_t get_or_register_mr(net_device_t net_device)
+  mr_t get_or_register_mr(device_t device)
   {
     mr_t mr;
-    void* p = mrs.get(net_device.p_impl->net_device_id);
+    void* p = mrs.get(device.p_impl->device_id);
     if (!p) {
-      mr = register_packets(net_device);
+      mr = register_packets(device);
     } else {
       mr.p_impl = static_cast<mr_impl_t*>(p);
     }

@@ -26,8 +26,8 @@ struct packet_t {
 
   void put_back();
 
-  mr_t get_mr(net_device_t net_device);
-  mr_t get_mr(net_endpoint_t net_endpoint);
+  mr_t get_mr(device_t device);
+  mr_t get_mr(endpoint_t endpoint);
 };
 
 static inline packet_t* address2packet(void* address)

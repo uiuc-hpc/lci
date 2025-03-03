@@ -31,7 +31,7 @@ class ibv_net_context_impl_t : public lci::net_context_impl_t
  public:
   ibv_net_context_impl_t(runtime_t runtime_, net_context_t::attr_t attr_);
   ~ibv_net_context_impl_t() override;
-  net_device_t alloc_net_device(net_device_t::attr_t attr) override;
+  device_t alloc_device(device_t::attr_t attr) override;
 
   struct ibv_device** ib_dev_list;
   struct ibv_device* ib_dev;
@@ -60,12 +60,12 @@ class ibv_mr_impl_t : public lci::mr_impl_t
   struct ibv_mr* ibv_mr;
 };
 
-class ibv_net_device_impl_t : public lci::net_device_impl_t
+class ibv_device_impl_t : public lci::device_impl_t
 {
  public:
-  ibv_net_device_impl_t(net_context_t context_, net_device_t::attr_t attr_);
-  ~ibv_net_device_impl_t() override;
-  net_endpoint_t alloc_net_endpoint(net_endpoint_t::attr_t attr) override;
+  ibv_device_impl_t(net_context_t context_, device_t::attr_t attr_);
+  ~ibv_device_impl_t() override;
+  endpoint_t alloc_endpoint(endpoint_t::attr_t attr) override;
   mr_t register_memory(void* buffer, size_t size) override;
   void deregister_memory(mr_t) override;
   void deregister_memory(mr_impl_t*) override;
@@ -92,11 +92,11 @@ class ibv_net_device_impl_t : public lci::net_device_impl_t
   spinlock_t cq_lock;
 };
 
-class ibv_net_endpoint_impl_t : public lci::net_endpoint_impl_t
+class ibv_endpoint_impl_t : public lci::endpoint_impl_t
 {
  public:
-  ibv_net_endpoint_impl_t(net_device_t device_, attr_t attr_);
-  ~ibv_net_endpoint_impl_t() override;
+  ibv_endpoint_impl_t(device_t device_, attr_t attr_);
+  ~ibv_endpoint_impl_t() override;
   error_t post_sends_impl(int rank, void* buffer, size_t size,
                           net_imm_data_t imm_data) override;
   error_t post_send_impl(int rank, void* buffer, size_t size, mr_t mr,
@@ -116,7 +116,7 @@ class ibv_net_endpoint_impl_t : public lci::net_endpoint_impl_t
                         uintptr_t base, uint64_t offset, rkey_t rkey,
                         void* ctx) override;
 
-  ibv_net_device_impl_t* p_ibv_device;
+  ibv_device_impl_t* p_ibv_device;
   std::vector<struct ibv_qp*> ib_qps;
   std::vector<LCISI_ibv_qp_extra_t> ib_qp_extras;
   net_context_attr_t net_context_attr;

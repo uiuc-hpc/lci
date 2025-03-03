@@ -2,17 +2,15 @@
 
 namespace lci
 {
-size_t get_max_inject_size_x::call_impl(runtime_t runtime,
-                                        net_endpoint_t net_endpoint, tag_t tag,
-                                        rcomp_t remote_comp) const
+size_t get_max_inject_size_x::call_impl(runtime_t runtime, endpoint_t endpoint,
+                                        tag_t tag, rcomp_t remote_comp) const
 {
-  size_t net_max_inject_size = net_endpoint.p_impl->net_device.p_impl
-                                   ->net_context.get_attr_max_inject_size();
+  size_t net_max_inject_size =
+      endpoint.p_impl->device.p_impl->net_context.get_attr_max_inject_size();
   return net_max_inject_size;
 }
 
-size_t get_max_eager_size_x::call_impl(runtime_t runtime,
-                                       net_endpoint_t net_endpoint,
+size_t get_max_eager_size_x::call_impl(runtime_t runtime, endpoint_t endpoint,
                                        packet_pool_t packet_pool, tag_t tag,
                                        rcomp_t remote_comp) const
 {
@@ -22,7 +20,7 @@ size_t get_max_eager_size_x::call_impl(runtime_t runtime,
 status_t post_comm_x::call_impl(
     direction_t direction, int rank, void* local_buffer, size_t size,
     comp_t local_comp, runtime_t runtime, packet_pool_t packet_pool,
-    net_endpoint_t net_endpoint, matching_engine_t matching_engine,
+    endpoint_t endpoint, matching_engine_t matching_engine,
     out_comp_type_t out_comp_type, mr_t mr, uintptr_t remote_buffer,
     rkey_t rkey, tag_t tag, rcomp_t remote_comp, void* ctx, buffers_t buffers,
     rbuffers_t rbuffers, bool allow_ok, bool force_rdv) const
@@ -32,8 +30,8 @@ status_t post_comm_x::call_impl(
   internal_context_t* rts_ctx = nullptr;
   bool user_provided_packet = false;
 
-  net_device_t net_device = net_endpoint.p_impl->net_device;
-  net_context_t net_context = net_device.p_impl->net_context;
+  device_t device = endpoint.p_impl->device;
+  net_context_t net_context = device.p_impl->net_context;
   if (remote_comp == 0 && !matching_engine.is_empty() && !remote_buffer &&
       rbuffers.empty()) {
     // this is send-recv (no remote_comp, no remote_buffer)
@@ -67,12 +65,12 @@ status_t post_comm_x::call_impl(
     // send
     size_t max_inject_size = get_max_inject_size_x()
                                  .runtime(runtime)
-                                 .net_endpoint(net_endpoint)
+                                 .endpoint(endpoint)
                                  .tag(tag)
                                  .remote_comp(remote_comp)();
     size_t max_eager_size = get_max_eager_size_x()
                                 .runtime(runtime)
-                                .net_endpoint(net_endpoint)
+                                .endpoint(endpoint)
                                 .packet_pool(packet_pool)
                                 .tag(tag)
                                 .remote_comp(remote_comp)();
@@ -127,17 +125,16 @@ status_t post_comm_x::call_impl(
     if (protocol == protocol_t::inject) {
       // inject protocol (return retry or ok)
       if (!remote_buffer) {
-        error =
-            net_endpoint.p_impl->post_sends(rank, local_buffer, size, imm_data);
+        error = endpoint.p_impl->post_sends(rank, local_buffer, size, imm_data);
       } else if (!remote_comp) {
         // rdma write
-        error = net_endpoint.p_impl->post_puts(
+        error = endpoint.p_impl->post_puts(
             rank, local_buffer, size,
             reinterpret_cast<uintptr_t>(remote_buffer), 0, rkey);
       } else {
         // rdma write with immediate data
-        error = net_endpoint.p_impl->post_putImms(
-            rank, local_buffer, size, remote_buffer, 0, rkey, imm_data);
+        error = endpoint.p_impl->post_putImms(rank, local_buffer, size,
+                                              remote_buffer, 0, rkey, imm_data);
       }
       // end of inject protocol
     } else if (protocol == protocol_t::eager) {
@@ -163,20 +160,18 @@ status_t post_comm_x::call_impl(
       internal_ctx->packet_to_free = packet;
       if (!remote_buffer) {
         // post send
-        error = net_endpoint.p_impl->post_send(
-            rank, packet->get_payload_address(), size,
-            packet->get_mr(net_device), imm_data, internal_ctx);
+        error = endpoint.p_impl->post_send(rank, packet->get_payload_address(),
+                                           size, packet->get_mr(device),
+                                           imm_data, internal_ctx);
       } else if (!remote_comp) {
         // RDMA write
-        error = net_endpoint.p_impl->post_put(
-            rank, packet->get_payload_address(), size,
-            packet->get_mr(net_device),
+        error = endpoint.p_impl->post_put(
+            rank, packet->get_payload_address(), size, packet->get_mr(device),
             reinterpret_cast<uintptr_t>(remote_buffer), 0, rkey, internal_ctx);
       } else {
         // RDMA write with immediate data
-        error = net_endpoint.p_impl->post_putImm(
-            rank, packet->get_payload_address(), size,
-            packet->get_mr(net_device),
+        error = endpoint.p_impl->post_putImm(
+            rank, packet->get_payload_address(), size, packet->get_mr(device),
             reinterpret_cast<uintptr_t>(remote_buffer), 0, rkey, imm_data,
             internal_ctx);
       }
@@ -188,17 +183,16 @@ status_t post_comm_x::call_impl(
       // eager put long protocol
       // RDMA write
       if (mr.is_empty()) {
-        internal_ctx->mr_on_the_fly =
-            register_data(internal_ctx->data, net_device);
+        internal_ctx->mr_on_the_fly = register_data(internal_ctx->data, device);
       }
       if (data.is_buffer()) {
         if (!remote_comp) {
-          error = net_endpoint.p_impl->post_put(
+          error = endpoint.p_impl->post_put(
               rank, data.buffer.base, data.buffer.size, data.buffer.mr,
               reinterpret_cast<uintptr_t>(remote_buffer), 0, rkey,
               internal_ctx);
         } else {
-          error = net_endpoint.p_impl->post_putImm(
+          error = endpoint.p_impl->post_putImm(
               rank, data.buffer.base, data.buffer.size, data.buffer.mr,
               reinterpret_cast<uintptr_t>(remote_buffer), 0, rkey, imm_data,
               internal_ctx);
@@ -211,13 +205,13 @@ status_t post_comm_x::call_impl(
         for (size_t i = 0; i < data.buffers.count; i++) {
           if (i == data.buffers.count - 1 && remote_comp) {
             // last buffer, use RDMA write with immediate data
-            error = net_endpoint.p_impl->post_putImm(
+            error = endpoint.p_impl->post_putImm(
                 rank, data.buffers.buffers[i].base,
                 data.buffers.buffers[i].size, data.buffers.buffers[i].mr,
                 reinterpret_cast<uintptr_t>(rbuffers[i].base), 0,
                 rbuffers[i].rkey, imm_data, extended_ctx);
           } else {
-            error = net_endpoint.p_impl->post_put(
+            error = endpoint.p_impl->post_put(
                 rank, data.buffers.buffers[i].base,
                 data.buffers.buffers[i].size, data.buffers.buffers[i].mr,
                 reinterpret_cast<uintptr_t>(rbuffers[i].base), 0,
@@ -264,12 +258,10 @@ status_t post_comm_x::call_impl(
       }
       // post send for the rts message
       if (rts_size <= max_inject_size) {
-        error =
-            net_endpoint.p_impl->post_sends(rank, p_rts, rts_size, imm_data);
+        error = endpoint.p_impl->post_sends(rank, p_rts, rts_size, imm_data);
       } else {
-        error = net_endpoint.p_impl->post_send(rank, p_rts, rts_size,
-                                               packet->get_mr(net_device),
-                                               imm_data, rts_ctx);
+        error = endpoint.p_impl->post_send(
+            rank, p_rts, rts_size, packet->get_mr(device), imm_data, rts_ctx);
       }
       if (error.is_ok()) {
         error.reset(errorcode_t::posted);
@@ -287,7 +279,7 @@ status_t post_comm_x::call_impl(
       auto ret = matching_engine.get_impl()->insert(
           key, internal_ctx, matching_engine_impl_t::type_t::recv);
       if (ret) {
-        handle_matched_sendrecv(runtime, net_endpoint,
+        handle_matched_sendrecv(runtime, endpoint,
                                 reinterpret_cast<packet_t*>(ret), internal_ctx,
                                 &status);
       }
@@ -316,18 +308,17 @@ status_t post_comm_x::call_impl(
                 ? packet_pool.p_impl->pool.get_local_set_id()
                 : mpmc_set_t::LOCAL_SET_ID_NULL;
         internal_ctx->packet_to_free = packet;
-        error = net_endpoint.p_impl->post_get(
-            rank, packet->get_payload_address(), size,
-            packet->get_mr(net_device),
+        error = endpoint.p_impl->post_get(
+            rank, packet->get_payload_address(), size, packet->get_mr(device),
             reinterpret_cast<uintptr_t>(remote_buffer), 0, rkey, internal_ctx);
       } else {
         // zero-copy
         if (mr.is_empty()) {
           internal_ctx->mr_on_the_fly =
-              register_data(internal_ctx->data, net_device);
+              register_data(internal_ctx->data, device);
         }
         if (data.is_buffer()) {
-          error = net_endpoint.p_impl->post_get(
+          error = endpoint.p_impl->post_get(
               rank, data.buffer.base, data.buffer.size, data.buffer.mr,
               reinterpret_cast<uintptr_t>(remote_buffer), 0, rkey,
               internal_ctx);
@@ -337,7 +328,7 @@ status_t post_comm_x::call_impl(
           extended_ctx->internal_ctx = internal_ctx;
           extended_ctx->signal_count = data.get_buffers_count();
           for (size_t i = 0; i < data.buffers.count; i++) {
-            error = net_endpoint.p_impl->post_get(
+            error = endpoint.p_impl->post_get(
                 rank, data.buffers.buffers[i].base,
                 data.buffers.buffers[i].size, data.buffers.buffers[i].mr,
                 reinterpret_cast<uintptr_t>(rbuffers[i].base), 0,
@@ -383,7 +374,7 @@ exit:
 status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
                               comp_t local_comp, rcomp_t remote_comp,
                               runtime_t runtime, packet_pool_t packet_pool,
-                              net_endpoint_t net_endpoint,
+                              endpoint_t endpoint,
                               out_comp_type_t out_comp_type, mr_t mr, tag_t tag,
                               void* ctx, buffers_t buffers, bool allow_ok,
                               bool force_rdv) const
@@ -391,7 +382,7 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .runtime(runtime)
       .packet_pool(packet_pool)
-      .net_endpoint(net_endpoint)
+      .endpoint(endpoint)
       .matching_engine(matching_engine_t())
       .out_comp_type(out_comp_type)
       .mr(mr)
@@ -405,8 +396,7 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
 
 status_t post_send_x::call_impl(int rank, void* local_buffer, size_t size,
                                 comp_t local_comp, runtime_t runtime,
-                                packet_pool_t packet_pool,
-                                net_endpoint_t net_endpoint,
+                                packet_pool_t packet_pool, endpoint_t endpoint,
                                 matching_engine_t matching_engine,
                                 out_comp_type_t out_comp_type, mr_t mr,
                                 tag_t tag, void* ctx, buffers_t buffers,
@@ -415,7 +405,7 @@ status_t post_send_x::call_impl(int rank, void* local_buffer, size_t size,
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .runtime(runtime)
       .packet_pool(packet_pool)
-      .net_endpoint(net_endpoint)
+      .endpoint(endpoint)
       .matching_engine(matching_engine)
       .out_comp_type(out_comp_type)
       .mr(mr)
@@ -428,8 +418,7 @@ status_t post_send_x::call_impl(int rank, void* local_buffer, size_t size,
 
 status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
                                 comp_t local_comp, runtime_t runtime,
-                                packet_pool_t packet_pool,
-                                net_endpoint_t net_endpoint,
+                                packet_pool_t packet_pool, endpoint_t endpoint,
                                 matching_engine_t matching_engine, mr_t mr,
                                 tag_t tag, void* ctx, buffers_t buffers,
                                 bool allow_ok, bool force_rdv) const
@@ -437,7 +426,7 @@ status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
   return post_comm_x(direction_t::IN, rank, local_buffer, size, local_comp)
       .runtime(runtime)
       .packet_pool(packet_pool)
-      .net_endpoint(net_endpoint)
+      .endpoint(endpoint)
       .matching_engine(matching_engine)
       .mr(mr)
       .tag(tag)
@@ -450,8 +439,7 @@ status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
 status_t post_put_x::call_impl(int rank, void* local_buffer, size_t size,
                                comp_t local_comp, uintptr_t remote_buffer,
                                rkey_t rkey, runtime_t runtime,
-                               packet_pool_t packet_pool,
-                               net_endpoint_t net_endpoint,
+                               packet_pool_t packet_pool, endpoint_t endpoint,
                                out_comp_type_t out_comp_type, mr_t mr,
                                tag_t tag, rcomp_t remote_comp, void* ctx,
                                buffers_t buffers, rbuffers_t rbuffers,
@@ -462,7 +450,7 @@ status_t post_put_x::call_impl(int rank, void* local_buffer, size_t size,
       .rkey(rkey)
       .runtime(runtime)
       .packet_pool(packet_pool)
-      .net_endpoint(net_endpoint)
+      .endpoint(endpoint)
       .matching_engine(matching_engine_t())
       .out_comp_type(out_comp_type)
       .mr(mr)
@@ -478,18 +466,18 @@ status_t post_put_x::call_impl(int rank, void* local_buffer, size_t size,
 status_t post_get_x::call_impl(int rank, void* local_buffer, size_t size,
                                comp_t local_comp, uintptr_t remote_buffer,
                                rkey_t rkey, runtime_t runtime,
-                               packet_pool_t packet_pool,
-                               net_endpoint_t net_endpoint, mr_t mr, tag_t tag,
-                               rcomp_t remote_comp, void* ctx,
-                               buffers_t buffers, rbuffers_t rbuffers,
-                               bool allow_ok, bool force_rdv) const
+                               packet_pool_t packet_pool, endpoint_t endpoint,
+                               mr_t mr, tag_t tag, rcomp_t remote_comp,
+                               void* ctx, buffers_t buffers,
+                               rbuffers_t rbuffers, bool allow_ok,
+                               bool force_rdv) const
 {
   return post_comm_x(direction_t::IN, rank, local_buffer, size, local_comp)
       .remote_buffer(remote_buffer)
       .rkey(rkey)
       .runtime(runtime)
       .packet_pool(packet_pool)
-      .net_endpoint(net_endpoint)
+      .endpoint(endpoint)
       .matching_engine(matching_engine_t())
       .mr(mr)
       .tag(tag)

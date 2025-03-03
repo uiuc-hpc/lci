@@ -2,8 +2,8 @@
 
 namespace lci
 {
-void progress_recv(runtime_t runtime, net_device_t net_device,
-                   net_endpoint_t net_endpoint, const net_status_t& net_status)
+void progress_recv(runtime_t runtime, device_t device, endpoint_t endpoint,
+                   const net_status_t& net_status)
 {
   LCI_PCOUNTER_ADD(net_recv_comp, 1)
   packet_t* packet = static_cast<packet_t*>(net_status.user_context);
@@ -48,17 +48,17 @@ void progress_recv(runtime_t runtime, net_device_t net_device,
         auto ret = p_matching_engine->insert(
             key, packet, matching_engine_impl_t::type_t::send);
         if (ret)
-          handle_matched_sendrecv(runtime, net_endpoint, packet,
+          handle_matched_sendrecv(runtime, endpoint, packet,
                                   reinterpret_cast<internal_context_t*>(ret));
       }
       break;
     }
     case IMM_DATA_MSG_RTS:
       packet->local_context.rank = net_status.rank;
-      handle_rdv_rts(runtime, net_endpoint, packet);
+      handle_rdv_rts(runtime, endpoint, packet);
       break;
     case IMM_DATA_MSG_RTR:
-      handle_rdv_rtr(runtime, net_endpoint, packet);
+      handle_rdv_rtr(runtime, endpoint, packet);
       break;
     case IMM_DATA_MSG_FIN:
       handle_rdv_fin(packet);
@@ -79,7 +79,7 @@ void progress_send(const net_status_t& net_status)
   free_ctx_and_signal_comp(internal_ctx);
 }
 
-void progress_write(net_endpoint_t net_endpoint, const net_status_t& net_status)
+void progress_write(endpoint_t endpoint, const net_status_t& net_status)
 {
   LCI_PCOUNTER_ADD(net_write_comp, 1)
   internal_context_t* internal_ctx =
@@ -96,7 +96,7 @@ void progress_write(net_endpoint_t net_endpoint, const net_status_t& net_status)
     LCI_DBG_Assert(signal_count == 0, "Unexpected signal!\n");
     internal_context_t* ctx = ectx->internal_ctx;
     if (ectx->recv_ctx) {
-      handle_rdv_local_write(net_endpoint, ectx);
+      handle_rdv_local_write(endpoint, ectx);
     }  // else: this is a RDMA write buffers
     delete ectx;
     free_ctx_and_signal_comp(ctx);
@@ -161,34 +161,31 @@ void progress_read(const net_status_t& net_status)
   }
 }
 
-error_t progress_x::call_impl(runtime_t runtime, net_device_t net_device,
-                              net_endpoint_t net_endpoint) const
+error_t progress_x::call_impl(runtime_t runtime, device_t device,
+                              endpoint_t endpoint) const
 {
   LCI_PCOUNTER_ADD(progress, 1);
   error_t error(errorcode_t::retry);
-  std::vector<net_status_t> statuses = net_poll_cq_x()
-                                           .net_device(net_device)
-                                           .runtime(runtime)
-                                           .max_polls(20)
-                                           .call();
+  std::vector<net_status_t> statuses =
+      net_poll_cq_x().device(device).runtime(runtime).max_polls(20).call();
   if (!statuses.empty()) {
     error.reset(errorcode_t::ok);
   }
   for (auto& status : statuses) {
     if (status.opcode == net_opcode_t::RECV) {
-      net_device.p_impl->consume_recvs(1);
-      progress_recv(runtime, net_device, net_endpoint, status);
+      device.p_impl->consume_recvs(1);
+      progress_recv(runtime, device, endpoint, status);
     } else if (status.opcode == net_opcode_t::SEND) {
       progress_send(status);
     } else if (status.opcode == net_opcode_t::WRITE) {
-      progress_write(net_endpoint, status);
+      progress_write(endpoint, status);
     } else if (status.opcode == net_opcode_t::REMOTE_WRITE) {
       progress_remote_write(runtime, status);
     } else if (status.opcode == net_opcode_t::READ) {
       progress_read(status);
     }
   }
-  net_device.p_impl->refill_recvs();
+  device.p_impl->refill_recvs();
   return error;
 }
 

@@ -3,13 +3,13 @@
 
 namespace lci
 {
-inline rkey_t ibv_net_device_impl_t::get_rkey(mr_t mr)
+inline rkey_t ibv_device_impl_t::get_rkey(mr_t mr)
 {
   ibv_mr_impl_t& p_mr = *static_cast<ibv_mr_impl_t*>(mr.p_impl);
   return p_mr.ibv_mr->rkey;
 }
 
-inline std::vector<net_status_t> ibv_net_device_impl_t::poll_comp_impl(
+inline std::vector<net_status_t> ibv_device_impl_t::poll_comp_impl(
     int max_polls)
 {
   // TODO: Investigate the overhead of using a vector here.
@@ -67,8 +67,8 @@ inline uint32_t get_mr_lkey(mr_t mr)
 }
 }  // namespace ibv_detail
 
-inline error_t ibv_net_device_impl_t::post_recv_impl(void* buffer, size_t size,
-                                                     mr_t mr, void* ctx)
+inline error_t ibv_device_impl_t::post_recv_impl(void* buffer, size_t size,
+                                                 mr_t mr, void* ctx)
 {
   struct ibv_sge list;
   list.addr = (uint64_t)buffer;
@@ -94,7 +94,7 @@ inline error_t ibv_net_device_impl_t::post_recv_impl(void* buffer, size_t size,
   }
 }
 
-inline bool ibv_net_endpoint_impl_t::try_lock_qp(int rank)
+inline bool ibv_endpoint_impl_t::try_lock_qp(int rank)
 {
   bool ret;
   if (!ib_qp_extras.empty()) {
@@ -105,16 +105,16 @@ inline bool ibv_net_endpoint_impl_t::try_lock_qp(int rank)
   return ret;
 }
 
-inline void ibv_net_endpoint_impl_t::unlock_qp(int rank)
+inline void ibv_endpoint_impl_t::unlock_qp(int rank)
 {
   if (!ib_qp_extras.empty()) {
     ib_qp_extras[rank].lock.unlock();
   }
 }
 
-inline error_t ibv_net_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
-                                                        size_t size,
-                                                        net_imm_data_t imm_data)
+inline error_t ibv_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
+                                                    size_t size,
+                                                    net_imm_data_t imm_data)
 {
   LCI_Assert(size <= net_context_attr.max_inject_size,
              "%lu exceed the inline message size\n"
@@ -161,10 +161,10 @@ inline error_t ibv_net_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
   }
 }
 
-inline error_t ibv_net_endpoint_impl_t::post_send_impl(int rank, void* buffer,
-                                                       size_t size, mr_t mr,
-                                                       net_imm_data_t imm_data,
-                                                       void* ctx)
+inline error_t ibv_endpoint_impl_t::post_send_impl(int rank, void* buffer,
+                                                   size_t size, mr_t mr,
+                                                   net_imm_data_t imm_data,
+                                                   void* ctx)
 {
   struct ibv_sge list;
   struct ibv_send_wr wr;
@@ -203,11 +203,9 @@ inline error_t ibv_net_endpoint_impl_t::post_send_impl(int rank, void* buffer,
   }
 }
 
-inline error_t ibv_net_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
-                                                       size_t size,
-                                                       uintptr_t base,
-                                                       uint64_t offset,
-                                                       rkey_t rkey)
+inline error_t ibv_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
+                                                   size_t size, uintptr_t base,
+                                                   uint64_t offset, rkey_t rkey)
 {
   LCI_Assert(size <= net_context_attr.max_inject_size,
              "%lu exceed the inline message size\n"
@@ -249,11 +247,11 @@ inline error_t ibv_net_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
   }
 }
 
-inline error_t ibv_net_endpoint_impl_t::post_put_impl(int rank, void* buffer,
-                                                      size_t size, mr_t mr,
-                                                      uintptr_t base,
-                                                      uint64_t offset,
-                                                      rkey_t rkey, void* ctx)
+inline error_t ibv_endpoint_impl_t::post_put_impl(int rank, void* buffer,
+                                                  size_t size, mr_t mr,
+                                                  uintptr_t base,
+                                                  uint64_t offset, rkey_t rkey,
+                                                  void* ctx)
 {
   struct ibv_sge list;
   struct ibv_send_wr wr;
@@ -293,7 +291,7 @@ inline error_t ibv_net_endpoint_impl_t::post_put_impl(int rank, void* buffer,
   }
 }
 
-inline error_t ibv_net_endpoint_impl_t::post_putImms_impl(
+inline error_t ibv_endpoint_impl_t::post_putImms_impl(
     int rank, void* buffer, size_t size, uintptr_t base, uint64_t offset,
     rkey_t rkey, net_imm_data_t imm_data)
 {
@@ -337,7 +335,7 @@ inline error_t ibv_net_endpoint_impl_t::post_putImms_impl(
   }
 }
 
-inline error_t ibv_net_endpoint_impl_t::post_putImm_impl(
+inline error_t ibv_endpoint_impl_t::post_putImm_impl(
     int rank, void* buffer, size_t size, mr_t mr, uintptr_t base,
     uint64_t offset, rkey_t rkey, net_imm_data_t imm_data, void* ctx)
 {
@@ -380,11 +378,11 @@ inline error_t ibv_net_endpoint_impl_t::post_putImm_impl(
   }
 }
 
-inline error_t ibv_net_endpoint_impl_t::post_get_impl(int rank, void* buffer,
-                                                      size_t size, mr_t mr,
-                                                      uintptr_t base,
-                                                      uint64_t offset,
-                                                      rkey_t rkey, void* ctx)
+inline error_t ibv_endpoint_impl_t::post_get_impl(int rank, void* buffer,
+                                                  size_t size, mr_t mr,
+                                                  uintptr_t base,
+                                                  uint64_t offset, rkey_t rkey,
+                                                  void* ctx)
 {
   struct ibv_sge list;
   struct ibv_send_wr wr;

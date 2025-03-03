@@ -106,8 +106,8 @@ void runtime_impl_t::initialize()
     packet_pool = alloc_packet_pool_x().runtime(runtime)();
   }
   if (attr.alloc_default_device) {
-    net_device = alloc_net_device_x().runtime(runtime)();
-    net_endpoint = alloc_net_endpoint_x().runtime(runtime)();
+    device = alloc_device_x().runtime(runtime)();
+    endpoint = alloc_endpoint_x().runtime(runtime)();
   }
   matching_engine = alloc_matching_engine_x().runtime(runtime)();
   matching_engine_rhandler = matching_engine.get_impl()->get_rhandler();
@@ -115,11 +115,11 @@ void runtime_impl_t::initialize()
 
 runtime_impl_t::~runtime_impl_t()
 {
-  if (!net_endpoint.is_empty()) {
-    free_net_endpoint_x(&net_endpoint).runtime(runtime)();
+  if (!endpoint.is_empty()) {
+    free_endpoint_x(&endpoint).runtime(runtime)();
   }
-  if (!net_device.is_empty()) {
-    free_net_device_x(&net_device).runtime(runtime)();
+  if (!device.is_empty()) {
+    free_device_x(&device).runtime(runtime)();
   }
   if (!packet_pool.is_empty()) {
     free_packet_pool_x(&packet_pool).runtime(runtime)();
@@ -134,14 +134,14 @@ net_context_t get_default_net_context_x::call_impl(runtime_t runtime) const
   return runtime.p_impl->net_context;
 }
 
-net_device_t get_default_net_device_x::call_impl(runtime_t runtime) const
+device_t get_default_device_x::call_impl(runtime_t runtime) const
 {
-  return runtime.p_impl->net_device;
+  return runtime.p_impl->device;
 }
 
-net_endpoint_t get_default_net_endpoint_x::call_impl(runtime_t runtime) const
+endpoint_t get_default_endpoint_x::call_impl(runtime_t runtime) const
 {
-  return runtime.p_impl->net_endpoint;
+  return runtime.p_impl->endpoint;
 }
 
 packet_pool_t get_default_packet_pool_x::call_impl(runtime_t runtime) const

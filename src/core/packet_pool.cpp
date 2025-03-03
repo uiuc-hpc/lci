@@ -56,25 +56,24 @@ packet_pool_impl_t::~packet_pool_impl_t()
   free(heap);
 }
 
-mr_t packet_pool_impl_t::register_packets(net_device_t net_device)
+mr_t packet_pool_impl_t::register_packets(device_t device)
 {
   mr_t mr;
   if (heap) {
-    mr = register_memory_x(heap, heap_size).net_device(net_device)();
-    mrs.put(net_device.p_impl->net_device_id, mr.p_impl);
+    mr = register_memory_x(heap, heap_size).device(device)();
+    mrs.put(device.p_impl->device_id, mr.p_impl);
   }
   return mr;
 }
 
-void packet_pool_impl_t::deregister_packets(net_device_t net_device)
+void packet_pool_impl_t::deregister_packets(device_t device)
 {
-  mr_impl_t* p_mr =
-      static_cast<mr_impl_t*>(mrs.get(net_device.p_impl->net_device_id));
+  mr_impl_t* p_mr = static_cast<mr_impl_t*>(mrs.get(device.p_impl->device_id));
   if (p_mr) {
     mr_t mr;
     mr.p_impl = p_mr;
     deregister_memory_x(&mr).call();
-    mrs.put(net_device.p_impl->net_device_id, nullptr);
+    mrs.put(device.p_impl->device_id, nullptr);
   }
 }
 
@@ -99,17 +98,15 @@ void free_packet_pool_x::call_impl(packet_pool_t* packet_pool,
   packet_pool->p_impl = nullptr;
 }
 
-void bind_packet_pool_x::call_impl(net_device_t net_device,
-                                   packet_pool_t packet_pool,
+void bind_packet_pool_x::call_impl(device_t device, packet_pool_t packet_pool,
                                    runtime_t runtime) const
 {
-  net_device.p_impl->bind_packet_pool(packet_pool);
+  device.p_impl->bind_packet_pool(packet_pool);
 }
 
-void unbind_packet_pool_x::call_impl(net_device_t net_device,
-                                     runtime_t runtime) const
+void unbind_packet_pool_x::call_impl(device_t device, runtime_t runtime) const
 {
-  net_device.p_impl->unbind_packet_pool();
+  device.p_impl->unbind_packet_pool();
 }
 
 }  // namespace lci

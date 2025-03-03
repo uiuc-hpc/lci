@@ -149,16 +149,16 @@ ibv_net_context_impl_t::~ibv_net_context_impl_t()
   IBV_SAFECALL(ibv_close_device(ib_context));
 }
 
-net_device_t ibv_net_context_impl_t::alloc_net_device(net_device_t::attr_t attr)
+device_t ibv_net_context_impl_t::alloc_device(device_t::attr_t attr)
 {
-  net_device_t ret;
-  ret.p_impl = new ibv_net_device_impl_t(net_context, attr);
+  device_t ret;
+  ret.p_impl = new ibv_device_impl_t(net_context, attr);
   return ret;
 }
 
-ibv_net_device_impl_t::ibv_net_device_impl_t(net_context_t net_context_,
-                                             net_device_t::attr_t attr_)
-    : net_device_impl_t(net_context_, attr_)
+ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
+                                     device_t::attr_t attr_)
+    : device_impl_t(net_context_, attr_)
 {
   net_context_attr = net_context.get_attr();
   ibv_net_context_impl_t* p_net_context =
@@ -337,7 +337,7 @@ ibv_net_device_impl_t::ibv_net_device_impl_t(net_context_t net_context_,
     ibv_detail::gid_to_wire_gid(&p_net_context->ib_gid, wgid);
     // Use this queue pair "i" to connect to rank e.
     char key[LCT_PMI_STRING_LIMIT + 1];
-    sprintf(key, "LCI_KEY_%d_%d_%d", net_device_id, get_rank(), i);
+    sprintf(key, "LCI_KEY_%d_%d_%d", device_id, get_rank(), i);
     char value[LCT_PMI_STRING_LIMIT + 1];
     sprintf(value, "%x:%hx:%s", ib_qps[i]->qp_num,
             p_net_context->ib_port_attr.lid, wgid);
@@ -349,7 +349,7 @@ ibv_net_device_impl_t::ibv_net_device_impl_t(net_context_t net_context_,
 
   for (int i = 0; i < get_nranks(); i++) {
     char key[LCT_PMI_STRING_LIMIT + 1];
-    sprintf(key, "LCI_KEY_%d_%d_%d", net_device_id, i, get_rank());
+    sprintf(key, "LCI_KEY_%d_%d_%d", device_id, i, get_rank());
     char value[LCT_PMI_STRING_LIMIT + 1];
     LCT_pmi_getname(i, key, value);
     uint32_t dest_qpn;
@@ -451,7 +451,7 @@ ibv_net_device_impl_t::ibv_net_device_impl_t(net_context_t net_context_,
   LCT_pmi_barrier();
 }
 
-ibv_net_device_impl_t::~ibv_net_device_impl_t()
+ibv_device_impl_t::~ibv_device_impl_t()
 {
   LCT_pmi_barrier();
   unbind_packet_pool();
@@ -478,15 +478,14 @@ ibv_net_device_impl_t::~ibv_net_device_impl_t()
   IBV_SAFECALL(ibv_destroy_srq(ib_srq));
 }
 
-net_endpoint_t ibv_net_device_impl_t::alloc_net_endpoint(
-    net_endpoint_t::attr_t attr)
+endpoint_t ibv_device_impl_t::alloc_endpoint(endpoint_t::attr_t attr)
 {
-  net_endpoint_t ret;
-  ret.p_impl = new ibv_net_endpoint_impl_t(net_device, attr);
+  endpoint_t ret;
+  ret.p_impl = new ibv_endpoint_impl_t(device, attr);
   return ret;
 }
 
-mr_t ibv_net_device_impl_t::register_memory(void* buffer, size_t size)
+mr_t ibv_device_impl_t::register_memory(void* buffer, size_t size)
 {
   ibv_mr_impl_t* mr;
 
@@ -534,12 +533,12 @@ mr_t ibv_net_device_impl_t::register_memory(void* buffer, size_t size)
   return ret;
 }
 
-void ibv_net_device_impl_t::deregister_memory(mr_t mr)
+void ibv_device_impl_t::deregister_memory(mr_t mr)
 {
   deregister_memory(mr.p_impl);
 }
 
-void ibv_net_device_impl_t::deregister_memory(mr_impl_t* mr_impl)
+void ibv_device_impl_t::deregister_memory(mr_impl_t* mr_impl)
 {
   if (net_context_attr.ibv_odp_strategy ==
       attr_ibv_odp_strategy_t::implicit_odp) {
@@ -551,10 +550,9 @@ void ibv_net_device_impl_t::deregister_memory(mr_impl_t* mr_impl)
   }
 }
 
-ibv_net_endpoint_impl_t::ibv_net_endpoint_impl_t(net_device_t net_device_,
-                                                 attr_t attr_)
-    : net_endpoint_impl_t(net_device_, attr_),
-      p_ibv_device(reinterpret_cast<ibv_net_device_impl_t*>(net_device.p_impl)),
+ibv_endpoint_impl_t::ibv_endpoint_impl_t(device_t device_, attr_t attr_)
+    : endpoint_impl_t(device_, attr_),
+      p_ibv_device(reinterpret_cast<ibv_device_impl_t*>(device.p_impl)),
       ib_qps(p_ibv_device->ib_qps),
       ib_qp_extras(p_ibv_device->ib_qp_extras),
       net_context_attr(p_ibv_device->net_context_attr)
@@ -563,6 +561,6 @@ ibv_net_endpoint_impl_t::ibv_net_endpoint_impl_t(net_device_t net_device_,
       p_ibv_device->net_context.p_impl);
 }
 
-ibv_net_endpoint_impl_t::~ibv_net_endpoint_impl_t() {}
+ibv_endpoint_impl_t::~ibv_endpoint_impl_t() {}
 
 }  // namespace lci

@@ -113,18 +113,18 @@ ofi_net_context_impl_t::~ofi_net_context_impl_t()
   fi_freeinfo(ofi_info);
 }
 
-net_device_t ofi_net_context_impl_t::alloc_net_device(net_device_t::attr_t attr)
+device_t ofi_net_context_impl_t::alloc_device(device_t::attr_t attr)
 {
-  net_device_t ret;
-  ret.p_impl = new ofi_net_device_impl_t(net_context, attr);
+  device_t ret;
+  ret.p_impl = new ofi_device_impl_t(net_context, attr);
   return ret;
 }
 
-std::atomic<uint64_t> ofi_net_device_impl_t::g_next_rdma_key(0);
+std::atomic<uint64_t> ofi_device_impl_t::g_next_rdma_key(0);
 
-ofi_net_device_impl_t::ofi_net_device_impl_t(net_context_t context_,
-                                             net_device_t::attr_t attr_)
-    : net_device_impl_t(context_, attr_), ofi_lock_mode(attr.ofi_lock_mode)
+ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
+                                     device_t::attr_t attr_)
+    : device_impl_t(context_, attr_), ofi_lock_mode(attr.ofi_lock_mode)
 {
   auto p_ofi_context = static_cast<ofi_net_context_impl_t*>(net_context.p_impl);
   ofi_domain_attr = p_ofi_context->ofi_info->domain_attr;
@@ -169,7 +169,7 @@ ofi_net_device_impl_t::ofi_net_device_impl_t(net_context_t context_,
   int nranks = get_nranks();
   peer_addrs.resize(nranks);
   char key[LCT_PMI_STRING_LIMIT + 1];
-  sprintf(key, "LCI_KEY_%d_%d", net_device_id, rank);
+  sprintf(key, "LCI_KEY_%d_%d", device_id, rank);
   char value[LCT_PMI_STRING_LIMIT + 1];
   const char* PARSE_STRING = "%016lx-%016lx-%016lx-%016lx-%016lx-%016lx";
   sprintf(value, PARSE_STRING, my_addr[0], my_addr[1], my_addr[2], my_addr[3],
@@ -179,7 +179,7 @@ ofi_net_device_impl_t::ofi_net_device_impl_t(net_context_t context_,
 
   for (int i = 0; i < nranks; i++) {
     if (i != rank) {
-      sprintf(key, "LCI_KEY_%d_%d", net_device_id, i);
+      sprintf(key, "LCI_KEY_%d_%d", device_id, i);
       LCT_pmi_getname(i, key, value);
       uint64_t peer_addr[EP_ADDR_LEN];
 
@@ -197,7 +197,7 @@ ofi_net_device_impl_t::ofi_net_device_impl_t(net_context_t context_,
   LCT_pmi_barrier();
 }
 
-ofi_net_device_impl_t::~ofi_net_device_impl_t()
+ofi_device_impl_t::~ofi_device_impl_t()
 {
   unbind_packet_pool();
   LCT_pmi_barrier();
@@ -207,15 +207,14 @@ ofi_net_device_impl_t::~ofi_net_device_impl_t()
   FI_SAFECALL(fi_close((struct fid*)&ofi_domain->fid));
 }
 
-net_endpoint_t ofi_net_device_impl_t::alloc_net_endpoint(
-    net_endpoint_t::attr_t attr)
+endpoint_t ofi_device_impl_t::alloc_endpoint(endpoint_t::attr_t attr)
 {
-  net_endpoint_t ret;
-  ret.p_impl = new ofi_net_endpoint_impl_t(net_device, attr);
+  endpoint_t ret;
+  ret.p_impl = new ofi_endpoint_impl_t(device, attr);
   return ret;
 }
 
-mr_t ofi_net_device_impl_t::register_memory(void* buffer, size_t size)
+mr_t ofi_device_impl_t::register_memory(void* buffer, size_t size)
 {
   uint64_t rdma_key;
   if (ofi_domain_attr->mr_mode & FI_MR_PROV_KEY) {
@@ -240,22 +239,21 @@ mr_t ofi_net_device_impl_t::register_memory(void* buffer, size_t size)
   return ret;
 }
 
-void ofi_net_device_impl_t::deregister_memory(mr_t mr)
+void ofi_device_impl_t::deregister_memory(mr_t mr)
 {
   deregister_memory(mr.p_impl);
 }
 
-void ofi_net_device_impl_t::deregister_memory(mr_impl_t* mr_impl)
+void ofi_device_impl_t::deregister_memory(mr_impl_t* mr_impl)
 {
   auto p_ofi_mr = static_cast<ofi_mr_impl_t*>(mr_impl);
   FI_SAFECALL(fi_close(&p_ofi_mr->ofi_mr->fid));
   delete p_ofi_mr;
 }
 
-ofi_net_endpoint_impl_t::ofi_net_endpoint_impl_t(net_device_t net_device_,
-                                                 attr_t attr_)
-    : net_endpoint_impl_t(net_device_, attr_),
-      p_ofi_device(reinterpret_cast<ofi_net_device_impl_t*>(net_device.p_impl)),
+ofi_endpoint_impl_t::ofi_endpoint_impl_t(device_t device_, attr_t attr_)
+    : endpoint_impl_t(device_, attr_),
+      p_ofi_device(reinterpret_cast<ofi_device_impl_t*>(device.p_impl)),
       ofi_domain_attr(p_ofi_device->ofi_domain_attr),
       ofi_ep(p_ofi_device->ofi_ep),
       peer_addrs(p_ofi_device->peer_addrs),
@@ -268,5 +266,5 @@ ofi_net_endpoint_impl_t::ofi_net_endpoint_impl_t(net_device_t net_device_,
   my_rank = get_rank();
 }
 
-ofi_net_endpoint_impl_t::~ofi_net_endpoint_impl_t() {}
+ofi_endpoint_impl_t::~ofi_endpoint_impl_t() {}
 }  // namespace lci

@@ -12,29 +12,29 @@ class net_context_impl_t
     net_context.p_impl = this;
   };
   virtual ~net_context_impl_t() = default;
-  virtual net_device_t alloc_net_device(net_device_t::attr_t attr) = 0;
+  virtual device_t alloc_device(device_t::attr_t attr) = 0;
 
   runtime_t runtime;
   net_context_t net_context;
   net_context_t::attr_t attr;
 };
 
-class net_device_impl_t
+class device_impl_t
 {
  public:
   static std::atomic<int> g_ndevices;
 
-  using attr_t = net_device_t::attr_t;
+  using attr_t = device_t::attr_t;
 
-  net_device_impl_t(net_context_t context_, attr_t attr_)
+  device_impl_t(net_context_t context_, attr_t attr_)
       : net_context(context_), attr(attr_), nrecvs_posted(0)
   {
-    net_device_id = g_ndevices++;
+    device_id = g_ndevices++;
     runtime = net_context.p_impl->runtime;
-    net_device.p_impl = this;
+    device.p_impl = this;
   };
-  virtual ~net_device_impl_t() = default;
-  virtual net_endpoint_t alloc_net_endpoint(net_endpoint_t::attr_t attr) = 0;
+  virtual ~device_impl_t() = default;
+  virtual endpoint_t alloc_endpoint(endpoint_t::attr_t attr) = 0;
   virtual mr_t register_memory(void* buffer, size_t size) = 0;
   virtual void deregister_memory(mr_t) = 0;
   virtual void deregister_memory(mr_impl_t*) = 0;
@@ -65,10 +65,10 @@ class net_device_impl_t
   void unbind_packet_pool();
 
   runtime_t runtime;
-  net_device_t net_device;
+  device_t device;
   net_context_t net_context;
   attr_t attr;
-  int net_device_id;
+  int device_id;
   packet_pool_t packet_pool;
   std::atomic<int> nrecvs_posted;
 };
@@ -76,7 +76,7 @@ class net_device_impl_t
 class mr_impl_t
 {
  public:
-  net_device_t device;
+  device_t device;
   void* address;
   size_t size;
   // TODO: add memory registration cache
@@ -90,22 +90,20 @@ class mr_impl_t
   }
 };
 
-class net_endpoint_impl_t
+class endpoint_impl_t
 {
  public:
   static std::atomic<int> g_nendpoints;
 
-  using attr_t = net_endpoint_t::attr_t;
+  using attr_t = endpoint_t::attr_t;
 
-  net_endpoint_impl_t(net_device_t net_device_, attr_t attr_)
-      : runtime(net_device_.p_impl->runtime),
-        net_device(net_device_),
-        attr(attr_)
+  endpoint_impl_t(device_t device_, attr_t attr_)
+      : runtime(device_.p_impl->runtime), device(device_), attr(attr_)
   {
-    net_endpoint_id = g_nendpoints++;
-    net_endpoint.p_impl = this;
+    endpoint_id = g_nendpoints++;
+    endpoint.p_impl = this;
   }
-  virtual ~net_endpoint_impl_t() = default;
+  virtual ~endpoint_impl_t() = default;
 
   virtual error_t post_sends_impl(int rank, void* buffer, size_t size,
                                   net_imm_data_t imm_data) = 0;
@@ -218,10 +216,10 @@ class net_endpoint_impl_t
   }
 
   runtime_t runtime;
-  net_device_t net_device;
-  net_endpoint_t net_endpoint;
+  device_t device;
+  endpoint_t endpoint;
   attr_t attr;
-  int net_endpoint_id;
+  int endpoint_id;
 };
 
 }  // namespace lci

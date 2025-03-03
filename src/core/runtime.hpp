@@ -16,8 +16,8 @@ class runtime_impl_t
   runtime_t runtime;
   runtime_t::attr_t attr;
   net_context_t net_context;
-  net_device_t net_device;
-  net_endpoint_t net_endpoint;
+  device_t device;
+  endpoint_t endpoint;
   packet_pool_t packet_pool;
   rhandler_registry_t rhandler_registry;
   matching_engine_t matching_engine;

@@ -3,11 +3,10 @@
 
 namespace lci
 {
-inline void handle_rdv_rts_post(runtime_t runtime, net_endpoint_t net_endpoint,
+inline void handle_rdv_rts_post(runtime_t runtime, endpoint_t endpoint,
                                 packet_t* packet, internal_context_t* rdv_ctx);
 // Also for eager protocol
-inline void handle_matched_sendrecv(runtime_t runtime,
-                                    net_endpoint_t net_endpoint,
+inline void handle_matched_sendrecv(runtime_t runtime, endpoint_t endpoint,
                                     packet_t* packet,
                                     internal_context_t* recv_ctx,
                                     status_t* p_status = nullptr)
@@ -37,7 +36,7 @@ inline void handle_matched_sendrecv(runtime_t runtime,
       *p_status = status;
     }
   } else {
-    handle_rdv_rts_post(runtime, net_endpoint, packet, recv_ctx);
+    handle_rdv_rts_post(runtime, endpoint, packet, recv_ctx);
   }
 }
 
@@ -133,13 +132,13 @@ struct rtr_msg_t {
   }
 };
 
-inline void handle_rdv_rts_post(runtime_t runtime, net_endpoint_t net_endpoint,
+inline void handle_rdv_rts_post(runtime_t runtime, endpoint_t endpoint,
                                 packet_t* packet, internal_context_t* rdv_ctx);
 
-inline void handle_rdv_rts(runtime_t runtime, net_endpoint_t net_endpoint,
+inline void handle_rdv_rts(runtime_t runtime, endpoint_t endpoint,
                            packet_t* packet)
 {
-  net_device_t net_device = net_endpoint.get_impl()->net_device;
+  device_t device = endpoint.get_impl()->device;
   // Extract information from the received RTS packet
   rts_msg_t* rts = reinterpret_cast<rts_msg_t*>(packet->payload);
   rdv_type_t rdv_type = rts->rdv_type;
@@ -160,18 +159,18 @@ inline void handle_rdv_rts(runtime_t runtime, net_endpoint_t net_endpoint,
     auto ret = p_matching_engine->insert(key, packet,
                                          matching_engine_impl_t::type_t::send);
     if (!ret) return;
-    handle_rdv_rts_post(runtime, net_endpoint, packet,
+    handle_rdv_rts_post(runtime, endpoint, packet,
                         reinterpret_cast<internal_context_t*>(ret));
   } else {
     // am
-    handle_rdv_rts_post(runtime, net_endpoint, packet, nullptr);
+    handle_rdv_rts_post(runtime, endpoint, packet, nullptr);
   }
 }
 
-inline void handle_rdv_rts_post(runtime_t runtime, net_endpoint_t net_endpoint,
+inline void handle_rdv_rts_post(runtime_t runtime, endpoint_t endpoint,
                                 packet_t* packet, internal_context_t* rdv_ctx)
 {
-  net_device_t net_device = net_endpoint.get_impl()->net_device;
+  device_t device = endpoint.get_impl()->device;
   // Extract information from the received RTS packet
   rts_msg_t* rts = reinterpret_cast<rts_msg_t*>(packet->payload);
   rdv_type_t rdv_type = rts->rdv_type;
@@ -209,7 +208,7 @@ inline void handle_rdv_rts_post(runtime_t runtime, net_endpoint_t net_endpoint,
   rdv_ctx->rank = packet->local_context.rank;
 
   // Register the data
-  rdv_ctx->mr_on_the_fly = register_data(rdv_ctx->data, net_device);
+  rdv_ctx->mr_on_the_fly = register_data(rdv_ctx->data, device);
 
   // Prepare the RTR packet
   // reuse the rts packet as rtr packet
@@ -248,18 +247,18 @@ inline void handle_rdv_rts_post(runtime_t runtime, net_endpoint_t net_endpoint,
 
   size_t length = rtr->get_size();
   net_imm_data_t imm_data = set_bits32(0, IMM_DATA_MSG_RTR, 2, 29);
-  error_t status = net_endpoint.get_impl()->post_send(
-      (int)rdv_ctx->rank, packet->payload, length, packet->get_mr(net_endpoint),
+  error_t status = endpoint.get_impl()->post_send(
+      (int)rdv_ctx->rank, packet->payload, length, packet->get_mr(endpoint),
       imm_data, rtr_ctx);
   LCI_Assert(status.is_posted(), "Need backlog queue\n");
 }
 
-inline void handle_rdv_rtr(runtime_t runtime, net_endpoint_t net_endpoint,
+inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
                            packet_t* packet)
 {
   // the sender side handles the rtr message
-  net_device_t net_device = net_endpoint.get_impl()->net_device;
-  net_context_t net_context = net_device.get_impl()->net_context;
+  device_t device = endpoint.get_impl()->device;
+  net_context_t net_context = device.get_impl()->net_context;
   rtr_msg_t* rtr = reinterpret_cast<rtr_msg_t*>(packet->payload);
   rdv_type_t rdv_type = rtr->rdv_type;
   internal_context_t* ctx = (internal_context_t*)rtr->send_ctx;
@@ -292,9 +291,7 @@ inline void handle_rdv_rtr(runtime_t runtime, net_endpoint_t net_endpoint,
     // register the buffer if necessary
     if (p_mr->is_empty()) {
       ctx->mr_on_the_fly = true;
-      *p_mr = register_memory_x(buffer, size)
-                  .runtime(runtime)
-                  .net_device(net_device)();
+      *p_mr = register_memory_x(buffer, size).runtime(runtime).device(device)();
     } else {
       ctx->mr_on_the_fly = false;
     }
@@ -309,7 +306,7 @@ inline void handle_rdv_rtr(runtime_t runtime, net_endpoint_t net_endpoint,
     for (size_t offset = 0; offset < size; offset += max_single_msg_size) {
       char* address = (char*)buffer + offset;
       size_t length = std::min(size - offset, max_single_msg_size);
-      error_t error = net_endpoint.get_impl()->post_put(
+      error_t error = endpoint.get_impl()->post_put(
           (int)ctx->rank, address, length, *p_mr,
           rtr->rbuffer_info_p[i].remote_addr_base,
           rtr->rbuffer_info_p[i].remote_addr_offset + offset,
@@ -337,14 +334,14 @@ inline void handle_rdv_rtr(runtime_t runtime, net_endpoint_t net_endpoint,
   packet->put_back();
 }
 
-inline void handle_rdv_local_write(net_endpoint_t net_endpoint,
+inline void handle_rdv_local_write(endpoint_t endpoint,
                                    internal_context_extended_t* ectx)
 {
   internal_context_t* ctx = ectx->internal_ctx;
   LCI_Assert(ectx->recv_ctx, "Unexpected recv_ctx\n");
   LCI_DBG_Log(LOG_TRACE, "rdv", "send FIN: rctx %p\n", (void*)ectx->recv_ctx);
   net_imm_data_t imm_data = set_bits32(0, IMM_DATA_MSG_FIN, 2, 29);
-  error_t error = net_endpoint.get_impl()->post_sends(
+  error_t error = endpoint.get_impl()->post_sends(
       (int)ctx->rank, &ectx->recv_ctx, sizeof(ectx->recv_ctx), imm_data);
   LCI_Assert(error.is_ok(), "Need to implement backlog queue\n");
 }

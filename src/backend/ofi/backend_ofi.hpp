@@ -45,20 +45,20 @@ class ofi_net_context_impl_t : public lci::net_context_impl_t
  public:
   ofi_net_context_impl_t(runtime_t runtime_, net_context_t::attr_t attr_);
   ~ofi_net_context_impl_t() override;
-  net_device_t alloc_net_device(net_device_t::attr_t attr) override;
+  device_t alloc_device(device_t::attr_t attr) override;
 
   struct fi_info* ofi_info;
   struct fid_fabric* ofi_fabric;
 };
 
-class ofi_net_device_impl_t : public lci::net_device_impl_t
+class ofi_device_impl_t : public lci::device_impl_t
 {
  public:
   static std::atomic<uint64_t> g_next_rdma_key;
 
-  ofi_net_device_impl_t(net_context_t context_, net_device_t::attr_t attr_);
-  ~ofi_net_device_impl_t() override;
-  net_endpoint_t alloc_net_endpoint(net_endpoint_t::attr_t attr) override;
+  ofi_device_impl_t(net_context_t context_, device_t::attr_t attr_);
+  ~ofi_device_impl_t() override;
+  endpoint_t alloc_endpoint(endpoint_t::attr_t attr) override;
   mr_t register_memory(void* buffer, size_t size) override;
   void deregister_memory(mr_t) override;
   void deregister_memory(mr_impl_t*) override;
@@ -77,11 +77,11 @@ class ofi_net_device_impl_t : public lci::net_device_impl_t
   spinlock_t lock;
 };
 
-class ofi_net_endpoint_impl_t : public lci::net_endpoint_impl_t
+class ofi_endpoint_impl_t : public lci::endpoint_impl_t
 {
  public:
-  ofi_net_endpoint_impl_t(net_device_t device_, attr_t attr_);
-  ~ofi_net_endpoint_impl_t() override;
+  ofi_endpoint_impl_t(device_t device_, attr_t attr_);
+  ~ofi_endpoint_impl_t() override;
   error_t post_sends_impl(int rank, void* buffer, size_t size,
                           net_imm_data_t imm_data) override;
   error_t post_send_impl(int rank, void* buffer, size_t size, mr_t mr,
@@ -101,7 +101,7 @@ class ofi_net_endpoint_impl_t : public lci::net_endpoint_impl_t
                         uintptr_t base, uint64_t offset, rkey_t rkey,
                         void* ctx) override;
 
-  ofi_net_device_impl_t* p_ofi_device;
+  ofi_device_impl_t* p_ofi_device;
   int my_rank;
   struct fi_domain_attr* ofi_domain_attr;
   struct fid_ep* ofi_ep;

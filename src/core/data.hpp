@@ -3,19 +3,19 @@
 
 namespace lci
 {
-inline bool register_data(data_t& data, net_device_t net_device)
+inline bool register_data(data_t& data, device_t device)
 {
   bool did_something = false;
   if (data.is_buffer() && data.buffer.mr.is_empty()) {
-    data.buffer.mr = register_memory_x(data.buffer.base, data.buffer.size)
-                         .net_device(net_device)();
+    data.buffer.mr =
+        register_memory_x(data.buffer.base, data.buffer.size).device(device)();
     did_something = true;
   } else if (data.is_buffers() && data.buffers.buffers[0].mr.is_empty()) {
     for (size_t i = 0; i < data.buffers.count; i++) {
       data.buffers.buffers[i].mr =
           register_memory_x(data.buffers.buffers[i].base,
                             data.buffers.buffers[i].size)
-              .net_device(net_device)();
+              .device(device)();
     }
     did_something = true;
   }

@@ -5,15 +5,15 @@ namespace lci
 {
 inline void packet_t::put_back() { local_context.packet_pool_impl->put(this); }
 
-inline mr_t packet_t::get_mr(net_device_t net_device)
+inline mr_t packet_t::get_mr(device_t device)
 {
-  return local_context.packet_pool_impl->get_or_register_mr(net_device);
+  return local_context.packet_pool_impl->get_or_register_mr(device);
 }
 
-inline mr_t packet_t::get_mr(net_endpoint_t net_endpoint)
+inline mr_t packet_t::get_mr(endpoint_t endpoint)
 {
-  net_device_t net_device = net_endpoint.p_impl->net_device;
-  return local_context.packet_pool_impl->get_or_register_mr(net_device);
+  device_t device = endpoint.p_impl->device;
+  return local_context.packet_pool_impl->get_or_register_mr(device);
 }
 
 inline void free_ctx_and_signal_comp(internal_context_t* internal_ctx)
