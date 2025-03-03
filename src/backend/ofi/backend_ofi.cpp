@@ -228,9 +228,10 @@ mr_t ofi_net_device_impl_t::register_memory(void* buffer, size_t size)
   ret.p_impl = new ofi_mr_impl_t();
 
   struct fid_mr* ofi_mr;
-  FI_SAFECALL(fi_mr_reg(ofi_domain, buffer, size,
-                        FI_READ | FI_WRITE | FI_REMOTE_WRITE, 0, rdma_key, 0,
-                        &ofi_mr, 0));
+  FI_SAFECALL(fi_mr_reg(
+      ofi_domain, buffer, size,
+      FI_SEND | FI_RECV | FI_READ | FI_WRITE | FI_REMOTE_WRITE | FI_REMOTE_READ,
+      0, rdma_key, 0, &ofi_mr, 0));
   if (ofi_domain_attr->mr_mode & FI_MR_ENDPOINT) {
     FI_SAFECALL(fi_mr_bind(ofi_mr, &ofi_ep->fid, 0));
     FI_SAFECALL(fi_mr_enable(ofi_mr));

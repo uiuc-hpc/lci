@@ -279,4 +279,13 @@ error_t net_post_putImm_x::call_impl(int rank, void* buffer, size_t size,
   return net_endpoint.p_impl->post_putImm(rank, buffer, size, mr, base, offset,
                                           rkey, imm_data, ctx);
 }
+
+error_t net_post_get_x::call_impl(int rank, void* buffer, size_t size, mr_t mr,
+                                  uintptr_t base, uint64_t offset, rkey_t rkey,
+                                  runtime_t runtime,
+                                  net_endpoint_t net_endpoint, void* ctx) const
+{
+  return net_endpoint.p_impl->post_get(rank, buffer, size, mr, base, offset,
+                                       rkey, ctx);
+}
 }  // namespace lci

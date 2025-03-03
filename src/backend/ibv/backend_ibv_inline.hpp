@@ -42,10 +42,13 @@ inline std::vector<net_status_t> ibv_net_device_impl_t::poll_comp_impl(
       } else if (wcs[i].opcode == IBV_WC_SEND) {
         status.opcode = net_opcode_t::SEND;
         status.user_context = (void*)wcs[i].wr_id;
-      } else {
-        LCI_Assert(wcs[i].opcode == IBV_WC_RDMA_WRITE,
-                   "Unexpected IBV opcode!\n");
+      } else if (wcs[i].opcode == IBV_WC_RDMA_WRITE) {
         status.opcode = net_opcode_t::WRITE;
+        status.user_context = (void*)wcs[i].wr_id;
+      } else {
+        LCI_Assert(wcs[i].opcode == IBV_WC_RDMA_READ,
+                   "Unexpected IBV opcode!\n");
+        status.opcode = net_opcode_t::READ;
         status.user_context = (void*)wcs[i].wr_id;
       }
       statuses.push_back(status);
@@ -357,6 +360,50 @@ inline error_t ibv_net_endpoint_impl_t::post_putImm_impl(
   wr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
   wr.send_flags = IBV_SEND_SIGNALED;
   wr.imm_data = imm_data;
+  wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
+  wr.wr.rdma.rkey = rkey;
+  if (size <= net_context_attr.max_inject_size) {
+    wr.send_flags |= IBV_SEND_INLINE;
+  }
+
+  struct ibv_send_wr* bad_wr;
+  if (!try_lock_qp(rank)) return errorcode_t::retry_lock;
+  int ret = ibv_post_send(ib_qps[rank], &wr, &bad_wr);
+  unlock_qp(rank);
+  if (ret == 0)
+    return errorcode_t::ok;
+  else if (ret == ENOMEM)
+    return errorcode_t::retry_nomem;  // exceed send queue capacity
+  else {
+    IBV_SAFECALL_RET(ret);
+  }
+}
+
+inline error_t ibv_net_endpoint_impl_t::post_get_impl(int rank, void* buffer,
+                                                      size_t size, mr_t mr,
+                                                      uintptr_t base,
+                                                      uint64_t offset,
+                                                      rkey_t rkey, void* ctx)
+{
+  struct ibv_sge list;
+  struct ibv_send_wr wr;
+  if (LCT_likely(size > 0)) {
+    list.addr = (uint64_t)buffer;
+    list.length = size;
+    list.lkey = ibv_detail::get_mr_lkey(mr);
+    wr.sg_list = &list;
+    wr.num_sge = 1;
+  } else {
+    // With mlx4 backend, sge.length = 0 will be treated as 0x80000000.
+    // With mlx5 backend, it will just be 0.
+    // So we better just set num_sge to 0 here.
+    wr.sg_list = NULL;
+    wr.num_sge = 0;
+  }
+  wr.wr_id = (uint64_t)ctx;
+  wr.next = NULL;
+  wr.opcode = IBV_WR_RDMA_READ;
+  wr.send_flags = IBV_SEND_SIGNALED;
   wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
   wr.wr.rdma.rkey = rkey;
   if (size <= net_context_attr.max_inject_size) {

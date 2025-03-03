@@ -133,9 +133,32 @@ void progress_remote_write(runtime_t runtime, const net_status_t& net_status)
   }
 }
 
-void progress_read(const net_status_t& status)
+void progress_read(const net_status_t& net_status)
 {
-  throw std::runtime_error("progress_read not implemented");
+  LCI_PCOUNTER_ADD(net_read_comp, 1)
+  internal_context_t* internal_ctx =
+      static_cast<internal_context_t*>(net_status.user_context);
+
+  if (internal_ctx->is_extended) {
+    // extended internal context
+    internal_context_extended_t* ectx =
+        reinterpret_cast<internal_context_extended_t*>(internal_ctx);
+    int signal_count = --ectx->signal_count;
+    if (signal_count > 0) {
+      return;
+    }
+    LCI_DBG_Assert(signal_count == 0, "Unexpected signal!\n");
+    internal_context_t* ctx = ectx->internal_ctx;
+    delete ectx;
+    free_ctx_and_signal_comp(ctx);
+  } else {
+    if (internal_ctx->packet_to_free) {
+      std::memcpy(internal_ctx->data.buffer.base,
+                  internal_ctx->packet_to_free->get_payload_address(),
+                  internal_ctx->data.buffer.size);
+    }
+    free_ctx_and_signal_comp(internal_ctx);
+  }
 }
 
 error_t progress_x::call_impl(runtime_t runtime, net_device_t net_device,

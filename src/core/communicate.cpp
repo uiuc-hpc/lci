@@ -281,13 +281,76 @@ status_t post_comm_x::call_impl(
     // direction in
     status.error.reset(errorcode_t::posted);
     internal_ctx->comp = local_comp;
-    auto key = matching_engine.get_impl()->make_key(rank, tag);
-    auto ret = matching_engine.get_impl()->insert(
-        key, internal_ctx, matching_engine_impl_t::type_t::recv);
-    if (ret) {
-      handle_matched_sendrecv(runtime, net_endpoint,
-                              reinterpret_cast<packet_t*>(ret), internal_ctx,
-                              &status);
+    if (!remote_buffer && rbuffers.empty()) {
+      // recv
+      auto key = matching_engine.get_impl()->make_key(rank, tag);
+      auto ret = matching_engine.get_impl()->insert(
+          key, internal_ctx, matching_engine_impl_t::type_t::recv);
+      if (ret) {
+        handle_matched_sendrecv(runtime, net_endpoint,
+                                reinterpret_cast<packet_t*>(ret), internal_ctx,
+                                &status);
+      }
+    } else {
+      // get
+      LCI_Assert(remote_comp == 0,
+                 "get with signal has not been implemented. We are actively "
+                 "searching for use case. Open a github issue.\n");
+      if (size <= packet_pool.p_impl->get_pmessage_size() && buffers.empty()) {
+        // buffer-copy
+        // get a packet
+        if (packet_pool.p_impl->is_packet(local_buffer)) {
+          // users provide a packet
+          user_provided_packet = true;
+          packet = address2packet(local_buffer);
+        } else {
+          // allocate a packet
+          packet = packet_pool.p_impl->get();
+          if (!packet) {
+            error.reset(errorcode_t::retry_nopacket);
+            goto exit;
+          }
+        }
+        packet->local_context.local_id =
+            (size > runtime.get_attr_packet_return_threshold())
+                ? packet_pool.p_impl->pool.get_local_set_id()
+                : mpmc_set_t::LOCAL_SET_ID_NULL;
+        internal_ctx->packet_to_free = packet;
+        error = net_endpoint.p_impl->post_get(
+            rank, packet->get_payload_address(), size,
+            packet->get_mr(net_device),
+            reinterpret_cast<uintptr_t>(remote_buffer), 0, rkey, internal_ctx);
+      } else {
+        // zero-copy
+        if (mr.is_empty()) {
+          internal_ctx->mr_on_the_fly =
+              register_data(internal_ctx->data, net_device);
+        }
+        if (data.is_buffer()) {
+          error = net_endpoint.p_impl->post_get(
+              rank, data.buffer.base, data.buffer.size, data.buffer.mr,
+              reinterpret_cast<uintptr_t>(remote_buffer), 0, rkey,
+              internal_ctx);
+        } else {
+          internal_context_extended_t* extended_ctx =
+              new internal_context_extended_t;
+          extended_ctx->internal_ctx = internal_ctx;
+          extended_ctx->signal_count = data.get_buffers_count();
+          for (size_t i = 0; i < data.buffers.count; i++) {
+            error = net_endpoint.p_impl->post_get(
+                rank, data.buffers.buffers[i].base,
+                data.buffers.buffers[i].size, data.buffers.buffers[i].mr,
+                reinterpret_cast<uintptr_t>(rbuffers[i].base), 0,
+                rbuffers[i].rkey, extended_ctx);
+            if (i == 0 && error.is_retry()) {
+              goto exit;
+            } else {
+              LCI_Assert(error.is_posted(),
+                         "Need to implement backlog queue\n");
+            }
+          }
+        }
+      }
     }
     // end of direction in
   }
@@ -402,6 +465,32 @@ status_t post_put_x::call_impl(int rank, void* local_buffer, size_t size,
       .net_endpoint(net_endpoint)
       .matching_engine(matching_engine_t())
       .out_comp_type(out_comp_type)
+      .mr(mr)
+      .tag(tag)
+      .remote_comp(remote_comp)
+      .ctx(ctx)
+      .buffers(buffers)
+      .rbuffers(rbuffers)
+      .allow_ok(allow_ok)
+      .force_rdv(force_rdv)();
+}
+
+status_t post_get_x::call_impl(int rank, void* local_buffer, size_t size,
+                               comp_t local_comp, uintptr_t remote_buffer,
+                               rkey_t rkey, runtime_t runtime,
+                               packet_pool_t packet_pool,
+                               net_endpoint_t net_endpoint, mr_t mr, tag_t tag,
+                               rcomp_t remote_comp, void* ctx,
+                               buffers_t buffers, rbuffers_t rbuffers,
+                               bool allow_ok, bool force_rdv) const
+{
+  return post_comm_x(direction_t::IN, rank, local_buffer, size, local_comp)
+      .remote_buffer(remote_buffer)
+      .rkey(rkey)
+      .runtime(runtime)
+      .packet_pool(packet_pool)
+      .net_endpoint(net_endpoint)
+      .matching_engine(matching_engine_t())
       .mr(mr)
       .tag(tag)
       .remote_comp(remote_comp)

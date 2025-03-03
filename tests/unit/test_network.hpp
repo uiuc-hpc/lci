@@ -78,4 +78,54 @@ TEST(NETWORK, loopback_mt)
   lci::g_runtime_fina();
 }
 
+TEST(NETWORK, loopback_put)
+{
+  lci::g_runtime_init();
+  const int size = 1024;
+  void* send_address = malloc(size);
+  void* recv_address = malloc(size);
+  lci::mr_t send_mr = lci::register_memory(send_address, size);
+  lci::mr_t recv_mr = lci::register_memory(recv_address, size);
+  lci::rkey_t rkey = lci::get_rkey(recv_mr);
+  while (lci::net_post_put(0, send_address, size, send_mr,
+                           reinterpret_cast<uintptr_t>(recv_address), 0, rkey)
+             .is_retry())
+    continue;
+  std::vector<lci::net_status_t> statuses;
+  while (statuses.size() < 1) {
+    auto tmp = lci::net_poll_cq();
+    if (!tmp.empty()) {
+      statuses.insert(statuses.end(), tmp.begin(), tmp.end());
+    }
+  }
+  lci::deregister_memory(&send_mr);
+  lci::deregister_memory(&recv_mr);
+  lci::g_runtime_fina();
+}
+
+TEST(NETWORK, loopback_get)
+{
+  lci::g_runtime_init();
+  const int size = 1024;
+  void* send_address = malloc(size);
+  void* recv_address = malloc(size);
+  lci::mr_t send_mr = lci::register_memory(send_address, size);
+  lci::mr_t recv_mr = lci::register_memory(recv_address, size);
+  lci::rkey_t rkey = lci::get_rkey(send_mr);
+  while (lci::net_post_get(0, recv_address, size, recv_mr,
+                           reinterpret_cast<uintptr_t>(send_address), 0, rkey)
+             .is_retry())
+    continue;
+  std::vector<lci::net_status_t> statuses;
+  while (statuses.size() < 1) {
+    auto tmp = lci::net_poll_cq();
+    if (!tmp.empty()) {
+      statuses.insert(statuses.end(), tmp.begin(), tmp.end());
+    }
+  }
+  lci::deregister_memory(&send_mr);
+  lci::deregister_memory(&recv_mr);
+  lci::g_runtime_fina();
+}
+
 }  // namespace test_network

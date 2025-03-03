@@ -262,6 +262,23 @@ operation(
     ],
     comment="Post a network put with immediate data operation."
 ),
+operation(
+    "net_post_get", 
+    [
+        optional_runtime_args,
+        positional_arg("int", "rank"),
+        positional_arg("void*", "buffer"),
+        positional_arg("size_t", "size"),
+        positional_arg("mr_t", "mr"),
+        positional_arg("uintptr_t", "base"),
+        positional_arg("uint64_t", "offset"),
+        positional_arg("rkey_t", "rkey"),
+        optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
+        optional_arg("void*", "ctx", "nullptr"),
+        return_val("error_t", "error"),
+    ],
+    comment="Post a network put operation."
+),
 # ##############################################################################
 # # Core Layer
 # ##############################################################################
@@ -469,6 +486,29 @@ operation(
         optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
         optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
         optional_arg("out_comp_type_t", "out_comp_type", "out_comp_type_t::buffer"),
+        optional_arg("mr_t", "mr", "mr_t()"),
+        optional_arg("tag_t", "tag", "0"),
+        optional_arg("rcomp_t", "remote_comp", "0"),
+        optional_arg("void*", "ctx", "nullptr"),
+        optional_arg("buffers_t", "buffers", "buffers_t()"),
+        optional_arg("rbuffers_t", "rbuffers", "rbuffers_t()"),
+        optional_arg("bool", "allow_ok", "true"),
+        optional_arg("bool", "force_rdv", "false"),
+        return_val("status_t", "status"),
+    ]
+),
+operation(
+    "post_get", 
+    [
+        optional_runtime_args,
+        positional_arg("int", "rank"),
+        positional_arg("void*", "local_buffer"),
+        positional_arg("size_t", "size"),
+        positional_arg("comp_t", "local_comp"),
+        positional_arg("uintptr_t", "remote_buffer", "0"),
+        positional_arg("rkey_t", "rkey", "0"),
+        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
+        optional_arg("net_endpoint_t", "net_endpoint", "runtime.p_impl->net_endpoint"),
         optional_arg("mr_t", "mr", "mr_t()"),
         optional_arg("tag_t", "tag", "0"),
         optional_arg("rcomp_t", "remote_comp", "0"),

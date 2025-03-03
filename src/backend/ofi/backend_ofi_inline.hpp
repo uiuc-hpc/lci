@@ -41,10 +41,12 @@ inline std::vector<net_status_t> ofi_net_device_impl_t::poll_comp_impl(
       } else if (fi_entry[j].flags & FI_SEND) {
         status.opcode = net_opcode_t::SEND;
         status.user_context = fi_entry[j].op_context;
-      } else {
-        LCI_DBG_Assert(fi_entry[j].flags & FI_WRITE,
-                       "Unexpected OFI opcode!\n");
+      } else if (fi_entry[j].flags & FI_WRITE) {
         status.opcode = net_opcode_t::WRITE;
+        status.user_context = fi_entry[j].op_context;
+      } else {
+        LCI_DBG_Assert(fi_entry[j].flags & FI_READ, "Unexpected OFI opcode!\n");
+        status.opcode = net_opcode_t::READ;
         status.user_context = fi_entry[j].op_context;
       }
       statuses.push_back(status);
@@ -249,6 +251,50 @@ inline error_t ofi_net_endpoint_impl_t::post_putImm_impl(
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
   ssize_t ret = fi_writedata(ofi_ep, buffer, size, ofi_detail::get_mr_desc(mr),
                              imm_data, peer_addrs[rank], addr, rkey, ctx);
+  LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
+  if (ret == FI_SUCCESS)
+    return errorcode_t::posted;
+  else if (ret == -FI_EAGAIN)
+    return errorcode_t::retry_nomem;
+  else {
+    FI_SAFECALL_RET(ret);
+  }
+}
+
+inline error_t ofi_net_endpoint_impl_t::post_get_impl(int rank, void* buffer,
+                                                      size_t size, mr_t mr,
+                                                      uintptr_t base,
+                                                      uint64_t offset,
+                                                      rkey_t rkey, void* ctx)
+{
+  uintptr_t addr;
+  if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR ||
+      ofi_domain_attr->mr_mode & FI_MR_BASIC) {
+    addr = base + offset;
+  } else {
+    addr = offset;
+  }
+  struct fi_msg_rma msg;
+  struct iovec iov;
+  struct fi_rma_iov riov;
+  void* desc = ofi_detail::get_mr_desc(mr);
+  iov.iov_base = buffer;
+  iov.iov_len = size;
+  msg.msg_iov = &iov;
+  msg.desc = &desc;
+  msg.iov_count = 1;
+  msg.addr = peer_addrs[rank];
+  riov.addr = addr;
+  riov.len = size;
+  riov.key = rkey;
+  msg.rma_iov = &riov;
+  msg.rma_iov_count = 1;
+  msg.context = ctx;
+  msg.data = 0;
+  LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
+  ssize_t ret = fi_readmsg(ofi_ep, &msg, FI_COMPLETION);
+  // ssize_t ret = fi_read(ofi_ep, buffer, size, desc, peer_addrs[rank], addr,
+  // rkey, ctx);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
     return errorcode_t::posted;

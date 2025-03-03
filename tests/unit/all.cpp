@@ -12,6 +12,7 @@
 #include "test_sendrecv.hpp"
 #include "test_put.hpp"
 #include "test_putImm.hpp"
+#include "test_get.hpp"
 
 int main(int argc, char** argv)
 {

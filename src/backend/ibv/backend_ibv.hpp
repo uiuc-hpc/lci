@@ -112,6 +112,9 @@ class ibv_net_endpoint_impl_t : public lci::net_endpoint_impl_t
   error_t post_putImm_impl(int rank, void* buffer, size_t size, mr_t mr,
                            uintptr_t base, uint64_t offset, rkey_t rkey,
                            net_imm_data_t imm_data, void* ctx) override;
+  error_t post_get_impl(int rank, void* buffer, size_t size, mr_t mr,
+                        uintptr_t base, uint64_t offset, rkey_t rkey,
+                        void* ctx) override;
 
   ibv_net_device_impl_t* p_ibv_device;
   std::vector<struct ibv_qp*> ib_qps;
