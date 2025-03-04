@@ -25,6 +25,9 @@ LCT_API void LCT_set_rank(int rank);
 LCT_API int LCT_get_rank();
 
 // hostname
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX _POSIX_HOST_NAME_MAX
+#endif
 extern char LCT_hostname[HOST_NAME_MAX + 1];
 
 // time
