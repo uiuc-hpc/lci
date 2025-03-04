@@ -59,7 +59,7 @@ class packet_pool_impl_t
   mr_t get_or_register_mr(device_t device)
   {
     mr_t mr;
-    void* p = mrs.get(device.p_impl->device_id);
+    void* p = mrs.get(device.get_impl()->get_id());
     if (!p) {
       mr = register_packets(device);
     } else {

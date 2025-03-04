@@ -336,7 +336,7 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
     ibv_detail::gid_to_wire_gid(&p_net_context->ib_gid, wgid);
     // Use this queue pair "i" to connect to rank e.
     char key[LCT_PMI_STRING_LIMIT + 1];
-    sprintf(key, "LCI_KEY_%d_%d_%d", device_id, get_rank(), i);
+    sprintf(key, "LCI_KEY_%d_%d_%d", get_id(), get_rank(), i);
     char value[LCT_PMI_STRING_LIMIT + 1];
     sprintf(value, "%x:%hx:%s", ib_qps[i]->qp_num,
             p_net_context->ib_port_attr.lid, wgid);
@@ -348,7 +348,7 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
 
   for (int i = 0; i < get_nranks(); i++) {
     char key[LCT_PMI_STRING_LIMIT + 1];
-    sprintf(key, "LCI_KEY_%d_%d_%d", device_id, i, get_rank());
+    sprintf(key, "LCI_KEY_%d_%d_%d", get_id(), i, get_rank());
     char value[LCT_PMI_STRING_LIMIT + 1];
     LCT_pmi_getname(i, key, value);
     uint32_t dest_qpn;

@@ -168,7 +168,7 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
   int nranks = get_nranks();
   peer_addrs.resize(nranks);
   char key[LCT_PMI_STRING_LIMIT + 1];
-  sprintf(key, "LCI_KEY_%d_%d", device_id, rank);
+  sprintf(key, "LCI_KEY_%d_%d", get_id(), rank);
   char value[LCT_PMI_STRING_LIMIT + 1];
   const char* PARSE_STRING = "%016lx-%016lx-%016lx-%016lx-%016lx-%016lx";
   sprintf(value, PARSE_STRING, my_addr[0], my_addr[1], my_addr[2], my_addr[3],
@@ -178,7 +178,7 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
 
   for (int i = 0; i < nranks; i++) {
     if (i != rank) {
-      sprintf(key, "LCI_KEY_%d_%d", device_id, i);
+      sprintf(key, "LCI_KEY_%d_%d", get_id(), i);
       LCT_pmi_getname(i, key, value);
       uint64_t peer_addr[EP_ADDR_LEN];
 
