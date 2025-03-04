@@ -42,7 +42,10 @@ struct option_t {
 
 enum class errorcode_t {
   ok,
+  posted_min,
   posted,
+  posted_backlog,
+  posted_max,
   retry_min,
   retry,
   retry_init,
@@ -58,15 +61,16 @@ struct error_t {
   errorcode_t errorcode;
   error_t() : errorcode(errorcode_t::retry_init) {}
   error_t(errorcode_t errorcode_) : errorcode(errorcode_) {}
-  void reset(errorcode_t errorcode_ = errorcode_t::retry_init)
-  {
-    errorcode = errorcode_;
-  }
+  void reset_retry() { errorcode = errorcode_t::retry; }
   bool is_ok() const { return errorcode == errorcode_t::ok; }
-  bool is_posted() const { return errorcode == errorcode_t::posted; }
+  bool is_posted() const
+  {
+    return errorcode > errorcode_t::posted_min &&
+           errorcode < errorcode_t::posted_max;
+  }
   bool is_retry() const
   {
-    return errorcode >= errorcode_t::retry_min &&
+    return errorcode > errorcode_t::retry_min &&
            errorcode < errorcode_t::retry_max;
   }
 };

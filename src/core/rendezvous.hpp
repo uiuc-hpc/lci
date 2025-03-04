@@ -245,7 +245,7 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
   net_imm_data_t imm_data = set_bits32(0, IMM_DATA_MSG_RTR, 2, 29);
   error_t error = endpoint.get_impl()->post_send(
       (int)rdv_ctx->rank, packet->payload, length, packet->get_mr(endpoint),
-      imm_data, rtr_ctx, true /* use backlog queue */);
+      imm_data, rtr_ctx, false /* allow_retry */);
   LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);
 }
 
@@ -306,8 +306,7 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
           (int)ctx->rank, address, length, *p_mr,
           rtr->rbuffer_info_p[i].remote_addr_base,
           rtr->rbuffer_info_p[i].remote_addr_offset + offset,
-          rtr->rbuffer_info_p[i].rkey, ctx_to_pass,
-          true /* use backlog queue */);
+          rtr->rbuffer_info_p[i].rkey, ctx_to_pass, false /* allow_retry */);
       LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);
     }
     // } else {
@@ -340,7 +339,7 @@ inline void handle_rdv_local_write(endpoint_t endpoint,
   net_imm_data_t imm_data = set_bits32(0, IMM_DATA_MSG_FIN, 2, 29);
   error_t error = endpoint.get_impl()->post_sends(
       (int)ctx->rank, &ectx->recv_ctx, sizeof(ectx->recv_ctx), imm_data,
-      true /* use backlog queue */);
+      false /* allow_retry */);
   LCI_Assert(error.is_ok(), "Unexpected error %d\n", error);
 }
 

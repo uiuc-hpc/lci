@@ -407,7 +407,8 @@ operation(
         optional_arg("buffers_t", "buffers", "buffers_t()"),
         optional_arg("rbuffers_t", "rbuffers", "rbuffers_t()"),
         optional_arg("bool", "allow_ok", "true"),
-        optional_arg("bool", "force_rdv", "false"),
+        optional_arg("bool", "allow_retry", "true"),
+        optional_arg("bool", "force_zero_copy", "false"),
         return_val("status_t", "status"),
     ]
 ),
@@ -428,7 +429,8 @@ operation(
         optional_arg("void*", "ctx", "nullptr"),
         optional_arg("buffers_t", "buffers", "buffers_t()"),
         optional_arg("bool", "allow_ok", "true"),
-        optional_arg("bool", "force_rdv", "false"),
+        optional_arg("bool", "allow_retry", "true"),
+        optional_arg("bool", "force_zero_copy", "false"),
         return_val("status_t", "status"),
     ]
 ),
@@ -449,7 +451,8 @@ operation(
         optional_arg("void*", "ctx", "nullptr"),
         optional_arg("buffers_t", "buffers", "buffers_t()"),
         optional_arg("bool", "allow_ok", "true"),
-        optional_arg("bool", "force_rdv", "false"),
+        optional_arg("bool", "allow_retry", "true"),
+        optional_arg("bool", "force_zero_copy", "false"),
         return_val("status_t", "status"),
     ]
 ),
@@ -469,7 +472,8 @@ operation(
         optional_arg("void*", "ctx", "nullptr"),
         optional_arg("buffers_t", "buffers", "buffers_t()"),
         optional_arg("bool", "allow_ok", "true"),
-        optional_arg("bool", "force_rdv", "false"),
+        optional_arg("bool", "allow_retry", "true"),
+        optional_arg("bool", "force_zero_copy", "false"),
         return_val("status_t", "status"),
     ]
 ),
@@ -493,7 +497,8 @@ operation(
         optional_arg("buffers_t", "buffers", "buffers_t()"),
         optional_arg("rbuffers_t", "rbuffers", "rbuffers_t()"),
         optional_arg("bool", "allow_ok", "true"),
-        optional_arg("bool", "force_rdv", "false"),
+        optional_arg("bool", "allow_retry", "true"),
+        optional_arg("bool", "force_zero_copy", "false"),
         return_val("status_t", "status"),
     ]
 ),
@@ -516,7 +521,8 @@ operation(
         optional_arg("buffers_t", "buffers", "buffers_t()"),
         optional_arg("rbuffers_t", "rbuffers", "rbuffers_t()"),
         optional_arg("bool", "allow_ok", "true"),
-        optional_arg("bool", "force_rdv", "false"),
+        optional_arg("bool", "allow_retry", "true"),
+        optional_arg("bool", "force_zero_copy", "false"),
         return_val("status_t", "status"),
     ]
 ),

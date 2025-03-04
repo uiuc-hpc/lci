@@ -107,28 +107,26 @@ class endpoint_impl_t
 
   // wrapper functions
   inline error_t post_sends(int rank, void* buffer, size_t size,
-                            net_imm_data_t imm_data,
-                            bool use_backlog_queue = false);
+                            net_imm_data_t imm_data, bool allow_retry = true);
   inline error_t post_send(int rank, void* buffer, size_t size, mr_t mr,
                            net_imm_data_t imm_data, void* ctx,
-                           bool use_backlog_queue = false);
+                           bool allow_retry = true);
   inline error_t post_puts(int rank, void* buffer, size_t size, uintptr_t base,
                            uint64_t offset, rkey_t rkey,
-                           bool use_backlog_queue = false);
+                           bool allow_retry = true);
   inline error_t post_put(int rank, void* buffer, size_t size, mr_t mr,
                           uintptr_t base, uint64_t offset, rkey_t rkey,
-                          void* ctx, bool use_backlog_queue = false);
+                          void* ctx, bool allow_retry = true);
   inline error_t post_putImms(int rank, void* buffer, size_t size,
                               uintptr_t base, uint64_t offset, rkey_t rkey,
-                              net_imm_data_t imm_data,
-                              bool use_backlog_queue = false);
+                              net_imm_data_t imm_data, bool allow_retry = true);
   inline error_t post_putImm(int rank, void* buffer, size_t size, mr_t mr,
                              uintptr_t base, uint64_t offset, rkey_t rkey,
                              net_imm_data_t imm_data, void* ctx,
-                             bool use_backlog_queue = false);
+                             bool allow_retry = true);
   inline error_t post_get(int rank, void* buffer, size_t size, mr_t mr,
                           uintptr_t base, uint64_t offset, rkey_t rkey,
-                          void* ctx, bool use_backlog_queue = false);
+                          void* ctx, bool allow_retry = true);
   inline bool progress_backlog_queue() { return backlog_queue.progress(); }
   inline bool is_backlog_queue_empty() const
   {

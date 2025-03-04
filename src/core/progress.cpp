@@ -168,13 +168,12 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
   error_t error(errorcode_t::retry);
 
   for (auto& endpoint : device.p_impl->endpoints) {
-    if (endpoint.get_impl()->progress_backlog_queue())
-      error.reset(errorcode_t::ok);
+    if (endpoint.get_impl()->progress_backlog_queue()) error = errorcode_t::ok;
   }
   // poll device completion queue
   std::vector<net_status_t> statuses = device.get_impl()->poll_comp(20);
   if (!statuses.empty()) {
-    error.reset(errorcode_t::ok);
+    error = errorcode_t::ok;
   }
   for (auto& status : statuses) {
     if (status.opcode == net_opcode_t::RECV) {
