@@ -17,12 +17,12 @@
 #include "util/misc.hpp"
 #include "util/spinlock.hpp"
 #include "monitor/performance_counter.hpp"
-#include "backend/backend.hpp"
+#include "network/network.hpp"
 #ifdef LCI_BACKEND_ENABLE_IBV
-#include "backend/ibv/backend_ibv.hpp"
+#include "network/ibv/backend_ibv.hpp"
 #endif
 #ifdef LCI_BACKEND_ENABLE_OFI
-#include "backend/ofi/backend_ofi.hpp"
+#include "network/ofi/backend_ofi.hpp"
 #endif
 #include "data_structure/mpmc_array.hpp"
 #include "data_structure/mpmc_set.hpp"
@@ -38,13 +38,15 @@
 #include "core/rendezvous.hpp"
 
 // inline implementation
-#include "backend/backend_inline.hpp"
+#include "network/network_inline.hpp"
+#include "network/device_inline.hpp"
+#include "network/endpoint_inline.hpp"
 #include "core/packet_inline.hpp"
 #ifdef LCI_BACKEND_ENABLE_IBV
-#include "backend/ibv/backend_ibv_inline.hpp"
+#include "network/ibv/backend_ibv_inline.hpp"
 #endif
 #ifdef LCI_BACKEND_ENABLE_OFI
-#include "backend/ofi/backend_ofi_inline.hpp"
+#include "network/ofi/backend_ofi_inline.hpp"
 #endif
 
 #endif  // LCI_LCI_INTERNAL_HPP

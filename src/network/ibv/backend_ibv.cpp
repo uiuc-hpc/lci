@@ -1,5 +1,5 @@
 #include "lci_internal.hpp"
-#include "backend/ibv/backend_ibv_detail.hpp"
+#include "network/ibv/backend_ibv_detail.hpp"
 
 namespace lci
 {

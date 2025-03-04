@@ -1,5 +1,5 @@
-#ifndef LCI_BACKEND_BACKEND_HPP
-#define LCI_BACKEND_BACKEND_HPP
+#ifndef LCI_NETWORK_HPP
+#define LCI_NETWORK_HPP
 
 namespace lci
 {
@@ -133,4 +133,4 @@ class endpoint_impl_t
 
 }  // namespace lci
 
-#endif  // LCI_BACKEND_BACKEND_HPP
+#endif  // LCI_NETWORK_HPP

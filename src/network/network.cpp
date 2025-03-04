@@ -2,6 +2,9 @@
 
 namespace lci
 {
+std::atomic<int> device_impl_t::g_ndevices(0);
+std::atomic<int> endpoint_impl_t::g_nendpoints(0);
+
 net_context_impl_t::net_context_impl_t(runtime_t runtime_, attr_t attr_)
     : runtime(runtime_), attr(attr_)
 {
@@ -22,6 +25,10 @@ endpoint_impl_t::endpoint_impl_t(device_t device_, attr_t attr_)
   endpoint_id = g_nendpoints++;
   endpoint.p_impl = this;
 }
+
+/*************************************************************************************
+ * Interface implementations
+ * **********************************************************************************/
 
 net_context_t alloc_net_context_x::call_impl(
     runtime_t runtime, option_backend_t backend, std::string ofi_provider_name,
@@ -83,8 +90,6 @@ void free_net_context_x::call_impl(net_context_t* net_context,
   net_context->p_impl = nullptr;
 }
 
-std::atomic<int> device_impl_t::g_ndevices(0);
-
 device_t alloc_device_x::call_impl(runtime_t runtime, int64_t net_max_sends,
                                    int64_t net_max_recvs, int64_t net_max_cqes,
                                    uint64_t ofi_lock_mode, void* user_context,
@@ -110,33 +115,6 @@ void free_device_x::call_impl(device_t* device, runtime_t runtime) const
   device->p_impl = nullptr;
 }
 
-mr_t register_memory_x::call_impl(void* address, size_t size, runtime_t runtime,
-                                  device_t device) const
-{
-  mr_t mr = device.p_impl->register_memory(address, size);
-  return mr;
-}
-
-void deregister_memory_x::call_impl(mr_t* mr, runtime_t runtime) const
-{
-  mr->p_impl->deregister();
-  mr->p_impl = nullptr;
-}
-
-rkey_t get_rkey_x::call_impl(mr_t mr, runtime_t runtime) const
-{
-  return mr.p_impl->get_rkey();
-}
-
-std::vector<net_status_t> net_poll_cq_x::call_impl(runtime_t runtime,
-                                                   device_t device,
-                                                   int max_polls) const
-{
-  return device.p_impl->poll_comp(max_polls);
-}
-
-std::atomic<int> endpoint_impl_t::g_nendpoints(0);
-
 endpoint_t alloc_endpoint_x::call_impl(runtime_t runtime, void* user_context,
                                        device_t device) const
 {
@@ -152,69 +130,4 @@ void free_endpoint_x::call_impl(endpoint_t* endpoint, runtime_t runtime) const
   endpoint->p_impl = nullptr;
 }
 
-error_t net_post_recv_x::call_impl(void* buffer, size_t size, mr_t mr,
-                                   runtime_t runtime, device_t device,
-                                   void* ctx) const
-{
-  return device.p_impl->post_recv(buffer, size, mr, ctx);
-}
-
-error_t net_post_sends_x::call_impl(int rank, void* buffer, size_t size,
-                                    runtime_t runtime, endpoint_t endpoint,
-                                    net_imm_data_t imm_data) const
-{
-  return endpoint.p_impl->post_sends(rank, buffer, size, imm_data);
-}
-
-error_t net_post_send_x::call_impl(int rank, void* buffer, size_t size, mr_t mr,
-                                   runtime_t runtime, endpoint_t endpoint,
-                                   net_imm_data_t imm_data, void* ctx) const
-{
-  return endpoint.p_impl->post_send(rank, buffer, size, mr, imm_data, ctx);
-}
-
-error_t net_post_puts_x::call_impl(int rank, void* buffer, size_t size,
-                                   uintptr_t base, uint64_t offset, rkey_t rkey,
-                                   runtime_t runtime, endpoint_t endpoint) const
-{
-  return endpoint.p_impl->post_puts(rank, buffer, size, base, offset, rkey);
-}
-
-error_t net_post_put_x::call_impl(int rank, void* buffer, size_t size, mr_t mr,
-                                  uintptr_t base, uint64_t offset, rkey_t rkey,
-                                  runtime_t runtime, endpoint_t endpoint,
-                                  void* ctx) const
-{
-  return endpoint.p_impl->post_put(rank, buffer, size, mr, base, offset, rkey,
-                                   ctx);
-}
-
-error_t net_post_putImms_x::call_impl(int rank, void* buffer, size_t size,
-                                      uintptr_t base, uint64_t offset,
-                                      rkey_t rkey, runtime_t runtime,
-                                      endpoint_t endpoint,
-                                      net_imm_data_t imm_data) const
-{
-  return endpoint.p_impl->post_putImms(rank, buffer, size, base, offset, rkey,
-                                       imm_data);
-}
-
-error_t net_post_putImm_x::call_impl(int rank, void* buffer, size_t size,
-                                     mr_t mr, uintptr_t base, uint64_t offset,
-                                     rkey_t rkey, runtime_t runtime,
-                                     endpoint_t endpoint,
-                                     net_imm_data_t imm_data, void* ctx) const
-{
-  return endpoint.p_impl->post_putImm(rank, buffer, size, mr, base, offset,
-                                      rkey, imm_data, ctx);
-}
-
-error_t net_post_get_x::call_impl(int rank, void* buffer, size_t size, mr_t mr,
-                                  uintptr_t base, uint64_t offset, rkey_t rkey,
-                                  runtime_t runtime, endpoint_t endpoint,
-                                  void* ctx) const
-{
-  return endpoint.p_impl->post_get(rank, buffer, size, mr, base, offset, rkey,
-                                   ctx);
-}
 }  // namespace lci

@@ -6,7 +6,7 @@ target_sources_relative(
   util/log.cpp
   util/random.cpp
   monitor/performance_counter.cpp
-  backend/backend.cpp
+  network/network.cpp
   matching_engine/matching_engine.cpp
   core/lci.cpp
   core/global.cpp
@@ -19,11 +19,11 @@ target_sources_relative(
   core/memory.cpp
   core/progress.cpp)
 if(LCI_BACKEND_ENABLE_OFI)
-  target_sources_relative(LCI PRIVATE backend/ofi/backend_ofi.cpp)
+  target_sources_relative(LCI PRIVATE network/ofi/backend_ofi.cpp)
 endif()
 if(LCI_BACKEND_ENABLE_IBV)
-  target_sources_relative(LCI PRIVATE backend/ibv/backend_ibv.cpp
-                          backend/ibv/backend_ibv_detail.cpp)
+  target_sources_relative(LCI PRIVATE network/ibv/backend_ibv.cpp
+                          network/ibv/backend_ibv_detail.cpp)
 endif()
 
 target_include_directories(LCI PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
