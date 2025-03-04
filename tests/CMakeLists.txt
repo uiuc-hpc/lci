@@ -1,4 +1,8 @@
-find_package(OpenMP REQUIRED)
+find_package(OpenMP)
+if(NOT OpenMP_CXX_FOUND)
+  message(WARNING "OpenMP not found. Disabling tests.")
+  return()
+endif()
 
 option(LCI_BUILD_TESTS "Build tests by default" ON)
 if(NOT LCI_BUILD_TESTS)
