@@ -15,7 +15,7 @@ packet_pool_impl_t::packet_pool_impl_t(const attr_t& attr_)
   if (attr.npackets > 0) {
     attr.pbuffer_size = attr.packet_size - sizeof(packet_local_context_t);
     heap_size = attr.npackets * attr.packet_size + LCI_CACHE_LINE;
-    heap = alloc_memalign(get_page_size(), heap_size);
+    heap = alloc_memalign(heap_size, get_page_size());
     base_packet_p =
         (char*)heap + LCI_CACHE_LINE - sizeof(packet_local_context_t);
     for (size_t i = 0; i < attr.npackets; i++) {

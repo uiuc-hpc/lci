@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <vector>
+#include <queue>
 #include <list>
 #include <atomic>
 #include <cstring>
@@ -17,6 +18,7 @@
 #include "util/misc.hpp"
 #include "util/spinlock.hpp"
 #include "monitor/performance_counter.hpp"
+#include "backlog_queue/backlog_queue.hpp"
 #include "network/network.hpp"
 #ifdef LCI_BACKEND_ENABLE_IBV
 #include "network/ibv/backend_ibv.hpp"
@@ -38,6 +40,7 @@
 #include "core/rendezvous.hpp"
 
 // inline implementation
+#include "backlog_queue/backlog_queue_inline.hpp"
 #include "network/network_inline.hpp"
 #include "network/device_inline.hpp"
 #include "network/endpoint_inline.hpp"

@@ -26,7 +26,7 @@ class device_impl_t
   // functions for backends to implement
   device_impl_t(net_context_t context_, attr_t attr_);
   virtual ~device_impl_t() = default;
-  virtual endpoint_t alloc_endpoint(endpoint_t::attr_t attr) = 0;
+  virtual endpoint_t alloc_endpoint_impl(endpoint_t::attr_t attr) = 0;
   virtual mr_t register_memory_impl(void* buffer, size_t size) = 0;
   virtual void deregister_memory_impl(mr_impl_t* mr) = 0;
   virtual rkey_t get_rkey(mr_impl_t* mr) = 0;
@@ -35,6 +35,7 @@ class device_impl_t
                                  void* ctx) = 0;
 
   // wrapper functions
+  inline endpoint_t alloc_endpoint(endpoint_t::attr_t attr);
   inline mr_t register_memory(void* buffer, size_t size);
   inline void deregister_memory(mr_impl_t* mr);
   inline std::vector<net_status_t> poll_comp(int max_polls);
@@ -52,6 +53,7 @@ class device_impl_t
   device_t device;
   runtime_t runtime;
   net_context_t net_context;
+  std::vector<endpoint_t> endpoints;
   packet_pool_t packet_pool;
 
  private:
@@ -105,23 +107,33 @@ class endpoint_impl_t
 
   // wrapper functions
   inline error_t post_sends(int rank, void* buffer, size_t size,
-                            net_imm_data_t imm_data);
+                            net_imm_data_t imm_data,
+                            bool use_backlog_queue = false);
   inline error_t post_send(int rank, void* buffer, size_t size, mr_t mr,
-                           net_imm_data_t imm_data, void* ctx);
+                           net_imm_data_t imm_data, void* ctx,
+                           bool use_backlog_queue = false);
   inline error_t post_puts(int rank, void* buffer, size_t size, uintptr_t base,
-                           uint64_t offset, rkey_t rkey);
+                           uint64_t offset, rkey_t rkey,
+                           bool use_backlog_queue = false);
   inline error_t post_put(int rank, void* buffer, size_t size, mr_t mr,
                           uintptr_t base, uint64_t offset, rkey_t rkey,
-                          void* ctx);
+                          void* ctx, bool use_backlog_queue = false);
   inline error_t post_putImms(int rank, void* buffer, size_t size,
                               uintptr_t base, uint64_t offset, rkey_t rkey,
-                              net_imm_data_t imm_data);
+                              net_imm_data_t imm_data,
+                              bool use_backlog_queue = false);
   inline error_t post_putImm(int rank, void* buffer, size_t size, mr_t mr,
                              uintptr_t base, uint64_t offset, rkey_t rkey,
-                             net_imm_data_t imm_data, void* ctx);
+                             net_imm_data_t imm_data, void* ctx,
+                             bool use_backlog_queue = false);
   inline error_t post_get(int rank, void* buffer, size_t size, mr_t mr,
                           uintptr_t base, uint64_t offset, rkey_t rkey,
-                          void* ctx);
+                          void* ctx, bool use_backlog_queue = false);
+  inline bool progress_backlog_queue() { return backlog_queue.progress(); }
+  inline bool is_backlog_queue_empty() const
+  {
+    return backlog_queue.is_empty();
+  }
 
   runtime_t runtime;
   device_t device;
@@ -131,6 +143,7 @@ class endpoint_impl_t
  private:
   static std::atomic<int> g_nendpoints;
   int endpoint_id;
+  backlog_queue_t backlog_queue;
 };
 
 }  // namespace lci

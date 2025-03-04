@@ -50,6 +50,7 @@ enum class errorcode_t {
   retry_nopacket,
   retry_nomem,
   retry_max,
+  retry_backlog,
   fatal,
 };
 

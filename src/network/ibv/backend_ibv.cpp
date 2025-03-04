@@ -477,7 +477,7 @@ ibv_device_impl_t::~ibv_device_impl_t()
   IBV_SAFECALL(ibv_destroy_srq(ib_srq));
 }
 
-endpoint_t ibv_device_impl_t::alloc_endpoint(endpoint_t::attr_t attr)
+endpoint_t ibv_device_impl_t::alloc_endpoint_impl(endpoint_t::attr_t attr)
 {
   endpoint_t ret;
   ret.p_impl = new ibv_endpoint_impl_t(device, attr);

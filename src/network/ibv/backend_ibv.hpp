@@ -65,7 +65,7 @@ class ibv_device_impl_t : public lci::device_impl_t
  public:
   ibv_device_impl_t(net_context_t context_, device_t::attr_t attr_);
   ~ibv_device_impl_t() override;
-  endpoint_t alloc_endpoint(endpoint_t::attr_t attr) override;
+  endpoint_t alloc_endpoint_impl(endpoint_t::attr_t attr) override;
   mr_t register_memory_impl(void* buffer, size_t size) override;
   void deregister_memory_impl(mr_impl_t*) override;
   rkey_t get_rkey(mr_impl_t* mr) override;

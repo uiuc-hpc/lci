@@ -206,7 +206,7 @@ ofi_device_impl_t::~ofi_device_impl_t()
   FI_SAFECALL(fi_close((struct fid*)&ofi_domain->fid));
 }
 
-endpoint_t ofi_device_impl_t::alloc_endpoint(endpoint_t::attr_t attr)
+endpoint_t ofi_device_impl_t::alloc_endpoint_impl(endpoint_t::attr_t attr)
 {
   endpoint_t ret;
   ret.p_impl = new ofi_endpoint_impl_t(device, attr);

@@ -153,9 +153,9 @@ void progress_read(const net_status_t& net_status)
     free_ctx_and_signal_comp(ctx);
   } else {
     if (internal_ctx->packet_to_free) {
-      std::memcpy(internal_ctx->data.buffer.base,
-                  internal_ctx->packet_to_free->get_payload_address(),
-                  internal_ctx->data.buffer.size);
+      memcpy(internal_ctx->data.buffer.base,
+             internal_ctx->packet_to_free->get_payload_address(),
+             internal_ctx->data.buffer.size);
     }
     free_ctx_and_signal_comp(internal_ctx);
   }
@@ -166,8 +166,13 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
 {
   LCI_PCOUNTER_ADD(progress, 1);
   error_t error(errorcode_t::retry);
-  std::vector<net_status_t> statuses =
-      net_poll_cq_x().device(device).runtime(runtime).max_polls(20).call();
+
+  for (auto& endpoint : device.p_impl->endpoints) {
+    if (endpoint.get_impl()->progress_backlog_queue())
+      error.reset(errorcode_t::ok);
+  }
+  // poll device completion queue
+  std::vector<net_status_t> statuses = device.get_impl()->poll_comp(20);
   if (!statuses.empty()) {
     error.reset(errorcode_t::ok);
   }

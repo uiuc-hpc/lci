@@ -19,6 +19,13 @@ device_impl_t::device_impl_t(net_context_t context_, attr_t attr_)
   device.p_impl = this;
 };
 
+endpoint_t device_impl_t::alloc_endpoint(endpoint_t::attr_t attr)
+{
+  endpoint_t ret = alloc_endpoint_impl(attr);
+  endpoints.push_back(ret);
+  return ret;
+}
+
 endpoint_impl_t::endpoint_impl_t(device_t device_, attr_t attr_)
     : runtime(device_.p_impl->runtime), device(device_), attr(attr_)
 {

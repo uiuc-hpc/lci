@@ -24,6 +24,9 @@ extern LCT_pcounter_ctx_t pcounter_ctx;
     _macro(comp_produce)                      \
     _macro(comp_consume)                      \
     _macro(net_poll_cq_entry_count)           \
+    _macro(backlog_queue_push)           \
+    _macro(backlog_queue_pop)           \
+    _macro(retry_due_to_backlog_queue)           \
     _macro(progress)
 
 #define LCI_PCOUNTER_TIMER_FOR_EACH(_macro)

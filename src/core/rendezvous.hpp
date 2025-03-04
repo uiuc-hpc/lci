@@ -3,8 +3,9 @@
 
 namespace lci
 {
-inline void handle_rdv_rts_post(runtime_t runtime, endpoint_t endpoint,
-                                packet_t* packet, internal_context_t* rdv_ctx);
+inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
+                                  packet_t* packet,
+                                  internal_context_t* rdv_ctx);
 // Also for eager protocol
 inline void handle_matched_sendrecv(runtime_t runtime, endpoint_t endpoint,
                                     packet_t* packet,
@@ -26,8 +27,8 @@ inline void handle_matched_sendrecv(runtime_t runtime, endpoint_t endpoint,
     status.rank = packet->local_context.rank;
     status.tag = packet->local_context.tag;
     LCI_Assert(status.data.is_buffer(), "Unexpected data type\n");
-    std::memcpy(status.data.buffer.base, packet->get_payload_address(),
-                packet->local_context.data.buffer.size);
+    memcpy(status.data.buffer.base, packet->get_payload_address(),
+           packet->local_context.data.buffer.size);
     status.data.buffer.size = packet->local_context.data.buffer.size;
     packet->put_back();
     if (!p_status) {
@@ -36,7 +37,7 @@ inline void handle_matched_sendrecv(runtime_t runtime, endpoint_t endpoint,
       *p_status = status;
     }
   } else {
-    handle_rdv_rts_post(runtime, endpoint, packet, recv_ctx);
+    handle_rdv_rts_common(runtime, endpoint, packet, recv_ctx);
   }
 }
 
@@ -132,9 +133,6 @@ struct rtr_msg_t {
   }
 };
 
-inline void handle_rdv_rts_post(runtime_t runtime, endpoint_t endpoint,
-                                packet_t* packet, internal_context_t* rdv_ctx);
-
 inline void handle_rdv_rts(runtime_t runtime, endpoint_t endpoint,
                            packet_t* packet)
 {
@@ -159,16 +157,16 @@ inline void handle_rdv_rts(runtime_t runtime, endpoint_t endpoint,
     auto ret = p_matching_engine->insert(key, packet,
                                          matching_engine_impl_t::type_t::send);
     if (!ret) return;
-    handle_rdv_rts_post(runtime, endpoint, packet,
-                        reinterpret_cast<internal_context_t*>(ret));
+    handle_rdv_rts_common(runtime, endpoint, packet,
+                          reinterpret_cast<internal_context_t*>(ret));
   } else {
     // am
-    handle_rdv_rts_post(runtime, endpoint, packet, nullptr);
+    handle_rdv_rts_common(runtime, endpoint, packet, nullptr);
   }
 }
 
-inline void handle_rdv_rts_post(runtime_t runtime, endpoint_t endpoint,
-                                packet_t* packet, internal_context_t* rdv_ctx)
+inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
+                                  packet_t* packet, internal_context_t* rdv_ctx)
 {
   device_t device = endpoint.get_impl()->device;
   // Extract information from the received RTS packet
@@ -237,9 +235,7 @@ inline void handle_rdv_rts_post(runtime_t runtime, endpoint_t endpoint,
   // if (rdv_ctx->data_type == LCI_LONG) {
   rtr->load_data(rdv_ctx->data);
 
-  // log
-  LCI_DBG_Log(LOG_TRACE, "rdv", "send rtr: sctx %p\n",
-              (void*)packet->data.rtr.send_ctx);
+  LCI_DBG_Log(LOG_TRACE, "rdv", "send rtr: sctx %p\n", (void*)rtr->send_ctx);
 
   // send the rtr packet
   internal_context_t* rtr_ctx = new internal_context_t;
@@ -247,10 +243,10 @@ inline void handle_rdv_rts_post(runtime_t runtime, endpoint_t endpoint,
 
   size_t length = rtr->get_size();
   net_imm_data_t imm_data = set_bits32(0, IMM_DATA_MSG_RTR, 2, 29);
-  error_t status = endpoint.get_impl()->post_send(
+  error_t error = endpoint.get_impl()->post_send(
       (int)rdv_ctx->rank, packet->payload, length, packet->get_mr(endpoint),
-      imm_data, rtr_ctx);
-  LCI_Assert(status.is_posted(), "Need backlog queue\n");
+      imm_data, rtr_ctx, true /* use backlog queue */);
+  LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);
 }
 
 inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
@@ -301,7 +297,7 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
     size_t max_single_msg_size = net_context.get_attr_max_msg_size();
     if (size > max_single_msg_size) {
       LCI_DBG_Log(LOG_TRACE, "rdv", "Splitting a large message of %lu bytes\n",
-                  lbuffer->length);
+                  size);
     }
     for (size_t offset = 0; offset < size; offset += max_single_msg_size) {
       char* address = (char*)buffer + offset;
@@ -310,8 +306,9 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
           (int)ctx->rank, address, length, *p_mr,
           rtr->rbuffer_info_p[i].remote_addr_base,
           rtr->rbuffer_info_p[i].remote_addr_offset + offset,
-          rtr->rbuffer_info_p[i].rkey, ctx_to_pass);
-      LCI_Assert(error.is_posted(), "Unexpected error value\n");
+          rtr->rbuffer_info_p[i].rkey, ctx_to_pass,
+          true /* use backlog queue */);
+      LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);
     }
     // } else {
     // LCI_DBG_Assert(lbuffer->length <= LCI_MAX_SINGLE_MESSAGE_SIZE &&
@@ -342,8 +339,9 @@ inline void handle_rdv_local_write(endpoint_t endpoint,
   LCI_DBG_Log(LOG_TRACE, "rdv", "send FIN: rctx %p\n", (void*)ectx->recv_ctx);
   net_imm_data_t imm_data = set_bits32(0, IMM_DATA_MSG_FIN, 2, 29);
   error_t error = endpoint.get_impl()->post_sends(
-      (int)ctx->rank, &ectx->recv_ctx, sizeof(ectx->recv_ctx), imm_data);
-  LCI_Assert(error.is_ok(), "Need to implement backlog queue\n");
+      (int)ctx->rank, &ectx->recv_ctx, sizeof(ectx->recv_ctx), imm_data,
+      true /* use backlog queue */);
+  LCI_Assert(error.is_ok(), "Unexpected error %d\n", error);
 }
 
 inline void handle_rdv_remote_comp(internal_context_t* ctx)

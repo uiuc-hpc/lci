@@ -63,6 +63,13 @@ status_t post_comm_x::call_impl(
 
   if (direction == direction_t::OUT) {
     // send
+    // wait for the backlog queue to be empty
+    if (!endpoint.get_impl()->is_backlog_queue_empty()) {
+      LCI_PCOUNTER_ADD(retry_due_to_backlog_queue, 1);
+      error.reset(errorcode_t::retry_backlog);
+      goto exit;
+    }
+    // get the maximum size for inject and eager
     size_t max_inject_size = get_max_inject_size_x()
                                  .runtime(runtime)
                                  .endpoint(endpoint)
@@ -203,32 +210,31 @@ status_t post_comm_x::call_impl(
         extended_ctx->internal_ctx = internal_ctx;
         extended_ctx->signal_count = data.get_buffers_count();
         for (size_t i = 0; i < data.buffers.count; i++) {
+          bool use_backlog_queue = false;
+          if (i > 0) use_backlog_queue = true;
           if (i == data.buffers.count - 1 && remote_comp) {
             // last buffer, use RDMA write with immediate data
             error = endpoint.p_impl->post_putImm(
                 rank, data.buffers.buffers[i].base,
                 data.buffers.buffers[i].size, data.buffers.buffers[i].mr,
                 reinterpret_cast<uintptr_t>(rbuffers[i].base), 0,
-                rbuffers[i].rkey, imm_data, extended_ctx);
+                rbuffers[i].rkey, imm_data, extended_ctx, use_backlog_queue);
           } else {
             error = endpoint.p_impl->post_put(
                 rank, data.buffers.buffers[i].base,
                 data.buffers.buffers[i].size, data.buffers.buffers[i].mr,
                 reinterpret_cast<uintptr_t>(rbuffers[i].base), 0,
-                rbuffers[i].rkey, extended_ctx);
+                rbuffers[i].rkey, extended_ctx, use_backlog_queue);
           }
           if (i == 0 && error.is_retry()) {
             goto exit;
           }
-          LCI_Assert(error.is_posted(), "Need to implement backlog queue\n");
+          LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);
         }
       }
     }  // end of eager put long protocol
     else {
       // send rendezvous protocol
-
-      // TODO wait for backlog queue
-
       // build the rts message
       size_t rts_size = rts_msg_t::get_size(data);
       rts_msg_t plain_rts;
@@ -328,16 +334,17 @@ status_t post_comm_x::call_impl(
           extended_ctx->internal_ctx = internal_ctx;
           extended_ctx->signal_count = data.get_buffers_count();
           for (size_t i = 0; i < data.buffers.count; i++) {
+            bool use_backlog_queue = false;
+            if (i > 0) use_backlog_queue = true;
             error = endpoint.p_impl->post_get(
                 rank, data.buffers.buffers[i].base,
                 data.buffers.buffers[i].size, data.buffers.buffers[i].mr,
                 reinterpret_cast<uintptr_t>(rbuffers[i].base), 0,
-                rbuffers[i].rkey, extended_ctx);
+                rbuffers[i].rkey, extended_ctx, use_backlog_queue);
             if (i == 0 && error.is_retry()) {
               goto exit;
             } else {
-              LCI_Assert(error.is_posted(),
-                         "Need to implement backlog queue\n");
+              LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);
             }
           }
         }
