@@ -11,10 +11,15 @@ static inline void* LCIU_memalign(size_t alignment, size_t size)
 {
   void* p_ptr;
   int ret = posix_memalign(&p_ptr, alignment, size);
+#ifdef _SC_AVPHYS_PAGES
   LCI_Assert(
       ret == 0, "posix_memalign(%lu, %lu) returned %d (Free memory %lu/%lu)\n",
       alignment, size, ret, sysconf(_SC_AVPHYS_PAGES) * sysconf(_SC_PAGESIZE),
       sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE));
+#else
+  LCI_Assert(ret == 0, "posix_memalign(%lu, %lu) returned %d\n", alignment,
+             size, ret);
+#endif
   return p_ptr;
 }
 static inline void LCIU_free(void* ptr) { free(ptr); }
