@@ -7,6 +7,7 @@
 #include "test_network.hpp"
 #include "test_mpmc_array.hpp"
 #include "test_mpmc_set.hpp"
+#include "test_sync.hpp"
 #include "test_cq.hpp"
 #include "test_am.hpp"
 #include "test_sendrecv.hpp"

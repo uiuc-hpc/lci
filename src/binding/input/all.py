@@ -317,7 +317,16 @@ operation(
     comment="Unbind the packet pool from a network device."
 ),
 # comp
-resource("comp", []),
+resource_comp := resource(
+    "comp", 
+    [
+        attr_enum("comp_type", enum_options=["sync", "cq", "handler"], default_value="cq", comment="The completion object type."),
+        attr("int", "cq_default_length", default_value=8192, comment="The default length for cq (completion queue)."),
+        attr("int", "sync_threshold", default_value=1, comment="The threshold for sync (synchronizer)."),
+    ]
+),
+operation_alloc(resource_comp),
+operation_free(resource_comp),
 operation(
     "comp_signal", 
     [
@@ -326,14 +335,6 @@ operation(
         positional_arg("status_t", "status")
     ],
     comment="Signal a completion object."
-),
-operation(
-    "free_comp", 
-    [
-        optional_runtime_args,
-        positional_arg("comp_t*", "comp", inout_trait="inout"),
-    ],
-    comment="Free a completion object."
 ),
 operation(
     "reserve_rcomps", 
@@ -367,7 +368,7 @@ operation(
     "alloc_sync", 
     [
         optional_runtime_args,
-        positional_arg("int", "threshold"),
+        optional_arg("int", "threshold", 1),
         optional_arg("void*", "user_context", "nullptr"),
         return_val("comp_t", "comp")
     ],
@@ -397,6 +398,7 @@ operation(
     "alloc_cq", 
     [
         optional_runtime_args,
+        optional_arg("int", "default_length", "g_default_attr.cq_default_length"),
         optional_arg("void*", "user_context", "nullptr"),
         return_val("comp_t", "comp")
     ],

@@ -6,12 +6,12 @@ namespace lci
 class sync_t : public comp_impl_t
 {
  public:
-  sync_t(comp_attr_t attr, int threshold)
+  sync_t(comp_attr_t attr)
       : comp_impl_t(attr),
         m_top(0),
         m_top2(0),
         m_tail(0),
-        threshold(threshold),
+        threshold(attr.sync_threshold),
         statuses(threshold)
   {
   }
@@ -61,7 +61,7 @@ class sync_t : public comp_impl_t
     bool succeed;
     do {
       succeed = test(p_out);
-    } while (succeed);
+    } while (!succeed);
   }
 
  private:

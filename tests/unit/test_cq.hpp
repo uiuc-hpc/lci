@@ -5,7 +5,7 @@ void my_cq_push(lci::comp_t comp, uint64_t i)
   lci::status_t status;
   status.error = lci::errorcode_t::ok;
   status.user_context = reinterpret_cast<void*>(i + 1);
-  lci::comp_signal_x(comp, status).call();
+  lci::comp_signal(comp, status);
 }
 
 uint64_t my_cq_pop(lci::comp_t comp)
@@ -28,7 +28,7 @@ TEST(CQ, singlethread)
   for (uint64_t i = 0; i < n; i++) {
     ASSERT_EQ(my_cq_pop(comp), i);
   }
-  lci::free_comp_x(&comp).call();
+  lci::free_comp(&comp);
   lci::g_runtime_fina();
 }
 
@@ -67,6 +67,7 @@ TEST(CQ, multithread0)
   for (int i = 0; i < n; i++) {
     ASSERT_EQ(flags[i], true);
   }
+  lci::free_comp(&comp);
   lci::global_finalize();
 }
 
