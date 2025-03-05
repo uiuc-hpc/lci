@@ -137,7 +137,9 @@ if(NOT LCI_WITH_LCT_ONLY)
          "LCI_progress can be called by multiple threads simultaneously" ON)
   option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
   set(LCI_COMPILE_DREG_DEFAULT ON)
-  if(LCI_USE_SERVER_UCX)
+  if(LCI_USE_SERVER_UCX OR APPLE)
+    # Our UCS code can be non-compatible with external UCX. Some UCS code is not
+    # compatible with MacOS
     set(LCI_COMPILE_DREG_DEFAULT OFF)
   endif()
   set(LCI_COMPILE_DREG
