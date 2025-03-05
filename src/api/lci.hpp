@@ -493,6 +493,8 @@ struct status_t {
   tag_t tag = 0;
   void* user_context = nullptr;
 };
+
+using comp_handler_t = void (*)(status_t status);
 }  // namespace lci
 
 #include "lci_binding.hpp"

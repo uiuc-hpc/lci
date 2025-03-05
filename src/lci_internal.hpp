@@ -35,6 +35,7 @@
 #include "core/protocol.hpp"
 #include "comp/sync.hpp"
 #include "comp/cq.hpp"
+#include "comp/handler.hpp"
 #include "packet_pool/packet.hpp"
 #include "packet_pool/packet_pool.hpp"
 #include "core/runtime.hpp"

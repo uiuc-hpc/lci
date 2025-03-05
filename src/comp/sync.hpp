@@ -6,14 +6,16 @@ namespace lci
 class sync_t : public comp_impl_t
 {
  public:
-  sync_t(comp_attr_t attr)
+  sync_t(comp_attr_t attr, int threshold_)
       : comp_impl_t(attr),
         m_top(0),
         m_top2(0),
         m_tail(0),
-        threshold(attr.sync_threshold),
-        statuses(threshold)
+        threshold(threshold_),
+        statuses(threshold_)
   {
+    attr.comp_type = attr_comp_type_t::sync;
+    attr.sync_threshold = threshold;
   }
 
   ~sync_t() = default;

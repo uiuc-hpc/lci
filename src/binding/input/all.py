@@ -321,11 +321,9 @@ resource_comp := resource(
     "comp", 
     [
         attr_enum("comp_type", enum_options=["sync", "cq", "handler"], default_value="cq", comment="The completion object type."),
-        attr("int", "cq_default_length", default_value=8192, comment="The default length for cq (completion queue)."),
         attr("int", "sync_threshold", default_value=1, comment="The threshold for sync (synchronizer)."),
     ]
 ),
-operation_alloc(resource_comp),
 operation_free(resource_comp),
 operation(
     "comp_signal", 
@@ -398,7 +396,7 @@ operation(
     "alloc_cq", 
     [
         optional_runtime_args,
-        optional_arg("int", "default_length", "g_default_attr.cq_default_length"),
+        optional_arg("int", "default_length", "8192"),
         optional_arg("void*", "user_context", "nullptr"),
         return_val("comp_t", "comp")
     ],
@@ -411,6 +409,17 @@ operation(
         positional_arg("comp_t", "comp"),
         return_val("status_t", "status")
     ]
+),
+# handler
+operation(
+    "alloc_handler", 
+    [
+        optional_runtime_args,
+        positional_arg("comp_handler_t", "handler"),
+        optional_arg("void*", "user_context", "nullptr"),
+        return_val("comp_t", "comp")
+    ],
+    comment="Allocate a completion handler."
 ),
 # matching engine
 resource_matching_engine := resource("matching_engine", []),
