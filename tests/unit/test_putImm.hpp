@@ -51,8 +51,8 @@ TEST(COMM_PUTIMM, putImm_bcopy_st)
   lci::deregister_memory(&mr);
   free(send_buffer);
   free(recv_buffer);
-  lci::free_cq(&scq);
-  lci::free_cq(&rcq);
+  lci::free_comp(&scq);
+  lci::free_comp(&rcq);
   lci::g_runtime_fina();
 }
 
@@ -103,8 +103,8 @@ void test_putImm_bcopy_mt(int id, int nmsgs, uint64_t* p_data,
   lci::deregister_memory(&mr);
   free(send_buffer);
   free(recv_buffer);
-  lci::free_cq(&scq);
-  lci::free_cq(&rcq);
+  lci::free_comp(&scq);
+  lci::free_comp(&rcq);
 }
 
 TEST(COMM_PUTIMM, putImm_bcopy_mt)
@@ -184,8 +184,8 @@ TEST(COMM_PUTIMM, putImm_zcopy_st)
   lci::deregister_memory(&mr);
   free(send_buffer);
   free(recv_buffer);
-  lci::free_cq(&scq);
-  lci::free_cq(&rcq);
+  lci::free_comp(&scq);
+  lci::free_comp(&rcq);
   lci::g_runtime_fina();
 }
 
@@ -235,8 +235,8 @@ void test_putImm_zcopy_mt(int id, int nmsgs, lci::rcomp_t rcomp_base)
   lci::deregister_memory(&mr);
   free(send_buffer);
   free(recv_buffer);
-  lci::free_cq(&scq);
-  lci::free_cq(&rcq);
+  lci::free_comp(&scq);
+  lci::free_comp(&rcq);
 }
 
 TEST(COMM_PUTIMM, putImm_zcopy_mt)
@@ -331,8 +331,8 @@ TEST(COMM_PUTIMM, putImm_buffers_st)
     free(send_buffers[i].base);
     free(recv_buffers[i].base);
   }
-  lci::free_cq(&scq);
-  lci::free_cq(&rcq);
+  lci::free_comp(&scq);
+  lci::free_comp(&rcq);
   lci::g_runtime_fina();
 }
 
@@ -399,8 +399,8 @@ void test_putImm_buffers_mt(int id, int nmsgs, lci::rcomp_t rcomp_base)
     free(send_buffers[i].base);
     free(recv_buffers[i].base);
   }
-  lci::free_cq(&scq);
-  lci::free_cq(&rcq);
+  lci::free_comp(&scq);
+  lci::free_comp(&rcq);
 }
 
 TEST(COMM_PUTIMM, putImm_buffers_mt)

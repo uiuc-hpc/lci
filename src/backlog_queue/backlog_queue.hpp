@@ -32,7 +32,7 @@ class backlog_queue_t
   inline bool progress();
   inline bool is_empty() const
   {
-    return nentries.load(std::memory_order::memory_order_relaxed) == 0;
+    return nentries.load(std::memory_order_relaxed) == 0;
   }
 
  private:

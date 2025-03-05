@@ -40,8 +40,8 @@ TEST(COMM_AM, am_bcopy_st)
     ASSERT_EQ(status.data.get_scalar<uint64_t>(), data);
   }
 
-  lci::free_cq(&lcq);
-  lci::free_cq(&rcq);
+  lci::free_comp(&lcq);
+  lci::free_comp(&rcq);
   lci::g_runtime_fina();
 }
 
@@ -110,8 +110,8 @@ TEST(COMM_AM, am_bcopy_mt)
     t.join();
   }
 
-  lci::free_cq(&lcq);
-  lci::free_cq(&rcq);
+  lci::free_comp(&lcq);
+  lci::free_comp(&rcq);
   lci::g_runtime_fina();
 }
 
@@ -154,8 +154,8 @@ TEST(COMM_AM, am_zcopy_st)
     ASSERT_EQ(status.data.get_scalar<uint64_t>(), data);
   }
 
-  lci::free_cq(&lcq);
-  lci::free_cq(&rcq);
+  lci::free_comp(&lcq);
+  lci::free_comp(&rcq);
   lci::g_runtime_fina();
 }
 
@@ -225,8 +225,8 @@ TEST(COMM_AM, am_zcopy_mt)
     t.join();
   }
 
-  lci::free_cq(&lcq);
-  lci::free_cq(&rcq);
+  lci::free_comp(&lcq);
+  lci::free_comp(&rcq);
   lci::g_runtime_fina();
 }
 
@@ -286,8 +286,8 @@ TEST(COMM_AM, am_buffers_st)
     }
   }
 
-  lci::free_cq(&lcq);
-  lci::free_cq(&rcq);
+  lci::free_comp(&lcq);
+  lci::free_comp(&rcq);
   lci::g_runtime_fina();
 }
 
@@ -373,8 +373,8 @@ TEST(COMM_AM, am_buffers_mt)
     t.join();
   }
 
-  lci::free_cq(&lcq);
-  lci::free_cq(&rcq);
+  lci::free_comp(&lcq);
+  lci::free_comp(&rcq);
   lci::g_runtime_fina();
 }
 

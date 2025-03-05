@@ -28,7 +28,7 @@ TEST(CQ, singlethread)
   for (uint64_t i = 0; i < n; i++) {
     ASSERT_EQ(my_cq_pop(comp), i);
   }
-  lci::free_cq_x(&comp).call();
+  lci::free_comp_x(&comp).call();
   lci::g_runtime_fina();
 }
 

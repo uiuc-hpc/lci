@@ -17,7 +17,7 @@ inline void backlog_queue_t::push_sends(endpoint_impl_t* endpoint, int rank,
   entry.size = size;
   entry.imm_data = imm_data;
   lock.lock();
-  nentries.fetch_add(1, std::memory_order::memory_order_relaxed);
+  nentries.fetch_add(1, std::memory_order_relaxed);
   backlog_queue.push(entry);
   lock.unlock();
 }
@@ -37,7 +37,7 @@ inline void backlog_queue_t::push_send(endpoint_impl_t* endpoint, int rank,
   entry.imm_data = imm_data;
   entry.ctx = ctx;
   lock.lock();
-  nentries.fetch_add(1, std::memory_order::memory_order_relaxed);
+  nentries.fetch_add(1, std::memory_order_relaxed);
   backlog_queue.push(entry);
   lock.unlock();
 }
@@ -59,7 +59,7 @@ inline void backlog_queue_t::push_puts(endpoint_impl_t* endpoint, int rank,
   entry.offset = offset;
   entry.rkey = rkey;
   lock.lock();
-  nentries.fetch_add(1, std::memory_order::memory_order_relaxed);
+  nentries.fetch_add(1, std::memory_order_relaxed);
   backlog_queue.push(entry);
   lock.unlock();
 }
@@ -82,7 +82,7 @@ inline void backlog_queue_t::push_put(endpoint_impl_t* endpoint, int rank,
   entry.rkey = rkey;
   entry.ctx = ctx;
   lock.lock();
-  nentries.fetch_add(1, std::memory_order::memory_order_relaxed);
+  nentries.fetch_add(1, std::memory_order_relaxed);
   backlog_queue.push(entry);
   lock.unlock();
 }
@@ -105,7 +105,7 @@ inline void backlog_queue_t::push_putImms(endpoint_impl_t* endpoint, int rank,
   entry.rkey = rkey;
   entry.imm_data = imm_data;
   lock.lock();
-  nentries.fetch_add(1, std::memory_order::memory_order_relaxed);
+  nentries.fetch_add(1, std::memory_order_relaxed);
   backlog_queue.push(entry);
   lock.unlock();
 }
@@ -129,7 +129,7 @@ inline void backlog_queue_t::push_putImm(endpoint_impl_t* endpoint, int rank,
   entry.imm_data = imm_data;
   entry.ctx = ctx;
   lock.lock();
-  nentries.fetch_add(1, std::memory_order::memory_order_relaxed);
+  nentries.fetch_add(1, std::memory_order_relaxed);
   backlog_queue.push(entry);
   lock.unlock();
 }
@@ -152,7 +152,7 @@ inline void backlog_queue_t::push_get(endpoint_impl_t* endpoint, int rank,
   entry.rkey = rkey;
   entry.ctx = ctx;
   lock.lock();
-  nentries.fetch_add(1, std::memory_order::memory_order_relaxed);
+  nentries.fetch_add(1, std::memory_order_relaxed);
   backlog_queue.push(entry);
   lock.unlock();
 }
@@ -210,7 +210,7 @@ inline bool backlog_queue_t::progress()
     backlog_queue.pop();
     lock.unlock();
     // clean up
-    nentries.fetch_sub(1, std::memory_order::memory_order_relaxed);
+    nentries.fetch_sub(1, std::memory_order_relaxed);
     did_something = true;
     if (entry.op == backlog_op_t::sends || entry.op == backlog_op_t::puts ||
         entry.op == backlog_op_t::putImms) {

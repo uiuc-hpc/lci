@@ -52,8 +52,8 @@ TEST(COMM_SENDRECV, sendrecv_bcopy_st)
     }
   }
 
-  lci::free_cq(&rcq);
-  lci::free_cq(&scq);
+  lci::free_comp(&rcq);
+  lci::free_comp(&scq);
   lci::g_runtime_fina();
 }
 
@@ -101,8 +101,8 @@ void test_sendrecv_bcopy_mt(int id, int nmsgs, uint64_t* p_data)
     }
   }
 
-  lci::free_cq(&rcq);
-  lci::free_cq(&scq);
+  lci::free_comp(&rcq);
+  lci::free_comp(&scq);
 }
 
 TEST(COMM_SENDRECV, sendrecv_bcopy_mt)
@@ -178,8 +178,8 @@ TEST(COMM_SENDRECV, sendrecv_zcopy_st)
 
   free(send_buffer);
   free(recv_buffer);
-  lci::free_cq(&rcq);
-  lci::free_cq(&rcq);
+  lci::free_comp(&rcq);
+  lci::free_comp(&rcq);
   lci::g_runtime_fina();
 }
 
@@ -224,8 +224,8 @@ void test_sendrecv_zcopy_mt(int id, int nmsgs)
 
   free(send_buffer);
   free(recv_buffer);
-  lci::free_cq(&rcq);
-  lci::free_cq(&scq);
+  lci::free_comp(&rcq);
+  lci::free_comp(&scq);
 }
 
 TEST(COMM_SENDRECV, sendrecv_zcopy_mt)
@@ -317,8 +317,8 @@ TEST(COMM_SENDRECV, sendrecv_buffers_st)
     }
   }
 
-  lci::free_cq(&scq);
-  lci::free_cq(&rcq);
+  lci::free_comp(&scq);
+  lci::free_comp(&rcq);
   lci::g_runtime_fina();
 }
 
@@ -381,8 +381,8 @@ void test_sendrecv_buffers_mt(int id, int nmsgs)
     }
   }
 
-  lci::free_cq(&scq);
-  lci::free_cq(&rcq);
+  lci::free_comp(&scq);
+  lci::free_comp(&rcq);
 }
 
 TEST(COMM_SENDRECV, sendrecv_buffers_mt)

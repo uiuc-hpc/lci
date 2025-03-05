@@ -3,16 +3,16 @@
 
 namespace lci
 {
-class cq_impl_t : public comp_impl_t
+class cq_t : public comp_impl_t
 {
  public:
-  cq_impl_t(comp_attr_t attr, size_t default_length_ = 8192)
+  cq_t(comp_attr_t attr, size_t default_length_ = 8192)
       : comp_impl_t(attr), default_length(default_length_)
   {
     LCT_queue_type_t cq_type = LCT_QUEUE_LCRQ;
     queue = LCT_queue_alloc(cq_type, default_length);
   }
-  ~cq_impl_t() { LCT_queue_free(&queue); }
+  ~cq_t() { LCT_queue_free(&queue); }
   void signal(status_t status) override
   {
     LCI_Assert(status.error.is_ok(), "status.error is not ok!\n");
@@ -41,6 +41,13 @@ class cq_impl_t : public comp_impl_t
   size_t default_length;
   LCT_queue_t queue;
 };
+
+inline status_t cq_pop_x::call_impl(comp_t comp, runtime_t runtime) const
+{
+  cq_t* p_cq = static_cast<cq_t*>(comp.p_impl);
+  return p_cq->pop();
+}
+
 }  // namespace lci
 
 #endif  // LCI_DATA_STRUCTURE_CQ_CQ_HPP

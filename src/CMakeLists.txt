@@ -11,7 +11,7 @@ target_sources_relative(
   core/lci.cpp
   core/global.cpp
   packet_pool/packet_pool.cpp
-  core/cq.cpp
+  comp/comp.cpp
   core/comp.cpp
   core/rhandler_registry.cpp
   core/runtime.cpp

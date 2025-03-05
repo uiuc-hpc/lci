@@ -328,6 +328,14 @@ operation(
     comment="Signal a completion object."
 ),
 operation(
+    "free_comp", 
+    [
+        optional_runtime_args,
+        positional_arg("comp_t*", "comp", inout_trait="inout"),
+    ],
+    comment="Free a completion object."
+),
+operation(
     "reserve_rcomps", 
     [
         optional_runtime_args,
@@ -354,6 +362,36 @@ operation(
     ],
     comment="Deregister a remote completion handler."
 ),
+# sync
+operation(
+    "alloc_sync", 
+    [
+        optional_runtime_args,
+        positional_arg("int", "threshold"),
+        optional_arg("void*", "user_context", "nullptr"),
+        return_val("comp_t", "comp")
+    ],
+    comment="Allocate a synchronizer."
+),
+operation(
+    "sync_test", 
+    [
+        optional_runtime_args,
+        positional_arg("comp_t", "comp"),
+        positional_arg("status_t*", "p_out", inout_trait="out"),
+        return_val("bool", "succeed")
+    ],
+    comment="Test a synchronizer."
+),
+operation(
+    "sync_wait", 
+    [
+        optional_runtime_args,
+        positional_arg("comp_t", "comp"),
+        positional_arg("status_t*", "p_out", inout_trait="out"),
+    ],
+    comment="Wait a synchronizer to be ready."
+),
 # cq
 operation(
     "alloc_cq", 
@@ -363,14 +401,6 @@ operation(
         return_val("comp_t", "comp")
     ],
     comment="Allocate a completion queue."
-),
-operation(
-    "free_cq", 
-    [
-        optional_runtime_args,
-        positional_arg("comp_t*", "comp", inout_trait="inout"),
-    ],
-    comment="Free a completion queue."
 ),
 operation(
     "cq_pop", 
