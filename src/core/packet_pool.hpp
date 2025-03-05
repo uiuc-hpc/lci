@@ -16,9 +16,17 @@ class packet_pool_impl_t
   {
     return attr.packet_size - sizeof(packet_local_context_t);
   }
-  packet_t* get()
+  packet_t* get(bool blocking = false)
   {
-    auto* packet = static_cast<packet_t*>(pool.get());
+    int nattempts = 1;
+    if (blocking) {
+      // Should only take a few seconds
+      nattempts = 1000000;
+    }
+    auto* packet = static_cast<packet_t*>(pool.get(nattempts));
+    LCI_Assert(packet || !blocking,
+               "Failed to get a packet in a blocking get! We are likely run "
+               "out of packets\n");
     if (packet) {
       packet->local_context.packet_pool_impl = this;
       packet->local_context.isInPool = false;

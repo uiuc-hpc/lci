@@ -48,14 +48,14 @@ status_t post_comm_x::call_impl(
                                .endpoint(endpoint)
                                .tag(tag)
                                .remote_comp(remote_comp)();
-  size_t max_eager_size = get_max_eager_size_x()
+  size_t max_bcopy_size = get_max_bcopy_size_x()
                               .runtime(runtime)
                               .endpoint(endpoint)
                               .packet_pool(packet_pool)
                               .tag(tag)
                               .remote_comp(remote_comp)();
   protocol_t protocol;
-  if (!buffers.empty() || force_zero_copy || size > max_eager_size) {
+  if (!buffers.empty() || force_zero_copy || size > max_bcopy_size) {
     protocol = protocol_t::zcopy;
   } else if (size <= max_inject_size && direction == direction_t::OUT &&
              out_comp_type == out_comp_type_t::buffer) {
@@ -93,7 +93,7 @@ status_t post_comm_x::call_impl(
       packet = address2packet(local_buffer);
     } else {
       // allocate a packet
-      packet = packet_pool.p_impl->get();
+      packet = packet_pool.p_impl->get(!allow_retry);
       if (!packet) {
         error = errorcode_t::retry_nopacket;
         goto exit;
@@ -113,7 +113,7 @@ status_t post_comm_x::call_impl(
      * direction out
      **********************************************************************************/
     // wait for the backlog queue to be empty
-    if (!endpoint.get_impl()->is_backlog_queue_empty()) {
+    if (!endpoint.get_impl()->is_backlog_queue_empty() && allow_retry) {
       LCI_PCOUNTER_ADD(retry_due_to_backlog_queue, 1);
       error = errorcode_t::retry_backlog;
       goto exit;
@@ -241,9 +241,9 @@ status_t post_comm_x::call_impl(
         if (rts_size <= max_inject_size) {
           p_rts = &plain_rts;
         } else {
-          LCI_Assert(rts_size <= max_eager_size,
+          LCI_Assert(rts_size <= max_bcopy_size,
                      "The rts message is too large\n");
-          packet = packet_pool.p_impl->get();
+          packet = packet_pool.p_impl->get(!allow_retry);
           if (!packet) {
             error = errorcode_t::retry_nopacket;
             goto exit;
@@ -502,7 +502,7 @@ size_t get_max_inject_size_x::call_impl(runtime_t runtime, endpoint_t endpoint,
   return net_max_inject_size;
 }
 
-size_t get_max_eager_size_x::call_impl(runtime_t runtime, endpoint_t endpoint,
+size_t get_max_bcopy_size_x::call_impl(runtime_t runtime, endpoint_t endpoint,
                                        packet_pool_t packet_pool, tag_t tag,
                                        rcomp_t remote_comp) const
 {

@@ -2,7 +2,7 @@
 
 namespace test_comm_sendrecv
 {
-TEST(COMM_SENDRECV, sendrecv_eager_st)
+TEST(COMM_SENDRECV, sendrecv_bcopy_st)
 {
   lci::g_runtime_init();
 
@@ -57,7 +57,7 @@ TEST(COMM_SENDRECV, sendrecv_eager_st)
   lci::g_runtime_fina();
 }
 
-void test_sendrecv_eager_mt(int id, int nmsgs, uint64_t* p_data)
+void test_sendrecv_bcopy_mt(int id, int nmsgs, uint64_t* p_data)
 {
   int rank = lci::get_rank();
   lci::tag_t tag = id;
@@ -105,7 +105,7 @@ void test_sendrecv_eager_mt(int id, int nmsgs, uint64_t* p_data)
   lci::free_cq(&scq);
 }
 
-TEST(COMM_SENDRECV, sendrecv_eager_mt)
+TEST(COMM_SENDRECV, sendrecv_bcopy_mt)
 {
   lci::g_runtime_init();
 
@@ -121,7 +121,7 @@ TEST(COMM_SENDRECV, sendrecv_eager_mt)
 
   std::vector<std::thread> threads;
   for (int i = 0; i < nthreads; i++) {
-    std::thread t(test_sendrecv_eager_mt, i, nmsgs / nthreads, &data);
+    std::thread t(test_sendrecv_bcopy_mt, i, nmsgs / nthreads, &data);
     threads.push_back(std::move(t));
   }
   for (auto& t : threads) {
@@ -131,7 +131,7 @@ TEST(COMM_SENDRECV, sendrecv_eager_mt)
   lci::g_runtime_fina();
 }
 
-TEST(COMM_SENDRECV, sendrecv_rdv_st)
+TEST(COMM_SENDRECV, sendrecv_zcopy_st)
 {
   lci::g_runtime_init();
 
@@ -144,7 +144,7 @@ TEST(COMM_SENDRECV, sendrecv_rdv_st)
   lci::comp_t scq = lci::alloc_cq();
   lci::comp_t rcq = lci::alloc_cq();
   // loopback message
-  size_t msg_size = lci::get_max_eager_size() * 2;
+  size_t msg_size = lci::get_max_bcopy_size() * 2;
   void* send_buffer = malloc(msg_size);
   void* recv_buffer = malloc(msg_size);
   util::write_buffer(send_buffer, msg_size, 'a');
@@ -183,14 +183,14 @@ TEST(COMM_SENDRECV, sendrecv_rdv_st)
   lci::g_runtime_fina();
 }
 
-void test_sendrecv_rdv_mt(int id, int nmsgs)
+void test_sendrecv_zcopy_mt(int id, int nmsgs)
 {
   int rank = lci::get_rank();
   lci::tag_t tag = id;
 
   lci::comp_t scq = lci::alloc_cq();
   lci::comp_t rcq = lci::alloc_cq();
-  size_t msg_size = lci::get_max_eager_size() * 2;
+  size_t msg_size = lci::get_max_bcopy_size() * 2;
   void* send_buffer = malloc(msg_size);
   void* recv_buffer = malloc(msg_size);
   util::write_buffer(send_buffer, msg_size, 'a');
@@ -228,7 +228,7 @@ void test_sendrecv_rdv_mt(int id, int nmsgs)
   lci::free_cq(&scq);
 }
 
-TEST(COMM_SENDRECV, sendrecv_rdv_mt)
+TEST(COMM_SENDRECV, sendrecv_zcopy_mt)
 {
   lci::g_runtime_init();
 
@@ -242,7 +242,7 @@ TEST(COMM_SENDRECV, sendrecv_rdv_mt)
 
   std::vector<std::thread> threads;
   for (int i = 0; i < nthreads; i++) {
-    std::thread t(test_sendrecv_rdv_mt, i, nmsgs / nthreads);
+    std::thread t(test_sendrecv_zcopy_mt, i, nmsgs / nthreads);
     threads.push_back(std::move(t));
   }
   for (auto& t : threads) {

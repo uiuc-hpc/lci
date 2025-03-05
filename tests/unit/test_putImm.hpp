@@ -2,7 +2,7 @@
 
 namespace test_comm_putImm
 {
-TEST(COMM_PUTIMM, putImm_eager_st)
+TEST(COMM_PUTIMM, putImm_bcopy_st)
 {
   lci::g_runtime_init();
 
@@ -16,7 +16,7 @@ TEST(COMM_PUTIMM, putImm_eager_st)
   lci::comp_t rcq = lci::alloc_cq();
   lci::rcomp_t rcomp = lci::register_rcomp(rcq);
   // prepare buffer
-  size_t msg_size = lci::get_max_eager_size();
+  size_t msg_size = lci::get_max_bcopy_size();
   void* send_buffer = malloc(msg_size);
   void* recv_buffer = malloc(msg_size);
   util::write_buffer(send_buffer, msg_size, 'a');
@@ -56,7 +56,7 @@ TEST(COMM_PUTIMM, putImm_eager_st)
   lci::g_runtime_fina();
 }
 
-void test_putImm_eager_mt(int id, int nmsgs, uint64_t* p_data,
+void test_putImm_bcopy_mt(int id, int nmsgs, uint64_t* p_data,
                           lci::rcomp_t rcomp_base)
 {
   int rank = lci::get_rank();
@@ -68,7 +68,7 @@ void test_putImm_eager_mt(int id, int nmsgs, uint64_t* p_data,
   lci::comp_t rcq = lci::alloc_cq();
   lci::rcomp_t rcomp = lci::register_rcomp_x(rcq).rcomp(rcomp_base + id)();
   // prepare buffer
-  size_t msg_size = lci::get_max_eager_size();
+  size_t msg_size = lci::get_max_bcopy_size();
   void* send_buffer = malloc(msg_size);
   void* recv_buffer = malloc(msg_size);
   util::write_buffer(send_buffer, msg_size, 'a');
@@ -107,7 +107,7 @@ void test_putImm_eager_mt(int id, int nmsgs, uint64_t* p_data,
   lci::free_cq(&rcq);
 }
 
-TEST(COMM_PUTIMM, putImm_eager_mt)
+TEST(COMM_PUTIMM, putImm_bcopy_mt)
 {
   lci::g_runtime_init();
 
@@ -125,7 +125,7 @@ TEST(COMM_PUTIMM, putImm_eager_mt)
 
   std::vector<std::thread> threads;
   for (int i = 0; i < nthreads; i++) {
-    std::thread t(test_putImm_eager_mt, i, nmsgs / nthreads, &data, rcomp_base);
+    std::thread t(test_putImm_bcopy_mt, i, nmsgs / nthreads, &data, rcomp_base);
     threads.push_back(std::move(t));
   }
   for (auto& t : threads) {
@@ -135,7 +135,7 @@ TEST(COMM_PUTIMM, putImm_eager_mt)
   lci::g_runtime_fina();
 }
 
-TEST(COMM_PUTIMM, putImm_rdv_st)
+TEST(COMM_PUTIMM, putImm_zcopy_st)
 {
   lci::g_runtime_init();
 
@@ -149,7 +149,7 @@ TEST(COMM_PUTIMM, putImm_rdv_st)
   lci::comp_t rcq = lci::alloc_cq();
   lci::rcomp_t rcomp = lci::register_rcomp(rcq);
   // prepare buffer
-  size_t msg_size = lci::get_max_eager_size() * 2;
+  size_t msg_size = lci::get_max_bcopy_size() * 2;
   void* send_buffer = malloc(msg_size);
   void* recv_buffer = malloc(msg_size);
   util::write_buffer(send_buffer, msg_size, 'a');
@@ -189,7 +189,7 @@ TEST(COMM_PUTIMM, putImm_rdv_st)
   lci::g_runtime_fina();
 }
 
-void test_putImm_rdv_mt(int id, int nmsgs, lci::rcomp_t rcomp_base)
+void test_putImm_zcopy_mt(int id, int nmsgs, lci::rcomp_t rcomp_base)
 {
   int rank = lci::get_rank();
   int nranks = lci::get_nranks();
@@ -200,7 +200,7 @@ void test_putImm_rdv_mt(int id, int nmsgs, lci::rcomp_t rcomp_base)
   lci::comp_t rcq = lci::alloc_cq();
   lci::rcomp_t rcomp = lci::register_rcomp_x(rcq).rcomp(rcomp_base + id)();
   // prepare buffer
-  size_t msg_size = lci::get_max_eager_size() * 2;
+  size_t msg_size = lci::get_max_bcopy_size() * 2;
   void* send_buffer = malloc(msg_size);
   void* recv_buffer = malloc(msg_size);
   util::write_buffer(send_buffer, msg_size, 'a');
@@ -239,7 +239,7 @@ void test_putImm_rdv_mt(int id, int nmsgs, lci::rcomp_t rcomp_base)
   lci::free_cq(&rcq);
 }
 
-TEST(COMM_PUTIMM, putImm_rdv_mt)
+TEST(COMM_PUTIMM, putImm_zcopy_mt)
 {
   lci::g_runtime_init();
 
@@ -255,7 +255,7 @@ TEST(COMM_PUTIMM, putImm_rdv_mt)
 
   std::vector<std::thread> threads;
   for (int i = 0; i < nthreads; i++) {
-    std::thread t(test_putImm_rdv_mt, i, nmsgs / nthreads, rcomp_base);
+    std::thread t(test_putImm_zcopy_mt, i, nmsgs / nthreads, rcomp_base);
     threads.push_back(std::move(t));
   }
   for (auto& t : threads) {
@@ -280,7 +280,7 @@ TEST(COMM_PUTIMM, putImm_buffers_st)
   lci::rcomp_t rcomp = lci::register_rcomp(rcq);
   // prepare data
   const int buffers_count = 3;
-  size_t msg_size = lci::get_max_eager_size() * 2;
+  size_t msg_size = lci::get_max_bcopy_size() * 2;
   lci::buffers_t send_buffers(buffers_count);
   lci::buffers_t recv_buffers(buffers_count);
   lci::rbuffers_t rbuffers(buffers_count);
@@ -348,7 +348,7 @@ void test_putImm_buffers_mt(int id, int nmsgs, lci::rcomp_t rcomp_base)
   lci::rcomp_t rcomp = lci::register_rcomp_x(rcq).rcomp(rcomp_base + id)();
   // prepare data
   const int buffers_count = 3;
-  size_t msg_size = lci::get_max_eager_size() * 2;
+  size_t msg_size = lci::get_max_bcopy_size() * 2;
   lci::buffers_t send_buffers(buffers_count);
   lci::buffers_t recv_buffers(buffers_count);
   lci::rbuffers_t rbuffers(buffers_count);

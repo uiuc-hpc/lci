@@ -87,7 +87,7 @@ class mpmc_set_t
   };
   const static int LOCAL_SET_ID_NULL = -1;
   int get_local_set_id() { return LCT_get_thread_id(); }
-  void* get();
+  void* get(int64_t max_steal_attempts);
   void put(void* packet, int tid);
   // not thread safe
   int64_t size() const;
@@ -124,7 +124,7 @@ inline mpmc_set_t::local_set_t* mpmc_set_t::get_random_pool()
   return static_cast<local_set_t*>(pools.get(pool_id));
 }
 
-inline void* mpmc_set_t::get()
+inline void* mpmc_set_t::get(int64_t max_steal_attempts = 1)
 {
   int tid = get_local_set_id();
   local_set_t* local_pool = get_local_pool();
@@ -139,35 +139,40 @@ inline void* mpmc_set_t::get()
     goto unlock_local_pool;
   }
   // random packet stealing
-  LCI_Assert(local_pool->empty(), "local pool must be empty\n");
-  random_pool = get_random_pool();
-  if (!random_pool || random_pool == local_pool || random_pool->size() <= 0) {
-    goto unlock_local_pool;
-  }
-  if (!random_pool->lock.try_lock()) goto unlock_local_pool;
-  // At this point, we should have locked both pools
-  // steal half packets from random_pool
-  n = (random_pool->size() + 1) / 2;
-  if (n > 0) {
-    LCI_Assert(n <= random_pool->size(),
-               "n (%ld) > random_pool->size() (%ld)\n", n, random_pool->size());
-    local_pool->queue.resize(std::max(default_lpool_size, n * 2) + 1);
-    local_set_t::copy_to_new(random_pool, local_pool->queue, n);
-    LCI_Assert(random_pool->head <= random_pool->tail,
-               "header (%ld) > tail (%ld)\n", random_pool->head,
-               random_pool->tail);
-    local_pool->tail = n;
-    local_pool->head = 0;
-    for (int i = 0; i < n; i++) {
-      void* val = local_pool->queue[i];
-      LCI_Assert(val, "val must not be nullptr\n");
+  for (int64_t i = 0; i < max_steal_attempts; i++) {
+    LCI_Assert(local_pool->empty(), "local pool must be empty\n");
+    random_pool = get_random_pool();
+    if (!random_pool || random_pool == local_pool || random_pool->size() <= 0) {
+      continue;
     }
-    ret = local_pool->pop();
-    LCI_Assert(ret, "this pop has to succeed\n");
+    if (!random_pool->lock.try_lock()) continue;
+    // At this point, we should have locked both pools
+    // steal half packets from random_pool
+    n = (random_pool->size() + 1) / 2;
+    if (n > 0) {
+      LCI_Assert(n <= random_pool->size(),
+                 "n (%ld) > random_pool->size() (%ld)\n", n,
+                 random_pool->size());
+      local_pool->queue.resize(std::max(default_lpool_size, n * 2) + 1);
+      local_set_t::copy_to_new(random_pool, local_pool->queue, n);
+      LCI_Assert(random_pool->head <= random_pool->tail,
+                 "header (%ld) > tail (%ld)\n", random_pool->head,
+                 random_pool->tail);
+      local_pool->tail = n;
+      local_pool->head = 0;
+      for (int i = 0; i < n; i++) {
+        void* val = local_pool->queue[i];
+        LCI_Assert(val, "val must not be nullptr\n");
+      }
+      ret = local_pool->pop();
+      LCI_Assert(ret, "this pop has to succeed\n");
+    }
+    random_pool->lock.unlock();
+    // if we get a packet, we are done
+    if (ret) {
+      break;
+    }
   }
-
-unlock_random_pool:
-  random_pool->lock.unlock();
 
 unlock_local_pool:
   local_pool->lock.unlock();

@@ -583,7 +583,7 @@ operation(
     comment="Get the maximum message size for the inject protocol."
 ),
 operation(
-    "get_max_eager_size", 
+    "get_max_bcopy_size", 
     [
         optional_runtime_args,
         optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint"),

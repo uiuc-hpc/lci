@@ -1,8 +1,8 @@
 #include "lci_internal.hpp"
 
-namespace test_comm_am
+namespace test_comm_am_bq
 {
-TEST(COMM_AM, am_bcopy_st)
+TEST(BACKLOG_QUEUE, am_bcopy_st_bq)
 {
   lci::g_runtime_init();
 
@@ -20,10 +20,9 @@ TEST(COMM_AM, am_bcopy_st)
   for (int i = 0; i < nmsgs; i++) {
     uint64_t data = 0xdeadbeef;
     lci::status_t status;
-    do {
-      status = lci::post_am(rank, &data, sizeof(data), lcq, rcomp);
-      lci::progress();
-    } while (status.error.is_retry());
+    status = lci::post_am_x(rank, &data, sizeof(data), lcq, rcomp)
+                 .allow_retry(false)();
+    ASSERT_EQ(status.error.is_retry(), false);
     if (status.error.is_posted()) {
       // poll local cq
       do {
@@ -53,11 +52,10 @@ void test_am_bcopy_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
 
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
-    do {
-      status =
-          lci::post_am_x(rank, p_data, sizeof(uint64_t), lcq, rcomp).tag(tag)();
-      lci::progress();
-    } while (status.error.is_retry());
+    status = lci::post_am_x(rank, p_data, sizeof(uint64_t), lcq, rcomp)
+                 .tag(tag)
+                 .allow_retry(false)();
+    ASSERT_EQ(status.error.is_retry(), false);
     // poll cqs
     bool lcq_done = status.error.is_ok();
     bool rcq_done = false;
@@ -83,7 +81,7 @@ void test_am_bcopy_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
   }
 }
 
-TEST(COMM_AM, am_bcopy_mt)
+TEST(BACKLOG_QUEUE, am_bcopy_mt_bq)
 {
   lci::g_runtime_init();
 
@@ -115,7 +113,7 @@ TEST(COMM_AM, am_bcopy_mt)
   lci::g_runtime_fina();
 }
 
-TEST(COMM_AM, am_zcopy_st)
+TEST(BACKLOG_QUEUE, am_zcopy_st_bq)
 {
   lci::g_runtime_init();
 
@@ -133,11 +131,10 @@ TEST(COMM_AM, am_zcopy_st)
   for (int i = 0; i < nmsgs; i++) {
     uint64_t data = 0xdeadbeef;
     lci::status_t status;
-    do {
-      status = lci::post_am_x(rank, &data, sizeof(data), lcq, rcomp)
-                   .force_zero_copy(true)();
-      lci::progress();
-    } while (status.error.is_retry());
+    status = lci::post_am_x(rank, &data, sizeof(data), lcq, rcomp)
+                 .force_zero_copy(true)
+                 .allow_retry(false)();
+    ASSERT_EQ(status.error.is_retry(), false);
     if (status.error.is_posted()) {
       // poll local cq
       do {
@@ -167,12 +164,11 @@ void test_am_zcopy_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
 
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
-    do {
-      status = lci::post_am_x(rank, p_data, sizeof(uint64_t), lcq, rcomp)
-                   .tag(tag)
-                   .force_zero_copy(true)();
-      lci::progress();
-    } while (status.error.is_retry());
+    status = lci::post_am_x(rank, p_data, sizeof(uint64_t), lcq, rcomp)
+                 .tag(tag)
+                 .force_zero_copy(true)
+                 .allow_retry(false)();
+    ASSERT_EQ(status.error.is_retry(), false);
     // poll cqs
     bool lcq_done = status.error.is_ok();
     bool rcq_done = false;
@@ -198,7 +194,7 @@ void test_am_zcopy_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
   }
 }
 
-TEST(COMM_AM, am_zcopy_mt)
+TEST(BACKLOG_QUEUE, am_zcopy_mt_bq)
 {
   lci::g_runtime_init();
 
@@ -230,7 +226,7 @@ TEST(COMM_AM, am_zcopy_mt)
   lci::g_runtime_fina();
 }
 
-TEST(COMM_AM, am_buffers_st)
+TEST(BACKLOG_QUEUE, am_buffers_st_bq)
 {
   lci::g_runtime_init();
 
@@ -255,10 +251,9 @@ TEST(COMM_AM, am_buffers_st)
   // loopback message
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
-    do {
-      status = lci::post_am_x(rank, nullptr, 0, lcq, rcomp).buffers(buffers)();
-      lci::progress();
-    } while (status.error.is_retry());
+    status = lci::post_am_x(rank, nullptr, 0, lcq, rcomp)
+                 .buffers(buffers)
+                 .allow_retry(false)();
     if (status.error.is_posted()) {
       // poll local cq
       do {
@@ -299,12 +294,10 @@ void test_am_buffers_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
 
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
-    do {
-      status = lci::post_am_x(rank, nullptr, 0, lcq, rcomp)
-                   .tag(tag)
-                   .buffers(buffers)();
-      lci::progress();
-    } while (status.error.is_retry());
+    status = lci::post_am_x(rank, nullptr, 0, lcq, rcomp)
+                 .tag(tag)
+                 .buffers(buffers)
+                 .allow_retry(false)();
     // poll cqs
     bool lcq_done = status.error.is_ok();
     bool rcq_done = false;
@@ -340,7 +333,7 @@ void test_am_buffers_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
   }
 }
 
-TEST(COMM_AM, am_buffers_mt)
+TEST(BACKLOG_QUEUE, am_buffers_mt)
 {
   lci::g_runtime_init();
 
@@ -378,4 +371,4 @@ TEST(COMM_AM, am_buffers_mt)
   lci::g_runtime_fina();
 }
 
-}  // namespace test_comm_am
+}  // namespace test_comm_am_bq

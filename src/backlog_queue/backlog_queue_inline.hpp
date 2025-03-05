@@ -171,35 +171,37 @@ inline bool backlog_queue_t::progress()
   switch (entry.op) {
     case backlog_op_t::sends:
       error = entry.endpoint->post_sends(entry.rank, entry.buffer, entry.size,
-                                         entry.imm_data);
+                                         entry.imm_data, true, true);
       break;
     case backlog_op_t::send:
       error = entry.endpoint->post_send(entry.rank, entry.buffer, entry.size,
-                                        entry.mr, entry.imm_data, entry.ctx);
+                                        entry.mr, entry.imm_data, entry.ctx,
+                                        true, true);
       break;
     case backlog_op_t::puts:
       error = entry.endpoint->post_puts(entry.rank, entry.buffer, entry.size,
-                                        entry.base, entry.offset, entry.rkey);
+                                        entry.base, entry.offset, entry.rkey,
+                                        true, true);
       break;
     case backlog_op_t::put:
       error = entry.endpoint->post_put(entry.rank, entry.buffer, entry.size,
                                        entry.mr, entry.base, entry.offset,
-                                       entry.rkey, entry.ctx);
+                                       entry.rkey, entry.ctx, true, true);
       break;
     case backlog_op_t::putImms:
       error = entry.endpoint->post_putImms(entry.rank, entry.buffer, entry.size,
                                            entry.base, entry.offset, entry.rkey,
-                                           entry.imm_data);
+                                           entry.imm_data, true, true);
       break;
     case backlog_op_t::putImm:
       error = entry.endpoint->post_putImm(
           entry.rank, entry.buffer, entry.size, entry.mr, entry.base,
-          entry.offset, entry.rkey, entry.imm_data, entry.ctx);
+          entry.offset, entry.rkey, entry.imm_data, entry.ctx, true, true);
       break;
     case backlog_op_t::get:
       error = entry.endpoint->post_get(entry.rank, entry.buffer, entry.size,
                                        entry.mr, entry.base, entry.offset,
-                                       entry.rkey, entry.ctx);
+                                       entry.rkey, entry.ctx, true, true);
       break;
     default:
       LCI_Assert(false, "Unknown operation %d\n", entry.op);
