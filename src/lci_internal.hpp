@@ -34,8 +34,8 @@
 #include "core/global.hpp"
 #include "core/protocol.hpp"
 #include "core/cq.hpp"
-#include "core/packet_pre.hpp"
-#include "core/packet_pool.hpp"
+#include "packet_pool/packet.hpp"
+#include "packet_pool/packet_pool.hpp"
 #include "core/runtime.hpp"
 #include "core/rendezvous.hpp"
 
@@ -44,7 +44,7 @@
 #include "network/network_inline.hpp"
 #include "network/device_inline.hpp"
 #include "network/endpoint_inline.hpp"
-#include "core/packet_inline.hpp"
+#include "packet_pool/packet_inline.hpp"
 #ifdef LCI_BACKEND_ENABLE_IBV
 #include "network/ibv/backend_ibv_inline.hpp"
 #endif

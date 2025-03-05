@@ -78,6 +78,18 @@ void packet_pool_impl_t::deregister_packets(device_t device)
   }
 }
 
+mr_t packet_pool_impl_t::get_or_register_mr(device_t device)
+{
+  mr_t mr;
+  void* p = mrs.get(device.get_impl()->get_id());
+  if (!p) {
+    mr = register_packets(device);
+  } else {
+    mr.p_impl = static_cast<mr_impl_t*>(p);
+  }
+  return mr;
+}
+
 packet_pool_t alloc_packet_pool_x::call_impl(runtime_t runtime,
                                              size_t packet_size,
                                              size_t npackets,

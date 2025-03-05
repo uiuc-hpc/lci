@@ -10,7 +10,7 @@ target_sources_relative(
   matching_engine/matching_engine.cpp
   core/lci.cpp
   core/global.cpp
-  core/packet_pool.cpp
+  packet_pool/packet_pool.cpp
   core/cq.cpp
   core/comp.cpp
   core/rhandler_registry.cpp

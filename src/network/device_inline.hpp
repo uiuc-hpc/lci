@@ -56,7 +56,7 @@ inline bool device_impl_t::post_recv_packet()
   }
 
   mr = packet_pool.p_impl->get_or_register_mr(device);
-  size = packet_pool.p_impl->get_pmessage_size();
+  size = packet_pool.p_impl->get_payload_size();
   error = post_recv(packet->get_payload_address(), size, mr, packet);
   if (error.is_retry()) {
     packet->put_back();
@@ -96,7 +96,7 @@ inline void device_impl_t::refill_recvs(bool is_blocking)
     nrecvs_posted = this->nrecvs_posted;
   }
   if (nrecvs_posted == 0) {
-    int64_t npackets = packet_pool.p_impl->pool.size();
+    int64_t npackets = packet_pool.get_impl()->get_size();
     LCI_Warn(
         "Deadlock alert! The device does not have any posted recvs. (current "
         "packet pool size %ld)\n",

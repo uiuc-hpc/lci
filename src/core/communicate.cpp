@@ -98,13 +98,19 @@ status_t post_comm_x::call_impl(
         error = errorcode_t::retry_nopacket;
         goto exit;
       }
-      if (direction == direction_t::OUT)
+      if (direction == direction_t::OUT) {
         memcpy(packet->get_payload_address(), local_buffer, size);
+        if (size > runtime.get_attr_packet_return_threshold()) {
+          // A lot of data has been written into this packet, which means a
+          // large chunk of cache lines have been touched. We should return this
+          // packet to the current core's packet pool.
+          // TODO: I am skeptical about how much performance gain we can get
+          // from this. We should do some experiments to verify this.
+          packet->local_context.local_id =
+              packet_pool.get_impl()->get_local_id();
+        }
+      }
     }
-    packet->local_context.local_id =
-        (size > runtime.get_attr_packet_return_threshold())
-            ? packet_pool.p_impl->pool.get_local_set_id()
-            : mpmc_set_t::LOCAL_SET_ID_NULL;
     internal_ctx->packet_to_free = packet;
   }
 
@@ -506,7 +512,7 @@ size_t get_max_bcopy_size_x::call_impl(runtime_t runtime, endpoint_t endpoint,
                                        packet_pool_t packet_pool, tag_t tag,
                                        rcomp_t remote_comp) const
 {
-  return packet_pool.p_impl->get_pmessage_size();
+  return packet_pool.p_impl->get_payload_size();
 }
 
 }  // namespace lci

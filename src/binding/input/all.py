@@ -5,7 +5,7 @@ from tools import *
 runtime_attr = [
     attr("bool", "use_reg_cache", default_value="LCI_USE_REG_CACHE_DEFAULT", comment="Whether to use the registration cache."),
     attr("bool", "use_control_channel", default_value=0, comment="Whether to use the control channel."),
-    attr("int", "packet_return_threshold", default_value=1024, comment="The threshold for returning packets to its original pool."),
+    attr("int", "packet_return_threshold", default_value=4096, comment="The threshold for returning packets to its original pool."),
     attr("int", "imm_nbits_tag", default_value=16, comment="The number of bits for the immediate data tag."),
     attr("int", "imm_nbits_rcomp", default_value=15, comment="The number of bits for the immediate data remote completion handle."),
     attr("int", "max_imm_tag", inout_trait="out", comment="The max tag that can be put into the immediate data field."),

@@ -8,11 +8,19 @@ TEST(PACKET_POOL, singlethread)
   lci::global_initialize();
   lci::mpmc_set_t pool(0, 1);
   const int n = 1000;
+  bool flags[n];
+  memset(flags, 0, sizeof(flags));
   for (int i = 0; i < n; i++) {
     pool.put(reinterpret_cast<void*>(i + 1));
   }
   for (int i = 0; i < n; i++) {
-    ASSERT_EQ(pool.get(), reinterpret_cast<void*>(i + 1));
+    void* val = pool.get();
+    uint64_t idx = reinterpret_cast<uint64_t>(val) - 1;
+    ASSERT_EQ(flags[idx], false);
+    flags[idx] = true;
+  }
+  for (int i = 0; i < n; i++) {
+    ASSERT_EQ(flags[i], true);
   }
   lci::global_finalize();
 }
