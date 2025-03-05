@@ -30,10 +30,12 @@ void init()
       getenv("LCT_LOG_WHITELIST"), getenv("LCT_LOG_BLACKLIST"));
 
   // check cache size
+#ifdef _SC_LEVEL1_DCACHE_LINESIZE
   long cache_line_size = sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
   LCT_Assert(LCT_log_ctx_default, LCT_CACHE_LINE == cache_line_size,
              "LCT_CACHE_LINE is set incorrectly! (%ld != %d)\n", LCT_CACHE_LINE,
              cache_line_size);
+#endif
 }
 
 void fina()
