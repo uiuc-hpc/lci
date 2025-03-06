@@ -30,7 +30,8 @@ class matching_engine_impl_t
   rcomp_t rcomp;
 };
 
-inline matching_engine_impl_t::key_t matching_engine_impl_t::make_key(int rank, tag_t tag) const
+inline matching_engine_impl_t::key_t matching_engine_impl_t::make_key(
+    int rank, tag_t tag) const
 {
   uint64_t key = 0;
   switch (attr.matching_policy) {
