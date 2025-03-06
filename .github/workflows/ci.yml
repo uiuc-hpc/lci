@@ -23,7 +23,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build libfabric-dev openmpi-bin openmpi-common openmpi-doc libopenmpi-dev
+          sudo apt-get install -y cmake ninja-build libfabric-bin libfabric-dev openmpi-bin openmpi-common openmpi-doc libopenmpi-dev
 
       - name: Verify Installation
         run: |
@@ -31,6 +31,7 @@ jobs:
           ninja --version
           mpicc --version
           mpirun --version
+          fi_info --version
           fi_info -v
 
       - name: Configure
