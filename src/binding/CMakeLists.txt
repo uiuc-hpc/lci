@@ -1,9 +1,10 @@
 # Execute generate_binding.py
-if(NOT PYTHON_EXECUTABLE)
+find_package(Python COMPONENTS Interpreter)
+if(NOT Python_EXECUTABLE)
   message(WARNING "Python executable not found")
 else()
   execute_process(
-    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_binding.py
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_binding.py
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     RESULT_VARIABLE py_result
     OUTPUT_VARIABLE py_output
