@@ -9,7 +9,7 @@ on:
 jobs:
   format-code:
     runs-on: ubuntu-latest
-    name: Format Code
+    name: Check Code Formatting
 
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +32,7 @@ jobs:
     strategy:
       matrix:
         build_type: [Debug, Release]
-    name: matrix.build_type
+    name: Build and Test (${{ matrix.build_type }})
 
     steps:
       - uses: actions/checkout@v4
