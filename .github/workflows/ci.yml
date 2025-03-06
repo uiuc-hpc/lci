@@ -48,6 +48,7 @@ jobs:
                 -GNinja \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
                 -DLCI_DEBUG=ON \
+                -DLCI_NETWORK_BACKENDS=ofi,ibv \
                 -DLCT_PMI_BACKEND_ENABLE_MPI=ON \
                 -DLCI_USE_CTEST_ARGS="--oversubscribe" \
                 .

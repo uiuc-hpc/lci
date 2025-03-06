@@ -1,12 +1,31 @@
 docker_default: &docker_default
   docker:
-    - image: iampapadi/lci:latest
+    - image: ubuntu:latest
 
 # Use the latest 2.1 version of CircleCI pipeline process engine.
 # See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 
 jobs:
+  setup_env:
+    <<: *docker_default
+    working_directory: /lci
+    steps:
+      - run:
+          name: Install dependencies
+          command: |
+            apt-get update
+            apt-get install -y cmake ninja-build libfabric-bin libfabric-dev openmpi-bin openmpi-common openmpi-doc libopenmpi-dev clang-format-11 python3-pip
+            pip3 install cmake-format
+      - run:
+          name: Verify installations
+          command: |
+            cmake --version
+            ninja --version
+            mpicc --version
+            mpirun --version
+            fi_info --version
+    
   checkout_code:
     <<: *docker_default
     working_directory: /lci
@@ -25,7 +44,7 @@ jobs:
           paths:
             - ./source
 
-  # Ensure that the modules stay clang-formatted
+  # Ensure that the modules stay clang-formatted and camke-formatted
   clang_format:
     <<: *docker_default
     working_directory: /lci/source
@@ -35,35 +54,11 @@ jobs:
       - run:
           name: Check that the source code is well clang-formatted
           command: |
-            shopt -s globstar # to activate the ** globbing
-            clang-format-11 --version
-            clang-format-11 -i $(find lct -type f -name "*.h" -o -name "*.c" -o -name "*.hpp" -o -name "*.cpp")
-            clang-format-11 -i $(find lci -type f -name "*.h" -o -name "*.c" -o -name "*.hpp" -o -name "*.cpp")
-            clang-format-11 -i $(find examples -type f -name "*.h" -o -name "*.c" -o -name "*.hpp" -o -name "*.cpp")
-            clang-format-11 -i $(find tests -type f -name "*.h" -o -name "*.c" -o -name "*.hpp" -o -name "*.cpp")
-            git diff --exit-code > /tmp/clang_format_results.txt
+            ./format.sh
+            git diff --exit-code > /tmp/format_results.txt
       - store_artifacts:
-          path: /tmp/clang_format_results.txt
-          destination: /lci/artifacts/clang_format_results.txt
-
-  # Ensure that CMake files stay cmake-formatted
-  cmake_format:
-    <<: *docker_default
-    working_directory: /lci/source
-    resource_class: small
-    steps:
-      - attach_workspace:
-          at: /lci
-      - run:
-          name: Check that CMake files are well cmake-formatted
-          command: |
-            shopt -s globstar # to activate the ** globbing
-            cmake-format --version
-            cmake-format -i **/*.cmake **/CMakeLists.txt
-            git diff --exit-code > /tmp/cmake_format_results.txt
-      - store_artifacts:
-          path: /tmp/cmake_format_results.txt
-          destination: /lci/artifacts/cmake_format_results.txt
+          path: /tmp/format_results.txt
+          destination: /lci/artifacts/format_results.txt
 
   configure:
     <<: *docker_default
@@ -75,15 +70,16 @@ jobs:
       - run:
           name: Running CMake Configure
           command: |
-            module load cmake ninja libfabric openmpi
             cmake \
                 -S /lci/source \
                 -B /lci/build \
                 -GNinja \
                 -DCMAKE_BUILD_TYPE=Debug \
-                -DLCI_USE_PERFORMANCE_COUNTER=ON \
+                -DLCI_DEBUG=ON \
+                -DLCI_NETWORK_BACKENDS=ofi,ibv \
                 -DLCT_PMI_BACKEND_ENABLE_MPI=ON \
-                -DLCI_DEBUG=ON
+                -DLCI_USE_CTEST_ARGS="--oversubscribe"
+                
       - persist_to_workspace:
           root: /lci
           paths:
@@ -99,14 +95,13 @@ jobs:
       - run:
           name: Running CMake Build
           command: |
-            module load cmake ninja libfabric openmpi
             cmake --build /lci/build --target all
       - persist_to_workspace:
           root: /lci
           paths:
             - ./build
 
-  ctest-small:
+  ctest:
     <<: *docker_default
     working_directory: /lci/build
     resource_class: medium
@@ -117,45 +112,11 @@ jobs:
           name: Running CTest excluding LCIT tests
           command: |
             ulimit -c unlimited
-            module load cmake ninja libfabric openmpi
-            ctest --extra-verbose --timeout 60 --exclude-regex test-lcit \
-                  --test-dir /lci/build --output-junit ctest-small.out.xml
+            ctest --extra-verbose --timeout 180 \
+                  --test-dir /lci/build \
+                  --output-junit ctest.out.xml
       - store_test_results:
-          path: /lci/build/ctest-small.out.xml
-
-  ctest-lcit-small:
-    <<: *docker_default
-    working_directory: /lci/build
-    resource_class: large
-    steps:
-      - attach_workspace:
-          at: /lci
-      - run:
-          name: Running CTest LCIT small tests
-          command: |
-            ulimit -c unlimited
-            module load cmake ninja libfabric openmpi
-            ctest --extra-verbose --timeout 120 --tests-regex test-lcit.small \
-                  --test-dir /lci/build --output-junit ctest-lcit-small.out.xml
-      - store_test_results:
-          path: /lci/build/ctest-lcit-small.out.xml
-
-  ctest-lcit-medium:
-    <<: *docker_default
-    working_directory: /lci/build
-    resource_class: large
-    steps:
-      - attach_workspace:
-          at: /lci
-      - run:
-          name: Running CTest LCIT medium tests
-          command: |
-            ulimit -c unlimited
-            module load cmake ninja libfabric openmpi
-            ctest --extra-verbose --timeout 120 --tests-regex test-lcit.medium \
-                  --test-dir /lci/build --output-junit ctest-lcit-medium.out.xml
-      - store_test_results:
-          path: /lci/build/ctest-lcit-medium.out.xml
+          path: /lci/build/ctest.out.xml
 
 workflows:
   version: 2
@@ -174,12 +135,6 @@ workflows:
       - build:
           requires:
             - configure
-      - ctest-small:
+      - ctest:
           requires:
             - build
-      - ctest-lcit-small:
-          requires:
-            - build
-#      - ctest-medium:
-#          requires:
-#            - build
