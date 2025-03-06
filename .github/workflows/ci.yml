@@ -7,6 +7,23 @@ on:
     branches: [ "master", "lci2" ]
 
 jobs:
+  format-code:
+    runs-on: ubuntu-latest
+    name: Format Code
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update && sudo apt install -y clang-format python3-pip
+          pip install --upgrade cmake-format
+
+      - name: Run Format Check
+        run: |
+          ./format.sh
+          git diff --exit-code > /tmp/format_results.txt
+
   build-and-test:
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
