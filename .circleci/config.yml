@@ -7,9 +7,10 @@ docker_default: &docker_default
 version: 2.1
 
 jobs:
-  setup_env:
+  install_dependencies:
     <<: *docker_default
     working_directory: /lci
+    resource_class: small
     steps:
       - run:
           name: Install dependencies
@@ -123,7 +124,10 @@ workflows:
   version: 2
   build-and-test:
     jobs:
-      - checkout_code
+      - install_dependencies
+      - checkout_code:
+          requires:
+            - install_dependencies
       - code_format:
           requires:
             - checkout_code
