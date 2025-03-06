@@ -25,6 +25,13 @@ jobs:
           ./format.sh
           git diff --exit-code > /tmp/format_results.txt
 
+      - name: Upload Format Check Results
+        if: always()  # Ensures upload happens even if the check fails
+        uses: actions/upload-artifact@v4
+        with:
+          name: format-check-results
+          path: /tmp/format_results.txt
+
   build-and-test:
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
