@@ -18,7 +18,7 @@ jobs:
             export DEBIAN_FRONTEND=noninteractive
             apt-get update
             apt-get install -y git cmake ninja-build libfabric-bin libfabric-dev openmpi-bin openmpi-common openmpi-doc libopenmpi-dev clang-format python3-pip
-            pip3 install --user cmake-format
+            pip install --upgrade cmake-format
       - run:
           name: Verify installations
           command: |
@@ -56,6 +56,7 @@ jobs:
       - run:
           name: Check that the source code is well clang-formatted
           command: |
+            chmod +x ./format.sh
             ./format.sh
             git diff --exit-code > /tmp/format_results.txt
       - store_artifacts:
