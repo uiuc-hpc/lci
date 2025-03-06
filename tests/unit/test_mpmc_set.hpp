@@ -3,7 +3,7 @@
 
 namespace test_packet_pool
 {
-TEST(PACKET_POOL, singlethread)
+TEST(MPMC_SET, singlethread)
 {
   lci::global_initialize();
   lci::mpmc_set_t pool(0, 1);
@@ -43,7 +43,7 @@ void test_multithread0(lci::mpmc_set_t& pool, int start, int n, bool flags[])
   }
 }
 
-TEST(PACKET_POOL, multithread0)
+TEST(MPMC_SET, multithread0)
 {
   lci::global_initialize();
   const int nthreads = 16;
@@ -83,7 +83,7 @@ void test_multithread1(lci::mpmc_set_t& pool, int start, int n, bool flags[])
   }
 }
 
-TEST(PACKET_POOL, multithread1)
+TEST(MPMC_SET, multithread1)
 {
   lci::global_initialize();
   const int nthreads = 16;
@@ -119,7 +119,7 @@ void test_multithread2(lci::mpmc_set_t& pool, int start, int n, bool flags[])
   }
 }
 
-TEST(PACKET_POOL, multithread2)
+TEST(MPMC_SET, multithread2)
 {
   lci::global_initialize();
   const int nthreads = 16;
@@ -180,7 +180,7 @@ void test_multithread3(lci::mpmc_set_t& pool0, lci::mpmc_set_t& pool1,
   }
 }
 
-TEST(PACKET_POOL, multithread3)
+TEST(MPMC_SET, multithread3)
 {
   lci::global_initialize();
   const int nthreads = 16;

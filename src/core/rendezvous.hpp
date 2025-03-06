@@ -155,7 +155,7 @@ inline void handle_rdv_rts(runtime_t runtime, endpoint_t endpoint,
     auto key = p_matching_engine->make_key(packet->local_context.rank,
                                            packet->local_context.tag);
     auto ret = p_matching_engine->insert(key, packet,
-                                         matching_engine_impl_t::type_t::send);
+                                         matching_engine_impl_t::insert_type_t::send);
     if (!ret) return;
     handle_rdv_rts_common(runtime, endpoint, packet,
                           reinterpret_cast<internal_context_t*>(ret));

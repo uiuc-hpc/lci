@@ -8,12 +8,12 @@ class matching_engine_queue_t : public matching_engine_impl_t
  public:
   matching_engine_queue_t(attr_t attr) : matching_engine_impl_t(attr) {}
   ~matching_engine_queue_t() = default;
-  val_t insert(key_t key, val_t value, type_t type) override
+  val_t insert(key_t key, val_t value, insert_type_t type) override
   {
     val_t ret = nullptr;
     entry_t entry = {key, value};
     lock.lock();
-    if (type == type_t::send) {
+    if (type == insert_type_t::send) {
       // Search the posted recv queue for a matching entry
       ret = search(recv_queue, key);
       if (ret == nullptr) {

@@ -46,7 +46,7 @@ void progress_recv(runtime_t runtime, device_t device, endpoint_t endpoint,
         packet->local_context.tag = tag;
         packet->local_context.data = buffer_t(nullptr, net_status.length);
         auto ret = p_matching_engine->insert(
-            key, packet, matching_engine_impl_t::type_t::send);
+            key, packet, matching_engine_impl_t::insert_type_t::send);
         if (ret)
           handle_matched_sendrecv(runtime, endpoint, packet,
                                   reinterpret_cast<internal_context_t*>(ret));

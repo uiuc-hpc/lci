@@ -320,8 +320,8 @@ operation(
 resource_comp := resource(
     "comp", 
     [
-        attr_enum("comp_type", enum_options=["sync", "cq", "handler"], default_value="cq", comment="The completion object type."),
-        attr("int", "sync_threshold", default_value=1, comment="The threshold for sync (synchronizer)."),
+        attr_enum("comp_type", enum_options=["sync", "cq", "handler"], default_value="cq", comment="The completion object type.", inout_trait="out"),
+        attr("int", "sync_threshold", default_value=1, comment="The threshold for sync (synchronizer).", inout_trait="out"),
     ]
 ),
 operation_free(resource_comp),
@@ -422,7 +422,12 @@ operation(
     comment="Allocate a completion handler."
 ),
 # matching engine
-resource_matching_engine := resource("matching_engine", []),
+resource_matching_engine := resource(
+    "matching_engine", 
+    [
+        attr_enum("matching_policy", enum_options=["none", "tag_only", "rank_only", "rank_tag"], default_value="rank_tag", comment="The matching policy followed by the matching engine."),
+        attr_enum("matching_engine_type", enum_options=["queue", "map"], default_value="map", comment="The type of the matching engine."),
+    ]),
 operation_alloc(resource_matching_engine),
 operation_free(resource_matching_engine),
 # communicate

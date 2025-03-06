@@ -296,7 +296,7 @@ status_t post_comm_x::call_impl(
                      "recv does not need a packet!\n");
       auto key = matching_engine.get_impl()->make_key(rank, tag);
       auto ret = matching_engine.get_impl()->insert(
-          key, internal_ctx, matching_engine_impl_t::type_t::recv);
+          key, internal_ctx, matching_engine_impl_t::insert_type_t::recv);
       if (ret) {
         handle_matched_sendrecv(runtime, endpoint,
                                 reinterpret_cast<packet_t*>(ret), internal_ctx,
