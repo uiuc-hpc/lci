@@ -32,7 +32,6 @@ jobs:
           mpicc --version
           mpirun --version
           fi_info --version
-          fi_info -v
 
       - name: Configure
         shell: bash
@@ -47,6 +46,7 @@ jobs:
                 -DLCT_PMI_BACKEND_ENABLE_MPI=ON \
                 -DLCI_USE_CTEST_ARGS="--oversubscribe" \
                 .
+            ls /home/runner/work/lci/lci/src/binding/generated
 
       - name: Build
         shell: bash

@@ -74,7 +74,7 @@ set(CMAKE_REQUIRED_FLAGS)
 if(CHECK_MALLOC_HOOK_RET_VAL)
   set(HAVE_MALLOC_HOOK ON)
 else()
-  message(WARN "malloc hooks are not supported.")
+  message(WARNING "malloc hooks are not supported.")
 endif()
 
 # Misc. Linux-specific functions
