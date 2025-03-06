@@ -21,7 +21,7 @@ target_sources_relative(
   core/communicate.cpp
   core/memory.cpp
   core/progress.cpp)
-  
+
 if(LCI_BACKEND_ENABLE_OFI)
   target_sources_relative(LCI PRIVATE network/ofi/backend_ofi.cpp)
 endif()
