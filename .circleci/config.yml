@@ -112,6 +112,7 @@ jobs:
           name: Running CTest excluding LCIT tests
           command: |
             ulimit -c unlimited
+            export LCT_PMI_BACKEND=local
             ctest --extra-verbose --timeout 180 \
                   --test-dir /lci/build \
                   --output-junit ctest.out.xml
