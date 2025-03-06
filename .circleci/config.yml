@@ -15,7 +15,7 @@ jobs:
           name: Install dependencies
           command: |
             apt-get update
-            apt-get install -y cmake ninja-build libfabric-bin libfabric-dev openmpi-bin openmpi-common openmpi-doc libopenmpi-dev clang-format-11 python3-pip
+            apt-get install -y git cmake ninja-build libfabric-bin libfabric-dev openmpi-bin openmpi-common openmpi-doc libopenmpi-dev clang-format-11 python3-pip
             pip3 install cmake-format
       - run:
           name: Verify installations
