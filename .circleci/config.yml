@@ -45,7 +45,7 @@ jobs:
             - ./source
 
   # Ensure that the modules stay clang-formatted and camke-formatted
-  clang_format:
+  code_format:
     <<: *docker_default
     working_directory: /lci/source
     steps:
@@ -123,10 +123,7 @@ workflows:
   build-and-test:
     jobs:
       - checkout_code
-      - clang_format:
-          requires:
-            - checkout_code
-      - cmake_format:
+      - code_format:
           requires:
             - checkout_code
       - configure:
