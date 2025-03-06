@@ -1,4 +1,7 @@
 target_include_directories(LCI PRIVATE .)
+
+add_subdirectory(binding)
+
 target_sources_relative(
   LCI
   PRIVATE
@@ -18,6 +21,7 @@ target_sources_relative(
   core/communicate.cpp
   core/memory.cpp
   core/progress.cpp)
+  
 if(LCI_BACKEND_ENABLE_OFI)
   target_sources_relative(LCI PRIVATE network/ofi/backend_ofi.cpp)
 endif()
@@ -29,4 +33,3 @@ endif()
 target_include_directories(LCI PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 add_subdirectory(api)
-add_subdirectory(binding)
