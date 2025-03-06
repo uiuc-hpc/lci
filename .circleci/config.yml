@@ -1,6 +1,6 @@
-docker_default: &docker_default
-  docker:
-    - image: ubuntu:latest
+executor_default: &executor_default
+  machine:
+      image: ubuntu-2204:current
 
 # Use the latest 2.1 version of CircleCI pipeline process engine.
 # See: https://circleci.com/docs/2.0/configuration-reference
@@ -8,7 +8,7 @@ version: 2.1
 
 jobs:
   install_dependencies:
-    <<: *docker_default
+    <<: *executor_default
     working_directory: /lci
     resource_class: small
     steps:
@@ -17,7 +17,7 @@ jobs:
           command: |
             export DEBIAN_FRONTEND=noninteractive
             apt-get update
-            apt-get install -y git cmake ninja-build libfabric-bin libfabric-dev openmpi-bin openmpi-common openmpi-doc libopenmpi-dev clang-format python3-pip python3.12-venv
+            apt-get install -y cmake ninja-build libfabric-bin libfabric-dev openmpi-bin openmpi-common openmpi-doc libopenmpi-dev clang-format python3-pip python3.12-venv
       - run:
           name: Setup Virtual Environment and Install CMake-Format
           command: |
@@ -34,7 +34,7 @@ jobs:
             fi_info --version
     
   checkout_code:
-    <<: *docker_default
+    <<: *executor_default
     working_directory: /lci
     resource_class: small
     steps:
@@ -53,7 +53,7 @@ jobs:
 
   # Ensure that the modules stay clang-formatted and camke-formatted
   code_format:
-    <<: *docker_default
+    <<: *executor_default
     working_directory: /lci/source
     steps:
       - attach_workspace:
@@ -69,7 +69,7 @@ jobs:
           destination: /lci/artifacts/format_results.txt
 
   configure:
-    <<: *docker_default
+    <<: *executor_default
     working_directory: /lci/build
     resource_class: small
     steps:
@@ -94,7 +94,7 @@ jobs:
             - ./build
 
   build:
-    <<: *docker_default
+    <<: *executor_default
     working_directory: /lci/build
     resource_class: small
     steps:
@@ -110,7 +110,7 @@ jobs:
             - ./build
 
   ctest:
-    <<: *docker_default
+    <<: *executor_default
     working_directory: /lci/build
     resource_class: medium
     steps:
