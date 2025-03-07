@@ -19,6 +19,8 @@
 #include "test_get.hpp"
 #include "test_backlog_queue.hpp"
 
+#include "lci_internal.hpp"
+
 int main(int argc, char** argv)
 {
   testing::InitGoogleTest(&argc, argv);

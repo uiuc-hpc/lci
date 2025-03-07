@@ -29,7 +29,7 @@ class matching_engine_map_t : public matching_engine_impl_t
 
   // 32 bytes
   struct queue_t {
-    bool is_empty = true;
+    bool is_empty;
     bool is_queue;
     insert_type_t type;
     key_t key;
@@ -39,21 +39,21 @@ class matching_engine_map_t : public matching_engine_impl_t
         node_t* head;
         node_t* tail;
       };
-      val_t values[SLOT_NUM_VALUES];  // TODO: use this field to optimize the
-                                      // search
+      val_t slots[SLOT_NUM_VALUES];
     };
 
     queue_t()
     {
+      is_empty = true;
       is_queue = false;
       for (int i = 0; i < SLOT_NUM_VALUES; ++i) {
-        values[i] = VALUE_EMPTY;
+        slots[i] = VALUE_EMPTY;
       }
     }
 
     ~queue_t()
     {
-      if (is_queue) {
+      if (is_empty && is_queue) {
         node_t* node_p = head;
         node_t* node_q;
         while (node_p) {
@@ -64,69 +64,122 @@ class matching_engine_map_t : public matching_engine_impl_t
       }
     }
 
-    val_t pop() {
+    val_t pop()
+    {
       LCI_DBG_Assert(!is_empty, "This queue is empty!\n");
       val_t ret = VALUE_EMPTY;
-      bool is_current_node_nonempty = false;
-      // pop one entry from the queue
-      for (int i = 0; i < NODE_NUM_VALUES; ++i) {
-        if (head->values[i] != VALUE_EMPTY) {
-          if (ret == VALUE_EMPTY) {
-            ret = head->values[i];
-            head->values[i] = VALUE_EMPTY;
-          } else {
-            is_current_node_nonempty = true;
+      bool is_current_queue_nonempty = false;
+      if (!is_queue) {
+        for (int i = 0; i < SLOT_NUM_VALUES; ++i) {
+          if (slots[i] != VALUE_EMPTY) {
+            if (ret == VALUE_EMPTY) {
+              ret = slots[i];
+              slots[i] = VALUE_EMPTY;
+            } else {
+              is_current_queue_nonempty = true;
+            }
           }
         }
-      }
-      // We are surely going to find one in the header node
-      LCI_DBG_Assert(ret != VALUE_EMPTY, "This header node is empty!\n");
-      if (!is_current_node_nonempty) {
-        // Remove the head node
-        node_t* tmp = head;
-        head = head->next;
-        if (head == nullptr) {
-          LCI_DBG_Assert(tail == tmp, "\n");
-          tail = nullptr;
+        if (!is_current_queue_nonempty) {
           is_empty = true;
         }
-        delete tmp;
+        LCI_DBG_Assert(ret != VALUE_EMPTY,
+                       "We cannot find one in the nonempty slots!\n");
+      } else {
+        size_t nlefts = 0;
+        for (int i = 0; i < NODE_NUM_VALUES; ++i) {
+          if (head->values[i] != VALUE_EMPTY) {
+            if (ret == VALUE_EMPTY) {
+              ret = head->values[i];
+              head->values[i] = VALUE_EMPTY;
+            } else {
+              ++nlefts;
+            }
+          }
+        }
+        if (nlefts == 0) {
+          node_t* node_p = head;
+          head = head->next;
+          delete node_p;
+          if (head == nullptr) {
+            is_empty = true;
+          }
+        } else if (nlefts <= SLOT_NUM_VALUES && head->next == nullptr) {
+          // turn the linked node into slots
+          int nvalues_idx = 0;
+          val_t values[SLOT_NUM_VALUES];
+          for (int i = 0; i < NODE_NUM_VALUES; ++i) {
+            if (head->values[i] != VALUE_EMPTY) {
+              values[nvalues_idx++] = head->values[i];
+            }
+          }
+          delete head;
+          memcpy(slots, values, nvalues_idx * sizeof(val_t));
+          while (nvalues_idx < SLOT_NUM_VALUES) {
+            slots[nvalues_idx++] = VALUE_EMPTY;
+          }
+          is_queue = false;
+        }
+        LCI_DBG_Assert(ret != VALUE_EMPTY,
+                       "We cannot find one in the nonempty queue!\n");
       }
       return ret;
     }
 
-    void push(val_t value) {
+    void push(val_t value)
+    {
       LCI_DBG_Assert(!is_empty, "This queue is empty!\n");
-      if (tail->values[NODE_NUM_VALUES - 1] != VALUE_EMPTY) {
-        // push this entry to a new linked node
-        node_t* new_node = new node_t();
-        new_node->values[0] = value;
-        tail->next = new_node;
-        tail = new_node;
-      } else {
-        // Find the first empty slot after a non-empty slot.
-        int empty_slot = NODE_NUM_VALUES - 1;
-        for (int i = NODE_NUM_VALUES - 1; i >= 0; --i) {
-          if (tail->values[i] == VALUE_EMPTY) {
-            empty_slot = i;
-          } else {
-            break;
+      if (!is_queue) {
+        if (slots[SLOT_NUM_VALUES - 1] != VALUE_EMPTY) {
+          // turn slots into a linked node
+          is_queue = true;
+          node_t* new_node = new node_t();
+          memcpy(new_node->values, slots, SLOT_NUM_VALUES * sizeof(val_t));
+          new_node->values[SLOT_NUM_VALUES] = value;
+          head = new_node;
+          tail = new_node;
+        } else {
+          for (int i = 0; i < SLOT_NUM_VALUES; ++i) {
+            if (slots[i] == VALUE_EMPTY) {
+              slots[i] = value;
+              break;
+            }
           }
         }
-        LCI_DBG_Assert(tail->values[empty_slot] == VALUE_EMPTY, "\n");
-        tail->values[empty_slot] = value;
+      } else {
+        if (tail->values[NODE_NUM_VALUES - 1] != VALUE_EMPTY) {
+          // push this entry to a new linked node
+          node_t* new_node = new node_t();
+          new_node->values[0] = value;
+          tail->next = new_node;
+          tail = new_node;
+        } else {
+          // Find the first empty slot after a non-empty slot.
+          int empty_slot = NODE_NUM_VALUES - 1;
+          for (int i = NODE_NUM_VALUES - 1; i >= 0; --i) {
+            if (tail->values[i] == VALUE_EMPTY) {
+              empty_slot = i;
+            } else {
+              break;
+            }
+          }
+          LCI_DBG_Assert(tail->values[empty_slot] == VALUE_EMPTY, "\n");
+          tail->values[empty_slot] = value;
+        }
       }
     }
 
-    void setup(key_t key_, insert_type_t type_, val_t value) {
+    void setup(key_t key_, insert_type_t type_, val_t value)
+    {
       LCI_DBG_Assert(is_empty, "This queue is nonn-empty!\n");
       is_empty = false;
+      is_queue = false;
       key = key_;
       type = type_;
-      node_t* new_node = new node_t;
-      new_node->values[0] = value;
-      head = new_node;
-      tail = new_node;
+      slots[0] = value;
+      for (int i = 1; i < SLOT_NUM_VALUES; ++i) {
+        slots[i] = VALUE_EMPTY;
+      }
     }
   };
 
@@ -142,36 +195,41 @@ class matching_engine_map_t : public matching_engine_impl_t
 
     bucket_t() : bucket_t(BUCKET_NUM_QUEUES_DEFAULT) {}
 
-    static bucket_t *alloc(int nqueues = BUCKET_NUM_QUEUES_DEFAULT) {
+    static bucket_t* alloc(int nqueues = BUCKET_NUM_QUEUES_DEFAULT)
+    {
       static_assert(sizeof(bucket_t) == 32, "bucket_t size is not 32 bytes");
       size_t size = sizeof(bucket_t) + nqueues * sizeof(queue_t);
-      bucket_t *bucket = (bucket_t *)alloc_memalign(size);
+      bucket_t* bucket = (bucket_t*)alloc_memalign(size);
       bucket = new (bucket) bucket_t(nqueues);
       return bucket;
-     }
-     
-     static void free(bucket_t *bucket) {
+    }
+
+    static void free(bucket_t* bucket)
+    {
       bucket->~bucket_t();
       std::free(bucket);
-     }
+    }
 
-     static size_t size(int nqueues = BUCKET_NUM_QUEUES_DEFAULT) {
-       return sizeof(bucket_t) + nqueues * sizeof(queue_t);
-     }
+    static size_t size(int nqueues = BUCKET_NUM_QUEUES_DEFAULT)
+    {
+      return sizeof(bucket_t) + nqueues * sizeof(queue_t);
+    }
 
-    bucket_t(int nqueues_) { 
-      control.next = nullptr; 
+    bucket_t(int nqueues_)
+    {
+      control.next = nullptr;
       control.nqueues = nqueues_;
       for (int i = 0; i < nqueues_; i++) {
         new (&queues[i]) queue_t();
       }
     }
 
-     ~bucket_t() {
-       for (int i = 0; i < control.nqueues; i++) {
-         queues[i].~queue_t();
-       }
-     }
+    ~bucket_t()
+    {
+      for (int i = 0; i < control.nqueues; i++) {
+        queues[i].~queue_t();
+      }
+    }
   };
 
   static inline uint32_t hash_fn(const uint64_t k)
@@ -199,7 +257,8 @@ class matching_engine_map_t : public matching_engine_impl_t
   {
     static_assert(sizeof(bucket_t) == 32, "bucket_t size is not 16 bytes");
     static_assert(sizeof(node_t) == 64, "node_t size is not 16 bytes");
-    table = (bucket_t*) alloc_memalign(TABLE_NUM_MASTER_BUCKETS * bucket_t::size());
+    table =
+        (bucket_t*)alloc_memalign(TABLE_NUM_MASTER_BUCKETS * bucket_t::size());
     for (size_t i = 0; i < TABLE_NUM_MASTER_BUCKETS; i++) {
       new (get_master_bucket(i)) bucket_t();
     }
@@ -208,7 +267,7 @@ class matching_engine_map_t : public matching_engine_impl_t
   ~matching_engine_map_t()
   {
     for (size_t i = 0; i < TABLE_NUM_MASTER_BUCKETS; i++) {
-      bucket_t *master = get_master_bucket(i);
+      bucket_t* master = get_master_bucket(i);
       bucket_t* bucket_p = master;
       bucket_t* bucket_q;
       while (bucket_p) {
@@ -223,8 +282,9 @@ class matching_engine_map_t : public matching_engine_impl_t
     free(table);
   }
 
-  bucket_t *get_master_bucket(uint32_t bucket_idx) const {
-    return (bucket_t*)((char*) table + bucket_idx * bucket_t::size());
+  bucket_t* get_master_bucket(uint32_t bucket_idx) const
+  {
+    return (bucket_t*)((char*)table + bucket_idx * bucket_t::size());
   }
 
   val_t insert(key_t key, val_t value, insert_type_t type) override
@@ -288,7 +348,7 @@ class matching_engine_map_t : public matching_engine_impl_t
       if (!first_empty_queue) {
         // Didn't even find an empty queue in existing linked buckets.
         // Create a new bucket.
-        int nqueues = previous_bucket->control.nqueues  * 2 + 1;
+        int nqueues = previous_bucket->control.nqueues * 2 + 1;
         bucket_t* new_bucket = bucket_t::alloc(nqueues);
         LCI_DBG_Assert(current_bucket == nullptr, "\n");
         previous_bucket->control.next = new_bucket;
