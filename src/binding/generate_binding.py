@@ -126,6 +126,7 @@ class {resource_name}_t {{
   inline bool is_empty() const {{ return p_impl == nullptr; }}
   inline {impl_class_name} *get_impl() const {{ if (!p_impl) throw std::runtime_error("p_impl is nullptr!"); return p_impl; }}
   inline void set_impl({impl_class_name}* p) {{ p_impl = p; }}
+  bool operator==(const {resource_name}_t& other) const {{ return p_impl == other.p_impl; }}
 }};
 """
   return text

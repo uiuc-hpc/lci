@@ -38,7 +38,7 @@ status_t post_comm_x::call_impl(
 
   // process COMP_BLOCK
   bool is_local_comp_null = false;
-  if (local_comp.is_empty()) {
+  if (local_comp == COMP_NULL) {
     is_local_comp_null = true;
     local_comp = alloc_sync();
   }
