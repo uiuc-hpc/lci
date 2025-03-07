@@ -18,14 +18,12 @@ TEST(MATCHING_POLICY, test_rank_tag)
   uint64_t data = 0xdeadbeef;
   for (int i = 0; i < n; ++i) {
     lci::status_t status =
-        lci::post_send_x(0, &data, sizeof(data), in[i], lci::COMP_NULL)
-            .allow_retry(false)();
+        lci::post_send(0, &data, sizeof(data), in[i], lci::COMP_NULL_EXPECT_OK);
     ASSERT_EQ(status.error.is_ok(), true);
   }
   for (int i = 0; i < n; ++i) {
     lci::status_t status =
-        lci::post_recv_x(0, &data, sizeof(data), in[i], lci::COMP_NULL)
-            .allow_retry(false)();
+        lci::post_recv(0, &data, sizeof(data), in[i], lci::COMP_NULL_EXPECT_OK);
     ASSERT_EQ(status.error.is_ok(), true);
     ASSERT_EQ(status.tag, in[i]);
   }
@@ -49,17 +47,16 @@ TEST(MATCHING_POLICY, test_rank_only)
   uint64_t data = 0xdeadbeef;
   for (int i = 0; i < n; ++i) {
     lci::status_t status =
-        lci::post_send_x(0, &data, sizeof(data), in[i], lci::COMP_NULL)
-            .allow_retry(false)
+        lci::post_send_x(0, &data, sizeof(data), in[i],
+                         lci::COMP_NULL_EXPECT_OK)
             .matching_policy(lci::matching_policy_t::rank_only)();
     ASSERT_EQ(status.error.is_ok(), true);
   }
   bool flags[n];
   memset(flags, false, sizeof(flags));
   for (int i = 0; i < n; ++i) {
-    lci::status_t status =
-        lci::post_recv_x(0, &data, sizeof(data), lci::ANY_TAG, lci::COMP_NULL)
-            .allow_retry(false)();
+    lci::status_t status = lci::post_recv(0, &data, sizeof(data), lci::ANY_TAG,
+                                          lci::COMP_NULL_EXPECT_OK);
     ASSERT_EQ(status.error.is_ok(), true);
     int idx = status.tag;
     ASSERT_EQ(idx >= 0 && idx < n, true);
@@ -88,19 +85,17 @@ TEST(MATCHING_POLICY, test_none)
 
   uint64_t data = 0xdeadbeef;
   for (int i = 0; i < n; ++i) {
-    lci::status_t status =
-        lci::post_send_x(0, &data, sizeof(data), in[i], lci::COMP_NULL)
-            .allow_retry(false)
-            .matching_policy(lci::matching_policy_t::none)();
+    lci::status_t status = lci::post_send_x(0, &data, sizeof(data), in[i],
+                                            lci::COMP_NULL_EXPECT_OK)
+                               .matching_policy(lci::matching_policy_t::none)();
     ASSERT_EQ(status.error.is_ok(), true);
   }
   bool flags[n];
   memset(flags, false, sizeof(flags));
   for (int i = 0; i < n; ++i) {
     lci::status_t status =
-        lci::post_recv_x(lci::ANY_SOURCE, &data, sizeof(data), lci::ANY_TAG,
-                         lci::COMP_NULL)
-            .allow_retry(false)();
+        lci::post_recv(lci::ANY_SOURCE, &data, sizeof(data), lci::ANY_TAG,
+                       lci::COMP_NULL_EXPECT_OK);
     ASSERT_EQ(status.error.is_ok(), true);
     ASSERT_EQ(status.rank, 0);
     int idx = status.tag;

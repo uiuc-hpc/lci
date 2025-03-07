@@ -15,7 +15,7 @@ status_t post_comm_x::call_impl(
     out_comp_type_t out_comp_type, mr_t mr, uintptr_t remote_buffer,
     rkey_t rkey, tag_t tag, rcomp_t remote_comp, void* ctx, buffers_t buffers,
     rbuffers_t rbuffers, matching_policy_t matching_policy, bool allow_ok,
-    bool allow_retry, bool force_zero_copy) const
+    bool allow_posted, bool allow_retry, bool force_zero_copy) const
 {
   // forward delcarations
   packet_t* packet = nullptr;
@@ -30,17 +30,23 @@ status_t post_comm_x::call_impl(
   // basic checks
   bool local_buffer_only = !remote_buffer && rbuffers.empty();
 
+  // process COMP_BLOCK
+  bool free_local_comp = false;
+  if (local_comp == COMP_NULL_EXPECT_OK) {
+    local_comp = alloc_sync();
+    free_local_comp = true;
+    allow_retry = false;
+    allow_posted = false;
+  } else if (local_comp == COMP_NULL_EXPECT_OK_OR_RETRY) {
+    local_comp = alloc_sync();
+    free_local_comp = true;
+    allow_posted = false;
+  }
+
   // get the matching engine rhandler
   if (remote_comp == 0 && !matching_engine.is_empty() && local_buffer_only) {
     // this is send-recv (no remote_comp, no remote_buffer)
     remote_comp = matching_engine.get_impl()->get_rhandler(matching_policy);
-  }
-
-  // process COMP_BLOCK
-  bool is_local_comp_null = false;
-  if (local_comp == COMP_NULL) {
-    is_local_comp_null = true;
-    local_comp = alloc_sync();
   }
 
   status_t status;
@@ -381,12 +387,14 @@ exit:
     delete rts_ctx;
     delete internal_ctx;
   }
-  if (error.is_posted() && is_local_comp_null) {
+  if (error.is_posted() && !allow_posted) {
     while (!sync_test(local_comp, &status)) {
       progress_x().runtime(runtime).device(device).endpoint(endpoint)();
     }
-    free_comp(&local_comp);
     error = errorcode_t::ok;
+  }
+  if (free_local_comp) {
+    free_comp(&local_comp);
   }
   if (error.is_ok() && !allow_ok) {
     lci::comp_signal(local_comp, status);
@@ -408,7 +416,8 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
                               endpoint_t endpoint,
                               out_comp_type_t out_comp_type, mr_t mr, tag_t tag,
                               void* ctx, buffers_t buffers, bool allow_ok,
-                              bool allow_retry, bool force_zero_copy) const
+                              bool allow_posted, bool allow_retry,
+                              bool force_zero_copy) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .runtime(runtime)
@@ -422,16 +431,20 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
       .ctx(ctx)
       .buffers(buffers)
       .allow_ok(allow_ok)
+      .allow_posted(allow_posted)
       .allow_retry(allow_retry)
       .force_zero_copy(force_zero_copy)();
 }
 
-status_t post_send_x::call_impl(
-    int rank, void* local_buffer, size_t size, tag_t tag, comp_t local_comp,
-    runtime_t runtime, packet_pool_t packet_pool, endpoint_t endpoint,
-    matching_engine_t matching_engine, out_comp_type_t out_comp_type, mr_t mr,
-    void* ctx, buffers_t buffers, matching_policy_t matching_policy,
-    bool allow_ok, bool allow_retry, bool force_zero_copy) const
+status_t post_send_x::call_impl(int rank, void* local_buffer, size_t size,
+                                tag_t tag, comp_t local_comp, runtime_t runtime,
+                                packet_pool_t packet_pool, endpoint_t endpoint,
+                                matching_engine_t matching_engine,
+                                out_comp_type_t out_comp_type, mr_t mr,
+                                void* ctx, buffers_t buffers,
+                                matching_policy_t matching_policy,
+                                bool allow_ok, bool allow_posted,
+                                bool allow_retry, bool force_zero_copy) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .runtime(runtime)
@@ -445,6 +458,7 @@ status_t post_send_x::call_impl(
       .buffers(buffers)
       .matching_policy(matching_policy)
       .allow_ok(allow_ok)
+      .allow_posted(allow_posted)
       .allow_retry(allow_retry)
       .force_zero_copy(force_zero_copy)();
 }
@@ -455,8 +469,8 @@ status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
                                 matching_engine_t matching_engine, mr_t mr,
                                 void* ctx, buffers_t buffers,
                                 matching_policy_t matching_policy,
-                                bool allow_ok, bool allow_retry,
-                                bool force_zero_copy) const
+                                bool allow_ok, bool allow_posted,
+                                bool allow_retry, bool force_zero_copy) const
 {
   return post_comm_x(direction_t::IN, rank, local_buffer, size, local_comp)
       .runtime(runtime)
@@ -469,6 +483,7 @@ status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
       .buffers(buffers)
       .matching_policy(matching_policy)
       .allow_ok(allow_ok)
+      .allow_posted(allow_posted)
       .allow_retry(allow_retry)
       .force_zero_copy(force_zero_copy)();
 }
@@ -480,8 +495,8 @@ status_t post_put_x::call_impl(int rank, void* local_buffer, size_t size,
                                out_comp_type_t out_comp_type, mr_t mr,
                                tag_t tag, rcomp_t remote_comp, void* ctx,
                                buffers_t buffers, rbuffers_t rbuffers,
-                               bool allow_ok, bool allow_retry,
-                               bool force_zero_copy) const
+                               bool allow_ok, bool allow_posted,
+                               bool allow_retry, bool force_zero_copy) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .remote_buffer(remote_buffer)
@@ -498,6 +513,7 @@ status_t post_put_x::call_impl(int rank, void* local_buffer, size_t size,
       .buffers(buffers)
       .rbuffers(rbuffers)
       .allow_ok(allow_ok)
+      .allow_posted(allow_posted)
       .allow_retry(allow_retry)
       .force_zero_copy(force_zero_copy)();
 }
@@ -509,7 +525,8 @@ status_t post_get_x::call_impl(int rank, void* local_buffer, size_t size,
                                mr_t mr, tag_t tag, rcomp_t remote_comp,
                                void* ctx, buffers_t buffers,
                                rbuffers_t rbuffers, bool allow_ok,
-                               bool allow_retry, bool force_zero_copy) const
+                               bool allow_posted, bool allow_retry,
+                               bool force_zero_copy) const
 {
   return post_comm_x(direction_t::IN, rank, local_buffer, size, local_comp)
       .remote_buffer(remote_buffer)
@@ -525,6 +542,7 @@ status_t post_get_x::call_impl(int rank, void* local_buffer, size_t size,
       .buffers(buffers)
       .rbuffers(rbuffers)
       .allow_ok(allow_ok)
+      .allow_posted(allow_posted)
       .allow_retry(allow_retry)
       .force_zero_copy(force_zero_copy)();
 }

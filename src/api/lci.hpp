@@ -511,7 +511,9 @@ enum class matching_policy_t : unsigned {
 
 namespace lci
 {
-const comp_t COMP_NULL = comp_t();
+const comp_t COMP_NULL_EXPECT_OK = comp_t(reinterpret_cast<comp_impl_t*>(0x1));
+const comp_t COMP_NULL_EXPECT_OK_OR_RETRY =
+    comp_t(reinterpret_cast<comp_impl_t*>(0x2));
 class comp_impl_t
 {
  public:
