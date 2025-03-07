@@ -21,7 +21,7 @@ jobs:
 
       - name: Run Format Check
         run: |
-          bash ./format.sh
+          ./format.sh
           git diff --exit-code > /tmp/format_results.txt
 
       - name: Display Format Check Results

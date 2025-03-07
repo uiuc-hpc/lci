@@ -61,7 +61,6 @@ jobs:
       - run:
           name: Check that the source code is well clang-formatted
           command: |
-            chmod +x ./format.sh
             ./format.sh
             git diff --exit-code > /tmp/format_results.txt
       - store_artifacts:
