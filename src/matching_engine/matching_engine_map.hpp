@@ -10,10 +10,10 @@ class matching_engine_map_t : public matching_engine_impl_t
       (LCI_CACHE_LINE - sizeof(struct node_t*)) / sizeof(uint64_t);
   // static const uint32_t TABLE_BUCKET_WIDTH = LCI_CACHE_LINE /
   // sizeof(bucket_t) - 1;
-  static const int BUCKET_NUM_QUEUES = 3;
+  static const int BUCKET_NUM_QUEUES_DEFAULT = 3;
   static const int SLOT_NUM_VALUES = 2;
   static const int TABLE_BIT_SIZE = 16;
-  static const int TABLE_NUM_BUCKETS = 1 << 16;
+  static const int TABLE_NUM_MASTER_BUCKETS = 1 << 16;
 
   struct node_t {
     val_t values[NODE_NUM_VALUES];
@@ -48,6 +48,18 @@ class matching_engine_map_t : public matching_engine_impl_t
         values[i] = VALUE_EMPTY;
       }
     }
+    ~queue_t()
+    {
+      if (is_queue) {
+        node_t* node_p = head;
+        node_t* node_q;
+        while (node_p) {
+          node_q = node_p;
+          node_p = node_p->next;
+          delete node_q;
+        }
+      }
+    }
   };
 
   struct bucket_t {
@@ -55,12 +67,43 @@ class matching_engine_map_t : public matching_engine_impl_t
     struct {
       bucket_t* next = nullptr;
       spinlock_t lock;
-      int nqueues;  // TODO: use this field to optimize the search
+      int nqueues;
       char padding[32 - sizeof(bucket_t*) - sizeof(spinlock_t) - sizeof(int)];
     } control;
-    queue_t queues[BUCKET_NUM_QUEUES];
+    queue_t queues[0];
 
-    bucket_t() { control.next = nullptr; }
+    bucket_t() : bucket_t(BUCKET_NUM_QUEUES_DEFAULT) {}
+
+    static bucket_t *alloc(int nqueues = BUCKET_NUM_QUEUES_DEFAULT) {
+      static_assert(sizeof(bucket_t) == 32, "bucket_t size is not 32 bytes");
+      size_t size = sizeof(bucket_t) + nqueues * sizeof(queue_t);
+      bucket_t *bucket = (bucket_t *)alloc_memalign(size);
+      bucket = new (bucket) bucket_t(nqueues);
+      return bucket;
+     }
+     
+     static void free(bucket_t *bucket) {
+      bucket->~bucket_t();
+      std::free(bucket);
+     }
+
+     static size_t size(int nqueues = BUCKET_NUM_QUEUES_DEFAULT) {
+       return sizeof(bucket_t) + nqueues * sizeof(queue_t);
+     }
+
+    bucket_t(int nqueues_) { 
+      control.next = nullptr; 
+      control.nqueues = nqueues_;
+      for (int i = 0; i < nqueues_; i++) {
+        new (&queues[i]) queue_t();
+      }
+    }
+
+     ~bucket_t() {
+       for (int i = 0; i < control.nqueues; i++) {
+         queues[i].~queue_t();
+       }
+     }
   };
 
   static inline uint32_t hash_fn(const uint64_t k)
@@ -86,36 +129,34 @@ class matching_engine_map_t : public matching_engine_impl_t
  public:
   matching_engine_map_t(attr_t attr) : matching_engine_impl_t(attr)
   {
-    // static_assert(sizeof(bucket_t) == 16, "bucket_t size is not 16 bytes");
-    // static_assert(sizeof(node_t) == 16, "node_t size is not 16 bytes");
-    table = new bucket_t[TABLE_NUM_BUCKETS];
+    static_assert(sizeof(bucket_t) == 32, "bucket_t size is not 16 bytes");
+    static_assert(sizeof(node_t) == 64, "node_t size is not 16 bytes");
+    table = (bucket_t*) alloc_memalign(TABLE_NUM_MASTER_BUCKETS * bucket_t::size());
+    for (size_t i = 0; i < TABLE_NUM_MASTER_BUCKETS; i++) {
+      new (get_master_bucket(i)) bucket_t();
+    }
   }
 
   ~matching_engine_map_t()
   {
-    for (size_t i = 0; i < TABLE_NUM_BUCKETS; i++) {
-      bucket_t* bucket_p = &table[i];
+    for (size_t i = 0; i < TABLE_NUM_MASTER_BUCKETS; i++) {
+      bucket_t *master = get_master_bucket(i);
+      bucket_t* bucket_p = master;
       bucket_t* bucket_q;
       while (bucket_p) {
-        for (auto slot : bucket_p->queues) {
-          if (slot.is_queue) {
-            node_t* node_p = slot.head;
-            node_t* node_q;
-            while (node_p) {
-              node_q = node_p;
-              node_p = node_p->next;
-              delete node_q;
-            }
-          }
-        }
         bucket_q = bucket_p;
         bucket_p = bucket_p->control.next;
-        if (bucket_q != &table[i]) {
-          delete bucket_q;
+        if (bucket_q != master) {
+          bucket_t::free(bucket_q);
         }
       }
+      master->~bucket_t();
     }
-    delete[] table;
+    free(table);
+  }
+
+  bucket_t *get_master_bucket(uint32_t bucket_idx) const {
+    return (bucket_t*)((char*) table + bucket_idx * bucket_t::size());
   }
 
   val_t insert(key_t key, val_t value, insert_type_t type) override
@@ -123,7 +164,7 @@ class matching_engine_map_t : public matching_engine_impl_t
     val_t ret = nullptr;
     const uint32_t bucket_idx = hash_fn(key);
 
-    bucket_t* master = &table[bucket_idx];
+    bucket_t* master = get_master_bucket(bucket_idx);
     insert_type_t target_type =
         type == insert_type_t::send ? insert_type_t::recv : insert_type_t::send;
 
@@ -136,7 +177,7 @@ class matching_engine_map_t : public matching_engine_impl_t
     // Search the buckets and find the queue.
     while (current_bucket) {
       bool is_current_bucket_nonempty = false;
-      for (int i = 0; i < BUCKET_NUM_QUEUES; ++i) {
+      for (int i = 0; i < current_bucket->control.nqueues; ++i) {
         queue_t* current_queue = &current_bucket->queues[i];
         if (current_queue->is_empty) {
           if (first_empty_queue == nullptr) {
@@ -163,7 +204,7 @@ class matching_engine_map_t : public matching_engine_impl_t
       if (!is_current_bucket_nonempty && previous_bucket) {
         // remove current linked bucket
         previous_bucket->control.next = current_bucket->control.next;
-        delete current_bucket;
+        bucket_t::free(current_bucket);
         current_bucket = previous_bucket;
       }
       previous_bucket = current_bucket;
@@ -225,7 +266,8 @@ class matching_engine_map_t : public matching_engine_impl_t
         if (!first_empty_queue) {
           // Didn't even find an empty queue in existing linked buckets.
           // Create a new bucket.
-          bucket_t* new_bucket = new bucket_t;
+          int nqueues = previous_bucket->control.nqueues  * 2 + 1;
+          bucket_t* new_bucket = bucket_t::alloc(nqueues);
           LCI_DBG_Assert(current_bucket == nullptr, "\n");
           previous_bucket->control.next = new_bucket;
           first_empty_queue = &new_bucket->queues[0];
