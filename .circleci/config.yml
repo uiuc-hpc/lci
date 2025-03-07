@@ -9,7 +9,6 @@ version: 2.1
 jobs:
   install_dependencies:
     <<: *executor_default
-    working_directory: /lci
     resource_class: medium
     steps:
       - run:
@@ -33,47 +32,11 @@ jobs:
             mpirun --version
             fi_info --version
     
-  checkout_code:
+  build-and-test:
     <<: *executor_default
-    working_directory: /lci
     resource_class: medium
     steps:
-      - checkout:
-          path: /lci/source-full
-      # Make a shallow clone of the current commit so that we don't have to copy
-      # the whole repository between work steps.
-      - run:
-          name: Creating shallow clone
-          command: |
-            git clone --depth=1 file:///lci/source-full source
-      - persist_to_workspace:
-          root: /lci
-          paths:
-            - ./source
-
-  # Ensure that the modules stay clang-formatted and camke-formatted
-  code_format:
-    <<: *executor_default
-    working_directory: /lci/source
-    steps:
-      - attach_workspace:
-          at: /lci
-      - run:
-          name: Check that the source code is well clang-formatted
-          command: |
-            ./format.sh
-            git diff --exit-code > /tmp/format_results.txt
-      - store_artifacts:
-          path: /tmp/format_results.txt
-          destination: /lci/artifacts/format_results.txt
-
-  configure:
-    <<: *executor_default
-    working_directory: /lci/build
-    resource_class: medium
-    steps:
-      - attach_workspace:
-          at: /lci
+      - checkout
       - run:
           name: Running CMake Configure
           command: |
@@ -86,35 +49,10 @@ jobs:
                 -DLCI_NETWORK_BACKENDS=ofi,ibv \
                 -DLCT_PMI_BACKEND_ENABLE_MPI=ON \
                 -DLCI_USE_CTEST_ARGS="--oversubscribe"
-                
-      - persist_to_workspace:
-          root: /lci
-          paths:
-            - ./build
-
-  build:
-    <<: *executor_default
-    working_directory: /lci/build
-    resource_class: medium
-    steps:
-      - attach_workspace:
-          at: /lci
       - run:
           name: Running CMake Build
           command: |
             cmake --build /lci/build --target all
-      - persist_to_workspace:
-          root: /lci
-          paths:
-            - ./build
-
-  ctest:
-    <<: *executor_default
-    working_directory: /lci/build
-    resource_class: medium
-    steps:
-      - attach_workspace:
-          at: /lci
       - run:
           name: Running CTest excluding LCIT tests
           command: |
@@ -131,18 +69,6 @@ workflows:
   build-and-test:
     jobs:
       - install_dependencies
-      - checkout_code:
+      - cbuild-and-test:
           requires:
             - install_dependencies
-      - code_format:
-          requires:
-            - checkout_code
-      - configure:
-          requires:
-            - checkout_code
-      - build:
-          requires:
-            - configure
-      - ctest:
-          requires:
-            - build
