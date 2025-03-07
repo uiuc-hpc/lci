@@ -10,7 +10,7 @@ jobs:
   install_dependencies:
     <<: *executor_default
     working_directory: /lci
-    resource_class: small
+    resource_class: medium
     steps:
       - run:
           name: Install dependencies
@@ -36,7 +36,7 @@ jobs:
   checkout_code:
     <<: *executor_default
     working_directory: /lci
-    resource_class: small
+    resource_class: medium
     steps:
       - checkout:
           path: /lci/source-full
@@ -71,7 +71,7 @@ jobs:
   configure:
     <<: *executor_default
     working_directory: /lci/build
-    resource_class: small
+    resource_class: medium
     steps:
       - attach_workspace:
           at: /lci
@@ -96,7 +96,7 @@ jobs:
   build:
     <<: *executor_default
     working_directory: /lci/build
-    resource_class: small
+    resource_class: medium
     steps:
       - attach_workspace:
           at: /lci

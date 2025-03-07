@@ -21,12 +21,16 @@ jobs:
 
       - name: Run Format Check
         run: |
-          chmod +x ./format.sh
-          ./format.sh
+          bash ./format.sh
           git diff --exit-code > /tmp/format_results.txt
 
+      - name: Display Format Check Results
+        if: always()
+        run: |
+          cat /tmp/format_results.txt
+
       - name: Upload Format Check Results
-        if: always()  # Ensures upload happens even if the check fails
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: format-check-results
