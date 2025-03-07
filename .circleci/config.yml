@@ -44,7 +44,6 @@ jobs:
             cmake \
                 -S . \
                 -B build \
-                -GNinja \
                 -DCMAKE_BUILD_TYPE=Debug \
                 -DLCI_DEBUG=ON \
                 -DLCI_NETWORK_BACKENDS=ofi,ibv \
@@ -53,17 +52,17 @@ jobs:
       - run:
           name: Running CMake Build
           command: |
-            cmake --build /lci/build --target all
+            cmake --build build --target all
       - run:
           name: Running CTest excluding LCIT tests
           command: |
             ulimit -c unlimited
             export LCT_PMI_BACKEND=local
             ctest --extra-verbose --timeout 180 \
-                  --test-dir /lci/build \
+                  --test-dir build \
                   --output-junit ctest.out.xml
       - store_test_results:
-          path: /lci/build/ctest.out.xml
+          path: build/ctest.out.xml
 
 workflows:
   version: 2
