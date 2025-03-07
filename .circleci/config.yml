@@ -42,8 +42,8 @@ jobs:
           command: |
             ls
             cmake \
-                -S lci \
-                -B lci/build \
+                -S . \
+                -B build \
                 -GNinja \
                 -DCMAKE_BUILD_TYPE=Debug \
                 -DLCI_DEBUG=ON \
