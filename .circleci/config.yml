@@ -31,11 +31,19 @@ jobs:
             mpicc --version
             mpirun --version
             fi_info --version
+      - save_cache:
+          key: apt-cache-v1
+          paths:
+            - /var/cache/apt/archives  # Cache downloaded .deb packages
+            - /var/lib/apt/lists  # Cache APT package lists
     
   test:
     <<: *executor_default
     resource_class: medium
     steps:
+      - restore_cache:
+            keys:
+              - apt-cache-v1
       - checkout
       - run:
           name: Running CMake Configure
