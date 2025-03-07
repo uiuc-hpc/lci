@@ -21,7 +21,6 @@ class runtime_impl_t
   packet_pool_t packet_pool;
   rhandler_registry_t rhandler_registry;
   matching_engine_t matching_engine;
-  rcomp_t matching_engine_rhandler;
 };
 }  // namespace lci
 

@@ -40,7 +40,9 @@ void progress_recv(runtime_t runtime, device_t device, endpoint_t endpoint,
         // we get a matching table entry
         matching_engine_impl_t* p_matching_engine =
             reinterpret_cast<matching_engine_impl_t*>(entry.value);
-        auto key = p_matching_engine->make_key(net_status.rank, tag);
+        auto key = p_matching_engine->make_key(
+            net_status.rank, tag,
+            static_cast<matching_policy_t>(entry.metadata));
         packet->local_context.is_eager = true;
         packet->local_context.rank = net_status.rank;
         packet->local_context.tag = tag;

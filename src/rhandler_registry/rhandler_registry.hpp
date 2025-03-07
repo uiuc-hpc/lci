@@ -13,8 +13,14 @@ class rhandler_registry_t
     matching_engine,
   };
   struct entry_t {
-    type_t type;
-    void* value;
+    type_t type = type_t::none;
+    void* value = nullptr;
+    uint64_t metadata = 0;
+    entry_t() = default;
+    entry_t(type_t type, void* value, uint64_t metadata = 0)
+        : type(type), value(value), metadata(metadata)
+    {
+    }
   };
 
   rhandler_registry_t() = default;
@@ -23,7 +29,7 @@ class rhandler_registry_t
   uint32_t reserve(uint32_t n)
   {
     int idx = entries.size();
-    entries.insert(entries.end(), n, {type_t::none, nullptr});
+    entries.insert(entries.end(), n, entry_t());
     return encode_idx(idx);
   }
 
@@ -49,7 +55,7 @@ class rhandler_registry_t
     idx = decode_idx(idx);
     LCI_Assert(idx < entries.size(), "idx (%u) >= entries.size() (%lu)\n", idx,
                entries.size());
-    entries[idx] = {type_t::none, nullptr};
+    entries[idx] = entry_t();
   }
 
   entry_t get(uint32_t idx)

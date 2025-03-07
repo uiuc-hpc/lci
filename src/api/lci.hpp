@@ -495,12 +495,23 @@ struct status_t {
 };
 
 using comp_handler_t = void (*)(status_t status);
+
+const int ANY_SOURCE = -1;
+const tag_t ANY_TAG = -1;
+enum class matching_policy_t : unsigned {
+  none = 0,
+  rank_only = 1,
+  tag_only = 2,
+  rank_tag = 3,
+  max = 4,
+};
 }  // namespace lci
 
 #include "lci_binding.hpp"
 
 namespace lci
 {
+const comp_t COMP_NULL = comp_t();
 class comp_impl_t
 {
  public:

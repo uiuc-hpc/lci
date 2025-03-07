@@ -14,8 +14,8 @@ status_t post_comm_x::call_impl(
     endpoint_t endpoint, matching_engine_t matching_engine,
     out_comp_type_t out_comp_type, mr_t mr, uintptr_t remote_buffer,
     rkey_t rkey, tag_t tag, rcomp_t remote_comp, void* ctx, buffers_t buffers,
-    rbuffers_t rbuffers, bool allow_ok, bool allow_retry,
-    bool force_zero_copy) const
+    rbuffers_t rbuffers, matching_policy_t matching_policy, bool allow_ok,
+    bool allow_retry, bool force_zero_copy) const
 {
   // forward delcarations
   packet_t* packet = nullptr;
@@ -26,11 +26,23 @@ status_t post_comm_x::call_impl(
   // basic resources
   device_t device = endpoint.p_impl->device;
   net_context_t net_context = device.p_impl->net_context;
-  if (remote_comp == 0 && !matching_engine.is_empty() && !remote_buffer &&
-      rbuffers.empty()) {
+
+  // basic checks
+  bool local_buffer_only = !remote_buffer && rbuffers.empty();
+
+  // get the matching engine rhandler
+  if (remote_comp == 0 && !matching_engine.is_empty() && local_buffer_only) {
     // this is send-recv (no remote_comp, no remote_buffer)
-    remote_comp = matching_engine.get_impl()->get_rhandler();
+    remote_comp = matching_engine.get_impl()->get_rhandler(matching_policy);
   }
+
+  // process COMP_BLOCK
+  bool is_local_comp_null = false;
+  if (local_comp.is_empty()) {
+    is_local_comp_null = true;
+    local_comp = alloc_sync();
+  }
+
   status_t status;
   status.rank = rank;
   status.tag = tag;
@@ -41,8 +53,7 @@ status_t post_comm_x::call_impl(
   internal_ctx->tag = tag;
   internal_ctx->user_context = ctx;
 
-  // basic checks
-  bool local_buffer_only = !remote_buffer && rbuffers.empty();
+  // get protocol
   size_t max_inject_size = get_max_inject_size_x()
                                .runtime(runtime)
                                .endpoint(endpoint)
@@ -294,7 +305,17 @@ status_t post_comm_x::call_impl(
       // recv
       LCI_DBG_Assert(internal_ctx->packet_to_free == nullptr,
                      "recv does not need a packet!\n");
-      auto key = matching_engine.get_impl()->make_key(rank, tag);
+      // get the matching policy
+      // If any of the LCI_ANY is used, we will ignore the matching policy
+      if (rank == ANY_SOURCE && tag == ANY_TAG) {
+        matching_policy = matching_policy_t::none;
+      } else if (rank == ANY_SOURCE) {
+        matching_policy = matching_policy_t::tag_only;
+      } else if (tag == ANY_TAG) {
+        matching_policy = matching_policy_t::rank_only;
+      }
+      auto key =
+          matching_engine.get_impl()->make_key(rank, tag, matching_policy);
       auto ret = matching_engine.get_impl()->insert(
           key, internal_ctx, matching_engine_impl_t::insert_type_t::recv);
       if (ret) {
@@ -360,6 +381,13 @@ exit:
     delete rts_ctx;
     delete internal_ctx;
   }
+  if (error.is_posted() && is_local_comp_null) {
+    while (!sync_test(local_comp, &status)) {
+      progress_x().runtime(runtime).device(device).endpoint(endpoint)();
+    }
+    free_comp(&local_comp);
+    error = errorcode_t::ok;
+  }
   if (error.is_ok() && !allow_ok) {
     lci::comp_signal(local_comp, status);
     status.error = errorcode_t::posted;
@@ -398,14 +426,12 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
       .force_zero_copy(force_zero_copy)();
 }
 
-status_t post_send_x::call_impl(int rank, void* local_buffer, size_t size,
-                                comp_t local_comp, runtime_t runtime,
-                                packet_pool_t packet_pool, endpoint_t endpoint,
-                                matching_engine_t matching_engine,
-                                out_comp_type_t out_comp_type, mr_t mr,
-                                tag_t tag, void* ctx, buffers_t buffers,
-                                bool allow_ok, bool allow_retry,
-                                bool force_zero_copy) const
+status_t post_send_x::call_impl(
+    int rank, void* local_buffer, size_t size, tag_t tag, comp_t local_comp,
+    runtime_t runtime, packet_pool_t packet_pool, endpoint_t endpoint,
+    matching_engine_t matching_engine, out_comp_type_t out_comp_type, mr_t mr,
+    void* ctx, buffers_t buffers, matching_policy_t matching_policy,
+    bool allow_ok, bool allow_retry, bool force_zero_copy) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .runtime(runtime)
@@ -417,16 +443,18 @@ status_t post_send_x::call_impl(int rank, void* local_buffer, size_t size,
       .tag(tag)
       .ctx(ctx)
       .buffers(buffers)
+      .matching_policy(matching_policy)
       .allow_ok(allow_ok)
       .allow_retry(allow_retry)
       .force_zero_copy(force_zero_copy)();
 }
 
 status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
-                                comp_t local_comp, runtime_t runtime,
+                                tag_t tag, comp_t local_comp, runtime_t runtime,
                                 packet_pool_t packet_pool, endpoint_t endpoint,
                                 matching_engine_t matching_engine, mr_t mr,
-                                tag_t tag, void* ctx, buffers_t buffers,
+                                void* ctx, buffers_t buffers,
+                                matching_policy_t matching_policy,
                                 bool allow_ok, bool allow_retry,
                                 bool force_zero_copy) const
 {
@@ -439,6 +467,7 @@ status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
       .tag(tag)
       .ctx(ctx)
       .buffers(buffers)
+      .matching_policy(matching_policy)
       .allow_ok(allow_ok)
       .allow_retry(allow_retry)
       .force_zero_copy(force_zero_copy)();

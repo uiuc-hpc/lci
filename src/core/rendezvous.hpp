@@ -152,8 +152,9 @@ inline void handle_rdv_rts(runtime_t runtime, endpoint_t endpoint,
     matching_engine_impl_t* p_matching_engine =
         reinterpret_cast<matching_engine_impl_t*>(entry.value);
     // insert into the matching engine
-    auto key = p_matching_engine->make_key(packet->local_context.rank,
-                                           packet->local_context.tag);
+    auto key = p_matching_engine->make_key(
+        packet->local_context.rank, packet->local_context.tag,
+        static_cast<matching_policy_t>(entry.metadata));
     auto ret = p_matching_engine->insert(
         key, packet, matching_engine_impl_t::insert_type_t::send);
     if (!ret) return;

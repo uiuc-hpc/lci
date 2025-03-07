@@ -19,12 +19,12 @@ TEST(COMM_SENDRECV, sendrecv_bcopy_st)
     uint64_t data = 0xdeadbeef;
     lci::status_t status;
     do {
-      status = lci::post_recv(rank, &data, sizeof(data), rcq);
+      status = lci::post_recv(rank, &data, sizeof(data), 0, rcq);
       lci::progress();
     } while (status.error.is_retry());
 
     do {
-      status = lci::post_send(rank, &data, sizeof(data), scq);
+      status = lci::post_send(rank, &data, sizeof(data), 0, scq);
       lci::progress();
     } while (status.error.is_retry());
 
@@ -68,12 +68,12 @@ void test_sendrecv_bcopy_mt(int id, int nmsgs, uint64_t* p_data)
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_recv(rank, p_data, sizeof(uint64_t), rcq);
+      status = lci::post_recv(rank, p_data, sizeof(uint64_t), id, rcq);
       lci::progress();
     } while (status.error.is_retry());
 
     do {
-      status = lci::post_send(rank, p_data, sizeof(uint64_t), scq);
+      status = lci::post_send(rank, p_data, sizeof(uint64_t), id, scq);
       lci::progress();
     } while (status.error.is_retry());
 
@@ -153,11 +153,11 @@ TEST(COMM_SENDRECV, sendrecv_zcopy_st)
     uint64_t data = 0xdeadbeef;
     lci::status_t status;
     do {
-      status = lci::post_recv(rank, recv_buffer, msg_size, rcq);
+      status = lci::post_recv(rank, recv_buffer, msg_size, i, rcq);
       lci::progress();
     } while (status.error.is_retry());
     do {
-      status = lci::post_send(rank, send_buffer, msg_size, scq);
+      status = lci::post_send(rank, send_buffer, msg_size, i, scq);
       lci::progress();
     } while (status.error.is_retry());
 
@@ -199,11 +199,11 @@ void test_sendrecv_zcopy_mt(int id, int nmsgs)
     uint64_t data = 0xdeadbeef;
     lci::status_t status;
     do {
-      status = lci::post_recv(rank, recv_buffer, msg_size, rcq);
+      status = lci::post_recv(rank, recv_buffer, msg_size, id, rcq);
       lci::progress();
     } while (status.error.is_retry());
     do {
-      status = lci::post_send(rank, send_buffer, msg_size, scq);
+      status = lci::post_send(rank, send_buffer, msg_size, id, scq);
       lci::progress();
     } while (status.error.is_retry());
 
@@ -283,11 +283,13 @@ TEST(COMM_SENDRECV, sendrecv_buffers_st)
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_recv_x(rank, nullptr, 0, rcq).buffers(recv_buffers)();
+      status =
+          lci::post_recv_x(rank, nullptr, 0, i, rcq).buffers(recv_buffers)();
       lci::progress();
     } while (status.error.is_retry());
     do {
-      status = lci::post_send_x(rank, nullptr, 0, scq).buffers(send_buffers)();
+      status =
+          lci::post_send_x(rank, nullptr, 0, i, scq).buffers(send_buffers)();
       lci::progress();
     } while (status.error.is_retry());
     if (status.error.is_posted()) {
@@ -347,11 +349,13 @@ void test_sendrecv_buffers_mt(int id, int nmsgs)
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_recv_x(rank, nullptr, 0, rcq).buffers(recv_buffers)();
+      status =
+          lci::post_recv_x(rank, nullptr, 0, id, rcq).buffers(recv_buffers)();
       lci::progress();
     } while (status.error.is_retry());
     do {
-      status = lci::post_send_x(rank, nullptr, 0, scq).buffers(send_buffers)();
+      status =
+          lci::post_send_x(rank, nullptr, 0, id, scq).buffers(send_buffers)();
       lci::progress();
     } while (status.error.is_retry());
     if (status.error.is_posted()) {
