@@ -15,8 +15,8 @@ jobs:
           name: Install dependencies
           command: |
             export DEBIAN_FRONTEND=noninteractive
-            apt-get update
-            apt-get install -y cmake ninja-build libfabric-bin libfabric-dev openmpi-bin openmpi-common openmpi-doc libopenmpi-dev clang-format python3-pip python3.12-venv
+            sudo apt-get update
+            sudo apt-get install -y cmake ninja-build libfabric-bin libfabric-dev openmpi-bin openmpi-common openmpi-doc libopenmpi-dev clang-format python3-pip python3.12-venv
       - run:
           name: Setup Virtual Environment and Install CMake-Format
           command: |
