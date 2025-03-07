@@ -32,7 +32,7 @@ jobs:
             mpirun --version
             fi_info --version
     
-  build-and-test:
+  test:
     <<: *executor_default
     resource_class: medium
     steps:
@@ -69,6 +69,6 @@ workflows:
   build-and-test:
     jobs:
       - install_dependencies
-      - cbuild-and-test:
+      - test:
           requires:
             - install_dependencies
