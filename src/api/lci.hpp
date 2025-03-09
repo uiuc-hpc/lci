@@ -165,6 +165,7 @@ struct rbuffer_t {
 };
 using buffers_t = std::vector<buffer_t>;
 using rbuffers_t = std::vector<rbuffer_t>;
+
 // A generic data type that can be a scalar, buffer, or buffers
 // Make it within 24 bytes
 struct data_t {
@@ -284,93 +285,19 @@ struct data_t {
       other.buffers.buffers = nullptr;
     }
   }
-  // copy assignment
-  data_t& operator=(const data_t& other)
+  // generic assignment operator
+  data_t& operator=(data_t other)
   {
-    if (this == &other) {
-      return *this;
-    }
-    if (own_data) {
-      if (is_buffer()) {
-        free(buffer.base);
-      } else if (is_buffers()) {
-        for (size_t i = 0; i < buffers.count; i++) {
-          free(buffers.buffers[i].base);
-        }
-        delete[] buffers.buffers;
-      }
-    }
-    type = other.type;
-    own_data = other.own_data;
-    if (own_data)
-      fprintf(stderr, "Copying buffer with own_data=true is not recommended\n");
-    if (other.is_scalar()) {
-      memcpy(scalar.data, other.scalar.data, MAX_SCALAR_SIZE);
-    } else if (other.is_buffer()) {
-      buffer = other.buffer;
-      if (own_data) {
-        buffer.base = malloc(other.buffer.size);
-        memcpy(buffer.base, other.buffer.base, other.buffer.size);
-      }
-    } else if (other.is_buffers()) {
-      buffers.count = other.buffers.count;
-      buffers.buffers = new buffer_t[buffers.count];
-      for (size_t i = 0; i < buffers.count; i++) {
-        buffers.buffers[i] = other.buffers.buffers[i];
-        if (own_data) {
-          buffers.buffers[i].base = malloc(other.buffers.buffers[i].size);
-          memcpy(buffers.buffers[i].base, other.buffers.buffers[i].base,
-                 other.buffers.buffers[i].size);
-        }
-      }
-    }
+    swap(*this, other);
     return *this;
   }
-  // move assignment
-  data_t& operator=(data_t&& other)
+  friend void swap(data_t& first, data_t& second)
   {
-    if (this == &other) {
-      return *this;
-    }
-    if (own_data) {
-      if (is_buffer()) {
-        free(buffer.base);
-      } else if (is_buffers()) {
-        for (size_t i = 0; i < buffers.count; i++) {
-          free(buffers.buffers[i].base);
-        }
-        delete[] buffers.buffers;
-      }
-    }
-    type = other.type;
-    own_data = other.own_data;
-    if (other.is_scalar()) {
-      memcpy(scalar.data, other.scalar.data, MAX_SCALAR_SIZE);
-    } else if (other.is_buffer()) {
-      buffer = other.buffer;
-      other.own_data = false;
-    } else if (other.is_buffers()) {
-      buffers.count = other.buffers.count;
-      buffers.buffers = other.buffers.buffers;
-      other.own_data = false;
-      other.buffers.buffers = nullptr;
-    }
-    return *this;
-  }
-  ~data_t()
-  {
-    if (own_data) {
-      if (is_buffer()) {
-        free(buffer.base);
-      } else if (is_buffers()) {
-        for (size_t i = 0; i < buffers.count; i++) {
-          free(buffers.buffers[i].base);
-        }
-      }
-    }
-    if (is_buffers()) {
-      delete[] buffers.buffers;
-    }
+    char *buf = (char*) malloc(sizeof(data_t));
+    memcpy(buf, &first, sizeof(data_t));
+    memcpy(&first, &second, sizeof(data_t));
+    memcpy(&second, buf, sizeof(data_t));
+    free(buf);
   }
   bool is_scalar() const { return type == type_t::scalar; }
   bool is_buffer() const { return type == type_t::buffer; }
