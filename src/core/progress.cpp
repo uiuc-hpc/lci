@@ -7,6 +7,7 @@ void progress_recv(runtime_t runtime, device_t device, endpoint_t endpoint,
 {
   LCI_PCOUNTER_ADD(net_recv_comp, 1)
   packet_t* packet = static_cast<packet_t*>(net_status.user_context);
+  size_t msg_size = net_status.length;
   // decode immediate data
   uint32_t imm_data = net_status.imm_data;
   tag_t tag;
@@ -21,7 +22,10 @@ void progress_recv(runtime_t runtime, device_t device, endpoint_t endpoint,
     msg_type = static_cast<imm_data_msg_type_t>(get_bits32(imm_data, 2, 29));
     if (msg_type == IMM_DATA_MSG_EAGER) {
       // get tag and rcomp by looking at the message payload
-      throw std::logic_error("Not implemented");
+      msg_size -= sizeof(remote_comp);
+      memcpy(&remote_comp, (char*) packet->get_payload_address() + msg_size, sizeof(remote_comp));
+      msg_size -= sizeof(tag);
+      memcpy(&tag, (char*) packet->get_payload_address() + msg_size, sizeof(tag));
     }
   }
   switch (msg_type) {
@@ -32,7 +36,7 @@ void progress_recv(runtime_t runtime, device_t device, endpoint_t endpoint,
         status.error = errorcode_t::ok;
         status.rank = net_status.rank;
         status.tag = tag;
-        status.data.copy_from(packet->get_payload_address(), net_status.length);
+        status.data.copy_from(packet->get_payload_address(), msg_size);
         status.user_context = nullptr;
         packet->put_back();
         reinterpret_cast<comp_impl_t*>(entry.value)->signal(std::move(status));
@@ -46,7 +50,7 @@ void progress_recv(runtime_t runtime, device_t device, endpoint_t endpoint,
         packet->local_context.is_eager = true;
         packet->local_context.rank = net_status.rank;
         packet->local_context.tag = tag;
-        packet->local_context.data = buffer_t(nullptr, net_status.length);
+        packet->local_context.data = buffer_t(nullptr, msg_size);
         auto ret = p_matching_engine->insert(
             key, packet, matching_engine_impl_t::insert_type_t::send);
         if (ret)

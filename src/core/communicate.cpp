@@ -29,6 +29,17 @@ status_t post_comm_x::call_impl(
 
   // basic checks
   bool local_buffer_only = !remote_buffer && rbuffers.empty();
+  size_t max_inject_size = get_max_inject_size_x()
+                               .runtime(runtime)
+                               .endpoint(endpoint)
+                               .tag(tag)
+                               .remote_comp(remote_comp)();
+  size_t max_bcopy_size = get_max_bcopy_size_x()
+                              .runtime(runtime)
+                              .endpoint(endpoint)
+                              .packet_pool(packet_pool)
+                              .tag(tag)
+                              .remote_comp(remote_comp)();
 
   // process COMP_BLOCK
   bool free_local_comp = false;
@@ -59,28 +70,42 @@ status_t post_comm_x::call_impl(
   internal_ctx->tag = tag;
   internal_ctx->user_context = ctx;
 
-  // get protocol
-  size_t max_inject_size = get_max_inject_size_x()
-                               .runtime(runtime)
-                               .endpoint(endpoint)
-                               .tag(tag)
-                               .remote_comp(remote_comp)();
-  size_t max_bcopy_size = get_max_bcopy_size_x()
-                              .runtime(runtime)
-                              .endpoint(endpoint)
-                              .packet_pool(packet_pool)
-                              .tag(tag)
-                              .remote_comp(remote_comp)();
-  protocol_t protocol;
+  // setup protocol (part 1)
+  protocol_t protocol = protocol_t::bcopy;
   if (!buffers.empty() || force_zero_copy || size > max_bcopy_size) {
     protocol = protocol_t::zcopy;
-  } else if (size <= max_inject_size && direction == direction_t::OUT &&
-             out_comp_type == out_comp_type_t::buffer) {
-    protocol = protocol_t::inject;
-  } else {
-    protocol = protocol_t::bcopy;
   }
   bool is_rendezvous = protocol == protocol_t::zcopy && local_buffer_only;
+
+  // set immediate data
+  bool piggyback_tag_rcomp_in_packet = false;
+  size_t packet_size_to_send = size;
+  uint32_t imm_data = 0;
+  if (direction == direction_t::OUT) {
+    static_assert(IMM_DATA_MSG_EAGER == 0);
+    if (!is_rendezvous && tag <= runtime.get_attr_max_imm_tag() &&
+        remote_comp <= runtime.get_attr_max_imm_rcomp()) {
+      // is_fastpath (1) ; remote_comp (15) ; tag (16)
+      imm_data = set_bits32(imm_data, 1, 1, 31);  // is_fastpath
+      imm_data = set_bits32(imm_data, tag, runtime.get_attr_imm_nbits_tag(), 0);
+      imm_data = set_bits32(imm_data, remote_comp,
+                            runtime.get_attr_imm_nbits_rcomp(), 16);
+    } else {
+      // bit 29-30: imm_data_msg_type_t
+      if (is_rendezvous) {
+        imm_data = set_bits32(0, IMM_DATA_MSG_RTS, 2, 29);
+      } else {
+        packet_size_to_send += sizeof(tag) + sizeof(rcomp_t);
+        piggyback_tag_rcomp_in_packet = true;
+      }
+    }
+  }
+
+  // setup protocol (part 2)
+  if (size <= max_inject_size && protocol == protocol_t::bcopy && !piggyback_tag_rcomp_in_packet && direction == direction_t::OUT &&
+      out_comp_type == out_comp_type_t::buffer) {
+      protocol = protocol_t::inject;
+  }
 
   /**********************************************************************************
    * build the data descriptor
@@ -117,7 +142,7 @@ status_t post_comm_x::call_impl(
       }
       if (direction == direction_t::OUT) {
         memcpy(packet->get_payload_address(), local_buffer, size);
-        if (size > runtime.get_attr_packet_return_threshold()) {
+        if (packet_size_to_send > runtime.get_attr_packet_return_threshold()) {
           // A lot of data has been written into this packet, which means a
           // large chunk of cache lines have been touched. We should return this
           // packet to the current core's packet pool.
@@ -148,25 +173,6 @@ status_t post_comm_x::call_impl(
       internal_ctx->comp = local_comp;
     }
 
-    // set immediate data
-    uint32_t imm_data = 0;
-    static_assert(IMM_DATA_MSG_EAGER == 0);
-    if (!is_rendezvous && tag <= runtime.get_attr_max_imm_tag() &&
-        remote_comp <= runtime.get_attr_max_imm_rcomp()) {
-      // is_fastpath (1) ; remote_comp (15) ; tag (16)
-      imm_data = set_bits32(imm_data, 1, 1, 31);  // is_fastpath
-      imm_data = set_bits32(imm_data, tag, runtime.get_attr_imm_nbits_tag(), 0);
-      imm_data = set_bits32(imm_data, remote_comp,
-                            runtime.get_attr_imm_nbits_rcomp(), 16);
-    } else {
-      // bit 29-30: imm_data_msg_type_t
-      if (is_rendezvous) {
-        imm_data = set_bits32(0, IMM_DATA_MSG_RTS, 2, 29);
-      } else {
-        throw std::logic_error("Not implemented");
-      }
-    }
-
     if (protocol == protocol_t::inject) {
       // inject protocol (return retry or ok)
       if (!remote_buffer) {
@@ -188,8 +194,15 @@ status_t post_comm_x::call_impl(
       // buffer-copy protocol
       if (!remote_buffer) {
         // buffer-copy send
+        if (piggyback_tag_rcomp_in_packet) {
+          LCI_DBG_Assert(packet_size_to_send == size + sizeof(tag) + sizeof(remote_comp), "");
+          LCI_DBG_Assert(packet_size_to_send <= max_bcopy_size, "");
+          memcpy((char*)packet->get_payload_address() + size, &tag, sizeof(tag));
+          memcpy((char*)packet->get_payload_address() + size + sizeof(tag), &remote_comp,
+                 sizeof(remote_comp));
+        }
         error = endpoint.p_impl->post_send(rank, packet->get_payload_address(),
-                                           size, packet->get_mr(device),
+                                           packet_size_to_send, packet->get_mr(device),
                                            imm_data, internal_ctx, allow_retry);
       } else if (!remote_comp) {
         // buffer-copy put
