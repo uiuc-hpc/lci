@@ -23,9 +23,11 @@ void progress_recv(runtime_t runtime, device_t device, endpoint_t endpoint,
     if (msg_type == IMM_DATA_MSG_EAGER) {
       // get tag and rcomp by looking at the message payload
       msg_size -= sizeof(remote_comp);
-      memcpy(&remote_comp, (char*) packet->get_payload_address() + msg_size, sizeof(remote_comp));
+      memcpy(&remote_comp, (char*)packet->get_payload_address() + msg_size,
+             sizeof(remote_comp));
       msg_size -= sizeof(tag);
-      memcpy(&tag, (char*) packet->get_payload_address() + msg_size, sizeof(tag));
+      memcpy(&tag, (char*)packet->get_payload_address() + msg_size,
+             sizeof(tag));
     }
   }
   switch (msg_type) {

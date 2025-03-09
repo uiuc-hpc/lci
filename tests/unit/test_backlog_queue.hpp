@@ -132,7 +132,7 @@ TEST(BACKLOG_QUEUE, am_zcopy_st_bq)
     uint64_t data = 0xdeadbeef;
     lci::status_t status;
     status = lci::post_am_x(rank, &data, sizeof(data), lcq, rcomp)
-                 .force_zero_copy(true)
+                 .force_zcopy(true)
                  .allow_retry(false)();
     ASSERT_EQ(status.error.is_retry(), false);
     if (status.error.is_posted()) {
@@ -166,7 +166,7 @@ void test_am_zcopy_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
     lci::status_t status;
     status = lci::post_am_x(rank, p_data, sizeof(uint64_t), lcq, rcomp)
                  .tag(tag)
-                 .force_zero_copy(true)
+                 .force_zcopy(true)
                  .allow_retry(false)();
     ASSERT_EQ(status.error.is_retry(), false);
     // poll cqs

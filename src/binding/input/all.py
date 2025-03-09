@@ -455,7 +455,7 @@ operation(
         optional_arg("bool", "allow_ok", "true"),
         optional_arg("bool", "allow_posted", "true"),
         optional_arg("bool", "allow_retry", "true"),
-        optional_arg("bool", "force_zero_copy", "false"),
+        optional_arg("bool", "force_zcopy", "false"),
         return_val("status_t", "status"),
     ]
 ),
@@ -478,7 +478,7 @@ operation(
         optional_arg("bool", "allow_ok", "true"),
         optional_arg("bool", "allow_posted", "true"),
         optional_arg("bool", "allow_retry", "true"),
-        optional_arg("bool", "force_zero_copy", "false"),
+        optional_arg("bool", "force_zcopy", "false"),
         return_val("status_t", "status"),
     ]
 ),
@@ -502,7 +502,7 @@ operation(
         optional_arg("bool", "allow_ok", "true"),
         optional_arg("bool", "allow_posted", "true"),
         optional_arg("bool", "allow_retry", "true"),
-        optional_arg("bool", "force_zero_copy", "false"),
+        optional_arg("bool", "force_zcopy", "false"),
         return_val("status_t", "status"),
     ]
 ),
@@ -525,7 +525,7 @@ operation(
         optional_arg("bool", "allow_ok", "true"),
         optional_arg("bool", "allow_posted", "true"),
         optional_arg("bool", "allow_retry", "true"),
-        optional_arg("bool", "force_zero_copy", "false"),
+        optional_arg("bool", "force_zcopy", "false"),
         return_val("status_t", "status"),
     ]
 ),
@@ -551,7 +551,7 @@ operation(
         optional_arg("bool", "allow_ok", "true"),
         optional_arg("bool", "allow_posted", "true"),
         optional_arg("bool", "allow_retry", "true"),
-        optional_arg("bool", "force_zero_copy", "false"),
+        optional_arg("bool", "force_zcopy", "false"),
         return_val("status_t", "status"),
     ]
 ),
@@ -576,7 +576,7 @@ operation(
         optional_arg("bool", "allow_ok", "true"),
         optional_arg("bool", "allow_posted", "true"),
         optional_arg("bool", "allow_retry", "true"),
-        optional_arg("bool", "force_zero_copy", "false"),
+        optional_arg("bool", "force_zcopy", "false"),
         return_val("status_t", "status"),
     ]
 ),
@@ -626,24 +626,11 @@ operation(
     comment="Get the default packet pool."
 ),
 operation(
-    "get_max_inject_size", 
-    [
-        optional_runtime_args,
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint"),
-        optional_arg("tag_t", "tag", "0"),
-        optional_arg("rcomp_t", "remote_comp", "0"),
-        return_val("size_t", "size")
-    ],
-    comment="Get the maximum message size for the inject protocol."
-),
-operation(
     "get_max_bcopy_size", 
     [
         optional_runtime_args,
         optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint"),
         optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
-        optional_arg("tag_t", "tag", "0"),
-        optional_arg("rcomp_t", "remote_comp", "0"),
         return_val("size_t", "size")
     ],
     comment="Get the maximum message size for the eager protocol."

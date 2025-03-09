@@ -15,7 +15,7 @@ status_t post_comm_x::call_impl(
     out_comp_type_t out_comp_type, mr_t mr, uintptr_t remote_buffer,
     rkey_t rkey, tag_t tag, rcomp_t remote_comp, void* ctx, buffers_t buffers,
     rbuffers_t rbuffers, matching_policy_t matching_policy, bool allow_ok,
-    bool allow_posted, bool allow_retry, bool force_zero_copy) const
+    bool allow_posted, bool allow_retry, bool force_zcopy) const
 {
   // forward delcarations
   packet_t* packet = nullptr;
@@ -27,19 +27,30 @@ status_t post_comm_x::call_impl(
   device_t device = endpoint.p_impl->device;
   net_context_t net_context = device.p_impl->net_context;
 
-  // basic checks
+  // basic conditions
   bool local_buffer_only = !remote_buffer && rbuffers.empty();
-  size_t max_inject_size = get_max_inject_size_x()
-                               .runtime(runtime)
-                               .endpoint(endpoint)
-                               .tag(tag)
-                               .remote_comp(remote_comp)();
-  size_t max_bcopy_size = get_max_bcopy_size_x()
-                              .runtime(runtime)
-                              .endpoint(endpoint)
-                              .packet_pool(packet_pool)
-                              .tag(tag)
-                              .remote_comp(remote_comp)();
+  bool local_comp_only = remote_comp == 0;
+  bool is_single_buffer = buffers.empty();
+  bool is_recv = direction == direction_t::IN && local_buffer_only;
+  size_t max_inject_size = net_context.get_attr_max_inject_size();
+  size_t max_bcopy_size =
+      get_max_bcopy_size_x().runtime(runtime).endpoint(endpoint).packet_pool(
+          packet_pool)();
+
+  // basic checks
+  // buffer and buffers should not be used at the same time
+  if (!buffers.empty()) {
+    LCI_Assert(local_buffer == nullptr, "The local buffer should be nullptr\n");
+    LCI_Assert(size == 0, "The size should be 0\n");
+    LCI_Assert(rbuffers.empty() || buffers.size() == rbuffers.size(),
+               "The number of buffers and rbuffers should be the same\n");
+  }
+  LCI_Assert(
+      !(direction == direction_t::IN && local_buffer_only && !local_comp_only),
+      "invalid communication primitive\n");
+  LCI_Assert(
+      !(direction == direction_t::IN && !local_buffer_only && !local_comp_only),
+      "get with signal has not been implemented yet\n");
 
   // process COMP_BLOCK
   bool free_local_comp = false;
@@ -55,11 +66,15 @@ status_t post_comm_x::call_impl(
   }
 
   // get the matching engine rhandler
-  if (remote_comp == 0 && !matching_engine.is_empty() && local_buffer_only) {
+  // remote handler can be the user-specified remote completion handler or the
+  // matching engine's remote handler
+  rcomp_t rhandler = remote_comp;
+  if (!rhandler && !matching_engine.is_empty() && local_buffer_only) {
     // this is send-recv (no remote_comp, no remote_buffer)
-    remote_comp = matching_engine.get_impl()->get_rhandler(matching_policy);
+    rhandler = matching_engine.get_impl()->get_rhandler(matching_policy);
   }
 
+  // set up some trivial fields for the status and internal context
   status_t status;
   status.rank = rank;
   status.tag = tag;
@@ -69,65 +84,82 @@ status_t post_comm_x::call_impl(
   internal_ctx->rank = rank;
   internal_ctx->tag = tag;
   internal_ctx->user_context = ctx;
-
-  // setup protocol (part 1)
-  protocol_t protocol = protocol_t::bcopy;
-  if (!buffers.empty() || force_zero_copy || size > max_bcopy_size) {
-    protocol = protocol_t::zcopy;
-  }
-  bool is_rendezvous = protocol == protocol_t::zcopy && local_buffer_only;
-
-  // set immediate data
-  bool piggyback_tag_rcomp_in_packet = false;
-  size_t packet_size_to_send = size;
-  uint32_t imm_data = 0;
-  if (direction == direction_t::OUT) {
-    static_assert(IMM_DATA_MSG_EAGER == 0);
-    if (!is_rendezvous && tag <= runtime.get_attr_max_imm_tag() &&
-        remote_comp <= runtime.get_attr_max_imm_rcomp()) {
-      // is_fastpath (1) ; remote_comp (15) ; tag (16)
-      imm_data = set_bits32(imm_data, 1, 1, 31);  // is_fastpath
-      imm_data = set_bits32(imm_data, tag, runtime.get_attr_imm_nbits_tag(), 0);
-      imm_data = set_bits32(imm_data, remote_comp,
-                            runtime.get_attr_imm_nbits_rcomp(), 16);
-    } else {
-      // bit 29-30: imm_data_msg_type_t
-      if (is_rendezvous) {
-        imm_data = set_bits32(0, IMM_DATA_MSG_RTS, 2, 29);
-      } else {
-        packet_size_to_send += sizeof(tag) + sizeof(rcomp_t);
-        piggyback_tag_rcomp_in_packet = true;
-      }
-    }
-  }
-
-  // setup protocol (part 2)
-  if (size <= max_inject_size && protocol == protocol_t::bcopy && !piggyback_tag_rcomp_in_packet && direction == direction_t::OUT &&
-      out_comp_type == out_comp_type_t::buffer) {
-      protocol = protocol_t::inject;
-  }
-
-  /**********************************************************************************
-   * build the data descriptor
-   **********************************************************************************/
   data_t& data = internal_ctx->data;
   if (buffers.empty()) {
     data = data_t(buffer_t(local_buffer, size, mr));
-  } else if (!buffers.empty()) {
-    LCI_Assert(local_buffer == nullptr, "The local buffer should be nullptr\n");
-    LCI_Assert(size == 0, "The size should be 0\n");
-    LCI_Assert(rbuffers.empty() || buffers.size() == rbuffers.size(),
-               "The number of buffers and rbuffers should be the same\n");
+  } else {
     data = data_t(buffers);
   }
   status.data = data;
 
+  // setup protocol (part 1): whether to use the zero-copy protocol
+  protocol_t protocol = protocol_t::bcopy;
+  if (!is_single_buffer || force_zcopy || size > max_bcopy_size) {
+    // We use the zero-copy protocol in one of the three cases:
+    // 1. The user provides multiple buffers.
+    // 2. The user forces to use the zero-copy protocol.
+    // 3. The size of the data is larger than the maximum buffer-copy size.
+    protocol = protocol_t::zcopy;
+  }
+  // zero-copy send/am will use the rendezvous ready-to-send message
+  bool is_out_rdv = protocol == protocol_t::zcopy && local_buffer_only &&
+                    direction == direction_t::OUT;
+
+  // set immediate data
+  // immediate data is used for send/am/put with signal
+  bool piggyback_tag_rcomp_in_packet = false;
+  size_t packet_size_to_send = size;
+  uint32_t imm_data = 0;
+  if (direction == direction_t::OUT && rhandler) {
+    if (!is_out_rdv) {
+      static_assert(IMM_DATA_MSG_EAGER == 0);
+      // Put with signal or eager send/am
+      if (tag <= runtime.get_attr_max_imm_tag() &&
+          rhandler <= runtime.get_attr_max_imm_rcomp()) {
+        // is_fastpath (1) ; rhandler (15) ; tag (16)
+        imm_data = set_bits32(imm_data, 1, 1, 31);  // is_fastpath
+        imm_data =
+            set_bits32(imm_data, tag, runtime.get_attr_imm_nbits_tag(), 0);
+        imm_data = set_bits32(imm_data, rhandler,
+                              runtime.get_attr_imm_nbits_rcomp(), 16);
+      } else if (local_buffer_only) {
+        // Eager send/am
+        packet_size_to_send += sizeof(tag) + sizeof(rcomp_t);
+        piggyback_tag_rcomp_in_packet = true;
+      } else {
+        LCI_DBG_Assert(remote_comp == rhandler,
+                       "Internal error. Report to maintainers\n");
+        LCI_Assert(false,
+                   "The tag (%lu) or remote completion (%lu) is too large for "
+                   "put with signal\n",
+                   tag, rhandler);
+      }
+    } else {
+      // Rendezvous send/am
+      // bit 29-30: imm_data_msg_type_t
+      imm_data = set_bits32(0, IMM_DATA_MSG_RTS, 2, 29);
+    }
+  }
+
+  // setup protocol (part 2): whether to use the inject protocol
+  if (size <= max_inject_size && protocol != protocol_t::zcopy &&
+      !piggyback_tag_rcomp_in_packet && direction == direction_t::OUT &&
+      out_comp_type == out_comp_type_t::buffer) {
+    // We use the inject protocol only if the five conditions are met:
+    // 1. The size of the data is smaller than the maximum inject size.
+    // 2. The protocol is not zero-copy.
+    // 3. The tag and remote completion are not piggybacked in the packet.
+    // 4. The direction is OUT.
+    // 5. The completion type is buffer.
+    protocol = protocol_t::inject;
+  }
+
   /**********************************************************************************
    * Get a packet
    **********************************************************************************/
-  // all buffer-copy ops but recv need a packet
-  if (protocol == protocol_t::bcopy &&
-      !(direction == direction_t::IN && local_buffer_only)) {
+  // all buffer-copy pritimitves but recv need a packet
+  // get a packet
+  if (protocol == protocol_t::bcopy && !is_recv) {
     // get a packet
     if (packet_pool.p_impl->is_packet(local_buffer)) {
       // users provide a packet
@@ -140,45 +172,72 @@ status_t post_comm_x::call_impl(
         error = errorcode_t::retry_nopacket;
         goto exit;
       }
-      if (direction == direction_t::OUT) {
-        memcpy(packet->get_payload_address(), local_buffer, size);
-        if (packet_size_to_send > runtime.get_attr_packet_return_threshold()) {
-          // A lot of data has been written into this packet, which means a
-          // large chunk of cache lines have been touched. We should return this
-          // packet to the current core's packet pool.
-          // TODO: I am skeptical about how much performance gain we can get
-          // from this. We should do some experiments to verify this.
-          packet->local_context.local_id =
-              packet_pool.get_impl()->get_local_id();
-        }
-      }
     }
     internal_ctx->packet_to_free = packet;
+  }
+  // build the packet
+  if (packet && direction == direction_t::OUT) {
+    memcpy(packet->get_payload_address(), local_buffer, size);
+    if (piggyback_tag_rcomp_in_packet) {
+      LCI_DBG_Assert(
+          packet_size_to_send == size + sizeof(tag) + sizeof(rhandler), "");
+      LCI_DBG_Assert(packet_size_to_send <= max_bcopy_size, "");
+      memcpy((char*)packet->get_payload_address() + size, &tag, sizeof(tag));
+      memcpy((char*)packet->get_payload_address() + size + sizeof(tag),
+             &rhandler, sizeof(rhandler));
+    }
+    if (packet_size_to_send > runtime.get_attr_packet_return_threshold()) {
+      // A lot of data has been written into this packet, which means a
+      // large chunk of cache lines have been touched. We should return this
+      // packet to the current core's packet pool.
+      // TODO: I am skeptical about how much performance gain we can get
+      // from this. We should do some experiments to verify this.
+      packet->local_context.local_id = packet_pool.get_impl()->get_local_id();
+    }
+  }
+
+  // We need to directly return retry if
+  // 1. allow_retry is true
+  // 2. the endpoint's backlog queue is not empty
+  // 3. we are not doing a recv
+  if (!endpoint.get_impl()->is_backlog_queue_empty() && allow_retry &&
+      !is_recv) {
+    LCI_PCOUNTER_ADD(retry_due_to_backlog_queue, 1);
+    error = errorcode_t::retry_backlog;
+    goto exit;
+  }
+
+  // We need to set the local completion object in one of the following cases:
+  // 1. The protocol is zero-copy.
+  // 2. The completion type is network.
+  // 3. The direction is IN (we are doing a recv/get).
+  // In other words, eager send/am/put will immediately complete.
+  if (protocol == protocol_t::zcopy ||
+      out_comp_type == out_comp_type_t::network ||
+      direction == direction_t::IN) {
+    internal_ctx->comp = local_comp;
+  }
+
+  // We need to have valid memeory regions if all of the following conditions
+  // are met:
+  // 1. The protocol is zero-copy.
+  // 2. We are doing a put/get.
+  // Note: mr for zero-copy send/recv will be handled in the rendezvous
+  // protocol.
+  if (protocol == protocol_t::zcopy && !local_buffer_only && mr.is_empty()) {
+    internal_ctx->mr_on_the_fly = register_data(internal_ctx->data, device);
   }
 
   if (direction == direction_t::OUT) {
     /**********************************************************************************
      * direction out
      **********************************************************************************/
-    // wait for the backlog queue to be empty
-    if (!endpoint.get_impl()->is_backlog_queue_empty() && allow_retry) {
-      LCI_PCOUNTER_ADD(retry_due_to_backlog_queue, 1);
-      error = errorcode_t::retry_backlog;
-      goto exit;
-    }
-
-    // set local completion object
-    if (protocol == protocol_t::zcopy ||
-        out_comp_type == out_comp_type_t::network) {
-      internal_ctx->comp = local_comp;
-    }
-
     if (protocol == protocol_t::inject) {
       // inject protocol (return retry or ok)
       if (!remote_buffer) {
         error = endpoint.p_impl->post_sends(rank, local_buffer, size, imm_data,
                                             allow_retry);
-      } else if (!remote_comp) {
+      } else if (!rhandler) {
         // rdma write
         error = endpoint.p_impl->post_puts(
             rank, local_buffer, size,
@@ -194,17 +253,11 @@ status_t post_comm_x::call_impl(
       // buffer-copy protocol
       if (!remote_buffer) {
         // buffer-copy send
-        if (piggyback_tag_rcomp_in_packet) {
-          LCI_DBG_Assert(packet_size_to_send == size + sizeof(tag) + sizeof(remote_comp), "");
-          LCI_DBG_Assert(packet_size_to_send <= max_bcopy_size, "");
-          memcpy((char*)packet->get_payload_address() + size, &tag, sizeof(tag));
-          memcpy((char*)packet->get_payload_address() + size + sizeof(tag), &remote_comp,
-                 sizeof(remote_comp));
-        }
-        error = endpoint.p_impl->post_send(rank, packet->get_payload_address(),
-                                           packet_size_to_send, packet->get_mr(device),
-                                           imm_data, internal_ctx, allow_retry);
-      } else if (!remote_comp) {
+        // note: we need to use packet_size_to_send instead of size
+        error = endpoint.p_impl->post_send(
+            rank, packet->get_payload_address(), packet_size_to_send,
+            packet->get_mr(device), imm_data, internal_ctx, allow_retry);
+      } else if (!rhandler) {
         // buffer-copy put
         error = endpoint.p_impl->post_put(
             rank, packet->get_payload_address(), size, packet->get_mr(device),
@@ -220,16 +273,12 @@ status_t post_comm_x::call_impl(
       if (error.is_posted() && out_comp_type == out_comp_type_t::buffer) {
         error = errorcode_t::ok;
       }
-      // end of eager protocol
+      // end of bcopy protocol
     } else /* protocol == protocol_t::zcopy */ {
       if (!local_buffer_only) {
         // zero-copy put
-        if (mr.is_empty()) {
-          internal_ctx->mr_on_the_fly =
-              register_data(internal_ctx->data, device);
-        }
         if (data.is_buffer()) {
-          if (!remote_comp) {
+          if (!rhandler) {
             error = endpoint.p_impl->post_put(
                 rank, data.buffer.base, data.buffer.size, data.buffer.mr,
                 reinterpret_cast<uintptr_t>(remote_buffer), 0, rkey,
@@ -247,7 +296,7 @@ status_t post_comm_x::call_impl(
           extended_ctx->signal_count = data.get_buffers_count();
           for (size_t i = 0; i < data.buffers.count; i++) {
             if (i > 0) allow_retry = false;
-            if (i == data.buffers.count - 1 && remote_comp) {
+            if (i == data.buffers.count - 1 && rhandler) {
               // last buffer, use RDMA write with immediate data
               error = endpoint.p_impl->post_putImm(
                   rank, data.buffers.buffers[i].base,
@@ -291,7 +340,7 @@ status_t post_comm_x::call_impl(
         p_rts->send_ctx = (uintptr_t)internal_ctx;
         p_rts->rdv_type = rdv_type_t::single;
         p_rts->tag = tag;
-        p_rts->rcomp = remote_comp;
+        p_rts->rcomp = rhandler;
         if (local_buffer) {
           p_rts->load_buffer(size);
         } else {
@@ -318,10 +367,9 @@ status_t post_comm_x::call_impl(
     /**********************************************************************************
      * direction in
      **********************************************************************************/
-    status.error = errorcode_t::posted;
-    internal_ctx->comp = local_comp;
     if (local_buffer_only) {
       // recv
+      error = errorcode_t::posted;
       LCI_DBG_Assert(internal_ctx->packet_to_free == nullptr,
                      "recv does not need a packet!\n");
       // get the matching policy
@@ -344,7 +392,7 @@ status_t post_comm_x::call_impl(
       }
     } else /* !local_buffer_only */ {
       // get
-      LCI_Assert(remote_comp == 0,
+      LCI_Assert(rhandler == 0,
                  "get with signal has not been implemented. We are actively "
                  "searching for use case. Open a github issue.\n");
       if (protocol == protocol_t::bcopy) {
@@ -355,10 +403,6 @@ status_t post_comm_x::call_impl(
             allow_retry);
       } else {
         // zero-copy
-        if (mr.is_empty()) {
-          internal_ctx->mr_on_the_fly =
-              register_data(internal_ctx->data, device);
-        }
         if (data.is_buffer()) {
           error = endpoint.p_impl->post_get(
               rank, data.buffer.base, data.buffer.size, data.buffer.mr,
@@ -430,7 +474,7 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
                               out_comp_type_t out_comp_type, mr_t mr, tag_t tag,
                               void* ctx, buffers_t buffers, bool allow_ok,
                               bool allow_posted, bool allow_retry,
-                              bool force_zero_copy) const
+                              bool force_zcopy) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .runtime(runtime)
@@ -446,18 +490,15 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
       .allow_ok(allow_ok)
       .allow_posted(allow_posted)
       .allow_retry(allow_retry)
-      .force_zero_copy(force_zero_copy)();
+      .force_zcopy(force_zcopy)();
 }
 
-status_t post_send_x::call_impl(int rank, void* local_buffer, size_t size,
-                                tag_t tag, comp_t local_comp, runtime_t runtime,
-                                packet_pool_t packet_pool, endpoint_t endpoint,
-                                matching_engine_t matching_engine,
-                                out_comp_type_t out_comp_type, mr_t mr,
-                                void* ctx, buffers_t buffers,
-                                matching_policy_t matching_policy,
-                                bool allow_ok, bool allow_posted,
-                                bool allow_retry, bool force_zero_copy) const
+status_t post_send_x::call_impl(
+    int rank, void* local_buffer, size_t size, tag_t tag, comp_t local_comp,
+    runtime_t runtime, packet_pool_t packet_pool, endpoint_t endpoint,
+    matching_engine_t matching_engine, out_comp_type_t out_comp_type, mr_t mr,
+    void* ctx, buffers_t buffers, matching_policy_t matching_policy,
+    bool allow_ok, bool allow_posted, bool allow_retry, bool force_zcopy) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .runtime(runtime)
@@ -473,7 +514,7 @@ status_t post_send_x::call_impl(int rank, void* local_buffer, size_t size,
       .allow_ok(allow_ok)
       .allow_posted(allow_posted)
       .allow_retry(allow_retry)
-      .force_zero_copy(force_zero_copy)();
+      .force_zcopy(force_zcopy)();
 }
 
 status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
@@ -483,7 +524,7 @@ status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
                                 void* ctx, buffers_t buffers,
                                 matching_policy_t matching_policy,
                                 bool allow_ok, bool allow_posted,
-                                bool allow_retry, bool force_zero_copy) const
+                                bool allow_retry, bool force_zcopy) const
 {
   return post_comm_x(direction_t::IN, rank, local_buffer, size, local_comp)
       .runtime(runtime)
@@ -498,7 +539,7 @@ status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
       .allow_ok(allow_ok)
       .allow_posted(allow_posted)
       .allow_retry(allow_retry)
-      .force_zero_copy(force_zero_copy)();
+      .force_zcopy(force_zcopy)();
 }
 
 status_t post_put_x::call_impl(int rank, void* local_buffer, size_t size,
@@ -509,7 +550,7 @@ status_t post_put_x::call_impl(int rank, void* local_buffer, size_t size,
                                tag_t tag, rcomp_t remote_comp, void* ctx,
                                buffers_t buffers, rbuffers_t rbuffers,
                                bool allow_ok, bool allow_posted,
-                               bool allow_retry, bool force_zero_copy) const
+                               bool allow_retry, bool force_zcopy) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .remote_buffer(remote_buffer)
@@ -528,18 +569,15 @@ status_t post_put_x::call_impl(int rank, void* local_buffer, size_t size,
       .allow_ok(allow_ok)
       .allow_posted(allow_posted)
       .allow_retry(allow_retry)
-      .force_zero_copy(force_zero_copy)();
+      .force_zcopy(force_zcopy)();
 }
 
-status_t post_get_x::call_impl(int rank, void* local_buffer, size_t size,
-                               comp_t local_comp, uintptr_t remote_buffer,
-                               rkey_t rkey, runtime_t runtime,
-                               packet_pool_t packet_pool, endpoint_t endpoint,
-                               mr_t mr, tag_t tag, rcomp_t remote_comp,
-                               void* ctx, buffers_t buffers,
-                               rbuffers_t rbuffers, bool allow_ok,
-                               bool allow_posted, bool allow_retry,
-                               bool force_zero_copy) const
+status_t post_get_x::call_impl(
+    int rank, void* local_buffer, size_t size, comp_t local_comp,
+    uintptr_t remote_buffer, rkey_t rkey, runtime_t runtime,
+    packet_pool_t packet_pool, endpoint_t endpoint, mr_t mr, tag_t tag,
+    rcomp_t remote_comp, void* ctx, buffers_t buffers, rbuffers_t rbuffers,
+    bool allow_ok, bool allow_posted, bool allow_retry, bool force_zcopy) const
 {
   return post_comm_x(direction_t::IN, rank, local_buffer, size, local_comp)
       .remote_buffer(remote_buffer)
@@ -557,22 +595,15 @@ status_t post_get_x::call_impl(int rank, void* local_buffer, size_t size,
       .allow_ok(allow_ok)
       .allow_posted(allow_posted)
       .allow_retry(allow_retry)
-      .force_zero_copy(force_zero_copy)();
-}
-
-size_t get_max_inject_size_x::call_impl(runtime_t runtime, endpoint_t endpoint,
-                                        tag_t tag, rcomp_t remote_comp) const
-{
-  size_t net_max_inject_size =
-      endpoint.p_impl->device.p_impl->net_context.get_attr_max_inject_size();
-  return net_max_inject_size;
+      .force_zcopy(force_zcopy)();
 }
 
 size_t get_max_bcopy_size_x::call_impl(runtime_t runtime, endpoint_t endpoint,
-                                       packet_pool_t packet_pool, tag_t tag,
-                                       rcomp_t remote_comp) const
+                                       packet_pool_t packet_pool) const
 {
-  return packet_pool.p_impl->get_payload_size();
+  // TODO: we can refine the maximum buffer-copy size based on more information
+  return packet_pool.p_impl->get_payload_size() - sizeof(tag_t) -
+         sizeof(rcomp_t);
 }
 
 }  // namespace lci

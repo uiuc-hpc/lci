@@ -135,7 +135,7 @@ TEST(COMM_AM, am_zcopy_st)
     lci::status_t status;
     do {
       status = lci::post_am_x(rank, &data, sizeof(data), lcq, rcomp)
-                   .force_zero_copy(true)();
+                   .force_zcopy(true)();
       lci::progress();
     } while (status.error.is_retry());
     if (status.error.is_posted()) {
@@ -170,7 +170,7 @@ void test_am_zcopy_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
     do {
       status = lci::post_am_x(rank, p_data, sizeof(uint64_t), lcq, rcomp)
                    .tag(tag)
-                   .force_zero_copy(true)();
+                   .force_zcopy(true)();
       lci::progress();
     } while (status.error.is_retry());
     // poll cqs
