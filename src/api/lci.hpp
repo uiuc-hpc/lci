@@ -342,14 +342,14 @@ struct data_t {
     // We still keep the ownership of the data
     if (is_buffer()) {
       if (buffer.size != sizeof(T)) {
-        throw std::logic_error("Buffer size does not match scalar size");
+        throw std::runtime_error("Buffer size does not match scalar size");
       }
       return *reinterpret_cast<const T*>(buffer.base);
     } else if (is_scalar()) {
       static_assert(sizeof(T) <= 23, "Scalar size is too large");
       return *reinterpret_cast<const T*>(scalar.data);
     } else {
-      throw std::logic_error("Cannot convert to a scalar");
+      throw std::runtime_error("Cannot convert to a scalar");
     }
   }
   buffer_t get_buffer(get_semantic_t semantic = get_semantic_t::move)
@@ -373,7 +373,7 @@ struct data_t {
         ret = buffer_t(buffer.base, buffer.size, buffer.mr);
       }
     } else {
-      throw std::logic_error("Cannot convert to a buffer");
+      throw std::runtime_error("Cannot convert to a buffer");
     }
     if (semantic == get_semantic_t::move) {
       own_data = false;
@@ -384,14 +384,14 @@ struct data_t {
   size_t get_buffers_count() const
   {
     if (!is_buffers()) {
-      throw std::logic_error("Not a buffers");
+      throw std::runtime_error("Not a buffers");
     }
     return buffers.count;
   }
   buffers_t get_buffers(get_semantic_t semantic = get_semantic_t::move)
   {
     if (!is_buffers()) {
-      throw std::logic_error("Not buffers");
+      throw std::runtime_error("Not buffers");
     }
     if (semantic == get_semantic_t::move) {
       own_data = false;

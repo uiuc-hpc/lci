@@ -2,6 +2,7 @@
 #include <vector>
 #include <stdarg.h>
 #include <unistd.h>
+#include <stdexcept>
 #include "lcti.hpp"
 
 namespace lct
@@ -69,8 +70,7 @@ struct ctx_t {
 
     vsnprintf(buf + size, sizeof(buf) - size, format, vargs);
 
-    fprintf(stderr, "%s", buf);
-    abort();
+    throw std::runtime_error(buf);
   }
 
   void do_log(int log_level, const char* log_tag, const char* file,
