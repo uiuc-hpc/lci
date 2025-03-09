@@ -1,3 +1,6 @@
+# Copyright (c) 2025 The LCI Project Authors
+# SPDX-License-Identifier: MIT
+
 # Download and unpack googletest at configure time
 configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
 execute_process(

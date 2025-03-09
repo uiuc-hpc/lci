@@ -1,3 +1,6 @@
+// Copyright (c) 2025 The LCI Project Authors
+// SPDX-License-Identifier: MIT
+
 namespace test_cq
 {
 void my_cq_push(lci::comp_t comp, uint64_t i)

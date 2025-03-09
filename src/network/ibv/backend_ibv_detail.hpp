@@ -1,3 +1,6 @@
+// Copyright (c) 2025 The LCI Project Authors
+// SPDX-License-Identifier: MIT
+
 #ifndef LCISI_IBV_DETAIL_H_
 #define LCISI_IBV_DETAIL_H_
 #include "infiniband/verbs.h"

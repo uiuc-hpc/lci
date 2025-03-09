@@ -1,3 +1,6 @@
+# Copyright (c) 2025 The LCI Project Authors
+# SPDX-License-Identifier: MIT
+
 target_include_directories(LCI PRIVATE .)
 
 add_subdirectory(binding)

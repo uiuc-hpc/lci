@@ -1,3 +1,6 @@
+// Copyright (c) 2025 The LCI Project Authors
+// SPDX-License-Identifier: MIT
+
 namespace util
 {
 void write_buffer(void* buffer, size_t size, const char a)

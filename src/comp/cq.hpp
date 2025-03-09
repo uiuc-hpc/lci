@@ -1,3 +1,6 @@
+// Copyright (c) 2025 The LCI Project Authors
+// SPDX-License-Identifier: MIT
+
 #ifndef LCI_DATA_STRUCTURE_CQ_CQ_HPP
 #define LCI_DATA_STRUCTURE_CQ_CQ_HPP
 

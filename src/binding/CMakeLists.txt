@@ -1,3 +1,6 @@
+# Copyright (c) 2025 The LCI Project Authors
+# SPDX-License-Identifier: MIT
+
 # Execute generate_binding.py
 find_package(Python COMPONENTS Interpreter)
 if(NOT Python_EXECUTABLE)

@@ -1,3 +1,6 @@
+# Copyright (c) 2025 The LCI Project Authors
+# SPDX-License-Identifier: MIT
+
 def get_enum_attr_type(name):
     return f"attr_{name}_t"
 

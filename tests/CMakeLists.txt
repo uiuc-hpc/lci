@@ -1,3 +1,6 @@
+# Copyright (c) 2025 The LCI Project Authors
+# SPDX-License-Identifier: MIT
+
 find_package(OpenMP REQUIRED)
 
 option(LCI_BUILD_TESTS "Build tests by default" ON)
@@ -7,5 +10,3 @@ endif()
 
 include_directories(./)
 add_subdirectory(unit)
-# add_subdirectory(gtests) add_subdirectory(loopback) add_subdirectory(pingpong)
-# add_subdirectory(lcit)

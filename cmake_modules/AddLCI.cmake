@@ -1,3 +1,6 @@
+# Copyright (c) 2025 The LCI Project Authors
+# SPDX-License-Identifier: MIT
+
 function(add_lci_executable name)
   add_executable(${name} ${ARGN})
   target_compile_definitions(${name} PRIVATE _GNU_SOURCE)

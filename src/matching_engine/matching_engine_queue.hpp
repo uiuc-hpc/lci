@@ -1,3 +1,6 @@
+// Copyright (c) 2025 The LCI Project Authors
+// SPDX-License-Identifier: MIT
+
 #ifndef LCI_MATCHING_ENGINE_QUEUE_HPP
 #define LCI_MATCHING_ENGINE_QUEUE_HPP
 

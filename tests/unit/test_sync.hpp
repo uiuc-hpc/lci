@@ -1,3 +1,6 @@
+// Copyright (c) 2025 The LCI Project Authors
+// SPDX-License-Identifier: MIT
+
 namespace test_sync
 {
 void my_sync_signal(lci::comp_t comp, uint64_t i)

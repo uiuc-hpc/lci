@@ -1,3 +1,6 @@
+# Copyright (c) 2025 The LCI Project Authors
+# SPDX-License-Identifier: MIT
+
 import sys, os
 sys.path.append(os.path.dirname(__file__))
 from tools import *
