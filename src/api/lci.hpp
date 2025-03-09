@@ -293,7 +293,7 @@ struct data_t {
   }
   friend void swap(data_t& first, data_t& second)
   {
-    char *buf = (char*) malloc(sizeof(data_t));
+    char* buf = (char*)malloc(sizeof(data_t));
     memcpy(buf, &first, sizeof(data_t));
     memcpy(&first, &second, sizeof(data_t));
     memcpy(&second, buf, sizeof(data_t));
