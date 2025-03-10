@@ -22,6 +22,30 @@
  */
 
 /**
+ * @defgroup LCI_SETUP Setup and Teardown
+ * @ingroup LCI_API
+ * @brief This section describes setup and teardown API.
+ */
+
+/**
+ * @defgroup LCI_RESOURCE Resource Management
+ * @ingroup LCI_API
+ * @brief This section describes the LCI API for resource management.
+ */
+
+/**
+ * @defgroup LCI_MEMORY Memory Registration
+ * @ingroup LCI_API
+ * @brief This section describes the LCI API for memory registration.
+ */
+
+/**
+ * @defgroup LCI_NET Network-Layer Communication
+ * @ingroup LCI_API
+ * @brief This section describes the LCI API for network-layer communication.
+ */
+
+/**
  * @defgroup LCI_COMM Communication Posting
  * @ingroup LCI_API
  * @brief This section describes the LCI API for posting communication.
@@ -150,11 +174,15 @@ struct error_t {
   }
 };
 
-enum class option_backend_t {
-  none,
-  ibv,
-  ofi,
-  ucx,
+/**
+ * @ingroup LCI_RUNTIME
+ * @brief The enum class for the `backend` attribute of the runtime resource.
+ */
+enum class attr_backend_t {
+  none, /**< no backend is specified */
+  ibv,  /**< the libibverbs  backend */
+  ofi,  /**< the libfabric backend */
+  ucx,  /**< the UCX backend */
 };
 
 enum option_net_lock_mode_t {

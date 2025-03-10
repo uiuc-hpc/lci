@@ -7,19 +7,23 @@ import glob
 import importlib
 
 def generate_doc(item):
-  in_group = "LCI_OTHER"
   doc = {}
   if "doc" in item:
     doc = item["doc"]
+  in_group = doc.get("in_group", "LCI_OTHER")
+  params = []
+  returns = []
 
   if item["category"] == "operation":
+    # For operation 
+    group_id = f"LCI_{item['name'].upper()}"
+    group_name = f"{item['name']}"
     brief = doc.get("brief", f"LCI operation {item['name']}")
     details = doc.get("details", "")
 
     arguments = [arg for arg in item["args"] if arg["category"] == "argument"]
     return_vals = [arg for arg in item["args"] if arg["category"] == "return_val"]
 
-    params = []
     for arg in arguments:
       inout_trait = ""
       if "in" in arg["trait"]:
@@ -34,25 +38,44 @@ def generate_doc(item):
         pos_opt_trait = "positional"
       elif "optional" in arg["trait"]:
         pos_opt_trait = "optional"
-      params.append(f" * @param{inout_trait} {arg['name']} of type {arg['type']}; {pos_opt_trait} argument; {arg['comment']}")
-    params = "\n".join(params)
+      params.append(f" * @param{inout_trait} {arg['name']} of type __{arg['type']}__; {pos_opt_trait} argument; {arg['comment']}")
 
-    returns = ""
     for return_val in return_vals:
-      returns += f" * @return {return_val['type']} {return_val['comment']}\n"
+      returns.append(f" * @return of type __{return_val['type']}__; {return_val['comment']}")
+  
+  elif item["category"] == "resource":  
+    # For resource
+    group_id = f"LCI_{item['name'].upper()}"
+    group_name = f"RESOURCE {item['name']}"
+    brief = doc.get("brief", f"LCI resource {item['name']}")
+    details = doc.get("details", "")
 
-    return f"""
+    for attr in item["attrs"]:
+      inout_trait = ""
+      if "in" in attr["trait"]:
+        inout_trait = "[in]"
+      elif "out" in attr["trait"]:
+        inout_trait = "[out]"
+      elif "inout" in attr["trait"]:
+        inout_trait = "[in,out]"
+      params.append(f" * @param{inout_trait} {attr['name']} of type __{attr['type']}__; {attr['comment']}")
+  params = "\n".join(params)
+  returns = "\n".join(returns)
+
+  return f"""
 /**
+ * @defgroup {group_id} {group_name}
  * @ingroup {in_group}
  * @brief {brief}
  * @details {details}
 {params}
- */"""
-  elif item["category"] == "resource":  
-    return f"""
-/**
- * @brief {item["name"]} resource
- */"""
+{returns}
+ */
+ 
+ /**
+  * @ingroup {group_id}
+  * @brief The actual implementation for {group_name}.
+  */"""
 
 def generate_forward_resource_decl(input):
   text = ""
@@ -87,6 +110,7 @@ def generate_global_attr_decl(input):
     if item["category"] == "resource":
       for attr in item["attrs"]:
         if "not_global" in attr["trait"]:
+          # user context is not global
           continue
         type_name = attr["type"]
         var_name = attr["name"]

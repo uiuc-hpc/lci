@@ -58,6 +58,8 @@ def attr_enum(name, enum_options, default_value=None, inout_trait="inout", comme
 
 def attr_to_arg(attr):
     assert "out" not in attr["trait"]
+    # replace inout with in
+    attr["trait"] = [x if x != "inout" else "in" for x in attr["trait"]]
     if "not_global" in attr["trait"]:
         default_value = attr["default_value"]
     else:
@@ -71,14 +73,14 @@ def attr_to_arg(attr):
         "comment": "argument for the corresponding attribute"
     }
 
-def resource(name, attrs, comment=""):
+def resource(name, attrs, comment="", doc={}):
     return {
         "category": "resource",
         "name": name,
         "attrs": attrs + [
             attr("void*", "user_context", comment="User context for the resource.", default_value="nullptr", extra_trait=["not_global"])
             ],
-        "comment": comment
+        "doc": doc
     }
 
 def operation(name, args, init_global=False, fina_global=False, comment="", doc={}):
@@ -101,9 +103,12 @@ def operation_alloc(resource, additiona_args=[], add_runtime_args=True, init_glo
         if "out" not in attr["trait"]:
             args.append(attr_to_arg(attr))
     args.append(return_val(f"{resource_name}_t", resource_name, comment="The allocated object."))
+    in_group = "LCI_OTHER"
+    if "in_group" in resource["doc"]:
+        in_group = resource["doc"]["in_group"]
     return operation(f"alloc_{resource_name}", args + additiona_args, 
                      init_global=init_global, fina_global=fina_global, 
-                     comment=f"Allocates a new {resource_name} object.")
+                     doc={"in_group": in_group, "brief": f"Allocate a new {resource_name} object."})
 
 def operation_free(resource, add_runtime_args=True, init_global=False, fina_global=False):
     resource_name = resource["name"]
@@ -111,8 +116,11 @@ def operation_free(resource, add_runtime_args=True, init_global=False, fina_glob
     if add_runtime_args:
         args.append(optional_runtime_args)
     args.append(positional_arg(f"{resource_name}_t*", resource_name, inout_trait="inout", comment="The object to free."))
+    in_group = "LCI_OTHER"
+    if "in_group" in resource["doc"]:
+        in_group = resource["doc"]["in_group"]
     return operation(f"free_{resource_name}", args, 
                      init_global=init_global, fina_global=fina_global, 
-                     comment=f"Frees a {resource_name} object.")
+                     doc={"in_group": in_group, "brief": f"Free a new {resource_name} object."})
 
 optional_runtime_args = optional_arg("runtime_t", "runtime", default_value="g_default_runtime", comment="The runtime object.")

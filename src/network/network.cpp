@@ -41,7 +41,7 @@ endpoint_impl_t::endpoint_impl_t(device_t device_, attr_t attr_)
  * **********************************************************************************/
 
 net_context_t alloc_net_context_x::call_impl(
-    runtime_t runtime, option_backend_t backend, std::string ofi_provider_name,
+    runtime_t runtime, attr_backend_t backend, std::string ofi_provider_name,
     int64_t max_msg_size, int64_t max_inject_size, int ibv_gid_idx,
     bool ibv_force_gid_auto_select, attr_ibv_odp_strategy_t ibv_odp_strategy,
     attr_ibv_td_strategy_t ibv_td_strategy,
@@ -63,23 +63,23 @@ net_context_t alloc_net_context_x::call_impl(
   attr.max_inject_size = max_inject_size;
 
   switch (attr.backend) {
-    case option_backend_t::none:
+    case attr_backend_t::none:
       break;
-    case option_backend_t::ibv:
+    case attr_backend_t::ibv:
 #ifdef LCI_BACKEND_ENABLE_IBV
       net_context.p_impl = new ibv_net_context_impl_t(runtime, attr);
 #else
       LCI_Assert(false, "IBV backend is not enabled");
 #endif
       break;
-    case option_backend_t::ofi:
+    case attr_backend_t::ofi:
 #ifdef LCI_BACKEND_ENABLE_OFI
       net_context.p_impl = new ofi_net_context_impl_t(runtime, attr);
 #else
       LCI_Assert(false, "OFI backend is not enabled");
 #endif
       break;
-    case option_backend_t::ucx:
+    case attr_backend_t::ucx:
 #ifdef LCI_BACKEND_ENABLE_UCX
       throw std::runtime_error("UCX backend is not implemented\n");
       // ret.p_impl = new ucx_net_context_impl_t(runtime, attr);

@@ -6,6 +6,7 @@
 
 namespace lci
 {
+bool g_is_active = false;
 int g_rank = -1, g_nranks = -1;
 runtime_t g_default_runtime;
 
@@ -34,11 +35,11 @@ void global_config_initialize()
     }
   }
   if (default_backend == "ofi" || default_backend == "OFI") {
-    g_default_attr.backend = option_backend_t::ofi;
+    g_default_attr.backend = attr_backend_t::ofi;
   } else if (default_backend == "ibv" || default_backend == "IBV") {
-    g_default_attr.backend = option_backend_t::ibv;
+    g_default_attr.backend = attr_backend_t::ibv;
   } else if (default_backend == "ucx" || default_backend == "UCX") {
-    g_default_attr.backend = option_backend_t::ucx;
+    g_default_attr.backend = attr_backend_t::ucx;
   } else {
     LCI_Assert(false, "Unknown backend: %s\n", default_backend.c_str());
   }
@@ -85,20 +86,26 @@ void global_initialize()
   // Initialize global configuration.
   global_config_initialize();
   pcounter_init();
+  g_is_active = true;
 }
 
 void global_finalize()
 {
   if (--global_ini_counter > 0) return;
 
+  g_is_active = false;
   pcounter_fina();
   LCT_pmi_finalize();
   log_finalize();
   LCT_fina();
+  g_rank = -1;
+  g_nranks = -1;
 }
 
 int get_rank_x::call_impl() const { return g_rank; }
 
 int get_nranks_x::call_impl() const { return g_nranks; }
+
+bool is_active_x::call_impl() const { return is_active; }
 
 }  // namespace lci

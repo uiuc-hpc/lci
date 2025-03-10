@@ -9,17 +9,19 @@ namespace lci
  * runtime: User wrappers
  *************************************************************/
 
-runtime_t alloc_runtime_x::call_impl(
-    bool use_reg_cache, bool use_control_channel, int packet_return_threshold,
-    int imm_nbits_tag, int imm_nbits_rcomp, bool alloc_default_device,
-    bool alloc_default_packet_pool, attr_rdv_protocol_t rdv_protocol,
-    void* user_context) const
+runtime_t alloc_runtime_x::call_impl(int packet_return_threshold,
+                                     int imm_nbits_tag, int imm_nbits_rcomp,
+                                     bool alloc_default_device,
+                                     bool alloc_default_packet_pool,
+                                     bool alloc_default_matching_engine,
+                                     attr_rdv_protocol_t rdv_protocol,
+                                     void* user_context) const
 {
   LCI_Assert(imm_nbits_tag + imm_nbits_rcomp <= 31,
              "imm_nbits_tag + imm_nbits_rcomp should be less than 31!\n");
   runtime_t::attr_t attr;
-  attr.use_reg_cache = use_reg_cache;
-  attr.use_control_channel = use_control_channel;
+  // attr.use_reg_cache = use_reg_cache;
+  // attr.use_control_channel = use_control_channel;
   attr.packet_return_threshold = packet_return_threshold;
   attr.imm_nbits_rcomp = imm_nbits_rcomp;
   attr.imm_nbits_tag = imm_nbits_tag;
@@ -27,6 +29,7 @@ runtime_t alloc_runtime_x::call_impl(
   attr.user_context = user_context;
   attr.alloc_default_device = alloc_default_device;
   attr.alloc_default_packet_pool = alloc_default_packet_pool;
+  attr.alloc_default_matching_engine = alloc_default_matching_engine;
   runtime_t runtime;
   runtime.p_impl = new runtime_impl_t(attr);
   runtime.p_impl->initialize();
@@ -39,10 +42,10 @@ void free_runtime_x::call_impl(runtime_t* runtime) const
   runtime->p_impl = nullptr;
 }
 
-void g_runtime_init_x::call_impl(bool use_reg_cache, bool use_control_channel,
-                                 int packet_return_threshold, int imm_nbits_tag,
+void g_runtime_init_x::call_impl(int packet_return_threshold, int imm_nbits_tag,
                                  int imm_nbits_rcomp, bool alloc_default_device,
                                  bool alloc_default_packet_pool,
+                                 bool alloc_default_matching_engine,
                                  attr_rdv_protocol_t rdv_protocol) const
 {
   LCI_Assert(g_default_runtime.p_impl == nullptr,
@@ -50,8 +53,8 @@ void g_runtime_init_x::call_impl(bool use_reg_cache, bool use_control_channel,
   LCI_Assert(imm_nbits_tag + imm_nbits_rcomp <= 31,
              "imm_nbits_tag + imm_nbits_rcomp should be less than 31!\n");
   runtime_t::attr_t attr;
-  attr.use_reg_cache = use_reg_cache;
-  attr.use_control_channel = use_control_channel;
+  // attr.use_reg_cache = use_reg_cache;
+  // attr.use_control_channel = use_control_channel;
   attr.packet_return_threshold = packet_return_threshold;
   attr.imm_nbits_rcomp = imm_nbits_rcomp;
   attr.imm_nbits_tag = imm_nbits_tag;
@@ -59,6 +62,7 @@ void g_runtime_init_x::call_impl(bool use_reg_cache, bool use_control_channel,
   attr.user_context = nullptr;
   attr.alloc_default_device = alloc_default_device;
   attr.alloc_default_packet_pool = alloc_default_packet_pool;
+  attr.alloc_default_matching_engine = alloc_default_matching_engine;
   g_default_runtime.p_impl = new runtime_impl_t(attr);
   g_default_runtime.p_impl->initialize();
 }
@@ -69,10 +73,7 @@ void g_runtime_fina_x::call_impl() const
   g_default_runtime.p_impl = nullptr;
 }
 
-runtime_t get_g_default_runtime_x::call_impl() const
-{
-  return g_default_runtime;
-}
+runtime_t get_g_runtime_x::call_impl() const { return g_default_runtime; }
 
 /*************************************************************
  * runtime implementation
@@ -84,20 +85,22 @@ runtime_impl_t::runtime_impl_t(attr_t attr_) : attr(attr_)
 
 void runtime_impl_t::initialize()
 {
-  attr.max_imm_tag = (1 << attr.imm_nbits_tag) - 1;
-  attr.max_imm_rcomp = (1 << attr.imm_nbits_rcomp) - 1;
+  attr.max_imm_tag = (1ULL << attr.imm_nbits_tag) - 1;
+  attr.max_imm_rcomp = (1ULL << attr.imm_nbits_rcomp) - 1;
+  attr.max_tag = std::numeric_limits<tag_t>::max();
+  attr.max_rcomp = std::numeric_limits<rcomp_t>::max();
   net_context = alloc_net_context_x().runtime(runtime)();
 
-  if (net_context.get_attr().backend == option_backend_t::ofi &&
+  if (net_context.get_attr().backend == attr_backend_t::ofi &&
       net_context.get_attr().ofi_provider_name == "cxi") {
     // special setting for libfabric/cxi
-    LCI_Assert(attr.use_reg_cache == false,
-               "The registration cache should be turned off "
-               "for libfabric cxi backend. Use `export LCI_USE_DREG=0`.\n");
-    LCI_Assert(attr.use_control_channel == 0,
-               "The progress-specific network endpoint "
-               "for libfabric cxi backend. Use `export "
-               "LCI_ENABLE_PRG_NET_ENDPOINT=0`.\n");
+    // LCI_Assert(attr.use_reg_cache == false,
+    //            "The registration cache should be turned off "
+    //            "for libfabric cxi backend. Use `export LCI_USE_DREG=0`.\n");
+    // LCI_Assert(attr.use_control_channel == 0,
+    //            "The progress-specific network endpoint "
+    //            "for libfabric cxi backend. Use `export "
+    //            "LCI_ENABLE_PRG_NET_ENDPOINT=0`.\n");
     if (attr.rdv_protocol != attr_rdv_protocol_t::write) {
       attr.rdv_protocol = attr_rdv_protocol_t::write;
       LCI_Warn(
@@ -112,7 +115,9 @@ void runtime_impl_t::initialize()
     device = alloc_device_x().runtime(runtime)();
     endpoint = alloc_endpoint_x().runtime(runtime)();
   }
-  matching_engine = alloc_matching_engine_x().runtime(runtime)();
+  if (attr.alloc_default_matching_engine) {
+    matching_engine = alloc_matching_engine_x().runtime(runtime)();
+  }
 }
 
 runtime_impl_t::~runtime_impl_t()
