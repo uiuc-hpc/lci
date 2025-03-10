@@ -34,14 +34,14 @@
 #include "matching_engine/matching_engine.hpp"
 #include "core/data.hpp"
 #include "rhandler_registry/rhandler_registry.hpp"
-#include "core/global.hpp"
+#include "global/global.hpp"
 #include "core/protocol.hpp"
 #include "comp/sync.hpp"
 #include "comp/cq.hpp"
 #include "comp/handler.hpp"
 #include "packet_pool/packet.hpp"
 #include "packet_pool/packet_pool.hpp"
-#include "core/runtime.hpp"
+#include "runtime/runtime.hpp"
 #include "core/rendezvous.hpp"
 
 // inline implementation

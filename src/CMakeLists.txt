@@ -15,14 +15,12 @@ target_sources_relative(
   network/network.cpp
   matching_engine/matching_engine.cpp
   core/lci.cpp
-  core/global.cpp
+  global/global.cpp
   packet_pool/packet_pool.cpp
   comp/comp.cpp
-  core/comp.cpp
   rhandler_registry/rhandler_registry.cpp
-  core/runtime.cpp
+  runtime/runtime.cpp
   core/communicate.cpp
-  core/memory.cpp
   core/progress.cpp)
 
 if(LCI_BACKEND_ENABLE_OFI)

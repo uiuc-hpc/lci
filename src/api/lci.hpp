@@ -15,6 +15,28 @@
  * @brief This section describes LCI API.
  */
 
+/**
+ * @defgroup LCI_BASIC Basic Concepts
+ * @ingroup LCI_API
+ * @brief This section describes basic concepts in LCI.
+ */
+
+/**
+ * @defgroup LCI_COMM Communication Posting
+ * @ingroup LCI_API
+ * @brief This section describes the LCI API for posting communication.
+ */
+
+/**
+ * @defgroup LCI_OTHER Other API
+ * @ingroup LCI_API
+ * @brief This section describes other LCI API.
+ */
+
+/**
+ * @namespace lci
+ * @brief All LCI API functions and classes are defined in this namespace.
+ */
 namespace lci
 {
 // mimic std::optional as we don't want to force c++17 for now
@@ -43,40 +65,84 @@ struct option_t {
   bool m_is_set;
 };
 
+/**
+ * @brief The actual error code for LCI API functions.
+ * @ingroup LCI_BASIC
+ * @details The error code is used to indicate the status of certain LCI
+ * operations. It has three categories: ok, posted, and retry. The ok category
+ * indicates that the operation has been completed. The posted category
+ * indicates that the operation is posted and the completion will be reported
+ * later. The retry category indicates that the operation temporarily failed and
+ * the user should retry the operation. Within each category, there are multiple
+ * sub error codes offering additional information.
+ */
 enum class errorcode_t {
-  ok_min,
-  ok,
-  ok_backlog,
-  ok_max,
-  posted_min,
-  posted,
-  posted_backlog,
-  posted_max,
-  retry_min,
-  retry,
-  retry_init,
-  retry_lock,
-  retry_nopacket,
-  retry_nomem,
-  retry_backlog,
-  retry_max,
-  fatal,
+  ok_min,     /**< boundary marker */
+  ok,         /**< the operation has been completed */
+  ok_backlog, /**< the operation has been pushed into a backlog queue and can be
+                 considered as completed by users */
+  ok_max,     /**< boundary marker */
+  posted_min, /**< boundary marker */
+  posted, /**< the operation is posted and the completion will be reported later
+           */
+  posted_backlog, /**< the operation has been pushed into a backlog queue and
+                     can be considered as posted by users  */
+  posted_max,     /**< boundary marker */
+  retry_min,      /**< boundary marker */
+  retry, /**< the operation temporarily failed and the user should retry the
+            operation */
+  retry_init, /**< the default value for the error code */
+  retry_lock, /**< the operation temporarily failed due to lock contention */
+  retry_nopacket, /**< the operation temporarily failed due to the lack of
+                     packets */
+  retry_nomem,   /**< the operation temporarily failed because the network queue
+                    is full */
+  retry_backlog, /**< the operation temporarily failed because the backlog queue
+                    is not empty */
+  retry_max,     /**< boundary marker */
+  fatal, /**< placeholder. Not used for now. All fatal error are reported
+            through C++ std::runtime_error. */
 };
 
+/**
+ * @brief Wrapper class for error code.
+ * @ingroup LCI_BASIC
+ * @details This class wraps the error code and provides utility functions to
+ * check the error code.
+ */
 struct error_t {
   errorcode_t errorcode;
   error_t() : errorcode(errorcode_t::retry_init) {}
+  /**
+   * @brief Construct an error_t object with a specific error code.
+   * @param errorcode_ The error code to be wrapped.
+   */
   error_t(errorcode_t errorcode_) : errorcode(errorcode_) {}
+  /**
+   * @brief Reset the error code to retry.
+   */
   void reset_retry() { errorcode = errorcode_t::retry; }
+  /**
+   * @brief Check if the error code is in the ok category.
+   * @return true if the error code is in the ok category.
+   */
   bool is_ok() const
   {
     return errorcode > errorcode_t::ok_min && errorcode < errorcode_t::ok_max;
   }
+  /**
+   * @brief Check if the error code is in the posted category.
+   * @return true if the error code is in the posted category.
+   */
   bool is_posted() const
   {
     return errorcode > errorcode_t::posted_min &&
            errorcode < errorcode_t::posted_max;
   }
+  /**
+   * @brief Check if the error code is in the retry category.
+   * @return true if the error code is in the retry category.
+   */
   bool is_retry() const
   {
     return errorcode > errorcode_t::retry_min &&

@@ -437,11 +437,11 @@ operation(
     "post_comm", 
     [
         optional_runtime_args,
-        positional_arg("direction_t", "direction"),
-        positional_arg("int", "rank"),
-        positional_arg("void*", "local_buffer"),
-        positional_arg("size_t", "size"),
-        positional_arg("comp_t", "local_comp"),
+        positional_arg("direction_t", "direction", comment="The direction of the communication."),
+        positional_arg("int", "rank", comment="The rank of the target process."),
+        positional_arg("void*", "local_buffer", comment="The address of the local buffer."),
+        positional_arg("size_t", "size", comment="The size of the buffer."),
+        positional_arg("comp_t", "local_comp", comment="The local completion object."),
         optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
         optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint"),
         optional_arg("matching_engine_t", "matching_engine", "runtime.p_impl->matching_engine"),
@@ -460,7 +460,11 @@ operation(
         optional_arg("bool", "allow_retry", "true"),
         optional_arg("bool", "force_zcopy", "false"),
         return_val("status_t", "status"),
-    ]
+    ],
+    doc = {
+        "in_group": "LCI_COMM",
+        "brief": "Post a communication operation.",
+    }
 ),
 operation(
     "post_am", 

@@ -41,4 +41,10 @@ void free_comp_x::call_impl(comp_t* comp, runtime_t runtime) const
   comp->p_impl = nullptr;
 }
 
+void comp_signal_x::call_impl(comp_t comp, status_t status,
+                              runtime_t runtime) const
+{
+  comp.p_impl->signal(status);
+}
+
 }  // namespace lci

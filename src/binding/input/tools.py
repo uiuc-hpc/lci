@@ -81,14 +81,15 @@ def resource(name, attrs, comment=""):
         "comment": comment
     }
 
-def operation(name, args, init_global=False, fina_global=False, comment=""):
+def operation(name, args, init_global=False, fina_global=False, comment="", doc={}):
     return {
         "category": "operation",
         "name": name,
         "args": args,
         "init_global": init_global,
         "fina_global": fina_global,
-        "comment": comment
+        "comment": comment,
+        "doc": doc
     }
 
 def operation_alloc(resource, additiona_args=[], add_runtime_args=True, init_global=False, fina_global=False):

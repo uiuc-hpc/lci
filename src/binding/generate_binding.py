@@ -6,6 +6,54 @@ import os, sys
 import glob
 import importlib
 
+def generate_doc(item):
+  in_group = "LCI_OTHER"
+  doc = {}
+  if "doc" in item:
+    doc = item["doc"]
+
+  if item["category"] == "operation":
+    brief = doc.get("brief", f"LCI operation {item['name']}")
+    details = doc.get("details", "")
+
+    arguments = [arg for arg in item["args"] if arg["category"] == "argument"]
+    return_vals = [arg for arg in item["args"] if arg["category"] == "return_val"]
+
+    params = []
+    for arg in arguments:
+      inout_trait = ""
+      if "in" in arg["trait"]:
+        inout_trait = "[in]"
+      elif "out" in arg["trait"]:
+        inout_trait = "[out]"
+      elif "inout" in arg["trait"]:
+        inout_trait = "[in,out]"
+      
+      pos_opt_trait = ""
+      if "positional" in arg["trait"]:
+        pos_opt_trait = "positional"
+      elif "optional" in arg["trait"]:
+        pos_opt_trait = "optional"
+      params.append(f" * @param{inout_trait} {arg['name']} of type {arg['type']}; {pos_opt_trait} argument; {arg['comment']}")
+    params = "\n".join(params)
+
+    returns = ""
+    for return_val in return_vals:
+      returns += f" * @return {return_val['type']} {return_val['comment']}\n"
+
+    return f"""
+/**
+ * @ingroup {in_group}
+ * @brief {brief}
+ * @details {details}
+{params}
+ */"""
+  elif item["category"] == "resource":  
+    return f"""
+/**
+ * @brief {item["name"]} resource
+ */"""
+
 def generate_forward_resource_decl(input):
   text = ""
   for item in input:
@@ -117,6 +165,7 @@ def generate_resource_decl(item):
 
   text = f"""
 class {impl_class_name};
+{generate_doc(item)}
 class {resource_name}_t {{
  public:
   using attr_t = {resource_name}_attr_t;
@@ -201,6 +250,7 @@ def generate_operation_decl(item):
   # call_impl_args = ", ".join([f"m_{arg['name']}" for arg in positional_args + optional_args])
 
   text = f"""
+{generate_doc(item)}
 class {class_name} {{
  public:
   // args declaration
