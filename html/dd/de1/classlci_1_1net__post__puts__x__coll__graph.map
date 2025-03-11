@@ -1,0 +1,7 @@
+<map id="lci::net_post_puts_x" name="lci::net_post_puts_x">
+<area shape="rect" id="node1" title="The actual implementation for net_post_puts." alt="" coords="63,199,201,225"/>
+<area shape="rect" id="node2" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="5,95,120,136"/>
+<area shape="rect" id="node3" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="14,5,111,32"/>
+<area shape="rect" id="node4" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="144,95,259,136"/>
+<area shape="rect" id="node5" href="$de/d1b/classlci_1_1endpoint__t.html" title="The actual implementation for RESOURCE endpoint." alt="" coords="150,5,253,32"/>
+</map>

@@ -1,0 +1,10 @@
+<map id="lci::net_post_putImm_x" name="lci::net_post_putImm_x">
+<area shape="rect" id="node1" title="The actual implementation for net_post_putImm." alt="" coords="501,123,660,149"/>
+<area shape="rect" id="node2" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="209,5,356,32"/>
+<area shape="rect" id="node3" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="225,57,340,98"/>
+<area shape="rect" id="node4" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="8,64,105,91"/>
+<area shape="rect" id="node5" href="$d7/d1a/classlci_1_1mr__t.html" title="The actual implementation for RESOURCE mr." alt="" coords="248,123,317,149"/>
+<area shape="rect" id="node6" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="223,174,342,215"/>
+<area shape="rect" id="node7" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="225,239,340,281"/>
+<area shape="rect" id="node8" href="$de/d1b/classlci_1_1endpoint__t.html" title="The actual implementation for RESOURCE endpoint." alt="" coords="5,247,108,273"/>
+</map>

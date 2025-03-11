@@ -1,0 +1,9 @@
+<map id="lci::get_max_bcopy_size_x" name="lci::get_max_bcopy_size_x">
+<area shape="rect" id="node1" title="The actual implementation for get_max_bcopy_size." alt="" coords="495,71,629,112"/>
+<area shape="rect" id="node2" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="231,5,353,47"/>
+<area shape="rect" id="node3" href="$db/dec/classlci_1_1packet__pool__t.html" title="The actual implementation for RESOURCE packet_pool." alt="" coords="5,13,129,39"/>
+<area shape="rect" id="node4" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="235,71,349,112"/>
+<area shape="rect" id="node5" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="19,78,116,105"/>
+<area shape="rect" id="node6" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="235,136,349,177"/>
+<area shape="rect" id="node7" href="$de/d1b/classlci_1_1endpoint__t.html" title="The actual implementation for RESOURCE endpoint." alt="" coords="16,143,119,170"/>
+</map>

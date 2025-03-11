@@ -1,0 +1,5 @@
+<map id="g_runtime_init" name="g_runtime_init">
+<area shape="rect" id="node1" title="Initialize the global default runtime object." alt="" coords="211,31,313,56"/>
+<area shape="rect" id="node2" href="$d1/d7f/group___l_c_i___s_e_t_u_p.html" title="This section describes setup and teardown API." alt="" coords="13,5,155,31"/>
+<area shape="rect" id="node3" href="$d0/d33/group___l_c_i___r_e_s_o_u_r_c_e.html" title="This section describes the LCI API for resource management." alt="" coords="5,55,163,80"/>
+</map>

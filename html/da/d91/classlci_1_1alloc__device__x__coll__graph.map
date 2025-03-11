@@ -1,0 +1,10 @@
+<map id="lci::alloc_device_x" name="lci::alloc_device_x">
+<area shape="rect" id="node1" title="The actual implementation for alloc_device." alt="" coords="548,135,677,162"/>
+<area shape="rect" id="node2" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="248,5,369,47"/>
+<area shape="rect" id="node3" href="$dc/d98/classlci_1_1net__context__t.html" title="The actual implementation for RESOURCE net_context." alt="" coords="5,13,128,39"/>
+<area shape="rect" id="node4" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="233,85,385,111"/>
+<area shape="rect" id="node5" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="235,135,382,162"/>
+<area shape="rect" id="node6" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="251,187,366,228"/>
+<area shape="rect" id="node7" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="18,194,115,221"/>
+<area shape="rect" id="node8" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="229,253,388,279"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="lci::net_post_recv_x" name="lci::net_post_recv_x">
+<area shape="rect" id="node1" title="The actual implementation for net_post_recv." alt="" coords="496,93,635,120"/>
+<area shape="rect" id="node2" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="204,5,351,32"/>
+<area shape="rect" id="node3" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="220,57,335,98"/>
+<area shape="rect" id="node4" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="5,64,103,91"/>
+<area shape="rect" id="node5" href="$d7/d1a/classlci_1_1mr__t.html" title="The actual implementation for RESOURCE mr." alt="" coords="243,123,312,149"/>
+<area shape="rect" id="node6" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="220,174,335,215"/>
+<area shape="rect" id="node7" href="$d6/d66/classlci_1_1device__t.html" title="The actual implementation for RESOURCE device." alt="" coords="8,181,100,208"/>
+</map>

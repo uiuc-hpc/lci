@@ -1,0 +1,4 @@
+<map id="bind_packet_pool" name="bind_packet_pool">
+<area shape="rect" id="node1" title="Bind a packet pool to a device." alt="" coords="211,5,333,31"/>
+<area shape="rect" id="node2" href="$d0/d33/group___l_c_i___r_e_s_o_u_r_c_e.html" title="This section describes the LCI API for resource management." alt="" coords="5,5,163,31"/>
+</map>
