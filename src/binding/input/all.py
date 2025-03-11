@@ -72,7 +72,7 @@ resource_runtime := resource(
     "runtime", 
     runtime_attr,
     doc = {
-        "in_group": "LCI_RESOURCE",
+        "in_group": "LCI_SETUP",
         "brief": "The runtime object.",
     }
 ),
@@ -83,7 +83,7 @@ operation(
     get_g_runtime_init_args(runtime_attr),
     init_global=True,
     doc = {
-        "in_group": "LCI_RESOURCE",
+        "in_group": "LCI_SETUP",
         "brief": "Initialize the global default runtime object.",
     }
 ),
@@ -91,15 +91,17 @@ operation(
     "g_runtime_fina", [],
     fina_global=True,
     doc = {
-        "in_group": "LCI_RESOURCE",
+        "in_group": "LCI_SETUP",
         "brief": "Finalize the global default runtime object.",
     }
 ),
 operation(
     "get_g_runtime",
-    [return_val("runtime_t", "runtime")],
+    [
+        return_val("runtime_t", "runtime", comment="The global default runtime object.")
+    ],
     doc = {
-        "in_group": "LCI_RESOURCE",
+        "in_group": "LCI_SETUP",
         "brief": "Get the global default runtime object.",
     }
 ),
@@ -132,9 +134,9 @@ operation_free(resource_net_context),
 resource_device := resource(
     "device", 
     [
-        attr("int64_t", "net_max_sends", default_value="LCI_BACKEND_MAX_SENDS_DEFAULT"),
-        attr("int64_t", "net_max_recvs", default_value="LCI_BACKEND_MAX_RECVS_DEFAULT"),
-        attr("int64_t", "net_max_cqes", default_value="LCI_BACKEND_MAX_CQES_DEFAULT"),
+        attr("int64_t", "net_max_sends", default_value="LCI_BACKEND_MAX_SENDS_DEFAULT", comment="The maximum number of sends that can be posted to the underlying network queue at the same time."),
+        attr("int64_t", "net_max_recvs", default_value="LCI_BACKEND_MAX_RECVS_DEFAULT", comment="The maximum number of receives that can be posted to the underlying network queue at the same time."),
+        attr("int64_t", "net_max_cqes", default_value="LCI_BACKEND_MAX_CQES_DEFAULT", comment="The maximum number of CQEs that can reside in the underlying network queue at the same time."),
         attr("uint64_t", "ofi_lock_mode", comment="For the OFI backend: the lock mode for the device."),
     ],
     doc = {
@@ -145,20 +147,27 @@ resource_device := resource(
 operation_alloc(
     resource_device, 
     [
-        optional_arg("net_context_t", "net_context", "runtime.p_impl->net_context")
+        optional_arg("net_context_t", "net_context", "runtime.p_impl->net_context", comment="The network context to allocate the device.")
     ]
 ),
 operation_free(resource_device),
 # memory region
-# resource("mr", []),
+resource(
+    "mr", 
+    [],
+    doc = {
+        "in_group": "LCI_MEMORY",
+        "brief": "The memory region resource.",
+    }
+),
 operation(
     "register_memory", 
     [
         optional_runtime_args,
-        optional_arg("device_t", "device", "runtime.p_impl->device"),
-        positional_arg("void*", "address"),
-        positional_arg("size_t", "size"),
-        return_val("mr_t", "mr")
+        optional_arg("device_t", "device", default_value="runtime.p_impl->device", comment="The device to register the memory region."),
+        positional_arg("void*", "address", comment="The base address of the memory region to register."),
+        positional_arg("size_t", "size", comment="The size of the memory region to register."),
+        return_val("mr_t", "mr", comment="The handler for the registered memory region.")
     ],
     doc = {
         "in_group": "LCI_MEMORY",
@@ -169,7 +178,7 @@ operation(
     "deregister_memory", 
     [
         optional_runtime_args,
-        positional_arg("mr_t*", "mr", inout_trait="inout")
+        positional_arg("mr_t*", "mr", inout_trait="inout", comment="The memory region to deregister.")
     ],
     doc = {
         "in_group": "LCI_MEMORY",
@@ -179,9 +188,9 @@ operation(
 operation(
     "get_rkey", 
     [
-        positional_arg("mr_t", "mr"),
+        positional_arg("mr_t", "mr", comment="The memory region to get the rkey."),
         optional_runtime_args,
-        return_val("rkey_t", "rkey")
+        return_val("rkey_t", "rkey", comment="The rkey of the memory region.")
     ],
     doc = {
         "in_group": "LCI_MEMORY",
@@ -199,7 +208,7 @@ resource_endpoint := resource(
 operation_alloc(
     resource_endpoint, 
     [
-        optional_arg("device_t", "device", "runtime.p_impl->device")
+        optional_arg("device_t", "device", default_value="runtime.p_impl->device", comment="The device to allocate the endpoint.")
     ]
 ),
 operation_free(resource_endpoint),
@@ -208,136 +217,169 @@ operation(
     "net_poll_cq", 
     [
         optional_runtime_args,
-        optional_arg("device_t", "device", "runtime.p_impl->device"),
-        optional_arg("int", "max_polls", 20),
-        return_val("std::vector<net_status_t>", "statuses")
+        optional_arg("device_t", "device", default_value="runtime.p_impl->device", comment="The device to poll the network completion queue."),
+        optional_arg("int", "max_polls", default_value=20, comment="The maximum number of completion descriptors to poll."),
+        return_val("std::vector<net_status_t>", "statuses", comment="The polled completion descriptors.")
     ],
-
-    comment="Poll the netowrk completion queue."
+    doc = {
+        "in_group": "LCI_NET",
+        "brief": "Poll the network completion queue.",
+    }
 ),
 operation(
     "net_post_recv", 
     [
         optional_runtime_args,
-        positional_arg("void*", "buffer"),
-        positional_arg("size_t", "size"),
-        positional_arg("mr_t", "mr"),
-        optional_arg("device_t", "device", "runtime.p_impl->device"),
-        optional_arg("void*", "ctx", "nullptr"),
-        return_val("error_t", "error")
+        positional_arg("void*", "buffer", comment="The receive buffer base address."),
+        positional_arg("size_t", "size", comment="The receive buffer size."),
+        positional_arg("mr_t", "mr", comment="The registered memory region for the receive buffer."),
+        optional_arg("device_t", "device", "runtime.p_impl->device", comment="The device to post the receive operation."),
+        optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context."),
+        return_val("error_t", "error", comment="The error code.")
     ],
-    comment="Post a network receive operation."
+    doc = {
+        "in_group": "LCI_NET",
+        "brief": "Post a network receive operation.",
+    }
 ),
 operation(
     "net_post_sends", 
     [
         optional_runtime_args,
-        positional_arg("int", "rank"),
-        positional_arg("void*", "buffer"),
-        positional_arg("size_t", "size"),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint"),
-        optional_arg("net_imm_data_t", "imm_data", "0"),
-        return_val("error_t", "error")
+        positional_arg("int", "rank", comment="The target rank."),
+        positional_arg("void*", "buffer", comment="The send buffer base address."),
+        positional_arg("size_t", "size", comment="The send buffer size."),
+        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to post the operation."),
+        optional_arg("net_imm_data_t", "imm_data", "0", comment="The immediate data to send with the message."),
+        return_val("error_t", "error", comment="The error code.")
     ],
-    comment="Post a network short send operation."
+    doc = {
+        "in_group": "LCI_NET",
+        "brief": "Post a network short send operation.",
+        "details": "This operation uses the *inject* semantics: the data is directly copied into the network hardware with the operation descriptor and the operation is completed immediately."
+    }
 ),
 operation(
     "net_post_send", 
     [
         optional_runtime_args,
-        positional_arg("int", "rank"),
-        positional_arg("void*", "buffer"),
-        positional_arg("size_t", "size"),
-        positional_arg("mr_t", "mr"),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint"),
-        optional_arg("net_imm_data_t", "imm_data", "0"),
-        optional_arg("void*", "ctx", "nullptr"),
-        return_val("error_t", "error")
+        positional_arg("int", "rank", comment="The target rank."),
+        positional_arg("void*", "buffer", comment="The send buffer base address."),
+        positional_arg("size_t", "size", comment="The send buffer size."),
+        positional_arg("mr_t", "mr", comment="The registered memory region for the send buffer."),
+        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to post the operation."),
+        optional_arg("net_imm_data_t", "imm_data", "0", comment="The immediate data to send with the message."),
+        optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context."),
+        return_val("error_t", "error", comment="The error code.")
     ],
-    comment="Post a network send operation."
+    doc = {
+        "in_group": "LCI_NET",
+        "brief": "Post a network send operation.",
+        "details": "This operation uses the *post* semantics: means the operation is posted and not completed immediately; the completed operation will be reported through @ref net_poll_cq; the send buffer can only be written after the operation is completed."
+    }
 ),
 operation(
     "net_post_puts", 
     [
         optional_runtime_args,
-        positional_arg("int", "rank"),
-        positional_arg("void*", "buffer"),
-        positional_arg("size_t", "size"),
-        positional_arg("uintptr_t", "base"),
-        positional_arg("uint64_t", "offset"),
-        positional_arg("rkey_t", "rkey"),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint"),
-        return_val("error_t", "error"),
+        positional_arg("int", "rank", comment="The target rank."),
+        positional_arg("void*", "buffer", comment="The send buffer base address."),
+        positional_arg("size_t", "size", comment="The send buffer size."),
+        positional_arg("uintptr_t", "base", comment="The base address of the remote region to put the data."),
+        positional_arg("uint64_t", "offset", comment="The starting offset to the remote region base address to put the data."),
+        positional_arg("rkey_t", "rkey", comment="The remote memory region key."),
+        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to post the operation."),
+        return_val("error_t", "error", comment="The error code."),
     ],
-    comment="Post a network short put operation."
+    doc = {
+        "in_group": "LCI_NET",
+        "brief": "Post a network short put operation.",
+        "details": "This operation uses the *inject* semantics: the data is directly copied into the network hardware with the operation descriptor and the operation is completed immediately."
+    }
 ),
 operation(
     "net_post_put", 
     [
         optional_runtime_args,
-        positional_arg("int", "rank"),
-        positional_arg("void*", "buffer"),
-        positional_arg("size_t", "size"),
-        positional_arg("mr_t", "mr"),
-        positional_arg("uintptr_t", "base"),
-        positional_arg("uint64_t", "offset"),
-        positional_arg("rkey_t", "rkey"),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint"),
-        optional_arg("void*", "ctx", "nullptr"),
-        return_val("error_t", "error"),
+        positional_arg("int", "rank", comment="The target rank."),
+        positional_arg("void*", "buffer", comment="The send buffer base address."),
+        positional_arg("size_t", "size", comment="The send buffer size."),
+        positional_arg("mr_t", "mr", comment="The registered memory region for the send buffer."),
+        positional_arg("uintptr_t", "base", comment="The base address of the remote region to put the data."),
+        positional_arg("uint64_t", "offset", comment="The starting offset to the remote region base address to put the data."),
+        positional_arg("rkey_t", "rkey", comment="The remote memory region key."),
+        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to post the operation."),
+        optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context."),
+        return_val("error_t", "error", comment="The error code."),
     ],
-    comment="Post a network put operation."
+    doc = {
+        "in_group": "LCI_NET",
+        "brief": "Post a network put operation.",
+        "details": "This operation uses the *post* semantics: means the operation is posted and not completed immediately; the completed operation will be reported through @ref net_poll_cq; the send buffer can only be written after the operation is completed."
+    }
 ),
 operation(
     "net_post_putImms", 
     [
         optional_runtime_args,
-        positional_arg("int", "rank"),
-        positional_arg("void*", "buffer"),
-        positional_arg("size_t", "size"),
-        positional_arg("uintptr_t", "base"),
-        positional_arg("uint64_t", "offset"),
-        positional_arg("rkey_t", "rkey"),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint"),
-        optional_arg("net_imm_data_t", "imm_data", "0"),
-        return_val("error_t", "error"),
+        positional_arg("int", "rank", comment="The target rank."),
+        positional_arg("void*", "buffer", comment="The send buffer base address."),
+        positional_arg("size_t", "size", comment="The send buffer size."),
+        positional_arg("uintptr_t", "base", comment="The base address of the remote region to put the data."),
+        positional_arg("uint64_t", "offset", comment="The starting offset to the remote region base address to put the data."),
+        positional_arg("rkey_t", "rkey", comment="The remote memory region key."),
+        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to post the operation."),
+        optional_arg("net_imm_data_t", "imm_data", "0", comment="The immediate data to put with the message."),
+        return_val("error_t", "error", comment="The error code."),
     ],
-    comment="Post a network short put with immediate data operation."
+    doc = {
+        "in_group": "LCI_NET",
+        "brief": "Post a network *short put with immediate data* operation.",
+        "details": "This operation uses the *inject* semantics: the data is directly copied into the network hardware with the operation descriptor and the operation is completed immediately."
+    }
 ),
 operation(
     "net_post_putImm", 
     [
         optional_runtime_args,
-        positional_arg("int", "rank"),
-        positional_arg("void*", "buffer"),
-        positional_arg("size_t", "size"),
-        positional_arg("mr_t", "mr"),
-        positional_arg("uintptr_t", "base"),
-        positional_arg("uint64_t", "offset"),
-        positional_arg("rkey_t", "rkey"),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint"),
-        optional_arg("net_imm_data_t", "imm_data", "0"),
-        optional_arg("void*", "ctx", "nullptr"),
-        return_val("error_t", "error"),
+        positional_arg("int", "rank", comment="The target rank."),
+        positional_arg("void*", "buffer", comment="The send buffer base address."),
+        positional_arg("size_t", "size", comment="The send buffer size."),
+        positional_arg("mr_t", "mr", comment="The registered memory region for the send buffer."),
+        positional_arg("uintptr_t", "base", comment="The base address of the remote region to put the data."),
+        positional_arg("uint64_t", "offset", comment="The starting offset to the remote region base address to put the data."),
+        positional_arg("rkey_t", "rkey", comment="The remote memory region key."),
+        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to post the operation."),
+        optional_arg("net_imm_data_t", "imm_data", "0", comment="The immediate data to put with the message."),
+        optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context."),
+        return_val("error_t", "error", comment="The error code."),
     ],
-    comment="Post a network put with immediate data operation."
+    doc = {
+        "in_group": "LCI_NET",
+        "brief": "Post a network put with immediate data operation.",
+        "details": "This operation uses the *post* semantics: means the operation is posted and not completed immediately; the completed operation will be reported through @ref net_poll_cq; the send buffer can only be written after the operation is completed."
+    }
 ),
 operation(
     "net_post_get", 
     [
         optional_runtime_args,
-        positional_arg("int", "rank"),
-        positional_arg("void*", "buffer"),
-        positional_arg("size_t", "size"),
-        positional_arg("mr_t", "mr"),
-        positional_arg("uintptr_t", "base"),
-        positional_arg("uint64_t", "offset"),
-        positional_arg("rkey_t", "rkey"),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint"),
-        optional_arg("void*", "ctx", "nullptr"),
-        return_val("error_t", "error"),
+        positional_arg("int", "rank", comment="The target rank."),
+        positional_arg("void*", "buffer", comment="The receive buffer base address."),
+        positional_arg("size_t", "size", comment="The receive buffer size."),
+        positional_arg("mr_t", "mr", comment="The registered memory region for the receive buffer."),
+        positional_arg("uintptr_t", "base", comment="The base address of the remote region to get the data."),
+        positional_arg("uint64_t", "offset", comment="The starting offset to the remote region base address to get the data."),
+        positional_arg("rkey_t", "rkey", comment="The remote memory region key."),
+        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to post the operation."),
+        optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context."),
+        return_val("error_t", "error", comment="The error code."),
     ],
-    comment="Post a network put operation."
+    doc = {
+        "in_group": "LCI_NET",
+        "brief": "Post a network get operation.",
+        "details": "This operation uses the *post* semantics: means the operation is posted and not completed immediately; the completed operation will be reported through @ref net_poll_cq; the receive buffer can only be read after the operation is completed."
+    }
 ),
 # ##############################################################################
 # # Core Layer
@@ -346,11 +388,14 @@ operation(
 resource_packet_pool := resource(
     "packet_pool", 
     [
-        attr("size_t", "packet_size", default_value="LCI_PACKET_SIZE_DEFAULT"),
-        attr("size_t", "npackets", default_value="LCI_PACKET_NUM_DEFAULT"),
+        attr("size_t", "packet_size", default_value="LCI_PACKET_SIZE_DEFAULT", comment="The size of the packet."),
+        attr("size_t", "npackets", default_value="LCI_PACKET_NUM_DEFAULT", comment="The number of packets in the pool."),
         attr("size_t", "pbuffer_size", inout_trait="out", comment="The size of the packet buffer."),
     ],
-    comment="The packet pool resource."
+    doc = {
+        "in_group": "LCI_RESOURCE",
+        "brief": "The packet pool resource.",
+    }
 ),
 operation_alloc(resource_packet_pool),
 operation_free(resource_packet_pool),
@@ -358,23 +403,26 @@ operation_free(resource_packet_pool),
 operation(
     "bind_packet_pool", 
     [
-        positional_arg("device_t", "device"),
-        positional_arg("packet_pool_t", "packet_pool"),
+        positional_arg("device_t", "device", comment="The device to bind the packet pool."),
+        positional_arg("packet_pool_t", "packet_pool", comment="The packet pool to bind."),
         optional_runtime_args,
     ],
-    comment="""Bind a packet pool to a device.
-This is only needed for explicit packet pool.
-Implicit packet pool (the one allocated by the runtime) 
-is automatically bound to all devices.
-"""
+    doc = {
+        "in_group": "LCI_RESOURCE",
+        "brief": "Bind a packet pool to a device.",
+        "details": "This is only needed for explicit packet pool. Implicit packet pool (the one allocated by the runtime) is automatically bound to all devices."
+    }
 ),
 operation(
     "unbind_packet_pool",
     [
-        positional_arg("device_t", "device"),
+        positional_arg("device_t", "device", comment="The device to unbind the packet pool."),
         optional_runtime_args,
     ],
-    comment="Unbind the packet pool from a device."
+    doc = {
+        "in_group": "LCI_RESOURCE",
+        "brief": "Unbind a packet pool from a device.",
+    }
 ),
 # comp
 resource_comp := resource(
@@ -382,111 +430,152 @@ resource_comp := resource(
     [
         attr_enum("comp_type", enum_options=["sync", "cq", "handler"], default_value="cq", comment="The completion object type.", inout_trait="out"),
         attr("int", "sync_threshold", default_value=1, comment="The threshold for sync (synchronizer).", inout_trait="out"),
-    ]
+    ],
+    doc = {
+        "in_group": "LCI_COMPLETION",
+        "brief": "The completion object resource.",
+    }
 ),
 operation_free(resource_comp),
 operation(
     "comp_signal", 
     [
         optional_runtime_args,
-        positional_arg("comp_t", "comp"),
-        positional_arg("status_t", "status")
+        positional_arg("comp_t", "comp", comment="The completion object to signal."),
+        positional_arg("status_t", "status", comment="The status to signal."),
     ],
-    comment="Signal a completion object."
+    doc = {
+        "in_group": "LCI_COMPLETION",
+        "brief": "Signal a completion object.",
+    }
 ),
 operation(
     "reserve_rcomps", 
     [
         optional_runtime_args,
-        positional_arg("rcomp_t", "n"),
-        return_val("rcomp_t", "start")
+        positional_arg("rcomp_t", "n", comment="The number of remote completion handler slots to reserve."),
+        return_val("rcomp_t", "start", comment="The start of the reserved slots."),
     ],
-    comment="Reserve spaces for n remote completion handlers."
+    doc = {
+        "in_group": "LCI_COMPLETION",
+        "brief": "Reserve spaces for n remote completion handlers.",
+    }
 ),
 operation(
     "register_rcomp", 
     [
         optional_runtime_args,
-        positional_arg("comp_t", "comp"),
-        optional_arg("rcomp_t", "rcomp", "0"),
-        return_val("rcomp_t", "rcomp_out")
+        positional_arg("comp_t", "comp", comment="The completion object to register."),
+        optional_arg("rcomp_t", "rcomp", "0", comment="The remote completion handler slot used to register."),
+        return_val("rcomp_t", "rcomp_out", comment="The remote completion handler pointing to the completion object."),
     ],
-    comment="Register a completion object into a remote completion handler."
+    doc = {
+        "in_group": "LCI_COMPLETION",
+        "brief": "Register a completion object into a remote completion handler.",
+    }
 ),
 operation(
     "deregister_rcomp", 
     [
         optional_runtime_args,
-        positional_arg("rcomp_t", "rcomp"),
+        positional_arg("rcomp_t", "rcomp", comment="The remote completion handler to deregister."),
     ],
-    comment="Deregister a remote completion handler."
+    doc = {
+        "in_group": "LCI_COMPLETION",
+        "brief": "Deregister a remote completion handler.",
+    }
 ),
 # sync
 operation(
     "alloc_sync", 
     [
         optional_runtime_args,
-        optional_arg("int", "threshold", 1),
-        optional_arg("void*", "user_context", "nullptr"),
-        return_val("comp_t", "comp")
+        optional_arg("int", "threshold", 1, comment="The signaling threshold of the synchronizer."),
+        optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context associated with this completion object."),
+        return_val("comp_t", "comp", comment="The allocated synchronizer.")
     ],
-    comment="Allocate a synchronizer."
+    doc = {
+        "in_group": "LCI_COMPLETION",
+        "brief": "Allocate a synchronizer.",
+    }
 ),
 operation(
     "sync_test", 
     [
         optional_runtime_args,
-        positional_arg("comp_t", "comp"),
-        positional_arg("status_t*", "p_out", inout_trait="out"),
-        return_val("bool", "succeed")
+        positional_arg("comp_t", "comp", comment="The synchronizer to test."),
+        positional_arg("status_t*", "p_out", inout_trait="out", comment="The pointer to an status array of size `comp.get_attr_sync_threshold()` to hold the outputs (only valid if the function returns *true*)."),
+        return_val("bool", "succeed", comment="Whether the synchronizer is ready.")
     ],
-    comment="Test a synchronizer."
+    doc = {
+        "in_group": "LCI_COMPLETION",
+        "brief": "Test a synchronizer.",
+    }
 ),
 operation(
     "sync_wait", 
     [
         optional_runtime_args,
-        positional_arg("comp_t", "comp"),
-        positional_arg("status_t*", "p_out", inout_trait="out"),
+        positional_arg("comp_t", "comp", comment="The synchronizer to wait."),
+        positional_arg("status_t*", "p_out", inout_trait="out", comment="The pointer to an status array of size `comp.get_attr_sync_threshold()` to hold the outputs."),
     ],
-    comment="Wait a synchronizer to be ready."
+    doc = {
+        "in_group": "LCI_COMPLETION",
+        "brief": "Wait for a synchronizer to be ready.",
+    }
 ),
 # cq
 operation(
     "alloc_cq", 
     [
         optional_runtime_args,
-        optional_arg("int", "default_length", "8192"),
-        optional_arg("void*", "user_context", "nullptr"),
-        return_val("comp_t", "comp")
+        optional_arg("int", "default_length", "8192", comment="The default length of the completion queue."),
+        optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context associated with this completion object."),
+        return_val("comp_t", "comp", comment="The allocated completion queue.")
     ],
-    comment="Allocate a completion queue."
+    doc = {
+        "in_group": "LCI_COMPLETION",
+        "brief": "Allocate a completion queue.",
+    }
 ),
 operation(
     "cq_pop", 
     [
         optional_runtime_args,
-        positional_arg("comp_t", "comp"),
-        return_val("status_t", "status")
-    ]
+        positional_arg("comp_t", "comp", comment="The completion queue to pop."),
+        return_val("status_t", "status", comment="The popped status.")
+    ],
+    doc = {
+        "in_group": "LCI_COMPLETION",
+        "brief": "Pop a status from a completion queue.",
+        "details": "This function is a nonblocking operation. It can return a status with an error code of either *retry* or *ok*. Other fields of the status are only valid if the error code is *ok*."
+    }
 ),
 # handler
 operation(
     "alloc_handler", 
     [
         optional_runtime_args,
-        positional_arg("comp_handler_t", "handler"),
-        optional_arg("void*", "user_context", "nullptr"),
-        return_val("comp_t", "comp")
+        positional_arg("comp_handler_t", "handler", comment="The handler function."),
+        optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context associated with this completion object."),
+        return_val("comp_t", "comp", comment="The allocated completion handler.")
     ],
-    comment="Allocate a completion handler."
+    doc = {
+        "in_group": "LCI_COMPLETION",
+        "brief": "Allocate a completion handler.",
+    }
 ),
 # matching engine
 resource_matching_engine := resource(
     "matching_engine", 
     [
         attr_enum("matching_engine_type", enum_options=["queue", "map"], default_value="map", comment="The type of the matching engine."),
-    ]),
+    ],
+    doc = {
+        "in_group": "LCI_RESOURCE",
+        "brief": "The matching engine resource.",
+    }
+),
 operation_alloc(resource_matching_engine),
 operation_free(resource_matching_engine),
 # communicate
@@ -494,165 +583,189 @@ operation(
     "post_comm", 
     [
         optional_runtime_args,
-        positional_arg("direction_t", "direction", comment="The direction of the communication."),
-        positional_arg("int", "rank", comment="The rank of the target process."),
-        positional_arg("void*", "local_buffer", comment="The address of the local buffer."),
-        positional_arg("size_t", "size", comment="The size of the buffer."),
+        positional_arg("direction_t", "direction", comment="The communication direction."),
+        positional_arg("int", "rank", comment="The target rank."),
+        positional_arg("void*", "local_buffer", comment="The local buffer base address."),
+        positional_arg("size_t", "size", comment="The message size."),
         positional_arg("comp_t", "local_comp", comment="The local completion object."),
-        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint"),
-        optional_arg("matching_engine_t", "matching_engine", "runtime.p_impl->matching_engine"),
-        optional_arg("out_comp_type_t", "out_comp_type", "out_comp_type_t::buffer"),
-        optional_arg("mr_t", "mr", "mr_t()"),
-        optional_arg("uintptr_t", "remote_buffer", "0"),
-        optional_arg("rkey_t", "rkey", "0"),
-        optional_arg("tag_t", "tag", "0"),
-        optional_arg("rcomp_t", "remote_comp", "0"),
-        optional_arg("void*", "ctx", "nullptr"),
-        optional_arg("buffers_t", "buffers", "buffers_t()"),
-        optional_arg("rbuffers_t", "rbuffers", "rbuffers_t()"),
-        optional_arg("matching_policy_t", "matching_policy", "matching_policy_t::rank_tag"),
-        optional_arg("bool", "allow_ok", "true"),
-        optional_arg("bool", "allow_posted", "true"),
-        optional_arg("bool", "allow_retry", "true"),
-        optional_arg("bool", "force_zcopy", "false"),
-        return_val("status_t", "status"),
+        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool", comment="The packet pool to use."),
+        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to use."),
+        optional_arg("matching_engine_t", "matching_engine", "runtime.p_impl->matching_engine", comment="The matching engine to use."),
+        optional_arg("comp_semantic_t", "comp_semantic", "comp_semantic_t::buffer", comment="The completion semantic (only valid when `direction == direction_t::OUT`)."),
+        optional_arg("mr_t", "mr", "mr_t()", comment="The registered memory region for the local buffer."),
+        optional_arg("uintptr_t", "remote_buffer", "0", comment="The remote buffer base address."),
+        optional_arg("rkey_t", "rkey", "0", comment="The remote key of the remote buffer."),
+        optional_arg("tag_t", "tag", "0", comment="The tag to use."),
+        optional_arg("rcomp_t", "remote_comp", "0", comment="The remote completion handler to use."),
+        optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context associated with this operation."),
+        optional_arg("buffers_t", "buffers", "buffers_t()", comment="The local buffers."),
+        optional_arg("rbuffers_t", "rbuffers", "rbuffers_t()", comment="The remote buffers."),
+        optional_arg("matching_policy_t", "matching_policy", "matching_policy_t::rank_tag", comment="The matching policy to use."),
+        optional_arg("bool", "allow_ok", "true", comment="Whether to allow the *ok* error code."),
+        optional_arg("bool", "allow_posted", "true", comment="Whether to allow the *posted* error code."),
+        optional_arg("bool", "allow_retry", "true", comment="Whether to allow the *retry* error code."),
+        optional_arg("bool", "force_zcopy", "false", comment="Whether to force the zero-copy transfer."),
+        return_val("status_t", "status", comment="The status of the operation."),
     ],
     doc = {
         "in_group": "LCI_COMM",
-        "brief": "Post a communication operation.",
+        "brief": "Post a generic communication operation.",
     }
 ),
 operation(
     "post_am", 
     [
         optional_runtime_args,
-        positional_arg("int", "rank"),
-        positional_arg("void*", "local_buffer"),
-        positional_arg("size_t", "size"),
-        positional_arg("comp_t", "local_comp"),
-        positional_arg("rcomp_t", "remote_comp"),
-        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint"),
-        optional_arg("out_comp_type_t", "out_comp_type", "out_comp_type_t::buffer"),
-        optional_arg("mr_t", "mr", "mr_t()"),
-        optional_arg("tag_t", "tag", "0"),
-        optional_arg("void*", "ctx", "nullptr"),
-        optional_arg("buffers_t", "buffers", "buffers_t()"),
-        optional_arg("bool", "allow_ok", "true"),
-        optional_arg("bool", "allow_posted", "true"),
-        optional_arg("bool", "allow_retry", "true"),
-        optional_arg("bool", "force_zcopy", "false"),
-        return_val("status_t", "status"),
-    ]
+        positional_arg("int", "rank", comment="The target rank."),
+        positional_arg("void*", "local_buffer", comment="The local buffer base address."),
+        positional_arg("size_t", "size", comment="The message size."),
+        positional_arg("comp_t", "local_comp", comment="The local completion object."),
+        positional_arg("rcomp_t", "remote_comp", comment="The remote completion handler to use."),
+        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool", comment="The packet pool to use."),
+        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to use."),
+        optional_arg("comp_semantic_t", "comp_semantic", "comp_semantic_t::buffer", comment="The completion semantic."),
+        optional_arg("mr_t", "mr", "mr_t()", comment="The registered memory region for the local buffer."),
+        optional_arg("tag_t", "tag", "0", comment="The tag to use."),
+        optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context associated with this operation."),
+        optional_arg("buffers_t", "buffers", "buffers_t()", comment="The local buffers."),
+        optional_arg("bool", "allow_ok", "true", comment="Whether to allow the *ok* error code."),
+        optional_arg("bool", "allow_posted", "true", comment="Whether to allow the *posted* error code."),
+        optional_arg("bool", "allow_retry", "true", comment="Whether to allow the *retry* error code."),
+        optional_arg("bool", "force_zcopy", "false", comment="Whether to force the zero-copy transfer."),
+        return_val("status_t", "status", comment="The status of the operation."),
+    ],
+    doc = {
+        "in_group": "LCI_COMM",
+        "brief": "Post an active message communication operation.",
+    }
 ),
 operation(
     "post_send", 
     [
         optional_runtime_args,
-        positional_arg("int", "rank"),
-        positional_arg("void*", "local_buffer"),
-        positional_arg("size_t", "size"),
-        positional_arg("tag_t", "tag"),
-        positional_arg("comp_t", "local_comp"),
-        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint"),
-        optional_arg("matching_engine_t", "matching_engine", "runtime.p_impl->matching_engine"),
-        optional_arg("out_comp_type_t", "out_comp_type", "out_comp_type_t::buffer"),
-        optional_arg("mr_t", "mr", "mr_t()"),
-        optional_arg("void*", "ctx", "nullptr"),
-        optional_arg("buffers_t", "buffers", "buffers_t()"),
-        optional_arg("matching_policy_t", "matching_policy", "matching_policy_t::rank_tag"),
-        optional_arg("bool", "allow_ok", "true"),
-        optional_arg("bool", "allow_posted", "true"),
-        optional_arg("bool", "allow_retry", "true"),
-        optional_arg("bool", "force_zcopy", "false"),
-        return_val("status_t", "status"),
-    ]
+        positional_arg("int", "rank", comment="The target rank."),
+        positional_arg("void*", "local_buffer", comment="The local buffer base address."),
+        positional_arg("size_t", "size", comment="The message size."),
+        positional_arg("tag_t", "tag", comment="The tag to use."),
+        positional_arg("comp_t", "local_comp", comment="The local completion object."),
+        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool", comment="The packet pool to use."),
+        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to use."),
+        optional_arg("matching_engine_t", "matching_engine", "runtime.p_impl->matching_engine", comment="The matching engine to use."),
+        optional_arg("comp_semantic_t", "comp_semantic", "comp_semantic_t::buffer", comment="The completion semantic."),
+        optional_arg("mr_t", "mr", "mr_t()", comment="The registered memory region for the local buffer."),
+        optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context associated with this operation."),
+        optional_arg("buffers_t", "buffers", "buffers_t()", comment="The local buffers."),
+        optional_arg("matching_policy_t", "matching_policy", "matching_policy_t::rank_tag", comment="The matching policy to use."),
+        optional_arg("bool", "allow_ok", "true", comment="Whether to allow the *ok* error code."),
+        optional_arg("bool", "allow_posted", "true", comment="Whether to allow the *posted* error code."),
+        optional_arg("bool", "allow_retry", "true", comment="Whether to allow the *retry* error code."),
+        optional_arg("bool", "force_zcopy", "false", comment="Whether to force the zero-copy transfer."),
+        return_val("status_t", "status", comment="The status of the operation."),
+    ],
+    doc = {
+        "in_group": "LCI_COMM",
+        "brief": "Post a send communication operation.",
+    }
 ),
 operation(
     "post_recv", 
     [
         optional_runtime_args,
-        positional_arg("int", "rank"),
-        positional_arg("void*", "local_buffer"),
-        positional_arg("size_t", "size"),
-        positional_arg("tag_t", "tag"),
-        positional_arg("comp_t", "local_comp"),
-        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint"),
-        optional_arg("matching_engine_t", "matching_engine", "runtime.p_impl->matching_engine"),
-        optional_arg("mr_t", "mr", "mr_t()"),
-        optional_arg("void*", "ctx", "nullptr"),
-        optional_arg("buffers_t", "buffers", "buffers_t()"),
-        optional_arg("matching_policy_t", "matching_policy", "matching_policy_t::rank_tag"),
-        optional_arg("bool", "allow_ok", "true"),
-        optional_arg("bool", "allow_posted", "true"),
-        optional_arg("bool", "allow_retry", "true"),
-        optional_arg("bool", "force_zcopy", "false"),
-        return_val("status_t", "status"),
-    ]
+        positional_arg("int", "rank", comment="The source rank."),
+        positional_arg("void*", "local_buffer", comment="The local buffer base address."),
+        positional_arg("size_t", "size", comment="The message size."),
+        positional_arg("tag_t", "tag", comment="The tag to use."),
+        positional_arg("comp_t", "local_comp", comment="The local completion object."),
+        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool", comment="The packet pool to use."),
+        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to use."),
+        optional_arg("matching_engine_t", "matching_engine", "runtime.p_impl->matching_engine", comment="The matching engine to use."),
+        optional_arg("mr_t", "mr", "mr_t()", comment="The registered memory region for the local buffer."),
+        optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context associated with this operation."),
+        optional_arg("buffers_t", "buffers", "buffers_t()", comment="The local buffers."),
+        optional_arg("matching_policy_t", "matching_policy", "matching_policy_t::rank_tag", comment="The matching policy to use."),
+        optional_arg("bool", "allow_ok", "true", comment="Whether to allow the *ok* error code."),
+        optional_arg("bool", "allow_posted", "true", comment="Whether to allow the *posted* error code."),
+        optional_arg("bool", "allow_retry", "true", comment="Whether to allow the *retry* error code."),
+        optional_arg("bool", "force_zcopy", "false", comment="Whether to force the zero-copy transfer."),
+        return_val("status_t", "status", comment="The status of the operation."),
+    ],
+    doc = {
+        "in_group": "LCI_COMM",
+        "brief": "Post a receive communication operation.",
+    }
 ),
 operation(
     "post_put", 
     [
         optional_runtime_args,
-        positional_arg("int", "rank"),
-        positional_arg("void*", "local_buffer"),
-        positional_arg("size_t", "size"),
-        positional_arg("comp_t", "local_comp"),
-        positional_arg("uintptr_t", "remote_buffer", "0"),
-        positional_arg("rkey_t", "rkey", "0"),
-        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint"),
-        optional_arg("out_comp_type_t", "out_comp_type", "out_comp_type_t::buffer"),
-        optional_arg("mr_t", "mr", "mr_t()"),
-        optional_arg("tag_t", "tag", "0"),
-        optional_arg("rcomp_t", "remote_comp", "0"),
-        optional_arg("void*", "ctx", "nullptr"),
-        optional_arg("buffers_t", "buffers", "buffers_t()"),
-        optional_arg("rbuffers_t", "rbuffers", "rbuffers_t()"),
-        optional_arg("bool", "allow_ok", "true"),
-        optional_arg("bool", "allow_posted", "true"),
-        optional_arg("bool", "allow_retry", "true"),
-        optional_arg("bool", "force_zcopy", "false"),
-        return_val("status_t", "status"),
-    ]
+        positional_arg("int", "rank", comment="The target rank."),
+        positional_arg("void*", "local_buffer", comment="The local buffer base address."),
+        positional_arg("size_t", "size", comment="The message size."),
+        positional_arg("comp_t", "local_comp", comment="The local completion object."),
+        positional_arg("uintptr_t", "remote_buffer", "0", comment="The remote buffer base address."),
+        positional_arg("rkey_t", "rkey", "0", comment="The remote key of the remote buffer."),
+        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool", comment="The packet pool to use."),
+        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to use."),
+        optional_arg("comp_semantic_t", "comp_semantic", "comp_semantic_t::buffer", comment="The completion semantic."),
+        optional_arg("mr_t", "mr", "mr_t()", comment="The registered memory region for the local buffer."),
+        optional_arg("tag_t", "tag", "0", comment="The tag to use."),
+        optional_arg("rcomp_t", "remote_comp", "0", comment="The remote completion handler to use."),
+        optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context associated with this operation."),
+        optional_arg("buffers_t", "buffers", "buffers_t()", comment="The local buffers."),
+        optional_arg("rbuffers_t", "rbuffers", "rbuffers_t()", comment="The remote buffers."),
+        optional_arg("bool", "allow_ok", "true", comment="Whether to allow the *ok* error code."),
+        optional_arg("bool", "allow_posted", "true", comment="Whether to allow the *posted* error code."),
+        optional_arg("bool", "allow_retry", "true", comment="Whether to allow the *retry* error code."),
+        optional_arg("bool", "force_zcopy", "false", comment="Whether to force the zero-copy transfer."),
+        return_val("status_t", "status", comment="The status of the operation."),
+    ],
+    doc = {
+        "in_group": "LCI_COMM",
+        "brief": "Post a put (one-sided write) communication operation.",
+    }
 ),
 operation(
     "post_get", 
     [
         optional_runtime_args,
-        positional_arg("int", "rank"),
-        positional_arg("void*", "local_buffer"),
-        positional_arg("size_t", "size"),
-        positional_arg("comp_t", "local_comp"),
-        positional_arg("uintptr_t", "remote_buffer", "0"),
-        positional_arg("rkey_t", "rkey", "0"),
-        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint"),
-        optional_arg("mr_t", "mr", "mr_t()"),
-        optional_arg("tag_t", "tag", "0"),
-        optional_arg("rcomp_t", "remote_comp", "0"),
-        optional_arg("void*", "ctx", "nullptr"),
-        optional_arg("buffers_t", "buffers", "buffers_t()"),
-        optional_arg("rbuffers_t", "rbuffers", "rbuffers_t()"),
-        optional_arg("bool", "allow_ok", "true"),
-        optional_arg("bool", "allow_posted", "true"),
-        optional_arg("bool", "allow_retry", "true"),
-        optional_arg("bool", "force_zcopy", "false"),
-        return_val("status_t", "status"),
-    ]
+        positional_arg("int", "rank", comment="The target rank."),
+        positional_arg("void*", "local_buffer", comment="The local buffer base address."),
+        positional_arg("size_t", "size", comment="The message size."),
+        positional_arg("comp_t", "local_comp", comment="The local completion object."),
+        positional_arg("uintptr_t", "remote_buffer", "0", comment="The remote buffer base address."),
+        positional_arg("rkey_t", "rkey", "0", comment="The remote key of the remote buffer."),
+        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool", comment="The packet pool to use."),
+        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to use."),
+        optional_arg("mr_t", "mr", "mr_t()", comment="The registered memory region for the local buffer."),
+        optional_arg("tag_t", "tag", "0", comment="The tag to use."),
+        optional_arg("rcomp_t", "remote_comp", "0", comment="The remote completion handler to use."),
+        optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context associated with this operation."),
+        optional_arg("buffers_t", "buffers", "buffers_t()", comment="The local buffers."),
+        optional_arg("rbuffers_t", "rbuffers", "rbuffers_t()", comment="The remote buffers."),
+        optional_arg("bool", "allow_ok", "true", comment="Whether to allow the *ok* error code."),
+        optional_arg("bool", "allow_posted", "true", comment="Whether to allow the *posted* error code."),
+        optional_arg("bool", "allow_retry", "true", comment="Whether to allow the *retry* error code."),
+        optional_arg("bool", "force_zcopy", "false", comment="Whether to force the zero-copy transfer."),
+        return_val("status_t", "status", comment="The status of the operation."),
+    ],
+    doc = {
+        "in_group": "LCI_COMM",
+        "brief": "Post a get (one-sided read) communication operation.",
+    }
 ),
 # progress
 operation(
     "progress", 
     [
         optional_runtime_args,
-        optional_arg("device_t", "device", "runtime.p_impl->device"),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint"),
-        return_val("error_t", "error")
-    ]
+        optional_arg("device_t", "device", "runtime.p_impl->device", comment="The device to progress."),
+        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to use in case the progress function needs to send internal control messages."),
+        return_val("error_t", "error", comment="The error code. The error code *ok* means the progress function progressed some work; the error code *retry* means the progress function did no find any work to progress."),
+    ],
+    doc = {
+        "in_group": "LCI_COMM",
+        "brief": "Perform background work to advance the state of the pending communication.",
+    }
 ),
 # ##############################################################################
 # # Helper functions
@@ -661,43 +774,69 @@ operation(
     "get_default_net_context", 
     [
         optional_runtime_args,
-        return_val("net_context_t", "net_context")
+        return_val("net_context_t", "net_context", comment="The default net context.")
     ],
-    comment="Get the default net context."
+    doc = {
+        "in_group": "LCI_RESOURCE",
+        "brief": "Get the default net context of the runtime.",
+    }
 ),
 operation(
     "get_default_device", 
     [
         optional_runtime_args,
-        return_val("device_t", "device")
+        return_val("device_t", "device", comment="The default net device.")
     ],
-    comment="Get the default net device."
+    doc = {
+        "in_group": "LCI_RESOURCE",
+        "brief": "Get the default net device of the runtime.",
+    }
 ),
 operation(
     "get_default_endpoint", 
     [
         optional_runtime_args,
-        return_val("endpoint_t", "endpoint")
+        return_val("endpoint_t", "endpoint", comment="The default net endpoint.")
     ],
-    comment="Get the default net endpoint."
+    doc = {
+        "in_group": "LCI_RESOURCE",
+        "brief": "Get the default net endpoint of the runtime.",
+    }
 ),
 operation(
     "get_default_packet_pool", 
     [
         optional_runtime_args,
-        return_val("packet_pool_t", "packet_pool")
+        return_val("packet_pool_t", "packet_pool", comment="The default packet pool.")
     ],
-    comment="Get the default packet pool."
+    doc = {
+        "in_group": "LCI_RESOURCE",
+        "brief": "Get the default packet pool of the runtime.",
+    }
+),
+operation(
+    "get_default_matching_engine", 
+    [
+        optional_runtime_args,
+        return_val("matching_engine_t", "matching_engine", comment="The default matching engine.")
+    ],
+    doc = {
+        "in_group": "LCI_RESOURCE",
+        "brief": "Get the default matching engine of the runtime.",
+    }
 ),
 operation(
     "get_max_bcopy_size", 
     [
         optional_runtime_args,
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint"),
-        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool"),
-        return_val("size_t", "size")
+        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint that will be used."),
+        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool", comment="The packet pool that will be used."),
+        return_val("size_t", "size", comment="Get the maximum message size for the buffer-copy protocol.")
     ],
-    comment="Get the maximum message size for the eager protocol."
+    doc = {
+        "in_group": "LCI_COMM",
+        "brief": "Get the maximum message size for the buffer-copy protocol."
+    }
 ),
 # ##############################################################################
 # # End of the definition

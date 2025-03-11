@@ -71,14 +71,14 @@ inline uint32_t get_mr_lkey(mr_t mr)
 }  // namespace ibv_detail
 
 inline error_t ibv_device_impl_t::post_recv_impl(void* buffer, size_t size,
-                                                 mr_t mr, void* ctx)
+                                                 mr_t mr, void* user_context)
 {
   struct ibv_sge list;
   list.addr = (uint64_t)buffer;
   list.length = size;
   list.lkey = ibv_detail::get_mr_lkey(mr);
   struct ibv_recv_wr wr;
-  wr.wr_id = (uint64_t)ctx;
+  wr.wr_id = (uint64_t)user_context;
   wr.next = NULL;
   wr.sg_list = &list;
   wr.num_sge = 1;
@@ -167,7 +167,7 @@ inline error_t ibv_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
 inline error_t ibv_endpoint_impl_t::post_send_impl(int rank, void* buffer,
                                                    size_t size, mr_t mr,
                                                    net_imm_data_t imm_data,
-                                                   void* ctx)
+                                                   void* user_context)
 {
   struct ibv_sge list;
   struct ibv_send_wr wr;
@@ -184,7 +184,7 @@ inline error_t ibv_endpoint_impl_t::post_send_impl(int rank, void* buffer,
     wr.sg_list = NULL;
     wr.num_sge = 0;
   }
-  wr.wr_id = (uintptr_t)ctx;
+  wr.wr_id = (uintptr_t)user_context;
   wr.next = NULL;
   wr.opcode = IBV_WR_SEND_WITH_IMM;
   wr.send_flags = IBV_SEND_SIGNALED;
@@ -254,7 +254,7 @@ inline error_t ibv_endpoint_impl_t::post_put_impl(int rank, void* buffer,
                                                   size_t size, mr_t mr,
                                                   uintptr_t base,
                                                   uint64_t offset, rkey_t rkey,
-                                                  void* ctx)
+                                                  void* user_context)
 {
   struct ibv_sge list;
   struct ibv_send_wr wr;
@@ -271,7 +271,7 @@ inline error_t ibv_endpoint_impl_t::post_put_impl(int rank, void* buffer,
     wr.sg_list = NULL;
     wr.num_sge = 0;
   }
-  wr.wr_id = (uint64_t)ctx;
+  wr.wr_id = (uint64_t)user_context;
   wr.next = NULL;
   wr.opcode = IBV_WR_RDMA_WRITE;
   wr.send_flags = IBV_SEND_SIGNALED;
@@ -340,7 +340,7 @@ inline error_t ibv_endpoint_impl_t::post_putImms_impl(
 
 inline error_t ibv_endpoint_impl_t::post_putImm_impl(
     int rank, void* buffer, size_t size, mr_t mr, uintptr_t base,
-    uint64_t offset, rkey_t rkey, net_imm_data_t imm_data, void* ctx)
+    uint64_t offset, rkey_t rkey, net_imm_data_t imm_data, void* user_context)
 {
   struct ibv_sge list;
   struct ibv_send_wr wr;
@@ -357,7 +357,7 @@ inline error_t ibv_endpoint_impl_t::post_putImm_impl(
     wr.sg_list = NULL;
     wr.num_sge = 0;
   }
-  wr.wr_id = (uint64_t)ctx;
+  wr.wr_id = (uint64_t)user_context;
   wr.next = NULL;
   wr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
   wr.send_flags = IBV_SEND_SIGNALED;
@@ -385,7 +385,7 @@ inline error_t ibv_endpoint_impl_t::post_get_impl(int rank, void* buffer,
                                                   size_t size, mr_t mr,
                                                   uintptr_t base,
                                                   uint64_t offset, rkey_t rkey,
-                                                  void* ctx)
+                                                  void* user_context)
 {
   struct ibv_sge list;
   struct ibv_send_wr wr;
@@ -402,7 +402,7 @@ inline error_t ibv_endpoint_impl_t::post_get_impl(int rank, void* buffer,
     wr.sg_list = NULL;
     wr.num_sge = 0;
   }
-  wr.wr_id = (uint64_t)ctx;
+  wr.wr_id = (uint64_t)user_context;
   wr.next = NULL;
   wr.opcode = IBV_WR_RDMA_READ;
   wr.send_flags = IBV_SEND_SIGNALED;

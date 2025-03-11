@@ -15,10 +15,10 @@ status_t post_comm_x::call_impl(
     direction_t direction, int rank, void* local_buffer, size_t size,
     comp_t local_comp, runtime_t runtime, packet_pool_t packet_pool,
     endpoint_t endpoint, matching_engine_t matching_engine,
-    out_comp_type_t out_comp_type, mr_t mr, uintptr_t remote_buffer,
-    rkey_t rkey, tag_t tag, rcomp_t remote_comp, void* ctx, buffers_t buffers,
-    rbuffers_t rbuffers, matching_policy_t matching_policy, bool allow_ok,
-    bool allow_posted, bool allow_retry, bool force_zcopy) const
+    comp_semantic_t comp_semantic, mr_t mr, uintptr_t remote_buffer,
+    rkey_t rkey, tag_t tag, rcomp_t remote_comp, void* user_context,
+    buffers_t buffers, rbuffers_t rbuffers, matching_policy_t matching_policy,
+    bool allow_ok, bool allow_posted, bool allow_retry, bool force_zcopy) const
 {
   // forward delcarations
   packet_t* packet = nullptr;
@@ -81,12 +81,12 @@ status_t post_comm_x::call_impl(
   status_t status;
   status.rank = rank;
   status.tag = tag;
-  status.user_context = ctx;
+  status.user_context = user_context;
   error_t& error = status.error;
   internal_ctx = new internal_context_t;
   internal_ctx->rank = rank;
   internal_ctx->tag = tag;
-  internal_ctx->user_context = ctx;
+  internal_ctx->user_context = user_context;
   data_t& data = internal_ctx->data;
   if (buffers.empty()) {
     data = data_t(buffer_t(local_buffer, size, mr));
@@ -147,7 +147,7 @@ status_t post_comm_x::call_impl(
   // setup protocol (part 2): whether to use the inject protocol
   if (size <= max_inject_size && protocol != protocol_t::zcopy &&
       !piggyback_tag_rcomp_in_packet && direction == direction_t::OUT &&
-      out_comp_type == out_comp_type_t::buffer) {
+      comp_semantic == comp_semantic_t::buffer) {
     // We use the inject protocol only if the five conditions are met:
     // 1. The size of the data is smaller than the maximum inject size.
     // 2. The protocol is not zero-copy.
@@ -216,7 +216,7 @@ status_t post_comm_x::call_impl(
   // 3. The direction is IN (we are doing a recv/get).
   // In other words, eager send/am/put will immediately complete.
   if (protocol == protocol_t::zcopy ||
-      out_comp_type == out_comp_type_t::network ||
+      comp_semantic == comp_semantic_t::network ||
       direction == direction_t::IN) {
     internal_ctx->comp = local_comp;
   }
@@ -273,7 +273,7 @@ status_t post_comm_x::call_impl(
             reinterpret_cast<uintptr_t>(remote_buffer), 0, rkey, imm_data,
             internal_ctx, allow_retry);
       }
-      if (error.is_posted() && out_comp_type == out_comp_type_t::buffer) {
+      if (error.is_posted() && comp_semantic == comp_semantic_t::buffer) {
         error = errorcode_t::ok;
       }
       // end of bcopy protocol
@@ -474,21 +474,21 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
                               comp_t local_comp, rcomp_t remote_comp,
                               runtime_t runtime, packet_pool_t packet_pool,
                               endpoint_t endpoint,
-                              out_comp_type_t out_comp_type, mr_t mr, tag_t tag,
-                              void* ctx, buffers_t buffers, bool allow_ok,
-                              bool allow_posted, bool allow_retry,
-                              bool force_zcopy) const
+                              comp_semantic_t comp_semantic, mr_t mr, tag_t tag,
+                              void* user_context, buffers_t buffers,
+                              bool allow_ok, bool allow_posted,
+                              bool allow_retry, bool force_zcopy) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .runtime(runtime)
       .packet_pool(packet_pool)
       .endpoint(endpoint)
       .matching_engine(matching_engine_t())
-      .out_comp_type(out_comp_type)
+      .comp_semantic(comp_semantic)
       .mr(mr)
       .tag(tag)
       .remote_comp(remote_comp)
-      .ctx(ctx)
+      .user_context(user_context)
       .buffers(buffers)
       .allow_ok(allow_ok)
       .allow_posted(allow_posted)
@@ -499,8 +499,8 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
 status_t post_send_x::call_impl(
     int rank, void* local_buffer, size_t size, tag_t tag, comp_t local_comp,
     runtime_t runtime, packet_pool_t packet_pool, endpoint_t endpoint,
-    matching_engine_t matching_engine, out_comp_type_t out_comp_type, mr_t mr,
-    void* ctx, buffers_t buffers, matching_policy_t matching_policy,
+    matching_engine_t matching_engine, comp_semantic_t comp_semantic, mr_t mr,
+    void* user_context, buffers_t buffers, matching_policy_t matching_policy,
     bool allow_ok, bool allow_posted, bool allow_retry, bool force_zcopy) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
@@ -508,10 +508,10 @@ status_t post_send_x::call_impl(
       .packet_pool(packet_pool)
       .endpoint(endpoint)
       .matching_engine(matching_engine)
-      .out_comp_type(out_comp_type)
+      .comp_semantic(comp_semantic)
       .mr(mr)
       .tag(tag)
-      .ctx(ctx)
+      .user_context(user_context)
       .buffers(buffers)
       .matching_policy(matching_policy)
       .allow_ok(allow_ok)
@@ -524,7 +524,7 @@ status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
                                 tag_t tag, comp_t local_comp, runtime_t runtime,
                                 packet_pool_t packet_pool, endpoint_t endpoint,
                                 matching_engine_t matching_engine, mr_t mr,
-                                void* ctx, buffers_t buffers,
+                                void* user_context, buffers_t buffers,
                                 matching_policy_t matching_policy,
                                 bool allow_ok, bool allow_posted,
                                 bool allow_retry, bool force_zcopy) const
@@ -536,7 +536,7 @@ status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
       .matching_engine(matching_engine)
       .mr(mr)
       .tag(tag)
-      .ctx(ctx)
+      .user_context(user_context)
       .buffers(buffers)
       .matching_policy(matching_policy)
       .allow_ok(allow_ok)
@@ -545,15 +545,13 @@ status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
       .force_zcopy(force_zcopy)();
 }
 
-status_t post_put_x::call_impl(int rank, void* local_buffer, size_t size,
-                               comp_t local_comp, uintptr_t remote_buffer,
-                               rkey_t rkey, runtime_t runtime,
-                               packet_pool_t packet_pool, endpoint_t endpoint,
-                               out_comp_type_t out_comp_type, mr_t mr,
-                               tag_t tag, rcomp_t remote_comp, void* ctx,
-                               buffers_t buffers, rbuffers_t rbuffers,
-                               bool allow_ok, bool allow_posted,
-                               bool allow_retry, bool force_zcopy) const
+status_t post_put_x::call_impl(
+    int rank, void* local_buffer, size_t size, comp_t local_comp,
+    uintptr_t remote_buffer, rkey_t rkey, runtime_t runtime,
+    packet_pool_t packet_pool, endpoint_t endpoint,
+    comp_semantic_t comp_semantic, mr_t mr, tag_t tag, rcomp_t remote_comp,
+    void* user_context, buffers_t buffers, rbuffers_t rbuffers, bool allow_ok,
+    bool allow_posted, bool allow_retry, bool force_zcopy) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .remote_buffer(remote_buffer)
@@ -562,11 +560,11 @@ status_t post_put_x::call_impl(int rank, void* local_buffer, size_t size,
       .packet_pool(packet_pool)
       .endpoint(endpoint)
       .matching_engine(matching_engine_t())
-      .out_comp_type(out_comp_type)
+      .comp_semantic(comp_semantic)
       .mr(mr)
       .tag(tag)
       .remote_comp(remote_comp)
-      .ctx(ctx)
+      .user_context(user_context)
       .buffers(buffers)
       .rbuffers(rbuffers)
       .allow_ok(allow_ok)
@@ -575,12 +573,15 @@ status_t post_put_x::call_impl(int rank, void* local_buffer, size_t size,
       .force_zcopy(force_zcopy)();
 }
 
-status_t post_get_x::call_impl(
-    int rank, void* local_buffer, size_t size, comp_t local_comp,
-    uintptr_t remote_buffer, rkey_t rkey, runtime_t runtime,
-    packet_pool_t packet_pool, endpoint_t endpoint, mr_t mr, tag_t tag,
-    rcomp_t remote_comp, void* ctx, buffers_t buffers, rbuffers_t rbuffers,
-    bool allow_ok, bool allow_posted, bool allow_retry, bool force_zcopy) const
+status_t post_get_x::call_impl(int rank, void* local_buffer, size_t size,
+                               comp_t local_comp, uintptr_t remote_buffer,
+                               rkey_t rkey, runtime_t runtime,
+                               packet_pool_t packet_pool, endpoint_t endpoint,
+                               mr_t mr, tag_t tag, rcomp_t remote_comp,
+                               void* user_context, buffers_t buffers,
+                               rbuffers_t rbuffers, bool allow_ok,
+                               bool allow_posted, bool allow_retry,
+                               bool force_zcopy) const
 {
   return post_comm_x(direction_t::IN, rank, local_buffer, size, local_comp)
       .remote_buffer(remote_buffer)
@@ -592,7 +593,7 @@ status_t post_get_x::call_impl(
       .mr(mr)
       .tag(tag)
       .remote_comp(remote_comp)
-      .ctx(ctx)
+      .user_context(user_context)
       .buffers(buffers)
       .rbuffers(rbuffers)
       .allow_ok(allow_ok)

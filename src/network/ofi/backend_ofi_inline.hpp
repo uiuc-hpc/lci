@@ -81,11 +81,12 @@ inline void* get_mr_desc(mr_t mr)
 }  // namespace ofi_detail
 
 inline error_t ofi_device_impl_t::post_recv_impl(void* buffer, size_t size,
-                                                 mr_t mr, void* ctx)
+                                                 mr_t mr, void* user_context)
 {
   auto mr_desc = fi_mr_desc(static_cast<ofi_mr_impl_t*>(mr.p_impl)->ofi_mr);
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_RECV, errorcode_t::retry_lock);
-  ssize_t ret = fi_recv(ofi_ep, buffer, size, mr_desc, FI_ADDR_UNSPEC, ctx);
+  ssize_t ret =
+      fi_recv(ofi_ep, buffer, size, mr_desc, FI_ADDR_UNSPEC, user_context);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_RECV);
   if (ret == FI_SUCCESS)
     return errorcode_t::ok;
@@ -117,12 +118,12 @@ inline error_t ofi_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
 inline error_t ofi_endpoint_impl_t::post_send_impl(int rank, void* buffer,
                                                    size_t size, mr_t mr,
                                                    net_imm_data_t imm_data,
-                                                   void* ctx)
+                                                   void* user_context)
 {
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
   ssize_t ret = fi_senddata(ofi_ep, buffer, size, ofi_detail::get_mr_desc(mr),
                             (uint64_t)my_rank << 32 | imm_data,
-                            peer_addrs[rank], (struct fi_context*)ctx);
+                            peer_addrs[rank], user_context);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
     return errorcode_t::posted;
@@ -176,7 +177,7 @@ inline error_t ofi_endpoint_impl_t::post_put_impl(int rank, void* buffer,
                                                   size_t size, mr_t mr,
                                                   uintptr_t base,
                                                   uint64_t offset, rkey_t rkey,
-                                                  void* ctx)
+                                                  void* user_context)
 {
   uintptr_t addr;
   if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR ||
@@ -200,7 +201,7 @@ inline error_t ofi_endpoint_impl_t::post_put_impl(int rank, void* buffer,
   riov.key = rkey;
   msg.rma_iov = &riov;
   msg.rma_iov_count = 1;
-  msg.context = ctx;
+  msg.context = user_context;
   msg.data = 0;
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
   ssize_t ret = fi_writemsg(ofi_ep, &msg, FI_DELIVERY_COMPLETE);
@@ -240,7 +241,7 @@ inline error_t ofi_endpoint_impl_t::post_putImms_impl(
 
 inline error_t ofi_endpoint_impl_t::post_putImm_impl(
     int rank, void* buffer, size_t size, mr_t mr, uintptr_t base,
-    uint64_t offset, rkey_t rkey, net_imm_data_t imm_data, void* ctx)
+    uint64_t offset, rkey_t rkey, net_imm_data_t imm_data, void* user_context)
 {
   uintptr_t addr;
   if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR ||
@@ -250,8 +251,9 @@ inline error_t ofi_endpoint_impl_t::post_putImm_impl(
     addr = offset;
   }
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
-  ssize_t ret = fi_writedata(ofi_ep, buffer, size, ofi_detail::get_mr_desc(mr),
-                             imm_data, peer_addrs[rank], addr, rkey, ctx);
+  ssize_t ret =
+      fi_writedata(ofi_ep, buffer, size, ofi_detail::get_mr_desc(mr), imm_data,
+                   peer_addrs[rank], addr, rkey, user_context);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
     return errorcode_t::posted;
@@ -266,7 +268,7 @@ inline error_t ofi_endpoint_impl_t::post_get_impl(int rank, void* buffer,
                                                   size_t size, mr_t mr,
                                                   uintptr_t base,
                                                   uint64_t offset, rkey_t rkey,
-                                                  void* ctx)
+                                                  void* user_context)
 {
   uintptr_t addr;
   if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR ||
@@ -290,12 +292,12 @@ inline error_t ofi_endpoint_impl_t::post_get_impl(int rank, void* buffer,
   riov.key = rkey;
   msg.rma_iov = &riov;
   msg.rma_iov_count = 1;
-  msg.context = ctx;
+  msg.context = user_context;
   msg.data = 0;
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
   ssize_t ret = fi_readmsg(ofi_ep, &msg, FI_COMPLETION);
   // ssize_t ret = fi_read(ofi_ep, buffer, size, desc, peer_addrs[rank], addr,
-  // rkey, ctx);
+  // rkey, user_context);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
     return errorcode_t::posted;

@@ -16,22 +16,23 @@ class backlog_queue_t
                          size_t size, net_imm_data_t imm_data);
   inline void push_send(endpoint_impl_t* endpoint, int rank, void* buffer,
                         size_t size, mr_t mr, net_imm_data_t imm_data,
-                        void* ctx);
+                        void* user_context);
   inline void push_puts(endpoint_impl_t* endpoint, int rank, void* buffer,
                         size_t size, uintptr_t base, uint64_t offset,
                         rkey_t rkey);
   inline void push_put(endpoint_impl_t* endpoint, int rank, void* buffer,
                        size_t size, mr_t mr, uintptr_t base, uint64_t offset,
-                       rkey_t rkey, void* ctx);
+                       rkey_t rkey, void* user_context);
   inline void push_putImms(endpoint_impl_t* endpoint, int rank, void* buffer,
                            size_t size, uintptr_t base, uint64_t offset,
                            rkey_t rkey, net_imm_data_t imm_data);
   inline void push_putImm(endpoint_impl_t* endpoint, int rank, void* buffer,
                           size_t size, mr_t mr, uintptr_t base, uint64_t offset,
-                          rkey_t rkey, net_imm_data_t imm_data, void* ctx);
+                          rkey_t rkey, net_imm_data_t imm_data,
+                          void* user_context);
   inline void push_get(endpoint_impl_t* endpoint, int rank, void* buffer,
                        size_t size, mr_t mr, uintptr_t base, uint64_t offset,
-                       rkey_t rkey, void* ctx);
+                       rkey_t rkey, void* user_context);
   inline bool progress();
   inline bool is_empty() const
   {
@@ -59,7 +60,7 @@ class backlog_queue_t
     uint64_t offset;
     rkey_t rkey;
     net_imm_data_t imm_data;
-    void* ctx;
+    void* user_context;
   };
   // we use a lock-based queue instead of a atomic-based queue for two reasons:
   // 1. we assume that the backlog queue is not used frequently.

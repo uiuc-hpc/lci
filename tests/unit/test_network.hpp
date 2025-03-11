@@ -44,9 +44,13 @@ void test_loopback_mt(int id, int nmsgs, int size, void* address, lci::mr_t mr)
 {
   for (int i = 0; i < nmsgs; ++i) {
     std::atomic<int> count(0);
-    while (lci::net_post_recv_x(address, size, mr).ctx(&count)().is_retry())
+    while (lci::net_post_recv_x(address, size, mr)
+               .user_context(&count)()
+               .is_retry())
       continue;
-    while (lci::net_post_send_x(0, address, size, mr).ctx(&count)().is_retry())
+    while (lci::net_post_send_x(0, address, size, mr)
+               .user_context(&count)()
+               .is_retry())
       continue;
     std::vector<lci::net_status_t> statuses;
     while (count.load() < 2) {

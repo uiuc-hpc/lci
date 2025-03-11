@@ -31,7 +31,7 @@ TEST(COMM_PUT, put_bcopy_st)
     do {
       status = lci::post_put_x(rank, send_buffer, msg_size, cq,
                                reinterpret_cast<uintptr_t>(recv_buffer), rkey)
-                   .out_comp_type(lci::out_comp_type_t::network)();
+                   .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
     } while (status.error.is_retry());
 
@@ -73,7 +73,7 @@ void test_put_bcopy_mt(int id, int nmsgs, uint64_t* p_data)
     do {
       status = lci::post_put_x(rank, send_buffer, msg_size, cq,
                                reinterpret_cast<uintptr_t>(recv_buffer), rkey)
-                   .out_comp_type(lci::out_comp_type_t::network)();
+                   .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
     } while (status.error.is_retry());
 
@@ -144,7 +144,7 @@ TEST(COMM_PUT, put_zcopy_st)
     do {
       status = lci::post_put_x(rank, send_buffer, msg_size, cq,
                                reinterpret_cast<uintptr_t>(recv_buffer), rkey)
-                   .out_comp_type(lci::out_comp_type_t::network)();
+                   .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
     } while (status.error.is_retry());
 
@@ -184,7 +184,7 @@ void test_put_zcopy_mt(int id, int nmsgs)
     do {
       status = lci::post_put_x(rank, send_buffer, msg_size, cq,
                                reinterpret_cast<uintptr_t>(recv_buffer), rkey)
-                   .out_comp_type(lci::out_comp_type_t::network)();
+                   .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
     } while (status.error.is_retry());
 
@@ -262,7 +262,7 @@ TEST(COMM_PUT, put_buffers_st)
       status = lci::post_put_x(rank, nullptr, 0, cq, 0, 0)
                    .buffers(send_buffers)
                    .rbuffers(rbuffers)
-                   .out_comp_type(lci::out_comp_type_t::network)();
+                   .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
     } while (status.error.is_retry());
 
@@ -323,7 +323,7 @@ void test_put_buffers_mt(int id, int nmsgs)
       status = lci::post_put_x(rank, nullptr, 0, cq, 0, 0)
                    .buffers(send_buffers)
                    .rbuffers(rbuffers)
-                   .out_comp_type(lci::out_comp_type_t::network)();
+                   .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
     } while (status.error.is_retry());
 

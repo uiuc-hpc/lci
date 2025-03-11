@@ -1,0 +1,13 @@
+namespace lci {
+
+/** \page ChangeLogs Change Logs
+  %LCI change logs
+  - \subpage Changelog_1_7_3
+  - \subpage Changelog_1_7_4
+  - \subpage Changelog_1_7_5
+  - \subpage Changelog_1_7_6
+  - \subpage Changelog_1_7_7
+  - \subpage Changelog_1_7_8
+*/
+
+}

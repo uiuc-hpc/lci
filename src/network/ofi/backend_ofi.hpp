@@ -67,7 +67,7 @@ class ofi_device_impl_t : public lci::device_impl_t
   rkey_t get_rkey(mr_impl_t* mr) override;
   std::vector<net_status_t> poll_comp_impl(int max_polls) override;
   error_t post_recv_impl(void* buffer, size_t size, mr_t mr,
-                         void* ctx) override;
+                         void* user_context) override;
 
   struct fi_domain_attr* ofi_domain_attr;
   struct fid_domain* ofi_domain;
@@ -87,21 +87,22 @@ class ofi_endpoint_impl_t : public lci::endpoint_impl_t
   error_t post_sends_impl(int rank, void* buffer, size_t size,
                           net_imm_data_t imm_data) override;
   error_t post_send_impl(int rank, void* buffer, size_t size, mr_t mr,
-                         net_imm_data_t imm_data, void* ctx) override;
+                         net_imm_data_t imm_data, void* user_context) override;
   error_t post_puts_impl(int rank, void* buffer, size_t size, uintptr_t base,
                          uint64_t offset, rkey_t rkey) override;
   error_t post_put_impl(int rank, void* buffer, size_t size, mr_t mr,
                         uintptr_t base, uint64_t offset, rkey_t rkey,
-                        void* ctx) override;
+                        void* user_context) override;
   error_t post_putImms_impl(int rank, void* buffer, size_t size, uintptr_t base,
                             uint64_t offset, rkey_t rkey,
                             net_imm_data_t imm_data) override;
   error_t post_putImm_impl(int rank, void* buffer, size_t size, mr_t mr,
                            uintptr_t base, uint64_t offset, rkey_t rkey,
-                           net_imm_data_t imm_data, void* ctx) override;
+                           net_imm_data_t imm_data,
+                           void* user_context) override;
   error_t post_get_impl(int rank, void* buffer, size_t size, mr_t mr,
                         uintptr_t base, uint64_t offset, rkey_t rkey,
-                        void* ctx) override;
+                        void* user_context) override;
 
   ofi_device_impl_t* p_ofi_device;
   int my_rank;

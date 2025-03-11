@@ -35,14 +35,15 @@ class device_impl_t
   virtual rkey_t get_rkey(mr_impl_t* mr) = 0;
   virtual std::vector<net_status_t> poll_comp_impl(int max_polls) = 0;
   virtual error_t post_recv_impl(void* buffer, size_t size, mr_t mr,
-                                 void* ctx) = 0;
+                                 void* user_context) = 0;
 
   // wrapper functions
   inline endpoint_t alloc_endpoint(endpoint_t::attr_t attr);
   inline mr_t register_memory(void* buffer, size_t size);
   inline void deregister_memory(mr_impl_t* mr);
   inline std::vector<net_status_t> poll_comp(int max_polls);
-  inline error_t post_recv(void* buffer, size_t size, mr_t mr, void* ctx);
+  inline error_t post_recv(void* buffer, size_t size, mr_t mr,
+                           void* user_context);
 
   // LCI layer functions
   inline int get_id() const { return device_id; }
@@ -68,6 +69,7 @@ class device_impl_t
 class mr_impl_t
 {
  public:
+  mr_attr_t attr;
   device_t device;
   void* address;
   size_t size;
@@ -91,36 +93,38 @@ class endpoint_impl_t
   virtual error_t post_sends_impl(int rank, void* buffer, size_t size,
                                   net_imm_data_t imm_data) = 0;
   virtual error_t post_send_impl(int rank, void* buffer, size_t size, mr_t mr,
-                                 net_imm_data_t imm_data, void* ctx) = 0;
+                                 net_imm_data_t imm_data,
+                                 void* user_context) = 0;
   virtual error_t post_puts_impl(int rank, void* buffer, size_t size,
                                  uintptr_t base, uint64_t offset,
                                  rkey_t rkey) = 0;
   virtual error_t post_put_impl(int rank, void* buffer, size_t size, mr_t mr,
                                 uintptr_t base, uint64_t offset, rkey_t rkey,
-                                void* ctx) = 0;
+                                void* user_context) = 0;
   virtual error_t post_putImms_impl(int rank, void* buffer, size_t size,
                                     uintptr_t base, uint64_t offset,
                                     rkey_t rkey, net_imm_data_t imm_data) = 0;
   virtual error_t post_putImm_impl(int rank, void* buffer, size_t size, mr_t mr,
                                    uintptr_t base, uint64_t offset, rkey_t rkey,
-                                   net_imm_data_t imm_data, void* ctx) = 0;
+                                   net_imm_data_t imm_data,
+                                   void* user_context) = 0;
   virtual error_t post_get_impl(int rank, void* buffer, size_t size, mr_t mr,
                                 uintptr_t base, uint64_t offset, rkey_t rkey,
-                                void* ctx) = 0;
+                                void* user_context) = 0;
 
   // wrapper functions
   inline error_t post_sends(int rank, void* buffer, size_t size,
                             net_imm_data_t imm_data, bool allow_retry = true,
                             bool force_post = false);
   inline error_t post_send(int rank, void* buffer, size_t size, mr_t mr,
-                           net_imm_data_t imm_data, void* ctx,
+                           net_imm_data_t imm_data, void* user_context,
                            bool allow_retry = true, bool force_post = false);
   inline error_t post_puts(int rank, void* buffer, size_t size, uintptr_t base,
                            uint64_t offset, rkey_t rkey,
                            bool allow_retry = true, bool force_post = false);
   inline error_t post_put(int rank, void* buffer, size_t size, mr_t mr,
                           uintptr_t base, uint64_t offset, rkey_t rkey,
-                          void* ctx, bool allow_retry = true,
+                          void* user_context, bool allow_retry = true,
                           bool force_post = false);
   inline error_t post_putImms(int rank, void* buffer, size_t size,
                               uintptr_t base, uint64_t offset, rkey_t rkey,
@@ -128,11 +132,11 @@ class endpoint_impl_t
                               bool force_post = false);
   inline error_t post_putImm(int rank, void* buffer, size_t size, mr_t mr,
                              uintptr_t base, uint64_t offset, rkey_t rkey,
-                             net_imm_data_t imm_data, void* ctx,
+                             net_imm_data_t imm_data, void* user_context,
                              bool allow_retry = true, bool force_post = false);
   inline error_t post_get(int rank, void* buffer, size_t size, mr_t mr,
                           uintptr_t base, uint64_t offset, rkey_t rkey,
-                          void* ctx, bool allow_retry = true,
+                          void* user_context, bool allow_retry = true,
                           bool force_post = false);
   inline bool progress_backlog_queue() { return backlog_queue.progress(); }
   inline bool is_backlog_queue_empty() const

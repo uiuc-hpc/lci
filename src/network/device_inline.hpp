@@ -14,9 +14,9 @@ inline std::vector<net_status_t> device_impl_t::poll_comp(int max_polls)
 }
 
 inline error_t device_impl_t::post_recv(void* buffer, size_t size, mr_t mr,
-                                        void* ctx)
+                                        void* user_context)
 {
-  error_t error = post_recv_impl(buffer, size, mr, ctx);
+  error_t error = post_recv_impl(buffer, size, mr, user_context);
   if (error.is_retry()) {
     LCI_PCOUNTER_ADD(net_recv_post_retry, 1);
   } else {

@@ -87,7 +87,10 @@ void runtime_impl_t::initialize()
 {
   attr.max_imm_tag = (1ULL << attr.imm_nbits_tag) - 1;
   attr.max_imm_rcomp = (1ULL << attr.imm_nbits_rcomp) - 1;
-  attr.max_tag = std::numeric_limits<tag_t>::max();
+  // We can support up to 32-bit tag for now.
+  // TODO: technically we can support up to 64-bit tag, but we need to change
+  // the matching engine key format.
+  attr.max_tag = std::numeric_limits<uint32_t>::max();
   attr.max_rcomp = std::numeric_limits<rcomp_t>::max();
   net_context = alloc_net_context_x().runtime(runtime)();
 
@@ -154,6 +157,12 @@ endpoint_t get_default_endpoint_x::call_impl(runtime_t runtime) const
 packet_pool_t get_default_packet_pool_x::call_impl(runtime_t runtime) const
 {
   return runtime.p_impl->packet_pool;
+}
+
+matching_engine_t get_default_matching_engine_x::call_impl(
+    runtime_t runtime) const
+{
+  return runtime.p_impl->matching_engine;
 }
 
 }  // namespace lci

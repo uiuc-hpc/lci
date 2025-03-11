@@ -1,3 +1,5 @@
+@page Changelog_1_7_8 Changelog v1.7.8
+
 # Change log for LCI v1.7.8
 
 ## Major Changes
