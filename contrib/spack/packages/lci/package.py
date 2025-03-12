@@ -127,7 +127,6 @@ class Lci(CMakePackage):
             self.define_from_variant("LCI_WITH_TESTS", "tests"),
             self.define_from_variant("LCI_WITH_BENCHMARKS", "benchmarks"),
             self.define_from_variant("LCI_WITH_DOC", "docs"),
-            self.define_from_variant("LCI_ENABLE_MULTITHREAD_PROGRESS", "multithread-progress"),
             self.define_from_variant("LCI_DEBUG", "debug"),
             self.define_from_variant("LCI_USE_PERFORMANCE_COUNTER", "pcounter"),
             self.define_from_variant("LCI_USE_PAPI", "papi"),

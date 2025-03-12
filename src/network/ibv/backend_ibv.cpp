@@ -213,9 +213,6 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
     fprintf(stderr, "Unable to create cq\n");
     exit(EXIT_FAILURE);
   }
-#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
-  LCIU_spinlock_init(&ib_cq_lock);
-#endif
 
   ib_pd = nullptr;
   if (net_context_attr.ibv_td_strategy == attr_ibv_td_strategy_t::all_qp) {
@@ -473,9 +470,6 @@ ibv_device_impl_t::~ibv_device_impl_t()
     IBV_SAFECALL(ibv_dealloc_pd(ib_pd));
     IBV_SAFECALL(ibv_dealloc_td(ib_td));
   }
-#ifdef LCI_ENABLE_MULTITHREAD_PROGRESS
-  LCIU_spinlock_fina(&ib_cq_lock);
-#endif
   IBV_SAFECALL(ibv_destroy_cq(ib_cq));
   IBV_SAFECALL(ibv_destroy_srq(ib_srq));
 }
