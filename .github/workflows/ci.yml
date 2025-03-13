@@ -92,8 +92,5 @@ jobs:
         # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
         run: |
             cd build
-            export LCT_LOG_LEVEL=info
-            /home/runner/work/lci/lci/lcrun -n 2 /home/runner/work/lci/lci/build/examples/lci_test-example-hello_world
-            echo $?
-            # export LCT_PMI_BACKEND=local
-            # ctest --extra-verbose --timeout 120 --rerun-failed --output-on-failure
+            export LCT_PMI_BACKEND=local
+            ctest --extra-verbose --timeout 120 --rerun-failed --output-on-failure
