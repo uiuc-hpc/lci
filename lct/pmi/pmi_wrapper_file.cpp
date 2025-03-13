@@ -8,6 +8,9 @@
 #include <sys/stat.h>
 #include <stdexcept>
 #include <algorithm>
+#include <sys/file.h>
+#include <chrono>
+#include <thread>
 #include "lcti.hpp"
 #include "pmi_wrapper.hpp"
 
@@ -68,6 +71,19 @@ void ensure_directory_exists(const std::string& dirname)
   }
 }
 
+void ensure_path_exists(const std::string& path)
+{
+  // Recursively create the directory if it does not exist.
+  size_t pos = 0;
+  while (true) {
+    pos = path.find('/', pos + 1);
+    if (pos == std::string::npos) {
+      break;
+    }
+    ensure_directory_exists(path.substr(0, pos));
+  }
+}
+
 std::string get_dirname()
 {
   // By default, we use ~/.tmp/lct_pmi_file-<jobid> as the directory name.
@@ -81,9 +97,68 @@ std::string get_dirname()
              "HOME environment variable is not set.");
   std::string dirname = std::string(home_path) + "/.tmp/lct_pmi_file-" +
                         std::to_string(jobid) + "/";
-  ensure_directory_exists(std::string(home_path) + "/.tmp");
-  ensure_directory_exists(dirname);
   return dirname;
+}
+
+bool try_lock_file(int fd)
+{
+  int ret = flock(fd, LOCK_EX | LOCK_NB);
+  if (ret == 0) {
+    return true;
+  } else if (errno == EWOULDBLOCK) {
+    return false;
+  } else {
+    LCT_Assert(LCT_log_ctx_default, false, "Failed to lock file (errno: %d)",
+               errno);
+    return false;
+  }
+}
+
+void lock_file(int fd)
+{
+  int ret = flock(fd, LOCK_EX);
+  LCT_Assert(LCT_log_ctx_default, ret == 0, "Failed to lock file (errno: %d)",
+             errno);
+}
+
+void unlock_file(int fd)
+{
+  int ret = flock(fd, LOCK_UN);
+  LCT_Assert(LCT_log_ctx_default, ret == 0, "Failed to unlock file (errno: %d)",
+             errno);
+}
+
+std::string read_file(int fd, bool from_beginning = false)
+{
+  std::string content;
+  const int read_len = 16;
+  if (from_beginning) {
+    lseek(fd, 0, SEEK_SET);
+  }
+  while (true) {
+    char line[read_len];
+    ssize_t ret = read(fd, line, read_len);
+    if (ret <= 0) {
+      break;
+    }
+    content += std::string(line);
+  }
+  return content;
+}
+
+void write_file(int fd, const std::string& content)
+{
+  ssize_t ret = write(fd, content.c_str(), content.size());
+  LCT_Assert(LCT_log_ctx_default, ret == content.size(),
+             "Error writing file (ret: %d; errno: %d %s): %s", ret, errno,
+             strerror(errno), content.c_str());
+}
+
+void reset_file(int fd, const std::string& content)
+{
+  lseek(fd, 0, SEEK_SET);
+  ftruncate(fd, 0);
+  write_file(fd, content);
 }
 
 }  // namespace detail
@@ -109,40 +184,26 @@ void initialize()
 
   // get the filename
   std::string dirname = detail::get_dirname();
+  detail::ensure_path_exists(dirname);
+
+  // Get nranks
   std::string filename_nranks = dirname + "nranks";
-
-  // Atomically create or open the file for storing the number of ranks.
-  int fd = open(filename_nranks.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0644);
-  if (fd != -1) {
-    // Successfully created the file atomically, write "1"
+  int fd_nranks = open(filename_nranks.c_str(), O_CREAT | O_RDWR, 0644);
+  LCT_Assert(LCT_log_ctx_default, fd_nranks != -1, "Error opening file: %s",
+             filename_nranks.c_str());
+  detail::lock_file(fd_nranks);
+  // Read the number of ranks from the file
+  auto content = detail::read_file(fd_nranks, true);
+  if (content.empty()) {
     g_rank = 0;
-    write(fd, "1\n", 2);
-    close(fd);
-    LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "pmi_file",
-            "Assigned as rank %d/%d\n", g_rank, g_nranks);
+    write(fd_nranks, "1", 1);
   } else {
-    // File already exists, proceed to read and update it safely
-    std::fstream file(filename_nranks, std::ios::in | std::ios::out);
-    LCT_Assert(LCT_log_ctx_default, file.is_open(), "Error opening file: %s",
-               filename_nranks.c_str());
-
-    std::string content;
-    std::getline(file, content);
-
-    LCT_Assert(LCT_log_ctx_default, !content.empty(), "Error: File is empty!");
-    LCT_Assert(LCT_log_ctx_default, detail::isNumber(content),
-               "Error: File contains non-numeric data: %s", content.c_str());
     g_rank = std::stoi(content);
-
-    // Rewrite the updated number
-    file.clear();
-    file.seekp(0);
-    file << g_rank + 1 << std::endl;
-    file.close();
-    LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "pmi_file",
-            "Assigned as rank %d/%d\n", g_rank, g_nranks);
+    detail::reset_file(fd_nranks, std::to_string(g_rank + 1));
   }
-
+  detail::unlock_file(fd_nranks);
+  LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "pmi_file",
+          "Assigned as rank %d/%d\n", g_rank, g_nranks);
   LCT_Assert(LCT_log_ctx_default, g_rank < g_nranks,
              "Error: Rank %d is greater than the number of ranks %d. Remove "
              "the %s and try again\n",
@@ -155,7 +216,7 @@ void initialize()
     int fd = open(filename_barrier.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0644);
     LCT_Assert(LCT_log_ctx_default, fd != -1, "Error creating file: %s",
                filename_barrier.c_str());
-    write(fd, "0 0\n", 4);
+    write(fd, "0 0", 3);
     close(fd);
     // Create the data file
     fd = open(filename_data.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0644);
@@ -163,26 +224,18 @@ void initialize()
                filename_data.c_str());
     close(fd);
     // reset the nranks file to 0
-    std::fstream file(filename_nranks, std::ios::out);
-    file.clear();
-    file.seekp(0);
-    file << "0" << std::endl;
-    file.close();
+    detail::reset_file(fd_nranks, "0");
   } else {
     // Wait for the nranks to be reset to 0
     while (true) {
-      std::fstream file(filename_nranks, std::ios::in);
-      LCT_Assert(LCT_log_ctx_default, file.is_open(), "Error opening file: %s",
-                 filename_nranks.c_str());
-      std::string content;
-      std::getline(file, content);
-      file.close();
+      auto content = detail::read_file(fd_nranks, true);
       if (content == "0") {
         break;
       }
-      sleep(1);
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
   }
+  close(fd_nranks);
   LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "pmi_file",
           "Rank %d/%d initialized\n", g_rank, g_nranks);
 }
@@ -197,11 +250,11 @@ void publish(char* key, char* value)
   // write to the data file
   std::string dirname = detail::get_dirname();
   std::string filename_data = dirname + "data";
-  std::fstream file(filename_data, std::ios::out | std::ios::app);
-  LCT_Assert(LCT_log_ctx_default, file.is_open(), "Error opening file: %s",
+  int fd = open(filename_data.c_str(), O_WRONLY | O_APPEND, 0644);
+  LCT_Assert(LCT_log_ctx_default, fd != -1, "Error opening file: %s",
              filename_data.c_str());
-  file << key << " " << value << std::endl;
-  file.close();
+  detail::write_file(fd, std::string(key) + " " + std::string(value) + "\n");
+  close(fd);
 }
 
 void getname(int rank, char* key, char* value)
@@ -238,58 +291,49 @@ void barrier()
   // read from the barrier file
   std::string dirname = detail::get_dirname();
   std::string filename_barrier = dirname + "barrier";
-  std::fstream file(filename_barrier, std::ios::in | std::ios::out);
-  LCT_Assert(LCT_log_ctx_default, file.is_open(), "Error opening file: %s",
+  int fd = open(filename_barrier.c_str(), O_RDWR, 0644);
+  LCT_Assert(LCT_log_ctx_default, fd != -1, "Error opening file: %s",
              filename_barrier.c_str());
-  std::string line;
-  std::getline(file, line);
-  std::string::size_type pos = line.find(' ');
-  if (pos == std::string::npos) {
-    LCT_Assert(LCT_log_ctx_default, false, "Error reading line: %s",
-               line.c_str());
-  }
-  int tag = std::stoi(line.substr(0, pos));
-  int count = std::stoi(line.substr(pos + 1));
-  count++;
+
+  detail::lock_file(fd);
+  auto content = detail::read_file(fd, true);
+  auto pos = content.find(' ');
+  LCT_Assert(LCT_log_ctx_default, pos != std::string::npos,
+             "Error reading file: %s", content.c_str());
+  int tag = std::stoi(content.substr(0, pos));
+  int count = std::stoi(content.substr(pos + 1));
   LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "pmi_file",
           "Reach the Barrier: tag %d count %d/%d\n", tag, count, g_nranks);
-
-  if (count == g_nranks) {
+  if (count == g_nranks - 1) {
     // Reset the count and increment the tag
-    file.clear();
-    file.seekp(0);
-    file << tag + 1 << " " << 0 << std::endl;
-    file.close();
+    detail::reset_file(fd, std::to_string(tag + 1) + " 0");
+    detail::unlock_file(fd);
   } else {
     // write count back to the file
-    file.clear();
-    file.seekp(0);
-    file << tag << " " << count << std::endl;
-    file.close();
+    detail::reset_file(fd,
+                       std::to_string(tag) + " " + std::to_string(count + 1));
+    detail::unlock_file(fd);
 
     // wait for the tag to change
-    int sleep_time = 1;
+    int sleep_time = 100;
+    int max_sleep_time = 1000;
     while (true) {
-      file.open(filename_barrier, std::ios::in);
-      LCT_Assert(LCT_log_ctx_default, file.is_open(), "Error opening file: %s",
-                 filename_barrier.c_str());
-      std::getline(file, line);
-      std::string::size_type pos = line.find(' ');
-      if (pos == std::string::npos) {
-        LCT_Assert(LCT_log_ctx_default, false, "Error reading line: %s",
-                   line.c_str());
-      }
-      int new_tag = std::stoi(line.substr(0, pos));
-      file.close();
+      detail::lock_file(fd);
+      auto content = detail::read_file(fd, true);
+      auto pos = content.find(' ');
+      LCT_Assert(LCT_log_ctx_default, pos != std::string::npos,
+                 "Error reading file: %s", content.c_str());
+      int new_tag = std::stoi(content.substr(0, pos));
+      detail::unlock_file(fd);
       if (new_tag != tag) {
         break;
       }
-      sleep(sleep_time);
-      sleep_time = std::min(sleep_time * 2, 60);
+      std::this_thread::sleep_for(std::chrono::milliseconds(sleep_time));
+      sleep_time = std::min(sleep_time * 2, max_sleep_time);
     }
   }
   LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "pmi_file",
-          "Barrier Done: tag %d\n", tag, count, g_nranks);
+          "Barrier Done: tag %d\n", tag);
 }
 
 void finalize()
