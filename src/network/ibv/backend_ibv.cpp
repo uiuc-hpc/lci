@@ -34,10 +34,10 @@ ibv_net_context_impl_t::ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_)
 {
   int num_devices;
   ib_dev_list = ibv_get_device_list(&num_devices);
-  if (num_devices <= 0) {
-    fprintf(stderr, "Unable to find any IB devices\n");
-    exit(EXIT_FAILURE);
-  }
+  LCI_Assert(num_devices > 0,
+             "Unable to find any IB devices. Are you running on an Infiniband "
+             "machine? Try the LCI ofi backend by building LCI with "
+             "`-DLCI_SERVER=ofi` and `-DLCI_FORCE_SERVER=ON`.\n");
 
   bool ret = ibv_detail::select_best_device_port(ib_dev_list, num_devices,
                                                  &ib_dev, &ib_dev_port);
@@ -46,30 +46,19 @@ ibv_net_context_impl_t::ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   // ibv_open_device provides the user with a verbs context which is the object
   // that will be used for all other verb operations.
   ib_context = ibv_open_device(ib_dev);
-  if (!ib_context) {
-    fprintf(stderr, "Couldn't get context for %s\n",
-            ibv_get_device_name(ib_dev));
-    exit(EXIT_FAILURE);
-  }
+  LCI_Assert(ib_context, "Couldn't get context for %s\n",
+             ibv_get_device_name(ib_dev));
 
   // allocate protection domain
   ib_pd = ibv_alloc_pd(ib_context);
-  if (!ib_pd) {
-    fprintf(stderr, "Could not create protection domain for context\n");
-    exit(EXIT_FAILURE);
-  }
+  LCI_Assert(ib_pd, "Couldn't allocate PD\n");
 
   // query device attribute
   int rc = ibv_query_device(ib_context, &ib_dev_attr);
-  if (rc != 0) {
-    fprintf(stderr, "Unable to query device\n");
-    exit(EXIT_FAILURE);
-  }
+  LCI_Assert(rc == 0, "Unable to query device\n");
 
-  if (ibv_query_device_ex(ib_context, nullptr, &ib_dev_attrx)) {
-    fprintf(stderr, "Unable to query device for its extended features\n");
-    exit(EXIT_FAILURE);
-  }
+  int rc = ibv_query_device_ex(ib_context, nullptr, &ib_dev_attrx);
+  LCI_Assert(rc == 0, "Unable to query device for its extended features\n");
 
   // configure on-demand paging
   ib_odp_mr = nullptr;
@@ -77,41 +66,31 @@ ibv_net_context_impl_t::ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_)
     const uint32_t rc_caps_mask = IBV_ODP_SUPPORT_SEND | IBV_ODP_SUPPORT_RECV |
                                   IBV_ODP_SUPPORT_WRITE | IBV_ODP_SUPPORT_READ |
                                   IBV_ODP_SUPPORT_SRQ_RECV;
-    if (!(ib_dev_attrx.odp_caps.general_caps & IBV_ODP_SUPPORT) ||
-        (ib_dev_attrx.odp_caps.per_transport_caps.rc_odp_caps & rc_caps_mask) !=
-            rc_caps_mask) {
-      fprintf(stderr, "The device isn't ODP capable\n");
-      exit(EXIT_FAILURE);
-    }
-    if (!(ib_dev_attrx.odp_caps.general_caps & IBV_ODP_SUPPORT_IMPLICIT)) {
-      fprintf(stderr, "The device doesn't support implicit ODP\n");
-      exit(EXIT_FAILURE);
-    }
+    LCI_Assert(ib_dev_attrx.odp_caps.general_caps & IBV_ODP_SUPPORT &&
+                   ib_dev_attrx.odp_caps.per_transport_caps.rc_odp_caps &
+                       rc_caps_mask == rc_caps_mask,
+               "The device isn't ODP capable\n");
+    LCI_Assert(ib_dev_attrx.odp_caps.general_caps & IBV_ODP_SUPPORT_IMPLICIT,
+               "The device doesn't support implicit ODP\n");
     ib_odp_mr = ibv_reg_mr(ib_pd, nullptr, SIZE_MAX,
                            IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ |
                                IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_ON_DEMAND);
-    if (!ib_odp_mr) {
-      fprintf(stderr, "Couldn't register MR\n");
-      exit(EXIT_FAILURE);
-    }
+    LCI_Assert(ib_odp_mr, "Couldn't register MR for ODP\n");
   }
 
   // query port attribute
   uint8_t dev_port = 0;
   for (; dev_port < 128; dev_port++) {
-    rc = ibv_query_port(ib_context, dev_port, &ib_port_attr);
+    int rc = ibv_query_port(ib_context, dev_port, &ib_port_attr);
     if (rc == 0) {
       break;
     }
   }
-  if (rc != 0) {
-    fprintf(stderr, "Unable to query port\n");
-    exit(EXIT_FAILURE);
-  } else if (ib_port_attr.link_layer == IBV_LINK_LAYER_INFINIBAND &&
-             !ib_port_attr.lid) {
-    fprintf(stderr, "Couldn't get local LID\n");
-    exit(EXIT_FAILURE);
-  }
+  LCI_Assert(rc == 0, "Unable to query port\n");
+  LCI_Assert(
+      ib_port_attr.link_layer != IBV_LINK_LAYER_INFINIBAND || ib_port_attr.lid,
+      "Couldn't get local LID\n");
+
   ib_dev_port = dev_port;
   LCI_Log(LOG_INFO, "ibv", "Maximum MTU: %s; Active MTU: %s\n",
           mtu_str(ib_port_attr.max_mtu), mtu_str(ib_port_attr.active_mtu));
@@ -135,10 +114,8 @@ ibv_net_context_impl_t::ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   }
   if (attr.ibv_gid_idx >= 0) {
     LCI_Log(LOG_INFO, "ibv", "Use GID index: %d\n", attr.ibv_gid_idx);
-    if (ibv_query_gid(ib_context, ib_dev_port, attr.ibv_gid_idx, &ib_gid)) {
-      fprintf(stderr, "can't read sgid of index %d\n", attr.ibv_gid_idx);
-      exit(EXIT_FAILURE);
-    }
+    int rc = ibv_query_gid(ib_context, ib_dev_port, attr.ibv_gid_idx, &ib_gid);
+    LCI_Assert(rc == 0, "can't read gid of index %d\n", attr.ibv_gid_idx);
   } else
     memset(&ib_gid, 0, sizeof(ib_gid));
 }
@@ -201,18 +178,12 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
   srq_attr.attr.max_sge = max_sge_num;
   srq_attr.attr.srq_limit = 0;
   ib_srq = ibv_create_srq(p_net_context->ib_pd, &srq_attr);
-  if (!ib_srq) {
-    fprintf(stderr, "Could not create shared received queue\n");
-    exit(EXIT_FAILURE);
-  }
+  LCI_Assert(ib_srq, "Couldn't create SRQ\n");
 
   // Create completion queues.
   ib_cq = ibv_create_cq(p_net_context->ib_context, attr.net_max_cqes, nullptr,
                         nullptr, 0);
-  if (!ib_cq) {
-    fprintf(stderr, "Unable to create cq\n");
-    exit(EXIT_FAILURE);
-  }
+  LCI_Assert(ib_cq, "Couldn't create CQ\n");
 
   ib_pd = nullptr;
   if (net_context_attr.ibv_td_strategy == attr_ibv_td_strategy_t::all_qp) {
@@ -227,12 +198,14 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
       attr.comp_mask = 0;
       ib_pd = ibv_alloc_parent_domain(p_net_context->ib_context, &attr);
       if (ib_pd == nullptr) {
-        LCI_Log(LOG_INFO, "ibv", "ibv_alloc_parent_domain() failed (%s)\n",
-                strerror(errno));
+        LCI_Warn("ibv",
+                 "ibv_alloc_parent_domain() failed (%s); decalloc the thread "
+                 "domain\n",
+                 strerror(errno));
         IBV_SAFECALL(ibv_dealloc_td(ib_td));
       }
     } else {
-      LCI_Log(LOG_INFO, "ibv", "ibv_alloc_td() failed (%s)\n", strerror(errno));
+      LCI_Warn("ibv", "ibv_alloc_td() failed (%s)\n", strerror(errno));
     }
   } else if (net_context_attr.ibv_td_strategy ==
              attr_ibv_td_strategy_t::per_qp) {
@@ -252,13 +225,14 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
         ib_qp_extras[i].ib_pd =
             ibv_alloc_parent_domain(p_net_context->ib_context, &pd_attr);
         if (ib_qp_extras[i].ib_pd == nullptr) {
-          LCI_Log(LOG_INFO, "ibv", "ibv_alloc_parent_domain() failed (%s)\n",
-                  strerror(errno));
+          LCI_Warn("ibv",
+                   "ibv_alloc_parent_domain() failed (%s); decalloc the thread "
+                   "domain\n",
+                   strerror(errno));
           IBV_SAFECALL(ibv_dealloc_td(ib_qp_extras[i].ib_td));
         }
       } else {
-        LCI_Log(LOG_INFO, "ibv", "ibv_alloc_td() failed (%s)\n",
-                strerror(errno));
+        LCI_Warn("ibv", "ibv_alloc_td() failed (%s)\n", strerror(errno));
       }
       if (ib_qp_extras[i].ib_pd == nullptr) {
         ib_qp_extras[i].ib_td = nullptr;
@@ -293,10 +267,7 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
       }
       ib_qps[i] = ibv_create_qp(pd, &init_attr);
 
-      if (!ib_qps[i]) {
-        fprintf(stderr, "Couldn't create QP\n");
-        exit(EXIT_FAILURE);
-      }
+      LCI_Assert(ib_qps[i], "Couldn't create QP\n");
 
       struct ibv_qp_attr qp_attr;
       memset(&qp_attr, 0, sizeof(qp_attr));
@@ -327,10 +298,7 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
       int flags =
           IBV_QP_STATE | IBV_QP_PKEY_INDEX | IBV_QP_PORT | IBV_QP_ACCESS_FLAGS;
       int rc = ibv_modify_qp(ib_qps[i], &attr, flags);
-      if (rc != 0) {
-        fprintf(stderr, "Failed to modify QP to INIT\n");
-        exit(EXIT_FAILURE);
-      }
+      LCI_Assert(rc == 0, "Failed to modify QP to INIT\n");
     }
     char wgid[ibv_detail::WIRE_GID_NBYTES + 1];
     memset(wgid, 0, sizeof(wgid));
@@ -397,10 +365,7 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
                   IBV_QP_MIN_RNR_TIMER;
 
       int rc = ibv_modify_qp(ib_qps[i], &attr, flags);
-      if (rc != 0) {
-        fprintf(stderr, "failed to modify QP state to RTR\n");
-        exit(EXIT_FAILURE);
-      }
+      LCI_Assert(rc == 0, "Failed to modify QP to RTR\n");
     }
     // Once a queue pair (QP) has reached ready to receive (RTR) state,
     // it may then be transitioned to the ready to send (RTS) state.
@@ -419,10 +384,7 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
       int flags = IBV_QP_STATE | IBV_QP_TIMEOUT | IBV_QP_RETRY_CNT |
                   IBV_QP_RNR_RETRY | IBV_QP_SQ_PSN | IBV_QP_MAX_QP_RD_ATOMIC;
       int rc = ibv_modify_qp(ib_qps[i], &attr, flags);
-      if (rc != 0) {
-        fprintf(stderr, "failed to modify QP state to RTS\n");
-        exit(EXIT_FAILURE);
-      }
+      LCI_Assert(rc == 0, "Failed to modify QP to RTS\n");
     }
   }
 
