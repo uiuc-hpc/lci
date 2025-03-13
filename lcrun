@@ -28,6 +28,6 @@ done
 # launch the command nprocs times nonblockingly
 shift 2
 for i in $(seq 1 ${nprocs}); do
-  exec $@ &
+  "$@" &
 done
 wait # wait for all background jobs to finish
