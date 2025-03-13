@@ -216,7 +216,7 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
 
   ib_pd = nullptr;
   if (net_context_attr.ibv_td_strategy == attr_ibv_td_strategy_t::all_qp) {
-    // allocate thread domain
+    // allocate one thread domain for all queue pairs
     struct ibv_td_init_attr td_attr;
     td_attr.comp_mask = 0;
     ib_td = ibv_alloc_td(p_net_context->ib_context, &td_attr);
@@ -234,12 +234,9 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
     } else {
       LCI_Log(LOG_INFO, "ibv", "ibv_alloc_td() failed (%s)\n", strerror(errno));
     }
-  }
-  if (ib_pd == nullptr) {
-    ib_td = nullptr;
-    ib_pd = p_net_context->ib_pd;
   } else if (net_context_attr.ibv_td_strategy ==
              attr_ibv_td_strategy_t::per_qp) {
+    // allocate one thread domain for each queue pair
     ib_qp_extras.resize(get_nranks());
     for (int i = 0; i < get_nranks(); ++i) {
       // allocate thread domain
@@ -268,6 +265,10 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
         ib_qp_extras[i].ib_pd = p_net_context->ib_pd;
       }
     }
+  }
+  if (ib_pd == nullptr) {
+    ib_td = nullptr;
+    ib_pd = p_net_context->ib_pd;
   }
 
   ib_qps.resize(get_nranks());
