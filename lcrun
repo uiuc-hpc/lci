@@ -21,7 +21,7 @@ clean_up() {
 }
 
 # Kill all children on exit or error
-for sig in EXIT INT TERM; do
+for sig in INT TERM; do
   trap clean_up $sig
 done
 
