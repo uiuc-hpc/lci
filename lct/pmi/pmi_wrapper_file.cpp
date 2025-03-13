@@ -137,6 +137,7 @@ std::string read_file(int fd, bool from_beginning = false)
   }
   while (true) {
     char line[read_len];
+    memset(line, 0, read_len);
     ssize_t ret = read(fd, line, read_len);
     if (ret <= 0) {
       break;
