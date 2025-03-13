@@ -39,9 +39,7 @@ jobs:
                 -B lci/build \
                 -DCMAKE_BUILD_TYPE=Debug \
                 -DLCI_DEBUG=ON \
-                -DLCI_NETWORK_BACKENDS=ofi,ibv \
-                -DLCT_PMI_BACKEND_ENABLE_MPI=ON \
-                -DLCI_USE_CTEST_ARGS="--oversubscribe"
+                -DLCI_NETWORK_BACKENDS=ofi,ibv
       - run:
           name: Running CMake Build
           command: |
