@@ -57,7 +57,7 @@ ibv_net_context_impl_t::ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   int rc = ibv_query_device(ib_context, &ib_dev_attr);
   LCI_Assert(rc == 0, "Unable to query device\n");
 
-  int rc = ibv_query_device_ex(ib_context, nullptr, &ib_dev_attrx);
+  rc = ibv_query_device_ex(ib_context, nullptr, &ib_dev_attrx);
   LCI_Assert(rc == 0, "Unable to query device for its extended features\n");
 
   // configure on-demand paging
@@ -81,7 +81,7 @@ ibv_net_context_impl_t::ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   // query port attribute
   uint8_t dev_port = 0;
   for (; dev_port < 128; dev_port++) {
-    int rc = ibv_query_port(ib_context, dev_port, &ib_port_attr);
+    rc = ibv_query_port(ib_context, dev_port, &ib_port_attr);
     if (rc == 0) {
       break;
     }
@@ -114,7 +114,7 @@ ibv_net_context_impl_t::ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   }
   if (attr.ibv_gid_idx >= 0) {
     LCI_Log(LOG_INFO, "ibv", "Use GID index: %d\n", attr.ibv_gid_idx);
-    int rc = ibv_query_gid(ib_context, ib_dev_port, attr.ibv_gid_idx, &ib_gid);
+    rc = ibv_query_gid(ib_context, ib_dev_port, attr.ibv_gid_idx, &ib_gid);
     LCI_Assert(rc == 0, "can't read gid of index %d\n", attr.ibv_gid_idx);
   } else
     memset(&ib_gid, 0, sizeof(ib_gid));
