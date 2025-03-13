@@ -3,13 +3,13 @@ lct_option(
   STRING
   "A list of process management backend with comma/space/semicolon as delimitors.
       LCT will try each entry one by one until it found an available backend to use
-      (available entries: pmi1, pmi2, pmix, mpi, local)"
-  "pmix;pmi2;pmi1;mpi;local")
+      (available entries: pmi1, pmi2, pmix, mpi, file, local)"
+  "pmix;pmi2;pmi1;mpi;file;local")
 
 set(LIBRARY_NAME LCT)
 
 target_sources_relative(${LIBRARY_NAME} PRIVATE pmi_wrapper.cpp
-                        pmi_wrapper_local.cpp)
+                        pmi_wrapper_local.cpp pmi_wrapper_file.cpp)
 
 find_package(PMI)
 option(LCT_PMI_BACKEND_ENABLE_PMI1

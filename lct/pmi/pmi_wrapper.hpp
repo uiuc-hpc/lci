@@ -19,6 +19,7 @@ struct ops_t {
 };
 
 void local_setup_ops(struct ops_t* ops);
+void file_setup_ops(struct ops_t* ops);
 
 #ifdef LCT_PMI_BACKEND_ENABLE_PMI1
 void pmi1_setup_ops(struct ops_t* ops);

@@ -253,7 +253,7 @@ if(NOT LCI_WITH_LCT_ONLY)
   add_subdirectory(third_party)
 
   if(LCI_WITH_EXAMPLES)
-    # add_subdirectory(examples)
+    add_subdirectory(examples)
   endif()
   if(LCI_WITH_BENCHMARKS)
     # add_subdirectory(benchmarks)

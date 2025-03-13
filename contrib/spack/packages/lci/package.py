@@ -94,7 +94,7 @@ class Lci(CMakePackage):
     variant(
         "enable-pm",
         description="Process management backends to enable",
-        values=disjoint_sets(("auto",), ("pmix", "pmi2", "pmi1", "mpi", "local"))
+        values=disjoint_sets(("auto",), ("pmix", "pmi2", "pmi1", "mpi", "file", "local"))
         .prohibit_empty_set()
         .with_default("auto")
         .with_non_feature_values("auto"),

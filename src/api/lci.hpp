@@ -6,7 +6,9 @@
 
 #include <memory>
 #include <stdexcept>
+#include <vector>
 #include <string>
+#include <cstring>
 
 #include "lci_config.hpp"
 

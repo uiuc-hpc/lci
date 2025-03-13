@@ -106,6 +106,6 @@ int get_rank_x::call_impl() const { return g_rank; }
 
 int get_nranks_x::call_impl() const { return g_nranks; }
 
-bool is_active_x::call_impl() const { return is_active; }
+bool is_active_x::call_impl() const { return g_is_active; }
 
 }  // namespace lci

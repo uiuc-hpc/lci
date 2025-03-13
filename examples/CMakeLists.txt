@@ -1,0 +1,14 @@
+function(add_lci_examples)
+  foreach(name ${ARGN})
+    string(REGEX REPLACE "\\.[^.]*$" "" name_without_ext ${name})
+    add_lci_executable(${name_without_ext} ${name})
+  endforeach()
+  add_lci_tests(TESTS ${ARGN} LABELS example COMMANDS
+                "${SRUN_EXE} -n 2 ${SRUN_EXTRA_ARG} [TARGET]")
+endfunction()
+
+option(LCI_BUILD_EXAMPLES "Build examples by default" ON)
+if(NOT LCI_BUILD_EXAMPLES)
+  set(EXCLUDE_FROM_ALL ON)
+endif()
+add_lci_examples(hello_world.cpp)
