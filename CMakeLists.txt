@@ -61,8 +61,17 @@ if(NOT LCI_WITH_LCT_ONLY)
   # ############################################################################
   # Figure out which network backend to use
   # ############################################################################
+  set(LCI_NETWORK_BACKENDS_DEFAULT ibv ofi ucx)
+
+  # check the alias LCI_SERVER
+  if(LCI_SERVER)
+    message(
+      WARNING "LCI_SERVER is deprecated. Use LCI_NETWORK_BACKENDS instead.")
+    set(LCI_NETWORK_BACKENDS_DEFAULT ${LCI_SERVER})
+  endif()
+
   set(LCI_NETWORK_BACKENDS
-      ibv ofi ucx
+      ${LCI_NETWORK_BACKENDS_DEFAULT}
       CACHE STRING "Network backends to build.")
   string(REPLACE "," ";" LCI_NETWORK_BACKENDS "${LCI_NETWORK_BACKENDS}")
 
