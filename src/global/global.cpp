@@ -71,7 +71,7 @@ void global_initialize()
   if (global_ini_counter++ > 0) return;
 
   if (getenv("LCI_INIT_ATTACH_DEBUGGER")) {
-    int i = 1;
+    volatile int i = 1;
     printf("PID %d is waiting to be attached\n", getpid());
     while (i) continue;
   }
