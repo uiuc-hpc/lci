@@ -121,9 +121,6 @@ class Lci(CMakePackage):
 
     def cmake_args(self):
         args = [
-            self.define_from_variant("LCI_SERVER", "fabric", when="@1"),
-            self.define("LCI_FORCE_SERVER", True, when="@1"),
-            self.define_from_variant("LCI_NETWORK_BACKENDS", "fabric", when="@2"),
             self.define_from_variant("LCI_WITH_EXAMPLES", "examples"),
             self.define_from_variant("LCI_WITH_TESTS", "tests"),
             self.define_from_variant("LCI_WITH_BENCHMARKS", "benchmarks"),
@@ -132,10 +129,6 @@ class Lci(CMakePackage):
             self.define_from_variant("LCI_USE_PERFORMANCE_COUNTER", "pcounter"),
             self.define_from_variant("LCI_USE_PAPI", "papi"),
         ]
-
-        if not self.spec.satisfies("dreg=auto"):
-            arg = self.define_from_variant("LCI_USE_DREG_DEFAULT", "dreg")
-            args.append(arg)
 
         if not self.spec.satisfies("enable-pm=auto"):
             arg = self.define("LCT_PMI_BACKEND_ENABLE_PMI1", "enable-pm=pmi1" in self.spec)
@@ -179,5 +172,18 @@ class Lci(CMakePackage):
         if not self.spec.satisfies("fabric-ncqes-max=auto"):
             arg = self.define_from_variant("LCI_SERVER_MAX_CQES_DEFAULT", "fabric-ncqes-max")
             args.append(arg)
+
+        if self.spec.satisfies("@1"):
+            args += [
+                self.define_from_variant("LCI_SERVER", "fabric"),
+                self.define("LCI_FORCE_SERVER", True),
+            ]
+            if not self.spec.satisfies("dreg=auto"):
+                arg = self.define_from_variant("LCI_USE_DREG_DEFAULT", "dreg")
+                args.append(arg)
+        else:
+            args += [
+                self.define_from_variant("LCI_NETWORK_BACKENDS", "fabric"),
+            ]
 
         return args
