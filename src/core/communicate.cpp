@@ -14,7 +14,7 @@ enum class protocol_t {
 status_t post_comm_x::call_impl(
     direction_t direction, int rank, void* local_buffer, size_t size,
     comp_t local_comp, runtime_t runtime, packet_pool_t packet_pool,
-    endpoint_t endpoint, matching_engine_t matching_engine,
+    device_t device, endpoint_t endpoint, matching_engine_t matching_engine,
     comp_semantic_t comp_semantic, mr_t mr, uintptr_t remote_buffer,
     rkey_t rkey, tag_t tag, rcomp_t remote_comp, void* user_context,
     buffers_t buffers, rbuffers_t rbuffers, matching_policy_t matching_policy,
@@ -27,7 +27,6 @@ status_t post_comm_x::call_impl(
   bool user_provided_packet = false;
 
   // basic resources
-  device_t device = endpoint.p_impl->device;
   net_context_t net_context = device.p_impl->net_context;
 
   // basic conditions
@@ -37,7 +36,7 @@ status_t post_comm_x::call_impl(
   bool is_recv = direction == direction_t::IN && local_buffer_only;
   size_t max_inject_size = net_context.get_attr_max_inject_size();
   size_t max_bcopy_size =
-      get_max_bcopy_size_x().runtime(runtime).endpoint(endpoint).packet_pool(
+      get_max_bcopy_size_x().runtime(runtime).packet_pool(
           packet_pool)();
 
   // basic checks
@@ -473,7 +472,7 @@ exit:
 status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
                               comp_t local_comp, rcomp_t remote_comp,
                               runtime_t runtime, packet_pool_t packet_pool,
-                              endpoint_t endpoint,
+                              device_t device, endpoint_t endpoint,
                               comp_semantic_t comp_semantic, mr_t mr, tag_t tag,
                               void* user_context, buffers_t buffers,
                               bool allow_ok, bool allow_posted,
@@ -498,7 +497,7 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
 
 status_t post_send_x::call_impl(
     int rank, void* local_buffer, size_t size, tag_t tag, comp_t local_comp,
-    runtime_t runtime, packet_pool_t packet_pool, endpoint_t endpoint,
+    runtime_t runtime, packet_pool_t packet_pool, device_t device, endpoint_t endpoint,
     matching_engine_t matching_engine, comp_semantic_t comp_semantic, mr_t mr,
     void* user_context, buffers_t buffers, matching_policy_t matching_policy,
     bool allow_ok, bool allow_posted, bool allow_retry, bool force_zcopy) const
@@ -522,7 +521,7 @@ status_t post_send_x::call_impl(
 
 status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
                                 tag_t tag, comp_t local_comp, runtime_t runtime,
-                                packet_pool_t packet_pool, endpoint_t endpoint,
+                                packet_pool_t packet_pool, device_t device, endpoint_t endpoint,
                                 matching_engine_t matching_engine, mr_t mr,
                                 void* user_context, buffers_t buffers,
                                 matching_policy_t matching_policy,
@@ -548,7 +547,7 @@ status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
 status_t post_put_x::call_impl(
     int rank, void* local_buffer, size_t size, comp_t local_comp,
     uintptr_t remote_buffer, rkey_t rkey, runtime_t runtime,
-    packet_pool_t packet_pool, endpoint_t endpoint,
+    packet_pool_t packet_pool, device_t device, endpoint_t endpoint,
     comp_semantic_t comp_semantic, mr_t mr, tag_t tag, rcomp_t remote_comp,
     void* user_context, buffers_t buffers, rbuffers_t rbuffers, bool allow_ok,
     bool allow_posted, bool allow_retry, bool force_zcopy) const
@@ -576,7 +575,7 @@ status_t post_put_x::call_impl(
 status_t post_get_x::call_impl(int rank, void* local_buffer, size_t size,
                                comp_t local_comp, uintptr_t remote_buffer,
                                rkey_t rkey, runtime_t runtime,
-                               packet_pool_t packet_pool, endpoint_t endpoint,
+                               packet_pool_t packet_pool, device_t device, endpoint_t endpoint,
                                mr_t mr, tag_t tag, rcomp_t remote_comp,
                                void* user_context, buffers_t buffers,
                                rbuffers_t rbuffers, bool allow_ok,
@@ -602,7 +601,7 @@ status_t post_get_x::call_impl(int rank, void* local_buffer, size_t size,
       .force_zcopy(force_zcopy)();
 }
 
-size_t get_max_bcopy_size_x::call_impl(runtime_t runtime, endpoint_t endpoint,
+size_t get_max_bcopy_size_x::call_impl(runtime_t runtime,
                                        packet_pool_t packet_pool) const
 {
   // TODO: we can refine the maximum buffer-copy size based on more information

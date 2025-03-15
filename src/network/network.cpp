@@ -20,7 +20,16 @@ device_impl_t::device_impl_t(net_context_t context_, attr_t attr_)
   device_id = g_ndevices++;
   runtime = net_context.p_impl->runtime;
   device.p_impl = this;
+  if (attr.alloc_default_endpoint)
+    default_endpoint = alloc_endpoint_x().runtime(runtime).device(device)();
 };
+
+device_impl_t::~device_impl_t()
+{
+  if (!default_endpoint.is_empty()) {
+    free_endpoint_x(&default_endpoint).runtime(runtime)();
+  }
+}
 
 endpoint_t device_impl_t::alloc_endpoint(endpoint_t::attr_t attr)
 {
@@ -102,7 +111,7 @@ void free_net_context_x::call_impl(net_context_t* net_context,
 
 device_t alloc_device_x::call_impl(runtime_t runtime, int64_t net_max_sends,
                                    int64_t net_max_recvs, int64_t net_max_cqes,
-                                   uint64_t ofi_lock_mode, void* user_context,
+                                   uint64_t ofi_lock_mode, bool alloc_default_endpoint, void* user_context,
                                    net_context_t net_context) const
 {
   device_t::attr_t attr;
@@ -110,6 +119,7 @@ device_t alloc_device_x::call_impl(runtime_t runtime, int64_t net_max_sends,
   attr.net_max_recvs = net_max_recvs;
   attr.net_max_cqes = net_max_cqes;
   attr.ofi_lock_mode = ofi_lock_mode;
+  attr.alloc_default_endpoint = alloc_default_endpoint;
   attr.user_context = user_context;
   auto device = net_context.p_impl->alloc_device(attr);
   packet_pool_t packet_pool = get_default_packet_pool_x().runtime(runtime)();

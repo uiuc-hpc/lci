@@ -92,10 +92,10 @@ void runtime_impl_t::initialize()
   // the matching engine key format.
   attr.max_tag = std::numeric_limits<uint32_t>::max();
   attr.max_rcomp = std::numeric_limits<rcomp_t>::max();
-  net_context = alloc_net_context_x().runtime(runtime)();
+  default_net_context = alloc_net_context_x().runtime(runtime)();
 
-  if (net_context.get_attr().backend == attr_backend_t::ofi &&
-      net_context.get_attr().ofi_provider_name == "cxi") {
+  if (default_net_context.get_attr().backend == attr_backend_t::ofi &&
+      default_net_context.get_attr().ofi_provider_name == "cxi") {
     // special setting for libfabric/cxi
     // LCI_Assert(attr.use_reg_cache == false,
     //            "The registration cache should be turned off "
@@ -112,57 +112,53 @@ void runtime_impl_t::initialize()
     }
   }
   if (attr.alloc_default_packet_pool) {
-    packet_pool = alloc_packet_pool_x().runtime(runtime)();
+    default_packet_pool = alloc_packet_pool_x().runtime(runtime)();
   }
   if (attr.alloc_default_device) {
-    device = alloc_device_x().runtime(runtime)();
-    endpoint = alloc_endpoint_x().runtime(runtime)();
+    default_device = alloc_device_x().runtime(runtime)();
   }
   if (attr.alloc_default_matching_engine) {
-    matching_engine = alloc_matching_engine_x().runtime(runtime)();
+    default_matching_engine = alloc_matching_engine_x().runtime(runtime)();
   }
 }
 
 runtime_impl_t::~runtime_impl_t()
 {
-  if (!endpoint.is_empty()) {
-    free_endpoint_x(&endpoint).runtime(runtime)();
+  if (!default_device.is_empty()) {
+    free_device_x(&default_device).runtime(runtime)();
   }
-  if (!device.is_empty()) {
-    free_device_x(&device).runtime(runtime)();
+  if (!default_packet_pool.is_empty()) {
+    free_packet_pool_x(&default_packet_pool).runtime(runtime)();
   }
-  if (!packet_pool.is_empty()) {
-    free_packet_pool_x(&packet_pool).runtime(runtime)();
-  }
-  if (!net_context.is_empty()) {
-    free_net_context_x(&net_context).runtime(runtime)();
+  if (!default_net_context.is_empty()) {
+    free_net_context_x(&default_net_context).runtime(runtime)();
   }
 }
 
 net_context_t get_default_net_context_x::call_impl(runtime_t runtime) const
 {
-  return runtime.p_impl->net_context;
+  return runtime.p_impl->default_net_context;
 }
 
 device_t get_default_device_x::call_impl(runtime_t runtime) const
 {
-  return runtime.p_impl->device;
+  return runtime.p_impl->default_device;
 }
 
-endpoint_t get_default_endpoint_x::call_impl(runtime_t runtime) const
+endpoint_t get_default_endpoint_x::call_impl(runtime_t runtime, device_t device) const
 {
-  return runtime.p_impl->endpoint;
+  return device.p_impl->default_endpoint;
 }
 
 packet_pool_t get_default_packet_pool_x::call_impl(runtime_t runtime) const
 {
-  return runtime.p_impl->packet_pool;
+  return runtime.p_impl->default_packet_pool;
 }
 
 matching_engine_t get_default_matching_engine_x::call_impl(
     runtime_t runtime) const
 {
-  return runtime.p_impl->matching_engine;
+  return runtime.p_impl->default_matching_engine;
 }
 
 }  // namespace lci

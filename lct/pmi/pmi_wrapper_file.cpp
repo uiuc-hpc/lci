@@ -158,7 +158,9 @@ void write_file(int fd, const std::string& content)
 void reset_file(int fd, const std::string& content)
 {
   lseek(fd, 0, SEEK_SET);
-  ftruncate(fd, 0);
+  int ret = ftruncate(fd, 0);
+  LCT_Assert(LCT_log_ctx_default, ret == 0, "Error truncating file (errno: %d %s)",
+             errno, strerror(errno));
   write_file(fd, content);
 }
 
@@ -197,7 +199,7 @@ void initialize()
   auto content = detail::read_file(fd_nranks, true);
   if (content.empty()) {
     g_rank = 0;
-    write(fd_nranks, "1", 1);
+    detail::reset_file(fd_nranks, "1");
   } else {
     g_rank = std::stoi(content);
     detail::reset_file(fd_nranks, std::to_string(g_rank + 1));
@@ -217,7 +219,7 @@ void initialize()
     int fd = open(filename_barrier.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0644);
     LCT_Assert(LCT_log_ctx_default, fd != -1, "Error creating file: %s",
                filename_barrier.c_str());
-    write(fd, "0 0", 3);
+    detail::reset_file(fd, "0 0");
     close(fd);
     // Create the data file
     fd = open(filename_data.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0644);

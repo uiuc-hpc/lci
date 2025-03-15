@@ -18,12 +18,11 @@ class runtime_impl_t
 
   runtime_t runtime;
   runtime_t::attr_t attr;
-  net_context_t net_context;
-  device_t device;
-  endpoint_t endpoint;
-  packet_pool_t packet_pool;
-  rhandler_registry_t rhandler_registry;
-  matching_engine_t matching_engine;
+  net_context_t default_net_context;
+  device_t default_device;
+  packet_pool_t default_packet_pool;
+  rhandler_registry_t default_rhandler_registry;
+  matching_engine_t default_matching_engine;
 };
 }  // namespace lci
 

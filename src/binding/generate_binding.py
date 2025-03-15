@@ -6,6 +6,9 @@ import os, sys
 import glob
 import importlib
 
+resource_dict = {}
+operation_dict = {}
+
 def generate_doc(item):
   doc = {}
   if "doc" in item:
@@ -410,19 +413,28 @@ namespace lci {{
 """
   return template.format(main_body)
 
+def build_dicts(input):
+  for item in input:
+    if item["category"] == "resource":
+      resource_dict[item["name"]] = item
+    elif item["category"] == "operation":
+      operation_dict[item["name"]] = item
+
 def generate_binding(input):
   if os.path.exists(output_dir) == False:
     os.mkdir(output_dir)
 
+  build_dicts(input)
+
   header_path = output_dir + "/lci_binding_pre.hpp"
   with open(header_path, "w") as f:
     f.write(generate_header_pre(input))
-    print(f"Generated binding header in {os.path.abspath(f.name)}")
+    print(f"Generated binding header_pre in {os.path.abspath(f.name)}")
 
   header_path = output_dir + "/lci_binding_post.hpp"
   with open(header_path, "w") as f:
     f.write(generate_header_post(input))
-    print(f"Generated binding header in {os.path.abspath(f.name)}")
+    print(f"Generated binding header_post in {os.path.abspath(f.name)}")
 
   source_path = output_dir + "/binding.cpp"
   with open(source_path, "w") as f:

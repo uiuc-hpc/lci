@@ -145,7 +145,7 @@ inline void handle_rdv_rts(runtime_t runtime, endpoint_t endpoint,
   rdv_type_t rdv_type = rts->rdv_type;
   LCI_DBG_Log(LOG_TRACE, "rdv", "handle rts: rdv_type %d\n", rdv_type);
 
-  auto entry = runtime.p_impl->rhandler_registry.get(rts->rcomp);
+  auto entry = runtime.p_impl->default_rhandler_registry.get(rts->rcomp);
   if (entry.type == rhandler_registry_t::type_t::matching_engine) {
     // send recv
     packet->local_context.tag = rts->tag;
@@ -183,7 +183,7 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
     rdv_ctx->data = rts->alloc_data();
     rdv_ctx->user_context = NULL;
     rdv_ctx->rdv_type = rdv_type;
-    auto entry = runtime.p_impl->rhandler_registry.get(rts->rcomp);
+    auto entry = runtime.p_impl->default_rhandler_registry.get(rts->rcomp);
     LCI_DBG_Assert(entry.type == rhandler_registry_t::type_t::comp, "");
     rdv_ctx->comp.p_impl = reinterpret_cast<comp_impl_t*>(entry.value);
   } else {

@@ -28,7 +28,7 @@ class device_impl_t
 
   // functions for backends to implement
   device_impl_t(net_context_t context_, attr_t attr_);
-  virtual ~device_impl_t() = default;
+  virtual ~device_impl_t();
   virtual endpoint_t alloc_endpoint_impl(endpoint_t::attr_t attr) = 0;
   virtual mr_t register_memory_impl(void* buffer, size_t size) = 0;
   virtual void deregister_memory_impl(mr_impl_t* mr) = 0;
@@ -54,6 +54,7 @@ class device_impl_t
   inline void consume_recvs(int n) { nrecvs_posted -= n; }
 
   attr_t attr;
+  endpoint_t default_endpoint;
   device_t device;
   runtime_t runtime;
   net_context_t net_context;

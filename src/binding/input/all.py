@@ -71,6 +71,12 @@ operation(
 resource_runtime := resource(
     "runtime", 
     runtime_attr,
+    children=[
+        "net_context",
+        "device",
+        "packet_pool",
+        "matching_engine",
+    ],
     doc = {
         "in_group": "LCI_SETUP",
         "brief": "The runtime object.",
@@ -138,6 +144,10 @@ resource_device := resource(
         attr("int64_t", "net_max_recvs", default_value="LCI_BACKEND_MAX_RECVS_DEFAULT", comment="The maximum number of receives that can be posted to the underlying network queue at the same time."),
         attr("int64_t", "net_max_cqes", default_value="LCI_BACKEND_MAX_CQES_DEFAULT", comment="The maximum number of CQEs that can reside in the underlying network queue at the same time."),
         attr("uint64_t", "ofi_lock_mode", comment="For the OFI backend: the lock mode for the device."),
+        attr("bool", "alloc_default_endpoint", default_value=1, comment="Whether to allocate the default endpoint."),
+    ],
+    children=[
+        "endpoint",
     ],
     doc = {
         "in_group": "LCI_RESOURCE",
@@ -147,7 +157,7 @@ resource_device := resource(
 operation_alloc(
     resource_device, 
     [
-        optional_arg("net_context_t", "net_context", "runtime.p_impl->net_context", comment="The network context to allocate the device.")
+        optional_arg("net_context_t", "net_context", "runtime.get_impl()->default_net_context", comment="The network context to allocate the device.")
     ]
 ),
 operation_free(resource_device),
@@ -164,7 +174,7 @@ operation(
     "register_memory", 
     [
         optional_runtime_args,
-        optional_arg("device_t", "device", default_value="runtime.p_impl->device", comment="The device to register the memory region."),
+        optional_arg("device_t", "device", default_value="runtime.get_impl()->default_device", comment="The device to register the memory region."),
         positional_arg("void*", "address", comment="The base address of the memory region to register."),
         positional_arg("size_t", "size", comment="The size of the memory region to register."),
         return_val("mr_t", "mr", comment="The handler for the registered memory region.")
@@ -208,7 +218,7 @@ resource_endpoint := resource(
 operation_alloc(
     resource_endpoint, 
     [
-        optional_arg("device_t", "device", default_value="runtime.p_impl->device", comment="The device to allocate the endpoint.")
+        optional_arg("device_t", "device", default_value="runtime.get_impl()->default_device", comment="The device to allocate the endpoint.")
     ]
 ),
 operation_free(resource_endpoint),
@@ -217,7 +227,7 @@ operation(
     "net_poll_cq", 
     [
         optional_runtime_args,
-        optional_arg("device_t", "device", default_value="runtime.p_impl->device", comment="The device to poll the network completion queue."),
+        optional_arg("device_t", "device", default_value="runtime.get_impl()->default_device", comment="The device to poll the network completion queue."),
         optional_arg("int", "max_polls", default_value=20, comment="The maximum number of completion descriptors to poll."),
         return_val("std::vector<net_status_t>", "statuses", comment="The polled completion descriptors.")
     ],
@@ -233,7 +243,7 @@ operation(
         positional_arg("void*", "buffer", comment="The receive buffer base address."),
         positional_arg("size_t", "size", comment="The receive buffer size."),
         positional_arg("mr_t", "mr", comment="The registered memory region for the receive buffer."),
-        optional_arg("device_t", "device", "runtime.p_impl->device", comment="The device to post the receive operation."),
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to post the receive operation."),
         optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context."),
         return_val("error_t", "error", comment="The error code.")
     ],
@@ -249,7 +259,8 @@ operation(
         positional_arg("int", "rank", comment="The target rank."),
         positional_arg("void*", "buffer", comment="The send buffer base address."),
         positional_arg("size_t", "size", comment="The send buffer size."),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to post the operation."),
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
+        optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("net_imm_data_t", "imm_data", "0", comment="The immediate data to send with the message."),
         return_val("error_t", "error", comment="The error code.")
     ],
@@ -267,7 +278,8 @@ operation(
         positional_arg("void*", "buffer", comment="The send buffer base address."),
         positional_arg("size_t", "size", comment="The send buffer size."),
         positional_arg("mr_t", "mr", comment="The registered memory region for the send buffer."),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to post the operation."),
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
+        optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("net_imm_data_t", "imm_data", "0", comment="The immediate data to send with the message."),
         optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context."),
         return_val("error_t", "error", comment="The error code.")
@@ -288,7 +300,8 @@ operation(
         positional_arg("uintptr_t", "base", comment="The base address of the remote region to put the data."),
         positional_arg("uint64_t", "offset", comment="The starting offset to the remote region base address to put the data."),
         positional_arg("rkey_t", "rkey", comment="The remote memory region key."),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to post the operation."),
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
+        optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         return_val("error_t", "error", comment="The error code."),
     ],
     doc = {
@@ -308,7 +321,8 @@ operation(
         positional_arg("uintptr_t", "base", comment="The base address of the remote region to put the data."),
         positional_arg("uint64_t", "offset", comment="The starting offset to the remote region base address to put the data."),
         positional_arg("rkey_t", "rkey", comment="The remote memory region key."),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to post the operation."),
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
+        optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context."),
         return_val("error_t", "error", comment="The error code."),
     ],
@@ -328,7 +342,8 @@ operation(
         positional_arg("uintptr_t", "base", comment="The base address of the remote region to put the data."),
         positional_arg("uint64_t", "offset", comment="The starting offset to the remote region base address to put the data."),
         positional_arg("rkey_t", "rkey", comment="The remote memory region key."),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to post the operation."),
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
+        optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("net_imm_data_t", "imm_data", "0", comment="The immediate data to put with the message."),
         return_val("error_t", "error", comment="The error code."),
     ],
@@ -349,7 +364,8 @@ operation(
         positional_arg("uintptr_t", "base", comment="The base address of the remote region to put the data."),
         positional_arg("uint64_t", "offset", comment="The starting offset to the remote region base address to put the data."),
         positional_arg("rkey_t", "rkey", comment="The remote memory region key."),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to post the operation."),
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
+        optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("net_imm_data_t", "imm_data", "0", comment="The immediate data to put with the message."),
         optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context."),
         return_val("error_t", "error", comment="The error code."),
@@ -371,7 +387,8 @@ operation(
         positional_arg("uintptr_t", "base", comment="The base address of the remote region to get the data."),
         positional_arg("uint64_t", "offset", comment="The starting offset to the remote region base address to get the data."),
         positional_arg("rkey_t", "rkey", comment="The remote memory region key."),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to post the operation."),
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
+        optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context."),
         return_val("error_t", "error", comment="The error code."),
     ],
@@ -588,9 +605,10 @@ operation(
         positional_arg("void*", "local_buffer", comment="The local buffer base address."),
         positional_arg("size_t", "size", comment="The message size."),
         positional_arg("comp_t", "local_comp", comment="The local completion object."),
-        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool", comment="The packet pool to use."),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to use."),
-        optional_arg("matching_engine_t", "matching_engine", "runtime.p_impl->matching_engine", comment="The matching engine to use."),
+        optional_arg("packet_pool_t", "packet_pool", "runtime.get_impl()->default_packet_pool", comment="The packet pool to use."),
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
+        optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
+        optional_arg("matching_engine_t", "matching_engine", "runtime.get_impl()->default_matching_engine", comment="The matching engine to use."),
         optional_arg("comp_semantic_t", "comp_semantic", "comp_semantic_t::buffer", comment="The completion semantic (only valid when `direction == direction_t::OUT`)."),
         optional_arg("mr_t", "mr", "mr_t()", comment="The registered memory region for the local buffer."),
         optional_arg("uintptr_t", "remote_buffer", "0", comment="The remote buffer base address."),
@@ -621,8 +639,9 @@ operation(
         positional_arg("size_t", "size", comment="The message size."),
         positional_arg("comp_t", "local_comp", comment="The local completion object."),
         positional_arg("rcomp_t", "remote_comp", comment="The remote completion handler to use."),
-        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool", comment="The packet pool to use."),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to use."),
+        optional_arg("packet_pool_t", "packet_pool", "runtime.get_impl()->default_packet_pool", comment="The packet pool to use."),
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
+        optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("comp_semantic_t", "comp_semantic", "comp_semantic_t::buffer", comment="The completion semantic."),
         optional_arg("mr_t", "mr", "mr_t()", comment="The registered memory region for the local buffer."),
         optional_arg("tag_t", "tag", "0", comment="The tag to use."),
@@ -648,9 +667,10 @@ operation(
         positional_arg("size_t", "size", comment="The message size."),
         positional_arg("tag_t", "tag", comment="The tag to use."),
         positional_arg("comp_t", "local_comp", comment="The local completion object."),
-        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool", comment="The packet pool to use."),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to use."),
-        optional_arg("matching_engine_t", "matching_engine", "runtime.p_impl->matching_engine", comment="The matching engine to use."),
+        optional_arg("packet_pool_t", "packet_pool", "runtime.get_impl()->default_packet_pool", comment="The packet pool to use."),
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
+        optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
+        optional_arg("matching_engine_t", "matching_engine", "runtime.get_impl()->default_matching_engine", comment="The matching engine to use."),
         optional_arg("comp_semantic_t", "comp_semantic", "comp_semantic_t::buffer", comment="The completion semantic."),
         optional_arg("mr_t", "mr", "mr_t()", comment="The registered memory region for the local buffer."),
         optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context associated with this operation."),
@@ -676,9 +696,10 @@ operation(
         positional_arg("size_t", "size", comment="The message size."),
         positional_arg("tag_t", "tag", comment="The tag to use."),
         positional_arg("comp_t", "local_comp", comment="The local completion object."),
-        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool", comment="The packet pool to use."),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to use."),
-        optional_arg("matching_engine_t", "matching_engine", "runtime.p_impl->matching_engine", comment="The matching engine to use."),
+        optional_arg("packet_pool_t", "packet_pool", "runtime.get_impl()->default_packet_pool", comment="The packet pool to use."),
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
+        optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
+        optional_arg("matching_engine_t", "matching_engine", "runtime.get_impl()->default_matching_engine", comment="The matching engine to use."),
         optional_arg("mr_t", "mr", "mr_t()", comment="The registered memory region for the local buffer."),
         optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context associated with this operation."),
         optional_arg("buffers_t", "buffers", "buffers_t()", comment="The local buffers."),
@@ -704,8 +725,9 @@ operation(
         positional_arg("comp_t", "local_comp", comment="The local completion object."),
         positional_arg("uintptr_t", "remote_buffer", "0", comment="The remote buffer base address."),
         positional_arg("rkey_t", "rkey", "0", comment="The remote key of the remote buffer."),
-        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool", comment="The packet pool to use."),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to use."),
+        optional_arg("packet_pool_t", "packet_pool", "runtime.get_impl()->default_packet_pool", comment="The packet pool to use."),
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
+        optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("comp_semantic_t", "comp_semantic", "comp_semantic_t::buffer", comment="The completion semantic."),
         optional_arg("mr_t", "mr", "mr_t()", comment="The registered memory region for the local buffer."),
         optional_arg("tag_t", "tag", "0", comment="The tag to use."),
@@ -734,8 +756,9 @@ operation(
         positional_arg("comp_t", "local_comp", comment="The local completion object."),
         positional_arg("uintptr_t", "remote_buffer", "0", comment="The remote buffer base address."),
         positional_arg("rkey_t", "rkey", "0", comment="The remote key of the remote buffer."),
-        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool", comment="The packet pool to use."),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to use."),
+        optional_arg("packet_pool_t", "packet_pool", "runtime.get_impl()->default_packet_pool", comment="The packet pool to use."),
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
+        optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("mr_t", "mr", "mr_t()", comment="The registered memory region for the local buffer."),
         optional_arg("tag_t", "tag", "0", comment="The tag to use."),
         optional_arg("rcomp_t", "remote_comp", "0", comment="The remote completion handler to use."),
@@ -758,8 +781,8 @@ operation(
     "progress", 
     [
         optional_runtime_args,
-        optional_arg("device_t", "device", "runtime.p_impl->device", comment="The device to progress."),
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint to use in case the progress function needs to send internal control messages."),
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to progress."),
+        optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use in case the progress function needs to send internal control messages."),
         return_val("error_t", "error", comment="The error code. The error code *ok* means the progress function progressed some work; the error code *retry* means the progress function did no find any work to progress."),
     ],
     doc = {
@@ -796,6 +819,7 @@ operation(
     "get_default_endpoint", 
     [
         optional_runtime_args,
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to get the default endpoint."),
         return_val("endpoint_t", "endpoint", comment="The default net endpoint.")
     ],
     doc = {
@@ -829,8 +853,7 @@ operation(
     "get_max_bcopy_size", 
     [
         optional_runtime_args,
-        optional_arg("endpoint_t", "endpoint", "runtime.p_impl->endpoint", comment="The endpoint that will be used."),
-        optional_arg("packet_pool_t", "packet_pool", "runtime.p_impl->packet_pool", comment="The packet pool that will be used."),
+        optional_arg("packet_pool_t", "packet_pool", "runtime.get_impl()->default_packet_pool", comment="The packet pool that will be used."),
         return_val("size_t", "size", comment="Get the maximum message size for the buffer-copy protocol.")
     ],
     doc = {

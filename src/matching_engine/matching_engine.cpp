@@ -7,7 +7,7 @@ namespace lci
 {
 void matching_engine_impl_t::register_rhandler(runtime_t runtime)
 {
-  auto& rhandler_registry = runtime.p_impl->rhandler_registry;
+  auto& rhandler_registry = runtime.p_impl->default_rhandler_registry;
   rcomp_base =
       rhandler_registry.reserve(static_cast<unsigned>(matching_policy_t::max));
   for (unsigned i = 0; i < static_cast<unsigned>(matching_policy_t::max); i++) {

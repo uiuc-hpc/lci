@@ -35,7 +35,7 @@ void progress_recv(runtime_t runtime, device_t device, endpoint_t endpoint,
   }
   switch (msg_type) {
     case IMM_DATA_MSG_EAGER: {
-      auto entry = runtime.p_impl->rhandler_registry.get(remote_comp);
+      auto entry = runtime.p_impl->default_rhandler_registry.get(remote_comp);
       if (entry.type == rhandler_registry_t::type_t::comp) {
         status_t status;
         status.error = errorcode_t::ok;
@@ -132,7 +132,7 @@ void progress_remote_write(runtime_t runtime, const net_status_t& net_status)
     // user posted RDMA write with immediate data
     tag = get_bits32(imm_data, 16, 0);
     remote_comp = get_bits32(imm_data, 15, 16);
-    auto entry = runtime.get_impl()->rhandler_registry.get(remote_comp);
+    auto entry = runtime.get_impl()->default_rhandler_registry.get(remote_comp);
     status_t status;
     status.error = errorcode_t::ok;
     status.rank = net_status.rank;
