@@ -257,9 +257,6 @@ ofi_endpoint_impl_t::ofi_endpoint_impl_t(device_t device_, attr_t attr_)
       ofi_lock_mode(p_ofi_device->ofi_lock_mode),
       lock(p_ofi_device->lock)
 {
-  auto p_ofi_context = reinterpret_cast<ofi_net_context_impl_t*>(
-      p_ofi_device->net_context.p_impl);
-
   my_rank = get_rank();
 }
 

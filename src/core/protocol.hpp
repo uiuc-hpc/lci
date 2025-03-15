@@ -65,6 +65,21 @@ struct alignas(LCI_CACHE_LINE) internal_context_t {
     status.user_context = user_context;
     return status;
   }
+
+  // We have to use a special allocation function to ensure the alignment
+  static inline internal_context_t* alloc()
+  {
+    auto ptr = reinterpret_cast<internal_context_t*>(
+        alloc_memalign(sizeof(internal_context_t)));
+    ptr = new (ptr) internal_context_t();
+    return ptr;
+  }
+
+  static inline void free(internal_context_t* ctx)
+  {
+    ctx->~internal_context_t();
+    std::free(ctx);
+  }
 };
 
 struct alignas(LCI_CACHE_LINE) internal_context_extended_t {
@@ -77,6 +92,21 @@ struct alignas(LCI_CACHE_LINE) internal_context_extended_t {
   internal_context_extended_t()
       : is_extended(true), internal_ctx(nullptr), signal_count(0), recv_ctx(0)
   {
+  }
+
+  // We have to use a special allocation function to ensure the alignment
+  static inline internal_context_extended_t* alloc()
+  {
+    auto ptr = reinterpret_cast<internal_context_extended_t*>(
+        alloc_memalign(sizeof(internal_context_extended_t)));
+    ptr = new (ptr) internal_context_extended_t();
+    return ptr;
+  }
+
+  static inline void free(internal_context_extended_t* ctx)
+  {
+    ctx->~internal_context_extended_t();
+    std::free(ctx);
   }
 };
 

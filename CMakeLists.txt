@@ -49,6 +49,7 @@ if(NOT LCI_WITH_LCT_ONLY)
   target_compile_definitions(LCI PRIVATE _GNU_SOURCE)
   target_link_libraries(LCI PUBLIC LCT)
   set_target_properties(LCI PROPERTIES OUTPUT_NAME lci)
+  target_compile_options(LCI PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
   # ############################################################################
   # What parts of LCI to build

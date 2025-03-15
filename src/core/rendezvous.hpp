@@ -26,7 +26,7 @@ inline void handle_matched_sendrecv(runtime_t runtime, endpoint_t endpoint,
     status.error = errorcode_t::ok;
     status.data = recv_ctx->data;
     status.user_context = recv_ctx->user_context;
-    delete recv_ctx;
+    internal_context_t::free(recv_ctx);
     status.rank = packet->local_context.rank;
     status.tag = packet->local_context.tag;
     LCI_Assert(status.data.is_buffer(), "Unexpected data type\n");
@@ -46,11 +46,17 @@ inline void handle_matched_sendrecv(runtime_t runtime, endpoint_t endpoint,
 
 struct rts_msg_t {
   rdv_type_t rdv_type : 2;
-  int count : 30;
+  size_t count : 30;
   rcomp_t rcomp;
   uintptr_t send_ctx;
   tag_t tag;
-  size_t size_p[0];
+
+  size_t* get_size_p(size_t i)
+  {
+    auto size_p = reinterpret_cast<size_t*>(reinterpret_cast<char*>(this) +
+                                            sizeof(rts_msg_t));
+    return &size_p[i];
+  }
 
   static size_t get_size(data_t data)
   {
@@ -58,29 +64,29 @@ struct rts_msg_t {
     if (data.is_buffers()) {
       count = data.get_buffers_count();
     }
-    return offsetof(rts_msg_t, size_p) + count * sizeof(size_t);
+    return sizeof(rts_msg_t) + count * sizeof(size_t);
   }
 
   void load_buffer(size_t size)
   {
     count = 1;
-    this->size_p[0] = size;
+    *get_size_p(0) = size;
   }
 
   void load_buffers(buffers_t buffers)
   {
     count = buffers.size();
     for (int i = 0; i < count; i++) {
-      size_p[i] = buffers[i].size;
+      *get_size_p(i) = buffers[i].size;
     }
   }
 
   data_t alloc_data()
   {
     if (count == 1) {
-      return data_t(size_p[0]);
+      return data_t(*get_size_p(0));
     } else {
-      return data_t(size_p, count);
+      return data_t(get_size_p(0), count);
     }
   }
 };
@@ -109,12 +115,17 @@ struct rtr_msg_t {
     // when using write protocol
     uintptr_t recv_ctx;
   };
-  rtr_rbuffer_info_t rbuffer_info_p[0];
+
+  rtr_rbuffer_info_t* get_rbuffer_info_p(size_t i)
+  {
+    auto rbuffer_info_p = reinterpret_cast<rtr_rbuffer_info_t*>(
+        reinterpret_cast<char*>(this) + sizeof(rtr_msg_t));
+    return &rbuffer_info_p[i];
+  }
 
   size_t get_size()
   {
-    return offsetof(rtr_msg_t, rbuffer_info_p) +
-           count * sizeof(rtr_rbuffer_info_t);
+    return sizeof(rtr_msg_t) + count * sizeof(rtr_rbuffer_info_t);
   }
 
   void load_data(const data_t& data)
@@ -122,13 +133,14 @@ struct rtr_msg_t {
     LCI_Assert(!data.is_scalar(), "Unexpected scalar data\n");
     if (data.is_buffer()) {
       rdv_type = rdv_type_t::single;
-      fill_rtr_rbuffer_info(&rbuffer_info_p[0], data.buffer.base,
+      fill_rtr_rbuffer_info(get_rbuffer_info_p(0), data.buffer.base,
                             data.buffer.mr);
       count = 1;
     } else {
       rdv_type = rdv_type_t::multiple;
-      for (int i = 0; i < data.buffers.count; i++) {
-        fill_rtr_rbuffer_info(&rbuffer_info_p[i], data.buffers.buffers[i].base,
+      for (size_t i = 0; i < data.buffers.count; i++) {
+        fill_rtr_rbuffer_info(get_rbuffer_info_p(i),
+                              data.buffers.buffers[i].base,
                               data.buffers.buffers[i].mr);
       }
       count = data.buffers.count;
@@ -139,10 +151,8 @@ struct rtr_msg_t {
 inline void handle_rdv_rts(runtime_t runtime, endpoint_t endpoint,
                            packet_t* packet)
 {
-  device_t device = endpoint.get_impl()->device;
   // Extract information from the received RTS packet
-  rts_msg_t* rts = reinterpret_cast<rts_msg_t*>(packet->payload);
-  rdv_type_t rdv_type = rts->rdv_type;
+  rts_msg_t* rts = reinterpret_cast<rts_msg_t*>(packet->get_payload_address());
   LCI_DBG_Log(LOG_TRACE, "rdv", "handle rts: rdv_type %d\n", rdv_type);
 
   auto entry = runtime.p_impl->default_rhandler_registry.get(rts->rcomp);
@@ -174,12 +184,12 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
 {
   device_t device = endpoint.get_impl()->device;
   // Extract information from the received RTS packet
-  rts_msg_t* rts = reinterpret_cast<rts_msg_t*>(packet->payload);
+  rts_msg_t* rts = reinterpret_cast<rts_msg_t*>(packet->get_payload_address());
   rdv_type_t rdv_type = rts->rdv_type;
   LCI_DBG_Log(LOG_TRACE, "rdv", "handle rts: rdv_type %d\n", rdv_type);
   // build the rdv context
   if (!rdv_ctx) {
-    rdv_ctx = new internal_context_t;
+    rdv_ctx = internal_context_t::alloc();
     rdv_ctx->data = rts->alloc_data();
     rdv_ctx->user_context = NULL;
     rdv_ctx->rdv_type = rdv_type;
@@ -195,14 +205,15 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
     // set rdv_ctx->data size(s) based on rts->size_p
     if (rdv_ctx->data.is_buffer()) {
       LCI_Assert(rts->count == 1, "");
-      LCI_Assert(rdv_ctx->data.buffer.size >= rts->size_p[0], "");
-      rdv_ctx->data.buffer.size = rts->size_p[0];
+      LCI_Assert(rdv_ctx->data.buffer.size >= *rts->get_size_p(0), "");
+      rdv_ctx->data.buffer.size = *rts->get_size_p(0);
     } else {
       LCI_Assert(rdv_ctx->data.is_buffers(), "");
       LCI_Assert(rdv_ctx->data.get_buffers_count() == rts->count, "");
       for (int i = 0; i < rts->count; i++) {
-        LCI_Assert(rdv_ctx->data.buffers.buffers[i].size >= rts->size_p[i], "");
-        rdv_ctx->data.buffers.buffers[i].size = rts->size_p[i];
+        LCI_Assert(rdv_ctx->data.buffers.buffers[i].size >= *rts->get_size_p(i),
+                   "");
+        rdv_ctx->data.buffers.buffers[i].size = *rts->get_size_p(i);
       }
     }
   }
@@ -215,7 +226,7 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
   // Prepare the RTR packet
   // reuse the rts packet as rtr packet
   uintptr_t send_ctx = rts->send_ctx;
-  rtr_msg_t* rtr = reinterpret_cast<rtr_msg_t*>(packet->payload);
+  rtr_msg_t* rtr = reinterpret_cast<rtr_msg_t*>(packet->get_payload_address());
   packet->local_context.local_id = mpmc_set_t::LOCAL_SET_ID_NULL;
   rtr->send_ctx = send_ctx;
   rtr->rdv_type = rdv_type;
@@ -242,14 +253,14 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
   LCI_DBG_Log(LOG_TRACE, "rdv", "send rtr: sctx %p\n", (void*)rtr->send_ctx);
 
   // send the rtr packet
-  internal_context_t* rtr_ctx = new internal_context_t;
+  internal_context_t* rtr_ctx = internal_context_t::alloc();
   rtr_ctx->packet_to_free = packet;
 
   size_t length = rtr->get_size();
   net_imm_data_t imm_data = set_bits32(0, IMM_DATA_MSG_RTR, 2, 29);
   error_t error = endpoint.get_impl()->post_send(
-      (int)rdv_ctx->rank, packet->payload, length, packet->get_mr(endpoint),
-      imm_data, rtr_ctx, false /* allow_retry */);
+      (int)rdv_ctx->rank, packet->get_payload_address(), length,
+      packet->get_mr(endpoint), imm_data, rtr_ctx, false /* allow_retry */);
   LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);
 }
 
@@ -259,7 +270,7 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
   // the sender side handles the rtr message
   device_t device = endpoint.get_impl()->device;
   net_context_t net_context = device.get_impl()->net_context;
-  rtr_msg_t* rtr = reinterpret_cast<rtr_msg_t*>(packet->payload);
+  rtr_msg_t* rtr = reinterpret_cast<rtr_msg_t*>(packet->get_payload_address());
   rdv_type_t rdv_type = rtr->rdv_type;
   internal_context_t* ctx = (internal_context_t*)rtr->send_ctx;
   // Set up the "extended context" for write protocol
@@ -268,7 +279,7 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
   if (nrdmas > 1 ||
       runtime.get_attr_rdv_protocol() == attr_rdv_protocol_t::write ||
       rdv_type == rdv_type_t::multiple) {
-    internal_context_extended_t* ectx = new internal_context_extended_t;
+    auto ectx = internal_context_extended_t::alloc();
     ectx->internal_ctx = ctx;
     ectx->signal_count = nrdmas;
     ectx->recv_ctx = rtr->recv_ctx;
@@ -308,9 +319,10 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
       size_t length = std::min(size - offset, max_single_msg_size);
       error_t error = endpoint.get_impl()->post_put(
           (int)ctx->rank, address, length, *p_mr,
-          rtr->rbuffer_info_p[i].remote_addr_base,
-          rtr->rbuffer_info_p[i].remote_addr_offset + offset,
-          rtr->rbuffer_info_p[i].rkey, ctx_to_pass, false /* allow_retry */);
+          rtr->get_rbuffer_info_p(i)->remote_addr_base,
+          rtr->get_rbuffer_info_p(i)->remote_addr_offset + offset,
+          rtr->get_rbuffer_info_p(i)->rkey, ctx_to_pass,
+          false /* allow_retry */);
       LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);
     }
     // } else {
@@ -362,7 +374,7 @@ inline void handle_rdv_remote_comp(internal_context_t* ctx)
 inline void handle_rdv_fin(packet_t* packet)
 {
   internal_context_t* ctx;
-  memcpy(&ctx, packet->payload, sizeof(ctx));
+  memcpy(&ctx, packet->get_payload_address(), sizeof(ctx));
   LCI_DBG_Log(LOG_TRACE, "rdv", "recv FIN: rctx %p\n", ctx);
   packet->put_back();
   handle_rdv_remote_comp(ctx);

@@ -65,7 +65,7 @@ class device_impl_t
  private:
   static std::atomic<int> g_ndevices;
   int device_id;
-  std::atomic<int> nrecvs_posted;
+  std::atomic<size_t> nrecvs_posted;
 };
 
 class mr_impl_t

@@ -41,7 +41,7 @@ class matching_engine_map_t : public matching_engine_impl_t
       struct {
         node_t* head;
         node_t* tail;
-      };
+      } list;
       val_t slots[SLOT_NUM_VALUES];
     };
 
@@ -57,7 +57,7 @@ class matching_engine_map_t : public matching_engine_impl_t
     ~queue_t()
     {
       if (is_empty && is_queue) {
-        node_t* node_p = head;
+        node_t* node_p = list.head;
         node_t* node_q;
         while (node_p) {
           node_q = node_p;
@@ -91,32 +91,32 @@ class matching_engine_map_t : public matching_engine_impl_t
       } else {
         size_t nlefts = 0;
         for (int i = 0; i < NODE_NUM_VALUES; ++i) {
-          if (head->values[i] != VALUE_EMPTY) {
+          if (list.head->values[i] != VALUE_EMPTY) {
             if (ret == VALUE_EMPTY) {
-              ret = head->values[i];
-              head->values[i] = VALUE_EMPTY;
+              ret = list.head->values[i];
+              list.head->values[i] = VALUE_EMPTY;
             } else {
               ++nlefts;
             }
           }
         }
         if (nlefts == 0) {
-          node_t* node_p = head;
-          head = head->next;
+          node_t* node_p = list.head;
+          list.head = list.head->next;
           delete node_p;
-          if (head == nullptr) {
+          if (list.head == nullptr) {
             is_empty = true;
           }
-        } else if (nlefts <= SLOT_NUM_VALUES && head->next == nullptr) {
+        } else if (nlefts <= SLOT_NUM_VALUES && list.head->next == nullptr) {
           // turn the linked node into slots
           int nvalues_idx = 0;
           val_t values[SLOT_NUM_VALUES];
           for (int i = 0; i < NODE_NUM_VALUES; ++i) {
-            if (head->values[i] != VALUE_EMPTY) {
-              values[nvalues_idx++] = head->values[i];
+            if (list.head->values[i] != VALUE_EMPTY) {
+              values[nvalues_idx++] = list.head->values[i];
             }
           }
-          delete head;
+          delete list.head;
           memcpy(slots, values, nvalues_idx * sizeof(val_t));
           while (nvalues_idx < SLOT_NUM_VALUES) {
             slots[nvalues_idx++] = VALUE_EMPTY;
@@ -139,8 +139,8 @@ class matching_engine_map_t : public matching_engine_impl_t
           node_t* new_node = new node_t();
           memcpy(new_node->values, slots, SLOT_NUM_VALUES * sizeof(val_t));
           new_node->values[SLOT_NUM_VALUES] = value;
-          head = new_node;
-          tail = new_node;
+          list.head = new_node;
+          list.tail = new_node;
         } else {
           for (int i = 0; i < SLOT_NUM_VALUES; ++i) {
             if (slots[i] == VALUE_EMPTY) {
@@ -150,24 +150,24 @@ class matching_engine_map_t : public matching_engine_impl_t
           }
         }
       } else {
-        if (tail->values[NODE_NUM_VALUES - 1] != VALUE_EMPTY) {
+        if (list.tail->values[NODE_NUM_VALUES - 1] != VALUE_EMPTY) {
           // push this entry to a new linked node
           node_t* new_node = new node_t();
           new_node->values[0] = value;
-          tail->next = new_node;
-          tail = new_node;
+          list.tail->next = new_node;
+          list.tail = new_node;
         } else {
           // Find the first empty slot after a non-empty slot.
           int empty_slot = NODE_NUM_VALUES - 1;
           for (int i = NODE_NUM_VALUES - 1; i >= 0; --i) {
-            if (tail->values[i] == VALUE_EMPTY) {
+            if (list.tail->values[i] == VALUE_EMPTY) {
               empty_slot = i;
             } else {
               break;
             }
           }
           LCI_DBG_Assert(tail->values[empty_slot] == VALUE_EMPTY, "\n");
-          tail->values[empty_slot] = value;
+          list.tail->values[empty_slot] = value;
         }
       }
     }
@@ -194,7 +194,6 @@ class matching_engine_map_t : public matching_engine_impl_t
       int nqueues;
       char padding[32 - sizeof(bucket_t*) - sizeof(spinlock_t) - sizeof(int)];
     } control;
-    queue_t queues[0];
 
     bucket_t() : bucket_t(BUCKET_NUM_QUEUES_DEFAULT) {}
 
@@ -218,19 +217,26 @@ class matching_engine_map_t : public matching_engine_impl_t
       return sizeof(bucket_t) + nqueues * sizeof(queue_t);
     }
 
+    queue_t* get_queues_p()
+    {
+      return reinterpret_cast<queue_t*>(reinterpret_cast<char*>(this) +
+                                        sizeof(bucket_t));
+    }
+    queue_t* get_queue_p(int i) { return &get_queues_p()[i]; }
+
     bucket_t(int nqueues_)
     {
       control.next = nullptr;
       control.nqueues = nqueues_;
       for (int i = 0; i < nqueues_; i++) {
-        new (&queues[i]) queue_t();
+        new (get_queue_p(i)) queue_t();
       }
     }
 
     ~bucket_t()
     {
       for (int i = 0; i < control.nqueues; i++) {
-        queues[i].~queue_t();
+        get_queue_p(i)->~queue_t();
       }
     }
   };
@@ -252,7 +258,7 @@ class matching_engine_map_t : public matching_engine_impl_t
 
     // Mask into smaller space.
     return (((hash >> TABLE_BIT_SIZE) ^ hash) &
-            ((uint32_t)1 << TABLE_BIT_SIZE) - 1);
+            (((uint32_t)1 << TABLE_BIT_SIZE) - 1));
   }
 
  public:
@@ -309,7 +315,7 @@ class matching_engine_map_t : public matching_engine_impl_t
     while (current_bucket) {
       bool is_current_bucket_nonempty = false;
       for (int i = 0; i < current_bucket->control.nqueues; ++i) {
-        queue_t* current_queue = &current_bucket->queues[i];
+        queue_t* current_queue = current_bucket->get_queue_p(i);
         if (current_queue->is_empty) {
           if (first_empty_queue == nullptr) {
             first_empty_queue = current_queue;
@@ -355,7 +361,7 @@ class matching_engine_map_t : public matching_engine_impl_t
         bucket_t* new_bucket = bucket_t::alloc(nqueues);
         LCI_DBG_Assert(current_bucket == nullptr, "\n");
         previous_bucket->control.next = new_bucket;
-        first_empty_queue = &new_bucket->queues[0];
+        first_empty_queue = new_bucket->get_queue_p(0);
       }
       // Create a queue from the empty queue.
       first_empty_queue->setup(key, type, value);

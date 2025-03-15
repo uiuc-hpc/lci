@@ -40,7 +40,7 @@ matching_engine_t alloc_matching_engine_x::call_impl(
 }
 
 void free_matching_engine_x::call_impl(matching_engine_t* matching_engine,
-                                       runtime_t runtime) const
+                                       runtime_t) const
 {
   delete matching_engine->p_impl;
   matching_engine->p_impl = nullptr;

@@ -351,12 +351,14 @@ struct data_t {
     buffer,
     buffers,
   };
+  // FIXME: It is a undefined behavior to access multiple union members at the
+  // same time
   union {
     struct {
       // common fields
       type_t type : 2;
       bool own_data : 1;
-    };
+    } common;
     struct {
       type_t type : 2;
       bool own_data : 1;
@@ -372,7 +374,7 @@ struct data_t {
     struct {
       type_t type : 2;
       bool own_data : 1;
-      size_t count : 61;
+      size_t count;
       buffer_t* buffers;
     } buffers;
   };
@@ -386,10 +388,14 @@ struct data_t {
   data_t& operator=(data_t other);
   friend void swap(data_t& first, data_t& second);
 
-  bool is_scalar() const { return type == type_t::scalar; }
-  bool is_buffer() const { return type == type_t::buffer; }
-  bool is_buffers() const { return type == type_t::buffers; }
-  type_t get_type() const { return type; }
+  type_t get_type() const { return common.type; }
+  void set_type(type_t type_) { common.type = type_; }
+  bool get_own_data() const { return common.own_data; }
+  void set_own_data(bool own_data_) { common.own_data = own_data_; }
+
+  bool is_scalar() const { return get_type() == type_t::scalar; }
+  bool is_buffer() const { return get_type() == type_t::buffer; }
+  bool is_buffers() const { return get_type() == type_t::buffers; }
 
   void copy_from(const void* data_, size_t size);
   void copy_from(const buffers_t& buffers_);
@@ -490,22 +496,24 @@ using comp_handler_t = void (*)(status_t status);
  **********************************************************************/
 namespace lci
 {
-inline data_t::data_t() : type(type_t::none), own_data(false)
+inline data_t::data_t()
 {
+  set_type(type_t::none);
+  set_own_data(false);
   static_assert(sizeof(data_t) == 24, "data_t size is not 24 bytes");
 }
 inline data_t::data_t(buffer_t buffer_, bool own_data_)
 {
-  type = type_t::buffer;
-  own_data = own_data_;
+  set_type(type_t::buffer);
+  set_own_data(own_data_);
   buffer.base = buffer_.base;
   buffer.size = buffer_.size;
   buffer.mr = buffer_.mr;
 }
 inline data_t::data_t(buffers_t buffers_, bool own_data_)
 {
-  type = type_t::buffers;
-  own_data = own_data_;
+  set_type(type_t::buffers);
+  set_own_data(own_data_);
   buffers.count = buffers_.size();
   buffers.buffers = new buffer_t[buffers.count];
   for (size_t i = 0; i < buffers.count; i++) {
@@ -514,16 +522,16 @@ inline data_t::data_t(buffers_t buffers_, bool own_data_)
 }
 inline data_t::data_t(size_t size)
 {
-  type = type_t::buffer;
-  own_data = true;
+  set_type(type_t::buffer);
+  set_own_data(true);
   buffer.base = malloc(size);
   buffer.size = size;
   buffer.mr = mr_t();
 }
 inline data_t::data_t(size_t sizes[], int count)
 {
-  type = type_t::buffers;
-  own_data = true;
+  set_type(type_t::buffers);
+  set_own_data(true);
   buffers.count = count;
   buffers.buffers = new buffer_t[buffers.count];
   for (int i = 0; i < count; i++) {
@@ -535,8 +543,9 @@ inline data_t::data_t(size_t sizes[], int count)
 // copy constructor
 inline data_t::data_t(const data_t& other)
 {
-  type = other.type;
-  own_data = other.own_data;
+  set_type(other.get_type());
+  bool own_data = other.get_own_data();
+  set_own_data(own_data);
   if (own_data)
     fprintf(stderr, "Copying buffer with own_data=true is not recommended\n");
   if (other.is_scalar()) {
@@ -563,17 +572,17 @@ inline data_t::data_t(const data_t& other)
 // move constructor
 inline data_t::data_t(data_t&& other)
 {
-  type = other.type;
-  own_data = other.own_data;
+  set_type(other.get_type());
+  set_own_data(other.get_own_data());
   if (other.is_scalar()) {
     memcpy(scalar.data, other.scalar.data, MAX_SCALAR_SIZE);
   } else if (other.is_buffer()) {
     buffer = other.buffer;
-    other.own_data = false;
+    other.set_own_data(false);
   } else if (other.is_buffers()) {
     buffers.count = other.buffers.count;
     buffers.buffers = other.buffers.buffers;
-    other.own_data = false;
+    other.set_own_data(false);
     other.buffers.buffers = nullptr;
   }
 }
@@ -587,21 +596,28 @@ inline data_t& data_t::operator=(data_t other)
 inline void swap(data_t& first, data_t& second)
 {
   char* buf = (char*)malloc(sizeof(data_t));
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
+#endif
   memcpy(buf, &first, sizeof(data_t));
   memcpy(&first, &second, sizeof(data_t));
   memcpy(&second, buf, sizeof(data_t));
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
   free(buf);
 }
 
 inline void data_t::copy_from(const void* data_, size_t size)
 {
   if (size <= MAX_SCALAR_SIZE) {
-    type = type_t::scalar;
-    own_data = true;
+    set_type(type_t::scalar);
+    set_own_data(true);
     memcpy(scalar.data, data_, size);
   } else {
-    type = type_t::buffer;
-    own_data = true;
+    set_type(type_t::buffer);
+    set_own_data(true);
     buffer.base = malloc(size);
     memcpy(buffer.base, data_, size);
     buffer.size = size;
@@ -610,8 +626,8 @@ inline void data_t::copy_from(const void* data_, size_t size)
 
 inline void data_t::copy_from(const buffers_t& buffers_)
 {
-  type = type_t::buffers;
-  own_data = true;
+  set_type(type_t::buffers);
+  set_own_data(true);
   buffers.count = buffers_.size();
   buffers.buffers = new buffer_t[buffers.count];
   for (size_t i = 0; i < buffers.count; i++) {
@@ -650,7 +666,7 @@ inline buffer_t data_t::get_buffer(get_semantic_t semantic)
       ret = buffer_t(scalar.data, MAX_SCALAR_SIZE);
     }
   } else if (is_buffer()) {
-    if (semantic == get_semantic_t::copy && own_data) {
+    if (semantic == get_semantic_t::copy && get_own_data()) {
       ret.size = buffer.size;
       ret.base = malloc(buffer.size);
       memcpy(ret.base, buffer.base, buffer.size);
@@ -661,8 +677,8 @@ inline buffer_t data_t::get_buffer(get_semantic_t semantic)
     throw std::runtime_error("Cannot convert to a buffer");
   }
   if (semantic == get_semantic_t::move) {
-    own_data = false;
-    type = type_t::none;
+    set_own_data(false);
+    set_type(type_t::none);
   }
   return ret;
 }
@@ -681,12 +697,12 @@ inline buffers_t data_t::get_buffers(get_semantic_t semantic)
     throw std::runtime_error("Not buffers");
   }
   if (semantic == get_semantic_t::move) {
-    own_data = false;
-    type = type_t::none;
+    set_own_data(false);
+    set_type(type_t::none);
   }
   buffers_t ret;
   for (size_t i = 0; i < buffers.count; i++) {
-    if (semantic == get_semantic_t::copy && own_data) {
+    if (semantic == get_semantic_t::copy && get_own_data()) {
       buffer_t buffer;
       buffer.size = buffers.buffers[i].size;
       buffer.base = malloc(buffer.size);

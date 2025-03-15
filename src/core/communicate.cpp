@@ -81,7 +81,7 @@ status_t post_comm_x::call_impl(
   status.tag = tag;
   status.user_context = user_context;
   error_t& error = status.error;
-  internal_ctx = new internal_context_t;
+  internal_ctx = internal_context_t::alloc();
   internal_ctx->rank = rank;
   internal_ctx->tag = tag;
   internal_ctx->user_context = user_context;
@@ -113,7 +113,7 @@ status_t post_comm_x::call_impl(
   uint32_t imm_data = 0;
   if (direction == direction_t::OUT && rhandler) {
     if (!is_out_rdv) {
-      static_assert(IMM_DATA_MSG_EAGER == 0);
+      static_assert(IMM_DATA_MSG_EAGER == 0, "Unexpected IMM_DATA_MSG_EAGER");
       // Put with signal or eager send/am
       if (tag <= runtime.get_attr_max_imm_tag() &&
           rhandler <= runtime.get_attr_max_imm_rcomp()) {
@@ -291,8 +291,7 @@ status_t post_comm_x::call_impl(
                 internal_ctx, allow_retry);
           }
         } else {
-          internal_context_extended_t* extended_ctx =
-              new internal_context_extended_t;
+          auto extended_ctx = internal_context_extended_t::alloc();
           extended_ctx->internal_ctx = internal_ctx;
           extended_ctx->signal_count = data.get_buffers_count();
           for (size_t i = 0; i < data.buffers.count; i++) {
@@ -322,10 +321,9 @@ status_t post_comm_x::call_impl(
         // rendezvous send
         // build the rts message
         size_t rts_size = rts_msg_t::get_size(data);
-        rts_msg_t plain_rts;
         rts_msg_t* p_rts;
         if (rts_size <= max_inject_size) {
-          p_rts = &plain_rts;
+          p_rts = reinterpret_cast<rts_msg_t*>(malloc(rts_size));
         } else {
           LCI_Assert(rts_size <= max_bcopy_size,
                      "The rts message is too large\n");
@@ -335,7 +333,7 @@ status_t post_comm_x::call_impl(
             goto exit;
           }
           p_rts = static_cast<rts_msg_t*>(packet->get_payload_address());
-          rts_ctx = new internal_context_t;
+          rts_ctx = internal_context_t::alloc();
           rts_ctx->packet_to_free = packet;
         }
         p_rts->send_ctx = (uintptr_t)internal_ctx;
@@ -351,6 +349,7 @@ status_t post_comm_x::call_impl(
         if (rts_size <= max_inject_size) {
           error = endpoint.p_impl->post_sends(rank, p_rts, rts_size, imm_data,
                                               allow_retry);
+          free(p_rts);
         } else {
           error = endpoint.p_impl->post_send(rank, p_rts, rts_size,
                                              packet->get_mr(device), imm_data,
@@ -410,8 +409,7 @@ status_t post_comm_x::call_impl(
               reinterpret_cast<uintptr_t>(remote_buffer), 0, rkey, internal_ctx,
               allow_retry);
         } else {
-          internal_context_extended_t* extended_ctx =
-              new internal_context_extended_t;
+          auto extended_ctx = internal_context_extended_t::alloc();
           extended_ctx->internal_ctx = internal_ctx;
           extended_ctx->signal_count = data.get_buffers_count();
           for (size_t i = 0; i < data.buffers.count; i++) {
@@ -442,8 +440,8 @@ exit:
     if (!user_provided_packet && packet) {
       packet->put_back();
     }
-    delete rts_ctx;
-    delete internal_ctx;
+    internal_context_t::free(rts_ctx);
+    internal_context_t::free(internal_ctx);
   }
   if (error.is_posted() && !allow_posted) {
     while (!sync_test(local_comp, &status)) {
@@ -465,7 +463,7 @@ exit:
   } else {
     LCI_PCOUNTER_ADD(communicate_retry, 1);
   }
-  return std::move(status);
+  return status;
 }
 
 status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
@@ -604,7 +602,7 @@ status_t post_get_x::call_impl(int rank, void* local_buffer, size_t size,
       .force_zcopy(force_zcopy)();
 }
 
-size_t get_max_bcopy_size_x::call_impl(runtime_t runtime,
+size_t get_max_bcopy_size_x::call_impl(runtime_t,
                                        packet_pool_t packet_pool) const
 {
   // TODO: we can refine the maximum buffer-copy size based on more information

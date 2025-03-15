@@ -22,6 +22,19 @@ class mpmc_set_t
       queue.resize(default_size + 1, nullptr);
     }
 
+    static inline local_set_t* alloc(int64_t default_size = 1024)
+    {
+      auto ptr =
+          reinterpret_cast<local_set_t*>(alloc_memalign(sizeof(local_set_t)));
+      return new (ptr) local_set_t(default_size);
+    }
+
+    static inline void free(local_set_t* ctx)
+    {
+      ctx->~local_set_t();
+      std::free(ctx);
+    }
+
     void expand()
     {
       int64_t current_size = size();
@@ -78,8 +91,8 @@ class mpmc_set_t
     }
 
     bool empty() const { return head == tail; }
-    int64_t size() const { return tail - head; }
-    int64_t capacity() const { return queue.size() - 1; }
+    size_t size() const { return tail - head; }
+    size_t capacity() const { return queue.size() - 1; }
 
     int id;
     std::vector<void*> queue;
@@ -96,7 +109,7 @@ class mpmc_set_t
 
     // copy from the top of the source pool to the destination queue
     static void copy_to_new(local_set_t* src, std::vector<void*>& new_queue,
-                            int64_t n)
+                            size_t n)
     {
       LCI_Assert(src->size() >= n,
                  "Insufficient packets in source pool: %ld (need %ld)\n",
@@ -120,17 +133,18 @@ class mpmc_set_t
   };
 
  public:
-  mpmc_set_t(int default_nthreads = 256, int64_t default_lpool_size_ = 1024)
-      : npools(0),
+  mpmc_set_t(int default_nthreads = 256, size_t default_lpool_size_ = 1024)
+      : default_lpool_size(default_lpool_size_),
+        npools(0),
         pools(default_nthreads),
-        tid_to_pools(default_nthreads),
-        default_lpool_size(default_lpool_size_)
+        tid_to_pools(default_nthreads)
   {
   }
   ~mpmc_set_t()
   {
     for (int i = 0; i < npools; i++) {
-      delete static_cast<local_set_t*>(pools.get(i));
+      auto ptr = static_cast<local_set_t*>(pools.get(i));
+      local_set_t::free(ptr);
     }
   };
   const static int LOCAL_SET_ID_NULL = -1;
@@ -138,13 +152,13 @@ class mpmc_set_t
   void* get(int64_t max_steal_attempts);
   void put(void* packet, int tid);
   // not thread safe
-  int64_t size() const;
+  size_t size() const;
 
  private:
   local_set_t* get_local_pool();
   local_set_t* get_random_pool();
 
-  int64_t default_lpool_size;
+  size_t default_lpool_size;
   std::atomic<int> npools;
   mpmc_array_t pools;
   mpmc_array_t tid_to_pools;
@@ -158,7 +172,7 @@ inline mpmc_set_t::local_set_t* mpmc_set_t::get_local_pool()
     return static_cast<local_set_t*>(ptr);
   }
   // we need to allocate a new one
-  ptr = new local_set_t(default_lpool_size);
+  ptr = local_set_t::alloc(default_lpool_size);
   int pool_id = npools++;
   static_cast<local_set_t*>(ptr)->id = pool_id;
   pools.put(pool_id, ptr);
@@ -174,10 +188,9 @@ inline mpmc_set_t::local_set_t* mpmc_set_t::get_random_pool()
 
 inline void* mpmc_set_t::get(int64_t max_steal_attempts = 1)
 {
-  int tid = get_local_set_id();
   local_set_t* local_pool = get_local_pool();
   local_set_t* random_pool;
-  int64_t n;
+  size_t size_to_steal;
 
   if (!local_pool->lock.try_lock()) {
     return nullptr;
@@ -196,18 +209,19 @@ inline void* mpmc_set_t::get(int64_t max_steal_attempts = 1)
     }
     if (!random_pool->lock.try_lock()) continue;
     // At this point, we should have locked both pools
-    n = (random_pool->size() + 1) / 2;
-    if (n > 0) {
-      LCI_Assert(n <= random_pool->size(),
-                 "n (%ld) > random_pool->size() (%ld)\n", n,
+    size_to_steal = (random_pool->size() + 1) / 2;
+    if (size_to_steal > 0) {
+      LCI_Assert(size_to_steal <= random_pool->size(),
+                 "n (%ld) > random_pool->size() (%ld)\n", size_to_steal,
                  random_pool->size());
-      local_pool->queue.resize(std::max(default_lpool_size, n * 2) + 1);
+      local_pool->queue.resize(std::max(default_lpool_size, size_to_steal * 2) +
+                               1);
       // steal half packets from random_pool
-      local_set_t::copy_to_new(random_pool, local_pool->queue, n);
+      local_set_t::copy_to_new(random_pool, local_pool->queue, size_to_steal);
       LCI_Assert(random_pool->head <= random_pool->tail,
                  "header (%ld) > tail (%ld)\n", random_pool->head,
                  random_pool->tail);
-      local_pool->tail = n;
+      local_pool->tail = size_to_steal;
       local_pool->head = 0;
 #ifdef LCI_DEBUG
       for (int i = 0; i < n; i++) {
@@ -252,9 +266,9 @@ inline void mpmc_set_t::put(void* packet,
   local_pool->lock.unlock();
 }
 
-inline int64_t mpmc_set_t::size() const
+inline size_t mpmc_set_t::size() const
 {
-  int64_t total = 0;
+  size_t total = 0;
   for (int i = 0; i < npools; i++) {
     local_set_t* pool = static_cast<local_set_t*>(pools.get(i));
     LCI_Assert(pool, "pool must not be nullptr\n");

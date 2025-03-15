@@ -9,7 +9,7 @@ namespace lci
  * runtime: User wrappers
  *************************************************************/
 
-runtime_t alloc_runtime_x::call_impl(int packet_return_threshold,
+runtime_t alloc_runtime_x::call_impl(size_t packet_return_threshold,
                                      int imm_nbits_tag, int imm_nbits_rcomp,
                                      bool alloc_default_device,
                                      bool alloc_default_packet_pool,
@@ -42,8 +42,9 @@ void free_runtime_x::call_impl(runtime_t* runtime) const
   runtime->p_impl = nullptr;
 }
 
-void g_runtime_init_x::call_impl(int packet_return_threshold, int imm_nbits_tag,
-                                 int imm_nbits_rcomp, bool alloc_default_device,
+void g_runtime_init_x::call_impl(size_t packet_return_threshold,
+                                 int imm_nbits_tag, int imm_nbits_rcomp,
+                                 bool alloc_default_device,
                                  bool alloc_default_packet_pool,
                                  bool alloc_default_matching_engine,
                                  attr_rdv_protocol_t rdv_protocol) const
@@ -145,8 +146,7 @@ device_t get_default_device_x::call_impl(runtime_t runtime) const
   return runtime.p_impl->default_device;
 }
 
-endpoint_t get_default_endpoint_x::call_impl(runtime_t runtime,
-                                             device_t device) const
+endpoint_t get_default_endpoint_x::call_impl(runtime_t, device_t device) const
 {
   return device.p_impl->default_endpoint;
 }

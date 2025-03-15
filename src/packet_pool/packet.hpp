@@ -23,10 +23,11 @@ struct packet_local_context_t {
 
 struct packet_t {
   packet_local_context_t local_context;
-  char payload[0];
 
-  void* get_payload_address() { return payload; }
-
+  void* get_payload_address()
+  {
+    return reinterpret_cast<char*>(this) + sizeof(packet_local_context_t);
+  }
   void put_back();
 
   mr_t get_mr(device_t device);
@@ -35,7 +36,7 @@ struct packet_t {
 
 static inline packet_t* address2packet(void* address)
 {
-  return (packet_t*)((char*)address - offsetof(packet_t, payload));
+  return (packet_t*)((char*)address - sizeof(packet_local_context_t));
 }
 
 inline void free_ctx_and_signal_comp(internal_context_t* internal_ctx);

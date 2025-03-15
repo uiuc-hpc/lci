@@ -68,7 +68,7 @@ ibv_net_context_impl_t::ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_)
                                   IBV_ODP_SUPPORT_SRQ_RECV;
     LCI_Assert(ib_dev_attrx.odp_caps.general_caps & IBV_ODP_SUPPORT &&
                    ib_dev_attrx.odp_caps.per_transport_caps.rc_odp_caps &
-                       rc_caps_mask == rc_caps_mask,
+                       (rc_caps_mask == rc_caps_mask),
                "The device isn't ODP capable\n");
     LCI_Assert(ib_dev_attrx.odp_caps.general_caps & IBV_ODP_SUPPORT_IMPLICIT,
                "The device doesn't support implicit ODP\n");
@@ -148,21 +148,24 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
   // adjust max_send, max_recv, max_cqe
   // Note: the max value reported by device attributes might still not be the
   // strict upper bound.
-  if (attr.net_max_sends > p_net_context->ib_dev_attr.max_qp_wr) {
+  if (attr.net_max_sends >
+      static_cast<size_t>(p_net_context->ib_dev_attr.max_qp_wr)) {
     LCI_Log(LOG_INFO, "ibv",
             "The configured net_max_sends (%d) is adjusted as it is "
             "larger than the maximum allowable value by the device (%d).\n",
             attr.net_max_sends, p_net_context->ib_dev_attr.max_qp_wr);
     attr.net_max_sends = p_net_context->ib_dev_attr.max_qp_wr;
   }
-  if (attr.net_max_recvs > p_net_context->ib_dev_attr.max_srq_wr) {
+  if (attr.net_max_recvs >
+      static_cast<size_t>(p_net_context->ib_dev_attr.max_srq_wr)) {
     LCI_Log(LOG_INFO, "ibv",
             "The configured LCI_SERVER_MAX_RECVS (%d) is adjusted as it is "
             "larger than the maximum allowable value by the device (%d).\n",
             attr.net_max_recvs, p_net_context->ib_dev_attr.max_srq_wr);
     attr.net_max_recvs = p_net_context->ib_dev_attr.max_srq_wr;
   }
-  if (attr.net_max_cqes > p_net_context->ib_dev_attr.max_cqe) {
+  if (attr.net_max_cqes >
+      static_cast<size_t>(p_net_context->ib_dev_attr.max_cqe)) {
     LCI_Log(LOG_INFO, "ibv",
             "The configured LCI_SERVER_MAX_CQES (%d) is adjusted as it is "
             "larger than the maximum allowable value by the device (%d).\n",
@@ -465,11 +468,10 @@ mr_t ibv_device_impl_t::register_memory_impl(void* buffer, size_t size)
     mr->ibv_mr = ibv_reg_mr(ib_pd, buffer, size, mr_flags);
     if (net_context_attr.ibv_prefetch_strategy !=
         attr_ibv_prefetch_strategy_t::none) {
-      struct ibv_sge list = {
-          .addr = (uintptr_t)buffer,
-          .length = (uint32_t)size,
-          .lkey = ibv_detail::get_mr_lkey(mr),
-      };
+      struct ibv_sge list;
+      list.addr = (uintptr_t)buffer;
+      list.length = size;
+      list.lkey = ibv_detail::get_mr_lkey(mr);
       enum ibv_advise_mr_advice advice;
       switch (net_context_attr.ibv_prefetch_strategy) {
         case attr_ibv_prefetch_strategy_t::prefetch:
@@ -511,8 +513,6 @@ ibv_endpoint_impl_t::ibv_endpoint_impl_t(device_t device_, attr_t attr_)
       ib_qp_extras(p_ibv_device->ib_qp_extras),
       net_context_attr(p_ibv_device->net_context_attr)
 {
-  auto p_ibv_context = reinterpret_cast<ibv_net_context_impl_t*>(
-      p_ibv_device->net_context.p_impl);
 }
 
 ibv_endpoint_impl_t::~ibv_endpoint_impl_t() {}

@@ -30,7 +30,7 @@ class packet_pool_impl_t
   {
     return attr.packet_size - sizeof(packet_local_context_t);
   }
-  int64_t get_size() const { return pool.size(); }
+  size_t get_size() const { return pool.size(); }
   int get_local_id() const { return pool.get_local_set_id(); }
   // Report lost packets
   void report_lost_packets(int npackets) { npacket_lost += npackets; }
@@ -43,7 +43,7 @@ class packet_pool_impl_t
   void* base_packet_p;
   size_t heap_size;
   mpmc_array_t mrs;
-  std::atomic<int> npacket_lost;
+  std::atomic<size_t> npacket_lost;
 };
 
 inline packet_t* packet_pool_impl_t::get(bool blocking)
@@ -84,7 +84,8 @@ inline bool packet_pool_impl_t::is_packet(void* address, bool include_lcontext)
 {
   void* packet_address;
   if (!include_lcontext) {
-    packet_address = (packet_t*)((char*)address - offsetof(packet_t, payload));
+    packet_address =
+        (packet_t*)((char*)address - sizeof(packet_local_context_t));
   } else {
     packet_address = address;
   }

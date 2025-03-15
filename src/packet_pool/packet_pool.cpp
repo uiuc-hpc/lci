@@ -9,10 +9,10 @@ namespace lci
 packet_pool_impl_t::packet_pool_impl_t(const attr_t& attr_)
     : attr(attr_),
       pool(),
-      mrs(64),
       heap(nullptr),
       base_packet_p(nullptr),
       heap_size(0),
+      mrs(64),
       npacket_lost(0)
 {
   if (attr.npackets > 0) {
@@ -43,12 +43,12 @@ packet_pool_impl_t::~packet_pool_impl_t()
 {
   // check whether there are any packets missing
   if (attr.npackets > 0) {
-    int total = pool.size() + npacket_lost;
+    size_t total = pool.size() + npacket_lost;
     if (total != attr.npackets) {
       LCI_Warn("Lost %d packets\n", attr.npackets - total);
     }
   }
-  for (int i = 0; i < mrs.get_size(); i++) {
+  for (size_t i = 0; i < mrs.get_size(); i++) {
     mr_impl_t* p_mr = static_cast<mr_impl_t*>(mrs.get(i));
     if (p_mr) {
       mr_t mr;
@@ -93,8 +93,7 @@ mr_t packet_pool_impl_t::get_or_register_mr(device_t device)
   return mr;
 }
 
-packet_pool_t alloc_packet_pool_x::call_impl(runtime_t runtime,
-                                             size_t packet_size,
+packet_pool_t alloc_packet_pool_x::call_impl(runtime_t, size_t packet_size,
                                              size_t npackets,
                                              void* user_context) const
 {
@@ -107,20 +106,19 @@ packet_pool_t alloc_packet_pool_x::call_impl(runtime_t runtime,
   return packet_pool;
 }
 
-void free_packet_pool_x::call_impl(packet_pool_t* packet_pool,
-                                   runtime_t runtime) const
+void free_packet_pool_x::call_impl(packet_pool_t* packet_pool, runtime_t) const
 {
   delete packet_pool->p_impl;
   packet_pool->p_impl = nullptr;
 }
 
 void bind_packet_pool_x::call_impl(device_t device, packet_pool_t packet_pool,
-                                   runtime_t runtime) const
+                                   runtime_t) const
 {
   device.p_impl->bind_packet_pool(packet_pool);
 }
 
-void unbind_packet_pool_x::call_impl(device_t device, runtime_t runtime) const
+void unbind_packet_pool_x::call_impl(device_t device, runtime_t) const
 {
   device.p_impl->unbind_packet_pool();
 }

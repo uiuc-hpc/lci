@@ -46,7 +46,7 @@ class cq_t : public comp_impl_t
   LCT_queue_t queue;
 };
 
-inline status_t cq_pop_x::call_impl(comp_t comp, runtime_t runtime) const
+inline status_t cq_pop_x::call_impl(comp_t comp, runtime_t) const
 {
   cq_t* p_cq = static_cast<cq_t*>(comp.p_impl);
   return p_cq->pop();

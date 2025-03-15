@@ -9,18 +9,18 @@ std::atomic<int> device_impl_t::g_ndevices(0);
 std::atomic<int> endpoint_impl_t::g_nendpoints(0);
 
 net_context_impl_t::net_context_impl_t(runtime_t runtime_, attr_t attr_)
-    : runtime(runtime_), attr(attr_)
+    : attr(attr_), runtime(runtime_)
 {
   net_context.p_impl = this;
 }
 
 device_impl_t::device_impl_t(net_context_t context_, attr_t attr_)
-    : net_context(context_), attr(attr_), nrecvs_posted(0)
+    : attr(attr_), net_context(context_), nrecvs_posted(0)
 {
   device_id = g_ndevices++;
   runtime = net_context.p_impl->runtime;
   device.p_impl = this;
-};
+}
 
 void device_impl_t::initialize()
 {
@@ -55,7 +55,7 @@ endpoint_impl_t::endpoint_impl_t(device_t device_, attr_t attr_)
 
 net_context_t alloc_net_context_x::call_impl(
     runtime_t runtime, attr_backend_t backend, std::string ofi_provider_name,
-    int64_t max_msg_size, int64_t max_inject_size, int ibv_gid_idx,
+    size_t max_msg_size, size_t max_inject_size, int ibv_gid_idx,
     bool ibv_force_gid_auto_select, attr_ibv_odp_strategy_t ibv_odp_strategy,
     attr_ibv_td_strategy_t ibv_td_strategy,
     attr_ibv_prefetch_strategy_t ibv_prefetch_strategy,
@@ -106,15 +106,14 @@ net_context_t alloc_net_context_x::call_impl(
   return net_context;
 }
 
-void free_net_context_x::call_impl(net_context_t* net_context,
-                                   runtime_t runtime) const
+void free_net_context_x::call_impl(net_context_t* net_context, runtime_t) const
 {
   delete net_context->p_impl;
   net_context->p_impl = nullptr;
 }
 
-device_t alloc_device_x::call_impl(runtime_t runtime, int64_t net_max_sends,
-                                   int64_t net_max_recvs, int64_t net_max_cqes,
+device_t alloc_device_x::call_impl(runtime_t runtime, size_t net_max_sends,
+                                   size_t net_max_recvs, size_t net_max_cqes,
                                    uint64_t ofi_lock_mode,
                                    bool alloc_default_endpoint,
                                    void* user_context,
@@ -136,13 +135,13 @@ device_t alloc_device_x::call_impl(runtime_t runtime, int64_t net_max_sends,
   return device;
 }
 
-void free_device_x::call_impl(device_t* device, runtime_t runtime) const
+void free_device_x::call_impl(device_t* device, runtime_t) const
 {
   delete device->p_impl;
   device->p_impl = nullptr;
 }
 
-endpoint_t alloc_endpoint_x::call_impl(runtime_t runtime, void* user_context,
+endpoint_t alloc_endpoint_x::call_impl(runtime_t, void* user_context,
                                        device_t device) const
 {
   endpoint_t::attr_t attr;
@@ -151,7 +150,7 @@ endpoint_t alloc_endpoint_x::call_impl(runtime_t runtime, void* user_context,
   return endpoint;
 }
 
-void free_endpoint_x::call_impl(endpoint_t* endpoint, runtime_t runtime) const
+void free_endpoint_x::call_impl(endpoint_t* endpoint, runtime_t) const
 {
   delete endpoint->p_impl;
   endpoint->p_impl = nullptr;

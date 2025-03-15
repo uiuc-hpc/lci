@@ -3,7 +3,9 @@
 
 #include "lci_internal.hpp"
 
-namespace lci::ibv_detail
+namespace lci
+{
+namespace ibv_detail
 {
 // Lane width
 static int translate_width(uint8_t width)
@@ -180,9 +182,8 @@ roce_version_t query_gid_roce_version(struct ibv_device* ib_dev,
   return ROCE_VER_UNKNOWN;
 }
 
-bool test_roce_gid_index(struct ibv_device* ib_dev, struct ibv_context* dev_ctx,
-                         struct ibv_pd* dev_pd, uint8_t dev_port,
-                         uint8_t gid_index)
+bool test_roce_gid_index(struct ibv_context* dev_ctx, struct ibv_pd* dev_pd,
+                         uint8_t dev_port, uint8_t gid_index)
 {
   struct ibv_ah_attr ah_attr;
   struct ibv_ah* ah;
@@ -213,11 +214,8 @@ int select_best_gid_for_roce(struct ibv_device* ib_dev,
                              struct ibv_context* dev_ctx, struct ibv_pd* dev_pd,
                              struct ibv_port_attr port_attr, uint8_t dev_port)
 {
-  static const int roce_prio[] = {
-      [ROCE_V2] = 0,
-      [ROCE_V1] = 1,
-      [ROCE_VER_UNKNOWN] = 2,
-  };
+  static const int roce_prio[ROCE_VER_MAX] = {0, 1, 2};
+
   int gid_tbl_len = port_attr.gid_tbl_len;
   int best_priority = 100;
   int best_gid_idx = -1;
@@ -229,13 +227,12 @@ int select_best_gid_for_roce(struct ibv_device* ib_dev,
         query_gid_roce_version(ib_dev, dev_ctx, dev_port, i);
     int priority = roce_prio[version];
 
-    if (priority == 0 &&
-        test_roce_gid_index(ib_dev, dev_ctx, dev_pd, dev_port, i)) {
+    if (priority == 0 && test_roce_gid_index(dev_ctx, dev_pd, dev_port, i)) {
       best_gid_idx = i;
       best_priority = priority;
       break;
     } else if (priority < best_priority &&
-               test_roce_gid_index(ib_dev, dev_ctx, dev_pd, dev_port, i)) {
+               test_roce_gid_index(dev_ctx, dev_pd, dev_port, i)) {
       best_gid_idx = i;
       best_priority = priority;
     }
@@ -280,4 +277,5 @@ void wire_gid_to_gid(const char* wgid, union ibv_gid* gid)
   }
   memcpy(gid, tmp_gid, sizeof(*gid));
 }
-}  // namespace lci::ibv_detail
+}  // namespace ibv_detail
+}  // namespace lci

@@ -5,7 +5,7 @@
 
 namespace lci
 {
-void progress_recv(runtime_t runtime, device_t device, endpoint_t endpoint,
+void progress_recv(runtime_t runtime, endpoint_t endpoint,
                    const net_status_t& net_status)
 {
   LCI_PCOUNTER_ADD(net_recv_comp, 1)
@@ -109,7 +109,7 @@ void progress_write(endpoint_t endpoint, const net_status_t& net_status)
     if (ectx->recv_ctx) {
       handle_rdv_local_write(endpoint, ectx);
     }  // else: this is a RDMA write buffers
-    delete ectx;
+    internal_context_extended_t::free(ectx);
     free_ctx_and_signal_comp(ctx);
   } else {
     free_ctx_and_signal_comp(internal_ctx);
@@ -160,7 +160,7 @@ void progress_read(const net_status_t& net_status)
     }
     LCI_DBG_Assert(signal_count == 0, "Unexpected signal!\n");
     internal_context_t* ctx = ectx->internal_ctx;
-    delete ectx;
+    internal_context_extended_t::free(ectx);
     free_ctx_and_signal_comp(ctx);
   } else {
     if (internal_ctx->packet_to_free) {
@@ -189,7 +189,7 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
   for (auto& status : statuses) {
     if (status.opcode == net_opcode_t::RECV) {
       device.p_impl->consume_recvs(1);
-      progress_recv(runtime, device, endpoint, status);
+      progress_recv(runtime, endpoint, status);
     } else if (status.opcode == net_opcode_t::SEND) {
       progress_send(status);
     } else if (status.opcode == net_opcode_t::WRITE) {
