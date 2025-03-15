@@ -13,8 +13,7 @@
       LCI_Assert(false, "err %d : %s (%s:%d)\n", err, strerror(err), __FILE__, \
                  __LINE__);                                                    \
     }                                                                          \
-  }                                                                            \
-  while (0)
+  } while (0)
 
 #define IBV_SAFECALL_RET(x)                                                    \
   do {                                                                         \
@@ -24,8 +23,7 @@
                  __LINE__);                                                    \
     }                                                                          \
     return errorcode_t::fatal;                                                 \
-  }                                                                            \
-  while (0)
+  } while (0)
 
 namespace lci
 {

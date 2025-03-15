@@ -20,8 +20,7 @@
       LCI_Assert(false, "err : %s (%s:%d)\n", fi_strerror(err), __FILE__, \
                  __LINE__);                                               \
     }                                                                     \
-  }                                                                       \
-  while (0)
+  } while (0)
 
 #define FI_SAFECALL_RET(x)                                                \
   do {                                                                    \
@@ -32,8 +31,7 @@
                  __LINE__);                                               \
     }                                                                     \
     return errorcode_t::fatal;                                            \
-  }                                                                       \
-  while (0)
+  } while (0)
 
 #define LCI_OFI_CS_TRY_ENTER(mode, ret) \
   if (ofi_lock_mode & mode && !lock.try_lock()) return ret;

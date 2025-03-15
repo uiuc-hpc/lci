@@ -9,8 +9,8 @@ namespace lci
 class sync_t : public comp_impl_t
 {
  public:
-  sync_t(comp_attr_t attr, int threshold_)
-      : comp_impl_t(attr),
+  sync_t(comp_attr_t attr_, int threshold_)
+      : comp_impl_t(attr_),
         m_top(0),
         m_top2(0),
         m_tail(0),

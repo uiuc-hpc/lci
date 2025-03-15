@@ -9,8 +9,8 @@ namespace lci
 class cq_t : public comp_impl_t
 {
  public:
-  cq_t(comp_attr_t attr, int default_length_)
-      : comp_impl_t(attr), default_length(default_length_)
+  cq_t(comp_attr_t attr_, int default_length_)
+      : comp_impl_t(attr_), default_length(default_length_)
   {
     attr.comp_type = attr_comp_type_t::cq;
     LCT_queue_type_t cq_type = LCT_QUEUE_LCRQ;

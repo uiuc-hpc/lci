@@ -9,6 +9,7 @@ comp_t alloc_sync_x::call_impl(runtime_t, int threshold,
                                void* user_context) const
 {
   comp_attr_t attr;
+  memset(&attr, 0, sizeof(attr));
   attr.user_context = user_context;
   comp_t comp;
   comp.p_impl = new sync_t(attr, threshold);
@@ -19,6 +20,7 @@ comp_t alloc_cq_x::call_impl(runtime_t, int default_length,
                              void* user_context) const
 {
   comp_attr_t attr;
+  memset(&attr, 0, sizeof(attr));
   attr.user_context = user_context;
   comp_t comp;
   comp.p_impl = new cq_t(attr, default_length);
@@ -29,6 +31,7 @@ comp_t alloc_handler_x::call_impl(comp_handler_t handler, runtime_t,
                                   void* user_context) const
 {
   comp_attr_t attr;
+  memset(&attr, 0, sizeof(attr));
   attr.user_context = user_context;
   comp_t comp;
   comp.p_impl = new handler_t(attr, handler);

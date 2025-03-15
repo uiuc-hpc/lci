@@ -9,8 +9,8 @@ namespace lci
 class handler_t : public comp_impl_t
 {
  public:
-  handler_t(comp_attr_t attr, comp_handler_t handler)
-      : comp_impl_t(attr), m_handler(handler)
+  handler_t(comp_attr_t attr_, comp_handler_t handler)
+      : comp_impl_t(attr_), m_handler(handler)
   {
     attr.comp_type = attr_comp_type_t::handler;
   }

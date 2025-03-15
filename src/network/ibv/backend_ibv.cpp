@@ -392,7 +392,7 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
   }
 
   int j = get_nranks();
-  int* b;
+  int* b = nullptr;
   while (j < INT32_MAX) {
     b = (int*)calloc(j, sizeof(int));
     int i = 0;
@@ -472,7 +472,7 @@ mr_t ibv_device_impl_t::register_memory_impl(void* buffer, size_t size)
       list.addr = (uintptr_t)buffer;
       list.length = size;
       list.lkey = ibv_detail::get_mr_lkey(mr);
-      enum ibv_advise_mr_advice advice;
+      enum ibv_advise_mr_advice advice = IBV_ADVISE_MR_ADVICE_PREFETCH;
       switch (net_context_attr.ibv_prefetch_strategy) {
         case attr_ibv_prefetch_strategy_t::prefetch:
           advice = IBV_ADVISE_MR_ADVICE_PREFETCH;
