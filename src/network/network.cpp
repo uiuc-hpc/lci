@@ -20,9 +20,13 @@ device_impl_t::device_impl_t(net_context_t context_, attr_t attr_)
   device_id = g_ndevices++;
   runtime = net_context.p_impl->runtime;
   device.p_impl = this;
+};
+
+void device_impl_t::initialize()
+{
   if (attr.alloc_default_endpoint)
     default_endpoint = alloc_endpoint_x().runtime(runtime).device(device)();
-};
+}
 
 device_impl_t::~device_impl_t()
 {
@@ -124,6 +128,7 @@ device_t alloc_device_x::call_impl(runtime_t runtime, int64_t net_max_sends,
   attr.alloc_default_endpoint = alloc_default_endpoint;
   attr.user_context = user_context;
   auto device = net_context.p_impl->alloc_device(attr);
+  device.get_impl()->initialize();
   packet_pool_t packet_pool = get_default_packet_pool_x().runtime(runtime)();
   if (!packet_pool.is_empty()) {
     bind_packet_pool_x(device, packet_pool).runtime(runtime)();
