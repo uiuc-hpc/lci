@@ -224,7 +224,7 @@ inline void* mpmc_set_t::get(int64_t max_steal_attempts = 1)
       local_pool->tail = size_to_steal;
       local_pool->head = 0;
 #ifdef LCI_DEBUG
-      for (int i = 0; i < n; i++) {
+      for (size_t i = 0; i < size_to_steal; i++) {
         void* val = local_pool->queue[i];
         LCI_DBG_Assert(val, "val must not be nullptr\n");
       }

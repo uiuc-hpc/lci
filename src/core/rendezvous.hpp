@@ -153,7 +153,7 @@ inline void handle_rdv_rts(runtime_t runtime, endpoint_t endpoint,
 {
   // Extract information from the received RTS packet
   rts_msg_t* rts = reinterpret_cast<rts_msg_t*>(packet->get_payload_address());
-  LCI_DBG_Log(LOG_TRACE, "rdv", "handle rts: rdv_type %d\n", rdv_type);
+  LCI_DBG_Log(LOG_TRACE, "rdv", "handle rts: rdv_type %d\n", rts->rdv_type);
 
   auto entry = runtime.p_impl->default_rhandler_registry.get(rts->rcomp);
   if (entry.type == rhandler_registry_t::type_t::matching_engine) {

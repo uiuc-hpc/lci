@@ -166,7 +166,7 @@ class matching_engine_map_t : public matching_engine_impl_t
               break;
             }
           }
-          LCI_DBG_Assert(tail->values[empty_slot] == VALUE_EMPTY, "\n");
+          LCI_DBG_Assert(list.tail->values[empty_slot] == VALUE_EMPTY, "\n");
           list.tail->values[empty_slot] = value;
         }
       }
