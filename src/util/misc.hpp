@@ -45,7 +45,7 @@ static inline size_t get_page_size()
 static inline void* alloc_memalign(size_t size,
                                    size_t alignment = LCI_CACHE_LINE)
 {
-  void* p_ptr;
+  void* p_ptr = nullptr;
   int ret = posix_memalign(&p_ptr, alignment, size);
   LCI_Assert(
       ret == 0, "posix_memalign(%lu, %lu) returned %d (Free memory %lu/%lu)\n",
