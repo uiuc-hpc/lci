@@ -111,7 +111,9 @@ void free_net_context_x::call_impl(net_context_t* net_context,
 
 device_t alloc_device_x::call_impl(runtime_t runtime, int64_t net_max_sends,
                                    int64_t net_max_recvs, int64_t net_max_cqes,
-                                   uint64_t ofi_lock_mode, bool alloc_default_endpoint, void* user_context,
+                                   uint64_t ofi_lock_mode,
+                                   bool alloc_default_endpoint,
+                                   void* user_context,
                                    net_context_t net_context) const
 {
   device_t::attr_t attr;

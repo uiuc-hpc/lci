@@ -36,8 +36,7 @@ status_t post_comm_x::call_impl(
   bool is_recv = direction == direction_t::IN && local_buffer_only;
   size_t max_inject_size = net_context.get_attr_max_inject_size();
   size_t max_bcopy_size =
-      get_max_bcopy_size_x().runtime(runtime).packet_pool(
-          packet_pool)();
+      get_max_bcopy_size_x().runtime(runtime).packet_pool(packet_pool)();
 
   // basic checks
   // buffer and buffers should not be used at the same time
@@ -497,10 +496,11 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
 
 status_t post_send_x::call_impl(
     int rank, void* local_buffer, size_t size, tag_t tag, comp_t local_comp,
-    runtime_t runtime, packet_pool_t packet_pool, device_t device, endpoint_t endpoint,
-    matching_engine_t matching_engine, comp_semantic_t comp_semantic, mr_t mr,
-    void* user_context, buffers_t buffers, matching_policy_t matching_policy,
-    bool allow_ok, bool allow_posted, bool allow_retry, bool force_zcopy) const
+    runtime_t runtime, packet_pool_t packet_pool, device_t device,
+    endpoint_t endpoint, matching_engine_t matching_engine,
+    comp_semantic_t comp_semantic, mr_t mr, void* user_context,
+    buffers_t buffers, matching_policy_t matching_policy, bool allow_ok,
+    bool allow_posted, bool allow_retry, bool force_zcopy) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .runtime(runtime)
@@ -519,14 +519,12 @@ status_t post_send_x::call_impl(
       .force_zcopy(force_zcopy)();
 }
 
-status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
-                                tag_t tag, comp_t local_comp, runtime_t runtime,
-                                packet_pool_t packet_pool, device_t device, endpoint_t endpoint,
-                                matching_engine_t matching_engine, mr_t mr,
-                                void* user_context, buffers_t buffers,
-                                matching_policy_t matching_policy,
-                                bool allow_ok, bool allow_posted,
-                                bool allow_retry, bool force_zcopy) const
+status_t post_recv_x::call_impl(
+    int rank, void* local_buffer, size_t size, tag_t tag, comp_t local_comp,
+    runtime_t runtime, packet_pool_t packet_pool, device_t device,
+    endpoint_t endpoint, matching_engine_t matching_engine, mr_t mr,
+    void* user_context, buffers_t buffers, matching_policy_t matching_policy,
+    bool allow_ok, bool allow_posted, bool allow_retry, bool force_zcopy) const
 {
   return post_comm_x(direction_t::IN, rank, local_buffer, size, local_comp)
       .runtime(runtime)
@@ -575,12 +573,12 @@ status_t post_put_x::call_impl(
 status_t post_get_x::call_impl(int rank, void* local_buffer, size_t size,
                                comp_t local_comp, uintptr_t remote_buffer,
                                rkey_t rkey, runtime_t runtime,
-                               packet_pool_t packet_pool, device_t device, endpoint_t endpoint,
-                               mr_t mr, tag_t tag, rcomp_t remote_comp,
-                               void* user_context, buffers_t buffers,
-                               rbuffers_t rbuffers, bool allow_ok,
-                               bool allow_posted, bool allow_retry,
-                               bool force_zcopy) const
+                               packet_pool_t packet_pool, device_t device,
+                               endpoint_t endpoint, mr_t mr, tag_t tag,
+                               rcomp_t remote_comp, void* user_context,
+                               buffers_t buffers, rbuffers_t rbuffers,
+                               bool allow_ok, bool allow_posted,
+                               bool allow_retry, bool force_zcopy) const
 {
   return post_comm_x(direction_t::IN, rank, local_buffer, size, local_comp)
       .remote_buffer(remote_buffer)

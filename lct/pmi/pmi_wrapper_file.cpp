@@ -159,8 +159,8 @@ void reset_file(int fd, const std::string& content)
 {
   lseek(fd, 0, SEEK_SET);
   int ret = ftruncate(fd, 0);
-  LCT_Assert(LCT_log_ctx_default, ret == 0, "Error truncating file (errno: %d %s)",
-             errno, strerror(errno));
+  LCT_Assert(LCT_log_ctx_default, ret == 0,
+             "Error truncating file (errno: %d %s)", errno, strerror(errno));
   write_file(fd, content);
 }
 

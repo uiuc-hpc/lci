@@ -145,7 +145,8 @@ device_t get_default_device_x::call_impl(runtime_t runtime) const
   return runtime.p_impl->default_device;
 }
 
-endpoint_t get_default_endpoint_x::call_impl(runtime_t runtime, device_t device) const
+endpoint_t get_default_endpoint_x::call_impl(runtime_t runtime,
+                                             device_t device) const
 {
   return device.p_impl->default_endpoint;
 }
