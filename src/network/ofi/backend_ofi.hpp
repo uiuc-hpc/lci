@@ -13,7 +13,7 @@
 #include <rdma/fi_rma.h>
 
 #define FI_SAFECALL(x)                                                    \
-  {                                                                       \
+  do {                                                                    \
     int err = (x);                                                        \
     if (err < 0) err = -err;                                              \
     if (err) {                                                            \
@@ -24,7 +24,7 @@
   while (0)
 
 #define FI_SAFECALL_RET(x)                                                \
-  {                                                                       \
+  do {                                                                    \
     int err = (x);                                                        \
     if (err < 0) err = -err;                                              \
     if (err) {                                                            \

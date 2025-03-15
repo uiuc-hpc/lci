@@ -7,7 +7,7 @@
 #include "infiniband/verbs.h"
 
 #define IBV_SAFECALL(x)                                                        \
-  {                                                                            \
+  do {                                                                         \
     int err = (x);                                                             \
     if (err) {                                                                 \
       LCI_Assert(false, "err %d : %s (%s:%d)\n", err, strerror(err), __FILE__, \
@@ -17,7 +17,7 @@
   while (0)
 
 #define IBV_SAFECALL_RET(x)                                                    \
-  {                                                                            \
+  do {                                                                         \
     int err = (x);                                                             \
     if (err) {                                                                 \
       LCI_Assert(false, "err %d : %s (%s:%d)\n", err, strerror(err), __FILE__, \
