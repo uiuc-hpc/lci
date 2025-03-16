@@ -72,7 +72,7 @@ inline error_t endpoint_impl_t::post_puts(int rank, void* buffer, size_t size,
     }
   } else {
     LCI_PCOUNTER_ADD(net_write_post, 1);
-    LCI_PCOUNTER_ADD(net_write_comp, 1);
+    LCI_PCOUNTER_ADD(net_write_writeImm_comp, 1);
   }
   return error;
 }
@@ -124,7 +124,7 @@ inline error_t endpoint_impl_t::post_putImms(int rank, void* buffer,
     }
   } else {
     LCI_PCOUNTER_ADD(net_writeImm_post, 1);
-    LCI_PCOUNTER_ADD(net_writeImm_comp, 1);
+    LCI_PCOUNTER_ADD(net_write_writeImm_comp, 1);
   }
   return error;
 }
