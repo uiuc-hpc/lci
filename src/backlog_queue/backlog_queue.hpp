@@ -10,8 +10,19 @@ class endpoint_impl_t;
 class backlog_queue_t
 {
  public:
-  backlog_queue_t() : nentries(0) {}
-  ~backlog_queue_t() = default;
+  backlog_queue_t() : empty(true), nentries_per_rank(get_nranks())
+  {
+    for (auto& nentries : nentries_per_rank) {
+      nentries.store(0, std::memory_order_relaxed);
+    }
+  }
+  ~backlog_queue_t()
+  {
+    LCI_Assert(backlog_queue.empty(), "backlog queue is not empty\n");
+    for (auto& nentries : nentries_per_rank) {
+      LCI_Assert(nentries.load() == 0, "nentries is not zero\n");
+    }
+  }
   inline void push_sends(endpoint_impl_t* endpoint, int rank, void* buffer,
                          size_t size, net_imm_data_t imm_data);
   inline void push_send(endpoint_impl_t* endpoint, int rank, void* buffer,
@@ -34,9 +45,16 @@ class backlog_queue_t
                        size_t size, mr_t mr, uintptr_t base, uint64_t offset,
                        rkey_t rkey, void* user_context);
   inline bool progress();
-  inline bool is_empty() const
+  inline void set_empty(bool empty_)
   {
-    return nentries.load(std::memory_order_relaxed) == 0;
+    if (empty.load(std::memory_order_relaxed) != empty_) {
+      empty.store(empty_, std::memory_order_relaxed);
+    }
+  }
+  inline bool is_empty() const { return empty.load(std::memory_order_relaxed); }
+  inline bool is_empty(int rank) const
+  {
+    return nentries_per_rank[rank].load(std::memory_order_relaxed) == 0;
   }
 
  private:
@@ -66,7 +84,8 @@ class backlog_queue_t
   // 1. we assume that the backlog queue is not used frequently.
   // 2. we would like to ensure the operations are executed in the order they
   // are pushed.
-  std::atomic<size_t> nentries;
+  std::atomic<bool> empty;
+  std::vector<std::atomic<size_t>> nentries_per_rank;
   spinlock_t lock;
   std::queue<backlog_queue_entry_t> backlog_queue;
 };

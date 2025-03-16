@@ -141,9 +141,9 @@ class endpoint_impl_t
                           void* user_context, bool allow_retry = true,
                           bool force_post = false);
   inline bool progress_backlog_queue() { return backlog_queue.progress(); }
-  inline bool is_backlog_queue_empty() const
+  inline bool is_backlog_queue_empty(int rank) const
   {
-    return backlog_queue.is_empty();
+    return backlog_queue.is_empty(rank);
   }
 
   runtime_t runtime;

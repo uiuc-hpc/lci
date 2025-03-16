@@ -21,12 +21,19 @@ extern LCT_pcounter_ctx_t pcounter_ctx;
     _macro(net_recv_post)                     \
     _macro(net_recv_post_retry)               \
     _macro(net_recv_comp)                     \
-    _macro(net_write_comp)                    \
+    _macro(net_write_post)                    \
+    _macro(net_write_post_retry)                    \
+    _macro(net_write_writeImm_comp)                    \
+    _macro(net_writeImm_post)                    \
+    _macro(net_writeImm_post_retry)                    \
+    _macro(net_read_post)                    \
+    _macro(net_read_post_retry)                    \
+    _macro(net_read_comp)                    \
     _macro(net_remote_write_comp)             \
-    _macro(net_read_comp)                     \
     _macro(packet_get)                        \
     _macro(packet_get_retry)                  \
     _macro(packet_put)                        \
+    _macro(packet_steal)                        \
     _macro(comp_produce)                      \
     _macro(comp_consume)                      \
     _macro(net_poll_cq_entry_count)           \

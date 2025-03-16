@@ -202,6 +202,7 @@ inline void* mpmc_set_t::get(int64_t max_steal_attempts = 1)
   // random packet stealing
   // we steal from the top of the random pool
   for (int64_t i = 0; i < max_steal_attempts; i++) {
+    LCI_PCOUNTER_ADD(packet_steal, 1);
     LCI_Assert(local_pool->empty(), "local pool must be empty\n");
     random_pool = get_random_pool();
     if (!random_pool || random_pool == local_pool || random_pool->size() <= 0) {

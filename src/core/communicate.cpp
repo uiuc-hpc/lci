@@ -201,7 +201,7 @@ status_t post_comm_x::call_impl(
   // 1. allow_retry is true
   // 2. the endpoint's backlog queue is not empty
   // 3. we are not doing a recv
-  if (!endpoint.get_impl()->is_backlog_queue_empty() && allow_retry &&
+  if (!endpoint.get_impl()->is_backlog_queue_empty(rank) && allow_retry &&
       !is_recv) {
     LCI_PCOUNTER_ADD(retry_due_to_backlog_queue, 1);
     error = errorcode_t::retry_backlog;

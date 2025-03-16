@@ -92,7 +92,7 @@ void progress_send(const net_status_t& net_status)
 
 void progress_write(endpoint_t endpoint, const net_status_t& net_status)
 {
-  LCI_PCOUNTER_ADD(net_write_comp, 1)
+  LCI_PCOUNTER_ADD(net_write_writeImm_comp, 1)
   internal_context_t* internal_ctx =
       static_cast<internal_context_t*>(net_status.user_context);
 

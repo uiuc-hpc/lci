@@ -24,6 +24,7 @@ inline error_t endpoint_impl_t::post_sends(int rank, void* buffer, size_t size,
     }
   } else {
     LCI_PCOUNTER_ADD(net_send_post, 1);
+    LCI_PCOUNTER_ADD(net_send_comp, 1);
   }
   return error;
 }
@@ -64,13 +65,14 @@ inline error_t endpoint_impl_t::post_puts(int rank, void* buffer, size_t size,
     error = post_puts_impl(rank, buffer, size, base, offset, rkey);
   }
   if (error.is_retry()) {
-    LCI_PCOUNTER_ADD(net_send_post_retry, 1);
+    LCI_PCOUNTER_ADD(net_write_post_retry, 1);
     if (!allow_retry) {
       backlog_queue.push_puts(this, rank, buffer, size, base, offset, rkey);
       error = errorcode_t::ok_backlog;
     }
   } else {
-    LCI_PCOUNTER_ADD(net_send_post, 1);
+    LCI_PCOUNTER_ADD(net_write_post, 1);
+    LCI_PCOUNTER_ADD(net_write_comp, 1);
   }
   return error;
 }
@@ -89,14 +91,14 @@ inline error_t endpoint_impl_t::post_put(int rank, void* buffer, size_t size,
         post_put_impl(rank, buffer, size, mr, base, offset, rkey, user_context);
   }
   if (error.is_retry()) {
-    LCI_PCOUNTER_ADD(net_send_post_retry, 1);
+    LCI_PCOUNTER_ADD(net_write_post_retry, 1);
     if (!allow_retry) {
       backlog_queue.push_put(this, rank, buffer, size, mr, base, offset, rkey,
                              user_context);
       error = errorcode_t::posted_backlog;
     }
   } else {
-    LCI_PCOUNTER_ADD(net_send_post, 1);
+    LCI_PCOUNTER_ADD(net_write_post, 1);
   }
   return error;
 }
@@ -114,14 +116,15 @@ inline error_t endpoint_impl_t::post_putImms(int rank, void* buffer,
     error = post_putImms_impl(rank, buffer, size, base, offset, rkey, imm_data);
   }
   if (error.is_retry()) {
-    LCI_PCOUNTER_ADD(net_send_post_retry, 1);
+    LCI_PCOUNTER_ADD(net_writeImm_post_retry, 1);
     if (!allow_retry) {
       backlog_queue.push_putImms(this, rank, buffer, size, base, offset, rkey,
                                  imm_data);
       error = errorcode_t::ok_backlog;
     }
   } else {
-    LCI_PCOUNTER_ADD(net_send_post, 1);
+    LCI_PCOUNTER_ADD(net_writeImm_post, 1);
+    LCI_PCOUNTER_ADD(net_writeImm_comp, 1);
   }
   return error;
 }
@@ -141,14 +144,14 @@ inline error_t endpoint_impl_t::post_putImm(int rank, void* buffer, size_t size,
                              imm_data, user_context);
   }
   if (error.is_retry()) {
-    LCI_PCOUNTER_ADD(net_send_post_retry, 1);
+    LCI_PCOUNTER_ADD(net_writeImm_post_retry, 1);
     if (!allow_retry) {
       backlog_queue.push_putImm(this, rank, buffer, size, mr, base, offset,
                                 rkey, imm_data, user_context);
       error = errorcode_t::posted_backlog;
     }
   } else {
-    LCI_PCOUNTER_ADD(net_send_post, 1);
+    LCI_PCOUNTER_ADD(net_writeImm_post, 1);
   }
   return error;
 }
@@ -167,14 +170,14 @@ inline error_t endpoint_impl_t::post_get(int rank, void* buffer, size_t size,
         post_get_impl(rank, buffer, size, mr, base, offset, rkey, user_context);
   }
   if (error.is_retry()) {
-    LCI_PCOUNTER_ADD(net_send_post_retry, 1);
+    LCI_PCOUNTER_ADD(net_read_post_retry, 1);
     if (!allow_retry) {
       backlog_queue.push_get(this, rank, buffer, size, mr, base, offset, rkey,
                              user_context);
       error = errorcode_t::posted_backlog;
     }
   } else {
-    LCI_PCOUNTER_ADD(net_send_post, 1);
+    LCI_PCOUNTER_ADD(net_read_post, 1);
   }
   return error;
 }

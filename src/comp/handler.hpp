@@ -17,7 +17,12 @@ class handler_t : public comp_impl_t
 
   ~handler_t() = default;
 
-  void signal(status_t status) override { (*m_handler)(std::move(status)); }
+  void signal(status_t status) override
+  {
+    LCI_PCOUNTER_ADD(comp_produce, 1);
+    LCI_PCOUNTER_ADD(comp_consume, 1);
+    (*m_handler)(std::move(status));
+  }
 
  private:
   comp_handler_t m_handler;
