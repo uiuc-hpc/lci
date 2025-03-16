@@ -33,6 +33,12 @@ void pcounter_init()
   pcounter_handle_##name =                \
       LCT_pcounter_register(pcounter_ctx, #name, LCT_PCOUNTER_TIMER);
   LCI_PCOUNTER_TIMER_FOR_EACH(LCI_PCOUNTER_TIMER_REGISTER)
+
+  LCI_Log(LOG_INFO, "pcounter", "pcounter was initialized.\n");
+#else
+  LCI_Log(LOG_INFO, "pcounter",
+          "pcounter was not initialized because LCI_USE_PERFORMANCE_COUNTER is "
+          "not defined.\n");
 #endif  // LCI_USE_PERFORMANCE_COUNTER
 }
 

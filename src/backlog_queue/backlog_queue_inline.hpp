@@ -169,6 +169,10 @@ inline bool backlog_queue_t::progress()
   if (!lock.try_lock()) {
     return false;
   }
+  if (backlog_queue.empty()) {
+    lock.unlock();
+    return false;
+  }
   bool did_something = false;
   auto entry = backlog_queue.front();
   error_t error;
