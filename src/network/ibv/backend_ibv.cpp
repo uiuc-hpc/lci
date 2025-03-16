@@ -201,9 +201,10 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
       attr.comp_mask = 0;
       ib_pd = ibv_alloc_parent_domain(p_net_context->ib_context, &attr);
       if (ib_pd == nullptr) {
-        LCI_Warn("ibv_alloc_parent_domain() failed (%s); decalloc the thread "
-                 "domain\n",
-                 strerror(errno));
+        LCI_Warn(
+            "ibv_alloc_parent_domain() failed (%s); decalloc the thread "
+            "domain\n",
+            strerror(errno));
         IBV_SAFECALL(ibv_dealloc_td(ib_td));
       }
     } else {
@@ -227,9 +228,10 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
         ib_qp_extras[i].ib_pd =
             ibv_alloc_parent_domain(p_net_context->ib_context, &pd_attr);
         if (ib_qp_extras[i].ib_pd == nullptr) {
-          LCI_Warn("ibv_alloc_parent_domain() failed (%s); decalloc the thread "
-                   "domain\n",
-                   strerror(errno));
+          LCI_Warn(
+              "ibv_alloc_parent_domain() failed (%s); decalloc the thread "
+              "domain\n",
+              strerror(errno));
           IBV_SAFECALL(ibv_dealloc_td(ib_qp_extras[i].ib_td));
         }
       } else {
