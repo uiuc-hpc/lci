@@ -5,7 +5,7 @@
 
 namespace lci
 {
-const char* errorcode_to_str(errorcode_t errorcode)
+const char* get_errorcode_str(errorcode_t errorcode)
 {
   static const char errorcode_str[][32] = {
       "ok_min",         "ok",          "ok_backlog",     "ok_max",
@@ -15,6 +15,14 @@ const char* errorcode_to_str(errorcode_t errorcode)
       "fatal",
   };
   return errorcode_str[static_cast<int>(errorcode)];
+}
+
+const char* get_net_opcode_str(net_opcode_t opcode)
+{
+  static const char opcode_str[][16] = {
+      "SEND", "RECV", "WRITE", "REMOTE_WRITE", "READ",
+  };
+  return opcode_str[static_cast<int>(opcode)];
 }
 
 }  // namespace lci

@@ -72,9 +72,9 @@ inline std::vector<net_status_t> ibv_device_impl_t::poll_comp_impl(
     // Got an entry here
     for (int i = 0; i < ne; i++) {
       LCI_Assert(wcs[i].status == IBV_WC_SUCCESS,
-                 "Failed status %s (%d) for wr_id %d\n",
+                 "Failed status %s (%d) for wr_id %p\n",
                  ibv_wc_status_str(wcs[i].status), wcs[i].status,
-                 (int)wcs[i].wr_id);
+                 (void*)wcs[i].wr_id);
       net_status_t status;
       if (wcs[i].opcode == IBV_WC_RECV) {
         status.opcode = net_opcode_t::RECV;

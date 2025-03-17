@@ -143,7 +143,7 @@ enum class errorcode_t {
  * @param errorcode The error code to be converted to string.
  * @return The string representation of the error code.
  */
-const char* errorcode_to_str(errorcode_t errorcode);
+const char* get_errorcode_str(errorcode_t errorcode);
 
 /**
  * @brief Wrapper class for error code.
@@ -193,7 +193,7 @@ struct error_t {
    * @brief Get the string representation of the error code.
    * @return The string representation of the error code.
    */
-  const char* get_strerror() const { return lci::errorcode_to_str(errorcode); }
+  const char* get_str() const { return lci::get_errorcode_str(errorcode); }
 };
 
 /**
@@ -207,6 +207,13 @@ enum class net_opcode_t {
   REMOTE_WRITE, /**< remote write */
   READ,         /**< read */
 };
+
+/**
+ * @brief Get the string representation of a network operation code.
+ * @param opcode The network operation code.
+ * @return The string representation of the network operation code.
+ */
+const char* get_net_opcode_str(net_opcode_t opcode);
 
 /**
  * @ingroup LCI_BASIC

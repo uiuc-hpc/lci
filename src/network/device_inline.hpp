@@ -10,6 +10,15 @@ inline std::vector<net_status_t> device_impl_t::poll_comp(int max_polls)
 {
   auto statuses = poll_comp_impl(max_polls);
   LCI_PCOUNTER_ADD(net_poll_cq_entry_count, statuses.size());
+  for (size_t i = 0; i < statuses.size(); i++) {
+    auto& status = statuses[i];
+    LCI_DBG_Log(
+        LOG_TRACE, "network",
+        "poll_comp %lu/%lu opcode %s user_context %p length %lu imm_data %x "
+        "rank %d\n",
+        i, statuses.size(), get_net_opcode_str(status.opcode),
+        status.user_context, status.length, status.imm_data, status.rank);
+  }
   return statuses;
 }
 
@@ -22,6 +31,9 @@ inline error_t device_impl_t::post_recv(void* buffer, size_t size, mr_t mr,
   } else {
     LCI_PCOUNTER_ADD(net_recv_post, 1);
   }
+  LCI_DBG_Log(LOG_TRACE, "network",
+              "post_recv buffer %p size %lu mr %p user_context %p return %s\n",
+              buffer, size, mr.get_impl(), user_context, error.get_str());
   return error;
 }
 
@@ -31,6 +43,9 @@ inline mr_t device_impl_t::register_memory(void* address, size_t size)
   mr.p_impl->device = device;
   mr.p_impl->address = address;
   mr.p_impl->size = size;
+  LCI_DBG_Log(LOG_TRACE, "network",
+              "register_memory address %p size %lu return %p\n", address, size,
+              mr.get_impl());
   return mr;
 }
 
@@ -39,6 +54,7 @@ inline void device_impl_t::deregister_memory(mr_impl_t* mr)
   deregister_memory_impl(mr);
   mr->address = nullptr;
   mr->size = 0;
+  LCI_DBG_Log(LOG_TRACE, "network", "deregister_memory mr %p\n", mr);
 }
 
 inline bool device_impl_t::post_recv_packet()
