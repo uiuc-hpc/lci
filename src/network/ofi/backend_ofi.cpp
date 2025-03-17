@@ -196,13 +196,13 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
       LCI_Assert(ret == 1, "fi_av_insert failed! ret = %d\n", ret);
     }
   }
-  LCT_pmi_barrier();
+  // LCT_pmi_barrier();
 }
 
 ofi_device_impl_t::~ofi_device_impl_t()
 {
+  // LCT_pmi_barrier();
   unbind_packet_pool();
-  LCT_pmi_barrier();
   FI_SAFECALL(fi_close((struct fid*)&ofi_ep->fid));
   FI_SAFECALL(fi_close((struct fid*)&ofi_cq->fid));
   FI_SAFECALL(fi_close((struct fid*)&ofi_av->fid));

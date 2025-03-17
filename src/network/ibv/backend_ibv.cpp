@@ -280,10 +280,10 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
           "Specified inline size %d is too large (maximum %d)",
           net_context_attr.max_inject_size, init_attr.cap.max_inline_data);
       if (net_context_attr.max_inject_size < qp_attr.cap.max_inline_data) {
-        net_context_attr.max_inject_size = qp_attr.cap.max_inline_data;
         LCI_Log(LOG_INFO, "ibv",
                 "Maximum inline-size(%d) > requested inline-size(%d)\n",
                 qp_attr.cap.max_inline_data, net_context_attr.max_inject_size);
+        net_context_attr.max_inject_size = qp_attr.cap.max_inline_data;
       }
     }
     {
@@ -392,12 +392,12 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
   }
 
   qp2rank_map.add_qps(ib_qps);
-  LCT_pmi_barrier();
+  // LCT_pmi_barrier();
 }
 
 ibv_device_impl_t::~ibv_device_impl_t()
 {
-  LCT_pmi_barrier();
+  // LCT_pmi_barrier();
   unbind_packet_pool();
   for (int i = 0; i < get_nranks(); i++) {
     IBV_SAFECALL(ibv_destroy_qp(ib_qps[i]));

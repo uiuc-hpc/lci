@@ -142,6 +142,10 @@ endpoint_t alloc_endpoint_x::call_impl(runtime_t, void* user_context,
   endpoint_t::attr_t attr;
   attr.user_context = user_context;
   auto endpoint = device.p_impl->alloc_endpoint(attr);
+  barrier_x()
+      .runtime(endpoint.get_impl()->runtime)
+      .device(endpoint.get_impl()->device)
+      .endpoint(endpoint)();
   return endpoint;
 }
 
