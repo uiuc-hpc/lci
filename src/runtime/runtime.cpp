@@ -95,6 +95,10 @@ void runtime_impl_t::initialize()
   attr.max_rcomp = std::numeric_limits<rcomp_t>::max();
   default_net_context = alloc_net_context_x().runtime(runtime)();
 
+  if (attr.alloc_default_matching_engine) {
+    default_matching_engine = alloc_matching_engine_x().runtime(runtime)();
+    default_coll_matching_engine = alloc_matching_engine_x().runtime(runtime)();
+  }
   if (default_net_context.get_attr().backend == attr_backend_t::ofi &&
       default_net_context.get_attr().ofi_provider_name == "cxi") {
     // special setting for libfabric/cxi
@@ -118,9 +122,6 @@ void runtime_impl_t::initialize()
   if (attr.alloc_default_device) {
     default_device = alloc_device_x().runtime(runtime)();
   }
-  if (attr.alloc_default_matching_engine) {
-    default_matching_engine = alloc_matching_engine_x().runtime(runtime)();
-  }
 }
 
 runtime_impl_t::~runtime_impl_t()
@@ -133,6 +134,10 @@ runtime_impl_t::~runtime_impl_t()
   }
   if (!default_net_context.is_empty()) {
     free_net_context_x(&default_net_context).runtime(runtime)();
+  }
+  if (!default_matching_engine.is_empty()) {
+    free_matching_engine_x(&default_matching_engine).runtime(runtime)();
+    free_matching_engine_x(&default_coll_matching_engine).runtime(runtime)();
   }
 }
 

@@ -21,7 +21,8 @@ target_sources_relative(
   rhandler_registry/rhandler_registry.cpp
   runtime/runtime.cpp
   core/communicate.cpp
-  core/progress.cpp)
+  core/progress.cpp
+  collective/collective.cpp)
 
 if(LCI_BACKEND_ENABLE_OFI)
   target_sources_relative(LCI PRIVATE network/ofi/backend_ofi.cpp)

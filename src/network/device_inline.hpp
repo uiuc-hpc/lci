@@ -16,7 +16,7 @@ inline std::vector<net_status_t> device_impl_t::poll_comp(int max_polls)
         LOG_TRACE, "network",
         "poll_comp %lu/%lu opcode %s user_context %p length %lu imm_data %x "
         "rank %d\n",
-        i, statuses.size(), get_net_opcode_str(status.opcode),
+        i + 1, statuses.size(), get_net_opcode_str(status.opcode),
         status.user_context, status.length, status.imm_data, status.rank);
   }
   return statuses;

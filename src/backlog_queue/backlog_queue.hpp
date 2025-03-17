@@ -85,6 +85,7 @@ class backlog_queue_t
   // 2. we would like to ensure the operations are executed in the order they
   // are pushed.
   std::atomic<bool> empty;
+  // FIXME: padding to avoid false sharing
   std::vector<std::atomic<size_t>> nentries_per_rank;
   spinlock_t lock;
   std::queue<backlog_queue_entry_t> backlog_queue;

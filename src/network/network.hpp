@@ -28,7 +28,6 @@ class device_impl_t
 
   // functions for backends to implement
   device_impl_t(net_context_t context_, attr_t attr_);
-  void initialize();
   virtual ~device_impl_t();
   virtual endpoint_t alloc_endpoint_impl(endpoint_t::attr_t attr) = 0;
   virtual mr_t register_memory_impl(void* buffer, size_t size) = 0;

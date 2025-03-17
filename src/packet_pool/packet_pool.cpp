@@ -112,15 +112,16 @@ void free_packet_pool_x::call_impl(packet_pool_t* packet_pool, runtime_t) const
   packet_pool->p_impl = nullptr;
 }
 
-void bind_packet_pool_x::call_impl(device_t device, packet_pool_t packet_pool,
-                                   runtime_t) const
+void register_packet_pool_x::call_impl(packet_pool_t packet_pool,
+                                       device_t device, runtime_t) const
 {
-  device.p_impl->bind_packet_pool(packet_pool);
+  packet_pool.p_impl->register_packets(device);
 }
 
-void unbind_packet_pool_x::call_impl(device_t device, runtime_t) const
+void deregister_packet_pool_x::call_impl(packet_pool_t packet_pool,
+                                         device_t device, runtime_t) const
 {
-  device.p_impl->unbind_packet_pool();
+  packet_pool.p_impl->deregister_packets(device);
 }
 
 }  // namespace lci

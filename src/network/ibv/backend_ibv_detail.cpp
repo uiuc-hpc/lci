@@ -98,7 +98,7 @@ bool select_best_device_port(struct ibv_device** dev_list, int num_devices,
       }
       // Check whether we can get its lid
       if (port_attr.link_layer == IBV_LINK_LAYER_INFINIBAND && !port_attr.lid) {
-        fprintf(stderr, "Couldn't get local LID\n");
+        LCI_Log(LOG_INFO, "ibv", "Couldn't get local LID\n");
         continue;
       }
       // Calculate its speed

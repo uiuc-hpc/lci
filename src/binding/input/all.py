@@ -157,7 +157,8 @@ resource_device := resource(
 operation_alloc(
     resource_device, 
     [
-        optional_arg("net_context_t", "net_context", "runtime.get_impl()->default_net_context", comment="The network context to allocate the device.")
+        optional_arg("net_context_t", "net_context", "runtime.get_impl()->default_net_context", comment="The network context to allocate the device."),
+        optional_arg("packet_pool_t", "packet_pool", "runtime.get_impl()->default_packet_pool", comment="The packet pool to bind."),
     ]
 ),
 operation_free(resource_device),
@@ -418,27 +419,28 @@ operation_alloc(resource_packet_pool),
 operation_free(resource_packet_pool),
 
 operation(
-    "bind_packet_pool", 
+    "register_packet_pool", 
     [
-        positional_arg("device_t", "device", comment="The device to bind the packet pool."),
-        positional_arg("packet_pool_t", "packet_pool", comment="The packet pool to bind."),
+        positional_arg("packet_pool_t", "packet_pool", comment="The packet pool to register."),
+        positional_arg("device_t", "device", comment="The device to register the packet pool."),
         optional_runtime_args,
     ],
     doc = {
         "in_group": "LCI_RESOURCE",
-        "brief": "Bind a packet pool to a device.",
-        "details": "This is only needed for explicit packet pool. Implicit packet pool (the one allocated by the runtime) is automatically bound to all devices."
+        "brief": "Register a packet pool to a device.",
+        "details": "A packet pool can be registered to multiple devices. A device can register multiple packet pools. However, a device can only be bound to one packet pool."
     }
 ),
 operation(
-    "unbind_packet_pool",
+    "deregister_packet_pool",
     [
-        positional_arg("device_t", "device", comment="The device to unbind the packet pool."),
+        positional_arg("packet_pool_t", "packet_pool", comment="The packet pool to register."),
+        positional_arg("device_t", "device", comment="The device to deregister the packet pool."),
         optional_runtime_args,
     ],
     doc = {
         "in_group": "LCI_RESOURCE",
-        "brief": "Unbind a packet pool from a device.",
+        "brief": "Deregister a packet pool from a device.",
     }
 ),
 # comp
@@ -859,6 +861,23 @@ operation(
     doc = {
         "in_group": "LCI_COMM",
         "brief": "Get the maximum message size for the buffer-copy protocol."
+    }
+),
+# ##############################################################################
+# # Collective
+# ##############################################################################
+operation(
+    "barrier", 
+    [
+        optional_runtime_args,
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
+        optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
+        optional_arg("matching_engine_t", "matching_engine", "runtime.get_impl()->default_coll_matching_engine", comment="The matching engine to use."),
+        optional_arg("comp_semantic_t", "comp_semantic", "comp_semantic_t::buffer", comment="The completion semantic."),
+    ],
+    doc = {
+        "in_group": "LCI_COLL",
+        "brief": "A blocking barrier operation.",
     }
 ),
 # ##############################################################################

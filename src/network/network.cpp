@@ -22,18 +22,7 @@ device_impl_t::device_impl_t(net_context_t context_, attr_t attr_)
   device.p_impl = this;
 }
 
-void device_impl_t::initialize()
-{
-  if (attr.alloc_default_endpoint)
-    default_endpoint = alloc_endpoint_x().runtime(runtime).device(device)();
-}
-
-device_impl_t::~device_impl_t()
-{
-  if (!default_endpoint.is_empty()) {
-    free_endpoint_x(&default_endpoint).runtime(runtime)();
-  }
-}
+device_impl_t::~device_impl_t() = default;
 
 endpoint_t device_impl_t::alloc_endpoint(endpoint_t::attr_t attr)
 {
@@ -117,7 +106,8 @@ device_t alloc_device_x::call_impl(runtime_t runtime, size_t net_max_sends,
                                    uint64_t ofi_lock_mode,
                                    bool alloc_default_endpoint,
                                    void* user_context,
-                                   net_context_t net_context) const
+                                   net_context_t net_context,
+                                   packet_pool_t packet_pool) const
 {
   device_t::attr_t attr;
   attr.net_max_sends = net_max_sends;
@@ -127,16 +117,21 @@ device_t alloc_device_x::call_impl(runtime_t runtime, size_t net_max_sends,
   attr.alloc_default_endpoint = alloc_default_endpoint;
   attr.user_context = user_context;
   auto device = net_context.p_impl->alloc_device(attr);
-  device.get_impl()->initialize();
-  packet_pool_t packet_pool = get_default_packet_pool_x().runtime(runtime)();
   if (!packet_pool.is_empty()) {
-    bind_packet_pool_x(device, packet_pool).runtime(runtime)();
+    device.get_impl()->bind_packet_pool(packet_pool);
   }
+  if (attr.alloc_default_endpoint)
+    device.get_impl()->default_endpoint =
+        alloc_endpoint_x().runtime(runtime).device(device)();
   return device;
 }
 
-void free_device_x::call_impl(device_t* device, runtime_t) const
+void free_device_x::call_impl(device_t* device, runtime_t runtime) const
 {
+  endpoint_t default_endpoint = device->get_impl()->default_endpoint;
+  if (!default_endpoint.is_empty()) {
+    free_endpoint_x(&default_endpoint).runtime(runtime)();
+  }
   delete device->p_impl;
   device->p_impl = nullptr;
 }
@@ -152,6 +147,11 @@ endpoint_t alloc_endpoint_x::call_impl(runtime_t, void* user_context,
 
 void free_endpoint_x::call_impl(endpoint_t* endpoint, runtime_t) const
 {
+  barrier_x()
+      .runtime(endpoint->get_impl()->runtime)
+      .device(endpoint->get_impl()->device)
+      .endpoint(*endpoint)
+      .comp_semantic(comp_semantic_t::network)();
   delete endpoint->p_impl;
   endpoint->p_impl = nullptr;
 }
