@@ -391,28 +391,7 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
     }
   }
 
-  int j = get_nranks();
-  int* b = nullptr;
-  while (j < INT32_MAX) {
-    b = (int*)calloc(j, sizeof(int));
-    int i = 0;
-    for (; i < get_nranks(); i++) {
-      int k = (ib_qps[i]->qp_num % j);
-      if (b[k]) break;
-      b[k] = 1;
-    }
-    if (i == get_nranks()) break;
-    j++;
-    free(b);
-  }
-  LCI_Assert(j != INT32_MAX,
-             "Cannot find a suitable mod to hold qp2rank map\n");
-  for (int i = 0; i < get_nranks(); i++) {
-    b[ib_qps[i]->qp_num % j] = i;
-  }
-  qp2rank_mod = j;
-  qp2rank = b;
-  LCI_Log(LOG_INFO, "ibv", "qp2rank_mod is %d\n", j);
+  qp2rank_map.add_qps(ib_qps);
   LCT_pmi_barrier();
 }
 
@@ -420,7 +399,6 @@ ibv_device_impl_t::~ibv_device_impl_t()
 {
   LCT_pmi_barrier();
   unbind_packet_pool();
-  free(qp2rank);
   for (int i = 0; i < get_nranks(); i++) {
     IBV_SAFECALL(ibv_destroy_qp(ib_qps[i]));
   }

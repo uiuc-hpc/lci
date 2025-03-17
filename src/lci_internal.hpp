@@ -14,6 +14,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <limits>
+#include <chrono>
 
 #include "lci.hpp"
 #include "lct.h"

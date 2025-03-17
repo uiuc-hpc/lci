@@ -61,6 +61,20 @@ class ibv_mr_impl_t : public lci::mr_impl_t
   struct ibv_mr* ibv_mr;
 };
 
+class qp2rank_map_t
+{
+ public:
+  void add_qps(const std::vector<struct ibv_qp*>& qps);
+  int get_rank(uint32_t qp_num);
+
+ private:
+  void calculate_map();
+
+  std::vector<std::pair<uint32_t, int>> qp_rank_pairs;
+  std::vector<int> qp2rank;
+  int qp2rank_mod;
+};
+
 class ibv_device_impl_t : public lci::device_impl_t
 {
  public:
@@ -79,11 +93,9 @@ class ibv_device_impl_t : public lci::device_impl_t
   struct ibv_pd* ib_pd;
   struct ibv_cq* ib_cq;
   struct ibv_srq* ib_srq;
+  qp2rank_map_t qp2rank_map;
   std::vector<struct ibv_qp*> ib_qps;
   std::vector<LCISI_ibv_qp_extra_t> ib_qp_extras;
-  // Helper fields.
-  int* qp2rank;
-  int qp2rank_mod;
 
   net_context_attr_t net_context_attr;
   ibv_mr_impl_t odp_mr;

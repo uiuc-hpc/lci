@@ -6,6 +6,50 @@
 
 namespace lci
 {
+inline void qp2rank_map_t::add_qps(const std::vector<struct ibv_qp*>& qps)
+{
+  for (int i = 0; i < static_cast<int>(qps.size()); i++) {
+    qp_rank_pairs.push_back(std::make_pair(qps[i]->qp_num, i));
+  }
+  calculate_map();
+}
+
+inline int qp2rank_map_t::get_rank(uint32_t qp_num)
+{
+  return qp2rank[qp_num % qp2rank_mod];
+}
+
+inline void qp2rank_map_t::calculate_map()
+{
+  auto start = std::chrono::high_resolution_clock::now();
+  if (qp2rank.empty()) {
+    qp2rank_mod = get_nranks();
+    qp2rank.resize(qp2rank_mod, -1);
+  }
+  while (qp2rank_mod < INT32_MAX) {
+    bool failed = false;
+    for (auto qp_rank_pair : qp_rank_pairs) {
+      int k = (qp_rank_pair.first % qp2rank_mod);
+      if (qp2rank[k] != -1) {
+        failed = true;
+        break;
+      }
+      qp2rank[k] = qp_rank_pair.second;
+    }
+    if (!failed) break;
+    qp2rank_mod++;
+    qp2rank.resize(qp2rank_mod);
+    std::fill(qp2rank.begin(), qp2rank.end(), -1);
+  }
+  LCI_Assert(qp2rank_mod != INT32_MAX,
+             "Cannot find a suitable mod to hold qp2rank map\n");
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration =
+      std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  LCI_Log(LOG_INFO, "ibv", "qp2rank_mod is %d (for %lu qps), took %ld ms\n",
+          qp2rank_mod, qp_rank_pairs.size(), duration.count());
+}
+
 inline rkey_t ibv_device_impl_t::get_rkey(mr_impl_t* mr)
 {
   ibv_mr_impl_t& p_mr = *static_cast<ibv_mr_impl_t*>(mr);
@@ -37,7 +81,7 @@ inline std::vector<net_status_t> ibv_device_impl_t::poll_comp_impl(
         status.user_context = (void*)wcs[i].wr_id;
         status.length = wcs[i].byte_len;
         status.imm_data = wcs[i].imm_data;
-        status.rank = qp2rank[wcs[i].qp_num % qp2rank_mod];
+        status.rank = qp2rank_map.get_rank(wcs[i].qp_num);
       } else if (wcs[i].opcode == IBV_WC_RECV_RDMA_WITH_IMM) {
         consume_recvs(1);
         status.opcode = net_opcode_t::REMOTE_WRITE;
