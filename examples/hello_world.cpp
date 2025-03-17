@@ -13,14 +13,10 @@ int main(int argc, char** args)
   // Initialize the global default runtime.
   lci::g_runtime_init();
   assert(lci::is_active());
-  // Synchronize across all processes
-  lci::barrier();
   // After at least one runtime is active, we can query the rank and nranks.
   // rank is the id of the current process
   // nranks is the total number of the processes in the current job.
   printf("%s: %d / %d OK\n", hostname, lci::get_rank(), lci::get_nranks());
-  // Synchronize across all processes again.
-  lci::barrier();
   // Finalize the global default runtime
   lci::g_runtime_fina();
   assert(!lci::is_active());
