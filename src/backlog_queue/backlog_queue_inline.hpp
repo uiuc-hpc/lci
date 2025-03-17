@@ -20,7 +20,7 @@ inline void backlog_queue_t::push_sends(endpoint_impl_t* endpoint, int rank,
   entry.size = size;
   entry.imm_data = imm_data;
 
-  nentries_per_rank[rank].fetch_add(1, std::memory_order_relaxed);
+  nentries_per_rank[rank].val.fetch_add(1, std::memory_order_relaxed);
   lock.lock();
   backlog_queue.push(entry);
   set_empty(false);  // we need to be careful not to lose the signal
@@ -43,7 +43,7 @@ inline void backlog_queue_t::push_send(endpoint_impl_t* endpoint, int rank,
   entry.imm_data = imm_data;
   entry.user_context = user_context;
 
-  nentries_per_rank[rank].fetch_add(1, std::memory_order_relaxed);
+  nentries_per_rank[rank].val.fetch_add(1, std::memory_order_relaxed);
   lock.lock();
   backlog_queue.push(entry);
   set_empty(false);
@@ -67,7 +67,7 @@ inline void backlog_queue_t::push_puts(endpoint_impl_t* endpoint, int rank,
   entry.offset = offset;
   entry.rkey = rkey;
 
-  nentries_per_rank[rank].fetch_add(1, std::memory_order_relaxed);
+  nentries_per_rank[rank].val.fetch_add(1, std::memory_order_relaxed);
   lock.lock();
   backlog_queue.push(entry);
   set_empty(false);
@@ -92,7 +92,7 @@ inline void backlog_queue_t::push_put(endpoint_impl_t* endpoint, int rank,
   entry.rkey = rkey;
   entry.user_context = user_context;
 
-  nentries_per_rank[rank].fetch_add(1, std::memory_order_relaxed);
+  nentries_per_rank[rank].val.fetch_add(1, std::memory_order_relaxed);
   lock.lock();
   backlog_queue.push(entry);
   set_empty(false);
@@ -117,7 +117,7 @@ inline void backlog_queue_t::push_putImms(endpoint_impl_t* endpoint, int rank,
   entry.rkey = rkey;
   entry.imm_data = imm_data;
 
-  nentries_per_rank[rank].fetch_add(1, std::memory_order_relaxed);
+  nentries_per_rank[rank].val.fetch_add(1, std::memory_order_relaxed);
   lock.lock();
   backlog_queue.push(entry);
   set_empty(false);
@@ -143,7 +143,7 @@ inline void backlog_queue_t::push_putImm(endpoint_impl_t* endpoint, int rank,
   entry.imm_data = imm_data;
   entry.user_context = user_context;
 
-  nentries_per_rank[rank].fetch_add(1, std::memory_order_relaxed);
+  nentries_per_rank[rank].val.fetch_add(1, std::memory_order_relaxed);
   lock.lock();
   backlog_queue.push(entry);
   set_empty(false);
@@ -168,7 +168,7 @@ inline void backlog_queue_t::push_get(endpoint_impl_t* endpoint, int rank,
   entry.rkey = rkey;
   entry.user_context = user_context;
 
-  nentries_per_rank[rank].fetch_add(1, std::memory_order_relaxed);
+  nentries_per_rank[rank].val.fetch_add(1, std::memory_order_relaxed);
   lock.lock();
   backlog_queue.push(entry);
   set_empty(false);
@@ -239,7 +239,7 @@ inline bool backlog_queue_t::progress()
     }
     lock.unlock();
     // clean up
-    nentries_per_rank[entry.rank].fetch_sub(1, std::memory_order_relaxed);
+    nentries_per_rank[entry.rank].val.fetch_sub(1, std::memory_order_relaxed);
     did_something = true;
     if (entry.op == backlog_op_t::sends || entry.op == backlog_op_t::puts ||
         entry.op == backlog_op_t::putImms) {

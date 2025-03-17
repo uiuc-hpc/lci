@@ -106,6 +106,14 @@ static inline uint64_t get_bits64(uint64_t flag, int width, int offset)
   return (flag >> offset) & ((1UL << width) - 1);
 }
 
+template <typename T>
+struct padded_atomic_t {
+  std::atomic<T> val;
+  char padding[LCI_CACHE_LINE - sizeof(std::atomic<T>)];
+  padded_atomic_t() = default;
+  padded_atomic_t(T val_) : val(val_) {}
+};
+
 }  // namespace lci
 
 #endif  // LCI_UTIL_MISC_HPP
