@@ -11,7 +11,7 @@ inline error_t endpoint_impl_t::post_sends(int rank, void* buffer, size_t size,
                                            bool allow_retry, bool force_post)
 {
   error_t error;
-  if (!force_post && !backlog_queue.is_empty()) {
+  if (!force_post && !backlog_queue.is_empty(rank)) {
     error = errorcode_t::retry_backlog;
   } else {
     error = post_sends_impl(rank, buffer, size, imm_data);
@@ -35,7 +35,7 @@ inline error_t endpoint_impl_t::post_send(int rank, void* buffer, size_t size,
                                           bool force_post)
 {
   error_t error;
-  if (!force_post && !backlog_queue.is_empty()) {
+  if (!force_post && !backlog_queue.is_empty(rank)) {
     error = errorcode_t::retry_backlog;
   } else {
     error = post_send_impl(rank, buffer, size, mr, imm_data, user_context);
@@ -59,7 +59,7 @@ inline error_t endpoint_impl_t::post_puts(int rank, void* buffer, size_t size,
                                           bool force_post)
 {
   error_t error;
-  if (!force_post && !backlog_queue.is_empty()) {
+  if (!force_post && !backlog_queue.is_empty(rank)) {
     error = errorcode_t::retry_backlog;
   } else {
     error = post_puts_impl(rank, buffer, size, base, offset, rkey);
@@ -84,7 +84,7 @@ inline error_t endpoint_impl_t::post_put(int rank, void* buffer, size_t size,
                                          bool force_post)
 {
   error_t error;
-  if (!force_post && !backlog_queue.is_empty()) {
+  if (!force_post && !backlog_queue.is_empty(rank)) {
     error = errorcode_t::retry_backlog;
   } else {
     error =
@@ -110,7 +110,7 @@ inline error_t endpoint_impl_t::post_putImms(int rank, void* buffer,
                                              bool allow_retry, bool force_post)
 {
   error_t error;
-  if (!force_post && !backlog_queue.is_empty()) {
+  if (!force_post && !backlog_queue.is_empty(rank)) {
     error = errorcode_t::retry_backlog;
   } else {
     error = post_putImms_impl(rank, buffer, size, base, offset, rkey, imm_data);
@@ -137,7 +137,7 @@ inline error_t endpoint_impl_t::post_putImm(int rank, void* buffer, size_t size,
                                             bool allow_retry, bool force_post)
 {
   error_t error;
-  if (!force_post && !backlog_queue.is_empty()) {
+  if (!force_post && !backlog_queue.is_empty(rank)) {
     error = errorcode_t::retry_backlog;
   } else {
     error = post_putImm_impl(rank, buffer, size, mr, base, offset, rkey,
@@ -163,7 +163,7 @@ inline error_t endpoint_impl_t::post_get(int rank, void* buffer, size_t size,
                                          bool force_post)
 {
   error_t error;
-  if (!force_post && !backlog_queue.is_empty()) {
+  if (!force_post && !backlog_queue.is_empty(rank)) {
     error = errorcode_t::retry_backlog;
   } else {
     error =
