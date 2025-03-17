@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <cstdlib>
 #include <algorithm>
+#include <limits>
 
 #include "lci.hpp"
 #include "lct.h"
