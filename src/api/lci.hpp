@@ -139,6 +139,13 @@ enum class errorcode_t {
 };
 
 /**
+ * @brief Get the string representation of an error code.
+ * @param errorcode The error code to be converted to string.
+ * @return The string representation of the error code.
+ */
+const char* errorcode_to_str(errorcode_t errorcode);
+
+/**
  * @brief Wrapper class for error code.
  * @ingroup LCI_BASIC
  * @details This class wraps the error code and provides utility functions to
@@ -182,6 +189,11 @@ struct error_t {
     return errorcode > errorcode_t::retry_min &&
            errorcode < errorcode_t::retry_max;
   }
+  /**
+   * @brief Get the string representation of the error code.
+   * @return The string representation of the error code.
+   */
+  const char* get_strerror() const { return lci::errorcode_to_str(errorcode); }
 };
 
 /**

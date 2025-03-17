@@ -231,6 +231,8 @@ inline bool backlog_queue_t::progress()
       LCI_Assert(false, "Unknown operation %d\n", entry.op);
   }
   if (!error.is_retry()) {
+    LCI_DBG_Log(LOG_TRACE, "network", "backlog_queue progress rank %d op %d\n",
+                entry.rank, entry.op);
     backlog_queue.pop();
     if (backlog_queue.empty()) {
       set_empty(true);
