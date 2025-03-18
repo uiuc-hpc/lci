@@ -36,7 +36,7 @@ if (NOT TARGET LCI::LCT)
         target_include_directories(LCI::LCI INTERFACE ${LCI_INCLUDE_DIRS})
         target_link_libraries(LCI::LCI INTERFACE Threads::Threads @FABRIC@::@FABRIC@ LCI::LCT)
 
-        # add_library(LCI::LCI ALIAS LCI::Shared)
+        add_library(LCI::lci ALIAS LCI::LCI)
 
         # add_library(LCI::Static STATIC IMPORTED)
         # set_target_properties(LCI::Static PROPERTIES

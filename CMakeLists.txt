@@ -269,6 +269,7 @@ if(NOT LCI_WITH_LCT_ONLY)
   add_library(LCI)
   # For autofetch LCI
   add_library(LCI::LCI ALIAS LCI)
+  add_library(LCI::lci ALIAS LCI)
   set_target_properties(
     LCI
     PROPERTIES C_VISIBILITY_PRESET hidden
