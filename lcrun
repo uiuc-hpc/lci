@@ -1,6 +1,32 @@
-#!/bin/sh
+#!/bin/bash
 
-set -x
+set -e
 
-export HOST=`scontrol show hostname $SLURM_NODELIST | paste -sd ","`
-mpirun --launcher=ssh --hosts $HOST $@
+if [ "$1" != "-n" ]; then
+    echo "Usage: $0 -n <nprocs> <command>"
+    exit 1
+fi
+nprocs=$2
+executable=$3
+# Use LCT PMI File to bootstrap
+export LCT_PMI_BACKEND=file
+export LCT_PMI_FILE_NRANKS=${nprocs}
+
+clean_up() {
+  echo "Cleaning up"
+  children=$(jobs -p)
+  echo "Killing all children ${children}"
+  if [ -n "${children}" ]; then
+    kill ${children}
+  fi
+}
+
+# Kill all children on interrupt or error
+trap clean_up INT TERM
+
+# launch the command nprocs times nonblockingly
+shift 2
+for i in $(seq 1 ${nprocs}); do
+  "$@" &
+done
+wait # wait for all background jobs to finish

@@ -220,7 +220,7 @@ if(NOT LCI_WITH_LCT_ONLY)
   # LCI Testing related options
   # ############################################################################
   set(SRUN_EXE
-      mpirun
+      lcrun
       CACHE STRING "exective to be used in ctest")
   set(SRUN_EXTRA_ARG
       ""
