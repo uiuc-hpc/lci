@@ -1,12 +1,10 @@
 cmake_minimum_required(VERSION 3.12)
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-  project(
-    LCI
-    VERSION 1.7.8
-    DESCRIPTION "Lightweight Communication Interface"
-    HOMEPAGE_URL "https://github.com/uiuc-hpc/lci")
-  enable_testing()
-endif()
+
+project(
+  LCI
+  VERSION 1.7.8
+  DESCRIPTION "Lightweight Communication Interface"
+  HOMEPAGE_URL "https://github.com/uiuc-hpc/lci")
 
 cmake_policy(SET CMP0079 NEW)
 
@@ -107,12 +105,6 @@ if(NOT LCI_WITH_LCT_ONLY)
     is different from what is set in LCI_SERVER (${LCI_SERVER_UPPER}). Give up!"
     )
   endif()
-  set(LCI_FABRIC
-      ${FABRIC}
-      CACHE
-        STRING
-        "Used as an output variable if LCI is included in a larger project via FetchContent"
-        FORCE)
 
   if(FABRIC STREQUAL OFI)
     set(LCI_USE_SERVER_OFI ON)
@@ -267,9 +259,6 @@ if(NOT LCI_WITH_LCT_ONLY)
   # ############################################################################
 
   add_library(LCI)
-  # For autofetch LCI
-  add_library(LCI::LCI ALIAS LCI)
-  add_library(LCI::lci ALIAS LCI)
   set_target_properties(
     LCI
     PROPERTIES C_VISIBILITY_PRESET hidden
@@ -296,24 +285,41 @@ if(NOT LCI_WITH_LCT_ONLY)
   # ############################################################################
   # Build other targets
   # ############################################################################
-  if(LCI_WITH_EXAMPLES)
-    add_subdirectory(examples)
-  endif()
-  if(LCI_WITH_BENCHMARKS)
-    add_subdirectory(benchmarks)
-  endif()
-  if(LCI_WITH_TESTS)
-    add_subdirectory(tests)
-  endif()
-  if(LCI_WITH_DOC)
-    add_subdirectory(doc)
+
+  if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    # only build the following if this is the root project
+    enable_testing()
+    if(LCI_WITH_EXAMPLES)
+      add_subdirectory(examples)
+    endif()
+    if(LCI_WITH_BENCHMARKS)
+      add_subdirectory(benchmarks)
+    endif()
+    if(LCI_WITH_TESTS)
+      add_subdirectory(tests)
+    endif()
+    if(LCI_WITH_DOC)
+      add_subdirectory(doc)
+    endif()
   endif()
 endif() # if (NOT LCI_WITH_LCT_ONLY)
 
 # ##############################################################################
+# Special treatment for FetchContent
+# ##############################################################################
+
+if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  # For autofetch LCI
+  add_library(LCI::LCI ALIAS LCI)
+  add_library(LCI::lci ALIAS LCI)
+endif()
+
+# ##############################################################################
 # Install
 # ##############################################################################
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+option(LCI_FETCHCONTENT_INSTALL "Install LCI when using FetchContent" ON)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR
+   OR LCI_FETCHCONTENT_INSTALL)
   set(PKGCONFIG_REQUIRES_PRIVATE ${Fabric_${FABRIC}_PC_Requires})
   set(PKGCONFIG_LIBS_PRIVATE ${Fabric_${FABRIC}_PC_Libs})
   configure_file(liblci.pc.in liblci.pc @ONLY)
