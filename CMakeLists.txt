@@ -219,10 +219,10 @@ if(NOT LCI_WITH_LCT_ONLY)
   # ############################################################################
   # LCI Testing related options
   # ############################################################################
-  set(SRUN_EXE
-      lcrun
+  set(LCI_USE_CTEST_EXE
+      ${CMAKE_CURRENT_SOURCE_DIR}/lcrun
       CACHE STRING "exective to be used in ctest")
-  set(SRUN_EXTRA_ARG
+  set(LCI_USE_CTEST_ARGS
       ""
       CACHE STRING "arguments to be used in ctest")
 
