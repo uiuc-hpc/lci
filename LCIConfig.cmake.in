@@ -28,6 +28,7 @@ if (NOT TARGET LCI::LCT)
         # set_and_check(LCI_STATIC_LIBRARY "@PACKAGE_CMAKE_INSTALL_LIBDIR@/@CMAKE_STATIC_LIBRARY_PREFIX@lci@CMAKE_STATIC_LIBRARY_SUFFIX@")
 
         add_library(LCI::LCI SHARED IMPORTED)
+        add_library(LCI::lci ALIAS LCI::LCI)
         set_target_properties(LCI::LCI PROPERTIES
           IMPORTED_LOCATION ${LCI_SHARED_LIBRARY}
         )

@@ -60,7 +60,7 @@ void LCT_pmi_initialize()
     } else
       LCT_Assert(LCT_log_ctx_default, false,
                  "Unknown env LCM_PMI_BACKEND (%s against "
-                 "local|pmi1|pmi2|pmix|mpi).\n",
+                 "local|file|pmi1|pmi2|pmix|mpi).\n",
                  word);
     if (lcti_pmi_ops.check_availability()) {
       LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "pmi",

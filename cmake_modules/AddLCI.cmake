@@ -27,7 +27,6 @@ function(add_lci_test name)
     ARG "" "" "COMMANDS;LABELS;SOURCES;DEPENDENCIES;ENVIRONMENT" ${ARGN})
 
   add_lci_executable(${name} ${ARG_SOURCES})
-  target_include_directories(${name} PRIVATE ${CMAKE_SOURCE_DIR}/src/include)
   target_link_libraries(${name} PRIVATE ${ARG_DEPENDENCIES})
 
   # string(REGEX REPLACE "\\[TARGET\\]" $<TARGET_FILE:${name}> TEST_COMMAND
