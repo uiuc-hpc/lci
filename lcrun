@@ -9,7 +9,7 @@ fi
 nprocs=$2
 executable=$3
 # Use LCT PMI File to bootstrap
-export LCT_PMI_BACKEND=file
+export LCT_PMI_BACKEND=file,local
 export LCT_PMI_FILE_NRANKS=${nprocs}
 
 pids=()

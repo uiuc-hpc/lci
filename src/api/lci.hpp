@@ -507,6 +507,9 @@ class comp_impl_t
  */
 using comp_handler_t = void (*)(status_t status);
 
+using reduce_op_t = void (*)(const void* left, const void* right, void* dst,
+                             size_t n);
+
 }  // namespace lci
 
 #include "lci_binding_post.hpp"
