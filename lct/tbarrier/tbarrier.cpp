@@ -54,6 +54,12 @@ LCT_tbarrier_t LCT_tbarrier_alloc(int nthreads)
 {
   return new lct::ThreadBarrier(nthreads);
 }
+void LCT_tbarrier_free(LCT_tbarrier_t* tbarrier_p)
+{
+  auto* p = static_cast<lct::ThreadBarrier*>(*tbarrier_p);
+  delete p;
+  *tbarrier_p = nullptr;
+}
 int64_t LCT_tbarrier_arrive(LCT_tbarrier_t tbarrier)
 {
   auto* p = static_cast<lct::ThreadBarrier*>(tbarrier);
