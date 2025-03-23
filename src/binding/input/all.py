@@ -145,6 +145,7 @@ resource_device := resource(
         attr("size_t", "net_max_cqes", default_value="LCI_BACKEND_MAX_CQES_DEFAULT", comment="The maximum number of CQEs that can reside in the underlying network queue at the same time."),
         attr("uint64_t", "ofi_lock_mode", comment="For the OFI backend: the lock mode for the device."),
         attr("bool", "alloc_default_endpoint", default_value=1, comment="Whether to allocate the default endpoint."),
+        attr("int", "id", default_value=-1, comment="A unique device id."),
     ],
     children=[
         "endpoint",
@@ -162,6 +163,17 @@ operation_alloc(
     ]
 ),
 operation_free(resource_device),
+operation(
+    "reserve_device_ids", 
+    [
+        positional_arg("int", "n", comment="The number of device ids to reserve."),
+        return_val("int", "start", comment="The start of the reserved device ids."),
+    ],
+    doc = {
+        "in_group": "LCI_RESOURCE",
+        "brief": "Reserve n device ids for multithreaded device allocation.",
+    },
+),
 # memory region
 resource(
     "mr", 

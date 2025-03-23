@@ -52,6 +52,10 @@ class device_impl_t
   inline bool post_recv_packet();
   inline void refill_recvs(bool is_blocking = false);
   inline void consume_recvs(int n) { nrecvs_posted -= n; }
+  static int reserve_device_ids(int n)
+  {
+    return g_ndevices.fetch_add(n, std::memory_order_relaxed);
+  }
 
   attr_t attr;
   endpoint_t default_endpoint;
