@@ -46,7 +46,6 @@ class device_impl_t
                            void* user_context);
 
   // LCI layer functions
-  inline int get_id() const { return device_id; }
   inline void bind_packet_pool(packet_pool_t packet_pool_);
   inline void unbind_packet_pool();
   inline bool post_recv_packet();
@@ -67,7 +66,6 @@ class device_impl_t
 
  private:
   static std::atomic<int> g_ndevices;
-  int device_id;
   std::atomic<size_t> nrecvs_posted;
 };
 
@@ -156,7 +154,6 @@ class endpoint_impl_t
 
  private:
   static std::atomic<int> g_nendpoints;
-  int endpoint_id;
   backlog_queue_t backlog_queue;
 };
 

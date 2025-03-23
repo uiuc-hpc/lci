@@ -17,12 +17,7 @@ net_context_impl_t::net_context_impl_t(runtime_t runtime_, attr_t attr_)
 device_impl_t::device_impl_t(net_context_t context_, attr_t attr_)
     : attr(attr_), net_context(context_), nrecvs_posted(0)
 {
-  if (attr.id < 0) {
-    device_id = g_ndevices++;
-    attr.id = device_id;
-  } else {
-    device_id = attr.id;
-  }
+  attr.uid = g_ndevices++;
   runtime = net_context.p_impl->runtime;
   device.p_impl = this;
 }
@@ -39,7 +34,7 @@ endpoint_t device_impl_t::alloc_endpoint(endpoint_t::attr_t attr)
 endpoint_impl_t::endpoint_impl_t(device_t device_, attr_t attr_)
     : runtime(device_.p_impl->runtime), device(device_), attr(attr_)
 {
-  endpoint_id = g_nendpoints++;
+  attr.uid = g_nendpoints++;
   endpoint.p_impl = this;
 }
 
@@ -106,15 +101,10 @@ void free_net_context_x::call_impl(net_context_t* net_context, runtime_t) const
   net_context->p_impl = nullptr;
 }
 
-int reserve_device_ids_x::call_impl(int n) const
-{
-  return device_impl_t::reserve_device_ids(n);
-}
-
 device_t alloc_device_x::call_impl(runtime_t runtime, size_t net_max_sends,
                                    size_t net_max_recvs, size_t net_max_cqes,
                                    uint64_t ofi_lock_mode,
-                                   bool alloc_default_endpoint, int id,
+                                   bool alloc_default_endpoint,
                                    void* user_context,
                                    net_context_t net_context,
                                    packet_pool_t packet_pool) const
@@ -125,7 +115,6 @@ device_t alloc_device_x::call_impl(runtime_t runtime, size_t net_max_sends,
   attr.net_max_cqes = net_max_cqes;
   attr.ofi_lock_mode = ofi_lock_mode;
   attr.alloc_default_endpoint = alloc_default_endpoint;
-  attr.id = id;
   attr.user_context = user_context;
   auto device = net_context.p_impl->alloc_device(attr);
   if (!packet_pool.is_empty()) {
@@ -156,7 +145,9 @@ endpoint_t alloc_endpoint_x::call_impl(runtime_t, void* user_context,
   barrier_x()
       .runtime(endpoint.get_impl()->runtime)
       .device(endpoint.get_impl()->device)
-      .endpoint(endpoint)();
+      .endpoint(endpoint)
+      .tag(endpoint.get_attr_uid())
+      .comp_semantic(comp_semantic_t::network)();
   return endpoint;
 }
 
@@ -166,6 +157,7 @@ void free_endpoint_x::call_impl(endpoint_t* endpoint, runtime_t) const
       .runtime(endpoint->get_impl()->runtime)
       .device(endpoint->get_impl()->device)
       .endpoint(*endpoint)
+      .tag(endpoint->get_attr_uid())
       .comp_semantic(comp_semantic_t::network)();
   delete endpoint->p_impl;
   endpoint->p_impl = nullptr;

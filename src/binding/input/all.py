@@ -145,7 +145,7 @@ resource_device := resource(
         attr("size_t", "net_max_cqes", default_value="LCI_BACKEND_MAX_CQES_DEFAULT", comment="The maximum number of CQEs that can reside in the underlying network queue at the same time."),
         attr("uint64_t", "ofi_lock_mode", comment="For the OFI backend: the lock mode for the device."),
         attr("bool", "alloc_default_endpoint", default_value=1, comment="Whether to allocate the default endpoint."),
-        attr("int", "id", default_value=-1, comment="A unique device id."),
+        attr("int", "uid", default_value=-1, inout_trait="out", comment="A unique device id across the entire process."),
     ],
     children=[
         "endpoint",
@@ -163,17 +163,6 @@ operation_alloc(
     ]
 ),
 operation_free(resource_device),
-operation(
-    "reserve_device_ids", 
-    [
-        positional_arg("int", "n", comment="The number of device ids to reserve."),
-        return_val("int", "start", comment="The start of the reserved device ids."),
-    ],
-    doc = {
-        "in_group": "LCI_RESOURCE",
-        "brief": "Reserve n device ids for multithreaded device allocation.",
-    },
-),
 # memory region
 resource(
     "mr", 
@@ -222,7 +211,10 @@ operation(
 ),
 # net endpoint
 resource_endpoint := resource(
-    "endpoint", [],
+    "endpoint", 
+    [
+        attr("int", "uid", default_value=-1, inout_trait="out", comment="A unique endpoint id across the entire process."),
+    ],
     doc = {
         "in_group": "LCI_RESOURCE",
         "brief": "The endpoint resource.",
@@ -885,6 +877,7 @@ operation(
         optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
         optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("matching_engine_t", "matching_engine", "runtime.get_impl()->default_coll_matching_engine", comment="The matching engine to use."),
+        optional_arg("tag_t", "tag", "0", comment="The tag to use."),
         optional_arg("comp_semantic_t", "comp_semantic", "comp_semantic_t::buffer", comment="The completion semantic."),
     ],
     doc = {

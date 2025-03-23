@@ -2,6 +2,7 @@
 #include <thread>
 #include <cassert>
 #include <chrono>
+#include <atomic>
 #include "lct.h"
 #include "lci.hpp"
 
@@ -10,8 +11,9 @@ const int nmsgs = 1000;
 const size_t msg_size = 8;
 
 LCT_tbarrier_t thread_barrier;
+std::atomic<int> thread_setup_counter(0);
 
-void worker(int thread_id, int device_id_start, lci::rcomp_t rcomp_start)
+void worker(int thread_id)
 {
   int rank = lci::get_rank();
   int nranks = lci::get_nranks();
@@ -22,11 +24,14 @@ void worker(int thread_id, int device_id_start, lci::rcomp_t rcomp_start)
     peer_rank = (rank + nranks / 2) % nranks;
   }
   // allocate resouces
-  lci::device_t device =
-      lci::alloc_device_x().id(device_id_start + thread_id)();
+  // device and rcomp allocation needs to be synchronized to ensure uniformity
+  // across ranks.
+  while (thread_setup_counter != thread_id) continue;
+  lci::device_t device = lci::alloc_device();
   lci::comp_t cq = lci::alloc_cq();
-  lci::rcomp_t rcomp =
-      lci::register_rcomp_x(cq).rcomp(rcomp_start + thread_id)();
+  lci::rcomp_t rcomp = lci::register_rcomp(cq);
+  thread_setup_counter++;
+
   void* send_buf = malloc(msg_size);
   memset(send_buf, rank, msg_size);
 
@@ -117,22 +122,18 @@ int main(int argc, char** args)
   // After at least one runtime is active, we can query the rank and nranks.
   // rank is the id of the current process
   // nranks is the total number of the processes in the current job.
-  assert(lci::get_rank() == 1 || lci::get_rank() % 2 == 0);
-
-  // reserve n device ids/rcomp ids for multithreaded allocation
-  int device_id_start = lci::reserve_device_ids(nthreads);
-  lci::rcomp_t rcomp_start = lci::reserve_rcomps(nthreads);
+  assert(lci::get_nranks() == 1 || lci::get_nranks() % 2 == 0);
 
   // get a thread barrier
   thread_barrier = LCT_tbarrier_alloc(nthreads);
 
   // spawn the threads to do the pingpong
   if (nthreads == 1) {
-    worker(0, device_id_start, rcomp_start);
+    worker(0);
   } else {
     std::vector<std::thread> threads;
     for (int i = 0; i < nthreads; i++) {
-      threads.push_back(std::thread(worker, i, device_id_start, rcomp_start));
+      threads.push_back(std::thread(worker, i));
     }
     for (auto& thread : threads) {
       thread.join();

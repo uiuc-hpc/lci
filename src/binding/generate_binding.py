@@ -105,9 +105,23 @@ struct {resource_name}_attr_t {{
 """
   return text
 
+def generate_enum_attr_class_decl(attr):
+  enum_delcaration = ""
+  for item in input:
+    if item["category"] == "resource":
+      for attr in item["attrs"]:
+        # declare enum class
+        if "enum" not in attr["trait"]:
+          continue
+        type_name = attr["type"]
+        enum_delcaration += f"enum class {type_name} {{\n"
+        for option in attr["enum_options"]:
+          enum_delcaration += f"  {option},\n"
+        enum_delcaration += f"}};\n\n"
+  return enum_delcaration
+
 def generate_global_attr_decl(input):
   # declare global attribute struct
-  enum_delcaration = ""
   variable_decl = "struct global_attr_t {\n"
   for item in input:
     if item["category"] == "resource":
@@ -115,17 +129,15 @@ def generate_global_attr_decl(input):
         if "not_global" in attr["trait"]:
           # user context is not global
           continue
+        if "out" in attr["trait"]:
+          # output attribute does not have global default value
+          continue
         type_name = attr["type"]
         var_name = attr["name"]
         # declare enum class
-        if "enum" in attr["trait"]:
-          enum_delcaration += f"enum class {type_name} {{\n"
-          for option in attr["enum_options"]:
-            enum_delcaration += f"  {option},\n"
-          enum_delcaration += f"}};\n\n"
         variable_decl += f"  {type_name} {var_name};\n"
   variable_decl += "};\n"
-  return enum_delcaration + variable_decl
+  return variable_decl
 
 
 def generate_global_attr_impl(input):
@@ -134,6 +146,9 @@ def generate_global_attr_impl(input):
   for item in input:
     if item["category"] == "resource":
       for attr in item["attrs"]:
+        if "out" in attr["trait"]:
+          # output attribute does not have global default value
+          continue
         if "not_global" in attr["trait"]:
           continue
         if "default_value" in attr and attr["default_value"] is not None:
@@ -344,6 +359,7 @@ def generate_header_pre(input):
   signature = "LCI_BINDING_PRE_HPP_"
   main_body = ""
   main_body += generate_forward_resource_decl(input)
+  main_body += generate_enum_attr_class_decl(input)
   main_body += generate_global_attr_decl(input)
   resources = [x for x in input if x["category"] == "resource"]
   for item in resources:

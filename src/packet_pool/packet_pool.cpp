@@ -64,27 +64,26 @@ mr_t packet_pool_impl_t::register_packets(device_t device)
   mr_t mr;
   if (heap) {
     mr = register_memory_x(heap, heap_size).device(device)();
-    mrs.put(device.get_impl()->get_id(), mr.p_impl);
+    mrs.put(device.get_attr_uid(), mr.p_impl);
   }
   return mr;
 }
 
 void packet_pool_impl_t::deregister_packets(device_t device)
 {
-  mr_impl_t* p_mr =
-      static_cast<mr_impl_t*>(mrs.get(device.get_impl()->get_id()));
+  mr_impl_t* p_mr = static_cast<mr_impl_t*>(mrs.get(device.get_attr_uid()));
   if (p_mr) {
     mr_t mr;
     mr.p_impl = p_mr;
     deregister_memory_x(&mr).call();
-    mrs.put(device.get_impl()->get_id(), nullptr);
+    mrs.put(device.get_attr_uid(), nullptr);
   }
 }
 
 mr_t packet_pool_impl_t::get_or_register_mr(device_t device)
 {
   mr_t mr;
-  void* p = mrs.get(device.get_impl()->get_id());
+  void* p = mrs.get(device.get_attr_uid());
   if (!p) {
     mr = register_packets(device);
   } else {

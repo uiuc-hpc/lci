@@ -7,7 +7,7 @@ namespace lci
 {
 void barrier_x::call_impl(runtime_t runtime, device_t device,
                           endpoint_t endpoint,
-                          matching_engine_t matching_engine,
+                          matching_engine_t matching_engine, tag_t tag,
                           comp_semantic_t comp_semantic) const
 {
   static int count = -1;  // for debugging purpose
@@ -25,7 +25,7 @@ void barrier_x::call_impl(runtime_t runtime, device_t device,
                 "barrier %d round %d recv from %d send to %d\n", count, round++,
                 rank_to_recv, rank_to_send);
     comp_t comp = alloc_sync_x().threshold(2).runtime(runtime)();
-    post_recv_x(rank_to_recv, &dummy, sizeof(dummy), 0, comp)
+    post_recv_x(rank_to_recv, &dummy, sizeof(dummy), tag, comp)
         .runtime(runtime)
         .device(device)
         .endpoint(endpoint)
@@ -33,7 +33,7 @@ void barrier_x::call_impl(runtime_t runtime, device_t device,
         .allow_retry(false)
         .allow_ok(false)();
     auto post_send_op =
-        post_send_x(rank_to_send, &dummy, sizeof(dummy), 0, comp)
+        post_send_x(rank_to_send, &dummy, sizeof(dummy), tag, comp)
             .runtime(runtime)
             .device(device)
             .endpoint(endpoint)
