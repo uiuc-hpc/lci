@@ -381,6 +381,7 @@ struct data_t {
     struct {
       type_t type : 2;
       bool own_data : 1;
+      uint8_t size : 5;
       char data[MAX_SCALAR_SIZE];
     } scalar;
     struct {
@@ -568,7 +569,8 @@ inline data_t::data_t(const data_t& other)
   if (own_data)
     fprintf(stderr, "Copying buffer with own_data=true is not recommended\n");
   if (other.is_scalar()) {
-    memcpy(scalar.data, other.scalar.data, MAX_SCALAR_SIZE);
+    scalar.size = other.scalar.size;
+    memcpy(scalar.data, other.scalar.data, scalar.size);
   } else if (other.is_buffer()) {
     buffer = other.buffer;
     if (own_data) {
@@ -594,7 +596,8 @@ inline data_t::data_t(data_t&& other)
   set_type(other.get_type());
   set_own_data(other.get_own_data());
   if (other.is_scalar()) {
-    memcpy(scalar.data, other.scalar.data, MAX_SCALAR_SIZE);
+    scalar.size = other.scalar.size;
+    memcpy(scalar.data, other.scalar.data, scalar.size);
   } else if (other.is_buffer()) {
     buffer = other.buffer;
     other.set_own_data(false);
@@ -633,6 +636,7 @@ inline void data_t::copy_from(const void* data_, size_t size)
   if (size <= MAX_SCALAR_SIZE) {
     set_type(type_t::scalar);
     set_own_data(true);
+    scalar.size = size;
     memcpy(scalar.data, data_, size);
   } else {
     set_type(type_t::buffer);
@@ -666,7 +670,9 @@ T data_t::get_scalar(/* always copy semantic */) const
     }
     return *reinterpret_cast<const T*>(buffer.base);
   } else if (is_scalar()) {
-    static_assert(sizeof(T) <= 23, "Scalar size is too large");
+    if (sizeof(T) > scalar.size) {
+      throw std::runtime_error("No enough data to fit the scalar.");
+    }
     return *reinterpret_cast<const T*>(scalar.data);
   } else {
     throw std::runtime_error("Cannot convert to a scalar");
@@ -678,11 +684,11 @@ inline buffer_t data_t::get_buffer(get_semantic_t semantic)
   buffer_t ret;
   if (is_scalar()) {
     if (semantic == get_semantic_t::move || semantic == get_semantic_t::copy) {
-      ret.size = MAX_SCALAR_SIZE;
-      ret.base = malloc(MAX_SCALAR_SIZE);
-      memcpy(ret.base, scalar.data, MAX_SCALAR_SIZE);
+      ret.size = scalar.size;
+      ret.base = malloc(scalar.size);
+      memcpy(ret.base, scalar.data, scalar.size);
     } else {
-      ret = buffer_t(scalar.data, MAX_SCALAR_SIZE);
+      ret = buffer_t(scalar.data, scalar.size);
     }
   } else if (is_buffer()) {
     if (semantic == get_semantic_t::copy && get_own_data()) {
