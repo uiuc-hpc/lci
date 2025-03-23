@@ -1,4 +1,4 @@
-if (NOT TARGET LCI::LCT)
+if (NOT TARGET LCI::lct)
 
     @PACKAGE_INIT@
 
@@ -10,14 +10,15 @@ if (NOT TARGET LCI::LCT)
     include(CMakeFindDependencyMacro)
     set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
     set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-    find_dependency(Threads)
+    # find_dependency(Threads)
 
-    add_library(LCI::LCT SHARED IMPORTED)
-    set_target_properties(LCI::LCT PROPERTIES
+    add_library(LCI::lct SHARED IMPORTED GLOBAL)
+    add_library(LCI::LCT ALIAS LCI::lct)
+    set_target_properties(LCI::lct PROPERTIES
         IMPORTED_LOCATION ${LCT_SHARED_LIBRARY}
     )
-    target_include_directories(LCI::LCT INTERFACE ${LCT_INCLUDE_DIRS})
-    target_link_libraries(LCI::LCT INTERFACE Threads::Threads)
+    target_include_directories(LCI::lct INTERFACE ${LCT_INCLUDE_DIRS})
+    # target_link_libraries(LCI::lct INTERFACE Threads::Threads)
 
     check_required_components(LCT)
 
@@ -27,23 +28,23 @@ if (NOT TARGET LCI::LCT)
         set_and_check(LCI_SHARED_LIBRARY "@PACKAGE_CMAKE_INSTALL_LIBDIR@/@CMAKE_SHARED_LIBRARY_PREFIX@lci@CMAKE_SHARED_LIBRARY_SUFFIX@")
         # set_and_check(LCI_STATIC_LIBRARY "@PACKAGE_CMAKE_INSTALL_LIBDIR@/@CMAKE_STATIC_LIBRARY_PREFIX@lci@CMAKE_STATIC_LIBRARY_SUFFIX@")
 
-        add_library(LCI::LCI SHARED IMPORTED)
-        add_library(LCI::lci ALIAS LCI::LCI)
-        set_target_properties(LCI::LCI PROPERTIES
+        add_library(LCI::lci SHARED IMPORTED GLOBAL)
+        add_library(LCI::LCI ALIAS LCI::lci)
+        set_target_properties(LCI::lci PROPERTIES
           IMPORTED_LOCATION ${LCI_SHARED_LIBRARY}
         )
-        target_include_directories(LCI::LCI INTERFACE ${LCI_INCLUDE_DIRS})
+        target_include_directories(LCI::lci INTERFACE ${LCI_INCLUDE_DIRS})
 
-        set(LCI_NETWORK_BACKENDS_ENABLED "@LCI_NETWORK_BACKENDS_ENABLED@")
-        foreach(BACKEND IN LISTS LCI_NETWORK_BACKENDS_ENABLED)
-            find_dependency(${BACKEND})
-            if(BACKEND STREQUAL UCX)
-                target_link_libraries(LCI::LCI INTERFACE ucx::ucp)
-            else()
-                target_link_libraries(LCI::LCI INTERFACE ${BACKEND}::${BACKEND})
-            endif()
-        endforeach()
-        target_link_libraries(LCI::LCI INTERFACE Threads::Threads LCI::LCT)
+        # set(LCI_NETWORK_BACKENDS_ENABLED "@LCI_NETWORK_BACKENDS_ENABLED@")
+        # foreach(BACKEND IN LISTS LCI_NETWORK_BACKENDS_ENABLED)
+        #     find_dependency(${BACKEND})
+        #     if(BACKEND STREQUAL UCX)
+        #         target_link_libraries(LCI::lci INTERFACE ucx::ucp)
+        #     else()
+        #         target_link_libraries(LCI::lci INTERFACE ${BACKEND}::${BACKEND})
+        #     endif()
+        # endforeach()
+        # target_link_libraries(LCI::lci INTERFACE Threads::Threads LCI::lct)
 
         check_required_components(LCI)
     endif()
