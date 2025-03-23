@@ -24,9 +24,11 @@ endfunction()
 
 function(add_lci_test name)
   cmake_parse_arguments(
-    ARG "" "" "COMMANDS;LABELS;SOURCES;DEPENDENCIES;ENVIRONMENT" ${ARGN})
+    ARG "" "" "COMMANDS;LABELS;SOURCES;INCLUDES;DEPENDENCIES;ENVIRONMENT"
+    ${ARGN})
 
   add_lci_executable(${name} ${ARG_SOURCES})
+  target_include_directories(${name} PRIVATE ${ARG_INCLUDES})
   target_link_libraries(${name} PRIVATE ${ARG_DEPENDENCIES})
 
   # string(REGEX REPLACE "\\[TARGET\\]" $<TARGET_FILE:${name}> TEST_COMMAND
@@ -57,7 +59,7 @@ endfunction()
 
 function(add_lci_tests)
   cmake_parse_arguments(
-    ARG "" "" "COMMANDS;LABELS;TESTS;DEPENDENCIES;ENVIRONMENT" ${ARGN})
+    ARG "" "" "COMMANDS;LABELS;TESTS;INCLUDES;DEPENDENCIES;ENVIRONMENT" ${ARGN})
   foreach(name ${ARG_TESTS})
     string(REGEX REPLACE "\\.[^.]*$" "" name_without_ext ${name})
     add_lci_test(
@@ -68,6 +70,8 @@ function(add_lci_tests)
       ${ARG_LABELS}
       COMMANDS
       ${ARG_COMMANDS}
+      INCLUDES
+      ${ARG_INCLUDES}
       DEPENDENCIES
       ${ARG_DEPENDENCIES}
       ENVIRONMENT

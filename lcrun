@@ -12,6 +12,8 @@ executable=$3
 export LCT_PMI_BACKEND=file
 export LCT_PMI_FILE_NRANKS=${nprocs}
 
+pids=()
+
 clean_up() {
   echo "Cleaning up"
   children=$(jobs -p)
@@ -28,5 +30,33 @@ trap clean_up INT TERM
 shift 2
 for i in $(seq 1 ${nprocs}); do
   "$@" &
+  pids+=($!)
 done
-wait # wait for all background jobs to finish
+
+# Wait for all and capture exit codes
+exit_code=0
+for pid in "${pids[@]}"; do
+  wait "$pid" || exit_code=$?
+done
+
+exit $exit_code
+
+# clean_up() {
+#   echo "Cleaning up"
+#   for pid in "${pids[@]}"; do
+#     if kill -0 "$pid" 2>/dev/null; then
+#       echo "Killing child $pid"
+#       kill "$pid"
+#     fi
+#   done
+# }
+
+# # Kill all children on interrupt or error
+# trap clean_up INT TERM
+
+# # launch the command nprocs times nonblockingly
+# shift 2
+# for i in $(seq 1 ${nprocs}); do
+#   "$@" &
+# done
+# wait # wait for all background jobs to finish

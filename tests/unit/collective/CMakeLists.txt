@@ -1,0 +1,14 @@
+add_lci_tests(
+  TESTS
+  broadcast.cpp
+  LABELS
+  collective
+  COMMANDS
+  "${LCI_USE_CTEST_EXE} -n 4 ${LCI_USE_CTEST_ARGS} [TARGET]"
+  "${LCI_USE_CTEST_EXE} -n 5 ${LCI_USE_CTEST_ARGS} [TARGET]"
+  "${LCI_USE_CTEST_EXE} -n 6 ${LCI_USE_CTEST_ARGS} [TARGET]"
+  "${LCI_USE_CTEST_EXE} -n 7 ${LCI_USE_CTEST_ARGS} [TARGET]"
+  INCLUDES
+  ${PROJECT_SOURCE_DIR}/tests/unit/include
+  DEPENDENCIES
+  gtest)
