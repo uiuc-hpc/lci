@@ -146,7 +146,6 @@ endpoint_t alloc_endpoint_x::call_impl(runtime_t, void* user_context,
       .runtime(endpoint.get_impl()->runtime)
       .device(endpoint.get_impl()->device)
       .endpoint(endpoint)
-      .tag(endpoint.get_attr_uid())
       .comp_semantic(comp_semantic_t::network)();
   return endpoint;
 }
@@ -157,7 +156,6 @@ void free_endpoint_x::call_impl(endpoint_t* endpoint, runtime_t) const
       .runtime(endpoint->get_impl()->runtime)
       .device(endpoint->get_impl()->device)
       .endpoint(*endpoint)
-      .tag(endpoint->get_attr_uid())
       .comp_semantic(comp_semantic_t::network)();
   delete endpoint->p_impl;
   endpoint->p_impl = nullptr;

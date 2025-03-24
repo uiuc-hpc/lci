@@ -5,19 +5,20 @@
 
 namespace lci
 {
+std::atomic<uint64_t> g_sequence_number(0);
+
 void barrier_x::call_impl(runtime_t runtime, device_t device,
                           endpoint_t endpoint,
-                          matching_engine_t matching_engine, tag_t tag,
+                          matching_engine_t matching_engine,
                           comp_semantic_t comp_semantic, comp_t comp) const
 {
-  static int call_count = -1;  // for debugging purpose
-  ++call_count;
+  int seqnum = g_sequence_number.fetch_add(1, std::memory_order_relaxed);
   int round = 0;
   int rank = get_rank();
   int nranks = get_nranks();
 
   // dissemination algorithm
-  LCI_DBG_Log(LOG_TRACE, "collective", "enter barrier %d\n", call_count);
+  LCI_DBG_Log(LOG_TRACE, "collective", "enter barrier %d\n", seqnum);
 
   if (comp.is_empty() || comp == COMP_NULL_EXPECT_OK ||
       comp == COMP_NULL_EXPECT_OK_OR_RETRY) {
@@ -29,17 +30,17 @@ void barrier_x::call_impl(runtime_t runtime, device_t device,
       int rank_to_recv = (rank - jump + nranks) % nranks;
       int rank_to_send = (rank + jump) % nranks;
       LCI_DBG_Log(LOG_TRACE, "collective",
-                  "barrier %d round %d recv from %d send to %d\n", call_count,
+                  "barrier %d round %d recv from %d send to %d\n", seqnum,
                   round++, rank_to_recv, rank_to_send);
       comp_t comp = alloc_sync_x().threshold(2).runtime(runtime)();
-      post_recv_x(rank_to_recv, nullptr, 0, tag, comp)
+      post_recv_x(rank_to_recv, nullptr, 0, seqnum, comp)
           .runtime(runtime)
           .device(device)
           .endpoint(endpoint)
           .matching_engine(matching_engine)
           .allow_retry(false)
           .allow_ok(false)();
-      auto post_send_op = post_send_x(rank_to_send, nullptr, 0, tag, comp)
+      auto post_send_op = post_send_x(rank_to_send, nullptr, 0, seqnum, comp)
                               .runtime(runtime)
                               .device(device)
                               .endpoint(endpoint)
@@ -56,7 +57,7 @@ void barrier_x::call_impl(runtime_t runtime, device_t device,
       }
       free_comp(&comp);
     }
-    LCI_DBG_Log(LOG_TRACE, "collective", "leave barrier %d\n", call_count);
+    LCI_DBG_Log(LOG_TRACE, "collective", "leave barrier %d\n", seqnum);
   } else {
     // nonblocking barrier
     if (nranks == 1) {
@@ -70,16 +71,16 @@ void barrier_x::call_impl(runtime_t runtime, device_t device,
       int rank_to_recv = (rank - jump + nranks) % nranks;
       int rank_to_send = (rank + jump) % nranks;
       LCI_DBG_Log(LOG_TRACE, "collective",
-                  "barrier %d round %d recv from %d send to %d\n", call_count,
+                  "barrier %d round %d recv from %d send to %d\n", seqnum,
                   round++, rank_to_recv, rank_to_send);
 
-      auto recv = post_recv_x(rank_to_recv, nullptr, 0, tag, graph)
+      auto recv = post_recv_x(rank_to_recv, nullptr, 0, seqnum, graph)
                       .runtime(runtime)
                       .device(device)
                       .endpoint(endpoint)
                       .matching_engine(matching_engine)
                       .allow_retry(false);
-      auto send = post_send_x(rank_to_send, nullptr, 0, tag, graph)
+      auto send = post_send_x(rank_to_send, nullptr, 0, seqnum, graph)
                       .runtime(runtime)
                       .device(device)
                       .endpoint(endpoint)
@@ -108,10 +109,10 @@ void barrier_x::call_impl(runtime_t runtime, device_t device,
 void broadcast_x::call_impl(void* buffer, size_t size, int root,
                             runtime_t runtime, device_t device,
                             endpoint_t endpoint,
-                            matching_engine_t matching_engine, tag_t tag) const
+                            matching_engine_t matching_engine) const
 {
-  static int count = -1;  // for debugging purpose
-  ++count;
+  int seqnum = g_sequence_number.fetch_add(1, std::memory_order_relaxed);
+
   int round = 0;
   int rank = get_rank();
   int nranks = get_nranks();
@@ -121,7 +122,7 @@ void broadcast_x::call_impl(void* buffer, size_t size, int root,
   }
   // binomial tree algorithm
   LCI_DBG_Log(LOG_TRACE, "collective",
-              "enter broadcast %d (root %d buffer %p size %lu)\n", count, root,
+              "enter broadcast %d (root %d buffer %p size %lu)\n", seqnum, root,
               buffer, size);
   bool has_data = (rank == root);
   int distance_left =
@@ -135,8 +136,8 @@ void broadcast_x::call_impl(void* buffer, size_t size, int root,
       // send to the right
       int rank_to_send = (rank + jump) % nranks;
       LCI_DBG_Log(LOG_TRACE, "collective", "broadcast %d round %d send to %d\n",
-                  count, round, rank_to_send);
-      post_send_x(rank_to_send, buffer, size, tag, COMP_NULL_EXPECT_OK)
+        seqnum, round, rank_to_send);
+      post_send_x(rank_to_send, buffer, size, seqnum, COMP_NULL_EXPECT_OK)
           .runtime(runtime)
           .device(device)
           .endpoint(endpoint)
@@ -145,9 +146,9 @@ void broadcast_x::call_impl(void* buffer, size_t size, int root,
       // receive from the right
       int rank_to_recv = (rank - jump + nranks) % nranks;
       LCI_DBG_Log(LOG_TRACE, "collective",
-                  "broadcast %d round %d recv from %d\n", count, round,
+                  "broadcast %d round %d recv from %d\n", seqnum, round,
                   rank_to_recv);
-      post_recv_x(rank_to_recv, buffer, size, tag, COMP_NULL_EXPECT_OK)
+      post_recv_x(rank_to_recv, buffer, size, seqnum, COMP_NULL_EXPECT_OK)
           .runtime(runtime)
           .device(device)
           .endpoint(endpoint)
@@ -165,7 +166,7 @@ void broadcast_x::call_impl(void* buffer, size_t size, int root,
     LCI_DBG_Log(
         LOG_TRACE, "collective",
         "broadcast %d round %d jump %d distance_left %d distance_right %d\n",
-        count, round, jump, distance_left, distance_right);
+        seqnum, round, jump, distance_left, distance_right);
     ++round;
     if (jump == 1) {
       break;
@@ -174,18 +175,17 @@ void broadcast_x::call_impl(void* buffer, size_t size, int root,
     }
   }
   LCI_DBG_Log(LOG_TRACE, "collective",
-              "leave broadcast %d (root %d buffer %p size %lu)\n", count, root,
+              "leave broadcast %d (root %d buffer %p size %lu)\n", seqnum, root,
               buffer, size);
 }
 
-void reduce_x::call_impl(const void* sendbuf, void* recvbuf, size_t item_size,
-                         size_t count, reduce_op_t op, int root,
+void reduce_x::call_impl(const void* sendbuf, void* recvbuf, size_t count,
+                         size_t item_size, reduce_op_t op, int root,
                          runtime_t runtime, device_t device,
-                         endpoint_t endpoint, matching_engine_t matching_engine,
-                         tag_t tag) const
+                         endpoint_t endpoint, matching_engine_t matching_engine) const
 {
-  static int call_count = -1;  // for debugging purpose
-  ++call_count;
+  int seqnum = g_sequence_number.fetch_add(1, std::memory_order_relaxed);
+
   int round = 0;
   int rank = get_rank();
   int nranks = get_nranks();
@@ -200,7 +200,7 @@ void reduce_x::call_impl(const void* sendbuf, void* recvbuf, size_t item_size,
   LCI_DBG_Log(LOG_TRACE, "collective",
               "enter reduce %d (sendbuf %p recvbuf %p item_size %lu count %lu "
               "root %d)\n",
-              call_count, sendbuf, recvbuf, item_size, count, root);
+              seqnum, sendbuf, recvbuf, item_size, count, root);
   std::vector<std::pair<int, bool>> actions_per_round(
       std::ceil(std::log2(nranks)), {-1, false});
   // First compute the binary tree from the root to the leaves
@@ -280,12 +280,12 @@ void reduce_x::call_impl(const void* sendbuf, void* recvbuf, size_t item_size,
     bool is_send = !actions_per_round[i].second;  // reverse the direction
     if (is_send) {
       LCI_DBG_Log(LOG_TRACE, "collective", "reduce %d round %d send to %d\n",
-                  call_count, i, target_rank);
+                  seqnum, i, target_rank);
       void* buffer_to_send = const_cast<void*>(sendbuf);
       if (has_received) {
         buffer_to_send = data_buffer;
       }
-      post_send_x(target_rank, buffer_to_send, item_size * count, tag,
+      post_send_x(target_rank, buffer_to_send, item_size * count, seqnum,
                   COMP_NULL_EXPECT_OK)
           .runtime(runtime)
           .device(device)
@@ -294,35 +294,35 @@ void reduce_x::call_impl(const void* sendbuf, void* recvbuf, size_t item_size,
       break;
     } else {
       LCI_DBG_Log(LOG_TRACE, "collective", "reduce %d round %d recv from %d\n",
-                  call_count, i, target_rank);
-      post_recv_x(target_rank, tmp_buffer, item_size * count, tag,
+                  seqnum, i, target_rank);
+      post_recv_x(target_rank, tmp_buffer, item_size * count, seqnum,
                   COMP_NULL_EXPECT_OK)
           .runtime(runtime)
           .device(device)
           .endpoint(endpoint)
           .matching_engine(matching_engine)();
       // fprintf(stderr, "rank %d reduce %d round %d recv %lu from %d\n",
-      // rank, call_count, i, *(uint64_t*)tmp_buffer, target_rank);
+      // rank, seqnum, i, *(uint64_t*)tmp_buffer, target_rank);
       const void* right_buffer = data_buffer;
       if (!has_received) {
         has_received = true;
         right_buffer = sendbuf;
         // fprintf(stderr, "rank %d reduce %d round %d right=sendbuf %lu\n",
-        // rank, call_count, i, *(uint64_t*)right_buffer);
+        // rank, seqnum, i, *(uint64_t*)right_buffer);
         // } else {
         // fprintf(stderr, "rank %d reduce %d round %d right=data_buffer %lu\n",
-        // rank, call_count, i, *(uint64_t*)right_buffer);
+        // rank, seqnum, i, *(uint64_t*)right_buffer);
       }
       op(tmp_buffer, right_buffer, data_buffer, count);
       // fprintf(stderr, "rank %d reduce %d round %d current data %lu\n",
-      // rank, call_count, i, *(uint64_t*)data_buffer);
+      // rank, seqnum, i, *(uint64_t*)data_buffer);
     }
   }
   if (to_free_tmp_buffer) free(tmp_buffer);
   if (to_free_data_buffer) free(data_buffer);
   LCI_DBG_Log(LOG_TRACE, "collective",
               "leave reduce %d (root %d buffer %p item_size %lu n %lu)\n",
-              call_count, root, tmp_buffer, item_size, count);
+              seqnum, root, tmp_buffer, item_size, count);
 }
 
 }  // namespace lci

@@ -46,7 +46,7 @@ TEST(COMM_COLL, reduce_in_place)
 
   for (int root = 0; root < nranks; ++root) {
     uint64_t data = rank;
-    lci::reduce(&data, &data, sizeof(data), 1, reduce_op, root);
+    lci::reduce(&data, &data, 1, sizeof(data), reduce_op, root);
     if (rank == root) {
       ASSERT_EQ(data, (nranks - 1) * nranks / 2);
     } else {
@@ -66,7 +66,7 @@ TEST(COMM_COLL, reduce)
   for (int root = 0; root < nranks; ++root) {
     uint64_t data = rank;
     uint64_t result = -1;
-    lci::reduce(&data, &result, sizeof(data), 1, reduce_op, root);
+    lci::reduce(&data, &result, 1, sizeof(data), reduce_op, root);
     if (rank == root) ASSERT_EQ(result, (nranks - 1) * nranks / 2);
     ASSERT_EQ(data, rank);
   }

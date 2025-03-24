@@ -192,7 +192,13 @@ inline void* mpmc_set_t::get(int64_t max_steal_attempts = 1)
   local_set_t* random_pool;
   size_t size_to_steal;
 
-  if (!local_pool->lock.try_lock()) {
+  bool succeed = false;
+  for (int64_t i = 0; i < max_steal_attempts; i++) {
+    succeed = local_pool->lock.try_lock();
+    if (succeed)
+      break;
+  }
+  if (!succeed) {
     return nullptr;
   }
   void* ret = local_pool->pop_from_bot();

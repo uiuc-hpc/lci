@@ -13,13 +13,13 @@ operation(
         optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
         optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("matching_engine_t", "matching_engine", "runtime.get_impl()->default_coll_matching_engine", comment="The matching engine to use."),
-        optional_arg("tag_t", "tag", "0", comment="The tag to use."),
         optional_arg("comp_semantic_t", "comp_semantic", "comp_semantic_t::buffer", comment="The completion semantic."),
         optional_arg("comp_t", "comp", "comp_t()", comment="The completion to signal when the operation completes."),
     ],
     doc = {
         "in_group": "LCI_COLL",
         "brief": "A barrier operation.",
+        "details": "Collective communication must be launched sequentially."
     }
 ),
 operation(
@@ -32,11 +32,11 @@ operation(
         optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
         optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("matching_engine_t", "matching_engine", "runtime.get_impl()->default_coll_matching_engine", comment="The matching engine to use."),
-        optional_arg("tag_t", "tag", "0", comment="The tag to use."),
     ],
     doc = {
         "in_group": "LCI_COLL",
         "brief": "A blocking barrier operation.",
+        "details": "Collective communication must be launched sequentially."
     }
 ),
 operation(
@@ -45,18 +45,18 @@ operation(
         optional_runtime_args,
         positional_arg("const void*", "sendbuf", comment="The local buffer base address."),
         positional_arg("void*", "recvbuf", comment="The local buffer base address."),
-        positional_arg("size_t", "item_size", comment="The size of each data item."),
         positional_arg("size_t", "count", comment="The number of data items in the buffer."),
+        positional_arg("size_t", "item_size", comment="The size of each data item."),
         positional_arg("reduce_op_t", "op", comment="The reduction operation."),
         positional_arg("int", "root", comment="The rank of the broadcast root."),
         optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
         optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("matching_engine_t", "matching_engine", "runtime.get_impl()->default_coll_matching_engine", comment="The matching engine to use."),
-        optional_arg("tag_t", "tag", "0", comment="The tag to use."),
     ],
     doc = {
         "in_group": "LCI_COLL",
         "brief": "A blocking barrier operation.",
+        "details": "Collective communication must be launched sequentially."
     }
 ),
 ]
