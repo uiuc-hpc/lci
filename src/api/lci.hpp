@@ -9,6 +9,7 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <functional>
 
 #include "lci_config.hpp"
 
@@ -469,6 +470,12 @@ struct status_t {
   data_t data;
   tag_t tag = 0;
   void* user_context = nullptr;
+  status_t() = default;
+  status_t(errorcode_t error_) : error(error_) {}
+  explicit status_t(void* user_context_)
+      : error(errorcode_t::ok), user_context(user_context_)
+  {
+  }
 };
 
 /**
@@ -507,8 +514,56 @@ class comp_impl_t
  */
 using comp_handler_t = void (*)(status_t status);
 
+/**
+ * @ingroup LCI_BASIC
+ * @brief The user-defined reduction operation.
+ * @details `right` and `dst` can be the same pointer.
+ */
 using reduce_op_t = void (*)(const void* left, const void* right, void* dst,
                              size_t n);
+
+/**
+ * @ingroup LCI_BASIC
+ * @brief The node type for the completion graph.
+ */
+using graph_node_t = void*;
+
+/**
+ * @ingroup LCI_BASIC
+ * @brief The start node of the completion graph.
+ */
+const graph_node_t GRAPH_START = reinterpret_cast<graph_node_t>(0x1);
+const graph_node_t GRAPH_END = reinterpret_cast<graph_node_t>(0x2);
+
+/**
+ * @ingroup LCI_BASIC
+ * @brief The function signature for a node function in the completion graph.
+ * @details The function should return true if the node is considered completed.
+ */
+using graph_node_fn_t = status_t (*)(void* value);
+
+// inline graph_node_t graph_add_node(comp_t graph, status_t(*fn)())
+// {
+//   auto wrapper = [fn](void *) -> status_t {
+//     return fn();
+//   };
+//   return graph_add_node(graph, &wrapper);
+// }
+
+inline status_t graph_execute_op_fn(void* op)
+{
+  auto* fn = static_cast<std::function<status_t()>*>(op);
+  auto ret = (*fn)();  // call the stored functor
+  delete static_cast<std::function<void()>*>(op);
+  return ret;
+}
+
+/**
+ * @ingroup LCI_BASIC
+ * @brief The function signature for a edge funciton in the completion graph.
+ */
+using graph_edge_fn_t = void (*)(status_t status, void* src_value,
+                                 void* dst_value);
 
 }  // namespace lci
 

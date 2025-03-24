@@ -38,6 +38,17 @@ comp_t alloc_handler_x::call_impl(comp_handler_t handler, runtime_t,
   return comp;
 }
 
+comp_t alloc_graph_x::call_impl(comp_t comp, void* user_context,
+                                runtime_t) const
+{
+  comp_attr_t attr;
+  memset(&attr, 0, sizeof(attr));
+  attr.user_context = user_context;
+  comp_t ret;
+  ret.p_impl = new graph_t(attr, comp);
+  return ret;
+}
+
 void free_comp_x::call_impl(comp_t* comp, runtime_t) const
 {
   delete comp->p_impl;
