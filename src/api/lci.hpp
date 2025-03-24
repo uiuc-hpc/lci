@@ -570,35 +570,41 @@ namespace lci
 
 // Specialization status_t return type
 template <typename T>
-typename std::enable_if<std::is_same<typename std::result_of<T()>::type, status_t>::value, status_t>::type
+typename std::enable_if<
+    std::is_same<typename std::result_of<T()>::type, status_t>::value,
+    status_t>::type
 graph_execute_op_fn(void* value)
 {
-    auto op = static_cast<T*>(value);
-    status_t result = op->operator()();
-    delete op;
-    return result;
+  auto op = static_cast<T*>(value);
+  status_t result = op->operator()();
+  delete op;
+  return result;
 }
 
 // Specialization for errorcode_t return type
 template <typename T>
-typename std::enable_if<std::is_same<typename std::result_of<T()>::type, errorcode_t>::value, status_t>::type
+typename std::enable_if<
+    std::is_same<typename std::result_of<T()>::type, errorcode_t>::value,
+    status_t>::type
 graph_execute_op_fn(void* value)
 {
-    auto op = static_cast<T*>(value);
-    errorcode_t result = op->operator()();
-    delete op;
-    return result;
+  auto op = static_cast<T*>(value);
+  errorcode_t result = op->operator()();
+  delete op;
+  return result;
 }
 
 // Specialization for other return types
 template <typename T>
-typename std::enable_if<!std::is_same<typename std::result_of<T()>::type, status_t>::value, status_t>::type
+typename std::enable_if<
+    !std::is_same<typename std::result_of<T()>::type, status_t>::value,
+    status_t>::type
 graph_execute_op_fn(void* value)
 {
-    auto op = static_cast<T*>(value);
-    op->operator()();
-    delete op;
-    return errorcode_t::ok;
+  auto op = static_cast<T*>(value);
+  op->operator()();
+  delete op;
+  return errorcode_t::ok;
 }
 
 /**
@@ -610,14 +616,13 @@ graph_execute_op_fn(void* value)
  * @return The node added to the completion graph.
  */
 template <typename T>
-graph_node_t graph_add_node(comp_t graph, const T& op)
+graph_node_t graph_add_node_op(comp_t graph, const T& op)
 {
   graph_node_fn_t wrapper = graph_execute_op_fn<T>;
-  T *fn = new T(op);
-  fprintf(stderr, "sec=%d\n", fn->sec);
-  auto ret = graph_add_node_x(graph, wrapper).value(reinterpret_cast<void*>(fn))();
-  fn->set_comp(graph);
-  fn->set_user_context(ret);
+  T* fn = new T(op);
+  auto ret =
+      graph_add_node_x(graph, wrapper).value(reinterpret_cast<void*>(fn))();
+  fn->user_context(ret);
   return ret;
 }
 

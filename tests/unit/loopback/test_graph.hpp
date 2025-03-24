@@ -59,22 +59,26 @@ TEST(GRAPH, singlethread1)
 }
 
 struct sleep_op_x {
-  int sec;
-  lci::comp_t comp;
-  void* user_context;
-  std::thread *t;
-  sleep_op_x(std::thread *t_, int sec_) : t(t_), sec(sec_) {}
-  void set_comp(lci::comp_t comp_) { comp = comp_; }
-  void set_user_context(void* user_context_) { user_context = user_context_; }
+  int m_sec;
+  lci::comp_t m_comp;
+  void* m_user_context;
+  std::thread* m_thread;
+  sleep_op_x(std::thread* t_, int sec_, lci::comp_t comp_)
+      : m_thread(t_), m_sec(sec_), m_comp(comp_)
+  {
+  }
+  void user_context(void* user_context_) { m_user_context = user_context_; }
   lci::status_t operator()()
   {
-    fprintf(stderr, "this=%p sec=%d\n", this, sec);
-    *t = std::thread([](int sec, lci::comp_t comp, void* user_context) {
-      fprintf(stderr, "sleep %d s\n", sec);
-      sleep(sec);
-      fprintf(stderr, "woke up\n");
-      lci::comp_signal(comp, lci::status_t(user_context));
-    }, sec, comp, user_context);
+    fprintf(stderr, "this=%p sec=%d\n", this, m_sec);
+    *m_thread = std::thread(
+        [](int sec, lci::comp_t comp, void* user_context) {
+          fprintf(stderr, "sleep %d s\n", sec);
+          sleep(sec);
+          fprintf(stderr, "woke up\n");
+          lci::comp_signal(comp, lci::status_t(user_context));
+        },
+        m_sec, m_comp, m_user_context);
     return lci::errorcode_t::posted;
   }
 };
@@ -85,9 +89,9 @@ TEST(GRAPH, multithread1)
   lci::comp_t graph = lci::alloc_graph();
 
   std::thread t;
-  sleep_op_x sleep_op(&t, 3);
+  sleep_op_x sleep_op(&t, 3, graph);
 
-  auto a = lci::graph_add_node(graph, sleep_op);
+  auto a = lci::graph_add_node_op(graph, sleep_op);
 
   add_edge(graph, lci::GRAPH_START, a);
   add_edge(graph, a, lci::GRAPH_END);

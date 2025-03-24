@@ -34,13 +34,13 @@ class graph_t : public comp_impl_t
 
  private:
   struct node_impl_t {
-    graph_t* graph;
     std::atomic<int> signals;
+    graph_t* graph;
     graph_node_fn_t fn;
     void* value;
     std::vector<std::pair<graph_node_t, graph_edge_fn_t>> out_edges;
     node_impl_t(graph_t* graph_, graph_node_fn_t fn_, void* value_)
-        : graph(graph_), signals(0), fn(fn_), value(value_)
+        : signals(0), graph(graph_), fn(fn_), value(value_)
     {
     }
   };
@@ -49,6 +49,7 @@ class graph_t : public comp_impl_t
   // the graph structure
   std::vector<graph_node_t> m_start_nodes;
   std::atomic<int> m_end_signals_initial;
+  char padding[64];
   // needed when executing the graph
   std::atomic<int> m_end_signals_remain;
   void* m_end_value;

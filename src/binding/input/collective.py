@@ -15,10 +15,11 @@ operation(
         optional_arg("matching_engine_t", "matching_engine", "runtime.get_impl()->default_coll_matching_engine", comment="The matching engine to use."),
         optional_arg("tag_t", "tag", "0", comment="The tag to use."),
         optional_arg("comp_semantic_t", "comp_semantic", "comp_semantic_t::buffer", comment="The completion semantic."),
+        optional_arg("comp_t", "comp", "comp_t()", comment="The completion to signal when the operation completes."),
     ],
     doc = {
         "in_group": "LCI_COLL",
-        "brief": "A blocking barrier operation.",
+        "brief": "A barrier operation.",
     }
 ),
 operation(
