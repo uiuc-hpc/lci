@@ -11,7 +11,7 @@ const int nmsgs = 1000;
 const size_t msg_size = 8;
 
 LCT_tbarrier_t thread_barrier;
-std::atomic<int> thread_setup_counter(0);
+std::atomic<int> thread_seqence_control(0);
 
 void worker(int thread_id)
 {
@@ -26,11 +26,11 @@ void worker(int thread_id)
   // allocate resouces
   // device and rcomp allocation needs to be synchronized to ensure uniformity
   // across ranks.
-  while (thread_setup_counter != thread_id) continue;
+  while (thread_seqence_control != thread_id) continue;
   lci::device_t device = lci::alloc_device();
   lci::comp_t cq = lci::alloc_cq();
   lci::rcomp_t rcomp = lci::register_rcomp(cq);
-  thread_setup_counter++;
+  if (++thread_seqence_control == nthreads) thread_seqence_control = 0;
 
   void* send_buf = malloc(msg_size);
   memset(send_buf, rank, msg_size);
@@ -108,7 +108,10 @@ void worker(int thread_id)
   free(send_buf);
   // free resouces
   lci::free_comp(&cq);
+
+  while (thread_seqence_control != thread_id) continue;
   lci::free_device(&device);
+  if (++thread_seqence_control == nthreads) thread_seqence_control = 0;
 }
 
 int main(int argc, char** args)
