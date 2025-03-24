@@ -5,6 +5,7 @@
 
 namespace lci
 {
+const int MAX_SEQUENCE_NUMBER = 65536;
 std::atomic<uint64_t> g_sequence_number(0);
 
 void barrier_x::call_impl(runtime_t runtime, device_t device,
@@ -12,7 +13,8 @@ void barrier_x::call_impl(runtime_t runtime, device_t device,
                           matching_engine_t matching_engine,
                           comp_semantic_t comp_semantic, comp_t comp) const
 {
-  int seqnum = g_sequence_number.fetch_add(1, std::memory_order_relaxed);
+  int seqnum = g_sequence_number.fetch_add(1, std::memory_order_relaxed) %
+               MAX_SEQUENCE_NUMBER;
   int round = 0;
   int rank = get_rank();
   int nranks = get_nranks();
@@ -111,7 +113,8 @@ void broadcast_x::call_impl(void* buffer, size_t size, int root,
                             endpoint_t endpoint,
                             matching_engine_t matching_engine) const
 {
-  int seqnum = g_sequence_number.fetch_add(1, std::memory_order_relaxed);
+  int seqnum = g_sequence_number.fetch_add(1, std::memory_order_relaxed) %
+               MAX_SEQUENCE_NUMBER;
 
   int round = 0;
   int rank = get_rank();
@@ -136,7 +139,7 @@ void broadcast_x::call_impl(void* buffer, size_t size, int root,
       // send to the right
       int rank_to_send = (rank + jump) % nranks;
       LCI_DBG_Log(LOG_TRACE, "collective", "broadcast %d round %d send to %d\n",
-        seqnum, round, rank_to_send);
+                  seqnum, round, rank_to_send);
       post_send_x(rank_to_send, buffer, size, seqnum, COMP_NULL_EXPECT_OK)
           .runtime(runtime)
           .device(device)
@@ -182,9 +185,11 @@ void broadcast_x::call_impl(void* buffer, size_t size, int root,
 void reduce_x::call_impl(const void* sendbuf, void* recvbuf, size_t count,
                          size_t item_size, reduce_op_t op, int root,
                          runtime_t runtime, device_t device,
-                         endpoint_t endpoint, matching_engine_t matching_engine) const
+                         endpoint_t endpoint,
+                         matching_engine_t matching_engine) const
 {
-  int seqnum = g_sequence_number.fetch_add(1, std::memory_order_relaxed);
+  int seqnum = g_sequence_number.fetch_add(1, std::memory_order_relaxed) %
+               MAX_SEQUENCE_NUMBER;
 
   int round = 0;
   int rank = get_rank();

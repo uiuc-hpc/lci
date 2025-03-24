@@ -66,7 +66,7 @@ inline void graph_t::trigger_node(graph_node_t node_)
     mark_complete(node_, status);
   } else {
     LCI_Assert(!status.error.is_retry(),
-              "The node function should not return retry");
+               "The node function should not return retry");
   }
 }
 

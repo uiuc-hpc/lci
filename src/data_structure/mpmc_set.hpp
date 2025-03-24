@@ -195,8 +195,7 @@ inline void* mpmc_set_t::get(int64_t max_steal_attempts = 1)
   bool succeed = false;
   for (int64_t i = 0; i < max_steal_attempts; i++) {
     succeed = local_pool->lock.try_lock();
-    if (succeed)
-      break;
+    if (succeed) break;
   }
   if (!succeed) {
     return nullptr;
