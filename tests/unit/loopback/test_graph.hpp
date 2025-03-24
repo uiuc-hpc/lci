@@ -3,26 +3,100 @@
 
 namespace test_graph
 {
-TEST(GRAPH, singlethread)
+lci::graph_node_t add_node(lci::comp_t graph, uint64_t value)
+{
+  return lci::graph_add_node_x(graph,
+                               [](void* value) -> lci::status_t {
+                                 fprintf(stderr, "execute node %p\n", value);
+                                 return lci::errorcode_t::ok;
+                               })
+      .value(reinterpret_cast<void*>(value))();
+}
+
+void add_edge(lci::comp_t graph, lci::graph_node_t src, lci::graph_node_t dst)
+{
+  lci::graph_add_edge_x(graph, src, dst)
+      .fn([](lci::status_t status, void* src_value, void* dst_value) {
+        fprintf(stderr, "execute edge %p -> %p\n", src_value, dst_value);
+      })();
+}
+
+TEST(GRAPH, singlethread0)
 {
   lci::g_runtime_init();
-  lci::comp_t comp = lci::alloc_graph();
-  lci::graph_node_t a =
-      lci::graph_add_node_x(comp, [](void* value) -> lci::status_t {
-        fprintf(stderr, "execute %p", value);
-        return lci::errorcode_t::ok;
-      }).value(reinterpret_cast<void*>(0x1))();
-  lci::graph_node_t b =
-      lci::graph_add_node_x(comp, [](void* value) -> lci::status_t {
-        fprintf(stderr, "execute %p", value);
-        return lci::errorcode_t::ok;
-      }).value(reinterpret_cast<void*>(0x2))();
-  lci::graph_add_edge_x(comp, a, b)
-      .fn([](lci::status_t status, void* src_value, void* dst_value) {
-        fprintf(stderr, "execute edge %p -> %p", src_value, dst_value);
-      })();
-  lci::graph_start(comp);
-  while (lci::graph_test(comp).error.is_retry()) continue;
+  lci::comp_t graph = lci::alloc_graph();
+  auto a = add_node(graph, 1);
+  auto b = add_node(graph, 2);
+  add_edge(graph, lci::GRAPH_START, a);
+  add_edge(graph, a, b);
+  add_edge(graph, b, lci::GRAPH_END);
+
+  lci::graph_start(graph);
+  while (lci::graph_test(graph).error.is_retry()) continue;
+  lci::g_runtime_fina();
+}
+
+TEST(GRAPH, singlethread1)
+{
+  lci::g_runtime_init();
+  lci::comp_t graph = lci::alloc_graph();
+  auto a = add_node(graph, 1);
+  auto b = add_node(graph, 2);
+  auto c = add_node(graph, 3);
+  auto d = add_node(graph, 4);
+  add_edge(graph, lci::GRAPH_START, a);
+  add_edge(graph, lci::GRAPH_START, b);
+  add_edge(graph, lci::GRAPH_START, c);
+  add_edge(graph, lci::GRAPH_START, d);
+  add_edge(graph, a, lci::GRAPH_END);
+  add_edge(graph, b, lci::GRAPH_END);
+  add_edge(graph, c, lci::GRAPH_END);
+  add_edge(graph, d, lci::GRAPH_END);
+
+  lci::graph_start(graph);
+  while (lci::graph_test(graph).error.is_retry()) continue;
+  lci::g_runtime_fina();
+}
+
+struct sleep_op_x {
+  int sec;
+  lci::comp_t comp;
+  void* user_context;
+  std::thread *t;
+  sleep_op_x(std::thread *t_, int sec_) : t(t_), sec(sec_) {}
+  void set_comp(lci::comp_t comp_) { comp = comp_; }
+  void set_user_context(void* user_context_) { user_context = user_context_; }
+  lci::status_t operator()()
+  {
+    fprintf(stderr, "this=%p sec=%d\n", this, sec);
+    *t = std::thread([](int sec, lci::comp_t comp, void* user_context) {
+      fprintf(stderr, "sleep %d s\n", sec);
+      sleep(sec);
+      fprintf(stderr, "woke up\n");
+      lci::comp_signal(comp, lci::status_t(user_context));
+    }, sec, comp, user_context);
+    return lci::errorcode_t::posted;
+  }
+};
+
+TEST(GRAPH, multithread1)
+{
+  lci::g_runtime_init();
+  lci::comp_t graph = lci::alloc_graph();
+
+  std::thread t;
+  sleep_op_x sleep_op(&t, 3);
+
+  auto a = lci::graph_add_node(graph, sleep_op);
+
+  add_edge(graph, lci::GRAPH_START, a);
+  add_edge(graph, a, lci::GRAPH_END);
+
+  lci::graph_start(graph);
+  while (lci::graph_test(graph).error.is_retry()) continue;
+
+  t.join();
+
   lci::g_runtime_fina();
 }
 
