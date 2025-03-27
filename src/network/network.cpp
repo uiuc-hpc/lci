@@ -46,7 +46,6 @@ net_context_t alloc_net_context_x::call_impl(
     runtime_t runtime, attr_backend_t backend, std::string ofi_provider_name,
     size_t max_msg_size, size_t max_inject_size, int ibv_gid_idx,
     bool ibv_force_gid_auto_select, attr_ibv_odp_strategy_t ibv_odp_strategy,
-    attr_ibv_td_strategy_t ibv_td_strategy,
     attr_ibv_prefetch_strategy_t ibv_prefetch_strategy,
     void* user_context) const
 {
@@ -60,7 +59,6 @@ net_context_t alloc_net_context_x::call_impl(
   attr.ibv_gid_idx = ibv_gid_idx;
   attr.ibv_force_gid_auto_select = ibv_force_gid_auto_select;
   attr.ibv_odp_strategy = ibv_odp_strategy;
-  attr.ibv_td_strategy = ibv_td_strategy;
   attr.ibv_prefetch_strategy = ibv_prefetch_strategy;
   attr.max_inject_size = max_inject_size;
 
@@ -101,13 +99,11 @@ void free_net_context_x::call_impl(net_context_t* net_context, runtime_t) const
   net_context->p_impl = nullptr;
 }
 
-device_t alloc_device_x::call_impl(runtime_t runtime, size_t net_max_sends,
-                                   size_t net_max_recvs, size_t net_max_cqes,
-                                   uint64_t ofi_lock_mode,
-                                   bool alloc_default_endpoint,
-                                   void* user_context,
-                                   net_context_t net_context,
-                                   packet_pool_t packet_pool) const
+device_t alloc_device_x::call_impl(
+    runtime_t runtime, size_t net_max_sends, size_t net_max_recvs,
+    size_t net_max_cqes, uint64_t ofi_lock_mode, bool alloc_default_endpoint,
+    attr_ibv_td_strategy_t ibv_td_strategy, void* user_context,
+    net_context_t net_context, packet_pool_t packet_pool) const
 {
   device_t::attr_t attr;
   attr.net_max_sends = net_max_sends;
@@ -115,6 +111,7 @@ device_t alloc_device_x::call_impl(runtime_t runtime, size_t net_max_sends,
   attr.net_max_cqes = net_max_cqes;
   attr.ofi_lock_mode = ofi_lock_mode;
   attr.alloc_default_endpoint = alloc_default_endpoint;
+  attr.ibv_td_strategy = ibv_td_strategy;
   attr.user_context = user_context;
   auto device = net_context.p_impl->alloc_device(attr);
   if (!packet_pool.is_empty()) {

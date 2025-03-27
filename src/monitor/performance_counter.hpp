@@ -17,6 +17,8 @@ extern LCT_pcounter_ctx_t pcounter_ctx;
     _macro(communicate_retry)                 \
     _macro(net_send_post)                     \
     _macro(net_send_post_retry)               \
+    _macro(net_send_post_retry_lock)          \
+    _macro(net_send_post_retry_nomem)         \
     _macro(net_send_comp)                     \
     _macro(net_recv_post)                     \
     _macro(net_recv_post_retry)               \

@@ -189,7 +189,7 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
   LCI_Assert(ib_cq, "Couldn't create CQ\n");
 
   ib_pd = nullptr;
-  if (net_context_attr.ibv_td_strategy == attr_ibv_td_strategy_t::all_qp) {
+  if (attr.ibv_td_strategy == attr_ibv_td_strategy_t::all_qp) {
     // allocate one thread domain for all queue pairs
     struct ibv_td_init_attr td_attr;
     td_attr.comp_mask = 0;
@@ -210,8 +210,7 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
     } else {
       LCI_Warn("ibv_alloc_td() failed (%s)\n", strerror(errno));
     }
-  } else if (net_context_attr.ibv_td_strategy ==
-             attr_ibv_td_strategy_t::per_qp) {
+  } else if (attr.ibv_td_strategy == attr_ibv_td_strategy_t::per_qp) {
     // allocate one thread domain for each queue pair
     ib_qp_extras.resize(get_nranks());
     for (int i = 0; i < get_nranks(); ++i) {

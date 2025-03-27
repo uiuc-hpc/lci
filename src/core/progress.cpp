@@ -41,7 +41,12 @@ void progress_recv(runtime_t runtime, endpoint_t endpoint,
         status.error = errorcode_t::ok;
         status.rank = net_status.rank;
         status.tag = tag;
-        status.data.copy_from(packet->get_payload_address(), msg_size);
+        if (reinterpret_cast<comp_impl_t*>(entry.value)->attr.zero_copy_am) {
+          status.data =
+              data_t(buffer_t(packet->get_payload_address(), msg_size));
+        } else {
+          status.data.copy_from(packet->get_payload_address(), msg_size);
+        }
         status.user_context = nullptr;
         packet->put_back();
         reinterpret_cast<comp_impl_t*>(entry.value)->signal(std::move(status));

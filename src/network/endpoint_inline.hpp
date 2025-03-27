@@ -17,7 +17,13 @@ inline error_t endpoint_impl_t::post_sends(int rank, void* buffer, size_t size,
     error = post_sends_impl(rank, buffer, size, imm_data);
   }
   if (error.is_retry()) {
-    LCI_PCOUNTER_ADD(net_send_post_retry, 1);
+    if (error.errorcode == errorcode_t::retry_lock) {
+      LCI_PCOUNTER_ADD(net_send_post_retry_lock, 1);
+    } else if (error.errorcode == errorcode_t::retry_nomem) {
+      LCI_PCOUNTER_ADD(net_send_post_retry_nomem, 1);
+    } else {
+      LCI_PCOUNTER_ADD(net_send_post_retry, 1);
+    }
     if (!allow_retry) {
       backlog_queue.push_sends(this, rank, buffer, size, imm_data);
       error = errorcode_t::ok_backlog;
@@ -46,7 +52,13 @@ inline error_t endpoint_impl_t::post_send(int rank, void* buffer, size_t size,
     error = post_send_impl(rank, buffer, size, mr, imm_data, user_context);
   }
   if (error.is_retry()) {
-    LCI_PCOUNTER_ADD(net_send_post_retry, 1);
+    if (error.errorcode == errorcode_t::retry_lock) {
+      LCI_PCOUNTER_ADD(net_send_post_retry_lock, 1);
+    } else if (error.errorcode == errorcode_t::retry_nomem) {
+      LCI_PCOUNTER_ADD(net_send_post_retry_nomem, 1);
+    } else {
+      LCI_PCOUNTER_ADD(net_send_post_retry, 1);
+    }
     if (!allow_retry) {
       backlog_queue.push_send(this, rank, buffer, size, mr, imm_data,
                               user_context);

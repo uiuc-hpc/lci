@@ -16,7 +16,6 @@ packet_pool_impl_t::packet_pool_impl_t(const attr_t& attr_)
       npacket_lost(0)
 {
   if (attr.npackets > 0) {
-    attr.pbuffer_size = attr.packet_size - sizeof(packet_local_context_t);
     heap_size = attr.npackets * attr.packet_size + LCI_CACHE_LINE;
     heap = alloc_memalign(heap_size, get_page_size());
     base_packet_p =
@@ -24,19 +23,15 @@ packet_pool_impl_t::packet_pool_impl_t(const attr_t& attr_)
     for (size_t i = 0; i < attr.npackets; i++) {
       packet_t* packet =
           (packet_t*)((char*)base_packet_p + i * attr.packet_size);
-      LCI_Assert(
+      LCI_DBG_Assert(
           ((uint64_t)packet->get_payload_address()) % LCI_CACHE_LINE == 0,
           "packet.data is not well-aligned %p\n",
           packet->get_payload_address());
-      LCI_Assert(is_packet(packet->get_payload_address()),
-                 "Not a packet. The computation is wrong!\n");
-      packet->local_context.packet_pool_impl = this;
-      packet->local_context.local_id = pool.get_local_set_id();
-      packet->local_context.isInPool = true;
+      LCI_DBG_Assert(is_packet(packet->get_payload_address()),
+                     "Not a packet. The computation is wrong!\n");
       pool.put(packet);
     }
   }
-  attr.pbuffer_size = 0;
 }
 
 packet_pool_impl_t::~packet_pool_impl_t()
@@ -121,6 +116,18 @@ void deregister_packet_pool_x::call_impl(packet_pool_t packet_pool,
                                          device_t device, runtime_t) const
 {
   packet_pool.p_impl->deregister_packets(device);
+}
+
+void* get_upacket_x::call_impl(runtime_t, packet_pool_t packet_pool) const
+{
+  packet_t* packet = static_cast<packet_t*>(packet_pool.p_impl->get());
+  return packet->get_payload_address();
+}
+
+void put_upacket_x::call_impl(void* upacket, runtime_t) const
+{
+  packet_t* packet = address2packet(upacket);
+  packet->put_back();
 }
 
 }  // namespace lci

@@ -125,7 +125,6 @@ resource_net_context := resource(
         attr("int", "ibv_gid_idx", default_value=-1, comment="For the IBV backend: the GID index by default (only needed by RoCE)."),
         attr("bool", "ibv_force_gid_auto_select", default_value=0, comment="For the IBV backend: whether to force GID auto selection."),
         attr_enum("ibv_odp_strategy", enum_options=["none", "explicit_odp", "implicit_odp"], default_value="none", comment="For the IBV backend: the on-demand paging strategy."),
-        attr_enum("ibv_td_strategy", enum_options=["none", "all_qp", "per_qp"], default_value="per_qp", comment="For the IBV backend: the thread domain strategy."),
         attr_enum("ibv_prefetch_strategy", enum_options=["none", "prefetch", "prefetch_write", "prefetch_no_fault"], default_value="none", comment="For the IBV backend: the mr prefetch strategy."),
     ],
     doc = {
@@ -146,6 +145,7 @@ resource_device := resource(
         attr("uint64_t", "ofi_lock_mode", comment="For the OFI backend: the lock mode for the device."),
         attr("bool", "alloc_default_endpoint", default_value=1, comment="Whether to allocate the default endpoint."),
         attr("int", "uid", default_value=-1, inout_trait="out", comment="A unique device id across the entire process."),
+        attr_enum("ibv_td_strategy", enum_options=["none", "all_qp", "per_qp"], default_value="per_qp", comment="For the IBV backend: the thread domain strategy."),
     ],
     children=[
         "endpoint",
@@ -412,7 +412,6 @@ resource_packet_pool := resource(
     [
         attr("size_t", "packet_size", default_value="LCI_PACKET_SIZE_DEFAULT", comment="The size of the packet."),
         attr("size_t", "npackets", default_value="LCI_PACKET_NUM_DEFAULT", comment="The number of packets in the pool."),
-        attr("size_t", "pbuffer_size", inout_trait="out", comment="The size of the packet buffer."),
     ],
     doc = {
         "in_group": "LCI_RESOURCE",
@@ -445,6 +444,30 @@ operation(
     doc = {
         "in_group": "LCI_RESOURCE",
         "brief": "Deregister a packet pool from a device.",
+    }
+),
+operation(
+    "get_upacket",
+    [
+        optional_runtime_args,
+        optional_arg("packet_pool_t", "packet_pool", "runtime.get_impl()->default_packet_pool", comment="The packet pool to get the packet."),
+        return_val("void*", "packet", comment="The packet to use."),
+    ],
+    doc = {
+        "in_group": "LCI_RESOURCE",
+        "brief": "Get a packet for writing user payload from the packet pool.",
+        "details": "The packet will be automatically returned to the packet pool when the communication is done."
+    }
+),
+operation(
+    "put_upacket",
+    [
+        optional_runtime_args,
+        positional_arg("void*", "packet", comment="The packet to return."),
+    ],
+    doc = {
+        "in_group": "LCI_RESOURCE",
+        "brief": "Return a packet to the packet pool.",
     }
 ),
 # matching engine
