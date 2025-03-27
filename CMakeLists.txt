@@ -152,7 +152,7 @@ if(NOT LCI_WITH_LCT_ONLY)
       12288
       CACHE STRING "Size of packet")
   set(LCI_PACKET_NUM_DEFAULT
-      8192
+      65536
       CACHE STRING "Number of packets")
 
   # maximum number of sends, recvs, and cqes for backend
@@ -160,7 +160,7 @@ if(NOT LCI_WITH_LCT_ONLY)
       64
       CACHE STRING "Max posted sends")
   set(LCI_BACKEND_MAX_RECVS_DEFAULT
-      1024
+      4096
       CACHE STRING "Max posted recvs")
   set(LCI_BACKEND_MAX_CQES_DEFAULT
       65536
