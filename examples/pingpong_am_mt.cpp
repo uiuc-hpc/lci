@@ -35,7 +35,11 @@ void worker(int thread_id)
   void* send_buf = malloc(msg_size);
   memset(send_buf, rank, msg_size);
 
+  // Wait for all threads on all processes to be ready
   LCT_tbarrier_arrive_and_wait(thread_barrier);
+  if (thread_id == 0) lci::barrier();
+  LCT_tbarrier_arrive_and_wait(thread_barrier);
+
   auto start = std::chrono::high_resolution_clock::now();
   if (nranks == 1 || rank < nranks / 2) {
     // sender
