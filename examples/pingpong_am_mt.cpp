@@ -27,19 +27,15 @@ void worker(int thread_id)
   // device and rcomp allocation needs to be synchronized to ensure uniformity
   // across ranks.
   while (thread_seqence_control != thread_id) continue;
-  lci::device_t device = lci::alloc_device();
   lci::comp_t cq = lci::alloc_cq();
   lci::rcomp_t rcomp = lci::register_rcomp(cq);
+  lci::device_t device = lci::alloc_device();
   if (++thread_seqence_control == nthreads) thread_seqence_control = 0;
 
   void* send_buf = malloc(msg_size);
   memset(send_buf, rank, msg_size);
 
-  // Wait for all threads on all processes to be ready
   LCT_tbarrier_arrive_and_wait(thread_barrier);
-  if (thread_id == 0) lci::barrier();
-  LCT_tbarrier_arrive_and_wait(thread_barrier);
-
   auto start = std::chrono::high_resolution_clock::now();
   if (nranks == 1 || rank < nranks / 2) {
     // sender
