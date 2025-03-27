@@ -149,7 +149,7 @@ if(NOT LCI_WITH_LCT_ONLY)
 
   # packet size/number
   set(LCI_PACKET_SIZE_DEFAULT
-      12288
+      8192
       CACHE STRING "Size of packet")
   set(LCI_PACKET_NUM_DEFAULT
       65536
