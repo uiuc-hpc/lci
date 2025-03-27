@@ -102,6 +102,7 @@ class ibv_device_impl_t : public lci::device_impl_t
 
   spinlock_t srq_lock;
   spinlock_t cq_lock;
+  spinlock_t qps_lock;
 };
 
 class ibv_endpoint_impl_t : public lci::endpoint_impl_t
@@ -131,8 +132,9 @@ class ibv_endpoint_impl_t : public lci::endpoint_impl_t
 
   ibv_device_impl_t* p_ibv_device;
   std::vector<struct ibv_qp*> ib_qps;
-  std::vector<LCISI_ibv_qp_extra_t> ib_qp_extras;
+  std::vector<LCISI_ibv_qp_extra_t>* ib_qp_extras;
   net_context_attr_t net_context_attr;
+  spinlock_t* qps_lock;
 
  private:
   bool try_lock_qp(int rank);

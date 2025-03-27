@@ -208,7 +208,10 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
         IBV_SAFECALL(ibv_dealloc_td(ib_td));
       }
     } else {
-      LCI_Warn("ibv_alloc_td() failed (%s)\n", strerror(errno));
+      LCI_Warn(
+          "ibv_alloc_td() failed (%s). Use `export "
+          "LCI_ATTR_IBV_TD_STRATEGY=none` to suppress this warning\n",
+          strerror(errno));
     }
   } else if (attr.ibv_td_strategy == attr_ibv_td_strategy_t::per_qp) {
     // allocate one thread domain for each queue pair
@@ -234,7 +237,10 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
           IBV_SAFECALL(ibv_dealloc_td(ib_qp_extras[i].ib_td));
         }
       } else {
-        LCI_Warn("ibv_alloc_td() failed (%s)\n", strerror(errno));
+        LCI_Warn(
+            "ibv_alloc_td() failed (%s). Use `export "
+            "LCI_ATTR_IBV_TD_STRATEGY=none` to suppress this warning\n",
+            strerror(errno));
       }
       if (ib_qp_extras[i].ib_pd == nullptr) {
         ib_qp_extras[i].ib_td = nullptr;
@@ -487,8 +493,9 @@ ibv_endpoint_impl_t::ibv_endpoint_impl_t(device_t device_, attr_t attr_)
     : endpoint_impl_t(device_, attr_),
       p_ibv_device(reinterpret_cast<ibv_device_impl_t*>(device.p_impl)),
       ib_qps(p_ibv_device->ib_qps),
-      ib_qp_extras(p_ibv_device->ib_qp_extras),
-      net_context_attr(p_ibv_device->net_context_attr)
+      ib_qp_extras(&p_ibv_device->ib_qp_extras),
+      net_context_attr(p_ibv_device->net_context_attr),
+      qps_lock(&p_ibv_device->qps_lock)
 {
 }
 

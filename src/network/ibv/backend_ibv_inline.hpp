@@ -144,18 +144,20 @@ inline error_t ibv_device_impl_t::post_recv_impl(void* buffer, size_t size,
 inline bool ibv_endpoint_impl_t::try_lock_qp(int rank)
 {
   bool ret;
-  if (!ib_qp_extras.empty()) {
-    ret = ib_qp_extras[rank].lock.try_lock();
+  if (!ib_qp_extras->empty()) {
+    ret = (*ib_qp_extras)[rank].lock.try_lock();
   } else {
-    ret = true;
+    ret = qps_lock->try_lock();
   }
   return ret;
 }
 
 inline void ibv_endpoint_impl_t::unlock_qp(int rank)
 {
-  if (!ib_qp_extras.empty()) {
-    ib_qp_extras[rank].lock.unlock();
+  if (!ib_qp_extras->empty()) {
+    (*ib_qp_extras)[rank].lock.unlock();
+  } else {
+    qps_lock->unlock();
   }
 }
 
