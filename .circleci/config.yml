@@ -39,7 +39,9 @@ jobs:
                 -B lci/build \
                 -DCMAKE_BUILD_TYPE=Debug \
                 -DLCI_DEBUG=ON \
-                -DLCI_NETWORK_BACKENDS=ofi,ibv
+                -DLCI_NETWORK_BACKENDS=ofi,ibv \
+                -DLCI_PACKET_NUM_DEFAULT=8192 \
+                -DLCI_BACKEND_MAX_RECVS_DEFAULT=1024
       - run:
           name: Running CMake Build
           command: |
