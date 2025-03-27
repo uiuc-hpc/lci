@@ -121,6 +121,9 @@ void deregister_packet_pool_x::call_impl(packet_pool_t packet_pool,
 void* get_upacket_x::call_impl(runtime_t, packet_pool_t packet_pool) const
 {
   packet_t* packet = static_cast<packet_t*>(packet_pool.p_impl->get());
+  if (!packet) {
+    return nullptr;
+  }
   return packet->get_payload_address();
 }
 

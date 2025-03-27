@@ -46,9 +46,9 @@ void progress_recv(runtime_t runtime, endpoint_t endpoint,
               data_t(buffer_t(packet->get_payload_address(), msg_size));
         } else {
           status.data.copy_from(packet->get_payload_address(), msg_size);
+          packet->put_back();
         }
         status.user_context = nullptr;
-        packet->put_back();
         reinterpret_cast<comp_impl_t*>(entry.value)->signal(std::move(status));
       } else {
         // we get a matching table entry
