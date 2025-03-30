@@ -90,6 +90,7 @@ class Lci(CMakePackage):
     variant(
         "papi", default=False, description="Enable the PAPI plugin to collect hardware counters"
     )
+    variant("tcmalloc", default=True, description="Enable tcmalloc for memory management")
 
     variant(
         "enable-pm",
@@ -118,6 +119,7 @@ class Lci(CMakePackage):
     depends_on("papi", when="+papi")
     depends_on("doxygen", when="+docs")
     depends_on("cray-pmi", when="default-pm=cray")
+    depends_on("gperftools", when="+tcmalloc")
 
     def cmake_args(self):
         args = [

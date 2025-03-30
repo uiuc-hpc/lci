@@ -461,7 +461,23 @@ exit:
   } else if (error.is_posted()) {
     LCI_PCOUNTER_ADD(communicate_posted, 1);
   } else {
-    LCI_PCOUNTER_ADD(communicate_retry, 1);
+    switch (error.errorcode) {
+      case errorcode_t::retry_backlog:
+        LCI_PCOUNTER_ADD(communicate_retry_backlog, 1);
+        break;
+      case errorcode_t::retry_nopacket:
+        LCI_PCOUNTER_ADD(communicate_retry_nopacket, 1);
+        break;
+      case errorcode_t::retry_nomem:
+        LCI_PCOUNTER_ADD(communicate_retry_nomem, 1);
+        break;
+      case errorcode_t::retry_lock:
+        LCI_PCOUNTER_ADD(communicate_retry_lock, 1);
+        break;
+      default:
+        LCI_PCOUNTER_ADD(communicate_retry, 1);
+        break;
+    }
   }
   return status;
 }

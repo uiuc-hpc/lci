@@ -13,6 +13,7 @@ resource_comp := resource(
         attr_enum("comp_type", enum_options=["sync", "cq", "handler", "graph"], default_value="cq", comment="The completion object type.", inout_trait="out"),
         attr("int", "sync_threshold", default_value=1, comment="The threshold for sync (synchronizer).", inout_trait="out"),
         attr("bool", "zero_copy_am", default_value="false", comment="Whether to directly pass internal packet into the completion object."),
+        attr_enum("cq_type", enum_options=["array_atomic", "lcrq"], default_value="lcrq", comment="The completion object type."),
     ],
     doc = {
         "in_group": "LCI_COMPLETION",
@@ -113,8 +114,9 @@ operation(
     "alloc_cq", 
     [
         optional_runtime_args,
-        optional_arg("int", "default_length", "8192", comment="The default length of the completion queue."),
+        optional_arg("int", "default_length", "65536", comment="The default length of the completion queue."),
         optional_arg("bool", "zero_copy_am", "false", comment="Whether to directly pass internal packet into the completion object."),
+        optional_arg("attr_cq_type_t", "cq_type", "attr_cq_type_t::array_atomic", comment="The type of the completion queue."),
         optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context associated with this completion object."),
         return_val("comp_t", "comp", comment="The allocated completion queue.")
     ],

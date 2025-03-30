@@ -132,6 +132,19 @@ if(NOT LCI_WITH_LCT_ONLY)
       64
       CACHE STRING "Size of cache line (bytes)")
 
+  # TCMalloc
+  option(LCI_USE_TCMALLOC "Use TCMalloc for memory allocation" ON)
+  if(LCI_USE_TCMALLOC)
+    find_package(TCMalloc)
+    if(NOT TCMALLOC_FOUND)
+      message(
+        FATAL_ERROR
+          "TCMalloc is not found; Please either install it or pass -DLCI_USE_TCMALLOC=OFF"
+      )
+    endif()
+    target_link_libraries(LCI PRIVATE ${Tcmalloc_LIBRARIES})
+  endif()
+
   # memory allocation with alignment
   option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
 
