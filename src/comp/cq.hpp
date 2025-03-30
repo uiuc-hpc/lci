@@ -13,7 +13,7 @@ class cq_t : public comp_impl_t
       : comp_impl_t(attr_), default_length(default_length_)
   {
     attr.comp_type = attr_comp_type_t::cq;
-    LCT_queue_type_t cq_type;
+    LCT_queue_type_t cq_type = LCT_QUEUE_ARRAY_ATOMIC_FAA;
     switch (attr.cq_type) {
       case attr_cq_type_t::array_atomic:
         cq_type = LCT_QUEUE_ARRAY_ATOMIC_FAA;
