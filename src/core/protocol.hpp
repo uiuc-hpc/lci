@@ -30,6 +30,9 @@ enum imm_data_msg_type_t {
  * ctx_archiveMulti. (4) for sending_RTR->recving_FIN (iovec), go through the
  * recv_ctx field of RTR and FIN messages.
  */
+struct internal_context_t;
+extern __thread internal_context_t* internal_context_alloc_cache;
+
 struct packet_t;
 struct alignas(LCI_CACHE_LINE) internal_context_t {
   // 60 bytes, 4 bit
@@ -69,8 +72,16 @@ struct alignas(LCI_CACHE_LINE) internal_context_t {
   // We have to use a special allocation function to ensure the alignment
   static inline internal_context_t* alloc()
   {
-    auto ptr = reinterpret_cast<internal_context_t*>(
-        alloc_memalign(sizeof(internal_context_t)));
+    internal_context_t* ptr;
+    if (internal_context_alloc_cache) {
+      ptr = internal_context_alloc_cache;
+      internal_context_alloc_cache = nullptr;
+    } else {
+      ptr = reinterpret_cast<internal_context_t*>(
+          alloc_memalign(sizeof(internal_context_t)));
+    }
+    // auto ptr = reinterpret_cast<internal_context_t*>(
+    // alloc_memalign(sizeof(internal_context_t)));
     ptr = new (ptr) internal_context_t();
     return ptr;
   }
@@ -78,7 +89,11 @@ struct alignas(LCI_CACHE_LINE) internal_context_t {
   static inline void free(internal_context_t* ctx)
   {
     ctx->~internal_context_t();
-    std::free(ctx);
+    if (!internal_context_alloc_cache) {
+      internal_context_alloc_cache = ctx;
+    } else {
+      std::free(ctx);
+    }
   }
 };
 
