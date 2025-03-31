@@ -178,6 +178,9 @@ if(NOT LCI_WITH_LCT_ONLY)
   set(LCI_BACKEND_MAX_CQES_DEFAULT
       65536
       CACHE STRING "Max posted cqes")
+  set(LCI_BACKEND_MAX_POLLS
+      32
+      CACHE STRING "Max number of cqes to poll at one time")
 
   # matching table backend
   set(LCI_USE_MT_BACKEND_DEFAULT

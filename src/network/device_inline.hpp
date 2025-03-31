@@ -6,20 +6,24 @@
 
 namespace lci
 {
-inline std::vector<net_status_t> device_impl_t::poll_comp(int max_polls)
+inline size_t device_impl_t::poll_comp(net_status_t* p_statuses,
+                                       size_t max_polls)
 {
-  auto statuses = poll_comp_impl(max_polls);
-  LCI_PCOUNTER_ADD(net_poll_cq_entry_count, statuses.size());
-  for (size_t i = 0; i < statuses.size(); i++) {
-    auto& status = statuses[i];
+  LCI_Assert(max_polls > 0, "max_polls must be greater than 0\n");
+  LCI_Assert(max_polls <= LCI_BACKEND_MAX_POLLS,
+             "max_polls must be no larger than %lu\n", LCI_BACKEND_MAX_POLLS);
+  size_t ret = poll_comp_impl(p_statuses, max_polls);
+  LCI_PCOUNTER_ADD(net_poll_cq_entry_count, ret);
+  for (size_t i = 0; i < ret; i++) {
+    auto& status = p_statuses[i];
     LCI_DBG_Log(
         LOG_TRACE, "network",
         "poll_comp %lu/%lu opcode %s user_context %p length %lu imm_data %x "
         "rank %d\n",
-        i + 1, statuses.size(), get_net_opcode_str(status.opcode),
-        status.user_context, status.length, status.imm_data, status.rank);
+        i + 1, ret, get_net_opcode_str(status.opcode), status.user_context,
+        status.length, status.imm_data, status.rank);
   }
-  return statuses;
+  return ret;
 }
 
 inline error_t device_impl_t::post_recv(void* buffer, size_t size, mr_t mr,

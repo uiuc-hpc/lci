@@ -63,7 +63,7 @@ class ofi_device_impl_t : public lci::device_impl_t
   mr_t register_memory_impl(void* buffer, size_t size) override;
   void deregister_memory_impl(mr_impl_t*) override;
   rkey_t get_rkey(mr_impl_t* mr) override;
-  std::vector<net_status_t> poll_comp_impl(int max_polls) override;
+  size_t poll_comp_impl(net_status_t* p_statuses, size_t max_polls) override;
   error_t post_recv_impl(void* buffer, size_t size, mr_t mr,
                          void* user_context) override;
 

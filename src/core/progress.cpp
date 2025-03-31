@@ -189,25 +189,27 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
       error = errorcode_t::ok;
   }
   // poll device completion queue
-  std::vector<net_status_t> statuses = device.get_impl()->poll_comp(20);
-  if (!statuses.empty()) {
+  net_status_t statuses[LCI_BACKEND_MAX_POLLS];
+  size_t ret = device.get_impl()->poll_comp(statuses, LCI_BACKEND_MAX_POLLS);
+  if (ret > 0) {
     error = errorcode_t::ok;
-  }
-  for (auto& status : statuses) {
-    if (status.opcode == net_opcode_t::RECV) {
-      device.p_impl->consume_recvs(1);
-      progress_recv(runtime, endpoint, status);
-    } else if (status.opcode == net_opcode_t::SEND) {
-      progress_send(status);
-    } else if (status.opcode == net_opcode_t::WRITE) {
-      progress_write(endpoint, status);
-    } else if (status.opcode == net_opcode_t::REMOTE_WRITE) {
-      progress_remote_write(runtime, status);
-    } else if (status.opcode == net_opcode_t::READ) {
-      progress_read(status);
+    for (size_t i = 0; i < ret; i++) {
+      auto& status = statuses[i];
+      if (status.opcode == net_opcode_t::RECV) {
+        device.p_impl->consume_recvs(1);
+        progress_recv(runtime, endpoint, status);
+      } else if (status.opcode == net_opcode_t::SEND) {
+        progress_send(status);
+      } else if (status.opcode == net_opcode_t::WRITE) {
+        progress_write(endpoint, status);
+      } else if (status.opcode == net_opcode_t::REMOTE_WRITE) {
+        progress_remote_write(runtime, status);
+      } else if (status.opcode == net_opcode_t::READ) {
+        progress_read(status);
+      }
     }
+    device.p_impl->refill_recvs();
   }
-  device.p_impl->refill_recvs();
   return error;
 }
 

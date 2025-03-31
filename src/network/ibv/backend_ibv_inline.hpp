@@ -56,17 +56,13 @@ inline rkey_t ibv_device_impl_t::get_rkey(mr_impl_t* mr)
   return p_mr.ibv_mr->rkey;
 }
 
-inline std::vector<net_status_t> ibv_device_impl_t::poll_comp_impl(
-    int max_polls)
+inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
+                                                size_t max_polls)
 {
-  // TODO: Investigate the overhead of using a vector here.
-  std::vector<net_status_t> statuses;
-  LCI_Assert(max_polls > 0, "max_polls must be greater than 0\n");
+  struct ibv_wc wcs[LCI_BACKEND_MAX_POLLS];
 
-  std::vector<struct ibv_wc> wcs(max_polls);
-
-  if (!cq_lock.try_lock()) return statuses;
-  int ne = ibv_poll_cq(ib_cq, max_polls, wcs.data());
+  if (!cq_lock.try_lock()) return 0;
+  int ne = ibv_poll_cq(ib_cq, max_polls, wcs);
   cq_lock.unlock();
   if (ne > 0) {
     // Got an entry here
@@ -75,7 +71,8 @@ inline std::vector<net_status_t> ibv_device_impl_t::poll_comp_impl(
                  "Failed status %s (%d) for wr_id %p\n",
                  ibv_wc_status_str(wcs[i].status), wcs[i].status,
                  (void*)wcs[i].wr_id);
-      net_status_t status;
+      if (!p_statuses) continue;
+      net_status_t& status = p_statuses[i];
       if (wcs[i].opcode == IBV_WC_RECV) {
         status.opcode = net_opcode_t::RECV;
         status.user_context = (void*)wcs[i].wr_id;
@@ -99,10 +96,9 @@ inline std::vector<net_status_t> ibv_device_impl_t::poll_comp_impl(
         status.opcode = net_opcode_t::READ;
         status.user_context = (void*)wcs[i].wr_id;
       }
-      statuses.push_back(status);
     }
   }
-  return statuses;
+  return ne;
 }
 
 namespace ibv_detail

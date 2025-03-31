@@ -12,49 +12,45 @@ inline rkey_t ofi_device_impl_t::get_rkey(mr_impl_t* mr)
   return fi_mr_key((struct fid_mr*)(p_mr.ofi_mr));
 }
 
-inline std::vector<net_status_t> ofi_device_impl_t::poll_comp_impl(
-    int max_polls)
+inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
+                                                size_t max_polls)
 {
-  // TODO: Investigate the overhead of using a vector here.
-  std::vector<net_status_t> statuses;
-  if (max_polls > 0)
-    statuses.reserve(max_polls);
-  else {
-    LCI_Assert(false, "max_polls must be greater than 0\n");
-  }
-  std::vector<struct fi_cq_data_entry> fi_entry(max_polls);
+  struct fi_cq_data_entry fi_entries[LCI_BACKEND_MAX_POLLS];
 
-  LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_POLL, statuses);
-  ssize_t ne = fi_cq_read(ofi_cq, fi_entry.data(), max_polls);
+  LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_POLL, 0);
+  ssize_t ne = fi_cq_read(ofi_cq, fi_entries, max_polls);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_POLL);
   if (ne > 0) {
     // Got an entry here
-    for (int j = 0; j < ne; j++) {
-      net_status_t status;
-      if (fi_entry[j].flags & FI_RECV) {
-        status.opcode = net_opcode_t::RECV;
-        status.user_context = fi_entry[j].op_context;
-        status.length = fi_entry[j].len;
-        status.imm_data = fi_entry[j].data & ((1ULL << 32) - 1);
-        status.rank = (int)(fi_entry[j].data >> 32);
-      } else if (fi_entry[j].flags & FI_REMOTE_WRITE) {
-        status.opcode = net_opcode_t::REMOTE_WRITE;
-        status.user_context = NULL;
-        status.imm_data = fi_entry[j].data;
-      } else if (fi_entry[j].flags & FI_SEND) {
-        status.opcode = net_opcode_t::SEND;
-        status.user_context = fi_entry[j].op_context;
-      } else if (fi_entry[j].flags & FI_WRITE) {
-        status.opcode = net_opcode_t::WRITE;
-        status.user_context = fi_entry[j].op_context;
-      } else {
-        LCI_DBG_Assert(fi_entry[j].flags & FI_READ, "Unexpected OFI opcode!\n");
-        status.opcode = net_opcode_t::READ;
-        status.user_context = fi_entry[j].op_context;
+    if (p_statuses) {
+      for (int j = 0; j < ne; j++) {
+        net_status_t& status = p_statuses[j];
+        if (fi_entries[j].flags & FI_RECV) {
+          status.opcode = net_opcode_t::RECV;
+          status.user_context = fi_entries[j].op_context;
+          status.length = fi_entries[j].len;
+          status.imm_data = fi_entries[j].data & ((1ULL << 32) - 1);
+          status.rank = (int)(fi_entries[j].data >> 32);
+        } else if (fi_entries[j].flags & FI_REMOTE_WRITE) {
+          status.opcode = net_opcode_t::REMOTE_WRITE;
+          status.user_context = NULL;
+          status.imm_data = fi_entries[j].data;
+        } else if (fi_entries[j].flags & FI_SEND) {
+          status.opcode = net_opcode_t::SEND;
+          status.user_context = fi_entries[j].op_context;
+        } else if (fi_entries[j].flags & FI_WRITE) {
+          status.opcode = net_opcode_t::WRITE;
+          status.user_context = fi_entries[j].op_context;
+        } else {
+          LCI_DBG_Assert(fi_entries[j].flags & FI_READ,
+                         "Unexpected OFI opcode!\n");
+          status.opcode = net_opcode_t::READ;
+          status.user_context = fi_entries[j].op_context;
+        }
       }
-      statuses.push_back(status);
     }
   } else if (ne == -FI_EAGAIN) {
+    ne = 0;
   } else {
     struct fi_cq_err_entry error;
     char err_data[64];
@@ -69,7 +65,7 @@ inline std::vector<net_status_t> ofi_device_impl_t::poll_comp_impl(
       LCI_Assert(false, "Err %d: %s\n", error.err, fi_strerror(error.err));
     }
   }
-  return statuses;
+  return ne;
 }
 
 namespace ofi_detail

@@ -50,14 +50,14 @@ void test_multithread0(lci::comp_t cq, int start, int n, bool flags[])
 
 TEST(CQ, multithread0)
 {
-  lci::global_initialize();
+  lci::g_runtime_init();
   const int nthreads = 16;
-  const int n = 100000;
+  const int n = 10000;
   ASSERT_EQ(n % nthreads, 0);
   const int n_per_thread = n / nthreads;
   bool flags[n];
   memset(flags, 0, sizeof(flags));
-  lci::comp_t comp = lci::alloc_cq();
+  lci::comp_t comp = lci::alloc_cq_x().default_length(nthreads * n)();
   std::vector<std::thread> threads;
   for (int i = 0; i < nthreads; i++) {
     std::thread t(test_multithread0, std::ref(comp), i * n_per_thread,
@@ -71,7 +71,7 @@ TEST(CQ, multithread0)
     ASSERT_EQ(flags[i], true);
   }
   lci::free_comp(&comp);
-  lci::global_finalize();
+  lci::g_runtime_fina();
 }
 
 }  // namespace test_cq

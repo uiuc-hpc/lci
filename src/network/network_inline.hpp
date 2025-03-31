@@ -38,11 +38,10 @@ inline rkey_t get_rkey_x::call_impl(mr_t mr, runtime_t) const
   return mr.p_impl->get_rkey();
 }
 
-inline std::vector<net_status_t> net_poll_cq_x::call_impl(runtime_t,
-                                                          device_t device,
-                                                          int max_polls) const
+inline size_t net_poll_cq_x::call_impl(size_t max_polls, net_status_t* statuses,
+                                       runtime_t, device_t device) const
 {
-  return device.p_impl->poll_comp(max_polls);
+  return device.p_impl->poll_comp(statuses, max_polls);
 }
 
 inline error_t net_post_recv_x::call_impl(void* buffer, size_t size, mr_t mr,

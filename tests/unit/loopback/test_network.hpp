@@ -16,8 +16,9 @@ TEST(NETWORK, reg_mem)
 TEST(NETWORK, poll_cq)
 {
   lci::g_runtime_init();
-  auto statuses = lci::net_poll_cq();
-  ASSERT_EQ(statuses.size(), 0);
+  lci::net_status_t statuses[LCI_BACKEND_MAX_POLLS];
+  size_t ret = lci::net_poll_cq(LCI_BACKEND_MAX_POLLS, statuses);
+  ASSERT_EQ(ret, 0);
   lci::g_runtime_fina();
 }
 
@@ -29,12 +30,11 @@ TEST(NETWORK, loopback)
   lci::mr_t mr = lci::register_memory(address, size);
   while (lci::net_post_recv(address, size, mr).is_retry()) continue;
   while (lci::net_post_send(0, address, size, mr).is_retry()) continue;
-  std::vector<lci::net_status_t> statuses;
-  while (statuses.size() < 2) {
-    auto tmp = lci::net_poll_cq();
-    if (!tmp.empty()) {
-      statuses.insert(statuses.end(), tmp.begin(), tmp.end());
-    }
+  size_t total = 0;
+  while (total < 2) {
+    lci::net_status_t statuses[LCI_BACKEND_MAX_POLLS];
+    size_t ret = lci::net_poll_cq(LCI_BACKEND_MAX_POLLS, statuses);
+    total += ret;
   }
   lci::deregister_memory(&mr);
   lci::g_runtime_fina();
@@ -52,10 +52,11 @@ void test_loopback_mt(int id, int nmsgs, int size, void* address, lci::mr_t mr)
                .user_context(&count)()
                .is_retry())
       continue;
-    std::vector<lci::net_status_t> statuses;
     while (count.load() < 2) {
-      auto statuses = lci::net_poll_cq();
-      for (auto& status : statuses) {
+      lci::net_status_t status;
+      size_t ret = lci::net_poll_cq(1, &status);
+      if (ret > 0) {
+        ASSERT_EQ(ret, 1);
         auto* p = (std::atomic<int>*)status.user_context;
         p->fetch_add(1);
       }
@@ -98,12 +99,11 @@ TEST(NETWORK, loopback_put)
                            reinterpret_cast<uintptr_t>(recv_address), 0, rkey)
              .is_retry())
     continue;
-  std::vector<lci::net_status_t> statuses;
-  while (statuses.size() < 1) {
-    auto tmp = lci::net_poll_cq();
-    if (!tmp.empty()) {
-      statuses.insert(statuses.end(), tmp.begin(), tmp.end());
-    }
+  size_t total = 0;
+  while (total < 1) {
+    lci::net_status_t status;
+    size_t ret = lci::net_poll_cq(1, &status);
+    total += ret;
   }
   lci::deregister_memory(&send_mr);
   lci::deregister_memory(&recv_mr);
@@ -123,12 +123,11 @@ TEST(NETWORK, loopback_get)
                            reinterpret_cast<uintptr_t>(send_address), 0, rkey)
              .is_retry())
     continue;
-  std::vector<lci::net_status_t> statuses;
-  while (statuses.size() < 1) {
-    auto tmp = lci::net_poll_cq();
-    if (!tmp.empty()) {
-      statuses.insert(statuses.end(), tmp.begin(), tmp.end());
-    }
+  size_t total = 0;
+  while (total < 1) {
+    lci::net_status_t status;
+    size_t ret = lci::net_poll_cq(1, &status);
+    total += ret;
   }
   lci::deregister_memory(&send_mr);
   lci::deregister_memory(&recv_mr);
