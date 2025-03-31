@@ -130,6 +130,7 @@ class Lci(CMakePackage):
             self.define_from_variant("LCI_DEBUG", "debug"),
             self.define_from_variant("LCI_USE_PERFORMANCE_COUNTER", "pcounter"),
             self.define_from_variant("LCI_USE_PAPI", "papi"),
+            self.define_from_variant("LCI_USE_TCMALLOC", "tcmalloc"),
         ]
 
         if not self.spec.satisfies("enable-pm=auto"):

@@ -20,7 +20,7 @@ pkg_check_modules(PC_Tcmalloc_MINIMAL QUIET libtcmalloc_minimal)
 pkg_check_modules(PC_Tcmalloc QUIET libtcmalloc)
 
 find_path(
-  Tcmalloc_INCLUDE_DIR google/tcmalloc.h
+  Tcmalloc_INCLUDE_DIR tcmalloc.h
   HINTS ${Tcmalloc_ROOT}
         ENV
         TCMALLOC_ROOT
@@ -29,7 +29,7 @@ find_path(
         ${PC_Tcmalloc_MINIMAL_INCLUDE_DIRS}
         ${PC_Tcmalloc_INCLUDEDIR}
         ${PC_Tcmalloc_INCLUDE_DIRS}
-  PATH_SUFFIXES include)
+  PATH_SUFFIXES include include/google include/gperftools)
 
 find_library(
   Tcmalloc_LIBRARY
