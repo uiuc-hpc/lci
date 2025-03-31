@@ -25,6 +25,7 @@ status_t post_comm_x::call_impl(
   internal_context_t* internal_ctx = nullptr;
   internal_context_t* rts_ctx = nullptr;
   bool user_provided_packet = false;
+  bool free_local_comp = false;
 
   // basic resources
   net_context_t net_context = device.p_impl->net_context;
@@ -53,16 +54,10 @@ status_t post_comm_x::call_impl(
       !(direction == direction_t::IN && !local_buffer_only && !local_comp_only),
       "get with signal has not been implemented yet\n");
 
-  // process COMP_BLOCK
-  bool free_local_comp = false;
   if (local_comp == COMP_NULL_EXPECT_OK) {
-    local_comp = alloc_sync();
-    free_local_comp = true;
     allow_retry = false;
     allow_posted = false;
   } else if (local_comp == COMP_NULL_EXPECT_OK_OR_RETRY) {
-    local_comp = alloc_sync();
-    free_local_comp = true;
     allow_posted = false;
   }
 
@@ -216,6 +211,14 @@ status_t post_comm_x::call_impl(
   if (protocol == protocol_t::zcopy ||
       comp_semantic == comp_semantic_t::network ||
       direction == direction_t::IN) {
+    // process COMP_BLOCK
+    if (local_comp == COMP_NULL_EXPECT_OK) {
+      local_comp = alloc_sync();
+      free_local_comp = true;
+    } else if (local_comp == COMP_NULL_EXPECT_OK_OR_RETRY) {
+      local_comp = alloc_sync();
+      free_local_comp = true;
+    }
     internal_ctx->comp = local_comp;
   }
 

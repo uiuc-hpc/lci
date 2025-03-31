@@ -194,7 +194,7 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
   if (ret > 0) {
     error = errorcode_t::ok;
     for (size_t i = 0; i < ret; i++) {
-      auto& status = statuses[i];
+      auto status = statuses[i];
       if (status.opcode == net_opcode_t::RECV) {
         device.p_impl->consume_recvs(1);
         progress_recv(runtime, endpoint, status);
