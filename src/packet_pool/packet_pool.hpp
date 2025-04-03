@@ -28,7 +28,10 @@ class packet_pool_impl_t
   // Get the payload size of a packet
   size_t get_payload_size() const
   {
-    return attr.packet_size - sizeof(packet_local_context_t);
+    static_assert(
+        sizeof(packet_local_context_t) <= LCI_CACHE_LINE,
+        "The packet local context should be smaller than a cache line");
+    return attr.packet_size - LCI_CACHE_LINE;
   }
   size_t get_size() const { return pool.size(); }
   int get_local_id() const { return pool.get_local_set_id(); }

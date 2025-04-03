@@ -121,7 +121,6 @@ int main(int argc, char** args)
   // `g_runtime_init` operation and specify that the default device should not
   // be allocated.
   lci::g_runtime_init_x().alloc_default_device(false)();
-  assert(lci::is_active());
   // After at least one runtime is active, we can query the rank and nranks.
   // rank is the id of the current process
   // nranks is the total number of the processes in the current job.
@@ -148,6 +147,5 @@ int main(int argc, char** args)
 
   // Finalize the global default runtime
   lci::g_runtime_fina();
-  assert(!lci::is_active());
   return 0;
 }

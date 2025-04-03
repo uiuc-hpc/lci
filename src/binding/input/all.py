@@ -32,17 +32,17 @@ input = [
 # ##############################################################################
 # # Global
 # ##############################################################################
-operation(
-    "is_active",
-    [
-        return_val("bool", "active", comment="whether the runtime is active")
-    ],
-    doc = {
-        "in_group": "LCI_SETUP",
-        "brief": "Check whether LCI is active.",
-        "details": "This function can be called at any time. LCI is active if there is at least one runtime being active (!runtime.is_empty())."
-    }
-),
+# operation(
+#     "is_active",
+#     [
+#         return_val("bool", "active", comment="whether the runtime is active")
+#     ],
+#     doc = {
+#         "in_group": "LCI_SETUP",
+#         "brief": "Check whether LCI is active.",
+#         "details": "This function can be called at any time. LCI is active if there is at least one runtime being active (!runtime.is_empty())."
+#     }
+# ),
 operation(
     "get_rank", 
     [
@@ -51,7 +51,7 @@ operation(
     doc = {
         "in_group": "LCI_SETUP",
         "brief": "Get the rank of the current process.",
-        "details": "This function can only be called when LCI is active."
+        "details": "This function can only be called if there is at least one runtime being active (!runtime.is_empty())."
     }
 ),
 operation(
@@ -62,7 +62,7 @@ operation(
     doc = {
         "in_group": "LCI_SETUP",
         "brief": "Get the number of ranks in the current application/job.",
-        "details": "This function can only be called when LCI is active."
+        "details": "This function can only be called if there is at least one runtime being active (!runtime.is_empty())."
     }
 ),
 # ##############################################################################

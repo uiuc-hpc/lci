@@ -12,13 +12,11 @@ int main(int argc, char** args)
   gethostname(hostname, HOST_NAME_MAX + 1);
   // Initialize the global default runtime.
   lci::g_runtime_init();
-  assert(lci::is_active());
   // After at least one runtime is active, we can query the rank and nranks.
   // rank is the id of the current process
   // nranks is the total number of the processes in the current job.
   printf("%s: %d / %d OK\n", hostname, lci::get_rank(), lci::get_nranks());
   // Finalize the global default runtime
   lci::g_runtime_fina();
-  assert(!lci::is_active());
   return 0;
 }

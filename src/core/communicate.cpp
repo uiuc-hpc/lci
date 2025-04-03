@@ -173,7 +173,8 @@ status_t post_comm_x::call_impl(
   }
   // build the packet
   if (packet && direction == direction_t::OUT) {
-    memcpy(packet->get_payload_address(), local_buffer, size);
+    if (!user_provided_packet)
+      memcpy(packet->get_payload_address(), local_buffer, size);
     if (piggyback_tag_rcomp_in_packet) {
       LCI_DBG_Assert(
           packet_size_to_send == size + sizeof(tag) + sizeof(rhandler), "");
