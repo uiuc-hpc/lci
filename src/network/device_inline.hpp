@@ -56,8 +56,6 @@ inline mr_t device_impl_t::register_memory(void* address, size_t size)
 inline void device_impl_t::deregister_memory(mr_impl_t* mr)
 {
   deregister_memory_impl(mr);
-  mr->address = nullptr;
-  mr->size = 0;
   LCI_DBG_Log(LOG_TRACE, "network", "deregister_memory mr %p\n", mr);
 }
 
