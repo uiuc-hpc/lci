@@ -24,6 +24,7 @@
 #include "util/misc.hpp"
 #include "util/spinlock.hpp"
 #include "monitor/performance_counter.hpp"
+#include "bootstrap/bootstrap.hpp"
 #include "backlog_queue/backlog_queue.hpp"
 #include "network/network.hpp"
 #ifdef LCI_BACKEND_ENABLE_IBV

@@ -120,11 +120,17 @@ device_t alloc_device_x::call_impl(
   if (attr.alloc_default_endpoint)
     device.get_impl()->default_endpoint =
         alloc_endpoint_x().runtime(runtime).device(device)();
+  if (device.get_attr_uid() == 0) {
+    bootstrap::set_device(device);
+  }
   return device;
 }
 
 void free_device_x::call_impl(device_t* device, runtime_t runtime) const
 {
+  if (device->get_attr_uid() == 0) {
+    bootstrap::set_device(device_t());
+  }
   endpoint_t default_endpoint = device->get_impl()->default_endpoint;
   if (!default_endpoint.is_empty()) {
     free_endpoint_x(&default_endpoint).runtime(runtime)();

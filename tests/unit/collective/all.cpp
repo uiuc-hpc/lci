@@ -73,6 +73,25 @@ TEST(COMM_COLL, reduce)
   lci::g_runtime_fina();
 }
 
+TEST(COMM_COLL, alltoall)
+{
+  lci::g_runtime_init();
+
+  int rank = lci::get_rank();
+  int nranks = lci::get_nranks();
+
+  std::vector<uint64_t> sendbuf(nranks, rank);
+  std::vector<uint64_t> recvbuf(nranks, -1);
+
+  lci::alltoall(sendbuf.data(), recvbuf.data(), sizeof(uint64_t));
+
+  for (int i = 0; i < nranks; ++i) {
+    ASSERT_EQ(recvbuf[i], i);
+  }
+
+  lci::g_runtime_fina();
+}
+
 int main(int argc, char** argv)
 {
   testing::InitGoogleTest(&argc, argv);

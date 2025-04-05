@@ -170,31 +170,46 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
   int rank = get_rank();
   int nranks = get_nranks();
   peer_addrs.resize(nranks);
-  char key[LCT_PMI_STRING_LIMIT + 1];
-  sprintf(key, "LCI_KEY_%d_%d", attr.uid, rank);
-  char value[LCT_PMI_STRING_LIMIT + 1];
-  const char* PARSE_STRING = "%016lx-%016lx-%016lx-%016lx-%016lx-%016lx";
-  sprintf(value, PARSE_STRING, my_addr[0], my_addr[1], my_addr[2], my_addr[3],
-          my_addr[4], my_addr[5]);
-  LCT_pmi_publish(key, value);
-  LCT_pmi_barrier();
+  // char key[LCT_PMI_STRING_LIMIT + 1];
+  // sprintf(key, "LCI_KEY_%d_%d", attr.uid, rank);
+  // char value[LCT_PMI_STRING_LIMIT + 1];
+  // const char* PARSE_STRING = "%016lx-%016lx-%016lx-%016lx-%016lx-%016lx";
+  // sprintf(value, PARSE_STRING, my_addr[0], my_addr[1], my_addr[2],
+  // my_addr[3], my_addr[4], my_addr[5]);
+  // LCT_pmi_publish(key, value);
+  // LCT_pmi_barrier();
+  struct bootstrap_data_t {
+    int source_rank;
+    int uid;
+    uint64_t addr[EP_ADDR_LEN];
+  };
+  bootstrap_data_t data;
+  data.source_rank = rank;
+  data.uid = attr.uid;
+  memcpy(data.addr, my_addr, sizeof(my_addr));
+  std::vector<bootstrap_data_t> bootstrap_datav_in(nranks, data);
+  std::vector<bootstrap_data_t> bootstrap_datav_out(nranks);
+
+  bootstrap::alltoall(bootstrap_datav_in.data(), bootstrap_datav_out.data(),
+                      sizeof(bootstrap_data_t));
 
   for (int i = 0; i < nranks; i++) {
-    if (i != rank) {
-      sprintf(key, "LCI_KEY_%d_%d", attr.uid, i);
-      LCT_pmi_getname(i, key, value);
-      uint64_t peer_addr[EP_ADDR_LEN];
+    // sprintf(key, "LCI_KEY_%d_%d", attr.uid, i);
+    // LCT_pmi_getname(i, key, value);
+    // uint64_t peer_addr[EP_ADDR_LEN];
 
-      sscanf(value, PARSE_STRING, &peer_addr[0], &peer_addr[1], &peer_addr[2],
-             &peer_addr[3], &peer_addr[4], &peer_addr[5]);
-      int ret =
-          fi_av_insert(ofi_av, (void*)peer_addr, 1, &peer_addrs[i], 0, nullptr);
-      LCI_Assert(ret == 1, "fi_av_insert failed! ret = %d\n", ret);
-    } else {
-      int ret =
-          fi_av_insert(ofi_av, (void*)my_addr, 1, &peer_addrs[i], 0, nullptr);
-      LCI_Assert(ret == 1, "fi_av_insert failed! ret = %d\n", ret);
-    }
+    // sscanf(value, PARSE_STRING, &peer_addr[0], &peer_addr[1], &peer_addr[2],
+    //  &peer_addr[3], &peer_addr[4], &peer_addr[5]);
+    bootstrap_data_t data = bootstrap_datav_out[i];
+    LCI_Assert(data.source_rank == i,
+               "Unexpected source rank %d, expected %d\n", data.source_rank, i);
+    LCI_Assert(data.uid == attr.uid, "Unexpected uid %d, expected %d\n",
+               data.uid, attr.uid);
+    uint64_t peer_addr[EP_ADDR_LEN];
+    memcpy(peer_addr, data.addr, sizeof(peer_addr));
+    int ret =
+        fi_av_insert(ofi_av, (void*)peer_addr, 1, &peer_addrs[i], 0, nullptr);
+    LCI_Assert(ret == 1, "fi_av_insert failed! ret = %d\n", ret);
   }
   // LCT_pmi_barrier();
 }

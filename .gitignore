@@ -48,3 +48,4 @@ build-*
 vscode-build/
 code_doc/
 __pycache__
+.fuse*

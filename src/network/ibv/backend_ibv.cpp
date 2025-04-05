@@ -261,6 +261,15 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
   }
 
   ib_qps.resize(get_nranks());
+  struct bootstrap_data_t {
+    int source_rank;
+    int target_rank;
+    int uid;
+    uint32_t qp_num;
+    uint16_t lid;
+    char wgid[ibv_detail::WIRE_GID_NBYTES + 1];
+  };
+  std::vector<bootstrap_data_t> bootstrap_datav_in(get_nranks());
   for (int i = 0; i < get_nranks(); i++) {
     {
       // Create a queue pair
@@ -319,29 +328,50 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
     char wgid[ibv_detail::WIRE_GID_NBYTES + 1];
     memset(wgid, 0, sizeof(wgid));
     ibv_detail::gid_to_wire_gid(&p_net_context->ib_gid, wgid);
-    // Use this queue pair "i" to connect to rank e.
-    char key[LCT_PMI_STRING_LIMIT + 1];
-    sprintf(key, "LCI_KEY_%d_%d_%d", attr.uid, get_rank(), i);
-    char value[LCT_PMI_STRING_LIMIT + 1];
-    sprintf(value, "%x:%hx:%s", ib_qps[i]->qp_num,
-            p_net_context->ib_port_attr.lid, wgid);
-    LCT_pmi_publish(key, value);
+    // // Use this queue pair "i" to connect to rank e.
+    // char key[LCT_PMI_STRING_LIMIT + 1];
+    // sprintf(key, "LCI_KEY_%d_%d_%d", attr.uid, get_rank(), i);
+    // char value[LCT_PMI_STRING_LIMIT + 1];
+    // sprintf(value, "%x:%hx:%s", ib_qps[i]->qp_num,
+    //         p_net_context->ib_port_attr.lid, wgid);
+    // LCT_pmi_publish(key, value);
+
+    bootstrap_data_t data;
+    data.source_rank = get_rank();
+    data.target_rank = i;
+    data.uid = attr.uid;
+    data.qp_num = ib_qps[i]->qp_num;
+    data.lid = p_net_context->ib_port_attr.lid;
+    memcpy(data.wgid, wgid, sizeof(wgid));
+    bootstrap_datav_in[i] = data;
   }
   LCI_Log(LOG_INFO, "ibv", "Current inline data size is %d\n",
           net_context_attr.max_inject_size);
-  LCT_pmi_barrier();
+
+  // LCT_pmi_barrier();
+  std::vector<bootstrap_data_t> bootstrap_datav_out(get_nranks());
+  bootstrap::alltoall(bootstrap_datav_in.data(), bootstrap_datav_out.data(),
+                      sizeof(bootstrap_data_t));
 
   for (int i = 0; i < get_nranks(); i++) {
-    char key[LCT_PMI_STRING_LIMIT + 1];
-    sprintf(key, "LCI_KEY_%d_%d_%d", attr.uid, i, get_rank());
-    char value[LCT_PMI_STRING_LIMIT + 1];
-    LCT_pmi_getname(i, key, value);
-    uint32_t dest_qpn;
-    uint16_t dest_lid;
+    // char key[LCT_PMI_STRING_LIMIT + 1];
+    // sprintf(key, "LCI_KEY_%d_%d_%d", attr.uid, i, get_rank());
+    // char value[LCT_PMI_STRING_LIMIT + 1];
+    // LCT_pmi_getname(i, key, value);
+    bootstrap_data_t data = bootstrap_datav_out[i];
+    LCI_Assert(data.source_rank == i,
+               "Unexpected source rank %d, expected %d\n", data.source_rank, i);
+    LCI_Assert(data.target_rank == get_rank(),
+               "Unexpected target rank %d, expected %d\n", data.target_rank,
+               get_rank());
+    LCI_Assert(data.uid == attr.uid, "Unexpected uid %d, expected %d\n",
+               data.uid, attr.uid);
+    uint32_t dest_qpn = data.qp_num;
+    uint16_t dest_lid = data.lid;
     union ibv_gid gid;
-    char wgid[ibv_detail::WIRE_GID_NBYTES + 1];
-    sscanf(value, "%x:%hx:%s", &dest_qpn, &dest_lid, wgid);
-    ibv_detail::wire_gid_to_gid(wgid, &gid);
+    // char wgid[ibv_detail::WIRE_GID_NBYTES + 1];
+    // sscanf(value, "%x:%hx:%s", &dest_qpn, &dest_lid, wgid);
+    ibv_detail::wire_gid_to_gid(data.wgid, &gid);
     // Once a queue pair (QP) has receive buffers posted to it, it is now
     // possible to transition the QP into the ready to receive (RTR) state.
     {

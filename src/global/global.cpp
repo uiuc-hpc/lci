@@ -10,6 +10,11 @@ bool g_is_active = false;
 int g_rank = -1, g_nranks = -1;
 runtime_t g_default_runtime;
 
+namespace internal_config
+{
+bool enable_bootstrap_lci = true;
+}  // namespace internal_config
+
 void init_global_attr();
 namespace
 {
@@ -63,6 +68,8 @@ void global_config_initialize()
     LCI_Log(LOG_INFO, "env", "set LCI_NET_LOCK_MODE to be %d\n",
             g_default_attr.ofi_lock_mode);
   }
+  internal_config::enable_bootstrap_lci = get_env_or(
+      "LCI_ENABLE_BOOTSTRAP_LCI", internal_config::enable_bootstrap_lci);
 }
 }  // namespace
 
@@ -78,9 +85,9 @@ void global_initialize()
   LCT_init();
   log_initialize();
   // Initialize PMI.
-  LCT_pmi_initialize();
-  g_rank = LCT_pmi_get_rank();
-  g_nranks = LCT_pmi_get_size();
+  bootstrap::initialize();
+  g_rank = bootstrap::get_rank_me();
+  g_nranks = bootstrap::get_rank_n();
   LCI_Assert(g_nranks > 0, "PMI ran into an error (num_proc=%d)\n", g_nranks);
   LCT_set_rank(g_rank);
   // Initialize global configuration.
@@ -95,7 +102,7 @@ void global_finalize()
 
   g_is_active = false;
   pcounter_fina();
-  LCT_pmi_finalize();
+  bootstrap::finalize();
   log_finalize();
   LCT_fina();
   g_rank = -1;

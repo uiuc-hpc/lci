@@ -109,7 +109,9 @@ void worker(int thread_id)
   // free resouces
   lci::free_comp(&cq);
 
-  while (thread_seqence_control != thread_id) continue;
+  while (thread_seqence_control != thread_id) {
+    lci::progress_x().device(device)();
+  }
   lci::free_device(&device);
   if (++thread_seqence_control == nthreads) thread_seqence_control = 0;
 }
