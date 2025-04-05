@@ -45,7 +45,7 @@ class packet_pool_impl_t
   void* heap;
   void* base_packet_p;
   size_t heap_size;
-  mpmc_array_t mrs;
+  mpmc_array_t<mr_impl_t*> mrs;
   std::atomic<size_t> npacket_lost;
 };
 

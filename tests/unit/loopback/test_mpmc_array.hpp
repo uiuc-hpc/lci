@@ -11,7 +11,7 @@ TEST(MPMC_ARRAY, singlethread)
   lci::global_initialize();
   const int total = 1000;
   int counter = 0;
-  lci::mpmc_array_t array(1);
+  lci::mpmc_array_t<void*> array(1);
   for (int i = 0; i < total; i++) {
     array.put(i, reinterpret_cast<void*>(i + 1));
   }
@@ -24,8 +24,8 @@ TEST(MPMC_ARRAY, singlethread)
 }
 
 // all threads put sequentially
-void test_multithread0(lci::mpmc_array_t& array, std::atomic<int>& counter,
-                       int total)
+void test_multithread0(lci::mpmc_array_t<void*>& array,
+                       std::atomic<int>& counter, int total)
 {
   int i = 0;
   while (true) {
@@ -43,7 +43,7 @@ TEST(MPMC_ARRAY, multithread0)
   const int nthreads = 16;
   const int total = 1000;
   std::atomic<int> counter(0);
-  lci::mpmc_array_t array(1);
+  lci::mpmc_array_t<void*> array(1);
   std::vector<std::thread> threads;
   for (int i = 0; i < nthreads; i++) {
     std::thread t(test_mpmc_array::test_multithread0, std::ref(array),

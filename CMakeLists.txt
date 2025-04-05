@@ -62,7 +62,7 @@ if(NOT LCI_WITH_LCT_ONLY)
   # ############################################################################
   # Figure out which network backend to use
   # ############################################################################
-  set(LCI_NETWORK_BACKENDS_DEFAULT ibv ofi ucx)
+  set(LCI_NETWORK_BACKENDS_DEFAULT ibv ofi)
 
   # check the alias LCI_SERVER
   if(LCI_SERVER)

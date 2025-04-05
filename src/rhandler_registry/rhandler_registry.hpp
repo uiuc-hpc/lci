@@ -26,29 +26,27 @@ class rhandler_registry_t
     }
   };
 
-  rhandler_registry_t() = default;
+  rhandler_registry_t() : size(0), entries(32) {}
   ~rhandler_registry_t() = default;
 
   uint32_t reserve(uint32_t n)
   {
-    int idx = entries.size();
-    entries.insert(entries.end(), n, entry_t());
+    int idx = size.fetch_add(n);
     return encode_idx(idx);
   }
 
   void register_rhandler(uint32_t idx, entry_t entry)
   {
     idx = decode_idx(idx);
-    LCI_Assert(idx < entries.size(), "idx (%u) >= entries.size() (%lu)\n", idx,
-               entries.size());
-    entries[idx] = entry;
+    LCI_Assert(idx < size, "idx (%u) >= size (%lu)\n", idx, size.load());
+    entries.put(idx, entry);
   }
 
   // this is not thread-safe
   uint32_t register_rhandler(entry_t entry)
   {
-    uint32_t idx = entries.size();
-    entries.push_back(entry);
+    uint32_t idx = size++;
+    entries.put(idx, entry);
     return encode_idx(idx);
   }
 
@@ -56,24 +54,23 @@ class rhandler_registry_t
   void deregister_rhandler(uint32_t idx)
   {
     idx = decode_idx(idx);
-    LCI_Assert(idx < entries.size(), "idx (%u) >= entries.size() (%lu)\n", idx,
-               entries.size());
-    entries[idx] = entry_t();
+    LCI_Assert(idx < size, "idx (%u) >= size (%lu)\n", idx, size.load());
+    entries.put(idx, entry_t());
   }
 
   entry_t get(uint32_t idx)
   {
     idx = decode_idx(idx);
-    LCI_Assert(idx < entries.size(), "idx (%u) >= entries.size() (%lu)\n", idx,
-               entries.size());
-    return entries[idx];
+    LCI_Assert(idx < size, "idx (%u) >= size (%lu)\n", idx, size.load());
+    return entries.get(idx);
   }
 
  private:
   inline static uint32_t encode_idx(uint32_t idx) { return idx + 1; }
   inline static uint32_t decode_idx(uint32_t idx) { return idx - 1; }
 
-  std::vector<entry_t> entries;
+  std::atomic<uint32_t> size;
+  mpmc_array_t<entry_t> entries;
 };
 
 }  // namespace lci

@@ -16,6 +16,7 @@ void barrier_x::call_impl(runtime_t runtime, device_t device,
   int seqnum = g_sequence_number.fetch_add(1, std::memory_order_relaxed) %
                MAX_SEQUENCE_NUMBER;
   int round = 0;
+  LCI_UNUSED(round);
   int rank = get_rank();
   int nranks = get_nranks();
 

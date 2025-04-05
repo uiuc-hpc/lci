@@ -22,6 +22,7 @@ inline size_t device_impl_t::poll_comp(net_status_t* p_statuses,
         "rank %d\n",
         i + 1, ret, get_net_opcode_str(status.opcode), status.user_context,
         status.length, status.imm_data, status.rank);
+    LCI_UNUSED(status);
   }
   return ret;
 }

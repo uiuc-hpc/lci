@@ -11,6 +11,11 @@
 #define LCIU_CACHE_PADDING(size) \
   char LCIU_CONCAT2(padding, __LINE__)[LCI_CACHE_LINE - (size) % LCI_CACHE_LINE]
 
+#define LCI_UNUSED(expr) \
+  do {                   \
+    (void)(expr);        \
+  } while (0)
+
 namespace lci
 {
 template <typename T>

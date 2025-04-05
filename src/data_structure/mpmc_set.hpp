@@ -160,8 +160,8 @@ class mpmc_set_t
 
   size_t default_lpool_size;
   std::atomic<int> npools;
-  mpmc_array_t pools;
-  mpmc_array_t tid_to_pools;
+  mpmc_array_t<void*> pools;
+  mpmc_array_t<void*> tid_to_pools;
 };
 
 inline mpmc_set_t::local_set_t* mpmc_set_t::get_local_pool()
