@@ -9,6 +9,8 @@ namespace lci
 namespace
 {
 const int max_sge_num = 1;
+size_t g_qp_num = 0;
+size_t g_td_num = 0;
 
 const char* mtu_str(enum ibv_mtu mtu)
 {
@@ -194,6 +196,7 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
     struct ibv_td_init_attr td_attr;
     td_attr.comp_mask = 0;
     ib_td = ibv_alloc_td(p_net_context->ib_context, &td_attr);
+    ++g_td_num;
     if (ib_td != nullptr) {
       struct ibv_parent_domain_init_attr attr;
       attr.td = ib_td;
@@ -202,10 +205,12 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
       ib_pd = ibv_alloc_parent_domain(p_net_context->ib_context, &attr);
       if (ib_pd == nullptr) {
         LCI_Warn(
-            "ibv_alloc_parent_domain() failed (%s); decalloc the thread "
+            "ibv_alloc_parent_domain() failed (No. %lu; %s); decalloc the "
+            "thread "
             "domain\n",
-            strerror(errno));
+            g_td_num, strerror(errno));
         IBV_SAFECALL(ibv_dealloc_td(ib_td));
+        --g_td_num;
       }
     } else {
       LCI_Warn(
@@ -222,6 +227,7 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
       struct ibv_td_init_attr td_attr;
       td_attr.comp_mask = 0;
       ib_qp_extras[i].ib_td = ibv_alloc_td(p_net_context->ib_context, &td_attr);
+      ++g_td_num;
       if (ib_qp_extras[i].ib_td != nullptr) {
         struct ibv_parent_domain_init_attr pd_attr;
         pd_attr.td = ib_qp_extras[i].ib_td;
@@ -235,12 +241,13 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
               "domain\n",
               strerror(errno));
           IBV_SAFECALL(ibv_dealloc_td(ib_qp_extras[i].ib_td));
+          --g_td_num;
         }
       } else {
         LCI_Warn(
-            "ibv_alloc_td() failed (%s). Use `export "
+            "ibv_alloc_td() failed (No. %lu, %s). Use `export "
             "LCI_ATTR_IBV_TD_STRATEGY=none` to suppress this warning\n",
-            strerror(errno));
+            g_td_num, strerror(errno));
       }
       if (ib_qp_extras[i].ib_pd == nullptr) {
         ib_qp_extras[i].ib_td = nullptr;
@@ -274,8 +281,9 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
         pd = ib_qp_extras[i].ib_pd;
       }
       ib_qps[i] = ibv_create_qp(pd, &init_attr);
+      ++g_qp_num;
 
-      LCI_Assert(ib_qps[i], "Couldn't create QP\n");
+      LCI_Assert(ib_qps[i], "Couldn't create QP %lu\n", g_qp_num);
 
       struct ibv_qp_attr qp_attr;
       memset(&qp_attr, 0, sizeof(qp_attr));
@@ -406,18 +414,21 @@ ibv_device_impl_t::~ibv_device_impl_t()
   unbind_packet_pool();
   for (int i = 0; i < get_nranks(); i++) {
     IBV_SAFECALL(ibv_destroy_qp(ib_qps[i]));
+    --g_qp_num;
   }
   if (!ib_qp_extras.empty()) {
     for (int i = 0; i < get_nranks(); ++i) {
       if (ib_qp_extras[i].ib_td) {
         IBV_SAFECALL(ibv_dealloc_pd(ib_qp_extras[i].ib_pd));
         IBV_SAFECALL(ibv_dealloc_td(ib_qp_extras[i].ib_td));
+        --g_td_num;
       }
     }
   }
   if (ib_td) {
     IBV_SAFECALL(ibv_dealloc_pd(ib_pd));
     IBV_SAFECALL(ibv_dealloc_td(ib_td));
+    --g_td_num;
   }
   IBV_SAFECALL(ibv_destroy_cq(ib_cq));
   IBV_SAFECALL(ibv_destroy_srq(ib_srq));
