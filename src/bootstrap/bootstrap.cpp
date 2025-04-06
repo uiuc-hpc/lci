@@ -11,14 +11,20 @@ namespace detail
 {
 const char* HEX_CHARS = "0123456789abcdef";
 
-uint8_t hexCharToValue(char c) {
-  if ('0' <= c && c <= '9') return c - '0';
-  else if ('a' <= c && c <= 'f') return c - 'a' + 10;
-  else if ('A' <= c && c <= 'F') return c - 'A' + 10;
-  else throw std::invalid_argument("Invalid hex character");
+uint8_t hexCharToValue(char c)
+{
+  if ('0' <= c && c <= '9')
+    return c - '0';
+  else if ('a' <= c && c <= 'f')
+    return c - 'a' + 10;
+  else if ('A' <= c && c <= 'F')
+    return c - 'A' + 10;
+  else
+    throw std::invalid_argument("Invalid hex character");
 }
 
-uint8_t hexToByte(const char* hex) {
+uint8_t hexToByte(const char* hex)
+{
   return (hexCharToValue(hex[0]) << 4) | hexCharToValue(hex[1]);
 }
 
@@ -41,7 +47,7 @@ void decode_value(char* buf_encoded, size_t nbytes, char* buf_origin)
   LCI_Assert(nbytes_encoded == 2 * nbytes,
              "Encoded buffer length is not correct! Expected %d, got %d\n",
              2 * nbytes, nbytes_encoded);
-  
+
   for (size_t i = 0; i < nbytes; i++) {
     // decode every 2 bytes as a hex integer
     buf_origin[i] = hexToByte(buf_encoded + 2 * i);
