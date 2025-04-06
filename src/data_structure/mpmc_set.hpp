@@ -149,7 +149,9 @@ class mpmc_set_t
   };
   const static int LOCAL_SET_ID_NULL = -1;
   int get_local_set_id() const { return LCT_get_thread_id(); }
-  void* get(int64_t max_steal_attempts);
+  bool steal_packets(local_set_t* local_pool, int64_t max_steal_attempts);
+  void* get(int64_t max_steal_attempts = 1);
+  size_t get_n(size_t n, void* buf_out[], int64_t max_steal_attempts = 1);
   void put(void* packet, int tid);
   // not thread safe
   size_t size() const;
@@ -186,33 +188,21 @@ inline mpmc_set_t::local_set_t* mpmc_set_t::get_random_pool()
   return static_cast<local_set_t*>(pools.get(pool_id));
 }
 
-inline void* mpmc_set_t::get(int64_t max_steal_attempts = 1)
+inline bool mpmc_set_t::steal_packets(local_set_t* local_pool,
+                                      int64_t max_steal_attempts = 1)
 {
-  local_set_t* local_pool = get_local_pool();
-  local_set_t* random_pool;
-  size_t size_to_steal;
-
-  bool succeed = false;
-  for (int64_t i = 0; i < max_steal_attempts; i++) {
-    succeed = local_pool->lock.try_lock();
-    if (succeed) break;
-  }
-  if (!succeed) {
-    return nullptr;
-  }
-  void* ret = local_pool->pop_from_bot();
-  if (ret) {
-    goto unlock_local_pool;
-  }
+  // We assume we are holding the lock of local_pool
   // random packet stealing
   // we steal from the top of the random pool
   for (int64_t i = 0; i < max_steal_attempts; i++) {
+    size_t size_to_steal;
+    local_set_t* random_pool;
+
     LCI_PCOUNTER_ADD(packet_steal, 1);
     LCI_Assert(local_pool->empty(), "local pool must be empty\n");
     random_pool = get_random_pool();
-    if (!random_pool || random_pool == local_pool || random_pool->size() <= 0) {
+    if (!random_pool || random_pool == local_pool || random_pool->size() <= 0)
       continue;
-    }
     if (!random_pool->lock.try_lock()) continue;
     // At this point, we should have locked both pools
     size_to_steal = (random_pool->size() + 1) / 2;
@@ -227,27 +217,60 @@ inline void* mpmc_set_t::get(int64_t max_steal_attempts = 1)
       LCI_Assert(random_pool->head <= random_pool->tail,
                  "header (%ld) > tail (%ld)\n", random_pool->head,
                  random_pool->tail);
-      local_pool->tail = size_to_steal;
-      local_pool->head = 0;
-#ifdef LCI_DEBUG
-      for (size_t i = 0; i < size_to_steal; i++) {
-        void* val = local_pool->queue[i];
-        LCI_DBG_Assert(val, "val must not be nullptr\n");
-      }
-#endif
-      ret = local_pool->pop_from_bot();
-      LCI_Assert(ret, "this pop has to succeed\n");
     }
     random_pool->lock.unlock();
-    // if we get a packet, we are done
-    if (ret) {
-      break;
+
+    if (size_to_steal == 0) {
+      // no packets to steal
+      continue;
     }
+
+    local_pool->tail = size_to_steal;
+    local_pool->head = 0;
+#ifdef LCI_DEBUG
+    for (size_t i = 0; i < size_to_steal; i++) {
+      void* val = local_pool->queue[i];
+      LCI_DBG_Assert(val, "val must not be nullptr\n");
+    }
+#endif
+    return true;
+  }
+  return false;
+}
+
+inline void* mpmc_set_t::get(int64_t max_retry_attempts)
+{
+  void* ret = nullptr;
+  get_n(1, &ret, max_retry_attempts);
+  return ret;
+}
+
+inline size_t mpmc_set_t::get_n(size_t n, void* buf_out[],
+                                int64_t max_retry_attempts)
+{
+  local_set_t* local_pool = get_local_pool();
+
+  bool succeed = false;
+  for (int64_t i = 0; i < max_retry_attempts; i++) {
+    succeed = local_pool->lock.try_lock();
+    if (succeed) break;
+  }
+  if (!succeed) {
+    return 0;
   }
 
-unlock_local_pool:
+  if (local_pool->size() == 0) steal_packets(local_pool, max_retry_attempts);
+
+  size_t n_popped = 0;
+  for (size_t i = 0; i < n; i++) {
+    void* ret = local_pool->pop_from_bot();
+    if (!ret) break;
+    buf_out[i] = ret;
+    n_popped++;
+  }
+
   local_pool->lock.unlock();
-  return ret;
+  return n_popped;
 }
 
 inline void mpmc_set_t::put(void* packet,

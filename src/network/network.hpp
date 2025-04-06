@@ -48,7 +48,7 @@ class device_impl_t
   // LCI layer functions
   inline void bind_packet_pool(packet_pool_t packet_pool_);
   inline void unbind_packet_pool();
-  inline bool post_recv_packet();
+  inline bool post_recv_packets();
   inline void refill_recvs(bool is_blocking = false);
   inline void consume_recvs(int n) { nrecvs_posted -= n; }
   static int reserve_device_ids(int n)

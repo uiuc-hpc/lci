@@ -60,7 +60,7 @@ inline void device_impl_t::deregister_memory(mr_impl_t* mr)
   LCI_DBG_Log(LOG_TRACE, "network", "deregister_memory mr %p\n", mr);
 }
 
-inline bool device_impl_t::post_recv_packet()
+inline bool device_impl_t::post_recv_packets()
 {
   packet_t* packet;
   mr_t mr;
@@ -69,38 +69,49 @@ inline bool device_impl_t::post_recv_packet()
   if (nrecvs_posted >= attr.net_max_recvs) {
     return false;
   }
-  if (++nrecvs_posted > attr.net_max_recvs) {
-    goto exit_retry;
+  const size_t BATCH_SIZE = LCI_BACKEND_MAX_POLLS;
+
+  size_t my_position = nrecvs_posted.fetch_add(BATCH_SIZE);
+
+  if (my_position >= attr.net_max_recvs) {
+    nrecvs_posted -= BATCH_SIZE;
+    return false;
   }
-  packet = packet_pool.p_impl->get();
-  if (!packet) {
-    goto exit_retry;
+  size_t nslots = std::min(attr.net_max_recvs - my_position, BATCH_SIZE);
+  packet_t* packets[BATCH_SIZE];
+
+  size_t n_popped = packet_pool.p_impl->get_n(nslots, packets, false);
+  if (n_popped == 0) {
+    nrecvs_posted -= BATCH_SIZE;
+    return false;
   }
 
   mr = packet_pool.p_impl->get_or_register_mr(device);
   size = packet_pool.p_impl->get_payload_size();
-  error = post_recv(packet->get_payload_address(), size, mr, packet);
-  if (error.is_retry()) {
-    packet->put_back();
-    goto exit_retry;
+  size_t n_posted = 0;
+  for (size_t i = 0; i < n_popped; i++) {
+    packet = packets[i];
+    error = post_recv(packet->get_payload_address(), size, mr, packet);
+    if (error.is_retry()) {
+      packet->put_back();
+    } else {
+      ++n_posted;
+    }
   }
-  return true;
-
-exit_retry:
-  --nrecvs_posted;
-  return false;
+  if (BATCH_SIZE != n_posted) {
+    nrecvs_posted -= (BATCH_SIZE - n_posted);
+  }
+  return n_posted > 0;
 }
 
 inline void device_impl_t::refill_recvs(bool is_blocking)
 {
-  // TODO: post multiple receives at the same time to alleviate the atomic
-  // overhead
   const double refill_threshold = 0.8;
   const int max_retries = 100000;
   int nrecvs_posted = this->nrecvs_posted;
   int niters = 0;
   while (nrecvs_posted < attr.net_max_recvs * refill_threshold) {
-    bool succeed = post_recv_packet();
+    bool succeed = post_recv_packets();
     if (!succeed) {
       if (is_blocking) {
         ++niters;

@@ -21,6 +21,8 @@ class packet_pool_impl_t
   mr_t get_or_register_mr(device_t device);
   // Get a packet from the pool
   packet_t* get(bool blocking = false);
+  // Get multiple packets from the pool
+  size_t get_n(size_t n, packet_t* buf_out[], bool blocking = false);
   // Put a packet back to the pool
   void put(packet_t* p_packet);
   // Check if an address is a packet
@@ -51,24 +53,38 @@ class packet_pool_impl_t
 
 inline packet_t* packet_pool_impl_t::get(bool blocking)
 {
+  packet_t* packet = nullptr;
+  get_n(1, &packet, blocking);
+  return packet;
+}
+
+inline size_t packet_pool_impl_t::get_n(size_t n, packet_t* buf_out[],
+                                        bool blocking)
+{
   int nattempts = 1;
   if (blocking) {
     // Should only take a few seconds
     nattempts = 1000000;
   }
-  auto* packet = static_cast<packet_t*>(pool.get(nattempts));
-  LCI_Assert(packet || !blocking,
+  size_t n_popped = pool.get_n(n, (void**)buf_out, nattempts);
+  LCI_Assert(n_popped || !blocking,
              "Failed to get a packet in a blocking get! We are likely run "
              "out of packets\n");
-  if (packet) {
+  for (size_t i = 0; i < n_popped; i++) {
+    packet_t* packet = buf_out[i];
+    LCI_Assert(packet,
+               "Failed to get a packet in a blocking get! We are "
+               "likely run out of packets\n");
     packet->local_context.packet_pool_impl = this;
     packet->local_context.isInPool = false;
     packet->local_context.local_id = mpmc_set_t::LOCAL_SET_ID_NULL;
-    LCI_PCOUNTER_ADD(packet_get, 1);
-  } else {
-    LCI_PCOUNTER_ADD(packet_get_retry, 1);
   }
-  return packet;
+  if (n_popped == 0) {
+    LCI_PCOUNTER_ADD(packet_get_retry, 1);
+  } else {
+    LCI_PCOUNTER_ADD(packet_get, n_popped);
+  }
+  return n_popped;
 }
 
 inline void packet_pool_impl_t::put(packet_t* p_packet)
