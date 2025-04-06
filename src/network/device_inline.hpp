@@ -42,6 +42,23 @@ inline error_t device_impl_t::post_recv(void* buffer, size_t size, mr_t mr,
   return error;
 }
 
+inline size_t device_impl_t::post_recvs(void* buffers[], size_t size,
+                                        size_t count, mr_t mr,
+                                        void* user_contexts[])
+{
+  size_t n = post_recvs_impl(buffers, size, count, mr, user_contexts);
+  if (n < count) {
+    LCI_PCOUNTER_ADD(net_recv_post_retry, 1);
+  }
+  if (n > 0) {
+    LCI_PCOUNTER_ADD(net_recv_post, n);
+  }
+  LCI_DBG_Log(LOG_TRACE, "network",
+              "post_recvs buffers %p size %lu count %lu mr %p return %lu\n",
+              buffers, size, count, mr.get_impl(), n);
+  return n;
+}
+
 inline mr_t device_impl_t::register_memory(void* address, size_t size)
 {
   mr_t mr = register_memory_impl(address, size);
@@ -62,7 +79,6 @@ inline void device_impl_t::deregister_memory(mr_impl_t* mr)
 
 inline bool device_impl_t::post_recv_packets()
 {
-  packet_t* packet;
   mr_t mr;
   size_t size;
   error_t error;
@@ -88,15 +104,14 @@ inline bool device_impl_t::post_recv_packets()
 
   mr = packet_pool.p_impl->get_or_register_mr(device);
   size = packet_pool.p_impl->get_payload_size();
-  size_t n_posted = 0;
+  void* buffers[BATCH_SIZE];
   for (size_t i = 0; i < n_popped; i++) {
-    packet = packets[i];
-    error = post_recv(packet->get_payload_address(), size, mr, packet);
-    if (error.is_retry()) {
-      packet->put_back();
-    } else {
-      ++n_posted;
-    }
+    buffers[i] = packets[i]->get_payload_address();
+  }
+  size_t n_posted =
+      post_recvs((void**)buffers, size, n_popped, mr, (void**)packets);
+  for (size_t i = n_posted; i < n_popped; i++) {
+    packets[i]->put_back();
   }
   if (BATCH_SIZE != n_posted) {
     nrecvs_posted -= (BATCH_SIZE - n_posted);

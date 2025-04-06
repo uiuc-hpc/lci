@@ -66,6 +66,8 @@ class ofi_device_impl_t : public lci::device_impl_t
   size_t poll_comp_impl(net_status_t* p_statuses, size_t max_polls) override;
   error_t post_recv_impl(void* buffer, size_t size, mr_t mr,
                          void* user_context) override;
+  size_t post_recvs_impl(void* buffers[], size_t size, size_t count, mr_t mr,
+                         void* usesr_contexts[]) override;
 
   struct fi_domain_attr* ofi_domain_attr;
   struct fid_domain* ofi_domain;

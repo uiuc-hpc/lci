@@ -137,6 +137,43 @@ inline error_t ibv_device_impl_t::post_recv_impl(void* buffer, size_t size,
   }
 }
 
+inline size_t ibv_device_impl_t::post_recvs_impl(void* buffers[], size_t size,
+                                                 size_t count, mr_t mr,
+                                                 void* user_contexts[])
+{
+  struct ibv_sge list;
+  list.length = size;
+  list.lkey = ibv_detail::get_mr_lkey(mr);
+  struct ibv_recv_wr wr;
+  wr.next = NULL;
+  wr.sg_list = &list;
+  wr.num_sge = 1;
+  struct ibv_recv_wr* bad_wr;
+
+  int error;
+  size_t n_posted = 0;
+
+  if (!srq_lock.try_lock()) return 0;
+  for (size_t i = 0; i < count; i++) {
+    list.addr = (uint64_t)buffers[i];
+    wr.wr_id = (uint64_t)user_contexts[i];
+    error = ibv_post_srq_recv(ib_srq, &wr, &bad_wr);
+    if (error == 0) {
+      ++n_posted;
+    } else {
+      break;
+    }
+  }
+  srq_lock.unlock();
+
+  if (error == 0 || error == ENOMEM) {
+    return n_posted;
+  } else {
+    IBV_SAFECALL(error);
+    return 0;  // unreachable
+  }
+}
+
 inline bool ibv_endpoint_impl_t::try_lock_qp(int rank)
 {
   bool ret;

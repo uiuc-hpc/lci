@@ -93,6 +93,32 @@ inline error_t ofi_device_impl_t::post_recv_impl(void* buffer, size_t size,
   }
 }
 
+inline size_t ofi_device_impl_t::post_recvs_impl(void* buffers[], size_t size,
+                                                 size_t count, mr_t mr,
+                                                 void* user_contexts[])
+{
+  auto mr_desc = fi_mr_desc(static_cast<ofi_mr_impl_t*>(mr.p_impl)->ofi_mr);
+  LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_RECV, 0);
+
+  ssize_t error;
+  size_t n_posted = 0;
+  for (size_t i = 0; i < count; i++) {
+    error = fi_recv(ofi_ep, buffers[i], size, mr_desc, FI_ADDR_UNSPEC,
+                    user_contexts[i]);
+    if (error == FI_SUCCESS)
+      ++n_posted;
+    else
+      break;
+  }
+  LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_RECV);
+  if (error == FI_SUCCESS || error == -FI_EAGAIN)
+    return n_posted;
+  else {
+    FI_SAFECALL(error);
+    return 0;  // unreachable
+  }
+}
+
 inline error_t ofi_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
                                                     size_t size,
                                                     net_imm_data_t imm_data)

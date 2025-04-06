@@ -36,6 +36,8 @@ class device_impl_t
   virtual size_t poll_comp_impl(net_status_t* p_statuses, size_t max_polls) = 0;
   virtual error_t post_recv_impl(void* buffer, size_t size, mr_t mr,
                                  void* user_context) = 0;
+  virtual size_t post_recvs_impl(void* buffers[], size_t size, size_t count,
+                                 mr_t mr, void* usesr_contexts[]) = 0;
 
   // wrapper functions
   inline endpoint_t alloc_endpoint(endpoint_t::attr_t attr);
@@ -44,6 +46,8 @@ class device_impl_t
   inline size_t poll_comp(net_status_t* p_statuses, size_t max_polls);
   inline error_t post_recv(void* buffer, size_t size, mr_t mr,
                            void* user_context);
+  inline size_t post_recvs(void* buffers[], size_t size, size_t count, mr_t mr,
+                           void* usesr_contexts[]);
 
   // LCI layer functions
   inline void bind_packet_pool(packet_pool_t packet_pool_);
