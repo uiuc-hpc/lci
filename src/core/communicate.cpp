@@ -70,24 +70,6 @@ status_t post_comm_x::call_impl(
     rhandler = matching_engine.get_impl()->get_rhandler(matching_policy);
   }
 
-  // set up some trivial fields for the status and internal context
-  status_t status;
-  status.rank = rank;
-  status.tag = tag;
-  status.user_context = user_context;
-  error_t& error = status.error;
-  internal_ctx = internal_context_t::alloc();
-  internal_ctx->rank = rank;
-  internal_ctx->tag = tag;
-  internal_ctx->user_context = user_context;
-  data_t& data = internal_ctx->data;
-  if (buffers.empty()) {
-    data = data_t(buffer_t(local_buffer, size, mr));
-  } else {
-    data = data_t(buffers);
-  }
-  status.data = data;
-
   // setup protocol (part 1): whether to use the zero-copy protocol
   protocol_t protocol = protocol_t::bcopy;
   if (!is_single_buffer || force_zcopy || size > max_bcopy_size) {
@@ -148,6 +130,27 @@ status_t post_comm_x::call_impl(
     // 4. The direction is OUT.
     // 5. The completion type is buffer.
     protocol = protocol_t::inject;
+  }
+
+  // set up some trivial fields for the status and internal context
+  data_t data;
+  if (buffers.empty()) {
+    data = data_t(buffer_t(local_buffer, size, mr));
+  } else {
+    data = data_t(buffers);
+  }
+  status_t status;
+  status.rank = rank;
+  status.tag = tag;
+  status.user_context = user_context;
+  status.data = data;
+  error_t& error = status.error;
+  if (protocol != protocol_t::inject) {
+    internal_ctx = internal_context_t::alloc();
+    internal_ctx->rank = rank;
+    internal_ctx->tag = tag;
+    internal_ctx->user_context = user_context;
+    internal_ctx->data = data;
   }
 
   /**********************************************************************************
@@ -231,6 +234,7 @@ status_t post_comm_x::call_impl(
   // protocol.
   if (protocol == protocol_t::zcopy && !local_buffer_only && mr.is_empty()) {
     internal_ctx->mr_on_the_fly = register_data(internal_ctx->data, device);
+    data = internal_ctx->data;
   }
 
   if (direction == direction_t::OUT) {
@@ -438,7 +442,7 @@ status_t post_comm_x::call_impl(
 exit:
   if (error.is_retry()) {
     LCI_DBG_Assert(allow_retry, "Unexpected retry\n");
-    if (internal_ctx->mr_on_the_fly) {
+    if (internal_ctx && internal_ctx->mr_on_the_fly) {
       deregister_data(internal_ctx->data);
     }
     if (!user_provided_packet && packet) {
