@@ -95,17 +95,23 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
              "mr_key_size (%lu) is too large!\n",
              ofi_info->domain_attr->mr_key_size);
   fi_freeinfo(hints);
-  attr.max_inject_size = ofi_info->tx_attr->inject_size;
+  if (ofi_info->tx_attr->inject_size < attr.max_inject_size) {
+    LCI_Log(LOG_INFO, "ofi",
+            "Reduce max_inject_size to %lu "
+            "as required by the libfabric inject_size attribute\n",
+            ofi_info->tx_attr->inject_size);
+    attr.max_inject_size = ofi_info->tx_attr->inject_size;
+  }
 
   // Create libfabric obj.
   FI_SAFECALL(fi_fabric(ofi_info->fabric_attr, &ofi_fabric, nullptr));
 
   if (ofi_info->ep_attr->max_msg_size < attr.max_msg_size) {
     attr.max_msg_size = ofi_info->ep_attr->max_msg_size;
-    LCI_Warn(
-        "Reduce max_msg_size to %lu "
-        "as required by the libfabric max_msg_size attribute\n",
-        attr.max_msg_size);
+    LCI_Log(LOG_INFO, "ofi",
+            "Reduce max_msg_size to %lu "
+            "as required by the libfabric max_msg_size attribute\n",
+            attr.max_msg_size);
   }
 }
 
@@ -135,6 +141,20 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
                         &ofi_domain, nullptr));
 
   // Create end-point;
+  if (p_ofi_context->ofi_info->tx_attr->size < attr.net_max_sends) {
+    LCI_Log(LOG_INFO, "ofi",
+            "Reduce net_max_sends to %lu "
+            "as required by the libfabric tx_attr size\n",
+            attr.net_max_sends);
+    attr.net_max_sends = p_ofi_context->ofi_info->tx_attr->size;
+  }
+  if (p_ofi_context->ofi_info->rx_attr->size < attr.net_max_recvs) {
+    LCI_Log(LOG_INFO, "ofi",
+            "Reduce net_max_recvs to %lu "
+            "as required by the libfabric rx_attr size\n",
+            attr.net_max_recvs);
+    attr.net_max_recvs = p_ofi_context->ofi_info->rx_attr->size;
+  }
   p_ofi_context->ofi_info->tx_attr->size = attr.net_max_sends;
   p_ofi_context->ofi_info->rx_attr->size = attr.net_max_recvs;
   FI_SAFECALL(
