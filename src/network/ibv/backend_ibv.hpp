@@ -47,12 +47,10 @@ class ibv_net_context_impl_t : public lci::net_context_impl_t
   union ibv_gid ib_gid;
 };
 
-struct alignas(LCI_CACHE_LINE) LCISI_ibv_qp_extra_t {
-  spinlock_t lock;
+struct LCISI_ibv_qp_extra_t {
   struct ibv_td* ib_td;
   struct ibv_pd* ib_pd;
-  LCIU_CACHE_PADDING(sizeof(spinlock_t) + sizeof(struct ibv_td*) +
-                     sizeof(struct ibv_pd*));
+  alignas(LCI_CACHE_LINE) spinlock_t lock;
 };
 
 class ibv_mr_impl_t : public lci::mr_impl_t
@@ -102,9 +100,9 @@ class ibv_device_impl_t : public lci::device_impl_t
   net_context_attr_t net_context_attr;
   ibv_mr_impl_t odp_mr;
 
-  spinlock_t srq_lock;
-  spinlock_t cq_lock;
-  spinlock_t qps_lock;
+  alignas(LCI_CACHE_LINE) spinlock_t srq_lock;
+  alignas(LCI_CACHE_LINE) spinlock_t cq_lock;
+  alignas(LCI_CACHE_LINE) spinlock_t qps_lock;
 };
 
 class ibv_endpoint_impl_t : public lci::endpoint_impl_t
