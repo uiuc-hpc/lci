@@ -12,3 +12,5 @@ if(NOT LCI_BUILD_BENCHMARKS)
   set(EXCLUDE_FROM_ALL ON)
 endif()
 add_lci_benchmarks(collective.cpp)
+
+add_subdirectory(resources)

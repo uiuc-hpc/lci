@@ -89,8 +89,10 @@ class backlog_queue_t
   // are pushed.
   padded_atomic_t<bool> empty;
   std::vector<padded_atomic_t<size_t>> nentries_per_rank;
-  alignas(LCI_CACHE_LINE) std::queue<backlog_queue_entry_t> backlog_queue;
-  alignas(LCI_CACHE_LINE) spinlock_t lock;
+  LCIU_CACHE_PADDING(0);
+  spinlock_t lock;
+  LCIU_CACHE_PADDING(sizeof(spinlock_t));
+  std::queue<backlog_queue_entry_t> backlog_queue;
 };
 
 }  // namespace lci

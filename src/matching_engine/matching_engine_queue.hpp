@@ -45,7 +45,9 @@ class matching_engine_queue_t : public matching_engine_impl_t
   };
   std::list<entry_t> send_queue;
   std::list<entry_t> recv_queue;
-  alignas(LCI_CACHE_LINE) spinlock_t lock;
+  LCIU_CACHE_PADDING(sizeof(std::list<entry_t>) * 2);  // padding for cache line
+  spinlock_t lock;
+  LCIU_CACHE_PADDING(sizeof(spinlock_t));
   val_t search(std::list<entry_t>& queue, key_t key)
   {
     // the lock should be held by the caller

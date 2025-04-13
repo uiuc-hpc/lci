@@ -11,12 +11,9 @@ class matching_engine_impl_t
  public:
   using attr_t = matching_engine_t::attr_t;
   attr_t attr;
-  enum class insert_type_t : unsigned {
-    send = 0,
-    recv = 1,
-  };
-  using key_t = uint64_t;
-  using val_t = void*;
+  using insert_type_t = matching_entry_type_t;
+  using key_t = matching_entry_key_t;
+  using val_t = matching_entry_val_t;
   matching_engine_impl_t(attr_t attr_) : attr(attr_) {}
   virtual ~matching_engine_impl_t() = default;
   // register the matching engine as a remote handler

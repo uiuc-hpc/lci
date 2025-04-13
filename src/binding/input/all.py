@@ -191,6 +191,21 @@ resource_matching_engine := resource(
 ),
 operation_alloc(resource_matching_engine),
 operation_free(resource_matching_engine),
+operation(
+    "matching_engine_insert",
+    [
+        optional_runtime_args,
+        positional_arg("matching_engine_t", "matching_engine", comment="The matching engine to use."),
+        positional_arg("matching_entry_key_t", "key", comment="The key to insert."),
+        positional_arg("matching_entry_val_t", "value", comment="The value to insert."),
+        positional_arg("matching_entry_type_t", "entry_type", comment="The type of the entry."),
+        return_val("matching_entry_val_t", "entry", comment="The entry matched."),
+    ],
+    doc = {
+        "in_group": "LCI_RESOURCE",
+        "brief": "Insert an entry into the matching engine.",
+    }
+),
 # communicate
 operation(
     "post_comm", 

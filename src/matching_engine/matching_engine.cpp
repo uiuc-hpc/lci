@@ -46,4 +46,11 @@ void free_matching_engine_x::call_impl(matching_engine_t* matching_engine,
   matching_engine->p_impl = nullptr;
 }
 
+matching_entry_val_t matching_engine_insert_x::call_impl(
+    matching_engine_t matching_engine, matching_entry_key_t key,
+    matching_entry_val_t value, matching_entry_type_t type, runtime_t) const
+{
+  return matching_engine.get_impl()->insert(key, value, type);
+}
+
 }  // namespace lci

@@ -76,7 +76,9 @@ class ofi_device_impl_t : public lci::device_impl_t
   struct fid_av* ofi_av;
   std::vector<fi_addr_t> peer_addrs;
   uint64_t& ofi_lock_mode;
-  alignas(LCI_CACHE_LINE) spinlock_t lock;
+  LCIU_CACHE_PADDING(0);
+  spinlock_t lock;
+  LCIU_CACHE_PADDING(sizeof(spinlock_t));
 };
 
 class ofi_endpoint_impl_t : public lci::endpoint_impl_t

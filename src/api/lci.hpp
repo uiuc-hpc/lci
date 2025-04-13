@@ -280,6 +280,16 @@ const tag_t ANY_TAG = -1;
 
 /**
  * @ingroup LCI_BASIC
+ * @brief The type of matching entry.
+ * @details A matching entry can be an incoming send or a posted receive.
+ */
+enum class matching_entry_type_t : unsigned {
+  send = 0, /**< incoming send */
+  recv = 1, /**< posted receive */
+};
+
+/**
+ * @ingroup LCI_BASIC
  * @brief Enum class for matching policy.
  */
 enum class matching_policy_t : unsigned {
@@ -289,6 +299,9 @@ enum class matching_policy_t : unsigned {
   rank_tag = 3,  /**< match by rank and tag */
   max = 4,       /**< boundary marker */
 };
+
+using matching_entry_key_t = uint64_t;
+using matching_entry_val_t = void*;
 
 /**
  * @ingroup LCI_BASIC
