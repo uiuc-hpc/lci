@@ -61,7 +61,7 @@ struct alignas(LCI_CACHE_LINE) internal_context_t {
   inline status_t get_status()
   {
     status_t status;
-    status.error = errorcode_t::ok;
+    status.error = errorcode_t::done;
     status.rank = rank;
     status.tag = tag;
     status.data = std::move(data);

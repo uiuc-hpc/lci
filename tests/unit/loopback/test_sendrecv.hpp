@@ -32,7 +32,7 @@ TEST(COMM_SENDRECV, sendrecv_bcopy_st)
     } while (status.error.is_retry());
 
     bool send_done = false, recv_done = false;
-    if (status.error.is_ok()) {
+    if (status.error.is_done()) {
       send_done = true;
     }
 
@@ -40,14 +40,14 @@ TEST(COMM_SENDRECV, sendrecv_bcopy_st)
       lci::progress();
       if (!send_done) {
         status = lci::cq_pop(scq);
-        if (status.error.is_ok()) {
+        if (status.error.is_done()) {
           ASSERT_EQ(status.data.get_scalar<uint64_t>(), data);
           send_done = true;
         }
       }
       if (!recv_done) {
         status = lci::cq_pop(rcq);
-        if (status.error.is_ok()) {
+        if (status.error.is_done()) {
           ASSERT_EQ(status.data.get_scalar<uint64_t>(), data);
           recv_done = true;
         }
@@ -81,7 +81,7 @@ void test_sendrecv_bcopy_mt(int id, int nmsgs, uint64_t* p_data)
     } while (status.error.is_retry());
 
     bool send_done = false, recv_done = false;
-    if (status.error.is_ok()) {
+    if (status.error.is_done()) {
       send_done = true;
     }
 
@@ -89,14 +89,14 @@ void test_sendrecv_bcopy_mt(int id, int nmsgs, uint64_t* p_data)
       lci::progress();
       if (!send_done) {
         status = lci::cq_pop(scq);
-        if (status.error.is_ok()) {
+        if (status.error.is_done()) {
           ASSERT_EQ(status.data.get_scalar<uint64_t>(), *p_data);
           send_done = true;
         }
       }
       if (!recv_done) {
         status = lci::cq_pop(rcq);
-        if (status.error.is_ok()) {
+        if (status.error.is_done()) {
           ASSERT_EQ(status.data.get_scalar<uint64_t>(), *p_data);
           recv_done = true;
         }

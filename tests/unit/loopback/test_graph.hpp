@@ -8,7 +8,7 @@ lci::graph_node_t add_node(lci::comp_t graph, uint64_t value)
   return lci::graph_add_node_x(graph,
                                [](void* value) -> lci::status_t {
                                  fprintf(stderr, "execute node %p\n", value);
-                                 return lci::errorcode_t::ok;
+                                 return lci::errorcode_t::done;
                                })
       .value(reinterpret_cast<void*>(value))();
 }

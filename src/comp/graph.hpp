@@ -62,7 +62,7 @@ inline void graph_t::trigger_node(graph_node_t node_)
   if (node->fn) {
     status = node->fn(node->value);
   }
-  if (status.error.is_ok()) {
+  if (status.error.is_done()) {
     mark_complete(node_, status);
   } else {
     LCI_Assert(!status.error.is_retry(),
@@ -104,7 +104,7 @@ inline void graph_t::mark_complete(graph_node_t node_, status_t status)
         comp_t comp = graph->m_comp;
         if (!comp.is_empty()) {
           status_t status;
-          status.error = errorcode_t::ok;
+          status.error = errorcode_t::done;
           status.user_context = graph->m_end_value;
           delete graph;
           comp.get_impl()->signal(status);
@@ -163,7 +163,7 @@ inline status_t graph_t::test()
 {
   status_t status;
   if (m_end_signals_remain.load(std::memory_order_relaxed) == 0) {
-    status.error = errorcode_t::ok;
+    status.error = errorcode_t::done;
     status.user_context = m_end_value;
     return status;
   } else {

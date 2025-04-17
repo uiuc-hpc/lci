@@ -15,7 +15,7 @@ LCT_tbarrier_t g_tbarrier;
 
 void worker(int id, lci::comp_t cq) {
   lci::status_t dummy_status;
-  dummy_status.error = lci::errorcode_t::ok;
+  dummy_status.error = lci::errorcode_t::done;
   LCT_tbarrier_arrive_and_wait(g_tbarrier);
   auto start = std::chrono::high_resolution_clock::now();
   for (int i = 0; i < config.niters; i++) {

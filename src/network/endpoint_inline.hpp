@@ -26,7 +26,7 @@ inline error_t endpoint_impl_t::post_sends(int rank, void* buffer, size_t size,
     }
     if (!allow_retry) {
       backlog_queue.push_sends(this, rank, buffer, size, imm_data);
-      error = errorcode_t::ok_backlog;
+      error = errorcode_t::done_backlog;
     }
   } else {
     LCI_PCOUNTER_ADD(net_send_post, 1);
@@ -90,7 +90,7 @@ inline error_t endpoint_impl_t::post_puts(int rank, void* buffer, size_t size,
     LCI_PCOUNTER_ADD(net_write_post_retry, 1);
     if (!allow_retry) {
       backlog_queue.push_puts(this, rank, buffer, size, base, offset, rkey);
-      error = errorcode_t::ok_backlog;
+      error = errorcode_t::done_backlog;
     }
   } else {
     LCI_PCOUNTER_ADD(net_write_post, 1);
@@ -153,7 +153,7 @@ inline error_t endpoint_impl_t::post_putImms(int rank, void* buffer,
     if (!allow_retry) {
       backlog_queue.push_putImms(this, rank, buffer, size, base, offset, rkey,
                                  imm_data);
-      error = errorcode_t::ok_backlog;
+      error = errorcode_t::done_backlog;
     }
   } else {
     LCI_PCOUNTER_ADD(net_writeImm_post, 1);

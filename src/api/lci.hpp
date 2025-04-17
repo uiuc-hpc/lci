@@ -104,20 +104,20 @@ namespace lci
  * @brief The actual error code for LCI API functions.
  * @ingroup LCI_BASIC
  * @details The error code is used to indicate the status of certain LCI
- * operations. It has three categories: ok, posted, and retry. The ok category
- * indicates that the operation has been completed. The posted category
+ * operations. It has three categories: done, posted, and retry. The done
+ * category indicates that the operation has been completed. The posted category
  * indicates that the operation is posted and the completion will be reported
  * later. The retry category indicates that the operation temporarily failed and
  * the user should retry the operation. Within each category, there are multiple
  * sub error codes offering additional information.
  */
 enum class errorcode_t {
-  ok_min,     /**< boundary marker */
-  ok,         /**< the operation has been completed */
-  ok_backlog, /**< the operation has been pushed into a backlog queue and can be
-                 considered as completed by users */
-  ok_max,     /**< boundary marker */
-  posted_min, /**< boundary marker */
+  done_min,     /**< boundary marker */
+  done,         /**< the operation has been completed */
+  done_backlog, /**< the operation has been pushed into a backlog queue and can
+                 be considered as completed by users */
+  done_max,     /**< boundary marker */
+  posted_min,   /**< boundary marker */
   posted, /**< the operation is posted and the completion will be reported later
            */
   posted_backlog, /**< the operation has been pushed into a backlog queue and
@@ -165,12 +165,13 @@ struct error_t {
    */
   void reset_retry() { errorcode = errorcode_t::retry; }
   /**
-   * @brief Check if the error code is in the ok category.
-   * @return true if the error code is in the ok category.
+   * @brief Check if the error code is in the done category.
+   * @return true if the error code is in the done category.
    */
-  bool is_ok() const
+  bool is_done() const
   {
-    return errorcode > errorcode_t::ok_min && errorcode < errorcode_t::ok_max;
+    return errorcode > errorcode_t::done_min &&
+           errorcode < errorcode_t::done_max;
   }
   /**
    * @brief Check if the error code is in the posted category.
@@ -486,7 +487,7 @@ struct status_t {
   status_t() = default;
   status_t(errorcode_t error_) : error(error_) {}
   explicit status_t(void* user_context_)
-      : error(errorcode_t::ok), user_context(user_context_)
+      : error(errorcode_t::done), user_context(user_context_)
   {
   }
 };
@@ -617,7 +618,7 @@ graph_execute_op_fn(void* value)
   auto op = static_cast<T*>(value);
   op->operator()();
   delete op;
-  return errorcode_t::ok;
+  return errorcode_t::done;
 }
 
 /**

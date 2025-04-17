@@ -129,7 +129,7 @@ inline error_t ibv_device_impl_t::post_recv_impl(void* buffer, size_t size,
   srq_lock.unlock();
 
   if (ret == 0)
-    return errorcode_t::ok;
+    return errorcode_t::done;
   else if (ret == ENOMEM)
     return errorcode_t::retry_nomem;  // exceed send queue capacity
   else {
@@ -235,7 +235,7 @@ inline error_t ibv_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
   int ret = ibv_post_send(ib_qps[rank], &wr, &bad_wr);
   unlock_qp(rank);
   if (ret == 0)
-    return errorcode_t::ok;
+    return errorcode_t::done;
   else if (ret == ENOMEM)
     return errorcode_t::retry_nomem;  // exceed send queue capacity
   else {
@@ -321,7 +321,7 @@ inline error_t ibv_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
   int ret = ibv_post_send(ib_qps[rank], &wr, &bad_wr);
   unlock_qp(rank);
   if (ret == 0)
-    return errorcode_t::ok;
+    return errorcode_t::done;
   else if (ret == ENOMEM)
     return errorcode_t::retry_nomem;  // exceed send queue capacity
   else {
@@ -409,7 +409,7 @@ inline error_t ibv_endpoint_impl_t::post_putImms_impl(
   int ret = ibv_post_send(ib_qps[rank], &wr, &bad_wr);
   unlock_qp(rank);
   if (ret == 0)
-    return errorcode_t::ok;
+    return errorcode_t::done;
   else if (ret == ENOMEM)
     return errorcode_t::retry_nomem;  // exceed send queue capacity
   else {

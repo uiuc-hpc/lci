@@ -42,14 +42,14 @@ void barrier_x::call_impl(runtime_t runtime, device_t device,
           .endpoint(endpoint)
           .matching_engine(matching_engine)
           .allow_retry(false)
-          .allow_ok(false)();
+          .allow_done(false)();
       auto post_send_op = post_send_x(rank_to_send, nullptr, 0, seqnum, comp)
                               .runtime(runtime)
                               .device(device)
                               .endpoint(endpoint)
                               .matching_engine(matching_engine)
                               .allow_retry(false)
-                              .allow_ok(false);
+                              .allow_done(false);
       if (jump * 2 >= nranks) {
         // this is the last round, need to take care of the completion semantic
         post_send_op = post_send_op.comp_semantic(comp_semantic);
@@ -64,7 +64,7 @@ void barrier_x::call_impl(runtime_t runtime, device_t device,
   } else {
     // nonblocking barrier
     if (nranks == 1) {
-      lci::comp_signal(comp, status_t(errorcode_t::ok));
+      lci::comp_signal(comp, status_t(errorcode_t::done));
       return;
     }
     comp_t graph = alloc_graph_x().runtime(runtime).comp(comp)();
@@ -95,7 +95,7 @@ void barrier_x::call_impl(runtime_t runtime, device_t device,
         dummy_node = GRAPH_END;
       } else {
         dummy_node = graph_add_node(
-            graph, [](void*) -> status_t { return errorcode_t::ok; });
+            graph, [](void*) -> status_t { return errorcode_t::done; });
       }
       auto recv_node = graph_add_node_op(graph, recv);
       auto send_node = graph_add_node_op(graph, send);
@@ -364,7 +364,7 @@ void alltoall_x::call_impl(const void* sendbuf, void* recvbuf, size_t size,
                    .device(device)
                    .endpoint(endpoint)
                    .matching_engine(matching_engine)
-                   .allow_ok(false)();
+                   .allow_done(false)();
       progress_x().runtime(runtime).device(device).endpoint(endpoint)();
     } while (status.error.is_retry());
     do {
@@ -373,7 +373,7 @@ void alltoall_x::call_impl(const void* sendbuf, void* recvbuf, size_t size,
                    .device(device)
                    .endpoint(endpoint)
                    .matching_engine(matching_engine)
-                   .allow_ok(false)();
+                   .allow_done(false)();
       progress_x().runtime(runtime).device(device).endpoint(endpoint)();
     } while (status.error.is_retry());
   }

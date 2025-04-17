@@ -38,7 +38,7 @@ void progress_recv(runtime_t runtime, endpoint_t endpoint,
       auto entry = runtime.p_impl->default_rhandler_registry.get(remote_comp);
       if (entry.type == rhandler_registry_t::type_t::comp) {
         status_t status;
-        status.error = errorcode_t::ok;
+        status.error = errorcode_t::done;
         status.rank = net_status.rank;
         status.tag = tag;
         if (reinterpret_cast<comp_impl_t*>(entry.value)->attr.zero_copy_am) {
@@ -139,7 +139,7 @@ void progress_remote_write(runtime_t runtime, const net_status_t& net_status)
     remote_comp = get_bits32(imm_data, 15, 16);
     auto entry = runtime.get_impl()->default_rhandler_registry.get(remote_comp);
     status_t status;
-    status.error = errorcode_t::ok;
+    status.error = errorcode_t::done;
     status.rank = net_status.rank;
     status.tag = tag;
     status.user_context = nullptr;
@@ -186,13 +186,13 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
   for (auto& endpoint : device.p_impl->endpoints) {
     // keep progressing the backlog queue until it is empty
     while (endpoint.get_impl()->progress_backlog_queue())
-      error = errorcode_t::ok;
+      error = errorcode_t::done;
   }
   // poll device completion queue
   net_status_t statuses[LCI_BACKEND_MAX_POLLS];
   size_t ret = device.get_impl()->poll_comp(statuses, LCI_BACKEND_MAX_POLLS);
   if (ret > 0) {
-    error = errorcode_t::ok;
+    error = errorcode_t::done;
     for (size_t i = 0; i < ret; i++) {
       auto status = statuses[i];
       if (status.opcode == net_opcode_t::RECV) {

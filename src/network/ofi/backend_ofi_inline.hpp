@@ -85,7 +85,7 @@ inline error_t ofi_device_impl_t::post_recv_impl(void* buffer, size_t size,
       fi_recv(ofi_ep, buffer, size, mr_desc, FI_ADDR_UNSPEC, user_context);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_RECV);
   if (ret == FI_SUCCESS)
-    return errorcode_t::ok;
+    return errorcode_t::done;
   else if (ret == -FI_EAGAIN)
     return errorcode_t::retry_nomem;
   else {
@@ -129,7 +129,7 @@ inline error_t ofi_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
                     peer_addrs[rank]);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
-    return errorcode_t::ok;
+    return errorcode_t::done;
   else if (ret == -FI_EAGAIN)
     return errorcode_t::retry_nomem;
   else {
@@ -187,7 +187,7 @@ inline error_t ofi_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
   ssize_t ret = fi_writemsg(ofi_ep, &msg, FI_INJECT | FI_DELIVERY_COMPLETE);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
-    return errorcode_t::ok;
+    return errorcode_t::done;
   else if (ret == -FI_EAGAIN)
     return errorcode_t::retry_nomem;
   else {
@@ -253,7 +253,7 @@ inline error_t ofi_endpoint_impl_t::post_putImms_impl(
                                     peer_addrs[rank], addr, rkey);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
-    return errorcode_t::ok;
+    return errorcode_t::done;
   else if (ret == -FI_EAGAIN)
     return errorcode_t::retry_nomem;
   else {

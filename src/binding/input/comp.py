@@ -135,7 +135,7 @@ operation(
     doc = {
         "in_group": "LCI_COMPLETION",
         "brief": "Pop a status from a completion queue.",
-        "details": "This function is a nonblocking operation. It can return a status with an error code of either *retry* or *ok*. Other fields of the status are only valid if the error code is *ok*."
+        "details": "This function is a nonblocking operation. It can return a status with an error code of either *retry* or *done*. Other fields of the status are only valid if the error code is *done*."
     }
 ),
 # handler

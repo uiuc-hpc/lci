@@ -23,7 +23,7 @@ inline void handle_matched_sendrecv(runtime_t runtime, endpoint_t endpoint,
     comp_t comp = recv_ctx->comp;
 
     status_t status;
-    status.error = errorcode_t::ok;
+    status.error = errorcode_t::done;
     status.data = recv_ctx->data;
     status.user_context = recv_ctx->user_context;
     internal_context_t::free(recv_ctx);
@@ -356,7 +356,7 @@ inline void handle_rdv_local_write(endpoint_t endpoint,
   error_t error = endpoint.get_impl()->post_sends(
       (int)ctx->rank, &ectx->recv_ctx, sizeof(ectx->recv_ctx), imm_data,
       false /* allow_retry */);
-  LCI_Assert(error.is_ok(), "Unexpected error %d\n", error);
+  LCI_Assert(error.is_done(), "Unexpected error %d\n", error);
 }
 
 inline void handle_rdv_remote_comp(internal_context_t* ctx)
