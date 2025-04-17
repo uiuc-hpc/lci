@@ -300,8 +300,15 @@ enum class matching_policy_t : unsigned {
   rank_tag = 3,  /**< match by rank and tag */
   max = 4,       /**< boundary marker */
 };
-
+/**
+ * @ingroup LCI_BASIC
+ * @brief The type of matching engine entry key.
+ */
 using matching_entry_key_t = uint64_t;
+/**
+ * @ingroup LCI_BASIC
+ * @brief The type of matching engine entry value.
+ */
 using matching_entry_val_t = void*;
 
 /**
@@ -349,6 +356,16 @@ struct rbuffer_t {
 };
 using buffers_t = std::vector<buffer_t>;
 using rbuffers_t = std::vector<rbuffer_t>;
+
+/**
+ * @ingroup LCI_BASIC
+ * @brief The user-defined allocator type.
+ */
+struct allocator_base_t {
+  virtual void* allocate(size_t size) = 0;
+  virtual void deallocate(void* ptr) = 0;
+  virtual ~allocator_base_t() = default;
+};
 
 /**
  * @ingroup LCI_BASIC
@@ -416,8 +433,8 @@ struct data_t {
   data_t();
   data_t(buffer_t buffer_, bool own_data_ = false);
   data_t(buffers_t buffers_, bool own_data_ = false);
-  data_t(size_t size);
-  data_t(size_t sizes[], int count);
+  data_t(size_t size, allocator_base_t* allocator = nullptr);
+  data_t(size_t sizes[], int count, allocator_base_t* allocator = nullptr);
   data_t(const data_t& other);
   data_t(data_t&& other);
   data_t& operator=(data_t other);
@@ -432,8 +449,10 @@ struct data_t {
   bool is_buffer() const { return get_type() == type_t::buffer; }
   bool is_buffers() const { return get_type() == type_t::buffers; }
 
-  void copy_from(const void* data_, size_t size);
-  void copy_from(const buffers_t& buffers_);
+  void copy_from(const void* data_, size_t size,
+                 allocator_base_t* allocator_ = nullptr);
+  void copy_from(const buffers_t& buffers_,
+                 allocator_base_t* allocator_ = nullptr);
 
   /**
    * @brief Enum class of get semantic.
@@ -535,7 +554,6 @@ using comp_handler_t = void (*)(status_t status);
  */
 using reduce_op_t = void (*)(const void* left, const void* right, void* dst,
                              size_t n);
-
 /**
  * @ingroup LCI_BASIC
  * @brief The node type for the completion graph.
@@ -667,22 +685,30 @@ inline data_t::data_t(buffers_t buffers_, bool own_data_)
     buffers.buffers[i] = buffers_[i];
   }
 }
-inline data_t::data_t(size_t size)
+inline data_t::data_t(size_t size, allocator_base_t* allocator)
 {
   set_type(type_t::buffer);
   set_own_data(true);
-  buffer.base = malloc(size);
+  if (allocator) {
+    buffer.base = allocator->allocate(size);
+  } else {
+    buffer.base = malloc(size);
+  }
   buffer.size = size;
   buffer.mr = mr_t();
 }
-inline data_t::data_t(size_t sizes[], int count)
+inline data_t::data_t(size_t sizes[], int count, allocator_base_t* allocator)
 {
   set_type(type_t::buffers);
   set_own_data(true);
   buffers.count = count;
   buffers.buffers = new buffer_t[buffers.count];
   for (int i = 0; i < count; i++) {
-    buffers.buffers[i].base = malloc(sizes[i]);
+    if (allocator) {
+      buffers.buffers[i].base = allocator->allocate(sizes[i]);
+    } else {
+      buffers.buffers[i].base = malloc(sizes[i]);
+    }
     buffers.buffers[i].size = sizes[i];
     buffers.buffers[i].mr = mr_t();
   }
@@ -758,7 +784,8 @@ inline void swap(data_t& first, data_t& second)
   free(buf);
 }
 
-inline void data_t::copy_from(const void* data_, size_t size)
+inline void data_t::copy_from(const void* data_, size_t size,
+                              allocator_base_t* allocator)
 {
   if (size <= MAX_SCALAR_SIZE) {
     set_type(type_t::scalar);
@@ -768,13 +795,18 @@ inline void data_t::copy_from(const void* data_, size_t size)
   } else {
     set_type(type_t::buffer);
     set_own_data(true);
-    buffer.base = malloc(size);
+    if (allocator) {
+      buffer.base = allocator->allocate(size);
+    } else {
+      buffer.base = malloc(size);
+    }
     memcpy(buffer.base, data_, size);
     buffer.size = size;
   }
 }
 
-inline void data_t::copy_from(const buffers_t& buffers_)
+inline void data_t::copy_from(const buffers_t& buffers_,
+                              allocator_base_t* allocator)
 {
   set_type(type_t::buffers);
   set_own_data(true);
@@ -782,7 +814,11 @@ inline void data_t::copy_from(const buffers_t& buffers_)
   buffers.buffers = new buffer_t[buffers.count];
   for (size_t i = 0; i < buffers.count; i++) {
     buffers.buffers[i].size = buffers_[i].size;
-    buffers.buffers[i].base = malloc(buffers_[i].size);
+    if (allocator) {
+      buffers.buffers[i].base = allocator->allocate(buffers_[i].size);
+    } else {
+      buffers.buffers[i].base = malloc(buffers_[i].size);
+    }
     memcpy(buffers.buffers[i].base, buffers_[i].base, buffers_[i].size);
   }
 }

@@ -405,6 +405,18 @@ operation(
 # # Helper functions
 # ##############################################################################
 operation(
+    "set_allocator",
+    [
+        optional_runtime_args,
+        positional_arg("allocator_base_t*", "allocator", "nullptr", comment="The allocator to set as the allocator."),
+    ],
+    doc = {
+        "in_group": "LCI_RESOURCE",
+        "brief": "Set the message allocator for the runtime.",
+        "details": "The default allocator will be used for all message buffers delivered to users."
+    }
+),
+operation(
     "get_default_net_context", 
     [
         optional_runtime_args,

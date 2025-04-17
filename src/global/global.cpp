@@ -8,6 +8,9 @@ namespace lci
 {
 bool g_is_active = false;
 int g_rank_me = -1, g_rank_n = -1;
+// TODO: make the default runtime a thread_local stack
+// and let users to switch runtime via function calls
+// instead of optional arguments
 runtime_t g_default_runtime;
 
 namespace internal_config

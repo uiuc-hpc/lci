@@ -37,6 +37,7 @@ void progress_recv(runtime_t runtime, endpoint_t endpoint,
     case IMM_DATA_MSG_EAGER: {
       auto entry = runtime.p_impl->default_rhandler_registry.get(remote_comp);
       if (entry.type == rhandler_registry_t::type_t::comp) {
+        // we get an active message
         status_t status;
         status.error = errorcode_t::done;
         status.rank = net_status.rank;
@@ -45,7 +46,8 @@ void progress_recv(runtime_t runtime, endpoint_t endpoint,
           status.data =
               data_t(buffer_t(packet->get_payload_address(), msg_size));
         } else {
-          status.data.copy_from(packet->get_payload_address(), msg_size);
+          status.data.copy_from(packet->get_payload_address(), msg_size,
+                                runtime.get_impl()->allocator);
           packet->put_back();
         }
         status.user_context = nullptr;

@@ -32,7 +32,7 @@ runtime_t alloc_runtime_x::call_impl(size_t packet_return_threshold,
   attr.alloc_default_matching_engine = alloc_default_matching_engine;
   runtime_t runtime;
   runtime.p_impl = new runtime_impl_t(attr);
-  runtime.p_impl->initialize();
+  runtime.get_impl()->initialize();
   return runtime;
 }
 
@@ -65,7 +65,7 @@ void g_runtime_init_x::call_impl(size_t packet_return_threshold,
   attr.alloc_default_packet_pool = alloc_default_packet_pool;
   attr.alloc_default_matching_engine = alloc_default_matching_engine;
   g_default_runtime.p_impl = new runtime_impl_t(attr);
-  g_default_runtime.p_impl->initialize();
+  g_default_runtime.get_impl()->initialize();
 }
 
 void g_runtime_fina_x::call_impl() const
@@ -141,30 +141,36 @@ runtime_impl_t::~runtime_impl_t()
   }
 }
 
+void set_allocator_x::call_impl(allocator_base_t* allocator,
+                                runtime_t runtime) const
+{
+  runtime.get_impl()->allocator = allocator;
+}
+
 net_context_t get_default_net_context_x::call_impl(runtime_t runtime) const
 {
-  return runtime.p_impl->default_net_context;
+  return runtime.get_impl()->default_net_context;
 }
 
 device_t get_default_device_x::call_impl(runtime_t runtime) const
 {
-  return runtime.p_impl->default_device;
+  return runtime.get_impl()->default_device;
 }
 
 endpoint_t get_default_endpoint_x::call_impl(runtime_t, device_t device) const
 {
-  return device.p_impl->default_endpoint;
+  return device.get_impl()->default_endpoint;
 }
 
 packet_pool_t get_default_packet_pool_x::call_impl(runtime_t runtime) const
 {
-  return runtime.p_impl->default_packet_pool;
+  return runtime.get_impl()->default_packet_pool;
 }
 
 matching_engine_t get_default_matching_engine_x::call_impl(
     runtime_t runtime) const
 {
-  return runtime.p_impl->default_matching_engine;
+  return runtime.get_impl()->default_matching_engine;
 }
 
 }  // namespace lci

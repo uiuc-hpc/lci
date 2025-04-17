@@ -81,12 +81,12 @@ struct rts_msg_t {
     }
   }
 
-  data_t alloc_data()
+  data_t alloc_data(allocator_base_t* allocator = nullptr)
   {
     if (count == 1) {
-      return data_t(*get_size_p(0));
+      return data_t(*get_size_p(0), allocator);
     } else {
-      return data_t(get_size_p(0), count);
+      return data_t(get_size_p(0), count, allocator);
     }
   }
 };
@@ -190,7 +190,7 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
   // build the rdv context
   if (!rdv_ctx) {
     rdv_ctx = internal_context_t::alloc();
-    rdv_ctx->data = rts->alloc_data();
+    rdv_ctx->data = rts->alloc_data(runtime.get_impl()->allocator);
     rdv_ctx->user_context = NULL;
     rdv_ctx->rdv_type = rdv_type;
     auto entry = runtime.p_impl->default_rhandler_registry.get(rts->rcomp);

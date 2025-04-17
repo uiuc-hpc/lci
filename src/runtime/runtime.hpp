@@ -24,6 +24,7 @@ class runtime_impl_t
   rhandler_registry_t default_rhandler_registry;
   matching_engine_t default_matching_engine;
   matching_engine_t default_coll_matching_engine;
+  allocator_base_t* allocator = nullptr;
 };
 }  // namespace lci
 
