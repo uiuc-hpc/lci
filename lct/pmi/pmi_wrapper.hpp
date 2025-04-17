@@ -10,7 +10,7 @@ struct ops_t {
   int (*check_availability)();
   void (*initialize)();
   int (*is_initialized)();
-  int (*get_rank)();
+  int (*get_rank_me)();
   int (*get_size)();
   void (*publish)(char* key, char* value);
   void (*getname)(int rank, char* key, char* value);

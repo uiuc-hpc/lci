@@ -39,7 +39,7 @@ void initialize()
 }
 
 int initialized() { return is_initialized; }
-int get_rank() { return 0; }
+int get_rank_me() { return 0; }
 
 int get_size() { return 1; }
 
@@ -66,7 +66,7 @@ void local_setup_ops(struct ops_t* ops)
   ops->check_availability = local::check_availability;
   ops->initialize = local::initialize;
   ops->is_initialized = local::initialized;
-  ops->get_rank = local::get_rank;
+  ops->get_rank_me = local::get_rank_me;
   ops->get_size = local::get_size;
   ops->publish = local::publish;
   ops->getname = local::getname;

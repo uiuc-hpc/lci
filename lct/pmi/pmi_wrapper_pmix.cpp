@@ -46,7 +46,7 @@ int initialized()
   return initialized;
 }
 
-int get_rank() { return (int)proc_me.rank; }
+int get_rank_me() { return (int)proc_me.rank; }
 
 int get_size()
 {
@@ -97,7 +97,7 @@ void pmix_setup_ops(struct ops_t* ops)
   ops->check_availability = pmix::check_availability;
   ops->initialize = pmix::initialize;
   ops->is_initialized = pmix::initialized;
-  ops->get_rank = pmix::get_rank;
+  ops->get_rank_me = pmix::get_rank_me;
   ops->get_size = pmix::get_size;
   ops->publish = pmix::publish;
   ops->getname = pmix::getname;

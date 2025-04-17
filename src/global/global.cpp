@@ -7,7 +7,7 @@
 namespace lci
 {
 bool g_is_active = false;
-int g_rank = -1, g_nranks = -1;
+int g_rank_me = -1, g_rank_n = -1;
 runtime_t g_default_runtime;
 
 namespace internal_config
@@ -86,10 +86,10 @@ void global_initialize()
   log_initialize();
   // Initialize PMI.
   bootstrap::initialize();
-  g_rank = bootstrap::get_rank_me();
-  g_nranks = bootstrap::get_rank_n();
-  LCI_Assert(g_nranks > 0, "PMI ran into an error (num_proc=%d)\n", g_nranks);
-  LCT_set_rank(g_rank);
+  g_rank_me = bootstrap::get_rank_me();
+  g_rank_n = bootstrap::get_rank_n();
+  LCI_Assert(g_rank_n > 0, "PMI ran into an error (num_proc=%d)\n", g_rank_n);
+  LCT_set_rank(g_rank_me);
   // Initialize global configuration.
   global_config_initialize();
   pcounter_init();
@@ -105,12 +105,12 @@ void global_finalize()
   bootstrap::finalize();
   log_finalize();
   LCT_fina();
-  g_rank = -1;
-  g_nranks = -1;
+  g_rank_me = -1;
+  g_rank_n = -1;
 }
 
-int get_rank_x::call_impl() const { return g_rank; }
+int get_rank_me_x::call_impl() const { return g_rank_me; }
 
-int get_nranks_x::call_impl() const { return g_nranks; }
+int get_rank_n_x::call_impl() const { return g_rank_n; }
 
 }  // namespace lci

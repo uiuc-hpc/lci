@@ -84,7 +84,7 @@ void LCT_pmi_initialize()
 }
 
 int LCT_pmi_initialized() { return lcti_pmi_ops.is_initialized(); }
-int LCT_pmi_get_rank() { return lcti_pmi_ops.get_rank(); }
+int LCT_pmi_get_rank() { return lcti_pmi_ops.get_rank_me(); }
 int LCT_pmi_get_size() { return lcti_pmi_ops.get_size(); }
 void LCT_pmi_publish(char* key, char* value)
 {

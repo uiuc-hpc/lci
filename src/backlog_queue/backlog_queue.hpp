@@ -10,7 +10,7 @@ class endpoint_impl_t;
 class backlog_queue_t
 {
  public:
-  backlog_queue_t() : empty(true), nentries_per_rank(get_nranks())
+  backlog_queue_t() : empty(true), nentries_per_rank(get_rank_n())
   {
     for (auto& nentries : nentries_per_rank) {
       nentries.val.store(0, std::memory_order_relaxed);

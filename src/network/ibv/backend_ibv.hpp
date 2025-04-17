@@ -65,7 +65,7 @@ class qp2rank_map_t
 {
  public:
   void add_qps(const std::vector<struct ibv_qp*>& qps);
-  int get_rank(uint32_t qp_num);
+  int get_rank_me(uint32_t qp_num);
 
  private:
   void calculate_map();

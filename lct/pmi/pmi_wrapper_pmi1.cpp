@@ -30,7 +30,7 @@ int initialized()
   PMI_Initialized(&initialized);
   return initialized;
 }
-int get_rank()
+int get_rank_me()
 {
   int rank;
   PMI_Get_rank(&rank);
@@ -69,7 +69,7 @@ void pmi1_setup_ops(struct ops_t* ops)
   ops->check_availability = pmi1::check_availability;
   ops->initialize = pmi1::initialize;
   ops->is_initialized = pmi1::initialized;
-  ops->get_rank = pmi1::get_rank;
+  ops->get_rank_me = pmi1::get_rank_me;
   ops->get_size = pmi1::get_size;
   ops->publish = pmi1::publish;
   ops->getname = pmi1::getname;

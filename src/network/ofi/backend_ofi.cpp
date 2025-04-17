@@ -187,8 +187,8 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
   uint64_t my_addr[EP_ADDR_LEN];
   FI_SAFECALL(fi_getname((fid_t)ofi_ep, my_addr, &addrlen));
 
-  int rank = get_rank();
-  int nranks = get_nranks();
+  int rank = get_rank_me();
+  int nranks = get_rank_n();
   peer_addrs.resize(nranks);
   // char key[LCT_PMI_STRING_LIMIT + 1];
   // sprintf(key, "LCI_KEY_%d_%d", attr.uid, rank);
@@ -292,7 +292,7 @@ ofi_endpoint_impl_t::ofi_endpoint_impl_t(device_t device_, attr_t attr_)
       ofi_lock_mode(p_ofi_device->ofi_lock_mode),
       lock(p_ofi_device->lock)
 {
-  my_rank = get_rank();
+  my_rank = get_rank_me();
 }
 
 ofi_endpoint_impl_t::~ofi_endpoint_impl_t() {}

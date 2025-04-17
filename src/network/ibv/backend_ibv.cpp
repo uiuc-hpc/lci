@@ -220,8 +220,8 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
     }
   } else if (attr.ibv_td_strategy == attr_ibv_td_strategy_t::per_qp) {
     // allocate one thread domain for each queue pair
-    ib_qp_extras.resize(get_nranks());
-    for (int i = 0; i < get_nranks(); ++i) {
+    ib_qp_extras.resize(get_rank_n());
+    for (int i = 0; i < get_rank_n(); ++i) {
       // allocate thread domain
       ib_qp_extras[i].ib_pd = nullptr;
       struct ibv_td_init_attr td_attr;
@@ -260,7 +260,7 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
     ib_pd = p_net_context->ib_pd;
   }
 
-  ib_qps.resize(get_nranks());
+  ib_qps.resize(get_rank_n());
   struct bootstrap_data_t {
     int source_rank;
     int target_rank;
@@ -269,8 +269,8 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
     uint16_t lid;
     char wgid[ibv_detail::WIRE_GID_NBYTES + 1];
   };
-  std::vector<bootstrap_data_t> bootstrap_datav_in(get_nranks());
-  for (int i = 0; i < get_nranks(); i++) {
+  std::vector<bootstrap_data_t> bootstrap_datav_in(get_rank_n());
+  for (int i = 0; i < get_rank_n(); i++) {
     {
       // Create a queue pair
       struct ibv_qp_init_attr init_attr;
@@ -330,14 +330,14 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
     ibv_detail::gid_to_wire_gid(&p_net_context->ib_gid, wgid);
     // // Use this queue pair "i" to connect to rank e.
     // char key[LCT_PMI_STRING_LIMIT + 1];
-    // sprintf(key, "LCI_KEY_%d_%d_%d", attr.uid, get_rank(), i);
+    // sprintf(key, "LCI_KEY_%d_%d_%d", attr.uid, get_rank_me(), i);
     // char value[LCT_PMI_STRING_LIMIT + 1];
     // sprintf(value, "%x:%hx:%s", ib_qps[i]->qp_num,
     //         p_net_context->ib_port_attr.lid, wgid);
     // LCT_pmi_publish(key, value);
 
     bootstrap_data_t data;
-    data.source_rank = get_rank();
+    data.source_rank = get_rank_me();
     data.target_rank = i;
     data.uid = attr.uid;
     data.qp_num = ib_qps[i]->qp_num;
@@ -349,21 +349,21 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
           net_context_attr.max_inject_size);
 
   // LCT_pmi_barrier();
-  std::vector<bootstrap_data_t> bootstrap_datav_out(get_nranks());
+  std::vector<bootstrap_data_t> bootstrap_datav_out(get_rank_n());
   bootstrap::alltoall(bootstrap_datav_in.data(), bootstrap_datav_out.data(),
                       sizeof(bootstrap_data_t));
 
-  for (int i = 0; i < get_nranks(); i++) {
+  for (int i = 0; i < get_rank_n(); i++) {
     // char key[LCT_PMI_STRING_LIMIT + 1];
-    // sprintf(key, "LCI_KEY_%d_%d_%d", attr.uid, i, get_rank());
+    // sprintf(key, "LCI_KEY_%d_%d_%d", attr.uid, i, get_rank_me());
     // char value[LCT_PMI_STRING_LIMIT + 1];
     // LCT_pmi_getname(i, key, value);
     bootstrap_data_t data = bootstrap_datav_out[i];
     LCI_Assert(data.source_rank == i,
                "Unexpected source rank %d, expected %d\n", data.source_rank, i);
-    LCI_Assert(data.target_rank == get_rank(),
+    LCI_Assert(data.target_rank == get_rank_me(),
                "Unexpected target rank %d, expected %d\n", data.target_rank,
-               get_rank());
+               get_rank_me());
     LCI_Assert(data.uid == attr.uid, "Unexpected uid %d, expected %d\n",
                data.uid, attr.uid);
     uint32_t dest_qpn = data.qp_num;
@@ -442,12 +442,12 @@ ibv_device_impl_t::~ibv_device_impl_t()
 {
   // LCT_pmi_barrier();
   unbind_packet_pool();
-  for (int i = 0; i < get_nranks(); i++) {
+  for (int i = 0; i < get_rank_n(); i++) {
     IBV_SAFECALL(ibv_destroy_qp(ib_qps[i]));
     --g_qp_num;
   }
   if (!ib_qp_extras.empty()) {
-    for (int i = 0; i < get_nranks(); ++i) {
+    for (int i = 0; i < get_rank_n(); ++i) {
       if (ib_qp_extras[i].ib_td) {
         IBV_SAFECALL(ibv_dealloc_pd(ib_qp_extras[i].ib_pd));
         IBV_SAFECALL(ibv_dealloc_td(ib_qp_extras[i].ib_td));

@@ -10,8 +10,8 @@ TEST(COMM_PUTIMM, putImm_bcopy_st)
   lci::g_runtime_init();
 
   const int nmsgs = 1000;
-  int rank = lci::get_rank();
-  int nranks = lci::get_nranks();
+  int rank = lci::get_rank_me();
+  int nranks = lci::get_rank_n();
   ASSERT_EQ(rank, 0);
   ASSERT_EQ(nranks, 1);
   // local cq
@@ -62,8 +62,8 @@ TEST(COMM_PUTIMM, putImm_bcopy_st)
 void test_putImm_bcopy_mt(int id, int nmsgs, uint64_t* p_data,
                           lci::rcomp_t rcomp_base)
 {
-  int rank = lci::get_rank();
-  int nranks = lci::get_nranks();
+  int rank = lci::get_rank_me();
+  int nranks = lci::get_rank_n();
   ASSERT_EQ(rank, 0);
   ASSERT_EQ(nranks, 1);
   // local cq
@@ -117,8 +117,8 @@ TEST(COMM_PUTIMM, putImm_bcopy_mt)
   const int nmsgs = 20000;
   const int nthreads = 16;
   ASSERT_EQ(nmsgs % nthreads, 0);
-  int rank = lci::get_rank();
-  int nranks = lci::get_nranks();
+  int rank = lci::get_rank_me();
+  int nranks = lci::get_rank_n();
   ASSERT_EQ(rank, 0);
   ASSERT_EQ(nranks, 1);
 
@@ -143,8 +143,8 @@ TEST(COMM_PUTIMM, putImm_zcopy_st)
   lci::g_runtime_init();
 
   const int nmsgs = 1000;
-  int rank = lci::get_rank();
-  int nranks = lci::get_nranks();
+  int rank = lci::get_rank_me();
+  int nranks = lci::get_rank_n();
   ASSERT_EQ(rank, 0);
   ASSERT_EQ(nranks, 1);
   // local cq
@@ -194,8 +194,8 @@ TEST(COMM_PUTIMM, putImm_zcopy_st)
 
 void test_putImm_zcopy_mt(int id, int nmsgs, lci::rcomp_t rcomp_base)
 {
-  int rank = lci::get_rank();
-  int nranks = lci::get_nranks();
+  int rank = lci::get_rank_me();
+  int nranks = lci::get_rank_n();
   ASSERT_EQ(rank, 0);
   ASSERT_EQ(nranks, 1);
   // local cq
@@ -249,8 +249,8 @@ TEST(COMM_PUTIMM, putImm_zcopy_mt)
   const int nmsgs = 20000;
   const int nthreads = 16;
   ASSERT_EQ(nmsgs % nthreads, 0);
-  int rank = lci::get_rank();
-  int nranks = lci::get_nranks();
+  int rank = lci::get_rank_me();
+  int nranks = lci::get_rank_n();
   ASSERT_EQ(rank, 0);
   ASSERT_EQ(nranks, 1);
 
@@ -273,8 +273,8 @@ TEST(COMM_PUTIMM, putImm_buffers_st)
   lci::g_runtime_init();
 
   const int nmsgs = 1000;
-  int rank = lci::get_rank();
-  int nranks = lci::get_nranks();
+  int rank = lci::get_rank_me();
+  int nranks = lci::get_rank_n();
   ASSERT_EQ(rank, 0);
   ASSERT_EQ(nranks, 1);
   // local cq
@@ -341,8 +341,8 @@ TEST(COMM_PUTIMM, putImm_buffers_st)
 
 void test_putImm_buffers_mt(int id, int nmsgs, lci::rcomp_t rcomp_base)
 {
-  int rank = lci::get_rank();
-  int nranks = lci::get_nranks();
+  int rank = lci::get_rank_me();
+  int nranks = lci::get_rank_n();
   ASSERT_EQ(rank, 0);
   ASSERT_EQ(nranks, 1);
   // local cq
@@ -413,8 +413,8 @@ TEST(COMM_PUTIMM, putImm_buffers_mt)
   const int nmsgs = 4992;
   const int nthreads = 16;
   ASSERT_EQ(nmsgs % nthreads, 0);
-  int rank = lci::get_rank();
-  int nranks = lci::get_nranks();
+  int rank = lci::get_rank_me();
+  int nranks = lci::get_rank_n();
   ASSERT_EQ(rank, 0);
   ASSERT_EQ(nranks, 1);
 

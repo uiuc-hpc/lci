@@ -32,7 +32,7 @@ int main(int argc, char** args)
     }
   }
   auto end = std::chrono::high_resolution_clock::now();
-  if (lci::get_rank() == 0) {
+  if (lci::get_rank_me() == 0) {
     std::chrono::duration<double> elapsed = end - start;
     std::cout << "Blocking: " << is_blocking << std::endl;
     std::cout << "Number of steps: " << nsteps << std::endl;

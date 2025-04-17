@@ -6,7 +6,7 @@
 
 namespace lci
 {
-extern int g_rank, g_nranks;
+extern int g_rank_me, g_rank_n;
 extern global_attr_t g_default_attr;
 extern runtime_t g_default_runtime;
 // Internal global configuration

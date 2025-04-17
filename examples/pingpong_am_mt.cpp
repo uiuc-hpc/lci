@@ -15,8 +15,8 @@ std::atomic<int> thread_seqence_control(0);
 
 void worker(int thread_id)
 {
-  int rank = lci::get_rank();
-  int nranks = lci::get_nranks();
+  int rank = lci::get_rank_me();
+  int nranks = lci::get_rank_n();
   int peer_rank;
   if (nranks == 1) {
     peer_rank = rank;
@@ -126,7 +126,7 @@ int main(int argc, char** args)
   // After at least one runtime is active, we can query the rank and nranks.
   // rank is the id of the current process
   // nranks is the total number of the processes in the current job.
-  assert(lci::get_nranks() == 1 || lci::get_nranks() % 2 == 0);
+  assert(lci::get_rank_n() == 1 || lci::get_rank_n() % 2 == 0);
 
   // get a thread barrier
   thread_barrier = LCT_tbarrier_alloc(nthreads);

@@ -167,7 +167,7 @@ void reset_file(int fd, const std::string& content)
 }  // namespace detail
 
 int g_rank = -1;
-int g_nranks = -1;
+int g_rank_n = -1;
 
 int check_availability()
 {
@@ -181,8 +181,8 @@ int check_availability()
 void initialize()
 {
   // Get the expected number of processes from the environment.
-  g_nranks = detail::get_nranks_from_env();
-  LCT_Assert(LCT_log_ctx_default, g_nranks > 0,
+  g_rank_n = detail::get_nranks_from_env();
+  LCT_Assert(LCT_log_ctx_default, g_rank_n > 0,
              "Failed to get the number of ranks from the environment.");
 
   // get the filename
@@ -206,15 +206,15 @@ void initialize()
   }
   detail::unlock_file(fd_nranks);
   LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "pmi_file",
-          "Assigned as rank %d/%d\n", g_rank, g_nranks);
-  LCT_Assert(LCT_log_ctx_default, g_rank < g_nranks,
+          "Assigned as rank %d/%d\n", g_rank, g_rank_n);
+  LCT_Assert(LCT_log_ctx_default, g_rank < g_rank_n,
              "Error: Rank %d is greater than the number of ranks %d. Remove "
              "the %s and try again\n",
-             g_rank, g_nranks, dirname.c_str());
+             g_rank, g_rank_n, dirname.c_str());
 
   std::string filename_barrier = dirname + "barrier";
   std::string filename_data = dirname + "data";
-  if (g_rank == g_nranks - 1) {
+  if (g_rank == g_rank_n - 1) {
     // Create the barrier file
     int fd = open(filename_barrier.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0644);
     LCT_Assert(LCT_log_ctx_default, fd != -1, "Error creating file: %s",
@@ -240,13 +240,13 @@ void initialize()
   }
   close(fd_nranks);
   LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "pmi_file",
-          "Rank %d/%d initialized\n", g_rank, g_nranks);
+          "Rank %d/%d initialized\n", g_rank, g_rank_n);
 }
 
 int initialized() { return g_rank != -1; }
-int get_rank() { return g_rank; }
+int get_rank_me() { return g_rank; }
 
-int get_size() { return g_nranks; }
+int get_size() { return g_rank_n; }
 
 void publish(char* key, char* value)
 {
@@ -306,8 +306,8 @@ void barrier()
   int tag = std::stoi(content.substr(0, pos));
   int count = std::stoi(content.substr(pos + 1));
   LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "pmi_file",
-          "Reach the Barrier: tag %d count %d/%d\n", tag, count, g_nranks);
-  if (count == g_nranks - 1) {
+          "Reach the Barrier: tag %d count %d/%d\n", tag, count, g_rank_n);
+  if (count == g_rank_n - 1) {
     // Reset the count and increment the tag
     detail::reset_file(fd, std::to_string(tag + 1) + " 0");
     detail::unlock_file(fd);
@@ -342,7 +342,7 @@ void barrier()
 void finalize()
 {
   g_rank = -1;
-  g_nranks = -1;
+  g_rank_n = -1;
   return;
 }
 
@@ -353,7 +353,7 @@ void file_setup_ops(struct ops_t* ops)
   ops->check_availability = file_e::check_availability;
   ops->initialize = file_e::initialize;
   ops->is_initialized = file_e::initialized;
-  ops->get_rank = file_e::get_rank;
+  ops->get_rank_me = file_e::get_rank_me;
   ops->get_size = file_e::get_size;
   ops->publish = file_e::publish;
   ops->getname = file_e::getname;

@@ -13,8 +13,8 @@ TEST(COMM_COLL, broadcast)
 {
   lci::g_runtime_init();
 
-  int rank = lci::get_rank();
-  int nranks = lci::get_nranks();
+  int rank = lci::get_rank_me();
+  int nranks = lci::get_rank_n();
 
   for (int root = 0; root < nranks; ++root) {
     uint64_t data = 0;
@@ -41,8 +41,8 @@ TEST(COMM_COLL, reduce_in_place)
 {
   lci::g_runtime_init();
 
-  int rank = lci::get_rank();
-  int nranks = lci::get_nranks();
+  int rank = lci::get_rank_me();
+  int nranks = lci::get_rank_n();
 
   for (int root = 0; root < nranks; ++root) {
     uint64_t data = rank;
@@ -60,8 +60,8 @@ TEST(COMM_COLL, reduce)
 {
   lci::g_runtime_init();
 
-  int rank = lci::get_rank();
-  int nranks = lci::get_nranks();
+  int rank = lci::get_rank_me();
+  int nranks = lci::get_rank_n();
 
   for (int root = 0; root < nranks; ++root) {
     uint64_t data = rank;
@@ -77,8 +77,8 @@ TEST(COMM_COLL, alltoall)
 {
   lci::g_runtime_init();
 
-  int rank = lci::get_rank();
-  int nranks = lci::get_nranks();
+  int rank = lci::get_rank_me();
+  int nranks = lci::get_rank_n();
 
   std::vector<uint64_t> sendbuf(nranks, rank);
   std::vector<uint64_t> recvbuf(nranks, -1);

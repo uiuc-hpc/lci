@@ -15,7 +15,7 @@ int main(int argc, char** args)
   // After at least one runtime is active, we can query the rank and nranks.
   // rank is the id of the current process
   // nranks is the total number of the processes in the current job.
-  printf("%s: %d / %d OK\n", hostname, lci::get_rank(), lci::get_nranks());
+  printf("%s: %d / %d OK\n", hostname, lci::get_rank_me(), lci::get_rank_n());
   // Finalize the global default runtime
   lci::g_runtime_fina();
   return 0;

@@ -17,8 +17,8 @@ void barrier_x::call_impl(runtime_t runtime, device_t device,
                MAX_SEQUENCE_NUMBER;
   int round = 0;
   LCI_UNUSED(round);
-  int rank = get_rank();
-  int nranks = get_nranks();
+  int rank = get_rank_me();
+  int nranks = get_rank_n();
 
   // dissemination algorithm
   LCI_DBG_Log(LOG_TRACE, "collective", "enter barrier %d\n", seqnum);
@@ -118,8 +118,8 @@ void broadcast_x::call_impl(void* buffer, size_t size, int root,
                MAX_SEQUENCE_NUMBER;
 
   int round = 0;
-  int rank = get_rank();
-  int nranks = get_nranks();
+  int rank = get_rank_me();
+  int nranks = get_rank_n();
 
   if (nranks == 1) {
     return;
@@ -193,8 +193,8 @@ void reduce_x::call_impl(const void* sendbuf, void* recvbuf, size_t count,
                MAX_SEQUENCE_NUMBER;
 
   int round = 0;
-  int rank = get_rank();
-  int nranks = get_nranks();
+  int rank = get_rank_me();
+  int nranks = get_rank_n();
 
   if (nranks == 1) {
     if (recvbuf != sendbuf) {
@@ -339,8 +339,8 @@ void alltoall_x::call_impl(const void* sendbuf, void* recvbuf, size_t size,
   int seqnum = g_sequence_number.fetch_add(1, std::memory_order_relaxed) %
                MAX_SEQUENCE_NUMBER;
 
-  int rank = get_rank();
-  int nranks = get_nranks();
+  int rank = get_rank_me();
+  int nranks = get_rank_n();
 
   LCI_DBG_Log(LOG_TRACE, "collective",
               "enter alltoall %d (sendbuf %p recvbuf %p size %lu)\n", seqnum,

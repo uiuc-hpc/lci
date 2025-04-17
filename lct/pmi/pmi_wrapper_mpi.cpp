@@ -31,7 +31,7 @@ void initialize()
 }
 
 int initialized() { return is_initialized; }
-int get_rank()
+int get_rank_me()
 {
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -55,7 +55,7 @@ void getname(int rank, char* key, char* value)
 
 void barrier()
 {
-  int rank = get_rank();
+  int rank = get_rank_me();
   int size = get_size();
   // exchange the counts
   int my_count = l_archive.size;
@@ -124,7 +124,7 @@ void mpi_setup_ops(struct ops_t* ops)
   ops->check_availability = mpi::check_availability;
   ops->initialize = mpi::initialize;
   ops->is_initialized = mpi::initialized;
-  ops->get_rank = mpi::get_rank;
+  ops->get_rank_me = mpi::get_rank_me;
   ops->get_size = mpi::get_size;
   ops->publish = mpi::publish;
   ops->getname = mpi::getname;

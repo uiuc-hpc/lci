@@ -27,7 +27,7 @@ void initialize()
 }
 
 int initialized() { return PMI2_Initialized(); }
-int get_rank() { return g_rank; }
+int get_rank_me() { return g_rank; }
 
 int get_size() { return g_size; }
 
@@ -55,7 +55,7 @@ void pmi2_setup_ops(struct ops_t* ops)
   ops->check_availability = pmi2::check_availability;
   ops->initialize = pmi2::initialize;
   ops->is_initialized = pmi2::initialized;
-  ops->get_rank = pmi2::get_rank;
+  ops->get_rank_me = pmi2::get_rank_me;
   ops->get_size = pmi2::get_size;
   ops->publish = pmi2::publish;
   ops->getname = pmi2::getname;

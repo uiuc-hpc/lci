@@ -44,9 +44,9 @@ input = [
 #     }
 # ),
 operation(
-    "get_rank", 
+    "get_rank_me", 
     [
-        return_val("int", "rank", comment="the rank of the current process")
+        return_val("int", "rank_me", comment="the rank of the current process")
     ],
     doc = {
         "in_group": "LCI_SETUP",
@@ -55,9 +55,9 @@ operation(
     }
 ),
 operation(
-    "get_nranks",
+    "get_rank_n",
     [
-        return_val("int", "nranks", comment="the number of ranks in the current application/job")
+        return_val("int", "rank_n", comment="the number of ranks in the current application/job")
     ],
     doc = {
         "in_group": "LCI_SETUP",
