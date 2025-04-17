@@ -17,7 +17,7 @@
 #
 # Redistribution and use is allowed according to the terms of the BSD license.
 
-include(CheckCSourceCompiles)
+include(CheckCXXSourceCompiles)
 
 macro(CHECK_STRUCT_MEMBER _STRUCT _MEMBER _HEADER _RESULT)
   message(STATUS "Looking for ${_STRUCT}.${_MEMBER}")
@@ -39,7 +39,7 @@ int main()
 }
 ")
   set(CMAKE_REQUIRED_QUIET ON)
-  check_c_source_compiles("${_CHECK_STRUCT_MEMBER_SOURCE_CODE}" ${_RESULT})
+  check_cxx_source_compiles("${_CHECK_STRUCT_MEMBER_SOURCE_CODE}" ${_RESULT})
   set(CMAKE_REQUIRED_QUIET)
   if(${_RESULT})
     message(STATUS "Looking for ${_STRUCT}.${_MEMBER} - found")

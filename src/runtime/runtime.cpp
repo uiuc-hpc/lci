@@ -113,7 +113,8 @@ void runtime_impl_t::initialize()
       attr.rdv_protocol = attr_rdv_protocol_t::write;
       LCI_Warn(
           "Switch LCI_RDV_PROTOCOL to \"write\" "
-          "as required by the libfabric cxi backend\n");
+          "as required by the libfabric cxi backend. Turn off this warning by "
+          "`export LCI_RDV_PROTOCOL=write`\n");
     }
   }
   if (attr.alloc_default_packet_pool) {

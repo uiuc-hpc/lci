@@ -52,10 +52,12 @@ static inline void* alloc_memalign(size_t size,
 {
   void* p_ptr = nullptr;
   int ret = posix_memalign(&p_ptr, alignment, size);
+#ifdef _SC_AVPHYS_PAGES
   LCI_Assert(
       ret == 0, "posix_memalign(%lu, %lu) returned %d (Free memory %lu/%lu)\n",
       alignment, size, ret, sysconf(_SC_AVPHYS_PAGES) * sysconf(_SC_PAGESIZE),
       sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE));
+#endif
   return p_ptr;
 }
 

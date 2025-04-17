@@ -39,7 +39,7 @@ ibv_net_context_impl_t::ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   LCI_Assert(num_devices > 0,
              "Unable to find any IB devices. Are you running on an Infiniband "
              "machine? Try the LCI ofi backend by building LCI with "
-             "`-DLCI_SERVER=ofi` and `-DLCI_FORCE_SERVER=ON`.\n");
+             "`-DLCI_NETWORK_BACKENDS=ofi`.\n");
 
   bool ret = ibv_detail::select_best_device_port(ib_dev_list, num_devices,
                                                  &ib_dev, &ib_dev_port);

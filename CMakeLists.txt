@@ -1,12 +1,9 @@
 cmake_minimum_required(VERSION 3.12)
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-  project(
-    LCI
-    VERSION 2.0.0
-    DESCRIPTION "Lightweight Communication Interface (LCI)"
-    HOMEPAGE_URL "https://github.com/uiuc-hpc/lci")
-  enable_testing()
-endif()
+project(
+  LCI
+  VERSION 2.0.0
+  DESCRIPTION "Lightweight Communication Interface (LCI)"
+  HOMEPAGE_URL "https://github.com/uiuc-hpc/lci")
 
 cmake_policy(SET CMP0079 NEW)
 
@@ -110,13 +107,6 @@ if(NOT LCI_WITH_LCT_ONLY)
     message(FATAL_ERROR "Cannot find any backends. Give up!")
   endif()
 
-  set(LCI_NETWORK_BACKENDS_ENABLED
-      ${LCI_NETWORK_BACKENDS_ENABLED}
-      CACHE
-        STRING
-        "Used as an output variable if LCI is included in a larger project via FetchContent"
-        FORCE)
-
   # ############################################################################
   # LCI Optimization Options
   # ############################################################################
@@ -149,9 +139,11 @@ if(NOT LCI_WITH_LCT_ONLY)
   # memory allocation with alignment
   option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
 
-  # registration cache
-  set(LCI_COMPILE_REG_CACHE_DEFAULT ON)
-  if(LCI_BACKEND_ENABLE_UCX)
+  # registration cache Turn it off for now as LCI2 has not yet used it
+  set(LCI_COMPILE_REG_CACHE_DEFAULT OFF)
+  if(LCI_USE_SERVER_UCX OR APPLE)
+    # Our UCS code can be non-compatible with external UCX. Some UCS code is not
+    # compatible with MacOS
     set(LCI_COMPILE_REG_CACHE_DEFAULT OFF)
   endif()
   set(LCI_COMPILE_REG_CACHE
@@ -199,8 +191,8 @@ if(NOT LCI_WITH_LCT_ONLY)
          "Enable the progress specific network endpoint by default." ON)
 
   # optimize for native
-  include(CheckCCompilerFlag)
-  check_c_compiler_flag("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
   option(LCI_OPTIMIZE_FOR_NATIVE "Build with -march=native"
          ${COMPILER_SUPPORTS_MARCH_NATIVE})
   if(LCI_OPTIMIZE_FOR_NATIVE)
@@ -217,7 +209,7 @@ if(NOT LCI_WITH_LCT_ONLY)
   # avx
   option(LCI_USE_AVX "Use GCC vector extension for the immediate field" OFF)
   if(LCI_USE_AVX)
-    check_c_compiler_flag("-mavx" COMPILER_SUPPORTS_MAVX)
+    check_cxx_compiler_flag("-mavx" COMPILER_SUPPORTS_MAVX)
     if(NOT COMPILER_SUPPORTS_MAVX)
       message(
         FATAL_ERROR
@@ -279,24 +271,40 @@ if(NOT LCI_WITH_LCT_ONLY)
   add_subdirectory(src)
   add_subdirectory(third_party)
 
-  if(LCI_WITH_EXAMPLES)
-    add_subdirectory(examples)
-  endif()
-  if(LCI_WITH_BENCHMARKS)
-    add_subdirectory(benchmarks)
-  endif()
-  if(LCI_WITH_TESTS)
-    add_subdirectory(tests)
-  endif()
-  if(LCI_WITH_DOC)
-    add_subdirectory(doc)
-  endif()
-endif() # if (NOT LCI_WITH_LCT_ONLY)
+  if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    # only build the following if this is the root project
+    enable_testing()
+    if(LCI_WITH_EXAMPLES)
+      add_subdirectory(examples)
+    endif()
+    if(LCI_WITH_BENCHMARKS)
+      add_subdirectory(benchmarks)
+    endif()
+    if(LCI_WITH_TESTS)
+      add_subdirectory(tests)
+    endif()
+    if(LCI_WITH_DOC)
+      add_subdirectory(doc)
+    endif()
+  endif() # if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+endif() # if(NOT LCI_WITH_LCT_ONLY)
+
+# ##############################################################################
+# Special treatment for FetchContent
+# ##############################################################################
+
+if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  # For autofetch LCI
+  add_library(LCI::LCI ALIAS LCI)
+  add_library(LCI::lci ALIAS LCI)
+endif()
 
 # ##############################################################################
 # Install
 # ##############################################################################
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+option(LCI_FETCHCONTENT_INSTALL "Install LCI when using FetchContent" ON)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR
+   OR LCI_FETCHCONTENT_INSTALL)
   set(PKGCONFIG_REQUIRES_PRIVATE ${Fabric_${FABRIC}_PC_Requires})
   set(PKGCONFIG_LIBS_PRIVATE ${Fabric_${FABRIC}_PC_Libs})
   configure_file(liblci.pc.in liblci.pc @ONLY)
