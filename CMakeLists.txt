@@ -138,11 +138,12 @@ if(NOT LCI_WITH_LCT_ONLY)
     find_package(TCMalloc)
     if(NOT TCMALLOC_FOUND)
       message(
-        FATAL_ERROR
-          "TCMalloc is not found; Please either install it or pass -DLCI_USE_TCMALLOC=OFF"
+        WARNING
+          "TCMalloc is not found; Performance may be degraded. Consider installing TCMalloc."
       )
+    else()
+      target_link_libraries(LCI PRIVATE ${Tcmalloc_LIBRARIES})
     endif()
-    target_link_libraries(LCI PRIVATE ${Tcmalloc_LIBRARIES})
   endif()
 
   # memory allocation with alignment
