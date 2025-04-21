@@ -1,4 +1,15 @@
+# Copyright Spack Project Developers. See COPYRIGHT file for details.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR MIT)
+
 from spack.package import *
+
+
+def is_positive_int(val):
+    try:
+        return int(val) > 0
+    except ValueError:
+        return val == "auto"
 
 
 class Lci(CMakePackage):
@@ -10,6 +21,8 @@ class Lci(CMakePackage):
 
     maintainers("omor1", "JiakunYan")
 
+    license("MIT")
+
     version("master", branch="master")
     version("1.7.9", sha256="49f212d034e7d0b63af29e76b17935a3221830090af02c0e0912cea8a7a58d91")
     version("1.7.8", sha256="9d54dd669b54e715162c5184a0e5cc64fd479e9fda60b2a490197d901368afda")
@@ -18,12 +31,6 @@ class Lci(CMakePackage):
     version("1.7.5", sha256="13e4084c9e7aaf55966ba5aa0423164b8fd21ee7526fc62017b3c9b3db99cb83")
     version("1.7.4", sha256="00c6ef06bf90a02b55c72076dedf912580dcb1fb59fdc0e771d9e1a71283b72f")
     version("1.7.3", sha256="3c47d51d4925e6700294ac060c88a73c26ca6e9df5b4010d0e90b0bf5e505040")
-
-    def is_positive_int(val):
-        try:
-            return int(val) > 0
-        except ValueError:
-            return val == "auto"
 
     variant(
         "fabric",
@@ -68,21 +75,21 @@ class Lci(CMakePackage):
         default="auto",
         values=is_positive_int,
         description="Max number of send descriptors that can be posted (send queue length) "
-                    "at the fabric layer by default",
+        "at the fabric layer by default",
     )
     variant(
         "fabric-nrecvs-max",
         default="auto",
         values=is_positive_int,
         description="Max number of receive descriptors that can be posted (receive queue length) "
-                    "at the fabric layer by default",
+        "at the fabric layer by default",
     )
     variant(
         "fabric-ncqes-max",
         default="auto",
         values=is_positive_int,
         description="Max number of completion queue entries that can be posted "
-                    "(completion queue length) at the fabric layer by default",
+        "(completion queue length) at the fabric layer by default",
     )
 
     variant("debug", default=False, description="Enable the debug mode")
@@ -98,7 +105,7 @@ class Lci(CMakePackage):
         .prohibit_empty_set()
         .with_default("auto")
         .with_non_feature_values("auto"),
-        )
+    )
     variant(
         "default-pm",
         description="Order of process management backends to try by default",
@@ -106,9 +113,12 @@ class Lci(CMakePackage):
         .prohibit_empty_set()
         .with_default("auto")
         .with_non_feature_values("auto"),
-        )
+    )
 
     generator("ninja", "make", default="ninja")
+
+    depends_on("c", type="build")  # generated
+    depends_on("cxx", type="build")  # generated
 
     depends_on("cmake@3.12:", type="build")
     depends_on("libfabric", when="fabric=ofi")
@@ -134,50 +144,58 @@ class Lci(CMakePackage):
         ]
 
         if not self.spec.satisfies("dreg=auto"):
-            arg = self.define_from_variant("LCI_USE_DREG_DEFAULT", "dreg")
-            args.append(arg)
+            args.append(self.define_from_variant("LCI_USE_DREG_DEFAULT", "dreg"))
 
         if not self.spec.satisfies("enable-pm=auto"):
-            arg = self.define("LCT_PMI_BACKEND_ENABLE_PMI1", "enable-pm=pmi1" in self.spec)
-            args.append(arg)
-            arg = self.define("LCT_PMI_BACKEND_ENABLE_PMI2", "enable-pm=pmi2" in self.spec)
-            args.append(arg)
-            arg = self.define("LCT_PMI_BACKEND_ENABLE_MPI", "enable-pm=mpi" in self.spec)
-            args.append(arg)
-            arg = self.define("LCT_PMI_BACKEND_ENABLE_PMIX", "enable-pm=pmix" in self.spec)
-            args.append(arg)
+            args.extend(
+                [
+                    self.define(
+                        "LCT_PMI_BACKEND_ENABLE_PMI1", self.spec.satisfies("enable-pm=pmi1")
+                    ),
+                    self.define(
+                        "LCT_PMI_BACKEND_ENABLE_PMI2", self.spec.satisfies("enable-pm=pmi2")
+                    ),
+                    self.define(
+                        "LCT_PMI_BACKEND_ENABLE_MPI", self.spec.satisfies("enable-pm=mpi")
+                    ),
+                    self.define(
+                        "LCT_PMI_BACKEND_ENABLE_PMIX", self.spec.satisfies("enable-pm=pmix")
+                    ),
+                ]
+            )
 
         if self.spec.satisfies("default-pm=cray"):
-            arg = self.define("LCI_PMI_BACKEND_DEFAULT", "pmi1")
-            args.append(arg)
-            arg = self.define("LCT_PMI_BACKEND_ENABLE_PMI1", True)
-            args.append(arg)
+            args.extend(
+                [
+                    self.define("LCI_PMI_BACKEND_DEFAULT", "pmi1"),
+                    self.define("LCT_PMI_BACKEND_ENABLE_PMI1", True),
+                ]
+            )
         elif not self.spec.satisfies("default-pm=auto"):
-            arg = self.define_from_variant("LCI_PMI_BACKEND_DEFAULT", "default-pm")
-            args.append(arg)
+            args.append(self.define_from_variant("LCI_PMI_BACKEND_DEFAULT", "default-pm"))
 
         if not self.spec.satisfies("cache-line=auto"):
-            arg = self.define_from_variant("LCI_CACHE_LINE", "cache-line")
-            args.append(arg)
+            args.append(self.define_from_variant("LCI_CACHE_LINE", "cache-line"))
 
         if not self.spec.satisfies("packet-size=auto"):
-            arg = self.define_from_variant("LCI_PACKET_SIZE_DEFAULT", "packet-size")
-            args.append(arg)
+            args.append(self.define_from_variant("LCI_PACKET_SIZE_DEFAULT", "packet-size"))
 
         if not self.spec.satisfies("npackets=auto"):
-            arg = self.define_from_variant("LCI_SERVER_NUM_PKTS_DEFAULT", "npackets")
-            args.append(arg)
+            args.append(self.define_from_variant("LCI_SERVER_NUM_PKTS_DEFAULT", "npackets"))
 
         if not self.spec.satisfies("fabric-nsends-max=auto"):
-            arg = self.define_from_variant("LCI_SERVER_MAX_SENDS_DEFAULT", "fabric-nsends-max")
-            args.append(arg)
+            args.append(
+                self.define_from_variant("LCI_SERVER_MAX_SENDS_DEFAULT", "fabric-nsends-max")
+            )
 
         if not self.spec.satisfies("fabric-nrecvs-max=auto"):
-            arg = self.define_from_variant("LCI_SERVER_MAX_RECVS_DEFAULT", "fabric-nrecvs-max")
-            args.append(arg)
+            args.append(
+                self.define_from_variant("LCI_SERVER_MAX_RECVS_DEFAULT", "fabric-nrecvs-max")
+            )
 
         if not self.spec.satisfies("fabric-ncqes-max=auto"):
-            arg = self.define_from_variant("LCI_SERVER_MAX_CQES_DEFAULT", "fabric-ncqes-max")
-            args.append(arg)
+            args.append(
+                self.define_from_variant("LCI_SERVER_MAX_CQES_DEFAULT", "fabric-ncqes-max")
+            )
 
         return args
