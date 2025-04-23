@@ -29,7 +29,7 @@ LCI is implemented as a C++ libraries with two major network backends:
 [libibverbs](https://github.com/linux-rdma/rdma-core/blob/master/Documentation/libibverbs.md) for InfiniBand/RoCE and 
 [libfabrics](https://ofiwg.github.io/libfabric/) for Slingshot-11, Ethernet, shared memory, and other networks.
 
-[API documentation](https://uiuc-hpc.github.io/lci/html/modules.html)
+[API documentation](https://uiuc-hpc.github.io/lci/)
 
 ## Installation
 ### CMake
@@ -89,7 +89,10 @@ but it is a good tool for fast testing and debugging.
 ## Write an LCI program
 
 Read [this short paper](https://arxiv.org/abs/2503.15400) to understand the high-level interface design of LCI. 
+
 See `examples` and `tests` for some example code.
+
+Check out the [API documentation](https://uiuc-hpc.github.io/lci/) for more details.
 
 ## LICENSE
 See LICENSE file.
