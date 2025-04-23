@@ -128,6 +128,17 @@ as LCI and MPI can contend for network resources, but the impact should be insig
 You can use `export LCT_LOG_LEVEL=info` to monitor what bootstrap backend LCI is actually using 
 and use `export LCT_PMI_BACKEND=[pmi1|pmi2|pmix|mpi]` to change the default behavior.
 
+#### Why does `lcrun` not work?
+`lcrun` relies on another simple bootstrapping backend `file` which relies on the shared file
+system and `flock` to work.
+
+It is possible that a previous failed run of `lcrun` did not clean up the temporary files
+it created. You can
+```
+rm -r ~/.tmp/lct_pmi_file-*
+```
+then try again.
+
 ### Others
 #### What is LCT?
 The Lightweight Communication Tools (LCT) library provides basic services such as bootstrapping
