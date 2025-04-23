@@ -93,6 +93,11 @@ See `examples` and `tests` for some example code.
 ## LICENSE
 See LICENSE file.
 
+## Relevant Publications
+- Yan, Jiakun, and Marc Snir. "Contemplating a Lightweight Communication Interface for Asynchronous Many-Task Systems." arXiv preprint arXiv:2503.15400 (2025). *A short workshop paper describing the high-level interface design of LCI (version 2, the current version).*
+- Yan, Jiakun, Hartmut Kaiser, and Marc Snir. "Understanding the Communication Needs of Asynchronous Many-Task Systems--A Case Study of HPX+ LCI." arXiv preprint arXiv:2503.12774 (2025). *Paper about integrating LCI (version 1) into HPX.*
+- Mor, Omri, George Bosilca, and Marc Snir. "Improving the scaling of an asynchronous many-task runtime with a lightweight communication engine." Proceedings of the 52nd International Conference on Parallel Processing. 2023. *Paper about integrating LCI (version 1) into PaRSEC.*
+
 ## Frequently Asked Questions
 ### Bootstrapping
 #### Why was my LCI application launched as a collection of processes all with rank 0?
