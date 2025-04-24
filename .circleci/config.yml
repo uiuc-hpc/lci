@@ -42,7 +42,8 @@ jobs:
                 -DLCI_NETWORK_BACKENDS=ofi,ibv \
                 -DLCI_PACKET_NUM_DEFAULT=8192 \
                 -DLCI_BACKEND_MAX_RECVS_DEFAULT=1024 \
-                -DLCI_USE_TCMALLOC=OFF
+                -DLCI_USE_TCMALLOC=OFF \
+                -DCMAKE_VERBOSE_MAKEFILE=ON
       - run:
           name: Running CMake Build
           command: |

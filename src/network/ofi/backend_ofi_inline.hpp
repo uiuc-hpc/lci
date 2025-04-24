@@ -161,8 +161,7 @@ inline error_t ofi_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
                                                    uint64_t offset, rkey_t rkey)
 {
   uintptr_t addr;
-  if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR ||
-      ofi_domain_attr->mr_mode & FI_MR_BASIC) {
+  if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
     addr = base + offset;
   } else {
     addr = offset;
@@ -202,8 +201,7 @@ inline error_t ofi_endpoint_impl_t::post_put_impl(int rank, void* buffer,
                                                   void* user_context)
 {
   uintptr_t addr;
-  if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR ||
-      ofi_domain_attr->mr_mode & FI_MR_BASIC) {
+  if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
     addr = base + offset;
   } else {
     addr = offset;
@@ -242,8 +240,7 @@ inline error_t ofi_endpoint_impl_t::post_putImms_impl(
     rkey_t rkey, net_imm_data_t imm_data)
 {
   uintptr_t addr;
-  if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR ||
-      ofi_domain_attr->mr_mode & FI_MR_BASIC) {
+  if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
     addr = base + offset;
   } else {
     addr = offset;
@@ -266,8 +263,7 @@ inline error_t ofi_endpoint_impl_t::post_putImm_impl(
     uint64_t offset, rkey_t rkey, net_imm_data_t imm_data, void* user_context)
 {
   uintptr_t addr;
-  if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR ||
-      ofi_domain_attr->mr_mode & FI_MR_BASIC) {
+  if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
     addr = base + offset;
   } else {
     addr = offset;
@@ -293,8 +289,7 @@ inline error_t ofi_endpoint_impl_t::post_get_impl(int rank, void* buffer,
                                                   void* user_context)
 {
   uintptr_t addr;
-  if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR ||
-      ofi_domain_attr->mr_mode & FI_MR_BASIC) {
+  if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
     addr = base + offset;
   } else {
     addr = offset;

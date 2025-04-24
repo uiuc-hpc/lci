@@ -16,15 +16,15 @@ int main(int argc, char** args)
   char name[256];
   PMI_KVS_Get_my_name(name, 255);
 
-  sprintf(key, "_LC_KEY_%d", rank);
-  sprintf(val, "_LC_VAL_%d", rank);
+  snprintf(key, 256, "_LC_KEY_%d", rank);
+  snprintf(val, 256, "_LC_VAL_%d", rank);
   PMI_KVS_Put(name, key, val);
   PMI_Barrier();
 
   int i;
   for (i = 1; i < size; i++) {
     int target = (rank + i) % size;
-    sprintf(key, "_LC_KEY_%d", target);
+    snprintf(key, 256, "_LC_KEY_%d", target);
     PMI_KVS_Get(name, key, val, 255);
     printf("%d >> %s: %s\n", rank, key, val);
   }

@@ -190,7 +190,7 @@ int PMI_Init(int* spawned)
   if (!PMI_initialized) PMI_initialized = NORMAL_INIT_WITH_PM;
 
   char buf[20];
-  sprintf(buf, "%d", PMI_fd);
+  snprintf(buf, 20, "%d", PMI_fd);
   setenv("PMI_FD", buf, 1);
 
   return (0);

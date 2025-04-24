@@ -49,7 +49,7 @@ class graph_t : public comp_impl_t
   // the graph structure
   std::vector<graph_node_t> m_start_nodes;
   std::atomic<int> m_end_signals_initial;
-  char padding[64];
+  char padding[LCI_CACHE_LINE];
   // needed when executing the graph
   std::atomic<int> m_end_signals_remain;
   void* m_end_value;

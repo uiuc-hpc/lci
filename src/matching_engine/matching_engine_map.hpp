@@ -38,10 +38,17 @@ class matching_engine_map_t : public matching_engine_impl_t
     key_t key;
     // 16 bytes
     union {
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnested-anon-types"
+#endif
       struct {
         node_t* head;
         node_t* tail;
       } list;
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
       val_t slots[SLOT_NUM_VALUES];
     };
 
@@ -188,18 +195,19 @@ class matching_engine_map_t : public matching_engine_impl_t
 
   struct bucket_t {
     // 32 bytes
+    // Note: on apple, this may be a multiple of 32 bytes
     struct {
       bucket_t* next = nullptr;
       spinlock_t lock;
       int nqueues;
-      char padding[32 - sizeof(bucket_t*) - sizeof(spinlock_t) - sizeof(int)];
+      char padding[32 -
+                   (sizeof(bucket_t*) + sizeof(spinlock_t) + sizeof(int)) % 32];
     } control;
 
     bucket_t() : bucket_t(BUCKET_NUM_QUEUES_DEFAULT) {}
 
     static bucket_t* alloc(int nqueues = BUCKET_NUM_QUEUES_DEFAULT)
     {
-      static_assert(sizeof(bucket_t) == 32, "bucket_t size is not 32 bytes");
       size_t size = sizeof(bucket_t) + nqueues * sizeof(queue_t);
       bucket_t* bucket = (bucket_t*)alloc_memalign(size);
       bucket = new (bucket) bucket_t(nqueues);
@@ -264,7 +272,13 @@ class matching_engine_map_t : public matching_engine_impl_t
  public:
   matching_engine_map_t(attr_t attr) : matching_engine_impl_t(attr)
   {
-    static_assert(sizeof(bucket_t) == 32, "bucket_t size is not 16 bytes");
+    if constexpr (sizeof(bucket_t) != 32) {
+      LCI_DBG_Log(
+          LOG_DEBUG, "matching_engine",
+          "bucket_t size is not 32 bytes but %lu bytes, performance may be "
+          "affected\n",
+          sizeof(bucket_t));
+    }
     static_assert(sizeof(node_t) == 64, "node_t size is not 16 bytes");
     table =
         (bucket_t*)alloc_memalign(TABLE_NUM_MASTER_BUCKETS * bucket_t::size());

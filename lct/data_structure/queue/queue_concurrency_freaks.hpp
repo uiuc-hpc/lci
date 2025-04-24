@@ -2,10 +2,12 @@
 #define LCI_QUEUE_CONCURRENCY_FREAKS_HPP
 
 #include "third_party/ConcurrencyFreaks/MichaelScottQueue.hpp"
+#ifndef __APPLE__
 #include "third_party/ConcurrencyFreaks/LCRQueue.hpp"
+#include "third_party/lprq/LPRQueue.hpp"
+#endif
 #include "third_party/ConcurrencyFreaks/array/FAAArrayQueue.hpp"
 #include "third_party/ConcurrencyFreaks/array/LazyIndexArrayQueue.hpp"
-#include "third_party/lprq/LPRQueue.hpp"
 
 namespace lct
 {

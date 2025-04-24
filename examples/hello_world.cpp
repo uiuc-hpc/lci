@@ -8,8 +8,8 @@
 
 int main(int argc, char** args)
 {
-  char hostname[HOST_NAME_MAX + 1];
-  gethostname(hostname, HOST_NAME_MAX + 1);
+  char hostname[256];
+  gethostname(hostname, 256);
   // Initialize the global default runtime.
   lci::g_runtime_init();
   // After at least one runtime is active, we can query the rank and nranks.

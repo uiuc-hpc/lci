@@ -26,8 +26,12 @@ option(LCI_WITH_LCT_ONLY
        "Only Build the Lightweight Communication Tools (LCT) Library" OFF)
 
 add_library(LCT)
-set_target_properties(LCT PROPERTIES CXX_VISIBILITY_PRESET hidden CXX_STANDARD
-                                                                  17)
+set_target_properties(
+  LCT
+  PROPERTIES CXX_STANDARD 17
+             CXX_STANDARD_REQUIRED ON
+             CXX_EXTENSIONS OFF)
+set_target_properties(LCT PROPERTIES CXX_VISIBILITY_PRESET hidden)
 set_target_properties(LCT PROPERTIES OUTPUT_NAME lct)
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
@@ -42,11 +46,21 @@ if(NOT LCI_WITH_LCT_ONLY)
   # ############################################################################
 
   add_library(LCI)
-  set_target_properties(LCI PROPERTIES CXX_STANDARD 11 CXX_EXTENSIONS ON)
-  target_compile_definitions(LCI PRIVATE _GNU_SOURCE)
+  set_target_properties(
+    LCI
+    PROPERTIES CXX_STANDARD 17
+               CXX_STANDARD_REQUIRED ON
+               CXX_EXTENSIONS OFF)
   target_link_libraries(LCI PUBLIC LCT)
   set_target_properties(LCI PROPERTIES OUTPUT_NAME lci)
   target_compile_options(LCI PRIVATE -Wall -Wextra -Wpedantic -Werror)
+  # Disable unused private field warning for clang because we use them for
+  # padding
+  target_compile_options(
+    LCI
+    PRIVATE
+      $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wno-unused-private-field>
+  )
 
   # ############################################################################
   # What parts of LCI to build

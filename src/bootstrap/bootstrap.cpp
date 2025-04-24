@@ -94,7 +94,8 @@ void alltoall(const void* sendbuf, void* recvbuf, size_t size)
       char value[LCT_PMI_STRING_LIMIT];
       memset(key, 0, LCT_PMI_STRING_LIMIT);
       memset(value, 0, LCT_PMI_STRING_LIMIT);
-      sprintf(key, "LCI_BOOTSTRAP_%d_%d_%d", round, i, rank_me);
+      snprintf(key, LCT_PMI_STRING_LIMIT, "LCI_BOOTSTRAP_%d_%d_%d", round, i,
+               rank_me);
       // memcpy(value, (char*)sendbuf + i * size, size);
       detail::encode_value((char*)sendbuf + i * size, size, value);
       LCT_pmi_publish(key, value);
@@ -105,7 +106,8 @@ void alltoall(const void* sendbuf, void* recvbuf, size_t size)
       char value[LCT_PMI_STRING_LIMIT];
       memset(key, 0, LCT_PMI_STRING_LIMIT);
       memset(value, 0, LCT_PMI_STRING_LIMIT);
-      sprintf(key, "LCI_BOOTSTRAP_%d_%d_%d", round, rank_me, i);
+      snprintf(key, LCT_PMI_STRING_LIMIT, "LCI_BOOTSTRAP_%d_%d_%d", round,
+               rank_me, i);
       LCT_pmi_getname(i, key, value);
       // memcpy((char*)recvbuf + i * size, value, size);
       detail::decode_value(value, size, (char*)recvbuf + i * size);

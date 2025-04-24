@@ -6,6 +6,7 @@
 #include <thread>
 #include <unistd.h>
 #include <stdexcept>
+#include <inttypes.h>
 #include "lcti.hpp"
 
 namespace lct::pcounter
@@ -309,6 +310,8 @@ struct ctx_t {
         ret = static_cast<int>(timer_names.size());
         timer_names.emplace_back(name_);
         break;
+      default:
+        ret = -1;
     }
     return ret;
   }
@@ -386,13 +389,15 @@ struct ctx_t {
                    const entry_t& entry) const
   {
     if (entry.count > 0) {
-      fprintf(out, "pcounter,%s,%d,%s,%ld,%s,%ld,%ld,%ld,%ld,%ld\n",
+      fprintf(out,
+              "pcounter,%s,%d,%s,%" PRId64 ",%s,%" PRId64 ",%" PRId64
+              ",%" PRId64 ",%" PRId64 ",%" PRId64 "\n",
               type_name.c_str(), LCT_get_rank(), name.c_str(),
               static_cast<int64_t>(LCT_time_to_us(record_time - start_time)),
               entry_name.c_str(), entry.total, entry.count,
               entry.total / entry.count, entry.min, entry.max);
     } else {
-      fprintf(out, "pcounter,%s,%d,%s,%ld,%s,,0,,\n", type_name.c_str(),
+      fprintf(out, "pcounter,%s,%d,%s,%" PRId64 ",%s,,0,,\n", type_name.c_str(),
               LCT_get_rank(), name.c_str(),
               static_cast<int64_t>(LCT_time_to_us(record_time - start_time)),
               entry_name.c_str());
@@ -404,8 +409,8 @@ struct ctx_t {
     lock.lock();
     fprintf(out,
             "pcounter-summary: rank %d, name %s, "
-            "total records %lu, total record time %ld ns, "
-            "total init time %ld ns\n",
+            "total records %lu, total record time %" PRId64
+            " ns, total init time %" PRId64 " ns\n",
             LCT_get_rank(), name.c_str(), records.size(),
             static_cast<int64_t>(LCT_time_to_ns(total_record_time)),
             static_cast<int64_t>(LCT_time_to_ns(total_initialize_time)));

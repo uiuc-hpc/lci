@@ -327,6 +327,7 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
     }
     char wgid[ibv_detail::WIRE_GID_NBYTES + 1];
     memset(wgid, 0, sizeof(wgid));
+    // FIXME: Maybe we do not need this serialization
     ibv_detail::gid_to_wire_gid(&p_net_context->ib_gid, wgid);
     // // Use this queue pair "i" to connect to rank e.
     // char key[LCT_PMI_STRING_LIMIT + 1];

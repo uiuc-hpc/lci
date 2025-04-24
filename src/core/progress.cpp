@@ -116,7 +116,7 @@ void progress_write(endpoint_t endpoint, const net_status_t& net_status)
     if (ectx->recv_ctx) {
       handle_rdv_local_write(endpoint, ectx);
     }  // else: this is a RDMA write buffers
-    internal_context_extended_t::free(ectx);
+    delete ectx;
     free_ctx_and_signal_comp(ctx);
   } else {
     free_ctx_and_signal_comp(internal_ctx);
@@ -167,7 +167,7 @@ void progress_read(const net_status_t& net_status)
     }
     LCI_DBG_Assert(signal_count == 0, "Unexpected signal!\n");
     internal_context_t* ctx = ectx->internal_ctx;
-    internal_context_extended_t::free(ectx);
+    delete ectx;
     free_ctx_and_signal_comp(ctx);
   } else {
     if (internal_ctx->packet_to_free) {

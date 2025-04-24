@@ -40,8 +40,8 @@ void test_multithread0(lci::mpmc_array_t<void*>& array,
 TEST(MPMC_ARRAY, multithread0)
 {
   lci::global_initialize();
-  const int nthreads = 16;
-  const int total = 1000;
+  const int nthreads = util::NTHREADS;
+  const int total = util::NITERS_SMALL;
   std::atomic<int> counter(0);
   lci::mpmc_array_t<void*> array(1);
   std::vector<std::thread> threads;

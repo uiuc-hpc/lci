@@ -51,10 +51,9 @@ void test_multithread0(int id, lci::comp_t comp, int threshold, int n,
       my_sync_signal(comp, i + id);
     } else {
       // consumer
-      uint64_t results[threshold];
-      my_sync_wait(comp, threshold, results);
-      bool flags[threshold];
-      memset(flags, false, sizeof(flags));
+      std::vector<uint64_t> results(threshold, 0);
+      my_sync_wait(comp, threshold, results.data());
+      std::vector<bool> flags(threshold, false);
       for (int j = 0; j < threshold; j++) {
         uint64_t idx = results[j] - i;
         ASSERT_EQ(flags[idx], false);
@@ -68,8 +67,8 @@ void test_multithread0(int id, lci::comp_t comp, int threshold, int n,
 TEST(SYNC, multithread0)
 {
   lci::g_runtime_init();
-  const int threshold = 8;
-  const int n = 1000;
+  const int threshold = util::NTHREADS;
+  const int n = util::NITERS_SMALL;
 
   lci::comp_t comp = lci::alloc_sync_x().threshold(threshold)();
   std::atomic<int> barrier(0);

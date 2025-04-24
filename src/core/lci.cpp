@@ -5,8 +5,6 @@
 
 namespace lci
 {
-__thread internal_context_t* internal_context_alloc_cache = nullptr;
-
 const char* get_errorcode_str(errorcode_t errorcode)
 {
   static const char errorcode_str[][32] = {

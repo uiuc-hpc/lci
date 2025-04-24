@@ -3,7 +3,11 @@
 
 function(add_lci_executable name)
   add_executable(${name} ${ARGN})
-  target_compile_definitions(${name} PRIVATE _GNU_SOURCE)
+  set_target_properties(
+    ${name}
+    PROPERTIES CXX_STANDARD 17
+               CXX_STANDARD_REQUIRED ON
+               CXX_EXTENSIONS OFF)
   target_link_libraries(${name} PRIVATE LCI)
   if(NOT APPLE)
     if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.13")
@@ -15,11 +19,6 @@ function(add_lci_executable name)
         PROPERTY LINK_FLAGS " -Wl,-z,now -Wl,-z,relro")
     endif()
   endif()
-  set_target_properties(
-    ${name}
-    PROPERTIES C_STANDARD 99
-               C_EXTENSIONS ON
-               CXX_STANDARD 11)
   set_target_properties(${name} PROPERTIES OUTPUT_NAME "lci_${name}")
   install(TARGETS ${name} RUNTIME)
 endfunction()

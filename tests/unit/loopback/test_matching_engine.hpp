@@ -75,8 +75,8 @@ void test_multithread0(matching_engine_t& mengine, const std::vector<int>& in,
 TEST(MATCHING_ENGINE, multithread0)
 {
   lci::global_initialize();
-  const int nthreads = 16;
-  const int n = 10000;
+  const int nthreads = util::NTHREADS;
+  const int n = util::NITERS;
   ASSERT_EQ(n % nthreads, 0);
   const int n_per_thread = 2 * n / nthreads;
 

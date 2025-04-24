@@ -86,7 +86,7 @@ def generate_forward_resource_decl(input):
     if item["category"] == "resource":
       resource_name = item["name"]
       text += f"class {resource_name}_t;\n"
-      text += f"class {resource_name}_attr_t;\n"
+      text += f"struct {resource_name}_attr_t;\n"
   text += "\n"
   return text
 

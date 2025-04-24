@@ -35,7 +35,6 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   hints = fi_allocinfo();
   hints->fabric_attr->prov_name = prov_name_hint;
   hints->ep_attr->type = FI_EP_RDM;
-  //  hints->domain_attr->mr_mode = FI_MR_BASIC;
   hints->domain_attr->mr_mode = FI_MR_VIRT_ADDR | FI_MR_ALLOCATED |
                                 FI_MR_PROV_KEY | FI_MR_LOCAL | FI_MR_ENDPOINT;
   hints->domain_attr->threading = FI_THREAD_SAFE;
@@ -44,7 +43,6 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   hints->domain_attr->threading = FI_THREAD_SAFE;
   hints->tx_attr->inject_size = attr.max_inject_size;
   hints->caps = FI_RMA | FI_MSG;
-  hints->mode = FI_LOCAL_MR;
 
   // Create ofi_info.
   struct fi_info* all_infos;

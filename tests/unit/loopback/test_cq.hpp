@@ -51,8 +51,8 @@ void test_multithread0(lci::comp_t cq, int start, int n, bool flags[])
 TEST(CQ, multithread0)
 {
   lci::g_runtime_init();
-  const int nthreads = 16;
-  const int n = 10000;
+  const int nthreads = util::NTHREADS;
+  const int n = util::NITERS;
   ASSERT_EQ(n % nthreads, 0);
   const int n_per_thread = n / nthreads;
   bool flags[n];

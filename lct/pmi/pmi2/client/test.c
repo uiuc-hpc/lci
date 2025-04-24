@@ -13,15 +13,15 @@ int main(int argc, char** args)
   char key[256];
   char val[256];
 
-  sprintf(key, "_LC_KEY_%d", rank);
-  sprintf(val, "_LC_VAL_%d", rank);
+  snprintf(key, 256, "_LC_KEY_%d", rank);
+  snprintf(val, 256, "_LC_VAL_%d", rank);
   PMI2_KVS_Put(key, val);
   PMI2_KVS_Fence();
 
   int i;
   for (i = 1; i < size; i++) {
     int target = (rank + i) % size;
-    sprintf(key, "_LC_KEY_%d", target);
+    snprintf(key, 256, "_LC_KEY_%d", target);
     int vallen;
     PMI2_KVS_Get(NULL, target, key, val, 255, &vallen);
     printf("%d >> %s: %s\n", rank, key, val);

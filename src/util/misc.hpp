@@ -11,11 +11,6 @@
 #define LCIU_CACHE_PADDING(size) \
   char LCIU_CONCAT2(padding, __LINE__)[LCI_CACHE_LINE - (size) % LCI_CACHE_LINE]
 
-#define LCI_UNUSED(expr) \
-  do {                   \
-    (void)(expr);        \
-  } while (0)
-
 namespace lci
 {
 template <typename T>
@@ -51,7 +46,7 @@ static inline void* alloc_memalign(size_t size,
                                    size_t alignment = LCI_CACHE_LINE)
 {
   void* p_ptr = nullptr;
-  int ret = posix_memalign(&p_ptr, alignment, size);
+  [[maybe_unused]] int ret = posix_memalign(&p_ptr, alignment, size);
 #ifdef _SC_AVPHYS_PAGES
   LCI_Assert(
       ret == 0, "posix_memalign(%lu, %lu) returned %d (Free memory %lu/%lu)\n",

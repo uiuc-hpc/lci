@@ -90,8 +90,8 @@ TEST(COMM_AM, am_bcopy_mt)
 {
   lci::g_runtime_init();
 
-  const int nmsgs = 20000;
-  const int nthreads = 16;
+  const int nmsgs = util::NITERS;
+  const int nthreads = util::NTHREADS;
   ASSERT_EQ(nmsgs % nthreads, 0);
   int rank = lci::get_rank_me();
   int nranks = lci::get_rank_n();
@@ -205,8 +205,8 @@ TEST(COMM_AM, am_zcopy_mt)
 {
   lci::g_runtime_init();
 
-  const int nmsgs = 20000;
-  const int nthreads = 16;
+  const int nmsgs = util::NITERS_SMALL;
+  const int nthreads = util::NTHREADS;
   ASSERT_EQ(nmsgs % nthreads, 0);
   int rank = lci::get_rank_me();
   int nranks = lci::get_rank_n();
@@ -347,8 +347,8 @@ TEST(COMM_AM, am_buffers_mt)
 {
   lci::g_runtime_init();
 
-  const int nmsgs = 4992;
-  const int nthreads = 16;
+  const int nmsgs = util::NITERS_SMALL;
+  const int nthreads = util::NTHREADS;
   ASSERT_EQ(nmsgs % nthreads, 0);
   int rank = lci::get_rank_me();
   int nranks = lci::get_rank_n();

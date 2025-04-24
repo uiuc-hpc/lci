@@ -26,7 +26,7 @@ inline void handle_matched_sendrecv(runtime_t runtime, endpoint_t endpoint,
     status.error = errorcode_t::done;
     status.data = recv_ctx->data;
     status.user_context = recv_ctx->user_context;
-    internal_context_t::free(recv_ctx);
+    delete recv_ctx;
     status.rank = packet->local_context.rank;
     status.tag = packet->local_context.tag;
     LCI_Assert(status.data.is_buffer(), "Unexpected data type\n");
@@ -189,7 +189,7 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
   LCI_DBG_Log(LOG_TRACE, "rdv", "handle rts: rdv_type %d\n", rdv_type);
   // build the rdv context
   if (!rdv_ctx) {
-    rdv_ctx = internal_context_t::alloc();
+    rdv_ctx = new internal_context_t;
     rdv_ctx->data = rts->alloc_data(runtime.get_impl()->allocator);
     rdv_ctx->user_context = NULL;
     rdv_ctx->rdv_type = rdv_type;
@@ -253,7 +253,7 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
   LCI_DBG_Log(LOG_TRACE, "rdv", "send rtr: sctx %p\n", (void*)rtr->send_ctx);
 
   // send the rtr packet
-  internal_context_t* rtr_ctx = internal_context_t::alloc();
+  internal_context_t* rtr_ctx = new internal_context_t;
   rtr_ctx->packet_to_free = packet;
 
   size_t length = rtr->get_size();
@@ -279,7 +279,7 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
   if (nrdmas > 1 ||
       runtime.get_attr_rdv_protocol() == attr_rdv_protocol_t::write ||
       rdv_type == rdv_type_t::multiple) {
-    auto ectx = internal_context_extended_t::alloc();
+    auto ectx = new internal_context_extended_t;
     ectx->internal_ctx = ctx;
     ectx->signal_count = nrdmas;
     ectx->recv_ctx = rtr->recv_ctx;

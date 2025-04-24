@@ -30,10 +30,10 @@ inline void free_ctx_and_signal_comp(internal_context_t* internal_ctx)
   if (!internal_ctx->comp.is_empty()) {
     status_t status = internal_ctx->get_status();
     comp_t comp = internal_ctx->comp;
-    internal_context_t::free(internal_ctx);
+    delete internal_ctx;
     comp.p_impl->signal(std::move(status));
   } else {
-    internal_context_t::free(internal_ctx);
+    delete internal_ctx;
   }
 }
 

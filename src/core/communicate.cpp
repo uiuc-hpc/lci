@@ -147,7 +147,7 @@ status_t post_comm_x::call_impl(
   status.data = data;
   error_t& error = status.error;
   if (protocol != protocol_t::inject) {
-    internal_ctx = internal_context_t::alloc();
+    internal_ctx = new internal_context_t;
     internal_ctx->rank = rank;
     internal_ctx->tag = tag;
     internal_ctx->user_context = user_context;
@@ -300,7 +300,7 @@ status_t post_comm_x::call_impl(
                 internal_ctx, allow_retry);
           }
         } else {
-          auto extended_ctx = internal_context_extended_t::alloc();
+          auto extended_ctx = new internal_context_extended_t;
           extended_ctx->internal_ctx = internal_ctx;
           extended_ctx->signal_count = data.get_buffers_count();
           for (size_t i = 0; i < data.buffers.count; i++) {
@@ -342,7 +342,7 @@ status_t post_comm_x::call_impl(
             goto exit;
           }
           p_rts = static_cast<rts_msg_t*>(packet->get_payload_address());
-          rts_ctx = internal_context_t::alloc();
+          rts_ctx = new internal_context_t;
           rts_ctx->packet_to_free = packet;
         }
         p_rts->send_ctx = (uintptr_t)internal_ctx;
@@ -418,7 +418,7 @@ status_t post_comm_x::call_impl(
               reinterpret_cast<uintptr_t>(remote_buffer), 0, rkey, internal_ctx,
               allow_retry);
         } else {
-          auto extended_ctx = internal_context_extended_t::alloc();
+          auto extended_ctx = new internal_context_extended_t;
           extended_ctx->internal_ctx = internal_ctx;
           extended_ctx->signal_count = data.get_buffers_count();
           for (size_t i = 0; i < data.buffers.count; i++) {
@@ -449,8 +449,8 @@ exit:
     if (!user_provided_packet && packet) {
       packet->put_back();
     }
-    internal_context_t::free(rts_ctx);
-    internal_context_t::free(internal_ctx);
+    delete rts_ctx;
+    delete internal_ctx;
   }
   if (error.is_posted() && !allow_posted) {
     while (!sync_test(local_comp, &status)) {

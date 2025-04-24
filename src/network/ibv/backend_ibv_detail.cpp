@@ -258,7 +258,9 @@ void gid_to_wire_gid(const union ibv_gid* gid, char wgid[])
   int i;
 
   memcpy(tmp_gid, gid, sizeof(tmp_gid));
-  for (i = 0; i < 4; ++i) sprintf(&wgid[i * 8], "%08x", htobe32(tmp_gid[i]));
+  // FIXME: remove snprintf
+  for (i = 0; i < 4; ++i)
+    snprintf(&wgid[i * 8], 9, "%08x", htobe32(tmp_gid[i]));
 }
 
 void wire_gid_to_gid(const char* wgid, union ibv_gid* gid)

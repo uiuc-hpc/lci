@@ -15,14 +15,13 @@ inline size_t device_impl_t::poll_comp(net_status_t* p_statuses,
   size_t ret = poll_comp_impl(p_statuses, max_polls);
   LCI_PCOUNTER_ADD(net_poll_cq_entry_count, ret);
   for (size_t i = 0; i < ret; i++) {
-    auto& status = p_statuses[i];
+    [[maybe_unused]] auto& status = p_statuses[i];
     LCI_DBG_Log(
         LOG_TRACE, "network",
         "poll_comp %lu/%lu opcode %s user_context %p length %lu imm_data %x "
         "rank %d\n",
         i + 1, ret, get_net_opcode_str(status.opcode), status.user_context,
         status.length, status.imm_data, status.rank);
-    LCI_UNUSED(status);
   }
   return ret;
 }

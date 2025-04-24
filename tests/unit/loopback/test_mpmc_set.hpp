@@ -49,8 +49,8 @@ void test_multithread0(lci::mpmc_set_t& pool, int start, int n, bool flags[])
 TEST(MPMC_SET, multithread0)
 {
   lci::global_initialize();
-  const int nthreads = 16;
-  const int n = 100000;
+  const int nthreads = util::NTHREADS;
+  const int n = util::NITERS_LARGE;
   ASSERT_EQ(n % nthreads, 0);
   const int n_per_thread = n / nthreads;
   bool flags[n];
@@ -89,8 +89,8 @@ void test_multithread1(lci::mpmc_set_t& pool, int start, int n, bool flags[])
 TEST(MPMC_SET, multithread1)
 {
   lci::global_initialize();
-  const int nthreads = 16;
-  const int n = 100000;
+  const int nthreads = util::NTHREADS;
+  const int n = util::NITERS_LARGE;
   ASSERT_EQ(n % nthreads, 0);
   const int n_per_thread = n / nthreads;
   bool flags[n];
@@ -125,8 +125,8 @@ void test_multithread2(lci::mpmc_set_t& pool, int start, int n, bool flags[])
 TEST(MPMC_SET, multithread2)
 {
   lci::global_initialize();
-  const int nthreads = 16;
-  const int n = 100000;
+  const int nthreads = util::NTHREADS;
+  const int n = util::NITERS_LARGE;
   ASSERT_EQ(n % nthreads, 0);
   const int n_per_thread = n / nthreads;
   bool flags[n];
@@ -186,8 +186,8 @@ void test_multithread3(lci::mpmc_set_t& pool0, lci::mpmc_set_t& pool1,
 TEST(MPMC_SET, multithread3)
 {
   lci::global_initialize();
-  const int nthreads = 16;
-  const int n = 100000;
+  const int nthreads = util::NTHREADS;
+  const int n = util::NITERS_LARGE;
   ASSERT_EQ(n % nthreads, 0);
   const int n_per_thread = n / nthreads;
   bool flags[n];

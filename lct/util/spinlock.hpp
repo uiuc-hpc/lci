@@ -17,7 +17,7 @@ class spinlock_t
   spinlock_t() { pthread_mutex_init(&m_lock, nullptr); }
   ~spinlock_t() { pthread_mutex_destroy(&m_lock); }
 
-  bool try_lock() { return pthread_mutex_trylock(&m_lock); }
+  bool try_lock() { return pthread_mutex_trylock(&m_lock) == 0; }
 
   void lock() { pthread_mutex_lock(&m_lock); }
 

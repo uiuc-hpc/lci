@@ -404,6 +404,10 @@ struct data_t {
   };
   // FIXME: It is a undefined behavior to access multiple union members at the
   // same time
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnested-anon-types"
+#endif
   union {
     struct {
       // common fields
@@ -430,6 +434,9 @@ struct data_t {
       buffer_t* buffers;
     } buffers;
   };
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
   data_t();
   data_t(buffer_t buffer_, bool own_data_ = false);
   data_t(buffers_t buffers_, bool own_data_ = false);
@@ -590,53 +597,25 @@ namespace lci
 /***********************************************************************
  * Overloading graph_add_node for functor
  **********************************************************************/
-
-// template <typename T>
-// status_t graph_execute_op_fn(void* value)
-// {
-//   auto op = static_cast<T*>(value);
-//   auto ret = op->operator()();  // call the stored functor
-//   delete op;
-//   return ret;
-// }
-
-// Specialization status_t return type
 template <typename T>
-typename std::enable_if<
-    std::is_same<typename std::result_of<T()>::type, status_t>::value,
-    status_t>::type
-graph_execute_op_fn(void* value)
+status_t graph_execute_op_fn(void* value)
 {
   auto op = static_cast<T*>(value);
-  status_t result = op->operator()();
-  delete op;
-  return result;
-}
+  using result_t = std::invoke_result_t<T>;
 
-// Specialization for errorcode_t return type
-template <typename T>
-typename std::enable_if<
-    std::is_same<typename std::result_of<T()>::type, errorcode_t>::value,
-    status_t>::type
-graph_execute_op_fn(void* value)
-{
-  auto op = static_cast<T*>(value);
-  errorcode_t result = op->operator()();
-  delete op;
-  return result;
-}
-
-// Specialization for other return types
-template <typename T>
-typename std::enable_if<
-    !std::is_same<typename std::result_of<T()>::type, status_t>::value,
-    status_t>::type
-graph_execute_op_fn(void* value)
-{
-  auto op = static_cast<T*>(value);
-  op->operator()();
-  delete op;
-  return errorcode_t::done;
+  if constexpr (std::is_same_v<result_t, status_t>) {
+    status_t result = (*op)();
+    delete op;
+    return result;
+  } else if constexpr (std::is_same_v<result_t, errorcode_t>) {
+    errorcode_t result = (*op)();
+    delete op;
+    return result;
+  } else {
+    (*op)();
+    delete op;
+    return errorcode_t::done;
+  }
 }
 
 /**
@@ -771,14 +750,14 @@ inline data_t& data_t::operator=(data_t other)
 inline void swap(data_t& first, data_t& second)
 {
   char* buf = (char*)malloc(sizeof(data_t));
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wclass-memaccess"
 #endif
   memcpy(buf, &first, sizeof(data_t));
   memcpy(&first, &second, sizeof(data_t));
   memcpy(&second, buf, sizeof(data_t));
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
   free(buf);

@@ -69,8 +69,8 @@ TEST(NETWORK, loopback_mt)
 {
   lci::g_runtime_init_x().alloc_default_packet_pool(false)();
   const int size = 1024;
-  const int nthreads = 16;
-  const int nmsgs = 10000;
+  const int nthreads = util::NTHREADS;
+  const int nmsgs = util::NITERS;
   ASSERT_EQ(nmsgs % nthreads, 0);
   void* address = malloc(size);
   lci::mr_t mr = lci::register_memory(address, size);
