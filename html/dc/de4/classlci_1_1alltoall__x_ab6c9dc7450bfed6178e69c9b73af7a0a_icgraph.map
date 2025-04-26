@@ -1,0 +1,12 @@
+<map id="lci::alltoall_x::sendbuf" name="lci::alltoall_x::sendbuf">
+<area shape="rect" id="Node000001" title=" " alt="" coords="583,31,731,56"/>
+<area shape="rect" id="Node000002" href="$dc/de4/classlci_1_1alltoall__x.html#a16f2e3dd4be00496842917d412a4bdcd" title=" " alt="" coords="211,31,333,56"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="569,46,334,46,334,41,569,41"/>
+<area shape="rect" id="Node000005" href="$dc/de4/classlci_1_1alltoall__x.html#a5385883991b3461ff6c702b81dc5c10b" title=" " alt="" coords="381,56,535,81"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="569,57,535,62,535,56,568,52"/>
+<area shape="rect" id="Node000003" href="$d5/dd3/namespacelci.html#a4e2dd2eb470fd8c2a4094f746386bd7c" title=" " alt="" coords="44,5,124,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="197,36,124,26,125,21,198,31"/>
+<area shape="rect" id="Node000004" href="$dc/de4/classlci_1_1alltoall__x.html#aeff93d5c10e711a8f14e5d3b00505bdf" title=" " alt="" coords="5,55,163,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="197,56,163,60,162,55,197,50"/>
+<area shape="poly" id="edge5_Node000005_Node000002" title=" " alt="" coords="367,59,333,54,334,49,368,54"/>
+</map>

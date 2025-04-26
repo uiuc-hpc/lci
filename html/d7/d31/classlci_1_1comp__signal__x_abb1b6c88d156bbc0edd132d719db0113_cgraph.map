@@ -1,0 +1,20 @@
+<map id="lci::comp_signal_x::operator()" name="lci::comp_signal_x::operator()">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,73,136,113"/>
+<area shape="rect" id="Node000002" href="$d7/d31/classlci_1_1comp__signal__x.html#a5e6109af46079c68dc07f387d1d599fd" title=" " alt="" coords="184,73,315,113"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="136,91,170,91,170,96,136,96"/>
+<area shape="rect" id="Node000003" href="$d7/d31/classlci_1_1comp__signal__x.html#a6b13735628a9f7ea4e25648a8ea6deba" title=" " alt="" coords="363,44,493,84"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="314,80,349,74,350,80,315,85"/>
+<area shape="rect" id="Node000004" href="$d7/d31/classlci_1_1comp__signal__x.html#a205cf52f14809db873b2bab0538e4edc" title=" " alt="" coords="541,5,672,45"/>
+<area shape="poly" id="edge9_Node000002_Node000004" title=" " alt="" coords="277,71,316,48,362,29,404,21,447,16,527,16,527,21,447,22,405,26,363,35,318,53,280,75"/>
+<area shape="rect" id="Node000006" href="$d7/d31/classlci_1_1comp__signal__x.html#a1f1e3c14d7d574a35ba7a5e3d5221819" title=" " alt="" coords="541,69,672,109"/>
+<area shape="poly" id="edge10_Node000002_Node000006" title=" " alt="" coords="315,93,493,93,527,92,527,97,493,99,315,98"/>
+<area shape="rect" id="Node000007" href="$d7/d31/classlci_1_1comp__signal__x.html#af627829e09be2b0e9aaf7748a7521442" title=" " alt="" coords="541,133,672,173"/>
+<area shape="poly" id="edge11_Node000002_Node000007" title=" " alt="" coords="315,102,528,138,527,143,314,107"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="493,47,527,40,528,45,494,53"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="494,71,528,76,527,81,493,76"/>
+<area shape="poly" id="edge7_Node000003_Node000007" title=" " alt="" coords="470,82,543,119,554,125,552,130,540,124,467,87"/>
+<area shape="rect" id="Node000005" href="$d7/d31/classlci_1_1comp__signal__x.html#a5fbbc550ea2ec24d4358d4117123a224" title=" " alt="" coords="720,69,851,109"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="664,43,717,62,716,67,662,48"/>
+<area shape="poly" id="edge6_Node000006_Node000005" title=" " alt="" coords="672,87,706,87,706,92,672,92"/>
+<area shape="poly" id="edge8_Node000007_Node000005" title=" " alt="" coords="662,131,716,111,717,116,664,136"/>
+</map>

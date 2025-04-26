@@ -1,0 +1,21 @@
+<map id="Completion Checking" name="Completion Checking">
+<area shape="rect" id="Node000010" href="$d2/dcc/group___l_c_i___a_l_l_o_c___c_q.html" title="Allocate a completion queue." alt="" coords="257,5,328,31"/>
+<area shape="rect" id="Node000013" href="$d9/de4/group___l_c_i___a_l_l_o_c___g_r_a_p_h.html" title="Allocate a completion handler." alt="" coords="249,55,337,80"/>
+<area shape="rect" id="Node000012" href="$d6/dc9/group___l_c_i___a_l_l_o_c___h_a_n_d_l_e_r.html" title="Allocate a completion handler." alt="" coords="243,104,342,129"/>
+<area shape="rect" id="Node000007" href="$db/d86/group___l_c_i___a_l_l_o_c___s_y_n_c.html" title="Allocate a synchronizer." alt="" coords="251,153,335,179"/>
+<area shape="rect" id="Node000019" href="$dd/db9/group___l_c_i___c_o_m_p.html" title="The completion object resource." alt="" coords="225,203,360,228"/>
+<area shape="rect" id="Node000001" title="This section describes the LCI API for checking the completion status of posted communications." alt="" coords="5,425,152,451"/>
+<area shape="rect" id="Node000003" href="$d0/d71/group___l_c_i___c_o_m_p___s_i_g_n_a_l.html" title="Signal a completion object." alt="" coords="245,252,340,277"/>
+<area shape="rect" id="Node000011" href="$d9/d11/group___l_c_i___c_q___p_o_p.html" title="Pop a status from a completion queue." alt="" coords="261,301,325,327"/>
+<area shape="rect" id="Node000006" href="$de/d1b/group___l_c_i___d_e_r_e_g_i_s_t_e_r___r_c_o_m_p.html" title="Deregister a remote completion handler." alt="" coords="231,351,354,376"/>
+<area shape="rect" id="Node000002" href="$d8/d45/group___l_c_i___f_r_e_e___c_o_m_p.html" title="Free a new comp object." alt="" coords="251,400,334,425"/>
+<area shape="rect" id="Node000015" href="$d0/dd9/group___l_c_i___g_r_a_p_h___a_d_d___e_d_g_e.html" title="Add a edge to a graph." alt="" coords="234,449,351,475"/>
+<area shape="rect" id="Node000014" href="$de/dc2/group___l_c_i___g_r_a_p_h___a_d_d___n_o_d_e.html" title="Add a node to a graph." alt="" coords="234,499,351,524"/>
+<area shape="rect" id="Node000016" href="$df/d71/group___l_c_i___g_r_a_p_h___n_o_d_e___m_a_r_k___c_o_m_p_l_e_t_e.html" title="Mark a node complete." alt="" coords="200,548,385,573"/>
+<area shape="rect" id="Node000017" href="$d8/d8b/group___l_c_i___g_r_a_p_h___s_t_a_r_t.html" title="Start a graph." alt="" coords="249,597,336,623"/>
+<area shape="rect" id="Node000018" href="$d9/d90/group___l_c_i___g_r_a_p_h___t_e_s_t.html" title="Test a graph." alt="" coords="251,647,334,672"/>
+<area shape="rect" id="Node000005" href="$db/d80/group___l_c_i___r_e_g_i_s_t_e_r___r_c_o_m_p.html" title="Register a completion object into a remote completion handler." alt="" coords="239,696,347,721"/>
+<area shape="rect" id="Node000004" href="$da/db2/group___l_c_i___r_e_s_e_r_v_e___r_c_o_m_p_s.html" title="Reserve spaces for n remote completion handlers." alt="" coords="235,745,350,771"/>
+<area shape="rect" id="Node000008" href="$df/d50/group___l_c_i___s_y_n_c___t_e_s_t.html" title="Test a synchronizer." alt="" coords="253,795,332,820"/>
+<area shape="rect" id="Node000009" href="$d4/d0b/group___l_c_i___s_y_n_c___w_a_i_t.html" title="Wait for a synchronizer to be ready." alt="" coords="252,844,333,869"/>
+</map>

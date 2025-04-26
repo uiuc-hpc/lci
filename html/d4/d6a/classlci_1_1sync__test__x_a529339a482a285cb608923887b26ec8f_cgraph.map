@@ -1,0 +1,13 @@
+<map id="lci::sync_test_x::call_impl" name="lci::sync_test_x::call_impl">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,55,179,80"/>
+<area shape="rect" id="Node000002" href="$d4/d6a/classlci_1_1sync__test__x.html#acfaebe7e174325699f1c1e68529d38e1" title=" " alt="" coords="232,5,387,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="148,52,239,31,240,36,149,57"/>
+<area shape="rect" id="Node000004" href="$d4/d6a/classlci_1_1sync__test__x.html#a5bdcd945b9c2c435a73ad85cfc431005" title=" " alt="" coords="232,55,387,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="179,65,218,65,218,70,179,70"/>
+<area shape="rect" id="Node000005" href="$d4/d6a/classlci_1_1sync__test__x.html#a5fe02a51c7806dbcf59f006d2f88a685" title=" " alt="" coords="227,104,392,129"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="149,77,240,98,239,104,148,83"/>
+<area shape="rect" id="Node000003" href="$d4/d6a/classlci_1_1sync__test__x.html#aab626d317440f18eff0790defa537407" title=" " alt="" coords="440,47,591,87"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="364,28,427,44,426,49,362,33"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="387,65,426,65,426,70,387,70"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="362,101,426,86,427,91,364,107"/>
+</map>

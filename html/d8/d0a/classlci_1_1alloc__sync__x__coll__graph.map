@@ -1,0 +1,13 @@
+<map id="lci::alloc_sync_x" name="lci::alloc_sync_x">
+<area shape="rect" id="Node000001" title="The actual implementation for alloc_sync." alt="" coords="507,95,625,121"/>
+<area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="220,5,335,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="349,35,414,50,484,69,540,93,538,98,482,75,413,55,347,40"/>
+<area shape="rect" id="Node000003" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="5,13,103,38"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="116,23,220,23,220,28,116,28"/>
+<area shape="rect" id="Node000004" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="214,70,341,95"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="355,87,507,100,506,106,354,92"/>
+<area shape="rect" id="Node000005" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="209,119,346,145"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="360,131,420,129,482,124,515,118,516,123,483,129,420,135,360,136"/>
+<area shape="rect" id="Node000006" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="204,169,351,194"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="364,175,423,167,482,152,516,137,545,119,548,123,519,141,484,157,424,172,365,180"/>
+</map>

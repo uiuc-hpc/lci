@@ -1,0 +1,12 @@
+<map id="lci::comp_signal_x::comp" name="lci::comp_signal_x::comp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="541,27,672,67"/>
+<area shape="rect" id="Node000002" href="$d7/d31/classlci_1_1comp__signal__x.html#a5e6109af46079c68dc07f387d1d599fd" title=" " alt="" coords="184,27,315,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="527,47,493,46,363,46,315,47,315,42,363,41,493,41,527,42"/>
+<area shape="rect" id="Node000005" href="$d7/d31/classlci_1_1comp__signal__x.html#a6b13735628a9f7ea4e25648a8ea6deba" title=" " alt="" coords="363,55,493,95"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="528,62,494,68,493,62,528,57"/>
+<area shape="rect" id="Node000003" href="$d5/dd3/namespacelci.html#aabbacfbf5a7b370b39df060ed62ed723" title=" " alt="" coords="13,5,129,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="170,37,128,30,129,25,171,32"/>
+<area shape="rect" id="Node000004" href="$d7/d31/classlci_1_1comp__signal__x.html#abb1b6c88d156bbc0edd132d719db0113" title=" " alt="" coords="5,55,136,95"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="171,62,137,68,136,62,170,57"/>
+<area shape="poly" id="edge5_Node000005_Node000002" title=" " alt="" coords="349,66,315,60,315,55,350,60"/>
+</map>

@@ -1,0 +1,29 @@
+<map id="Resource Management" name="Resource Management">
+<area shape="rect" id="Node000019" href="$d0/d5b/group___l_c_i___a_l_l_o_c___d_e_v_i_c_e.html" title="Allocate a new device object." alt="" coords="264,5,359,31"/>
+<area shape="rect" id="Node000021" href="$d9/d89/group___l_c_i___a_l_l_o_c___e_n_d_p_o_i_n_t.html" title="Allocate a new endpoint object." alt="" coords="259,55,364,80"/>
+<area shape="rect" id="Node000008" href="$d8/df1/group___l_c_i___a_l_l_o_c___m_a_t_c_h_i_n_g___e_n_g_i_n_e.html" title="Allocate a new matching_engine object." alt="" coords="234,104,389,129"/>
+<area shape="rect" id="Node000017" href="$d6/df7/group___l_c_i___a_l_l_o_c___n_e_t___c_o_n_t_e_x_t.html" title="Allocate a new net_context object." alt="" coords="249,153,373,179"/>
+<area shape="rect" id="Node000002" href="$d2/dab/group___l_c_i___a_l_l_o_c___p_a_c_k_e_t___p_o_o_l.html" title="Allocate a new packet_pool object." alt="" coords="248,203,375,228"/>
+<area shape="rect" id="Node000005" href="$d5/d59/group___l_c_i___d_e_r_e_g_i_s_t_e_r___p_a_c_k_e_t___p_o_o_l.html" title="Deregister a packet pool from a device." alt="" coords="233,252,389,277"/>
+<area shape="rect" id="Node000026" href="$d9/d14/group___l_c_i___d_e_v_i_c_e.html" title="The device resource." alt="" coords="241,301,382,327"/>
+<area shape="rect" id="Node000027" href="$d0/d37/group___l_c_i___e_n_d_p_o_i_n_t.html" title="The endpoint resource." alt="" coords="235,351,387,376"/>
+<area shape="rect" id="Node000020" href="$d6/d75/group___l_c_i___f_r_e_e___d_e_v_i_c_e.html" title="Free a new device object." alt="" coords="267,400,356,425"/>
+<area shape="rect" id="Node000022" href="$d6/d02/group___l_c_i___f_r_e_e___e_n_d_p_o_i_n_t.html" title="Free a new endpoint object." alt="" coords="261,449,361,475"/>
+<area shape="rect" id="Node000009" href="$de/d9b/group___l_c_i___f_r_e_e___m_a_t_c_h_i_n_g___e_n_g_i_n_e.html" title="Free a new matching_engine object." alt="" coords="237,499,386,524"/>
+<area shape="rect" id="Node000018" href="$d5/d35/group___l_c_i___f_r_e_e___n_e_t___c_o_n_t_e_x_t.html" title="Free a new net_context object." alt="" coords="252,548,371,573"/>
+<area shape="rect" id="Node000003" href="$d6/d49/group___l_c_i___f_r_e_e___p_a_c_k_e_t___p_o_o_l.html" title="Free a new packet_pool object." alt="" coords="251,597,372,623"/>
+<area shape="rect" id="Node000013" href="$d4/d41/group___l_c_i___g_e_t___d_e_f_a_u_l_t___d_e_v_i_c_e.html" title="Get the default net device of the runtime." alt="" coords="246,647,377,672"/>
+<area shape="rect" id="Node000014" href="$d9/d95/group___l_c_i___g_e_t___d_e_f_a_u_l_t___e_n_d_p_o_i_n_t.html" title="Get the default net endpoint of the runtime." alt="" coords="240,696,383,721"/>
+<area shape="rect" id="Node000016" href="$d2/de3/group___l_c_i___g_e_t___d_e_f_a_u_l_t___m_a_t_c_h_i_n_g___e_n_g_i_n_e.html" title="Get the default matching engine of the runtime." alt="" coords="238,746,385,786"/>
+<area shape="rect" id="Node000012" href="$d3/d74/group___l_c_i___g_e_t___d_e_f_a_u_l_t___n_e_t___c_o_n_t_e_x_t.html" title="Get the default net context of the runtime." alt="" coords="231,811,392,836"/>
+<area shape="rect" id="Node000015" href="$d5/dfb/group___l_c_i___g_e_t___d_e_f_a_u_l_t___p_a_c_k_e_t___p_o_o_l.html" title="Get the default packet pool of the runtime." alt="" coords="230,860,393,885"/>
+<area shape="rect" id="Node000006" href="$df/de2/group___l_c_i___g_e_t___u_p_a_c_k_e_t.html" title="Get a packet for writing user payload from the packet pool." alt="" coords="265,909,358,935"/>
+<area shape="rect" id="Node000024" href="$dc/d15/group___l_c_i___m_a_t_c_h_i_n_g___e_n_g_i_n_e.html" title="The matching engine resource." alt="" coords="211,959,412,984"/>
+<area shape="rect" id="Node000010" href="$d7/d93/group___l_c_i___m_a_t_c_h_i_n_g___e_n_g_i_n_e___i_n_s_e_r_t.html" title="Insert an entry into the matching engine." alt="" coords="232,1008,391,1033"/>
+<area shape="rect" id="Node000025" href="$d7/dc1/group___l_c_i___n_e_t___c_o_n_t_e_x_t.html" title="The network context resource." alt="" coords="226,1057,397,1083"/>
+<area shape="rect" id="Node000023" href="$d4/d73/group___l_c_i___p_a_c_k_e_t___p_o_o_l.html" title="The packet pool resource." alt="" coords="225,1107,398,1132"/>
+<area shape="rect" id="Node000007" href="$d9/d20/group___l_c_i___p_u_t___u_p_a_c_k_e_t.html" title="Return a packet to the packet pool." alt="" coords="265,1156,358,1181"/>
+<area shape="rect" id="Node000004" href="$df/dd6/group___l_c_i___r_e_g_i_s_t_e_r___p_a_c_k_e_t___p_o_o_l.html" title="Register a packet pool to a device." alt="" coords="240,1205,383,1231"/>
+<area shape="rect" id="Node000001" title="This section describes the LCI API for resource management." alt="" coords="5,623,163,648"/>
+<area shape="rect" id="Node000011" href="$d0/d59/group___l_c_i___s_e_t___a_l_l_o_c_a_t_o_r.html" title="Set the message allocator for the runtime." alt="" coords="263,1255,359,1280"/>
+</map>

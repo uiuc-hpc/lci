@@ -1,0 +1,24 @@
+<map id="lci::data_t::get_type" name="lci::data_t::get_type">
+<area shape="rect" id="Node000001" title=" " alt="" coords="397,81,535,107"/>
+<area shape="rect" id="Node000002" href="$da/d7c/structlci_1_1data__t.html#aa4f425e53b7dd3614cabd61b460575db" title=" " alt="" coords="20,104,143,129"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="384,101,143,116,143,110,384,96"/>
+<area shape="rect" id="Node000003" href="$da/d7c/structlci_1_1data__t.html#a89f6008fe3e8892226fd826b5fd2edc3" title=" " alt="" coords="209,7,346,32"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="424,78,348,46,317,35,319,30,350,41,426,73"/>
+<area shape="rect" id="Node000006" href="$da/d7c/structlci_1_1data__t.html#adbfbad7285a0df73986f552d14dae112" title=" " alt="" coords="205,159,349,184"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="423,114,310,161,308,156,420,109"/>
+<area shape="rect" id="Node000009" href="$da/d7c/structlci_1_1data__t.html#a99a99cad56e714c94984b867933a0822" title=" " alt="" coords="208,56,347,81"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="383,86,347,81,348,75,384,80"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="217,40,207,46,193,57,184,70,174,82,159,95,135,106,133,101,156,90,170,79,179,66,189,54,204,41,214,35"/>
+<area shape="rect" id="Node000004" href="$da/d7c/structlci_1_1data__t.html#ad52c699c8681147663af4fb39b6e4dfb" title="Get the buffer from the data object." alt="" coords="9,5,154,31"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="195,21,155,21,155,16,195,16"/>
+<area shape="rect" id="Node000005" href="$da/d7c/structlci_1_1data__t.html#a4c60449f2ee909ad5e33e7781b985753" title="Get the scalar data from the data object." alt="" coords="8,55,155,80"/>
+<area shape="poly" id="edge5_Node000003_Node000005" title=" " alt="" coords="212,38,135,57,133,52,211,33"/>
+<area shape="poly" id="edge7_Node000006_Node000002" title=" " alt="" coords="218,158,127,132,128,127,219,152"/>
+<area shape="rect" id="Node000007" href="$da/d7c/structlci_1_1data__t.html#a55eb9ec07fde2232ec6f81efef5d2b8a" title="Get the buffers from the data object." alt="" coords="5,219,157,244"/>
+<area shape="poly" id="edge8_Node000006_Node000007" title=" " alt="" coords="223,191,124,221,123,216,221,186"/>
+<area shape="rect" id="Node000008" href="$da/d7c/structlci_1_1data__t.html#a85f3cedb043214d1203cba1ea02c7c85" title="Get the number of buffers from the data object." alt="" coords="5,154,157,194"/>
+<area shape="poly" id="edge9_Node000006_Node000008" title=" " alt="" coords="191,175,157,176,157,170,191,170"/>
+<area shape="poly" id="edge11_Node000009_Node000002" title=" " alt="" coords="212,87,135,107,133,101,211,82"/>
+<area shape="poly" id="edge12_Node000009_Node000004" title=" " alt="" coords="213,55,130,33,132,28,215,50"/>
+<area shape="poly" id="edge13_Node000009_Node000005" title=" " alt="" coords="194,71,155,70,155,65,194,65"/>
+</map>

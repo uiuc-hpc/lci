@@ -1,0 +1,20 @@
+<map id="lci::graph_node_mark_complete_x" name="lci::graph_node_mark_complete_x">
+<area shape="rect" id="Node000001" title="The actual implementation for graph_node_mark_complete." alt="" coords="71,460,217,500"/>
+<area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="19,357,133,397"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="97,407,116,434,132,458,128,461,111,438,93,410"/>
+<area shape="rect" id="Node000003" href="$d9/d1e/structlci_1_1status__t.html" title="The type of the completion desciptor for a posted communication." alt="" coords="31,269,121,295"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="79,308,79,357,73,357,73,308"/>
+<area shape="rect" id="Node000004" href="$d2/d46/structlci_1_1error__t.html" title="Wrapper class for error code." alt="" coords="5,181,85,207"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="57,219,74,268,69,270,52,220"/>
+<area shape="rect" id="Node000005" href="$da/d7c/structlci_1_1data__t.html" title="A generic type for describing or holding data." alt="" coords="110,181,189,207"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="133,219,88,271,84,267,129,215"/>
+<area shape="rect" id="Node000006" href="$d7/d1a/classlci_1_1mr__t.html" title="The actual implementation for RESOURCE mr." alt="" coords="104,5,173,31"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="136,45,131,80,132,118,139,152,148,181,143,182,134,154,127,119,126,80,131,44"/>
+<area shape="rect" id="Node000007" href="$de/d63/structlci_1_1buffer__t.html" title="The type of a local buffer descriptor." alt="" coords="162,93,249,119"/>
+<area shape="poly" id="edge7_Node000007_Node000006" title=" " alt="" coords="158,40,198,91,194,94,154,43"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="193,132,159,182,155,179,188,129"/>
+<area shape="rect" id="Node000008" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="157,357,272,397"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="196,410,159,461,155,458,191,407"/>
+<area shape="rect" id="Node000009" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="166,269,263,295"/>
+<area shape="poly" id="edge9_Node000008_Node000009" title=" " alt="" coords="217,308,217,357,212,357,212,308"/>
+</map>

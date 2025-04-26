@@ -1,0 +1,10 @@
+<map id="lci::deregister_memory_x::call_impl" name="lci::deregister_memory_x::call_impl">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,160,77"/>
+<area shape="rect" id="Node000002" href="$d8/dc0/classlci_1_1deregister__memory__x.html#a2d4f7e5252faaf7be799ba80db37d0e4" title=" " alt="" coords="208,5,363,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="160,43,194,37,195,42,161,48"/>
+<area shape="rect" id="Node000004" href="$d8/dc0/classlci_1_1deregister__memory__x.html#a63903b0d84b3c5c07d795461cf2c5a1a" title=" " alt="" coords="208,69,363,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="161,67,195,72,194,78,160,72"/>
+<area shape="rect" id="Node000003" href="$d8/dc0/classlci_1_1deregister__memory__x.html#adb969ad74a88fb97b6593727a30accbe" title=" " alt="" coords="411,37,580,77"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="363,34,398,40,397,45,362,40"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="362,75,397,70,398,75,363,80"/>
+</map>

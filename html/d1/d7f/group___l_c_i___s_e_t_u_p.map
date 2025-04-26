@@ -1,0 +1,11 @@
+<map id="Setup and Teardown" name="Setup and Teardown">
+<area shape="rect" id="Node000004" href="$d8/d8e/group___l_c_i___a_l_l_o_c___r_u_n_t_i_m_e.html" title="Allocate a new runtime object." alt="" coords="219,5,317,31"/>
+<area shape="rect" id="Node000005" href="$d7/de6/group___l_c_i___f_r_e_e___r_u_n_t_i_m_e.html" title="Free a new runtime object." alt="" coords="221,55,315,80"/>
+<area shape="rect" id="Node000008" href="$d9/d33/group___l_c_i___g_e_t___g___r_u_n_t_i_m_e.html" title="Get the global default runtime object." alt="" coords="216,104,320,129"/>
+<area shape="rect" id="Node000002" href="$d0/d41/group___l_c_i___g_e_t___r_a_n_k___m_e.html" title="Get the rank of the current process." alt="" coords="219,153,317,179"/>
+<area shape="rect" id="Node000003" href="$d0/dd0/group___l_c_i___g_e_t___r_a_n_k___n.html" title="Get the number of ranks in the current application/job." alt="" coords="225,203,311,228"/>
+<area shape="rect" id="Node000007" href="$db/d4a/group___l_c_i___g___r_u_n_t_i_m_e___f_i_n_a.html" title="Finalize the global default runtime object." alt="" coords="215,252,321,277"/>
+<area shape="rect" id="Node000006" href="$db/db7/group___l_c_i___g___r_u_n_t_i_m_e___i_n_i_t.html" title="Initialize the global default runtime object." alt="" coords="217,301,319,327"/>
+<area shape="rect" id="Node000009" href="$db/da1/group___l_c_i___r_u_n_t_i_m_e.html" title="The runtime object." alt="" coords="195,351,341,376"/>
+<area shape="rect" id="Node000001" title="This section describes setup and teardown API." alt="" coords="5,179,147,204"/>
+</map>

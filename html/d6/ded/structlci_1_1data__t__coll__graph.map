@@ -1,0 +1,8 @@
+<map id="lci::data_t" name="lci::data_t">
+<area shape="rect" id="Node000001" title="A generic type for describing or holding data." alt="" coords="5,181,84,207"/>
+<area shape="rect" id="Node000002" href="$d7/d1a/classlci_1_1mr__t.html" title="The actual implementation for RESOURCE mr." alt="" coords="10,5,79,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="43,45,39,80,38,119,45,181,40,181,33,119,33,79,37,44"/>
+<area shape="rect" id="Node000003" href="$de/d63/structlci_1_1buffer__t.html" title="The type of a local buffer descriptor." alt="" coords="68,93,155,119"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="64,40,104,91,100,94,60,43"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="96,131,56,182,52,179,92,128"/>
+</map>

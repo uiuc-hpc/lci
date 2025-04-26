@@ -1,0 +1,22 @@
+<map id="lci::alloc_handler_x::call" name="lci::alloc_handler_x::call">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,101,124,141"/>
+<area shape="rect" id="Node000002" href="$d7/d0f/classlci_1_1alloc__handler__x.html#ac58a137b4adfbd9b7da7a364540cbe30" title=" " alt="" coords="172,101,291,141"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="124,119,158,119,158,124,124,124"/>
+<area shape="rect" id="Node000003" href="$d7/d0f/classlci_1_1alloc__handler__x.html#a74c492d00d0420108aef0dd08c455584" title=" " alt="" coords="344,5,463,45"/>
+<area shape="poly" id="edge10_Node000001_Node000003" title=" " alt="" coords="99,99,133,81,171,65,252,44,329,31,330,36,254,49,173,71,135,86,101,104"/>
+<area shape="rect" id="Node000005" href="$d7/d0f/classlci_1_1alloc__handler__x.html#ae233b40436dde8dc698934ea9b7ec5d9" title=" " alt="" coords="344,69,463,109"/>
+<area shape="poly" id="edge11_Node000001_Node000005" title=" " alt="" coords="121,99,172,87,254,80,330,81,330,87,254,86,172,92,122,104"/>
+<area shape="rect" id="Node000006" href="$d7/d0f/classlci_1_1alloc__handler__x.html#ad126b5378856f59cf0d96e109bf5b8f6" title=" " alt="" coords="344,133,463,173"/>
+<area shape="poly" id="edge12_Node000001_Node000006" title=" " alt="" coords="122,139,172,151,254,157,330,156,330,161,254,162,172,156,121,144"/>
+<area shape="rect" id="Node000007" href="$d7/d0f/classlci_1_1alloc__handler__x.html#a9b606b63467ecf4c1ccead21470f3d14" title=" " alt="" coords="339,197,468,237"/>
+<area shape="poly" id="edge13_Node000001_Node000007" title=" " alt="" coords="111,139,173,163,251,184,325,201,324,206,250,189,171,168,109,144"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="263,99,337,55,348,49,350,54,340,60,266,103"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="290,108,330,100,331,106,291,113"/>
+<area shape="poly" id="edge6_Node000002_Node000006" title=" " alt="" coords="291,130,331,137,330,142,290,135"/>
+<area shape="poly" id="edge8_Node000002_Node000007" title=" " alt="" coords="266,139,340,183,350,189,348,193,337,188,263,144"/>
+<area shape="rect" id="Node000004" href="$d7/d0f/classlci_1_1alloc__handler__x.html#a759210aeef489d9e163ca71ec5e0ea25" title=" " alt="" coords="516,101,651,141"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="446,43,469,55,537,92,534,97,467,60,444,48"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="463,97,503,104,502,110,462,102"/>
+<area shape="poly" id="edge7_Node000006_Node000004" title=" " alt="" coords="462,140,502,133,503,138,463,145"/>
+<area shape="poly" id="edge9_Node000007_Node000004" title=" " alt="" coords="444,195,467,183,534,146,537,150,469,188,446,200"/>
+</map>

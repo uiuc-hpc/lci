@@ -1,0 +1,16 @@
+<map id="lci::register_memory_x::call_impl" name="lci::register_memory_x::call_impl">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,101,145,141"/>
+<area shape="rect" id="Node000002" href="$d0/d73/classlci_1_1register__memory__x.html#a1311697d2ab63d99da7dec91cc918410" title=" " alt="" coords="193,5,333,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="111,99,192,55,204,49,207,54,195,60,113,103"/>
+<area shape="rect" id="Node000004" href="$d0/d73/classlci_1_1register__memory__x.html#a1c21f328e209be70eb918afcac78f443" title=" " alt="" coords="193,69,333,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="145,107,179,101,180,106,146,112"/>
+<area shape="rect" id="Node000005" href="$d0/d73/classlci_1_1register__memory__x.html#acea5e15e35ec33ea9f9e9078bfcec645" title=" " alt="" coords="193,133,333,173"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="146,131,180,136,179,142,145,136"/>
+<area shape="rect" id="Node000006" href="$d0/d73/classlci_1_1register__memory__x.html#a7476c52c223d352cda4407cf005ba436" title=" " alt="" coords="193,197,333,237"/>
+<area shape="poly" id="edge7_Node000001_Node000006" title=" " alt="" coords="113,139,195,183,207,189,204,194,192,188,111,144"/>
+<area shape="rect" id="Node000003" href="$d0/d73/classlci_1_1register__memory__x.html#ae43dcb30961d8154e8df03c89d9c2752" title=" " alt="" coords="381,101,536,141"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="310,43,335,55,409,93,406,97,332,60,307,48"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="334,98,368,104,367,109,333,103"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="333,139,367,134,368,139,334,145"/>
+<area shape="poly" id="edge8_Node000006_Node000003" title=" " alt="" coords="307,195,332,183,406,145,409,150,335,188,310,200"/>
+</map>

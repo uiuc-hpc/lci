@@ -1,0 +1,33 @@
+<map id="lci::data_t::set_type" name="lci::data_t::set_type">
+<area shape="rect" id="Node000001" title=" " alt="" coords="567,281,704,307"/>
+<area shape="rect" id="Node000002" href="$da/d7c/structlci_1_1data__t.html#ad540474a8025b082887d746b5f5500c0" title=" " alt="" coords="369,5,517,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="627,268,615,220,594,160,562,98,541,69,517,44,500,33,503,29,520,40,545,66,566,95,599,158,620,219,632,267"/>
+<area shape="rect" id="Node000003" href="$da/d7c/structlci_1_1data__t.html#a5486c4455aa5c01ea78e4d99e2168f7c" title=" " alt="" coords="369,55,517,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="622,270,607,233,584,188,554,142,517,101,485,82,488,78,520,97,558,139,589,185,612,231,627,268"/>
+<area shape="rect" id="Node000004" href="$da/d7c/structlci_1_1data__t.html#aa8ddc42cf7a8be3b1414498ac233098c" title=" " alt="" coords="381,180,504,205"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="601,276,517,227,475,208,478,203,520,222,604,271"/>
+<area shape="rect" id="Node000005" href="$da/d7c/structlci_1_1data__t.html#aa4f425e53b7dd3614cabd61b460575db" title=" " alt="" coords="196,93,319,119"/>
+<area shape="poly" id="edge12_Node000001_Node000005" title=" " alt="" coords="620,270,604,240,581,206,552,173,517,146,469,124,416,112,365,106,319,105,319,100,365,101,417,106,470,119,520,141,556,169,585,203,609,238,625,268"/>
+<area shape="rect" id="Node000006" href="$da/d7c/structlci_1_1data__t.html#a3657b75d8c5d002adf3ddfcc9f14a293" title=" " alt="" coords="196,244,319,269"/>
+<area shape="poly" id="edge13_Node000001_Node000006" title=" " alt="" coords="568,281,518,273,413,263,319,260,319,254,413,258,519,267,569,276"/>
+<area shape="rect" id="Node000009" href="$da/d7c/structlci_1_1data__t.html#aaacf36ab13d70a0412aaa0d3b6c19bfc" title=" " alt="" coords="381,281,504,307"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="553,297,504,297,504,291,553,291"/>
+<area shape="rect" id="Node000010" href="$da/d7c/structlci_1_1data__t.html#a4ed222cc91197e9080bcd576d8b89f8b" title=" " alt="" coords="381,331,504,356"/>
+<area shape="poly" id="edge11_Node000001_Node000010" title=" " alt="" coords="573,313,494,333,493,328,571,307"/>
+<area shape="rect" id="Node000011" href="$da/d7c/structlci_1_1data__t.html#a328cb2966aa6ab47de29de785f199ca8" title=" " alt="" coords="381,380,504,405"/>
+<area shape="poly" id="edge14_Node000001_Node000011" title=" " alt="" coords="608,317,567,344,520,371,491,382,489,377,518,366,565,340,605,313"/>
+<area shape="rect" id="Node000012" href="$da/d7c/structlci_1_1data__t.html#ad8da24575985a0136a6e575b0c2d3f39" title=" " alt="" coords="381,429,504,455"/>
+<area shape="poly" id="edge15_Node000001_Node000012" title=" " alt="" coords="620,320,578,370,551,397,520,420,497,432,495,427,517,416,547,393,574,367,616,316"/>
+<area shape="rect" id="Node000013" href="$da/d7c/structlci_1_1data__t.html#ad52c699c8681147663af4fb39b6e4dfb" title="Get the buffer from the data object." alt="" coords="370,479,515,504"/>
+<area shape="poly" id="edge16_Node000001_Node000013" title=" " alt="" coords="626,320,610,354,587,394,557,435,520,469,500,481,497,476,517,465,553,431,582,391,605,352,621,318"/>
+<area shape="rect" id="Node000014" href="$da/d7c/structlci_1_1data__t.html#a55eb9ec07fde2232ec6f81efef5d2b8a" title="Get the buffers from the data object." alt="" coords="367,528,519,553"/>
+<area shape="poly" id="edge17_Node000001_Node000014" title=" " alt="" coords="630,321,617,363,594,417,563,471,543,497,520,519,502,530,499,526,517,515,539,493,558,468,590,414,612,362,625,319"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="475,170,466,162,443,159,423,161,413,165,411,171,416,178,412,181,406,172,409,162,422,156,443,153,468,157,479,166"/>
+<area shape="poly" id="edge5_Node000004_Node000005" title=" " alt="" coords="401,177,285,121,287,116,403,172"/>
+<area shape="poly" id="edge6_Node000004_Node000006" title=" " alt="" coords="393,213,296,246,294,241,391,207"/>
+<area shape="rect" id="Node000007" href="$da/d7c/structlci_1_1data__t.html#a8c79bce0b9f10492589dd86b051bb2d0" title=" " alt="" coords="5,169,148,195"/>
+<area shape="poly" id="edge7_Node000004_Node000007" title=" " alt="" coords="367,188,319,185,148,183,148,178,319,179,368,183"/>
+<area shape="rect" id="Node000008" href="$da/d7c/structlci_1_1data__t.html#aeb0562e5821135e7469ba2fdb5144e53" title=" " alt="" coords="198,195,317,220"/>
+<area shape="poly" id="edge8_Node000004_Node000008" title=" " alt="" coords="368,201,317,205,317,200,368,196"/>
+<area shape="poly" id="edge9_Node000008_Node000007" title=" " alt="" coords="184,200,148,195,149,189,185,195"/>
+</map>

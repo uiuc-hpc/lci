@@ -1,0 +1,18 @@
+<map id="lci::alloc_graph_x::call" name="lci::alloc_graph_x::call">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,73,128,113"/>
+<area shape="rect" id="Node000002" href="$d0/d14/classlci_1_1alloc__graph__x.html#aacd5a52df3e64dfc660994995dd527f3" title=" " alt="" coords="176,44,299,84"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="128,80,162,74,163,79,129,85"/>
+<area shape="rect" id="Node000003" href="$d0/d14/classlci_1_1alloc__graph__x.html#ad5d3eaef537f3270a3df07b7f7957c6d" title=" " alt="" coords="347,5,469,45"/>
+<area shape="poly" id="edge8_Node000001_Node000003" title=" " alt="" coords="93,71,131,48,175,29,215,21,256,16,332,16,332,21,256,22,216,26,177,35,133,53,96,75"/>
+<area shape="rect" id="Node000005" href="$d0/d14/classlci_1_1alloc__graph__x.html#a2673067c1acdf74ba84e11a826e4c2d1" title=" " alt="" coords="347,69,469,109"/>
+<area shape="poly" id="edge9_Node000001_Node000005" title=" " alt="" coords="128,93,299,93,332,92,333,97,299,99,128,98"/>
+<area shape="rect" id="Node000006" href="$d0/d14/classlci_1_1alloc__graph__x.html#ab14fcd4fbb39b5649503ab2e04ab5711" title=" " alt="" coords="347,133,469,173"/>
+<area shape="poly" id="edge10_Node000001_Node000006" title=" " alt="" coords="129,101,334,138,333,143,128,107"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="298,48,332,40,334,45,299,53"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="299,70,333,76,333,81,298,76"/>
+<area shape="poly" id="edge6_Node000002_Node000006" title=" " alt="" coords="278,82,358,124,355,129,275,86"/>
+<area shape="rect" id="Node000004" href="$d0/d14/classlci_1_1alloc__graph__x.html#a8cc0ae9adcf684fb7a17e189bf74428d" title=" " alt="" coords="517,69,640,109"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="463,43,513,62,511,67,461,48"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="470,87,503,87,503,92,470,92"/>
+<area shape="poly" id="edge7_Node000006_Node000004" title=" " alt="" coords="461,131,511,112,513,117,463,136"/>
+</map>

@@ -1,0 +1,20 @@
+<map id="lci::alloc_endpoint" name="lci::alloc_endpoint">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,81,132,106"/>
+<area shape="rect" id="Node000002" href="$da/d10/classlci_1_1alloc__endpoint__x.html#a0ab70f81a6d219588d464bd26ec253fd" title=" " alt="" coords="180,73,307,113"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="132,91,167,91,167,96,132,96"/>
+<area shape="rect" id="Node000003" href="$da/d10/classlci_1_1alloc__endpoint__x.html#a0d89d34f5185655e8171abf20b6e038a" title=" " alt="" coords="355,44,481,84"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="306,80,341,74,342,79,307,85"/>
+<area shape="rect" id="Node000004" href="$da/d10/classlci_1_1alloc__endpoint__x.html#ac4e164362bc0cbd656403523d0a9fefb" title=" " alt="" coords="529,5,656,45"/>
+<area shape="poly" id="edge9_Node000002_Node000004" title=" " alt="" coords="271,71,309,48,354,29,395,21,437,16,515,16,515,21,437,22,396,26,355,35,311,53,273,75"/>
+<area shape="rect" id="Node000006" href="$da/d10/classlci_1_1alloc__endpoint__x.html#a31c728e1118669821a5ae1ad220cdd8f" title=" " alt="" coords="529,69,656,109"/>
+<area shape="poly" id="edge10_Node000002_Node000006" title=" " alt="" coords="307,93,481,93,516,92,516,97,481,99,307,98"/>
+<area shape="rect" id="Node000007" href="$da/d10/classlci_1_1alloc__endpoint__x.html#aeae3ef5e7ba3d89bd13c4dd9847d552f" title=" " alt="" coords="529,133,656,173"/>
+<area shape="poly" id="edge11_Node000002_Node000007" title=" " alt="" coords="307,102,516,138,515,143,307,107"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="481,47,515,40,517,45,482,53"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="482,71,516,76,516,81,481,76"/>
+<area shape="poly" id="edge7_Node000003_Node000007" title=" " alt="" coords="459,82,531,119,541,124,539,129,528,124,457,87"/>
+<area shape="rect" id="Node000005" href="$da/d10/classlci_1_1alloc__endpoint__x.html#a531dc54f2430678a56e456287dc8d473" title=" " alt="" coords="704,69,845,109"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="651,43,705,62,704,67,649,48"/>
+<area shape="poly" id="edge6_Node000006_Node000005" title=" " alt="" coords="656,87,690,87,690,92,656,92"/>
+<area shape="poly" id="edge8_Node000007_Node000005" title=" " alt="" coords="649,131,704,111,705,116,651,136"/>
+</map>

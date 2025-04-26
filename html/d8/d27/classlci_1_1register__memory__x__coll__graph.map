@@ -1,0 +1,11 @@
+<map id="lci::register_memory_x" name="lci::register_memory_x">
+<area shape="rect" id="Node000001" title="The actual implementation for register_memory." alt="" coords="55,196,209,221"/>
+<area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="5,93,120,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="81,144,98,170,121,194,117,198,94,174,77,147"/>
+<area shape="rect" id="Node000003" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="14,5,111,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="65,44,65,93,60,93,60,44"/>
+<area shape="rect" id="Node000004" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="144,93,259,133"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="183,147,163,174,144,197,140,194,159,170,179,143"/>
+<area shape="rect" id="Node000005" href="$d6/d66/classlci_1_1device__t.html" title="The actual implementation for RESOURCE device." alt="" coords="155,5,247,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="204,44,204,93,199,93,199,44"/>
+</map>

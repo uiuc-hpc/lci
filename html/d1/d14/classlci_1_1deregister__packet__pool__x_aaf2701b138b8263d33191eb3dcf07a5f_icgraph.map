@@ -1,0 +1,7 @@
+<map id="lci::deregister_packet_pool_x::call" name="lci::deregister_packet_pool_x::call">
+<area shape="rect" id="Node000001" title=" " alt="" coords="231,27,377,67"/>
+<area shape="rect" id="Node000002" href="$d5/dd3/namespacelci.html#aa1e1e2af4789aa255f3df338292970c2" title=" " alt="" coords="5,5,183,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="216,38,182,33,183,28,217,33"/>
+<area shape="rect" id="Node000003" href="$d1/d14/classlci_1_1deregister__packet__pool__x.html#a8934844630a2ec6e4fd41366dd71fbc9" title=" " alt="" coords="21,55,167,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="217,62,168,68,167,63,216,56"/>
+</map>

@@ -1,0 +1,20 @@
+<map id="lci::alloc_matching_engine" name="lci::alloc_matching_engine">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,85,136,125"/>
+<area shape="rect" id="Node000002" href="$d6/dc8/classlci_1_1alloc__matching__engine__x.html#a16f74d06d91529140083019dd1e1720b" title=" " alt="" coords="184,85,315,125"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="136,102,170,102,170,107,136,107"/>
+<area shape="rect" id="Node000003" href="$d6/dc8/classlci_1_1alloc__matching__engine__x.html#a4b4e302ad7bf82cf66999450de550dec" title=" " alt="" coords="363,55,503,95"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="314,92,349,86,350,91,315,97"/>
+<area shape="rect" id="Node000004" href="$d6/dc8/classlci_1_1alloc__matching__engine__x.html#aa17797fcb21822e0dea10c346d425f03" title=" " alt="" coords="561,5,704,60"/>
+<area shape="poly" id="edge9_Node000002_Node000004" title=" " alt="" coords="277,82,316,59,362,41,409,31,457,25,547,24,547,29,458,31,410,36,363,46,318,64,280,87"/>
+<area shape="rect" id="Node000006" href="$d6/dc8/classlci_1_1alloc__matching__engine__x.html#a62b63a7ada248f218316743a43d3d4dd" title=" " alt="" coords="567,85,699,125"/>
+<area shape="poly" id="edge10_Node000002_Node000006" title=" " alt="" coords="315,104,363,105,503,105,553,104,553,109,503,110,363,110,315,109"/>
+<area shape="rect" id="Node000007" href="$d6/dc8/classlci_1_1alloc__matching__engine__x.html#a1f2ab4de552f8a3da7facd383da722ee" title=" " alt="" coords="551,149,715,189"/>
+<area shape="poly" id="edge11_Node000002_Node000007" title=" " alt="" coords="315,113,537,150,536,155,314,118"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="502,58,547,48,548,53,504,63"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="503,83,553,90,553,96,503,88"/>
+<area shape="poly" id="edge7_Node000003_Node000007" title=" " alt="" coords="471,93,552,134,567,141,565,146,550,139,469,98"/>
+<area shape="rect" id="Node000005" href="$d6/dc8/classlci_1_1alloc__matching__engine__x.html#af8991cfa93661f173f17d17e55a175b9" title=" " alt="" coords="763,77,939,132"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="705,54,756,70,754,76,704,59"/>
+<area shape="poly" id="edge6_Node000006_Node000005" title=" " alt="" coords="699,102,749,102,749,107,699,107"/>
+<area shape="poly" id="edge8_Node000007_Node000005" title=" " alt="" coords="701,146,749,132,750,137,702,151"/>
+</map>

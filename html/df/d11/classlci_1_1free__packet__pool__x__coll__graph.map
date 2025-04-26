@@ -1,0 +1,9 @@
+<map id="lci::free_packet_pool_x" name="lci::free_packet_pool_x">
+<area shape="rect" id="Node000001" title="The actual implementation for free_packet_pool." alt="" coords="51,196,207,221"/>
+<area shape="rect" id="Node000002" href="$db/dec/classlci_1_1packet__pool__t.html" title="The actual implementation for RESOURCE packet_pool." alt="" coords="5,101,129,126"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="70,139,74,156,80,171,92,184,106,194,103,198,88,188,76,173,69,157,65,140"/>
+<area shape="rect" id="Node000003" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="154,93,269,133"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="194,147,173,174,146,198,143,194,169,170,190,144"/>
+<area shape="rect" id="Node000004" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="163,5,260,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="214,44,214,93,209,93,209,44"/>
+</map>

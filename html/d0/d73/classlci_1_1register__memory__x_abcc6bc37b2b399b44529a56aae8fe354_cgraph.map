@@ -1,0 +1,24 @@
+<map id="lci::register_memory_x::operator()" name="lci::register_memory_x::operator()">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,101,145,141"/>
+<area shape="rect" id="Node000002" href="$d0/d73/classlci_1_1register__memory__x.html#aef62bcfd25206c0880ec037a18b938b2" title=" " alt="" coords="193,101,333,141"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="146,119,179,119,179,124,146,124"/>
+<area shape="rect" id="Node000003" href="$d0/d73/classlci_1_1register__memory__x.html#a1311697d2ab63d99da7dec91cc918410" title=" " alt="" coords="569,5,709,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="301,99,339,81,381,65,470,44,556,31,556,36,471,49,382,71,341,86,303,104"/>
+<area shape="rect" id="Node000005" href="$d0/d73/classlci_1_1register__memory__x.html#a396a39298e09cb152edfed607dfe2041" title=" " alt="" coords="381,101,521,141"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="334,119,367,119,367,124,334,124"/>
+<area shape="rect" id="Node000006" href="$d0/d73/classlci_1_1register__memory__x.html#a1c21f328e209be70eb918afcac78f443" title=" " alt="" coords="569,69,709,109"/>
+<area shape="poly" id="edge12_Node000002_Node000006" title=" " alt="" coords="325,99,381,87,471,80,555,81,555,86,471,86,382,92,326,104"/>
+<area shape="rect" id="Node000007" href="$d0/d73/classlci_1_1register__memory__x.html#acea5e15e35ec33ea9f9e9078bfcec645" title=" " alt="" coords="569,133,709,173"/>
+<area shape="poly" id="edge13_Node000002_Node000007" title=" " alt="" coords="326,139,382,151,471,157,555,156,555,162,471,162,381,156,325,144"/>
+<area shape="rect" id="Node000008" href="$d0/d73/classlci_1_1register__memory__x.html#a7476c52c223d352cda4407cf005ba436" title=" " alt="" coords="569,197,709,237"/>
+<area shape="poly" id="edge14_Node000002_Node000008" title=" " alt="" coords="312,139,382,164,472,186,556,202,555,208,471,191,381,169,310,144"/>
+<area shape="rect" id="Node000004" href="$d0/d73/classlci_1_1register__memory__x.html#ae43dcb30961d8154e8df03c89d9c2752" title=" " alt="" coords="757,101,912,141"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="686,43,711,55,785,93,782,97,708,60,683,48"/>
+<area shape="poly" id="edge5_Node000005_Node000003" title=" " alt="" coords="487,99,568,55,580,49,583,54,571,60,489,103"/>
+<area shape="poly" id="edge6_Node000005_Node000006" title=" " alt="" coords="521,107,555,101,556,106,522,112"/>
+<area shape="poly" id="edge8_Node000005_Node000007" title=" " alt="" coords="522,131,556,136,555,142,521,136"/>
+<area shape="poly" id="edge10_Node000005_Node000008" title=" " alt="" coords="489,139,571,183,583,189,580,194,568,188,487,144"/>
+<area shape="poly" id="edge7_Node000006_Node000004" title=" " alt="" coords="710,98,744,104,743,109,709,103"/>
+<area shape="poly" id="edge9_Node000007_Node000004" title=" " alt="" coords="709,139,743,134,744,139,710,145"/>
+<area shape="poly" id="edge11_Node000008_Node000004" title=" " alt="" coords="683,195,708,183,782,145,785,150,711,188,686,200"/>
+</map>

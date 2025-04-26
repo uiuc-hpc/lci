@@ -1,0 +1,13 @@
+<map id="lci::sync_wait_x::call_impl" name="lci::sync_wait_x::call_impl">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,55,180,80"/>
+<area shape="rect" id="Node000002" href="$dd/d0b/classlci_1_1sync__wait__x.html#af7084c4171774b7ef58d0e1d8f50d580" title=" " alt="" coords="233,5,389,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="149,52,240,31,242,36,150,57"/>
+<area shape="rect" id="Node000004" href="$dd/d0b/classlci_1_1sync__wait__x.html#a1f06a5d161c0ae293c076938586a502b" title=" " alt="" coords="233,55,389,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="181,65,220,65,220,70,181,70"/>
+<area shape="rect" id="Node000005" href="$dd/d0b/classlci_1_1sync__wait__x.html#a33c94ca9708dafc0873caecc7e0fd20e" title=" " alt="" coords="228,104,395,129"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="150,77,242,98,240,104,149,83"/>
+<area shape="rect" id="Node000003" href="$dd/d0b/classlci_1_1sync__wait__x.html#a1b82908c8a1e781860e9a95db7916df1" title=" " alt="" coords="443,47,595,87"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="366,28,430,43,428,49,365,33"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="389,65,429,65,429,70,389,70"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="365,101,428,86,430,91,366,107"/>
+</map>

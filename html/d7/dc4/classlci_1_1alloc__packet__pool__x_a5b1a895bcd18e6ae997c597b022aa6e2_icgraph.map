@@ -1,0 +1,12 @@
+<map id="lci::alloc_packet_pool_x::user_context" name="lci::alloc_packet_pool_x::user_context">
+<area shape="rect" id="Node000001" title=" " alt="" coords="589,27,736,67"/>
+<area shape="rect" id="Node000002" href="$d7/dc4/classlci_1_1alloc__packet__pool__x.html#a257d4f8973db4ef31cb905eaa0c2961c" title=" " alt="" coords="200,27,347,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="576,47,541,46,395,46,347,47,347,42,395,41,541,41,576,41"/>
+<area shape="rect" id="Node000005" href="$d7/dc4/classlci_1_1alloc__packet__pool__x.html#a2f977bb97600bcd879df6ad66d9a77ac" title=" " alt="" coords="395,55,541,95"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="576,62,542,67,541,62,576,57"/>
+<area shape="rect" id="Node000003" href="$d5/dd3/namespacelci.html#ae3f5ce22f75ab03108f74cf00339f9f5" title=" " alt="" coords="5,5,152,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="186,37,152,32,153,26,187,32"/>
+<area shape="rect" id="Node000004" href="$d7/dc4/classlci_1_1alloc__packet__pool__x.html#abe8b18f11c5e693c2183bfc3530f7bb2" title=" " alt="" coords="5,55,152,95"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="187,62,153,67,152,62,186,57"/>
+<area shape="poly" id="edge5_Node000005_Node000002" title=" " alt="" coords="381,66,347,61,347,55,382,60"/>
+</map>

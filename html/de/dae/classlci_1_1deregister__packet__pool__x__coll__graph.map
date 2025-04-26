@@ -1,0 +1,11 @@
+<map id="lci::deregister_packet_pool_x" name="lci::deregister_packet_pool_x">
+<area shape="rect" id="Node000001" title="The actual implementation for deregister_packet_pool." alt="" coords="126,196,273,236"/>
+<area shape="rect" id="Node000002" href="$db/dec/classlci_1_1packet__pool__t.html" title="The actual implementation for RESOURCE packet_pool." alt="" coords="5,101,129,126"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="79,137,89,155,102,170,141,194,138,198,99,174,85,158,75,140"/>
+<area shape="rect" id="Node000003" href="$d6/d66/classlci_1_1device__t.html" title="The actual implementation for RESOURCE device." alt="" coords="153,101,245,126"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="202,140,202,196,197,196,197,140"/>
+<area shape="rect" id="Node000004" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="270,93,385,133"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="300,146,268,174,233,198,230,194,264,170,297,142"/>
+<area shape="rect" id="Node000005" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="279,5,376,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="330,44,330,93,325,93,325,44"/>
+</map>

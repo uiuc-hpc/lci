@@ -1,0 +1,12 @@
+<map id="lci::alloc_endpoint_x::device" name="lci::alloc_endpoint_x::device">
+<area shape="rect" id="Node000001" title=" " alt="" coords="529,27,656,67"/>
+<area shape="rect" id="Node000002" href="$da/d10/classlci_1_1alloc__endpoint__x.html#a0ab70f81a6d219588d464bd26ec253fd" title=" " alt="" coords="180,27,307,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="516,47,481,46,355,46,307,47,307,42,355,41,481,41,516,42"/>
+<area shape="rect" id="Node000005" href="$da/d10/classlci_1_1alloc__endpoint__x.html#a0d89d34f5185655e8171abf20b6e038a" title=" " alt="" coords="355,55,481,95"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="516,62,482,68,481,63,515,57"/>
+<area shape="rect" id="Node000003" href="$d5/dd3/namespacelci.html#abaf61865c25910cf3cd75b0307394a96" title=" " alt="" coords="5,5,132,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="166,37,132,31,132,26,167,32"/>
+<area shape="rect" id="Node000004" href="$da/d10/classlci_1_1alloc__endpoint__x.html#ac9317d6855d2fa31e67a9f392742aefe" title=" " alt="" coords="5,55,132,95"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="167,62,132,68,132,63,166,57"/>
+<area shape="poly" id="edge5_Node000005_Node000002" title=" " alt="" coords="341,66,306,60,307,55,342,60"/>
+</map>

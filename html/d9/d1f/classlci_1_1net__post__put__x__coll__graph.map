@@ -1,0 +1,19 @@
+<map id="lci::net_post_put_x" name="lci::net_post_put_x">
+<area shape="rect" id="Node000001" title="The actual implementation for net_post_put." alt="" coords="501,127,633,152"/>
+<area shape="rect" id="Node000002" href="$d7/d1a/classlci_1_1mr__t.html" title="The actual implementation for RESOURCE mr." alt="" coords="248,5,317,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="332,26,402,46,479,76,519,100,552,124,549,129,516,104,476,80,401,51,330,31"/>
+<area shape="rect" id="Node000003" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="225,55,340,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="354,88,511,124,509,129,353,94"/>
+<area shape="rect" id="Node000004" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="8,63,105,88"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="119,73,225,73,225,78,119,78"/>
+<area shape="rect" id="Node000005" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="225,119,340,159"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="354,137,501,137,501,142,354,142"/>
+<area shape="rect" id="Node000006" href="$d6/d66/classlci_1_1device__t.html" title="The actual implementation for RESOURCE device." alt="" coords="11,127,103,152"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="117,137,225,137,225,142,117,142"/>
+<area shape="rect" id="Node000007" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="225,183,340,223"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="353,185,509,149,511,155,354,190"/>
+<area shape="rect" id="Node000008" href="$de/d1b/classlci_1_1endpoint__t.html" title="The actual implementation for RESOURCE endpoint." alt="" coords="5,191,108,216"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="122,201,225,201,225,206,122,206"/>
+<area shape="rect" id="Node000009" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="209,248,356,273"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="356,242,416,224,476,200,517,175,550,150,553,154,520,179,479,204,418,229,357,247"/>
+</map>

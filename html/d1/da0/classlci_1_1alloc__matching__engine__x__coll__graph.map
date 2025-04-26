@@ -1,0 +1,11 @@
+<map id="lci::alloc_matching_engine_x" name="lci::alloc_matching_engine_x">
+<area shape="rect" id="Node000001" title="The actual implementation for alloc_matching_engine." alt="" coords="588,69,719,109"/>
+<area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="238,5,353,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="367,33,564,67,588,72,587,77,564,72,366,38"/>
+<area shape="rect" id="Node000003" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="5,13,103,38"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="117,23,238,23,238,28,117,28"/>
+<area shape="rect" id="Node000004" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="204,69,387,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="400,87,588,87,588,92,400,92"/>
+<area shape="rect" id="Node000005" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="222,134,369,159"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="382,134,564,107,587,102,588,107,564,112,383,139"/>
+</map>
