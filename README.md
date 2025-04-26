@@ -1,12 +1,7 @@
-# Lightweight Communication Interface (LCI)
-Implementation of a cool communication layer.
+# LCI
+A Lightweight Communication Interface for Asynchronous Multithreaded Systems
 
-## Authors
-
-- \@danghvu (danghvu@gmail.com)
-- \@omor1
-- \@JiakunYan (jiakunyan1998@gmail.com)
-- \@snirmarc
+![Build Status](https://github.com/uiuc-hpc/lci/actions/workflows/CI/badge.svg)
 
 ## Overview
 
@@ -27,7 +22,7 @@ explore design choices for such libraries. It has the following major features:
 
 LCI is implemented as a C++ libraries with two major network backends: 
 [libibverbs](https://github.com/linux-rdma/rdma-core/blob/master/Documentation/libibverbs.md) for InfiniBand/RoCE and 
-[libfabrics](https://ofiwg.github.io/libfabric/) for Slingshot-11, Ethernet, shared memory, and other networks.
+[libfabric](https://ofiwg.github.io/libfabric/) for Slingshot-11, Ethernet, shared memory, and other networks.
 
 [API documentation](https://uiuc-hpc.github.io/lci/)
 
@@ -35,7 +30,7 @@ LCI is implemented as a C++ libraries with two major network backends:
 ### CMake
 
 ```
-git clone git@github.com:uiuc-hpc/lci.git --branch=lci2
+git clone git@github.com:uiuc-hpc/lci.git
 cd lci
 mkdir build
 cmake -DCMAKE_INSTALL_PREFIX=/path/to/install ..
@@ -54,7 +49,7 @@ make install
   modify this variable as if `libibverbs` presents, it is likely to be the recommended one to use.
   - `ibv`: [libibverbs](https://github.com/linux-rdma/rdma-core/blob/master/Documentation/libibverbs.md), 
     typically for infiniband/RoCE.
-  - `ofi`: [libfabrics](https://ofiwg.github.io/libfabric/), 
+  - `ofi`: [libfabric](https://ofiwg.github.io/libfabric/), 
     for all other networks (slingshot-11, ethernet, shared memory). 
 
 ### Spack
@@ -96,6 +91,13 @@ Check out the [API documentation](https://uiuc-hpc.github.io/lci/) for more deta
 
 ## LICENSE
 See LICENSE file.
+
+## Authors
+
+- \@danghvu (danghvu@gmail.com)
+- \@omor1
+- \@JiakunYan (jiakunyan1998@gmail.com)
+- \@snirmarc
 
 ## Relevant Publications
 - Yan, Jiakun, and Marc Snir. "Contemplating a Lightweight Communication Interface for Asynchronous Many-Task Systems." 

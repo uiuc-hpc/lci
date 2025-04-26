@@ -1,5 +1,12 @@
 namespace lci {
 
+/** \page Tutorials Tutorials
+  %LCI tutorials
+  - \subpage quickstart
+  - \subpage add_lci
+  - \subpage install
+*/
+
 /** \page ChangeLogs Change Logs
   %LCI change logs
   - \subpage Changelog_1_7_3
