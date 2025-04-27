@@ -120,114 +120,63 @@ $(function(){initNavTree('db/d4e/tutorial.html','../../'); initResizable(true); 
 <div class="toc"><h3>Table of Contents</h3>
 <ul>
   <li class="level1">
-    <a href="#autotoc_md45">Install LCI</a>
+    <a href="#autotoc_md41">Add LCI to your project</a>
+  </li>
+  <li class="level1">
+    <a href="#autotoc_md42">Install LCI</a>
     <ul>
       <li class="level2">
-        <a href="#autotoc_md46">Prerequisites</a>
+        <a href="#autotoc_md43">Prerequisites</a>
       </li>
       <li class="level2">
-        <a href="#autotoc_md47">With CMake</a>
+        <a href="#autotoc_md44">With CMake</a>
         <ul>
           <li class="level3">
-            <a href="#autotoc_md48">Install LCI on your laptop</a>
+            <a href="#autotoc_md45">Install LCI on your laptop</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md49">Install LCI on a cluster</a>
+            <a href="#autotoc_md46">Install LCI on a cluster</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md50">Important CMake variables</a>
+            <a href="#autotoc_md47">Important CMake variables</a>
           </li>
         </ul>
       </li>
       <li class="level2">
-        <a href="#autotoc_md51">With Spack</a>
+        <a href="#autotoc_md48">With Spack</a>
         <ul>
           <li class="level3">
-            <a href="#autotoc_md52">Important Spack variables</a>
+            <a href="#autotoc_md49">Important Spack variables</a>
           </li>
         </ul>
       </li>
     </ul>
   </li>
   <li class="level1">
-    <a href="#autotoc_md53">Add LCI to your project</a>
+    <a href="#autotoc_md50">Write LCI programs</a>
+  </li>
+  <li class="level1">
+    <a href="#autotoc_md51">Run LCI applications</a>
     <ul>
-      <li class="level2">
-        <a href="#autotoc_md54">With CMake</a>
+      <li class="level2 empty">
+        <ul>
+          <li class="level3">
+            <a href="#autotoc_md52">Bootstrapping backends</a>
+          </li>
+          <li class="level3">
+            <a href="#autotoc_md53">Launchers</a>
+          </li>
+          <li class="level3">
+            <a href="#autotoc_md54">More about the file backend</a>
+          </li>
+        </ul>
       </li>
     </ul>
   </li>
 </ul>
 </div>
-<div class="textblock"><h1><a class="anchor" id="autotoc_md45"></a>
-Install LCI</h1>
-<p>Although CMake FetchContent is convenient, you may also want to install LCI on your systems.</p>
-<h2><a class="anchor" id="autotoc_md46"></a>
-Prerequisites</h2>
-<ul>
-<li>A Linux or MacOS laptop or cluster.</li>
-<li>A C++ compiler that supports C++17 or higher (GCC 8 or higher, Clang 5 or higher, etc).</li>
-<li>CMake 3.12 or higher.</li>
-<li>A network backend that supports LCI. Currently, LCI supports:<ul>
-<li><a href="https://github.com/linux-rdma/rdma-core/blob/master/Documentation/libibverbs.md">libibverbs</a>. Typically for Infiniband/RoCE.</li>
-<li><a href="https://ofiwg.github.io/libfabric/">libfabric</a>. For Slingshot-11, Ethernet, shared memory (including laptop), and other networks.</li>
-</ul>
-</li>
-</ul>
-<p>Normal clusters should already have these installed (you may need a few <code>module load</code>). If you are using a laptop, you may need to install cmake and libfabric manually.</p><ul>
-<li>For Ubuntu, you can install the prerequisites using: <div class="fragment"><div class="line">sudo apt-get install -y cmake libfabric-bin libfabric-dev</div>
-</div><!-- fragment --></li>
-<li>For MacOS, you can install the prerequisites using: <div class="fragment"><div class="line">brew install cmake libfabric</div>
-</div><!-- fragment --></li>
-</ul>
-<h2><a class="anchor" id="autotoc_md47"></a>
-With CMake</h2>
-<h3><a class="anchor" id="autotoc_md48"></a>
-Install LCI on your laptop</h3>
-<div class="fragment"><div class="line">git clone https://github.com/uiuc-hpc/lci.git</div>
-<div class="line">cd lci</div>
-<div class="line">mkdir build</div>
-<div class="line">cmake -DCMAKE_INSTALL_PREFIX=/path/to/install -DLCI_NETWORK_BACKENDS=ofi ..</div>
-<div class="line">make</div>
-<div class="line">make install</div>
-</div><!-- fragment --><h3><a class="anchor" id="autotoc_md49"></a>
-Install LCI on a cluster</h3>
-<div class="fragment"><div class="line">git clone https://github.com/uiuc-hpc/lci.git</div>
-<div class="line">cd lci</div>
-<div class="line">mkdir build</div>
-<div class="line">cmake -DCMAKE_INSTALL_PREFIX=/path/to/install ..</div>
-<div class="line">make</div>
-<div class="line">make install</div>
-</div><!-- fragment --><p> Basically the same as installing LCI on your laptop, but you don't need to install pre-requisites because they are already installed on the cluster. You also don't need to manually select the network backend because LCI will automatically select the best one for you.</p>
-<h3><a class="anchor" id="autotoc_md50"></a>
-Important CMake variables</h3>
-<ul>
-<li><code>LCI_DEBUG=[ON|OFF]</code>: Enable/disable the debug mode (more assertions and logs). The default value is <code>OFF</code>.</li>
-<li><code>LCI_NETWORK_BACKENDS=[ibv|ofi]</code>: allow multiple values separated with comma. Hint to which network backend to use. If the backend indicated by this variable are found, LCI will just use it. Otherwise, LCI will use whatever are found with the priority <code>ibv</code> &gt; <code>ofi</code>. The default value is <code>ibv,ofi</code>. Typically, you don't need to modify this variable as if <code>libibverbs</code> presents, it is likely to be the recommended one to use.<ul>
-<li><code>ibv</code>: <a href="https://github.com/linux-rdma/rdma-core/blob/master/Documentation/libibverbs.md">libibverbs</a>, typically for infiniband/RoCE.</li>
-<li><code>ofi</code>: <a href="https://ofiwg.github.io/libfabric/">libfabric</a>, for all other networks (slingshot-11, ethernet, shared memory).</li>
-</ul>
-</li>
-</ul>
-<h2><a class="anchor" id="autotoc_md51"></a>
-With Spack</h2>
-<p>LCI can be installed using <a href="https://spack.io/">Spack</a>. An LCI recipe has been included in the Spack official repository. For the most up-to-date version, you can also use the recipe in the <code>contrib/spack</code> directory of the LCI repository. To install LCI using Spack, run the following commands:</p>
-<div class="fragment"><div class="line"># Assume you have already installed Spack</div>
-<div class="line"># Optional: add the LCI spack recipe from the LCI repository</div>
-<div class="line">git clone https://github.com/uiuc-hpc/lci.git</div>
-<div class="line">spack repo add lci/contrib/spack</div>
-<div class="line">spack install lci</div>
-</div><!-- fragment --><h3><a class="anchor" id="autotoc_md52"></a>
-Important Spack variables</h3>
-<ul>
-<li><code>debug</code>: define the CMake variable <code>LCI_DEBUG</code>.</li>
-<li><code>backend=[ibv|ofi]</code>: define the CMake variable <code>LCI_NETWORK_BACKENDS</code>.</li>
-</ul>
-<h1><a class="anchor" id="autotoc_md53"></a>
+<div class="textblock"><h1><a class="anchor" id="autotoc_md41"></a>
 Add LCI to your project</h1>
-<p>This tutorial will show you how to integrate LCI to your project.</p>
-<h2><a class="anchor" id="autotoc_md54"></a>
-With CMake</h2>
 <p>The following CMake code will add LCI to your project. It will first try to find LCI on your system. If it is not found, it will download and build LCI from GitHub.</p>
 <div class="fragment"><div class="line"># Try to find LCI externally</div>
 <div class="line">find_package(</div>
@@ -248,7 +197,110 @@ With CMake</h2>
 <div class="line"> </div>
 <div class="line"># Link LCI to your target</div>
 <div class="line">target_link_libraries(your_target PRIVATE LCI::lci)</div>
-</div><!-- fragment --> </div></div><!-- contents -->
+</div><!-- fragment --><h1><a class="anchor" id="autotoc_md42"></a>
+Install LCI</h1>
+<p>Although CMake FetchContent is convenient, you may also want to install LCI on your systems.</p>
+<h2><a class="anchor" id="autotoc_md43"></a>
+Prerequisites</h2>
+<ul>
+<li>A Linux or MacOS laptop or cluster.</li>
+<li>A C++ compiler that supports C++17 or higher (GCC 8 or higher, Clang 5 or higher, etc).</li>
+<li>CMake 3.12 or higher.</li>
+<li>A network backend that supports LCI. Currently, LCI supports:<ul>
+<li><a href="https://github.com/linux-rdma/rdma-core/blob/master/Documentation/libibverbs.md">libibverbs</a>. Typically for Infiniband/RoCE.</li>
+<li><a href="https://ofiwg.github.io/libfabric/">libfabric</a>. For Slingshot-11, Ethernet, shared memory (including laptop), and other networks.</li>
+</ul>
+</li>
+</ul>
+<p>Normal clusters should already have these installed (you may need a few <code>module load</code>). If you are using a laptop, you may need to install cmake and libfabric manually.</p><ul>
+<li>For Ubuntu, you can install the prerequisites using: <div class="fragment"><div class="line">sudo apt-get install -y cmake libfabric-bin libfabric-dev</div>
+</div><!-- fragment --></li>
+<li>For MacOS, you can install the prerequisites using: <div class="fragment"><div class="line">brew install cmake libfabric</div>
+</div><!-- fragment --></li>
+</ul>
+<h2><a class="anchor" id="autotoc_md44"></a>
+With CMake</h2>
+<h3><a class="anchor" id="autotoc_md45"></a>
+Install LCI on your laptop</h3>
+<div class="fragment"><div class="line">git clone https://github.com/uiuc-hpc/lci.git</div>
+<div class="line">cd lci</div>
+<div class="line">mkdir build</div>
+<div class="line">cmake -DCMAKE_INSTALL_PREFIX=/path/to/install -DLCI_NETWORK_BACKENDS=ofi ..</div>
+<div class="line">make</div>
+<div class="line">make install</div>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md46"></a>
+Install LCI on a cluster</h3>
+<div class="fragment"><div class="line">git clone https://github.com/uiuc-hpc/lci.git</div>
+<div class="line">cd lci</div>
+<div class="line">mkdir build</div>
+<div class="line">cmake -DCMAKE_INSTALL_PREFIX=/path/to/install ..</div>
+<div class="line">make</div>
+<div class="line">make install</div>
+</div><!-- fragment --><p> Basically the same as installing LCI on your laptop, but you don't need to install pre-requisites because they are already installed on the cluster. You also don't need to manually select the network backend because LCI will automatically select the best one for you.</p>
+<h3><a class="anchor" id="autotoc_md47"></a>
+Important CMake variables</h3>
+<ul>
+<li><code>LCI_DEBUG=[ON|OFF]</code>: Enable/disable the debug mode (more assertions and logs). The default value is <code>OFF</code>.</li>
+<li><code>LCI_NETWORK_BACKENDS=[ibv|ofi]</code>: allow multiple values separated with comma. Hint to which network backend to use. If the backend indicated by this variable are found, LCI will just use it. Otherwise, LCI will use whatever are found with the priority <code>ibv</code> &gt; <code>ofi</code>. The default value is <code>ibv,ofi</code>. Typically, you don't need to modify this variable as if <code>libibverbs</code> presents, it is likely to be the recommended one to use.<ul>
+<li><code>ibv</code>: <a href="https://github.com/linux-rdma/rdma-core/blob/master/Documentation/libibverbs.md">libibverbs</a>, typically for infiniband/RoCE.</li>
+<li><code>ofi</code>: <a href="https://ofiwg.github.io/libfabric/">libfabric</a>, for all other networks (slingshot-11, ethernet, shared memory).</li>
+</ul>
+</li>
+</ul>
+<h2><a class="anchor" id="autotoc_md48"></a>
+With Spack</h2>
+<p>LCI can be installed using <a href="https://spack.io/">Spack</a>. An LCI recipe has been included in the Spack official repository. For the most up-to-date version, you can also use the recipe in the <code>contrib/spack</code> directory of the LCI repository. To install LCI using Spack, run the following commands:</p>
+<div class="fragment"><div class="line"># Assume you have already installed Spack</div>
+<div class="line"># Optional: add the LCI spack recipe from the LCI repository</div>
+<div class="line">git clone https://github.com/uiuc-hpc/lci.git</div>
+<div class="line">spack repo add lci/contrib/spack</div>
+<div class="line">spack install lci</div>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md49"></a>
+Important Spack variables</h3>
+<ul>
+<li><code>debug</code>: define the CMake variable <code>LCI_DEBUG</code>.</li>
+<li><code>backend=[ibv|ofi]</code>: define the CMake variable <code>LCI_NETWORK_BACKENDS</code>.</li>
+</ul>
+<h1><a class="anchor" id="autotoc_md50"></a>
+Write LCI programs</h1>
+<p>Read <a href="https://arxiv.org/abs/2503.15400">this short paper</a> to understand the high-level interface design of LCI.</p>
+<p>See <code>examples</code> and <code>tests</code> for some example code.</p>
+<p>Check out the API documentation for more details.</p>
+<h1><a class="anchor" id="autotoc_md51"></a>
+Run LCI applications</h1>
+<p>In <a class="el" href="../../d2/dcd/quickstart.html">Quick Start</a>, we have shown you how to run LCI applications using <code>mpirun</code> or <code>srun</code>. Here, we will discuss the bootstrapping process in more detail.</p>
+<p>To successfully bootstrap LCI, the launcher (<code>srun</code>, <code>mpirun</code>, or <code>lcrun</code>) must match the bootstrapping backend used by LCI. Normally, LCI will automatically select the right bootstrapping backend based on the environment so no special configuration is needed. However, if you see your applications were launched as a collection of processes all with rank 0, it means something went wrong.</p>
+<h3><a class="anchor" id="autotoc_md52"></a>
+Bootstrapping backends</h3>
+<p>Specifically, LCI has six different bootstrapping backends:</p><ul>
+<li><code>pmi1</code>: Process Management Interface version 1.</li>
+<li><code>pmi2</code>: Process Management Interface version 2.</li>
+<li><code>pmix</code>: Process Management Interface X.</li>
+<li><code>mpi</code>: Use MPI to bootstrap LCI.</li>
+<li><code>file</code>: LCI-specific bootstrapping backend with a shared file system and <code>flock</code>.</li>
+<li><code>local</code>: Just set <code>rank_me</code> to 0 and <code>rank_n</code> to 1.</li>
+</ul>
+<p><code>pmi1</code>, <code>pmi2</code>, and <code>pmix</code> are the recommended backends to use. They are the same backends used by MPI. The <code>mpi</code> backend is a fallback option if you cannot find the PMI client library. The <code>file</code> backend is a non-scalable bootstrapping backend mainly for testing and debugging purposes.</p>
+<p>By default, the source code of LCI is shipped with a copy of the SLURM PMI1 and PMI2 client implementation, so <code>pmi1</code> and <code>pmi2</code> are always compiled. <code>pmix</code> will be compiled if the CMake configuration of LCI finds the PMIx client library. The <code>mpi</code> backend must be explicitly asked for by setting the CMake variable <code>LCT_PMI_BACKEND_ENABLE_MPI=ON</code>. The <code>file</code> and <code>local</code> backend is always compiled.</p>
+<p>However, the SLURM PMI1 and PMI2 client implementation is not always the best option. For example, if you are using <code>mpirun</code>, you may want to use the PMI client library that comes with your MPI implementation. In this case, you need to find the corresponding PMI client library and link LCI to it. <code>ldd $(which mpirun)</code> will show you the PMI client library used by <code>mpirun</code>. Normally, MPICH uses <code>hydra-pmi</code>; Cray-MPICH uses <code>cray-pmi</code>; OpenMPI uses <code>pmix</code>. After finding the PMI client library, you can reconfigure LCI with the corresponding PMI client library through the <code>PMI_ROOT</code>, <code>PMI2_ROOT</code>, or <code>PMIx_ROOT</code> environment/cmake variables.</p>
+<p>A CMake variable <code>LCT_PMI_BACKEND_DEFAULT</code> and an environment variable <code>LCT_PMI_BACKEND</code> can be used to set a list of backends to try in order (if they are compiled). The first one that works will be used. The default value is <code>pmi1,pmi2,pmix,mpi,file,local</code>.</p>
+<p>You can use <code>export LCT_LOG_LEVEL=info</code> to monitor the bootstrapping procedure.</p>
+<h3><a class="anchor" id="autotoc_md53"></a>
+Launchers</h3>
+<p><code>srun</code> and <code>mpirun</code> should use one of the PMI backends (or <code>mpi</code> as a last resort). <code>lcrun</code> will use the <code>file</code> backend.</p>
+<p>Depending on the SLURM configuration, <code>srun</code> may not enable PMI by default. In this case, you can explicitly enable one of the PMI services by using the <code>--mpi</code> option. <code>srun --mpi=list -n 1 hostname</code> will show you the available PMI services. You can confirm whether the PMI service has been enabled with <code>srun env | grep PMI</code>.</p>
+<p><code>mpirun</code> will use the PMI client library that comes with your MPI implementation. As mentioned above, you need to link LCI to the correct PMI client library.</p>
+<p>Sometimes, <code>lcrun</code> may hang because of a previous failed run. In this case, you can remove the temporary folder <code>~/.tmp/lct_pmi_file-*</code> and try again.</p>
+<h3><a class="anchor" id="autotoc_md54"></a>
+More about the file backend</h3>
+<p>The <code>file</code> backend allows you to launch multiple LCI processes individually without a launcher. This can significantly ease the debugging process.</p>
+<p>For example, you can open two terminal windows and run the following commands in each window: </p><div class="fragment"><div class="line">export LCT_PMI_BACKEND=file</div>
+<div class="line">export LCT_PMI_FILE_NRANKS=2</div>
+<div class="line">./lci_program</div>
+<div class="line"># or launch it with gdb</div>
+<div class="line">gdb ./lci_program</div>
+</div><!-- fragment --><p> This will launch two LCI processes with rank 0 and rank 1. </p>
+</div></div><!-- contents -->
 </div><!-- PageDoc -->
 </div><!-- doc-content -->
 <!-- start footer part -->

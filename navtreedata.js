@@ -28,20 +28,20 @@ var NAVTREE =
     [ "README", "index.html", "index" ],
     [ "Quick Start", "d2/dcd/quickstart.html", null ],
     [ "Tutorial", "db/d4e/tutorial.html", [
-      [ "Install LCI", "db/d4e/tutorial.html#autotoc_md45", [
-        [ "Prerequisites", "db/d4e/tutorial.html#autotoc_md46", null ],
-        [ "With CMake", "db/d4e/tutorial.html#autotoc_md47", [
-          [ "Install LCI on your laptop", "db/d4e/tutorial.html#autotoc_md48", null ],
-          [ "Install LCI on a cluster", "db/d4e/tutorial.html#autotoc_md49", null ],
-          [ "Important CMake variables", "db/d4e/tutorial.html#autotoc_md50", null ]
+      [ "Add LCI to your project", "db/d4e/tutorial.html#autotoc_md41", null ],
+      [ "Install LCI", "db/d4e/tutorial.html#autotoc_md42", [
+        [ "Prerequisites", "db/d4e/tutorial.html#autotoc_md43", null ],
+        [ "With CMake", "db/d4e/tutorial.html#autotoc_md44", [
+          [ "Install LCI on your laptop", "db/d4e/tutorial.html#autotoc_md45", null ],
+          [ "Install LCI on a cluster", "db/d4e/tutorial.html#autotoc_md46", null ],
+          [ "Important CMake variables", "db/d4e/tutorial.html#autotoc_md47", null ]
         ] ],
-        [ "With Spack", "db/d4e/tutorial.html#autotoc_md51", [
-          [ "Important Spack variables", "db/d4e/tutorial.html#autotoc_md52", null ]
+        [ "With Spack", "db/d4e/tutorial.html#autotoc_md48", [
+          [ "Important Spack variables", "db/d4e/tutorial.html#autotoc_md49", null ]
         ] ]
       ] ],
-      [ "Add LCI to your project", "db/d4e/tutorial.html#autotoc_md53", [
-        [ "With CMake", "db/d4e/tutorial.html#autotoc_md54", null ]
-      ] ]
+      [ "Write LCI programs", "db/d4e/tutorial.html#autotoc_md50", null ],
+      [ "Run LCI applications", "db/d4e/tutorial.html#autotoc_md51", null ]
     ] ],
     [ "Frequently Asked Questions", "d3/d2d/faq.html", null ],
     [ "Change Logs", "dd/dbb/changelogs.html", "dd/dbb/changelogs" ],
@@ -56,8 +56,8 @@ var NAVTREEINDEX =
 "d7/d0f/classlci_1_1alloc__handler__x.html#a75c4b42335cea962e16ede7e05510d03",
 "d8/d48/classlci_1_1post__comm__x.html#a63b33d6bf1dbcbc44d503a38dac92431",
 "d9/dcc/classlci_1_1alloc__cq__x.html#a2624007487c5ea0e802af4e3b82746e2",
-"dc/d5c/classlci_1_1runtime__t.html#a1270a4d21c181193e574466b7a373c66",
-"index.html#autotoc_md3"
+"dc/d5c/classlci_1_1runtime__t.html",
+"index.html#autotoc_md2"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronization';

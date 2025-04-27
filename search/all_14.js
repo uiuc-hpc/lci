@@ -1,12 +1,12 @@
 var searchData=
 [
-  ['of_20processes_20all_20with_20rank_200_0',['Why was my LCI application launched as a collection of processes all with rank 0?',['../d3/d2d/faq.html#autotoc_md39',1,'']]],
+  ['of_20processes_20all_20with_20rank_200_0',['Why was my LCI application launched as a collection of processes all with rank 0?',['../d3/d2d/faq.html#autotoc_md35',1,'']]],
   ['offset_1',['offset',['../d6/daa/classlci_1_1net__post__puts__x.html#a3d1f9af88d0b0d0d31ef5ae99617605a',1,'lci::net_post_puts_x::offset()'],['../d3/ddb/classlci_1_1net__post__put__x.html#a8d0a08ee889c345808adc42fa2a613b1',1,'lci::net_post_put_x::offset()'],['../d2/d4c/classlci_1_1net__post__putImms__x.html#a7cf1fbb5b227c9afd1ab864314cc35d8',1,'lci::net_post_putImms_x::offset()'],['../d8/d8e/classlci_1_1net__post__putImm__x.html#ad3f13422931b7f055dc4038e4fb0ea94',1,'lci::net_post_putImm_x::offset()'],['../d8/d89/classlci_1_1net__post__get__x.html#af7c26425db19974b0a48d9ba35ea445a',1,'lci::net_post_get_x::offset()']]],
   ['ofi_2',['ofi',['../d5/dd3/namespacelci.html#a210d8a7dce42f1f213407e36a1718836ad15249b2b3df63eaefab87103f869c08',1,'lci']]],
   ['ofi_5flock_5fmode_3',['ofi_lock_mode',['../d8/d0c/structlci_1_1global__attr__t.html#a8ac0a525f1d9113cfe2416cf23d53ce2',1,'lci::global_attr_t::ofi_lock_mode'],['../db/d97/structlci_1_1device__attr__t.html#aadb4141afd93cfb2c581712d90d6f232',1,'lci::device_attr_t::ofi_lock_mode'],['../d9/d10/classlci_1_1alloc__device__x.html#a7d316853b54b2a870ea35c387c1006e4',1,'lci::alloc_device_x::ofi_lock_mode()']]],
   ['ofi_5fprovider_5fname_4',['ofi_provider_name',['../d8/d0c/structlci_1_1global__attr__t.html#a68a6363717f5edf2addb8d4f13115904',1,'lci::global_attr_t::ofi_provider_name'],['../d4/d7b/structlci_1_1net__context__attr__t.html#aa731baf1c2d5bdbf3d0bef0139c5ea29',1,'lci::net_context_attr_t::ofi_provider_name'],['../d9/d2c/classlci_1_1alloc__net__context__x.html#a11c33085d6c48cc3684d45ae1f91b354',1,'lci::alloc_net_context_x::ofi_provider_name()']]],
-  ['on_20a_20cluster_5',['Install LCI on a cluster',['../db/d4e/tutorial.html#autotoc_md49',1,'']]],
-  ['on_20your_20laptop_6',['Install LCI on your laptop',['../db/d4e/tutorial.html#autotoc_md48',1,'']]],
+  ['on_20a_20cluster_5',['Install LCI on a cluster',['../db/d4e/tutorial.html#autotoc_md46',1,'']]],
+  ['on_20your_20laptop_6',['Install LCI on your laptop',['../db/d4e/tutorial.html#autotoc_md45',1,'']]],
   ['op_7',['op',['../d9/ddd/classlci_1_1reduce__x.html#a318938f15581bf8ebbc9c3f663b9a1d1',1,'lci::reduce_x']]],
   ['opcode_8',['opcode',['../db/d3b/structlci_1_1net__status__t.html#a702f68c9c10e71480577a1db85015adc',1,'lci::net_status_t']]],
   ['operator_20t_9',['operator T',['../db/d20/structlci_1_1option__t.html#a34baead12854479a4b35db44614defb3',1,'lci::option_t']]],
@@ -46,9 +46,9 @@ var searchData=
   ['option_5ft_3c_20uint64_5ft_20_3e_43',['option_t&lt; uint64_t &gt;',['../db/d20/structlci_1_1option__t.html',1,'lci']]],
   ['option_5ft_3c_20uintptr_5ft_20_3e_44',['option_t&lt; uintptr_t &gt;',['../db/d20/structlci_1_1option__t.html',1,'lci']]],
   ['option_5ft_3c_20void_20_2a_20_3e_45',['option_t&lt; void * &gt;',['../db/d20/structlci_1_1option__t.html',1,'lci']]],
-  ['other_20changes_46',['Other Changes',['../d1/d70/Changelog_1_7_3.html#autotoc_md12',1,'Other Changes'],['../dd/d2d/Changelog_1_7_4.html#autotoc_md17',1,'Other Changes'],['../d9/dd9/Changelog_1_7_5.html#autotoc_md22',1,'Other Changes'],['../df/d94/Changelog_1_7_6.html#autotoc_md27',1,'Other Changes'],['../d7/d83/Changelog_1_7_7.html#autotoc_md32',1,'Other Changes'],['../d5/de3/Changelog_1_7_8.html#autotoc_md37',1,'Other Changes']]],
-  ['others_47',['Others',['../d3/d2d/faq.html#autotoc_md41',1,'']]],
+  ['other_20changes_46',['Other Changes',['../d1/d70/Changelog_1_7_3.html#autotoc_md8',1,'Other Changes'],['../dd/d2d/Changelog_1_7_4.html#autotoc_md13',1,'Other Changes'],['../d9/dd9/Changelog_1_7_5.html#autotoc_md18',1,'Other Changes'],['../df/d94/Changelog_1_7_6.html#autotoc_md23',1,'Other Changes'],['../d7/d83/Changelog_1_7_7.html#autotoc_md28',1,'Other Changes'],['../d5/de3/Changelog_1_7_8.html#autotoc_md33',1,'Other Changes']]],
+  ['others_47',['Others',['../d3/d2d/faq.html#autotoc_md37',1,'']]],
   ['out_48',['OUT',['../d8/d33/group__LCI__BASIC.html#gga635a086b50ac87b41d18063940868cb7aef373774188a51f80463f37b6bd9e83a',1,'lci']]],
-  ['overview_49',['Overview',['../index.html#autotoc_md1',1,'']]],
+  ['overview_49',['Overview',['../index.html#autotoc_md2',1,'']]],
   ['own_5fdata_50',['own_data',['../da/d7c/structlci_1_1data__t.html#a47e055ddd6fb074ed0a3ecfda4fbf220',1,'lci::data_t']]]
 ];

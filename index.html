@@ -123,32 +123,16 @@ $(function(){initNavTree('index.html',''); initResizable(true); });
     <a href="#autotoc_md0">LCI</a>
     <ul>
       <li class="level2">
-        <a href="#autotoc_md1">Overview</a>
+        <a href="#autotoc_md1">Documentation</a>
       </li>
       <li class="level2">
-        <a href="#autotoc_md2">Installation</a>
-        <ul>
-          <li class="level3">
-            <a href="#autotoc_md3">CMake</a>
-            <ul>
-              <li class="level4">
-                <a href="#autotoc_md4">Important CMake variables</a>
-              </li>
-            </ul>
-          </li>
-          <li class="level3">
-            <a href="#autotoc_md5">Spack</a>
-          </li>
-        </ul>
+        <a href="#autotoc_md2">Overview</a>
       </li>
       <li class="level2">
-        <a href="#autotoc_md6">Run LCI applications</a>
+        <a href="#autotoc_md3">Performance Showcase</a>
       </li>
       <li class="level2">
-        <a href="#autotoc_md7">Write an LCI program</a>
-      </li>
-      <li class="level2">
-        <a href="#autotoc_md8">Relevant Publications</a>
+        <a href="#autotoc_md4">Relevant Publications</a>
       </li>
     </ul>
   </li>
@@ -159,51 +143,22 @@ LCI</h1>
 <p>A Lightweight Communication Interface for Asynchronous Multithreaded Systems</p>
 <p><img src="https://github.com/uiuc-hpc/lci/actions/workflows/ci.yml/badge.svg" alt="Build Status" style="pointer-events: none;" class="inline"/></p>
 <h2><a class="anchor" id="autotoc_md1"></a>
+Documentation</h2>
+<p>See <a href="https://uiuc-hpc.github.io/lci/">here</a> for quick start, tutorial, API documentation, and more.</p>
+<h2><a class="anchor" id="autotoc_md2"></a>
 Overview</h2>
-<p>The Lightweight Communication Interface (LCI) is designed to be an efficient communication library for asynchronous communications in multithreaded environments. It also serves as a research tool to explore design choices for such libraries. It has the following major features:</p><ul>
+<p>LCI is designed to be an efficient communication library for asynchronous communications in multithreaded environments. It also serves as a research tool to explore design choices for such libraries. It has the following major features:</p><ul>
 <li>a unified interface that supports flexible combinations of all common point-to-point communication primitives, including send-receive, active messages, and RMA put/get (with/without notification), and various built-in mechanisms to synchronize with pending communications, including synchronizers, completion queues, function handlers, and completion graphs.</li>
 <li>a flexible interface offers both a simple starting point for users to program and a wide range of options for them to incrementally fine-tune the communication resources and runtime behaviors, minimizing potential interference between communication and computation.</li>
 <li>a lightweight and efficient runtime optimized for threading efficiency and massive parallelism. The runtime is built with a deep understanding of low-level network activities and employs optimizations such as atomic-based data structures, thread-local storage, and fine-grained nonblocking locks.</li>
 </ul>
 <p>LCI is implemented as a C++ libraries with two major network backends: <a href="https://github.com/linux-rdma/rdma-core/blob/master/Documentation/libibverbs.md">libibverbs</a> for InfiniBand/RoCE and <a href="https://ofiwg.github.io/libfabric/">libfabric</a> for Slingshot-11, Ethernet, shared memory, and other networks.</p>
-<p><a href="https://uiuc-hpc.github.io/lci/">API documentation</a></p>
-<h2><a class="anchor" id="autotoc_md2"></a>
-Installation</h2>
-<h3><a class="anchor" id="autotoc_md3"></a>
-CMake</h3>
-<div class="fragment"><div class="line">git clone git@github.com:uiuc-hpc/lci.git</div>
-<div class="line">cd lci</div>
-<div class="line">mkdir build</div>
-<div class="line">cmake -DCMAKE_INSTALL_PREFIX=/path/to/install ..</div>
-<div class="line">make</div>
-<div class="line">make install</div>
-</div><!-- fragment --><h4><a class="anchor" id="autotoc_md4"></a>
-Important CMake variables</h4>
-<ul>
-<li><code>LCI_DEBUG=[ON|OFF]</code>: Enable/disable the debug mode (more assertions and logs). The default value is <code>OFF</code>.</li>
-<li><code>LCI_NETWORK_BACKENDS=[ibv|ofi]</code>: allow multiple values separated with comma. Hint to which network backend to use. If the backend indicated by this variable are found, LCI will just use it. Otherwise, LCI will use whatever are found with the priority <code>ibv</code> &gt; <code>ofi</code>. The default value is <code>ibv,ofi</code>. Typically, you don't need to modify this variable as if <code>libibverbs</code> presents, it is likely to be the recommended one to use.<ul>
-<li><code>ibv</code>: <a href="https://github.com/linux-rdma/rdma-core/blob/master/Documentation/libibverbs.md">libibverbs</a>, typically for infiniband/RoCE.</li>
-<li><code>ofi</code>: <a href="https://ofiwg.github.io/libfabric/">libfabric</a>, for all other networks (slingshot-11, ethernet, shared memory).</li>
-</ul>
-</li>
-</ul>
-<h3><a class="anchor" id="autotoc_md5"></a>
-Spack</h3>
-<p>LCI can be installed using <a href="https://spack.io/">Spack</a>. </p><div class="fragment"><div class="line">git clone git@github.com:uiuc-hpc/lci.git --branch=lci2</div>
-<div class="line">spack repo add lci/contrib/spack</div>
-<div class="line">spack install lci</div>
-</div><!-- fragment --><h2><a class="anchor" id="autotoc_md6"></a>
-Run LCI applications</h2>
-<p>We use the same mechanisms as MPI to launch LCI processes, so you can use the same way you run MPI applications to run LCI applications. Typically, it would be <code>mpirun</code> or <code>srun</code>. For example, </p><div class="fragment"><div class="line">mpirun -n 2 ./hello_world</div>
-</div><!-- fragment --><p> or </p><div class="fragment"><div class="line">srun -n 2 ./hello_world</div>
-</div><!-- fragment --><p>In addition, you can use the <code>lcrun</code> script </p><div class="fragment"><div class="line">lcrun -n 2 ./hello_world</div>
-</div><!-- fragment --><p>We do not expect <code>lcrun</code> to have the same level of scalability as <code>mpirun</code> or <code>srun</code>, but it is a good tool for fast testing and debugging.</p>
-<h2><a class="anchor" id="autotoc_md7"></a>
-Write an LCI program</h2>
-<p>Read <a href="https://arxiv.org/abs/2503.15400">this short paper</a> to understand the high-level interface design of LCI.</p>
-<p>See <code>examples</code> and <code>tests</code> for some example code.</p>
-<p>Check out the <a href="https://uiuc-hpc.github.io/lci/">API documentation</a> for more details.</p>
-<h2><a class="anchor" id="autotoc_md8"></a>
+<h2><a class="anchor" id="autotoc_md3"></a>
+Performance Showcase</h2>
+<p><img src="docs/img/lt-expanse.png" alt="Message Rate Result" class="inline"/> <img src="docs/img/bw-expanse.png" alt="Bandwidth Result" class="inline"/> <img src="docs/img/legend-expanse.png" alt="legend" class="inline"/></p>
+<p>Results of multi-pair ping-pong microbenchmarks measuring message rate (8-byte messages, 100k steps) and bandwidth (64-thread, 1k steps) on SDSC Expanse (InfiniBand). It compares LCI with other state-of-the-art libraries, including MPI (MPICH), MPI with the VCI extension, and GASNet-EX. The experiments are either run with one process per core (multi-proc) or with one process per node (one thread per core, multi-thrd).</p>
+<p><em>For the first time known to us, multithreaded communication catches up with multi-process communication.</em></p>
+<h2><a class="anchor" id="autotoc_md4"></a>
 Relevant Publications</h2>
 <ul>
 <li>Yan, Jiakun, and Marc Snir. "Contemplating a Lightweight Communication Interface for Asynchronous Many-Task Systems." arXiv preprint arXiv:2503.15400 (2025). <em>A short workshop paper describing the high-level interface design of LCI (version 2, the current version).</em></li>

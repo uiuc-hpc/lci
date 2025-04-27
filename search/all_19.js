@@ -4,12 +4,13 @@ var searchData=
   ['tag_5fonly_1',['tag_only',['../d8/d33/group__LCI__BASIC.html#gga7f832f3a6ae619a4e5f002d472dabfc0a996ad4df6a4ba72a0225dd9ff5e677b2',1,'lci']]],
   ['tag_5ft_2',['tag_t',['../d8/d33/group__LCI__BASIC.html#gaed3bf62f9de2087c7e7b0bcbe89ef151',1,'lci']]],
   ['teardown_3',['Setup and Teardown',['../d6/dad/group__LCI__SETUP.html',1,'']]],
-  ['threshold_4',['threshold',['../dd/da4/classlci_1_1alloc__sync__x.html#a778a0249d3afc6949b987d0caf3fcc78',1,'lci::alloc_sync_x']]],
-  ['to_20your_20project_5',['Add LCI to your project',['../db/d4e/tutorial.html#autotoc_md53',1,'']]],
-  ['tt_20lcrun_20tt_20not_20work_6',['Why does &lt;tt&gt;lcrun&lt;/tt&gt; not work?',['../d3/d2d/faq.html#autotoc_md40',1,'']]],
-  ['tt_20not_20work_7',['Why does &lt;tt&gt;lcrun&lt;/tt&gt; not work?',['../d3/d2d/faq.html#autotoc_md40',1,'']]],
-  ['tutorial_8',['Tutorial',['../db/d4e/tutorial.html',1,'']]],
-  ['tutorial_2emd_9',['tutorial.md',['../dd/d1a/tutorial_8md.html',1,'']]],
-  ['type_10',['type',['../da/d7c/structlci_1_1data__t.html#a97bb71621e67c3b162745a9c36ef2d16',1,'lci::data_t']]],
-  ['type_5ft_11',['type_t',['../da/d7c/structlci_1_1data__t.html#a046e8ad72435bd0cdcb8ab83931ab405',1,'lci::data_t']]]
+  ['the_20file_20backend_4',['More about the file backend',['../db/d4e/tutorial.html#autotoc_md54',1,'']]],
+  ['threshold_5',['threshold',['../dd/da4/classlci_1_1alloc__sync__x.html#a778a0249d3afc6949b987d0caf3fcc78',1,'lci::alloc_sync_x']]],
+  ['to_20your_20project_6',['Add LCI to your project',['../db/d4e/tutorial.html#autotoc_md41',1,'']]],
+  ['tt_20lcrun_20tt_20not_20work_7',['Why does &lt;tt&gt;lcrun&lt;/tt&gt; not work?',['../d3/d2d/faq.html#autotoc_md36',1,'']]],
+  ['tt_20not_20work_8',['Why does &lt;tt&gt;lcrun&lt;/tt&gt; not work?',['../d3/d2d/faq.html#autotoc_md36',1,'']]],
+  ['tutorial_9',['Tutorial',['../db/d4e/tutorial.html',1,'']]],
+  ['tutorial_2emd_10',['tutorial.md',['../dd/d1a/tutorial_8md.html',1,'']]],
+  ['type_11',['type',['../da/d7c/structlci_1_1data__t.html#a97bb71621e67c3b162745a9c36ef2d16',1,'lci::data_t']]],
+  ['type_5ft_12',['type_t',['../da/d7c/structlci_1_1data__t.html#a046e8ad72435bd0cdcb8ab83931ab405',1,'lci::data_t']]]
 ];
