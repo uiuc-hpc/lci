@@ -50,13 +50,13 @@ void worker(int thread_id)
       do {
         lci::progress_x().device(device)();
         status = lci::cq_pop(cq);
-      } while (status.error.is_retry());
+      } while (status.is_retry());
       if (status.tag != thread_id) {
         std::cerr << "thread_id: " << thread_id
                   << ", status.tag: " << status.tag << std::endl;
       }
       assert(status.tag == thread_id);
-      lci::buffer_t recv_buf = status.data.get_buffer();
+      lci::buffer_t recv_buf = status.get_buffer();
       assert(recv_buf.size == msg_size);
       for (size_t j = 0; j < msg_size; j++) {
         assert(((char*)recv_buf.base)[j] == peer_rank);
@@ -71,9 +71,9 @@ void worker(int thread_id)
       do {
         lci::progress_x().device(device)();
         status = lci::cq_pop(cq);
-      } while (status.error.is_retry());
+      } while (status.is_retry());
       assert(status.tag == thread_id);
-      lci::buffer_t recv_buf = status.data.get_buffer();
+      lci::buffer_t recv_buf = status.get_buffer();
       assert(recv_buf.size == msg_size);
       for (size_t j = 0; j < msg_size; j++) {
         assert(((char*)recv_buf.base)[j] == peer_rank);

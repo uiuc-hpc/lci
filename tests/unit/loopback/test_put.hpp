@@ -33,13 +33,13 @@ TEST(COMM_PUT, put_bcopy_st)
                                reinterpret_cast<uintptr_t>(recv_buffer), rkey)
                    .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
 
-    if (status.error.is_posted()) {
+    if (status.is_posted()) {
       do {
         lci::progress();
         status = lci::cq_pop(cq);
-      } while (status.error.is_retry());
+      } while (status.is_retry());
     }
 
     util::check_buffer(recv_buffer, msg_size, 'a');
@@ -75,13 +75,13 @@ void test_put_bcopy_mt(int id, int nmsgs, uint64_t* p_data)
                                reinterpret_cast<uintptr_t>(recv_buffer), rkey)
                    .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
 
-    if (status.error.is_posted()) {
+    if (status.is_posted()) {
       do {
         lci::progress();
         status = lci::cq_pop(cq);
-      } while (status.error.is_retry());
+      } while (status.is_retry());
     }
 
     util::check_buffer(recv_buffer, msg_size, 'a');
@@ -146,13 +146,13 @@ TEST(COMM_PUT, put_zcopy_st)
                                reinterpret_cast<uintptr_t>(recv_buffer), rkey)
                    .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
 
-    if (status.error.is_posted()) {
+    if (status.is_posted()) {
       do {
         lci::progress();
         status = lci::cq_pop(cq);
-      } while (status.error.is_retry());
+      } while (status.is_retry());
     }
 
     util::check_buffer(recv_buffer, msg_size, 'a');
@@ -186,13 +186,13 @@ void test_put_zcopy_mt(int id, int nmsgs)
                                reinterpret_cast<uintptr_t>(recv_buffer), rkey)
                    .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
 
-    if (status.error.is_posted()) {
+    if (status.is_posted()) {
       do {
         lci::progress();
         status = lci::cq_pop(cq);
-      } while (status.error.is_retry());
+      } while (status.is_retry());
     }
 
     util::check_buffer(recv_buffer, msg_size, 'a');
@@ -264,17 +264,17 @@ TEST(COMM_PUT, put_buffers_st)
                    .rbuffers(rbuffers)
                    .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
 
-    if (status.error.is_posted()) {
+    if (status.is_posted()) {
       // poll cq
       do {
         lci::progress();
         status = lci::cq_pop(cq);
-      } while (status.error.is_retry());
+      } while (status.is_retry());
     }
     // verify the result
-    lci::buffers_t ret_buffers = status.data.get_buffers();
+    lci::buffers_t ret_buffers = status.get_buffers();
     ASSERT_EQ(ret_buffers.size(), send_buffers.size());
     for (size_t i = 0; i < ret_buffers.size(); i++) {
       ASSERT_EQ(ret_buffers[i].size, send_buffers[i].size);
@@ -325,17 +325,17 @@ void test_put_buffers_mt(int id, int nmsgs)
                    .rbuffers(rbuffers)
                    .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
 
-    if (status.error.is_posted()) {
+    if (status.is_posted()) {
       // poll cq
       do {
         lci::progress();
         status = lci::cq_pop(cq);
-      } while (status.error.is_retry());
+      } while (status.is_retry());
     }
     // verify the result
-    lci::buffers_t ret_buffers = status.data.get_buffers();
+    lci::buffers_t ret_buffers = status.get_buffers();
     ASSERT_EQ(ret_buffers.size(), send_buffers.size());
     for (size_t i = 0; i < ret_buffers.size(); i++) {
       ASSERT_EQ(ret_buffers[i].size, send_buffers[i].size);

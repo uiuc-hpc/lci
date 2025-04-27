@@ -521,6 +521,22 @@ struct status_t {
       : error(errorcode_t::done), user_context(user_context_)
   {
   }
+  void set_done() { error = errorcode_t::done; }
+  void set_posted() { error = errorcode_t::posted; }
+  void set_retry() { error = errorcode_t::retry; }
+  bool is_done() const { return error.is_done(); }
+  bool is_posted() const { return error.is_posted(); }
+  bool is_retry() const { return error.is_retry(); }
+  template <typename T>
+  T get_scalar() const
+  {
+    return data.get_scalar<T>();
+  }
+  buffer_t get_buffer() { return data.get_buffer(); }
+  buffers_t get_buffers() { return data.get_buffers(); }
+  bool is_scalar() const { return data.is_scalar(); }
+  bool is_buffer() const { return data.is_buffer(); }
+  bool is_buffers() const { return data.is_buffers(); }
 };
 
 /**

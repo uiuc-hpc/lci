@@ -365,7 +365,7 @@ void alltoall_x::call_impl(const void* sendbuf, void* recvbuf, size_t size,
                    .matching_engine(matching_engine)
                    .allow_done(false)();
       progress_x().runtime(runtime).device(device).endpoint(endpoint)();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
     do {
       status = post_send_x(i, current_sendbuf, size, seqnum, comp)
                    .runtime(runtime)
@@ -374,7 +374,7 @@ void alltoall_x::call_impl(const void* sendbuf, void* recvbuf, size_t size,
                    .matching_engine(matching_engine)
                    .allow_done(false)();
       progress_x().runtime(runtime).device(device).endpoint(endpoint)();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
   }
 
   // sync_wait_x(comp, nullptr).runtime(runtime)();

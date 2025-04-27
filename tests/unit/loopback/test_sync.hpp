@@ -6,7 +6,7 @@ namespace test_sync
 void my_sync_signal(lci::comp_t comp, uint64_t i)
 {
   lci::status_t status;
-  status.error = lci::errorcode_t::done;
+  status.set_done();
   status.user_context = reinterpret_cast<void*>(i + 1);
   lci::comp_signal(comp, status);
 }

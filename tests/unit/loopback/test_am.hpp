@@ -26,21 +26,21 @@ TEST(COMM_AM, am_bcopy_st)
     do {
       status = lci::post_am(rank, &data, sizeof(data), lcq, rcomp);
       lci::progress();
-    } while (status.error.is_retry());
-    if (status.error.is_posted()) {
+    } while (status.is_retry());
+    if (status.is_posted()) {
       // poll local cq
       do {
         lci::progress();
         status = lci::cq_pop(lcq);
-      } while (status.error.is_retry());
+      } while (status.is_retry());
     }
-    ASSERT_EQ(status.data.get_scalar<uint64_t>(), data);
+    ASSERT_EQ(status.get_scalar<uint64_t>(), data);
     // poll remote cq
     do {
       status = lci::cq_pop(rcq);
       lci::progress();
-    } while (status.error.is_retry());
-    ASSERT_EQ(status.data.get_scalar<uint64_t>(), data);
+    } while (status.is_retry());
+    ASSERT_EQ(status.get_scalar<uint64_t>(), data);
   }
 
   lci::free_comp(&lcq);
@@ -60,16 +60,16 @@ void test_am_bcopy_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
       status =
           lci::post_am_x(rank, p_data, sizeof(uint64_t), lcq, rcomp).tag(tag)();
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
     // poll cqs
-    bool lcq_done = status.error.is_done();
+    bool lcq_done = status.is_done();
     bool rcq_done = false;
     while (!lcq_done || !rcq_done) {
       lci::progress();
       if (!lcq_done) {
         status = lci::cq_pop(lcq);
-        if (status.error.is_done()) {
-          lci::buffer_t buffer = status.data.get_buffer();
+        if (status.is_done()) {
+          lci::buffer_t buffer = status.get_buffer();
           ASSERT_EQ(buffer.base, p_data);
           ASSERT_EQ(*(uint64_t*)buffer.base, *p_data);
           lcq_done = true;
@@ -77,8 +77,8 @@ void test_am_bcopy_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
       }
       if (!rcq_done) {
         status = lci::cq_pop(rcq);
-        if (status.error.is_done()) {
-          ASSERT_EQ(status.data.get_scalar<uint64_t>(), *p_data);
+        if (status.is_done()) {
+          ASSERT_EQ(status.get_scalar<uint64_t>(), *p_data);
           rcq_done = true;
         }
       }
@@ -140,21 +140,21 @@ TEST(COMM_AM, am_zcopy_st)
       status = lci::post_am_x(rank, &data, sizeof(data), lcq, rcomp)
                    .force_zcopy(true)();
       lci::progress();
-    } while (status.error.is_retry());
-    if (status.error.is_posted()) {
+    } while (status.is_retry());
+    if (status.is_posted()) {
       // poll local cq
       do {
         lci::progress();
         status = lci::cq_pop(lcq);
-      } while (status.error.is_retry());
+      } while (status.is_retry());
     }
-    ASSERT_EQ(status.data.get_scalar<uint64_t>(), data);
+    ASSERT_EQ(status.get_scalar<uint64_t>(), data);
     // poll remote cq
     do {
       status = lci::cq_pop(rcq);
       lci::progress();
-    } while (status.error.is_retry());
-    ASSERT_EQ(status.data.get_scalar<uint64_t>(), data);
+    } while (status.is_retry());
+    ASSERT_EQ(status.get_scalar<uint64_t>(), data);
   }
 
   lci::free_comp(&lcq);
@@ -175,16 +175,16 @@ void test_am_zcopy_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
                    .tag(tag)
                    .force_zcopy(true)();
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
     // poll cqs
-    bool lcq_done = status.error.is_done();
+    bool lcq_done = status.is_done();
     bool rcq_done = false;
     while (!lcq_done || !rcq_done) {
       lci::progress();
       if (!lcq_done) {
         status = lci::cq_pop(lcq);
-        if (status.error.is_done()) {
-          lci::buffer_t buffer = status.data.get_buffer();
+        if (status.is_done()) {
+          lci::buffer_t buffer = status.get_buffer();
           ASSERT_EQ(buffer.base, p_data);
           ASSERT_EQ(*(uint64_t*)buffer.base, *p_data);
           lcq_done = true;
@@ -192,8 +192,8 @@ void test_am_zcopy_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
       }
       if (!rcq_done) {
         status = lci::cq_pop(rcq);
-        if (status.error.is_done()) {
-          ASSERT_EQ(status.data.get_scalar<uint64_t>(), *p_data);
+        if (status.is_done()) {
+          ASSERT_EQ(status.get_scalar<uint64_t>(), *p_data);
           rcq_done = true;
         }
       }
@@ -261,15 +261,15 @@ TEST(COMM_AM, am_buffers_st)
     do {
       status = lci::post_am_x(rank, nullptr, 0, lcq, rcomp).buffers(buffers)();
       lci::progress();
-    } while (status.error.is_retry());
-    if (status.error.is_posted()) {
+    } while (status.is_retry());
+    if (status.is_posted()) {
       // poll local cq
       do {
         lci::progress();
         status = lci::cq_pop(lcq);
-      } while (status.error.is_retry());
+      } while (status.is_retry());
     }
-    lci::buffers_t ret_buffers = status.data.get_buffers();
+    lci::buffers_t ret_buffers = status.get_buffers();
     ASSERT_EQ(ret_buffers.size(), buffers.size());
     for (size_t i = 0; i < ret_buffers.size(); i++) {
       ASSERT_EQ(ret_buffers[i].size, buffers[i].size);
@@ -279,8 +279,8 @@ TEST(COMM_AM, am_buffers_st)
     do {
       status = lci::cq_pop(rcq);
       lci::progress();
-    } while (status.error.is_retry());
-    ret_buffers = status.data.get_buffers();
+    } while (status.is_retry());
+    ret_buffers = status.get_buffers();
     ASSERT_EQ(ret_buffers.size(), buffers.size());
     for (size_t i = 0; i < ret_buffers.size(); i++) {
       ASSERT_EQ(ret_buffers[i].size, buffers[i].size);
@@ -307,16 +307,16 @@ void test_am_buffers_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
                    .tag(tag)
                    .buffers(buffers)();
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
     // poll cqs
-    bool lcq_done = status.error.is_done();
+    bool lcq_done = status.is_done();
     bool rcq_done = false;
     while (!lcq_done || !rcq_done) {
       lci::progress();
       if (!lcq_done) {
         status = lci::cq_pop(lcq);
-        if (status.error.is_done()) {
-          lci::buffers_t ret_buffers = status.data.get_buffers();
+        if (status.is_done()) {
+          lci::buffers_t ret_buffers = status.get_buffers();
           ASSERT_EQ(ret_buffers.size(), buffers.size());
           for (size_t i = 0; i < ret_buffers.size(); i++) {
             ASSERT_EQ(ret_buffers[i].size, buffers[i].size);
@@ -327,8 +327,8 @@ void test_am_buffers_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
       }
       if (!rcq_done) {
         status = lci::cq_pop(rcq);
-        if (status.error.is_done()) {
-          lci::buffers_t ret_buffers = status.data.get_buffers();
+        if (status.is_done()) {
+          lci::buffers_t ret_buffers = status.get_buffers();
           ASSERT_EQ(ret_buffers.size(), buffers.size());
           for (size_t i = 0; i < ret_buffers.size(); i++) {
             ASSERT_EQ(ret_buffers[i].size, buffers[i].size);

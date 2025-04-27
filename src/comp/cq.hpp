@@ -29,7 +29,7 @@ class cq_t : public comp_impl_t
   ~cq_t() { LCT_queue_free(&queue); }
   void signal(status_t status) override
   {
-    LCI_Assert(status.error.is_done(), "status.error is not done!\n");
+    LCI_Assert(status.is_done(), "status is not done!\n");
     LCI_PCOUNTER_ADD(comp_produce, 1);
     status_t* p = new status_t(std::move(status));
     LCT_queue_push(queue, p);
@@ -40,13 +40,13 @@ class cq_t : public comp_impl_t
     status_t status;
     status_t* p = static_cast<status_t*>(LCT_queue_pop(queue));
     if (p == nullptr) {
-      LCI_Assert(status.error.is_retry(), "status.error is not retry!\n");
+      LCI_Assert(status.is_retry(), "status is not retry!\n");
       return status;
     } else {
       status = std::move(*p);
       delete p;
       LCI_PCOUNTER_ADD(comp_consume, 1);
-      LCI_Assert(status.error.is_done(), "status.error is not done!\n");
+      LCI_Assert(status.is_done(), "status is not done!\n");
       return status;
     }
   }

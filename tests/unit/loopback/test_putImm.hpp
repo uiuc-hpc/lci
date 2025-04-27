@@ -35,19 +35,19 @@ TEST(COMM_PUTIMM, putImm_bcopy_st)
                                reinterpret_cast<uintptr_t>(recv_buffer), rkey)
                    .remote_comp(rcomp)();
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
     // poll send cq
-    if (status.error.is_posted()) {
+    if (status.is_posted()) {
       do {
         lci::progress();
         status = lci::cq_pop(scq);
-      } while (status.error.is_retry());
+      } while (status.is_retry());
     }
     // poll receive cq
     do {
       status = lci::cq_pop(rcq);
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
     util::check_buffer(recv_buffer, msg_size, 'a');
   }
   // clean up
@@ -87,19 +87,19 @@ void test_putImm_bcopy_mt(int id, int nmsgs, uint64_t* p_data,
                                reinterpret_cast<uintptr_t>(recv_buffer), rkey)
                    .remote_comp(rcomp)();
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
     // poll send cq
-    if (status.error.is_posted()) {
+    if (status.is_posted()) {
       do {
         lci::progress();
         status = lci::cq_pop(scq);
-      } while (status.error.is_retry());
+      } while (status.is_retry());
     }
     // poll receive cq
     do {
       status = lci::cq_pop(rcq);
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
     util::check_buffer(recv_buffer, msg_size, 'a');
   }
   // clean up
@@ -168,19 +168,19 @@ TEST(COMM_PUTIMM, putImm_zcopy_st)
                                reinterpret_cast<uintptr_t>(recv_buffer), rkey)
                    .remote_comp(rcomp)();
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
     // poll send cq
-    if (status.error.is_posted()) {
+    if (status.is_posted()) {
       do {
         lci::progress();
         status = lci::cq_pop(scq);
-      } while (status.error.is_retry());
+      } while (status.is_retry());
     }
     // poll receive cq
     do {
       status = lci::cq_pop(rcq);
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
     util::check_buffer(recv_buffer, msg_size, 'a');
   }
   // clean up
@@ -219,19 +219,19 @@ void test_putImm_zcopy_mt(int id, int nmsgs, lci::rcomp_t rcomp_base)
                                reinterpret_cast<uintptr_t>(recv_buffer), rkey)
                    .remote_comp(rcomp)();
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
     // poll send cq
-    if (status.error.is_posted()) {
+    if (status.is_posted()) {
       do {
         lci::progress();
         status = lci::cq_pop(scq);
-      } while (status.error.is_retry());
+      } while (status.is_retry());
     }
     // poll receive cq
     do {
       status = lci::cq_pop(rcq);
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
     util::check_buffer(recv_buffer, msg_size, 'a');
   }
   // clean up
@@ -307,20 +307,20 @@ TEST(COMM_PUTIMM, putImm_buffers_st)
                    .tag(i)
                    .remote_comp(rcomp)();
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
 
-    if (status.error.is_posted()) {
+    if (status.is_posted()) {
       // poll send cq
       do {
         lci::progress();
         status = lci::cq_pop(scq);
-      } while (status.error.is_retry());
+      } while (status.is_retry());
     }
     // poll receive cq
     do {
       status = lci::cq_pop(rcq);
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
     // verify the result
     ASSERT_EQ(status.tag, i);
     for (auto& buffer : recv_buffers) {
@@ -375,20 +375,20 @@ void test_putImm_buffers_mt(int id, int nmsgs, lci::rcomp_t rcomp_base)
                    .tag(i)
                    .remote_comp(rcomp)();
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
 
-    if (status.error.is_posted()) {
+    if (status.is_posted()) {
       // poll send cq
       do {
         lci::progress();
         status = lci::cq_pop(scq);
-      } while (status.error.is_retry());
+      } while (status.is_retry());
     }
     // poll receive cq
     do {
       status = lci::cq_pop(rcq);
       lci::progress();
-    } while (status.error.is_retry());
+    } while (status.is_retry());
     // verify the result
     ASSERT_EQ(status.tag, i);
     for (auto& buffer : recv_buffers) {

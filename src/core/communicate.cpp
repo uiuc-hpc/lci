@@ -463,7 +463,7 @@ exit:
   }
   if (error.is_done() && !allow_done) {
     lci::comp_signal(local_comp, status);
-    status.error = errorcode_t::posted;
+    status.set_posted();
   }
   if (error.is_done()) {
     LCI_PCOUNTER_ADD(communicate_ok, 1);

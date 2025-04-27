@@ -23,7 +23,7 @@ inline void handle_matched_sendrecv(runtime_t runtime, endpoint_t endpoint,
     comp_t comp = recv_ctx->comp;
 
     status_t status;
-    status.error = errorcode_t::done;
+    status.set_done();
     status.data = recv_ctx->data;
     status.user_context = recv_ctx->user_context;
     delete recv_ctx;

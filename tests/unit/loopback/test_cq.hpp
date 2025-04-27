@@ -6,7 +6,7 @@ namespace test_cq
 void my_cq_push(lci::comp_t comp, uint64_t i)
 {
   lci::status_t status;
-  status.error = lci::errorcode_t::done;
+  status.set_done();
   status.user_context = reinterpret_cast<void*>(i + 1);
   lci::comp_signal(comp, status);
 }
@@ -16,7 +16,7 @@ uint64_t my_cq_pop(lci::comp_t comp)
   lci::status_t status;
   do {
     status = lci::cq_pop(comp);
-  } while (status.error.is_retry());
+  } while (status.is_retry());
   return reinterpret_cast<uint64_t>(status.user_context) - 1;
 }
 
