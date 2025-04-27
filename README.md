@@ -4,9 +4,11 @@ A Lightweight Communication Interface for Asynchronous Multithreaded Systems
 
 ![Build Status](https://github.com/uiuc-hpc/lci/actions/workflows/ci.yml/badge.svg)
 
-## Overview
+## Documentation
+See [here](https://uiuc-hpc.github.io/lci/) for quick start, tutorial, API documentation, and more.
 
-The Lightweight Communication Interface (LCI) is designed to be an efficient communication library
+## Overview
+LCI is designed to be an efficient communication library
 for asynchronous communications in multithreaded environments. It also serves as a research tool to 
 explore design choices for such libraries. It has the following major features:
 - a unified interface that supports flexible combinations of all common point-to-point 
@@ -25,70 +27,18 @@ LCI is implemented as a C++ libraries with two major network backends:
 [libibverbs](https://github.com/linux-rdma/rdma-core/blob/master/Documentation/libibverbs.md) for InfiniBand/RoCE and 
 [libfabric](https://ofiwg.github.io/libfabric/) for Slingshot-11, Ethernet, shared memory, and other networks.
 
-[API documentation](https://uiuc-hpc.github.io/lci/)
+## Performance Showcase
 
-## Installation
-### CMake
+![Message Rate Result](docs/img/lt-expanse.png)
+![Bandwidth Result](docs/img/bw-expanse.png)
+![legend](docs/img/legend-expanse.png)
 
-```
-git clone git@github.com:uiuc-hpc/lci.git
-cd lci
-mkdir build
-cmake -DCMAKE_INSTALL_PREFIX=/path/to/install ..
-make
-make install
-```
+Results of multi-pair ping-pong microbenchmarks measuring message rate (8-byte messages, 100k steps) and 
+bandwidth (64-thread, 1k steps) on SDSC Expanse (InfiniBand). It compares LCI with other state-of-the-art 
+libraries, including MPI (MPICH), MPI with the VCI extension, and GASNet-EX. The experiments are either 
+run with one process per core (multi-proc) or with one process per node (one thread per core, multi-thrd).
 
-#### Important CMake variables
-- `LCI_DEBUG=[ON|OFF]`: Enable/disable the debug mode (more assertions and logs).
-  The default value is `OFF`.
-- `LCI_NETWORK_BACKENDS=[ibv|ofi]`: allow multiple values separated with comma.
-  Hint to which network backend to use. 
-  If the backend indicated by this variable are found, LCI will just use it.
-  Otherwise, LCI will use whatever are found with the priority `ibv` > `ofi`.
-  The default value is `ibv,ofi`. Typically, you don't need to
-  modify this variable as if `libibverbs` presents, it is likely to be the recommended one to use.
-  - `ibv`: [libibverbs](https://github.com/linux-rdma/rdma-core/blob/master/Documentation/libibverbs.md), 
-    typically for infiniband/RoCE.
-  - `ofi`: [libfabric](https://ofiwg.github.io/libfabric/), 
-    for all other networks (slingshot-11, ethernet, shared memory). 
-
-### Spack
-LCI can be installed using [Spack](https://spack.io/).
-```
-git clone git@github.com:uiuc-hpc/lci.git --branch=lci2
-spack repo add lci/contrib/spack
-spack install lci
-```
-
-## Run LCI applications
-
-We use the same mechanisms as MPI to launch LCI processes, so you can use the same way
-you run MPI applications to run LCI applications. Typically, it would be `mpirun` or
-`srun`. For example,
-```
-mpirun -n 2 ./hello_world
-```
-or
-```
-srun -n 2 ./hello_world
-```
-
-In addition, you can use the `lcrun` script
-```
-lcrun -n 2 ./hello_world
-```
-
-We do not expect `lcrun` to have the same level of scalability as `mpirun` or `srun`,
-but it is a good tool for fast testing and debugging.
-
-## Write an LCI program
-
-Read [this short paper](https://arxiv.org/abs/2503.15400) to understand the high-level interface design of LCI. 
-
-See `examples` and `tests` for some example code.
-
-Check out the [API documentation](https://uiuc-hpc.github.io/lci/) for more details.
+*For the first time known to us, multithreaded communication catches up with multi-process communication.*
 
 ## Relevant Publications
 - Yan, Jiakun, and Marc Snir. "Contemplating a Lightweight Communication Interface for Asynchronous Many-Task Systems." 
