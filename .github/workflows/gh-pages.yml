@@ -1,0 +1,62 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches: [ "master" ]
+  workflow_dispatch:  # Optional: allow manual trigger from GitHub UI
+
+jobs:
+  deploy-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake libfabric-dev graphviz
+
+      # # Building Doxygen from source is too slow.
+      # - name: Install Doxygen
+      #   run: |
+      #     wget https://www.doxygen.nl/files/doxygen-1.13.2.src.tar.gz
+      #     tar -xzf doxygen-1.13.2.src.tar.gz
+      #     cd doxygen-1.13.2
+      #     cmake .
+      #     make -j
+      #     sudo make install
+
+      - name: Install Doxygen
+        run: |
+          wget https://www.doxygen.nl/files/doxygen-1.13.2.linux.bin.tar.gz
+          tar -xzf doxygen-1.13.2.linux.bin.tar.gz
+          sudo mv doxygen-1.13.2/bin/doxygen /usr/local/bin/
+          
+      - name: Configure
+        shell: bash
+        run: |
+            cmake \
+                -Bbuild \
+                -DLCI_NETWORK_BACKENDS=ofi \
+                -DLCI_USE_TCMALLOC=OFF \
+                -DLCI_BUILD_DOCS=ON \
+                .
+
+      - name: Generate Documentation
+        shell: bash
+        run: |
+            cmake --build build --target doc
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/docs/html
+          

@@ -1,11 +1,7 @@
 find_package(Doxygen)
-option(BUILD_DOCUMENTATION "Create the Doxygen documentation" ${DOXYGEN_FOUND})
+option(LCI_BUILD_DOCS "Create the Doxygen documentation" ${DOXYGEN_FOUND})
 
-if(BUILD_DOCUMENTATION)
-  if(NOT DOXYGEN_FOUND)
-    message(FATAL_ERROR "Doxygen is needed to build the documentation.")
-  endif()
-
+if(LCI_BUILD_DOCS)
   # fetch doxygen awesome css
   include(FetchContent)
   FetchContent_Declare(
@@ -27,7 +23,7 @@ if(BUILD_DOCUMENTATION)
   configure_file(${doxyfile_in} ${doxyfile} @ONLY)
   configure_file(${publish2gh-pages_in} ${publish2gh-pages} @ONLY)
   # copy README.md into mainpage.md.in
-  
+
   # Path to your input and output files
   set(MAINPAGE_TEMPLATE "${CMAKE_CURRENT_SOURCE_DIR}/mainpage.md.in")
   set(MAINPAGE_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/mainpage.md")
@@ -43,6 +39,4 @@ if(BUILD_DOCUMENTATION)
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generating API documentation with Doxygen"
     VERBATIM)
-
-  # install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html DESTINATION share/doc)
 endif()

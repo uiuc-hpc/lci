@@ -23,10 +23,13 @@ execute_process(
   COMMAND git rev-parse --short HEAD
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   OUTPUT_VARIABLE LCI_GIT_HASH
-  OUTPUT_STRIP_TRAILING_WHITESPACE
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+set(LCI_VERSION
+    "${LCI_VERSION_MAJOR}.${LCI_VERSION_MINOR}.${LCI_VERSION_PATCH}${LCI_VERSION_SUFFIX}"
 )
-set(LCI_VERSION "${LCI_VERSION_MAJOR}.${LCI_VERSION_MINOR}.${LCI_VERSION_PATCH}${LCI_VERSION_SUFFIX}")
-set(LCI_VERSION_FULL "${LCI_VERSION_MAJOR}.${LCI_VERSION_MINOR}.${LCI_VERSION_PATCH}${LCI_VERSION_SUFFIX}-${LCI_GIT_HASH}")
+set(LCI_VERSION_FULL
+    "${LCI_VERSION_MAJOR}.${LCI_VERSION_MINOR}.${LCI_VERSION_PATCH}${LCI_VERSION_SUFFIX}-${LCI_GIT_HASH}"
+)
 
 # ##############################################################################
 # General Options
@@ -312,7 +315,7 @@ if(NOT LCI_WITH_LCT_ONLY)
       add_subdirectory(tests)
     endif()
     if(LCI_WITH_DOC)
-      add_subdirectory(doc)
+      add_subdirectory(docs)
     endif()
   endif() # if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 endif() # if(NOT LCI_WITH_LCT_ONLY)
