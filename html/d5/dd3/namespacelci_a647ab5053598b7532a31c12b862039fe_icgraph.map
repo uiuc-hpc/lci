@@ -1,5 +1,0 @@
-<map id="lci::get_errorcode_str" name="lci::get_errorcode_str">
-<area shape="rect" id="Node000001" title="Get the string representation of an error code." alt="" coords="181,5,325,31"/>
-<area shape="rect" id="Node000002" href="$d2/d46/structlci_1_1error__t.html#a6202ba5bbfc1f353e849a673c537dc88" title="Get the string representation of the error code." alt="" coords="5,5,133,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="167,21,133,21,133,15,167,15"/>
-</map>

@@ -1,0 +1,16 @@
+<map id="lci::get_default_endpoint" name="lci::get_default_endpoint">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,45,188,70"/>
+<area shape="rect" id="Node000002" href="$df/d43/classlci_1_1get__default__endpoint__x.html#a58556b4bdc63a366564dd9a1eead52a9" title=" " alt="" coords="236,37,419,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="188,55,222,55,222,60,188,60"/>
+<area shape="rect" id="Node000003" href="$df/d43/classlci_1_1get__default__endpoint__x.html#a1e5bd3bc524eeaafaca1e8b439dbbb6b" title=" " alt="" coords="467,37,649,77"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="419,55,453,55,453,60,419,60"/>
+<area shape="rect" id="Node000004" href="$df/d43/classlci_1_1get__default__endpoint__x.html#a400a4251052764587e521094ccd5c6be" title=" " alt="" coords="697,5,880,45"/>
+<area shape="poly" id="edge7_Node000002_Node000004" title=" " alt="" coords="401,35,466,23,579,16,684,17,684,22,579,21,467,28,402,40"/>
+<area shape="rect" id="Node000006" href="$df/d43/classlci_1_1get__default__endpoint__x.html#a8aa0541985bef637e588bbdf51422756" title=" " alt="" coords="697,69,880,109"/>
+<area shape="poly" id="edge8_Node000002_Node000006" title=" " alt="" coords="402,75,467,87,579,94,684,93,684,98,579,99,466,92,401,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="649,42,683,37,684,43,650,47"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="650,67,684,72,683,77,649,73"/>
+<area shape="rect" id="Node000005" href="$df/d43/classlci_1_1get__default__endpoint__x.html#a8e077666bee00e3637cefc9942a39904" title=" " alt="" coords="928,37,1127,77"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="881,35,915,40,914,45,880,40"/>
+<area shape="poly" id="edge6_Node000006_Node000005" title=" " alt="" coords="880,74,914,70,915,75,881,80"/>
+</map>

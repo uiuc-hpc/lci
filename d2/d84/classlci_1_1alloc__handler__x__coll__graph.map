@@ -1,0 +1,22 @@
+<map id="lci::alloc_handler_x" name="lci::alloc_handler_x">
+<area shape="rect" id="Node000001" title="The actual implementation for alloc_handler." alt="" coords="893,143,1040,168"/>
+<area shape="rect" id="Node000002" href="$d9/d1e/structlci_1_1status__t.html" title="The type of the completion desciptor for a posted communication." alt="" coords="595,51,692,76"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="706,71,785,88,870,111,940,140,938,145,868,117,784,93,705,77"/>
+<area shape="rect" id="Node000003" href="$d2/d46/structlci_1_1error__t.html" title="Wrapper class for error code." alt="" coords="353,5,441,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="455,26,595,52,594,57,454,31"/>
+<area shape="rect" id="Node000004" href="$da/d7c/structlci_1_1data__t.html" title="A generic type for describing or holding data." alt="" coords="353,55,440,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="454,64,595,61,595,67,454,69"/>
+<area shape="rect" id="Node000005" href="$d7/d1a/classlci_1_1mr__t.html" title="The actual implementation for RESOURCE mr." alt="" coords="5,61,80,87"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="93,65,104,65,211,59,319,61,353,62,353,67,319,66,211,65,104,70,94,71"/>
+<area shape="rect" id="Node000006" href="$de/d63/structlci_1_1buffer__t.html" title="The type of a local buffer descriptor." alt="" coords="151,92,245,117"/>
+<area shape="poly" id="edge6_Node000006_Node000005" title=" " alt="" coords="94,81,151,93,150,98,93,87"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="259,91,353,73,354,78,260,96"/>
+<area shape="rect" id="Node000007" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="579,101,707,141"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="721,126,893,145,893,150,721,132"/>
+<area shape="rect" id="Node000008" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="343,108,451,133"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="465,118,579,118,579,123,465,123"/>
+<area shape="rect" id="Node000009" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="565,165,721,191"/>
+<area shape="poly" id="edge9_Node000001_Node000009" title=" " alt="" coords="735,175,869,169,895,165,896,171,870,174,735,181"/>
+<area shape="rect" id="Node000010" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="560,215,727,240"/>
+<area shape="poly" id="edge10_Node000001_Node000010" title=" " alt="" coords="740,218,804,210,869,195,907,181,941,166,943,170,909,186,870,201,805,215,741,224"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="lci::data_t::data_t" name="lci::data_t::data_t">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,70,140,95"/>
+<area shape="rect" id="Node000002" href="$d6/db9/structlci_1_1allocator__base__t.html#ab60f1be97701d09885e6c0b1c050ab1d" title=" " alt="" coords="210,5,350,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="119,67,196,46,197,51,120,73"/>
+<area shape="rect" id="Node000003" href="$da/d7c/structlci_1_1data__t.html#ae475cbfd547affeb78d860b7365fd276" title=" " alt="" coords="188,70,372,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="140,80,174,80,174,85,140,85"/>
+<area shape="rect" id="Node000004" href="$da/d7c/structlci_1_1data__t.html#a757e3d75c4950d82a849ea05535665a0" title=" " alt="" coords="205,119,355,145"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="127,93,213,113,212,119,126,98"/>
+</map>

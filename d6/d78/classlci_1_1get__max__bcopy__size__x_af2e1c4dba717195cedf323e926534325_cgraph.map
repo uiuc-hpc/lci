@@ -1,0 +1,14 @@
+<map id="lci::get_max_bcopy_size_x::call" name="lci::get_max_bcopy_size_x::call">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,153,77"/>
+<area shape="rect" id="Node000002" href="$d6/d78/classlci_1_1get__max__bcopy__size__x.html#aa2cb636556a82a9e18cf2f3b9198fefd" title=" " alt="" coords="201,37,349,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="154,55,187,55,187,60,154,60"/>
+<area shape="rect" id="Node000003" href="$d6/d78/classlci_1_1get__max__bcopy__size__x.html#ab00cef6a78c57d8785fcddc4d77fefaa" title=" " alt="" coords="397,5,553,45"/>
+<area shape="poly" id="edge6_Node000001_Node000003" title=" " alt="" coords="143,35,201,23,295,16,384,17,384,22,295,21,202,28,144,40"/>
+<area shape="rect" id="Node000005" href="$d6/d78/classlci_1_1get__max__bcopy__size__x.html#afe891e887e070155c81a073d2c0d60bd" title=" " alt="" coords="401,69,549,109"/>
+<area shape="poly" id="edge7_Node000001_Node000005" title=" " alt="" coords="144,75,202,87,297,93,387,92,387,98,297,99,201,92,143,80"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="349,43,383,37,384,43,350,48"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="350,67,388,73,387,78,349,72"/>
+<area shape="rect" id="Node000004" href="$d6/d78/classlci_1_1get__max__bcopy__size__x.html#a564221622835572aa2848bf00f93f1a4" title=" " alt="" coords="601,30,783,85"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="554,34,588,39,587,45,554,40"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="549,76,588,70,588,75,550,81"/>
+</map>

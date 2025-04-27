@@ -1,0 +1,13 @@
+<map id="lci::register_packet_pool_x::call_impl" name="lci::register_packet_pool_x::call_impl">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,69,151,109"/>
+<area shape="rect" id="Node000002" href="$d7/d1f/classlci_1_1register__packet__pool__x.html#a832b0ed558f7be0ad983f45365ac49f2" title=" " alt="" coords="205,5,351,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="140,67,201,47,203,52,142,72"/>
+<area shape="rect" id="Node000004" href="$d7/d1f/classlci_1_1register__packet__pool__x.html#a509fb37d844cf3e67ac46f0ce602b739" title=" " alt="" coords="199,69,357,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="151,87,185,87,185,92,151,92"/>
+<area shape="rect" id="Node000005" href="$d7/d1f/classlci_1_1register__packet__pool__x.html#a9d0226d41c51dc789a356789b6c52d00" title=" " alt="" coords="205,133,351,173"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="142,107,203,127,201,132,140,112"/>
+<area shape="rect" id="Node000003" href="$d7/d1f/classlci_1_1register__packet__pool__x.html#a4bfe605b84fc2af3d7c07286aea8ba6b" title=" " alt="" coords="405,62,585,117"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="347,43,393,56,392,62,346,48"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="357,87,392,87,392,92,357,92"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="346,131,392,117,393,122,347,136"/>
+</map>

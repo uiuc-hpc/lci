@@ -1,0 +1,7 @@
+<map id="lci::get_default_matching_engine_x" name="lci::get_default_matching_engine_x">
+<area shape="rect" id="Node000001" title="The actual implementation for get_default_matching_engine." alt="" coords="5,196,192,236"/>
+<area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="35,93,163,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="101,147,101,196,96,196,96,147"/>
+<area shape="rect" id="Node000003" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="45,5,153,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="101,44,101,93,96,93,96,44"/>
+</map>

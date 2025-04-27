@@ -1,0 +1,14 @@
+<map id="lci::free_net_context_x::call" name="lci::free_net_context_x::call">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,160,77"/>
+<area shape="rect" id="Node000002" href="$d8/d7e/classlci_1_1free__net__context__x.html#a1691b7e84d0d845c680408db74d22fd5" title=" " alt="" coords="208,37,363,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="160,55,194,55,194,60,160,60"/>
+<area shape="rect" id="Node000003" href="$d8/d7e/classlci_1_1free__net__context__x.html#ad6b7da7c9efbd7d493c03f9f65425c8e" title=" " alt="" coords="411,5,565,45"/>
+<area shape="poly" id="edge6_Node000001_Node000003" title=" " alt="" coords="149,35,208,23,305,16,397,17,397,22,306,21,208,28,150,40"/>
+<area shape="rect" id="Node000005" href="$d8/d7e/classlci_1_1free__net__context__x.html#a38db239ced06720faddafa08b6d670e9" title=" " alt="" coords="411,69,565,109"/>
+<area shape="poly" id="edge7_Node000001_Node000005" title=" " alt="" coords="150,75,208,87,306,93,397,92,397,98,305,99,208,92,149,80"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="362,43,396,37,397,42,363,48"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="363,67,397,72,396,78,362,72"/>
+<area shape="rect" id="Node000004" href="$d8/d7e/classlci_1_1free__net__context__x.html#aa03e8c29e1827674ece3b7ba7ccd7a88" title=" " alt="" coords="613,37,784,77"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="566,34,600,40,599,45,565,40"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="565,75,599,70,600,75,566,80"/>
+</map>

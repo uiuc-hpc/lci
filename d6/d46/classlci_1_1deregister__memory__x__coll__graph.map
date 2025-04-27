@@ -1,0 +1,9 @@
+<map id="lci::deregister_memory_x" name="lci::deregister_memory_x">
+<area shape="rect" id="Node000001" title="The actual implementation for deregister_memory." alt="" coords="5,196,193,221"/>
+<area shape="rect" id="Node000002" href="$d7/d1a/classlci_1_1mr__t.html" title="The actual implementation for RESOURCE mr." alt="" coords="13,101,87,126"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="63,137,79,171,94,194,89,197,74,173,58,140"/>
+<area shape="rect" id="Node000003" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="111,93,239,133"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="154,145,111,197,107,194,149,142"/>
+<area shape="rect" id="Node000004" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="121,5,229,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="178,44,178,93,173,93,173,44"/>
+</map>

@@ -1,7 +1,0 @@
-<map id="lci::deregister_rcomp_x" name="lci::deregister_rcomp_x">
-<area shape="rect" id="Node000001" title="The actual implementation for deregister_rcomp." alt="" coords="5,196,163,221"/>
-<area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="27,93,141,133"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="87,147,87,196,81,196,81,147"/>
-<area shape="rect" id="Node000003" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="35,5,133,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="87,44,87,93,81,93,81,44"/>
-</map>

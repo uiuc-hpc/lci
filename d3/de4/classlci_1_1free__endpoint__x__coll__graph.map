@@ -1,0 +1,9 @@
+<map id="lci::free_endpoint_x" name="lci::free_endpoint_x">
+<area shape="rect" id="Node000001" title="The actual implementation for free_endpoint." alt="" coords="51,196,202,221"/>
+<area shape="rect" id="Node000002" href="$de/d1b/classlci_1_1endpoint__t.html" title="The actual implementation for RESOURCE endpoint." alt="" coords="5,101,120,126"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="69,138,82,170,108,194,104,198,78,174,64,140"/>
+<area shape="rect" id="Node000003" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="144,93,272,133"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="187,146,163,174,140,198,137,194,159,170,183,143"/>
+<area shape="rect" id="Node000004" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="154,5,262,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="211,44,211,93,205,93,205,44"/>
+</map>

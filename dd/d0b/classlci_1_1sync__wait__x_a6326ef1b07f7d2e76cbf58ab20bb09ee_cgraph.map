@@ -1,0 +1,18 @@
+<map id="lci::sync_wait_x::call" name="lci::sync_wait_x::call">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,56,161,82"/>
+<area shape="rect" id="Node000002" href="$dd/d0b/classlci_1_1sync__wait__x.html#aa81e88615035810dcc441eda980bab9b" title=" " alt="" coords="209,31,401,56"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="161,57,195,53,196,59,162,63"/>
+<area shape="rect" id="Node000003" href="$dd/d0b/classlci_1_1sync__wait__x.html#af7084c4171774b7ef58d0e1d8f50d580" title=" " alt="" coords="457,7,626,32"/>
+<area shape="poly" id="edge8_Node000001_Node000003" title=" " alt="" coords="107,54,153,33,209,16,269,7,330,4,443,7,443,12,331,9,270,12,210,21,155,38,109,59"/>
+<area shape="rect" id="Node000005" href="$dd/d0b/classlci_1_1sync__wait__x.html#a1f06a5d161c0ae293c076938586a502b" title=" " alt="" coords="457,56,626,82"/>
+<area shape="poly" id="edge9_Node000001_Node000005" title=" " alt="" coords="161,66,443,66,443,72,161,72"/>
+<area shape="rect" id="Node000006" href="$dd/d0b/classlci_1_1sync__wait__x.html#a33c94ca9708dafc0873caecc7e0fd20e" title=" " alt="" coords="449,106,633,131"/>
+<area shape="poly" id="edge10_Node000001_Node000006" title=" " alt="" coords="162,75,436,104,435,110,161,80"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="401,31,443,27,443,32,402,36"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="402,51,443,56,443,61,401,56"/>
+<area shape="poly" id="edge6_Node000002_Node000006" title=" " alt="" coords="343,54,450,90,480,99,479,104,449,95,341,59"/>
+<area shape="rect" id="Node000004" href="$dd/d0b/classlci_1_1sync__wait__x.html#a1b82908c8a1e781860e9a95db7916df1" title=" " alt="" coords="681,49,844,89"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="600,30,668,45,667,50,598,35"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="627,66,668,66,668,72,627,72"/>
+<area shape="poly" id="edge7_Node000006_Node000004" title=" " alt="" coords="598,103,667,87,668,93,600,108"/>
+</map>

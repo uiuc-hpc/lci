@@ -1,9 +1,0 @@
-<map id="lci::free_net_context_x" name="lci::free_net_context_x">
-<area shape="rect" id="Node000001" title="The actual implementation for free_net_context." alt="" coords="55,196,209,221"/>
-<area shape="rect" id="Node000002" href="$dc/d98/classlci_1_1net__context__t.html" title="The actual implementation for RESOURCE net_context." alt="" coords="5,101,128,126"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="70,139,74,155,81,171,93,184,108,194,105,198,90,188,76,173,69,157,65,140"/>
-<area shape="rect" id="Node000003" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="152,93,267,133"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="192,147,171,174,147,198,144,194,167,170,188,143"/>
-<area shape="rect" id="Node000004" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="161,5,258,31"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="212,44,212,93,207,93,207,44"/>
-</map>

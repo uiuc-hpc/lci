@@ -1,0 +1,15 @@
+<map id="lci::net_post_puts_x" name="lci::net_post_puts_x">
+<area shape="rect" id="Node000001" title="The actual implementation for net_post_puts." alt="" coords="487,77,637,102"/>
+<area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="229,5,357,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="371,41,508,74,507,79,370,46"/>
+<area shape="rect" id="Node000003" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="9,13,117,38"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="130,23,229,23,229,28,130,28"/>
+<area shape="rect" id="Node000004" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="229,69,357,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="371,87,487,87,487,92,371,92"/>
+<area shape="rect" id="Node000005" href="$d6/d66/classlci_1_1device__t.html" title="The actual implementation for RESOURCE device." alt="" coords="13,77,113,102"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="127,87,229,87,229,92,127,92"/>
+<area shape="rect" id="Node000006" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="229,133,357,173"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="370,132,507,99,508,105,371,138"/>
+<area shape="rect" id="Node000007" href="$de/d1b/classlci_1_1endpoint__t.html" title="The actual implementation for RESOURCE endpoint." alt="" coords="5,141,120,166"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="134,151,229,151,229,156,134,156"/>
+</map>

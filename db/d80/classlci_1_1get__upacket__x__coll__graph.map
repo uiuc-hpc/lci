@@ -1,0 +1,11 @@
+<map id="lci::get_upacket_x" name="lci::get_upacket_x">
+<area shape="rect" id="Node000001" title="The actual implementation for get_upacket." alt="" coords="77,196,216,221"/>
+<area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="5,93,133,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="89,144,109,170,134,194,130,198,105,174,85,147"/>
+<area shape="rect" id="Node000003" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="15,5,123,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="72,44,72,93,67,93,67,44"/>
+<area shape="rect" id="Node000004" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="158,93,293,133"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="206,146,185,174,161,198,158,194,181,170,202,143"/>
+<area shape="rect" id="Node000005" href="$db/dec/classlci_1_1packet__pool__t.html" title="The actual implementation for RESOURCE packet_pool." alt="" coords="158,5,293,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="228,44,228,93,223,93,223,44"/>
+</map>

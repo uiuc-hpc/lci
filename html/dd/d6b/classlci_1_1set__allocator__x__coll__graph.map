@@ -1,9 +1,0 @@
-<map id="lci::set_allocator_x" name="lci::set_allocator_x">
-<area shape="rect" id="Node000001" title="The actual implementation for set_allocator." alt="" coords="72,196,203,221"/>
-<area shape="rect" id="Node000002" href="$d6/db9/structlci_1_1allocator__base__t.html" title="The user&#45;defined allocator type." alt="" coords="5,101,144,126"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="85,138,102,170,124,194,121,198,98,174,81,140"/>
-<area shape="rect" id="Node000003" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="168,93,283,133"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="201,145,174,174,151,197,147,194,170,170,197,142"/>
-<area shape="rect" id="Node000004" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="177,5,274,31"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="228,44,228,93,223,93,223,44"/>
-</map>

@@ -1,0 +1,14 @@
+<map id="lci::get_default_endpoint_x::call" name="lci::get_default_endpoint_x::call">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,188,77"/>
+<area shape="rect" id="Node000002" href="$df/d43/classlci_1_1get__default__endpoint__x.html#a1e5bd3bc524eeaafaca1e8b439dbbb6b" title=" " alt="" coords="236,37,419,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="188,55,222,55,222,60,188,60"/>
+<area shape="rect" id="Node000003" href="$df/d43/classlci_1_1get__default__endpoint__x.html#a400a4251052764587e521094ccd5c6be" title=" " alt="" coords="467,5,649,45"/>
+<area shape="poly" id="edge6_Node000001_Node000003" title=" " alt="" coords="170,35,236,23,348,16,453,17,453,22,348,21,236,28,171,40"/>
+<area shape="rect" id="Node000005" href="$df/d43/classlci_1_1get__default__endpoint__x.html#a8aa0541985bef637e588bbdf51422756" title=" " alt="" coords="467,69,649,109"/>
+<area shape="poly" id="edge7_Node000001_Node000005" title=" " alt="" coords="171,75,236,87,348,94,453,93,453,98,348,99,236,92,170,80"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="418,42,453,37,453,43,419,47"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="419,67,453,72,453,77,418,73"/>
+<area shape="rect" id="Node000004" href="$df/d43/classlci_1_1get__default__endpoint__x.html#a8e077666bee00e3637cefc9942a39904" title=" " alt="" coords="697,37,896,77"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="650,35,684,40,684,45,649,40"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="649,74,684,70,684,75,650,80"/>
+</map>

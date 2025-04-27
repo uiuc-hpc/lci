@@ -1,9 +1,0 @@
-<map id="lci::graph_add_node_op" name="lci::graph_add_node_op">
-<area shape="rect" id="Node000001" title="Add a functor as a node to the completion graph." alt="" coords="5,45,164,70"/>
-<area shape="rect" id="Node000002" href="$d5/dd3/namespacelci.html#a9cc0a6f748e26c02e87a5b6f259fd614" title=" " alt="" coords="217,5,345,45"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="163,42,203,35,204,41,164,47"/>
-<area shape="rect" id="Node000003" href="$d8/db8/classlci_1_1graph__add__node__x.html#ad8884eb9033553a67cd075cfbcac2b25" title=" " alt="" coords="212,69,351,109"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="164,67,199,73,198,78,163,73"/>
-<area shape="rect" id="Node000004" href="$d8/db8/classlci_1_1graph__add__node__x.html#a50a334110e183170c11b7ae96cd92305" title=" " alt="" coords="399,69,552,109"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="351,87,385,87,385,92,351,92"/>
-</map>

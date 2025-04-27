@@ -1,9 +1,0 @@
-<map id="lci::register_memory_x::call_impl" name="lci::register_memory_x::call_impl">
-<area shape="rect" id="Node000001" title=" " alt="" coords="381,35,521,75"/>
-<area shape="rect" id="Node000002" href="$d0/d73/classlci_1_1register__memory__x.html#aef62bcfd25206c0880ec037a18b938b2" title=" " alt="" coords="193,35,333,75"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="367,57,334,57,334,52,367,52"/>
-<area shape="rect" id="Node000003" href="$d0/d73/classlci_1_1register__memory__x.html#abcc6bc37b2b399b44529a56aae8fe354" title=" " alt="" coords="5,5,145,45"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="179,44,145,39,146,34,180,39"/>
-<area shape="rect" id="Node000004" href="$d5/dd3/namespacelci.html#aaf51f7172447f6fb23b5f98f6e124ff9" title=" " alt="" coords="5,70,145,95"/>
-<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="180,70,146,75,145,70,179,64"/>
-</map>

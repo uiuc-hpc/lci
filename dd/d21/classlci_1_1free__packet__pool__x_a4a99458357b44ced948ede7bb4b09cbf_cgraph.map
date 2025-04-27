@@ -1,0 +1,10 @@
+<map id="lci::free_packet_pool_x::call_impl" name="lci::free_packet_pool_x::call_impl">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,161,77"/>
+<area shape="rect" id="Node000002" href="$dd/d21/classlci_1_1free__packet__pool__x.html#aeb2ef100986f29f6ec3ccc6d7846d2cb" title=" " alt="" coords="209,5,365,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="161,43,195,37,196,42,162,48"/>
+<area shape="rect" id="Node000004" href="$dd/d21/classlci_1_1free__packet__pool__x.html#add7ed918f0c584786dcbdae91330a350" title=" " alt="" coords="209,69,365,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="162,67,196,72,195,78,161,72"/>
+<area shape="rect" id="Node000003" href="$dd/d21/classlci_1_1free__packet__pool__x.html#a25f2b4ebbdbcdf1ca75dd51fb3227d66" title=" " alt="" coords="413,37,584,77"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="366,35,400,40,399,45,365,40"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="365,75,399,70,400,75,366,80"/>
+</map>

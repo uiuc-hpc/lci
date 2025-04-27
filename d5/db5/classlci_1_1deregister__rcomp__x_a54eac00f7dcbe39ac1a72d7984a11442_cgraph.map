@@ -1,0 +1,10 @@
+<map id="lci::deregister_rcomp_x::call_impl" name="lci::deregister_rcomp_x::call_impl">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,164,77"/>
+<area shape="rect" id="Node000002" href="$d5/db5/classlci_1_1deregister__rcomp__x.html#aad35f86a01a22c035db59592c5abbe91" title=" " alt="" coords="212,5,371,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="164,42,198,37,199,42,165,48"/>
+<area shape="rect" id="Node000004" href="$d5/db5/classlci_1_1deregister__rcomp__x.html#aefad48edc89c6aacb81a2b6c4e8f3a5b" title=" " alt="" coords="212,69,371,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="165,67,199,72,198,78,164,72"/>
+<area shape="rect" id="Node000003" href="$d5/db5/classlci_1_1deregister__rcomp__x.html#a0e3d6aa3e21e482548ccd35283c569e3" title=" " alt="" coords="419,37,593,77"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="371,35,405,40,405,45,371,40"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="371,75,405,70,405,75,371,80"/>
+</map>

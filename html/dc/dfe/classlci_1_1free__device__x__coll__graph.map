@@ -1,9 +1,0 @@
-<map id="lci::free_device_x" name="lci::free_device_x">
-<area shape="rect" id="Node000001" title="The actual implementation for free_device." alt="" coords="35,196,159,221"/>
-<area shape="rect" id="Node000002" href="$d6/d66/classlci_1_1device__t.html" title="The actual implementation for RESOURCE device." alt="" coords="5,101,97,126"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="60,138,72,171,88,194,84,197,68,173,55,140"/>
-<area shape="rect" id="Node000003" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="122,93,237,133"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="157,146,133,174,110,198,107,194,129,170,153,143"/>
-<area shape="rect" id="Node000004" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="131,5,228,31"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="182,44,182,93,177,93,177,44"/>
-</map>

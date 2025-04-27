@@ -1,7 +1,0 @@
-<map id="Memory Registration" name="Memory Registration">
-<area shape="rect" id="Node000003" href="$d6/dd3/group___l_c_i___d_e_r_e_g_i_s_t_e_r___m_e_m_o_r_y.html" title="Deregister a memory region from a device." alt="" coords="196,5,329,31"/>
-<area shape="rect" id="Node000004" href="$d0/dd8/group___l_c_i___g_e_t___r_k_e_y.html" title="Get the rkey of a memory region." alt="" coords="227,55,299,80"/>
-<area shape="rect" id="Node000001" title="This section describes the LCI API for memory registration." alt="" coords="5,80,148,105"/>
-<area shape="rect" id="Node000005" href="$d5/da0/group___l_c_i___m_r.html" title="The memory region resource." alt="" coords="203,104,322,129"/>
-<area shape="rect" id="Node000002" href="$db/d66/group___l_c_i___r_e_g_i_s_t_e_r___m_e_m_o_r_y.html" title="Register a memory region to a device." alt="" coords="203,153,322,179"/>
-</map>

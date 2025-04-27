@@ -1,7 +1,0 @@
-<map id="lci::comp_signal_x::call" name="lci::comp_signal_x::call">
-<area shape="rect" id="Node000001" title=" " alt="" coords="184,27,315,67"/>
-<area shape="rect" id="Node000002" href="$d5/dd3/namespacelci.html#aabbacfbf5a7b370b39df060ed62ed723" title=" " alt="" coords="13,5,129,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="170,37,128,30,129,25,171,32"/>
-<area shape="rect" id="Node000003" href="$d7/d31/classlci_1_1comp__signal__x.html#abb1b6c88d156bbc0edd132d719db0113" title=" " alt="" coords="5,55,136,95"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="171,62,137,68,136,62,170,57"/>
-</map>

@@ -1,0 +1,12 @@
+<map id="lci::barrier_x::device" name="lci::barrier_x::device">
+<area shape="rect" id="Node000001" title=" " alt="" coords="631,31,785,56"/>
+<area shape="rect" id="Node000002" href="$dd/dea/classlci_1_1barrier__x.html#a4771c440ebd2fdbe82fbbac3ae59c482" title=" " alt="" coords="229,31,364,56"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="617,46,365,46,365,41,617,41"/>
+<area shape="rect" id="Node000005" href="$dd/dea/classlci_1_1barrier__x.html#a289a4f950bd00c4d8d490b643010aa36" title=" " alt="" coords="412,56,583,81"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="617,57,583,61,583,56,617,52"/>
+<area shape="rect" id="Node000003" href="$d5/dd3/namespacelci.html#ae6054124daf3cd24d181b63ccbb7ce6c" title=" " alt="" coords="49,5,137,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="215,36,137,26,138,21,216,31"/>
+<area shape="rect" id="Node000004" href="$dd/dea/classlci_1_1barrier__x.html#aa287ecbd813cf5dcbc322389d8b1a233" title=" " alt="" coords="5,55,181,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="216,56,182,60,181,54,215,50"/>
+<area shape="poly" id="edge5_Node000005_Node000002" title=" " alt="" coords="398,59,364,54,365,49,398,53"/>
+</map>

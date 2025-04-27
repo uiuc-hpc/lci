@@ -1,0 +1,25 @@
+<map id="lci::data_t::data_t" name="lci::data_t::data_t">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,197,140,222"/>
+<area shape="rect" id="Node000002" href="$da/d7c/structlci_1_1data__t.html#aa8ddc42cf7a8be3b1414498ac233098c" title=" " alt="" coords="213,70,348,95"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="84,195,127,155,187,112,219,97,221,102,189,117,131,159,88,199"/>
+<area shape="rect" id="Node000003" href="$da/d7c/structlci_1_1data__t.html#ae475cbfd547affeb78d860b7365fd276" title=" " alt="" coords="421,33,605,58"/>
+<area shape="poly" id="edge13_Node000001_Node000003" title=" " alt="" coords="75,195,88,160,110,114,142,67,163,47,187,31,221,16,258,7,295,3,333,3,404,12,463,26,462,31,403,17,332,9,296,9,259,13,223,21,189,36,166,51,146,71,114,117,92,163,80,197"/>
+<area shape="rect" id="Node000004" href="$da/d7c/structlci_1_1data__t.html#a757e3d75c4950d82a849ea05535665a0" title=" " alt="" coords="438,102,589,127"/>
+<area shape="poly" id="edge14_Node000001_Node000004" title=" " alt="" coords="96,194,138,174,187,156,248,141,310,130,423,117,424,122,311,136,249,147,189,161,140,179,98,199"/>
+<area shape="rect" id="Node000005" href="$da/d7c/structlci_1_1data__t.html#ae6d98a0c79ffbf91bbde45200026c260" title=" " alt="" coords="188,171,373,197"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="140,198,174,194,175,200,140,204"/>
+<area shape="rect" id="Node000006" href="$da/d7c/structlci_1_1data__t.html#ae5a60738da46376c32408f3ba0b17300" title=" " alt="" coords="438,297,589,322"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="140,214,250,231,374,257,469,289,468,294,373,263,250,236,140,220"/>
+<area shape="rect" id="Node000007" href="$da/d7c/structlci_1_1data__t.html#a89f6008fe3e8892226fd826b5fd2edc3" title=" " alt="" coords="205,273,356,298"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="107,220,189,251,230,265,228,270,187,256,105,225"/>
+<area shape="rect" id="Node000008" href="$da/d7c/structlci_1_1data__t.html#adbfbad7285a0df73986f552d14dae112" title=" " alt="" coords="202,322,359,347"/>
+<area shape="poly" id="edge9_Node000001_Node000008" title=" " alt="" coords="87,220,129,263,158,287,189,307,207,315,205,320,187,312,155,291,126,267,83,224"/>
+<area shape="rect" id="Node000009" href="$da/d7c/structlci_1_1data__t.html#a99a99cad56e714c94984b867933a0822" title=" " alt="" coords="205,371,356,397"/>
+<area shape="poly" id="edge11_Node000001_Node000009" title=" " alt="" coords="82,221,121,287,152,325,190,358,199,363,197,368,186,362,148,329,117,290,78,223"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="247,71,239,62,243,52,257,45,281,43,310,47,321,56,318,60,308,52,281,49,259,51,247,55,244,61,251,68"/>
+<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="348,69,420,57,421,63,349,74"/>
+<area shape="poly" id="edge4_Node000002_Node000004" title=" " alt="" coords="349,89,425,100,424,105,348,95"/>
+<area shape="poly" id="edge8_Node000007_Node000006" title=" " alt="" coords="356,290,424,297,424,303,356,296"/>
+<area shape="poly" id="edge10_Node000008_Node000006" title=" " alt="" coords="360,323,424,316,424,322,360,329"/>
+<area shape="poly" id="edge12_Node000009_Node000006" title=" " alt="" coords="333,369,373,357,466,324,468,329,374,362,335,374"/>
+</map>

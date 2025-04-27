@@ -1,0 +1,13 @@
+<map id="lci::cq_pop_x" name="lci::cq_pop_x">
+<area shape="rect" id="Node000001" title="The actual implementation for cq_pop." alt="" coords="86,284,193,309"/>
+<area shape="rect" id="Node000002" href="$d1/da7/classlci_1_1comp__t.html" title="The actual implementation for RESOURCE comp." alt="" coords="26,189,119,214"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="87,225,108,258,129,282,125,285,104,262,82,227"/>
+<area shape="rect" id="Node000003" href="$d9/d97/classlci_1_1comp__impl__t.html" title="Completion object implementation base type." alt="" coords="5,93,135,119"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="73,132,75,188,70,189,68,132"/>
+<area shape="rect" id="Node000004" href="$dc/da6/structlci_1_1comp__attr__t.html" title=" " alt="" coords="9,5,131,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="73,45,73,93,67,93,67,45"/>
+<area shape="rect" id="Node000005" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="147,181,275,221"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="191,234,169,262,151,285,147,282,165,258,186,231"/>
+<area shape="rect" id="Node000006" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="159,93,267,119"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="215,132,214,181,209,181,210,132"/>
+</map>

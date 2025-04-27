@@ -1,7 +1,0 @@
-<map id="lci::comp_t" name="lci::comp_t">
-<area shape="rect" id="Node000001" title="The actual implementation for RESOURCE comp." alt="" coords="21,181,107,207"/>
-<area shape="rect" id="Node000002" href="$d9/d97/classlci_1_1comp__impl__t.html" title="Completion object implementation base type." alt="" coords="5,93,123,119"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="67,133,67,181,61,181,61,133"/>
-<area shape="rect" id="Node000003" href="$dc/da6/structlci_1_1comp__attr__t.html" title=" " alt="" coords="8,5,120,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="67,45,67,93,61,93,61,45"/>
-</map>

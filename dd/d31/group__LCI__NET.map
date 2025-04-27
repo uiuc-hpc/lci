@@ -1,0 +1,12 @@
+<map id="Network&#45;Layer Communication" name="Network&#45;Layer Communication">
+<area shape="rect" id="Node000001" title="This section describes the LCI API for network&#45;layer communication." alt="" coords="5,203,231,228"/>
+<area shape="rect" id="Node000002" href="$df/d01/group__LCI__NET__POLL__CQ.html" title="Poll the network completion queue." alt="" coords="302,5,398,31"/>
+<area shape="rect" id="Node000010" href="$df/d29/group__LCI__NET__POST__GET.html" title="Post a network get operation." alt="" coords="297,55,403,80"/>
+<area shape="rect" id="Node000007" href="$d1/d41/group__LCI__NET__POST__PUT.html" title="Post a network put operation." alt="" coords="297,104,403,129"/>
+<area shape="rect" id="Node000009" href="$dd/d69/group__LCI__NET__POST__PUTIMM.html" title="Post a network put with immediate data operation." alt="" coords="282,153,418,179"/>
+<area shape="rect" id="Node000008" href="$db/d21/group__LCI__NET__POST__PUTIMMS.html" title="Post a network short put with immediate data operation." alt="" coords="279,203,421,228"/>
+<area shape="rect" id="Node000006" href="$d8/d02/group__LCI__NET__POST__PUTS.html" title="Post a network short put operation." alt="" coords="293,252,407,277"/>
+<area shape="rect" id="Node000003" href="$d4/d0a/group__LCI__NET__POST__RECV.html" title="Post a network receive operation." alt="" coords="293,301,407,327"/>
+<area shape="rect" id="Node000005" href="$dc/d80/group__LCI__NET__POST__SEND.html" title="Post a network send operation." alt="" coords="292,351,408,376"/>
+<area shape="rect" id="Node000004" href="$de/d9f/group__LCI__NET__POST__SENDS.html" title="Post a network short send operation." alt="" coords="289,400,411,425"/>
+</map>

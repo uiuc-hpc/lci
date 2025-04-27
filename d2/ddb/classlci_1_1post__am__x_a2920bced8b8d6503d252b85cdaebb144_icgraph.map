@@ -1,0 +1,12 @@
+<map id="lci::post_am_x::allow_done" name="lci::post_am_x::allow_done">
+<area shape="rect" id="Node000001" title=" " alt="" coords="668,31,867,56"/>
+<area shape="rect" id="Node000002" href="$d2/ddb/classlci_1_1post__am__x.html#a843d9780baee743b821b8e2e255f87fc" title=" " alt="" coords="243,31,389,56"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="654,46,389,46,389,41,654,41"/>
+<area shape="rect" id="Node000005" href="$d2/ddb/classlci_1_1post__am__x.html#ae6f86a564d0678fecd4c83e9dd959d92" title=" " alt="" coords="437,56,620,81"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="655,58,620,62,620,56,654,53"/>
+<area shape="rect" id="Node000003" href="$d2/ddb/classlci_1_1post__am__x.html#ae82d36cffcc29d7f80305ec363aa4147" title=" " alt="" coords="5,5,195,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="229,36,195,32,195,26,229,31"/>
+<area shape="rect" id="Node000004" href="$d5/dd3/namespacelci.html#a317a3e10ecb15866dc346abb2fbe4061" title=" " alt="" coords="49,55,151,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="229,56,152,64,151,59,229,50"/>
+<area shape="poly" id="edge5_Node000005_Node000002" title=" " alt="" coords="423,59,389,55,390,49,424,54"/>
+</map>

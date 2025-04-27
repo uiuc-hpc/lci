@@ -1,0 +1,4 @@
+<map id="deregister_memory" name="deregister_memory">
+<area shape="rect" id="Node000001" title="Deregister a memory region from a device." alt="" coords="212,5,363,31"/>
+<area shape="rect" id="Node000002" href="$d0/da4/group__LCI__MEMORY.html" title="This section describes the LCI API for memory registration." alt="" coords="5,5,164,31"/>
+</map>

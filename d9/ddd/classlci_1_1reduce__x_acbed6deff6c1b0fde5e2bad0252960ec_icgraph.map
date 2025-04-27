@@ -1,0 +1,12 @@
+<map id="lci::reduce_x::endpoint" name="lci::reduce_x::endpoint">
+<area shape="rect" id="Node000001" title=" " alt="" coords="632,31,801,56"/>
+<area shape="rect" id="Node000002" href="$d9/ddd/classlci_1_1reduce__x.html#aec4d1c94bf45729462cbbe22f39cfb50" title=" " alt="" coords="231,31,365,56"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="618,46,366,46,366,41,618,41"/>
+<area shape="rect" id="Node000005" href="$d9/ddd/classlci_1_1reduce__x.html#a8830551d57b4362aa138713c6a15e8cb" title=" " alt="" coords="413,56,584,81"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="618,57,585,61,584,56,618,52"/>
+<area shape="rect" id="Node000003" href="$d9/ddd/classlci_1_1reduce__x.html#a0c3b6960bc1cd623b9b746bae3450eaf" title=" " alt="" coords="5,5,183,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="216,36,183,32,183,26,217,31"/>
+<area shape="rect" id="Node000004" href="$d5/dd3/namespacelci.html#a9f94f4e818f924738372be1f91b8e62c" title=" " alt="" coords="49,55,139,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="217,55,139,65,139,59,217,50"/>
+<area shape="poly" id="edge5_Node000005_Node000002" title=" " alt="" coords="399,59,365,54,366,49,400,53"/>
+</map>

@@ -1,0 +1,16 @@
+<map id="lci::free_packet_pool_x::operator()" name="lci::free_packet_pool_x::operator()">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,161,77"/>
+<area shape="rect" id="Node000002" href="$dd/d21/classlci_1_1free__packet__pool__x.html#a4741e22c036c3335ba81348389543b50" title=" " alt="" coords="209,37,365,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="161,55,196,55,196,60,161,60"/>
+<area shape="rect" id="Node000003" href="$dd/d21/classlci_1_1free__packet__pool__x.html#a4a99458357b44ced948ede7bb4b09cbf" title=" " alt="" coords="413,37,569,77"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="365,55,400,55,400,60,365,60"/>
+<area shape="rect" id="Node000004" href="$dd/d21/classlci_1_1free__packet__pool__x.html#aeb2ef100986f29f6ec3ccc6d7846d2cb" title=" " alt="" coords="617,5,773,45"/>
+<area shape="poly" id="edge7_Node000002_Node000004" title=" " alt="" coords="354,35,413,23,511,16,603,17,603,22,511,21,414,28,355,40"/>
+<area shape="rect" id="Node000006" href="$dd/d21/classlci_1_1free__packet__pool__x.html#add7ed918f0c584786dcbdae91330a350" title=" " alt="" coords="617,69,773,109"/>
+<area shape="poly" id="edge8_Node000002_Node000006" title=" " alt="" coords="355,75,414,87,511,93,603,92,603,98,511,99,413,92,354,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="569,43,603,37,604,42,570,48"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="570,67,604,72,603,78,569,72"/>
+<area shape="rect" id="Node000005" href="$dd/d21/classlci_1_1free__packet__pool__x.html#a25f2b4ebbdbcdf1ca75dd51fb3227d66" title=" " alt="" coords="821,37,992,77"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="774,35,808,40,807,45,773,40"/>
+<area shape="poly" id="edge6_Node000006_Node000005" title=" " alt="" coords="773,75,807,70,808,75,774,80"/>
+</map>

@@ -1,9 +1,0 @@
-<map id="lci::data_t::is_scalar" name="lci::data_t::is_scalar">
-<area shape="rect" id="Node000001" title=" " alt="" coords="200,55,339,80"/>
-<area shape="rect" id="Node000002" href="$da/d7c/structlci_1_1data__t.html#aa4f425e53b7dd3614cabd61b460575db" title=" " alt="" coords="17,5,140,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="206,54,128,33,130,28,207,49"/>
-<area shape="rect" id="Node000003" href="$da/d7c/structlci_1_1data__t.html#ad52c699c8681147663af4fb39b6e4dfb" title="Get the buffer from the data object." alt="" coords="6,55,151,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="186,70,152,70,152,65,186,65"/>
-<area shape="rect" id="Node000004" href="$da/d7c/structlci_1_1data__t.html#a4c60449f2ee909ad5e33e7781b985753" title="Get the scalar data from the data object." alt="" coords="5,104,152,129"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="207,86,130,106,128,101,206,81"/>
-</map>

@@ -1,9 +1,0 @@
-<map id="lci::matching_engine_insert_x" name="lci::matching_engine_insert_x">
-<area shape="rect" id="Node000001" title="The actual implementation for matching_engine_insert." alt="" coords="88,196,229,236"/>
-<area shape="rect" id="Node000002" href="$d8/d3f/classlci_1_1matching__engine__t.html" title="The actual implementation for RESOURCE matching_engine." alt="" coords="5,101,157,126"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="81,140,82,156,88,171,98,183,112,194,109,198,95,187,83,173,77,157,75,140"/>
-<area shape="rect" id="Node000003" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="181,93,296,133"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="226,147,209,174,185,198,181,194,205,170,221,145"/>
-<area shape="rect" id="Node000004" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="190,5,287,31"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="241,44,241,93,236,93,236,44"/>
-</map>

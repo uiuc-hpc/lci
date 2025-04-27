@@ -1,0 +1,4 @@
+<map id="net_poll_cq" name="net_poll_cq">
+<area shape="rect" id="Node000002" href="$dd/d31/group__LCI__NET.html" title="This section describes the LCI API for network&#45;layer communication." alt="" coords="5,5,231,31"/>
+<area shape="rect" id="Node000001" title="Poll the network completion queue." alt="" coords="279,5,375,31"/>
+</map>

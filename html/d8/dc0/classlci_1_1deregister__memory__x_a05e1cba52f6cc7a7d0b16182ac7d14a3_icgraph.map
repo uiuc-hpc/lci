@@ -1,7 +1,0 @@
-<map id="lci::deregister_memory_x::call" name="lci::deregister_memory_x::call">
-<area shape="rect" id="Node000001" title=" " alt="" coords="208,27,363,67"/>
-<area shape="rect" id="Node000002" href="$d5/dd3/namespacelci.html#a24873f5ddc295cfc7f7a6109c0687788" title=" " alt="" coords="5,5,160,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="194,37,160,32,161,27,195,32"/>
-<area shape="rect" id="Node000003" href="$d8/dc0/classlci_1_1deregister__memory__x.html#a034a7d21ff84befc2ee6ceaa9572802b" title=" " alt="" coords="5,55,160,95"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="195,63,161,67,160,62,194,57"/>
-</map>
