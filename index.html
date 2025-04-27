@@ -155,7 +155,9 @@ Overview</h2>
 <p>LCI is implemented as a C++ libraries with two major network backends: <a href="https://github.com/linux-rdma/rdma-core/blob/master/Documentation/libibverbs.md">libibverbs</a> for InfiniBand/RoCE and <a href="https://ofiwg.github.io/libfabric/">libfabric</a> for Slingshot-11, Ethernet, shared memory, and other networks.</p>
 <h2><a class="anchor" id="autotoc_md3"></a>
 Performance Showcase</h2>
-<p><img src="docs/img/lt-expanse.png" alt="Message Rate Result" class="inline"/> <img src="docs/img/bw-expanse.png" alt="Bandwidth Result" class="inline"/> <img src="docs/img/legend-expanse.png" alt="legend" class="inline"/></p>
+<p><img src="lt-expanse.png" alt="" class="inline" title="Message Rate Result"/>    </p>
+<p><img src="bw-expanse.png" alt="" class="inline" title="Bandwidth Result"/>    </p>
+<p><img src="legend-expanse.png" alt="" class="inline" title="legend"/>    </p>
 <p>Results of multi-pair ping-pong microbenchmarks measuring message rate (8-byte messages, 100k steps) and bandwidth (64-thread, 1k steps) on SDSC Expanse (InfiniBand). It compares LCI with other state-of-the-art libraries, including MPI (MPICH), MPI with the VCI extension, and GASNet-EX. The experiments are either run with one process per core (multi-proc) or with one process per node (one thread per core, multi-thrd).</p>
 <p><em>For the first time known to us, multithreaded communication catches up with multi-process communication.</em></p>
 <h2><a class="anchor" id="autotoc_md4"></a>
