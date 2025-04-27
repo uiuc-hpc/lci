@@ -1,5 +1,7 @@
 @page quickstart Quick Start
 
+[TOC]
+
 This tutorial will show you how to quickly create an LCI project from scratch.
 
 ## Prerequisites

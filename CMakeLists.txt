@@ -14,6 +14,20 @@ include(CMakePackageConfigHelpers)
 include(TargetSourcesRelative)
 include(AddLCI)
 
+set(LCI_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set(LCI_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set(LCI_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+set(LCI_VERSION_SUFFIX "-dev")
+# Run git describe or git rev-parse to get the hash
+execute_process(
+  COMMAND git rev-parse --short HEAD
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE LCI_GIT_HASH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+set(LCI_VERSION "${LCI_VERSION_MAJOR}.${LCI_VERSION_MINOR}.${LCI_VERSION_PATCH}${LCI_VERSION_SUFFIX}")
+set(LCI_VERSION_FULL "${LCI_VERSION_MAJOR}.${LCI_VERSION_MINOR}.${LCI_VERSION_PATCH}${LCI_VERSION_SUFFIX}-${LCI_GIT_HASH}")
+
 # ##############################################################################
 # General Options
 # ##############################################################################

@@ -50,6 +50,11 @@
  */
 
 /**
+ * @defgroup LCI_COLL Collective Communication
+ * @brief This section describes the LCI API for collective communication.
+ */
+
+/**
  * @namespace lci
  * @brief All LCI API functions and classes are defined in this namespace.
  */

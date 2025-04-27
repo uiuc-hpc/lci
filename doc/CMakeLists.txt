@@ -18,14 +18,24 @@ if(BUILD_DOCUMENTATION)
   # to doxygen-awesome.css
   FetchContent_GetProperties(doxygen-awesome-css SOURCE_DIR AWESOME_CSS_DIR)
 
-  set(doxyfile_in ${CMAKE_CURRENT_SOURCE_DIR}/doxygen.in)
-  set(doxyfile ${CMAKE_CURRENT_BINARY_DIR}/doxygen)
+  set(doxyfile_in ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
+  set(doxyfile ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
 
   set(publish2gh-pages_in ${CMAKE_CURRENT_SOURCE_DIR}/publish2gh-pages.sh.in)
   set(publish2gh-pages ${CMAKE_CURRENT_BINARY_DIR}/publish2gh-pages.sh)
 
   configure_file(${doxyfile_in} ${doxyfile} @ONLY)
   configure_file(${publish2gh-pages_in} ${publish2gh-pages} @ONLY)
+  # copy README.md into mainpage.md.in
+  
+  # Path to your input and output files
+  set(MAINPAGE_TEMPLATE "${CMAKE_CURRENT_SOURCE_DIR}/mainpage.md.in")
+  set(MAINPAGE_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/mainpage.md")
+  set(README_FILE "${CMAKE_CURRENT_SOURCE_DIR}/../README.md")
+
+  # Read README.md content
+  file(READ "${README_FILE}" README_CONTENTS)
+  configure_file(${MAINPAGE_TEMPLATE} ${MAINPAGE_OUTPUT} @ONLY)
 
   add_custom_target(
     doc
