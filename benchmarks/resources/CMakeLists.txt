@@ -12,4 +12,4 @@ function(add_lci_bench_resources)
 endfunction()
 
 add_lci_bench_resources(bench_packet_pool.cpp bench_matching_engine.cpp
-                        bench_cq.cpp)
+                        bench_cq.cpp bench_memory.cpp)
