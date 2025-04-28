@@ -11,25 +11,28 @@ struct config_t {
   int nthreads = 16;
   int niters = 1000;
   int window = 1;
+  int nbytes = 64;
 } config;
 
 LCT_tbarrier_t g_tbarrier;
+void *data;
 
-void worker(int id, lci::matching_engine_t& matching_engine) {
+void worker(int id) {
   util::pin_thread_to_cpu(id);
+  std::vector<void*> buffers(config.window);
   LCT_tbarrier_arrive_and_wait(g_tbarrier);
   auto start = std::chrono::high_resolution_clock::now();
   for (int i = 0; i < config.niters; i++) {
     for (int j = 0; j < config.window; j++) {
-      uint64_t key = (id * config.niters + i) * config.window + j;
-      lci::matching_engine_insert(matching_engine, key, reinterpret_cast<void*>(key + 1),
-                                  lci::matching_entry_type_t::send);
+      void *ret = malloc(config.nbytes);
+      if (ret == nullptr) {
+        fprintf(stderr, "malloc failed\n");
+        exit(1);
+      }
+      buffers[j] = ret;
     }
     for (int j = config.window - 1; j >= 0; j--) {
-      uint64_t key = (id * config.niters + i) * config.window + j;
-      lci::matching_engine_insert(matching_engine, key,
-                                  reinterpret_cast<void*>(key + 1),
-                                  lci::matching_entry_type_t::recv);
+      free(buffers[j]);
     }
   }
   LCT_tbarrier_arrive_and_wait(g_tbarrier);
@@ -38,8 +41,12 @@ void worker(int id, lci::matching_engine_t& matching_engine) {
   double elapsed_s = elapsed.count();
   if (id == 0) {
     printf("Elapsed time: %.2f s\n", elapsed_s);
-    printf("Throughput: %.2f Mops/s\n",
-           (config.nthreads * config.niters * config.window) / (elapsed_s * 1e6));
+    printf("Per-operation time: %.2f us\n",
+           (elapsed_s * 1e6) / (config.niters * config.window));
+    double throughput_per_thread = (static_cast<double>(config.niters) * config.window) / (elapsed_s * 1e6);
+    printf("Throughput per thread: %.2f Mops/s\n",
+           throughput_per_thread);
+    printf("Throughput: %.2f Mops/s\n", throughput_per_thread * config.nthreads);
   }
 }
 
@@ -49,25 +56,28 @@ int main(int argc, char** argv) {
     &config.nthreads);
   LCT_args_parser_add(argsParser, "niters", required_argument,
       &config.niters);
-      LCT_args_parser_add(argsParser, "window", required_argument,
-          &config.window);
+  LCT_args_parser_add(argsParser, "window", required_argument,
+      &config.window);
+  LCT_args_parser_add(argsParser, "nbytes", required_argument,
+      &config.nbytes);
   LCT_args_parser_parse(argsParser, argc, argv);
   LCT_args_parser_print(argsParser, true);
   LCT_args_parser_free(argsParser);
 
   g_tbarrier = LCT_tbarrier_alloc(config.nthreads);
+  data = malloc(config.nbytes);
 
   lci::g_runtime_init();
-  lci::matching_engine_t matching_engine = lci::get_default_matching_engine();
 
   std::vector<std::thread> threads;
   for (int i = 0; i < config.nthreads; i++) {
-    std::thread t(worker, i, std::ref(matching_engine));
+    std::thread t(worker, i);
     threads.push_back(std::move(t));
   }
   for (auto& t : threads) {
     t.join();
   }
+  free(data);
 
   lci::g_runtime_fina();
 

@@ -5,6 +5,8 @@
 #include "lct.h"
 #include "lci.hpp"
 
+#include "util.hpp"
+
 struct config_t {
   int nthreads = 16;
   int niters = 1000;
@@ -14,6 +16,7 @@ struct config_t {
 LCT_tbarrier_t g_tbarrier;
 
 void worker(int id, lci::comp_t cq) {
+  util::pin_thread_to_cpu(id);
   lci::status_t dummy_status;
   dummy_status.set_done();
   LCT_tbarrier_arrive_and_wait(g_tbarrier);

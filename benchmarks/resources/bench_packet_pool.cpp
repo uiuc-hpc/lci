@@ -5,6 +5,8 @@
 #include "lct.h"
 #include "lci.hpp"
 
+#include "util.hpp"
+
 struct config_t {
   int nthreads = 16;
   int niters = 1000;
@@ -14,6 +16,7 @@ struct config_t {
 LCT_tbarrier_t g_tbarrier;
 
 void worker(int id) {
+  util::pin_thread_to_cpu(id);
   std::vector<void*> packets(config.window);
   LCT_tbarrier_arrive_and_wait(g_tbarrier);
   auto start = std::chrono::high_resolution_clock::now();
