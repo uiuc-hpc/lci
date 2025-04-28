@@ -26,7 +26,10 @@ void worker(int id, lci::comp_t cq) {
       lci::comp_signal(cq, dummy_status);
     }
     for (int j = config.window - 1; j >= 0; j--) {
-      lci::cq_pop(cq);
+      lci::status_t status;
+      do {
+        status = lci::cq_pop(cq);
+      } while (status.is_retry());
     }
   }
   LCT_tbarrier_arrive_and_wait(g_tbarrier);
