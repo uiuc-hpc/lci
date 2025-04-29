@@ -6,6 +6,7 @@ var group__LCI__COMP =
       [ "comp_t", "d1/da7/classlci_1_1comp__t.html#a67ac097321c0e7157e1c910c1440fde2", null ],
       [ "get_attr", "d1/da7/classlci_1_1comp__t.html#aa4404e771ac37cdf677dc1dcb0c411dd", null ],
       [ "get_attr_comp_type", "d1/da7/classlci_1_1comp__t.html#a2a6508317259f82de739de86738835d9", null ],
+      [ "get_attr_cq_default_length", "d1/da7/classlci_1_1comp__t.html#ab268ad713cbbd33beebe9ed12482ffa4", null ],
       [ "get_attr_cq_type", "d1/da7/classlci_1_1comp__t.html#a5855e91e6eedf10123e188629232a7d4", null ],
       [ "get_attr_sync_threshold", "d1/da7/classlci_1_1comp__t.html#a3910e0a21702d7aed54ab2c58cc9b4df", null ],
       [ "get_attr_user_context", "d1/da7/classlci_1_1comp__t.html#abb1e13de598bb9de41218ba33efa7a62", null ],

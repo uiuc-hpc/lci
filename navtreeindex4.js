@@ -1,5 +1,6 @@
 var NAVTREEINDEX4 =
 {
+"d9/d4d/classlci_1_1register__rcomp__x.html#aebaa9491189650087b16d26c11e36cd4":[5,6,3,0,0],
 "d9/d58/group__LCI__GET__RANK__N.html":[5,1,1],
 "d9/d97/classlci_1_1comp__impl__t.html":[5,0,7],
 "d9/d97/classlci_1_1comp__impl__t.html#a31541582774da77e2d8163f83186718c":[5,0,7,1],
@@ -248,6 +249,5 @@ var NAVTREEINDEX4 =
 "db/dec/classlci_1_1packet__pool__t.html#a5ed60c18f2fab1e26fbc39d585866ac0":[5,2,24,0,9],
 "db/dec/classlci_1_1packet__pool__t.html#a7ab635e272fd6ce294ab9a8ebf6d4e9c":[5,2,24,0,4],
 "db/dec/classlci_1_1packet__pool__t.html#a834137b5d78f94eb185cfc39888f4163":[5,2,24,0,6],
-"db/dec/classlci_1_1packet__pool__t.html#a8afa8ada65960ab9ff3025b22c7a7535":[5,2,24,0,1],
-"db/dec/classlci_1_1packet__pool__t.html#a93ba74dc9ed959c4560304a9c6aed872":[5,2,24,0,2]
+"db/dec/classlci_1_1packet__pool__t.html#a8afa8ada65960ab9ff3025b22c7a7535":[5,2,24,0,1]
 };

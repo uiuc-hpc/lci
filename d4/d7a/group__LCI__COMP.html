@@ -139,9 +139,10 @@ Classes</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[out]</td><td class="paramname">comp_type</td><td>of type <b><a class="el" href="../../d5/dd3/namespacelci.html#a610912d197faa01c2f04666209b814bb">attr_comp_type_t</a></b>; The completion object type. </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">sync_threshold</td><td>of type <b>int</b>; The threshold for sync (synchronizer). </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">sync_threshold</td><td>of type <b>int</b>; The threshold for sync (synchronizer). </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">zero_copy_am</td><td>of type <b>bool</b>; Whether to directly pass internal packet into the completion object. </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">cq_type</td><td>of type <b><a class="el" href="../../d5/dd3/namespacelci.html#aea9f7ed06395c5717e96dc0969e31f4f">attr_cq_type_t</a></b>; The completion object type. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">cq_default_length</td><td>of type <b>int</b>; The default length of the completion queue. </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">user_context</td><td>of type <b>void*</b>; User context for the resource. </td></tr>
   </table>
   </dd>
