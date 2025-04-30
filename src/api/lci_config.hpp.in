@@ -13,6 +13,7 @@
                          (LCI_VERSION_PATCH))
 #define LCI_VERSION_STRING "@LCI_VERSION@"
 #define LCI_VERSION_FULL "@LCI_VERSION_FULL@"
+#define LCI_BUILD_TIMESTAMP "@LCI_BUILD_TIMESTAMP@"
 
 #cmakedefine LCI_USE_AVX
 

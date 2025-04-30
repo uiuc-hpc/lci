@@ -28,6 +28,7 @@ int main(int argc, char** argv) {
   std::cout << "------------------------\n";
   std::cout << "Version           : " << LCI_VERSION_STRING << "\n";
   std::cout << "Version Full      : " << LCI_VERSION_FULL << "\n";
+  std::cout << "Build Timestamp   : " << LCI_BUILD_TIMESTAMP << "\n";
   std::cout << "Backends Enabled  : " << LCI_NETWORK_BACKENDS_ENABLED << "\n";
   if (verbose) {
     std::cout << "------------------------\n";
