@@ -31,6 +31,14 @@ set(LCI_VERSION_FULL
     "${LCI_VERSION_MAJOR}.${LCI_VERSION_MINOR}.${LCI_VERSION_PATCH}${LCI_VERSION_SUFFIX}-${LCI_GIT_HASH}"
 )
 
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  # This is the root project
+  set(LCI_ROOT_PROJECT ON)
+else()
+  # This is a subproject
+  set(LCI_ROOT_PROJECT OFF)
+endif()
+
 # ##############################################################################
 # General Options
 # ##############################################################################
@@ -82,10 +90,11 @@ if(NOT LCI_WITH_LCT_ONLY)
   # ############################################################################
   # What parts of LCI to build
   # ############################################################################
-  option(LCI_WITH_EXAMPLES "Build LCI examples" ON)
-  option(LCI_WITH_TESTS "Build LCI tests" ON)
-  option(LCI_WITH_BENCHMARKS "Build LCI benchmarks" ON)
-  option(LCI_WITH_DOC "Build LCI documentation" ON)
+  option(LCI_WITH_EXAMPLES "Build LCI examples" ${LCI_ROOT_PROJECT})
+  option(LCI_WITH_TESTS "Build LCI tests" ${LCI_ROOT_PROJECT})
+  option(LCI_WITH_BENCHMARKS "Build LCI benchmarks" ${LCI_ROOT_PROJECT})
+  option(LCI_WITH_DOC "Build LCI documentation" ${LCI_ROOT_PROJECT})
+  option(LCI_WITH_TOOLS "Build LCI tools" ${LCI_ROOT_PROJECT})
 
   # ############################################################################
   # Figure out which network backend to use
@@ -302,29 +311,33 @@ if(NOT LCI_WITH_LCT_ONLY)
   add_subdirectory(src)
   add_subdirectory(third_party)
 
-  if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  if(LCI_ROOT_PROJECT)
     # only build the following if this is the root project
     enable_testing()
-    if(LCI_WITH_EXAMPLES)
-      add_subdirectory(examples)
-    endif()
-    if(LCI_WITH_BENCHMARKS)
-      add_subdirectory(benchmarks)
-    endif()
-    if(LCI_WITH_TESTS)
-      add_subdirectory(tests)
-    endif()
-    if(LCI_WITH_DOC)
-      add_subdirectory(docs)
-    endif()
   endif() # if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+
+  if(LCI_WITH_EXAMPLES)
+    add_subdirectory(examples)
+  endif()
+  if(LCI_WITH_BENCHMARKS)
+    add_subdirectory(benchmarks)
+  endif()
+  if(LCI_WITH_TESTS)
+    add_subdirectory(tests)
+  endif()
+  if(LCI_WITH_DOC)
+    add_subdirectory(docs)
+  endif()
+  if(LCI_WITH_TOOLS)
+    add_subdirectory(tools)
+  endif()
 endif() # if(NOT LCI_WITH_LCT_ONLY)
 
 # ##############################################################################
 # Special treatment for FetchContent
 # ##############################################################################
 
-if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+if(NOT LCI_ROOT_PROJECT)
   # For autofetch LCI
   add_library(LCI::LCI ALIAS LCI)
   add_library(LCI::lci ALIAS LCI)
@@ -334,8 +347,7 @@ endif()
 # Install
 # ##############################################################################
 option(LCI_FETCHCONTENT_INSTALL "Install LCI when using FetchContent" ON)
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR
-   OR LCI_FETCHCONTENT_INSTALL)
+if(LCI_ROOT_PROJECT OR LCI_FETCHCONTENT_INSTALL)
   set(PKGCONFIG_REQUIRES_PRIVATE ${Fabric_${FABRIC}_PC_Requires})
   set(PKGCONFIG_LIBS_PRIVATE ${Fabric_${FABRIC}_PC_Libs})
   configure_file(liblci.pc.in liblci.pc @ONLY)
