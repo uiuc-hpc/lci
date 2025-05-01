@@ -70,7 +70,9 @@ class device_impl_t
 
  private:
   static std::atomic<int> g_ndevices;
+  LCIU_CACHE_PADDING(sizeof(std::atomic<int>));
   std::atomic<size_t> nrecvs_posted;
+  LCIU_CACHE_PADDING(sizeof(std::atomic<size_t>));
 };
 
 class mr_impl_t
