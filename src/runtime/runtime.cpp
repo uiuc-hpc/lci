@@ -148,6 +148,11 @@ void set_allocator_x::call_impl(allocator_base_t* allocator,
   runtime.get_impl()->allocator = allocator;
 }
 
+allocator_base_t* get_allocator_x::call_impl(runtime_t runtime) const
+{
+  return runtime.get_impl()->allocator;
+}
+
 net_context_t get_default_net_context_x::call_impl(runtime_t runtime) const
 {
   return runtime.get_impl()->default_net_context;

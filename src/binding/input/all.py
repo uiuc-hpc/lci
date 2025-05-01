@@ -417,6 +417,17 @@ operation(
     }
 ),
 operation(
+    "get_allocator",
+    [
+        optional_runtime_args,
+        return_val("allocator_base_t*", "allocator", comment="The allocator used by the runtime."),
+    ],
+    doc = {
+        "in_group": "LCI_RESOURCE",
+        "brief": "Get the message allocator for the runtime.",
+    }
+),
+operation(
     "get_default_net_context", 
     [
         optional_runtime_args,
