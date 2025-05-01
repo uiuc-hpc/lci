@@ -2,6 +2,8 @@
 #include <unistd.h>
 #include "lci.hpp"
 
+void hello_world() {}
+
 int main(int argc, char** args)
 {
   char hostname[64];
