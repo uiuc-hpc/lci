@@ -38,7 +38,9 @@ class rhandler_registry_t
   void register_rhandler(uint32_t idx, entry_t entry)
   {
     idx = decode_idx(idx);
-    LCI_Assert(idx < size, "idx (%u) >= size (%lu)\n", idx, size.load());
+    LCI_Assert(idx < size,
+               "Invalid remote handler (rhandler: %u, size: %lu).\n", idx,
+               size.load());
     entries.put(idx, entry);
   }
 
@@ -54,14 +56,20 @@ class rhandler_registry_t
   void deregister_rhandler(uint32_t idx)
   {
     idx = decode_idx(idx);
-    LCI_Assert(idx < size, "idx (%u) >= size (%lu)\n", idx, size.load());
+    LCI_Assert(idx < size,
+               "Invalid remote handler (rhandler: %u, size: %lu).\n", idx,
+               size.load());
     entries.put(idx, entry_t());
   }
 
   entry_t get(uint32_t idx)
   {
     idx = decode_idx(idx);
-    LCI_Assert(idx < size, "idx (%u) >= size (%lu)\n", idx, size.load());
+    LCI_Assert(idx < size,
+               "Invalid remote handler (rhandler: %u, size: %lu). Chances are "
+               "that you didn't put a barrier after all processes registering "
+               "their rcomps.\n",
+               idx, size.load());
     return entries.get(idx);
   }
 
