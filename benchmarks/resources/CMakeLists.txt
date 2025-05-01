@@ -11,5 +11,6 @@ function(add_lci_bench_resources)
                 "${LCI_USE_CTEST_ARGS} [TARGET]")
 endfunction()
 
-add_lci_bench_resources(bench_packet_pool.cpp bench_matching_engine.cpp
-                        bench_cq.cpp bench_malloc.cpp bench_memcpy.cpp)
+add_lci_bench_resources(
+  bench_packet_pool.cpp bench_matching_engine.cpp bench_cq.cpp bench_malloc.cpp
+  bench_memcpy.cpp bench_atomic.cpp)
