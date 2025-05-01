@@ -1,5 +1,13 @@
 var NAVTREEINDEX6 =
 {
+"df/d94/Changelog_1_7_6.html#autotoc_md20":[4,3,0],
+"df/d94/Changelog_1_7_6.html#autotoc_md21":[4,3,0,0],
+"df/d94/Changelog_1_7_6.html#autotoc_md22":[4,3,0,1],
+"df/d94/Changelog_1_7_6.html#autotoc_md23":[4,3,0,2],
+"df/d94/Changelog_1_7_6.html#autotoc_md24":[4,3,0,3],
+"df/dd2/classlci_1_1progress__x.html":[5,5,6,0],
+"df/dd2/classlci_1_1progress__x.html#a0b22af1064b23013d368309812addf94":[5,5,6,0,9],
+"df/dd2/classlci_1_1progress__x.html#a14c14787d39228afd84c970021dc6922":[5,5,6,0,1],
 "df/dd2/classlci_1_1progress__x.html#a36df9afd1e7ec42e7bb5fe88e1a519af":[5,5,6,0,0],
 "df/dd2/classlci_1_1progress__x.html#a48c1029e1e0f41f220ae43586fba5d1b":[5,5,6,0,3],
 "df/dd2/classlci_1_1progress__x.html#a4c323b4be9c53904df5ca87361584e16":[5,5,6,0,8],

@@ -5,25 +5,26 @@
 <area shape="rect" id="Node000002" href="$d8/d0d/group__LCI__ALLOC__NET__CONTEXT.html" title="Allocate a new net_context object." alt="" coords="261,153,399,179"/>
 <area shape="rect" id="Node000008" href="$dc/d67/group__LCI__ALLOC__PACKET__POOL.html" title="Allocate a new packet_pool object." alt="" coords="261,203,399,228"/>
 <area shape="rect" id="Node000011" href="$da/dd1/group__LCI__DEREGISTER__PACKET__POOL.html" title="Deregister a packet pool from a device." alt="" coords="243,252,417,277"/>
-<area shape="rect" id="Node000024" href="$d6/d98/group__LCI__DEVICE.html" title="The device resource." alt="" coords="260,301,400,327"/>
-<area shape="rect" id="Node000025" href="$d1/d1d/group__LCI__ENDPOINT.html" title="The endpoint resource." alt="" coords="253,351,407,376"/>
+<area shape="rect" id="Node000025" href="$d6/d98/group__LCI__DEVICE.html" title="The device resource." alt="" coords="260,301,400,327"/>
+<area shape="rect" id="Node000026" href="$d1/d1d/group__LCI__ENDPOINT.html" title="The endpoint resource." alt="" coords="253,351,407,376"/>
 <area shape="rect" id="Node000005" href="$d7/d4e/group__LCI__FREE__DEVICE.html" title="Free a new device object." alt="" coords="281,400,379,425"/>
 <area shape="rect" id="Node000007" href="$dc/dfb/group__LCI__FREE__ENDPOINT.html" title="Free a new endpoint object." alt="" coords="274,449,386,475"/>
 <area shape="rect" id="Node000015" href="$db/ddc/group__LCI__FREE__MATCHING__ENGINE.html" title="Free a new matching_engine object." alt="" coords="247,499,413,524"/>
 <area shape="rect" id="Node000003" href="$d2/de7/group__LCI__FREE__NET__CONTEXT.html" title="Free a new net_context object." alt="" coords="264,548,396,573"/>
 <area shape="rect" id="Node000009" href="$de/d6d/group__LCI__FREE__PACKET__POOL.html" title="Free a new packet_pool object." alt="" coords="263,597,397,623"/>
-<area shape="rect" id="Node000019" href="$df/d10/group__LCI__GET__DEFAULT__DEVICE.html" title="Get the default net device of the runtime." alt="" coords="257,647,403,672"/>
-<area shape="rect" id="Node000020" href="$d3/d5b/group__LCI__GET__DEFAULT__ENDPOINT.html" title="Get the default net endpoint of the runtime." alt="" coords="250,696,410,721"/>
-<area shape="rect" id="Node000022" href="$d8/dd9/group__LCI__GET__DEFAULT__MATCHING__ENGINE.html" title="Get the default matching engine of the runtime." alt="" coords="248,746,412,786"/>
-<area shape="rect" id="Node000018" href="$d9/d24/group__LCI__GET__DEFAULT__NET__CONTEXT.html" title="Get the default net context of the runtime." alt="" coords="240,811,420,836"/>
-<area shape="rect" id="Node000021" href="$df/d00/group__LCI__GET__DEFAULT__PACKET__POOL.html" title="Get the default packet pool of the runtime." alt="" coords="239,860,421,885"/>
-<area shape="rect" id="Node000012" href="$d4/dc1/group__LCI__GET__UPACKET.html" title="Get a packet for writing user payload from the packet pool." alt="" coords="279,909,381,935"/>
-<area shape="rect" id="Node000027" href="$d3/d96/group__LCI__MATCHING__ENGINE.html" title="The matching engine resource." alt="" coords="225,959,435,984"/>
-<area shape="rect" id="Node000016" href="$d4/d0b/group__LCI__MATCHING__ENGINE__INSERT.html" title="Insert an entry into the matching engine." alt="" coords="241,1008,419,1033"/>
-<area shape="rect" id="Node000023" href="$da/d88/group__LCI__NET__CONTEXT.html" title="The network context resource." alt="" coords="243,1057,417,1083"/>
-<area shape="rect" id="Node000026" href="$d9/d19/group__LCI__PACKET__POOL.html" title="The packet pool resource." alt="" coords="243,1107,417,1132"/>
-<area shape="rect" id="Node000013" href="$d8/df6/group__LCI__PUT__UPACKET.html" title="Return a packet to the packet pool." alt="" coords="279,1156,381,1181"/>
-<area shape="rect" id="Node000010" href="$d0/df7/group__LCI__REGISTER__PACKET__POOL.html" title="Register a packet pool to a device." alt="" coords="251,1205,409,1231"/>
-<area shape="rect" id="Node000001" title="This section describes the LCI API for resource management." alt="" coords="5,623,177,648"/>
-<area shape="rect" id="Node000017" href="$d8/d83/group__LCI__SET__ALLOCATOR.html" title="Set the message allocator for the runtime." alt="" coords="277,1255,383,1280"/>
+<area shape="rect" id="Node000018" href="$d6/d00/group__LCI__GET__ALLOCATOR.html" title="Get the message allocator for the runtime." alt="" coords="277,647,383,672"/>
+<area shape="rect" id="Node000020" href="$df/d10/group__LCI__GET__DEFAULT__DEVICE.html" title="Get the default net device of the runtime." alt="" coords="257,696,403,721"/>
+<area shape="rect" id="Node000021" href="$d3/d5b/group__LCI__GET__DEFAULT__ENDPOINT.html" title="Get the default net endpoint of the runtime." alt="" coords="250,745,410,771"/>
+<area shape="rect" id="Node000023" href="$d8/dd9/group__LCI__GET__DEFAULT__MATCHING__ENGINE.html" title="Get the default matching engine of the runtime." alt="" coords="248,795,412,835"/>
+<area shape="rect" id="Node000019" href="$d9/d24/group__LCI__GET__DEFAULT__NET__CONTEXT.html" title="Get the default net context of the runtime." alt="" coords="240,860,420,885"/>
+<area shape="rect" id="Node000022" href="$df/d00/group__LCI__GET__DEFAULT__PACKET__POOL.html" title="Get the default packet pool of the runtime." alt="" coords="239,909,421,935"/>
+<area shape="rect" id="Node000012" href="$d4/dc1/group__LCI__GET__UPACKET.html" title="Get a packet for writing user payload from the packet pool." alt="" coords="279,959,381,984"/>
+<area shape="rect" id="Node000028" href="$d3/d96/group__LCI__MATCHING__ENGINE.html" title="The matching engine resource." alt="" coords="225,1008,435,1033"/>
+<area shape="rect" id="Node000016" href="$d4/d0b/group__LCI__MATCHING__ENGINE__INSERT.html" title="Insert an entry into the matching engine." alt="" coords="241,1057,419,1083"/>
+<area shape="rect" id="Node000024" href="$da/d88/group__LCI__NET__CONTEXT.html" title="The network context resource." alt="" coords="243,1107,417,1132"/>
+<area shape="rect" id="Node000027" href="$d9/d19/group__LCI__PACKET__POOL.html" title="The packet pool resource." alt="" coords="243,1156,417,1181"/>
+<area shape="rect" id="Node000013" href="$d8/df6/group__LCI__PUT__UPACKET.html" title="Return a packet to the packet pool." alt="" coords="279,1205,381,1231"/>
+<area shape="rect" id="Node000010" href="$d0/df7/group__LCI__REGISTER__PACKET__POOL.html" title="Register a packet pool to a device." alt="" coords="251,1255,409,1280"/>
+<area shape="rect" id="Node000001" title="This section describes the LCI API for resource management." alt="" coords="5,647,177,672"/>
+<area shape="rect" id="Node000017" href="$d8/d83/group__LCI__SET__ALLOCATOR.html" title="Set the message allocator for the runtime." alt="" coords="277,1304,383,1329"/>
 </map>

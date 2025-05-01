@@ -16,6 +16,7 @@ var group__LCI__RESOURCE =
     [ "free_matching_engine", "db/ddc/group__LCI__FREE__MATCHING__ENGINE.html", "db/ddc/group__LCI__FREE__MATCHING__ENGINE" ],
     [ "matching_engine_insert", "d4/d0b/group__LCI__MATCHING__ENGINE__INSERT.html", "d4/d0b/group__LCI__MATCHING__ENGINE__INSERT" ],
     [ "set_allocator", "d8/d83/group__LCI__SET__ALLOCATOR.html", "d8/d83/group__LCI__SET__ALLOCATOR" ],
+    [ "get_allocator", "d6/d00/group__LCI__GET__ALLOCATOR.html", "d6/d00/group__LCI__GET__ALLOCATOR" ],
     [ "get_default_net_context", "d9/d24/group__LCI__GET__DEFAULT__NET__CONTEXT.html", "d9/d24/group__LCI__GET__DEFAULT__NET__CONTEXT" ],
     [ "get_default_device", "df/d10/group__LCI__GET__DEFAULT__DEVICE.html", "df/d10/group__LCI__GET__DEFAULT__DEVICE" ],
     [ "get_default_endpoint", "d3/d5b/group__LCI__GET__DEFAULT__ENDPOINT.html", "d3/d5b/group__LCI__GET__DEFAULT__ENDPOINT" ],
