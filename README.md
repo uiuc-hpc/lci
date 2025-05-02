@@ -5,7 +5,7 @@ A Lightweight Communication Interface for Asynchronous Multithreaded Systems
 ![Build Status](https://github.com/uiuc-hpc/lci/actions/workflows/ci.yml/badge.svg)
 
 ## Documentation
-See [here](https://uiuc-hpc.github.io/lci/) for quick start, tutorial, API documentation, and more.
+Check [the LCI homepage](https://uiuc-hpc.github.io/lci/) for quick start, tutorial, API documentation, and more.
 
 ## Overview
 LCI is designed to be an efficient communication library
