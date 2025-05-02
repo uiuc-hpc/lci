@@ -40,13 +40,16 @@ run with one process per core (multi-proc) or with one process per node (one thr
 
 *For the first time known to us, multithreaded communication catches up with multi-process communication.*
 
-## Relevant Publications
-- Yan, Jiakun, and Marc Snir. "Contemplating a Lightweight Communication Interface for Asynchronous Many-Task Systems." 
-arXiv preprint arXiv:2503.15400 (2025). 
-*A short workshop paper describing the high-level interface design of LCI (version 2, the current version).*
+## Publications
+- Jiakun Yan, and Marc Snir. "LCI: a Lightweight Communication Interface for Efficient Asynchronous Multithreaded Communication." [preprint](https://jiakunyan.github.io/source/lci_preprint.pdf), 2025.
+*Users are recommended to read this paper for a comprehensive understanding of LCI (version 2)*
+
+### Other Relevant Ones
 - Yan, Jiakun, Hartmut Kaiser, and Marc Snir. "Understanding the Communication Needs of Asynchronous Many-Task Systems
 --A Case Study of HPX+ LCI." arXiv preprint arXiv:2503.12774 (2025). 
 *Paper about integrating LCI (version 1) into HPX.*
 - Mor, Omri, George Bosilca, and Marc Snir. "Improving the scaling of an asynchronous many-task runtime with 
 a lightweight communication engine." Proceedings of the 52nd International Conference on Parallel Processing. 2023. 
 *Paper about integrating LCI (version 1) into PaRSEC.*
+- Dang, Hoang-Vu, Marc Snir, and William Gropp. "Towards millions of communicating threads." Proceedings of the 23rd European MPI Users' Group Meeting. 2016.
+*Paper about a MPI variant that LCI was initially based on.*

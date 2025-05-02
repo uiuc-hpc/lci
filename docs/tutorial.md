@@ -106,9 +106,9 @@ spack install lci
 
 # Write LCI programs
 
-Read [this short paper](https://arxiv.org/abs/2503.15400) to understand the high-level interface design of LCI. 
-
 See `examples` and `tests` for some example code.
+
+Read [this paper](https://jiakunyan.github.io/source/lci_preprint.pdf) to comprehensively understand LCI interface and runtime design. 
 
 <!-- TODO: Add more examples and tests. -->
 
