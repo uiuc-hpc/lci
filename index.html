@@ -132,7 +132,12 @@ $(function(){initNavTree('index.html',''); initResizable(true); });
         <a href="#autotoc_md3">Performance Showcase</a>
       </li>
       <li class="level2">
-        <a href="#autotoc_md4">Relevant Publications</a>
+        <a href="#autotoc_md4">Publications</a>
+        <ul>
+          <li class="level3">
+            <a href="#autotoc_md5">Other Relevant Ones</a>
+          </li>
+        </ul>
       </li>
     </ul>
   </li>
@@ -161,13 +166,18 @@ Performance Showcase</h2>
 <p>Results of multi-pair ping-pong microbenchmarks measuring message rate (8-byte messages, 100k steps) and bandwidth (64-thread, 1k steps) on SDSC Expanse (InfiniBand). It compares LCI with other state-of-the-art libraries, including MPI (MPICH), MPI with the VCI extension, and GASNet-EX. The experiments are either run with one process per core (multi-proc) or with one process per node (one thread per core, multi-thrd).</p>
 <p><em>For the first time known to us, multithreaded communication catches up with multi-process communication.</em></p>
 <h2><a class="anchor" id="autotoc_md4"></a>
-Relevant Publications</h2>
+Publications</h2>
 <ul>
-<li>Yan, Jiakun, and Marc Snir. "Contemplating a Lightweight Communication Interface for Asynchronous Many-Task Systems." arXiv preprint arXiv:2503.15400 (2025). <em>A short workshop paper describing the high-level interface design of LCI (version 2, the current version).</em></li>
+<li>Jiakun Yan, and Marc Snir. "LCI: a Lightweight Communication Interface for Efficient Asynchronous Multithreaded Communication." <a href="https://jiakunyan.github.io/source/lci_preprint.pdf">preprint</a>, 2025. <em>Users are recommended to read this paper for a comprehensive understanding of LCI (version 2)</em></li>
+</ul>
+<h3><a class="anchor" id="autotoc_md5"></a>
+Other Relevant Ones</h3>
+<ul>
 <li>Yan, Jiakun, Hartmut Kaiser, and Marc Snir. "Understanding the Communication Needs of Asynchronous Many-Task Systems
 --A Case Study of HPX+ LCI." arXiv preprint arXiv:2503.12774 (2025). <em>Paper about integrating LCI (version 1) into HPX.</em></li>
 <li>Mor, Omri, George Bosilca, and Marc Snir. "Improving the scaling of an asynchronous many-task runtime with 
-a lightweight communication engine." Proceedings of the 52nd International Conference on Parallel Processing. 2023. <em>Paper about integrating LCI (version 1) into PaRSEC.</em> </li>
+a lightweight communication engine." Proceedings of the 52nd International Conference on Parallel Processing. 2023. <em>Paper about integrating LCI (version 1) into PaRSEC.</em></li>
+<li>Dang, Hoang-Vu, Marc Snir, and William Gropp. "Towards millions of communicating threads." Proceedings of the 23rd European MPI Users' Group Meeting. 2016. <em>Paper about a MPI variant that LCI was initially based on.</em> </li>
 </ul>
 </div></div><!-- PageDoc -->
 <a href="doxygen_crawl.html"></a>

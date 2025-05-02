@@ -124,21 +124,21 @@ $(function(){initNavTree('d3/d2d/faq.html','../../'); initResizable(true); });
       <li class="level2 empty">
         <ul>
           <li class="level3">
-            <a href="#autotoc_md34">Bootstrapping</a>
+            <a href="#autotoc_md35">Bootstrapping</a>
             <ul>
               <li class="level4">
-                <a href="#autotoc_md35">Why was my LCI application launched as a collection of processes all with rank 0?</a>
+                <a href="#autotoc_md36">Why was my LCI application launched as a collection of processes all with rank 0?</a>
               </li>
               <li class="level4">
-                <a href="#autotoc_md36">Why does &lt;tt&gt;lcrun&lt;/tt&gt; not work?</a>
+                <a href="#autotoc_md37">Why does &lt;tt&gt;lcrun&lt;/tt&gt; not work?</a>
               </li>
             </ul>
           </li>
           <li class="level3">
-            <a href="#autotoc_md37">Others</a>
+            <a href="#autotoc_md38">Others</a>
             <ul>
               <li class="level4">
-                <a href="#autotoc_md38">What is LCT?</a>
+                <a href="#autotoc_md39">What is LCT?</a>
               </li>
             </ul>
           </li>
@@ -148,9 +148,9 @@ $(function(){initNavTree('d3/d2d/faq.html','../../'); initResizable(true); });
   </li>
 </ul>
 </div>
-<div class="textblock"><h3><a class="anchor" id="autotoc_md34"></a>
+<div class="textblock"><h3><a class="anchor" id="autotoc_md35"></a>
 Bootstrapping</h3>
-<h4><a class="anchor" id="autotoc_md35"></a>
+<h4><a class="anchor" id="autotoc_md36"></a>
 Why was my LCI application launched as a collection of processes all with rank 0?</h4>
 <p>LCI was not bootstrapped correctly by <code>srun</code> or <code>mpirun</code>. LCI primarily relies on the Process-Management Interface (PMI) to bootstrap, the same way as MPI. LCI supports PMI1, PMI2, and PMIx. The LCI source code is shipped with a copy of the SLURM PMI1 and PMI2 client implementation, so users can normally use LCI on SLURM without any extra configuration. However, if <code>srun</code> does not enable PMI by default, or enables PMIx, or you use <code>mpirun</code>, additional configuration might be needed.</p>
 <p>If you are using <code>srun</code>, you can explicitly enable PMI1 or PMI2 by using the <code>--mpi</code> option. </p><div class="fragment"><div class="line">srun --mpi=pmi2 -n 2 ./hello_world</div>
@@ -159,14 +159,14 @@ Why was my LCI application launched as a collection of processes all with rank 0
 </div><!-- fragment --><p>Normally, MPICH uses <code>hydra-pmi</code>; Cray-MPICH uses <code>cray-pmi</code>; OpenMPI uses <code>pmix</code>. After finding the PMI client library, you can reconfigure LCI with the corresponding PMI client library through the <code>PMI_ROOT</code>, <code>PMI2_ROOT</code>, or <code>PMIx_ROOT</code> environment/cmake variables.</p>
 <p>As a last resort, you can also set -DLCT_PMI_BACKEND_ENABLE_MPI=ON and link LCI to MPI. In this case, LCI will just use MPI to bootstrap. Performance might be slightly impacted as LCI and MPI can contend for network resources, but the impact should be insignificant.</p>
 <p>You can use <code>export LCT_LOG_LEVEL=info</code> to monitor what bootstrap backend LCI is actually using and use <code>export LCT_PMI_BACKEND=[pmi1|pmi2|pmix|mpi]</code> to change the default behavior.</p>
-<h4><a class="anchor" id="autotoc_md36"></a>
+<h4><a class="anchor" id="autotoc_md37"></a>
 Why does <code>lcrun</code> not work?</h4>
 <p><code>lcrun</code> relies on another simple bootstrapping backend <code>file</code> which relies on the shared file system and <code>flock</code> to work.</p>
 <p>It is possible that a previous failed run of <code>lcrun</code> did not clean up the temporary files it created. You can </p><div class="fragment"><div class="line">rm -r ~/.tmp/lct_pmi_file-*</div>
 </div><!-- fragment --><p> then try again.</p>
-<h3><a class="anchor" id="autotoc_md37"></a>
+<h3><a class="anchor" id="autotoc_md38"></a>
 Others</h3>
-<h4><a class="anchor" id="autotoc_md38"></a>
+<h4><a class="anchor" id="autotoc_md39"></a>
 What is LCT?</h4>
 <p>The Lightweight Communication Tools (LCT) library provides basic services such as bootstrapping and logging for LCI. It is a C++ library that can be used without LCI. You can build LCT without LCI by setting <code>LCI_WITH_LCT_ONLY=ON</code> (cmake variable). </p>
 </div></div><!-- contents -->

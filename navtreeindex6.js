@@ -1,10 +1,10 @@
 var NAVTREEINDEX6 =
 {
-"df/d94/Changelog_1_7_6.html#autotoc_md20":[4,3,0],
-"df/d94/Changelog_1_7_6.html#autotoc_md21":[4,3,0,0],
-"df/d94/Changelog_1_7_6.html#autotoc_md22":[4,3,0,1],
-"df/d94/Changelog_1_7_6.html#autotoc_md23":[4,3,0,2],
-"df/d94/Changelog_1_7_6.html#autotoc_md24":[4,3,0,3],
+"df/d94/Changelog_1_7_6.html#autotoc_md21":[4,3,0],
+"df/d94/Changelog_1_7_6.html#autotoc_md22":[4,3,0,0],
+"df/d94/Changelog_1_7_6.html#autotoc_md23":[4,3,0,1],
+"df/d94/Changelog_1_7_6.html#autotoc_md24":[4,3,0,2],
+"df/d94/Changelog_1_7_6.html#autotoc_md25":[4,3,0,3],
 "df/dd2/classlci_1_1progress__x.html":[5,5,6,0],
 "df/dd2/classlci_1_1progress__x.html#a0b22af1064b23013d368309812addf94":[5,5,6,0,9],
 "df/dd2/classlci_1_1progress__x.html#a14c14787d39228afd84c970021dc6922":[5,5,6,0,1],
@@ -24,6 +24,7 @@ var NAVTREEINDEX6 =
 "index.html#autotoc_md2":[0,0,1],
 "index.html#autotoc_md3":[0,0,2],
 "index.html#autotoc_md4":[0,0,3],
+"index.html#autotoc_md5":[0,0,3,0],
 "pages.html":[],
 "topics.html":[5]
 };

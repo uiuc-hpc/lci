@@ -30,13 +30,13 @@ var searchData=
   ['prefetch_27',['prefetch',['../d5/dd3/namespacelci.html#ae5ca0e84d0577a81e01cf0ade6cb7946a4c203b76e2847e3b6e1bdf7bf2ad63a2',1,'lci']]],
   ['prefetch_5fno_5ffault_28',['prefetch_no_fault',['../d5/dd3/namespacelci.html#ae5ca0e84d0577a81e01cf0ade6cb7946a7dfa7e789d055aaf85d50592042f801d',1,'lci']]],
   ['prefetch_5fwrite_29',['prefetch_write',['../d5/dd3/namespacelci.html#ae5ca0e84d0577a81e01cf0ade6cb7946a537c32d6963d5b3a4b49b3dd28afdac1',1,'lci']]],
-  ['prerequisites_30',['Prerequisites',['../d2/dcd/quickstart.html#autotoc_md39',1,'Prerequisites'],['../db/d4e/tutorial.html#autotoc_md43',1,'Prerequisites']]],
-  ['processes_20all_20with_20rank_200_31',['Why was my LCI application launched as a collection of processes all with rank 0?',['../d3/d2d/faq.html#autotoc_md35',1,'']]],
-  ['programs_32',['Write LCI programs',['../db/d4e/tutorial.html#autotoc_md50',1,'']]],
+  ['prerequisites_30',['Prerequisites',['../d2/dcd/quickstart.html#autotoc_md40',1,'Prerequisites'],['../db/d4e/tutorial.html#autotoc_md44',1,'Prerequisites']]],
+  ['processes_20all_20with_20rank_200_31',['Why was my LCI application launched as a collection of processes all with rank 0?',['../d3/d2d/faq.html#autotoc_md36',1,'']]],
+  ['programs_32',['Write LCI programs',['../db/d4e/tutorial.html#autotoc_md51',1,'']]],
   ['progress_33',['progress',['../d5/dd3/namespacelci.html#ad55bf2fa3c43f989f8f382fa8c41a387',1,'lci::progress()'],['../dd/d9e/group__LCI__PROGRESS.html',1,'progress']]],
   ['progress_5fx_34',['progress_x',['../df/dd2/classlci_1_1progress__x.html',1,'lci::progress_x'],['../df/dd2/classlci_1_1progress__x.html#a36df9afd1e7ec42e7bb5fe88e1a519af',1,'lci::progress_x::progress_x()']]],
-  ['project_35',['project',['../db/d4e/tutorial.html#autotoc_md41',1,'Add LCI to your project'],['../d2/dcd/quickstart.html#autotoc_md40',1,'Create a project']]],
-  ['publications_36',['Relevant Publications',['../index.html#autotoc_md4',1,'']]],
+  ['project_35',['project',['../db/d4e/tutorial.html#autotoc_md42',1,'Add LCI to your project'],['../d2/dcd/quickstart.html#autotoc_md41',1,'Create a project']]],
+  ['publications_36',['Publications',['../index.html#autotoc_md4',1,'']]],
   ['put_5fupacket_37',['put_upacket',['../d5/dd3/namespacelci.html#a6eddae739cba2ce56ea903f3f0f9944d',1,'lci::put_upacket()'],['../d8/df6/group__LCI__PUT__UPACKET.html',1,'put_upacket']]],
   ['put_5fupacket_5fx_38',['put_upacket_x',['../d3/d74/classlci_1_1put__upacket__x.html',1,'lci::put_upacket_x'],['../d3/d74/classlci_1_1put__upacket__x.html#ab93e6b66baee29d3816200a8008e9020',1,'lci::put_upacket_x::put_upacket_x()']]]
 ];

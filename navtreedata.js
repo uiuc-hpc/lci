@@ -28,20 +28,20 @@ var NAVTREE =
     [ "README", "index.html", "index" ],
     [ "Quick Start", "d2/dcd/quickstart.html", null ],
     [ "Tutorial", "db/d4e/tutorial.html", [
-      [ "Add LCI to your project", "db/d4e/tutorial.html#autotoc_md41", null ],
-      [ "Install LCI", "db/d4e/tutorial.html#autotoc_md42", [
-        [ "Prerequisites", "db/d4e/tutorial.html#autotoc_md43", null ],
-        [ "With CMake", "db/d4e/tutorial.html#autotoc_md44", [
-          [ "Install LCI on your laptop", "db/d4e/tutorial.html#autotoc_md45", null ],
-          [ "Install LCI on a cluster", "db/d4e/tutorial.html#autotoc_md46", null ],
-          [ "Important CMake variables", "db/d4e/tutorial.html#autotoc_md47", null ]
+      [ "Add LCI to your project", "db/d4e/tutorial.html#autotoc_md42", null ],
+      [ "Install LCI", "db/d4e/tutorial.html#autotoc_md43", [
+        [ "Prerequisites", "db/d4e/tutorial.html#autotoc_md44", null ],
+        [ "With CMake", "db/d4e/tutorial.html#autotoc_md45", [
+          [ "Install LCI on your laptop", "db/d4e/tutorial.html#autotoc_md46", null ],
+          [ "Install LCI on a cluster", "db/d4e/tutorial.html#autotoc_md47", null ],
+          [ "Important CMake variables", "db/d4e/tutorial.html#autotoc_md48", null ]
         ] ],
-        [ "With Spack", "db/d4e/tutorial.html#autotoc_md48", [
-          [ "Important Spack variables", "db/d4e/tutorial.html#autotoc_md49", null ]
+        [ "With Spack", "db/d4e/tutorial.html#autotoc_md49", [
+          [ "Important Spack variables", "db/d4e/tutorial.html#autotoc_md50", null ]
         ] ]
       ] ],
-      [ "Write LCI programs", "db/d4e/tutorial.html#autotoc_md50", null ],
-      [ "Run LCI applications", "db/d4e/tutorial.html#autotoc_md51", null ]
+      [ "Write LCI programs", "db/d4e/tutorial.html#autotoc_md51", null ],
+      [ "Run LCI applications", "db/d4e/tutorial.html#autotoc_md52", null ]
     ] ],
     [ "Frequently Asked Questions", "d3/d2d/faq.html", null ],
     [ "Change Logs", "dd/dbb/changelogs.html", "dd/dbb/changelogs" ],
@@ -57,7 +57,7 @@ var NAVTREEINDEX =
 "d8/d48/classlci_1_1post__comm__x.html#a3b0aeb006ad6399eead4c36de986bfe9",
 "d9/d4d/classlci_1_1register__rcomp__x.html#a4353e74a2ec09bb9c52ecf92858f7374",
 "db/dd0/classlci_1_1net__post__recv__x.html#afbb28ac5f39ad00dc9f43374f1ac2adc",
-"df/d94/Changelog_1_7_6.html#autotoc_md20"
+"df/d94/Changelog_1_7_6.html#autotoc_md21"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronization';

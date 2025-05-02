@@ -120,54 +120,54 @@ $(function(){initNavTree('db/d4e/tutorial.html','../../'); initResizable(true); 
 <div class="toc"><h3>Table of Contents</h3>
 <ul>
   <li class="level1">
-    <a href="#autotoc_md41">Add LCI to your project</a>
+    <a href="#autotoc_md42">Add LCI to your project</a>
   </li>
   <li class="level1">
-    <a href="#autotoc_md42">Install LCI</a>
+    <a href="#autotoc_md43">Install LCI</a>
     <ul>
       <li class="level2">
-        <a href="#autotoc_md43">Prerequisites</a>
+        <a href="#autotoc_md44">Prerequisites</a>
       </li>
       <li class="level2">
-        <a href="#autotoc_md44">With CMake</a>
+        <a href="#autotoc_md45">With CMake</a>
         <ul>
           <li class="level3">
-            <a href="#autotoc_md45">Install LCI on your laptop</a>
+            <a href="#autotoc_md46">Install LCI on your laptop</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md46">Install LCI on a cluster</a>
+            <a href="#autotoc_md47">Install LCI on a cluster</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md47">Important CMake variables</a>
+            <a href="#autotoc_md48">Important CMake variables</a>
           </li>
         </ul>
       </li>
       <li class="level2">
-        <a href="#autotoc_md48">With Spack</a>
+        <a href="#autotoc_md49">With Spack</a>
         <ul>
           <li class="level3">
-            <a href="#autotoc_md49">Important Spack variables</a>
+            <a href="#autotoc_md50">Important Spack variables</a>
           </li>
         </ul>
       </li>
     </ul>
   </li>
   <li class="level1">
-    <a href="#autotoc_md50">Write LCI programs</a>
+    <a href="#autotoc_md51">Write LCI programs</a>
   </li>
   <li class="level1">
-    <a href="#autotoc_md51">Run LCI applications</a>
+    <a href="#autotoc_md52">Run LCI applications</a>
     <ul>
       <li class="level2 empty">
         <ul>
           <li class="level3">
-            <a href="#autotoc_md52">Bootstrapping backends</a>
+            <a href="#autotoc_md53">Bootstrapping backends</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md53">Launchers</a>
+            <a href="#autotoc_md54">Launchers</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md54">More about the file backend</a>
+            <a href="#autotoc_md55">More about the file backend</a>
           </li>
         </ul>
       </li>
@@ -175,7 +175,7 @@ $(function(){initNavTree('db/d4e/tutorial.html','../../'); initResizable(true); 
   </li>
 </ul>
 </div>
-<div class="textblock"><h1><a class="anchor" id="autotoc_md41"></a>
+<div class="textblock"><h1><a class="anchor" id="autotoc_md42"></a>
 Add LCI to your project</h1>
 <p>The following CMake code will add LCI to your project. It will first try to find LCI on your system. If it is not found, it will download and build LCI from GitHub.</p>
 <div class="fragment"><div class="line"># Try to find LCI externally</div>
@@ -197,10 +197,10 @@ Add LCI to your project</h1>
 <div class="line"> </div>
 <div class="line"># Link LCI to your target</div>
 <div class="line">target_link_libraries(your_target PRIVATE LCI::lci)</div>
-</div><!-- fragment --><h1><a class="anchor" id="autotoc_md42"></a>
+</div><!-- fragment --><h1><a class="anchor" id="autotoc_md43"></a>
 Install LCI</h1>
 <p>Although CMake FetchContent is convenient, you may also want to install LCI on your systems.</p>
-<h2><a class="anchor" id="autotoc_md43"></a>
+<h2><a class="anchor" id="autotoc_md44"></a>
 Prerequisites</h2>
 <ul>
 <li>A Linux or MacOS laptop or cluster.</li>
@@ -218,9 +218,9 @@ Prerequisites</h2>
 <li>For MacOS, you can install the prerequisites using: <div class="fragment"><div class="line">brew install cmake libfabric</div>
 </div><!-- fragment --></li>
 </ul>
-<h2><a class="anchor" id="autotoc_md44"></a>
+<h2><a class="anchor" id="autotoc_md45"></a>
 With CMake</h2>
-<h3><a class="anchor" id="autotoc_md45"></a>
+<h3><a class="anchor" id="autotoc_md46"></a>
 Install LCI on your laptop</h3>
 <div class="fragment"><div class="line">git clone https://github.com/uiuc-hpc/lci.git</div>
 <div class="line">cd lci</div>
@@ -228,7 +228,7 @@ Install LCI on your laptop</h3>
 <div class="line">cmake -DCMAKE_INSTALL_PREFIX=/path/to/install -DLCI_NETWORK_BACKENDS=ofi ..</div>
 <div class="line">make</div>
 <div class="line">make install</div>
-</div><!-- fragment --><h3><a class="anchor" id="autotoc_md46"></a>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md47"></a>
 Install LCI on a cluster</h3>
 <div class="fragment"><div class="line">git clone https://github.com/uiuc-hpc/lci.git</div>
 <div class="line">cd lci</div>
@@ -237,7 +237,7 @@ Install LCI on a cluster</h3>
 <div class="line">make</div>
 <div class="line">make install</div>
 </div><!-- fragment --><p> Basically the same as installing LCI on your laptop, but you don't need to install pre-requisites because they are already installed on the cluster. You also don't need to manually select the network backend because LCI will automatically select the best one for you.</p>
-<h3><a class="anchor" id="autotoc_md47"></a>
+<h3><a class="anchor" id="autotoc_md48"></a>
 Important CMake variables</h3>
 <ul>
 <li><code>LCI_DEBUG=[ON|OFF]</code>: Enable/disable the debug mode (more assertions and logs). The default value is <code>OFF</code>.</li>
@@ -247,7 +247,7 @@ Important CMake variables</h3>
 </ul>
 </li>
 </ul>
-<h2><a class="anchor" id="autotoc_md48"></a>
+<h2><a class="anchor" id="autotoc_md49"></a>
 With Spack</h2>
 <p>LCI can be installed using <a href="https://spack.io/">Spack</a>. An LCI recipe has been included in the Spack official repository. For the most up-to-date version, you can also use the recipe in the <code>contrib/spack</code> directory of the LCI repository. To install LCI using Spack, run the following commands:</p>
 <div class="fragment"><div class="line"># Assume you have already installed Spack</div>
@@ -255,22 +255,22 @@ With Spack</h2>
 <div class="line">git clone https://github.com/uiuc-hpc/lci.git</div>
 <div class="line">spack repo add lci/contrib/spack</div>
 <div class="line">spack install lci</div>
-</div><!-- fragment --><h3><a class="anchor" id="autotoc_md49"></a>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md50"></a>
 Important Spack variables</h3>
 <ul>
 <li><code>debug</code>: define the CMake variable <code>LCI_DEBUG</code>.</li>
 <li><code>backend=[ibv|ofi]</code>: define the CMake variable <code>LCI_NETWORK_BACKENDS</code>.</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md50"></a>
-Write LCI programs</h1>
-<p>Read <a href="https://arxiv.org/abs/2503.15400">this short paper</a> to understand the high-level interface design of LCI.</p>
-<p>See <code>examples</code> and <code>tests</code> for some example code.</p>
-<p>Check out the API documentation for more details.</p>
 <h1><a class="anchor" id="autotoc_md51"></a>
+Write LCI programs</h1>
+<p>See <code>examples</code> and <code>tests</code> for some example code.</p>
+<p>Read <a href="https://jiakunyan.github.io/source/lci_preprint.pdf">this paper</a> to comprehensively understand LCI interface and runtime design.</p>
+<p>Check out the API documentation for more details.</p>
+<h1><a class="anchor" id="autotoc_md52"></a>
 Run LCI applications</h1>
 <p>In <a class="el" href="../../d2/dcd/quickstart.html">Quick Start</a>, we have shown you how to run LCI applications using <code>mpirun</code> or <code>srun</code>. Here, we will discuss the bootstrapping process in more detail.</p>
 <p>To successfully bootstrap LCI, the launcher (<code>srun</code>, <code>mpirun</code>, or <code>lcrun</code>) must match the bootstrapping backend used by LCI. Normally, LCI will automatically select the right bootstrapping backend based on the environment so no special configuration is needed. However, if you see your applications were launched as a collection of processes all with rank 0, it means something went wrong.</p>
-<h3><a class="anchor" id="autotoc_md52"></a>
+<h3><a class="anchor" id="autotoc_md53"></a>
 Bootstrapping backends</h3>
 <p>Specifically, LCI has six different bootstrapping backends:</p><ul>
 <li><code>pmi1</code>: Process Management Interface version 1.</li>
@@ -285,13 +285,13 @@ Bootstrapping backends</h3>
 <p>However, the SLURM PMI1 and PMI2 client implementation is not always the best option. For example, if you are using <code>mpirun</code>, you may want to use the PMI client library that comes with your MPI implementation. In this case, you need to find the corresponding PMI client library and link LCI to it. <code>ldd $(which mpirun)</code> will show you the PMI client library used by <code>mpirun</code>. Normally, MPICH uses <code>hydra-pmi</code>; Cray-MPICH uses <code>cray-pmi</code>; OpenMPI uses <code>pmix</code>. After finding the PMI client library, you can reconfigure LCI with the corresponding PMI client library through the <code>PMI_ROOT</code>, <code>PMI2_ROOT</code>, or <code>PMIx_ROOT</code> environment/cmake variables.</p>
 <p>A CMake variable <code>LCT_PMI_BACKEND_DEFAULT</code> and an environment variable <code>LCT_PMI_BACKEND</code> can be used to set a list of backends to try in order (if they are compiled). The first one that works will be used. The default value is <code>pmi1,pmi2,pmix,mpi,file,local</code>.</p>
 <p>You can use <code>export LCT_LOG_LEVEL=info</code> to monitor the bootstrapping procedure.</p>
-<h3><a class="anchor" id="autotoc_md53"></a>
+<h3><a class="anchor" id="autotoc_md54"></a>
 Launchers</h3>
 <p><code>srun</code> and <code>mpirun</code> should use one of the PMI backends (or <code>mpi</code> as a last resort). <code>lcrun</code> will use the <code>file</code> backend.</p>
 <p>Depending on the SLURM configuration, <code>srun</code> may not enable PMI by default. In this case, you can explicitly enable one of the PMI services by using the <code>--mpi</code> option. <code>srun --mpi=list -n 1 hostname</code> will show you the available PMI services. You can confirm whether the PMI service has been enabled with <code>srun env | grep PMI</code>.</p>
 <p><code>mpirun</code> will use the PMI client library that comes with your MPI implementation. As mentioned above, you need to link LCI to the correct PMI client library.</p>
 <p>Sometimes, <code>lcrun</code> may hang because of a previous failed run. In this case, you can remove the temporary folder <code>~/.tmp/lct_pmi_file-*</code> and try again.</p>
-<h3><a class="anchor" id="autotoc_md54"></a>
+<h3><a class="anchor" id="autotoc_md55"></a>
 More about the file backend</h3>
 <p>The <code>file</code> backend allows you to launch multiple LCI processes individually without a launcher. This can significantly ease the debugging process.</p>
 <p>For example, you can open two terminal windows and run the following commands in each window: </p><div class="fragment"><div class="line">export LCT_PMI_BACKEND=file</div>
