@@ -600,7 +600,7 @@ const graph_node_t GRAPH_END = reinterpret_cast<graph_node_t>(0x2);
  * @brief The function signature for a node function in the completion graph.
  * @details The function should return true if the node is considered completed.
  */
-using graph_node_fn_t = status_t (*)(void* value);
+using graph_node_run_cb_t = status_t (*)(void* value);
 
 /**
  * @ingroup LCI_BASIC
@@ -613,8 +613,8 @@ using graph_node_free_cb_t = void (*)(void* value);
  * @ingroup LCI_BASIC
  * @brief The function signature for a edge funciton in the completion graph.
  */
-using graph_edge_fn_t = void (*)(status_t status, void* src_value,
-                                 void* dst_value);
+using graph_edge_run_cb_t = void (*)(status_t status, void* src_value,
+                                     void* dst_value);
 
 }  // namespace lci
 
@@ -661,7 +661,7 @@ void graph_free_op_fn(void* value)
 template <typename T>
 graph_node_t graph_add_node_op(comp_t graph, const T& op)
 {
-  graph_node_fn_t wrapper = graph_execute_op_fn<T>;
+  graph_node_run_cb_t wrapper = graph_execute_op_fn<T>;
   T* fn = new T(op);
   graph_node_free_cb_t free_cb = graph_free_op_fn<T>;
   auto ret = graph_add_node_x(graph, wrapper)

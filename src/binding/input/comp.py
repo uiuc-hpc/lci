@@ -172,7 +172,7 @@ operation(
     "graph_add_node", 
     [
         positional_arg("comp_t", "comp", comment="The graph to add node."),
-        positional_arg("graph_node_fn_t", "fn", comment="The function to run when the node is triggered."),
+        positional_arg("graph_node_run_cb_t", "fn", comment="The function to run when the node is triggered."),
         optional_arg("void*", "value", "nullptr", comment="The arbitrary user-defined value associated with this node."),
         optional_arg("graph_node_free_cb_t", "free_cb", "nullptr", comment="The callback to trigger when the node is freed."),
         optional_runtime_args,
@@ -189,7 +189,7 @@ operation(
         positional_arg("comp_t", "comp", comment="The graph to add node."),
         positional_arg("graph_node_t", "src", comment="The src node."),
         positional_arg("graph_node_t", "dst", comment="The dst node."),
-        optional_arg("graph_edge_fn_t", "fn", "nullptr", comment="The function to run when the edge is triggered."),
+        optional_arg("graph_edge_run_cb_t", "fn", "nullptr", comment="The function to run when the edge is triggered."),
         optional_runtime_args,
     ],
     doc = {

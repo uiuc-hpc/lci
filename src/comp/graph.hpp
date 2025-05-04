@@ -30,10 +30,10 @@ class graph_t : public comp_impl_t
   static void trigger_node(graph_node_t node);
   static void mark_complete(graph_node_t node, status_t status);
 
-  graph_node_t add_node(graph_node_fn_t fn, void* value = nullptr,
+  graph_node_t add_node(graph_node_run_cb_t fn, void* value = nullptr,
                         graph_node_free_cb_t free_cb = nullptr);
   void add_edge(graph_node_t src, graph_node_t dst,
-                graph_edge_fn_t fn = nullptr);
+                graph_edge_run_cb_t fn = nullptr);
   void start();
   void signal(status_t status) override;
   status_t test();
@@ -43,11 +43,11 @@ class graph_t : public comp_impl_t
     std::atomic<int> signals_received;
     int signals_expected;
     graph_t* graph;
-    graph_node_fn_t fn;
+    graph_node_run_cb_t fn;
     void* value;
     graph_node_free_cb_t free_cb;
-    std::vector<std::pair<graph_node_t, graph_edge_fn_t>> out_edges;
-    node_impl_t(graph_t* graph_, graph_node_fn_t fn_, void* value_,
+    std::vector<std::pair<graph_node_t, graph_edge_run_cb_t>> out_edges;
+    node_impl_t(graph_t* graph_, graph_node_run_cb_t fn_, void* value_,
                 graph_node_free_cb_t free_cb_)
         : signals_received(0),
           signals_expected(0),
@@ -160,7 +160,7 @@ inline void graph_t::mark_complete(graph_node_t node_, status_t status)
   }
 }
 
-inline graph_node_t graph_t::add_node(graph_node_fn_t fn, void* value,
+inline graph_node_t graph_t::add_node(graph_node_run_cb_t fn, void* value,
                                       graph_node_free_cb_t free_cb)
 {
   auto ret = new node_impl_t(this, fn, value, free_cb);
@@ -169,7 +169,7 @@ inline graph_node_t graph_t::add_node(graph_node_fn_t fn, void* value,
 }
 
 inline void graph_t::add_edge(graph_node_t src_, graph_node_t dst_,
-                              graph_edge_fn_t fn)
+                              graph_edge_run_cb_t fn)
 {
   LCI_Assert(dst_ != GRAPH_START,
              "The destination node should not be the start node");
@@ -229,7 +229,8 @@ inline void graph_node_mark_complete_x::call_impl(graph_node_t node,
   graph_t::mark_complete(node, status);
 }
 
-inline graph_node_t graph_add_node_x::call_impl(comp_t comp, graph_node_fn_t fn,
+inline graph_node_t graph_add_node_x::call_impl(comp_t comp,
+                                                graph_node_run_cb_t fn,
                                                 void* value,
                                                 graph_node_free_cb_t free_cb,
                                                 runtime_t) const
@@ -239,8 +240,8 @@ inline graph_node_t graph_add_node_x::call_impl(comp_t comp, graph_node_fn_t fn,
 }
 
 inline void graph_add_edge_x::call_impl(comp_t comp, graph_node_t src,
-                                        graph_node_t dst, graph_edge_fn_t fn,
-                                        runtime_t) const
+                                        graph_node_t dst,
+                                        graph_edge_run_cb_t fn, runtime_t) const
 {
   auto graph = reinterpret_cast<graph_t*>(comp.get_impl());
   graph->add_edge(src, dst, fn);
