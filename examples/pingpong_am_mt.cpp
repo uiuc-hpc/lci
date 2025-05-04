@@ -6,6 +6,8 @@
 #include "lct.h"
 #include "lci.hpp"
 
+// This example shows the usages of thread-local devices.
+
 const int nthreads = 4;
 const int nmsgs = 1000;
 const size_t msg_size = 8;

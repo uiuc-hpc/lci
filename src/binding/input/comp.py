@@ -77,7 +77,7 @@ operation(
         optional_runtime_args,
         optional_arg("int", "threshold", "g_default_attr.sync_threshold", comment="The signaling threshold of the synchronizer."),
         optional_arg("bool", "zero_copy_am", "g_default_attr.zero_copy_am", comment="Whether to directly pass internal packet into the completion object."),
-        optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context associated with this completion object."),
+        optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context associated with this completion object."),
         return_val("comp_t", "comp", comment="The allocated synchronizer.")
     ],
     doc = {
@@ -118,7 +118,7 @@ operation(
         optional_arg("int", "default_length", "g_default_attr.cq_default_length", comment="The default length of the completion queue."),
         optional_arg("bool", "zero_copy_am", "g_default_attr.zero_copy_am", comment="Whether to directly pass internal packet into the completion object."),
         optional_arg("attr_cq_type_t", "cq_type", "g_default_attr.cq_type", comment="The type of the completion queue."),
-        optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context associated with this completion object."),
+        optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context associated with this completion object."),
         return_val("comp_t", "comp", comment="The allocated completion queue.")
     ],
     doc = {
@@ -146,7 +146,7 @@ operation(
         optional_runtime_args,
         positional_arg("comp_handler_t", "handler", comment="The handler function."),
         optional_arg("bool", "zero_copy_am", "g_default_attr.zero_copy_am", comment="Whether to directly pass internal packet into the completion object."),
-        optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context associated with this completion object."),
+        optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context associated with this completion object."),
         return_val("comp_t", "comp", comment="The allocated completion handler.")
     ],
     doc = {
@@ -159,7 +159,7 @@ operation(
     "alloc_graph", 
     [
         optional_arg("comp_t", "comp", "comp_t()", comment="Another completion object to signal when the graph is completed. The graph will be automatically destroyed afterwards."),
-        optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context associated with this completion object."),
+        optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context associated with this completion object."),
         optional_runtime_args,
         return_val("comp_t", "comp", comment="The allocated completion handler."),
     ],
@@ -173,7 +173,8 @@ operation(
     [
         positional_arg("comp_t", "comp", comment="The graph to add node."),
         positional_arg("graph_node_fn_t", "fn", comment="The function to run when the node is triggered."),
-        optional_arg("void*", "value", "nullptr", comment="The abitrary user-defined value associated with this node."),
+        optional_arg("void*", "value", "nullptr", comment="The arbitrary user-defined value associated with this node."),
+        optional_arg("graph_node_free_cb_t", "free_cb", "nullptr", comment="The callback to trigger when the node is freed."),
         optional_runtime_args,
         return_val("graph_node_t", "node", comment="A handler representing the node added to the graph."),
     ],

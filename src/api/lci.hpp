@@ -604,6 +604,13 @@ using graph_node_fn_t = status_t (*)(void* value);
 
 /**
  * @ingroup LCI_BASIC
+ * @brief The function signature for a callback that will be triggered when the
+ * node was freed.
+ */
+using graph_node_free_cb_t = void (*)(void* value);
+
+/**
+ * @ingroup LCI_BASIC
  * @brief The function signature for a edge funciton in the completion graph.
  */
 using graph_edge_fn_t = void (*)(status_t status, void* src_value,
@@ -626,17 +633,21 @@ status_t graph_execute_op_fn(void* value)
 
   if constexpr (std::is_same_v<result_t, status_t>) {
     status_t result = (*op)();
-    delete op;
     return result;
   } else if constexpr (std::is_same_v<result_t, errorcode_t>) {
     errorcode_t result = (*op)();
-    delete op;
     return result;
   } else {
     (*op)();
-    delete op;
     return errorcode_t::done;
   }
+}
+
+template <typename T>
+void graph_free_op_fn(void* value)
+{
+  auto op = static_cast<T*>(value);
+  delete op;
 }
 
 /**
@@ -652,8 +663,10 @@ graph_node_t graph_add_node_op(comp_t graph, const T& op)
 {
   graph_node_fn_t wrapper = graph_execute_op_fn<T>;
   T* fn = new T(op);
-  auto ret =
-      graph_add_node_x(graph, wrapper).value(reinterpret_cast<void*>(fn))();
+  graph_node_free_cb_t free_cb = graph_free_op_fn<T>;
+  auto ret = graph_add_node_x(graph, wrapper)
+                 .value(reinterpret_cast<void*>(fn))
+                 .free_cb(free_cb)();
   fn->user_context(ret);
   return ret;
 }

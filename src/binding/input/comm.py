@@ -25,7 +25,7 @@ operation(
         optional_arg("rkey_t", "rkey", "0", comment="The remote key of the remote buffer."),
         optional_arg("tag_t", "tag", "0", comment="The tag to use."),
         optional_arg("rcomp_t", "remote_comp", "0", comment="The remote completion handler to use."),
-        optional_arg("void*", "user_context", "nullptr", comment="The abitrary user-defined context associated with this operation."),
+        optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context associated with this operation."),
         optional_arg("buffers_t", "buffers", "buffers_t()", comment="The local buffers."),
         optional_arg("rbuffers_t", "rbuffers", "rbuffers_t()", comment="The remote buffers."),
         optional_arg("matching_policy_t", "matching_policy", "matching_policy_t::rank_tag", comment="The matching policy to use."),

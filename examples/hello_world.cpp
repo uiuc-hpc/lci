@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include "lci.hpp"
 
-void hello_world() {}
+// This example shows the LCI runtime lifecycle and the query of rank.
 
 int main(int argc, char** args)
 {
