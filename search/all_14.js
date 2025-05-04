@@ -25,7 +25,7 @@ var searchData=
   ['option_5ft_3c_20bool_20_3e_22',['option_t&lt; bool &gt;',['../db/d20/structlci_1_1option__t.html',1,'lci']]],
   ['option_5ft_3c_20buffers_5ft_20_3e_23',['option_t&lt; buffers_t &gt;',['../db/d20/structlci_1_1option__t.html',1,'lci']]],
   ['option_5ft_3c_20comp_5fsemantic_5ft_20_3e_24',['option_t&lt; comp_semantic_t &gt;',['../db/d20/structlci_1_1option__t.html',1,'lci']]],
-  ['option_5ft_3c_20graph_5fedge_5ffn_5ft_20_3e_25',['option_t&lt; graph_edge_fn_t &gt;',['../db/d20/structlci_1_1option__t.html',1,'lci']]],
+  ['option_5ft_3c_20graph_5fedge_5frun_5fcb_5ft_20_3e_25',['option_t&lt; graph_edge_run_cb_t &gt;',['../db/d20/structlci_1_1option__t.html',1,'lci']]],
   ['option_5ft_3c_20graph_5fnode_5ffree_5fcb_5ft_20_3e_26',['option_t&lt; graph_node_free_cb_t &gt;',['../db/d20/structlci_1_1option__t.html',1,'lci']]],
   ['option_5ft_3c_20int_20_3e_27',['option_t&lt; int &gt;',['../db/d20/structlci_1_1option__t.html',1,'lci']]],
   ['option_5ft_3c_20lci_3a_3acomp_5ft_20_3e_28',['option_t&lt; lci::comp_t &gt;',['../db/d20/structlci_1_1option__t.html',1,'lci']]],

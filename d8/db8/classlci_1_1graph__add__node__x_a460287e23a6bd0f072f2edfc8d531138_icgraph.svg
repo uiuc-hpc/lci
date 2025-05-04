@@ -21,7 +21,7 @@
 <!-- Node2 -->
 <g id="Node000002" class="node">
 <title>Node2</title>
-<g id="a_Node000002"><a xlink:href="../../d5/dd3/namespacelci.html#a8a64a022a1899659c11a5fed52cecb53" target="_top" xlink:title=" ">
+<g id="a_Node000002"><a xlink:href="../../d5/dd3/namespacelci.html#ac942e587d9dbca57c48e1ca3f3854969" target="_top" xlink:title=" ">
 <polygon fill="white" stroke="#666666" points="114,-67.5 0,-67.5 0,-48.5 114,-48.5 114,-67.5"/>
 <text text-anchor="middle" x="57" y="-55.5" font-family="Helvetica,sans-Serif" font-size="10.00">lci::graph_add_node</text>
 </a>

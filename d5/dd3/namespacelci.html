@@ -441,15 +441,15 @@ Typedefs</h2></td></tr>
 <tr class="memitem:ga84f8522bb8dce688b8a246b6f923d64e" id="r_ga84f8522bb8dce688b8a246b6f923d64e"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d33/group__LCI__BASIC.html#ga84f8522bb8dce688b8a246b6f923d64e">graph_node_t</a> = void*</td></tr>
 <tr class="memdesc:ga84f8522bb8dce688b8a246b6f923d64e"><td class="mdescLeft">&#160;</td><td class="mdescRight">The node type for the completion graph.  <br /></td></tr>
 <tr class="separator:ga84f8522bb8dce688b8a246b6f923d64e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gacdd11f3f095f6f676fa51ffe901fe6d6" id="r_gacdd11f3f095f6f676fa51ffe901fe6d6"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d33/group__LCI__BASIC.html#gacdd11f3f095f6f676fa51ffe901fe6d6">graph_node_fn_t</a> = <a class="el" href="../../d9/d1e/structlci_1_1status__t.html">status_t</a> (*)(void* value)</td></tr>
-<tr class="memdesc:gacdd11f3f095f6f676fa51ffe901fe6d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">The function signature for a node function in the completion graph.  <br /></td></tr>
-<tr class="separator:gacdd11f3f095f6f676fa51ffe901fe6d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga511cb5c9631bcca54496a7e0ceadf728" id="r_ga511cb5c9631bcca54496a7e0ceadf728"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d33/group__LCI__BASIC.html#ga511cb5c9631bcca54496a7e0ceadf728">graph_node_run_cb_t</a> = <a class="el" href="../../d9/d1e/structlci_1_1status__t.html">status_t</a> (*)(void* value)</td></tr>
+<tr class="memdesc:ga511cb5c9631bcca54496a7e0ceadf728"><td class="mdescLeft">&#160;</td><td class="mdescRight">The function signature for a node function in the completion graph.  <br /></td></tr>
+<tr class="separator:ga511cb5c9631bcca54496a7e0ceadf728"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga6519b51b5aa2305dfa9290188ed4c548" id="r_ga6519b51b5aa2305dfa9290188ed4c548"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d33/group__LCI__BASIC.html#ga6519b51b5aa2305dfa9290188ed4c548">graph_node_free_cb_t</a> = void (*)(void* value)</td></tr>
 <tr class="memdesc:ga6519b51b5aa2305dfa9290188ed4c548"><td class="mdescLeft">&#160;</td><td class="mdescRight">The function signature for a callback that will be triggered when the node was freed.  <br /></td></tr>
 <tr class="separator:ga6519b51b5aa2305dfa9290188ed4c548"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaaaafc7e0361274bed5c19fa6e9ae2181" id="r_gaaaafc7e0361274bed5c19fa6e9ae2181"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d33/group__LCI__BASIC.html#gaaaafc7e0361274bed5c19fa6e9ae2181">graph_edge_fn_t</a></td></tr>
-<tr class="memdesc:gaaaafc7e0361274bed5c19fa6e9ae2181"><td class="mdescLeft">&#160;</td><td class="mdescRight">The function signature for a edge funciton in the completion graph.  <br /></td></tr>
-<tr class="separator:gaaaafc7e0361274bed5c19fa6e9ae2181"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga21426d0b27d11ff2156f06b506f78092" id="r_ga21426d0b27d11ff2156f06b506f78092"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d33/group__LCI__BASIC.html#ga21426d0b27d11ff2156f06b506f78092">graph_edge_run_cb_t</a></td></tr>
+<tr class="memdesc:ga21426d0b27d11ff2156f06b506f78092"><td class="mdescLeft">&#160;</td><td class="mdescRight">The function signature for a edge funciton in the completion graph.  <br /></td></tr>
+<tr class="separator:ga21426d0b27d11ff2156f06b506f78092"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -644,8 +644,8 @@ Functions</h2></td></tr>
 <tr class="separator:a9a4b7e4a4222bd6d51f71150a927ac28"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aebd142b35d32f950515a5a35e4ac32d1" id="r_aebd142b35d32f950515a5a35e4ac32d1"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aebd142b35d32f950515a5a35e4ac32d1">alloc_graph</a> ()</td></tr>
 <tr class="separator:aebd142b35d32f950515a5a35e4ac32d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8a64a022a1899659c11a5fed52cecb53" id="r_a8a64a022a1899659c11a5fed52cecb53"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d8/d33/group__LCI__BASIC.html#ga84f8522bb8dce688b8a246b6f923d64e">graph_node_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8a64a022a1899659c11a5fed52cecb53">graph_add_node</a> (<a class="el" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a> comp_in, <a class="el" href="../../d8/d33/group__LCI__BASIC.html#gacdd11f3f095f6f676fa51ffe901fe6d6">graph_node_fn_t</a> fn_in)</td></tr>
-<tr class="separator:a8a64a022a1899659c11a5fed52cecb53"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac942e587d9dbca57c48e1ca3f3854969" id="r_ac942e587d9dbca57c48e1ca3f3854969"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d8/d33/group__LCI__BASIC.html#ga84f8522bb8dce688b8a246b6f923d64e">graph_node_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac942e587d9dbca57c48e1ca3f3854969">graph_add_node</a> (<a class="el" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a> comp_in, <a class="el" href="../../d8/d33/group__LCI__BASIC.html#ga511cb5c9631bcca54496a7e0ceadf728">graph_node_run_cb_t</a> fn_in)</td></tr>
+<tr class="separator:ac942e587d9dbca57c48e1ca3f3854969"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7ad5e9b11b95bc70fc8baac9992ef732" id="r_a7ad5e9b11b95bc70fc8baac9992ef732"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7ad5e9b11b95bc70fc8baac9992ef732">graph_add_edge</a> (<a class="el" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a> comp_in, <a class="el" href="../../d8/d33/group__LCI__BASIC.html#ga84f8522bb8dce688b8a246b6f923d64e">graph_node_t</a> src_in, <a class="el" href="../../d8/d33/group__LCI__BASIC.html#ga84f8522bb8dce688b8a246b6f923d64e">graph_node_t</a> dst_in)</td></tr>
 <tr class="separator:a7ad5e9b11b95bc70fc8baac9992ef732"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a097aceaaa878e6a34c493564a6c24576" id="r_a097aceaaa878e6a34c493564a6c24576"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a097aceaaa878e6a34c493564a6c24576">graph_node_mark_complete</a> (<a class="el" href="../../d8/d33/group__LCI__BASIC.html#ga84f8522bb8dce688b8a246b6f923d64e">graph_node_t</a> node_in)</td></tr>
@@ -2307,8 +2307,8 @@ Here is the call graph for this function:</div>
 
 </div>
 </div>
-<a id="a8a64a022a1899659c11a5fed52cecb53" name="a8a64a022a1899659c11a5fed52cecb53"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8a64a022a1899659c11a5fed52cecb53">&#9670;&#160;</a></span>graph_add_node()</h2>
+<a id="ac942e587d9dbca57c48e1ca3f3854969" name="ac942e587d9dbca57c48e1ca3f3854969"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac942e587d9dbca57c48e1ca3f3854969">&#9670;&#160;</a></span>graph_add_node()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -2324,7 +2324,7 @@ Here is the call graph for this function:</div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="../../d8/d33/group__LCI__BASIC.html#gacdd11f3f095f6f676fa51ffe901fe6d6">graph_node_fn_t</a></td>          <td class="paramname"><span class="paramname"><em>fn_in</em></span>&#160;)</td>
+          <td class="paramtype"><a class="el" href="../../d8/d33/group__LCI__BASIC.html#ga511cb5c9631bcca54496a7e0ceadf728">graph_node_run_cb_t</a></td>          <td class="paramname"><span class="paramname"><em>fn_in</em></span>&#160;)</td>
         </tr>
       </table>
   </td>
@@ -2336,7 +2336,7 @@ Here is the call graph for this function:</div>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><iframe scrolling="no" frameborder="0" src="../../d5/dd3/namespacelci_a8a64a022a1899659c11a5fed52cecb53_cgraph.svg" width="978" height="307"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
+<div class="center"><iframe scrolling="no" frameborder="0" src="../../d5/dd3/namespacelci_ac942e587d9dbca57c48e1ca3f3854969_cgraph.svg" width="978" height="307"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
 </div>
 
 </div>

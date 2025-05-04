@@ -2,11 +2,11 @@
 <area shape="rect" id="Node000001" title=" " alt="" coords="628,55,780,95"/>
 <area shape="rect" id="Node000002" href="$d8/db8/classlci_1_1graph__add__node__x.html#a460287e23a6bd0f072f2edfc8d531138" title=" " alt="" coords="205,27,357,67"/>
 <area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="624,55,580,46,522,41,463,39,358,43,357,38,463,34,522,36,580,41,625,49"/>
-<area shape="rect" id="Node000005" href="$d8/db8/classlci_1_1graph__add__node__x.html#a776412579ebcf653592710c1d6b4df24" title=" " alt="" coords="417,55,569,95"/>
+<area shape="rect" id="Node000005" href="$d8/db8/classlci_1_1graph__add__node__x.html#a5761e9202a21bc6c6641c8d1122fd307" title=" " alt="" coords="417,55,569,95"/>
 <area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="614,78,569,78,569,73,614,73"/>
 <area shape="rect" id="Node000006" href="$d8/d33/group__LCI__BASIC.html#ga04913a1823ea2481cf7ba1284c7abc64" title="Add a functor as a node to the completion graph." alt="" coords="405,120,580,145"/>
 <area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="617,102,541,122,540,117,616,96"/>
-<area shape="rect" id="Node000003" href="$d5/dd3/namespacelci.html#a8a64a022a1899659c11a5fed52cecb53" title=" " alt="" coords="5,5,157,31"/>
+<area shape="rect" id="Node000003" href="$d5/dd3/namespacelci.html#ac942e587d9dbca57c48e1ca3f3854969" title=" " alt="" coords="5,5,157,31"/>
 <area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="191,37,157,32,158,27,192,32"/>
 <area shape="rect" id="Node000004" href="$d8/db8/classlci_1_1graph__add__node__x.html#a2795d364a95f2cc77b174c7230e6c6f7" title=" " alt="" coords="5,55,157,95"/>
 <area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="192,63,158,67,157,62,191,57"/>

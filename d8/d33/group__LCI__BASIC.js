@@ -115,9 +115,9 @@ var group__LCI__BASIC =
       [ "attr", "d9/d97/classlci_1_1comp__impl__t.html#a69aaa09f83450aa7059017bfd70e3aab", null ]
     ] ],
     [ "lci::comp_handler_t", "d8/d33/group__LCI__BASIC.html#gacd7c06c7f6c55fe82603ae421df1e0f6", null ],
-    [ "lci::graph_edge_fn_t", "d8/d33/group__LCI__BASIC.html#gaaaafc7e0361274bed5c19fa6e9ae2181", null ],
-    [ "lci::graph_node_fn_t", "d8/d33/group__LCI__BASIC.html#gacdd11f3f095f6f676fa51ffe901fe6d6", null ],
+    [ "lci::graph_edge_run_cb_t", "d8/d33/group__LCI__BASIC.html#ga21426d0b27d11ff2156f06b506f78092", null ],
     [ "lci::graph_node_free_cb_t", "d8/d33/group__LCI__BASIC.html#ga6519b51b5aa2305dfa9290188ed4c548", null ],
+    [ "lci::graph_node_run_cb_t", "d8/d33/group__LCI__BASIC.html#ga511cb5c9631bcca54496a7e0ceadf728", null ],
     [ "lci::graph_node_t", "d8/d33/group__LCI__BASIC.html#ga84f8522bb8dce688b8a246b6f923d64e", null ],
     [ "lci::matching_entry_key_t", "d8/d33/group__LCI__BASIC.html#ga287d78d4ce4f11e72a51833050903d87", null ],
     [ "lci::matching_entry_val_t", "d8/d33/group__LCI__BASIC.html#gaba5d7e36dca301ba519df1907fbf2a8c", null ],

@@ -40,7 +40,7 @@
 <!-- Node5 -->
 <g id="Node000005" class="node">
 <title>Node5</title>
-<g id="a_Node000005"><a xlink:href="../../d8/db8/classlci_1_1graph__add__node__x.html#a776412579ebcf653592710c1d6b4df24" target="_top" xlink:title=" ">
+<g id="a_Node000005"><a xlink:href="../../d8/db8/classlci_1_1graph__add__node__x.html#a5761e9202a21bc6c6641c8d1122fd307" target="_top" xlink:title=" ">
 <polygon fill="white" stroke="#666666" points="414,-30 300,-30 300,0 414,0 414,-30"/>
 <text text-anchor="start" x="308" y="-18" font-family="Helvetica,sans-Serif" font-size="10.00">lci::graph_add_node</text>
 <text text-anchor="middle" x="357" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00">_x::call_impl</text>
@@ -59,7 +59,7 @@
 <!-- Node3 -->
 <g id="Node000003" class="node">
 <title>Node3</title>
-<g id="a_Node000003"><a xlink:href="../../d5/dd3/namespacelci.html#a8a64a022a1899659c11a5fed52cecb53" target="_top" xlink:title=" ">
+<g id="a_Node000003"><a xlink:href="../../d5/dd3/namespacelci.html#ac942e587d9dbca57c48e1ca3f3854969" target="_top" xlink:title=" ">
 <polygon fill="white" stroke="#666666" points="114,-67.5 0,-67.5 0,-48.5 114,-48.5 114,-67.5"/>
 <text text-anchor="middle" x="57" y="-55.5" font-family="Helvetica,sans-Serif" font-size="10.00">lci::graph_add_node</text>
 </a>
