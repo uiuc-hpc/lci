@@ -83,10 +83,11 @@ var searchData=
   ['graph_5fadd_5fnode_5fop_80',['graph_add_node_op',['../d8/d33/group__LCI__BASIC.html#ga04913a1823ea2481cf7ba1284c7abc64',1,'lci']]],
   ['graph_5fadd_5fnode_5fx_81',['graph_add_node_x',['../d8/db8/classlci_1_1graph__add__node__x.html#a50a334110e183170c11b7ae96cd92305',1,'lci::graph_add_node_x']]],
   ['graph_5fexecute_5fop_5ffn_82',['graph_execute_op_fn',['../d5/dd3/namespacelci.html#a9cc0a6f748e26c02e87a5b6f259fd614',1,'lci']]],
-  ['graph_5fnode_5fmark_5fcomplete_83',['graph_node_mark_complete',['../d5/dd3/namespacelci.html#a097aceaaa878e6a34c493564a6c24576',1,'lci']]],
-  ['graph_5fnode_5fmark_5fcomplete_5fx_84',['graph_node_mark_complete_x',['../d8/dd3/classlci_1_1graph__node__mark__complete__x.html#a4a3e9036ec610466f9b5eccdf2ea8d01',1,'lci::graph_node_mark_complete_x']]],
-  ['graph_5fstart_85',['graph_start',['../d5/dd3/namespacelci.html#a62817277dc599edc5864356a4192d312',1,'lci']]],
-  ['graph_5fstart_5fx_86',['graph_start_x',['../d1/d39/classlci_1_1graph__start__x.html#a75d901ec9a7d8a9293416234ac7f3ccb',1,'lci::graph_start_x']]],
-  ['graph_5ftest_87',['graph_test',['../d5/dd3/namespacelci.html#a56809a72f78bbcf9e5fdd6d1ffebc58d',1,'lci']]],
-  ['graph_5ftest_5fx_88',['graph_test_x',['../d0/d68/classlci_1_1graph__test__x.html#a50ff9ba0abe5856e2d0305fc5e421279',1,'lci::graph_test_x']]]
+  ['graph_5ffree_5fop_5ffn_83',['graph_free_op_fn',['../d5/dd3/namespacelci.html#a6e793f6842f9339fd6b10683b061b2f9',1,'lci']]],
+  ['graph_5fnode_5fmark_5fcomplete_84',['graph_node_mark_complete',['../d5/dd3/namespacelci.html#a097aceaaa878e6a34c493564a6c24576',1,'lci']]],
+  ['graph_5fnode_5fmark_5fcomplete_5fx_85',['graph_node_mark_complete_x',['../d8/dd3/classlci_1_1graph__node__mark__complete__x.html#a4a3e9036ec610466f9b5eccdf2ea8d01',1,'lci::graph_node_mark_complete_x']]],
+  ['graph_5fstart_86',['graph_start',['../d5/dd3/namespacelci.html#a62817277dc599edc5864356a4192d312',1,'lci']]],
+  ['graph_5fstart_5fx_87',['graph_start_x',['../d1/d39/classlci_1_1graph__start__x.html#a75d901ec9a7d8a9293416234ac7f3ccb',1,'lci::graph_start_x']]],
+  ['graph_5ftest_88',['graph_test',['../d5/dd3/namespacelci.html#a56809a72f78bbcf9e5fdd6d1ffebc58d',1,'lci']]],
+  ['graph_5ftest_5fx_89',['graph_test_x',['../d0/d68/classlci_1_1graph__test__x.html#a50ff9ba0abe5856e2d0305fc5e421279',1,'lci::graph_test_x']]]
 ];

@@ -444,6 +444,9 @@ Typedefs</h2></td></tr>
 <tr class="memitem:gacdd11f3f095f6f676fa51ffe901fe6d6" id="r_gacdd11f3f095f6f676fa51ffe901fe6d6"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d33/group__LCI__BASIC.html#gacdd11f3f095f6f676fa51ffe901fe6d6">graph_node_fn_t</a> = <a class="el" href="../../d9/d1e/structlci_1_1status__t.html">status_t</a> (*)(void* value)</td></tr>
 <tr class="memdesc:gacdd11f3f095f6f676fa51ffe901fe6d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">The function signature for a node function in the completion graph.  <br /></td></tr>
 <tr class="separator:gacdd11f3f095f6f676fa51ffe901fe6d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga6519b51b5aa2305dfa9290188ed4c548" id="r_ga6519b51b5aa2305dfa9290188ed4c548"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d33/group__LCI__BASIC.html#ga6519b51b5aa2305dfa9290188ed4c548">graph_node_free_cb_t</a> = void (*)(void* value)</td></tr>
+<tr class="memdesc:ga6519b51b5aa2305dfa9290188ed4c548"><td class="mdescLeft">&#160;</td><td class="mdescRight">The function signature for a callback that will be triggered when the node was freed.  <br /></td></tr>
+<tr class="separator:ga6519b51b5aa2305dfa9290188ed4c548"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaaaafc7e0361274bed5c19fa6e9ae2181" id="r_gaaaafc7e0361274bed5c19fa6e9ae2181"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d33/group__LCI__BASIC.html#gaaaafc7e0361274bed5c19fa6e9ae2181">graph_edge_fn_t</a></td></tr>
 <tr class="memdesc:gaaaafc7e0361274bed5c19fa6e9ae2181"><td class="mdescLeft">&#160;</td><td class="mdescRight">The function signature for a edge funciton in the completion graph.  <br /></td></tr>
 <tr class="separator:gaaaafc7e0361274bed5c19fa6e9ae2181"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -570,6 +573,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a9cc0a6f748e26c02e87a5b6f259fd614" id="r_a9cc0a6f748e26c02e87a5b6f259fd614"><td class="memTemplParams" colspan="2">template&lt;typename T&gt; </td></tr>
 <tr class="memitem:a9cc0a6f748e26c02e87a5b6f259fd614"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../d9/d1e/structlci_1_1status__t.html">status_t</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="#a9cc0a6f748e26c02e87a5b6f259fd614">graph_execute_op_fn</a> (void *value)</td></tr>
 <tr class="separator:a9cc0a6f748e26c02e87a5b6f259fd614"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6e793f6842f9339fd6b10683b061b2f9" id="r_a6e793f6842f9339fd6b10683b061b2f9"><td class="memTemplParams" colspan="2">template&lt;typename T&gt; </td></tr>
+<tr class="memitem:a6e793f6842f9339fd6b10683b061b2f9"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="#a6e793f6842f9339fd6b10683b061b2f9">graph_free_op_fn</a> (void *value)</td></tr>
+<tr class="separator:a6e793f6842f9339fd6b10683b061b2f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga04913a1823ea2481cf7ba1284c7abc64" id="r_ga04913a1823ea2481cf7ba1284c7abc64"><td class="memTemplParams" colspan="2">template&lt;typename T&gt; </td></tr>
 <tr class="memitem:ga04913a1823ea2481cf7ba1284c7abc64"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../d8/d33/group__LCI__BASIC.html#ga84f8522bb8dce688b8a246b6f923d64e">graph_node_t</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d8/d33/group__LCI__BASIC.html#ga04913a1823ea2481cf7ba1284c7abc64">graph_add_node_op</a> (<a class="el" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a> <a class="el" href="#a610912d197faa01c2f04666209b814bbaf8b0b924ebd7046dbfa85a856e4682c8">graph</a>, const T &amp;op)</td></tr>
 <tr class="memdesc:ga04913a1823ea2481cf7ba1284c7abc64"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add a functor as a node to the completion graph.  <br /></td></tr>
@@ -2330,7 +2336,7 @@ Here is the call graph for this function:</div>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><iframe scrolling="no" frameborder="0" src="../../d5/dd3/namespacelci_a8a64a022a1899659c11a5fed52cecb53_cgraph.svg" width="978" height="243"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
+<div class="center"><iframe scrolling="no" frameborder="0" src="../../d5/dd3/namespacelci_a8a64a022a1899659c11a5fed52cecb53_cgraph.svg" width="978" height="307"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
 </div>
 
 </div>
@@ -2355,6 +2361,30 @@ template&lt;typename T&gt; </div>
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><iframe scrolling="no" frameborder="0" src="../../d5/dd3/namespacelci_a9cc0a6f748e26c02e87a5b6f259fd614_icgraph.svg" width="374" height="51"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
+</div>
+
+</div>
+</div>
+<a id="a6e793f6842f9339fd6b10683b061b2f9" name="a6e793f6842f9339fd6b10683b061b2f9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6e793f6842f9339fd6b10683b061b2f9">&#9670;&#160;</a></span>graph_free_op_fn()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">void lci::graph_free_op_fn </td>
+          <td>(</td>
+          <td class="paramtype">void *</td>          <td class="paramname"><span class="paramname"><em>value</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><iframe scrolling="no" frameborder="0" src="../../d5/dd3/namespacelci_a6e793f6842f9339fd6b10683b061b2f9_icgraph.svg" width="392" height="36"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
 </div>
 
 </div>

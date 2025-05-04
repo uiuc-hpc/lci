@@ -1,5 +1,8 @@
 var NAVTREEINDEX6 =
 {
+"df/d73/classlci_1_1graph__add__edge__x.html#ad9c7e204642fadc9f366f6c622b0968c":[5,6,13,0,5],
+"df/d73/classlci_1_1graph__add__edge__x.html#af63bc92913259bad4e359d2f2f178a04":[5,6,13,0,13],
+"df/d94/Changelog_1_7_6.html":[4,3],
 "df/d94/Changelog_1_7_6.html#autotoc_md21":[4,3,0],
 "df/d94/Changelog_1_7_6.html#autotoc_md22":[4,3,0,0],
 "df/d94/Changelog_1_7_6.html#autotoc_md23":[4,3,0,1],

@@ -1,4 +1,4 @@
-<map id="lci::graph_add_node_x::value" name="lci::graph_add_node_x::value">
+<map id="lci::graph_add_node_x::free_cb" name="lci::graph_add_node_x::free_cb">
 <area shape="rect" id="Node000001" title=" " alt="" coords="628,55,780,95"/>
 <area shape="rect" id="Node000002" href="$d8/db8/classlci_1_1graph__add__node__x.html#a460287e23a6bd0f072f2edfc8d531138" title=" " alt="" coords="205,27,357,67"/>
 <area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="624,55,580,46,522,41,463,39,358,43,357,38,463,34,522,36,580,41,625,49"/>
