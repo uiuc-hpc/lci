@@ -2,12 +2,13 @@
 # SPDX-License-Identifier: MIT
 
 # Execute generate_binding.py
-find_package(Python COMPONENTS Interpreter)
-if(NOT Python_EXECUTABLE)
+find_package(Python3 3.8 COMPONENTS Interpreter)
+if(NOT Python3_EXECUTABLE)
   message(WARNING "Python executable not found")
 else()
   execute_process(
-    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_binding.py
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/generate_binding.py
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     RESULT_VARIABLE py_result
     OUTPUT_VARIABLE py_output
