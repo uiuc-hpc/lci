@@ -35,6 +35,8 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   hints = fi_allocinfo();
   hints->fabric_attr->prov_name = prov_name_hint;
   hints->ep_attr->type = FI_EP_RDM;
+  // not available on all clusters that we have access to.
+  // hints->ep_attr->protocol = FI_PROTO_CXI_RNR;
   hints->domain_attr->mr_mode = FI_MR_VIRT_ADDR | FI_MR_ALLOCATED |
                                 FI_MR_PROV_KEY | FI_MR_LOCAL | FI_MR_ENDPOINT;
   hints->domain_attr->threading = FI_THREAD_SAFE;
@@ -63,6 +65,8 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   fi_freeinfo(all_infos);
   LCI_Log(LOG_INFO, "ofi", "Provider name: %s\n",
           ofi_info->fabric_attr->prov_name);
+  LCI_Log(LOG_INFO, "ofi", "Protocol: %s\n",
+          fi_tostr(&(ofi_info->ep_attr->protocol), FI_TYPE_PROTOCOL));
   LCI_Log(LOG_INFO, "ofi", "MR mode hints: [%s]\n",
           fi_tostr(&(hints->domain_attr->mr_mode), FI_TYPE_MR_MODE));
   LCI_Log(LOG_INFO, "ofi", "MR mode provided: [%s]\n",
