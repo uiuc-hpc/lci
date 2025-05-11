@@ -123,11 +123,13 @@ device_t alloc_device_x::call_impl(
   if (device.get_attr_uid() == 0) {
     bootstrap::set_device(device);
   }
+  LCI_Log(LOG_INFO, "network", "Device %d created\n", device.get_attr_uid());
   return device;
 }
 
 void free_device_x::call_impl(device_t* device, runtime_t runtime) const
 {
+  LCI_Log(LOG_INFO, "network", "Device %d freed\n", device->get_attr_uid());
   if (device->get_attr_uid() == 0) {
     bootstrap::set_device(device_t());
   }
