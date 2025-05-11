@@ -70,6 +70,14 @@ struct ctx_t {
 
     vsnprintf(buf + size, sizeof(buf) - size, format, vargs);
 
+    // Determine whether to abort or throw an exception
+    char* p = getenv("LCT_ABORT_ON_ASSERT");
+    if (p != nullptr && strcmp(p, "1") == 0) {
+      fprintf(stderr, "%s\n", buf);
+      abort();
+    }
+    // If the environment variable is not set or not equal to "1", throw an
+    // exception
     throw std::runtime_error(buf);
   }
 
