@@ -120,9 +120,13 @@ Check out the API documentation for more details.
 ### Hello World
 This example shows the LCI runtime lifecycle and the query of rank.
 
+<details>
+<summary>Click to expand code</summary>
 @include hello_world.cpp
+</details>
 
-Example output:
+<details>
+<summary>Click to expand example output</summary>
 ```bash
 $ lcrun -n 4 ./lci_hello_world 
 Hello world from rank 1 of 4 on <hostname>
@@ -130,13 +134,18 @@ Hello world from rank 3 of 4 on <hostname>
 Hello world from rank 0 of 4 on <hostname>
 Hello world from rank 2 of 4 on <hostname>
 ```
+</details>
 
 ### Hello World (Active Message)
 This example shows the usages of basic communication operations (active message) and completion mechanisms (synchronizer and handler).
 
+<details>
+<summary>Click to expand code</summary>
 @include hello_world_am.cpp
+</details>
 
-Example output:
+<details>
+<summary>Click to expand example output</summary>
 ```bash
 $ lcrun -n 4 ./lci_hello_world_am
 Rank 1 received active message from rank 0. Payload: Hello from rank 0
@@ -144,14 +153,19 @@ Rank 2 received active message from rank 0. Payload: Hello from rank 0
 Rank 3 received active message from rank 0. Payload: Hello from rank 0
 Rank 0 received active message from rank 0. Payload: Hello from rank 0
 ```
+</details>
 
 ### Non-blocking Barrier
 
 This examples shows the usage of the completion graph and the send/recv operations to implement a non-blocking barrier.
 
+<details>
+<summary>Click to expand code</summary>
 @include ibarrier.cpp
+</details>
 
-Example output:
+<details>
+<summary>Click to expand example output</summary>
 ```bash
 $ lcrun -n 4 ./lci_ibarrier 
 rank 1 start barrier
@@ -179,13 +193,18 @@ rank 0 end barrier
 rank 2 end barrier
 rank 3 end barrier
 ```
+</details>
 
 ### Multithreaded Active Message Ping-pong
 This example shows the usages of thread-local devices to speedup the active message communication in a multithreaded environment.
 
+<details>
+<summary>Click to expand code</summary>
 @include pingpong_am_mt.cpp
+</details>
 
-Example output (on my local laptop. Performance may vary):
+<details>
+<summary>Click to expand example output (Run on my laptop. Performance may vary.)</summary>
 ```bash
 $ lcrun -n 4 ./lci_pingpong_am_mt 
 pingpong_am_mt: 
@@ -197,6 +216,7 @@ Total time: 0.035286 s
 Message rate: 0.283399 mmsg/s
 Bandwidth: 2.26719 MB/s
 ```
+</details>
 
 # Run LCI applications
 
