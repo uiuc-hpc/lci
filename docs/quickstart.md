@@ -44,6 +44,7 @@ FetchContent_Declare(
   lci
   GIT_REPOSITORY https://github.com/uiuc-hpc/lci.git
 )
+message(STATUS "Fetching LCI from https://github.com/uiuc-hpc/lci.git...")
 FetchContent_MakeAvailable(lci)
 
 # Add a new executable
