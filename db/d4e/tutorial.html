@@ -154,20 +154,42 @@ $(function(){initNavTree('db/d4e/tutorial.html','../../'); initResizable(true); 
   </li>
   <li class="level1">
     <a href="#autotoc_md51">Write LCI programs</a>
+    <ul>
+      <li class="level2">
+        <a href="#autotoc_md52">Overview</a>
+      </li>
+      <li class="level2">
+        <a href="#autotoc_md53">Examples</a>
+        <ul>
+          <li class="level3">
+            <a href="#autotoc_md54">Hello World</a>
+          </li>
+          <li class="level3">
+            <a href="#autotoc_md55">Hello World (Active Message)</a>
+          </li>
+          <li class="level3">
+            <a href="#autotoc_md56">Non-blocking Barrier</a>
+          </li>
+          <li class="level3">
+            <a href="#autotoc_md57">Multithreaded Active Message Ping-pong</a>
+          </li>
+        </ul>
+      </li>
+    </ul>
   </li>
   <li class="level1">
-    <a href="#autotoc_md52">Run LCI applications</a>
+    <a href="#autotoc_md58">Run LCI applications</a>
     <ul>
       <li class="level2 empty">
         <ul>
           <li class="level3">
-            <a href="#autotoc_md53">Bootstrapping backends</a>
+            <a href="#autotoc_md59">Bootstrapping backends</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md54">Launchers</a>
+            <a href="#autotoc_md60">Launchers</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md55">More about the file backend</a>
+            <a href="#autotoc_md61">More about the file backend</a>
           </li>
         </ul>
       </li>
@@ -263,14 +285,161 @@ Important Spack variables</h3>
 </ul>
 <h1><a class="anchor" id="autotoc_md51"></a>
 Write LCI programs</h1>
+<h2><a class="anchor" id="autotoc_md52"></a>
+Overview</h2>
 <p>See <code>examples</code> and <code>tests</code> for some example code.</p>
 <p>Read <a href="https://jiakunyan.github.io/source/lci_preprint.pdf">this paper</a> to comprehensively understand LCI interface and runtime design.</p>
 <p>Check out the API documentation for more details.</p>
-<h1><a class="anchor" id="autotoc_md52"></a>
+<h2><a class="anchor" id="autotoc_md53"></a>
+Examples</h2>
+<p>This example shows the LCI runtime lifecycle and the query of rank.</p>
+<h3><a class="anchor" id="autotoc_md54"></a>
+Hello World</h3>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;iostream&gt;</span></div>
+<div class="line"><span class="preprocessor">#include &lt;unistd.h&gt;</span></div>
+<div class="line"><span class="preprocessor">#include &quot;<a class="code" href="../../d3/d33/lci_8hpp.html">lci.hpp</a>&quot;</span></div>
+<div class="line"> </div>
+<div class="line"><span class="keywordtype">int</span> main(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span>** args)</div>
+<div class="line">{</div>
+<div class="line">  <span class="keywordtype">char</span> hostname[64];</div>
+<div class="line">  gethostname(hostname, 64);</div>
+<div class="line">  <span class="comment">// Initialize the global default runtime.</span></div>
+<div class="line">  <a class="code hl_function" href="../../d5/dd3/namespacelci.html#aee337a8c81cb3397461d8cd00a2d8f71">lci::g_runtime_init</a>();</div>
+<div class="line">  <span class="comment">// After at least one runtime is active, we can query the rank and nranks.</span></div>
+<div class="line">  <span class="comment">// rank is the id of the current process</span></div>
+<div class="line">  <span class="comment">// nranks is the total number of the processes in the current job.</span></div>
+<div class="line">  std::cout &lt;&lt; <span class="stringliteral">&quot;Hello world from rank &quot;</span> &lt;&lt; <a class="code hl_function" href="../../d5/dd3/namespacelci.html#a9852426eb34e7849f5b6e1db60e49500">lci::get_rank_me</a>() &lt;&lt; <span class="stringliteral">&quot; of &quot;</span></div>
+<div class="line">            &lt;&lt; <a class="code hl_function" href="../../d5/dd3/namespacelci.html#a6e99f95e9b71b259ea5078c23d0ff4b9">lci::get_rank_n</a>() &lt;&lt; <span class="stringliteral">&quot; on &quot;</span> &lt;&lt; hostname &lt;&lt; std::endl;</div>
+<div class="line">  <span class="comment">// Finalize the global default runtime</span></div>
+<div class="line">  <a class="code hl_function" href="../../d5/dd3/namespacelci.html#a701a29185fc4b076f1b8a198806fc615">lci::g_runtime_fina</a>();</div>
+<div class="line">  <span class="keywordflow">return</span> 0;</div>
+<div class="line">}</div>
+<div class="ttc" id="alci_8hpp_html"><div class="ttname"><a href="../../d3/d33/lci_8hpp.html">lci.hpp</a></div></div>
+<div class="ttc" id="anamespacelci_html_a6e99f95e9b71b259ea5078c23d0ff4b9"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#a6e99f95e9b71b259ea5078c23d0ff4b9">lci::get_rank_n</a></div><div class="ttdeci">int get_rank_n()</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:2250</div></div>
+<div class="ttc" id="anamespacelci_html_a701a29185fc4b076f1b8a198806fc615"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#a701a29185fc4b076f1b8a198806fc615">lci::g_runtime_fina</a></div><div class="ttdeci">void g_runtime_fina()</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:2423</div></div>
+<div class="ttc" id="anamespacelci_html_a9852426eb34e7849f5b6e1db60e49500"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#a9852426eb34e7849f5b6e1db60e49500">lci::get_rank_me</a></div><div class="ttdeci">int get_rank_me()</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:2218</div></div>
+<div class="ttc" id="anamespacelci_html_aee337a8c81cb3397461d8cd00a2d8f71"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#aee337a8c81cb3397461d8cd00a2d8f71">lci::g_runtime_init</a></div><div class="ttdeci">void g_runtime_init()</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:2391</div></div>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md55"></a>
+Hello World (Active Message)</h3>
+<p>This example shows the usages of basic communication operations (active message) and completion mechanisms (synchronizer and handler). </p><div class="fragment"><div class="line"><span class="preprocessor">#include &lt;iostream&gt;</span></div>
+<div class="line"><span class="preprocessor">#include &lt;sstream&gt;</span></div>
+<div class="line"><span class="preprocessor">#include &lt;cassert&gt;</span></div>
+<div class="line"><span class="preprocessor">#include &quot;<a class="code" href="../../d3/d33/lci_8hpp.html">lci.hpp</a>&quot;</span></div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Using a flag for simple termination detection.</span></div>
+<div class="line"><span class="keywordtype">bool</span> received = <span class="keyword">false</span>;</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Define the function to be triggered when the active message arrives.</span></div>
+<div class="line"><span class="keywordtype">void</span> am_handler(<a class="code hl_struct" href="../../d9/d1e/structlci_1_1status__t.html">lci::status_t</a> status)</div>
+<div class="line">{</div>
+<div class="line">  <span class="comment">// Get the active message payload.</span></div>
+<div class="line">  <a class="code hl_struct" href="../../de/d63/structlci_1_1buffer__t.html">lci::buffer_t</a> payload = status.<a class="code hl_function" href="../../d9/d1e/structlci_1_1status__t.html#af92a488798a3cb358e2c0bbeb932b084">get_buffer</a>();</div>
+<div class="line">  std::string payload_str(<span class="keyword">static_cast&lt;</span><span class="keywordtype">char</span>*<span class="keyword">&gt;</span>(payload.<a class="code hl_variable" href="../../de/d63/structlci_1_1buffer__t.html#a4297e342c3f64c4298cb344774ed2e18">base</a>), payload.<a class="code hl_variable" href="../../de/d63/structlci_1_1buffer__t.html#a15dcfa1da7d806736fb21a5f22f716d7">size</a>);</div>
+<div class="line">  <span class="comment">// Active message payload buffer is allocated by the LCI runtime using</span></div>
+<div class="line">  <span class="comment">// `malloc` by default. The user are responsible for freeing it after use.</span></div>
+<div class="line">  free(payload.<a class="code hl_variable" href="../../de/d63/structlci_1_1buffer__t.html#a4297e342c3f64c4298cb344774ed2e18">base</a>);</div>
+<div class="line">  <span class="comment">// Print the hello world message.</span></div>
+<div class="line">  std::ostringstream oss;</div>
+<div class="line">  oss &lt;&lt; <span class="stringliteral">&quot;Rank &quot;</span> &lt;&lt; <a class="code hl_function" href="../../d5/dd3/namespacelci.html#a9852426eb34e7849f5b6e1db60e49500">lci::get_rank_me</a>() &lt;&lt; <span class="stringliteral">&quot; received active message from rank &quot;</span></div>
+<div class="line">      &lt;&lt; status.<a class="code hl_variable" href="../../d9/d1e/structlci_1_1status__t.html#ad0e6fb6de5142ab266d2b338178e183e">rank</a> &lt;&lt; <span class="stringliteral">&quot;. Payload: &quot;</span> &lt;&lt; payload_str &lt;&lt; std::endl;</div>
+<div class="line">  std::cout &lt;&lt; oss.str();</div>
+<div class="line">  <span class="comment">// Set the received flag to true.</span></div>
+<div class="line">  received = <span class="keyword">true</span>;</div>
+<div class="line">}</div>
+<div class="line"> </div>
+<div class="line"><span class="keywordtype">int</span> main(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span>** args)</div>
+<div class="line">{</div>
+<div class="line">  <a class="code hl_function" href="../../d5/dd3/namespacelci.html#aee337a8c81cb3397461d8cd00a2d8f71">lci::g_runtime_init</a>();</div>
+<div class="line">  <span class="comment">// We use &quot;synchronizer&quot; as the source side completion object.</span></div>
+<div class="line">  <span class="comment">// It is similar to a MPI request, but has an optional argument `threshold` to</span></div>
+<div class="line">  <span class="comment">// accept multiple signals before becoming ready.</span></div>
+<div class="line">  <a class="code hl_class" href="../../d1/da7/classlci_1_1comp__t.html">lci::comp_t</a> sync = <a class="code hl_function" href="../../d5/dd3/namespacelci.html#af302b7808e35efca489ce25644ab249e">lci::alloc_sync</a>();</div>
+<div class="line">  <span class="comment">// Register the active message handler as the target side completion object.</span></div>
+<div class="line">  <a class="code hl_class" href="../../d1/da7/classlci_1_1comp__t.html">lci::comp_t</a> handler = <a class="code hl_function" href="../../d5/dd3/namespacelci.html#a9a4b7e4a4222bd6d51f71150a927ac28">lci::alloc_handler</a>(am_handler);</div>
+<div class="line">  <span class="comment">// Since handler/cq needs to be referenced by another process, we need to</span></div>
+<div class="line">  <span class="comment">// register it into a remote completion handler.</span></div>
+<div class="line">  <span class="comment">// Since all ranks register the rcomp, all ranks will automatically have a</span></div>
+<div class="line">  <span class="comment">// symmetric view. We do not need to explicitly exchange them.</span></div>
+<div class="line">  <a class="code hl_typedef" href="../../d8/d33/group__LCI__BASIC.html#gacd46beb25126ebb7bf83b33e6381d6d2">lci::rcomp_t</a> rcomp = <a class="code hl_function" href="../../d5/dd3/namespacelci.html#a7952c7d36886b256a2c4d9be1f63aa47">lci::register_rcomp</a>(handler);</div>
+<div class="line"> </div>
+<div class="line">  <span class="comment">// Put a barrier here to ensure all ranks have registered the handler</span></div>
+<div class="line">  <a class="code hl_function" href="../../d5/dd3/namespacelci.html#ae6054124daf3cd24d181b63ccbb7ce6c">lci::barrier</a>();</div>
+<div class="line"> </div>
+<div class="line">  <span class="keywordflow">if</span> (<a class="code hl_function" href="../../d5/dd3/namespacelci.html#a9852426eb34e7849f5b6e1db60e49500">lci::get_rank_me</a>() == 0) {</div>
+<div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> target = 0; target &lt; <a class="code hl_function" href="../../d5/dd3/namespacelci.html#a6e99f95e9b71b259ea5078c23d0ff4b9">lci::get_rank_n</a>(); ++target) {</div>
+<div class="line">      <span class="comment">// Prepare the active message payload.</span></div>
+<div class="line">      std::string payload =</div>
+<div class="line">          <span class="stringliteral">&quot;Hello from rank &quot;</span> + std::to_string(<a class="code hl_function" href="../../d5/dd3/namespacelci.html#a9852426eb34e7849f5b6e1db60e49500">lci::get_rank_me</a>());</div>
+<div class="line">      <span class="comment">// Post the active message to the target rank.</span></div>
+<div class="line">      <span class="keyword">auto</span> send_buf =</div>
+<div class="line">          <span class="keyword">const_cast&lt;</span><span class="keywordtype">void</span>*<span class="keyword">&gt;</span>(<span class="keyword">static_cast&lt;</span><span class="keyword">const </span><span class="keywordtype">void</span>*<span class="keyword">&gt;</span>(payload.data()));</div>
+<div class="line">      <span class="comment">// Unlike MPI_Isend, LCI posting operation can return a status in one of</span></div>
+<div class="line">      <span class="comment">// the three states:</span></div>
+<div class="line">      <span class="comment">// 1. `retry`: the posting failed due to resource being temporarily busy,</span></div>
+<div class="line">      <span class="comment">// and the user can retry.</span></div>
+<div class="line">      <a class="code hl_struct" href="../../d9/d1e/structlci_1_1status__t.html">lci::status_t</a> status;</div>
+<div class="line">      <span class="keywordflow">do</span> {</div>
+<div class="line">        status = <a class="code hl_function" href="../../d5/dd3/namespacelci.html#a317a3e10ecb15866dc346abb2fbe4061">lci::post_am</a>(target, send_buf, payload.size(), sync, rcomp);</div>
+<div class="line">        <a class="code hl_function" href="../../d5/dd3/namespacelci.html#ad55bf2fa3c43f989f8f382fa8c41a387">lci::progress</a>();</div>
+<div class="line">      } <span class="keywordflow">while</span> (status.<a class="code hl_function" href="../../d9/d1e/structlci_1_1status__t.html#abaa9d395f7105a81a24bf3ec6b670643">is_retry</a>());</div>
+<div class="line">      <span class="comment">// 2. `posted`: the operation is posted, and the completion object will be</span></div>
+<div class="line">      <span class="comment">// signaled.</span></div>
+<div class="line">      <span class="keywordflow">if</span> (status.<a class="code hl_function" href="../../d9/d1e/structlci_1_1status__t.html#a9b8fe320747cab88b12b2eb6bdc2f970">is_posted</a>()) {</div>
+<div class="line">        <span class="keywordflow">while</span> (<a class="code hl_function" href="../../d5/dd3/namespacelci.html#ad05235498477d26522d212f4ea5000cb">lci::sync_test</a>(sync, &amp;status <span class="comment">/* can be nullptr */</span>) == <span class="keyword">false</span>) {</div>
+<div class="line">          <a class="code hl_function" href="../../d5/dd3/namespacelci.html#ad55bf2fa3c43f989f8f382fa8c41a387">lci::progress</a>();</div>
+<div class="line">        }</div>
+<div class="line">        assert(status.<a class="code hl_function" href="../../d9/d1e/structlci_1_1status__t.html#a7d4d6335a16e1060b2cf8a03c767a3b7">is_done</a>());</div>
+<div class="line">      }</div>
+<div class="line">      <span class="comment">// 3. `done`: the operation is completed, the completion object will not</span></div>
+<div class="line">      <span class="comment">// be signaled, and the user can check the status.</span></div>
+<div class="line">      assert(status.<a class="code hl_function" href="../../d9/d1e/structlci_1_1status__t.html#a7d4d6335a16e1060b2cf8a03c767a3b7">is_done</a>());</div>
+<div class="line">      <span class="comment">// at this point, all fields in the status object are valid.</span></div>
+<div class="line">    }</div>
+<div class="line">  }</div>
+<div class="line">  <span class="comment">// Wait for the active message to arrive.</span></div>
+<div class="line">  <span class="keywordflow">while</span> (!received) {</div>
+<div class="line">    <a class="code hl_function" href="../../d5/dd3/namespacelci.html#ad55bf2fa3c43f989f8f382fa8c41a387">lci::progress</a>();</div>
+<div class="line">  }</div>
+<div class="line"> </div>
+<div class="line">  <span class="comment">// Clean up the completion objects.</span></div>
+<div class="line">  <a class="code hl_function" href="../../d5/dd3/namespacelci.html#a820947e1c3c281fa0510e66d5532a43c">lci::free_comp</a>(&amp;handler);</div>
+<div class="line">  <a class="code hl_function" href="../../d5/dd3/namespacelci.html#a820947e1c3c281fa0510e66d5532a43c">lci::free_comp</a>(&amp;sync);</div>
+<div class="line"> </div>
+<div class="line">  <a class="code hl_function" href="../../d5/dd3/namespacelci.html#a701a29185fc4b076f1b8a198806fc615">lci::g_runtime_fina</a>();</div>
+<div class="line">  <span class="keywordflow">return</span> 0;</div>
+<div class="line">}</div>
+<div class="ttc" id="aclasslci_1_1comp__t_html"><div class="ttname"><a href="../../d1/da7/classlci_1_1comp__t.html">lci::comp_t</a></div><div class="ttdoc">The actual implementation for RESOURCE comp.</div><div class="ttdef"><b>Definition</b> lci_binding_pre.hpp:316</div></div>
+<div class="ttc" id="agroup__LCI__BASIC_html_gacd46beb25126ebb7bf83b33e6381d6d2"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#gacd46beb25126ebb7bf83b33e6381d6d2">lci::rcomp_t</a></div><div class="ttdeci">uint32_t rcomp_t</div><div class="ttdoc">The type of remote completion handler.</div><div class="ttdef"><b>Definition</b> lci.hpp:273</div></div>
+<div class="ttc" id="anamespacelci_html_a317a3e10ecb15866dc346abb2fbe4061"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#a317a3e10ecb15866dc346abb2fbe4061">lci::post_am</a></div><div class="ttdeci">status_t post_am(int rank_in, void *local_buffer_in, size_t size_in, comp_t local_comp_in, rcomp_t remote_comp_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:1788</div></div>
+<div class="ttc" id="anamespacelci_html_a7952c7d36886b256a2c4d9be1f63aa47"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#a7952c7d36886b256a2c4d9be1f63aa47">lci::register_rcomp</a></div><div class="ttdeci">rcomp_t register_rcomp(comp_t comp_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:1068</div></div>
+<div class="ttc" id="anamespacelci_html_a820947e1c3c281fa0510e66d5532a43c"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#a820947e1c3c281fa0510e66d5532a43c">lci::free_comp</a></div><div class="ttdeci">void free_comp(comp_t *comp_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:951</div></div>
+<div class="ttc" id="anamespacelci_html_a9a4b7e4a4222bd6d51f71150a927ac28"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#a9a4b7e4a4222bd6d51f71150a927ac28">lci::alloc_handler</a></div><div class="ttdeci">comp_t alloc_handler(comp_handler_t handler_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:1354</div></div>
+<div class="ttc" id="anamespacelci_html_ad05235498477d26522d212f4ea5000cb"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#ad05235498477d26522d212f4ea5000cb">lci::sync_test</a></div><div class="ttdeci">bool sync_test(comp_t comp_in, status_t *p_out_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:1188</div></div>
+<div class="ttc" id="anamespacelci_html_ad55bf2fa3c43f989f8f382fa8c41a387"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#ad55bf2fa3c43f989f8f382fa8c41a387">lci::progress</a></div><div class="ttdeci">error_t progress()</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:2186</div></div>
+<div class="ttc" id="anamespacelci_html_ae6054124daf3cd24d181b63ccbb7ce6c"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#ae6054124daf3cd24d181b63ccbb7ce6c">lci::barrier</a></div><div class="ttdeci">void barrier()</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:3142</div></div>
+<div class="ttc" id="anamespacelci_html_af302b7808e35efca489ce25644ab249e"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#af302b7808e35efca489ce25644ab249e">lci::alloc_sync</a></div><div class="ttdeci">comp_t alloc_sync()</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:1148</div></div>
+<div class="ttc" id="astructlci_1_1buffer__t_html"><div class="ttname"><a href="../../de/d63/structlci_1_1buffer__t.html">lci::buffer_t</a></div><div class="ttdoc">The type of a local buffer descriptor.</div><div class="ttdef"><b>Definition</b> lci.hpp:339</div></div>
+<div class="ttc" id="astructlci_1_1buffer__t_html_a15dcfa1da7d806736fb21a5f22f716d7"><div class="ttname"><a href="../../de/d63/structlci_1_1buffer__t.html#a15dcfa1da7d806736fb21a5f22f716d7">lci::buffer_t::size</a></div><div class="ttdeci">size_t size</div><div class="ttdef"><b>Definition</b> lci.hpp:341</div></div>
+<div class="ttc" id="astructlci_1_1buffer__t_html_a4297e342c3f64c4298cb344774ed2e18"><div class="ttname"><a href="../../de/d63/structlci_1_1buffer__t.html#a4297e342c3f64c4298cb344774ed2e18">lci::buffer_t::base</a></div><div class="ttdeci">void * base</div><div class="ttdef"><b>Definition</b> lci.hpp:340</div></div>
+<div class="ttc" id="astructlci_1_1status__t_html"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html">lci::status_t</a></div><div class="ttdoc">The type of the completion desciptor for a posted communication.</div><div class="ttdef"><b>Definition</b> lci.hpp:512</div></div>
+<div class="ttc" id="astructlci_1_1status__t_html_a7d4d6335a16e1060b2cf8a03c767a3b7"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html#a7d4d6335a16e1060b2cf8a03c767a3b7">lci::status_t::is_done</a></div><div class="ttdeci">bool is_done() const</div><div class="ttdef"><b>Definition</b> lci.hpp:527</div></div>
+<div class="ttc" id="astructlci_1_1status__t_html_a9b8fe320747cab88b12b2eb6bdc2f970"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html#a9b8fe320747cab88b12b2eb6bdc2f970">lci::status_t::is_posted</a></div><div class="ttdeci">bool is_posted() const</div><div class="ttdef"><b>Definition</b> lci.hpp:528</div></div>
+<div class="ttc" id="astructlci_1_1status__t_html_abaa9d395f7105a81a24bf3ec6b670643"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html#abaa9d395f7105a81a24bf3ec6b670643">lci::status_t::is_retry</a></div><div class="ttdeci">bool is_retry() const</div><div class="ttdef"><b>Definition</b> lci.hpp:529</div></div>
+<div class="ttc" id="astructlci_1_1status__t_html_ad0e6fb6de5142ab266d2b338178e183e"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html#ad0e6fb6de5142ab266d2b338178e183e">lci::status_t::rank</a></div><div class="ttdeci">int rank</div><div class="ttdef"><b>Definition</b> lci.hpp:514</div></div>
+<div class="ttc" id="astructlci_1_1status__t_html_af92a488798a3cb358e2c0bbeb932b084"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html#af92a488798a3cb358e2c0bbeb932b084">lci::status_t::get_buffer</a></div><div class="ttdeci">buffer_t get_buffer()</div><div class="ttdef"><b>Definition</b> lci.hpp:535</div></div>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md56"></a>
+Non-blocking Barrier</h3>
+<p>This examples shows the usage of the completion graph and the send/recv operations to implement a non-blocking barrier.</p>
+<p><a href="https://github.com/uiuc-hpc/lci/blob/master/examples/ibarrier.cpp">Link</a></p>
+<h3><a class="anchor" id="autotoc_md57"></a>
+Multithreaded Active Message Ping-pong</h3>
+<p>This example shows the usages of thread-local devices to speedup the active message communication in a multithreaded environment.</p>
+<p><a href="https://github.com/uiuc-hpc/lci/blob/master/examples/pingpong_am_mt.cpp">Link</a></p>
+<h1><a class="anchor" id="autotoc_md58"></a>
 Run LCI applications</h1>
 <p>In <a class="el" href="../../d2/dcd/quickstart.html">Quick Start</a>, we have shown you how to run LCI applications using <code>mpirun</code> or <code>srun</code>. Here, we will discuss the bootstrapping process in more detail.</p>
 <p>To successfully bootstrap LCI, the launcher (<code>srun</code>, <code>mpirun</code>, or <code>lcrun</code>) must match the bootstrapping backend used by LCI. Normally, LCI will automatically select the right bootstrapping backend based on the environment so no special configuration is needed. However, if you see your applications were launched as a collection of processes all with rank 0, it means something went wrong.</p>
-<h3><a class="anchor" id="autotoc_md53"></a>
+<h3><a class="anchor" id="autotoc_md59"></a>
 Bootstrapping backends</h3>
 <p>Specifically, LCI has six different bootstrapping backends:</p><ul>
 <li><code>pmi1</code>: Process Management Interface version 1.</li>
@@ -285,13 +454,13 @@ Bootstrapping backends</h3>
 <p>However, the SLURM PMI1 and PMI2 client implementation is not always the best option. For example, if you are using <code>mpirun</code>, you may want to use the PMI client library that comes with your MPI implementation. In this case, you need to find the corresponding PMI client library and link LCI to it. <code>ldd $(which mpirun)</code> will show you the PMI client library used by <code>mpirun</code>. Normally, MPICH uses <code>hydra-pmi</code>; Cray-MPICH uses <code>cray-pmi</code>; OpenMPI uses <code>pmix</code>. After finding the PMI client library, you can reconfigure LCI with the corresponding PMI client library through the <code>PMI_ROOT</code>, <code>PMI2_ROOT</code>, or <code>PMIx_ROOT</code> environment/cmake variables.</p>
 <p>A CMake variable <code>LCT_PMI_BACKEND_DEFAULT</code> and an environment variable <code>LCT_PMI_BACKEND</code> can be used to set a list of backends to try in order (if they are compiled). The first one that works will be used. The default value is <code>pmi1,pmi2,pmix,mpi,file,local</code>.</p>
 <p>You can use <code>export LCT_LOG_LEVEL=info</code> to monitor the bootstrapping procedure.</p>
-<h3><a class="anchor" id="autotoc_md54"></a>
+<h3><a class="anchor" id="autotoc_md60"></a>
 Launchers</h3>
 <p><code>srun</code> and <code>mpirun</code> should use one of the PMI backends (or <code>mpi</code> as a last resort). <code>lcrun</code> will use the <code>file</code> backend.</p>
 <p>Depending on the SLURM configuration, <code>srun</code> may not enable PMI by default. In this case, you can explicitly enable one of the PMI services by using the <code>--mpi</code> option. <code>srun --mpi=list -n 1 hostname</code> will show you the available PMI services. You can confirm whether the PMI service has been enabled with <code>srun env | grep PMI</code>.</p>
 <p><code>mpirun</code> will use the PMI client library that comes with your MPI implementation. As mentioned above, you need to link LCI to the correct PMI client library.</p>
 <p>Sometimes, <code>lcrun</code> may hang because of a previous failed run. In this case, you can remove the temporary folder <code>~/.tmp/lct_pmi_file-*</code> and try again.</p>
-<h3><a class="anchor" id="autotoc_md55"></a>
+<h3><a class="anchor" id="autotoc_md61"></a>
 More about the file backend</h3>
 <p>The <code>file</code> backend allows you to launch multiple LCI processes individually without a launcher. This can significantly ease the debugging process.</p>
 <p>For example, you can open two terminal windows and run the following commands in each window: </p><div class="fragment"><div class="line">export LCT_PMI_BACKEND=file</div>
