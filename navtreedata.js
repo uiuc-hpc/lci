@@ -38,18 +38,23 @@ var NAVTREE =
         ] ],
         [ "With Spack", "db/d4e/tutorial.html#autotoc_md49", [
           [ "Important Spack variables", "db/d4e/tutorial.html#autotoc_md50", null ]
+        ] ],
+        [ "Cluster-specific Installation Note", "db/d4e/tutorial.html#autotoc_md51", [
+          [ "NCSA Delta", "db/d4e/tutorial.html#autotoc_md52", null ],
+          [ "SDSC Expanse", "db/d4e/tutorial.html#autotoc_md53", null ],
+          [ "NERSC Perlmutter", "db/d4e/tutorial.html#autotoc_md54", null ]
         ] ]
       ] ],
-      [ "Write LCI programs", "db/d4e/tutorial.html#autotoc_md51", [
-        [ "Overview", "db/d4e/tutorial.html#autotoc_md52", null ],
-        [ "Examples", "db/d4e/tutorial.html#autotoc_md53", [
-          [ "Hello World", "db/d4e/tutorial.html#autotoc_md54", null ],
-          [ "Hello World (Active Message)", "db/d4e/tutorial.html#autotoc_md55", null ],
-          [ "Non-blocking Barrier", "db/d4e/tutorial.html#autotoc_md56", null ],
-          [ "Multithreaded Active Message Ping-pong", "db/d4e/tutorial.html#autotoc_md57", null ]
+      [ "Write LCI programs", "db/d4e/tutorial.html#autotoc_md55", [
+        [ "Overview", "db/d4e/tutorial.html#autotoc_md56", null ],
+        [ "Examples", "db/d4e/tutorial.html#autotoc_md57", [
+          [ "Hello World", "db/d4e/tutorial.html#autotoc_md58", null ],
+          [ "Hello World (Active Message)", "db/d4e/tutorial.html#autotoc_md59", null ],
+          [ "Non-blocking Barrier", "db/d4e/tutorial.html#autotoc_md60", null ],
+          [ "Multithreaded Active Message Ping-pong", "db/d4e/tutorial.html#autotoc_md61", null ]
         ] ]
       ] ],
-      [ "Run LCI applications", "db/d4e/tutorial.html#autotoc_md58", null ]
+      [ "Run LCI applications", "db/d4e/tutorial.html#autotoc_md62", null ]
     ] ],
     [ "Frequently Asked Questions", "d3/d2d/faq.html", null ],
     [ "Change Logs", "dd/dbb/changelogs.html", "dd/dbb/changelogs" ],
@@ -64,8 +69,8 @@ var NAVTREEINDEX =
 "d6/de4/classlci_1_1post__send__x.html#adcea58b5efd8a01ebfd327fbcd32ce9c",
 "d8/d48/classlci_1_1post__comm__x.html#a3a715f36e7bd1bd892825db30e47ddb1",
 "d9/d2c/classlci_1_1alloc__net__context__x.html#af847cec1d3dfb1070025eb59a7c21fe3",
-"db/dd0/classlci_1_1net__post__recv__x.html#a8fd76bdd7da5ed96c99d3d5624de2991",
-"df/d73/classlci_1_1graph__add__edge__x.html#a958771876deb0abaa8c00ab52ba388ae"
+"db/dd0/classlci_1_1net__post__recv__x.html#a1eadcec7b59044d164b112666120417b",
+"df/d73/classlci_1_1graph__add__edge__x.html#a3365585b28626943cd6e9b0dd8f97ddd"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronization';

@@ -150,46 +150,60 @@ $(function(){initNavTree('db/d4e/tutorial.html','../../'); initResizable(true); 
           </li>
         </ul>
       </li>
-    </ul>
-  </li>
-  <li class="level1">
-    <a href="#autotoc_md51">Write LCI programs</a>
-    <ul>
       <li class="level2">
-        <a href="#autotoc_md52">Overview</a>
-      </li>
-      <li class="level2">
-        <a href="#autotoc_md53">Examples</a>
+        <a href="#autotoc_md51">Cluster-specific Installation Note</a>
         <ul>
           <li class="level3">
-            <a href="#autotoc_md54">Hello World</a>
+            <a href="#autotoc_md52">NCSA Delta</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md55">Hello World (Active Message)</a>
+            <a href="#autotoc_md53">SDSC Expanse</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md56">Non-blocking Barrier</a>
-          </li>
-          <li class="level3">
-            <a href="#autotoc_md57">Multithreaded Active Message Ping-pong</a>
+            <a href="#autotoc_md54">NERSC Perlmutter</a>
           </li>
         </ul>
       </li>
     </ul>
   </li>
   <li class="level1">
-    <a href="#autotoc_md58">Run LCI applications</a>
+    <a href="#autotoc_md55">Write LCI programs</a>
+    <ul>
+      <li class="level2">
+        <a href="#autotoc_md56">Overview</a>
+      </li>
+      <li class="level2">
+        <a href="#autotoc_md57">Examples</a>
+        <ul>
+          <li class="level3">
+            <a href="#autotoc_md58">Hello World</a>
+          </li>
+          <li class="level3">
+            <a href="#autotoc_md59">Hello World (Active Message)</a>
+          </li>
+          <li class="level3">
+            <a href="#autotoc_md60">Non-blocking Barrier</a>
+          </li>
+          <li class="level3">
+            <a href="#autotoc_md61">Multithreaded Active Message Ping-pong</a>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li class="level1">
+    <a href="#autotoc_md62">Run LCI applications</a>
     <ul>
       <li class="level2 empty">
         <ul>
           <li class="level3">
-            <a href="#autotoc_md59">Bootstrapping backends</a>
+            <a href="#autotoc_md63">Bootstrapping backends</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md60">Launchers</a>
+            <a href="#autotoc_md64">Launchers</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md61">More about the file backend</a>
+            <a href="#autotoc_md65">More about the file backend</a>
           </li>
         </ul>
       </li>
@@ -283,16 +297,57 @@ Important Spack variables</h3>
 <li><code>debug</code>: define the CMake variable <code>LCI_DEBUG</code>.</li>
 <li><code>backend=[ibv|ofi]</code>: define the CMake variable <code>LCI_NETWORK_BACKENDS</code>.</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md51"></a>
+<h2><a class="anchor" id="autotoc_md51"></a>
+Cluster-specific Installation Note</h2>
+<h3><a class="anchor" id="autotoc_md52"></a>
+NCSA Delta</h3>
+<details >
+<summary >
+Click to expand</summary>
+<p></p>
+<p>tl;dr: specify the cmake variable <code>-DLCI_NETWORK_BACKENDS=ofi</code> or the Spack variable <code>backend=ofi</code> when building LCI.</p>
+<p>The only caveat is that you need to pass the -DLCI_NETWORK_BACKENDS=ofi option to CMake. This is because Delta somehow has both libibverbs and libfabric installed, but only libfabric is working.</p>
+<p>No additional <code>srun</code> arguments are needed to run LCI applications. However, we have noticed that <code>srun</code> can be broken under some mysterious module loading conditions. In such case, just use <code>srun --mpi=pmi2</code> instead. </p><details >
+<summary >
+Details</summary>
+<p></p>
+<p></p>
+</details>
+</details>
+<h3><a class="anchor" id="autotoc_md53"></a>
+SDSC Expanse</h3>
+<details >
+<summary >
+Click to expand</summary>
+<p>tl;dr: use <code>srun --mpi=pmi2</code> to run LCI applications.</p>
+<p>You don't need to do anything special to install LCI on Expanse. Just follow the instructions above. </p>
+</details>
+<h3><a class="anchor" id="autotoc_md54"></a>
+NERSC Perlmutter</h3>
+<details >
+<summary >
+Click to expand</summary>
+<p>tl;dr: <code>module load cray-pmi</code> before running the CMake command. Add cray-pmi as a Spack external package and add <code>default-pm=cray</code> when building LCI with <code>spack install</code>.</p>
+<p>LCI needs to find the Perlmutter-installed Cray-PMI library. Do <code>module load cray-pmi</code> and then run the CMake command to configure LCI. Make sure you see something like this in the output: </p><div class="fragment"><div class="line">-- Found PMI: /opt/cray/pe/pmi/6.1.15/lib/libpmi.so  </div>
+<div class="line">-- Found PMI2: /opt/cray/pe/pmi/6.1.15/lib/libpmi2.so</div>
+</div><!-- fragment --><p>When building LCI with <code>spack install</code>, you need to first add cray-pmi as a Spack external package. Put the following code in <code>~/.spack/packages.yaml</code>: </p><div class="fragment"><div class="line">cray-pmi:</div>
+<div class="line">    externals:</div>
+<div class="line">    - spec: cray-pmi@6.1.15</div>
+<div class="line">      modules:</div>
+<div class="line">      - cray-pmi/6.1.15</div>
+<div class="line">    buildable: false</div>
+</div><!-- fragment --><p> Afterwards, you can use <code>spack install lci default-pm=cray</code>. </p>
+</details>
+<h1><a class="anchor" id="autotoc_md55"></a>
 Write LCI programs</h1>
-<h2><a class="anchor" id="autotoc_md52"></a>
+<h2><a class="anchor" id="autotoc_md56"></a>
 Overview</h2>
 <p>See <code>examples</code> and <code>tests</code> for some example code.</p>
 <p>Read <a href="https://jiakunyan.github.io/source/lci_preprint.pdf">this paper</a> to comprehensively understand LCI interface and runtime design.</p>
 <p>Check out the API documentation for more details.</p>
-<h2><a class="anchor" id="autotoc_md53"></a>
+<h2><a class="anchor" id="autotoc_md57"></a>
 Examples</h2>
-<h3><a class="anchor" id="autotoc_md54"></a>
+<h3><a class="anchor" id="autotoc_md58"></a>
 Hello World</h3>
 <p>This example shows the LCI runtime lifecycle and the query of rank.</p>
 <details >
@@ -334,7 +389,7 @@ Click to expand example output</summary>
 <div class="line">Hello world from rank 0 of 4 on &lt;hostname&gt;</div>
 <div class="line">Hello world from rank 2 of 4 on &lt;hostname&gt;</div>
 </div><!-- fragment --> </details>
-<h3><a class="anchor" id="autotoc_md55"></a>
+<h3><a class="anchor" id="autotoc_md59"></a>
 Hello World (Active Message)</h3>
 <p>This example shows the usages of basic communication operations (active message) and completion mechanisms (synchronizer and handler).</p>
 <details >
@@ -459,7 +514,7 @@ Click to expand example output</summary>
 <div class="line">Rank 3 received active message from rank 0. Payload: Hello from rank 0</div>
 <div class="line">Rank 0 received active message from rank 0. Payload: Hello from rank 0</div>
 </div><!-- fragment --> </details>
-<h3><a class="anchor" id="autotoc_md56"></a>
+<h3><a class="anchor" id="autotoc_md60"></a>
 Non-blocking Barrier</h3>
 <p>This examples shows the usage of the completion graph and the send/recv operations to implement a non-blocking barrier.</p>
 <details >
@@ -601,7 +656,7 @@ Click to expand example output</summary>
 <div class="line">rank 2 end barrier</div>
 <div class="line">rank 3 end barrier</div>
 </div><!-- fragment --> </details>
-<h3><a class="anchor" id="autotoc_md57"></a>
+<h3><a class="anchor" id="autotoc_md61"></a>
 Multithreaded Active Message Ping-pong</h3>
 <p>This example shows the usages of thread-local devices to speedup the active message communication in a multithreaded environment.</p>
 <details >
@@ -791,11 +846,11 @@ Click to expand example output (Run on my laptop. Performance may vary.)</summar
 <div class="line">Message rate: 0.283399 mmsg/s</div>
 <div class="line">Bandwidth: 2.26719 MB/s</div>
 </div><!-- fragment --> </details>
-<h1><a class="anchor" id="autotoc_md58"></a>
+<h1><a class="anchor" id="autotoc_md62"></a>
 Run LCI applications</h1>
 <p>In <a class="el" href="../../d2/dcd/quickstart.html">Quick Start</a>, we have shown you how to run LCI applications using <code>mpirun</code> or <code>srun</code>. Here, we will discuss the bootstrapping process in more detail.</p>
 <p>To successfully bootstrap LCI, the launcher (<code>srun</code>, <code>mpirun</code>, or <code>lcrun</code>) must match the bootstrapping backend used by LCI. Normally, LCI will automatically select the right bootstrapping backend based on the environment so no special configuration is needed. However, if you see your applications were launched as a collection of processes all with rank 0, it means something went wrong.</p>
-<h3><a class="anchor" id="autotoc_md59"></a>
+<h3><a class="anchor" id="autotoc_md63"></a>
 Bootstrapping backends</h3>
 <p>Specifically, LCI has six different bootstrapping backends:</p><ul>
 <li><code>pmi1</code>: Process Management Interface version 1.</li>
@@ -810,13 +865,13 @@ Bootstrapping backends</h3>
 <p>However, the SLURM PMI1 and PMI2 client implementation is not always the best option. For example, if you are using <code>mpirun</code>, you may want to use the PMI client library that comes with your MPI implementation. In this case, you need to find the corresponding PMI client library and link LCI to it. <code>ldd $(which mpirun)</code> will show you the PMI client library used by <code>mpirun</code>. Normally, MPICH uses <code>hydra-pmi</code>; Cray-MPICH uses <code>cray-pmi</code>; OpenMPI uses <code>pmix</code>. After finding the PMI client library, you can reconfigure LCI with the corresponding PMI client library through the <code>PMI_ROOT</code>, <code>PMI2_ROOT</code>, or <code>PMIx_ROOT</code> environment/cmake variables.</p>
 <p>A CMake variable <code>LCT_PMI_BACKEND_DEFAULT</code> and an environment variable <code>LCT_PMI_BACKEND</code> can be used to set a list of backends to try in order (if they are compiled). The first one that works will be used. The default value is <code>pmi1,pmi2,pmix,mpi,file,local</code>.</p>
 <p>You can use <code>export LCT_LOG_LEVEL=info</code> to monitor the bootstrapping procedure.</p>
-<h3><a class="anchor" id="autotoc_md60"></a>
+<h3><a class="anchor" id="autotoc_md64"></a>
 Launchers</h3>
 <p><code>srun</code> and <code>mpirun</code> should use one of the PMI backends (or <code>mpi</code> as a last resort). <code>lcrun</code> will use the <code>file</code> backend.</p>
 <p>Depending on the SLURM configuration, <code>srun</code> may not enable PMI by default. In this case, you can explicitly enable one of the PMI services by using the <code>--mpi</code> option. <code>srun --mpi=list -n 1 hostname</code> will show you the available PMI services. You can confirm whether the PMI service has been enabled with <code>srun env | grep PMI</code>.</p>
 <p><code>mpirun</code> will use the PMI client library that comes with your MPI implementation. As mentioned above, you need to link LCI to the correct PMI client library.</p>
 <p>Sometimes, <code>lcrun</code> may hang because of a previous failed run. In this case, you can remove the temporary folder <code>~/.tmp/lct_pmi_file-*</code> and try again.</p>
-<h3><a class="anchor" id="autotoc_md61"></a>
+<h3><a class="anchor" id="autotoc_md65"></a>
 More about the file backend</h3>
 <p>The <code>file</code> backend allows you to launch multiple LCI processes individually without a launcher. This can significantly ease the debugging process.</p>
 <p>For example, you can open two terminal windows and run the following commands in each window: </p><div class="fragment"><div class="line">export LCT_PMI_BACKEND=file</div>

@@ -8,9 +8,9 @@ var searchData=
   ['with_20rank_200_5',['Why was my LCI application launched as a collection of processes all with rank 0?',['../d3/d2d/faq.html#autotoc_md36',1,'']]],
   ['with_20spack_6',['With Spack',['../db/d4e/tutorial.html#autotoc_md49',1,'']]],
   ['work_7',['Why does &lt;tt&gt;lcrun&lt;/tt&gt; not work?',['../d3/d2d/faq.html#autotoc_md37',1,'']]],
-  ['world_8',['Hello World',['../db/d4e/tutorial.html#autotoc_md54',1,'']]],
-  ['world_20active_20message_9',['Hello World (Active Message)',['../db/d4e/tutorial.html#autotoc_md55',1,'']]],
+  ['world_8',['Hello World',['../db/d4e/tutorial.html#autotoc_md58',1,'']]],
+  ['world_20active_20message_9',['Hello World (Active Message)',['../db/d4e/tutorial.html#autotoc_md59',1,'']]],
   ['write_10',['WRITE',['../d8/d33/group__LCI__BASIC.html#gga5738a9cd7c46e12f45e2fbf0fca0b895ad4b9e47f65b6e79b010582f15785867e',1,'lci']]],
   ['write_11',['write',['../d5/dd3/namespacelci.html#a5d9fc0c5909442efe3ed8c69fea17cd8aefb2a684e4afb7d55e6147fbe5a332ee',1,'lci']]],
-  ['write_20lci_20programs_12',['Write LCI programs',['../db/d4e/tutorial.html#autotoc_md51',1,'']]]
+  ['write_20lci_20programs_12',['Write LCI programs',['../db/d4e/tutorial.html#autotoc_md55',1,'']]]
 ];

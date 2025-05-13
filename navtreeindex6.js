@@ -1,5 +1,9 @@
 var NAVTREEINDEX6 =
 {
+"df/d73/classlci_1_1graph__add__edge__x.html#a3365585b28626943cd6e9b0dd8f97ddd":[5,6,13,0,1],
+"df/d73/classlci_1_1graph__add__edge__x.html#a39e93f4b22bf82dbb6abe51e9fc26fdd":[5,6,13,0,0],
+"df/d73/classlci_1_1graph__add__edge__x.html#a3aba9b4de676a4a1e73dba7329c31c06":[5,6,13,0,4],
+"df/d73/classlci_1_1graph__add__edge__x.html#a5dd3453f4b420ce4ddc79ece25da243b":[5,6,13,0,5],
 "df/d73/classlci_1_1graph__add__edge__x.html#a958771876deb0abaa8c00ab52ba388ae":[5,6,13,0,6],
 "df/d73/classlci_1_1graph__add__edge__x.html#aa016c17ef0d1ed7457393038e763430c":[5,6,13,0,11],
 "df/d73/classlci_1_1graph__add__edge__x.html#aaf605acd346ea0fad4733e3131c667b3":[5,6,13,0,3],
