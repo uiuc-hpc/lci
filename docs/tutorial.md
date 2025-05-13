@@ -104,6 +104,51 @@ spack install lci
 - `debug`: define the CMake variable `LCI_DEBUG`.
 - `backend=[ibv|ofi]`: define the CMake variable `LCI_NETWORK_BACKENDS`.
 
+## Cluster-specific Installation Note
+### NCSA Delta
+
+<details>
+<summary>Click to expand</summary>
+
+tl;dr: specify the cmake variable `-DLCI_NETWORK_BACKENDS=ofi` or the Spack variable `backend=ofi` when building LCI.
+
+The only caveat is that you need to pass the -DLCI_NETWORK_BACKENDS=ofi option to CMake. This is because Delta somehow has both libibverbs and libfabric installed, but only libfabric is working.
+
+No additional `srun` arguments are needed to run LCI applications. However, we have noticed that `srun` can be broken under some mysterious module loading conditions. In such case, just use `srun --mpi=pmi2` instead.
+<details>
+
+### SDSC Expanse
+
+<details>
+<summary>Click to expand</summary>
+tl;dr: use `srun --mpi=pmi2` to run LCI applications.
+
+You don't need to do anything special to install LCI on Expanse. Just follow the instructions above.
+</details>
+
+### NERSC Perlmutter
+<details>
+<summary>Click to expand</summary>
+tl;dr: `module load cray-pmi` before running the CMake command. Add cray-pmi as a Spack external package and add `default-pm=cray` when building LCI with `spack install`.
+
+LCI needs to find the Perlmutter-installed Cray-PMI library. Do `module load cray-pmi` and then run the CMake command to configure LCI. Make sure you see something like this in the output:
+```
+-- Found PMI: /opt/cray/pe/pmi/6.1.15/lib/libpmi.so  
+-- Found PMI2: /opt/cray/pe/pmi/6.1.15/lib/libpmi2.so
+```
+
+When building LCI with `spack install`, you need to first add cray-pmi as a Spack external package. Put the following code in `~/.spack/packages.yaml`:
+```
+  cray-pmi:
+      externals:
+      - spec: cray-pmi@6.1.15
+        modules:
+        - cray-pmi/6.1.15
+      buildable: false
+```
+Afterwards, you can use `spack install lci default-pm=cray`.
+</details>
+
 # Write LCI programs
 
 ## Overview
