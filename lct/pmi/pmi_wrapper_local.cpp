@@ -26,8 +26,8 @@ int check_availability()
         "\t(a) set up the PMI2 environment by `srun --mpi=pmi2 "
         "[application]`.\n"
         "\t(b) set PMIX_ROOT when configuring LCT to enable the PMIx support.\n"
-        "\t(c) set MPI_ROOT when configuring LCT to enable the MPI support "
-        "(last resort).\n");
+        "\t(c) pass `-DLCT_PMI_BACKEND_ENABLE_MPI=ON` and set MPI_ROOT when "
+        "configuring LCT to enable the MPI support.\n");
 #endif
   return true;
 }
