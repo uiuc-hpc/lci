@@ -186,6 +186,13 @@ var NAVTREEINDEX4 =
 "db/d4e/tutorial.html#autotoc_md60":[2,2,1,2],
 "db/d4e/tutorial.html#autotoc_md61":[2,2,1,3],
 "db/d4e/tutorial.html#autotoc_md62":[2,3],
+"db/d4e/tutorial.html#autotoc_md63":[0],
+"db/d4e/tutorial.html#autotoc_md64":[1],
+"db/d4e/tutorial.html#autotoc_md65":[2],
+"db/d4e/tutorial.html#autotoc_md66":[2,3,0],
+"db/d4e/tutorial.html#autotoc_md67":[2,3,0,3],
+"db/d4e/tutorial.html#autotoc_md68":[2,3,0,4],
+"db/d4e/tutorial.html#autotoc_md69":[2,3,0,5],
 "db/d53/classlci_1_1free__endpoint__x.html":[5,2,5,0],
 "db/d53/classlci_1_1free__endpoint__x.html#a3908fe4a9a1e076859c354d7c627fc5e":[5,2,5,0,4],
 "db/d53/classlci_1_1free__endpoint__x.html#a6549a1bca5543d8872252dbe85e615a2":[5,2,5,0,6],
@@ -242,12 +249,5 @@ var NAVTREEINDEX4 =
 "db/d54/classlci_1_1post__get__x.html#afa8dc94772275fcea9a20a5c5c890480":[5,5,5,0,3],
 "db/db4/classlci_1_1get__rank__n__x.html":[5,1,1,0],
 "db/db4/classlci_1_1get__rank__n__x.html#a8e725bdd606fdf81f49ae8e859a4d99e":[5,1,1,0,2],
-"db/db4/classlci_1_1get__rank__n__x.html#a93794a0207bdeb2f4ae0ec4b09a94ccf":[5,1,1,0,1],
-"db/db4/classlci_1_1get__rank__n__x.html#aa43d44e09389aa0cb17f9400ac157bf0":[5,1,1,0,3],
-"db/db4/classlci_1_1get__rank__n__x.html#ad3219a77575dd3d7c70585223374b5c5":[5,1,1,0,0],
-"db/dc3/group__LCI__POST__SEND.html":[5,5,2],
-"db/dc7/group__LCI__MR.html":[5,3,3],
-"db/dd0/classlci_1_1net__post__recv__x.html":[5,4,1,0],
-"db/dd0/classlci_1_1net__post__recv__x.html#a07f97fc04976168db462447700026eeb":[5,4,1,0,7],
-"db/dd0/classlci_1_1net__post__recv__x.html#a0b0f365f33fe8089350e2a7d8070b218":[5,4,1,0,15]
+"db/db4/classlci_1_1get__rank__n__x.html#a93794a0207bdeb2f4ae0ec4b09a94ccf":[5,1,1,0,1]
 };

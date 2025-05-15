@@ -197,13 +197,27 @@ $(function(){initNavTree('db/d4e/tutorial.html','../../'); initResizable(true); 
       <li class="level2 empty">
         <ul>
           <li class="level3">
-            <a href="#autotoc_md63">Bootstrapping backends</a>
+            <a href="#autotoc_md63">Run LCI applications with lcrun</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md64">Launchers</a>
+            <a href="#autotoc_md64">Run LCI applications with srun</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md65">More about the file backend</a>
+            <a href="#autotoc_md65">Run LCI applications with mpirun</a>
+          </li>
+        </ul>
+      </li>
+      <li class="level2">
+        <a href="#autotoc_md66">More details</a>
+        <ul>
+          <li class="level3">
+            <a href="#autotoc_md67">Bootstrapping backends</a>
+          </li>
+          <li class="level3">
+            <a href="#autotoc_md68">Launchers</a>
+          </li>
+          <li class="level3">
+            <a href="#autotoc_md69">More about the file backend</a>
           </li>
         </ul>
       </li>
@@ -851,6 +865,20 @@ Run LCI applications</h1>
 <p>In <a class="el" href="../../d2/dcd/quickstart.html">Quick Start</a>, we have shown you how to run LCI applications using <code>mpirun</code> or <code>srun</code>. Here, we will discuss the bootstrapping process in more detail.</p>
 <p>To successfully bootstrap LCI, the launcher (<code>srun</code>, <code>mpirun</code>, or <code>lcrun</code>) must match the bootstrapping backend used by LCI. Normally, LCI will automatically select the right bootstrapping backend based on the environment so no special configuration is needed. However, if you see your applications were launched as a collection of processes all with rank 0, it means something went wrong.</p>
 <h3><a class="anchor" id="autotoc_md63"></a>
+Run LCI applications with lcrun</h3>
+<p>You do not need to do anything special to run LCI applications with <code>lcrun</code>. However, <code>lcrun</code> is a "toy" launcher that is not as scalable as <code>srun</code> or <code>mpirun</code>. It is mainly used for testing and debugging purposes.</p>
+<p>If you ever encounter a problem with <code>lcrun</code>, you can remove the temporary folder <code>~/.tmp/lct_pmi_file-*</code> and try again.</p>
+<h3><a class="anchor" id="autotoc_md64"></a>
+Run LCI applications with srun</h3>
+<p>LCI is shipped with a copy of the SLURM PMI1 and PMI2 client implementation, so normally you can use <code>srun</code> to run LCI applications without any extra configuration. You may need to explicitly enable the pmi2 support by <code>srun --mpi=pmi2</code>.</p>
+<p>On Cray systems, you may need to load the <code>cray-pmi</code> module before building LCI as <code>srun</code> on some Cray systems only supports Cray PMI.</p>
+<h3><a class="anchor" id="autotoc_md65"></a>
+Run LCI applications with mpirun</h3>
+<p>Because there are many different MPI implementations and there are no standard about how they implement <code>mpirun</code>, it is slightly more complicated to run LCI applications with <code>mpirun</code>. In such cases, the easiest way is to let LCI use MPI to bootstrap. You just need to set the CMake variable <code>LCT_PMI_BACKEND_ENABLE_MPI=ON</code> and link LCI to MPI.</p>
+<p>It is possible to directly use the PMI backend with <code>mpirun</code>, but you need to find the corresponding PMI client library and link LCI to it. Read the following section for more details.</p>
+<h2><a class="anchor" id="autotoc_md66"></a>
+More details</h2>
+<h3><a class="anchor" id="autotoc_md67"></a>
 Bootstrapping backends</h3>
 <p>Specifically, LCI has six different bootstrapping backends:</p><ul>
 <li><code>pmi1</code>: Process Management Interface version 1.</li>
@@ -865,13 +893,13 @@ Bootstrapping backends</h3>
 <p>However, the SLURM PMI1 and PMI2 client implementation is not always the best option. For example, if you are using <code>mpirun</code>, you may want to use the PMI client library that comes with your MPI implementation. In this case, you need to find the corresponding PMI client library and link LCI to it. <code>ldd $(which mpirun)</code> will show you the PMI client library used by <code>mpirun</code>. Normally, MPICH uses <code>hydra-pmi</code>; Cray-MPICH uses <code>cray-pmi</code>; OpenMPI uses <code>pmix</code>. After finding the PMI client library, you can reconfigure LCI with the corresponding PMI client library through the <code>PMI_ROOT</code>, <code>PMI2_ROOT</code>, or <code>PMIx_ROOT</code> environment/cmake variables.</p>
 <p>A CMake variable <code>LCT_PMI_BACKEND_DEFAULT</code> and an environment variable <code>LCT_PMI_BACKEND</code> can be used to set a list of backends to try in order (if they are compiled). The first one that works will be used. The default value is <code>pmi1,pmi2,pmix,mpi,file,local</code>.</p>
 <p>You can use <code>export LCT_LOG_LEVEL=info</code> to monitor the bootstrapping procedure.</p>
-<h3><a class="anchor" id="autotoc_md64"></a>
+<h3><a class="anchor" id="autotoc_md68"></a>
 Launchers</h3>
 <p><code>srun</code> and <code>mpirun</code> should use one of the PMI backends (or <code>mpi</code> as a last resort). <code>lcrun</code> will use the <code>file</code> backend.</p>
 <p>Depending on the SLURM configuration, <code>srun</code> may not enable PMI by default. In this case, you can explicitly enable one of the PMI services by using the <code>--mpi</code> option. <code>srun --mpi=list -n 1 hostname</code> will show you the available PMI services. You can confirm whether the PMI service has been enabled with <code>srun env | grep PMI</code>.</p>
 <p><code>mpirun</code> will use the PMI client library that comes with your MPI implementation. As mentioned above, you need to link LCI to the correct PMI client library.</p>
 <p>Sometimes, <code>lcrun</code> may hang because of a previous failed run. In this case, you can remove the temporary folder <code>~/.tmp/lct_pmi_file-*</code> and try again.</p>
-<h3><a class="anchor" id="autotoc_md65"></a>
+<h3><a class="anchor" id="autotoc_md69"></a>
 More about the file backend</h3>
 <p>The <code>file</code> backend allows you to launch multiple LCI processes individually without a launcher. This can significantly ease the debugging process.</p>
 <p>For example, you can open two terminal windows and run the following commands in each window: </p><div class="fragment"><div class="line">export LCT_PMI_BACKEND=file</div>
