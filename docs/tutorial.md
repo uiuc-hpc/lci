@@ -269,6 +269,26 @@ In [Quick Start](@ref quickstart), we have shown you how to run LCI applications
 
 To successfully bootstrap LCI, the launcher (`srun`, `mpirun`, or `lcrun`) must match the bootstrapping backend used by LCI. Normally, LCI will automatically select the right bootstrapping backend based on the environment so no special configuration is needed. However, if you see your applications were launched as a collection of processes all with rank 0, it means something went wrong.
 
+### Run LCI applications with lcrun
+
+You do not need to do anything special to run LCI applications with `lcrun`. However, `lcrun` is a "toy" launcher that is not as scalable as `srun` or `mpirun`. It is mainly used for testing and debugging purposes.
+
+If you ever encounter a problem with `lcrun`, you can remove the temporary folder `~/.tmp/lct_pmi_file-*` and try again.
+
+### Run LCI applications with srun
+
+LCI is shipped with a copy of the SLURM PMI1 and PMI2 client implementation, so normally you can use `srun` to run LCI applications without any extra configuration. You may need to explicitly enable the pmi2 support by `srun --mpi=pmi2`.
+
+On Cray systems, you may need to load the `cray-pmi` module before building LCI as `srun` on some Cray systems only supports Cray PMI.
+
+### Run LCI applications with mpirun
+
+Because there are many different MPI implementations and there are no standard about how they implement `mpirun`, it is slightly more complicated to run LCI applications with `mpirun`. In such cases, the easiest way is to let LCI use MPI to bootstrap. You just need to set the CMake variable `LCT_PMI_BACKEND_ENABLE_MPI=ON` and link LCI to MPI.
+
+It is possible to directly use the PMI backend with `mpirun`, but you need to find the corresponding PMI client library and link LCI to it. Read the following section for more details.
+
+## More details
+
 ### Bootstrapping backends
 
 Specifically, LCI has six different bootstrapping backends:
