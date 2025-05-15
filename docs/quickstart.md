@@ -82,20 +82,37 @@ This will create an executable called `hello_world` in the `build` directory.
 You can run the executable using `lcrun` (on laptop) or `srun` (on cluster):
 
 On your laptop:
+<details>
+<summary>Click to expand code</summary>
 ```bash
 cd /path/to/lci_project/build
 # you can copy the `lcrun` script to wherever you want
 ./_deps/lci-src/lcrun -n 4 ./hello_world
 ```
 `lcrun` is a script that can be used to run LCI applications. It is similar to `mpirun` or `srun`, but not as scalable. It is a good tool for fast testing and debugging.
+</details>
 
-On a cluster:
+On a SLURM cluster:
+<details>
+<summary>Click to expand code</summary>
 ```bash
 cd /path/to/lci_project/build
 # get an interactive node or submit a job with sbatch
 srun --mpi=pmi2 -n 4 ./hello_world
 ```
 `--mpi=pmi2` makes sure that `srun` enables its PMI2 support. It is typically the default option for `srun`, so you may not need to specify it.
+</details>
+
+On a PBS cluster
+<details>
+<summary>Click to expand code</summary>
+```bash
+cd /path/to/lci_project/build
+# get an interactive node or submit a job with sbatch
+mpirun -n 4 ./hello_world
+```
+You will need to explicitly tell LCI to use MPI to bootstrap. You can do this by passing `-DLCT_PMI_BACKEND_ENABLE_MPI=ON` to cmake when you configure LCI.
+</details>
 
 You should see the following output (the order of the output may vary):
 ```

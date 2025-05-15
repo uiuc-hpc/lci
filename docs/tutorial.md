@@ -154,7 +154,7 @@ Afterwards, you can use `spack install lci default-pm=cray`.
 ## Overview
 See `examples` and `tests` for some example code.
 
-Read [this paper](https://jiakunyan.github.io/source/lci_preprint.pdf) to comprehensively understand LCI interface and runtime design. 
+Read [this paper](https://arxiv.org/abs/2505.01864) to comprehensively understand LCI interface and runtime design. 
 
 <!-- TODO: Add more examples and tests. -->
 
