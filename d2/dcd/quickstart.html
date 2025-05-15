@@ -197,14 +197,30 @@ Create a project</h2>
 <div class="line">make</div>
 </div><!-- fragment --><p> This will create an executable called <code>hello_world</code> in the <code>build</code> directory.</p>
 <p>You can run the executable using <code>lcrun</code> (on laptop) or <code>srun</code> (on cluster):</p>
-<p>On your laptop: </p><div class="fragment"><div class="line">cd /path/to/lci_project/build</div>
+<p>On your laptop: </p><details >
+<summary >
+Click to expand code</summary>
+<div class="fragment"><div class="line">cd /path/to/lci_project/build</div>
 <div class="line"># you can copy the `lcrun` script to wherever you want</div>
 <div class="line">./_deps/lci-src/lcrun -n 4 ./hello_world</div>
-</div><!-- fragment --><p> <code>lcrun</code> is a script that can be used to run LCI applications. It is similar to <code>mpirun</code> or <code>srun</code>, but not as scalable. It is a good tool for fast testing and debugging.</p>
-<p>On a cluster: </p><div class="fragment"><div class="line">cd /path/to/lci_project/build</div>
+</div><!-- fragment --><p> <code>lcrun</code> is a script that can be used to run LCI applications. It is similar to <code>mpirun</code> or <code>srun</code>, but not as scalable. It is a good tool for fast testing and debugging. </p>
+</details>
+<p>On a SLURM cluster: </p><details >
+<summary >
+Click to expand code</summary>
+<div class="fragment"><div class="line">cd /path/to/lci_project/build</div>
 <div class="line"># get an interactive node or submit a job with sbatch</div>
 <div class="line">srun --mpi=pmi2 -n 4 ./hello_world</div>
-</div><!-- fragment --><p> <code>--mpi=pmi2</code> makes sure that <code>srun</code> enables its PMI2 support. It is typically the default option for <code>srun</code>, so you may not need to specify it.</p>
+</div><!-- fragment --><p> <code>--mpi=pmi2</code> makes sure that <code>srun</code> enables its PMI2 support. It is typically the default option for <code>srun</code>, so you may not need to specify it. </p>
+</details>
+<p>On a PBS cluster </p><details >
+<summary >
+Click to expand code</summary>
+<div class="fragment"><div class="line">cd /path/to/lci_project/build</div>
+<div class="line"># get an interactive node or submit a job with sbatch</div>
+<div class="line">mpirun -n 4 ./hello_world</div>
+</div><!-- fragment --><p> You will need to explicitly tell LCI to use MPI to bootstrap. You can do this by passing <code>-DLCT_PMI_BACKEND_ENABLE_MPI=ON</code> to cmake when you configure LCI. </p>
+</details>
 <p>You should see the following output (the order of the output may vary): </p><div class="fragment"><div class="line">Hello world from rank 1 of 4 on &lt;hostname&gt;</div>
 <div class="line">Hello world from rank 3 of 4 on &lt;hostname&gt;</div>
 <div class="line">Hello world from rank 0 of 4 on &lt;hostname&gt;</div>
