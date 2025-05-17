@@ -18,7 +18,12 @@ include(AddLCI)
 # ##############################################################################
 # General Options
 # ##############################################################################
-option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+set(BUILD_SHARED_LIBS_DEFAULT ON)
+if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  set(BUILD_SHARED_LIBS_DEFAULT OFF)
+endif()
+option(BUILD_SHARED_LIBS "Build using shared libraries"
+       ${BUILD_SHARED_LIBS_DEFAULT})
 
 # ##############################################################################
 # LCT options
@@ -34,7 +39,7 @@ set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 target_include_directories(LCT PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(LCT PUBLIC Threads::Threads)
+target_link_libraries(LCT PRIVATE Threads::Threads)
 add_subdirectory(lct)
 
 if(NOT LCI_WITH_LCT_ONLY)
@@ -128,6 +133,7 @@ if(NOT LCI_WITH_LCT_ONLY)
   option(LCI_ENABLE_MULTITHREAD_PROGRESS
          "LCI_progress can be called by multiple threads simultaneously" ON)
   option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
+  # LCI_COMPILE_DREG
   set(LCI_COMPILE_DREG_DEFAULT ON)
   if(LCI_USE_SERVER_UCX OR APPLE)
     # Our UCS code can be non-compatible with external UCX. Some UCS code is not
@@ -136,10 +142,16 @@ if(NOT LCI_WITH_LCT_ONLY)
   endif()
   set(LCI_COMPILE_DREG
       ${LCI_COMPILE_DREG_DEFAULT}
-      CACHE STRING "Whether to compile the registration cache code")
+      CACHE BOOL "Whether to compile the registration cache code")
+  # LCI_USE_DREG
+  if(LCI_USE_SERVER_IBV AND LCI_COMPILE_DREG)
+    set(_LCI_USE_DREG_DEFAULT ON)
+  else()
+    set(_LCI_USE_DREG_DEFAULT OFF)
+  endif()
   set(LCI_USE_DREG_DEFAULT
-      ${LCI_USE_SERVER_IBV}
-      CACHE STRING "Whether to use registration cache")
+      ${_LCI_USE_DREG_DEFAULT}
+      CACHE BOOL "Whether to use registration cache")
   set(LCI_PACKET_SIZE_DEFAULT
       12288
       CACHE STRING "Size of packet")
@@ -265,11 +277,12 @@ if(NOT LCI_WITH_LCT_ONLY)
                C_STANDARD 11
                C_EXTENSIONS ON)
   target_compile_definitions(LCI PRIVATE _GNU_SOURCE)
-  target_link_libraries(LCI PUBLIC Threads::Threads LCT)
+  target_link_libraries(LCI PUBLIC LCT)
+  target_link_libraries(LCI PRIVATE Threads::Threads)
   if(FABRIC STREQUAL UCX)
-    target_link_libraries(LCI PUBLIC ucx::ucp)
+    target_link_libraries(LCI PRIVATE ucx::ucp)
   else()
-    target_link_libraries(LCI PUBLIC ${FABRIC}::${FABRIC})
+    target_link_libraries(LCI PRIVATE ${FABRIC}::${FABRIC})
   endif()
   if(LCI_USE_AVX)
     target_compile_options(LCI PUBLIC -mavx)
@@ -317,7 +330,7 @@ endif()
 # ##############################################################################
 # Install
 # ##############################################################################
-option(LCI_FETCHCONTENT_INSTALL "Install LCI when using FetchContent" ON)
+option(LCI_FETCHCONTENT_INSTALL "Install LCI when using FetchContent" OFF)
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR
    OR LCI_FETCHCONTENT_INSTALL)
   set(PKGCONFIG_REQUIRES_PRIVATE ${Fabric_${FABRIC}_PC_Requires})
@@ -348,13 +361,6 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR
       EXPORT LCITargets
       ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
       LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-    if(TARGET lci-ucx)
-      install(
-        TARGETS lci-ucx
-        EXPORT LCITargets
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-    endif()
     install(
       DIRECTORY lci/api/ ${CMAKE_CURRENT_BINARY_DIR}/lci/api/
       DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
@@ -362,11 +368,6 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR
       PATTERN "*.h")
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/liblci.pc"
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/Find${FABRIC}.cmake")
-      install(
-        FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/Find${FABRIC}.cmake"
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LCI)
-    endif()
     install(PROGRAMS lcrun DESTINATION ${CMAKE_INSTALL_BINDIR})
   endif()
   install(
