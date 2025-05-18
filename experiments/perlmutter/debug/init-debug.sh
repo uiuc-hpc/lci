@@ -49,7 +49,7 @@ cmake -DCMAKE_INSTALL_PREFIX=${LCI_INSTALL_PATH} \
       -DLCI_SERVER=ofi \
       -DLCI_PM_BACKEND=mpi \
       -DLCI_USE_DREG=OFF \
-      -DSRUN_EXE=srun \
+      -DLCI_USE_CTEST_EXE=srun \
       -L \
       ${LCI_SOURCE_PATH} | tee init-cmake.log 2>&1 || { echo "cmake error!"; exit 1; }
 cmake -LAH . >> init-cmake.log
