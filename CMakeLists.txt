@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 
 project(
   LCI
-  VERSION 1.7.8
+  VERSION 1.7.9
   DESCRIPTION "Lightweight Communication Interface"
   HOMEPAGE_URL "https://github.com/uiuc-hpc/lci")
 
