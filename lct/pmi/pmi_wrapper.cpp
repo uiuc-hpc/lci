@@ -23,6 +23,8 @@ void LCT_pmi_initialize()
   while ((word = strtok_r(rest, " ;,", &rest))) {
     if (strcmp(word, "local") == 0) {
       lct::pmi::local_setup_ops(&lcti_pmi_ops);
+    } else if (strcmp(word, "file") == 0) {
+      lct::pmi::file_setup_ops(&lcti_pmi_ops);
     } else if (strcmp(word, "pmi1") == 0) {
 #ifdef LCT_PMI_BACKEND_ENABLE_PMI1
       lct::pmi::pmi1_setup_ops(&lcti_pmi_ops);
@@ -56,10 +58,10 @@ void LCT_pmi_initialize()
       continue;
 #endif
     } else
-      LCT_Assert(
-          LCT_log_ctx_default, false,
-          "Unknown env LCM_PM_BACKEND (%s against local|pmi1|pmi2|pmix|mpi).\n",
-          word);
+      LCT_Assert(LCT_log_ctx_default, false,
+                 "Unknown env LCM_PMI_BACKEND (%s against "
+                 "local|file|pmi1|pmi2|pmix|mpi).\n",
+                 word);
     if (lcti_pmi_ops.check_availability()) {
       LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "pmi",
               "Use %s as the PMI backend.\n", word);

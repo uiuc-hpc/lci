@@ -19,8 +19,7 @@ namespace pmix
       exit(1);                                                              \
     }                                                                       \
   }                                                                         \
-  while (0)                                                                 \
-    ;
+  while (0)
 
 pmix_proc_t proc_me;
 pmix_proc_t proc_wild;

@@ -29,6 +29,7 @@
 
 # Vscode related
 .vscode/
+vscode-build/
 build/
 
 # CLion related
@@ -37,10 +38,10 @@ cmake-build-*
 
 # Spack related
 spack-*
+build-*
 
 results
 errors
 *_test
-build-*/
 code_doc/
 __pycache__
