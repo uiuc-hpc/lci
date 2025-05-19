@@ -37,3 +37,4 @@ endif()
 
 add_subdirectory(loopback)
 add_subdirectory(collective)
+add_subdirectory(cxx11)

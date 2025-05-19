@@ -625,6 +625,7 @@ namespace lci
 /***********************************************************************
  * Overloading graph_add_node for functor
  **********************************************************************/
+#if __cplusplus >= 201703L
 template <typename T>
 status_t graph_execute_op_fn(void* value)
 {
@@ -642,6 +643,44 @@ status_t graph_execute_op_fn(void* value)
     return errorcode_t::done;
   }
 }
+#else
+// Specialization for status_t return type
+template <typename T>
+typename std::enable_if<
+    std::is_same<typename std::result_of<T()>::type, status_t>::value,
+    status_t>::type
+graph_execute_op_fn(void* value)
+{
+  auto op = static_cast<T*>(value);
+  status_t result = (*op)();
+  return result;
+}
+
+// Specialization for errorcode_t return type
+template <typename T>
+typename std::enable_if<
+    std::is_same<typename std::result_of<T()>::type, errorcode_t>::value,
+    status_t>::type
+graph_execute_op_fn(void* value)
+{
+  auto op = static_cast<T*>(value);
+  errorcode_t result = (*op)();
+  return result;
+}
+
+// Specialization for all other return types
+template <typename T>
+typename std::enable_if<
+    !std::is_same<typename std::result_of<T()>::type, status_t>::value &&
+        !std::is_same<typename std::result_of<T()>::type, errorcode_t>::value,
+    status_t>::type
+graph_execute_op_fn(void* value)
+{
+  auto op = static_cast<T*>(value);
+  (*op)();
+  return errorcode_t::done;
+}
+#endif
 
 template <typename T>
 void graph_free_op_fn(void* value)
