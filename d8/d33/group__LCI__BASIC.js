@@ -174,7 +174,7 @@ var group__LCI__BASIC =
     [ "lci::graph_add_node_op", "d8/d33/group__LCI__BASIC.html#ga04913a1823ea2481cf7ba1284c7abc64", null ],
     [ "lci::ANY_SOURCE", "d8/d33/group__LCI__BASIC.html#ga2eb725e3815aaad107fd100582e07853", null ],
     [ "lci::ANY_TAG", "d8/d33/group__LCI__BASIC.html#ga8926aae474cb13ad959bd7481a5cf41b", null ],
-    [ "lci::COMP_NULL_EXPECT_OK", "d8/d33/group__LCI__BASIC.html#gad8190f461b3c544f7ac90660a5efd4d2", null ],
-    [ "lci::COMP_NULL_EXPECT_OK_OR_RETRY", "d8/d33/group__LCI__BASIC.html#ga9e147637f3d6d6f80e7a208c076568dc", null ],
+    [ "lci::COMP_NULL_EXPECT_DONE", "d8/d33/group__LCI__BASIC.html#gaaba5620658f664e6c9543e3b440586d4", null ],
+    [ "lci::COMP_NULL_EXPECT_DONE_OR_RETRY", "d8/d33/group__LCI__BASIC.html#gaed080bd0026ce8a7f15a2a9d0a147989", null ],
     [ "lci::GRAPH_START", "d8/d33/group__LCI__BASIC.html#gad252b9870b3459000f93aaed9ba31a75", null ]
 ];

@@ -274,12 +274,12 @@ Variables</h2></td></tr>
 <tr class="memitem:ga8926aae474cb13ad959bd7481a5cf41b" id="r_ga8926aae474cb13ad959bd7481a5cf41b"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="#gaed3bf62f9de2087c7e7b0bcbe89ef151">tag_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga8926aae474cb13ad959bd7481a5cf41b">lci::ANY_TAG</a> = -1</td></tr>
 <tr class="memdesc:ga8926aae474cb13ad959bd7481a5cf41b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Special tag value for any-tag receive.  <br /></td></tr>
 <tr class="separator:ga8926aae474cb13ad959bd7481a5cf41b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gad8190f461b3c544f7ac90660a5efd4d2" id="r_gad8190f461b3c544f7ac90660a5efd4d2"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gad8190f461b3c544f7ac90660a5efd4d2">lci::COMP_NULL_EXPECT_OK</a> = <a class="el" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a>(reinterpret_cast&lt;<a class="el" href="../../d9/d97/classlci_1_1comp__impl__t.html">comp_impl_t</a>*&gt;(0x1))</td></tr>
-<tr class="memdesc:gad8190f461b3c544f7ac90660a5efd4d2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Special completion object setting <code>allow_posted</code> to false.  <br /></td></tr>
-<tr class="separator:gad8190f461b3c544f7ac90660a5efd4d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga9e147637f3d6d6f80e7a208c076568dc" id="r_ga9e147637f3d6d6f80e7a208c076568dc"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga9e147637f3d6d6f80e7a208c076568dc">lci::COMP_NULL_EXPECT_OK_OR_RETRY</a></td></tr>
-<tr class="memdesc:ga9e147637f3d6d6f80e7a208c076568dc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Special completion object setting <code>allow_posted</code> and <code>allow_retry</code> to false.  <br /></td></tr>
-<tr class="separator:ga9e147637f3d6d6f80e7a208c076568dc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaaba5620658f664e6c9543e3b440586d4" id="r_gaaba5620658f664e6c9543e3b440586d4"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gaaba5620658f664e6c9543e3b440586d4">lci::COMP_NULL_EXPECT_DONE</a></td></tr>
+<tr class="memdesc:gaaba5620658f664e6c9543e3b440586d4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Special completion object setting <code>allow_posted</code> to false.  <br /></td></tr>
+<tr class="separator:gaaba5620658f664e6c9543e3b440586d4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaed080bd0026ce8a7f15a2a9d0a147989" id="r_gaed080bd0026ce8a7f15a2a9d0a147989"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gaed080bd0026ce8a7f15a2a9d0a147989">lci::COMP_NULL_EXPECT_DONE_OR_RETRY</a></td></tr>
+<tr class="memdesc:gaed080bd0026ce8a7f15a2a9d0a147989"><td class="mdescLeft">&#160;</td><td class="mdescRight">Special completion object setting <code>allow_posted</code> and <code>allow_retry</code> to false.  <br /></td></tr>
+<tr class="separator:gaed080bd0026ce8a7f15a2a9d0a147989"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gad252b9870b3459000f93aaed9ba31a75" id="r_gad252b9870b3459000f93aaed9ba31a75"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="#ga84f8522bb8dce688b8a246b6f923d64e">graph_node_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gad252b9870b3459000f93aaed9ba31a75">lci::GRAPH_START</a> = reinterpret_cast&lt;<a class="el" href="#ga84f8522bb8dce688b8a246b6f923d64e">graph_node_t</a>&gt;(0x1)</td></tr>
 <tr class="memdesc:gad252b9870b3459000f93aaed9ba31a75"><td class="mdescLeft">&#160;</td><td class="mdescRight">The start node of the completion graph.  <br /></td></tr>
 <tr class="separator:gad252b9870b3459000f93aaed9ba31a75"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -792,37 +792,39 @@ Here is the call graph for this function:</div>
 
 </div>
 </div>
-<a id="gad8190f461b3c544f7ac90660a5efd4d2" name="gad8190f461b3c544f7ac90660a5efd4d2"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gad8190f461b3c544f7ac90660a5efd4d2">&#9670;&#160;</a></span>COMP_NULL_EXPECT_OK</h2>
+<a id="gaaba5620658f664e6c9543e3b440586d4" name="gaaba5620658f664e6c9543e3b440586d4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaaba5620658f664e6c9543e3b440586d4">&#9670;&#160;</a></span>COMP_NULL_EXPECT_DONE</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">const <a class="el" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a> lci::COMP_NULL_EXPECT_OK = <a class="el" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a>(reinterpret_cast&lt;<a class="el" href="../../d9/d97/classlci_1_1comp__impl__t.html">comp_impl_t</a>*&gt;(0x1))</td>
+          <td class="memname">const <a class="el" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a> lci::COMP_NULL_EXPECT_DONE</td>
         </tr>
       </table>
 </div><div class="memdoc">
-
+<b>Initial value:</b><div class="fragment"><div class="line">=</div>
+<div class="line">    <a class="code hl_class" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a>(<span class="keyword">reinterpret_cast&lt;</span><a class="code hl_class" href="../../d9/d97/classlci_1_1comp__impl__t.html">comp_impl_t</a>*<span class="keyword">&gt;</span>(0x1))</div>
+<div class="ttc" id="aclasslci_1_1comp__impl__t_html"><div class="ttname"><a href="../../d9/d97/classlci_1_1comp__impl__t.html">lci::comp_impl_t</a></div><div class="ttdoc">Completion object implementation base type.</div><div class="ttdef"><b>Definition</b> lci.hpp:564</div></div>
+<div class="ttc" id="aclasslci_1_1comp__t_html"><div class="ttname"><a href="../../d1/da7/classlci_1_1comp__t.html">lci::comp_t</a></div><div class="ttdoc">The actual implementation for RESOURCE comp.</div><div class="ttdef"><b>Definition</b> lci_binding_pre.hpp:463</div></div>
+</div><!-- fragment -->
 <p>Special completion object setting <code>allow_posted</code> to false. </p>
 
 </div>
 </div>
-<a id="ga9e147637f3d6d6f80e7a208c076568dc" name="ga9e147637f3d6d6f80e7a208c076568dc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga9e147637f3d6d6f80e7a208c076568dc">&#9670;&#160;</a></span>COMP_NULL_EXPECT_OK_OR_RETRY</h2>
+<a id="gaed080bd0026ce8a7f15a2a9d0a147989" name="gaed080bd0026ce8a7f15a2a9d0a147989"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaed080bd0026ce8a7f15a2a9d0a147989">&#9670;&#160;</a></span>COMP_NULL_EXPECT_DONE_OR_RETRY</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">const <a class="el" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a> lci::COMP_NULL_EXPECT_OK_OR_RETRY</td>
+          <td class="memname">const <a class="el" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a> lci::COMP_NULL_EXPECT_DONE_OR_RETRY</td>
         </tr>
       </table>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line">=</div>
 <div class="line">    <a class="code hl_class" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a>(<span class="keyword">reinterpret_cast&lt;</span><a class="code hl_class" href="../../d9/d97/classlci_1_1comp__impl__t.html">comp_impl_t</a>*<span class="keyword">&gt;</span>(0x2))</div>
-<div class="ttc" id="aclasslci_1_1comp__impl__t_html"><div class="ttname"><a href="../../d9/d97/classlci_1_1comp__impl__t.html">lci::comp_impl_t</a></div><div class="ttdoc">Completion object implementation base type.</div><div class="ttdef"><b>Definition</b> lci.hpp:563</div></div>
-<div class="ttc" id="aclasslci_1_1comp__t_html"><div class="ttname"><a href="../../d1/da7/classlci_1_1comp__t.html">lci::comp_t</a></div><div class="ttdoc">The actual implementation for RESOURCE comp.</div><div class="ttdef"><b>Definition</b> lci_binding_pre.hpp:463</div></div>
 </div><!-- fragment -->
 <p>Special completion object setting <code>allow_posted</code> and <code>allow_retry</code> to false. </p>
 
