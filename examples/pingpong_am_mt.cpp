@@ -43,7 +43,7 @@ void worker(int thread_id)
     // sender
     for (int i = 0; i < nmsgs; i++) {
       // send a message
-      lci::post_am_x(peer_rank, send_buf, msg_size, lci::COMP_NULL_EXPECT_OK,
+      lci::post_am_x(peer_rank, send_buf, msg_size, lci::COMP_NULL_EXPECT_DONE,
                      rcomp)
           .device(device)
           .tag(thread_id)();
@@ -82,7 +82,7 @@ void worker(int thread_id)
       }
       free(recv_buf.base);
       // send a message
-      lci::post_am_x(peer_rank, send_buf, msg_size, lci::COMP_NULL_EXPECT_OK,
+      lci::post_am_x(peer_rank, send_buf, msg_size, lci::COMP_NULL_EXPECT_DONE,
                      rcomp)
           .device(device)
           .tag(thread_id)();

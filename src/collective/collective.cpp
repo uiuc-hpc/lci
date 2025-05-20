@@ -22,8 +22,8 @@ void barrier_x::call_impl(runtime_t runtime, device_t device,
   // dissemination algorithm
   LCI_DBG_Log(LOG_TRACE, "collective", "enter barrier %d\n", seqnum);
 
-  if (comp.is_empty() || comp == COMP_NULL_EXPECT_OK ||
-      comp == COMP_NULL_EXPECT_OK_OR_RETRY) {
+  if (comp.is_empty() || comp == COMP_NULL_EXPECT_DONE ||
+      comp == COMP_NULL_EXPECT_DONE_OR_RETRY) {
     if (nranks == 1) {
       return;
     }
@@ -140,7 +140,7 @@ void broadcast_x::call_impl(void* buffer, size_t size, int root,
       int rank_to_send = (rank + jump) % nranks;
       LCI_DBG_Log(LOG_TRACE, "collective", "broadcast %d round %d send to %d\n",
                   seqnum, round, rank_to_send);
-      post_send_x(rank_to_send, buffer, size, seqnum, COMP_NULL_EXPECT_OK)
+      post_send_x(rank_to_send, buffer, size, seqnum, COMP_NULL_EXPECT_DONE)
           .runtime(runtime)
           .device(device)
           .endpoint(endpoint)
@@ -151,7 +151,7 @@ void broadcast_x::call_impl(void* buffer, size_t size, int root,
       LCI_DBG_Log(LOG_TRACE, "collective",
                   "broadcast %d round %d recv from %d\n", seqnum, round,
                   rank_to_recv);
-      post_recv_x(rank_to_recv, buffer, size, seqnum, COMP_NULL_EXPECT_OK)
+      post_recv_x(rank_to_recv, buffer, size, seqnum, COMP_NULL_EXPECT_DONE)
           .runtime(runtime)
           .device(device)
           .endpoint(endpoint)
@@ -291,7 +291,7 @@ void reduce_x::call_impl(const void* sendbuf, void* recvbuf, size_t count,
         buffer_to_send = data_buffer;
       }
       post_send_x(target_rank, buffer_to_send, item_size * count, seqnum,
-                  COMP_NULL_EXPECT_OK)
+                  COMP_NULL_EXPECT_DONE)
           .runtime(runtime)
           .device(device)
           .endpoint(endpoint)
@@ -301,7 +301,7 @@ void reduce_x::call_impl(const void* sendbuf, void* recvbuf, size_t count,
       LCI_DBG_Log(LOG_TRACE, "collective", "reduce %d round %d recv from %d\n",
                   seqnum, i, target_rank);
       post_recv_x(target_rank, tmp_buffer, item_size * count, seqnum,
-                  COMP_NULL_EXPECT_OK)
+                  COMP_NULL_EXPECT_DONE)
           .runtime(runtime)
           .device(device)
           .endpoint(endpoint)

@@ -543,14 +543,15 @@ struct status_t {
  * @ingroup LCI_BASIC
  * @brief Special completion object setting `allow_posted` to false.
  */
-const comp_t COMP_NULL_EXPECT_OK = comp_t(reinterpret_cast<comp_impl_t*>(0x1));
+const comp_t COMP_NULL_EXPECT_DONE =
+    comp_t(reinterpret_cast<comp_impl_t*>(0x1));
 
 /**
  * @ingroup LCI_BASIC
  * @brief Special completion object setting `allow_posted` and `allow_retry` to
  * false.
  */
-const comp_t COMP_NULL_EXPECT_OK_OR_RETRY =
+const comp_t COMP_NULL_EXPECT_DONE_OR_RETRY =
     comp_t(reinterpret_cast<comp_impl_t*>(0x2));
 
 /**
