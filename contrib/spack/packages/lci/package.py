@@ -1,5 +1,15 @@
+# Copyright Spack Project Developers. See COPYRIGHT file for details.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR MIT)
+
 from spack.package import *
 
+
+def is_positive_int(val):
+    try:
+        return int(val) > 0
+    except ValueError:
+        return val == "auto"
 
 class Lci(CMakePackage):
     """LCI: the Lightweight Communication Interface"""
@@ -11,19 +21,14 @@ class Lci(CMakePackage):
     maintainers("omor1", "JiakunYan")
 
     version("master", branch="master")
-    version("2.0.0", sha256="deadbeef") # placeholder used for development environment
+    version("2.0.0-beta.1", sha256="5d28b88e4a5aed67c3f1fe16eccf60c7237a9c8bba890b9c479fb21d30153b39")
+    version("1.7.9", sha256="49f212d034e7d0b63af29e76b17935a3221830090af02c0e0912cea8a7a58d91")
     version("1.7.8", sha256="9d54dd669b54e715162c5184a0e5cc64fd479e9fda60b2a490197d901368afda")
     version("1.7.7", sha256="c310f699b7b4317a2f5c3557f85c240fe3c85d2d06618dd248434ef807d53779")
     version("1.7.6", sha256="c88ccea2ad277ed38fc23187771b52b6fb212ed4429114717bfa8887ed21665c")
     version("1.7.5", sha256="13e4084c9e7aaf55966ba5aa0423164b8fd21ee7526fc62017b3c9b3db99cb83")
     version("1.7.4", sha256="00c6ef06bf90a02b55c72076dedf912580dcb1fb59fdc0e771d9e1a71283b72f")
     version("1.7.3", sha256="3c47d51d4925e6700294ac060c88a73c26ca6e9df5b4010d0e90b0bf5e505040")
-
-    def is_positive_int(val):
-        try:
-            return int(val) > 0
-        except ValueError:
-            return val == "auto"
 
     variant(
         "fabric",
@@ -111,6 +116,9 @@ class Lci(CMakePackage):
 
     generator("ninja", "make", default="ninja")
 
+    depends_on("c", type="build")  # generated
+    depends_on("cxx", type="build")  # generated
+
     depends_on("cmake@3.12:", type="build")
     depends_on("libfabric", when="fabric=ofi")
     depends_on("rdma-core", when="fabric=ibv")
@@ -134,47 +142,56 @@ class Lci(CMakePackage):
         ]
 
         if not self.spec.satisfies("enable-pm=auto"):
-            arg = self.define("LCT_PMI_BACKEND_ENABLE_PMI1", "enable-pm=pmi1" in self.spec)
-            args.append(arg)
-            arg = self.define("LCT_PMI_BACKEND_ENABLE_PMI2", "enable-pm=pmi2" in self.spec)
-            args.append(arg)
-            arg = self.define("LCT_PMI_BACKEND_ENABLE_MPI", "enable-pm=mpi" in self.spec)
-            args.append(arg)
-            arg = self.define("LCT_PMI_BACKEND_ENABLE_PMIX", "enable-pm=pmix" in self.spec)
-            args.append(arg)
+            args.extend(
+                [
+                    self.define(
+                        "LCT_PMI_BACKEND_ENABLE_PMI1", self.spec.satisfies("enable-pm=pmi1")
+                    ),
+                    self.define(
+                        "LCT_PMI_BACKEND_ENABLE_PMI2", self.spec.satisfies("enable-pm=pmi2")
+                    ),
+                    self.define(
+                        "LCT_PMI_BACKEND_ENABLE_MPI", self.spec.satisfies("enable-pm=mpi")
+                    ),
+                    self.define(
+                        "LCT_PMI_BACKEND_ENABLE_PMIX", self.spec.satisfies("enable-pm=pmix")
+                    ),
+                ]
+            )
 
         if self.spec.satisfies("default-pm=cray"):
-            arg = self.define("LCI_PMI_BACKEND_DEFAULT", "pmi1")
-            args.append(arg)
-            arg = self.define("LCT_PMI_BACKEND_ENABLE_PMI1", True)
-            args.append(arg)
+            args.extend(
+                [
+                    self.define("LCI_PMI_BACKEND_DEFAULT", "pmi1"),
+                    self.define("LCT_PMI_BACKEND_ENABLE_PMI1", True),
+                ]
+            )
         elif not self.spec.satisfies("default-pm=auto"):
-            arg = self.define_from_variant("LCI_PMI_BACKEND_DEFAULT", "default-pm")
-            args.append(arg)
+            args.append(self.define_from_variant("LCI_PMI_BACKEND_DEFAULT", "default-pm"))
 
         if not self.spec.satisfies("cache-line=auto"):
-            arg = self.define_from_variant("LCI_CACHE_LINE", "cache-line")
-            args.append(arg)
+            args.append(self.define_from_variant("LCI_CACHE_LINE", "cache-line"))
 
         if not self.spec.satisfies("packet-size=auto"):
-            arg = self.define_from_variant("LCI_PACKET_SIZE_DEFAULT", "packet-size")
-            args.append(arg)
+            args.append(self.define_from_variant("LCI_PACKET_SIZE_DEFAULT", "packet-size"))
 
         if not self.spec.satisfies("npackets=auto"):
-            arg = self.define_from_variant("LCI_SERVER_NUM_PKTS_DEFAULT", "npackets")
-            args.append(arg)
+            args.append(self.define_from_variant("LCI_SERVER_NUM_PKTS_DEFAULT", "npackets"))
 
         if not self.spec.satisfies("fabric-nsends-max=auto"):
-            arg = self.define_from_variant("LCI_BACKEND_MAX_SENDS_DEFAULT", "fabric-nsends-max")
-            args.append(arg)
+            args.append(
+                self.define_from_variant("LCI_SERVER_MAX_SENDS_DEFAULT", "fabric-nsends-max")
+            )
 
         if not self.spec.satisfies("fabric-nrecvs-max=auto"):
-            arg = self.define_from_variant("LCI_BACKEND_MAX_RECVS_DEFAULT", "fabric-nrecvs-max")
-            args.append(arg)
+            args.append(
+                self.define_from_variant("LCI_SERVER_MAX_RECVS_DEFAULT", "fabric-nrecvs-max")
+            )
 
         if not self.spec.satisfies("fabric-ncqes-max=auto"):
-            arg = self.define_from_variant("LCI_SERVER_MAX_CQES_DEFAULT", "fabric-ncqes-max")
-            args.append(arg)
+            args.append(
+                self.define_from_variant("LCI_SERVER_MAX_CQES_DEFAULT", "fabric-ncqes-max")
+            )
 
         if self.spec.satisfies("@1"):
             args += [
