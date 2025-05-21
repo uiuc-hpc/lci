@@ -27,6 +27,25 @@ TEST(COMM_COLL, broadcast)
   lci::g_runtime_fina();
 }
 
+TEST(COMM_COLL, allgather)
+{
+  lci::g_runtime_init();
+
+  int rank = lci::get_rank_me();
+  int nranks = lci::get_rank_n();
+
+  uint64_t data = rank;
+  std::vector<uint64_t> recvbuf(nranks, -1);
+
+  lci::allgather(&data, recvbuf.data(), sizeof(uint64_t));
+
+  for (int i = 0; i < nranks; ++i) {
+    ASSERT_EQ(recvbuf[i], i);
+  }
+
+  lci::g_runtime_fina();
+}
+
 void reduce_op(const void* left, const void* right, void* dst, size_t n)
 {
   const uint64_t* left_ = static_cast<const uint64_t*>(left);
