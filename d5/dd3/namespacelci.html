@@ -129,6 +129,9 @@ $(function(){initNavTree('d5/dd3/namespacelci.html','../../'); initResizable(tru
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="nested-classes" name="nested-classes"></a>
 Classes</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/dbf/classlci_1_1allgather__x.html">allgather_x</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The actual implementation for allgather.  <a href="../../db/dbf/classlci_1_1allgather__x.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dcc/classlci_1_1alloc__cq__x.html">alloc_cq_x</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The actual implementation for alloc_cq.  <a href="../../d9/dcc/classlci_1_1alloc__cq__x.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -596,6 +599,8 @@ Functions</h2></td></tr>
 <tr class="separator:a16edb894b126be5a60737362cea89af5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9f94f4e818f924738372be1f91b8e62c" id="r_a9f94f4e818f924738372be1f91b8e62c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9f94f4e818f924738372be1f91b8e62c">reduce</a> (const void *sendbuf_in, void *recvbuf_in, size_t count_in, size_t item_size_in, <a class="el" href="../../d8/d33/group__LCI__BASIC.html#ga6b10a47c2df0ad78519c8da4580c355f">reduce_op_t</a> op_in, int root_in)</td></tr>
 <tr class="separator:a9f94f4e818f924738372be1f91b8e62c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acfab5281c6310f13d1a4c36fb164e89d" id="r_acfab5281c6310f13d1a4c36fb164e89d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#acfab5281c6310f13d1a4c36fb164e89d">allgather</a> (const void *sendbuf_in, void *recvbuf_in, size_t size_in)</td></tr>
+<tr class="separator:acfab5281c6310f13d1a4c36fb164e89d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4e2dd2eb470fd8c2a4094f746386bd7c" id="r_a4e2dd2eb470fd8c2a4094f746386bd7c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4e2dd2eb470fd8c2a4094f746386bd7c">alltoall</a> (const void *sendbuf_in, void *recvbuf_in, size_t size_in)</td></tr>
 <tr class="separator:a4e2dd2eb470fd8c2a4094f746386bd7c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a02f1b258ca3dced99dceafaf76cf5a02" id="r_a02f1b258ca3dced99dceafaf76cf5a02"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d9/d1e/structlci_1_1status__t.html">status_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a02f1b258ca3dced99dceafaf76cf5a02">post_comm</a> (<a class="el" href="../../d8/d33/group__LCI__BASIC.html#ga635a086b50ac87b41d18063940868cb7">direction_t</a> direction_in, int rank_in, void *local_buffer_in, size_t size_in, <a class="el" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a> local_comp_in)</td></tr>
@@ -1021,6 +1026,45 @@ Variables</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
+<a id="acfab5281c6310f13d1a4c36fb164e89d" name="acfab5281c6310f13d1a4c36fb164e89d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acfab5281c6310f13d1a4c36fb164e89d">&#9670;&#160;</a></span>allgather()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void lci::allgather </td>
+          <td>(</td>
+          <td class="paramtype">const void *</td>          <td class="paramname"><span class="paramname"><em>sendbuf_in</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *</td>          <td class="paramname"><span class="paramname"><em>recvbuf_in</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t</td>          <td class="paramname"><span class="paramname"><em>size_in</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><iframe scrolling="no" frameborder="0" src="../../d5/dd3/namespacelci_acfab5281c6310f13d1a4c36fb164e89d_cgraph.svg" width="1026" height="348"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
+</div>
+
+</div>
+</div>
 <a id="a6f475a6e5ce001cca691795999bdb46f" name="a6f475a6e5ce001cca691795999bdb46f"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a6f475a6e5ce001cca691795999bdb46f">&#9670;&#160;</a></span>alloc_cq()</h2>
 

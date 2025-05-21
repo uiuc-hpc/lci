@@ -79,7 +79,7 @@ var NAVTREEINDEX =
 "d8/d48/classlci_1_1post__comm__x.html#a3a715f36e7bd1bd892825db30e47ddb1",
 "d9/d2c/classlci_1_1alloc__net__context__x.html#af847cec1d3dfb1070025eb59a7c21fe3",
 "db/db4/classlci_1_1get__rank__n__x.html#aa43d44e09389aa0cb17f9400ac157bf0",
-"df/d69/classlci_1_1free__runtime__x.html#aaf8dae1a91bbeb971016ac742639b5c7"
+"de/d6d/group__LCI__FREE__PACKET__POOL.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronization';
