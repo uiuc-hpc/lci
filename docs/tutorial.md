@@ -110,7 +110,7 @@ spack install lci
 <details>
 <summary>Click to expand</summary>
 
-tl;dr: specify the cmake variable `-DLCI_NETWORK_BACKENDS=ofi` or the Spack variable `backend=ofi` when building LCI.
+tl;dr: `module load libfabric`, then specify the cmake variable `-DLCI_NETWORK_BACKENDS=ofi` or the Spack variable `backend=ofi` when building LCI.
 
 The only caveat is that you need to pass the -DLCI_NETWORK_BACKENDS=ofi option to CMake. This is because Delta somehow has both libibverbs and libfabric installed, but only libfabric is working.
 
