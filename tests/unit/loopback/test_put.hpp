@@ -23,14 +23,14 @@ TEST(COMM_PUT, put_bcopy_st)
   util::write_buffer(send_buffer, msg_size, 'a');
   // register recv buffer
   lci::mr_t mr = lci::register_memory(recv_buffer, msg_size);
-  lci::rkey_t rkey = lci::get_rkey(mr);
+  lci::rmr_t rmr = lci::get_rmr(mr);
 
   // loopback message
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
       status = lci::post_put_x(rank, send_buffer, msg_size, cq,
-                               reinterpret_cast<uintptr_t>(recv_buffer), rkey)
+                               reinterpret_cast<uintptr_t>(recv_buffer), rmr)
                    .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
     } while (status.is_retry());
@@ -65,14 +65,14 @@ void test_put_bcopy_mt(int id, int nmsgs, uint64_t* p_data)
   util::write_buffer(send_buffer, msg_size, 'a');
   // register recv buffer
   lci::mr_t mr = lci::register_memory(recv_buffer, msg_size);
-  lci::rkey_t rkey = lci::get_rkey(mr);
+  lci::rmr_t rmr = lci::get_rmr(mr);
 
   // loopback message
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
       status = lci::post_put_x(rank, send_buffer, msg_size, cq,
-                               reinterpret_cast<uintptr_t>(recv_buffer), rkey)
+                               reinterpret_cast<uintptr_t>(recv_buffer), rmr)
                    .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
     } while (status.is_retry());
@@ -137,13 +137,13 @@ TEST(COMM_PUT, put_zcopy_st)
   util::write_buffer(send_buffer, msg_size, 'a');
   // register recv buffer
   lci::mr_t mr = lci::register_memory(recv_buffer, msg_size);
-  lci::rkey_t rkey = lci::get_rkey(mr);
+  lci::rmr_t rmr = lci::get_rmr(mr);
   // loopback message
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
       status = lci::post_put_x(rank, send_buffer, msg_size, cq,
-                               reinterpret_cast<uintptr_t>(recv_buffer), rkey)
+                               reinterpret_cast<uintptr_t>(recv_buffer), rmr)
                    .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
     } while (status.is_retry());
@@ -177,13 +177,13 @@ void test_put_zcopy_mt(int id, int nmsgs)
   util::write_buffer(send_buffer, msg_size, 'a');
   // register recv buffer
   lci::mr_t mr = lci::register_memory(recv_buffer, msg_size);
-  lci::rkey_t rkey = lci::get_rkey(mr);
+  lci::rmr_t rmr = lci::get_rmr(mr);
   // loopback message
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
       status = lci::post_put_x(rank, send_buffer, msg_size, cq,
-                               reinterpret_cast<uintptr_t>(recv_buffer), rkey)
+                               reinterpret_cast<uintptr_t>(recv_buffer), rmr)
                    .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
     } while (status.is_retry());
@@ -253,13 +253,13 @@ TEST(COMM_PUT, put_buffers_st)
     recv_buffers[i].size = msg_size;
     recv_buffers[i].mr = lci::register_memory(recv_buffers[i].base, msg_size);
     rbuffers[i].base = reinterpret_cast<uintptr_t>(recv_buffers[i].base);
-    rbuffers[i].rkey = lci::get_rkey(recv_buffers[i].mr);
+    rbuffers[i].rmr = lci::get_rmr(recv_buffers[i].mr);
   }
   // loopback message
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_put_x(rank, nullptr, 0, cq, 0, lci::RKEY_NULL)
+      status = lci::post_put_x(rank, nullptr, 0, cq, 0, lci::RMR_NULL)
                    .buffers(send_buffers)
                    .rbuffers(rbuffers)
                    .comp_semantic(lci::comp_semantic_t::network)();
@@ -314,13 +314,13 @@ void test_put_buffers_mt(int id, int nmsgs)
     recv_buffers[i].size = msg_size;
     recv_buffers[i].mr = lci::register_memory(recv_buffers[i].base, msg_size);
     rbuffers[i].base = reinterpret_cast<uintptr_t>(recv_buffers[i].base);
-    rbuffers[i].rkey = lci::get_rkey(recv_buffers[i].mr);
+    rbuffers[i].rmr = lci::get_rmr(recv_buffers[i].mr);
   }
   // loopback message
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_put_x(rank, nullptr, 0, cq, 0, lci::RKEY_NULL)
+      status = lci::post_put_x(rank, nullptr, 0, cq, 0, lci::RMR_NULL)
                    .buffers(send_buffers)
                    .rbuffers(rbuffers)
                    .comp_semantic(lci::comp_semantic_t::network)();

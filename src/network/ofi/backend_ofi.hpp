@@ -91,19 +91,18 @@ class ofi_endpoint_impl_t : public lci::endpoint_impl_t
   error_t post_send_impl(int rank, void* buffer, size_t size, mr_t mr,
                          net_imm_data_t imm_data, void* user_context) override;
   error_t post_puts_impl(int rank, void* buffer, size_t size, uint64_t offset,
-                         rkey_t rkey) override;
+                         rmr_t rmr) override;
   error_t post_put_impl(int rank, void* buffer, size_t size, mr_t mr,
-                        uint64_t offset, rkey_t rkey,
+                        uint64_t offset, rmr_t rmr,
                         void* user_context) override;
   error_t post_putImms_impl(int rank, void* buffer, size_t size,
-                            uint64_t offset, rkey_t rkey,
+                            uint64_t offset, rmr_t rmr,
                             net_imm_data_t imm_data) override;
   error_t post_putImm_impl(int rank, void* buffer, size_t size, mr_t mr,
-                           uint64_t offset, rkey_t rkey,
-                           net_imm_data_t imm_data,
+                           uint64_t offset, rmr_t rmr, net_imm_data_t imm_data,
                            void* user_context) override;
   error_t post_get_impl(int rank, void* buffer, size_t size, mr_t mr,
-                        uint64_t offset, rkey_t rkey,
+                        uint64_t offset, rmr_t rmr,
                         void* user_context) override;
 
   ofi_device_impl_t* p_ofi_device;

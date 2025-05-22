@@ -76,19 +76,19 @@ inline error_t endpoint_impl_t::post_send(int rank, void* buffer, size_t size,
 }
 
 inline error_t endpoint_impl_t::post_puts(int rank, void* buffer, size_t size,
-                                          uint64_t offset, rkey_t rkey,
+                                          uint64_t offset, rmr_t rmr,
                                           bool allow_retry, bool force_post)
 {
   error_t error;
   if (!force_post && !backlog_queue.is_empty(rank)) {
     error = errorcode_t::retry_backlog;
   } else {
-    error = post_puts_impl(rank, buffer, size, offset, rkey);
+    error = post_puts_impl(rank, buffer, size, offset, rmr);
   }
   if (error.is_retry()) {
     LCI_PCOUNTER_ADD(net_write_post_retry, 1);
     if (!allow_retry) {
-      backlog_queue.push_puts(this, rank, buffer, size, offset, rkey);
+      backlog_queue.push_puts(this, rank, buffer, size, offset, rmr);
       error = errorcode_t::done_backlog;
     }
   } else {
@@ -96,15 +96,15 @@ inline error_t endpoint_impl_t::post_puts(int rank, void* buffer, size_t size,
     LCI_PCOUNTER_ADD(net_write_writeImm_comp, 1);
   }
   LCI_DBG_Log(LOG_TRACE, "network",
-              "post_puts rank %d buffer %p size %lu base %lu offset %lu rkey "
+              "post_puts rank %d buffer %p size %lu base %lu offset %lu rmr "
               "%lu allow_retry %d force_post %d return %s\n",
-              rank, buffer, size, offset, rkey, allow_retry, force_post,
+              rank, buffer, size, offset, rmr, allow_retry, force_post,
               error.get_str());
   return error;
 }
 
 inline error_t endpoint_impl_t::post_put(int rank, void* buffer, size_t size,
-                                         mr_t mr, uint64_t offset, rkey_t rkey,
+                                         mr_t mr, uint64_t offset, rmr_t rmr,
                                          void* user_context, bool allow_retry,
                                          bool force_post)
 {
@@ -112,12 +112,12 @@ inline error_t endpoint_impl_t::post_put(int rank, void* buffer, size_t size,
   if (!force_post && !backlog_queue.is_empty(rank)) {
     error = errorcode_t::retry_backlog;
   } else {
-    error = post_put_impl(rank, buffer, size, mr, offset, rkey, user_context);
+    error = post_put_impl(rank, buffer, size, mr, offset, rmr, user_context);
   }
   if (error.is_retry()) {
     LCI_PCOUNTER_ADD(net_write_post_retry, 1);
     if (!allow_retry) {
-      backlog_queue.push_put(this, rank, buffer, size, mr, offset, rkey,
+      backlog_queue.push_put(this, rank, buffer, size, mr, offset, rmr,
                              user_context);
       error = errorcode_t::posted_backlog;
     }
@@ -126,29 +126,28 @@ inline error_t endpoint_impl_t::post_put(int rank, void* buffer, size_t size,
   }
   LCI_DBG_Log(
       LOG_TRACE, "network",
-      "post_put rank %d buffer %p size %lu mr %p base %lu offset %lu rkey %lu "
+      "post_put rank %d buffer %p size %lu mr %p base %lu offset %lu rmr %lu "
       "user_context %p allow_retry %d force_post %d return %s\n",
-      rank, buffer, size, mr.get_impl(), offset, rkey, user_context,
-      allow_retry, force_post, error.get_str());
+      rank, buffer, size, mr.get_impl(), offset, rmr, user_context, allow_retry,
+      force_post, error.get_str());
   return error;
 }
 
 inline error_t endpoint_impl_t::post_putImms(int rank, void* buffer,
                                              size_t size, uint64_t offset,
-                                             rkey_t rkey,
-                                             net_imm_data_t imm_data,
+                                             rmr_t rmr, net_imm_data_t imm_data,
                                              bool allow_retry, bool force_post)
 {
   error_t error;
   if (!force_post && !backlog_queue.is_empty(rank)) {
     error = errorcode_t::retry_backlog;
   } else {
-    error = post_putImms_impl(rank, buffer, size, offset, rkey, imm_data);
+    error = post_putImms_impl(rank, buffer, size, offset, rmr, imm_data);
   }
   if (error.is_retry()) {
     LCI_PCOUNTER_ADD(net_writeImm_post_retry, 1);
     if (!allow_retry) {
-      backlog_queue.push_putImms(this, rank, buffer, size, offset, rkey,
+      backlog_queue.push_putImms(this, rank, buffer, size, offset, rmr,
                                  imm_data);
       error = errorcode_t::done_backlog;
     }
@@ -158,15 +157,14 @@ inline error_t endpoint_impl_t::post_putImms(int rank, void* buffer,
   }
   LCI_DBG_Log(LOG_TRACE, "network",
               "post_putImms rank %d buffer %p size %lu base %lu offset %lu "
-              "rkey %lu imm_data %x allow_retry %d force_post %d return %s\n",
-              rank, buffer, size, offset, rkey, imm_data, allow_retry,
+              "rmr %lu imm_data %x allow_retry %d force_post %d return %s\n",
+              rank, buffer, size, offset, rmr, imm_data, allow_retry,
               force_post, error.get_str());
   return error;
 }
 
 inline error_t endpoint_impl_t::post_putImm(int rank, void* buffer, size_t size,
-                                            mr_t mr, uint64_t offset,
-                                            rkey_t rkey,
+                                            mr_t mr, uint64_t offset, rmr_t rmr,
                                             net_imm_data_t imm_data,
                                             void* user_context,
                                             bool allow_retry, bool force_post)
@@ -175,13 +173,13 @@ inline error_t endpoint_impl_t::post_putImm(int rank, void* buffer, size_t size,
   if (!force_post && !backlog_queue.is_empty(rank)) {
     error = errorcode_t::retry_backlog;
   } else {
-    error = post_putImm_impl(rank, buffer, size, mr, offset, rkey, imm_data,
+    error = post_putImm_impl(rank, buffer, size, mr, offset, rmr, imm_data,
                              user_context);
   }
   if (error.is_retry()) {
     LCI_PCOUNTER_ADD(net_writeImm_post_retry, 1);
     if (!allow_retry) {
-      backlog_queue.push_putImm(this, rank, buffer, size, mr, offset, rkey,
+      backlog_queue.push_putImm(this, rank, buffer, size, mr, offset, rmr,
                                 imm_data, user_context);
       error = errorcode_t::posted_backlog;
     }
@@ -190,15 +188,15 @@ inline error_t endpoint_impl_t::post_putImm(int rank, void* buffer, size_t size,
   }
   LCI_DBG_Log(LOG_TRACE, "network",
               "post_putImm rank %d buffer %p size %lu mr %p base %lu offset "
-              "%lu rkey %lu imm_data %x user_context %p allow_retry %d "
+              "%lu rmr %lu imm_data %x user_context %p allow_retry %d "
               "force_post %d return %s\n",
-              rank, buffer, size, mr.get_impl(), offset, rkey, imm_data,
+              rank, buffer, size, mr.get_impl(), offset, rmr, imm_data,
               user_context, allow_retry, force_post, error.get_str());
   return error;
 }
 
 inline error_t endpoint_impl_t::post_get(int rank, void* buffer, size_t size,
-                                         mr_t mr, uint64_t offset, rkey_t rkey,
+                                         mr_t mr, uint64_t offset, rmr_t rmr,
                                          void* user_context, bool allow_retry,
                                          bool force_post)
 {
@@ -206,12 +204,12 @@ inline error_t endpoint_impl_t::post_get(int rank, void* buffer, size_t size,
   if (!force_post && !backlog_queue.is_empty(rank)) {
     error = errorcode_t::retry_backlog;
   } else {
-    error = post_get_impl(rank, buffer, size, mr, offset, rkey, user_context);
+    error = post_get_impl(rank, buffer, size, mr, offset, rmr, user_context);
   }
   if (error.is_retry()) {
     LCI_PCOUNTER_ADD(net_read_post_retry, 1);
     if (!allow_retry) {
-      backlog_queue.push_get(this, rank, buffer, size, mr, offset, rkey,
+      backlog_queue.push_get(this, rank, buffer, size, mr, offset, rmr,
                              user_context);
       error = errorcode_t::posted_backlog;
     }
@@ -220,10 +218,10 @@ inline error_t endpoint_impl_t::post_get(int rank, void* buffer, size_t size,
   }
   LCI_DBG_Log(
       LOG_TRACE, "network",
-      "post_get rank %d buffer %p size %lu mr %p base %lu offset %lu rkey %lu "
+      "post_get rank %d buffer %p size %lu mr %p base %lu offset %lu rmr %lu "
       "user_context %p allow_retry %d force_post %d return %s\n",
-      rank, buffer, size, mr.get_impl(), offset, rkey, user_context,
-      allow_retry, force_post, error.get_str());
+      rank, buffer, size, mr.get_impl(), offset, rmr, user_context, allow_retry,
+      force_post, error.get_str());
   return error;
 }
 

@@ -11,9 +11,9 @@ inline void mr_impl_t::deregister()
   device.get_impl()->deregister_memory(this);
 }
 
-inline rkey_t mr_impl_t::get_rkey()
+inline rmr_t mr_impl_t::get_rmr()
 {
-  rkey_t ret;
+  rmr_t ret;
   ret.base = reinterpret_cast<uintptr_t>(address);
   ret.opaque_rkey = device.get_impl()->get_rkey(this);
   return ret;
@@ -36,9 +36,9 @@ inline void deregister_memory_x::call_impl(mr_t* mr, runtime_t) const
   mr->p_impl = nullptr;
 }
 
-inline rkey_t get_rkey_x::call_impl(mr_t mr, runtime_t) const
+inline rmr_t get_rmr_x::call_impl(mr_t mr, runtime_t) const
 {
-  return mr.p_impl->get_rkey();
+  return mr.p_impl->get_rmr();
 }
 
 inline size_t net_poll_cq_x::call_impl(size_t max_polls, net_status_t* statuses,
@@ -87,78 +87,77 @@ inline error_t net_post_send_x::call_impl(int rank, void* buffer, size_t size,
 }
 
 inline error_t net_post_puts_x::call_impl(int rank, void* buffer, size_t size,
-                                          uint64_t offset, rkey_t rkey,
-                                          runtime_t, device_t,
-                                          endpoint_t endpoint) const
+                                          uint64_t offset, rmr_t rmr, runtime_t,
+                                          device_t, endpoint_t endpoint) const
 {
-  auto ret = endpoint.p_impl->post_puts(rank, buffer, size, offset, rkey);
+  auto ret = endpoint.p_impl->post_puts(rank, buffer, size, offset, rmr);
   LCI_DBG_Log(LOG_TRACE, "network",
-              "post_puts rank %d buffer %p size %lu base %lu offset %lu rkey "
+              "post_puts rank %d buffer %p size %lu base %lu offset %lu rmr "
               "%lu return %s\n",
-              rank, buffer, size, offset, rkey, ret.get_str());
+              rank, buffer, size, offset, rmr, ret.get_str());
   return ret;
 }
 
 inline error_t net_post_put_x::call_impl(int rank, void* buffer, size_t size,
-                                         mr_t mr, uint64_t offset, rkey_t rkey,
+                                         mr_t mr, uint64_t offset, rmr_t rmr,
                                          runtime_t, device_t,
                                          endpoint_t endpoint,
                                          void* user_context) const
 {
-  auto ret = endpoint.p_impl->post_put(rank, buffer, size, mr, offset, rkey,
+  auto ret = endpoint.p_impl->post_put(rank, buffer, size, mr, offset, rmr,
                                        user_context);
   LCI_DBG_Log(LOG_TRACE, "network",
               "post_put rank %d buffer %p size %lu mr %p base %lu offset %lu "
-              "rkey %lu user_context %p return %s\n",
-              rank, buffer, size, mr.get_impl(), offset, rkey, user_context,
+              "rmr %lu user_context %p return %s\n",
+              rank, buffer, size, mr.get_impl(), offset, rmr, user_context,
               ret.get_str());
   return ret;
 }
 
 inline error_t net_post_putImms_x::call_impl(int rank, void* buffer,
                                              size_t size, uint64_t offset,
-                                             rkey_t rkey, runtime_t, device_t,
+                                             rmr_t rmr, runtime_t, device_t,
                                              endpoint_t endpoint,
                                              net_imm_data_t imm_data) const
 {
   auto ret =
-      endpoint.p_impl->post_putImms(rank, buffer, size, offset, rkey, imm_data);
+      endpoint.p_impl->post_putImms(rank, buffer, size, offset, rmr, imm_data);
   LCI_DBG_Log(LOG_TRACE, "network",
               "post_putImms rank %d buffer %p size %lu base %lu offset %lu "
-              "rkey %lu imm_data %x return %s\n",
-              rank, buffer, size, offset, rkey, imm_data, ret.get_str());
+              "rmr %lu imm_data %x return %s\n",
+              rank, buffer, size, offset, rmr, imm_data, ret.get_str());
   return ret;
 }
 
 inline error_t net_post_putImm_x::call_impl(int rank, void* buffer, size_t size,
-                                            mr_t mr, uint64_t offset,
-                                            rkey_t rkey, runtime_t, device_t,
+                                            mr_t mr, uint64_t offset, rmr_t rmr,
+                                            runtime_t, device_t,
                                             endpoint_t endpoint,
                                             net_imm_data_t imm_data,
                                             void* user_context) const
 {
-  auto ret = endpoint.p_impl->post_putImm(rank, buffer, size, mr, offset, rkey,
+  auto ret = endpoint.p_impl->post_putImm(rank, buffer, size, mr, offset, rmr,
                                           imm_data, user_context);
   LCI_DBG_Log(LOG_TRACE, "network",
               "post_putImm rank %d buffer %p size %lu mr %p base %lu offset "
-              "%lu rkey %lu imm_data %x user_context %p return %s\n",
-              rank, buffer, size, mr.get_impl(), offset, rkey, imm_data,
+              "%lu rmr %lu imm_data %x user_context %p return %s\n",
+              rank, buffer, size, mr.get_impl(), offset, rmr, imm_data,
               user_context, ret.get_str());
   return ret;
 }
 
 inline error_t net_post_get_x::call_impl(int rank, void* buffer, size_t size,
-                                         mr_t mr, uint64_t offset, rkey_t rkey,
+                                         mr_t mr, uint64_t offset, rmr_t rmr,
                                          runtime_t, device_t,
                                          endpoint_t endpoint,
                                          void* user_context) const
 {
-  auto ret = endpoint.p_impl->post_get(rank, buffer, size, mr, offset, rkey,
+  auto ret = endpoint.p_impl->post_get(rank, buffer, size, mr, offset, rmr,
                                        user_context);
   LCI_DBG_Log(LOG_TRACE, "network",
               "post_get rank %d buffer %p size %lu mr %p base %lu offset %lu "
-              "rkey %lu user_context %p return %s\n",
-              rank, buffer, size, mr.get_impl(), offset, rkey, user_context,
+              "rmr %lu user_context %p return %s\n",
+              rank, buffer, size, mr.get_impl(), offset, rmr, user_context,
               ret.get_str());
   return ret;
 }

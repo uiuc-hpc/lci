@@ -21,14 +21,14 @@ TEST(COMM_GET, get_bcopy_st)
   util::write_buffer(send_buffer, msg_size, 'a');
   // register recv buffer
   lci::mr_t mr = lci::register_memory(send_buffer, msg_size);
-  lci::rkey_t rkey = lci::get_rkey(mr);
+  lci::rmr_t rmr = lci::get_rmr(mr);
 
   // loopback message
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
       status = lci::post_get(rank, recv_buffer, msg_size, cq,
-                             reinterpret_cast<uintptr_t>(send_buffer), rkey);
+                             reinterpret_cast<uintptr_t>(send_buffer), rmr);
       lci::progress();
     } while (status.is_retry());
 
@@ -62,14 +62,14 @@ void test_get_bcopy_mt(int id, int nmsgs, uint64_t* p_data)
   util::write_buffer(send_buffer, msg_size, 'a');
   // register recv buffer
   lci::mr_t mr = lci::register_memory(send_buffer, msg_size);
-  lci::rkey_t rkey = lci::get_rkey(mr);
+  lci::rmr_t rmr = lci::get_rmr(mr);
 
   // loopback message
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
       status = lci::post_get(rank, recv_buffer, msg_size, cq,
-                             reinterpret_cast<uintptr_t>(send_buffer), rkey);
+                             reinterpret_cast<uintptr_t>(send_buffer), rmr);
       lci::progress();
     } while (status.is_retry());
 
@@ -133,13 +133,13 @@ TEST(COMM_GET, get_zcopy_st)
   util::write_buffer(send_buffer, msg_size, 'a');
   // register recv buffer
   lci::mr_t mr = lci::register_memory(send_buffer, msg_size);
-  lci::rkey_t rkey = lci::get_rkey(mr);
+  lci::rmr_t rmr = lci::get_rmr(mr);
   // loopback message
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
       status = lci::post_get(rank, recv_buffer, msg_size, cq,
-                             reinterpret_cast<uintptr_t>(send_buffer), rkey);
+                             reinterpret_cast<uintptr_t>(send_buffer), rmr);
       lci::progress();
     } while (status.is_retry());
 
@@ -172,13 +172,13 @@ void test_get_zcopy_mt(int id, int nmsgs)
   util::write_buffer(send_buffer, msg_size, 'a');
   // register recv buffer
   lci::mr_t mr = lci::register_memory(send_buffer, msg_size);
-  lci::rkey_t rkey = lci::get_rkey(mr);
+  lci::rmr_t rmr = lci::get_rmr(mr);
   // loopback message
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
       status = lci::post_get(rank, recv_buffer, msg_size, cq,
-                             reinterpret_cast<uintptr_t>(send_buffer), rkey);
+                             reinterpret_cast<uintptr_t>(send_buffer), rmr);
       lci::progress();
     } while (status.is_retry());
 
@@ -247,13 +247,13 @@ TEST(COMM_GET, get_buffers_st)
     recv_buffers[i].base = malloc(msg_size);
     recv_buffers[i].size = msg_size;
     rbuffers[i].base = reinterpret_cast<uintptr_t>(send_buffers[i].base);
-    rbuffers[i].rkey = lci::get_rkey(send_buffers[i].mr);
+    rbuffers[i].rmr = lci::get_rmr(send_buffers[i].mr);
   }
   // loopback message
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_get_x(rank, nullptr, 0, cq, 0, lci::RKEY_NULL)
+      status = lci::post_get_x(rank, nullptr, 0, cq, 0, lci::RMR_NULL)
                    .buffers(recv_buffers)
                    .rbuffers(rbuffers)();
       lci::progress();
@@ -303,13 +303,13 @@ void test_get_buffers_mt(int id, int nmsgs)
     recv_buffers[i].base = malloc(msg_size);
     recv_buffers[i].size = msg_size;
     rbuffers[i].base = reinterpret_cast<uintptr_t>(send_buffers[i].base);
-    rbuffers[i].rkey = lci::get_rkey(send_buffers[i].mr);
+    rbuffers[i].rmr = lci::get_rmr(send_buffers[i].mr);
   }
   // loopback message
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_get_x(rank, nullptr, 0, cq, 0, lci::RKEY_NULL)
+      status = lci::post_get_x(rank, nullptr, 0, cq, 0, lci::RMR_NULL)
                    .buffers(recv_buffers)
                    .rbuffers(rbuffers)();
       lci::progress();

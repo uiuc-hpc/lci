@@ -92,14 +92,14 @@ struct rts_msg_t {
 };
 
 struct rtr_rbuffer_info_t {
-  rkey_t rkey;
+  rmr_t rmr;
   uintptr_t offset;
 };
 
 inline void fill_rtr_rbuffer_info(rtr_rbuffer_info_t* p, void* buffer, mr_t mr)
 {
-  p->rkey = get_rkey(mr);
-  p->offset = (uintptr_t)buffer - p->rkey.base;
+  p->rmr = get_rmr(mr);
+  p->offset = (uintptr_t)buffer - p->rmr.base;
 }
 
 struct rtr_msg_t {
@@ -318,7 +318,7 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
       error_t error = endpoint.get_impl()->post_put(
           (int)ctx->rank, address, length, *p_mr,
           rtr->get_rbuffer_info_p(i)->offset + offset,
-          rtr->get_rbuffer_info_p(i)->rkey, ctx_to_pass,
+          rtr->get_rbuffer_info_p(i)->rmr, ctx_to_pass,
           false /* allow_retry */);
       LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);
     }
@@ -333,7 +333,7 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
     // lbuffer->segment->mr,
     // packet->data.rtr.rbuffer_info_p[0].remote_addr_base,
     // packet->data.rtr.rbuffer_info_p[0].remote_addr_offset,
-    // packet->data.rtr.rbuffer_info_p[0].rkey,
+    // packet->data.rtr.rbuffer_info_p[0].rmr,
     // LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDV_DATA,
     // packet->data.rtr.recv_ctx_key),
     // ctx_to_pass);

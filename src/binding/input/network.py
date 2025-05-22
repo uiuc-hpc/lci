@@ -93,15 +93,15 @@ operation(
     }
 ),
 operation(
-    "get_rkey", 
+    "get_rmr", 
     [
-        positional_arg("mr_t", "mr", comment="The memory region to get the rkey."),
+        positional_arg("mr_t", "mr", comment="The memory region to get the remote handle."),
         optional_runtime_args,
-        return_val("rkey_t", "rkey", comment="The rkey of the memory region.")
+        return_val("rmr_t", "rmr", comment="The remote handle of the memory region.")
     ],
     doc = {
         "in_group": "LCI_MEMORY",
-        "brief": "Get the rkey of a memory region.",
+        "brief": "Get the remote memory region handle.",
     }
 ),
 # net endpoint
@@ -199,7 +199,7 @@ operation(
         positional_arg("void*", "buffer", comment="The send buffer base address."),
         positional_arg("size_t", "size", comment="The send buffer size."),
         positional_arg("uint64_t", "offset", comment="The starting offset to the remote region base address to put the data."),
-        positional_arg("rkey_t", "rkey", comment="The remote memory region key."),
+        positional_arg("rmr_t", "rmr", comment="The remote memory region handle."),
         optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
         optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         return_val("error_t", "error", comment="The error code."),
@@ -219,7 +219,7 @@ operation(
         positional_arg("size_t", "size", comment="The send buffer size."),
         positional_arg("mr_t", "mr", comment="The registered memory region for the send buffer."),
         positional_arg("uint64_t", "offset", comment="The starting offset to the remote region base address to put the data."),
-        positional_arg("rkey_t", "rkey", comment="The remote memory region key."),
+        positional_arg("rmr_t", "rmr", comment="The remote memory region handle."),
         optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
         optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context."),
@@ -239,7 +239,7 @@ operation(
         positional_arg("void*", "buffer", comment="The send buffer base address."),
         positional_arg("size_t", "size", comment="The send buffer size."),
         positional_arg("uint64_t", "offset", comment="The starting offset to the remote region base address to put the data."),
-        positional_arg("rkey_t", "rkey", comment="The remote memory region key."),
+        positional_arg("rmr_t", "rmr", comment="The remote memory region handle."),
         optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
         optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("net_imm_data_t", "imm_data", "0", comment="The immediate data to put with the message."),
@@ -260,7 +260,7 @@ operation(
         positional_arg("size_t", "size", comment="The send buffer size."),
         positional_arg("mr_t", "mr", comment="The registered memory region for the send buffer."),
         positional_arg("uint64_t", "offset", comment="The starting offset to the remote region base address to put the data."),
-        positional_arg("rkey_t", "rkey", comment="The remote memory region key."),
+        positional_arg("rmr_t", "rmr", comment="The remote memory region handle."),
         optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
         optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("net_imm_data_t", "imm_data", "0", comment="The immediate data to put with the message."),
@@ -282,7 +282,7 @@ operation(
         positional_arg("size_t", "size", comment="The receive buffer size."),
         positional_arg("mr_t", "mr", comment="The registered memory region for the receive buffer."),
         positional_arg("uint64_t", "offset", comment="The starting offset to the remote region base address to get the data."),
-        positional_arg("rkey_t", "rkey", comment="The remote memory region key."),
+        positional_arg("rmr_t", "rmr", comment="The remote memory region handle."),
         optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
         optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context."),

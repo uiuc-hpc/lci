@@ -22,8 +22,8 @@ class distributed_array_t
     // processes. To enable this, the following steps are required: (1) Each
     // target process (i.e., the process whose memory will be accessed remotely)
     //     must register its local memory region and obtain a corresponding
-    //     remote key (rkey).
-    // (2) Each target process must then share its base address and rkey with
+    //     remote key (rmr).
+    // (2) Each target process must then share its base address and rmr with
     // all other ranks.
     //     This is typically done using an allgather or similar collective
     //     operation.
@@ -34,7 +34,7 @@ class distributed_array_t
     // exchange the memory registration information with other ranks
     gptr_t my_gptr;
     my_gptr.base = reinterpret_cast<uintptr_t>(m_data.data());
-    my_gptr.rkey = lci::get_rkey(mr);
+    my_gptr.rmr = lci::get_rmr(mr);
     lci::allgather(&my_gptr, m_gptrs.data(), sizeof(gptr_t));
   }
 
@@ -57,7 +57,7 @@ class distributed_array_t
       status = lci::post_get(
           target_rank, &value, sizeof(T), lci::COMP_NULL_EXPECT_DONE_OR_RETRY,
           m_gptrs[target_rank].base + local_index * sizeof(T),
-          m_gptrs[target_rank].rkey);
+          m_gptrs[target_rank].rmr);
       lci::progress();
     } while (status.is_retry());
     assert(status.is_done());
@@ -75,7 +75,7 @@ class distributed_array_t
                    target_rank, static_cast<void*>(const_cast<int*>(&value)),
                    sizeof(T), lci::COMP_NULL_EXPECT_DONE_OR_RETRY,
                    m_gptrs[target_rank].base + local_index * sizeof(T),
-                   m_gptrs[target_rank].rkey)
+                   m_gptrs[target_rank].rmr)
                    .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
     } while (status.is_retry());
@@ -91,7 +91,7 @@ class distributed_array_t
   lci::mr_t mr;
   struct gptr_t {
     uintptr_t base;
-    lci::rkey_t rkey;
+    lci::rmr_t rmr;
   };
   std::vector<gptr_t> m_gptrs;
 

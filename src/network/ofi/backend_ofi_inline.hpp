@@ -158,11 +158,11 @@ inline error_t ofi_endpoint_impl_t::post_send_impl(int rank, void* buffer,
 
 inline error_t ofi_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
                                                    size_t size, uint64_t offset,
-                                                   rkey_t rkey)
+                                                   rmr_t rmr)
 {
   uintptr_t addr;
   if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
-    addr = rkey.base + offset;
+    addr = rmr.base + offset;
   } else {
     addr = offset;
   }
@@ -177,7 +177,7 @@ inline error_t ofi_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
   msg.addr = peer_addrs[rank];
   riov.addr = addr;
   riov.len = size;
-  riov.key = rkey.opaque_rkey;
+  riov.key = rmr.opaque_rkey;
   msg.rma_iov = &riov;
   msg.rma_iov_count = 1;
   msg.context = nullptr;
@@ -197,12 +197,12 @@ inline error_t ofi_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
 inline error_t ofi_endpoint_impl_t::post_put_impl(int rank, void* buffer,
                                                   size_t size, mr_t mr,
 
-                                                  uint64_t offset, rkey_t rkey,
+                                                  uint64_t offset, rmr_t rmr,
                                                   void* user_context)
 {
   uintptr_t addr;
   if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
-    addr = rkey.base + offset;
+    addr = rmr.base + offset;
   } else {
     addr = offset;
   }
@@ -218,7 +218,7 @@ inline error_t ofi_endpoint_impl_t::post_put_impl(int rank, void* buffer,
   msg.addr = peer_addrs[rank];
   riov.addr = addr;
   riov.len = size;
-  riov.key = rkey.opaque_rkey;
+  riov.key = rmr.opaque_rkey;
   msg.rma_iov = &riov;
   msg.rma_iov_count = 1;
   msg.context = user_context;
@@ -238,18 +238,18 @@ inline error_t ofi_endpoint_impl_t::post_put_impl(int rank, void* buffer,
 inline error_t ofi_endpoint_impl_t::post_putImms_impl(int rank, void* buffer,
                                                       size_t size,
                                                       uint64_t offset,
-                                                      rkey_t rkey,
+                                                      rmr_t rmr,
                                                       net_imm_data_t imm_data)
 {
   uintptr_t addr;
   if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
-    addr = rkey.base + offset;
+    addr = rmr.base + offset;
   } else {
     addr = offset;
   }
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
   ssize_t ret = fi_inject_writedata(ofi_ep, buffer, size, imm_data,
-                                    peer_addrs[rank], addr, rkey.opaque_rkey);
+                                    peer_addrs[rank], addr, rmr.opaque_rkey);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
     return errorcode_t::done;
@@ -260,20 +260,22 @@ inline error_t ofi_endpoint_impl_t::post_putImms_impl(int rank, void* buffer,
   }
 }
 
-inline error_t ofi_endpoint_impl_t::post_putImm_impl(
-    int rank, void* buffer, size_t size, mr_t mr, uint64_t offset, rkey_t rkey,
-    net_imm_data_t imm_data, void* user_context)
+inline error_t ofi_endpoint_impl_t::post_putImm_impl(int rank, void* buffer,
+                                                     size_t size, mr_t mr,
+                                                     uint64_t offset, rmr_t rmr,
+                                                     net_imm_data_t imm_data,
+                                                     void* user_context)
 {
   uintptr_t addr;
   if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
-    addr = rkey.base + offset;
+    addr = rmr.base + offset;
   } else {
     addr = offset;
   }
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
   ssize_t ret =
       fi_writedata(ofi_ep, buffer, size, ofi_detail::get_mr_desc(mr), imm_data,
-                   peer_addrs[rank], addr, rkey.opaque_rkey, user_context);
+                   peer_addrs[rank], addr, rmr.opaque_rkey, user_context);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
     return errorcode_t::posted;
@@ -287,12 +289,12 @@ inline error_t ofi_endpoint_impl_t::post_putImm_impl(
 inline error_t ofi_endpoint_impl_t::post_get_impl(int rank, void* buffer,
                                                   size_t size, mr_t mr,
 
-                                                  uint64_t offset, rkey_t rkey,
+                                                  uint64_t offset, rmr_t rmr,
                                                   void* user_context)
 {
   uintptr_t addr;
   if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
-    addr = rkey.base + offset;
+    addr = rmr.base + offset;
   } else {
     addr = offset;
   }
@@ -308,7 +310,7 @@ inline error_t ofi_endpoint_impl_t::post_get_impl(int rank, void* buffer,
   msg.addr = peer_addrs[rank];
   riov.addr = addr;
   riov.len = size;
-  riov.key = rkey.opaque_rkey;
+  riov.key = rmr.opaque_rkey;
   msg.rma_iov = &riov;
   msg.rma_iov_count = 1;
   msg.context = user_context;

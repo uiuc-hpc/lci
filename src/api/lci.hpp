@@ -249,18 +249,18 @@ struct net_status_t {
  * @details The internal structure of the remote memory region should be
  * considered opaque to users.
  */
-struct rkey_t {
+struct rmr_t {
   // TODO: show we expose the internal member to users?
   uintptr_t base;
   uint64_t opaque_rkey;
-  rkey_t() : base(0), opaque_rkey(0) {}
+  rmr_t() : base(0), opaque_rkey(0) {}
 };
 
 /**
  * @ingroup LCI_BASIC
  * @brief The NULL value of rkey_t.
  */
-const rkey_t RKEY_NULL = rkey_t();
+const rmr_t RMR_NULL = rmr_t();
 
 /**
  * @ingroup LCI_BASIC
@@ -367,10 +367,10 @@ struct buffer_t {
  */
 struct rbuffer_t {
   uintptr_t base; /**< The base address of the remote buffer */
-  rkey_t rkey;    /**< The remote memory region key */
+  rmr_t rmr;      /**< The remote memory region handle */
   rbuffer_t() : base(0) {}
   rbuffer_t(uintptr_t base_) : base(base_) {}
-  rbuffer_t(uintptr_t base_, rkey_t rkey_) : base(base_), rkey(rkey_) {}
+  rbuffer_t(uintptr_t base_, rmr_t rmr_) : base(base_), rmr(rmr_) {}
 };
 using buffers_t = std::vector<buffer_t>;
 using rbuffers_t = std::vector<rbuffer_t>;
