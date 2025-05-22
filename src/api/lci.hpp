@@ -250,7 +250,6 @@ struct net_status_t {
  * considered opaque to users.
  */
 struct rmr_t {
-  // TODO: show we expose the internal member to users?
   uintptr_t base;
   uint64_t opaque_rkey;
   rmr_t() : base(0), opaque_rkey(0) {}
