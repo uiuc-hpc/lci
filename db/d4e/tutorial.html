@@ -319,7 +319,7 @@ NCSA Delta</h3>
 <summary >
 Click to expand</summary>
 <p></p>
-<p>tl;dr: specify the cmake variable <code>-DLCI_NETWORK_BACKENDS=ofi</code> or the Spack variable <code>backend=ofi</code> when building LCI.</p>
+<p>tl;dr: <code>module load libfabric</code>, then specify the cmake variable <code>-DLCI_NETWORK_BACKENDS=ofi</code> or the Spack variable <code>backend=ofi</code> when building LCI.</p>
 <p>The only caveat is that you need to pass the -DLCI_NETWORK_BACKENDS=ofi option to CMake. This is because Delta somehow has both libibverbs and libfabric installed, but only libfabric is working.</p>
 <p>No additional <code>srun</code> arguments are needed to run LCI applications. However, we have noticed that <code>srun</code> can be broken under some mysterious module loading conditions. In such case, just use <code>srun --mpi=pmi2</code> instead. </p><details >
 <summary >
