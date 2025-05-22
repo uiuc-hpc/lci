@@ -50,7 +50,7 @@ inline void qp2rank_map_t::calculate_map()
           qp2rank_mod, qp_rank_pairs.size(), duration.count());
 }
 
-inline rkey_t ibv_device_impl_t::get_rkey(mr_impl_t* mr)
+inline uint64_t ibv_device_impl_t::get_rkey(mr_impl_t* mr)
 {
   ibv_mr_impl_t& p_mr = *static_cast<ibv_mr_impl_t*>(mr);
   return p_mr.ibv_mr->rkey;
@@ -286,8 +286,8 @@ inline error_t ibv_endpoint_impl_t::post_send_impl(int rank, void* buffer,
 }
 
 inline error_t ibv_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
-                                                   size_t size, uintptr_t base,
-                                                   uint64_t offset, rkey_t rkey)
+                                                   size_t size, uint64_t offset,
+                                                   rkey_t rkey)
 {
   LCI_Assert(size <= net_context_attr.max_inject_size,
              "%lu exceed the inline message size\n"
@@ -313,8 +313,8 @@ inline error_t ibv_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
   wr.next = NULL;
   wr.opcode = IBV_WR_RDMA_WRITE;
   wr.send_flags = IBV_SEND_SIGNALED | IBV_SEND_INLINE;
-  wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
-  wr.wr.rdma.rkey = rkey;
+  wr.wr.rdma.remote_addr = (uintptr_t)(rkey.base + offset);
+  wr.wr.rdma.rkey = rkey.opaque_rkey;
 
   struct ibv_send_wr* bad_wr;
   if (!try_lock_qp(rank)) return errorcode_t::retry_lock;
@@ -331,7 +331,7 @@ inline error_t ibv_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
 
 inline error_t ibv_endpoint_impl_t::post_put_impl(int rank, void* buffer,
                                                   size_t size, mr_t mr,
-                                                  uintptr_t base,
+
                                                   uint64_t offset, rkey_t rkey,
                                                   void* user_context)
 {
@@ -354,8 +354,8 @@ inline error_t ibv_endpoint_impl_t::post_put_impl(int rank, void* buffer,
   wr.next = NULL;
   wr.opcode = IBV_WR_RDMA_WRITE;
   wr.send_flags = IBV_SEND_SIGNALED;
-  wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
-  wr.wr.rdma.rkey = rkey;
+  wr.wr.rdma.remote_addr = (uintptr_t)(rkey.base + offset);
+  wr.wr.rdma.rkey = rkey.opaque_rkey;
   if (size <= net_context_attr.max_inject_size) {
     wr.send_flags |= IBV_SEND_INLINE;
   }
@@ -373,9 +373,11 @@ inline error_t ibv_endpoint_impl_t::post_put_impl(int rank, void* buffer,
   }
 }
 
-inline error_t ibv_endpoint_impl_t::post_putImms_impl(
-    int rank, void* buffer, size_t size, uintptr_t base, uint64_t offset,
-    rkey_t rkey, net_imm_data_t imm_data)
+inline error_t ibv_endpoint_impl_t::post_putImms_impl(int rank, void* buffer,
+                                                      size_t size,
+                                                      uint64_t offset,
+                                                      rkey_t rkey,
+                                                      net_imm_data_t imm_data)
 {
   LCI_Assert(size <= net_context_attr.max_inject_size,
              "%lu exceed the inline message size\n"
@@ -400,8 +402,8 @@ inline error_t ibv_endpoint_impl_t::post_putImms_impl(
   wr.next = NULL;
   wr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
   wr.send_flags = IBV_SEND_SIGNALED | IBV_SEND_INLINE;
-  wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
-  wr.wr.rdma.rkey = rkey;
+  wr.wr.rdma.remote_addr = (uintptr_t)(rkey.base + offset);
+  wr.wr.rdma.rkey = rkey.opaque_rkey;
   wr.imm_data = imm_data;
 
   struct ibv_send_wr* bad_wr;
@@ -418,8 +420,8 @@ inline error_t ibv_endpoint_impl_t::post_putImms_impl(
 }
 
 inline error_t ibv_endpoint_impl_t::post_putImm_impl(
-    int rank, void* buffer, size_t size, mr_t mr, uintptr_t base,
-    uint64_t offset, rkey_t rkey, net_imm_data_t imm_data, void* user_context)
+    int rank, void* buffer, size_t size, mr_t mr, uint64_t offset, rkey_t rkey,
+    net_imm_data_t imm_data, void* user_context)
 {
   struct ibv_sge list;
   struct ibv_send_wr wr;
@@ -441,8 +443,8 @@ inline error_t ibv_endpoint_impl_t::post_putImm_impl(
   wr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
   wr.send_flags = IBV_SEND_SIGNALED;
   wr.imm_data = imm_data;
-  wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
-  wr.wr.rdma.rkey = rkey;
+  wr.wr.rdma.remote_addr = (uintptr_t)(rkey.base + offset);
+  wr.wr.rdma.rkey = rkey.opaque_rkey;
   if (size <= net_context_attr.max_inject_size) {
     wr.send_flags |= IBV_SEND_INLINE;
   }
@@ -462,7 +464,7 @@ inline error_t ibv_endpoint_impl_t::post_putImm_impl(
 
 inline error_t ibv_endpoint_impl_t::post_get_impl(int rank, void* buffer,
                                                   size_t size, mr_t mr,
-                                                  uintptr_t base,
+
                                                   uint64_t offset, rkey_t rkey,
                                                   void* user_context)
 {
@@ -485,8 +487,8 @@ inline error_t ibv_endpoint_impl_t::post_get_impl(int rank, void* buffer,
   wr.next = NULL;
   wr.opcode = IBV_WR_RDMA_READ;
   wr.send_flags = IBV_SEND_SIGNALED;
-  wr.wr.rdma.remote_addr = (uintptr_t)(base + offset);
-  wr.wr.rdma.rkey = rkey;
+  wr.wr.rdma.remote_addr = (uintptr_t)(rkey.base + offset);
+  wr.wr.rdma.rkey = rkey.opaque_rkey;
   if (size <= net_context_attr.max_inject_size) {
     wr.send_flags |= IBV_SEND_INLINE;
   }

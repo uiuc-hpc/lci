@@ -301,7 +301,7 @@ TEST(COMM_PUTIMM, putImm_buffers_st)
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_put_x(rank, nullptr, 0, scq, 0, 0)
+      status = lci::post_put_x(rank, nullptr, 0, scq, 0, lci::RKEY_NULL)
                    .buffers(send_buffers)
                    .rbuffers(rbuffers)
                    .tag(i)
@@ -369,7 +369,7 @@ void test_putImm_buffers_mt(int id, int nmsgs, lci::rcomp_t rcomp_base)
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_put_x(rank, nullptr, 0, scq, 0, 0)
+      status = lci::post_put_x(rank, nullptr, 0, scq, 0, lci::RKEY_NULL)
                    .buffers(send_buffers)
                    .rbuffers(rbuffers)
                    .tag(i)

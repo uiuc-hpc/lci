@@ -95,9 +95,7 @@ TEST(NETWORK, loopback_put)
   lci::mr_t send_mr = lci::register_memory(send_address, size);
   lci::mr_t recv_mr = lci::register_memory(recv_address, size);
   lci::rkey_t rkey = lci::get_rkey(recv_mr);
-  while (lci::net_post_put(0, send_address, size, send_mr,
-                           reinterpret_cast<uintptr_t>(recv_address), 0, rkey)
-             .is_retry())
+  while (lci::net_post_put(0, send_address, size, send_mr, 0, rkey).is_retry())
     continue;
   size_t total = 0;
   while (total < 1) {
@@ -119,9 +117,7 @@ TEST(NETWORK, loopback_get)
   lci::mr_t send_mr = lci::register_memory(send_address, size);
   lci::mr_t recv_mr = lci::register_memory(recv_address, size);
   lci::rkey_t rkey = lci::get_rkey(send_mr);
-  while (lci::net_post_get(0, recv_address, size, recv_mr,
-                           reinterpret_cast<uintptr_t>(send_address), 0, rkey)
-             .is_retry())
+  while (lci::net_post_get(0, recv_address, size, recv_mr, 0, rkey).is_retry())
     continue;
   size_t total = 0;
   while (total < 1) {

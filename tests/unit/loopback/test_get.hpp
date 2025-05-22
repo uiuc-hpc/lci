@@ -253,7 +253,7 @@ TEST(COMM_GET, get_buffers_st)
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_get_x(rank, nullptr, 0, cq, 0, 0)
+      status = lci::post_get_x(rank, nullptr, 0, cq, 0, lci::RKEY_NULL)
                    .buffers(recv_buffers)
                    .rbuffers(rbuffers)();
       lci::progress();
@@ -309,7 +309,7 @@ void test_get_buffers_mt(int id, int nmsgs)
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_get_x(rank, nullptr, 0, cq, 0, 0)
+      status = lci::post_get_x(rank, nullptr, 0, cq, 0, lci::RKEY_NULL)
                    .buffers(recv_buffers)
                    .rbuffers(rbuffers)();
       lci::progress();

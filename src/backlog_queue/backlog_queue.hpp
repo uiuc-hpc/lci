@@ -29,21 +29,19 @@ class backlog_queue_t
                         size_t size, mr_t mr, net_imm_data_t imm_data,
                         void* user_context);
   inline void push_puts(endpoint_impl_t* endpoint, int rank, void* buffer,
-                        size_t size, uintptr_t base, uint64_t offset,
-                        rkey_t rkey);
+                        size_t size, uint64_t offset, rkey_t rkey);
   inline void push_put(endpoint_impl_t* endpoint, int rank, void* buffer,
-                       size_t size, mr_t mr, uintptr_t base, uint64_t offset,
-                       rkey_t rkey, void* user_context);
+                       size_t size, mr_t mr, uint64_t offset, rkey_t rkey,
+                       void* user_context);
   inline void push_putImms(endpoint_impl_t* endpoint, int rank, void* buffer,
-                           size_t size, uintptr_t base, uint64_t offset,
-                           rkey_t rkey, net_imm_data_t imm_data);
+                           size_t size, uint64_t offset, rkey_t rkey,
+                           net_imm_data_t imm_data);
   inline void push_putImm(endpoint_impl_t* endpoint, int rank, void* buffer,
-                          size_t size, mr_t mr, uintptr_t base, uint64_t offset,
-                          rkey_t rkey, net_imm_data_t imm_data,
-                          void* user_context);
+                          size_t size, mr_t mr, uint64_t offset, rkey_t rkey,
+                          net_imm_data_t imm_data, void* user_context);
   inline void push_get(endpoint_impl_t* endpoint, int rank, void* buffer,
-                       size_t size, mr_t mr, uintptr_t base, uint64_t offset,
-                       rkey_t rkey, void* user_context);
+                       size_t size, mr_t mr, uint64_t offset, rkey_t rkey,
+                       void* user_context);
   inline bool progress();
   inline void set_empty(bool empty_)
   {
@@ -77,7 +75,6 @@ class backlog_queue_t
     void* buffer;
     size_t size;
     mr_t mr;
-    uintptr_t base;
     uint64_t offset;
     rkey_t rkey;
     net_imm_data_t imm_data;

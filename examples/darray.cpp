@@ -41,6 +41,8 @@ class distributed_array_t
   ~distributed_array_t()
   {
     // deregister my memory buffer
+    // we need a barrier to ensure that all remote operations are completed
+    lci::barrier();
     lci::deregister_memory(&mr);
   }
 
@@ -106,12 +108,8 @@ class distributed_array_t
   }
 };
 
-int main(int argc, char** args)
+void work(size_t size)
 {
-  lci::g_runtime_init();
-
-  const size_t size = 1000;
-
   distributed_array_t<int> darray(size, 0);
   int rank = lci::get_rank_me();
   int nranks = lci::get_rank_n();
@@ -124,7 +122,14 @@ int main(int argc, char** args)
     int value = darray.get(i);
     assert(value == i);
   }
+}
 
+int main(int argc, char** args)
+{
+  const size_t size = 1000;
+
+  lci::g_runtime_init();
+  work(size);
   lci::g_runtime_fina();
   return 0;
 }

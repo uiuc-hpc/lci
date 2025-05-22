@@ -52,8 +52,7 @@ inline void backlog_queue_t::push_send(endpoint_impl_t* endpoint, int rank,
 
 inline void backlog_queue_t::push_puts(endpoint_impl_t* endpoint, int rank,
                                        void* buffer, size_t size,
-                                       uintptr_t base, uint64_t offset,
-                                       rkey_t rkey)
+                                       uint64_t offset, rkey_t rkey)
 {
   LCI_PCOUNTER_ADD(backlog_queue_push, 1);
   backlog_queue_entry_t entry;
@@ -63,7 +62,6 @@ inline void backlog_queue_t::push_puts(endpoint_impl_t* endpoint, int rank,
   entry.buffer = malloc(size);
   memcpy(entry.buffer, buffer, size);
   entry.size = size;
-  entry.base = base;
   entry.offset = offset;
   entry.rkey = rkey;
 
@@ -76,8 +74,8 @@ inline void backlog_queue_t::push_puts(endpoint_impl_t* endpoint, int rank,
 
 inline void backlog_queue_t::push_put(endpoint_impl_t* endpoint, int rank,
                                       void* buffer, size_t size, mr_t mr,
-                                      uintptr_t base, uint64_t offset,
-                                      rkey_t rkey, void* user_context)
+                                      uint64_t offset, rkey_t rkey,
+                                      void* user_context)
 {
   LCI_PCOUNTER_ADD(backlog_queue_push, 1);
   backlog_queue_entry_t entry;
@@ -87,7 +85,6 @@ inline void backlog_queue_t::push_put(endpoint_impl_t* endpoint, int rank,
   entry.buffer = buffer;
   entry.size = size;
   entry.mr = mr;
-  entry.base = base;
   entry.offset = offset;
   entry.rkey = rkey;
   entry.user_context = user_context;
@@ -101,8 +98,8 @@ inline void backlog_queue_t::push_put(endpoint_impl_t* endpoint, int rank,
 
 inline void backlog_queue_t::push_putImms(endpoint_impl_t* endpoint, int rank,
                                           void* buffer, size_t size,
-                                          uintptr_t base, uint64_t offset,
-                                          rkey_t rkey, net_imm_data_t imm_data)
+                                          uint64_t offset, rkey_t rkey,
+                                          net_imm_data_t imm_data)
 {
   LCI_PCOUNTER_ADD(backlog_queue_push, 1);
   backlog_queue_entry_t entry;
@@ -112,7 +109,6 @@ inline void backlog_queue_t::push_putImms(endpoint_impl_t* endpoint, int rank,
   entry.buffer = malloc(size);
   memcpy(entry.buffer, buffer, size);
   entry.size = size;
-  entry.base = base;
   entry.offset = offset;
   entry.rkey = rkey;
   entry.imm_data = imm_data;
@@ -125,8 +121,8 @@ inline void backlog_queue_t::push_putImms(endpoint_impl_t* endpoint, int rank,
 }
 inline void backlog_queue_t::push_putImm(endpoint_impl_t* endpoint, int rank,
                                          void* buffer, size_t size, mr_t mr,
-                                         uintptr_t base, uint64_t offset,
-                                         rkey_t rkey, net_imm_data_t imm_data,
+                                         uint64_t offset, rkey_t rkey,
+                                         net_imm_data_t imm_data,
                                          void* user_context)
 {
   LCI_PCOUNTER_ADD(backlog_queue_push, 1);
@@ -137,7 +133,6 @@ inline void backlog_queue_t::push_putImm(endpoint_impl_t* endpoint, int rank,
   entry.buffer = buffer;
   entry.size = size;
   entry.mr = mr;
-  entry.base = base;
   entry.offset = offset;
   entry.rkey = rkey;
   entry.imm_data = imm_data;
@@ -152,8 +147,8 @@ inline void backlog_queue_t::push_putImm(endpoint_impl_t* endpoint, int rank,
 
 inline void backlog_queue_t::push_get(endpoint_impl_t* endpoint, int rank,
                                       void* buffer, size_t size, mr_t mr,
-                                      uintptr_t base, uint64_t offset,
-                                      rkey_t rkey, void* user_context)
+                                      uint64_t offset, rkey_t rkey,
+                                      void* user_context)
 {
   LCI_PCOUNTER_ADD(backlog_queue_push, 1);
   backlog_queue_entry_t entry;
@@ -163,7 +158,6 @@ inline void backlog_queue_t::push_get(endpoint_impl_t* endpoint, int rank,
   entry.buffer = buffer;
   entry.size = size;
   entry.mr = mr;
-  entry.base = base;
   entry.offset = offset;
   entry.rkey = rkey;
   entry.user_context = user_context;
@@ -203,29 +197,27 @@ inline bool backlog_queue_t::progress()
       break;
     case backlog_op_t::puts:
       error = entry.endpoint->post_puts(entry.rank, entry.buffer, entry.size,
-                                        entry.base, entry.offset, entry.rkey,
-                                        true, true);
+                                        entry.offset, entry.rkey, true, true);
       break;
     case backlog_op_t::put:
-      error = entry.endpoint->post_put(
-          entry.rank, entry.buffer, entry.size, entry.mr, entry.base,
-          entry.offset, entry.rkey, entry.user_context, true, true);
+      error = entry.endpoint->post_put(entry.rank, entry.buffer, entry.size,
+                                       entry.mr, entry.offset, entry.rkey,
+                                       entry.user_context, true, true);
       break;
     case backlog_op_t::putImms:
       error = entry.endpoint->post_putImms(entry.rank, entry.buffer, entry.size,
-                                           entry.base, entry.offset, entry.rkey,
+                                           entry.offset, entry.rkey,
                                            entry.imm_data, true, true);
       break;
     case backlog_op_t::putImm:
-      error = entry.endpoint->post_putImm(entry.rank, entry.buffer, entry.size,
-                                          entry.mr, entry.base, entry.offset,
-                                          entry.rkey, entry.imm_data,
-                                          entry.user_context, true, true);
+      error = entry.endpoint->post_putImm(
+          entry.rank, entry.buffer, entry.size, entry.mr, entry.offset,
+          entry.rkey, entry.imm_data, entry.user_context, true, true);
       break;
     case backlog_op_t::get:
-      error = entry.endpoint->post_get(
-          entry.rank, entry.buffer, entry.size, entry.mr, entry.base,
-          entry.offset, entry.rkey, entry.user_context, true, true);
+      error = entry.endpoint->post_get(entry.rank, entry.buffer, entry.size,
+                                       entry.mr, entry.offset, entry.rkey,
+                                       entry.user_context, true, true);
       break;
     default:
       LCI_Assert(false, "Unknown operation %d\n", entry.op);

@@ -93,15 +93,13 @@ struct rts_msg_t {
 
 struct rtr_rbuffer_info_t {
   rkey_t rkey;
-  uintptr_t remote_addr_base;
-  uint64_t remote_addr_offset;
+  uintptr_t offset;
 };
 
 inline void fill_rtr_rbuffer_info(rtr_rbuffer_info_t* p, void* buffer, mr_t mr)
 {
-  p->remote_addr_base = (uintptr_t)mr.get_impl()->address;
-  p->remote_addr_offset = (uintptr_t)buffer - p->remote_addr_base;
   p->rkey = get_rkey(mr);
+  p->offset = (uintptr_t)buffer - p->rkey.base;
 }
 
 struct rtr_msg_t {
@@ -319,8 +317,7 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
       size_t length = std::min(size - offset, max_single_msg_size);
       error_t error = endpoint.get_impl()->post_put(
           (int)ctx->rank, address, length, *p_mr,
-          rtr->get_rbuffer_info_p(i)->remote_addr_base,
-          rtr->get_rbuffer_info_p(i)->remote_addr_offset + offset,
+          rtr->get_rbuffer_info_p(i)->offset + offset,
           rtr->get_rbuffer_info_p(i)->rkey, ctx_to_pass,
           false /* allow_retry */);
       LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);

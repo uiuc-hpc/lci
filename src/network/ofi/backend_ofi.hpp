@@ -62,7 +62,7 @@ class ofi_device_impl_t : public lci::device_impl_t
   endpoint_t alloc_endpoint_impl(endpoint_t::attr_t attr) override;
   mr_t register_memory_impl(void* buffer, size_t size) override;
   void deregister_memory_impl(mr_impl_t*) override;
-  rkey_t get_rkey(mr_impl_t* mr) override;
+  uint64_t get_rkey(mr_impl_t* mr) override;
   size_t poll_comp_impl(net_status_t* p_statuses, size_t max_polls) override;
   error_t post_recv_impl(void* buffer, size_t size, mr_t mr,
                          void* user_context) override;
@@ -90,20 +90,20 @@ class ofi_endpoint_impl_t : public lci::endpoint_impl_t
                           net_imm_data_t imm_data) override;
   error_t post_send_impl(int rank, void* buffer, size_t size, mr_t mr,
                          net_imm_data_t imm_data, void* user_context) override;
-  error_t post_puts_impl(int rank, void* buffer, size_t size, uintptr_t base,
-                         uint64_t offset, rkey_t rkey) override;
+  error_t post_puts_impl(int rank, void* buffer, size_t size, uint64_t offset,
+                         rkey_t rkey) override;
   error_t post_put_impl(int rank, void* buffer, size_t size, mr_t mr,
-                        uintptr_t base, uint64_t offset, rkey_t rkey,
+                        uint64_t offset, rkey_t rkey,
                         void* user_context) override;
-  error_t post_putImms_impl(int rank, void* buffer, size_t size, uintptr_t base,
+  error_t post_putImms_impl(int rank, void* buffer, size_t size,
                             uint64_t offset, rkey_t rkey,
                             net_imm_data_t imm_data) override;
   error_t post_putImm_impl(int rank, void* buffer, size_t size, mr_t mr,
-                           uintptr_t base, uint64_t offset, rkey_t rkey,
+                           uint64_t offset, rkey_t rkey,
                            net_imm_data_t imm_data,
                            void* user_context) override;
   error_t post_get_impl(int rank, void* buffer, size_t size, mr_t mr,
-                        uintptr_t base, uint64_t offset, rkey_t rkey,
+                        uint64_t offset, rkey_t rkey,
                         void* user_context) override;
 
   ofi_device_impl_t* p_ofi_device;

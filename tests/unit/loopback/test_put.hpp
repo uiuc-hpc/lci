@@ -259,7 +259,7 @@ TEST(COMM_PUT, put_buffers_st)
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_put_x(rank, nullptr, 0, cq, 0, 0)
+      status = lci::post_put_x(rank, nullptr, 0, cq, 0, lci::RKEY_NULL)
                    .buffers(send_buffers)
                    .rbuffers(rbuffers)
                    .comp_semantic(lci::comp_semantic_t::network)();
@@ -320,7 +320,7 @@ void test_put_buffers_mt(int id, int nmsgs)
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_put_x(rank, nullptr, 0, cq, 0, 0)
+      status = lci::post_put_x(rank, nullptr, 0, cq, 0, lci::RKEY_NULL)
                    .buffers(send_buffers)
                    .rbuffers(rbuffers)
                    .comp_semantic(lci::comp_semantic_t::network)();

@@ -245,9 +245,22 @@ struct net_status_t {
 
 /**
  * @ingroup LCI_BASIC
- * @brief The type of remote memory region key.
+ * @brief The type of remote memory region.
+ * @details The internal structure of the remote memory region should be
+ * considered opaque to users.
  */
-using rkey_t = uint64_t;
+struct rkey_t {
+  // TODO: show we expose the internal member to users?
+  uintptr_t base;
+  uint64_t opaque_rkey;
+  rkey_t() : base(0), opaque_rkey(0) {}
+};
+
+/**
+ * @ingroup LCI_BASIC
+ * @brief The NULL value of rkey_t.
+ */
+const rkey_t RKEY_NULL = rkey_t();
 
 /**
  * @ingroup LCI_BASIC
@@ -355,7 +368,7 @@ struct buffer_t {
 struct rbuffer_t {
   uintptr_t base; /**< The base address of the remote buffer */
   rkey_t rkey;    /**< The remote memory region key */
-  rbuffer_t() : base(0), rkey(0) {}
+  rbuffer_t() : base(0) {}
   rbuffer_t(uintptr_t base_) : base(base_) {}
   rbuffer_t(uintptr_t base_, rkey_t rkey_) : base(base_), rkey(rkey_) {}
 };
