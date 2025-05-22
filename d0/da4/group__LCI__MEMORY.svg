@@ -20,9 +20,9 @@
 <!-- Node4 -->
 <g id="Node000004" class="node">
 <title>Node4</title>
-<g id="a_Node000004"><a xlink:href="../../dd/dfd/group__LCI__GET__RKEY.html" target="_top" xlink:title="Get the rkey of a memory region.">
-<polygon fill="white" stroke="#666666" points="241,-93 182,-93 182,-74 241,-74 241,-93"/>
-<text text-anchor="middle" x="211.5" y="-81" font-family="Helvetica,sans-Serif" font-size="10.00">get_rkey</text>
+<g id="a_Node000004"><a xlink:href="../../d7/d54/group__LCI__GET__RMR.html" target="_top" xlink:title="Get the remote memory region handle.">
+<polygon fill="white" stroke="#666666" points="239,-93 184,-93 184,-74 239,-74 239,-93"/>
+<text text-anchor="middle" x="211.5" y="-81" font-family="Helvetica,sans-Serif" font-size="10.00">get_rmr</text>
 </a>
 </g>
 </g>
@@ -44,7 +44,7 @@
 <!-- Node1&#45;&gt;Node4 -->
 <g id="edge3" class="edge">
 <title>Node1&#45;&gt;Node4</title>
-<path fill="none" stroke="black" d="M129.28,-73.21C147.84,-75.56 166.92,-77.98 181.91,-79.88"/>
+<path fill="none" stroke="black" d="M129.4,-73.23C148.76,-75.68 168.66,-78.2 183.91,-80.13"/>
 <polygon fill="black" stroke="black" points="129.71,-69.74 119.35,-71.95 128.83,-76.68 129.71,-69.74"/>
 </g>
 <!-- Node5 -->

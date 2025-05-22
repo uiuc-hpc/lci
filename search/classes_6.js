@@ -12,7 +12,7 @@ var searchData=
   ['get_5fmax_5fbcopy_5fsize_5fx_9',['get_max_bcopy_size_x',['../d6/d78/classlci_1_1get__max__bcopy__size__x.html',1,'lci']]],
   ['get_5frank_5fme_5fx_10',['get_rank_me_x',['../d9/dce/classlci_1_1get__rank__me__x.html',1,'lci']]],
   ['get_5frank_5fn_5fx_11',['get_rank_n_x',['../db/db4/classlci_1_1get__rank__n__x.html',1,'lci']]],
-  ['get_5frkey_5fx_12',['get_rkey_x',['../da/d99/classlci_1_1get__rkey__x.html',1,'lci']]],
+  ['get_5frmr_5fx_12',['get_rmr_x',['../db/dd8/classlci_1_1get__rmr__x.html',1,'lci']]],
   ['get_5fupacket_5fx_13',['get_upacket_x',['../d1/d2e/classlci_1_1get__upacket__x.html',1,'lci']]],
   ['global_5fattr_5ft_14',['global_attr_t',['../d8/d0c/structlci_1_1global__attr__t.html',1,'lci']]],
   ['graph_5fadd_5fedge_5fx_15',['graph_add_edge_x',['../df/d73/classlci_1_1graph__add__edge__x.html',1,'lci']]],

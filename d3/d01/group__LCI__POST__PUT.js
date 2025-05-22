@@ -1,13 +1,13 @@
 var group__LCI__POST__PUT =
 [
     [ "lci::post_put_x", "d7/d85/classlci_1_1post__put__x.html", [
-      [ "post_put_x", "d7/d85/classlci_1_1post__put__x.html#abb83a6b07ae1bf6a7818bd7e2c290fb4", null ],
+      [ "post_put_x", "d7/d85/classlci_1_1post__put__x.html#acd6573ce439a8cead4c0cce5c9757c41", null ],
       [ "allow_done", "d7/d85/classlci_1_1post__put__x.html#a7c47be347b9cd58177cf852427875c1d", null ],
       [ "allow_posted", "d7/d85/classlci_1_1post__put__x.html#afe193737cce6daaf2317f9bb6ea49c9d", null ],
       [ "allow_retry", "d7/d85/classlci_1_1post__put__x.html#a9c3eee39d20edda920f82a4f6824fc28", null ],
       [ "buffers", "d7/d85/classlci_1_1post__put__x.html#a7a7860a8c1743c159d558247509b673f", null ],
       [ "call", "d7/d85/classlci_1_1post__put__x.html#a8e042fb4a730b203593842d84209a739", null ],
-      [ "call_impl", "d7/d85/classlci_1_1post__put__x.html#ad8059da8f0967fdd9a84351fc7fceb19", null ],
+      [ "call_impl", "d7/d85/classlci_1_1post__put__x.html#a6473aac2999a69f1165c785a4bfacde1", null ],
       [ "comp_semantic", "d7/d85/classlci_1_1post__put__x.html#a8760591ebcfb437bc49000c47b473227", null ],
       [ "device", "d7/d85/classlci_1_1post__put__x.html#a0d0c3eb11071c0039598976d9fd4dd39", null ],
       [ "endpoint", "d7/d85/classlci_1_1post__put__x.html#a220f22ad49076dd1dbe975d750bebf4e", null ],
@@ -21,7 +21,7 @@ var group__LCI__POST__PUT =
       [ "rbuffers", "d7/d85/classlci_1_1post__put__x.html#a982c74e0cc559c2e2d3e33fe59b0761b", null ],
       [ "remote_buffer", "d7/d85/classlci_1_1post__put__x.html#ade9717efe47757e92549b22b50bb6d14", null ],
       [ "remote_comp", "d7/d85/classlci_1_1post__put__x.html#ad4bc08cb1aef1932ac79961748f76dd2", null ],
-      [ "rkey", "d7/d85/classlci_1_1post__put__x.html#a53029bec1a2505722aa7d5db729993ce", null ],
+      [ "rmr", "d7/d85/classlci_1_1post__put__x.html#aae3220b86cd474558b37f2f7787a0f54", null ],
       [ "runtime", "d7/d85/classlci_1_1post__put__x.html#a1b9f0551ed3b7e0b726a15b8c4eb7315", null ],
       [ "size", "d7/d85/classlci_1_1post__put__x.html#a8e4a92835eb5373cd0c4a8f7d052ba3a", null ],
       [ "tag", "d7/d85/classlci_1_1post__put__x.html#a763b19426bad9e0c38a368006cd9bdc6", null ],
@@ -42,7 +42,7 @@ var group__LCI__POST__PUT =
       [ "m_rbuffers", "d7/d85/classlci_1_1post__put__x.html#a8514838bb7519bcb70ea885b055e6717", null ],
       [ "m_remote_buffer", "d7/d85/classlci_1_1post__put__x.html#a58a07260cd40e88de15f80fbd11324b9", null ],
       [ "m_remote_comp", "d7/d85/classlci_1_1post__put__x.html#a7349613a0fe6947621d7526c4ee8a5a6", null ],
-      [ "m_rkey", "d7/d85/classlci_1_1post__put__x.html#a9a93b4db323b23db21a67610822330ca", null ],
+      [ "m_rmr", "d7/d85/classlci_1_1post__put__x.html#abcbed30f684b1ac2df13968819fe7e84", null ],
       [ "m_runtime", "d7/d85/classlci_1_1post__put__x.html#a9741c26d22e2809f24413fa21182ee71", null ],
       [ "m_size", "d7/d85/classlci_1_1post__put__x.html#aca5a02aca7fccf4d18d2948d4df00d2d", null ],
       [ "m_tag", "d7/d85/classlci_1_1post__put__x.html#a84962cf4e6c26af2b102a6989cb1bbb9", null ],

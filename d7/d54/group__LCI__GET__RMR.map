@@ -1,0 +1,4 @@
+<map id="get_rmr" name="get_rmr">
+<area shape="rect" id="Node000001" title="Get the remote memory region handle." alt="" coords="212,5,285,31"/>
+<area shape="rect" id="Node000002" href="$d0/da4/group__LCI__MEMORY.html" title="This section describes the LCI API for memory registration." alt="" coords="5,5,164,31"/>
+</map>
