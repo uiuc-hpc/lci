@@ -1,5 +1,6 @@
 var NAVTREEINDEX5 =
 {
+"db/dbf/classlci_1_1allgather__x.html#a9ffe4f3776e86a00f49be40adb34e4b6":[5,7,3,0,8],
 "db/dbf/classlci_1_1allgather__x.html#aa7da70e1154376f62ce6a9bf0e358448":[5,7,3,0,4],
 "db/dbf/classlci_1_1allgather__x.html#aacc56555e36e4e7b6f39962b4e41f374":[5,7,3,0,0],
 "db/dbf/classlci_1_1allgather__x.html#ab53b822c0e70bd146768d2622c755d8f":[5,7,3,0,5],
@@ -248,6 +249,5 @@ var NAVTREEINDEX5 =
 "de/d9f/group__LCI__NET__POST__SENDS.html":[5,4,2],
 "de/df4/group__LCI__SYNC__TEST.html":[5,6,6],
 "df/d00/group__LCI__GET__DEFAULT__PACKET__POOL.html":[5,2,14],
-"df/d01/group__LCI__NET__POLL__CQ.html":[5,4,0],
-"df/d10/group__LCI__GET__DEFAULT__DEVICE.html":[5,2,12]
+"df/d01/group__LCI__NET__POLL__CQ.html":[5,4,0]
 };

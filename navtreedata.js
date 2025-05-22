@@ -50,18 +50,19 @@ var NAVTREE =
         [ "Examples", "db/d4e/tutorial.html#autotoc_md57", [
           [ "Hello World", "db/d4e/tutorial.html#autotoc_md58", null ],
           [ "Hello World (Active Message)", "db/d4e/tutorial.html#autotoc_md59", null ],
-          [ "Non-blocking Barrier", "db/d4e/tutorial.html#autotoc_md60", null ],
-          [ "Multithreaded Active Message Ping-pong", "db/d4e/tutorial.html#autotoc_md61", null ]
+          [ "Distributed Array", "db/d4e/tutorial.html#autotoc_md60", null ],
+          [ "Non-blocking Barrier", "db/d4e/tutorial.html#autotoc_md61", null ],
+          [ "Multithreaded Active Message Ping-pong", "db/d4e/tutorial.html#autotoc_md62", null ]
         ] ]
       ] ],
-      [ "Run LCI applications", "db/d4e/tutorial.html#autotoc_md62", [
-        [ "More details", "db/d4e/tutorial.html#autotoc_md66", [
-          [ "Run LCI applications with lcrun", "db/d4e/tutorial.html#autotoc_md63", null ],
-          [ "Run LCI applications with srun", "db/d4e/tutorial.html#autotoc_md64", null ],
-          [ "Run LCI applications with mpirun", "db/d4e/tutorial.html#autotoc_md65", null ],
-          [ "Bootstrapping backends", "db/d4e/tutorial.html#autotoc_md67", null ],
-          [ "Launchers", "db/d4e/tutorial.html#autotoc_md68", null ],
-          [ "More about the file backend", "db/d4e/tutorial.html#autotoc_md69", null ]
+      [ "Run LCI applications", "db/d4e/tutorial.html#autotoc_md63", [
+        [ "More details", "db/d4e/tutorial.html#autotoc_md67", [
+          [ "Run LCI applications with lcrun", "db/d4e/tutorial.html#autotoc_md64", null ],
+          [ "Run LCI applications with srun", "db/d4e/tutorial.html#autotoc_md65", null ],
+          [ "Run LCI applications with mpirun", "db/d4e/tutorial.html#autotoc_md66", null ],
+          [ "Bootstrapping backends", "db/d4e/tutorial.html#autotoc_md68", null ],
+          [ "Launchers", "db/d4e/tutorial.html#autotoc_md69", null ],
+          [ "More about the file backend", "db/d4e/tutorial.html#autotoc_md70", null ]
         ] ]
       ] ]
     ] ],
@@ -78,8 +79,8 @@ var NAVTREEINDEX =
 "d7/d0f/classlci_1_1alloc__handler__x.html#a4e46f9c9c33a3765e6a517f187e83cb2",
 "d8/d48/classlci_1_1post__comm__x.html#a585bbb73afe075d1ee694782f3790ba3",
 "d9/d4d/classlci_1_1register__rcomp__x.html#aba7005d022be13503b88a92124caabd2",
-"db/dbf/classlci_1_1allgather__x.html#aa7da70e1154376f62ce6a9bf0e358448",
-"df/d29/group__LCI__NET__POST__GET.html"
+"db/dbf/classlci_1_1allgather__x.html#a9ffe4f3776e86a00f49be40adb34e4b6",
+"df/d10/group__LCI__GET__DEFAULT__DEVICE.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronization';

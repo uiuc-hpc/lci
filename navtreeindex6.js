@@ -1,5 +1,6 @@
 var NAVTREEINDEX6 =
 {
+"df/d10/group__LCI__GET__DEFAULT__DEVICE.html":[5,2,12],
 "df/d29/group__LCI__NET__POST__GET.html":[5,4,8],
 "df/d43/classlci_1_1get__default__endpoint__x.html":[5,2,13,0],
 "df/d43/classlci_1_1get__default__endpoint__x.html#a1e5bd3bc524eeaafaca1e8b439dbbb6b":[5,2,13,0,2],

@@ -182,42 +182,45 @@ $(function(){initNavTree('db/d4e/tutorial.html','../../'); initResizable(true); 
             <a href="#autotoc_md59">Hello World (Active Message)</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md60">Non-blocking Barrier</a>
+            <a href="#autotoc_md60">Distributed Array</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md61">Multithreaded Active Message Ping-pong</a>
+            <a href="#autotoc_md61">Non-blocking Barrier</a>
+          </li>
+          <li class="level3">
+            <a href="#autotoc_md62">Multithreaded Active Message Ping-pong</a>
           </li>
         </ul>
       </li>
     </ul>
   </li>
   <li class="level1">
-    <a href="#autotoc_md62">Run LCI applications</a>
+    <a href="#autotoc_md63">Run LCI applications</a>
     <ul>
       <li class="level2 empty">
         <ul>
           <li class="level3">
-            <a href="#autotoc_md63">Run LCI applications with lcrun</a>
+            <a href="#autotoc_md64">Run LCI applications with lcrun</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md64">Run LCI applications with srun</a>
+            <a href="#autotoc_md65">Run LCI applications with srun</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md65">Run LCI applications with mpirun</a>
+            <a href="#autotoc_md66">Run LCI applications with mpirun</a>
           </li>
         </ul>
       </li>
       <li class="level2">
-        <a href="#autotoc_md66">More details</a>
+        <a href="#autotoc_md67">More details</a>
         <ul>
           <li class="level3">
-            <a href="#autotoc_md67">Bootstrapping backends</a>
+            <a href="#autotoc_md68">Bootstrapping backends</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md68">Launchers</a>
+            <a href="#autotoc_md69">Launchers</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md69">More about the file backend</a>
+            <a href="#autotoc_md70">More about the file backend</a>
           </li>
         </ul>
       </li>
@@ -535,6 +538,160 @@ Click to expand example output</summary>
 <div class="line">Rank 0 received active message from rank 0. Payload: Hello from rank 0</div>
 </div><!-- fragment --> </details>
 <h3><a class="anchor" id="autotoc_md60"></a>
+Distributed Array</h3>
+<p>This example shows the usage of RMA (Remote Memory Access) operations to implement a distributed array. </p><details >
+<summary >
+Click to expand code</summary>
+<div class="fragment"><div class="line"><span class="comment">// Copyright (c) 2025 The LCI Project Authors</span></div>
+<div class="line"><span class="comment">// SPDX-License-Identifier: MIT</span></div>
+<div class="line"> </div>
+<div class="line"><span class="preprocessor">#include &lt;iostream&gt;</span></div>
+<div class="line"><span class="preprocessor">#include &lt;cassert&gt;</span></div>
+<div class="line"><span class="preprocessor">#include &quot;<a class="code" href="../../d3/d33/lci_8hpp.html">lci.hpp</a>&quot;</span></div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// This example shows the usage of the LCI one-sided RMA operations through the</span></div>
+<div class="line"><span class="comment">// implementation of a simple distributed array.</span></div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><span class="keyword">class </span>distributed_array_t</div>
+<div class="line">{</div>
+<div class="line"> <span class="keyword">public</span>:</div>
+<div class="line">  distributed_array_t(<span class="keywordtype">size_t</span> size, T default_val) : m_size(size)</div>
+<div class="line">  {</div>
+<div class="line">    m_per_rank_size = size / <a class="code hl_function" href="../../d5/dd3/namespacelci.html#a6e99f95e9b71b259ea5078c23d0ff4b9">lci::get_rank_n</a>();</div>
+<div class="line">    m_local_start = <a class="code hl_function" href="../../d5/dd3/namespacelci.html#a9852426eb34e7849f5b6e1db60e49500">lci::get_rank_me</a>() * m_per_rank_size;</div>
+<div class="line">    m_data.resize(m_per_rank_size, default_val);</div>
+<div class="line">    m_gptrs.resize(<a class="code hl_function" href="../../d5/dd3/namespacelci.html#a6e99f95e9b71b259ea5078c23d0ff4b9">lci::get_rank_n</a>());</div>
+<div class="line">    <span class="comment">// RMA operations allow users to directly read/write remote memory on other</span></div>
+<div class="line">    <span class="comment">// processes. To enable this, the following steps are required: (1) Each</span></div>
+<div class="line">    <span class="comment">// target process (i.e., the process whose memory will be accessed remotely)</span></div>
+<div class="line">    <span class="comment">//     must register its local memory region and obtain a corresponding</span></div>
+<div class="line">    <span class="comment">//     remote key (rmr).</span></div>
+<div class="line">    <span class="comment">// (2) Each target process must then share its base address and rmr with</span></div>
+<div class="line">    <span class="comment">// all other ranks.</span></div>
+<div class="line">    <span class="comment">//     This is typically done using an allgather or similar collective</span></div>
+<div class="line">    <span class="comment">//     operation.</span></div>
+<div class="line">    <span class="comment">// These steps ensure that every process has the information needed to</span></div>
+<div class="line">    <span class="comment">// perform one-sided RMA operations (e.g., put/get) to any other process&#39;s</span></div>
+<div class="line">    <span class="comment">// registered memory buffer.</span></div>
+<div class="line">    mr = <a class="code hl_function" href="../../d5/dd3/namespacelci.html#aaf51f7172447f6fb23b5f98f6e124ff9">lci::register_memory</a>(m_data.data(), m_data.size() * <span class="keyword">sizeof</span>(T));</div>
+<div class="line">    <span class="comment">// exchange the memory registration information with other ranks</span></div>
+<div class="line">    gptr_t my_gptr;</div>
+<div class="line">    my_gptr.base = <span class="keyword">reinterpret_cast&lt;</span>uintptr_t<span class="keyword">&gt;</span>(m_data.data());</div>
+<div class="line">    my_gptr.rmr = <a class="code hl_function" href="../../d5/dd3/namespacelci.html#ab6480639b459da398972da8c1f854646">lci::get_rmr</a>(mr);</div>
+<div class="line">    <a class="code hl_function" href="../../d5/dd3/namespacelci.html#acfab5281c6310f13d1a4c36fb164e89d">lci::allgather</a>(&amp;my_gptr, m_gptrs.data(), <span class="keyword">sizeof</span>(gptr_t));</div>
+<div class="line">  }</div>
+<div class="line"> </div>
+<div class="line">  ~distributed_array_t()</div>
+<div class="line">  {</div>
+<div class="line">    <span class="comment">// deregister my memory buffer</span></div>
+<div class="line">    <span class="comment">// we need a barrier to ensure that all remote operations are completed</span></div>
+<div class="line">    <a class="code hl_function" href="../../d5/dd3/namespacelci.html#ae6054124daf3cd24d181b63ccbb7ce6c">lci::barrier</a>();</div>
+<div class="line">    <a class="code hl_function" href="../../d5/dd3/namespacelci.html#a24873f5ddc295cfc7f7a6109c0687788">lci::deregister_memory</a>(&amp;mr);</div>
+<div class="line">  }</div>
+<div class="line"> </div>
+<div class="line">  <span class="comment">// a blocking get operation</span></div>
+<div class="line">  T get(<span class="keywordtype">size_t</span> index)</div>
+<div class="line">  {</div>
+<div class="line">    <span class="keywordtype">int</span> target_rank = get_target_rank(index);</div>
+<div class="line">    <span class="keywordtype">size_t</span> local_index = get_local_index(index);</div>
+<div class="line">    lci::status_t status;</div>
+<div class="line">    T value;</div>
+<div class="line">    <span class="keywordflow">do</span> {</div>
+<div class="line">      status = <a class="code hl_function" href="../../d5/dd3/namespacelci.html#aa8699c7e6789015986e682714ece3b20">lci::post_get</a>(</div>
+<div class="line">          target_rank, &amp;value, <span class="keyword">sizeof</span>(T), <a class="code hl_variable" href="../../d8/d33/group__LCI__BASIC.html#gaed080bd0026ce8a7f15a2a9d0a147989">lci::COMP_NULL_EXPECT_DONE_OR_RETRY</a>,</div>
+<div class="line">          m_gptrs[target_rank].base + local_index * <span class="keyword">sizeof</span>(T),</div>
+<div class="line">          m_gptrs[target_rank].rmr);</div>
+<div class="line">      <a class="code hl_function" href="../../d5/dd3/namespacelci.html#ad55bf2fa3c43f989f8f382fa8c41a387">lci::progress</a>();</div>
+<div class="line">    } <span class="keywordflow">while</span> (status.<a class="code hl_function" href="../../d9/d1e/structlci_1_1status__t.html#abaa9d395f7105a81a24bf3ec6b670643">is_retry</a>());</div>
+<div class="line">    assert(status.<a class="code hl_function" href="../../d9/d1e/structlci_1_1status__t.html#a7d4d6335a16e1060b2cf8a03c767a3b7">is_done</a>());</div>
+<div class="line">    <span class="keywordflow">return</span> value;</div>
+<div class="line">  }</div>
+<div class="line"> </div>
+<div class="line">  <span class="comment">// a blocking put operation</span></div>
+<div class="line">  <span class="keywordtype">void</span> put(<span class="keywordtype">size_t</span> index, <span class="keyword">const</span> T&amp; value)</div>
+<div class="line">  {</div>
+<div class="line">    <span class="keywordtype">int</span> target_rank = get_target_rank(index);</div>
+<div class="line">    <span class="keywordtype">size_t</span> local_index = get_local_index(index);</div>
+<div class="line">    lci::status_t status;</div>
+<div class="line">    <span class="keywordflow">do</span> {</div>
+<div class="line">      status = lci::post_put_x(</div>
+<div class="line">                   target_rank, <span class="keyword">static_cast&lt;</span><span class="keywordtype">void</span>*<span class="keyword">&gt;</span>(<span class="keyword">const_cast&lt;</span><span class="keywordtype">int</span>*<span class="keyword">&gt;</span>(&amp;value)),</div>
+<div class="line">                   <span class="keyword">sizeof</span>(T), <a class="code hl_variable" href="../../d8/d33/group__LCI__BASIC.html#gaed080bd0026ce8a7f15a2a9d0a147989">lci::COMP_NULL_EXPECT_DONE_OR_RETRY</a>,</div>
+<div class="line">                   m_gptrs[target_rank].base + local_index * <span class="keyword">sizeof</span>(T),</div>
+<div class="line">                   m_gptrs[target_rank].rmr)</div>
+<div class="line">                   .comp_semantic(<a class="code hl_enumvalue" href="../../d8/d33/group__LCI__BASIC.html#ggafb4a38b937767ee6f9104d94a1d777c2a91e02cd2b8621d0c05197f645668c5c4">lci::comp_semantic_t::network</a>)();</div>
+<div class="line">      <a class="code hl_function" href="../../d5/dd3/namespacelci.html#ad55bf2fa3c43f989f8f382fa8c41a387">lci::progress</a>();</div>
+<div class="line">    } <span class="keywordflow">while</span> (status.<a class="code hl_function" href="../../d9/d1e/structlci_1_1status__t.html#abaa9d395f7105a81a24bf3ec6b670643">is_retry</a>());</div>
+<div class="line">    assert(status.<a class="code hl_function" href="../../d9/d1e/structlci_1_1status__t.html#a7d4d6335a16e1060b2cf8a03c767a3b7">is_done</a>());</div>
+<div class="line">  }</div>
+<div class="line"> </div>
+<div class="line"> <span class="keyword">private</span>:</div>
+<div class="line">  <span class="keywordtype">size_t</span> m_size;</div>
+<div class="line">  <span class="keywordtype">size_t</span> m_per_rank_size;</div>
+<div class="line">  <span class="keywordtype">size_t</span> m_local_start;</div>
+<div class="line">  std::vector&lt;T&gt; m_data;</div>
+<div class="line">  <span class="comment">// LCI memory registration information</span></div>
+<div class="line">  lci::mr_t mr;</div>
+<div class="line">  <span class="keyword">struct </span>gptr_t {</div>
+<div class="line">    uintptr_t base;</div>
+<div class="line">    lci::rmr_t rmr;</div>
+<div class="line">  };</div>
+<div class="line">  std::vector&lt;gptr_t&gt; m_gptrs;</div>
+<div class="line"> </div>
+<div class="line">  <span class="keywordtype">int</span> get_target_rank(<span class="keywordtype">size_t</span> index)<span class="keyword"> const</span></div>
+<div class="line"><span class="keyword">  </span>{</div>
+<div class="line">    assert(index &lt; m_size);</div>
+<div class="line">    <span class="keywordflow">return</span> index / m_per_rank_size;</div>
+<div class="line">  }</div>
+<div class="line"> </div>
+<div class="line">  <span class="keywordtype">size_t</span> get_local_index(<span class="keywordtype">size_t</span> index)<span class="keyword"> const</span></div>
+<div class="line"><span class="keyword">  </span>{</div>
+<div class="line">    assert(index &lt; m_size);</div>
+<div class="line">    <span class="keywordflow">return</span> index % m_per_rank_size;</div>
+<div class="line">  }</div>
+<div class="line">};</div>
+<div class="line"> </div>
+<div class="line"><span class="keywordtype">void</span> work(<span class="keywordtype">size_t</span> size)</div>
+<div class="line">{</div>
+<div class="line">  distributed_array_t&lt;int&gt; darray(size, 0);</div>
+<div class="line">  <span class="keywordtype">int</span> rank = <a class="code hl_function" href="../../d5/dd3/namespacelci.html#a9852426eb34e7849f5b6e1db60e49500">lci::get_rank_me</a>();</div>
+<div class="line">  <span class="keywordtype">int</span> nranks = <a class="code hl_function" href="../../d5/dd3/namespacelci.html#a6e99f95e9b71b259ea5078c23d0ff4b9">lci::get_rank_n</a>();</div>
+<div class="line"> </div>
+<div class="line">  <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> i = rank; i &lt; size; i += nranks) {</div>
+<div class="line">    darray.put(i, i);</div>
+<div class="line">  }</div>
+<div class="line">  <a class="code hl_function" href="../../d5/dd3/namespacelci.html#ae6054124daf3cd24d181b63ccbb7ce6c">lci::barrier</a>();</div>
+<div class="line">  <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> i = (rank + 1) % nranks; i &lt; size; i += nranks) {</div>
+<div class="line">    <span class="keywordtype">int</span> value = darray.get(i);</div>
+<div class="line">    assert(value == i);</div>
+<div class="line">  }</div>
+<div class="line">}</div>
+<div class="line"> </div>
+<div class="line"><span class="keywordtype">int</span> main(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span>** args)</div>
+<div class="line">{</div>
+<div class="line">  <span class="keyword">const</span> <span class="keywordtype">size_t</span> size = 1000;</div>
+<div class="line"> </div>
+<div class="line">  <a class="code hl_function" href="../../d5/dd3/namespacelci.html#aee337a8c81cb3397461d8cd00a2d8f71">lci::g_runtime_init</a>();</div>
+<div class="line">  work(size);</div>
+<div class="line">  <a class="code hl_function" href="../../d5/dd3/namespacelci.html#a701a29185fc4b076f1b8a198806fc615">lci::g_runtime_fina</a>();</div>
+<div class="line">  <span class="keywordflow">return</span> 0;</div>
+<div class="line">}</div>
+<div class="ttc" id="agroup__LCI__BASIC_html_gaed080bd0026ce8a7f15a2a9d0a147989"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#gaed080bd0026ce8a7f15a2a9d0a147989">lci::COMP_NULL_EXPECT_DONE_OR_RETRY</a></div><div class="ttdeci">const comp_t COMP_NULL_EXPECT_DONE_OR_RETRY</div><div class="ttdoc">Special completion object setting allow_posted and allow_retry to false.</div><div class="ttdef"><b>Definition</b> lci.hpp:566</div></div>
+<div class="ttc" id="agroup__LCI__BASIC_html_ggafb4a38b937767ee6f9104d94a1d777c2a91e02cd2b8621d0c05197f645668c5c4"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#ggafb4a38b937767ee6f9104d94a1d777c2a91e02cd2b8621d0c05197f645668c5c4">lci::comp_semantic_t::network</a></div><div class="ttdeci">@ network</div><div class="ttdef"><b>Definition</b> lci.hpp:341</div></div>
+<div class="ttc" id="anamespacelci_html_a24873f5ddc295cfc7f7a6109c0687788"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#a24873f5ddc295cfc7f7a6109c0687788">lci::deregister_memory</a></div><div class="ttdeci">void deregister_memory(mr_t *mr_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:2043</div></div>
+<div class="ttc" id="anamespacelci_html_aa8699c7e6789015986e682714ece3b20"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#aa8699c7e6789015986e682714ece3b20">lci::post_get</a></div><div class="ttdeci">status_t post_get(int rank_in, void *local_buffer_in, size_t size_in, comp_t local_comp_in, uintptr_t remote_buffer_in, rmr_t rmr_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:820</div></div>
+<div class="ttc" id="anamespacelci_html_aaf51f7172447f6fb23b5f98f6e124ff9"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#aaf51f7172447f6fb23b5f98f6e124ff9">lci::register_memory</a></div><div class="ttdeci">mr_t register_memory(void *address_in, size_t size_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:2006</div></div>
+<div class="ttc" id="anamespacelci_html_ab6480639b459da398972da8c1f854646"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#ab6480639b459da398972da8c1f854646">lci::get_rmr</a></div><div class="ttdeci">rmr_t get_rmr(mr_t mr_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:2080</div></div>
+<div class="ttc" id="anamespacelci_html_acfab5281c6310f13d1a4c36fb164e89d"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#acfab5281c6310f13d1a4c36fb164e89d">lci::allgather</a></div><div class="ttdeci">void allgather(const void *sendbuf_in, void *recvbuf_in, size_t size_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:222</div></div>
+</div><!-- fragment --> </details>
+<details >
+<summary >
+Click to expand example output</summary>
+<div class="fragment"><div class="line"># This example has no output.</div>
+<div class="line">$ lcrun -n 4 ./lci_darray</div>
+</div><!-- fragment --> </details>
+<h3><a class="anchor" id="autotoc_md61"></a>
 Non-blocking Barrier</h3>
 <p>This examples shows the usage of the completion graph and the send/recv operations to implement a non-blocking barrier.</p>
 <details >
@@ -679,7 +836,7 @@ Click to expand example output</summary>
 <div class="line">rank 2 end barrier</div>
 <div class="line">rank 3 end barrier</div>
 </div><!-- fragment --> </details>
-<h3><a class="anchor" id="autotoc_md61"></a>
+<h3><a class="anchor" id="autotoc_md62"></a>
 Multithreaded Active Message Ping-pong</h3>
 <p>This example shows the usages of thread-local devices to speedup the active message communication in a multithreaded environment.</p>
 <details >
@@ -872,25 +1029,25 @@ Click to expand example output (Run on my laptop. Performance may vary.)</summar
 <div class="line">Message rate: 0.283399 mmsg/s</div>
 <div class="line">Bandwidth: 2.26719 MB/s</div>
 </div><!-- fragment --> </details>
-<h1><a class="anchor" id="autotoc_md62"></a>
+<h1><a class="anchor" id="autotoc_md63"></a>
 Run LCI applications</h1>
 <p>In <a class="el" href="../../d2/dcd/quickstart.html">Quick Start</a>, we have shown you how to run LCI applications using <code>mpirun</code> or <code>srun</code>. Here, we will discuss the bootstrapping process in more detail.</p>
 <p>To successfully bootstrap LCI, the launcher (<code>srun</code>, <code>mpirun</code>, or <code>lcrun</code>) must match the bootstrapping backend used by LCI. Normally, LCI will automatically select the right bootstrapping backend based on the environment so no special configuration is needed. However, if you see your applications were launched as a collection of processes all with rank 0, it means something went wrong.</p>
-<h3><a class="anchor" id="autotoc_md63"></a>
+<h3><a class="anchor" id="autotoc_md64"></a>
 Run LCI applications with lcrun</h3>
 <p>You do not need to do anything special to run LCI applications with <code>lcrun</code>. However, <code>lcrun</code> is a "toy" launcher that is not as scalable as <code>srun</code> or <code>mpirun</code>. It is mainly used for testing and debugging purposes.</p>
 <p>If you ever encounter a problem with <code>lcrun</code>, you can remove the temporary folder <code>~/.tmp/lct_pmi_file-*</code> and try again.</p>
-<h3><a class="anchor" id="autotoc_md64"></a>
+<h3><a class="anchor" id="autotoc_md65"></a>
 Run LCI applications with srun</h3>
 <p>LCI is shipped with a copy of the SLURM PMI1 and PMI2 client implementation, so normally you can use <code>srun</code> to run LCI applications without any extra configuration. You may need to explicitly enable the pmi2 support by <code>srun --mpi=pmi2</code>.</p>
 <p>On Cray systems, you may need to load the <code>cray-pmi</code> module before building LCI as <code>srun</code> on some Cray systems only supports Cray PMI.</p>
-<h3><a class="anchor" id="autotoc_md65"></a>
+<h3><a class="anchor" id="autotoc_md66"></a>
 Run LCI applications with mpirun</h3>
 <p>Because there are many different MPI implementations and there are no standard about how they implement <code>mpirun</code>, it is slightly more complicated to run LCI applications with <code>mpirun</code>. In such cases, the easiest way is to let LCI use MPI to bootstrap. You just need to set the CMake variable <code>LCT_PMI_BACKEND_ENABLE_MPI=ON</code> and link LCI to MPI.</p>
 <p>It is possible to directly use the PMI backend with <code>mpirun</code>, but you need to find the corresponding PMI client library and link LCI to it. Read the following section for more details.</p>
-<h2><a class="anchor" id="autotoc_md66"></a>
+<h2><a class="anchor" id="autotoc_md67"></a>
 More details</h2>
-<h3><a class="anchor" id="autotoc_md67"></a>
+<h3><a class="anchor" id="autotoc_md68"></a>
 Bootstrapping backends</h3>
 <p>Specifically, LCI has six different bootstrapping backends:</p><ul>
 <li><code>pmi1</code>: Process Management Interface version 1.</li>
@@ -905,13 +1062,13 @@ Bootstrapping backends</h3>
 <p>However, the SLURM PMI1 and PMI2 client implementation is not always the best option. For example, if you are using <code>mpirun</code>, you may want to use the PMI client library that comes with your MPI implementation. In this case, you need to find the corresponding PMI client library and link LCI to it. <code>ldd $(which mpirun)</code> will show you the PMI client library used by <code>mpirun</code>. Normally, MPICH uses <code>hydra-pmi</code>; Cray-MPICH uses <code>cray-pmi</code>; OpenMPI uses <code>pmix</code>. After finding the PMI client library, you can reconfigure LCI with the corresponding PMI client library through the <code>PMI_ROOT</code>, <code>PMI2_ROOT</code>, or <code>PMIx_ROOT</code> environment/cmake variables.</p>
 <p>A CMake variable <code>LCT_PMI_BACKEND_DEFAULT</code> and an environment variable <code>LCT_PMI_BACKEND</code> can be used to set a list of backends to try in order (if they are compiled). The first one that works will be used. The default value is <code>pmi1,pmi2,pmix,mpi,file,local</code>.</p>
 <p>You can use <code>export LCT_LOG_LEVEL=info</code> to monitor the bootstrapping procedure.</p>
-<h3><a class="anchor" id="autotoc_md68"></a>
+<h3><a class="anchor" id="autotoc_md69"></a>
 Launchers</h3>
 <p><code>srun</code> and <code>mpirun</code> should use one of the PMI backends (or <code>mpi</code> as a last resort). <code>lcrun</code> will use the <code>file</code> backend.</p>
 <p>Depending on the SLURM configuration, <code>srun</code> may not enable PMI by default. In this case, you can explicitly enable one of the PMI services by using the <code>--mpi</code> option. <code>srun --mpi=list -n 1 hostname</code> will show you the available PMI services. You can confirm whether the PMI service has been enabled with <code>srun env | grep PMI</code>.</p>
 <p><code>mpirun</code> will use the PMI client library that comes with your MPI implementation. As mentioned above, you need to link LCI to the correct PMI client library.</p>
 <p>Sometimes, <code>lcrun</code> may hang because of a previous failed run. In this case, you can remove the temporary folder <code>~/.tmp/lct_pmi_file-*</code> and try again.</p>
-<h3><a class="anchor" id="autotoc_md69"></a>
+<h3><a class="anchor" id="autotoc_md70"></a>
 More about the file backend</h3>
 <p>The <code>file</code> backend allows you to launch multiple LCI processes individually without a launcher. This can significantly ease the debugging process.</p>
 <p>For example, you can open two terminal windows and run the following commands in each window: </p><div class="fragment"><div class="line">export LCT_PMI_BACKEND=file</div>

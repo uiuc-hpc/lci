@@ -21,7 +21,7 @@ var searchData=
   ['spack_20variables_18',['Important Spack variables',['../db/d4e/tutorial.html#autotoc_md50',1,'']]],
   ['specific_20installation_20note_19',['Cluster-specific Installation Note',['../db/d4e/tutorial.html#autotoc_md51',1,'']]],
   ['src_20',['src',['../df/d73/classlci_1_1graph__add__edge__x.html#ad1a4f17616c7d972a37e3151216f7386',1,'lci::graph_add_edge_x']]],
-  ['srun_21',['Run LCI applications with srun',['../db/d4e/tutorial.html#autotoc_md64',1,'']]],
+  ['srun_21',['Run LCI applications with srun',['../db/d4e/tutorial.html#autotoc_md65',1,'']]],
   ['start_22',['Quick Start',['../d2/dcd/quickstart.html',1,'']]],
   ['status_23',['status',['../d7/d31/classlci_1_1comp__signal__x.html#af627829e09be2b0e9aaf7748a7521442',1,'lci::comp_signal_x::status()'],['../d8/dd3/classlci_1_1graph__node__mark__complete__x.html#af8f8adf3bb8cdf949d524bf9a0fa5bdf',1,'lci::graph_node_mark_complete_x::status()']]],
   ['status_5ft_24',['status_t',['../d9/d1e/structlci_1_1status__t.html',1,'lci::status_t'],['../d9/d1e/structlci_1_1status__t.html#aaf6d75a0f5134d389e950b645a42b5f9',1,'lci::status_t::status_t()=default'],['../d9/d1e/structlci_1_1status__t.html#a1bfc6bd664acbc05e80bcf709f313ada',1,'lci::status_t::status_t(errorcode_t error_)'],['../d9/d1e/structlci_1_1status__t.html#a259cd3f0ca8d9d06d821aa373f3ad6e2',1,'lci::status_t::status_t(void *user_context_)']]],
