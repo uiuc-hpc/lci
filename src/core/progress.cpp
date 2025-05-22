@@ -92,7 +92,7 @@ void progress_send(const net_status_t& net_status)
   internal_context_t* internal_ctx =
       static_cast<internal_context_t*>(net_status.user_context);
   if (!internal_ctx)
-    // an ibv inject
+    // an inject
     return;
   free_ctx_and_signal_comp(internal_ctx);
 }
@@ -102,6 +102,10 @@ void progress_write(endpoint_t endpoint, const net_status_t& net_status)
   LCI_PCOUNTER_ADD(net_write_writeImm_comp, 1)
   internal_context_t* internal_ctx =
       static_cast<internal_context_t*>(net_status.user_context);
+  
+  if (!internal_ctx)
+    // an inject
+    return;
 
   if (internal_ctx->is_extended) {
     // extended internal context
