@@ -46,23 +46,35 @@ var NAVTREE =
         ] ]
       ] ],
       [ "Write LCI programs", "db/d4e/tutorial.html#autotoc_md55", [
-        [ "Overview", "db/d4e/tutorial.html#autotoc_md56", null ],
-        [ "Examples", "db/d4e/tutorial.html#autotoc_md57", [
-          [ "Hello World", "db/d4e/tutorial.html#autotoc_md58", null ],
-          [ "Hello World (Active Message)", "db/d4e/tutorial.html#autotoc_md59", null ],
-          [ "Distributed Array", "db/d4e/tutorial.html#autotoc_md60", null ],
-          [ "Non-blocking Barrier", "db/d4e/tutorial.html#autotoc_md61", null ],
-          [ "Multithreaded Active Message Ping-pong", "db/d4e/tutorial.html#autotoc_md62", null ]
+        [ "Overview", "db/d4e/tutorial.html#autotoc_md56", [
+          [ "Objectified Flexible Functions (OFF)", "db/d4e/tutorial.html#autotoc_md57", null ],
+          [ "Resource Management", "db/d4e/tutorial.html#autotoc_md58", null ],
+          [ "Communication Posting", "db/d4e/tutorial.html#autotoc_md61", null ],
+          [ "Completion Checking", "db/d4e/tutorial.html#autotoc_md62", [
+            [ "Synchronizer", "db/d4e/tutorial.html#autotoc_md63", null ],
+            [ "Completion Queue", "db/d4e/tutorial.html#autotoc_md64", null ],
+            [ "Handler", "db/d4e/tutorial.html#autotoc_md65", null ],
+            [ "Graph (Advanced)", "db/d4e/tutorial.html#autotoc_md66", null ]
+          ] ],
+          [ "Progress", "db/d4e/tutorial.html#autotoc_md67", null ]
+        ] ],
+        [ "Other Materials", "db/d4e/tutorial.html#autotoc_md69", null ],
+        [ "Examples", "db/d4e/tutorial.html#autotoc_md70", [
+          [ "Hello World", "db/d4e/tutorial.html#autotoc_md71", null ],
+          [ "Hello World (Active Message)", "db/d4e/tutorial.html#autotoc_md72", null ],
+          [ "Distributed Array", "db/d4e/tutorial.html#autotoc_md73", null ],
+          [ "Non-blocking Barrier", "db/d4e/tutorial.html#autotoc_md74", null ],
+          [ "Multithreaded Active Message Ping-pong", "db/d4e/tutorial.html#autotoc_md75", null ]
         ] ]
       ] ],
-      [ "Run LCI applications", "db/d4e/tutorial.html#autotoc_md63", [
-        [ "More details", "db/d4e/tutorial.html#autotoc_md67", [
-          [ "Run LCI applications with lcrun", "db/d4e/tutorial.html#autotoc_md64", null ],
-          [ "Run LCI applications with srun", "db/d4e/tutorial.html#autotoc_md65", null ],
-          [ "Run LCI applications with mpirun", "db/d4e/tutorial.html#autotoc_md66", null ],
-          [ "Bootstrapping backends", "db/d4e/tutorial.html#autotoc_md68", null ],
-          [ "Launchers", "db/d4e/tutorial.html#autotoc_md69", null ],
-          [ "More about the file backend", "db/d4e/tutorial.html#autotoc_md70", null ]
+      [ "Run LCI applications", "db/d4e/tutorial.html#autotoc_md76", [
+        [ "More details", "db/d4e/tutorial.html#autotoc_md80", [
+          [ "Run LCI applications with lcrun", "db/d4e/tutorial.html#autotoc_md77", null ],
+          [ "Run LCI applications with srun", "db/d4e/tutorial.html#autotoc_md78", null ],
+          [ "Run LCI applications with mpirun", "db/d4e/tutorial.html#autotoc_md79", null ],
+          [ "Bootstrapping backends", "db/d4e/tutorial.html#autotoc_md81", null ],
+          [ "Launchers", "db/d4e/tutorial.html#autotoc_md82", null ],
+          [ "More about the file backend", "db/d4e/tutorial.html#autotoc_md83", null ]
         ] ]
       ] ]
     ] ],
@@ -79,8 +91,8 @@ var NAVTREEINDEX =
 "d7/d0f/classlci_1_1alloc__handler__x.html#a4e46f9c9c33a3765e6a517f187e83cb2",
 "d8/d48/classlci_1_1post__comm__x.html#a585bbb73afe075d1ee694782f3790ba3",
 "d9/d4d/classlci_1_1register__rcomp__x.html#aba7005d022be13503b88a92124caabd2",
-"db/dbf/classlci_1_1allgather__x.html#a9ffe4f3776e86a00f49be40adb34e4b6",
-"df/d10/group__LCI__GET__DEFAULT__DEVICE.html"
+"db/dbf/classlci_1_1allgather__x.html#a050312e51d022540cde28c735a029a4d",
+"de/d63/structlci_1_1buffer__t.html#a4297e342c3f64c4298cb344774ed2e18"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronization';
