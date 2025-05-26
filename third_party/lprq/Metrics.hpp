@@ -113,7 +113,7 @@ class MetricsCollector
     Metrics res;
     std::lock_guard lock(mutex);
     for (const auto& [key, tlMetrics] : allMetrics) {
-      res[key] = std::reduce(tlMetrics.begin(), tlMetrics.end(), size_t{0});
+      res[key] = std::accumulate(tlMetrics.begin(), tlMetrics.end(), 0UL);
     }
     return res;
   }
