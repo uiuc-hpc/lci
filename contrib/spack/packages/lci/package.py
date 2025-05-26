@@ -128,6 +128,7 @@ class Lci(CMakePackage):
     depends_on("doxygen", when="+docs")
     depends_on("cray-pmi", when="default-pm=cray")
     depends_on("gperftools", when="+tcmalloc")
+    depends_on("python@3.8:", type="build", when="@2:")
 
     def cmake_args(self):
         args = [
