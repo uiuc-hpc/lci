@@ -50,4 +50,6 @@
 #define LCI_CQ_MAX_POLL 16
 #define LCI_BACKEND_MAX_ENDPOINTS 8
 
+#cmakedefine LCI_USE_CUDA
+
 #endif  // LCI_LCI_CONFIG_H

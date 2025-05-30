@@ -48,6 +48,9 @@
 #include "packet_pool/packet_pool.hpp"
 #include "runtime/runtime.hpp"
 #include "core/rendezvous.hpp"
+#ifdef LCI_USE_CUDA
+#include "accelerator/accelerator.hpp"
+#endif
 
 // inline implementation
 #include "backlog_queue/backlog_queue_inline.hpp"

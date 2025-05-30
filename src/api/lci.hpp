@@ -294,7 +294,7 @@ const int ANY_SOURCE = -1;
  * @ingroup LCI_BASIC
  * @brief Special tag value for any-tag receive.
  */
-const tag_t ANY_TAG = -1;
+const tag_t ANY_TAG = static_cast<tag_t>(-1);
 
 /**
  * @ingroup LCI_BASIC
@@ -413,11 +413,11 @@ struct allocator_base_t {
  */
 struct data_t {
   static const int MAX_SCALAR_SIZE = 23;
-  enum class type_t : unsigned int {
-    none,
-    scalar,
-    buffer,
-    buffers,
+  enum type_t {
+    LCI_DATA_TYPE_NONE,
+    LCI_DATA_TYPE_SCALAR,
+    LCI_DATA_TYPE_BUFFER,
+    LCI_DATA_TYPE_BUFFERS,
   };
   // FIXME: It is a undefined behavior to access multiple union members at the
   // same time
@@ -469,9 +469,9 @@ struct data_t {
   bool get_own_data() const { return common.own_data; }
   void set_own_data(bool own_data_) { common.own_data = own_data_; }
 
-  bool is_scalar() const { return get_type() == type_t::scalar; }
-  bool is_buffer() const { return get_type() == type_t::buffer; }
-  bool is_buffers() const { return get_type() == type_t::buffers; }
+  bool is_scalar() const { return get_type() == LCI_DATA_TYPE_SCALAR; }
+  bool is_buffer() const { return get_type() == LCI_DATA_TYPE_BUFFER; }
+  bool is_buffers() const { return get_type() == LCI_DATA_TYPE_BUFFERS; }
 
   void copy_from(const void* data_, size_t size,
                  allocator_base_t* allocator_ = nullptr);
@@ -728,13 +728,13 @@ graph_node_t graph_add_node_op(comp_t graph, const T& op)
  **********************************************************************/
 inline data_t::data_t()
 {
-  set_type(type_t::none);
+  set_type(LCI_DATA_TYPE_NONE);
   set_own_data(false);
   static_assert(sizeof(data_t) == 24, "data_t size is not 24 bytes");
 }
 inline data_t::data_t(buffer_t buffer_, bool own_data_)
 {
-  set_type(type_t::buffer);
+  set_type(LCI_DATA_TYPE_BUFFER);
   set_own_data(own_data_);
   buffer.base = buffer_.base;
   buffer.size = buffer_.size;
@@ -742,7 +742,7 @@ inline data_t::data_t(buffer_t buffer_, bool own_data_)
 }
 inline data_t::data_t(buffers_t buffers_, bool own_data_)
 {
-  set_type(type_t::buffers);
+  set_type(LCI_DATA_TYPE_BUFFERS);
   set_own_data(own_data_);
   buffers.count = buffers_.size();
   buffers.buffers = new buffer_t[buffers.count];
@@ -752,7 +752,7 @@ inline data_t::data_t(buffers_t buffers_, bool own_data_)
 }
 inline data_t::data_t(size_t size, allocator_base_t* allocator)
 {
-  set_type(type_t::buffer);
+  set_type(LCI_DATA_TYPE_BUFFER);
   set_own_data(true);
   if (allocator) {
     buffer.base = allocator->allocate(size);
@@ -764,7 +764,7 @@ inline data_t::data_t(size_t size, allocator_base_t* allocator)
 }
 inline data_t::data_t(size_t sizes[], int count, allocator_base_t* allocator)
 {
-  set_type(type_t::buffers);
+  set_type(LCI_DATA_TYPE_BUFFERS);
   set_own_data(true);
   buffers.count = count;
   buffers.buffers = new buffer_t[buffers.count];
@@ -836,7 +836,7 @@ inline data_t& data_t::operator=(data_t other)
 inline void swap(data_t& first, data_t& second)
 {
   char* buf = (char*)malloc(sizeof(data_t));
-#if defined(__GNUC__) && !defined(__clang__)
+#if defined(__GNUC__) && !defined(__clang__) && !defined(__NVCC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wclass-memaccess"
 #endif
@@ -853,12 +853,12 @@ inline void data_t::copy_from(const void* data_, size_t size,
                               allocator_base_t* allocator)
 {
   if (size <= MAX_SCALAR_SIZE) {
-    set_type(type_t::scalar);
+    set_type(LCI_DATA_TYPE_SCALAR);
     set_own_data(true);
     scalar.size = size;
     memcpy(scalar.data, data_, size);
   } else {
-    set_type(type_t::buffer);
+    set_type(LCI_DATA_TYPE_BUFFER);
     set_own_data(true);
     if (allocator) {
       buffer.base = allocator->allocate(size);
@@ -873,7 +873,7 @@ inline void data_t::copy_from(const void* data_, size_t size,
 inline void data_t::copy_from(const buffers_t& buffers_,
                               allocator_base_t* allocator)
 {
-  set_type(type_t::buffers);
+  set_type(LCI_DATA_TYPE_BUFFERS);
   set_own_data(true);
   buffers.count = buffers_.size();
   buffers.buffers = new buffer_t[buffers.count];
@@ -931,7 +931,7 @@ inline buffer_t data_t::get_buffer(get_semantic_t semantic)
   }
   if (semantic == get_semantic_t::move) {
     set_own_data(false);
-    set_type(type_t::none);
+    set_type(LCI_DATA_TYPE_NONE);
   }
   return ret;
 }
@@ -951,7 +951,7 @@ inline buffers_t data_t::get_buffers(get_semantic_t semantic)
   }
   if (semantic == get_semantic_t::move) {
     set_own_data(false);
-    set_type(type_t::none);
+    set_type(LCI_DATA_TYPE_NONE);
   }
   buffers_t ret;
   for (size_t i = 0; i < buffers.count; i++) {
