@@ -38,7 +38,7 @@
 <!-- Node5 -->
 <g id="Node000005" class="node">
 <title>Node5</title>
-<g id="a_Node000005"><a xlink:href="../../dd/d0b/classlci_1_1sync__wait__x.html#aa81e88615035810dcc441eda980bab9b" target="_top" xlink:title=" ">
+<g id="a_Node000005"><a xlink:href="../../dd/d0b/classlci_1_1sync__wait__x.html#ad8533043e94a44f07f0ad8addab8bfd6" target="_top" xlink:title=" ">
 <polygon fill="white" stroke="#666666" points="482,-19 338,-19 338,0 482,0 482,-19"/>
 <text text-anchor="middle" x="410" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00">lci::sync_wait_x::call_impl</text>
 </a>

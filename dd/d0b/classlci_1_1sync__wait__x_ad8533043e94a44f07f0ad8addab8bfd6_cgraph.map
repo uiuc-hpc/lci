@@ -1,0 +1,19 @@
+<map id="lci::sync_wait_x::call_impl" name="lci::sync_wait_x::call_impl">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,112,197,137"/>
+<area shape="rect" id="Node000002" href="$dd/d0b/classlci_1_1sync__wait__x.html#af7084c4171774b7ef58d0e1d8f50d580" title=" " alt="" coords="253,5,422,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="120,109,174,75,244,40,265,32,266,37,246,44,177,80,123,114"/>
+<area shape="rect" id="Node000004" href="$dd/d0b/classlci_1_1sync__wait__x.html#ab958af8902a382fae70511fcea31398a" title=" " alt="" coords="249,55,425,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="154,109,271,81,272,86,155,115"/>
+<area shape="rect" id="Node000005" href="$dd/d0b/classlci_1_1sync__wait__x.html#abb8063623552fa193bfda6ab9c2c9cfe" title=" " alt="" coords="263,105,412,145"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="198,122,249,122,249,127,198,127"/>
+<area shape="rect" id="Node000006" href="$dd/d0b/classlci_1_1sync__wait__x.html#a1f06a5d161c0ae293c076938586a502b" title=" " alt="" coords="253,169,422,195"/>
+<area shape="poly" id="edge7_Node000001_Node000006" title=" " alt="" coords="155,135,272,163,271,169,154,140"/>
+<area shape="rect" id="Node000007" href="$dd/d0b/classlci_1_1sync__wait__x.html#a33c94ca9708dafc0873caecc7e0fd20e" title=" " alt="" coords="245,219,429,244"/>
+<area shape="poly" id="edge9_Node000001_Node000007" title=" " alt="" coords="123,135,177,169,246,204,270,212,268,217,244,208,175,173,120,140"/>
+<area shape="rect" id="Node000003" href="$dd/d0b/classlci_1_1sync__wait__x.html#a1b82908c8a1e781860e9a95db7916df1" title=" " alt="" coords="477,105,640,145"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="399,28,430,40,479,66,522,94,519,98,476,70,428,44,397,33"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="388,77,469,99,467,104,387,83"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="412,122,463,122,463,127,412,127"/>
+<area shape="poly" id="edge8_Node000006_Node000003" title=" " alt="" coords="387,167,467,145,469,151,388,172"/>
+<area shape="poly" id="edge10_Node000007_Node000003" title=" " alt="" coords="393,216,428,204,476,178,518,151,521,155,479,183,430,208,395,221"/>
+</map>
