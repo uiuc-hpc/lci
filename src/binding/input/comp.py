@@ -104,6 +104,8 @@ operation(
         optional_runtime_args,
         positional_arg("comp_t", "comp", comment="The synchronizer to wait."),
         positional_arg("status_t*", "p_out", inout_trait="out", comment="The pointer to an status array of size `comp.get_attr_sync_threshold()` to hold the outputs."),
+        optional_arg("bool", "do_progress", "true", comment="Whether to call `lci::progress()` in the loop."),
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to make progress on."),
     ],
     doc = {
         "in_group": "LCI_COMPLETION",

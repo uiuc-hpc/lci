@@ -61,11 +61,14 @@ class sync_t : public comp_impl_t
     }
   }
 
-  void wait(status_t* p_out)
+  void wait(status_t* p_out, device_t device = device_t())
   {
     bool succeed;
     do {
       succeed = test(p_out);
+      if (!succeed && !device.is_empty()) {
+        progress_x().device(device)();
+      }
     } while (!succeed);
   }
 
@@ -86,11 +89,15 @@ inline bool sync_test_x::call_impl(comp_t comp, status_t* p_out,
   return p_sync->test(p_out);
 }
 
-inline void sync_wait_x::call_impl(comp_t comp, status_t* p_out,
-                                   runtime_t) const
+inline void sync_wait_x::call_impl(comp_t comp, status_t* p_out, runtime_t,
+                                   bool do_progress, device_t device) const
 {
   sync_t* p_sync = static_cast<sync_t*>(comp.p_impl);
-  p_sync->wait(p_out);
+  if (!do_progress) {
+    p_sync->wait(p_out);
+  } else {
+    p_sync->wait(p_out, device);
+  }
 }
 
 }  // namespace lci
