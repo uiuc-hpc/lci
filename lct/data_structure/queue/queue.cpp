@@ -47,17 +47,19 @@ LCT_queue_t LCT_queue_alloc(LCT_queue_type_t type, size_t length)
       q = new lct::queue_concurrency_freaks_t<MichaelScottQueue<void>>();
       break;
     case LCT_QUEUE_LCRQ:
-#ifndef __APPLE__
+#if defined(__x86_64__) || defined(_M_X64)
       q = new lct::queue_concurrency_freaks_t<LCRQueue<void>>();
 #else
-      throw std::runtime_error("LCRQueue is not supported on Apple platforms");
+      throw std::runtime_error(
+          "LCRQueue is not supported on non-x86_64 platforms");
 #endif
       break;
     case LCT_QUEUE_LPRQ:
-#ifndef __APPLE__
+#if defined(__x86_64__) || defined(_M_X64)
       q = new lct::queue_concurrency_freaks_t<LPRQueue<void>>();
 #else
-      throw std::runtime_error("LCRQueue is not supported on Apple platforms");
+      throw std::runtime_error(
+          "LCRQueue is not supported on non-x86_64 platforms");
 #endif
       break;
     case LCT_QUEUE_FAAARRAY:
