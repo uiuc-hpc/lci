@@ -79,14 +79,18 @@ if(NOT LCI_WITH_LCT_ONLY)
                CXX_EXTENSIONS OFF)
   target_link_libraries(LCI PUBLIC LCT)
   set_target_properties(LCI PROPERTIES OUTPUT_NAME lci)
-  target_compile_options(LCI PRIVATE -Wall -Wextra -Wpedantic -Werror)
-  # Disable unused private field warning for clang because we use them for
-  # padding
-  target_compile_options(
-    LCI
-    PRIVATE
-      $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wno-unused-private-field>
-  )
+
+  option(LCI_BUILD_WARN_AS_ERROR "Build with warnings as errors" ON)
+  if(LCI_BUILD_WARN_AS_ERROR)
+    target_compile_options(LCI PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    # Disable unused private field warning for clang because we use them for
+    # padding
+    target_compile_options(
+      LCI
+      PRIVATE
+        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wno-unused-private-field>
+    )
+  endif()
 
   # ############################################################################
   # What parts of LCI to build
@@ -138,9 +142,9 @@ if(NOT LCI_WITH_LCT_ONLY)
     set(LCI_BACKEND_ENABLE_${BACKEND} ON)
 
     if(BACKEND STREQUAL UCX)
-      target_link_libraries(LCI PUBLIC ucx::ucp)
+      target_link_libraries(LCI PRIVATE ucx::ucp)
     else()
-      target_link_libraries(LCI PUBLIC ${BACKEND}::${BACKEND})
+      target_link_libraries(LCI PRIVATE ${BACKEND}::${BACKEND})
     endif()
   endforeach()
 
@@ -295,6 +299,41 @@ if(NOT LCI_WITH_LCT_ONLY)
     LCI_CACHE_LINE
     LCI_USE_RDV_PROTOCOL_DEFAULT
     LCI_USE_MAX_SINGLE_MESSAGE_SIZE_DEFAULT)
+
+  # ############################################################################
+  # GPU related options
+  # ############################################################################
+  option(LCI_USE_CUDA "Build with GPU Direct Communication (CUDA) support" OFF)
+  if(LCI_USE_CUDA)
+    include(CudaHelpers)
+    # Read CMAKE_CUDA_STANDARD or CMAKE_CXX_STANDARD and store in
+    # LCI_CUDA_STANDARD
+    infer_cuda_standard(LCI_CUDA_STANDARD)
+
+    set(LCI_CUDA_STANDARD
+        "${LCI_CUDA_STANDARD}"
+        CACHE STRING "The CUDA C++ standard to use (17, 20, etc.)" FORCE)
+
+    # Enable the CUDA language and find the CUDA toolkit
+    enable_cuda_language_and_find_cuda_toolkit()
+
+    # Populate the LCI_CUDA_ARCH list, defaulting to all major GPU archs if
+    # unset
+    populate_cuda_archs_list(LCI_CUDA_ARCH)
+
+    set(LCI_CUDA_ARCH
+        "${LCI_CUDA_ARCH}"
+        CACHE
+          STRING
+          "Comma (or semicolon) separated list of CUDA architectures to build for (e.g. 60,70,80,90)"
+          FORCE)
+
+    target_link_libraries(LCI PRIVATE CUDA::cuda_driver)
+    set_target_cuda_standard(LCI STANDARD ${LCI_CUDA_STANDARD})
+    set_target_cuda_architectures(LCI ARCHITECTURES ${LCI_CUDA_ARCH})
+    set_target_cuda_warnings_and_errors(LCI WARN_AS_ERROR
+                                        ${LCI_BUILD_WARN_AS_ERROR})
+  endif()
 
   # ############################################################################
   # LCI Testing related options

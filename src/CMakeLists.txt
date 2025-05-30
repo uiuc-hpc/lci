@@ -36,3 +36,4 @@ endif()
 target_include_directories(LCI PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 add_subdirectory(api)
+add_subdirectory(accelerator)

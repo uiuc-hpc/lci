@@ -96,6 +96,9 @@ void global_initialize()
   // Initialize global configuration.
   global_config_initialize();
   pcounter_init();
+#ifdef LCI_USE_CUDA
+  accelerator::initialize();
+#endif
   g_is_active = true;
 }
 
@@ -104,6 +107,9 @@ void global_finalize()
   if (--global_ini_counter > 0) return;
 
   g_is_active = false;
+#ifdef LCI_USE_CUDA
+  accelerator::finalize();
+#endif
   pcounter_fina();
   bootstrap::finalize();
   log_finalize();
