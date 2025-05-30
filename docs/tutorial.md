@@ -149,6 +149,16 @@ When building LCI with `spack install`, you need to first add cray-pmi as a Spac
 Afterwards, you can use `spack install lci default-pm=cray`.
 </details>
 
+### TACC Frontera
+<details>
+<summary>Click to expand</summary>
+tl;dr: use `ibrun` and the MPI bootstrap backend in LCI.
+
+Frontera recommends using its `ibrun` command to launch multi-node applications, and its `ibrun` is tightly coupled with its MPI installation. Therefore, the recommended way to run LCI applications on Frontera is to use the MPI bootstrap backend. You can do this by setting the CMake variable `LCT_PMI_BACKEND_ENABLE_MPI=ON` and linking LCI to the MPI library.
+
+It is also possible to directly use its `srun` and the PMI2 bootstrap backend in LCI. However, we found that this method can result in very slow bootstrapping times for large numbers of ranks (>=512).
+</details>
+
 # Write LCI programs
 
 ## Overview
