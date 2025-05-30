@@ -1,5 +1,6 @@
 var NAVTREEINDEX6 =
 {
+"de/d63/structlci_1_1buffer__t.html#a15dcfa1da7d806736fb21a5f22f716d7":[5,0,3,5],
 "de/d63/structlci_1_1buffer__t.html#a4297e342c3f64c4298cb344774ed2e18":[5,0,3,3],
 "de/d63/structlci_1_1buffer__t.html#a641369e03f265b4863ce17af3cda1444":[5,0,3,1],
 "de/d63/structlci_1_1buffer__t.html#a7fe46b0c0c45d0c9b85124fdd9aeb0f1":[5,0,3,4],

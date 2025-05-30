@@ -1,8 +1,8 @@
 var searchData=
 [
-  ['objectified_20flexible_20functions_20off_0',['Objectified Flexible Functions (OFF)',['../db/d4e/tutorial.html#autotoc_md57',1,'']]],
+  ['objectified_20flexible_20functions_20off_0',['Objectified Flexible Functions (OFF)',['../db/d4e/tutorial.html#autotoc_md58',1,'']]],
   ['of_20processes_20all_20with_20rank_200_1',['Why was my LCI application launched as a collection of processes all with rank 0?',['../d3/d2d/faq.html#autotoc_md36',1,'']]],
-  ['off_2',['Objectified Flexible Functions (OFF)',['../db/d4e/tutorial.html#autotoc_md57',1,'']]],
+  ['off_2',['Objectified Flexible Functions (OFF)',['../db/d4e/tutorial.html#autotoc_md58',1,'']]],
   ['offset_3',['offset',['../d6/daa/classlci_1_1net__post__puts__x.html#a3d1f9af88d0b0d0d31ef5ae99617605a',1,'lci::net_post_puts_x::offset()'],['../d3/ddb/classlci_1_1net__post__put__x.html#a8d0a08ee889c345808adc42fa2a613b1',1,'lci::net_post_put_x::offset()'],['../d2/d4c/classlci_1_1net__post__putImms__x.html#a7cf1fbb5b227c9afd1ab864314cc35d8',1,'lci::net_post_putImms_x::offset()'],['../d8/d8e/classlci_1_1net__post__putImm__x.html#ad3f13422931b7f055dc4038e4fb0ea94',1,'lci::net_post_putImm_x::offset()'],['../d8/d89/classlci_1_1net__post__get__x.html#af7c26425db19974b0a48d9ba35ea445a',1,'lci::net_post_get_x::offset()']]],
   ['ofi_4',['ofi',['../d5/dd3/namespacelci.html#a210d8a7dce42f1f213407e36a1718836ad15249b2b3df63eaefab87103f869c08',1,'lci']]],
   ['ofi_5flock_5fmode_5',['ofi_lock_mode',['../d8/d0c/structlci_1_1global__attr__t.html#a8ac0a525f1d9113cfe2416cf23d53ce2',1,'lci::global_attr_t::ofi_lock_mode'],['../db/d97/structlci_1_1device__attr__t.html#aadb4141afd93cfb2c581712d90d6f232',1,'lci::device_attr_t::ofi_lock_mode'],['../d9/d10/classlci_1_1alloc__device__x.html#a7d316853b54b2a870ea35c387c1006e4',1,'lci::alloc_device_x::ofi_lock_mode()']]],
@@ -52,10 +52,10 @@ var searchData=
   ['option_5ft_3c_20uintptr_5ft_20_3e_49',['option_t&lt; uintptr_t &gt;',['../db/d20/structlci_1_1option__t.html',1,'lci']]],
   ['option_5ft_3c_20void_20_2a_20_3e_50',['option_t&lt; void * &gt;',['../db/d20/structlci_1_1option__t.html',1,'lci']]],
   ['other_20changes_51',['Other Changes',['../d1/d70/Changelog_1_7_3.html#autotoc_md9',1,'Other Changes'],['../dd/d2d/Changelog_1_7_4.html#autotoc_md14',1,'Other Changes'],['../d9/dd9/Changelog_1_7_5.html#autotoc_md19',1,'Other Changes'],['../df/d94/Changelog_1_7_6.html#autotoc_md24',1,'Other Changes'],['../d7/d83/Changelog_1_7_7.html#autotoc_md29',1,'Other Changes'],['../d5/de3/Changelog_1_7_8.html#autotoc_md34',1,'Other Changes']]],
-  ['other_20materials_52',['Other Materials',['../db/d4e/tutorial.html#autotoc_md69',1,'']]],
+  ['other_20materials_52',['Other Materials',['../db/d4e/tutorial.html#autotoc_md70',1,'']]],
   ['other_20relevant_20ones_53',['Other Relevant Ones',['../index.html#autotoc_md5',1,'']]],
   ['others_54',['Others',['../d3/d2d/faq.html#autotoc_md38',1,'']]],
   ['out_55',['OUT',['../d8/d33/group__LCI__BASIC.html#gga635a086b50ac87b41d18063940868cb7aef373774188a51f80463f37b6bd9e83a',1,'lci']]],
-  ['overview_56',['Overview',['../index.html#autotoc_md2',1,'Overview'],['../db/d4e/tutorial.html#autotoc_md56',1,'Overview']]],
+  ['overview_56',['Overview',['../index.html#autotoc_md2',1,'Overview'],['../db/d4e/tutorial.html#autotoc_md57',1,'Overview']]],
   ['own_5fdata_57',['own_data',['../da/d7c/structlci_1_1data__t.html#a47e055ddd6fb074ed0a3ecfda4fbf220',1,'lci::data_t']]]
 ];

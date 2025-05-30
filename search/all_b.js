@@ -8,7 +8,7 @@ var searchData=
   ['error_5ft_5',['error_t',['../d2/d46/structlci_1_1error__t.html',1,'lci::error_t'],['../d2/d46/structlci_1_1error__t.html#a2d73aacbe4a84cdc51181e089ba05289',1,'lci::error_t::error_t()'],['../d2/d46/structlci_1_1error__t.html#aa07acd4bf3bdd0930945ed7cbfdcbcd7',1,'lci::error_t::error_t(errorcode_t errorcode_)']]],
   ['errorcode_6',['errorcode',['../d2/d46/structlci_1_1error__t.html#a64edcd7c8ccc656f6743d8cce7467e4d',1,'lci::error_t']]],
   ['errorcode_5ft_7',['errorcode_t',['../d8/d33/group__LCI__BASIC.html#ga20db54161a501f6b62b3c9974d2013ef',1,'lci']]],
-  ['examples_8',['Examples',['../db/d4e/tutorial.html#autotoc_md70',1,'']]],
+  ['examples_8',['Examples',['../db/d4e/tutorial.html#autotoc_md71',1,'']]],
   ['expanse_9',['SDSC Expanse',['../db/d4e/tutorial.html#autotoc_md53',1,'']]],
   ['explicit_5fodp_10',['explicit_odp',['../d5/dd3/namespacelci.html#ad9c46e66b67fe0ddb109e414abcb7f04acaf24bfe24b6831e1bbd2ed5c49b065d',1,'lci']]]
 ];

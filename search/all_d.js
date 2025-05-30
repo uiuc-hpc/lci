@@ -81,7 +81,7 @@ var searchData=
   ['get_5fvalue_5for_78',['get_value_or',['../db/d20/structlci_1_1option__t.html#a2053ff6653830ea744baddf9ce0ca819',1,'lci::option_t']]],
   ['global_5fattr_5ft_79',['global_attr_t',['../d8/d0c/structlci_1_1global__attr__t.html',1,'lci']]],
   ['graph_80',['graph',['../d5/dd3/namespacelci.html#a610912d197faa01c2f04666209b814bbaf8b0b924ebd7046dbfa85a856e4682c8',1,'lci']]],
-  ['graph_20advanced_81',['Graph (Advanced)',['../db/d4e/tutorial.html#autotoc_md66',1,'']]],
+  ['graph_20advanced_81',['Graph (Advanced)',['../db/d4e/tutorial.html#autotoc_md67',1,'']]],
   ['graph_5fadd_5fedge_82',['graph_add_edge',['../d5/dd3/namespacelci.html#a7ad5e9b11b95bc70fc8baac9992ef732',1,'lci::graph_add_edge()'],['../d7/d55/group__LCI__GRAPH__ADD__EDGE.html',1,'graph_add_edge']]],
   ['graph_5fadd_5fedge_5fx_83',['graph_add_edge_x',['../df/d73/classlci_1_1graph__add__edge__x.html',1,'lci::graph_add_edge_x'],['../df/d73/classlci_1_1graph__add__edge__x.html#a39e93f4b22bf82dbb6abe51e9fc26fdd',1,'lci::graph_add_edge_x::graph_add_edge_x()']]],
   ['graph_5fadd_5fnode_84',['graph_add_node',['../d5/dd3/namespacelci.html#ac942e587d9dbca57c48e1ca3f3854969',1,'lci::graph_add_node()'],['../df/df5/group__LCI__GRAPH__ADD__NODE.html',1,'graph_add_node']]],
