@@ -137,12 +137,12 @@ Collaboration diagram for lci::data_t:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a046e8ad72435bd0cdcb8ab83931ab405" id="r_a046e8ad72435bd0cdcb8ab83931ab405"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a046e8ad72435bd0cdcb8ab83931ab405">type_t</a> : unsigned int { <a class="el" href="#a046e8ad72435bd0cdcb8ab83931ab405a334c4a4c42fdb79d7ebc3e73b517e6f8">none</a>
-, <a class="el" href="#a046e8ad72435bd0cdcb8ab83931ab405aa27a6549ade38cc036f7b8c58a840510">scalar</a>
-, <a class="el" href="#a046e8ad72435bd0cdcb8ab83931ab405a7f2db423a49b305459147332fb01cf87">buffer</a>
-, <a class="el" href="#a046e8ad72435bd0cdcb8ab83931ab405a4d293ef273d93a5411725a8223efc83e">buffers</a>
+<tr class="memitem:a4c753ae41067f7bc5f14ecd6a76682b5" id="r_a4c753ae41067f7bc5f14ecd6a76682b5"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4c753ae41067f7bc5f14ecd6a76682b5">type_t</a> { <a class="el" href="#a4c753ae41067f7bc5f14ecd6a76682b5ade5aca11e30d31d5eb56fb860deb9855">LCI_DATA_TYPE_NONE</a>
+, <a class="el" href="#a4c753ae41067f7bc5f14ecd6a76682b5a41cbb0b9bde2f8e6067f2d7a96b001c7">LCI_DATA_TYPE_SCALAR</a>
+, <a class="el" href="#a4c753ae41067f7bc5f14ecd6a76682b5ac1c4bcbc291c79d2e6b1bb7ba62765ae">LCI_DATA_TYPE_BUFFER</a>
+, <a class="el" href="#a4c753ae41067f7bc5f14ecd6a76682b5a0313f9ef790032be71e76a113cdbfc0b">LCI_DATA_TYPE_BUFFERS</a>
  }</td></tr>
-<tr class="separator:a046e8ad72435bd0cdcb8ab83931ab405"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a4c753ae41067f7bc5f14ecd6a76682b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a21c73c80a4186351a3c864922edc777c" id="r_a21c73c80a4186351a3c864922edc777c"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a21c73c80a4186351a3c864922edc777c">get_semantic_t</a> { <a class="el" href="#a21c73c80a4186351a3c864922edc777ca3734a903022249b3010be1897042568e">move</a>
 , <a class="el" href="#a21c73c80a4186351a3c864922edc777ca12cba3ee81cf4a793796a51b6327c678">copy</a>
 , <a class="el" href="#a21c73c80a4186351a3c864922edc777ca1bda80f2be4d3658e0baa43fbe7ae8c1">view</a>
@@ -168,9 +168,9 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a3657b75d8c5d002adf3ddfcc9f14a293"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8c79bce0b9f10492589dd86b051bb2d0" id="r_a8c79bce0b9f10492589dd86b051bb2d0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/d7c/structlci_1_1data__t.html">data_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8c79bce0b9f10492589dd86b051bb2d0">operator=</a> (<a class="el" href="../../da/d7c/structlci_1_1data__t.html">data_t</a> other)</td></tr>
 <tr class="separator:a8c79bce0b9f10492589dd86b051bb2d0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae5a60738da46376c32408f3ba0b17300" id="r_ae5a60738da46376c32408f3ba0b17300"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#a046e8ad72435bd0cdcb8ab83931ab405">type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae5a60738da46376c32408f3ba0b17300">get_type</a> () const</td></tr>
+<tr class="memitem:ae5a60738da46376c32408f3ba0b17300" id="r_ae5a60738da46376c32408f3ba0b17300"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#a4c753ae41067f7bc5f14ecd6a76682b5">type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae5a60738da46376c32408f3ba0b17300">get_type</a> () const</td></tr>
 <tr class="separator:ae5a60738da46376c32408f3ba0b17300"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a757e3d75c4950d82a849ea05535665a0" id="r_a757e3d75c4950d82a849ea05535665a0"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a757e3d75c4950d82a849ea05535665a0">set_type</a> (<a class="el" href="#a046e8ad72435bd0cdcb8ab83931ab405">type_t</a> type_)</td></tr>
+<tr class="memitem:a757e3d75c4950d82a849ea05535665a0" id="r_a757e3d75c4950d82a849ea05535665a0"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a757e3d75c4950d82a849ea05535665a0">set_type</a> (<a class="el" href="#a4c753ae41067f7bc5f14ecd6a76682b5">type_t</a> type_)</td></tr>
 <tr class="separator:a757e3d75c4950d82a849ea05535665a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae6d98a0c79ffbf91bbde45200026c260" id="r_ae6d98a0c79ffbf91bbde45200026c260"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae6d98a0c79ffbf91bbde45200026c260">get_own_data</a> () const</td></tr>
 <tr class="separator:ae6d98a0c79ffbf91bbde45200026c260"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -206,7 +206,7 @@ Public Attributes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a593c556d97ae12949dd6409c119c2148" id="r_a593c556d97ae12949dd6409c119c2148"><td class="memItemLeft" >&#160;&#160;&#160;struct {&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="separator:ae38d3bfcc9f82ef97ec31ae5256a8628"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3965d729b08df122f9649d002d89867c" id="r_a3965d729b08df122f9649d002d89867c"><td class="memItemLeft" >&#160;&#160;&#160;&#160;&#160;&#160;<a class="el" href="#a046e8ad72435bd0cdcb8ab83931ab405">type_t</a>&#160;&#160;&#160;<a class="el" href="#a97bb71621e67c3b162745a9c36ef2d16">type</a>: 2&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="memitem:a3965d729b08df122f9649d002d89867c" id="r_a3965d729b08df122f9649d002d89867c"><td class="memItemLeft" >&#160;&#160;&#160;&#160;&#160;&#160;<a class="el" href="#a4c753ae41067f7bc5f14ecd6a76682b5">type_t</a>&#160;&#160;&#160;<a class="el" href="#a97bb71621e67c3b162745a9c36ef2d16">type</a>: 2&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="separator:a3965d729b08df122f9649d002d89867c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a00982cf300a9c5733e8e10d2a02b3b77" id="r_a00982cf300a9c5733e8e10d2a02b3b77"><td class="memItemLeft" >&#160;&#160;&#160;&#160;&#160;&#160;bool&#160;&#160;&#160;<a class="el" href="#a47e055ddd6fb074ed0a3ecfda4fbf220">own_data</a>: 1&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="separator:a00982cf300a9c5733e8e10d2a02b3b77"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -214,7 +214,7 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a593c556d97ae12949dd6409c119c2148"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad247297c49ea7c5594cf01183ab17ca7" id="r_ad247297c49ea7c5594cf01183ab17ca7"><td class="memItemLeft" >&#160;&#160;&#160;struct {&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="separator:a8784aa11b1926b7cf2d71939176a96d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0fdd2b2c9c3c022ea4665d554e511555" id="r_a0fdd2b2c9c3c022ea4665d554e511555"><td class="memItemLeft" >&#160;&#160;&#160;&#160;&#160;&#160;<a class="el" href="#a046e8ad72435bd0cdcb8ab83931ab405">type_t</a>&#160;&#160;&#160;<a class="el" href="#a97bb71621e67c3b162745a9c36ef2d16">type</a>: 2&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="memitem:a0fdd2b2c9c3c022ea4665d554e511555" id="r_a0fdd2b2c9c3c022ea4665d554e511555"><td class="memItemLeft" >&#160;&#160;&#160;&#160;&#160;&#160;<a class="el" href="#a4c753ae41067f7bc5f14ecd6a76682b5">type_t</a>&#160;&#160;&#160;<a class="el" href="#a97bb71621e67c3b162745a9c36ef2d16">type</a>: 2&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="separator:a0fdd2b2c9c3c022ea4665d554e511555"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a28297374f406723e8f5d7a4aa6ea7a8c" id="r_a28297374f406723e8f5d7a4aa6ea7a8c"><td class="memItemLeft" >&#160;&#160;&#160;&#160;&#160;&#160;bool&#160;&#160;&#160;<a class="el" href="#a47e055ddd6fb074ed0a3ecfda4fbf220">own_data</a>: 1&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="separator:a28297374f406723e8f5d7a4aa6ea7a8c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -226,7 +226,7 @@ Public Attributes</h2></td></tr>
 <tr class="separator:ad247297c49ea7c5594cf01183ab17ca7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a633d6f650f85f53861f4c3adec506168" id="r_a633d6f650f85f53861f4c3adec506168"><td class="memItemLeft" >&#160;&#160;&#160;struct {&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="separator:a7f96e73f4599a9bc527aaa31dee05ffc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac4c621eda93ac84feac1b0bf2618f658" id="r_ac4c621eda93ac84feac1b0bf2618f658"><td class="memItemLeft" >&#160;&#160;&#160;&#160;&#160;&#160;<a class="el" href="#a046e8ad72435bd0cdcb8ab83931ab405">type_t</a>&#160;&#160;&#160;<a class="el" href="#a97bb71621e67c3b162745a9c36ef2d16">type</a>: 2&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="memitem:ac4c621eda93ac84feac1b0bf2618f658" id="r_ac4c621eda93ac84feac1b0bf2618f658"><td class="memItemLeft" >&#160;&#160;&#160;&#160;&#160;&#160;<a class="el" href="#a4c753ae41067f7bc5f14ecd6a76682b5">type_t</a>&#160;&#160;&#160;<a class="el" href="#a97bb71621e67c3b162745a9c36ef2d16">type</a>: 2&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="separator:ac4c621eda93ac84feac1b0bf2618f658"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9fcfeb35ed15b3ad17d4f346aab305b1" id="r_a9fcfeb35ed15b3ad17d4f346aab305b1"><td class="memItemLeft" >&#160;&#160;&#160;&#160;&#160;&#160;bool&#160;&#160;&#160;<a class="el" href="#a47e055ddd6fb074ed0a3ecfda4fbf220">own_data</a>: 1&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="separator:a9fcfeb35ed15b3ad17d4f346aab305b1"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -240,7 +240,7 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a633d6f650f85f53861f4c3adec506168"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a32f796b499614fd062f7d396db5eaab4" id="r_a32f796b499614fd062f7d396db5eaab4"><td class="memItemLeft" >&#160;&#160;&#160;struct {&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="separator:a7afbdb684187bf3d11fa7c022c3f4af4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a23d7dabb4d1a76eb82ff7099464e5786" id="r_a23d7dabb4d1a76eb82ff7099464e5786"><td class="memItemLeft" >&#160;&#160;&#160;&#160;&#160;&#160;<a class="el" href="#a046e8ad72435bd0cdcb8ab83931ab405">type_t</a>&#160;&#160;&#160;<a class="el" href="#a97bb71621e67c3b162745a9c36ef2d16">type</a>: 2&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="memitem:a23d7dabb4d1a76eb82ff7099464e5786" id="r_a23d7dabb4d1a76eb82ff7099464e5786"><td class="memItemLeft" >&#160;&#160;&#160;&#160;&#160;&#160;<a class="el" href="#a4c753ae41067f7bc5f14ecd6a76682b5">type_t</a>&#160;&#160;&#160;<a class="el" href="#a97bb71621e67c3b162745a9c36ef2d16">type</a>: 2&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="separator:a23d7dabb4d1a76eb82ff7099464e5786"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4b784f5d72d507d5b7d0b546d9a5fecb" id="r_a4b784f5d72d507d5b7d0b546d9a5fecb"><td class="memItemLeft" >&#160;&#160;&#160;&#160;&#160;&#160;bool&#160;&#160;&#160;<a class="el" href="#a47e055ddd6fb074ed0a3ecfda4fbf220">own_data</a>: 1&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="separator:a4b784f5d72d507d5b7d0b546d9a5fecb"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -306,30 +306,22 @@ Friends</h2></td></tr>
 
 </div>
 </div>
-<a id="a046e8ad72435bd0cdcb8ab83931ab405" name="a046e8ad72435bd0cdcb8ab83931ab405"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a046e8ad72435bd0cdcb8ab83931ab405">&#9670;&#160;</a></span>type_t</h2>
+<a id="a4c753ae41067f7bc5f14ecd6a76682b5" name="a4c753ae41067f7bc5f14ecd6a76682b5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4c753ae41067f7bc5f14ecd6a76682b5">&#9670;&#160;</a></span>type_t</h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">enum class <a class="el" href="#a046e8ad72435bd0cdcb8ab83931ab405">lci::data_t::type_t</a> : unsigned int</td>
+          <td class="memname">enum <a class="el" href="#a4c753ae41067f7bc5f14ecd6a76682b5">lci::data_t::type_t</a></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel strong">strong</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a046e8ad72435bd0cdcb8ab83931ab405a334c4a4c42fdb79d7ebc3e73b517e6f8" name="a046e8ad72435bd0cdcb8ab83931ab405a334c4a4c42fdb79d7ebc3e73b517e6f8"></a>none&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a046e8ad72435bd0cdcb8ab83931ab405aa27a6549ade38cc036f7b8c58a840510" name="a046e8ad72435bd0cdcb8ab83931ab405aa27a6549ade38cc036f7b8c58a840510"></a>scalar&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a046e8ad72435bd0cdcb8ab83931ab405a7f2db423a49b305459147332fb01cf87" name="a046e8ad72435bd0cdcb8ab83931ab405a7f2db423a49b305459147332fb01cf87"></a>buffer&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a046e8ad72435bd0cdcb8ab83931ab405a4d293ef273d93a5411725a8223efc83e" name="a046e8ad72435bd0cdcb8ab83931ab405a4d293ef273d93a5411725a8223efc83e"></a>buffers&#160;</td><td class="fielddoc"></td></tr>
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a4c753ae41067f7bc5f14ecd6a76682b5ade5aca11e30d31d5eb56fb860deb9855" name="a4c753ae41067f7bc5f14ecd6a76682b5ade5aca11e30d31d5eb56fb860deb9855"></a>LCI_DATA_TYPE_NONE&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a4c753ae41067f7bc5f14ecd6a76682b5a41cbb0b9bde2f8e6067f2d7a96b001c7" name="a4c753ae41067f7bc5f14ecd6a76682b5a41cbb0b9bde2f8e6067f2d7a96b001c7"></a>LCI_DATA_TYPE_SCALAR&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a4c753ae41067f7bc5f14ecd6a76682b5ac1c4bcbc291c79d2e6b1bb7ba62765ae" name="a4c753ae41067f7bc5f14ecd6a76682b5ac1c4bcbc291c79d2e6b1bb7ba62765ae"></a>LCI_DATA_TYPE_BUFFER&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a4c753ae41067f7bc5f14ecd6a76682b5a0313f9ef790032be71e76a113cdbfc0b" name="a4c753ae41067f7bc5f14ecd6a76682b5a0313f9ef790032be71e76a113cdbfc0b"></a>LCI_DATA_TYPE_BUFFERS&#160;</td><td class="fielddoc"></td></tr>
 </table>
 
 </div>
@@ -830,7 +822,7 @@ Here is the call graph for this function:</div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="#a046e8ad72435bd0cdcb8ab83931ab405">type_t</a> lci::data_t::get_type </td>
+          <td class="memname"><a class="el" href="#a4c753ae41067f7bc5f14ecd6a76682b5">type_t</a> lci::data_t::get_type </td>
           <td>(</td>
           <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
           <td> const</td>
@@ -1027,7 +1019,7 @@ Here is the caller graph for this function:</div>
         <tr>
           <td class="memname">void lci::data_t::set_type </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="#a046e8ad72435bd0cdcb8ab83931ab405">type_t</a></td>          <td class="paramname"><span class="paramname"><em>type_</em></span></td><td>)</td>
+          <td class="paramtype"><a class="el" href="#a4c753ae41067f7bc5f14ecd6a76682b5">type_t</a></td>          <td class="paramname"><span class="paramname"><em>type_</em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -1287,7 +1279,7 @@ Here is the caller graph for this function:</div>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="#a046e8ad72435bd0cdcb8ab83931ab405">type_t</a> lci::data_t::type</td>
+          <td class="memname"><a class="el" href="#a4c753ae41067f7bc5f14ecd6a76682b5">type_t</a> lci::data_t::type</td>
         </tr>
       </table>
 </div><div class="memdoc">

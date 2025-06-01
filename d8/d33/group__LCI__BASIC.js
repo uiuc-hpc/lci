@@ -48,11 +48,11 @@ var group__LCI__BASIC =
         [ "copy", "da/d7c/structlci_1_1data__t.html#a21c73c80a4186351a3c864922edc777ca12cba3ee81cf4a793796a51b6327c678", null ],
         [ "view", "da/d7c/structlci_1_1data__t.html#a21c73c80a4186351a3c864922edc777ca1bda80f2be4d3658e0baa43fbe7ae8c1", null ]
       ] ],
-      [ "type_t", "da/d7c/structlci_1_1data__t.html#a046e8ad72435bd0cdcb8ab83931ab405", [
-        [ "none", "da/d7c/structlci_1_1data__t.html#a046e8ad72435bd0cdcb8ab83931ab405a334c4a4c42fdb79d7ebc3e73b517e6f8", null ],
-        [ "scalar", "da/d7c/structlci_1_1data__t.html#a046e8ad72435bd0cdcb8ab83931ab405aa27a6549ade38cc036f7b8c58a840510", null ],
-        [ "buffer", "da/d7c/structlci_1_1data__t.html#a046e8ad72435bd0cdcb8ab83931ab405a7f2db423a49b305459147332fb01cf87", null ],
-        [ "buffers", "da/d7c/structlci_1_1data__t.html#a046e8ad72435bd0cdcb8ab83931ab405a4d293ef273d93a5411725a8223efc83e", null ]
+      [ "type_t", "da/d7c/structlci_1_1data__t.html#a4c753ae41067f7bc5f14ecd6a76682b5", [
+        [ "LCI_DATA_TYPE_NONE", "da/d7c/structlci_1_1data__t.html#a4c753ae41067f7bc5f14ecd6a76682b5ade5aca11e30d31d5eb56fb860deb9855", null ],
+        [ "LCI_DATA_TYPE_SCALAR", "da/d7c/structlci_1_1data__t.html#a4c753ae41067f7bc5f14ecd6a76682b5a41cbb0b9bde2f8e6067f2d7a96b001c7", null ],
+        [ "LCI_DATA_TYPE_BUFFER", "da/d7c/structlci_1_1data__t.html#a4c753ae41067f7bc5f14ecd6a76682b5ac1c4bcbc291c79d2e6b1bb7ba62765ae", null ],
+        [ "LCI_DATA_TYPE_BUFFERS", "da/d7c/structlci_1_1data__t.html#a4c753ae41067f7bc5f14ecd6a76682b5a0313f9ef790032be71e76a113cdbfc0b", null ]
       ] ],
       [ "data_t", "da/d7c/structlci_1_1data__t.html#aa8ddc42cf7a8be3b1414498ac233098c", null ],
       [ "data_t", "da/d7c/structlci_1_1data__t.html#aaacf36ab13d70a0412aaa0d3b6c19bfc", null ],

@@ -13,5 +13,5 @@ var searchData=
   ['tutorial_10',['Tutorial',['../db/d4e/tutorial.html',1,'']]],
   ['tutorial_2emd_11',['tutorial.md',['../dd/d1a/tutorial_8md.html',1,'']]],
   ['type_12',['type',['../da/d7c/structlci_1_1data__t.html#a97bb71621e67c3b162745a9c36ef2d16',1,'lci::data_t']]],
-  ['type_5ft_13',['type_t',['../da/d7c/structlci_1_1data__t.html#a046e8ad72435bd0cdcb8ab83931ab405',1,'lci::data_t']]]
+  ['type_5ft_13',['type_t',['../da/d7c/structlci_1_1data__t.html#a4c753ae41067f7bc5f14ecd6a76682b5',1,'lci::data_t']]]
 ];
