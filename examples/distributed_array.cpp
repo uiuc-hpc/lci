@@ -17,7 +17,7 @@ class distributed_array_t
     m_per_rank_size = size / lci::get_rank_n();
     m_local_start = lci::get_rank_me() * m_per_rank_size;
     m_data.resize(m_per_rank_size, default_val);
-    m_gptrs.resize(lci::get_rank_n());
+    m_rmrs.resize(lci::get_rank_n());
     // RMA operations allow users to directly read/write remote memory on other
     // processes. To enable this, the following steps are required: (1) Each
     // target process (i.e., the process whose memory will be accessed remotely)
@@ -32,10 +32,8 @@ class distributed_array_t
     // registered memory buffer.
     mr = lci::register_memory(m_data.data(), m_data.size() * sizeof(T));
     // exchange the memory registration information with other ranks
-    gptr_t my_gptr;
-    my_gptr.base = reinterpret_cast<uintptr_t>(m_data.data());
-    my_gptr.rmr = lci::get_rmr(mr);
-    lci::allgather(&my_gptr, m_gptrs.data(), sizeof(gptr_t));
+    lci::rmr_t rmr = lci::get_rmr(mr);
+    lci::allgather(&rmr, m_rmrs.data(), sizeof(lci::rmr_t));
   }
 
   ~distributed_array_t()
@@ -54,10 +52,9 @@ class distributed_array_t
     lci::status_t status;
     T value;
     do {
-      status = lci::post_get(
-          target_rank, &value, sizeof(T), lci::COMP_NULL_EXPECT_DONE_OR_RETRY,
-          m_gptrs[target_rank].base + local_index * sizeof(T),
-          m_gptrs[target_rank].rmr);
+      status = lci::post_get(target_rank, &value, sizeof(T),
+                             lci::COMP_NULL_EXPECT_DONE_OR_RETRY,
+                             local_index * sizeof(T), m_rmrs[target_rank]);
       lci::progress();
     } while (status.is_retry());
     assert(status.is_done());
@@ -71,11 +68,10 @@ class distributed_array_t
     size_t local_index = get_local_index(index);
     lci::status_t status;
     do {
-      status = lci::post_put_x(
-                   target_rank, static_cast<void*>(const_cast<int*>(&value)),
-                   sizeof(T), lci::COMP_NULL_EXPECT_DONE_OR_RETRY,
-                   m_gptrs[target_rank].base + local_index * sizeof(T),
-                   m_gptrs[target_rank].rmr)
+      status = lci::post_put_x(target_rank,
+                               static_cast<void*>(const_cast<int*>(&value)),
+                               sizeof(T), lci::COMP_NULL_EXPECT_DONE_OR_RETRY,
+                               local_index * sizeof(T), m_rmrs[target_rank])
                    .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
     } while (status.is_retry());
@@ -89,11 +85,7 @@ class distributed_array_t
   std::vector<T> m_data;
   // LCI memory registration information
   lci::mr_t mr;
-  struct gptr_t {
-    uintptr_t base;
-    lci::rmr_t rmr;
-  };
-  std::vector<gptr_t> m_gptrs;
+  std::vector<lci::rmr_t> m_rmrs;
 
   int get_target_rank(size_t index) const
   {

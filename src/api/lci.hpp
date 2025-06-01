@@ -253,6 +253,7 @@ struct rmr_t {
   uintptr_t base;
   uint64_t opaque_rkey;
   rmr_t() : base(0), opaque_rkey(0) {}
+  bool is_empty() const { return base == 0 && opaque_rkey == 0; }
 };
 
 /**
@@ -365,11 +366,12 @@ struct buffer_t {
  * @brief The type of a remote buffer descriptor.
  */
 struct rbuffer_t {
-  uintptr_t base; /**< The base address of the remote buffer */
-  rmr_t rmr;      /**< The remote memory region handle */
-  rbuffer_t() : base(0) {}
-  rbuffer_t(uintptr_t base_) : base(base_) {}
-  rbuffer_t(uintptr_t base_, rmr_t rmr_) : base(base_), rmr(rmr_) {}
+  uintptr_t
+      disp;  /**< The remote displacement from the remote buffer base address */
+  rmr_t rmr; /**< The remote memory region handle */
+  rbuffer_t() : disp(0) {}
+  rbuffer_t(uintptr_t disp_) : disp(disp_) {}
+  rbuffer_t(uintptr_t disp_, rmr_t rmr_) : disp(disp_), rmr(rmr_) {}
 };
 using buffers_t = std::vector<buffer_t>;
 using rbuffers_t = std::vector<rbuffer_t>;

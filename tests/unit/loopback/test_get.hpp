@@ -27,8 +27,7 @@ TEST(COMM_GET, get_bcopy_st)
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_get(rank, recv_buffer, msg_size, cq,
-                             reinterpret_cast<uintptr_t>(send_buffer), rmr);
+      status = lci::post_get(rank, recv_buffer, msg_size, cq, 0, rmr);
       lci::progress();
     } while (status.is_retry());
 
@@ -68,8 +67,7 @@ void test_get_bcopy_mt(int id, int nmsgs, uint64_t* p_data)
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_get(rank, recv_buffer, msg_size, cq,
-                             reinterpret_cast<uintptr_t>(send_buffer), rmr);
+      status = lci::post_get(rank, recv_buffer, msg_size, cq, 0, rmr);
       lci::progress();
     } while (status.is_retry());
 
@@ -138,8 +136,7 @@ TEST(COMM_GET, get_zcopy_st)
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_get(rank, recv_buffer, msg_size, cq,
-                             reinterpret_cast<uintptr_t>(send_buffer), rmr);
+      status = lci::post_get(rank, recv_buffer, msg_size, cq, 0, rmr);
       lci::progress();
     } while (status.is_retry());
 
@@ -177,8 +174,7 @@ void test_get_zcopy_mt(int id, int nmsgs)
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_get(rank, recv_buffer, msg_size, cq,
-                             reinterpret_cast<uintptr_t>(send_buffer), rmr);
+      status = lci::post_get(rank, recv_buffer, msg_size, cq, 0, rmr);
       lci::progress();
     } while (status.is_retry());
 
@@ -246,7 +242,7 @@ TEST(COMM_GET, get_buffers_st)
     util::write_buffer(send_buffers[i].base, send_buffers[i].size, 'b');
     recv_buffers[i].base = malloc(msg_size);
     recv_buffers[i].size = msg_size;
-    rbuffers[i].base = reinterpret_cast<uintptr_t>(send_buffers[i].base);
+    rbuffers[i].disp = 0;
     rbuffers[i].rmr = lci::get_rmr(send_buffers[i].mr);
   }
   // loopback message
@@ -302,7 +298,7 @@ void test_get_buffers_mt(int id, int nmsgs)
     util::write_buffer(send_buffers[i].base, send_buffers[i].size, 'b');
     recv_buffers[i].base = malloc(msg_size);
     recv_buffers[i].size = msg_size;
-    rbuffers[i].base = reinterpret_cast<uintptr_t>(send_buffers[i].base);
+    rbuffers[i].disp = 0;
     rbuffers[i].rmr = lci::get_rmr(send_buffers[i].mr);
   }
   // loopback message

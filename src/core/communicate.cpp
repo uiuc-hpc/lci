@@ -15,7 +15,7 @@ status_t post_comm_x::call_impl(
     direction_t direction, int rank, void* local_buffer, size_t size,
     comp_t local_comp, runtime_t runtime, packet_pool_t packet_pool,
     device_t device, endpoint_t endpoint, matching_engine_t matching_engine,
-    comp_semantic_t comp_semantic, mr_t mr, uintptr_t remote_buffer, rmr_t rmr,
+    comp_semantic_t comp_semantic, mr_t mr, uintptr_t remote_disp, rmr_t rmr,
     tag_t tag, rcomp_t remote_comp, void* user_context, buffers_t buffers,
     rbuffers_t rbuffers, matching_policy_t matching_policy, bool allow_done,
     bool allow_posted, bool allow_retry, bool force_zcopy) const
@@ -31,7 +31,7 @@ status_t post_comm_x::call_impl(
   net_context_t net_context = device.p_impl->net_context;
 
   // basic conditions
-  bool local_buffer_only = !remote_buffer && rbuffers.empty();
+  bool local_buffer_only = rmr.is_empty() && rbuffers.empty();
   bool local_comp_only = remote_comp == 0;
   bool is_single_buffer = buffers.empty();
   bool is_recv = direction == direction_t::IN && local_buffer_only;
@@ -66,7 +66,8 @@ status_t post_comm_x::call_impl(
   // matching engine's remote handler
   rcomp_t rhandler = remote_comp;
   if (!rhandler && !matching_engine.is_empty() && local_buffer_only) {
-    // this is send-recv (no remote_comp, no remote_buffer)
+    // this is send-recv (no remote_comp, no remote buffer, matching engine is
+    // valid)
     rhandler = matching_engine.get_impl()->get_rhandler(matching_policy);
   }
 
@@ -243,25 +244,22 @@ status_t post_comm_x::call_impl(
      **********************************************************************************/
     if (protocol == protocol_t::inject) {
       // inject protocol (return retry or done)
-      if (!remote_buffer) {
+      if (local_buffer_only) {
         error = endpoint.p_impl->post_sends(rank, local_buffer, size, imm_data,
                                             allow_retry);
       } else if (!rhandler) {
         // rdma write
-        error = endpoint.p_impl->post_puts(
-            rank, local_buffer, size,
-            reinterpret_cast<uintptr_t>(remote_buffer) - rmr.base, rmr,
-            allow_retry);
+        error = endpoint.p_impl->post_puts(rank, local_buffer, size,
+                                           remote_disp, rmr, allow_retry);
       } else {
         // rdma write with immediate data
-        error = endpoint.p_impl->post_putImms(rank, local_buffer, size,
-                                              remote_buffer - rmr.base, rmr,
-                                              imm_data, allow_retry);
+        error = endpoint.p_impl->post_putImms(
+            rank, local_buffer, size, remote_disp, rmr, imm_data, allow_retry);
       }
       // end of inject protocol
     } else if (protocol == protocol_t::bcopy) {
       // buffer-copy protocol
-      if (!remote_buffer) {
+      if (local_buffer_only) {
         // buffer-copy send
         // note: we need to use packet_size_to_send instead of size
         error = endpoint.p_impl->post_send(
@@ -271,14 +269,12 @@ status_t post_comm_x::call_impl(
         // buffer-copy put
         error = endpoint.p_impl->post_put(
             rank, packet->get_payload_address(), size, packet->get_mr(device),
-            reinterpret_cast<uintptr_t>(remote_buffer) - rmr.base, rmr,
-            internal_ctx, allow_retry);
+            remote_disp, rmr, internal_ctx, allow_retry);
       } else {
         // buffer-copy put with signal
         error = endpoint.p_impl->post_putImm(
             rank, packet->get_payload_address(), size, packet->get_mr(device),
-            reinterpret_cast<uintptr_t>(remote_buffer) - rmr.base, rmr,
-            imm_data, internal_ctx, allow_retry);
+            remote_disp, rmr, imm_data, internal_ctx, allow_retry);
       }
       if (error.is_posted() && comp_semantic == comp_semantic_t::buffer) {
         error = errorcode_t::done;
@@ -291,13 +287,11 @@ status_t post_comm_x::call_impl(
           if (!rhandler) {
             error = endpoint.p_impl->post_put(
                 rank, data.buffer.base, data.buffer.size, data.buffer.mr,
-                reinterpret_cast<uintptr_t>(remote_buffer) - rmr.base, rmr,
-                internal_ctx, allow_retry);
+                remote_disp, rmr, internal_ctx, allow_retry);
           } else {
             error = endpoint.p_impl->post_putImm(
                 rank, data.buffer.base, data.buffer.size, data.buffer.mr,
-                reinterpret_cast<uintptr_t>(remote_buffer) - rmr.base, rmr,
-                imm_data, internal_ctx, allow_retry);
+                remote_disp, rmr, imm_data, internal_ctx, allow_retry);
           }
         } else {
           auto extended_ctx = new internal_context_extended_t;
@@ -310,16 +304,13 @@ status_t post_comm_x::call_impl(
               error = endpoint.p_impl->post_putImm(
                   rank, data.buffers.buffers[i].base,
                   data.buffers.buffers[i].size, data.buffers.buffers[i].mr,
-                  reinterpret_cast<uintptr_t>(rbuffers[i].base) -
-                      rbuffers[i].rmr.base,
-                  rbuffers[i].rmr, imm_data, extended_ctx, allow_retry);
+                  rbuffers[i].disp, rbuffers[i].rmr, imm_data, extended_ctx,
+                  allow_retry);
             } else {
               error = endpoint.p_impl->post_put(
                   rank, data.buffers.buffers[i].base,
                   data.buffers.buffers[i].size, data.buffers.buffers[i].mr,
-                  reinterpret_cast<uintptr_t>(rbuffers[i].base) -
-                      rbuffers[i].rmr.base,
-                  rbuffers[i].rmr, extended_ctx, allow_retry);
+                  rbuffers[i].disp, rbuffers[i].rmr, extended_ctx, allow_retry);
             }
             if (i == 0 && error.is_retry()) {
               goto exit;
@@ -410,15 +401,13 @@ status_t post_comm_x::call_impl(
         // buffer-copy
         error = endpoint.p_impl->post_get(
             rank, packet->get_payload_address(), size, packet->get_mr(device),
-            reinterpret_cast<uintptr_t>(remote_buffer) - rmr.base, rmr,
-            internal_ctx, allow_retry);
+            remote_disp, rmr, internal_ctx, allow_retry);
       } else {
         // zero-copy
         if (data.is_buffer()) {
           error = endpoint.p_impl->post_get(
               rank, data.buffer.base, data.buffer.size, data.buffer.mr,
-              reinterpret_cast<uintptr_t>(remote_buffer) - rmr.base, rmr,
-              internal_ctx, allow_retry);
+              remote_disp, rmr, internal_ctx, allow_retry);
         } else {
           auto extended_ctx = new internal_context_extended_t;
           extended_ctx->internal_ctx = internal_ctx;
@@ -428,9 +417,7 @@ status_t post_comm_x::call_impl(
             error = endpoint.p_impl->post_get(
                 rank, data.buffers.buffers[i].base,
                 data.buffers.buffers[i].size, data.buffers.buffers[i].mr,
-                reinterpret_cast<uintptr_t>(rbuffers[i].base) -
-                    rbuffers[i].rmr.base,
-                rbuffers[i].rmr, extended_ctx, allow_retry);
+                rbuffers[i].disp, rbuffers[i].rmr, extended_ctx, allow_retry);
             if (i == 0 && error.is_retry()) {
               goto exit;
             } else {
@@ -576,14 +563,14 @@ status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
 
 status_t post_put_x::call_impl(
     int rank, void* local_buffer, size_t size, comp_t local_comp,
-    uintptr_t remote_buffer, rmr_t rmr, runtime_t runtime,
+    uintptr_t remote_disp, rmr_t rmr, runtime_t runtime,
     packet_pool_t packet_pool, device_t device, endpoint_t endpoint,
     comp_semantic_t comp_semantic, mr_t mr, tag_t tag, rcomp_t remote_comp,
     void* user_context, buffers_t buffers, rbuffers_t rbuffers, bool allow_done,
     bool allow_posted, bool allow_retry, bool force_zcopy) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
-      .remote_buffer(remote_buffer)
+      .remote_disp(remote_disp)
       .rmr(rmr)
       .runtime(runtime)
       .packet_pool(packet_pool)
@@ -604,7 +591,7 @@ status_t post_put_x::call_impl(
 }
 
 status_t post_get_x::call_impl(int rank, void* local_buffer, size_t size,
-                               comp_t local_comp, uintptr_t remote_buffer,
+                               comp_t local_comp, uintptr_t remote_disp,
                                rmr_t rmr, runtime_t runtime,
                                packet_pool_t packet_pool, device_t device,
                                endpoint_t endpoint, mr_t mr, tag_t tag,
@@ -614,7 +601,7 @@ status_t post_get_x::call_impl(int rank, void* local_buffer, size_t size,
                                bool allow_retry, bool force_zcopy) const
 {
   return post_comm_x(direction_t::IN, rank, local_buffer, size, local_comp)
-      .remote_buffer(remote_buffer)
+      .remote_disp(remote_disp)
       .rmr(rmr)
       .runtime(runtime)
       .packet_pool(packet_pool)

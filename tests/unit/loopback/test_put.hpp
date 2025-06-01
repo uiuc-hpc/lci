@@ -29,8 +29,7 @@ TEST(COMM_PUT, put_bcopy_st)
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_put_x(rank, send_buffer, msg_size, cq,
-                               reinterpret_cast<uintptr_t>(recv_buffer), rmr)
+      status = lci::post_put_x(rank, send_buffer, msg_size, cq, 0, rmr)
                    .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
     } while (status.is_retry());
@@ -71,8 +70,7 @@ void test_put_bcopy_mt(int id, int nmsgs, uint64_t* p_data)
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_put_x(rank, send_buffer, msg_size, cq,
-                               reinterpret_cast<uintptr_t>(recv_buffer), rmr)
+      status = lci::post_put_x(rank, send_buffer, msg_size, cq, 0, rmr)
                    .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
     } while (status.is_retry());
@@ -142,8 +140,7 @@ TEST(COMM_PUT, put_zcopy_st)
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_put_x(rank, send_buffer, msg_size, cq,
-                               reinterpret_cast<uintptr_t>(recv_buffer), rmr)
+      status = lci::post_put_x(rank, send_buffer, msg_size, cq, 0, rmr)
                    .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
     } while (status.is_retry());
@@ -182,8 +179,7 @@ void test_put_zcopy_mt(int id, int nmsgs)
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
     do {
-      status = lci::post_put_x(rank, send_buffer, msg_size, cq,
-                               reinterpret_cast<uintptr_t>(recv_buffer), rmr)
+      status = lci::post_put_x(rank, send_buffer, msg_size, cq, 0, rmr)
                    .comp_semantic(lci::comp_semantic_t::network)();
       lci::progress();
     } while (status.is_retry());
@@ -252,7 +248,7 @@ TEST(COMM_PUT, put_buffers_st)
     recv_buffers[i].base = malloc(msg_size);
     recv_buffers[i].size = msg_size;
     recv_buffers[i].mr = lci::register_memory(recv_buffers[i].base, msg_size);
-    rbuffers[i].base = reinterpret_cast<uintptr_t>(recv_buffers[i].base);
+    rbuffers[i].disp = 0;
     rbuffers[i].rmr = lci::get_rmr(recv_buffers[i].mr);
   }
   // loopback message
@@ -313,7 +309,7 @@ void test_put_buffers_mt(int id, int nmsgs)
     recv_buffers[i].base = malloc(msg_size);
     recv_buffers[i].size = msg_size;
     recv_buffers[i].mr = lci::register_memory(recv_buffers[i].base, msg_size);
-    rbuffers[i].base = reinterpret_cast<uintptr_t>(recv_buffers[i].base);
+    rbuffers[i].disp = 0;
     rbuffers[i].rmr = lci::get_rmr(recv_buffers[i].mr);
   }
   // loopback message

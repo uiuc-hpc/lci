@@ -245,9 +245,9 @@ status_t post_recv(int rank, void* local_buffer, size_t size, tag_t tag, comp_t 
 
 status_t post_am(int rank, void* local_buffer, size_t size, comp_t local_comp, rcomp_t remote_comp);
 
-status_t post_put(int rank, void* local_buffer, size_t size, comp_t local_comp, uintptr_t remote_buffer, rmr_t rmr);
+status_t post_put(int rank, void* local_buffer, size_t size, comp_t local_comp, uintptr_t remote_disp, rmr_t rmr);
 
-status_t post_get(int rank, void* local_buffer, size_t size, comp_t local_comp, uintptr_t remote_buffer, rmr_t rmr);
+status_t post_get(int rank, void* local_buffer, size_t size, comp_t local_comp, uintptr_t remote_disp, rmr_t rmr);
 ```
 
 Where is write with notification? `post_put` can take an optional `rcomp` argument to specify a remote completion handle.

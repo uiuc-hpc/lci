@@ -12,4 +12,4 @@ if(NOT LCI_BUILD_EXAMPLES)
   set(EXCLUDE_FROM_ALL ON)
 endif()
 add_lci_examples(hello_world.cpp hello_world_am.cpp pingpong_am_mt.cpp
-                 ibarrier.cpp darray.cpp)
+                 nonblocking_barrier.cpp distributed_array.cpp)
