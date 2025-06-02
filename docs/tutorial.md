@@ -427,14 +427,14 @@ Rank 0 received active message from rank 0. Payload: Hello from rank 0
 This example shows the usage of RMA (Remote Memory Access) operations to implement a distributed array.
 <details>
 <summary>Click to expand code</summary>
-@include darray.cpp
+@include distributed_array.cpp
 </details>
 
 <details>
 <summary>Click to expand example output</summary>
 ```bash
 # This example has no output.
-$ lcrun -n 4 ./lci_darray
+$ lcrun -n 4 ./lci_distributed_array
 ```
 </details>
 
@@ -444,13 +444,13 @@ This examples shows the usage of the completion graph and the send/recv operatio
 
 <details>
 <summary>Click to expand code</summary>
-@include ibarrier.cpp
+@include nonblocking_barrier.cpp
 </details>
 
 <details>
 <summary>Click to expand example output</summary>
 ```bash
-$ lcrun -n 4 ./lci_ibarrier 
+$ lcrun -n 4 ./lci_nonblocking_barrier 
 rank 1 start barrier
 rank 2 start barrier
 rank 3 start barrier
