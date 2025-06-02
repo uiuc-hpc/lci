@@ -5,7 +5,7 @@ var searchData=
   ['barrier_2',['Non-blocking Barrier',['../db/d4e/tutorial.html#autotoc_md75',1,'']]],
   ['barrier_3',['barrier',['../d5/dd3/namespacelci.html#ae6054124daf3cd24d181b63ccbb7ce6c',1,'lci::barrier()'],['../da/d73/group__LCI__BARRIER.html',1,'barrier']]],
   ['barrier_5fx_4',['barrier_x',['../dd/dea/classlci_1_1barrier__x.html',1,'lci::barrier_x'],['../dd/dea/classlci_1_1barrier__x.html#a8d67098f7543904050fa02d587f59e6d',1,'lci::barrier_x::barrier_x()']]],
-  ['base_5',['base',['../da/d8d/structlci_1_1rmr__t.html#a762ed90c7360905fb884b1bb908a3443',1,'lci::rmr_t::base'],['../de/d63/structlci_1_1buffer__t.html#a4297e342c3f64c4298cb344774ed2e18',1,'lci::buffer_t::base'],['../d8/de5/structlci_1_1rbuffer__t.html#a0cdc0317a27e09ff264f22b60adefbf7',1,'lci::rbuffer_t::base'],['../da/d7c/structlci_1_1data__t.html#a73f7321f55d64bca92f296b85672690f',1,'lci::data_t::base']]],
+  ['base_5',['base',['../da/d8d/structlci_1_1rmr__t.html#a762ed90c7360905fb884b1bb908a3443',1,'lci::rmr_t::base'],['../de/d63/structlci_1_1buffer__t.html#a4297e342c3f64c4298cb344774ed2e18',1,'lci::buffer_t::base'],['../da/d7c/structlci_1_1data__t.html#a73f7321f55d64bca92f296b85672690f',1,'lci::data_t::base']]],
   ['basic_20concepts_6',['Basic Concepts',['../d8/d33/group__LCI__BASIC.html',1,'']]],
   ['basic_20usage_7',['Basic Usage',['../db/d4e/tutorial.html#autotoc_md69',1,'']]],
   ['binding_2ecpp_8',['binding.cpp',['../dd/d45/binding_8cpp.html',1,'']]],

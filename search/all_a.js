@@ -18,13 +18,14 @@ var searchData=
   ['device_5ft_15',['device_t',['../d6/d66/classlci_1_1device__t.html',1,'lci::device_t'],['../d6/d66/classlci_1_1device__t.html#aa07fe64bdce5fb426e9ffa6acc21a143',1,'lci::device_t::device_t()=default'],['../d6/d66/classlci_1_1device__t.html#aaa726472fe6d12e1caa494a3395ce2e2',1,'lci::device_t::device_t(void *p)']]],
   ['direction_16',['direction',['../d8/d48/classlci_1_1post__comm__x.html#acff8c179998df3f0403b417e0e21bb6c',1,'lci::post_comm_x']]],
   ['direction_5ft_17',['direction_t',['../d8/d33/group__LCI__BASIC.html#ga635a086b50ac87b41d18063940868cb7',1,'lci']]],
-  ['distributed_20array_18',['Distributed Array',['../db/d4e/tutorial.html#autotoc_md74',1,'']]],
-  ['do_5fprogress_19',['do_progress',['../dd/d0b/classlci_1_1sync__wait__x.html#abb8063623552fa193bfda6ab9c2c9cfe',1,'lci::sync_wait_x']]],
-  ['documentation_20',['Documentation',['../index.html#autotoc_md1',1,'']]],
-  ['does_20tt_20lcrun_20tt_20not_20work_21',['Why does &lt;tt&gt;lcrun&lt;/tt&gt; not work?',['../d3/d2d/faq.html#autotoc_md37',1,'']]],
-  ['done_22',['done',['../d8/d33/group__LCI__BASIC.html#gga20db54161a501f6b62b3c9974d2013efa6b2ded51d81a4403d8a4bd25fa1e57ee',1,'lci']]],
-  ['done_5fbacklog_23',['done_backlog',['../d8/d33/group__LCI__BASIC.html#gga20db54161a501f6b62b3c9974d2013efad6bbc987cffbfed266235739ed11961e',1,'lci']]],
-  ['done_5fmax_24',['done_max',['../d8/d33/group__LCI__BASIC.html#gga20db54161a501f6b62b3c9974d2013efa4601e5183c9f91defa77aad8bc36c407',1,'lci']]],
-  ['done_5fmin_25',['done_min',['../d8/d33/group__LCI__BASIC.html#gga20db54161a501f6b62b3c9974d2013efa8938106ad9301bb41cfe7c00aff94f89',1,'lci']]],
-  ['dst_26',['dst',['../df/d73/classlci_1_1graph__add__edge__x.html#a3aba9b4de676a4a1e73dba7329c31c06',1,'lci::graph_add_edge_x']]]
+  ['disp_18',['disp',['../d8/de5/structlci_1_1rbuffer__t.html#a67d0aef9e0650ddcb3e38ada41e0e7ca',1,'lci::rbuffer_t']]],
+  ['distributed_20array_19',['Distributed Array',['../db/d4e/tutorial.html#autotoc_md74',1,'']]],
+  ['do_5fprogress_20',['do_progress',['../dd/d0b/classlci_1_1sync__wait__x.html#abb8063623552fa193bfda6ab9c2c9cfe',1,'lci::sync_wait_x']]],
+  ['documentation_21',['Documentation',['../index.html#autotoc_md1',1,'']]],
+  ['does_20tt_20lcrun_20tt_20not_20work_22',['Why does &lt;tt&gt;lcrun&lt;/tt&gt; not work?',['../d3/d2d/faq.html#autotoc_md37',1,'']]],
+  ['done_23',['done',['../d8/d33/group__LCI__BASIC.html#gga20db54161a501f6b62b3c9974d2013efa6b2ded51d81a4403d8a4bd25fa1e57ee',1,'lci']]],
+  ['done_5fbacklog_24',['done_backlog',['../d8/d33/group__LCI__BASIC.html#gga20db54161a501f6b62b3c9974d2013efad6bbc987cffbfed266235739ed11961e',1,'lci']]],
+  ['done_5fmax_25',['done_max',['../d8/d33/group__LCI__BASIC.html#gga20db54161a501f6b62b3c9974d2013efa4601e5183c9f91defa77aad8bc36c407',1,'lci']]],
+  ['done_5fmin_26',['done_min',['../d8/d33/group__LCI__BASIC.html#gga20db54161a501f6b62b3c9974d2013efa8938106ad9301bb41cfe7c00aff94f89',1,'lci']]],
+  ['dst_27',['dst',['../df/d73/classlci_1_1graph__add__edge__x.html#a3aba9b4de676a4a1e73dba7329c31c06',1,'lci::graph_add_edge_x']]]
 ];

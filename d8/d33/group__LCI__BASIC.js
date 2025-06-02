@@ -19,6 +19,7 @@ var group__LCI__BASIC =
     ] ],
     [ "lci::rmr_t", "da/d8d/structlci_1_1rmr__t.html", [
       [ "rmr_t", "da/d8d/structlci_1_1rmr__t.html#aee15b015b8203d75beca91228cd66aae", null ],
+      [ "is_empty", "da/d8d/structlci_1_1rmr__t.html#a764f5a8a911d38fbdba15d906de430e4", null ],
       [ "base", "da/d8d/structlci_1_1rmr__t.html#a762ed90c7360905fb884b1bb908a3443", null ],
       [ "opaque_rkey", "da/d8d/structlci_1_1rmr__t.html#ab5444d2f59416fec627fa6695490d236", null ]
     ] ],
@@ -32,9 +33,9 @@ var group__LCI__BASIC =
     ] ],
     [ "lci::rbuffer_t", "d8/de5/structlci_1_1rbuffer__t.html", [
       [ "rbuffer_t", "d8/de5/structlci_1_1rbuffer__t.html#aba26044d876ae675ef3ec2025a67be7c", null ],
-      [ "rbuffer_t", "d8/de5/structlci_1_1rbuffer__t.html#a3c8a8c5ed73327731c99451213cfbe0d", null ],
-      [ "rbuffer_t", "d8/de5/structlci_1_1rbuffer__t.html#a66f41b681b8848831ee0d6329789b661", null ],
-      [ "base", "d8/de5/structlci_1_1rbuffer__t.html#a0cdc0317a27e09ff264f22b60adefbf7", null ],
+      [ "rbuffer_t", "d8/de5/structlci_1_1rbuffer__t.html#a801a415d7d006d733fe965efa7828003", null ],
+      [ "rbuffer_t", "d8/de5/structlci_1_1rbuffer__t.html#a346984c0e5a0c8929ede09a0cd8a86b5", null ],
+      [ "disp", "d8/de5/structlci_1_1rbuffer__t.html#a67d0aef9e0650ddcb3e38ada41e0e7ca", null ],
       [ "rmr", "d8/de5/structlci_1_1rbuffer__t.html#aeee33b4c1ae02c3e5edf9147e3be111f", null ]
     ] ],
     [ "lci::allocator_base_t", "d6/db9/structlci_1_1allocator__base__t.html", [
