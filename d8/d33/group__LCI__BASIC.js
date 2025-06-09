@@ -182,5 +182,8 @@ var group__LCI__BASIC =
     [ "lci::COMP_NULL_EXPECT_DONE", "d8/d33/group__LCI__BASIC.html#gaaba5620658f664e6c9543e3b440586d4", null ],
     [ "lci::COMP_NULL_EXPECT_DONE_OR_RETRY", "d8/d33/group__LCI__BASIC.html#gaed080bd0026ce8a7f15a2a9d0a147989", null ],
     [ "lci::GRAPH_START", "d8/d33/group__LCI__BASIC.html#gad252b9870b3459000f93aaed9ba31a75", null ],
+    [ "lci::MR_DEVICE", "d8/d33/group__LCI__BASIC.html#ga2cc416fbc8296eeda00c5fc9f977e317", null ],
+    [ "lci::MR_HOST", "d8/d33/group__LCI__BASIC.html#ga5de6428c07f78eb4256b37955bb1038a", null ],
+    [ "lci::MR_UNKNOWN", "d8/d33/group__LCI__BASIC.html#gaabecf4e5e33664a291f2f6162e93b5d7", null ],
     [ "lci::RMR_NULL", "d8/d33/group__LCI__BASIC.html#ga28520586829c8bc955c60a8512e9c0da", null ]
 ];

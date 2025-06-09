@@ -1,5 +1,8 @@
 var NAVTREEINDEX6 =
 {
+"de/d1b/classlci_1_1endpoint__t.html#aaae92b16c4128cb60bbce590220d34c6":[5,2,26,0,2],
+"de/d1b/classlci_1_1endpoint__t.html#abd482408335d86a900101c1ea143e21b":[5,2,26,0,6],
+"de/d1b/classlci_1_1endpoint__t.html#ad1f0f969b1a96555485ad3c8be7bb4ee":[5,2,26,0,4],
 "de/d1b/classlci_1_1endpoint__t.html#ad6f63ab29fc1f419e2ba0f8be58b1ff8":[5,2,26,0,5],
 "de/d1b/classlci_1_1endpoint__t.html#ae1ba684c9b7f93b74c2febba785c7728":[5,2,26,0,0],
 "de/d1b/group__LCI__G__RUNTIME__INIT.html":[5,1,4],

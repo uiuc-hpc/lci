@@ -91,5 +91,8 @@ var searchData=
   ['max_5frcomp_88',['max_rcomp',['../de/d3b/structlci_1_1runtime__attr__t.html#a1dadb1b7baccaa5bb72ef67a75e89511',1,'lci::runtime_attr_t']]],
   ['max_5fscalar_5fsize_89',['MAX_SCALAR_SIZE',['../da/d7c/structlci_1_1data__t.html#a022ec4e6178188db8e9cc91143316e4d',1,'lci::data_t']]],
   ['max_5ftag_90',['max_tag',['../de/d3b/structlci_1_1runtime__attr__t.html#af3b61abbd4ec21187bd928f8325fd1f2',1,'lci::runtime_attr_t']]],
-  ['mr_91',['mr',['../de/d63/structlci_1_1buffer__t.html#a7fe46b0c0c45d0c9b85124fdd9aeb0f1',1,'lci::buffer_t::mr'],['../da/d7c/structlci_1_1data__t.html#ae229e0cf09be41b4dfab04530059494a',1,'lci::data_t::mr']]]
+  ['mr_91',['mr',['../de/d63/structlci_1_1buffer__t.html#a7fe46b0c0c45d0c9b85124fdd9aeb0f1',1,'lci::buffer_t::mr'],['../da/d7c/structlci_1_1data__t.html#ae229e0cf09be41b4dfab04530059494a',1,'lci::data_t::mr']]],
+  ['mr_5fdevice_92',['MR_DEVICE',['../d8/d33/group__LCI__BASIC.html#ga2cc416fbc8296eeda00c5fc9f977e317',1,'lci']]],
+  ['mr_5fhost_93',['MR_HOST',['../d8/d33/group__LCI__BASIC.html#ga5de6428c07f78eb4256b37955bb1038a',1,'lci']]],
+  ['mr_5funknown_94',['MR_UNKNOWN',['../d8/d33/group__LCI__BASIC.html#gaabecf4e5e33664a291f2f6162e93b5d7',1,'lci']]]
 ];
