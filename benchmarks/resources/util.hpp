@@ -2,7 +2,7 @@ namespace util {
 // TODO: Simplify the thread spawning and pinning
 void pin_thread_to_cpu(size_t cpu_id) {
   // macOS does not support CPU affinity setting
-  #ifndef __APPLE__
+#ifndef __APPLE__
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
   CPU_SET(cpu_id, &cpuset);

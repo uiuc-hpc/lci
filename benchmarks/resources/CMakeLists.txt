@@ -60,4 +60,13 @@ function(add_lci_bench_resources_cuda)
   endforeach()
 endfunction()
 
-add_lci_bench_resources_cuda(bench_cuda_memcpy.cu)
+add_lci_bench_resources_cuda(bench_cuda_memcpy.cu bench_get_buffer_attr.cpp)
+
+target_include_directories(bench_get_buffer_attr
+                           PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_include_directories(test-benchmark-bench_get_buffer_attr
+                           PRIVATE ${PROJECT_SOURCE_DIR}/src)
+get_target_property(LCI_LINKED_LIBS LCI LINK_LIBRARIES)
+target_link_libraries(bench_get_buffer_attr PRIVATE ${LCI_LINKED_LIBS})
+target_link_libraries(test-benchmark-bench_get_buffer_attr
+                      PRIVATE ${LCI_LINKED_LIBS})

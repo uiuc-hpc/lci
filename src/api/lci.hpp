@@ -245,10 +245,21 @@ struct net_status_t {
 
 /**
  * @ingroup LCI_BASIC
- * @brief The type of memory region.
+ * @brief A special mr_t value for host memory.
  */
 const mr_t MR_HOST = mr_t();
+
+/**
+ * @ingroup LCI_BASIC
+ * @brief A special mr_t value for device memory.
+ */
 const mr_t MR_DEVICE = mr_t(reinterpret_cast<void*>(0x1));
+
+/**
+ * @ingroup LCI_BASIC
+ * @brief A special mr_t value for unknown memory. LCI will detect the memory
+ * type automatically.
+ */
 const mr_t MR_UNKNOWN = mr_t(reinterpret_cast<void*>(0x2));
 
 inline bool mr_t::is_empty() const
