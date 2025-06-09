@@ -171,7 +171,7 @@ class Lci(CMakePackage):
                         self.define("LCT_PMI_BACKEND_ENABLE_PMI1", True),
                     ]
                 )
-            elif not self.spec.satisfies("default-pm=auto"):
+            else:
                 args.extend(
                     [
                         self.define(

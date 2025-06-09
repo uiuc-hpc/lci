@@ -96,8 +96,8 @@ inline error_t endpoint_impl_t::post_puts(int rank, void* buffer, size_t size,
     LCI_PCOUNTER_ADD(net_write_writeImm_comp, 1);
   }
   LCI_DBG_Log(LOG_TRACE, "network",
-              "post_puts rank %d buffer %p size %lu base %lu offset %lu rmr "
-              "%lu allow_retry %d force_post %d return %s\n",
+              "post_puts rank %d buffer %p size %lu offset %lu rmr "
+              "%p allow_retry %d force_post %d return %s\n",
               rank, buffer, size, offset, rmr, allow_retry, force_post,
               error.get_str());
   return error;
@@ -124,12 +124,11 @@ inline error_t endpoint_impl_t::post_put(int rank, void* buffer, size_t size,
   } else {
     LCI_PCOUNTER_ADD(net_write_post, 1);
   }
-  LCI_DBG_Log(
-      LOG_TRACE, "network",
-      "post_put rank %d buffer %p size %lu mr %p base %lu offset %lu rmr %lu "
-      "user_context %p allow_retry %d force_post %d return %s\n",
-      rank, buffer, size, mr.get_impl(), offset, rmr, user_context, allow_retry,
-      force_post, error.get_str());
+  LCI_DBG_Log(LOG_TRACE, "network",
+              "post_put rank %d buffer %p size %lu mr %p offset %lu rmr %p "
+              "user_context %p allow_retry %d force_post %d return %s\n",
+              rank, buffer, size, mr.get_impl(), offset, rmr, user_context,
+              allow_retry, force_post, error.get_str());
   return error;
 }
 
@@ -156,8 +155,8 @@ inline error_t endpoint_impl_t::post_putImms(int rank, void* buffer,
     LCI_PCOUNTER_ADD(net_write_writeImm_comp, 1);
   }
   LCI_DBG_Log(LOG_TRACE, "network",
-              "post_putImms rank %d buffer %p size %lu base %lu offset %lu "
-              "rmr %lu imm_data %x allow_retry %d force_post %d return %s\n",
+              "post_putImms rank %d buffer %p size %lu offset %lu "
+              "rmr %p imm_data %x allow_retry %d force_post %d return %s\n",
               rank, buffer, size, offset, rmr, imm_data, allow_retry,
               force_post, error.get_str());
   return error;
@@ -187,8 +186,8 @@ inline error_t endpoint_impl_t::post_putImm(int rank, void* buffer, size_t size,
     LCI_PCOUNTER_ADD(net_writeImm_post, 1);
   }
   LCI_DBG_Log(LOG_TRACE, "network",
-              "post_putImm rank %d buffer %p size %lu mr %p base %lu offset "
-              "%lu rmr %lu imm_data %x user_context %p allow_retry %d "
+              "post_putImm rank %d buffer %p size %lu mr %p offset "
+              "%lu rmr %p imm_data %x user_context %p allow_retry %d "
               "force_post %d return %s\n",
               rank, buffer, size, mr.get_impl(), offset, rmr, imm_data,
               user_context, allow_retry, force_post, error.get_str());
@@ -216,12 +215,11 @@ inline error_t endpoint_impl_t::post_get(int rank, void* buffer, size_t size,
   } else {
     LCI_PCOUNTER_ADD(net_read_post, 1);
   }
-  LCI_DBG_Log(
-      LOG_TRACE, "network",
-      "post_get rank %d buffer %p size %lu mr %p base %lu offset %lu rmr %lu "
-      "user_context %p allow_retry %d force_post %d return %s\n",
-      rank, buffer, size, mr.get_impl(), offset, rmr, user_context, allow_retry,
-      force_post, error.get_str());
+  LCI_DBG_Log(LOG_TRACE, "network",
+              "post_get rank %d buffer %p size %lu mr %p offset %lu rmr %p "
+              "user_context %p allow_retry %d force_post %d return %s\n",
+              rank, buffer, size, mr.get_impl(), offset, rmr, user_context,
+              allow_retry, force_post, error.get_str());
   return error;
 }
 

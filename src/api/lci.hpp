@@ -245,6 +245,19 @@ struct net_status_t {
 
 /**
  * @ingroup LCI_BASIC
+ * @brief The type of memory region.
+ */
+const mr_t MR_HOST = mr_t();
+const mr_t MR_DEVICE = mr_t(reinterpret_cast<void*>(0x1));
+const mr_t MR_UNKNOWN = mr_t(reinterpret_cast<void*>(0x2));
+
+inline bool mr_t::is_empty() const
+{
+  return reinterpret_cast<uintptr_t>(p_impl) < 3;
+}
+
+/**
+ * @ingroup LCI_BASIC
  * @brief The type of remote memory region.
  * @details The internal structure of the remote memory region should be
  * considered opaque to users.

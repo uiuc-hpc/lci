@@ -80,8 +80,8 @@ buffer_attr_t get_buffer_attr(const void* ptr)
   CUresult result =
       cuPointerGetAttributes(3, attributes, attrdata, (CUdeviceptr)ptr);
   LCI_Log(LOG_TRACE, "cuda",
-          "get_buffer_attr(&p) -> mem_type: %d, mem_ctx: %p, is_managed: %u\n",
-          mem_type, mem_ctx, is_managed);
+          "get_buffer_attr(%p) -> mem_type: %d, mem_ctx: %p, is_managed: %u\n",
+          ptr, mem_type, mem_ctx, is_managed);
   LCI_Assert(!is_managed, "Managed memory is not supported for now");
   if (CUDA_SUCCESS != result) {
     if (CUDA_ERROR_NOT_INITIALIZED == result ||

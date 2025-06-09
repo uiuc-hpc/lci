@@ -62,6 +62,7 @@ operation_free(resource_device),
 resource(
     "mr", 
     [],
+    custom_is_empty_method=True,
     doc = {
         "in_group": "LCI_MEMORY",
         "brief": "The memory region resource.",

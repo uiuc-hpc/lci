@@ -73,7 +73,7 @@ def attr_to_arg(attr):
         "comment": "argument for the corresponding attribute"
     }
 
-def resource(name, attrs, children=[], doc={}):
+def resource(name, attrs, children=[], doc={}, custom_is_empty_method=False):
     return {
         "category": "resource",
         "name": name,
@@ -81,6 +81,7 @@ def resource(name, attrs, children=[], doc={}):
             attr("void*", "user_context", comment="User context for the resource.", default_value="nullptr", extra_trait=["not_global"])
             ],
         "children": children,
+        "custom_is_empty_method": custom_is_empty_method,
         "doc": doc
     }
 

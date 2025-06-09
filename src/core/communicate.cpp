@@ -71,6 +71,29 @@ status_t post_comm_x::call_impl(
     rhandler = matching_engine.get_impl()->get_rhandler(matching_policy);
   }
 
+  // handle MR_UNKNOWN and MR_DEVICE
+#ifdef LCI_USE_CUDA
+  if (mr == MR_UNKNOWN) {
+    // if the mr is unknown, we need to determine the location of the buffer
+    LCI_Assert(is_single_buffer,
+               "The MR_UNKNOWN should only be used with a single buffer\n");
+    accelerator::buffer_attr_t attr =
+        accelerator::get_buffer_attr(local_buffer);
+    if (attr.type == accelerator::buffer_type_t::HOST) {
+      // the buffer is in the host memory
+      mr = MR_HOST;
+    } else if (attr.type == accelerator::buffer_type_t::DEVICE) {
+      // the buffer is in the device memory
+      mr = MR_DEVICE;
+    } else {
+      LCI_Assert(false, "Unknown buffer type %d\n", attr.type);
+    }
+  }
+  if (mr == MR_DEVICE) {
+    force_zcopy = true;  // force to use the zero-copy protocol
+  }
+#endif
+
   // setup protocol (part 1): whether to use the zero-copy protocol
   protocol_t protocol = protocol_t::bcopy;
   if (!is_single_buffer || force_zcopy || size > max_bcopy_size) {

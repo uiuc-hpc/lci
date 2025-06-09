@@ -92,8 +92,8 @@ inline error_t net_post_puts_x::call_impl(int rank, void* buffer, size_t size,
 {
   auto ret = endpoint.p_impl->post_puts(rank, buffer, size, offset, rmr);
   LCI_DBG_Log(LOG_TRACE, "network",
-              "post_puts rank %d buffer %p size %lu base %lu offset %lu rmr "
-              "%lu return %s\n",
+              "post_puts rank %d buffer %p size %lu offset %lu rmr "
+              "%p return %s\n",
               rank, buffer, size, offset, rmr, ret.get_str());
   return ret;
 }
@@ -107,8 +107,8 @@ inline error_t net_post_put_x::call_impl(int rank, void* buffer, size_t size,
   auto ret = endpoint.p_impl->post_put(rank, buffer, size, mr, offset, rmr,
                                        user_context);
   LCI_DBG_Log(LOG_TRACE, "network",
-              "post_put rank %d buffer %p size %lu mr %p base %lu offset %lu "
-              "rmr %lu user_context %p return %s\n",
+              "post_put rank %d buffer %p size %lu mr %p offset %lu "
+              "rmr %p user_context %p return %s\n",
               rank, buffer, size, mr.get_impl(), offset, rmr, user_context,
               ret.get_str());
   return ret;
@@ -123,8 +123,8 @@ inline error_t net_post_putImms_x::call_impl(int rank, void* buffer,
   auto ret =
       endpoint.p_impl->post_putImms(rank, buffer, size, offset, rmr, imm_data);
   LCI_DBG_Log(LOG_TRACE, "network",
-              "post_putImms rank %d buffer %p size %lu base %lu offset %lu "
-              "rmr %lu imm_data %x return %s\n",
+              "post_putImms rank %d buffer %p size %lu offset %lu "
+              "rmr %p imm_data %x return %s\n",
               rank, buffer, size, offset, rmr, imm_data, ret.get_str());
   return ret;
 }
@@ -139,8 +139,8 @@ inline error_t net_post_putImm_x::call_impl(int rank, void* buffer, size_t size,
   auto ret = endpoint.p_impl->post_putImm(rank, buffer, size, mr, offset, rmr,
                                           imm_data, user_context);
   LCI_DBG_Log(LOG_TRACE, "network",
-              "post_putImm rank %d buffer %p size %lu mr %p base %lu offset "
-              "%lu rmr %lu imm_data %x user_context %p return %s\n",
+              "post_putImm rank %d buffer %p size %lu mr %p offset "
+              "%lu rmr %p imm_data %x user_context %p return %s\n",
               rank, buffer, size, mr.get_impl(), offset, rmr, imm_data,
               user_context, ret.get_str());
   return ret;
@@ -155,8 +155,8 @@ inline error_t net_post_get_x::call_impl(int rank, void* buffer, size_t size,
   auto ret = endpoint.p_impl->post_get(rank, buffer, size, mr, offset, rmr,
                                        user_context);
   LCI_DBG_Log(LOG_TRACE, "network",
-              "post_get rank %d buffer %p size %lu mr %p base %lu offset %lu "
-              "rmr %lu user_context %p return %s\n",
+              "post_get rank %d buffer %p size %lu mr %p offset %lu "
+              "rmr %p user_context %p return %s\n",
               rank, buffer, size, mr.get_impl(), offset, rmr, user_context,
               ret.get_str());
   return ret;
