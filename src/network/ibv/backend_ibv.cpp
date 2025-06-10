@@ -491,6 +491,10 @@ mr_t ibv_device_impl_t::register_memory_impl(void* buffer, size_t size)
                  IBV_ACCESS_REMOTE_WRITE;
     }
     mr->ibv_mr = ibv_reg_mr(ib_pd, buffer, size, mr_flags);
+    LCI_Assert(mr->ibv_mr,
+               "register_memory_impl(%p, %lu): Failed to register memory.  "
+               "Errno: %d (%s)",
+               (void*)buffer, size, errno, strerror(errno));
     if (net_context_attr.ibv_prefetch_strategy !=
         attr_ibv_prefetch_strategy_t::none) {
       struct ibv_sge list;

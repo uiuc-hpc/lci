@@ -1,3 +1,6 @@
+// Copyright (c) 2025 The LCI Project Authors
+// SPDX-License-Identifier: MIT
+
 #include <getopt.h>
 #include <thread>
 #include <chrono>

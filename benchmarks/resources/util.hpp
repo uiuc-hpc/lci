@@ -1,3 +1,14 @@
+// Copyright (c) 2025 The LCI Project Authors
+// SPDX-License-Identifier: MIT
+
+#ifndef LCI_BENCHMARKS_UTIL_HPP
+#define LCI_BENCHMARKS_UTIL_HPP
+
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+#include <pthread.h>
+
 namespace util {
 // TODO: Simplify the thread spawning and pinning
 void pin_thread_to_cpu(size_t cpu_id) {
@@ -14,3 +25,5 @@ void pin_thread_to_cpu(size_t cpu_id) {
 #endif
 }
 } // namespace util
+
+#endif // LCI_BENCHMARKS_UTIL_HPP

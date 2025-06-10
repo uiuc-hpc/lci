@@ -328,7 +328,16 @@ if(NOT LCI_WITH_LCT_ONLY)
           "Comma (or semicolon) separated list of CUDA architectures to build for (e.g. 60,70,80,90)"
           FORCE)
 
-    target_link_libraries(LCI PRIVATE CUDA::cuda_driver)
+    # Handle the case where CUDA::cuda_driver is a stub
+    # https://github.com/spack/spack/issues/42825
+    get_target_property(CUDA_DRIVER_LIB CUDA::cuda_driver LOCATION)
+    if(CUDA_DRIVER_LIB MATCHES "/stubs/")
+      message(STATUS "CUDA::cuda_driver appears to be a stub")
+      target_link_libraries(LCI PUBLIC CUDA::cuda_driver)
+    else()
+      target_link_libraries(LCI PRIVATE CUDA::cuda_driver)
+    endif()
+
     set_target_cuda_standard(LCI STANDARD ${LCI_CUDA_STANDARD})
     set_target_cuda_architectures(LCI ARCHITECTURES ${LCI_CUDA_ARCH})
     set_target_cuda_warnings_and_errors(LCI WARN_AS_ERROR

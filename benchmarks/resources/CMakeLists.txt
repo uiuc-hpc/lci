@@ -1,8 +1,10 @@
+# Copyright (c) 2025 The LCI Project Authors
+# SPDX-License-Identifier: MIT
+
 function(add_lci_bench_resources)
   foreach(name ${ARGN})
     string(REGEX REPLACE "\\.[^.]*$" "" name_without_ext ${name})
     add_lci_executable(${name_without_ext} ${name})
-    target_link_libraries(${name_without_ext} PRIVATE LCT Threads::Threads)
     target_include_directories(
       ${name_without_ext}
       PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../src>)
@@ -28,8 +30,7 @@ function(add_lci_bench_resources_cuda)
   foreach(name ${ARGN})
     string(REGEX REPLACE "\\.[^.]*$" "" name_without_ext ${name})
     add_lci_executable(${name_without_ext} ${name})
-    target_link_libraries(${name_without_ext} PRIVATE LCT Threads::Threads
-                                                      CUDA::cudart)
+    target_link_libraries(${name_without_ext} PRIVATE CUDA::cudart)
     target_include_directories(
       ${name_without_ext}
       PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../src>)
@@ -70,3 +71,14 @@ get_target_property(LCI_LINKED_LIBS LCI LINK_LIBRARIES)
 target_link_libraries(bench_get_buffer_attr PRIVATE ${LCI_LINKED_LIBS})
 target_link_libraries(test-benchmark-bench_get_buffer_attr
                       PRIVATE ${LCI_LINKED_LIBS})
+
+# Apparently, the Threads::Threads library is not always linked correctly for
+# .cu files
+get_target_property(PTHREAD_LINK Threads::Threads INTERFACE_LINK_LIBRARIES)
+if(PTHREAD_LINK MATCHES ".*NOTFOUND.*" OR PTHREAD_LINK STREQUAL "")
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message(STATUS "Manually linking bench_cuda_memcpy with -lpthread")
+    target_link_options(bench_cuda_memcpy PRIVATE -lpthread)
+    target_link_options(test-benchmark-bench_cuda_memcpy PRIVATE -lpthread)
+  endif()
+endif()

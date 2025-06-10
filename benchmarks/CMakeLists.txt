@@ -1,3 +1,6 @@
+# Copyright (c) 2025 The LCI Project Authors
+# SPDX-License-Identifier: MIT
+
 function(add_lci_benchmarks)
   foreach(name ${ARGN})
     string(REGEX REPLACE "\\.[^.]*$" "" name_without_ext ${name})
