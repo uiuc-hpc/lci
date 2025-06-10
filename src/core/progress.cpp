@@ -184,7 +184,7 @@ void progress_read(const net_status_t& net_status)
 }
 
 // for logging purposes
-const uint64_t PROGRESS_LOG_INTERVAL = 1;  // 1s
+[[maybe_unused]] const uint64_t PROGRESS_LOG_INTERVAL = 1;  // 1s
 LCT_time_t last_update_time = 0;
 __thread uint64_t tls_progress_counter = 0;
 

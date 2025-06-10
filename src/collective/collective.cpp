@@ -116,7 +116,7 @@ void broadcast_x::call_impl(void* buffer, size_t size, int root,
   int seqnum = g_sequence_number.fetch_add(1, std::memory_order_relaxed) %
                MAX_SEQUENCE_NUMBER;
 
-  int round = 0;
+  [[maybe_unused]] int round = 0;
   int rank = get_rank_me();
   int nranks = get_rank_n();
 
