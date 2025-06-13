@@ -12,10 +12,10 @@
 
 LCT_queue_t LCT_queue_alloc(LCT_queue_type_t type, size_t length)
 {
-#ifdef __APPLE__
+#if !(defined(__x86_64__) || defined(_M_X64))
   if (type == LCT_QUEUE_LCRQ || type == LCT_QUEUE_LPRQ) {
     LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "queue",
-            "LCRQueue and LPRQueue are not supported on Apple platforms; "
+            "LCRQueue and LPRQueue are not supported on non-x86 platforms; "
             "switching to FAAArrayQueue");
     type = LCT_QUEUE_ARRAY_ATOMIC_FAA;
   }

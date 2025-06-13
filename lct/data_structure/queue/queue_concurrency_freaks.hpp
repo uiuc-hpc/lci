@@ -2,7 +2,7 @@
 #define LCI_QUEUE_CONCURRENCY_FREAKS_HPP
 
 #include "third_party/ConcurrencyFreaks/MichaelScottQueue.hpp"
-#ifndef __APPLE__
+#if defined(__x86_64__) || defined(_M_X64)
 #include "third_party/ConcurrencyFreaks/LCRQueue.hpp"
 #include "third_party/lprq/LPRQueue.hpp"
 #endif
