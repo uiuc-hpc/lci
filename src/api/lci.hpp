@@ -581,16 +581,33 @@ struct status_t {
  * @ingroup LCI_BASIC
  * @brief Special completion object setting `allow_posted` to false.
  */
+const comp_t COMP_NULL = comp_t(reinterpret_cast<comp_impl_t*>(0x0));
+
+/**
+ * @ingroup LCI_BASIC
+ * @brief Deprecated. Same as COMP_NULL.
+ */
 const comp_t COMP_NULL_EXPECT_DONE =
-    comp_t(reinterpret_cast<comp_impl_t*>(0x1));
+    comp_t(reinterpret_cast<comp_impl_t*>(0x0));
 
 /**
  * @ingroup LCI_BASIC
  * @brief Special completion object setting `allow_posted` and `allow_retry` to
  * false.
  */
+const comp_t COMP_NULL_RETRY = comp_t(reinterpret_cast<comp_impl_t*>(0x1));
+
+/**
+ * @ingroup LCI_BASIC
+ * @brief Deprecated. Same as COMP_NULL_RETRY.
+ */
 const comp_t COMP_NULL_EXPECT_DONE_OR_RETRY =
-    comp_t(reinterpret_cast<comp_impl_t*>(0x2));
+    comp_t(reinterpret_cast<comp_impl_t*>(0x1));
+
+inline bool comp_t::is_empty() const
+{
+  return reinterpret_cast<uintptr_t>(p_impl) <= 1;
+}
 
 /**
  * @ingroup LCI_BASIC
