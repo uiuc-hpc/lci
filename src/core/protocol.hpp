@@ -50,7 +50,7 @@ struct alignas(LCI_CACHE_LINE) internal_context_t {
         rdv_type(rdv_type_t::single),
         rank(-1),
         tag(0),
-        comp(comp_t()),
+        comp(COMP_NULL),
         user_context(nullptr)
   {
   }

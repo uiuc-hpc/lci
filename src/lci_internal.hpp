@@ -48,6 +48,7 @@
 #include "packet_pool/packet_pool.hpp"
 #include "runtime/runtime.hpp"
 #include "core/rendezvous.hpp"
+#include "collective/collective.hpp"
 #ifdef LCI_USE_CUDA
 #include "accelerator/accelerator.hpp"
 #endif

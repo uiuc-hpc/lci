@@ -54,10 +54,10 @@ status_t post_comm_x::call_impl(
       !(direction == direction_t::IN && !local_buffer_only && !local_comp_only),
       "get with signal has not been implemented yet\n");
 
-  if (local_comp == COMP_NULL_EXPECT_DONE) {
+  if (local_comp == COMP_NULL) {
     allow_retry = false;
     allow_posted = false;
-  } else if (local_comp == COMP_NULL_EXPECT_DONE_OR_RETRY) {
+  } else if (local_comp == COMP_NULL_RETRY) {
     allow_posted = false;
   }
 
@@ -240,10 +240,10 @@ status_t post_comm_x::call_impl(
       comp_semantic == comp_semantic_t::network ||
       direction == direction_t::IN) {
     // process COMP_BLOCK
-    if (local_comp == COMP_NULL_EXPECT_DONE) {
+    if (local_comp == COMP_NULL) {
       local_comp = alloc_sync();
       free_local_comp = true;
-    } else if (local_comp == COMP_NULL_EXPECT_DONE_OR_RETRY) {
+    } else if (local_comp == COMP_NULL_RETRY) {
       local_comp = alloc_sync();
       free_local_comp = true;
     }
