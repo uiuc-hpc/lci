@@ -16,13 +16,22 @@ TEST(COMM_COLL, broadcast)
   int rank = lci::get_rank_me();
   int nranks = lci::get_rank_n();
 
-  for (int root = 0; root < nranks; ++root) {
-    uint64_t data = 0;
-    if (rank == root) {
-      data = 0xdeadbeef;
+  lci::coll_algorithm_t algorithms[] = {
+      lci::coll_algorithm_t::direct,
+      lci::coll_algorithm_t::tree,
+      lci::coll_algorithm_t::ring,
+  };
+  for (auto algorithm : algorithms) {
+    fprintf(stderr, "Testing broadcast with algorithm %s\n",
+            lci::get_coll_algorithm_str(algorithm));
+    for (int root = 0; root < nranks; ++root) {
+      uint64_t data = 0;
+      if (rank == root) {
+        data = 0xdeadbeef;
+      }
+      lci::broadcast_x(&data, sizeof(data), root).algorithm(algorithm)();
+      ASSERT_EQ(data, 0xdeadbeef);
     }
-    lci::broadcast(&data, sizeof(data), root);
-    ASSERT_EQ(data, 0xdeadbeef);
   }
   lci::g_runtime_fina();
 }

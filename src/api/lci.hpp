@@ -224,6 +224,24 @@ const char* get_net_opcode_str(net_opcode_t opcode);
 
 /**
  * @ingroup LCI_BASIC
+ * @brief The type of collective algorithm.
+ */
+enum class coll_algorithm_t {
+  none,   /**< automatically select the best algorithm */
+  direct, /**< direct algorithm */
+  tree,   /**< binomial tree algorithm */
+  ring,   /**< ring algorithm */
+};
+
+/**
+ * @brief Get the string representation of a collective algorithm.
+ * @param opcode The collective algorithm.
+ * @return The string representation of the collective algorithm.
+ */
+const char* get_coll_algorithm_str(coll_algorithm_t algorithm);
+
+/**
+ * @ingroup LCI_BASIC
  * @brief The type of network-layer immediate data field.
  * @details The immediate data field is used to carry small data in the network
  */
@@ -657,6 +675,14 @@ const graph_node_t GRAPH_END = reinterpret_cast<graph_node_t>(0x2);
  * @details The function should return true if the node is considered completed.
  */
 using graph_node_run_cb_t = status_t (*)(void* value);
+
+/**
+ * @ingroup LCI_BASIC
+ * @brief A dummy callback function for a graph node.
+ * @details This function can be used as a placeholder for a graph node that
+ * does not perform any operation.
+ */
+const graph_node_run_cb_t GRAPH_NODE_DUMMY_CB = nullptr;
 
 /**
  * @ingroup LCI_BASIC
