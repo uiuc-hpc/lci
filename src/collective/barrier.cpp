@@ -62,16 +62,15 @@ void barrier_x::call_impl(runtime_t runtime, device_t device,
     old_node = dummy_node;
   }
   graph_start(graph);
-  if (!comp.is_empty()) {
-    // nonblocking
-    return;
+  if (comp.is_empty()) {
+    // blocking wait
+    status_t status;
+    do {
+      progress_x().runtime(runtime).device(device).endpoint(endpoint)();
+      status = graph_test(graph);
+    } while (status.is_retry());
   }
-  // blocking wait
-  status_t status;
-  do {
-    progress_x().runtime(runtime).device(device).endpoint(endpoint)();
-    status = graph_test(graph);
-  } while (status.is_retry());
+  LCI_DBG_Log(LOG_TRACE, "collective", "leave barrier %d\n", seqnum);
 }
 
 }  // namespace lci

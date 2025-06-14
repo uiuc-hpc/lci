@@ -47,6 +47,15 @@ class graph_t : public comp_impl_t
     void* value;
     graph_node_free_cb_t free_cb;
     std::vector<std::pair<graph_node_t, graph_edge_run_cb_t>> out_edges;
+    node_impl_t()
+        : signals_received(0),
+          signals_expected(0),
+          graph(nullptr),
+          fn(nullptr),
+          value(nullptr),
+          free_cb(nullptr)
+    {
+    }
     node_impl_t(graph_t* graph_, graph_node_run_cb_t fn_, void* value_,
                 graph_node_free_cb_t free_cb_)
         : signals_received(0),
@@ -67,7 +76,8 @@ class graph_t : public comp_impl_t
 
   comp_t m_comp;
   // the graph structure
-  std::vector<graph_node_t> m_start_nodes;
+  node_impl_t m_start_node;
+  // std::vector<graph_node_t> m_start_nodes;
   std::vector<graph_node_t> nodes;
   int m_end_signals_expected;
   void* m_end_value;
@@ -82,6 +92,8 @@ inline void graph_t::trigger_node(graph_node_t node_)
   status_t status;
   if (node->fn) {
     status = node->fn(node->value);
+  } else {
+    status.set_done();
   }
   LCI_DBG_Log(LOG_TRACE, "graph", "graph %p trigger node %p, status %s\n",
               node->graph, node_, status.error.get_str());
@@ -174,11 +186,12 @@ inline void graph_t::add_edge(graph_node_t src_, graph_node_t dst_,
   LCI_Assert(dst_ != GRAPH_START,
              "The destination node should not be the start node");
   LCI_Assert(src_ != GRAPH_END, "The source node should not be the end node");
+  node_impl_t* src;
   if (src_ == GRAPH_START) {
-    m_start_nodes.push_back(dst_);
-    return;
+    src = &m_start_node;
+  } else {
+    src = reinterpret_cast<node_impl_t*>(src_);
   }
-  auto src = reinterpret_cast<node_impl_t*>(src_);
   auto dst = reinterpret_cast<node_impl_t*>(dst_);
   src->out_edges.push_back({dst_, fn});
   if (dst_ == GRAPH_END) {
@@ -192,13 +205,10 @@ inline void graph_t::start()
 {
   LCI_DBG_Log(LOG_TRACE, "graph", "graph %p start\n", this);
   m_end_signals_received = 0;
-  for (auto node_ : m_start_nodes) {
-    auto node = reinterpret_cast<node_impl_t*>(node_);
-    LCI_Assert(node->signals_expected == 0,
-               "Start node should not have any incoming edges (signals: %d)",
-               node->signals_expected);
-    trigger_node(node_);
-  }
+  status_t status;
+  status.set_done();
+  status.user_context = attr.user_context;
+  mark_complete(reinterpret_cast<graph_node_t>(&m_start_node), status);
 }
 
 inline void graph_t::signal(status_t status)

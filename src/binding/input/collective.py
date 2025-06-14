@@ -31,6 +31,9 @@ operation(
         optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
         optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("matching_engine_t", "matching_engine", "runtime.get_impl()->default_coll_matching_engine", comment="The matching engine to use."),
+        optional_arg("comp_t", "comp", "COMP_NULL", comment="The completion to signal when the operation completes."),
+        optional_arg("coll_algorithm_t", "algorithm", "coll_algorithm_t::none", comment="The collective algorithm to use."),
+        optional_arg("int", "ring_nsteps", "get_rank_n()", comment="The number of steps in the ring algorithm."),
     ],
     doc = {
         "in_group": "LCI_COLL",
