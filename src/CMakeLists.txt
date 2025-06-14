@@ -23,7 +23,12 @@ target_sources_relative(
   runtime/runtime.cpp
   core/communicate.cpp
   core/progress.cpp
-  collective/collective.cpp)
+  collective/collective.cpp
+  collective/alltoall.cpp
+  collective/barrier.cpp
+  collective/broadcast.cpp
+  collective/gather.cpp
+  collective/reduce.cpp)
 
 if(LCI_BACKEND_ENABLE_OFI)
   target_sources_relative(LCI PRIVATE network/ofi/backend_ofi.cpp)

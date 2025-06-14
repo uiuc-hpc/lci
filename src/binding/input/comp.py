@@ -16,6 +16,7 @@ resource_comp := resource(
         attr_enum("cq_type", enum_options=["array_atomic", "lcrq"], default_value="lcrq", comment="The completion object type."),
         attr("int", "cq_default_length", default_value=65536, comment="The default length of the completion queue."),
     ],
+    custom_is_empty_method=True,
     doc = {
         "in_group": "LCI_COMPLETION",
         "brief": "The completion object resource.",
@@ -160,7 +161,7 @@ operation(
 operation(
     "alloc_graph", 
     [
-        optional_arg("comp_t", "comp", "comp_t()", comment="Another completion object to signal when the graph is completed. The graph will be automatically destroyed afterwards."),
+        optional_arg("comp_t", "comp", "COMP_NULL", comment="Another completion object to signal when the graph is completed. The graph will be automatically destroyed afterwards."),
         optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context associated with this completion object."),
         optional_runtime_args,
         return_val("comp_t", "comp", comment="The allocated completion handler."),
@@ -234,7 +235,7 @@ operation(
         "brief": "Test a graph.",
         "details": "Successful test will reset the graph to the state that is ready to be started again.",
     }
-)
+),
 ]
 
 def get_input():
