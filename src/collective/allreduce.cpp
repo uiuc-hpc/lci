@@ -30,13 +30,21 @@ void build_graph_direct(comp_t graph, post_send_x send_op, post_recv_x recv_op,
   int rank = get_rank_me();
   int nranks = get_rank_n();
 
+  size_t tmp_buffer_size = (recvbuf != sendbuf)
+                               ? count * item_size * (nranks - 1)
+                               : count * item_size * nranks;
+  void* tmp_buffer = malloc(tmp_buffer_size);
+  void* p = tmp_buffer;
   if (recvbuf != sendbuf) {
     // copy the send buffer to the receive buffer
     memcpy(recvbuf, sendbuf, count * item_size);
+  } else {
+    // we need a temporary buffer to hold the send data
+    memcpy(p, sendbuf, count * item_size);
+    send_op.local_buffer(p);
+    p = static_cast<char*>(p) + count * item_size;
   }
 
-  void* tmp_buffer = malloc(count * item_size * nranks - 1);
-  void* p = tmp_buffer;
   graph_node_t prev_reduce_node = nullptr;
   graph_node_t free_node =
       graph_add_node_x(graph, [](void* tmp_buffer) -> status_t {
@@ -47,7 +55,7 @@ void build_graph_direct(comp_t graph, post_send_x send_op, post_recv_x recv_op,
     int target = (i + rank) % nranks;
     graph_node_t send_node = graph_add_node_op(graph, send_op.rank(target));
     graph_add_edge(graph, GRAPH_START, send_node);
-    graph_add_edge(graph, send_node, GRAPH_END);
+    graph_add_edge(graph, send_node, free_node);
     graph_node_t recv_node =
         graph_add_node_op(graph, recv_op.rank(target).local_buffer(p));
     graph_node_t reduce_node =
@@ -55,13 +63,13 @@ void build_graph_direct(comp_t graph, post_send_x send_op, post_recv_x recv_op,
             .value(new reduce_wrapper_args_t{p, recvbuf, count, op})();
     graph_add_edge(graph, GRAPH_START, recv_node);
     graph_add_edge(graph, recv_node, reduce_node);
-    graph_add_edge(graph, reduce_node, free_node);
     if (prev_reduce_node) {
       graph_add_edge(graph, prev_reduce_node, reduce_node);
     }
     prev_reduce_node = reduce_node;
     p = static_cast<char*>(p) + count * item_size;
   }
+  graph_add_edge(graph, prev_reduce_node, free_node);
   graph_add_edge(graph, free_node, GRAPH_END);
 }
 }  // namespace
