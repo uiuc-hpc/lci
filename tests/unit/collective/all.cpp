@@ -16,10 +16,10 @@ TEST(COMM_COLL, broadcast)
   int rank = lci::get_rank_me();
   int nranks = lci::get_rank_n();
 
-  lci::coll_algorithm_t algorithms[] = {
-      lci::coll_algorithm_t::direct,
-      lci::coll_algorithm_t::tree,
-      lci::coll_algorithm_t::ring,
+  lci::broadcast_algorithm_t algorithms[] = {
+      lci::broadcast_algorithm_t::direct,
+      lci::broadcast_algorithm_t::tree,
+      lci::broadcast_algorithm_t::ring,
   };
   for (auto algorithm : algorithms) {
     fprintf(stderr, "Testing broadcast with algorithm %s\n",
@@ -65,25 +65,6 @@ void reduce_op(const void* left, const void* right, void* dst, size_t n)
   }
 }
 
-TEST(COMM_COLL, reduce_in_place)
-{
-  lci::g_runtime_init();
-
-  int rank = lci::get_rank_me();
-  int nranks = lci::get_rank_n();
-
-  for (int root = 0; root < nranks; ++root) {
-    uint64_t data = rank;
-    lci::reduce(&data, &data, 1, sizeof(data), reduce_op, root);
-    if (rank == root) {
-      ASSERT_EQ(data, (nranks - 1) * nranks / 2);
-    } else {
-      ASSERT_EQ(data, rank);
-    }
-  }
-  lci::g_runtime_fina();
-}
-
 TEST(COMM_COLL, reduce)
 {
   lci::g_runtime_init();
@@ -94,9 +75,45 @@ TEST(COMM_COLL, reduce)
   for (int root = 0; root < nranks; ++root) {
     uint64_t data = rank;
     uint64_t result = -1;
+    // Check non-in-place reduction
     lci::reduce(&data, &result, 1, sizeof(data), reduce_op, root);
-    if (rank == root) ASSERT_EQ(result, (nranks - 1) * nranks / 2);
-    ASSERT_EQ(data, rank);
+    if (rank == root) {
+      ASSERT_EQ(result, (nranks - 1) * nranks / 2);
+    } else {
+      ASSERT_EQ(data, rank);
+    }
+    // Check in-place reduction
+    lci::reduce(&data, &data, 1, sizeof(data), reduce_op, root);
+    if (rank == root) {
+      ASSERT_EQ(data, (nranks - 1) * nranks / 2);
+    } else {
+      ASSERT_EQ(data, rank);
+    }
+  }
+  lci::g_runtime_fina();
+}
+
+TEST(COMM_COLL, allreduce)
+{
+  lci::g_runtime_init();
+
+  int rank = lci::get_rank_me();
+  int nranks = lci::get_rank_n();
+
+  lci::allreduce_algorithm_t algorithms[] = {
+      lci::allreduce_algorithm_t::direct,
+  };
+  for (auto algorithm : algorithms) {
+    uint64_t data = rank;
+    uint64_t result = -1;
+    // Check non-in-place reduction
+    lci::allreduce_x(&data, &result, 1, sizeof(data), reduce_op)
+        .algorithm(algorithm)();
+    ASSERT_EQ(result, (nranks - 1) * nranks / 2);
+    // Check in-place reduction
+    lci::allreduce_x(&data, &data, 1, sizeof(data), reduce_op)
+        .algorithm(algorithm)();
+    ASSERT_EQ(data, (nranks - 1) * nranks / 2);
   }
   lci::g_runtime_fina();
 }
