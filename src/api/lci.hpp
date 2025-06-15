@@ -234,14 +234,21 @@ enum class broadcast_algorithm_t {
 };
 
 /**
- * @ingroup LCI_BASIC
- * @brief The type of broadcast algorithm.
+ * @brief Get the string representation of a collective algorithm.
+ * @param opcode The collective algorithm.
+ * @return The string representation of the collective algorithm.
  */
-enum class allreduce_algorithm_t {
-  none,             /**< automatically select the best algorithm */
-  direct,           /**< direct algorithm */
-  reduce_broadcast, /**< reduce followed by broadcast */
-  ring,             /**< ring algorithm */
+const char* get_broadcast_algorithm_str(broadcast_algorithm_t algorithm);
+
+/**
+ * @ingroup LCI_BASIC
+ * @brief The type of reduce scatter algorithm.
+ */
+enum class reduce_scatter_algorithm_t {
+  none,   /**< automatically select the best algorithm */
+  direct, /**< direct algorithm */
+  tree,   /**< reduce followed by broadcast */
+  ring,   /**< ring algorithm */
 };
 
 /**
@@ -249,7 +256,25 @@ enum class allreduce_algorithm_t {
  * @param opcode The collective algorithm.
  * @return The string representation of the collective algorithm.
  */
-const char* get_coll_algorithm_str(broadcast_algorithm_t algorithm);
+const char* get_reduce_scatter_algorithm_str(broadcast_algorithm_t algorithm);
+
+/**
+ * @ingroup LCI_BASIC
+ * @brief The type of allreduce algorithm.
+ */
+enum class allreduce_algorithm_t {
+  none,   /**< automatically select the best algorithm */
+  direct, /**< direct algorithm */
+  tree,   /**< reduce followed by broadcast */
+  ring,   /**< ring algorithm */
+};
+
+/**
+ * @brief Get the string representation of a collective algorithm.
+ * @param opcode The collective algorithm.
+ * @return The string representation of the collective algorithm.
+ */
+const char* get_allreduce_algorithm_str(broadcast_algorithm_t algorithm);
 
 /**
  * @ingroup LCI_BASIC

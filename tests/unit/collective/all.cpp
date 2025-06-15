@@ -23,7 +23,7 @@ TEST(COMM_COLL, broadcast)
   };
   for (auto algorithm : algorithms) {
     fprintf(stderr, "Testing broadcast with algorithm %s\n",
-            lci::get_coll_algorithm_str(algorithm));
+            lci::get_broadcast_algorithm_str(algorithm));
     for (int root = 0; root < nranks; ++root) {
       uint64_t data = 0;
       if (rank == root) {
@@ -89,6 +89,34 @@ TEST(COMM_COLL, reduce)
     } else {
       ASSERT_EQ(data, rank);
     }
+  }
+  lci::g_runtime_fina();
+}
+
+TEST(COMM_COLL, reduce_scatter)
+{
+  lci::g_runtime_init();
+
+  int rank = lci::get_rank_me();
+  int nranks = lci::get_rank_n();
+
+  lci::reduce_scatter_algorithm_t algorithms[] = {
+      lci::reduce_scatter_algorithm_t::direct,
+  };
+  for (auto algorithm : algorithms) {
+    std::vector<uint64_t> data(nranks, rank);
+    for (int i = 0; i < nranks; ++i) {
+      data[i] += i;
+    }
+    uint64_t result = -1;
+    // Check non-in-place reduction
+    lci::reduce_scatter_x(&data[0], &result, 1, sizeof(uint64_t), reduce_op)
+        .algorithm(algorithm)();
+    ASSERT_EQ(result, (nranks - 1) * nranks / 2 + rank * nranks);
+    // Check in-place reduction
+    lci::reduce_scatter_x(&data[0], &data[rank], 1, sizeof(uint64_t), reduce_op)
+        .algorithm(algorithm)();
+    ASSERT_EQ(data[rank], (nranks - 1) * nranks / 2 + rank * nranks);
   }
   lci::g_runtime_fina();
 }
