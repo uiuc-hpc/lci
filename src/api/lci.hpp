@@ -224,6 +224,60 @@ const char* get_net_opcode_str(net_opcode_t opcode);
 
 /**
  * @ingroup LCI_BASIC
+ * @brief The type of broadcast algorithm.
+ */
+enum class broadcast_algorithm_t {
+  none,   /**< automatically select the best algorithm */
+  direct, /**< direct algorithm */
+  tree,   /**< binomial tree algorithm */
+  ring,   /**< ring algorithm */
+};
+
+/**
+ * @brief Get the string representation of a collective algorithm.
+ * @param opcode The collective algorithm.
+ * @return The string representation of the collective algorithm.
+ */
+const char* get_broadcast_algorithm_str(broadcast_algorithm_t algorithm);
+
+/**
+ * @ingroup LCI_BASIC
+ * @brief The type of reduce scatter algorithm.
+ */
+enum class reduce_scatter_algorithm_t {
+  none,   /**< automatically select the best algorithm */
+  direct, /**< direct algorithm */
+  tree,   /**< reduce followed by broadcast */
+  ring,   /**< ring algorithm */
+};
+
+/**
+ * @brief Get the string representation of a collective algorithm.
+ * @param opcode The collective algorithm.
+ * @return The string representation of the collective algorithm.
+ */
+const char* get_reduce_scatter_algorithm_str(broadcast_algorithm_t algorithm);
+
+/**
+ * @ingroup LCI_BASIC
+ * @brief The type of allreduce algorithm.
+ */
+enum class allreduce_algorithm_t {
+  none,   /**< automatically select the best algorithm */
+  direct, /**< direct algorithm */
+  tree,   /**< reduce followed by broadcast */
+  ring,   /**< ring algorithm */
+};
+
+/**
+ * @brief Get the string representation of a collective algorithm.
+ * @param opcode The collective algorithm.
+ * @return The string representation of the collective algorithm.
+ */
+const char* get_allreduce_algorithm_str(broadcast_algorithm_t algorithm);
+
+/**
+ * @ingroup LCI_BASIC
  * @brief The type of network-layer immediate data field.
  * @details The immediate data field is used to carry small data in the network
  */
@@ -581,16 +635,33 @@ struct status_t {
  * @ingroup LCI_BASIC
  * @brief Special completion object setting `allow_posted` to false.
  */
+const comp_t COMP_NULL = comp_t(reinterpret_cast<comp_impl_t*>(0x0));
+
+/**
+ * @ingroup LCI_BASIC
+ * @brief Deprecated. Same as COMP_NULL.
+ */
 const comp_t COMP_NULL_EXPECT_DONE =
-    comp_t(reinterpret_cast<comp_impl_t*>(0x1));
+    comp_t(reinterpret_cast<comp_impl_t*>(0x0));
 
 /**
  * @ingroup LCI_BASIC
  * @brief Special completion object setting `allow_posted` and `allow_retry` to
  * false.
  */
+const comp_t COMP_NULL_RETRY = comp_t(reinterpret_cast<comp_impl_t*>(0x1));
+
+/**
+ * @ingroup LCI_BASIC
+ * @brief Deprecated. Same as COMP_NULL_RETRY.
+ */
 const comp_t COMP_NULL_EXPECT_DONE_OR_RETRY =
-    comp_t(reinterpret_cast<comp_impl_t*>(0x2));
+    comp_t(reinterpret_cast<comp_impl_t*>(0x1));
+
+inline bool comp_t::is_empty() const
+{
+  return reinterpret_cast<uintptr_t>(p_impl) <= 1;
+}
 
 /**
  * @ingroup LCI_BASIC
@@ -640,6 +711,14 @@ const graph_node_t GRAPH_END = reinterpret_cast<graph_node_t>(0x2);
  * @details The function should return true if the node is considered completed.
  */
 using graph_node_run_cb_t = status_t (*)(void* value);
+
+/**
+ * @ingroup LCI_BASIC
+ * @brief A dummy callback function for a graph node.
+ * @details This function can be used as a placeholder for a graph node that
+ * does not perform any operation.
+ */
+const graph_node_run_cb_t GRAPH_NODE_DUMMY_CB = nullptr;
 
 /**
  * @ingroup LCI_BASIC
