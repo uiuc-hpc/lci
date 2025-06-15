@@ -205,10 +205,8 @@ inline void graph_t::start()
 {
   LCI_DBG_Log(LOG_TRACE, "graph", "graph %p start\n", this);
   m_end_signals_received = 0;
-  status_t status;
-  status.set_done();
-  status.user_context = attr.user_context;
-  mark_complete(reinterpret_cast<graph_node_t>(&m_start_node), status);
+  mark_complete(reinterpret_cast<graph_node_t>(&m_start_node),
+                status_t(errorcode_t::done));
 }
 
 inline void graph_t::signal(status_t status)

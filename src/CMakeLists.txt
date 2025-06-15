@@ -28,6 +28,7 @@ target_sources_relative(
   collective/barrier.cpp
   collective/broadcast.cpp
   collective/gather.cpp
+  collective/allreduce.cpp
   collective/reduce.cpp)
 
 if(LCI_BACKEND_ENABLE_OFI)

@@ -159,10 +159,10 @@ void broadcast_x::call_impl(void* buffer, size_t size, int root,
                             runtime_t runtime, device_t device,
                             endpoint_t endpoint,
                             matching_engine_t matching_engine, comp_t comp,
-                            coll_algorithm_t algorithm, int ring_nsteps) const
+                            broadcast_algorithm_t algorithm,
+                            int ring_nsteps) const
 {
   int seqnum = get_sequence_number();
-  [[maybe_unused]] int round = 0;
   int nranks = get_rank_n();
 
   LCI_DBG_Log(LOG_TRACE, "collective",
@@ -189,26 +189,26 @@ void broadcast_x::call_impl(void* buffer, size_t size, int root,
                      .matching_engine(matching_engine)
                      .allow_retry(false);
 
-  if (algorithm == coll_algorithm_t::none) {
+  if (algorithm == broadcast_algorithm_t::none) {
     // auto select the best algorithm
     if (size <= 65536 /* FIXME: magic number */) {
       if (nranks <= 8) {
-        algorithm = coll_algorithm_t::direct;
+        algorithm = broadcast_algorithm_t::direct;
       } else {
-        algorithm = coll_algorithm_t::tree;
+        algorithm = broadcast_algorithm_t::tree;
       }
     } else {
-      algorithm = coll_algorithm_t::ring;
+      algorithm = broadcast_algorithm_t::ring;
     }
   }
 
-  if (algorithm == coll_algorithm_t::direct) {
+  if (algorithm == broadcast_algorithm_t::direct) {
     // direct algorithm
     build_graph_direct(graph, send_op, recv_op, root);
-  } else if (algorithm == coll_algorithm_t::tree) {
+  } else if (algorithm == broadcast_algorithm_t::tree) {
     // binomial tree algorithm
     build_graph_tree(graph, send_op, recv_op, root);
-  } else if (algorithm == coll_algorithm_t::ring) {
+  } else if (algorithm == broadcast_algorithm_t::ring) {
     build_graph_ring(graph, send_op, recv_op, root, buffer, size, ring_nsteps);
   } else {
     LCI_Assert(false, "Unsupported broadcast algorithm %d",
