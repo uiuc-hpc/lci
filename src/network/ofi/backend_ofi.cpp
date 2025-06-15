@@ -195,6 +195,7 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
   LCI_Log(LOG_INFO, "ofi", "addrlen = %lu\n", addrlen);
   LCI_Assert(addrlen <= 8 * EP_ADDR_LEN, "addrlen = %lu\n", addrlen);
   uint64_t my_addr[EP_ADDR_LEN];
+  memset(my_addr, 0, sizeof(my_addr));
   FI_SAFECALL(fi_getname((fid_t)ofi_ep, my_addr, &addrlen));
 
   int rank = get_rank_me();
@@ -213,7 +214,7 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
     int uid;
     uint64_t addr[EP_ADDR_LEN];
   };
-  bootstrap_data_t data;
+  bootstrap_data_t data = {};
   data.source_rank = rank;
   data.uid = attr.uid;
   memcpy(data.addr, my_addr, sizeof(my_addr));
