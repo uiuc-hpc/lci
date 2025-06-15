@@ -25,7 +25,20 @@ const char* get_net_opcode_str(net_opcode_t opcode)
   return opcode_str[static_cast<int>(opcode)];
 }
 
-const char* get_coll_algorithm_str(broadcast_algorithm_t algorithm)
+const char* get_broadcast_algorithm_str(broadcast_algorithm_t algorithm)
+{
+  static const char algorithm_str[][8] = {"none", "direct", "tree", "ring"};
+  return algorithm_str[static_cast<int>(algorithm)];
+}
+
+const char* get_reduce_scatter_algorithm_str(
+    reduce_scatter_algorithm_t algorithm)
+{
+  static const char algorithm_str[][8] = {"none", "direct", "tree", "ring"};
+  return algorithm_str[static_cast<int>(algorithm)];
+}
+
+const char* get_allreduce_algorithm_str(allreduce_algorithm_t algorithm)
 {
   static const char algorithm_str[][8] = {"none", "direct", "tree", "ring"};
   return algorithm_str[static_cast<int>(algorithm)];
