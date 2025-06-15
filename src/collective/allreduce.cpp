@@ -127,6 +127,7 @@ void allreduce_x::call_impl(const void* sendbuf, void* recvbuf, size_t count,
       progress_x().runtime(runtime).device(device).endpoint(endpoint)();
       status = graph_test(graph);
     } while (status.is_retry());
+    free_comp(&graph);
   }
 
   LCI_DBG_Log(
