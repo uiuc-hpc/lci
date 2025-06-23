@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['type_5ft_0',['type_t',['../da/d7c/structlci_1_1data__t.html#a4c753ae41067f7bc5f14ecd6a76682b5',1,'lci::data_t']]]
+  ['net_5fopcode_5ft_0',['net_opcode_t',['../d8/d33/group__LCI__BASIC.html#ga5738a9cd7c46e12f45e2fbf0fca0b895',1,'lci']]]
 ];

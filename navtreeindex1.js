@@ -1,5 +1,11 @@
 var NAVTREEINDEX1 =
 {
+"d2/ddb/classlci_1_1post__am__x.html#a372f4a43383d28c4727b13c046c04ccd":[5,5,1,0,19],
+"d2/ddb/classlci_1_1post__am__x.html#a3e094ea0225a1b1297b2d416f837d403":[5,5,1,0,24],
+"d2/ddb/classlci_1_1post__am__x.html#a46bcb5e0dbe32aa1c7cbb6b92e92f822":[5,5,1,0,18],
+"d2/ddb/classlci_1_1post__am__x.html#a4abb0e897cdfd15f1fd879cc2ab1e169":[5,5,1,0,36],
+"d2/ddb/classlci_1_1post__am__x.html#a4c83ce67927a5be8e3ab827e601c0c64":[5,5,1,0,20],
+"d2/ddb/classlci_1_1post__am__x.html#a546a186f3f96c78d591dff57f7466aa0":[5,5,1,0,34],
 "d2/ddb/classlci_1_1post__am__x.html#a575aad430f9c859ce94a92c1da5b27e8":[5,5,1,0,29],
 "d2/ddb/classlci_1_1post__am__x.html#a5da50f90b7c26b2c07a425bd65aa7081":[5,5,1,0,25],
 "d2/ddb/classlci_1_1post__am__x.html#a6795ef889135b11c73c5994039dd31d5":[5,5,1,0,16],
@@ -27,6 +33,7 @@ var NAVTREEINDEX1 =
 "d2/de7/group__LCI__FREE__NET__CONTEXT.html":[5,2,1],
 "d3/d01/group__LCI__POST__PUT.html":[5,5,4],
 "d3/d0a/group__LCI__ALLOC__RUNTIME.html":[5,1,2],
+"d3/d0c/group__LCI__REDUCE__SCATTER.html":[5,7,3],
 "d3/d2d/faq.html":[3],
 "d3/d2f/classlci_1_1reserve__rcomps__x.html":[5,6,2,0],
 "d3/d2f/classlci_1_1reserve__rcomps__x.html#a2329e68ecc85f86b96ba00aa8d6e5a27":[5,6,2,0,2],
@@ -82,6 +89,7 @@ var NAVTREEINDEX1 =
 "d3/ddc/classlci_1_1free__matching__engine__x.html#ad16ea9cbd5b3ef92621aff51935b404f":[5,2,13,0,1],
 "d3/ddc/classlci_1_1free__matching__engine__x.html#add2948fd34a2752a6fe328b8a03ffdb0":[5,2,13,0,5],
 "d3/ddc/classlci_1_1free__matching__engine__x.html#af2b47658b6314142442530cc3498c1d2":[5,2,13,0,4],
+"d3/df3/group__LCI__ALLREDUCE.html":[5,7,4],
 "d4/d0a/group__LCI__NET__POST__RECV.html":[5,4,1],
 "d4/d0b/group__LCI__MATCHING__ENGINE__INSERT.html":[5,2,14],
 "d4/d22/group__LCI__REGISTER__MEMORY.html":[5,3,0],
@@ -241,13 +249,5 @@ var NAVTREEINDEX1 =
 "d6/de4/classlci_1_1post__send__x.html#ab2a7e998bf8b15eb68ad86a0ef9a1e5c":[5,5,2,0,27],
 "d6/de4/classlci_1_1post__send__x.html#ac5cfcf711333aabe0a8a7ef7e22579bb":[5,5,2,0,34],
 "d6/de4/classlci_1_1post__send__x.html#ac60a1ca22737bf2c3edfe66b8084ac6f":[5,5,2,0,4],
-"d6/de4/classlci_1_1post__send__x.html#ac787ac7cd8c9ce0a02f2e4e69715c708":[5,5,2,0,21],
-"d6/de4/classlci_1_1post__send__x.html#ac8971b8e65a93350aaee529612687cdb":[5,5,2,0,14],
-"d6/de4/classlci_1_1post__send__x.html#ad8753dbfc57e1aab5866d4ab6a33a861":[5,5,2,0,25],
-"d6/de4/classlci_1_1post__send__x.html#adcea58b5efd8a01ebfd327fbcd32ce9c":[5,5,2,0,24],
-"d6/de4/classlci_1_1post__send__x.html#ae5f0976df041cfa577b66ae050798f66":[5,5,2,0,6],
-"d6/de4/classlci_1_1post__send__x.html#af151218ec4a44e6b623a192494ac2061":[5,5,2,0,17],
-"d6/de4/classlci_1_1post__send__x.html#af83844d6f633050ce6fa86b54059d9ab":[5,5,2,0,8],
-"d6/de4/classlci_1_1post__send__x.html#afa5bd78263a9dc0ac5bd79063faaf2da":[5,5,2,0,38],
-"d7/d0f/classlci_1_1alloc__handler__x.html":[5,6,10,0]
+"d6/de4/classlci_1_1post__send__x.html#ac787ac7cd8c9ce0a02f2e4e69715c708":[5,5,2,0,21]
 };

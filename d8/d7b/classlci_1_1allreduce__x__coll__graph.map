@@ -1,0 +1,31 @@
+<map id="lci::allreduce_x" name="lci::allreduce_x">
+<area shape="rect" id="Node000001" title="The actual implementation for allreduce." alt="" coords="1068,205,1188,230"/>
+<area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="732,5,860,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="874,28,916,34,961,46,1005,62,1046,86,1075,114,1098,146,1125,203,1120,206,1093,149,1071,117,1042,90,1003,67,959,51,915,40,874,33"/>
+<area shape="rect" id="Node000003" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="461,13,569,38"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="583,23,732,23,732,28,583,28"/>
+<area shape="rect" id="Node000004" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="732,69,860,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="874,98,958,117,1003,132,1045,150,1085,176,1116,202,1112,206,1082,180,1043,154,1001,136,957,122,873,103"/>
+<area shape="rect" id="Node000005" href="$d6/d66/classlci_1_1device__t.html" title="The actual implementation for RESOURCE device." alt="" coords="465,77,565,102"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="579,87,732,87,732,92,579,92"/>
+<area shape="rect" id="Node000006" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="732,133,860,173"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="874,163,1045,195,1077,202,1075,207,1043,200,873,168"/>
+<area shape="rect" id="Node000007" href="$de/d1b/classlci_1_1endpoint__t.html" title="The actual implementation for RESOURCE endpoint." alt="" coords="458,141,573,166"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="586,151,732,151,732,156,586,156"/>
+<area shape="rect" id="Node000008" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="711,197,881,237"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="894,215,1068,215,1068,220,894,220"/>
+<area shape="rect" id="Node000009" href="$d8/d3f/classlci_1_1matching__engine__t.html" title="The actual implementation for RESOURCE matching_engine." alt="" coords="431,205,600,230"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="614,215,711,215,711,220,614,220"/>
+<area shape="rect" id="Node000010" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="732,261,860,301"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="873,266,1043,235,1075,227,1077,233,1045,240,874,272"/>
+<area shape="rect" id="Node000011" href="$d1/da7/classlci_1_1comp__t.html" title="The actual implementation for RESOURCE comp." alt="" coords="469,269,562,294"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="576,279,732,279,732,284,576,284"/>
+<area shape="rect" id="Node000012" href="$d9/d97/classlci_1_1comp__impl__t.html" title="Completion object implementation base type." alt="" coords="204,269,333,294"/>
+<area shape="poly" id="edge11_Node000011_Node000012" title=" " alt="" coords="347,279,469,279,469,284,347,284"/>
+<area shape="rect" id="Node000013" href="$dc/da6/structlci_1_1comp__attr__t.html" title=" " alt="" coords="5,269,128,294"/>
+<area shape="poly" id="edge12_Node000012_Node000013" title=" " alt="" coords="142,279,204,279,204,284,142,284"/>
+<area shape="rect" id="Node000014" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="709,325,883,365"/>
+<area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="896,328,969,310,1043,282,1082,255,1113,228,1116,232,1086,260,1045,286,971,315,897,334"/>
+<area shape="rect" id="Node000015" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="723,390,869,415"/>
+<area shape="poly" id="edge14_Node000001_Node000015" title=" " alt="" coords="882,398,922,392,964,383,1005,368,1042,347,1071,320,1094,287,1120,229,1125,231,1098,290,1075,323,1046,351,1007,373,965,388,923,398,883,403"/>
+</map>

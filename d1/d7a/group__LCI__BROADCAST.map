@@ -1,4 +1,4 @@
 <map id="broadcast" name="broadcast">
-<area shape="rect" id="Node000001" title="A blocking broadcast operation." alt="" coords="248,5,335,31"/>
+<area shape="rect" id="Node000001" title="A broadcast operation." alt="" coords="248,5,335,31"/>
 <area shape="rect" id="Node000002" href="$d2/d01/group__LCI__COLL.html" title="This section describes the LCI API for collective communication." alt="" coords="5,5,200,31"/>
 </map>

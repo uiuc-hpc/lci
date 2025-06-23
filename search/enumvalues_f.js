@@ -13,5 +13,6 @@ var searchData=
   ['retry_5fmax_10',['retry_max',['../d8/d33/group__LCI__BASIC.html#gga20db54161a501f6b62b3c9974d2013efa98c510a2b1a5e97a1c340dfc36333a94',1,'lci']]],
   ['retry_5fmin_11',['retry_min',['../d8/d33/group__LCI__BASIC.html#gga20db54161a501f6b62b3c9974d2013efa746ae327784570fb68d3861d20f81517',1,'lci']]],
   ['retry_5fnomem_12',['retry_nomem',['../d8/d33/group__LCI__BASIC.html#gga20db54161a501f6b62b3c9974d2013efad8358947b15fcb88ae9daf7956203eee',1,'lci']]],
-  ['retry_5fnopacket_13',['retry_nopacket',['../d8/d33/group__LCI__BASIC.html#gga20db54161a501f6b62b3c9974d2013efa3f31d7be583ec56e159fbb4cfbbd3b42',1,'lci']]]
+  ['retry_5fnopacket_13',['retry_nopacket',['../d8/d33/group__LCI__BASIC.html#gga20db54161a501f6b62b3c9974d2013efa3f31d7be583ec56e159fbb4cfbbd3b42',1,'lci']]],
+  ['ring_14',['ring',['../d8/d33/group__LCI__BASIC.html#gga17f1a9c385af13ae641d4a87e113161ba1a5df958e0f29d35594c7cf057fe4bd1',1,'lci::ring'],['../d8/d33/group__LCI__BASIC.html#ggaa8f43a876e4e48c4d541773c00e5933aa1a5df958e0f29d35594c7cf057fe4bd1',1,'lci::ring'],['../d8/d33/group__LCI__BASIC.html#gga945dde8f47999886ee0f8489452665b9a1a5df958e0f29d35594c7cf057fe4bd1',1,'lci::ring']]]
 ];

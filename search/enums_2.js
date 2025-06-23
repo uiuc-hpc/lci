@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['direction_5ft_0',['direction_t',['../d8/d33/group__LCI__BASIC.html#ga635a086b50ac87b41d18063940868cb7',1,'lci']]]
+  ['comp_5fsemantic_5ft_0',['comp_semantic_t',['../d8/d33/group__LCI__BASIC.html#gafb4a38b937767ee6f9104d94a1d777c2',1,'lci']]]
 ];

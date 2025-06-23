@@ -131,6 +131,18 @@ var group__LCI__BASIC =
     [ "lci::rcomp_t", "d8/d33/group__LCI__BASIC.html#gacd46beb25126ebb7bf83b33e6381d6d2", null ],
     [ "lci::reduce_op_t", "d8/d33/group__LCI__BASIC.html#ga6b10a47c2df0ad78519c8da4580c355f", null ],
     [ "lci::tag_t", "d8/d33/group__LCI__BASIC.html#gaed3bf62f9de2087c7e7b0bcbe89ef151", null ],
+    [ "lci::allreduce_algorithm_t", "d8/d33/group__LCI__BASIC.html#ga945dde8f47999886ee0f8489452665b9", [
+      [ "lci::allreduce_algorithm_t::none", "d8/d33/group__LCI__BASIC.html#gga945dde8f47999886ee0f8489452665b9a334c4a4c42fdb79d7ebc3e73b517e6f8", null ],
+      [ "lci::allreduce_algorithm_t::direct", "d8/d33/group__LCI__BASIC.html#gga945dde8f47999886ee0f8489452665b9a7caa701b2bd5a182b80c72b9bdf88e2d", null ],
+      [ "lci::allreduce_algorithm_t::tree", "d8/d33/group__LCI__BASIC.html#gga945dde8f47999886ee0f8489452665b9ac0af77cf8294ff93a5cdb2963ca9f038", null ],
+      [ "lci::allreduce_algorithm_t::ring", "d8/d33/group__LCI__BASIC.html#gga945dde8f47999886ee0f8489452665b9a1a5df958e0f29d35594c7cf057fe4bd1", null ]
+    ] ],
+    [ "lci::broadcast_algorithm_t", "d8/d33/group__LCI__BASIC.html#ga17f1a9c385af13ae641d4a87e113161b", [
+      [ "lci::broadcast_algorithm_t::none", "d8/d33/group__LCI__BASIC.html#gga17f1a9c385af13ae641d4a87e113161ba334c4a4c42fdb79d7ebc3e73b517e6f8", null ],
+      [ "lci::broadcast_algorithm_t::direct", "d8/d33/group__LCI__BASIC.html#gga17f1a9c385af13ae641d4a87e113161ba7caa701b2bd5a182b80c72b9bdf88e2d", null ],
+      [ "lci::broadcast_algorithm_t::tree", "d8/d33/group__LCI__BASIC.html#gga17f1a9c385af13ae641d4a87e113161bac0af77cf8294ff93a5cdb2963ca9f038", null ],
+      [ "lci::broadcast_algorithm_t::ring", "d8/d33/group__LCI__BASIC.html#gga17f1a9c385af13ae641d4a87e113161ba1a5df958e0f29d35594c7cf057fe4bd1", null ]
+    ] ],
     [ "lci::comp_semantic_t", "d8/d33/group__LCI__BASIC.html#gafb4a38b937767ee6f9104d94a1d777c2", [
       [ "lci::comp_semantic_t::buffer", "d8/d33/group__LCI__BASIC.html#ggafb4a38b937767ee6f9104d94a1d777c2a7f2db423a49b305459147332fb01cf87", null ],
       [ "lci::comp_semantic_t::network", "d8/d33/group__LCI__BASIC.html#ggafb4a38b937767ee6f9104d94a1d777c2a91e02cd2b8621d0c05197f645668c5c4", null ]
@@ -176,11 +188,20 @@ var group__LCI__BASIC =
       [ "lci::net_opcode_t::REMOTE_WRITE", "d8/d33/group__LCI__BASIC.html#gga5738a9cd7c46e12f45e2fbf0fca0b895aa302129bc85020632a3c6ef4b3a8f9fb", null ],
       [ "lci::net_opcode_t::READ", "d8/d33/group__LCI__BASIC.html#gga5738a9cd7c46e12f45e2fbf0fca0b895a3466fab4975481651940ed328aa990e4", null ]
     ] ],
+    [ "lci::reduce_scatter_algorithm_t", "d8/d33/group__LCI__BASIC.html#gaa8f43a876e4e48c4d541773c00e5933a", [
+      [ "lci::reduce_scatter_algorithm_t::none", "d8/d33/group__LCI__BASIC.html#ggaa8f43a876e4e48c4d541773c00e5933aa334c4a4c42fdb79d7ebc3e73b517e6f8", null ],
+      [ "lci::reduce_scatter_algorithm_t::direct", "d8/d33/group__LCI__BASIC.html#ggaa8f43a876e4e48c4d541773c00e5933aa7caa701b2bd5a182b80c72b9bdf88e2d", null ],
+      [ "lci::reduce_scatter_algorithm_t::tree", "d8/d33/group__LCI__BASIC.html#ggaa8f43a876e4e48c4d541773c00e5933aac0af77cf8294ff93a5cdb2963ca9f038", null ],
+      [ "lci::reduce_scatter_algorithm_t::ring", "d8/d33/group__LCI__BASIC.html#ggaa8f43a876e4e48c4d541773c00e5933aa1a5df958e0f29d35594c7cf057fe4bd1", null ]
+    ] ],
     [ "lci::graph_add_node_op", "d8/d33/group__LCI__BASIC.html#ga04913a1823ea2481cf7ba1284c7abc64", null ],
     [ "lci::ANY_SOURCE", "d8/d33/group__LCI__BASIC.html#ga2eb725e3815aaad107fd100582e07853", null ],
     [ "lci::ANY_TAG", "d8/d33/group__LCI__BASIC.html#ga8926aae474cb13ad959bd7481a5cf41b", null ],
+    [ "lci::COMP_NULL", "d8/d33/group__LCI__BASIC.html#gadacc63597d846dd225a8c8e0b9e395f8", null ],
     [ "lci::COMP_NULL_EXPECT_DONE", "d8/d33/group__LCI__BASIC.html#gaaba5620658f664e6c9543e3b440586d4", null ],
     [ "lci::COMP_NULL_EXPECT_DONE_OR_RETRY", "d8/d33/group__LCI__BASIC.html#gaed080bd0026ce8a7f15a2a9d0a147989", null ],
+    [ "lci::COMP_NULL_RETRY", "d8/d33/group__LCI__BASIC.html#gafe52227fda9cf2b4026a3fd7925c2016", null ],
+    [ "lci::GRAPH_NODE_DUMMY_CB", "d8/d33/group__LCI__BASIC.html#ga8e09fc64f331940be127abe963b6c7ca", null ],
     [ "lci::GRAPH_START", "d8/d33/group__LCI__BASIC.html#gad252b9870b3459000f93aaed9ba31a75", null ],
     [ "lci::MR_DEVICE", "d8/d33/group__LCI__BASIC.html#ga2cc416fbc8296eeda00c5fc9f977e317", null ],
     [ "lci::MR_HOST", "d8/d33/group__LCI__BASIC.html#ga5de6428c07f78eb4256b37955bb1038a", null ],

@@ -1,0 +1,31 @@
+<map id="lci::reduce_scatter_x" name="lci::reduce_scatter_x">
+<area shape="rect" id="Node000001" title="The actual implementation for reduce_scatter." alt="" coords="1065,205,1221,230"/>
+<area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="731,5,859,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="873,30,958,50,1002,66,1043,88,1075,116,1103,147,1138,203,1133,206,1098,151,1072,119,1040,93,1000,71,956,55,872,36"/>
+<area shape="rect" id="Node000003" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="461,13,569,38"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="583,23,730,23,730,28,583,28"/>
+<area shape="rect" id="Node000004" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="731,69,859,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="873,100,956,121,1042,151,1089,176,1127,202,1124,207,1087,181,1040,156,954,126,872,105"/>
+<area shape="rect" id="Node000005" href="$d6/d66/classlci_1_1device__t.html" title="The actual implementation for RESOURCE device." alt="" coords="465,77,565,102"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="579,87,730,87,730,92,579,92"/>
+<area shape="rect" id="Node000006" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="731,133,859,173"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="873,164,1042,195,1079,202,1078,207,1041,200,872,169"/>
+<area shape="rect" id="Node000007" href="$de/d1b/classlci_1_1endpoint__t.html" title="The actual implementation for RESOURCE endpoint." alt="" coords="458,141,573,166"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="587,151,730,151,730,156,587,156"/>
+<area shape="rect" id="Node000008" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="710,197,879,237"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="893,215,1065,215,1065,220,893,220"/>
+<area shape="rect" id="Node000009" href="$d8/d3f/classlci_1_1matching__engine__t.html" title="The actual implementation for RESOURCE matching_engine." alt="" coords="431,205,600,230"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="614,215,710,215,710,220,614,220"/>
+<area shape="rect" id="Node000010" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="731,261,859,301"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="872,265,1041,235,1078,227,1079,233,1042,240,873,271"/>
+<area shape="rect" id="Node000011" href="$d1/da7/classlci_1_1comp__t.html" title="The actual implementation for RESOURCE comp." alt="" coords="469,269,562,294"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="576,279,730,279,730,284,576,284"/>
+<area shape="rect" id="Node000012" href="$d9/d97/classlci_1_1comp__impl__t.html" title="Completion object implementation base type." alt="" coords="204,269,333,294"/>
+<area shape="poly" id="edge11_Node000011_Node000012" title=" " alt="" coords="347,279,469,279,469,284,347,284"/>
+<area shape="rect" id="Node000013" href="$dc/da6/structlci_1_1comp__attr__t.html" title=" " alt="" coords="5,269,128,294"/>
+<area shape="poly" id="edge12_Node000012_Node000013" title=" " alt="" coords="142,279,204,279,204,284,142,284"/>
+<area shape="rect" id="Node000014" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="709,325,880,365"/>
+<area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="893,326,966,307,1040,280,1087,254,1124,228,1127,232,1090,259,1042,285,968,312,894,331"/>
+<area shape="rect" id="Node000015" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="722,390,867,415"/>
+<area shape="poly" id="edge14_Node000001_Node000015" title=" " alt="" coords="881,395,961,379,1002,364,1040,344,1072,318,1099,286,1133,229,1138,232,1103,289,1076,321,1043,349,1004,369,963,384,882,400"/>
+</map>

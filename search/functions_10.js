@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['sendbuf_0',['sendbuf',['../d9/ddd/classlci_1_1reduce__x.html#aa7695750263bdcab348971ed16df5dca',1,'lci::reduce_x::sendbuf()'],['../db/dbf/classlci_1_1allgather__x.html#afa188f0649f0bd6a051bbf169e37a6fa',1,'lci::allgather_x::sendbuf()'],['../dc/de4/classlci_1_1alltoall__x.html#ab6c9dc7450bfed6178e69c9b73af7a0a',1,'lci::alltoall_x::sendbuf()']]],
+  ['sendbuf_0',['sendbuf',['../d9/ddd/classlci_1_1reduce__x.html#aa7695750263bdcab348971ed16df5dca',1,'lci::reduce_x::sendbuf()'],['../da/ded/classlci_1_1reduce__scatter__x.html#a39b0ae3434fce9e36de55ff431fe6b56',1,'lci::reduce_scatter_x::sendbuf()'],['../dc/d4c/classlci_1_1allreduce__x.html#a318bceb6a271281169ce5884479d20de',1,'lci::allreduce_x::sendbuf()'],['../db/dbf/classlci_1_1allgather__x.html#afa188f0649f0bd6a051bbf169e37a6fa',1,'lci::allgather_x::sendbuf()'],['../dc/de4/classlci_1_1alltoall__x.html#ab6c9dc7450bfed6178e69c9b73af7a0a',1,'lci::alltoall_x::sendbuf()']]],
   ['set_5fallocator_1',['set_allocator',['../d5/dd3/namespacelci.html#a7fa38bf846ea01e9080dae7eb36a6472',1,'lci']]],
   ['set_5fallocator_5fx_2',['set_allocator_x',['../dc/d7e/classlci_1_1set__allocator__x.html#a6af9a6b875a8bd0996e506eb912464b1',1,'lci::set_allocator_x']]],
   ['set_5fdone_3',['set_done',['../d9/d1e/structlci_1_1status__t.html#a436d046d37d767d3299258ae34da9759',1,'lci::status_t']]],

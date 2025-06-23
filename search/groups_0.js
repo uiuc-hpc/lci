@@ -11,6 +11,7 @@ var searchData=
   ['alloc_5fpacket_5fpool_8',['alloc_packet_pool',['../dc/d67/group__LCI__ALLOC__PACKET__POOL.html',1,'']]],
   ['alloc_5fruntime_9',['alloc_runtime',['../d3/d0a/group__LCI__ALLOC__RUNTIME.html',1,'']]],
   ['alloc_5fsync_10',['alloc_sync',['../d4/dbb/group__LCI__ALLOC__SYNC.html',1,'']]],
-  ['alltoall_11',['alltoall',['../d8/d98/group__LCI__ALLTOALL.html',1,'']]],
-  ['and_20teardown_12',['Setup and Teardown',['../d6/dad/group__LCI__SETUP.html',1,'']]]
+  ['allreduce_11',['allreduce',['../d3/df3/group__LCI__ALLREDUCE.html',1,'']]],
+  ['alltoall_12',['alltoall',['../d8/d98/group__LCI__ALLTOALL.html',1,'']]],
+  ['and_20teardown_13',['Setup and Teardown',['../d6/dad/group__LCI__SETUP.html',1,'']]]
 ];
