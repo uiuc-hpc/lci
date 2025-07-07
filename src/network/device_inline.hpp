@@ -72,8 +72,8 @@ inline mr_t device_impl_t::register_memory(void* address, size_t size)
 
 inline void device_impl_t::deregister_memory(mr_impl_t* mr)
 {
-  deregister_memory_impl(mr);
   LCI_DBG_Log(LOG_TRACE, "network", "deregister_memory mr %p\n", mr);
+  deregister_memory_impl(mr);
 }
 
 inline bool device_impl_t::post_recv_packets()
