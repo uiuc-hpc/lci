@@ -2,9 +2,9 @@ var searchData=
 [
   ['faq_2emd_0',['faq.md',['../d7/d39/faq_8md.html',1,'']]],
   ['fatal_1',['fatal',['../d8/d33/group__LCI__BASIC.html#gga20db54161a501f6b62b3c9974d2013efadf6402fd9ecc60f5a2159fdf45711cd4',1,'lci']]],
-  ['file_20backend_2',['More about the file backend',['../db/d4e/tutorial.html#autotoc_md84',1,'']]],
+  ['file_20backend_2',['More about the file backend',['../db/d4e/tutorial.html#autotoc_md85',1,'']]],
   ['fixed_20issues_3',['Fixed Issues',['../d1/d70/Changelog_1_7_3.html#autotoc_md10',1,'Fixed Issues'],['../dd/d2d/Changelog_1_7_4.html#autotoc_md15',1,'Fixed Issues'],['../d9/dd9/Changelog_1_7_5.html#autotoc_md20',1,'Fixed Issues'],['../df/d94/Changelog_1_7_6.html#autotoc_md25',1,'Fixed Issues'],['../d7/d83/Changelog_1_7_7.html#autotoc_md30',1,'Fixed Issues']]],
-  ['flexible_20functions_20off_4',['Objectified Flexible Functions (OFF)',['../db/d4e/tutorial.html#autotoc_md58',1,'']]],
+  ['flexible_20functions_20off_4',['Objectified Flexible Functions (OFF)',['../db/d4e/tutorial.html#autotoc_md59',1,'']]],
   ['fn_5',['fn',['../d8/db8/classlci_1_1graph__add__node__x.html#a67d8368665b382657c9da461c7c7f03a',1,'lci::graph_add_node_x::fn()'],['../df/d73/classlci_1_1graph__add__edge__x.html#a5dd3453f4b420ce4ddc79ece25da243b',1,'lci::graph_add_edge_x::fn()']]],
   ['for_20lci_20v1_207_203_6',['Change log for LCI v1.7.3',['../d1/d70/Changelog_1_7_3.html#autotoc_md6',1,'']]],
   ['for_20lci_20v1_207_204_7',['Change log for LCI v1.7.4',['../dd/d2d/Changelog_1_7_4.html#autotoc_md11',1,'']]],
@@ -29,6 +29,6 @@ var searchData=
   ['free_5fruntime_26',['free_runtime',['../d5/dd3/namespacelci.html#a925ad203c126d3128e7e93d661a1a72b',1,'lci::free_runtime()'],['../d7/db0/group__LCI__FREE__RUNTIME.html',1,'free_runtime']]],
   ['free_5fruntime_5fx_27',['free_runtime_x',['../df/d69/classlci_1_1free__runtime__x.html',1,'lci::free_runtime_x'],['../df/d69/classlci_1_1free__runtime__x.html#a5329406b4fb8005662401d9701f0c0bd',1,'lci::free_runtime_x::free_runtime_x()']]],
   ['frequently_20asked_20questions_28',['Frequently Asked Questions',['../d3/d2d/faq.html',1,'']]],
-  ['frontera_29',['TACC Frontera',['../db/d4e/tutorial.html#autotoc_md55',1,'']]],
-  ['functions_20off_30',['Objectified Flexible Functions (OFF)',['../db/d4e/tutorial.html#autotoc_md58',1,'']]]
+  ['frontera_29',['TACC Frontera',['../db/d4e/tutorial.html#autotoc_md56',1,'']]],
+  ['functions_20off_30',['Objectified Flexible Functions (OFF)',['../db/d4e/tutorial.html#autotoc_md59',1,'']]]
 ];
