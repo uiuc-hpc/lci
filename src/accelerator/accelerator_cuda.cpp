@@ -30,10 +30,9 @@ namespace accelerator
 {
 namespace details
 {
-bool g_is_cuda_support_gdr = false;
 std::vector<CUdevice> g_devices;
 
-bool check_GPUDirectRDMA_support()
+void check_GPUDirectRDMA_support()
 {
   // Check if the nv_peer_mem module is loaded
   const char* possible_paths[] = {
@@ -52,7 +51,7 @@ bool check_GPUDirectRDMA_support()
   LCI_Log(LOG_INFO, "cuda",
           "Checking GPUDirectRDMA: whether the kernel module is loaded: %d\n",
           is_kernel_module_loaded);
-  if (!is_kernel_module_loaded) return false;
+  // if (!is_kernel_module_loaded) return false;
 
   // Check if CUDA supports GPUDirectRDMA
   int is_cuda_support_gdr = 0;
@@ -75,70 +74,76 @@ bool check_GPUDirectRDMA_support()
   LCI_Log(LOG_INFO, "cuda",
           "Checking GPUDirectRDMA: whether CUDA supports GPUDirectRDMA: %d\n",
           is_cuda_support_gdr);
-  return is_cuda_support_gdr;
+  return is_kernel_module_loaded && is_cuda_support_gdr;
 }
 
-// bool check_dmabuf_support() {
-//   // 1. Check CUDA-level DMA-BUF support
-//   int is_cuda_support_dmabuf = 0;
+bool check_dmabuf_support()
+{
+  // 1. Check CUDA-level DMA-BUF support
+  int is_cuda_support_dmabuf = 0;
 
-// #if CUDART_VERSION >= 11070
-//   int driverVersion;
-//   CUDACHECK(cudaDriverGetVersion(&driverVersion));
-//   if (driverVersion >= 11070) {
-//     CUdevice dev;
-//     CU_CHECK(cuDeviceGet(&dev, 0));
+#if CUDART_VERSION >= 11070
+  int driverVersion;
+  CUDACHECK(cudaDriverGetVersion(&driverVersion));
+  if (driverVersion >= 11070) {
+    CUdevice dev;
+    CU_CHECK(cuDeviceGet(&dev, 0));
 
-//     CUresult res = cuDeviceGetAttribute(&is_cuda_support_dmabuf,
-//     CU_DEVICE_ATTRIBUTE_DMA_BUF_SUPPORTED, dev); if (res != CUDA_SUCCESS) {
-//       LCI_Log(LOG_WARN, "cuda", "cuDeviceGetAttribute(DMA_BUF_SUPPORTED)
-//       failed.\n"); return false;
-//     }
-//   } else
-// #endif
-//   {
-//     LCI_Log(LOG_INFO, "cuda", "CUDA version < 11.7, DMA-BUF attribute
-//     unsupported.\n"); return false;
-//   }
+    CUresult res = cuDeviceGetAttribute(
+        &is_cuda_support_dmabuf, CU_DEVICE_ATTRIBUTE_DMA_BUF_SUPPORTED, dev);
+    if (res != CUDA_SUCCESS) {
+      LCI_Log(LOG_WARN, "cuda", "cuDeviceGetAttribute(DMA_BUF_SUPPORTED)
+                                 failed.\n"); 
+      is_cuda_support_dmabuf = 0
+    }
+  } else
+#endif
+  {
+    LCI_Log(LOG_INFO, "cuda", "CUDA version < 11.7, DMA-BUF attribute
+    unsupported.\n");
+    is_cuda_support_dmabuf = 0
+  }
 
-//   LCI_Log(LOG_INFO, "cuda", "Checking DMA-BUF: whether CUDA supports DMA-BUF:
-//   %d\n", is_cuda_support_dmabuf); if (!is_cuda_support_dmabuf) return false;
+  LCI_Log(LOG_INFO, "cuda", "Checking DMA-BUF: whether CUDA supports DMA-BUF:
+  %d\n", is_cuda_support_dmabuf);
+  
+  // if (!is_cuda_support_dmabuf) return false;
 
-//   // 2. Check kernel/IB driver DMA-BUF support using dummy fd
-//   struct ibv_device** dev_list = ibv_get_device_list(NULL);
-//   if (!dev_list || !dev_list[0]) {
-//     LCI_Log(LOG_WARN, "ib", "No InfiniBand devices found.\n");
-//     return false;
-//   }
+  // 2. Check kernel/IB driver DMA-BUF support using dummy fd
+  struct ibv_device** dev_list = ibv_get_device_list(NULL);
+  if (!dev_list || !dev_list[0]) {
+    LCI_Log(LOG_WARN, "ib", "No InfiniBand devices found.\n");
+    return false;
+  }
 
-//   struct ibv_context* context = ibv_open_device(dev_list[0]);
-//   if (!context) {
-//     LCI_Log(LOG_WARN, "ib", "Failed to open IB device.\n");
-//     ibv_free_device_list(dev_list);
-//     return false;
-//   }
+  struct ibv_context* context = ibv_open_device(dev_list[0]);
+  if (!context) {
+    LCI_Log(LOG_WARN, "ib", "Failed to open IB device.\n");
+    ibv_free_device_list(dev_list);
+    return false;
+  }
 
-//   struct ibv_pd* pd = ibv_alloc_pd(context);
-//   if (!pd) {
-//     LCI_Log(LOG_WARN, "ib", "Failed to allocate PD.\n");
-//     ibv_close_device(context);
-//     ibv_free_device_list(dev_list);
-//     return false;
-//   }
+  struct ibv_pd* pd = ibv_alloc_pd(context);
+  if (!pd) {
+    LCI_Log(LOG_WARN, "ib", "Failed to allocate PD.\n");
+    ibv_close_device(context);
+    ibv_free_device_list(dev_list);
+    return false;
+  }
 
-//   errno = 0;
-//   void* mr = ibv_reg_dmabuf_mr(pd, 0, 0, 0, -1, 0);  // Dummy registration
-//   int err = errno;
-//   ibv_dealloc_pd(pd);
-//   ibv_close_device(context);
-//   ibv_free_device_list(dev_list);
+  errno = 0;
+  void* mr = ibv_reg_dmabuf_mr(pd, 0, 0, 0, -1, 0);  // Dummy registration
+  int err = errno;
+  ibv_dealloc_pd(pd);
+  ibv_close_device(context);
+  ibv_free_device_list(dev_list);
 
-//   bool is_kernel_support_dmabuf = (mr == NULL && (err == EBADF));
-//   LCI_Log(LOG_INFO, "ib", "Checking DMA-BUF: ibv_reg_dmabuf_mr errno = %d,
-//   support = %d\n", err, is_kernel_support_dmabuf);
+  bool is_kernel_support_dmabuf = (mr == NULL && (err == EBADF));
+  LCI_Log(LOG_INFO, "ib", "Checking DMA-BUF: ibv_reg_dmabuf_mr errno = %d,
+  support = %d\n", err, is_kernel_support_dmabuf);
 
-//   return is_kernel_support_dmabuf;
-// }
+  return is_kernel_support_dmabuf && is_cuda_support_dmabuf;
+}
 
 int get_device_from_context(CUcontext ctx)
 {
@@ -170,20 +175,15 @@ void initialize()
     LCI_Log(LOG_INFO, "cuda", "Found CUDA device %d: %s\n", dev, name);
     details::g_devices.push_back(dev);
   }
-
-  details::g_is_cuda_support_gdr = details::check_GPUDirectRDMA_support();
+  // Purely for logging information
+  details::check_GPUDirectRDMA_support();
+  details::check_dmabuf_support();
 }
 
 void finalize() {}
 
 buffer_attr_t get_buffer_attr(const void* ptr)
 {
-  if (!details::g_is_cuda_support_gdr) {
-    LCI_Log(
-        LOG_WARN, "cuda",
-        "GPUDirectRDMA is not supported by the current CUDA driver or NIC\n");
-  }
-
   buffer_attr_t attr_ret;
   memset(&attr_ret, 0, sizeof(attr_ret));
   CUmemorytype mem_type;
