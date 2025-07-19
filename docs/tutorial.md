@@ -117,6 +117,16 @@ The only caveat is that you need to pass the -DLCI_NETWORK_BACKENDS=ofi option t
 No additional `srun` arguments are needed to run LCI applications. However, we have noticed that `srun` can be broken under some mysterious module loading conditions. In such case, just use `srun --mpi=pmi2` instead.
 </details>
 
+### NCSA DeltaAI
+
+<details>
+<summary>Click to expand</summary>
+
+Use `srun --mpi=pmi2` or `srun --mpi=pmix` to run LCI applications.
+
+(Experimental feature: you can try passing `-DLCI_USE_CUDA` to CMake to enable GPU direct communication.)
+</details>
+
 ### SDSC Expanse
 
 <details>
