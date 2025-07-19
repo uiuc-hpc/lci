@@ -10,7 +10,7 @@ input = [
 resource_comp := resource(
     "comp", 
     [
-        attr_enum("comp_type", enum_options=["sync", "cq", "handler", "graph"], default_value="cq", comment="The completion object type.", inout_trait="out"),
+        attr_enum("comp_type", enum_options=["sync", "cq", "handler", "graph", "custom"], default_value="custom", comment="The completion object type.", inout_trait="out"),
         attr("int", "sync_threshold", default_value=1, comment="The threshold for sync (synchronizer)."),
         attr("bool", "zero_copy_am", default_value="false", comment="Whether to directly pass internal packet into the completion object."),
         attr_enum("cq_type", enum_options=["array_atomic", "lcrq"], default_value="lcrq", comment="The completion object type."),

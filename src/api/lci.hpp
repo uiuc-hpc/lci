@@ -673,6 +673,7 @@ class comp_impl_t
 {
  public:
   using attr_t = comp_attr_t;
+  comp_impl_t() = default;
   comp_impl_t(const attr_t& attr_) : attr(attr_) {}
   virtual ~comp_impl_t() = default;
   virtual void signal(status_t) = 0;
