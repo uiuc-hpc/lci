@@ -21,6 +21,7 @@ resource_net_context := resource(
         attr("bool", "ibv_force_gid_auto_select", default_value=0, comment="For the IBV backend: whether to force GID auto selection."),
         attr_enum("ibv_odp_strategy", enum_options=["none", "explicit_odp", "implicit_odp"], default_value="none", comment="For the IBV backend: the on-demand paging strategy."),
         attr_enum("ibv_prefetch_strategy", enum_options=["none", "prefetch", "prefetch_write", "prefetch_no_fault"], default_value="none", comment="For the IBV backend: the mr prefetch strategy."),
+        attr("bool", "support_putimm", inout_trait="out", comment="Whether the network context supports put with immediate data.")
     ],
     doc = {
         "in_group": "LCI_RESOURCE",

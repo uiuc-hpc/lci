@@ -15,8 +15,12 @@ inline void backlog_queue_t::push_sends(endpoint_impl_t* endpoint, int rank,
   entry.op = backlog_op_t::sends;
   entry.endpoint = endpoint;
   entry.rank = rank;
-  entry.buffer = malloc(size);
-  memcpy(entry.buffer, buffer, size);
+  if (size) {
+    entry.buffer = malloc(size);
+    memcpy(entry.buffer, buffer, size);
+  } else {
+    entry.buffer = nullptr;
+  }
   entry.size = size;
   entry.imm_data = imm_data;
 

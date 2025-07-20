@@ -144,6 +144,13 @@ class endpoint_impl_t
   inline error_t post_get(int rank, void* buffer, size_t size, mr_t mr,
                           uint64_t offset, rmr_t rmr, void* user_context,
                           bool allow_retry = true, bool force_post = false);
+  inline error_t post_putImms_fallback(int rank, void* buffer, size_t size,
+                                       uint64_t offset, rmr_t rmr,
+                                       net_imm_data_t imm_data);
+  inline error_t post_putImm_fallback(int rank, void* buffer, size_t size,
+                                      mr_t mr, uint64_t offset, rmr_t rmr,
+                                      net_imm_data_t imm_data,
+                                      void* user_context);
   inline bool progress_backlog_queue() { return backlog_queue.progress(); }
   inline bool is_backlog_queue_empty(int rank) const
   {
@@ -154,6 +161,7 @@ class endpoint_impl_t
   device_t device;
   endpoint_t endpoint;
   attr_t attr;
+  net_context_attr_t net_context_attr;
 
  private:
   static std::atomic<int> g_nendpoints;

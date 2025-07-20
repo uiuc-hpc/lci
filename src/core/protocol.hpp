@@ -73,9 +73,17 @@ struct alignas(LCI_CACHE_LINE) internal_context_extended_t {
   internal_context_t* internal_ctx;  // 8 bytes
   std::atomic<int> signal_count;     // 4 bytes
   uint64_t recv_ctx;                 // 8 bytes
+  // if set, send imm_data to rank once signal_count reaches 0
+  int imm_data_rank;        // 4 bytes
+  net_imm_data_t imm_data;  // 4 bytes
 
   internal_context_extended_t()
-      : is_extended(true), internal_ctx(nullptr), signal_count(0), recv_ctx(0)
+      : is_extended(true),
+        internal_ctx(nullptr),
+        signal_count(0),
+        recv_ctx(0),
+        imm_data_rank(-1),
+        imm_data(0)
   {
   }
 };

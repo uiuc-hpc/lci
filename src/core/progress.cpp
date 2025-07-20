@@ -119,6 +119,12 @@ void progress_write(endpoint_t endpoint, const net_status_t& net_status)
     internal_context_t* ctx = ectx->internal_ctx;
     if (ectx->recv_ctx) {
       handle_rdv_local_write(endpoint, ectx);
+    } else if (ectx->imm_data_rank != -1) {
+      // send immediate data
+      error_t error = endpoint.get_impl()->post_sends(
+          ectx->imm_data_rank, nullptr, 0, ectx->imm_data,
+          false /* allow_retry */);
+      LCI_Assert(error.is_done(), "Unexpected error %d\n", error);
     }  // else: this is a RDMA write buffers
     delete ectx;
     free_ctx_and_signal_comp(ctx);

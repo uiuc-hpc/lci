@@ -36,6 +36,7 @@ endpoint_impl_t::endpoint_impl_t(device_t device_, attr_t attr_)
 {
   attr.uid = g_nendpoints++;
   endpoint.p_impl = this;
+  net_context_attr = device.p_impl->net_context.get_attr();
 }
 
 /*************************************************************************************
@@ -61,6 +62,8 @@ net_context_t alloc_net_context_x::call_impl(
   attr.ibv_odp_strategy = ibv_odp_strategy;
   attr.ibv_prefetch_strategy = ibv_prefetch_strategy;
   attr.max_inject_size = max_inject_size;
+  // output attribute, by default is true
+  attr.support_putimm = true;
 
   switch (attr.backend) {
     case attr_backend_t::none:

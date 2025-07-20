@@ -320,22 +320,18 @@ status_t post_comm_x::call_impl(
           auto extended_ctx = new internal_context_extended_t;
           extended_ctx->internal_ctx = internal_ctx;
           extended_ctx->signal_count = data.get_buffers_count();
+          if (rhandler) {
+            extended_ctx->imm_data_rank = rank;
+            extended_ctx->imm_data = imm_data;
+          }
           for (size_t i = 0; i < data.buffers.count; i++) {
             if (i > 0) allow_retry = false;
-            if (i == data.buffers.count - 1 && rhandler) {
-              // last buffer, use RDMA write with immediate data
-              error = endpoint.p_impl->post_putImm(
-                  rank, data.buffers.buffers[i].base,
-                  data.buffers.buffers[i].size, data.buffers.buffers[i].mr,
-                  rbuffers[i].disp, rbuffers[i].rmr, imm_data, extended_ctx,
-                  allow_retry);
-            } else {
-              error = endpoint.p_impl->post_put(
-                  rank, data.buffers.buffers[i].base,
-                  data.buffers.buffers[i].size, data.buffers.buffers[i].mr,
-                  rbuffers[i].disp, rbuffers[i].rmr, extended_ctx, allow_retry);
-            }
+            error = endpoint.p_impl->post_put(
+                rank, data.buffers.buffers[i].base,
+                data.buffers.buffers[i].size, data.buffers.buffers[i].mr,
+                rbuffers[i].disp, rbuffers[i].rmr, extended_ctx, allow_retry);
             if (i == 0 && error.is_retry()) {
+              delete extended_ctx;
               goto exit;
             }
             LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);
@@ -442,6 +438,7 @@ status_t post_comm_x::call_impl(
                 data.buffers.buffers[i].size, data.buffers.buffers[i].mr,
                 rbuffers[i].disp, rbuffers[i].rmr, extended_ctx, allow_retry);
             if (i == 0 && error.is_retry()) {
+              delete extended_ctx;
               goto exit;
             } else {
               LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);
