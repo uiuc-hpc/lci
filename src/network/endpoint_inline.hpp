@@ -140,7 +140,7 @@ inline error_t endpoint_impl_t::post_putImms_fallback(int rank, void* buffer,
 {
   // fallback to post_put
   LCI_DBG_Log(LOG_TRACE, "network",
-              "fallback to post_put imm_data %x no user_context\n", imm_data);
+              "fallback to post_puts imm_data %x no user_context\n", imm_data);
   error_t error = post_puts_impl(rank, buffer, size, offset, rmr);
   if (!error.is_retry()) {
     LCI_Assert(error.is_done(), "Unexpected error %d\n", error);

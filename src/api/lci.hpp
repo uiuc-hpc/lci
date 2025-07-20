@@ -962,7 +962,7 @@ inline void data_t::copy_from(const void* data_, size_t size,
     set_type(LCI_DATA_TYPE_SCALAR);
     set_own_data(true);
     scalar.size = size;
-    memcpy(scalar.data, data_, size);
+    if (size > 0) memcpy(scalar.data, data_, size);
   } else {
     set_type(LCI_DATA_TYPE_BUFFER);
     set_own_data(true);
