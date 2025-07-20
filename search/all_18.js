@@ -26,12 +26,13 @@ var searchData=
   ['status_23',['status',['../d7/d31/classlci_1_1comp__signal__x.html#af627829e09be2b0e9aaf7748a7521442',1,'lci::comp_signal_x::status()'],['../d8/dd3/classlci_1_1graph__node__mark__complete__x.html#af8f8adf3bb8cdf949d524bf9a0fa5bdf',1,'lci::graph_node_mark_complete_x::status()']]],
   ['status_5ft_24',['status_t',['../d9/d1e/structlci_1_1status__t.html',1,'lci::status_t'],['../d9/d1e/structlci_1_1status__t.html#aaf6d75a0f5134d389e950b645a42b5f9',1,'lci::status_t::status_t()=default'],['../d9/d1e/structlci_1_1status__t.html#a1bfc6bd664acbc05e80bcf709f313ada',1,'lci::status_t::status_t(errorcode_t error_)'],['../d9/d1e/structlci_1_1status__t.html#a259cd3f0ca8d9d06d821aa373f3ad6e2',1,'lci::status_t::status_t(void *user_context_)']]],
   ['statuses_25',['statuses',['../dc/d7f/classlci_1_1net__poll__cq__x.html#a427c42c030640b87cf2fafb6b989ccd6',1,'lci::net_poll_cq_x']]],
-  ['swap_26',['swap',['../da/d7c/structlci_1_1data__t.html#aeb0562e5821135e7469ba2fdb5144e53',1,'lci::data_t::swap()'],['../d5/dd3/namespacelci.html#a1c5ae1447f4565910cb870933095a394',1,'lci::swap(data_t &amp;first, data_t &amp;second)']]],
-  ['sync_27',['sync',['../d5/dd3/namespacelci.html#a610912d197faa01c2f04666209b814bba63ad9d34f3503826e5f649ae6b7ac92c',1,'lci']]],
-  ['sync_5ftest_28',['sync_test',['../d5/dd3/namespacelci.html#ad05235498477d26522d212f4ea5000cb',1,'lci::sync_test()'],['../de/df4/group__LCI__SYNC__TEST.html',1,'sync_test']]],
-  ['sync_5ftest_5fx_29',['sync_test_x',['../d4/d6a/classlci_1_1sync__test__x.html',1,'lci::sync_test_x'],['../d4/d6a/classlci_1_1sync__test__x.html#aab626d317440f18eff0790defa537407',1,'lci::sync_test_x::sync_test_x()']]],
-  ['sync_5fthreshold_30',['sync_threshold',['../d8/d0c/structlci_1_1global__attr__t.html#adef17bef1ab2bf0a06d0ef90d83e6f30',1,'lci::global_attr_t::sync_threshold'],['../dc/da6/structlci_1_1comp__attr__t.html#a7bb89b4541eed577bd95c5355450f070',1,'lci::comp_attr_t::sync_threshold']]],
-  ['sync_5fwait_31',['sync_wait',['../d5/dd3/namespacelci.html#a420877a3c976eb6a6dd692616e18899d',1,'lci::sync_wait()'],['../d9/dcb/group__LCI__SYNC__WAIT.html',1,'sync_wait']]],
-  ['sync_5fwait_5fx_32',['sync_wait_x',['../dd/d0b/classlci_1_1sync__wait__x.html',1,'lci::sync_wait_x'],['../dd/d0b/classlci_1_1sync__wait__x.html#a1b82908c8a1e781860e9a95db7916df1',1,'lci::sync_wait_x::sync_wait_x()']]],
-  ['synchronizer_33',['Synchronizer',['../db/d4e/tutorial.html#autotoc_md65',1,'']]]
+  ['support_5fputimm_26',['support_putimm',['../d4/d7b/structlci_1_1net__context__attr__t.html#a08d10a3134231c4bea5c43df29ad9e15',1,'lci::net_context_attr_t']]],
+  ['swap_27',['swap',['../da/d7c/structlci_1_1data__t.html#aeb0562e5821135e7469ba2fdb5144e53',1,'lci::data_t::swap()'],['../d5/dd3/namespacelci.html#a1c5ae1447f4565910cb870933095a394',1,'lci::swap(data_t &amp;first, data_t &amp;second)']]],
+  ['sync_28',['sync',['../d5/dd3/namespacelci.html#a610912d197faa01c2f04666209b814bba63ad9d34f3503826e5f649ae6b7ac92c',1,'lci']]],
+  ['sync_5ftest_29',['sync_test',['../d5/dd3/namespacelci.html#ad05235498477d26522d212f4ea5000cb',1,'lci::sync_test()'],['../de/df4/group__LCI__SYNC__TEST.html',1,'sync_test']]],
+  ['sync_5ftest_5fx_30',['sync_test_x',['../d4/d6a/classlci_1_1sync__test__x.html',1,'lci::sync_test_x'],['../d4/d6a/classlci_1_1sync__test__x.html#aab626d317440f18eff0790defa537407',1,'lci::sync_test_x::sync_test_x()']]],
+  ['sync_5fthreshold_31',['sync_threshold',['../d8/d0c/structlci_1_1global__attr__t.html#adef17bef1ab2bf0a06d0ef90d83e6f30',1,'lci::global_attr_t::sync_threshold'],['../dc/da6/structlci_1_1comp__attr__t.html#a7bb89b4541eed577bd95c5355450f070',1,'lci::comp_attr_t::sync_threshold']]],
+  ['sync_5fwait_32',['sync_wait',['../d5/dd3/namespacelci.html#a420877a3c976eb6a6dd692616e18899d',1,'lci::sync_wait()'],['../d9/dcb/group__LCI__SYNC__WAIT.html',1,'sync_wait']]],
+  ['sync_5fwait_5fx_33',['sync_wait_x',['../dd/d0b/classlci_1_1sync__wait__x.html',1,'lci::sync_wait_x'],['../dd/d0b/classlci_1_1sync__wait__x.html#a1b82908c8a1e781860e9a95db7916df1',1,'lci::sync_wait_x::sync_wait_x()']]],
+  ['synchronizer_34',['Synchronizer',['../db/d4e/tutorial.html#autotoc_md65',1,'']]]
 ];

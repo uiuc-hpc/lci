@@ -94,7 +94,7 @@ var NAVTREEINDEX =
 "d8/d33/group__LCI__BASIC.html#ggaca9c81007bfc7e1ddb44071f3aaaf400af701fee85540b78d08cb276d14953d58",
 "d9/d2c/classlci_1_1alloc__net__context__x.html#a1fce444d386143ede759993ccc69479c",
 "db/d4e/tutorial.html#autotoc_md84",
-"dd/d0b/classlci_1_1sync__wait__x.html#a33c94ca9708dafc0873caecc7e0fd20e"
+"dd/d0b/classlci_1_1sync__wait__x.html#a1fbb893f0f69013619a69c5c9a53eea0"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronization';

@@ -1,5 +1,6 @@
 var NAVTREEINDEX6 =
 {
+"dd/d0b/classlci_1_1sync__wait__x.html#a1fbb893f0f69013619a69c5c9a53eea0":[5,6,7,0,10],
 "dd/d0b/classlci_1_1sync__wait__x.html#a33c94ca9708dafc0873caecc7e0fd20e":[5,6,7,0,8],
 "dd/d0b/classlci_1_1sync__wait__x.html#a6326ef1b07f7d2e76cbf58ab20bb09ee":[5,6,7,0,1],
 "dd/d0b/classlci_1_1sync__wait__x.html#a66199e39978d31d9fffc2c85de728562":[5,6,7,0,12],
