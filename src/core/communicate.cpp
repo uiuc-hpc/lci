@@ -96,16 +96,17 @@ status_t post_comm_x::call_impl(
 
   // setup protocol (part 1): whether to use the zero-copy protocol
   protocol_t protocol = protocol_t::bcopy;
-  if (!is_single_buffer || force_zcopy || size > max_bcopy_size) {
+  if (!is_single_buffer || force_zcopy || size > max_bcopy_size || !mr.is_empty()) {
     // We use the zero-copy protocol in one of the three cases:
     // 1. The user provides multiple buffers.
     // 2. The user forces to use the zero-copy protocol.
     // 3. The size of the data is larger than the maximum buffer-copy size.
+    // 4. The user provides a valid memory region.
     protocol = protocol_t::zcopy;
   }
   // zero-copy send/am will use the rendezvous ready-to-send message
   bool is_out_rdv = protocol == protocol_t::zcopy && local_buffer_only &&
-                    direction == direction_t::OUT;
+                    direction == direction_t::OUT && mr.is_empty();
 
   // set immediate data
   // immediate data is used for send/am/put with signal
