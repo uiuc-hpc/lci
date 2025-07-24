@@ -96,7 +96,8 @@ status_t post_comm_x::call_impl(
 
   // setup protocol (part 1): whether to use the zero-copy protocol
   protocol_t protocol = protocol_t::bcopy;
-  if (!is_single_buffer || force_zcopy || size > max_bcopy_size || !mr.is_empty()) {
+  if (!is_single_buffer || force_zcopy || size > max_bcopy_size ||
+      !mr.is_empty()) {
     // We use the zero-copy protocol in one of the three cases:
     // 1. The user provides multiple buffers.
     // 2. The user forces to use the zero-copy protocol.
@@ -339,49 +340,55 @@ status_t post_comm_x::call_impl(
           }
         }
         // end of zero-copy put
-      } else /* local_buffer_only */ {
-        // rendezvous send
-        // build the rts message
-        size_t rts_size = rts_msg_t::get_size(data);
-        rts_msg_t* p_rts;
-        if (rts_size <= max_inject_size) {
-          p_rts = reinterpret_cast<rts_msg_t*>(malloc(rts_size));
+      } else /* local_buffer_only */
+        if (!is_out_rdv) {
+          // zero-copy send
+          error = endpoint.p_impl->post_send(
+              rank, data.buffer.base, data.buffer.size, data.buffer.mr,
+              imm_data, internal_ctx, allow_retry);
         } else {
-          LCI_Assert(rts_size <= max_bcopy_size,
-                     "The rts message is too large\n");
-          packet = packet_pool.p_impl->get(!allow_retry);
-          if (!packet) {
-            error = errorcode_t::retry_nopacket;
-            goto exit;
+          // rendezvous send
+          // build the rts message
+          size_t rts_size = rts_msg_t::get_size(data);
+          rts_msg_t* p_rts;
+          if (rts_size <= max_inject_size) {
+            p_rts = reinterpret_cast<rts_msg_t*>(malloc(rts_size));
+          } else {
+            LCI_Assert(rts_size <= max_bcopy_size,
+                       "The rts message is too large\n");
+            packet = packet_pool.p_impl->get(!allow_retry);
+            if (!packet) {
+              error = errorcode_t::retry_nopacket;
+              goto exit;
+            }
+            p_rts = static_cast<rts_msg_t*>(packet->get_payload_address());
+            rts_ctx = new internal_context_t;
+            rts_ctx->packet_to_free = packet;
           }
-          p_rts = static_cast<rts_msg_t*>(packet->get_payload_address());
-          rts_ctx = new internal_context_t;
-          rts_ctx->packet_to_free = packet;
+          p_rts->send_ctx = (uintptr_t)internal_ctx;
+          p_rts->rdv_type = rdv_type_t::single;
+          p_rts->tag = tag;
+          p_rts->rcomp = rhandler;
+          if (local_buffer) {
+            p_rts->load_buffer(size);
+          } else {
+            p_rts->load_buffers(buffers);
+          }
+          // post send for the rts message
+          if (rts_size <= max_inject_size) {
+            error = endpoint.p_impl->post_sends(rank, p_rts, rts_size, imm_data,
+                                                allow_retry);
+            free(p_rts);
+          } else {
+            error = endpoint.p_impl->post_send(rank, p_rts, rts_size,
+                                               packet->get_mr(device), imm_data,
+                                               rts_ctx, allow_retry);
+          }
+          if (error.is_done()) {
+            error = errorcode_t::posted;
+          }
+          // end of rendezvous send
         }
-        p_rts->send_ctx = (uintptr_t)internal_ctx;
-        p_rts->rdv_type = rdv_type_t::single;
-        p_rts->tag = tag;
-        p_rts->rcomp = rhandler;
-        if (local_buffer) {
-          p_rts->load_buffer(size);
-        } else {
-          p_rts->load_buffers(buffers);
-        }
-        // post send for the rts message
-        if (rts_size <= max_inject_size) {
-          error = endpoint.p_impl->post_sends(rank, p_rts, rts_size, imm_data,
-                                              allow_retry);
-          free(p_rts);
-        } else {
-          error = endpoint.p_impl->post_send(rank, p_rts, rts_size,
-                                             packet->get_mr(device), imm_data,
-                                             rts_ctx, allow_retry);
-        }
-        if (error.is_done()) {
-          error = errorcode_t::posted;
-        }
-        // end of rendezvous send
-      }
       // end of zero-copy protocol
     }
     // end of direction out
