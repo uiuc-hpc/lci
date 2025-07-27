@@ -15,6 +15,7 @@ class graph_t : public comp_impl_t
   graph_t(comp_attr_t attr_, comp_t comp_)
       : comp_impl_t(attr_),
         m_comp(comp_),
+        m_start_node{this, nullptr, nullptr, nullptr},
         m_end_signals_expected(0),
         m_end_value(attr_.user_context)
   {
