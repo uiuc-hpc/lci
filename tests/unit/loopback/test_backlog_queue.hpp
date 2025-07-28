@@ -125,6 +125,10 @@ TEST(BACKLOG_QUEUE, am_zcopy_st_bq)
   int nranks = lci::get_rank_n();
   ASSERT_EQ(rank, 0);
   ASSERT_EQ(nranks, 1);
+  // prepare buffer
+  size_t msg_size = lci::get_max_bcopy_size() * 2;
+  void* send_buffer = malloc(msg_size);
+  util::write_buffer(send_buffer, msg_size, 'a');
   // local cq
   lci::comp_t lcq = lci::alloc_cq();
 
@@ -132,10 +136,8 @@ TEST(BACKLOG_QUEUE, am_zcopy_st_bq)
   lci::rcomp_t rcomp = lci::register_rcomp(rcq);
   // loopback message
   for (int i = 0; i < nmsgs; i++) {
-    uint64_t data = 0xdeadbeef;
     lci::status_t status;
-    status = lci::post_am_x(rank, &data, sizeof(data), lcq, rcomp)
-                 .force_zcopy(true)
+    status = lci::post_am_x(rank, send_buffer, msg_size, lcq, rcomp)
                  .allow_retry(false)();
     ASSERT_EQ(status.is_retry(), false);
     if (status.is_posted()) {
@@ -145,31 +147,41 @@ TEST(BACKLOG_QUEUE, am_zcopy_st_bq)
         status = lci::cq_pop(lcq);
       } while (status.is_retry());
     }
-    ASSERT_EQ(status.get_scalar<uint64_t>(), data);
+    lci::buffer_t buffer = status.get_buffer();
+    ASSERT_EQ(buffer.base, send_buffer);
+    ASSERT_EQ(buffer.size, msg_size);
     // poll remote cq
     do {
       status = lci::cq_pop(rcq);
       lci::progress();
     } while (status.is_retry());
-    ASSERT_EQ(status.get_scalar<uint64_t>(), data);
+    buffer = status.get_buffer();
+    ASSERT_EQ(buffer.size, msg_size);
+    util::check_buffer(buffer.base, msg_size, 'a');
+    free(buffer.base);
   }
 
   lci::free_comp(&lcq);
   lci::free_comp(&rcq);
+  free(send_buffer);
   lci::g_runtime_fina();
 }
 
-void test_am_zcopy_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
-                      lci::rcomp_t rcomp, uint64_t* p_data)
+void test_am_zcopy_mt(int id, int nmsgs, lci::rcomp_t rcomp_base)
 {
   int rank = lci::get_rank_me();
   lci::tag_t tag = id;
+  size_t msg_size = lci::get_max_bcopy_size() * 2;
+  void* send_buffer = malloc(msg_size);
+  util::write_buffer(send_buffer, msg_size, 'a');
+  lci::comp_t lcq = lci::alloc_cq();
+  lci::comp_t rcq = lci::alloc_cq();
+  lci::rcomp_t rcomp = lci::register_rcomp_x(rcq).rcomp(rcomp_base + id)();
 
   for (int i = 0; i < nmsgs; i++) {
     lci::status_t status;
-    status = lci::post_am_x(rank, p_data, sizeof(uint64_t), lcq, rcomp)
+    status = lci::post_am_x(rank, send_buffer, msg_size, lcq, rcomp)
                  .tag(tag)
-                 .force_zcopy(true)
                  .allow_retry(false)();
     ASSERT_EQ(status.is_retry(), false);
     // poll cqs
@@ -181,20 +193,26 @@ void test_am_zcopy_mt(int id, int nmsgs, lci::comp_t lcq, lci::comp_t rcq,
         status = lci::cq_pop(lcq);
         if (status.is_done()) {
           lci::buffer_t buffer = status.get_buffer();
-          ASSERT_EQ(buffer.base, p_data);
-          ASSERT_EQ(*(uint64_t*)buffer.base, *p_data);
+          ASSERT_EQ(buffer.base, send_buffer);
+          ASSERT_EQ(buffer.size, msg_size);
           lcq_done = true;
         }
       }
       if (!rcq_done) {
         status = lci::cq_pop(rcq);
         if (status.is_done()) {
-          ASSERT_EQ(status.get_scalar<uint64_t>(), *p_data);
+          lci::buffer_t buffer = status.get_buffer();
+          ASSERT_EQ(buffer.size, msg_size);
+          util::check_buffer(buffer.base, msg_size, 'a');
+          free(buffer.base);
           rcq_done = true;
         }
       }
     }
   }
+  free(send_buffer);
+  lci::free_comp(&lcq);
+  lci::free_comp(&rcq);
 }
 
 TEST(BACKLOG_QUEUE, am_zcopy_mt_bq)
@@ -208,24 +226,17 @@ TEST(BACKLOG_QUEUE, am_zcopy_mt_bq)
   int nranks = lci::get_rank_n();
   ASSERT_EQ(rank, 0);
   ASSERT_EQ(nranks, 1);
-  lci::comp_t lcq = lci::alloc_cq();
-  lci::comp_t rcq = lci::alloc_cq();
-  lci::rcomp_t rcomp = lci::register_rcomp(rcq);
-
-  uint64_t data = 0xdeadbeef;
+  lci::rcomp_t rcomp_base = lci::reserve_rcomps(nthreads);
 
   std::vector<std::thread> threads;
   for (int i = 0; i < nthreads; i++) {
-    std::thread t(test_am_zcopy_mt, i, nmsgs / nthreads, lcq, rcq, rcomp,
-                  &data);
+    std::thread t(test_am_zcopy_mt, i, nmsgs / nthreads, rcomp_base);
     threads.push_back(std::move(t));
   }
   for (auto& t : threads) {
     t.join();
   }
 
-  lci::free_comp(&lcq);
-  lci::free_comp(&rcq);
   lci::g_runtime_fina();
 }
 

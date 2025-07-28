@@ -113,6 +113,9 @@ post_comm_traits_t validate_and_get_traits(const post_comm_args_t& args)
 
   // basic checks
   // buffer and buffers should not be used at the same time
+  LCI_Assert(args.allow_posted || args.allow_done,
+             "At least one of allow_posted and allow_done should be true\n");
+  LCI_Assert(args.force_zcopy == false, "force_zcopy is not supported\n");
   if (!args.buffers.empty()) {
     LCI_Assert(args.local_buffer == nullptr,
                "The local buffer should be nullptr\n");
