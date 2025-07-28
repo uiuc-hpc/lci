@@ -1036,7 +1036,7 @@ inline buffer_t data_t::get_buffer(get_semantic_t semantic)
   } else {
     throw std::runtime_error("Cannot convert to a buffer");
   }
-  if (semantic == get_semantic_t::move) {
+  if (semantic == get_semantic_t::move && get_own_data()) {
     set_own_data(false);
     set_type(LCI_DATA_TYPE_NONE);
   }
@@ -1056,7 +1056,7 @@ inline buffers_t data_t::get_buffers(get_semantic_t semantic)
   if (!is_buffers()) {
     throw std::runtime_error("Not buffers");
   }
-  if (semantic == get_semantic_t::move) {
+  if (semantic == get_semantic_t::move && get_own_data()) {
     set_own_data(false);
     set_type(LCI_DATA_TYPE_NONE);
   }

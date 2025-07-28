@@ -122,42 +122,46 @@ TEST(COMM_AM, am_zcopy_st)
 {
   lci::g_runtime_init();
 
-  const int nmsgs = 1000;
+  const int nmsgs = 100;
   int rank = lci::get_rank_me();
   int nranks = lci::get_rank_n();
   ASSERT_EQ(rank, 0);
   ASSERT_EQ(nranks, 1);
-  size_t msg_size = lci::get_max_bcopy_size() * 2;
-  void* send_buffer = malloc(msg_size);
-  util::write_buffer(send_buffer, msg_size, 'a');
+  size_t max_msg_size = lci::get_max_bcopy_size() * 8;
+  void* send_buffer = malloc(max_msg_size);
+  util::write_buffer(send_buffer, max_msg_size, 'a');
   // local cq
   lci::comp_t lcq = lci::alloc_cq();
   lci::comp_t rcq = lci::alloc_cq();
   lci::rcomp_t rcomp = lci::register_rcomp(rcq);
   // loopback message
-  for (int i = 0; i < nmsgs; i++) {
-    lci::status_t status;
-    do {
-      status = lci::post_am(rank, send_buffer, msg_size, lcq, rcomp);
-      lci::progress();
-    } while (status.is_retry());
-    if (status.is_posted()) {
-      // poll local cq
+  for (size_t size = 8; size <= max_msg_size; size *= 4) {
+    for (int i = 0; i < nmsgs; i++) {
+      lci::status_t status;
       do {
+        status = lci::post_am(rank, send_buffer, size, lcq, rcomp);
         lci::progress();
-        status = lci::cq_pop(lcq);
       } while (status.is_retry());
+      if (status.is_posted()) {
+        // poll local cq
+        do {
+          lci::progress();
+          status = lci::cq_pop(lcq);
+        } while (status.is_retry());
+      }
+      lci::buffer_t buffer = status.get_buffer();
+      ASSERT_EQ(buffer.base, send_buffer);
+      ASSERT_EQ(buffer.size, size);
+      // poll remote cq
+      do {
+        status = lci::cq_pop(rcq);
+        lci::progress();
+      } while (status.is_retry());
+      buffer = status.get_buffer();
+      ASSERT_EQ(buffer.size, size);
+      util::check_buffer(buffer.base, size, 'a');
+      free(buffer.base);
     }
-    ASSERT_EQ(status.get_buffer().base, send_buffer);
-    // poll remote cq
-    do {
-      status = lci::cq_pop(rcq);
-      lci::progress();
-    } while (status.is_retry());
-    lci::buffer_t buffer = status.get_buffer();
-    ASSERT_EQ(buffer.size, msg_size);
-    util::check_buffer(buffer.base, msg_size, 'a');
-    free(buffer.base);
   }
 
   lci::free_comp(&lcq);
@@ -194,6 +198,7 @@ void test_am_zcopy_mt(int id, int nmsgs, lci::rcomp_t rcomp_base)
         if (status.is_done()) {
           lci::buffer_t buffer = status.get_buffer();
           ASSERT_EQ(buffer.base, send_buffer);
+          ASSERT_EQ(buffer.size, msg_size);
           lcq_done = true;
         }
       }

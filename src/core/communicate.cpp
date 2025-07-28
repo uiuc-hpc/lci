@@ -14,6 +14,14 @@ enum class protocol_t {
   recv,
 };
 
+const char* get_protocol_str(protocol_t protocol)
+{
+  static const char protocol_str[][16] = {
+      "none", "inject", "eager_bcopy", "eager_zcopy", "rdv_zcopy", "recv",
+  };
+  return protocol_str[static_cast<int>(protocol)];
+}
+
 struct post_comm_args_t {
   direction_t direction;
   int rank;
@@ -365,6 +373,8 @@ void set_internal_ctx(const post_comm_args_t& args, const post_comm_traits_t&,
       state.protocol == protocol_t::rdv_zcopy ||
       args.comp_semantic == comp_semantic_t::network ||
       args.direction == direction_t::IN) {
+    LCI_Assert(!state.local_comp.is_empty(),
+               "Local completion object is empty\n");
     state.internal_ctx->comp = state.local_comp;
   }
   // We need to have valid memeory regions if all of the following conditions
@@ -498,7 +508,7 @@ error_t post_network_op(const post_comm_args_t& args,
       // rendezvous send
       // build the rts message
       internal_context_t* rts_ctx = nullptr;
-      data_t& data = state.internal_ctx->data;
+      data_t& data = state.data;
       size_t rts_size = rts_msg_t::get_size(data);
       rts_msg_t* p_rts;
       if (rts_size <= traits.max_inject_size) {
@@ -613,16 +623,10 @@ void exit_handler(error_t error_, const post_comm_args_t& args,
                   post_comm_state_t& state)
 {
   state.status.error = error_;
-  if (state.protocol != protocol_t::recv) {
-    if (state.status.is_posted()) {
-      LCI_Assert(!state.internal_ctx->comp.is_empty(),
-                 "Internal error: the internal context comp object is empty "
-                 "while the operation is posted\n");
-    } else if (state.status.is_done()) {
-      LCI_Assert(!state.internal_ctx || state.internal_ctx->comp.is_empty(),
-                 "Internal error: the internal context comp object is not "
-                 "empty while the operation is done\n");
-    }
+  if (state.protocol != protocol_t::recv && state.status.is_done()) {
+    LCI_Assert(!state.internal_ctx || state.internal_ctx->comp.is_empty(),
+               "Internal error: the internal context comp object is not "
+               "empty while the operation is done\n");
   }
   if (state.status.is_retry()) {
     LCI_DBG_Assert(args.allow_retry, "Unexpected retry\n");
