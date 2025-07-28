@@ -356,7 +356,17 @@ void set_internal_ctx(const post_comm_args_t& args, const post_comm_traits_t&,
   state.internal_ctx->user_context = args.user_context;
   state.internal_ctx->data = state.data;
   state.internal_ctx->packet_to_free = state.packet;
-  state.internal_ctx->comp = state.local_comp;
+  // We need to set the local completion object in one of the following cases:
+  // 1. The protocol is zero-copy.
+  // 2. The completion type is network.
+  // 3. The direction is IN (we are doing a recv/get).
+  // In other words, eager send/am/put will immediately complete.
+  if (state.protocol == protocol_t::eager_zcopy ||
+      state.protocol == protocol_t::rdv_zcopy ||
+      args.comp_semantic == comp_semantic_t::network ||
+      args.direction == direction_t::IN) {
+    state.internal_ctx->comp = state.local_comp;
+  }
   // We need to have valid memeory regions if all of the following conditions
   // are met:
   // 1. The protocol is zero-copy.
@@ -439,7 +449,7 @@ error_t post_network_op(const post_comm_args_t& args,
       }
       // end of bcopy protocol
     } else if (state.protocol == protocol_t::eager_zcopy) {
-      data_t& data = state.internal_ctx->data;
+      data_t& data = state.data;
       if (traits.local_buffer_only) {
         // zero-copy send
         error = args.endpoint.p_impl->post_send(
@@ -599,11 +609,22 @@ error_t post_network_op(const post_comm_args_t& args,
   return error;
 }
 
-void exit_handler(error_t error, const post_comm_args_t& args,
+void exit_handler(error_t error_, const post_comm_args_t& args,
                   post_comm_state_t& state)
 {
-  state.status.error = error;
-  if (error.is_retry()) {
+  state.status.error = error_;
+  if (state.protocol != protocol_t::recv) {
+    if (state.status.is_posted()) {
+      LCI_Assert(!state.internal_ctx->comp.is_empty(),
+                 "Internal error: the internal context comp object is empty "
+                 "while the operation is posted\n");
+    } else if (state.status.is_done()) {
+      LCI_Assert(!state.internal_ctx || state.internal_ctx->comp.is_empty(),
+                 "Internal error: the internal context comp object is not "
+                 "empty while the operation is done\n");
+    }
+  }
+  if (state.status.is_retry()) {
     LCI_DBG_Assert(args.allow_retry, "Unexpected retry\n");
     if (state.internal_ctx && state.internal_ctx->mr_on_the_fly) {
       deregister_data(state.internal_ctx->data);
@@ -613,28 +634,28 @@ void exit_handler(error_t error, const post_comm_args_t& args,
     }
     delete state.internal_ctx;
   }
-  if (error.is_posted() && !args.allow_posted) {
+  if (state.status.is_posted() && !args.allow_posted) {
     while (!sync_test(state.local_comp, &state.status)) {
       progress_x()
           .runtime(args.runtime)
           .device(args.device)
           .endpoint(args.endpoint)();
     }
-    error = errorcode_t::done;
+    state.status.set_done();
   }
   if (state.free_local_comp) {
     free_comp(&state.local_comp);
   }
-  if (error.is_done() && !args.allow_done) {
+  if (state.status.is_done() && !args.allow_done) {
     lci::comp_signal(state.local_comp, state.status);
     state.status.set_posted();
   }
-  if (error.is_done()) {
+  if (state.status.is_done()) {
     LCI_PCOUNTER_ADD(communicate_ok, 1);
-  } else if (error.is_posted()) {
+  } else if (state.status.is_posted()) {
     LCI_PCOUNTER_ADD(communicate_posted, 1);
   } else {
-    switch (error.errorcode) {
+    switch (state.status.error.errorcode) {
       case errorcode_t::retry_backlog:
         LCI_PCOUNTER_ADD(communicate_retry_backlog, 1);
         break;
