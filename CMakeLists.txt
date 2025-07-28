@@ -388,8 +388,15 @@ endif() # if(NOT LCI_WITH_LCT_ONLY)
 
 if(NOT LCI_ROOT_PROJECT)
   # For autofetch LCI
-  add_library(LCI::LCI ALIAS LCI)
-  add_library(LCI::lci ALIAS LCI)
+  add_library(LCI::LCT ALIAS LCT)
+  add_library(LCI::lct ALIAS LCT)
+  if(NOT LCI_WITH_LCT_ONLY)
+    add_library(LCI::LCI ALIAS LCI)
+    add_library(LCI::lci ALIAS LCI)
+  endif()
+  set(LCI_VERSION
+      ${LCI_VERSION}
+      PARENT_SCOPE)
 endif()
 
 # ##############################################################################
