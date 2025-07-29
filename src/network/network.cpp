@@ -84,7 +84,7 @@ net_context_t alloc_net_context_x::call_impl(
       break;
     case attr_backend_t::ucx:
 #ifdef LCI_BACKEND_ENABLE_UCX
-      throw std::runtime_error("UCX backend is not implemented\n");
+      LCI_Assert(false, "UCX backend is not implemented");
       // ret.p_impl = new ucx_net_context_impl_t(runtime, attr);
 #else
       LCI_Assert(false, "UCX backend is not enabled");

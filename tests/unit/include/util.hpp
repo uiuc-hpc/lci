@@ -1,6 +1,12 @@
 // Copyright (c) 2025 The LCI Project Authors
 // SPDX-License-Identifier: MIT
 
+#define KEEP_RETRY(status_var, stmt) \
+  do {                               \
+    status_var = stmt;               \
+    lci::progress();                 \
+  } while ((status_var).is_retry())
+
 namespace util
 {
 #if defined(__APPLE__)
@@ -29,6 +35,24 @@ void check_buffer(void* buffer, size_t size, const char a)
     if (tmp != a) {
     }
     ASSERT_EQ(tmp, a);
+  }
+}
+
+template <typename Fn, typename... Args>
+void spawn_threads(int nthreads, Fn&& fn, Args&&... args)
+{
+  if (nthreads == 1) {
+    fn(0, args...);
+    return;
+  }
+
+  std::vector<std::thread> threads;
+  for (int i = 0; i < nthreads; i++) {
+    std::thread t(fn, i, args...);
+    threads.push_back(std::move(t));
+  }
+  for (auto& t : threads) {
+    t.join();
   }
 }
 

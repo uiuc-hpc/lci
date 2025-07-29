@@ -5,306 +5,123 @@
 
 namespace test_comm_sendrecv
 {
-TEST(COMM_SENDRECV, sendrecv_bcopy_st)
+void test_sendrecv_worker_fn(int thread_id, int nmsgs, size_t msg_size,
+                             bool register_memory = false,
+                             bool expected_msg = true)
 {
-  lci::g_runtime_init();
-
-  const int nmsgs = 1000;
   int rank = lci::get_rank_me();
-  int nranks = lci::get_rank_n();
-  ASSERT_EQ(rank, 0);
-  ASSERT_EQ(nranks, 1);
-  // local cq
+  lci::tag_t tag = thread_id;
+
   lci::comp_t scq = lci::alloc_cq();
   lci::comp_t rcq = lci::alloc_cq();
-  // loopback message
+
+  void* send_buffer = malloc(msg_size);
+  void* recv_buffer = malloc(msg_size);
+  lci::mr_t send_mr, recv_mr;
+  if (register_memory) {
+    send_mr = lci::register_memory(send_buffer, msg_size);
+    recv_mr = lci::register_memory(recv_buffer, msg_size);
+  }
+
   for (int i = 0; i < nmsgs; i++) {
-    uint64_t data = 0xdeadbeef;
+    util::write_buffer(send_buffer, msg_size, 'a');
+    util::write_buffer(recv_buffer, msg_size, 'b');
+    bool poll_send = false, poll_recv = false;
     lci::status_t status;
-    do {
-      status = lci::post_recv(rank, &data, sizeof(data), 0, rcq);
-      lci::progress();
-    } while (status.is_retry());
-
-    do {
-      status = lci::post_send(rank, &data, sizeof(data), 0, scq);
-      lci::progress();
-    } while (status.is_retry());
-
-    bool send_done = false, recv_done = false;
-    if (status.is_done()) {
-      send_done = true;
+    if (expected_msg) {
+      KEEP_RETRY(status, lci::post_recv_x(rank, recv_buffer, msg_size, tag, rcq)
+                             .mr(recv_mr)());
+      if (status.is_posted()) {
+        poll_recv = true;
+      }
+      KEEP_RETRY(status, lci::post_send_x(rank, send_buffer, msg_size, tag, scq)
+                             .mr(send_mr)());
+      if (status.is_posted()) {
+        poll_send = true;
+      }
+    } else {
+      KEEP_RETRY(status, lci::post_send_x(rank, send_buffer, msg_size, tag, scq)
+                             .mr(send_mr)());
+      if (status.is_posted()) {
+        poll_send = true;
+      }
+      KEEP_RETRY(status, lci::post_recv_x(rank, recv_buffer, msg_size, tag, rcq)
+                             .mr(recv_mr)());
+      if (status.is_posted()) {
+        poll_recv = true;
+      }
     }
 
-    while (!send_done || !recv_done) {
-      lci::progress();
-      if (!send_done) {
+    if (poll_send) {
+      // poll send cq
+      do {
+        lci::progress();
         status = lci::cq_pop(scq);
-        if (status.is_done()) {
-          ASSERT_EQ(status.get_scalar<uint64_t>(), data);
-          send_done = true;
-        }
-      }
-      if (!recv_done) {
+      } while (status.is_retry());
+    }
+    // poll recv cq
+    if (poll_recv) {
+      do {
         status = lci::cq_pop(rcq);
-        if (status.is_done()) {
-          ASSERT_EQ(status.get_scalar<uint64_t>(), data);
-          recv_done = true;
-        }
-      }
+        lci::progress();
+      } while (status.is_retry());
     }
+    util::check_buffer(recv_buffer, msg_size, 'a');
   }
-
-  lci::free_comp(&rcq);
-  lci::free_comp(&scq);
-  lci::g_runtime_fina();
-}
-
-void test_sendrecv_bcopy_mt(int id, int nmsgs, uint64_t* p_data)
-{
-  int rank = lci::get_rank_me();
-  lci::tag_t tag = id;
-  // local cq
-  lci::comp_t scq = lci::alloc_cq();
-  lci::comp_t rcq = lci::alloc_cq();
-
-  for (int i = 0; i < nmsgs; i++) {
-    lci::status_t status;
-    do {
-      status = lci::post_recv(rank, p_data, sizeof(uint64_t), id, rcq);
-      lci::progress();
-    } while (status.is_retry());
-
-    do {
-      status = lci::post_send(rank, p_data, sizeof(uint64_t), id, scq);
-      lci::progress();
-    } while (status.is_retry());
-
-    bool send_done = false, recv_done = false;
-    if (status.is_done()) {
-      send_done = true;
-    }
-
-    while (!send_done || !recv_done) {
-      lci::progress();
-      if (!send_done) {
-        status = lci::cq_pop(scq);
-        if (status.is_done()) {
-          ASSERT_EQ(status.get_scalar<uint64_t>(), *p_data);
-          send_done = true;
-        }
-      }
-      if (!recv_done) {
-        status = lci::cq_pop(rcq);
-        if (status.is_done()) {
-          ASSERT_EQ(status.get_scalar<uint64_t>(), *p_data);
-          recv_done = true;
-        }
-      }
-    }
+  if (register_memory) {
+    lci::deregister_memory(&send_mr);
+    lci::deregister_memory(&recv_mr);
   }
+  free(send_buffer);
+  free(recv_buffer);
 
   lci::free_comp(&rcq);
   lci::free_comp(&scq);
 }
 
-TEST(COMM_SENDRECV, sendrecv_bcopy_mt)
+void test_sendrecv_common(int nthreads, int nmsgs, size_t msg_size,
+                          bool register_memory, bool expected_msg)
 {
-  lci::g_runtime_init();
-
-  const int nmsgs = util::NITERS;
-  const int nthreads = util::NTHREADS;
-  ASSERT_EQ(nmsgs % nthreads, 0);
-  int rank = lci::get_rank_me();
-  int nranks = lci::get_rank_n();
-  ASSERT_EQ(rank, 0);
-  ASSERT_EQ(nranks, 1);
-
-  uint64_t data = 0xdeadbeef;
-
-  std::vector<std::thread> threads;
-  for (int i = 0; i < nthreads; i++) {
-    std::thread t(test_sendrecv_bcopy_mt, i, nmsgs / nthreads, &data);
-    threads.push_back(std::move(t));
-  }
-  for (auto& t : threads) {
-    t.join();
-  }
-
-  lci::g_runtime_fina();
+  fprintf(stderr,
+          "test_sendrecv_common: nthreads=%d nmsgs=%d msg_size=%ld "
+          "register_memory=%d expected_msg=%d\n",
+          nthreads, nmsgs, msg_size, register_memory, expected_msg);
+  util::spawn_threads(nthreads, test_sendrecv_worker_fn, nmsgs, msg_size,
+                      register_memory, expected_msg);
 }
 
-TEST(COMM_SENDRECV, sendrecv_zcopy_eager_st)
+TEST(COMM_SENDRECV, sendrecv)
 {
   lci::g_runtime_init();
 
-  const int nmsgs = 1000;
-  int rank = lci::get_rank_me();
-  int nranks = lci::get_rank_n();
-  ASSERT_EQ(rank, 0);
-  ASSERT_EQ(nranks, 1);
-  // local cq
-  lci::comp_t scq = lci::alloc_cq();
-  lci::comp_t rcq = lci::alloc_cq();
-  // loopback message
-  size_t msg_size = lci::get_max_bcopy_size();
-  void* send_buffer = malloc(msg_size);
-  void* recv_buffer = malloc(msg_size);
-  lci::mr_t send_mr = lci::register_memory(send_buffer, msg_size);
-  util::write_buffer(send_buffer, msg_size, 'a');
+  const int nmsgs_total = 1000;
+  const size_t max_bcopy_size = lci::get_max_bcopy_size();
+  std::vector<size_t> msg_sizes = {0, 8, max_bcopy_size, max_bcopy_size + 1,
+                                   65536};
+  std::vector<int> nthreads = {1, 4};
 
-  for (int i = 0; i < nmsgs; i++) {
-    uint64_t data = 0xdeadbeef;
-    lci::status_t status;
-    do {
-      status = lci::post_recv(rank, recv_buffer, msg_size, i, rcq);
-      lci::progress();
-    } while (status.is_retry());
-    do {
-      status =
-          lci::post_send_x(rank, send_buffer, msg_size, i, scq).mr(send_mr)();
-      lci::progress();
-    } while (status.is_retry());
-
-    if (status.is_posted()) {
-      // poll send cq
-      do {
-        lci::progress();
-        status = lci::cq_pop(scq);
-      } while (status.is_retry());
+  // basic setting
+  for (auto& nthread : nthreads) {
+    for (auto& msg_size : msg_sizes) {
+      int nmsgs = nmsgs_total / nthread;
+      test_sendrecv_common(nthread, nmsgs, msg_size, false, true);
     }
-    // poll recv cq
-    do {
-      status = lci::cq_pop(rcq);
-      lci::progress();
-    } while (status.is_retry());
-    util::check_buffer(recv_buffer, msg_size, 'a');
   }
 
-  lci::deregister_memory(&send_mr);
-  free(send_buffer);
-  free(recv_buffer);
-  lci::free_comp(&rcq);
-  lci::free_comp(&rcq);
-  lci::g_runtime_fina();
-}
-
-TEST(COMM_SENDRECV, sendrecv_zcopy_rdv_st)
-{
-  lci::g_runtime_init();
-
-  const int nmsgs = 1000;
-  int rank = lci::get_rank_me();
-  int nranks = lci::get_rank_n();
-  ASSERT_EQ(rank, 0);
-  ASSERT_EQ(nranks, 1);
-  // local cq
-  lci::comp_t scq = lci::alloc_cq();
-  lci::comp_t rcq = lci::alloc_cq();
-  // loopback message
-  size_t msg_size = lci::get_max_bcopy_size() * 2;
-  void* send_buffer = malloc(msg_size);
-  void* recv_buffer = malloc(msg_size);
-  util::write_buffer(send_buffer, msg_size, 'a');
-
-  for (int i = 0; i < nmsgs; i++) {
-    uint64_t data = 0xdeadbeef;
-    lci::status_t status;
-    do {
-      status = lci::post_recv(rank, recv_buffer, msg_size, i, rcq);
-      lci::progress();
-    } while (status.is_retry());
-    do {
-      status = lci::post_send(rank, send_buffer, msg_size, i, scq);
-      lci::progress();
-    } while (status.is_retry());
-
-    if (status.is_posted()) {
-      // poll send cq
-      do {
-        lci::progress();
-        status = lci::cq_pop(scq);
-      } while (status.is_retry());
+  // register memory
+  for (auto& nthread : nthreads) {
+    for (auto& msg_size : msg_sizes) {
+      int nmsgs = nmsgs_total / nthread;
+      test_sendrecv_common(nthread, nmsgs, msg_size, true, true);
     }
-    // poll recv cq
-    do {
-      status = lci::cq_pop(rcq);
-      lci::progress();
-    } while (status.is_retry());
-    util::check_buffer(recv_buffer, msg_size, 'a');
   }
 
-  free(send_buffer);
-  free(recv_buffer);
-  lci::free_comp(&rcq);
-  lci::free_comp(&rcq);
-  lci::g_runtime_fina();
-}
-
-void test_sendrecv_zcopy_mt(int id, int nmsgs)
-{
-  int rank = lci::get_rank_me();
-  lci::tag_t tag = id;
-
-  lci::comp_t scq = lci::alloc_cq();
-  lci::comp_t rcq = lci::alloc_cq();
-  size_t msg_size = lci::get_max_bcopy_size() * 2;
-  void* send_buffer = malloc(msg_size);
-  void* recv_buffer = malloc(msg_size);
-  util::write_buffer(send_buffer, msg_size, 'a');
-
-  for (int i = 0; i < nmsgs; i++) {
-    uint64_t data = 0xdeadbeef;
-    lci::status_t status;
-    do {
-      status = lci::post_recv(rank, recv_buffer, msg_size, id, rcq);
-      lci::progress();
-    } while (status.is_retry());
-    do {
-      status = lci::post_send(rank, send_buffer, msg_size, id, scq);
-      lci::progress();
-    } while (status.is_retry());
-
-    if (status.is_posted()) {
-      // poll send cq
-      do {
-        lci::progress();
-        status = lci::cq_pop(scq);
-      } while (status.is_retry());
+  // unexpected recv
+  for (auto& nthread : nthreads) {
+    for (auto& msg_size : msg_sizes) {
+      int nmsgs = nmsgs_total / nthread;
+      test_sendrecv_common(nthread, nmsgs, msg_size, false, false);
     }
-    // poll recv cq
-    do {
-      status = lci::cq_pop(rcq);
-      lci::progress();
-    } while (status.is_retry());
-    util::check_buffer(recv_buffer, msg_size, 'a');
-  }
-
-  free(send_buffer);
-  free(recv_buffer);
-  lci::free_comp(&rcq);
-  lci::free_comp(&scq);
-}
-
-TEST(COMM_SENDRECV, sendrecv_zcopy_rdv_mt)
-{
-  lci::g_runtime_init();
-
-  const int nmsgs = util::NITERS_SMALL;
-  const int nthreads = util::NTHREADS;
-  ASSERT_EQ(nmsgs % nthreads, 0);
-  int rank = lci::get_rank_me();
-  int nranks = lci::get_rank_n();
-  ASSERT_EQ(rank, 0);
-  ASSERT_EQ(nranks, 1);
-
-  std::vector<std::thread> threads;
-  for (int i = 0; i < nthreads; i++) {
-    std::thread t(test_sendrecv_zcopy_mt, i, nmsgs / nthreads);
-    threads.push_back(std::move(t));
-  }
-  for (auto& t : threads) {
-    t.join();
   }
 
   lci::g_runtime_fina();

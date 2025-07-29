@@ -9,6 +9,7 @@
 #include "lci.hpp"
 #include "util.hpp"
 
+#include "test_idle.hpp"
 #include "test_basic.hpp"
 #include "test_network.hpp"
 #include "test_mpmc_array.hpp"

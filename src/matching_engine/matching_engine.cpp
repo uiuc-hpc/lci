@@ -33,7 +33,7 @@ matching_engine_t alloc_matching_engine_x::call_impl(
       matching_engine.p_impl = new matching_engine_queue_t(attr);
       break;
     default:
-      throw std::runtime_error("Invalid matching engine type");
+      LCI_Assert(false, "Invalid matching engine type");
   }
   matching_engine.get_impl()->register_rhandler(runtime);
   return matching_engine;

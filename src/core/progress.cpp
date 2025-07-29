@@ -82,7 +82,7 @@ void progress_recv(runtime_t runtime, endpoint_t endpoint,
       handle_rdv_fin(packet);
       break;
     default:
-      throw std::runtime_error("Not implemented");
+      LCI_Assert(false, "Unknown message type %d\n", msg_type);
   }
 }
 
@@ -157,7 +157,7 @@ void progress_remote_write(runtime_t runtime, const net_status_t& net_status)
     status.user_context = nullptr;
     reinterpret_cast<comp_impl_t*>(entry.value)->signal(std::move(status));
   } else {
-    throw std::runtime_error("Not implemented");
+    LCI_Assert(false, "Not implemented");
   }
 }
 

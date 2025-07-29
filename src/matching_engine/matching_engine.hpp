@@ -50,7 +50,7 @@ inline matching_engine_impl_t::key_t matching_engine_impl_t::make_key(
       key = set_bits64(key, tag, 32, 0);
       break;
     default:
-      throw std::runtime_error("Unknown matching policy");
+      LCI_Assert(false, "Unknown matching policy");
   }
   return key;
 }
