@@ -73,6 +73,7 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
                  (void*)wcs[i].wr_id);
       if (!p_statuses) continue;
       net_status_t& status = p_statuses[i];
+      memset(&status, 0, sizeof(status));
       if (wcs[i].opcode == IBV_WC_RECV) {
         status.opcode = net_opcode_t::RECV;
         status.user_context = (void*)wcs[i].wr_id;

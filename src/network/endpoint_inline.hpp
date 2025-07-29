@@ -30,7 +30,6 @@ inline error_t endpoint_impl_t::post_sends(int rank, void* buffer, size_t size,
     }
   } else {
     LCI_PCOUNTER_ADD(net_send_post, 1);
-    LCI_PCOUNTER_ADD(net_send_comp, 1);
   }
   LCI_DBG_Log(LOG_TRACE, "network",
               "post_sends rank %d buffer %p size %lu imm_data %x allow_retry "

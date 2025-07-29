@@ -70,6 +70,7 @@ struct post_comm_state_t {
   protocol_t protocol = protocol_t::none;
   comp_t local_comp = COMP_NULL;
   bool free_local_comp = false;
+  bool comp_passed_to_network = false;
   status_t status;
   data_t data;
 };
@@ -376,6 +377,9 @@ void set_internal_ctx(const post_comm_args_t& args, const post_comm_traits_t&,
     LCI_Assert(!state.local_comp.is_empty(),
                "Local completion object is empty\n");
     state.internal_ctx->comp = state.local_comp;
+    state.comp_passed_to_network = true;
+  } else {
+    state.comp_passed_to_network = false;
   }
   // We need to have valid memeory regions if all of the following conditions
   // are met:
@@ -395,7 +399,6 @@ void set_status(const post_comm_args_t& args, const post_comm_traits_t&,
                 post_comm_state_t& state)
 {
   status_t status;
-  status.set_done();
   status.rank = args.rank;
   status.tag = args.tag;
   status.user_context = args.user_context;
@@ -518,7 +521,6 @@ error_t post_network_op(const post_comm_args_t& args,
                    "The rts message is too large\n");
         p_rts = static_cast<rts_msg_t*>(state.packet->get_payload_address());
         rts_ctx = new internal_context_t;
-        rts_ctx->packet_to_free = state.packet;
       }
       p_rts->send_ctx = (uintptr_t)state.internal_ctx;
       p_rts->rdv_type = rdv_type_t::single;
@@ -552,7 +554,7 @@ error_t post_network_op(const post_comm_args_t& args,
     /**********************************************************************************
      * direction in
      **********************************************************************************/
-    if (traits.local_buffer_only) {
+    if (state.protocol == protocol_t::recv) {
       // recv
       error = errorcode_t::posted;
       LCI_DBG_Assert(state.internal_ctx->packet_to_free == nullptr,
@@ -575,9 +577,9 @@ error_t post_network_op(const post_comm_args_t& args,
         handle_matched_sendrecv(args.runtime, args.endpoint,
                                 reinterpret_cast<packet_t*>(ret),
                                 state.internal_ctx, &state.status);
-        error = errorcode_t::done;
+        error = state.status.error;
       }
-    } else /* !local_buffer_only */ {
+    } else {
       // get
       if (state.protocol == protocol_t::eager_bcopy) {
         // buffer-copy
@@ -622,11 +624,20 @@ error_t post_network_op(const post_comm_args_t& args,
 void exit_handler(error_t error_, const post_comm_args_t& args,
                   post_comm_state_t& state)
 {
+  // We should not access to the internal context after this point
+  // if the error is not retry, as it might be freed by the network progress
+  // function
   state.status.error = error_;
-  if (state.protocol != protocol_t::recv && state.status.is_done()) {
-    LCI_Assert(!state.internal_ctx || state.internal_ctx->comp.is_empty(),
-               "Internal error: the internal context comp object is not "
-               "empty while the operation is done\n");
+  if (state.protocol != protocol_t::recv) {
+    if (state.status.is_done()) {
+      LCI_Assert(!state.comp_passed_to_network,
+                 "Internal error: the internal context comp object is passed "
+                 "to network while the operation is done\n");
+    } else if (state.status.is_posted()) {
+      LCI_Assert(state.comp_passed_to_network,
+                 "Internal error: the internal context comp object is not "
+                 "passed to the network while the operation is posted\n");
+    }
   }
   if (state.status.is_retry()) {
     LCI_DBG_Assert(args.allow_retry, "Unexpected retry\n");

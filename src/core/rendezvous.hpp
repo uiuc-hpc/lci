@@ -41,6 +41,9 @@ inline void handle_matched_sendrecv(runtime_t runtime, endpoint_t endpoint,
     }
   } else {
     handle_rdv_rts_common(runtime, endpoint, packet, recv_ctx);
+    if (p_status) {
+      p_status->set_posted();
+    }
   }
 }
 
