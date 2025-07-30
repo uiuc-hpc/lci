@@ -51,7 +51,8 @@ jobs:
       - run:
           name: Running CTest
           command: |
-            ulimit -c unlimited
+            ulimit -c unlimited 
+            export LCI_ATTR_OFI_PROVIDER_NAME=sockets
             export LCT_PMI_BACKEND=local
             ctest --extra-verbose --timeout 1200 \
                   --test-dir lci/build \

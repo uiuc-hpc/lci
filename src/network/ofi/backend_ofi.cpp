@@ -56,6 +56,10 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   struct fi_info* all_infos;
   FI_SAFECALL(
       fi_getinfo(FI_VERSION(1, 6), nullptr, nullptr, 0, hints, &all_infos));
+  // Get libfabric version.
+  uint32_t v = fi_version();
+  int major = FI_MAJOR(v);
+  int minor = FI_MINOR(v);
   // According to the libfabric documentation, fi_getinfo call should
   // return the endpoints that are highest performing first.
   // But it appears cxi provider doesn't follow this rule,
@@ -124,9 +128,18 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
         attr.max_msg_size, attr.max_msg_size);
   }
 
-  if (std::string(ofi_info->fabric_attr->prov_name) == "cxi") {
+  std::string prov_name = ofi_info->fabric_attr->prov_name;
+  if (prov_name == "cxi") {
     // The CXI provider does not support write with immediate data.
     attr.support_putimm = false;
+  } else if (prov_name == "tcp" || prov_name.rfind("tcp;", 0) == 0) {
+    if (major < 1 || (major == 1 && minor < 12)) {
+      LCI_Warn(
+          "TCP provider with libfabric < 1.12 has issues with small-size put "
+          "with signal. Please consider upgrading libfabric to >= 1.12 or "
+          "switch to another provider by setting the env variable "
+          "LCI_OFI_PROVIDER_HINT_DEFAULT.\n");
+    }
   }
 }
 
