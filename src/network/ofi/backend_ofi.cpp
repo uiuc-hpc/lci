@@ -139,6 +139,7 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
           "with signal. Please consider upgrading libfabric to >= 1.12 or "
           "switch to another provider by setting the env variable "
           "LCI_OFI_PROVIDER_HINT_DEFAULT.\n");
+      attr.support_putimm = false;
     }
   }
 }
