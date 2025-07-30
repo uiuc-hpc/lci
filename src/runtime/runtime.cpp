@@ -20,6 +20,7 @@ runtime_t alloc_runtime_x::call_impl(size_t packet_return_threshold,
   LCI_Assert(imm_nbits_tag + imm_nbits_rcomp <= 31,
              "imm_nbits_tag + imm_nbits_rcomp should be less than 31!\n");
   runtime_t::attr_t attr;
+  memset(&attr, 0, sizeof(attr));
   // attr.use_reg_cache = use_reg_cache;
   // attr.use_control_channel = use_control_channel;
   attr.packet_return_threshold = packet_return_threshold;
@@ -54,6 +55,7 @@ void g_runtime_init_x::call_impl(size_t packet_return_threshold,
   LCI_Assert(imm_nbits_tag + imm_nbits_rcomp <= 31,
              "imm_nbits_tag + imm_nbits_rcomp should be less than 31!\n");
   runtime_t::attr_t attr;
+  memset(&attr, 0, sizeof(attr));
   // attr.use_reg_cache = use_reg_cache;
   // attr.use_control_channel = use_control_channel;
   attr.packet_return_threshold = packet_return_threshold;
