@@ -36,7 +36,6 @@
 #include "data_structure/mpmc_array.hpp"
 #include "data_structure/mpmc_set.hpp"
 #include "matching_engine/matching_engine.hpp"
-#include "core/data.hpp"
 #include "rhandler_registry/rhandler_registry.hpp"
 #include "global/global.hpp"
 #include "core/protocol.hpp"
