@@ -465,6 +465,12 @@ struct allocator_base_t {
   virtual ~allocator_base_t() = default;
 };
 
+struct allocator_default_t : public allocator_base_t {
+  void* allocate(size_t size) { return malloc(size); }
+  void deallocate(void* ptr) { free(ptr); }
+};
+extern allocator_default_t g_allocator_default;
+
 /**
  * @ingroup LCI_BASIC
  * @brief A generic type for describing or holding data.
@@ -493,109 +499,15 @@ struct allocator_base_t {
  * `get_scalar` always uses the *copy* semantic.
  */
 struct data_t {
-  static const int MAX_SCALAR_SIZE = 23;
-  enum type_t {
-    LCI_DATA_TYPE_NONE,
-    LCI_DATA_TYPE_SCALAR,
-    LCI_DATA_TYPE_BUFFER,
-    LCI_DATA_TYPE_BUFFERS,
-  };
-  // FIXME: It is a undefined behavior to access multiple union members at the
-  // same time
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wnested-anon-types"
-#endif
-  union {
-    struct {
-      // common fields
-      type_t type : 2;
-      bool own_data : 1;
-    } common;
-    struct {
-      type_t type : 2;
-      bool own_data : 1;
-      uint8_t size : 5;
-      char data[MAX_SCALAR_SIZE];
-    } scalar;
-    struct {
-      type_t type : 2;
-      bool own_data : 1;
-      size_t size : 61;
-      void* base;
-      mr_t mr;
-    } buffer;
-    struct {
-      type_t type : 2;
-      bool own_data : 1;
-      size_t count;
-      buffer_t* buffers;
-    } buffers;
-  };
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
+  buffer_t buffer;
   data_t();
-  data_t(buffer_t buffer_, bool own_data_ = false);
-  data_t(buffers_t buffers_, bool own_data_ = false);
+  data_t(buffer_t buffer_);
   data_t(size_t size, allocator_base_t* allocator = nullptr);
-  data_t(size_t sizes[], int count, allocator_base_t* allocator = nullptr);
-  data_t(const data_t& other);
-  data_t(data_t&& other);
-  data_t& operator=(data_t other);
-  friend void swap(data_t& first, data_t& second);
-
-  type_t get_type() const { return common.type; }
-  void set_type(type_t type_) { common.type = type_; }
-  bool get_own_data() const { return common.own_data; }
-  void set_own_data(bool own_data_) { common.own_data = own_data_; }
-
-  bool is_scalar() const { return get_type() == LCI_DATA_TYPE_SCALAR; }
-  bool is_buffer() const { return get_type() == LCI_DATA_TYPE_BUFFER; }
-  bool is_buffers() const { return get_type() == LCI_DATA_TYPE_BUFFERS; }
 
   void copy_from(const void* data_, size_t size,
                  allocator_base_t* allocator_ = nullptr);
-  void copy_from(const buffers_t& buffers_,
-                 allocator_base_t* allocator_ = nullptr);
 
-  /**
-   * @brief Enum class of get semantic.
-   * @details The get semantic is used to optimize the memory copy behavior when
-   * users get the data from the `data` object.
-   */
-  enum class get_semantic_t {
-    move, /**< need to free the returned buffer; can only call get once. */
-    copy, /**< need to free the returned buffer; can call get multiple times. */
-    view, /**< no need to free the returned buffer; can call get multiple times.
-           */
-  };
-
-  /**
-   * @brief Get the scalar data from the `data` object.
-   * @tparam T The type of the scalar data.
-   * @return The scalar data.
-   * @details The function always uses the copy semantic.
-   */
-  template <typename T>
-  T get_scalar(/* always copy semantic */) const;
-  /**
-   * @brief Get the buffer from the `data` object.
-   * @param semantic The get semantic to use.
-   * @return The buffer.
-   */
-  buffer_t get_buffer(get_semantic_t semantic = get_semantic_t::move);
-  /**
-   * @brief Get the number of buffers from the `data` object.
-   * @return The number of buffers.
-   */
-  size_t get_buffers_count() const;
-  /**
-   * @brief Get the buffers from the `data` object.
-   * @param semantic The get semantic to use.
-   * @return The buffers.
-   */
-  buffers_t get_buffers(get_semantic_t semantic = get_semantic_t::move);
+  buffer_t get_buffer();
 };
 
 /**
@@ -620,16 +532,7 @@ struct status_t {
   bool is_done() const { return error.is_done(); }
   bool is_posted() const { return error.is_posted(); }
   bool is_retry() const { return error.is_retry(); }
-  template <typename T>
-  T get_scalar() const
-  {
-    return data.get_scalar<T>();
-  }
   buffer_t get_buffer() { return data.get_buffer(); }
-  buffers_t get_buffers() { return data.get_buffers(); }
-  bool is_scalar() const { return data.is_scalar(); }
-  bool is_buffer() const { return data.is_buffer(); }
-  bool is_buffers() const { return data.is_buffers(); }
 };
 
 /**
@@ -835,32 +738,16 @@ graph_node_t graph_add_node_op(comp_t graph, const T& op)
  **********************************************************************/
 inline data_t::data_t()
 {
-  set_type(LCI_DATA_TYPE_NONE);
-  set_own_data(false);
   static_assert(sizeof(data_t) == 24, "data_t size is not 24 bytes");
 }
-inline data_t::data_t(buffer_t buffer_, bool own_data_)
+inline data_t::data_t(buffer_t buffer_)
 {
-  set_type(LCI_DATA_TYPE_BUFFER);
-  set_own_data(own_data_);
   buffer.base = buffer_.base;
   buffer.size = buffer_.size;
   buffer.mr = buffer_.mr;
 }
-inline data_t::data_t(buffers_t buffers_, bool own_data_)
-{
-  set_type(LCI_DATA_TYPE_BUFFERS);
-  set_own_data(own_data_);
-  buffers.count = buffers_.size();
-  buffers.buffers = new buffer_t[buffers.count];
-  for (size_t i = 0; i < buffers.count; i++) {
-    buffers.buffers[i] = buffers_[i];
-  }
-}
 inline data_t::data_t(size_t size, allocator_base_t* allocator)
 {
-  set_type(LCI_DATA_TYPE_BUFFER);
-  set_own_data(true);
   if (allocator) {
     buffer.base = allocator->allocate(size);
   } else {
@@ -869,211 +756,20 @@ inline data_t::data_t(size_t size, allocator_base_t* allocator)
   buffer.size = size;
   buffer.mr = mr_t();
 }
-inline data_t::data_t(size_t sizes[], int count, allocator_base_t* allocator)
-{
-  set_type(LCI_DATA_TYPE_BUFFERS);
-  set_own_data(true);
-  buffers.count = count;
-  buffers.buffers = new buffer_t[buffers.count];
-  for (int i = 0; i < count; i++) {
-    if (allocator) {
-      buffers.buffers[i].base = allocator->allocate(sizes[i]);
-    } else {
-      buffers.buffers[i].base = malloc(sizes[i]);
-    }
-    buffers.buffers[i].size = sizes[i];
-    buffers.buffers[i].mr = mr_t();
-  }
-}
-// copy constructor
-inline data_t::data_t(const data_t& other)
-{
-  set_type(other.get_type());
-  bool own_data = other.get_own_data();
-  set_own_data(own_data);
-  if (own_data)
-    fprintf(stderr, "Copying buffer with own_data=true is not recommended\n");
-  if (other.is_scalar()) {
-    scalar.size = other.scalar.size;
-    memcpy(scalar.data, other.scalar.data, scalar.size);
-  } else if (other.is_buffer()) {
-    buffer = other.buffer;
-    if (own_data) {
-      buffer.base = malloc(other.buffer.size);
-      memcpy(buffer.base, other.buffer.base, other.buffer.size);
-    }
-  } else if (other.is_buffers()) {
-    buffers.count = other.buffers.count;
-    buffers.buffers = new buffer_t[buffers.count];
-    for (size_t i = 0; i < buffers.count; i++) {
-      buffers.buffers[i] = other.buffers.buffers[i];
-      if (own_data) {
-        buffers.buffers[i].base = malloc(other.buffers.buffers[i].size);
-        memcpy(buffers.buffers[i].base, other.buffers.buffers[i].base,
-               other.buffers.buffers[i].size);
-      }
-    }
-  }
-}
-// move constructor
-inline data_t::data_t(data_t&& other)
-{
-  set_type(other.get_type());
-  set_own_data(other.get_own_data());
-  if (other.is_scalar()) {
-    scalar.size = other.scalar.size;
-    memcpy(scalar.data, other.scalar.data, scalar.size);
-  } else if (other.is_buffer()) {
-    buffer = other.buffer;
-    other.set_own_data(false);
-  } else if (other.is_buffers()) {
-    buffers.count = other.buffers.count;
-    buffers.buffers = other.buffers.buffers;
-    other.set_own_data(false);
-    other.buffers.buffers = nullptr;
-  }
-}
-// generic assignment operator
-inline data_t& data_t::operator=(data_t other)
-{
-  swap(*this, other);
-  return *this;
-}
-
-inline void swap(data_t& first, data_t& second)
-{
-  char* buf = (char*)malloc(sizeof(data_t));
-#if defined(__GNUC__) && !defined(__clang__) && !defined(__NVCC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wclass-memaccess"
-#endif
-  memcpy(buf, &first, sizeof(data_t));
-  memcpy(&first, &second, sizeof(data_t));
-  memcpy(&second, buf, sizeof(data_t));
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
-  free(buf);
-}
 
 inline void data_t::copy_from(const void* data_, size_t size,
                               allocator_base_t* allocator)
 {
-  if (size <= MAX_SCALAR_SIZE) {
-    set_type(LCI_DATA_TYPE_SCALAR);
-    set_own_data(true);
-    scalar.size = size;
-    if (size > 0) memcpy(scalar.data, data_, size);
+  if (allocator) {
+    buffer.base = allocator->allocate(size);
   } else {
-    set_type(LCI_DATA_TYPE_BUFFER);
-    set_own_data(true);
-    if (allocator) {
-      buffer.base = allocator->allocate(size);
-    } else {
-      buffer.base = malloc(size);
-    }
-    memcpy(buffer.base, data_, size);
-    buffer.size = size;
+    buffer.base = malloc(size);
   }
+  memcpy(buffer.base, data_, size);
+  buffer.size = size;
 }
 
-inline void data_t::copy_from(const buffers_t& buffers_,
-                              allocator_base_t* allocator)
-{
-  set_type(LCI_DATA_TYPE_BUFFERS);
-  set_own_data(true);
-  buffers.count = buffers_.size();
-  buffers.buffers = new buffer_t[buffers.count];
-  for (size_t i = 0; i < buffers.count; i++) {
-    buffers.buffers[i].size = buffers_[i].size;
-    if (allocator) {
-      buffers.buffers[i].base = allocator->allocate(buffers_[i].size);
-    } else {
-      buffers.buffers[i].base = malloc(buffers_[i].size);
-    }
-    memcpy(buffers.buffers[i].base, buffers_[i].base, buffers_[i].size);
-  }
-}
-
-template <typename T>
-T data_t::get_scalar(/* always copy semantic */) const
-{
-  // We still keep the ownership of the data
-  if (is_buffer()) {
-    if (buffer.size != sizeof(T)) {
-      throw std::runtime_error("Buffer size does not match scalar size");
-    }
-    return *reinterpret_cast<const T*>(buffer.base);
-  } else if (is_scalar()) {
-    if (sizeof(T) > scalar.size) {
-      throw std::runtime_error("No enough data to fit the scalar.");
-    }
-    return *reinterpret_cast<const T*>(scalar.data);
-  } else {
-    throw std::runtime_error("Cannot convert to a scalar");
-  }
-}
-
-inline buffer_t data_t::get_buffer(get_semantic_t semantic)
-{
-  buffer_t ret;
-  if (is_scalar()) {
-    if (semantic == get_semantic_t::move || semantic == get_semantic_t::copy) {
-      ret.size = scalar.size;
-      ret.base = malloc(scalar.size);
-      memcpy(ret.base, scalar.data, scalar.size);
-    } else {
-      ret = buffer_t(scalar.data, scalar.size);
-    }
-  } else if (is_buffer()) {
-    if (semantic == get_semantic_t::copy && get_own_data()) {
-      ret.size = buffer.size;
-      ret.base = malloc(buffer.size);
-      memcpy(ret.base, buffer.base, buffer.size);
-    } else {
-      ret = buffer_t(buffer.base, buffer.size, buffer.mr);
-    }
-  } else {
-    throw std::runtime_error("Cannot convert to a buffer");
-  }
-  if (semantic == get_semantic_t::move && get_own_data()) {
-    set_own_data(false);
-    set_type(LCI_DATA_TYPE_NONE);
-  }
-  return ret;
-}
-
-inline size_t data_t::get_buffers_count() const
-{
-  if (!is_buffers()) {
-    throw std::runtime_error("Not a buffers");
-  }
-  return buffers.count;
-}
-
-inline buffers_t data_t::get_buffers(get_semantic_t semantic)
-{
-  if (!is_buffers()) {
-    throw std::runtime_error("Not buffers");
-  }
-  if (semantic == get_semantic_t::move && get_own_data()) {
-    set_own_data(false);
-    set_type(LCI_DATA_TYPE_NONE);
-  }
-  buffers_t ret;
-  for (size_t i = 0; i < buffers.count; i++) {
-    if (semantic == get_semantic_t::copy && get_own_data()) {
-      buffer_t buffer;
-      buffer.size = buffers.buffers[i].size;
-      buffer.base = malloc(buffer.size);
-      memcpy(buffer.base, buffers.buffers[i].base, buffer.size);
-      ret.push_back(buffer);
-    } else {
-      ret.push_back(buffers.buffers[i]);
-    }
-  }
-  return ret;
-}
+inline buffer_t data_t::get_buffer() { return buffer; }
 
 }  // namespace lci
 

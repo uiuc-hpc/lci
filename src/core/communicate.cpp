@@ -40,8 +40,6 @@ struct post_comm_args_t {
   tag_t tag;
   rcomp_t remote_comp;
   void* user_context;
-  buffers_t buffers;
-  rbuffers_t rbuffers;
   matching_policy_t matching_policy;
   bool allow_done;
   bool allow_posted;
@@ -52,7 +50,6 @@ struct post_comm_args_t {
 struct post_comm_traits_t {
   bool local_buffer_only;
   bool local_comp_only;
-  bool is_single_buffer;
   bool is_recv;
   size_t max_inject_size;
   size_t max_bcopy_size;
@@ -89,8 +86,6 @@ void preprocess_args(post_comm_args_t& args)
 #ifdef LCI_USE_CUDA
   if (args.mr == MR_UNKNOWN) {
     // if the mr is unknown, we need to determine the location of the buffer
-    LCI_Assert(args.buffers.empty(),
-               "The MR_UNKNOWN should only be used with a single buffer\n");
     accelerator::buffer_attr_t attr =
         accelerator::get_buffer_attr(args.local_buffer);
     if (attr.type == accelerator::buffer_type_t::HOST) {
@@ -109,9 +104,8 @@ void preprocess_args(post_comm_args_t& args)
 post_comm_traits_t validate_and_get_traits(const post_comm_args_t& args)
 {
   post_comm_traits_t traits;
-  traits.local_buffer_only = args.rmr.is_empty() && args.rbuffers.empty();
+  traits.local_buffer_only = args.rmr.is_empty();
   traits.local_comp_only = args.remote_comp == 0;
-  traits.is_single_buffer = args.buffers.empty();
   traits.is_recv =
       args.direction == direction_t::IN && traits.local_buffer_only;
   traits.max_inject_size =
@@ -121,18 +115,9 @@ post_comm_traits_t validate_and_get_traits(const post_comm_args_t& args)
                               .packet_pool(args.packet_pool)();
 
   // basic checks
-  // buffer and buffers should not be used at the same time
   LCI_Assert(args.allow_posted || args.allow_done,
              "At least one of allow_posted and allow_done should be true\n");
   LCI_Assert(args.force_zcopy == false, "force_zcopy is not supported\n");
-  if (!args.buffers.empty()) {
-    LCI_Assert(args.local_buffer == nullptr,
-               "The local buffer should be nullptr\n");
-    LCI_Assert(args.size == 0, "The size should be 0\n");
-    LCI_Assert(
-        args.rbuffers.empty() || args.buffers.size() == args.rbuffers.size(),
-        "The number of buffers and rbuffers should be the same\n");
-  }
   LCI_Assert(!(args.direction == direction_t::IN && traits.local_buffer_only &&
                !traits.local_comp_only),
              "invalid communication primitive\n");
@@ -180,15 +165,13 @@ void set_protocol(const post_comm_args_t& args,
   if (args.direction == direction_t::IN && traits.local_buffer_only) {
     state.protocol = protocol_t::recv;
   } else if (args.direction == direction_t::OUT && traits.local_buffer_only &&
-             (msg_size_if_eager > traits.max_bcopy_size ||
-              !traits.is_single_buffer)) {
+             (msg_size_if_eager > traits.max_bcopy_size)) {
     // We use the rendezvous protocol if
     // 1. we are doing a send/am, and
     // 1.1 The size of the data is larger than the maximum buffer-copy size, or
     // 1.2 We are sending multiple buffers
     state.protocol = protocol_t::rdv_zcopy;
-  } else if (traits.is_single_buffer &&
-             msg_size_if_eager <= traits.max_inject_size &&
+  } else if (msg_size_if_eager <= traits.max_inject_size &&
              args.direction == direction_t::OUT &&
              args.comp_semantic == comp_semantic_t::buffer) {
     // We use the inject protocol only if the five conditions are met:
@@ -197,8 +180,7 @@ void set_protocol(const post_comm_args_t& args,
     // 3. The direction is OUT, and
     // 4. The completion type is buffer.
     state.protocol = protocol_t::inject;
-  } else if (args.mr.is_empty() && msg_size_if_eager <= traits.max_bcopy_size &&
-             traits.is_single_buffer) {
+  } else if (args.mr.is_empty() && msg_size_if_eager <= traits.max_bcopy_size) {
     state.protocol = protocol_t::eager_bcopy;
     if (msg_size_if_eager > args.size) {
       state.piggyback_tag_rcomp_in_msg = true;
@@ -342,15 +324,11 @@ error_t check_backlog(const post_comm_args_t& args, const post_comm_traits_t&,
 
 // state in: none
 // state out: data
-void set_data(const post_comm_args_t& args, const post_comm_traits_t& traits,
+void set_data(const post_comm_args_t& args, const post_comm_traits_t&,
               post_comm_state_t& state)
 {
   data_t data;
-  if (traits.is_single_buffer) {
-    data = data_t(buffer_t(args.local_buffer, args.size, args.mr));
-  } else {
-    data = data_t(args.buffers);
-  }
+  data = data_t(buffer_t(args.local_buffer, args.size, args.mr));
   state.data = data;
 }
 
@@ -386,10 +364,14 @@ void set_internal_ctx(const post_comm_args_t& args, const post_comm_traits_t&,
   // 1. The protocol is zero-copy.
   // Note: mr for zero-copy send/recv will be handled in the rendezvous
   // protocol.
-  if (state.protocol == protocol_t::eager_zcopy) {
-    state.internal_ctx->mr_on_the_fly =
-        register_data(state.internal_ctx->data, args.device);
-    state.data = state.internal_ctx->data;
+  if (state.protocol == protocol_t::eager_zcopy &&
+      state.data.buffer.mr.is_empty()) {
+    state.internal_ctx->data.buffer.mr =
+        register_memory_x(state.data.buffer.base, state.data.buffer.size)
+            .runtime(args.runtime)
+            .device(args.device)();
+    state.internal_ctx->mr_on_the_fly = true;
+    state.data.buffer.mr = state.internal_ctx->data.buffer.mr;
   }
 }
 
@@ -470,40 +452,15 @@ error_t post_network_op(const post_comm_args_t& args,
             state.imm_data, state.internal_ctx, args.allow_retry);
       } else {
         // zero-copy put
-        if (data.is_buffer()) {
-          if (!state.rhandler) {
-            error = args.endpoint.p_impl->post_put(
-                args.rank, data.buffer.base, data.buffer.size, data.buffer.mr,
-                args.remote_disp, args.rmr, state.internal_ctx,
-                args.allow_retry);
-          } else {
-            error = args.endpoint.p_impl->post_putImm(
-                args.rank, data.buffer.base, data.buffer.size, data.buffer.mr,
-                args.remote_disp, args.rmr, state.imm_data, state.internal_ctx,
-                args.allow_retry);
-          }
+        if (!state.rhandler) {
+          error = args.endpoint.p_impl->post_put(
+              args.rank, data.buffer.base, data.buffer.size, data.buffer.mr,
+              args.remote_disp, args.rmr, state.internal_ctx, args.allow_retry);
         } else {
-          auto extended_ctx = new internal_context_extended_t;
-          extended_ctx->internal_ctx = state.internal_ctx;
-          extended_ctx->signal_count = data.get_buffers_count();
-          if (state.rhandler) {
-            extended_ctx->imm_data_rank = args.rank;
-            extended_ctx->imm_data = state.imm_data;
-          }
-          bool allow_retry = args.allow_retry;
-          for (size_t i = 0; i < data.buffers.count; i++) {
-            if (i > 0) allow_retry = false;
-            error = args.endpoint.p_impl->post_put(
-                args.rank, data.buffers.buffers[i].base,
-                data.buffers.buffers[i].size, data.buffers.buffers[i].mr,
-                args.rbuffers[i].disp, args.rbuffers[i].rmr, extended_ctx,
-                allow_retry);
-            if (i == 0 && error.is_retry()) {
-              delete extended_ctx;
-              return error;
-            }
-            LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);
-          }
+          error = args.endpoint.p_impl->post_putImm(
+              args.rank, data.buffer.base, data.buffer.size, data.buffer.mr,
+              args.remote_disp, args.rmr, state.imm_data, state.internal_ctx,
+              args.allow_retry);
         }
         // end of zero-copy put
       }
@@ -511,35 +468,30 @@ error_t post_network_op(const post_comm_args_t& args,
       // rendezvous send
       // build the rts message
       internal_context_t* rts_ctx = nullptr;
-      data_t& data = state.data;
-      size_t rts_size = rts_msg_t::get_size(data);
       rts_msg_t* p_rts;
-      if (rts_size <= traits.max_inject_size) {
-        p_rts = reinterpret_cast<rts_msg_t*>(malloc(rts_size));
+      if (sizeof(rts_msg_t) <= traits.max_inject_size) {
+        p_rts = reinterpret_cast<rts_msg_t*>(malloc(sizeof(rts_msg_t)));
       } else {
-        LCI_Assert(rts_size <= traits.max_bcopy_size,
+        LCI_Assert(sizeof(rts_msg_t) <= traits.max_bcopy_size,
                    "The rts message is too large\n");
         p_rts = static_cast<rts_msg_t*>(state.packet->get_payload_address());
         rts_ctx = new internal_context_t;
       }
       p_rts->send_ctx = (uintptr_t)state.internal_ctx;
-      p_rts->rdv_type = rdv_type_t::single;
       p_rts->tag = args.tag;
       p_rts->rcomp = state.rhandler;
-      if (traits.is_single_buffer) {
-        p_rts->load_buffer(state.size);
-      } else {
-        p_rts->load_buffers(args.buffers);
-      }
+      p_rts->size = state.size;
       // post send for the rts message
-      if (rts_size <= traits.max_inject_size) {
+      if (sizeof(rts_msg_t) <= traits.max_inject_size) {
         error = args.endpoint.p_impl->post_sends(
-            args.rank, p_rts, rts_size, state.imm_data, args.allow_retry);
+            args.rank, p_rts, sizeof(rts_msg_t), state.imm_data,
+            args.allow_retry);
         free(p_rts);
       } else {
         error = args.endpoint.p_impl->post_send(
-            args.rank, p_rts, rts_size, state.packet->get_mr(args.device),
-            state.imm_data, rts_ctx, args.allow_retry);
+            args.rank, p_rts, sizeof(rts_msg_t),
+            state.packet->get_mr(args.device), state.imm_data, rts_ctx,
+            args.allow_retry);
       }
       if (error.is_retry()) {
         delete rts_ctx;
@@ -590,30 +542,9 @@ error_t post_network_op(const post_comm_args_t& args,
       } else {
         // zero-copy
         data_t& data = state.internal_ctx->data;
-        if (data.is_buffer()) {
-          error = args.endpoint.p_impl->post_get(
-              args.rank, data.buffer.base, data.buffer.size, data.buffer.mr,
-              args.remote_disp, args.rmr, state.internal_ctx, args.allow_retry);
-        } else {
-          auto extended_ctx = new internal_context_extended_t;
-          extended_ctx->internal_ctx = state.internal_ctx;
-          extended_ctx->signal_count = data.get_buffers_count();
-          bool allow_retry = args.allow_retry;
-          for (size_t i = 0; i < data.buffers.count; i++) {
-            if (i > 0) allow_retry = false;
-            error = args.endpoint.p_impl->post_get(
-                args.rank, data.buffers.buffers[i].base,
-                data.buffers.buffers[i].size, data.buffers.buffers[i].mr,
-                args.rbuffers[i].disp, args.rbuffers[i].rmr, extended_ctx,
-                allow_retry);
-            if (i == 0 && error.is_retry()) {
-              delete extended_ctx;
-              return error;
-            } else {
-              LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);
-            }
-          }
-        }
+        error = args.endpoint.p_impl->post_get(
+            args.rank, data.buffer.base, data.buffer.size, data.buffer.mr,
+            args.remote_disp, args.rmr, state.internal_ctx, args.allow_retry);
       }
     }
     // end of direction in
@@ -642,7 +573,8 @@ void exit_handler(error_t error_, const post_comm_args_t& args,
   if (state.status.is_retry()) {
     LCI_DBG_Assert(args.allow_retry, "Unexpected retry\n");
     if (state.internal_ctx && state.internal_ctx->mr_on_the_fly) {
-      deregister_data(state.internal_ctx->data);
+      deregister_memory_x(&state.internal_ctx->data.buffer.mr)
+          .runtime(args.runtime)();
     }
     if (!state.user_provided_packet && state.packet) {
       state.packet->put_back();
@@ -695,17 +627,17 @@ status_t post_comm_x::call_impl(
     comp_t local_comp, runtime_t runtime, packet_pool_t packet_pool,
     device_t device, endpoint_t endpoint, matching_engine_t matching_engine,
     comp_semantic_t comp_semantic, mr_t mr, uintptr_t remote_disp, rmr_t rmr,
-    tag_t tag, rcomp_t remote_comp, void* user_context, buffers_t buffers,
-    rbuffers_t rbuffers, matching_policy_t matching_policy, bool allow_done,
-    bool allow_posted, bool allow_retry, bool force_zcopy) const
+    tag_t tag, rcomp_t remote_comp, void* user_context,
+    matching_policy_t matching_policy, bool allow_done, bool allow_posted,
+    bool allow_retry, bool force_zcopy) const
 {
   error_t error;
   post_comm_args_t args = {
-      direction,     rank,         local_buffer, size,        local_comp,
-      runtime,       packet_pool,  device,       endpoint,    matching_engine,
-      comp_semantic, mr,           remote_disp,  rmr,         tag,
-      remote_comp,   user_context, buffers,      rbuffers,    matching_policy,
-      allow_done,    allow_posted, allow_retry,  force_zcopy,
+      direction,     rank,         local_buffer,    size,       local_comp,
+      runtime,       packet_pool,  device,          endpoint,   matching_engine,
+      comp_semantic, mr,           remote_disp,     rmr,        tag,
+      remote_comp,   user_context, matching_policy, allow_done, allow_posted,
+      allow_retry,   force_zcopy,
   };
   preprocess_args(args);
   post_comm_traits_t traits = validate_and_get_traits(args);
@@ -757,9 +689,9 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
                               runtime_t runtime, packet_pool_t packet_pool,
                               device_t device, endpoint_t endpoint,
                               comp_semantic_t comp_semantic, mr_t mr, tag_t tag,
-                              void* user_context, buffers_t buffers,
-                              bool allow_done, bool allow_posted,
-                              bool allow_retry, bool force_zcopy) const
+                              void* user_context, bool allow_done,
+                              bool allow_posted, bool allow_retry,
+                              bool force_zcopy) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .runtime(runtime)
@@ -772,7 +704,6 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
       .tag(tag)
       .remote_comp(remote_comp)
       .user_context(user_context)
-      .buffers(buffers)
       .allow_done(allow_done)
       .allow_posted(allow_posted)
       .allow_retry(allow_retry)
@@ -784,8 +715,8 @@ status_t post_send_x::call_impl(
     runtime_t runtime, packet_pool_t packet_pool, device_t device,
     endpoint_t endpoint, matching_engine_t matching_engine,
     comp_semantic_t comp_semantic, mr_t mr, void* user_context,
-    buffers_t buffers, matching_policy_t matching_policy, bool allow_done,
-    bool allow_posted, bool allow_retry, bool force_zcopy) const
+    matching_policy_t matching_policy, bool allow_done, bool allow_posted,
+    bool allow_retry, bool force_zcopy) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .runtime(runtime)
@@ -797,7 +728,6 @@ status_t post_send_x::call_impl(
       .mr(mr)
       .tag(tag)
       .user_context(user_context)
-      .buffers(buffers)
       .matching_policy(matching_policy)
       .allow_done(allow_done)
       .allow_posted(allow_posted)
@@ -805,15 +735,12 @@ status_t post_send_x::call_impl(
       .force_zcopy(force_zcopy)();
 }
 
-status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
-                                tag_t tag, comp_t local_comp, runtime_t runtime,
-                                packet_pool_t packet_pool, device_t device,
-                                endpoint_t endpoint,
-                                matching_engine_t matching_engine, mr_t mr,
-                                void* user_context, buffers_t buffers,
-                                matching_policy_t matching_policy,
-                                bool allow_done, bool allow_posted,
-                                bool allow_retry, bool force_zcopy) const
+status_t post_recv_x::call_impl(
+    int rank, void* local_buffer, size_t size, tag_t tag, comp_t local_comp,
+    runtime_t runtime, packet_pool_t packet_pool, device_t device,
+    endpoint_t endpoint, matching_engine_t matching_engine, mr_t mr,
+    void* user_context, matching_policy_t matching_policy, bool allow_done,
+    bool allow_posted, bool allow_retry, bool force_zcopy) const
 {
   return post_comm_x(direction_t::IN, rank, local_buffer, size, local_comp)
       .runtime(runtime)
@@ -824,7 +751,6 @@ status_t post_recv_x::call_impl(int rank, void* local_buffer, size_t size,
       .mr(mr)
       .tag(tag)
       .user_context(user_context)
-      .buffers(buffers)
       .matching_policy(matching_policy)
       .allow_done(allow_done)
       .allow_posted(allow_posted)
@@ -837,8 +763,8 @@ status_t post_put_x::call_impl(
     uintptr_t remote_disp, rmr_t rmr, runtime_t runtime,
     packet_pool_t packet_pool, device_t device, endpoint_t endpoint,
     comp_semantic_t comp_semantic, mr_t mr, tag_t tag, rcomp_t remote_comp,
-    void* user_context, buffers_t buffers, rbuffers_t rbuffers, bool allow_done,
-    bool allow_posted, bool allow_retry, bool force_zcopy) const
+    void* user_context, bool allow_done, bool allow_posted, bool allow_retry,
+    bool force_zcopy) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .remote_disp(remote_disp)
@@ -853,8 +779,6 @@ status_t post_put_x::call_impl(
       .tag(tag)
       .remote_comp(remote_comp)
       .user_context(user_context)
-      .buffers(buffers)
-      .rbuffers(rbuffers)
       .allow_done(allow_done)
       .allow_posted(allow_posted)
       .allow_retry(allow_retry)
@@ -867,7 +791,6 @@ status_t post_get_x::call_impl(int rank, void* local_buffer, size_t size,
                                packet_pool_t packet_pool, device_t device,
                                endpoint_t endpoint, mr_t mr, tag_t tag,
                                rcomp_t remote_comp, void* user_context,
-                               buffers_t buffers, rbuffers_t rbuffers,
                                bool allow_done, bool allow_posted,
                                bool allow_retry, bool force_zcopy) const
 {
@@ -883,8 +806,6 @@ status_t post_get_x::call_impl(int rank, void* local_buffer, size_t size,
       .tag(tag)
       .remote_comp(remote_comp)
       .user_context(user_context)
-      .buffers(buffers)
-      .rbuffers(rbuffers)
       .allow_done(allow_done)
       .allow_posted(allow_posted)
       .allow_retry(allow_retry)

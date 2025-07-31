@@ -6,8 +6,6 @@
 
 namespace lci
 {
-enum class rdv_type_t : unsigned int { single, multiple };
-
 enum imm_data_msg_type_t {
   IMM_DATA_MSG_EAGER = 0,
   IMM_DATA_MSG_RTS = 1,
@@ -36,7 +34,6 @@ struct alignas(LCI_CACHE_LINE) internal_context_t {
   // is_extended has to be the first bit (be the same as internal_context_t)
   bool is_extended : 1;                // 1 bit
   bool mr_on_the_fly : 1;              // 1 bit
-  rdv_type_t rdv_type : 2;             // 2 bits
   int rank;                            // 4 bytes
   packet_t* packet_to_free = nullptr;  // 8 bytes
   tag_t tag;                           // 8 bytes
@@ -47,7 +44,6 @@ struct alignas(LCI_CACHE_LINE) internal_context_t {
   internal_context_t()
       : is_extended(false),
         mr_on_the_fly(false),
-        rdv_type(rdv_type_t::single),
         rank(-1),
         tag(0),
         comp(COMP_NULL),

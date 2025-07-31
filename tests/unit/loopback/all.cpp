@@ -23,7 +23,6 @@
 #include "test_put.hpp"
 #include "test_putImm.hpp"
 #include "test_get.hpp"
-#include "test_backlog_queue.hpp"
 #include "test_matching_policy.hpp"
 
 int main(int argc, char** argv)

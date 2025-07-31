@@ -29,7 +29,6 @@ inline void handle_matched_sendrecv(runtime_t runtime, endpoint_t endpoint,
     delete recv_ctx;
     status.rank = packet->local_context.rank;
     status.tag = packet->local_context.tag;
-    LCI_Assert(status.data.is_buffer(), "Unexpected data type\n");
     memcpy(status.data.buffer.base, packet->get_payload_address(),
            packet->local_context.data.buffer.size);
     status.data.buffer.size = packet->local_context.data.buffer.size;
@@ -48,66 +47,13 @@ inline void handle_matched_sendrecv(runtime_t runtime, endpoint_t endpoint,
 }
 
 struct rts_msg_t {
-  rdv_type_t rdv_type : 2;
-  size_t count : 30;
   rcomp_t rcomp;
   uintptr_t send_ctx;
   tag_t tag;
-
-  size_t* get_size_p(size_t i)
-  {
-    auto size_p = reinterpret_cast<size_t*>(reinterpret_cast<char*>(this) +
-                                            sizeof(rts_msg_t));
-    return &size_p[i];
-  }
-
-  static size_t get_size(data_t data)
-  {
-    int count = 1;
-    if (data.is_buffers()) {
-      count = data.get_buffers_count();
-    }
-    return sizeof(rts_msg_t) + count * sizeof(size_t);
-  }
-
-  void load_buffer(size_t size)
-  {
-    count = 1;
-    *get_size_p(0) = size;
-  }
-
-  void load_buffers(buffers_t buffers)
-  {
-    count = buffers.size();
-    for (int i = 0; i < count; i++) {
-      *get_size_p(i) = buffers[i].size;
-    }
-  }
-
-  data_t alloc_data(allocator_base_t* allocator = nullptr)
-  {
-    if (count == 1) {
-      return data_t(*get_size_p(0), allocator);
-    } else {
-      return data_t(get_size_p(0), count, allocator);
-    }
-  }
+  size_t size;
 };
-
-struct rtr_rbuffer_info_t {
-  rmr_t rmr;
-  uintptr_t offset;
-};
-
-inline void fill_rtr_rbuffer_info(rtr_rbuffer_info_t* p, void* buffer, mr_t mr)
-{
-  p->rmr = get_rmr(mr);
-  p->offset = (uintptr_t)buffer - p->rmr.base;
-}
 
 struct rtr_msg_t {
-  rdv_type_t rdv_type : 2;
-  int count : 30;
   uintptr_t send_ctx;
   union {
     // When using writeimm protocol
@@ -116,37 +62,8 @@ struct rtr_msg_t {
     // when using write protocol
     uintptr_t recv_ctx;
   };
-
-  rtr_rbuffer_info_t* get_rbuffer_info_p(size_t i)
-  {
-    auto rbuffer_info_p = reinterpret_cast<rtr_rbuffer_info_t*>(
-        reinterpret_cast<char*>(this) + sizeof(rtr_msg_t));
-    return &rbuffer_info_p[i];
-  }
-
-  size_t get_size()
-  {
-    return sizeof(rtr_msg_t) + count * sizeof(rtr_rbuffer_info_t);
-  }
-
-  void load_data(const data_t& data)
-  {
-    LCI_Assert(!data.is_scalar(), "Unexpected scalar data\n");
-    if (data.is_buffer()) {
-      rdv_type = rdv_type_t::single;
-      fill_rtr_rbuffer_info(get_rbuffer_info_p(0), data.buffer.base,
-                            data.buffer.mr);
-      count = 1;
-    } else {
-      rdv_type = rdv_type_t::multiple;
-      for (size_t i = 0; i < data.buffers.count; i++) {
-        fill_rtr_rbuffer_info(get_rbuffer_info_p(i),
-                              data.buffers.buffers[i].base,
-                              data.buffers.buffers[i].mr);
-      }
-      count = data.buffers.count;
-    }
-  }
+  rmr_t rmr;
+  size_t offset;
 };
 
 inline void handle_rdv_rts(runtime_t runtime, endpoint_t endpoint,
@@ -154,7 +71,6 @@ inline void handle_rdv_rts(runtime_t runtime, endpoint_t endpoint,
 {
   // Extract information from the received RTS packet
   rts_msg_t* rts = reinterpret_cast<rts_msg_t*>(packet->get_payload_address());
-  LCI_DBG_Log(LOG_TRACE, "rdv", "handle rts: rdv_type %d\n", rts->rdv_type);
 
   auto entry = runtime.p_impl->default_rhandler_registry.get(rts->rcomp);
   if (entry.type == rhandler_registry_t::type_t::matching_engine) {
@@ -186,14 +102,14 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
   device_t device = endpoint.get_impl()->device;
   // Extract information from the received RTS packet
   rts_msg_t* rts = reinterpret_cast<rts_msg_t*>(packet->get_payload_address());
-  rdv_type_t rdv_type = rts->rdv_type;
-  LCI_DBG_Log(LOG_TRACE, "rdv", "handle rts: rdv_type %d\n", rdv_type);
   // build the rdv context
   if (!rdv_ctx) {
     rdv_ctx = new internal_context_t;
-    rdv_ctx->data = rts->alloc_data(runtime.get_impl()->allocator);
+    rdv_ctx->data.buffer.size = rts->size;
+    if (rts->size > 0)
+      rdv_ctx->data.buffer.base =
+          runtime.get_impl()->allocator->allocate(rts->size);
     rdv_ctx->user_context = NULL;
-    rdv_ctx->rdv_type = rdv_type;
     auto entry = runtime.p_impl->default_rhandler_registry.get(rts->rcomp);
     LCI_DBG_Assert(entry.type == rhandler_registry_t::type_t::comp, "");
     rdv_ctx->comp.p_impl = reinterpret_cast<comp_impl_t*>(entry.value);
@@ -203,26 +119,21 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
     // needed from posted recv
     // user_data, user_context, comp
 
-    // set rdv_ctx->data size(s) based on rts->size_p
-    if (rdv_ctx->data.is_buffer()) {
-      LCI_Assert(rts->count == 1, "");
-      LCI_Assert(rdv_ctx->data.buffer.size >= *rts->get_size_p(0), "");
-      rdv_ctx->data.buffer.size = *rts->get_size_p(0);
-    } else {
-      LCI_Assert(rdv_ctx->data.is_buffers(), "");
-      LCI_Assert(rdv_ctx->data.get_buffers_count() == rts->count, "");
-      for (int i = 0; i < rts->count; i++) {
-        LCI_Assert(rdv_ctx->data.buffers.buffers[i].size >= *rts->get_size_p(i),
-                   "");
-        rdv_ctx->data.buffers.buffers[i].size = *rts->get_size_p(i);
-      }
-    }
+    // set rdv_ctx->data size(s) based on rts->size
+    LCI_Assert(rdv_ctx->data.buffer.size >= rts->size, "");
+    rdv_ctx->data.buffer.size = rts->size;
   }
   rdv_ctx->tag = rts->tag;
   rdv_ctx->rank = packet->local_context.rank;
 
   // Register the data
-  rdv_ctx->mr_on_the_fly = register_data(rdv_ctx->data, device);
+  if (rdv_ctx->data.buffer.size > 0 && rdv_ctx->data.buffer.mr.is_empty()) {
+    rdv_ctx->data.buffer.mr =
+        register_memory_x(rdv_ctx->data.buffer.base, rdv_ctx->data.buffer.size)
+            .runtime(runtime)
+            .device(device)();
+    rdv_ctx->mr_on_the_fly = true;
+  }
 
   // Prepare the RTR packet
   // reuse the rts packet as rtr packet
@@ -230,26 +141,10 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
   rtr_msg_t* rtr = reinterpret_cast<rtr_msg_t*>(packet->get_payload_address());
   packet->local_context.local_id = mpmc_set_t::LOCAL_SET_ID_NULL;
   rtr->send_ctx = send_ctx;
-  rtr->rdv_type = rdv_type;
   rtr->recv_ctx = reinterpret_cast<uintptr_t>(rdv_ctx);
-  // int nrdmas = LCII_calculate_rdma_num(rdv_ctx);
-  // if (nrdmas == 1 && LCI_RDV_PROTOCOL == LCI_RDV_WRITEIMM &&
-  //     rdv_type != LCII_RDV_IOVEC) {
-  //   // We cannot use writeimm for more than 1 rdma messages.
-  //   // IOVEC does not support writeimm for now
-  //   uint64_t ctx_key;
-  //   LCII_PCOUNTER_START(rts_archive_timer);
-  //   int result =
-  //       LCM_archive_put(ep->ctx_archive_p, (uintptr_t)rdv_ctx, &ctx_key);
-  //   LCII_PCOUNTER_END(rts_archive_timer);
-  //   // TODO: be able to pass back pressure to user
-  //   LCI_Assert(result == LCM_SUCCESS, "Archive is full!\n");
-  //   packet->data.rtr.recv_ctx_key = ctx_key;
-  // } else {
-  // packet->data.rtr.recv_ctx = (uintptr_t)rdv_ctx;
-  // }
-  // if (rdv_ctx->data_type == LCI_LONG) {
-  rtr->load_data(rdv_ctx->data);
+  rtr->rmr = get_rmr(rdv_ctx->data.buffer.mr);
+  rtr->offset =
+      reinterpret_cast<uintptr_t>(rdv_ctx->data.buffer.base) - rtr->rmr.base;
 
   LCI_DBG_Log(LOG_TRACE, "rdv", "send rtr: sctx %p\n", (void*)rtr->send_ctx);
 
@@ -257,10 +152,9 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
   internal_context_t* rtr_ctx = new internal_context_t;
   rtr_ctx->packet_to_free = packet;
 
-  size_t length = rtr->get_size();
   net_imm_data_t imm_data = set_bits32(0, IMM_DATA_MSG_RTR, 2, 29);
   error_t error = endpoint.get_impl()->post_send(
-      (int)rdv_ctx->rank, packet->get_payload_address(), length,
+      (int)rdv_ctx->rank, packet->get_payload_address(), sizeof(rtr_msg_t),
       packet->get_mr(endpoint), imm_data, rtr_ctx, false /* allow_retry */);
   LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);
 }
@@ -271,76 +165,38 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
   // the sender side handles the rtr message
   device_t device = endpoint.get_impl()->device;
   net_context_t net_context = device.get_impl()->net_context;
+  const size_t max_single_msg_size = net_context.get_attr_max_msg_size();
   rtr_msg_t* rtr = reinterpret_cast<rtr_msg_t*>(packet->get_payload_address());
-  rdv_type_t rdv_type = rtr->rdv_type;
-  internal_context_t* ctx = (internal_context_t*)rtr->send_ctx;
-  // Set up the "extended context" for write protocol
-  void* ctx_to_pass = ctx;
-  int nrdmas = rtr->count;
-  if (nrdmas > 1 ||
-      runtime.get_attr_rdv_protocol() == attr_rdv_protocol_t::write ||
-      rdv_type == rdv_type_t::multiple) {
-    auto ectx = new internal_context_extended_t;
-    ectx->internal_ctx = ctx;
-    ectx->signal_count = nrdmas;
-    ectx->recv_ctx = rtr->recv_ctx;
-    ctx_to_pass = ectx;
+  internal_context_t* rdv_ctx = (internal_context_t*)rtr->send_ctx;
+
+  auto ectx = new internal_context_extended_t;
+  ectx->internal_ctx = rdv_ctx;
+  ectx->signal_count = (rdv_ctx->data.buffer.size + max_single_msg_size - 1) /
+                       max_single_msg_size;
+  ectx->recv_ctx = rtr->recv_ctx;
+
+  void* buffer = rdv_ctx->data.buffer.base;
+  size_t size = rdv_ctx->data.buffer.size;
+  mr_t* p_mr = &rdv_ctx->data.buffer.mr;
+  // register the buffer if necessary
+  if (p_mr->is_empty()) {
+    rdv_ctx->mr_on_the_fly = true;
+    *p_mr = register_memory_x(buffer, size).runtime(runtime).device(device)();
+  } else {
+    rdv_ctx->mr_on_the_fly = false;
   }
-  for (int i = 0; i < rtr->count; ++i) {
-    void* buffer;
-    size_t size;
-    mr_t* p_mr;
-    if (ctx->data.is_buffer()) {
-      buffer = ctx->data.buffer.base;
-      size = ctx->data.buffer.size;
-      p_mr = &ctx->data.buffer.mr;
-    } else {
-      LCI_Assert(ctx->data.is_buffers(), "Unexpected data type\n");
-      buffer = ctx->data.buffers.buffers[i].base;
-      size = ctx->data.buffers.buffers[i].size;
-      p_mr = &ctx->data.buffers.buffers[i].mr;
-    }
-    // register the buffer if necessary
-    if (p_mr->is_empty()) {
-      ctx->mr_on_the_fly = true;
-      *p_mr = register_memory_x(buffer, size).runtime(runtime).device(device)();
-    } else {
-      ctx->mr_on_the_fly = false;
-    }
-    // issue the put/putimm
-    // if (nrdmas > 1 || LCI_RDV_PROTOCOL == LCI_RDV_WRITE ||
-    // rdv_type == LCII_RDV_IOVEC) {
-    size_t max_single_msg_size = net_context.get_attr_max_msg_size();
-    if (size > max_single_msg_size) {
-      LCI_DBG_Log(LOG_TRACE, "rdv", "Splitting a large message of %lu bytes\n",
-                  size);
-    }
-    for (size_t offset = 0; offset < size; offset += max_single_msg_size) {
-      char* address = (char*)buffer + offset;
-      size_t length = std::min(size - offset, max_single_msg_size);
-      error_t error = endpoint.get_impl()->post_put(
-          (int)ctx->rank, address, length, *p_mr,
-          rtr->get_rbuffer_info_p(i)->offset + offset,
-          rtr->get_rbuffer_info_p(i)->rmr, ctx_to_pass,
-          false /* allow_retry */);
-      LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);
-    }
-    // } else {
-    // LCI_DBG_Assert(lbuffer->length <= LCI_MAX_SINGLE_MESSAGE_SIZE &&
-    //  LCI_RDV_PROTOCOL == LCI_RDV_WRITEIMM &&
-    //  rdv_type != LCII_RDV_IOVEC,
-    //  "Unexpected rdv protocol!\n");
-    // post_putImm_bq(ep->bq_p, ep->bq_spinlock_p,
-    // ep->device->endpoint_progress->endpoint,
-    // (int)ctx->rank, lbuffer->address, lbuffer->length,
-    // lbuffer->segment->mr,
-    // packet->data.rtr.rbuffer_info_p[0].remote_addr_base,
-    // packet->data.rtr.rbuffer_info_p[0].remote_addr_offset,
-    // packet->data.rtr.rbuffer_info_p[0].rmr,
-    // LCII_MAKE_PROTO(ep->gid, LCI_MSG_RDV_DATA,
-    // packet->data.rtr.recv_ctx_key),
-    // ctx_to_pass);
-    // }
+  // issue the put/putimm
+  if (size > max_single_msg_size) {
+    LCI_DBG_Log(LOG_TRACE, "rdv", "Splitting a large message of %lu bytes\n",
+                size);
+  }
+  for (size_t offset = 0; offset < size; offset += max_single_msg_size) {
+    char* address = (char*)buffer + offset;
+    size_t length = std::min(size - offset, max_single_msg_size);
+    error_t error = endpoint.get_impl()->post_put(
+        (int)rdv_ctx->rank, address, length, *p_mr, rtr->offset + offset,
+        rtr->rmr, ectx, false /* allow_retry */);
+    LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);
   }
   // free the rtr packet
   packet->put_back();
