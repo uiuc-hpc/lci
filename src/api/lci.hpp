@@ -439,6 +439,20 @@ extern allocator_default_t g_allocator_default;
 
 /**
  * @ingroup LCI_BASIC
+ * @brief The type of a local buffer descriptor.
+ * @details A buffer descriptor does not *own* the buffer, i.e. it will never
+ * copy or free the buffer. Users are responsible for managing the lifecycle of
+ * the memory buffer being described.
+ */
+struct buffer_t {
+  void* base;  /**< The base address of the buffer */
+  size_t size; /**< The size of the buffer */
+  buffer_t() : base(nullptr), size(0) {}
+  buffer_t(void* base_, size_t size_) : base(base_), size(size_) {}
+};
+
+/**
+ * @ingroup LCI_BASIC
  * @brief The type of the completion desciptor for a posted communication.
  */
 struct status_t {
@@ -460,6 +474,10 @@ struct status_t {
   bool is_done() const { return error.is_done(); }
   bool is_posted() const { return error.is_posted(); }
   bool is_retry() const { return error.is_retry(); }
+  [[deprecated("Use `buffer` and `size` directly")]] buffer_t get_buffer() const
+  {
+    return buffer_t(buffer, size);
+  }
 };
 
 /**
