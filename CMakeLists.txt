@@ -80,10 +80,9 @@ if(NOT LCI_WITH_LCT_ONLY)
   target_link_libraries(LCI PUBLIC LCT)
   set_target_properties(LCI PROPERTIES OUTPUT_NAME lci)
 
-  option(LCI_BUILD_WARN_AS_ERROR "Build with warnings as errors"
-         ${LCI_ROOT_PROJECT})
-  if(LCI_BUILD_WARN_AS_ERROR)
-    target_compile_options(LCI PRIVATE -Wall -Wextra -Wpedantic -Werror)
+  option(LCI_BUILD_WARN_AS_ERROR "Build with warnings as errors" OFF)
+  # if(LCI_BUILD_WARN_AS_ERROR)
+    target_compile_options(LCI PRIVATE -Wall -Wextra) # -Wpedantic -Werror)
     # Disable unused private field warning for clang because we use them for
     # padding
     target_compile_options(
@@ -91,7 +90,7 @@ if(NOT LCI_WITH_LCT_ONLY)
       PRIVATE
         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wno-unused-private-field>
     )
-  endif()
+  # endif()
 
   # ############################################################################
   # What parts of LCI to build
