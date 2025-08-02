@@ -16,11 +16,10 @@ bool received = false;
 void am_handler(lci::status_t status)
 {
   // Get the active message payload.
-  lci::buffer_t payload = status.get_buffer();
-  std::string payload_str(static_cast<char*>(payload.base), payload.size);
+  std::string payload_str(static_cast<char*>(status.buffer), status.size);
   // Active message payload buffer is allocated by the LCI runtime using
   // `malloc` by default. The user are responsible for freeing it after use.
-  free(payload.base);
+  free(status.buffer);
   // Print the hello world message.
   std::ostringstream oss;
   oss << "Rank " << lci::get_rank_me() << " received active message from rank "

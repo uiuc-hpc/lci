@@ -32,8 +32,6 @@ void check_buffer(void* buffer, size_t size, const char a)
 {
   for (size_t i = 0; i < size; i++) {
     char tmp = ((char*)buffer)[i];
-    if (tmp != a) {
-    }
     ASSERT_EQ(tmp, a);
   }
 }
