@@ -60,12 +60,11 @@ void worker(int thread_id)
                   << ", status.tag: " << status.tag << std::endl;
       }
       assert(status.tag == thread_id);
-      lci::buffer_t recv_buf = status.get_buffer();
-      assert(recv_buf.size == msg_size);
+      assert(status.size == msg_size);
       for (size_t j = 0; j < msg_size; j++) {
-        assert(((char*)recv_buf.base)[j] == peer_rank);
+        assert(((char*)status.buffer)[j] == peer_rank);
       }
-      free(recv_buf.base);
+      free(status.buffer);
     }
   } else {
     // receiver
@@ -77,12 +76,11 @@ void worker(int thread_id)
         status = lci::cq_pop(cq);
       } while (status.is_retry());
       assert(status.tag == thread_id);
-      lci::buffer_t recv_buf = status.get_buffer();
-      assert(recv_buf.size == msg_size);
+      assert(status.size == msg_size);
       for (size_t j = 0; j < msg_size; j++) {
-        assert(((char*)recv_buf.base)[j] == peer_rank);
+        assert(((char*)status.buffer)[j] == peer_rank);
       }
-      free(recv_buf.base);
+      free(status.buffer);
       // send a message
       lci::post_am_x(peer_rank, send_buf, msg_size, lci::COMP_NULL, rcomp)
           .device(device)

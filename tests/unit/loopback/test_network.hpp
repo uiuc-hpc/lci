@@ -27,6 +27,7 @@ TEST(NETWORK, loopback)
   lci::g_runtime_init();
   const int size = 1024;
   void* address = malloc(size);
+  memset(address, 0, size);
   lci::mr_t mr = lci::register_memory(address, size);
   while (lci::net_post_recv(address, size, mr).is_retry()) continue;
   while (lci::net_post_send(0, address, size, mr).is_retry()) continue;
@@ -73,6 +74,7 @@ TEST(NETWORK, loopback_mt)
   const int nmsgs = util::NITERS;
   ASSERT_EQ(nmsgs % nthreads, 0);
   void* address = malloc(size);
+  memset(address, 0, size);
   lci::mr_t mr = lci::register_memory(address, size);
   std::vector<std::thread> threads;
   for (int i = 0; i < nthreads; i++) {
@@ -92,6 +94,8 @@ TEST(NETWORK, loopback_put)
   const int size = 1024;
   void* send_address = malloc(size);
   void* recv_address = malloc(size);
+  memset(send_address, 0, size);
+  memset(recv_address, 0, size);
   lci::mr_t send_mr = lci::register_memory(send_address, size);
   lci::mr_t recv_mr = lci::register_memory(recv_address, size);
   lci::rmr_t rmr = lci::get_rmr(recv_mr);
@@ -114,6 +118,8 @@ TEST(NETWORK, loopback_get)
   const int size = 1024;
   void* send_address = malloc(size);
   void* recv_address = malloc(size);
+  memset(send_address, 0, size);
+  memset(recv_address, 0, size);
   lci::mr_t send_mr = lci::register_memory(send_address, size);
   lci::mr_t recv_mr = lci::register_memory(recv_address, size);
   lci::rmr_t rmr = lci::get_rmr(send_mr);

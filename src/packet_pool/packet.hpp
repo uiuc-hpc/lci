@@ -18,7 +18,7 @@ struct packet_local_context_t {
   bool is_eager : 1; /* whether this packet is used for eager protocol */
   int rank;
   tag_t tag;
-  data_t data;
+  size_t size;
 };
 
 struct packet_t {

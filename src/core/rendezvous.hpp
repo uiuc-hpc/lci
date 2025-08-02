@@ -24,14 +24,14 @@ inline void handle_matched_sendrecv(runtime_t runtime, endpoint_t endpoint,
 
     status_t status;
     status.set_done();
-    status.data = recv_ctx->data;
+    status.buffer = recv_ctx->buffer;
     status.user_context = recv_ctx->user_context;
     delete recv_ctx;
     status.rank = packet->local_context.rank;
     status.tag = packet->local_context.tag;
-    memcpy(status.data.buffer.base, packet->get_payload_address(),
-           packet->local_context.data.buffer.size);
-    status.data.buffer.size = packet->local_context.data.buffer.size;
+    memcpy(status.buffer, packet->get_payload_address(),
+           packet->local_context.size);
+    status.size = packet->local_context.size;
     packet->put_back();
     if (!p_status) {
       comp.get_impl()->signal(status);
@@ -104,34 +104,34 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
   rts_msg_t* rts = reinterpret_cast<rts_msg_t*>(packet->get_payload_address());
   // build the rdv context
   if (!rdv_ctx) {
+    // This is an active message
     rdv_ctx = new internal_context_t;
-    rdv_ctx->data.buffer.size = rts->size;
+    rdv_ctx->size = rts->size;
     if (rts->size > 0)
-      rdv_ctx->data.buffer.base =
-          runtime.get_impl()->allocator->allocate(rts->size);
+      rdv_ctx->buffer = runtime.get_impl()->allocator->allocate(rts->size);
     rdv_ctx->user_context = NULL;
     auto entry = runtime.p_impl->default_rhandler_registry.get(rts->rcomp);
     LCI_DBG_Assert(entry.type == rhandler_registry_t::type_t::comp, "");
     rdv_ctx->comp.p_impl = reinterpret_cast<comp_impl_t*>(entry.value);
   } else {
+    // This is a matched send
     // needed from incoming send
     // packet, src_rank, tag
     // needed from posted recv
     // user_data, user_context, comp
 
     // set rdv_ctx->data size(s) based on rts->size
-    LCI_Assert(rdv_ctx->data.buffer.size >= rts->size, "");
-    rdv_ctx->data.buffer.size = rts->size;
+    LCI_Assert(rdv_ctx->size >= rts->size, "");
+    rdv_ctx->size = rts->size;
   }
   rdv_ctx->tag = rts->tag;
   rdv_ctx->rank = packet->local_context.rank;
 
   // Register the data
-  if (rdv_ctx->data.buffer.size > 0 && rdv_ctx->data.buffer.mr.is_empty()) {
-    rdv_ctx->data.buffer.mr =
-        register_memory_x(rdv_ctx->data.buffer.base, rdv_ctx->data.buffer.size)
-            .runtime(runtime)
-            .device(device)();
+  if (rdv_ctx->size > 0 && rdv_ctx->mr.is_empty()) {
+    rdv_ctx->mr = register_memory_x(rdv_ctx->buffer, rdv_ctx->size)
+                      .runtime(runtime)
+                      .device(device)();
     rdv_ctx->mr_on_the_fly = true;
   }
 
@@ -142,9 +142,8 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
   packet->local_context.local_id = mpmc_set_t::LOCAL_SET_ID_NULL;
   rtr->send_ctx = send_ctx;
   rtr->recv_ctx = reinterpret_cast<uintptr_t>(rdv_ctx);
-  rtr->rmr = get_rmr(rdv_ctx->data.buffer.mr);
-  rtr->offset =
-      reinterpret_cast<uintptr_t>(rdv_ctx->data.buffer.base) - rtr->rmr.base;
+  rtr->rmr = get_rmr(rdv_ctx->mr);
+  rtr->offset = reinterpret_cast<uintptr_t>(rdv_ctx->buffer) - rtr->rmr.base;
 
   LCI_DBG_Log(LOG_TRACE, "rdv", "send rtr: sctx %p\n", (void*)rtr->send_ctx);
 
@@ -171,13 +170,13 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
 
   auto ectx = new internal_context_extended_t;
   ectx->internal_ctx = rdv_ctx;
-  ectx->signal_count = (rdv_ctx->data.buffer.size + max_single_msg_size - 1) /
-                       max_single_msg_size;
+  ectx->signal_count =
+      (rdv_ctx->size + max_single_msg_size - 1) / max_single_msg_size;
   ectx->recv_ctx = rtr->recv_ctx;
 
-  void* buffer = rdv_ctx->data.buffer.base;
-  size_t size = rdv_ctx->data.buffer.size;
-  mr_t* p_mr = &rdv_ctx->data.buffer.mr;
+  void* buffer = rdv_ctx->buffer;
+  size_t size = rdv_ctx->size;
+  mr_t* p_mr = &rdv_ctx->mr;
   // register the buffer if necessary
   if (p_mr->is_empty()) {
     rdv_ctx->mr_on_the_fly = true;

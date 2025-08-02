@@ -32,19 +32,17 @@ void test_am_worker_fn(int thread_id, int nmsgs, size_t msg_size,
       if (!lcq_done) {
         status = lci::cq_pop(lcq);
         if (status.is_done()) {
-          lci::buffer_t buffer = status.get_buffer();
-          ASSERT_EQ(buffer.base, send_buffer);
-          ASSERT_EQ(buffer.size, msg_size);
+          ASSERT_EQ(status.buffer, send_buffer);
+          ASSERT_EQ(status.size, msg_size);
           lcq_done = true;
         }
       }
       if (!rcq_done) {
         status = lci::cq_pop(rcq);
         if (status.is_done()) {
-          lci::buffer_t buffer = status.get_buffer();
-          ASSERT_EQ(buffer.size, msg_size);
-          util::check_buffer(buffer.base, msg_size, 'a');
-          free(buffer.base);
+          ASSERT_EQ(status.size, msg_size);
+          util::check_buffer(status.buffer, msg_size, 'a');
+          free(status.buffer);
           rcq_done = true;
         }
       }

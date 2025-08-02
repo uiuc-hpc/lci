@@ -1,7 +1,6 @@
 // Copyright (c) 2025 The LCI Project Authors
 // SPDX-License-Identifier: MIT
 
-#include "lci_internal.hpp"
 #include <thread>
 
 namespace test_packet_pool
@@ -132,7 +131,7 @@ TEST(MPMC_SET, multithread2)
   bool flags[n];
   memset(flags, 0, sizeof(flags));
   lci::mpmc_set_t pool(0, 1);
-  // all other threads will and put to pool
+  // all other threads will put to pool
   std::vector<std::thread> threads;
   for (int i = 0; i < nthreads; i++) {
     std::thread t(test_multithread2, std::ref(pool), i * n_per_thread,

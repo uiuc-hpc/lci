@@ -7,6 +7,7 @@
 #include <random>
 #include <iterator>
 #include "lci.hpp"
+#include "lci_internal.hpp"
 #include "util.hpp"
 
 #include "test_idle.hpp"

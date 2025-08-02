@@ -423,40 +423,6 @@ enum class comp_semantic_t {
 
 /**
  * @ingroup LCI_BASIC
- * @brief The type of a local buffer descriptor.
- * @details A buffer descriptor does not *own* the buffer, i.e. it will never
- * copy or free the buffer. Users are responsible for managing the lifecycle of
- * the memory buffer being described.
- */
-struct buffer_t {
-  void* base;  /**< The base address of the buffer */
-  size_t size; /**< The size of the buffer */
-  mr_t mr;     /**< The registered memory region of the buffer */
-  buffer_t() : base(nullptr), size(0), mr() {}
-  buffer_t(void* base_, size_t size_) : base(base_), size(size_) {}
-  buffer_t(void* base_, size_t size_, mr_t mr_)
-      : base(base_), size(size_), mr(mr_)
-  {
-  }
-};
-
-/**
- * @ingroup LCI_BASIC
- * @brief The type of a remote buffer descriptor.
- */
-struct rbuffer_t {
-  uintptr_t
-      disp;  /**< The remote displacement from the remote buffer base address */
-  rmr_t rmr; /**< The remote memory region handle */
-  rbuffer_t() : disp(0) {}
-  rbuffer_t(uintptr_t disp_) : disp(disp_) {}
-  rbuffer_t(uintptr_t disp_, rmr_t rmr_) : disp(disp_), rmr(rmr_) {}
-};
-using buffers_t = std::vector<buffer_t>;
-using rbuffers_t = std::vector<rbuffer_t>;
-
-/**
- * @ingroup LCI_BASIC
  * @brief The user-defined allocator type.
  */
 struct allocator_base_t {
@@ -473,51 +439,13 @@ extern allocator_default_t g_allocator_default;
 
 /**
  * @ingroup LCI_BASIC
- * @brief A generic type for describing or holding data.
- * @details This type is used to pass data from LCI to users through the
- * completion checking APIs. It is included in the @ref status_t struct. A
- * *data* object either describes or owns the underlying memory buffer(s). It
- * will own the memory buffer(s) if the data is allocated by the LCI runtime
- * (a.k.a the receive buffer(s) of active messages).
- *
- * If the data object owns the memory buffer(s), users can use the
- * `data_t::get_scalar/buffer/buffers` to get the data. `get_buffer/buffers`
- * provides three semantics to optimize the memory copy behavior, defined by
- * @ref data_t::get_semantic_t
- * - *copy*: the data object will allocate new buffer(s) and copy the data from
- * the original buffer(s) to the new buffer(s). The returned buffers needed to
- * be freed by users through `free()`. Users can call
- * `data_t::get_scalar/buffer/buffers()` again.
- * - *move*: the data object will directly return the buffer(s) and users will
- * own them afterwards. The returned buffers needed to be freed by users through
- * `free()`. Users cannot call `data_t::get_scalar/buffer/buffers()` anymore.
- * - *view*: the data object will directly return the buffer(s) but they are not
- * owned by users. Users cannot access them once the `data` object goes out of
- * scope. Users cannot free the buffers. Users can call
- * `data_t::get_scalar/buffer/buffers()` again.
- *
- * `get_scalar` always uses the *copy* semantic.
- */
-struct data_t {
-  buffer_t buffer;
-  data_t();
-  data_t(buffer_t buffer_);
-  data_t(size_t size, allocator_base_t* allocator = nullptr);
-
-  void copy_from(const void* data_, size_t size,
-                 allocator_base_t* allocator_ = nullptr);
-
-  buffer_t get_buffer();
-};
-
-/**
- * @ingroup LCI_BASIC
  * @brief The type of the completion desciptor for a posted communication.
  */
 struct status_t {
   error_t error = errorcode_t::retry_init;
   int rank = -1;
-  data_t data;
+  void* buffer = nullptr;
+  size_t size = 0;
   tag_t tag = 0;
   void* user_context = nullptr;
   status_t() = default;
@@ -532,7 +460,6 @@ struct status_t {
   bool is_done() const { return error.is_done(); }
   bool is_posted() const { return error.is_posted(); }
   bool is_retry() const { return error.is_retry(); }
-  buffer_t get_buffer() { return data.get_buffer(); }
 };
 
 /**
@@ -732,44 +659,6 @@ graph_node_t graph_add_node_op(comp_t graph, const T& op)
   fn->user_context(ret);
   return ret;
 }
-
-/***********************************************************************
- * Some inline implementation
- **********************************************************************/
-inline data_t::data_t()
-{
-  static_assert(sizeof(data_t) == 24, "data_t size is not 24 bytes");
-}
-inline data_t::data_t(buffer_t buffer_)
-{
-  buffer.base = buffer_.base;
-  buffer.size = buffer_.size;
-  buffer.mr = buffer_.mr;
-}
-inline data_t::data_t(size_t size, allocator_base_t* allocator)
-{
-  if (allocator) {
-    buffer.base = allocator->allocate(size);
-  } else {
-    buffer.base = malloc(size);
-  }
-  buffer.size = size;
-  buffer.mr = mr_t();
-}
-
-inline void data_t::copy_from(const void* data_, size_t size,
-                              allocator_base_t* allocator)
-{
-  if (allocator) {
-    buffer.base = allocator->allocate(size);
-  } else {
-    buffer.base = malloc(size);
-  }
-  memcpy(buffer.base, data_, size);
-  buffer.size = size;
-}
-
-inline buffer_t data_t::get_buffer() { return buffer; }
 
 }  // namespace lci
 

@@ -60,16 +60,15 @@ struct post_comm_state_t {
   bool piggyback_tag_rcomp_in_msg = false;
   net_imm_data_t imm_data = 0;
   packet_t* packet = nullptr;
-  void* local_buffer = nullptr;
-  size_t size = 0;
+  size_t packet_size_to_send = 0;
   bool user_provided_packet = false;
   internal_context_t* internal_ctx = nullptr;
   protocol_t protocol = protocol_t::none;
+  mr_t mr;
   comp_t local_comp = COMP_NULL;
   bool free_local_comp = false;
   bool comp_passed_to_network = false;
   status_t status;
-  data_t data;
 };
 
 void preprocess_args(post_comm_args_t& args)
@@ -244,8 +243,7 @@ error_t set_packet_if_needed(const post_comm_args_t& args,
                              [[maybe_unused]] const post_comm_traits_t& traits,
                              post_comm_state_t& state)
 {
-  state.local_buffer = args.local_buffer;
-  // The bcopy protocol and the rendezvous protocol need a packet
+  // Only the bcopy protocol and the rendezvous protocol need a packet
   if (state.protocol != protocol_t::eager_bcopy &&
       state.protocol != protocol_t::rdv_zcopy)
     return errorcode_t::done;
@@ -266,16 +264,22 @@ error_t set_packet_if_needed(const post_comm_args_t& args,
     return errorcode_t::done;
   }
   // build the packet
-  state.local_buffer = state.packet->get_payload_address();
   if (args.direction == direction_t::OUT) {
     if (!state.user_provided_packet)
       memcpy(state.packet->get_payload_address(), args.local_buffer, args.size);
-    size_t msg_size = args.size;
+    state.packet_size_to_send = args.size;
     if (state.piggyback_tag_rcomp_in_msg) {
-      msg_size += sizeof(args.tag) + sizeof(state.rhandler);
-      LCI_DBG_Assert(msg_size <= traits.max_bcopy_size, "");
+      char* buffer = (char*)state.packet->get_payload_address();
+      memcpy((char*)buffer + state.packet_size_to_send, &args.tag,
+             sizeof(args.tag));
+      state.packet_size_to_send += sizeof(args.tag);
+      memcpy((char*)buffer + state.packet_size_to_send, &state.rhandler,
+             sizeof(state.rhandler));
+      state.packet_size_to_send += sizeof(state.rhandler);
+      LCI_Assert(state.packet_size_to_send <= traits.max_bcopy_size, "");
     }
-    if (msg_size > args.runtime.get_attr_packet_return_threshold()) {
+    if (state.packet_size_to_send >
+        args.runtime.get_attr_packet_return_threshold()) {
       // A lot of data has been written into this packet, which means a
       // large chunk of cache lines have been touched. We should return this
       // packet to the current core's packet pool.
@@ -286,23 +290,6 @@ error_t set_packet_if_needed(const post_comm_args_t& args,
     }
   }
   return errorcode_t::done;
-}
-
-// state in: local_buffer, piggyback_tag_rcomp_in_msg
-// state out: size
-void piggyback_tag_rcomp(const post_comm_args_t& args,
-                         [[maybe_unused]] const post_comm_traits_t& traits,
-                         post_comm_state_t& state)
-{
-  state.size = args.size;
-  if (state.piggyback_tag_rcomp_in_msg) {
-    LCI_DBG_Assert(state.size <= traits.max_bcopy_size, "");
-    memcpy((char*)state.local_buffer + state.size, &args.tag, sizeof(args.tag));
-    state.size += sizeof(args.tag);
-    memcpy((char*)state.local_buffer + state.size, &state.rhandler,
-           sizeof(state.rhandler));
-    state.size += sizeof(state.rhandler);
-  }
 }
 
 // state in: protocol
@@ -322,16 +309,6 @@ error_t check_backlog(const post_comm_args_t& args, const post_comm_traits_t&,
   return errorcode_t::done;
 }
 
-// state in: none
-// state out: data
-void set_data(const post_comm_args_t& args, const post_comm_traits_t&,
-              post_comm_state_t& state)
-{
-  data_t data;
-  data = data_t(buffer_t(args.local_buffer, args.size, args.mr));
-  state.data = data;
-}
-
 // state in: protocol, packet, local_comp, data
 // state out: internal_ctx
 void set_internal_ctx(const post_comm_args_t& args, const post_comm_traits_t&,
@@ -341,7 +318,8 @@ void set_internal_ctx(const post_comm_args_t& args, const post_comm_traits_t&,
   state.internal_ctx->rank = args.rank;
   state.internal_ctx->tag = args.tag;
   state.internal_ctx->user_context = args.user_context;
-  state.internal_ctx->data = state.data;
+  state.internal_ctx->buffer = args.local_buffer;
+  state.internal_ctx->size = args.size;
   state.internal_ctx->packet_to_free = state.packet;
   // We need to set the local completion object in one of the following cases:
   // 1. The protocol is zero-copy.
@@ -364,14 +342,13 @@ void set_internal_ctx(const post_comm_args_t& args, const post_comm_traits_t&,
   // 1. The protocol is zero-copy.
   // Note: mr for zero-copy send/recv will be handled in the rendezvous
   // protocol.
-  if (state.protocol == protocol_t::eager_zcopy &&
-      state.data.buffer.mr.is_empty()) {
-    state.internal_ctx->data.buffer.mr =
-        register_memory_x(state.data.buffer.base, state.data.buffer.size)
-            .runtime(args.runtime)
-            .device(args.device)();
+  state.mr = args.mr;
+  if (state.protocol == protocol_t::eager_zcopy && state.mr.is_empty()) {
+    state.mr = register_memory_x(args.local_buffer, args.size)
+                   .runtime(args.runtime)
+                   .device(args.device)();
+    state.internal_ctx->mr = state.mr;
     state.internal_ctx->mr_on_the_fly = true;
-    state.data.buffer.mr = state.internal_ctx->data.buffer.mr;
   }
 }
 
@@ -384,7 +361,8 @@ void set_status(const post_comm_args_t& args, const post_comm_traits_t&,
   status.rank = args.rank;
   status.tag = args.tag;
   status.user_context = args.user_context;
-  status.data = state.data;
+  status.buffer = args.local_buffer;
+  status.size = args.size;
   state.status = status;
 }
 
@@ -403,39 +381,40 @@ error_t post_network_op(const post_comm_args_t& args,
       // inject protocol (return retry or done)
       if (traits.local_buffer_only) {
         error = args.endpoint.p_impl->post_sends(args.rank, args.local_buffer,
-                                                 state.size, state.imm_data,
+                                                 args.size, state.imm_data,
                                                  args.allow_retry);
       } else if (!state.rhandler) {
         // rdma write
         error = args.endpoint.p_impl->post_puts(args.rank, args.local_buffer,
-                                                state.size, args.remote_disp,
+                                                args.size, args.remote_disp,
                                                 args.rmr, args.allow_retry);
       } else {
         // rdma write with immediate data
         error = args.endpoint.p_impl->post_putImms(
-            args.rank, args.local_buffer, state.size, args.remote_disp,
-            args.rmr, state.imm_data, args.allow_retry);
+            args.rank, args.local_buffer, args.size, args.remote_disp, args.rmr,
+            state.imm_data, args.allow_retry);
       }
       // end of inject protocol
     } else if (state.protocol == protocol_t::eager_bcopy) {
       // buffer-copy protocol
+      void* buffer = state.packet->get_payload_address();
       if (traits.local_buffer_only) {
         // buffer-copy send
         // note: we need to use state.size instead of args.size
         error = args.endpoint.p_impl->post_send(
-            args.rank, state.local_buffer, state.size,
+            args.rank, buffer, state.packet_size_to_send,
             state.packet->get_mr(args.device), state.imm_data,
             state.internal_ctx, args.allow_retry);
       } else if (!state.rhandler) {
         // buffer-copy put
         error = args.endpoint.p_impl->post_put(
-            args.rank, state.local_buffer, state.size,
+            args.rank, buffer, state.packet_size_to_send,
             state.packet->get_mr(args.device), args.remote_disp, args.rmr,
             state.internal_ctx, args.allow_retry);
       } else {
         // buffer-copy put with signal
         error = args.endpoint.p_impl->post_putImm(
-            args.rank, state.local_buffer, state.size,
+            args.rank, buffer, state.packet_size_to_send,
             state.packet->get_mr(args.device), args.remote_disp, args.rmr,
             state.imm_data, state.internal_ctx, args.allow_retry);
       }
@@ -444,21 +423,20 @@ error_t post_network_op(const post_comm_args_t& args,
       }
       // end of bcopy protocol
     } else if (state.protocol == protocol_t::eager_zcopy) {
-      data_t& data = state.data;
       if (traits.local_buffer_only) {
         // zero-copy send
         error = args.endpoint.p_impl->post_send(
-            args.rank, data.buffer.base, data.buffer.size, data.buffer.mr,
-            state.imm_data, state.internal_ctx, args.allow_retry);
+            args.rank, args.local_buffer, args.size, state.mr, state.imm_data,
+            state.internal_ctx, args.allow_retry);
       } else {
         // zero-copy put
         if (!state.rhandler) {
           error = args.endpoint.p_impl->post_put(
-              args.rank, data.buffer.base, data.buffer.size, data.buffer.mr,
+              args.rank, args.local_buffer, args.size, state.mr,
               args.remote_disp, args.rmr, state.internal_ctx, args.allow_retry);
         } else {
           error = args.endpoint.p_impl->post_putImm(
-              args.rank, data.buffer.base, data.buffer.size, data.buffer.mr,
+              args.rank, args.local_buffer, args.size, state.mr,
               args.remote_disp, args.rmr, state.imm_data, state.internal_ctx,
               args.allow_retry);
         }
@@ -480,7 +458,7 @@ error_t post_network_op(const post_comm_args_t& args,
       p_rts->send_ctx = (uintptr_t)state.internal_ctx;
       p_rts->tag = args.tag;
       p_rts->rcomp = state.rhandler;
-      p_rts->size = state.size;
+      p_rts->size = args.size;
       // post send for the rts message
       if (sizeof(rts_msg_t) <= traits.max_inject_size) {
         error = args.endpoint.p_impl->post_sends(
@@ -536,15 +514,14 @@ error_t post_network_op(const post_comm_args_t& args,
       if (state.protocol == protocol_t::eager_bcopy) {
         // buffer-copy
         error = args.endpoint.p_impl->post_get(
-            args.rank, state.local_buffer, state.size,
+            args.rank, state.packet->get_payload_address(), args.size,
             state.packet->get_mr(args.device), args.remote_disp, args.rmr,
             state.internal_ctx, args.allow_retry);
       } else {
         // zero-copy
-        data_t& data = state.internal_ctx->data;
         error = args.endpoint.p_impl->post_get(
-            args.rank, data.buffer.base, data.buffer.size, data.buffer.mr,
-            args.remote_disp, args.rmr, state.internal_ctx, args.allow_retry);
+            args.rank, args.local_buffer, args.size, state.mr, args.remote_disp,
+            args.rmr, state.internal_ctx, args.allow_retry);
       }
     }
     // end of direction in
@@ -573,8 +550,7 @@ void exit_handler(error_t error_, const post_comm_args_t& args,
   if (state.status.is_retry()) {
     LCI_DBG_Assert(args.allow_retry, "Unexpected retry\n");
     if (state.internal_ctx && state.internal_ctx->mr_on_the_fly) {
-      deregister_memory_x(&state.internal_ctx->data.buffer.mr)
-          .runtime(args.runtime)();
+      deregister_memory_x(&state.internal_ctx->mr).runtime(args.runtime)();
     }
     if (!state.user_provided_packet && state.packet) {
       state.packet->put_back();
@@ -658,15 +634,9 @@ status_t post_comm_x::call_impl(
   // state.out: packet, local_buffer, user_provided_packet
   error = set_packet_if_needed(args, traits, state);
   if (!error.is_done()) goto exit;
-  // state in: local_buffer, piggyback_tag_rcomp_in_msg
-  // state out: size
-  piggyback_tag_rcomp(args, traits, state);
   // state in: none
   // state out: local_comp, free_local_comp
   set_local_comp(args, traits, state);
-  // state in: none
-  // state out: data
-  set_data(args, traits, state);
   // state in: data
   // state out: status
   set_status(args, traits, state);
