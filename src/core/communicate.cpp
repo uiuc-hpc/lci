@@ -259,7 +259,7 @@ void set_immediate_data(const post_comm_args_t& args, const post_comm_traits_t&,
 // state in: protocol, rhandler, piggyback_tag_rcomp_in_msg
 // state.out: packet, local_buffer, user_provided_packet
 error_t set_packet_if_needed(const post_comm_args_t& args,
-                             const post_comm_traits_t& traits,
+                             [[maybe_unused]] const post_comm_traits_t& traits,
                              post_comm_state_t& state)
 {
   state.local_buffer = args.local_buffer;
@@ -309,7 +309,7 @@ error_t set_packet_if_needed(const post_comm_args_t& args,
 // state in: local_buffer, piggyback_tag_rcomp_in_msg
 // state out: size
 void piggyback_tag_rcomp(const post_comm_args_t& args,
-                         const post_comm_traits_t& traits,
+                         [[maybe_unused]] const post_comm_traits_t& traits,
                          post_comm_state_t& state)
 {
   state.size = args.size;
