@@ -7,6 +7,7 @@
 #include <random>
 #include <iterator>
 #include "lci.hpp"
+#include "lci_internal.hpp"
 #include "util.hpp"
 
 #include "test_idle.hpp"
@@ -23,7 +24,6 @@
 #include "test_put.hpp"
 #include "test_putImm.hpp"
 #include "test_get.hpp"
-#include "test_backlog_queue.hpp"
 #include "test_matching_policy.hpp"
 
 int main(int argc, char** argv)

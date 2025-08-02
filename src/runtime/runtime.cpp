@@ -14,7 +14,6 @@ runtime_t alloc_runtime_x::call_impl(size_t packet_return_threshold,
                                      bool alloc_default_device,
                                      bool alloc_default_packet_pool,
                                      bool alloc_default_matching_engine,
-                                     attr_rdv_protocol_t rdv_protocol,
                                      void* user_context) const
 {
   LCI_Assert(imm_nbits_tag + imm_nbits_rcomp <= 31,
@@ -26,7 +25,6 @@ runtime_t alloc_runtime_x::call_impl(size_t packet_return_threshold,
   attr.packet_return_threshold = packet_return_threshold;
   attr.imm_nbits_rcomp = imm_nbits_rcomp;
   attr.imm_nbits_tag = imm_nbits_tag;
-  attr.rdv_protocol = rdv_protocol;
   attr.user_context = user_context;
   attr.alloc_default_device = alloc_default_device;
   attr.alloc_default_packet_pool = alloc_default_packet_pool;
@@ -47,8 +45,7 @@ void g_runtime_init_x::call_impl(size_t packet_return_threshold,
                                  int imm_nbits_tag, int imm_nbits_rcomp,
                                  bool alloc_default_device,
                                  bool alloc_default_packet_pool,
-                                 bool alloc_default_matching_engine,
-                                 attr_rdv_protocol_t rdv_protocol) const
+                                 bool alloc_default_matching_engine) const
 {
   LCI_Assert(g_default_runtime.p_impl == nullptr,
              "g_default_runtime has been initialized!\n");
@@ -61,7 +58,6 @@ void g_runtime_init_x::call_impl(size_t packet_return_threshold,
   attr.packet_return_threshold = packet_return_threshold;
   attr.imm_nbits_rcomp = imm_nbits_rcomp;
   attr.imm_nbits_tag = imm_nbits_tag;
-  attr.rdv_protocol = rdv_protocol;
   attr.user_context = nullptr;
   attr.alloc_default_device = alloc_default_device;
   attr.alloc_default_packet_pool = alloc_default_packet_pool;
@@ -111,13 +107,6 @@ void runtime_impl_t::initialize()
     //            "The progress-specific network endpoint "
     //            "for libfabric cxi backend. Use `export "
     //            "LCI_ENABLE_PRG_NET_ENDPOINT=0`.\n");
-    if (attr.rdv_protocol != attr_rdv_protocol_t::write) {
-      attr.rdv_protocol = attr_rdv_protocol_t::write;
-      LCI_Warn(
-          "Switch LCI_RDV_PROTOCOL to \"write\" "
-          "as required by the libfabric cxi backend. Turn off this warning by "
-          "`export LCI_RDV_PROTOCOL=write`\n");
-    }
   }
   if (attr.alloc_default_packet_pool) {
     default_packet_pool = alloc_packet_pool_x().runtime(runtime)();

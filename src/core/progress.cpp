@@ -43,11 +43,13 @@ void progress_recv(runtime_t runtime, endpoint_t endpoint,
         status.rank = net_status.rank;
         status.tag = tag;
         if (reinterpret_cast<comp_impl_t*>(entry.value)->attr.zero_copy_am) {
-          status.data =
-              data_t(buffer_t(packet->get_payload_address(), msg_size));
+          status.buffer = packet->get_payload_address();
+          status.size = msg_size;
         } else {
-          status.data.copy_from(packet->get_payload_address(), msg_size,
-                                runtime.get_impl()->allocator);
+          // copy the data
+          status.buffer = runtime.get_impl()->allocator->allocate(msg_size);
+          status.size = msg_size;
+          memcpy(status.buffer, packet->get_payload_address(), msg_size);
           packet->put_back();
         }
         status.user_context = nullptr;
@@ -62,7 +64,7 @@ void progress_recv(runtime_t runtime, endpoint_t endpoint,
         packet->local_context.is_eager = true;
         packet->local_context.rank = net_status.rank;
         packet->local_context.tag = tag;
-        packet->local_context.data = buffer_t(nullptr, msg_size);
+        packet->local_context.size = msg_size;
         auto ret = p_matching_engine->insert(
             key, packet, matching_engine_impl_t::insert_type_t::send);
         if (ret)
@@ -181,9 +183,9 @@ void progress_read(const net_status_t& net_status)
     free_ctx_and_signal_comp(ctx);
   } else {
     if (internal_ctx->packet_to_free) {
-      memcpy(internal_ctx->data.buffer.base,
+      memcpy(internal_ctx->buffer,
              internal_ctx->packet_to_free->get_payload_address(),
-             internal_ctx->data.buffer.size);
+             internal_ctx->size);
     }
     free_ctx_and_signal_comp(internal_ctx);
   }

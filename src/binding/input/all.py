@@ -18,7 +18,6 @@ runtime_attr = [
     attr("bool", "alloc_default_device", default_value=1, comment="Whether to allocate the default device."),
     attr("bool", "alloc_default_packet_pool", default_value=1, comment="Whether to allocate the default packet pool."),
     attr("bool", "alloc_default_matching_engine", default_value=1, comment="Whether to allocate the default matching engine."),
-    attr_enum("rdv_protocol", enum_options=["write"], default_value="write", comment="The rendezvous protocol to use."),
 ]
 
 def get_g_runtime_init_args(runtime_attr):
