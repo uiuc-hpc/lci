@@ -76,15 +76,20 @@ jobs:
       - name: Configure
         shell: bash
         run: |
-            cmake \
-                -Bbuild \
-                -GNinja \
-                -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-                -DLCI_DEBUG=ON \
-                -DLCI_NETWORK_BACKENDS=ofi,ibv \
-                -DLCI_USE_TCMALLOC=OFF \
-                -DCMAKE_VERBOSE_MAKEFILE=ON \
-                .
+            CMAKE_ARGS="
+              -Bbuild
+              -GNinja
+              -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+              -DLCI_NETWORK_BACKENDS=ofi,ibv
+              -DLCI_USE_TCMALLOC=OFF
+              -DCMAKE_VERBOSE_MAKEFILE=ON
+            "
+
+            if [[ "${{ matrix.build_type }}" == "Debug" ]]; then
+              CMAKE_ARGS+=" -DLCI_DEBUG=ON"
+            fi
+
+            cmake $CMAKE_ARGS .
 
       - name: Build
         shell: bash
