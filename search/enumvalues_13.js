@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['view_0',['view',['../da/d7c/structlci_1_1data__t.html#a21c73c80a4186351a3c864922edc777ca1bda80f2be4d3658e0baa43fbe7ae8c1',1,'lci::data_t']]]
+  ['write_0',['WRITE',['../d8/d33/group__LCI__BASIC.html#gga5738a9cd7c46e12f45e2fbf0fca0b895ad4b9e47f65b6e79b010582f15785867e',1,'lci']]]
 ];

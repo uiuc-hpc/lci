@@ -1,6 +1,4 @@
 var searchData=
 [
-  ['rbuffers_5ft_0',['rbuffers_t',['../d5/dd3/namespacelci.html#a95080af54cc2124c954a29de2293c695',1,'lci']]],
-  ['rcomp_5ft_1',['rcomp_t',['../d8/d33/group__LCI__BASIC.html#gacd46beb25126ebb7bf83b33e6381d6d2',1,'lci']]],
-  ['reduce_5fop_5ft_2',['reduce_op_t',['../d8/d33/group__LCI__BASIC.html#ga6b10a47c2df0ad78519c8da4580c355f',1,'lci']]]
+  ['tag_5ft_0',['tag_t',['../d8/d33/group__LCI__BASIC.html#gaed3bf62f9de2087c7e7b0bcbe89ef151',1,'lci']]]
 ];

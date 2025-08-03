@@ -12,6 +12,7 @@ var searchData=
   ['alloc_5fruntime_5fx_9',['alloc_runtime_x',['../d4/d5c/classlci_1_1alloc__runtime__x.html',1,'lci']]],
   ['alloc_5fsync_5fx_10',['alloc_sync_x',['../dd/da4/classlci_1_1alloc__sync__x.html',1,'lci']]],
   ['allocator_5fbase_5ft_11',['allocator_base_t',['../d6/db9/structlci_1_1allocator__base__t.html',1,'lci']]],
-  ['allreduce_5fx_12',['allreduce_x',['../dc/d4c/classlci_1_1allreduce__x.html',1,'lci']]],
-  ['alltoall_5fx_13',['alltoall_x',['../dc/de4/classlci_1_1alltoall__x.html',1,'lci']]]
+  ['allocator_5fdefault_5ft_12',['allocator_default_t',['../d8/d6c/structlci_1_1allocator__default__t.html',1,'lci']]],
+  ['allreduce_5fx_13',['allreduce_x',['../dc/d4c/classlci_1_1allreduce__x.html',1,'lci']]],
+  ['alltoall_5fx_14',['alltoall_x',['../dc/de4/classlci_1_1alltoall__x.html',1,'lci']]]
 ];

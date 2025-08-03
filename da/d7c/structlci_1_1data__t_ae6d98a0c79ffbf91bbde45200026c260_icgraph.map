@@ -1,9 +1,0 @@
-<map id="lci::data_t::get_own_data" name="lci::data_t::get_own_data">
-<area shape="rect" id="Node000001" title=" " alt="" coords="220,55,405,80"/>
-<area shape="rect" id="Node000002" href="$da/d7c/structlci_1_1data__t.html#aa4f425e53b7dd3614cabd61b460575db" title=" " alt="" coords="21,5,156,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="241,54,147,33,148,28,242,49"/>
-<area shape="rect" id="Node000003" href="$da/d7c/structlci_1_1data__t.html#ad52c699c8681147663af4fb39b6e4dfb" title="Get the buffer from the data object." alt="" coords="9,55,169,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="206,70,169,70,169,65,206,65"/>
-<area shape="rect" id="Node000004" href="$da/d7c/structlci_1_1data__t.html#a55eb9ec07fde2232ec6f81efef5d2b8a" title="Get the buffers from the data object." alt="" coords="5,104,172,129"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="242,86,148,107,147,101,241,80"/>
-</map>

@@ -138,17 +138,11 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d8d/structlci_1_1rmr__t.html">lci::rmr_t</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The type of remote memory region.  <a href="../../da/d8d/structlci_1_1rmr__t.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d63/structlci_1_1buffer__t.html">lci::buffer_t</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The type of a local buffer descriptor.  <a href="../../de/d63/structlci_1_1buffer__t.html#details">More...</a><br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/de5/structlci_1_1rbuffer__t.html">lci::rbuffer_t</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The type of a remote buffer descriptor.  <a href="../../d8/de5/structlci_1_1rbuffer__t.html#details">More...</a><br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/db9/structlci_1_1allocator__base__t.html">lci::allocator_base_t</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The user-defined allocator type.  <a href="../../d6/db9/structlci_1_1allocator__base__t.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d7c/structlci_1_1data__t.html">lci::data_t</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A generic type for describing or holding data.  <a href="../../da/d7c/structlci_1_1data__t.html#details">More...</a><br /></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d63/structlci_1_1buffer__t.html">lci::buffer_t</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The type of a local buffer descriptor.  <a href="../../de/d63/structlci_1_1buffer__t.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d1e/structlci_1_1status__t.html">lci::status_t</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The type of the completion desciptor for a posted communication.  <a href="../../d9/d1e/structlci_1_1status__t.html#details">More...</a><br /></td></tr>
@@ -358,7 +352,7 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line"> void (*)(<a class="code hl_struct" href="../../d9/d1e/structlci_1_1status__t.html">status_t</a> status, <span class="keywordtype">void</span>* src_value,</div>
 <div class="line">                                     <span class="keywordtype">void</span>* dst_value)</div>
-<div class="ttc" id="astructlci_1_1status__t_html"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html">lci::status_t</a></div><div class="ttdoc">The type of the completion desciptor for a posted communication.</div><div class="ttdef"><b>Definition</b> lci.hpp:605</div></div>
+<div class="ttc" id="astructlci_1_1status__t_html"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html">lci::status_t</a></div><div class="ttdoc">The type of the completion desciptor for a posted communication.</div><div class="ttdef"><b>Definition</b> lci.hpp:458</div></div>
 </div><!-- fragment -->
 <p>The function signature for a edge funciton in the completion graph. </p>
 
@@ -949,8 +943,8 @@ Here is the call graph for this function:</div>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line">=</div>
 <div class="line">    <a class="code hl_class" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a>(<span class="keyword">reinterpret_cast&lt;</span><a class="code hl_class" href="../../d9/d97/classlci_1_1comp__impl__t.html">comp_impl_t</a>*<span class="keyword">&gt;</span>(0x0))</div>
-<div class="ttc" id="aclasslci_1_1comp__impl__t_html"><div class="ttname"><a href="../../d9/d97/classlci_1_1comp__impl__t.html">lci::comp_impl_t</a></div><div class="ttdoc">Completion object implementation base type.</div><div class="ttdef"><b>Definition</b> lci.hpp:674</div></div>
-<div class="ttc" id="aclasslci_1_1comp__t_html"><div class="ttname"><a href="../../d1/da7/classlci_1_1comp__t.html">lci::comp_t</a></div><div class="ttdoc">The actual implementation for RESOURCE comp.</div><div class="ttdef"><b>Definition</b> lci_binding_pre.hpp:276</div></div>
+<div class="ttc" id="aclasslci_1_1comp__impl__t_html"><div class="ttname"><a href="../../d9/d97/classlci_1_1comp__impl__t.html">lci::comp_impl_t</a></div><div class="ttdoc">Completion object implementation base type.</div><div class="ttdef"><b>Definition</b> lci.hpp:522</div></div>
+<div class="ttc" id="aclasslci_1_1comp__t_html"><div class="ttname"><a href="../../d1/da7/classlci_1_1comp__t.html">lci::comp_t</a></div><div class="ttdoc">The actual implementation for RESOURCE comp.</div><div class="ttdef"><b>Definition</b> lci_binding_pre.hpp:268</div></div>
 </div><!-- fragment -->
 <p>Deprecated. Same as COMP_NULL. </p>
 
