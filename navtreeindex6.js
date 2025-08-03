@@ -1,5 +1,10 @@
 var NAVTREEINDEX6 =
 {
+"dd/dea/classlci_1_1barrier__x.html#a8d67098f7543904050fa02d587f59e6d":[5,7,0,0,0],
+"dd/dea/classlci_1_1barrier__x.html#a92a9620edd8058df94f42eac1db13e58":[5,7,0,0,13],
+"dd/dea/classlci_1_1barrier__x.html#a980001176d7677c650fcbaf17a975f9e":[5,7,0,0,5],
+"dd/dea/classlci_1_1barrier__x.html#aa287ecbd813cf5dcbc322389d8b1a233":[5,7,0,0,8],
+"dd/dea/classlci_1_1barrier__x.html#aae47fffaa2edbd182498a352457a3c42":[5,7,0,0,11],
 "dd/dea/classlci_1_1barrier__x.html#aedef426cdcbfe66ff13bab373740f3fd":[5,7,0,0,9],
 "dd/dea/classlci_1_1barrier__x.html#af9aa08657b8df370227950efcaa58566":[5,7,0,0,15],
 "de/d1b/classlci_1_1endpoint__t.html":[5,2,26,0],
