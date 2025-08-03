@@ -474,10 +474,12 @@ struct status_t {
   bool is_done() const { return error.is_done(); }
   bool is_posted() const { return error.is_posted(); }
   bool is_retry() const { return error.is_retry(); }
-  [[deprecated("Use `buffer` and `size` directly")]] buffer_t get_buffer() const
-  {
-    return buffer_t(buffer, size);
-  }
+  error_t get_error() const { return error; }
+  int get_rank() const { return rank; }
+  void* get_buffer() const { return buffer; }
+  size_t get_size() const { return size; }
+  tag_t get_tag() const { return tag; }
+  void* get_user_context() const { return user_context; }
 };
 
 /**
