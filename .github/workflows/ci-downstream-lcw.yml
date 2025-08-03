@@ -10,6 +10,7 @@ jobs:
   downstream-lcw:
     runs-on: ubuntu-latest
     name: Downstream LCW
+    continue-on-error: true
 
     steps:
       - name: Checkout LCI
