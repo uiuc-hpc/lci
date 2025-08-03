@@ -89,7 +89,7 @@ jobs:
               CMAKE_ARGS+=" -DLCI_DEBUG=ON"
             fi
 
-            cmake $CMAKE_ARGS .
+            cmake -LA $CMAKE_ARGS .
 
       - name: Build
         shell: bash
