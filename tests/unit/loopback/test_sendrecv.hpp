@@ -94,11 +94,11 @@ TEST(COMM_SENDRECV, sendrecv)
 {
   lci::g_runtime_init();
 
-  const int nmsgs_total = 1000;
+  const int nmsgs_total = util::NITERS_SMALL;
   const size_t max_bcopy_size = lci::get_max_bcopy_size();
   std::vector<size_t> msg_sizes = {0, 8, max_bcopy_size, max_bcopy_size + 1,
                                    65536};
-  std::vector<int> nthreads = {1, 4};
+  std::vector<int> nthreads = {1, util::NTHREADS};
 
   // basic setting
   for (auto& nthread : nthreads) {

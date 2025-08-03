@@ -10,7 +10,7 @@
 namespace util
 {
 #if defined(__APPLE__)
-// Apple is very slot with threads oversubscription
+// Apple is very slow with threads oversubscription
 // potentiall due to no spinlock support.
 const int NTHREADS = 4;
 const int NITERS_LARGE = 1000;
