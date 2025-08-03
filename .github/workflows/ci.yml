@@ -84,8 +84,8 @@ jobs:
               -DLCI_USE_TCMALLOC=OFF
               -DCMAKE_VERBOSE_MAKEFILE=ON
             "
-            
-            if [[ "${{ matrix.build_type }}" == "Debug" || "${{ runner.os }}" == "macOS" ]]; then
+
+            if [[ "${{ matrix.build_type }}" == "Debug" ]]; then
               CMAKE_ARGS+=" -DLCI_DEBUG=ON"
             fi
 
