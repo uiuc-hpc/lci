@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['ucx_0',['ucx',['../d5/dd3/namespacelci.html#a210d8a7dce42f1f213407e36a1718836aed4f29c0d201b44babe6d082decbdf30',1,'lci']]]
+  ['write_0',['WRITE',['../d8/d33/group__LCI__BASIC.html#gga5738a9cd7c46e12f45e2fbf0fca0b895ad4b9e47f65b6e79b010582f15785867e',1,'lci']]]
 ];

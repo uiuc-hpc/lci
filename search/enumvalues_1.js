@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['buffer_0',['buffer',['../d8/d33/group__LCI__BASIC.html#ggafb4a38b937767ee6f9104d94a1d777c2a7f2db423a49b305459147332fb01cf87',1,'lci']]]
+  ['cq_0',['cq',['../d5/dd3/namespacelci.html#a610912d197faa01c2f04666209b814bba1c29ac0ab69660bfc944d1a913ecda64',1,'lci']]],
+  ['custom_1',['custom',['../d5/dd3/namespacelci.html#a610912d197faa01c2f04666209b814bba8b9035807842a4e4dbe009f3f1478127',1,'lci']]]
 ];

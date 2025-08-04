@@ -28,12 +28,6 @@ var group__LCI__BASIC =
       [ "allocate", "d6/db9/structlci_1_1allocator__base__t.html#ab60f1be97701d09885e6c0b1c050ab1d", null ],
       [ "deallocate", "d6/db9/structlci_1_1allocator__base__t.html#aa4c610c25bc203486553d2aedb60584c", null ]
     ] ],
-    [ "lci::buffer_t", "de/d63/structlci_1_1buffer__t.html", [
-      [ "buffer_t", "de/d63/structlci_1_1buffer__t.html#ab73e4f043f3aae91b8a500fd308e0a35", null ],
-      [ "buffer_t", "de/d63/structlci_1_1buffer__t.html#a641369e03f265b4863ce17af3cda1444", null ],
-      [ "base", "de/d63/structlci_1_1buffer__t.html#a4297e342c3f64c4298cb344774ed2e18", null ],
-      [ "size", "de/d63/structlci_1_1buffer__t.html#a15dcfa1da7d806736fb21a5f22f716d7", null ]
-    ] ],
     [ "lci::status_t", "d9/d1e/structlci_1_1status__t.html", [
       [ "status_t", "d9/d1e/structlci_1_1status__t.html#aaf6d75a0f5134d389e950b645a42b5f9", null ],
       [ "status_t", "d9/d1e/structlci_1_1status__t.html#a1bfc6bd664acbc05e80bcf709f313ada", null ],
@@ -89,7 +83,7 @@ var group__LCI__BASIC =
       [ "lci::broadcast_algorithm_t::ring", "d8/d33/group__LCI__BASIC.html#gga17f1a9c385af13ae641d4a87e113161ba1a5df958e0f29d35594c7cf057fe4bd1", null ]
     ] ],
     [ "lci::comp_semantic_t", "d8/d33/group__LCI__BASIC.html#gafb4a38b937767ee6f9104d94a1d777c2", [
-      [ "lci::comp_semantic_t::buffer", "d8/d33/group__LCI__BASIC.html#ggafb4a38b937767ee6f9104d94a1d777c2a7f2db423a49b305459147332fb01cf87", null ],
+      [ "lci::comp_semantic_t::memory", "d8/d33/group__LCI__BASIC.html#ggafb4a38b937767ee6f9104d94a1d777c2acd69b4957f06cd818d7bf3d61980e291", null ],
       [ "lci::comp_semantic_t::network", "d8/d33/group__LCI__BASIC.html#ggafb4a38b937767ee6f9104d94a1d777c2a91e02cd2b8621d0c05197f645668c5c4", null ]
     ] ],
     [ "lci::direction_t", "d8/d33/group__LCI__BASIC.html#ga635a086b50ac87b41d18063940868cb7", [

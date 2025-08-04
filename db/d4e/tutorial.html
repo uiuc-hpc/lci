@@ -522,7 +522,7 @@ Communication Posting</h3>
 <div class="ttc" id="anamespacelci_html_af1956c62d0f6291162988088abe93e73"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#af1956c62d0f6291162988088abe93e73">lci::post_recv</a></div><div class="ttdeci">status_t post_recv(int rank_in, void *local_buffer_in, size_t size_in, tag_t tag_in, comp_t local_comp_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:1947</div></div>
 <div class="ttc" id="anamespacelci_html_afd5f8b23c99abd4dc49a8e47a058e0ca"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#afd5f8b23c99abd4dc49a8e47a058e0ca">lci::post_get</a></div><div class="ttdeci">status_t post_get(int rank_in, void *local_buffer_in, size_t size_in, comp_t local_comp_in, uintptr_t remote_disp_in, rmr_t rmr_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:2120</div></div>
 <div class="ttc" id="astructlci_1_1rmr__t_html"><div class="ttname"><a href="../../da/d8d/structlci_1_1rmr__t.html">lci::rmr_t</a></div><div class="ttdoc">The type of remote memory region.</div><div class="ttdef"><b>Definition</b> lci.hpp:330</div></div>
-<div class="ttc" id="astructlci_1_1status__t_html"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html">lci::status_t</a></div><div class="ttdoc">The type of the completion desciptor for a posted communication.</div><div class="ttdef"><b>Definition</b> lci.hpp:458</div></div>
+<div class="ttc" id="astructlci_1_1status__t_html"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html">lci::status_t</a></div><div class="ttdoc">The type of the completion desciptor for a posted communication.</div><div class="ttdef"><b>Definition</b> lci.hpp:443</div></div>
 </div><!-- fragment --><p>Where is write with notification? <code>post_put</code> can take an optional <code>rcomp</code> argument to specify a remote completion handle.</p>
 <p>All functions here are non-blocking: they merely <em>post</em> the communication operation and return immediately. The actual communication may not be completed yet. A communication posting function returns a <code>status_t</code> object that can be in one of the three states:</p><ul>
 <li><b>done</b>: the operation is completed.</li>
@@ -549,9 +549,9 @@ Communication Posting</h3>
 <div class="ttc" id="anamespacelci_html_ad05235498477d26522d212f4ea5000cb"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#ad05235498477d26522d212f4ea5000cb">lci::sync_test</a></div><div class="ttdeci">bool sync_test(comp_t comp_in, status_t *p_out_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:1183</div></div>
 <div class="ttc" id="anamespacelci_html_ad55bf2fa3c43f989f8f382fa8c41a387"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#ad55bf2fa3c43f989f8f382fa8c41a387">lci::progress</a></div><div class="ttdeci">error_t progress()</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:2160</div></div>
 <div class="ttc" id="anamespacelci_html_af302b7808e35efca489ce25644ab249e"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#af302b7808e35efca489ce25644ab249e">lci::alloc_sync</a></div><div class="ttdeci">comp_t alloc_sync()</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:1143</div></div>
-<div class="ttc" id="astructlci_1_1status__t_html_a7d4d6335a16e1060b2cf8a03c767a3b7"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html#a7d4d6335a16e1060b2cf8a03c767a3b7">lci::status_t::is_done</a></div><div class="ttdeci">bool is_done() const</div><div class="ttdef"><b>Definition</b> lci.hpp:474</div></div>
-<div class="ttc" id="astructlci_1_1status__t_html_a9b8fe320747cab88b12b2eb6bdc2f970"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html#a9b8fe320747cab88b12b2eb6bdc2f970">lci::status_t::is_posted</a></div><div class="ttdeci">bool is_posted() const</div><div class="ttdef"><b>Definition</b> lci.hpp:475</div></div>
-<div class="ttc" id="astructlci_1_1status__t_html_abaa9d395f7105a81a24bf3ec6b670643"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html#abaa9d395f7105a81a24bf3ec6b670643">lci::status_t::is_retry</a></div><div class="ttdeci">bool is_retry() const</div><div class="ttdef"><b>Definition</b> lci.hpp:476</div></div>
+<div class="ttc" id="astructlci_1_1status__t_html_a7d4d6335a16e1060b2cf8a03c767a3b7"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html#a7d4d6335a16e1060b2cf8a03c767a3b7">lci::status_t::is_done</a></div><div class="ttdeci">bool is_done() const</div><div class="ttdef"><b>Definition</b> lci.hpp:459</div></div>
+<div class="ttc" id="astructlci_1_1status__t_html_a9b8fe320747cab88b12b2eb6bdc2f970"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html#a9b8fe320747cab88b12b2eb6bdc2f970">lci::status_t::is_posted</a></div><div class="ttdeci">bool is_posted() const</div><div class="ttdef"><b>Definition</b> lci.hpp:460</div></div>
+<div class="ttc" id="astructlci_1_1status__t_html_abaa9d395f7105a81a24bf3ec6b670643"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html#abaa9d395f7105a81a24bf3ec6b670643">lci::status_t::is_retry</a></div><div class="ttdeci">bool is_retry() const</div><div class="ttdef"><b>Definition</b> lci.hpp:461</div></div>
 </div><!-- fragment --><p> The usage of synchronizer (<code>sync</code>) and <code>progress</code> will be explained in the next section.</p>
 <h3><a class="anchor" id="autotoc_md64"></a>
 Completion Checking</h3>
@@ -649,7 +649,7 @@ Hello World</h3>
 <summary >
 Click to expand code</summary>
 <div class="fragment"><div class="line"><span class="comment">// Copyright (c) 2025 The LCI Project Authors</span></div>
-<div class="line"><span class="comment">// SPDX-License-Identifier: MIT</span></div>
+<div class="line"><span class="comment">// SPDX-License-Identifier: NCSA</span></div>
 <div class="line"> </div>
 <div class="line"><span class="preprocessor">#include &lt;iostream&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;unistd.h&gt;</span></div>
@@ -692,7 +692,7 @@ Hello World (Active Message)</h3>
 <summary >
 Click to expand code</summary>
 <div class="fragment"><div class="line"><span class="comment">// Copyright (c) 2025 The LCI Project Authors</span></div>
-<div class="line"><span class="comment">// SPDX-License-Identifier: MIT</span></div>
+<div class="line"><span class="comment">// SPDX-License-Identifier: NCSA</span></div>
 <div class="line"> </div>
 <div class="line"><span class="preprocessor">#include &lt;iostream&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;sstream&gt;</span></div>
@@ -785,9 +785,9 @@ Click to expand code</summary>
 <div class="line">}</div>
 <div class="ttc" id="anamespacelci_html_a7952c7d36886b256a2c4d9be1f63aa47"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#a7952c7d36886b256a2c4d9be1f63aa47">lci::register_rcomp</a></div><div class="ttdeci">rcomp_t register_rcomp(comp_t comp_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:1063</div></div>
 <div class="ttc" id="anamespacelci_html_ae6054124daf3cd24d181b63ccbb7ce6c"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#ae6054124daf3cd24d181b63ccbb7ce6c">lci::barrier</a></div><div class="ttdeci">void barrier()</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:2209</div></div>
-<div class="ttc" id="astructlci_1_1status__t_html_a723483ab2c1145824fc16a44a44b1997"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html#a723483ab2c1145824fc16a44a44b1997">lci::status_t::size</a></div><div class="ttdeci">size_t size</div><div class="ttdef"><b>Definition</b> lci.hpp:462</div></div>
-<div class="ttc" id="astructlci_1_1status__t_html_a831eecf0a79ddc81724fc813148bcfd3"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html#a831eecf0a79ddc81724fc813148bcfd3">lci::status_t::buffer</a></div><div class="ttdeci">void * buffer</div><div class="ttdef"><b>Definition</b> lci.hpp:461</div></div>
-<div class="ttc" id="astructlci_1_1status__t_html_ad0e6fb6de5142ab266d2b338178e183e"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html#ad0e6fb6de5142ab266d2b338178e183e">lci::status_t::rank</a></div><div class="ttdeci">int rank</div><div class="ttdef"><b>Definition</b> lci.hpp:460</div></div>
+<div class="ttc" id="astructlci_1_1status__t_html_a723483ab2c1145824fc16a44a44b1997"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html#a723483ab2c1145824fc16a44a44b1997">lci::status_t::size</a></div><div class="ttdeci">size_t size</div><div class="ttdef"><b>Definition</b> lci.hpp:447</div></div>
+<div class="ttc" id="astructlci_1_1status__t_html_a831eecf0a79ddc81724fc813148bcfd3"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html#a831eecf0a79ddc81724fc813148bcfd3">lci::status_t::buffer</a></div><div class="ttdeci">void * buffer</div><div class="ttdef"><b>Definition</b> lci.hpp:446</div></div>
+<div class="ttc" id="astructlci_1_1status__t_html_ad0e6fb6de5142ab266d2b338178e183e"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html#ad0e6fb6de5142ab266d2b338178e183e">lci::status_t::rank</a></div><div class="ttdeci">int rank</div><div class="ttdef"><b>Definition</b> lci.hpp:445</div></div>
 </div><!-- fragment --> </details>
 <details >
 <summary >
@@ -804,7 +804,7 @@ Distributed Array</h3>
 <summary >
 Click to expand code</summary>
 <div class="fragment"><div class="line"><span class="comment">// Copyright (c) 2025 The LCI Project Authors</span></div>
-<div class="line"><span class="comment">// SPDX-License-Identifier: MIT</span></div>
+<div class="line"><span class="comment">// SPDX-License-Identifier: NCSA</span></div>
 <div class="line"> </div>
 <div class="line"><span class="preprocessor">#include &lt;iostream&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;cassert&gt;</span></div>
@@ -930,8 +930,8 @@ Click to expand code</summary>
 <div class="line">  <a class="code hl_function" href="../../d5/dd3/namespacelci.html#a701a29185fc4b076f1b8a198806fc615">lci::g_runtime_fina</a>();</div>
 <div class="line">  <span class="keywordflow">return</span> 0;</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__LCI__BASIC_html_gafe52227fda9cf2b4026a3fd7925c2016"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#gafe52227fda9cf2b4026a3fd7925c2016">lci::COMP_NULL_RETRY</a></div><div class="ttdeci">const comp_t COMP_NULL_RETRY</div><div class="ttdoc">Special completion object setting allow_posted and allow_retry to false.</div><div class="ttdef"><b>Definition</b> lci.hpp:503</div></div>
-<div class="ttc" id="agroup__LCI__BASIC_html_ggafb4a38b937767ee6f9104d94a1d777c2a91e02cd2b8621d0c05197f645668c5c4"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#ggafb4a38b937767ee6f9104d94a1d777c2a91e02cd2b8621d0c05197f645668c5c4">lci::comp_semantic_t::network</a></div><div class="ttdeci">@ network</div><div class="ttdef"><b>Definition</b> lci.hpp:421</div></div>
+<div class="ttc" id="agroup__LCI__BASIC_html_gafe52227fda9cf2b4026a3fd7925c2016"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#gafe52227fda9cf2b4026a3fd7925c2016">lci::COMP_NULL_RETRY</a></div><div class="ttdeci">const comp_t COMP_NULL_RETRY</div><div class="ttdoc">Special completion object setting allow_posted and allow_retry to false.</div><div class="ttdef"><b>Definition</b> lci.hpp:488</div></div>
+<div class="ttc" id="agroup__LCI__BASIC_html_ggafb4a38b937767ee6f9104d94a1d777c2a91e02cd2b8621d0c05197f645668c5c4"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#ggafb4a38b937767ee6f9104d94a1d777c2a91e02cd2b8621d0c05197f645668c5c4">lci::comp_semantic_t::network</a></div><div class="ttdeci">@ network</div><div class="ttdef"><b>Definition</b> lci.hpp:420</div></div>
 <div class="ttc" id="anamespacelci_html_a24873f5ddc295cfc7f7a6109c0687788"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#a24873f5ddc295cfc7f7a6109c0687788">lci::deregister_memory</a></div><div class="ttdeci">void deregister_memory(mr_t *mr_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:2845</div></div>
 <div class="ttc" id="anamespacelci_html_aaf51f7172447f6fb23b5f98f6e124ff9"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#aaf51f7172447f6fb23b5f98f6e124ff9">lci::register_memory</a></div><div class="ttdeci">mr_t register_memory(void *address_in, size_t size_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:2808</div></div>
 <div class="ttc" id="anamespacelci_html_ab6480639b459da398972da8c1f854646"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#ab6480639b459da398972da8c1f854646">lci::get_rmr</a></div><div class="ttdeci">rmr_t get_rmr(mr_t mr_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:2882</div></div>
@@ -950,7 +950,7 @@ Non-blocking Barrier</h3>
 <summary >
 Click to expand code</summary>
 <div class="fragment"><div class="line"><span class="comment">// Copyright (c) 2025 The LCI Project Authors</span></div>
-<div class="line"><span class="comment">// SPDX-License-Identifier: MIT</span></div>
+<div class="line"><span class="comment">// SPDX-License-Identifier: NCSA</span></div>
 <div class="line"> </div>
 <div class="line"><span class="preprocessor">#include &lt;unistd.h&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;cstdio&gt;</span></div>
@@ -1047,13 +1047,13 @@ Click to expand code</summary>
 <div class="ttc" id="aclasslci_1_1post__recv__x_html_a8ca868991d765fd27ad39a0f912d019c"><div class="ttname"><a href="../../d7/df5/classlci_1_1post__recv__x.html#a8ca868991d765fd27ad39a0f912d019c">lci::post_recv_x::allow_retry</a></div><div class="ttdeci">post_recv_x &amp;&amp; allow_retry(bool allow_retry_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:1939</div></div>
 <div class="ttc" id="aclasslci_1_1post__send__x_html"><div class="ttname"><a href="../../d6/de4/classlci_1_1post__send__x.html">lci::post_send_x</a></div><div class="ttdoc">The actual implementation for post_send.</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:1815</div></div>
 <div class="ttc" id="aclasslci_1_1post__send__x_html_a6befe5ff6cfde91858f4581fae6eb006"><div class="ttname"><a href="../../d6/de4/classlci_1_1post__send__x.html#a6befe5ff6cfde91858f4581fae6eb006">lci::post_send_x::allow_retry</a></div><div class="ttdeci">post_send_x &amp;&amp; allow_retry(bool allow_retry_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:1857</div></div>
-<div class="ttc" id="agroup__LCI__BASIC_html_ga04913a1823ea2481cf7ba1284c7abc64"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#ga04913a1823ea2481cf7ba1284c7abc64">lci::graph_add_node_op</a></div><div class="ttdeci">graph_node_t graph_add_node_op(comp_t graph, const T &amp;op)</div><div class="ttdoc">Add a functor as a node to the completion graph.</div><div class="ttdef"><b>Definition</b> lci.hpp:671</div></div>
-<div class="ttc" id="agroup__LCI__BASIC_html_ga84f8522bb8dce688b8a246b6f923d64e"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#ga84f8522bb8dce688b8a246b6f923d64e">lci::graph_node_t</a></div><div class="ttdeci">void * graph_node_t</div><div class="ttdoc">The node type for the completion graph.</div><div class="ttdef"><b>Definition</b> lci.hpp:551</div></div>
-<div class="ttc" id="agroup__LCI__BASIC_html_gad252b9870b3459000f93aaed9ba31a75"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#gad252b9870b3459000f93aaed9ba31a75">lci::GRAPH_START</a></div><div class="ttdeci">const graph_node_t GRAPH_START</div><div class="ttdoc">The start node of the completion graph.</div><div class="ttdef"><b>Definition</b> lci.hpp:557</div></div>
+<div class="ttc" id="agroup__LCI__BASIC_html_ga04913a1823ea2481cf7ba1284c7abc64"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#ga04913a1823ea2481cf7ba1284c7abc64">lci::graph_add_node_op</a></div><div class="ttdeci">graph_node_t graph_add_node_op(comp_t graph, const T &amp;op)</div><div class="ttdoc">Add a functor as a node to the completion graph.</div><div class="ttdef"><b>Definition</b> lci.hpp:656</div></div>
+<div class="ttc" id="agroup__LCI__BASIC_html_ga84f8522bb8dce688b8a246b6f923d64e"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#ga84f8522bb8dce688b8a246b6f923d64e">lci::graph_node_t</a></div><div class="ttdeci">void * graph_node_t</div><div class="ttdoc">The node type for the completion graph.</div><div class="ttdef"><b>Definition</b> lci.hpp:536</div></div>
+<div class="ttc" id="agroup__LCI__BASIC_html_gad252b9870b3459000f93aaed9ba31a75"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#gad252b9870b3459000f93aaed9ba31a75">lci::GRAPH_START</a></div><div class="ttdeci">const graph_node_t GRAPH_START</div><div class="ttdoc">The start node of the completion graph.</div><div class="ttdef"><b>Definition</b> lci.hpp:542</div></div>
 <div class="ttc" id="agroup__LCI__BASIC_html_gga20db54161a501f6b62b3c9974d2013efa6b2ded51d81a4403d8a4bd25fa1e57ee"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#gga20db54161a501f6b62b3c9974d2013efa6b2ded51d81a4403d8a4bd25fa1e57ee">lci::errorcode_t::done</a></div><div class="ttdeci">@ done</div><div class="ttdef"><b>Definition</b> lci.hpp:121</div></div>
 <div class="ttc" id="agroup__LCI__BASIC_html_ggaca9c81007bfc7e1ddb44071f3aaaf400a2541d938b0a58946090d7abdde0d3890"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#ggaca9c81007bfc7e1ddb44071f3aaaf400a2541d938b0a58946090d7abdde0d3890">lci::matching_entry_type_t::send</a></div><div class="ttdeci">@ send</div><div class="ttdef"><b>Definition</b> lci.hpp:384</div></div>
 <div class="ttc" id="agroup__LCI__BASIC_html_ggaca9c81007bfc7e1ddb44071f3aaaf400af701fee85540b78d08cb276d14953d58"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#ggaca9c81007bfc7e1ddb44071f3aaaf400af701fee85540b78d08cb276d14953d58">lci::matching_entry_type_t::recv</a></div><div class="ttdeci">@ recv</div><div class="ttdef"><b>Definition</b> lci.hpp:385</div></div>
-<div class="ttc" id="anamespacelci_html_a3173b3b86ebd54f0966ba7abd7e1646b"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#a3173b3b86ebd54f0966ba7abd7e1646b">lci::GRAPH_END</a></div><div class="ttdeci">const graph_node_t GRAPH_END</div><div class="ttdef"><b>Definition</b> lci.hpp:558</div></div>
+<div class="ttc" id="anamespacelci_html_a3173b3b86ebd54f0966ba7abd7e1646b"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#a3173b3b86ebd54f0966ba7abd7e1646b">lci::GRAPH_END</a></div><div class="ttdeci">const graph_node_t GRAPH_END</div><div class="ttdef"><b>Definition</b> lci.hpp:543</div></div>
 <div class="ttc" id="anamespacelci_html_a56809a72f78bbcf9e5fdd6d1ffebc58d"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#a56809a72f78bbcf9e5fdd6d1ffebc58d">lci::graph_test</a></div><div class="ttdeci">status_t graph_test(comp_t comp_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:1601</div></div>
 <div class="ttc" id="anamespacelci_html_a610912d197faa01c2f04666209b814bbaf8b0b924ebd7046dbfa85a856e4682c8"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#a610912d197faa01c2f04666209b814bbaf8b0b924ebd7046dbfa85a856e4682c8">lci::attr_comp_type_t::graph</a></div><div class="ttdeci">@ graph</div><div class="ttdef"><b>Definition</b> lci_binding_pre.hpp:37</div></div>
 <div class="ttc" id="anamespacelci_html_a62817277dc599edc5864356a4192d312"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#a62817277dc599edc5864356a4192d312">lci::graph_start</a></div><div class="ttdeci">void graph_start(comp_t comp_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:1564</div></div>
@@ -1097,7 +1097,7 @@ Multithreaded Active Message Ping-pong</h3>
 <summary >
 Click to expand code</summary>
 <div class="fragment"><div class="line"><span class="comment">// Copyright (c) 2025 The LCI Project Authors</span></div>
-<div class="line"><span class="comment">// SPDX-License-Identifier: MIT</span></div>
+<div class="line"><span class="comment">// SPDX-License-Identifier: NCSA</span></div>
 <div class="line"> </div>
 <div class="line"><span class="preprocessor">#include &lt;iostream&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;thread&gt;</span></div>
@@ -1255,8 +1255,8 @@ Click to expand code</summary>
 <div class="ttc" id="aclasslci_1_1post__am__x_html"><div class="ttname"><a href="../../d2/ddb/classlci_1_1post__am__x.html">lci::post_am_x</a></div><div class="ttdoc">The actual implementation for post_am.</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:1732</div></div>
 <div class="ttc" id="aclasslci_1_1post__am__x_html_a4c83ce67927a5be8e3ab827e601c0c64"><div class="ttname"><a href="../../d2/ddb/classlci_1_1post__am__x.html#a4c83ce67927a5be8e3ab827e601c0c64">lci::post_am_x::tag</a></div><div class="ttdeci">post_am_x &amp;&amp; tag(tag_t tag_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:1768</div></div>
 <div class="ttc" id="aclasslci_1_1post__am__x_html_ad6c306765380107207fab8aa45ad4527"><div class="ttname"><a href="../../d2/ddb/classlci_1_1post__am__x.html#ad6c306765380107207fab8aa45ad4527">lci::post_am_x::device</a></div><div class="ttdeci">post_am_x &amp;&amp; device(device_t device_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:1764</div></div>
-<div class="ttc" id="agroup__LCI__BASIC_html_gadacc63597d846dd225a8c8e0b9e395f8"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#gadacc63597d846dd225a8c8e0b9e395f8">lci::COMP_NULL</a></div><div class="ttdeci">const comp_t COMP_NULL</div><div class="ttdoc">Special completion object setting allow_posted to false.</div><div class="ttdef"><b>Definition</b> lci.hpp:489</div></div>
-<div class="ttc" id="astructlci_1_1status__t_html_a5e89438bfd4000416ab88cb01059c398"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html#a5e89438bfd4000416ab88cb01059c398">lci::status_t::tag</a></div><div class="ttdeci">tag_t tag</div><div class="ttdef"><b>Definition</b> lci.hpp:463</div></div>
+<div class="ttc" id="agroup__LCI__BASIC_html_gadacc63597d846dd225a8c8e0b9e395f8"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#gadacc63597d846dd225a8c8e0b9e395f8">lci::COMP_NULL</a></div><div class="ttdeci">const comp_t COMP_NULL</div><div class="ttdoc">Special completion object setting allow_posted to false.</div><div class="ttdef"><b>Definition</b> lci.hpp:474</div></div>
+<div class="ttc" id="astructlci_1_1status__t_html_a5e89438bfd4000416ab88cb01059c398"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html#a5e89438bfd4000416ab88cb01059c398">lci::status_t::tag</a></div><div class="ttdeci">tag_t tag</div><div class="ttdef"><b>Definition</b> lci.hpp:448</div></div>
 </div><!-- fragment --> </details>
 <details >
 <summary >

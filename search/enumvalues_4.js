@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['explicit_5fodp_0',['explicit_odp',['../d5/dd3/namespacelci.html#ad9c46e66b67fe0ddb109e414abcb7f04acaf24bfe24b6831e1bbd2ed5c49b065d',1,'lci']]]
+  ['fatal_0',['fatal',['../d8/d33/group__LCI__BASIC.html#gga20db54161a501f6b62b3c9974d2013efadf6402fd9ecc60f5a2159fdf45711cd4',1,'lci']]]
 ];

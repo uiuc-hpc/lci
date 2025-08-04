@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['send_0',['SEND',['../d8/d33/group__LCI__BASIC.html#gga5738a9cd7c46e12f45e2fbf0fca0b895a548e51fa67d541384e9585adf0db95dc',1,'lci']]],
-  ['send_1',['send',['../d8/d33/group__LCI__BASIC.html#ggaca9c81007bfc7e1ddb44071f3aaaf400a2541d938b0a58946090d7abdde0d3890',1,'lci']]],
-  ['sync_2',['sync',['../d5/dd3/namespacelci.html#a610912d197faa01c2f04666209b814bba63ad9d34f3503826e5f649ae6b7ac92c',1,'lci']]]
+  ['tag_5fonly_0',['tag_only',['../d8/d33/group__LCI__BASIC.html#gga7f832f3a6ae619a4e5f002d472dabfc0a996ad4df6a4ba72a0225dd9ff5e677b2',1,'lci']]],
+  ['tree_1',['tree',['../d8/d33/group__LCI__BASIC.html#gga17f1a9c385af13ae641d4a87e113161bac0af77cf8294ff93a5cdb2963ca9f038',1,'lci::tree'],['../d8/d33/group__LCI__BASIC.html#ggaa8f43a876e4e48c4d541773c00e5933aac0af77cf8294ff93a5cdb2963ca9f038',1,'lci::tree'],['../d8/d33/group__LCI__BASIC.html#gga945dde8f47999886ee0f8489452665b9ac0af77cf8294ff93a5cdb2963ca9f038',1,'lci::tree']]]
 ];
