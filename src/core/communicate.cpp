@@ -44,7 +44,6 @@ struct post_comm_args_t {
   bool allow_done;
   bool allow_posted;
   bool allow_retry;
-  bool force_zcopy;
 };
 
 struct post_comm_traits_t {
@@ -116,7 +115,6 @@ post_comm_traits_t validate_and_get_traits(const post_comm_args_t& args)
   // basic checks
   LCI_Assert(args.allow_posted || args.allow_done,
              "At least one of allow_posted and allow_done should be true\n");
-  LCI_Assert(args.force_zcopy == false, "force_zcopy is not supported\n");
   LCI_Assert(!(args.direction == direction_t::IN && traits.local_buffer_only &&
                !traits.local_comp_only),
              "invalid communication primitive\n");
@@ -605,7 +603,7 @@ status_t post_comm_x::call_impl(
     comp_semantic_t comp_semantic, mr_t mr, uintptr_t remote_disp, rmr_t rmr,
     tag_t tag, rcomp_t remote_comp, void* user_context,
     matching_policy_t matching_policy, bool allow_done, bool allow_posted,
-    bool allow_retry, bool force_zcopy) const
+    bool allow_retry) const
 {
   error_t error;
   post_comm_args_t args = {
@@ -613,7 +611,7 @@ status_t post_comm_x::call_impl(
       runtime,       packet_pool,  device,          endpoint,   matching_engine,
       comp_semantic, mr,           remote_disp,     rmr,        tag,
       remote_comp,   user_context, matching_policy, allow_done, allow_posted,
-      allow_retry,   force_zcopy,
+      allow_retry,
   };
   preprocess_args(args);
   post_comm_traits_t traits = validate_and_get_traits(args);
@@ -660,8 +658,7 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
                               device_t device, endpoint_t endpoint,
                               comp_semantic_t comp_semantic, mr_t mr, tag_t tag,
                               void* user_context, bool allow_done,
-                              bool allow_posted, bool allow_retry,
-                              bool force_zcopy) const
+                              bool allow_posted, bool allow_retry) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .runtime(runtime)
@@ -676,8 +673,7 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
       .user_context(user_context)
       .allow_done(allow_done)
       .allow_posted(allow_posted)
-      .allow_retry(allow_retry)
-      .force_zcopy(force_zcopy)();
+      .allow_retry(allow_retry)();
 }
 
 status_t post_send_x::call_impl(
@@ -686,7 +682,7 @@ status_t post_send_x::call_impl(
     endpoint_t endpoint, matching_engine_t matching_engine,
     comp_semantic_t comp_semantic, mr_t mr, void* user_context,
     matching_policy_t matching_policy, bool allow_done, bool allow_posted,
-    bool allow_retry, bool force_zcopy) const
+    bool allow_retry) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .runtime(runtime)
@@ -701,8 +697,7 @@ status_t post_send_x::call_impl(
       .matching_policy(matching_policy)
       .allow_done(allow_done)
       .allow_posted(allow_posted)
-      .allow_retry(allow_retry)
-      .force_zcopy(force_zcopy)();
+      .allow_retry(allow_retry)();
 }
 
 status_t post_recv_x::call_impl(
@@ -710,7 +705,7 @@ status_t post_recv_x::call_impl(
     runtime_t runtime, packet_pool_t packet_pool, device_t device,
     endpoint_t endpoint, matching_engine_t matching_engine, mr_t mr,
     void* user_context, matching_policy_t matching_policy, bool allow_done,
-    bool allow_posted, bool allow_retry, bool force_zcopy) const
+    bool allow_posted, bool allow_retry) const
 {
   return post_comm_x(direction_t::IN, rank, local_buffer, size, local_comp)
       .runtime(runtime)
@@ -724,17 +719,18 @@ status_t post_recv_x::call_impl(
       .matching_policy(matching_policy)
       .allow_done(allow_done)
       .allow_posted(allow_posted)
-      .allow_retry(allow_retry)
-      .force_zcopy(force_zcopy)();
+      .allow_retry(allow_retry)();
 }
 
-status_t post_put_x::call_impl(
-    int rank, void* local_buffer, size_t size, comp_t local_comp,
-    uintptr_t remote_disp, rmr_t rmr, runtime_t runtime,
-    packet_pool_t packet_pool, device_t device, endpoint_t endpoint,
-    comp_semantic_t comp_semantic, mr_t mr, tag_t tag, rcomp_t remote_comp,
-    void* user_context, bool allow_done, bool allow_posted, bool allow_retry,
-    bool force_zcopy) const
+status_t post_put_x::call_impl(int rank, void* local_buffer, size_t size,
+                               comp_t local_comp, uintptr_t remote_disp,
+                               rmr_t rmr, runtime_t runtime,
+                               packet_pool_t packet_pool, device_t device,
+                               endpoint_t endpoint,
+                               comp_semantic_t comp_semantic, mr_t mr,
+                               tag_t tag, rcomp_t remote_comp,
+                               void* user_context, bool allow_done,
+                               bool allow_posted, bool allow_retry) const
 {
   return post_comm_x(direction_t::OUT, rank, local_buffer, size, local_comp)
       .remote_disp(remote_disp)
@@ -751,8 +747,7 @@ status_t post_put_x::call_impl(
       .user_context(user_context)
       .allow_done(allow_done)
       .allow_posted(allow_posted)
-      .allow_retry(allow_retry)
-      .force_zcopy(force_zcopy)();
+      .allow_retry(allow_retry)();
 }
 
 status_t post_get_x::call_impl(int rank, void* local_buffer, size_t size,
@@ -762,7 +757,7 @@ status_t post_get_x::call_impl(int rank, void* local_buffer, size_t size,
                                endpoint_t endpoint, mr_t mr, tag_t tag,
                                rcomp_t remote_comp, void* user_context,
                                bool allow_done, bool allow_posted,
-                               bool allow_retry, bool force_zcopy) const
+                               bool allow_retry) const
 {
   return post_comm_x(direction_t::IN, rank, local_buffer, size, local_comp)
       .remote_disp(remote_disp)
@@ -778,8 +773,7 @@ status_t post_get_x::call_impl(int rank, void* local_buffer, size_t size,
       .user_context(user_context)
       .allow_done(allow_done)
       .allow_posted(allow_posted)
-      .allow_retry(allow_retry)
-      .force_zcopy(force_zcopy)();
+      .allow_retry(allow_retry)();
 }
 
 size_t get_max_bcopy_size_x::call_impl(runtime_t,

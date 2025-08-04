@@ -30,7 +30,6 @@ operation(
         optional_arg("bool", "allow_done", "true", comment="Whether to allow the *done* error code."),
         optional_arg("bool", "allow_posted", "true", comment="Whether to allow the *posted* error code."),
         optional_arg("bool", "allow_retry", "true", comment="Whether to allow the *retry* error code."),
-        optional_arg("bool", "force_zcopy", "false", comment="Whether to force the zero-copy transfer."),
         return_val("status_t", "status", comment="The status of the operation."),
     ],
     doc = {
@@ -57,7 +56,6 @@ operation(
         optional_arg("bool", "allow_done", "true", comment="Whether to allow the *done* error code."),
         optional_arg("bool", "allow_posted", "true", comment="Whether to allow the *posted* error code."),
         optional_arg("bool", "allow_retry", "true", comment="Whether to allow the *retry* error code."),
-        optional_arg("bool", "force_zcopy", "false", comment="Whether to force the zero-copy transfer."),
         return_val("status_t", "status", comment="The status of the operation."),
     ],
     doc = {
@@ -85,7 +83,6 @@ operation(
         optional_arg("bool", "allow_done", "true", comment="Whether to allow the *done* error code."),
         optional_arg("bool", "allow_posted", "true", comment="Whether to allow the *posted* error code."),
         optional_arg("bool", "allow_retry", "true", comment="Whether to allow the *retry* error code."),
-        optional_arg("bool", "force_zcopy", "false", comment="Whether to force the zero-copy transfer."),
         return_val("status_t", "status", comment="The status of the operation."),
     ],
     doc = {
@@ -112,7 +109,6 @@ operation(
         optional_arg("bool", "allow_done", "true", comment="Whether to allow the *done* error code."),
         optional_arg("bool", "allow_posted", "true", comment="Whether to allow the *posted* error code."),
         optional_arg("bool", "allow_retry", "true", comment="Whether to allow the *retry* error code."),
-        optional_arg("bool", "force_zcopy", "false", comment="Whether to force the zero-copy transfer."),
         return_val("status_t", "status", comment="The status of the operation."),
     ],
     doc = {
@@ -141,7 +137,6 @@ operation(
         optional_arg("bool", "allow_done", "true", comment="Whether to allow the *done* error code."),
         optional_arg("bool", "allow_posted", "true", comment="Whether to allow the *posted* error code."),
         optional_arg("bool", "allow_retry", "true", comment="Whether to allow the *retry* error code."),
-        optional_arg("bool", "force_zcopy", "false", comment="Whether to force the zero-copy transfer."),
         return_val("status_t", "status", comment="The status of the operation."),
     ],
     doc = {
@@ -169,7 +164,6 @@ operation(
         optional_arg("bool", "allow_done", "true", comment="Whether to allow the *done* error code."),
         optional_arg("bool", "allow_posted", "true", comment="Whether to allow the *posted* error code."),
         optional_arg("bool", "allow_retry", "true", comment="Whether to allow the *retry* error code."),
-        optional_arg("bool", "force_zcopy", "false", comment="Whether to force the zero-copy transfer."),
         return_val("status_t", "status", comment="The status of the operation."),
     ],
     doc = {
