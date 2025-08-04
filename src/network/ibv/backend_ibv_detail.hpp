@@ -1,5 +1,5 @@
 // Copyright (c) 2025 The LCI Project Authors
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: NCSA
 
 #ifndef LCISI_IBV_DETAIL_H_
 #define LCISI_IBV_DETAIL_H_

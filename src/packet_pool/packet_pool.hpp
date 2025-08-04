@@ -1,5 +1,5 @@
 // Copyright (c) 2025 The LCI Project Authors
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: NCSA
 
 #ifndef LCI_CORE_PACKET_POOL_HPP
 #define LCI_CORE_PACKET_POOL_HPP

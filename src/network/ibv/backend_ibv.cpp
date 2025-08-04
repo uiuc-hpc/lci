@@ -1,5 +1,5 @@
 // Copyright (c) 2025 The LCI Project Authors
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: NCSA
 
 #include "lci_internal.hpp"
 #include "network/ibv/backend_ibv_detail.hpp"

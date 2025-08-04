@@ -1,5 +1,5 @@
 // Copyright (c) 2025 The LCI Project Authors
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: NCSA
 
 #ifndef LCI_LCI_INTERNAL_HPP
 #define LCI_LCI_INTERNAL_HPP
