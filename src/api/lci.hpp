@@ -416,8 +416,7 @@ using matching_entry_val_t = void*;
  * written into the local buffer.
  */
 enum class comp_semantic_t {
-  // TODO: rename buffer -> memory
-  buffer,  /**< When the local buffers can be written or freed */
+  memory,  /**< When the local buffers can be written or freed */
   network, /**< When the associated network-layer operation is completed.  */
 };
 

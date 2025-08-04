@@ -172,7 +172,7 @@ void set_protocol(const post_comm_args_t& args,
     state.protocol = protocol_t::rdv_zcopy;
   } else if (msg_size_if_eager <= traits.max_inject_size &&
              args.direction == direction_t::OUT &&
-             args.comp_semantic == comp_semantic_t::buffer) {
+             args.comp_semantic == comp_semantic_t::memory) {
     // We use the inject protocol only if the five conditions are met:
     // 1. We are sending a single buffer, and
     // 2. The size of the data is smaller than the maximum inject size, and
@@ -418,7 +418,7 @@ error_t post_network_op(const post_comm_args_t& args,
             state.packet->get_mr(args.device), args.remote_disp, args.rmr,
             state.imm_data, state.internal_ctx, args.allow_retry);
       }
-      if (error.is_posted() && args.comp_semantic == comp_semantic_t::buffer) {
+      if (error.is_posted() && args.comp_semantic == comp_semantic_t::memory) {
         error = errorcode_t::done;
       }
       // end of bcopy protocol
