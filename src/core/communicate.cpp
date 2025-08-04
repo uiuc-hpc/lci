@@ -145,7 +145,7 @@ void resolve_rhandler(const post_comm_args_t& args,
 }
 
 // state in: rhandler
-// state out: protocol
+// state out: protocol, piggyback_tag_rcomp_in_msg
 void set_protocol(const post_comm_args_t& args,
                   const post_comm_traits_t& traits, post_comm_state_t& state)
 {
@@ -206,7 +206,7 @@ void set_local_comp(const post_comm_args_t& args, const post_comm_traits_t&,
 }
 
 // state in: protocol, rhandler
-// state out: imm_data, piggyback_tag_rcomp_in_msg
+// state out: imm_data
 void set_immediate_data(const post_comm_args_t& args, const post_comm_traits_t&,
                         post_comm_state_t& state)
 {
@@ -236,7 +236,7 @@ void set_immediate_data(const post_comm_args_t& args, const post_comm_traits_t&,
 }
 
 // state in: protocol, rhandler, piggyback_tag_rcomp_in_msg
-// state.out: packet, local_buffer, user_provided_packet
+// state.out: packet, user_provided_packet
 error_t set_packet_if_needed(const post_comm_args_t& args,
                              [[maybe_unused]] const post_comm_traits_t& traits,
                              post_comm_state_t& state)
@@ -307,8 +307,8 @@ error_t check_backlog(const post_comm_args_t& args, const post_comm_traits_t&,
   return errorcode_t::done;
 }
 
-// state in: protocol, packet, local_comp, data
-// state out: internal_ctx
+// state in: protocol, packet, local_comp
+// state out: internal_ctx, mr
 void set_internal_ctx(const post_comm_args_t& args, const post_comm_traits_t&,
                       post_comm_state_t& state)
 {
@@ -350,7 +350,7 @@ void set_internal_ctx(const post_comm_args_t& args, const post_comm_traits_t&,
   }
 }
 
-// state in: data
+// state in: none
 // state out: status
 void set_status(const post_comm_args_t& args, const post_comm_traits_t&,
                 post_comm_state_t& state)
@@ -619,27 +619,27 @@ status_t post_comm_x::call_impl(
   // state out: rhandler
   resolve_rhandler(args, traits, state);
   // state in: rhandler
-  // state out: protocol
+  // state out: protocol, piggyback_tag_rcomp_in_msg
   set_protocol(args, traits, state);
   // state in: protocol
   // state out: none
   error = check_backlog(args, traits, state);
   if (!error.is_done()) goto exit;
-  // state in: protocol, rhandler
-  // state out: imm_data, piggyback_tag_rcomp_in_msg
-  set_immediate_data(args, traits, state);
   // state in: protocol, rhandler, piggyback_tag_rcomp_in_msg
-  // state.out: packet, local_buffer, user_provided_packet
+  // state.out: packet, user_provided_packet
   error = set_packet_if_needed(args, traits, state);
   if (!error.is_done()) goto exit;
+  // state in: protocol, rhandler
+  // state out: imm_data
+  set_immediate_data(args, traits, state);
   // state in: none
   // state out: local_comp, free_local_comp
   set_local_comp(args, traits, state);
-  // state in: data
+  // state in: none
   // state out: status
   set_status(args, traits, state);
-  // state in: protocol, packet, local_comp, data
-  // state out: internal_ctx
+  // state in: protocol, packet, local_comp
+  // state out: internal_ctx, mr
   if (state.protocol != protocol_t::inject) {
     set_internal_ctx(args, traits, state);
   }
