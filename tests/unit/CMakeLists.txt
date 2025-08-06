@@ -1,5 +1,5 @@
 # Copyright (c) 2025 The LCI Project Authors
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: NCSA
 
 # Download and unpack googletest at configure time
 configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)

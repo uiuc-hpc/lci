@@ -1,5 +1,5 @@
 # Copyright (c) 2025 The LCI Project Authors
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: NCSA
 
 function(add_lci_executable name)
   add_executable(${name} ${ARGN})

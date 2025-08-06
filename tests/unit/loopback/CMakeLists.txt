@@ -1,5 +1,5 @@
 # Copyright (c) 2025 The LCI Project Authors
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: NCSA
 
 # We need to link to all the libraries that LCI is linked to because we use LCI
 # internal API in the test.
