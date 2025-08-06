@@ -32,27 +32,29 @@ TEST(COUNTER, singlethread)
   lci::g_runtime_fina();
 }
 
-// all threads put and get
-void test_multithread0(lci::comp_t comp)
+void test_multithread0(lci::comp_t comp, int n)
 {
-  my_counter_signal(comp);
+  for (int i = 0; i < n; i++) {
+    my_counter_signal(comp);
+  }
 }
 
 TEST(COUNTER, multithread0)
 {
   lci::g_runtime_init();
-  const int threshold = util::NTHREADS;
+  const int num_threads = util::NTHREADS;
+  const int num_iters_per_thread = util::NITERS_SMALL;
   lci::comp_t comp = lci::alloc_counter_x()();
 
   std::vector<std::thread> threads;
-  for (int i = 0; i < threshold + 1; i++) {
-    std::thread t(test_multithread0, comp);
+  for (int i = 0; i < num_threads; i++) {
+    std::thread t(test_multithread0, comp, num_iters_per_thread);
     threads.push_back(std::move(t));
   }
   for (auto& t : threads) {
     t.join();
   }
-  ASSERT_EQ(lci::counter_get(comp), threshold + 1);
+  ASSERT_EQ(lci::counter_get(comp), num_threads * num_iters_per_thread);
 
   lci::free_comp(&comp);
   lci::g_runtime_fina();
