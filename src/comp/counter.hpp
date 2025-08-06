@@ -9,10 +9,7 @@ namespace lci
 class counter_t : public comp_impl_t
 {
  public:
-  counter_t()
-      : comp_impl_t(),
-        count(0)
-  {}
+  counter_t() : comp_impl_t(), count(0) {}
 
   ~counter_t() = default;
 
@@ -22,9 +19,15 @@ class counter_t : public comp_impl_t
     LCI_PCOUNTER_ADD(comp_produce, 1);
   }
 
-  void set(int64_t value) { count.store(value, std::memory_order_release); }
+  void set(int64_t value) 
+  { 
+    count.store(value, std::memory_order_release); 
+  }
 
-  int64_t get() const { return count.load(std::memory_order_acquire); }
+  int64_t get() const 
+  { 
+    return count.load(std::memory_order_acquire); 
+  }
 
  private:
   std::atomic<int64_t> count;
