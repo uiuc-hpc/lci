@@ -1,5 +1,5 @@
 # Copyright (c) 2025 The LCI Project Authors
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: NCSA
 
 configure_file(lci_config.hpp.in lci_config.hpp @ONLY)
 target_include_directories(

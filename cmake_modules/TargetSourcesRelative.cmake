@@ -1,5 +1,5 @@
 # Copyright (c) 2025 The LCI Project Authors
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: NCSA
 
 # Acknowledgement: modified from
 # https://crascit.com/2016/01/31/enhanced-source-file-handling-with-target_sources/

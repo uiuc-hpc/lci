@@ -1,5 +1,5 @@
 # Copyright (c) 2025 The LCI Project Authors
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: NCSA
 
 add_lci_tests(TESTS test_cxx11.cpp LABELS cxx11 COMMANDS "[TARGET]")
 set_target_properties(
