@@ -17,6 +17,7 @@
 #include "test_mpmc_set.hpp"
 #include "test_matching_engine.hpp"
 #include "test_sync.hpp"
+#include "test_counter.hpp"
 #include "test_cq.hpp"
 #include "test_graph.hpp"
 #include "test_am.hpp"

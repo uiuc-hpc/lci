@@ -40,6 +40,7 @@
 #include "global/global.hpp"
 #include "core/protocol.hpp"
 #include "comp/sync.hpp"
+#include "comp/counter.hpp"
 #include "comp/cq.hpp"
 #include "comp/handler.hpp"
 #include "comp/graph.hpp"

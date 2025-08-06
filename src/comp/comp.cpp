@@ -17,6 +17,13 @@ comp_t alloc_sync_x::call_impl(runtime_t, int threshold, bool zero_copy_am,
   return comp;
 }
 
+comp_t alloc_counter_x::call_impl(runtime_t) const
+{
+  comp_t comp;
+  comp.p_impl = new counter_t();
+  return comp;
+}
+
 comp_t alloc_cq_x::call_impl(runtime_t, int default_length, bool zero_copy_am,
                              attr_cq_type_t cq_type, void* user_context) const
 {
