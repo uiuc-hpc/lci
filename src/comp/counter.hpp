@@ -19,8 +19,22 @@ class counter_t : public comp_impl_t
     LCI_PCOUNTER_ADD(comp_produce, 1);
   }
 
+  /**
+   * @brief Sets the counter to the specified value.
+   *
+   * Thread-safe: This method uses std::atomic::store with std::memory_order_release
+   * to ensure that the new value is visible to other threads that subsequently
+   * perform an acquire operation (such as get()) on this counter.
+   */
   void set(int64_t value) { count.store(value, std::memory_order_release); }
 
+  /**
+   * @brief Returns the current value of the counter.
+   * 
+   * Thread-safe: This method uses std::atomic with std::memory_order_acquire to 
+   * ensure that the returned value is safely synchronized with other threads 
+   * that modify the counter.
+   */
   int64_t get() const { return count.load(std::memory_order_acquire); }
 
  private:
