@@ -122,7 +122,7 @@ operation(
     ],
     doc = {
         "in_group": "LCI_COMPLETION",
-        "brief": "Allocate a counter.",
+        "brief": "Allocate a counter (initialized to 0).",
     }
 ),
 operation(
