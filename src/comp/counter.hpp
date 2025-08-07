@@ -19,15 +19,9 @@ class counter_t : public comp_impl_t
     LCI_PCOUNTER_ADD(comp_produce, 1);
   }
 
-  void set(int64_t value) 
-  { 
-    count.store(value, std::memory_order_release); 
-  }
+  void set(int64_t value) { count.store(value, std::memory_order_release); }
 
-  int64_t get() const 
-  { 
-    return count.load(std::memory_order_acquire); 
-  }
+  int64_t get() const { return count.load(std::memory_order_acquire); }
 
  private:
   std::atomic<int64_t> count;
@@ -41,7 +35,7 @@ inline int64_t counter_get_x::call_impl(comp_t comp, runtime_t) const
 }
 
 inline void counter_set_x::call_impl(comp_t comp, int64_t value,
-                                 runtime_t) const
+                                     runtime_t) const
 {
   counter_t* counter = static_cast<counter_t*>(comp.p_impl);
   counter->set(value);
