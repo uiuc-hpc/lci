@@ -10,7 +10,7 @@ input = [
 resource_comp := resource(
     "comp", 
     [
-        attr_enum("comp_type", enum_options=["sync", "cq", "handler", "graph", "custom"], default_value="custom", comment="The completion object type.", inout_trait="out"),
+        attr_enum("comp_type", enum_options=["sync", "counter", "cq", "handler", "graph", "custom"], default_value="custom", comment="The completion object type.", inout_trait="out"),
         attr("int", "sync_threshold", default_value=1, comment="The threshold for sync (synchronizer)."),
         attr("bool", "zero_copy_am", default_value="false", comment="Whether to directly pass internal packet into the completion object."),
         attr_enum("cq_type", enum_options=["array_atomic", "lcrq"], default_value="lcrq", comment="The completion object type."),
@@ -111,6 +111,42 @@ operation(
     doc = {
         "in_group": "LCI_COMPLETION",
         "brief": "Wait for a synchronizer to be ready.",
+    }
+),
+# counter
+operation(
+    "alloc_counter",
+    [
+        optional_runtime_args,
+        return_val("comp_t", "comp", comment="The allocated counter.")
+    ],
+    doc = {
+        "in_group": "LCI_COMPLETION",
+        "brief": "Allocate a counter (initialized to 0).",
+    }
+),
+operation(
+    "counter_get",
+    [
+        optional_runtime_args,
+        positional_arg("comp_t", "comp", comment="The counter to get value."),
+        return_val("int64_t", "value", comment="The current value of the counter." )
+    ],
+    doc = {
+        "in_group": "LCI_COMPLETION",
+        "brief": "Get the current value of a counter.",
+    }
+),
+operation(
+    "counter_set",
+    [
+        optional_runtime_args,
+        positional_arg("comp_t", "comp", comment="The counter to set value."),
+        positional_arg("int64_t", "value", comment="The value to set the counter to." )
+    ],
+    doc = {
+        "in_group": "LCI_COMPLETION",
+        "brief": "Set the value of a counter.",
     }
 ),
 # cq
