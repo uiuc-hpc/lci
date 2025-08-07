@@ -8,5 +8,7 @@ var searchData=
   ['comp_5fsignal_5',['comp_signal',['../d9/df4/group__LCI__COMP__SIGNAL.html',1,'']]],
   ['completion_20checking_6',['Completion Checking',['../d1/d52/group__LCI__COMPLETION.html',1,'']]],
   ['concepts_7',['Basic Concepts',['../d8/d33/group__LCI__BASIC.html',1,'']]],
-  ['cq_5fpop_8',['cq_pop',['../d5/d28/group__LCI__CQ__POP.html',1,'']]]
+  ['counter_5fget_8',['counter_get',['../d2/dd8/group__LCI__COUNTER__GET.html',1,'']]],
+  ['counter_5fset_9',['counter_set',['../d4/dff/group__LCI__COUNTER__SET.html',1,'']]],
+  ['cq_5fpop_10',['cq_pop',['../d5/d28/group__LCI__CQ__POP.html',1,'']]]
 ];

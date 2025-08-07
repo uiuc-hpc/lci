@@ -1,0 +1,12 @@
+<map id="lci::counter_get_x::comp" name="lci::counter_get_x::comp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="561,27,699,67"/>
+<area shape="rect" id="Node000002" href="$d4/d46/classlci_1_1counter__get__x.html#a92428f54dd0b7041c7c1c0fa82ef4647" title=" " alt="" coords="191,27,328,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="548,47,513,46,376,46,328,47,328,42,376,41,513,41,548,42"/>
+<area shape="rect" id="Node000005" href="$d4/d46/classlci_1_1counter__get__x.html#a2b9855b3396ce43f7d9cb1b826ece3b0" title=" " alt="" coords="376,55,513,95"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="548,62,514,68,513,62,548,57"/>
+<area shape="rect" id="Node000003" href="$d5/dd3/namespacelci.html#ade696bf3eee18cfbe83a417034a86fdc" title=" " alt="" coords="13,5,135,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="177,37,135,30,136,25,178,32"/>
+<area shape="rect" id="Node000004" href="$d4/d46/classlci_1_1counter__get__x.html#a6f7e6b1180b7afa34bd7682cd6198d06" title=" " alt="" coords="5,55,143,95"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="178,62,144,68,143,62,177,57"/>
+<area shape="poly" id="edge5_Node000005_Node000002" title=" " alt="" coords="362,66,328,60,329,55,363,60"/>
+</map>
