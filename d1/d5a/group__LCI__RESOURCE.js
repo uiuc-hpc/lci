@@ -1,5 +1,11 @@
 var group__LCI__RESOURCE =
 [
+    [ "alloc_net_context", "d8/d0d/group__LCI__ALLOC__NET__CONTEXT.html", "d8/d0d/group__LCI__ALLOC__NET__CONTEXT" ],
+    [ "free_net_context", "d2/de7/group__LCI__FREE__NET__CONTEXT.html", "d2/de7/group__LCI__FREE__NET__CONTEXT" ],
+    [ "alloc_device", "d2/dca/group__LCI__ALLOC__DEVICE.html", "d2/dca/group__LCI__ALLOC__DEVICE" ],
+    [ "free_device", "d7/d4e/group__LCI__FREE__DEVICE.html", "d7/d4e/group__LCI__FREE__DEVICE" ],
+    [ "alloc_endpoint", "d8/d04/group__LCI__ALLOC__ENDPOINT.html", "d8/d04/group__LCI__ALLOC__ENDPOINT" ],
+    [ "free_endpoint", "dc/dfb/group__LCI__FREE__ENDPOINT.html", "dc/dfb/group__LCI__FREE__ENDPOINT" ],
     [ "alloc_packet_pool", "dc/d67/group__LCI__ALLOC__PACKET__POOL.html", "dc/d67/group__LCI__ALLOC__PACKET__POOL" ],
     [ "free_packet_pool", "de/d6d/group__LCI__FREE__PACKET__POOL.html", "de/d6d/group__LCI__FREE__PACKET__POOL" ],
     [ "register_packet_pool", "d0/df7/group__LCI__REGISTER__PACKET__POOL.html", "d0/df7/group__LCI__REGISTER__PACKET__POOL" ],
@@ -16,15 +22,9 @@ var group__LCI__RESOURCE =
     [ "get_default_endpoint", "d3/d5b/group__LCI__GET__DEFAULT__ENDPOINT.html", "d3/d5b/group__LCI__GET__DEFAULT__ENDPOINT" ],
     [ "get_default_packet_pool", "df/d00/group__LCI__GET__DEFAULT__PACKET__POOL.html", "df/d00/group__LCI__GET__DEFAULT__PACKET__POOL" ],
     [ "get_default_matching_engine", "d8/dd9/group__LCI__GET__DEFAULT__MATCHING__ENGINE.html", "d8/dd9/group__LCI__GET__DEFAULT__MATCHING__ENGINE" ],
-    [ "alloc_net_context", "d8/d0d/group__LCI__ALLOC__NET__CONTEXT.html", "d8/d0d/group__LCI__ALLOC__NET__CONTEXT" ],
-    [ "free_net_context", "d2/de7/group__LCI__FREE__NET__CONTEXT.html", "d2/de7/group__LCI__FREE__NET__CONTEXT" ],
-    [ "alloc_device", "d2/dca/group__LCI__ALLOC__DEVICE.html", "d2/dca/group__LCI__ALLOC__DEVICE" ],
-    [ "free_device", "d7/d4e/group__LCI__FREE__DEVICE.html", "d7/d4e/group__LCI__FREE__DEVICE" ],
-    [ "alloc_endpoint", "d8/d04/group__LCI__ALLOC__ENDPOINT.html", "d8/d04/group__LCI__ALLOC__ENDPOINT" ],
-    [ "free_endpoint", "dc/dfb/group__LCI__FREE__ENDPOINT.html", "dc/dfb/group__LCI__FREE__ENDPOINT" ],
-    [ "RESOURCE packet_pool", "d9/d19/group__LCI__PACKET__POOL.html", "d9/d19/group__LCI__PACKET__POOL" ],
-    [ "RESOURCE matching_engine", "d3/d96/group__LCI__MATCHING__ENGINE.html", "d3/d96/group__LCI__MATCHING__ENGINE" ],
     [ "RESOURCE net_context", "da/d88/group__LCI__NET__CONTEXT.html", "da/d88/group__LCI__NET__CONTEXT" ],
     [ "RESOURCE device", "d6/d98/group__LCI__DEVICE.html", "d6/d98/group__LCI__DEVICE" ],
-    [ "RESOURCE endpoint", "d1/d1d/group__LCI__ENDPOINT.html", "d1/d1d/group__LCI__ENDPOINT" ]
+    [ "RESOURCE endpoint", "d1/d1d/group__LCI__ENDPOINT.html", "d1/d1d/group__LCI__ENDPOINT" ],
+    [ "RESOURCE packet_pool", "d9/d19/group__LCI__PACKET__POOL.html", "d9/d19/group__LCI__PACKET__POOL" ],
+    [ "RESOURCE matching_engine", "d3/d96/group__LCI__MATCHING__ENGINE.html", "d3/d96/group__LCI__MATCHING__ENGINE" ]
 ];
