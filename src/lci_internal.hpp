@@ -26,13 +26,16 @@
 #include "monitor/performance_counter.hpp"
 #include "bootstrap/bootstrap.hpp"
 #include "backlog_queue/backlog_queue.hpp"
+#ifdef LCI_USE_CUDA
+#include "accelerator/accelerator.hpp"
+#endif  // LCI_USE_CUDA
 #include "network/network.hpp"
 #ifdef LCI_BACKEND_ENABLE_IBV
 #include "network/ibv/backend_ibv.hpp"
-#endif
+#endif  // LCI_BACKEND_ENABLE_IBV
 #ifdef LCI_BACKEND_ENABLE_OFI
 #include "network/ofi/backend_ofi.hpp"
-#endif
+#endif  // LCI_BACKEND_ENABLE_OFI
 #include "data_structure/mpmc_array.hpp"
 #include "data_structure/mpmc_set.hpp"
 #include "matching_engine/matching_engine.hpp"
@@ -49,9 +52,6 @@
 #include "runtime/runtime.hpp"
 #include "core/rendezvous.hpp"
 #include "collective/collective.hpp"
-#ifdef LCI_USE_CUDA
-#include "accelerator/accelerator.hpp"
-#endif
 
 // inline implementation
 #include "backlog_queue/backlog_queue_inline.hpp"

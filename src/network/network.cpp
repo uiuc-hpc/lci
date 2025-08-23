@@ -47,7 +47,7 @@ net_context_t alloc_net_context_x::call_impl(
     runtime_t runtime, attr_backend_t backend, std::string ofi_provider_name,
     size_t max_msg_size, size_t max_inject_size, int ibv_gid_idx,
     bool ibv_force_gid_auto_select, attr_ibv_odp_strategy_t ibv_odp_strategy,
-    attr_ibv_prefetch_strategy_t ibv_prefetch_strategy,
+    attr_ibv_prefetch_strategy_t ibv_prefetch_strategy, bool use_dmabuf,
     void* user_context) const
 {
   net_context_t net_context;
@@ -62,6 +62,7 @@ net_context_t alloc_net_context_x::call_impl(
   attr.ibv_odp_strategy = ibv_odp_strategy;
   attr.ibv_prefetch_strategy = ibv_prefetch_strategy;
   attr.max_inject_size = max_inject_size;
+  attr.use_dmabuf = use_dmabuf;
   // output attribute, by default is true
   attr.support_putimm = true;
 

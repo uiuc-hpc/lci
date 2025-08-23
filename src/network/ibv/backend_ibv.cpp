@@ -490,7 +490,50 @@ mr_t ibv_device_impl_t::register_memory_impl(void* buffer, size_t size)
       mr_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ |
                  IBV_ACCESS_REMOTE_WRITE;
     }
-    mr->ibv_mr = ibv_reg_mr(ib_pd, buffer, size, mr_flags);
+#ifdef LCI_USE_CUDA
+    mr->dmabuf_fd = -1;
+    mr->ibv_mr = nullptr;
+    if (net_context.get_attr_use_dmabuf()) {
+      size_t page_size = sysconf(_SC_PAGESIZE);
+      size_t size_aligned;
+      void* p;
+      p = (void*)((uintptr_t)buffer & ~(page_size - 1));
+      size_aligned =
+          ((size + (uintptr_t)buffer - (uintptr_t)p + page_size - 1) /
+           page_size) *
+          page_size;
+
+      mr->acc_attr = accelerator::get_buffer_attr(buffer);
+      if (mr->acc_attr.type == accelerator::buffer_type_t::DEVICE) {
+        mr->dmabuf_fd = accelerator::get_dmabuf_fd(p, size_aligned);
+        if (mr->dmabuf_fd == -1) {
+          LCI_Warn("Failed to get dmabuf fd\n");
+        } else {
+          mr->ibv_mr = ibv_reg_dmabuf_mr(ib_pd, 0, size_aligned, (uint64_t)p,
+                                         mr->dmabuf_fd, mr_flags);
+          if (mr->ibv_mr == nullptr) {
+            LCI_Warn("Failed to register dmabuf mr. Errno: %d (%s)\n", errno,
+                     strerror(errno));
+            close(mr->dmabuf_fd);
+          }
+        }
+        if (mr->ibv_mr == nullptr) {
+          LCI_Warn("DMA-BUF registration failed. Fall back to ibv_reg_mr\n");
+          net_context.get_impl()->attr.use_dmabuf = false;
+        } else {
+          fprintf(
+              stderr,
+              "DMA-BUF registration succeeded fd %d mr %p lkey %u rkey %u\n",
+              mr->dmabuf_fd, mr->ibv_mr, mr->ibv_mr->lkey, mr->ibv_mr->rkey);
+        }
+      }
+    }
+    if (mr->ibv_mr == nullptr) {
+#endif  // LCI_USE_CUDA
+      mr->ibv_mr = ibv_reg_mr(ib_pd, buffer, size, mr_flags);
+#ifdef LCI_USE_CUDA
+    }
+#endif  // LCI_USE_CUDA
     LCI_Assert(mr->ibv_mr,
                "register_memory_impl(%p, %lu): Failed to register memory.  "
                "Errno: %d (%s)",
@@ -531,6 +574,11 @@ void ibv_device_impl_t::deregister_memory_impl(mr_impl_t* mr_impl)
   } else {
     auto p_ibv_mr = static_cast<ibv_mr_impl_t*>(mr_impl);
     IBV_SAFECALL(ibv_dereg_mr(p_ibv_mr->ibv_mr));
+#ifdef LCI_USE_CUDA
+    if (p_ibv_mr->dmabuf_fd != -1) {
+      close(p_ibv_mr->dmabuf_fd);
+    }
+#endif  // LCI_USE_CUDA
     delete p_ibv_mr;
   }
 }

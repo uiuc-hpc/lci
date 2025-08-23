@@ -48,9 +48,9 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
 #ifdef LCI_USE_CUDA
 #ifndef FI_HMEM
 #error "The current libfabric version does not have GPU support"
-#endif
+#endif  // FI_HMEM
   hints->caps |= FI_HMEM;
-#endif
+#endif  // LCI_USE_CUDA
 
   // Create ofi_info.
   struct fi_info* all_infos;
@@ -305,12 +305,12 @@ mr_t ofi_device_impl_t::register_memory_impl(void* buffer, size_t size)
   mr_attr.requested_key = rdma_key;
   mr_attr.iface = FI_HMEM_SYSTEM;
 #ifdef LCI_USE_CUDA
-  accelerator::buffer_attr_t attr = accelerator::get_buffer_attr(buffer);
-  if (attr.type == accelerator::buffer_type_t::DEVICE) {
+  ret.get_impl()->acc_attr = accelerator::get_buffer_attr(buffer);
+  if (ret.get_impl()->acc_attr.type == accelerator::buffer_type_t::DEVICE) {
     mr_attr.iface = FI_HMEM_CUDA;
     mr_attr.device.cuda = attr.device;
   }
-#endif
+#endif  // LCI_USE_CUDA
 
   struct fid_mr* ofi_mr;
   FI_SAFECALL(fi_mr_regattr(ofi_domain, &mr_attr, 0, &ofi_mr));

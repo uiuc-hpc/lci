@@ -100,7 +100,7 @@ void global_initialize()
   pcounter_init();
 #ifdef LCI_USE_CUDA
   accelerator::initialize();
-#endif
+#endif  // LCI_USE_CUDA
   g_is_active = true;
 }
 
@@ -111,7 +111,7 @@ void global_finalize()
   g_is_active = false;
 #ifdef LCI_USE_CUDA
   accelerator::finalize();
-#endif
+#endif  // LCI_USE_CUDA
   pcounter_fina();
   bootstrap::finalize();
   log_finalize();

@@ -82,6 +82,10 @@ class mr_impl_t
   device_t device;
   void* address;
   size_t size;
+#ifdef LCI_USE_CUDA
+  accelerator::buffer_attr_t acc_attr;
+  int dmabuf_fd;
+#endif  // LCI_USE_CUDA
   // TODO: add memory registration cache
   // For memory registration cache.
   // void* region;

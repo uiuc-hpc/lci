@@ -233,5 +233,14 @@ buffer_attr_t get_buffer_attr(const void* ptr)
   return attr_ret;
 }
 
+int get_dmabuf_fd(const void* ptr, size_t size)
+{
+  int dmabuf_fd = -1;
+  CU_CHECK(
+      cuMemGetHandleForAddressRange((void*)&dmabuf_fd, (CUdeviceptr)ptr, size,
+                                    CU_MEM_RANGE_HANDLE_TYPE_DMA_BUF_FD, 0));
+  return dmabuf_fd;
+}
+
 }  // namespace accelerator
 }  // namespace lci

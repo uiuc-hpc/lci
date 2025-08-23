@@ -96,7 +96,7 @@ void preprocess_args(post_comm_args_t& args)
       LCI_Assert(false, "Unknown buffer type %d\n", attr.type);
     }
   }
-#endif
+#endif  // LCI_USE_CUDA
 }
 
 post_comm_traits_t validate_and_get_traits(const post_comm_args_t& args)
@@ -149,6 +149,14 @@ void resolve_rhandler(const post_comm_args_t& args,
 void set_protocol(const post_comm_args_t& args,
                   const post_comm_traits_t& traits, post_comm_state_t& state)
 {
+  bool force_zcopy = false;
+#ifdef LCI_USE_CUDA
+  if (args.mr == MR_DEVICE ||
+      (!args.mr.is_empty() && args.mr.get_impl()->acc_attr.type ==
+                                  accelerator::buffer_type_t::DEVICE)) {
+    force_zcopy = true;
+  }
+#endif  // LCI_USE_CUDA
   // determine the message size if we are using the eager protocol
   size_t msg_size_if_eager = args.size;
   if (args.direction == direction_t::OUT && state.rhandler) {
@@ -162,22 +170,24 @@ void set_protocol(const post_comm_args_t& args,
   if (args.direction == direction_t::IN && traits.local_buffer_only) {
     state.protocol = protocol_t::recv;
   } else if (args.direction == direction_t::OUT && traits.local_buffer_only &&
-             (msg_size_if_eager > traits.max_bcopy_size)) {
+             (msg_size_if_eager > traits.max_bcopy_size || force_zcopy)) {
     // We use the rendezvous protocol if
     // 1. we are doing a send/am, and
     // 1.1 The size of the data is larger than the maximum buffer-copy size, or
-    // 1.2 We are sending multiple buffers
+    // 1.2 We force the use of the zero-copy protocol.
     state.protocol = protocol_t::rdv_zcopy;
   } else if (msg_size_if_eager <= traits.max_inject_size &&
              args.direction == direction_t::OUT &&
-             args.comp_semantic == comp_semantic_t::memory) {
+             args.comp_semantic == comp_semantic_t::memory && !force_zcopy) {
     // We use the inject protocol only if the five conditions are met:
     // 1. We are sending a single buffer, and
     // 2. The size of the data is smaller than the maximum inject size, and
     // 3. The direction is OUT, and
     // 4. The completion type is buffer.
+    // 5. We are not forcing the use of the zero-copy protocol.
     state.protocol = protocol_t::inject;
-  } else if (args.mr.is_empty() && msg_size_if_eager <= traits.max_bcopy_size) {
+  } else if (args.mr.is_empty() && msg_size_if_eager <= traits.max_bcopy_size &&
+             !force_zcopy) {
     state.protocol = protocol_t::eager_bcopy;
     if (msg_size_if_eager > args.size) {
       state.piggyback_tag_rcomp_in_msg = true;

@@ -269,9 +269,6 @@ inline error_t ibv_endpoint_impl_t::post_send_impl(int rank, void* buffer,
   wr.opcode = IBV_WR_SEND_WITH_IMM;
   wr.send_flags = IBV_SEND_SIGNALED;
   wr.imm_data = imm_data;
-  if (size <= net_context_attr.max_inject_size) {
-    wr.send_flags |= IBV_SEND_INLINE;
-  }
 
   struct ibv_send_wr* bad_wr;
   if (!try_lock_qp(rank)) return errorcode_t::retry_lock;
@@ -357,9 +354,6 @@ inline error_t ibv_endpoint_impl_t::post_put_impl(int rank, void* buffer,
   wr.send_flags = IBV_SEND_SIGNALED;
   wr.wr.rdma.remote_addr = (uintptr_t)(rmr.base + offset);
   wr.wr.rdma.rkey = rmr.opaque_rkey;
-  if (size <= net_context_attr.max_inject_size) {
-    wr.send_flags |= IBV_SEND_INLINE;
-  }
 
   struct ibv_send_wr* bad_wr;
   if (!try_lock_qp(rank)) return errorcode_t::retry_lock;
@@ -448,9 +442,6 @@ inline error_t ibv_endpoint_impl_t::post_putImm_impl(int rank, void* buffer,
   wr.imm_data = imm_data;
   wr.wr.rdma.remote_addr = (uintptr_t)(rmr.base + offset);
   wr.wr.rdma.rkey = rmr.opaque_rkey;
-  if (size <= net_context_attr.max_inject_size) {
-    wr.send_flags |= IBV_SEND_INLINE;
-  }
 
   struct ibv_send_wr* bad_wr;
   if (!try_lock_qp(rank)) return errorcode_t::retry_lock;
@@ -492,9 +483,6 @@ inline error_t ibv_endpoint_impl_t::post_get_impl(int rank, void* buffer,
   wr.send_flags = IBV_SEND_SIGNALED;
   wr.wr.rdma.remote_addr = (uintptr_t)(rmr.base + offset);
   wr.wr.rdma.rkey = rmr.opaque_rkey;
-  if (size <= net_context_attr.max_inject_size) {
-    wr.send_flags |= IBV_SEND_INLINE;
-  }
 
   struct ibv_send_wr* bad_wr;
   if (!try_lock_qp(rank)) return errorcode_t::retry_lock;

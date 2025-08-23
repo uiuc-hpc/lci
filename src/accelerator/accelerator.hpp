@@ -22,6 +22,8 @@ void initialize();
 void finalize();
 buffer_attr_t get_buffer_attr(const void* ptr);
 
+int get_dmabuf_fd(const void* ptr, size_t size);
+
 }  // namespace accelerator
 }  // namespace lci
 
