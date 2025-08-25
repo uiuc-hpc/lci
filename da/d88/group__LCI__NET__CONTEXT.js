@@ -14,6 +14,7 @@ var group__LCI__NET__CONTEXT =
       [ "get_attr_max_msg_size", "dc/d98/classlci_1_1net__context__t.html#a87dd79d1655f92db90a3c3b439633cb8", null ],
       [ "get_attr_ofi_provider_name", "dc/d98/classlci_1_1net__context__t.html#ab112d8f5cb06912e4b9d8ee9eef99f8f", null ],
       [ "get_attr_support_putimm", "dc/d98/classlci_1_1net__context__t.html#a836ab3fb77d69ef5b3c307f79f589ee4", null ],
+      [ "get_attr_use_dmabuf", "dc/d98/classlci_1_1net__context__t.html#af1a418cdef0af59232ddc3d1c7f0adf3", null ],
       [ "get_attr_user_context", "dc/d98/classlci_1_1net__context__t.html#a1898caaa4a2715c3ceeab3bb1c114417", null ],
       [ "get_impl", "dc/d98/classlci_1_1net__context__t.html#a7993191a6404eb3506a48c9aef4068ed", null ],
       [ "is_empty", "dc/d98/classlci_1_1net__context__t.html#ad1e7b8a6e90cd098104bdc08e1bc5dd4", null ],

@@ -1,4 +1,4 @@
-<map id="lci::alloc_net_context_x::runtime" name="lci::alloc_net_context_x::runtime">
+<map id="lci::alloc_net_context_x::use_dmabuf" name="lci::alloc_net_context_x::use_dmabuf">
 <area shape="rect" id="Node000001" title=" " alt="" coords="629,27,789,67"/>
 <area shape="rect" id="Node000002" href="$d9/d2c/classlci_1_1alloc__net__context__x.html#ad70070ae0aaa12a3a7ab0be8f9f84dbc" title=" " alt="" coords="213,27,373,67"/>
 <area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="616,47,581,46,421,46,373,47,373,42,421,41,581,41,616,41"/>
