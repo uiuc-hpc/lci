@@ -41,7 +41,7 @@ run with one process per core (multi-proc) or with one process per node (one thr
 *For the first time known to us, multithreaded communication catches up with multi-process communication.*
 
 ## Publications
-- Jiakun Yan, and Marc Snir. "LCI: a Lightweight Communication Interface for Efficient Asynchronous Multithreaded Communication." arXiv preprint arXiv:2505.01864 (2025).
+- Jiakun Yan, and Marc Snir. "LCI: a Lightweight Communication Interface for Efficient Asynchronous Multithreaded Communication." In The International Conference for High Performance Computing, Networking, Storage and Analysis (SC ’25), 2025.
 *Users are recommended to read this paper for a comprehensive understanding of LCI (version 2).* [link](https://arxiv.org/abs/2505.01864)
 
 ### Other Relevant Ones
