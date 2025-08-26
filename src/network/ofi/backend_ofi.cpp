@@ -308,7 +308,7 @@ mr_t ofi_device_impl_t::register_memory_impl(void* buffer, size_t size)
   ret.get_impl()->acc_attr = accelerator::get_buffer_attr(buffer);
   if (ret.get_impl()->acc_attr.type == accelerator::buffer_type_t::DEVICE) {
     mr_attr.iface = FI_HMEM_CUDA;
-    mr_attr.device.cuda = attr.device;
+    mr_attr.device.cuda = ret.get_impl()->acc_attr.device;
   }
 #endif  // LCI_USE_CUDA
 
