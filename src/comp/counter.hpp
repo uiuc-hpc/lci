@@ -20,6 +20,7 @@ class counter_t : public comp_impl_t
   {
     count.fetch_add(1, std::memory_order_relaxed);
     LCI_PCOUNTER_ADD(comp_produce, 1);
+    LCI_PCOUNTER_ADD(comp_consume, 1);
   }
 
   void set(int64_t value) { count.store(value, std::memory_order_release); }
