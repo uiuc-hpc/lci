@@ -1,11 +1,11 @@
 <map id="Communication Posting" name="Communication Posting">
 <area shape="rect" id="Node000001" title="This section describes the LCI API for posting communication." alt="" coords="5,179,183,204"/>
-<area shape="rect" id="Node000002" href="$dc/d9c/group__LCI__GET__MAX__BCOPY__SIZE.html" title="Get the maximum message size for the buffer&#45;copy protocol." alt="" coords="231,5,389,31"/>
-<area shape="rect" id="Node000004" href="$dd/d27/group__LCI__POST__AM.html" title="Post an active message communication operation." alt="" coords="271,55,349,80"/>
-<area shape="rect" id="Node000003" href="$d5/d13/group__LCI__POST__COMM.html" title="Post a generic communication operation." alt="" coords="261,104,359,129"/>
-<area shape="rect" id="Node000008" href="$de/d45/group__LCI__POST__GET.html" title="Post a get (one&#45;sided read) communication operation." alt="" coords="271,153,349,179"/>
-<area shape="rect" id="Node000007" href="$d3/d01/group__LCI__POST__PUT.html" title="Post a put (one&#45;sided write) communication operation." alt="" coords="271,203,349,228"/>
-<area shape="rect" id="Node000006" href="$d1/d0f/group__LCI__POST__RECV.html" title="Post a receive communication operation." alt="" coords="267,252,353,277"/>
-<area shape="rect" id="Node000005" href="$db/dc3/group__LCI__POST__SEND.html" title="Post a send communication operation." alt="" coords="266,301,354,327"/>
-<area shape="rect" id="Node000009" href="$dd/d9e/group__LCI__PROGRESS.html" title="Perform background work to advance the state of the pending communication." alt="" coords="271,351,349,376"/>
+<area shape="rect" id="Node000009" href="$dc/d9c/group__LCI__GET__MAX__BCOPY__SIZE.html" title="Get the maximum message size for the buffer&#45;copy protocol." alt="" coords="231,5,389,31"/>
+<area shape="rect" id="Node000003" href="$dd/d27/group__LCI__POST__AM.html" title="Post an active message communication operation." alt="" coords="271,55,349,80"/>
+<area shape="rect" id="Node000002" href="$d5/d13/group__LCI__POST__COMM.html" title="Post a generic communication operation." alt="" coords="261,104,359,129"/>
+<area shape="rect" id="Node000007" href="$de/d45/group__LCI__POST__GET.html" title="Post a get (one&#45;sided read) communication operation." alt="" coords="271,153,349,179"/>
+<area shape="rect" id="Node000006" href="$d3/d01/group__LCI__POST__PUT.html" title="Post a put (one&#45;sided write) communication operation." alt="" coords="271,203,349,228"/>
+<area shape="rect" id="Node000005" href="$d1/d0f/group__LCI__POST__RECV.html" title="Post a receive communication operation." alt="" coords="267,252,353,277"/>
+<area shape="rect" id="Node000004" href="$db/dc3/group__LCI__POST__SEND.html" title="Post a send communication operation." alt="" coords="266,301,354,327"/>
+<area shape="rect" id="Node000008" href="$dd/d9e/group__LCI__PROGRESS.html" title="Perform background work to advance the state of the pending communication." alt="" coords="271,351,349,376"/>
 </map>
