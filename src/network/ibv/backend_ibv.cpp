@@ -491,6 +491,7 @@ mr_t ibv_device_impl_t::register_memory_impl(void* buffer, size_t size)
                  IBV_ACCESS_REMOTE_WRITE;
     }
 #ifdef LCI_USE_CUDA
+    mr->acc_attr = accelerator::get_buffer_attr(buffer);
     mr->dmabuf_fd = -1;
     mr->ibv_mr = nullptr;
     if (net_context.get_attr_use_dmabuf()) {
@@ -502,8 +503,6 @@ mr_t ibv_device_impl_t::register_memory_impl(void* buffer, size_t size)
           ((size + (uintptr_t)buffer - (uintptr_t)p + page_size - 1) /
            page_size) *
           page_size;
-
-      mr->acc_attr = accelerator::get_buffer_attr(buffer);
       if (mr->acc_attr.type == accelerator::buffer_type_t::DEVICE) {
         mr->dmabuf_fd = accelerator::get_dmabuf_fd(p, size_aligned);
         if (mr->dmabuf_fd == -1) {
@@ -524,7 +523,8 @@ mr_t ibv_device_impl_t::register_memory_impl(void* buffer, size_t size)
           fprintf(
               stderr,
               "DMA-BUF registration succeeded fd %d mr %p lkey %u rkey %u\n",
-              mr->dmabuf_fd, mr->ibv_mr, mr->ibv_mr->lkey, mr->ibv_mr->rkey);
+              mr->dmabuf_fd, (void*)mr->ibv_mr, mr->ibv_mr->lkey,
+              mr->ibv_mr->rkey);
         }
       }
     }
