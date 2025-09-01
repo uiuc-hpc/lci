@@ -44,6 +44,15 @@ endif()
 # General Options
 # ##############################################################################
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY
+    ${CMAKE_BINARY_DIR}/bin
+    CACHE PATH "Output directory")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY
+    ${CMAKE_BINARY_DIR}/lib
+    CACHE PATH "Output directory")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY
+    ${CMAKE_BINARY_DIR}/lib
+    CACHE PATH "Output directory")
 
 # ##############################################################################
 # LCT options

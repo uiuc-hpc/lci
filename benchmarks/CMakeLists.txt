@@ -17,3 +17,4 @@ endif()
 add_lci_benchmarks(collective.cpp)
 
 add_subdirectory(resources)
+add_subdirectory(pt2pt)
