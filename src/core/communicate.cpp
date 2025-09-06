@@ -608,8 +608,8 @@ void exit_handler(error_t error_, const post_comm_args_t& args,
 
 status_t post_comm_x::call_impl(
     direction_t direction, int rank, void* local_buffer, size_t size,
-    comp_t local_comp, runtime_t runtime, packet_pool_t packet_pool,
-    device_t device, endpoint_t endpoint, matching_engine_t matching_engine,
+    comp_t local_comp, runtime_t runtime, device_t device, endpoint_t endpoint,
+    packet_pool_t packet_pool, matching_engine_t matching_engine,
     comp_semantic_t comp_semantic, mr_t mr, uintptr_t remote_disp, rmr_t rmr,
     tag_t tag, rcomp_t remote_comp, void* user_context,
     matching_policy_t matching_policy, bool allow_done, bool allow_posted,
@@ -664,8 +664,8 @@ exit:
 
 status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
                               comp_t local_comp, rcomp_t remote_comp,
-                              runtime_t runtime, packet_pool_t packet_pool,
-                              device_t device, endpoint_t endpoint,
+                              runtime_t runtime, device_t device,
+                              endpoint_t endpoint, packet_pool_t packet_pool,
                               comp_semantic_t comp_semantic, mr_t mr, tag_t tag,
                               void* user_context, bool allow_done,
                               bool allow_posted, bool allow_retry) const
@@ -688,8 +688,8 @@ status_t post_am_x::call_impl(int rank, void* local_buffer, size_t size,
 
 status_t post_send_x::call_impl(
     int rank, void* local_buffer, size_t size, tag_t tag, comp_t local_comp,
-    runtime_t runtime, packet_pool_t packet_pool, device_t device,
-    endpoint_t endpoint, matching_engine_t matching_engine,
+    runtime_t runtime, device_t device, endpoint_t endpoint,
+    packet_pool_t packet_pool, matching_engine_t matching_engine,
     comp_semantic_t comp_semantic, mr_t mr, void* user_context,
     matching_policy_t matching_policy, bool allow_done, bool allow_posted,
     bool allow_retry) const
@@ -712,8 +712,8 @@ status_t post_send_x::call_impl(
 
 status_t post_recv_x::call_impl(
     int rank, void* local_buffer, size_t size, tag_t tag, comp_t local_comp,
-    runtime_t runtime, packet_pool_t packet_pool, device_t device,
-    endpoint_t endpoint, matching_engine_t matching_engine, mr_t mr,
+    runtime_t runtime, device_t device, endpoint_t endpoint,
+    packet_pool_t packet_pool, matching_engine_t matching_engine, mr_t mr,
     void* user_context, matching_policy_t matching_policy, bool allow_done,
     bool allow_posted, bool allow_retry) const
 {
@@ -734,9 +734,8 @@ status_t post_recv_x::call_impl(
 
 status_t post_put_x::call_impl(int rank, void* local_buffer, size_t size,
                                comp_t local_comp, uintptr_t remote_disp,
-                               rmr_t rmr, runtime_t runtime,
-                               packet_pool_t packet_pool, device_t device,
-                               endpoint_t endpoint,
+                               rmr_t rmr, runtime_t runtime, device_t device,
+                               endpoint_t endpoint, packet_pool_t packet_pool,
                                comp_semantic_t comp_semantic, mr_t mr,
                                tag_t tag, rcomp_t remote_comp,
                                void* user_context, bool allow_done,
@@ -762,12 +761,11 @@ status_t post_put_x::call_impl(int rank, void* local_buffer, size_t size,
 
 status_t post_get_x::call_impl(int rank, void* local_buffer, size_t size,
                                comp_t local_comp, uintptr_t remote_disp,
-                               rmr_t rmr, runtime_t runtime,
-                               packet_pool_t packet_pool, device_t device,
-                               endpoint_t endpoint, mr_t mr, tag_t tag,
-                               rcomp_t remote_comp, void* user_context,
-                               bool allow_done, bool allow_posted,
-                               bool allow_retry) const
+                               rmr_t rmr, runtime_t runtime, device_t device,
+                               endpoint_t endpoint, packet_pool_t packet_pool,
+                               mr_t mr, tag_t tag, rcomp_t remote_comp,
+                               void* user_context, bool allow_done,
+                               bool allow_posted, bool allow_retry) const
 {
   return post_comm_x(direction_t::IN, rank, local_buffer, size, local_comp)
       .remote_disp(remote_disp)

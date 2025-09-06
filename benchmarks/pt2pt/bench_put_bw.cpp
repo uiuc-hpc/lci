@@ -12,11 +12,12 @@
 
 struct config_t {
   int nthreads = 1;
+  int ndevices = -1;
   size_t nelems = 65536;
   size_t niters = 10;
 } g_config;
 
-void worker(int peer_rank, int *data, lci::rmr_t rmr, lci::comp_t comp)
+void worker(int peer_rank, lci::device_t device, int *data, lci::rmr_t rmr, lci::comp_t comp)
 {
   int thread_id = omp_get_thread_num();
   int nthreads = omp_get_num_threads();
@@ -29,23 +30,24 @@ void worker(int peer_rank, int *data, lci::rmr_t rmr, lci::comp_t comp)
       for (size_t j = thread_id; j < g_config.nelems; j += nthreads) {
         lci::status_t status;
         do {
-          status = lci::post_put_x(peer_rank, data + j, sizeof(int), comp, j * sizeof(int), rmr).allow_done(false)();
-          lci::progress();
+          status = lci::post_put_x(peer_rank, data + j, sizeof(int), comp, j * sizeof(int), rmr).device(device).allow_done(false)();
+          lci::progress_x().device(device)();
         } while (status.is_retry());
       }
     }
   }
   size_t expected = g_config.niters * g_config.nelems;
   while (expected > lci::counter_get(comp)) {
-    lci::progress();
+    lci::progress_x().device(device)();
   }
 }
 
 int main(int argc, char** argv)
 {
-  cxxopts::Options options("lci_p_bw", "Bandwidth test");
+  cxxopts::Options options("lci_bench_put_bw", "Bandwidth test");
   options.add_options()
       ("t,nthreads", "Number of threads", cxxopts::value<int>()->default_value(std::to_string(g_config.nthreads)))
+      ("d,ndevices", "Number of devices", cxxopts::value<int>()->default_value(std::to_string(g_config.ndevices)))
       ("N,nelems", "Number of elements", cxxopts::value<size_t>()->default_value(std::to_string(g_config.nelems)))
       ("n,niters", "Number of iterations", cxxopts::value<size_t>()->default_value(std::to_string(g_config.niters)))
       ("h,help", "Print help")
@@ -58,8 +60,13 @@ int main(int argc, char** argv)
   }
 
   g_config.nthreads = result["nthreads"].as<int>();
+  g_config.ndevices = result["ndevices"].as<int>();
   g_config.nelems = result["nelems"].as<size_t>();
   g_config.niters = result["niters"].as<size_t>();
+
+  if (g_config.ndevices == -1) {
+    g_config.ndevices = g_config.nthreads;
+  }
   
   lci::g_runtime_init();
   int rank = lci::get_rank_me();
@@ -75,8 +82,17 @@ int main(int argc, char** argv)
 
   if (rank == 0) {
     std::cout << "Running with " << g_config.nthreads << " threads, "
+              << g_config.ndevices << " devices, "
               << g_config.nelems << " elements, "
               << g_config.niters << " iterations" << std::endl;
+  }
+
+  // allocate devices
+  lci::packet_pool_t pool = lci::alloc_packet_pool_x().npackets(65536 * g_config.ndevices)();
+  std::vector<lci::device_t> devices;
+  devices.resize(g_config.ndevices);
+  for (int i = 0; i < g_config.ndevices; i++) {
+      devices[i] = lci::alloc_device_x().packet_pool(pool)();
   }
 
   // allocate memory
@@ -103,14 +119,16 @@ int main(int argc, char** argv)
     auto start = std::chrono::high_resolution_clock::now();
     #pragma omp parallel num_threads(g_config.nthreads)
     {
-      worker(peer_rank, (int*)data, peer_rmr, comp);
+      int device_idx = omp_get_thread_num() % g_config.ndevices;
+      worker(peer_rank, devices[device_idx], (int*)data, peer_rmr, comp);
     }
     lci::barrier();
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
-    double total_msgs = g_config.niters * g_config.nelems;
-    std::cout << "Elapsed time: " << elapsed.count() << " seconds; "
-              << "Message rate: " << (total_msgs / elapsed.count() / 1e6) << " Mmsgs/sec" << std::endl;
+    double total_msgs = g_config.niters * g_config.nelems * (nranks == 1 ? 1 : nranks / 2);
+    if (rank == 0)
+      std::cout << "Elapsed time: " << elapsed.count() << " seconds; "
+                << "Message rate: " << (total_msgs / elapsed.count() / 1e6) << " Mmsgs/sec" << std::endl;
   } else {
     lci::barrier();
   }
@@ -125,6 +143,10 @@ int main(int argc, char** argv)
   lci::free_comp(&comp);
   lci::deregister_memory(&mr);
   free(data);
+  for (auto& dev : devices) {
+    lci::free_device(&dev);
+  }
+  lci::free_packet_pool(&pool);
   lci::g_runtime_fina();
   return 0;
 }

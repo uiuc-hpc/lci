@@ -442,7 +442,6 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
 ibv_device_impl_t::~ibv_device_impl_t()
 {
   // LCT_pmi_barrier();
-  unbind_packet_pool();
   for (int i = 0; i < get_rank_n(); i++) {
     IBV_SAFECALL(ibv_destroy_qp(ib_qps[i]));
     --g_qp_num;

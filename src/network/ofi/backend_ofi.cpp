@@ -267,7 +267,6 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
 ofi_device_impl_t::~ofi_device_impl_t()
 {
   // LCT_pmi_barrier();
-  unbind_packet_pool();
   FI_SAFECALL(fi_close((struct fid*)&ofi_ep->fid));
   FI_SAFECALL(fi_close((struct fid*)&ofi_cq->fid));
   FI_SAFECALL(fi_close((struct fid*)&ofi_av->fid));
