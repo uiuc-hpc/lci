@@ -520,7 +520,7 @@ mr_t ibv_device_impl_t::register_memory_impl(void* buffer, size_t size)
           LCI_Warn("DMA-BUF registration failed. Fall back to ibv_reg_mr\n");
           net_context.get_impl()->attr.use_dmabuf = false;
         } else {
-          LCI_LOG(
+          LCI_Log(
               LOG_INFO, "mr",
               "DMA-BUF registration succeeded fd %d mr %p lkey %u rkey %u\n",
               mr->dmabuf_fd, (void*)mr->ibv_mr, mr->ibv_mr->lkey,
