@@ -12,18 +12,18 @@
 <area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="617,137,658,143,701,155,744,172,783,197,816,233,839,275,854,316,862,347,857,348,849,318,834,278,811,236,780,201,742,177,700,160,657,149,616,142"/>
 <area shape="rect" id="Node000007" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="217,123,325,149"/>
 <area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="339,133,474,133,474,139,339,139"/>
-<area shape="rect" id="Node000008" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="471,180,606,220"/>
-<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="620,207,702,228,744,244,783,264,807,283,828,305,857,345,852,349,824,309,803,287,780,269,741,248,700,233,619,213"/>
-<area shape="rect" id="Node000009" href="$db/dec/classlci_1_1packet__pool__t.html" title="The actual implementation for RESOURCE packet_pool." alt="" coords="204,187,339,213"/>
-<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="352,197,471,197,471,203,352,203"/>
+<area shape="rect" id="Node000008" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="475,180,603,220"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="617,207,700,227,743,243,783,264,807,283,828,305,857,345,852,349,824,309,803,287,780,269,740,248,698,232,616,212"/>
+<area shape="rect" id="Node000009" href="$d6/d66/classlci_1_1device__t.html" title="The actual implementation for RESOURCE device." alt="" coords="221,187,321,213"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="336,197,474,197,474,203,336,203"/>
 <area shape="rect" id="Node000010" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="475,244,603,284"/>
 <area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="617,274,697,292,782,318,841,345,839,350,780,322,696,297,616,280"/>
-<area shape="rect" id="Node000011" href="$d6/d66/classlci_1_1device__t.html" title="The actual implementation for RESOURCE device." alt="" coords="221,251,321,277"/>
-<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="336,261,474,261,474,267,336,267"/>
-<area shape="rect" id="Node000012" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="475,308,603,348"/>
-<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="617,333,806,352,805,357,616,338"/>
-<area shape="rect" id="Node000013" href="$de/d1b/classlci_1_1endpoint__t.html" title="The actual implementation for RESOURCE endpoint." alt="" coords="214,315,329,341"/>
-<area shape="poly" id="edge12_Node000012_Node000013" title=" " alt="" coords="342,325,474,325,474,331,342,331"/>
+<area shape="rect" id="Node000011" href="$de/d1b/classlci_1_1endpoint__t.html" title="The actual implementation for RESOURCE endpoint." alt="" coords="214,251,329,277"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="342,261,474,261,474,267,342,267"/>
+<area shape="rect" id="Node000012" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="471,308,606,348"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="620,333,805,352,805,357,620,339"/>
+<area shape="rect" id="Node000013" href="$db/dec/classlci_1_1packet__pool__t.html" title="The actual implementation for RESOURCE packet_pool." alt="" coords="204,315,339,341"/>
+<area shape="poly" id="edge12_Node000012_Node000013" title=" " alt="" coords="352,325,471,325,471,331,352,331"/>
 <area shape="rect" id="Node000014" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="464,372,613,412"/>
 <area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="627,383,781,369,805,366,806,372,782,375,628,389"/>
 <area shape="rect" id="Node000015" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="475,436,603,476"/>

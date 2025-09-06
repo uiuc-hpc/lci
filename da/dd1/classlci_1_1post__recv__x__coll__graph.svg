@@ -117,9 +117,9 @@
 <g id="Node000007" class="node">
 <title>Node7</title>
 <g id="a_Node000007"><a xlink:href="../../db/d20/structlci_1_1option__t.html" target="_top" xlink:title=" ">
-<polygon fill="white" stroke="#666666" points="474,-356.4 373,-356.4 373,-326.4 474,-326.4 474,-356.4"/>
-<text text-anchor="start" x="381" y="-344.4" font-family="Helvetica,sans-Serif" font-size="10.00">lci::option_t&lt; lci</text>
-<text text-anchor="middle" x="423.5" y="-333.4" font-family="Helvetica,sans-Serif" font-size="10.00">::packet_pool_t &gt;</text>
+<polygon fill="white" stroke="#666666" points="471.5,-356.4 375.5,-356.4 375.5,-326.4 471.5,-326.4 471.5,-356.4"/>
+<text text-anchor="start" x="383.5" y="-344.4" font-family="Helvetica,sans-Serif" font-size="10.00">lci::option_t&lt; lci</text>
+<text text-anchor="middle" x="423.5" y="-333.4" font-family="Helvetica,sans-Serif" font-size="10.00">::device_t &gt;</text>
 </a>
 </g>
 </g>
@@ -127,18 +127,18 @@
 <g id="edge6_Node000001_Node000007" class="edge">
 <title>Node7&#45;&gt;Node1</title>
 <g id="a_edge6_Node000001_Node000007"><a xlink:title=" ">
-<path fill="none" stroke="#9a32cd" stroke-dasharray="5,2" d="M484.25,-335.04C522.56,-328.79 572.04,-316.48 610,-292.4 636.85,-275.37 658.09,-243.2 667.59,-227.1"/>
-<polygon fill="#9a32cd" stroke="#9a32cd" points="483.61,-331.6 474.26,-336.58 484.68,-338.52 483.61,-331.6"/>
+<path fill="none" stroke="#9a32cd" stroke-dasharray="5,2" d="M481.92,-335.42C520.53,-329.28 571.27,-316.97 610,-292.4 636.85,-275.37 658.09,-243.2 667.59,-227.1"/>
+<polygon fill="#9a32cd" stroke="#9a32cd" points="481.24,-331.98 471.87,-336.92 482.28,-338.9 481.24,-331.98"/>
 </a>
 </g>
-<text text-anchor="middle" x="558.5" y="-333.4" font-family="Helvetica,sans-Serif" font-size="10.00" fill="grey"> m_packet_pool</text>
+<text text-anchor="middle" x="558.5" y="-333.4" font-family="Helvetica,sans-Serif" font-size="10.00" fill="grey"> m_device</text>
 </g>
 <!-- Node8 -->
 <g id="Node000008" class="node">
 <title>Node8</title>
-<g id="a_Node000008"><a xlink:href="../../db/dec/classlci_1_1packet__pool__t.html" target="_top" xlink:title="The actual implementation for RESOURCE packet_pool.">
-<polygon fill="white" stroke="#666666" points="263,-350.9 162,-350.9 162,-331.9 263,-331.9 263,-350.9"/>
-<text text-anchor="middle" x="212.5" y="-338.9" font-family="Helvetica,sans-Serif" font-size="10.00">lci::packet_pool_t</text>
+<g id="a_Node000008"><a xlink:href="../../d6/d66/classlci_1_1device__t.html" target="_top" xlink:title="The actual implementation for RESOURCE device.">
+<polygon fill="white" stroke="#666666" points="250,-350.9 175,-350.9 175,-331.9 250,-331.9 250,-350.9"/>
+<text text-anchor="middle" x="212.5" y="-338.9" font-family="Helvetica,sans-Serif" font-size="10.00">lci::device_t</text>
 </a>
 </g>
 </g>
@@ -146,8 +146,8 @@
 <g id="edge7_Node000007_Node000008" class="edge">
 <title>Node8&#45;&gt;Node7</title>
 <g id="a_edge7_Node000007_Node000008"><a xlink:title=" ">
-<path fill="none" stroke="#9a32cd" stroke-dasharray="5,2" d="M273.03,-341.4C304.63,-341.4 343.01,-341.4 372.96,-341.4"/>
-<polygon fill="#9a32cd" stroke="#9a32cd" points="273.03,-337.9 263.03,-341.4 273.03,-344.9 273.03,-337.9"/>
+<path fill="none" stroke="#9a32cd" stroke-dasharray="5,2" d="M260.61,-341.4C294.87,-341.4 341.08,-341.4 375.35,-341.4"/>
+<polygon fill="#9a32cd" stroke="#9a32cd" points="260.38,-337.9 250.38,-341.4 260.38,-344.9 260.38,-337.9"/>
 </a>
 </g>
 <text text-anchor="middle" x="317" y="-344.4" font-family="Helvetica,sans-Serif" font-size="10.00" fill="grey"> m_value</text>
@@ -158,7 +158,7 @@
 <g id="a_Node000009"><a xlink:href="../../db/d20/structlci_1_1option__t.html" target="_top" xlink:title=" ">
 <polygon fill="white" stroke="#666666" points="471.5,-308.4 375.5,-308.4 375.5,-278.4 471.5,-278.4 471.5,-308.4"/>
 <text text-anchor="start" x="383.5" y="-296.4" font-family="Helvetica,sans-Serif" font-size="10.00">lci::option_t&lt; lci</text>
-<text text-anchor="middle" x="423.5" y="-285.4" font-family="Helvetica,sans-Serif" font-size="10.00">::device_t &gt;</text>
+<text text-anchor="middle" x="423.5" y="-285.4" font-family="Helvetica,sans-Serif" font-size="10.00">::endpoint_t &gt;</text>
 </a>
 </g>
 </g>
@@ -170,14 +170,14 @@
 <polygon fill="#9a32cd" stroke="#9a32cd" points="480.78,-280.66 471.58,-285.92 482.05,-287.54 480.78,-280.66"/>
 </a>
 </g>
-<text text-anchor="middle" x="558.5" y="-280.4" font-family="Helvetica,sans-Serif" font-size="10.00" fill="grey"> m_device</text>
+<text text-anchor="middle" x="558.5" y="-280.4" font-family="Helvetica,sans-Serif" font-size="10.00" fill="grey"> m_endpoint</text>
 </g>
 <!-- Node10 -->
 <g id="Node000010" class="node">
 <title>Node10</title>
-<g id="a_Node000010"><a xlink:href="../../d6/d66/classlci_1_1device__t.html" target="_top" xlink:title="The actual implementation for RESOURCE device.">
-<polygon fill="white" stroke="#666666" points="250,-302.9 175,-302.9 175,-283.9 250,-283.9 250,-302.9"/>
-<text text-anchor="middle" x="212.5" y="-290.9" font-family="Helvetica,sans-Serif" font-size="10.00">lci::device_t</text>
+<g id="a_Node000010"><a xlink:href="../../de/d1b/classlci_1_1endpoint__t.html" target="_top" xlink:title="The actual implementation for RESOURCE endpoint.">
+<polygon fill="white" stroke="#666666" points="255.5,-302.9 169.5,-302.9 169.5,-283.9 255.5,-283.9 255.5,-302.9"/>
+<text text-anchor="middle" x="212.5" y="-290.9" font-family="Helvetica,sans-Serif" font-size="10.00">lci::endpoint_t</text>
 </a>
 </g>
 </g>
@@ -185,8 +185,8 @@
 <g id="edge9_Node000009_Node000010" class="edge">
 <title>Node10&#45;&gt;Node9</title>
 <g id="a_edge9_Node000009_Node000010"><a xlink:title=" ">
-<path fill="none" stroke="#9a32cd" stroke-dasharray="5,2" d="M260.61,-293.4C294.87,-293.4 341.08,-293.4 375.35,-293.4"/>
-<polygon fill="#9a32cd" stroke="#9a32cd" points="260.38,-289.9 250.38,-293.4 260.38,-296.9 260.38,-289.9"/>
+<path fill="none" stroke="#9a32cd" stroke-dasharray="5,2" d="M265.66,-293.4C299.34,-293.4 342.8,-293.4 375.42,-293.4"/>
+<polygon fill="#9a32cd" stroke="#9a32cd" points="265.54,-289.9 255.54,-293.4 265.54,-296.9 265.54,-289.9"/>
 </a>
 </g>
 <text text-anchor="middle" x="317" y="-296.4" font-family="Helvetica,sans-Serif" font-size="10.00" fill="grey"> m_value</text>
@@ -195,9 +195,9 @@
 <g id="Node000011" class="node">
 <title>Node11</title>
 <g id="a_Node000011"><a xlink:href="../../db/d20/structlci_1_1option__t.html" target="_top" xlink:title=" ">
-<polygon fill="white" stroke="#666666" points="471.5,-260.4 375.5,-260.4 375.5,-230.4 471.5,-230.4 471.5,-260.4"/>
-<text text-anchor="start" x="383.5" y="-248.4" font-family="Helvetica,sans-Serif" font-size="10.00">lci::option_t&lt; lci</text>
-<text text-anchor="middle" x="423.5" y="-237.4" font-family="Helvetica,sans-Serif" font-size="10.00">::endpoint_t &gt;</text>
+<polygon fill="white" stroke="#666666" points="474,-260.4 373,-260.4 373,-230.4 474,-230.4 474,-260.4"/>
+<text text-anchor="start" x="381" y="-248.4" font-family="Helvetica,sans-Serif" font-size="10.00">lci::option_t&lt; lci</text>
+<text text-anchor="middle" x="423.5" y="-237.4" font-family="Helvetica,sans-Serif" font-size="10.00">::packet_pool_t &gt;</text>
 </a>
 </g>
 </g>
@@ -205,18 +205,18 @@
 <g id="edge10_Node000001_Node000011" class="edge">
 <title>Node11&#45;&gt;Node1</title>
 <g id="a_edge10_Node000001_Node000011"><a xlink:title=" ">
-<path fill="none" stroke="#9a32cd" stroke-dasharray="5,2" d="M481.6,-238.97C526.01,-233.97 586.78,-227.12 627.83,-222.49"/>
-<polygon fill="#9a32cd" stroke="#9a32cd" points="481.08,-235.51 471.53,-240.1 481.86,-242.46 481.08,-235.51"/>
+<path fill="none" stroke="#9a32cd" stroke-dasharray="5,2" d="M484.23,-238.67C528.44,-233.69 587.74,-227.01 627.99,-222.48"/>
+<polygon fill="#9a32cd" stroke="#9a32cd" points="483.74,-235.21 474.19,-239.8 484.52,-242.16 483.74,-235.21"/>
 </a>
 </g>
-<text text-anchor="middle" x="558.5" y="-238.4" font-family="Helvetica,sans-Serif" font-size="10.00" fill="grey"> m_endpoint</text>
+<text text-anchor="middle" x="558.5" y="-238.4" font-family="Helvetica,sans-Serif" font-size="10.00" fill="grey"> m_packet_pool</text>
 </g>
 <!-- Node12 -->
 <g id="Node000012" class="node">
 <title>Node12</title>
-<g id="a_Node000012"><a xlink:href="../../de/d1b/classlci_1_1endpoint__t.html" target="_top" xlink:title="The actual implementation for RESOURCE endpoint.">
-<polygon fill="white" stroke="#666666" points="255.5,-254.9 169.5,-254.9 169.5,-235.9 255.5,-235.9 255.5,-254.9"/>
-<text text-anchor="middle" x="212.5" y="-242.9" font-family="Helvetica,sans-Serif" font-size="10.00">lci::endpoint_t</text>
+<g id="a_Node000012"><a xlink:href="../../db/dec/classlci_1_1packet__pool__t.html" target="_top" xlink:title="The actual implementation for RESOURCE packet_pool.">
+<polygon fill="white" stroke="#666666" points="263,-254.9 162,-254.9 162,-235.9 263,-235.9 263,-254.9"/>
+<text text-anchor="middle" x="212.5" y="-242.9" font-family="Helvetica,sans-Serif" font-size="10.00">lci::packet_pool_t</text>
 </a>
 </g>
 </g>
@@ -224,8 +224,8 @@
 <g id="edge11_Node000011_Node000012" class="edge">
 <title>Node12&#45;&gt;Node11</title>
 <g id="a_edge11_Node000011_Node000012"><a xlink:title=" ">
-<path fill="none" stroke="#9a32cd" stroke-dasharray="5,2" d="M265.66,-245.4C299.34,-245.4 342.8,-245.4 375.42,-245.4"/>
-<polygon fill="#9a32cd" stroke="#9a32cd" points="265.54,-241.9 255.54,-245.4 265.54,-248.9 265.54,-241.9"/>
+<path fill="none" stroke="#9a32cd" stroke-dasharray="5,2" d="M273.03,-245.4C304.63,-245.4 343.01,-245.4 372.96,-245.4"/>
+<polygon fill="#9a32cd" stroke="#9a32cd" points="273.03,-241.9 263.03,-245.4 273.03,-248.9 273.03,-241.9"/>
 </a>
 </g>
 <text text-anchor="middle" x="317" y="-248.4" font-family="Helvetica,sans-Serif" font-size="10.00" fill="grey"> m_value</text>
