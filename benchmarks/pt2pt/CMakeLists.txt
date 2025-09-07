@@ -19,3 +19,14 @@ endif()
 
 add_lci_executable(bench_put_bw bench_put_bw.cpp)
 target_link_libraries(bench_put_bw PRIVATE OpenMP::OpenMP_CXX cxxopts::cxxopts)
+add_lci_tests(
+  TESTS
+  bench_put_bw.cpp
+  LABELS
+  benchmark
+  DEPENDENCIES
+  OpenMP::OpenMP_CXX
+  cxxopts::cxxopts
+  COMMANDS
+  "${LCI_USE_CTEST_LAUNCHER} -n 2 ${LCI_USE_CTEST_ARGS} [TARGET] -t 2 --nelems 1024 --niters 1"
+)

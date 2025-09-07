@@ -76,6 +76,6 @@ function(add_lci_tests)
       DEPENDENCIES
       ${ARG_DEPENDENCIES}
       ENVIRONMENT
-      ${ENVIRONMENT})
+      ${ARG_ENVIRONMENT})
   endforeach()
 endfunction()

@@ -17,7 +17,7 @@ struct config_t {
   size_t niters = 10;
 } g_config;
 
-void worker(int peer_rank, lci::device_t device, int *data, lci::rmr_t rmr, lci::comp_t comp)
+void worker(int peer_rank, lci::device_t device, int *data, lci::rmr_t rmr, lci::comp_t comp, lci::rcomp_t rcomp)
 {
   int thread_id = omp_get_thread_num();
   int nthreads = omp_get_num_threads();
@@ -40,6 +40,12 @@ void worker(int peer_rank, lci::device_t device, int *data, lci::rmr_t rmr, lci:
   while (expected > lci::counter_get(comp)) {
     lci::progress_x().device(device)();
   }
+  // One am to signal the end of the test
+  lci::status_t status;
+  do {
+    status = lci::post_am_x(peer_rank, nullptr, 0, lci::COMP_NULL_EXPECT_DONE, rcomp).device(device)();
+    lci::progress_x().device(device)();
+  } while (status.is_retry());
 }
 
 int main(int argc, char** argv)
@@ -79,6 +85,7 @@ int main(int argc, char** argv)
     peer_rank = (rank + nranks / 2) % nranks;
   }
   bool is_sender = nranks == 1 || rank < nranks / 2;
+  bool is_receiver = nranks == 1 || rank >= nranks / 2;
 
   if (rank == 0) {
     std::cout << "Running with " << g_config.nthreads << " threads, "
@@ -105,33 +112,48 @@ int main(int argc, char** argv)
       ((int*)data)[i] = 0;
     }
   }
-  lci::mr_t mr = lci::register_memory(data, size);
-  lci::rmr_t my_rmr = lci::get_rmr(mr);
+  std::vector<lci::mr_t> mrs;
   std::vector<lci::rmr_t> rmrs;
-  rmrs.resize(nranks);
-  lci::allgather(&my_rmr, rmrs.data(), sizeof(lci::rmr_t));
-  lci::rmr_t peer_rmr = rmrs[peer_rank];
+  std::vector<lci::rmr_t> all_rmrs;
+  for (int i = 0; i < g_config.ndevices; i++) {
+    lci::mr_t mr = lci::register_memory_x(data, size).device(devices[i])();
+    mrs.push_back(mr);
+    lci::rmr_t rmr = lci::get_rmr(mr);
+    rmrs.push_back(rmr);
+  }
+  all_rmrs.resize(nranks * g_config.ndevices);
+  lci::allgather(rmrs.data(), all_rmrs.data(), sizeof(lci::rmr_t) * g_config.ndevices);
+  std::vector<lci::rmr_t> peer_rmrs(all_rmrs.begin() + peer_rank * g_config.ndevices,
+                                    all_rmrs.begin() + (peer_rank + 1) * g_config.ndevices);
   // allocate completion counter
   lci::comp_t comp = lci::alloc_counter();
+  lci::rcomp_t rcomp = lci::register_rcomp(comp);
 
   lci::barrier();
+  auto start = std::chrono::high_resolution_clock::now();
   if (is_sender) {
-    auto start = std::chrono::high_resolution_clock::now();
     #pragma omp parallel num_threads(g_config.nthreads)
     {
       int device_idx = omp_get_thread_num() % g_config.ndevices;
-      worker(peer_rank, devices[device_idx], (int*)data, peer_rmr, comp);
+      worker(peer_rank, devices[device_idx], (int*)data, peer_rmrs[device_idx], comp, rcomp);
     }
-    lci::barrier();
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = end - start;
-    double total_msgs = g_config.niters * g_config.nelems * (nranks == 1 ? 1 : nranks / 2);
-    if (rank == 0)
-      std::cout << "Elapsed time: " << elapsed.count() << " seconds; "
-                << "Message rate: " << (total_msgs / elapsed.count() / 1e6) << " Mmsgs/sec" << std::endl;
-  } else {
-    lci::barrier();
   }
+  if (is_receiver) {
+    #pragma omp parallel num_threads(g_config.nthreads)
+    {
+      int device_idx = omp_get_thread_num() % g_config.ndevices;
+      while (lci::counter_get(comp) < g_config.nthreads) {
+        lci::progress_x().device(devices[device_idx])();
+      }
+    }
+  }
+  lci::barrier();
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed = end - start;
+  double total_msgs = g_config.niters * g_config.nelems * (nranks == 1 ? 1 : nranks / 2);
+  if (rank == 0)
+    std::cout << "Elapsed time: " << elapsed.count() << " seconds; "
+              << "Message rate: " << (total_msgs / elapsed.count() / 1e6) << " Mmsgs/sec" << std::endl;
   // verify data
   if (!is_sender) {
     for (size_t i = 0; i < g_config.nelems; ++i) {
@@ -141,7 +163,9 @@ int main(int argc, char** argv)
 
   // cleanup
   lci::free_comp(&comp);
-  lci::deregister_memory(&mr);
+  for (auto& mr : mrs) {
+    lci::deregister_memory(&mr);
+  }
   free(data);
   for (auto& dev : devices) {
     lci::free_device(&dev);
