@@ -30,6 +30,8 @@ namespace lci
 class ibv_net_context_impl_t : public lci::net_context_impl_t
 {
  public:
+  static bool check_availability();
+
   ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_);
   ~ibv_net_context_impl_t() override;
   device_t alloc_device(device_t::attr_t attr) override;

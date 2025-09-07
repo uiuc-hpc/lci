@@ -20,6 +20,18 @@ struct fi_info* search_for_prov(struct fi_info* ofi_info, const char* prov_name)
 }
 }  // namespace
 
+bool ofi_net_context_impl_t::check_availability()
+{
+  struct fi_info* ofi_info;
+  int ret =
+      fi_getinfo(FI_VERSION(1, 6), nullptr, nullptr, 0, nullptr, &ofi_info);
+  if (ret) {
+    return false;
+  }
+  fi_freeinfo(ofi_info);
+  return true;
+}
+
 ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
     : net_context_impl_t(runtime_, attr_)
 {
@@ -73,7 +85,7 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
     ofi_info = fi_dupinfo(all_infos);
   }
   fi_freeinfo(all_infos);
-  LCI_Log(LOG_INFO, "ofi", "Provider name: %s\n",
+  LCI_Log(LOG_STATUS, "ofi", "Provider name: %s\n",
           ofi_info->fabric_attr->prov_name);
   LCI_Log(LOG_INFO, "ofi", "Protocol: %s\n",
           fi_tostr(&(ofi_info->ep_attr->protocol), FI_TYPE_PROTOCOL));
@@ -92,13 +104,13 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
           fi_tostr(&(ofi_info->caps), FI_TYPE_CAPS));
   LCI_Log(LOG_INFO, "ofi", "Mode: %s\n",
           fi_tostr(&(ofi_info->mode), FI_TYPE_MODE));
-  LCI_Log(LOG_INFO, "ofi", "Fi_info provided: %s\n",
+  LCI_Log(LOG_DEBUG, "ofi", "Fi_info provided: %s\n",
           fi_tostr(ofi_info, FI_TYPE_INFO));
-  LCI_Log(LOG_INFO, "ofi", "Fabric attributes: %s\n",
+  LCI_Log(LOG_DEBUG, "ofi", "Fabric attributes: %s\n",
           fi_tostr(ofi_info->fabric_attr, FI_TYPE_FABRIC_ATTR));
-  LCI_Log(LOG_INFO, "ofi", "Domain attributes: %s\n",
+  LCI_Log(LOG_DEBUG, "ofi", "Domain attributes: %s\n",
           fi_tostr(ofi_info->domain_attr, FI_TYPE_DOMAIN_ATTR));
-  LCI_Log(LOG_INFO, "ofi", "Endpoint attributes: %s\n",
+  LCI_Log(LOG_DEBUG, "ofi", "Endpoint attributes: %s\n",
           fi_tostr(ofi_info->ep_attr, FI_TYPE_EP_ATTR));
   LCI_Assert(ofi_info->domain_attr->cq_data_size >= 4,
              "cq_data_size (%lu) is too small!\n",

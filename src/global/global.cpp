@@ -24,23 +24,68 @@ namespace
 {
 std::atomic<int> global_ini_counter(0);
 
+bool is_backend_available(const std::string& backend)
+{
+  bool ret = false;
+  if (backend == "ofi" || backend == "OFI") {
+#ifdef LCI_BACKEND_ENABLE_OFI
+    ret = ofi_net_context_impl_t::check_availability();
+#else
+    ret = false;
+#endif
+  } else if (backend == "ibv" || backend == "IBV") {
+#ifdef LCI_BACKEND_ENABLE_IBV
+    ret = ibv_net_context_impl_t::check_availability();
+#else
+    ret = false;
+#endif
+  }
+  LCI_Log(LOG_INFO, "global", "backend %s availability: %d\n", backend.c_str(),
+          ret);
+  return ret;
+}
+
 void global_config_initialize()
 {
   init_global_attr();
   // backend
   std::string default_backend;
-  const char* env = getenv("LCI_NETWORK_BACKEND_DEFAULT");
+  const char* env = getenv("LCI_ATTR_BACKEND");
   if (env) {
     default_backend = env;
+    if (!is_backend_available(default_backend)) {
+      LCI_Assert(false,
+                 "The specified network backend %s is not available! Please "
+                 "check your LCI_ATTR_BACKEND setting and your system "
+                 "configuration.\n",
+                 default_backend.c_str());
+    }
   } else {
-    // parse LCI_NETWORK_BACKENDS_ENABLED and use the first entry as the
-    // default
+    // parse LCI_NETWORK_BACKENDS_ENABLED and use the first available entry as
+    // the default
+    std::vector<std::string> backends;
+    // parse LCI_NETWORK_BACKENDS_ENABLED
     std::string s(LCI_NETWORK_BACKENDS_ENABLED);
+    size_t start = 0;
     std::string::size_type pos = s.find(';');
-    if (pos != std::string::npos) {
-      default_backend = s.substr(0, pos);
-    } else {
-      default_backend = s;
+    while (pos != std::string::npos) {
+      backends.push_back(s.substr(start, pos - start));
+      start = pos + 1;
+      pos = s.find(';', start);
+    }
+    backends.push_back(s.substr(start));
+    // Check availability
+    for (const auto& backend : backends) {
+      if (is_backend_available(backend)) {
+        default_backend = backend;
+        break;
+      }
+    }
+    if (default_backend.empty()) {
+      LCI_Assert(false,
+                 "No available network backend found! Please check your "
+                 "LCI_NETWORK_BACKENDS setting and your system "
+                 "configuration.\n");
     }
   }
   if (default_backend == "ofi" || default_backend == "OFI") {

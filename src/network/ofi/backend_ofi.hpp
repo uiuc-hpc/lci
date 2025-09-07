@@ -44,6 +44,8 @@ namespace lci
 class ofi_net_context_impl_t : public lci::net_context_impl_t
 {
  public:
+  static bool check_availability();
+
   ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_);
   ~ofi_net_context_impl_t() override;
   device_t alloc_device(device_t::attr_t attr) override;

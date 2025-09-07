@@ -31,6 +31,16 @@ const char* mtu_str(enum ibv_mtu mtu)
 }
 }  // namespace
 
+bool ibv_net_context_impl_t::check_availability()
+{
+  int num_devices;
+  auto ret = ibv_get_device_list(&num_devices);
+  if (ret) {
+    ibv_free_device_list(ret);
+  }
+  return num_devices > 0;
+}
+
 ibv_net_context_impl_t::ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_)
     : net_context_impl_t(runtime_, attr_)
 {
