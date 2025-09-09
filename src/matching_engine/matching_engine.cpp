@@ -18,14 +18,15 @@ void matching_engine_impl_t::register_rhandler(runtime_t runtime)
 }
 
 matching_engine_t alloc_matching_engine_x::call_impl(
-    runtime_t runtime, attr_matching_engine_type_t matching_engine_type,
-    void* user_context) const
+    attr_matching_engine_type_t matching_engine_type, const char* name,
+    void* user_context, runtime_t runtime) const
 {
-  matching_engine_t matching_engine;
-  matching_engine_attr_t attr;
+  matching_engine_t::attr_t attr;
   attr.matching_engine_type = matching_engine_type;
+  attr.name = name;
   attr.user_context = user_context;
-  switch (matching_engine_type) {
+  matching_engine_t matching_engine;
+  switch (attr.matching_engine_type) {
     case attr_matching_engine_type_t::map:
       matching_engine.p_impl = new matching_engine_map_t(attr);
       break;

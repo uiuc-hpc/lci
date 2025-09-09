@@ -99,9 +99,13 @@ def generate_resource_attr_decl(item):
   attr_list = ""
   for attr in attrs:
     attr_list += f"  {attr['type']} {attr['name']};\n"
+  # remove the last newline
+  attr_list = attr_list.rstrip()
+
   text = f"""
 struct {resource_name}_attr_t {{
-{attr_list}}};
+{attr_list}
+}};
 """
   return text
 
@@ -121,23 +125,26 @@ def generate_enum_attr_class_decl(attr):
   return enum_delcaration
 
 def generate_global_attr_decl(input):
+  # declare attribute struct for each resource
+  resource_attr_decl = ""
+  for item in input:
+    if item["category"] == "resource":
+      resource_attr_decl += generate_resource_attr_decl(item)
+
   # declare global attribute struct
   variable_decl = "struct global_attr_t {\n"
   for item in input:
     if item["category"] == "resource":
       for attr in item["attrs"]:
-        if "not_global" in attr["trait"]:
-          # user context is not global
-          continue
         if "out" in attr["trait"]:
           # output attribute does not have global default value
           continue
-        type_name = attr["type"]
-        var_name = attr["name"]
-        # declare enum class
-        variable_decl += f"  {type_name} {var_name};\n"
+        if "no_env_config" in attr["trait"]:
+          continue
+        variable_decl += f"  {attr['type']} {attr['name']};\n"
   variable_decl += "};\n"
-  return variable_decl
+  variable_decl += "\nextern global_attr_t g_default_attr;\n"
+  return f"{resource_attr_decl}\n{variable_decl}"
 
 
 def generate_global_attr_impl(input):
@@ -145,11 +152,12 @@ def generate_global_attr_impl(input):
   text = ""
   for item in input:
     if item["category"] == "resource":
+      resource_name = item["name"]
       for attr in item["attrs"]:
         if "out" in attr["trait"]:
           # output attribute does not have global default value
           continue
-        if "not_global" in attr["trait"]:
+        if "no_env_config" in attr["trait"]:
           continue
         if "default_value" in attr and attr["default_value"] is not None:
           type_name = attr["type"]
@@ -163,7 +171,7 @@ def generate_global_attr_impl(input):
             text += f"""
   {{
     // default value
-    g_default_attr.{attr_name} = {type_name}::{default_value};
+    g_default_attr.{attr_name} = {default_value};
     // if users explicitly set the value
     char* p = getenv("{env_var}");
     if (p) {{
@@ -182,8 +190,8 @@ def generate_global_attr_impl(input):
               text += f"  LCI_Log(LOG_INFO, \"env\", \"set {attr_name} to be %s\\n\", g_default_attr.{attr_name}.c_str());\n"
             else:
               text += f"  LCI_Log(LOG_INFO, \"env\", \"set {attr_name} to be %d\\n\", static_cast<int>(g_default_attr.{attr_name}));\n"
-  
-  code = f"""  
+
+  code = f"""
 global_attr_t g_default_attr;
 
 void init_global_attr() {{
@@ -337,13 +345,19 @@ def generate_operation_impl(item):
     return_vals_str = "void"
   
   call_wrapper_signature = f"{return_vals_str} {class_name}::call() const"
+  # call wrapper body
   body = ""
   if item["init_global"]:
     body += "  global_initialize();\n"
   for arg in positional_args:
     body += f"  auto {arg['name']} = m_{arg['name']};\n"
   for arg in optional_args:
-    body += f"  auto {arg['name']} = m_{arg['name']}.get_value_or({arg['default_value']});\n"
+    if "default_value" not in arg or arg["default_value"] is None:
+      # No default value, use type default constructor
+      body += f"  auto {arg['name']} = m_{arg['name']}.get_value_or({arg['type']}());\n"
+    else:
+      body += f"  auto {arg['name']} = m_{arg['name']}.get_value_or({arg['default_value']});\n"
+
   call_impl_args = ", ".join([f"{arg['name']}" for arg in positional_args + optional_args])
   if item["fina_global"]:
     if return_vals_str != "void":
@@ -370,7 +384,6 @@ def generate_header_pre(input):
   main_body += generate_global_attr_decl(input)
   resources = [x for x in input if x["category"] == "resource"]
   for item in resources:
-    main_body += generate_resource_attr_decl(item)
     main_body += generate_resource_decl(item)
   return f"""
 // Copyright (c) 2025 The LCI Project Authors

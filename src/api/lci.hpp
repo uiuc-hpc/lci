@@ -60,6 +60,8 @@
  */
 namespace lci
 {
+extern const char* DEFAULT_NAME;
+
 enum class attr_backend_t {
   none,
   ibv,

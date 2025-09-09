@@ -20,28 +20,10 @@ runtime_attr = [
     attr("bool", "alloc_default_matching_engine", default_value=1, comment="Whether to allocate the default matching engine."),
 ]
 
-def get_g_runtime_init_args(runtime_attr):
-    g_runtime_init_args = []
-    for attr in runtime_attr:
-        if "out" not in attr["trait"]:
-            g_runtime_init_args.append(attr_to_arg(attr))
-    return g_runtime_init_args
-
 input = [
 # ##############################################################################
 # # Global
 # ##############################################################################
-# operation(
-#     "is_active",
-#     [
-#         return_val("bool", "active", comment="whether the runtime is active")
-#     ],
-#     doc = {
-#         "in_group": "LCI_SETUP",
-#         "brief": "Check whether LCI is active.",
-#         "details": "This function can be called at any time. LCI is active if there is at least one runtime being active (!runtime.is_empty())."
-#     }
-# ),
 operation(
     "get_rank_me", 
     [
@@ -81,11 +63,11 @@ resource_runtime := resource(
         "brief": "The runtime object.",
     }
 ),
-operation_alloc(resource_runtime, add_runtime_args=False, init_global=True),
+op_alloc_runtime := operation_alloc(resource_runtime, add_runtime_args=False, init_global=True),
 operation_free(resource_runtime, add_runtime_args=False, fina_global=True),
 operation(
-    "g_runtime_init", 
-    get_g_runtime_init_args(runtime_attr),
+    "g_runtime_init",
+    op_alloc_runtime["args"],
     init_global=True,
     doc = {
         "in_group": "LCI_SETUP",

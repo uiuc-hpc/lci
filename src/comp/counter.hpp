@@ -9,7 +9,7 @@ namespace lci
 class counter_t : public comp_impl_t
 {
  public:
-  counter_t() : comp_impl_t(), count(0)
+  counter_t(comp_attr_t attr_) : comp_impl_t(attr_), count(0)
   {
     attr.comp_type = attr_comp_type_t::counter;
   }

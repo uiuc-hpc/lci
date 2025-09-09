@@ -87,13 +87,15 @@ mr_t packet_pool_impl_t::get_or_register_mr(device_t device)
   return mr;
 }
 
-packet_pool_t alloc_packet_pool_x::call_impl(runtime_t, size_t packet_size,
-                                             size_t npackets,
-                                             void* user_context) const
+packet_pool_t alloc_packet_pool_x::call_impl(size_t packet_size,
+                                             size_t npackets, const char* name,
+                                             void* user_context,
+                                             runtime_t) const
 {
   packet_pool_attr_t attr;
   attr.packet_size = packet_size;
   attr.npackets = npackets;
+  attr.name = name;
   attr.user_context = user_context;
   packet_pool_t packet_pool;
   packet_pool.p_impl = new packet_pool_impl_t(attr);

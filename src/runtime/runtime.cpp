@@ -14,21 +14,19 @@ runtime_t alloc_runtime_x::call_impl(size_t packet_return_threshold,
                                      bool alloc_default_device,
                                      bool alloc_default_packet_pool,
                                      bool alloc_default_matching_engine,
-                                     void* user_context) const
+                                     const char* name, void* user_context) const
 {
-  LCI_Assert(imm_nbits_tag + imm_nbits_rcomp <= 31,
-             "imm_nbits_tag + imm_nbits_rcomp should be less than 31!\n");
-  runtime_t::attr_t attr;
-  memset(&attr, 0, sizeof(attr));
-  // attr.use_reg_cache = use_reg_cache;
-  // attr.use_control_channel = use_control_channel;
+  runtime_attr_t attr;
   attr.packet_return_threshold = packet_return_threshold;
-  attr.imm_nbits_rcomp = imm_nbits_rcomp;
   attr.imm_nbits_tag = imm_nbits_tag;
-  attr.user_context = user_context;
+  attr.imm_nbits_rcomp = imm_nbits_rcomp;
   attr.alloc_default_device = alloc_default_device;
   attr.alloc_default_packet_pool = alloc_default_packet_pool;
   attr.alloc_default_matching_engine = alloc_default_matching_engine;
+  attr.name = name;
+  attr.user_context = user_context;
+  LCI_Assert(attr.imm_nbits_tag + attr.imm_nbits_rcomp <= 31,
+             "imm_nbits_tag + imm_nbits_rcomp should be less than 31!\n");
   runtime_t runtime;
   runtime.p_impl = new runtime_impl_t(attr);
   runtime.get_impl()->initialize();
@@ -41,29 +39,34 @@ void free_runtime_x::call_impl(runtime_t* runtime) const
   runtime->p_impl = nullptr;
 }
 
-void g_runtime_init_x::call_impl(size_t packet_return_threshold,
-                                 int imm_nbits_tag, int imm_nbits_rcomp,
-                                 bool alloc_default_device,
-                                 bool alloc_default_packet_pool,
-                                 bool alloc_default_matching_engine) const
+runtime_t g_runtime_init_x::call_impl(size_t packet_return_threshold,
+                                      int imm_nbits_tag, int imm_nbits_rcomp,
+                                      bool alloc_default_device,
+                                      bool alloc_default_packet_pool,
+                                      bool alloc_default_matching_engine,
+                                      const char* name,
+                                      void* user_context) const
 {
-  LCI_Assert(g_default_runtime.p_impl == nullptr,
-             "g_default_runtime has been initialized!\n");
-  LCI_Assert(imm_nbits_tag + imm_nbits_rcomp <= 31,
-             "imm_nbits_tag + imm_nbits_rcomp should be less than 31!\n");
-  runtime_t::attr_t attr;
-  memset(&attr, 0, sizeof(attr));
-  // attr.use_reg_cache = use_reg_cache;
-  // attr.use_control_channel = use_control_channel;
+  runtime_attr_t attr;
   attr.packet_return_threshold = packet_return_threshold;
-  attr.imm_nbits_rcomp = imm_nbits_rcomp;
   attr.imm_nbits_tag = imm_nbits_tag;
-  attr.user_context = nullptr;
+  attr.imm_nbits_rcomp = imm_nbits_rcomp;
   attr.alloc_default_device = alloc_default_device;
   attr.alloc_default_packet_pool = alloc_default_packet_pool;
   attr.alloc_default_matching_engine = alloc_default_matching_engine;
+  attr.name = name;
+  attr.user_context = user_context;
+  if (!g_default_runtime.is_empty()) {
+    LCI_Warn(
+        "The global default runtime has already been initialized. You could "
+        "use get_g_runtime().is_empty() to check.\n");
+    return g_default_runtime;
+  }
+  LCI_Assert(attr.imm_nbits_tag + attr.imm_nbits_rcomp <= 31,
+             "imm_nbits_tag + imm_nbits_rcomp should be less than 31!\n");
   g_default_runtime.p_impl = new runtime_impl_t(attr);
   g_default_runtime.get_impl()->initialize();
+  return g_default_runtime;
 }
 
 void g_runtime_fina_x::call_impl() const
@@ -95,6 +98,7 @@ void runtime_impl_t::initialize()
 
   if (attr.alloc_default_matching_engine) {
     default_matching_engine = alloc_matching_engine_x().runtime(runtime)();
+    // collective matching engine is for internal use only
     default_coll_matching_engine = alloc_matching_engine_x().runtime(runtime)();
   }
   if (default_net_context.get_attr().backend == attr_backend_t::ofi &&

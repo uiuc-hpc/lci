@@ -4,7 +4,7 @@
 def get_enum_attr_type(name):
     return f"attr_{name}_t"
 
-def optional_arg(type, name, default_value, inout_trait="in", comment=""):
+def optional_arg(type, name, default_value=None, inout_trait="in", comment=""):
     return {
         "category": "argument",
         "trait": ["optional", inout_trait],
@@ -49,21 +49,21 @@ def attr_enum(name, enum_options, default_value=None, inout_trait="inout", comme
     return {
         "category": "attribute",
         "trait": ["enum", inout_trait],
-        "default_value": default_value,
+        "default_value": f"{type}::{default_value}",
         "type": type,
         "enum_options": enum_options,
         "name": name,
         "comment": comment
     }
 
-def attr_to_arg(attr):
+def get_attr_default_value(resource_name, attr_name = "attr"):
+    return f"g_default_attr.{attr_name}"
+
+def attr_to_arg(resource_name, attr):
     assert "out" not in attr["trait"]
-    # replace inout with in
-    attr["trait"] = [x if x != "inout" else "in" for x in attr["trait"]]
-    if "not_global" in attr["trait"]:
+    default_value = get_attr_default_value(resource_name, attr["name"])
+    if "no_env_config" in attr["trait"]:
         default_value = attr["default_value"]
-    else:
-        default_value = f"g_default_attr.{attr['name']}"
     return {
         "category": "argument",
         "trait": ["optional"] + attr["trait"],
@@ -78,7 +78,8 @@ def resource(name, attrs, children=[], doc={}, custom_is_empty_method=False):
         "category": "resource",
         "name": name,
         "attrs": attrs + [
-            attr("void*", "user_context", comment="User context for the resource.", default_value="nullptr", extra_trait=["not_global"])
+            attr("const char*", "name", comment="Name of the resource.", default_value="DEFAULT_NAME", extra_trait=["no_env_config"]),
+            attr("void*", "user_context", comment="User context for the resource.", default_value="nullptr", extra_trait=["no_env_config"])
             ],
         "children": children,
         "custom_is_empty_method": custom_is_empty_method,
@@ -96,19 +97,20 @@ def operation(name, args, init_global=False, fina_global=False, comment="", doc=
         "doc": doc
     }
 
-def operation_alloc(resource, additiona_args=[], add_runtime_args=True, init_global=False, fina_global=False):
+def operation_alloc(resource, additional_args=[], add_runtime_args=True, init_global=False, fina_global=False):
     resource_name = resource["name"]
     args = []
+    for attr in resource["attrs"]:
+        if "out" in attr["trait"]:
+            continue
+        args.append(attr_to_arg(resource_name, attr))
     if add_runtime_args:
         args.append(optional_runtime_args)
-    for attr in resource["attrs"]:
-        if "out" not in attr["trait"]:
-            args.append(attr_to_arg(attr))
     args.append(return_val(f"{resource_name}_t", resource_name, comment="The allocated object."))
     in_group = "LCI_OTHER"
     if "in_group" in resource["doc"]:
         in_group = resource["doc"]["in_group"]
-    return operation(f"alloc_{resource_name}", args + additiona_args, 
+    return operation(f"alloc_{resource_name}", args + additional_args, 
                      init_global=init_global, fina_global=fina_global, 
                      doc={"in_group": in_group, "brief": f"Allocate a new {resource_name} object."})
 

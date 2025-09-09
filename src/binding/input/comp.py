@@ -76,8 +76,9 @@ operation(
     "alloc_sync", 
     [
         optional_runtime_args,
-        optional_arg("int", "threshold", "g_default_attr.sync_threshold", comment="The signaling threshold of the synchronizer."),
-        optional_arg("bool", "zero_copy_am", "g_default_attr.zero_copy_am", comment="Whether to directly pass internal packet into the completion object."),
+        optional_arg("int", "threshold", get_attr_default_value("comp", "sync_threshold"), comment="The signaling threshold of the synchronizer."),
+        optional_arg("bool", "zero_copy_am", get_attr_default_value("comp", "zero_copy_am"), comment="Whether to directly pass internal packet into the completion object."),
+        optional_arg("const char*", "name", '"DEFAULT_NAME"', comment="The name of the synchronizer."),
         optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context associated with this completion object."),
         return_val("comp_t", "comp", comment="The allocated synchronizer.")
     ],
@@ -118,6 +119,8 @@ operation(
     "alloc_counter",
     [
         optional_runtime_args,
+        optional_arg("const char*", "name", '"DEFAULT_NAME"', comment="The name of the synchronizer."),
+        optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context associated with this completion object."),
         return_val("comp_t", "comp", comment="The allocated counter.")
     ],
     doc = {
@@ -154,9 +157,10 @@ operation(
     "alloc_cq", 
     [
         optional_runtime_args,
-        optional_arg("int", "default_length", "g_default_attr.cq_default_length", comment="The default length of the completion queue."),
-        optional_arg("bool", "zero_copy_am", "g_default_attr.zero_copy_am", comment="Whether to directly pass internal packet into the completion object."),
-        optional_arg("attr_cq_type_t", "cq_type", "g_default_attr.cq_type", comment="The type of the completion queue."),
+        optional_arg("int", "default_length", get_attr_default_value("comp", "cq_default_length"), comment="The default length of the completion queue."),
+        optional_arg("bool", "zero_copy_am", get_attr_default_value("comp", "zero_copy_am"), comment="Whether to directly pass internal packet into the completion object."),
+        optional_arg("attr_cq_type_t", "cq_type", get_attr_default_value("comp", "cq_type"), comment="The type of the completion queue."),
+        optional_arg("const char*", "name", '"DEFAULT_NAME"', comment="The name of the synchronizer."),
         optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context associated with this completion object."),
         return_val("comp_t", "comp", comment="The allocated completion queue.")
     ],
@@ -184,7 +188,8 @@ operation(
     [
         optional_runtime_args,
         positional_arg("comp_handler_t", "handler", comment="The handler function."),
-        optional_arg("bool", "zero_copy_am", "g_default_attr.zero_copy_am", comment="Whether to directly pass internal packet into the completion object."),
+        optional_arg("bool", "zero_copy_am", get_attr_default_value("comp", "zero_copy_am"), comment="Whether to directly pass internal packet into the completion object."),
+        optional_arg("const char*", "name", '"DEFAULT_NAME"', comment="The name of the synchronizer."),
         optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context associated with this completion object."),
         return_val("comp_t", "comp", comment="The allocated completion handler.")
     ],
@@ -198,6 +203,7 @@ operation(
     "alloc_graph", 
     [
         optional_arg("comp_t", "comp", "COMP_NULL", comment="Another completion object to signal when the graph is completed. The graph will be automatically destroyed afterwards."),
+        optional_arg("const char*", "name", '"DEFAULT_NAME"', comment="The name of the synchronizer."),
         optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context associated with this completion object."),
         optional_runtime_args,
         return_val("comp_t", "comp", comment="The allocated completion handler."),

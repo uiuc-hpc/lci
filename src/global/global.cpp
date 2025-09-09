@@ -6,6 +6,7 @@
 
 namespace lci
 {
+const char* DEFAULT_NAME = "unnamed";
 bool g_is_active = false;
 int g_rank_me = -1, g_rank_n = -1;
 allocator_default_t g_allocator_default;

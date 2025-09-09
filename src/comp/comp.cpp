@@ -6,31 +6,39 @@
 namespace lci
 {
 comp_t alloc_sync_x::call_impl(runtime_t, int threshold, bool zero_copy_am,
-                               void* user_context) const
+                               const char* name, void* user_context) const
 {
   comp_attr_t attr;
   memset(&attr, 0, sizeof(attr));
   attr.zero_copy_am = zero_copy_am;
+  attr.name = name;
   attr.user_context = user_context;
   comp_t comp;
   comp.p_impl = new sync_t(attr, threshold);
   return comp;
 }
 
-comp_t alloc_counter_x::call_impl(runtime_t) const
+comp_t alloc_counter_x::call_impl(runtime_t, const char* name,
+                                  void* user_context) const
 {
+  comp_attr_t attr;
+  memset(&attr, 0, sizeof(attr));
+  attr.name = name;
+  attr.user_context = user_context;
   comp_t comp;
-  comp.p_impl = new counter_t();
+  comp.p_impl = new counter_t(attr);
   return comp;
 }
 
 comp_t alloc_cq_x::call_impl(runtime_t, int default_length, bool zero_copy_am,
-                             attr_cq_type_t cq_type, void* user_context) const
+                             attr_cq_type_t cq_type, const char* name,
+                             void* user_context) const
 {
   comp_attr_t attr;
   memset(&attr, 0, sizeof(attr));
   attr.zero_copy_am = zero_copy_am;
   attr.cq_type = cq_type;
+  attr.name = name;
   attr.user_context = user_context;
   comp_t comp;
   comp.p_impl = new cq_t(attr, default_length);
@@ -38,22 +46,25 @@ comp_t alloc_cq_x::call_impl(runtime_t, int default_length, bool zero_copy_am,
 }
 
 comp_t alloc_handler_x::call_impl(comp_handler_t handler, runtime_t,
-                                  bool zero_copy_am, void* user_context) const
+                                  bool zero_copy_am, const char* name,
+                                  void* user_context) const
 {
   comp_attr_t attr;
   memset(&attr, 0, sizeof(attr));
   attr.zero_copy_am = zero_copy_am;
+  attr.name = name;
   attr.user_context = user_context;
   comp_t comp;
   comp.p_impl = new handler_t(attr, handler);
   return comp;
 }
 
-comp_t alloc_graph_x::call_impl(comp_t comp, void* user_context,
-                                runtime_t) const
+comp_t alloc_graph_x::call_impl(comp_t comp, const char* name,
+                                void* user_context, runtime_t) const
 {
   comp_attr_t attr;
   memset(&attr, 0, sizeof(attr));
+  attr.name = name;
   attr.user_context = user_context;
   comp_t ret;
   ret.p_impl = new graph_t(attr, comp);
