@@ -469,7 +469,8 @@ struct status_t {
 
 /**
  * @ingroup LCI_BASIC
- * @brief Special completion object setting `allow_posted` to false.
+ * @brief Special completion object setting `allow_posted` and `allow_retry` to
+ * false.
  */
 const comp_t COMP_NULL = comp_t(reinterpret_cast<comp_impl_t*>(0x0));
 
@@ -482,8 +483,7 @@ const comp_t COMP_NULL_EXPECT_DONE =
 
 /**
  * @ingroup LCI_BASIC
- * @brief Special completion object setting `allow_posted` and `allow_retry` to
- * false.
+ * @brief Special completion object setting `allow_posted` to false.
  */
 const comp_t COMP_NULL_RETRY = comp_t(reinterpret_cast<comp_impl_t*>(0x1));
 

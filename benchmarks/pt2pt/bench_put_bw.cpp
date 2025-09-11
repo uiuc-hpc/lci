@@ -43,7 +43,7 @@ void worker(int peer_rank, lci::device_t device, int *data, lci::rmr_t rmr, lci:
   // One am to signal the end of the test
   lci::status_t status;
   do {
-    status = lci::post_am_x(peer_rank, nullptr, 0, lci::COMP_NULL_EXPECT_DONE, rcomp).device(device)();
+    status = lci::post_am_x(peer_rank, nullptr, 0, lci::COMP_NULL_RETRY, rcomp).device(device)();
     lci::progress_x().device(device)();
   } while (status.is_retry());
 }
