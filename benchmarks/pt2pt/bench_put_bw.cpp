@@ -24,16 +24,13 @@ void worker(int peer_rank, lci::device_t device, int *data, lci::rmr_t rmr, lci:
   int rank = lci::get_rank_me();
   int nranks = lci::get_rank_n();
 
-  if (nranks == 1 || rank < nranks / 2) {
-    // sender
-    for (size_t i = 0; i < g_config.niters; i++) {
-      for (size_t j = thread_id; j < g_config.nelems; j += nthreads) {
-        lci::status_t status;
-        do {
-          status = lci::post_put_x(peer_rank, data + j, sizeof(int), comp, j * sizeof(int), rmr).device(device).allow_done(false)();
-          lci::progress_x().device(device)();
-        } while (status.is_retry());
-      }
+  for (size_t i = 0; i < g_config.niters; i++) {
+    for (size_t j = thread_id; j < g_config.nelems; j += nthreads) {
+      lci::status_t status;
+      do {
+        status = lci::post_put_x(peer_rank, data + j, sizeof(int), comp, j * sizeof(int), rmr).device(device).allow_done(false)();
+        lci::progress_x().device(device)();
+      } while (status.is_retry());
     }
   }
   size_t expected = g_config.niters * g_config.nelems;
@@ -43,7 +40,7 @@ void worker(int peer_rank, lci::device_t device, int *data, lci::rmr_t rmr, lci:
   // One am to signal the end of the test
   lci::status_t status;
   do {
-    status = lci::post_am_x(peer_rank, nullptr, 0, lci::COMP_NULL_RETRY, rcomp).device(device)();
+    status = lci::post_am_x(peer_rank, nullptr, 0, lci::COMP_NULL_RETRY, rcomp).device(device).comp_semantic(lci::comp_semantic_t::network)();
     lci::progress_x().device(device)();
   } while (status.is_retry());
 }
@@ -129,7 +126,7 @@ int main(int argc, char** argv)
   lci::comp_t comp = lci::alloc_counter();
   lci::rcomp_t rcomp = lci::register_rcomp(comp);
 
-  lci::barrier();
+  lci::barrier_x().comp_semantic(lci::comp_semantic_t::network)();
   auto start = std::chrono::high_resolution_clock::now();
   if (is_sender) {
     #pragma omp parallel num_threads(g_config.nthreads)
@@ -147,7 +144,7 @@ int main(int argc, char** argv)
       }
     }
   }
-  lci::barrier();
+  lci::barrier_x().comp_semantic(lci::comp_semantic_t::network)();
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = end - start;
   double total_msgs = g_config.niters * g_config.nelems * (nranks == 1 ? 1 : nranks / 2);
