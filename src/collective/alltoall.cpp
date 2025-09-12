@@ -8,7 +8,8 @@ namespace lci
 void alltoall_x::call_impl(const void* sendbuf, void* recvbuf, size_t size,
                            runtime_t runtime, device_t device,
                            endpoint_t endpoint,
-                           matching_engine_t matching_engine) const
+                           matching_engine_t matching_engine,
+                           comp_semantic_t comp_semantic) const
 {
   int seqnum = get_sequence_number();
 
@@ -36,6 +37,7 @@ void alltoall_x::call_impl(const void* sendbuf, void* recvbuf, size_t size,
                    .device(device)
                    .endpoint(endpoint)
                    .matching_engine(matching_engine)
+                   .comp_semantic(comp_semantic)
                    .allow_done(false)();
       progress_x().runtime(runtime).device(device).endpoint(endpoint)();
     } while (status.is_retry());
@@ -45,6 +47,7 @@ void alltoall_x::call_impl(const void* sendbuf, void* recvbuf, size_t size,
                    .device(device)
                    .endpoint(endpoint)
                    .matching_engine(matching_engine)
+                   .comp_semantic(comp_semantic)
                    .allow_done(false)();
       progress_x().runtime(runtime).device(device).endpoint(endpoint)();
     } while (status.is_retry());
