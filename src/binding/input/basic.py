@@ -22,31 +22,6 @@ runtime_attr = [
 
 input = [
 # ##############################################################################
-# # Global
-# ##############################################################################
-operation(
-    "get_rank_me", 
-    [
-        return_val("int", "rank_me", comment="the rank of the current process")
-    ],
-    doc = {
-        "in_group": "LCI_SETUP",
-        "brief": "Get the rank of the current process.",
-        "details": "This function can only be called if there is at least one runtime being active (!runtime.is_empty())."
-    }
-),
-operation(
-    "get_rank_n",
-    [
-        return_val("int", "rank_n", comment="the number of ranks in the current application/job")
-    ],
-    doc = {
-        "in_group": "LCI_SETUP",
-        "brief": "Get the number of ranks in the current application/job.",
-        "details": "This function can only be called if there is at least one runtime being active (!runtime.is_empty())."
-    }
-),
-# ##############################################################################
 # # Runtime
 # ##############################################################################
 resource_runtime := resource(

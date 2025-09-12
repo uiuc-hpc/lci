@@ -166,8 +166,12 @@ void global_finalize()
   g_rank_n = -1;
 }
 
-int get_rank_me_x::call_impl() const { return g_rank_me; }
+int get_rank_me() { return g_rank_me; }
 
-int get_rank_n_x::call_impl() const { return g_rank_n; }
+int get_rank_n() { return g_rank_n; }
+
+global_attr_t get_g_default_attr() { return g_default_attr; }
+
+void set_g_default_attr(const global_attr_t& attr) { g_default_attr = attr; }
 
 }  // namespace lci

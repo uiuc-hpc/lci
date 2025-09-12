@@ -579,6 +579,49 @@ using graph_edge_run_cb_t = void (*)(status_t status, void* src_value,
 
 namespace lci
 {
+/**
+ * @ingroup LCI_BASIC
+ * @brief Global initialization for LCI, including rank_me, rank_n, and
+ * g_default_attr.
+ * @details Normally calling this function is not necessary, as the runtime
+ * allocation will take care of it. Use this only if you want to initialize LCI
+ * global state without creating a runtime.
+ */
+void global_initialize();
+/**
+ * @ingroup LCI_BASIC
+ * @brief Global finalization for LCI.
+ * @details Use this only if you have called global_initialize().
+ */
+void global_finalize();
+/**
+ * @ingroup LCI_BASIC
+ * @brief Get the rank of the current process.
+ * @return The rank of the current process.
+ */
+int get_rank_me();
+/**
+ * @ingroup LCI_BASIC
+ * @brief Get the number of ranks in the current application/job.
+ * @return The number of ranks in the current application/job.
+ */
+int get_rank_n();
+/**
+ * @ingroup LCI_BASIC
+ * @brief Get the default global attributes for LCI. The default global
+ * attributes contain the default attributes for all resources. It is
+ * initialized by @ref global_initialize based on compilation and environment
+ * variables.
+ * @return The default global attributes.
+ */
+global_attr_t get_g_default_attr();
+/**
+ * @ingroup LCI_BASIC
+ * @brief Set the default global attributes for LCI.
+ * @param attr The global attributes to be set as default.
+ */
+void set_g_default_attr(const global_attr_t& attr);
+
 /***********************************************************************
  * Overloading graph_add_node for functor
  **********************************************************************/
