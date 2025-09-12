@@ -6,12 +6,25 @@
 namespace lci
 {
 std::atomic<int> device_impl_t::g_ndevices(0);
+mpmc_array_t<device_t> device_impl_t::g_all_devices(64);
 std::atomic<int> endpoint_impl_t::g_nendpoints(0);
 
 net_context_impl_t::net_context_impl_t(runtime_t runtime_, attr_t attr_)
     : attr(attr_), runtime(runtime_)
 {
   net_context.p_impl = this;
+}
+
+device_t device_impl_t::get_random_device()
+{
+  int n = g_ndevices.load(std::memory_order_relaxed);
+  if (n == 0) return device_t();
+
+  static thread_local std::random_device rd;
+  static thread_local std::mt19937 gen(rd());
+  std::uniform_int_distribution<> dis(0, n - 1);
+  int random_idx = dis(gen);
+  return g_all_devices.get(random_idx);
 }
 
 device_impl_t::device_impl_t(net_context_t context_, attr_t attr_)
@@ -127,6 +140,7 @@ device_t alloc_device_x::call_impl(size_t net_max_sends, size_t net_max_recvs,
   if (device.get_attr_uid() == 0) {
     bootstrap::set_device(device);
   }
+  device_impl_t::g_all_devices.put(device.get_attr_uid(), device);
   LCI_Log(LOG_INFO, "network", "Device %d created\n", device.get_attr_uid());
   return device;
 }
@@ -134,6 +148,7 @@ device_t alloc_device_x::call_impl(size_t net_max_sends, size_t net_max_recvs,
 void free_device_x::call_impl(device_t* device, runtime_t runtime) const
 {
   LCI_Log(LOG_INFO, "network", "Device %d freed\n", device->get_attr_uid());
+  device_impl_t::g_all_devices.put(device->get_attr_uid(), device_t());
   if (device->get_attr_uid() == 0) {
     bootstrap::set_device(device_t());
   }

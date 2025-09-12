@@ -5,6 +5,7 @@ import sys, os
 sys.path.append(os.path.dirname(__file__))
 from .tools import *
 
+
 runtime_attr = [
     # attr("bool", "use_reg_cache", default_value="LCI_USE_REG_CACHE_DEFAULT", comment="Whether to use the registration cache."),
     # attr("bool", "use_control_channel", default_value=0, comment="Whether to use the control channel."),
@@ -21,6 +22,12 @@ runtime_attr = [
 ]
 
 input = [
+{
+    "category": "global_attr",
+    "attrs": [
+        attr("int", "global_progress_interval", default_value=0, comment="The interval (in microseconds) between two global progresses. 0 means no global progress thread. This is mainly used for debugging. In production, properly setting completion semantics with periodical progress should always be preferred."),
+    ],
+},
 # ##############################################################################
 # # Runtime
 # ##############################################################################

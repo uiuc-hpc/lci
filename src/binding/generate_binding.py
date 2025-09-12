@@ -132,16 +132,21 @@ def generate_global_attr_decl(input):
       resource_attr_decl += generate_resource_attr_decl(item)
 
   # declare global attribute struct
-  variable_decl = "struct global_attr_t {\n"
+  attrs = []
   for item in input:
     if item["category"] == "resource":
-      for attr in item["attrs"]:
-        if "out" in attr["trait"]:
-          # output attribute does not have global default value
-          continue
-        if "no_env_config" in attr["trait"]:
-          continue
-        variable_decl += f"  {attr['type']} {attr['name']};\n"
+      attrs.extend(item["attrs"])
+    elif item["category"] == "global_attr":
+      attrs.extend(item["attrs"])
+  
+  variable_decl = "struct global_attr_t {\n"
+  for attr in attrs:
+    if "out" in attr["trait"]:
+      # output attribute does not have global default value
+      continue
+    if "no_env_config" in attr["trait"]:
+      continue
+    variable_decl += f"  {attr['type']} {attr['name']};\n"
   variable_decl += "};\n"
   variable_decl += "\nextern global_attr_t g_default_attr;\n"
   return f"{resource_attr_decl}\n{variable_decl}"

@@ -26,6 +26,9 @@ class device_impl_t
  public:
   using attr_t = device_t::attr_t;
 
+  static mpmc_array_t<device_t> g_all_devices;
+  static device_t get_random_device();
+
   // functions for backends to implement
   device_impl_t(net_context_t context_, attr_t attr_);
   virtual ~device_impl_t();

@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: NCSA
 
 #include "lci_internal.hpp"
-#include <unistd.h>
 
 namespace lci
 {
@@ -19,6 +18,34 @@ namespace internal_config
 {
 bool enable_bootstrap_lci = true;
 }  // namespace internal_config
+
+namespace
+{
+std::thread g_progress_thread;
+
+void global_progress_thread()
+{
+  while (g_is_active) {
+    int interval = lci::get_g_default_attr().global_progress_interval;
+    if (interval > 0) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(interval));
+    }
+    // Randomly pick a device to progress
+    device_t device = device_impl_t::get_random_device();
+    if (device.is_empty()) continue;
+    progress_x().device(device)();
+  }
+}
+
+void start_global_progress_thread()
+{
+  if (g_default_attr.global_progress_interval == 0) return;
+  g_progress_thread = std::thread(global_progress_thread);
+}
+
+void stop_global_progress_thread() { g_progress_thread.join(); }
+
+}  // namespace
 
 void init_global_attr();
 namespace
@@ -147,6 +174,7 @@ void global_initialize()
 #ifdef LCI_USE_CUDA
   accelerator::initialize();
 #endif  // LCI_USE_CUDA
+  start_global_progress_thread();
   g_is_active = true;
 }
 
@@ -155,6 +183,7 @@ void global_finalize()
   if (--global_ini_counter > 0) return;
 
   g_is_active = false;
+  stop_global_progress_thread();
 #ifdef LCI_USE_CUDA
   accelerator::finalize();
 #endif  // LCI_USE_CUDA
