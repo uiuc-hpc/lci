@@ -1,0 +1,21 @@
+<map id="lci::get_rank_n" name="lci::get_rank_n">
+<area shape="rect" id="Node000001" title="Get the number of ranks in the current application/job." alt="" coords="453,128,571,153"/>
+<area shape="rect" id="Node000002" href="$dc/d4c/classlci_1_1allreduce__x.html#ad70970fdb1d158340fbd6f67704cbc0b" title=" " alt="" coords="253,55,403,80"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="465,125,360,83,362,78,467,120"/>
+<area shape="rect" id="Node000005" href="$d2/d49/classlci_1_1broadcast__x.html#a2cf8cbe7f7e9184c613d00170606979d" title=" " alt="" coords="251,128,405,153"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="440,143,406,143,406,138,440,138"/>
+<area shape="rect" id="Node000008" href="$da/ded/classlci_1_1reduce__scatter__x.html#ad009b3d0c00b5951d0116485cc00a24c" title=" " alt="" coords="257,203,399,243"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="471,161,375,206,372,201,469,157"/>
+<area shape="rect" id="Node000003" href="$d5/dd3/namespacelci.html#ac8ef1bed5031bfdf08b7d80a33809d40" title=" " alt="" coords="51,5,157,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="256,54,156,32,157,27,257,49"/>
+<area shape="rect" id="Node000004" href="$dc/d4c/classlci_1_1allreduce__x.html#a246221d4fb66fae97d9b84458d9362d3" title=" " alt="" coords="7,55,201,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="239,70,201,70,201,65,239,65"/>
+<area shape="rect" id="Node000006" href="$d5/dd3/namespacelci.html#a16edb894b126be5a60737362cea89af5" title=" " alt="" coords="49,104,159,129"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="237,134,159,125,159,120,238,128"/>
+<area shape="rect" id="Node000007" href="$d2/d49/classlci_1_1broadcast__x.html#a38dee647c6e537e46e491de5fc4ba047" title=" " alt="" coords="5,153,203,179"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="237,154,203,157,202,152,237,148"/>
+<area shape="rect" id="Node000009" href="$da/ded/classlci_1_1reduce__scatter__x.html#abdab5e752271b6d87e3d84bcd2fc943a" title=" " alt="" coords="33,203,175,243"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="243,226,175,226,175,221,243,221"/>
+<area shape="rect" id="Node000010" href="$d5/dd3/namespacelci.html#ae125fcd92edea24a33fc3ad31df575ec" title=" " alt="" coords="33,268,175,293"/>
+<area shape="poly" id="edge9_Node000008_Node000010" title=" " alt="" coords="245,247,155,271,154,265,243,242"/>
+</map>

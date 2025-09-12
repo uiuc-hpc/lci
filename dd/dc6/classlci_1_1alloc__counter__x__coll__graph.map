@@ -1,7 +1,11 @@
 <map id="lci::alloc_counter_x" name="lci::alloc_counter_x">
-<area shape="rect" id="Node000001" title="The actual implementation for alloc_counter." alt="" coords="5,196,152,221"/>
-<area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="15,93,143,133"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="81,147,81,196,76,196,76,147"/>
-<area shape="rect" id="Node000003" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="25,5,133,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="81,44,81,93,76,93,76,44"/>
+<area shape="rect" id="Node000001" title="The actual implementation for alloc_counter." alt="" coords="547,77,693,102"/>
+<area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="242,5,370,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="384,38,523,67,558,74,557,79,522,72,383,43"/>
+<area shape="rect" id="Node000003" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="5,13,113,38"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="127,23,242,23,242,28,127,28"/>
+<area shape="rect" id="Node000004" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="232,69,380,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="394,87,546,87,546,92,394,92"/>
+<area shape="rect" id="Node000005" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="223,134,389,159"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="397,129,522,107,559,99,560,105,523,112,398,134"/>
 </map>

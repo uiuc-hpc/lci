@@ -1,11 +1,9 @@
 <map id="Setup and Teardown" name="Setup and Teardown">
-<area shape="rect" id="Node000004" href="$d3/d0a/group__LCI__ALLOC__RUNTIME.html" title="Allocate a new runtime object." alt="" coords="225,5,336,31"/>
-<area shape="rect" id="Node000005" href="$d7/db0/group__LCI__FREE__RUNTIME.html" title="Free a new runtime object." alt="" coords="227,55,334,80"/>
-<area shape="rect" id="Node000008" href="$d2/d5e/group__LCI__GET__G__RUNTIME.html" title="Get the global default runtime object." alt="" coords="223,104,339,129"/>
-<area shape="rect" id="Node000002" href="$d6/d90/group__LCI__GET__RANK__ME.html" title="Get the rank of the current process." alt="" coords="227,153,334,179"/>
-<area shape="rect" id="Node000003" href="$d9/d58/group__LCI__GET__RANK__N.html" title="Get the number of ranks in the current application/job." alt="" coords="233,203,328,228"/>
-<area shape="rect" id="Node000007" href="$d9/d15/group__LCI__G__RUNTIME__FINA.html" title="Finalize the global default runtime object." alt="" coords="221,252,340,277"/>
-<area shape="rect" id="Node000006" href="$de/d1b/group__LCI__G__RUNTIME__INIT.html" title="Initialize the global default runtime object." alt="" coords="223,301,339,327"/>
-<area shape="rect" id="Node000009" href="$d1/d0e/group__LCI__RUNTIME.html" title="The runtime object." alt="" coords="207,351,355,376"/>
-<area shape="rect" id="Node000001" title="This section describes setup and teardown API." alt="" coords="5,179,159,204"/>
+<area shape="rect" id="Node000002" href="$d3/d0a/group__LCI__ALLOC__RUNTIME.html" title="Allocate a new runtime object." alt="" coords="225,5,336,31"/>
+<area shape="rect" id="Node000003" href="$d7/db0/group__LCI__FREE__RUNTIME.html" title="Free a new runtime object." alt="" coords="227,55,334,80"/>
+<area shape="rect" id="Node000006" href="$d2/d5e/group__LCI__GET__G__RUNTIME.html" title="Get the global default runtime object." alt="" coords="223,104,339,129"/>
+<area shape="rect" id="Node000005" href="$d9/d15/group__LCI__G__RUNTIME__FINA.html" title="Finalize the global default runtime object." alt="" coords="221,153,340,179"/>
+<area shape="rect" id="Node000004" href="$de/d1b/group__LCI__G__RUNTIME__INIT.html" title="Initialize the global default runtime object." alt="" coords="223,203,339,228"/>
+<area shape="rect" id="Node000007" href="$d1/d0e/group__LCI__RUNTIME.html" title="The runtime object." alt="" coords="207,252,355,277"/>
+<area shape="rect" id="Node000001" title="This section describes setup and teardown API." alt="" coords="5,129,159,155"/>
 </map>

@@ -1,11 +1,8 @@
 var searchData=
 [
-  ['ibv_5fforce_5fgid_5fauto_5fselect_0',['ibv_force_gid_auto_select',['../d8/d0c/structlci_1_1global__attr__t.html#a5ce3582effb9805650a5a28d6abfeb97',1,'lci::global_attr_t::ibv_force_gid_auto_select'],['../d4/d7b/structlci_1_1net__context__attr__t.html#aef48ddb164b1784a37f3e53cab3f001a',1,'lci::net_context_attr_t::ibv_force_gid_auto_select']]],
-  ['ibv_5fgid_5fidx_1',['ibv_gid_idx',['../d8/d0c/structlci_1_1global__attr__t.html#a688fc0b08232a1e0918201ea4181232a',1,'lci::global_attr_t::ibv_gid_idx'],['../d4/d7b/structlci_1_1net__context__attr__t.html#a8249a3c00a536ca116735ae275dc94d4',1,'lci::net_context_attr_t::ibv_gid_idx']]],
-  ['ibv_5fodp_5fstrategy_2',['ibv_odp_strategy',['../d8/d0c/structlci_1_1global__attr__t.html#a5c0677bcbeb52c73f1bf61ca31796314',1,'lci::global_attr_t::ibv_odp_strategy'],['../d4/d7b/structlci_1_1net__context__attr__t.html#a1e204105df56241c28241e4054e38cce',1,'lci::net_context_attr_t::ibv_odp_strategy']]],
-  ['ibv_5fprefetch_5fstrategy_3',['ibv_prefetch_strategy',['../d8/d0c/structlci_1_1global__attr__t.html#a1969dba739f959ab556c6f86a952b965',1,'lci::global_attr_t::ibv_prefetch_strategy'],['../d4/d7b/structlci_1_1net__context__attr__t.html#ad7764db7ac7f60a2c0cc215f53081116',1,'lci::net_context_attr_t::ibv_prefetch_strategy']]],
-  ['ibv_5ftd_5fstrategy_4',['ibv_td_strategy',['../d8/d0c/structlci_1_1global__attr__t.html#a87b94bb3b1ead15e9eea2e9a07802e97',1,'lci::global_attr_t::ibv_td_strategy'],['../db/d97/structlci_1_1device__attr__t.html#a8159dbf8ad081f8c9f96aa8a8ac00f04',1,'lci::device_attr_t::ibv_td_strategy']]],
-  ['imm_5fdata_5',['imm_data',['../db/d3b/structlci_1_1net__status__t.html#a19b98edf20b12f08e837846ce5fe4431',1,'lci::net_status_t']]],
-  ['imm_5fnbits_5frcomp_6',['imm_nbits_rcomp',['../d8/d0c/structlci_1_1global__attr__t.html#a0c772716c7c2911d5760f88c6dd62f5b',1,'lci::global_attr_t::imm_nbits_rcomp'],['../de/d3b/structlci_1_1runtime__attr__t.html#ae6cf9f9e66760e11228565e5be0e9095',1,'lci::runtime_attr_t::imm_nbits_rcomp']]],
-  ['imm_5fnbits_5ftag_7',['imm_nbits_tag',['../d8/d0c/structlci_1_1global__attr__t.html#a01fe4efd018062d0005940325250a1a6',1,'lci::global_attr_t::imm_nbits_tag'],['../de/d3b/structlci_1_1runtime__attr__t.html#aa28450c443ec9081d0fed0767d203d7c',1,'lci::runtime_attr_t::imm_nbits_tag']]]
+  ['g_5fallocator_5fdefault_0',['g_allocator_default',['../d5/dd3/namespacelci.html#a4cf2bf797631ebeec7b598ea1011204a',1,'lci']]],
+  ['g_5fdefault_5fattr_1',['g_default_attr',['../d5/dd3/namespacelci.html#a7cf37bd9bd09170b64bc4c60c6a285f8',1,'lci']]],
+  ['graph_5fend_2',['GRAPH_END',['../d5/dd3/namespacelci.html#a3173b3b86ebd54f0966ba7abd7e1646b',1,'lci']]],
+  ['graph_5fnode_5fdummy_5fcb_3',['GRAPH_NODE_DUMMY_CB',['../d8/d33/group__LCI__BASIC.html#ga8e09fc64f331940be127abe963b6c7ca',1,'lci']]],
+  ['graph_5fstart_4',['GRAPH_START',['../d8/d33/group__LCI__BASIC.html#gad252b9870b3459000f93aaed9ba31a75',1,'lci']]]
 ];

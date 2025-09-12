@@ -5,6 +5,7 @@ var group__LCI__ENDPOINT =
       [ "endpoint_t", "de/d1b/classlci_1_1endpoint__t.html#a5631b42b68a6cad4adf698a2d4dbe4e7", null ],
       [ "endpoint_t", "de/d1b/classlci_1_1endpoint__t.html#aaae92b16c4128cb60bbce590220d34c6", null ],
       [ "get_attr", "de/d1b/classlci_1_1endpoint__t.html#a54a31f0515901fdbf9ba523d9a392c35", null ],
+      [ "get_attr_name", "de/d1b/classlci_1_1endpoint__t.html#a1d2b96f24a8a5f4604bdf0a4b8c8b52d", null ],
       [ "get_attr_uid", "de/d1b/classlci_1_1endpoint__t.html#ad1f0f969b1a96555485ad3c8be7bb4ee", null ],
       [ "get_attr_user_context", "de/d1b/classlci_1_1endpoint__t.html#ad6f63ab29fc1f419e2ba0f8be58b1ff8", null ],
       [ "get_impl", "de/d1b/classlci_1_1endpoint__t.html#abd482408335d86a900101c1ea143e21b", null ],

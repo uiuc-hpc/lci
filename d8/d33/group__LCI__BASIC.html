@@ -273,6 +273,24 @@ Enumerations</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
+<tr class="memitem:ga36d0ced682287237e138b1153b490e53" id="r_ga36d0ced682287237e138b1153b490e53"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga36d0ced682287237e138b1153b490e53">lci::global_initialize</a> ()</td></tr>
+<tr class="memdesc:ga36d0ced682287237e138b1153b490e53"><td class="mdescLeft">&#160;</td><td class="mdescRight">Global initialization for LCI, including rank_me, rank_n, and g_default_attr.  <br /></td></tr>
+<tr class="separator:ga36d0ced682287237e138b1153b490e53"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gabce215a9c6eea84dcee74d0179c34aab" id="r_gabce215a9c6eea84dcee74d0179c34aab"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gabce215a9c6eea84dcee74d0179c34aab">lci::global_finalize</a> ()</td></tr>
+<tr class="memdesc:gabce215a9c6eea84dcee74d0179c34aab"><td class="mdescLeft">&#160;</td><td class="mdescRight">Global finalization for LCI.  <br /></td></tr>
+<tr class="separator:gabce215a9c6eea84dcee74d0179c34aab"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga9852426eb34e7849f5b6e1db60e49500" id="r_ga9852426eb34e7849f5b6e1db60e49500"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga9852426eb34e7849f5b6e1db60e49500">lci::get_rank_me</a> ()</td></tr>
+<tr class="memdesc:ga9852426eb34e7849f5b6e1db60e49500"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the rank of the current process.  <br /></td></tr>
+<tr class="separator:ga9852426eb34e7849f5b6e1db60e49500"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga6e99f95e9b71b259ea5078c23d0ff4b9" id="r_ga6e99f95e9b71b259ea5078c23d0ff4b9"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga6e99f95e9b71b259ea5078c23d0ff4b9">lci::get_rank_n</a> ()</td></tr>
+<tr class="memdesc:ga6e99f95e9b71b259ea5078c23d0ff4b9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the number of ranks in the current application/job.  <br /></td></tr>
+<tr class="separator:ga6e99f95e9b71b259ea5078c23d0ff4b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf5f122cd3499a557771e07ce1b283458" id="r_gaf5f122cd3499a557771e07ce1b283458"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d8/d0c/structlci_1_1global__attr__t.html">global_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gaf5f122cd3499a557771e07ce1b283458">lci::get_g_default_attr</a> ()</td></tr>
+<tr class="memdesc:gaf5f122cd3499a557771e07ce1b283458"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the default global attributes for LCI. The default global attributes contain the default attributes for all resources. It is initialized by <a class="el" href="#ga36d0ced682287237e138b1153b490e53">global_initialize</a> based on compilation and environment variables.  <br /></td></tr>
+<tr class="separator:gaf5f122cd3499a557771e07ce1b283458"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga27115579b236d15b058f52ffd897bf38" id="r_ga27115579b236d15b058f52ffd897bf38"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga27115579b236d15b058f52ffd897bf38">lci::set_g_default_attr</a> (const <a class="el" href="../../d8/d0c/structlci_1_1global__attr__t.html">global_attr_t</a> &amp;attr)</td></tr>
+<tr class="memdesc:ga27115579b236d15b058f52ffd897bf38"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the default global attributes for LCI.  <br /></td></tr>
+<tr class="separator:ga27115579b236d15b058f52ffd897bf38"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga04913a1823ea2481cf7ba1284c7abc64" id="r_ga04913a1823ea2481cf7ba1284c7abc64"><td class="memTemplParams" colspan="2">template&lt;typename T&gt; </td></tr>
 <tr class="memitem:ga04913a1823ea2481cf7ba1284c7abc64"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="#ga84f8522bb8dce688b8a246b6f923d64e">graph_node_t</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="#ga04913a1823ea2481cf7ba1284c7abc64">lci::graph_add_node_op</a> (<a class="el" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a> <a class="el" href="../../d5/dd3/namespacelci.html#a610912d197faa01c2f04666209b814bbaf8b0b924ebd7046dbfa85a856e4682c8">graph</a>, const T &amp;op)</td></tr>
 <tr class="memdesc:ga04913a1823ea2481cf7ba1284c7abc64"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add a functor as a node to the completion graph.  <br /></td></tr>
@@ -349,7 +367,7 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line"> void (*)(<a class="code hl_struct" href="../../d9/d1e/structlci_1_1status__t.html">status_t</a> status, <span class="keywordtype">void</span>* src_value,</div>
 <div class="line">                                     <span class="keywordtype">void</span>* dst_value)</div>
-<div class="ttc" id="astructlci_1_1status__t_html"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html">lci::status_t</a></div><div class="ttdoc">The type of the completion desciptor for a posted communication.</div><div class="ttdef"><b>Definition</b> lci.hpp:443</div></div>
+<div class="ttc" id="astructlci_1_1status__t_html"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html">lci::status_t</a></div><div class="ttdoc">The type of the completion desciptor for a posted communication.</div><div class="ttdef"><b>Definition</b> lci.hpp:445</div></div>
 </div><!-- fragment -->
 <p>The function signature for a edge funciton in the completion graph. </p>
 
@@ -834,6 +852,121 @@ Variables</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
+<a id="gaf5f122cd3499a557771e07ce1b283458" name="gaf5f122cd3499a557771e07ce1b283458"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaf5f122cd3499a557771e07ce1b283458">&#9670;&#160;</a></span>get_g_default_attr()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="../../d8/d0c/structlci_1_1global__attr__t.html">global_attr_t</a> lci::get_g_default_attr </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the default global attributes for LCI. The default global attributes contain the default attributes for all resources. It is initialized by <a class="el" href="#ga36d0ced682287237e138b1153b490e53">global_initialize</a> based on compilation and environment variables. </p>
+<dl class="section return"><dt>Returns</dt><dd>The default global attributes. </dd></dl>
+
+</div>
+</div>
+<a id="ga9852426eb34e7849f5b6e1db60e49500" name="ga9852426eb34e7849f5b6e1db60e49500"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga9852426eb34e7849f5b6e1db60e49500">&#9670;&#160;</a></span>get_rank_me()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int lci::get_rank_me </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the rank of the current process. </p>
+<dl class="section return"><dt>Returns</dt><dd>The rank of the current process. </dd></dl>
+
+</div>
+</div>
+<a id="ga6e99f95e9b71b259ea5078c23d0ff4b9" name="ga6e99f95e9b71b259ea5078c23d0ff4b9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga6e99f95e9b71b259ea5078c23d0ff4b9">&#9670;&#160;</a></span>get_rank_n()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int lci::get_rank_n </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the number of ranks in the current application/job. </p>
+<dl class="section return"><dt>Returns</dt><dd>The number of ranks in the current application/job. </dd></dl>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><iframe scrolling="no" frameborder="0" src="../../d8/d33/group__LCI__BASIC_ga6e99f95e9b71b259ea5078c23d0ff4b9_icgraph.svg" width="576" height="299"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
+</div>
+
+</div>
+</div>
+<a id="gabce215a9c6eea84dcee74d0179c34aab" name="gabce215a9c6eea84dcee74d0179c34aab"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gabce215a9c6eea84dcee74d0179c34aab">&#9670;&#160;</a></span>global_finalize()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void lci::global_finalize </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Global finalization for LCI. </p>
+<p>Use this only if you have called <a class="el" href="#ga36d0ced682287237e138b1153b490e53" title="Global initialization for LCI, including rank_me, rank_n, and g_default_attr.">global_initialize()</a>. </p>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><iframe scrolling="no" frameborder="0" src="../../d8/d33/group__LCI__BASIC_gabce215a9c6eea84dcee74d0179c34aab_icgraph.svg" width="534" height="219"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
+</div>
+
+</div>
+</div>
+<a id="ga36d0ced682287237e138b1153b490e53" name="ga36d0ced682287237e138b1153b490e53"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga36d0ced682287237e138b1153b490e53">&#9670;&#160;</a></span>global_initialize()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void lci::global_initialize </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Global initialization for LCI, including rank_me, rank_n, and g_default_attr. </p>
+<p>Normally calling this function is not necessary, as the runtime allocation will take care of it. Use this only if you want to initialize LCI global state without creating a runtime. </p>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><iframe scrolling="no" frameborder="0" src="../../d8/d33/group__LCI__BASIC_ga36d0ced682287237e138b1153b490e53_icgraph.svg" width="532" height="219"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
+</div>
+
+</div>
+</div>
 <a id="ga04913a1823ea2481cf7ba1284c7abc64" name="ga04913a1823ea2481cf7ba1284c7abc64"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga04913a1823ea2481cf7ba1284c7abc64">&#9670;&#160;</a></span>graph_add_node_op()</h2>
 
@@ -875,6 +1008,31 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><iframe scrolling="no" frameborder="0" src="../../d8/d33/group__LCI__BASIC_ga04913a1823ea2481cf7ba1284c7abc64_cgraph.svg" width="607" height="230"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
 </div>
+
+</div>
+</div>
+<a id="ga27115579b236d15b058f52ffd897bf38" name="ga27115579b236d15b058f52ffd897bf38"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga27115579b236d15b058f52ffd897bf38">&#9670;&#160;</a></span>set_g_default_attr()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void lci::set_g_default_attr </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="../../d8/d0c/structlci_1_1global__attr__t.html">global_attr_t</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>attr</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Set the default global attributes for LCI. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">attr</td><td>The global attributes to be set as default. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -940,8 +1098,8 @@ Here is the call graph for this function:</div>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line">=</div>
 <div class="line">    <a class="code hl_class" href="../../d1/da7/classlci_1_1comp__t.html">comp_t</a>(<span class="keyword">reinterpret_cast&lt;</span><a class="code hl_class" href="../../d9/d97/classlci_1_1comp__impl__t.html">comp_impl_t</a>*<span class="keyword">&gt;</span>(0x0))</div>
-<div class="ttc" id="aclasslci_1_1comp__impl__t_html"><div class="ttname"><a href="../../d9/d97/classlci_1_1comp__impl__t.html">lci::comp_impl_t</a></div><div class="ttdoc">Completion object implementation base type.</div><div class="ttdef"><b>Definition</b> lci.hpp:509</div></div>
-<div class="ttc" id="aclasslci_1_1comp__t_html"><div class="ttname"><a href="../../d1/da7/classlci_1_1comp__t.html">lci::comp_t</a></div><div class="ttdoc">The actual implementation for RESOURCE comp.</div><div class="ttdef"><b>Definition</b> lci_binding_pre.hpp:270</div></div>
+<div class="ttc" id="aclasslci_1_1comp__impl__t_html"><div class="ttname"><a href="../../d9/d97/classlci_1_1comp__impl__t.html">lci::comp_impl_t</a></div><div class="ttdoc">Completion object implementation base type.</div><div class="ttdef"><b>Definition</b> lci.hpp:511</div></div>
+<div class="ttc" id="aclasslci_1_1comp__t_html"><div class="ttname"><a href="../../d1/da7/classlci_1_1comp__t.html">lci::comp_t</a></div><div class="ttdoc">The actual implementation for RESOURCE comp.</div><div class="ttdef"><b>Definition</b> lci_binding_pre.hpp:322</div></div>
 </div><!-- fragment -->
 <p>Deprecated. Same as COMP_NULL. </p>
 

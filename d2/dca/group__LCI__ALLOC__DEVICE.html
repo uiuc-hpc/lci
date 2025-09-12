@@ -138,14 +138,15 @@ Classes</h2></td></tr>
 <p>Allocate a new device object. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">net_max_sends</td><td>of type <b>size_t</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">net_max_recvs</td><td>of type <b>size_t</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">net_max_cqes</td><td>of type <b>size_t</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">ofi_lock_mode</td><td>of type <b>uint64_t</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">alloc_default_endpoint</td><td>of type <b>bool</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">ibv_td_strategy</td><td>of type <b><a class="el" href="../../d5/dd3/namespacelci.html#ad33288500c616599a81edcccf024c647">attr_ibv_td_strategy_t</a></b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">name</td><td>of type <b>const char*</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">user_context</td><td>of type <b>void*</b>; optional argument; argument for the corresponding attribute </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">runtime</td><td>of type <b><a class="el" href="../../dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime.">runtime_t</a></b>; optional argument; The runtime object. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">net_max_sends</td><td>of type <b>size_t</b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">net_max_recvs</td><td>of type <b>size_t</b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">net_max_cqes</td><td>of type <b>size_t</b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">ofi_lock_mode</td><td>of type <b>uint64_t</b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">alloc_default_endpoint</td><td>of type <b>bool</b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">ibv_td_strategy</td><td>of type <b><a class="el" href="../../d5/dd3/namespacelci.html#ad33288500c616599a81edcccf024c647">attr_ibv_td_strategy_t</a></b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">user_context</td><td>of type <b>void*</b>; optional argument; argument for the corresponding attribute </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">net_context</td><td>of type <b><a class="el" href="../../dc/d98/classlci_1_1net__context__t.html" title="The actual implementation for RESOURCE net_context.">net_context_t</a></b>; optional argument; The network context to allocate the device. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">packet_pool</td><td>of type <b><a class="el" href="../../db/dec/classlci_1_1packet__pool__t.html" title="The actual implementation for RESOURCE packet_pool.">packet_pool_t</a></b>; optional argument; The packet pool to bind. </td></tr>
   </table>

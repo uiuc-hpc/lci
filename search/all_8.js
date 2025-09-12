@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['backend_0',['backend',['../d8/d0c/structlci_1_1global__attr__t.html#a1d22b56af37afa46d066e4f49bf9bfc7',1,'lci::global_attr_t::backend'],['../d4/d7b/structlci_1_1net__context__attr__t.html#a58d94aaeb1f6481a3ddb7883c029fb06',1,'lci::net_context_attr_t::backend'],['../d9/d2c/classlci_1_1alloc__net__context__x.html#a924ac87bf6d7c2eb6b52768734dee344',1,'lci::alloc_net_context_x::backend()'],['../db/d4e/tutorial.html#autotoc_md85',1,'More about the file backend']]],
+  ['backend_0',['backend',['../d4/d7b/structlci_1_1net__context__attr__t.html#a58d94aaeb1f6481a3ddb7883c029fb06',1,'lci::net_context_attr_t::backend'],['../d8/d0c/structlci_1_1global__attr__t.html#a1d22b56af37afa46d066e4f49bf9bfc7',1,'lci::global_attr_t::backend'],['../d9/d2c/classlci_1_1alloc__net__context__x.html#a924ac87bf6d7c2eb6b52768734dee344',1,'lci::alloc_net_context_x::backend()'],['../db/d4e/tutorial.html#autotoc_md85',1,'More about the file backend']]],
   ['backends_1',['Bootstrapping backends',['../db/d4e/tutorial.html#autotoc_md83',1,'']]],
   ['barrier_2',['Non-blocking Barrier',['../db/d4e/tutorial.html#autotoc_md76',1,'']]],
   ['barrier_3',['barrier',['../d5/dd3/namespacelci.html#ae6054124daf3cd24d181b63ccbb7ce6c',1,'lci::barrier()'],['../da/d73/group__LCI__BARRIER.html',1,'barrier']]],

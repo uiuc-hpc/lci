@@ -1,0 +1,19 @@
+<map id="lci::alloc_packet_pool_x::call_impl" name="lci::alloc_packet_pool_x::call_impl">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,133,167,173"/>
+<area shape="rect" id="Node000002" href="$d7/dc4/classlci_1_1alloc__packet__pool__x.html#a8ca763f6785808d741e2176291496a90" title=" " alt="" coords="215,5,376,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="108,131,155,94,213,55,225,49,228,53,216,60,158,98,112,135"/>
+<area shape="rect" id="Node000004" href="$d7/dc4/classlci_1_1alloc__packet__pool__x.html#a56908abd9c45b04a24253477caa1b23d" title=" " alt="" coords="215,69,376,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="151,131,216,111,217,116,153,136"/>
+<area shape="rect" id="Node000005" href="$d7/dc4/classlci_1_1alloc__packet__pool__x.html#a68a2e5285d0bf24dce79507297bcf060" title=" " alt="" coords="215,133,376,173"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="167,151,201,151,201,156,167,156"/>
+<area shape="rect" id="Node000006" href="$d7/dc4/classlci_1_1alloc__packet__pool__x.html#aa729d4d710daac187aa1bbcd4f640dcb" title=" " alt="" coords="215,197,376,237"/>
+<area shape="poly" id="edge7_Node000001_Node000006" title=" " alt="" coords="153,171,217,191,216,196,151,176"/>
+<area shape="rect" id="Node000007" href="$d7/dc4/classlci_1_1alloc__packet__pool__x.html#a5b1a895bcd18e6ae997c597b022aa6e2" title=" " alt="" coords="215,261,376,301"/>
+<area shape="poly" id="edge9_Node000001_Node000007" title=" " alt="" coords="112,171,158,209,216,247,228,253,225,258,213,252,155,213,108,175"/>
+<area shape="rect" id="Node000003" href="$d7/dc4/classlci_1_1alloc__packet__pool__x.html#a27e32f2a730b17fc35e8a1adc5fd8b7a" title=" " alt="" coords="424,133,600,173"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="352,43,377,55,431,88,477,123,474,127,428,93,375,60,350,48"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="365,107,432,127,430,132,363,112"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="376,151,410,151,410,156,376,156"/>
+<area shape="poly" id="edge8_Node000006_Node000003" title=" " alt="" coords="363,195,430,175,432,180,365,200"/>
+<area shape="poly" id="edge10_Node000007_Node000003" title=" " alt="" coords="350,259,375,247,428,214,474,180,477,184,431,218,377,252,352,264"/>
+</map>

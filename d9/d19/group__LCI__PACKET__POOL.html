@@ -138,9 +138,10 @@ Classes</h2></td></tr>
 <p>The packet pool resource. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">packet_size</td><td>of type <b>size_t</b>; The size of the packet. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">npackets</td><td>of type <b>size_t</b>; The number of packets in the pool. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">user_context</td><td>of type <b>void*</b>; User context for the resource. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">packet_size</td><td>of type <b>size_t</b>; The size of the packet. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">npackets</td><td>of type <b>size_t</b>; The number of packets in the pool. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">name</td><td>of type <b>const char*</b>; Name of the resource. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">user_context</td><td>of type <b>void*</b>; User context for the resource. </td></tr>
   </table>
   </dd>
 </dl>

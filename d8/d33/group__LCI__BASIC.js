@@ -133,7 +133,13 @@ var group__LCI__BASIC =
       [ "lci::reduce_scatter_algorithm_t::tree", "d8/d33/group__LCI__BASIC.html#ggaa8f43a876e4e48c4d541773c00e5933aac0af77cf8294ff93a5cdb2963ca9f038", null ],
       [ "lci::reduce_scatter_algorithm_t::ring", "d8/d33/group__LCI__BASIC.html#ggaa8f43a876e4e48c4d541773c00e5933aa1a5df958e0f29d35594c7cf057fe4bd1", null ]
     ] ],
+    [ "lci::get_g_default_attr", "d8/d33/group__LCI__BASIC.html#gaf5f122cd3499a557771e07ce1b283458", null ],
+    [ "lci::get_rank_me", "d8/d33/group__LCI__BASIC.html#ga9852426eb34e7849f5b6e1db60e49500", null ],
+    [ "lci::get_rank_n", "d8/d33/group__LCI__BASIC.html#ga6e99f95e9b71b259ea5078c23d0ff4b9", null ],
+    [ "lci::global_finalize", "d8/d33/group__LCI__BASIC.html#gabce215a9c6eea84dcee74d0179c34aab", null ],
+    [ "lci::global_initialize", "d8/d33/group__LCI__BASIC.html#ga36d0ced682287237e138b1153b490e53", null ],
     [ "lci::graph_add_node_op", "d8/d33/group__LCI__BASIC.html#ga04913a1823ea2481cf7ba1284c7abc64", null ],
+    [ "lci::set_g_default_attr", "d8/d33/group__LCI__BASIC.html#ga27115579b236d15b058f52ffd897bf38", null ],
     [ "lci::ANY_SOURCE", "d8/d33/group__LCI__BASIC.html#ga2eb725e3815aaad107fd100582e07853", null ],
     [ "lci::ANY_TAG", "d8/d33/group__LCI__BASIC.html#ga8926aae474cb13ad959bd7481a5cf41b", null ],
     [ "lci::COMP_NULL", "d8/d33/group__LCI__BASIC.html#gadacc63597d846dd225a8c8e0b9e395f8", null ],

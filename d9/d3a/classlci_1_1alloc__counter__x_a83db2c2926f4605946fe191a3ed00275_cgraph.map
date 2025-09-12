@@ -1,0 +1,13 @@
+<map id="lci::alloc_counter_x::call_impl" name="lci::alloc_counter_x::call_impl">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,69,137,109"/>
+<area shape="rect" id="Node000002" href="$d9/d3a/classlci_1_1alloc__counter__x.html#ae1c01a1311b9091f7c6fee1dd5b0ee42" title=" " alt="" coords="185,5,317,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="127,67,181,47,183,52,129,72"/>
+<area shape="rect" id="Node000004" href="$d9/d3a/classlci_1_1alloc__counter__x.html#a03d91b2306cdc25971f13957d5f0df2e" title=" " alt="" coords="185,69,317,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="138,87,171,87,171,92,138,92"/>
+<area shape="rect" id="Node000005" href="$d9/d3a/classlci_1_1alloc__counter__x.html#a1dc52f4e744accd3532f255b0e8ad02d" title=" " alt="" coords="185,133,317,173"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="129,107,183,126,181,131,127,112"/>
+<area shape="rect" id="Node000003" href="$d9/d3a/classlci_1_1alloc__counter__x.html#aef7b73b0fcf89502b34566fce7f8d88c" title=" " alt="" coords="365,69,512,109"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="311,43,368,62,366,67,310,48"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="318,87,352,87,352,92,318,92"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="310,131,366,111,368,116,311,136"/>
+</map>

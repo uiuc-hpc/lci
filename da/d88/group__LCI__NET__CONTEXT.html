@@ -138,17 +138,18 @@ Classes</h2></td></tr>
 <p>The network context resource. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">backend</td><td>of type <b><a class="el" href="../../d5/dd3/namespacelci.html#a210d8a7dce42f1f213407e36a1718836">attr_backend_t</a></b>; The network backend to use. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">ofi_provider_name</td><td>of type <b>std::string</b>; For the OFI backend: the provider name. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">max_msg_size</td><td>of type <b>size_t</b>; The maximum message size. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">max_inject_size</td><td>of type <b>size_t</b>; The maximum inject size. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">ibv_gid_idx</td><td>of type <b>int</b>; For the IBV backend: the GID index by default (only needed by RoCE). </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">ibv_force_gid_auto_select</td><td>of type <b>bool</b>; For the IBV backend: whether to force GID auto selection. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">ibv_odp_strategy</td><td>of type <b><a class="el" href="../../d5/dd3/namespacelci.html#ad9c46e66b67fe0ddb109e414abcb7f04">attr_ibv_odp_strategy_t</a></b>; For the IBV backend: the on-demand paging strategy. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">ibv_prefetch_strategy</td><td>of type <b><a class="el" href="../../d5/dd3/namespacelci.html#ae5ca0e84d0577a81e01cf0ade6cb7946">attr_ibv_prefetch_strategy_t</a></b>; For the IBV backend: the mr prefetch strategy. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">backend</td><td>of type <b><a class="el" href="../../d5/dd3/namespacelci.html#a210d8a7dce42f1f213407e36a1718836">attr_backend_t</a></b>; The network backend to use. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">ofi_provider_name</td><td>of type <b>std::string</b>; For the OFI backend: the provider name. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">max_msg_size</td><td>of type <b>size_t</b>; The maximum message size. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">max_inject_size</td><td>of type <b>size_t</b>; The maximum inject size. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">ibv_gid_idx</td><td>of type <b>int</b>; For the IBV backend: the GID index by default (only needed by RoCE). </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">ibv_force_gid_auto_select</td><td>of type <b>bool</b>; For the IBV backend: whether to force GID auto selection. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">ibv_odp_strategy</td><td>of type <b><a class="el" href="../../d5/dd3/namespacelci.html#ad9c46e66b67fe0ddb109e414abcb7f04">attr_ibv_odp_strategy_t</a></b>; For the IBV backend: the on-demand paging strategy. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">ibv_prefetch_strategy</td><td>of type <b><a class="el" href="../../d5/dd3/namespacelci.html#ae5ca0e84d0577a81e01cf0ade6cb7946">attr_ibv_prefetch_strategy_t</a></b>; For the IBV backend: the mr prefetch strategy. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">support_putimm</td><td>of type <b>bool</b>; Whether the network context supports put with immediate data. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">use_dmabuf</td><td>of type <b>bool</b>; Whether to use dmabuf for cuda buffer registration. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">user_context</td><td>of type <b>void*</b>; User context for the resource. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">use_dmabuf</td><td>of type <b>bool</b>; Whether to use dmabuf for cuda buffer registration. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">name</td><td>of type <b>const char*</b>; Name of the resource. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">user_context</td><td>of type <b>void*</b>; User context for the resource. </td></tr>
   </table>
   </dd>
 </dl>

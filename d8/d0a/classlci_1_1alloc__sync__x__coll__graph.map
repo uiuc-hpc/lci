@@ -1,13 +1,15 @@
 <map id="lci::alloc_sync_x" name="lci::alloc_sync_x">
-<area shape="rect" id="Node000001" title="The actual implementation for alloc_sync." alt="" coords="556,95,684,121"/>
+<area shape="rect" id="Node000001" title="The actual implementation for alloc_sync." alt="" coords="556,119,684,145"/>
 <area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="242,5,370,45"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="384,35,457,49,533,69,593,93,591,98,531,75,455,55,383,40"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="384,33,457,49,533,74,572,95,604,117,601,121,569,99,531,78,456,54,383,38"/>
 <area shape="rect" id="Node000003" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="5,13,113,38"/>
 <area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="127,23,242,23,242,28,127,28"/>
 <area shape="rect" id="Node000004" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="233,70,379,95"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="392,87,556,100,555,106,392,92"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="393,89,532,109,568,117,567,122,532,115,392,94"/>
 <area shape="rect" id="Node000005" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="228,119,384,145"/>
-<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="398,131,464,129,532,124,567,118,568,123,532,129,464,135,398,136"/>
-<area shape="rect" id="Node000006" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="223,169,389,194"/>
-<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="403,175,467,167,531,152,568,137,598,119,601,123,570,141,533,157,468,172,403,181"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="398,129,556,129,556,135,398,135"/>
+<area shape="rect" id="Node000006" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="232,169,380,209"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="393,174,531,149,566,142,567,147,533,155,394,179"/>
+<area shape="rect" id="Node000007" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="223,234,389,259"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="403,230,467,214,531,191,571,167,603,143,606,147,574,172,533,196,469,219,404,235"/>
 </map>

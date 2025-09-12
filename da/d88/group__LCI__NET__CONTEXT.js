@@ -12,6 +12,7 @@ var group__LCI__NET__CONTEXT =
       [ "get_attr_ibv_prefetch_strategy", "dc/d98/classlci_1_1net__context__t.html#a4576105ed36488ac5634cb74455ab088", null ],
       [ "get_attr_max_inject_size", "dc/d98/classlci_1_1net__context__t.html#aceda721d7c94d238917f425ad8872d59", null ],
       [ "get_attr_max_msg_size", "dc/d98/classlci_1_1net__context__t.html#a87dd79d1655f92db90a3c3b439633cb8", null ],
+      [ "get_attr_name", "dc/d98/classlci_1_1net__context__t.html#a4a4122060ef12ae644e361b734bda80a", null ],
       [ "get_attr_ofi_provider_name", "dc/d98/classlci_1_1net__context__t.html#ab112d8f5cb06912e4b9d8ee9eef99f8f", null ],
       [ "get_attr_support_putimm", "dc/d98/classlci_1_1net__context__t.html#a836ab3fb77d69ef5b3c307f79f589ee4", null ],
       [ "get_attr_use_dmabuf", "dc/d98/classlci_1_1net__context__t.html#af1a418cdef0af59232ddc3d1c7f0adf3", null ],

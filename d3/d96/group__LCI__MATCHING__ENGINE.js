@@ -6,6 +6,7 @@ var group__LCI__MATCHING__ENGINE =
       [ "matching_engine_t", "d8/d3f/classlci_1_1matching__engine__t.html#adf7b5a896b9087a8e6116a6e83b30a8a", null ],
       [ "get_attr", "d8/d3f/classlci_1_1matching__engine__t.html#a761c6f188384820a6103c2bc822ba40b", null ],
       [ "get_attr_matching_engine_type", "d8/d3f/classlci_1_1matching__engine__t.html#a9c476752bc97252ec82c337ee8b2758a", null ],
+      [ "get_attr_name", "d8/d3f/classlci_1_1matching__engine__t.html#a5274828b540149264723b5d904a5bdaa", null ],
       [ "get_attr_user_context", "d8/d3f/classlci_1_1matching__engine__t.html#a653e979d1b2533ab0c896b4183ff494c", null ],
       [ "get_impl", "d8/d3f/classlci_1_1matching__engine__t.html#a001dd53569c99c82b96988255bc56379", null ],
       [ "is_empty", "d8/d3f/classlci_1_1matching__engine__t.html#a87c71edf995781d64dea3cba4ce4f8b8", null ],

@@ -10,14 +10,12 @@ var searchData=
   ['get_5fdefault_5fpacket_5fpool_5fx_7',['get_default_packet_pool_x',['../d2/d2a/classlci_1_1get__default__packet__pool__x.html',1,'lci']]],
   ['get_5fg_5fruntime_5fx_8',['get_g_runtime_x',['../dc/d3f/classlci_1_1get__g__runtime__x.html',1,'lci']]],
   ['get_5fmax_5fbcopy_5fsize_5fx_9',['get_max_bcopy_size_x',['../d6/d78/classlci_1_1get__max__bcopy__size__x.html',1,'lci']]],
-  ['get_5frank_5fme_5fx_10',['get_rank_me_x',['../d9/dce/classlci_1_1get__rank__me__x.html',1,'lci']]],
-  ['get_5frank_5fn_5fx_11',['get_rank_n_x',['../db/db4/classlci_1_1get__rank__n__x.html',1,'lci']]],
-  ['get_5frmr_5fx_12',['get_rmr_x',['../db/dd8/classlci_1_1get__rmr__x.html',1,'lci']]],
-  ['get_5fupacket_5fx_13',['get_upacket_x',['../d1/d2e/classlci_1_1get__upacket__x.html',1,'lci']]],
-  ['global_5fattr_5ft_14',['global_attr_t',['../d8/d0c/structlci_1_1global__attr__t.html',1,'lci']]],
-  ['graph_5fadd_5fedge_5fx_15',['graph_add_edge_x',['../df/d73/classlci_1_1graph__add__edge__x.html',1,'lci']]],
-  ['graph_5fadd_5fnode_5fx_16',['graph_add_node_x',['../d8/db8/classlci_1_1graph__add__node__x.html',1,'lci']]],
-  ['graph_5fnode_5fmark_5fcomplete_5fx_17',['graph_node_mark_complete_x',['../d8/dd3/classlci_1_1graph__node__mark__complete__x.html',1,'lci']]],
-  ['graph_5fstart_5fx_18',['graph_start_x',['../d1/d39/classlci_1_1graph__start__x.html',1,'lci']]],
-  ['graph_5ftest_5fx_19',['graph_test_x',['../d0/d68/classlci_1_1graph__test__x.html',1,'lci']]]
+  ['get_5frmr_5fx_10',['get_rmr_x',['../db/dd8/classlci_1_1get__rmr__x.html',1,'lci']]],
+  ['get_5fupacket_5fx_11',['get_upacket_x',['../d1/d2e/classlci_1_1get__upacket__x.html',1,'lci']]],
+  ['global_5fattr_5ft_12',['global_attr_t',['../d8/d0c/structlci_1_1global__attr__t.html',1,'lci']]],
+  ['graph_5fadd_5fedge_5fx_13',['graph_add_edge_x',['../df/d73/classlci_1_1graph__add__edge__x.html',1,'lci']]],
+  ['graph_5fadd_5fnode_5fx_14',['graph_add_node_x',['../d8/db8/classlci_1_1graph__add__node__x.html',1,'lci']]],
+  ['graph_5fnode_5fmark_5fcomplete_5fx_15',['graph_node_mark_complete_x',['../d8/dd3/classlci_1_1graph__node__mark__complete__x.html',1,'lci']]],
+  ['graph_5fstart_5fx_16',['graph_start_x',['../d1/d39/classlci_1_1graph__start__x.html',1,'lci']]],
+  ['graph_5ftest_5fx_17',['graph_test_x',['../d0/d68/classlci_1_1graph__test__x.html',1,'lci']]]
 ];

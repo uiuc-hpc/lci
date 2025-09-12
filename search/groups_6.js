@@ -10,13 +10,11 @@ var searchData=
   ['get_5fdefault_5fpacket_5fpool_7',['get_default_packet_pool',['../df/d00/group__LCI__GET__DEFAULT__PACKET__POOL.html',1,'']]],
   ['get_5fg_5fruntime_8',['get_g_runtime',['../d2/d5e/group__LCI__GET__G__RUNTIME.html',1,'']]],
   ['get_5fmax_5fbcopy_5fsize_9',['get_max_bcopy_size',['../dc/d9c/group__LCI__GET__MAX__BCOPY__SIZE.html',1,'']]],
-  ['get_5frank_5fme_10',['get_rank_me',['../d6/d90/group__LCI__GET__RANK__ME.html',1,'']]],
-  ['get_5frank_5fn_11',['get_rank_n',['../d9/d58/group__LCI__GET__RANK__N.html',1,'']]],
-  ['get_5frmr_12',['get_rmr',['../d7/d54/group__LCI__GET__RMR.html',1,'']]],
-  ['get_5fupacket_13',['get_upacket',['../d4/dc1/group__LCI__GET__UPACKET.html',1,'']]],
-  ['graph_5fadd_5fedge_14',['graph_add_edge',['../d7/d55/group__LCI__GRAPH__ADD__EDGE.html',1,'']]],
-  ['graph_5fadd_5fnode_15',['graph_add_node',['../df/df5/group__LCI__GRAPH__ADD__NODE.html',1,'']]],
-  ['graph_5fnode_5fmark_5fcomplete_16',['graph_node_mark_complete',['../d1/d28/group__LCI__GRAPH__NODE__MARK__COMPLETE.html',1,'']]],
-  ['graph_5fstart_17',['graph_start',['../dd/dcb/group__LCI__GRAPH__START.html',1,'']]],
-  ['graph_5ftest_18',['graph_test',['../dd/dad/group__LCI__GRAPH__TEST.html',1,'']]]
+  ['get_5frmr_10',['get_rmr',['../d7/d54/group__LCI__GET__RMR.html',1,'']]],
+  ['get_5fupacket_11',['get_upacket',['../d4/dc1/group__LCI__GET__UPACKET.html',1,'']]],
+  ['graph_5fadd_5fedge_12',['graph_add_edge',['../d7/d55/group__LCI__GRAPH__ADD__EDGE.html',1,'']]],
+  ['graph_5fadd_5fnode_13',['graph_add_node',['../df/df5/group__LCI__GRAPH__ADD__NODE.html',1,'']]],
+  ['graph_5fnode_5fmark_5fcomplete_14',['graph_node_mark_complete',['../d1/d28/group__LCI__GRAPH__NODE__MARK__COMPLETE.html',1,'']]],
+  ['graph_5fstart_15',['graph_start',['../dd/dcb/group__LCI__GRAPH__START.html',1,'']]],
+  ['graph_5ftest_16',['graph_test',['../dd/dad/group__LCI__GRAPH__TEST.html',1,'']]]
 ];

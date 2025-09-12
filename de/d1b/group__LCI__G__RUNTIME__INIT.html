@@ -138,15 +138,18 @@ Classes</h2></td></tr>
 <p>Initialize the global default runtime object. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">packet_return_threshold</td><td>of type <b>size_t</b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">imm_nbits_tag</td><td>of type <b>int</b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">imm_nbits_rcomp</td><td>of type <b>int</b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">alloc_default_device</td><td>of type <b>bool</b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">alloc_default_packet_pool</td><td>of type <b>bool</b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">alloc_default_matching_engine</td><td>of type <b>bool</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">packet_return_threshold</td><td>of type <b>size_t</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">imm_nbits_tag</td><td>of type <b>int</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">imm_nbits_rcomp</td><td>of type <b>int</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">alloc_default_device</td><td>of type <b>bool</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">alloc_default_packet_pool</td><td>of type <b>bool</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">alloc_default_matching_engine</td><td>of type <b>bool</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">name</td><td>of type <b>const char*</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">user_context</td><td>of type <b>void*</b>; optional argument; argument for the corresponding attribute </td></tr>
   </table>
   </dd>
 </dl>
+<dl class="section return"><dt>Returns</dt><dd>of type <b><a class="el" href="../../dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime.">runtime_t</a></b>; The allocated object. </dd></dl>
 </div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

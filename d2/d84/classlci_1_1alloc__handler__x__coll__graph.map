@@ -1,15 +1,17 @@
 <map id="lci::alloc_handler_x" name="lci::alloc_handler_x">
-<area shape="rect" id="Node000001" title="The actual implementation for alloc_handler." alt="" coords="556,99,703,125"/>
+<area shape="rect" id="Node000001" title="The actual implementation for alloc_handler." alt="" coords="556,122,703,147"/>
 <area shape="rect" id="Node000002" href="$d9/d1e/structlci_1_1status__t.html" title="The type of the completion desciptor for a posted communication." alt="" coords="257,7,355,33"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="369,28,448,45,533,68,603,97,601,102,531,73,446,50,368,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="369,27,448,44,533,72,577,96,613,120,610,124,574,100,531,77,447,49,368,32"/>
 <area shape="rect" id="Node000003" href="$d2/d46/structlci_1_1error__t.html" title="Wrapper class for error code." alt="" coords="15,7,103,33"/>
 <area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="117,17,257,17,257,23,117,23"/>
 <area shape="rect" id="Node000004" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="242,57,370,97"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="384,83,556,102,555,107,384,88"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="385,87,532,112,569,119,568,125,532,117,384,92"/>
 <area shape="rect" id="Node000005" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="5,65,113,90"/>
 <area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="127,75,242,75,242,80,127,80"/>
 <area shape="rect" id="Node000006" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="228,122,384,147"/>
-<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="398,132,532,125,558,122,559,127,532,131,398,137"/>
-<area shape="rect" id="Node000007" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="223,171,389,197"/>
-<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="403,175,467,166,531,152,570,138,604,122,606,127,572,143,533,157,468,172,403,180"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="398,132,556,132,556,137,398,137"/>
+<area shape="rect" id="Node000007" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="232,172,380,212"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="393,176,532,152,568,145,569,150,532,157,394,181"/>
+<area shape="rect" id="Node000008" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="223,237,389,262"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="398,231,464,215,531,192,574,169,610,145,613,150,577,174,533,197,466,220,400,237"/>
 </map>

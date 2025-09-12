@@ -1,7 +1,9 @@
 <map id="lci::g_runtime_fina" name="lci::g_runtime_fina">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,13,148,38"/>
-<area shape="rect" id="Node000002" href="$d0/df3/classlci_1_1g__runtime__fina__x.html#a55d7504c60755e62a792ce51b0702749" title=" " alt="" coords="196,5,339,45"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="148,23,183,23,183,28,148,28"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,42,148,67"/>
+<area shape="rect" id="Node000002" href="$d0/df3/classlci_1_1g__runtime__fina__x.html#a55d7504c60755e62a792ce51b0702749" title=" " alt="" coords="196,35,339,75"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="148,52,183,52,183,57,148,57"/>
 <area shape="rect" id="Node000003" href="$d0/df3/classlci_1_1g__runtime__fina__x.html#a6060cd8bb8cdedacfe2cdf1ea11c0264" title=" " alt="" coords="387,5,529,45"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="339,23,373,23,373,28,339,28"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="338,41,373,36,374,41,339,46"/>
+<area shape="rect" id="Node000004" href="$d8/d33/group__LCI__BASIC.html#gabce215a9c6eea84dcee74d0179c34aab" title="Global finalization for LCI." alt="" coords="389,70,527,95"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="339,62,375,68,375,73,338,68"/>
 </map>

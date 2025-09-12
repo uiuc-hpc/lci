@@ -40,7 +40,7 @@
 <!-- Node5 -->
 <g id="Node000005" class="node">
 <title>Node5</title>
-<g id="a_Node000005"><a xlink:href="../../d9/d3a/classlci_1_1alloc__counter__x.html#a8234abf0568d3fe0d3872021db0452d5" target="_top" xlink:title=" ">
+<g id="a_Node000005"><a xlink:href="../../d9/d3a/classlci_1_1alloc__counter__x.html#a83db2c2926f4605946fe191a3ed00275" target="_top" xlink:title=" ">
 <polygon fill="white" stroke="#666666" points="369,-30 270,-30 270,0 369,0 369,-30"/>
 <text text-anchor="start" x="278" y="-18" font-family="Helvetica,sans-Serif" font-size="10.00">lci::alloc_counter</text>
 <text text-anchor="middle" x="319.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00">_x::call_impl</text>

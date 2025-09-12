@@ -138,17 +138,18 @@ Classes</h2></td></tr>
 <p>Allocate a new net_context object. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">backend</td><td>of type <b><a class="el" href="../../d5/dd3/namespacelci.html#a210d8a7dce42f1f213407e36a1718836">attr_backend_t</a></b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">ofi_provider_name</td><td>of type <b>std::string</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">max_msg_size</td><td>of type <b>size_t</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">max_inject_size</td><td>of type <b>size_t</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">ibv_gid_idx</td><td>of type <b>int</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">ibv_force_gid_auto_select</td><td>of type <b>bool</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">ibv_odp_strategy</td><td>of type <b><a class="el" href="../../d5/dd3/namespacelci.html#ad9c46e66b67fe0ddb109e414abcb7f04">attr_ibv_odp_strategy_t</a></b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">ibv_prefetch_strategy</td><td>of type <b><a class="el" href="../../d5/dd3/namespacelci.html#ae5ca0e84d0577a81e01cf0ade6cb7946">attr_ibv_prefetch_strategy_t</a></b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">use_dmabuf</td><td>of type <b>bool</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">name</td><td>of type <b>const char*</b>; optional argument; argument for the corresponding attribute </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">user_context</td><td>of type <b>void*</b>; optional argument; argument for the corresponding attribute </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">runtime</td><td>of type <b><a class="el" href="../../dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime.">runtime_t</a></b>; optional argument; The runtime object. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">backend</td><td>of type <b><a class="el" href="../../d5/dd3/namespacelci.html#a210d8a7dce42f1f213407e36a1718836">attr_backend_t</a></b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">ofi_provider_name</td><td>of type <b>std::string</b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">max_msg_size</td><td>of type <b>size_t</b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">max_inject_size</td><td>of type <b>size_t</b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">ibv_gid_idx</td><td>of type <b>int</b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">ibv_force_gid_auto_select</td><td>of type <b>bool</b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">ibv_odp_strategy</td><td>of type <b><a class="el" href="../../d5/dd3/namespacelci.html#ad9c46e66b67fe0ddb109e414abcb7f04">attr_ibv_odp_strategy_t</a></b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">ibv_prefetch_strategy</td><td>of type <b><a class="el" href="../../d5/dd3/namespacelci.html#ae5ca0e84d0577a81e01cf0ade6cb7946">attr_ibv_prefetch_strategy_t</a></b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">use_dmabuf</td><td>of type <b>bool</b>; optional argument; argument for the corresponding attribute </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">user_context</td><td>of type <b>void*</b>; optional argument; argument for the corresponding attribute </td></tr>
   </table>
   </dd>
 </dl>

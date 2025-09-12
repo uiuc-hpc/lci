@@ -1,8 +1,5 @@
 var searchData=
 [
-  ['g_5fallocator_5fdefault_0',['g_allocator_default',['../d5/dd3/namespacelci.html#a4cf2bf797631ebeec7b598ea1011204a',1,'lci']]],
-  ['g_5fdefault_5fattr_1',['g_default_attr',['../d5/dd3/namespacelci.html#a7cf37bd9bd09170b64bc4c60c6a285f8',1,'lci']]],
-  ['graph_5fend_2',['GRAPH_END',['../d5/dd3/namespacelci.html#a3173b3b86ebd54f0966ba7abd7e1646b',1,'lci']]],
-  ['graph_5fnode_5fdummy_5fcb_3',['GRAPH_NODE_DUMMY_CB',['../d8/d33/group__LCI__BASIC.html#ga8e09fc64f331940be127abe963b6c7ca',1,'lci']]],
-  ['graph_5fstart_4',['GRAPH_START',['../d8/d33/group__LCI__BASIC.html#gad252b9870b3459000f93aaed9ba31a75',1,'lci']]]
+  ['error_0',['error',['../d9/d1e/structlci_1_1status__t.html#a3e0a4314f64446ea78bb005a1495d0dc',1,'lci::status_t']]],
+  ['errorcode_1',['errorcode',['../d2/d46/structlci_1_1error__t.html#a64edcd7c8ccc656f6743d8cce7467e4d',1,'lci::error_t']]]
 ];

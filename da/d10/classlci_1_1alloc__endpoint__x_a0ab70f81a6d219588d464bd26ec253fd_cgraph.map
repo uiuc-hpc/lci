@@ -1,18 +1,22 @@
 <map id="lci::alloc_endpoint_x::call" name="lci::alloc_endpoint_x::call">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,73,145,113"/>
-<area shape="rect" id="Node000002" href="$da/d10/classlci_1_1alloc__endpoint__x.html#a0d89d34f5185655e8171abf20b6e038a" title=" " alt="" coords="193,44,333,84"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="145,80,179,74,180,80,146,85"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,101,145,141"/>
+<area shape="rect" id="Node000002" href="$da/d10/classlci_1_1alloc__endpoint__x.html#a42b2f0770b1a53a176bfae6e1ad8e021" title=" " alt="" coords="193,101,333,141"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="146,119,179,119,179,124,146,124"/>
 <area shape="rect" id="Node000003" href="$da/d10/classlci_1_1alloc__endpoint__x.html#ac4e164362bc0cbd656403523d0a9fefb" title=" " alt="" coords="381,5,521,45"/>
-<area shape="poly" id="edge8_Node000001_Node000003" title=" " alt="" coords="104,71,145,48,193,29,237,21,282,16,367,15,367,21,283,21,238,26,194,35,147,53,107,75"/>
-<area shape="rect" id="Node000005" href="$da/d10/classlci_1_1alloc__endpoint__x.html#a31c728e1118669821a5ae1ad220cdd8f" title=" " alt="" coords="381,69,521,109"/>
-<area shape="poly" id="edge9_Node000001_Node000005" title=" " alt="" coords="146,93,333,93,367,92,368,97,333,99,146,98"/>
-<area shape="rect" id="Node000006" href="$da/d10/classlci_1_1alloc__endpoint__x.html#aeae3ef5e7ba3d89bd13c4dd9847d552f" title=" " alt="" coords="381,133,521,173"/>
-<area shape="poly" id="edge10_Node000001_Node000006" title=" " alt="" coords="146,102,368,137,367,143,145,107"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="333,47,367,40,368,45,334,52"/>
-<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="334,71,368,75,367,81,333,76"/>
-<area shape="poly" id="edge6_Node000002_Node000006" title=" " alt="" coords="306,82,382,119,395,125,393,130,380,124,304,87"/>
-<area shape="rect" id="Node000004" href="$da/d10/classlci_1_1alloc__endpoint__x.html#a531dc54f2430678a56e456287dc8d473" title=" " alt="" coords="569,69,724,109"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="514,43,573,62,571,67,512,48"/>
-<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="522,87,555,87,555,92,522,92"/>
-<area shape="poly" id="edge7_Node000006_Node000004" title=" " alt="" coords="512,131,571,111,573,116,514,136"/>
+<area shape="poly" id="edge10_Node000001_Node000003" title=" " alt="" coords="113,99,151,81,193,65,282,44,368,31,368,36,283,49,194,71,153,86,115,104"/>
+<area shape="rect" id="Node000005" href="$da/d10/classlci_1_1alloc__endpoint__x.html#af1b49279fa2dd626ac3949956a15858e" title=" " alt="" coords="381,69,521,109"/>
+<area shape="poly" id="edge11_Node000001_Node000005" title=" " alt="" coords="137,99,193,87,283,80,367,81,367,86,283,86,194,92,138,104"/>
+<area shape="rect" id="Node000006" href="$da/d10/classlci_1_1alloc__endpoint__x.html#a31c728e1118669821a5ae1ad220cdd8f" title=" " alt="" coords="381,133,521,173"/>
+<area shape="poly" id="edge12_Node000001_Node000006" title=" " alt="" coords="138,139,194,151,283,157,367,156,367,162,283,162,193,156,137,144"/>
+<area shape="rect" id="Node000007" href="$da/d10/classlci_1_1alloc__endpoint__x.html#aeae3ef5e7ba3d89bd13c4dd9847d552f" title=" " alt="" coords="381,197,521,237"/>
+<area shape="poly" id="edge13_Node000001_Node000007" title=" " alt="" coords="124,139,194,164,284,186,368,202,367,208,283,191,193,169,122,144"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="299,99,380,55,392,49,395,54,383,60,301,103"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="333,107,367,101,368,106,334,112"/>
+<area shape="poly" id="edge6_Node000002_Node000006" title=" " alt="" coords="334,131,368,136,367,142,333,136"/>
+<area shape="poly" id="edge8_Node000002_Node000007" title=" " alt="" coords="301,139,383,183,395,189,392,194,380,188,299,144"/>
+<area shape="rect" id="Node000004" href="$da/d10/classlci_1_1alloc__endpoint__x.html#a531dc54f2430678a56e456287dc8d473" title=" " alt="" coords="569,101,724,141"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="498,43,523,55,597,93,594,97,520,60,495,48"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="522,98,556,104,555,109,521,103"/>
+<area shape="poly" id="edge7_Node000006_Node000004" title=" " alt="" coords="521,139,555,134,556,139,522,145"/>
+<area shape="poly" id="edge9_Node000007_Node000004" title=" " alt="" coords="495,195,520,183,594,145,597,150,523,188,498,200"/>
 </map>
