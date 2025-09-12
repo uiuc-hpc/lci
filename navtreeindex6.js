@@ -1,5 +1,11 @@
 var NAVTREEINDEX6 =
 {
+"dd/d27/group__LCI__POST__AM.html":[5,5,1],
+"dd/d2d/Changelog_1_7_4.html":[4,1],
+"dd/d2d/Changelog_1_7_4.html#autotoc_md11":[4,1,0],
+"dd/d2d/Changelog_1_7_4.html#autotoc_md12":[4,1,0,0],
+"dd/d2d/Changelog_1_7_4.html#autotoc_md13":[4,1,0,1],
+"dd/d2d/Changelog_1_7_4.html#autotoc_md14":[4,1,0,2],
 "dd/d2d/Changelog_1_7_4.html#autotoc_md15":[4,1,0,3],
 "dd/d31/group__LCI__NET.html":[5,4],
 "dd/d49/group__LCI__DEREGISTER__RCOMP.html":[5,6,4],
