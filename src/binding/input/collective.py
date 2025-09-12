@@ -129,6 +129,7 @@ operation(
         optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
         optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("matching_engine_t", "matching_engine", "runtime.get_impl()->default_coll_matching_engine", comment="The matching engine to use."),
+        optional_arg("comp_semantic_t", "comp_semantic", "comp_semantic_t::memory", comment="The completion semantic."),
     ],
     doc = {
         "in_group": "LCI_COLL",

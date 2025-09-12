@@ -38,16 +38,16 @@ void barrier_x::call_impl(runtime_t runtime, device_t device,
                     .device(device)
                     .endpoint(endpoint)
                     .matching_engine(matching_engine)
+                    .comp_semantic(comp_semantic)
                     .allow_retry(false);
     auto send = post_send_x(rank_to_send, nullptr, 0, seqnum, graph)
                     .runtime(runtime)
                     .device(device)
                     .endpoint(endpoint)
                     .matching_engine(matching_engine)
+                    .comp_semantic(comp_semantic)
                     .allow_retry(false);
     if (jump * 2 >= nranks) {
-      // this is the last round, need to take care of the completion semantic
-      send = send.comp_semantic(comp_semantic);
       dummy_node = GRAPH_END;
     } else {
       dummy_node = graph_add_node(

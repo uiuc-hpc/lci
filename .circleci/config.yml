@@ -49,16 +49,16 @@ jobs:
           command: |
             cmake --build lci/build --target all
       # Disable tests for now since circleci can be slow
-      # - run:
-      #     name: Running CTest
-      #     command: |
-      #       ulimit -c unlimited 
-      #       export LCI_ATTR_OFI_PROVIDER_NAME=sockets
-      #       ctest --extra-verbose --timeout 1200 \
-      #             --test-dir lci/build \
-      #             --output-junit ctest.out.xml
-      # - store_test_results:
-      #     path: lci/build/ctest.out.xml
+      - run:
+          name: Running CTest
+          command: |
+            ulimit -c unlimited 
+            export LCI_ATTR_OFI_PROVIDER_NAME=sockets
+            ctest --extra-verbose --timeout 1200 \
+                  --test-dir lci/build \
+                  --output-junit ctest.out.xml
+      - store_test_results:
+          path: lci/build/ctest.out.xml
 
 workflows:
   version: 2
