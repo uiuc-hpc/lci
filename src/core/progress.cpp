@@ -13,8 +13,8 @@ void progress_recv(runtime_t runtime, endpoint_t endpoint,
   size_t msg_size = net_status.length;
   // decode immediate data
   uint32_t imm_data = net_status.imm_data;
-  tag_t tag;
-  rcomp_t remote_comp;
+  tag_t tag = 0;
+  rcomp_t remote_comp = 0;
   bool is_fastpath = get_bits32(imm_data, 1, 31);
   imm_data_msg_type_t msg_type;
   if (is_fastpath) {
