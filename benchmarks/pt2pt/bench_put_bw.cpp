@@ -71,6 +71,12 @@ int main(int argc, char** argv)
     g_config.ndevices = g_config.nthreads;
   }
   
+  // Adjust the packet number based on the number of devices
+  lci::global_initialize();
+  auto attr = lci::get_g_default_attr();
+  attr.npackets = attr.npackets * g_config.ndevices;
+  lci::set_g_default_attr(attr);
+
   lci::g_runtime_init();
   int rank = lci::get_rank_me();
   int nranks = lci::get_rank_n();
@@ -92,11 +98,10 @@ int main(int argc, char** argv)
   }
 
   // allocate devices
-  lci::packet_pool_t pool = lci::alloc_packet_pool_x().npackets(65536 * g_config.ndevices)();
   std::vector<lci::device_t> devices;
   devices.resize(g_config.ndevices);
   for (int i = 0; i < g_config.ndevices; i++) {
-      devices[i] = lci::alloc_device_x().packet_pool(pool)();
+      devices[i] = lci::alloc_device();
   }
 
   // allocate memory
@@ -167,7 +172,7 @@ int main(int argc, char** argv)
   for (auto& dev : devices) {
     lci::free_device(&dev);
   }
-  lci::free_packet_pool(&pool);
   lci::g_runtime_fina();
+  lci::global_finalize();
   return 0;
 }
