@@ -28,6 +28,8 @@ add_lci_tests(
   OpenMP::OpenMP_CXX
   cxxopts::cxxopts
   COMMANDS
+  "${LCI_USE_CTEST_LAUNCHER} -n 4 ${LCI_USE_CTEST_ARGS} [TARGET] -t 1 --nelems 64 --niters 1"
+  "${LCI_USE_CTEST_LAUNCHER} -n 4 ${LCI_USE_CTEST_ARGS} [TARGET] -t 1 --nelems 256 --niters 1"
   "${LCI_USE_CTEST_LAUNCHER} -n 4 ${LCI_USE_CTEST_ARGS} [TARGET] -t 1 --nelems 1024 --niters 1"
   "${LCI_USE_CTEST_LAUNCHER} -n 2 ${LCI_USE_CTEST_ARGS} [TARGET] -t 2 --nelems 1024 --niters 1"
 )
