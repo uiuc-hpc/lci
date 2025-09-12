@@ -65,7 +65,6 @@ struct post_comm_state_t {
   protocol_t protocol = protocol_t::none;
   mr_t mr;
   comp_t local_comp = COMP_NULL;
-  bool free_local_comp = false;
   bool comp_passed_to_network = false;
   status_t status;
 };
@@ -198,20 +197,14 @@ void set_protocol(const post_comm_args_t& args,
 }
 
 // state in: none
-// state out: local_comp, free_local_comp
+// state out: local_comp
 void set_local_comp(const post_comm_args_t& args, const post_comm_traits_t&,
                     post_comm_state_t& state)
 {
   state.local_comp = args.local_comp;
-  state.free_local_comp = false;
-  // FIXME: get a more lightweight completion counter.
   // process COMP_BLOCK
-  if (state.local_comp == COMP_NULL) {
+  if (!args.allow_posted) {
     state.local_comp = alloc_sync();
-    state.free_local_comp = true;
-  } else if (state.local_comp == COMP_NULL_RETRY) {
-    state.local_comp = alloc_sync();
-    state.free_local_comp = true;
   }
 }
 
@@ -574,7 +567,7 @@ void exit_handler(error_t error_, const post_comm_args_t& args,
     }
     state.status.set_done();
   }
-  if (state.free_local_comp) {
+  if (!args.allow_posted) {
     free_comp(&state.local_comp);
   }
   if (state.status.is_done() && !args.allow_done) {
@@ -643,7 +636,7 @@ status_t post_comm_x::call_impl(
   // state out: imm_data
   set_immediate_data(args, traits, state);
   // state in: none
-  // state out: local_comp, free_local_comp
+  // state out: local_comp
   set_local_comp(args, traits, state);
   // state in: none
   // state out: status
