@@ -31,3 +31,18 @@ add_lci_tests(
   "${LCI_USE_CTEST_LAUNCHER} -n 4 ${LCI_USE_CTEST_ARGS} [TARGET] -t 1 --nelems 1024 --niters 1"
   "${LCI_USE_CTEST_LAUNCHER} -n 2 ${LCI_USE_CTEST_ARGS} [TARGET] -t 2 --nelems 1024 --niters 1"
 )
+
+add_lci_executable(bench_am_lat bench_am_lat.cpp)
+target_link_libraries(bench_am_lat PRIVATE OpenMP::OpenMP_CXX cxxopts::cxxopts)
+add_lci_tests(
+  TESTS
+  bench_am_lat.cpp
+  LABELS
+  benchmark
+  DEPENDENCIES
+  OpenMP::OpenMP_CXX
+  cxxopts::cxxopts
+  COMMANDS
+  "${LCI_USE_CTEST_LAUNCHER} -n 2 ${LCI_USE_CTEST_ARGS} [TARGET] -t 2 --msg-size 8 --niters 1000"
+  "${LCI_USE_CTEST_LAUNCHER} -n 4 ${LCI_USE_CTEST_ARGS} [TARGET] -t 1 --msg-size 16384 --niters 100"
+)
