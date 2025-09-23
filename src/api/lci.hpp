@@ -511,7 +511,13 @@ class comp_impl_t
 {
  public:
   using attr_t = comp_attr_t;
-  comp_impl_t() = default;
+  comp_impl_t()
+  {
+    attr.comp_type = attr_comp_type_t::custom;
+    attr.zero_copy_am = false;
+    attr.name = DEFAULT_NAME;
+    attr.user_context = nullptr;
+  }
   comp_impl_t(const attr_t& attr_) : attr(attr_) {}
   virtual ~comp_impl_t() = default;
   virtual void signal(status_t) = 0;
