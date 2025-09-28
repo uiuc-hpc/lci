@@ -40,7 +40,7 @@ void worker(int peer_rank, lci::device_t device, int *data, lci::rmr_t rmr, lci:
   // One am to signal the end of the test
   lci::status_t status;
   do {
-    status = lci::post_am_x(peer_rank, nullptr, 0, lci::COMP_NULL_RETRY, rcomp).device(device).comp_semantic(lci::comp_semantic_t::network)();
+    status = lci::post_am_x(peer_rank, nullptr, 0, lci::COMP_NULL_RETRY, rcomp).device(device)();
     lci::progress_x().device(device)();
   } while (status.is_retry());
 }
@@ -77,7 +77,7 @@ int main(int argc, char** argv)
   attr.npackets = attr.npackets * g_config.ndevices;
   lci::set_g_default_attr(attr);
 
-  lci::g_runtime_init();
+  lci::g_runtime_init_x().alloc_default_device(false)();
   int rank = lci::get_rank_me();
   int nranks = lci::get_rank_n();
   assert(nranks == 1 || nranks % 2 == 0);
@@ -124,32 +124,36 @@ int main(int argc, char** argv)
     rmrs.push_back(rmr);
   }
   all_rmrs.resize(nranks * g_config.ndevices);
-  lci::allgather(rmrs.data(), all_rmrs.data(), sizeof(lci::rmr_t) * g_config.ndevices);
+  lci::allgather_x(rmrs.data(), all_rmrs.data(), sizeof(lci::rmr_t) * g_config.ndevices).device(devices[0])();
   std::vector<lci::rmr_t> peer_rmrs(all_rmrs.begin() + peer_rank * g_config.ndevices,
                                     all_rmrs.begin() + (peer_rank + 1) * g_config.ndevices);
   // allocate completion counter
   lci::comp_t comp = lci::alloc_counter();
   lci::rcomp_t rcomp = lci::register_rcomp(comp);
 
-  lci::barrier_x().comp_semantic(lci::comp_semantic_t::network)();
+  lci::barrier_x().device(devices[0])();
   auto start = std::chrono::high_resolution_clock::now();
   if (is_sender) {
     #pragma omp parallel num_threads(g_config.nthreads)
     {
       int device_idx = omp_get_thread_num() % g_config.ndevices;
-      worker(peer_rank, devices[device_idx], (int*)data, peer_rmrs[device_idx], comp, rcomp);
+      lci::device_t device = devices[device_idx];
+      worker(peer_rank, device, (int*)data, peer_rmrs[device_idx], comp, rcomp);
+      lci::wait_drained_x().device(device)();
     }
   }
   if (is_receiver) {
     #pragma omp parallel num_threads(g_config.nthreads)
     {
       int device_idx = omp_get_thread_num() % g_config.ndevices;
+      lci::device_t device = devices[device_idx];
       while (lci::counter_get(comp) < g_config.nthreads) {
-        lci::progress_x().device(devices[device_idx])();
+        lci::progress_x().device(device)();
       }
+      lci::wait_drained_x().device(device)();
     }
   }
-  lci::barrier_x().comp_semantic(lci::comp_semantic_t::network)();
+  lci::barrier_x().device(devices[0])();
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = end - start;
   double total_msgs = g_config.niters * g_config.nelems * (nranks == 1 ? 1 : nranks / 2);

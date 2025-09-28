@@ -116,9 +116,8 @@ void alltoall(const void* sendbuf, void* recvbuf, size_t size)
     // use device to do alltoall
     LCI_Log(LOG_INFO, "bootstrap", "Bootstrap round %d with LCI alltoall\n",
             round);
-    alltoall_x(sendbuf, recvbuf, size)
-        .device(device_to_bootstrap)
-        .comp_semantic(comp_semantic_t::network)();
+    alltoall_x(sendbuf, recvbuf, size).device(device_to_bootstrap)();
+    wait_drained_x().device(device_to_bootstrap)();
   }
   LCI_Log(LOG_INFO, "bootstrap", "Bootstrap round %d done\n", round);
 }

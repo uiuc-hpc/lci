@@ -186,6 +186,29 @@ operation(
         "brief": "Perform background work to advance the state of the pending communication.",
     }
 ),
+operation(
+    "test_drained",
+    [
+        optional_runtime_args,
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
+        return_val("error_t", "error", comment="The error code. The error code *done* means all previously posted operations are completed; the error code *retry* means not all previously posted operations are completed."),
+    ],
+    doc = {
+        "in_group": "LCI_COMM",
+        "brief": "Test for the completion of all locally posted communication operations.",
+    }
+),
+operation(
+    "wait_drained",
+    [
+        optional_runtime_args,
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
+    ],
+    doc = {
+        "in_group": "LCI_COMM",
+        "brief": "Test for the completion of all locally posted communication operations.",
+    }
+)
 ]
 
 def get_input():

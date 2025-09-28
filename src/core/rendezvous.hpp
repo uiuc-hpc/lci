@@ -106,6 +106,7 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
   if (!rdv_ctx) {
     // This is an active message
     rdv_ctx = new internal_context_t;
+    rdv_ctx->set_user_posted_op(endpoint);
     rdv_ctx->size = rts->size;
     if (rts->size > 0)
       rdv_ctx->buffer = runtime.get_impl()->allocator->allocate(rts->size);
@@ -129,10 +130,10 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
 
   // Register the data
   if (rdv_ctx->size > 0 && rdv_ctx->mr.is_empty()) {
-    rdv_ctx->mr = register_memory_x(rdv_ctx->buffer, rdv_ctx->size)
-                      .runtime(runtime)
-                      .device(device)();
-    rdv_ctx->mr_on_the_fly = true;
+    mr_t mr = register_memory_x(rdv_ctx->buffer, rdv_ctx->size)
+                  .runtime(runtime)
+                  .device(device)();
+    rdv_ctx->set_mr_on_the_fly(mr);
   }
 
   // Prepare the RTR packet
@@ -179,10 +180,8 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
   mr_t* p_mr = &rdv_ctx->mr;
   // register the buffer if necessary
   if (p_mr->is_empty()) {
-    rdv_ctx->mr_on_the_fly = true;
     *p_mr = register_memory_x(buffer, size).runtime(runtime).device(device)();
-  } else {
-    rdv_ctx->mr_on_the_fly = false;
+    rdv_ctx->set_mr_on_the_fly(*p_mr);
   }
   // issue the put/putimm
   if (size > max_single_msg_size) {
@@ -210,7 +209,7 @@ inline void handle_rdv_local_write(endpoint_t endpoint,
   net_imm_data_t imm_data = set_bits32(0, IMM_DATA_MSG_FIN, 2, 29);
   error_t error = endpoint.get_impl()->post_sends(
       (int)ctx->rank, &ectx->recv_ctx, sizeof(ectx->recv_ctx), imm_data,
-      false /* allow_retry */);
+      nullptr, false /* allow_retry */);
   LCI_Assert(error.is_done(), "Unexpected error %d\n", error);
 }
 

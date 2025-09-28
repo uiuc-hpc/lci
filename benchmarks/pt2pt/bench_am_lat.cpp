@@ -50,6 +50,8 @@ static void worker(int peer_rank, lci::device_t device, lci::rcomp_t rcomp)
 
   std::vector<char> send_buf(g_config.msg_size, static_cast<char>(lci::get_rank_me()));
 
+  // We need a wait_quiet before every external blocking call
+  lci::wait_drained_x().device(device)();
   #pragma omp barrier
   auto start = std::chrono::high_resolution_clock::now();
   for (size_t iter = 0; iter < g_config.niters; ++iter) {
@@ -61,7 +63,6 @@ static void worker(int peer_rank, lci::device_t device, lci::rcomp_t rcomp)
                                 g_config.msg_size,
                                 lci::COMP_NULL_RETRY,
                                 rcomp)
-                     .comp_semantic(lci::comp_semantic_t::network)
                      .device(device)
                      .tag(thread_id)();
         lci::progress_x().device(device)();
@@ -76,13 +77,14 @@ static void worker(int peer_rank, lci::device_t device, lci::rcomp_t rcomp)
                                 g_config.msg_size,
                                 lci::COMP_NULL_RETRY,
                                 rcomp)
-                     .comp_semantic(lci::comp_semantic_t::network)
                      .device(device)
                      .tag(thread_id)();
         lci::progress_x().device(device)();
       } while (status.is_retry());
     }
   }
+  // We need a wait_quiet before every external blocking call
+  lci::wait_drained_x().device(device)();
   #pragma omp barrier
   auto end = std::chrono::high_resolution_clock::now();
 
@@ -134,8 +136,7 @@ int main(int argc, char** argv)
   attr.npackets = attr.npackets * g_config.ndevices;
   lci::set_g_default_attr(attr);
 
-  lci::global_initialize();
-  lci::g_runtime_init();
+  lci::g_runtime_init_x().alloc_default_device(false)();
 
   int rank = lci::get_rank_me();
   int nranks = lci::get_rank_n();
@@ -160,16 +161,12 @@ int main(int argc, char** argv)
   }
   lci::rcomp_t rcomps = lci::reserve_rcomps(g_config.nthreads);
 
-  std::vector<double> thread_durations(g_config.nthreads, 0.0);
-
-  lci::barrier_x().comp_semantic(lci::comp_semantic_t::network)();
-  auto bench_start = std::chrono::high_resolution_clock::now();
-
 #pragma omp parallel num_threads(g_config.nthreads)
   {
     int thread_id = omp_get_thread_num();
     int device_idx = thread_id % g_config.ndevices;
     worker(peer_rank, devices[device_idx], rcomps + thread_id);
+    lci::wait_drained_x().device(devices[device_idx])();
   }
 
   for (auto& dev : devices) {

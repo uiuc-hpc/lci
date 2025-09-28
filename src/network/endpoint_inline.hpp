@@ -8,13 +8,14 @@ namespace lci
 {
 inline error_t endpoint_impl_t::post_sends(int rank, void* buffer, size_t size,
                                            net_imm_data_t imm_data,
-                                           bool allow_retry, bool force_post)
+                                           void* user_context, bool allow_retry,
+                                           bool force_post)
 {
   error_t error;
   if (!force_post && !backlog_queue.is_empty(rank)) {
     error = errorcode_t::retry_backlog;
   } else {
-    error = post_sends_impl(rank, buffer, size, imm_data);
+    error = post_sends_impl(rank, buffer, size, imm_data, user_context);
   }
   if (error.is_retry()) {
     if (error.errorcode == errorcode_t::retry_lock) {
@@ -25,7 +26,8 @@ inline error_t endpoint_impl_t::post_sends(int rank, void* buffer, size_t size,
       LCI_PCOUNTER_ADD(net_send_post_retry, 1);
     }
     if (!allow_retry) {
-      backlog_queue.push_sends(this, rank, buffer, size, imm_data);
+      backlog_queue.push_sends(this, rank, buffer, size, imm_data,
+                               user_context);
       error = errorcode_t::done_backlog;
     }
   } else {
@@ -33,9 +35,9 @@ inline error_t endpoint_impl_t::post_sends(int rank, void* buffer, size_t size,
   }
   LCI_DBG_Log(LOG_TRACE, "network",
               "post_sends rank %d buffer %p size %lu imm_data %x allow_retry "
-              "%d force_post %d return %s\n",
-              rank, buffer, size, imm_data, allow_retry, force_post,
-              error.get_str());
+              "%d user_context %p force_post %d return %s\n",
+              rank, buffer, size, imm_data, allow_retry, user_context,
+              force_post, error.get_str());
   return error;
 }
 
@@ -76,18 +78,20 @@ inline error_t endpoint_impl_t::post_send(int rank, void* buffer, size_t size,
 
 inline error_t endpoint_impl_t::post_puts(int rank, void* buffer, size_t size,
                                           uint64_t offset, rmr_t rmr,
-                                          bool allow_retry, bool force_post)
+                                          void* user_context, bool allow_retry,
+                                          bool force_post)
 {
   error_t error;
   if (!force_post && !backlog_queue.is_empty(rank)) {
     error = errorcode_t::retry_backlog;
   } else {
-    error = post_puts_impl(rank, buffer, size, offset, rmr);
+    error = post_puts_impl(rank, buffer, size, offset, rmr, user_context);
   }
   if (error.is_retry()) {
     LCI_PCOUNTER_ADD(net_write_post_retry, 1);
     if (!allow_retry) {
-      backlog_queue.push_puts(this, rank, buffer, size, offset, rmr);
+      backlog_queue.push_puts(this, rank, buffer, size, offset, rmr,
+                              user_context);
       error = errorcode_t::done_backlog;
     }
   } else {
@@ -96,9 +100,9 @@ inline error_t endpoint_impl_t::post_puts(int rank, void* buffer, size_t size,
   }
   LCI_DBG_Log(LOG_TRACE, "network",
               "post_puts rank %d buffer %p size %lu offset %lu rmr "
-              "%p allow_retry %d force_post %d return %s\n",
-              rank, buffer, size, offset, rmr.base, allow_retry, force_post,
-              error.get_str());
+              "%p user_context %p allow_retry %d force_post %d return %s\n",
+              rank, buffer, size, offset, rmr.base, user_context, allow_retry,
+              force_post, error.get_str());
   return error;
 }
 
@@ -131,23 +135,23 @@ inline error_t endpoint_impl_t::post_put(int rank, void* buffer, size_t size,
   return error;
 }
 
-inline error_t endpoint_impl_t::post_putImms_fallback(int rank, void* buffer,
-                                                      size_t size,
-                                                      uint64_t offset,
-                                                      rmr_t rmr,
-                                                      net_imm_data_t imm_data)
+inline error_t endpoint_impl_t::post_putImms_fallback(
+    int rank, void* buffer, size_t size, uint64_t offset, rmr_t rmr,
+    net_imm_data_t imm_data, void* user_context)
 {
   // fallback to post_put
-  LCI_DBG_Log(LOG_TRACE, "network",
-              "fallback to post_puts imm_data %x no user_context\n", imm_data);
-  error_t error = post_puts_impl(rank, buffer, size, offset, rmr);
+  LCI_DBG_Log(
+      LOG_TRACE, "network",
+      "fallback to post_puts imm_data %x user_context %p (ignored for sends)\n",
+      imm_data, user_context);
+  error_t error = post_puts_impl(rank, buffer, size, offset, rmr, user_context);
   if (!error.is_retry()) {
     LCI_Assert(error.is_done(), "Unexpected error %d\n", error);
     // we do not allow retry for post_sends
     // otherwise the above puts might be posted again
     // XXX: but even if puts is posted again, it is not a error
-    error_t error =
-        post_sends(rank, nullptr, 0, imm_data, false /* allow_retry */);
+    error_t error = post_sends(rank, nullptr, 0, imm_data, nullptr,
+                               false /* allow_retry */);
     LCI_Assert(error.is_done(), "Unexpected error %d\n", error);
   }
   return error;
@@ -156,6 +160,7 @@ inline error_t endpoint_impl_t::post_putImms_fallback(int rank, void* buffer,
 inline error_t endpoint_impl_t::post_putImms(int rank, void* buffer,
                                              size_t size, uint64_t offset,
                                              rmr_t rmr, net_imm_data_t imm_data,
+                                             void* user_context,
                                              bool allow_retry, bool force_post)
 {
   error_t error;
@@ -163,16 +168,18 @@ inline error_t endpoint_impl_t::post_putImms(int rank, void* buffer,
     error = errorcode_t::retry_backlog;
   } else {
     if (net_context_attr.support_putimm) {
-      error = post_putImms_impl(rank, buffer, size, offset, rmr, imm_data);
+      error = post_putImms_impl(rank, buffer, size, offset, rmr, imm_data,
+                                user_context);
     } else {
-      error = post_putImms_fallback(rank, buffer, size, offset, rmr, imm_data);
+      error = post_putImms_fallback(rank, buffer, size, offset, rmr, imm_data,
+                                    user_context);
     }
   }
   if (error.is_retry()) {
     LCI_PCOUNTER_ADD(net_writeImm_post_retry, 1);
     if (!allow_retry) {
       backlog_queue.push_putImms(this, rank, buffer, size, offset, rmr,
-                                 imm_data);
+                                 imm_data, user_context);
       error = errorcode_t::done_backlog;
     }
   } else {
@@ -181,9 +188,10 @@ inline error_t endpoint_impl_t::post_putImms(int rank, void* buffer,
   }
   LCI_DBG_Log(LOG_TRACE, "network",
               "post_putImms rank %d buffer %p size %lu offset %lu "
-              "rmr %p imm_data %x allow_retry %d force_post %d return %s\n",
-              rank, buffer, size, offset, rmr.base, imm_data, allow_retry,
-              force_post, error.get_str());
+              "rmr %p imm_data %x user_context %p allow_retry %d force_post %d "
+              "return %s\n",
+              rank, buffer, size, offset, rmr.base, imm_data, user_context,
+              allow_retry, force_post, error.get_str());
   return error;
 }
 

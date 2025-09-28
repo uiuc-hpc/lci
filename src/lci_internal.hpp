@@ -24,6 +24,8 @@
 #include "util/misc.hpp"
 #include "util/spinlock.hpp"
 #include "monitor/performance_counter.hpp"
+#include "data_structure/mpmc_array.hpp"
+#include "data_structure/mpmc_set.hpp"
 #include "bootstrap/bootstrap.hpp"
 #include "backlog_queue/backlog_queue.hpp"
 #ifdef LCI_USE_CUDA
@@ -36,8 +38,6 @@
 #ifdef LCI_BACKEND_ENABLE_OFI
 #include "network/ofi/backend_ofi.hpp"
 #endif  // LCI_BACKEND_ENABLE_OFI
-#include "data_structure/mpmc_array.hpp"
-#include "data_structure/mpmc_set.hpp"
 #include "matching_engine/matching_engine.hpp"
 #include "rhandler_registry/rhandler_registry.hpp"
 #include "global/global.hpp"
@@ -65,5 +65,6 @@
 #ifdef LCI_BACKEND_ENABLE_OFI
 #include "network/ofi/backend_ofi_inline.hpp"
 #endif
+#include "core/protocol_inline.hpp"
 
 #endif  // LCI_LCI_INTERNAL_HPP

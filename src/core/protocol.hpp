@@ -30,30 +30,53 @@ enum imm_data_msg_type_t {
  */
 struct packet_t;
 struct alignas(LCI_CACHE_LINE) internal_context_t {
-  // 52 bytes, 1 bit
+  // 68 bytes, 3 bit
   // is_extended has to be the first bit (be the same as internal_context_t)
-  bool is_extended : 1;                // 1 bit
-  bool mr_on_the_fly : 1;              // 1 bit
+  bool is_extended : 1;  // 1 bit
+ private:
+  bool mr_on_the_fly : 1;      // 1 bit
+  bool is_user_posted_op : 1;  // 1 bit
+ public:
   int rank;                            // 4 bytes
-  packet_t* packet_to_free = nullptr;  // 8 bytes
-  mr_t mr;                             // 8 bytes
   comp_t comp;                         // 8 bytes
   tag_t tag;                           // 8 bytes
   void* buffer = nullptr;              // 8 bytes
   size_t size = 0;                     // 8 bytes
   void* user_context = nullptr;        // 8 bytes
+  packet_t* packet_to_free = nullptr;  // 8 bytes
+  endpoint_t endpoint;                 // 8 bytes
+  mr_t mr;                             // 8 bytes
 
+ public:
   internal_context_t()
       : is_extended(false),
         mr_on_the_fly(false),
+        is_user_posted_op(false),
         rank(-1),
         comp(COMP_NULL),
         tag(0),
-        user_context(nullptr)
+        user_context(nullptr),
+        packet_to_free(nullptr)
   {
   }
 
-  inline status_t get_status()
+  ~internal_context_t();
+
+  // A user posted operation is bind to an endpoint
+  void set_user_posted_op(endpoint_t ep)
+  {
+    is_user_posted_op = true;
+    endpoint = ep;
+    endpoint.get_impl()->add_pending_ops();
+  }
+
+  void set_mr_on_the_fly(mr_t mr_)
+  {
+    mr_on_the_fly = true;
+    mr = mr_;
+  }
+
+  inline status_t get_status() const
   {
     status_t status;
     status.set_done();

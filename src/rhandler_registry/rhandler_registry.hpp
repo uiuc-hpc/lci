@@ -44,7 +44,6 @@ class rhandler_registry_t
     entries.put(idx, entry);
   }
 
-  // this is not thread-safe
   uint32_t register_rhandler(entry_t entry)
   {
     uint32_t idx = size++;
@@ -52,7 +51,6 @@ class rhandler_registry_t
     return encode_idx(idx);
   }
 
-  // this is not thread-safe
   void deregister_rhandler(uint32_t idx)
   {
     idx = decode_idx(idx);

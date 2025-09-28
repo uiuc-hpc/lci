@@ -18,9 +18,45 @@ void barrier_x::call_impl(runtime_t runtime, device_t device,
   // dissemination algorithm
   LCI_DBG_Log(LOG_TRACE, "collective", "enter barrier %d\n", seqnum);
   if (nranks == 1) {
+#ifndef LCI_DEBUG
     if (!comp.is_empty()) {
       lci::comp_signal(comp, status_t(errorcode_t::done));
     }
+#else
+    // Send a zero-size message to self
+    comp_t graph = alloc_graph_x().runtime(runtime).comp(comp)();
+    auto recv = post_recv_x(0, nullptr, 0, seqnum, graph)
+                    .runtime(runtime)
+                    .device(device)
+                    .endpoint(endpoint)
+                    .matching_engine(matching_engine)
+                    .comp_semantic(comp_semantic)
+                    .allow_retry(false);
+    auto send = post_send_x(0, nullptr, 0, seqnum, graph)
+                    .runtime(runtime)
+                    .device(device)
+                    .endpoint(endpoint)
+                    .matching_engine(matching_engine)
+                    .comp_semantic(comp_semantic)
+                    .allow_retry(false);
+    auto recv_node = graph_add_node_op(graph, recv);
+    auto send_node = graph_add_node_op(graph, send);
+    graph_add_edge(graph, GRAPH_START, recv_node);
+    graph_add_edge(graph, GRAPH_START, send_node);
+    graph_add_edge(graph, recv_node, GRAPH_END);
+    graph_add_edge(graph, send_node, GRAPH_END);
+    graph_start(graph);
+    if (comp.is_empty()) {
+      // blocking wait
+      status_t status;
+      do {
+        progress_x().runtime(runtime).device(device).endpoint(endpoint)();
+        status = graph_test(graph);
+      } while (status.is_retry());
+      free_comp(&graph);
+    }
+#endif
+    LCI_DBG_Log(LOG_TRACE, "collective", "leave barrier %d\n", seqnum);
     return;
   }
   comp_t graph = alloc_graph_x().runtime(runtime).comp(comp)();

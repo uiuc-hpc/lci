@@ -316,6 +316,7 @@ void set_internal_ctx(const post_comm_args_t& args, const post_comm_traits_t&,
                       post_comm_state_t& state)
 {
   state.internal_ctx = new internal_context_t;
+  state.internal_ctx->set_user_posted_op(args.endpoint);
   state.internal_ctx->rank = args.rank;
   state.internal_ctx->tag = args.tag;
   state.internal_ctx->user_context = args.user_context;
@@ -348,8 +349,7 @@ void set_internal_ctx(const post_comm_args_t& args, const post_comm_traits_t&,
     state.mr = register_memory_x(args.local_buffer, args.size)
                    .runtime(args.runtime)
                    .device(args.device)();
-    state.internal_ctx->mr = state.mr;
-    state.internal_ctx->mr_on_the_fly = true;
+    state.internal_ctx->set_mr_on_the_fly(state.mr);
   }
 }
 
@@ -381,19 +381,19 @@ error_t post_network_op(const post_comm_args_t& args,
     if (state.protocol == protocol_t::inject) {
       // inject protocol (return retry or done)
       if (traits.local_buffer_only) {
-        error = args.endpoint.p_impl->post_sends(args.rank, args.local_buffer,
-                                                 args.size, state.imm_data,
-                                                 args.allow_retry);
+        error = args.endpoint.p_impl->post_sends(
+            args.rank, args.local_buffer, args.size, state.imm_data,
+            state.internal_ctx, args.allow_retry);
       } else if (!state.rhandler) {
         // rdma write
-        error = args.endpoint.p_impl->post_puts(args.rank, args.local_buffer,
-                                                args.size, args.remote_disp,
-                                                args.rmr, args.allow_retry);
+        error = args.endpoint.p_impl->post_puts(
+            args.rank, args.local_buffer, args.size, args.remote_disp, args.rmr,
+            state.internal_ctx, args.allow_retry);
       } else {
         // rdma write with immediate data
         error = args.endpoint.p_impl->post_putImms(
             args.rank, args.local_buffer, args.size, args.remote_disp, args.rmr,
-            state.imm_data, args.allow_retry);
+            state.imm_data, state.internal_ctx, args.allow_retry);
       }
       // end of inject protocol
     } else if (state.protocol == protocol_t::eager_bcopy) {
@@ -446,7 +446,6 @@ error_t post_network_op(const post_comm_args_t& args,
     } else /* protocol == protocol_t::rdv_zcopy */ {
       // rendezvous send
       // build the rts message
-      internal_context_t* rts_ctx = nullptr;
       rts_msg_t* p_rts;
       if (sizeof(rts_msg_t) <= traits.max_inject_size) {
         p_rts = reinterpret_cast<rts_msg_t*>(malloc(sizeof(rts_msg_t)));
@@ -454,7 +453,6 @@ error_t post_network_op(const post_comm_args_t& args,
         LCI_Assert(sizeof(rts_msg_t) <= traits.max_bcopy_size,
                    "The rts message is too large\n");
         p_rts = static_cast<rts_msg_t*>(state.packet->get_payload_address());
-        rts_ctx = new internal_context_t;
       }
       p_rts->send_ctx = (uintptr_t)state.internal_ctx;
       p_rts->tag = args.tag;
@@ -463,18 +461,16 @@ error_t post_network_op(const post_comm_args_t& args,
       // post send for the rts message
       if (sizeof(rts_msg_t) <= traits.max_inject_size) {
         error = args.endpoint.p_impl->post_sends(
-            args.rank, p_rts, sizeof(rts_msg_t), state.imm_data,
+            args.rank, p_rts, sizeof(rts_msg_t), state.imm_data, nullptr,
             args.allow_retry);
         free(p_rts);
       } else {
         error = args.endpoint.p_impl->post_send(
             args.rank, p_rts, sizeof(rts_msg_t),
-            state.packet->get_mr(args.device), state.imm_data, rts_ctx,
+            state.packet->get_mr(args.device), state.imm_data, nullptr,
             args.allow_retry);
       }
-      if (error.is_retry()) {
-        delete rts_ctx;
-      } else if (error.is_done()) {
+      if (error.is_done()) {
         error = errorcode_t::posted;
       }
       // end of rendezvous send
@@ -550,12 +546,10 @@ void exit_handler(error_t error_, const post_comm_args_t& args,
   }
   if (state.status.is_retry()) {
     LCI_DBG_Assert(args.allow_retry, "Unexpected retry\n");
-    if (state.internal_ctx && state.internal_ctx->mr_on_the_fly) {
-      deregister_memory_x(&state.internal_ctx->mr).runtime(args.runtime)();
-    }
-    if (!state.user_provided_packet && state.packet) {
-      state.packet->put_back();
-    }
+    if (state.user_provided_packet)
+      // If users provided a packet and they need to retry, we should not free
+      // it.
+      state.internal_ctx->packet_to_free = nullptr;
     delete state.internal_ctx;
   }
   if (state.status.is_posted() && !args.allow_posted) {
@@ -643,9 +637,7 @@ status_t post_comm_x::call_impl(
   set_status(args, traits, state);
   // state in: protocol, packet, local_comp
   // state out: internal_ctx, mr
-  if (state.protocol != protocol_t::inject) {
-    set_internal_ctx(args, traits, state);
-  }
+  set_internal_ctx(args, traits, state);
   // state in: all
   // state out: status
   error = post_network_op(args, traits, state);

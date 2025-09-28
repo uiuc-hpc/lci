@@ -40,7 +40,8 @@ class device_impl_t
                                  mr_t mr, void* usesr_contexts[]) = 0;
 
   // wrapper functions
-  inline endpoint_t alloc_endpoint(endpoint_t::attr_t attr);
+  endpoint_t alloc_endpoint(endpoint_t::attr_t attr);
+  void free_endpoint(endpoint_t endpoint);
   inline mr_t register_memory(void* buffer, size_t size);
   inline void deregister_memory(mr_impl_t* mr);
   inline size_t poll_comp(net_status_t* p_statuses, size_t max_polls);
@@ -65,8 +66,11 @@ class device_impl_t
   device_t device;
   runtime_t runtime;
   net_context_t net_context;
-  std::vector<endpoint_t> endpoints;
+  mpmc_array_t<endpoint_t> endpoints;
+  std::atomic<int> next_endpoint_idx;
   packet_pool_t packet_pool;
+
+  LCIU_CACHE_PADDING(sizeof(packet_pool_t));
 
  private:
   static std::atomic<int> g_ndevices;
@@ -104,18 +108,21 @@ class endpoint_impl_t
   endpoint_impl_t(device_t device_, attr_t attr_);
   virtual ~endpoint_impl_t() = default;
   virtual error_t post_sends_impl(int rank, void* buffer, size_t size,
-                                  net_imm_data_t imm_data) = 0;
+                                  net_imm_data_t imm_data,
+                                  void* user_context) = 0;
   virtual error_t post_send_impl(int rank, void* buffer, size_t size, mr_t mr,
                                  net_imm_data_t imm_data,
                                  void* user_context) = 0;
   virtual error_t post_puts_impl(int rank, void* buffer, size_t size,
-                                 uint64_t offset, rmr_t rmr) = 0;
+                                 uint64_t offset, rmr_t rmr,
+                                 void* user_context) = 0;
   virtual error_t post_put_impl(int rank, void* buffer, size_t size, mr_t mr,
                                 uint64_t offset, rmr_t rmr,
                                 void* user_context) = 0;
   virtual error_t post_putImms_impl(int rank, void* buffer, size_t size,
                                     uint64_t offset, rmr_t rmr,
-                                    net_imm_data_t imm_data) = 0;
+                                    net_imm_data_t imm_data,
+                                    void* user_context) = 0;
   virtual error_t post_putImm_impl(int rank, void* buffer, size_t size, mr_t mr,
                                    uint64_t offset, rmr_t rmr,
                                    net_imm_data_t imm_data,
@@ -126,21 +133,21 @@ class endpoint_impl_t
 
   // wrapper functions
   inline error_t post_sends(int rank, void* buffer, size_t size,
-                            net_imm_data_t imm_data, bool allow_retry = true,
-                            bool force_post = false);
+                            net_imm_data_t imm_data, void* user_context,
+                            bool allow_retry = true, bool force_post = false);
   inline error_t post_send(int rank, void* buffer, size_t size, mr_t mr,
                            net_imm_data_t imm_data, void* user_context,
                            bool allow_retry = true, bool force_post = false);
   inline error_t post_puts(int rank, void* buffer, size_t size, uint64_t offset,
-                           rmr_t rmr, bool allow_retry = true,
-                           bool force_post = false);
+                           rmr_t rmr, void* user_context,
+                           bool allow_retry = true, bool force_post = false);
   inline error_t post_put(int rank, void* buffer, size_t size, mr_t mr,
                           uint64_t offset, rmr_t rmr, void* user_context,
                           bool allow_retry = true, bool force_post = false);
   inline error_t post_putImms(int rank, void* buffer, size_t size,
                               uint64_t offset, rmr_t rmr,
-                              net_imm_data_t imm_data, bool allow_retry = true,
-                              bool force_post = false);
+                              net_imm_data_t imm_data, void* user_context,
+                              bool allow_retry = true, bool force_post = false);
   inline error_t post_putImm(int rank, void* buffer, size_t size, mr_t mr,
                              uint64_t offset, rmr_t rmr,
                              net_imm_data_t imm_data, void* user_context,
@@ -150,15 +157,40 @@ class endpoint_impl_t
                           bool allow_retry = true, bool force_post = false);
   inline error_t post_putImms_fallback(int rank, void* buffer, size_t size,
                                        uint64_t offset, rmr_t rmr,
-                                       net_imm_data_t imm_data);
+                                       net_imm_data_t imm_data,
+                                       void* user_context);
   inline error_t post_putImm_fallback(int rank, void* buffer, size_t size,
                                       mr_t mr, uint64_t offset, rmr_t rmr,
                                       net_imm_data_t imm_data,
                                       void* user_context);
   inline bool progress_backlog_queue() { return backlog_queue.progress(); }
+  inline bool is_backlog_queue_empty() const
+  {
+    return backlog_queue.is_empty();
+  }
   inline bool is_backlog_queue_empty(int rank) const
   {
     return backlog_queue.is_empty(rank);
+  }
+
+  inline void add_pending_ops(int64_t n = 1)
+  {
+    [[maybe_unused]] int64_t ret =
+        pending_ops.fetch_add(n, std::memory_order_relaxed);
+    // fprintf(stderr, "add pending ops %ld + %ld = %ld\n", ret, n, ret + n);
+  }
+  inline void sub_pending_ops(int64_t n = 1)
+  {
+    [[maybe_unused]] int64_t ret =
+        pending_ops.fetch_sub(n, std::memory_order_relaxed);
+    LCI_DBG_Assert(ret - n >= 0,
+                   "pending_ops is negative! (n: %ld, pending_ops: %ld)\n", n,
+                   ret - n);
+    // fprintf(stderr, "sub pending ops %ld - %ld = %ld\n", ret, n, ret - n);
+  }
+  inline int64_t get_pending_ops() const
+  {
+    return pending_ops.load(std::memory_order_relaxed);
   }
 
   runtime_t runtime;
@@ -166,10 +198,14 @@ class endpoint_impl_t
   endpoint_t endpoint;
   attr_t attr;
   net_context_attr_t net_context_attr;
+  int idx_in_device;
 
  private:
   static std::atomic<int> g_nendpoints;
   backlog_queue_t backlog_queue;
+  LCIU_CACHE_PADDING(sizeof(backlog_queue_t));
+  std::atomic<int64_t> pending_ops;
+  LCIU_CACHE_PADDING(sizeof(std::atomic<int64_t>));
 };
 
 }  // namespace lci

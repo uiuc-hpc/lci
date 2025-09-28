@@ -93,9 +93,7 @@ void progress_send(const net_status_t& net_status)
   LCI_PCOUNTER_ADD(net_send_comp, 1)
   internal_context_t* internal_ctx =
       static_cast<internal_context_t*>(net_status.user_context);
-  if (!internal_ctx)
-    // an inject
-    return;
+  if (!internal_ctx) return;
   free_ctx_and_signal_comp(internal_ctx);
 }
 
@@ -105,9 +103,7 @@ void progress_write(endpoint_t endpoint, const net_status_t& net_status)
   internal_context_t* internal_ctx =
       static_cast<internal_context_t*>(net_status.user_context);
 
-  if (!internal_ctx)
-    // an inject
-    return;
+  if (!internal_ctx) return;
 
   if (internal_ctx->is_extended) {
     // extended internal context
@@ -124,7 +120,7 @@ void progress_write(endpoint_t endpoint, const net_status_t& net_status)
     } else if (ectx->imm_data_rank != -1) {
       // send immediate data
       error_t error = endpoint.get_impl()->post_sends(
-          ectx->imm_data_rank, nullptr, 0, ectx->imm_data,
+          ectx->imm_data_rank, nullptr, 0, ectx->imm_data, nullptr,
           false /* allow_retry */);
       LCI_Assert(error.is_done(), "Unexpected error %d\n", error);
     }  // else: this is a RDMA write buffers
@@ -202,7 +198,12 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
   LCI_PCOUNTER_ADD(progress, 1);
   error_t error(errorcode_t::retry);
 
-  for (auto& endpoint : device.p_impl->endpoints) {
+  // for (auto& endpoint : device.p_impl->endpoints) {
+  for (int i = 0;
+       i < device.get_impl()->next_endpoint_idx.load(std::memory_order_relaxed);
+       i++) {
+    endpoint_t endpoint = device.get_impl()->endpoints.get(i);
+    if (endpoint.is_empty()) continue;
     // keep progressing the backlog queue until it is empty
     while (endpoint.get_impl()->progress_backlog_queue())
       error = errorcode_t::done;
@@ -243,6 +244,34 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
   }
 #endif
   return error;
+}
+
+error_t test_drained_x::call_impl(runtime_t, device_t device) const
+{
+  // Relaxed memory order is sufficient here because we are not trying to ensure
+  // any mutual exclusion
+  for (int i = 0;
+       i < device.get_impl()->next_endpoint_idx.load(std::memory_order_relaxed);
+       i++) {
+    endpoint_t endpoint = device.get_impl()->endpoints.get(i);
+    if (endpoint.is_empty()) continue;
+    if (endpoint.get_impl()->is_backlog_queue_empty() &&
+        endpoint.get_impl()->get_pending_ops() == 0) {
+      continue;
+    } else {
+      return errorcode_t::retry;
+    }
+  }
+  return errorcode_t::done;
+}
+
+void wait_drained_x::call_impl(runtime_t, device_t device) const
+{
+  LCI_Log(LOG_TRACE, "network", "Enter wait_drained\n");
+  while (test_drained_x().device(device)().is_retry()) {
+    progress_x().device(device)();
+  }
+  LCI_Log(LOG_TRACE, "network", "Leave wait_drained\n");
 }
 
 }  // namespace lci

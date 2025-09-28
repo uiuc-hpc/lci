@@ -8,7 +8,8 @@ namespace lci
 {
 inline void backlog_queue_t::push_sends(endpoint_impl_t* endpoint, int rank,
                                         void* buffer, size_t size,
-                                        net_imm_data_t imm_data)
+                                        net_imm_data_t imm_data,
+                                        void* user_context)
 {
   LCI_PCOUNTER_ADD(backlog_queue_push, 1);
   backlog_queue_entry_t entry;
@@ -23,6 +24,7 @@ inline void backlog_queue_t::push_sends(endpoint_impl_t* endpoint, int rank,
   }
   entry.size = size;
   entry.imm_data = imm_data;
+  entry.user_context = user_context;
 
   nentries_per_rank[rank].val.fetch_add(1, std::memory_order_relaxed);
   lock.lock();
@@ -56,7 +58,8 @@ inline void backlog_queue_t::push_send(endpoint_impl_t* endpoint, int rank,
 
 inline void backlog_queue_t::push_puts(endpoint_impl_t* endpoint, int rank,
                                        void* buffer, size_t size,
-                                       uint64_t offset, rmr_t rmr)
+                                       uint64_t offset, rmr_t rmr,
+                                       void* user_context)
 {
   LCI_PCOUNTER_ADD(backlog_queue_push, 1);
   backlog_queue_entry_t entry;
@@ -68,6 +71,7 @@ inline void backlog_queue_t::push_puts(endpoint_impl_t* endpoint, int rank,
   entry.size = size;
   entry.offset = offset;
   entry.rmr = rmr;
+  entry.user_context = user_context;
 
   nentries_per_rank[rank].val.fetch_add(1, std::memory_order_relaxed);
   lock.lock();
@@ -103,7 +107,8 @@ inline void backlog_queue_t::push_put(endpoint_impl_t* endpoint, int rank,
 inline void backlog_queue_t::push_putImms(endpoint_impl_t* endpoint, int rank,
                                           void* buffer, size_t size,
                                           uint64_t offset, rmr_t rmr,
-                                          net_imm_data_t imm_data)
+                                          net_imm_data_t imm_data,
+                                          void* user_context)
 {
   LCI_PCOUNTER_ADD(backlog_queue_push, 1);
   backlog_queue_entry_t entry;
@@ -116,6 +121,7 @@ inline void backlog_queue_t::push_putImms(endpoint_impl_t* endpoint, int rank,
   entry.offset = offset;
   entry.rmr = rmr;
   entry.imm_data = imm_data;
+  entry.user_context = user_context;
 
   nentries_per_rank[rank].val.fetch_add(1, std::memory_order_relaxed);
   lock.lock();
@@ -192,7 +198,8 @@ inline bool backlog_queue_t::progress()
   switch (entry.op) {
     case backlog_op_t::sends:
       error = entry.endpoint->post_sends(entry.rank, entry.buffer, entry.size,
-                                         entry.imm_data, true, true);
+                                         entry.imm_data, entry.user_context,
+                                         true, true);
       break;
     case backlog_op_t::send:
       error = entry.endpoint->post_send(entry.rank, entry.buffer, entry.size,
@@ -201,7 +208,8 @@ inline bool backlog_queue_t::progress()
       break;
     case backlog_op_t::puts:
       error = entry.endpoint->post_puts(entry.rank, entry.buffer, entry.size,
-                                        entry.offset, entry.rmr, true, true);
+                                        entry.offset, entry.rmr,
+                                        entry.user_context, true, true);
       break;
     case backlog_op_t::put:
       error = entry.endpoint->post_put(entry.rank, entry.buffer, entry.size,
@@ -209,9 +217,9 @@ inline bool backlog_queue_t::progress()
                                        entry.user_context, true, true);
       break;
     case backlog_op_t::putImms:
-      error = entry.endpoint->post_putImms(entry.rank, entry.buffer, entry.size,
-                                           entry.offset, entry.rmr,
-                                           entry.imm_data, true, true);
+      error = entry.endpoint->post_putImms(
+          entry.rank, entry.buffer, entry.size, entry.offset, entry.rmr,
+          entry.imm_data, entry.user_context, true, true);
       break;
     case backlog_op_t::putImm:
       error = entry.endpoint->post_putImm(

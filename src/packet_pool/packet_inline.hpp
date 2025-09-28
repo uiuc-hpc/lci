@@ -21,12 +21,6 @@ inline mr_t packet_t::get_mr(endpoint_t endpoint)
 
 inline void free_ctx_and_signal_comp(internal_context_t* internal_ctx)
 {
-  if (internal_ctx->mr_on_the_fly) {
-    deregister_memory(&internal_ctx->mr);
-  }
-  if (internal_ctx->packet_to_free) {
-    internal_ctx->packet_to_free->put_back();
-  }
   if (!internal_ctx->comp.is_empty()) {
     status_t status = internal_ctx->get_status();
     comp_t comp = internal_ctx->comp;

@@ -166,6 +166,7 @@ operation(
         optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
         optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("net_imm_data_t", "imm_data", "0", comment="The immediate data to send with the message."),
+        optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context."),
         return_val("error_t", "error", comment="The error code.")
     ],
     doc = {
@@ -205,6 +206,7 @@ operation(
         positional_arg("rmr_t", "rmr", comment="The remote memory region handle."),
         optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
         optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
+        optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context."),
         return_val("error_t", "error", comment="The error code."),
     ],
     doc = {
@@ -246,6 +248,7 @@ operation(
         optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
         optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("net_imm_data_t", "imm_data", "0", comment="The immediate data to put with the message."),
+        optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context."),
         return_val("error_t", "error", comment="The error code."),
     ],
     doc = {

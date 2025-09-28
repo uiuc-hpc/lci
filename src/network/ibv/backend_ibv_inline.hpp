@@ -197,7 +197,8 @@ inline void ibv_endpoint_impl_t::unlock_qp(int rank)
 
 inline error_t ibv_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
                                                     size_t size,
-                                                    net_imm_data_t imm_data)
+                                                    net_imm_data_t imm_data,
+                                                    void* user_context)
 {
   LCI_Assert(size <= net_context_attr.max_inject_size,
              "%lu exceed the inline message size\n"
@@ -218,7 +219,7 @@ inline error_t ibv_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
     wr.sg_list = NULL;
     wr.num_sge = 0;
   }
-  wr.wr_id = 0;
+  wr.wr_id = (uintptr_t)user_context;
   wr.next = NULL;
   wr.opcode = IBV_WR_SEND_WITH_IMM;
   wr.send_flags = IBV_SEND_INLINE;
@@ -285,7 +286,8 @@ inline error_t ibv_endpoint_impl_t::post_send_impl(int rank, void* buffer,
 
 inline error_t ibv_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
                                                    size_t size, uint64_t offset,
-                                                   rmr_t rmr)
+                                                   rmr_t rmr,
+                                                   void* user_context)
 {
   LCI_Assert(size <= net_context_attr.max_inject_size,
              "%lu exceed the inline message size\n"
@@ -307,7 +309,7 @@ inline error_t ibv_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
     wr.sg_list = NULL;
     wr.num_sge = 0;
   }
-  wr.wr_id = 0;
+  wr.wr_id = (uintptr_t)user_context;
   wr.next = NULL;
   wr.opcode = IBV_WR_RDMA_WRITE;
   wr.send_flags = IBV_SEND_SIGNALED | IBV_SEND_INLINE;
@@ -368,11 +370,9 @@ inline error_t ibv_endpoint_impl_t::post_put_impl(int rank, void* buffer,
   }
 }
 
-inline error_t ibv_endpoint_impl_t::post_putImms_impl(int rank, void* buffer,
-                                                      size_t size,
-                                                      uint64_t offset,
-                                                      rmr_t rmr,
-                                                      net_imm_data_t imm_data)
+inline error_t ibv_endpoint_impl_t::post_putImms_impl(
+    int rank, void* buffer, size_t size, uint64_t offset, rmr_t rmr,
+    net_imm_data_t imm_data, void* user_context)
 {
   LCI_Assert(size <= net_context_attr.max_inject_size,
              "%lu exceed the inline message size\n"
@@ -393,7 +393,7 @@ inline error_t ibv_endpoint_impl_t::post_putImms_impl(int rank, void* buffer,
     wr.sg_list = NULL;
     wr.num_sge = 0;
   }
-  wr.wr_id = 0;
+  wr.wr_id = (uintptr_t)user_context;
   wr.next = NULL;
   wr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
   wr.send_flags = IBV_SEND_SIGNALED | IBV_SEND_INLINE;

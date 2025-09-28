@@ -68,11 +68,9 @@ class distributed_array_t
     size_t local_index = get_local_index(index);
     lci::status_t status;
     do {
-      status = lci::post_put_x(target_rank,
-                               static_cast<void*>(const_cast<int*>(&value)),
-                               sizeof(T), lci::COMP_NULL_RETRY,
-                               local_index * sizeof(T), m_rmrs[target_rank])
-                   .comp_semantic(lci::comp_semantic_t::network)();
+      status = lci::post_put_x(
+          target_rank, static_cast<void*>(const_cast<int*>(&value)), sizeof(T),
+          lci::COMP_NULL_RETRY, local_index * sizeof(T), m_rmrs[target_rank])();
       lci::progress();
     } while (status.is_retry());
     assert(status.is_done());

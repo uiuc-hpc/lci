@@ -15,7 +15,11 @@ net_context_impl_t::net_context_impl_t(runtime_t runtime_, attr_t attr_)
 }
 
 device_impl_t::device_impl_t(net_context_t context_, attr_t attr_)
-    : attr(attr_), net_context(context_), nrecvs_posted(0)
+    : attr(attr_),
+      net_context(context_),
+      endpoints(64),
+      next_endpoint_idx(0),
+      nrecvs_posted(0)
 {
   attr.uid = g_ndevices++;
   runtime = net_context.p_impl->runtime;
@@ -27,12 +31,23 @@ device_impl_t::~device_impl_t() = default;
 endpoint_t device_impl_t::alloc_endpoint(endpoint_t::attr_t attr)
 {
   endpoint_t ret = alloc_endpoint_impl(attr);
-  endpoints.push_back(ret);
+  ret.get_impl()->idx_in_device = next_endpoint_idx++;
+  endpoints.put(ret.get_impl()->idx_in_device, ret);
   return ret;
 }
 
+void device_impl_t::free_endpoint(endpoint_t endpoint)
+{
+  int idx = endpoint.get_impl()->idx_in_device;
+  endpoints.put(idx, endpoint_t());
+  delete endpoint.p_impl;
+}
+
 endpoint_impl_t::endpoint_impl_t(device_t device_, attr_t attr_)
-    : runtime(device_.p_impl->runtime), device(device_), attr(attr_)
+    : runtime(device_.p_impl->runtime),
+      device(device_),
+      attr(attr_),
+      pending_ops(0)
 {
   attr.uid = g_nendpoints++;
   endpoint.p_impl = this;
@@ -156,8 +171,9 @@ endpoint_t alloc_endpoint_x::call_impl(const char* name, void* user_context,
   barrier_x()
       .runtime(endpoint.get_impl()->runtime)
       .device(endpoint.get_impl()->device)
-      .endpoint(endpoint)
-      .comp_semantic(comp_semantic_t::network)();
+      .endpoint(endpoint)();
+  wait_drained_x().device(endpoint.get_impl()->device)();
+
   return endpoint;
 }
 
@@ -166,9 +182,9 @@ void free_endpoint_x::call_impl(endpoint_t* endpoint, runtime_t) const
   barrier_x()
       .runtime(endpoint->get_impl()->runtime)
       .device(endpoint->get_impl()->device)
-      .endpoint(*endpoint)
-      .comp_semantic(comp_semantic_t::network)();
-  delete endpoint->p_impl;
+      .endpoint (*endpoint)();
+  wait_drained_x().device(endpoint->get_impl()->device)();
+  endpoint->get_impl()->device.p_impl->free_endpoint(*endpoint);
   endpoint->p_impl = nullptr;
 }
 
