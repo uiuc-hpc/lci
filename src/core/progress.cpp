@@ -189,8 +189,9 @@ void progress_read(const net_status_t& net_status)
 
 // for logging purposes
 [[maybe_unused]] const uint64_t PROGRESS_LOG_INTERVAL = 1;  // 1s
-LCT_time_t last_update_time = 0;
-__thread uint64_t tls_progress_counter = 0;
+thread_local uint64_t tls_update_counter = 0;
+thread_local LCT_time_t tls_last_update_time = 0;
+thread_local std::vector<uint64_t> tls_device_progress_counter_map(128, 0);
 
 error_t progress_x::call_impl(runtime_t runtime, device_t device,
                               endpoint_t endpoint) const
@@ -233,13 +234,27 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
 
   // Log progress every 1s
 #ifdef LCI_DEBUG
-  if (++tls_progress_counter % 1000000 == 0) {
+  int device_id = device.get_attr_uid();
+  if (tls_device_progress_counter_map.size() <=
+      static_cast<size_t>(device_id)) {
+    tls_device_progress_counter_map.resize(device_id * 2 + 1, 0);
+  }
+  tls_device_progress_counter_map[device_id]++;
+  if (++tls_update_counter % 1000000 == 0) {
     // check the timer every 1M progress
     LCT_time_t now = LCT_now();
-    if (LCT_time_to_s(now - last_update_time) > PROGRESS_LOG_INTERVAL) {
-      last_update_time = now;
-      LCI_DBG_Log(LOG_TRACE, "progress", "Progressed %lu times\n",
-                  tls_progress_counter);
+    if (LCT_time_to_s(now - tls_last_update_time) > PROGRESS_LOG_INTERVAL) {
+      tls_last_update_time = now;
+      // print all counters
+      std::string log_str =
+          "Thread " + std::to_string(LCT_get_thread_id()) + " progressed ";
+      for (size_t i = 0; i < tls_device_progress_counter_map.size(); i++) {
+        if (tls_device_progress_counter_map[i] > 0) {
+          log_str += std::to_string(tls_device_progress_counter_map[i]) +
+                     " on device " + std::to_string(i);
+        }
+      }
+      LCI_DBG_Log(LOG_TRACE, "progress", "%s\n", log_str.c_str());
     }
   }
 #endif
