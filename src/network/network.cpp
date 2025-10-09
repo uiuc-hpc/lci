@@ -168,11 +168,13 @@ endpoint_t alloc_endpoint_x::call_impl(const char* name, void* user_context,
   attr.name = name;
   attr.user_context = user_context;
   auto endpoint = device.p_impl->alloc_endpoint(attr);
-  // barrier_x()
-  //     .runtime(endpoint.get_impl()->runtime)
-  //     .device(endpoint.get_impl()->device)
-  //     .endpoint(endpoint)();
-  // wait_drained_x().device(endpoint.get_impl()->device)();
+  if (!device.get_impl()->packet_pool.is_empty()) {
+    barrier_x()
+        .runtime(endpoint.get_impl()->runtime)
+        .device(endpoint.get_impl()->device)
+        .endpoint(endpoint)();
+    wait_drained_x().device(endpoint.get_impl()->device)();
+  }
 
   return endpoint;
 }
