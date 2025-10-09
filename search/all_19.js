@@ -5,12 +5,14 @@ var searchData=
   ['tag_5fonly_2',['tag_only',['../d8/d33/group__LCI__BASIC.html#gga7f832f3a6ae619a4e5f002d472dabfc0a996ad4df6a4ba72a0225dd9ff5e677b2',1,'lci']]],
   ['tag_5ft_3',['tag_t',['../d8/d33/group__LCI__BASIC.html#gaed3bf62f9de2087c7e7b0bcbe89ef151',1,'lci']]],
   ['teardown_4',['Setup and Teardown',['../d6/dad/group__LCI__SETUP.html',1,'']]],
-  ['the_20file_20backend_5',['More about the file backend',['../db/d4e/tutorial.html#autotoc_md85',1,'']]],
-  ['threshold_6',['threshold',['../dd/da4/classlci_1_1alloc__sync__x.html#a778a0249d3afc6949b987d0caf3fcc78',1,'lci::alloc_sync_x']]],
-  ['to_20your_20project_7',['Add LCI to your project',['../db/d4e/tutorial.html#autotoc_md42',1,'']]],
-  ['tree_8',['tree',['../d8/d33/group__LCI__BASIC.html#gga17f1a9c385af13ae641d4a87e113161bac0af77cf8294ff93a5cdb2963ca9f038',1,'lci::tree'],['../d8/d33/group__LCI__BASIC.html#ggaa8f43a876e4e48c4d541773c00e5933aac0af77cf8294ff93a5cdb2963ca9f038',1,'lci::tree'],['../d8/d33/group__LCI__BASIC.html#gga945dde8f47999886ee0f8489452665b9ac0af77cf8294ff93a5cdb2963ca9f038',1,'lci::tree']]],
-  ['tt_20lcrun_20tt_20not_20work_9',['Why does &lt;tt&gt;lcrun&lt;/tt&gt; not work?',['../d3/d2d/faq.html#autotoc_md37',1,'']]],
-  ['tt_20not_20work_10',['Why does &lt;tt&gt;lcrun&lt;/tt&gt; not work?',['../d3/d2d/faq.html#autotoc_md37',1,'']]],
-  ['tutorial_11',['Tutorial',['../db/d4e/tutorial.html',1,'']]],
-  ['tutorial_2emd_12',['tutorial.md',['../dd/d1a/tutorial_8md.html',1,'']]]
+  ['test_5fdrained_5',['test_drained',['../d5/dd3/namespacelci.html#adb2af38b8b21dc35801e411a3da24559',1,'lci::test_drained()'],['../d6/d70/group__LCI__TEST__DRAINED.html',1,'test_drained']]],
+  ['test_5fdrained_5fx_6',['test_drained_x',['../d4/d05/classlci_1_1test__drained__x.html',1,'lci::test_drained_x'],['../d4/d05/classlci_1_1test__drained__x.html#a36797ddb9b8efd2561378b43551ca80a',1,'lci::test_drained_x::test_drained_x()']]],
+  ['the_20file_20backend_7',['More about the file backend',['../db/d4e/tutorial.html#autotoc_md85',1,'']]],
+  ['threshold_8',['threshold',['../dd/da4/classlci_1_1alloc__sync__x.html#a778a0249d3afc6949b987d0caf3fcc78',1,'lci::alloc_sync_x']]],
+  ['to_20your_20project_9',['Add LCI to your project',['../db/d4e/tutorial.html#autotoc_md42',1,'']]],
+  ['tree_10',['tree',['../d8/d33/group__LCI__BASIC.html#gga17f1a9c385af13ae641d4a87e113161bac0af77cf8294ff93a5cdb2963ca9f038',1,'lci::tree'],['../d8/d33/group__LCI__BASIC.html#ggaa8f43a876e4e48c4d541773c00e5933aac0af77cf8294ff93a5cdb2963ca9f038',1,'lci::tree'],['../d8/d33/group__LCI__BASIC.html#gga945dde8f47999886ee0f8489452665b9ac0af77cf8294ff93a5cdb2963ca9f038',1,'lci::tree']]],
+  ['tt_20lcrun_20tt_20not_20work_11',['Why does &lt;tt&gt;lcrun&lt;/tt&gt; not work?',['../d3/d2d/faq.html#autotoc_md37',1,'']]],
+  ['tt_20not_20work_12',['Why does &lt;tt&gt;lcrun&lt;/tt&gt; not work?',['../d3/d2d/faq.html#autotoc_md37',1,'']]],
+  ['tutorial_13',['Tutorial',['../db/d4e/tutorial.html',1,'']]],
+  ['tutorial_2emd_14',['tutorial.md',['../dd/d1a/tutorial_8md.html',1,'']]]
 ];

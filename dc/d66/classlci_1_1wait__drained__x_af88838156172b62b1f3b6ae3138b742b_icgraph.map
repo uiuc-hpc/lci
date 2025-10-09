@@ -1,0 +1,12 @@
+<map id="lci::wait_drained_x::device" name="lci::wait_drained_x::device">
+<area shape="rect" id="Node000001" title=" " alt="" coords="581,35,725,75"/>
+<area shape="rect" id="Node000002" href="$dc/d66/classlci_1_1wait__drained__x.html#a83a8a20034a60ba86d4e7814b9a4146a" title=" " alt="" coords="197,35,341,75"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="568,54,533,53,389,53,342,55,341,49,389,48,533,48,568,49"/>
+<area shape="rect" id="Node000005" href="$dc/d66/classlci_1_1wait__drained__x.html#a90cce4e34b7fe85e73eed4e7a9c6c122" title=" " alt="" coords="389,63,533,103"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="568,70,534,75,533,70,567,64"/>
+<area shape="rect" id="Node000003" href="$dc/d66/classlci_1_1wait__drained__x.html#a5e4c989df651421fd985a3b6b2f6f923" title=" " alt="" coords="5,5,149,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="183,44,149,39,150,34,184,39"/>
+<area shape="rect" id="Node000004" href="$d5/dd3/namespacelci.html#a365c44aaf143cef9ec2bac09a7dbc359" title=" " alt="" coords="13,70,142,95"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="184,70,142,76,142,71,183,64"/>
+<area shape="poly" id="edge5_Node000005_Node000002" title=" " alt="" coords="375,73,341,68,342,63,376,68"/>
+</map>

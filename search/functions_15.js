@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['_7eallocator_5fbase_5ft_0',['~allocator_base_t',['../d6/db9/structlci_1_1allocator__base__t.html#a704ff0fc03e9fe875318f658db4a66a3',1,'lci::allocator_base_t']]],
-  ['_7ecomp_5fimpl_5ft_1',['~comp_impl_t',['../d9/d97/classlci_1_1comp__impl__t.html#a3fe951fc492902e1014d32210b6368bb',1,'lci::comp_impl_t']]]
+  ['zero_5fcopy_5fam_0',['zero_copy_am',['../dd/da4/classlci_1_1alloc__sync__x.html#ad6712174ab3ca0b0a6ebf6e51ec311e9',1,'lci::alloc_sync_x::zero_copy_am()'],['../d9/dcc/classlci_1_1alloc__cq__x.html#a2624007487c5ea0e802af4e3b82746e2',1,'lci::alloc_cq_x::zero_copy_am()'],['../d7/d0f/classlci_1_1alloc__handler__x.html#a9b606b63467ecf4c1ccead21470f3d14',1,'lci::alloc_handler_x::zero_copy_am()']]]
 ];

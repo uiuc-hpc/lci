@@ -7,5 +7,7 @@ var group__LCI__COMM =
     [ "post_recv", "d1/d0f/group__LCI__POST__RECV.html", "d1/d0f/group__LCI__POST__RECV" ],
     [ "post_put", "d3/d01/group__LCI__POST__PUT.html", "d3/d01/group__LCI__POST__PUT" ],
     [ "post_get", "de/d45/group__LCI__POST__GET.html", "de/d45/group__LCI__POST__GET" ],
-    [ "progress", "dd/d9e/group__LCI__PROGRESS.html", "dd/d9e/group__LCI__PROGRESS" ]
+    [ "progress", "dd/d9e/group__LCI__PROGRESS.html", "dd/d9e/group__LCI__PROGRESS" ],
+    [ "test_drained", "d6/d70/group__LCI__TEST__DRAINED.html", "d6/d70/group__LCI__TEST__DRAINED" ],
+    [ "wait_drained", "d6/d7b/group__LCI__WAIT__DRAINED.html", "d6/d7b/group__LCI__WAIT__DRAINED" ]
 ];

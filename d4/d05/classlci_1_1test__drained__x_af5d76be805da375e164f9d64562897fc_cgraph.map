@@ -1,0 +1,10 @@
+<map id="lci::test_drained_x::call_impl" name="lci::test_drained_x::call_impl">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,147,77"/>
+<area shape="rect" id="Node000002" href="$d4/d05/classlci_1_1test__drained__x.html#ab774e138048935b4aa64044dc2bbbc76" title=" " alt="" coords="195,5,336,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="146,43,181,37,182,42,147,48"/>
+<area shape="rect" id="Node000004" href="$d4/d05/classlci_1_1test__drained__x.html#ab425014db0b04ca8566614ad574d691d" title=" " alt="" coords="195,69,336,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="147,67,182,72,181,78,146,72"/>
+<area shape="rect" id="Node000003" href="$d4/d05/classlci_1_1test__drained__x.html#a36797ddb9b8efd2561378b43551ca80a" title=" " alt="" coords="384,37,525,77"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="337,35,371,40,370,46,336,40"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="336,75,370,69,371,74,337,80"/>
+</map>
