@@ -246,8 +246,17 @@ error_t set_packet_if_needed(const post_comm_args_t& args,
 {
   // Only the bcopy protocol and the rendezvous protocol need a packet
   if (state.protocol != protocol_t::eager_bcopy &&
-      state.protocol != protocol_t::rdv_zcopy)
+      state.protocol != protocol_t::rdv_zcopy) {
+    if (args.packet_pool.p_impl->is_packet(args.local_buffer)) {
+      // Even though these two protocols do not need a packet, the user
+      // might provide a packet as the local buffer. In this case, we
+      // should mark that the user has provided a packet to make sure
+      // that we will free
+      state.user_provided_packet = true;
+      state.packet = address2packet(args.local_buffer);
+    }
     return errorcode_t::done;
+  }
   // get a packet
   if (state.protocol == protocol_t::eager_bcopy &&
       args.packet_pool.p_impl->is_packet(args.local_buffer)) {
