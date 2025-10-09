@@ -46,7 +46,14 @@ static void worker(int peer_rank, lci::device_t device, lci::rcomp_t rcomp)
   lci::comp_t cq = lci::alloc_cq();
   lci::register_rcomp_x(cq).rcomp(rcomp)();
   // make sure the peer has registered the rcomp
-  lci::barrier_x().device(device)();
+  if (thread_id == 0) {
+    lci::barrier_x().device(device)();
+    lci::wait_drained_x().device(device)();
+  }
+  #pragma omp barrier
+  if (thread_id == 0) {
+    lci::barrier_x().device(device)();
+  }
 
   std::vector<char> send_buf(g_config.msg_size, static_cast<char>(lci::get_rank_me()));
 
