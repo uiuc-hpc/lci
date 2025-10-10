@@ -36,6 +36,7 @@ Although CMake FetchContent is convenient, you may also want to install LCI on y
 - A Linux or MacOS laptop or cluster.
 - A C++ compiler that supports C++17 or higher (GCC 8 or higher, Clang 5 or higher, etc).
 - CMake 3.12 or higher.
+- Python 3.8 or higher.
 - A network backend that supports LCI. Currently, LCI supports:
   - [libibverbs](https://github.com/linux-rdma/rdma-core/blob/master/Documentation/libibverbs.md). Typically for Infiniband/RoCE.
   - [libfabric](https://ofiwg.github.io/libfabric/). For Slingshot-11, Ethernet, shared memory (including laptop), and other networks.
