@@ -229,7 +229,9 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
         progress_read(status);
       }
     }
-    device.p_impl->refill_recvs();
+  }
+  if (device.p_impl->refill_recvs()) {
+    error = errorcode_t::done;
   }
 
   // Log progress every 1s

@@ -118,10 +118,11 @@ inline bool device_impl_t::post_recv_packets()
   return n_posted > 0;
 }
 
-inline void device_impl_t::refill_recvs(bool is_blocking)
+inline bool device_impl_t::refill_recvs(bool is_blocking)
 {
   const double refill_threshold = 0.8;
   const int max_retries = 100000;
+  bool ret = false;
   int nrecvs_posted = this->nrecvs_posted;
   int niters = 0;
   while (nrecvs_posted < attr.net_max_recvs * refill_threshold) {
@@ -139,6 +140,9 @@ inline void device_impl_t::refill_recvs(bool is_blocking)
       } else {
         break;
       }
+    } else {
+      // succeeded
+      ret = true;
     }
     nrecvs_posted = this->nrecvs_posted;
   }
@@ -149,6 +153,7 @@ inline void device_impl_t::refill_recvs(bool is_blocking)
         "packet pool size %ld)\n",
         npackets);
   }
+  return ret;
 }
 
 inline void device_impl_t::bind_packet_pool(packet_pool_t packet_pool_)
