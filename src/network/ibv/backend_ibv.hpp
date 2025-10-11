@@ -100,8 +100,8 @@ class ibv_device_impl_t : public lci::device_impl_t
   qp2rank_map_t qp2rank_map;
   std::vector<struct ibv_qp*> ib_qps;
   std::vector<LCISI_ibv_qp_extra_t> ib_qp_extras;
+  std::vector<padded_atomic_t<int>> qp_remaining_slots;
 
-  net_context_attr_t net_context_attr;
   ibv_mr_impl_t odp_mr;
   LCIU_CACHE_PADDING(0);
   spinlock_t srq_lock;
@@ -118,33 +118,38 @@ class ibv_endpoint_impl_t : public lci::endpoint_impl_t
   ibv_endpoint_impl_t(device_t device_, attr_t attr_);
   ~ibv_endpoint_impl_t() override;
   error_t post_sends_impl(int rank, void* buffer, size_t size,
-                          net_imm_data_t imm_data, void* user_context) override;
+                          net_imm_data_t imm_data, void* user_context,
+                          bool high_priority) override;
   error_t post_send_impl(int rank, void* buffer, size_t size, mr_t mr,
-                         net_imm_data_t imm_data, void* user_context) override;
+                         net_imm_data_t imm_data, void* user_context,
+                         bool high_priority) override;
   error_t post_puts_impl(int rank, void* buffer, size_t size, uint64_t offset,
-                         rmr_t rmr, void* user_context) override;
+                         rmr_t rmr, void* user_context,
+                         bool high_priority) override;
   error_t post_put_impl(int rank, void* buffer, size_t size, mr_t mr,
-                        uint64_t offset, rmr_t rmr,
-                        void* user_context) override;
+                        uint64_t offset, rmr_t rmr, void* user_context,
+                        bool high_priority) override;
   error_t post_putImms_impl(int rank, void* buffer, size_t size,
                             uint64_t offset, rmr_t rmr, net_imm_data_t imm_data,
-                            void* user_context) override;
+                            void* user_context, bool high_priority) override;
   error_t post_putImm_impl(int rank, void* buffer, size_t size, mr_t mr,
                            uint64_t offset, rmr_t rmr, net_imm_data_t imm_data,
-                           void* user_context) override;
+                           void* user_context, bool high_priority) override;
   error_t post_get_impl(int rank, void* buffer, size_t size, mr_t mr,
-                        uint64_t offset, rmr_t rmr,
-                        void* user_context) override;
+                        uint64_t offset, rmr_t rmr, void* user_context,
+                        bool high_priority) override;
 
   ibv_device_impl_t* p_ibv_device;
   std::vector<struct ibv_qp*> ib_qps;
   std::vector<LCISI_ibv_qp_extra_t>* ib_qp_extras;
-  net_context_attr_t net_context_attr;
+  std::vector<padded_atomic_t<int>>* qp_remaining_slots;
   spinlock_t* qps_lock;
 
  private:
   bool try_lock_qp(int rank);
   void unlock_qp(int rank);
+  bool try_acquire_slot(int rank, bool high_priority);
+  void release_slot(int rank);
 };
 
 }  // namespace lci

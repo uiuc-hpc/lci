@@ -66,6 +66,7 @@ class device_impl_t
   device_t device;
   runtime_t runtime;
   net_context_t net_context;
+  net_context_attr_t net_context_attr;
   mpmc_array_t<endpoint_t> endpoints;
   std::atomic<int> next_endpoint_idx;
   packet_pool_t packet_pool;
@@ -109,27 +110,27 @@ class endpoint_impl_t
   virtual ~endpoint_impl_t() = default;
   virtual error_t post_sends_impl(int rank, void* buffer, size_t size,
                                   net_imm_data_t imm_data,
-                                  void* user_context) = 0;
+                                  void* user_context, bool high_priority) = 0;
   virtual error_t post_send_impl(int rank, void* buffer, size_t size, mr_t mr,
                                  net_imm_data_t imm_data,
-                                 void* user_context) = 0;
+                                 void* user_context, bool high_priority) = 0;
   virtual error_t post_puts_impl(int rank, void* buffer, size_t size,
-                                 uint64_t offset, rmr_t rmr,
-                                 void* user_context) = 0;
+                                 uint64_t offset, rmr_t rmr, void* user_context,
+                                 bool high_priority) = 0;
   virtual error_t post_put_impl(int rank, void* buffer, size_t size, mr_t mr,
-                                uint64_t offset, rmr_t rmr,
-                                void* user_context) = 0;
+                                uint64_t offset, rmr_t rmr, void* user_context,
+                                bool high_priority) = 0;
   virtual error_t post_putImms_impl(int rank, void* buffer, size_t size,
                                     uint64_t offset, rmr_t rmr,
                                     net_imm_data_t imm_data,
-                                    void* user_context) = 0;
+                                    void* user_context, bool high_priority) = 0;
   virtual error_t post_putImm_impl(int rank, void* buffer, size_t size, mr_t mr,
                                    uint64_t offset, rmr_t rmr,
-                                   net_imm_data_t imm_data,
-                                   void* user_context) = 0;
+                                   net_imm_data_t imm_data, void* user_context,
+                                   bool high_priority) = 0;
   virtual error_t post_get_impl(int rank, void* buffer, size_t size, mr_t mr,
-                                uint64_t offset, rmr_t rmr,
-                                void* user_context) = 0;
+                                uint64_t offset, rmr_t rmr, void* user_context,
+                                bool high_priority) = 0;
 
   // wrapper functions
   inline error_t post_sends(int rank, void* buffer, size_t size,
@@ -158,7 +159,7 @@ class endpoint_impl_t
   inline error_t post_putImms_fallback(int rank, void* buffer, size_t size,
                                        uint64_t offset, rmr_t rmr,
                                        net_imm_data_t imm_data,
-                                       void* user_context);
+                                       void* user_context, bool high_priority);
   inline error_t post_putImm_fallback(int rank, void* buffer, size_t size,
                                       mr_t mr, uint64_t offset, rmr_t rmr,
                                       net_imm_data_t imm_data,
@@ -198,6 +199,7 @@ class endpoint_impl_t
   endpoint_t endpoint;
   attr_t attr;
   net_context_attr_t net_context_attr;
+  device_attr_t device_attr;
   int idx_in_device;
 
  private:

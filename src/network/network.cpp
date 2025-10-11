@@ -17,6 +17,7 @@ net_context_impl_t::net_context_impl_t(runtime_t runtime_, attr_t attr_)
 device_impl_t::device_impl_t(net_context_t context_, attr_t attr_)
     : attr(attr_),
       net_context(context_),
+      net_context_attr(context_.get_attr()),
       endpoints(64),
       next_endpoint_idx(0),
       nrecvs_posted(0)
@@ -47,11 +48,12 @@ endpoint_impl_t::endpoint_impl_t(device_t device_, attr_t attr_)
     : runtime(device_.p_impl->runtime),
       device(device_),
       attr(attr_),
+      net_context_attr(device.get_impl()->net_context_attr),
+      device_attr(device.get_attr()),
       pending_ops(0)
 {
   attr.uid = g_nendpoints++;
   endpoint.p_impl = this;
-  net_context_attr = device.p_impl->net_context.get_attr();
 }
 
 /*************************************************************************************

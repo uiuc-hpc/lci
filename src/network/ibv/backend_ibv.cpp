@@ -151,7 +151,6 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
                                      device_t::attr_t attr_)
     : device_impl_t(net_context_, attr_)
 {
-  net_context_attr = net_context.get_attr();
   ibv_net_context_impl_t* p_net_context =
       static_cast<ibv_net_context_impl_t*>(net_context.p_impl);
 
@@ -271,6 +270,11 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
   }
 
   ib_qps.resize(get_rank_n());
+  qp_remaining_slots = std::vector<padded_atomic_t<int>>(get_rank_n());
+  for (auto &slot : qp_remaining_slots) {
+    slot.val.store(static_cast<int>(attr.net_max_sends),
+                   std::memory_order_relaxed);
+  }
   struct bootstrap_data_t {
     int source_rank;
     int target_rank;
@@ -597,7 +601,7 @@ ibv_endpoint_impl_t::ibv_endpoint_impl_t(device_t device_, attr_t attr_)
       p_ibv_device(reinterpret_cast<ibv_device_impl_t*>(device.p_impl)),
       ib_qps(p_ibv_device->ib_qps),
       ib_qp_extras(&p_ibv_device->ib_qp_extras),
-      net_context_attr(p_ibv_device->net_context_attr),
+      qp_remaining_slots(&p_ibv_device->qp_remaining_slots),
       qps_lock(&p_ibv_device->qps_lock)
 {
 }

@@ -122,7 +122,8 @@ inline size_t ofi_device_impl_t::post_recvs_impl(void* buffers[], size_t size,
 inline error_t ofi_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
                                                     size_t size,
                                                     net_imm_data_t imm_data,
-                                                    void* user_context)
+                                                    void* user_context,
+                                                    bool /*high_priority*/)
 {
   struct iovec iov;
   iov.iov_base = buffer;
@@ -154,7 +155,8 @@ inline error_t ofi_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
 inline error_t ofi_endpoint_impl_t::post_send_impl(int rank, void* buffer,
                                                    size_t size, mr_t mr,
                                                    net_imm_data_t imm_data,
-                                                   void* user_context)
+                                                   void* user_context,
+                                                   bool /*high_priority*/)
 {
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
   ssize_t ret = fi_senddata(ofi_ep, buffer, size, ofi_detail::get_mr_desc(mr),
@@ -173,7 +175,8 @@ inline error_t ofi_endpoint_impl_t::post_send_impl(int rank, void* buffer,
 inline error_t ofi_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
                                                    size_t size, uint64_t offset,
                                                    rmr_t rmr,
-                                                   void* user_context)
+                                                   void* user_context,
+                                                   bool /*high_priority*/)
 {
   uintptr_t addr;
   if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
@@ -213,7 +216,8 @@ inline error_t ofi_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
 inline error_t ofi_endpoint_impl_t::post_put_impl(int rank, void* buffer,
                                                   size_t size, mr_t mr,
                                                   uint64_t offset, rmr_t rmr,
-                                                  void* user_context)
+                                                  void* user_context,
+                                                  bool /*high_priority*/)
 {
   uintptr_t addr;
   if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
@@ -252,7 +256,7 @@ inline error_t ofi_endpoint_impl_t::post_put_impl(int rank, void* buffer,
 
 inline error_t ofi_endpoint_impl_t::post_putImms_impl(
     int rank, void* buffer, size_t size, uint64_t offset, rmr_t rmr,
-    net_imm_data_t imm_data, void* user_context)
+    net_imm_data_t imm_data, void* user_context, bool /*high_priority*/)
 {
   uintptr_t addr;
   if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
@@ -296,7 +300,8 @@ inline error_t ofi_endpoint_impl_t::post_putImm_impl(int rank, void* buffer,
                                                      size_t size, mr_t mr,
                                                      uint64_t offset, rmr_t rmr,
                                                      net_imm_data_t imm_data,
-                                                     void* user_context)
+                                                     void* user_context,
+                                                     bool /*high_priority*/)
 {
   uintptr_t addr;
   if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
@@ -340,7 +345,8 @@ inline error_t ofi_endpoint_impl_t::post_get_impl(int rank, void* buffer,
                                                   size_t size, mr_t mr,
 
                                                   uint64_t offset, rmr_t rmr,
-                                                  void* user_context)
+                                                  void* user_context,
+                                                  bool /*high_priority*/)
 {
   uintptr_t addr;
   if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {

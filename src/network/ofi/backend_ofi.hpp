@@ -89,23 +89,26 @@ class ofi_endpoint_impl_t : public lci::endpoint_impl_t
   ofi_endpoint_impl_t(device_t device_, attr_t attr_);
   ~ofi_endpoint_impl_t() override;
   error_t post_sends_impl(int rank, void* buffer, size_t size,
-                          net_imm_data_t imm_data, void* user_context) override;
+                          net_imm_data_t imm_data, void* user_context,
+                          bool high_priority) override;
   error_t post_send_impl(int rank, void* buffer, size_t size, mr_t mr,
-                         net_imm_data_t imm_data, void* user_context) override;
+                         net_imm_data_t imm_data, void* user_context,
+                         bool high_priority) override;
   error_t post_puts_impl(int rank, void* buffer, size_t size, uint64_t offset,
-                         rmr_t rmr, void* user_context) override;
+                         rmr_t rmr, void* user_context,
+                         bool high_priority) override;
   error_t post_put_impl(int rank, void* buffer, size_t size, mr_t mr,
-                        uint64_t offset, rmr_t rmr,
-                        void* user_context) override;
+                        uint64_t offset, rmr_t rmr, void* user_context,
+                        bool high_priority) override;
   error_t post_putImms_impl(int rank, void* buffer, size_t size,
                             uint64_t offset, rmr_t rmr, net_imm_data_t imm_data,
-                            void* user_context) override;
+                            void* user_context, bool high_priority) override;
   error_t post_putImm_impl(int rank, void* buffer, size_t size, mr_t mr,
                            uint64_t offset, rmr_t rmr, net_imm_data_t imm_data,
-                           void* user_context) override;
+                           void* user_context, bool high_priority) override;
   error_t post_get_impl(int rank, void* buffer, size_t size, mr_t mr,
-                        uint64_t offset, rmr_t rmr,
-                        void* user_context) override;
+                        uint64_t offset, rmr_t rmr, void* user_context,
+                        bool high_priority) override;
 
   ofi_device_impl_t* p_ofi_device;
   int my_rank;

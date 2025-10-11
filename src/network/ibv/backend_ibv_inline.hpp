@@ -71,6 +71,18 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
                  "Failed status %s (%d) for wr_id %p\n",
                  ibv_wc_status_str(wcs[i].status), wcs[i].status,
                  (void*)wcs[i].wr_id);
+      // Increment SQ slots on any send-side completion
+      if (wcs[i].opcode != IBV_WC_RECV &&
+          wcs[i].opcode != IBV_WC_RECV_RDMA_WITH_IMM) {
+        int rank = qp2rank_map.get_rank_me(wcs[i].qp_num);
+        LCI_DBG_Assert(rank >= 0 && rank < get_rank_n(),
+                       "Invalid rank %d from qp_num %u\n", rank, wcs[i].qp_num);
+        int prev = qp_remaining_slots[rank].val.fetch_add(
+            1, std::memory_order_relaxed);
+        LCI_DBG_Assert(prev < static_cast<int>(attr.net_max_sends),
+                       "Too many slots on QP for rank %d (prev %d)\n", rank,
+                       prev);
+      }
       if (!p_statuses) continue;
       net_status_t& status = p_statuses[i];
       memset(&status, 0, sizeof(status));
@@ -175,6 +187,33 @@ inline size_t ibv_device_impl_t::post_recvs_impl(void* buffers[], size_t size,
   }
 }
 
+inline bool ibv_endpoint_impl_t::try_acquire_slot(int rank, bool high_priority)
+{
+  auto& counter = (*qp_remaining_slots)[rank].val;
+  int threshold = static_cast<int>(device_attr.net_max_sends / 4);
+  if (!high_priority && counter.load(std::memory_order_relaxed) <= threshold) {
+    return false;
+  }
+  int prev = counter.fetch_sub(1, std::memory_order_relaxed);
+  if (prev <= 0) {
+    counter.fetch_add(1, std::memory_order_relaxed);
+    return false;
+  }
+  return true;
+}
+
+// inline void ibv_endpoint_impl_t::acquire_slot(int rank)
+// {
+//   [[maybe_unused]] int prev = (*qp_remaining_slots)[rank].val.fetch_sub(1,
+//   std::memory_order_relaxed); LCI_DBG_Assert(prev > 0, "Too many slots on QP
+//   for rank %d (prev %d)\n", rank, prev);
+// }
+
+inline void ibv_endpoint_impl_t::release_slot(int rank)
+{
+  (*qp_remaining_slots)[rank].val.fetch_add(1, std::memory_order_relaxed);
+}
+
 inline bool ibv_endpoint_impl_t::try_lock_qp(int rank)
 {
   bool ret;
@@ -198,7 +237,7 @@ inline void ibv_endpoint_impl_t::unlock_qp(int rank)
 inline error_t ibv_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
                                                     size_t size,
                                                     net_imm_data_t imm_data,
-                                                    void* user_context)
+                                                    void* user_context, bool high_priority)
 {
   LCI_Assert(size <= net_context_attr.max_inject_size,
              "%lu exceed the inline message size\n"
@@ -232,15 +271,23 @@ inline error_t ibv_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
   //    ninline = 0;
   //  }
 
+  if (!try_acquire_slot(rank, high_priority)) {
+    return errorcode_t::retry_nomem;
+  }
   struct ibv_send_wr* bad_wr;
-  if (!try_lock_qp(rank)) return errorcode_t::retry_lock;
+  if (!try_lock_qp(rank)) {
+    release_slot(rank);
+    return errorcode_t::retry_lock;
+  }
   int ret = ibv_post_send(ib_qps[rank], &wr, &bad_wr);
   unlock_qp(rank);
-  if (ret == 0)
+  if (ret == 0) {
     return errorcode_t::done;
-  else if (ret == ENOMEM)
+  } else if (ret == ENOMEM) {
+    release_slot(rank);
     return errorcode_t::retry_nomem;  // exceed send queue capacity
-  else {
+  } else {
+    release_slot(rank);
     IBV_SAFECALL_RET(ret);
   }
 }
@@ -248,7 +295,8 @@ inline error_t ibv_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
 inline error_t ibv_endpoint_impl_t::post_send_impl(int rank, void* buffer,
                                                    size_t size, mr_t mr,
                                                    net_imm_data_t imm_data,
-                                                   void* user_context)
+                                                   void* user_context,
+                                                   bool high_priority)
 {
   struct ibv_sge list;
   struct ibv_send_wr wr;
@@ -271,15 +319,23 @@ inline error_t ibv_endpoint_impl_t::post_send_impl(int rank, void* buffer,
   wr.send_flags = IBV_SEND_SIGNALED;
   wr.imm_data = imm_data;
 
+  if (!try_acquire_slot(rank, high_priority)) {
+    return errorcode_t::retry_nomem;
+  }
   struct ibv_send_wr* bad_wr;
-  if (!try_lock_qp(rank)) return errorcode_t::retry_lock;
+  if (!try_lock_qp(rank)) {
+    release_slot(rank);
+    return errorcode_t::retry_lock;
+  }
   int ret = ibv_post_send(ib_qps[rank], &wr, &bad_wr);
   unlock_qp(rank);
   if (ret == 0)
     return errorcode_t::posted;
-  else if (ret == ENOMEM)
+  else if (ret == ENOMEM) {
+    release_slot(rank);
     return errorcode_t::retry_nomem;  // exceed send queue capacity
-  else {
+  } else {
+    release_slot(rank);
     IBV_SAFECALL_RET(ret);
   }
 }
@@ -287,7 +343,8 @@ inline error_t ibv_endpoint_impl_t::post_send_impl(int rank, void* buffer,
 inline error_t ibv_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
                                                    size_t size, uint64_t offset,
                                                    rmr_t rmr,
-                                                   void* user_context)
+                                                   void* user_context,
+                                                   bool high_priority)
 {
   LCI_Assert(size <= net_context_attr.max_inject_size,
              "%lu exceed the inline message size\n"
@@ -316,15 +373,23 @@ inline error_t ibv_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
   wr.wr.rdma.remote_addr = (uintptr_t)(rmr.base + offset);
   wr.wr.rdma.rkey = rmr.opaque_rkey;
 
+  if (!try_acquire_slot(rank, high_priority)) {
+    return errorcode_t::retry_nomem;
+  }
   struct ibv_send_wr* bad_wr;
-  if (!try_lock_qp(rank)) return errorcode_t::retry_lock;
+  if (!try_lock_qp(rank)) {
+    release_slot(rank);
+    return errorcode_t::retry_lock;
+  }
   int ret = ibv_post_send(ib_qps[rank], &wr, &bad_wr);
   unlock_qp(rank);
   if (ret == 0)
     return errorcode_t::done;
-  else if (ret == ENOMEM)
+  else if (ret == ENOMEM) {
+    release_slot(rank);
     return errorcode_t::retry_nomem;  // exceed send queue capacity
-  else {
+  } else {
+    release_slot(rank);
     IBV_SAFECALL_RET(ret);
   }
 }
@@ -333,7 +398,8 @@ inline error_t ibv_endpoint_impl_t::post_put_impl(int rank, void* buffer,
                                                   size_t size, mr_t mr,
 
                                                   uint64_t offset, rmr_t rmr,
-                                                  void* user_context)
+                                                  void* user_context,
+                                                  bool high_priority)
 {
   struct ibv_sge list;
   struct ibv_send_wr wr;
@@ -357,22 +423,30 @@ inline error_t ibv_endpoint_impl_t::post_put_impl(int rank, void* buffer,
   wr.wr.rdma.remote_addr = (uintptr_t)(rmr.base + offset);
   wr.wr.rdma.rkey = rmr.opaque_rkey;
 
+  if (!try_acquire_slot(rank, high_priority)) {
+    return errorcode_t::retry_nomem;
+  }
   struct ibv_send_wr* bad_wr;
-  if (!try_lock_qp(rank)) return errorcode_t::retry_lock;
+  if (!try_lock_qp(rank)) {
+    release_slot(rank);
+    return errorcode_t::retry_lock;
+  }
   int ret = ibv_post_send(ib_qps[rank], &wr, &bad_wr);
   unlock_qp(rank);
   if (ret == 0)
     return errorcode_t::posted;
-  else if (ret == ENOMEM)
+  else if (ret == ENOMEM) {
+    release_slot(rank);
     return errorcode_t::retry_nomem;  // exceed send queue capacity
-  else {
+  } else {
+    release_slot(rank);
     IBV_SAFECALL_RET(ret);
   }
 }
 
 inline error_t ibv_endpoint_impl_t::post_putImms_impl(
     int rank, void* buffer, size_t size, uint64_t offset, rmr_t rmr,
-    net_imm_data_t imm_data, void* user_context)
+    net_imm_data_t imm_data, void* user_context, bool high_priority)
 {
   LCI_Assert(size <= net_context_attr.max_inject_size,
              "%lu exceed the inline message size\n"
@@ -401,15 +475,23 @@ inline error_t ibv_endpoint_impl_t::post_putImms_impl(
   wr.wr.rdma.rkey = rmr.opaque_rkey;
   wr.imm_data = imm_data;
 
+  if (!try_acquire_slot(rank, high_priority)) {
+    return errorcode_t::retry_nomem;
+  }
   struct ibv_send_wr* bad_wr;
-  if (!try_lock_qp(rank)) return errorcode_t::retry_lock;
+  if (!try_lock_qp(rank)) {
+    release_slot(rank);
+    return errorcode_t::retry_lock;
+  }
   int ret = ibv_post_send(ib_qps[rank], &wr, &bad_wr);
   unlock_qp(rank);
   if (ret == 0)
     return errorcode_t::done;
-  else if (ret == ENOMEM)
+  else if (ret == ENOMEM) {
+    release_slot(rank);
     return errorcode_t::retry_nomem;  // exceed send queue capacity
-  else {
+  } else {
+    release_slot(rank);
     IBV_SAFECALL_RET(ret);
   }
 }
@@ -418,7 +500,8 @@ inline error_t ibv_endpoint_impl_t::post_putImm_impl(int rank, void* buffer,
                                                      size_t size, mr_t mr,
                                                      uint64_t offset, rmr_t rmr,
                                                      net_imm_data_t imm_data,
-                                                     void* user_context)
+                                                     void* user_context,
+                                                     bool high_priority)
 {
   struct ibv_sge list;
   struct ibv_send_wr wr;
@@ -443,15 +526,23 @@ inline error_t ibv_endpoint_impl_t::post_putImm_impl(int rank, void* buffer,
   wr.wr.rdma.remote_addr = (uintptr_t)(rmr.base + offset);
   wr.wr.rdma.rkey = rmr.opaque_rkey;
 
+  if (!try_acquire_slot(rank, high_priority)) {
+    return errorcode_t::retry_nomem;
+  }
   struct ibv_send_wr* bad_wr;
-  if (!try_lock_qp(rank)) return errorcode_t::retry_lock;
+  if (!try_lock_qp(rank)) {
+    release_slot(rank);
+    return errorcode_t::retry_lock;
+  }
   int ret = ibv_post_send(ib_qps[rank], &wr, &bad_wr);
   unlock_qp(rank);
   if (ret == 0)
     return errorcode_t::posted;
-  else if (ret == ENOMEM)
+  else if (ret == ENOMEM) {
+    release_slot(rank);
     return errorcode_t::retry_nomem;  // exceed send queue capacity
-  else {
+  } else {
+    release_slot(rank);
     IBV_SAFECALL_RET(ret);
   }
 }
@@ -460,7 +551,8 @@ inline error_t ibv_endpoint_impl_t::post_get_impl(int rank, void* buffer,
                                                   size_t size, mr_t mr,
 
                                                   uint64_t offset, rmr_t rmr,
-                                                  void* user_context)
+                                                  void* user_context,
+                                                  bool high_priority)
 {
   struct ibv_sge list;
   struct ibv_send_wr wr;
@@ -484,15 +576,23 @@ inline error_t ibv_endpoint_impl_t::post_get_impl(int rank, void* buffer,
   wr.wr.rdma.remote_addr = (uintptr_t)(rmr.base + offset);
   wr.wr.rdma.rkey = rmr.opaque_rkey;
 
+  if (!try_acquire_slot(rank, high_priority)) {
+    return errorcode_t::retry_nomem;
+  }
   struct ibv_send_wr* bad_wr;
-  if (!try_lock_qp(rank)) return errorcode_t::retry_lock;
+  if (!try_lock_qp(rank)) {
+    release_slot(rank);
+    return errorcode_t::retry_lock;
+  }
   int ret = ibv_post_send(ib_qps[rank], &wr, &bad_wr);
   unlock_qp(rank);
   if (ret == 0)
     return errorcode_t::posted;
-  else if (ret == ENOMEM)
+  else if (ret == ENOMEM) {
+    release_slot(rank);
     return errorcode_t::retry_nomem;  // exceed send queue capacity
-  else {
+  } else {
+    release_slot(rank);
     IBV_SAFECALL_RET(ret);
   }
 }
