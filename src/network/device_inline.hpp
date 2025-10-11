@@ -84,7 +84,7 @@ inline bool device_impl_t::post_recv_packets()
   if (nrecvs_posted >= attr.net_max_recvs) {
     return false;
   }
-  const size_t BATCH_SIZE = LCI_BACKEND_MAX_POLLS;
+  const size_t BATCH_SIZE = LCI_BACKEND_MAX_POLLS * 2;
 
   size_t my_position = nrecvs_posted.fetch_add(BATCH_SIZE);
 
