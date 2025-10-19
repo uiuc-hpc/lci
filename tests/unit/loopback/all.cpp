@@ -26,6 +26,7 @@
 #include "test_putImm.hpp"
 #include "test_get.hpp"
 #include "test_matching_policy.hpp"
+#include "test_rdv_protocol.hpp"
 
 int main(int argc, char** argv)
 {

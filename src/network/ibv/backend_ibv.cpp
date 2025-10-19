@@ -130,6 +130,8 @@ ibv_net_context_impl_t::ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_)
     LCI_Assert(rc == 0, "can't read gid of index %d\n", attr.ibv_gid_idx);
   } else
     memset(&ib_gid, 0, sizeof(ib_gid));
+
+  attr.support_putimm = true;
 }
 
 ibv_net_context_impl_t::~ibv_net_context_impl_t()

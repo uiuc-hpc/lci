@@ -11,6 +11,7 @@ namespace lci
 
 runtime_t alloc_runtime_x::call_impl(size_t packet_return_threshold,
                                      int imm_nbits_tag, int imm_nbits_rcomp,
+                                     attr_rdv_protocol_t rdv_protocol,
                                      bool alloc_default_device,
                                      bool alloc_default_packet_pool,
                                      bool alloc_default_matching_engine,
@@ -20,6 +21,7 @@ runtime_t alloc_runtime_x::call_impl(size_t packet_return_threshold,
   attr.packet_return_threshold = packet_return_threshold;
   attr.imm_nbits_tag = imm_nbits_tag;
   attr.imm_nbits_rcomp = imm_nbits_rcomp;
+  attr.rdv_protocol = rdv_protocol;
   attr.alloc_default_device = alloc_default_device;
   attr.alloc_default_packet_pool = alloc_default_packet_pool;
   attr.alloc_default_matching_engine = alloc_default_matching_engine;
@@ -39,18 +41,17 @@ void free_runtime_x::call_impl(runtime_t* runtime) const
   runtime->p_impl = nullptr;
 }
 
-runtime_t g_runtime_init_x::call_impl(size_t packet_return_threshold,
-                                      int imm_nbits_tag, int imm_nbits_rcomp,
-                                      bool alloc_default_device,
-                                      bool alloc_default_packet_pool,
-                                      bool alloc_default_matching_engine,
-                                      const char* name,
-                                      void* user_context) const
+runtime_t g_runtime_init_x::call_impl(
+    size_t packet_return_threshold, int imm_nbits_tag, int imm_nbits_rcomp,
+    attr_rdv_protocol_t rdv_protocol, bool alloc_default_device,
+    bool alloc_default_packet_pool, bool alloc_default_matching_engine,
+    const char* name, void* user_context) const
 {
   runtime_attr_t attr;
   attr.packet_return_threshold = packet_return_threshold;
   attr.imm_nbits_tag = imm_nbits_tag;
   attr.imm_nbits_rcomp = imm_nbits_rcomp;
+  attr.rdv_protocol = rdv_protocol;
   attr.alloc_default_device = alloc_default_device;
   attr.alloc_default_packet_pool = alloc_default_packet_pool;
   attr.alloc_default_matching_engine = alloc_default_matching_engine;
@@ -80,7 +81,7 @@ runtime_t get_g_runtime_x::call_impl() const { return g_default_runtime; }
 /*************************************************************
  * runtime implementation
  *************************************************************/
-runtime_impl_t::runtime_impl_t(attr_t attr_) : attr(attr_)
+runtime_impl_t::runtime_impl_t(attr_t attr_) : attr(attr_), rdv_imm_archive(16)
 {
   runtime.p_impl = this;
 }
@@ -95,6 +96,18 @@ void runtime_impl_t::initialize()
   attr.max_tag = std::numeric_limits<uint32_t>::max();
   attr.max_rcomp = std::numeric_limits<rcomp_t>::max();
   default_net_context = alloc_net_context_x().runtime(runtime)();
+  if (attr.rdv_protocol == attr_rdv_protocol_t::auto_select) {
+    bool support_putimm = true;
+    if (!default_net_context.is_empty()) {
+      support_putimm = default_net_context.get_attr_support_putimm();
+    }
+    attr.rdv_protocol = support_putimm ? attr_rdv_protocol_t::writeimm
+                                       : attr_rdv_protocol_t::write;
+    LCI_Log(LOG_INFO, "runtime",
+            "RDV protocol auto-selected to %s (support_putimm=%d)\n",
+            support_putimm ? "writeimm" : "write",
+            static_cast<int>(support_putimm));
+  }
 
   if (attr.alloc_default_matching_engine) {
     default_matching_engine = alloc_matching_engine_x().runtime(runtime)();

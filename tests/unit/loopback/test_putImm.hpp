@@ -1,8 +1,6 @@
 // Copyright (c) 2025 The LCI Project Authors
 // SPDX-License-Identifier: NCSA
 
-#include "lci_internal.hpp"
-
 namespace test_comm_putImm
 {
 void test_putImm_worker_fn(int thread_id, int nmsgs, size_t msg_size)

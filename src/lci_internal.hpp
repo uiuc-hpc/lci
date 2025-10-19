@@ -26,6 +26,7 @@
 #include "monitor/performance_counter.hpp"
 #include "data_structure/mpmc_array.hpp"
 #include "data_structure/mpmc_set.hpp"
+#include "data_structure/imm_tag_archive.hpp"
 #include "bootstrap/bootstrap.hpp"
 #include "backlog_queue/backlog_queue.hpp"
 #ifdef LCI_USE_CUDA

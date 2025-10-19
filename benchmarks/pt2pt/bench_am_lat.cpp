@@ -57,7 +57,7 @@ static void worker(int peer_rank, lci::device_t device, lci::rcomp_t rcomp)
 
   std::vector<char> send_buf(g_config.msg_size, static_cast<char>(lci::get_rank_me()));
 
-  // We need a wait_quiet before every external blocking call
+  // We need a wait_drained before every external blocking call
   lci::wait_drained_x().device(device)();
   #pragma omp barrier
   auto start = std::chrono::high_resolution_clock::now();
@@ -90,7 +90,7 @@ static void worker(int peer_rank, lci::device_t device, lci::rcomp_t rcomp)
       } while (status.is_retry());
     }
   }
-  // We need a wait_quiet before every external blocking call
+  // We need a wait_drained before every external blocking call
   lci::wait_drained_x().device(device)();
   #pragma omp barrier
   auto end = std::chrono::high_resolution_clock::now();

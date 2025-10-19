@@ -11,6 +11,7 @@ runtime_attr = [
     attr("size_t", "packet_return_threshold", default_value=4096, comment="The threshold for returning packets to its original pool."),
     attr("int", "imm_nbits_tag", default_value=16, comment="The number of bits for the immediate data tag."),
     attr("int", "imm_nbits_rcomp", default_value=15, comment="The number of bits for the immediate data remote completion handle."),
+    attr_enum("rdv_protocol", enum_options=["auto_select", "write", "writeimm"], default_value="auto_select", comment="Rendezvous completion protocol. `auto_select` selects based on network support for put-with-immediate."),
     attr("uint64_t", "max_imm_tag", inout_trait="out", comment="The max tag that can be put into the immediate data field. It is also the max tag that can be used in put with remote notification."),
     attr("uint64_t", "max_imm_rcomp", inout_trait="out", comment="The max rcomp that can be put into the immediate data field. It is also the max rcomp that can be used in put with remote notification."),
     attr("uint64_t", "max_tag", inout_trait="out", comment="The max tag that can be used in all primitives but put with remote notificaiton."),

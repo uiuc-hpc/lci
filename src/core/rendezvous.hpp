@@ -55,13 +55,7 @@ struct rts_msg_t {
 
 struct rtr_msg_t {
   uintptr_t send_ctx;
-  union {
-    // When using writeimm protocol
-    uint32_t
-        recv_ctx_key; /* the id of the related context on the target side */
-    // when using write protocol
-    uintptr_t recv_ctx;
-  };
+  uintptr_t recv_ctx_or_key;
   rmr_t rmr;
   size_t offset;
 };
@@ -142,11 +136,25 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
   rtr_msg_t* rtr = reinterpret_cast<rtr_msg_t*>(packet->get_payload_address());
   packet->local_context.local_id = mpmc_set_t::LOCAL_SET_ID_NULL;
   rtr->send_ctx = send_ctx;
-  rtr->recv_ctx = reinterpret_cast<uintptr_t>(rdv_ctx);
+  rtr->recv_ctx_or_key = 0;
   rtr->rmr = get_rmr(rdv_ctx->mr);
   rtr->offset = reinterpret_cast<uintptr_t>(rdv_ctx->buffer) - rtr->rmr.base;
 
   LCI_DBG_Log(LOG_TRACE, "rdv", "send rtr: sctx %p\n", (void*)rtr->send_ctx);
+
+  const bool use_writeimm =
+      runtime.get_impl()->attr.rdv_protocol == attr_rdv_protocol_t::writeimm;
+
+  bool inserted_into_archive = false;
+  imm_tag_archive_t::tag_t writeimm_tag = 0;
+  if (use_writeimm) {
+    auto& archive = runtime.get_impl()->rdv_imm_archive;
+    writeimm_tag = archive.insert(reinterpret_cast<uint64_t>(rdv_ctx));
+    rtr->recv_ctx_or_key = writeimm_tag;
+    inserted_into_archive = true;
+  } else {
+    rtr->recv_ctx_or_key = reinterpret_cast<uintptr_t>(rdv_ctx);
+  }
 
   // send the rtr packet
   internal_context_t* rtr_ctx = new internal_context_t;
@@ -156,7 +164,12 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
   error_t error = endpoint.get_impl()->post_send(
       (int)rdv_ctx->rank, packet->get_payload_address(), sizeof(rtr_msg_t),
       packet->get_mr(endpoint), imm_data, rtr_ctx, false /* allow_retry */);
-  LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);
+  if (!error.is_posted()) {
+    if (inserted_into_archive) {
+      (void)runtime.get_impl()->rdv_imm_archive.remove(writeimm_tag);
+    }
+    LCI_Assert(error.is_posted(), "Unexpected error %s\n", error.get_str());
+  }
 }
 
 inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
@@ -173,7 +186,21 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
   ectx->internal_ctx = rdv_ctx;
   ectx->signal_count =
       (rdv_ctx->size + max_single_msg_size - 1) / max_single_msg_size;
-  ectx->recv_ctx = rtr->recv_ctx;
+  const bool use_writeimm =
+      runtime.get_impl()->attr.rdv_protocol == attr_rdv_protocol_t::writeimm;
+  net_imm_data_t writeimm_data = 0;
+  if (use_writeimm) {
+    uint32_t tag_bits = runtime.get_impl()->rdv_imm_archive.tag_bits();
+    auto recv_key = static_cast<imm_tag_archive_t::tag_t>(rtr->recv_ctx_or_key);
+    LCI_Assert(recv_key < (1u << tag_bits),
+               "Immediate data tag %u exceeds configured bits %u\n", recv_key,
+               tag_bits);
+    writeimm_data = set_bits32(0, IMM_DATA_MSG_FIN, 2, 29);
+    writeimm_data = set_bits32(writeimm_data, recv_key, tag_bits, 0);
+    ectx->recv_ctx = 0;
+  } else {
+    ectx->recv_ctx = rtr->recv_ctx_or_key;
+  }
 
   void* buffer = rdv_ctx->buffer;
   size_t size = rdv_ctx->size;
@@ -191,9 +218,17 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
   for (size_t offset = 0; offset < size; offset += max_single_msg_size) {
     char* address = (char*)buffer + offset;
     size_t length = std::min(size - offset, max_single_msg_size);
-    error_t error = endpoint.get_impl()->post_put(
-        (int)rdv_ctx->rank, address, length, *p_mr, rtr->offset + offset,
-        rtr->rmr, ectx, false /* allow_retry */);
+    bool is_last_chunk = offset + length >= size;
+    error_t error;
+    if (use_writeimm && is_last_chunk) {
+      error = endpoint.get_impl()->post_putImm(
+          (int)rdv_ctx->rank, address, length, *p_mr, rtr->offset + offset,
+          rtr->rmr, writeimm_data, ectx, false /* allow_retry */);
+    } else {
+      error = endpoint.get_impl()->post_put(
+          (int)rdv_ctx->rank, address, length, *p_mr, rtr->offset + offset,
+          rtr->rmr, ectx, false /* allow_retry */);
+    }
     LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);
   }
   // free the rtr packet

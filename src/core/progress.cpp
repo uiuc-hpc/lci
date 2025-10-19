@@ -123,7 +123,7 @@ void progress_write(endpoint_t endpoint, const net_status_t& net_status)
           ectx->imm_data_rank, nullptr, 0, ectx->imm_data, nullptr,
           false /* allow_retry */);
       LCI_Assert(error.is_done(), "Unexpected error %d\n", error);
-    }  // else: this is a RDMA write buffers
+    }  // else: this is a RDMA write buffers or rendezvous with writeimm
     delete ectx;
     free_ctx_and_signal_comp(ctx);
   } else {
@@ -155,7 +155,28 @@ void progress_remote_write(runtime_t runtime, const net_status_t& net_status)
     status.user_context = nullptr;
     reinterpret_cast<comp_impl_t*>(entry.value)->signal(std::move(status));
   } else {
-    LCI_Assert(false, "Not implemented");
+    imm_data_msg_type_t msg_type =
+        static_cast<imm_data_msg_type_t>(get_bits32(imm_data, 2, 29));
+    switch (msg_type) {
+      case IMM_DATA_MSG_FIN: {
+        LCI_Assert(runtime.get_impl()->attr.rdv_protocol ==
+                       attr_rdv_protocol_t::writeimm,
+                   "Received write-with-imm completion while rendezvous "
+                   "protocol is not writeimm\n");
+        uint32_t tag_bits = runtime.get_impl()->rdv_imm_archive.tag_bits();
+        uint32_t archive_tag = get_bits32(imm_data, tag_bits, 0);
+        uint64_t ctx_value =
+            runtime.get_impl()->rdv_imm_archive.remove(archive_tag);
+        auto* ctx = reinterpret_cast<internal_context_t*>(ctx_value);
+        LCI_DBG_Log(LOG_TRACE, "rdv",
+                    "recv writeimm completion: tag %u ctx %p\n", archive_tag,
+                    ctx);
+        handle_rdv_remote_comp(ctx);
+        break;
+      }
+      default:
+        LCI_Assert(false, "Not implemented msg_type %d\n", msg_type);
+    }
   }
 }
 
