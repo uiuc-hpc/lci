@@ -109,11 +109,11 @@ class endpoint_impl_t
   endpoint_impl_t(device_t device_, attr_t attr_);
   virtual ~endpoint_impl_t() = default;
   virtual error_t post_sends_impl(int rank, void* buffer, size_t size,
-                                  net_imm_data_t imm_data,
-                                  void* user_context, bool high_priority) = 0;
+                                  net_imm_data_t imm_data, void* user_context,
+                                  bool high_priority) = 0;
   virtual error_t post_send_impl(int rank, void* buffer, size_t size, mr_t mr,
-                                 net_imm_data_t imm_data,
-                                 void* user_context, bool high_priority) = 0;
+                                 net_imm_data_t imm_data, void* user_context,
+                                 bool high_priority) = 0;
   virtual error_t post_puts_impl(int rank, void* buffer, size_t size,
                                  uint64_t offset, rmr_t rmr, void* user_context,
                                  bool high_priority) = 0;
@@ -122,8 +122,8 @@ class endpoint_impl_t
                                 bool high_priority) = 0;
   virtual error_t post_putImms_impl(int rank, void* buffer, size_t size,
                                     uint64_t offset, rmr_t rmr,
-                                    net_imm_data_t imm_data,
-                                    void* user_context, bool high_priority) = 0;
+                                    net_imm_data_t imm_data, void* user_context,
+                                    bool high_priority) = 0;
   virtual error_t post_putImm_impl(int rank, void* buffer, size_t size, mr_t mr,
                                    uint64_t offset, rmr_t rmr,
                                    net_imm_data_t imm_data, void* user_context,

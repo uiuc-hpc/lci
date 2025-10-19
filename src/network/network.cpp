@@ -117,18 +117,22 @@ void free_net_context_x::call_impl(net_context_t* net_context, runtime_t) const
   net_context->p_impl = nullptr;
 }
 
-device_t alloc_device_x::call_impl(size_t net_max_sends, size_t net_max_recvs,
-                                   size_t net_max_cqes, uint64_t ofi_lock_mode,
-                                   bool alloc_default_endpoint,
-                                   attr_ibv_td_strategy_t ibv_td_strategy,
-                                   const char* name, void* user_context,
-                                   runtime_t runtime, net_context_t net_context,
-                                   packet_pool_t packet_pool) const
+device_t alloc_device_x::call_impl(
+    size_t net_max_sends, size_t net_max_recvs, size_t net_max_cqes,
+    double net_send_reserved_pct, uint64_t ofi_lock_mode,
+    bool alloc_default_endpoint, attr_ibv_td_strategy_t ibv_td_strategy,
+    const char* name, void* user_context, runtime_t runtime,
+    net_context_t net_context, packet_pool_t packet_pool) const
 {
+  if (net_send_reserved_pct < 0.0 || net_send_reserved_pct >= 1.0) {
+    LCI_Assert(false, "net_send_reserved_pct %.2f is out of range [0.0, 1.0)",
+               net_send_reserved_pct);
+  }
   device_t::attr_t attr;
   attr.net_max_sends = net_max_sends;
   attr.net_max_recvs = net_max_recvs;
   attr.net_max_cqes = net_max_cqes;
+  attr.net_send_reserved_pct = net_send_reserved_pct;
   attr.ofi_lock_mode = ofi_lock_mode;
   attr.alloc_default_endpoint = alloc_default_endpoint;
   attr.ibv_td_strategy = ibv_td_strategy;

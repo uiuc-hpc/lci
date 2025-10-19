@@ -271,7 +271,7 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
 
   ib_qps.resize(get_rank_n());
   qp_remaining_slots = std::vector<padded_atomic_t<int>>(get_rank_n());
-  for (auto &slot : qp_remaining_slots) {
+  for (auto& slot : qp_remaining_slots) {
     slot.val.store(static_cast<int>(attr.net_max_sends),
                    std::memory_order_relaxed);
   }

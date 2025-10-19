@@ -190,7 +190,9 @@ inline size_t ibv_device_impl_t::post_recvs_impl(void* buffers[], size_t size,
 inline bool ibv_endpoint_impl_t::try_acquire_slot(int rank, bool high_priority)
 {
   auto& counter = (*qp_remaining_slots)[rank].val;
-  int threshold = static_cast<int>(device_attr.net_max_sends / 4);
+  double reserved_frac = device_attr.net_send_reserved_pct;
+  int threshold = static_cast<int>(
+      static_cast<double>(device_attr.net_max_sends) * reserved_frac);
   if (!high_priority && counter.load(std::memory_order_relaxed) <= threshold) {
     return false;
   }
@@ -237,7 +239,8 @@ inline void ibv_endpoint_impl_t::unlock_qp(int rank)
 inline error_t ibv_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
                                                     size_t size,
                                                     net_imm_data_t imm_data,
-                                                    void* user_context, bool high_priority)
+                                                    void* user_context,
+                                                    bool high_priority)
 {
   LCI_Assert(size <= net_context_attr.max_inject_size,
              "%lu exceed the inline message size\n"
@@ -496,12 +499,9 @@ inline error_t ibv_endpoint_impl_t::post_putImms_impl(
   }
 }
 
-inline error_t ibv_endpoint_impl_t::post_putImm_impl(int rank, void* buffer,
-                                                     size_t size, mr_t mr,
-                                                     uint64_t offset, rmr_t rmr,
-                                                     net_imm_data_t imm_data,
-                                                     void* user_context,
-                                                     bool high_priority)
+inline error_t ibv_endpoint_impl_t::post_putImm_impl(
+    int rank, void* buffer, size_t size, mr_t mr, uint64_t offset, rmr_t rmr,
+    net_imm_data_t imm_data, void* user_context, bool high_priority)
 {
   struct ibv_sge list;
   struct ibv_send_wr wr;

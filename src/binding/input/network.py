@@ -39,6 +39,7 @@ resource_device := resource(
         attr("size_t", "net_max_sends", default_value="LCI_BACKEND_MAX_SENDS_DEFAULT", comment="The maximum number of sends that can be posted to the underlying network queue at the same time."),
         attr("size_t", "net_max_recvs", default_value="LCI_BACKEND_MAX_RECVS_DEFAULT", comment="The maximum number of receives that can be posted to the underlying network queue at the same time."),
         attr("size_t", "net_max_cqes", default_value="LCI_BACKEND_MAX_CQES_DEFAULT", comment="The maximum number of CQEs that can reside in the underlying network queue at the same time."),
+        attr("double", "net_send_reserved_pct", default_value=0.25, comment="Fraction of send queue slots reserved for high-priority operations (0.0-1.0)."),
         attr("uint64_t", "ofi_lock_mode", comment="For the OFI backend: the lock mode for the device."),
         attr("bool", "alloc_default_endpoint", default_value=1, comment="Whether to allocate the default endpoint."),
         attr("int", "uid", default_value=-1, inout_trait="out", comment="A unique device id across the entire process."),

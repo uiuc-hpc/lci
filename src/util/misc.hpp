@@ -13,19 +13,30 @@
 
 namespace lci
 {
-template <typename T>
+template <typename T,
+          typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
 T get_env_or(const char* env, T default_val)
 {
-  static_assert(std::is_integral<T>::value, "T must be an integral type");
   const char* s = getenv(env);
   if (s) {
-    return atoi(s);
+    return static_cast<T>(atoi(s));
   } else {
     return default_val;
   }
 }
 
-template <>
+template <typename T, typename std::enable_if<std::is_floating_point<T>::value,
+                                              int>::type = 0>
+T get_env_or(const char* env, T default_val)
+{
+  const char* s = getenv(env);
+  if (s) {
+    return static_cast<T>(atof(s));
+  } else {
+    return default_val;
+  }
+}
+
 inline const char* get_env_or(const char* env, const char* default_val)
 {
   const char* s = getenv(env);

@@ -17,15 +17,16 @@ inline error_t endpoint_impl_t::post_sends(int rank, void* buffer, size_t size,
   // if it fails
   // force_post is used by backlog queue to force post the operations
   // in the backlog queue
-  // We consider the operation high priority if it is either allow_retry is false
-  // or force_post is true, to minimize the chance of being pushed back to
+  // We consider the operation high priority if it is either allow_retry is
+  // false or force_post is true, to minimize the chance of being pushed back to
   // backlog queue.
   error_t error;
   if (!force_post && !backlog_queue.is_empty(rank)) {
     error = errorcode_t::retry_backlog;
   } else {
     bool high_priority = !allow_retry || force_post;
-    error = post_sends_impl(rank, buffer, size, imm_data, user_context, high_priority);
+    error = post_sends_impl(rank, buffer, size, imm_data, user_context,
+                            high_priority);
   }
   if (error.is_retry()) {
     if (error.errorcode == errorcode_t::retry_lock) {
