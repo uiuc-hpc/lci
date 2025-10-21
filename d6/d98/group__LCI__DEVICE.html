@@ -141,6 +141,7 @@ Classes</h2></td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">net_max_sends</td><td>of type <b>size_t</b>; The maximum number of sends that can be posted to the underlying network queue at the same time. </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">net_max_recvs</td><td>of type <b>size_t</b>; The maximum number of receives that can be posted to the underlying network queue at the same time. </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">net_max_cqes</td><td>of type <b>size_t</b>; The maximum number of CQEs that can reside in the underlying network queue at the same time. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">net_send_reserved_pct</td><td>of type <b>double</b>; Fraction of send queue slots reserved for high-priority operations (0.0-1.0). </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">ofi_lock_mode</td><td>of type <b>uint64_t</b>; For the OFI backend: the lock mode for the device. </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">alloc_default_endpoint</td><td>of type <b>bool</b>; Whether to allocate the default endpoint. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">uid</td><td>of type <b>int</b>; A unique device id across the entire process. </td></tr>

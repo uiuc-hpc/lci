@@ -1,8 +1,11 @@
 var NAVTREEINDEX4 =
 {
+"d9/d10/classlci_1_1alloc__device__x.html#ac52a1dffbd49c38f87377de8a26a7e9b":[5,2,18,0,16],
+"d9/d10/classlci_1_1alloc__device__x.html#ac9b81fdbabe3537b17f464715054d45f":[5,2,18,0,12],
+"d9/d10/classlci_1_1alloc__device__x.html#accfc23b8c5a8d782aa772cc509749d14":[5,2,18,0,2],
 "d9/d10/classlci_1_1alloc__device__x.html#acd2e7ade6e7e4c91b3144bd3068ead07":[5,2,18,0,7],
 "d9/d10/classlci_1_1alloc__device__x.html#ad24d73c79259e5dcba473f20adad64cd":[5,2,18,0,4],
-"d9/d10/classlci_1_1alloc__device__x.html#ae4f7e4b242415a2f8309807262e40cf4":[5,2,18,0,24],
+"d9/d10/classlci_1_1alloc__device__x.html#ae4f7e4b242415a2f8309807262e40cf4":[5,2,18,0,26],
 "d9/d10/classlci_1_1alloc__device__x.html#afe0d1c701b1611f00c3feaa22bd5f0cd":[5,2,18,0,9],
 "d9/d15/group__LCI__G__RUNTIME__FINA.html":[5,1,3],
 "d9/d19/group__LCI__PACKET__POOL.html":[5,2,22],
@@ -246,8 +249,5 @@ var NAVTREEINDEX4 =
 "db/d4e/tutorial.html#autotoc_md75":[2,2,2,2],
 "db/d4e/tutorial.html#autotoc_md76":[2,2,2,3],
 "db/d4e/tutorial.html#autotoc_md77":[2,2,2,4],
-"db/d4e/tutorial.html#autotoc_md78":[2,3],
-"db/d4e/tutorial.html#autotoc_md79":[0],
-"db/d4e/tutorial.html#autotoc_md80":[1],
-"db/d4e/tutorial.html#autotoc_md81":[2]
+"db/d4e/tutorial.html#autotoc_md78":[2,3]
 };

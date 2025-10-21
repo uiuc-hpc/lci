@@ -25,6 +25,7 @@ var searchData=
   ['net_5fpost_5fsend_5fx_22',['net_post_send_x',['../d8/ddd/classlci_1_1net__post__send__x.html#ac79b59fb402331c8022eb5a4815a4fe7',1,'lci::net_post_send_x']]],
   ['net_5fpost_5fsends_23',['net_post_sends',['../d5/dd3/namespacelci.html#a79d8129a96b50dcfc02816f669d8e619',1,'lci']]],
   ['net_5fpost_5fsends_5fx_24',['net_post_sends_x',['../d1/d3d/classlci_1_1net__post__sends__x.html#a65ac3d2f92cb4258de0946770899e8be',1,'lci::net_post_sends_x']]],
-  ['node_25',['node',['../d8/dd3/classlci_1_1graph__node__mark__complete__x.html#ab262976c742bbea180fa6cfc43ef4874',1,'lci::graph_node_mark_complete_x']]],
-  ['npackets_26',['npackets',['../d7/dc4/classlci_1_1alloc__packet__pool__x.html#a56908abd9c45b04a24253477caa1b23d',1,'lci::alloc_packet_pool_x']]]
+  ['net_5fsend_5freserved_5fpct_25',['net_send_reserved_pct',['../d9/d10/classlci_1_1alloc__device__x.html#a9dccb87689be3fb6d329abb8111bdf6c',1,'lci::alloc_device_x']]],
+  ['node_26',['node',['../d8/dd3/classlci_1_1graph__node__mark__complete__x.html#ab262976c742bbea180fa6cfc43ef4874',1,'lci::graph_node_mark_complete_x']]],
+  ['npackets_27',['npackets',['../d7/dc4/classlci_1_1alloc__packet__pool__x.html#a56908abd9c45b04a24253477caa1b23d',1,'lci::alloc_packet_pool_x']]]
 ];
