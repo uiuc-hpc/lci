@@ -6,12 +6,13 @@ var group__LCI__ALLOC__RUNTIME =
       [ "alloc_default_matching_engine", "d4/d5c/classlci_1_1alloc__runtime__x.html#a616c5f548d9dd3c5da745a2292f4cfb7", null ],
       [ "alloc_default_packet_pool", "d4/d5c/classlci_1_1alloc__runtime__x.html#a3fa440edec4465125be1e82bd94ef588", null ],
       [ "call", "d4/d5c/classlci_1_1alloc__runtime__x.html#a37daf1686fc2ea110af2470457aa2455", null ],
-      [ "call_impl", "d4/d5c/classlci_1_1alloc__runtime__x.html#ab3eee28cace86873b5cd6a177d953b86", null ],
+      [ "call_impl", "d4/d5c/classlci_1_1alloc__runtime__x.html#a52097e1cdadf5b5586af1fcd9c6158c5", null ],
       [ "imm_nbits_rcomp", "d4/d5c/classlci_1_1alloc__runtime__x.html#a07a500a193d6a0cdc690619a79d56162", null ],
       [ "imm_nbits_tag", "d4/d5c/classlci_1_1alloc__runtime__x.html#a00ed631363e3dab1d966be0197724877", null ],
       [ "name", "d4/d5c/classlci_1_1alloc__runtime__x.html#a26b1954bfc37c38448b319e074f709fd", null ],
       [ "operator()", "d4/d5c/classlci_1_1alloc__runtime__x.html#a2738d331bdb765ecdfa5e12c6d101f02", null ],
       [ "packet_return_threshold", "d4/d5c/classlci_1_1alloc__runtime__x.html#a921ab7268efe6f74cdb024e8b699c804", null ],
+      [ "rdv_protocol", "d4/d5c/classlci_1_1alloc__runtime__x.html#a4dcec57062349c4af744a72a892bddd8", null ],
       [ "user_context", "d4/d5c/classlci_1_1alloc__runtime__x.html#ab0541b4242b9721143c68b40ae16654d", null ],
       [ "m_alloc_default_device", "d4/d5c/classlci_1_1alloc__runtime__x.html#abb83b1a1b15598b3e677ec8ac05f4fa6", null ],
       [ "m_alloc_default_matching_engine", "d4/d5c/classlci_1_1alloc__runtime__x.html#a2cb1b3c38bd073a1cf86386d6104fae7", null ],
@@ -20,6 +21,7 @@ var group__LCI__ALLOC__RUNTIME =
       [ "m_imm_nbits_tag", "d4/d5c/classlci_1_1alloc__runtime__x.html#ae68f3a55680f7429b7ce1c10ff364490", null ],
       [ "m_name", "d4/d5c/classlci_1_1alloc__runtime__x.html#aaa1070fcb6e37cdd41ecb09fe795ecfc", null ],
       [ "m_packet_return_threshold", "d4/d5c/classlci_1_1alloc__runtime__x.html#ae2332609ab24c4d9902100511be5596a", null ],
+      [ "m_rdv_protocol", "d4/d5c/classlci_1_1alloc__runtime__x.html#ac1ba889beed555773954ca7348c55952", null ],
       [ "m_user_context", "d4/d5c/classlci_1_1alloc__runtime__x.html#ac9d3a560d59aa4aa6ce38d770fd02f81", null ]
     ] ]
 ];

@@ -1,13 +1,15 @@
 <map id="lci::alloc_runtime_x" name="lci::alloc_runtime_x">
-<area shape="rect" id="Node000001" title="The actual implementation for alloc_runtime." alt="" coords="409,165,559,190"/>
+<area shape="rect" id="Node000001" title="The actual implementation for alloc_runtime." alt="" coords="409,169,559,194"/>
 <area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="5,15,172,41"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="186,17,234,17,286,23,338,35,387,55,419,79,446,109,479,163,474,166,441,112,415,83,384,60,336,40,285,28,234,23,186,22"/>
-<area shape="rect" id="Node000003" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="16,75,161,101"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="176,84,278,91,333,100,386,115,432,137,468,162,465,167,430,142,384,120,332,106,277,96,175,89"/>
-<area shape="rect" id="Node000004" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="11,158,167,183"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="181,173,196,173,409,175,409,181,196,179,181,178"/>
-<area shape="rect" id="Node000005" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="15,208,163,248"/>
-<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="176,219,277,210,385,196,429,187,430,193,386,201,277,215,177,225"/>
-<area shape="rect" id="Node000006" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="5,273,172,298"/>
-<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="186,278,283,265,335,253,384,238,430,214,466,188,469,192,433,218,386,242,336,258,284,270,186,283"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="186,16,234,17,286,23,338,35,387,55,420,80,446,111,479,167,475,170,442,114,416,84,384,60,336,40,285,28,234,22,186,22"/>
+<area shape="rect" id="Node000003" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="16,70,161,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="175,85,277,99,333,110,386,125,430,145,466,166,463,171,427,150,384,131,331,115,277,104,175,90"/>
+<area shape="rect" id="Node000004" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="20,120,157,160"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="171,143,386,163,409,166,409,171,385,168,171,148"/>
+<area shape="rect" id="Node000005" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="11,206,167,231"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="180,228,279,232,333,229,385,221,425,208,460,192,462,196,427,213,386,227,333,234,279,237,180,233"/>
+<area shape="rect" id="Node000006" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="15,256,163,296"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="176,280,278,277,332,269,384,254,410,241,433,225,469,192,473,196,437,229,413,245,386,258,333,274,279,282,176,286"/>
+<area shape="rect" id="Node000007" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="5,321,172,346"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="185,340,234,339,285,333,336,322,384,302,416,278,442,248,475,193,479,196,446,251,419,282,387,306,338,327,286,339,234,344,186,345"/>
 </map>

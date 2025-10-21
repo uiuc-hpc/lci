@@ -16,5 +16,7 @@ var searchData=
   ['world_13',['Hello World',['../db/d4e/tutorial.html#autotoc_md73',1,'']]],
   ['world_20active_20message_14',['Hello World (Active Message)',['../db/d4e/tutorial.html#autotoc_md74',1,'']]],
   ['write_15',['WRITE',['../d8/d33/group__LCI__BASIC.html#gga5738a9cd7c46e12f45e2fbf0fca0b895ad4b9e47f65b6e79b010582f15785867e',1,'lci']]],
-  ['write_20lci_20programs_16',['Write LCI programs',['../db/d4e/tutorial.html#autotoc_md57',1,'']]]
+  ['write_16',['write',['../d5/dd3/namespacelci.html#a5d9fc0c5909442efe3ed8c69fea17cd8aefb2a684e4afb7d55e6147fbe5a332ee',1,'lci']]],
+  ['write_20lci_20programs_17',['Write LCI programs',['../db/d4e/tutorial.html#autotoc_md57',1,'']]],
+  ['writeimm_18',['writeimm',['../d5/dd3/namespacelci.html#a5d9fc0c5909442efe3ed8c69fea17cd8a642768a088c1b8c97c8f798559686530',1,'lci']]]
 ];

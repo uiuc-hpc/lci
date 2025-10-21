@@ -16,6 +16,7 @@ var group__LCI__RUNTIME =
       [ "get_attr_max_tag", "dc/d5c/classlci_1_1runtime__t.html#ad1c03be9110e6cfe876db03d6158e5e7", null ],
       [ "get_attr_name", "dc/d5c/classlci_1_1runtime__t.html#a7bb62e07762129db9fd62349f0f375f9", null ],
       [ "get_attr_packet_return_threshold", "dc/d5c/classlci_1_1runtime__t.html#ad00626d32586d557543459d24158f801", null ],
+      [ "get_attr_rdv_protocol", "dc/d5c/classlci_1_1runtime__t.html#aef0945417cca4170955ab6f6623137d4", null ],
       [ "get_attr_user_context", "dc/d5c/classlci_1_1runtime__t.html#a487696bf2159899a7d1a0d01e2b1f897", null ],
       [ "get_impl", "dc/d5c/classlci_1_1runtime__t.html#a508892b6543e05f57aab67b654861a20", null ],
       [ "is_empty", "dc/d5c/classlci_1_1runtime__t.html#a66ab2e5f640faccfde8c409400b16da1", null ],

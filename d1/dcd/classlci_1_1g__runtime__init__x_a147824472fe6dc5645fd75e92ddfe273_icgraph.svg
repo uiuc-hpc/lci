@@ -40,7 +40,7 @@
 <!-- Node5 -->
 <g id="Node000005" class="node">
 <title>Node5</title>
-<g id="a_Node000005"><a xlink:href="../../d1/dcd/classlci_1_1g__runtime__init__x.html#ac6d2cbdc174a73fcc4be67e75b0e76f2" target="_top" xlink:title=" ">
+<g id="a_Node000005"><a xlink:href="../../d1/dcd/classlci_1_1g__runtime__init__x.html#aa7b3e3d438c6fcc826b61e87d136dce4" target="_top" xlink:title=" ">
 <polygon fill="white" stroke="#666666" points="384,-30 280,-30 280,0 384,0 384,-30"/>
 <text text-anchor="start" x="288" y="-18" font-family="Helvetica,sans-Serif" font-size="10.00">lci::g_runtime_init</text>
 <text text-anchor="middle" x="332" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00">_x::call_impl</text>

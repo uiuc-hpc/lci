@@ -1,5 +1,9 @@
 var NAVTREEINDEX4 =
 {
+"d9/d10/classlci_1_1alloc__device__x.html#a9dccb87689be3fb6d329abb8111bdf6c":[5,2,18,0,10],
+"d9/d10/classlci_1_1alloc__device__x.html#ab2d79449b3caaeddb20b16305c793da1":[5,2,18,0,25],
+"d9/d10/classlci_1_1alloc__device__x.html#abde760d19231c6124a3f410c77c60c99":[5,2,18,0,20],
+"d9/d10/classlci_1_1alloc__device__x.html#abeaee68a26587c6b359320ab7cc7def1":[5,2,18,0,6],
 "d9/d10/classlci_1_1alloc__device__x.html#ac52a1dffbd49c38f87377de8a26a7e9b":[5,2,18,0,16],
 "d9/d10/classlci_1_1alloc__device__x.html#ac9b81fdbabe3537b17f464715054d45f":[5,2,18,0,12],
 "d9/d10/classlci_1_1alloc__device__x.html#accfc23b8c5a8d782aa772cc509749d14":[5,2,18,0,2],
@@ -245,9 +249,5 @@ var NAVTREEINDEX4 =
 "db/d4e/tutorial.html#autotoc_md71":[2,2,1],
 "db/d4e/tutorial.html#autotoc_md72":[2,2,2],
 "db/d4e/tutorial.html#autotoc_md73":[2,2,2,0],
-"db/d4e/tutorial.html#autotoc_md74":[2,2,2,1],
-"db/d4e/tutorial.html#autotoc_md75":[2,2,2,2],
-"db/d4e/tutorial.html#autotoc_md76":[2,2,2,3],
-"db/d4e/tutorial.html#autotoc_md77":[2,2,2,4],
-"db/d4e/tutorial.html#autotoc_md78":[2,3]
+"db/d4e/tutorial.html#autotoc_md74":[2,2,2,1]
 };
