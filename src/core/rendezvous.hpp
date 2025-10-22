@@ -269,18 +269,6 @@ inline void handle_rdv_fin(packet_t* packet)
   handle_rdv_remote_comp(ctx);
 }
 
-// inline void handle_rdv_remote_writeImm()
-// {
-//   LCII_context_t* ctx =
-//       (LCII_context_t*)LCM_archive_remove(ep->ctx_archive_p, ctx_key);
-//   LCI_DBG_Log(LOG_TRACE, "rdv",
-//               "complete recvl: ctx %p rank %d "
-//               "tag %d user_ctx %p completion attr %x completion %p\n",
-//               ctx, ctx->rank, ctx->tag, ctx->user_context, ctx->comp_attr,
-//               ctx->completion);
-//   handle_rdv_remote_comp(ctx);
-// }
-
 }  // namespace lci
 
 #endif  // LCI_CORE_RENDEZVOUS_HPP

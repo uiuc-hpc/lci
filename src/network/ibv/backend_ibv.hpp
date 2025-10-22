@@ -5,6 +5,12 @@
 #define LCI_BACKEND_IBV_BACKEND_IBV_HPP
 
 #include "infiniband/verbs.h"
+#include <atomic>
+#include <algorithm>
+#include <memory>
+#include <mutex>
+#include <shared_mutex>
+#include <vector>
 
 #define IBV_SAFECALL(x)                                                        \
   do {                                                                         \
@@ -66,15 +72,39 @@ class ibv_mr_impl_t : public lci::mr_impl_t
 class qp2rank_map_t
 {
  public:
-  void add_qps(const std::vector<struct ibv_qp*>& qps);
-  int get_rank_me(uint32_t qp_num);
+  struct entry_t {
+    int rank = -1;
+    padded_atomic_t<int>* slots = nullptr;
+  };
+  
+  struct snapshot_t {
+    int mod = 1;
+    std::vector<entry_t> table;
+
+    entry_t get_entry(uint32_t qp_num);
+  };
+
+  ~qp2rank_map_t() { 
+    if (current_snapshot) {
+      delete current_snapshot;
+    }
+  }
+
+  void add_qps(const std::vector<struct ibv_qp*>& qps,
+               std::vector<padded_atomic_t<int>>* qp_slots);
+  void remove_qps(const std::vector<struct ibv_qp*>& qps);
+  snapshot_t *get_snapshot()
+  {
+    return current_snapshot.load(std::memory_order_relaxed);
+  }
 
  private:
-  void calculate_map();
 
-  std::vector<std::pair<uint32_t, int>> qp_rank_pairs;
-  std::vector<int> qp2rank;
-  int qp2rank_mod;
+  void rebuild_locked();
+
+  std::vector<std::pair<uint32_t, entry_t>> qp_entries;
+  std::atomic<snapshot_t*> current_snapshot = nullptr;
+  mutable std::shared_mutex mutex;
 };
 
 class ibv_device_impl_t : public lci::device_impl_t
@@ -98,17 +128,12 @@ class ibv_device_impl_t : public lci::device_impl_t
   struct ibv_cq* ib_cq;
   struct ibv_srq* ib_srq;
   qp2rank_map_t qp2rank_map;
-  std::vector<struct ibv_qp*> ib_qps;
-  std::vector<LCISI_ibv_qp_extra_t> ib_qp_extras;
-  std::vector<padded_atomic_t<int>> qp_remaining_slots;
 
   ibv_mr_impl_t odp_mr;
   LCIU_CACHE_PADDING(0);
   spinlock_t srq_lock;
   LCIU_CACHE_PADDING(sizeof(spinlock_t));
   spinlock_t cq_lock;
-  LCIU_CACHE_PADDING(sizeof(spinlock_t));
-  spinlock_t qps_lock;
   LCIU_CACHE_PADDING(sizeof(spinlock_t));
 };
 
@@ -141,9 +166,9 @@ class ibv_endpoint_impl_t : public lci::endpoint_impl_t
 
   ibv_device_impl_t* p_ibv_device;
   std::vector<struct ibv_qp*> ib_qps;
-  std::vector<LCISI_ibv_qp_extra_t>* ib_qp_extras;
-  std::vector<padded_atomic_t<int>>* qp_remaining_slots;
-  spinlock_t* qps_lock;
+  std::vector<LCISI_ibv_qp_extra_t> ib_qp_extras;
+  std::vector<padded_atomic_t<int>> qp_remaining_slots;
+  spinlock_t qps_lock;
 
  private:
   bool try_lock_qp(int rank);

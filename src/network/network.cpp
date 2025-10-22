@@ -160,6 +160,7 @@ void free_device_x::call_impl(device_t* device, runtime_t runtime) const
   }
   endpoint_t default_endpoint = device->get_impl()->default_endpoint;
   if (!default_endpoint.is_empty()) {
+    free_endpoint_x(&progress_endpoint).runtime(runtime)();
     free_endpoint_x(&default_endpoint).runtime(runtime)();
   }
   device->get_impl()->unbind_packet_pool();

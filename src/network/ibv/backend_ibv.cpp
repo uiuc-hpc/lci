@@ -229,248 +229,15 @@ ibv_device_impl_t::ibv_device_impl_t(net_context_t net_context_,
           "LCI_ATTR_IBV_TD_STRATEGY=none` to suppress this warning\n",
           strerror(errno));
     }
-  } else if (attr.ibv_td_strategy == attr_ibv_td_strategy_t::per_qp) {
-    // allocate one thread domain for each queue pair
-    ib_qp_extras.resize(get_rank_n());
-    for (int i = 0; i < get_rank_n(); ++i) {
-      // allocate thread domain
-      ib_qp_extras[i].ib_pd = nullptr;
-      struct ibv_td_init_attr td_attr;
-      td_attr.comp_mask = 0;
-      ib_qp_extras[i].ib_td = ibv_alloc_td(p_net_context->ib_context, &td_attr);
-      ++g_td_num;
-      if (ib_qp_extras[i].ib_td != nullptr) {
-        struct ibv_parent_domain_init_attr pd_attr;
-        pd_attr.td = ib_qp_extras[i].ib_td;
-        pd_attr.pd = p_net_context->ib_pd;
-        pd_attr.comp_mask = 0;
-        ib_qp_extras[i].ib_pd =
-            ibv_alloc_parent_domain(p_net_context->ib_context, &pd_attr);
-        if (ib_qp_extras[i].ib_pd == nullptr) {
-          LCI_Warn(
-              "ibv_alloc_parent_domain() failed (%s); decalloc the thread "
-              "domain\n",
-              strerror(errno));
-          IBV_SAFECALL(ibv_dealloc_td(ib_qp_extras[i].ib_td));
-          --g_td_num;
-        }
-      } else {
-        LCI_Warn(
-            "ibv_alloc_td() failed (No. %lu, %s). Use `export "
-            "LCI_ATTR_IBV_TD_STRATEGY=none` to suppress this warning\n",
-            g_td_num, strerror(errno));
-      }
-      if (ib_qp_extras[i].ib_pd == nullptr) {
-        ib_qp_extras[i].ib_td = nullptr;
-        ib_qp_extras[i].ib_pd = p_net_context->ib_pd;
-      }
-    }
   }
   if (ib_pd == nullptr) {
     ib_td = nullptr;
     ib_pd = p_net_context->ib_pd;
   }
-
-  ib_qps.resize(get_rank_n());
-  qp_remaining_slots = std::vector<padded_atomic_t<int>>(get_rank_n());
-  for (auto& slot : qp_remaining_slots) {
-    slot.val.store(static_cast<int>(attr.net_max_sends),
-                   std::memory_order_relaxed);
-  }
-  struct bootstrap_data_t {
-    int source_rank;
-    int target_rank;
-    int uid;
-    uint32_t qp_num;
-    uint16_t lid;
-    char wgid[ibv_detail::WIRE_GID_NBYTES + 1];
-  };
-  std::vector<bootstrap_data_t> bootstrap_datav_in(get_rank_n());
-  for (int i = 0; i < get_rank_n(); i++) {
-    {
-      // Create a queue pair
-      struct ibv_qp_init_attr init_attr;
-      memset(&init_attr, 0, sizeof(init_attr));
-      init_attr.send_cq = ib_cq;
-      init_attr.recv_cq = ib_cq;
-      init_attr.srq = ib_srq;
-      init_attr.cap.max_send_wr = attr.net_max_sends;
-      init_attr.cap.max_recv_wr = attr.net_max_recvs;
-      init_attr.cap.max_send_sge = max_sge_num;
-      init_attr.cap.max_recv_sge = max_sge_num;
-      init_attr.cap.max_inline_data = net_context_attr.max_inject_size;
-      init_attr.qp_type = IBV_QPT_RC;
-      init_attr.sq_sig_all = 0;
-      struct ibv_pd* pd = ib_pd;
-      if (!ib_qp_extras.empty()) {
-        pd = ib_qp_extras[i].ib_pd;
-      }
-      ib_qps[i] = ibv_create_qp(pd, &init_attr);
-      ++g_qp_num;
-
-      LCI_Assert(ib_qps[i], "Couldn't create QP %lu\n", g_qp_num);
-
-      struct ibv_qp_attr qp_attr;
-      memset(&qp_attr, 0, sizeof(qp_attr));
-      ibv_query_qp(ib_qps[i], &qp_attr, IBV_QP_CAP, &init_attr);
-      LCI_Assert(
-          qp_attr.cap.max_inline_data >= net_context_attr.max_inject_size,
-          "Specified inline size %d is too large (maximum %d)",
-          net_context_attr.max_inject_size, init_attr.cap.max_inline_data);
-      if (net_context_attr.max_inject_size < qp_attr.cap.max_inline_data) {
-        LCI_Log(LOG_INFO, "ibv",
-                "Maximum inline-size(%d) > requested inline-size(%d)\n",
-                qp_attr.cap.max_inline_data, net_context_attr.max_inject_size);
-        net_context_attr.max_inject_size = qp_attr.cap.max_inline_data;
-      }
-    }
-    {
-      // When a queue pair (QP) is newly created, it is in the RESET
-      // state. The first state transition that needs to happen is to
-      // bring the QP in the INIT state.
-      struct ibv_qp_attr attr;
-      memset(&attr, 0, sizeof(attr));
-      attr.qp_state = IBV_QPS_INIT;
-      attr.qp_access_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ |
-                             IBV_ACCESS_REMOTE_WRITE;
-      attr.pkey_index = 0;
-      attr.port_num = p_net_context->ib_dev_port;
-
-      int flags =
-          IBV_QP_STATE | IBV_QP_PKEY_INDEX | IBV_QP_PORT | IBV_QP_ACCESS_FLAGS;
-      int rc = ibv_modify_qp(ib_qps[i], &attr, flags);
-      LCI_Assert(rc == 0, "Failed to modify QP to INIT\n");
-    }
-    char wgid[ibv_detail::WIRE_GID_NBYTES + 1];
-    memset(wgid, 0, sizeof(wgid));
-    // FIXME: Maybe we do not need this serialization
-    ibv_detail::gid_to_wire_gid(&p_net_context->ib_gid, wgid);
-    // // Use this queue pair "i" to connect to rank e.
-    // char key[LCT_PMI_STRING_LIMIT + 1];
-    // sprintf(key, "LCI_KEY_%d_%d_%d", attr.uid, get_rank_me(), i);
-    // char value[LCT_PMI_STRING_LIMIT + 1];
-    // sprintf(value, "%x:%hx:%s", ib_qps[i]->qp_num,
-    //         p_net_context->ib_port_attr.lid, wgid);
-    // LCT_pmi_publish(key, value);
-
-    bootstrap_data_t data;
-    data.source_rank = get_rank_me();
-    data.target_rank = i;
-    data.uid = attr.uid;
-    data.qp_num = ib_qps[i]->qp_num;
-    data.lid = p_net_context->ib_port_attr.lid;
-    memcpy(data.wgid, wgid, sizeof(wgid));
-    bootstrap_datav_in[i] = data;
-  }
-  LCI_Log(LOG_INFO, "ibv", "Current inline data size is %d\n",
-          net_context_attr.max_inject_size);
-
-  // LCT_pmi_barrier();
-  std::vector<bootstrap_data_t> bootstrap_datav_out(get_rank_n());
-  bootstrap::alltoall(bootstrap_datav_in.data(), bootstrap_datav_out.data(),
-                      sizeof(bootstrap_data_t));
-
-  for (int i = 0; i < get_rank_n(); i++) {
-    // char key[LCT_PMI_STRING_LIMIT + 1];
-    // sprintf(key, "LCI_KEY_%d_%d_%d", attr.uid, i, get_rank_me());
-    // char value[LCT_PMI_STRING_LIMIT + 1];
-    // LCT_pmi_getname(i, key, value);
-    bootstrap_data_t data = bootstrap_datav_out[i];
-    LCI_Assert(data.source_rank == i,
-               "Unexpected source rank %d, expected %d\n", data.source_rank, i);
-    LCI_Assert(data.target_rank == get_rank_me(),
-               "Unexpected target rank %d, expected %d\n", data.target_rank,
-               get_rank_me());
-    LCI_Assert(data.uid == attr.uid, "Unexpected uid %d, expected %d\n",
-               data.uid, attr.uid);
-    uint32_t dest_qpn = data.qp_num;
-    uint16_t dest_lid = data.lid;
-    union ibv_gid gid;
-    // char wgid[ibv_detail::WIRE_GID_NBYTES + 1];
-    // sscanf(value, "%x:%hx:%s", &dest_qpn, &dest_lid, wgid);
-    ibv_detail::wire_gid_to_gid(data.wgid, &gid);
-    // Once a queue pair (QP) has receive buffers posted to it, it is now
-    // possible to transition the QP into the ready to receive (RTR) state.
-    {
-      struct ibv_qp_attr attr;
-      memset(&attr, 0, sizeof(attr));
-      attr.qp_state = IBV_QPS_RTR;
-      attr.path_mtu = p_net_context->ib_port_attr.active_mtu;
-      // starting receive packet sequence number
-      // (should match remote QP's sq_psn)
-      attr.rq_psn = 0;
-      attr.dest_qp_num = dest_qpn;
-      // an address handle (AH) needs to be created and filled in as
-      // appropriate. Minimally; ah_attr.dlid needs to be filled in.
-      attr.ah_attr.dlid = dest_lid;
-      attr.ah_attr.sl = 0;
-      attr.ah_attr.src_path_bits = 0;
-      attr.ah_attr.is_global = 0;
-      attr.ah_attr.static_rate = 0;
-      attr.ah_attr.port_num = p_net_context->ib_dev_port;
-      // maximum number of resources for incoming RDMA requests
-      // don't know what this is
-      attr.max_dest_rd_atomic = 1;
-      // minimum RNR NAK timer (recommended value: 12)
-      attr.min_rnr_timer = 12;
-      // should not be necessary to set these, given is_global = 0
-      memset(&attr.ah_attr.grh, 0, sizeof attr.ah_attr.grh);
-      // If we are using gid
-      if (gid.global.interface_id) {
-        attr.ah_attr.is_global = 1;
-        attr.ah_attr.grh.hop_limit = 1;
-        attr.ah_attr.grh.dgid = gid;
-        attr.ah_attr.grh.sgid_index = net_context_attr.ibv_gid_idx;
-      }
-
-      int flags = IBV_QP_STATE | IBV_QP_AV | IBV_QP_PATH_MTU | IBV_QP_DEST_QPN |
-                  IBV_QP_RQ_PSN | IBV_QP_MAX_DEST_RD_ATOMIC |
-                  IBV_QP_MIN_RNR_TIMER;
-
-      int rc = ibv_modify_qp(ib_qps[i], &attr, flags);
-      LCI_Assert(rc == 0, "Failed to modify QP to RTR\n");
-    }
-    // Once a queue pair (QP) has reached ready to receive (RTR) state,
-    // it may then be transitioned to the ready to send (RTS) state.
-    {
-      struct ibv_qp_attr attr;
-      memset(&attr, 0, sizeof(attr));
-      attr.qp_state = IBV_QPS_RTS;
-      attr.sq_psn = 0;
-      // number of outstanding RDMA reads and atomic operations allowed
-      attr.max_rd_atomic = 1;
-      // "Failed status transport retry counter exceeded (12) for wr_id"
-      attr.timeout = 18;
-      attr.retry_cnt = 7;
-      attr.rnr_retry = 7;
-
-      int flags = IBV_QP_STATE | IBV_QP_TIMEOUT | IBV_QP_RETRY_CNT |
-                  IBV_QP_RNR_RETRY | IBV_QP_SQ_PSN | IBV_QP_MAX_QP_RD_ATOMIC;
-      int rc = ibv_modify_qp(ib_qps[i], &attr, flags);
-      LCI_Assert(rc == 0, "Failed to modify QP to RTS\n");
-    }
-  }
-
-  qp2rank_map.add_qps(ib_qps);
-  // LCT_pmi_barrier();
 }
 
 ibv_device_impl_t::~ibv_device_impl_t()
 {
-  // LCT_pmi_barrier();
-  for (int i = 0; i < get_rank_n(); i++) {
-    IBV_SAFECALL(ibv_destroy_qp(ib_qps[i]));
-    --g_qp_num;
-  }
-  if (!ib_qp_extras.empty()) {
-    for (int i = 0; i < get_rank_n(); ++i) {
-      if (ib_qp_extras[i].ib_td) {
-        IBV_SAFECALL(ibv_dealloc_pd(ib_qp_extras[i].ib_pd));
-        IBV_SAFECALL(ibv_dealloc_td(ib_qp_extras[i].ib_td));
-        --g_td_num;
-      }
-    }
-  }
   if (ib_td) {
     IBV_SAFECALL(ibv_dealloc_pd(ib_pd));
     IBV_SAFECALL(ibv_dealloc_td(ib_td));
@@ -600,14 +367,212 @@ void ibv_device_impl_t::deregister_memory_impl(mr_impl_t* mr_impl)
 
 ibv_endpoint_impl_t::ibv_endpoint_impl_t(device_t device_, attr_t attr_)
     : endpoint_impl_t(device_, attr_),
-      p_ibv_device(reinterpret_cast<ibv_device_impl_t*>(device.p_impl)),
-      ib_qps(p_ibv_device->ib_qps),
-      ib_qp_extras(&p_ibv_device->ib_qp_extras),
-      qp_remaining_slots(&p_ibv_device->qp_remaining_slots),
-      qps_lock(&p_ibv_device->qps_lock)
+      p_ibv_device(reinterpret_cast<ibv_device_impl_t*>(device.p_impl))
 {
+  ibv_net_context_impl_t* p_net_context =
+      static_cast<ibv_net_context_impl_t*>(p_ibv_device->net_context.p_impl);
+
+  ib_qps.resize(get_rank_n());
+  qp_remaining_slots = std::vector<padded_atomic_t<int>>(get_rank_n());
+  for (auto& slot : qp_remaining_slots) {
+    slot.val.store(static_cast<int>(device_attr.net_max_sends),
+                   std::memory_order_relaxed);
+  }
+
+  if (device_attr.ibv_td_strategy == attr_ibv_td_strategy_t::per_qp) {
+    ib_qp_extras.resize(get_rank_n());
+    for (int i = 0; i < get_rank_n(); ++i) {
+      ib_qp_extras[i].ib_pd = nullptr;
+      struct ibv_td_init_attr td_attr;
+      td_attr.comp_mask = 0;
+      ib_qp_extras[i].ib_td =
+          ibv_alloc_td(p_net_context->ib_context, &td_attr);
+      ++g_td_num;
+      if (ib_qp_extras[i].ib_td != nullptr) {
+        struct ibv_parent_domain_init_attr pd_attr;
+        pd_attr.td = ib_qp_extras[i].ib_td;
+        pd_attr.pd = p_net_context->ib_pd;
+        pd_attr.comp_mask = 0;
+        ib_qp_extras[i].ib_pd =
+            ibv_alloc_parent_domain(p_net_context->ib_context, &pd_attr);
+        if (ib_qp_extras[i].ib_pd == nullptr) {
+          LCI_Warn(
+              "ibv_alloc_parent_domain() failed (%s); deallocating the thread "
+              "domain\n",
+              strerror(errno));
+          IBV_SAFECALL(ibv_dealloc_td(ib_qp_extras[i].ib_td));
+          ib_qp_extras[i].ib_td = nullptr;
+          --g_td_num;
+        }
+      } else {
+        LCI_Warn(
+            "ibv_alloc_td() failed (No. %lu, %s). Use `export "
+            "LCI_ATTR_IBV_TD_STRATEGY=none` to suppress this warning\n",
+            g_td_num, strerror(errno));
+      }
+      if (ib_qp_extras[i].ib_pd == nullptr) {
+        ib_qp_extras[i].ib_td = nullptr;
+        ib_qp_extras[i].ib_pd = p_net_context->ib_pd;
+      }
+    }
+  }
+
+  // Create QPs
+  for (int i = 0; i < get_rank_n(); ++i) {
+    struct ibv_qp_init_attr init_attr;
+    memset(&init_attr, 0, sizeof(init_attr));
+    init_attr.send_cq = p_ibv_device->ib_cq;
+    init_attr.recv_cq = p_ibv_device->ib_cq;
+    init_attr.srq = p_ibv_device->ib_srq;
+    init_attr.cap.max_send_wr = device_attr.net_max_sends;
+    init_attr.cap.max_recv_wr = device_attr.net_max_recvs;
+    init_attr.cap.max_send_sge = max_sge_num;
+    init_attr.cap.max_recv_sge = max_sge_num;
+    init_attr.cap.max_inline_data = net_context_attr.max_inject_size;
+    init_attr.qp_type = IBV_QPT_RC;
+    init_attr.sq_sig_all = 0;
+    struct ibv_pd* pd = p_ibv_device->ib_pd;
+    if (!ib_qp_extras.empty()) {
+      pd = ib_qp_extras[i].ib_pd;
+    }
+    ib_qps[i] = ibv_create_qp(pd, &init_attr);
+    ++g_qp_num;
+    LCI_Assert(ib_qps[i], "Couldn't create QP %lu\n", g_qp_num);
+
+    struct ibv_qp_attr qp_attr;
+    memset(&qp_attr, 0, sizeof(qp_attr));
+    ibv_query_qp(ib_qps[i], &qp_attr, IBV_QP_CAP, &init_attr);
+    LCI_Assert(
+        qp_attr.cap.max_inline_data >= net_context_attr.max_inject_size,
+        "Specified inline size %d is too large (maximum %d)",
+        net_context_attr.max_inject_size, init_attr.cap.max_inline_data);
+    if (qp_attr.cap.max_inline_data > net_context_attr.max_inject_size) {
+      LCI_Log(LOG_INFO, "ibv",
+              "Maximum inline-size(%d) > requested inline-size(%d)\n",
+              qp_attr.cap.max_inline_data, net_context_attr.max_inject_size);
+    }
+  }
+  p_ibv_device->qp2rank_map.add_qps(ib_qps, &qp_remaining_slots);
+
+  // Modify QP states to INIT
+  struct bootstrap_data_t {
+    int source_rank;
+    int target_rank;
+    int uid;
+    uint32_t qp_num;
+    uint16_t lid;
+    char wgid[ibv_detail::WIRE_GID_NBYTES + 1];
+  };
+  std::vector<bootstrap_data_t> bootstrap_datav_in(get_rank_n());
+  for (int i = 0; i < get_rank_n(); ++i) {
+    struct ibv_qp_attr mod_attr;
+    memset(&mod_attr, 0, sizeof(mod_attr));
+    mod_attr.qp_state = IBV_QPS_INIT;
+    mod_attr.qp_access_flags =
+        IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ |
+        IBV_ACCESS_REMOTE_WRITE;
+    mod_attr.pkey_index = 0;
+    mod_attr.port_num = p_net_context->ib_dev_port;
+
+    int flags =
+        IBV_QP_STATE | IBV_QP_PKEY_INDEX | IBV_QP_PORT | IBV_QP_ACCESS_FLAGS;
+    int rc = ibv_modify_qp(ib_qps[i], &mod_attr, flags);
+    LCI_Assert(rc == 0, "Failed to modify QP to INIT\n");
+
+    char wgid[ibv_detail::WIRE_GID_NBYTES + 1];
+    memset(wgid, 0, sizeof(wgid));
+    ibv_detail::gid_to_wire_gid(&p_net_context->ib_gid, wgid);
+
+    bootstrap_data_t data;
+    data.source_rank = get_rank_me();
+    data.target_rank = i;
+    data.uid = this->attr.uid;
+    data.qp_num = ib_qps[i]->qp_num;
+    data.lid = p_net_context->ib_port_attr.lid;
+    memcpy(data.wgid, wgid, sizeof(wgid));
+    bootstrap_datav_in[i] = data;
+  }
+
+  std::vector<bootstrap_data_t> bootstrap_datav_out(get_rank_n());
+  bootstrap::alltoall(bootstrap_datav_in.data(), bootstrap_datav_out.data(),
+                      sizeof(bootstrap_data_t));
+  // Modify QP states to RTR and RTS
+  for (int i = 0; i < get_rank_n(); ++i) {
+    bootstrap_data_t data = bootstrap_datav_out[i];
+    LCI_Assert(data.source_rank == i,
+               "Unexpected source rank %d, expected %d\n", data.source_rank, i);
+    LCI_Assert(data.target_rank == get_rank_me(),
+               "Unexpected target rank %d, expected %d\n", data.target_rank,
+               get_rank_me());
+    LCI_Assert(data.uid == this->attr.uid,
+               "Unexpected uid %d, expected %d\n", data.uid, this->attr.uid);
+    uint32_t dest_qpn = data.qp_num;
+    uint16_t dest_lid = data.lid;
+    union ibv_gid gid;
+    ibv_detail::wire_gid_to_gid(data.wgid, &gid);
+
+    struct ibv_qp_attr mod_attr;
+    memset(&mod_attr, 0, sizeof(mod_attr));
+    mod_attr.qp_state = IBV_QPS_RTR;
+    mod_attr.path_mtu = p_net_context->ib_port_attr.active_mtu;
+    mod_attr.rq_psn = 0;
+    mod_attr.dest_qp_num = dest_qpn;
+    mod_attr.ah_attr.dlid = dest_lid;
+    mod_attr.ah_attr.sl = 0;
+    mod_attr.ah_attr.src_path_bits = 0;
+    mod_attr.ah_attr.is_global = 0;
+    mod_attr.ah_attr.static_rate = 0;
+    mod_attr.ah_attr.port_num = p_net_context->ib_dev_port;
+    mod_attr.max_dest_rd_atomic = 1;
+    mod_attr.min_rnr_timer = 12;
+    memset(&mod_attr.ah_attr.grh, 0, sizeof mod_attr.ah_attr.grh);
+    if (gid.global.interface_id) {
+      mod_attr.ah_attr.is_global = 1;
+      mod_attr.ah_attr.grh.hop_limit = 1;
+      mod_attr.ah_attr.grh.dgid = gid;
+      mod_attr.ah_attr.grh.sgid_index = net_context_attr.ibv_gid_idx;
+    }
+
+    int flags = IBV_QP_STATE | IBV_QP_AV | IBV_QP_PATH_MTU | IBV_QP_DEST_QPN |
+                IBV_QP_RQ_PSN | IBV_QP_MAX_DEST_RD_ATOMIC |
+                IBV_QP_MIN_RNR_TIMER;
+
+    int rc = ibv_modify_qp(ib_qps[i], &mod_attr, flags);
+    LCI_Assert(rc == 0, "Failed to modify QP to RTR\n");
+
+    memset(&mod_attr, 0, sizeof(mod_attr));
+    mod_attr.qp_state = IBV_QPS_RTS;
+    mod_attr.sq_psn = 0;
+    mod_attr.max_rd_atomic = 1;
+    mod_attr.timeout = 18;
+    mod_attr.retry_cnt = 7;
+    mod_attr.rnr_retry = 7;
+
+    flags = IBV_QP_STATE | IBV_QP_TIMEOUT | IBV_QP_RETRY_CNT |
+            IBV_QP_RNR_RETRY | IBV_QP_SQ_PSN | IBV_QP_MAX_QP_RD_ATOMIC;
+    rc = ibv_modify_qp(ib_qps[i], &mod_attr, flags);
+    LCI_Assert(rc == 0, "Failed to modify QP to RTS\n");
+  }
 }
 
-ibv_endpoint_impl_t::~ibv_endpoint_impl_t() {}
+ibv_endpoint_impl_t::~ibv_endpoint_impl_t()
+{
+  p_ibv_device->qp2rank_map.remove_qps(ib_qps);
+  for (auto* qp : ib_qps) {
+    if (qp != nullptr) {
+      IBV_SAFECALL(ibv_destroy_qp(qp));
+      --g_qp_num;
+    }
+  }
+  if (!ib_qp_extras.empty()) {
+    for (auto& extra : ib_qp_extras) {
+      if (extra.ib_td) {
+        IBV_SAFECALL(ibv_dealloc_pd(extra.ib_pd));
+        IBV_SAFECALL(ibv_dealloc_td(extra.ib_td));
+        --g_td_num;
+      }
+    }
+  }
+}
 
 }  // namespace lci

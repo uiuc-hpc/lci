@@ -6,48 +6,98 @@
 
 namespace lci
 {
-inline void qp2rank_map_t::add_qps(const std::vector<struct ibv_qp*>& qps)
+inline void qp2rank_map_t::add_qps(
+    const std::vector<struct ibv_qp*>& qps,
+    std::vector<padded_atomic_t<int>>* qp_slots)
 {
-  for (int i = 0; i < static_cast<int>(qps.size()); i++) {
-    qp_rank_pairs.push_back(std::make_pair(qps[i]->qp_num, i));
+  if (qps.empty() || qp_slots == nullptr) return;
+  std::unique_lock<std::shared_mutex> lock(mutex);
+  for (size_t i = 0; i < qps.size(); ++i) {
+    entry_t entry;
+    entry.rank = static_cast<int>(i);
+    entry.slots = &(*qp_slots)[i];
+    qp_entries.emplace_back(qps[i]->qp_num, entry);
   }
-  calculate_map();
+  rebuild_locked();
 }
 
-inline int qp2rank_map_t::get_rank_me(uint32_t qp_num)
+inline void qp2rank_map_t::remove_qps(
+    const std::vector<struct ibv_qp*>& qps)
 {
-  return qp2rank[qp_num % qp2rank_mod];
+  if (qps.empty()) return;
+  std::unique_lock<std::shared_mutex> lock(mutex);
+  if (qp_entries.empty()) {
+    return;
+  }
+  for (auto* qp : qps) {
+    auto it = std::remove_if(
+        qp_entries.begin(), qp_entries.end(),
+        [qp_num = qp->qp_num](const std::pair<uint32_t, entry_t>& pair) {
+          return pair.first == qp_num;
+        });
+    if (it != qp_entries.end()) {
+      qp_entries.erase(it, qp_entries.end());
+    }
+  }
+  rebuild_locked();
 }
 
-inline void qp2rank_map_t::calculate_map()
+
+
+inline qp2rank_map_t::entry_t qp2rank_map_t::snapshot_t::get_entry(uint32_t qp_num)
+{
+  if (table.empty()) {
+    return entry_t{};
+  }
+  int idx = static_cast<int>(qp_num % mod);
+  if (idx < 0 || idx >= static_cast<int>(table.size())) {
+    return entry_t{};
+  }
+  return table[idx];
+}
+
+inline void qp2rank_map_t::rebuild_locked()
 {
   auto start = std::chrono::high_resolution_clock::now();
-  if (qp2rank.empty()) {
-    qp2rank_mod = get_rank_n();
-    qp2rank.resize(qp2rank_mod, -1);
+  auto old_snapshot = current_snapshot.load(std::memory_order_relaxed);
+  if (old_snapshot) {
+    delete old_snapshot;
   }
-  while (qp2rank_mod < INT32_MAX) {
+  current_snapshot.store(nullptr, std::memory_order_relaxed);
+  auto new_snapshot = new snapshot_t();
+  if (qp_entries.empty()) {
+    new_snapshot->mod = 1;
+    new_snapshot->table.resize(1);
+    current_snapshot.store(new_snapshot, std::memory_order_relaxed);
+    return;
+  }
+  int mod = std::max(get_rank_n(), 1);
+  std::vector<entry_t> table(mod);
+  while (mod < INT32_MAX) {
+    std::fill(table.begin(), table.end(), entry_t{});
     bool failed = false;
-    for (auto qp_rank_pair : qp_rank_pairs) {
-      int k = (qp_rank_pair.first % qp2rank_mod);
-      if (qp2rank[k] != -1) {
+    for (auto& qp_entry : qp_entries) {
+      int k = static_cast<int>(qp_entry.first % mod);
+      if (table[k].slots != nullptr) {
         failed = true;
         break;
       }
-      qp2rank[k] = qp_rank_pair.second;
+      table[k] = qp_entry.second;
     }
     if (!failed) break;
-    qp2rank_mod++;
-    qp2rank.resize(qp2rank_mod);
-    std::fill(qp2rank.begin(), qp2rank.end(), -1);
+    ++mod;
+    table.resize(mod);
   }
-  LCI_Assert(qp2rank_mod != INT32_MAX,
+  LCI_Assert(mod != INT32_MAX,
              "Cannot find a suitable mod to hold qp2rank map\n");
+  new_snapshot->mod = mod;
+  new_snapshot->table = std::move(table);
+  current_snapshot.store(new_snapshot, std::memory_order_relaxed);
   auto end = std::chrono::high_resolution_clock::now();
   auto duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
   LCI_Log(LOG_INFO, "ibv", "qp2rank_mod is %d (for %lu qps), took %ld ms\n",
-          qp2rank_mod, qp_rank_pairs.size(), duration.count());
+          new_snapshot->mod, qp_entries.size(), duration.count());
 }
 
 inline uint64_t ibv_device_impl_t::get_rkey(mr_impl_t* mr)
@@ -66,22 +116,29 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
   cq_lock.unlock();
   if (ne > 0) {
     // Got an entry here
+    auto snapshot = qp2rank_map.get_snapshot();
     for (int i = 0; i < ne; i++) {
       LCI_Assert(wcs[i].status == IBV_WC_SUCCESS,
                  "Failed status %s (%d) for wr_id %p\n",
                  ibv_wc_status_str(wcs[i].status), wcs[i].status,
                  (void*)wcs[i].wr_id);
+      qp2rank_map_t::entry_t entry = snapshot->get_entry(wcs[i].qp_num);
       // Increment SQ slots on any send-side completion
       if (wcs[i].opcode != IBV_WC_RECV &&
           wcs[i].opcode != IBV_WC_RECV_RDMA_WITH_IMM) {
-        int rank = qp2rank_map.get_rank_me(wcs[i].qp_num);
-        LCI_DBG_Assert(rank >= 0 && rank < get_rank_n(),
-                       "Invalid rank %d from qp_num %u\n", rank, wcs[i].qp_num);
-        int prev = qp_remaining_slots[rank].val.fetch_add(
-            1, std::memory_order_relaxed);
-        LCI_DBG_Assert(prev < static_cast<int>(attr.net_max_sends),
-                       "Too many slots on QP for rank %d (prev %d)\n", rank,
-                       prev);
+        if (entry.rank >= 0 && entry.rank < get_rank_n() &&
+            entry.slots != nullptr) {
+          int prev =
+              entry.slots->val.fetch_add(1, std::memory_order_relaxed);
+          LCI_DBG_Assert(prev < static_cast<int>(attr.net_max_sends),
+                         "Too many slots on QP for rank %d (prev %d)\n",
+                         entry.rank, prev);
+        } else {
+          LCI_DBG_Log(
+              LOG_WARN, "ibv",
+              "Completion for qp_num %u does not map to an active endpoint\n",
+              wcs[i].qp_num);
+        }
       }
       if (!p_statuses) continue;
       net_status_t& status = p_statuses[i];
@@ -91,7 +148,7 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
         status.user_context = (void*)wcs[i].wr_id;
         status.length = wcs[i].byte_len;
         status.imm_data = wcs[i].imm_data;
-        status.rank = qp2rank_map.get_rank_me(wcs[i].qp_num);
+        status.rank = entry.rank;
       } else if (wcs[i].opcode == IBV_WC_RECV_RDMA_WITH_IMM) {
         consume_recvs(1);
         status.opcode = net_opcode_t::REMOTE_WRITE;
@@ -189,7 +246,7 @@ inline size_t ibv_device_impl_t::post_recvs_impl(void* buffers[], size_t size,
 
 inline bool ibv_endpoint_impl_t::try_acquire_slot(int rank, bool high_priority)
 {
-  auto& counter = (*qp_remaining_slots)[rank].val;
+  auto& counter = qp_remaining_slots[rank].val;
   double reserved_frac = device_attr.net_send_reserved_pct;
   int threshold = static_cast<int>(
       static_cast<double>(device_attr.net_max_sends) * reserved_frac);
@@ -213,26 +270,26 @@ inline bool ibv_endpoint_impl_t::try_acquire_slot(int rank, bool high_priority)
 
 inline void ibv_endpoint_impl_t::release_slot(int rank)
 {
-  (*qp_remaining_slots)[rank].val.fetch_add(1, std::memory_order_relaxed);
+  qp_remaining_slots[rank].val.fetch_add(1, std::memory_order_relaxed);
 }
 
 inline bool ibv_endpoint_impl_t::try_lock_qp(int rank)
 {
   bool ret;
-  if (!ib_qp_extras->empty()) {
-    ret = (*ib_qp_extras)[rank].lock.try_lock();
+  if (!ib_qp_extras.empty()) {
+    ret = ib_qp_extras[rank].lock.try_lock();
   } else {
-    ret = qps_lock->try_lock();
+    ret = qps_lock.try_lock();
   }
   return ret;
 }
 
 inline void ibv_endpoint_impl_t::unlock_qp(int rank)
 {
-  if (!ib_qp_extras->empty()) {
-    (*ib_qp_extras)[rank].lock.unlock();
+  if (!ib_qp_extras.empty()) {
+    ib_qp_extras[rank].lock.unlock();
   } else {
-    qps_lock->unlock();
+    qps_lock.unlock();
   }
 }
 
