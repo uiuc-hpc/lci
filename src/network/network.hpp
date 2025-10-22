@@ -63,6 +63,7 @@ class device_impl_t
 
   attr_t attr;
   endpoint_t default_endpoint;
+  endpoint_t progress_endpoint;
   device_t device;
   runtime_t runtime;
   net_context_t net_context;

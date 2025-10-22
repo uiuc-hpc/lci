@@ -178,7 +178,7 @@ operation(
     [
         optional_runtime_args,
         optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to progress."),
-        optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use in case the progress function needs to send internal control messages."),
+        optional_arg("endpoint_t", "endpoint", "device.get_impl()->progress_endpoint", comment="The endpoint to use in case the progress function needs to send internal control messages."),
         return_val("error_t", "error", comment="The error code. The error code *done* means the progress function progressed some work; the error code *retry* means the progress function did no find any work to progress."),
     ],
     doc = {

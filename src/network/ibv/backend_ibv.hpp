@@ -76,7 +76,7 @@ class qp2rank_map_t
     int rank = -1;
     padded_atomic_t<int>* slots = nullptr;
   };
-  
+
   struct snapshot_t {
     int mod = 1;
     std::vector<entry_t> table;
@@ -84,7 +84,8 @@ class qp2rank_map_t
     entry_t get_entry(uint32_t qp_num);
   };
 
-  ~qp2rank_map_t() { 
+  ~qp2rank_map_t()
+  {
     if (current_snapshot) {
       delete current_snapshot;
     }
@@ -93,13 +94,12 @@ class qp2rank_map_t
   void add_qps(const std::vector<struct ibv_qp*>& qps,
                std::vector<padded_atomic_t<int>>* qp_slots);
   void remove_qps(const std::vector<struct ibv_qp*>& qps);
-  snapshot_t *get_snapshot()
+  snapshot_t* get_snapshot()
   {
     return current_snapshot.load(std::memory_order_relaxed);
   }
 
  private:
-
   void rebuild_locked();
 
   std::vector<std::pair<uint32_t, entry_t>> qp_entries;

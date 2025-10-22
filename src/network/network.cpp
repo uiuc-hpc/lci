@@ -120,9 +120,10 @@ void free_net_context_x::call_impl(net_context_t* net_context, runtime_t) const
 device_t alloc_device_x::call_impl(
     size_t net_max_sends, size_t net_max_recvs, size_t net_max_cqes,
     double net_send_reserved_pct, uint64_t ofi_lock_mode,
-    bool alloc_default_endpoint, attr_ibv_td_strategy_t ibv_td_strategy,
-    const char* name, void* user_context, runtime_t runtime,
-    net_context_t net_context, packet_pool_t packet_pool) const
+    bool alloc_default_endpoint, bool alloc_progress_endpoint,
+    attr_ibv_td_strategy_t ibv_td_strategy, const char* name,
+    void* user_context, runtime_t runtime, net_context_t net_context,
+    packet_pool_t packet_pool) const
 {
   if (net_send_reserved_pct < 0.0 || net_send_reserved_pct >= 1.0) {
     LCI_Assert(false, "net_send_reserved_pct %.2f is out of range [0.0, 1.0)",
@@ -135,6 +136,7 @@ device_t alloc_device_x::call_impl(
   attr.net_send_reserved_pct = net_send_reserved_pct;
   attr.ofi_lock_mode = ofi_lock_mode;
   attr.alloc_default_endpoint = alloc_default_endpoint;
+  attr.alloc_progress_endpoint = alloc_progress_endpoint;
   attr.ibv_td_strategy = ibv_td_strategy;
   attr.name = name;
   attr.user_context = user_context;
@@ -142,9 +144,17 @@ device_t alloc_device_x::call_impl(
   if (!packet_pool.is_empty()) {
     device.get_impl()->bind_packet_pool(packet_pool);
   }
-  if (attr.alloc_default_endpoint)
+  if (attr.alloc_default_endpoint) {
     device.get_impl()->default_endpoint =
         alloc_endpoint_x().runtime(runtime).device(device)();
+    if (attr.alloc_progress_endpoint)
+      device.get_impl()->progress_endpoint =
+          alloc_endpoint_x().runtime(runtime).device(device)();
+    else {
+      device.get_impl()->progress_endpoint =
+          device.get_impl()->default_endpoint;
+    }
+  }
   if (device.get_attr_uid() == 0) {
     bootstrap::set_device(device);
   }
@@ -158,10 +168,10 @@ void free_device_x::call_impl(device_t* device, runtime_t runtime) const
   if (device->get_attr_uid() == 0) {
     bootstrap::set_device(device_t());
   }
-  endpoint_t default_endpoint = device->get_impl()->default_endpoint;
-  if (!default_endpoint.is_empty()) {
-    free_endpoint_x(&progress_endpoint).runtime(runtime)();
-    free_endpoint_x(&default_endpoint).runtime(runtime)();
+  if (device->get_attr_alloc_default_endpoint()) {
+    free_endpoint_x(&device->get_impl()->progress_endpoint).runtime(runtime)();
+    if (device->get_attr_alloc_progress_endpoint())
+      free_endpoint_x(&device->get_impl()->default_endpoint).runtime(runtime)();
   }
   device->get_impl()->unbind_packet_pool();
   delete device->p_impl;

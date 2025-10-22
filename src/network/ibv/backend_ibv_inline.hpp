@@ -6,9 +6,8 @@
 
 namespace lci
 {
-inline void qp2rank_map_t::add_qps(
-    const std::vector<struct ibv_qp*>& qps,
-    std::vector<padded_atomic_t<int>>* qp_slots)
+inline void qp2rank_map_t::add_qps(const std::vector<struct ibv_qp*>& qps,
+                                   std::vector<padded_atomic_t<int>>* qp_slots)
 {
   if (qps.empty() || qp_slots == nullptr) return;
   std::unique_lock<std::shared_mutex> lock(mutex);
@@ -21,8 +20,7 @@ inline void qp2rank_map_t::add_qps(
   rebuild_locked();
 }
 
-inline void qp2rank_map_t::remove_qps(
-    const std::vector<struct ibv_qp*>& qps)
+inline void qp2rank_map_t::remove_qps(const std::vector<struct ibv_qp*>& qps)
 {
   if (qps.empty()) return;
   std::unique_lock<std::shared_mutex> lock(mutex);
@@ -42,9 +40,8 @@ inline void qp2rank_map_t::remove_qps(
   rebuild_locked();
 }
 
-
-
-inline qp2rank_map_t::entry_t qp2rank_map_t::snapshot_t::get_entry(uint32_t qp_num)
+inline qp2rank_map_t::entry_t qp2rank_map_t::snapshot_t::get_entry(
+    uint32_t qp_num)
 {
   if (table.empty()) {
     return entry_t{};
@@ -128,7 +125,7 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
           wcs[i].opcode != IBV_WC_RECV_RDMA_WITH_IMM) {
         if (entry.rank >= 0 && entry.rank < get_rank_n() &&
             entry.slots != nullptr) {
-          int prev =
+          [[maybe_unused]] int prev =
               entry.slots->val.fetch_add(1, std::memory_order_relaxed);
           LCI_DBG_Assert(prev < static_cast<int>(attr.net_max_sends),
                          "Too many slots on QP for rank %d (prev %d)\n",

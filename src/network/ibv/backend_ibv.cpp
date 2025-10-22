@@ -385,8 +385,7 @@ ibv_endpoint_impl_t::ibv_endpoint_impl_t(device_t device_, attr_t attr_)
       ib_qp_extras[i].ib_pd = nullptr;
       struct ibv_td_init_attr td_attr;
       td_attr.comp_mask = 0;
-      ib_qp_extras[i].ib_td =
-          ibv_alloc_td(p_net_context->ib_context, &td_attr);
+      ib_qp_extras[i].ib_td = ibv_alloc_td(p_net_context->ib_context, &td_attr);
       ++g_td_num;
       if (ib_qp_extras[i].ib_td != nullptr) {
         struct ibv_parent_domain_init_attr pd_attr;
@@ -442,10 +441,9 @@ ibv_endpoint_impl_t::ibv_endpoint_impl_t(device_t device_, attr_t attr_)
     struct ibv_qp_attr qp_attr;
     memset(&qp_attr, 0, sizeof(qp_attr));
     ibv_query_qp(ib_qps[i], &qp_attr, IBV_QP_CAP, &init_attr);
-    LCI_Assert(
-        qp_attr.cap.max_inline_data >= net_context_attr.max_inject_size,
-        "Specified inline size %d is too large (maximum %d)",
-        net_context_attr.max_inject_size, init_attr.cap.max_inline_data);
+    LCI_Assert(qp_attr.cap.max_inline_data >= net_context_attr.max_inject_size,
+               "Specified inline size %d is too large (maximum %d)",
+               net_context_attr.max_inject_size, init_attr.cap.max_inline_data);
     if (qp_attr.cap.max_inline_data > net_context_attr.max_inject_size) {
       LCI_Log(LOG_INFO, "ibv",
               "Maximum inline-size(%d) > requested inline-size(%d)\n",
@@ -468,9 +466,8 @@ ibv_endpoint_impl_t::ibv_endpoint_impl_t(device_t device_, attr_t attr_)
     struct ibv_qp_attr mod_attr;
     memset(&mod_attr, 0, sizeof(mod_attr));
     mod_attr.qp_state = IBV_QPS_INIT;
-    mod_attr.qp_access_flags =
-        IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ |
-        IBV_ACCESS_REMOTE_WRITE;
+    mod_attr.qp_access_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ |
+                               IBV_ACCESS_REMOTE_WRITE;
     mod_attr.pkey_index = 0;
     mod_attr.port_num = p_net_context->ib_dev_port;
 
@@ -504,8 +501,8 @@ ibv_endpoint_impl_t::ibv_endpoint_impl_t(device_t device_, attr_t attr_)
     LCI_Assert(data.target_rank == get_rank_me(),
                "Unexpected target rank %d, expected %d\n", data.target_rank,
                get_rank_me());
-    LCI_Assert(data.uid == this->attr.uid,
-               "Unexpected uid %d, expected %d\n", data.uid, this->attr.uid);
+    LCI_Assert(data.uid == this->attr.uid, "Unexpected uid %d, expected %d\n",
+               data.uid, this->attr.uid);
     uint32_t dest_qpn = data.qp_num;
     uint16_t dest_lid = data.lid;
     union ibv_gid gid;
