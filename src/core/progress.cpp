@@ -305,11 +305,11 @@ error_t test_drained_x::call_impl(runtime_t, device_t device) const
 
 void wait_drained_x::call_impl(runtime_t, device_t device) const
 {
-  LCI_Log(LOG_TRACE, "network", "Enter wait_drained\n");
+  LCI_DBG_Log(LOG_INFO, "network", "Enter wait_drained\n");
   while (test_drained_x().device(device)().is_retry()) {
     progress_x().device(device)();
   }
-  LCI_Log(LOG_TRACE, "network", "Leave wait_drained\n");
+  LCI_DBG_Log(LOG_INFO, "network", "Leave wait_drained\n");
 }
 
 }  // namespace lci
