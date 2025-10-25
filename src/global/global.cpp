@@ -3,6 +3,7 @@
 
 #include "lci_internal.hpp"
 #include <unistd.h>
+#include <signal.h>
 
 namespace lci
 {
@@ -131,7 +132,13 @@ void global_initialize()
   if (p && *p != '\0' && *p != '0') {
     volatile int i = 1;
     fprintf(stderr, "PID %d is waiting to be attached\n", getpid());
-    while (i) continue;
+    if (std::string(p) == "sigstop") {
+      fprintf(stderr, "kill -CONT to resume\n");
+      raise(SIGSTOP);
+    } else {
+      fprintf(stderr, "set var i to 0 to resume\n");
+      while (i) continue;
+    }
   }
   LCT_init();
   log_initialize();
