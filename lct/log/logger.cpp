@@ -16,7 +16,8 @@ struct ctx_t {
       : log_levels(log_levels_),
         ctx_name(std::move(ctx_name_)),
         whitelist(whitelist),
-        blacklist(blacklist)
+        blacklist(blacklist),
+        start_time(LCT_now())
   {
     // set log level
     log_level_setting = default_log_level;
@@ -96,10 +97,11 @@ struct ctx_t {
     // if blacklist is enabled and log_type is not include in the blacklist,
     // do nothing.
     if (blacklist != nullptr && strstr(blacklist, log_tag) != nullptr) return;
+    double elapsed_s = LCT_time_to_s(LCT_now() - start_time);
     // print the log
-    size = snprintf(buf, sizeof(buf), "%d:%s:%d:%d:%s:%s:%d<%s:%s:%s> ",
+    size = snprintf(buf, sizeof(buf), "%d:%s:%d:%d:%.3lf:%s:%s:%d<%s:%s:%s> ",
                     LCT_get_rank(), LCT_hostname, getpid(), LCT_get_thread_id(),
-                    file, func, line, ctx_name.c_str(),
+                    elapsed_s, file, func, line, ctx_name.c_str(),
                     log_levels[log_level].c_str(), log_tag);
 
     vsnprintf(buf + size, sizeof(buf) - size, format, vargs);
@@ -115,6 +117,7 @@ struct ctx_t {
   char* whitelist;
   char* blacklist;
   FILE* outfile;
+  LCT_time_t start_time;
 };
 
 }  // namespace log
