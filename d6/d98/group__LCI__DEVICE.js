@@ -6,6 +6,7 @@ var group__LCI__DEVICE =
       [ "device_t", "d6/d66/classlci_1_1device__t.html#aaa726472fe6d12e1caa494a3395ce2e2", null ],
       [ "get_attr", "d6/d66/classlci_1_1device__t.html#a91a8c6fed942dcd7a1bd0aab53f25094", null ],
       [ "get_attr_alloc_default_endpoint", "d6/d66/classlci_1_1device__t.html#af404f064d5631e7d536bbcb164ea6f98", null ],
+      [ "get_attr_alloc_progress_endpoint", "d6/d66/classlci_1_1device__t.html#aac7ea265658e66a35b02d1e672fcf293", null ],
       [ "get_attr_ibv_td_strategy", "d6/d66/classlci_1_1device__t.html#a77e73bc9299edc4c0db09c584d014e29", null ],
       [ "get_attr_name", "d6/d66/classlci_1_1device__t.html#acb82036e9e91a7892e9607fa803bd62c", null ],
       [ "get_attr_net_max_cqes", "d6/d66/classlci_1_1device__t.html#a8595374a5543845d6b1c2462cd795fe3", null ],

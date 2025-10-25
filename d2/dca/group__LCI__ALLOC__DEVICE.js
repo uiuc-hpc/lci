@@ -3,8 +3,9 @@ var group__LCI__ALLOC__DEVICE =
     [ "lci::alloc_device_x", "d9/d10/classlci_1_1alloc__device__x.html", [
       [ "alloc_device_x", "d9/d10/classlci_1_1alloc__device__x.html#a12e57dde78668d47808506dbd65f011e", null ],
       [ "alloc_default_endpoint", "d9/d10/classlci_1_1alloc__device__x.html#a0364c3bcc9d35c8c2dadd4a683e13b2b", null ],
+      [ "alloc_progress_endpoint", "d9/d10/classlci_1_1alloc__device__x.html#ab20e017d5404c44094f5926dfb6d49de", null ],
       [ "call", "d9/d10/classlci_1_1alloc__device__x.html#accfc23b8c5a8d782aa772cc509749d14", null ],
-      [ "call_impl", "d9/d10/classlci_1_1alloc__device__x.html#a2e812c594a7a05b7ef708dbf39e58611", null ],
+      [ "call_impl", "d9/d10/classlci_1_1alloc__device__x.html#a3f4864158352a2931293f4b4ca5ddc18", null ],
       [ "ibv_td_strategy", "d9/d10/classlci_1_1alloc__device__x.html#ad24d73c79259e5dcba473f20adad64cd", null ],
       [ "name", "d9/d10/classlci_1_1alloc__device__x.html#a6f0be32f14a934810e8f358b24fe981f", null ],
       [ "net_context", "d9/d10/classlci_1_1alloc__device__x.html#abeaee68a26587c6b359320ab7cc7def1", null ],
@@ -18,6 +19,7 @@ var group__LCI__ALLOC__DEVICE =
       [ "runtime", "d9/d10/classlci_1_1alloc__device__x.html#a56912fff6daa357d714dbbf3bf67af85", null ],
       [ "user_context", "d9/d10/classlci_1_1alloc__device__x.html#a5508f2d5c851ff147e9f8cd40db1ade3", null ],
       [ "m_alloc_default_endpoint", "d9/d10/classlci_1_1alloc__device__x.html#ac52a1dffbd49c38f87377de8a26a7e9b", null ],
+      [ "m_alloc_progress_endpoint", "d9/d10/classlci_1_1alloc__device__x.html#a3c338f36319a596e6fef82a9e961a7f4", null ],
       [ "m_ibv_td_strategy", "d9/d10/classlci_1_1alloc__device__x.html#a54e48c6e71a9a98f78d92ed7ed638679", null ],
       [ "m_name", "d9/d10/classlci_1_1alloc__device__x.html#a2a3d4dc6932b52cbfeb08c7bb2a938da", null ],
       [ "m_net_context", "d9/d10/classlci_1_1alloc__device__x.html#a3ef7a9ec0918cba69a4820a6b91ef725", null ],

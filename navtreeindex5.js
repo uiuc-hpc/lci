@@ -1,5 +1,8 @@
 var NAVTREEINDEX5 =
 {
+"db/d4e/tutorial.html#autotoc_md72":[2,2,2],
+"db/d4e/tutorial.html#autotoc_md73":[2,2,2,0],
+"db/d4e/tutorial.html#autotoc_md74":[2,2,2,1],
 "db/d4e/tutorial.html#autotoc_md75":[2,2,2,2],
 "db/d4e/tutorial.html#autotoc_md76":[2,2,2,3],
 "db/d4e/tutorial.html#autotoc_md77":[2,2,2,4],
@@ -246,8 +249,5 @@ var NAVTREEINDEX5 =
 "dc/de4/classlci_1_1alltoall__x.html#a5a7754a1a63ff4abfce0640aaa9bee85":[5,7,6,0,15],
 "dc/de4/classlci_1_1alltoall__x.html#a631f159f788f1b9da3ae723171937a82":[5,7,6,0,0],
 "dc/de4/classlci_1_1alltoall__x.html#a651a33c61ebcd3dc516fe4bf6920b081":[5,7,6,0,16],
-"dc/de4/classlci_1_1alltoall__x.html#a6764df532d3a7dad34894783413ac39e":[5,7,6,0,8],
-"dc/de4/classlci_1_1alltoall__x.html#a7b984a869c6eeaeeaa55d312634a0f50":[5,7,6,0,13],
-"dc/de4/classlci_1_1alltoall__x.html#a92f149fc6b919ba63400773e8cb89020":[5,7,6,0,6],
-"dc/de4/classlci_1_1alltoall__x.html#a95daea4dabf6e25c1e6587860671d6f3":[5,7,6,0,5]
+"dc/de4/classlci_1_1alltoall__x.html#a6764df532d3a7dad34894783413ac39e":[5,7,6,0,8]
 };
