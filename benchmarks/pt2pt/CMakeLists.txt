@@ -1,15 +1,6 @@
 # Copyright (c) 2025 The LCI Project Authors
 # SPDX-License-Identifier: NCSA
 
-# add cxxopts
-include(FetchContent)
-FetchContent_Declare(
-  cxxopts
-  GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
-  GIT_TAG v3.3.1 # latest as of June 2025
-)
-FetchContent_MakeAvailable(cxxopts)
-
 find_package(OpenMP)
 
 if(NOT OpenMP_FOUND)
