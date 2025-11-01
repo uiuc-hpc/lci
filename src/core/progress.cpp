@@ -122,7 +122,7 @@ void progress_write(endpoint_t endpoint, const net_status_t& net_status)
       error_t error = endpoint.get_impl()->post_sends(
           ectx->imm_data_rank, nullptr, 0, ectx->imm_data, nullptr,
           false /* allow_retry */);
-      LCI_Assert(error.is_done(), "Unexpected error %d\n", error);
+      LCI_Assert(error.is_done(), "Unexpected error %s\n", error.get_str());
     }  // else: this is a RDMA write buffers or rendezvous with writeimm
     delete ectx;
     free_ctx_and_signal_comp(ctx);

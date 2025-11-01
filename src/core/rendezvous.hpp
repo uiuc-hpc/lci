@@ -229,7 +229,7 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
           (int)rdv_ctx->rank, address, length, *p_mr, rtr->offset + offset,
           rtr->rmr, ectx, false /* allow_retry */);
     }
-    LCI_Assert(error.is_posted(), "Unexpected error %d\n", error);
+    LCI_Assert(error.is_posted(), "Unexpected error %s\n", error.get_str());
   }
   // free the rtr packet
   packet->put_back();
@@ -245,7 +245,7 @@ inline void handle_rdv_local_write(endpoint_t endpoint,
   error_t error = endpoint.get_impl()->post_sends(
       (int)ctx->rank, &ectx->recv_ctx, sizeof(ectx->recv_ctx), imm_data,
       nullptr, false /* allow_retry */);
-  LCI_Assert(error.is_done(), "Unexpected error %d\n", error);
+  LCI_Assert(error.is_done(), "Unexpected error %s\n", error.get_str());
 }
 
 inline void handle_rdv_remote_comp(internal_context_t* ctx)

@@ -164,13 +164,13 @@ inline error_t endpoint_impl_t::post_putImms_fallback(
   error_t error = post_puts_impl(rank, buffer, size, offset, rmr, user_context,
                                  high_priority);
   if (!error.is_retry()) {
-    LCI_Assert(error.is_done(), "Unexpected error %d\n", error);
+    LCI_Assert(error.is_done(), "Unexpected error %s\n", error.get_str());
     // we do not allow retry for post_sends
     // otherwise the above puts might be posted again
     // XXX: but even if puts is posted again, it is not a error
     error_t error = post_sends(rank, nullptr, 0, imm_data, nullptr,
                                false /* allow_retry */);
-    LCI_Assert(error.is_done(), "Unexpected error %d\n", error);
+    LCI_Assert(error.is_done(), "Unexpected error %s\n", error.get_str());
   }
   return error;
 }
