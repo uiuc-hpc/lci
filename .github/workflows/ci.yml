@@ -45,7 +45,12 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         build_type: [Debug, Release]
-    name: Build and Test (${{ matrix.os }}, ${{ matrix.build_type }})
+        reg_cache: [OFF]
+        include:
+          - os: ubuntu-latest
+            build_type: Debug
+            reg_cache: ON
+    name: Build and Test (${{ matrix.os }}, ${{ matrix.build_type }}, RegCache=${{ matrix.reg_cache }})
 
     steps:
       - uses: actions/checkout@v4
@@ -82,6 +87,7 @@ jobs:
               -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
               -DLCI_NETWORK_BACKENDS=ofi,ibv
               -DLCI_USE_TCMALLOC=OFF
+              -DLCI_USE_REG_CACHE=${{ matrix.reg_cache }}
               -DCMAKE_VERBOSE_MAKEFILE=ON
             "
 

@@ -28,6 +28,7 @@
 #include "data_structure/mpmc_set.hpp"
 #include "data_structure/imm_tag_archive.hpp"
 #include "bootstrap/bootstrap.hpp"
+#include "reg_cache/reg_cache.hpp"
 #include "backlog_queue/backlog_queue.hpp"
 #ifdef LCI_USE_CUDA
 #include "accelerator/accelerator.hpp"

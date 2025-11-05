@@ -25,9 +25,14 @@ device_impl_t::device_impl_t(net_context_t context_, attr_t attr_)
   attr.uid = g_ndevices++;
   runtime = net_context.p_impl->runtime;
   device.p_impl = this;
+  if (attr.use_reg_cache) {
+    LCI_Assert(RegCache::is_enabled(),
+               "Registration cache requested but not compiled in");
+    rcache_handle = new RegCache(this);
+  }
 }
 
-device_impl_t::~device_impl_t() = default;
+device_impl_t::~device_impl_t() { destroy_reg_cache(); }
 
 endpoint_t device_impl_t::alloc_endpoint(endpoint_t::attr_t attr)
 {
@@ -121,9 +126,9 @@ device_t alloc_device_x::call_impl(
     size_t net_max_sends, size_t net_max_recvs, size_t net_max_cqes,
     double net_send_reserved_pct, uint64_t ofi_lock_mode,
     bool alloc_default_endpoint, bool alloc_progress_endpoint,
-    attr_ibv_td_strategy_t ibv_td_strategy, const char* name,
-    void* user_context, runtime_t runtime, net_context_t net_context,
-    packet_pool_t packet_pool) const
+    bool use_reg_cache, attr_ibv_td_strategy_t ibv_td_strategy,
+    const char* name, void* user_context, runtime_t runtime,
+    net_context_t net_context, packet_pool_t packet_pool) const
 {
   if (net_send_reserved_pct < 0.0 || net_send_reserved_pct >= 1.0) {
     LCI_Assert(false, "net_send_reserved_pct %.2f is out of range [0.0, 1.0)",
@@ -137,6 +142,7 @@ device_t alloc_device_x::call_impl(
   attr.ofi_lock_mode = ofi_lock_mode;
   attr.alloc_default_endpoint = alloc_default_endpoint;
   attr.alloc_progress_endpoint = alloc_progress_endpoint;
+  attr.use_reg_cache = use_reg_cache;
   attr.ibv_td_strategy = ibv_td_strategy;
   attr.name = name;
   attr.user_context = user_context;
@@ -174,6 +180,7 @@ void free_device_x::call_impl(device_t* device, runtime_t runtime) const
       free_endpoint_x(&device->get_impl()->default_endpoint).runtime(runtime)();
   }
   device->get_impl()->unbind_packet_pool();
+  device->get_impl()->destroy_reg_cache();
   delete device->p_impl;
   device->p_impl = nullptr;
 }

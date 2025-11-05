@@ -44,6 +44,7 @@ class device_impl_t
   void free_endpoint(endpoint_t endpoint);
   inline mr_t register_memory(void* buffer, size_t size);
   inline void deregister_memory(mr_impl_t* mr);
+  inline void destroy_reg_cache();
   inline size_t poll_comp(net_status_t* p_statuses, size_t max_polls);
   inline error_t post_recv(void* buffer, size_t size, mr_t mr,
                            void* user_context);
@@ -74,6 +75,8 @@ class device_impl_t
 
   LCIU_CACHE_PADDING(sizeof(packet_pool_t));
 
+  RegCache* rcache_handle = nullptr;
+
  private:
   static std::atomic<int> g_ndevices;
   LCIU_CACHE_PADDING(sizeof(std::atomic<int>));
@@ -92,9 +95,9 @@ class mr_impl_t
   accelerator::buffer_attr_t acc_attr;
   int dmabuf_fd;
 #endif  // LCI_USE_CUDA
-  // TODO: add memory registration cache
-  // For memory registration cache.
-  // void* region;
+  // If non-null, this MR is managed by the registration cache and this points
+  // to the owning ucs_rcache_region_t.
+  void* rcache_region = nullptr;
 
   // convenience functions
   inline void deregister();

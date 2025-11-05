@@ -60,10 +60,16 @@ inline size_t device_impl_t::post_recvs(void* buffers[], size_t size,
 
 inline mr_t device_impl_t::register_memory(void* address, size_t size)
 {
-  mr_t mr = register_memory_impl(address, size);
-  mr.p_impl->device = device;
-  mr.p_impl->address = address;
-  mr.p_impl->size = size;
+  mr_t mr;
+  // reg cache does not like size 0
+  if (attr.use_reg_cache && rcache_handle && size > 0) {
+    mr = rcache_handle->get(address, size);
+  } else {
+    mr = register_memory_impl(address, size);
+    mr.p_impl->device = device;
+    mr.p_impl->address = address;
+    mr.p_impl->size = size;
+  }
   LCI_DBG_Log(LOG_TRACE, "network",
               "register_memory address %p size %lu return %p\n", address, size,
               mr.get_impl());
@@ -73,7 +79,19 @@ inline mr_t device_impl_t::register_memory(void* address, size_t size)
 inline void device_impl_t::deregister_memory(mr_impl_t* mr)
 {
   LCI_DBG_Log(LOG_TRACE, "network", "deregister_memory mr %p\n", mr);
-  deregister_memory_impl(mr);
+  if (attr.use_reg_cache && rcache_handle && mr->size > 0) {
+    rcache_handle->put(mr);
+  } else {
+    deregister_memory_impl(mr);
+  }
+}
+
+inline void device_impl_t::destroy_reg_cache()
+{
+  if (rcache_handle) {
+    delete rcache_handle;
+    rcache_handle = nullptr;
+  }
 }
 
 inline bool device_impl_t::post_recv_packets()

@@ -43,6 +43,7 @@ resource_device := resource(
         attr("uint64_t", "ofi_lock_mode", comment="For the OFI backend: the lock mode for the device."),
         attr("bool", "alloc_default_endpoint", default_value=1, comment="Whether to allocate the default endpoint."),
         attr("bool", "alloc_progress_endpoint", default_value=0, comment="Whether to allocate another endpoint for communication invoked by the progress function."),
+        attr("bool", "use_reg_cache", default_value="LCI_USE_REG_CACHE", comment="Whether to use the memory registration cache (if compiled)."),
         attr("int", "uid", default_value=-1, inout_trait="out", comment="A unique device id across the entire process."),
         attr_enum("ibv_td_strategy", enum_options=["none", "all_qp", "per_qp"], default_value="per_qp", comment="For the IBV backend: the thread domain strategy."),
     ],

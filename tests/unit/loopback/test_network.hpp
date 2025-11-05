@@ -13,6 +13,19 @@ TEST(NETWORK, reg_mem)
   lci::g_runtime_fina();
 }
 
+// Regression coverage for zero-sized registrations (bypasses UCX cache path).
+TEST(NETWORK, reg_mem_zero_size)
+{
+  lci::g_runtime_init();
+  void* address = malloc(1);
+  lci::mr_t mr = lci::register_memory(address, 0);
+  ASSERT_NE(mr.p_impl, nullptr);
+  lci::rmr_t rmr = lci::get_rmr(mr);
+  lci::deregister_memory(&mr);
+  free(address);
+  lci::g_runtime_fina();
+}
+
 TEST(NETWORK, poll_cq)
 {
   lci::g_runtime_init();

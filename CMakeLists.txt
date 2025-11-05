@@ -196,19 +196,11 @@ if(NOT LCI_WITH_LCT_ONLY)
   # memory allocation with alignment
   option(LCI_CONFIG_USE_ALIGNED_ALLOC "Enable memory alignment" ON)
 
-  # registration cache Turn it off for now as LCI2 has not yet used it
-  set(LCI_COMPILE_REG_CACHE_DEFAULT OFF)
-  if(LCI_USE_SERVER_UCX OR APPLE)
-    # Our UCS code can be non-compatible with external UCX. Some UCS code is not
-    # compatible with MacOS
-    set(LCI_COMPILE_REG_CACHE_DEFAULT OFF)
+  option(LCI_USE_REG_CACHE "Whether to compile the registration cache code" OFF)
+  if(LCI_USE_REG_CACHE AND APPLE)
+    # Some UCS code is not compatible with MacOS
+    message(FATAL_ERROR "LCI_USE_REG_CACHE cannot be enabled on MacOS")
   endif()
-  set(LCI_COMPILE_REG_CACHE
-      ${LCI_COMPILE_REG_CACHE_DEFAULT}
-      CACHE STRING "Whether to compile the registration cache code")
-  set(LCI_USE_REG_CACHE_DEFAULT
-      ${LCI_USE_SERVER_IBV}
-      CACHE STRING "Whether to use registration cache")
 
   # packet size/number
   set(LCI_PACKET_SIZE_DEFAULT

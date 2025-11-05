@@ -9,6 +9,7 @@ target_sources_relative(
   LCI
   PRIVATE
   binding/generated/binding.cpp
+  reg_cache/reg_cache.cpp
   util/log.cpp
   util/random.cpp
   monitor/performance_counter.cpp

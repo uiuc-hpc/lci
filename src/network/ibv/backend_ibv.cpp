@@ -31,6 +31,8 @@ const char* mtu_str(enum ibv_mtu mtu)
 }
 }  // namespace
 
+//
+
 bool ibv_net_context_impl_t::check_availability()
 {
   int num_devices;
