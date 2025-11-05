@@ -78,9 +78,9 @@ ibv_net_context_impl_t::ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_)
     const uint32_t rc_caps_mask = IBV_ODP_SUPPORT_SEND | IBV_ODP_SUPPORT_RECV |
                                   IBV_ODP_SUPPORT_WRITE | IBV_ODP_SUPPORT_READ |
                                   IBV_ODP_SUPPORT_SRQ_RECV;
-    LCI_Assert(ib_dev_attrx.odp_caps.general_caps & IBV_ODP_SUPPORT &&
-                   ib_dev_attrx.odp_caps.per_transport_caps.rc_odp_caps &
-                       (rc_caps_mask == rc_caps_mask),
+    LCI_Assert((ib_dev_attrx.odp_caps.general_caps & IBV_ODP_SUPPORT) &&
+                   ((ib_dev_attrx.odp_caps.per_transport_caps.rc_odp_caps &
+                     rc_caps_mask) == rc_caps_mask),
                "The device isn't ODP capable\n");
     LCI_Assert(ib_dev_attrx.odp_caps.general_caps & IBV_ODP_SUPPORT_IMPLICIT,
                "The device doesn't support implicit ODP\n");
@@ -260,7 +260,11 @@ mr_t ibv_device_impl_t::register_memory_impl(void* buffer, size_t size)
 
   if (net_context_attr.ibv_odp_strategy ==
       attr_ibv_odp_strategy_t::implicit_odp) {
-    mr = &odp_mr;
+    // For implicit ODP, create a lightweight wrapper MR that points to the
+    // shared ODP ibv_mr, so each registration has its own address/size
+    // metadata while sharing the same lkey/rkey.
+    mr = new ibv_mr_impl_t();
+    mr->ibv_mr = odp_mr.ibv_mr;
   } else {
     mr = new ibv_mr_impl_t();
     int mr_flags;
@@ -352,7 +356,12 @@ void ibv_device_impl_t::deregister_memory_impl(mr_impl_t* mr_impl)
 {
   if (net_context_attr.ibv_odp_strategy ==
       attr_ibv_odp_strategy_t::implicit_odp) {
-    return;
+    // In implicit ODP, the ibv_mr is shared globally; just free the wrapper.
+    auto p_ibv_mr = static_cast<ibv_mr_impl_t*>(mr_impl);
+    // Safety: do not delete the holder object if ever passed inadvertently.
+    if (p_ibv_mr != &odp_mr) {
+      delete p_ibv_mr;
+    }
   } else {
     auto p_ibv_mr = static_cast<ibv_mr_impl_t*>(mr_impl);
     IBV_SAFECALL(ibv_dereg_mr(p_ibv_mr->ibv_mr));
