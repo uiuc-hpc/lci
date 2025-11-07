@@ -1,4 +1,4 @@
-<map id="lci::alloc_device_x::ofi_lock_mode" name="lci::alloc_device_x::ofi_lock_mode">
+<map id="lci::alloc_device_x::use_reg_cache" name="lci::alloc_device_x::use_reg_cache">
 <area shape="rect" id="Node000001" title=" " alt="" coords="573,27,715,67"/>
 <area shape="rect" id="Node000002" href="$d9/d10/classlci_1_1alloc__device__x.html#accfc23b8c5a8d782aa772cc509749d14" title=" " alt="" coords="195,27,336,67"/>
 <area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="560,47,525,46,384,46,336,47,336,42,384,41,525,41,560,41"/>

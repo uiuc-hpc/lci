@@ -15,6 +15,7 @@ var group__LCI__DEVICE =
       [ "get_attr_net_send_reserved_pct", "d6/d66/classlci_1_1device__t.html#a632fa081c5d2e959bfc43105a4b1410d", null ],
       [ "get_attr_ofi_lock_mode", "d6/d66/classlci_1_1device__t.html#a865f8177b6c4273daac65d49b0ddff6d", null ],
       [ "get_attr_uid", "d6/d66/classlci_1_1device__t.html#a57cabb92c4b67f08463c68df6b7fc223", null ],
+      [ "get_attr_use_reg_cache", "d6/d66/classlci_1_1device__t.html#a54154ccd8428b74b25b43b7122b8b23c", null ],
       [ "get_attr_user_context", "d6/d66/classlci_1_1device__t.html#a576050081a1a781262cf78a6dcce83c0", null ],
       [ "get_impl", "d6/d66/classlci_1_1device__t.html#a3e9dee4cddda23b68bb0c94370fcee63", null ],
       [ "is_empty", "d6/d66/classlci_1_1device__t.html#ad1b575238def22595f3ab8b8c71e68d4", null ],
