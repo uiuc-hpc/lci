@@ -62,12 +62,16 @@ class RegCache::impl
     auto* entry = reinterpret_cast<rcache_entry_generic_t*>(region);
     mr.p_impl = entry->mr;
     mr.p_impl->rcache_region = region;
+    LCI_Log(LOG_TRACE, "reg_cache",
+            "RegCache::get address %p size %lu => mr %p\n", address, size,
+            mr.p_impl);
     return mr;
   }
 
   void put(mr_impl_t* mr)
   {
     if (!mr || !mr->rcache_region) return;
+    LCI_Log(LOG_TRACE, "reg_cache", "RegCache::put mr %p\n", mr);
     LCII_ucs_rcache_region_put(
         rcache_, reinterpret_cast<ucs_rcache_region_t*>(mr->rcache_region));
   }
@@ -82,6 +86,8 @@ class RegCache::impl
     }
     return ops;
   }
+
+  bool is_valid() const { return rcache_ != nullptr; }
 
   UcxEnvGuard ucx_guard_;
   ucs_rcache_t* rcache_ = nullptr;
@@ -111,9 +117,18 @@ class RegCache::impl
     params.max_size = (size_t)-1;
     params.max_unreleased = (size_t)-1;
 
-    if (LCII_ucs_rcache_create(&params, "lci_rcache_device",
-                               LCII_ucs_stats_get_root(), &rcache_) != UCS_OK) {
+    auto ret = LCII_ucs_rcache_create(&params, "lci_rcache_device",
+                                      LCII_ucs_stats_get_root(), &rcache_);
+    if (ret == UCS_ERR_UNSUPPORTED) {
+      LCI_Log(LOG_WARN, "reg_cache",
+              "UCX registration cache is not available (status=%d). "
+              "Continuing without caching. You can either disable the "
+              "registration cache or try preloading liblci-ucx.so before other "
+              "allocators such as tcmalloc to enable UCX memory hooks.",
+              (int)ret);
       rcache_ = nullptr;
+    } else {
+      LCI_Assert(ret == UCS_OK, "UCX rcache creation failed: %d\n", (int)ret);
     }
   }
 
@@ -143,6 +158,9 @@ ucs_status_t RegCache::impl::mem_reg_cb(void* context, ucs_rcache_t* /*rcache*/,
   entry->mr->device = dev->device;
   entry->mr->address = reinterpret_cast<void*>(start);
   entry->mr->size = len;
+  LCI_Log(LOG_TRACE, "reg_cache",
+          "RegCache::mem_reg_cb address %p size %lu => mr %p\n",
+          reinterpret_cast<void*>(start), len, entry->mr);
   return UCS_OK;
 }
 
@@ -151,6 +169,7 @@ void RegCache::impl::mem_dereg_cb(void* context, ucs_rcache_t* /*rcache*/,
 {
   auto* dev = reinterpret_cast<device_impl_t*>(context);
   auto* entry = reinterpret_cast<rcache_entry_generic_t*>(rregion);
+  LCI_Log(LOG_TRACE, "reg_cache", "RegCache::mem_dereg_cb mr %p\n", entry->mr);
   if (entry->mr) {
     dev->deregister_memory_impl(entry->mr);
     entry->mr = nullptr;
@@ -175,6 +194,7 @@ mr_t RegCache::get(void* address, size_t size)
   return p_->get(address, size);
 }
 void RegCache::put(mr_impl_t* mr) { p_->put(mr); }
+bool RegCache::is_valid() const { return p_ && p_->is_valid(); }
 
 }  // namespace lci
 
@@ -199,6 +219,8 @@ void RegCache::put(mr_impl_t*)
 {
   // Nothing to do when the cache is disabled.
 }
+
+bool RegCache::is_valid() const { return false; }
 
 }  // namespace lci
 

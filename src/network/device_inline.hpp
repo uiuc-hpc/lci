@@ -62,7 +62,8 @@ inline mr_t device_impl_t::register_memory(void* address, size_t size)
 {
   mr_t mr;
   // reg cache does not like size 0
-  if (attr.use_reg_cache && rcache_handle && size > 0) {
+  if (attr.use_reg_cache && rcache_handle && rcache_handle->is_valid() &&
+      size > 0) {
     mr = rcache_handle->get(address, size);
   } else {
     mr = register_memory_impl(address, size);
@@ -79,7 +80,8 @@ inline mr_t device_impl_t::register_memory(void* address, size_t size)
 inline void device_impl_t::deregister_memory(mr_impl_t* mr)
 {
   LCI_DBG_Log(LOG_TRACE, "network", "deregister_memory mr %p\n", mr);
-  if (attr.use_reg_cache && rcache_handle && mr->size > 0) {
+  if (attr.use_reg_cache && rcache_handle && rcache_handle->is_valid() &&
+      mr->size > 0) {
     rcache_handle->put(mr);
   } else {
     deregister_memory_impl(mr);

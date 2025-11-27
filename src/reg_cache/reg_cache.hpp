@@ -18,6 +18,7 @@ class RegCache
 
   mr_t get(void* address, size_t size);
   void put(mr_impl_t* mr);
+  bool is_valid() const;
 
   static constexpr bool is_enabled() noexcept { return LCI_USE_REG_CACHE != 0; }
 
