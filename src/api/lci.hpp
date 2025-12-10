@@ -9,6 +9,7 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <cstdint>
 #include <functional>
 
 #include "lci_config.hpp"
