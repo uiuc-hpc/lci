@@ -1,21 +1,23 @@
 <map id="/home/runner/work/lci/lci/src/api/lci.hpp" name="/home/runner/work/lci/lci/src/api/lci.hpp">
-<area shape="rect" id="Node000001" title=" " alt="" coords="339,5,503,45"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="385,5,549,45"/>
 <area shape="rect" id="Node000002" title=" " alt="" coords="5,93,83,119"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="340,46,97,96,96,90,338,40"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="385,43,97,96,96,90,384,38"/>
 <area shape="rect" id="Node000003" title=" " alt="" coords="107,93,194,119"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="357,48,204,92,202,87,356,43"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="392,48,208,93,207,88,390,43"/>
 <area shape="rect" id="Node000004" title=" " alt="" coords="218,93,281,119"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="381,48,288,90,286,85,379,43"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="416,48,294,91,293,86,414,43"/>
 <area shape="rect" id="Node000005" title=" " alt="" coords="305,93,364,119"/>
-<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="402,48,360,86,356,82,399,44"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="436,48,368,88,365,84,434,43"/>
 <area shape="rect" id="Node000006" title=" " alt="" coords="388,93,455,119"/>
-<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="424,46,424,79,419,79,419,46"/>
-<area shape="rect" id="Node000007" title=" " alt="" coords="479,93,566,119"/>
-<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="447,43,498,82,495,87,444,48"/>
-<area shape="rect" id="Node000008" title=" " alt="" coords="590,93,701,119"/>
-<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="476,43,601,86,599,91,474,48"/>
-<area shape="rect" id="Node000009" href="$d0/de8/lci__binding__pre_8hpp.html" title=" " alt="" coords="725,93,873,119"/>
-<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="504,41,731,88,730,93,503,46"/>
-<area shape="rect" id="Node000010" href="$d7/d8c/lci__binding__post_8hpp.html" title=" " alt="" coords="897,93,1052,119"/>
-<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="504,36,883,89,883,94,503,41"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="458,47,437,83,433,80,453,44"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="479,93,545,119"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="480,44,501,80,496,83,475,47"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="570,93,657,119"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="503,43,581,84,578,89,501,48"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="681,93,791,119"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="532,43,684,87,683,92,530,48"/>
+<area shape="rect" id="Node000010" href="$d0/de8/lci__binding__pre_8hpp.html" title=" " alt="" coords="815,93,963,119"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="550,39,815,88,814,93,549,45"/>
+<area shape="rect" id="Node000011" href="$d7/d8c/lci__binding__post_8hpp.html" title=" " alt="" coords="988,93,1143,119"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="550,35,975,90,974,95,549,40"/>
 </map>
