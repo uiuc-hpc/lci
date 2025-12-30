@@ -125,7 +125,7 @@ No additional `srun` arguments are needed to run LCI applications. However, we h
 
 Use `srun --mpi=pmi2` or `srun --mpi=pmix` to run LCI applications.
 
-(Experimental feature: you can try passing `-DLCI_USE_CUDA` to CMake to enable GPU direct communication.)
+(Experimental feature: you can try passing `-DLCI_USE_CUDA` to CMake to enable GPU direct communication. See @ref gpu_direct_rdma.)
 </details>
 
 ### SDSC Expanse
