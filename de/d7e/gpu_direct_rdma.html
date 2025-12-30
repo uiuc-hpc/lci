@@ -140,14 +140,14 @@ $(function(){initNavTree('de/d7e/gpu_direct_rdma.html','../../'); initResizable(
     <a href="#autotoc_md45">Example</a>
   </li>
   <li class="level1">
-    <a href="#autotoc_md46">Caveats</a>
+    <a href="#autotoc_md46">Notes</a>
   </li>
 </ul>
 </div>
 <div class="textblock"><h1><a class="anchor" id="autotoc_md40"></a>
 Overview</h1>
-<p>LCI can send/receive/put/get GPU-resident buffers directly over RDMA, as long as the backend and driver stack support GPU Direct RDMA.</p>
-<p>This document summarizes the required steps and caveats.</p>
+<p>LCI can send/receive/put/get GPU-resident buffers directly over RDMA, as long as the hardware and driver stack support GPU Direct RDMA.</p>
+<p>This document summarizes the required steps and notes.</p>
 <h1><a class="anchor" id="autotoc_md41"></a>
 Requirements</h1>
 <h2><a class="anchor" id="autotoc_md42"></a>
@@ -161,17 +161,49 @@ Requirements</h1>
 <p>LCI needs to know that a buffer is device memory. You can satisfy this in two ways:</p>
 <ul>
 <li>Explicitly register the buffer using <code><a class="el" href="../../d5/dd3/namespacelci.html#aaf51f7172447f6fb23b5f98f6e124ff9">lci::register_memory</a></code>. LCI will detect that the buffer is GPU memory and register it accordingly.</li>
-<li>Use the OFF optional argument <code>mr</code> and set it to <code>MR_DEVICE</code> or <code>MR_UNKNOWN</code> when posting operations. <code>MR_UNKNOWN</code> lets LCI detect the memory type at runtime.</li>
+<li>Use the optional argument <code>mr</code> and set it to <code>MR_DEVICE</code> or <code>MR_UNKNOWN</code> when posting operations. <code>MR_UNKNOWN</code> lets LCI detect the memory type at runtime.</li>
 </ul>
 <h2><a class="anchor" id="autotoc_md44"></a>
 3) Pass GPU buffers to communication APIs</h2>
-<p>Make sure the buffer pointer passed to send/recv/put/get APIs refers to GPU memory (e.g., a CUDA device pointer), not a host buffer.</p>
+<p>Just pass GPU memory pointers to send/recv/put/get APIs as usual.</p>
 <h1><a class="anchor" id="autotoc_md45"></a>
 Example</h1>
-<p>Refer to <code>tests/unit/accelerator</code> for examples of using LCI with GPU Direct RDMA.</p>
+<p>Sending a GPU buffer with automatic memory registration: </p><div class="fragment"><div class="line"><span class="comment">// If you know the buffer is GPU memory:</span></div>
+<div class="line"><a class="code hl_struct" href="../../d9/d1e/structlci_1_1status__t.html">lci::status_t</a> status = <a class="code hl_class" href="../../d6/de4/classlci_1_1post__send__x.html">lci::post_send_x</a>(rank, gpu_buffer, msg_size, tag, comp).<a class="code hl_function" href="../../d6/de4/classlci_1_1post__send__x.html#a2e62e9494b0b5583444ef84fa583af67">mr</a>(<a class="code hl_variable" href="../../d8/d33/group__LCI__BASIC.html#ga2cc416fbc8296eeda00c5fc9f977e317">lci::MR_DEVICE</a>)();</div>
+<div class="line"><span class="comment">// If you are unsure about the memory type, use MR_UNKNOWN:</span></div>
+<div class="line"><a class="code hl_struct" href="../../d9/d1e/structlci_1_1status__t.html">lci::status_t</a> status = <a class="code hl_class" href="../../d6/de4/classlci_1_1post__send__x.html">lci::post_send_x</a>(rank, generic_buffer, msg_size, tag, comp).<a class="code hl_function" href="../../d6/de4/classlci_1_1post__send__x.html#a2e62e9494b0b5583444ef84fa583af67">mr</a>(<a class="code hl_variable" href="../../d8/d33/group__LCI__BASIC.html#gaabecf4e5e33664a291f2f6162e93b5d7">lci::MR_UNKNOWN</a>)();</div>
+<div class="ttc" id="aclasslci_1_1post__send__x_html"><div class="ttname"><a href="../../d6/de4/classlci_1_1post__send__x.html">lci::post_send_x</a></div><div class="ttdoc">The actual implementation for post_send.</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:3227</div></div>
+<div class="ttc" id="aclasslci_1_1post__send__x_html_a2e62e9494b0b5583444ef84fa583af67"><div class="ttname"><a href="../../d6/de4/classlci_1_1post__send__x.html#a2e62e9494b0b5583444ef84fa583af67">lci::post_send_x::mr</a></div><div class="ttdeci">post_send_x &amp;&amp; mr(mr_t mr_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:3263</div></div>
+<div class="ttc" id="agroup__LCI__BASIC_html_ga2cc416fbc8296eeda00c5fc9f977e317"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#ga2cc416fbc8296eeda00c5fc9f977e317">lci::MR_DEVICE</a></div><div class="ttdeci">const mr_t MR_DEVICE</div><div class="ttdoc">A special mr_t value for device memory.</div><div class="ttdef"><b>Definition</b> lci.hpp:313</div></div>
+<div class="ttc" id="agroup__LCI__BASIC_html_gaabecf4e5e33664a291f2f6162e93b5d7"><div class="ttname"><a href="../../d8/d33/group__LCI__BASIC.html#gaabecf4e5e33664a291f2f6162e93b5d7">lci::MR_UNKNOWN</a></div><div class="ttdeci">const mr_t MR_UNKNOWN</div><div class="ttdoc">A special mr_t value for unknown memory. LCI will detect the memory type automatically.</div><div class="ttdef"><b>Definition</b> lci.hpp:320</div></div>
+<div class="ttc" id="astructlci_1_1status__t_html"><div class="ttname"><a href="../../d9/d1e/structlci_1_1status__t.html">lci::status_t</a></div><div class="ttdoc">The type of the completion desciptor for a posted communication.</div><div class="ttdef"><b>Definition</b> lci.hpp:446</div></div>
+</div><!-- fragment --><p>Alternatively, You can explicitly register a GPU buffer and using it in a send operation: </p><div class="fragment"><div class="line"><a class="code hl_class" href="../../d7/d1a/classlci_1_1mr__t.html">lci::mr_t</a> mr = <a class="code hl_function" href="../../d5/dd3/namespacelci.html#aaf51f7172447f6fb23b5f98f6e124ff9">lci::register_memory</a>(gpu_buffer, size);</div>
+<div class="line"><a class="code hl_struct" href="../../d9/d1e/structlci_1_1status__t.html">lci::status_t</a> status = <a class="code hl_class" href="../../d6/de4/classlci_1_1post__send__x.html">lci::post_send_x</a>(rank, gpu_buffer, msg_size, tag, comp).<a class="code hl_function" href="../../d6/de4/classlci_1_1post__send__x.html#a2e62e9494b0b5583444ef84fa583af67">mr</a>(mr)();</div>
+<div class="line"><span class="comment">// You can also use part of the registered region for communication</span></div>
+<div class="line"><a class="code hl_struct" href="../../d9/d1e/structlci_1_1status__t.html">lci::status_t</a> status = <a class="code hl_class" href="../../d6/de4/classlci_1_1post__send__x.html">lci::post_send_x</a>(rank, gpu_buffer + offset, smaller_size, tag, comp).<a class="code hl_function" href="../../d6/de4/classlci_1_1post__send__x.html#a2e62e9494b0b5583444ef84fa583af67">mr</a>(mr)();</div>
+<div class="line">...</div>
+<div class="line">lci::deregister_memory(mr);</div>
+<div class="ttc" id="aclasslci_1_1mr__t_html"><div class="ttname"><a href="../../d7/d1a/classlci_1_1mr__t.html">lci::mr_t</a></div><div class="ttdoc">The actual implementation for RESOURCE mr.</div><div class="ttdef"><b>Definition</b> lci_binding_pre.hpp:439</div></div>
+<div class="ttc" id="anamespacelci_html_aaf51f7172447f6fb23b5f98f6e124ff9"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#aaf51f7172447f6fb23b5f98f6e124ff9">lci::register_memory</a></div><div class="ttdeci">mr_t register_memory(void *address_in, size_t size_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:1123</div></div>
+</div><!-- fragment --><p>Same for put/get operations: </p><div class="fragment"><div class="line"><span class="comment">// Register the GPU buffer and exchange the rmr_t with all processes</span></div>
+<div class="line"><a class="code hl_class" href="../../d7/d1a/classlci_1_1mr__t.html">lci::mr_t</a> mr = <a class="code hl_function" href="../../d5/dd3/namespacelci.html#aaf51f7172447f6fb23b5f98f6e124ff9">lci::register_memory</a>(gpu_buffer, size);</div>
+<div class="line"><a class="code hl_struct" href="../../da/d8d/structlci_1_1rmr__t.html">lci::rmr_t</a> rmr = <a class="code hl_function" href="../../d5/dd3/namespacelci.html#ab6480639b459da398972da8c1f854646">lci::get_rmr</a>(mr);</div>
+<div class="line">std::vector&lt;lci::rmr_t&gt; rmrs;</div>
+<div class="line"><a class="code hl_function" href="../../d5/dd3/namespacelci.html#acfab5281c6310f13d1a4c36fb164e89d">lci::allgather</a>(&amp;rmr, rmrs.data(), <span class="keyword">sizeof</span>(<a class="code hl_struct" href="../../da/d8d/structlci_1_1rmr__t.html">lci::rmr_t</a>));</div>
+<div class="line"><span class="comment">// Perform put/get operation</span></div>
+<div class="line"><a class="code hl_struct" href="../../d9/d1e/structlci_1_1status__t.html">lci::status_t</a> status = <a class="code hl_class" href="../../d7/d85/classlci_1_1post__put__x.html">lci::post_put_x</a>(rank, local_gpu_buffer, size, comp, remote_offset, rmrs[rank]).<a class="code hl_function" href="../../d7/d85/classlci_1_1post__put__x.html#ade34aae8efdd4222af3a16bf0dc5da18">mr</a>(mr)();</div>
+<div class="line">...</div>
+<div class="line">lci::deregister_memory(mr);</div>
+<div class="ttc" id="aclasslci_1_1post__put__x_html"><div class="ttname"><a href="../../d7/d85/classlci_1_1post__put__x.html">lci::post_put_x</a></div><div class="ttdoc">The actual implementation for post_put.</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:3392</div></div>
+<div class="ttc" id="aclasslci_1_1post__put__x_html_ade34aae8efdd4222af3a16bf0dc5da18"><div class="ttname"><a href="../../d7/d85/classlci_1_1post__put__x.html#ade34aae8efdd4222af3a16bf0dc5da18">lci::post_put_x::mr</a></div><div class="ttdeci">post_put_x &amp;&amp; mr(mr_t mr_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:3429</div></div>
+<div class="ttc" id="anamespacelci_html_ab6480639b459da398972da8c1f854646"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#ab6480639b459da398972da8c1f854646">lci::get_rmr</a></div><div class="ttdeci">rmr_t get_rmr(mr_t mr_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:1197</div></div>
+<div class="ttc" id="anamespacelci_html_acfab5281c6310f13d1a4c36fb164e89d"><div class="ttname"><a href="../../d5/dd3/namespacelci.html#acfab5281c6310f13d1a4c36fb164e89d">lci::allgather</a></div><div class="ttdeci">void allgather(const void *sendbuf_in, void *recvbuf_in, size_t size_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:2965</div></div>
+<div class="ttc" id="astructlci_1_1rmr__t_html"><div class="ttname"><a href="../../da/d8d/structlci_1_1rmr__t.html">lci::rmr_t</a></div><div class="ttdoc">The type of remote memory region.</div><div class="ttdef"><b>Definition</b> lci.hpp:333</div></div>
+</div><!-- fragment --><p>Refer to <code>tests/unit/accelerator</code> for a complete example of using LCI with GPU Direct RDMA.</p>
 <h1><a class="anchor" id="autotoc_md46"></a>
-Caveats</h1>
+Notes</h1>
 <ul>
+<li>Currently, LCI only supports NVIDIA GPUs. Other vendors will be supported in the future.</li>
 <li>It is challenging to make Active messages GPU-direct because receive buffers are allocated by LCI on the host. If you need GPU-resident AM receives, overload the packet pool with a GPU-aware allocator. </li>
 </ul>
 </div></div><!-- contents -->

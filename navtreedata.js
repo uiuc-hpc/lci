@@ -90,7 +90,7 @@ var NAVTREE =
         [ "3) Pass GPU buffers to communication APIs", "de/d7e/gpu_direct_rdma.html#autotoc_md44", null ]
       ] ],
       [ "Example", "de/d7e/gpu_direct_rdma.html#autotoc_md45", null ],
-      [ "Caveats", "de/d7e/gpu_direct_rdma.html#autotoc_md46", null ]
+      [ "Notes", "de/d7e/gpu_direct_rdma.html#autotoc_md46", null ]
     ] ],
     [ "API Documentation", "topics.html", "topics" ]
   ] ]
