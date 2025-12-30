@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['3_0',['3',['../d1/d70/Changelog_1_7_3.html#autotoc_md6',1,'Change log for LCI v1.7.3'],['../d1/d70/Changelog_1_7_3.html',1,'Changelog v1.7.3']]]
+  ['1_20enable_20cuda_20support_20at_20build_20time_0',['1) Enable CUDA support at build time',['../de/d7e/gpu_direct_rdma.html#autotoc_md42',1,'']]]
 ];

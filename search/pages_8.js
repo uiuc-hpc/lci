@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['frequently_20asked_20questions_0',['Frequently Asked Questions',['../d3/d2d/faq.html',1,'']]]
+  ['direct_20rdma_0',['GPU Direct RDMA',['../de/d7e/gpu_direct_rdma.html',1,'']]]
 ];

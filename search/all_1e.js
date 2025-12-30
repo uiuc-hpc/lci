@@ -1,4 +1,22 @@
 var searchData=
 [
-  ['zero_5fcopy_5fam_0',['zero_copy_am',['../dc/da6/structlci_1_1comp__attr__t.html#a5fb6bb4a87ca7dbb03fa93a0c1723f25',1,'lci::comp_attr_t::zero_copy_am'],['../d8/d0c/structlci_1_1global__attr__t.html#a517077a08c454e325ad2523516573d95',1,'lci::global_attr_t::zero_copy_am'],['../dd/da4/classlci_1_1alloc__sync__x.html#ad6712174ab3ca0b0a6ebf6e51ec311e9',1,'lci::alloc_sync_x::zero_copy_am()'],['../d9/dcc/classlci_1_1alloc__cq__x.html#a2624007487c5ea0e802af4e3b82746e2',1,'lci::alloc_cq_x::zero_copy_am()'],['../d7/d0f/classlci_1_1alloc__handler__x.html#a9b606b63467ecf4c1ccead21470f3d14',1,'lci::alloc_handler_x::zero_copy_am()']]]
+  ['wait_5fdrained_0',['wait_drained',['../d5/dd3/namespacelci.html#a365c44aaf143cef9ec2bac09a7dbc359',1,'lci::wait_drained()'],['../d6/d7b/group__LCI__WAIT__DRAINED.html',1,'wait_drained']]],
+  ['wait_5fdrained_5fx_1',['wait_drained_x',['../dc/d66/classlci_1_1wait__drained__x.html',1,'lci::wait_drained_x'],['../dc/d66/classlci_1_1wait__drained__x.html#a65fffdc82bfedd0e8f5e24de228e3f20',1,'lci::wait_drained_x::wait_drained_x()']]],
+  ['was_20my_20lci_20application_20launched_20as_20a_20collection_20of_20processes_20all_20with_20rank_200_2',['Why was my LCI application launched as a collection of processes all with rank 0?',['../d3/d2d/faq.html#autotoc_md36',1,'']]],
+  ['what_20is_20lct_3',['What is LCT?',['../d3/d2d/faq.html#autotoc_md39',1,'']]],
+  ['why_20does_20tt_20lcrun_20tt_20not_20work_4',['Why does &lt;tt&gt;lcrun&lt;/tt&gt; not work?',['../d3/d2d/faq.html#autotoc_md37',1,'']]],
+  ['why_20was_20my_20lci_20application_20launched_20as_20a_20collection_20of_20processes_20all_20with_20rank_200_5',['Why was my LCI application launched as a collection of processes all with rank 0?',['../d3/d2d/faq.html#autotoc_md36',1,'']]],
+  ['with_20cmake_6',['With CMake',['../db/d4e/tutorial.html#autotoc_md52',1,'']]],
+  ['with_20lcrun_7',['Run LCI applications with lcrun',['../db/d4e/tutorial.html#autotoc_md86',1,'']]],
+  ['with_20mpirun_8',['Run LCI applications with mpirun',['../db/d4e/tutorial.html#autotoc_md88',1,'']]],
+  ['with_20rank_200_9',['Why was my LCI application launched as a collection of processes all with rank 0?',['../d3/d2d/faq.html#autotoc_md36',1,'']]],
+  ['with_20spack_10',['With Spack',['../db/d4e/tutorial.html#autotoc_md56',1,'']]],
+  ['with_20srun_11',['Run LCI applications with srun',['../db/d4e/tutorial.html#autotoc_md87',1,'']]],
+  ['work_12',['Why does &lt;tt&gt;lcrun&lt;/tt&gt; not work?',['../d3/d2d/faq.html#autotoc_md37',1,'']]],
+  ['world_13',['Hello World',['../db/d4e/tutorial.html#autotoc_md80',1,'']]],
+  ['world_20active_20message_14',['Hello World (Active Message)',['../db/d4e/tutorial.html#autotoc_md81',1,'']]],
+  ['write_15',['WRITE',['../d8/d33/group__LCI__BASIC.html#gga5738a9cd7c46e12f45e2fbf0fca0b895ad4b9e47f65b6e79b010582f15785867e',1,'lci']]],
+  ['write_16',['write',['../d5/dd3/namespacelci.html#a5d9fc0c5909442efe3ed8c69fea17cd8aefb2a684e4afb7d55e6147fbe5a332ee',1,'lci']]],
+  ['write_20lci_20programs_17',['Write LCI programs',['../db/d4e/tutorial.html#autotoc_md64',1,'']]],
+  ['writeimm_18',['writeimm',['../d5/dd3/namespacelci.html#a5d9fc0c5909442efe3ed8c69fea17cd8a642768a088c1b8c97c8f798559686530',1,'lci']]]
 ];

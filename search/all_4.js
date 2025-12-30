@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['6_0',['6',['../df/d94/Changelog_1_7_6.html#autotoc_md21',1,'Change log for LCI v1.7.6'],['../df/d94/Changelog_1_7_6.html',1,'Changelog v1.7.6']]]
+  ['4_0',['4',['../dd/d2d/Changelog_1_7_4.html#autotoc_md11',1,'Change log for LCI v1.7.4'],['../dd/d2d/Changelog_1_7_4.html',1,'Changelog v1.7.4']]]
 ];

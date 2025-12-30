@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['logs_0',['Change Logs',['../dd/dbb/changelogs.html',1,'']]]
+  ['frequently_20asked_20questions_0',['Frequently Asked Questions',['../d3/d2d/faq.html',1,'']]]
 ];
