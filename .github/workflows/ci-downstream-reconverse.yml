@@ -49,7 +49,8 @@ jobs:
                 -DCMAKE_VERBOSE_MAKEFILE=ON \
                 -DRECONVERSE_AUTOFETCH_LCI2=ON \
                 -DRECONVERSE_TEST_LAUNCHER=${{ github.workspace }}/lci/lcrun \
-                -DFETCHCONTENT_SOURCE_DIR_LCI=${{ github.workspace }}/lci
+                -DFETCHCONTENT_SOURCE_DIR_LCI=${{ github.workspace }}/lci \
+                -DCMK_TASKQUEUE=ON
 
       - name: Build
         shell: bash
