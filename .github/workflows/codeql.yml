@@ -1,0 +1,69 @@
+name: "CodeQL"
+
+on:
+  push:
+    branches: [ "master", "develop" ]
+  pull_request:
+    branches: [ "master", "develop" ]
+  schedule:
+    - cron: '0 2 * * 1'  # weekly
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'cpp', 'python' ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+
+    - name: Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install Dependencies (Linux)
+      if: matrix.language == 'cpp'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake ninja-build libfabric-bin libfabric-dev
+
+    - name: Configure
+      if: matrix.language == 'cpp'
+      shell: bash
+      run: |
+          CMAKE_ARGS="
+            -Bbuild
+            -GNinja
+            -DCMAKE_BUILD_TYPE=Debug
+            -DLCI_DEBUG=ON
+            -DLCI_NETWORK_BACKENDS=ofi,ibv
+            -DLCI_USE_TCMALLOC=OFF
+            -DCMAKE_VERBOSE_MAKEFILE=ON
+          "
+
+          cmake -LA $CMAKE_ARGS .
+
+    - name: Build
+      if: matrix.language == 'cpp'
+      shell: bash
+      run: |
+          cmake --build build --target all
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
