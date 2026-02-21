@@ -274,7 +274,9 @@ void wire_gid_to_gid(const char* wgid, union ibv_gid* gid)
 
   for (tmp[8] = 0, i = 0; i < 4; ++i) {
     memcpy(tmp, wgid + i * 8, 8);
-    sscanf(tmp, "%x", &v32);
+    int ret = sscanf(tmp, "%x", &v32);
+    LCI_Assert(ret == 1, "Failed to parse GID component %d from '%s'\n", i,
+               tmp);
     tmp_gid[i] = be32toh(v32);
   }
   memcpy(gid, tmp_gid, sizeof(*gid));

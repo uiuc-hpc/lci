@@ -114,17 +114,17 @@ void runtime_impl_t::initialize()
     // collective matching engine is for internal use only
     default_coll_matching_engine = alloc_matching_engine_x().runtime(runtime)();
   }
-  if (default_net_context.get_attr().backend == attr_backend_t::ofi &&
-      default_net_context.get_attr().ofi_provider_name == "cxi") {
-    // special setting for libfabric/cxi
-    // LCI_Assert(attr.use_reg_cache == false,
-    //            "The registration cache should be turned off "
-    //            "for libfabric cxi backend. Use `export LCI_USE_DREG=0`.\n");
-    // LCI_Assert(attr.use_control_channel == 0,
-    //            "The progress-specific network endpoint "
-    //            "for libfabric cxi backend. Use `export "
-    //            "LCI_ENABLE_PRG_NET_ENDPOINT=0`.\n");
-  }
+  // if (default_net_context.get_attr().backend == attr_backend_t::ofi &&
+  //     default_net_context.get_attr().ofi_provider_name == "cxi") {
+  // special setting for libfabric/cxi
+  // LCI_Assert(attr.use_reg_cache == false,
+  //            "The registration cache should be turned off "
+  //            "for libfabric cxi backend. Use `export LCI_USE_DREG=0`.\n");
+  // LCI_Assert(attr.use_control_channel == 0,
+  //            "The progress-specific network endpoint "
+  //            "for libfabric cxi backend. Use `export "
+  //            "LCI_ENABLE_PRG_NET_ENDPOINT=0`.\n");
+  // }
   if (attr.alloc_default_packet_pool) {
     default_packet_pool = alloc_packet_pool_x().runtime(runtime)();
   }
