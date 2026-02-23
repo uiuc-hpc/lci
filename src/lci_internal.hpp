@@ -1,4 +1,4 @@
-// Copyright (c) 2025 The LCI Project Authors
+// Copyright (c) 2025-2026 The LCI Project Authors
 // SPDX-License-Identifier: NCSA
 
 #ifndef LCI_LCI_INTERNAL_HPP
@@ -30,9 +30,9 @@
 #include "bootstrap/bootstrap.hpp"
 #include "reg_cache/reg_cache.hpp"
 #include "backlog_queue/backlog_queue.hpp"
-#ifdef LCI_USE_CUDA
+#if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
 #include "accelerator/accelerator.hpp"
-#endif  // LCI_USE_CUDA
+#endif  // LCI_USE_CUDA || LCI_USE_HIP
 #include "network/network.hpp"
 #ifdef LCI_BACKEND_ENABLE_IBV
 #include "network/ibv/backend_ibv.hpp"

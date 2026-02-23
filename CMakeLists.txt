@@ -308,6 +308,19 @@ if(NOT LCI_WITH_LCT_ONLY)
   # GPU related options
   # ############################################################################
   option(LCI_USE_CUDA "Build with GPU Direct Communication (CUDA) support" OFF)
+  option(LCI_USE_HIP "Build with GPU Direct Communication (HIP/ROCm) support"
+         OFF)
+
+  # Check for mutual exclusion between CUDA and HIP
+  if(LCI_USE_CUDA AND LCI_USE_HIP)
+    message(
+      FATAL_ERROR
+        "LCI_USE_CUDA and LCI_USE_HIP cannot be enabled simultaneously. "
+        "Please choose one GPU vendor at compile time. "
+        "For heterogeneous clusters with different GPU vendors, "
+        "compile separate binaries for each node type.")
+  endif()
+
   if(LCI_USE_CUDA)
     include(CudaHelpers)
     # Read CMAKE_CUDA_STANDARD or CMAKE_CXX_STANDARD and store in
@@ -346,6 +359,41 @@ if(NOT LCI_WITH_LCT_ONLY)
     set_target_cuda_architectures(LCI ARCHITECTURES ${LCI_CUDA_ARCH})
     set_target_cuda_warnings_and_errors(LCI WARN_AS_ERROR
                                         ${LCI_BUILD_WARN_AS_ERROR})
+  endif()
+
+  if(LCI_USE_HIP)
+    include(HipHelpers)
+    # Read CMAKE_HIP_STANDARD or CMAKE_CXX_STANDARD and store in
+    # LCI_HIP_STANDARD
+    infer_hip_standard(LCI_HIP_STANDARD)
+
+    set(LCI_HIP_STANDARD
+        "${LCI_HIP_STANDARD}"
+        CACHE STRING "The HIP C++ standard to use (17, 20, etc.)" FORCE)
+
+    # Enable the HIP language and find the HIP/ROCm toolkit
+    enable_hip_language_and_find_hip()
+
+    # Populate the LCI_HIP_ARCH list, defaulting to common HIP archs if unset
+    populate_hip_archs_list(LCI_HIP_ARCH)
+
+    set(LCI_HIP_ARCH
+        "${LCI_HIP_ARCH}"
+        CACHE
+          STRING
+          "Comma (or semicolon) separated list of HIP architectures to build for (e.g. gfx90a,gfx942)"
+          FORCE)
+
+    # Link against HIP runtime
+    target_link_libraries(LCI PRIVATE hip::host)
+
+    set_target_hip_standard(LCI STANDARD ${LCI_HIP_STANDARD})
+    set_target_hip_architectures(LCI ARCHITECTURES ${LCI_HIP_ARCH})
+    set_target_hip_warnings_and_errors(LCI WARN_AS_ERROR
+                                       ${LCI_BUILD_WARN_AS_ERROR})
+
+    message(STATUS "LCI_HIP_STANDARD = ${LCI_HIP_STANDARD}")
+    message(STATUS "LCI_HIP_ARCH = ${LCI_HIP_ARCH}")
   endif()
 
   # ############################################################################

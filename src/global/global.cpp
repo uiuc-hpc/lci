@@ -1,4 +1,4 @@
-// Copyright (c) 2025 The LCI Project Authors
+// Copyright (c) 2025-2026 The LCI Project Authors
 // SPDX-License-Identifier: NCSA
 
 #include "lci_internal.hpp"
@@ -151,9 +151,9 @@ void global_initialize()
   // Initialize global configuration.
   global_config_initialize();
   pcounter_init();
-#ifdef LCI_USE_CUDA
+#if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
   accelerator::initialize();
-#endif  // LCI_USE_CUDA
+#endif  // LCI_USE_CUDA || LCI_USE_HIP
   g_is_active = true;
 }
 
@@ -162,9 +162,9 @@ void global_finalize()
   if (--global_ini_counter > 0) return;
 
   g_is_active = false;
-#ifdef LCI_USE_CUDA
+#if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
   accelerator::finalize();
-#endif  // LCI_USE_CUDA
+#endif  // LCI_USE_CUDA || LCI_USE_HIP
   pcounter_fina();
   bootstrap::finalize();
   log_finalize();

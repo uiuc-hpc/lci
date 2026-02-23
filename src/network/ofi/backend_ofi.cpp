@@ -1,4 +1,4 @@
-// Copyright (c) 2025 The LCI Project Authors
+// Copyright (c) 2025-2026 The LCI Project Authors
 // SPDX-License-Identifier: NCSA
 
 #include "lci_internal.hpp"
@@ -57,12 +57,12 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   hints->domain_attr->threading = FI_THREAD_SAFE;
   hints->tx_attr->inject_size = attr.max_inject_size;
   hints->caps = FI_RMA | FI_MSG;
-#ifdef LCI_USE_CUDA
+#if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
 #ifndef FI_HMEM
 #error "The current libfabric version does not have GPU support"
 #endif  // FI_HMEM
   hints->caps |= FI_HMEM;
-#endif  // LCI_USE_CUDA
+#endif  // LCI_USE_CUDA || LCI_USE_HIP
 
   // Create ofi_info.
   struct fi_info* all_infos;
@@ -316,13 +316,18 @@ mr_t ofi_device_impl_t::register_memory_impl(void* buffer, size_t size)
                    FI_REMOTE_WRITE | FI_REMOTE_READ;
   mr_attr.requested_key = rdma_key;
   mr_attr.iface = FI_HMEM_SYSTEM;
-#ifdef LCI_USE_CUDA
+#if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
   ret.get_impl()->acc_attr = accelerator::get_buffer_attr(buffer);
   if (ret.get_impl()->acc_attr.type == accelerator::buffer_type_t::DEVICE) {
+#ifdef LCI_USE_CUDA
     mr_attr.iface = FI_HMEM_CUDA;
     mr_attr.device.cuda = ret.get_impl()->acc_attr.device;
+#elif defined(LCI_USE_HIP)
+    mr_attr.iface = FI_HMEM_ROCR;
+    mr_attr.device.rocr = ret.get_impl()->acc_attr.device;
+#endif
   }
-#endif  // LCI_USE_CUDA
+#endif  // LCI_USE_CUDA || LCI_USE_HIP
 
   struct fid_mr* ofi_mr;
   FI_SAFECALL(fi_mr_regattr(ofi_domain, &mr_attr, 0, &ofi_mr));

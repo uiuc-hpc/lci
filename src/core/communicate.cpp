@@ -1,4 +1,4 @@
-// Copyright (c) 2025 The LCI Project Authors
+// Copyright (c) 2025-2026 The LCI Project Authors
 // SPDX-License-Identifier: NCSA
 
 #include "lci_internal.hpp"
@@ -80,7 +80,7 @@ void preprocess_args(post_comm_args_t& args)
   }
 
   // handle MR_UNKNOWN
-#ifdef LCI_USE_CUDA
+#if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
   if (args.mr == MR_UNKNOWN) {
     // if the mr is unknown, we need to determine the location of the buffer
     accelerator::buffer_attr_t attr =
@@ -95,7 +95,7 @@ void preprocess_args(post_comm_args_t& args)
       LCI_Assert(false, "Unknown buffer type %d\n", attr.type);
     }
   }
-#endif  // LCI_USE_CUDA
+#endif  // LCI_USE_CUDA || LCI_USE_HIP
 }
 
 post_comm_traits_t validate_and_get_traits(const post_comm_args_t& args)
@@ -149,13 +149,13 @@ void set_protocol(const post_comm_args_t& args,
                   const post_comm_traits_t& traits, post_comm_state_t& state)
 {
   bool force_zcopy = false;
-#ifdef LCI_USE_CUDA
+#if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
   if (args.mr == MR_DEVICE ||
       (!args.mr.is_empty() && args.mr.get_impl()->acc_attr.type ==
                                   accelerator::buffer_type_t::DEVICE)) {
     force_zcopy = true;
   }
-#endif  // LCI_USE_CUDA
+#endif  // LCI_USE_CUDA || LCI_USE_HIP
   // determine the message size if we are using the eager protocol
   size_t msg_size_if_eager = args.size;
   if (args.direction == direction_t::OUT && state.rhandler) {

@@ -233,12 +233,17 @@ buffer_attr_t get_buffer_attr(const void* ptr)
   return attr_ret;
 }
 
-int get_dmabuf_fd(const void* ptr, size_t size)
+int get_dmabuf_fd(const void* ptr, size_t size, uint64_t* offset)
 {
   int dmabuf_fd = -1;
   CU_CHECK(
       cuMemGetHandleForAddressRange((void*)&dmabuf_fd, (CUdeviceptr)ptr, size,
                                     CU_MEM_RANGE_HANDLE_TYPE_DMA_BUF_FD, 0));
+  // CUDA's cuMemGetHandleForAddressRange exports a DMA-BUF starting at the
+  // requested address, so the offset within the DMA-BUF is always 0.
+  if (offset) {
+    *offset = 0;
+  }
   return dmabuf_fd;
 }
 

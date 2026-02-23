@@ -1,4 +1,4 @@
-// Copyright (c) 2025 The LCI Project Authors
+// Copyright (c) 2025-2026 The LCI Project Authors
 // SPDX-License-Identifier: NCSA
 
 #include "lci_internal.hpp"
@@ -278,7 +278,7 @@ mr_t ibv_device_impl_t::register_memory_impl(void* buffer, size_t size)
       mr_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ |
                  IBV_ACCESS_REMOTE_WRITE;
     }
-#ifdef LCI_USE_CUDA
+#if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
     mr->acc_attr = accelerator::get_buffer_attr(buffer);
     mr->dmabuf_fd = -1;
     mr->ibv_mr = nullptr;
@@ -292,12 +292,14 @@ mr_t ibv_device_impl_t::register_memory_impl(void* buffer, size_t size)
            page_size) *
           page_size;
       if (mr->acc_attr.type == accelerator::buffer_type_t::DEVICE) {
-        mr->dmabuf_fd = accelerator::get_dmabuf_fd(p, size_aligned);
+        uint64_t dmabuf_offset = 0;
+        mr->dmabuf_fd =
+            accelerator::get_dmabuf_fd(p, size_aligned, &dmabuf_offset);
         if (mr->dmabuf_fd == -1) {
           LCI_Warn("Failed to get dmabuf fd\n");
         } else {
-          mr->ibv_mr = ibv_reg_dmabuf_mr(ib_pd, 0, size_aligned, (uint64_t)p,
-                                         mr->dmabuf_fd, mr_flags);
+          mr->ibv_mr = ibv_reg_dmabuf_mr(ib_pd, dmabuf_offset, size_aligned,
+                                         (uint64_t)p, mr->dmabuf_fd, mr_flags);
           if (mr->ibv_mr == nullptr) {
             LCI_Warn("Failed to register dmabuf mr. Errno: %d (%s)\n", errno,
                      strerror(errno));
@@ -317,11 +319,11 @@ mr_t ibv_device_impl_t::register_memory_impl(void* buffer, size_t size)
       }
     }
     if (mr->ibv_mr == nullptr) {
-#endif  // LCI_USE_CUDA
+#endif  // LCI_USE_CUDA || LCI_USE_HIP
       mr->ibv_mr = ibv_reg_mr(ib_pd, buffer, size, mr_flags);
-#ifdef LCI_USE_CUDA
+#if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
     }
-#endif  // LCI_USE_CUDA
+#endif  // LCI_USE_CUDA || LCI_USE_HIP
     LCI_Assert(mr->ibv_mr,
                "register_memory_impl(%p, %lu): Failed to register memory.  "
                "Errno: %d (%s)",
@@ -367,11 +369,11 @@ void ibv_device_impl_t::deregister_memory_impl(mr_impl_t* mr_impl)
   } else {
     auto p_ibv_mr = static_cast<ibv_mr_impl_t*>(mr_impl);
     IBV_SAFECALL(ibv_dereg_mr(p_ibv_mr->ibv_mr));
-#ifdef LCI_USE_CUDA
+#if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
     if (p_ibv_mr->dmabuf_fd != -1) {
       close(p_ibv_mr->dmabuf_fd);
     }
-#endif  // LCI_USE_CUDA
+#endif  // LCI_USE_CUDA || LCI_USE_HIP
     delete p_ibv_mr;
   }
 }

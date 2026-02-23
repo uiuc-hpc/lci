@@ -1,4 +1,4 @@
-// Copyright (c) 2025 The LCI Project Authors
+// Copyright (c) 2025-2026 The LCI Project Authors
 // SPDX-License-Identifier: NCSA
 
 #ifndef LCI_NETWORK_HPP
@@ -91,10 +91,10 @@ class mr_impl_t
   device_t device;
   void* address;
   size_t size;
-#ifdef LCI_USE_CUDA
+#if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
   accelerator::buffer_attr_t acc_attr;
   int dmabuf_fd;
-#endif  // LCI_USE_CUDA
+#endif  // LCI_USE_CUDA || LCI_USE_HIP
   // If non-null, this MR is managed by the registration cache and this points
   // to the owning ucs_rcache_region_t.
   void* rcache_region = nullptr;

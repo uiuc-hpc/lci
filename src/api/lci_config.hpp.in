@@ -1,4 +1,4 @@
-// Copyright (c) 2025 The LCI Project Authors
+// Copyright (c) 2025-2026 The LCI Project Authors
 // SPDX-License-Identifier: NCSA
 
 #ifndef LCI_LCI_CONFIG_H
@@ -50,5 +50,6 @@
 #define LCI_BACKEND_MAX_ENDPOINTS 8
 
 #cmakedefine LCI_USE_CUDA
+#cmakedefine LCI_USE_HIP
 
 #endif  // LCI_LCI_CONFIG_H

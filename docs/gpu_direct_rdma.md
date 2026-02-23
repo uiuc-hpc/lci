@@ -7,14 +7,17 @@
 LCI can send/receive/put/get GPU-resident buffers directly over RDMA, as long as
 the hardware and driver stack support GPU Direct RDMA.
 
+LCI supports both NVIDIA GPUs (via CUDA) and AMD GPUs (via HIP/ROCm).
+
 This document summarizes the required steps and notes.
 
 # Requirements
 
-## 1) Enable CUDA support at build time
+## 1) Enable GPU support at build time
 
-Build LCI with CUDA support enabled:
+Build LCI with CUDA and/or HIP support enabled:
 
+**For NVIDIA GPUs (CUDA):**
 ```bash
 cmake -DLCI_USE_CUDA=ON ...
 ```
@@ -24,6 +27,19 @@ Other CUDA-related options you may want to consider:
 -DLCI_CUDA_ARCH=<your_cuda_architecture>  # e.g., 80 for A100, 90 for H100
 -DLCI_CUDA_STANDARD=<cuda_standard>      # e.g., 20
 ```
+
+**For AMD GPUs (HIP/ROCm):**
+```bash
+cmake -DLCI_USE_HIP=ON ...
+```
+
+Other HIP-related options you may want to consider:
+```bash
+-DLCI_HIP_ARCH=<your_hip_architecture>   # e.g., gfx90a for MI250X, gfx942 for MI300A/MI300X/MI325X, gfx950 for MI350X/MI355X
+-DLCI_HIP_STANDARD=<hip_standard>        # e.g., 20
+```
+
+**Note:** `LCI_USE_CUDA` and `LCI_USE_HIP` are mutually exclusive. Choose the GPU vendor matching your hardware at compile time. For heterogeneous clusters with different GPU vendors on different nodes, compile separate binaries for each node type.
 
 ## 2) Ensure memory registration is GPU-aware
 
@@ -76,7 +92,7 @@ Refer to `tests/unit/accelerator` for a complete example of using LCI with GPU D
 
 # Notes
 
-- Currently, LCI only supports NVIDIA GPUs. Other vendors will be supported in the future.
+- LCI supports both NVIDIA GPUs (CUDA) and AMD GPUs (HIP/ROCm), but they are mutually exclusive at build time.
 - It is challenging to make Active messages GPU-direct because receive buffers are
   allocated by LCI on the host. If you need GPU-resident AM receives, overload the
   packet pool with a GPU-aware allocator.
