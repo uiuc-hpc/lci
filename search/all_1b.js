@@ -9,7 +9,7 @@ var searchData=
   ['test_5fdrained_5fx_6',['test_drained_x',['../d4/d05/classlci_1_1test__drained__x.html',1,'lci::test_drained_x'],['../d4/d05/classlci_1_1test__drained__x.html#a36797ddb9b8efd2561378b43551ca80a',1,'lci::test_drained_x::test_drained_x()']]],
   ['the_20file_20backend_7',['More about the file backend',['../db/d4e/tutorial.html#autotoc_md92',1,'']]],
   ['threshold_8',['threshold',['../dd/da4/classlci_1_1alloc__sync__x.html#a778a0249d3afc6949b987d0caf3fcc78',1,'lci::alloc_sync_x']]],
-  ['time_9',['1) Enable CUDA support at build time',['../de/d7e/gpu_direct_rdma.html#autotoc_md42',1,'']]],
+  ['time_9',['1) Enable GPU support at build time',['../de/d7e/gpu_direct_rdma.html#autotoc_md42',1,'']]],
   ['to_20communication_20apis_10',['3) Pass GPU buffers to communication APIs',['../de/d7e/gpu_direct_rdma.html#autotoc_md44',1,'']]],
   ['to_20your_20project_11',['Add LCI to your project',['../db/d4e/tutorial.html#autotoc_md49',1,'']]],
   ['tree_12',['tree',['../d8/d33/group__LCI__BASIC.html#gga17f1a9c385af13ae641d4a87e113161bac0af77cf8294ff93a5cdb2963ca9f038',1,'lci::tree'],['../d8/d33/group__LCI__BASIC.html#ggaa8f43a876e4e48c4d541773c00e5933aac0af77cf8294ff93a5cdb2963ca9f038',1,'lci::tree'],['../d8/d33/group__LCI__BASIC.html#gga945dde8f47999886ee0f8489452665b9ac0af77cf8294ff93a5cdb2963ca9f038',1,'lci::tree']]],

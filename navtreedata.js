@@ -85,7 +85,7 @@ var NAVTREE =
     [ "GPU Direct RDMA", "de/d7e/gpu_direct_rdma.html", [
       [ "Overview", "de/d7e/gpu_direct_rdma.html#autotoc_md40", null ],
       [ "Requirements", "de/d7e/gpu_direct_rdma.html#autotoc_md41", [
-        [ "1) Enable CUDA support at build time", "de/d7e/gpu_direct_rdma.html#autotoc_md42", null ],
+        [ "1) Enable GPU support at build time", "de/d7e/gpu_direct_rdma.html#autotoc_md42", null ],
         [ "2) Ensure memory registration is GPU-aware", "de/d7e/gpu_direct_rdma.html#autotoc_md43", null ],
         [ "3) Pass GPU buffers to communication APIs", "de/d7e/gpu_direct_rdma.html#autotoc_md44", null ]
       ] ],
