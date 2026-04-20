@@ -62,7 +62,7 @@ function(add_lci_tests)
   cmake_parse_arguments(
     ARG "" "" "COMMANDS;LABELS;TESTS;INCLUDES;DEPENDENCIES;ENVIRONMENT" ${ARGN})
   foreach(name ${ARG_TESTS})
-    string(REGEX REPLACE "\\.[^.]*$" "" name_without_ext ${name})
+    string(REGEX REPLACE "(\\.hip)?\\.[^.]*$" "" name_without_ext ${name})
     add_lci_test(
       test-${ARG_LABELS}-${name_without_ext}
       SOURCES
