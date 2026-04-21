@@ -38,7 +38,14 @@ resource_runtime := resource(
         "brief": "The runtime object.",
     }
 ),
-op_alloc_runtime := operation_alloc(resource_runtime, add_runtime_args=False, init_global=True),
+op_alloc_runtime := operation_alloc(
+    resource_runtime,
+    [
+        optional_arg("std::string", "device_name", "g_default_attr.device_name", comment="The network device name to use for the default network context."),
+    ],
+    add_runtime_args=False,
+    init_global=True
+),
 operation_free(resource_runtime, add_runtime_args=False, fina_global=True),
 operation(
     "g_runtime_init",

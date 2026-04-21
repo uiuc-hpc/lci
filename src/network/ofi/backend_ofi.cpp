@@ -7,16 +7,50 @@ namespace lci
 {
 namespace
 {
-struct fi_info* search_for_prov(struct fi_info* ofi_info, const char* prov_name)
+char* dup_string_or_null(const std::string& value)
 {
-  struct fi_info* cur;
+  if (value.empty()) {
+    return nullptr;
+  }
+  char* ret = static_cast<char*>(malloc(value.size() + 1));
+  strcpy(ret, value.c_str());
+  return ret;
+}
 
-  for (cur = ofi_info; cur; cur = cur->next) {
-    if (strcmp(cur->fabric_attr->prov_name, prov_name) == 0) {
-      return cur;
+bool matches_device_name(struct fi_info* ofi_info,
+                         const std::string& requested_device_name)
+{
+  if (requested_device_name.empty()) {
+    return true;
+  }
+  return ofi_info->domain_attr != nullptr &&
+         ofi_info->domain_attr->name != nullptr &&
+         requested_device_name == ofi_info->domain_attr->name;
+}
+
+struct fi_info* select_info(struct fi_info* ofi_info,
+                            const std::string& requested_device_name)
+{
+  struct fi_info* first_match = nullptr;
+  struct fi_info* cxi_match = nullptr;
+
+  for (struct fi_info* cur = ofi_info; cur; cur = cur->next) {
+    if (!matches_device_name(cur, requested_device_name)) {
+      continue;
+    }
+    if (first_match == nullptr) {
+      first_match = cur;
+    }
+    if (strcmp(cur->fabric_attr->prov_name, "cxi") == 0) {
+      cxi_match = cur;
+      break;
     }
   }
-  return nullptr;
+
+  if (cxi_match != nullptr) {
+    return cxi_match;
+  }
+  return first_match;
 }
 }  // namespace
 
@@ -35,17 +69,12 @@ bool ofi_net_context_impl_t::check_availability()
 ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
     : net_context_impl_t(runtime_, attr_)
 {
-  const char* p = attr.ofi_provider_name.c_str();
-  char* prov_name_hint = nullptr;
-  if (p != nullptr && std::strlen(p) > 0) {
-    prov_name_hint = (char*)malloc(std::strlen(p) + 1);
-    // we don't need to explicitly free prov_name_hint later.
-    // fi_freeinfo(hints) will help us free it.
-    strcpy(prov_name_hint, p);
-  }
+  char* prov_name_hint = dup_string_or_null(attr.ofi_provider_name);
+  char* device_name_hint = dup_string_or_null(attr.device_name);
   struct fi_info* hints;
   hints = fi_allocinfo();
   hints->fabric_attr->prov_name = prov_name_hint;
+  hints->domain_attr->name = device_name_hint;
   hints->ep_attr->type = FI_EP_RDM;
   // not available on all clusters that we have access to.
   // hints->ep_attr->protocol = FI_PROTO_CXI_RNR;
@@ -66,8 +95,18 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
 
   // Create ofi_info.
   struct fi_info* all_infos;
-  FI_SAFECALL(
-      fi_getinfo(FI_VERSION(1, 6), nullptr, nullptr, 0, hints, &all_infos));
+  int ret =
+      fi_getinfo(FI_VERSION(1, 6), nullptr, nullptr, 0, hints, &all_infos);
+  if (ret) {
+    int err = ret < 0 ? -ret : ret;
+    if (!attr.device_name.empty()) {
+      LCI_Assert(false, "Cannot find OFI device/domain %s: %s\n",
+                 attr.device_name.c_str(), fi_strerror(err));
+    } else {
+      LCI_Assert(false, "err : %s (%s:%d)\n", fi_strerror(err), __FILE__,
+                 __LINE__);
+    }
+  }
   // Get libfabric version.
   uint32_t v = fi_version();
   int major = FI_MAJOR(v);
@@ -76,15 +115,17 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   // return the endpoints that are highest performing first.
   // But it appears cxi provider doesn't follow this rule,
   // so we have to do the search ourselves.
-  struct fi_info* cxi_info = search_for_prov(all_infos, "cxi");
-  if (cxi_info) {
-    // Found the cxi provider.
-    ofi_info = fi_dupinfo(cxi_info);
-  } else {
-    // Just use the first ofi_info.
-    ofi_info = fi_dupinfo(all_infos);
+  struct fi_info* selected_info = select_info(all_infos, attr.device_name);
+  if (selected_info == nullptr) {
+    LCI_Assert(false, "Cannot find OFI device/domain %s\n",
+               attr.device_name.c_str());
   }
+  ofi_info = fi_dupinfo(selected_info);
   fi_freeinfo(all_infos);
+  LCI_Log(LOG_STATUS, "ofi", "Domain name: %s\n",
+          ofi_info->domain_attr && ofi_info->domain_attr->name
+              ? ofi_info->domain_attr->name
+              : "(unknown)");
   LCI_Log(LOG_STATUS, "ofi", "Provider name: %s\n",
           ofi_info->fabric_attr->prov_name);
   LCI_Log(LOG_INFO, "ofi", "Protocol: %s\n",

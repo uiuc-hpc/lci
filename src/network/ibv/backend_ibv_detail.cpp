@@ -53,21 +53,31 @@ static double translate_speed(uint8_t speed)
 }
 
 bool select_best_device_port(struct ibv_device** dev_list, int num_devices,
+                             const char* requested_device_name,
                              struct ibv_device** device_o, uint8_t* port_o)
 {
+  bool has_requested_device =
+      requested_device_name != nullptr && requested_device_name[0] != '\0';
+  bool requested_device_found = false;
   struct ibv_device* best_device = nullptr;
   uint8_t best_port = 0;
   double best_speed = 0;
 
   for (int i = 0; i < num_devices; ++i) {
     struct ibv_device* device = dev_list[i];
+    const char* device_name = ibv_get_device_name(device);
+
+    if (has_requested_device &&
+        strcmp(device_name, requested_device_name) != 0) {
+      continue;
+    }
+    requested_device_found = true;
 
     // open the device
     struct ibv_context* dev_ctx;
     dev_ctx = ibv_open_device(device);
     if (!dev_ctx) {
-      LCI_Log(LOG_INFO, "ibv", "Couldn't get context for %s.\n",
-              ibv_get_device_name(device));
+      LCI_Log(LOG_INFO, "ibv", "Couldn't get context for %s.\n", device_name);
       continue;
     }
 
@@ -75,8 +85,7 @@ bool select_best_device_port(struct ibv_device** dev_list, int num_devices,
     struct ibv_device_attr dev_attr;
     int ret = ibv_query_device(dev_ctx, &dev_attr);
     if (ret != 0) {
-      LCI_Log(LOG_INFO, "ibv", "Unable to query device %s.\n",
-              ibv_get_device_name(device));
+      LCI_Log(LOG_INFO, "ibv", "Unable to query device %s.\n", device_name);
       goto close_device;
     }
 
@@ -86,14 +95,14 @@ bool select_best_device_port(struct ibv_device** dev_list, int num_devices,
     for (uint8_t port_num = 1; port_num <= dev_attr.phys_port_cnt; port_num++) {
       ret = ibv_query_port(dev_ctx, port_num, &port_attr);
       if (ret != 0) {
-        LCI_Log(LOG_INFO, "ibv", "Unable to query port (%s:%d).\n",
-                ibv_get_device_name(device), port_num);
+        LCI_Log(LOG_INFO, "ibv", "Unable to query port (%s:%d).\n", device_name,
+                port_num);
         continue;
       }
       // Check whether the port is active
       if (port_attr.state != IBV_PORT_ACTIVE) {
         LCI_Log(LOG_INFO, "ibv", "%s:%d is not active (state: %d).\n",
-                ibv_get_device_name(device), port_num, port_attr.state);
+                device_name, port_num, port_attr.state);
         continue;
       }
       // Check whether we can get its lid
@@ -104,21 +113,19 @@ bool select_best_device_port(struct ibv_device** dev_list, int num_devices,
       // Calculate its speed
       int width = translate_width(port_attr.active_width);
       if (width <= 0) {
-        LCI_Log(LOG_INFO, "ibv", "%s:%d invalid width %d (%d).\n",
-                ibv_get_device_name(device), port_num, width,
-                port_attr.active_width);
+        LCI_Log(LOG_INFO, "ibv", "%s:%d invalid width %d (%d).\n", device_name,
+                port_num, width, port_attr.active_width);
         continue;
       }
       double speed = translate_speed(port_attr.active_speed);
       if (speed <= 0) {
-        LCI_Log(LOG_INFO, "ibv", "%s:%d invalid speed %f (%d).\n",
-                ibv_get_device_name(device), port_num, speed,
-                port_attr.active_width);
+        LCI_Log(LOG_INFO, "ibv", "%s:%d invalid speed %f (%d).\n", device_name,
+                port_num, speed, port_attr.active_width);
         continue;
       }
       double total_speed = speed * width;
-      LCI_Log(LOG_INFO, "ibv", "%s:%d speed is %.f (%d x %f).\n",
-              ibv_get_device_name(device), port_num, total_speed, width, speed);
+      LCI_Log(LOG_INFO, "ibv", "%s:%d speed is %.f (%d x %f).\n", device_name,
+              port_num, total_speed, width, speed);
       // Update the record if it is better.
       if (total_speed > best_speed) {
         best_speed = total_speed;
@@ -134,10 +141,22 @@ bool select_best_device_port(struct ibv_device** dev_list, int num_devices,
   if (best_speed > 0) {
     *device_o = best_device;
     *port_o = best_port;
-    LCI_Log(LOG_INFO, "ibv", "Select the best device %s:%d.\n",
+    LCI_Log(LOG_INFO, "ibv", "Select %s device %s:%d.\n",
+            has_requested_device ? "requested" : "best",
             ibv_get_device_name(best_device), best_port);
     return true;
   } else {
+    if (has_requested_device) {
+      if (!requested_device_found) {
+        LCI_Log(LOG_INFO, "ibv", "Requested device %s is not available.\n",
+                requested_device_name);
+      } else {
+        LCI_Log(LOG_INFO, "ibv",
+                "Requested device %s has no usable active port.\n",
+                requested_device_name);
+      }
+      return false;
+    }
     LCI_Log(LOG_INFO, "ibv", "No device is available!\n");
     return false;
   }

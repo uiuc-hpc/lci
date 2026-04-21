@@ -9,13 +9,11 @@ namespace lci
  * runtime: User wrappers
  *************************************************************/
 
-runtime_t alloc_runtime_x::call_impl(size_t packet_return_threshold,
-                                     int imm_nbits_tag, int imm_nbits_rcomp,
-                                     attr_rdv_protocol_t rdv_protocol,
-                                     bool alloc_default_device,
-                                     bool alloc_default_packet_pool,
-                                     bool alloc_default_matching_engine,
-                                     const char* name, void* user_context) const
+runtime_t alloc_runtime_x::call_impl(
+    size_t packet_return_threshold, int imm_nbits_tag, int imm_nbits_rcomp,
+    attr_rdv_protocol_t rdv_protocol, bool alloc_default_device,
+    bool alloc_default_packet_pool, bool alloc_default_matching_engine,
+    const char* name, void* user_context, std::string device_name) const
 {
   runtime_attr_t attr;
   attr.packet_return_threshold = packet_return_threshold;
@@ -31,6 +29,7 @@ runtime_t alloc_runtime_x::call_impl(size_t packet_return_threshold,
              "imm_nbits_tag + imm_nbits_rcomp should be less than 31!\n");
   runtime_t runtime;
   runtime.p_impl = new runtime_impl_t(attr);
+  runtime.get_impl()->default_net_context_device_name = device_name;
   runtime.get_impl()->initialize();
   return runtime;
 }
@@ -45,7 +44,7 @@ runtime_t g_runtime_init_x::call_impl(
     size_t packet_return_threshold, int imm_nbits_tag, int imm_nbits_rcomp,
     attr_rdv_protocol_t rdv_protocol, bool alloc_default_device,
     bool alloc_default_packet_pool, bool alloc_default_matching_engine,
-    const char* name, void* user_context) const
+    const char* name, void* user_context, std::string device_name) const
 {
   runtime_attr_t attr;
   attr.packet_return_threshold = packet_return_threshold;
@@ -66,6 +65,7 @@ runtime_t g_runtime_init_x::call_impl(
   LCI_Assert(attr.imm_nbits_tag + attr.imm_nbits_rcomp <= 31,
              "imm_nbits_tag + imm_nbits_rcomp should be less than 31!\n");
   g_default_runtime.p_impl = new runtime_impl_t(attr);
+  g_default_runtime.get_impl()->default_net_context_device_name = device_name;
   g_default_runtime.get_impl()->initialize();
   return g_default_runtime;
 }
@@ -95,7 +95,8 @@ void runtime_impl_t::initialize()
   // the matching engine key format.
   attr.max_tag = std::numeric_limits<uint32_t>::max();
   attr.max_rcomp = std::numeric_limits<rcomp_t>::max();
-  default_net_context = alloc_net_context_x().runtime(runtime)();
+  default_net_context = alloc_net_context_x().runtime(runtime).device_name(
+      default_net_context_device_name)();
   if (attr.rdv_protocol == attr_rdv_protocol_t::auto_select) {
     bool support_putimm = true;
     if (!default_net_context.is_empty()) {

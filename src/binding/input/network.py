@@ -19,6 +19,7 @@ resource_net_context := resource(
         attr("size_t", "max_inject_size", default_value=64, comment="The maximum inject size."),
         attr("int", "ibv_gid_idx", default_value=-1, comment="For the IBV backend: the GID index by default (only needed by RoCE)."),
         attr("bool", "ibv_force_gid_auto_select", default_value=0, comment="For the IBV backend: whether to force GID auto selection."),
+        attr("std::string", "device_name", default_value="\"\"", comment="The network device name to use. For the IBV backend this is the verbs device name; for the OFI backend this is the libfabric domain name. Empty string selects the default/best available device."),
         attr_enum("ibv_odp_strategy", enum_options=["none", "explicit_odp", "implicit_odp"], default_value="none", comment="For the IBV backend: the on-demand paging strategy."),
         attr_enum("ibv_prefetch_strategy", enum_options=["none", "prefetch", "prefetch_write", "prefetch_no_fault"], default_value="none", comment="For the IBV backend: the mr prefetch strategy."),
         attr("bool", "support_putimm", inout_trait="out", comment="Whether the network context supports put with immediate data."),

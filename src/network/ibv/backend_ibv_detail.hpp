@@ -11,6 +11,7 @@ namespace lci
 namespace ibv_detail
 {
 bool select_best_device_port(struct ibv_device** dev_list, int num_devices,
+                             const char* requested_device_name,
                              struct ibv_device** device_o, uint8_t* port_o);
 
 int select_best_gid_for_roce(struct ibv_device* ib_dev,

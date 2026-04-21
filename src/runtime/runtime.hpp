@@ -18,6 +18,7 @@ class runtime_impl_t
 
   runtime_t runtime;
   runtime_t::attr_t attr;
+  std::string default_net_context_device_name;
   net_context_t default_net_context;
   device_t default_device;
   packet_pool_t default_packet_pool;

@@ -54,6 +54,7 @@ ibv_net_context_impl_t::ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_)
              "`-DLCI_NETWORK_BACKENDS=ofi`.\n");
 
   bool ret = ibv_detail::select_best_device_port(ib_dev_list, num_devices,
+                                                 attr.device_name.c_str(),
                                                  &ib_dev, &ib_dev_port);
   LCI_Assert(ret, "Cannot find available ibv device/port!\n");
 
@@ -92,20 +93,14 @@ ibv_net_context_impl_t::ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_)
     LCI_Assert(ib_odp_mr, "Couldn't register MR for ODP\n");
   }
 
-  // query port attribute
-  uint8_t dev_port = 0;
-  for (; dev_port < 128; dev_port++) {
-    rc = ibv_query_port(ib_context, dev_port, &ib_port_attr);
-    if (rc == 0) {
-      break;
-    }
-  }
-  LCI_Assert(rc == 0, "Unable to query port\n");
+  // Query the selected active port.
+  rc = ibv_query_port(ib_context, ib_dev_port, &ib_port_attr);
+  LCI_Assert(rc == 0, "Unable to query port %u on device %s\n", ib_dev_port,
+             ibv_get_device_name(ib_dev));
   LCI_Assert(
       ib_port_attr.link_layer != IBV_LINK_LAYER_INFINIBAND || ib_port_attr.lid,
       "Couldn't get local LID\n");
 
-  ib_dev_port = dev_port;
   LCI_Log(LOG_INFO, "ibv", "Maximum MTU: %s; Active MTU: %s\n",
           mtu_str(ib_port_attr.max_mtu), mtu_str(ib_port_attr.active_mtu));
 
