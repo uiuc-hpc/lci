@@ -6,6 +6,7 @@ var group__LCI__NET__CONTEXT =
       [ "net_context_t", "dc/d98/classlci_1_1net__context__t.html#afe51fff42f7de941504f90534ce38463", null ],
       [ "get_attr", "dc/d98/classlci_1_1net__context__t.html#a40b8096bd2e811ce01a450d64e41bf4f", null ],
       [ "get_attr_backend", "dc/d98/classlci_1_1net__context__t.html#a3b91fd3645212b0a343b59a16cf5339a", null ],
+      [ "get_attr_device_name", "dc/d98/classlci_1_1net__context__t.html#a6dd5e0e9d0a831f5b0075c4cd8e27241", null ],
       [ "get_attr_ibv_force_gid_auto_select", "dc/d98/classlci_1_1net__context__t.html#a6f9985085bb736d7e3622577f73a38d5", null ],
       [ "get_attr_ibv_gid_idx", "dc/d98/classlci_1_1net__context__t.html#a44183af85965dd6ad6c96b4655c92a57", null ],
       [ "get_attr_ibv_odp_strategy", "dc/d98/classlci_1_1net__context__t.html#ac0e5b8df4ecf4ac8e3ecb0ad2bc0683e", null ],

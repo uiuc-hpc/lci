@@ -1,15 +1,17 @@
 <map id="lci::alloc_runtime_x" name="lci::alloc_runtime_x">
-<area shape="rect" id="Node000001" title="The actual implementation for alloc_runtime." alt="" coords="409,169,559,194"/>
-<area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="5,15,172,41"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="186,16,234,17,286,23,338,35,387,55,420,80,446,111,479,167,475,170,442,114,416,84,384,60,336,40,285,28,234,22,186,22"/>
-<area shape="rect" id="Node000003" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="16,70,161,95"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="175,85,277,99,333,110,386,125,430,145,466,166,463,171,427,150,384,131,331,115,277,104,175,90"/>
-<area shape="rect" id="Node000004" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="20,120,157,160"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="171,143,386,163,409,166,409,171,385,168,171,148"/>
-<area shape="rect" id="Node000005" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="11,206,167,231"/>
-<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="180,228,279,232,333,229,385,221,425,208,460,192,462,196,427,213,386,227,333,234,279,237,180,233"/>
-<area shape="rect" id="Node000006" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="15,256,163,296"/>
-<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="176,280,278,277,332,269,384,254,410,241,433,225,469,192,473,196,437,229,413,245,386,258,333,274,279,282,176,286"/>
-<area shape="rect" id="Node000007" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="5,321,172,346"/>
-<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="185,340,234,339,285,333,336,322,384,302,416,278,442,248,475,193,479,196,446,251,419,282,387,306,338,327,286,339,234,344,186,345"/>
+<area shape="rect" id="Node000001" title="The actual implementation for alloc_runtime." alt="" coords="409,217,559,242"/>
+<area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="5,19,172,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="186,18,235,18,287,23,339,36,387,59,408,75,425,95,453,140,472,183,482,216,477,217,467,185,449,142,421,98,404,79,384,64,337,41,286,28,235,23,186,23"/>
+<area shape="rect" id="Node000003" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="16,74,161,99"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="175,88,295,99,348,108,387,120,417,141,443,167,477,215,473,218,439,171,414,145,384,125,347,113,294,104,175,93"/>
+<area shape="rect" id="Node000004" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="20,124,157,164"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="171,138,275,144,331,153,386,167,433,189,469,214,466,219,430,194,384,172,330,158,274,149,171,144"/>
+<area shape="rect" id="Node000005" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="11,205,167,230"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="180,224,196,225,308,229,409,228,409,234,308,234,196,231,180,230"/>
+<area shape="rect" id="Node000006" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="15,255,163,295"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="176,269,277,262,385,249,434,239,435,245,386,255,277,267,177,274"/>
+<area shape="rect" id="Node000007" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="5,319,172,345"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="186,326,283,314,335,303,384,288,430,265,466,240,469,244,433,270,386,293,336,308,284,319,186,331"/>
+<area shape="rect" id="Node000008" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="22,369,155,409"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="169,391,219,389,275,382,331,368,384,346,415,322,441,293,474,241,479,243,445,296,419,326,387,350,333,373,276,387,220,394,169,396"/>
 </map>
