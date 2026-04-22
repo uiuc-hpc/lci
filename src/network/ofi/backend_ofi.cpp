@@ -365,7 +365,13 @@ mr_t ofi_device_impl_t::register_memory_impl(void* buffer, size_t size)
     mr_attr.device.cuda = ret.get_impl()->acc_attr.device;
 #elif defined(LCI_USE_HIP)
     mr_attr.iface = FI_HMEM_ROCR;
+#if defined(FI_MAJOR_VERSION) && defined(FI_MINOR_VERSION) && \
+    (FI_MAJOR_VERSION > 2 || (FI_MAJOR_VERSION == 2 && FI_MINOR_VERSION >= 5))
     mr_attr.device.rocr = ret.get_impl()->acc_attr.device;
+#else
+    // Older libfabric headers do not expose the ROCR-specific union member.
+    mr_attr.device.reserved = ret.get_impl()->acc_attr.device;
+#endif
 #endif
   }
 #endif  // LCI_USE_CUDA || LCI_USE_HIP
