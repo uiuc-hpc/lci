@@ -100,7 +100,7 @@ if(NOT LCI_WITH_LCT_ONLY)
     target_compile_options(
       LCI
       PRIVATE
-        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wno-unused-private-field>
+        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:CrayClang>>:-Wno-unused-private-field>
     )
   endif()
 
@@ -387,10 +387,44 @@ if(NOT LCI_WITH_LCT_ONLY)
     # Link against HIP runtime
     target_link_libraries(LCI PRIVATE hip::host)
 
+    # accelerator_hip.cpp directly calls HSA runtime APIs.
+    set(LCI_HSA_HINT_DIRS)
+    if(CMAKE_HIP_COMPILER_ROCM_ROOT)
+      list(APPEND LCI_HSA_HINT_DIRS ${CMAKE_HIP_COMPILER_ROCM_ROOT})
+    endif()
+    if(DEFINED ENV{ROCM_PATH})
+      list(APPEND LCI_HSA_HINT_DIRS $ENV{ROCM_PATH})
+    endif()
+    if(DEFINED ENV{ROCM_ROOT})
+      list(APPEND LCI_HSA_HINT_DIRS $ENV{ROCM_ROOT})
+    endif()
+    list(APPEND LCI_HSA_HINT_DIRS /opt/rocm)
+    list(REMOVE_DUPLICATES LCI_HSA_HINT_DIRS)
+    find_library(LCI_HSA_RUNTIME_LIBRARY NAMES hsa-runtime64
+                 HINTS ${LCI_HSA_HINT_DIRS}
+                 PATH_SUFFIXES lib lib64)
+    if(LCI_HSA_RUNTIME_LIBRARY)
+      target_link_libraries(LCI PRIVATE ${LCI_HSA_RUNTIME_LIBRARY})
+    else()
+      message(
+        WARNING
+          "Could not find hsa-runtime64. HIP builds may fail at link time if HSA symbols are unresolved."
+      )
+    endif()
+
     set_target_hip_standard(LCI STANDARD ${LCI_HIP_STANDARD})
     set_target_hip_architectures(LCI ARCHITECTURES ${LCI_HIP_ARCH})
     set_target_hip_warnings_and_errors(LCI WARN_AS_ERROR
                                        ${LCI_BUILD_WARN_AS_ERROR})
+
+    # ROCm HIP headers rely on anonymous struct/union extensions that trigger
+    # pedantic warnings with clang-family compilers.
+    target_compile_options(
+      LCI
+      PRIVATE
+        $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:CrayClang>>>:-Wno-gnu-anonymous-struct>
+        $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:CrayClang>>>:-Wno-nested-anon-types>
+    )
 
     message(STATUS "LCI_HIP_STANDARD = ${LCI_HIP_STANDARD}")
     message(STATUS "LCI_HIP_ARCH = ${LCI_HIP_ARCH}")
