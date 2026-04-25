@@ -3,14 +3,55 @@
 
 include_guard(GLOBAL)
 
+function(populate_rocm_root_hints ROCM_ROOT_HINTS)
+  set(rocm_root_hints)
+
+  if(CMAKE_HIP_COMPILER_ROCM_ROOT)
+    list(APPEND rocm_root_hints ${CMAKE_HIP_COMPILER_ROCM_ROOT})
+  endif()
+  if(DEFINED ENV{ROCM_PATH})
+    list(APPEND rocm_root_hints $ENV{ROCM_PATH})
+  endif()
+  if(DEFINED ENV{ROCM_ROOT})
+    list(APPEND rocm_root_hints $ENV{ROCM_ROOT})
+  endif()
+  list(APPEND rocm_root_hints /opt/rocm)
+  list(REMOVE_DUPLICATES rocm_root_hints)
+
+  set(${ROCM_ROOT_HINTS}
+      ${rocm_root_hints}
+      PARENT_SCOPE)
+endfunction(populate_rocm_root_hints)
+
 # Enable the HIP language and find the HIP/ROCm toolkit.
 macro(enable_hip_language_and_find_hip)
 
   # Enable the HIP language
   enable_language(HIP)
 
-  # Find the HIP/ROCm toolkit
-  find_package(hip REQUIRED)
+  populate_rocm_root_hints(LCI_ROCM_ROOT_HINTS)
+
+  # Find the HIP/ROCm toolkit.
+  find_package(
+    hip
+    CONFIG
+    REQUIRED
+    HINTS
+    ${LCI_ROCM_ROOT_HINTS}
+    PATH_SUFFIXES
+    lib/cmake/hip
+    lib64/cmake/hip)
+
+  # accelerator_hip.cpp also uses the ROCR/HSA runtime directly.
+  find_package(
+    hsa-runtime64
+    CONFIG
+    REQUIRED
+    HINTS
+    ${LCI_ROCM_ROOT_HINTS}
+    PATH_SUFFIXES
+    lib/cmake/hsa-runtime64
+    lib64/cmake/hsa-runtime64)
 
 endmacro(enable_hip_language_and_find_hip)
 
