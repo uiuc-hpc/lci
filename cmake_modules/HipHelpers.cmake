@@ -3,33 +3,11 @@
 
 include_guard(GLOBAL)
 
-function(populate_rocm_root_hints ROCM_ROOT_HINTS)
-  set(rocm_root_hints)
-
-  if(CMAKE_HIP_COMPILER_ROCM_ROOT)
-    list(APPEND rocm_root_hints ${CMAKE_HIP_COMPILER_ROCM_ROOT})
-  endif()
-  if(DEFINED ENV{ROCM_PATH})
-    list(APPEND rocm_root_hints $ENV{ROCM_PATH})
-  endif()
-  if(DEFINED ENV{ROCM_ROOT})
-    list(APPEND rocm_root_hints $ENV{ROCM_ROOT})
-  endif()
-  list(APPEND rocm_root_hints /opt/rocm)
-  list(REMOVE_DUPLICATES rocm_root_hints)
-
-  set(${ROCM_ROOT_HINTS}
-      ${rocm_root_hints}
-      PARENT_SCOPE)
-endfunction(populate_rocm_root_hints)
-
 # Enable the HIP language and find the HIP/ROCm toolkit.
 macro(enable_hip_language_and_find_hip)
 
   # Enable the HIP language
   enable_language(HIP)
-
-  populate_rocm_root_hints(LCI_ROCM_ROOT_HINTS)
 
   # Find the HIP/ROCm toolkit.
   find_package(
@@ -37,7 +15,10 @@ macro(enable_hip_language_and_find_hip)
     CONFIG
     REQUIRED
     HINTS
-    ${LCI_ROCM_ROOT_HINTS}
+    ${CMAKE_HIP_COMPILER_ROCM_ROOT}
+    $ENV{ROCM_PATH}
+    $ENV{ROCM_ROOT}
+    /opt/rocm
     PATH_SUFFIXES
     lib/cmake/hip
     lib64/cmake/hip)
@@ -48,7 +29,10 @@ macro(enable_hip_language_and_find_hip)
     CONFIG
     REQUIRED
     HINTS
-    ${LCI_ROCM_ROOT_HINTS}
+    ${CMAKE_HIP_COMPILER_ROCM_ROOT}
+    $ENV{ROCM_PATH}
+    $ENV{ROCM_ROOT}
+    /opt/rocm
     PATH_SUFFIXES
     lib/cmake/hsa-runtime64
     lib64/cmake/hsa-runtime64)
