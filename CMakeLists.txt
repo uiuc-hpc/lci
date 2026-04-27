@@ -100,7 +100,7 @@ if(NOT LCI_WITH_LCT_ONLY)
     target_compile_options(
       LCI
       PRIVATE
-        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wno-unused-private-field>
+        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:CrayClang>>:-Wno-unused-private-field>
     )
   endif()
 
@@ -383,9 +383,6 @@ if(NOT LCI_WITH_LCT_ONLY)
           STRING
           "Comma (or semicolon) separated list of HIP architectures to build for (e.g. gfx90a,gfx942)"
           FORCE)
-
-    # Link against HIP runtime
-    target_link_libraries(LCI PRIVATE hip::host)
 
     set_target_hip_standard(LCI STANDARD ${LCI_HIP_STANDARD})
     set_target_hip_architectures(LCI ARCHITECTURES ${LCI_HIP_ARCH})

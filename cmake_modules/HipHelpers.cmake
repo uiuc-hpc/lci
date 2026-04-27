@@ -9,8 +9,33 @@ macro(enable_hip_language_and_find_hip)
   # Enable the HIP language
   enable_language(HIP)
 
-  # Find the HIP/ROCm toolkit
-  find_package(hip REQUIRED)
+  # Find the HIP/ROCm toolkit.
+  find_package(
+    hip
+    CONFIG
+    REQUIRED
+    HINTS
+    ${CMAKE_HIP_COMPILER_ROCM_ROOT}
+    $ENV{ROCM_PATH}
+    $ENV{ROCM_ROOT}
+    /opt/rocm
+    PATH_SUFFIXES
+    lib/cmake/hip
+    lib64/cmake/hip)
+
+  # accelerator_hip.cpp also uses the ROCR/HSA runtime directly.
+  find_package(
+    hsa-runtime64
+    CONFIG
+    REQUIRED
+    HINTS
+    ${CMAKE_HIP_COMPILER_ROCM_ROOT}
+    $ENV{ROCM_PATH}
+    $ENV{ROCM_ROOT}
+    /opt/rocm
+    PATH_SUFFIXES
+    lib/cmake/hsa-runtime64
+    lib64/cmake/hsa-runtime64)
 
 endmacro(enable_hip_language_and_find_hip)
 
