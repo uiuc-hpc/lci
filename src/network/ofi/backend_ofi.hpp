@@ -41,6 +41,32 @@
 
 namespace lci
 {
+class ofi_lock_guard_t
+{
+ public:
+  ofi_lock_guard_t(uint64_t lock_mode, uint64_t mode, spinlock_t& spinlock)
+      : should_lock((lock_mode & mode) != 0), spinlock(spinlock)
+  {
+    if (should_lock) {
+      spinlock.lock();
+    }
+  }
+
+  ~ofi_lock_guard_t()
+  {
+    if (should_lock) {
+      spinlock.unlock();
+    }
+  }
+
+  ofi_lock_guard_t(const ofi_lock_guard_t&) = delete;
+  ofi_lock_guard_t& operator=(const ofi_lock_guard_t&) = delete;
+
+ private:
+  bool should_lock;
+  spinlock_t& spinlock;
+};
+
 class ofi_net_context_impl_t : public lci::net_context_impl_t
 {
  public:
