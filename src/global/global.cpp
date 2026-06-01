@@ -110,6 +110,8 @@ void global_config_initialize()
           {"send", LCI_NET_TRYLOCK_SEND},
           {"recv", LCI_NET_TRYLOCK_RECV},
           {"poll", LCI_NET_TRYLOCK_POLL},
+          {"mr", LCI_NET_LOCK_MR},
+          {"all", LCI_NET_LOCK_ALL},
       };
       g_default_attr.ofi_lock_mode =
           LCT_parse_arg(dict, sizeof(dict) / sizeof(dict[0]), p, ",");

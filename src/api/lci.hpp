@@ -74,7 +74,10 @@ enum attr_net_lock_mode_t {
   LCI_NET_TRYLOCK_SEND = 1,
   LCI_NET_TRYLOCK_RECV = 1 << 1,
   LCI_NET_TRYLOCK_POLL = 1 << 2,
-  LCI_NET_TRYLOCK_MAX = 1 << 3,
+  LCI_NET_LOCK_MR = 1 << 3,
+  LCI_NET_LOCK_ALL = LCI_NET_TRYLOCK_SEND | LCI_NET_TRYLOCK_RECV |
+                     LCI_NET_TRYLOCK_POLL | LCI_NET_LOCK_MR,
+  LCI_NET_TRYLOCK_MAX = 1 << 4,
 };
 
 // mimic std::optional as we don't want to force c++17 for now
