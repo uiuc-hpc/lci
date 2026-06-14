@@ -103,8 +103,8 @@ var NAVTREEINDEX =
 "d6/dc8/classlci_1_1alloc__matching__engine__x.html#a686fc8ceb561a2e5ed2361db808f8426",
 "d8/d33/group__LCI__BASIC.html#gacd46beb25126ebb7bf83b33e6381d6d2",
 "d9/d10/classlci_1_1alloc__device__x.html#a56912fff6daa357d714dbbf3bf67af85",
-"db/d4e/tutorial.html#autotoc_md67",
-"dc/db2/group__LCI__ALLOC__MATCHING__ENGINE.html"
+"db/d4e/tutorial.html#autotoc_md66",
+"dc/d9c/group__LCI__GET__MAX__BCOPY__SIZE.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronization';

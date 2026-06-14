@@ -1,5 +1,6 @@
 var NAVTREEINDEX5 =
 {
+"db/d4e/tutorial.html#autotoc_md66":[2,2,0,0],
 "db/d4e/tutorial.html#autotoc_md67":[2,2,0,1],
 "db/d4e/tutorial.html#autotoc_md70":[2,2,0,2],
 "db/d4e/tutorial.html#autotoc_md71":[2,2,0,3],
@@ -248,6 +249,5 @@ var NAVTREEINDEX5 =
 "dc/d98/classlci_1_1net__context__t.html#aceda721d7c94d238917f425ad8872d59":[6,2,22,0,10],
 "dc/d98/classlci_1_1net__context__t.html#ad1e7b8a6e90cd098104bdc08e1bc5dd4":[6,2,22,0,18],
 "dc/d98/classlci_1_1net__context__t.html#af1a418cdef0af59232ddc3d1c7f0adf3":[6,2,22,0,15],
-"dc/d98/classlci_1_1net__context__t.html#afe51fff42f7de941504f90534ce38463":[6,2,22,0,2],
-"dc/d9c/group__LCI__GET__MAX__BCOPY__SIZE.html":[6,5,9]
+"dc/d98/classlci_1_1net__context__t.html#afe51fff42f7de941504f90534ce38463":[6,2,22,0,2]
 };

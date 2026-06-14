@@ -173,9 +173,10 @@ var NAVTREEINDEX4 =
 "da/d73/group__LCI__BARRIER.html":[6,7,0],
 "da/d88/group__LCI__NET__CONTEXT.html":[6,2,22],
 "da/d8d/structlci_1_1rmr__t.html":[6,0,2],
+"da/d8d/structlci_1_1rmr__t.html#a6d26ccfc6c35841b415a063c0f734f52":[6,0,2,3],
 "da/d8d/structlci_1_1rmr__t.html#a762ed90c7360905fb884b1bb908a3443":[6,0,2,2],
 "da/d8d/structlci_1_1rmr__t.html#a764f5a8a911d38fbdba15d906de430e4":[6,0,2,1],
-"da/d8d/structlci_1_1rmr__t.html#ab5444d2f59416fec627fa6695490d236":[6,0,2,3],
+"da/d8d/structlci_1_1rmr__t.html#ab5444d2f59416fec627fa6695490d236":[6,0,2,4],
 "da/d8d/structlci_1_1rmr__t.html#aee15b015b8203d75beca91228cd66aae":[6,0,2,0],
 "da/d9d/group__LCI__COMM.html":[6,5],
 "da/d9f/classlci_1_1matching__engine__insert__x.html":[6,2,14,0],
@@ -248,6 +249,5 @@ var NAVTREEINDEX4 =
 "db/d4e/tutorial.html#autotoc_md62":[2,1,3,3],
 "db/d4e/tutorial.html#autotoc_md63":[2,1,3,4],
 "db/d4e/tutorial.html#autotoc_md64":[2,2],
-"db/d4e/tutorial.html#autotoc_md65":[2,2,0],
-"db/d4e/tutorial.html#autotoc_md66":[2,2,0,0]
+"db/d4e/tutorial.html#autotoc_md65":[2,2,0]
 };

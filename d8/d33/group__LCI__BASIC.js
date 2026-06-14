@@ -21,6 +21,7 @@ var group__LCI__BASIC =
       [ "rmr_t", "da/d8d/structlci_1_1rmr__t.html#aee15b015b8203d75beca91228cd66aae", null ],
       [ "is_empty", "da/d8d/structlci_1_1rmr__t.html#a764f5a8a911d38fbdba15d906de430e4", null ],
       [ "base", "da/d8d/structlci_1_1rmr__t.html#a762ed90c7360905fb884b1bb908a3443", null ],
+      [ "mr_base", "da/d8d/structlci_1_1rmr__t.html#a6d26ccfc6c35841b415a063c0f734f52", null ],
       [ "opaque_rkey", "da/d8d/structlci_1_1rmr__t.html#ab5444d2f59416fec627fa6695490d236", null ]
     ] ],
     [ "lci::allocator_base_t", "d6/db9/structlci_1_1allocator__base__t.html", [

@@ -1,5 +1,6 @@
 var NAVTREEINDEX6 =
 {
+"dc/d9c/group__LCI__GET__MAX__BCOPY__SIZE.html":[6,5,9],
 "dc/db2/group__LCI__ALLOC__MATCHING__ENGINE.html":[6,2,12],
 "dc/de4/classlci_1_1alltoall__x.html":[6,7,6,0],
 "dc/de4/classlci_1_1alltoall__x.html#a059e7ae7624cd87fddc079fefc017526":[6,7,6,0,18],
