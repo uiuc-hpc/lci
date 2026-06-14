@@ -17,7 +17,8 @@ struct config_t {
   size_t niters = 10;
 } g_config;
 
-void worker(int peer_rank, lci::device_t device, int *data, lci::rmr_t rmr, lci::comp_t comp, lci::rcomp_t rcomp)
+void worker(int peer_rank, lci::device_t device, int *data, lci::mr_t mr,
+            lci::rmr_t rmr, lci::comp_t comp, lci::rcomp_t rcomp)
 {
   int thread_id = omp_get_thread_num();
   int nthreads = omp_get_num_threads();
@@ -28,7 +29,11 @@ void worker(int peer_rank, lci::device_t device, int *data, lci::rmr_t rmr, lci:
     for (size_t j = thread_id; j < g_config.nelems; j += nthreads) {
       lci::status_t status;
       do {
-        status = lci::post_put_x(peer_rank, data + j, sizeof(int), comp, j * sizeof(int), rmr).device(device).allow_done(false)();
+        status = lci::post_put_x(peer_rank, data + j, sizeof(int), comp,
+                                 j * sizeof(int), rmr)
+                     .device(device)
+                     .mr(mr)
+                     .allow_done(false)();
         lci::progress_x().device(device)();
       } while (status.is_retry());
     }
@@ -114,19 +119,18 @@ int main(int argc, char** argv)
       ((int*)data)[i] = 0;
     }
   }
-  std::vector<lci::mr_t> mrs;
-  std::vector<lci::rmr_t> rmrs;
-  std::vector<lci::rmr_t> all_rmrs;
+  std::vector<lci::mr_t> mrs(g_config.ndevices);
+  std::vector<lci::rmr_t> peer_rmrs(g_config.ndevices);
+  std::vector<lci::rmr_t> all_rmrs(nranks);
   for (int i = 0; i < g_config.ndevices; i++) {
-    lci::mr_t mr = lci::register_memory_x(data, size).device(devices[i])();
-    mrs.push_back(mr);
-    lci::rmr_t rmr = lci::get_rmr(mr);
-    rmrs.push_back(rmr);
+    // Some network endpoints have device-specific MR/RMR keys; keep the
+    // registered local MR and exchanged peer RMR matched to each LCI device.
+    mrs[i] = lci::register_memory_x(data, size).device(devices[i])();
+    lci::rmr_t rmr = lci::get_rmr(mrs[i]);
+    lci::allgather_x(&rmr, all_rmrs.data(), sizeof(lci::rmr_t))
+        .device(devices[i])();
+    peer_rmrs[i] = all_rmrs[peer_rank];
   }
-  all_rmrs.resize(nranks * g_config.ndevices);
-  lci::allgather_x(rmrs.data(), all_rmrs.data(), sizeof(lci::rmr_t) * g_config.ndevices).device(devices[0])();
-  std::vector<lci::rmr_t> peer_rmrs(all_rmrs.begin() + peer_rank * g_config.ndevices,
-                                    all_rmrs.begin() + (peer_rank + 1) * g_config.ndevices);
   // allocate completion counter
   lci::comp_t comp = lci::alloc_counter();
   lci::rcomp_t rcomp = lci::register_rcomp(comp);
@@ -138,7 +142,8 @@ int main(int argc, char** argv)
     {
       int device_idx = omp_get_thread_num() % g_config.ndevices;
       lci::device_t device = devices[device_idx];
-      worker(peer_rank, device, (int*)data, peer_rmrs[device_idx], comp, rcomp);
+      worker(peer_rank, device, (int*)data, mrs[device_idx],
+             peer_rmrs[device_idx], comp, rcomp);
       lci::wait_drained_x().device(device)();
     }
   }
