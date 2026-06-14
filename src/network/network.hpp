@@ -91,6 +91,10 @@ class mr_impl_t
   device_t device;
   void* address;
   size_t size;
+  // Provider/cached memory registrations may cover a larger containing
+  // region than the user-requested range. address/size track the user range;
+  // mr_base tracks the base address used by the provider registration.
+  void* mr_base;
 #if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
   accelerator::buffer_attr_t acc_attr;
   int dmabuf_fd;

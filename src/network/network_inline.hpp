@@ -15,6 +15,7 @@ inline rmr_t mr_impl_t::get_rmr()
 {
   rmr_t ret;
   ret.base = reinterpret_cast<uintptr_t>(address);
+  ret.mr_base = reinterpret_cast<uintptr_t>(mr_base);
   ret.opaque_rkey = device.get_impl()->get_rkey(this);
   return ret;
 }
