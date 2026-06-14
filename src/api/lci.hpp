@@ -338,7 +338,10 @@ struct rmr_t {
   uintptr_t mr_base;
   uint64_t opaque_rkey;
   rmr_t() : base(0), mr_base(0), opaque_rkey(0) {}
-  bool is_empty() const { return base == 0 && mr_base == 0 && opaque_rkey == 0; }
+  bool is_empty() const
+  {
+    return base == 0 && mr_base == 0 && opaque_rkey == 0;
+  }
 };
 
 /**
