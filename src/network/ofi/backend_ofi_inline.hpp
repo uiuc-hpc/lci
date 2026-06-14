@@ -74,6 +74,15 @@ inline void* get_mr_desc(mr_t mr)
 {
   return fi_mr_desc(static_cast<ofi_mr_impl_t*>(mr.p_impl)->ofi_mr);
 }
+
+inline uintptr_t get_remote_addr(rmr_t rmr, uint64_t offset, uint64_t mr_mode)
+{
+  if (mr_mode & FI_MR_VIRT_ADDR) {
+    return rmr.base + offset;
+  } else {
+    return (rmr.base - rmr.mr_base) + offset;
+  }
+}
 }  // namespace ofi_detail
 
 inline error_t ofi_device_impl_t::post_recv_impl(void* buffer, size_t size,
@@ -178,12 +187,8 @@ inline error_t ofi_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
                                                    void* user_context,
                                                    bool /*high_priority*/)
 {
-  uintptr_t addr;
-  if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
-    addr = rmr.base + offset;
-  } else {
-    addr = offset;
-  }
+  uintptr_t addr =
+      ofi_detail::get_remote_addr(rmr, offset, ofi_domain_attr->mr_mode);
   struct fi_msg_rma msg;
   struct iovec iov;
   struct fi_rma_iov riov;
@@ -219,12 +224,8 @@ inline error_t ofi_endpoint_impl_t::post_put_impl(int rank, void* buffer,
                                                   void* user_context,
                                                   bool /*high_priority*/)
 {
-  uintptr_t addr;
-  if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
-    addr = rmr.base + offset;
-  } else {
-    addr = offset;
-  }
+  uintptr_t addr =
+      ofi_detail::get_remote_addr(rmr, offset, ofi_domain_attr->mr_mode);
   struct fi_msg_rma msg;
   struct iovec iov;
   struct fi_rma_iov riov;
@@ -258,12 +259,8 @@ inline error_t ofi_endpoint_impl_t::post_putImms_impl(
     int rank, void* buffer, size_t size, uint64_t offset, rmr_t rmr,
     net_imm_data_t imm_data, void* user_context, bool /*high_priority*/)
 {
-  uintptr_t addr;
-  if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
-    addr = rmr.base + offset;
-  } else {
-    addr = offset;
-  }
+  uintptr_t addr =
+      ofi_detail::get_remote_addr(rmr, offset, ofi_domain_attr->mr_mode);
   struct fi_msg_rma msg;
   struct iovec iov;
   struct fi_rma_iov riov;
@@ -300,12 +297,8 @@ inline error_t ofi_endpoint_impl_t::post_putImm_impl(
     int rank, void* buffer, size_t size, mr_t mr, uint64_t offset, rmr_t rmr,
     net_imm_data_t imm_data, void* user_context, bool /*high_priority*/)
 {
-  uintptr_t addr;
-  if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
-    addr = rmr.base + offset;
-  } else {
-    addr = offset;
-  }
+  uintptr_t addr =
+      ofi_detail::get_remote_addr(rmr, offset, ofi_domain_attr->mr_mode);
   struct fi_msg_rma msg;
   struct iovec iov;
   struct fi_rma_iov riov;
@@ -345,12 +338,8 @@ inline error_t ofi_endpoint_impl_t::post_get_impl(int rank, void* buffer,
                                                   void* user_context,
                                                   bool /*high_priority*/)
 {
-  uintptr_t addr;
-  if (ofi_domain_attr->mr_mode & FI_MR_VIRT_ADDR) {
-    addr = rmr.base + offset;
-  } else {
-    addr = offset;
-  }
+  uintptr_t addr =
+      ofi_detail::get_remote_addr(rmr, offset, ofi_domain_attr->mr_mode);
   struct fi_msg_rma msg;
   struct iovec iov;
   struct fi_rma_iov riov;

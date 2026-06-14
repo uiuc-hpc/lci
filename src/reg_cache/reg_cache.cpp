@@ -62,9 +62,15 @@ class RegCache::impl
     auto* entry = reinterpret_cast<rcache_entry_generic_t*>(region);
     mr.p_impl = entry->mr;
     mr.p_impl->rcache_region = region;
+    // Preserve the user-requested registration range separately from the
+    // provider/cached registration range. UCX rcache may return a containing
+    // region whose provider MR starts before address.
+    mr.p_impl->address = address;
+    mr.p_impl->size = size;
+    mr.p_impl->mr_base = reinterpret_cast<void*>(region->super.start);
     LCI_Log(LOG_TRACE, "reg_cache",
-            "RegCache::get address %p size %lu => mr %p\n", address, size,
-            mr.p_impl);
+            "RegCache::get address %p size %lu provider_base %p => mr %p\n",
+            address, size, mr.p_impl->mr_base, mr.p_impl);
     return mr;
   }
 
@@ -158,6 +164,7 @@ ucs_status_t RegCache::impl::mem_reg_cb(void* context, ucs_rcache_t* /*rcache*/,
   entry->mr->device = dev->device;
   entry->mr->address = reinterpret_cast<void*>(start);
   entry->mr->size = len;
+  entry->mr->mr_base = reinterpret_cast<void*>(start);
   LCI_Log(LOG_TRACE, "reg_cache",
           "RegCache::mem_reg_cb address %p size %lu => mr %p\n",
           reinterpret_cast<void*>(start), len, entry->mr);

@@ -70,6 +70,7 @@ inline mr_t device_impl_t::register_memory(void* address, size_t size)
     mr.p_impl->device = device;
     mr.p_impl->address = address;
     mr.p_impl->size = size;
+    mr.p_impl->mr_base = address;
   }
   LCI_DBG_Log(LOG_TRACE, "network",
               "register_memory address %p size %lu return %p\n", address, size,
