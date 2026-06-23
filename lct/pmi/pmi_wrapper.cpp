@@ -1,12 +1,19 @@
+#include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 #include "pmi_wrapper.hpp"
 
 struct lct::pmi::ops_t lcti_pmi_ops;
+namespace
+{
+int lcti_pmi_init_count = 0;
+}
 
 void LCT_pmi_initialize()
 {
+  if (lcti_pmi_init_count++ > 0) return;
+
   std::string backends_str;
   {
     char* p = getenv("LCT_PMI_BACKEND");
@@ -83,7 +90,7 @@ void LCT_pmi_initialize()
           LCT_pmi_get_size());
 }
 
-int LCT_pmi_initialized() { return lcti_pmi_ops.is_initialized(); }
+int LCT_pmi_initialized() { return lcti_pmi_init_count > 0; }
 int LCT_pmi_get_rank() { return lcti_pmi_ops.get_rank_me(); }
 int LCT_pmi_get_size() { return lcti_pmi_ops.get_size(); }
 void LCT_pmi_publish(char* key, char* value)
@@ -104,4 +111,17 @@ void LCT_pmi_barrier()
   lcti_pmi_ops.barrier();
   LCT_Log(LCT_log_ctx_default, LCT_LOG_DEBUG, "pmi", "leave pmi barrier\n");
 }
-void LCT_pmi_finalize() { lcti_pmi_ops.finalize(); }
+void LCT_pmi_finalize()
+{
+  if (lcti_pmi_init_count <= 0) {
+    if (LCT_log_ctx_default)
+      LCT_Warn(LCT_log_ctx_default,
+               "LCT_pmi_finalize called without a matching initialize.\n");
+    else
+      fprintf(stderr,
+              "LCT_pmi_finalize called without a matching initialize.\n");
+    return;
+  }
+  if (--lcti_pmi_init_count > 0) return;
+  lcti_pmi_ops.finalize();
+}

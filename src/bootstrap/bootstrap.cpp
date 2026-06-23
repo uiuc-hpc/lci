@@ -58,7 +58,6 @@ void decode_value(char* buf_encoded, size_t nbytes, char* buf_origin)
 device_t device_to_bootstrap;
 int rank_me = -1;
 int rank_n = -1;
-
 void initialize()
 {
   LCT_pmi_initialize();
