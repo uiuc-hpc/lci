@@ -8,8 +8,8 @@ namespace lci
 void alltoall_x::call_impl(const void* sendbuf, void* recvbuf, size_t size,
                            runtime_t runtime, device_t device,
                            endpoint_t endpoint,
-                           matching_engine_t matching_engine,
-                           comp_t comp, comp_semantic_t comp_semantic) const
+                           matching_engine_t matching_engine, comp_t comp,
+                           comp_semantic_t comp_semantic) const
 {
   int seqnum = get_sequence_number();
 
@@ -29,8 +29,8 @@ void alltoall_x::call_impl(const void* sendbuf, void* recvbuf, size_t size,
       lci::comp_signal(comp, status_t(errorcode_t::done));
     }
     LCI_DBG_Log(LOG_TRACE, "collective",
-                "leave alltoall %d (sendbuf %p recvbuf %p size %lu)\n",
-                seqnum, sendbuf, recvbuf, size);
+                "leave alltoall %d (sendbuf %p recvbuf %p size %lu)\n", seqnum,
+                sendbuf, recvbuf, size);
     return;
   }
 
