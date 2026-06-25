@@ -29,7 +29,7 @@
 <!-- Node8 -->
 <g id="Node000008" class="node">
 <title>Node8</title>
-<g id="a_Node000008"><a xlink:href="../../d8/d98/group__LCI__ALLTOALL.html" target="_top" xlink:title="A blocking alltoall operation.">
+<g id="a_Node000008"><a xlink:href="../../d8/d98/group__LCI__ALLTOALL.html" target="_top" xlink:title="An alltoall operation.">
 <polygon fill="white" stroke="#666666" points="251.5,-167 201.5,-167 201.5,-148 251.5,-148 251.5,-167"/>
 <text text-anchor="middle" x="226.5" y="-155" font-family="Helvetica,sans-Serif" font-size="10.00">alltoall</text>
 </a>

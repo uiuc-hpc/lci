@@ -3,7 +3,8 @@ var group__LCI__ALLTOALL =
     [ "lci::alltoall_x", "dc/de4/classlci_1_1alltoall__x.html", [
       [ "alltoall_x", "dc/de4/classlci_1_1alltoall__x.html#a631f159f788f1b9da3ae723171937a82", null ],
       [ "call", "dc/de4/classlci_1_1alltoall__x.html#a16f2e3dd4be00496842917d412a4bdcd", null ],
-      [ "call_impl", "dc/de4/classlci_1_1alltoall__x.html#af5d3b724ba1799bb4c9bd02922722a16", null ],
+      [ "call_impl", "dc/de4/classlci_1_1alltoall__x.html#a3ff379cb4eeb8a5dc0814672a469cc48", null ],
+      [ "comp", "dc/de4/classlci_1_1alltoall__x.html#ae378489f99f5c27fdda5143341f99766", null ],
       [ "comp_semantic", "dc/de4/classlci_1_1alltoall__x.html#ad34567fe45c43f861cca5dc032a3386f", null ],
       [ "device", "dc/de4/classlci_1_1alltoall__x.html#a1fb83f4c2992b583aaf8ee34c99cea6b", null ],
       [ "endpoint", "dc/de4/classlci_1_1alltoall__x.html#a95daea4dabf6e25c1e6587860671d6f3", null ],
@@ -13,6 +14,7 @@ var group__LCI__ALLTOALL =
       [ "runtime", "dc/de4/classlci_1_1alltoall__x.html#a9c18befd13d2d41639a27b531a634da7", null ],
       [ "sendbuf", "dc/de4/classlci_1_1alltoall__x.html#ab6c9dc7450bfed6178e69c9b73af7a0a", null ],
       [ "size", "dc/de4/classlci_1_1alltoall__x.html#a4e05793db09ec7c7664b5aa5a5eb9bad", null ],
+      [ "m_comp", "dc/de4/classlci_1_1alltoall__x.html#a725c90b5f221d6c30939dbd4f48a98ec", null ],
       [ "m_comp_semantic", "dc/de4/classlci_1_1alltoall__x.html#ac22b37abc31027d52f4dff616b3af62a", null ],
       [ "m_device", "dc/de4/classlci_1_1alltoall__x.html#a7b984a869c6eeaeeaa55d312634a0f50", null ],
       [ "m_endpoint", "dc/de4/classlci_1_1alltoall__x.html#aaff69acd75487274c30c4c9d6e17c02b", null ],

@@ -1,7 +1,7 @@
 <map id="Collective Communication" name="Collective Communication">
 <area shape="rect" id="Node000007" href="$df/d61/group__LCI__ALLGATHER.html" title="An allgather operation." alt="" coords="267,5,347,31"/>
 <area shape="rect" id="Node000006" href="$d3/df3/group__LCI__ALLREDUCE.html" title="An allreduce operation." alt="" coords="266,55,349,80"/>
-<area shape="rect" id="Node000008" href="$d8/d98/group__LCI__ALLTOALL.html" title="A blocking alltoall operation." alt="" coords="274,104,341,129"/>
+<area shape="rect" id="Node000008" href="$d8/d98/group__LCI__ALLTOALL.html" title="An alltoall operation." alt="" coords="274,104,341,129"/>
 <area shape="rect" id="Node000002" href="$da/d73/group__LCI__BARRIER.html" title="A barrier operation." alt="" coords="275,153,340,179"/>
 <area shape="rect" id="Node000003" href="$d1/d7a/group__LCI__BROADCAST.html" title="A broadcast operation." alt="" coords="264,203,351,228"/>
 <area shape="rect" id="Node000001" title="This section describes the LCI API for collective communication." alt="" coords="5,153,200,179"/>
