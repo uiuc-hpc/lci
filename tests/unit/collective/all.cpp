@@ -153,13 +153,35 @@ TEST(COMM_COLL, alltoall)
   int rank = lci::get_rank_me();
   int nranks = lci::get_rank_n();
 
-  std::vector<uint64_t> sendbuf(nranks, rank);
+  std::vector<uint64_t> sendbuf(nranks);
   std::vector<uint64_t> recvbuf(nranks, -1);
+  for (int i = 0; i < nranks; ++i) {
+    sendbuf[i] = rank * nranks + i;
+  }
 
   lci::alltoall(sendbuf.data(), recvbuf.data(), sizeof(uint64_t));
 
   for (int i = 0; i < nranks; ++i) {
-    ASSERT_EQ(recvbuf[i], i);
+    ASSERT_EQ(recvbuf[i], i * nranks + rank);
+  }
+
+  std::vector<uint64_t> nonblocking_sendbuf(nranks);
+  std::vector<uint64_t> nonblocking_recvbuf(nranks, -1);
+  for (int i = 0; i < nranks; ++i) {
+    nonblocking_sendbuf[i] = (rank + 1) * nranks + i;
+  }
+
+  lci::comp_t sync = lci::alloc_sync();
+  lci::alltoall_x(nonblocking_sendbuf.data(), nonblocking_recvbuf.data(),
+                  sizeof(uint64_t))
+      .comp(sync)();
+  while (!lci::sync_test(sync, nullptr)) {
+    lci::progress();
+  }
+  lci::free_comp(&sync);
+
+  for (int i = 0; i < nranks; ++i) {
+    ASSERT_EQ(nonblocking_recvbuf[i], (i + 1) * nranks + rank);
   }
 
   lci::g_runtime_fina();

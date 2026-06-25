@@ -8,7 +8,7 @@ namespace lci
 void alltoall_x::call_impl(const void* sendbuf, void* recvbuf, size_t size,
                            runtime_t runtime, device_t device,
                            endpoint_t endpoint,
-                           matching_engine_t matching_engine,
+                           matching_engine_t matching_engine, comp_t comp,
                            comp_semantic_t comp_semantic) const
 {
   int seqnum = get_sequence_number();
@@ -19,45 +19,68 @@ void alltoall_x::call_impl(const void* sendbuf, void* recvbuf, size_t size,
               "enter alltoall %d (sendbuf %p recvbuf %p size %lu)\n", seqnum,
               sendbuf, recvbuf, size);
 
-  comp_t comp = alloc_sync_x().threshold(2 * nranks - 2).runtime(runtime)();
+  void* self_recvbuf = static_cast<char*>(recvbuf) + rank * size;
+  void* self_sendbuf =
+      static_cast<char*>(const_cast<void*>(sendbuf)) + rank * size;
+  memcpy(self_recvbuf, self_sendbuf, size);
+
+  if (nranks == 1) {
+    if (!comp.is_empty()) {
+      lci::comp_signal(comp, status_t(errorcode_t::done));
+    }
+    LCI_DBG_Log(LOG_TRACE, "collective",
+                "leave alltoall %d (sendbuf %p recvbuf %p size %lu)\n", seqnum,
+                sendbuf, recvbuf, size);
+    return;
+  }
+
+  comp_t graph = alloc_graph_x().runtime(runtime).comp(comp)();
 
   for (int i = 0; i < nranks; ++i) {
+    if (i == rank) {
+      continue;
+    }
     void* current_recvbuf =
         static_cast<void*>(static_cast<char*>(recvbuf) + i * size);
     void* current_sendbuf = static_cast<void*>(
         static_cast<char*>(const_cast<void*>(sendbuf)) + i * size);
-    if (i == rank) {
-      memcpy(current_recvbuf, current_sendbuf, size);
-      continue;
-    }
-    status_t status;
-    do {
-      status = post_recv_x(i, current_recvbuf, size, seqnum, comp)
+
+    auto recv_node = graph_add_node_op(
+        graph, post_recv_x(i, current_recvbuf, size, seqnum, graph)
                    .runtime(runtime)
                    .device(device)
                    .endpoint(endpoint)
                    .matching_engine(matching_engine)
                    .comp_semantic(comp_semantic)
-                   .allow_done(false)();
-      progress_x().runtime(runtime).device(device).endpoint(endpoint)();
-    } while (status.is_retry());
-    do {
-      status = post_send_x(i, current_sendbuf, size, seqnum, comp)
+                   .allow_retry(false));
+    auto send_node = graph_add_node_op(
+        graph, post_send_x(i, current_sendbuf, size, seqnum, graph)
                    .runtime(runtime)
                    .device(device)
                    .endpoint(endpoint)
                    .matching_engine(matching_engine)
                    .comp_semantic(comp_semantic)
-                   .allow_done(false)();
-      progress_x().runtime(runtime).device(device).endpoint(endpoint)();
-    } while (status.is_retry());
+                   .allow_retry(false));
+    graph_add_edge(graph, GRAPH_START, recv_node);
+    graph_add_edge(graph, GRAPH_START, send_node);
+    graph_add_edge(graph, recv_node, GRAPH_END);
+    graph_add_edge(graph, send_node, GRAPH_END);
   }
 
-  // sync_wait_x(comp, nullptr).runtime(runtime)();
-  while (!sync_test_x(comp, nullptr).runtime(runtime)()) {
-    progress_x().runtime(runtime).device(device).endpoint(endpoint)();
+  graph_start(graph);
+  if (comp.is_empty()) {
+    // blocking wait
+    status_t status;
+    do {
+      progress_x().runtime(runtime).device(device).endpoint(endpoint)();
+      status = graph_test(graph);
+    } while (status.is_retry());
+    free_comp(&graph);
   }
-  free_comp(&comp);
+
+  LCI_DBG_Log(LOG_TRACE, "collective",
+              "leave alltoall %d (sendbuf %p recvbuf %p size %lu)\n", seqnum,
+              sendbuf, recvbuf, size);
 }
 
 }  // namespace lci
