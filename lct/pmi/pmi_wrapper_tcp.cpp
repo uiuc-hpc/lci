@@ -143,8 +143,7 @@ void fail_if(bool condition, const std::string& what)
   if (condition) fail(what);
 }
 
-int parse_int(const char* name, const char* value, int min_value,
-              int max_value)
+int parse_int(const char* name, const char* value, int min_value, int max_value)
 {
   fail_if(value == nullptr || *value == '\0',
           std::string("Missing required environment variable ") + name);
@@ -253,8 +252,9 @@ int deadline_ms_remaining(deadline_t deadline)
 {
   auto now = clock_t::now();
   if (now >= deadline) return 0;
-  auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now)
-                .count();
+  auto ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now)
+          .count();
   if (ms > INT32_MAX) return INT32_MAX;
   return static_cast<int>(ms);
 }
@@ -382,7 +382,8 @@ bool read_all(int fd, void* data, size_t size, deadline_t deadline,
 bool send_msg(int fd, const wire_msg_t& msg, deadline_t deadline,
               std::string* error)
 {
-  fail_if(msg.key.size() > k_max_wire_string || msg.value.size() > k_max_wire_string,
+  fail_if(msg.key.size() > k_max_wire_string ||
+              msg.value.size() > k_max_wire_string,
           "LCT torchrun PMI wire message is too large");
   uint32_t header[5];
   header[0] = htonl(static_cast<uint32_t>(msg.type));
@@ -418,8 +419,7 @@ bool recv_msg(int fd, wire_msg_t* msg, deadline_t deadline, std::string* error)
   msg->aux = aux;
   msg->key.assign(key_len, '\0');
   msg->value.assign(value_len, '\0');
-  if (key_len > 0 &&
-      !read_all(fd, &msg->key[0], key_len, deadline, error))
+  if (key_len > 0 && !read_all(fd, &msg->key[0], key_len, deadline, error))
     return false;
   if (value_len > 0 &&
       !read_all(fd, &msg->value[0], value_len, deadline, error))
@@ -448,8 +448,9 @@ wire_msg_t request_response(const wire_msg_t& request)
   }
   wire_msg_t response;
   if (!recv_msg(g_client_fd, &response, deadline, &error)) {
-    fail("LCT torchrun PMI failed waiting for TCP rendezvous server response: " +
-         error);
+    fail(
+        "LCT torchrun PMI failed waiting for TCP rendezvous server response: " +
+        error);
   }
   if (response.type == MSG_ERROR) {
     fail("LCT torchrun PMI server error: " + response.value);
@@ -563,14 +564,12 @@ int create_listener(int port)
 int accept_with_timeout(int listen_fd, deadline_t deadline)
 {
   std::string error;
-  if (!wait_fd(listen_fd, POLLIN, deadline, "waiting for torchrun ranks to join",
-               &error)) {
-    throw std::runtime_error("Timed out waiting for all " +
-                             std::to_string(g_size) +
-                             " ranks to join TCP rendezvous at " +
-                             g_master_addr + ":" +
-                             std::to_string(g_master_port) + " (" + error +
-                             ")");
+  if (!wait_fd(listen_fd, POLLIN, deadline,
+               "waiting for torchrun ranks to join", &error)) {
+    throw std::runtime_error(
+        "Timed out waiting for all " + std::to_string(g_size) +
+        " ranks to join TCP rendezvous at " + g_master_addr + ":" +
+        std::to_string(g_master_port) + " (" + error + ")");
   }
   int fd = accept(listen_fd, nullptr, nullptr);
   if (fd < 0) throw_errno("accept() on TCP rendezvous listener failed");
@@ -588,7 +587,8 @@ int connect_to_server(deadline_t deadline)
   hints.ai_family = AF_UNSPEC;
   std::string port_str = std::to_string(g_master_port);
   struct addrinfo* addrs = nullptr;
-  int gai = getaddrinfo(g_master_addr.c_str(), port_str.c_str(), &hints, &addrs);
+  int gai =
+      getaddrinfo(g_master_addr.c_str(), port_str.c_str(), &hints, &addrs);
   if (gai != 0) {
     fail("LCT torchrun PMI could not resolve rendezvous endpoint " +
          g_master_addr + ":" + port_str + ": " + gai_strerror(gai));
@@ -620,8 +620,8 @@ int connect_to_server(deadline_t deadline)
       }
       if (errno == EINPROGRESS) {
         std::string error;
-        if (wait_fd(fd, POLLOUT, deadline, "connecting to TCP rendezvous server",
-                    &error)) {
+        if (wait_fd(fd, POLLOUT, deadline,
+                    "connecting to TCP rendezvous server", &error)) {
           int so_error = 0;
           socklen_t len = sizeof(so_error);
           if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &so_error, &len) == 0 &&
@@ -648,9 +648,11 @@ int connect_to_server(deadline_t deadline)
   }
   freeaddrinfo(addrs);
   fail("LCT torchrun PMI rank " + std::to_string(g_rank) + " timed out after " +
-       std::to_string(g_timeout_sec) + " seconds connecting to TCP rendezvous " +
-       "server at " + g_master_addr + ":" + port_str +
-       (last_error.empty() ? std::string() : " (last error: " + last_error + ")"));
+       std::to_string(g_timeout_sec) +
+       " seconds connecting to TCP rendezvous " + "server at " + g_master_addr +
+       ":" + port_str +
+       (last_error.empty() ? std::string()
+                           : " (last error: " + last_error + ")"));
 }
 
 void handle_barrier(int fd, int rank)
@@ -700,8 +702,8 @@ void client_handler(int fd, int rank)
   while (true) {
     wire_msg_t msg;
     std::string error;
-    if (!wait_fd_blocking(fd, POLLIN, "waiting for next LCT torchrun PMI request",
-                          &error)) {
+    if (!wait_fd_blocking(
+            fd, POLLIN, "waiting for next LCT torchrun PMI request", &error)) {
       close(fd);
       return;
     }
@@ -740,8 +742,8 @@ void client_handler(int fd, int rank)
         send_response(fd, MSG_VALUE, value, deadline, &error);
       } else {
         send_response(fd, MSG_ERROR,
-                      "LCT torchrun PMI key '" + msg.key +
-                          "' from rank " + std::to_string(msg.rank) +
+                      "LCT torchrun PMI key '" + msg.key + "' from rank " +
+                          std::to_string(msg.rank) +
                           " was not found. Ensure all ranks call "
                           "LCT_pmi_publish before LCT_pmi_barrier.",
                       deadline, &error);
@@ -753,10 +755,11 @@ void client_handler(int fd, int rank)
       close(fd);
       return;
     } else {
-      send_response(fd, MSG_ERROR,
-                    "LCT torchrun PMI server received unexpected request type " +
-                        std::to_string(static_cast<uint32_t>(msg.type)),
-                    deadline, &error);
+      send_response(
+          fd, MSG_ERROR,
+          "LCT torchrun PMI server received unexpected request type " +
+              std::to_string(static_cast<uint32_t>(msg.type)),
+          deadline, &error);
     }
   }
 }
@@ -775,9 +778,10 @@ void server_loop()
       std::string error;
       if (!recv_msg(fd, &hello, deadline, &error)) {
         close(fd);
-        throw std::runtime_error("Failed to read hello from TCP rendezvous "
-                                 "client: " +
-                                 error);
+        throw std::runtime_error(
+            "Failed to read hello from TCP rendezvous "
+            "client: " +
+            error);
       }
       if (hello.type != MSG_HELLO || hello.rank < 0 || hello.rank >= g_size) {
         send_response(fd, MSG_ERROR,
@@ -802,8 +806,9 @@ void server_loop()
     for (auto& client : clients) {
       std::string error;
       if (!send_response(client.fd, MSG_OK, "", deadline, &error)) {
-        throw std::runtime_error("Failed to send TCP rendezvous welcome to rank " +
-                                 std::to_string(client.rank) + ": " + error);
+        throw std::runtime_error(
+            "Failed to send TCP rendezvous welcome to rank " +
+            std::to_string(client.rank) + ": " + error);
       }
     }
   } catch (const std::exception& e) {
@@ -1019,7 +1024,8 @@ void finalize()
   }
   if (g_rank == 0 && g_server_thread.joinable()) {
     std::unique_lock<std::mutex> lock(g_server_mutex);
-    g_server_cv.wait_for(lock, std::chrono::seconds(1), [] { return g_server_done; });
+    g_server_cv.wait_for(lock, std::chrono::seconds(1),
+                         [] { return g_server_done; });
     bool done = g_server_done;
     lock.unlock();
     (void)done;

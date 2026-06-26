@@ -21,7 +21,8 @@ add_lci_test(
   "${CMAKE_CURRENT_SOURCE_DIR}/run_torchrun_pmi_test.sh [TARGET] 2 pmi LCI"
   "${CMAKE_CURRENT_SOURCE_DIR}/run_torchrun_pmi_test.sh [TARGET] 2 pmi MASTER"
   "${CMAKE_CURRENT_SOURCE_DIR}/run_torchrun_pmi_test.sh [TARGET] 1 fallback-local NONE"
-  "${CMAKE_CURRENT_SOURCE_DIR}/run_torchrun_pmi_test.sh [TARGET] 2 mixed-expect-fail MIXED")
+  "${CMAKE_CURRENT_SOURCE_DIR}/run_torchrun_pmi_test.sh [TARGET] 2 mixed-expect-fail MIXED"
+)
 set_target_properties(
   test-cxx11-test_cxx11
   PROPERTIES CXX_STANDARD 11

@@ -8,9 +8,9 @@ lct_option(
 
 set(LIBRARY_NAME LCT)
 
-target_sources_relative(${LIBRARY_NAME} PRIVATE pmi_wrapper.cpp
-                        pmi_wrapper_local.cpp pmi_wrapper_file.cpp
-                        pmi_wrapper_tcp.cpp)
+target_sources_relative(
+  ${LIBRARY_NAME} PRIVATE pmi_wrapper.cpp pmi_wrapper_local.cpp
+  pmi_wrapper_file.cpp pmi_wrapper_tcp.cpp)
 
 find_package(PMI)
 option(LCT_PMI_BACKEND_ENABLE_PMI1
