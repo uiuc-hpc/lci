@@ -12,11 +12,12 @@ var searchData=
   ['with_20rank_200_9',['Why was my LCI application launched as a collection of processes all with rank 0?',['../d3/d2d/faq.html#autotoc_md36',1,'']]],
   ['with_20spack_10',['With Spack',['../db/d4e/tutorial.html#autotoc_md56',1,'']]],
   ['with_20srun_11',['Run LCI applications with srun',['../db/d4e/tutorial.html#autotoc_md87',1,'']]],
-  ['work_12',['Why does &lt;tt&gt;lcrun&lt;/tt&gt; not work?',['../d3/d2d/faq.html#autotoc_md37',1,'']]],
-  ['world_13',['Hello World',['../db/d4e/tutorial.html#autotoc_md80',1,'']]],
-  ['world_20active_20message_14',['Hello World (Active Message)',['../db/d4e/tutorial.html#autotoc_md81',1,'']]],
-  ['write_15',['WRITE',['../d8/d33/group__LCI__BASIC.html#gga5738a9cd7c46e12f45e2fbf0fca0b895ad4b9e47f65b6e79b010582f15785867e',1,'lci']]],
-  ['write_16',['write',['../d5/dd3/namespacelci.html#a5d9fc0c5909442efe3ed8c69fea17cd8aefb2a684e4afb7d55e6147fbe5a332ee',1,'lci']]],
-  ['write_20lci_20programs_17',['Write LCI programs',['../db/d4e/tutorial.html#autotoc_md64',1,'']]],
-  ['writeimm_18',['writeimm',['../d5/dd3/namespacelci.html#a5d9fc0c5909442efe3ed8c69fea17cd8a642768a088c1b8c97c8f798559686530',1,'lci']]]
+  ['with_20the_20tcp_20backend_12',['Run LCI applications with the TCP backend',['../db/d4e/tutorial.html#autotoc_md89',1,'']]],
+  ['work_13',['Why does &lt;tt&gt;lcrun&lt;/tt&gt; not work?',['../d3/d2d/faq.html#autotoc_md37',1,'']]],
+  ['world_14',['Hello World',['../db/d4e/tutorial.html#autotoc_md80',1,'']]],
+  ['world_20active_20message_15',['Hello World (Active Message)',['../db/d4e/tutorial.html#autotoc_md81',1,'']]],
+  ['write_16',['WRITE',['../d8/d33/group__LCI__BASIC.html#gga5738a9cd7c46e12f45e2fbf0fca0b895ad4b9e47f65b6e79b010582f15785867e',1,'lci']]],
+  ['write_17',['write',['../d5/dd3/namespacelci.html#a5d9fc0c5909442efe3ed8c69fea17cd8aefb2a684e4afb7d55e6147fbe5a332ee',1,'lci']]],
+  ['write_20lci_20programs_18',['Write LCI programs',['../db/d4e/tutorial.html#autotoc_md64',1,'']]],
+  ['writeimm_19',['writeimm',['../d5/dd3/namespacelci.html#a5d9fc0c5909442efe3ed8c69fea17cd8a642768a088c1b8c97c8f798559686530',1,'lci']]]
 ];

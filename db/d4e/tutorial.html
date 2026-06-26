@@ -269,19 +269,22 @@ $(function(){initNavTree('db/d4e/tutorial.html','../../'); initResizable(true); 
           <li class="level3">
             <a href="#autotoc_md88">Run LCI applications with mpirun</a>
           </li>
+          <li class="level3">
+            <a href="#autotoc_md89">Run LCI applications with the TCP backend</a>
+          </li>
         </ul>
       </li>
       <li class="level2">
-        <a href="#autotoc_md89">More details</a>
+        <a href="#autotoc_md90">More details</a>
         <ul>
           <li class="level3">
-            <a href="#autotoc_md90">Bootstrapping backends</a>
+            <a href="#autotoc_md91">Bootstrapping backends</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md91">Launchers</a>
+            <a href="#autotoc_md92">Launchers</a>
           </li>
           <li class="level3">
-            <a href="#autotoc_md92">More about the file backend</a>
+            <a href="#autotoc_md93">More about the file backend</a>
           </li>
         </ul>
       </li>
@@ -1285,30 +1288,48 @@ Run LCI applications with srun</h3>
 Run LCI applications with mpirun</h3>
 <p>Because there are many different MPI implementations and there are no standard about how they implement <code>mpirun</code>, it is slightly more complicated to run LCI applications with <code>mpirun</code>. In such cases, the easiest way is to let LCI use MPI to bootstrap. You just need to set the CMake variable <code>LCT_PMI_BACKEND_ENABLE_MPI=ON</code> and link LCI to MPI.</p>
 <p>It is possible to directly use the PMI backend with <code>mpirun</code>, but you need to find the corresponding PMI client library and link LCI to it. Read the following section for more details.</p>
-<h2><a class="anchor" id="autotoc_md89"></a>
+<h3><a class="anchor" id="autotoc_md89"></a>
+Run LCI applications with the TCP backend</h3>
+<p>The <code>tcp</code> backend is an LCT/LCI-owned bootstrap backend for launch environments that provide rank variables but no PMI/PMIx service. It is not tied to torchrun. Every rank must have five required environment-variable categories: <code>LCT_PMI_BACKEND=tcp</code>, <code>RANK</code>, <code>WORLD_SIZE</code>, one <code>*MASTER_ADDR</code>, and the matching <code>*MASTER_PORT</code>.</p>
+<p>For a generic non-PMI launcher, set all of them yourself:</p>
+<div class="fragment"><div class="line">export LCT_PMI_BACKEND=tcp</div>
+<div class="line">export RANK=&lt;global-rank&gt;</div>
+<div class="line">export WORLD_SIZE=&lt;number-of-ranks&gt;</div>
+<div class="line">export LCT_MASTER_ADDR=&lt;rank-0-hostname-or-ip&gt;</div>
+<div class="line">export LCT_MASTER_PORT=&lt;free-port&gt;</div>
+<div class="line">./lci_program</div>
+</div><!-- fragment --><p>For torchrun, <code>RANK</code>, <code>WORLD_SIZE</code>, <code>LOCAL_RANK</code>, <code>LOCAL_WORLD_SIZE</code>, <code>MASTER_ADDR</code>, and <code>MASTER_PORT</code> are normally supplied by torchrun. LCI can reuse <code>MASTER_ADDR</code>, but it should usually use a separate LCI port so it does not collide with torchrun's own rendezvous service:</p>
+<div class="fragment"><div class="line">export LCT_PMI_BACKEND=tcp</div>
+<div class="line">export LCI_MASTER_ADDR=&quot;$MASTER_ADDR&quot;</div>
+<div class="line">export LCI_MASTER_PORT=&lt;free-port-different-from-MASTER_PORT&gt;</div>
+<div class="line">torchrun --nnodes=&lt;nodes&gt; --nproc-per-node=&lt;ranks-per-node&gt; ./lci_program</div>
+</div><!-- fragment --><p>The TCP backend checks endpoint variables only as matched pairs, in this order: <code>LCT_MASTER_ADDR</code>/<code>LCT_MASTER_PORT</code>, <code>LCI_MASTER_ADDR</code>/<code>LCI_MASTER_PORT</code>, then <code>MASTER_ADDR</code>/<code>MASTER_PORT</code>. It will not mix, for example, <code>LCT_MASTER_ADDR</code> with <code>MASTER_PORT</code>. <code>LCT_PMI_TCP_TIMEOUT_SEC</code> controls connect, join, barrier, and finalize timeouts and defaults to 60 seconds.</p>
+<p>The TCP backend has zero background TCP progress threads. <code>LCT_pmi_publish()</code> only records a local pending key/value, <code>LCT_pmi_barrier()</code> performs the TCP KVS exchange/fence synchronously, and <code>LCT_pmi_getname()</code> is a local post-barrier cache lookup. This avoids rendezvous-thread contention during normal LCI application work.</p>
+<h2><a class="anchor" id="autotoc_md90"></a>
 More details</h2>
-<h3><a class="anchor" id="autotoc_md90"></a>
+<h3><a class="anchor" id="autotoc_md91"></a>
 Bootstrapping backends</h3>
-<p>Specifically, LCI has six different bootstrapping backends:</p><ul>
+<p>Specifically, LCI has seven different bootstrapping backends:</p><ul>
 <li><code>pmi1</code>: Process Management Interface version 1.</li>
 <li><code>pmi2</code>: Process Management Interface version 2.</li>
 <li><code>pmix</code>: Process Management Interface X.</li>
 <li><code>mpi</code>: Use MPI to bootstrap LCI.</li>
+<li><code>tcp</code>: LCI-specific TCP rendezvous backend for launch environments, such as <code>torchrun</code>, that expose rank variables but no PMI/PMIx service.</li>
 <li><code>file</code>: LCI-specific bootstrapping backend with a shared file system and <code>flock</code>.</li>
 <li><code>local</code>: Just set <code>rank_me</code> to 0 and <code>rank_n</code> to 1.</li>
 </ul>
-<p><code>pmi1</code>, <code>pmi2</code>, and <code>pmix</code> are the recommended backends to use. They are the same backends used by MPI. The <code>mpi</code> backend is a fallback option if you cannot find the PMI client library. The <code>file</code> backend is a non-scalable bootstrapping backend mainly for testing and debugging purposes.</p>
-<p>By default, the source code of LCI is shipped with a copy of the SLURM PMI1 and PMI2 client implementation, so <code>pmi1</code> and <code>pmi2</code> are always compiled. <code>pmix</code> will be compiled if the CMake configuration of LCI finds the PMIx client library. The <code>mpi</code> backend must be explicitly asked for by setting the CMake variable <code>LCT_PMI_BACKEND_ENABLE_MPI=ON</code>. The <code>file</code> and <code>local</code> backend is always compiled.</p>
+<p><code>pmi1</code>, <code>pmi2</code>, and <code>pmix</code> are the recommended backends to use. They are the same backends used by MPI. The <code>mpi</code> backend is a fallback option if you cannot find the PMI client library. The <code>tcp</code> backend is for launch environments that expose rank variables but no PMI service. The <code>file</code> backend is a non-scalable bootstrapping backend mainly for testing and debugging purposes.</p>
+<p>By default, the source code of LCI is shipped with a copy of the SLURM PMI1 and PMI2 client implementation, so <code>pmi1</code> and <code>pmi2</code> are always compiled. <code>pmix</code> will be compiled if the CMake configuration of LCI finds the PMIx client library. The <code>mpi</code> backend must be explicitly asked for by setting the CMake variable <code>LCT_PMI_BACKEND_ENABLE_MPI=ON</code>. The <code>tcp</code>, <code>file</code>, and <code>local</code> backends are always compiled.</p>
 <p>However, the SLURM PMI1 and PMI2 client implementation is not always the best option. For example, if you are using <code>mpirun</code>, you may want to use the PMI client library that comes with your MPI implementation. In this case, you need to find the corresponding PMI client library and link LCI to it. <code>ldd $(which mpirun)</code> will show you the PMI client library used by <code>mpirun</code>. Normally, MPICH uses <code>hydra-pmi</code>; Cray-MPICH uses <code>cray-pmi</code>; OpenMPI uses <code>pmix</code>. After finding the PMI client library, you can reconfigure LCI with the corresponding PMI client library through the <code>PMI_ROOT</code>, <code>PMI2_ROOT</code>, or <code>PMIx_ROOT</code> environment/cmake variables.</p>
-<p>A CMake variable <code>LCT_PMI_BACKEND_DEFAULT</code> and an environment variable <code>LCT_PMI_BACKEND</code> can be used to set a list of backends to try in order (if they are compiled). The first one that works will be used. The default value is <code>pmi1,pmi2,pmix,mpi,file,local</code>.</p>
+<p>A CMake variable <code>LCT_PMI_BACKEND_DEFAULT</code> and an environment variable <code>LCT_PMI_BACKEND</code> can be used to set a list of backends to try in order (if they are compiled). The first one that works will be used. The default value is <code>pmix,pmi2,pmi1,mpi,tcp,file,local</code>.</p>
 <p>You can use <code>export LCT_LOG_LEVEL=info</code> to monitor the bootstrapping procedure.</p>
-<h3><a class="anchor" id="autotoc_md91"></a>
+<h3><a class="anchor" id="autotoc_md92"></a>
 Launchers</h3>
 <p><code>srun</code> and <code>mpirun</code> should use one of the PMI backends (or <code>mpi</code> as a last resort). <code>lcrun</code> will use the <code>file</code> backend.</p>
 <p>Depending on the SLURM configuration, <code>srun</code> may not enable PMI by default. In this case, you can explicitly enable one of the PMI services by using the <code>--mpi</code> option. <code>srun --mpi=list -n 1 hostname</code> will show you the available PMI services. You can confirm whether the PMI service has been enabled with <code>srun env | grep PMI</code>.</p>
 <p><code>mpirun</code> will use the PMI client library that comes with your MPI implementation. As mentioned above, you need to link LCI to the correct PMI client library.</p>
 <p>Sometimes, <code>lcrun</code> may hang because of a previous failed run. In this case, you can remove the temporary folder <code>~/.tmp/lct_pmi_file-*</code> and try again.</p>
-<h3><a class="anchor" id="autotoc_md92"></a>
+<h3><a class="anchor" id="autotoc_md93"></a>
 More about the file backend</h3>
 <p>The <code>file</code> backend allows you to launch multiple LCI processes individually without a launcher. This can significantly ease the debugging process.</p>
 <p>For example, you can open two terminal windows and run the following commands in each window: </p><div class="fragment"><div class="line">export LCT_PMI_BACKEND=file</div>

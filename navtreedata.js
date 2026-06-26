@@ -70,13 +70,14 @@ var NAVTREE =
         ] ]
       ] ],
       [ "Run LCI applications", "db/d4e/tutorial.html#autotoc_md85", [
-        [ "More details", "db/d4e/tutorial.html#autotoc_md89", [
+        [ "More details", "db/d4e/tutorial.html#autotoc_md90", [
           [ "Run LCI applications with lcrun", "db/d4e/tutorial.html#autotoc_md86", null ],
           [ "Run LCI applications with srun", "db/d4e/tutorial.html#autotoc_md87", null ],
           [ "Run LCI applications with mpirun", "db/d4e/tutorial.html#autotoc_md88", null ],
-          [ "Bootstrapping backends", "db/d4e/tutorial.html#autotoc_md90", null ],
-          [ "Launchers", "db/d4e/tutorial.html#autotoc_md91", null ],
-          [ "More about the file backend", "db/d4e/tutorial.html#autotoc_md92", null ]
+          [ "Run LCI applications with the TCP backend", "db/d4e/tutorial.html#autotoc_md89", null ],
+          [ "Bootstrapping backends", "db/d4e/tutorial.html#autotoc_md91", null ],
+          [ "Launchers", "db/d4e/tutorial.html#autotoc_md92", null ],
+          [ "More about the file backend", "db/d4e/tutorial.html#autotoc_md93", null ]
         ] ]
       ] ]
     ] ],
@@ -104,7 +105,7 @@ var NAVTREEINDEX =
 "d8/d33/group__LCI__BASIC.html#gacd46beb25126ebb7bf83b33e6381d6d2",
 "d9/d10/classlci_1_1alloc__device__x.html#a56912fff6daa357d714dbbf3bf67af85",
 "db/d4e/tutorial.html#autotoc_md66",
-"dc/d9c/group__LCI__GET__MAX__BCOPY__SIZE.html"
+"dc/d98/classlci_1_1net__context__t.html#afe51fff42f7de941504f90534ce38463"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronization';
