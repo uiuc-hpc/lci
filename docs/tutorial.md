@@ -536,25 +536,54 @@ Because there are many different MPI implementations and there are no standard a
 
 It is possible to directly use the PMI backend with `mpirun`, but you need to find the corresponding PMI client library and link LCI to it. Read the following section for more details.
 
+### Run LCI applications with the TCP backend
+
+The `tcp` backend is an LCT/LCI-owned bootstrap backend for launch environments that provide rank variables but no PMI/PMIx service. It is not tied to torchrun. Every rank must have five required environment-variable categories: `LCT_PMI_BACKEND=tcp`, `RANK`, `WORLD_SIZE`, one `*MASTER_ADDR`, and the matching `*MASTER_PORT`.
+
+For a generic non-PMI launcher, set all of them yourself:
+
+```bash
+export LCT_PMI_BACKEND=tcp
+export RANK=<global-rank>
+export WORLD_SIZE=<number-of-ranks>
+export LCT_MASTER_ADDR=<rank-0-hostname-or-ip>
+export LCT_MASTER_PORT=<free-port>
+./lci_program
+```
+
+For torchrun, `RANK`, `WORLD_SIZE`, `LOCAL_RANK`, `LOCAL_WORLD_SIZE`, `MASTER_ADDR`, and `MASTER_PORT` are normally supplied by torchrun. LCI can reuse `MASTER_ADDR`, but it should usually use a separate LCI port so it does not collide with torchrun's own rendezvous service:
+
+```bash
+export LCT_PMI_BACKEND=tcp
+export LCI_MASTER_ADDR="$MASTER_ADDR"
+export LCI_MASTER_PORT=<free-port-different-from-MASTER_PORT>
+torchrun --nnodes=<nodes> --nproc-per-node=<ranks-per-node> ./lci_program
+```
+
+The TCP backend checks endpoint variables only as matched pairs, in this order: `LCT_MASTER_ADDR`/`LCT_MASTER_PORT`, `LCI_MASTER_ADDR`/`LCI_MASTER_PORT`, then `MASTER_ADDR`/`MASTER_PORT`. It will not mix, for example, `LCT_MASTER_ADDR` with `MASTER_PORT`. `LCT_PMI_TCP_TIMEOUT_SEC` controls connect, join, barrier, and finalize timeouts and defaults to 60 seconds.
+
+The TCP backend has zero background TCP progress threads. `LCT_pmi_publish()` only records a local pending key/value, `LCT_pmi_barrier()` performs the TCP KVS exchange/fence synchronously, and `LCT_pmi_getname()` is a local post-barrier cache lookup. This avoids rendezvous-thread contention during normal LCI application work.
+
 ## More details
 
 ### Bootstrapping backends
 
-Specifically, LCI has six different bootstrapping backends:
+Specifically, LCI has seven different bootstrapping backends:
 - `pmi1`: Process Management Interface version 1.
 - `pmi2`: Process Management Interface version 2.
 - `pmix`: Process Management Interface X.
 - `mpi`: Use MPI to bootstrap LCI.
+- `tcp`: LCI-specific TCP rendezvous backend for launch environments, such as `torchrun`, that expose rank variables but no PMI/PMIx service.
 - `file`: LCI-specific bootstrapping backend with a shared file system and `flock`.
 - `local`: Just set `rank_me` to 0 and `rank_n` to 1.
 
-`pmi1`, `pmi2`, and `pmix` are the recommended backends to use. They are the same backends used by MPI. The `mpi` backend is a fallback option if you cannot find the PMI client library. The `file` backend is a non-scalable bootstrapping backend mainly for testing and debugging purposes.
+`pmi1`, `pmi2`, and `pmix` are the recommended backends to use. They are the same backends used by MPI. The `mpi` backend is a fallback option if you cannot find the PMI client library. The `tcp` backend is for launch environments that expose rank variables but no PMI service. The `file` backend is a non-scalable bootstrapping backend mainly for testing and debugging purposes.
 
-By default, the source code of LCI is shipped with a copy of the SLURM PMI1 and PMI2 client implementation, so `pmi1` and `pmi2` are always compiled. `pmix` will be compiled if the CMake configuration of LCI finds the PMIx client library. The `mpi` backend must be explicitly asked for by setting the CMake variable `LCT_PMI_BACKEND_ENABLE_MPI=ON`. The `file` and `local` backend is always compiled.
+By default, the source code of LCI is shipped with a copy of the SLURM PMI1 and PMI2 client implementation, so `pmi1` and `pmi2` are always compiled. `pmix` will be compiled if the CMake configuration of LCI finds the PMIx client library. The `mpi` backend must be explicitly asked for by setting the CMake variable `LCT_PMI_BACKEND_ENABLE_MPI=ON`. The `tcp`, `file`, and `local` backends are always compiled.
 
 However, the SLURM PMI1 and PMI2 client implementation is not always the best option. For example, if you are using `mpirun`, you may want to use the PMI client library that comes with your MPI implementation. In this case, you need to find the corresponding PMI client library and link LCI to it. `ldd $(which mpirun)` will show you the PMI client library used by `mpirun`. Normally, MPICH uses `hydra-pmi`; Cray-MPICH uses `cray-pmi`; OpenMPI uses `pmix`. After finding the PMI client library, you can reconfigure LCI with the corresponding PMI client library through the `PMI_ROOT`, `PMI2_ROOT`, or `PMIx_ROOT` environment/cmake variables.
 
-A CMake variable `LCT_PMI_BACKEND_DEFAULT` and an environment variable `LCT_PMI_BACKEND` can be used to set a list of backends to try in order (if they are compiled). The first one that works will be used. The default value is `pmi1,pmi2,pmix,mpi,file,local`.
+A CMake variable `LCT_PMI_BACKEND_DEFAULT` and an environment variable `LCT_PMI_BACKEND` can be used to set a list of backends to try in order (if they are compiled). The first one that works will be used. The default value is `pmix,pmi2,pmi1,mpi,tcp,file,local`.
 
 You can use `export LCT_LOG_LEVEL=info` to monitor the bootstrapping procedure.
 
