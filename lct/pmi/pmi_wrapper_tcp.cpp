@@ -15,14 +15,10 @@
 
 #include <algorithm>
 #include <chrono>
-#include <condition_variable>
 #include <cstdint>
-#include <atomic>
 #include <map>
-#include <mutex>
 #include <stdexcept>
 #include <string>
-#include <thread>
 #include <utility>
 #include <vector>
 
@@ -39,6 +35,17 @@
 // another runtime) already owns MASTER_PORT, set LCI_MASTER_PORT or
 // LCT_MASTER_PORT to a distinct port for LCI's TCP rendezvous.
 // LCT_PMI_TCP_TIMEOUT_SEC controls connect/join/barrier timeouts (default 60s).
+//
+// This backend intentionally follows the PMI put/fence/get shape without any
+// background progress threads:
+//   - publish() only records a local pending key/value.
+//   - barrier() is the fence. Nonzero ranks send pending puts and a barrier
+//     request; rank 0 polls all sockets and progresses the rendezvous server in
+//     that calling thread; rank 0 then sends the post-fence KVS snapshot back.
+//   - getname() is a local lookup in the most recent post-barrier snapshot.
+// Keeping all TCP progress inside initialize(), barrier(), and finalize()
+// prevents ordinary LCI application work from contending with hidden rendezvous
+// server or per-rank handler threads.
 
 namespace lct
 {
@@ -57,7 +64,6 @@ constexpr size_t k_max_wire_string = 4096;
 enum msg_type_t : uint32_t {
   MSG_HELLO = 1,
   MSG_PUBLISH = 2,
-  MSG_GET = 3,
   MSG_BARRIER = 4,
   MSG_FINALIZE = 5,
   MSG_OK = 100,
@@ -105,20 +111,8 @@ std::string g_master_addr;
 int g_master_port = -1;
 std::string g_endpoint_source;
 int g_client_fd = -1;
-std::thread g_server_thread;
-std::mutex g_server_mutex;
-std::condition_variable g_server_cv;
-bool g_server_ready = false;
-bool g_server_done = false;
-std::string g_server_error;
-std::atomic<bool> g_server_has_error(false);
-
-std::mutex g_barrier_mutex;
-std::condition_variable g_barrier_cv;
-int g_barrier_generation = 0;
-int g_barrier_count = 0;
-
-std::mutex g_kvs_mutex;
+std::vector<client_conn_t> g_clients;
+std::map<std::string, std::string> g_pending_kvs;
 std::map<std::pair<int, std::string>, std::string> g_kvs;
 
 std::string errno_string(const std::string& what)
@@ -259,6 +253,16 @@ int deadline_ms_remaining(deadline_t deadline)
   return static_cast<int>(ms);
 }
 
+void poll_sleep_ms(int ms)
+{
+  while (ms > 0) {
+    int ret = poll(nullptr, 0, ms);
+    if (ret == 0) return;
+    if (ret < 0 && errno == EINTR) continue;
+    return;
+  }
+}
+
 void set_cloexec(int fd)
 {
   int flags = fcntl(fd, F_GETFD, 0);
@@ -284,6 +288,12 @@ void close_fd(int* fd)
   }
 }
 
+void close_clients()
+{
+  for (auto& client : g_clients) close_fd(&client.fd);
+  g_clients.clear();
+}
+
 bool wait_fd(int fd, short events, deadline_t deadline, const char* opname,
              std::string* error)
 {
@@ -299,33 +309,17 @@ bool wait_fd(int fd, short events, deadline_t deadline, const char* opname,
     pfd.events = events;
     pfd.revents = 0;
     int ret = poll(&pfd, 1, timeout_ms);
-    if (ret > 0) return true;
-    if (ret == 0) {
-      *error = std::string(opname) + " timed out after " +
-               std::to_string(g_timeout_sec) + " seconds";
-      return false;
-    }
-    if (errno == EINTR) continue;
-    *error = errno_string(std::string(opname) + " poll failed");
-    return false;
-  }
-}
-
-bool wait_fd_blocking(int fd, short events, const char* opname,
-                      std::string* error)
-{
-  while (true) {
-    struct pollfd pfd;
-    pfd.fd = fd;
-    pfd.events = events;
-    pfd.revents = 0;
-    int ret = poll(&pfd, 1, -1);
     if (ret > 0) {
       if (pfd.revents & POLLNVAL) {
         *error = std::string(opname) + " failed: invalid file descriptor";
         return false;
       }
       return true;
+    }
+    if (ret == 0) {
+      *error = std::string(opname) + " timed out after " +
+               std::to_string(g_timeout_sec) + " seconds";
+      return false;
     }
     if (errno == EINTR) continue;
     *error = errno_string(std::string(opname) + " poll failed");
@@ -436,67 +430,6 @@ bool send_response(int fd, msg_type_t type, const std::string& payload,
   msg.aux = 0;
   msg.value = payload;
   return send_msg(fd, msg, deadline, error);
-}
-
-wire_msg_t request_response(const wire_msg_t& request)
-{
-  deadline_t deadline = clock_t::now() + std::chrono::seconds(g_timeout_sec);
-  std::string error;
-  if (!send_msg(g_client_fd, request, deadline, &error)) {
-    fail("LCT torchrun PMI failed to send request to TCP rendezvous server: " +
-         error);
-  }
-  wire_msg_t response;
-  if (!recv_msg(g_client_fd, &response, deadline, &error)) {
-    fail(
-        "LCT torchrun PMI failed waiting for TCP rendezvous server response: " +
-        error);
-  }
-  if (response.type == MSG_ERROR) {
-    fail("LCT torchrun PMI server error: " + response.value);
-  }
-  if (response.type != MSG_OK && response.type != MSG_VALUE) {
-    fail("LCT torchrun PMI received unexpected response type " +
-         std::to_string(static_cast<uint32_t>(response.type)));
-  }
-  return response;
-}
-
-void mark_server_error(const std::string& error)
-{
-  {
-    std::lock_guard<std::mutex> lock(g_server_mutex);
-    if (g_server_error.empty()) {
-      g_server_error = error;
-      g_server_has_error.store(true, std::memory_order_release);
-    }
-  }
-  g_server_cv.notify_all();
-  g_barrier_cv.notify_all();
-}
-
-std::string get_server_error()
-{
-  std::lock_guard<std::mutex> lock(g_server_mutex);
-  return g_server_error;
-}
-
-void mark_server_ready()
-{
-  {
-    std::lock_guard<std::mutex> lock(g_server_mutex);
-    g_server_ready = true;
-  }
-  g_server_cv.notify_all();
-}
-
-void mark_server_done()
-{
-  {
-    std::lock_guard<std::mutex> lock(g_server_mutex);
-    g_server_done = true;
-  }
-  g_server_cv.notify_all();
 }
 
 int create_listener(int port)
@@ -644,7 +577,7 @@ int connect_to_server(deadline_t deadline)
       }
       close(fd);
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    poll_sleep_ms(100);
   }
   freeaddrinfo(addrs);
   fail("LCT torchrun PMI rank " + std::to_string(g_rank) + " timed out after " +
@@ -655,189 +588,343 @@ int connect_to_server(deadline_t deadline)
                            : " (last error: " + last_error + ")"));
 }
 
-void handle_barrier(int fd, int rank)
+void send_error_to_clients(const std::string& message, deadline_t deadline)
 {
+  for (auto& client : g_clients) {
+    std::string error;
+    send_response(client.fd, MSG_ERROR, message, deadline, &error);
+  }
+}
+
+void accept_rank_clients(int listen_fd, deadline_t deadline)
+{
+  std::vector<bool> seen_rank(g_size, false);
+  seen_rank[0] = true;
+  while (static_cast<int>(g_clients.size()) < g_size - 1) {
+    int fd = accept_with_timeout(listen_fd, deadline);
+    wire_msg_t hello;
+    std::string error;
+    if (!recv_msg(fd, &hello, deadline, &error)) {
+      close(fd);
+      throw std::runtime_error(
+          "Failed to read hello from TCP rendezvous client: " + error);
+    }
+    if (hello.type != MSG_HELLO || hello.rank <= 0 || hello.rank >= g_size) {
+      send_response(fd, MSG_ERROR,
+                    "Invalid LCT torchrun PMI hello from rank " +
+                        std::to_string(hello.rank),
+                    deadline, &error);
+      close(fd);
+      throw std::runtime_error("Invalid TCP rendezvous hello");
+    }
+    if (seen_rank[hello.rank]) {
+      send_response(fd, MSG_ERROR,
+                    "Duplicate LCT torchrun PMI connection for rank " +
+                        std::to_string(hello.rank),
+                    deadline, &error);
+      close(fd);
+      throw std::runtime_error("Duplicate TCP rendezvous rank " +
+                               std::to_string(hello.rank));
+    }
+    seen_rank[hello.rank] = true;
+    g_clients.push_back({fd, hello.rank});
+  }
+  for (auto& client : g_clients) {
+    std::string error;
+    if (!send_response(client.fd, MSG_OK, "", deadline, &error)) {
+      throw std::runtime_error(
+          "Failed to send TCP rendezvous welcome to rank " +
+          std::to_string(client.rank) + ": " + error);
+    }
+  }
+}
+
+void apply_pending_publishes()
+{
+  for (const auto& kv : g_pending_kvs) {
+    g_kvs[std::make_pair(g_rank, kv.first)] = kv.second;
+  }
+  g_pending_kvs.clear();
+}
+
+void store_remote_publish(const wire_msg_t& msg, int client_rank)
+{
+  fail_if(msg.rank != client_rank,
+          "LCT torchrun PMI received publish with mismatched rank " +
+              std::to_string(msg.rank) + " on connection for rank " +
+              std::to_string(client_rank));
+  fail_if(msg.key.size() >= LCT_PMI_STRING_LIMIT ||
+              msg.value.size() >= LCT_PMI_STRING_LIMIT,
+          "LCT torchrun PMI publish key/value exceeds LCT_PMI_STRING_LIMIT");
+  g_kvs[std::make_pair(client_rank, msg.key)] = msg.value;
+}
+
+void send_snapshot(int fd, deadline_t deadline)
+{
+  fail_if(g_kvs.size() > UINT32_MAX,
+          "LCT torchrun PMI KVS snapshot has too many entries");
+  wire_msg_t ok;
+  ok.type = MSG_OK;
+  ok.rank = 0;
+  ok.aux = static_cast<uint32_t>(g_kvs.size());
+  std::string error;
+  if (!send_msg(fd, ok, deadline, &error)) {
+    fail("LCT torchrun PMI failed to send barrier response: " + error);
+  }
+  for (const auto& kv : g_kvs) {
+    wire_msg_t record;
+    record.type = MSG_VALUE;
+    record.rank = kv.first.first;
+    record.key = kv.first.second;
+    record.value = kv.second;
+    if (!send_msg(fd, record, deadline, &error)) {
+      fail("LCT torchrun PMI failed to send KVS snapshot record to rank: " +
+           error);
+    }
+  }
+}
+
+void recv_snapshot(uint32_t count, deadline_t deadline)
+{
+  std::map<std::pair<int, std::string>, std::string> snapshot;
+  for (uint32_t i = 0; i < count; ++i) {
+    wire_msg_t record;
+    std::string error;
+    if (!recv_msg(g_client_fd, &record, deadline, &error)) {
+      fail("LCT torchrun PMI failed receiving KVS snapshot: " + error);
+    }
+    if (record.type == MSG_ERROR) {
+      fail("LCT torchrun PMI server error: " + record.value);
+    }
+    fail_if(record.type != MSG_VALUE,
+            "LCT torchrun PMI received unexpected KVS snapshot record type " +
+                std::to_string(static_cast<uint32_t>(record.type)));
+    fail_if(record.rank < 0 || record.rank >= g_size,
+            "LCT torchrun PMI snapshot contains invalid rank " +
+                std::to_string(record.rank));
+    fail_if(record.key.size() >= LCT_PMI_STRING_LIMIT ||
+                record.value.size() >= LCT_PMI_STRING_LIMIT,
+            "LCT torchrun PMI getname value exceeds LCT_PMI_STRING_LIMIT");
+    snapshot[std::make_pair(record.rank, record.key)] = record.value;
+  }
+  g_kvs.swap(snapshot);
+}
+
+void rank0_barrier()
+{
+  apply_pending_publishes();
+
   deadline_t deadline = clock_t::now() + std::chrono::seconds(g_timeout_sec);
-  int generation = 0;
-  {
-    std::unique_lock<std::mutex> lock(g_barrier_mutex);
-    generation = g_barrier_generation;
-    ++g_barrier_count;
-    LCT_Log(LCT_log_ctx_default, LCT_LOG_DEBUG, "pmi_torchrun",
-            "Rank %d reached TCP barrier generation %d (%d/%d).\n", rank,
-            generation, g_barrier_count, g_size);
-    if (g_barrier_count == g_size) {
-      g_barrier_count = 0;
-      ++g_barrier_generation;
-      g_barrier_cv.notify_all();
-    } else {
-      bool ok = g_barrier_cv.wait_until(lock, deadline, [&] {
-        return g_barrier_generation != generation ||
-               g_server_has_error.load(std::memory_order_acquire);
-      });
-      if (!ok && g_barrier_generation == generation) {
-        std::string error = "Timed out after " + std::to_string(g_timeout_sec) +
-                            " seconds in LCT torchrun TCP barrier generation " +
-                            std::to_string(generation) + " (rank " +
-                            std::to_string(rank) + ", " +
-                            std::to_string(g_barrier_count) + "/" +
-                            std::to_string(g_size) + " ranks arrived)";
-        mark_server_error(error);
+  std::vector<bool> arrived(g_size, false);
+  arrived[0] = true;
+  int arrived_count = 1;
+
+  while (arrived_count < g_size) {
+    std::vector<struct pollfd> pfds;
+    std::vector<int> client_indices;
+    for (size_t i = 0; i < g_clients.size(); ++i) {
+      const client_conn_t& client = g_clients[i];
+      if (client.fd >= 0 && !arrived[client.rank]) {
+        struct pollfd pfd;
+        pfd.fd = client.fd;
+        pfd.events = POLLIN;
+        pfd.revents = 0;
+        pfds.push_back(pfd);
+        client_indices.push_back(static_cast<int>(i));
       }
-      if (g_server_has_error.load(std::memory_order_acquire)) {
-        std::string error = get_server_error();
-        lock.unlock();
-        std::string send_error;
-        send_response(fd, MSG_ERROR, error, deadline, &send_error);
-        return;
+    }
+
+    int timeout_ms = deadline_ms_remaining(deadline);
+    if (timeout_ms <= 0) {
+      fail("Timed out after " + std::to_string(g_timeout_sec) +
+           " seconds in LCT torchrun TCP barrier (" +
+           std::to_string(arrived_count) + "/" + std::to_string(g_size) +
+           " ranks arrived)");
+    }
+    int ret = poll(pfds.data(), pfds.size(), timeout_ms);
+    if (ret == 0) {
+      fail("Timed out after " + std::to_string(g_timeout_sec) +
+           " seconds in LCT torchrun TCP barrier (" +
+           std::to_string(arrived_count) + "/" + std::to_string(g_size) +
+           " ranks arrived)");
+    }
+    if (ret < 0) {
+      if (errno == EINTR) continue;
+      fail(
+          errno_string("poll failed while progressing LCT torchrun TCP "
+                       "barrier"));
+    }
+
+    for (size_t i = 0; i < pfds.size(); ++i) {
+      if (pfds[i].revents == 0) continue;
+      client_conn_t& client = g_clients[client_indices[i]];
+      if (pfds[i].revents & POLLNVAL) {
+        fail("LCT torchrun PMI barrier saw invalid socket for rank " +
+             std::to_string(client.rank));
+      }
+      if (pfds[i].revents & POLLERR) {
+        fail("LCT torchrun PMI barrier saw socket error for rank " +
+             std::to_string(client.rank));
+      }
+      if (!(pfds[i].revents & (POLLIN | POLLHUP))) continue;
+
+      wire_msg_t msg;
+      std::string error;
+      if (!recv_msg(client.fd, &msg, deadline, &error)) {
+        fail("LCT torchrun PMI failed receiving barrier message from rank " +
+             std::to_string(client.rank) + ": " + error);
+      }
+      if (msg.type == MSG_PUBLISH) {
+        store_remote_publish(msg, client.rank);
+      } else if (msg.type == MSG_BARRIER) {
+        fail_if(msg.rank != client.rank,
+                "LCT torchrun PMI received barrier with mismatched rank " +
+                    std::to_string(msg.rank) + " on connection for rank " +
+                    std::to_string(client.rank));
+        arrived[client.rank] = true;
+        ++arrived_count;
+        LCT_Log(LCT_log_ctx_default, LCT_LOG_DEBUG, "pmi_torchrun",
+                "Rank %d reached TCP barrier (%d/%d).\n", client.rank,
+                arrived_count, g_size);
+      } else if (msg.type == MSG_FINALIZE) {
+        fail("LCT torchrun PMI rank " + std::to_string(client.rank) +
+             " finalized before reaching the active barrier");
+      } else {
+        send_response(client.fd, MSG_ERROR,
+                      "LCT torchrun PMI server received unexpected request "
+                      "type " +
+                          std::to_string(static_cast<uint32_t>(msg.type)) +
+                          " during barrier",
+                      deadline, &error);
+        fail("LCT torchrun PMI server received unexpected request type " +
+             std::to_string(static_cast<uint32_t>(msg.type)) +
+             " during barrier");
       }
     }
   }
-  std::string error;
-  send_response(fd, MSG_OK, "", deadline, &error);
+
+  for (auto& client : g_clients) send_snapshot(client.fd, deadline);
 }
 
-void client_handler(int fd, int rank)
+void nonzero_barrier()
 {
-  while (true) {
-    wire_msg_t msg;
-    std::string error;
-    if (!wait_fd_blocking(
-            fd, POLLIN, "waiting for next LCT torchrun PMI request", &error)) {
-      close(fd);
-      return;
+  deadline_t deadline = clock_t::now() + std::chrono::seconds(g_timeout_sec);
+  std::string error;
+  for (const auto& kv : g_pending_kvs) {
+    wire_msg_t publish_msg;
+    publish_msg.type = MSG_PUBLISH;
+    publish_msg.rank = g_rank;
+    publish_msg.key = kv.first;
+    publish_msg.value = kv.second;
+    if (!send_msg(g_client_fd, publish_msg, deadline, &error)) {
+      fail("LCT torchrun PMI failed to send pending publish during barrier: " +
+           error);
     }
-    deadline_t deadline = clock_t::now() + std::chrono::seconds(g_timeout_sec);
-    if (!recv_msg(fd, &msg, deadline, &error)) {
-      close(fd);
-      return;
-    }
-    deadline = clock_t::now() + std::chrono::seconds(g_timeout_sec);
-    if (msg.type == MSG_PUBLISH) {
-      {
-        std::lock_guard<std::mutex> lock(g_kvs_mutex);
-        g_kvs[std::make_pair(rank, msg.key)] = msg.value;
+  }
+
+  wire_msg_t barrier_msg;
+  barrier_msg.type = MSG_BARRIER;
+  barrier_msg.rank = g_rank;
+  if (!send_msg(g_client_fd, barrier_msg, deadline, &error)) {
+    fail("LCT torchrun PMI failed to send barrier request: " + error);
+  }
+
+  wire_msg_t response;
+  if (!recv_msg(g_client_fd, &response, deadline, &error)) {
+    fail("LCT torchrun PMI failed waiting for TCP rendezvous barrier: " +
+         error);
+  }
+  if (response.type == MSG_ERROR) {
+    fail("LCT torchrun PMI server error: " + response.value);
+  }
+  fail_if(response.type != MSG_OK,
+          "LCT torchrun PMI barrier received unexpected response type " +
+              std::to_string(static_cast<uint32_t>(response.type)));
+  recv_snapshot(response.aux, deadline);
+  g_pending_kvs.clear();
+}
+
+void rank0_finalize()
+{
+  deadline_t deadline = clock_t::now() + std::chrono::seconds(g_timeout_sec);
+  std::vector<bool> done(g_clients.size(), false);
+  size_t done_count = 0;
+
+  while (done_count < g_clients.size()) {
+    std::vector<struct pollfd> pfds;
+    std::vector<int> client_indices;
+    for (size_t i = 0; i < g_clients.size(); ++i) {
+      if (!done[i] && g_clients[i].fd >= 0) {
+        struct pollfd pfd;
+        pfd.fd = g_clients[i].fd;
+        pfd.events = POLLIN;
+        pfd.revents = 0;
+        pfds.push_back(pfd);
+        client_indices.push_back(static_cast<int>(i));
       }
-      send_response(fd, MSG_OK, "", deadline, &error);
-    } else if (msg.type == MSG_GET) {
-      if (msg.rank < 0 || msg.rank >= g_size) {
-        send_response(fd, MSG_ERROR,
-                      "LCT torchrun PMI getname requested invalid rank " +
-                          std::to_string(msg.rank) + " for key '" + msg.key +
-                          "'",
-                      deadline, &error);
+    }
+
+    int timeout_ms = deadline_ms_remaining(deadline);
+    if (timeout_ms <= 0) {
+      close_clients();
+      fail("Timed out after " + std::to_string(g_timeout_sec) +
+           " seconds waiting for LCT torchrun TCP ranks to finalize (" +
+           std::to_string(done_count) + "/" + std::to_string(done.size()) +
+           " clients finalized)");
+    }
+    int ret = poll(pfds.data(), pfds.size(), timeout_ms);
+    if (ret == 0) {
+      close_clients();
+      fail("Timed out after " + std::to_string(g_timeout_sec) +
+           " seconds waiting for LCT torchrun TCP ranks to finalize (" +
+           std::to_string(done_count) + "/" + std::to_string(done.size()) +
+           " clients finalized)");
+    }
+    if (ret < 0) {
+      if (errno == EINTR) continue;
+      close_clients();
+      fail(
+          errno_string("poll failed while finalizing LCT torchrun TCP "
+                       "rendezvous"));
+    }
+
+    for (size_t i = 0; i < pfds.size(); ++i) {
+      if (pfds[i].revents == 0) continue;
+      int client_index = client_indices[i];
+      client_conn_t& client = g_clients[client_index];
+      if (pfds[i].revents & POLLNVAL) {
+        done[client_index] = true;
+        ++done_count;
         continue;
       }
-      std::string value;
-      bool found = false;
-      {
-        std::lock_guard<std::mutex> lock(g_kvs_mutex);
-        auto it = g_kvs.find(std::make_pair(msg.rank, msg.key));
-        if (it != g_kvs.end()) {
-          value = it->second;
-          found = true;
-        }
+      if (pfds[i].revents & POLLERR) {
+        close_clients();
+        fail("LCT torchrun PMI finalize saw socket error for rank " +
+             std::to_string(client.rank));
       }
-      if (found) {
-        send_response(fd, MSG_VALUE, value, deadline, &error);
-      } else {
-        send_response(fd, MSG_ERROR,
-                      "LCT torchrun PMI key '" + msg.key + "' from rank " +
-                          std::to_string(msg.rank) +
-                          " was not found. Ensure all ranks call "
-                          "LCT_pmi_publish before LCT_pmi_barrier.",
-                      deadline, &error);
-      }
-    } else if (msg.type == MSG_BARRIER) {
-      handle_barrier(fd, rank);
-    } else if (msg.type == MSG_FINALIZE) {
-      send_response(fd, MSG_OK, "", deadline, &error);
-      close(fd);
-      return;
-    } else {
-      send_response(
-          fd, MSG_ERROR,
-          "LCT torchrun PMI server received unexpected request type " +
-              std::to_string(static_cast<uint32_t>(msg.type)),
-          deadline, &error);
-    }
-  }
-}
+      if (!(pfds[i].revents & (POLLIN | POLLHUP))) continue;
 
-void server_loop()
-{
-  int listen_fd = create_listener(g_master_port);
-  mark_server_ready();
-  deadline_t deadline = clock_t::now() + std::chrono::seconds(g_timeout_sec);
-  std::vector<client_conn_t> clients;
-  std::vector<bool> seen_rank(g_size, false);
-  try {
-    while (static_cast<int>(clients.size()) < g_size) {
-      int fd = accept_with_timeout(listen_fd, deadline);
-      wire_msg_t hello;
+      wire_msg_t msg;
       std::string error;
-      if (!recv_msg(fd, &hello, deadline, &error)) {
-        close(fd);
-        throw std::runtime_error(
-            "Failed to read hello from TCP rendezvous "
-            "client: " +
-            error);
+      if (!recv_msg(client.fd, &msg, deadline, &error)) {
+        // A peer that has already closed has no more rendezvous state to clean
+        // up. Treat EOF during finalize as completion so rank 0 does not leave
+        // resources open waiting for a process that is already gone.
+        done[client_index] = true;
+        ++done_count;
+        continue;
       }
-      if (hello.type != MSG_HELLO || hello.rank < 0 || hello.rank >= g_size) {
-        send_response(fd, MSG_ERROR,
-                      "Invalid LCT torchrun PMI hello from rank " +
-                          std::to_string(hello.rank),
-                      deadline, &error);
-        close(fd);
-        throw std::runtime_error("Invalid TCP rendezvous hello");
+      if (msg.type != MSG_FINALIZE) {
+        close_clients();
+        fail("LCT torchrun PMI received unexpected request type " +
+             std::to_string(static_cast<uint32_t>(msg.type)) +
+             " while finalizing rank " + std::to_string(client.rank));
       }
-      if (seen_rank[hello.rank]) {
-        send_response(fd, MSG_ERROR,
-                      "Duplicate LCT torchrun PMI connection for rank " +
-                          std::to_string(hello.rank),
-                      deadline, &error);
-        close(fd);
-        throw std::runtime_error("Duplicate TCP rendezvous rank " +
-                                 std::to_string(hello.rank));
-      }
-      seen_rank[hello.rank] = true;
-      clients.push_back({fd, hello.rank});
+      done[client_index] = true;
+      ++done_count;
     }
-    for (auto& client : clients) {
-      std::string error;
-      if (!send_response(client.fd, MSG_OK, "", deadline, &error)) {
-        throw std::runtime_error(
-            "Failed to send TCP rendezvous welcome to rank " +
-            std::to_string(client.rank) + ": " + error);
-      }
-    }
-  } catch (const std::exception& e) {
-    for (auto& client : clients) {
-      std::string error;
-      send_response(client.fd, MSG_ERROR, e.what(), deadline, &error);
-      close(client.fd);
-    }
-    close(listen_fd);
-    throw;
   }
-  close(listen_fd);
-
-  std::vector<std::thread> handlers;
-  handlers.reserve(clients.size());
-  for (auto& client : clients) {
-    handlers.emplace_back(client_handler, client.fd, client.rank);
-  }
-  for (auto& handler : handlers) handler.join();
-}
-
-void server_main()
-{
-  try {
-    server_loop();
-  } catch (const std::exception& e) {
-    mark_server_error(e.what());
-  }
-  mark_server_done();
+  close_clients();
 }
 
 void parse_environment()
@@ -869,6 +956,22 @@ void parse_environment()
                                      k_default_timeout_sec, 1, 24 * 60 * 60);
 }
 
+void reset_runtime_state()
+{
+  close_fd(&g_client_fd);
+  close_clients();
+  g_pending_kvs.clear();
+  g_kvs.clear();
+  g_rank = -1;
+  g_size = -1;
+  g_local_rank = -1;
+  g_local_size = -1;
+  g_master_addr.clear();
+  g_master_port = -1;
+  g_endpoint_source.clear();
+  g_timeout_sec = k_default_timeout_sec;
+}
+
 }  // namespace
 
 int check_availability()
@@ -895,69 +998,54 @@ int check_availability()
 
 void initialize()
 {
+  reset_runtime_state();
   parse_environment();
   deadline_t deadline = clock_t::now() + std::chrono::seconds(g_timeout_sec);
 
   if (g_rank == 0) {
-    {
-      std::lock_guard<std::mutex> kvs_lock(g_kvs_mutex);
-      g_kvs.clear();
+    int listen_fd = -1;
+    try {
+      listen_fd = create_listener(g_master_port);
+      accept_rank_clients(listen_fd, deadline);
+      close_fd(&listen_fd);
+    } catch (const std::exception& e) {
+      send_error_to_clients(e.what(), deadline);
+      close_fd(&listen_fd);
+      close_clients();
+      fail("LCT torchrun PMI failed during TCP rendezvous setup: " +
+           std::string(e.what()));
     }
-    {
-      std::lock_guard<std::mutex> barrier_lock(g_barrier_mutex);
-      g_barrier_generation = 0;
-      g_barrier_count = 0;
+  } else {
+    g_client_fd = connect_to_server(deadline);
+    wire_msg_t hello;
+    hello.type = MSG_HELLO;
+    hello.rank = g_rank;
+    std::string error;
+    if (!send_msg(g_client_fd, hello, deadline, &error)) {
+      fail("LCT torchrun PMI failed to send hello to TCP rendezvous server: " +
+           error);
     }
-    {
-      std::lock_guard<std::mutex> lock(g_server_mutex);
-      g_server_ready = false;
-      g_server_done = false;
-      g_server_error.clear();
-      g_server_has_error.store(false, std::memory_order_release);
+    wire_msg_t response;
+    if (!recv_msg(g_client_fd, &response, deadline, &error)) {
+      fail("LCT torchrun PMI timed out waiting for all ranks to join at " +
+           g_master_addr + ":" + std::to_string(g_master_port) + ": " + error);
     }
-    g_server_thread = std::thread(server_main);
-    std::unique_lock<std::mutex> lock(g_server_mutex);
-    bool ready = g_server_cv.wait_until(lock, deadline, [] {
-      return g_server_ready || !g_server_error.empty();
-    });
-    fail_if(!ready,
-            "LCT torchrun PMI rank 0 timed out starting TCP rendezvous server "
-            "at port " +
-                std::to_string(g_master_port));
-    fail_if(!g_server_error.empty(),
-            "LCT torchrun PMI failed to start TCP rendezvous server: " +
-                g_server_error);
+    if (response.type == MSG_ERROR) {
+      fail("LCT torchrun PMI failed during rendezvous: " + response.value);
+    }
+    fail_if(response.type != MSG_OK,
+            "LCT torchrun PMI received unexpected hello response type " +
+                std::to_string(static_cast<uint32_t>(response.type)));
   }
-
-  g_client_fd = connect_to_server(deadline);
-  wire_msg_t hello;
-  hello.type = MSG_HELLO;
-  hello.rank = g_rank;
-  std::string error;
-  if (!send_msg(g_client_fd, hello, deadline, &error)) {
-    fail("LCT torchrun PMI failed to send hello to TCP rendezvous server: " +
-         error);
-  }
-  wire_msg_t response;
-  if (!recv_msg(g_client_fd, &response, deadline, &error)) {
-    fail("LCT torchrun PMI timed out waiting for all ranks to join at " +
-         g_master_addr + ":" + std::to_string(g_master_port) + ": " + error);
-  }
-  if (response.type == MSG_ERROR) {
-    fail("LCT torchrun PMI failed during rendezvous: " + response.value);
-  }
-  fail_if(response.type != MSG_OK,
-          "LCT torchrun PMI received unexpected hello response type " +
-              std::to_string(static_cast<uint32_t>(response.type)));
 
   LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "pmi_torchrun",
           "Connected rank %d/%d to TCP rendezvous %s:%d (local rank %d/%d, "
-          "timeout %ds).\n",
+          "timeout %ds, zero background threads).\n",
           g_rank, g_size, g_master_addr.c_str(), g_master_port, g_local_rank,
           g_local_size, g_timeout_sec);
 }
 
-int initialized() { return g_client_fd >= 0; }
+int initialized() { return g_rank >= 0; }
 int get_rank_me() { return g_rank; }
 int get_size() { return g_size; }
 
@@ -969,14 +1057,11 @@ void publish(char* key, char* value)
   fail_if(strlen(key) >= LCT_PMI_STRING_LIMIT ||
               strlen(value) >= LCT_PMI_STRING_LIMIT,
           "LCT torchrun PMI publish key/value exceeds LCT_PMI_STRING_LIMIT");
-  wire_msg_t msg;
-  msg.type = MSG_PUBLISH;
-  msg.rank = g_rank;
-  msg.key = key;
-  msg.value = value;
-  wire_msg_t response = request_response(msg);
-  fail_if(response.type != MSG_OK,
-          "LCT torchrun PMI publish received unexpected response");
+
+  // PMI-style put: no socket traffic here. The pending local entry becomes
+  // globally visible only when the next barrier/fence synchronously exchanges
+  // pending entries and returns a post-fence KVS snapshot.
+  g_pending_kvs[key] = value;
 }
 
 void getname(int rank, char* key, char* value)
@@ -984,61 +1069,55 @@ void getname(int rank, char* key, char* value)
   fail_if(!initialized(), "LCT torchrun PMI getname called before initialize");
   fail_if(key == nullptr || value == nullptr,
           "LCT torchrun PMI getname received a null key/value");
+  fail_if(rank < 0 || rank >= g_size,
+          "LCT torchrun PMI getname requested invalid rank " +
+              std::to_string(rank) + " for key '" + key + "'");
   fail_if(strlen(key) >= LCT_PMI_STRING_LIMIT,
           "LCT torchrun PMI getname key exceeds LCT_PMI_STRING_LIMIT");
-  wire_msg_t msg;
-  msg.type = MSG_GET;
-  msg.rank = rank;
-  msg.key = key;
-  wire_msg_t response = request_response(msg);
-  fail_if(response.type != MSG_VALUE,
-          "LCT torchrun PMI getname received unexpected response");
-  fail_if(response.value.size() >= LCT_PMI_STRING_LIMIT,
+
+  // PMI-style get: this is deliberately a local cache lookup. Applications
+  // must call barrier() after publish() before asking for remote keys.
+  auto it = g_kvs.find(std::make_pair(rank, std::string(key)));
+  fail_if(it == g_kvs.end(),
+          "LCT torchrun PMI key '" + std::string(key) + "' from rank " +
+              std::to_string(rank) +
+              " was not found in the post-barrier KVS snapshot. Ensure all "
+              "ranks call LCT_pmi_publish before LCT_pmi_barrier.");
+  fail_if(it->second.size() >= LCT_PMI_STRING_LIMIT,
           "LCT torchrun PMI getname value exceeds LCT_PMI_STRING_LIMIT");
-  strcpy(value, response.value.c_str());
+  strcpy(value, it->second.c_str());
 }
 
 void barrier()
 {
   fail_if(!initialized(), "LCT torchrun PMI barrier called before initialize");
-  wire_msg_t msg;
-  msg.type = MSG_BARRIER;
-  msg.rank = g_rank;
-  wire_msg_t response = request_response(msg);
-  fail_if(response.type != MSG_OK,
-          "LCT torchrun PMI barrier received unexpected response");
+
+  // PMI-style fence: this is the only regular operation that performs TCP
+  // progress. Rank 0 runs the rendezvous server synchronously in this call via
+  // poll(); nonzero ranks send their pending puts, wait for rank 0's fence, and
+  // receive a local KVS snapshot for subsequent getname() calls.
+  if (g_rank == 0)
+    rank0_barrier();
+  else
+    nonzero_barrier();
 }
 
 void finalize()
 {
-  if (g_client_fd >= 0) {
+  if (!initialized()) return;
+
+  if (g_rank == 0) {
+    rank0_finalize();
+  } else if (g_client_fd >= 0) {
     deadline_t deadline = clock_t::now() + std::chrono::seconds(g_timeout_sec);
     wire_msg_t msg;
     msg.type = MSG_FINALIZE;
     msg.rank = g_rank;
     std::string error;
     send_msg(g_client_fd, msg, deadline, &error);
-    wire_msg_t response;
-    recv_msg(g_client_fd, &response, deadline, &error);
     close_fd(&g_client_fd);
   }
-  if (g_rank == 0 && g_server_thread.joinable()) {
-    std::unique_lock<std::mutex> lock(g_server_mutex);
-    g_server_cv.wait_for(lock, std::chrono::seconds(1),
-                         [] { return g_server_done; });
-    bool done = g_server_done;
-    lock.unlock();
-    (void)done;
-    g_server_thread.join();
-  }
-  g_rank = -1;
-  g_size = -1;
-  g_local_rank = -1;
-  g_local_size = -1;
-  g_master_addr.clear();
-  g_master_port = -1;
-  g_endpoint_source.clear();
-  g_timeout_sec = k_default_timeout_sec;
+  reset_runtime_state();
 }
 
 }  // namespace torchrun

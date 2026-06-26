@@ -23,6 +23,16 @@ add_lci_test(
   "${CMAKE_CURRENT_SOURCE_DIR}/run_torchrun_pmi_test.sh [TARGET] 1 fallback-local NONE"
   "${CMAKE_CURRENT_SOURCE_DIR}/run_torchrun_pmi_test.sh [TARGET] 2 mixed-expect-fail MIXED"
 )
+
+add_test(
+  NAME test-cxx11-test_lct_pmi_torchrun-no-std-thread
+  COMMAND
+    ${CMAKE_COMMAND}
+    -DBACKEND_SOURCE=${CMAKE_SOURCE_DIR}/lct/pmi/pmi_wrapper_tcp.cpp
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/check_torchrun_no_std_thread.cmake)
+set_property(
+  TEST test-cxx11-test_lct_pmi_torchrun-no-std-thread
+  PROPERTY LABELS cxx11)
 set_target_properties(
   test-cxx11-test_cxx11
   PROPERTIES CXX_STANDARD 11
