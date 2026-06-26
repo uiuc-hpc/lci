@@ -29,11 +29,10 @@ add_test(
   NAME test-cxx11-test_lct_pmi_tcp-no-std-thread
   COMMAND
     ${CMAKE_COMMAND}
-    -DBACKEND_SOURCE=${CMAKE_SOURCE_DIR}/lct/pmi/pmi_wrapper_tcp.cpp
-    -P ${CMAKE_CURRENT_SOURCE_DIR}/check_tcp_no_std_thread.cmake)
-set_property(
-  TEST test-cxx11-test_lct_pmi_tcp-no-std-thread
-  PROPERTY LABELS cxx11)
+    -DBACKEND_SOURCE=${CMAKE_SOURCE_DIR}/lct/pmi/pmi_wrapper_tcp.cpp -P
+    ${CMAKE_CURRENT_SOURCE_DIR}/check_tcp_no_std_thread.cmake)
+set_property(TEST test-cxx11-test_lct_pmi_tcp-no-std-thread PROPERTY LABELS
+                                                                     cxx11)
 set_target_properties(
   test-cxx11-test_cxx11
   PROPERTIES CXX_STANDARD 11
