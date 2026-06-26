@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-exe=${1:?usage: run_torchrun_pmi_test.sh <test-exe> [nranks] [mode] [endpoint-prefix]}
+exe=${1:?usage: run_tcp_pmi_test.sh <test-exe> [nranks] [mode] [endpoint-prefix]}
 nranks=${2:-2}
 mode=${3:-pmi}
 endpoint_prefix=${4:-LCT}
@@ -14,9 +14,11 @@ print(s.getsockname()[1])
 s.close()
 PY
 )
-logdir=$(mktemp -d "${TMPDIR:-/tmp}/lct-torchrun-pmi.XXXXXX")
+logdir=$(mktemp -d "${TMPDIR:-/tmp}/lct-tcp-pmi.XXXXXX")
 status=0
 expect_failure=0
+expected_failure_pattern=
+reject_torchrun_backend=0
 pids=()
 
 cleanup() {
@@ -28,7 +30,7 @@ cleanup() {
   if [[ $status -eq 0 ]]; then
     rm -rf "$logdir"
   else
-    echo "LCT torchrun PMI test logs preserved in $logdir" >&2
+    echo "LCT TCP PMI test logs preserved in $logdir" >&2
     for f in "$logdir"/*; do
       [[ -f "$f" ]] || continue
       echo "--- $f ---" >&2
@@ -82,6 +84,14 @@ case "$mode" in
     endpoint_prefix=MIXED
     expect_failure=1
     ;;
+  reject-torchrun)
+    mode=pmi
+    endpoint_prefix=LCT
+    nranks=1
+    expect_failure=1
+    expected_failure_pattern="Unknown env LCT_PMI_BACKEND"
+    reject_torchrun_backend=1
+    ;;
   *)
     echo "Unknown mode '$mode'" >&2
     exit 2
@@ -91,8 +101,10 @@ esac
 for rank in $(seq 0 $((nranks - 1))); do
   (
     unset LCT_PMI_BACKEND
-    if [[ "$mode" != "fallback-local" ]]; then
+    if [[ $reject_torchrun_backend -eq 1 ]]; then
       export LCT_PMI_BACKEND=torchrun
+    elif [[ "$mode" != "fallback-local" ]]; then
+      export LCT_PMI_BACKEND=tcp
     fi
     export RANK=$rank
     export WORLD_SIZE=$nranks
@@ -114,9 +126,15 @@ done
 
 if [[ $expect_failure -eq 1 ]]; then
   if [[ $status -ne 0 ]]; then
-    status=0
+    if [[ -n "$expected_failure_pattern" ]] &&
+       ! grep -q "$expected_failure_pattern" "$logdir"/*.log; then
+      echo "Expected failure did not contain '$expected_failure_pattern'" >&2
+      status=1
+    else
+      status=0
+    fi
   else
-    echo "Expected mixed endpoint configuration to fail, but it succeeded" >&2
+    echo "Expected $mode configuration to fail, but it succeeded" >&2
     status=1
   fi
 fi

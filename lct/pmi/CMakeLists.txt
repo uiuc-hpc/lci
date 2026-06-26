@@ -3,8 +3,8 @@ lct_option(
   STRING
   "A list of process management backend with comma/space/semicolon as delimitors.
       LCT will try each entry one by one until it found an available backend to use
-      (available entries: pmi1, pmi2, pmix, mpi, torchrun, tcp, file, local)"
-  "pmix;pmi2;pmi1;mpi;torchrun;file;local")
+      (available entries: pmi1, pmi2, pmix, mpi, tcp, file, local)"
+  "pmix;pmi2;pmi1;mpi;tcp;file;local")
 
 set(LIBRARY_NAME LCT)
 

@@ -32,8 +32,8 @@ void LCT_pmi_initialize()
       lct::pmi::local_setup_ops(&lcti_pmi_ops);
     } else if (strcmp(word, "file") == 0) {
       lct::pmi::file_setup_ops(&lcti_pmi_ops);
-    } else if (strcmp(word, "torchrun") == 0 || strcmp(word, "tcp") == 0) {
-      lct::pmi::torchrun_setup_ops(&lcti_pmi_ops);
+    } else if (strcmp(word, "tcp") == 0) {
+      lct::pmi::tcp_setup_ops(&lcti_pmi_ops);
     } else if (strcmp(word, "pmi1") == 0) {
 #ifdef LCT_PMI_BACKEND_ENABLE_PMI1
       lct::pmi::pmi1_setup_ops(&lcti_pmi_ops);
@@ -69,7 +69,7 @@ void LCT_pmi_initialize()
     } else
       LCT_Assert(LCT_log_ctx_default, false,
                  "Unknown env LCT_PMI_BACKEND (%s against "
-                 "local|file|torchrun|tcp|pmi1|pmi2|pmix|mpi).\n",
+                 "local|file|tcp|pmi1|pmi2|pmix|mpi).\n",
                  word);
     if (lcti_pmi_ops.check_availability()) {
       LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "pmi",

@@ -40,7 +40,7 @@ void run_pmi_exchange_test()
 
   char key[LCT_PMI_STRING_LIMIT];
   char value[LCT_PMI_STRING_LIMIT];
-  std::snprintf(key, sizeof(key), "torchrun-test-rank-%d", env_rank);
+  std::snprintf(key, sizeof(key), "tcp-test-rank-%d", env_rank);
   std::snprintf(value, sizeof(value), "value-from-%d", env_rank);
   LCT_pmi_publish(key, value);
   LCT_pmi_barrier();
@@ -49,7 +49,7 @@ void run_pmi_exchange_test()
     char query_key[LCT_PMI_STRING_LIMIT];
     char query_value[LCT_PMI_STRING_LIMIT];
     char expected[LCT_PMI_STRING_LIMIT];
-    std::snprintf(query_key, sizeof(query_key), "torchrun-test-rank-%d", rank);
+    std::snprintf(query_key, sizeof(query_key), "tcp-test-rank-%d", rank);
     std::memset(query_value, 0, sizeof(query_value));
     LCT_pmi_getname(rank, query_key, query_value);
     std::snprintf(expected, sizeof(expected), "value-from-%d", rank);
@@ -76,7 +76,7 @@ void run_lci_runtime_test()
 void run_autodetect_fallback_test()
 {
   // RANK/WORLD_SIZE alone must not make the default backend chain select
-  // torchrun and then abort due to a missing TCP endpoint. With no endpoint,
+  // tcp and then abort due to a missing TCP endpoint. With no endpoint,
   // the chain should fall through to the always-available local backend.
   LCT_init();
   LCT_pmi_initialize();

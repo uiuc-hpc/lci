@@ -5,13 +5,13 @@ endpoint names, and provide initialization barriers. The preferred production
 backends are the launcher's native PMI services (`pmi1`, `pmi2`, or `pmix`) when
 they are available.
 
-## `torchrun` / TCP backend
+## TCP backend
 
-The `torchrun` backend is for launch environments that provide torchrun-style
+The TCP backend is for launch environments, such as `torchrun`, that provide
 rank environment variables but no PMI/PMIx service. Enable it explicitly with:
 
 ```bash
-export LCT_PMI_BACKEND=torchrun
+export LCT_PMI_BACKEND=tcp
 export LCT_MASTER_ADDR=<rank-0-hostname-or-ip>
 export LCT_MASTER_PORT=<free-port>
 ```
