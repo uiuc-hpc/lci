@@ -536,18 +536,31 @@ Because there are many different MPI implementations and there are no standard a
 
 It is possible to directly use the PMI backend with `mpirun`, but you need to find the corresponding PMI client library and link LCI to it. Read the following section for more details.
 
-### Run LCI applications with torchrun
+### Run LCI applications with the TCP backend
 
-`torchrun` provides `RANK`, `WORLD_SIZE`, `LOCAL_RANK`, and `LOCAL_WORLD_SIZE`, but it does not provide PMI/PMIx. LCI can bootstrap in this environment with its TCP PMI backend:
+The `tcp` backend is an LCT/LCI-owned bootstrap backend for launch environments that provide rank variables but no PMI/PMIx service. It is not tied to torchrun. Every rank must have five required environment-variable categories: `LCT_PMI_BACKEND=tcp`, `RANK`, `WORLD_SIZE`, one `*MASTER_ADDR`, and the matching `*MASTER_PORT`.
+
+For a generic non-PMI launcher, set all of them yourself:
 
 ```bash
 export LCT_PMI_BACKEND=tcp
+export RANK=<global-rank>
+export WORLD_SIZE=<number-of-ranks>
 export LCT_MASTER_ADDR=<rank-0-hostname-or-ip>
 export LCT_MASTER_PORT=<free-port>
+./lci_program
+```
+
+For torchrun, `RANK`, `WORLD_SIZE`, `LOCAL_RANK`, `LOCAL_WORLD_SIZE`, `MASTER_ADDR`, and `MASTER_PORT` are normally supplied by torchrun. LCI can reuse `MASTER_ADDR`, but it should usually use a separate LCI port so it does not collide with torchrun's own rendezvous service:
+
+```bash
+export LCT_PMI_BACKEND=tcp
+export LCI_MASTER_ADDR="$MASTER_ADDR"
+export LCI_MASTER_PORT=<free-port-different-from-MASTER_PORT>
 torchrun --nnodes=<nodes> --nproc-per-node=<ranks-per-node> ./lci_program
 ```
 
-`LCI_MASTER_ADDR`/`LCI_MASTER_PORT` may be used instead of the `LCT_` pair. `MASTER_ADDR`/`MASTER_PORT` is accepted as a compatibility fallback, but torchrun may already use `MASTER_PORT` for its own rendezvous service, so prefer `LCT_MASTER_PORT` or `LCI_MASTER_PORT` for LCI. LCI checks endpoint variables only as matched pairs and will not mix, for example, `LCT_MASTER_ADDR` with `MASTER_PORT`. `LCT_PMI_TCP_TIMEOUT_SEC` controls connect, join, barrier, and finalize timeouts and defaults to 60 seconds.
+The TCP backend checks endpoint variables only as matched pairs, in this order: `LCT_MASTER_ADDR`/`LCT_MASTER_PORT`, `LCI_MASTER_ADDR`/`LCI_MASTER_PORT`, then `MASTER_ADDR`/`MASTER_PORT`. It will not mix, for example, `LCT_MASTER_ADDR` with `MASTER_PORT`. `LCT_PMI_TCP_TIMEOUT_SEC` controls connect, join, barrier, and finalize timeouts and defaults to 60 seconds.
 
 The TCP backend has zero background TCP progress threads. `LCT_pmi_publish()` only records a local pending key/value, `LCT_pmi_barrier()` performs the TCP KVS exchange/fence synchronously, and `LCT_pmi_getname()` is a local post-barrier cache lookup. This avoids rendezvous-thread contention during normal LCI application work.
 

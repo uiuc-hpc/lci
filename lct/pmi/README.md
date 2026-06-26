@@ -7,24 +7,37 @@ they are available.
 
 ## TCP backend
 
-The TCP backend is for launch environments, such as `torchrun`, that provide
-rank environment variables but no PMI/PMIx service. Enable it explicitly with:
+The TCP backend is an LCT/LCI-owned bootstrap backend for launch environments
+that provide rank information but no PMI/PMIx service. It is independent of
+`torchrun`: torchrun is only one launcher that can supply some of the required
+environment variables.
+
+To use this backend, every rank must have these required environment variables:
 
 ```bash
 export LCT_PMI_BACKEND=tcp
+export RANK=<global-rank>
+export WORLD_SIZE=<number-of-ranks>
 export LCT_MASTER_ADDR=<rank-0-hostname-or-ip>
 export LCT_MASTER_PORT=<free-port>
 ```
 
-The backend reads:
+The TCP rendezvous endpoint can use any one matched address/port pair, checked
+in this order:
 
-- `RANK` and `WORLD_SIZE` for global rank metadata.
-- `LOCAL_RANK` and `LOCAL_WORLD_SIZE` for local-rank validation/diagnostics when
-  those variables are present.
-- A matched rendezvous endpoint pair, checked in this order:
-  1. `LCT_MASTER_ADDR` / `LCT_MASTER_PORT`
-  2. `LCI_MASTER_ADDR` / `LCI_MASTER_PORT`
-  3. `MASTER_ADDR` / `MASTER_PORT`
+1. `LCT_MASTER_ADDR` / `LCT_MASTER_PORT`
+2. `LCI_MASTER_ADDR` / `LCI_MASTER_PORT`
+3. `MASTER_ADDR` / `MASTER_PORT`
+
+When using torchrun, `RANK`, `WORLD_SIZE`, `LOCAL_RANK`, `LOCAL_WORLD_SIZE`,
+`MASTER_ADDR`, and `MASTER_PORT` are normally supplied by torchrun. Because
+`MASTER_PORT` may already be used by torchrun's own rendezvous service, prefer
+to set `LCI_MASTER_ADDR=$MASTER_ADDR` and a separate `LCI_MASTER_PORT` (or the
+`LCT_` equivalents) for LCI.
+
+Optional environment variables:
+
+- `LOCAL_RANK` and `LOCAL_WORLD_SIZE` for local-rank validation/diagnostics.
 - `LCT_PMI_TCP_TIMEOUT_SEC` for connect, join, barrier, and finalize timeouts
   (default: 60 seconds).
 

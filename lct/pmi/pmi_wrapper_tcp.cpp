@@ -24,17 +24,21 @@
 
 #include "pmi_wrapper.hpp"
 
-// The TCP backend provides a small TCP rendezvous service for launchers
-// that do not provide PMI/PMIx. Select it with LCT_PMI_BACKEND=tcp.
-// Rank/world size come from RANK/WORLD_SIZE. LOCAL_RANK/LOCAL_WORLD_SIZE are
-// parsed for diagnostics so launcher local-rank metadata is not silently lost.
-// The rendezvous endpoint is selected, in order, from:
+// The TCP backend provides an LCT/LCI-owned TCP rendezvous service for
+// launchers that do not provide PMI/PMIx. Select it with
+// LCT_PMI_BACKEND=tcp. Every rank must have RANK, WORLD_SIZE, and one matched
+// TCP rendezvous endpoint pair. Endpoint pairs are selected, in order, from:
 //   LCT_MASTER_ADDR/LCT_MASTER_PORT, LCI_MASTER_ADDR/LCI_MASTER_PORT,
-//   or MASTER_ADDR/MASTER_PORT from launchers such as torchrun.
-// MASTER_ADDR/MASTER_PORT is a compatibility fallback only: if torchrun (or
-// another runtime) already owns MASTER_PORT, set LCI_MASTER_PORT or
-// LCT_MASTER_PORT to a distinct port for LCI's TCP rendezvous.
-// LCT_PMI_TCP_TIMEOUT_SEC controls connect/join/barrier timeouts (default 60s).
+//   or MASTER_ADDR/MASTER_PORT.
+//
+// Launchers such as torchrun may provide RANK/WORLD_SIZE and MASTER_ADDR/
+// MASTER_PORT automatically. The backend remains independent of torchrun: when
+// using a launcher that does not set these variables, users must set them. If a
+// launcher already owns MASTER_PORT, set LCI_MASTER_PORT or LCT_MASTER_PORT to
+// a distinct port for LCI's TCP rendezvous.
+//
+// LOCAL_RANK/LOCAL_WORLD_SIZE are optional diagnostics. LCT_PMI_TCP_TIMEOUT_SEC
+// controls connect/join/barrier/finalize timeouts (default 60s).
 //
 // This backend intentionally follows the PMI put/fence/get shape without any
 // background progress threads:
@@ -201,14 +205,13 @@ bool select_endpoint(endpoint_choice_t* choice)
 
 std::string endpoint_help()
 {
-  return "Set a matched TCP rendezvous endpoint pair: "
-         "LCT_MASTER_ADDR/LCT_MASTER_PORT (preferred), "
+  return "Set RANK, WORLD_SIZE, and one matched TCP rendezvous endpoint "
+         "pair: LCT_MASTER_ADDR/LCT_MASTER_PORT (preferred), "
          "LCI_MASTER_ADDR/LCI_MASTER_PORT, or MASTER_ADDR/MASTER_PORT. "
          "Endpoint variables are not mixed across prefixes; for example, "
          "LCT_MASTER_ADDR with MASTER_PORT is intentionally ignored. "
-         "MASTER_ADDR/MASTER_PORT is a compatibility fallback and may collide "
-         "with torchrun's own rendezvous server, so prefer LCI_MASTER_PORT or "
-         "LCT_MASTER_PORT when using torchrun.";
+         "If another runtime already owns MASTER_PORT, prefer "
+         "LCI_MASTER_PORT or LCT_MASTER_PORT for LCI's TCP rendezvous.";
 }
 
 bool rank_size_env_is_valid()
