@@ -54,13 +54,25 @@ size_t ring_t::required_size(size_t slot_count, size_t slot_size)
   return control_size + slot_count * slot_size;
 }
 
+size_t ring_t::payload_capacity(size_t slot_size)
+{
+  return slot_size >= sizeof(slot_header_t) ? slot_size - sizeof(slot_header_t)
+                                             : 0;
+}
+
 uint64_t ring_t::encode_sequence(uint64_t position, slot_state_t state)
 {
-  return (position << 2) | static_cast<uint64_t>(state);
+  return (position << 1) | static_cast<uint64_t>(state);
 }
 
 bool ring_t::initialize(void* region, size_t region_size, size_t slot_count,
-                        size_t slot_size, uint64_t initial_position)
+                        size_t slot_size)
+{
+  return initialize_at(region, region_size, slot_count, slot_size, 0);
+}
+
+bool ring_t::initialize_at(void* region, size_t region_size, size_t slot_count,
+                           size_t slot_size, uint64_t initial_position)
 {
   const size_t required = required_size(slot_count, slot_size);
   if (region == nullptr || required == 0 || region_size < required ||
@@ -80,7 +92,7 @@ bool ring_t::initialize(void* region, size_t region_size, size_t slot_count,
     const uint64_t delta = (i - initial_slot) & slot_mask;
     const uint64_t position = (initial_position + delta) & position_mask;
     new (&slot->sequence)
-        std::atomic<uint64_t>(encode_sequence(position, slot_state_t::free));
+        std::atomic<uint64_t>(encode_sequence(position, slot_state_t::reusable));
     slot->payload_size = 0;
     slot->imm_data = 0;
     slot->source_local_rank = -1;
@@ -112,14 +124,14 @@ bool ring_t::is_consistent_empty() const
   }
   for (size_t i = 0; i < slot_count; ++i) {
     const auto sequence = slot_at(i)->sequence.load(std::memory_order_acquire);
-    if (sequence != encode_sequence(i, slot_state_t::free)) return false;
+    if (sequence != encode_sequence(i, slot_state_t::reusable)) return false;
   }
   return true;
 }
 
 size_t ring_t::max_payload_size() const
 {
-  return valid ? slot_size - sizeof(slot_header_t) : 0;
+  return valid ? payload_capacity(slot_size) : 0;
 }
 
 std::atomic<uint64_t>* ring_t::producer_position() const
@@ -149,14 +161,12 @@ uint64_t ring_t::previous_generation(uint64_t position) const
   return (position - static_cast<uint64_t>(slot_count)) & position_mask;
 }
 
-bool ring_t::is_previous_generation_state(uint64_t sequence,
-                                          uint64_t position) const
+bool ring_t::is_previous_generation(uint64_t sequence,
+                                    uint64_t position) const
 {
   const uint64_t previous = previous_generation(position);
-  return sequence == encode_sequence(previous, slot_state_t::free) ||
-         sequence == encode_sequence(previous, slot_state_t::reserved) ||
-         sequence == encode_sequence(previous, slot_state_t::published) ||
-         sequence == encode_sequence(previous, slot_state_t::claimed);
+  return sequence == encode_sequence(previous, slot_state_t::reusable) ||
+         sequence == encode_sequence(previous, slot_state_t::published);
 }
 
 error_t ring_t::reserve(send_reservation_t* reservation,
@@ -171,14 +181,14 @@ error_t ring_t::reserve(send_reservation_t* reservation,
     if (position > position_mask) return errorcode_t::fatal;
     slot_header_t* slot = slot_at(position);
     const uint64_t sequence = slot->sequence.load(std::memory_order_acquire);
-    if (sequence != encode_sequence(position, slot_state_t::free)) {
+    if (sequence != encode_sequence(position, slot_state_t::reusable)) {
       // A competing producer may have advanced the control word and changed
       // this slot after our position load. That is contention, not corrupt
       // shared state; only validate sequence geometry against a stable head.
       if (producer_position()->load(std::memory_order_relaxed) != position) {
         continue;
       }
-      if (is_previous_generation_state(sequence, position)) {
+      if (is_previous_generation(sequence, position)) {
         return errorcode_t::retry_nomem;
       }
       return errorcode_t::fatal;
@@ -189,8 +199,6 @@ error_t ring_t::reserve(send_reservation_t* reservation,
     if (producer_position()->compare_exchange_weak(
             expected, add_position(position, 1), std::memory_order_relaxed,
             std::memory_order_relaxed)) {
-      slot->sequence.store(encode_sequence(position, slot_state_t::reserved),
-                           std::memory_order_release);
       reservation->ring_identity = identity;
       reservation->slot = slot;
       reservation->position = position;
@@ -213,8 +221,11 @@ error_t ring_t::publish(send_reservation_t* reservation, int source_local_rank,
   }
 
   slot_header_t* slot = reservation->slot;
+  // The successful producer-position CAS exclusively owns this generation
+  // until this release store. No intermediate "reserved" sequence is needed:
+  // consumers still see reusable and therefore cannot observe partial data.
   if (slot->sequence.load(std::memory_order_relaxed) !=
-      encode_sequence(reservation->position, slot_state_t::reserved)) {
+      encode_sequence(reservation->position, slot_state_t::reusable)) {
     throw std::runtime_error("SHM ring reservation state is corrupted");
   }
   slot->payload_size = static_cast<uint32_t>(size);
@@ -267,12 +278,9 @@ bool ring_t::poll(recv_slot_t* out)
       if (consumer_position()->load(std::memory_order_relaxed) != position) {
         continue;
       }
-      if (sequence == encode_sequence(position, slot_state_t::free) ||
-          sequence == encode_sequence(position, slot_state_t::reserved) ||
+      if (sequence == encode_sequence(position, slot_state_t::reusable) ||
           sequence == encode_sequence(previous_generation(position),
-                                      slot_state_t::published) ||
-          sequence == encode_sequence(previous_generation(position),
-                                      slot_state_t::claimed)) {
+                                      slot_state_t::published)) {
         return false;
       }
       throw std::runtime_error("SHM ring slot sequence is inconsistent");
@@ -282,12 +290,13 @@ bool ring_t::poll(recv_slot_t* out)
     if (consumer_position()->compare_exchange_weak(
             expected, add_position(position, 1), std::memory_order_relaxed,
             std::memory_order_relaxed)) {
-      slot->sequence.store(encode_sequence(position, slot_state_t::claimed),
-                           std::memory_order_release);
+      // The successful consumer-position CAS exclusively owns this generation
+      // until release(). Keeping the published tag avoids an extra cache-line
+      // store while later consumers are stopped by their newer generation.
       if (slot->payload_size > max_payload_size() ||
           slot->source_local_rank < 0 || slot->reserved != 0) {
         slot->sequence.store(encode_sequence(add_position(position, slot_count),
-                                             slot_state_t::free),
+                                             slot_state_t::reusable),
                              std::memory_order_release);
         throw std::runtime_error("SHM ring slot metadata is corrupted");
       }
@@ -315,11 +324,11 @@ bool ring_t::release(recv_slot_t* view)
 
   auto* slot = static_cast<slot_header_t*>(view->shared_slot);
   if (slot->sequence.load(std::memory_order_relaxed) !=
-      encode_sequence(view->position, slot_state_t::claimed)) {
+      encode_sequence(view->position, slot_state_t::published)) {
     throw std::runtime_error("SHM ring claimed slot state is corrupted");
   }
   slot->sequence.store(encode_sequence(add_position(view->position, slot_count),
-                                       slot_state_t::free),
+                                       slot_state_t::reusable),
                        std::memory_order_release);
   view->source_local_rank = -1;
   view->imm_data = 0;

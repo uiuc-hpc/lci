@@ -42,21 +42,23 @@ struct recv_slot_t {
 // cannot be copied or moved, and it must outlive all recv_slot_t views it
 // returns.
 //
-// Positions use 62 bits and wrap modulo 2^62. Slot sequences encode that
-// position plus an explicit free/reserved/published/claimed state in two low
-// bits. Requiring a power-of-two capacity no larger than half the position
-// space makes both physical-slot selection and previous/next-generation
-// comparisons unambiguous across counter wrap, including for capacity one.
+// Positions use 63 bits and wrap modulo 2^63. A slot sequence is only a
+// generation-tagged reusable/published bit: the producer/consumer position
+// CAS owns reservation/claim, so neither transition needs another slot store.
+// Requiring a power-of-two capacity no larger than half the position space
+// makes generation comparisons unambiguous across counter wrap. The state bit
+// keeps reusable and published distinct even when capacity is one.
 class ring_t
 {
  public:
   static constexpr size_t control_size = 2 * LCI_CACHE_LINE;
-  static constexpr uint64_t position_modulus = UINT64_C(1) << 62;
+  static constexpr uint64_t position_modulus = UINT64_C(1) << 63;
   static constexpr uint64_t position_mask = position_modulus - 1;
 
   static size_t required_size(size_t slot_count, size_t slot_size);
+  static size_t payload_capacity(size_t slot_size);
   static bool initialize(void* region, size_t region_size, size_t slot_count,
-                         size_t slot_size, uint64_t initial_position = 0);
+                         size_t slot_size);
 
   ring_t(void* region, size_t region_size, size_t slot_count, size_t slot_size,
          size_t max_cas_attempts = 1);
@@ -87,12 +89,7 @@ class ring_t
  private:
   friend class ring_test_access_t;
 
-  enum class slot_state_t : uint64_t {
-    free = 0,
-    reserved = 1,
-    published = 2,
-    claimed = 3,
-  };
+  enum class slot_state_t : uint64_t { reusable = 0, published = 1 };
   struct slot_header_t;
   struct send_reservation_t {
     uint64_t ring_identity = 0;
@@ -102,9 +99,12 @@ class ring_t
   using before_cas_hook_t = void (*)(void*);
 
   static uint64_t encode_sequence(uint64_t position, slot_state_t state);
+  static bool initialize_at(void* region, size_t region_size,
+                            size_t slot_count, size_t slot_size,
+                            uint64_t initial_position);
   uint64_t add_position(uint64_t position, uint64_t increment) const;
   uint64_t previous_generation(uint64_t position) const;
-  bool is_previous_generation_state(uint64_t sequence, uint64_t position) const;
+  bool is_previous_generation(uint64_t sequence, uint64_t position) const;
   error_t reserve(send_reservation_t* reservation,
                   before_cas_hook_t before_cas = nullptr,
                   void* hook_arg = nullptr);

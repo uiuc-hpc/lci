@@ -27,10 +27,27 @@ struct posix_ring_handle_t {
   uint64_t mapping_size = 0;
   uint64_t slot_count = 0;
   uint64_t slot_size = 0;
+  uint64_t max_message_size = 0;
   char name[posix_ring_name_capacity] = {};
 };
 
+// Locally authoritative attachment metadata, derived from collective device
+// configuration and the expected peer identity/name rather than from the
+// received handle. attach() compares every field before opening the object.
+struct posix_ring_expected_t {
+  int32_t owner_global_rank = -1;
+  uint64_t device_uid = 0;
+  uint64_t mapping_size = 0;
+  uint64_t slot_count = 0;
+  uint64_t slot_size = 0;
+  uint64_t max_message_size = 0;
+  std::string name;
+};
+
 bool validate_posix_ring_handle(const posix_ring_handle_t& handle,
+                                std::string* error = nullptr);
+bool validate_posix_ring_handle(const posix_ring_handle_t& handle,
+                                const posix_ring_expected_t& expected,
                                 std::string* error = nullptr);
 
 // Owns the receiver's inbound mapping and its still-linked POSIX object name.
@@ -40,7 +57,8 @@ class posix_owner_mapping_t
  public:
   static std::unique_ptr<posix_owner_mapping_t> create(
       const std::string& name, int owner_global_rank, uint64_t device_uid,
-      size_t slot_count, size_t slot_size, size_t max_cas_attempts = 1,
+      size_t slot_count, size_t slot_size, size_t max_message_size,
+      size_t max_cas_attempts = 1,
       std::string* error = nullptr);
 
   ~posix_owner_mapping_t();
@@ -71,7 +89,8 @@ class posix_peer_mapping_t
 {
  public:
   static std::unique_ptr<posix_peer_mapping_t> attach(
-      const posix_ring_handle_t& handle, size_t max_cas_attempts = 1,
+      const posix_ring_handle_t& handle,
+      const posix_ring_expected_t& expected, size_t max_cas_attempts = 1,
       std::string* error = nullptr);
 
   ~posix_peer_mapping_t();
