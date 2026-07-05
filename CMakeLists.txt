@@ -89,6 +89,9 @@ if(NOT LCI_WITH_LCT_ONLY)
                CXX_STANDARD_REQUIRED ON
                CXX_EXTENSIONS OFF)
   target_link_libraries(LCI PUBLIC LCT)
+  if(UNIX AND NOT APPLE)
+    target_link_libraries(LCI PRIVATE rt)
+  endif()
   set_target_properties(LCI PROPERTIES OUTPUT_NAME lci)
 
   option(LCI_BUILD_WARN_AS_ERROR "Build with warnings as errors"
