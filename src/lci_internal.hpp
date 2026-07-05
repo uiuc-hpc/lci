@@ -28,6 +28,7 @@
 #include "data_structure/mpmc_set.hpp"
 #include "data_structure/imm_tag_archive.hpp"
 #include "bootstrap/bootstrap.hpp"
+#include "shm/ring.hpp"
 #include "reg_cache/reg_cache.hpp"
 #include "backlog_queue/backlog_queue.hpp"
 #if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)

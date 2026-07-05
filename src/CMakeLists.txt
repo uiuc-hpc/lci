@@ -14,6 +14,7 @@ target_sources_relative(
   util/random.cpp
   monitor/performance_counter.cpp
   bootstrap/bootstrap.cpp
+  shm/ring.cpp
   network/network.cpp
   matching_engine/matching_engine.cpp
   core/lci.cpp
