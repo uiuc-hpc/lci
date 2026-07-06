@@ -58,8 +58,7 @@ class posix_owner_mapping_t
   static std::unique_ptr<posix_owner_mapping_t> create(
       const std::string& name, int owner_global_rank, uint64_t device_uid,
       size_t slot_count, size_t slot_size, size_t max_message_size,
-      size_t max_cas_attempts = 1,
-      std::string* error = nullptr);
+      size_t max_cas_attempts = 1, std::string* error = nullptr);
 
   ~posix_owner_mapping_t();
   posix_owner_mapping_t(const posix_owner_mapping_t&) = delete;
@@ -89,9 +88,8 @@ class posix_peer_mapping_t
 {
  public:
   static std::unique_ptr<posix_peer_mapping_t> attach(
-      const posix_ring_handle_t& handle,
-      const posix_ring_expected_t& expected, size_t max_cas_attempts = 1,
-      std::string* error = nullptr);
+      const posix_ring_handle_t& handle, const posix_ring_expected_t& expected,
+      size_t max_cas_attempts = 1, std::string* error = nullptr);
 
   ~posix_peer_mapping_t();
   posix_peer_mapping_t(const posix_peer_mapping_t&) = delete;

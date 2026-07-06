@@ -99,9 +99,8 @@ class ring_t
   using before_cas_hook_t = void (*)(void*);
 
   static uint64_t encode_sequence(uint64_t position, slot_state_t state);
-  static bool initialize_at(void* region, size_t region_size,
-                            size_t slot_count, size_t slot_size,
-                            uint64_t initial_position);
+  static bool initialize_at(void* region, size_t region_size, size_t slot_count,
+                            size_t slot_size, uint64_t initial_position);
   uint64_t add_position(uint64_t position, uint64_t increment) const;
   uint64_t previous_generation(uint64_t position) const;
   bool is_previous_generation(uint64_t sequence, uint64_t position) const;

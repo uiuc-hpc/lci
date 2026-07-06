@@ -62,9 +62,9 @@ bool valid_expected(const posix_ring_expected_t& expected, std::string* error)
     set_error(error, "expected POSIX ring geometry exceeds local size type");
     return false;
   }
-  const size_t required = ring_t::required_size(
-      static_cast<size_t>(expected.slot_count),
-      static_cast<size_t>(expected.slot_size));
+  const size_t required =
+      ring_t::required_size(static_cast<size_t>(expected.slot_count),
+                            static_cast<size_t>(expected.slot_size));
   if (required == 0 || expected.mapping_size != required ||
       expected.max_message_size >
           ring_t::payload_capacity(static_cast<size_t>(expected.slot_size))) {
@@ -248,9 +248,8 @@ posix_peer_mapping_t::posix_peer_mapping_t(void* region, size_t region_size,
 }
 
 std::unique_ptr<posix_peer_mapping_t> posix_peer_mapping_t::attach(
-    const posix_ring_handle_t& handle,
-    const posix_ring_expected_t& expected, size_t max_cas_attempts,
-    std::string* error)
+    const posix_ring_handle_t& handle, const posix_ring_expected_t& expected,
+    size_t max_cas_attempts, std::string* error)
 {
   if (error != nullptr) error->clear();
   if (max_cas_attempts == 0 ||

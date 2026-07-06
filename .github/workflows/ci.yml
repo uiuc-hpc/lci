@@ -111,4 +111,9 @@ jobs:
         run: |
             cd build
             # export LCI_LOG_LEVEL=trace
+            if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+              # Keep hosted Linux CI on a deterministic loopback-capable OFI
+              # provider instead of fabric-specific providers on the runner.
+              export LCI_ATTR_OFI_PROVIDER_NAME=sockets
+            fi
             ctest --extra-verbose --timeout 300 --output-on-failure # --tests-regex "bench_put_bw"

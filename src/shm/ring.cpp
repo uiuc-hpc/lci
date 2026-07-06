@@ -57,7 +57,7 @@ size_t ring_t::required_size(size_t slot_count, size_t slot_size)
 size_t ring_t::payload_capacity(size_t slot_size)
 {
   return slot_size >= sizeof(slot_header_t) ? slot_size - sizeof(slot_header_t)
-                                             : 0;
+                                            : 0;
 }
 
 uint64_t ring_t::encode_sequence(uint64_t position, slot_state_t state)
@@ -91,8 +91,8 @@ bool ring_t::initialize_at(void* region, size_t region_size, size_t slot_count,
         reinterpret_cast<slot_header_t*>(bytes + control_size + i * slot_size);
     const uint64_t delta = (i - initial_slot) & slot_mask;
     const uint64_t position = (initial_position + delta) & position_mask;
-    new (&slot->sequence)
-        std::atomic<uint64_t>(encode_sequence(position, slot_state_t::reusable));
+    new (&slot->sequence) std::atomic<uint64_t>(
+        encode_sequence(position, slot_state_t::reusable));
     slot->payload_size = 0;
     slot->imm_data = 0;
     slot->source_local_rank = -1;
@@ -161,8 +161,7 @@ uint64_t ring_t::previous_generation(uint64_t position) const
   return (position - static_cast<uint64_t>(slot_count)) & position_mask;
 }
 
-bool ring_t::is_previous_generation(uint64_t sequence,
-                                    uint64_t position) const
+bool ring_t::is_previous_generation(uint64_t sequence, uint64_t position) const
 {
   const uint64_t previous = previous_generation(position);
   return sequence == encode_sequence(previous, slot_state_t::reusable) ||
