@@ -62,10 +62,10 @@ bool valid_expected(const posix_ring_expected_t& expected, std::string* error)
     set_error(error, "expected POSIX ring geometry exceeds local size type");
     return false;
   }
-  const size_t required =
-      ring_t::required_size(static_cast<size_t>(expected.slot_count),
-                            static_cast<size_t>(expected.slot_size));
-  if (required == 0 || expected.mapping_size != required ||
+  const size_t mapping_size =
+      posix_ring_mapping_size(static_cast<size_t>(expected.slot_count),
+                              static_cast<size_t>(expected.slot_size));
+  if (mapping_size == 0 || expected.mapping_size != mapping_size ||
       expected.max_message_size >
           ring_t::payload_capacity(static_cast<size_t>(expected.slot_size))) {
     set_error(error, "invalid expected POSIX ring geometry");
@@ -74,6 +74,23 @@ bool valid_expected(const posix_ring_expected_t& expected, std::string* error)
   return true;
 }
 }  // namespace
+
+size_t posix_ring_mapping_size(size_t slot_count, size_t slot_size)
+{
+  const size_t required = ring_t::required_size(slot_count, slot_size);
+  if (required == 0) return 0;
+
+  const long page_size_long = sysconf(_SC_PAGESIZE);
+  if (page_size_long <= 0 || static_cast<unsigned long>(page_size_long) >
+                                 std::numeric_limits<size_t>::max()) {
+    return 0;
+  }
+  const size_t page_size = static_cast<size_t>(page_size_long);
+  if (required > std::numeric_limits<size_t>::max() - (page_size - 1)) {
+    return 0;
+  }
+  return ((required + page_size - 1) / page_size) * page_size;
+}
 
 bool validate_posix_ring_handle(const posix_ring_handle_t& handle,
                                 std::string* error)
@@ -96,10 +113,10 @@ bool validate_posix_ring_handle(const posix_ring_handle_t& handle,
     set_error(error, "POSIX ring geometry exceeds the local size type");
     return false;
   }
-  const size_t required =
-      ring_t::required_size(static_cast<size_t>(handle.slot_count),
-                            static_cast<size_t>(handle.slot_size));
-  if (required == 0 || handle.mapping_size != required ||
+  const size_t mapping_size =
+      posix_ring_mapping_size(static_cast<size_t>(handle.slot_count),
+                              static_cast<size_t>(handle.slot_size));
+  if (mapping_size == 0 || handle.mapping_size != mapping_size ||
       handle.max_message_size >
           ring_t::payload_capacity(static_cast<size_t>(handle.slot_size))) {
     set_error(error, "inconsistent POSIX ring geometry or mapping size");
@@ -159,7 +176,7 @@ std::unique_ptr<posix_owner_mapping_t> posix_owner_mapping_t::create(
   handle.slot_count = slot_count;
   handle.slot_size = slot_size;
   handle.max_message_size = max_message_size;
-  handle.mapping_size = ring_t::required_size(slot_count, slot_size);
+  handle.mapping_size = posix_ring_mapping_size(slot_count, slot_size);
   std::memcpy(handle.name, name.c_str(), name.size() + 1);
   if (max_cas_attempts == 0 || !validate_posix_ring_handle(handle, error) ||
       handle.mapping_size >

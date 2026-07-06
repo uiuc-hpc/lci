@@ -49,6 +49,10 @@ bool validate_posix_ring_handle(const posix_ring_handle_t& handle,
 bool validate_posix_ring_handle(const posix_ring_handle_t& handle,
                                 const posix_ring_expected_t& expected,
                                 std::string* error = nullptr);
+// POSIX object size used for ftruncate()/mmap()/fstat(). This can be larger
+// than ring_t::required_size() because some kernels report shm object sizes at
+// page granularity.
+size_t posix_ring_mapping_size(size_t slot_count, size_t slot_size);
 
 // Owns the receiver's inbound mapping and its still-linked POSIX object name.
 // Destruction unlinks the name if unlink_name() was not already called.

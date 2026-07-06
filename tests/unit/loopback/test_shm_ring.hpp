@@ -683,7 +683,7 @@ static lci::shm::posix_ring_expected_t expected_ring(
   expected.owner_global_rank = owner_global_rank;
   expected.device_uid = device_uid;
   expected.mapping_size =
-      lci::shm::ring_t::required_size(slot_count, slot_size);
+      lci::shm::posix_ring_mapping_size(slot_count, slot_size);
   expected.slot_count = slot_count;
   expected.slot_size = slot_size;
   expected.max_message_size = max_message_size;
@@ -751,22 +751,25 @@ TEST(SHM_POSIX_RING, rejects_malformed_handles_and_cleans_failure_paths)
   EXPECT_EQ(lci::shm::posix_peer_mapping_t::attach(owner->handle(), expected, 2,
                                                    &error),
             nullptr);
-  const int truncate_fd = shm_open(name.c_str(), O_RDWR, 0600);
-  ASSERT_GE(truncate_fd, 0);
-  ASSERT_EQ(ftruncate(truncate_fd,
-                      static_cast<off_t>(owner->handle().mapping_size - 1)),
-            0);
-  ASSERT_EQ(close(truncate_fd), 0);
-  EXPECT_EQ(lci::shm::posix_peer_mapping_t::attach(owner->handle(), expected, 2,
-                                                   &error),
-            nullptr);
 
+  const auto handle = owner->handle();
   owner.reset();
   errno = 0;
   const int fd = shm_open(name.c_str(), O_RDWR, 0600);
   EXPECT_EQ(fd, -1);
   EXPECT_EQ(errno, ENOENT);
   if (fd >= 0) close(fd);
+
+  // Attach must reject an object at the expected name with the wrong backing
+  // size. Use a fresh undersized object instead of resizing the live owner
+  // mapping; not all POSIX shm implementations support live resizing.
+  const int undersized_fd =
+      shm_open(name.c_str(), O_CREAT | O_EXCL | O_RDWR, 0600);
+  ASSERT_GE(undersized_fd, 0);
+  ASSERT_EQ(close(undersized_fd), 0);
+  EXPECT_EQ(lci::shm::posix_peer_mapping_t::attach(handle, expected, 2, &error),
+            nullptr);
+  EXPECT_EQ(shm_unlink(name.c_str()), 0);
 
   const std::string bad_name = unique_shm_name("bad-geometry");
   EXPECT_EQ(lci::shm::posix_owner_mapping_t::create(bad_name, 1, 1, 3, 128, 64,
