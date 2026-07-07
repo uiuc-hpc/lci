@@ -38,6 +38,7 @@ class device_impl_t
                                  void* user_context) = 0;
   virtual size_t post_recvs_impl(void* buffers[], size_t size, size_t count,
                                  mr_t mr, void* usesr_contexts[]) = 0;
+  virtual bool needs_src_rank_in_msg() const { return false; }
 
   // wrapper functions
   endpoint_t alloc_endpoint(endpoint_t::attr_t attr);
@@ -144,6 +145,9 @@ class endpoint_impl_t
   inline error_t post_sends(int rank, void* buffer, size_t size,
                             net_imm_data_t imm_data, void* user_context,
                             bool allow_retry = true, bool force_post = false);
+  inline error_t post_empty_signal(int rank, net_imm_data_t imm_data,
+                                   bool allow_retry = true,
+                                   bool force_post = false);
   inline error_t post_send(int rank, void* buffer, size_t size, mr_t mr,
                            net_imm_data_t imm_data, void* user_context,
                            bool allow_retry = true, bool force_post = false);

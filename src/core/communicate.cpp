@@ -57,6 +57,7 @@ struct post_comm_traits_t {
 struct post_comm_state_t {
   rcomp_t rhandler = 0;
   bool piggyback_tag_rcomp_in_msg = false;
+  bool piggyback_src_rank_in_msg = false;
   net_imm_data_t imm_data = 0;
   packet_t* packet = nullptr;
   size_t packet_size_to_send = 0;
@@ -144,7 +145,7 @@ void resolve_rhandler(const post_comm_args_t& args,
 }
 
 // state in: rhandler
-// state out: protocol, piggyback_tag_rcomp_in_msg
+// state out: protocol, piggyback_tag_rcomp_in_msg, piggyback_src_rank_in_msg
 void set_protocol(const post_comm_args_t& args,
                   const post_comm_traits_t& traits, post_comm_state_t& state)
 {
@@ -158,6 +159,12 @@ void set_protocol(const post_comm_args_t& args,
 #endif  // LCI_USE_CUDA || LCI_USE_HIP
   // determine the message size if we are using the eager protocol
   size_t msg_size_if_eager = args.size;
+  const bool needs_src_rank_in_msg =
+      args.direction == direction_t::OUT && traits.local_buffer_only &&
+      args.device.p_impl->needs_src_rank_in_msg();
+  if (needs_src_rank_in_msg) {
+    msg_size_if_eager += sizeof(int);
+  }
   if (args.direction == direction_t::OUT && state.rhandler) {
     // send/am/put_signal with eager protocol
     if (args.tag > args.runtime.get_attr_max_imm_tag() ||
@@ -168,6 +175,20 @@ void set_protocol(const post_comm_args_t& args,
 
   if (args.direction == direction_t::IN && traits.local_buffer_only) {
     state.protocol = protocol_t::recv;
+  } else if (needs_src_rank_in_msg) {
+    // The source-rank tail needs a packet/bcopy payload.  Prefer bcopy for
+    // host buffers (including explicit host MRs) when it fits; otherwise use
+    // rendezvous rather than inject/eager-zcopy, which cannot append metadata.
+    if (msg_size_if_eager <= traits.max_bcopy_size && !force_zcopy) {
+      state.protocol = protocol_t::eager_bcopy;
+      state.piggyback_src_rank_in_msg = true;
+      if (msg_size_if_eager > args.size + sizeof(int)) {
+        state.piggyback_tag_rcomp_in_msg = true;
+      }
+    } else {
+      state.protocol = protocol_t::rdv_zcopy;
+      state.piggyback_src_rank_in_msg = true;
+    }
   } else if (args.direction == direction_t::OUT && traits.local_buffer_only &&
              (msg_size_if_eager > traits.max_bcopy_size || force_zcopy)) {
     // We use the rendezvous protocol if
@@ -238,7 +259,8 @@ void set_immediate_data(const post_comm_args_t& args, const post_comm_traits_t&,
   state.imm_data = imm_data;
 }
 
-// state in: protocol, rhandler, piggyback_tag_rcomp_in_msg
+// state in: protocol, rhandler, piggyback_tag_rcomp_in_msg,
+//           piggyback_src_rank_in_msg
 // state.out: packet, user_provided_packet
 error_t set_packet_if_needed(const post_comm_args_t& args,
                              [[maybe_unused]] const post_comm_traits_t& traits,
@@ -286,6 +308,14 @@ error_t set_packet_if_needed(const post_comm_args_t& args,
       memcpy((char*)buffer + state.packet_size_to_send, &state.rhandler,
              sizeof(state.rhandler));
       state.packet_size_to_send += sizeof(state.rhandler);
+    }
+    if (state.piggyback_src_rank_in_msg) {
+      char* buffer = (char*)state.packet->get_payload_address();
+      int src_rank = get_rank_me();
+      memcpy(buffer + state.packet_size_to_send, &src_rank, sizeof(src_rank));
+      state.packet_size_to_send += sizeof(src_rank);
+    }
+    if (state.piggyback_tag_rcomp_in_msg || state.piggyback_src_rank_in_msg) {
       LCI_Assert(state.packet_size_to_send <= traits.max_bcopy_size, "");
     }
     if (state.packet_size_to_send >
@@ -456,10 +486,15 @@ error_t post_network_op(const post_comm_args_t& args,
       // rendezvous send
       // build the rts message
       rts_msg_t* p_rts;
-      if (sizeof(rts_msg_t) <= traits.max_inject_size) {
+      size_t rts_size_to_send = sizeof(rts_msg_t);
+      if (state.piggyback_src_rank_in_msg) {
+        rts_size_to_send += sizeof(int);
+      }
+      if (!state.piggyback_src_rank_in_msg &&
+          sizeof(rts_msg_t) <= traits.max_inject_size) {
         p_rts = reinterpret_cast<rts_msg_t*>(malloc(sizeof(rts_msg_t)));
       } else {
-        LCI_Assert(sizeof(rts_msg_t) <= traits.max_bcopy_size,
+        LCI_Assert(rts_size_to_send <= traits.max_bcopy_size,
                    "The rts message is too large\n");
         p_rts = static_cast<rts_msg_t*>(state.packet->get_payload_address());
       }
@@ -467,15 +502,21 @@ error_t post_network_op(const post_comm_args_t& args,
       p_rts->tag = args.tag;
       p_rts->rcomp = state.rhandler;
       p_rts->size = args.size;
+      if (state.piggyback_src_rank_in_msg) {
+        int src_rank = get_rank_me();
+        memcpy(reinterpret_cast<char*>(p_rts) + sizeof(rts_msg_t), &src_rank,
+               sizeof(src_rank));
+      }
       // post send for the rts message
-      if (sizeof(rts_msg_t) <= traits.max_inject_size) {
+      if (!state.piggyback_src_rank_in_msg &&
+          sizeof(rts_msg_t) <= traits.max_inject_size) {
         error = args.endpoint.p_impl->post_sends(
             args.rank, p_rts, sizeof(rts_msg_t), state.imm_data, nullptr,
             args.allow_retry);
         free(p_rts);
       } else {
         error = args.endpoint.p_impl->post_send(
-            args.rank, p_rts, sizeof(rts_msg_t),
+            args.rank, p_rts, rts_size_to_send,
             state.packet->get_mr(args.device), state.imm_data, nullptr,
             args.allow_retry);
       }

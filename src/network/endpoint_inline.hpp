@@ -52,6 +52,26 @@ inline error_t endpoint_impl_t::post_sends(int rank, void* buffer, size_t size,
   return error;
 }
 
+inline error_t endpoint_impl_t::post_empty_signal(int rank,
+                                                  net_imm_data_t imm_data,
+                                                  bool allow_retry,
+                                                  bool force_post)
+{
+  // RMA put-with-signal fallback paths emulate remote immediate completion
+  // with an empty FI_MSG EAGER notification.  On OFI providers that cannot
+  // carry both LCI immediate data and source rank in CQ data, progress_recv()
+  // expects the source rank as the final message-payload field for EAGER/RTS
+  // messages.  Keep the original LCI imm_data in CQ data and append only the
+  // source-rank metadata payload here.
+  if (device.p_impl->needs_src_rank_in_msg()) {
+    int src_rank = get_rank_me();
+    return post_sends(rank, &src_rank, sizeof(src_rank), imm_data, nullptr,
+                      allow_retry, force_post);
+  }
+  return post_sends(rank, nullptr, 0, imm_data, nullptr, allow_retry,
+                    force_post);
+}
+
 inline error_t endpoint_impl_t::post_send(int rank, void* buffer, size_t size,
                                           mr_t mr, net_imm_data_t imm_data,
                                           void* user_context, bool allow_retry,
@@ -168,8 +188,7 @@ inline error_t endpoint_impl_t::post_putImms_fallback(
     // we do not allow retry for post_sends
     // otherwise the above puts might be posted again
     // XXX: but even if puts is posted again, it is not a error
-    error_t error = post_sends(rank, nullptr, 0, imm_data, nullptr,
-                               false /* allow_retry */);
+    error_t error = post_empty_signal(rank, imm_data, false /* allow_retry */);
     LCI_Assert(error.is_done(), "Unexpected error %s\n", error.get_str());
   }
   return error;

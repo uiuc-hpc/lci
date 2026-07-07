@@ -15,6 +15,7 @@ void progress_recv(runtime_t runtime, endpoint_t endpoint,
   uint32_t imm_data = net_status.imm_data;
   tag_t tag = 0;
   rcomp_t remote_comp = 0;
+  int src_rank = net_status.rank;
   bool is_fastpath = get_bits32(imm_data, 1, 31);
   imm_data_msg_type_t msg_type;
   if (is_fastpath) {
@@ -23,6 +24,16 @@ void progress_recv(runtime_t runtime, endpoint_t endpoint,
     msg_type = IMM_DATA_MSG_EAGER;
   } else {
     msg_type = static_cast<imm_data_msg_type_t>(get_bits32(imm_data, 2, 29));
+  }
+  if (endpoint.get_impl()->device.p_impl->needs_src_rank_in_msg() &&
+      (msg_type == IMM_DATA_MSG_EAGER || msg_type == IMM_DATA_MSG_RTS)) {
+    LCI_Assert(msg_size >= sizeof(src_rank),
+               "Message missing source-rank metadata\n");
+    msg_size -= sizeof(src_rank);
+    memcpy(&src_rank, (char*)packet->get_payload_address() + msg_size,
+           sizeof(src_rank));
+  }
+  if (!is_fastpath) {
     if (msg_type == IMM_DATA_MSG_EAGER) {
       // get tag and rcomp by looking at the message payload
       msg_size -= sizeof(remote_comp);
@@ -40,7 +51,7 @@ void progress_recv(runtime_t runtime, endpoint_t endpoint,
         // we get an active message
         status_t status;
         status.set_done();
-        status.rank = net_status.rank;
+        status.rank = src_rank;
         status.tag = tag;
         if (reinterpret_cast<comp_impl_t*>(entry.value)->attr.zero_copy_am) {
           status.buffer = packet->get_payload_address();
@@ -59,10 +70,9 @@ void progress_recv(runtime_t runtime, endpoint_t endpoint,
         matching_engine_impl_t* p_matching_engine =
             reinterpret_cast<matching_engine_impl_t*>(entry.value);
         auto key = p_matching_engine->make_key(
-            net_status.rank, tag,
-            static_cast<matching_policy_t>(entry.metadata));
+            src_rank, tag, static_cast<matching_policy_t>(entry.metadata));
         packet->local_context.is_eager = true;
-        packet->local_context.rank = net_status.rank;
+        packet->local_context.rank = src_rank;
         packet->local_context.tag = tag;
         packet->local_context.size = msg_size;
         auto ret = p_matching_engine->insert(
@@ -74,7 +84,7 @@ void progress_recv(runtime_t runtime, endpoint_t endpoint,
       break;
     }
     case IMM_DATA_MSG_RTS:
-      packet->local_context.rank = net_status.rank;
+      packet->local_context.rank = src_rank;
       handle_rdv_rts(runtime, endpoint, packet);
       break;
     case IMM_DATA_MSG_RTR:
@@ -119,9 +129,8 @@ void progress_write(endpoint_t endpoint, const net_status_t& net_status)
       handle_rdv_local_write(endpoint, ectx);
     } else if (ectx->imm_data_rank != -1) {
       // send immediate data
-      error_t error = endpoint.get_impl()->post_sends(
-          ectx->imm_data_rank, nullptr, 0, ectx->imm_data, nullptr,
-          false /* allow_retry */);
+      error_t error = endpoint.get_impl()->post_empty_signal(
+          ectx->imm_data_rank, ectx->imm_data, false /* allow_retry */);
       LCI_Assert(error.is_done(), "Unexpected error %s\n", error.get_str());
     }  // else: this is a RDMA write buffers or rendezvous with writeimm
     delete ectx;

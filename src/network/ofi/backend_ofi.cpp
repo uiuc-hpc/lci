@@ -143,6 +143,8 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
           fi_tostr(&(ofi_info->domain_attr->data_progress), FI_TYPE_PROGRESS));
   LCI_Log(LOG_INFO, "ofi", "Capacities: %s\n",
           fi_tostr(&(ofi_info->caps), FI_TYPE_CAPS));
+  LCI_Log(LOG_INFO, "ofi", "CQ data size: %lu\n",
+          ofi_info->domain_attr->cq_data_size);
   LCI_Log(LOG_INFO, "ofi", "Mode: %s\n",
           fi_tostr(&(ofi_info->mode), FI_TYPE_MODE));
   LCI_Log(LOG_DEBUG, "ofi", "Fi_info provided: %s\n",
@@ -179,6 +181,12 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
         "as required by the libfabric max_msg_size attribute. Turn off this "
         "warning by `export LCI_MAX_SINGLE_MESSAGE_SIZE=%lu`\n",
         attr.max_msg_size, attr.max_msg_size);
+  }
+  if (ofi_info->domain_attr->cq_data_size < 8) {
+    LCI_Log(LOG_INFO, "ofi",
+            "Use 4-byte OFI CQ data path: CQ data carries LCI immediate "
+            "data; source rank is carried by LCI core message metadata when "
+            "needed\n");
   }
   // Check put with immediate support.
   attr.support_putimm = true;
@@ -219,6 +227,7 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
 {
   auto p_ofi_context = static_cast<ofi_net_context_impl_t*>(net_context.p_impl);
   ofi_domain_attr = p_ofi_context->ofi_info->domain_attr;
+  ofi_cq_data_size = ofi_domain_attr->cq_data_size;
   // Create domain.
   FI_SAFECALL(fi_domain(p_ofi_context->ofi_fabric, p_ofi_context->ofi_info,
                         &ofi_domain, nullptr));
@@ -410,6 +419,7 @@ ofi_endpoint_impl_t::ofi_endpoint_impl_t(device_t device_, attr_t attr_)
       ofi_domain_attr(p_ofi_device->ofi_domain_attr),
       ofi_ep(p_ofi_device->ofi_ep),
       peer_addrs(p_ofi_device->peer_addrs),
+      ofi_cq_data_size(p_ofi_device->ofi_cq_data_size),
       ofi_lock_mode(p_ofi_device->ofi_lock_mode),
       lock(p_ofi_device->lock)
 {
