@@ -134,6 +134,7 @@ int main(int argc, char** argv)
   // allocate completion counter
   lci::comp_t comp = lci::alloc_counter();
   lci::rcomp_t rcomp = lci::register_rcomp(comp);
+  lci::barrier_x().device(devices[0])();
 
   lci::barrier_x().device(devices[0])();
   auto start = std::chrono::high_resolution_clock::now();
@@ -173,6 +174,8 @@ int main(int argc, char** argv)
   }
 
   // cleanup
+  lci::barrier_x().device(devices[0])();
+  lci::deregister_rcomp(rcomp);
   lci::free_comp(&comp);
   for (auto& mr : mrs) {
     lci::deregister_memory(&mr);
