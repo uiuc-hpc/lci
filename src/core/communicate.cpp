@@ -69,6 +69,33 @@ struct post_comm_state_t {
   status_t status;
 };
 
+bool mr_may_be_device_memory(mr_t mr)
+{
+  if (mr == MR_DEVICE || mr == MR_UNKNOWN) return true;
+#if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
+  if (!mr.is_empty() &&
+      mr.get_impl()->acc_attr.type == accelerator::buffer_type_t::DEVICE) {
+    return true;
+  }
+#endif  // LCI_USE_CUDA || LCI_USE_HIP
+  return false;
+}
+
+bool source_buffer_is_host_accessible(const post_comm_args_t& args,
+                                      const post_comm_state_t& state)
+{
+  return !mr_may_be_device_memory(args.mr) &&
+         !mr_may_be_device_memory(state.mr);
+}
+
+bool eager_payload_needs_metadata(const post_comm_args_t& args,
+                                  const post_comm_state_t& state)
+{
+  return args.direction == direction_t::OUT && state.rhandler &&
+         (args.tag > args.runtime.get_attr_max_imm_tag() ||
+          state.rhandler > args.runtime.get_attr_max_imm_rcomp());
+}
+
 void preprocess_args(post_comm_args_t& args)
 {
   // handle COMP_NULL and COMP_NULL_RETRY
@@ -160,11 +187,11 @@ void set_protocol(const post_comm_args_t& args,
   size_t msg_size_if_eager = args.size;
   if (args.direction == direction_t::OUT && state.rhandler) {
     // send/am/put_signal with eager protocol
-    if (args.tag > args.runtime.get_attr_max_imm_tag() ||
-        state.rhandler > args.runtime.get_attr_max_imm_rcomp()) {
+    if (eager_payload_needs_metadata(args, state)) {
       msg_size_if_eager += sizeof(args.tag) + sizeof(state.rhandler);
     }
   }
+  const bool eager_needs_payload_metadata = msg_size_if_eager > args.size;
 
   if (args.direction == direction_t::IN && traits.local_buffer_only) {
     state.protocol = protocol_t::recv;
@@ -177,18 +204,22 @@ void set_protocol(const post_comm_args_t& args,
     state.protocol = protocol_t::rdv_zcopy;
   } else if (msg_size_if_eager <= traits.max_inject_size &&
              args.direction == direction_t::OUT &&
-             args.comp_semantic == comp_semantic_t::memory && !force_zcopy) {
+             args.comp_semantic == comp_semantic_t::memory && !force_zcopy &&
+             !eager_needs_payload_metadata) {
     // We use the inject protocol only if the five conditions are met:
     // 1. We are sending a single buffer, and
     // 2. The size of the data is smaller than the maximum inject size, and
     // 3. The direction is OUT, and
     // 4. The completion type is buffer.
     // 5. We are not forcing the use of the zero-copy protocol.
+    // 6. The tag/rcomp metadata fits in immediate data. Slow-path metadata
+    //    must be carried in a bcopy packet payload.
     state.protocol = protocol_t::inject;
-  } else if (args.mr.is_empty() && msg_size_if_eager <= traits.max_bcopy_size &&
-             !force_zcopy) {
+  } else if ((args.mr.is_empty() || eager_needs_payload_metadata) &&
+             msg_size_if_eager <= traits.max_bcopy_size &&
+             !mr_may_be_device_memory(args.mr) && !force_zcopy) {
     state.protocol = protocol_t::eager_bcopy;
-    if (msg_size_if_eager > args.size) {
+    if (eager_needs_payload_metadata) {
       state.piggyback_tag_rcomp_in_msg = true;
     }
   } else {
@@ -376,6 +407,84 @@ void set_status(const post_comm_args_t& args, const post_comm_traits_t&,
   state.status = status;
 }
 
+bool get_shm_payload(const post_comm_args_t& args,
+                     const post_comm_traits_t& traits,
+                     const post_comm_state_t& state, const void** buffer,
+                     size_t* size)
+{
+  if (args.direction != direction_t::OUT || !traits.local_buffer_only) {
+    return false;
+  }
+  if (!source_buffer_is_host_accessible(args, state)) {
+    return false;
+  }
+  switch (state.protocol) {
+    case protocol_t::eager_zcopy:
+      if (eager_payload_needs_metadata(args, state)) return false;
+      [[fallthrough]];
+    case protocol_t::inject:
+      if (eager_payload_needs_metadata(args, state)) return false;
+      *buffer = args.local_buffer;
+      *size = args.size;
+      return true;
+    case protocol_t::eager_bcopy:
+      if (state.packet == nullptr) return false;
+      *buffer = state.packet->get_payload_address();
+      *size = state.packet_size_to_send;
+      return true;
+    default:
+      return false;
+  }
+}
+
+void complete_shm_send_inline(post_comm_state_t& state)
+{
+  if (state.internal_ctx != nullptr) {
+    delete state.internal_ctx;
+    state.internal_ctx = nullptr;
+  }
+  state.comp_passed_to_network = false;
+}
+
+bool try_post_shm_op(const post_comm_args_t& args,
+                     const post_comm_traits_t& traits, post_comm_state_t& state,
+                     error_t* result)
+{
+  auto shm_device = args.device.get_impl()->shm_device;
+  if (shm_device.is_empty()) return false;
+  if (args.direction == direction_t::OUT && traits.local_buffer_only &&
+      !source_buffer_is_host_accessible(args, state)) {
+    if (shm::can_send(shm_device, args.rank, args.size)) {
+      shm::note_nic_fallback(shm_device);
+    }
+    return false;
+  }
+
+  const void* buffer = nullptr;
+  size_t size = 0;
+  if (!get_shm_payload(args, traits, state, &buffer, &size)) return false;
+  if (!shm::can_send(shm_device, args.rank, size)) {
+    if (shm::is_enabled(shm_device)) {
+      shm::note_nic_fallback(shm_device);
+    }
+    return false;
+  }
+
+  error_t error =
+      shm::post_send(shm_device, args.rank, buffer, size, state.imm_data);
+  if (error.is_done()) {
+    complete_shm_send_inline(state);
+    *result = errorcode_t::done;
+    return true;
+  }
+  if (error.is_retry()) {
+    shm::note_nic_fallback(shm_device);
+    return false;
+  }
+  LCI_Assert(false, "Unexpected SHM post_send error %s\n", error.get_str());
+  return false;
+}
+
 // state in: all
 // state out: status
 error_t post_network_op(const post_comm_args_t& args,
@@ -383,6 +492,9 @@ error_t post_network_op(const post_comm_args_t& args,
                         post_comm_state_t& state)
 {
   error_t error;
+  if (try_post_shm_op(args, traits, state, &error)) {
+    return error;
+  }
   if (args.direction == direction_t::OUT) {
     /**********************************************************************************
      * direction out

@@ -29,8 +29,10 @@ inline void handle_matched_sendrecv(runtime_t runtime, endpoint_t endpoint,
     delete recv_ctx;
     status.rank = packet->local_context.rank;
     status.tag = packet->local_context.tag;
-    memcpy(status.buffer, packet->get_payload_address(),
-           packet->local_context.size);
+    if (packet->local_context.size > 0) {
+      memcpy(status.buffer, packet->get_payload_address(),
+             packet->local_context.size);
+    }
     status.size = packet->local_context.size;
     packet->put_back();
     if (!p_status) {

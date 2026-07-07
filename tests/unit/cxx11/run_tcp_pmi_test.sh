@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-exe=${1:?usage: run_tcp_pmi_test.sh <test-exe> [nranks] [mode] [endpoint-prefix]}
+exe=${1:?usage: run_tcp_pmi_test.sh <test-exe> [nranks] [mode] [endpoint-prefix] [app-arg]}
 nranks=${2:-2}
 mode=${3:-pmi}
 endpoint_prefix=${4:-LCT}
+app_arg_input=${5:-}
 
 port=$(python3 - <<'PY'
 import socket
@@ -98,6 +99,8 @@ case "$mode" in
     ;;
 esac
 
+app_arg=${app_arg_input:-$mode}
+
 for rank in $(seq 0 $((nranks - 1))); do
   (
     unset LCT_PMI_BACKEND
@@ -113,7 +116,7 @@ for rank in $(seq 0 $((nranks - 1))); do
     export LCT_PMI_TCP_TIMEOUT_SEC=10
     export LCI_ENABLE_BOOTSTRAP_LCI=0
     set_endpoint_env
-    exec "$exe" "$mode"
+    exec "$exe" "$app_arg"
   ) >"$logdir/rank-$rank.log" 2>&1 &
   pids+=("$!")
 done

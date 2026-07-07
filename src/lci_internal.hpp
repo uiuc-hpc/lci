@@ -30,6 +30,7 @@
 #include "bootstrap/bootstrap.hpp"
 #include "shm/posix_ring.hpp"
 #include "shm/ring.hpp"
+#include "shm/transport.hpp"
 #include "reg_cache/reg_cache.hpp"
 #include "backlog_queue/backlog_queue.hpp"
 #if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)

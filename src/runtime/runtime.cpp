@@ -139,6 +139,9 @@ runtime_impl_t::~runtime_impl_t()
   if (!default_device.is_empty()) {
     free_device_x(&default_device).runtime(runtime)();
   }
+  if (!default_shm_context.is_empty()) {
+    shm::free_context(&default_shm_context);
+  }
   if (!default_packet_pool.is_empty()) {
     free_packet_pool_x(&default_packet_pool).runtime(runtime)();
   }

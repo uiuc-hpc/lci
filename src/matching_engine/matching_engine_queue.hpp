@@ -11,6 +11,20 @@ class matching_engine_queue_t : public matching_engine_impl_t
  public:
   matching_engine_queue_t(attr_t attr) : matching_engine_impl_t(attr) {}
   ~matching_engine_queue_t() = default;
+  val_t match(key_t key, insert_type_t type) override
+  {
+    val_t ret = nullptr;
+    lock.lock();
+    if (type == insert_type_t::send) {
+      ret = search(recv_queue, key);
+    } else {
+      ret = search(send_queue, key);
+    }
+    LCI_DBG_Log(LOG_TRACE, "matching_engine",
+                "match: key=%lu, type=%d, ret=%p\n", key, (int)type, ret);
+    lock.unlock();
+    return ret;
+  }
   val_t insert(key_t key, val_t value, insert_type_t type) override
   {
     val_t ret = nullptr;

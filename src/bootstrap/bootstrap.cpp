@@ -10,6 +10,7 @@ namespace bootstrap
 namespace detail
 {
 const char* HEX_CHARS = "0123456789abcdef";
+constexpr size_t PMI_ENCODED_CHUNK_BYTES = (LCT_PMI_STRING_LIMIT - 1) / 2;
 
 uint8_t hexCharToValue(char c)
 {
@@ -28,7 +29,7 @@ uint8_t hexToByte(const char* hex)
   return (hexCharToValue(hex[0]) << 4) | hexCharToValue(hex[1]);
 }
 
-void encode_value(char* buf_origin, size_t nbytes, char* buf_encoded)
+void encode_value(const char* buf_origin, size_t nbytes, char* buf_encoded)
 {
   LCI_Assert(LCT_PMI_STRING_LIMIT >= 2 * nbytes + 1,
              "Buffer to store encoded address is too short! Use a higher "
@@ -52,6 +53,25 @@ void decode_value(char* buf_encoded, size_t nbytes, char* buf_origin)
     // decode every 2 bytes as a hex integer
     buf_origin[i] = hexToByte(buf_encoded + 2 * i);
   }
+}
+
+int next_round()
+{
+  static std::atomic<int> g_next_round(0);
+  return g_next_round++;
+}
+
+size_t nchunks(size_t size)
+{
+  return size == 0
+             ? 0
+             : (size + PMI_ENCODED_CHUNK_BYTES - 1) / PMI_ENCODED_CHUNK_BYTES;
+}
+
+size_t chunk_size(size_t size, size_t chunk)
+{
+  const size_t offset = chunk * PMI_ENCODED_CHUNK_BYTES;
+  return std::min(PMI_ENCODED_CHUNK_BYTES, size - offset);
 }
 }  // namespace detail
 
@@ -81,35 +101,43 @@ void set_device(device_t device) { device_to_bootstrap = device; }
 
 void alltoall(const void* sendbuf, void* recvbuf, size_t size)
 {
-  static int g_next_round = 0;
-  int round = g_next_round++;
+  int round = detail::next_round();
 
   if (device_to_bootstrap.is_empty() ||
       !internal_config::enable_bootstrap_lci) {
     LCI_Log(LOG_INFO, "bootstrap", "Bootstrap round %d with LCT PMI\n", round);
     // use LCT pmi wrapper
+    const size_t nchunks = detail::nchunks(size);
     for (int i = 0; i < rank_n; i++) {
-      char key[LCT_PMI_STRING_LIMIT];
-      char value[LCT_PMI_STRING_LIMIT];
-      memset(key, 0, LCT_PMI_STRING_LIMIT);
-      memset(value, 0, LCT_PMI_STRING_LIMIT);
-      snprintf(key, LCT_PMI_STRING_LIMIT, "LCI_BOOTSTRAP_%d_%d_%d", round, i,
-               rank_me);
-      // memcpy(value, (char*)sendbuf + i * size, size);
-      detail::encode_value((char*)sendbuf + i * size, size, value);
-      LCT_pmi_publish(key, value);
+      for (size_t chunk = 0; chunk < nchunks; ++chunk) {
+        char key[LCT_PMI_STRING_LIMIT];
+        char value[LCT_PMI_STRING_LIMIT];
+        memset(key, 0, LCT_PMI_STRING_LIMIT);
+        memset(value, 0, LCT_PMI_STRING_LIMIT);
+        snprintf(key, LCT_PMI_STRING_LIMIT, "LCI_BOOTSTRAP_A2A_%d_%d_%d_%lu",
+                 round, i, rank_me, chunk);
+        const size_t bytes = detail::chunk_size(size, chunk);
+        detail::encode_value(static_cast<const char*>(sendbuf) + i * size +
+                                 chunk * detail::PMI_ENCODED_CHUNK_BYTES,
+                             bytes, value);
+        LCT_pmi_publish(key, value);
+      }
     }
     LCT_pmi_barrier();
     for (int i = 0; i < rank_n; i++) {
-      char key[LCT_PMI_STRING_LIMIT];
-      char value[LCT_PMI_STRING_LIMIT];
-      memset(key, 0, LCT_PMI_STRING_LIMIT);
-      memset(value, 0, LCT_PMI_STRING_LIMIT);
-      snprintf(key, LCT_PMI_STRING_LIMIT, "LCI_BOOTSTRAP_%d_%d_%d", round,
-               rank_me, i);
-      LCT_pmi_getname(i, key, value);
-      // memcpy((char*)recvbuf + i * size, value, size);
-      detail::decode_value(value, size, (char*)recvbuf + i * size);
+      for (size_t chunk = 0; chunk < nchunks; ++chunk) {
+        char key[LCT_PMI_STRING_LIMIT];
+        char value[LCT_PMI_STRING_LIMIT];
+        memset(key, 0, LCT_PMI_STRING_LIMIT);
+        memset(value, 0, LCT_PMI_STRING_LIMIT);
+        snprintf(key, LCT_PMI_STRING_LIMIT, "LCI_BOOTSTRAP_A2A_%d_%d_%d_%lu",
+                 round, rank_me, i, chunk);
+        LCT_pmi_getname(i, key, value);
+        const size_t bytes = detail::chunk_size(size, chunk);
+        detail::decode_value(value, bytes,
+                             static_cast<char*>(recvbuf) + i * size +
+                                 chunk * detail::PMI_ENCODED_CHUNK_BYTES);
+      }
     }
   } else {
     // use device to do alltoall
@@ -120,5 +148,50 @@ void alltoall(const void* sendbuf, void* recvbuf, size_t size)
   }
   LCI_Log(LOG_INFO, "bootstrap", "Bootstrap round %d done\n", round);
 }
+
+void broadcast(const void* sendbuf, void* recvbuf, size_t size, int root)
+{
+  int round = detail::next_round();
+  LCI_Assert(root >= 0 && root < rank_n, "Invalid broadcast root %d\n", root);
+  LCI_Log(LOG_INFO, "bootstrap", "Bootstrap broadcast round %d with LCT PMI\n",
+          round);
+  const size_t nchunks = detail::nchunks(size);
+  if (rank_me == root) {
+    if (recvbuf != sendbuf && size > 0) memcpy(recvbuf, sendbuf, size);
+    for (size_t chunk = 0; chunk < nchunks; ++chunk) {
+      char key[LCT_PMI_STRING_LIMIT];
+      char value[LCT_PMI_STRING_LIMIT];
+      memset(key, 0, LCT_PMI_STRING_LIMIT);
+      memset(value, 0, LCT_PMI_STRING_LIMIT);
+      snprintf(key, LCT_PMI_STRING_LIMIT, "LCI_BOOTSTRAP_BCAST_%d_%d_%lu",
+               round, root, chunk);
+      const size_t bytes = detail::chunk_size(size, chunk);
+      detail::encode_value(static_cast<const char*>(sendbuf) +
+                               chunk * detail::PMI_ENCODED_CHUNK_BYTES,
+                           bytes, value);
+      LCT_pmi_publish(key, value);
+    }
+  }
+  LCT_pmi_barrier();
+  if (rank_me != root) {
+    for (size_t chunk = 0; chunk < nchunks; ++chunk) {
+      char key[LCT_PMI_STRING_LIMIT];
+      char value[LCT_PMI_STRING_LIMIT];
+      memset(key, 0, LCT_PMI_STRING_LIMIT);
+      memset(value, 0, LCT_PMI_STRING_LIMIT);
+      snprintf(key, LCT_PMI_STRING_LIMIT, "LCI_BOOTSTRAP_BCAST_%d_%d_%lu",
+               round, root, chunk);
+      LCT_pmi_getname(root, key, value);
+      const size_t bytes = detail::chunk_size(size, chunk);
+      detail::decode_value(value, bytes,
+                           static_cast<char*>(recvbuf) +
+                               chunk * detail::PMI_ENCODED_CHUNK_BYTES);
+    }
+  }
+  LCT_pmi_barrier();
+  LCI_Log(LOG_INFO, "bootstrap", "Bootstrap broadcast round %d done\n", round);
+}
+
+void barrier() { LCT_pmi_barrier(); }
 }  // namespace bootstrap
 }  // namespace lci

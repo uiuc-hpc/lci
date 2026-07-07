@@ -16,6 +16,7 @@ target_sources_relative(
   bootstrap/bootstrap.cpp
   shm/posix_ring.cpp
   shm/ring.cpp
+  shm/transport.cpp
   network/network.cpp
   matching_engine/matching_engine.cpp
   core/lci.cpp

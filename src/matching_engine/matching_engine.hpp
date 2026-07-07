@@ -25,6 +25,10 @@ class matching_engine_impl_t
   }
   // make key from rank and tag
   virtual key_t make_key(int rank, tag_t tag, matching_policy_t policy) const;
+  // Try to consume a matching opposite-type entry without inserting value
+  // when no match exists. For type=send this searches posted receives; for
+  // type=recv this searches unexpected sends.
+  virtual val_t match(key_t key, insert_type_t type) = 0;
   // insert a key-value pair
   virtual val_t insert(key_t key, val_t value, insert_type_t type) = 0;
 

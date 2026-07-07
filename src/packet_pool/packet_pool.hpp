@@ -101,16 +101,22 @@ inline void packet_pool_impl_t::put(packet_t* p_packet)
 
 inline bool packet_pool_impl_t::is_packet(void* address, bool include_lcontext)
 {
-  void* packet_address;
-  if (!include_lcontext) {
-    packet_address =
-        (packet_t*)((char*)address - sizeof(packet_local_context_t));
-  } else {
-    packet_address = address;
+  if (address == nullptr || base_packet_p == nullptr || attr.packet_size == 0) {
+    return false;
   }
-  uintptr_t offset = (uintptr_t)packet_address - (uintptr_t)base_packet_p;
-  return (uintptr_t)packet_address >= (uintptr_t)base_packet_p &&
-         offset % attr.packet_size == 0 &&
+
+  uintptr_t address_value = reinterpret_cast<uintptr_t>(address);
+  uintptr_t packet_address;
+  if (!include_lcontext) {
+    if (address_value < sizeof(packet_local_context_t)) return false;
+    packet_address = address_value - sizeof(packet_local_context_t);
+  } else {
+    packet_address = address_value;
+  }
+  uintptr_t base_packet = reinterpret_cast<uintptr_t>(base_packet_p);
+  if (packet_address < base_packet) return false;
+  uintptr_t offset = packet_address - base_packet;
+  return offset % attr.packet_size == 0 &&
          offset / attr.packet_size < attr.npackets;
 }
 

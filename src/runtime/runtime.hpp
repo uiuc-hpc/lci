@@ -20,6 +20,7 @@ class runtime_impl_t
   runtime_t::attr_t attr;
   std::string default_net_context_device_name;
   net_context_t default_net_context;
+  shm::context_t default_shm_context;
   device_t default_device;
   packet_pool_t default_packet_pool;
   rhandler_registry_t default_rhandler_registry;

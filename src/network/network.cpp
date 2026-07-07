@@ -127,7 +127,9 @@ device_t alloc_device_x::call_impl(
     size_t net_max_sends, size_t net_max_recvs, size_t net_max_cqes,
     double net_send_reserved_pct, uint64_t ofi_lock_mode,
     bool alloc_default_endpoint, bool alloc_progress_endpoint,
-    bool use_reg_cache, attr_ibv_td_strategy_t ibv_td_strategy,
+    bool use_reg_cache, bool shm_enable, size_t shm_ring_size,
+    size_t shm_slot_size, size_t shm_max_message_size,
+    size_t shm_max_cas_attempts, attr_ibv_td_strategy_t ibv_td_strategy,
     const char* name, void* user_context, runtime_t runtime,
     net_context_t net_context, packet_pool_t packet_pool) const
 {
@@ -144,12 +146,26 @@ device_t alloc_device_x::call_impl(
   attr.alloc_default_endpoint = alloc_default_endpoint;
   attr.alloc_progress_endpoint = alloc_progress_endpoint;
   attr.use_reg_cache = use_reg_cache;
+  attr.shm_enable = shm_enable;
+  attr.shm_ring_size = shm_ring_size;
+  attr.shm_slot_size = shm_slot_size;
+  attr.shm_max_message_size = shm_max_message_size;
+  attr.shm_max_cas_attempts = shm_max_cas_attempts;
   attr.ibv_td_strategy = ibv_td_strategy;
   attr.name = name;
   attr.user_context = user_context;
   auto device = net_context.p_impl->alloc_device(attr);
   if (!packet_pool.is_empty()) {
     device.get_impl()->bind_packet_pool(packet_pool);
+  }
+  if (attr.shm_enable) {
+    if (runtime.get_impl()->default_shm_context.is_empty()) {
+      runtime.get_impl()->default_shm_context = shm::alloc_context(runtime);
+    }
+    device.get_impl()->shm_device = shm::alloc_device(
+        runtime.get_impl()->default_shm_context, device, attr.shm_enable,
+        attr.shm_ring_size, attr.shm_slot_size, attr.shm_max_message_size,
+        attr.shm_max_cas_attempts);
   }
   if (attr.alloc_default_endpoint) {
     device.get_impl()->default_endpoint =
@@ -179,6 +195,9 @@ void free_device_x::call_impl(device_t* device, runtime_t runtime) const
     free_endpoint_x(&device->get_impl()->progress_endpoint).runtime(runtime)();
     if (device->get_attr_alloc_progress_endpoint())
       free_endpoint_x(&device->get_impl()->default_endpoint).runtime(runtime)();
+  }
+  if (!device->get_impl()->shm_device.is_empty()) {
+    shm::free_device(&device->get_impl()->shm_device);
   }
   device->get_impl()->unbind_packet_pool();
   device->get_impl()->destroy_reg_cache();
