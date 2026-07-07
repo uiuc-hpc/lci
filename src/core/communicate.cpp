@@ -157,8 +157,8 @@ void set_protocol(const post_comm_args_t& args,
     force_zcopy = true;
   }
 #endif  // LCI_USE_CUDA || LCI_USE_HIP
-  const bool is_out_msg = args.direction == direction_t::OUT &&
-                          traits.local_buffer_only;
+  const bool is_out_msg =
+      args.direction == direction_t::OUT && traits.local_buffer_only;
   const bool needs_src_rank_in_msg =
       is_out_msg && args.device.p_impl->needs_src_rank_in_msg();
   const bool needs_tag_rcomp_in_msg =
@@ -186,7 +186,8 @@ void set_protocol(const post_comm_args_t& args,
     // already carries tag/rcomp; only source rank needs an extra RTS tail.
     state.protocol = protocol_t::rdv_zcopy;
     state.piggyback_src_rank_in_msg = needs_src_rank_in_msg;
-  } else if (!needs_eager_metadata && msg_size_if_eager <= traits.max_inject_size &&
+  } else if (!needs_eager_metadata &&
+             msg_size_if_eager <= traits.max_inject_size &&
              args.direction == direction_t::OUT &&
              args.comp_semantic == comp_semantic_t::memory && !force_zcopy) {
     // We use the inject protocol only if the five conditions are met:
