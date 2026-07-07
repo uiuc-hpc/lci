@@ -5,7 +5,7 @@
 
 namespace lci
 {
-void progress_recv(runtime_t runtime, endpoint_t endpoint,
+void progress_recv(runtime_t runtime, device_t device, endpoint_t endpoint,
                    const net_status_t& net_status)
 {
   LCI_PCOUNTER_ADD(net_recv_comp, 1)
@@ -25,7 +25,7 @@ void progress_recv(runtime_t runtime, endpoint_t endpoint,
   } else {
     msg_type = static_cast<imm_data_msg_type_t>(get_bits32(imm_data, 2, 29));
   }
-  if (endpoint.get_impl()->device.p_impl->needs_src_rank_in_msg() &&
+  if (device.p_impl->needs_src_rank_in_msg() &&
       (msg_type == IMM_DATA_MSG_EAGER || msg_type == IMM_DATA_MSG_RTS)) {
     LCI_Assert(msg_size >= sizeof(src_rank),
                "Message missing source-rank metadata\n");
@@ -248,7 +248,7 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
       auto status = statuses[i];
       if (status.opcode == net_opcode_t::RECV) {
         device.p_impl->consume_recvs(1);
-        progress_recv(runtime, endpoint, status);
+        progress_recv(runtime, device, endpoint, status);
       } else if (status.opcode == net_opcode_t::SEND) {
         progress_send(status);
       } else if (status.opcode == net_opcode_t::WRITE) {
