@@ -96,8 +96,11 @@ class ofi_device_impl_t : public lci::device_impl_t
                          void* user_context) override;
   size_t post_recvs_impl(void* buffers[], size_t size, size_t count, mr_t mr,
                          void* usesr_contexts[]) override;
+  bool needs_src_rank_in_msg() const override { return !use_8byte_cq_data(); }
+  bool use_8byte_cq_data() const { return ofi_cq_data_size >= 8; }
 
   struct fi_domain_attr* ofi_domain_attr;
+  size_t ofi_cq_data_size;
   struct fid_domain* ofi_domain;
   struct fid_ep* ofi_ep;
   struct fid_cq* ofi_cq;
@@ -141,6 +144,7 @@ class ofi_endpoint_impl_t : public lci::endpoint_impl_t
   struct fi_domain_attr* ofi_domain_attr;
   struct fid_ep* ofi_ep;
   std::vector<fi_addr_t>& peer_addrs;
+  size_t ofi_cq_data_size;
   uint64_t& ofi_lock_mode;
   spinlock_t& lock;
 };

@@ -57,6 +57,7 @@ struct post_comm_traits_t {
 struct post_comm_state_t {
   rcomp_t rhandler = 0;
   bool piggyback_tag_rcomp_in_msg = false;
+  bool piggyback_src_rank_in_msg = false;
   net_imm_data_t imm_data = 0;
   packet_t* packet = nullptr;
   size_t packet_size_to_send = 0;
@@ -144,7 +145,7 @@ void resolve_rhandler(const post_comm_args_t& args,
 }
 
 // state in: rhandler
-// state out: protocol, piggyback_tag_rcomp_in_msg
+// state out: protocol, piggyback_tag_rcomp_in_msg, piggyback_src_rank_in_msg
 void set_protocol(const post_comm_args_t& args,
                   const post_comm_traits_t& traits, post_comm_state_t& state)
 {
@@ -156,26 +157,37 @@ void set_protocol(const post_comm_args_t& args,
     force_zcopy = true;
   }
 #endif  // LCI_USE_CUDA || LCI_USE_HIP
+  const bool is_out_msg =
+      args.direction == direction_t::OUT && traits.local_buffer_only;
+  const bool needs_src_rank_in_msg =
+      is_out_msg && args.device.p_impl->needs_src_rank_in_msg();
+  const bool needs_tag_rcomp_in_msg =
+      is_out_msg && state.rhandler &&
+      (args.tag > args.runtime.get_attr_max_imm_tag() ||
+       state.rhandler > args.runtime.get_attr_max_imm_rcomp());
+
   // determine the message size if we are using the eager protocol
   size_t msg_size_if_eager = args.size;
-  if (args.direction == direction_t::OUT && state.rhandler) {
-    // send/am/put_signal with eager protocol
-    if (args.tag > args.runtime.get_attr_max_imm_tag() ||
-        state.rhandler > args.runtime.get_attr_max_imm_rcomp()) {
-      msg_size_if_eager += sizeof(args.tag) + sizeof(state.rhandler);
-    }
+  if (needs_tag_rcomp_in_msg) {
+    msg_size_if_eager += sizeof(args.tag) + sizeof(state.rhandler);
   }
+  if (needs_src_rank_in_msg) {
+    msg_size_if_eager += sizeof(int);
+  }
+  const bool needs_eager_metadata =
+      needs_tag_rcomp_in_msg || needs_src_rank_in_msg;
 
   if (args.direction == direction_t::IN && traits.local_buffer_only) {
     state.protocol = protocol_t::recv;
-  } else if (args.direction == direction_t::OUT && traits.local_buffer_only &&
+  } else if (is_out_msg &&
              (msg_size_if_eager > traits.max_bcopy_size || force_zcopy)) {
-    // We use the rendezvous protocol if
-    // 1. we are doing a send/am, and
-    // 1.1 The size of the data is larger than the maximum buffer-copy size, or
-    // 1.2 We force the use of the zero-copy protocol.
+    // We use rendezvous for send/am when the eager payload, including metadata,
+    // does not fit in a packet or when device buffers force zero-copy.  RTS
+    // already carries tag/rcomp; only source rank needs an extra RTS tail.
     state.protocol = protocol_t::rdv_zcopy;
-  } else if (msg_size_if_eager <= traits.max_inject_size &&
+    state.piggyback_src_rank_in_msg = needs_src_rank_in_msg;
+  } else if (!needs_eager_metadata &&
+             msg_size_if_eager <= traits.max_inject_size &&
              args.direction == direction_t::OUT &&
              args.comp_semantic == comp_semantic_t::memory && !force_zcopy) {
     // We use the inject protocol only if the five conditions are met:
@@ -184,13 +196,15 @@ void set_protocol(const post_comm_args_t& args,
     // 3. The direction is OUT, and
     // 4. The completion type is buffer.
     // 5. We are not forcing the use of the zero-copy protocol.
+    //
+    // Inject is skipped when eager metadata is needed because there is no
+    // packet payload available for appending tag/rcomp or source-rank tails.
     state.protocol = protocol_t::inject;
-  } else if (args.mr.is_empty() && msg_size_if_eager <= traits.max_bcopy_size &&
-             !force_zcopy) {
+  } else if ((args.mr.is_empty() || needs_eager_metadata) &&
+             msg_size_if_eager <= traits.max_bcopy_size && !force_zcopy) {
     state.protocol = protocol_t::eager_bcopy;
-    if (msg_size_if_eager > args.size) {
-      state.piggyback_tag_rcomp_in_msg = true;
-    }
+    state.piggyback_tag_rcomp_in_msg = needs_tag_rcomp_in_msg;
+    state.piggyback_src_rank_in_msg = needs_src_rank_in_msg;
   } else {
     state.protocol = protocol_t::eager_zcopy;
   }
@@ -210,7 +224,8 @@ void set_local_comp(const post_comm_args_t& args, const post_comm_traits_t&,
 
 // state in: protocol, rhandler
 // state out: imm_data
-void set_immediate_data(const post_comm_args_t& args, const post_comm_traits_t&,
+void set_immediate_data(const post_comm_args_t& args,
+                        const post_comm_traits_t& traits,
                         post_comm_state_t& state)
 {
   // set immediate data
@@ -221,24 +236,30 @@ void set_immediate_data(const post_comm_args_t& args, const post_comm_traits_t&,
     // bit 29-30: imm_data_msg_type_t
     imm_data = set_bits32(0, IMM_DATA_MSG_RTS, 2, 29);
   } else if (args.direction == direction_t::OUT && state.rhandler) {
-    // send/am/put_signal with eager protocol
     if (args.tag <= args.runtime.get_attr_max_imm_tag() &&
         state.rhandler <= args.runtime.get_attr_max_imm_rcomp()) {
-      // is_fastpath (1) ; rhandler (15) ; tag (16)
+      // send/am/put_signal fastpath: is_fastpath (1) ; rhandler (15) ; tag (16)
       imm_data = set_bits32(imm_data, 1, 1, 31);  // is_fastpath
       imm_data = set_bits32(imm_data, args.tag,
                             args.runtime.get_attr_imm_nbits_tag(), 0);
       imm_data = set_bits32(imm_data, state.rhandler,
                             args.runtime.get_attr_imm_nbits_rcomp(), 16);
     } else {
-      // is_fastpath (0) ; msg_type (2)
+      LCI_Assert(traits.local_buffer_only,
+                 "RMA put-with-signal requires tag (%lu) and remote "
+                 "completion (%lu) to fit in immediate data\n",
+                 static_cast<unsigned long>(args.tag),
+                 static_cast<unsigned long>(state.rhandler));
+      // send/am slowpath: is_fastpath (0) ; msg_type (2).  The tag and
+      // rhandler are appended to the FI_MSG payload by set_packet_if_needed().
       static_assert(IMM_DATA_MSG_EAGER == 0, "Unexpected IMM_DATA_MSG_EAGER");
     }
   }
   state.imm_data = imm_data;
 }
 
-// state in: protocol, rhandler, piggyback_tag_rcomp_in_msg
+// state in: protocol, rhandler, piggyback_tag_rcomp_in_msg,
+//           piggyback_src_rank_in_msg
 // state.out: packet, user_provided_packet
 error_t set_packet_if_needed(const post_comm_args_t& args,
                              [[maybe_unused]] const post_comm_traits_t& traits,
@@ -286,6 +307,14 @@ error_t set_packet_if_needed(const post_comm_args_t& args,
       memcpy((char*)buffer + state.packet_size_to_send, &state.rhandler,
              sizeof(state.rhandler));
       state.packet_size_to_send += sizeof(state.rhandler);
+    }
+    if (state.piggyback_src_rank_in_msg) {
+      char* buffer = (char*)state.packet->get_payload_address();
+      int src_rank = get_rank_me();
+      memcpy(buffer + state.packet_size_to_send, &src_rank, sizeof(src_rank));
+      state.packet_size_to_send += sizeof(src_rank);
+    }
+    if (state.piggyback_tag_rcomp_in_msg || state.piggyback_src_rank_in_msg) {
       LCI_Assert(state.packet_size_to_send <= traits.max_bcopy_size, "");
     }
     if (state.packet_size_to_send >
@@ -456,10 +485,15 @@ error_t post_network_op(const post_comm_args_t& args,
       // rendezvous send
       // build the rts message
       rts_msg_t* p_rts;
-      if (sizeof(rts_msg_t) <= traits.max_inject_size) {
+      size_t rts_size_to_send = sizeof(rts_msg_t);
+      if (state.piggyback_src_rank_in_msg) {
+        rts_size_to_send += sizeof(int);
+      }
+      if (!state.piggyback_src_rank_in_msg &&
+          sizeof(rts_msg_t) <= traits.max_inject_size) {
         p_rts = reinterpret_cast<rts_msg_t*>(malloc(sizeof(rts_msg_t)));
       } else {
-        LCI_Assert(sizeof(rts_msg_t) <= traits.max_bcopy_size,
+        LCI_Assert(rts_size_to_send <= traits.max_bcopy_size,
                    "The rts message is too large\n");
         p_rts = static_cast<rts_msg_t*>(state.packet->get_payload_address());
       }
@@ -467,15 +501,21 @@ error_t post_network_op(const post_comm_args_t& args,
       p_rts->tag = args.tag;
       p_rts->rcomp = state.rhandler;
       p_rts->size = args.size;
+      if (state.piggyback_src_rank_in_msg) {
+        int src_rank = get_rank_me();
+        memcpy(reinterpret_cast<char*>(p_rts) + sizeof(rts_msg_t), &src_rank,
+               sizeof(src_rank));
+      }
       // post send for the rts message
-      if (sizeof(rts_msg_t) <= traits.max_inject_size) {
+      if (!state.piggyback_src_rank_in_msg &&
+          sizeof(rts_msg_t) <= traits.max_inject_size) {
         error = args.endpoint.p_impl->post_sends(
             args.rank, p_rts, sizeof(rts_msg_t), state.imm_data, nullptr,
             args.allow_retry);
         free(p_rts);
       } else {
         error = args.endpoint.p_impl->post_send(
-            args.rank, p_rts, sizeof(rts_msg_t),
+            args.rank, p_rts, rts_size_to_send,
             state.packet->get_mr(args.device), state.imm_data, nullptr,
             args.allow_retry);
       }

@@ -6,6 +6,26 @@
 
 namespace lci
 {
+namespace ofi_detail
+{
+// OFI providers with >=8-byte CQ data keep the historical LCI wire format:
+//   CQ data = (source rank << 32) | imm_data.
+// Providers with only 4-byte CQ data use CQ data for the original LCI
+// imm_data.  Source rank metadata, when required, is appended and decoded by
+// the LCI core eager/RTS message payload path.
+inline bool use_8byte_cq_data(size_t cq_data_size) { return cq_data_size >= 8; }
+
+inline uint64_t make_msg_cq_data(size_t cq_data_size, int my_rank,
+                                 net_imm_data_t imm_data)
+{
+  if (use_8byte_cq_data(cq_data_size)) {
+    return (uint64_t)my_rank << 32 | imm_data;
+  } else {
+    return imm_data;
+  }
+}
+}  // namespace ofi_detail
+
 inline uint64_t ofi_device_impl_t::get_rkey(mr_impl_t* mr)
 {
   ofi_mr_impl_t& p_mr = *static_cast<ofi_mr_impl_t*>(mr);
@@ -22,26 +42,47 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_POLL);
   if (ne > 0) {
     // Got an entry here
-    if (p_statuses) {
-      for (int j = 0; j < ne; j++) {
-        net_status_t& status = p_statuses[j];
-        if (fi_entries[j].flags & FI_RECV) {
+    for (int j = 0; j < ne; j++) {
+      net_status_t local_status;
+      net_status_t& status = p_statuses ? p_statuses[j] : local_status;
+      if (p_statuses) {
+        status.rank = -1;
+        status.user_context = nullptr;
+        status.length = 0;
+        status.imm_data = 0;
+      }
+      if (fi_entries[j].flags & FI_RECV) {
+        if (p_statuses) {
           status.opcode = net_opcode_t::RECV;
           status.user_context = fi_entries[j].op_context;
           status.length = fi_entries[j].len;
-          status.imm_data = fi_entries[j].data & ((1ULL << 32) - 1);
-          status.rank = (int)(fi_entries[j].data >> 32);
-        } else if (fi_entries[j].flags & FI_REMOTE_WRITE) {
+          status.imm_data = static_cast<net_imm_data_t>(fi_entries[j].data &
+                                                        ((1ULL << 32) - 1));
+          if (use_8byte_cq_data()) {
+            status.rank = static_cast<int>(fi_entries[j].data >> 32);
+          }
+        }
+      } else if (fi_entries[j].flags & FI_REMOTE_WRITE) {
+        if (p_statuses) {
           status.opcode = net_opcode_t::REMOTE_WRITE;
           status.user_context = NULL;
-          status.imm_data = fi_entries[j].data;
-        } else if (fi_entries[j].flags & FI_SEND) {
+          status.imm_data = static_cast<net_imm_data_t>(fi_entries[j].data);
+          // RMA completions do not carry LCI message payload metadata.  On the
+          // 4-byte CQ-data path the immediate value is preserved and source
+          // rank is intentionally unavailable.
+        }
+      } else if (fi_entries[j].flags & FI_SEND) {
+        if (p_statuses) {
           status.opcode = net_opcode_t::SEND;
           status.user_context = fi_entries[j].op_context;
-        } else if (fi_entries[j].flags & FI_WRITE) {
+        }
+      } else if (fi_entries[j].flags & FI_WRITE) {
+        if (p_statuses) {
           status.opcode = net_opcode_t::WRITE;
           status.user_context = fi_entries[j].op_context;
-        } else {
+        }
+      } else {
+        if (p_statuses) {
           LCI_DBG_Assert(fi_entries[j].flags & FI_READ,
                          "Unexpected OFI opcode!\n");
           status.opcode = net_opcode_t::READ;
@@ -114,10 +155,11 @@ inline size_t ofi_device_impl_t::post_recvs_impl(void* buffers[], size_t size,
   for (size_t i = 0; i < count; i++) {
     error = fi_recv(ofi_ep, buffers[i], size, mr_desc, FI_ADDR_UNSPEC,
                     user_contexts[i]);
-    if (error == FI_SUCCESS)
+    if (error == FI_SUCCESS) {
       ++n_posted;
-    else
+    } else {
       break;
+    }
   }
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_RECV);
   if (error == FI_SUCCESS || error == -FI_EAGAIN)
@@ -143,7 +185,7 @@ inline error_t ofi_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
   msg.iov_count = 1;
   msg.addr = peer_addrs[rank];
   msg.context = user_context;
-  msg.data = (uint64_t)my_rank << 32 | imm_data;
+  msg.data = ofi_detail::make_msg_cq_data(ofi_cq_data_size, my_rank, imm_data);
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
   ssize_t ret =
       fi_sendmsg(ofi_ep, &msg, FI_INJECT | FI_COMPLETION | FI_REMOTE_CQ_DATA);
@@ -168,15 +210,16 @@ inline error_t ofi_endpoint_impl_t::post_send_impl(int rank, void* buffer,
                                                    bool /*high_priority*/)
 {
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
+  uint64_t cq_data =
+      ofi_detail::make_msg_cq_data(ofi_cq_data_size, my_rank, imm_data);
   ssize_t ret = fi_senddata(ofi_ep, buffer, size, ofi_detail::get_mr_desc(mr),
-                            (uint64_t)my_rank << 32 | imm_data,
-                            peer_addrs[rank], user_context);
+                            cq_data, peer_addrs[rank], user_context);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
     return errorcode_t::posted;
-  else if (ret == -FI_EAGAIN)
+  else if (ret == -FI_EAGAIN) {
     return errorcode_t::retry_nomem;
-  else {
+  } else {
     FI_SAFECALL_RET(ret);
   }
 }
