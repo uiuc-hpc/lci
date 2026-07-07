@@ -383,6 +383,7 @@ void run_active_message()
   lci::comp_t lcq = lci::alloc_cq();
   lci::comp_t rcq = lci::alloc_cq();
   lci::rcomp_t rcomp = lci::register_rcomp(rcq);
+  lci::barrier();
   std::vector<char> send_buffer(msg_size);
   fill_pattern(send_buffer, rank, dst);
 
@@ -403,6 +404,7 @@ void run_active_message()
     assert(payload[i] == static_cast<char>('A' + ((src + rank + i) % 26)));
   }
   std::free(recv_status.buffer);
+  lci::barrier();
   lci::deregister_rcomp(rcomp);
   lci::free_comp(&rcq);
   lci::free_comp(&lcq);
