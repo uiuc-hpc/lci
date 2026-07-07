@@ -46,6 +46,7 @@ jobs:
                 -DLCI_DEBUG=ON \
                 -DLCI_NETWORK_BACKENDS=ofi \
                 -DLCI_USE_TCMALLOC=OFF \
+                -DLCI_BACKEND_MAX_CQES_DEFAULT=1024 \
                 -DCMAKE_VERBOSE_MAKEFILE=ON \
                 -DRECONVERSE_AUTOFETCH_LCI2=ON \
                 -DRECONVERSE_TEST_LAUNCHER=${{ github.workspace }}/lci/lcrun \
