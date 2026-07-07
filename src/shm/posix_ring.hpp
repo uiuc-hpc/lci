@@ -4,6 +4,7 @@
 #ifndef LCI_SHM_POSIX_RING_HPP
 #define LCI_SHM_POSIX_RING_HPP
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -17,6 +18,10 @@ namespace shm
 {
 constexpr uint32_t posix_ring_handle_version = 1;
 constexpr size_t posix_ring_name_capacity = 128;
+// Darwin's POSIX shm namespace is substantially shorter than the bootstrap
+// handle storage. Keep generated names within this portable string length
+// (including the leading slash, excluding the trailing NUL).
+constexpr size_t posix_ring_portable_name_max = 30;
 
 // Fixed-size bootstrap data. It contains no process-local pointer or file
 // descriptor; peers validate every field before opening the object.
@@ -53,6 +58,8 @@ bool validate_posix_ring_handle(const posix_ring_handle_t& handle,
 // than ring_t::required_size() because some kernels report shm object sizes at
 // page granularity.
 size_t posix_ring_mapping_size(size_t slot_count, size_t slot_size);
+std::string make_posix_ring_name(const std::array<uint64_t, 2>& job_nonce,
+                                 uint64_t device_uid, int owner_global_rank);
 
 // Owns the receiver's inbound mapping and its still-linked POSIX object name.
 // Destruction unlinks the name if unlink_name() was not already called.

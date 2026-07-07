@@ -10,10 +10,8 @@
 #include <cstring>
 #include <cstdlib>
 #include <fstream>
-#include <iomanip>
 #include <limits>
 #include <mutex>
-#include <sstream>
 #include <string>
 #include <thread>
 #include <unistd.h>
@@ -63,22 +61,11 @@ uint64_t random_nonzero_u64()
   return value;
 }
 
-std::string nonce_to_hex(const std::array<uint64_t, 2>& nonce)
-{
-  std::ostringstream out;
-  out << std::hex << std::setfill('0') << std::setw(16) << nonce[0]
-      << std::setw(16) << nonce[1];
-  return out.str();
-}
-
 std::string make_object_name(context_impl_t* context, uint64_t device_uid,
                              int owner_global_rank)
 {
-  std::ostringstream out;
-  out << "/lci-" << nonce_to_hex(context->job_nonce) << "-" << std::hex
-      << std::setfill('0') << std::setw(16) << device_uid << std::dec << "-"
-      << owner_global_rank;
-  return out.str();
+  return make_posix_ring_name(context->job_nonce, device_uid,
+                              owner_global_rank);
 }
 
 posix_ring_expected_t expected_ring(context_impl_t* context,

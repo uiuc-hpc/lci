@@ -3,6 +3,7 @@
 
 #include "shm/posix_ring.hpp"
 
+#include <algorithm>
 #include <cerrno>
 #include <cstring>
 #include <fcntl.h>
@@ -18,6 +19,9 @@ namespace shm
 {
 namespace
 {
+constexpr char base36_digits[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+constexpr char base32hex_digits[] = "0123456789abcdefghijklmnopqrstuv";
+
 void set_error(std::string* error, const std::string& message)
 {
   if (error != nullptr) *error = message;
@@ -73,6 +77,58 @@ bool valid_expected(const posix_ring_expected_t& expected, std::string* error)
   }
   return true;
 }
+
+uint64_t mix64(uint64_t value)
+{
+  value ^= value >> 30;
+  value *= UINT64_C(0xbf58476d1ce4e5b9);
+  value ^= value >> 27;
+  value *= UINT64_C(0x94d049bb133111eb);
+  value ^= value >> 31;
+  return value;
+}
+
+void mix_into(uint64_t* state, uint64_t value)
+{
+  *state = mix64(*state ^ (value + UINT64_C(0x9e3779b97f4a7c15) +
+                           (*state << 6) + (*state >> 2)));
+}
+
+std::string encode_base36(uint32_t value)
+{
+  std::string result;
+  do {
+    result.push_back(base36_digits[value % 36]);
+    value /= 36;
+  } while (value != 0);
+  std::reverse(result.begin(), result.end());
+  return result;
+}
+
+std::string encode_base32hex_80(uint64_t high64, uint16_t low16)
+{
+  unsigned char bytes[10] = {};
+  for (size_t i = 0; i < 8; ++i) {
+    bytes[i] = static_cast<unsigned char>(high64 >> ((7 - i) * 8));
+  }
+  bytes[8] = static_cast<unsigned char>(low16 >> 8);
+  bytes[9] = static_cast<unsigned char>(low16);
+
+  std::string result;
+  result.reserve(16);
+  for (size_t i = 0; i < 16; ++i) {
+    unsigned char value = 0;
+    for (size_t bit = 0; bit < 5; ++bit) {
+      const size_t source_bit = i * 5 + bit;
+      const size_t byte_index = source_bit / 8;
+      const size_t bit_index = 7 - (source_bit % 8);
+      value = static_cast<unsigned char>(
+          (value << 1) | ((bytes[byte_index] >> bit_index) & 1));
+    }
+    result.push_back(base32hex_digits[value]);
+  }
+  return result;
+}
 }  // namespace
 
 size_t posix_ring_mapping_size(size_t slot_count, size_t slot_size)
@@ -90,6 +146,33 @@ size_t posix_ring_mapping_size(size_t slot_count, size_t slot_size)
     return 0;
   }
   return ((required + page_size - 1) / page_size) * page_size;
+}
+
+std::string make_posix_ring_name(const std::array<uint64_t, 2>& job_nonce,
+                                 uint64_t device_uid, int owner_global_rank)
+{
+  const uint32_t rank =
+      owner_global_rank < 0 ? 0 : static_cast<uint32_t>(owner_global_rank);
+  uint64_t h0 = UINT64_C(0x6c63692d73686d30);
+  mix_into(&h0, job_nonce[0]);
+  mix_into(&h0, job_nonce[1]);
+  mix_into(&h0, device_uid);
+  mix_into(&h0, rank);
+
+  uint64_t h1 = UINT64_C(0x6c63692d73686d31);
+  mix_into(&h1, device_uid);
+  mix_into(&h1, rank);
+  mix_into(&h1, job_nonce[1]);
+  mix_into(&h1, job_nonce[0]);
+
+  // The rank stays readable while the 80-bit digest compactly namespaces the
+  // job nonce, device UID, and rank. Receivers still validate the exact owner
+  // rank, device UID, geometry, and expected generated name before attaching.
+  std::string name = "/lci-";
+  name += encode_base36(rank);
+  name += "-";
+  name += encode_base32hex_80(h0, static_cast<uint16_t>(h1 >> 48));
+  return name;
 }
 
 bool validate_posix_ring_handle(const posix_ring_handle_t& handle,

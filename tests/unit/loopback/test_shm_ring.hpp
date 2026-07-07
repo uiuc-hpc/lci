@@ -721,6 +721,37 @@ TEST(SHM_POSIX_RING, repeated_owner_attach_unlink_and_message_lifecycle)
   }
 }
 
+TEST(SHM_POSIX_RING, generated_object_names_are_compact_and_identity_based)
+{
+  const std::array<uint64_t, 2> nonce = {
+      {UINT64_C(0x0123456789abcdef), UINT64_C(0xfedcba9876543210)}};
+  const uint64_t device_uid = UINT64_C(0x1020304050607080);
+
+  const std::string name =
+      lci::shm::make_posix_ring_name(nonce, device_uid, INT32_MAX);
+  EXPECT_LE(name.size(), lci::shm::posix_ring_portable_name_max);
+  EXPECT_EQ(name.find('/', 1), std::string::npos);
+
+  std::string error;
+  auto owner = lci::shm::posix_owner_mapping_t::create(
+      name, INT32_MAX, device_uid, 1, 128, 64, 2, &error);
+  ASSERT_NE(owner, nullptr) << error;
+
+  auto expected = expected_ring(name, INT32_MAX, device_uid, 1, 128, 64);
+  EXPECT_TRUE(
+      lci::shm::validate_posix_ring_handle(owner->handle(), expected, &error))
+      << error;
+
+  auto changed_nonce = nonce;
+  changed_nonce[1] ^= UINT64_C(1);
+  EXPECT_NE(name, lci::shm::make_posix_ring_name(changed_nonce, device_uid,
+                                                 INT32_MAX));
+  EXPECT_NE(name,
+            lci::shm::make_posix_ring_name(nonce, device_uid + 1, INT32_MAX));
+  EXPECT_NE(name,
+            lci::shm::make_posix_ring_name(nonce, device_uid, INT32_MAX - 1));
+}
+
 TEST(SHM_POSIX_RING, rejects_malformed_handles_and_cleans_failure_paths)
 {
   const std::string name = unique_shm_name("failure");
