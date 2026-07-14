@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: NCSA
 
 #include "lci.hpp"
-#include "lci_internal.hpp"
 
 #include <chrono>
 #include <cstdlib>
@@ -76,22 +75,19 @@ int main()
     const auto deadline = std::chrono::steady_clock::now() + timeout;
     bool caught_peer_failure = false;
     char payload = 0;
+    lci::comp_t completion = lci::alloc_cq();
+    bool operation_posted = false;
     while (std::chrono::steady_clock::now() < deadline) {
-      auto* user_context = new lci::internal_context_t;
-      user_context->rank = 1;
       try {
-        lci::error_t post_status =
-            lci::net_post_sends_x(1, &payload, sizeof(payload))
-                .user_context(user_context)();
-        if (post_status.is_retry()) {
-          delete user_context;
-          continue;
+        if (!operation_posted) {
+          lci::status_t post_status =
+              lci::post_send_x(1, &payload, sizeof(payload), 0, completion)
+                  .comp_semantic(lci::comp_semantic_t::network)();
+          if (post_status.is_retry()) continue;
+          operation_posted = true;
         }
-        // The test intentionally uses an internal LCI operation context so
-        // progress can recover the peer rank without any external map.
         lci::progress();
       } catch (const lci::peer_failure_error& error) {
-        delete user_context;
         if (error.failed_rank() != 1) {
           std::cerr << "Expected failed rank 1, got " << error.failed_rank()
                     << '\n';
@@ -104,6 +100,7 @@ int main()
     if (!caught_peer_failure) {
       throw std::runtime_error("Did not observe the killed peer's failure");
     }
+    lci::free_comp(&completion);
     touch(directory + "/failure-caught");
 
     // The failed completion has been consumed. Surviving ranks must be able to

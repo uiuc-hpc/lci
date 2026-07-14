@@ -8,9 +8,4 @@ add_lci_test(
   LABELS
   resilience
   COMMANDS
-  "${CMAKE_CURRENT_SOURCE_DIR}/run_process_failure_test.sh [TARGET]"
-  INCLUDES
-  ${PROJECT_SOURCE_DIR}/src
-  ${PROJECT_SOURCE_DIR}/lct/api
-  ${PROJECT_BINARY_DIR}/lct/api
-  ${OFI_INCLUDE_DIRS})
+  "${CMAKE_CURRENT_SOURCE_DIR}/run_process_failure_test.sh [TARGET]")

@@ -13,8 +13,7 @@ inline uint64_t ofi_device_impl_t::get_rkey(mr_impl_t* mr)
 }
 
 inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
-                                                size_t max_polls,
-                                                bool is_lci_progress)
+                                                size_t max_polls)
 {
   struct fi_cq_data_entry fi_entries[LCI_BACKEND_MAX_POLLS];
 
@@ -53,7 +52,7 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
   } else if (ne == -FI_EAGAIN) {
     ne = 0;
   } else {
-    struct fi_cq_err_entry error;
+    struct fi_cq_err_entry error = {};
     char err_data[64];
     error.err_data = err_data;
     error.err_data_size = sizeof(err_data);
@@ -65,12 +64,6 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
     } else {
       LCI_Assert(ret_cqerr == 1, "fi_cq_readerr failed: %s\n",
                  fi_strerror(-ret_cqerr));
-      int failed_rank = -1;
-      if (is_lci_progress && (error.flags & (FI_SEND | FI_WRITE | FI_READ)) &&
-          error.op_context != nullptr) {
-        auto* internal_ctx = static_cast<internal_context_t*>(error.op_context);
-        failed_rank = internal_ctx->rank;
-      }
       std::string message =
           "OFI completion error: " + std::string(fi_strerror(error.err));
       if (error.prov_errno != 0) {
@@ -82,11 +75,12 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
           message += " (" + std::string(detail) + ")";
         }
       }
-      if (failed_rank >= 0) {
-        throw peer_failure_error(failed_rank, message + " for peer rank " +
-                                                  std::to_string(failed_rank));
+      if ((error.flags & (FI_SEND | FI_WRITE | FI_READ)) &&
+          error.op_context != nullptr) {
+        throw network_completion_error(message, option_t<int>(),
+                                       option_t<void*>(error.op_context));
       }
-      throw std::runtime_error(message);
+      throw network_completion_error(message);
     }
   }
   return ne;

@@ -158,6 +158,7 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
 
   // send the rtr packet
   internal_context_t* rtr_ctx = new internal_context_t;
+  rtr_ctx->rank = rdv_ctx->rank;
   rtr_ctx->packet_to_free = packet;
 
   net_imm_data_t imm_data = set_bits32(0, IMM_DATA_MSG_RTR, 2, 29);
@@ -238,7 +239,7 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
 inline void handle_rdv_local_write(endpoint_t endpoint,
                                    internal_context_extended_t* ectx)
 {
-  internal_context_t* ctx = ectx->internal_ctx;
+  internal_context_t* ctx = ectx->internal_ctx.load();
   LCI_Assert(ectx->recv_ctx, "Unexpected recv_ctx\n");
   LCI_DBG_Log(LOG_TRACE, "rdv", "send FIN: rctx %p\n", (void*)ectx->recv_ctx);
   net_imm_data_t imm_data = set_bits32(0, IMM_DATA_MSG_FIN, 2, 29);

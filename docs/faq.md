@@ -73,10 +73,14 @@ libfabric TCP provider: it kills rank 1, verifies that rank 0 receives a
 continue progressing and finalize. Run it on a host with an OFI build and a
 libfabric TCP provider.
 
-The typed exception applies to normal LCI communication operations progressed
-through `progress()`. The lower-level `net_*` API accepts an arbitrary
-application-owned `void*` user context, so asynchronous failures observed
-through `net_poll_cq()` remain a generic `std::runtime_error`.
+The typed peer exception applies to normal LCI communication operations
+progressed through `progress()`. The lower-level `net_*` API accepts an
+arbitrary application-owned `void*` user context, so `net_poll_cq()` propagates
+`lci::network_completion_error` instead. That exception may contain a
+backend-provided peer rank and/or the same opaque user context supplied when
+the operation was posted. LCI does not interpret or free raw network contexts.
+Applications should not mix raw network operations with normal LCI progress on
+the same device.
 
 #### What is LCT?
 The Lightweight Communication Tools (LCT) library provides basic services such as bootstrapping

@@ -116,8 +116,7 @@ class ibv_device_impl_t : public lci::device_impl_t
   mr_t register_memory_impl(void* buffer, size_t size) override;
   void deregister_memory_impl(mr_impl_t*) override;
   uint64_t get_rkey(mr_impl_t* mr) override;
-  size_t poll_comp_impl(net_status_t* p_statuses, size_t max_polls,
-                        bool is_lci_progress) override;
+  size_t poll_comp_impl(net_status_t* p_statuses, size_t max_polls) override;
   error_t post_recv_impl(void* buffer, size_t size, mr_t mr,
                          void* user_context) override;
   size_t post_recvs_impl(void* buffers[], size_t size, size_t count, mr_t mrm,

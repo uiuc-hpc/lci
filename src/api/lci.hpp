@@ -112,6 +112,36 @@ struct option_t {
 namespace lci
 {
 /**
+ * @brief A network completion error reported by a transport backend.
+ * @ingroup LCI_NET
+ *
+ * This exception is exposed because @ref net_poll_cq is a public low-level
+ * API. A backend may provide the peer rank, the opaque user context associated
+ * with the failed operation, both, or neither. Normal LCI communication
+ * progressed through @ref progress translates this exception to
+ * @ref peer_failure_error when it can identify the peer.
+ */
+class network_completion_error : public std::runtime_error
+{
+ public:
+  network_completion_error(const std::string& message,
+                           option_t<int> failed_rank = option_t<int>(),
+                           option_t<void*> user_context = option_t<void*>())
+      : std::runtime_error(message),
+        failed_rank_(failed_rank),
+        user_context_(user_context)
+  {
+  }
+
+  option_t<int> failed_rank() const noexcept { return failed_rank_; }
+  option_t<void*> user_context() const noexcept { return user_context_; }
+
+ private:
+  option_t<int> failed_rank_;
+  option_t<void*> user_context_;
+};
+
+/**
  * @brief An asynchronous transport error associated with a peer rank.
  * @ingroup LCI_BASIC
  *

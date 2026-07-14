@@ -104,7 +104,7 @@ inline uint64_t ibv_device_impl_t::get_rkey(mr_impl_t* mr)
 }
 
 inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
-                                                size_t max_polls, bool)
+                                                size_t max_polls)
 {
   struct ibv_wc wcs[LCI_BACKEND_MAX_POLLS];
 
@@ -116,19 +116,10 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
     auto snapshot = qp2rank_map.get_snapshot();
     for (int i = 0; i < ne; i++) {
       qp2rank_map_t::entry_t entry = snapshot->get_entry(wcs[i].qp_num);
-      if (wcs[i].status != IBV_WC_SUCCESS) {
-        std::string message = "IBV completion error: " +
-                              std::string(ibv_wc_status_str(wcs[i].status)) +
-                              " (" + std::to_string(wcs[i].status) + ")";
-        if (entry.rank >= 0) {
-          throw peer_failure_error(entry.rank, message + " for peer rank " +
-                                                   std::to_string(entry.rank));
-        }
-        throw std::runtime_error(message);
-      }
-      // Increment SQ slots on any send-side completion
-      if (wcs[i].opcode != IBV_WC_RECV &&
-          wcs[i].opcode != IBV_WC_RECV_RDMA_WITH_IMM) {
+      bool is_send_side = wcs[i].opcode != IBV_WC_RECV &&
+                          wcs[i].opcode != IBV_WC_RECV_RDMA_WITH_IMM;
+      // A failed send-side completion still releases its SQ slot.
+      if (is_send_side) {
         if (entry.rank >= 0 && entry.rank < get_rank_n() &&
             entry.slots != nullptr) {
           [[maybe_unused]] int prev =
@@ -142,6 +133,17 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
               "Completion for qp_num %u does not map to an active endpoint\n",
               wcs[i].qp_num);
         }
+      }
+      if (wcs[i].status != IBV_WC_SUCCESS) {
+        std::string message = "IBV completion error: " +
+                              std::string(ibv_wc_status_str(wcs[i].status)) +
+                              " (" + std::to_string(wcs[i].status) + ")";
+        option_t<int> failed_rank;
+        option_t<void*> user_context;
+        if (entry.rank >= 0) failed_rank = option_t<int>(entry.rank);
+        if (is_send_side && wcs[i].wr_id != 0)
+          user_context = option_t<void*>((void*)wcs[i].wr_id);
+        throw network_completion_error(message, failed_rank, user_context);
       }
       if (!p_statuses) continue;
       net_status_t& status = p_statuses[i];

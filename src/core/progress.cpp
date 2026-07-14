@@ -97,6 +97,31 @@ void progress_send(const net_status_t& net_status)
   free_ctx_and_signal_comp(internal_ctx);
 }
 
+static int cleanup_failed_operation(void* user_context)
+{
+  internal_context_t* internal_ctx =
+      static_cast<internal_context_t*>(user_context);
+  if (!internal_ctx->is_extended) {
+    int rank = internal_ctx->rank;
+    delete internal_ctx;
+    return rank;
+  }
+
+  internal_context_extended_t* ectx =
+      reinterpret_cast<internal_context_extended_t*>(internal_ctx);
+  internal_context_t* ctx = ectx->internal_ctx.load();
+  int rank = ctx == nullptr ? -1 : ctx->rank;
+  ectx->failed.store(true);
+
+  int signal_count = --ectx->signal_count;
+  LCI_DBG_Assert(signal_count >= 0, "Unexpected signal!\n");
+  if (signal_count == 0) {
+    delete ectx->internal_ctx.exchange(nullptr);
+    delete ectx;
+  }
+  return rank;
+}
+
 void progress_write(endpoint_t endpoint, const net_status_t& net_status)
 {
   LCI_PCOUNTER_ADD(net_write_writeImm_comp, 1)
@@ -114,7 +139,13 @@ void progress_write(endpoint_t endpoint, const net_status_t& net_status)
       return;
     }
     LCI_DBG_Assert(signal_count == 0, "Unexpected signal!\n");
-    internal_context_t* ctx = ectx->internal_ctx;
+    internal_context_t* ctx = ectx->internal_ctx.load();
+    if (ectx->failed.load()) {
+      ectx->internal_ctx.store(nullptr);
+      delete ctx;
+      delete ectx;
+      return;
+    }
     if (ectx->recv_ctx) {
       handle_rdv_local_write(endpoint, ectx);
     } else if (ectx->imm_data_rank != -1) {
@@ -124,6 +155,7 @@ void progress_write(endpoint_t endpoint, const net_status_t& net_status)
           false /* allow_retry */);
       LCI_Assert(error.is_done(), "Unexpected error %s\n", error.get_str());
     }  // else: this is a RDMA write buffers or rendezvous with writeimm
+    ectx->internal_ctx.store(nullptr);
     delete ectx;
     free_ctx_and_signal_comp(ctx);
   } else {
@@ -195,8 +227,13 @@ void progress_read(const net_status_t& net_status)
       return;
     }
     LCI_DBG_Assert(signal_count == 0, "Unexpected signal!\n");
-    internal_context_t* ctx = ectx->internal_ctx;
+    internal_context_t* ctx = ectx->internal_ctx.exchange(nullptr);
+    bool failed = ectx->failed.load();
     delete ectx;
+    if (failed) {
+      delete ctx;
+      return;
+    }
     free_ctx_and_signal_comp(ctx);
   } else {
     if (internal_ctx->packet_to_free) {
@@ -232,8 +269,34 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
   }
   // poll device completion queue
   net_status_t statuses[LCI_BACKEND_MAX_POLLS];
-  size_t ret = device.get_impl()->poll_comp(statuses, LCI_BACKEND_MAX_POLLS,
-                                            true /* is_lci_progress */);
+  size_t ret;
+  try {
+    ret = device.get_impl()->poll_comp(statuses, LCI_BACKEND_MAX_POLLS);
+  } catch (const network_completion_error& network_error) {
+    int context_rank = -1;
+    void* user_context = nullptr;
+    bool has_user_context =
+        network_error.user_context().get_set_value(&user_context);
+    if (has_user_context && user_context != nullptr) {
+      context_rank = cleanup_failed_operation(user_context);
+    }
+
+    int failed_rank = -1;
+    if (!network_error.failed_rank().get_set_value(&failed_rank)) {
+      failed_rank = context_rank;
+    }
+    if (failed_rank >= 0) {
+      throw peer_failure_error(failed_rank, std::string(network_error.what()) +
+                                                " for peer rank " +
+                                                std::to_string(failed_rank));
+    }
+
+    // Do not preserve an opaque context after LCI has freed it.
+    if (has_user_context) {
+      throw std::runtime_error(network_error.what());
+    }
+    throw;
+  }
   if (ret > 0) {
     error = errorcode_t::done;
     for (size_t i = 0; i < ret; i++) {
