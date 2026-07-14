@@ -13,7 +13,8 @@ inline uint64_t ofi_device_impl_t::get_rkey(mr_impl_t* mr)
 }
 
 inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
-                                                size_t max_polls)
+                                                size_t max_polls,
+                                                bool is_lci_progress)
 {
   struct fi_cq_data_entry fi_entries[LCI_BACKEND_MAX_POLLS];
 
@@ -23,13 +24,8 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
   if (ne > 0) {
     // Got an entry here
     for (int j = 0; j < ne; j++) {
-      int peer_rank = -1;
-      if (fi_entries[j].flags & (FI_SEND | FI_WRITE | FI_READ)) {
-        peer_rank = take_peer_rank(fi_entries[j].op_context);
-      }
       if (p_statuses) {
         net_status_t& status = p_statuses[j];
-        status.rank = peer_rank;
         if (fi_entries[j].flags & FI_RECV) {
           status.opcode = net_opcode_t::RECV;
           status.user_context = fi_entries[j].op_context;
@@ -70,8 +66,10 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
       LCI_Assert(ret_cqerr == 1, "fi_cq_readerr failed: %s\n",
                  fi_strerror(-ret_cqerr));
       int failed_rank = -1;
-      if (error.flags & (FI_SEND | FI_WRITE | FI_READ)) {
-        failed_rank = take_peer_rank(error.op_context);
+      if (is_lci_progress && (error.flags & (FI_SEND | FI_WRITE | FI_READ)) &&
+          error.op_context != nullptr) {
+        auto* internal_ctx = static_cast<internal_context_t*>(error.op_context);
+        failed_rank = internal_ctx->rank;
       }
       std::string message =
           "OFI completion error: " + std::string(fi_strerror(error.err));
@@ -180,7 +178,6 @@ inline error_t ofi_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
   msg.context = user_context;
   msg.data = (uint64_t)my_rank << 32 | imm_data;
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
-  p_ofi_device->track_peer(rank, user_context);
   ssize_t ret =
       fi_sendmsg(ofi_ep, &msg, FI_INJECT | FI_COMPLETION | FI_REMOTE_CQ_DATA);
 
@@ -189,7 +186,6 @@ inline error_t ofi_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
   //                   peer_addrs[rank]);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS) return errorcode_t::done;
-  p_ofi_device->untrack_peer(user_context);
   if (ret == -FI_EAGAIN) return errorcode_t::retry_nomem;
   ofi_detail::throw_peer_error(rank, ret, "send");
 }
@@ -201,13 +197,11 @@ inline error_t ofi_endpoint_impl_t::post_send_impl(int rank, void* buffer,
                                                    bool /*high_priority*/)
 {
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
-  p_ofi_device->track_peer(rank, user_context);
   ssize_t ret = fi_senddata(ofi_ep, buffer, size, ofi_detail::get_mr_desc(mr),
                             (uint64_t)my_rank << 32 | imm_data,
                             peer_addrs[rank], user_context);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS) return errorcode_t::posted;
-  p_ofi_device->untrack_peer(user_context);
   if (ret == -FI_EAGAIN) return errorcode_t::retry_nomem;
   ofi_detail::throw_peer_error(rank, ret, "send");
 }
@@ -237,12 +231,10 @@ inline error_t ofi_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
   msg.context = user_context;
   msg.data = 0;
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
-  p_ofi_device->track_peer(rank, user_context);
   ssize_t ret = fi_writemsg(ofi_ep, &msg,
                             FI_INJECT | FI_COMPLETION | FI_DELIVERY_COMPLETE);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS) return errorcode_t::done;
-  p_ofi_device->untrack_peer(user_context);
   if (ret == -FI_EAGAIN) return errorcode_t::retry_nomem;
   ofi_detail::throw_peer_error(rank, ret, "write");
 }
@@ -273,11 +265,9 @@ inline error_t ofi_endpoint_impl_t::post_put_impl(int rank, void* buffer,
   msg.context = user_context;
   msg.data = 0;
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
-  p_ofi_device->track_peer(rank, user_context);
   ssize_t ret = fi_writemsg(ofi_ep, &msg, FI_COMPLETION | FI_DELIVERY_COMPLETE);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS) return errorcode_t::posted;
-  p_ofi_device->untrack_peer(user_context);
   if (ret == -FI_EAGAIN) return errorcode_t::retry_nomem;
   ofi_detail::throw_peer_error(rank, ret, "write");
 }
@@ -305,7 +295,6 @@ inline error_t ofi_endpoint_impl_t::post_putImms_impl(
   msg.context = user_context;
   msg.data = imm_data;
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
-  p_ofi_device->track_peer(rank, user_context);
   ssize_t ret = fi_writemsg(
       ofi_ep, &msg,
       FI_INJECT | FI_COMPLETION | FI_DELIVERY_COMPLETE | FI_REMOTE_CQ_DATA);
@@ -313,7 +302,6 @@ inline error_t ofi_endpoint_impl_t::post_putImms_impl(
   //                                   peer_addrs[rank], addr, rmr.opaque_rkey);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS) return errorcode_t::done;
-  p_ofi_device->untrack_peer(user_context);
   if (ret == -FI_EAGAIN) return errorcode_t::retry_nomem;
   ofi_detail::throw_peer_error(rank, ret, "write-with-immediate");
 }
@@ -342,14 +330,12 @@ inline error_t ofi_endpoint_impl_t::post_putImm_impl(
   msg.context = user_context;
   msg.data = imm_data;
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
-  p_ofi_device->track_peer(rank, user_context);
   ssize_t ret = fi_writemsg(
       ofi_ep, &msg, FI_COMPLETION | FI_DELIVERY_COMPLETE | FI_REMOTE_CQ_DATA);
   // fi_writedata(ofi_ep, buffer, size, ofi_detail::get_mr_desc(mr), imm_data,
   //                  peer_addrs[rank], addr, rmr.opaque_rkey, user_context);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS) return errorcode_t::posted;
-  p_ofi_device->untrack_peer(user_context);
   if (ret == -FI_EAGAIN) return errorcode_t::retry_nomem;
   ofi_detail::throw_peer_error(rank, ret, "write-with-immediate");
 }
@@ -381,13 +367,11 @@ inline error_t ofi_endpoint_impl_t::post_get_impl(int rank, void* buffer,
   msg.context = user_context;
   msg.data = 0;
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
-  p_ofi_device->track_peer(rank, user_context);
   ssize_t ret = fi_readmsg(ofi_ep, &msg, FI_COMPLETION);
   // ssize_t ret = fi_read(ofi_ep, buffer, size, desc, peer_addrs[rank], addr,
   // rkey, user_context);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS) return errorcode_t::posted;
-  p_ofi_device->untrack_peer(user_context);
   if (ret == -FI_EAGAIN) return errorcode_t::retry_nomem;
   ofi_detail::throw_peer_error(rank, ret, "read");
 }

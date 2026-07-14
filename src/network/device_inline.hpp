@@ -7,12 +7,12 @@
 namespace lci
 {
 inline size_t device_impl_t::poll_comp(net_status_t* p_statuses,
-                                       size_t max_polls)
+                                       size_t max_polls, bool is_lci_progress)
 {
   LCI_Assert(max_polls > 0, "max_polls must be greater than 0\n");
   LCI_Assert(max_polls <= LCI_BACKEND_MAX_POLLS,
              "max_polls must be no larger than %lu\n", LCI_BACKEND_MAX_POLLS);
-  size_t ret = poll_comp_impl(p_statuses, max_polls);
+  size_t ret = poll_comp_impl(p_statuses, max_polls, is_lci_progress);
   LCI_PCOUNTER_ADD(net_poll_cq_entry_count, ret);
   for (size_t i = 0; i < ret; i++) {
     [[maybe_unused]] auto& status = p_statuses[i];

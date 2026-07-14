@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: NCSA
 
 #include "lci.hpp"
+#include "lci_internal.hpp"
 
-#include <array>
 #include <chrono>
 #include <cstdlib>
 #include <fstream>
@@ -75,17 +75,23 @@ int main()
 
     const auto deadline = std::chrono::steady_clock::now() + timeout;
     bool caught_peer_failure = false;
-    std::array<char, 1> payload = {};
-    int user_context = 0;
-    lci::net_status_t status;
+    char payload = 0;
     while (std::chrono::steady_clock::now() < deadline) {
+      auto* user_context = new lci::internal_context_t;
+      user_context->rank = 1;
       try {
         lci::error_t post_status =
-            lci::net_post_sends_x(1, payload.data(), payload.size())
-                .user_context(&user_context)();
-        if (post_status.is_retry()) continue;
-        lci::net_poll_cq(1, &status);
+            lci::net_post_sends_x(1, &payload, sizeof(payload))
+                .user_context(user_context)();
+        if (post_status.is_retry()) {
+          delete user_context;
+          continue;
+        }
+        // The test intentionally uses an internal LCI operation context so
+        // progress can recover the peer rank without any external map.
+        lci::progress();
       } catch (const lci::peer_failure_error& error) {
+        delete user_context;
         if (error.failed_rank() != 1) {
           std::cerr << "Expected failed rank 1, got " << error.failed_rank()
                     << '\n';

@@ -12,9 +12,6 @@
 #include <rdma/fi_errno.h>
 #include <rdma/fi_rma.h>
 
-#include <mutex>
-#include <unordered_map>
-
 #define FI_SAFECALL(x)                                                    \
   do {                                                                    \
     int err = (x);                                                        \
@@ -94,14 +91,12 @@ class ofi_device_impl_t : public lci::device_impl_t
   mr_t register_memory_impl(void* buffer, size_t size) override;
   void deregister_memory_impl(mr_impl_t*) override;
   uint64_t get_rkey(mr_impl_t* mr) override;
-  size_t poll_comp_impl(net_status_t* p_statuses, size_t max_polls) override;
+  size_t poll_comp_impl(net_status_t* p_statuses, size_t max_polls,
+                        bool is_lci_progress) override;
   error_t post_recv_impl(void* buffer, size_t size, mr_t mr,
                          void* user_context) override;
   size_t post_recvs_impl(void* buffers[], size_t size, size_t count, mr_t mr,
                          void* usesr_contexts[]) override;
-  void track_peer(int rank, void* user_context);
-  void untrack_peer(void* user_context);
-  int take_peer_rank(void* user_context);
 
   struct fi_domain_attr* ofi_domain_attr;
   struct fid_domain* ofi_domain;
@@ -113,8 +108,6 @@ class ofi_device_impl_t : public lci::device_impl_t
   LCIU_CACHE_PADDING(0);
   spinlock_t lock;
   LCIU_CACHE_PADDING(sizeof(spinlock_t));
-  std::mutex peer_rank_mutex;
-  std::unordered_map<void*, int> peer_ranks;
 };
 
 class ofi_endpoint_impl_t : public lci::endpoint_impl_t

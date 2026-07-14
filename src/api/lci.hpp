@@ -115,9 +115,9 @@ namespace lci
  * @brief An asynchronous transport error associated with a peer rank.
  * @ingroup LCI_BASIC
  *
- * LCI throws this exception when the transport reports that an operation to a
- * known peer failed. It derives from @c std::runtime_error, so existing
- * handlers for that type continue to work.
+ * LCI throws this exception when an LCI communication operation to a known
+ * peer fails. It derives from @c std::runtime_error, so existing handlers for
+ * that type continue to work.
  */
 class peer_failure_error : public std::runtime_error
 {

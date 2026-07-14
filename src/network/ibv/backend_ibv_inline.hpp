@@ -104,7 +104,7 @@ inline uint64_t ibv_device_impl_t::get_rkey(mr_impl_t* mr)
 }
 
 inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
-                                                size_t max_polls)
+                                                size_t max_polls, bool)
 {
   struct ibv_wc wcs[LCI_BACKEND_MAX_POLLS];
 
@@ -115,11 +115,17 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
     // Got an entry here
     auto snapshot = qp2rank_map.get_snapshot();
     for (int i = 0; i < ne; i++) {
-      LCI_Assert(wcs[i].status == IBV_WC_SUCCESS,
-                 "Failed status %s (%d) for wr_id %p\n",
-                 ibv_wc_status_str(wcs[i].status), wcs[i].status,
-                 (void*)wcs[i].wr_id);
       qp2rank_map_t::entry_t entry = snapshot->get_entry(wcs[i].qp_num);
+      if (wcs[i].status != IBV_WC_SUCCESS) {
+        std::string message = "IBV completion error: " +
+                              std::string(ibv_wc_status_str(wcs[i].status)) +
+                              " (" + std::to_string(wcs[i].status) + ")";
+        if (entry.rank >= 0) {
+          throw peer_failure_error(entry.rank, message + " for peer rank " +
+                                                   std::to_string(entry.rank));
+        }
+        throw std::runtime_error(message);
+      }
       // Increment SQ slots on any send-side completion
       if (wcs[i].opcode != IBV_WC_RECV &&
           wcs[i].opcode != IBV_WC_RECV_RDMA_WITH_IMM) {

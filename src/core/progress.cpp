@@ -232,7 +232,8 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
   }
   // poll device completion queue
   net_status_t statuses[LCI_BACKEND_MAX_POLLS];
-  size_t ret = device.get_impl()->poll_comp(statuses, LCI_BACKEND_MAX_POLLS);
+  size_t ret = device.get_impl()->poll_comp(statuses, LCI_BACKEND_MAX_POLLS,
+                                            true /* is_lci_progress */);
   if (ret > 0) {
     error = errorcode_t::done;
     for (size_t i = 0; i < ret; i++) {

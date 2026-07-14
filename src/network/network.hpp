@@ -33,7 +33,8 @@ class device_impl_t
   virtual mr_t register_memory_impl(void* buffer, size_t size) = 0;
   virtual void deregister_memory_impl(mr_impl_t* mr) = 0;
   virtual uint64_t get_rkey(mr_impl_t* mr) = 0;
-  virtual size_t poll_comp_impl(net_status_t* p_statuses, size_t max_polls) = 0;
+  virtual size_t poll_comp_impl(net_status_t* p_statuses, size_t max_polls,
+                                bool is_lci_progress) = 0;
   virtual error_t post_recv_impl(void* buffer, size_t size, mr_t mr,
                                  void* user_context) = 0;
   virtual size_t post_recvs_impl(void* buffers[], size_t size, size_t count,
@@ -45,7 +46,8 @@ class device_impl_t
   inline mr_t register_memory(void* buffer, size_t size);
   inline void deregister_memory(mr_impl_t* mr);
   inline void destroy_reg_cache();
-  inline size_t poll_comp(net_status_t* p_statuses, size_t max_polls);
+  inline size_t poll_comp(net_status_t* p_statuses, size_t max_polls,
+                          bool is_lci_progress = false);
   inline error_t post_recv(void* buffer, size_t size, mr_t mr,
                            void* user_context);
   inline size_t post_recvs(void* buffers[], size_t size, size_t count, mr_t mr,

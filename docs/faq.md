@@ -50,10 +50,10 @@ then try again.
 ### Others
 #### How do I identify a failed LCI peer?
 
-The OFI backend reports an asynchronous failure for an outgoing LCI operation
-from `progress()` as `lci::peer_failure_error`. It remains catchable as
-`std::runtime_error`, and its `failed_rank()` method identifies the peer that
-the failed operation targeted:
+The OFI and IBV backends report an asynchronous failure for an outgoing LCI
+operation from `progress()` as `lci::peer_failure_error`. It remains catchable
+as `std::runtime_error`, and its `failed_rank()` method identifies the peer
+that the failed operation targeted:
 
 ```cpp
 try {
@@ -72,6 +72,11 @@ libfabric TCP provider: it kills rank 1, verifies that rank 0 receives a
 `peer_failure_error` for rank 1, and confirms that the two surviving ranks
 continue progressing and finalize. Run it on a host with an OFI build and a
 libfabric TCP provider.
+
+The typed exception applies to normal LCI communication operations progressed
+through `progress()`. The lower-level `net_*` API accepts an arbitrary
+application-owned `void*` user context, so asynchronous failures observed
+through `net_poll_cq()` remain a generic `std::runtime_error`.
 
 #### What is LCT?
 The Lightweight Communication Tools (LCT) library provides basic services such as bootstrapping
