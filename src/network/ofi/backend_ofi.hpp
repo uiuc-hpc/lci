@@ -12,6 +12,9 @@
 #include <rdma/fi_errno.h>
 #include <rdma/fi_rma.h>
 
+#include <mutex>
+#include <unordered_map>
+
 #define FI_SAFECALL(x)                                                    \
   do {                                                                    \
     int err = (x);                                                        \
@@ -96,6 +99,9 @@ class ofi_device_impl_t : public lci::device_impl_t
                          void* user_context) override;
   size_t post_recvs_impl(void* buffers[], size_t size, size_t count, mr_t mr,
                          void* usesr_contexts[]) override;
+  void track_peer(int rank, void* user_context);
+  void untrack_peer(void* user_context);
+  int take_peer_rank(void* user_context);
 
   struct fi_domain_attr* ofi_domain_attr;
   struct fid_domain* ofi_domain;
@@ -107,6 +113,8 @@ class ofi_device_impl_t : public lci::device_impl_t
   LCIU_CACHE_PADDING(0);
   spinlock_t lock;
   LCIU_CACHE_PADDING(sizeof(spinlock_t));
+  std::mutex peer_rank_mutex;
+  std::unordered_map<void*, int> peer_ranks;
 };
 
 class ofi_endpoint_impl_t : public lci::endpoint_impl_t

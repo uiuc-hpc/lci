@@ -48,6 +48,31 @@ rm -r ~/.tmp/lct_pmi_file-*
 then try again.
 
 ### Others
+#### How do I identify a failed LCI peer?
+
+The OFI backend reports an asynchronous failure for an outgoing LCI operation
+from `progress()` as `lci::peer_failure_error`. It remains catchable as
+`std::runtime_error`, and its `failed_rank()` method identifies the peer that
+the failed operation targeted:
+
+```cpp
+try {
+  lci::progress_x().device(device)();
+} catch (const lci::peer_failure_error& error) {
+  std::cerr << "Peer " << error.failed_rank()
+            << " failed: " << error.what() << '\n';
+}
+```
+
+This reports a transport failure; it does not repair membership, replace the
+peer, or complete operations that were in flight to that peer. Applications
+must decide how to recover after catching it. The
+`test-resilience-process-failure` CTest program exercises this path with the
+libfabric TCP provider: it kills rank 1, verifies that rank 0 receives a
+`peer_failure_error` for rank 1, and confirms that the two surviving ranks
+continue progressing and finalize. Run it on a host with an OFI build and a
+libfabric TCP provider.
+
 #### What is LCT?
 The Lightweight Communication Tools (LCT) library provides basic services such as bootstrapping
 and logging for LCI. It is a C++ library that can be used without LCI. You can build LCT without

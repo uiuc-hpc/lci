@@ -213,6 +213,31 @@ device_t ofi_net_context_impl_t::alloc_device(device_t::attr_t attr)
 
 std::atomic<uint64_t> ofi_device_impl_t::g_next_rdma_key(0);
 
+void ofi_device_impl_t::track_peer(int rank, void* user_context)
+{
+  if (user_context == nullptr) return;
+  std::lock_guard<std::mutex> guard(peer_rank_mutex);
+  peer_ranks[user_context] = rank;
+}
+
+void ofi_device_impl_t::untrack_peer(void* user_context)
+{
+  if (user_context == nullptr) return;
+  std::lock_guard<std::mutex> guard(peer_rank_mutex);
+  peer_ranks.erase(user_context);
+}
+
+int ofi_device_impl_t::take_peer_rank(void* user_context)
+{
+  if (user_context == nullptr) return -1;
+  std::lock_guard<std::mutex> guard(peer_rank_mutex);
+  auto it = peer_ranks.find(user_context);
+  if (it == peer_ranks.end()) return -1;
+  int rank = it->second;
+  peer_ranks.erase(it);
+  return rank;
+}
+
 ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
                                      device_t::attr_t attr_)
     : device_impl_t(context_, attr_), ofi_lock_mode(attr.ofi_lock_mode)

@@ -112,6 +112,31 @@ struct option_t {
 namespace lci
 {
 /**
+ * @brief An asynchronous transport error associated with a peer rank.
+ * @ingroup LCI_BASIC
+ *
+ * LCI throws this exception when the transport reports that an operation to a
+ * known peer failed. It derives from @c std::runtime_error, so existing
+ * handlers for that type continue to work.
+ */
+class peer_failure_error : public std::runtime_error
+{
+ public:
+  peer_failure_error(int failed_rank, const std::string& message)
+      : std::runtime_error(message), failed_rank_(failed_rank)
+  {
+  }
+
+  /**
+   * @brief Get the rank of the peer associated with the failed operation.
+   */
+  int failed_rank() const noexcept { return failed_rank_; }
+
+ private:
+  int failed_rank_;
+};
+
+/**
  * @brief The actual error code for LCI API functions.
  * @ingroup LCI_BASIC
  * @details The error code is used to indicate the status of certain LCI

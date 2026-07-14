@@ -22,9 +22,14 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_POLL);
   if (ne > 0) {
     // Got an entry here
-    if (p_statuses) {
-      for (int j = 0; j < ne; j++) {
+    for (int j = 0; j < ne; j++) {
+      int peer_rank = -1;
+      if (fi_entries[j].flags & (FI_SEND | FI_WRITE | FI_READ)) {
+        peer_rank = take_peer_rank(fi_entries[j].op_context);
+      }
+      if (p_statuses) {
         net_status_t& status = p_statuses[j];
+        status.rank = peer_rank;
         if (fi_entries[j].flags & FI_RECV) {
           status.opcode = net_opcode_t::RECV;
           status.user_context = fi_entries[j].op_context;
@@ -62,7 +67,28 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
       LCI_Assert(ne == -FI_EAVAIL, "unexpected return error: %s\n",
                  fi_strerror(-ne));
     } else {
-      LCI_Assert(false, "Err %d: %s\n", error.err, fi_strerror(error.err));
+      LCI_Assert(ret_cqerr == 1, "fi_cq_readerr failed: %s\n",
+                 fi_strerror(-ret_cqerr));
+      int failed_rank = -1;
+      if (error.flags & (FI_SEND | FI_WRITE | FI_READ)) {
+        failed_rank = take_peer_rank(error.op_context);
+      }
+      std::string message =
+          "OFI completion error: " + std::string(fi_strerror(error.err));
+      if (error.prov_errno != 0) {
+        char provider_message[256];
+        const char* detail =
+            fi_cq_strerror(ofi_cq, error.prov_errno, error.err_data,
+                           provider_message, sizeof(provider_message));
+        if (detail != nullptr && detail[0] != '\0') {
+          message += " (" + std::string(detail) + ")";
+        }
+      }
+      if (failed_rank >= 0) {
+        throw peer_failure_error(failed_rank, message + " for peer rank " +
+                                                  std::to_string(failed_rank));
+      }
+      throw std::runtime_error(message);
     }
   }
   return ne;
@@ -70,6 +96,15 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
 
 namespace ofi_detail
 {
+[[noreturn]] inline void throw_peer_error(int rank, ssize_t ret,
+                                          const char* operation)
+{
+  int err = ret < 0 ? -ret : ret;
+  throw peer_failure_error(rank, "OFI " + std::string(operation) +
+                                     " to peer rank " + std::to_string(rank) +
+                                     " failed: " + fi_strerror(err));
+}
+
 inline void* get_mr_desc(mr_t mr)
 {
   return fi_mr_desc(static_cast<ofi_mr_impl_t*>(mr.p_impl)->ofi_mr);
@@ -145,6 +180,7 @@ inline error_t ofi_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
   msg.context = user_context;
   msg.data = (uint64_t)my_rank << 32 | imm_data;
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
+  p_ofi_device->track_peer(rank, user_context);
   ssize_t ret =
       fi_sendmsg(ofi_ep, &msg, FI_INJECT | FI_COMPLETION | FI_REMOTE_CQ_DATA);
 
@@ -152,13 +188,10 @@ inline error_t ofi_endpoint_impl_t::post_sends_impl(int rank, void* buffer,
   //     fi_injectdata(ofi_ep, buffer, size, (uint64_t)my_rank << 32 | imm_data,
   //                   peer_addrs[rank]);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
-  if (ret == FI_SUCCESS)
-    return errorcode_t::done;
-  else if (ret == -FI_EAGAIN)
-    return errorcode_t::retry_nomem;
-  else {
-    FI_SAFECALL_RET(ret);
-  }
+  if (ret == FI_SUCCESS) return errorcode_t::done;
+  p_ofi_device->untrack_peer(user_context);
+  if (ret == -FI_EAGAIN) return errorcode_t::retry_nomem;
+  ofi_detail::throw_peer_error(rank, ret, "send");
 }
 
 inline error_t ofi_endpoint_impl_t::post_send_impl(int rank, void* buffer,
@@ -168,17 +201,15 @@ inline error_t ofi_endpoint_impl_t::post_send_impl(int rank, void* buffer,
                                                    bool /*high_priority*/)
 {
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
+  p_ofi_device->track_peer(rank, user_context);
   ssize_t ret = fi_senddata(ofi_ep, buffer, size, ofi_detail::get_mr_desc(mr),
                             (uint64_t)my_rank << 32 | imm_data,
                             peer_addrs[rank], user_context);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
-  if (ret == FI_SUCCESS)
-    return errorcode_t::posted;
-  else if (ret == -FI_EAGAIN)
-    return errorcode_t::retry_nomem;
-  else {
-    FI_SAFECALL_RET(ret);
-  }
+  if (ret == FI_SUCCESS) return errorcode_t::posted;
+  p_ofi_device->untrack_peer(user_context);
+  if (ret == -FI_EAGAIN) return errorcode_t::retry_nomem;
+  ofi_detail::throw_peer_error(rank, ret, "send");
 }
 
 inline error_t ofi_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
@@ -206,16 +237,14 @@ inline error_t ofi_endpoint_impl_t::post_puts_impl(int rank, void* buffer,
   msg.context = user_context;
   msg.data = 0;
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
+  p_ofi_device->track_peer(rank, user_context);
   ssize_t ret = fi_writemsg(ofi_ep, &msg,
                             FI_INJECT | FI_COMPLETION | FI_DELIVERY_COMPLETE);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
-  if (ret == FI_SUCCESS)
-    return errorcode_t::done;
-  else if (ret == -FI_EAGAIN)
-    return errorcode_t::retry_nomem;
-  else {
-    FI_SAFECALL_RET(ret);
-  }
+  if (ret == FI_SUCCESS) return errorcode_t::done;
+  p_ofi_device->untrack_peer(user_context);
+  if (ret == -FI_EAGAIN) return errorcode_t::retry_nomem;
+  ofi_detail::throw_peer_error(rank, ret, "write");
 }
 
 inline error_t ofi_endpoint_impl_t::post_put_impl(int rank, void* buffer,
@@ -244,15 +273,13 @@ inline error_t ofi_endpoint_impl_t::post_put_impl(int rank, void* buffer,
   msg.context = user_context;
   msg.data = 0;
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
+  p_ofi_device->track_peer(rank, user_context);
   ssize_t ret = fi_writemsg(ofi_ep, &msg, FI_COMPLETION | FI_DELIVERY_COMPLETE);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
-  if (ret == FI_SUCCESS)
-    return errorcode_t::posted;
-  else if (ret == -FI_EAGAIN)
-    return errorcode_t::retry_nomem;
-  else {
-    FI_SAFECALL_RET(ret);
-  }
+  if (ret == FI_SUCCESS) return errorcode_t::posted;
+  p_ofi_device->untrack_peer(user_context);
+  if (ret == -FI_EAGAIN) return errorcode_t::retry_nomem;
+  ofi_detail::throw_peer_error(rank, ret, "write");
 }
 
 inline error_t ofi_endpoint_impl_t::post_putImms_impl(
@@ -278,19 +305,17 @@ inline error_t ofi_endpoint_impl_t::post_putImms_impl(
   msg.context = user_context;
   msg.data = imm_data;
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
+  p_ofi_device->track_peer(rank, user_context);
   ssize_t ret = fi_writemsg(
       ofi_ep, &msg,
       FI_INJECT | FI_COMPLETION | FI_DELIVERY_COMPLETE | FI_REMOTE_CQ_DATA);
   // ssize_t ret = fi_inject_writedata(ofi_ep, buffer, size, imm_data,
   //                                   peer_addrs[rank], addr, rmr.opaque_rkey);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
-  if (ret == FI_SUCCESS)
-    return errorcode_t::done;
-  else if (ret == -FI_EAGAIN)
-    return errorcode_t::retry_nomem;
-  else {
-    FI_SAFECALL_RET(ret);
-  }
+  if (ret == FI_SUCCESS) return errorcode_t::done;
+  p_ofi_device->untrack_peer(user_context);
+  if (ret == -FI_EAGAIN) return errorcode_t::retry_nomem;
+  ofi_detail::throw_peer_error(rank, ret, "write-with-immediate");
 }
 
 inline error_t ofi_endpoint_impl_t::post_putImm_impl(
@@ -317,18 +342,16 @@ inline error_t ofi_endpoint_impl_t::post_putImm_impl(
   msg.context = user_context;
   msg.data = imm_data;
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
+  p_ofi_device->track_peer(rank, user_context);
   ssize_t ret = fi_writemsg(
       ofi_ep, &msg, FI_COMPLETION | FI_DELIVERY_COMPLETE | FI_REMOTE_CQ_DATA);
   // fi_writedata(ofi_ep, buffer, size, ofi_detail::get_mr_desc(mr), imm_data,
   //                  peer_addrs[rank], addr, rmr.opaque_rkey, user_context);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
-  if (ret == FI_SUCCESS)
-    return errorcode_t::posted;
-  else if (ret == -FI_EAGAIN)
-    return errorcode_t::retry_nomem;
-  else {
-    FI_SAFECALL_RET(ret);
-  }
+  if (ret == FI_SUCCESS) return errorcode_t::posted;
+  p_ofi_device->untrack_peer(user_context);
+  if (ret == -FI_EAGAIN) return errorcode_t::retry_nomem;
+  ofi_detail::throw_peer_error(rank, ret, "write-with-immediate");
 }
 
 inline error_t ofi_endpoint_impl_t::post_get_impl(int rank, void* buffer,
@@ -358,17 +381,15 @@ inline error_t ofi_endpoint_impl_t::post_get_impl(int rank, void* buffer,
   msg.context = user_context;
   msg.data = 0;
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
+  p_ofi_device->track_peer(rank, user_context);
   ssize_t ret = fi_readmsg(ofi_ep, &msg, FI_COMPLETION);
   // ssize_t ret = fi_read(ofi_ep, buffer, size, desc, peer_addrs[rank], addr,
   // rkey, user_context);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
-  if (ret == FI_SUCCESS)
-    return errorcode_t::posted;
-  else if (ret == -FI_EAGAIN)
-    return errorcode_t::retry_nomem;
-  else {
-    FI_SAFECALL_RET(ret);
-  }
+  if (ret == FI_SUCCESS) return errorcode_t::posted;
+  p_ofi_device->untrack_peer(user_context);
+  if (ret == -FI_EAGAIN) return errorcode_t::retry_nomem;
+  ofi_detail::throw_peer_error(rank, ret, "read");
 }
 }  // namespace lci
 

@@ -8,3 +8,6 @@ endif()
 
 include_directories(./)
 add_subdirectory(unit)
+if(LCI_BACKEND_ENABLE_OFI)
+  add_subdirectory(resilience)
+endif()
