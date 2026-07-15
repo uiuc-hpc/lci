@@ -16,10 +16,12 @@ TEST(NETWORK, completion_error_metadata)
   EXPECT_EQ(rank, 7);
   EXPECT_TRUE(error.user_context().get_set_value(&user_context));
   EXPECT_EQ(user_context, &context);
+  EXPECT_FALSE(error.has_lci_outgoing_context());
 
   lci::network_completion_error empty_error("completion failed");
   EXPECT_FALSE(empty_error.failed_rank().get_set_value(&rank));
   EXPECT_FALSE(empty_error.user_context().get_set_value(&user_context));
+  EXPECT_FALSE(empty_error.has_lci_outgoing_context());
 }
 
 TEST(NETWORK, ordered_completion_events)
@@ -92,7 +94,7 @@ TEST(NETWORK, completion_error_translation_is_bounded)
   try {
     lci::translate_network_completion_error(lci::network_completion_error(
         "completion failed", lci::option_t<int>(7),
-        lci::option_t<void*>(static_cast<void*>(simple))));
+        lci::option_t<void*>(static_cast<void*>(simple)), true));
     FAIL() << "Expected peer_failure_error";
   } catch (const lci::peer_failure_error& error) {
     EXPECT_EQ(error.failed_rank(), 7);
@@ -107,7 +109,7 @@ TEST(NETWORK, completion_error_translation_is_bounded)
   try {
     lci::translate_network_completion_error(lci::network_completion_error(
         "completion failed", lci::option_t<int>(8),
-        lci::option_t<void*>(static_cast<void*>(mismatch))));
+        lci::option_t<void*>(static_cast<void*>(mismatch)), true));
     FAIL() << "Expected generic runtime_error";
   } catch (const lci::peer_failure_error&) {
     FAIL() << "Rank disagreement must not produce a typed peer failure";
@@ -120,7 +122,7 @@ TEST(NETWORK, completion_error_translation_is_bounded)
   try {
     lci::translate_network_completion_error(lci::network_completion_error(
         "completion failed", lci::option_t<int>(),
-        lci::option_t<void*>(static_cast<void*>(unsupported))));
+        lci::option_t<void*>(static_cast<void*>(unsupported)), true));
     FAIL() << "Expected generic runtime_error";
   } catch (const lci::peer_failure_error&) {
     FAIL() << "Control contexts must not produce typed recovery";
@@ -138,6 +140,44 @@ TEST(NETWORK, completion_error_translation_is_bounded)
   }
 
   lci::free_comp(&completion);
+  lci::g_runtime_fina();
+}
+
+TEST(NETWORK, receive_completion_error_context_stays_generic)
+{
+  void* receive_context = reinterpret_cast<void*>(1);
+  lci::network_completion_error error("receive completion failed",
+                                      lci::option_t<int>(),
+                                      lci::option_t<void*>(receive_context));
+
+  try {
+    lci::translate_network_completion_error(error);
+    FAIL() << "Expected generic runtime_error";
+  } catch (const lci::peer_failure_error&) {
+    FAIL() << "Receive contexts must not produce typed recovery";
+  } catch (const std::runtime_error&) {
+  }
+
+  void* preserved_context = nullptr;
+  EXPECT_TRUE(error.user_context().get_set_value(&preserved_context));
+  EXPECT_EQ(preserved_context, receive_context);
+  EXPECT_FALSE(error.has_lci_outgoing_context());
+}
+
+TEST(NETWORK, packet_receive_context_ownership)
+{
+  lci::g_runtime_init();
+  auto* device = lci::get_default_device().get_impl();
+  int raw_context = 0;
+  const size_t nrecvs_posted = device->get_nrecvs_posted();
+  EXPECT_FALSE(device->is_packet_recv_context(&raw_context));
+  device->consume_packet_recv(&raw_context);
+  EXPECT_EQ(device->get_nrecvs_posted(), nrecvs_posted);
+
+  lci::packet_t* packet = device->packet_pool.get_impl()->get();
+  ASSERT_NE(packet, nullptr);
+  EXPECT_TRUE(device->is_packet_recv_context(packet));
+  packet->put_back();
   lci::g_runtime_fina();
 }
 
@@ -175,7 +215,8 @@ TEST(NETWORK, poll_cq)
 
 TEST(NETWORK, loopback)
 {
-  lci::g_runtime_init();
+  // Raw network receives must not compete with LCI's packet-pool receives.
+  lci::g_runtime_init_x().alloc_default_packet_pool(false)();
   const int size = 1024;
   void* address = malloc(size);
   memset(address, 0, size);

@@ -27,7 +27,7 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
     // Got an entry here
     for (int j = 0; j < ne; j++) {
       if (fi_entries[j].flags & FI_RECV) {
-        consume_recvs(1);
+        consume_packet_recv(fi_entries[j].op_context);
       }
       if (p_statuses) {
         net_status_t& status = p_statuses[j];
@@ -76,7 +76,7 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
       throw network_completion_error("OFI CQ error read failed: " + detail);
     }
     if (error.flags & FI_RECV) {
-      consume_recvs(1);
+      consume_packet_recv(error.op_context);
     }
     std::string message =
         "OFI completion error: " + std::string(fi_strerror(error.err));
@@ -89,9 +89,12 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
         message += " (" + std::string(detail) + ")";
       }
     }
-    if (error.op_context != nullptr) {
+    const bool has_lci_outgoing_context =
+        (error.flags & (FI_SEND | FI_WRITE | FI_READ)) != 0 &&
+        (error.flags & (FI_RECV | FI_REMOTE_WRITE)) == 0;
+    if (has_lci_outgoing_context && error.op_context != nullptr) {
       throw network_completion_error(message, option_t<int>(),
-                                     option_t<void*>(error.op_context));
+                                     option_t<void*>(error.op_context), true);
     }
     throw network_completion_error(message);
   }

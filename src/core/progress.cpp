@@ -101,7 +101,8 @@ void progress_send(const net_status_t& net_status)
     const network_completion_error& network_error)
 {
   void* user_context = nullptr;
-  if (!network_error.user_context().get_set_value(&user_context) ||
+  if (!network_error.has_lci_outgoing_context() ||
+      !network_error.user_context().get_set_value(&user_context) ||
       user_context == nullptr) {
     throw std::runtime_error(network_error.what());
   }

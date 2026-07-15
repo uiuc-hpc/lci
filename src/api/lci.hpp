@@ -127,19 +127,26 @@ class network_completion_error : public std::runtime_error
  public:
   network_completion_error(const std::string& message,
                            option_t<int> failed_rank = option_t<int>(),
-                           option_t<void*> user_context = option_t<void*>())
+                           option_t<void*> user_context = option_t<void*>(),
+                           bool has_lci_outgoing_context = false)
       : std::runtime_error(message),
         failed_rank_(failed_rank),
-        user_context_(user_context)
+        user_context_(user_context),
+        has_lci_outgoing_context_(has_lci_outgoing_context)
   {
   }
 
   option_t<int> failed_rank() const noexcept { return failed_rank_; }
   option_t<void*> user_context() const noexcept { return user_context_; }
+  bool has_lci_outgoing_context() const noexcept
+  {
+    return has_lci_outgoing_context_;
+  }
 
  private:
   option_t<int> failed_rank_;
   option_t<void*> user_context_;
+  bool has_lci_outgoing_context_;
 };
 
 /**

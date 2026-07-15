@@ -97,6 +97,19 @@ inline void device_impl_t::destroy_reg_cache()
   }
 }
 
+inline bool device_impl_t::is_packet_recv_context(void* user_context) const
+{
+  return packet_pool.p_impl != nullptr && user_context != nullptr &&
+         packet_pool.p_impl->is_packet(user_context, true);
+}
+
+inline void device_impl_t::consume_packet_recv(void* user_context)
+{
+  if (is_packet_recv_context(user_context)) {
+    nrecvs_posted -= 1;
+  }
+}
+
 inline bool device_impl_t::post_recv_packets()
 {
   mr_t mr;

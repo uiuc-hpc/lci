@@ -22,13 +22,15 @@ class ordered_completion_event_queue_t
 
   void push_error(std::string message,
                   option_t<int> failed_rank = option_t<int>(),
-                  option_t<void*> user_context = option_t<void*>())
+                  option_t<void*> user_context = option_t<void*>(),
+                  bool has_lci_outgoing_context = false)
   {
     event_t event;
     event.is_error = true;
     event.message = std::move(message);
     event.failed_rank = failed_rank;
     event.user_context = user_context;
+    event.has_lci_outgoing_context = has_lci_outgoing_context;
     events.push(std::move(event));
   }
 
@@ -42,7 +44,8 @@ class ordered_completion_event_queue_t
         auto error = std::move(event);
         events.pop();
         throw network_completion_error(error.message, error.failed_rank,
-                                       error.user_context);
+                                       error.user_context,
+                                       error.has_lci_outgoing_context);
       }
       if (statuses != nullptr) {
         statuses[nsuccess] = event.status;
@@ -60,6 +63,7 @@ class ordered_completion_event_queue_t
     std::string message;
     option_t<int> failed_rank;
     option_t<void*> user_context;
+    bool has_lci_outgoing_context = false;
   };
 
   std::queue<event_t> events;
@@ -115,7 +119,9 @@ class device_impl_t
   inline void unbind_packet_pool();
   inline bool post_recv_packets();
   inline bool refill_recvs(bool is_blocking = false);
-  inline void consume_recvs(int n) { nrecvs_posted -= n; }
+  inline bool is_packet_recv_context(void* user_context) const;
+  inline void consume_packet_recv(void* user_context);
+  inline size_t get_nrecvs_posted() const { return nrecvs_posted; }
   static int reserve_device_ids(int n)
   {
     return g_ndevices.fetch_add(n, std::memory_order_relaxed);

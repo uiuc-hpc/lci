@@ -129,6 +129,7 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
     std::string message;
     option_t<int> failed_rank;
     option_t<void*> user_context;
+    bool has_lci_outgoing_context = false;
   };
   decoded_event_t events[LCI_BACKEND_MAX_POLLS];
   bool has_error = false;
@@ -139,7 +140,7 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
     const bool is_receive =
         wc.opcode == IBV_WC_RECV || wc.opcode == IBV_WC_RECV_RDMA_WITH_IMM;
     if (is_receive) {
-      consume_recvs(1);
+      consume_packet_recv((void*)wc.wr_id);
     } else if (entry.rank >= 0 && entry.rank < get_rank_n() &&
                entry.slots != nullptr) {
       [[maybe_unused]] int prev =
@@ -161,8 +162,12 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
           "IBV completion error: " + std::string(ibv_wc_status_str(wc.status)) +
           " (" + std::to_string(wc.status) + ")";
       if (entry.rank >= 0) event.failed_rank = option_t<int>(entry.rank);
-      if (!is_receive && wc.wr_id != 0) {
+      const bool has_lci_outgoing_context = wc.opcode == IBV_WC_SEND ||
+                                            wc.opcode == IBV_WC_RDMA_WRITE ||
+                                            wc.opcode == IBV_WC_RDMA_READ;
+      if (has_lci_outgoing_context && wc.wr_id != 0) {
         event.user_context = option_t<void*>((void*)wc.wr_id);
+        event.has_lci_outgoing_context = true;
       }
       has_error = true;
       continue;
@@ -206,9 +211,9 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
   // overtake it on a later call.
   for (int i = 0; i < ne; ++i) {
     if (events[i].is_error) {
-      pending_completion_events.push_error(std::move(events[i].message),
-                                           events[i].failed_rank,
-                                           events[i].user_context);
+      pending_completion_events.push_error(
+          std::move(events[i].message), events[i].failed_rank,
+          events[i].user_context, events[i].has_lci_outgoing_context);
     } else {
       pending_completion_events.push_success(events[i].status);
     }
