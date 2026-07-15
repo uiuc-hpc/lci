@@ -3,6 +3,7 @@
 
 #include "lci.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <cstdlib>
 #include <fstream>
@@ -10,6 +11,7 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace
 {
@@ -74,19 +76,28 @@ int main()
 
     const auto deadline = std::chrono::steady_clock::now() + timeout;
     bool caught_peer_failure = false;
-    char payload = 0;
+    const size_t payload_size =
+        std::min<size_t>(lci::get_max_bcopy_size(), 4096);
+    std::vector<char> payload(payload_size);
     lci::comp_t completion = lci::alloc_cq();
     bool operation_posted = false;
     while (std::chrono::steady_clock::now() < deadline) {
       try {
         if (!operation_posted) {
           lci::status_t post_status =
-              lci::post_send_x(1, &payload, sizeof(payload), 0, completion)
+              lci::post_send_x(1, payload.data(), payload.size(), 0, completion)
                   .comp_semantic(lci::comp_semantic_t::network)();
           if (post_status.is_retry()) continue;
+          if (!post_status.is_posted()) {
+            throw std::runtime_error(
+                "The failed operation did not use posted semantics");
+          }
           operation_posted = true;
         }
         lci::progress();
+        if (lci::cq_pop(completion).is_done()) {
+          operation_posted = false;
+        }
       } catch (const lci::peer_failure_error& error) {
         if (error.failed_rank() != 1) {
           std::cerr << "Expected failed rank 1, got " << error.failed_rank()
@@ -99,6 +110,14 @@ int main()
     }
     if (!caught_peer_failure) {
       throw std::runtime_error("Did not observe the killed peer's failure");
+    }
+    if (!operation_posted) {
+      throw std::runtime_error(
+          "No posted operation remained when the failure was reported");
+    }
+    if (lci::cq_pop(completion).is_done()) {
+      throw std::runtime_error(
+          "The failed operation incorrectly signaled successful completion");
     }
     lci::free_comp(&completion);
     touch(directory + "/failure-caught");

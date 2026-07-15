@@ -11,6 +11,7 @@
 #include <rdma/fi_cm.h>
 #include <rdma/fi_errno.h>
 #include <rdma/fi_rma.h>
+#include <mutex>
 
 #define FI_SAFECALL(x)                                                    \
   do {                                                                    \
@@ -44,11 +45,10 @@ namespace lci
 class ofi_lock_guard_t
 {
  public:
-  ofi_lock_guard_t(uint64_t lock_mode, uint64_t mode, spinlock_t& spinlock,
-                   bool adopt_lock = false)
+  ofi_lock_guard_t(uint64_t lock_mode, uint64_t mode, spinlock_t& spinlock)
       : should_lock((lock_mode & mode) != 0), spinlock(spinlock)
   {
-    if (should_lock && !adopt_lock) {
+    if (should_lock) {
       spinlock.lock();
     }
   }
@@ -107,8 +107,6 @@ class ofi_device_impl_t : public lci::device_impl_t
   uint64_t& ofi_lock_mode;
   LCIU_CACHE_PADDING(0);
   spinlock_t lock;
-  LCIU_CACHE_PADDING(sizeof(spinlock_t));
-  spinlock_t cq_lock;
   LCIU_CACHE_PADDING(sizeof(spinlock_t));
 };
 

@@ -97,72 +97,47 @@ void progress_send(const net_status_t& net_status)
   free_ctx_and_signal_comp(internal_ctx);
 }
 
-static int get_failed_operation_rank(void* user_context)
-{
-  internal_context_t* internal_ctx =
-      static_cast<internal_context_t*>(user_context);
-  if (!internal_ctx->is_extended) {
-    int rank = internal_ctx->rank;
-    // Plain contexts for user operations have no dependent protocol state, so
-    // they can be reclaimed when the transport consumes a failed completion.
-    // Control contexts can own rendezvous state indirectly and are deliberately
-    // left intact: peer failure aborts that protocol, but guessing at its
-    // ownership here risks freeing archive entries or receive state twice.
-    if (internal_ctx->get_is_user_posted_op()) {
-      delete internal_ctx;
-    }
-    return rank;
-  }
-
-  internal_context_extended_t* ectx =
-      reinterpret_cast<internal_context_extended_t*>(internal_ctx);
-  // A rendezvous transfer can share this context across split writes and can
-  // also reference receiver-side archive state. Use it to identify the peer,
-  // but do not claim that a single failed completion makes the aggregate safe
-  // to reclaim.
-  return ectx->internal_ctx == nullptr ? -1 : ectx->internal_ctx->rank;
-}
-
-[[noreturn]] static void translate_network_completion_error(
+[[noreturn]] void translate_network_completion_error(
     const network_completion_error& network_error)
 {
-  int context_rank = -1;
   void* user_context = nullptr;
-  bool has_user_context =
-      network_error.user_context().get_set_value(&user_context);
-  if (has_user_context && user_context != nullptr) {
-    context_rank = get_failed_operation_rank(user_context);
-  }
-
-  int failed_rank = -1;
-  if (!network_error.failed_rank().get_set_value(&failed_rank)) {
-    failed_rank = context_rank;
-  }
-  if (failed_rank >= 0) {
-    throw peer_failure_error(failed_rank, std::string(network_error.what()) +
-                                              " for peer rank " +
-                                              std::to_string(failed_rank));
-  }
-
-  // Do not preserve an opaque context after LCI may have reclaimed it.
-  if (has_user_context) {
+  if (!network_error.user_context().get_set_value(&user_context) ||
+      user_context == nullptr) {
     throw std::runtime_error(network_error.what());
   }
-  throw network_error;
+
+  auto* header = static_cast<internal_context_header_t*>(user_context);
+  if (header->kind != internal_context_kind_t::simple_outgoing) {
+    throw std::runtime_error(network_error.what());
+  }
+
+  auto* internal_ctx = static_cast<internal_context_t*>(header);
+  const int context_rank = internal_ctx->rank;
+  int backend_rank = -1;
+  const bool has_backend_rank =
+      network_error.failed_rank().get_set_value(&backend_rank);
+  delete internal_ctx;
+
+  if (context_rank < 0 || (has_backend_rank && backend_rank != context_rank)) {
+    throw std::runtime_error(network_error.what());
+  }
+
+  throw peer_failure_error(context_rank, std::string(network_error.what()) +
+                                             " for peer rank " +
+                                             std::to_string(context_rank));
 }
 
 void progress_write(endpoint_t endpoint, const net_status_t& net_status)
 {
   LCI_PCOUNTER_ADD(net_write_writeImm_comp, 1)
-  internal_context_t* internal_ctx =
-      static_cast<internal_context_t*>(net_status.user_context);
+  auto* header =
+      static_cast<internal_context_header_t*>(net_status.user_context);
+  if (!header) return;
 
-  if (!internal_ctx) return;
-
-  if (internal_ctx->is_extended) {
+  if (is_extended_context_kind(header->kind)) {
     // extended internal context
     internal_context_extended_t* ectx =
-        reinterpret_cast<internal_context_extended_t*>(internal_ctx);
+        static_cast<internal_context_extended_t*>(header);
     int signal_count = --ectx->signal_count;
     if (signal_count > 0) {
       return;
@@ -181,6 +156,7 @@ void progress_write(endpoint_t endpoint, const net_status_t& net_status)
     delete ectx;
     free_ctx_and_signal_comp(ctx);
   } else {
+    internal_context_t* internal_ctx = static_cast<internal_context_t*>(header);
     free_ctx_and_signal_comp(internal_ctx);
   }
 }
@@ -237,13 +213,13 @@ void progress_remote_write(runtime_t runtime, const net_status_t& net_status)
 void progress_read(const net_status_t& net_status)
 {
   LCI_PCOUNTER_ADD(net_read_comp, 1)
-  internal_context_t* internal_ctx =
-      static_cast<internal_context_t*>(net_status.user_context);
+  auto* header =
+      static_cast<internal_context_header_t*>(net_status.user_context);
 
-  if (internal_ctx->is_extended) {
+  if (is_extended_context_kind(header->kind)) {
     // extended internal context
     internal_context_extended_t* ectx =
-        reinterpret_cast<internal_context_extended_t*>(internal_ctx);
+        static_cast<internal_context_extended_t*>(header);
     int signal_count = --ectx->signal_count;
     if (signal_count > 0) {
       return;
@@ -253,6 +229,7 @@ void progress_read(const net_status_t& net_status)
     delete ectx;
     free_ctx_and_signal_comp(ctx);
   } else {
+    internal_context_t* internal_ctx = static_cast<internal_context_t*>(header);
     if (internal_ctx->packet_to_free) {
       memcpy(internal_ctx->buffer,
              internal_ctx->packet_to_free->get_payload_address(),
@@ -297,7 +274,6 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
     for (size_t i = 0; i < ret; i++) {
       auto status = statuses[i];
       if (status.opcode == net_opcode_t::RECV) {
-        device.p_impl->consume_recvs(1);
         progress_recv(runtime, endpoint, status);
       } else if (status.opcode == net_opcode_t::SEND) {
         progress_send(status);

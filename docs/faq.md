@@ -50,10 +50,11 @@ then try again.
 ### Others
 #### How do I identify a failed LCI peer?
 
-The OFI and IBV backends report an asynchronous failure for an outgoing LCI
-operation from `progress()` as `lci::peer_failure_error`. It remains catchable
-as `std::runtime_error`, and its `failed_rank()` method identifies the peer
-that the failed operation targeted:
+The OFI and IBV backends report an asynchronous failure from `progress()` as
+`lci::peer_failure_error` only for a simple, one-completion outgoing LCI
+operation that returned with posted semantics. It remains catchable as
+`std::runtime_error`, and its `failed_rank()` method identifies the peer that
+the failed operation targeted:
 
 ```cpp
 try {
@@ -73,16 +74,19 @@ libfabric TCP provider: it kills rank 1, verifies that rank 0 receives a
 continue progressing and finalize. Run it on a host with an OFI build and a
 libfabric TCP provider.
 
-The typed peer exception applies to normal LCI communication operations
-progressed through `progress()`. The lower-level `net_*` API accepts an
-arbitrary application-owned `void*` user context, so `net_poll_cq()` propagates
-`lci::network_completion_error` instead. That exception may contain a
-backend-provided peer rank and/or the same opaque user context supplied when
-the operation was posted. LCI does not interpret or free raw network contexts.
-Applications should not mix raw network operations with normal LCI progress on
-the same device. LCI reclaims an independent user-operation context when that
-is unambiguous; a failed multi-step rendezvous transfer is reported but is not
-made recoverable or drainable by the exception.
+The typed peer exception does not apply to posted receives, rendezvous
+transfers or their RTS/RTR/FIN control operations, split transfers,
+write-with-immediate fallback sequences, operations completed synchronously by
+the posting call, or synchronous post failures. Those failures remain generic
+and nonrecoverable; in particular, catching an exception does not continue or
+drain a rendezvous protocol.
+
+The lower-level `net_*` API accepts an arbitrary application-owned `void*` user
+context, so `net_poll_cq()` propagates `lci::network_completion_error` instead.
+That exception may contain a backend-provided peer rank and/or the same opaque
+user context supplied when the operation was posted. LCI does not interpret or
+free raw network contexts. Applications should not mix raw network operations
+with normal LCI progress on the same device.
 
 #### What is LCT?
 The Lightweight Communication Tools (LCT) library provides basic services such as bootstrapping

@@ -17,15 +17,18 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
 {
   struct fi_cq_data_entry fi_entries[LCI_BACKEND_MAX_POLLS];
 
-  // Even a thread-safe provider cannot make fi_cq_read(-FI_EAVAIL) followed by
-  // fi_cq_readerr atomic with respect to another poller.
-  if (!cq_lock.try_lock()) return 0;
-  ofi_lock_guard_t lock_guard(LCI_NET_TRYLOCK_POLL, LCI_NET_TRYLOCK_POLL,
-                              cq_lock, true /* adopt_lock */);
+  std::unique_lock<spinlock_t> poll_lock(lock, std::defer_lock);
+  if ((ofi_lock_mode & LCI_NET_TRYLOCK_POLL) != 0 && !poll_lock.try_lock()) {
+    return 0;
+  }
+
   ssize_t ne = fi_cq_read(ofi_cq, fi_entries, max_polls);
   if (ne > 0) {
     // Got an entry here
     for (int j = 0; j < ne; j++) {
+      if (fi_entries[j].flags & FI_RECV) {
+        consume_recvs(1);
+      }
       if (p_statuses) {
         net_status_t& status = p_statuses[j];
         if (fi_entries[j].flags & FI_RECV) {
@@ -65,30 +68,34 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
     error.err_data_size = sizeof(err_data);
     ssize_t ret_cqerr = fi_cq_readerr(ofi_cq, &error, 0);
     if (ret_cqerr == -FI_EAGAIN) {
-      ne = 0;
-    } else {
-      LCI_Assert(ret_cqerr == 1, "fi_cq_readerr failed: %s\n",
-                 fi_strerror(-ret_cqerr));
-      std::string message =
-          "OFI completion error: " + std::string(fi_strerror(error.err));
-      if (error.prov_errno != 0) {
-        char provider_message[256];
-        const char* detail =
-            fi_cq_strerror(ofi_cq, error.prov_errno, error.err_data,
-                           provider_message, sizeof(provider_message));
-        if (detail != nullptr && detail[0] != '\0') {
-          message += " (" + std::string(detail) + ")";
-        }
-      }
-      if ((error.flags & (FI_SEND | FI_WRITE | FI_READ)) &&
-          error.op_context != nullptr) {
-        throw network_completion_error(message, option_t<int>(),
-                                       option_t<void*>(error.op_context));
-      }
-      throw network_completion_error(message);
+      return 0;
     }
+    if (ret_cqerr != 1) {
+      std::string detail = ret_cqerr < 0 ? std::string(fi_strerror(-ret_cqerr))
+                                         : std::to_string(ret_cqerr);
+      throw network_completion_error("OFI CQ error read failed: " + detail);
+    }
+    if (error.flags & FI_RECV) {
+      consume_recvs(1);
+    }
+    std::string message =
+        "OFI completion error: " + std::string(fi_strerror(error.err));
+    if (error.prov_errno != 0) {
+      char provider_message[256];
+      const char* detail =
+          fi_cq_strerror(ofi_cq, error.prov_errno, error.err_data,
+                         provider_message, sizeof(provider_message));
+      if (detail != nullptr && detail[0] != '\0') {
+        message += " (" + std::string(detail) + ")";
+      }
+    }
+    if (error.op_context != nullptr) {
+      throw network_completion_error(message, option_t<int>(),
+                                     option_t<void*>(error.op_context));
+    }
+    throw network_completion_error(message);
   }
-  return ne;
+  return static_cast<size_t>(ne);
 }
 
 namespace ofi_detail

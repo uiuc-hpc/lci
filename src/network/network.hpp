@@ -4,8 +4,67 @@
 #ifndef LCI_NETWORK_HPP
 #define LCI_NETWORK_HPP
 
+#include <queue>
+
 namespace lci
 {
+class ordered_completion_event_queue_t
+{
+ public:
+  bool empty() const { return events.empty(); }
+
+  void push_success(const net_status_t& status)
+  {
+    event_t event;
+    event.status = status;
+    events.push(std::move(event));
+  }
+
+  void push_error(std::string message,
+                  option_t<int> failed_rank = option_t<int>(),
+                  option_t<void*> user_context = option_t<void*>())
+  {
+    event_t event;
+    event.is_error = true;
+    event.message = std::move(message);
+    event.failed_rank = failed_rank;
+    event.user_context = user_context;
+    events.push(std::move(event));
+  }
+
+  size_t drain(net_status_t* statuses, size_t max_polls)
+  {
+    size_t nsuccess = 0;
+    while (nsuccess < max_polls && !events.empty()) {
+      event_t& event = events.front();
+      if (event.is_error) {
+        if (nsuccess > 0) break;
+        auto error = std::move(event);
+        events.pop();
+        throw network_completion_error(error.message, error.failed_rank,
+                                       error.user_context);
+      }
+      if (statuses != nullptr) {
+        statuses[nsuccess] = event.status;
+      }
+      events.pop();
+      ++nsuccess;
+    }
+    return nsuccess;
+  }
+
+ private:
+  struct event_t {
+    bool is_error = false;
+    net_status_t status;
+    std::string message;
+    option_t<int> failed_rank;
+    option_t<void*> user_context;
+  };
+
+  std::queue<event_t> events;
+};
+
 class net_context_impl_t
 {
  public:

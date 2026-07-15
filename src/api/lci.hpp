@@ -118,8 +118,9 @@ namespace lci
  * This exception is exposed because @ref net_poll_cq is a public low-level
  * API. A backend may provide the peer rank, the opaque user context associated
  * with the failed operation, both, or neither. Normal LCI communication
- * progressed through @ref progress translates this exception to
- * @ref peer_failure_error when it can identify the peer.
+ * progressed through @ref progress translates this exception only for a
+ * supported asynchronous simple operation whose internal context safely
+ * identifies one peer.
  */
 class network_completion_error : public std::runtime_error
 {
@@ -145,9 +146,9 @@ class network_completion_error : public std::runtime_error
  * @brief An asynchronous transport error associated with a peer rank.
  * @ingroup LCI_BASIC
  *
- * LCI throws this exception when an LCI communication operation to a known
- * peer fails. It derives from @c std::runtime_error, so existing handlers for
- * that type continue to work.
+ * LCI throws this exception when a supported asynchronous simple LCI
+ * communication operation to a known peer fails. It derives from
+ * @c std::runtime_error, so existing handlers for that type continue to work.
  */
 class peer_failure_error : public std::runtime_error
 {

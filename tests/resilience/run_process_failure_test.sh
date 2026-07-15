@@ -67,6 +67,11 @@ while [[ ! -e "$workdir/ready-0" || ! -e "$workdir/ready-1" ||
 done
 
 kill -KILL "${pids[1]}"
+if wait "${pids[1]}"; then
+  echo "Rank 1 unexpectedly exited before it was killed" >&2
+  status=1
+  exit "$status"
+fi
 touch "$workdir/start"
 
 deadline=$((SECONDS + 20))
@@ -85,9 +90,4 @@ fi
 if ! wait "${pids[2]}"; then
   status=1
 fi
-if wait "${pids[1]}"; then
-  echo "Rank 1 unexpectedly exited before it was killed" >&2
-  status=1
-fi
-
 exit "$status"
