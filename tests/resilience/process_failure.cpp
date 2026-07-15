@@ -66,9 +66,11 @@ int main()
     }
 
     const std::string directory = test_directory();
-    char remote_target = 0;
+    const size_t payload_size =
+        std::min<size_t>(lci::get_max_bcopy_size(), 4096);
+    std::vector<char> remote_target(payload_size);
     lci::mr_t remote_mr =
-        lci::register_memory(&remote_target, sizeof(remote_target));
+        lci::register_memory(remote_target.data(), remote_target.size());
     lci::rmr_t local_rmr = lci::get_rmr(remote_mr);
     std::vector<lci::rmr_t> remote_rmrs(3);
     lci::allgather(&local_rmr, remote_rmrs.data(), sizeof(local_rmr));
@@ -95,8 +97,6 @@ int main()
     wait_for_file(directory + "/quiesced-1");
     const auto deadline = std::chrono::steady_clock::now() + timeout;
     bool caught_peer_failure = false;
-    const size_t payload_size =
-        std::min<size_t>(lci::get_max_bcopy_size(), 4096);
     std::vector<char> payload(payload_size);
     lci::comp_t completion = lci::alloc_cq();
     bool operation_posted = false;
