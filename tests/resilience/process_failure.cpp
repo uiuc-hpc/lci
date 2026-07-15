@@ -43,6 +43,17 @@ void wait_for_file(const std::string& path)
   }
   throw std::runtime_error("Timed out waiting for " + path);
 }
+
+void wait_for_file_without_progress(const std::string& path)
+{
+  const auto deadline = std::chrono::steady_clock::now() + timeout;
+  while (std::chrono::steady_clock::now() < deadline) {
+    std::ifstream file(path);
+    if (file.good()) return;
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+  throw std::runtime_error("Timed out waiting for " + path);
+}
 }  // namespace
 
 int main()
@@ -55,25 +66,33 @@ int main()
     }
 
     const std::string directory = test_directory();
+    char remote_target = 0;
+    lci::mr_t remote_mr =
+        lci::register_memory(&remote_target, sizeof(remote_target));
+    lci::rmr_t local_rmr = lci::get_rmr(remote_mr);
+    std::vector<lci::rmr_t> remote_rmrs(3);
+    lci::allgather(&local_rmr, remote_rmrs.data(), sizeof(local_rmr));
     touch(directory + "/ready-" + std::to_string(rank));
+    wait_for_file(directory + "/start");
     if (rank == 1) {
+      touch(directory + "/quiesced-1");
       for (;;) {
-        lci::progress();
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
       }
     }
 
-    wait_for_file(directory + "/start");
     if (rank == 2) {
       wait_for_file(directory + "/failure-caught");
       for (int i = 0; i < 100; ++i) {
         lci::progress();
       }
+      lci::deregister_memory(&remote_mr);
       lci::g_runtime_fina();
       touch(directory + "/finished-2");
       return 0;
     }
 
+    wait_for_file(directory + "/quiesced-1");
     const auto deadline = std::chrono::steady_clock::now() + timeout;
     bool caught_peer_failure = false;
     const size_t payload_size =
@@ -85,7 +104,8 @@ int main()
       try {
         if (!operation_posted) {
           lci::status_t post_status =
-              lci::post_send_x(1, payload.data(), payload.size(), 0, completion)
+              lci::post_put_x(1, payload.data(), payload.size(), completion, 0,
+                              remote_rmrs[1])
                   .comp_semantic(lci::comp_semantic_t::network)();
           if (post_status.is_retry()) continue;
           if (!post_status.is_posted()) {
@@ -93,11 +113,10 @@ int main()
                 "The failed operation did not use posted semantics");
           }
           operation_posted = true;
+          touch(directory + "/operation-posted");
+          wait_for_file_without_progress(directory + "/peer-killed");
         }
         lci::progress();
-        if (lci::cq_pop(completion).is_done()) {
-          operation_posted = false;
-        }
       } catch (const lci::peer_failure_error& error) {
         if (error.failed_rank() != 1) {
           std::cerr << "Expected failed rank 1, got " << error.failed_rank()
@@ -127,6 +146,7 @@ int main()
     for (int i = 0; i < 100; ++i) {
       lci::progress();
     }
+    lci::deregister_memory(&remote_mr);
     lci::g_runtime_fina();
     touch(directory + "/finished-0");
     return 0;

@@ -66,13 +66,24 @@ while [[ ! -e "$workdir/ready-0" || ! -e "$workdir/ready-1" ||
   sleep 0.05
 done
 
+touch "$workdir/start"
+deadline=$((SECONDS + 15))
+while [[ ! -e "$workdir/operation-posted" ]]; do
+  if ((SECONDS >= deadline)); then
+    echo "Timed out waiting for rank 0 to post the failure operation" >&2
+    status=1
+    exit "$status"
+  fi
+  sleep 0.05
+done
+
 kill -KILL "${pids[1]}"
 if wait "${pids[1]}"; then
   echo "Rank 1 unexpectedly exited before it was killed" >&2
   status=1
   exit "$status"
 fi
-touch "$workdir/start"
+touch "$workdir/peer-killed"
 
 deadline=$((SECONDS + 20))
 while [[ ! -e "$workdir/finished-0" || ! -e "$workdir/finished-2" ]]; do
