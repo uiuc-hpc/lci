@@ -179,18 +179,41 @@ TEST(NETWORK, poll_cq)
 
 TEST(NETWORK, loopback)
 {
-  lci::g_runtime_init();
+  // Raw network receives must not compete with LCI's packet-pool receives.
+  lci::g_runtime_init_x().alloc_default_packet_pool(false)();
   const int size = 1024;
   void* address = malloc(size);
   memset(address, 0, size);
   lci::mr_t mr = lci::register_memory(address, size);
-  while (lci::net_post_recv(address, size, mr).is_retry()) continue;
-  while (lci::net_post_send(0, address, size, mr).is_retry()) continue;
-  size_t total = 0;
-  while (total < 2) {
+  int recv_context = 0;
+  int send_context = 0;
+  while (lci::net_post_recv_x(address, size, mr)
+             .user_context(&recv_context)()
+             .is_retry())
+    continue;
+  while (lci::net_post_send_x(0, address, size, mr)
+             .user_context(&send_context)()
+             .is_retry())
+    continue;
+  bool received_recv = false;
+  bool received_send = false;
+  while (!received_recv || !received_send) {
     lci::net_status_t statuses[LCI_BACKEND_MAX_POLLS];
     size_t ret = lci::net_poll_cq(LCI_BACKEND_MAX_POLLS, statuses);
-    total += ret;
+    for (size_t i = 0; i < ret; ++i) {
+      if (statuses[i].opcode == lci::net_opcode_t::RECV) {
+        EXPECT_FALSE(received_recv);
+        EXPECT_EQ(statuses[i].user_context, &recv_context);
+        received_recv = true;
+      } else if (statuses[i].opcode == lci::net_opcode_t::SEND) {
+        EXPECT_FALSE(received_send);
+        EXPECT_EQ(statuses[i].user_context, &send_context);
+        received_send = true;
+      } else {
+        FAIL() << "Unexpected raw loopback completion opcode "
+               << lci::get_net_opcode_str(statuses[i].opcode);
+      }
+    }
   }
   lci::deregister_memory(&mr);
   lci::g_runtime_fina();

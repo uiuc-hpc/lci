@@ -51,9 +51,10 @@ then try again.
 #### How do I identify a failed LCI peer?
 
 The OFI and IBV backends report an asynchronous failure from `progress()` as
-`lci::peer_failure_error` when it belongs to a simple, one-completion outgoing
-LCI operation and the peer can be identified. It remains catchable as
-`std::runtime_error`, and its `failed_rank()` method identifies the peer:
+`lci::peer_failure_error` only when it belongs to a posted, simple,
+one-completion outgoing LCI operation that retained both recovery metadata and
+a local completion object. It remains catchable as `std::runtime_error`, and
+its `failed_rank()` method identifies the peer:
 
 ```cpp
 try {
@@ -75,10 +76,12 @@ libfabric TCP provider.
 
 Recovery is best effort. `progress()` consumes and processes the full polled
 batch before throwing once, so successful completions in the same batch still
-run and other failed simple operations are reclaimed when they can be
+run and other failed eligible operations are reclaimed when they can be
 recognized. Their completion objects are not signaled as successful.
+Memory-semantic operations, including inject and eager paths that do not retain
+the required recovery context and completion object, may remain generic.
 Rendezvous, split, fallback, control, receive, and otherwise unrecognized
-failures remain generic and nonrecoverable; catching an exception does not
+failures also remain generic and nonrecoverable; catching an exception does not
 repair or drain those protocols. Synchronous post failures are unchanged.
 
 The lower-level `net_*` API reports asynchronous failures as
