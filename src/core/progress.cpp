@@ -97,29 +97,58 @@ void progress_send(const net_status_t& net_status)
   free_ctx_and_signal_comp(internal_ctx);
 }
 
-static int cleanup_failed_operation(void* user_context)
+static int get_failed_operation_rank(void* user_context)
 {
   internal_context_t* internal_ctx =
       static_cast<internal_context_t*>(user_context);
   if (!internal_ctx->is_extended) {
     int rank = internal_ctx->rank;
-    delete internal_ctx;
+    // Plain contexts for user operations have no dependent protocol state, so
+    // they can be reclaimed when the transport consumes a failed completion.
+    // Control contexts can own rendezvous state indirectly and are deliberately
+    // left intact: peer failure aborts that protocol, but guessing at its
+    // ownership here risks freeing archive entries or receive state twice.
+    if (internal_ctx->get_is_user_posted_op()) {
+      delete internal_ctx;
+    }
     return rank;
   }
 
   internal_context_extended_t* ectx =
       reinterpret_cast<internal_context_extended_t*>(internal_ctx);
-  internal_context_t* ctx = ectx->internal_ctx.load();
-  int rank = ctx == nullptr ? -1 : ctx->rank;
-  ectx->failed.store(true);
+  // A rendezvous transfer can share this context across split writes and can
+  // also reference receiver-side archive state. Use it to identify the peer,
+  // but do not claim that a single failed completion makes the aggregate safe
+  // to reclaim.
+  return ectx->internal_ctx == nullptr ? -1 : ectx->internal_ctx->rank;
+}
 
-  int signal_count = --ectx->signal_count;
-  LCI_DBG_Assert(signal_count >= 0, "Unexpected signal!\n");
-  if (signal_count == 0) {
-    delete ectx->internal_ctx.exchange(nullptr);
-    delete ectx;
+[[noreturn]] static void translate_network_completion_error(
+    const network_completion_error& network_error)
+{
+  int context_rank = -1;
+  void* user_context = nullptr;
+  bool has_user_context =
+      network_error.user_context().get_set_value(&user_context);
+  if (has_user_context && user_context != nullptr) {
+    context_rank = get_failed_operation_rank(user_context);
   }
-  return rank;
+
+  int failed_rank = -1;
+  if (!network_error.failed_rank().get_set_value(&failed_rank)) {
+    failed_rank = context_rank;
+  }
+  if (failed_rank >= 0) {
+    throw peer_failure_error(failed_rank, std::string(network_error.what()) +
+                                              " for peer rank " +
+                                              std::to_string(failed_rank));
+  }
+
+  // Do not preserve an opaque context after LCI may have reclaimed it.
+  if (has_user_context) {
+    throw std::runtime_error(network_error.what());
+  }
+  throw network_error;
 }
 
 void progress_write(endpoint_t endpoint, const net_status_t& net_status)
@@ -139,13 +168,7 @@ void progress_write(endpoint_t endpoint, const net_status_t& net_status)
       return;
     }
     LCI_DBG_Assert(signal_count == 0, "Unexpected signal!\n");
-    internal_context_t* ctx = ectx->internal_ctx.load();
-    if (ectx->failed.load()) {
-      ectx->internal_ctx.store(nullptr);
-      delete ctx;
-      delete ectx;
-      return;
-    }
+    internal_context_t* ctx = ectx->internal_ctx;
     if (ectx->recv_ctx) {
       handle_rdv_local_write(endpoint, ectx);
     } else if (ectx->imm_data_rank != -1) {
@@ -155,7 +178,6 @@ void progress_write(endpoint_t endpoint, const net_status_t& net_status)
           false /* allow_retry */);
       LCI_Assert(error.is_done(), "Unexpected error %s\n", error.get_str());
     }  // else: this is a RDMA write buffers or rendezvous with writeimm
-    ectx->internal_ctx.store(nullptr);
     delete ectx;
     free_ctx_and_signal_comp(ctx);
   } else {
@@ -227,13 +249,8 @@ void progress_read(const net_status_t& net_status)
       return;
     }
     LCI_DBG_Assert(signal_count == 0, "Unexpected signal!\n");
-    internal_context_t* ctx = ectx->internal_ctx.exchange(nullptr);
-    bool failed = ectx->failed.load();
+    internal_context_t* ctx = ectx->internal_ctx;
     delete ectx;
-    if (failed) {
-      delete ctx;
-      return;
-    }
     free_ctx_and_signal_comp(ctx);
   } else {
     if (internal_ctx->packet_to_free) {
@@ -273,29 +290,7 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
   try {
     ret = device.get_impl()->poll_comp(statuses, LCI_BACKEND_MAX_POLLS);
   } catch (const network_completion_error& network_error) {
-    int context_rank = -1;
-    void* user_context = nullptr;
-    bool has_user_context =
-        network_error.user_context().get_set_value(&user_context);
-    if (has_user_context && user_context != nullptr) {
-      context_rank = cleanup_failed_operation(user_context);
-    }
-
-    int failed_rank = -1;
-    if (!network_error.failed_rank().get_set_value(&failed_rank)) {
-      failed_rank = context_rank;
-    }
-    if (failed_rank >= 0) {
-      throw peer_failure_error(failed_rank, std::string(network_error.what()) +
-                                                " for peer rank " +
-                                                std::to_string(failed_rank));
-    }
-
-    // Do not preserve an opaque context after LCI has freed it.
-    if (has_user_context) {
-      throw std::runtime_error(network_error.what());
-    }
-    throw;
+    translate_network_completion_error(network_error);
   }
   if (ret > 0) {
     error = errorcode_t::done;

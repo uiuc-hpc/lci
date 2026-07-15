@@ -80,7 +80,9 @@ arbitrary application-owned `void*` user context, so `net_poll_cq()` propagates
 backend-provided peer rank and/or the same opaque user context supplied when
 the operation was posted. LCI does not interpret or free raw network contexts.
 Applications should not mix raw network operations with normal LCI progress on
-the same device.
+the same device. LCI reclaims an independent user-operation context when that
+is unambiguous; a failed multi-step rendezvous transfer is reported but is not
+made recoverable or drainable by the exception.
 
 #### What is LCT?
 The Lightweight Communication Tools (LCT) library provides basic services such as bootstrapping

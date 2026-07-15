@@ -3,6 +3,25 @@
 
 namespace test_network
 {
+TEST(NETWORK, completion_error_metadata)
+{
+  int context = 0;
+  lci::network_completion_error error(
+      "completion failed", lci::option_t<int>(7),
+      lci::option_t<void*>(static_cast<void*>(&context)));
+
+  int rank = -1;
+  void* user_context = nullptr;
+  EXPECT_TRUE(error.failed_rank().get_set_value(&rank));
+  EXPECT_EQ(rank, 7);
+  EXPECT_TRUE(error.user_context().get_set_value(&user_context));
+  EXPECT_EQ(user_context, &context);
+
+  lci::network_completion_error empty_error("completion failed");
+  EXPECT_FALSE(empty_error.failed_rank().get_set_value(&rank));
+  EXPECT_FALSE(empty_error.user_context().get_set_value(&user_context));
+}
+
 TEST(NETWORK, reg_mem)
 {
   lci::g_runtime_init();

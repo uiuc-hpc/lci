@@ -129,6 +129,13 @@ class ibv_device_impl_t : public lci::device_impl_t
   struct ibv_srq* ib_srq;
   qp2rank_map_t qp2rank_map;
 
+  struct pending_completion_error_t {
+    std::string message;
+    option_t<int> failed_rank;
+    option_t<void*> user_context;
+  };
+  std::queue<pending_completion_error_t> pending_completion_errors;
+
   ibv_mr_impl_t odp_mr;
   LCIU_CACHE_PADDING(0);
   spinlock_t srq_lock;

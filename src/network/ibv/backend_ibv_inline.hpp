@@ -109,8 +109,16 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
   struct ibv_wc wcs[LCI_BACKEND_MAX_POLLS];
 
   if (!cq_lock.try_lock()) return 0;
+  if (!pending_completion_errors.empty()) {
+    auto error = std::move(pending_completion_errors.front());
+    pending_completion_errors.pop();
+    cq_lock.unlock();
+    throw network_completion_error(error.message, error.failed_rank,
+                                   error.user_context);
+  }
+
   int ne = ibv_poll_cq(ib_cq, max_polls, wcs);
-  cq_lock.unlock();
+  size_t nsuccess = 0;
   if (ne > 0) {
     // Got an entry here
     auto snapshot = qp2rank_map.get_snapshot();
@@ -135,6 +143,9 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
         }
       }
       if (wcs[i].status != IBV_WC_SUCCESS) {
+        if (!is_send_side) {
+          consume_recvs(1);
+        }
         std::string message = "IBV completion error: " +
                               std::string(ibv_wc_status_str(wcs[i].status)) +
                               " (" + std::to_string(wcs[i].status) + ")";
@@ -143,10 +154,12 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
         if (entry.rank >= 0) failed_rank = option_t<int>(entry.rank);
         if (is_send_side && wcs[i].wr_id != 0)
           user_context = option_t<void*>((void*)wcs[i].wr_id);
-        throw network_completion_error(message, failed_rank, user_context);
+        pending_completion_errors.push(
+            {std::move(message), failed_rank, user_context});
+        continue;
       }
       if (!p_statuses) continue;
-      net_status_t& status = p_statuses[i];
+      net_status_t& status = p_statuses[nsuccess];
       memset(&status, 0, sizeof(status));
       if (wcs[i].opcode == IBV_WC_RECV) {
         status.opcode = net_opcode_t::RECV;
@@ -171,9 +184,25 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
         status.opcode = net_opcode_t::READ;
         status.user_context = (void*)wcs[i].wr_id;
       }
+      ++nsuccess;
     }
+  } else if (ne < 0) {
+    cq_lock.unlock();
+    throw network_completion_error("ibv_poll_cq failed: " + std::to_string(ne));
   }
-  return ne;
+
+  if (p_statuses == nullptr) {
+    nsuccess = ne - pending_completion_errors.size();
+  }
+  if (nsuccess == 0 && !pending_completion_errors.empty()) {
+    auto error = std::move(pending_completion_errors.front());
+    pending_completion_errors.pop();
+    cq_lock.unlock();
+    throw network_completion_error(error.message, error.failed_rank,
+                                   error.user_context);
+  }
+  cq_lock.unlock();
+  return nsuccess;
 }
 
 namespace ibv_detail
