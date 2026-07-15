@@ -34,8 +34,9 @@ struct alignas(LCI_CACHE_LINE) internal_context_t {
   // is_extended has to be the first bit (be the same as internal_context_t)
   bool is_extended : 1;  // 1 bit
  private:
-  bool mr_on_the_fly : 1;      // 1 bit
-  bool is_user_posted_op : 1;  // 1 bit
+  bool mr_on_the_fly : 1;           // 1 bit
+  bool is_user_posted_op : 1;       // 1 bit
+  bool allow_failure_recovery : 1;  // 1 bit
  public:
   int rank;                            // 4 bytes
   comp_t comp;                         // 8 bytes
@@ -52,6 +53,7 @@ struct alignas(LCI_CACHE_LINE) internal_context_t {
       : is_extended(false),
         mr_on_the_fly(false),
         is_user_posted_op(false),
+        allow_failure_recovery(true),
         rank(-1),
         comp(COMP_NULL),
         tag(0),
@@ -75,6 +77,10 @@ struct alignas(LCI_CACHE_LINE) internal_context_t {
     mr_on_the_fly = true;
     mr = mr_;
   }
+
+  void disable_failure_recovery() { allow_failure_recovery = false; }
+
+  bool can_recover_failure() const { return allow_failure_recovery; }
 
   inline status_t get_status() const
   {
@@ -109,6 +115,10 @@ struct alignas(LCI_CACHE_LINE) internal_context_extended_t {
   {
   }
 };
+
+void process_completion_batch(runtime_t runtime, device_t device,
+                              endpoint_t endpoint, const net_status_t* statuses,
+                              size_t count);
 
 }  // namespace lci
 

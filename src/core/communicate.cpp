@@ -400,6 +400,12 @@ error_t post_network_op(const post_comm_args_t& args,
             state.internal_ctx, args.allow_retry);
       } else {
         // rdma write with immediate data
+        if (!args.device.get_impl()->net_context.get_attr_support_putimm()) {
+          // The fallback posts a write and a separate control send. Keep its
+          // failure generic because one failed completion cannot reclaim the
+          // operation while the other step is still in flight.
+          state.internal_ctx->disable_failure_recovery();
+        }
         error = args.endpoint.p_impl->post_putImms(
             args.rank, args.local_buffer, args.size, args.remote_disp, args.rmr,
             state.imm_data, state.internal_ctx, args.allow_retry);
