@@ -99,7 +99,7 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
   // build the rdv context
   if (!rdv_ctx) {
     // This is an active message
-    rdv_ctx = new internal_context_t(internal_context_kind_t::rendezvous_root);
+    rdv_ctx = new internal_context_t;
     rdv_ctx->set_user_posted_op(endpoint);
     rdv_ctx->size = rts->size;
     if (rts->size > 0)
@@ -157,8 +157,7 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
   }
 
   // send the rtr packet
-  internal_context_t* rtr_ctx =
-      new internal_context_t(internal_context_kind_t::rtr_control);
+  internal_context_t* rtr_ctx = new internal_context_t;
   rtr_ctx->packet_to_free = packet;
 
   net_imm_data_t imm_data = set_bits32(0, IMM_DATA_MSG_RTR, 2, 29);
@@ -183,8 +182,7 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
   rtr_msg_t* rtr = reinterpret_cast<rtr_msg_t*>(packet->get_payload_address());
   internal_context_t* rdv_ctx = (internal_context_t*)rtr->send_ctx;
 
-  auto ectx =
-      new internal_context_extended_t(internal_context_kind_t::split_transfer);
+  auto ectx = new internal_context_extended_t;
   ectx->internal_ctx = rdv_ctx;
   ectx->signal_count =
       (rdv_ctx->size + max_single_msg_size - 1) / max_single_msg_size;

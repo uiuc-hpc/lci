@@ -324,22 +324,7 @@ error_t check_backlog(const post_comm_args_t& args, const post_comm_traits_t&,
 void set_internal_ctx(const post_comm_args_t& args, const post_comm_traits_t&,
                       post_comm_state_t& state)
 {
-  internal_context_kind_t context_kind;
-  if (state.protocol == protocol_t::recv) {
-    context_kind = internal_context_kind_t::posted_receive;
-  } else if (state.protocol == protocol_t::rdv_zcopy) {
-    context_kind = internal_context_kind_t::rendezvous_root;
-  } else if (!args.allow_posted) {
-    context_kind = internal_context_kind_t::synchronous_operation;
-  } else if (state.protocol == protocol_t::eager_zcopy ||
-             args.direction == direction_t::IN ||
-             (state.protocol == protocol_t::eager_bcopy &&
-              args.comp_semantic == comp_semantic_t::network)) {
-    context_kind = internal_context_kind_t::simple_outgoing;
-  } else {
-    context_kind = internal_context_kind_t::locally_completed_operation;
-  }
-  state.internal_ctx = new internal_context_t(context_kind);
+  state.internal_ctx = new internal_context_t;
   state.internal_ctx->set_user_posted_op(args.endpoint);
   state.internal_ctx->rank = args.rank;
   state.internal_ctx->tag = args.tag;

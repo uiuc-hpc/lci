@@ -51,10 +51,9 @@ then try again.
 #### How do I identify a failed LCI peer?
 
 The OFI and IBV backends report an asynchronous failure from `progress()` as
-`lci::peer_failure_error` only for a simple, one-completion outgoing LCI
-operation that returned with posted semantics. It remains catchable as
-`std::runtime_error`, and its `failed_rank()` method identifies the peer that
-the failed operation targeted:
+`lci::peer_failure_error` when it belongs to a simple, one-completion outgoing
+LCI operation and the peer can be identified. It remains catchable as
+`std::runtime_error`, and its `failed_rank()` method identifies the peer:
 
 ```cpp
 try {
@@ -74,19 +73,20 @@ libfabric TCP provider: it kills rank 1, verifies that rank 0 receives a
 continue progressing and finalize. Run it on a host with an OFI build and a
 libfabric TCP provider.
 
-The typed peer exception does not apply to posted receives, rendezvous
-transfers or their RTS/RTR/FIN control operations, split transfers,
-write-with-immediate fallback sequences, operations completed synchronously by
-the posting call, or synchronous post failures. Those failures remain generic
-and nonrecoverable; in particular, catching an exception does not continue or
-drain a rendezvous protocol.
+Recovery is best effort. `progress()` consumes and processes the full polled
+batch before throwing once, so successful completions in the same batch still
+run and other failed simple operations are reclaimed when they can be
+recognized. Their completion objects are not signaled as successful.
+Rendezvous, split, fallback, control, receive, and otherwise unrecognized
+failures remain generic and nonrecoverable; catching an exception does not
+repair or drain those protocols. Synchronous post failures are unchanged.
 
-The lower-level `net_*` API accepts an arbitrary application-owned `void*` user
-context, so `net_poll_cq()` propagates `lci::network_completion_error` instead.
-That exception may contain a backend-provided peer rank and/or the same opaque
-user context supplied when the operation was posted. LCI does not interpret or
-free raw network contexts. Applications should not mix raw network operations
-with normal LCI progress on the same device.
+The lower-level `net_*` API reports asynchronous failures as
+`net_opcode_t::ERROR` statuses. IBV supplies a QP-derived rank for outgoing
+errors when available; OFI generally supplies rank `-1` and preserves the
+outgoing `user_context`. Receive errors use rank `-1` and a null context.
+Applications should not mix raw network operations with `progress()` on the
+same device.
 
 #### What is LCT?
 The Lightweight Communication Tools (LCT) library provides basic services such as bootstrapping

@@ -4,71 +4,8 @@
 #ifndef LCI_NETWORK_HPP
 #define LCI_NETWORK_HPP
 
-#include <queue>
-
 namespace lci
 {
-class ordered_completion_event_queue_t
-{
- public:
-  bool empty() const { return events.empty(); }
-
-  void push_success(const net_status_t& status)
-  {
-    event_t event;
-    event.status = status;
-    events.push(std::move(event));
-  }
-
-  void push_error(std::string message,
-                  option_t<int> failed_rank = option_t<int>(),
-                  option_t<void*> user_context = option_t<void*>(),
-                  bool has_lci_outgoing_context = false)
-  {
-    event_t event;
-    event.is_error = true;
-    event.message = std::move(message);
-    event.failed_rank = failed_rank;
-    event.user_context = user_context;
-    event.has_lci_outgoing_context = has_lci_outgoing_context;
-    events.push(std::move(event));
-  }
-
-  size_t drain(net_status_t* statuses, size_t max_polls)
-  {
-    size_t nsuccess = 0;
-    while (nsuccess < max_polls && !events.empty()) {
-      event_t& event = events.front();
-      if (event.is_error) {
-        if (nsuccess > 0) break;
-        auto error = std::move(event);
-        events.pop();
-        throw network_completion_error(error.message, error.failed_rank,
-                                       error.user_context,
-                                       error.has_lci_outgoing_context);
-      }
-      if (statuses != nullptr) {
-        statuses[nsuccess] = event.status;
-      }
-      events.pop();
-      ++nsuccess;
-    }
-    return nsuccess;
-  }
-
- private:
-  struct event_t {
-    bool is_error = false;
-    net_status_t status;
-    std::string message;
-    option_t<int> failed_rank;
-    option_t<void*> user_context;
-    bool has_lci_outgoing_context = false;
-  };
-
-  std::queue<event_t> events;
-};
-
 class net_context_impl_t
 {
  public:
@@ -119,9 +56,7 @@ class device_impl_t
   inline void unbind_packet_pool();
   inline bool post_recv_packets();
   inline bool refill_recvs(bool is_blocking = false);
-  inline bool is_packet_recv_context(void* user_context) const;
-  inline void consume_packet_recv(void* user_context);
-  inline size_t get_nrecvs_posted() const { return nrecvs_posted; }
+  inline void consume_recvs(int n) { nrecvs_posted -= n; }
   static int reserve_device_ids(int n)
   {
     return g_ndevices.fetch_add(n, std::memory_order_relaxed);

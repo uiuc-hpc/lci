@@ -97,48 +97,42 @@ void progress_send(const net_status_t& net_status)
   free_ctx_and_signal_comp(internal_ctx);
 }
 
-[[noreturn]] void translate_network_completion_error(
-    const network_completion_error& network_error)
+static bool cleanup_failed_simple_operation(const net_status_t& net_status,
+                                            int* failed_rank)
 {
-  void* user_context = nullptr;
-  if (!network_error.has_lci_outgoing_context() ||
-      !network_error.user_context().get_set_value(&user_context) ||
-      user_context == nullptr) {
-    throw std::runtime_error(network_error.what());
+  if (net_status.user_context == nullptr) return false;
+
+  internal_context_t* internal_ctx =
+      static_cast<internal_context_t*>(net_status.user_context);
+  // Only a one-completion user operation is safe to reclaim here. Extended
+  // contexts cover split/rendezvous/fallback protocols, while an empty
+  // completion identifies control or already locally completed operations.
+  if (internal_ctx->is_extended || internal_ctx->comp.is_empty() ||
+      internal_ctx->rank < 0) {
+    return false;
   }
 
-  auto* header = static_cast<internal_context_header_t*>(user_context);
-  if (header->kind != internal_context_kind_t::simple_outgoing) {
-    throw std::runtime_error(network_error.what());
-  }
-
-  auto* internal_ctx = static_cast<internal_context_t*>(header);
   const int context_rank = internal_ctx->rank;
-  int backend_rank = -1;
-  const bool has_backend_rank =
-      network_error.failed_rank().get_set_value(&backend_rank);
   delete internal_ctx;
-
-  if (context_rank < 0 || (has_backend_rank && backend_rank != context_rank)) {
-    throw std::runtime_error(network_error.what());
+  if (net_status.rank >= 0 && net_status.rank != context_rank) {
+    return false;
   }
-
-  throw peer_failure_error(context_rank, std::string(network_error.what()) +
-                                             " for peer rank " +
-                                             std::to_string(context_rank));
+  *failed_rank = context_rank;
+  return true;
 }
 
 void progress_write(endpoint_t endpoint, const net_status_t& net_status)
 {
   LCI_PCOUNTER_ADD(net_write_writeImm_comp, 1)
-  auto* header =
-      static_cast<internal_context_header_t*>(net_status.user_context);
-  if (!header) return;
+  internal_context_t* internal_ctx =
+      static_cast<internal_context_t*>(net_status.user_context);
 
-  if (is_extended_context_kind(header->kind)) {
+  if (!internal_ctx) return;
+
+  if (internal_ctx->is_extended) {
     // extended internal context
     internal_context_extended_t* ectx =
-        static_cast<internal_context_extended_t*>(header);
+        reinterpret_cast<internal_context_extended_t*>(internal_ctx);
     int signal_count = --ectx->signal_count;
     if (signal_count > 0) {
       return;
@@ -157,7 +151,6 @@ void progress_write(endpoint_t endpoint, const net_status_t& net_status)
     delete ectx;
     free_ctx_and_signal_comp(ctx);
   } else {
-    internal_context_t* internal_ctx = static_cast<internal_context_t*>(header);
     free_ctx_and_signal_comp(internal_ctx);
   }
 }
@@ -214,13 +207,13 @@ void progress_remote_write(runtime_t runtime, const net_status_t& net_status)
 void progress_read(const net_status_t& net_status)
 {
   LCI_PCOUNTER_ADD(net_read_comp, 1)
-  auto* header =
-      static_cast<internal_context_header_t*>(net_status.user_context);
+  internal_context_t* internal_ctx =
+      static_cast<internal_context_t*>(net_status.user_context);
 
-  if (is_extended_context_kind(header->kind)) {
+  if (internal_ctx->is_extended) {
     // extended internal context
     internal_context_extended_t* ectx =
-        static_cast<internal_context_extended_t*>(header);
+        reinterpret_cast<internal_context_extended_t*>(internal_ctx);
     int signal_count = --ectx->signal_count;
     if (signal_count > 0) {
       return;
@@ -230,7 +223,6 @@ void progress_read(const net_status_t& net_status)
     delete ectx;
     free_ctx_and_signal_comp(ctx);
   } else {
-    internal_context_t* internal_ctx = static_cast<internal_context_t*>(header);
     if (internal_ctx->packet_to_free) {
       memcpy(internal_ctx->buffer,
              internal_ctx->packet_to_free->get_payload_address(),
@@ -264,17 +256,24 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
   }
   // poll device completion queue
   net_status_t statuses[LCI_BACKEND_MAX_POLLS];
-  size_t ret;
-  try {
-    ret = device.get_impl()->poll_comp(statuses, LCI_BACKEND_MAX_POLLS);
-  } catch (const network_completion_error& network_error) {
-    translate_network_completion_error(network_error);
-  }
+  size_t ret = device.get_impl()->poll_comp(statuses, LCI_BACKEND_MAX_POLLS);
+  bool has_failure = false;
+  bool first_failure_has_rank = false;
+  int first_failed_rank = -1;
   if (ret > 0) {
     error = errorcode_t::done;
     for (size_t i = 0; i < ret; i++) {
       auto status = statuses[i];
-      if (status.opcode == net_opcode_t::RECV) {
+      if (status.opcode == net_opcode_t::ERROR) {
+        int failed_rank = -1;
+        bool has_rank = cleanup_failed_simple_operation(status, &failed_rank);
+        if (!has_failure) {
+          has_failure = true;
+          first_failure_has_rank = has_rank;
+          first_failed_rank = failed_rank;
+        }
+      } else if (status.opcode == net_opcode_t::RECV) {
+        device.p_impl->consume_recvs(1);
         progress_recv(runtime, endpoint, status);
       } else if (status.opcode == net_opcode_t::SEND) {
         progress_send(status);
@@ -286,6 +285,14 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
         progress_read(status);
       }
     }
+  }
+  if (has_failure) {
+    if (first_failure_has_rank) {
+      throw peer_failure_error(first_failed_rank,
+                               "Network completion failed for peer rank " +
+                                   std::to_string(first_failed_rank));
+    }
+    throw std::runtime_error("Network completion failed");
   }
   if (device.p_impl->refill_recvs()) {
     error = errorcode_t::done;

@@ -224,8 +224,7 @@ inline error_t endpoint_impl_t::post_putImm_fallback(int rank, void* buffer,
   LCI_DBG_Log(LOG_TRACE, "network",
               "fallback to post_put imm_data %x user_context %p\n", imm_data,
               user_context);
-  internal_context_extended_t* ectx =
-      new internal_context_extended_t(internal_context_kind_t::putimm_fallback);
+  internal_context_extended_t* ectx = new internal_context_extended_t;
   ectx->imm_data_rank = rank;
   ectx->imm_data = imm_data;
   ectx->signal_count = 1;

@@ -108,117 +108,66 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
 {
   struct ibv_wc wcs[LCI_BACKEND_MAX_POLLS];
 
-  std::unique_lock<spinlock_t> lock(cq_lock, std::try_to_lock);
-  if (!lock.owns_lock()) return 0;
-
-  // Preserve CQ order: do not consume more hardware entries while decoded
-  // events from a prior poll are waiting to be delivered.
-  if (!pending_completion_events.empty()) {
-    return pending_completion_events.drain(p_statuses, max_polls);
-  }
-
+  if (!cq_lock.try_lock()) return 0;
   int ne = ibv_poll_cq(ib_cq, max_polls, wcs);
-  if (ne < 0) {
-    throw network_completion_error("ibv_poll_cq failed: " + std::to_string(ne));
-  }
-  if (ne == 0) return 0;
-
-  struct decoded_event_t {
-    bool is_error = false;
-    net_status_t status;
-    std::string message;
-    option_t<int> failed_rank;
-    option_t<void*> user_context;
-    bool has_lci_outgoing_context = false;
-  };
-  decoded_event_t events[LCI_BACKEND_MAX_POLLS];
-  bool has_error = false;
-  auto snapshot = qp2rank_map.get_snapshot();
-  for (int i = 0; i < ne; i++) {
-    const ibv_wc& wc = wcs[i];
-    qp2rank_map_t::entry_t entry = snapshot->get_entry(wc.qp_num);
-    const bool is_receive =
-        wc.opcode == IBV_WC_RECV || wc.opcode == IBV_WC_RECV_RDMA_WITH_IMM;
-    if (is_receive) {
-      consume_packet_recv((void*)wc.wr_id);
-    } else if (entry.rank >= 0 && entry.rank < get_rank_n() &&
-               entry.slots != nullptr) {
-      [[maybe_unused]] int prev =
-          entry.slots->val.fetch_add(1, std::memory_order_relaxed);
-      LCI_DBG_Assert(prev < static_cast<int>(attr.net_max_sends),
-                     "Too many slots on QP for rank %d (prev %d)\n", entry.rank,
-                     prev);
-    } else {
-      LCI_DBG_Log(
-          LOG_WARN, "ibv",
-          "Completion for qp_num %u does not map to an active endpoint\n",
-          wc.qp_num);
-    }
-
-    decoded_event_t& event = events[i];
-    if (wc.status != IBV_WC_SUCCESS) {
-      event.is_error = true;
-      event.message =
-          "IBV completion error: " + std::string(ibv_wc_status_str(wc.status)) +
-          " (" + std::to_string(wc.status) + ")";
-      if (entry.rank >= 0) event.failed_rank = option_t<int>(entry.rank);
-      const bool has_lci_outgoing_context = wc.opcode == IBV_WC_SEND ||
-                                            wc.opcode == IBV_WC_RDMA_WRITE ||
-                                            wc.opcode == IBV_WC_RDMA_READ;
-      if (has_lci_outgoing_context && wc.wr_id != 0) {
-        event.user_context = option_t<void*>((void*)wc.wr_id);
-        event.has_lci_outgoing_context = true;
+  cq_lock.unlock();
+  LCI_Assert(ne >= 0, "ibv_poll_cq failed: %d\n", ne);
+  if (ne > 0) {
+    // Got an entry here
+    auto snapshot = qp2rank_map.get_snapshot();
+    for (int i = 0; i < ne; i++) {
+      qp2rank_map_t::entry_t entry = snapshot->get_entry(wcs[i].qp_num);
+      const bool is_receive = wcs[i].opcode == IBV_WC_RECV ||
+                              wcs[i].opcode == IBV_WC_RECV_RDMA_WITH_IMM;
+      // A failed send-side completion still releases its SQ slot.
+      if (!is_receive) {
+        if (entry.rank >= 0 && entry.rank < get_rank_n() &&
+            entry.slots != nullptr) {
+          [[maybe_unused]] int prev =
+              entry.slots->val.fetch_add(1, std::memory_order_relaxed);
+          LCI_DBG_Assert(prev < static_cast<int>(attr.net_max_sends),
+                         "Too many slots on QP for rank %d (prev %d)\n",
+                         entry.rank, prev);
+        } else {
+          LCI_DBG_Log(
+              LOG_WARN, "ibv",
+              "Completion for qp_num %u does not map to an active endpoint\n",
+              wcs[i].qp_num);
+        }
       }
-      has_error = true;
-      continue;
-    }
-
-    net_status_t& status = event.status;
-    memset(&status, 0, sizeof(status));
-    if (wc.opcode == IBV_WC_RECV) {
-      status.opcode = net_opcode_t::RECV;
-      status.user_context = (void*)wc.wr_id;
-      status.length = wc.byte_len;
-      status.imm_data = wc.imm_data;
-      status.rank = entry.rank;
-    } else if (wc.opcode == IBV_WC_RECV_RDMA_WITH_IMM) {
-      status.opcode = net_opcode_t::REMOTE_WRITE;
-      status.user_context = (void*)wc.wr_id;
-      status.imm_data = wc.imm_data;
-    } else if (wc.opcode == IBV_WC_SEND) {
-      status.opcode = net_opcode_t::SEND;
-      status.user_context = (void*)wc.wr_id;
-    } else if (wc.opcode == IBV_WC_RDMA_WRITE) {
-      status.opcode = net_opcode_t::WRITE;
-      status.user_context = (void*)wc.wr_id;
-    } else {
-      LCI_Assert(wc.opcode == IBV_WC_RDMA_READ, "Unexpected IBV opcode!\n");
-      status.opcode = net_opcode_t::READ;
-      status.user_context = (void*)wc.wr_id;
-    }
-  }
-
-  if (!has_error) {
-    if (p_statuses != nullptr) {
-      for (int i = 0; i < ne; ++i) {
-        p_statuses[i] = events[i].status;
+      if (!p_statuses) continue;
+      net_status_t& status = p_statuses[i];
+      memset(&status, 0, sizeof(status));
+      if (wcs[i].status != IBV_WC_SUCCESS) {
+        status.opcode = net_opcode_t::ERROR;
+        status.rank = is_receive ? -1 : entry.rank;
+        status.user_context = is_receive ? nullptr : (void*)wcs[i].wr_id;
+      } else if (wcs[i].opcode == IBV_WC_RECV) {
+        status.opcode = net_opcode_t::RECV;
+        status.user_context = (void*)wcs[i].wr_id;
+        status.length = wcs[i].byte_len;
+        status.imm_data = wcs[i].imm_data;
+        status.rank = entry.rank;
+      } else if (wcs[i].opcode == IBV_WC_RECV_RDMA_WITH_IMM) {
+        consume_recvs(1);
+        status.opcode = net_opcode_t::REMOTE_WRITE;
+        status.user_context = (void*)wcs[i].wr_id;
+        status.imm_data = wcs[i].imm_data;
+      } else if (wcs[i].opcode == IBV_WC_SEND) {
+        status.opcode = net_opcode_t::SEND;
+        status.user_context = (void*)wcs[i].wr_id;
+      } else if (wcs[i].opcode == IBV_WC_RDMA_WRITE) {
+        status.opcode = net_opcode_t::WRITE;
+        status.user_context = (void*)wcs[i].wr_id;
+      } else {
+        LCI_Assert(wcs[i].opcode == IBV_WC_RDMA_READ,
+                   "Unexpected IBV opcode!\n");
+        status.opcode = net_opcode_t::READ;
+        status.user_context = (void*)wcs[i].wr_id;
       }
     }
-    return static_cast<size_t>(ne);
   }
-
-  // A mixed batch must be staged in full so a success after an error cannot
-  // overtake it on a later call.
-  for (int i = 0; i < ne; ++i) {
-    if (events[i].is_error) {
-      pending_completion_events.push_error(
-          std::move(events[i].message), events[i].failed_rank,
-          events[i].user_context, events[i].has_lci_outgoing_context);
-    } else {
-      pending_completion_events.push_success(events[i].status);
-    }
-  }
-  return pending_completion_events.drain(p_statuses, max_polls);
+  return ne;
 }
 
 namespace ibv_detail

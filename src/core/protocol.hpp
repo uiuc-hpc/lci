@@ -29,34 +29,10 @@ enum imm_data_msg_type_t {
  * recv_ctx field of RTR and FIN messages.
  */
 struct packet_t;
-
-enum class internal_context_kind_t : uint8_t {
-  simple_outgoing,
-  posted_receive,
-  rendezvous_root,
-  rtr_control,
-  split_transfer,
-  putimm_fallback,
-  synchronous_operation,
-  locally_completed_operation,
-};
-
-struct internal_context_header_t {
-  explicit internal_context_header_t(internal_context_kind_t kind_)
-      : kind(kind_)
-  {
-  }
-
-  internal_context_kind_t kind;
-};
-
-inline bool is_extended_context_kind(internal_context_kind_t kind)
-{
-  return kind == internal_context_kind_t::split_transfer ||
-         kind == internal_context_kind_t::putimm_fallback;
-}
-
-struct alignas(LCI_CACHE_LINE) internal_context_t : internal_context_header_t {
+struct alignas(LCI_CACHE_LINE) internal_context_t {
+  // 68 bytes, 3 bit
+  // is_extended has to be the first bit (be the same as internal_context_t)
+  bool is_extended : 1;  // 1 bit
  private:
   bool mr_on_the_fly : 1;      // 1 bit
   bool is_user_posted_op : 1;  // 1 bit
@@ -72,8 +48,8 @@ struct alignas(LCI_CACHE_LINE) internal_context_t : internal_context_header_t {
   mr_t mr;                             // 8 bytes
 
  public:
-  explicit internal_context_t(internal_context_kind_t kind_)
-      : internal_context_header_t(kind_),
+  internal_context_t()
+      : is_extended(false),
         mr_on_the_fly(false),
         is_user_posted_op(false),
         rank(-1),
@@ -113,8 +89,9 @@ struct alignas(LCI_CACHE_LINE) internal_context_t : internal_context_header_t {
   }
 };
 
-struct alignas(LCI_CACHE_LINE) internal_context_extended_t
-    : internal_context_header_t {
+struct alignas(LCI_CACHE_LINE) internal_context_extended_t {
+  // is_extended has to be the first bit (be the same as internal_context_t)
+  bool is_extended : 1;              // 1 bit
   internal_context_t* internal_ctx;  // 8 bytes
   std::atomic<int> signal_count;     // 4 bytes
   uint64_t recv_ctx;                 // 8 bytes
@@ -122,8 +99,8 @@ struct alignas(LCI_CACHE_LINE) internal_context_extended_t
   int imm_data_rank;        // 4 bytes
   net_imm_data_t imm_data;  // 4 bytes
 
-  explicit internal_context_extended_t(internal_context_kind_t kind_)
-      : internal_context_header_t(kind_),
+  internal_context_extended_t()
+      : is_extended(true),
         internal_ctx(nullptr),
         signal_count(0),
         recv_ctx(0),
@@ -132,9 +109,6 @@ struct alignas(LCI_CACHE_LINE) internal_context_extended_t
   {
   }
 };
-
-[[noreturn]] void translate_network_completion_error(
-    const network_completion_error& network_error);
 
 }  // namespace lci
 

@@ -112,50 +112,13 @@ struct option_t {
 namespace lci
 {
 /**
- * @brief A network completion error reported by a transport backend.
- * @ingroup LCI_NET
- *
- * This exception is exposed because @ref net_poll_cq is a public low-level
- * API. A backend may provide the peer rank, the opaque user context associated
- * with the failed operation, both, or neither. Normal LCI communication
- * progressed through @ref progress translates this exception only for a
- * supported asynchronous simple operation whose internal context safely
- * identifies one peer.
- */
-class network_completion_error : public std::runtime_error
-{
- public:
-  network_completion_error(const std::string& message,
-                           option_t<int> failed_rank = option_t<int>(),
-                           option_t<void*> user_context = option_t<void*>(),
-                           bool has_lci_outgoing_context = false)
-      : std::runtime_error(message),
-        failed_rank_(failed_rank),
-        user_context_(user_context),
-        has_lci_outgoing_context_(has_lci_outgoing_context)
-  {
-  }
-
-  option_t<int> failed_rank() const noexcept { return failed_rank_; }
-  option_t<void*> user_context() const noexcept { return user_context_; }
-  bool has_lci_outgoing_context() const noexcept
-  {
-    return has_lci_outgoing_context_;
-  }
-
- private:
-  option_t<int> failed_rank_;
-  option_t<void*> user_context_;
-  bool has_lci_outgoing_context_;
-};
-
-/**
  * @brief An asynchronous transport error associated with a peer rank.
  * @ingroup LCI_BASIC
  *
- * LCI throws this exception when a supported asynchronous simple LCI
- * communication operation to a known peer fails. It derives from
- * @c std::runtime_error, so existing handlers for that type continue to work.
+ * LCI throws this exception when a failed asynchronous completion belongs to
+ * a simple outgoing LCI operation and its peer can be identified. It derives
+ * from @c std::runtime_error, so existing handlers for that type continue to
+ * work.
  */
 class peer_failure_error : public std::runtime_error
 {
@@ -282,6 +245,7 @@ enum class net_opcode_t {
   WRITE,        /**< write */
   REMOTE_WRITE, /**< remote write */
   READ,         /**< read */
+  ERROR,        /**< asynchronous completion error */
 };
 
 /**
@@ -356,7 +320,10 @@ using net_imm_data_t = uint32_t;
  * @ingroup LCI_BASIC
  * @brief The struct for network status.
  * @details A network status is used to describe a completed network
- * communication operation.
+ * communication operation. For @ref net_opcode_t::ERROR, @c rank is the
+ * backend-reported peer rank when available and @c user_context is the
+ * outgoing operation context when available. Receive errors report rank -1 and
+ * a null user context.
  */
 struct net_status_t {
   net_opcode_t opcode;
