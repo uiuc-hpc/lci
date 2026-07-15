@@ -30,7 +30,7 @@ enum imm_data_msg_type_t {
  */
 struct packet_t;
 struct alignas(LCI_CACHE_LINE) internal_context_t {
-  // 68 bytes, 3 bit
+  // 68 bytes, 4 bit
   // is_extended has to be the first bit (be the same as internal_context_t)
   bool is_extended : 1;  // 1 bit
  private:
