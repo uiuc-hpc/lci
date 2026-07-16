@@ -47,11 +47,6 @@ for rank in 0 1 2; do
     export LOCAL_RANK="$rank"
     export LOCAL_WORLD_SIZE=3
     export LCI_ATTR_BACKEND=ofi
-    # Override any provider hint inherited from the test environment. In
-    # particular, CircleCI sets this to "sockets", which conflicts with the
-    # FI_PROVIDER=tcp filter below and makes fi_getinfo return -FI_ENODATA.
-    export LCI_ATTR_OFI_PROVIDER_NAME=tcp
-    export FI_PROVIDER=tcp
     export LCI_ENABLE_BOOTSTRAP_LCI=0
     export LCI_RESILIENCE_TEST_DIR="$workdir"
     exec "$exe"
