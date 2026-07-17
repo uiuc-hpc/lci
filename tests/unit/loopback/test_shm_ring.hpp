@@ -32,7 +32,7 @@ class ring_test_access_t
 {
  public:
   static error_t post_send_paused_after_reserve(
-      ring_t& ring, int source_local_rank, const void* buffer, size_t size,
+      ring_t& ring, int source_global_rank, const void* buffer, size_t size,
       net_imm_data_t imm_data, std::mutex* mutex,
       std::condition_variable* condition, bool* reserved, bool* proceed,
       bool* resumed_by_signal)
@@ -50,7 +50,7 @@ class ring_test_access_t
       *resumed_by_signal = condition->wait_for(lock, std::chrono::seconds(5),
                                                [&] { return *proceed; });
     }
-    return ring.publish(&reservation, source_local_rank, buffer, size,
+    return ring.publish(&reservation, source_global_rank, buffer, size,
                         imm_data);
   }
 
@@ -195,7 +195,7 @@ TEST(SHM_RING, capacity_one_does_not_alias_published_and_free_states)
 
   lci::shm::recv_slot_t view;
   ASSERT_TRUE(ring.poll(&view));
-  EXPECT_EQ(view.source_local_rank, 3);
+  EXPECT_EQ(view.source_global_rank, 3);
   EXPECT_EQ(view.imm_data, 0x11u);
   ASSERT_EQ(view.size, sizeof(first));
   EXPECT_EQ(*static_cast<const uint64_t*>(view.payload), first);
@@ -205,7 +205,7 @@ TEST(SHM_RING, capacity_one_does_not_alias_published_and_free_states)
 
   ASSERT_TRUE(ring.post_send(4, &second, sizeof(second), 0x22).is_done());
   ASSERT_TRUE(ring.poll(&view));
-  EXPECT_EQ(view.source_local_rank, 4);
+  EXPECT_EQ(view.source_global_rank, 4);
   EXPECT_EQ(*static_cast<const uint64_t*>(view.payload), second);
   EXPECT_TRUE(ring.release(&view));
 }
@@ -225,9 +225,9 @@ TEST(SHM_RING, zero_max_payload_source_copy_and_multiple_outstanding)
   std::fill(source.begin(), source.end(), 0);
   ASSERT_TRUE(ring.poll(&first));
   ASSERT_TRUE(ring.poll(&second));
-  EXPECT_EQ(first.source_local_rank, 3);
+  EXPECT_EQ(first.source_global_rank, 3);
   EXPECT_EQ(first.size, 0u);
-  EXPECT_EQ(second.source_local_rank, 7);
+  EXPECT_EQ(second.source_global_rank, 7);
   EXPECT_EQ(second.imm_data, 0xabcdefu);
   ASSERT_EQ(second.size, ring.max_payload_size());
   const auto* payload = static_cast<const unsigned char*>(second.payload);
@@ -501,7 +501,7 @@ TEST(SHM_RING, bounded_multithreaded_mpmc_visibility_and_uniqueness)
         }
         if (view.size != sizeof(message) ||
             !valid_message(message, nproducers, nmessages) ||
-            view.source_local_rank != static_cast<int>(message.producer) ||
+            view.source_global_rank != static_cast<int>(message.producer) ||
             view.imm_data != message.sequence) {
           errors.fetch_add(1);
         } else {
@@ -644,7 +644,7 @@ TEST(SHM_RING, bounded_eight_process_four_consumer_stress)
         }
         if (view.size != sizeof(message) ||
             !valid_message(message, nproducers, nmessages) ||
-            view.source_local_rank != static_cast<int>(message.producer) ||
+            view.source_global_rank != static_cast<int>(message.producer) ||
             view.imm_data != message.sequence) {
           errors.fetch_add(1);
         } else {
@@ -671,8 +671,15 @@ TEST(SHM_RING, bounded_eight_process_four_consumer_stress)
 
 static std::string unique_shm_name(const char* suffix, uint32_t iteration = 0)
 {
-  return std::string("/lci-test-") + std::to_string(getpid()) + "-" + suffix +
-         "-" + std::to_string(iteration);
+  uint32_t suffix_hash = UINT32_C(2166136261);
+  for (const char* cursor = suffix; *cursor != '\0'; ++cursor) {
+    suffix_hash ^= static_cast<uint8_t>(*cursor);
+    suffix_hash *= UINT32_C(16777619);
+  }
+  char name[lci::shm::posix_ring_name_capacity] = {};
+  std::snprintf(name, sizeof(name), "/lt-%x-%x-%x",
+                static_cast<unsigned int>(getpid()), suffix_hash, iteration);
+  return name;
 }
 
 static lci::shm::posix_ring_expected_t expected_ring(
@@ -699,15 +706,15 @@ TEST(SHM_POSIX_RING, repeated_owner_attach_unlink_and_message_lifecycle)
         expected_ring(name, 2, UINT64_C(0x12345678), 1, 128, 64);
     std::string error;
     auto owner = lci::shm::posix_owner_mapping_t::create(
-        name, 2, UINT64_C(0x12345678), 1, 128, 64, 4, &error);
+        name, 2, UINT64_C(0x12345678), 1, 128, 64, &error);
     ASSERT_NE(owner, nullptr) << error;
     auto peer = lci::shm::posix_peer_mapping_t::attach(owner->handle(),
-                                                       expected, 4, &error);
+                                                       expected, &error);
     ASSERT_NE(peer, nullptr) << error;
     EXPECT_TRUE(owner->unlink_name(&error)) << error;
     EXPECT_TRUE(owner->unlink_name(&error)) << error;
     EXPECT_EQ(lci::shm::posix_peer_mapping_t::attach(owner->handle(), expected,
-                                                     4, &error),
+                                                     &error),
               nullptr);
 
     const uint64_t value = iteration;
@@ -715,7 +722,7 @@ TEST(SHM_POSIX_RING, repeated_owner_attach_unlink_and_message_lifecycle)
         peer->ring().post_send(5, &value, sizeof(value), iteration).is_done());
     lci::shm::recv_slot_t view;
     ASSERT_TRUE(owner->ring().poll(&view));
-    EXPECT_EQ(view.source_local_rank, 5);
+    EXPECT_EQ(view.source_global_rank, 5);
     EXPECT_EQ(*static_cast<const uint64_t*>(view.payload), value);
     EXPECT_TRUE(owner->ring().release(&view));
   }
@@ -723,6 +730,8 @@ TEST(SHM_POSIX_RING, repeated_owner_attach_unlink_and_message_lifecycle)
 
 TEST(SHM_POSIX_RING, generated_object_names_are_compact_and_identity_based)
 {
+  EXPECT_LE(sizeof(lci::shm::posix_ring_handle_t),
+            (LCT_PMI_STRING_LIMIT - 1) / 2);
   const std::array<uint64_t, 2> nonce = {
       {UINT64_C(0x0123456789abcdef), UINT64_C(0xfedcba9876543210)}};
   const uint64_t device_uid = UINT64_C(0x1020304050607080);
@@ -734,7 +743,7 @@ TEST(SHM_POSIX_RING, generated_object_names_are_compact_and_identity_based)
 
   std::string error;
   auto owner = lci::shm::posix_owner_mapping_t::create(
-      name, INT32_MAX, device_uid, 1, 128, 64, 2, &error);
+      name, INT32_MAX, device_uid, 1, 128, 64, &error);
   ASSERT_NE(owner, nullptr) << error;
 
   auto expected = expected_ring(name, INT32_MAX, device_uid, 1, 128, 64);
@@ -756,12 +765,12 @@ TEST(SHM_POSIX_RING, rejects_malformed_handles_and_cleans_failure_paths)
 {
   const std::string name = unique_shm_name("failure");
   std::string error;
-  auto owner = lci::shm::posix_owner_mapping_t::create(name, 1, 99, 2, 128, 64,
-                                                       2, &error);
+  auto owner =
+      lci::shm::posix_owner_mapping_t::create(name, 1, 99, 2, 128, 64, &error);
   ASSERT_NE(owner, nullptr) << error;
-  EXPECT_EQ(lci::shm::posix_owner_mapping_t::create(name, 1, 100, 2, 128, 64, 2,
-                                                    &error),
-            nullptr);
+  EXPECT_EQ(
+      lci::shm::posix_owner_mapping_t::create(name, 1, 100, 2, 128, 64, &error),
+      nullptr);
   const auto expected = expected_ring(name, 1, 99, 2, 128, 64);
 
   auto malformed = owner->handle();
@@ -779,9 +788,9 @@ TEST(SHM_POSIX_RING, rejects_malformed_handles_and_cleans_failure_paths)
 
   lci::shm::ring_test_access_t::set_slot_sequence(
       owner->ring(), 0, lci::shm::ring_test_access_t::encoded(17, true));
-  EXPECT_EQ(lci::shm::posix_peer_mapping_t::attach(owner->handle(), expected, 2,
-                                                   &error),
-            nullptr);
+  EXPECT_EQ(
+      lci::shm::posix_peer_mapping_t::attach(owner->handle(), expected, &error),
+      nullptr);
 
   const auto handle = owner->handle();
   owner.reset();
@@ -798,13 +807,13 @@ TEST(SHM_POSIX_RING, rejects_malformed_handles_and_cleans_failure_paths)
       shm_open(name.c_str(), O_CREAT | O_EXCL | O_RDWR, 0600);
   ASSERT_GE(undersized_fd, 0);
   ASSERT_EQ(close(undersized_fd), 0);
-  EXPECT_EQ(lci::shm::posix_peer_mapping_t::attach(handle, expected, 2, &error),
+  EXPECT_EQ(lci::shm::posix_peer_mapping_t::attach(handle, expected, &error),
             nullptr);
   EXPECT_EQ(shm_unlink(name.c_str()), 0);
 
   const std::string bad_name = unique_shm_name("bad-geometry");
   EXPECT_EQ(lci::shm::posix_owner_mapping_t::create(bad_name, 1, 1, 3, 128, 64,
-                                                    1, &error),
+                                                    &error),
             nullptr);
   errno = 0;
   const int bad_fd = shm_open(bad_name.c_str(), O_RDWR, 0600);
@@ -818,37 +827,33 @@ TEST(SHM_POSIX_RING,
   const std::string name = unique_shm_name("authoritative");
   std::string error;
   auto owner = lci::shm::posix_owner_mapping_t::create(
-      name, 7, UINT64_C(0x778899), 2, 128, 64, 2, &error);
+      name, 7, UINT64_C(0x778899), 2, 128, 64, &error);
   ASSERT_NE(owner, nullptr) << error;
   const auto expected = expected_ring(name, 7, UINT64_C(0x778899), 2, 128, 64);
 
-  auto peer = lci::shm::posix_peer_mapping_t::attach(owner->handle(), expected,
-                                                     2, &error);
+  auto peer =
+      lci::shm::posix_peer_mapping_t::attach(owner->handle(), expected, &error);
   ASSERT_NE(peer, nullptr) << error;
   peer.reset();
 
   auto received = owner->handle();
   received.owner_global_rank = 8;
-  EXPECT_EQ(
-      lci::shm::posix_peer_mapping_t::attach(received, expected, 2, &error),
-      nullptr);
+  EXPECT_EQ(lci::shm::posix_peer_mapping_t::attach(received, expected, &error),
+            nullptr);
   received = owner->handle();
   received.device_uid++;
-  EXPECT_EQ(
-      lci::shm::posix_peer_mapping_t::attach(received, expected, 2, &error),
-      nullptr);
+  EXPECT_EQ(lci::shm::posix_peer_mapping_t::attach(received, expected, &error),
+            nullptr);
   received = owner->handle();
   std::memset(received.name, 0, sizeof(received.name));
   const std::string other_name = unique_shm_name("wrong-name");
   std::memcpy(received.name, other_name.c_str(), other_name.size() + 1);
-  EXPECT_EQ(
-      lci::shm::posix_peer_mapping_t::attach(received, expected, 2, &error),
-      nullptr);
+  EXPECT_EQ(lci::shm::posix_peer_mapping_t::attach(received, expected, &error),
+            nullptr);
   received = owner->handle();
   received.max_message_size = 32;
-  EXPECT_EQ(
-      lci::shm::posix_peer_mapping_t::attach(received, expected, 2, &error),
-      nullptr);
+  EXPECT_EQ(lci::shm::posix_peer_mapping_t::attach(received, expected, &error),
+            nullptr);
 
   // These geometries have the same total mapping size. Exact out-of-band
   // comparison must reject the alias before it can be interpreted as a valid
@@ -860,9 +865,8 @@ TEST(SHM_POSIX_RING,
   received.slot_count = 1;
   received.slot_size = 256;
   EXPECT_TRUE(lci::shm::validate_posix_ring_handle(received, &error)) << error;
-  EXPECT_EQ(
-      lci::shm::posix_peer_mapping_t::attach(received, expected, 2, &error),
-      nullptr);
+  EXPECT_EQ(lci::shm::posix_peer_mapping_t::attach(received, expected, &error),
+            nullptr);
 }
 #endif
 

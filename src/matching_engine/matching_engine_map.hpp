@@ -310,34 +310,6 @@ class matching_engine_map_t : public matching_engine_impl_t
     return (bucket_t*)((char*)table + bucket_idx * bucket_t::size());
   }
 
-  val_t match(key_t key, insert_type_t type) override
-  {
-    val_t ret = nullptr;
-    const uint32_t bucket_idx = hash_fn(key);
-    bucket_t* master = get_master_bucket(bucket_idx);
-    insert_type_t target_type =
-        type == insert_type_t::send ? insert_type_t::recv : insert_type_t::send;
-
-    master->control.lock.lock();
-    bucket_t* current_bucket = master;
-    while (current_bucket) {
-      for (int i = 0; i < current_bucket->control.nqueues; ++i) {
-        queue_t* current_queue = current_bucket->get_queue_p(i);
-        if (current_queue->is_empty || current_queue->key != key) continue;
-        if (current_queue->type == target_type) {
-          ret = current_queue->pop();
-        }
-        current_bucket = nullptr;
-        break;
-      }
-      if (current_bucket) current_bucket = current_bucket->control.next;
-    }
-    master->control.lock.unlock();
-    LCI_DBG_Log(LOG_TRACE, "matchtable", "match (%lx, %d) return %p\n", key,
-                (int)type, ret);
-    return ret;
-  }
-
   val_t insert(key_t key, val_t value, insert_type_t type) override
   {
     val_t ret = nullptr;

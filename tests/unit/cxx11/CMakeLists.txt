@@ -33,16 +33,14 @@ add_lci_test(
   LABELS
   cxx11
   COMMANDS
-  "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 4 pmi LCT route-agreement"
-  "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 3 pmi LCT split-lifecycle"
-  "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT alltoall"
-  "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 8 runtime LCT alltoall"
-  "env LCI_ATTR_SHM_ENABLE=0 ${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT disabled"
-  "env LCI_ATTR_SHM_RING_SIZE=128 LCI_ATTR_SHM_SLOT_SIZE=128 ${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT fallback"
-  "env LCI_SHM_TEST_DISABLE_ROUTE=0:1 ${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT route-disabled"
-  "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT device-mr-fallback"
-  "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT large-tag"
-  "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT large-rcomp"
+  "env LCI_ATTR_SHM_ENABLE=1 LCI_SHM_TEST_MODE=alltoall ${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT"
+  "env LCI_ATTR_SHM_ENABLE=1 LCI_SHM_TEST_MODE=multi-device ${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT"
+  "env LCI_ATTR_SHM_ENABLE=1 LCI_SHM_TEST_MODE=alltoall ${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 8 runtime LCT"
+  "env LCI_ATTR_SHM_ENABLE=0 LCI_SHM_TEST_MODE=disabled ${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT"
+  "env LCI_ATTR_SHM_ENABLE=1 LCI_ATTR_SHM_RING_SIZE=128 LCI_ATTR_SHM_SLOT_SIZE=128 LCI_SHM_TEST_MODE=fallback ${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT"
+  "env LCI_ATTR_SHM_ENABLE=1 LCI_SHM_TEST_MODE=device-mr-fallback ${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT"
+  "env LCI_ATTR_SHM_ENABLE=1 LCI_SHM_TEST_MODE=large-tag ${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT"
+  "env LCI_ATTR_SHM_ENABLE=1 LCI_SHM_TEST_MODE=large-rcomp ${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT"
   INCLUDES
   ${PROJECT_SOURCE_DIR}/src
   DEPENDENCIES

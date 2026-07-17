@@ -17,11 +17,11 @@ namespace lci
 namespace shm
 {
 constexpr uint32_t posix_ring_handle_version = 1;
-constexpr size_t posix_ring_name_capacity = 128;
 // Darwin's POSIX shm namespace is substantially shorter than the bootstrap
-// handle storage. Keep generated names within this portable string length
-// (including the leading slash, excluding the trailing NUL).
+// string limit. Keep the fixed handle compact enough for the existing PMI
+// bootstrap encoding as well.
 constexpr size_t posix_ring_portable_name_max = 30;
+constexpr size_t posix_ring_name_capacity = posix_ring_portable_name_max + 1;
 
 // Fixed-size bootstrap data. It contains no process-local pointer or file
 // descriptor; peers validate every field before opening the object.
@@ -69,7 +69,7 @@ class posix_owner_mapping_t
   static std::unique_ptr<posix_owner_mapping_t> create(
       const std::string& name, int owner_global_rank, uint64_t device_uid,
       size_t slot_count, size_t slot_size, size_t max_message_size,
-      size_t max_cas_attempts = 1, std::string* error = nullptr);
+      std::string* error = nullptr);
 
   ~posix_owner_mapping_t();
   posix_owner_mapping_t(const posix_owner_mapping_t&) = delete;
@@ -83,8 +83,7 @@ class posix_owner_mapping_t
 
  private:
   posix_owner_mapping_t(void* region, size_t region_size,
-                        const posix_ring_handle_t& handle,
-                        size_t max_cas_attempts);
+                        const posix_ring_handle_t& handle);
 
   void* region_ = nullptr;
   size_t region_size_ = 0;
@@ -100,7 +99,7 @@ class posix_peer_mapping_t
  public:
   static std::unique_ptr<posix_peer_mapping_t> attach(
       const posix_ring_handle_t& handle, const posix_ring_expected_t& expected,
-      size_t max_cas_attempts = 1, std::string* error = nullptr);
+      std::string* error = nullptr);
 
   ~posix_peer_mapping_t();
   posix_peer_mapping_t(const posix_peer_mapping_t&) = delete;
@@ -113,8 +112,7 @@ class posix_peer_mapping_t
 
  private:
   posix_peer_mapping_t(void* region, size_t region_size,
-                       const posix_ring_handle_t& handle,
-                       size_t max_cas_attempts);
+                       const posix_ring_handle_t& handle);
 
   void* region_ = nullptr;
   size_t region_size_ = 0;

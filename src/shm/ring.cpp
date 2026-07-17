@@ -37,7 +37,7 @@ struct ring_t::slot_header_t {
   std::atomic<uint64_t> sequence;
   uint32_t payload_size;
   net_imm_data_t imm_data;
-  int32_t source_local_rank;
+  int32_t source_global_rank;
   uint32_t reserved;
 };
 
@@ -95,24 +95,26 @@ bool ring_t::initialize_at(void* region, size_t region_size, size_t slot_count,
         encode_sequence(position, slot_state_t::reusable));
     slot->payload_size = 0;
     slot->imm_data = 0;
-    slot->source_local_rank = -1;
+    slot->source_global_rank = -1;
     slot->reserved = 0;
   }
   return true;
 }
 
 ring_t::ring_t(void* region_, size_t region_size_, size_t slot_count_,
-               size_t slot_size_, size_t max_cas_attempts_)
+               size_t slot_size_, size_t producer_cas_attempts_,
+               size_t consumer_cas_attempts_)
     : region(static_cast<unsigned char*>(region_)),
       region_size(region_size_),
       slot_count(slot_count_),
       slot_size(slot_size_),
-      max_cas_attempts(max_cas_attempts_),
+      producer_cas_attempts(producer_cas_attempts_),
+      consumer_cas_attempts(consumer_cas_attempts_),
       identity(allocate_ring_identity())
 {
   const size_t required = required_size(slot_count, slot_size);
   valid = region != nullptr && required != 0 && region_size >= required &&
-          max_cas_attempts != 0 &&
+          producer_cas_attempts != 0 && consumer_cas_attempts != 0 &&
           reinterpret_cast<uintptr_t>(region) % LCI_CACHE_LINE == 0;
 }
 
@@ -175,7 +177,7 @@ error_t ring_t::reserve(send_reservation_t* reservation,
     return errorcode_t::fatal;
   }
 
-  for (size_t attempt = 0; attempt < max_cas_attempts; ++attempt) {
+  for (size_t attempt = 0; attempt < producer_cas_attempts; ++attempt) {
     uint64_t position = producer_position()->load(std::memory_order_relaxed);
     if (position > position_mask) return errorcode_t::fatal;
     slot_header_t* slot = slot_at(position);
@@ -207,14 +209,14 @@ error_t ring_t::reserve(send_reservation_t* reservation,
   return errorcode_t::retry_lock;
 }
 
-error_t ring_t::publish(send_reservation_t* reservation, int source_local_rank,
+error_t ring_t::publish(send_reservation_t* reservation, int source_global_rank,
                         const void* buffer, size_t size,
                         net_imm_data_t imm_data)
 {
   if (!valid || reservation == nullptr ||
       reservation->ring_identity != identity || reservation->slot == nullptr ||
       reservation->slot != slot_at(reservation->position) ||
-      source_local_rank < 0 || size > max_payload_size() ||
+      source_global_rank < 0 || size > max_payload_size() ||
       (size != 0 && buffer == nullptr)) {
     return errorcode_t::fatal;
   }
@@ -229,7 +231,7 @@ error_t ring_t::publish(send_reservation_t* reservation, int source_local_rank,
   }
   slot->payload_size = static_cast<uint32_t>(size);
   slot->imm_data = imm_data;
-  slot->source_local_rank = source_local_rank;
+  slot->source_global_rank = source_global_rank;
   slot->reserved = 0;
   if (size != 0) {
     std::memcpy(reinterpret_cast<unsigned char*>(slot) + sizeof(slot_header_t),
@@ -244,10 +246,10 @@ error_t ring_t::publish(send_reservation_t* reservation, int source_local_rank,
   return errorcode_t::done;
 }
 
-error_t ring_t::post_send(int source_local_rank, const void* buffer,
+error_t ring_t::post_send(int source_global_rank, const void* buffer,
                           size_t size, net_imm_data_t imm_data)
 {
-  if (!valid || source_local_rank < 0 || size > max_payload_size() ||
+  if (!valid || source_global_rank < 0 || size > max_payload_size() ||
       (size != 0 && buffer == nullptr)) {
     return errorcode_t::fatal;
   }
@@ -255,14 +257,14 @@ error_t ring_t::post_send(int source_local_rank, const void* buffer,
   send_reservation_t reservation;
   const error_t status = reserve(&reservation);
   if (!status.is_done()) return status;
-  return publish(&reservation, source_local_rank, buffer, size, imm_data);
+  return publish(&reservation, source_global_rank, buffer, size, imm_data);
 }
 
 bool ring_t::poll(recv_slot_t* out)
 {
   if (!valid || out == nullptr || out->ring_identity != 0) return false;
 
-  for (size_t attempt = 0; attempt < max_cas_attempts; ++attempt) {
+  for (size_t attempt = 0; attempt < consumer_cas_attempts; ++attempt) {
     uint64_t position = consumer_position()->load(std::memory_order_relaxed);
     if (position > position_mask) {
       throw std::runtime_error("SHM ring consumer position is corrupted");
@@ -293,13 +295,13 @@ bool ring_t::poll(recv_slot_t* out)
       // until release(). Keeping the published tag avoids an extra cache-line
       // store while later consumers are stopped by their newer generation.
       if (slot->payload_size > max_payload_size() ||
-          slot->source_local_rank < 0 || slot->reserved != 0) {
+          slot->source_global_rank < 0 || slot->reserved != 0) {
         slot->sequence.store(encode_sequence(add_position(position, slot_count),
                                              slot_state_t::reusable),
                              std::memory_order_release);
         throw std::runtime_error("SHM ring slot metadata is corrupted");
       }
-      out->source_local_rank = slot->source_local_rank;
+      out->source_global_rank = slot->source_global_rank;
       out->imm_data = slot->imm_data;
       out->payload =
           reinterpret_cast<unsigned char*>(slot) + sizeof(slot_header_t);
@@ -329,7 +331,7 @@ bool ring_t::release(recv_slot_t* view)
   slot->sequence.store(encode_sequence(add_position(view->position, slot_count),
                                        slot_state_t::reusable),
                        std::memory_order_release);
-  view->source_local_rank = -1;
+  view->source_global_rank = -1;
   view->imm_data = 0;
   view->payload = nullptr;
   view->size = 0;

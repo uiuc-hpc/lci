@@ -24,7 +24,7 @@ struct recv_slot_t {
   recv_slot_t(const recv_slot_t&) = delete;
   recv_slot_t& operator=(const recv_slot_t&) = delete;
 
-  int source_local_rank = -1;
+  int source_global_rank = -1;
   net_imm_data_t imm_data = 0;
   const void* payload = nullptr;
   size_t size = 0;
@@ -61,7 +61,7 @@ class ring_t
                          size_t slot_size);
 
   ring_t(void* region, size_t region_size, size_t slot_count, size_t slot_size,
-         size_t max_cas_attempts = 1);
+         size_t producer_cas_attempts = 4, size_t consumer_cas_attempts = 1);
   ring_t(const ring_t&) = delete;
   ring_t& operator=(const ring_t&) = delete;
   ring_t(ring_t&&) = delete;
@@ -77,7 +77,7 @@ class ring_t
   // retry_lock and retry_nomem are returned only before a slot is reserved.
   // Once reservation succeeds, this operation always copies, publishes, and
   // returns done.
-  error_t post_send(int source_local_rank, const void* buffer, size_t size,
+  error_t post_send(int source_global_rank, const void* buffer, size_t size,
                     net_imm_data_t imm_data);
 
   // Claims at most one slot. Several caller-owned views may be outstanding at
@@ -107,7 +107,7 @@ class ring_t
   error_t reserve(send_reservation_t* reservation,
                   before_cas_hook_t before_cas = nullptr,
                   void* hook_arg = nullptr);
-  error_t publish(send_reservation_t* reservation, int source_local_rank,
+  error_t publish(send_reservation_t* reservation, int source_global_rank,
                   const void* buffer, size_t size, net_imm_data_t imm_data);
 
   std::atomic<uint64_t>* producer_position() const;
@@ -118,7 +118,8 @@ class ring_t
   size_t region_size = 0;
   size_t slot_count = 0;
   size_t slot_size = 0;
-  size_t max_cas_attempts = 0;
+  size_t producer_cas_attempts = 0;
+  size_t consumer_cas_attempts = 0;
   uint64_t identity = 0;
   bool valid = false;
 };

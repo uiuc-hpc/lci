@@ -81,11 +81,9 @@ bool mr_may_be_device_memory(mr_t mr)
   return false;
 }
 
-bool source_buffer_is_host_accessible(const post_comm_args_t& args,
-                                      const post_comm_state_t& state)
+bool source_buffer_is_host_accessible(const post_comm_state_t& state)
 {
-  return !mr_may_be_device_memory(args.mr) &&
-         !mr_may_be_device_memory(state.mr);
+  return !mr_may_be_device_memory(state.mr);
 }
 
 bool eager_payload_needs_metadata(const post_comm_args_t& args,
@@ -415,13 +413,10 @@ bool get_shm_payload(const post_comm_args_t& args,
   if (args.direction != direction_t::OUT || !traits.local_buffer_only) {
     return false;
   }
-  if (!source_buffer_is_host_accessible(args, state)) {
+  if (!source_buffer_is_host_accessible(state)) {
     return false;
   }
   switch (state.protocol) {
-    case protocol_t::eager_zcopy:
-      if (eager_payload_needs_metadata(args, state)) return false;
-      [[fallthrough]];
     case protocol_t::inject:
       if (eager_payload_needs_metadata(args, state)) return false;
       *buffer = args.local_buffer;
@@ -451,34 +446,30 @@ bool try_post_shm_op(const post_comm_args_t& args,
                      error_t* result)
 {
   auto shm_device = args.device.get_impl()->shm_device;
-  if (shm_device.is_empty()) return false;
+  if (!shm::is_enabled(shm_device)) return false;
   if (args.direction == direction_t::OUT && traits.local_buffer_only &&
-      !source_buffer_is_host_accessible(args, state)) {
-    if (shm::can_send(shm_device, args.rank, args.size)) {
-      shm::note_nic_fallback(shm_device);
-    }
+      !source_buffer_is_host_accessible(state)) {
     return false;
   }
 
   const void* buffer = nullptr;
   size_t size = 0;
   if (!get_shm_payload(args, traits, state, &buffer, &size)) return false;
-  if (!shm::can_send(shm_device, args.rank, size)) {
-    if (shm::is_enabled(shm_device)) {
-      shm::note_nic_fallback(shm_device);
-    }
-    return false;
-  }
+  if (!shm::can_send(shm_device, args.rank, size)) return false;
 
-  error_t error =
-      shm::post_send(shm_device, args.rank, buffer, size, state.imm_data);
+  error_t error = shm::post_send(shm_device, args.rank, buffer, size,
+                                 state.imm_data, args.allow_retry);
   if (error.is_done()) {
     complete_shm_send_inline(state);
     *result = errorcode_t::done;
     return true;
   }
-  if (error.is_retry()) {
-    shm::note_nic_fallback(shm_device);
+  if (error.errorcode == errorcode_t::retry_lock) {
+    *result = error;
+    return true;
+  }
+  if (error.errorcode == errorcode_t::retry_nomem) {
+    shm::note_ring_full_fallback(shm_device);
     return false;
   }
   LCI_Assert(false, "Unexpected SHM post_send error %s\n", error.get_str());

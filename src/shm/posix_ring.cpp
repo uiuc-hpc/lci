@@ -233,19 +233,18 @@ bool validate_posix_ring_handle(const posix_ring_handle_t& handle,
 }
 
 posix_owner_mapping_t::posix_owner_mapping_t(void* region, size_t region_size,
-                                             const posix_ring_handle_t& handle,
-                                             size_t max_cas_attempts)
+                                             const posix_ring_handle_t& handle)
     : region_(region), region_size_(region_size), handle_(handle)
 {
-  ring_.reset(
-      new ring_t(region_, region_size_, static_cast<size_t>(handle_.slot_count),
-                 static_cast<size_t>(handle_.slot_size), max_cas_attempts));
+  ring_.reset(new ring_t(region_, region_size_,
+                         static_cast<size_t>(handle_.slot_count),
+                         static_cast<size_t>(handle_.slot_size)));
 }
 
 std::unique_ptr<posix_owner_mapping_t> posix_owner_mapping_t::create(
     const std::string& name, int owner_global_rank, uint64_t device_uid,
     size_t slot_count, size_t slot_size, size_t max_message_size,
-    size_t max_cas_attempts, std::string* error)
+    std::string* error)
 {
   if (error != nullptr) error->clear();
   if (name.size() >= posix_ring_name_capacity ||
@@ -261,7 +260,7 @@ std::unique_ptr<posix_owner_mapping_t> posix_owner_mapping_t::create(
   handle.max_message_size = max_message_size;
   handle.mapping_size = posix_ring_mapping_size(slot_count, slot_size);
   std::memcpy(handle.name, name.c_str(), name.size() + 1);
-  if (max_cas_attempts == 0 || !validate_posix_ring_handle(handle, error) ||
+  if (!validate_posix_ring_handle(handle, error) ||
       handle.mapping_size >
           static_cast<uint64_t>(std::numeric_limits<off_t>::max())) {
     if (error != nullptr && error->empty()) {
@@ -305,8 +304,7 @@ std::unique_ptr<posix_owner_mapping_t> posix_owner_mapping_t::create(
   std::unique_ptr<posix_owner_mapping_t> result;
   try {
     result.reset(new posix_owner_mapping_t(
-        region, static_cast<size_t>(handle.mapping_size), handle,
-        max_cas_attempts));
+        region, static_cast<size_t>(handle.mapping_size), handle));
   } catch (...) {
     munmap(region, static_cast<size_t>(handle.mapping_size));
     shm_unlink(handle.name);
@@ -338,22 +336,20 @@ bool posix_owner_mapping_t::unlink_name(std::string* error)
 }
 
 posix_peer_mapping_t::posix_peer_mapping_t(void* region, size_t region_size,
-                                           const posix_ring_handle_t& handle,
-                                           size_t max_cas_attempts)
+                                           const posix_ring_handle_t& handle)
     : region_(region), region_size_(region_size), handle_(handle)
 {
-  ring_.reset(
-      new ring_t(region_, region_size_, static_cast<size_t>(handle_.slot_count),
-                 static_cast<size_t>(handle_.slot_size), max_cas_attempts));
+  ring_.reset(new ring_t(region_, region_size_,
+                         static_cast<size_t>(handle_.slot_count),
+                         static_cast<size_t>(handle_.slot_size)));
 }
 
 std::unique_ptr<posix_peer_mapping_t> posix_peer_mapping_t::attach(
     const posix_ring_handle_t& handle, const posix_ring_expected_t& expected,
-    size_t max_cas_attempts, std::string* error)
+    std::string* error)
 {
   if (error != nullptr) error->clear();
-  if (max_cas_attempts == 0 ||
-      !validate_posix_ring_handle(handle, expected, error)) {
+  if (!validate_posix_ring_handle(handle, expected, error)) {
     if (error != nullptr && error->empty()) {
       set_error(error, "invalid POSIX ring attachment arguments");
     }
@@ -392,8 +388,7 @@ std::unique_ptr<posix_peer_mapping_t> posix_peer_mapping_t::attach(
   std::unique_ptr<posix_peer_mapping_t> result;
   try {
     result.reset(new posix_peer_mapping_t(
-        region, static_cast<size_t>(handle.mapping_size), handle,
-        max_cas_attempts));
+        region, static_cast<size_t>(handle.mapping_size), handle));
   } catch (...) {
     munmap(region, static_cast<size_t>(handle.mapping_size));
     throw;

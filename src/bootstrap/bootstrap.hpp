@@ -14,8 +14,6 @@ int get_rank_n();
 void finalize();
 void set_device(device_t device);
 void alltoall(const void* sendbuf, void* recvbuf, size_t count);
-void broadcast(const void* sendbuf, void* recvbuf, size_t count, int root);
-void barrier();
 }  // namespace bootstrap
 }  // namespace lci
 

@@ -128,15 +128,18 @@ device_t alloc_device_x::call_impl(
     double net_send_reserved_pct, uint64_t ofi_lock_mode,
     bool alloc_default_endpoint, bool alloc_progress_endpoint,
     bool use_reg_cache, bool shm_enable, size_t shm_ring_size,
-    size_t shm_slot_size, size_t shm_max_message_size,
-    size_t shm_max_cas_attempts, attr_ibv_td_strategy_t ibv_td_strategy,
-    const char* name, void* user_context, runtime_t runtime,
-    net_context_t net_context, packet_pool_t packet_pool) const
+    size_t shm_slot_size, size_t shm_max_polls,
+    attr_ibv_td_strategy_t ibv_td_strategy, const char* name,
+    void* user_context, runtime_t runtime, net_context_t net_context,
+    packet_pool_t packet_pool) const
 {
   if (net_send_reserved_pct < 0.0 || net_send_reserved_pct >= 1.0) {
     LCI_Assert(false, "net_send_reserved_pct %.2f is out of range [0.0, 1.0)",
                net_send_reserved_pct);
   }
+  LCI_Assert(shm_max_polls <= LCI_BACKEND_MAX_POLLS,
+             "shm_max_polls must be no larger than %lu\n",
+             LCI_BACKEND_MAX_POLLS);
   device_t::attr_t attr;
   attr.net_max_sends = net_max_sends;
   attr.net_max_recvs = net_max_recvs;
@@ -149,8 +152,7 @@ device_t alloc_device_x::call_impl(
   attr.shm_enable = shm_enable;
   attr.shm_ring_size = shm_ring_size;
   attr.shm_slot_size = shm_slot_size;
-  attr.shm_max_message_size = shm_max_message_size;
-  attr.shm_max_cas_attempts = shm_max_cas_attempts;
+  attr.shm_max_polls = shm_max_polls;
   attr.ibv_td_strategy = ibv_td_strategy;
   attr.name = name;
   attr.user_context = user_context;
@@ -162,11 +164,10 @@ device_t alloc_device_x::call_impl(
     if (runtime.get_impl()->default_shm_context.is_empty()) {
       runtime.get_impl()->default_shm_context = shm::alloc_context(runtime);
     }
-    device.get_impl()->shm_device = shm::alloc_device(
-        runtime.get_impl()->default_shm_context, device, attr.shm_enable,
-        attr.shm_ring_size, attr.shm_slot_size, attr.shm_max_message_size,
-        attr.shm_max_cas_attempts);
   }
+  device.get_impl()->shm_device = shm::alloc_device(
+      runtime.get_impl()->default_shm_context, device, attr.shm_enable,
+      attr.shm_ring_size, attr.shm_slot_size);
   if (attr.alloc_default_endpoint) {
     device.get_impl()->default_endpoint =
         alloc_endpoint_x().runtime(runtime).device(device)();

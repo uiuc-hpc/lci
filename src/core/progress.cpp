@@ -213,216 +213,51 @@ void progress_read(const net_status_t& net_status)
 thread_local uint64_t tls_update_counter = 0;
 thread_local LCT_time_t tls_last_update_time = 0;
 thread_local std::vector<uint64_t> tls_device_progress_counter_map(128, 0);
-thread_local bool tls_progress_shm_first = true;
 
 namespace
 {
-constexpr size_t SHM_PROGRESS_BUDGET = 8;
-
-struct shm_progress_guard_t {
-  shm::device_t device;
-  bool locked = false;
-
-  explicit shm_progress_guard_t(shm::device_t device_) : device(device_)
-  {
-    locked = shm::try_acquire_progress(device);
-  }
-  ~shm_progress_guard_t() { unlock(); }
-  void unlock()
-  {
-    if (locked) {
-      shm::release_progress(device);
-      locked = false;
-    }
-  }
-};
-
-struct shm_message_t {
-  int source_rank = -1;
-  imm_data_msg_type_t msg_type = IMM_DATA_MSG_EAGER;
-  tag_t tag = 0;
-  rcomp_t remote_comp = 0;
-  size_t payload_size = 0;
-};
-
-struct shm_deferred_completion_t {
-  comp_t comp = COMP_NULL;
-  status_t status;
-
-  void signal()
-  {
-    LCI_Assert(!comp.is_empty(), "Invalid SHM deferred completion\n");
-    comp.get_impl()->signal(std::move(status));
-  }
-};
-
-bool decode_shm_message(shm::device_t shm_device, const shm::recv_slot_t& slot,
-                        shm_message_t* message)
-{
-  message->source_rank = shm::recv_source_global_rank(shm_device, slot);
-  LCI_Assert(message->source_rank >= 0, "Invalid SHM source local rank %d\n",
-             slot.source_local_rank);
-  message->payload_size = slot.size;
-
-  const uint32_t imm_data = slot.imm_data;
-  const bool is_fastpath = get_bits32(imm_data, 1, 31);
-  if (is_fastpath) {
-    message->tag = get_bits32(imm_data, 16, 0);
-    message->remote_comp = get_bits32(imm_data, 15, 16);
-    message->msg_type = IMM_DATA_MSG_EAGER;
-    return true;
-  }
-
-  message->msg_type =
-      static_cast<imm_data_msg_type_t>(get_bits32(imm_data, 2, 29));
-  if (message->msg_type == IMM_DATA_MSG_EAGER) {
-    LCI_Assert(message->payload_size >=
-                   sizeof(message->remote_comp) + sizeof(message->tag),
-               "Malformed SHM eager payload metadata\n");
-    message->payload_size -= sizeof(message->remote_comp);
-    memcpy(&message->remote_comp,
-           static_cast<const char*>(slot.payload) + message->payload_size,
-           sizeof(message->remote_comp));
-    message->payload_size -= sizeof(message->tag);
-    memcpy(&message->tag,
-           static_cast<const char*>(slot.payload) + message->payload_size,
-           sizeof(message->tag));
-  }
-  return true;
-}
-
-void prepare_shm_matched_recv_completion(const shm_message_t& message,
-                                         const shm::recv_slot_t& slot,
-                                         internal_context_t* recv_ctx,
-                                         shm_deferred_completion_t* completion)
-{
-  LCI_Assert(recv_ctx != nullptr, "Invalid matched receive context\n");
-  LCI_Assert(recv_ctx->size >= message.payload_size,
-             "SHM eager payload %lu exceeds posted receive size %lu\n",
-             message.payload_size, recv_ctx->size);
-  comp_t comp = recv_ctx->comp;
-  LCI_Assert(!comp.is_empty(), "Posted receive completion is empty\n");
-
-  status_t status;
-  status.set_done();
-  status.rank = message.source_rank;
-  status.tag = message.tag;
-  status.buffer = recv_ctx->buffer;
-  status.size = message.payload_size;
-  status.user_context = recv_ctx->user_context;
-  if (message.payload_size > 0) {
-    memcpy(status.buffer, slot.payload, message.payload_size);
-  }
-  delete recv_ctx;
-  completion->comp = comp;
-  completion->status = status;
-}
-
-bool try_progress_shm_posted_recv(runtime_t runtime,
-                                  const shm_message_t& message,
-                                  const shm::recv_slot_t& slot,
-                                  shm_deferred_completion_t* completion)
-{
-  if (message.msg_type != IMM_DATA_MSG_EAGER) return false;
-
-  auto entry =
-      runtime.p_impl->default_rhandler_registry.get(message.remote_comp);
-  if (entry.type != rhandler_registry_t::type_t::matching_engine) return false;
-
-  matching_engine_impl_t* p_matching_engine =
-      reinterpret_cast<matching_engine_impl_t*>(entry.value);
-  auto key = p_matching_engine->make_key(
-      message.source_rank, message.tag,
-      static_cast<matching_policy_t>(entry.metadata));
-  auto ret = p_matching_engine->match(
-      key, matching_engine_impl_t::insert_type_t::send);
-  if (ret == nullptr) return false;
-
-  prepare_shm_matched_recv_completion(
-      message, slot, reinterpret_cast<internal_context_t*>(ret), completion);
-  return true;
-}
-
-bool progress_shm_slot_with_packet(runtime_t runtime, device_t device,
-                                   endpoint_t endpoint,
-                                   shm::device_t shm_device,
-                                   const shm::recv_slot_t& slot,
-                                   const shm_message_t& message,
-                                   shm_progress_guard_t* guard)
-{
-  if (device.get_impl()->packet_pool.is_empty()) return false;
-  packet_t* packet = device.get_impl()->packet_pool.get_impl()->get(false);
-  if (packet == nullptr) return false;
-
-  LCI_Assert(slot.size <=
-                 device.get_impl()->packet_pool.get_impl()->get_payload_size(),
-             "SHM payload %lu exceeds packet payload capacity %lu\n", slot.size,
-             device.get_impl()->packet_pool.get_impl()->get_payload_size());
-  if (slot.size > 0) {
-    memcpy(packet->get_payload_address(), slot.payload, slot.size);
-  }
-  net_status_t status;
-  status.opcode = net_opcode_t::RECV;
-  status.rank = message.source_rank;
-  status.user_context = packet;
-  status.length = slot.size;
-  status.imm_data = slot.imm_data;
-  shm::release(shm_device, const_cast<shm::recv_slot_t*>(&slot));
-  guard->unlock();
-  progress_recv(runtime, endpoint, status);
-  return true;
-}
-
-bool progress_shm_once(runtime_t runtime, device_t device, endpoint_t endpoint)
-{
-  auto shm_device = device.get_impl()->shm_device;
-  if (shm_device.is_empty() || !shm::is_enabled(shm_device)) {
-    return false;
-  }
-
-  shm_progress_guard_t guard(shm_device);
-  if (!guard.locked) return false;
-
-  std::unique_ptr<shm::recv_slot_t> slot = shm::take_retained_slot(shm_device);
-  if (!slot) {
-    slot.reset(new shm::recv_slot_t);
-    if (!shm::poll_comp(shm_device, slot.get())) {
-      return false;
-    }
-  }
-
-  shm_message_t message;
-  decode_shm_message(shm_device, *slot, &message);
-
-  shm_deferred_completion_t completion;
-  if (try_progress_shm_posted_recv(runtime, message, *slot, &completion)) {
-    shm::release(shm_device, slot.get());
-    guard.unlock();
-    completion.signal();
-    return true;
-  }
-
-  if (progress_shm_slot_with_packet(runtime, device, endpoint, shm_device,
-                                    *slot, message, &guard)) {
-    return true;
-  }
-
-  // No posted receive was available and no packet was available to retain an
-  // unexpected/AM/rendezvous message. Keep ownership of the claimed ring slot
-  // so payload lifetime is preserved and retry on the next progress call.
-  shm::retain_slot(shm_device, std::move(slot));
-  return false;
-}
-
 bool progress_shm_budget(runtime_t runtime, device_t device,
                          endpoint_t endpoint)
 {
-  bool progressed = false;
-  for (size_t i = 0; i < SHM_PROGRESS_BUDGET; ++i) {
-    if (!progress_shm_once(runtime, device, endpoint)) break;
-    progressed = true;
+  auto shm_device = device.get_impl()->shm_device;
+  if (shm_device.is_empty() || !shm::is_enabled(shm_device) ||
+      device.get_impl()->packet_pool.is_empty()) {
+    return false;
   }
-  return progressed;
+
+  const size_t max_polls = device.get_attr_shm_max_polls();
+  if (max_polls == 0) return false;
+  packet_t* packets[LCI_BACKEND_MAX_POLLS];
+  const size_t n_packets = device.get_impl()->packet_pool.get_impl()->get_n(
+      max_polls, packets, false);
+  if (n_packets == 0) return false;
+
+  const size_t packet_payload =
+      device.get_impl()->packet_pool.get_impl()->get_payload_size();
+  size_t progressed = 0;
+  for (; progressed < n_packets; ++progressed) {
+    shm::recv_slot_t slot;
+    if (!shm::poll_comp(shm_device, &slot)) break;
+    LCI_Assert(slot.size <= packet_payload,
+               "SHM payload %lu exceeds packet payload capacity %lu\n",
+               slot.size, packet_payload);
+    packet_t* packet = packets[progressed];
+    if (slot.size > 0) {
+      memcpy(packet->get_payload_address(), slot.payload, slot.size);
+    }
+    net_status_t status;
+    status.opcode = net_opcode_t::RECV;
+    status.rank = slot.source_global_rank;
+    status.user_context = packet;
+    status.length = slot.size;
+    status.imm_data = slot.imm_data;
+    shm::release(shm_device, &slot);
+    progress_recv(runtime, endpoint, status);
+  }
+  for (size_t i = progressed; i < n_packets; ++i) {
+    packets[i]->put_back();
+  }
+  return progressed > 0;
 }
 }  // namespace
 
@@ -441,11 +276,6 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
     // keep progressing the backlog queue until it is empty
     while (endpoint.get_impl()->progress_backlog_queue())
       error = errorcode_t::done;
-  }
-  const bool shm_first = tls_progress_shm_first;
-  tls_progress_shm_first = !tls_progress_shm_first;
-  if (shm_first && progress_shm_budget(runtime, device, endpoint)) {
-    error = errorcode_t::done;
   }
   // poll device completion queue
   net_status_t statuses[LCI_BACKEND_MAX_POLLS];
@@ -468,7 +298,7 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
       }
     }
   }
-  if (!shm_first && progress_shm_budget(runtime, device, endpoint)) {
+  if (progress_shm_budget(runtime, device, endpoint)) {
     error = errorcode_t::done;
   }
   if (device.p_impl->refill_recvs()) {

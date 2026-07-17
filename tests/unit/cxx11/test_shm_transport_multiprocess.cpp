@@ -11,7 +11,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <exception>
-#include <memory>
 #include <string>
 #include <thread>
 #include <vector>
@@ -19,101 +18,6 @@
 namespace
 {
 constexpr int max_progress_iters = 1000000;
-
-// Minimal core-device shim for exercising the production shm::alloc_device()
-// lifecycle without requiring an IBV/OFI runtime backend on the test host.
-// SHM setup only needs a non-empty packet pool to derive packet payload size.
-class fake_net_context_impl_t : public lci::net_context_impl_t
-{
- public:
-  fake_net_context_impl_t() : lci::net_context_impl_t(lci::runtime_t(), attr())
-  {
-  }
-
-  lci::device_t alloc_device(lci::device_t::attr_t) override
-  {
-    return lci::device_t();
-  }
-
- private:
-  static lci::net_context_t::attr_t attr()
-  {
-    lci::net_context_t::attr_t value = {};
-    value.backend = lci::attr_backend_t::none;
-    value.name = "shm-direct-test-net-context";
-    return value;
-  }
-};
-
-class fake_device_impl_t : public lci::device_impl_t
-{
- public:
-  fake_device_impl_t(lci::net_context_t context, lci::packet_pool_t packet_pool)
-      : lci::device_impl_t(context, attr())
-  {
-    this->packet_pool = packet_pool;
-  }
-
-  lci::endpoint_t alloc_endpoint_impl(lci::endpoint_t::attr_t) override
-  {
-    return lci::endpoint_t();
-  }
-  lci::mr_t register_memory_impl(void*, size_t) override { return lci::mr_t(); }
-  void deregister_memory_impl(lci::mr_impl_t*) override {}
-  uint64_t get_rkey(lci::mr_impl_t*) override { return 0; }
-  size_t poll_comp_impl(lci::net_status_t*, size_t) override { return 0; }
-  lci::error_t post_recv_impl(void*, size_t, lci::mr_t, void*) override
-  {
-    return lci::errorcode_t::fatal;
-  }
-  size_t post_recvs_impl(void*[], size_t, size_t, lci::mr_t, void*[]) override
-  {
-    return 0;
-  }
-
- private:
-  static lci::device_t::attr_t attr()
-  {
-    lci::device_t::attr_t value = {};
-    value.name = "shm-direct-test-device";
-    value.shm_enable = true;
-    return value;
-  }
-};
-
-class fake_core_device_t
-{
- public:
-  fake_core_device_t()
-  {
-    lci::packet_pool_attr_t packet_pool_attr = {};
-    packet_pool_attr.packet_size = 512;
-    packet_pool_attr.npackets = 0;
-    packet_pool_attr.name = "shm-direct-test-packet-pool";
-    packet_pool.p_impl = new lci::packet_pool_impl_t(packet_pool_attr);
-
-    net_context_impl.reset(new fake_net_context_impl_t);
-    device_impl.reset(
-        new fake_device_impl_t(net_context_impl->net_context, packet_pool));
-    device = device_impl->device;
-  }
-
-  ~fake_core_device_t()
-  {
-    device = lci::device_t();
-    device_impl.reset();
-    net_context_impl.reset();
-    delete packet_pool.p_impl;
-    packet_pool.p_impl = nullptr;
-  }
-
-  lci::device_t device;
-
- private:
-  lci::packet_pool_t packet_pool;
-  std::unique_ptr<fake_net_context_impl_t> net_context_impl;
-  std::unique_ptr<fake_device_impl_t> device_impl;
-};
 
 template <typename Fn>
 lci::status_t retry_until(Fn&& fn)
@@ -153,98 +57,105 @@ void check_pattern(const std::vector<char>& buffer, int rank, int salt)
   }
 }
 
-void run_route_agreement_bootstrap_only()
+void progress_device(lci::device_t device)
 {
-  LCT_init();
-  lci::bootstrap::initialize();
-  const int rank = lci::bootstrap::get_rank_me();
-  const int nranks = lci::bootstrap::get_rank_n();
-  assert(nranks >= 2);
-
-  std::vector<uint8_t> local_routes(static_cast<size_t>(nranks), 1);
-  if (rank == 0) local_routes[1] = 0;
-
-  std::vector<uint8_t> send_matrix(static_cast<size_t>(nranks) * nranks, 0);
-  for (int dst = 0; dst < nranks; ++dst) {
-    std::copy(local_routes.begin(), local_routes.end(),
-              send_matrix.begin() + static_cast<size_t>(dst) * nranks);
-  }
-  std::vector<uint8_t> recv_matrix(static_cast<size_t>(nranks) * nranks, 0);
-  lci::bootstrap::alltoall(send_matrix.data(), recv_matrix.data(),
-                           static_cast<size_t>(nranks));
-
-  std::vector<uint8_t> agreed(static_cast<size_t>(nranks), 0);
-  for (int peer = 0; peer < nranks; ++peer) {
-    agreed[peer] = local_routes[peer] &&
-                   recv_matrix[static_cast<size_t>(peer) * nranks + rank];
-  }
-
-  if (rank == 0) assert(agreed[1] == 0);
-  if (rank == 1) assert(agreed[0] == 0);
-  for (int peer = 2; peer < nranks; ++peer) {
-    assert(agreed[peer] == 1);
-  }
-
-  lci::bootstrap::finalize();
-  LCT_fina();
+  lci::progress_x().device(device)();
 }
 
-void force_split_topology(lci::shm::context_t context)
-{
-  // Simulate a non-uniform node layout: ranks 0/1 have a local peer, while
-  // rank 2 is a singleton. A rank-local early return in alloc/free deadlocks
-  // this test because only ranks 0/1 would enter the global bootstrap rounds.
-  auto* impl = context.get_impl();
-  const int rank = impl->global_rank;
-  const int nranks = impl->global_size;
-  assert(nranks == 3);
+void bootstrap_barrier() { LCT_pmi_barrier(); }
 
-  impl->global_to_local.assign(static_cast<size_t>(nranks), -1);
-  impl->local_to_global.clear();
-  if (rank < 2) {
-    impl->local_to_global.push_back(0);
-    impl->local_to_global.push_back(1);
-    impl->global_to_local[0] = 0;
-    impl->global_to_local[1] = 1;
-    impl->local_rank = rank;
-  } else {
-    impl->local_to_global.push_back(rank);
-    impl->global_to_local[rank] = 0;
-    impl->local_rank = 0;
-  }
-  impl->local_size = static_cast<int>(impl->local_to_global.size());
+void check_shm_counter_deltas(const lci::shm::counters_t& before,
+                              const lci::shm::counters_t& after,
+                              uint64_t expected_send_messages,
+                              uint64_t expected_send_bytes,
+                              uint64_t expected_recv_messages,
+                              uint64_t expected_recv_bytes)
+{
+  assert(after.send_messages >= before.send_messages);
+  assert(after.send_bytes >= before.send_bytes);
+  assert(after.recv_messages >= before.recv_messages);
+  assert(after.recv_bytes >= before.recv_bytes);
+  assert(after.send_messages - before.send_messages == expected_send_messages);
+  assert(after.send_bytes - before.send_bytes == expected_send_bytes);
+  assert(after.recv_messages - before.recv_messages == expected_recv_messages);
+  assert(after.recv_bytes - before.recv_bytes == expected_recv_bytes);
 }
 
-void run_split_topology_lifecycle_direct()
+template <typename Fn>
+lci::status_t retry_until_on_device(lci::device_t device, Fn&& fn)
 {
-  LCT_init();
-  lci::bootstrap::initialize();
-  const int rank = lci::bootstrap::get_rank_me();
-  const int nranks = lci::bootstrap::get_rank_n();
-  assert(nranks == 3);
+  for (int i = 0; i < max_progress_iters; ++i) {
+    lci::status_t status = fn();
+    if (!status.is_retry()) return status;
+    progress_device(device);
+  }
+  std::fprintf(stderr, "LCI device operation did not leave retry state\n");
+  std::abort();
+}
 
-  lci::shm::context_t context = lci::shm::alloc_context(lci::runtime_t(), true);
-  force_split_topology(context);
-  fake_core_device_t core_device;
+void exchange_on_device(lci::device_t device, lci::tag_t tag, int salt)
+{
+  const int rank = lci::get_rank_me();
+  const int peer = 1 - rank;
+  const size_t msg_size = 32;
+  auto before = lci::shm::get_counters(device.get_impl()->shm_device);
+  lci::comp_t scq = lci::alloc_cq();
+  lci::comp_t rcq = lci::alloc_cq();
+  std::vector<char> send_buffer(msg_size);
+  std::vector<char> recv_buffer(msg_size);
+  fill_pattern(send_buffer, rank, salt);
 
-  lci::shm::device_t shm_device = lci::shm::alloc_device(
-      context, core_device.device, true, 4096, 256, 64, 1);
+  lci::status_t recv_status = retry_until_on_device(device, [&] {
+    return lci::post_recv_x(peer, recv_buffer.data(), msg_size, tag, rcq)
+        .device(device)();
+  });
+  lci::status_t send_status = retry_until_on_device(device, [&] {
+    return lci::post_send_x(peer, send_buffer.data(), msg_size, tag, scq)
+        .device(device)();
+  });
+  assert(recv_status.is_done() || recv_status.is_posted());
+  assert(send_status.is_done() || send_status.is_posted());
 
-  if (rank < 2) {
-    assert(lci::shm::is_enabled(shm_device));
-    assert(lci::shm::can_send(shm_device, 1 - rank, 32));
-    assert(!lci::shm::can_send(shm_device, 2, 32));
-  } else {
-    assert(!lci::shm::is_enabled(shm_device));
-    for (int peer = 0; peer < nranks; ++peer) {
-      assert(!lci::shm::can_send(shm_device, peer, 32));
+  for (int i = 0; i < max_progress_iters &&
+                  (recv_status.is_posted() || send_status.is_posted());
+       ++i) {
+    if (recv_status.is_posted()) {
+      lci::status_t status = lci::cq_pop(rcq);
+      if (status.is_done()) recv_status = status;
     }
+    if (send_status.is_posted()) {
+      lci::status_t status = lci::cq_pop(scq);
+      if (status.is_done()) send_status = status;
+    }
+    progress_device(device);
   }
+  assert(recv_status.is_done());
+  assert(send_status.is_done());
+  check_pattern(recv_buffer, peer, salt);
 
-  lci::shm::free_device(&shm_device);
-  lci::shm::free_context(&context);
-  lci::bootstrap::finalize();
-  LCT_fina();
+  auto after = lci::shm::get_counters(device.get_impl()->shm_device);
+  assert(after.send_messages > before.send_messages);
+  assert(after.recv_messages > before.recv_messages);
+  lci::free_comp(&rcq);
+  lci::free_comp(&scq);
+}
+
+void run_multi_device_runtime()
+{
+  assert(lci::get_rank_n() == 2);
+  lci::runtime_t runtime = lci::get_g_runtime();
+  lci::device_t first =
+      lci::alloc_device_x().runtime(runtime).shm_enable(true)();
+  lci::device_t second =
+      lci::alloc_device_x().runtime(runtime).shm_enable(true)();
+  assert(lci::shm::is_enabled(first.get_impl()->shm_device));
+  assert(lci::shm::is_enabled(second.get_impl()->shm_device));
+
+  exchange_on_device(first, 7001, 101);
+  exchange_on_device(second, 7002, 202);
+
+  lci::free_device_x(&second).runtime(runtime)();
+  lci::free_device_x(&first).runtime(runtime)();
 }
 
 lci::shm::counters_t shm_counters()
@@ -259,7 +170,8 @@ bool shm_enabled()
   return lci::shm::is_enabled(device.get_impl()->shm_device);
 }
 
-void run_posted_alltoall(bool expect_shm)
+void run_posted_alltoall(bool expect_shm, lci::comp_semantic_t comp_semantic =
+                                              lci::comp_semantic_t::memory)
 {
   const int rank = lci::get_rank_me();
   const int nranks = lci::get_rank_n();
@@ -294,7 +206,8 @@ void run_posted_alltoall(bool expect_shm)
   for (int peer = 0; peer < nranks; ++peer) {
     lci::status_t status = retry_until([&] {
       return lci::post_send_x(peer, send_buffers[peer].data(), msg_size, tag,
-                              scq)();
+                              scq)
+          .comp_semantic(comp_semantic)();
     });
     if (status.is_posted()) ++send_remaining;
     assert(status.is_done() || status.is_posted());
@@ -340,71 +253,120 @@ void run_unexpected_pair()
 {
   const int rank = lci::get_rank_me();
   const int nranks = lci::get_rank_n();
-  const int dst = (rank + 1) % nranks;
-  const int src = (rank + nranks - 1) % nranks;
+  assert(nranks >= 2);
+  constexpr int sender = 0;
+  constexpr int receiver = 1;
   const size_t msg_size = 24;
   const lci::tag_t tag = 2000;
+  bootstrap_barrier();
+  auto before = shm_counters();
   lci::comp_t scq = lci::alloc_cq();
   lci::comp_t rcq = lci::alloc_cq();
   std::vector<char> send_buffer(msg_size);
   std::vector<char> recv_buffer(msg_size);
-  fill_pattern(send_buffer, rank, dst);
+  fill_pattern(send_buffer, sender, receiver);
 
-  lci::status_t send_status = retry_until([&] {
-    return lci::post_send_x(dst, send_buffer.data(), msg_size, tag, scq)
-        .allow_retry(false)();
-  });
-  assert(send_status.is_done() || send_status.is_posted());
-  lci::barrier();
+  lci::status_t send_status;
+  if (rank == sender) {
+    send_status = retry_until([&] {
+      return lci::post_send_x(receiver, send_buffer.data(), msg_size, tag, scq)
+          .allow_retry(false)();
+    });
+    assert(send_status.is_done() || send_status.is_posted());
+  }
+  bootstrap_barrier();
 
-  lci::status_t recv_status = retry_until([&] {
-    return lci::post_recv_x(src, recv_buffer.data(), msg_size, tag, rcq)();
-  });
-  if (send_status.is_posted()) {
+  lci::status_t recv_status;
+  if (rank == receiver) {
+    bool unexpected_received = false;
+    for (int i = 0; i < max_progress_iters; ++i) {
+      lci::progress();
+      auto progressed = shm_counters();
+      assert(progressed.recv_messages >= before.recv_messages);
+      const uint64_t recv_delta =
+          progressed.recv_messages - before.recv_messages;
+      assert(recv_delta <= 1);
+      if (recv_delta == 1) {
+        unexpected_received = true;
+        break;
+      }
+    }
+    if (!unexpected_received) {
+      std::fprintf(stderr,
+                   "SHM packet did not arrive before posting receive\n");
+      std::abort();
+    }
+    recv_status = retry_until([&] {
+      return lci::post_recv_x(sender, recv_buffer.data(), msg_size, tag, rcq)();
+    });
+  }
+  if (rank == sender && send_status.is_posted()) {
     cq_pop_until(scq);
   }
-  if (recv_status.is_posted()) {
+  if (rank == receiver && recv_status.is_posted()) {
     recv_status = cq_pop_until(rcq);
   }
-  assert(recv_status.is_done());
-  check_pattern(recv_buffer, src, rank);
+  if (rank == receiver) {
+    assert(recv_status.is_done());
+    check_pattern(recv_buffer, sender, receiver);
+  }
   lci::free_comp(&rcq);
   lci::free_comp(&scq);
+
+  bootstrap_barrier();
+  auto after = shm_counters();
+  assert(shm_enabled());
+  check_shm_counter_deltas(
+      before, after, rank == sender ? 1 : 0, rank == sender ? msg_size : 0,
+      rank == receiver ? 1 : 0, rank == receiver ? msg_size : 0);
 }
 
 void run_active_message()
 {
   const int rank = lci::get_rank_me();
   const int nranks = lci::get_rank_n();
-  const int dst = (rank + 1) % nranks;
-  const int src = (rank + nranks - 1) % nranks;
+  assert(nranks >= 2);
+  constexpr int sender = 0;
+  constexpr int receiver = 1;
   const size_t msg_size = 16;
   const lci::tag_t tag = 3000;
   lci::comp_t lcq = lci::alloc_cq();
   lci::comp_t rcq = lci::alloc_cq();
   lci::rcomp_t rcomp = lci::register_rcomp(rcq);
-  lci::barrier();
+  bootstrap_barrier();
+  auto before = shm_counters();
   std::vector<char> send_buffer(msg_size);
-  fill_pattern(send_buffer, rank, dst);
+  fill_pattern(send_buffer, sender, receiver);
 
-  lci::status_t send_status = retry_until([&] {
-    return lci::post_am_x(dst, send_buffer.data(), msg_size, lcq, rcomp)
-        .tag(tag)
-        .allow_retry(false)();
-  });
-  assert(send_status.is_done() || send_status.is_posted());
-  if (send_status.is_posted()) {
-    cq_pop_until(lcq);
+  if (rank == sender) {
+    lci::status_t send_status = retry_until([&] {
+      return lci::post_am_x(receiver, send_buffer.data(), msg_size, lcq, rcomp)
+          .tag(tag)
+          .allow_retry(false)();
+    });
+    assert(send_status.is_done() || send_status.is_posted());
+    if (send_status.is_posted()) {
+      cq_pop_until(lcq);
+    }
   }
-  lci::status_t recv_status = cq_pop_until(rcq);
-  assert(recv_status.rank == src);
-  assert(recv_status.size == msg_size);
-  const char* payload = static_cast<const char*>(recv_status.buffer);
-  for (size_t i = 0; i < msg_size; ++i) {
-    assert(payload[i] == static_cast<char>('A' + ((src + rank + i) % 26)));
+  if (rank == receiver) {
+    lci::status_t recv_status = cq_pop_until(rcq);
+    assert(recv_status.rank == sender);
+    assert(recv_status.size == msg_size);
+    const char* payload = static_cast<const char*>(recv_status.buffer);
+    for (size_t i = 0; i < msg_size; ++i) {
+      assert(payload[i] ==
+             static_cast<char>('A' + ((sender + receiver + i) % 26)));
+    }
+    std::free(recv_status.buffer);
   }
-  std::free(recv_status.buffer);
-  lci::barrier();
+  bootstrap_barrier();
+  auto after = shm_counters();
+  assert(shm_enabled());
+  check_shm_counter_deltas(
+      before, after, rank == sender ? 1 : 0, rank == sender ? msg_size : 0,
+      rank == receiver ? 1 : 0, rank == receiver ? msg_size : 0);
+
   lci::deregister_rcomp(rcomp);
   lci::free_comp(&rcq);
   lci::free_comp(&lcq);
@@ -435,8 +397,7 @@ void run_ring_full_fallback()
     }
     auto after = shm_counters();
     assert(after.send_messages > before.send_messages);
-    assert(after.retry_nomem > before.retry_nomem);
-    assert(after.nic_fallbacks > before.nic_fallbacks);
+    assert(after.ring_full_fallbacks > before.ring_full_fallbacks);
   } else {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     std::vector<std::vector<char>> recv_buffers(nmsgs,
@@ -474,45 +435,6 @@ void run_ring_full_fallback()
 
   lci::barrier();
   lci::free_comp(&cq);
-}
-
-void run_route_disabled_fallback()
-{
-  const int rank = lci::get_rank_me();
-  const int nranks = lci::get_rank_n();
-  assert(nranks == 2);
-  const int peer = 1 - rank;
-  const size_t msg_size = 32;
-  const lci::tag_t tag = 5000;
-  auto before = shm_counters();
-
-  lci::comp_t scq = lci::alloc_cq();
-  lci::comp_t rcq = lci::alloc_cq();
-  std::vector<char> send_buffer(msg_size);
-  std::vector<char> recv_buffer(msg_size);
-  fill_pattern(send_buffer, rank, peer);
-
-  lci::status_t recv_status = retry_until([&] {
-    return lci::post_recv_x(peer, recv_buffer.data(), msg_size, tag, rcq)();
-  });
-  lci::status_t send_status = retry_until([&] {
-    return lci::post_send_x(peer, send_buffer.data(), msg_size, tag, scq)();
-  });
-
-  if (send_status.is_posted()) cq_pop_until(scq);
-  if (recv_status.is_posted()) recv_status = cq_pop_until(rcq);
-  assert(recv_status.is_done());
-  check_pattern(recv_buffer, peer, rank);
-
-  lci::free_comp(&rcq);
-  lci::free_comp(&scq);
-
-  auto after = shm_counters();
-  assert(after.send_messages == before.send_messages);
-  assert(after.recv_messages == before.recv_messages);
-  if (shm_enabled()) {
-    assert(after.nic_fallbacks > before.nic_fallbacks);
-  }
 }
 
 void run_device_mr_fallback()
@@ -559,7 +481,6 @@ void run_device_mr_fallback()
   assert(shm_enabled());
   assert(after.send_messages == before.send_messages);
   assert(after.recv_messages == before.recv_messages);
-  assert(after.nic_fallbacks > before.nic_fallbacks);
 #endif
 }
 
@@ -660,22 +581,26 @@ void run_large_rcomp_metadata()
 void run_enabled_suite()
 {
   run_posted_alltoall(true);
+  run_posted_alltoall(true, lci::comp_semantic_t::network);
   run_unexpected_pair();
   run_active_message();
+}
+
+void run_disabled_mode()
+{
+  auto shm_device = lci::get_default_device().get_impl()->shm_device;
+  assert(!shm_device.is_empty());
+  assert(!lci::shm::is_enabled(shm_device));
+  run_posted_alltoall(false);
 }
 }  // namespace
 
 int main(int argc, char** argv)
 {
-  const std::string mode = argc >= 2 ? argv[1] : "alltoall";
-  if (mode == "route-agreement") {
-    run_route_agreement_bootstrap_only();
-    return 0;
-  }
-  if (mode == "split-lifecycle") {
-    run_split_topology_lifecycle_direct();
-    return 0;
-  }
+  const char* configured_mode = std::getenv("LCI_SHM_TEST_MODE");
+  const std::string mode = configured_mode != nullptr
+                               ? configured_mode
+                               : (argc >= 2 ? argv[1] : "alltoall");
   try {
     if (mode == "large-tag" || mode == "large-rcomp") {
       lci::g_runtime_init_x().imm_nbits_tag(4).imm_nbits_rcomp(4)();
@@ -691,12 +616,12 @@ int main(int argc, char** argv)
   }
   if (mode == "alltoall") {
     run_enabled_suite();
+  } else if (mode == "multi-device") {
+    run_multi_device_runtime();
   } else if (mode == "disabled") {
-    run_posted_alltoall(false);
+    run_disabled_mode();
   } else if (mode == "fallback") {
     run_ring_full_fallback();
-  } else if (mode == "route-disabled") {
-    run_route_disabled_fallback();
   } else if (mode == "device-mr-fallback") {
     run_device_mr_fallback();
   } else if (mode == "large-tag") {
