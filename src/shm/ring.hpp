@@ -73,6 +73,9 @@ class ring_t
   bool is_consistent_empty() const;
   size_t capacity() const { return slot_count; }
   size_t max_payload_size() const;
+  // Returns an inexpensive upper bound on slots that may be ready to receive.
+  // It may include producer-reserved slots that are not published yet.
+  size_t recv_available_approx() const;
 
   // retry_lock and retry_nomem are returned only before a slot is reserved.
   // Once reservation succeeds, this operation always copies, publishes, and

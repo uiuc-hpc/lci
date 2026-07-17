@@ -81,11 +81,6 @@ bool mr_may_be_device_memory(mr_t mr)
   return false;
 }
 
-bool source_buffer_is_host_accessible(const post_comm_state_t& state)
-{
-  return !mr_may_be_device_memory(state.mr);
-}
-
 bool eager_payload_needs_metadata(const post_comm_args_t& args,
                                   const post_comm_state_t& state)
 {
@@ -204,7 +199,7 @@ void set_protocol(const post_comm_args_t& args,
              args.direction == direction_t::OUT &&
              args.comp_semantic == comp_semantic_t::memory && !force_zcopy &&
              !eager_needs_payload_metadata) {
-    // We use the inject protocol only if the five conditions are met:
+    // We use the inject protocol only if the six conditions are met:
     // 1. We are sending a single buffer, and
     // 2. The size of the data is smaller than the maximum inject size, and
     // 3. The direction is OUT, and
@@ -405,77 +400,6 @@ void set_status(const post_comm_args_t& args, const post_comm_traits_t&,
   state.status = status;
 }
 
-bool get_shm_payload(const post_comm_args_t& args,
-                     const post_comm_traits_t& traits,
-                     const post_comm_state_t& state, const void** buffer,
-                     size_t* size)
-{
-  if (args.direction != direction_t::OUT || !traits.local_buffer_only) {
-    return false;
-  }
-  if (!source_buffer_is_host_accessible(state)) {
-    return false;
-  }
-  switch (state.protocol) {
-    case protocol_t::inject:
-      if (eager_payload_needs_metadata(args, state)) return false;
-      *buffer = args.local_buffer;
-      *size = args.size;
-      return true;
-    case protocol_t::eager_bcopy:
-      if (state.packet == nullptr) return false;
-      *buffer = state.packet->get_payload_address();
-      *size = state.packet_size_to_send;
-      return true;
-    default:
-      return false;
-  }
-}
-
-void complete_shm_send_inline(post_comm_state_t& state)
-{
-  if (state.internal_ctx != nullptr) {
-    delete state.internal_ctx;
-    state.internal_ctx = nullptr;
-  }
-  state.comp_passed_to_network = false;
-}
-
-bool try_post_shm_op(const post_comm_args_t& args,
-                     const post_comm_traits_t& traits, post_comm_state_t& state,
-                     error_t* result)
-{
-  auto shm_device = args.device.get_impl()->shm_device;
-  if (!shm::is_enabled(shm_device)) return false;
-  if (args.direction == direction_t::OUT && traits.local_buffer_only &&
-      !source_buffer_is_host_accessible(state)) {
-    return false;
-  }
-
-  const void* buffer = nullptr;
-  size_t size = 0;
-  if (!get_shm_payload(args, traits, state, &buffer, &size)) return false;
-  if (!shm::can_send(shm_device, args.rank, size)) return false;
-
-  error_t error = shm::post_send(shm_device, args.rank, buffer, size,
-                                 state.imm_data, args.allow_retry);
-  if (error.is_done()) {
-    complete_shm_send_inline(state);
-    *result = errorcode_t::done;
-    return true;
-  }
-  if (error.errorcode == errorcode_t::retry_lock) {
-    *result = error;
-    return true;
-  }
-  if (error.errorcode == errorcode_t::retry_nomem) {
-    shm::note_ring_full_fallback(shm_device);
-    return false;
-  }
-  LCI_Assert(false, "Unexpected SHM post_send error %s\n", error.get_str());
-  return false;
-}
-
 // state in: all
 // state out: status
 error_t post_network_op(const post_comm_args_t& args,
@@ -483,9 +407,6 @@ error_t post_network_op(const post_comm_args_t& args,
                         post_comm_state_t& state)
 {
   error_t error;
-  if (try_post_shm_op(args, traits, state, &error)) {
-    return error;
-  }
   if (args.direction == direction_t::OUT) {
     /**********************************************************************************
      * direction out
@@ -493,6 +414,20 @@ error_t post_network_op(const post_comm_args_t& args,
     if (state.protocol == protocol_t::inject) {
       // inject protocol (return retry or done)
       if (traits.local_buffer_only) {
+        auto shm_device = args.device.get_impl()->shm_device;
+        if (shm::can_send(shm_device, args.rank, args.size)) {
+          error = shm::post_send(shm_device, args.rank, args.local_buffer,
+                                 args.size, state.imm_data, args.allow_retry);
+          if (error.is_done()) {
+            delete state.internal_ctx;
+            state.internal_ctx = nullptr;
+            state.comp_passed_to_network = false;
+            return errorcode_t::done;
+          }
+          if (error.errorcode == errorcode_t::retry_lock) return error;
+          LCI_Assert(error.errorcode == errorcode_t::retry_nomem,
+                     "Unexpected SHM post_send error %s\n", error.get_str());
+        }
         error = args.endpoint.p_impl->post_sends(
             args.rank, args.local_buffer, args.size, state.imm_data,
             state.internal_ctx, args.allow_retry);
@@ -514,6 +449,22 @@ error_t post_network_op(const post_comm_args_t& args,
       if (traits.local_buffer_only) {
         // buffer-copy send
         // note: we need to use state.size instead of args.size
+        auto shm_device = args.device.get_impl()->shm_device;
+        if (shm::can_send(shm_device, args.rank,
+                          state.packet_size_to_send)) {
+          error = shm::post_send(shm_device, args.rank, buffer,
+                                 state.packet_size_to_send, state.imm_data,
+                                 args.allow_retry);
+          if (error.is_done()) {
+            delete state.internal_ctx;
+            state.internal_ctx = nullptr;
+            state.comp_passed_to_network = false;
+            return errorcode_t::done;
+          }
+          if (error.errorcode == errorcode_t::retry_lock) return error;
+          LCI_Assert(error.errorcode == errorcode_t::retry_nomem,
+                     "Unexpected SHM post_send error %s\n", error.get_str());
+        }
         error = args.endpoint.p_impl->post_send(
             args.rank, buffer, state.packet_size_to_send,
             state.packet->get_mr(args.device), state.imm_data,

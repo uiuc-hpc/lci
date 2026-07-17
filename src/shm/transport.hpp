@@ -57,14 +57,6 @@ struct device_t {
   }
 };
 
-struct counters_t {
-  uint64_t send_messages = 0;
-  uint64_t send_bytes = 0;
-  uint64_t recv_messages = 0;
-  uint64_t recv_bytes = 0;
-  uint64_t ring_full_fallbacks = 0;
-};
-
 context_t alloc_context(runtime_t runtime, bool enable = true);
 void free_context(context_t* context);
 
@@ -76,10 +68,9 @@ bool is_enabled(device_t device);
 bool can_send(device_t device, int rank, size_t size);
 error_t post_send(device_t device, int rank, const void* buffer, size_t size,
                   net_imm_data_t imm_data, bool allow_retry);
+size_t recv_available_approx(device_t device);
 bool poll_comp(device_t device, recv_slot_t* slot);
 void release(device_t device, recv_slot_t* slot);
-void note_ring_full_fallback(device_t device);
-counters_t get_counters(device_t device);
 
 }  // namespace shm
 }  // namespace lci

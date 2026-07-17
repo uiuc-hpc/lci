@@ -216,8 +216,7 @@ thread_local std::vector<uint64_t> tls_device_progress_counter_map(128, 0);
 
 namespace
 {
-bool progress_shm_budget(runtime_t runtime, device_t device,
-                         endpoint_t endpoint)
+bool progress_shm(runtime_t runtime, device_t device, endpoint_t endpoint)
 {
   auto shm_device = device.get_impl()->shm_device;
   if (shm_device.is_empty() || !shm::is_enabled(shm_device) ||
@@ -225,7 +224,9 @@ bool progress_shm_budget(runtime_t runtime, device_t device,
     return false;
   }
 
-  const size_t max_polls = device.get_attr_shm_max_polls();
+  size_t max_polls = device.get_attr_shm_max_polls();
+  const size_t available = shm::recv_available_approx(shm_device);
+  if (available < max_polls) max_polls = available;
   if (max_polls == 0) return false;
   packet_t* packets[LCI_BACKEND_MAX_POLLS];
   const size_t n_packets = device.get_impl()->packet_pool.get_impl()->get_n(
@@ -298,7 +299,7 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
       }
     }
   }
-  if (progress_shm_budget(runtime, device, endpoint)) {
+  if (progress_shm(runtime, device, endpoint)) {
     error = errorcode_t::done;
   }
   if (device.p_impl->refill_recvs()) {

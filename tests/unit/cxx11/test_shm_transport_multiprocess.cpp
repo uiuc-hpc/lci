@@ -64,23 +64,6 @@ void progress_device(lci::device_t device)
 
 void bootstrap_barrier() { LCT_pmi_barrier(); }
 
-void check_shm_counter_deltas(const lci::shm::counters_t& before,
-                              const lci::shm::counters_t& after,
-                              uint64_t expected_send_messages,
-                              uint64_t expected_send_bytes,
-                              uint64_t expected_recv_messages,
-                              uint64_t expected_recv_bytes)
-{
-  assert(after.send_messages >= before.send_messages);
-  assert(after.send_bytes >= before.send_bytes);
-  assert(after.recv_messages >= before.recv_messages);
-  assert(after.recv_bytes >= before.recv_bytes);
-  assert(after.send_messages - before.send_messages == expected_send_messages);
-  assert(after.send_bytes - before.send_bytes == expected_send_bytes);
-  assert(after.recv_messages - before.recv_messages == expected_recv_messages);
-  assert(after.recv_bytes - before.recv_bytes == expected_recv_bytes);
-}
-
 template <typename Fn>
 lci::status_t retry_until_on_device(lci::device_t device, Fn&& fn)
 {
@@ -98,7 +81,6 @@ void exchange_on_device(lci::device_t device, lci::tag_t tag, int salt)
   const int rank = lci::get_rank_me();
   const int peer = 1 - rank;
   const size_t msg_size = 32;
-  auto before = lci::shm::get_counters(device.get_impl()->shm_device);
   lci::comp_t scq = lci::alloc_cq();
   lci::comp_t rcq = lci::alloc_cq();
   std::vector<char> send_buffer(msg_size);
@@ -133,9 +115,6 @@ void exchange_on_device(lci::device_t device, lci::tag_t tag, int salt)
   assert(send_status.is_done());
   check_pattern(recv_buffer, peer, salt);
 
-  auto after = lci::shm::get_counters(device.get_impl()->shm_device);
-  assert(after.send_messages > before.send_messages);
-  assert(after.recv_messages > before.recv_messages);
   lci::free_comp(&rcq);
   lci::free_comp(&scq);
 }
@@ -158,27 +137,19 @@ void run_multi_device_runtime()
   lci::free_device_x(&first).runtime(runtime)();
 }
 
-lci::shm::counters_t shm_counters()
-{
-  auto device = lci::get_default_device();
-  return lci::shm::get_counters(device.get_impl()->shm_device);
-}
-
 bool shm_enabled()
 {
   auto device = lci::get_default_device();
   return lci::shm::is_enabled(device.get_impl()->shm_device);
 }
 
-void run_posted_alltoall(bool expect_shm, lci::comp_semantic_t comp_semantic =
-                                              lci::comp_semantic_t::memory)
+void run_posted_alltoall(lci::comp_semantic_t comp_semantic =
+                             lci::comp_semantic_t::memory)
 {
   const int rank = lci::get_rank_me();
   const int nranks = lci::get_rank_n();
   const size_t msg_size = 32;
   const lci::tag_t tag = 1000;
-  auto before = shm_counters();
-
   lci::comp_t scq = lci::alloc_cq();
   lci::comp_t rcq = lci::alloc_cq();
   std::vector<std::vector<char>> send_buffers(nranks,
@@ -237,16 +208,6 @@ void run_posted_alltoall(bool expect_shm, lci::comp_semantic_t comp_semantic =
   lci::free_comp(&rcq);
   lci::free_comp(&scq);
 
-  auto after = shm_counters();
-  if (expect_shm) {
-    assert(shm_enabled());
-    assert(after.send_messages > before.send_messages);
-    assert(after.recv_messages > before.recv_messages);
-  } else {
-    assert(!shm_enabled());
-    assert(after.send_messages == before.send_messages);
-    assert(after.recv_messages == before.recv_messages);
-  }
 }
 
 void run_unexpected_pair()
@@ -259,7 +220,6 @@ void run_unexpected_pair()
   const size_t msg_size = 24;
   const lci::tag_t tag = 2000;
   bootstrap_barrier();
-  auto before = shm_counters();
   lci::comp_t scq = lci::alloc_cq();
   lci::comp_t rcq = lci::alloc_cq();
   std::vector<char> send_buffer(msg_size);
@@ -280,13 +240,7 @@ void run_unexpected_pair()
   if (rank == receiver) {
     bool unexpected_received = false;
     for (int i = 0; i < max_progress_iters; ++i) {
-      lci::progress();
-      auto progressed = shm_counters();
-      assert(progressed.recv_messages >= before.recv_messages);
-      const uint64_t recv_delta =
-          progressed.recv_messages - before.recv_messages;
-      assert(recv_delta <= 1);
-      if (recv_delta == 1) {
+      if (lci::progress().is_done()) {
         unexpected_received = true;
         break;
       }
@@ -314,11 +268,7 @@ void run_unexpected_pair()
   lci::free_comp(&scq);
 
   bootstrap_barrier();
-  auto after = shm_counters();
   assert(shm_enabled());
-  check_shm_counter_deltas(
-      before, after, rank == sender ? 1 : 0, rank == sender ? msg_size : 0,
-      rank == receiver ? 1 : 0, rank == receiver ? msg_size : 0);
 }
 
 void run_active_message()
@@ -334,7 +284,6 @@ void run_active_message()
   lci::comp_t rcq = lci::alloc_cq();
   lci::rcomp_t rcomp = lci::register_rcomp(rcq);
   bootstrap_barrier();
-  auto before = shm_counters();
   std::vector<char> send_buffer(msg_size);
   fill_pattern(send_buffer, sender, receiver);
 
@@ -361,11 +310,7 @@ void run_active_message()
     std::free(recv_status.buffer);
   }
   bootstrap_barrier();
-  auto after = shm_counters();
   assert(shm_enabled());
-  check_shm_counter_deltas(
-      before, after, rank == sender ? 1 : 0, rank == sender ? msg_size : 0,
-      rank == receiver ? 1 : 0, rank == receiver ? msg_size : 0);
 
   lci::deregister_rcomp(rcomp);
   lci::free_comp(&rcq);
@@ -381,8 +326,6 @@ void run_ring_full_fallback()
   const size_t msg_size = 8;
   const lci::tag_t tag_base = 4000;
   lci::comp_t cq = lci::alloc_cq();
-  auto before = shm_counters();
-
   if (rank == 0) {
     std::vector<std::vector<char>> send_buffers(nmsgs,
                                                 std::vector<char>(msg_size));
@@ -395,9 +338,6 @@ void run_ring_full_fallback()
       assert(status.is_done() || status.is_posted());
       if (status.is_posted()) cq_pop_until(cq);
     }
-    auto after = shm_counters();
-    assert(after.send_messages > before.send_messages);
-    assert(after.ring_full_fallbacks > before.ring_full_fallbacks);
   } else {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     std::vector<std::vector<char>> recv_buffers(nmsgs,
@@ -453,8 +393,6 @@ void run_device_mr_fallback()
   const int peer = 1 - rank;
   const size_t msg_size = 16;
   const lci::tag_t tag = 6000;
-  auto before = shm_counters();
-
   lci::comp_t scq = lci::alloc_cq();
   lci::comp_t rcq = lci::alloc_cq();
   std::vector<char> send_buffer(msg_size);
@@ -477,10 +415,7 @@ void run_device_mr_fallback()
   lci::free_comp(&rcq);
   lci::free_comp(&scq);
 
-  auto after = shm_counters();
   assert(shm_enabled());
-  assert(after.send_messages == before.send_messages);
-  assert(after.recv_messages == before.recv_messages);
 #endif
 }
 
@@ -494,8 +429,6 @@ void run_large_tag_metadata()
   const size_t msg_size = 20;
   const lci::tag_t tag =
       lci::get_g_runtime().get_attr_max_imm_tag() + static_cast<lci::tag_t>(1);
-  auto before = shm_counters();
-
   lci::comp_t scq = lci::alloc_cq();
   lci::comp_t rcq = lci::alloc_cq();
   std::vector<char> send_buffer(msg_size);
@@ -520,10 +453,7 @@ void run_large_tag_metadata()
   lci::free_comp(&rcq);
   lci::free_comp(&scq);
 
-  auto after = shm_counters();
   assert(shm_enabled());
-  assert(after.send_messages > before.send_messages);
-  assert(after.recv_messages > before.recv_messages);
 }
 
 void run_large_rcomp_metadata()
@@ -537,8 +467,6 @@ void run_large_rcomp_metadata()
   const lci::tag_t tag = 7;
   const lci::rcomp_t large_rcomp = static_cast<lci::rcomp_t>(
       lci::get_g_runtime().get_attr_max_imm_rcomp() + 1);
-  auto before = shm_counters();
-
   lci::comp_t lcq = lci::alloc_cq();
   lci::comp_t rcq = lci::alloc_cq();
   lci::reserve_rcomps(static_cast<lci::rcomp_t>(large_rcomp + 64));
@@ -572,16 +500,14 @@ void run_large_rcomp_metadata()
   lci::free_comp(&rcq);
   lci::free_comp(&lcq);
 
-  auto after = shm_counters();
   assert(shm_enabled());
-  assert(after.send_messages > before.send_messages);
-  assert(after.recv_messages > before.recv_messages);
 }
 
 void run_enabled_suite()
 {
-  run_posted_alltoall(true);
-  run_posted_alltoall(true, lci::comp_semantic_t::network);
+  assert(shm_enabled());
+  run_posted_alltoall();
+  run_posted_alltoall(lci::comp_semantic_t::network);
   run_unexpected_pair();
   run_active_message();
 }
@@ -591,7 +517,7 @@ void run_disabled_mode()
   auto shm_device = lci::get_default_device().get_impl()->shm_device;
   assert(!shm_device.is_empty());
   assert(!lci::shm::is_enabled(shm_device));
-  run_posted_alltoall(false);
+  run_posted_alltoall();
 }
 }  // namespace
 

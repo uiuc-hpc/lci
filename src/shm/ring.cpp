@@ -3,6 +3,7 @@
 
 #include "shm/ring.hpp"
 
+#include <algorithm>
 #include <cstring>
 #include <limits>
 #include <new>
@@ -134,6 +135,18 @@ bool ring_t::is_consistent_empty() const
 size_t ring_t::max_payload_size() const
 {
   return valid ? payload_capacity(slot_size) : 0;
+}
+
+size_t ring_t::recv_available_approx() const
+{
+  if (!valid) return 0;
+  const uint64_t consumer =
+      consumer_position()->load(std::memory_order_relaxed);
+  const uint64_t producer =
+      producer_position()->load(std::memory_order_relaxed);
+  if (consumer > position_mask || producer > position_mask) return 0;
+  const uint64_t available = (producer - consumer) & position_mask;
+  return std::min(static_cast<size_t>(available), slot_count);
 }
 
 std::atomic<uint64_t>* ring_t::producer_position() const

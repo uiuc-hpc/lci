@@ -162,11 +162,6 @@ posix_ring_expected_t expected_ring(context_impl_t* context,
   return expected;
 }
 
-uint64_t load_counter(const std::atomic<uint64_t>& value)
-{
-  return value.load(std::memory_order_relaxed);
-}
-
 }  // namespace
 
 class device_impl_t
@@ -184,11 +179,6 @@ class device_impl_t
   std::vector<std::unique_ptr<posix_peer_mapping_t>> peer_mappings;
   std::vector<ring_t*> routes;
 
-  std::atomic<uint64_t> send_messages{0};
-  std::atomic<uint64_t> send_bytes{0};
-  std::atomic<uint64_t> recv_messages{0};
-  std::atomic<uint64_t> recv_bytes{0};
-  std::atomic<uint64_t> ring_full_fallbacks{0};
 };
 
 context_t alloc_context(runtime_t runtime, bool enable)
@@ -447,12 +437,18 @@ error_t post_send(device_t device, int rank, const void* buffer, size_t size,
                                           buffer, size, imm_data);
   } while (!allow_retry && error.errorcode == errorcode_t::retry_lock);
   if (error.is_done()) {
-    impl->send_messages.fetch_add(1, std::memory_order_relaxed);
-    impl->send_bytes.fetch_add(size, std::memory_order_relaxed);
     LCI_PCOUNTER_ADD(shm_send, 1);
     LCI_PCOUNTER_ADD(shm_send_bytes, size);
+  } else if (error.errorcode == errorcode_t::retry_nomem) {
+    LCI_PCOUNTER_ADD(shm_ring_full, 1);
   }
   return error;
+}
+
+size_t recv_available_approx(device_t device)
+{
+  if (!is_enabled(device) || device.get_impl()->owner == nullptr) return 0;
+  return device.get_impl()->owner->ring().recv_available_approx();
 }
 
 bool poll_comp(device_t device, recv_slot_t* slot)
@@ -460,9 +456,6 @@ bool poll_comp(device_t device, recv_slot_t* slot)
   if (!is_enabled(device) || device.get_impl()->owner == nullptr) return false;
   const bool found = device.get_impl()->owner->ring().poll(slot);
   if (found) {
-    device.get_impl()->recv_messages.fetch_add(1, std::memory_order_relaxed);
-    device.get_impl()->recv_bytes.fetch_add(slot->size,
-                                            std::memory_order_relaxed);
     LCI_PCOUNTER_ADD(shm_recv, 1);
     LCI_PCOUNTER_ADD(shm_recv_bytes, slot->size);
   }
@@ -475,27 +468,6 @@ void release(device_t device, recv_slot_t* slot)
   [[maybe_unused]] bool released =
       device.get_impl()->owner->ring().release(slot);
   LCI_DBG_Assert(released, "Failed to release SHM receive slot\n");
-}
-
-void note_ring_full_fallback(device_t device)
-{
-  if (device.is_empty()) return;
-  device.get_impl()->ring_full_fallbacks.fetch_add(1,
-                                                   std::memory_order_relaxed);
-  LCI_PCOUNTER_ADD(shm_ring_full_fallback, 1);
-}
-
-counters_t get_counters(device_t device)
-{
-  counters_t counters;
-  if (device.is_empty()) return counters;
-  auto* impl = device.get_impl();
-  counters.send_messages = load_counter(impl->send_messages);
-  counters.send_bytes = load_counter(impl->send_bytes);
-  counters.recv_messages = load_counter(impl->recv_messages);
-  counters.recv_bytes = load_counter(impl->recv_bytes);
-  counters.ring_full_fallbacks = load_counter(impl->ring_full_fallbacks);
-  return counters;
 }
 
 }  // namespace shm

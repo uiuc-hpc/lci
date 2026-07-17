@@ -50,7 +50,7 @@ extern LCT_pcounter_ctx_t pcounter_ctx;
     _macro(shm_send_bytes)                  \
     _macro(shm_recv)                        \
     _macro(shm_recv_bytes)                  \
-    _macro(shm_ring_full_fallback)          \
+    _macro(shm_ring_full)                   \
     _macro(progress)
 
 #define LCI_PCOUNTER_TIMER_FOR_EACH(_macro)
