@@ -69,6 +69,26 @@ struct post_comm_state_t {
   status_t status;
 };
 
+bool mr_may_be_device_memory(mr_t mr)
+{
+  if (mr == MR_DEVICE || mr == MR_UNKNOWN) return true;
+#if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
+  if (!mr.is_empty() &&
+      mr.get_impl()->acc_attr.type == accelerator::buffer_type_t::DEVICE) {
+    return true;
+  }
+#endif  // LCI_USE_CUDA || LCI_USE_HIP
+  return false;
+}
+
+bool eager_payload_needs_metadata(const post_comm_args_t& args,
+                                  const post_comm_state_t& state)
+{
+  return args.direction == direction_t::OUT && state.rhandler &&
+         (args.tag > args.runtime.get_attr_max_imm_tag() ||
+          state.rhandler > args.runtime.get_attr_max_imm_rcomp());
+}
+
 void preprocess_args(post_comm_args_t& args)
 {
   // handle COMP_NULL and COMP_NULL_RETRY
@@ -160,11 +180,11 @@ void set_protocol(const post_comm_args_t& args,
   size_t msg_size_if_eager = args.size;
   if (args.direction == direction_t::OUT && state.rhandler) {
     // send/am/put_signal with eager protocol
-    if (args.tag > args.runtime.get_attr_max_imm_tag() ||
-        state.rhandler > args.runtime.get_attr_max_imm_rcomp()) {
+    if (eager_payload_needs_metadata(args, state)) {
       msg_size_if_eager += sizeof(args.tag) + sizeof(state.rhandler);
     }
   }
+  const bool eager_needs_payload_metadata = msg_size_if_eager > args.size;
 
   if (args.direction == direction_t::IN && traits.local_buffer_only) {
     state.protocol = protocol_t::recv;
@@ -177,18 +197,22 @@ void set_protocol(const post_comm_args_t& args,
     state.protocol = protocol_t::rdv_zcopy;
   } else if (msg_size_if_eager <= traits.max_inject_size &&
              args.direction == direction_t::OUT &&
-             args.comp_semantic == comp_semantic_t::memory && !force_zcopy) {
-    // We use the inject protocol only if the five conditions are met:
+             args.comp_semantic == comp_semantic_t::memory && !force_zcopy &&
+             !eager_needs_payload_metadata) {
+    // We use the inject protocol only if the six conditions are met:
     // 1. We are sending a single buffer, and
     // 2. The size of the data is smaller than the maximum inject size, and
     // 3. The direction is OUT, and
     // 4. The completion type is buffer.
     // 5. We are not forcing the use of the zero-copy protocol.
+    // 6. The tag/rcomp metadata fits in immediate data. Slow-path metadata
+    //    must be carried in a bcopy packet payload.
     state.protocol = protocol_t::inject;
-  } else if (args.mr.is_empty() && msg_size_if_eager <= traits.max_bcopy_size &&
-             !force_zcopy) {
+  } else if ((args.mr.is_empty() || eager_needs_payload_metadata) &&
+             msg_size_if_eager <= traits.max_bcopy_size &&
+             !mr_may_be_device_memory(args.mr) && !force_zcopy) {
     state.protocol = protocol_t::eager_bcopy;
-    if (msg_size_if_eager > args.size) {
+    if (eager_needs_payload_metadata) {
       state.piggyback_tag_rcomp_in_msg = true;
     }
   } else {
@@ -390,6 +414,22 @@ error_t post_network_op(const post_comm_args_t& args,
     if (state.protocol == protocol_t::inject) {
       // inject protocol (return retry or done)
       if (traits.local_buffer_only) {
+#if LCI_WITH_SHM
+        auto shm_device = args.device.get_impl()->shm_device;
+        if (shm::can_send(shm_device, args.rank, args.size)) {
+          error = shm::post_send(shm_device, args.rank, args.local_buffer,
+                                 args.size, state.imm_data, args.allow_retry);
+          if (error.is_done()) {
+            delete state.internal_ctx;
+            state.internal_ctx = nullptr;
+            state.comp_passed_to_network = false;
+            return errorcode_t::done;
+          }
+          if (error.errorcode == errorcode_t::retry_lock) return error;
+          LCI_Assert(error.errorcode == errorcode_t::retry_nomem,
+                     "Unexpected SHM post_send error %s\n", error.get_str());
+        }
+#endif
         error = args.endpoint.p_impl->post_sends(
             args.rank, args.local_buffer, args.size, state.imm_data,
             state.internal_ctx, args.allow_retry);
@@ -411,6 +451,23 @@ error_t post_network_op(const post_comm_args_t& args,
       if (traits.local_buffer_only) {
         // buffer-copy send
         // note: we need to use state.size instead of args.size
+#if LCI_WITH_SHM
+        auto shm_device = args.device.get_impl()->shm_device;
+        if (shm::can_send(shm_device, args.rank, state.packet_size_to_send)) {
+          error = shm::post_send(shm_device, args.rank, buffer,
+                                 state.packet_size_to_send, state.imm_data,
+                                 args.allow_retry);
+          if (error.is_done()) {
+            delete state.internal_ctx;
+            state.internal_ctx = nullptr;
+            state.comp_passed_to_network = false;
+            return errorcode_t::done;
+          }
+          if (error.errorcode == errorcode_t::retry_lock) return error;
+          LCI_Assert(error.errorcode == errorcode_t::retry_nomem,
+                     "Unexpected SHM post_send error %s\n", error.get_str());
+        }
+#endif
         error = args.endpoint.p_impl->post_send(
             args.rank, buffer, state.packet_size_to_send,
             state.packet->get_mr(args.device), state.imm_data,

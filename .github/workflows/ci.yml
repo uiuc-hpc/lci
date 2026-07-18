@@ -86,6 +86,7 @@ jobs:
               -GNinja
               -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
               -DLCI_NETWORK_BACKENDS=ofi,ibv
+              -DLCI_WITH_SHM=ON
               -DLCI_USE_TCMALLOC=OFF
               -DLCI_USE_REG_CACHE=${{ matrix.reg_cache }}
               -DLCI_BACKEND_MAX_CQES_DEFAULT=1024
@@ -111,4 +112,9 @@ jobs:
         run: |
             cd build
             # export LCI_LOG_LEVEL=trace
+            if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+              # Keep hosted Linux CI on a deterministic loopback-capable OFI
+              # provider instead of fabric-specific providers on the runner.
+              export LCI_ATTR_OFI_PROVIDER_NAME=sockets
+            fi
             ctest --extra-verbose --timeout 300 --output-on-failure # --tests-regex "bench_put_bw"

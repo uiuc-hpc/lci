@@ -11,6 +11,11 @@
 #include "util.hpp"
 
 #include "test_idle.hpp"
+// SHM fork-stress coverage must run before tests initialize libfabric; some
+// providers install fork-safety abort handlers after initialization.
+#if LCI_WITH_SHM
+#include "test_shm_ring.hpp"
+#endif
 #include "test_basic.hpp"
 #include "test_network.hpp"
 #include "test_mpmc_array.hpp"

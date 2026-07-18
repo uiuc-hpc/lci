@@ -101,6 +101,8 @@ inline void packet_pool_impl_t::put(packet_t* p_packet)
 
 inline bool packet_pool_impl_t::is_packet(void* address, bool include_lcontext)
 {
+  if (address == nullptr) return false;
+
   void* packet_address;
   if (!include_lcontext) {
     packet_address =
