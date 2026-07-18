@@ -216,6 +216,7 @@ thread_local std::vector<uint64_t> tls_device_progress_counter_map(128, 0);
 
 namespace
 {
+#if LCI_WITH_SHM
 bool progress_shm(runtime_t runtime, device_t device, endpoint_t endpoint)
 {
   auto shm_device = device.get_impl()->shm_device;
@@ -260,6 +261,7 @@ bool progress_shm(runtime_t runtime, device_t device, endpoint_t endpoint)
   }
   return progressed > 0;
 }
+#endif
 }  // namespace
 
 error_t progress_x::call_impl(runtime_t runtime, device_t device,
@@ -299,9 +301,11 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
       }
     }
   }
+#if LCI_WITH_SHM
   if (progress_shm(runtime, device, endpoint)) {
     error = errorcode_t::done;
   }
+#endif
   if (device.p_impl->refill_recvs()) {
     error = errorcode_t::done;
   }

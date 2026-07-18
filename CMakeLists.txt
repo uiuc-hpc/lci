@@ -115,6 +115,7 @@ if(NOT LCI_WITH_LCT_ONLY)
   option(LCI_WITH_BENCHMARKS "Build LCI benchmarks" ${LCI_ROOT_PROJECT})
   option(LCI_WITH_DOC "Build LCI documentation" ${LCI_ROOT_PROJECT})
   option(LCI_WITH_TOOLS "Build LCI tools" ${LCI_ROOT_PROJECT})
+  option(LCI_WITH_SHM "Build experimental shared-memory transport" OFF)
 
   # ############################################################################
   # Figure out which network backend to use

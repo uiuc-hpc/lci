@@ -28,9 +28,11 @@
 #include "data_structure/mpmc_set.hpp"
 #include "data_structure/imm_tag_archive.hpp"
 #include "bootstrap/bootstrap.hpp"
+#if LCI_WITH_SHM
 #include "shm/posix_ring.hpp"
 #include "shm/ring.hpp"
 #include "shm/transport.hpp"
+#endif
 #include "reg_cache/reg_cache.hpp"
 #include "backlog_queue/backlog_queue.hpp"
 #if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
