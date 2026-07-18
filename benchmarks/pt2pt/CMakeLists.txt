@@ -22,8 +22,6 @@ add_lci_tests(
   "${LCI_USE_CTEST_LAUNCHER} -n 4 ${LCI_USE_CTEST_ARGS} [TARGET] -t 1 --nelems 1024 --niters 1"
   "${LCI_USE_CTEST_LAUNCHER} -n 2 ${LCI_USE_CTEST_ARGS} [TARGET] -t 2 --nelems 1024 --niters 1"
 )
-set_tests_properties(test-benchmark-bench_put_bw test-benchmark-bench_put_bw-1
-                     PROPERTIES ENVIRONMENT LCI_ATTR_SHM_ENABLE=0)
 
 add_lci_executable(bench_am_lat bench_am_lat.cpp)
 target_link_libraries(bench_am_lat PRIVATE OpenMP::OpenMP_CXX cxxopts::cxxopts)

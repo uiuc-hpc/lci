@@ -42,7 +42,10 @@ void worker(int peer_rank, lci::device_t device, int *data, lci::mr_t mr,
   while (expected > lci::counter_get(comp)) {
     lci::progress_x().device(device)();
   }
-  // One am to signal the end of the test
+  // Drain network puts before signaling completion. The AM may use SHM, which
+  // does not provide ordering with the preceding network puts.
+  lci::wait_drained_x().device(device)();
+  // One AM to signal the end of the test.
   lci::status_t status;
   do {
     status = lci::post_am_x(peer_rank, nullptr, 0, lci::COMP_NULL_RETRY, rcomp).device(device)();
@@ -144,7 +147,6 @@ int main(int argc, char** argv)
       lci::device_t device = devices[device_idx];
       worker(peer_rank, device, (int*)data, mrs[device_idx],
              peer_rmrs[device_idx], comp, rcomp);
-      lci::wait_drained_x().device(device)();
     }
   }
   if (is_receiver) {
