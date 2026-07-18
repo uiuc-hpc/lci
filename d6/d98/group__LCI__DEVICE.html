@@ -146,6 +146,12 @@ Classes</h2></td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">alloc_default_endpoint</td><td>of type <b>bool</b>; Whether to allocate the default endpoint. </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">alloc_progress_endpoint</td><td>of type <b>bool</b>; Whether to allocate another endpoint for communication invoked by the progress function. </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">use_reg_cache</td><td>of type <b>bool</b>; Whether to use the memory registration cache (if compiled). </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">shm_enable</td><td>of type <b>bool</b>; Whether to enable the experimental intra-node shared-memory small-message transport. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">shm_ring_size</td><td>of type <b>size_t</b>; Maximum shared-memory inbound slot-array size in bytes; the effective slot count is rounded down to a power of two. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">shm_slot_size</td><td>of type <b>size_t</b>; Shared-memory fixed slot size in bytes. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">shm_producer_cas_attempts</td><td>of type <b>size_t</b>; Maximum compare-and-swap attempts for each shared-memory ring producer reservation. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">shm_consumer_cas_attempts</td><td>of type <b>size_t</b>; Maximum compare-and-swap attempts for each shared-memory ring consumer claim. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">shm_max_polls</td><td>of type <b>size_t</b>; Maximum shared-memory receive slots progressed after each network completion poll. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">uid</td><td>of type <b>int</b>; A unique device id across the entire process. </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">ibv_td_strategy</td><td>of type <b><a class="el" href="../../d5/dd3/namespacelci.html#ad33288500c616599a81edcccf024c647">attr_ibv_td_strategy_t</a></b>; For the IBV backend: the thread domain strategy. </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">name</td><td>of type <b>const char*</b>; Name of the resource. </td></tr>

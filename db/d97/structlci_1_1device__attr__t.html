@@ -141,6 +141,18 @@ Public Attributes</h2></td></tr>
 <tr class="separator:ab695aea1206c4cd903c2a1359e502b9a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae05bf27c7595a083d4f280abb6db98e9" id="r_ae05bf27c7595a083d4f280abb6db98e9"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae05bf27c7595a083d4f280abb6db98e9">use_reg_cache</a></td></tr>
 <tr class="separator:ae05bf27c7595a083d4f280abb6db98e9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afdeddfcf05346a00bf04e17dcbf2575f" id="r_afdeddfcf05346a00bf04e17dcbf2575f"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#afdeddfcf05346a00bf04e17dcbf2575f">shm_enable</a></td></tr>
+<tr class="separator:afdeddfcf05346a00bf04e17dcbf2575f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a523a327dd870fb5105a0ad409e75354b" id="r_a523a327dd870fb5105a0ad409e75354b"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a523a327dd870fb5105a0ad409e75354b">shm_ring_size</a></td></tr>
+<tr class="separator:a523a327dd870fb5105a0ad409e75354b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5e64e70c829bfdd2778811fccc50ade5" id="r_a5e64e70c829bfdd2778811fccc50ade5"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a5e64e70c829bfdd2778811fccc50ade5">shm_slot_size</a></td></tr>
+<tr class="separator:a5e64e70c829bfdd2778811fccc50ade5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a583f67a8980eb84f8bc867a65401c6d6" id="r_a583f67a8980eb84f8bc867a65401c6d6"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a583f67a8980eb84f8bc867a65401c6d6">shm_producer_cas_attempts</a></td></tr>
+<tr class="separator:a583f67a8980eb84f8bc867a65401c6d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6bc681212d0ea570718efc4706865b6b" id="r_a6bc681212d0ea570718efc4706865b6b"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a6bc681212d0ea570718efc4706865b6b">shm_consumer_cas_attempts</a></td></tr>
+<tr class="separator:a6bc681212d0ea570718efc4706865b6b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af745e51f7f90520f91b2cf9decc73287" id="r_af745e51f7f90520f91b2cf9decc73287"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#af745e51f7f90520f91b2cf9decc73287">shm_max_polls</a></td></tr>
+<tr class="separator:af745e51f7f90520f91b2cf9decc73287"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a65f063caf4ffddb411f43a6010955972" id="r_a65f063caf4ffddb411f43a6010955972"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a65f063caf4ffddb411f43a6010955972">uid</a></td></tr>
 <tr class="separator:a65f063caf4ffddb411f43a6010955972"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8159dbf8ad081f8c9f96aa8a8ac00f04" id="r_a8159dbf8ad081f8c9f96aa8a8ac00f04"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d5/dd3/namespacelci.html#ad33288500c616599a81edcccf024c647">attr_ibv_td_strategy_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8159dbf8ad081f8c9f96aa8a8ac00f04">ibv_td_strategy</a></td></tr>
@@ -271,6 +283,90 @@ Public Attributes</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">uint64_t lci::device_attr_t::ofi_lock_mode</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a6bc681212d0ea570718efc4706865b6b" name="a6bc681212d0ea570718efc4706865b6b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6bc681212d0ea570718efc4706865b6b">&#9670;&#160;</a></span>shm_consumer_cas_attempts</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t lci::device_attr_t::shm_consumer_cas_attempts</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="afdeddfcf05346a00bf04e17dcbf2575f" name="afdeddfcf05346a00bf04e17dcbf2575f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afdeddfcf05346a00bf04e17dcbf2575f">&#9670;&#160;</a></span>shm_enable</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool lci::device_attr_t::shm_enable</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="af745e51f7f90520f91b2cf9decc73287" name="af745e51f7f90520f91b2cf9decc73287"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af745e51f7f90520f91b2cf9decc73287">&#9670;&#160;</a></span>shm_max_polls</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t lci::device_attr_t::shm_max_polls</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a583f67a8980eb84f8bc867a65401c6d6" name="a583f67a8980eb84f8bc867a65401c6d6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a583f67a8980eb84f8bc867a65401c6d6">&#9670;&#160;</a></span>shm_producer_cas_attempts</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t lci::device_attr_t::shm_producer_cas_attempts</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a523a327dd870fb5105a0ad409e75354b" name="a523a327dd870fb5105a0ad409e75354b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a523a327dd870fb5105a0ad409e75354b">&#9670;&#160;</a></span>shm_ring_size</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t lci::device_attr_t::shm_ring_size</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a5e64e70c829bfdd2778811fccc50ade5" name="a5e64e70c829bfdd2778811fccc50ade5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5e64e70c829bfdd2778811fccc50ade5">&#9670;&#160;</a></span>shm_slot_size</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t lci::device_attr_t::shm_slot_size</td>
         </tr>
       </table>
 </div><div class="memdoc">

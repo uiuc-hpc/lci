@@ -1,5 +1,11 @@
 var NAVTREEINDEX3 =
 {
+"d8/d33/group__LCI__BASIC.html#gaa8f43a876e4e48c4d541773c00e5933a":[6,0,25],
+"d8/d33/group__LCI__BASIC.html#gaaba5620658f664e6c9543e3b440586d4":[6,0,36],
+"d8/d33/group__LCI__BASIC.html#gaabecf4e5e33664a291f2f6162e93b5d7":[6,0,43],
+"d8/d33/group__LCI__BASIC.html#gaba5d7e36dca301ba519df1907fbf2a8c":[6,0,12],
+"d8/d33/group__LCI__BASIC.html#gabce215a9c6eea84dcee74d0179c34aab":[6,0,29],
+"d8/d33/group__LCI__BASIC.html#gaca9c81007bfc7e1ddb44071f3aaaf400":[6,0,22],
 "d8/d33/group__LCI__BASIC.html#gacd46beb25126ebb7bf83b33e6381d6d2":[6,0,14],
 "d8/d33/group__LCI__BASIC.html#gacd7c06c7f6c55fe82603ae421df1e0f6":[6,0,6],
 "d8/d33/group__LCI__BASIC.html#gad252b9870b3459000f93aaed9ba31a75":[6,0,40],
@@ -240,14 +246,8 @@ var NAVTREEINDEX3 =
 "d8/df6/group__LCI__PUT__UPACKET.html":[6,2,11],
 "d9/d10/classlci_1_1alloc__device__x.html":[6,2,2,0],
 "d9/d10/classlci_1_1alloc__device__x.html#a0364c3bcc9d35c8c2dadd4a683e13b2b":[6,2,2,0,1],
-"d9/d10/classlci_1_1alloc__device__x.html#a12e57dde78668d47808506dbd65f011e":[6,2,2,0,0],
-"d9/d10/classlci_1_1alloc__device__x.html#a286b16476406d47d2e672d12e2243892":[6,2,2,0,30],
-"d9/d10/classlci_1_1alloc__device__x.html#a2a3d4dc6932b52cbfeb08c7bb2a938da":[6,2,2,0,21],
-"d9/d10/classlci_1_1alloc__device__x.html#a3c338f36319a596e6fef82a9e961a7f4":[6,2,2,0,19],
-"d9/d10/classlci_1_1alloc__device__x.html#a3ef7a9ec0918cba69a4820a6b91ef725":[6,2,2,0,22],
-"d9/d10/classlci_1_1alloc__device__x.html#a4c8c86d9400791bb609b391aef165d68":[6,2,2,0,9],
-"d9/d10/classlci_1_1alloc__device__x.html#a54e48c6e71a9a98f78d92ed7ed638679":[6,2,2,0,20],
-"d9/d10/classlci_1_1alloc__device__x.html#a5508f2d5c851ff147e9f8cd40db1ade3":[6,2,2,0,17],
-"d9/d10/classlci_1_1alloc__device__x.html#a556f4c678c9b9292281fd92933c05b70":[6,2,2,0,24],
-"d9/d10/classlci_1_1alloc__device__x.html#a561a0ed83694bc3350a801b629e5bd21":[6,2,2,0,14]
+"d9/d10/classlci_1_1alloc__device__x.html#a08d8ac461c7857938a104835fa2161f2":[6,2,2,0,20],
+"d9/d10/classlci_1_1alloc__device__x.html#a0c88297a87de5e3a0f81117467aef6c1":[6,2,2,0,41],
+"d9/d10/classlci_1_1alloc__device__x.html#a0ce0ef1000dad6c0728fc9f4cb64ad7a":[6,2,2,0,4],
+"d9/d10/classlci_1_1alloc__device__x.html#a12e57dde78668d47808506dbd65f011e":[6,2,2,0,0]
 };
