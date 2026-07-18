@@ -3,6 +3,8 @@
 
 #include "shm/posix_ring.hpp"
 
+#include "lci_internal.hpp"
+
 #include <algorithm>
 #include <cerrno>
 #include <cstring>
@@ -233,17 +235,20 @@ bool validate_posix_ring_handle(const posix_ring_handle_t& handle,
 }
 
 posix_owner_mapping_t::posix_owner_mapping_t(void* region, size_t region_size,
-                                             const posix_ring_handle_t& handle)
+                                             const posix_ring_handle_t& handle,
+                                             size_t producer_cas_attempts,
+                                             size_t consumer_cas_attempts)
     : region_(region), region_size_(region_size), handle_(handle)
 {
-  ring_.reset(new ring_t(region_, region_size_,
-                         static_cast<size_t>(handle_.slot_count),
-                         static_cast<size_t>(handle_.slot_size)));
+  ring_.reset(new ring_t(region_, static_cast<size_t>(handle_.slot_count),
+                         static_cast<size_t>(handle_.slot_size),
+                         producer_cas_attempts, consumer_cas_attempts));
 }
 
 std::unique_ptr<posix_owner_mapping_t> posix_owner_mapping_t::create(
     const std::string& name, int owner_global_rank, uint64_t device_uid,
     size_t slot_count, size_t slot_size, size_t max_message_size,
+    size_t producer_cas_attempts, size_t consumer_cas_attempts,
     std::string* error)
 {
   if (error != nullptr) error->clear();
@@ -293,27 +298,20 @@ std::unique_ptr<posix_owner_mapping_t> posix_owner_mapping_t::create(
     shm_unlink(handle.name);
     return nullptr;
   }
-  if (!ring_t::initialize(region, static_cast<size_t>(handle.mapping_size),
-                          slot_count, slot_size)) {
-    set_error(error, "failed to initialize POSIX ring mapping");
-    munmap(region, static_cast<size_t>(handle.mapping_size));
-    shm_unlink(handle.name);
-    return nullptr;
-  }
+  ring_t::initialize(region, slot_count, slot_size);
 
   std::unique_ptr<posix_owner_mapping_t> result;
   try {
     result.reset(new posix_owner_mapping_t(
-        region, static_cast<size_t>(handle.mapping_size), handle));
+        region, static_cast<size_t>(handle.mapping_size), handle,
+        producer_cas_attempts, consumer_cas_attempts));
   } catch (...) {
     munmap(region, static_cast<size_t>(handle.mapping_size));
     shm_unlink(handle.name);
     throw;
   }
-  if (!result->ring().is_valid() || !result->ring().is_consistent_empty()) {
-    set_error(error, "new POSIX ring mapping failed consistency validation");
-    return nullptr;
-  }
+  LCI_Assert(result->ring().is_consistent_empty(),
+             "New POSIX ring mapping is not empty\n");
   return result;
 }
 
@@ -336,16 +334,19 @@ bool posix_owner_mapping_t::unlink_name(std::string* error)
 }
 
 posix_peer_mapping_t::posix_peer_mapping_t(void* region, size_t region_size,
-                                           const posix_ring_handle_t& handle)
+                                           const posix_ring_handle_t& handle,
+                                           size_t producer_cas_attempts,
+                                           size_t consumer_cas_attempts)
     : region_(region), region_size_(region_size), handle_(handle)
 {
-  ring_.reset(new ring_t(region_, region_size_,
-                         static_cast<size_t>(handle_.slot_count),
-                         static_cast<size_t>(handle_.slot_size)));
+  ring_.reset(new ring_t(region_, static_cast<size_t>(handle_.slot_count),
+                         static_cast<size_t>(handle_.slot_size),
+                         producer_cas_attempts, consumer_cas_attempts));
 }
 
 std::unique_ptr<posix_peer_mapping_t> posix_peer_mapping_t::attach(
     const posix_ring_handle_t& handle, const posix_ring_expected_t& expected,
+    size_t producer_cas_attempts, size_t consumer_cas_attempts,
     std::string* error)
 {
   if (error != nullptr) error->clear();
@@ -388,12 +389,13 @@ std::unique_ptr<posix_peer_mapping_t> posix_peer_mapping_t::attach(
   std::unique_ptr<posix_peer_mapping_t> result;
   try {
     result.reset(new posix_peer_mapping_t(
-        region, static_cast<size_t>(handle.mapping_size), handle));
+        region, static_cast<size_t>(handle.mapping_size), handle,
+        producer_cas_attempts, consumer_cas_attempts));
   } catch (...) {
     munmap(region, static_cast<size_t>(handle.mapping_size));
     throw;
   }
-  if (!result->ring().is_valid() || !result->ring().is_consistent_empty()) {
+  if (!result->ring().is_consistent_empty()) {
     set_error(error,
               "attached POSIX ring is not in the initialized empty state");
     return nullptr;

@@ -123,12 +123,22 @@ void run_multi_device_runtime()
 {
   assert(lci::get_rank_n() == 2);
   lci::runtime_t runtime = lci::get_g_runtime();
-  lci::device_t first =
-      lci::alloc_device_x().runtime(runtime).shm_enable(true)();
-  lci::device_t second =
-      lci::alloc_device_x().runtime(runtime).shm_enable(true)();
+  lci::device_t first = lci::alloc_device_x()
+                            .runtime(runtime)
+                            .shm_enable(true)
+                            .shm_producer_cas_attempts(2)
+                            .shm_consumer_cas_attempts(3)();
+  lci::device_t second = lci::alloc_device_x()
+                             .runtime(runtime)
+                             .shm_enable(true)
+                             .shm_producer_cas_attempts(2)
+                             .shm_consumer_cas_attempts(3)();
   assert(lci::shm::is_enabled(first.get_impl()->shm_device));
   assert(lci::shm::is_enabled(second.get_impl()->shm_device));
+  assert(first.get_attr_shm_producer_cas_attempts() == 2);
+  assert(first.get_attr_shm_consumer_cas_attempts() == 3);
+  assert(second.get_attr_shm_producer_cas_attempts() == 2);
+  assert(second.get_attr_shm_consumer_cas_attempts() == 3);
 
   exchange_on_device(first, 7001, 101);
   exchange_on_device(second, 7002, 202);
@@ -143,8 +153,8 @@ bool shm_enabled()
   return lci::shm::is_enabled(device.get_impl()->shm_device);
 }
 
-void run_posted_alltoall(lci::comp_semantic_t comp_semantic =
-                             lci::comp_semantic_t::memory)
+void run_posted_alltoall(
+    lci::comp_semantic_t comp_semantic = lci::comp_semantic_t::memory)
 {
   const int rank = lci::get_rank_me();
   const int nranks = lci::get_rank_n();
@@ -207,7 +217,6 @@ void run_posted_alltoall(lci::comp_semantic_t comp_semantic =
   }
   lci::free_comp(&rcq);
   lci::free_comp(&scq);
-
 }
 
 void run_unexpected_pair()

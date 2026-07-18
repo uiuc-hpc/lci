@@ -38,6 +38,7 @@ add_lci_test(
   "env LCI_ATTR_SHM_ENABLE=1 LCI_SHM_TEST_MODE=alltoall ${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 8 runtime LCT"
   "env LCI_ATTR_SHM_ENABLE=0 LCI_SHM_TEST_MODE=disabled ${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT"
   "env LCI_ATTR_SHM_ENABLE=1 LCI_ATTR_SHM_RING_SIZE=128 LCI_ATTR_SHM_SLOT_SIZE=128 LCI_SHM_TEST_MODE=fallback ${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT"
+  "env LCI_ATTR_SHM_ENABLE=1 LCI_ATTR_SHM_RING_SIZE=384 LCI_ATTR_SHM_SLOT_SIZE=128 LCI_SHM_TEST_MODE=alltoall ${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT"
   "env LCI_ATTR_SHM_ENABLE=1 LCI_SHM_TEST_MODE=device-mr-fallback ${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT"
   "env LCI_ATTR_SHM_ENABLE=1 LCI_SHM_TEST_MODE=large-tag ${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT"
   "env LCI_ATTR_SHM_ENABLE=1 LCI_SHM_TEST_MODE=large-rcomp ${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 runtime LCT"

@@ -128,7 +128,8 @@ device_t alloc_device_x::call_impl(
     double net_send_reserved_pct, uint64_t ofi_lock_mode,
     bool alloc_default_endpoint, bool alloc_progress_endpoint,
     bool use_reg_cache, bool shm_enable, size_t shm_ring_size,
-    size_t shm_slot_size, size_t shm_max_polls,
+    size_t shm_slot_size, size_t shm_producer_cas_attempts,
+    size_t shm_consumer_cas_attempts, size_t shm_max_polls,
     attr_ibv_td_strategy_t ibv_td_strategy, const char* name,
     void* user_context, runtime_t runtime, net_context_t net_context,
     packet_pool_t packet_pool) const
@@ -152,6 +153,8 @@ device_t alloc_device_x::call_impl(
   attr.shm_enable = shm_enable;
   attr.shm_ring_size = shm_ring_size;
   attr.shm_slot_size = shm_slot_size;
+  attr.shm_producer_cas_attempts = shm_producer_cas_attempts;
+  attr.shm_consumer_cas_attempts = shm_consumer_cas_attempts;
   attr.shm_max_polls = shm_max_polls;
   attr.ibv_td_strategy = ibv_td_strategy;
   attr.name = name;
@@ -167,7 +170,8 @@ device_t alloc_device_x::call_impl(
   }
   device.get_impl()->shm_device = shm::alloc_device(
       runtime.get_impl()->default_shm_context, device, attr.shm_enable,
-      attr.shm_ring_size, attr.shm_slot_size);
+      attr.shm_ring_size, attr.shm_slot_size, attr.shm_producer_cas_attempts,
+      attr.shm_consumer_cas_attempts);
   if (attr.alloc_default_endpoint) {
     device.get_impl()->default_endpoint =
         alloc_endpoint_x().runtime(runtime).device(device)();

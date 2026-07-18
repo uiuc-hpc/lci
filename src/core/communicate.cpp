@@ -450,8 +450,7 @@ error_t post_network_op(const post_comm_args_t& args,
         // buffer-copy send
         // note: we need to use state.size instead of args.size
         auto shm_device = args.device.get_impl()->shm_device;
-        if (shm::can_send(shm_device, args.rank,
-                          state.packet_size_to_send)) {
+        if (shm::can_send(shm_device, args.rank, state.packet_size_to_send)) {
           error = shm::post_send(shm_device, args.rank, buffer,
                                  state.packet_size_to_send, state.imm_data,
                                  args.allow_retry);

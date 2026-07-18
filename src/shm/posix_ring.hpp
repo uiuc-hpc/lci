@@ -50,10 +50,10 @@ struct posix_ring_expected_t {
 };
 
 bool validate_posix_ring_handle(const posix_ring_handle_t& handle,
-                                std::string* error = nullptr);
+                                std::string* error);
 bool validate_posix_ring_handle(const posix_ring_handle_t& handle,
                                 const posix_ring_expected_t& expected,
-                                std::string* error = nullptr);
+                                std::string* error);
 // POSIX object size used for ftruncate()/mmap()/fstat(). This can be larger
 // than ring_t::required_size() because some kernels report shm object sizes at
 // page granularity.
@@ -69,7 +69,8 @@ class posix_owner_mapping_t
   static std::unique_ptr<posix_owner_mapping_t> create(
       const std::string& name, int owner_global_rank, uint64_t device_uid,
       size_t slot_count, size_t slot_size, size_t max_message_size,
-      std::string* error = nullptr);
+      size_t producer_cas_attempts, size_t consumer_cas_attempts,
+      std::string* error);
 
   ~posix_owner_mapping_t();
   posix_owner_mapping_t(const posix_owner_mapping_t&) = delete;
@@ -79,11 +80,13 @@ class posix_owner_mapping_t
 
   const posix_ring_handle_t& handle() const { return handle_; }
   ring_t& ring() { return *ring_; }
-  bool unlink_name(std::string* error = nullptr);
+  bool unlink_name(std::string* error);
 
  private:
   posix_owner_mapping_t(void* region, size_t region_size,
-                        const posix_ring_handle_t& handle);
+                        const posix_ring_handle_t& handle,
+                        size_t producer_cas_attempts,
+                        size_t consumer_cas_attempts);
 
   void* region_ = nullptr;
   size_t region_size_ = 0;
@@ -99,7 +102,8 @@ class posix_peer_mapping_t
  public:
   static std::unique_ptr<posix_peer_mapping_t> attach(
       const posix_ring_handle_t& handle, const posix_ring_expected_t& expected,
-      std::string* error = nullptr);
+      size_t producer_cas_attempts, size_t consumer_cas_attempts,
+      std::string* error);
 
   ~posix_peer_mapping_t();
   posix_peer_mapping_t(const posix_peer_mapping_t&) = delete;
@@ -112,7 +116,9 @@ class posix_peer_mapping_t
 
  private:
   posix_peer_mapping_t(void* region, size_t region_size,
-                       const posix_ring_handle_t& handle);
+                       const posix_ring_handle_t& handle,
+                       size_t producer_cas_attempts,
+                       size_t consumer_cas_attempts);
 
   void* region_ = nullptr;
   size_t region_size_ = 0;

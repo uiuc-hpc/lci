@@ -61,7 +61,9 @@ context_t alloc_context(runtime_t runtime, bool enable = true);
 void free_context(context_t* context);
 
 device_t alloc_device(context_t context, lci::device_t core_device, bool enable,
-                      size_t ring_size, size_t slot_size);
+                      size_t ring_size, size_t slot_size,
+                      size_t producer_cas_attempts,
+                      size_t consumer_cas_attempts);
 void free_device(device_t* device);
 
 bool is_enabled(device_t device);

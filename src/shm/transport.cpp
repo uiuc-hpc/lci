@@ -32,9 +32,13 @@ static_assert(sizeof(hostname_record_t) <= pmi_max_binary_bytes,
 static_assert(sizeof(posix_ring_handle_t) <= pmi_max_binary_bytes,
               "POSIX SHM handle must fit existing PMI encoding");
 
-bool is_power_of_two(size_t value)
+size_t round_down_to_power_of_two(size_t value)
 {
-  return value != 0 && (value & (value - 1)) == 0;
+  size_t rounded = 1;
+  while (rounded <= value / 2) {
+    rounded *= 2;
+  }
+  return value == 0 ? 0 : rounded;
 }
 
 uint8_t hex_value(char value)
@@ -178,7 +182,6 @@ class device_impl_t
   std::unique_ptr<posix_owner_mapping_t> owner;
   std::vector<std::unique_ptr<posix_peer_mapping_t>> peer_mappings;
   std::vector<ring_t*> routes;
-
 };
 
 context_t alloc_context(runtime_t runtime, bool enable)
@@ -255,7 +258,9 @@ void free_context(context_t* context)
 }
 
 device_t alloc_device(context_t context, lci::device_t core_device, bool enable,
-                      size_t ring_size, size_t slot_size)
+                      size_t ring_size, size_t slot_size,
+                      size_t producer_cas_attempts,
+                      size_t consumer_cas_attempts)
 {
   device_t device;
   device.p_impl = new device_impl_t;
@@ -283,13 +288,14 @@ device_t alloc_device(context_t context, lci::device_t core_device, bool enable,
       error = "core device packet pool is unavailable";
       local_init_ok = false;
     } else if (slot_size == 0 || ring_size < slot_size ||
+               producer_cas_attempts == 0 || consumer_cas_attempts == 0 ||
                slot_size % LCI_CACHE_LINE != 0) {
       error = "invalid slot/ring settings";
       local_init_ok = false;
     } else {
-      slot_count = ring_size / slot_size;
+      slot_count = round_down_to_power_of_two(ring_size / slot_size);
       const size_t payload_capacity = ring_t::payload_capacity(slot_size);
-      if (!is_power_of_two(slot_count) ||
+      if (slot_count == 0 ||
           ring_t::required_size(slot_count, slot_size) == 0 ||
           payload_capacity == 0) {
         error = "invalid ring geometry";
@@ -328,7 +334,7 @@ device_t alloc_device(context_t context, lci::device_t core_device, bool enable,
         make_object_name(context_impl, device_uid, global_rank);
     device.p_impl->owner = posix_owner_mapping_t::create(
         owner_name, global_rank, device_uid, slot_count, slot_size,
-        effective_max, &error);
+        effective_max, producer_cas_attempts, consumer_cas_attempts, &error);
     if (!device.p_impl->owner) {
       local_init_ok = false;
     }
@@ -351,8 +357,9 @@ device_t alloc_device(context_t context, lci::device_t core_device, bool enable,
     const auto expected = expected_ring(context_impl, device_uid, peer_rank,
                                         slot_count, slot_size, effective_max);
     error.clear();
-    auto peer =
-        posix_peer_mapping_t::attach(recv_handles[peer_rank], expected, &error);
+    auto peer = posix_peer_mapping_t::attach(recv_handles[peer_rank], expected,
+                                             producer_cas_attempts,
+                                             consumer_cas_attempts, &error);
     if (!peer) {
       local_init_ok = false;
       break;
@@ -389,10 +396,13 @@ device_t alloc_device(context_t context, lci::device_t core_device, bool enable,
   device.p_impl->enabled = has_local_peers;
   LCI_Log(LOG_INFO, "shm",
           "SHM device uid=%lu enabled=%d local_rank=%d local_size=%d "
-          "slot_count=%lu slot_size=%lu max_message=%lu\n",
+          "requested_ring_size=%lu effective_ring_size=%lu slot_count=%lu "
+          "slot_size=%lu producer_cas_attempts=%lu "
+          "consumer_cas_attempts=%lu max_message=%lu\n",
           device_uid, static_cast<int>(device.p_impl->enabled),
-          context_impl->local_rank, context_impl->local_size, slot_count,
-          slot_size, effective_max);
+          context_impl->local_rank, context_impl->local_size, ring_size,
+          slot_count * slot_size, slot_count, slot_size, producer_cas_attempts,
+          consumer_cas_attempts, effective_max);
   return device;
 }
 
