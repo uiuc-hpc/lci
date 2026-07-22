@@ -105,11 +105,10 @@ static bool cleanup_failed_simple_operation(const net_status_t& net_status,
   internal_context_t* internal_ctx =
       static_cast<internal_context_t*>(net_status.user_context);
   // Only a one-completion user operation is safe to reclaim here. Extended
-  // contexts cover split/rendezvous protocols, fallback sequences explicitly
-  // disable recovery, and an empty completion identifies control or already
-  // locally completed operations.
-  if (internal_ctx->is_extended || !internal_ctx->can_recover_failure() ||
-      internal_ctx->comp.is_empty() || internal_ctx->rank < 0) {
+  // contexts cover split/rendezvous protocols, and an empty completion
+  // identifies control or already locally completed operations.
+  if (internal_ctx->is_extended || internal_ctx->comp.is_empty() ||
+      internal_ctx->rank < 0) {
     return false;
   }
 

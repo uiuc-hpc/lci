@@ -109,42 +109,6 @@ TEST(NETWORK, completion_batch_first_generic_failure_wins)
   lci::g_runtime_fina();
 }
 
-TEST(NETWORK, fallback_completion_error_stays_generic)
-{
-  lci::g_runtime_init();
-  lci::runtime_t runtime = lci::g_default_runtime;
-  lci::device_t device = lci::get_default_device();
-  lci::endpoint_t endpoint = lci::get_default_endpoint();
-  const int64_t initial_pending = endpoint.get_impl()->get_pending_ops();
-  lci::comp_t failed = lci::alloc_counter();
-
-  auto* context = new lci::internal_context_t;
-  context->set_user_posted_op(endpoint);
-  context->rank = 7;
-  context->comp = failed;
-  context->disable_failure_recovery();
-
-  lci::net_status_t status = {};
-  status.opcode = lci::net_opcode_t::ERROR;
-  status.rank = 7;
-  status.user_context = context;
-  try {
-    lci::process_completion_batch(runtime, device, endpoint, &status, 1);
-    FAIL() << "Expected generic runtime_error";
-  } catch (const lci::peer_failure_error&) {
-    FAIL() << "Fallback operations must not produce typed recovery";
-  } catch (const std::runtime_error&) {
-  }
-
-  EXPECT_EQ(lci::counter_get(failed), 0);
-  EXPECT_EQ(endpoint.get_impl()->get_pending_ops(), initial_pending + 1);
-  delete context;
-  EXPECT_EQ(endpoint.get_impl()->get_pending_ops(), initial_pending);
-
-  lci::free_comp(&failed);
-  lci::g_runtime_fina();
-}
-
 TEST(NETWORK, reg_mem)
 {
   lci::g_runtime_init();
