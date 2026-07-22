@@ -46,6 +46,11 @@ extern LCT_pcounter_ctx_t pcounter_ctx;
     _macro(backlog_queue_push)              \
     _macro(backlog_queue_pop)               \
     _macro(retry_due_to_backlog_queue)      \
+    _macro(shm_send)                        \
+    _macro(shm_send_bytes)                  \
+    _macro(shm_recv)                        \
+    _macro(shm_recv_bytes)                  \
+    _macro(shm_ring_full)                   \
     _macro(progress)
 
 #define LCI_PCOUNTER_TIMER_FOR_EACH(_macro)

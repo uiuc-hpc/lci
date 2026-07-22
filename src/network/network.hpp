@@ -65,6 +65,9 @@ class device_impl_t
   attr_t attr;
   endpoint_t default_endpoint;
   endpoint_t progress_endpoint;
+#if LCI_WITH_SHM
+  shm::device_t shm_device;
+#endif
   device_t device;
   runtime_t runtime;
   net_context_t net_context;

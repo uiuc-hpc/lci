@@ -278,6 +278,56 @@ thread_local uint64_t tls_update_counter = 0;
 thread_local LCT_time_t tls_last_update_time = 0;
 thread_local std::vector<uint64_t> tls_device_progress_counter_map(128, 0);
 
+namespace
+{
+#if LCI_WITH_SHM
+bool progress_shm(runtime_t runtime, device_t device, endpoint_t endpoint)
+{
+  auto shm_device = device.get_impl()->shm_device;
+  if (shm_device.is_empty() || !shm::is_enabled(shm_device) ||
+      device.get_impl()->packet_pool.is_empty()) {
+    return false;
+  }
+
+  size_t max_polls = device.get_attr_shm_max_polls();
+  const size_t available = shm::recv_available_approx(shm_device);
+  if (available < max_polls) max_polls = available;
+  if (max_polls == 0) return false;
+  packet_t* packets[LCI_BACKEND_MAX_POLLS];
+  const size_t n_packets = device.get_impl()->packet_pool.get_impl()->get_n(
+      max_polls, packets, false);
+  if (n_packets == 0) return false;
+
+  const size_t packet_payload =
+      device.get_impl()->packet_pool.get_impl()->get_payload_size();
+  size_t progressed = 0;
+  for (; progressed < n_packets; ++progressed) {
+    shm::recv_slot_t slot;
+    if (!shm::poll_comp(shm_device, &slot)) break;
+    LCI_Assert(slot.size <= packet_payload,
+               "SHM payload %lu exceeds packet payload capacity %lu\n",
+               slot.size, packet_payload);
+    packet_t* packet = packets[progressed];
+    if (slot.size > 0) {
+      memcpy(packet->get_payload_address(), slot.payload, slot.size);
+    }
+    net_status_t status;
+    status.opcode = net_opcode_t::RECV;
+    status.rank = slot.source_global_rank;
+    status.user_context = packet;
+    status.length = slot.size;
+    status.imm_data = slot.imm_data;
+    shm::release(shm_device, &slot);
+    progress_recv(runtime, endpoint, status);
+  }
+  for (size_t i = progressed; i < n_packets; ++i) {
+    packets[i]->put_back();
+  }
+  return progressed > 0;
+}
+#endif
+}  // namespace
+
 error_t progress_x::call_impl(runtime_t runtime, device_t device,
                               endpoint_t endpoint) const
 {
@@ -301,6 +351,11 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
     error = errorcode_t::done;
     process_completion_batch(runtime, device, endpoint, statuses, ret);
   }
+#if LCI_WITH_SHM
+  if (progress_shm(runtime, device, endpoint)) {
+    error = errorcode_t::done;
+  }
+#endif
   if (device.p_impl->refill_recvs()) {
     error = errorcode_t::done;
   }

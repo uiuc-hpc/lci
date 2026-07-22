@@ -64,4 +64,5 @@ jobs:
         run: |
             cd build
             export LCW_BACKEND_AUTO=lci2
+            export LCI_ATTR_OFI_PROVIDER_NAME=sockets
             ctest --extra-verbose --timeout 300 --rerun-failed --output-on-failure

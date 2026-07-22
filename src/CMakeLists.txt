@@ -33,6 +33,11 @@ target_sources_relative(
   collective/allreduce.cpp
   collective/reduce.cpp)
 
+if(LCI_WITH_SHM)
+  target_sources_relative(LCI PRIVATE shm/posix_ring.cpp shm/ring.cpp
+                          shm/transport.cpp)
+endif()
+
 if(LCI_BACKEND_ENABLE_OFI)
   target_sources_relative(LCI PRIVATE network/ofi/backend_ofi.cpp)
 endif()

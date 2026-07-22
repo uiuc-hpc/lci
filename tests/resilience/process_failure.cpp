@@ -76,7 +76,43 @@ int main()
     lci::allgather(&local_rmr, remote_rmrs.data(), sizeof(local_rmr));
     touch(directory + "/ready-" + std::to_string(rank));
     wait_for_file(directory + "/start");
+    std::vector<char> payload(payload_size);
+    if (rank == 0) {
+      lci::comp_t warmup_completion = lci::alloc_cq();
+      const auto warmup_deadline = std::chrono::steady_clock::now() + timeout;
+      bool warmup_complete = false;
+      while (std::chrono::steady_clock::now() < warmup_deadline) {
+        lci::status_t status =
+            lci::post_put_x(1, payload.data(), payload.size(),
+                            warmup_completion, 0, remote_rmrs[1])
+                .comp_semantic(lci::comp_semantic_t::network)();
+        if (status.is_retry()) {
+          lci::progress();
+          continue;
+        }
+        if (!status.is_posted()) {
+          throw std::runtime_error(
+              "The warm-up operation did not use posted semantics");
+        }
+        touch(directory + "/warmup-posted");
+        while (std::chrono::steady_clock::now() < warmup_deadline) {
+          if (lci::cq_pop(warmup_completion).is_done()) {
+            warmup_complete = true;
+            break;
+          }
+          lci::progress();
+        }
+        break;
+      }
+      if (!warmup_complete) {
+        throw std::runtime_error("The warm-up remote-RMR put did not complete");
+      }
+      lci::free_comp(&warmup_completion);
+      touch(directory + "/warmup-complete");
+    }
     if (rank == 1) {
+      wait_for_file(directory + "/warmup-posted");
+      wait_for_file(directory + "/warmup-complete");
       touch(directory + "/quiesced-1");
       for (;;) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -97,7 +133,6 @@ int main()
     wait_for_file(directory + "/quiesced-1");
     const auto deadline = std::chrono::steady_clock::now() + timeout;
     bool caught_peer_failure = false;
-    std::vector<char> payload(payload_size);
     lci::comp_t completion = lci::alloc_cq();
     bool operation_posted = false;
     while (std::chrono::steady_clock::now() < deadline) {
