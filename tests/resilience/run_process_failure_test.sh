@@ -47,6 +47,10 @@ for rank in 0 1 2; do
     export LOCAL_RANK="$rank"
     export LOCAL_WORLD_SIZE=3
     export LCI_ATTR_BACKEND=ofi
+    # This test requires OFI's TCP provider. Override inherited provider
+    # selection so LCI's hint and libfabric's FI_PROVIDER filter agree.
+    export LCI_ATTR_OFI_PROVIDER_NAME=tcp
+    export FI_PROVIDER=tcp
     export LCI_ENABLE_BOOTSTRAP_LCI=0
     export LCI_RESILIENCE_TEST_DIR="$workdir"
     exec "$exe"
