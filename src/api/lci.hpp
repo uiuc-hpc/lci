@@ -115,12 +115,11 @@ namespace lci
  * @brief An asynchronous transport error associated with a peer rank.
  * @ingroup LCI_BASIC
  *
- * LCI throws this exception only when a failed asynchronous completion belongs
- * to a posted, simple, one-completion outgoing LCI operation that retained both
- * recovery metadata and a local completion object. Memory-semantic operations,
- * including inject and eager paths that lack this context, may instead report
- * @c std::runtime_error. This exception derives from @c std::runtime_error, so
- * existing handlers for that type continue to work.
+ * LCI throws this exception for supported asynchronous transport failures
+ * associated with a peer. Other asynchronous transport failures may instead
+ * report @c std::runtime_error without an identified peer. This exception
+ * derives from @c std::runtime_error, so existing handlers for that type
+ * continue to work.
  */
 class peer_failure_error : public std::runtime_error
 {

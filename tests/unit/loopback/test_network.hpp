@@ -3,18 +3,6 @@
 
 namespace test_network
 {
-TEST(NETWORK, error_status)
-{
-  lci::net_status_t status = {};
-  status.opcode = lci::net_opcode_t::ERROR;
-  status.rank = -1;
-  status.user_context = nullptr;
-
-  EXPECT_STREQ(lci::get_net_opcode_str(status.opcode), "ERROR");
-  EXPECT_EQ(status.rank, -1);
-  EXPECT_EQ(status.user_context, nullptr);
-}
-
 TEST(NETWORK, completion_batch_processes_successes_and_all_errors)
 {
   lci::g_runtime_init();

@@ -50,11 +50,9 @@ then try again.
 ### Others
 #### How do I identify a failed LCI peer?
 
-The OFI and IBV backends report an asynchronous failure from `progress()` as
-`lci::peer_failure_error` only when it belongs to a posted, simple,
-one-completion outgoing LCI operation that retained both recovery metadata and
-a local completion object. It remains catchable as `std::runtime_error`, and
-its `failed_rank()` method identifies the peer:
+The OFI and IBV backends report some asynchronous peer failures from
+`progress()` as `lci::peer_failure_error`. It remains catchable as
+`std::runtime_error`, and its `failed_rank()` method identifies the peer:
 
 ```cpp
 try {
@@ -65,31 +63,23 @@ try {
 }
 ```
 
-This reports a transport failure; it does not repair membership, replace the
-peer, or complete operations that were in flight to that peer. Applications
-must decide how to recover after catching it. The
-`test-resilience-process-failure` CTest program exercises this path with the
-libfabric TCP provider: it kills rank 1, verifies that rank 0 receives a
+`peer_failure_error` is not reported for every asynchronous failure. For
+unsupported failure cases, `progress()` throws a generic `std::runtime_error`
+instead. Applications that need the failed rank should catch
+`peer_failure_error`, but should also handle `std::runtime_error`.
+
+Neither exception repairs membership, replaces the peer, or completes
+operations that were in flight to that peer. Applications must decide how to
+recover after catching an exception. `progress()` processes a full batch of
+completed operations before throwing, so successful operations in the same
+batch are still processed.
+
+The `test-resilience-process-failure` CTest program exercises this path with
+the libfabric TCP provider: it kills rank 1, verifies that rank 0 receives a
 `peer_failure_error` for rank 1, and confirms that the two surviving ranks
 continue progressing and finalize. Run it on a host with an OFI build and a
 libfabric TCP provider.
 
-Recovery is best effort. `progress()` consumes and processes the full polled
-batch before throwing once, so successful completions in the same batch still
-run and other failed eligible operations are reclaimed when they can be
-recognized. Their completion objects are not signaled as successful.
-Memory-semantic operations, including inject and eager paths that do not retain
-the required recovery context and completion object, may remain generic.
-Rendezvous, split, fallback, control, receive, and otherwise unrecognized
-failures also remain generic and nonrecoverable; catching an exception does not
-repair or drain those protocols. Synchronous post failures are unchanged.
-
-The lower-level `net_*` API reports asynchronous failures as
-`net_opcode_t::ERROR` statuses. IBV supplies a QP-derived rank for outgoing
-errors when available; OFI generally supplies rank `-1` and preserves the
-outgoing `user_context`. Receive errors use rank `-1` and a null context.
-Applications should not mix raw network operations with `progress()` on the
-same device.
 
 #### What is LCT?
 The Lightweight Communication Tools (LCT) library provides basic services such as bootstrapping
