@@ -1,5 +1,9 @@
 var group__LCI__BASIC =
 [
+    [ "lci::peer_failure_error", "d3/d0f/classlci_1_1peer__failure__error.html", [
+      [ "peer_failure_error", "d3/d0f/classlci_1_1peer__failure__error.html#acf0be7e4f98e2907ba9fc49b4a4fddad", null ],
+      [ "failed_rank", "d3/d0f/classlci_1_1peer__failure__error.html#abda169d26386732ec6429a137825d0a8", null ]
+    ] ],
     [ "lci::error_t", "d2/d46/structlci_1_1error__t.html", [
       [ "error_t", "d2/d46/structlci_1_1error__t.html#a2d73aacbe4a84cdc51181e089ba05289", null ],
       [ "error_t", "d2/d46/structlci_1_1error__t.html#aa07acd4bf3bdd0930945ed7cbfdcbcd7", null ],
@@ -126,7 +130,8 @@ var group__LCI__BASIC =
       [ "lci::net_opcode_t::RECV", "d8/d33/group__LCI__BASIC.html#gga5738a9cd7c46e12f45e2fbf0fca0b895ab882f51794befb4d8c136ce9b5e2d6e7", null ],
       [ "lci::net_opcode_t::WRITE", "d8/d33/group__LCI__BASIC.html#gga5738a9cd7c46e12f45e2fbf0fca0b895ad4b9e47f65b6e79b010582f15785867e", null ],
       [ "lci::net_opcode_t::REMOTE_WRITE", "d8/d33/group__LCI__BASIC.html#gga5738a9cd7c46e12f45e2fbf0fca0b895aa302129bc85020632a3c6ef4b3a8f9fb", null ],
-      [ "lci::net_opcode_t::READ", "d8/d33/group__LCI__BASIC.html#gga5738a9cd7c46e12f45e2fbf0fca0b895a3466fab4975481651940ed328aa990e4", null ]
+      [ "lci::net_opcode_t::READ", "d8/d33/group__LCI__BASIC.html#gga5738a9cd7c46e12f45e2fbf0fca0b895a3466fab4975481651940ed328aa990e4", null ],
+      [ "lci::net_opcode_t::ERROR", "d8/d33/group__LCI__BASIC.html#gga5738a9cd7c46e12f45e2fbf0fca0b895abb1ca97ec761fc37101737ba0aa2e7c5", null ]
     ] ],
     [ "lci::reduce_scatter_algorithm_t", "d8/d33/group__LCI__BASIC.html#gaa8f43a876e4e48c4d541773c00e5933a", [
       [ "lci::reduce_scatter_algorithm_t::none", "d8/d33/group__LCI__BASIC.html#ggaa8f43a876e4e48c4d541773c00e5933aa334c4a4c42fdb79d7ebc3e73b517e6f8", null ],

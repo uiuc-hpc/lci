@@ -138,7 +138,10 @@ $(function(){initNavTree('d3/d2d/faq.html','../../'); initResizable(true); });
             <a href="#autotoc_md38">Others</a>
             <ul>
               <li class="level4">
-                <a href="#autotoc_md39">What is LCT?</a>
+                <a href="#autotoc_md39">How do I identify a failed LCI peer?</a>
+              </li>
+              <li class="level4">
+                <a href="#autotoc_md40">What is LCT?</a>
               </li>
             </ul>
           </li>
@@ -167,6 +170,22 @@ Why does <code>lcrun</code> not work?</h4>
 <h3><a class="anchor" id="autotoc_md38"></a>
 Others</h3>
 <h4><a class="anchor" id="autotoc_md39"></a>
+How do I identify a failed LCI peer?</h4>
+<p>The OFI and IBV backends report some asynchronous peer failures from <code>progress()</code> as <code><a class="el" href="../../d3/d0f/classlci_1_1peer__failure__error.html" title="An asynchronous transport error associated with a peer rank.">lci::peer_failure_error</a></code>. It remains catchable as <code>std::runtime_error</code>, and its <code>failed_rank()</code> method identifies the peer:</p>
+<div class="fragment"><div class="line"><span class="keywordflow">try</span> {</div>
+<div class="line">  <a class="code hl_class" href="../../df/dd2/classlci_1_1progress__x.html">lci::progress_x</a>().<a class="code hl_function" href="../../df/dd2/classlci_1_1progress__x.html#a48c1029e1e0f41f220ae43586fba5d1b">device</a>(device)();</div>
+<div class="line">} <span class="keywordflow">catch</span> (<span class="keyword">const</span> <a class="code hl_class" href="../../d3/d0f/classlci_1_1peer__failure__error.html">lci::peer_failure_error</a>&amp; error) {</div>
+<div class="line">  std::cerr &lt;&lt; <span class="stringliteral">&quot;Peer &quot;</span> &lt;&lt; error.<a class="code hl_function" href="../../d3/d0f/classlci_1_1peer__failure__error.html#abda169d26386732ec6429a137825d0a8">failed_rank</a>()</div>
+<div class="line">            &lt;&lt; <span class="stringliteral">&quot; failed: &quot;</span> &lt;&lt; error.what() &lt;&lt; <span class="charliteral">&#39;\n&#39;</span>;</div>
+<div class="line">}</div>
+<div class="ttc" id="aclasslci_1_1peer__failure__error_html"><div class="ttname"><a href="../../d3/d0f/classlci_1_1peer__failure__error.html">lci::peer_failure_error</a></div><div class="ttdoc">An asynchronous transport error associated with a peer rank.</div><div class="ttdef"><b>Definition</b> lci.hpp:125</div></div>
+<div class="ttc" id="aclasslci_1_1peer__failure__error_html_abda169d26386732ec6429a137825d0a8"><div class="ttname"><a href="../../d3/d0f/classlci_1_1peer__failure__error.html#abda169d26386732ec6429a137825d0a8">lci::peer_failure_error::failed_rank</a></div><div class="ttdeci">int failed_rank() const noexcept</div><div class="ttdoc">Get the rank of the peer associated with the failed operation.</div><div class="ttdef"><b>Definition</b> lci.hpp:135</div></div>
+<div class="ttc" id="aclasslci_1_1progress__x_html"><div class="ttname"><a href="../../df/dd2/classlci_1_1progress__x.html">lci::progress_x</a></div><div class="ttdoc">The actual implementation for progress.</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:3577</div></div>
+<div class="ttc" id="aclasslci_1_1progress__x_html_a48c1029e1e0f41f220ae43586fba5d1b"><div class="ttname"><a href="../../df/dd2/classlci_1_1progress__x.html#a48c1029e1e0f41f220ae43586fba5d1b">lci::progress_x::device</a></div><div class="ttdeci">progress_x &amp;&amp; device(device_t device_in)</div><div class="ttdef"><b>Definition</b> lci_binding_post.hpp:3589</div></div>
+</div><!-- fragment --><p><code>peer_failure_error</code> is not reported for every asynchronous failure. For unsupported failure cases, <code>progress()</code> throws a generic <code>std::runtime_error</code> instead. Applications that need the failed rank should catch <code>peer_failure_error</code>, but should also handle <code>std::runtime_error</code>.</p>
+<p>Neither exception repairs membership, replaces the peer, or completes operations that were in flight to that peer. Applications must decide how to recover after catching an exception. <code>progress()</code> processes a full batch of completed operations before throwing, so successful operations in the same batch are still processed.</p>
+<p>The <code>test-resilience-process-failure</code> CTest program exercises this path with the libfabric TCP provider: it kills rank 1, verifies that rank 0 receives a <code>peer_failure_error</code> for rank 1, and confirms that the two surviving ranks continue progressing and finalize. Run it on a host with an OFI build and a libfabric TCP provider.</p>
+<h4><a class="anchor" id="autotoc_md40"></a>
 What is LCT?</h4>
 <p>The Lightweight Communication Tools (LCT) library provides basic services such as bootstrapping and logging for LCI. It is a C++ library that can be used without LCI. You can build LCT without LCI by setting <code>LCI_WITH_LCT_ONLY=ON</code> (cmake variable). </p>
 </div></div><!-- contents -->

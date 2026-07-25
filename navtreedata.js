@@ -28,70 +28,70 @@ var NAVTREE =
     [ "README", "index.html", "index" ],
     [ "Quick Start", "d2/dcd/quickstart.html", null ],
     [ "Tutorial", "db/d4e/tutorial.html", [
-      [ "Add LCI to your project", "db/d4e/tutorial.html#autotoc_md49", null ],
-      [ "Install LCI", "db/d4e/tutorial.html#autotoc_md50", [
-        [ "Prerequisites", "db/d4e/tutorial.html#autotoc_md51", null ],
-        [ "With CMake", "db/d4e/tutorial.html#autotoc_md52", [
-          [ "Install LCI on your laptop", "db/d4e/tutorial.html#autotoc_md53", null ],
-          [ "Install LCI on a cluster", "db/d4e/tutorial.html#autotoc_md54", null ],
-          [ "Important CMake variables", "db/d4e/tutorial.html#autotoc_md55", null ]
+      [ "Add LCI to your project", "db/d4e/tutorial.html#autotoc_md50", null ],
+      [ "Install LCI", "db/d4e/tutorial.html#autotoc_md51", [
+        [ "Prerequisites", "db/d4e/tutorial.html#autotoc_md52", null ],
+        [ "With CMake", "db/d4e/tutorial.html#autotoc_md53", [
+          [ "Install LCI on your laptop", "db/d4e/tutorial.html#autotoc_md54", null ],
+          [ "Install LCI on a cluster", "db/d4e/tutorial.html#autotoc_md55", null ],
+          [ "Important CMake variables", "db/d4e/tutorial.html#autotoc_md56", null ]
         ] ],
-        [ "With Spack", "db/d4e/tutorial.html#autotoc_md56", [
-          [ "Important Spack variables", "db/d4e/tutorial.html#autotoc_md57", null ]
+        [ "With Spack", "db/d4e/tutorial.html#autotoc_md57", [
+          [ "Important Spack variables", "db/d4e/tutorial.html#autotoc_md58", null ]
         ] ],
-        [ "Cluster-specific Installation Note", "db/d4e/tutorial.html#autotoc_md58", [
-          [ "NCSA Delta", "db/d4e/tutorial.html#autotoc_md59", null ],
-          [ "NCSA DeltaAI", "db/d4e/tutorial.html#autotoc_md60", null ],
-          [ "SDSC Expanse", "db/d4e/tutorial.html#autotoc_md61", null ],
-          [ "NERSC Perlmutter", "db/d4e/tutorial.html#autotoc_md62", null ],
-          [ "TACC Frontera", "db/d4e/tutorial.html#autotoc_md63", null ]
+        [ "Cluster-specific Installation Note", "db/d4e/tutorial.html#autotoc_md59", [
+          [ "NCSA Delta", "db/d4e/tutorial.html#autotoc_md60", null ],
+          [ "NCSA DeltaAI", "db/d4e/tutorial.html#autotoc_md61", null ],
+          [ "SDSC Expanse", "db/d4e/tutorial.html#autotoc_md62", null ],
+          [ "NERSC Perlmutter", "db/d4e/tutorial.html#autotoc_md63", null ],
+          [ "TACC Frontera", "db/d4e/tutorial.html#autotoc_md64", null ]
         ] ]
       ] ],
-      [ "Write LCI programs", "db/d4e/tutorial.html#autotoc_md64", [
-        [ "Overview", "db/d4e/tutorial.html#autotoc_md65", [
-          [ "Objectified Flexible Functions (OFF)", "db/d4e/tutorial.html#autotoc_md66", null ],
-          [ "Resource Management", "db/d4e/tutorial.html#autotoc_md67", null ],
-          [ "Communication Posting", "db/d4e/tutorial.html#autotoc_md70", null ],
-          [ "Completion Checking", "db/d4e/tutorial.html#autotoc_md71", [
-            [ "Synchronizer", "db/d4e/tutorial.html#autotoc_md72", null ],
-            [ "Completion Queue", "db/d4e/tutorial.html#autotoc_md73", null ],
-            [ "Handler", "db/d4e/tutorial.html#autotoc_md74", null ],
-            [ "Graph (Advanced)", "db/d4e/tutorial.html#autotoc_md75", null ]
+      [ "Write LCI programs", "db/d4e/tutorial.html#autotoc_md65", [
+        [ "Overview", "db/d4e/tutorial.html#autotoc_md66", [
+          [ "Objectified Flexible Functions (OFF)", "db/d4e/tutorial.html#autotoc_md67", null ],
+          [ "Resource Management", "db/d4e/tutorial.html#autotoc_md68", null ],
+          [ "Communication Posting", "db/d4e/tutorial.html#autotoc_md71", null ],
+          [ "Completion Checking", "db/d4e/tutorial.html#autotoc_md72", [
+            [ "Synchronizer", "db/d4e/tutorial.html#autotoc_md73", null ],
+            [ "Completion Queue", "db/d4e/tutorial.html#autotoc_md74", null ],
+            [ "Handler", "db/d4e/tutorial.html#autotoc_md75", null ],
+            [ "Graph (Advanced)", "db/d4e/tutorial.html#autotoc_md76", null ]
           ] ],
-          [ "Progress", "db/d4e/tutorial.html#autotoc_md76", null ]
+          [ "Progress", "db/d4e/tutorial.html#autotoc_md77", null ]
         ] ],
-        [ "Other Materials", "db/d4e/tutorial.html#autotoc_md78", null ],
-        [ "Examples", "db/d4e/tutorial.html#autotoc_md79", [
-          [ "Hello World", "db/d4e/tutorial.html#autotoc_md80", null ],
-          [ "Hello World (Active Message)", "db/d4e/tutorial.html#autotoc_md81", null ],
-          [ "Distributed Array", "db/d4e/tutorial.html#autotoc_md82", null ],
-          [ "Non-blocking Barrier", "db/d4e/tutorial.html#autotoc_md83", null ],
-          [ "Multithreaded Active Message Ping-pong", "db/d4e/tutorial.html#autotoc_md84", null ]
+        [ "Other Materials", "db/d4e/tutorial.html#autotoc_md79", null ],
+        [ "Examples", "db/d4e/tutorial.html#autotoc_md80", [
+          [ "Hello World", "db/d4e/tutorial.html#autotoc_md81", null ],
+          [ "Hello World (Active Message)", "db/d4e/tutorial.html#autotoc_md82", null ],
+          [ "Distributed Array", "db/d4e/tutorial.html#autotoc_md83", null ],
+          [ "Non-blocking Barrier", "db/d4e/tutorial.html#autotoc_md84", null ],
+          [ "Multithreaded Active Message Ping-pong", "db/d4e/tutorial.html#autotoc_md85", null ]
         ] ]
       ] ],
-      [ "Run LCI applications", "db/d4e/tutorial.html#autotoc_md85", [
-        [ "More details", "db/d4e/tutorial.html#autotoc_md90", [
-          [ "Run LCI applications with lcrun", "db/d4e/tutorial.html#autotoc_md86", null ],
-          [ "Run LCI applications with srun", "db/d4e/tutorial.html#autotoc_md87", null ],
-          [ "Run LCI applications with mpirun", "db/d4e/tutorial.html#autotoc_md88", null ],
-          [ "Run LCI applications with the TCP backend", "db/d4e/tutorial.html#autotoc_md89", null ],
-          [ "Bootstrapping backends", "db/d4e/tutorial.html#autotoc_md91", null ],
-          [ "Launchers", "db/d4e/tutorial.html#autotoc_md92", null ],
-          [ "More about the file backend", "db/d4e/tutorial.html#autotoc_md93", null ]
+      [ "Run LCI applications", "db/d4e/tutorial.html#autotoc_md86", [
+        [ "More details", "db/d4e/tutorial.html#autotoc_md91", [
+          [ "Run LCI applications with lcrun", "db/d4e/tutorial.html#autotoc_md87", null ],
+          [ "Run LCI applications with srun", "db/d4e/tutorial.html#autotoc_md88", null ],
+          [ "Run LCI applications with mpirun", "db/d4e/tutorial.html#autotoc_md89", null ],
+          [ "Run LCI applications with the TCP backend", "db/d4e/tutorial.html#autotoc_md90", null ],
+          [ "Bootstrapping backends", "db/d4e/tutorial.html#autotoc_md92", null ],
+          [ "Launchers", "db/d4e/tutorial.html#autotoc_md93", null ],
+          [ "More about the file backend", "db/d4e/tutorial.html#autotoc_md94", null ]
         ] ]
       ] ]
     ] ],
     [ "Frequently Asked Questions", "d3/d2d/faq.html", null ],
     [ "Change Logs", "dd/dbb/changelogs.html", "dd/dbb/changelogs" ],
     [ "GPU Direct RDMA", "de/d7e/gpu_direct_rdma.html", [
-      [ "Overview", "de/d7e/gpu_direct_rdma.html#autotoc_md40", null ],
-      [ "Requirements", "de/d7e/gpu_direct_rdma.html#autotoc_md41", [
-        [ "1) Enable GPU support at build time", "de/d7e/gpu_direct_rdma.html#autotoc_md42", null ],
-        [ "2) Ensure memory registration is GPU-aware", "de/d7e/gpu_direct_rdma.html#autotoc_md43", null ],
-        [ "3) Pass GPU buffers to communication APIs", "de/d7e/gpu_direct_rdma.html#autotoc_md44", null ]
+      [ "Overview", "de/d7e/gpu_direct_rdma.html#autotoc_md41", null ],
+      [ "Requirements", "de/d7e/gpu_direct_rdma.html#autotoc_md42", [
+        [ "1) Enable GPU support at build time", "de/d7e/gpu_direct_rdma.html#autotoc_md43", null ],
+        [ "2) Ensure memory registration is GPU-aware", "de/d7e/gpu_direct_rdma.html#autotoc_md44", null ],
+        [ "3) Pass GPU buffers to communication APIs", "de/d7e/gpu_direct_rdma.html#autotoc_md45", null ]
       ] ],
-      [ "Example", "de/d7e/gpu_direct_rdma.html#autotoc_md45", null ],
-      [ "Notes", "de/d7e/gpu_direct_rdma.html#autotoc_md46", null ]
+      [ "Example", "de/d7e/gpu_direct_rdma.html#autotoc_md46", null ],
+      [ "Notes", "de/d7e/gpu_direct_rdma.html#autotoc_md47", null ]
     ] ],
     [ "API Documentation", "topics.html", "topics" ]
   ] ]
@@ -101,11 +101,11 @@ var NAVTREEINDEX =
 [
 "d0/d10/classlci_1_1get__default__matching__engine__x.html",
 "d2/dca/group__LCI__ALLOC__DEVICE.html",
-"d6/dc8/classlci_1_1alloc__matching__engine__x.html#a0d0fae30801f17fef6fac05e8b8c5cb6",
-"d8/d33/group__LCI__BASIC.html#gaa8f43a876e4e48c4d541773c00e5933a",
-"d9/d10/classlci_1_1alloc__device__x.html#a286b16476406d47d2e672d12e2243892",
-"db/d4e/tutorial.html",
-"dc/d98/classlci_1_1net__context__t.html#a44183af85965dd6ad6c96b4655c92a57"
+"d6/db9/structlci_1_1allocator__base__t.html#aa4c610c25bc203486553d2aedb60584c",
+"d8/d33/group__LCI__BASIC.html#ga8e09fc64f331940be127abe963b6c7ca",
+"d9/d10/classlci_1_1alloc__device__x.html#a08d8ac461c7857938a104835fa2161f2",
+"db/d3b/structlci_1_1net__status__t.html#a40ca4da8afbdf16148173ba844487001",
+"dc/d98/classlci_1_1net__context__t.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronization';

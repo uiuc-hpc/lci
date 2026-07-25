@@ -136,7 +136,7 @@ Classes</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>Poll the network completion queue. </p>
-<dl class="params"><dt>Parameters</dt><dd>
+<p>Returns every consumed completion descriptor, including asynchronous failures as <a class="el" href="../../d8/d33/group__LCI__BASIC.html#gga5738a9cd7c46e12f45e2fbf0fca0b895abb1ca97ec761fc37101737ba0aa2e7c5">net_opcode_t::ERROR</a>. Applications should not mix raw network operations with <a class="el" href="../../d5/dd3/namespacelci.html#ad55bf2fa3c43f989f8f382fa8c41a387">progress</a> on the same device. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">runtime</td><td>of type <b><a class="el" href="../../dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime.">runtime_t</a></b>; optional argument; The runtime object. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">max_polls</td><td>of type <b>size_t</b>; positional argument; The maximum number of completion descriptors to poll. </td></tr>
