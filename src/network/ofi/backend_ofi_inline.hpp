@@ -17,14 +17,20 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
 {
   struct fi_cq_data_entry fi_entries[LCI_BACKEND_MAX_POLLS];
 
-  LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_POLL, 0);
+  // Keep the configured polling lock across both reads so another poller
+  // cannot consume the error entry reported by fi_cq_read.
+  std::unique_lock<spinlock_t> poll_lock(lock, std::defer_lock);
+  if ((ofi_lock_mode & LCI_NET_TRYLOCK_POLL) != 0 && !poll_lock.try_lock()) {
+    return 0;
+  }
+
   ssize_t ne = fi_cq_read(ofi_cq, fi_entries, max_polls);
-  LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_POLL);
   if (ne > 0) {
     // Got an entry here
-    if (p_statuses) {
-      for (int j = 0; j < ne; j++) {
+    for (int j = 0; j < ne; j++) {
+      if (p_statuses) {
         net_status_t& status = p_statuses[j];
+        memset(&status, 0, sizeof(status));
         if (fi_entries[j].flags & FI_RECV) {
           status.opcode = net_opcode_t::RECV;
           status.user_context = fi_entries[j].op_context;
@@ -52,20 +58,32 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
   } else if (ne == -FI_EAGAIN) {
     ne = 0;
   } else {
-    struct fi_cq_err_entry error;
+    LCI_Assert(ne == -FI_EAVAIL, "unexpected return error: %s\n",
+               fi_strerror(-ne));
+    struct fi_cq_err_entry error = {};
     char err_data[64];
     error.err_data = err_data;
     error.err_data_size = sizeof(err_data);
     ssize_t ret_cqerr = fi_cq_readerr(ofi_cq, &error, 0);
-    // The error was already consumed, most likely by another thread,
     if (ret_cqerr == -FI_EAGAIN) {
-      LCI_Assert(ne == -FI_EAVAIL, "unexpected return error: %s\n",
-                 fi_strerror(-ne));
+      return 0;
     } else {
-      LCI_Assert(false, "Err %d: %s\n", error.err, fi_strerror(error.err));
+      LCI_Assert(ret_cqerr == 1, "fi_cq_readerr failed: %s\n",
+                 fi_strerror(-ret_cqerr));
+      if (p_statuses) {
+        net_status_t& status = p_statuses[0];
+        memset(&status, 0, sizeof(status));
+        status.opcode = net_opcode_t::ERROR;
+        status.rank = -1;
+        const bool is_outgoing =
+            (error.flags & (FI_SEND | FI_WRITE | FI_READ)) != 0 &&
+            (error.flags & (FI_RECV | FI_REMOTE_WRITE)) == 0;
+        status.user_context = is_outgoing ? error.op_context : nullptr;
+      }
+      ne = 1;
     }
   }
-  return ne;
+  return static_cast<size_t>(ne);
 }
 
 namespace ofi_detail

@@ -148,6 +148,7 @@ operation(
     doc = {
         "in_group": "LCI_NET",
         "brief": "Poll the network completion queue.",
+        "details": "Returns every consumed completion descriptor, including asynchronous failures as @ref net_opcode_t::ERROR. Applications should not mix raw network operations with @ref progress on the same device.",
     }
 ),
 operation(

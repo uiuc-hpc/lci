@@ -110,6 +110,10 @@ struct alignas(LCI_CACHE_LINE) internal_context_extended_t {
   }
 };
 
+void process_completion_batch(runtime_t runtime, device_t device,
+                              endpoint_t endpoint, const net_status_t* statuses,
+                              size_t count);
+
 }  // namespace lci
 
 #endif  // LCI_CORE_PROTOCOL_HPP

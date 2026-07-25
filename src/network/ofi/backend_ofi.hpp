@@ -11,6 +11,7 @@
 #include <rdma/fi_cm.h>
 #include <rdma/fi_errno.h>
 #include <rdma/fi_rma.h>
+#include <mutex>
 
 #define FI_SAFECALL(x)                                                    \
   do {                                                                    \

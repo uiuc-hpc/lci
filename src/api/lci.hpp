@@ -112,6 +112,33 @@ struct option_t {
 namespace lci
 {
 /**
+ * @brief An asynchronous transport error associated with a peer rank.
+ * @ingroup LCI_BASIC
+ *
+ * LCI throws this exception for supported asynchronous transport failures
+ * associated with a peer. Other asynchronous transport failures may instead
+ * report @c std::runtime_error without an identified peer. This exception
+ * derives from @c std::runtime_error, so existing handlers for that type
+ * continue to work.
+ */
+class peer_failure_error : public std::runtime_error
+{
+ public:
+  peer_failure_error(int failed_rank, const std::string& message)
+      : std::runtime_error(message), failed_rank_(failed_rank)
+  {
+  }
+
+  /**
+   * @brief Get the rank of the peer associated with the failed operation.
+   */
+  int failed_rank() const noexcept { return failed_rank_; }
+
+ private:
+  int failed_rank_;
+};
+
+/**
  * @brief The actual error code for LCI API functions.
  * @ingroup LCI_BASIC
  * @details The error code is used to indicate the status of certain LCI
@@ -219,6 +246,7 @@ enum class net_opcode_t {
   WRITE,        /**< write */
   REMOTE_WRITE, /**< remote write */
   READ,         /**< read */
+  ERROR,        /**< asynchronous completion error */
 };
 
 /**
@@ -293,7 +321,10 @@ using net_imm_data_t = uint32_t;
  * @ingroup LCI_BASIC
  * @brief The struct for network status.
  * @details A network status is used to describe a completed network
- * communication operation.
+ * communication operation. For @ref net_opcode_t::ERROR, @c rank is the
+ * backend-reported peer rank when available and @c user_context is the
+ * outgoing operation context when available. Receive errors report rank -1 and
+ * a null user context.
  */
 struct net_status_t {
   net_opcode_t opcode;

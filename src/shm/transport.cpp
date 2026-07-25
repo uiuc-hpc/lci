@@ -174,7 +174,6 @@ class device_impl_t
   context_t context;
   lci::device_t core_device;
   bool enabled = false;
-  bool collective_lifecycle = false;
   uint64_t device_uid = 0;
   size_t slot_count = 0;
   size_t slot_size = 0;
@@ -275,7 +274,6 @@ device_t alloc_device(context_t context, lci::device_t core_device, bool enable,
   auto* context_impl = context.get_impl();
   const int global_size = context_impl->global_size;
   const int global_rank = context_impl->global_rank;
-  device.p_impl->collective_lifecycle = true;
 
   const bool has_local_peers = context_impl->local_size > 1;
   size_t slot_count = 0;
@@ -410,12 +408,7 @@ void free_device(device_t* device)
 {
   if (device == nullptr || device->p_impl == nullptr) return;
   auto* impl = device->p_impl;
-  const bool collective_lifecycle = impl->collective_lifecycle;
   impl->enabled = false;
-  if (collective_lifecycle && !impl->context.is_empty() &&
-      impl->context.get_impl()->global_size > 1) {
-    pmi_barrier();
-  }
   impl->peer_mappings.clear();
   impl->routes.clear();
   impl->owner.reset();

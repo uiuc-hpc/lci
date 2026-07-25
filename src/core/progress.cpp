@@ -97,6 +97,30 @@ void progress_send(const net_status_t& net_status)
   free_ctx_and_signal_comp(internal_ctx);
 }
 
+static bool cleanup_failed_simple_operation(const net_status_t& net_status,
+                                            int* failed_rank)
+{
+  if (net_status.user_context == nullptr) return false;
+
+  internal_context_t* internal_ctx =
+      static_cast<internal_context_t*>(net_status.user_context);
+  // Only a one-completion user operation is safe to reclaim here. Extended
+  // contexts cover split/rendezvous protocols, and an empty completion
+  // identifies control or already locally completed operations.
+  if (internal_ctx->is_extended || internal_ctx->comp.is_empty() ||
+      internal_ctx->rank < 0) {
+    return false;
+  }
+
+  const int context_rank = internal_ctx->rank;
+  delete internal_ctx;
+  if (net_status.rank >= 0 && net_status.rank != context_rank) {
+    return false;
+  }
+  *failed_rank = context_rank;
+  return true;
+}
+
 void progress_write(endpoint_t endpoint, const net_status_t& net_status)
 {
   LCI_PCOUNTER_ADD(net_write_writeImm_comp, 1)
@@ -208,6 +232,46 @@ void progress_read(const net_status_t& net_status)
   }
 }
 
+void process_completion_batch(runtime_t runtime, device_t device,
+                              endpoint_t endpoint, const net_status_t* statuses,
+                              size_t count)
+{
+  bool has_failure = false;
+  bool first_failure_has_rank = false;
+  int first_failed_rank = -1;
+  for (size_t i = 0; i < count; i++) {
+    const net_status_t& status = statuses[i];
+    if (status.opcode == net_opcode_t::ERROR) {
+      int failed_rank = -1;
+      bool has_rank = cleanup_failed_simple_operation(status, &failed_rank);
+      if (!has_failure) {
+        has_failure = true;
+        first_failure_has_rank = has_rank;
+        first_failed_rank = failed_rank;
+      }
+    } else if (status.opcode == net_opcode_t::RECV) {
+      device.p_impl->consume_recvs(1);
+      progress_recv(runtime, endpoint, status);
+    } else if (status.opcode == net_opcode_t::SEND) {
+      progress_send(status);
+    } else if (status.opcode == net_opcode_t::WRITE) {
+      progress_write(endpoint, status);
+    } else if (status.opcode == net_opcode_t::REMOTE_WRITE) {
+      progress_remote_write(runtime, status);
+    } else if (status.opcode == net_opcode_t::READ) {
+      progress_read(status);
+    }
+  }
+  if (has_failure) {
+    if (first_failure_has_rank) {
+      throw peer_failure_error(first_failed_rank,
+                               "Network completion failed for peer rank " +
+                                   std::to_string(first_failed_rank));
+    }
+    throw std::runtime_error("Network completion failed");
+  }
+}
+
 // for logging purposes
 [[maybe_unused]] const uint64_t PROGRESS_LOG_INTERVAL = 1;  // 1s
 thread_local uint64_t tls_update_counter = 0;
@@ -285,21 +349,7 @@ error_t progress_x::call_impl(runtime_t runtime, device_t device,
   size_t ret = device.get_impl()->poll_comp(statuses, LCI_BACKEND_MAX_POLLS);
   if (ret > 0) {
     error = errorcode_t::done;
-    for (size_t i = 0; i < ret; i++) {
-      auto status = statuses[i];
-      if (status.opcode == net_opcode_t::RECV) {
-        device.p_impl->consume_recvs(1);
-        progress_recv(runtime, endpoint, status);
-      } else if (status.opcode == net_opcode_t::SEND) {
-        progress_send(status);
-      } else if (status.opcode == net_opcode_t::WRITE) {
-        progress_write(endpoint, status);
-      } else if (status.opcode == net_opcode_t::REMOTE_WRITE) {
-        progress_remote_write(runtime, status);
-      } else if (status.opcode == net_opcode_t::READ) {
-        progress_read(status);
-      }
-    }
+    process_completion_batch(runtime, device, endpoint, statuses, ret);
   }
 #if LCI_WITH_SHM
   if (progress_shm(runtime, device, endpoint)) {

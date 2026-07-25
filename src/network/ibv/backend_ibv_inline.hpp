@@ -111,18 +111,16 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
   if (!cq_lock.try_lock()) return 0;
   int ne = ibv_poll_cq(ib_cq, max_polls, wcs);
   cq_lock.unlock();
+  LCI_Assert(ne >= 0, "ibv_poll_cq failed: %d\n", ne);
   if (ne > 0) {
     // Got an entry here
     auto snapshot = qp2rank_map.get_snapshot();
     for (int i = 0; i < ne; i++) {
-      LCI_Assert(wcs[i].status == IBV_WC_SUCCESS,
-                 "Failed status %s (%d) for wr_id %p\n",
-                 ibv_wc_status_str(wcs[i].status), wcs[i].status,
-                 (void*)wcs[i].wr_id);
       qp2rank_map_t::entry_t entry = snapshot->get_entry(wcs[i].qp_num);
-      // Increment SQ slots on any send-side completion
-      if (wcs[i].opcode != IBV_WC_RECV &&
-          wcs[i].opcode != IBV_WC_RECV_RDMA_WITH_IMM) {
+      const bool is_receive = wcs[i].opcode == IBV_WC_RECV ||
+                              wcs[i].opcode == IBV_WC_RECV_RDMA_WITH_IMM;
+      // A failed send-side completion still releases its SQ slot.
+      if (!is_receive) {
         if (entry.rank >= 0 && entry.rank < get_rank_n() &&
             entry.slots != nullptr) {
           [[maybe_unused]] int prev =
@@ -140,7 +138,11 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
       if (!p_statuses) continue;
       net_status_t& status = p_statuses[i];
       memset(&status, 0, sizeof(status));
-      if (wcs[i].opcode == IBV_WC_RECV) {
+      if (wcs[i].status != IBV_WC_SUCCESS) {
+        status.opcode = net_opcode_t::ERROR;
+        status.rank = is_receive ? -1 : entry.rank;
+        status.user_context = is_receive ? nullptr : (void*)wcs[i].wr_id;
+      } else if (wcs[i].opcode == IBV_WC_RECV) {
         status.opcode = net_opcode_t::RECV;
         status.user_context = (void*)wcs[i].wr_id;
         status.length = wcs[i].byte_len;
