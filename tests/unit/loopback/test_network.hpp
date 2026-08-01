@@ -97,6 +97,61 @@ TEST(NETWORK, completion_batch_first_generic_failure_wins)
   lci::g_runtime_fina();
 }
 
+TEST(NETWORK, completion_batch_reports_rank_without_completion_object)
+{
+  lci::g_runtime_init();
+  lci::runtime_t runtime = lci::g_default_runtime;
+  lci::device_t device = lci::get_default_device();
+  lci::endpoint_t endpoint = lci::get_default_endpoint();
+  const int64_t initial_pending = endpoint.get_impl()->get_pending_ops();
+
+  for (int backend_rank : {7, -1}) {
+    auto* context = new lci::internal_context_t;
+    context->set_user_posted_op(endpoint);
+    context->rank = 7;
+    EXPECT_TRUE(context->comp.is_empty());
+
+    lci::net_status_t status = {};
+    status.opcode = lci::net_opcode_t::ERROR;
+    status.rank = backend_rank;
+    status.user_context = context;
+
+    try {
+      lci::process_completion_batch(runtime, device, endpoint, &status, 1);
+      FAIL() << "Expected peer_failure_error";
+    } catch (const lci::peer_failure_error& error) {
+      EXPECT_EQ(error.failed_rank(), 7);
+    }
+
+    EXPECT_EQ(endpoint.get_impl()->get_pending_ops(), initial_pending);
+  }
+
+  lci::g_runtime_fina();
+}
+
+TEST(NETWORK, completion_batch_unknown_rank_is_generic)
+{
+  lci::g_runtime_init();
+  lci::runtime_t runtime = lci::g_default_runtime;
+  lci::device_t device = lci::get_default_device();
+  lci::endpoint_t endpoint = lci::get_default_endpoint();
+
+  lci::net_status_t status = {};
+  status.opcode = lci::net_opcode_t::ERROR;
+  status.rank = -1;
+  status.user_context = nullptr;
+
+  try {
+    lci::process_completion_batch(runtime, device, endpoint, &status, 1);
+    FAIL() << "Expected generic runtime_error";
+  } catch (const lci::peer_failure_error&) {
+    FAIL() << "An unknown rank must not report peer_failure_error";
+  } catch (const std::runtime_error&) {
+  }
+
+  lci::g_runtime_fina();
+}
+
 TEST(NETWORK, reg_mem)
 {
   lci::g_runtime_init();
