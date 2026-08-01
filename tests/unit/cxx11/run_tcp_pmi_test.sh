@@ -6,20 +6,35 @@ nranks=${2:-2}
 mode=${3:-pmi}
 endpoint_prefix=${4:-LCT}
 
-port=$(python3 - <<'PY'
+choose_port() {
+  python3 - <<'PY'
 import socket
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind(("127.0.0.1", 0))
+
+try:
+    s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        s.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+    except OSError:
+        pass
+    s.bind(("::", 0))
+except OSError:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(("0.0.0.0", 0))
+
 print(s.getsockname()[1])
 s.close()
 PY
-)
+}
+
 logdir=$(mktemp -d "${TMPDIR:-/tmp}/lct-tcp-pmi.XXXXXX")
 status=0
 expect_failure=0
 expected_failure_pattern=
 reject_torchrun_backend=0
 pids=()
+port=
 
 cleanup() {
   for pid in "${pids[@]:-}"; do
@@ -72,6 +87,42 @@ set_endpoint_env() {
   esac
 }
 
+launch_rank() {
+  local rank=$1
+  (
+    unset LCT_PMI_BACKEND
+    if [[ $reject_torchrun_backend -eq 1 ]]; then
+      export LCT_PMI_BACKEND=torchrun
+    elif [[ "$mode" != "fallback-local" ]]; then
+      export LCT_PMI_BACKEND=tcp
+    fi
+    export RANK=$rank
+    export WORLD_SIZE=$nranks
+    export LOCAL_RANK=$rank
+    export LOCAL_WORLD_SIZE=$nranks
+    export LCT_PMI_TCP_TIMEOUT_SEC=10
+    export LCI_ENABLE_BOOTSTRAP_LCI=0
+    set_endpoint_env
+    exec "$exe" "$mode"
+  ) >"$logdir/rank-$rank.log" 2>&1 &
+  pids+=("$!")
+}
+
+launch_ranks() {
+  for rank in $(seq 0 $((nranks - 1))); do
+    launch_rank "$rank"
+  done
+}
+
+wait_for_ranks() {
+  status=0
+  for pid in "${pids[@]}"; do
+    if ! wait "$pid"; then
+      status=1
+    fi
+  done
+}
+
 case "$mode" in
   pmi|runtime)
     ;;
@@ -98,31 +149,33 @@ case "$mode" in
     ;;
 esac
 
-for rank in $(seq 0 $((nranks - 1))); do
-  (
-    unset LCT_PMI_BACKEND
-    if [[ $reject_torchrun_backend -eq 1 ]]; then
-      export LCT_PMI_BACKEND=torchrun
-    elif [[ "$mode" != "fallback-local" ]]; then
-      export LCT_PMI_BACKEND=tcp
-    fi
-    export RANK=$rank
-    export WORLD_SIZE=$nranks
-    export LOCAL_RANK=$rank
-    export LOCAL_WORLD_SIZE=$nranks
-    export LCT_PMI_TCP_TIMEOUT_SEC=10
-    export LCI_ENABLE_BOOTSTRAP_LCI=0
-    set_endpoint_env
-    exec "$exe" "$mode"
-  ) >"$logdir/rank-$rank.log" 2>&1 &
-  pids+=("$!")
-done
+if [[ $expect_failure -eq 0 && "$mode" != "fallback-local" &&
+      $nranks -gt 1 ]]; then
+  max_port_attempts=5
+  for attempt in $(seq 1 "$max_port_attempts"); do
+    port=$(choose_port)
+    pids=()
+    launch_ranks
+    wait_for_ranks
 
-for pid in "${pids[@]}"; do
-  if ! wait "$pid"; then
-    status=1
-  fi
-done
+    if [[ $status -eq 0 ]]; then
+      break
+    fi
+    if [[ ! -f "$logdir/rank-0.log" ]] ||
+       ! grep -q "Address already in use" "$logdir/rank-0.log"; then
+      break
+    fi
+
+    if [[ $attempt -lt $max_port_attempts ]]; then
+      echo "TCP PMI port $port was claimed before rank 0 started; retrying" >&2
+      rm -f "$logdir"/*.log
+    fi
+  done
+else
+  port=$(choose_port)
+  launch_ranks
+  wait_for_ranks
+fi
 
 if [[ $expect_failure -eq 1 ]]; then
   if [[ $status -ne 0 ]]; then
