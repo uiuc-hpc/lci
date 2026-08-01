@@ -97,8 +97,7 @@ void progress_send(const net_status_t& net_status)
   free_ctx_and_signal_comp(internal_ctx);
 }
 
-static bool get_failed_peer_rank(const net_status_t& net_status,
-                                 int* failed_rank)
+static int get_failed_peer_rank(const net_status_t& net_status)
 {
   // Extract peer identity before cleanup. A rank is still useful diagnostic
   // information when the operation did not request a completion object.
@@ -111,17 +110,12 @@ static bool get_failed_peer_rank(const net_status_t& net_status,
     }
   }
 
-  if (net_status.rank >= 0) {
-    if (context_rank >= 0 && net_status.rank != context_rank) {
-      return false;
-    }
-    *failed_rank = net_status.rank;
-    return true;
+  if (net_status.rank >= 0 && context_rank >= 0 &&
+      net_status.rank != context_rank) {
+    return -1;
   }
 
-  if (context_rank < 0) return false;
-  *failed_rank = context_rank;
-  return true;
+  return net_status.rank >= 0 ? net_status.rank : context_rank;
 }
 
 static void cleanup_failed_simple_operation(const net_status_t& net_status)
@@ -261,12 +255,11 @@ void process_completion_batch(runtime_t runtime, device_t device,
   for (size_t i = 0; i < count; i++) {
     const net_status_t& status = statuses[i];
     if (status.opcode == net_opcode_t::ERROR) {
-      int failed_rank = -1;
-      bool has_rank = get_failed_peer_rank(status, &failed_rank);
+      const int failed_rank = get_failed_peer_rank(status);
       cleanup_failed_simple_operation(status);
       if (!has_failure) {
         has_failure = true;
-        first_failure_has_rank = has_rank;
+        first_failure_has_rank = failed_rank >= 0;
         first_failed_rank = failed_rank;
       }
     } else if (status.opcode == net_opcode_t::RECV) {
