@@ -70,6 +70,8 @@ struct alignas(LCI_CACHE_LINE) internal_context_t {
     endpoint.get_impl()->add_pending_ops();
   }
 
+  bool is_user_posted_operation() const { return is_user_posted_op; }
+
   void set_mr_on_the_fly(mr_t mr_)
   {
     mr_on_the_fly = true;

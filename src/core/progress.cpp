@@ -97,28 +97,47 @@ void progress_send(const net_status_t& net_status)
   free_ctx_and_signal_comp(internal_ctx);
 }
 
-static bool cleanup_failed_simple_operation(const net_status_t& net_status,
-                                            int* failed_rank)
+static bool get_failed_peer_rank(const net_status_t& net_status,
+                                 int* failed_rank)
 {
-  if (net_status.user_context == nullptr) return false;
+  // Extract peer identity before cleanup. A rank is still useful diagnostic
+  // information when the operation did not request a completion object.
+  int context_rank = -1;
+  if (net_status.user_context != nullptr) {
+    internal_context_t* internal_ctx =
+        static_cast<internal_context_t*>(net_status.user_context);
+    if (!internal_ctx->is_extended) {
+      context_rank = internal_ctx->rank;
+    }
+  }
+
+  if (net_status.rank >= 0) {
+    if (context_rank >= 0 && net_status.rank != context_rank) {
+      return false;
+    }
+    *failed_rank = net_status.rank;
+    return true;
+  }
+
+  if (context_rank < 0) return false;
+  *failed_rank = context_rank;
+  return true;
+}
+
+static void cleanup_failed_simple_operation(const net_status_t& net_status)
+{
+  if (net_status.user_context == nullptr) return;
 
   internal_context_t* internal_ctx =
       static_cast<internal_context_t*>(net_status.user_context);
-  // Only a one-completion user operation is safe to reclaim here. Extended
-  // contexts cover split/rendezvous protocols, and an empty completion
-  // identifies control or already locally completed operations.
-  if (internal_ctx->is_extended || internal_ctx->comp.is_empty() ||
+  // Extended contexts cover split/rendezvous protocols. Other contexts are
+  // reclaimed only when they belong to a one-completion user operation.
+  if (internal_ctx->is_extended || !internal_ctx->is_user_posted_operation() ||
       internal_ctx->rank < 0) {
-    return false;
+    return;
   }
 
-  const int context_rank = internal_ctx->rank;
   delete internal_ctx;
-  if (net_status.rank >= 0 && net_status.rank != context_rank) {
-    return false;
-  }
-  *failed_rank = context_rank;
-  return true;
 }
 
 void progress_write(endpoint_t endpoint, const net_status_t& net_status)
@@ -243,7 +262,8 @@ void process_completion_batch(runtime_t runtime, device_t device,
     const net_status_t& status = statuses[i];
     if (status.opcode == net_opcode_t::ERROR) {
       int failed_rank = -1;
-      bool has_rank = cleanup_failed_simple_operation(status, &failed_rank);
+      bool has_rank = get_failed_peer_rank(status, &failed_rank);
+      cleanup_failed_simple_operation(status);
       if (!has_failure) {
         has_failure = true;
         first_failure_has_rank = has_rank;
