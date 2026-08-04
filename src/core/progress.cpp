@@ -245,9 +245,8 @@ void progress_read(const net_status_t& net_status)
   }
 }
 
-void process_completion_batch(runtime_t runtime, device_t device,
-                              endpoint_t endpoint, const net_status_t* statuses,
-                              size_t count)
+void process_completion_batch(runtime_t runtime, device_t, endpoint_t endpoint,
+                              const net_status_t* statuses, size_t count)
 {
   bool has_failure = false;
   bool first_failure_has_rank = false;
@@ -263,7 +262,6 @@ void process_completion_batch(runtime_t runtime, device_t device,
         first_failed_rank = failed_rank;
       }
     } else if (status.opcode == net_opcode_t::RECV) {
-      device.p_impl->consume_recvs(1);
       progress_recv(runtime, endpoint, status);
     } else if (status.opcode == net_opcode_t::SEND) {
       progress_send(status);

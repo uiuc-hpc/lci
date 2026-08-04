@@ -240,8 +240,27 @@ ibv_device_impl_t::~ibv_device_impl_t()
     IBV_SAFECALL(ibv_dealloc_td(ib_td));
     --g_td_num;
   }
-  IBV_SAFECALL(ibv_destroy_cq(ib_cq));
-  IBV_SAFECALL(ibv_destroy_srq(ib_srq));
+  if (ib_srq) {
+    IBV_SAFECALL(ibv_destroy_srq(ib_srq));
+  }
+  if (ib_cq) {
+    IBV_SAFECALL(ibv_destroy_cq(ib_cq));
+  }
+}
+
+void ibv_device_impl_t::quiesce_recvs_impl(const std::vector<packet_t*>&)
+{
+  // All QPs that use this SRQ have been destroyed by device teardown before
+  // this hook runs. Retiring the SRQ drops its receive WQEs; retiring the CQ
+  // then prevents any remaining completion from referencing their wr_id.
+  if (ib_srq) {
+    IBV_SAFECALL(ibv_destroy_srq(ib_srq));
+    ib_srq = nullptr;
+  }
+  if (ib_cq) {
+    IBV_SAFECALL(ibv_destroy_cq(ib_cq));
+    ib_cq = nullptr;
+  }
 }
 
 endpoint_t ibv_device_impl_t::alloc_endpoint_impl(endpoint_t::attr_t attr)

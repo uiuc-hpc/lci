@@ -184,6 +184,50 @@ TEST(NETWORK, poll_cq)
   lci::g_runtime_fina();
 }
 
+TEST(NETWORK, free_device_reclaims_posted_receive_packets)
+{
+  constexpr size_t npackets = 64;
+  constexpr int niterations = 5;
+
+  lci::runtime_t runtime = lci::g_runtime_init_x()
+                               .alloc_default_device(false)
+                               .alloc_default_packet_pool(false)();
+  lci::packet_pool_t packet_pool =
+      lci::alloc_packet_pool_x().runtime(runtime).npackets(npackets)();
+
+  for (int i = 0; i < niterations; ++i) {
+    lci::device_t device = lci::alloc_device_x()
+                               .runtime(runtime)
+                               .packet_pool(packet_pool)
+                               .net_max_recvs(npackets)();
+    lci::free_device_x(&device).runtime(runtime)();
+
+    std::vector<void*> packets;
+    packets.reserve(npackets);
+    for (size_t j = 0; j < npackets; ++j) {
+      void* packet =
+          lci::get_upacket_x().runtime(runtime).packet_pool(packet_pool)();
+      EXPECT_NE(packet, nullptr);
+      if (packet != nullptr) {
+        packets.push_back(packet);
+      }
+    }
+    EXPECT_EQ(packets.size(), npackets);
+    void* extra_packet =
+        lci::get_upacket_x().runtime(runtime).packet_pool(packet_pool)();
+    EXPECT_EQ(extra_packet, nullptr);
+    if (extra_packet != nullptr) {
+      packets.push_back(extra_packet);
+    }
+    for (void* packet : packets) {
+      lci::put_upacket_x(packet).runtime(runtime)();
+    }
+  }
+
+  lci::free_packet_pool_x(&packet_pool).runtime(runtime)();
+  lci::g_runtime_fina();
+}
+
 TEST(NETWORK, loopback)
 {
   // Raw network receives must not compete with LCI's packet-pool receives.

@@ -52,6 +52,17 @@ struct fi_info* select_info(struct fi_info* ofi_info,
   }
   return first_match;
 }
+
+bool remove_pending_recv(std::vector<void*>& pending_recvs, void* context)
+{
+  auto it = std::find(pending_recvs.begin(), pending_recvs.end(), context);
+  if (it == pending_recvs.end()) {
+    return false;
+  }
+  *it = pending_recvs.back();
+  pending_recvs.pop_back();
+  return true;
+}
 }  // namespace
 
 bool ofi_net_context_impl_t::check_availability()
@@ -325,6 +336,93 @@ ofi_device_impl_t::~ofi_device_impl_t()
   FI_SAFECALL(fi_close((struct fid*)&ofi_cq->fid));
   FI_SAFECALL(fi_close((struct fid*)&ofi_av->fid));
   FI_SAFECALL(fi_close((struct fid*)&ofi_domain->fid));
+}
+
+void ofi_device_impl_t::quiesce_recvs_impl(
+    const std::vector<packet_t*>& posted_recvs)
+{
+  std::vector<void*> pending_recvs;
+  pending_recvs.reserve(posted_recvs.size());
+  for (packet_t* packet : posted_recvs) {
+    if (packet != nullptr) {
+      pending_recvs.push_back(packet);
+    }
+  }
+  if (pending_recvs.empty()) {
+    return;
+  }
+
+  // Serialize with configured OFI receive and polling paths while cancellation
+  // requests and their terminal CQ entries are driven to completion.
+  std::lock_guard<spinlock_t> lock_guard(lock);
+  auto drain_cq = [&]() {
+    struct fi_cq_data_entry entries[LCI_BACKEND_MAX_POLLS];
+    ssize_t nentries = fi_cq_read(ofi_cq, entries, LCI_BACKEND_MAX_POLLS);
+    if (nentries > 0) {
+      for (ssize_t i = 0; i < nentries; ++i) {
+        if (entries[i].flags & FI_RECV) {
+          remove_pending_recv(pending_recvs, entries[i].op_context);
+        }
+      }
+      return;
+    }
+    if (nentries == 0 || nentries == -FI_EAGAIN) {
+      return;
+    }
+
+    LCI_Assert(nentries == -FI_EAVAIL,
+               "fi_cq_read during receive teardown failed: %s\n",
+               fi_strerror(-nentries));
+    struct fi_cq_err_entry error = {};
+    char err_data[64];
+    error.err_data = err_data;
+    error.err_data_size = sizeof(err_data);
+    ssize_t ret = fi_cq_readerr(ofi_cq, &error, 0);
+    if (ret == -FI_EAGAIN) {
+      return;
+    }
+    LCI_Assert(ret == 1, "fi_cq_readerr during receive teardown failed: %s\n",
+               fi_strerror(-ret));
+    if (error.flags & FI_RECV) {
+      remove_pending_recv(pending_recvs, error.op_context);
+    }
+  };
+
+  const std::vector<void*> recv_contexts = pending_recvs;
+  for (void* context : recv_contexts) {
+    if (std::find(pending_recvs.begin(), pending_recvs.end(), context) ==
+        pending_recvs.end()) {
+      continue;
+    }
+    for (;;) {
+      ssize_t ret = fi_cancel(&ofi_ep->fid, context);
+      if (ret == FI_SUCCESS || ret == -FI_ENOENT) {
+        break;
+      }
+      if (ret == -FI_EAGAIN) {
+        drain_cq();
+        if (std::find(pending_recvs.begin(), pending_recvs.end(), context) ==
+            pending_recvs.end()) {
+          break;
+        }
+        continue;
+      }
+      if (ret == -FI_ENOSYS || ret == -FI_EOPNOTSUPP) {
+        LCI_Assert(
+            false,
+            "The OFI provider cannot cancel posted receives; refusing to "
+            "deregister or reclaim packet-pool memory unsafely\n");
+      }
+      FI_SAFECALL(ret);
+    }
+  }
+
+  // A receive can race its cancellation and appear as a normal CQ entry.
+  // Do not close the endpoint-bound MR until each tracked context has a
+  // terminal receive completion or error completion.
+  while (!pending_recvs.empty()) {
+    drain_cq();
+  }
 }
 
 endpoint_t ofi_device_impl_t::alloc_endpoint_impl(endpoint_t::attr_t attr)

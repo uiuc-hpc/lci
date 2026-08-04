@@ -97,6 +97,7 @@ class ofi_device_impl_t : public lci::device_impl_t
                          void* user_context) override;
   size_t post_recvs_impl(void* buffers[], size_t size, size_t count, mr_t mr,
                          void* usesr_contexts[]) override;
+  void quiesce_recvs_impl(const std::vector<packet_t*>& posted_recvs) override;
 
   struct fi_domain_attr* ofi_domain_attr;
   struct fid_domain* ofi_domain;

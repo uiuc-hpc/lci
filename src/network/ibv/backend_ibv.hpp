@@ -121,6 +121,7 @@ class ibv_device_impl_t : public lci::device_impl_t
                          void* user_context) override;
   size_t post_recvs_impl(void* buffers[], size_t size, size_t count, mr_t mrm,
                          void* usesr_contexts[]) override;
+  void quiesce_recvs_impl(const std::vector<packet_t*>& posted_recvs) override;
 
   // Connections O(N)
   struct ibv_td* ib_td;

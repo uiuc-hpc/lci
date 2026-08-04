@@ -12,8 +12,7 @@ packet_pool_impl_t::packet_pool_impl_t(const attr_t& attr_)
       heap(nullptr),
       base_packet_p(nullptr),
       heap_size(0),
-      mrs(64),
-      npacket_lost(0)
+      mrs(64)
 {
   if (attr.npackets > 0) {
     heap_size = attr.npackets * attr.packet_size + LCI_CACHE_LINE;
@@ -38,9 +37,8 @@ packet_pool_impl_t::~packet_pool_impl_t()
 {
   // check whether there are any packets missing
   if (attr.npackets > 0) {
-    size_t total = pool.size() + npacket_lost;
-    if (total != attr.npackets) {
-      LCI_Warn("Lost %d packets\n", attr.npackets - total);
+    if (pool.size() != attr.npackets) {
+      LCI_Warn("Lost %lu packets\n", attr.npackets - pool.size());
     }
   }
   for (size_t i = 0; i < mrs.get_size(); i++) {

@@ -16,6 +16,9 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
                                                 size_t max_polls)
 {
   struct fi_cq_data_entry fi_entries[LCI_BACKEND_MAX_POLLS];
+  struct fi_cq_err_entry error = {};
+  char err_data[64];
+  bool has_error = false;
 
   // Keep the configured polling lock across both reads so another poller
   // cannot consume the error entry reported by fi_cq_read.
@@ -25,62 +28,76 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
   }
 
   ssize_t ne = fi_cq_read(ofi_cq, fi_entries, max_polls);
-  if (ne > 0) {
-    // Got an entry here
-    for (int j = 0; j < ne; j++) {
-      if (p_statuses) {
-        net_status_t& status = p_statuses[j];
-        memset(&status, 0, sizeof(status));
-        if (fi_entries[j].flags & FI_RECV) {
-          status.opcode = net_opcode_t::RECV;
-          status.user_context = fi_entries[j].op_context;
-          status.length = fi_entries[j].len;
-          status.imm_data = fi_entries[j].data & ((1ULL << 32) - 1);
-          status.rank = (int)(fi_entries[j].data >> 32);
-        } else if (fi_entries[j].flags & FI_REMOTE_WRITE) {
-          status.opcode = net_opcode_t::REMOTE_WRITE;
-          status.user_context = NULL;
-          status.imm_data = fi_entries[j].data;
-        } else if (fi_entries[j].flags & FI_SEND) {
-          status.opcode = net_opcode_t::SEND;
-          status.user_context = fi_entries[j].op_context;
-        } else if (fi_entries[j].flags & FI_WRITE) {
-          status.opcode = net_opcode_t::WRITE;
-          status.user_context = fi_entries[j].op_context;
-        } else {
-          LCI_DBG_Assert(fi_entries[j].flags & FI_READ,
-                         "Unexpected OFI opcode!\n");
-          status.opcode = net_opcode_t::READ;
-          status.user_context = fi_entries[j].op_context;
-        }
-      }
-    }
-  } else if (ne == -FI_EAGAIN) {
-    ne = 0;
-  } else {
-    LCI_Assert(ne == -FI_EAVAIL, "unexpected return error: %s\n",
-               fi_strerror(-ne));
-    struct fi_cq_err_entry error = {};
-    char err_data[64];
+  if (ne == -FI_EAGAIN) {
+    return 0;
+  }
+  if (ne == -FI_EAVAIL) {
     error.err_data = err_data;
     error.err_data_size = sizeof(err_data);
     ssize_t ret_cqerr = fi_cq_readerr(ofi_cq, &error, 0);
     if (ret_cqerr == -FI_EAGAIN) {
       return 0;
-    } else {
-      LCI_Assert(ret_cqerr == 1, "fi_cq_readerr failed: %s\n",
-                 fi_strerror(-ret_cqerr));
-      if (p_statuses) {
-        net_status_t& status = p_statuses[0];
-        memset(&status, 0, sizeof(status));
-        status.opcode = net_opcode_t::ERROR;
-        status.rank = -1;
-        const bool is_outgoing =
-            (error.flags & (FI_SEND | FI_WRITE | FI_READ)) != 0 &&
-            (error.flags & (FI_RECV | FI_REMOTE_WRITE)) == 0;
-        status.user_context = is_outgoing ? error.op_context : nullptr;
+    }
+    LCI_Assert(ret_cqerr == 1, "fi_cq_readerr failed: %s\n",
+               fi_strerror(-ret_cqerr));
+    has_error = true;
+  } else {
+    LCI_Assert(ne >= 0, "unexpected return error: %s\n", fi_strerror(-ne));
+  }
+
+  if (poll_lock.owns_lock()) {
+    poll_lock.unlock();
+  }
+
+  if (has_error) {
+    if (error.flags & FI_RECV) {
+      packet_t* packet = complete_recv(error.op_context);
+      if (packet != nullptr) {
+        packet->put_back();
       }
-      ne = 1;
+    }
+    if (p_statuses) {
+      net_status_t& status = p_statuses[0];
+      memset(&status, 0, sizeof(status));
+      status.opcode = net_opcode_t::ERROR;
+      status.rank = -1;
+      const bool is_outgoing =
+          (error.flags & (FI_SEND | FI_WRITE | FI_READ)) != 0 &&
+          (error.flags & (FI_RECV | FI_REMOTE_WRITE)) == 0;
+      status.user_context = is_outgoing ? error.op_context : nullptr;
+    }
+    return 1;
+  }
+
+  for (int j = 0; j < ne; j++) {
+    if (fi_entries[j].flags & FI_RECV) {
+      complete_recv(fi_entries[j].op_context);
+    }
+    if (p_statuses) {
+      net_status_t& status = p_statuses[j];
+      memset(&status, 0, sizeof(status));
+      if (fi_entries[j].flags & FI_RECV) {
+        status.opcode = net_opcode_t::RECV;
+        status.user_context = fi_entries[j].op_context;
+        status.length = fi_entries[j].len;
+        status.imm_data = fi_entries[j].data & ((1ULL << 32) - 1);
+        status.rank = (int)(fi_entries[j].data >> 32);
+      } else if (fi_entries[j].flags & FI_REMOTE_WRITE) {
+        status.opcode = net_opcode_t::REMOTE_WRITE;
+        status.user_context = NULL;
+        status.imm_data = fi_entries[j].data;
+      } else if (fi_entries[j].flags & FI_SEND) {
+        status.opcode = net_opcode_t::SEND;
+        status.user_context = fi_entries[j].op_context;
+      } else if (fi_entries[j].flags & FI_WRITE) {
+        status.opcode = net_opcode_t::WRITE;
+        status.user_context = fi_entries[j].op_context;
+      } else {
+        LCI_DBG_Assert(fi_entries[j].flags & FI_READ,
+                       "Unexpected OFI opcode!\n");
+        status.opcode = net_opcode_t::READ;
+        status.user_context = fi_entries[j].op_context;
+      }
     }
   }
   return static_cast<size_t>(ne);

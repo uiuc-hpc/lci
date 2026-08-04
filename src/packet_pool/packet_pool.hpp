@@ -37,8 +37,6 @@ class packet_pool_impl_t
   }
   size_t get_size() const { return pool.size(); }
   int get_local_id() const { return pool.get_local_set_id(); }
-  // Report lost packets
-  void report_lost_packets(int npackets) { npacket_lost += npackets; }
 
   attr_t attr;
 
@@ -48,7 +46,6 @@ class packet_pool_impl_t
   void* base_packet_p;
   size_t heap_size;
   mpmc_array_t<mr_impl_t*> mrs;
-  std::atomic<size_t> npacket_lost;
 };
 
 inline packet_t* packet_pool_impl_t::get(bool blocking)
@@ -78,6 +75,7 @@ inline size_t packet_pool_impl_t::get_n(size_t n, packet_t* buf_out[],
     packet->local_context.packet_pool_impl = this;
     packet->local_context.isInPool = false;
     packet->local_context.local_id = mpmc_set_t::LOCAL_SET_ID_NULL;
+    packet->local_context.posted_recv_slot = PACKET_POSTED_RECV_SLOT_INVALID;
   }
   if (n_popped == 0) {
     LCI_PCOUNTER_ADD(packet_get_retry, 1);
@@ -94,6 +92,9 @@ inline void packet_pool_impl_t::put(packet_t* p_packet)
   packet_t* packet = static_cast<packet_t*>(p_packet);
   LCI_Assert(!packet->local_context.isInPool,
              "This packet has already been freed!\n");
+  LCI_Assert(
+      packet->local_context.posted_recv_slot == PACKET_POSTED_RECV_SLOT_INVALID,
+      "Cannot return a packet while it is posted as a receive\n");
   packet->local_context.isInPool = true;
   pool.put(packet, packet->local_context.local_id);
   LCI_PCOUNTER_ADD(packet_put, 1);

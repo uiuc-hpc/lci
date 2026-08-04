@@ -119,6 +119,11 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
       qp2rank_map_t::entry_t entry = snapshot->get_entry(wcs[i].qp_num);
       const bool is_receive = wcs[i].opcode == IBV_WC_RECV ||
                               wcs[i].opcode == IBV_WC_RECV_RDMA_WITH_IMM;
+      packet_t* completed_recv =
+          is_receive ? complete_recv((void*)wcs[i].wr_id) : nullptr;
+      if (wcs[i].status != IBV_WC_SUCCESS && completed_recv != nullptr) {
+        completed_recv->put_back();
+      }
       // A failed send-side completion still releases its SQ slot.
       if (!is_receive) {
         if (entry.rank >= 0 && entry.rank < get_rank_n() &&
@@ -149,7 +154,6 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
         status.imm_data = wcs[i].imm_data;
         status.rank = entry.rank;
       } else if (wcs[i].opcode == IBV_WC_RECV_RDMA_WITH_IMM) {
-        consume_recvs(1);
         status.opcode = net_opcode_t::REMOTE_WRITE;
         status.user_context = (void*)wcs[i].wr_id;
         status.imm_data = wcs[i].imm_data;

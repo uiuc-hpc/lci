@@ -7,6 +7,7 @@
 namespace lci
 {
 const int POOLID_LOCAL = -1;
+constexpr size_t PACKET_POSTED_RECV_SLOT_INVALID = static_cast<size_t>(-1);
 
 struct packet_local_context_t {
   packet_pool_impl_t*
@@ -14,6 +15,7 @@ struct packet_local_context_t {
   int local_id : 31;    /* id of the local pool to return this packet */
   bool isInPool : 1;    /* Debug use only. Whether this packet is in the packet
                            pool */
+  size_t posted_recv_slot;
   // context of the ongoing communication
   bool is_eager : 1; /* whether this packet is used for eager protocol */
   int rank;

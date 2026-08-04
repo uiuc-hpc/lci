@@ -4,8 +4,13 @@
 #ifndef LCI_NETWORK_HPP
 #define LCI_NETWORK_HPP
 
+#include <mutex>
+#include <vector>
+
 namespace lci
 {
+struct packet_t;
+
 class net_context_impl_t
 {
  public:
@@ -38,6 +43,8 @@ class device_impl_t
                                  void* user_context) = 0;
   virtual size_t post_recvs_impl(void* buffers[], size_t size, size_t count,
                                  mr_t mr, void* usesr_contexts[]) = 0;
+  virtual void quiesce_recvs_impl(
+      const std::vector<packet_t*>& posted_recvs) = 0;
 
   // wrapper functions
   endpoint_t alloc_endpoint(endpoint_t::attr_t attr);
@@ -56,7 +63,7 @@ class device_impl_t
   inline void unbind_packet_pool();
   inline bool post_recv_packets();
   inline bool refill_recvs(bool is_blocking = false);
-  inline void consume_recvs(int n) { nrecvs_posted -= n; }
+  inline packet_t* complete_recv(void* user_context);
   static int reserve_device_ids(int n)
   {
     return g_ndevices.fetch_add(n, std::memory_order_relaxed);
@@ -81,10 +88,16 @@ class device_impl_t
   RegCache* rcache_handle = nullptr;
 
  private:
+  inline void release_posted_recv_slot(packet_t* packet);
+
   static std::atomic<int> g_ndevices;
   LCIU_CACHE_PADDING(sizeof(std::atomic<int>));
   std::atomic<size_t> nrecvs_posted;
   LCIU_CACHE_PADDING(sizeof(std::atomic<size_t>));
+  std::vector<packet_t*> posted_recvs;
+  std::vector<size_t> free_posted_recv_slots;
+  bool posted_recvs_stopping = false;
+  spinlock_t posted_recvs_lock;
 };
 
 class mr_impl_t

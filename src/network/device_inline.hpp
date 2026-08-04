@@ -97,54 +97,89 @@ inline void device_impl_t::destroy_reg_cache()
   }
 }
 
+inline void device_impl_t::release_posted_recv_slot(packet_t* packet)
+{
+  const size_t slot = packet->local_context.posted_recv_slot;
+  LCI_Assert(slot != PACKET_POSTED_RECV_SLOT_INVALID &&
+                 slot < posted_recvs.size() && posted_recvs[slot] == packet,
+             "Invalid posted receive slot\n");
+  posted_recvs[slot] = nullptr;
+  free_posted_recv_slots.push_back(slot);
+  packet->local_context.posted_recv_slot = PACKET_POSTED_RECV_SLOT_INVALID;
+}
+
+inline packet_t* device_impl_t::complete_recv(void* user_context)
+{
+  std::lock_guard<spinlock_t> lock(posted_recvs_lock);
+  if (!packet_pool.p_impl ||
+      !packet_pool.p_impl->is_packet(user_context, true)) {
+    return nullptr;
+  }
+
+  packet_t* packet = static_cast<packet_t*>(user_context);
+  const size_t slot = packet->local_context.posted_recv_slot;
+  if (slot == PACKET_POSTED_RECV_SLOT_INVALID || slot >= posted_recvs.size() ||
+      posted_recvs[slot] != packet) {
+    return nullptr;
+  }
+
+  release_posted_recv_slot(packet);
+  const size_t previous = nrecvs_posted.fetch_sub(1, std::memory_order_relaxed);
+  LCI_Assert(previous > 0, "Posted receive count underflow\n");
+  return packet;
+}
+
 inline bool device_impl_t::post_recv_packets()
 {
-  mr_t mr;
-  size_t size;
-  error_t error;
-  if (nrecvs_posted >= attr.net_max_recvs) {
-    return false;
-  }
   const size_t BATCH_SIZE = LCI_BACKEND_MAX_POLLS * 2;
+  packet_t* packets[BATCH_SIZE];
+  void* buffers[BATCH_SIZE];
 
-  size_t my_position = nrecvs_posted.fetch_add(BATCH_SIZE);
-
-  if (my_position >= attr.net_max_recvs) {
-    nrecvs_posted -= BATCH_SIZE;
+  std::lock_guard<spinlock_t> lock(posted_recvs_lock);
+  if (posted_recvs_stopping || !packet_pool.p_impl ||
+      free_posted_recv_slots.empty()) {
     return false;
   }
-  size_t nslots = std::min(attr.net_max_recvs - my_position, BATCH_SIZE);
-  packet_t* packets[BATCH_SIZE];
 
+  const size_t nslots = std::min(BATCH_SIZE, free_posted_recv_slots.size());
   size_t n_popped = packet_pool.p_impl->get_n(nslots, packets, false);
   if (n_popped == 0) {
-    nrecvs_posted -= BATCH_SIZE;
     return false;
   }
 
-  mr = packet_pool.p_impl->get_or_register_mr(device);
-  size = packet_pool.p_impl->get_payload_size();
-  void* buffers[BATCH_SIZE];
   for (size_t i = 0; i < n_popped; i++) {
     buffers[i] = packets[i]->get_payload_address();
+    const size_t slot = free_posted_recv_slots.back();
+    free_posted_recv_slots.pop_back();
+    posted_recvs[slot] = packets[i];
+    packets[i]->local_context.posted_recv_slot = slot;
   }
+
+  mr_t mr = packet_pool.p_impl->get_or_register_mr(device);
+  size_t size = packet_pool.p_impl->get_payload_size();
   size_t n_posted =
       post_recvs((void**)buffers, size, n_popped, mr, (void**)packets);
+  LCI_Assert(n_posted <= n_popped,
+             "Backend posted more receives than requested\n");
   for (size_t i = n_posted; i < n_popped; i++) {
+    release_posted_recv_slot(packets[i]);
     packets[i]->put_back();
   }
-  if (BATCH_SIZE != n_posted) {
-    nrecvs_posted -= (BATCH_SIZE - n_posted);
+  if (n_posted > 0) {
+    nrecvs_posted.fetch_add(n_posted, std::memory_order_relaxed);
   }
   return n_posted > 0;
 }
 
 inline bool device_impl_t::refill_recvs(bool is_blocking)
 {
+  if (!packet_pool.p_impl) {
+    return false;
+  }
   const double refill_threshold = 0.8;
   const int max_retries = 100000;
   bool ret = false;
-  int nrecvs_posted = this->nrecvs_posted;
+  size_t nrecvs_posted = this->nrecvs_posted;
   int niters = 0;
   while (nrecvs_posted < attr.net_max_recvs * refill_threshold) {
     bool succeed = post_recv_packets();
@@ -154,7 +189,7 @@ inline bool device_impl_t::refill_recvs(bool is_blocking)
         if (niters > max_retries) {
           LCI_Warn(
               "Deadlock alert! The device failed to refill the recvs to the "
-              "maximum (current %d)\n",
+              "maximum (current %lu)\n",
               nrecvs_posted);
           break;
         }
@@ -179,17 +214,54 @@ inline bool device_impl_t::refill_recvs(bool is_blocking)
 
 inline void device_impl_t::bind_packet_pool(packet_pool_t packet_pool_)
 {
-  packet_pool = packet_pool_;
+  {
+    std::lock_guard<spinlock_t> lock(posted_recvs_lock);
+    LCI_Assert(!packet_pool.p_impl, "A packet pool is already bound\n");
+    packet_pool = packet_pool_;
+    posted_recvs.assign(attr.net_max_recvs, nullptr);
+    free_posted_recv_slots.clear();
+    free_posted_recv_slots.reserve(attr.net_max_recvs);
+    for (size_t i = attr.net_max_recvs; i > 0; --i) {
+      free_posted_recv_slots.push_back(i - 1);
+    }
+    posted_recvs_stopping = false;
+    nrecvs_posted.store(0, std::memory_order_relaxed);
+  }
   packet_pool.p_impl->register_packets(device);
   refill_recvs(true);
 }
 
 inline void device_impl_t::unbind_packet_pool()
 {
-  // if we have been using packet pool, report lost packets
-  if (packet_pool.p_impl) {
-    packet_pool.p_impl->deregister_packets(device);
-    packet_pool.p_impl->report_lost_packets(nrecvs_posted);
+  packet_pool_impl_t* p_packet_pool = nullptr;
+  std::vector<packet_t*> posted_recvs_snapshot;
+  {
+    std::lock_guard<spinlock_t> lock(posted_recvs_lock);
+    if (!packet_pool.p_impl) {
+      return;
+    }
+    posted_recvs_stopping = true;
+    p_packet_pool = packet_pool.p_impl;
+    posted_recvs_snapshot = posted_recvs;
+  }
+
+  // The endpoint resources that can still reference these packets must be
+  // retired before their MR is closed or the packets are returned to the pool.
+  quiesce_recvs_impl(posted_recvs_snapshot);
+  p_packet_pool->deregister_packets(device);
+
+  {
+    std::lock_guard<spinlock_t> lock(posted_recvs_lock);
+    for (packet_t* packet : posted_recvs) {
+      if (packet != nullptr) {
+        packet->local_context.posted_recv_slot =
+            PACKET_POSTED_RECV_SLOT_INVALID;
+        packet->put_back();
+      }
+    }
+    posted_recvs.clear();
+    free_posted_recv_slots.clear();
+    nrecvs_posted.store(0, std::memory_order_relaxed);
     packet_pool.p_impl = nullptr;
   }
 }
