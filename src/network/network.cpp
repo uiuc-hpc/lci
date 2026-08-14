@@ -241,7 +241,14 @@ void free_endpoint_x::call_impl(endpoint_t* endpoint, runtime_t) const
   //     .runtime(endpoint->get_impl()->runtime)
   //     .device(endpoint->get_impl()->device)
   //     .endpoint (*endpoint)();
-  wait_drained_x().device(endpoint->get_impl()->device)();
+  device_t device = endpoint->get_impl()->device;
+  if (!device.get_impl()->has_network_failed()) {
+    wait_drained_x().device(device)();
+  } else {
+    LCI_Log(LOG_INFO, "network",
+            "Skip draining endpoint %d on failed device %d\n",
+            endpoint->get_impl()->idx_in_device, device.get_attr_uid());
+  }
   endpoint->get_impl()->device.p_impl->free_endpoint(*endpoint);
   endpoint->p_impl = nullptr;
 }

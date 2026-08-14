@@ -152,6 +152,33 @@ TEST(NETWORK, completion_batch_unknown_rank_is_generic)
   lci::g_runtime_fina();
 }
 
+TEST(NETWORK, completion_failure_uses_abortive_teardown)
+{
+  lci::g_runtime_init();
+  lci::runtime_t runtime = lci::g_default_runtime;
+  lci::device_t device = lci::get_default_device();
+  lci::endpoint_t endpoint = lci::get_default_endpoint();
+  EXPECT_FALSE(device.get_impl()->has_network_failed());
+
+  // Model an operation whose completion context is unavailable after a
+  // transport failure. Normal teardown would wait for this count forever.
+  endpoint.get_impl()->add_pending_ops();
+
+  lci::net_status_t status = {};
+  status.opcode = lci::net_opcode_t::ERROR;
+  status.rank = -1;
+  status.user_context = nullptr;
+
+  EXPECT_THROW(
+      lci::process_completion_batch(runtime, device, endpoint, &status, 1),
+      std::runtime_error);
+  EXPECT_TRUE(device.get_impl()->has_network_failed());
+
+  // A failed device abandons outstanding operations instead of hanging in
+  // wait_drained().
+  lci::g_runtime_fina();
+}
+
 TEST(NETWORK, reg_mem)
 {
   lci::g_runtime_init();
