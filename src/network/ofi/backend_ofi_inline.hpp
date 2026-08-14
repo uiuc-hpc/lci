@@ -275,8 +275,13 @@ inline error_t ofi_endpoint_impl_t::post_put_impl(int rank, void* buffer,
 
 inline error_t ofi_endpoint_impl_t::post_putImms_impl(
     int rank, void* buffer, size_t size, uint64_t offset, rmr_t rmr,
-    net_imm_data_t imm_data, void* user_context, bool /*high_priority*/)
+    net_imm_data_t imm_data, void* user_context, bool high_priority)
 {
+  if (p_ofi_device->use_rma_event) {
+    // CXI fi_inject_writedata does not generate the remote completion.
+    return post_putImms_fallback(rank, buffer, size, offset, rmr, imm_data,
+                                 user_context, high_priority);
+  }
   uintptr_t addr =
       ofi_detail::get_remote_addr(rmr, offset, ofi_domain_attr->mr_mode);
   struct fi_msg_rma msg;
@@ -299,8 +304,6 @@ inline error_t ofi_endpoint_impl_t::post_putImms_impl(
   ssize_t ret = fi_writemsg(
       ofi_ep, &msg,
       FI_INJECT | FI_COMPLETION | FI_DELIVERY_COMPLETE | FI_REMOTE_CQ_DATA);
-  // ssize_t ret = fi_inject_writedata(ofi_ep, buffer, size, imm_data,
-  //                                   peer_addrs[rank], addr, rmr.opaque_rkey);
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
     return errorcode_t::done;
@@ -317,28 +320,33 @@ inline error_t ofi_endpoint_impl_t::post_putImm_impl(
 {
   uintptr_t addr =
       ofi_detail::get_remote_addr(rmr, offset, ofi_domain_attr->mr_mode);
-  struct fi_msg_rma msg;
-  struct iovec iov;
-  struct fi_rma_iov riov;
-  void* desc = ofi_detail::get_mr_desc(mr);
-  iov.iov_base = buffer;
-  iov.iov_len = size;
-  msg.msg_iov = &iov;
-  msg.desc = &desc;
-  msg.iov_count = 1;
-  msg.addr = peer_addrs[rank];
-  riov.addr = addr;
-  riov.len = size;
-  riov.key = rmr.opaque_rkey;
-  msg.rma_iov = &riov;
-  msg.rma_iov_count = 1;
-  msg.context = user_context;
-  msg.data = imm_data;
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
-  ssize_t ret = fi_writemsg(
-      ofi_ep, &msg, FI_COMPLETION | FI_DELIVERY_COMPLETE | FI_REMOTE_CQ_DATA);
-  // fi_writedata(ofi_ep, buffer, size, ofi_detail::get_mr_desc(mr), imm_data,
-  //                  peer_addrs[rank], addr, rmr.opaque_rkey, user_context);
+  ssize_t ret;
+  if (p_ofi_device->use_rma_event) {
+    ret = fi_writedata(ofi_ep, buffer, size, ofi_detail::get_mr_desc(mr),
+                       imm_data, peer_addrs[rank], addr, rmr.opaque_rkey,
+                       user_context);
+  } else {
+    struct fi_msg_rma msg;
+    struct iovec iov;
+    struct fi_rma_iov riov;
+    void* desc = ofi_detail::get_mr_desc(mr);
+    iov.iov_base = buffer;
+    iov.iov_len = size;
+    msg.msg_iov = &iov;
+    msg.desc = &desc;
+    msg.iov_count = 1;
+    msg.addr = peer_addrs[rank];
+    riov.addr = addr;
+    riov.len = size;
+    riov.key = rmr.opaque_rkey;
+    msg.rma_iov = &riov;
+    msg.rma_iov_count = 1;
+    msg.context = user_context;
+    msg.data = imm_data;
+    ret = fi_writemsg(ofi_ep, &msg,
+                      FI_COMPLETION | FI_DELIVERY_COMPLETE | FI_REMOTE_CQ_DATA);
+  }
   LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
   if (ret == FI_SUCCESS)
     return errorcode_t::posted;

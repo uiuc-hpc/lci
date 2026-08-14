@@ -69,6 +69,14 @@ bool ofi_net_context_impl_t::check_availability()
 ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
     : net_context_impl_t(runtime_, attr_)
 {
+  uint32_t v = fi_version();
+  int major = FI_MAJOR(v);
+  int minor = FI_MINOR(v);
+  const char* cxi_enable_writedata = getenv("FI_CXI_ENABLE_WRITEDATA");
+  bool cxi_writedata_requested = attr.ofi_provider_name == "cxi" &&
+                                 cxi_enable_writedata != nullptr &&
+                                 strcmp(cxi_enable_writedata, "1") == 0 &&
+                                 (major > 2 || (major == 2 && minor >= 5));
   char* prov_name_hint = dup_string_or_null(attr.ofi_provider_name);
   char* device_name_hint = dup_string_or_null(attr.device_name);
   struct fi_info* hints;
@@ -86,6 +94,9 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   hints->domain_attr->threading = FI_THREAD_SAFE;
   hints->tx_attr->inject_size = attr.max_inject_size;
   hints->caps = FI_RMA | FI_MSG;
+  if (cxi_writedata_requested) {
+    hints->caps |= FI_RMA_EVENT;
+  }
 #if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
 #ifndef FI_HMEM
 #error "The current libfabric version does not have GPU support"
@@ -107,10 +118,6 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
                  __LINE__);
     }
   }
-  // Get libfabric version.
-  uint32_t v = fi_version();
-  int major = FI_MAJOR(v);
-  int minor = FI_MINOR(v);
   // According to the libfabric documentation, fi_getinfo call should
   // return the endpoints that are highest performing first.
   // But it appears cxi provider doesn't follow this rule,
@@ -184,8 +191,9 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   attr.support_putimm = true;
   std::string prov_name = ofi_info->fabric_attr->prov_name;
   if (prov_name == "cxi") {
-    // The CXI provider does not support write with immediate data.
-    attr.support_putimm = false;
+    // CXI added opt-in write-with-immediate support in libfabric 2.5.
+    attr.support_putimm =
+        cxi_writedata_requested && (ofi_info->caps & FI_RMA_EVENT);
   } else if (prov_name == "tcp" || prov_name.rfind("tcp;", 0) == 0) {
     if (major < 1 || (major == 1 && minor < 12)) {
       LCI_Warn(
@@ -219,6 +227,9 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
 {
   auto p_ofi_context = static_cast<ofi_net_context_impl_t*>(net_context.p_impl);
   ofi_domain_attr = p_ofi_context->ofi_info->domain_attr;
+  use_rma_event =
+      strcmp(p_ofi_context->ofi_info->fabric_attr->prov_name, "cxi") == 0 &&
+      p_ofi_context->attr.support_putimm;
   // Create domain.
   FI_SAFECALL(fi_domain(p_ofi_context->ofi_fabric, p_ofi_context->ofi_info,
                         &ofi_domain, nullptr));
@@ -379,7 +390,8 @@ mr_t ofi_device_impl_t::register_memory_impl(void* buffer, size_t size)
   struct fid_mr* ofi_mr;
   {
     ofi_lock_guard_t lock_guard(ofi_lock_mode, LCI_NET_LOCK_MR, lock);
-    FI_SAFECALL(fi_mr_regattr(ofi_domain, &mr_attr, 0, &ofi_mr));
+    FI_SAFECALL(fi_mr_regattr(ofi_domain, &mr_attr,
+                              use_rma_event ? FI_RMA_EVENT : 0, &ofi_mr));
 
     // FI_SAFECALL(fi_mr_reg(
     //     ofi_domain, buffer, size,
