@@ -57,6 +57,14 @@ class device_impl_t
   inline bool post_recv_packets();
   inline bool refill_recvs(bool is_blocking = false);
   inline void consume_recvs(int n) { nrecvs_posted -= n; }
+  inline void mark_network_failed()
+  {
+    network_failed.store(true, std::memory_order_relaxed);
+  }
+  inline bool has_network_failed() const
+  {
+    return network_failed.load(std::memory_order_relaxed);
+  }
   static int reserve_device_ids(int n)
   {
     return g_ndevices.fetch_add(n, std::memory_order_relaxed);
@@ -84,7 +92,8 @@ class device_impl_t
   static std::atomic<int> g_ndevices;
   LCIU_CACHE_PADDING(sizeof(std::atomic<int>));
   std::atomic<size_t> nrecvs_posted;
-  LCIU_CACHE_PADDING(sizeof(std::atomic<size_t>));
+  std::atomic<bool> network_failed{false};
+  LCIU_CACHE_PADDING(sizeof(std::atomic<size_t>) + sizeof(std::atomic<bool>));
 };
 
 class mr_impl_t

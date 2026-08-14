@@ -255,6 +255,7 @@ void process_completion_batch(runtime_t runtime, device_t device,
   for (size_t i = 0; i < count; i++) {
     const net_status_t& status = statuses[i];
     if (status.opcode == net_opcode_t::ERROR) {
+      device.get_impl()->mark_network_failed();
       const int failed_rank = get_failed_peer_rank(status);
       cleanup_failed_simple_operation(status);
       if (!has_failure) {
@@ -263,7 +264,7 @@ void process_completion_batch(runtime_t runtime, device_t device,
         first_failed_rank = failed_rank;
       }
     } else if (status.opcode == net_opcode_t::RECV) {
-      device.p_impl->consume_recvs(1);
+      device.get_impl()->consume_recvs(1);
       progress_recv(runtime, endpoint, status);
     } else if (status.opcode == net_opcode_t::SEND) {
       progress_send(status);

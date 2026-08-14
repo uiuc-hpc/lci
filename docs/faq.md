@@ -74,6 +74,13 @@ recover after catching an exception. `progress()` processes a full batch of
 completed operations before throwing, so successful operations in the same
 batch are still processed.
 
+After an asynchronous network failure is reported, LCI marks the affected
+device as failed. Destroying an endpoint on that device uses abortive teardown:
+it does not wait for outstanding operations that the failed transport may
+never complete. Those operations may be abandoned without signaling their
+completion objects. Normal endpoint teardown still waits for all operations to
+drain when no network failure has been observed.
+
 The `test-resilience-process-failure` CTest program exercises this path with
 the libfabric TCP provider: it kills rank 1, verifies that rank 0 receives a
 `peer_failure_error` for rank 1, and confirms that the two surviving ranks
