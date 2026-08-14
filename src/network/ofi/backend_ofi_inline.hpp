@@ -278,7 +278,9 @@ inline error_t ofi_endpoint_impl_t::post_putImms_impl(
     net_imm_data_t imm_data, void* user_context, bool high_priority)
 {
   if (p_ofi_device->use_rma_event) {
-    // CXI fi_inject_writedata does not generate the remote completion.
+    // Keep the software fallback for CXI inject-sized operations. Direct
+    // fi_inject_writedata works with libfabric 2.6, but LCI teardown hangs
+    // after using it.
     return post_putImms_fallback(rank, buffer, size, offset, rmr, imm_data,
                                  user_context, high_priority);
   }

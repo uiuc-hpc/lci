@@ -17,6 +17,7 @@ struct config_t {
   size_t msg_size = sizeof(int);
   size_t niters = 10;
   bool remote_completion = false;
+  bool force_posted_writedata = false;
 } g_config;
 
 void worker(int peer_rank, lci::device_t device, char* data, lci::mr_t mr,
@@ -37,6 +38,9 @@ void worker(int peer_rank, lci::device_t device, char* data, lci::mr_t mr,
                       .device(device)
                       .mr(mr)
                       .allow_done(false);
+        if (g_config.force_posted_writedata) {
+          op = op.comp_semantic(lci::comp_semantic_t::network);
+        }
         status = g_config.remote_completion ? op.remote_comp(rcomp)() : op();
         lci::progress_x().device(device)();
       } while (status.is_retry());
@@ -45,6 +49,9 @@ void worker(int peer_rank, lci::device_t device, char* data, lci::mr_t mr,
   size_t expected = g_config.niters * g_config.nelems;
   while (expected > lci::counter_get(comp)) {
     lci::progress_x().device(device)();
+  }
+  if (g_config.remote_completion) {
+    return;
   }
   // Drain network puts before signaling completion. The AM may use SHM, which
   // does not provide ordering with the preceding network puts.
@@ -67,6 +74,7 @@ int main(int argc, char** argv)
       ("s,msg-size", "Message size (bytes)", cxxopts::value<size_t>()->default_value(std::to_string(g_config.msg_size)))
       ("n,niters", "Number of iterations", cxxopts::value<size_t>()->default_value(std::to_string(g_config.niters)))
       ("r,remote-completion", "Request remote completion for every put", cxxopts::value<bool>()->default_value("false")->implicit_value("true"))
+      ("force-posted-writedata", "Benchmark-only: force remote-completion puts through the registered/posted network path", cxxopts::value<bool>()->default_value("false")->implicit_value("true"))
       ("h,help", "Print help")
       ;
   auto result = options.parse(argc, argv);
@@ -82,6 +90,9 @@ int main(int argc, char** argv)
   g_config.msg_size = result["msg-size"].as<size_t>();
   g_config.niters = result["niters"].as<size_t>();
   g_config.remote_completion = result["remote-completion"].as<bool>();
+  g_config.force_posted_writedata =
+      result["force-posted-writedata"].as<bool>();
+  assert(!g_config.force_posted_writedata || g_config.remote_completion);
 
   if (g_config.ndevices == -1) {
     g_config.ndevices = g_config.nthreads;
@@ -111,7 +122,10 @@ int main(int argc, char** argv)
               << g_config.ndevices << " devices, "
               << g_config.nelems << " elements, "
               << g_config.msg_size << " bytes per element, "
-              << (g_config.remote_completion ? "remote completion" : "normal put")
+              << (g_config.force_posted_writedata
+                      ? "forced posted writedata"
+                      : (g_config.remote_completion ? "remote completion"
+                                                    : "normal put"))
               << ", "
               << g_config.niters << " iterations" << std::endl;
   }
@@ -167,7 +181,7 @@ int main(int argc, char** argv)
       lci::device_t device = devices[device_idx];
       size_t expected =
           g_config.remote_completion
-              ? g_config.niters * g_config.nelems + g_config.nthreads
+              ? g_config.niters * g_config.nelems
               : g_config.nthreads;
       while (lci::counter_get(comp) < expected) {
         lci::progress_x().device(device)();
