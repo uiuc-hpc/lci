@@ -92,8 +92,8 @@ class device_impl_t
   static std::atomic<int> g_ndevices;
   LCIU_CACHE_PADDING(sizeof(std::atomic<int>));
   std::atomic<size_t> nrecvs_posted;
-  LCIU_CACHE_PADDING(sizeof(std::atomic<size_t>));
   std::atomic<bool> network_failed{false};
+  LCIU_CACHE_PADDING(sizeof(std::atomic<size_t>) + sizeof(std::atomic<bool>));
 };
 
 class mr_impl_t

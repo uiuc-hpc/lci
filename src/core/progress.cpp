@@ -264,7 +264,7 @@ void process_completion_batch(runtime_t runtime, device_t device,
         first_failed_rank = failed_rank;
       }
     } else if (status.opcode == net_opcode_t::RECV) {
-      device.p_impl->consume_recvs(1);
+      device.get_impl()->consume_recvs(1);
       progress_recv(runtime, endpoint, status);
     } else if (status.opcode == net_opcode_t::SEND) {
       progress_send(status);
