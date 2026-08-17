@@ -275,17 +275,30 @@ inline error_t ofi_endpoint_impl_t::post_put_impl(int rank, void* buffer,
 
 inline error_t ofi_endpoint_impl_t::post_putImms_impl(
     int rank, void* buffer, size_t size, uint64_t offset, rmr_t rmr,
-    net_imm_data_t imm_data, void* user_context, bool high_priority)
+    net_imm_data_t imm_data, void* user_context, bool /*high_priority*/)
 {
-  if (p_ofi_device->use_rma_event) {
-    // Keep the software fallback for CXI inject-sized operations. Direct
-    // fi_inject_writedata works with libfabric 2.6, but LCI teardown hangs
-    // after using it.
-    return post_putImms_fallback(rank, buffer, size, offset, rmr, imm_data,
-                                 user_context, high_priority);
-  }
   uintptr_t addr =
       ofi_detail::get_remote_addr(rmr, offset, ofi_domain_attr->mr_mode);
+  if (p_ofi_device->use_rma_event) {
+    LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
+    ssize_t ret = fi_inject_writedata(ofi_ep, buffer, size, imm_data,
+                                      peer_addrs[rank], addr, rmr.opaque_rkey);
+    LCI_OFI_CS_EXIT(LCI_NET_TRYLOCK_SEND);
+    if (ret == FI_SUCCESS) {
+      // fi_inject_writedata does not generate a local CQ completion. FI_INJECT
+      // has already copied the source buffer, so retire the internal context
+      // here instead of leaving the endpoint's pending operation count stuck.
+      if (user_context) {
+        free_ctx_and_signal_comp(
+            static_cast<internal_context_t*>(user_context));
+      }
+      return errorcode_t::done;
+    } else if (ret == -FI_EAGAIN)
+      return errorcode_t::retry_nomem;
+    else {
+      FI_SAFECALL_RET(ret);
+    }
+  }
   struct fi_msg_rma msg;
   struct iovec iov;
   struct fi_rma_iov riov;

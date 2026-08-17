@@ -22,6 +22,7 @@ add_lci_tests(
   "${LCI_USE_CTEST_LAUNCHER} -n 4 ${LCI_USE_CTEST_ARGS} [TARGET] -t 1 --nelems 1024 --niters 1"
   "${LCI_USE_CTEST_LAUNCHER} -n 2 ${LCI_USE_CTEST_ARGS} [TARGET] -t 2 --nelems 1024 --niters 1"
   "${LCI_USE_CTEST_LAUNCHER} -n 2 ${LCI_USE_CTEST_ARGS} [TARGET] -t 1 --nelems 64 --msg-size 1024 --niters 1 --remote-completion"
+  "${LCI_USE_CTEST_LAUNCHER} -n 2 ${LCI_USE_CTEST_ARGS} [TARGET] -t 1 --nelems 64 --msg-size 32 --niters 1 --remote-completion"
   "${LCI_USE_CTEST_LAUNCHER} -n 2 ${LCI_USE_CTEST_ARGS} [TARGET] -t 1 --nelems 64 --msg-size 32 --niters 1 --remote-completion --force-posted-writedata"
 )
 
