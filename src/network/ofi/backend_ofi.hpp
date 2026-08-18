@@ -104,7 +104,7 @@ class ofi_device_impl_t : public lci::device_impl_t
   struct fid_cq* ofi_cq;
   struct fid_av* ofi_av;
   std::vector<fi_addr_t> peer_addrs;
-  bool use_rma_event;
+  bool use_cxi_writedata;
   uint64_t& ofi_lock_mode;
   LCIU_CACHE_PADDING(0);
   spinlock_t lock;

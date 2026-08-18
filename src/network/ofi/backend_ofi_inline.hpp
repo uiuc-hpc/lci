@@ -279,7 +279,7 @@ inline error_t ofi_endpoint_impl_t::post_putImms_impl(
 {
   uintptr_t addr =
       ofi_detail::get_remote_addr(rmr, offset, ofi_domain_attr->mr_mode);
-  if (p_ofi_device->use_rma_event) {
+  if (p_ofi_device->use_cxi_writedata) {
     LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
     ssize_t ret = fi_inject_writedata(ofi_ep, buffer, size, imm_data,
                                       peer_addrs[rank], addr, rmr.opaque_rkey);
@@ -337,7 +337,7 @@ inline error_t ofi_endpoint_impl_t::post_putImm_impl(
       ofi_detail::get_remote_addr(rmr, offset, ofi_domain_attr->mr_mode);
   LCI_OFI_CS_TRY_ENTER(LCI_NET_TRYLOCK_SEND, errorcode_t::retry_lock);
   ssize_t ret;
-  if (p_ofi_device->use_rma_event) {
+  if (p_ofi_device->use_cxi_writedata) {
     ret = fi_writedata(ofi_ep, buffer, size, ofi_detail::get_mr_desc(mr),
                        imm_data, peer_addrs[rank], addr, rmr.opaque_rkey,
                        user_context);

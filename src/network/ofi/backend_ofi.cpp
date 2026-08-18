@@ -94,9 +94,6 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   hints->domain_attr->threading = FI_THREAD_SAFE;
   hints->tx_attr->inject_size = attr.max_inject_size;
   hints->caps = FI_RMA | FI_MSG;
-  if (cxi_writedata_requested) {
-    hints->caps |= FI_RMA_EVENT;
-  }
 #if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
 #ifndef FI_HMEM
 #error "The current libfabric version does not have GPU support"
@@ -191,9 +188,13 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   attr.support_putimm = true;
   std::string prov_name = ofi_info->fabric_attr->prov_name;
   if (prov_name == "cxi") {
-    // CXI added opt-in write-with-immediate support in libfabric 2.5.
+    // CXI writedata uses provider keys and the domain's CQ-data support.
+    // FI_RMA_EVENT controls separate MR/counter event semantics and is not
+    // required for fi_writedata or fi_inject_writedata.
     attr.support_putimm =
-        cxi_writedata_requested && (ofi_info->caps & FI_RMA_EVENT);
+        cxi_writedata_requested &&
+        ofi_info->domain_attr->cq_data_size >= sizeof(net_imm_data_t) &&
+        (ofi_info->domain_attr->mr_mode & FI_MR_PROV_KEY);
   } else if (prov_name == "tcp" || prov_name.rfind("tcp;", 0) == 0) {
     if (major < 1 || (major == 1 && minor < 12)) {
       LCI_Warn(
@@ -227,7 +228,7 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
 {
   auto p_ofi_context = static_cast<ofi_net_context_impl_t*>(net_context.p_impl);
   ofi_domain_attr = p_ofi_context->ofi_info->domain_attr;
-  use_rma_event =
+  use_cxi_writedata =
       strcmp(p_ofi_context->ofi_info->fabric_attr->prov_name, "cxi") == 0 &&
       p_ofi_context->attr.support_putimm;
   // Create domain.
@@ -390,8 +391,7 @@ mr_t ofi_device_impl_t::register_memory_impl(void* buffer, size_t size)
   struct fid_mr* ofi_mr;
   {
     ofi_lock_guard_t lock_guard(ofi_lock_mode, LCI_NET_LOCK_MR, lock);
-    FI_SAFECALL(fi_mr_regattr(ofi_domain, &mr_attr,
-                              use_rma_event ? FI_RMA_EVENT : 0, &ofi_mr));
+    FI_SAFECALL(fi_mr_regattr(ofi_domain, &mr_attr, 0, &ofi_mr));
 
     // FI_SAFECALL(fi_mr_reg(
     //     ofi_domain, buffer, size,
