@@ -134,6 +134,15 @@ class ofi_endpoint_impl_t : public lci::endpoint_impl_t
   error_t post_putImm_impl(int rank, void* buffer, size_t size, mr_t mr,
                            uint64_t offset, rmr_t rmr, net_imm_data_t imm_data,
                            void* user_context, bool high_priority) override;
+  // CXI rejects FI_REMOTE_CQ_DATA on fi_writemsg, so isolate use of the
+  // dedicated writedata entry points until the generic path is supported.
+  error_t cxi_inject_writedata_workaround(int rank, void* buffer, size_t size,
+                                          uint64_t offset, rmr_t rmr,
+                                          net_imm_data_t imm_data,
+                                          void* user_context);
+  error_t cxi_writedata_workaround(int rank, void* buffer, size_t size, mr_t mr,
+                                   uint64_t offset, rmr_t rmr,
+                                   net_imm_data_t imm_data, void* user_context);
   error_t post_get_impl(int rank, void* buffer, size_t size, mr_t mr,
                         uint64_t offset, rmr_t rmr, void* user_context,
                         bool high_priority) override;
