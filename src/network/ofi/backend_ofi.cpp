@@ -69,6 +69,14 @@ bool ofi_net_context_impl_t::check_availability()
 ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
     : net_context_impl_t(runtime_, attr_)
 {
+  uint32_t v = fi_version();
+  int major = FI_MAJOR(v);
+  int minor = FI_MINOR(v);
+  const char* cxi_enable_writedata = getenv("FI_CXI_ENABLE_WRITEDATA");
+  bool cxi_writedata_requested = attr.ofi_provider_name == "cxi" &&
+                                 cxi_enable_writedata != nullptr &&
+                                 strcmp(cxi_enable_writedata, "1") == 0 &&
+                                 (major > 2 || (major == 2 && minor >= 5));
   char* prov_name_hint = dup_string_or_null(attr.ofi_provider_name);
   char* device_name_hint = dup_string_or_null(attr.device_name);
   struct fi_info* hints;
@@ -107,10 +115,6 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
                  __LINE__);
     }
   }
-  // Get libfabric version.
-  uint32_t v = fi_version();
-  int major = FI_MAJOR(v);
-  int minor = FI_MINOR(v);
   // According to the libfabric documentation, fi_getinfo call should
   // return the endpoints that are highest performing first.
   // But it appears cxi provider doesn't follow this rule,
@@ -184,8 +188,13 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   attr.support_putimm = true;
   std::string prov_name = ofi_info->fabric_attr->prov_name;
   if (prov_name == "cxi") {
-    // The CXI provider does not support write with immediate data.
-    attr.support_putimm = false;
+    // CXI writedata uses provider keys and the domain's CQ-data support.
+    // FI_RMA_EVENT controls separate MR/counter event semantics and is not
+    // required for fi_writedata or fi_inject_writedata.
+    attr.support_putimm =
+        cxi_writedata_requested &&
+        ofi_info->domain_attr->cq_data_size >= sizeof(net_imm_data_t) &&
+        (ofi_info->domain_attr->mr_mode & FI_MR_PROV_KEY);
   } else if (prov_name == "tcp" || prov_name.rfind("tcp;", 0) == 0) {
     if (major < 1 || (major == 1 && minor < 12)) {
       LCI_Warn(
@@ -219,6 +228,9 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
 {
   auto p_ofi_context = static_cast<ofi_net_context_impl_t*>(net_context.p_impl);
   ofi_domain_attr = p_ofi_context->ofi_info->domain_attr;
+  use_cxi_writedata =
+      strcmp(p_ofi_context->ofi_info->fabric_attr->prov_name, "cxi") == 0 &&
+      p_ofi_context->attr.support_putimm;
   // Create domain.
   FI_SAFECALL(fi_domain(p_ofi_context->ofi_fabric, p_ofi_context->ofi_info,
                         &ofi_domain, nullptr));

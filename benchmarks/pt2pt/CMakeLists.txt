@@ -21,6 +21,23 @@ add_lci_tests(
   COMMANDS
   "${LCI_USE_CTEST_LAUNCHER} -n 4 ${LCI_USE_CTEST_ARGS} [TARGET] -t 1 --nelems 1024 --niters 1"
   "${LCI_USE_CTEST_LAUNCHER} -n 2 ${LCI_USE_CTEST_ARGS} [TARGET] -t 2 --nelems 1024 --niters 1"
+  "${LCI_USE_CTEST_LAUNCHER} -n 2 ${LCI_USE_CTEST_ARGS} [TARGET] -t 1 --nelems 64 --msg-size 1024 --niters 1 --remote-completion"
+  "${LCI_USE_CTEST_LAUNCHER} -n 2 ${LCI_USE_CTEST_ARGS} [TARGET] -t 1 --nelems 64 --msg-size 32 --niters 1 --remote-completion"
+  "${LCI_USE_CTEST_LAUNCHER} -n 2 ${LCI_USE_CTEST_ARGS} [TARGET] -t 1 --nelems 64 --msg-size 32 --niters 1 --remote-completion --force-posted-writedata"
+)
+
+add_lci_executable(bench_put_lat bench_put_lat.cpp)
+target_link_libraries(bench_put_lat PRIVATE cxxopts::cxxopts)
+add_lci_tests(
+  TESTS
+  bench_put_lat.cpp
+  LABELS
+  benchmark
+  DEPENDENCIES
+  cxxopts::cxxopts
+  COMMANDS
+  "${LCI_USE_CTEST_LAUNCHER} -n 2 ${LCI_USE_CTEST_ARGS} [TARGET] --msg-size 32 --niters 2 --warmup-iters 1"
+  "${LCI_USE_CTEST_LAUNCHER} -n 2 ${LCI_USE_CTEST_ARGS} [TARGET] --msg-size 32 --niters 2 --warmup-iters 1 --force-posted-writedata"
 )
 
 add_lci_executable(bench_am_lat bench_am_lat.cpp)
