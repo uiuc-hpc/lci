@@ -152,6 +152,54 @@ TEST(NETWORK, completion_batch_unknown_rank_is_generic)
   lci::g_runtime_fina();
 }
 
+TEST(NETWORK, raw_atomic_failure_does_not_cast_user_context)
+{
+  lci::g_runtime_init();
+  lci::runtime_t runtime = lci::g_default_runtime;
+  lci::device_t device = lci::get_default_device();
+  lci::endpoint_t endpoint = lci::get_default_endpoint();
+
+  lci::net_status_t status = {};
+  status.opcode = lci::net_opcode_t::ERROR;
+  status.rank = 7;
+  status.user_context = reinterpret_cast<void*>(static_cast<uintptr_t>(1));
+  status.failed_opcode = lci::net_opcode_t::FETCH_ADD;
+
+  try {
+    lci::process_completion_batch(runtime, device, endpoint, &status, 1);
+    FAIL() << "Expected peer_failure_error";
+  } catch (const lci::peer_failure_error& error) {
+    EXPECT_EQ(error.failed_rank(), 7);
+  }
+  EXPECT_TRUE(device.get_impl()->has_network_failed());
+
+  // The raw atomic context is deliberately not an internal_context_t. Failed
+  // teardown must remain abortive rather than dereferencing it or waiting for
+  // a completion that will never arrive.
+  lci::g_runtime_fina();
+}
+
+#ifdef LCI_BACKEND_ENABLE_IBV
+TEST(NETWORK, ibv_atomic_tracker_abort_reclaims_discard_state)
+{
+  lci::ibv_atomic_tracker_t tracker;
+  tracker.free_discard_slots.push_back(7);
+  tracker.posted_ops.push_back(
+      {true, 3, reinterpret_cast<void*>(static_cast<uintptr_t>(1))});
+  tracker.posted_ops.push_back(
+      {false, 0, reinterpret_cast<void*>(static_cast<uintptr_t>(2))});
+
+  EXPECT_EQ(tracker.abort(), 2u);
+  EXPECT_TRUE(tracker.posted_ops.empty());
+  EXPECT_NE(std::find(tracker.free_discard_slots.begin(),
+                      tracker.free_discard_slots.end(), 3),
+            tracker.free_discard_slots.end());
+  EXPECT_NE(std::find(tracker.free_discard_slots.begin(),
+                      tracker.free_discard_slots.end(), 7),
+            tracker.free_discard_slots.end());
+}
+#endif  // LCI_BACKEND_ENABLE_IBV
+
 TEST(NETWORK, completion_failure_uses_abortive_teardown)
 {
   lci::g_runtime_init();

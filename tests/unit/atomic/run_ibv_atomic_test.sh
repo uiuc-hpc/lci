@@ -5,7 +5,7 @@
 set -euo pipefail
 
 if [[ "$#" -eq 0 ]]; then
-  echo "Usage: $0 <launcher> [launcher arguments] <test> --require-ibv" >&2
+  echo "Usage: $0 <launcher> [launcher arguments] <test> --require-ibv[|-gpu]" >&2
   exit 2
 fi
 

@@ -6,10 +6,27 @@
 
 namespace lci
 {
+inline bool is_valid_uint64_atomic_scope(net_atomic_scope_t available_scope,
+                                         net_atomic_scope_t required_scope)
+{
+  switch (required_scope) {
+    case net_atomic_scope_t::HCA:
+      return available_scope == net_atomic_scope_t::HCA ||
+             available_scope == net_atomic_scope_t::GLOBAL;
+    case net_atomic_scope_t::GLOBAL:
+      return available_scope == net_atomic_scope_t::GLOBAL;
+    case net_atomic_scope_t::NONE:
+      return false;
+    default:
+      return false;
+  }
+}
+
 inline bool is_valid_uint64_atomic_remote_address(uint64_t offset, rmr_t rmr)
 {
   constexpr size_t ATOMIC_SIZE = sizeof(uint64_t);
-  if (rmr.base % ATOMIC_SIZE != 0 || offset % ATOMIC_SIZE != 0) {
+  if (rmr.is_empty() || rmr.base % ATOMIC_SIZE != 0 ||
+      offset % ATOMIC_SIZE != 0) {
     return false;
   }
   return offset <= std::numeric_limits<uintptr_t>::max() - rmr.base;
@@ -337,17 +354,28 @@ inline error_t endpoint_impl_t::post_get(int rank, void* buffer, size_t size,
 
 inline error_t endpoint_impl_t::post_fetch_add(
     int rank, uint64_t* result, mr_t result_mr, uint64_t value, uint64_t offset,
-    rmr_t rmr, void* user_context, bool allow_retry, bool force_post)
+    rmr_t rmr, net_atomic_scope_t required_atomic_scope, void* user_context,
+    bool allow_retry, bool force_post)
 {
-  if (!net_context_attr.support_uint64_fetch_add) {
+  if (!is_valid_uint64_atomic_scope(net_context_attr.atomic_scope,
+                                    required_atomic_scope)) {
     LCI_Warn(
-        "uint64 network fetch-add is unsupported by the selected backend\n");
+        "uint64 network fetch-add requires atomic scope %d, but the selected "
+        "backend reports scope %d\n",
+        static_cast<int>(required_atomic_scope),
+        static_cast<int>(net_context_attr.atomic_scope));
     return errorcode_t::fatal;
   }
   if (!is_valid_uint64_atomic_result(result, result_mr, device)) {
     LCI_Warn(
         "uint64 network fetch-add requires an aligned 8-byte result within "
         "a memory region registered on the endpoint device\n");
+    return errorcode_t::fatal;
+  }
+  if (rmr.is_empty()) {
+    LCI_Warn(
+        "uint64 network fetch-add requires a non-empty remote memory "
+        "region\n");
     return errorcode_t::fatal;
   }
   if (!is_valid_uint64_atomic_remote_address(offset, rmr)) {
@@ -375,7 +403,7 @@ inline error_t endpoint_impl_t::post_fetch_add(
     LCI_PCOUNTER_ADD(net_atomic_post_retry, 1);
     if (!allow_retry) {
       backlog_queue.push_fetch_add(this, rank, result, result_mr, value, offset,
-                                   rmr, user_context);
+                                   rmr, required_atomic_scope, user_context);
       error = errorcode_t::posted_backlog;
     }
   } else if (error.is_posted()) {
@@ -384,20 +412,31 @@ inline error_t endpoint_impl_t::post_fetch_add(
   LCI_DBG_Log(
       LOG_TRACE, "network",
       "post_fetch_add rank %d result %p result_mr %p value %lu offset %lu "
-      "rmr %p user_context %p allow_retry %d force_post %d return %s\n",
+      "rmr %p required_atomic_scope %d user_context %p allow_retry %d "
+      "force_post %d return %s\n",
       rank, result, result_mr.p_impl, value, offset,
-      reinterpret_cast<void*>(rmr.base), user_context, allow_retry, force_post,
-      error.get_str());
+      reinterpret_cast<void*>(rmr.base),
+      static_cast<int>(required_atomic_scope), user_context, allow_retry,
+      force_post, error.get_str());
   return error;
 }
 
-inline error_t endpoint_impl_t::post_add(int rank, uint64_t value,
-                                         uint64_t offset, rmr_t rmr,
-                                         void* user_context, bool allow_retry,
-                                         bool force_post)
+inline error_t endpoint_impl_t::post_add(
+    int rank, uint64_t value, uint64_t offset, rmr_t rmr,
+    net_atomic_scope_t required_atomic_scope, void* user_context,
+    bool allow_retry, bool force_post)
 {
-  if (!net_context_attr.support_uint64_fetch_add) {
-    LCI_Warn("uint64 network add is unsupported by the selected backend\n");
+  if (!is_valid_uint64_atomic_scope(net_context_attr.atomic_scope,
+                                    required_atomic_scope)) {
+    LCI_Warn(
+        "uint64 network add requires atomic scope %d, but the selected "
+        "backend reports scope %d\n",
+        static_cast<int>(required_atomic_scope),
+        static_cast<int>(net_context_attr.atomic_scope));
+    return errorcode_t::fatal;
+  }
+  if (rmr.is_empty()) {
+    LCI_Warn("uint64 network add requires a non-empty remote memory region\n");
     return errorcode_t::fatal;
   }
   if (!is_valid_uint64_atomic_remote_address(offset, rmr)) {
@@ -422,17 +461,20 @@ inline error_t endpoint_impl_t::post_add(int rank, uint64_t value,
   if (error.is_retry()) {
     LCI_PCOUNTER_ADD(net_atomic_post_retry, 1);
     if (!allow_retry) {
-      backlog_queue.push_add(this, rank, value, offset, rmr, user_context);
+      backlog_queue.push_add(this, rank, value, offset, rmr,
+                             required_atomic_scope, user_context);
       error = errorcode_t::posted_backlog;
     }
   } else if (error.is_posted()) {
     LCI_PCOUNTER_ADD(net_atomic_post, 1);
   }
   LCI_DBG_Log(LOG_TRACE, "network",
-              "post_add rank %d value %lu offset %lu rmr %p user_context %p "
-              "allow_retry %d force_post %d return %s\n",
+              "post_add rank %d value %lu offset %lu rmr %p "
+              "required_atomic_scope %d user_context %p allow_retry %d "
+              "force_post %d return %s\n",
               rank, value, offset, reinterpret_cast<void*>(rmr.base),
-              user_context, allow_retry, force_post, error.get_str());
+              static_cast<int>(required_atomic_scope), user_context,
+              allow_retry, force_post, error.get_str());
   return error;
 }
 

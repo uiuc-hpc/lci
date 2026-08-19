@@ -23,7 +23,7 @@ resource_net_context := resource(
         attr_enum("ibv_odp_strategy", enum_options=["none", "explicit_odp", "implicit_odp"], default_value="none", comment="For the IBV backend: the on-demand paging strategy."),
         attr_enum("ibv_prefetch_strategy", enum_options=["none", "prefetch", "prefetch_write", "prefetch_no_fault"], default_value="none", comment="For the IBV backend: the mr prefetch strategy."),
         attr("bool", "support_putimm", inout_trait="out", comment="Whether the network context supports put with immediate data."),
-        attr("bool", "support_uint64_fetch_add", inout_trait="out", comment="Whether the network context supports uint64 fetch-add and add."),
+        attr("net_atomic_scope_t", "atomic_scope", inout_trait="out", comment="The scope guaranteed for uint64 network fetch-add and add. NONE means unavailable; HCA is not global atomicity."),
         attr("bool", "use_dmabuf", default_value=1, comment="Whether to use dmabuf for cuda buffer registration."),
     ],
     doc = {
@@ -322,6 +322,7 @@ operation(
         positional_arg("uint64_t", "value", comment="The value to add to the remote uint64."),
         positional_arg("uint64_t", "offset", comment="The 8-byte-aligned offset of the remote uint64 from the remote region base."),
         positional_arg("rmr_t", "rmr", comment="The remote memory region handle."),
+        optional_arg("net_atomic_scope_t", "required_atomic_scope", "net_atomic_scope_t::GLOBAL", comment="The minimum atomic scope required by the caller. HCA must be requested explicitly when it is sufficient."),
         optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
         optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context."),
@@ -330,7 +331,7 @@ operation(
     doc = {
         "in_group": "LCI_NET",
         "brief": "Post a uint64 network fetch-add operation.",
-        "details": "This operation is available only when @ref net_context_attr_t::support_uint64_fetch_add is true. The result storage and remote address must both be 8-byte aligned. The completion is reported through @ref net_poll_cq as @ref net_opcode_t::FETCH_ADD. Operations posted to the same rank through the same endpoint preserve the backend's native queue-pair ordering."
+        "details": "This operation requires at least @p required_atomic_scope; the default is @ref net_atomic_scope_t::GLOBAL, so an @ref net_atomic_scope_t::HCA capability must be accepted explicitly by callers whose algorithm permits it. The result storage and remote address must both be 8-byte aligned, and @p rmr must not be empty. The completion is reported through @ref net_poll_cq as @ref net_opcode_t::FETCH_ADD. Operations posted to the same rank through the same endpoint preserve the backend's native queue-pair ordering."
     }
 ),
 operation(
@@ -341,6 +342,7 @@ operation(
         positional_arg("uint64_t", "value", comment="The value to add to the remote uint64."),
         positional_arg("uint64_t", "offset", comment="The 8-byte-aligned offset of the remote uint64 from the remote region base."),
         positional_arg("rmr_t", "rmr", comment="The remote memory region handle."),
+        optional_arg("net_atomic_scope_t", "required_atomic_scope", "net_atomic_scope_t::GLOBAL", comment="The minimum atomic scope required by the caller. HCA must be requested explicitly when it is sufficient."),
         optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
         optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
         optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context."),
@@ -349,7 +351,7 @@ operation(
     doc = {
         "in_group": "LCI_NET",
         "brief": "Post a uint64 network add operation.",
-        "details": "This convenience operation discards the previous remote value in backend-managed registered storage. It is available only when @ref net_context_attr_t::support_uint64_fetch_add is true. The completion is reported through @ref net_poll_cq as @ref net_opcode_t::FETCH_ADD. Operations posted to the same rank through the same endpoint preserve the backend's native queue-pair ordering."
+        "details": "This convenience operation discards the previous remote value in backend-managed registered storage. It requires at least @p required_atomic_scope; the default is @ref net_atomic_scope_t::GLOBAL, so an @ref net_atomic_scope_t::HCA capability must be accepted explicitly by callers whose algorithm permits it. @p rmr must not be empty and its target address must be 8-byte aligned. The completion is reported through @ref net_poll_cq as @ref net_opcode_t::FETCH_ADD. Operations posted to the same rank through the same endpoint preserve the backend's native queue-pair ordering."
     }
 ),
 ]

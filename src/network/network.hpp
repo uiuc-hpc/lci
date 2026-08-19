@@ -186,9 +186,11 @@ class endpoint_impl_t
                           bool allow_retry = true, bool force_post = false);
   inline error_t post_fetch_add(int rank, uint64_t* result, mr_t result_mr,
                                 uint64_t value, uint64_t offset, rmr_t rmr,
+                                net_atomic_scope_t required_atomic_scope,
                                 void* user_context, bool allow_retry = true,
                                 bool force_post = false);
   inline error_t post_add(int rank, uint64_t value, uint64_t offset, rmr_t rmr,
+                          net_atomic_scope_t required_atomic_scope,
                           void* user_context, bool allow_retry = true,
                           bool force_post = false);
   inline error_t post_putImms_fallback(int rank, void* buffer, size_t size,

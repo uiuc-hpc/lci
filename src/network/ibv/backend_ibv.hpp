@@ -7,7 +7,8 @@
 #include "infiniband/verbs.h"
 #include <atomic>
 #include <algorithm>
-#include <deque>
+#include <cstdint>
+#include <list>
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
@@ -145,12 +146,15 @@ class ibv_device_impl_t : public lci::device_impl_t
 struct ibv_atomic_op_t {
   bool uses_discard;
   size_t discard_slot;
+  void* user_context;
 };
 
 struct ibv_atomic_tracker_t {
   spinlock_t lock;
   std::vector<size_t> free_discard_slots;
-  std::deque<ibv_atomic_op_t> posted_ops;
+  std::list<ibv_atomic_op_t> posted_ops;
+
+  size_t abort();
 };
 
 class ibv_endpoint_impl_t : public lci::endpoint_impl_t
@@ -184,7 +188,9 @@ class ibv_endpoint_impl_t : public lci::endpoint_impl_t
                               void* user_context, bool high_priority) override;
   error_t post_add_impl(int rank, uint64_t value, uint64_t offset, rmr_t rmr,
                         void* user_context, bool high_priority) override;
-  void complete_atomic_operation(int rank);
+  bool complete_atomic_operation(int rank, uintptr_t wr_id,
+                                 void** user_context);
+  void abort_atomic_operations();
 
   ibv_device_impl_t* p_ibv_device;
   std::vector<struct ibv_qp*> ib_qps;
@@ -201,8 +207,9 @@ class ibv_endpoint_impl_t : public lci::endpoint_impl_t
   bool try_acquire_slot(int rank, bool high_priority);
   void release_slot(int rank);
   error_t prepare_atomic_operation(int rank, bool uses_discard,
-                                   size_t* discard_slot);
-  void cancel_atomic_operation(int rank);
+                                   void* user_context, size_t* discard_slot,
+                                   uintptr_t* wr_id);
+  void cancel_atomic_operation(int rank, uintptr_t wr_id);
 };
 
 }  // namespace lci
