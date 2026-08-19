@@ -464,10 +464,7 @@ ibv_endpoint_impl_t::ibv_endpoint_impl_t(device_t device_, attr_t attr_)
     atomic_trackers.reserve(nranks);
     for (size_t rank = 0; rank < nranks; ++rank) {
       auto tracker = std::make_unique<ibv_atomic_tracker_t>();
-      tracker->free_discard_slots.reserve(slots_per_rank);
-      for (size_t slot = 0; slot < slots_per_rank; ++slot) {
-        tracker->free_discard_slots.push_back(rank * slots_per_rank + slot);
-      }
+      tracker->initialize(slots_per_rank, rank * slots_per_rank);
       atomic_trackers.emplace_back(std::move(tracker));
     }
   }
@@ -654,11 +651,9 @@ ibv_endpoint_impl_t::~ibv_endpoint_impl_t()
     abort_atomic_operations();
   } else {
     for (auto& tracker : atomic_trackers) {
-      tracker->lock.lock();
-      LCI_Assert(tracker->posted_ops.empty(),
+      LCI_Assert(tracker->empty(),
                  "Destroying endpoint with outstanding uint64 fetch-add "
                  "operations\n");
-      tracker->lock.unlock();
     }
   }
   p_ibv_device->qp2rank_map.remove_qps(ib_qps);

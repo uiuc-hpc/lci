@@ -76,7 +76,6 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
         memset(&status, 0, sizeof(status));
         status.opcode = net_opcode_t::ERROR;
         status.rank = -1;
-        status.failed_opcode = net_opcode_t::ERROR;
         const bool is_outgoing =
             (error.flags & (FI_SEND | FI_WRITE | FI_READ)) != 0 &&
             (error.flags & (FI_RECV | FI_REMOTE_WRITE)) == 0;

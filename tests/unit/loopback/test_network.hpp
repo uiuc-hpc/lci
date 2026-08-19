@@ -152,7 +152,7 @@ TEST(NETWORK, completion_batch_unknown_rank_is_generic)
   lci::g_runtime_fina();
 }
 
-TEST(NETWORK, raw_atomic_failure_does_not_cast_user_context)
+TEST(NETWORK, raw_atomic_failure_uses_null_context)
 {
   lci::g_runtime_init();
   lci::runtime_t runtime = lci::g_default_runtime;
@@ -162,8 +162,7 @@ TEST(NETWORK, raw_atomic_failure_does_not_cast_user_context)
   lci::net_status_t status = {};
   status.opcode = lci::net_opcode_t::ERROR;
   status.rank = 7;
-  status.user_context = reinterpret_cast<void*>(static_cast<uintptr_t>(1));
-  status.failed_opcode = lci::net_opcode_t::FETCH_ADD;
+  status.user_context = nullptr;
 
   try {
     lci::process_completion_batch(runtime, device, endpoint, &status, 1);
@@ -173,32 +172,78 @@ TEST(NETWORK, raw_atomic_failure_does_not_cast_user_context)
   }
   EXPECT_TRUE(device.get_impl()->has_network_failed());
 
-  // The raw atomic context is deliberately not an internal_context_t. Failed
-  // teardown must remain abortive rather than dereferencing it or waiting for
-  // a completion that will never arrive.
+  // Raw atomic errors intentionally do not expose their user context through
+  // the generic error completion path.
   lci::g_runtime_fina();
 }
 
 #ifdef LCI_BACKEND_ENABLE_IBV
-TEST(NETWORK, ibv_atomic_tracker_abort_reclaims_discard_state)
+TEST(NETWORK, ibv_atomic_tracker_records_are_bounded_and_validated)
 {
   lci::ibv_atomic_tracker_t tracker;
-  tracker.free_discard_slots.push_back(7);
-  tracker.posted_ops.push_back(
-      {true, 3, reinterpret_cast<void*>(static_cast<uintptr_t>(1))});
-  tracker.posted_ops.push_back(
-      {false, 0, reinterpret_cast<void*>(static_cast<uintptr_t>(2))});
+  tracker.initialize(2, 7);
+  auto* records = tracker.records.data();
+  uintptr_t complete_wr_id = 0;
+  size_t discard_slot = 0;
+  void* complete_context = reinterpret_cast<void*>(static_cast<uintptr_t>(1));
+  ASSERT_TRUE(
+      tracker.prepare(true, complete_context, &discard_slot, &complete_wr_id)
+          .is_done());
+  EXPECT_EQ(tracker.records.data(), records);
+  EXPECT_EQ(discard_slot, 8u);
+  EXPECT_FALSE(tracker.complete(complete_wr_id + 1, nullptr));
 
+  void* completed_context = nullptr;
+  EXPECT_TRUE(tracker.complete(complete_wr_id, &completed_context));
+  EXPECT_EQ(completed_context, complete_context);
+  EXPECT_TRUE(tracker.empty());
+
+  uintptr_t cancel_wr_id = 0;
+  ASSERT_TRUE(
+      tracker.prepare(true, nullptr, &discard_slot, &cancel_wr_id).is_done());
+  EXPECT_TRUE(tracker.cancel(cancel_wr_id));
+  EXPECT_TRUE(tracker.empty());
+  EXPECT_NE(std::find(tracker.free_discard_slots.begin(),
+                      tracker.free_discard_slots.end(), discard_slot),
+            tracker.free_discard_slots.end());
+
+  uintptr_t first_wr_id = 0;
+  uintptr_t second_wr_id = 0;
+  size_t abort_discard_slot = 0;
+  ASSERT_TRUE(tracker.prepare(true, nullptr, &abort_discard_slot, &first_wr_id)
+                  .is_done());
+  ASSERT_TRUE(
+      tracker.prepare(false, nullptr, nullptr, &second_wr_id).is_done());
+  EXPECT_EQ(tracker.prepare(false, nullptr, nullptr, &complete_wr_id).errorcode,
+            lci::errorcode_t::retry_nomem);
   EXPECT_EQ(tracker.abort(), 2u);
-  EXPECT_TRUE(tracker.posted_ops.empty());
+  EXPECT_TRUE(tracker.empty());
   EXPECT_NE(std::find(tracker.free_discard_slots.begin(),
-                      tracker.free_discard_slots.end(), 3),
+                      tracker.free_discard_slots.end(), abort_discard_slot),
             tracker.free_discard_slots.end());
-  EXPECT_NE(std::find(tracker.free_discard_slots.begin(),
-                      tracker.free_discard_slots.end(), 7),
-            tracker.free_discard_slots.end());
+  EXPECT_FALSE(tracker.complete(first_wr_id, nullptr));
 }
 #endif  // LCI_BACKEND_ENABLE_IBV
+
+TEST(NETWORK, uint64_atomic_scope_matrix)
+{
+  using scope_t = lci::net_atomic_scope_t;
+  EXPECT_FALSE(lci::is_valid_uint64_atomic_scope(scope_t::NONE, scope_t::NONE));
+  EXPECT_FALSE(lci::is_valid_uint64_atomic_scope(scope_t::NONE, scope_t::HCA));
+  EXPECT_FALSE(
+      lci::is_valid_uint64_atomic_scope(scope_t::NONE, scope_t::GLOBAL));
+
+  EXPECT_FALSE(lci::is_valid_uint64_atomic_scope(scope_t::HCA, scope_t::NONE));
+  EXPECT_TRUE(lci::is_valid_uint64_atomic_scope(scope_t::HCA, scope_t::HCA));
+  EXPECT_FALSE(
+      lci::is_valid_uint64_atomic_scope(scope_t::HCA, scope_t::GLOBAL));
+
+  EXPECT_FALSE(
+      lci::is_valid_uint64_atomic_scope(scope_t::GLOBAL, scope_t::NONE));
+  EXPECT_TRUE(lci::is_valid_uint64_atomic_scope(scope_t::GLOBAL, scope_t::HCA));
+  EXPECT_TRUE(
+      lci::is_valid_uint64_atomic_scope(scope_t::GLOBAL, scope_t::GLOBAL));
+}
 
 TEST(NETWORK, completion_failure_uses_abortive_teardown)
 {

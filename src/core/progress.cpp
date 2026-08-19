@@ -256,13 +256,8 @@ void process_completion_batch(runtime_t runtime, device_t device,
     const net_status_t& status = statuses[i];
     if (status.opcode == net_opcode_t::ERROR) {
       device.get_impl()->mark_network_failed();
-      const bool is_raw_atomic_failure =
-          status.failed_opcode == net_opcode_t::FETCH_ADD;
-      const int failed_rank =
-          is_raw_atomic_failure ? status.rank : get_failed_peer_rank(status);
-      if (!is_raw_atomic_failure) {
-        cleanup_failed_simple_operation(status);
-      }
+      const int failed_rank = get_failed_peer_rank(status);
+      cleanup_failed_simple_operation(status);
       if (!has_failure) {
         has_failure = true;
         first_failure_has_rank = failed_rank >= 0;

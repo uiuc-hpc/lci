@@ -53,6 +53,8 @@ struct completion_context_t {
 
 void wait_for_completions(lci::runtime_t runtime, lci::device_t device,
                           const std::vector<completion_context_t*>& expected);
+void wait_for_discarded_completion(lci::runtime_t runtime,
+                                   lci::device_t device);
 
 const char* atomic_scope_str(lci::net_atomic_scope_t scope)
 {
@@ -180,6 +182,19 @@ void wait_for_completions(lci::runtime_t runtime, lci::device_t device,
   check(completed == expected.size(), "network atomic completion timed out");
 }
 
+void wait_for_discarded_completion(lci::runtime_t runtime, lci::device_t device)
+{
+  for (int attempt = 0; attempt < kMaxPolls; ++attempt) {
+    const size_t n =
+        lci::net_poll_cq_x(1, nullptr).runtime(runtime).device(device)();
+    if (n == 1) {
+      return;
+    }
+    check(n == 0, "net_poll_cq returned an unexpected completion count");
+  }
+  fail("discarded network atomic completion timed out");
+}
+
 void free_runtime_objects(lci::runtime_t runtime, lci::device_t* device,
                           lci::endpoint_t* endpoint)
 {
@@ -219,22 +234,39 @@ int run_test(test_mode_t mode)
     check(atomic_scope == lci::net_atomic_scope_t::NONE,
           "OFI unexpectedly advertised uint64 fetch-add support");
     uint64_t result = 0;
-    lci::error_t fetch_error =
+    for (const lci::net_atomic_scope_t required_scope :
+         {lci::net_atomic_scope_t::NONE, lci::net_atomic_scope_t::HCA,
+          lci::net_atomic_scope_t::GLOBAL}) {
+      lci::error_t fetch_error =
+          lci::net_post_fetch_add_x(0, &result, lci::MR_HOST, 1, 0,
+                                    lci::RMR_NULL)
+              .runtime(runtime)
+              .required_atomic_scope(required_scope)
+              .device(device)
+              .endpoint(endpoint)();
+      lci::error_t add_error = lci::net_post_add_x(0, 1, 0, lci::RMR_NULL)
+                                   .runtime(runtime)
+                                   .required_atomic_scope(required_scope)
+                                   .device(device)
+                                   .endpoint(endpoint)();
+      check(fetch_error.errorcode == lci::errorcode_t::fatal,
+            "unsupported fetch-add scope was accepted");
+      check(add_error.errorcode == lci::errorcode_t::fatal,
+            "unsupported add scope was accepted");
+    }
+    lci::error_t default_fetch_error =
         lci::net_post_fetch_add_x(0, &result, lci::MR_HOST, 1, 0, lci::RMR_NULL)
             .runtime(runtime)
-            .required_atomic_scope(lci::net_atomic_scope_t::GLOBAL)
             .device(device)
             .endpoint(endpoint)();
-    lci::error_t add_error =
-        lci::net_post_add_x(0, 1, 0, lci::RMR_NULL)
-            .runtime(runtime)
-            .required_atomic_scope(lci::net_atomic_scope_t::GLOBAL)
-            .device(device)
-            .endpoint(endpoint)();
-    check(fetch_error.errorcode == lci::errorcode_t::fatal,
-          "unsupported fetch-add did not fail explicitly");
-    check(add_error.errorcode == lci::errorcode_t::fatal,
-          "unsupported add did not fail explicitly");
+    lci::error_t default_add_error = lci::net_post_add_x(0, 1, 0, lci::RMR_NULL)
+                                         .runtime(runtime)
+                                         .device(device)
+                                         .endpoint(endpoint)();
+    check(default_fetch_error.errorcode == lci::errorcode_t::fatal,
+          "unsupported default fetch-add scope was accepted");
+    check(default_add_error.errorcode == lci::errorcode_t::fatal,
+          "unsupported default add scope was accepted");
     free_runtime_objects(runtime, &device, &endpoint);
     return 0;
   }
@@ -323,13 +355,6 @@ int run_test(test_mode_t mode)
             .required_atomic_scope(atomic_scope)
             .device(device)
             .endpoint(endpoint)();
-    lci::error_t no_scope_error =
-        lci::net_post_fetch_add_x(peer, &fetch_result, result_mr, 1,
-                                  counter_offset, peer_rmr)
-            .runtime(runtime)
-            .required_atomic_scope(lci::net_atomic_scope_t::NONE)
-            .device(device)
-            .endpoint(endpoint)();
     check(empty_rmr_fetch_error.errorcode == lci::errorcode_t::fatal,
           "empty RMR fetch-add was accepted");
     check(empty_rmr_add_error.errorcode == lci::errorcode_t::fatal,
@@ -338,19 +363,90 @@ int run_test(test_mode_t mode)
           "misaligned fetch-add result was accepted");
     check(misaligned_remote_error.errorcode == lci::errorcode_t::fatal,
           "misaligned fetch-add remote address was accepted");
-    check(no_scope_error.errorcode == lci::errorcode_t::fatal,
-          "fetch-add accepted a NONE required atomic scope");
-    if (atomic_scope == lci::net_atomic_scope_t::HCA) {
-      lci::error_t global_scope_error =
-          lci::net_post_fetch_add_x(peer, &fetch_result, result_mr, 1,
-                                    counter_offset, peer_rmr)
-              .runtime(runtime)
-              .required_atomic_scope(lci::net_atomic_scope_t::GLOBAL)
-              .device(device)
-              .endpoint(endpoint)();
-      check(global_scope_error.errorcode == lci::errorcode_t::fatal,
+  }
+  bootstrap_barrier();
+
+  if (rank == 0) {
+    completion_context_t hca_context{lci::net_opcode_t::FETCH_ADD};
+    lci::error_t hca_error =
+        lci::net_post_add_x(peer, 0, counter_offset, peer_rmr)
+            .runtime(runtime)
+            .required_atomic_scope(lci::net_atomic_scope_t::HCA)
+            .device(device)
+            .endpoint(endpoint)
+            .user_context(&hca_context)();
+    check(hca_error.is_posted(), "HCA atomic scope was not accepted");
+    wait_for_completions(runtime, device, {&hca_context});
+
+    completion_context_t global_context{lci::net_opcode_t::FETCH_ADD};
+    lci::error_t global_error =
+        lci::net_post_add_x(peer, 0, counter_offset, peer_rmr)
+            .runtime(runtime)
+            .required_atomic_scope(lci::net_atomic_scope_t::GLOBAL)
+            .device(device)
+            .endpoint(endpoint)
+            .user_context(&global_context)();
+    if (atomic_scope == lci::net_atomic_scope_t::GLOBAL) {
+      check(global_error.is_posted(),
+            "GLOBAL atomic scope was not accepted by a GLOBAL backend");
+      wait_for_completions(runtime, device, {&global_context});
+    } else {
+      check(global_error.errorcode == lci::errorcode_t::fatal,
             "HCA atomic capability was accepted as GLOBAL");
     }
+
+    completion_context_t default_add_context{lci::net_opcode_t::FETCH_ADD};
+    lci::error_t default_add_error =
+        lci::net_post_add_x(peer, 0, counter_offset, peer_rmr)
+            .runtime(runtime)
+            .device(device)
+            .endpoint(endpoint)
+            .user_context(&default_add_context)();
+    if (atomic_scope == lci::net_atomic_scope_t::GLOBAL) {
+      check(default_add_error.is_posted(),
+            "default add scope was not accepted by a GLOBAL backend");
+      wait_for_completions(runtime, device, {&default_add_context});
+    } else {
+      check(default_add_error.errorcode == lci::errorcode_t::fatal,
+            "default add scope accepted an HCA-only backend");
+    }
+
+    completion_context_t default_fetch_context{lci::net_opcode_t::FETCH_ADD};
+    lci::error_t default_fetch_error =
+        lci::net_post_fetch_add_x(peer, &fetch_result, result_mr, 0,
+                                  counter_offset, peer_rmr)
+            .runtime(runtime)
+            .device(device)
+            .endpoint(endpoint)
+            .user_context(&default_fetch_context)();
+    if (atomic_scope == lci::net_atomic_scope_t::GLOBAL) {
+      check(default_fetch_error.is_posted(),
+            "default fetch-add scope was not accepted by a GLOBAL backend");
+      wait_for_completions(runtime, device, {&default_fetch_context});
+      check(fetch_result == 100,
+            "default fetch-add returned the wrong previous value");
+    } else {
+      check(default_fetch_error.errorcode == lci::errorcode_t::fatal,
+            "default fetch-add scope accepted an HCA-only backend");
+    }
+
+    lci::error_t no_scope_fetch_error =
+        lci::net_post_fetch_add_x(peer, &fetch_result, result_mr, 0,
+                                  counter_offset, peer_rmr)
+            .runtime(runtime)
+            .required_atomic_scope(lci::net_atomic_scope_t::NONE)
+            .device(device)
+            .endpoint(endpoint)();
+    lci::error_t no_scope_add_error =
+        lci::net_post_add_x(peer, 0, counter_offset, peer_rmr)
+            .runtime(runtime)
+            .required_atomic_scope(lci::net_atomic_scope_t::NONE)
+            .device(device)
+            .endpoint(endpoint)();
+    check(no_scope_fetch_error.errorcode == lci::errorcode_t::fatal,
+          "fetch-add accepted a NONE required atomic scope");
+    check(no_scope_add_error.errorcode == lci::errorcode_t::fatal,
+          "add accepted a NONE required atomic scope");
   }
   bootstrap_barrier();
 
@@ -389,6 +485,43 @@ int run_test(test_mode_t mode)
   if (rank == 1) {
     check(target.counter == 110,
           "non-fetch add did not update the remote value");
+  }
+  bootstrap_barrier();
+
+  if (rank == 0) {
+    completion_context_t discarded_context{lci::net_opcode_t::FETCH_ADD};
+    lci::error_t discarded_error =
+        lci::net_post_add_x(peer, 4, counter_offset, peer_rmr)
+            .runtime(runtime)
+            .required_atomic_scope(atomic_scope)
+            .device(device)
+            .endpoint(endpoint)
+            .user_context(&discarded_context)();
+    check(discarded_error.is_posted(),
+          "discarded non-fetch add was not posted");
+    wait_for_discarded_completion(runtime, device);
+    check(endpoint.get_impl()->get_pending_ops() == 0,
+          "null-status poll did not retire the non-fetch add");
+    lci::wait_drained_x().runtime(runtime).device(device)();
+
+    completion_context_t recovered_context{lci::net_opcode_t::FETCH_ADD};
+    lci::error_t recovered_error =
+        lci::net_post_add_x(peer, 6, counter_offset, peer_rmr)
+            .runtime(runtime)
+            .required_atomic_scope(atomic_scope)
+            .device(device)
+            .endpoint(endpoint)
+            .user_context(&recovered_context)();
+    check(recovered_error.is_posted(),
+          "non-fetch add did not reuse retired tracker storage");
+    wait_for_completions(runtime, device, {&recovered_context});
+    check(endpoint.get_impl()->get_pending_ops() == 0,
+          "reused non-fetch add remained pending");
+  }
+  bootstrap_barrier();
+  if (rank == 1) {
+    check(target.counter == 120,
+          "null-status poll did not retire the non-fetch add");
   }
   bootstrap_barrier();
 
