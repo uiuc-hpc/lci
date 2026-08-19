@@ -316,6 +316,25 @@ inline bool backlog_queue_t::progress()
   return did_something;
 }
 
+inline size_t backlog_queue_t::abort()
+{
+  lock.lock();
+  size_t aborted = 0;
+  while (!backlog_queue.empty()) {
+    const backlog_queue_entry_t entry = backlog_queue.front();
+    backlog_queue.pop();
+    nentries_per_rank[entry.rank].val.fetch_sub(1, std::memory_order_relaxed);
+    if (entry.op == backlog_op_t::sends || entry.op == backlog_op_t::puts ||
+        entry.op == backlog_op_t::putImms) {
+      free(entry.buffer);
+    }
+    ++aborted;
+  }
+  set_empty(true);
+  lock.unlock();
+  return aborted;
+}
+
 }  // namespace lci
 
 #endif  // LCI_BACKLOG_QUEUE_INLINE_HPP

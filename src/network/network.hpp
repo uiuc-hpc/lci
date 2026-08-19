@@ -127,7 +127,7 @@ class endpoint_impl_t
 
   // functions for backends to implement
   endpoint_impl_t(device_t device_, attr_t attr_);
-  virtual ~endpoint_impl_t() = default;
+  virtual ~endpoint_impl_t();
   virtual error_t post_sends_impl(int rank, void* buffer, size_t size,
                                   net_imm_data_t imm_data, void* user_context,
                                   bool high_priority) = 0;

@@ -256,18 +256,21 @@ struct error_t {
  * @ingroup LCI_BASIC
  */
 enum class net_opcode_t {
-  SEND = 0,         /**< send */
-  RECV = 1,         /**< receive */
-  WRITE = 2,        /**< write */
-  REMOTE_WRITE = 3, /**< remote write */
-  READ = 4,         /**< read */
-  ERROR = 5,        /**< asynchronous completion error */
-  FETCH_ADD = 6,    /**< uint64 fetch-add or add */
+  SEND = 0,            /**< send */
+  RECV = 1,            /**< receive */
+  WRITE = 2,           /**< write */
+  REMOTE_WRITE = 3,    /**< remote write */
+  READ = 4,            /**< read */
+  ERROR = 5,           /**< asynchronous completion error */
+  FETCH_ADD = 6,       /**< uint64 fetch-add or add */
+  FETCH_ADD_ERROR = 7, /**< uint64 fetch-add or add completion error */
 };
 
 static_assert(static_cast<int>(net_opcode_t::ERROR) == 5,
               "net_opcode_t::ERROR is part of the public ABI");
 static_assert(static_cast<int>(net_opcode_t::FETCH_ADD) == 6,
+              "append new net_opcode_t values to preserve the public ABI");
+static_assert(static_cast<int>(net_opcode_t::FETCH_ADD_ERROR) == 7,
               "append new net_opcode_t values to preserve the public ABI");
 
 /**
@@ -345,8 +348,9 @@ using net_imm_data_t = uint32_t;
  * communication operation. For @ref net_opcode_t::ERROR, @c rank is the
  * backend-reported peer rank when available and @c user_context is the
  * outgoing operation context when available. Receive errors report rank -1 and
- * a null user context. Raw uint64 atomic failures also report a null user
- * context because their contexts are not LCI internal contexts.
+ * a null user context. For @ref net_opcode_t::FETCH_ADD_ERROR,
+ * @c user_context is the raw context passed to the uint64 atomic operation;
+ * it is not an LCI internal context.
  */
 struct net_status_t {
   net_opcode_t opcode;

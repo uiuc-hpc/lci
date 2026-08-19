@@ -54,6 +54,7 @@ class backlog_queue_t
                        net_atomic_scope_t required_atomic_scope,
                        void* user_context);
   inline bool progress();
+  inline size_t abort();
   inline void set_empty(bool empty_)
   {
     if (empty.val.load(std::memory_order_relaxed) != empty_) {

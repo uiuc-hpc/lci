@@ -62,6 +62,18 @@ endpoint_impl_t::endpoint_impl_t(device_t device_, attr_t attr_)
   endpoint.p_impl = this;
 }
 
+endpoint_impl_t::~endpoint_impl_t()
+{
+  if (device.get_impl()->has_network_failed()) {
+    const size_t aborted = backlog_queue.abort();
+    if (aborted != 0) {
+      LCI_Log(LOG_INFO, "network",
+              "Aborted %lu queued operations during failed-device teardown\n",
+              aborted);
+    }
+  }
+}
+
 /*************************************************************************************
  * Interface implementations
  * **********************************************************************************/

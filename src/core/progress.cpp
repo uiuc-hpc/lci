@@ -254,10 +254,17 @@ void process_completion_batch(runtime_t runtime, device_t device,
   int first_failed_rank = -1;
   for (size_t i = 0; i < count; i++) {
     const net_status_t& status = statuses[i];
-    if (status.opcode == net_opcode_t::ERROR) {
+    const bool is_atomic_failure =
+        status.opcode == net_opcode_t::FETCH_ADD_ERROR;
+    if (status.opcode == net_opcode_t::ERROR || is_atomic_failure) {
       device.get_impl()->mark_network_failed();
-      const int failed_rank = get_failed_peer_rank(status);
-      cleanup_failed_simple_operation(status);
+      // Atomic user contexts belong to raw network callers, not LCI. Do not
+      // interpret or reclaim them while reporting a device failure.
+      const int failed_rank =
+          is_atomic_failure ? status.rank : get_failed_peer_rank(status);
+      if (!is_atomic_failure) {
+        cleanup_failed_simple_operation(status);
+      }
       if (!has_failure) {
         has_failure = true;
         first_failure_has_rank = failed_rank >= 0;

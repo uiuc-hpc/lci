@@ -162,7 +162,8 @@ void wait_for_completions(lci::runtime_t runtime, lci::device_t device,
       continue;
     }
     check(n == 1, "net_poll_cq returned an unexpected completion count");
-    check(status.opcode != lci::net_opcode_t::ERROR,
+    check(status.opcode != lci::net_opcode_t::ERROR &&
+              status.opcode != lci::net_opcode_t::FETCH_ADD_ERROR,
           "network atomic operation completed with an error");
     auto* context = static_cast<completion_context_t*>(status.user_context);
     bool matched = false;

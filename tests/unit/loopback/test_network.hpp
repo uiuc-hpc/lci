@@ -3,6 +3,65 @@
 
 namespace test_network
 {
+class retry_atomic_backlog_endpoint_t : public lci::endpoint_impl_t
+{
+ public:
+  explicit retry_atomic_backlog_endpoint_t(lci::device_t device)
+      : lci::endpoint_impl_t(device, lci::endpoint_t::attr_t{})
+  {
+  }
+
+ private:
+  static lci::error_t retry() { return lci::errorcode_t::retry_nomem; }
+
+  lci::error_t post_sends_impl(int, void*, size_t, lci::net_imm_data_t, void*,
+                               bool) override
+  {
+    return retry();
+  }
+  lci::error_t post_send_impl(int, void*, size_t, lci::mr_t,
+                              lci::net_imm_data_t, void*, bool) override
+  {
+    return retry();
+  }
+  lci::error_t post_puts_impl(int, void*, size_t, uint64_t, lci::rmr_t, void*,
+                              bool) override
+  {
+    return retry();
+  }
+  lci::error_t post_put_impl(int, void*, size_t, lci::mr_t, uint64_t,
+                             lci::rmr_t, void*, bool) override
+  {
+    return retry();
+  }
+  lci::error_t post_putImms_impl(int, void*, size_t, uint64_t, lci::rmr_t,
+                                 lci::net_imm_data_t, void*, bool) override
+  {
+    return retry();
+  }
+  lci::error_t post_putImm_impl(int, void*, size_t, lci::mr_t, uint64_t,
+                                lci::rmr_t, lci::net_imm_data_t, void*,
+                                bool) override
+  {
+    return retry();
+  }
+  lci::error_t post_get_impl(int, void*, size_t, lci::mr_t, uint64_t,
+                             lci::rmr_t, void*, bool) override
+  {
+    return retry();
+  }
+  lci::error_t post_fetch_add_impl(int, uint64_t*, lci::mr_t, uint64_t,
+                                   uint64_t, lci::rmr_t, void*, bool) override
+  {
+    return retry();
+  }
+  lci::error_t post_add_impl(int, uint64_t, uint64_t, lci::rmr_t, void*,
+                             bool) override
+  {
+    return retry();
+  }
+};
+
 TEST(NETWORK, completion_batch_processes_successes_and_all_errors)
 {
   lci::g_runtime_init();
@@ -152,17 +211,22 @@ TEST(NETWORK, completion_batch_unknown_rank_is_generic)
   lci::g_runtime_fina();
 }
 
-TEST(NETWORK, raw_atomic_failure_uses_null_context)
+TEST(NETWORK, atomic_failure_preserves_raw_context)
 {
   lci::g_runtime_init();
   lci::runtime_t runtime = lci::g_default_runtime;
   lci::device_t device = lci::get_default_device();
   lci::endpoint_t endpoint = lci::get_default_endpoint();
 
+  // A raw atomic context is not owned by high-level LCI progress. Deliberately
+  // give it a conflicting rank so an accidental internal_context_t cast would
+  // turn this into a generic failure instead of the backend-reported peer.
+  auto* raw_context = new lci::internal_context_t;
+  raw_context->rank = 42;
   lci::net_status_t status = {};
-  status.opcode = lci::net_opcode_t::ERROR;
+  status.opcode = lci::net_opcode_t::FETCH_ADD_ERROR;
   status.rank = 7;
-  status.user_context = nullptr;
+  status.user_context = raw_context;
 
   try {
     lci::process_completion_batch(runtime, device, endpoint, &status, 1);
@@ -171,9 +235,33 @@ TEST(NETWORK, raw_atomic_failure_uses_null_context)
     EXPECT_EQ(error.failed_rank(), 7);
   }
   EXPECT_TRUE(device.get_impl()->has_network_failed());
+  EXPECT_EQ(status.user_context, raw_context);
+  delete raw_context;
+  lci::g_runtime_fina();
+}
 
-  // Raw atomic errors intentionally do not expose their user context through
-  // the generic error completion path.
+TEST(NETWORK, queued_atomic_backlog_is_aborted_during_failed_device_teardown)
+{
+  lci::g_runtime_init();
+  lci::device_t device = lci::get_default_device();
+  auto* endpoint = new retry_atomic_backlog_endpoint_t(device);
+  endpoint->net_context_attr.atomic_scope = lci::net_atomic_scope_t::HCA;
+
+  lci::rmr_t rmr;
+  rmr.base = 8;
+  int raw_context = 0;
+  lci::error_t error =
+      endpoint->post_add(0, 1, 0, rmr, lci::net_atomic_scope_t::HCA,
+                         &raw_context, false /* allow_retry */);
+  EXPECT_EQ(error.errorcode, lci::errorcode_t::posted_backlog);
+  EXPECT_FALSE(endpoint->is_backlog_queue_empty());
+  EXPECT_FALSE(endpoint->is_backlog_queue_empty(0));
+
+  device.get_impl()->mark_network_failed();
+  // The base endpoint destructor aborts its locked backlog before the queue
+  // destructor asserts that no entries remain.
+  delete endpoint;
+
   lci::g_runtime_fina();
 }
 

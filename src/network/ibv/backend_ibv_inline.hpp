@@ -157,13 +157,16 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
       net_status_t& status = p_statuses[i];
       memset(&status, 0, sizeof(status));
       if (wcs[i].status != IBV_WC_SUCCESS) {
-        status.opcode = net_opcode_t::ERROR;
+        const bool is_atomic_failure =
+            is_atomic || wcs[i].opcode == IBV_WC_FETCH_ADD;
+        status.opcode = is_atomic_failure ? net_opcode_t::FETCH_ADD_ERROR
+                                          : net_opcode_t::ERROR;
         status.rank = is_receive ? -1 : entry.rank;
-        if (is_atomic || wcs[i].opcode == IBV_WC_FETCH_ADD) {
-          // Raw atomic contexts are not internal_context_t instances. Never
-          // expose one through a generic error completion, which progress()
-          // is allowed to inspect as an LCI-owned context.
-          status.user_context = nullptr;
+        if (is_atomic_failure) {
+          // Raw atomic contexts are caller-owned. FETCH_ADD_ERROR keeps them
+          // available to net_poll_cq() callers without exposing them through
+          // the generic error path used by high-level progress.
+          status.user_context = atomic_user_context;
         } else {
           status.user_context = is_receive ? nullptr : (void*)wcs[i].wr_id;
         }
