@@ -7,14 +7,16 @@
 namespace lci
 {
 inline void qp2rank_map_t::add_qps(const std::vector<struct ibv_qp*>& qps,
-                                   std::vector<padded_atomic_t<int>>* qp_slots)
+                                   std::vector<padded_atomic_t<int>>* qp_slots,
+                                   ibv_endpoint_impl_t* endpoint)
 {
-  if (qps.empty() || qp_slots == nullptr) return;
+  if (qps.empty() || qp_slots == nullptr || endpoint == nullptr) return;
   std::unique_lock<std::shared_mutex> lock(mutex);
   for (size_t i = 0; i < qps.size(); ++i) {
     entry_t entry;
     entry.rank = static_cast<int>(i);
     entry.slots = &(*qp_slots)[i];
+    entry.endpoint = endpoint;
     qp_entries.emplace_back(qps[i]->qp_num, entry);
   }
   rebuild_locked();
@@ -135,13 +137,43 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
               wcs[i].qp_num);
         }
       }
+      void* atomic_user_context = nullptr;
+      bool is_atomic = false;
+      if (!is_receive &&
+          (wcs[i].opcode == IBV_WC_FETCH_ADD ||
+           wcs[i].status != IBV_WC_SUCCESS) &&
+          entry.endpoint != nullptr && entry.rank >= 0 &&
+          entry.rank < get_rank_n()) {
+        // Atomic WQEs use an internal tracker record for wr_id. Look that
+        // record up before interpreting wr_id so a raw atomic user_context is
+        // never cast as an internal context on an error completion.
+        is_atomic = entry.endpoint->complete_atomic_operation(
+            entry.rank, wcs[i].wr_id, &atomic_user_context);
+      }
+      if (wcs[i].status != IBV_WC_SUCCESS) {
+        mark_network_failed();
+      }
       if (!p_statuses) continue;
       net_status_t& status = p_statuses[i];
       memset(&status, 0, sizeof(status));
       if (wcs[i].status != IBV_WC_SUCCESS) {
-        status.opcode = net_opcode_t::ERROR;
+        const bool is_atomic_failure =
+            is_atomic || wcs[i].opcode == IBV_WC_FETCH_ADD;
+        status.opcode = is_atomic_failure ? net_opcode_t::FETCH_ADD_ERROR
+                                          : net_opcode_t::ERROR;
         status.rank = is_receive ? -1 : entry.rank;
-        status.user_context = is_receive ? nullptr : (void*)wcs[i].wr_id;
+        if (is_atomic_failure) {
+          // Raw atomic contexts are caller-owned. FETCH_ADD_ERROR keeps them
+          // available to net_poll_cq() callers without exposing them through
+          // the generic error path used by high-level progress.
+          status.user_context = atomic_user_context;
+        } else {
+          status.user_context = is_receive ? nullptr : (void*)wcs[i].wr_id;
+        }
+      } else if (is_atomic) {
+        status.opcode = net_opcode_t::FETCH_ADD;
+        status.rank = entry.rank;
+        status.user_context = atomic_user_context;
       } else if (wcs[i].opcode == IBV_WC_RECV) {
         status.opcode = net_opcode_t::RECV;
         status.user_context = (void*)wcs[i].wr_id;
@@ -159,6 +191,12 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
       } else if (wcs[i].opcode == IBV_WC_RDMA_WRITE) {
         status.opcode = net_opcode_t::WRITE;
         status.user_context = (void*)wcs[i].wr_id;
+      } else if (wcs[i].opcode == IBV_WC_FETCH_ADD) {
+        // A tracked atomic completion is always handled above. If the tracker
+        // was already torn down, report only the generic completion failure.
+        status.opcode = net_opcode_t::ERROR;
+        status.rank = entry.rank;
+        status.user_context = nullptr;
       } else {
         LCI_Assert(wcs[i].opcode == IBV_WC_RDMA_READ,
                    "Unexpected IBV opcode!\n");
@@ -270,6 +308,179 @@ inline bool ibv_endpoint_impl_t::try_acquire_slot(int rank, bool high_priority)
 inline void ibv_endpoint_impl_t::release_slot(int rank)
 {
   qp_remaining_slots[rank].val.fetch_add(1, std::memory_order_relaxed);
+}
+
+inline error_t ibv_endpoint_impl_t::prepare_atomic_operation(
+    int rank, bool uses_discard, void* user_context, size_t* discard_slot,
+    uintptr_t* wr_id)
+{
+  return atomic_trackers[rank]->prepare(uses_discard, user_context,
+                                        discard_slot, wr_id);
+}
+
+inline void ibv_endpoint_impl_t::cancel_atomic_operation(int rank,
+                                                         uintptr_t wr_id)
+{
+  if (!atomic_trackers[rank]->cancel(wr_id)) {
+    LCI_Warn("No atomic operation to cancel for rank %d\n", rank);
+  }
+}
+
+inline bool ibv_endpoint_impl_t::complete_atomic_operation(int rank,
+                                                           uintptr_t wr_id,
+                                                           void** user_context)
+{
+  if (atomic_trackers.empty()) {
+    return false;
+  }
+  if (!atomic_trackers[rank]->complete(wr_id, user_context)) return false;
+  sub_backend_pending_ops();
+  LCI_PCOUNTER_ADD(net_atomic_comp, 1);
+  return true;
+}
+
+inline void ibv_atomic_tracker_t::initialize(size_t record_count,
+                                             size_t first_discard_slot)
+{
+  LCI_Assert(records.empty() && free_record_slots.empty() &&
+                 free_discard_slots.empty(),
+             "IBV atomic tracker was initialized twice\n");
+  records.resize(record_count);
+  free_record_slots.reserve(record_count);
+  free_discard_slots.reserve(record_count);
+  for (size_t i = 0; i < record_count; ++i) {
+    free_record_slots.push_back(i);
+    free_discard_slots.push_back(first_discard_slot + i);
+  }
+}
+
+inline ibv_atomic_op_t* ibv_atomic_tracker_t::get_active_record_locked(
+    uintptr_t wr_id)
+{
+  if (records.empty()) return nullptr;
+  const uintptr_t begin = reinterpret_cast<uintptr_t>(records.data());
+  if (wr_id < begin) return nullptr;
+  const uintptr_t offset = wr_id - begin;
+  if (offset % sizeof(ibv_atomic_op_t) != 0) return nullptr;
+  const size_t index = offset / sizeof(ibv_atomic_op_t);
+  if (index >= records.size()) return nullptr;
+  ibv_atomic_op_t* op = &records[index];
+  return op->active ? op : nullptr;
+}
+
+inline void ibv_atomic_tracker_t::release_record_locked(ibv_atomic_op_t* op)
+{
+  LCI_DBG_Assert(op != nullptr && op->active,
+                 "Releasing an inactive IBV atomic tracker record\n");
+  if (op->uses_discard) {
+    free_discard_slots.push_back(op->discard_slot);
+  }
+  const size_t index = static_cast<size_t>(op - records.data());
+  *op = ibv_atomic_op_t{};
+  free_record_slots.push_back(index);
+  --active_records;
+}
+
+inline error_t ibv_atomic_tracker_t::prepare(bool uses_discard,
+                                             void* user_context,
+                                             size_t* discard_slot,
+                                             uintptr_t* wr_id)
+{
+  if (!lock.try_lock()) return errorcode_t::retry_lock;
+  if (free_record_slots.empty() ||
+      (uses_discard && free_discard_slots.empty())) {
+    lock.unlock();
+    return errorcode_t::retry_nomem;
+  }
+  const size_t record_index = free_record_slots.back();
+  free_record_slots.pop_back();
+  ibv_atomic_op_t& op = records[record_index];
+  LCI_DBG_Assert(!op.active, "IBV atomic tracker record is already active\n");
+  op.active = true;
+  op.uses_discard = uses_discard;
+  op.user_context = user_context;
+  if (uses_discard) {
+    op.discard_slot = free_discard_slots.back();
+    free_discard_slots.pop_back();
+  }
+  ++active_records;
+  *wr_id = reinterpret_cast<uintptr_t>(&op);
+  if (discard_slot) {
+    *discard_slot = op.discard_slot;
+  }
+  lock.unlock();
+  return errorcode_t::done;
+}
+
+inline bool ibv_atomic_tracker_t::cancel(uintptr_t wr_id)
+{
+  lock.lock();
+  ibv_atomic_op_t* op = get_active_record_locked(wr_id);
+  if (op == nullptr) {
+    lock.unlock();
+    return false;
+  }
+  release_record_locked(op);
+  lock.unlock();
+  return true;
+}
+
+inline bool ibv_atomic_tracker_t::complete(uintptr_t wr_id, void** user_context)
+{
+  lock.lock();
+  ibv_atomic_op_t* op = get_active_record_locked(wr_id);
+  if (op == nullptr) {
+    lock.unlock();
+    return false;
+  }
+  if (user_context) {
+    *user_context = op->user_context;
+  }
+  release_record_locked(op);
+  lock.unlock();
+  return true;
+}
+
+inline bool ibv_atomic_tracker_t::empty()
+{
+  lock.lock();
+  const bool is_empty = active_records == 0;
+  lock.unlock();
+  return is_empty;
+}
+
+inline size_t ibv_atomic_tracker_t::abort()
+{
+  lock.lock();
+  const size_t aborted = active_records;
+  if (aborted != 0) {
+    free_record_slots.clear();
+    for (size_t i = 0; i < records.size(); ++i) {
+      if (records[i].active && records[i].uses_discard) {
+        free_discard_slots.push_back(records[i].discard_slot);
+      }
+      records[i] = ibv_atomic_op_t{};
+      free_record_slots.push_back(i);
+    }
+    active_records = 0;
+  }
+  lock.unlock();
+  return aborted;
+}
+
+inline void ibv_endpoint_impl_t::abort_atomic_operations()
+{
+  size_t aborted = 0;
+  for (auto& tracker : atomic_trackers) {
+    aborted += tracker->abort();
+  }
+  if (aborted != 0) {
+    sub_backend_pending_ops(static_cast<int64_t>(aborted));
+    LCI_Log(LOG_INFO, "ibv",
+            "Aborted %lu outstanding uint64 atomic operations during "
+            "failed-device teardown\n",
+            aborted);
+  }
 }
 
 inline bool ibv_endpoint_impl_t::try_lock_qp(int rank)
@@ -648,6 +859,115 @@ inline error_t ibv_endpoint_impl_t::post_get_impl(int rank, void* buffer,
     release_slot(rank);
     return errorcode_t::retry_nomem;  // exceed send queue capacity
   } else {
+    release_slot(rank);
+    IBV_SAFECALL_RET(ret);
+  }
+}
+
+inline error_t ibv_endpoint_impl_t::post_fetch_add_impl(
+    int rank, uint64_t* result, mr_t result_mr, uint64_t value, uint64_t offset,
+    rmr_t rmr, void* user_context, bool high_priority)
+{
+  static_assert(sizeof(uint64_t) == 8,
+                "IBV fetch-add requires an 8-byte uint64_t");
+  struct ibv_sge list = {};
+  list.addr = reinterpret_cast<uintptr_t>(result);
+  list.length = sizeof(uint64_t);
+  list.lkey = ibv_detail::get_mr_lkey(result_mr);
+
+  struct ibv_send_wr wr = {};
+  wr.sg_list = &list;
+  wr.num_sge = 1;
+  wr.opcode = IBV_WR_ATOMIC_FETCH_AND_ADD;
+  wr.send_flags = IBV_SEND_SIGNALED;
+  wr.wr.atomic.remote_addr = rmr.base + offset;
+  wr.wr.atomic.rkey = rmr.opaque_rkey;
+  wr.wr.atomic.compare_add = value;
+
+  if (!try_acquire_slot(rank, high_priority)) {
+    return errorcode_t::retry_nomem;
+  }
+  if (!try_lock_qp(rank)) {
+    release_slot(rank);
+    return errorcode_t::retry_lock;
+  }
+  uintptr_t atomic_wr_id = 0;
+  error_t tracking_error = prepare_atomic_operation(rank, false, user_context,
+                                                    nullptr, &atomic_wr_id);
+  if (tracking_error.is_retry()) {
+    unlock_qp(rank);
+    release_slot(rank);
+    return tracking_error;
+  }
+  wr.wr_id = atomic_wr_id;
+  struct ibv_send_wr* bad_wr;
+  int ret = ibv_post_send(ib_qps[rank], &wr, &bad_wr);
+  unlock_qp(rank);
+  if (ret == 0) {
+    return errorcode_t::posted;
+  } else if (ret == ENOMEM) {
+    cancel_atomic_operation(rank, atomic_wr_id);
+    release_slot(rank);
+    return errorcode_t::retry_nomem;
+  } else {
+    cancel_atomic_operation(rank, atomic_wr_id);
+    release_slot(rank);
+    IBV_SAFECALL_RET(ret);
+  }
+}
+
+inline error_t ibv_endpoint_impl_t::post_add_impl(int rank, uint64_t value,
+                                                  uint64_t offset, rmr_t rmr,
+                                                  void* user_context,
+                                                  bool high_priority)
+{
+  static_assert(sizeof(uint64_t) == 8,
+                "IBV fetch-add requires an 8-byte uint64_t");
+
+  if (!try_acquire_slot(rank, high_priority)) {
+    return errorcode_t::retry_nomem;
+  }
+  if (!try_lock_qp(rank)) {
+    release_slot(rank);
+    return errorcode_t::retry_lock;
+  }
+  size_t discard_slot = 0;
+  uintptr_t atomic_wr_id = 0;
+  error_t tracking_error = prepare_atomic_operation(
+      rank, true, user_context, &discard_slot, &atomic_wr_id);
+  if (tracking_error.is_retry()) {
+    unlock_qp(rank);
+    release_slot(rank);
+    return tracking_error;
+  }
+
+  struct ibv_sge list = {};
+  list.addr =
+      reinterpret_cast<uintptr_t>(&atomic_discard_buffers[discard_slot]);
+  list.length = sizeof(uint64_t);
+  list.lkey = ibv_detail::get_mr_lkey(atomic_discard_mr);
+
+  struct ibv_send_wr wr = {};
+  wr.wr_id = atomic_wr_id;
+  wr.sg_list = &list;
+  wr.num_sge = 1;
+  wr.opcode = IBV_WR_ATOMIC_FETCH_AND_ADD;
+  wr.send_flags = IBV_SEND_SIGNALED;
+  wr.wr.atomic.remote_addr = rmr.base + offset;
+  wr.wr.atomic.rkey = rmr.opaque_rkey;
+  wr.wr.atomic.compare_add = value;
+
+  struct ibv_send_wr* bad_wr;
+  int ret = ibv_post_send(ib_qps[rank], &wr, &bad_wr);
+  unlock_qp(rank);
+  if (ret == 0) {
+    return errorcode_t::posted;
+  } else if (ret == ENOMEM) {
+    cancel_atomic_operation(rank, atomic_wr_id);
+    release_slot(rank);
+    return errorcode_t::retry_nomem;
+  } else {
+    cancel_atomic_operation(rank, atomic_wr_id);
     release_slot(rank);
     IBV_SAFECALL_RET(ret);
   }

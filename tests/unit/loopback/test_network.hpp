@@ -3,6 +3,65 @@
 
 namespace test_network
 {
+class retry_atomic_backlog_endpoint_t : public lci::endpoint_impl_t
+{
+ public:
+  explicit retry_atomic_backlog_endpoint_t(lci::device_t device)
+      : lci::endpoint_impl_t(device, lci::endpoint_t::attr_t{})
+  {
+  }
+
+ private:
+  static lci::error_t retry() { return lci::errorcode_t::retry_nomem; }
+
+  lci::error_t post_sends_impl(int, void*, size_t, lci::net_imm_data_t, void*,
+                               bool) override
+  {
+    return retry();
+  }
+  lci::error_t post_send_impl(int, void*, size_t, lci::mr_t,
+                              lci::net_imm_data_t, void*, bool) override
+  {
+    return retry();
+  }
+  lci::error_t post_puts_impl(int, void*, size_t, uint64_t, lci::rmr_t, void*,
+                              bool) override
+  {
+    return retry();
+  }
+  lci::error_t post_put_impl(int, void*, size_t, lci::mr_t, uint64_t,
+                             lci::rmr_t, void*, bool) override
+  {
+    return retry();
+  }
+  lci::error_t post_putImms_impl(int, void*, size_t, uint64_t, lci::rmr_t,
+                                 lci::net_imm_data_t, void*, bool) override
+  {
+    return retry();
+  }
+  lci::error_t post_putImm_impl(int, void*, size_t, lci::mr_t, uint64_t,
+                                lci::rmr_t, lci::net_imm_data_t, void*,
+                                bool) override
+  {
+    return retry();
+  }
+  lci::error_t post_get_impl(int, void*, size_t, lci::mr_t, uint64_t,
+                             lci::rmr_t, void*, bool) override
+  {
+    return retry();
+  }
+  lci::error_t post_fetch_add_impl(int, uint64_t*, lci::mr_t, uint64_t,
+                                   uint64_t, lci::rmr_t, void*, bool) override
+  {
+    return retry();
+  }
+  lci::error_t post_add_impl(int, uint64_t, uint64_t, lci::rmr_t, void*,
+                             bool) override
+  {
+    return retry();
+  }
+};
+
 TEST(NETWORK, completion_batch_processes_successes_and_all_errors)
 {
   lci::g_runtime_init();
@@ -150,6 +209,128 @@ TEST(NETWORK, completion_batch_unknown_rank_is_generic)
   }
 
   lci::g_runtime_fina();
+}
+
+TEST(NETWORK, atomic_failure_preserves_raw_context)
+{
+  lci::g_runtime_init();
+  lci::runtime_t runtime = lci::g_default_runtime;
+  lci::device_t device = lci::get_default_device();
+  lci::endpoint_t endpoint = lci::get_default_endpoint();
+
+  // A raw atomic context is not owned by high-level LCI progress. Deliberately
+  // give it a conflicting rank so an accidental internal_context_t cast would
+  // turn this into a generic failure instead of the backend-reported peer.
+  auto* raw_context = new lci::internal_context_t;
+  raw_context->rank = 42;
+  lci::net_status_t status = {};
+  status.opcode = lci::net_opcode_t::FETCH_ADD_ERROR;
+  status.rank = 7;
+  status.user_context = raw_context;
+
+  try {
+    lci::process_completion_batch(runtime, device, endpoint, &status, 1);
+    FAIL() << "Expected peer_failure_error";
+  } catch (const lci::peer_failure_error& error) {
+    EXPECT_EQ(error.failed_rank(), 7);
+  }
+  EXPECT_TRUE(device.get_impl()->has_network_failed());
+  EXPECT_EQ(status.user_context, raw_context);
+  delete raw_context;
+  lci::g_runtime_fina();
+}
+
+TEST(NETWORK, queued_atomic_backlog_is_aborted_during_failed_device_teardown)
+{
+  lci::g_runtime_init();
+  lci::device_t device = lci::get_default_device();
+  auto* endpoint = new retry_atomic_backlog_endpoint_t(device);
+  endpoint->net_context_attr.atomic_scope = lci::net_atomic_scope_t::HCA;
+
+  lci::rmr_t rmr;
+  rmr.base = 8;
+  int raw_context = 0;
+  lci::error_t error =
+      endpoint->post_add(0, 1, 0, rmr, lci::net_atomic_scope_t::HCA,
+                         &raw_context, false /* allow_retry */);
+  EXPECT_EQ(error.errorcode, lci::errorcode_t::posted_backlog);
+  EXPECT_FALSE(endpoint->is_backlog_queue_empty());
+  EXPECT_FALSE(endpoint->is_backlog_queue_empty(0));
+
+  device.get_impl()->mark_network_failed();
+  // The base endpoint destructor aborts its locked backlog before the queue
+  // destructor asserts that no entries remain.
+  delete endpoint;
+
+  lci::g_runtime_fina();
+}
+
+#ifdef LCI_BACKEND_ENABLE_IBV
+TEST(NETWORK, ibv_atomic_tracker_records_are_bounded_and_validated)
+{
+  lci::ibv_atomic_tracker_t tracker;
+  tracker.initialize(2, 7);
+  auto* records = tracker.records.data();
+  uintptr_t complete_wr_id = 0;
+  size_t discard_slot = 0;
+  void* complete_context = reinterpret_cast<void*>(static_cast<uintptr_t>(1));
+  ASSERT_TRUE(
+      tracker.prepare(true, complete_context, &discard_slot, &complete_wr_id)
+          .is_done());
+  EXPECT_EQ(tracker.records.data(), records);
+  EXPECT_EQ(discard_slot, 8u);
+  EXPECT_FALSE(tracker.complete(complete_wr_id + 1, nullptr));
+
+  void* completed_context = nullptr;
+  EXPECT_TRUE(tracker.complete(complete_wr_id, &completed_context));
+  EXPECT_EQ(completed_context, complete_context);
+  EXPECT_TRUE(tracker.empty());
+
+  uintptr_t cancel_wr_id = 0;
+  ASSERT_TRUE(
+      tracker.prepare(true, nullptr, &discard_slot, &cancel_wr_id).is_done());
+  EXPECT_TRUE(tracker.cancel(cancel_wr_id));
+  EXPECT_TRUE(tracker.empty());
+  EXPECT_NE(std::find(tracker.free_discard_slots.begin(),
+                      tracker.free_discard_slots.end(), discard_slot),
+            tracker.free_discard_slots.end());
+
+  uintptr_t first_wr_id = 0;
+  uintptr_t second_wr_id = 0;
+  size_t abort_discard_slot = 0;
+  ASSERT_TRUE(tracker.prepare(true, nullptr, &abort_discard_slot, &first_wr_id)
+                  .is_done());
+  ASSERT_TRUE(
+      tracker.prepare(false, nullptr, nullptr, &second_wr_id).is_done());
+  EXPECT_EQ(tracker.prepare(false, nullptr, nullptr, &complete_wr_id).errorcode,
+            lci::errorcode_t::retry_nomem);
+  EXPECT_EQ(tracker.abort(), 2u);
+  EXPECT_TRUE(tracker.empty());
+  EXPECT_NE(std::find(tracker.free_discard_slots.begin(),
+                      tracker.free_discard_slots.end(), abort_discard_slot),
+            tracker.free_discard_slots.end());
+  EXPECT_FALSE(tracker.complete(first_wr_id, nullptr));
+}
+#endif  // LCI_BACKEND_ENABLE_IBV
+
+TEST(NETWORK, uint64_atomic_scope_matrix)
+{
+  using scope_t = lci::net_atomic_scope_t;
+  EXPECT_FALSE(lci::is_valid_uint64_atomic_scope(scope_t::NONE, scope_t::NONE));
+  EXPECT_FALSE(lci::is_valid_uint64_atomic_scope(scope_t::NONE, scope_t::HCA));
+  EXPECT_FALSE(
+      lci::is_valid_uint64_atomic_scope(scope_t::NONE, scope_t::GLOBAL));
+
+  EXPECT_FALSE(lci::is_valid_uint64_atomic_scope(scope_t::HCA, scope_t::NONE));
+  EXPECT_TRUE(lci::is_valid_uint64_atomic_scope(scope_t::HCA, scope_t::HCA));
+  EXPECT_FALSE(
+      lci::is_valid_uint64_atomic_scope(scope_t::HCA, scope_t::GLOBAL));
+
+  EXPECT_FALSE(
+      lci::is_valid_uint64_atomic_scope(scope_t::GLOBAL, scope_t::NONE));
+  EXPECT_TRUE(lci::is_valid_uint64_atomic_scope(scope_t::GLOBAL, scope_t::HCA));
+  EXPECT_TRUE(
+      lci::is_valid_uint64_atomic_scope(scope_t::GLOBAL, scope_t::GLOBAL));
 }
 
 TEST(NETWORK, completion_failure_uses_abortive_teardown)

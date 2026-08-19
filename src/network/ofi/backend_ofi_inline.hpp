@@ -70,6 +70,7 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
     } else {
       LCI_Assert(ret_cqerr == 1, "fi_cq_readerr failed: %s\n",
                  fi_strerror(-ret_cqerr));
+      mark_network_failed();
       if (p_statuses) {
         net_status_t& status = p_statuses[0];
         memset(&status, 0, sizeof(status));
@@ -436,6 +437,21 @@ inline error_t ofi_endpoint_impl_t::post_get_impl(int rank, void* buffer,
   else {
     FI_SAFECALL_RET(ret);
   }
+}
+
+inline error_t ofi_endpoint_impl_t::post_fetch_add_impl(int, uint64_t*, mr_t,
+                                                        uint64_t, uint64_t,
+                                                        rmr_t, void*, bool)
+{
+  LCI_Warn("uint64 network fetch-add is not implemented for the OFI backend\n");
+  return errorcode_t::fatal;
+}
+
+inline error_t ofi_endpoint_impl_t::post_add_impl(int, uint64_t, uint64_t,
+                                                  rmr_t, void*, bool)
+{
+  LCI_Warn("uint64 network add is not implemented for the OFI backend\n");
+  return errorcode_t::fatal;
 }
 }  // namespace lci
 

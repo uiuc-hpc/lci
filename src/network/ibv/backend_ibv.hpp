@@ -7,6 +7,7 @@
 #include "infiniband/verbs.h"
 #include <atomic>
 #include <algorithm>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
@@ -33,6 +34,8 @@
 
 namespace lci
 {
+class ibv_endpoint_impl_t;
+
 class ibv_net_context_impl_t : public lci::net_context_impl_t
 {
  public:
@@ -75,6 +78,7 @@ class qp2rank_map_t
   struct entry_t {
     int rank = -1;
     padded_atomic_t<int>* slots = nullptr;
+    ibv_endpoint_impl_t* endpoint = nullptr;
   };
 
   struct snapshot_t {
@@ -92,7 +96,8 @@ class qp2rank_map_t
   }
 
   void add_qps(const std::vector<struct ibv_qp*>& qps,
-               std::vector<padded_atomic_t<int>>* qp_slots);
+               std::vector<padded_atomic_t<int>>* qp_slots,
+               ibv_endpoint_impl_t* endpoint);
   void remove_qps(const std::vector<struct ibv_qp*>& qps);
   snapshot_t* get_snapshot()
   {
@@ -137,6 +142,33 @@ class ibv_device_impl_t : public lci::device_impl_t
   LCIU_CACHE_PADDING(sizeof(spinlock_t));
 };
 
+struct ibv_atomic_op_t {
+  bool active = false;
+  bool uses_discard = false;
+  size_t discard_slot = 0;
+  void* user_context = nullptr;
+};
+
+struct ibv_atomic_tracker_t {
+  spinlock_t lock;
+  std::vector<size_t> free_discard_slots;
+  std::vector<size_t> free_record_slots;
+  std::vector<ibv_atomic_op_t> records;
+  size_t active_records = 0;
+
+  void initialize(size_t record_count, size_t first_discard_slot);
+  error_t prepare(bool uses_discard, void* user_context, size_t* discard_slot,
+                  uintptr_t* wr_id);
+  bool cancel(uintptr_t wr_id);
+  bool complete(uintptr_t wr_id, void** user_context);
+  bool empty();
+  size_t abort();
+
+ private:
+  ibv_atomic_op_t* get_active_record_locked(uintptr_t wr_id);
+  void release_record_locked(ibv_atomic_op_t* op);
+};
+
 class ibv_endpoint_impl_t : public lci::endpoint_impl_t
 {
  public:
@@ -163,11 +195,22 @@ class ibv_endpoint_impl_t : public lci::endpoint_impl_t
   error_t post_get_impl(int rank, void* buffer, size_t size, mr_t mr,
                         uint64_t offset, rmr_t rmr, void* user_context,
                         bool high_priority) override;
+  error_t post_fetch_add_impl(int rank, uint64_t* result, mr_t result_mr,
+                              uint64_t value, uint64_t offset, rmr_t rmr,
+                              void* user_context, bool high_priority) override;
+  error_t post_add_impl(int rank, uint64_t value, uint64_t offset, rmr_t rmr,
+                        void* user_context, bool high_priority) override;
+  bool complete_atomic_operation(int rank, uintptr_t wr_id,
+                                 void** user_context);
+  void abort_atomic_operations();
 
   ibv_device_impl_t* p_ibv_device;
   std::vector<struct ibv_qp*> ib_qps;
   std::vector<LCISI_ibv_qp_extra_t> ib_qp_extras;
   std::vector<padded_atomic_t<int>> qp_remaining_slots;
+  std::vector<uint64_t> atomic_discard_buffers;
+  mr_t atomic_discard_mr;
+  std::vector<std::unique_ptr<ibv_atomic_tracker_t>> atomic_trackers;
   spinlock_t qps_lock;
 
  private:
@@ -175,6 +218,10 @@ class ibv_endpoint_impl_t : public lci::endpoint_impl_t
   void unlock_qp(int rank);
   bool try_acquire_slot(int rank, bool high_priority);
   void release_slot(int rank);
+  error_t prepare_atomic_operation(int rank, bool uses_discard,
+                                   void* user_context, size_t* discard_slot,
+                                   uintptr_t* wr_id);
+  void cancel_atomic_operation(int rank, uintptr_t wr_id);
 };
 
 }  // namespace lci

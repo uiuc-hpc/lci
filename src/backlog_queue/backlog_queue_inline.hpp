@@ -179,6 +179,55 @@ inline void backlog_queue_t::push_get(endpoint_impl_t* endpoint, int rank,
   lock.unlock();
 }
 
+inline void backlog_queue_t::push_fetch_add(
+    endpoint_impl_t* endpoint, int rank, uint64_t* result, mr_t result_mr,
+    uint64_t value, uint64_t offset, rmr_t rmr,
+    net_atomic_scope_t required_atomic_scope, void* user_context)
+{
+  LCI_PCOUNTER_ADD(backlog_queue_push, 1);
+  backlog_queue_entry_t entry;
+  entry.op = backlog_op_t::fetch_add;
+  entry.endpoint = endpoint;
+  entry.rank = rank;
+  entry.buffer = result;
+  entry.mr = result_mr;
+  entry.value = value;
+  entry.offset = offset;
+  entry.rmr = rmr;
+  entry.required_atomic_scope = required_atomic_scope;
+  entry.user_context = user_context;
+
+  nentries_per_rank[rank].val.fetch_add(1, std::memory_order_relaxed);
+  lock.lock();
+  backlog_queue.push(entry);
+  set_empty(false);
+  lock.unlock();
+}
+
+inline void backlog_queue_t::push_add(endpoint_impl_t* endpoint, int rank,
+                                      uint64_t value, uint64_t offset,
+                                      rmr_t rmr,
+                                      net_atomic_scope_t required_atomic_scope,
+                                      void* user_context)
+{
+  LCI_PCOUNTER_ADD(backlog_queue_push, 1);
+  backlog_queue_entry_t entry;
+  entry.op = backlog_op_t::add;
+  entry.endpoint = endpoint;
+  entry.rank = rank;
+  entry.value = value;
+  entry.offset = offset;
+  entry.rmr = rmr;
+  entry.required_atomic_scope = required_atomic_scope;
+  entry.user_context = user_context;
+
+  nentries_per_rank[rank].val.fetch_add(1, std::memory_order_relaxed);
+  lock.lock();
+  backlog_queue.push(entry);
+  set_empty(false);
+  lock.unlock();
+}
+
 inline bool backlog_queue_t::progress()
 {
   if (is_empty()) {
@@ -231,6 +280,17 @@ inline bool backlog_queue_t::progress()
                                        entry.mr, entry.offset, entry.rmr,
                                        entry.user_context, true, true);
       break;
+    case backlog_op_t::fetch_add:
+      error = entry.endpoint->post_fetch_add(
+          entry.rank, static_cast<uint64_t*>(entry.buffer), entry.mr,
+          entry.value, entry.offset, entry.rmr, entry.required_atomic_scope,
+          entry.user_context, true, true);
+      break;
+    case backlog_op_t::add:
+      error = entry.endpoint->post_add(entry.rank, entry.value, entry.offset,
+                                       entry.rmr, entry.required_atomic_scope,
+                                       entry.user_context, true, true);
+      break;
     default:
       LCI_Assert(false, "Unknown operation %d\n", entry.op);
   }
@@ -254,6 +314,25 @@ inline bool backlog_queue_t::progress()
     lock.unlock();
   }
   return did_something;
+}
+
+inline size_t backlog_queue_t::abort()
+{
+  lock.lock();
+  size_t aborted = 0;
+  while (!backlog_queue.empty()) {
+    const backlog_queue_entry_t entry = backlog_queue.front();
+    backlog_queue.pop();
+    nentries_per_rank[entry.rank].val.fetch_sub(1, std::memory_order_relaxed);
+    if (entry.op == backlog_op_t::sends || entry.op == backlog_op_t::puts ||
+        entry.op == backlog_op_t::putImms) {
+      free(entry.buffer);
+    }
+    ++aborted;
+  }
+  set_empty(true);
+  lock.unlock();
+  return aborted;
 }
 
 }  // namespace lci

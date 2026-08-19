@@ -146,6 +146,11 @@ class ofi_endpoint_impl_t : public lci::endpoint_impl_t
   error_t post_get_impl(int rank, void* buffer, size_t size, mr_t mr,
                         uint64_t offset, rmr_t rmr, void* user_context,
                         bool high_priority) override;
+  error_t post_fetch_add_impl(int rank, uint64_t* result, mr_t result_mr,
+                              uint64_t value, uint64_t offset, rmr_t rmr,
+                              void* user_context, bool high_priority) override;
+  error_t post_add_impl(int rank, uint64_t value, uint64_t offset, rmr_t rmr,
+                        void* user_context, bool high_priority) override;
 
   ofi_device_impl_t* p_ofi_device;
   int my_rank;

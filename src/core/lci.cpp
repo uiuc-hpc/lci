@@ -20,7 +20,8 @@ const char* get_errorcode_str(errorcode_t errorcode)
 const char* get_net_opcode_str(net_opcode_t opcode)
 {
   static const char opcode_str[][16] = {
-      "SEND", "RECV", "WRITE", "REMOTE_WRITE", "READ", "ERROR",
+      "SEND", "RECV",  "WRITE",     "REMOTE_WRITE",
+      "READ", "ERROR", "FETCH_ADD", "FETCH_ADD_ERROR",
   };
   return opcode_str[static_cast<int>(opcode)];
 }
