@@ -44,6 +44,11 @@ class backlog_queue_t
   inline void push_get(endpoint_impl_t* endpoint, int rank, void* buffer,
                        size_t size, mr_t mr, uint64_t offset, rmr_t rmr,
                        void* user_context);
+  inline void push_fetch_add(endpoint_impl_t* endpoint, int rank,
+                             uint64_t* result, mr_t result_mr, uint64_t value,
+                             uint64_t offset, rmr_t rmr, void* user_context);
+  inline void push_add(endpoint_impl_t* endpoint, int rank, uint64_t value,
+                       uint64_t offset, rmr_t rmr, void* user_context);
   inline bool progress();
   inline void set_empty(bool empty_)
   {
@@ -69,6 +74,8 @@ class backlog_queue_t
     putImms,
     putImm,
     get,
+    fetch_add,
+    add,
   };
   struct backlog_queue_entry_t {
     backlog_op_t op;
@@ -80,6 +87,7 @@ class backlog_queue_t
     uint64_t offset;
     rmr_t rmr;
     net_imm_data_t imm_data;
+    uint64_t value;
     void* user_context;
   };
   // we use a lock-based queue instead of a atomic-based queue for two reasons:

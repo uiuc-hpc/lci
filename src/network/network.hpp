@@ -151,6 +151,14 @@ class endpoint_impl_t
   virtual error_t post_get_impl(int rank, void* buffer, size_t size, mr_t mr,
                                 uint64_t offset, rmr_t rmr, void* user_context,
                                 bool high_priority) = 0;
+  virtual error_t post_fetch_add_impl(int rank, uint64_t* result,
+                                      mr_t result_mr, uint64_t value,
+                                      uint64_t offset, rmr_t rmr,
+                                      void* user_context,
+                                      bool high_priority) = 0;
+  virtual error_t post_add_impl(int rank, uint64_t value, uint64_t offset,
+                                rmr_t rmr, void* user_context,
+                                bool high_priority) = 0;
 
   // wrapper functions
   inline error_t post_sends(int rank, void* buffer, size_t size,
@@ -176,6 +184,13 @@ class endpoint_impl_t
   inline error_t post_get(int rank, void* buffer, size_t size, mr_t mr,
                           uint64_t offset, rmr_t rmr, void* user_context,
                           bool allow_retry = true, bool force_post = false);
+  inline error_t post_fetch_add(int rank, uint64_t* result, mr_t result_mr,
+                                uint64_t value, uint64_t offset, rmr_t rmr,
+                                void* user_context, bool allow_retry = true,
+                                bool force_post = false);
+  inline error_t post_add(int rank, uint64_t value, uint64_t offset, rmr_t rmr,
+                          void* user_context, bool allow_retry = true,
+                          bool force_post = false);
   inline error_t post_putImms_fallback(int rank, void* buffer, size_t size,
                                        uint64_t offset, rmr_t rmr,
                                        net_imm_data_t imm_data,
@@ -209,9 +224,28 @@ class endpoint_impl_t
                    ret - n);
     // fprintf(stderr, "sub pending ops %ld - %ld = %ld\n", ret, n, ret - n);
   }
+  inline void add_backend_pending_ops(int64_t n = 1)
+  {
+    [[maybe_unused]] int64_t ret =
+        backend_pending_ops.fetch_add(n, std::memory_order_relaxed);
+    // fprintf(stderr, "add backend pending ops %ld + %ld = %ld\n", ret, n,
+    //         ret + n);
+  }
+  inline void sub_backend_pending_ops(int64_t n = 1)
+  {
+    [[maybe_unused]] int64_t ret =
+        backend_pending_ops.fetch_sub(n, std::memory_order_relaxed);
+    LCI_DBG_Assert(ret - n >= 0,
+                   "backend_pending_ops is negative! (n: %ld, "
+                   "backend_pending_ops: %ld)\n",
+                   n, ret - n);
+    // fprintf(stderr, "sub backend pending ops %ld - %ld = %ld\n", ret, n,
+    //         ret - n);
+  }
   inline int64_t get_pending_ops() const
   {
-    return pending_ops.load(std::memory_order_relaxed);
+    return pending_ops.load(std::memory_order_relaxed) +
+           backend_pending_ops.load(std::memory_order_relaxed);
   }
 
   runtime_t runtime;
@@ -227,6 +261,11 @@ class endpoint_impl_t
   backlog_queue_t backlog_queue;
   LCIU_CACHE_PADDING(sizeof(backlog_queue_t));
   std::atomic<int64_t> pending_ops;
+  LCIU_CACHE_PADDING(sizeof(std::atomic<int64_t>));
+  // Raw operations that own backend-managed storage do not have an
+  // internal_context_t to keep the endpoint alive. Track them separately so
+  // wait_drained() also waits for the backend to retire that storage.
+  std::atomic<int64_t> backend_pending_ops;
   LCIU_CACHE_PADDING(sizeof(std::atomic<int64_t>));
 };
 

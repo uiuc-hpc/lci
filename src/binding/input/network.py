@@ -23,6 +23,7 @@ resource_net_context := resource(
         attr_enum("ibv_odp_strategy", enum_options=["none", "explicit_odp", "implicit_odp"], default_value="none", comment="For the IBV backend: the on-demand paging strategy."),
         attr_enum("ibv_prefetch_strategy", enum_options=["none", "prefetch", "prefetch_write", "prefetch_no_fault"], default_value="none", comment="For the IBV backend: the mr prefetch strategy."),
         attr("bool", "support_putimm", inout_trait="out", comment="Whether the network context supports put with immediate data."),
+        attr("bool", "support_uint64_fetch_add", inout_trait="out", comment="Whether the network context supports uint64 fetch-add and add."),
         attr("bool", "use_dmabuf", default_value=1, comment="Whether to use dmabuf for cuda buffer registration."),
     ],
     doc = {
@@ -309,6 +310,46 @@ operation(
         "in_group": "LCI_NET",
         "brief": "Post a network get operation.",
         "details": "This operation uses the *post* semantics: means the operation is posted and not completed immediately; the completed operation will be reported through @ref net_poll_cq; the receive buffer can only be read after the operation is completed."
+    }
+),
+operation(
+    "net_post_fetch_add",
+    [
+        optional_runtime_args,
+        positional_arg("int", "rank", comment="The target rank."),
+        positional_arg("uint64_t*", "result", comment="The aligned local result storage for the previous remote value."),
+        positional_arg("mr_t", "result_mr", comment="The registered memory region containing @p result."),
+        positional_arg("uint64_t", "value", comment="The value to add to the remote uint64."),
+        positional_arg("uint64_t", "offset", comment="The 8-byte-aligned offset of the remote uint64 from the remote region base."),
+        positional_arg("rmr_t", "rmr", comment="The remote memory region handle."),
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
+        optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
+        optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context."),
+        return_val("error_t", "error", comment="The error code."),
+    ],
+    doc = {
+        "in_group": "LCI_NET",
+        "brief": "Post a uint64 network fetch-add operation.",
+        "details": "This operation is available only when @ref net_context_attr_t::support_uint64_fetch_add is true. The result storage and remote address must both be 8-byte aligned. The completion is reported through @ref net_poll_cq as @ref net_opcode_t::FETCH_ADD. Operations posted to the same rank through the same endpoint preserve the backend's native queue-pair ordering."
+    }
+),
+operation(
+    "net_post_add",
+    [
+        optional_runtime_args,
+        positional_arg("int", "rank", comment="The target rank."),
+        positional_arg("uint64_t", "value", comment="The value to add to the remote uint64."),
+        positional_arg("uint64_t", "offset", comment="The 8-byte-aligned offset of the remote uint64 from the remote region base."),
+        positional_arg("rmr_t", "rmr", comment="The remote memory region handle."),
+        optional_arg("device_t", "device", "runtime.get_impl()->default_device", comment="The device to use."),
+        optional_arg("endpoint_t", "endpoint", "device.get_impl()->default_endpoint", comment="The endpoint to use."),
+        optional_arg("void*", "user_context", "nullptr", comment="The arbitrary user-defined context."),
+        return_val("error_t", "error", comment="The error code."),
+    ],
+    doc = {
+        "in_group": "LCI_NET",
+        "brief": "Post a uint64 network add operation.",
+        "details": "This convenience operation discards the previous remote value in backend-managed registered storage. It is available only when @ref net_context_attr_t::support_uint64_fetch_add is true. The completion is reported through @ref net_poll_cq as @ref net_opcode_t::FETCH_ADD. Operations posted to the same rank through the same endpoint preserve the backend's native queue-pair ordering."
     }
 ),
 ]

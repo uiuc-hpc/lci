@@ -186,6 +186,10 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   }
   // Check put with immediate support.
   attr.support_putimm = true;
+  // Do not emulate fetch-add through non-atomic RMA. The public capability
+  // explicitly reports that this backend does not provide the required
+  // uint64 atomic semantics.
+  attr.support_uint64_fetch_add = false;
   std::string prov_name = ofi_info->fabric_attr->prov_name;
   if (prov_name == "cxi") {
     // CXI writedata uses provider keys and the domain's CQ-data support.

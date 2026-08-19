@@ -246,6 +246,7 @@ enum class net_opcode_t {
   WRITE,        /**< write */
   REMOTE_WRITE, /**< remote write */
   READ,         /**< read */
+  FETCH_ADD,    /**< uint64 fetch-add or add */
   ERROR,        /**< asynchronous completion error */
 };
 

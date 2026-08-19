@@ -170,6 +170,37 @@ inline error_t net_post_get_x::call_impl(int rank, void* buffer, size_t size,
   return ret;
 }
 
+inline error_t net_post_fetch_add_x::call_impl(int rank, uint64_t* result,
+                                               mr_t result_mr, uint64_t value,
+                                               uint64_t offset, rmr_t rmr,
+                                               runtime_t, device_t,
+                                               endpoint_t endpoint,
+                                               void* user_context) const
+{
+  auto ret = endpoint.p_impl->post_fetch_add(rank, result, result_mr, value,
+                                             offset, rmr, user_context);
+  LCI_DBG_Log(LOG_TRACE, "network",
+              "post_fetch_add rank %d result %p result_mr %p value %lu "
+              "offset %lu rmr %p user_context %p return %s\n",
+              rank, result, result_mr.p_impl, value, offset,
+              reinterpret_cast<void*>(rmr.base), user_context, ret.get_str());
+  return ret;
+}
+
+inline error_t net_post_add_x::call_impl(int rank, uint64_t value,
+                                         uint64_t offset, rmr_t rmr, runtime_t,
+                                         device_t, endpoint_t endpoint,
+                                         void* user_context) const
+{
+  auto ret = endpoint.p_impl->post_add(rank, value, offset, rmr, user_context);
+  LCI_DBG_Log(LOG_TRACE, "network",
+              "post_add rank %d value %lu offset %lu rmr %p user_context %p "
+              "return %s\n",
+              rank, value, offset, reinterpret_cast<void*>(rmr.base),
+              user_context, ret.get_str());
+  return ret;
+}
+
 }  // namespace lci
 
 #endif  // LCI_BACKEND_INLINE_HPP

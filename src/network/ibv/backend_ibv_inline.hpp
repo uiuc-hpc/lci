@@ -7,14 +7,16 @@
 namespace lci
 {
 inline void qp2rank_map_t::add_qps(const std::vector<struct ibv_qp*>& qps,
-                                   std::vector<padded_atomic_t<int>>* qp_slots)
+                                   std::vector<padded_atomic_t<int>>* qp_slots,
+                                   ibv_endpoint_impl_t* endpoint)
 {
-  if (qps.empty() || qp_slots == nullptr) return;
+  if (qps.empty() || qp_slots == nullptr || endpoint == nullptr) return;
   std::unique_lock<std::shared_mutex> lock(mutex);
   for (size_t i = 0; i < qps.size(); ++i) {
     entry_t entry;
     entry.rank = static_cast<int>(i);
     entry.slots = &(*qp_slots)[i];
+    entry.endpoint = endpoint;
     qp_entries.emplace_back(qps[i]->qp_num, entry);
   }
   rebuild_locked();
@@ -119,6 +121,7 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
       qp2rank_map_t::entry_t entry = snapshot->get_entry(wcs[i].qp_num);
       const bool is_receive = wcs[i].opcode == IBV_WC_RECV ||
                               wcs[i].opcode == IBV_WC_RECV_RDMA_WITH_IMM;
+      const bool is_fetch_add = wcs[i].opcode == IBV_WC_FETCH_ADD;
       // A failed send-side completion still releases its SQ slot.
       if (!is_receive) {
         if (entry.rank >= 0 && entry.rank < get_rank_n() &&
@@ -134,6 +137,14 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
               "Completion for qp_num %u does not map to an active endpoint\n",
               wcs[i].qp_num);
         }
+      }
+      if (is_fetch_add) {
+        LCI_Assert(entry.endpoint != nullptr && entry.rank >= 0 &&
+                       entry.rank < get_rank_n(),
+                   "Fetch-add completion for qp_num %u does not map to an "
+                   "active endpoint\n",
+                   wcs[i].qp_num);
+        entry.endpoint->complete_atomic_operation(entry.rank);
       }
       if (!p_statuses) continue;
       net_status_t& status = p_statuses[i];
@@ -158,6 +169,9 @@ inline size_t ibv_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
         status.user_context = (void*)wcs[i].wr_id;
       } else if (wcs[i].opcode == IBV_WC_RDMA_WRITE) {
         status.opcode = net_opcode_t::WRITE;
+        status.user_context = (void*)wcs[i].wr_id;
+      } else if (is_fetch_add) {
+        status.opcode = net_opcode_t::FETCH_ADD;
         status.user_context = (void*)wcs[i].wr_id;
       } else {
         LCI_Assert(wcs[i].opcode == IBV_WC_RDMA_READ,
@@ -270,6 +284,60 @@ inline bool ibv_endpoint_impl_t::try_acquire_slot(int rank, bool high_priority)
 inline void ibv_endpoint_impl_t::release_slot(int rank)
 {
   qp_remaining_slots[rank].val.fetch_add(1, std::memory_order_relaxed);
+}
+
+inline error_t ibv_endpoint_impl_t::prepare_atomic_operation(
+    int rank, bool uses_discard, size_t* discard_slot)
+{
+  ibv_atomic_tracker_t& tracker = *atomic_trackers[rank];
+  if (!tracker.lock.try_lock()) {
+    return errorcode_t::retry_lock;
+  }
+  if (uses_discard && tracker.free_discard_slots.empty()) {
+    tracker.lock.unlock();
+    return errorcode_t::retry_nomem;
+  }
+  size_t slot = 0;
+  if (uses_discard) {
+    slot = tracker.free_discard_slots.back();
+    tracker.free_discard_slots.pop_back();
+  }
+  tracker.posted_ops.push_back({uses_discard, slot});
+  tracker.lock.unlock();
+  if (discard_slot) {
+    *discard_slot = slot;
+  }
+  return errorcode_t::done;
+}
+
+inline void ibv_endpoint_impl_t::cancel_atomic_operation(int rank)
+{
+  ibv_atomic_tracker_t& tracker = *atomic_trackers[rank];
+  tracker.lock.lock();
+  LCI_DBG_Assert(!tracker.posted_ops.empty(),
+                 "No atomic operation to cancel for rank %d\n", rank);
+  ibv_atomic_op_t op = tracker.posted_ops.back();
+  tracker.posted_ops.pop_back();
+  if (op.uses_discard) {
+    tracker.free_discard_slots.push_back(op.discard_slot);
+  }
+  tracker.lock.unlock();
+}
+
+inline void ibv_endpoint_impl_t::complete_atomic_operation(int rank)
+{
+  ibv_atomic_tracker_t& tracker = *atomic_trackers[rank];
+  tracker.lock.lock();
+  LCI_Assert(!tracker.posted_ops.empty(),
+             "No atomic operation to complete for rank %d\n", rank);
+  ibv_atomic_op_t op = tracker.posted_ops.front();
+  tracker.posted_ops.pop_front();
+  if (op.uses_discard) {
+    tracker.free_discard_slots.push_back(op.discard_slot);
+  }
+  tracker.lock.unlock();
+  sub_backend_pending_ops();
+  LCI_PCOUNTER_ADD(net_atomic_comp, 1);
 }
 
 inline bool ibv_endpoint_impl_t::try_lock_qp(int rank)
@@ -648,6 +716,111 @@ inline error_t ibv_endpoint_impl_t::post_get_impl(int rank, void* buffer,
     release_slot(rank);
     return errorcode_t::retry_nomem;  // exceed send queue capacity
   } else {
+    release_slot(rank);
+    IBV_SAFECALL_RET(ret);
+  }
+}
+
+inline error_t ibv_endpoint_impl_t::post_fetch_add_impl(
+    int rank, uint64_t* result, mr_t result_mr, uint64_t value, uint64_t offset,
+    rmr_t rmr, void* user_context, bool high_priority)
+{
+  static_assert(sizeof(uint64_t) == 8,
+                "IBV fetch-add requires an 8-byte uint64_t");
+  struct ibv_sge list = {};
+  list.addr = reinterpret_cast<uintptr_t>(result);
+  list.length = sizeof(uint64_t);
+  list.lkey = ibv_detail::get_mr_lkey(result_mr);
+
+  struct ibv_send_wr wr = {};
+  wr.wr_id = reinterpret_cast<uintptr_t>(user_context);
+  wr.sg_list = &list;
+  wr.num_sge = 1;
+  wr.opcode = IBV_WR_ATOMIC_FETCH_AND_ADD;
+  wr.send_flags = IBV_SEND_SIGNALED;
+  wr.wr.atomic.remote_addr = rmr.base + offset;
+  wr.wr.atomic.rkey = rmr.opaque_rkey;
+  wr.wr.atomic.compare_add = value;
+
+  if (!try_acquire_slot(rank, high_priority)) {
+    return errorcode_t::retry_nomem;
+  }
+  if (!try_lock_qp(rank)) {
+    release_slot(rank);
+    return errorcode_t::retry_lock;
+  }
+  error_t tracking_error = prepare_atomic_operation(rank, false, nullptr);
+  if (tracking_error.is_retry()) {
+    unlock_qp(rank);
+    release_slot(rank);
+    return tracking_error;
+  }
+  struct ibv_send_wr* bad_wr;
+  int ret = ibv_post_send(ib_qps[rank], &wr, &bad_wr);
+  unlock_qp(rank);
+  if (ret == 0) {
+    return errorcode_t::posted;
+  } else if (ret == ENOMEM) {
+    cancel_atomic_operation(rank);
+    release_slot(rank);
+    return errorcode_t::retry_nomem;
+  } else {
+    cancel_atomic_operation(rank);
+    release_slot(rank);
+    IBV_SAFECALL_RET(ret);
+  }
+}
+
+inline error_t ibv_endpoint_impl_t::post_add_impl(int rank, uint64_t value,
+                                                  uint64_t offset, rmr_t rmr,
+                                                  void* user_context,
+                                                  bool high_priority)
+{
+  static_assert(sizeof(uint64_t) == 8,
+                "IBV fetch-add requires an 8-byte uint64_t");
+
+  if (!try_acquire_slot(rank, high_priority)) {
+    return errorcode_t::retry_nomem;
+  }
+  if (!try_lock_qp(rank)) {
+    release_slot(rank);
+    return errorcode_t::retry_lock;
+  }
+  size_t discard_slot = 0;
+  error_t tracking_error = prepare_atomic_operation(rank, true, &discard_slot);
+  if (tracking_error.is_retry()) {
+    unlock_qp(rank);
+    release_slot(rank);
+    return tracking_error;
+  }
+
+  struct ibv_sge list = {};
+  list.addr =
+      reinterpret_cast<uintptr_t>(&atomic_discard_buffers[discard_slot]);
+  list.length = sizeof(uint64_t);
+  list.lkey = ibv_detail::get_mr_lkey(atomic_discard_mr);
+
+  struct ibv_send_wr wr = {};
+  wr.wr_id = reinterpret_cast<uintptr_t>(user_context);
+  wr.sg_list = &list;
+  wr.num_sge = 1;
+  wr.opcode = IBV_WR_ATOMIC_FETCH_AND_ADD;
+  wr.send_flags = IBV_SEND_SIGNALED;
+  wr.wr.atomic.remote_addr = rmr.base + offset;
+  wr.wr.atomic.rkey = rmr.opaque_rkey;
+  wr.wr.atomic.compare_add = value;
+
+  struct ibv_send_wr* bad_wr;
+  int ret = ibv_post_send(ib_qps[rank], &wr, &bad_wr);
+  unlock_qp(rank);
+  if (ret == 0) {
+    return errorcode_t::posted;
+  } else if (ret == ENOMEM) {
+    cancel_atomic_operation(rank);
+    release_slot(rank);
+    return errorcode_t::retry_nomem;
+  } else {
+    cancel_atomic_operation(rank);
     release_slot(rank);
     IBV_SAFECALL_RET(ret);
   }
