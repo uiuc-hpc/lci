@@ -58,6 +58,7 @@ void decode_value(char* buf_encoded, size_t nbytes, char* buf_origin)
 device_t device_to_bootstrap;
 int rank_me = -1;
 int rank_n = -1;
+static int g_next_round = 0;
 void initialize()
 {
   LCT_pmi_initialize();
@@ -79,9 +80,40 @@ void finalize()
 
 void set_device(device_t device) { device_to_bootstrap = device; }
 
+void allgather(const void* sendbuf, void* recvbuf, size_t size)
+{
+  int round = g_next_round++;
+
+  if (device_to_bootstrap.is_empty() ||
+      !internal_config::enable_bootstrap_lci) {
+    LCI_Log(LOG_INFO, "bootstrap",
+            "Bootstrap round %d with LCT PMI allgather\n", round);
+    char key[LCT_PMI_STRING_LIMIT];
+    char value[LCT_PMI_STRING_LIMIT];
+    memset(key, 0, LCT_PMI_STRING_LIMIT);
+    memset(value, 0, LCT_PMI_STRING_LIMIT);
+    snprintf(key, LCT_PMI_STRING_LIMIT, "LCI_BOOTSTRAP_%d_%d", round, rank_me);
+    detail::encode_value((char*)sendbuf, size, value);
+    LCT_pmi_publish(key, value);
+    LCT_pmi_barrier();
+    for (int i = 0; i < rank_n; i++) {
+      memset(key, 0, LCT_PMI_STRING_LIMIT);
+      memset(value, 0, LCT_PMI_STRING_LIMIT);
+      snprintf(key, LCT_PMI_STRING_LIMIT, "LCI_BOOTSTRAP_%d_%d", round, i);
+      LCT_pmi_getname(i, key, value);
+      detail::decode_value(value, size, (char*)recvbuf + i * size);
+    }
+  } else {
+    LCI_Log(LOG_INFO, "bootstrap", "Bootstrap round %d with LCI allgather\n",
+            round);
+    allgather_x(sendbuf, recvbuf, size).device(device_to_bootstrap)();
+    wait_drained_x().device(device_to_bootstrap)();
+  }
+  LCI_Log(LOG_INFO, "bootstrap", "Bootstrap round %d done\n", round);
+}
+
 void alltoall(const void* sendbuf, void* recvbuf, size_t size)
 {
-  static int g_next_round = 0;
   int round = g_next_round++;
 
   if (device_to_bootstrap.is_empty() ||

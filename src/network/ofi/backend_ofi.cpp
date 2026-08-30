@@ -303,11 +303,10 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
   data.source_rank = rank;
   data.uid = attr.uid;
   memcpy(data.addr, my_addr, sizeof(my_addr));
-  std::vector<bootstrap_data_t> bootstrap_datav_in(nranks, data);
   std::vector<bootstrap_data_t> bootstrap_datav_out(nranks);
 
-  bootstrap::alltoall(bootstrap_datav_in.data(), bootstrap_datav_out.data(),
-                      sizeof(bootstrap_data_t));
+  bootstrap::allgather(&data, bootstrap_datav_out.data(),
+                       sizeof(bootstrap_data_t));
 
   for (int i = 0; i < nranks; i++) {
     // sprintf(key, "LCI_KEY_%d_%d", attr.uid, i);
