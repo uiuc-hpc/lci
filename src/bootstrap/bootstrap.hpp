@@ -13,6 +13,7 @@ int get_rank_me();
 int get_rank_n();
 void finalize();
 void set_device(device_t device);
+void allgather(const void* sendbuf, void* recvbuf, size_t size);
 void alltoall(const void* sendbuf, void* recvbuf, size_t count);
 }  // namespace bootstrap
 }  // namespace lci
