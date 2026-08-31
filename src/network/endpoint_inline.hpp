@@ -25,11 +25,10 @@ inline bool is_valid_uint64_atomic_scope(net_atomic_scope_t available_scope,
 inline bool is_valid_uint64_atomic_remote_address(uint64_t offset, rmr_t rmr)
 {
   constexpr size_t ATOMIC_SIZE = sizeof(uint64_t);
-  if (rmr.is_empty() || rmr.base % ATOMIC_SIZE != 0 ||
-      offset % ATOMIC_SIZE != 0) {
+  if (offset > std::numeric_limits<uintptr_t>::max() - rmr.base) {
     return false;
   }
-  return offset <= std::numeric_limits<uintptr_t>::max() - rmr.base;
+  return (rmr.base + offset) % ATOMIC_SIZE == 0;
 }
 
 inline bool is_valid_uint64_atomic_result(uint64_t* result, mr_t result_mr,

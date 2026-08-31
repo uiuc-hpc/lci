@@ -70,7 +70,6 @@ inline size_t ofi_device_impl_t::poll_comp_impl(net_status_t* p_statuses,
     } else {
       LCI_Assert(ret_cqerr == 1, "fi_cq_readerr failed: %s\n",
                  fi_strerror(-ret_cqerr));
-      mark_network_failed();
       if (p_statuses) {
         net_status_t& status = p_statuses[0];
         memset(&status, 0, sizeof(status));
