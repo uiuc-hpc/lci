@@ -27,6 +27,17 @@ int parse_env(const char* name)
   return static_cast<int>(parsed);
 }
 
+bool endpoint_readiness_message_received = false;
+
+void endpoint_readiness_handler(lci::status_t status)
+{
+  assert(status.rank == 0);
+  assert(status.size == sizeof(char));
+  assert(static_cast<char*>(status.buffer)[0] == 'r');
+  std::free(status.buffer);
+  endpoint_readiness_message_received = true;
+}
+
 void run_pmi_exchange_test()
 {
   const int env_rank = parse_env("RANK");
@@ -73,6 +84,55 @@ void run_lci_runtime_test()
   lci::g_runtime_fina();
 }
 
+void run_endpoint_readiness_test()
+{
+  const int env_rank = parse_env("RANK");
+  const int env_size = parse_env("WORLD_SIZE");
+  assert(env_size == 2);
+
+  lci::g_runtime_init();
+  assert(lci::get_rank_me() == env_rank);
+  assert(lci::get_rank_n() == env_size);
+  std::puts("LCI_ENDPOINT_READINESS_INIT_COMPLETE");
+  std::fflush(stdout);
+
+  lci::packet_pool_t packet_pool = lci::alloc_packet_pool();
+  lci::device_t device = lci::alloc_device_x().packet_pool(packet_pool)();
+  lci::comp_t handler = lci::alloc_handler(endpoint_readiness_handler);
+  lci::rcomp_t rcomp = lci::register_rcomp(handler);
+  LCT_pmi_barrier();
+
+  if (env_rank == 0) {
+    char payload = 'r';
+    lci::comp_t sync = lci::alloc_sync();
+    lci::status_t status;
+    do {
+      status = lci::post_am_x(1, &payload, sizeof(payload), sync, rcomp)
+                   .device(device)();
+      lci::progress_x().device(device)();
+    } while (status.is_retry());
+    if (status.is_posted()) {
+      while (!lci::sync_test(sync, &status)) {
+        lci::progress_x().device(device)();
+      }
+    }
+    assert(status.is_done());
+    lci::free_comp(&sync);
+  } else {
+    while (!endpoint_readiness_message_received) {
+      lci::progress_x().device(device)();
+    }
+  }
+
+  lci::wait_drained_x().device(device)();
+  LCT_pmi_barrier();
+  lci::deregister_rcomp(rcomp);
+  lci::free_comp(&handler);
+  lci::free_device(&device);
+  lci::free_packet_pool(&packet_pool);
+  lci::g_runtime_fina();
+}
+
 void run_autodetect_fallback_test()
 {
   // RANK/WORLD_SIZE alone must not make the default backend chain select
@@ -96,6 +156,8 @@ int main(int argc, char** argv)
     run_pmi_exchange_test();
   } else if (std::strcmp(mode, "runtime") == 0) {
     run_lci_runtime_test();
+  } else if (std::strcmp(mode, "endpoint-readiness") == 0) {
+    run_endpoint_readiness_test();
   } else if (std::strcmp(mode, "fallback-local") == 0) {
     run_autodetect_fallback_test();
   } else {
