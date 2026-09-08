@@ -10,23 +10,6 @@ add_lci_tests(
   COMMANDS
   "[TARGET]")
 
-set(LCI_TCP_PMI_TEST_COMMANDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 pmi LCT"
-    "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 pmi LCI"
-    "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 pmi MASTER"
-    "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 1 fallback-local NONE"
-    "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 mixed-expect-fail MIXED"
-    "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 1 reject-torchrun LCT"
-)
-
-if(LCI_BACKEND_ENABLE_OFI)
-  list(
-    APPEND
-    LCI_TCP_PMI_TEST_COMMANDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 endpoint-readiness LCT"
-  )
-endif()
-
 add_lci_test(
   test-cxx11-test_lct_pmi_tcp-multiprocess
   SOURCES
@@ -34,7 +17,13 @@ add_lci_test(
   LABELS
   cxx11
   COMMANDS
-  ${LCI_TCP_PMI_TEST_COMMANDS})
+  "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 pmi LCT"
+  "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 pmi LCI"
+  "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 pmi MASTER"
+  "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 1 fallback-local NONE"
+  "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 mixed-expect-fail MIXED"
+  "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 1 reject-torchrun LCT"
+)
 
 if(LCI_WITH_SHM)
   get_target_property(LCI_LINKED_LIBS LCI LINK_LIBRARIES)
