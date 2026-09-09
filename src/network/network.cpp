@@ -225,6 +225,9 @@ endpoint_t alloc_endpoint_x::call_impl(const char* name, void* user_context,
   attr.user_context = user_context;
   auto endpoint = device.p_impl->alloc_endpoint(attr);
   if (!device.get_impl()->packet_pool.is_empty()) {
+    // Synchronize endpoint readiness out of band before validating the new
+    // endpoint with its first fabric operation.
+    LCT_pmi_barrier();
     barrier_x()
         .runtime(endpoint.get_impl()->runtime)
         .device(endpoint.get_impl()->device)
