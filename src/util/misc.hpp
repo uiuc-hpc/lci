@@ -4,6 +4,8 @@
 #ifndef LCI_UTIL_MISC_HPP
 #define LCI_UTIL_MISC_HPP
 
+#include <strings.h>
+
 #define LCIU_CONCAT3(a, b, c) LCIU_CONCAT_INNER3(a, b, c)
 #define LCIU_CONCAT2(a, b) LCIU_CONCAT_INNER2(a, b)
 #define LCIU_CONCAT_INNER3(a, b, c) a##b##c
@@ -13,6 +15,23 @@
 
 namespace lci
 {
+inline bool get_env_or(const char* env, bool default_val)
+{
+  const char* s = getenv(env);
+  if (!s) {
+    return default_val;
+  }
+  if (strcasecmp(s, "on") == 0 || strcasecmp(s, "true") == 0 ||
+      strcasecmp(s, "yes") == 0) {
+    return true;
+  }
+  if (strcasecmp(s, "off") == 0 || strcasecmp(s, "false") == 0 ||
+      strcasecmp(s, "no") == 0) {
+    return false;
+  }
+  return static_cast<bool>(atoi(s));
+}
+
 template <typename T,
           typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
 T get_env_or(const char* env, T default_val)
