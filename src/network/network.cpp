@@ -55,7 +55,8 @@ endpoint_impl_t::endpoint_impl_t(device_t device_, attr_t attr_)
       attr(attr_),
       net_context_attr(device.get_impl()->net_context_attr),
       device_attr(device.get_attr()),
-      pending_ops(0)
+      pending_ops(0),
+      backend_pending_ops(0)
 {
   attr.uid = g_nendpoints++;
   endpoint.p_impl = this;

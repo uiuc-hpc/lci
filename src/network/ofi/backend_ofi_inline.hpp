@@ -437,6 +437,21 @@ inline error_t ofi_endpoint_impl_t::post_get_impl(int rank, void* buffer,
     FI_SAFECALL_RET(ret);
   }
 }
+
+inline error_t ofi_endpoint_impl_t::post_fetch_add_impl(int, uint64_t*, mr_t,
+                                                        uint64_t, uint64_t,
+                                                        rmr_t, void*, bool)
+{
+  LCI_Warn("uint64 network fetch-add is not implemented for the OFI backend\n");
+  return errorcode_t::fatal;
+}
+
+inline error_t ofi_endpoint_impl_t::post_add_impl(int, uint64_t, uint64_t,
+                                                  rmr_t, void*, bool)
+{
+  LCI_Warn("uint64 network add is not implemented for the OFI backend\n");
+  return errorcode_t::fatal;
+}
 }  // namespace lci
 
 #endif  // LCI_BACKEND_OFI_BACKEND_OFI_INLINE_HPP
