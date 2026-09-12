@@ -185,7 +185,10 @@ def generate_global_attr_impl(input):
               static_cast<int>(g_default_attr.{attr_name}));
   }}\n"""
           else:
-            text += f"  g_default_attr.{attr_name} = get_env_or(\"{env_var}\", {attr['default_value']});\n"
+            default_value = attr["default_value"]
+            if type_name == "bool":
+              default_value = f"static_cast<bool>({default_value})"
+            text += f"  g_default_attr.{attr_name} = get_env_or(\"{env_var}\", {default_value});\n"
             if type_name == "std::string":
               text += f"  LCI_Log(LOG_INFO, \"env\", \"set {attr_name} to be %s\\n\", g_default_attr.{attr_name}.c_str());\n"
             elif type_name in ["double", "float"]:
