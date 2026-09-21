@@ -69,22 +69,78 @@ static int ucs_async_poll_tryblock(ucs_async_context_t *async)
     return 1;
 }
 
+static int ucs_async_poll_is_from_async(const ucs_async_context_t *async)
+{
+    (void)async;
+    return 0;
+}
+
+static void ucs_async_poll_context_do_nothing(ucs_async_context_t *async)
+{
+    (void)async;
+}
+
+static ucs_status_t
+ucs_async_poll_add_event_fd(ucs_async_context_t *async, int event_fd,
+                            ucs_event_set_types_t events)
+{
+    (void)async;
+    (void)event_fd;
+    (void)events;
+    return UCS_OK;
+}
+
+static ucs_status_t
+ucs_async_poll_remove_event_fd(ucs_async_context_t *async, int event_fd)
+{
+    (void)async;
+    (void)event_fd;
+    return UCS_OK;
+}
+
+static ucs_status_t
+ucs_async_poll_modify_event_fd(ucs_async_context_t *async, int event_fd,
+                               ucs_event_set_types_t events)
+{
+    (void)async;
+    (void)event_fd;
+    (void)events;
+    return UCS_OK;
+}
+
+static ucs_status_t
+ucs_async_poll_add_timer(ucs_async_context_t *async, int timer_id,
+                         ucs_time_t interval)
+{
+    (void)async;
+    (void)timer_id;
+    (void)interval;
+    return UCS_OK;
+}
+
+static ucs_status_t
+ucs_async_poll_remove_timer(ucs_async_context_t *async, int timer_id)
+{
+    (void)async;
+    (void)timer_id;
+    return UCS_OK;
+}
+
 static ucs_async_ops_t ucs_async_poll_ops = {
     .init               = ucs_empty_function,
     .cleanup            = ucs_empty_function,
-    .is_from_async      =
-            (ucs_async_is_from_async_t)ucs_empty_function_return_zero,
+    .is_from_async      = ucs_async_poll_is_from_async,
     .block              = ucs_empty_function,
     .unblock            = ucs_empty_function,
     .context_init       = ucs_async_poll_init,
-    .context_cleanup    = ucs_empty_function,
+    .context_cleanup    = ucs_async_poll_context_do_nothing,
     .context_try_block  = ucs_async_poll_tryblock,
-    .context_unblock    = ucs_empty_function,
-    .add_event_fd       = (ucs_async_add_event_fd_t)ucs_empty_function_return_success,
-    .remove_event_fd    = ucs_empty_function_return_success,
-    .modify_event_fd    = (ucs_async_modify_event_fd_t)ucs_empty_function_return_success,
-    .add_timer          = ucs_empty_function_return_success,
-    .remove_timer       = ucs_empty_function_return_success,
+    .context_unblock    = ucs_async_poll_context_do_nothing,
+    .add_event_fd       = ucs_async_poll_add_event_fd,
+    .remove_event_fd    = ucs_async_poll_remove_event_fd,
+    .modify_event_fd    = ucs_async_poll_modify_event_fd,
+    .add_timer          = ucs_async_poll_add_timer,
+    .remove_timer       = ucs_async_poll_remove_timer,
 };
 
 static inline khiter_t ucs_async_handler_kh_get(int id)

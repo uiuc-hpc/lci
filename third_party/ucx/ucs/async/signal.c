@@ -616,11 +616,16 @@ static void ucs_async_signal_global_cleanup()
     pthread_mutex_destroy(&ucs_async_signal_global_context.timers_lock);
 }
 
+static int ucs_async_signal_is_from_async(const ucs_async_context_t *async)
+{
+    (void)async;
+    return 0;
+}
+
 ucs_async_ops_t ucs_async_signal_ops = {
     .init               = ucs_async_signal_global_init,
     .cleanup            = ucs_async_signal_global_cleanup,
-    .is_from_async      =
-            (ucs_async_is_from_async_t)ucs_empty_function_return_zero,
+    .is_from_async      = ucs_async_signal_is_from_async,
     .block              = ucs_async_signal_block_all,
     .unblock            = ucs_async_signal_unblock_all,
     .context_init       = ucs_async_signal_init,
@@ -633,4 +638,3 @@ ucs_async_ops_t ucs_async_signal_ops = {
     .add_timer          = ucs_async_signal_add_timer,
     .remove_timer       = ucs_async_signal_remove_timer,
 };
-
