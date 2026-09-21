@@ -86,14 +86,12 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   hints->ep_attr->type = FI_EP_RDM;
   // not available on all clusters that we have access to.
   // hints->ep_attr->protocol = FI_PROTO_CXI_RNR;
-  hints->domain_attr->mr_mode = FI_MR_VIRT_ADDR | FI_MR_ALLOCATED |
-                                FI_MR_PROV_KEY | FI_MR_LOCAL | FI_MR_ENDPOINT;
   hints->domain_attr->threading = FI_THREAD_SAFE;
   hints->domain_attr->control_progress = FI_PROGRESS_MANUAL;
   hints->domain_attr->data_progress = FI_PROGRESS_MANUAL;
   hints->domain_attr->threading = FI_THREAD_SAFE;
-  // Injection is optional. Use the provider's advertised limit below instead
-  // of filtering out providers that do not support it.
+  // LCI adapts to the provider's MR mode and injection limit below, so neither
+  // is a provider-selection requirement.
   hints->caps = FI_RMA | FI_MSG;
 #if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
 #ifndef FI_HMEM
