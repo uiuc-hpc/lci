@@ -269,63 +269,50 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
 
   struct fi_av_attr av_attr;
   memset(&av_attr, 0, sizeof(av_attr));
-  av_attr.type = FI_AV_MAP;
+  av_attr.type = FI_AV_UNSPEC;
   FI_SAFECALL(fi_av_open(ofi_domain, &av_attr, &ofi_av, nullptr));
   FI_SAFECALL(fi_ep_bind(ofi_ep, (fid_t)ofi_av, 0));
   FI_SAFECALL(fi_enable(ofi_ep));
 
   // Now exchange end-point address.
-  // assume the size of the raw address no larger than 128 bits.
-  const int EP_ADDR_LEN = 6;
   size_t addrlen = 0;
   fi_getname((fid_t)ofi_ep, nullptr, &addrlen);
   LCI_Log(LOG_INFO, "ofi", "addrlen = %lu\n", addrlen);
-  LCI_Assert(addrlen <= 8 * EP_ADDR_LEN, "addrlen = %lu\n", addrlen);
-  uint64_t my_addr[EP_ADDR_LEN];
-  memset(my_addr, 0, sizeof(my_addr));
-  FI_SAFECALL(fi_getname((fid_t)ofi_ep, my_addr, &addrlen));
 
   int rank = get_rank_me();
   int nranks = get_rank_n();
   peer_addrs.resize(nranks);
-  // char key[LCT_PMI_STRING_LIMIT + 1];
-  // sprintf(key, "LCI_KEY_%d_%d", attr.uid, rank);
-  // char value[LCT_PMI_STRING_LIMIT + 1];
-  // const char* PARSE_STRING = "%016lx-%016lx-%016lx-%016lx-%016lx-%016lx";
-  // sprintf(value, PARSE_STRING, my_addr[0], my_addr[1], my_addr[2],
-  // my_addr[3], my_addr[4], my_addr[5]);
-  // LCT_pmi_publish(key, value);
-  // LCT_pmi_barrier();
-  struct bootstrap_data_t {
+  struct bootstrap_metadata_t {
     int source_rank;
     int uid;
-    uint64_t addr[EP_ADDR_LEN];
+    size_t addrlen;
   };
-  bootstrap_data_t data = {};
-  data.source_rank = rank;
-  data.uid = attr.uid;
-  memcpy(data.addr, my_addr, sizeof(my_addr));
-  std::vector<bootstrap_data_t> bootstrap_datav_out(nranks);
+  bootstrap_metadata_t metadata = {};
+  metadata.source_rank = rank;
+  metadata.uid = attr.uid;
+  metadata.addrlen = addrlen;
+  std::vector<bootstrap_metadata_t> all_metadata(nranks);
+  bootstrap::allgather(&metadata, all_metadata.data(), sizeof(metadata));
 
-  bootstrap::allgather(&data, bootstrap_datav_out.data(),
-                       sizeof(bootstrap_data_t));
+  size_t max_addrlen = 0;
+  for (int i = 0; i < nranks; i++) {
+    LCI_Assert(all_metadata[i].source_rank == i,
+               "Unexpected source rank %d, expected %d\n",
+               all_metadata[i].source_rank, i);
+    LCI_Assert(all_metadata[i].uid == attr.uid,
+               "Unexpected uid %d, expected %d\n", all_metadata[i].uid,
+               attr.uid);
+    max_addrlen = std::max(max_addrlen, all_metadata[i].addrlen);
+  }
+
+  std::vector<char> my_addr(max_addrlen, 0);
+  FI_SAFECALL(fi_getname((fid_t)ofi_ep, my_addr.data(), &addrlen));
+  std::vector<char> all_addrs(nranks * max_addrlen);
+  bootstrap::allgather(my_addr.data(), all_addrs.data(), max_addrlen);
 
   for (int i = 0; i < nranks; i++) {
-    // sprintf(key, "LCI_KEY_%d_%d", attr.uid, i);
-    // LCT_pmi_getname(i, key, value);
-    // uint64_t peer_addr[EP_ADDR_LEN];
-
-    // sscanf(value, PARSE_STRING, &peer_addr[0], &peer_addr[1], &peer_addr[2],
-    //  &peer_addr[3], &peer_addr[4], &peer_addr[5]);
-    bootstrap_data_t data = bootstrap_datav_out[i];
-    LCI_Assert(data.source_rank == i,
-               "Unexpected source rank %d, expected %d\n", data.source_rank, i);
-    LCI_Assert(data.uid == attr.uid, "Unexpected uid %d, expected %d\n",
-               data.uid, attr.uid);
-    uint64_t peer_addr[EP_ADDR_LEN];
-    memcpy(peer_addr, data.addr, sizeof(peer_addr));
-    int ret =
-        fi_av_insert(ofi_av, (void*)peer_addr, 1, &peer_addrs[i], 0, nullptr);
+    void* peer_addr = all_addrs.data() + i * max_addrlen;
+    int ret = fi_av_insert(ofi_av, peer_addr, 1, &peer_addrs[i], 0, nullptr);
     LCI_Assert(ret == 1, "fi_av_insert failed! ret = %d\n", ret);
   }
   // LCT_pmi_barrier();

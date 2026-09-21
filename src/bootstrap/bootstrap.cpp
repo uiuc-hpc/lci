@@ -88,20 +88,30 @@ void allgather(const void* sendbuf, void* recvbuf, size_t size)
       !internal_config::enable_bootstrap_lci) {
     LCI_Log(LOG_INFO, "bootstrap",
             "Bootstrap round %d with LCT PMI allgather\n", round);
+    constexpr size_t max_chunk_size = (LCT_PMI_STRING_LIMIT - 1) / 2;
     char key[LCT_PMI_STRING_LIMIT];
     char value[LCT_PMI_STRING_LIMIT];
-    memset(key, 0, LCT_PMI_STRING_LIMIT);
-    memset(value, 0, LCT_PMI_STRING_LIMIT);
-    snprintf(key, LCT_PMI_STRING_LIMIT, "LCI_BOOTSTRAP_%d_%d", round, rank_me);
-    detail::encode_value((char*)sendbuf, size, value);
-    LCT_pmi_publish(key, value);
-    LCT_pmi_barrier();
-    for (int i = 0; i < rank_n; i++) {
+    for (size_t offset = 0; offset < size; offset += max_chunk_size) {
+      size_t chunk_size = std::min(max_chunk_size, size - offset);
       memset(key, 0, LCT_PMI_STRING_LIMIT);
       memset(value, 0, LCT_PMI_STRING_LIMIT);
-      snprintf(key, LCT_PMI_STRING_LIMIT, "LCI_BOOTSTRAP_%d_%d", round, i);
-      LCT_pmi_getname(i, key, value);
-      detail::decode_value(value, size, (char*)recvbuf + i * size);
+      snprintf(key, LCT_PMI_STRING_LIMIT, "LCI_BOOTSTRAP_%d_%zu_%d", round,
+               offset / max_chunk_size, rank_me);
+      detail::encode_value((char*)sendbuf + offset, chunk_size, value);
+      LCT_pmi_publish(key, value);
+    }
+    LCT_pmi_barrier();
+    for (int i = 0; i < rank_n; i++) {
+      for (size_t offset = 0; offset < size; offset += max_chunk_size) {
+        size_t chunk_size = std::min(max_chunk_size, size - offset);
+        memset(key, 0, LCT_PMI_STRING_LIMIT);
+        memset(value, 0, LCT_PMI_STRING_LIMIT);
+        snprintf(key, LCT_PMI_STRING_LIMIT, "LCI_BOOTSTRAP_%d_%zu_%d", round,
+                 offset / max_chunk_size, i);
+        LCT_pmi_getname(i, key, value);
+        detail::decode_value(value, chunk_size,
+                             (char*)recvbuf + i * size + offset);
+      }
     }
   } else {
     LCI_Log(LOG_INFO, "bootstrap", "Bootstrap round %d with LCI allgather\n",
