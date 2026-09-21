@@ -3,11 +3,14 @@
 
 #include "lci.hpp"
 #include "lct.h"
+#include "bootstrap/bootstrap.hpp"
 
 #include <cassert>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <vector>
 
 namespace
 {
@@ -73,6 +76,32 @@ void run_lci_runtime_test()
   lci::g_runtime_fina();
 }
 
+void run_bootstrap_allgather_test()
+{
+  constexpr size_t buffer_size = LCT_PMI_STRING_LIMIT + 1;
+
+  LCT_init();
+  lci::bootstrap::initialize();
+
+  const int rank = lci::bootstrap::get_rank_me();
+  const int size = lci::bootstrap::get_rank_n();
+  std::vector<uint8_t> sendbuf(buffer_size);
+  std::vector<uint8_t> recvbuf(size * buffer_size);
+  for (size_t i = 0; i < buffer_size; i++)
+    sendbuf[i] = static_cast<uint8_t>(rank + i);
+
+  lci::bootstrap::allgather(sendbuf.data(), recvbuf.data(), buffer_size);
+
+  for (int peer = 0; peer < size; peer++) {
+    for (size_t i = 0; i < buffer_size; i++) {
+      assert(recvbuf[peer * buffer_size + i] == static_cast<uint8_t>(peer + i));
+    }
+  }
+
+  lci::bootstrap::finalize();
+  LCT_fina();
+}
+
 void run_autodetect_fallback_test()
 {
   // RANK/WORLD_SIZE alone must not make the default backend chain select
@@ -96,6 +125,8 @@ int main(int argc, char** argv)
     run_pmi_exchange_test();
   } else if (std::strcmp(mode, "runtime") == 0) {
     run_lci_runtime_test();
+  } else if (std::strcmp(mode, "bootstrap") == 0) {
+    run_bootstrap_allgather_test();
   } else if (std::strcmp(mode, "fallback-local") == 0) {
     run_autodetect_fallback_test();
   } else {

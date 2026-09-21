@@ -18,11 +18,14 @@ add_lci_test(
   cxx11
   COMMANDS
   "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 pmi LCT"
+  "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 bootstrap LCT"
   "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 pmi LCI"
   "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 pmi MASTER"
   "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 1 fallback-local NONE"
   "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 mixed-expect-fail MIXED"
   "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 1 reject-torchrun LCT"
+  INCLUDES
+  ${PROJECT_SOURCE_DIR}/src
 )
 
 add_lci_test(

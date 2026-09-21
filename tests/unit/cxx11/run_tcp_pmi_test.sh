@@ -73,7 +73,7 @@ set_endpoint_env() {
 }
 
 case "$mode" in
-  pmi|runtime)
+  pmi|runtime|bootstrap)
     ;;
   fallback-local)
     endpoint_prefix=NONE
