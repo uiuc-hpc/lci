@@ -25,8 +25,7 @@ add_lci_test(
   "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 2 mixed-expect-fail MIXED"
   "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 1 reject-torchrun LCT"
   INCLUDES
-  ${PROJECT_SOURCE_DIR}/src
-)
+  ${PROJECT_SOURCE_DIR}/src)
 
 add_lci_test(
   test-cxx11-test_lct_pmi_file-multiprocess
