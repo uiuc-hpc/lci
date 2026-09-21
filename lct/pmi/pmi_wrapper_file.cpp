@@ -249,7 +249,7 @@ void initialize()
         break;
       }
       if (!wait_reported && std::chrono::steady_clock::now() - wait_start >=
-                                std::chrono::seconds(10)) {
+                                std::chrono::seconds(60)) {
         LCT_Log(LCT_log_ctx_default, LCT_LOG_WARN, "pmi_file",
                 "Still waiting for ranks in directory: %s\n", dirname.c_str());
         wait_reported = true;
@@ -353,7 +353,7 @@ void barrier()
         break;
       }
       if (!wait_reported && std::chrono::steady_clock::now() - wait_start >=
-                                std::chrono::seconds(10)) {
+                                std::chrono::seconds(60)) {
         LCT_Log(LCT_log_ctx_default, LCT_LOG_WARN, "pmi_file",
                 "Still waiting at barrier in directory: %s\n", dirname.c_str());
         wait_reported = true;
