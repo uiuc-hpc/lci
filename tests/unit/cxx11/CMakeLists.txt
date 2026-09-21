@@ -25,6 +25,16 @@ add_lci_test(
   "${CMAKE_CURRENT_SOURCE_DIR}/run_tcp_pmi_test.sh [TARGET] 1 reject-torchrun LCT"
 )
 
+add_lci_test(
+  test-cxx11-test_lct_pmi_file-multiprocess
+  SOURCES
+  test_lct_pmi_file.cpp
+  LABELS
+  cxx11
+  COMMANDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/run_file_pmi_test.sh ${PROJECT_SOURCE_DIR}/lcrun [TARGET]"
+)
+
 if(LCI_WITH_SHM)
   get_target_property(LCI_LINKED_LIBS LCI LINK_LIBRARIES)
   add_lci_test(
