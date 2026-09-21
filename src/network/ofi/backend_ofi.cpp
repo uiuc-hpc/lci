@@ -267,7 +267,7 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
 
   struct fi_av_attr av_attr;
   memset(&av_attr, 0, sizeof(av_attr));
-  av_attr.type = FI_AV_MAP;
+  av_attr.type = FI_AV_UNSPEC;
   FI_SAFECALL(fi_av_open(ofi_domain, &av_attr, &ofi_av, nullptr));
   FI_SAFECALL(fi_ep_bind(ofi_ep, (fid_t)ofi_av, 0));
   FI_SAFECALL(fi_enable(ofi_ep));
