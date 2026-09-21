@@ -92,7 +92,8 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   hints->domain_attr->control_progress = FI_PROGRESS_MANUAL;
   hints->domain_attr->data_progress = FI_PROGRESS_MANUAL;
   hints->domain_attr->threading = FI_THREAD_SAFE;
-  hints->tx_attr->inject_size = attr.max_inject_size;
+  // Injection is optional. Use the provider's advertised limit below instead
+  // of filtering out providers that do not support it.
   hints->caps = FI_RMA | FI_MSG;
 #if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
 #ifndef FI_HMEM
