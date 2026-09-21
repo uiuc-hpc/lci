@@ -326,6 +326,55 @@ void run_active_message()
   lci::free_comp(&lcq);
 }
 
+void run_registered_host_active_message()
+{
+  const int rank = lci::get_rank_me();
+  const int nranks = lci::get_rank_n();
+  assert(nranks >= 2);
+  constexpr int sender = 0;
+  constexpr int receiver = 1;
+  const size_t msg_size = 16;
+  const lci::tag_t tag = 3500;
+  lci::comp_t lcq = lci::alloc_cq();
+  lci::comp_t rcq = lci::alloc_cq();
+  lci::rcomp_t rcomp = lci::register_rcomp(rcq);
+  bootstrap_barrier();
+  std::vector<char> send_buffer(msg_size);
+  fill_pattern(send_buffer, sender, receiver);
+
+  if (rank == sender) {
+    lci::mr_t mr = lci::register_memory(send_buffer.data(), send_buffer.size());
+    lci::status_t send_status = retry_until([&] {
+      return lci::post_am_x(receiver, send_buffer.data(), msg_size, lcq, rcomp)
+          .tag(tag)
+          .mr(mr)
+          .comp_semantic(lci::comp_semantic_t::network)
+          .allow_retry(false)();
+    });
+    // A registered buffer with network completion selects eager_zcopy. SHM
+    // copies it synchronously, while the network fallback returns posted.
+    assert(send_status.is_done());
+    lci::deregister_memory(&mr);
+  }
+  if (rank == receiver) {
+    lci::status_t recv_status = cq_pop_until(rcq);
+    assert(recv_status.rank == sender);
+    assert(recv_status.size == msg_size);
+    const char* payload = static_cast<const char*>(recv_status.buffer);
+    for (size_t i = 0; i < msg_size; ++i) {
+      assert(payload[i] ==
+             static_cast<char>('A' + ((sender + receiver + i) % 26)));
+    }
+    std::free(recv_status.buffer);
+  }
+  bootstrap_barrier();
+  assert(shm_enabled());
+
+  lci::deregister_rcomp(rcomp);
+  lci::free_comp(&rcq);
+  lci::free_comp(&lcq);
+}
+
 void run_ring_full_fallback()
 {
   const int rank = lci::get_rank_me();
@@ -519,6 +568,7 @@ void run_enabled_suite()
   run_posted_alltoall(lci::comp_semantic_t::network);
   run_unexpected_pair();
   run_active_message();
+  run_registered_host_active_message();
 }
 
 void run_disabled_mode()
