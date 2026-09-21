@@ -413,7 +413,8 @@ error_t post_network_op(const post_comm_args_t& args,
       state.protocol == protocol_t::eager_bcopy ||
       (state.protocol == protocol_t::eager_zcopy &&
        !mr_may_be_device_memory(args.mr));
-  if (traits.local_buffer_only && shm_eligible_protocol) {
+  if (args.direction == direction_t::OUT && traits.local_buffer_only &&
+      shm_eligible_protocol) {
     const bool uses_packet = state.protocol == protocol_t::eager_bcopy;
     const void* buffer =
         uses_packet ? state.packet->get_payload_address() : args.local_buffer;
