@@ -11,32 +11,68 @@ executable=$3
 # Use LCT PMI File to bootstrap
 export LCT_PMI_BACKEND=file,local
 export LCT_PMI_FILE_NRANKS=${nprocs}
+export LCT_PMI_FILE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/lct-pmi-file.XXXXXX")
 
 pids=()
+completed=()
 
 clean_up() {
   echo "Cleaning up"
-  children=$(jobs -p)
-  echo "Killing all children ${children}"
-  if [ -n "${children}" ]; then
-    kill ${children}
-  fi
+  echo "Killing all children ${pids[*]}"
+  for pid in "${pids[@]}"; do
+    kill "${pid}" 2>/dev/null || true
+  done
+}
+
+remove_rendezvous_dir() {
+  rm -rf "${LCT_PMI_FILE_DIR}"
 }
 
 # Kill all children on interrupt or error
 trap clean_up INT TERM
+trap remove_rendezvous_dir EXIT
 
 # launch the command nprocs times nonblockingly
 shift 2
 for i in $(seq 1 ${nprocs}); do
   "$@" &
   pids+=($!)
+  completed+=(0)
 done
 
-# Wait for all and capture exit codes
+# Poll the jobs so a failure from any child terminates its peers promptly. This
+# avoids wait -n, which is unavailable in the Bash shipped with older macOS.
 exit_code=0
-for pid in "${pids[@]}"; do
-  wait "$pid" || exit_code=$?
+remaining=${#pids[@]}
+while [ "${remaining}" -gt 0 ]; do
+  jobs -pr >"${LCT_PMI_FILE_DIR}/running-pids"
+  running_pids=" $(tr '\n' ' ' <"${LCT_PMI_FILE_DIR}/running-pids")"
+  for i in "${!pids[@]}"; do
+    if [ "${completed[$i]}" -eq 1 ]; then
+      continue
+    fi
+    pid=${pids[$i]}
+    if [[ " ${running_pids}" == *" ${pid} "* ]]; then
+      continue
+    fi
+
+    status=0
+    wait "${pid}" || status=$?
+    completed[$i]=1
+    remaining=$((remaining - 1))
+    if [ "${status}" -ne 0 ]; then
+      exit_code=${status}
+      clean_up
+      for other_pid in "${pids[@]}"; do
+        wait "${other_pid}" 2>/dev/null || true
+      done
+      remaining=0
+      break
+    fi
+  done
+  if [ "${remaining}" -gt 0 ]; then
+    sleep 0.1
+  fi
 done
 
 exit $exit_code

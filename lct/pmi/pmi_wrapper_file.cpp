@@ -86,6 +86,15 @@ void ensure_path_exists(const std::string& path)
 
 std::string get_dirname()
 {
+  const char* dirname_str = getenv("LCT_PMI_FILE_DIR");
+  if (dirname_str && dirname_str[0] != '\0') {
+    std::string dirname = dirname_str;
+    if (dirname.back() != '/') {
+      dirname += '/';
+    }
+    return dirname;
+  }
+
   // By default, we use ~/.tmp/lct_pmi_file-<jobid> as the directory name.
   uint64_t jobid = 0;
   const char* jobid_str = getenv("SLURM_JOBID");
@@ -191,6 +200,8 @@ void initialize()
 
   // Get nranks
   std::string filename_nranks = dirname + "nranks";
+  std::string filename_barrier = dirname + "barrier";
+  std::string filename_data = dirname + "data";
   int fd_nranks = open(filename_nranks.c_str(), O_CREAT | O_RDWR, 0644);
   LCT_Assert(LCT_log_ctx_default, fd_nranks != -1, "Error opening file: %s",
              filename_nranks.c_str());
@@ -204,7 +215,6 @@ void initialize()
     g_rank = std::stoi(content);
     detail::reset_file(fd_nranks, std::to_string(g_rank + 1));
   }
-  detail::unlock_file(fd_nranks);
   LCT_Log(LCT_log_ctx_default, LCT_LOG_INFO, "pmi_file",
           "Assigned as rank %d/%d\n", g_rank, g_rank_n);
   LCT_Assert(LCT_log_ctx_default, g_rank < g_rank_n,
@@ -212,8 +222,6 @@ void initialize()
              "the %s and try again\n",
              g_rank, g_rank_n, dirname.c_str());
 
-  std::string filename_barrier = dirname + "barrier";
-  std::string filename_data = dirname + "data";
   if (g_rank == g_rank_n - 1) {
     // Create the barrier file
     int fd = open(filename_barrier.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0644);
@@ -228,12 +236,23 @@ void initialize()
     close(fd);
     // reset the nranks file to 0
     detail::reset_file(fd_nranks, "0");
-  } else {
+  }
+  detail::unlock_file(fd_nranks);
+
+  if (g_rank != g_rank_n - 1) {
     // Wait for the nranks to be reset to 0
+    auto wait_start = std::chrono::steady_clock::now();
+    bool wait_reported = false;
     while (true) {
       auto content = detail::read_file(fd_nranks, true);
       if (content == "0") {
         break;
+      }
+      if (!wait_reported && std::chrono::steady_clock::now() - wait_start >=
+                                std::chrono::seconds(10)) {
+        LCT_Log(LCT_log_ctx_default, LCT_LOG_WARN, "pmi_file",
+                "Still waiting for ranks in directory: %s\n", dirname.c_str());
+        wait_reported = true;
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
@@ -320,6 +339,8 @@ void barrier()
     // wait for the tag to change
     int sleep_time = 100;
     int max_sleep_time = 1000;
+    auto wait_start = std::chrono::steady_clock::now();
+    bool wait_reported = false;
     while (true) {
       detail::lock_file(fd);
       auto content = detail::read_file(fd, true);
@@ -330,6 +351,12 @@ void barrier()
       detail::unlock_file(fd);
       if (new_tag != tag) {
         break;
+      }
+      if (!wait_reported && std::chrono::steady_clock::now() - wait_start >=
+                                std::chrono::seconds(10)) {
+        LCT_Log(LCT_log_ctx_default, LCT_LOG_WARN, "pmi_file",
+                "Still waiting at barrier in directory: %s\n", dirname.c_str());
+        wait_reported = true;
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(sleep_time));
       sleep_time = std::min(sleep_time * 2, max_sleep_time);
