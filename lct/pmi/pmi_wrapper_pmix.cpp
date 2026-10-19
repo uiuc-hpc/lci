@@ -90,6 +90,11 @@ void barrier()
 
 void finalize() { PMIX_SAFECALL(PMIx_Finalize(nullptr, 0)); }
 
+void abort_all(int exit_code, const char* msg)
+{
+  PMIx_Abort(exit_code, msg, nullptr, 0);
+}
+
 }  // namespace pmix
 
 void pmix_setup_ops(struct ops_t* ops)
@@ -103,6 +108,7 @@ void pmix_setup_ops(struct ops_t* ops)
   ops->getname = pmix::getname;
   ops->barrier = pmix::barrier;
   ops->finalize = pmix::finalize;
+  ops->abort_all = pmix::abort_all;
 }
 }  // namespace pmi
 }  // namespace lct

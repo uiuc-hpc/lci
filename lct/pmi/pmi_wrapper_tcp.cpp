@@ -1119,6 +1119,12 @@ void finalize()
   reset_runtime_state();
 }
 
+void abort_all(int exit_code, const char* msg)
+{
+  (void)exit_code;
+  (void)msg;
+}
+
 }  // namespace tcp
 
 void tcp_setup_ops(struct ops_t* ops)
@@ -1132,6 +1138,7 @@ void tcp_setup_ops(struct ops_t* ops)
   ops->getname = tcp::getname;
   ops->barrier = tcp::barrier;
   ops->finalize = tcp::finalize;
+  ops->abort_all = tcp::abort_all;
 }
 
 }  // namespace pmi

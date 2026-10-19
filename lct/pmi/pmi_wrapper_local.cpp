@@ -59,6 +59,12 @@ void finalize()
   is_initialized = 0;
 }
 
+void abort_all(int exit_code, const char* msg)
+{
+  (void)exit_code;
+  (void)msg;
+}
+
 }  // namespace local
 
 void local_setup_ops(struct ops_t* ops)
@@ -72,6 +78,7 @@ void local_setup_ops(struct ops_t* ops)
   ops->getname = local::getname;
   ops->barrier = local::barrier;
   ops->finalize = local::finalize;
+  ops->abort_all = local::abort_all;
 }
 }  // namespace pmi
 }  // namespace lct

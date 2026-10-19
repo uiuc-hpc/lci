@@ -189,6 +189,11 @@ LCT_API void LCT_pmi_publish(char* key, char* value);
 LCT_API void LCT_pmi_getname(int rank, char* key, char* value);
 LCT_API void LCT_pmi_barrier();
 LCT_API void LCT_pmi_finalize();
+// Ask the process manager to end every process of the job (PMI_Abort,
+// PMI2_Abort, PMIx_Abort, MPI_Abort). Backends without a process manager
+// (file, local, tcp) do nothing; the caller still ends its own process.
+#define LCT_PMI_HAS_ABORT 1
+LCT_API void LCT_pmi_abort(int exit_code, const char* msg);
 
 // Args Parsing
 typedef void* LCT_args_parser_t;

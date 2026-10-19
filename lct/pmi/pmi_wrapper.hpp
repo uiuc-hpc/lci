@@ -16,6 +16,7 @@ struct ops_t {
   void (*getname)(int rank, char* key, char* value);
   void (*barrier)();
   void (*finalize)();
+  void (*abort_all)(int exit_code, const char* msg);
 };
 
 void local_setup_ops(struct ops_t* ops);
