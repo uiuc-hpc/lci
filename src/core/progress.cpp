@@ -274,6 +274,10 @@ void process_completion_batch(runtime_t runtime, device_t device,
       progress_remote_write(runtime, status);
     } else if (status.opcode == net_opcode_t::READ) {
       progress_read(status);
+    } else if (status.opcode == net_opcode_t::FETCH_ADD) {
+      // Fetch-add is currently a raw network API. Its result and user context
+      // belong to the caller of net_poll_cq(), while the IBV backend has
+      // already retired its discard storage and pending-operation accounting.
     }
   }
   if (has_failure) {

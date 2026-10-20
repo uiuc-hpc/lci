@@ -29,6 +29,36 @@ const char* mtu_str(enum ibv_mtu mtu)
       return "invalid MTU";
   }
 }
+
+net_atomic_scope_t get_atomic_scope(enum ibv_atomic_cap atomic_cap)
+{
+  switch (atomic_cap) {
+    case IBV_ATOMIC_NONE:
+      return net_atomic_scope_t::NONE;
+    case IBV_ATOMIC_HCA:
+      return net_atomic_scope_t::HCA;
+    case IBV_ATOMIC_GLOB:
+      return net_atomic_scope_t::GLOBAL;
+    default:
+      LCI_Warn("Unknown IBV atomic capability %d; disabling uint64 fetch-add\n",
+               static_cast<int>(atomic_cap));
+      return net_atomic_scope_t::NONE;
+  }
+}
+
+const char* atomic_scope_str(net_atomic_scope_t scope)
+{
+  switch (scope) {
+    case net_atomic_scope_t::NONE:
+      return "NONE";
+    case net_atomic_scope_t::HCA:
+      return "HCA";
+    case net_atomic_scope_t::GLOBAL:
+      return "GLOBAL";
+    default:
+      return "invalid";
+  }
+}
 }  // namespace
 
 //
@@ -71,25 +101,47 @@ ibv_net_context_impl_t::ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   // query device attribute
   int rc = ibv_query_device(ib_context, &ib_dev_attr);
   LCI_Assert(rc == 0, "Unable to query device\n");
+  attr.atomic_scope = get_atomic_scope(ib_dev_attr.atomic_cap);
+  if (attr.atomic_scope == net_atomic_scope_t::NONE) {
+    LCI_Log(LOG_INFO, "ibv",
+            "The selected device does not support uint64 fetch-add\n");
+  } else {
+    LCI_Log(LOG_INFO, "ibv",
+            "The selected device reports %s uint64 atomic "
+            "scope\n",
+            atomic_scope_str(attr.atomic_scope));
+  }
 
   rc = ibv_query_device_ex(ib_context, nullptr, &ib_dev_attrx);
   LCI_Assert(rc == 0, "Unable to query device for its extended features\n");
 
   // configure on-demand paging
   ib_odp_mr = nullptr;
+  const uint32_t rc_odp_caps =
+      ib_dev_attrx.odp_caps.per_transport_caps.rc_odp_caps;
+  if (attr.atomic_scope != net_atomic_scope_t::NONE &&
+      attr.ibv_odp_strategy != attr_ibv_odp_strategy_t::none &&
+      !(rc_odp_caps & IBV_ODP_SUPPORT_ATOMIC)) {
+    LCI_Warn(
+        "The selected device does not support ODP atomic operations; "
+        "disabling uint64 fetch-add for this ODP configuration\n");
+    attr.atomic_scope = net_atomic_scope_t::NONE;
+  }
   if (attr.ibv_odp_strategy == attr_ibv_odp_strategy_t::implicit_odp) {
     const uint32_t rc_caps_mask = IBV_ODP_SUPPORT_SEND | IBV_ODP_SUPPORT_RECV |
                                   IBV_ODP_SUPPORT_WRITE | IBV_ODP_SUPPORT_READ |
                                   IBV_ODP_SUPPORT_SRQ_RECV;
     LCI_Assert((ib_dev_attrx.odp_caps.general_caps & IBV_ODP_SUPPORT) &&
-                   ((ib_dev_attrx.odp_caps.per_transport_caps.rc_odp_caps &
-                     rc_caps_mask) == rc_caps_mask),
+                   ((rc_odp_caps & rc_caps_mask) == rc_caps_mask),
                "The device isn't ODP capable\n");
     LCI_Assert(ib_dev_attrx.odp_caps.general_caps & IBV_ODP_SUPPORT_IMPLICIT,
                "The device doesn't support implicit ODP\n");
-    ib_odp_mr = ibv_reg_mr(ib_pd, nullptr, SIZE_MAX,
-                           IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ |
-                               IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_ON_DEMAND);
+    int odp_mr_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ |
+                       IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_ON_DEMAND;
+    if (attr.atomic_scope != net_atomic_scope_t::NONE) {
+      odp_mr_flags |= IBV_ACCESS_REMOTE_ATOMIC;
+    }
+    ib_odp_mr = ibv_reg_mr(ib_pd, nullptr, SIZE_MAX, odp_mr_flags);
     LCI_Assert(ib_odp_mr, "Couldn't register MR for ODP\n");
   }
 
@@ -273,6 +325,9 @@ mr_t ibv_device_impl_t::register_memory_impl(void* buffer, size_t size)
       mr_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ |
                  IBV_ACCESS_REMOTE_WRITE;
     }
+    if (net_context_attr.atomic_scope != net_atomic_scope_t::NONE) {
+      mr_flags |= IBV_ACCESS_REMOTE_ATOMIC;
+    }
 #if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
     mr->acc_attr = accelerator::get_buffer_attr(buffer);
     mr->dmabuf_fd = -1;
@@ -386,6 +441,33 @@ ibv_endpoint_impl_t::ibv_endpoint_impl_t(device_t device_, attr_t attr_)
     slot.val.store(static_cast<int>(device_attr.net_max_sends),
                    std::memory_order_relaxed);
   }
+  if (net_context_attr.atomic_scope != net_atomic_scope_t::NONE) {
+    const size_t nranks = static_cast<size_t>(get_rank_n());
+    const size_t slots_per_rank = device_attr.net_max_sends;
+    LCI_Assert(slots_per_rank > 0,
+               "uint64 fetch-add requires at least one send slot\n");
+    LCI_Assert(
+        nranks <= std::numeric_limits<size_t>::max() / slots_per_rank,
+        "Too many ranks/send slots for uint64 fetch-add discard storage\n");
+    const size_t nslots = nranks * slots_per_rank;
+    LCI_Assert(nslots <= std::numeric_limits<size_t>::max() / sizeof(uint64_t),
+               "uint64 fetch-add discard storage size overflow\n");
+    atomic_discard_buffers.resize(nslots);
+    atomic_discard_mr = p_ibv_device->register_memory_impl(
+        atomic_discard_buffers.data(), nslots * sizeof(uint64_t));
+    // Discard storage belongs to this endpoint and must bypass the registration
+    // cache so its backing vector can be released with the endpoint.
+    atomic_discard_mr.p_impl->device = device;
+    atomic_discard_mr.p_impl->address = atomic_discard_buffers.data();
+    atomic_discard_mr.p_impl->size = nslots * sizeof(uint64_t);
+    atomic_discard_mr.p_impl->mr_base = atomic_discard_buffers.data();
+    atomic_trackers.reserve(nranks);
+    for (size_t rank = 0; rank < nranks; ++rank) {
+      auto tracker = std::make_unique<ibv_atomic_tracker_t>();
+      tracker->initialize(slots_per_rank, rank * slots_per_rank);
+      atomic_trackers.emplace_back(std::move(tracker));
+    }
+  }
 
   if (device_attr.ibv_td_strategy == attr_ibv_td_strategy_t::per_qp) {
     ib_qp_extras.resize(get_rank_n());
@@ -458,7 +540,7 @@ ibv_endpoint_impl_t::ibv_endpoint_impl_t(device_t device_, attr_t attr_)
               qp_attr.cap.max_inline_data, net_context_attr.max_inject_size);
     }
   }
-  p_ibv_device->qp2rank_map.add_qps(ib_qps, &qp_remaining_slots);
+  p_ibv_device->qp2rank_map.add_qps(ib_qps, &qp_remaining_slots, this);
 
   // Modify QP states to INIT
   struct bootstrap_data_t {
@@ -476,6 +558,9 @@ ibv_endpoint_impl_t::ibv_endpoint_impl_t(device_t device_, attr_t attr_)
     mod_attr.qp_state = IBV_QPS_INIT;
     mod_attr.qp_access_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ |
                                IBV_ACCESS_REMOTE_WRITE;
+    if (net_context_attr.atomic_scope != net_atomic_scope_t::NONE) {
+      mod_attr.qp_access_flags |= IBV_ACCESS_REMOTE_ATOMIC;
+    }
     mod_attr.pkey_index = 0;
     mod_attr.port_num = p_net_context->ib_dev_port;
 
@@ -562,6 +647,15 @@ ibv_endpoint_impl_t::ibv_endpoint_impl_t(device_t device_, attr_t attr_)
 
 ibv_endpoint_impl_t::~ibv_endpoint_impl_t()
 {
+  if (p_ibv_device->has_network_failed()) {
+    abort_atomic_operations();
+  } else {
+    for (auto& tracker : atomic_trackers) {
+      LCI_Assert(tracker->empty(),
+                 "Destroying endpoint with outstanding uint64 fetch-add "
+                 "operations\n");
+    }
+  }
   p_ibv_device->qp2rank_map.remove_qps(ib_qps);
   for (auto* qp : ib_qps) {
     if (qp != nullptr) {
@@ -577,6 +671,10 @@ ibv_endpoint_impl_t::~ibv_endpoint_impl_t()
         --g_td_num;
       }
     }
+  }
+  if (!atomic_discard_mr.is_empty()) {
+    p_ibv_device->deregister_memory_impl(atomic_discard_mr.p_impl);
+    atomic_discard_mr.p_impl = nullptr;
   }
 }
 
