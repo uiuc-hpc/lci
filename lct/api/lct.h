@@ -189,6 +189,8 @@ LCT_API void LCT_pmi_publish(char* key, char* value);
 LCT_API void LCT_pmi_getname(int rank, char* key, char* value);
 LCT_API void LCT_pmi_barrier();
 LCT_API void LCT_pmi_finalize();
+#define LCT_PMI_HAS_ABORT 1
+LCT_API void LCT_pmi_abort(int exit_code, const char* msg);
 
 // Args Parsing
 typedef void* LCT_args_parser_t;

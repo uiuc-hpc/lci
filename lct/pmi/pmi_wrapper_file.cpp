@@ -373,6 +373,12 @@ void finalize()
   return;
 }
 
+void abort_all(int exit_code, const char* msg)
+{
+  (void)exit_code;
+  (void)msg;
+}
+
 }  // namespace file_e
 
 void file_setup_ops(struct ops_t* ops)
@@ -386,6 +392,7 @@ void file_setup_ops(struct ops_t* ops)
   ops->getname = file_e::getname;
   ops->barrier = file_e::barrier;
   ops->finalize = file_e::finalize;
+  ops->abort_all = file_e::abort_all;
 }
 }  // namespace pmi
 }  // namespace lct

@@ -117,6 +117,12 @@ void finalize()
   is_initialized = 0;
 }
 
+void abort_all(int exit_code, const char* msg)
+{
+  (void)msg;
+  MPI_Abort(MPI_COMM_WORLD, exit_code);
+}
+
 }  // namespace mpi
 
 void mpi_setup_ops(struct ops_t* ops)
@@ -130,6 +136,7 @@ void mpi_setup_ops(struct ops_t* ops)
   ops->getname = mpi::getname;
   ops->barrier = mpi::barrier;
   ops->finalize = mpi::finalize;
+  ops->abort_all = mpi::abort_all;
 }
 }  // namespace pmi
 }  // namespace lct

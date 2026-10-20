@@ -62,6 +62,8 @@ void barrier() { PMI_Barrier(); }
 
 void finalize() { PMI_Finalize(); }
 
+void abort_all(int exit_code, const char* msg) { PMI_Abort(exit_code, msg); }
+
 }  // namespace pmi1
 
 void pmi1_setup_ops(struct ops_t* ops)
@@ -75,6 +77,7 @@ void pmi1_setup_ops(struct ops_t* ops)
   ops->getname = pmi1::getname;
   ops->barrier = pmi1::barrier;
   ops->finalize = pmi1::finalize;
+  ops->abort_all = pmi1::abort_all;
 }
 }  // namespace pmi
 }  // namespace lct
