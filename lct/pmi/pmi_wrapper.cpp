@@ -130,8 +130,10 @@ void LCT_pmi_finalize()
 
 void LCT_pmi_abort(int exit_code, const char* msg)
 {
-  if (lcti_pmi_init_count > 0 && lcti_pmi_ops.abort_all != nullptr) {
-    LCT_Log(LCT_log_ctx_default, LCT_LOG_DEBUG, "pmi", "abort: %s\n", msg);
+  // Print the message ourselves: some backends (e.g. MPI_Abort) drop it.
+  fprintf(stderr, "LCT_pmi_abort(exit_code=%d): %s\n", exit_code,
+          msg ? msg : "(no message)");
+  fflush(stderr);
+  if (lcti_pmi_init_count > 0 && lcti_pmi_ops.abort_all != nullptr)
     lcti_pmi_ops.abort_all(exit_code, msg);
-  }
 }
