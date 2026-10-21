@@ -197,23 +197,25 @@ class Lci(CMakePackage):
         if not self.spec.satisfies("packet-size=auto"):
             args.append(self.define_from_variant("LCI_PACKET_SIZE_DEFAULT", "packet-size"))
 
+        # LCI 2 renamed these CMake cache variables.
+        if self.spec.satisfies("@1"):
+            npackets_var = "LCI_SERVER_NUM_PKTS_DEFAULT"
+            fabric_var_prefix = "LCI_SERVER_MAX_"
+        else:
+            npackets_var = "LCI_PACKET_NUM_DEFAULT"
+            fabric_var_prefix = "LCI_BACKEND_MAX_"
+
         if not self.spec.satisfies("npackets=auto"):
-            args.append(self.define_from_variant("LCI_SERVER_NUM_PKTS_DEFAULT", "npackets"))
+            args.append(self.define_from_variant(npackets_var, "npackets"))
 
-        if not self.spec.satisfies("fabric-nsends-max=auto"):
-            args.append(
-                self.define_from_variant("LCI_SERVER_MAX_SENDS_DEFAULT", "fabric-nsends-max")
-            )
-
-        if not self.spec.satisfies("fabric-nrecvs-max=auto"):
-            args.append(
-                self.define_from_variant("LCI_SERVER_MAX_RECVS_DEFAULT", "fabric-nrecvs-max")
-            )
-
-        if not self.spec.satisfies("fabric-ncqes-max=auto"):
-            args.append(
-                self.define_from_variant("LCI_SERVER_MAX_CQES_DEFAULT", "fabric-ncqes-max")
-            )
+        for kind in ("sends", "recvs", "cqes"):
+            variant_name = f"fabric-n{kind}-max"
+            if not self.spec.satisfies(f"{variant_name}=auto"):
+                args.append(
+                    self.define_from_variant(
+                        f"{fabric_var_prefix}{kind.upper()}_DEFAULT", variant_name
+                    )
+                )
 
         if self.spec.satisfies("@1"):
             args += [
