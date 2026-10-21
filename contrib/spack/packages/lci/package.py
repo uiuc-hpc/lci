@@ -141,6 +141,8 @@ class Lci(CMakePackage):
     depends_on("gperftools", when="+tcmalloc")
     depends_on("python@3.8:", type="build", when="@2:")
 
+    conflicts("fabric=ucx", when="@2:", msg="LCI 2 does not implement a UCX backend")
+
     def cmake_args(self):
         if not self.spec.satisfies("default-pm=auto"):
             warnings.warn("The 'default-pm' variant is deprecated, use 'bootstrap' instead.",

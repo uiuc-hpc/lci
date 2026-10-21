@@ -458,13 +458,22 @@ endif()
 # ##############################################################################
 option(LCI_FETCHCONTENT_INSTALL "Install LCI when using FetchContent" ON)
 if(LCI_ROOT_PROJECT OR LCI_FETCHCONTENT_INSTALL)
-  set(PKGCONFIG_REQUIRES_PRIVATE ${Fabric_${FABRIC}_PC_Requires})
-  set(PKGCONFIG_LIBS_PRIVATE ${Fabric_${FABRIC}_PC_Libs})
+  set(PKGCONFIG_REQUIRES_PRIVATE "")
+  set(PKGCONFIG_LIBS_PRIVATE "")
+  foreach(BACKEND ${LCI_NETWORK_BACKENDS_ENABLED})
+    list(APPEND PKGCONFIG_REQUIRES_PRIVATE ${Fabric_${BACKEND}_PC_Requires})
+    list(APPEND PKGCONFIG_LIBS_PRIVATE ${Fabric_${BACKEND}_PC_Libs})
+  endforeach()
+  if(TARGET lci-ucx)
+    list(APPEND PKGCONFIG_LIBS_PRIVATE -llci-ucx)
+  endif()
+  list(JOIN PKGCONFIG_REQUIRES_PRIVATE ", " PKGCONFIG_REQUIRES_PRIVATE)
+  list(JOIN PKGCONFIG_LIBS_PRIVATE " " PKGCONFIG_LIBS_PRIVATE)
   configure_file(liblci.pc.in liblci.pc @ONLY)
 
   write_basic_package_version_file(
     "${CMAKE_CURRENT_BINARY_DIR}/LCIConfigVersion.cmake"
-    COMPATIBILITY ExactVersion)
+    COMPATIBILITY SameMajorVersion)
   configure_package_config_file(
     LCIConfig.cmake.in LCIConfig.cmake
     INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake"
