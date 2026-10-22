@@ -34,6 +34,8 @@ if (NOT TARGET LCI::lct)
           IMPORTED_LOCATION ${LCI_SHARED_LIBRARY}
         )
         target_include_directories(LCI::lci INTERFACE ${LCI_INCLUDE_DIRS})
+        # LCI links LCT publicly; match the build-tree target.
+        target_link_libraries(LCI::lci INTERFACE LCI::lct)
 
         # set(LCI_NETWORK_BACKENDS_ENABLED "@LCI_NETWORK_BACKENDS_ENABLED@")
         # foreach(BACKEND IN LISTS LCI_NETWORK_BACKENDS_ENABLED)

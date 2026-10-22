@@ -25,6 +25,7 @@ From this release on, LCI follows semantic versioning for the public API in
 ### Completion objects
 - `COMP_NULL` (`allow_posted` and `allow_retry` false) and `COMP_NULL_RETRY` (`allow_posted` false) replace `COMP_NULL_EXPECT_DONE` and `COMP_NULL_EXPECT_DONE_OR_RETRY`, which remain as deprecated aliases. Their numeric values changed, so code compiled against beta.1 must be recompiled.
 - A default-constructed `comp_t()` now equals `COMP_NULL`.
+- Inserting `counter` into `attr_comp_type_t` changes the numeric values of `cq`, `handler`, and `graph`. Inserting `auto_select` into `attr_rdv_protocol_t` changes the value of `write`. Code compiled against beta.1 must be recompiled, and stored numeric values must be updated.
 - `sync_wait` calls `progress()` by default (new optional arguments `do_progress` and `device`).
 
 ### Runtime behavior
@@ -43,7 +44,7 @@ From this release on, LCI follows semantic versioning for the public API in
 - Fix the installed `liblci.pc`, which pkg-config previously rejected.
 
 ### LCT
-- The default PMI backend list is `pmix;pmi2;pmi1;mpi;tcp;file;local`. The TCP backend is selected automatically when `RANK`, `WORLD_SIZE`, and `MASTER_ADDR` are set (e.g. under `torchrun`).
+- The default PMI backend list is `pmix;pmi2;pmi1;mpi;tcp;file;local`. The TCP backend is selected automatically when `RANK`, `WORLD_SIZE`, `MASTER_ADDR`, and `MASTER_PORT` are set (e.g. under `torchrun`).
 - `LCT_pmi_initialize`/`LCT_pmi_finalize` are reference-counted.
 - Log lines include an elapsed-time field.
 

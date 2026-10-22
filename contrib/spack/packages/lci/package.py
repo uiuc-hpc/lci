@@ -135,9 +135,14 @@ class Lci(CMakePackage):
     depends_on("rdma-core", when="fabric=ibv")
     depends_on("ucx", when="fabric=ucx")
     depends_on("mpi", when="bootstrap=mpi")
+    # The deprecated variants are translated to `bootstrap` in cmake_args(),
+    # after concretization, so they need their own dependencies.
+    depends_on("mpi", when="enable-pm=mpi")
+    depends_on("mpi", when="default-pm=mpi")
     depends_on("papi", when="+papi")
     depends_on("doxygen", when="+docs")
     depends_on("cray-pmi", when="bootstrap=cray")
+    depends_on("cray-pmi", when="default-pm=cray")
     depends_on("gperftools", when="+tcmalloc")
     depends_on("python@3.8:", type="build", when="@2:")
 
