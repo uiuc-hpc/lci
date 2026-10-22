@@ -95,6 +95,13 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   // Injection is optional. Use the provider's advertised limit below instead
   // of filtering out providers that do not support it.
   hints->caps = FI_RMA | FI_MSG;
+  // LCI can supply per-operation provider contexts (ofi_detail::op_ctx_t).
+  // Without this, providers that need them (native psm2) are hidden or only
+  // reachable through a utility layer.
+  hints->mode = FI_CONTEXT | FI_CONTEXT2;
+  // LCI needs at least the 32-bit immediate in the CQ data. psm2 lists a
+  // variant without CQ data (its 64-bit tag layout) first; skip it.
+  hints->domain_attr->cq_data_size = sizeof(net_imm_data_t);
 #if defined(LCI_USE_CUDA) || defined(LCI_USE_HIP)
 #ifndef FI_HMEM
 #error "The current libfabric version does not have GPU support"
@@ -128,6 +135,26 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   }
   ofi_info = fi_dupinfo(selected_info);
   fi_freeinfo(all_infos);
+  // The CQ data carries the sender's rank in its upper 32 bits. With less
+  // than 8 bytes (psm2 has 4), take the rank from FI_SOURCE instead: ask the
+  // same provider and domain again with FI_SOURCE added.
+  rank_from_src = ofi_info->domain_attr->cq_data_size < sizeof(uint64_t);
+  if (rank_from_src && !(ofi_info->caps & FI_SOURCE)) {
+    free(hints->fabric_attr->prov_name);
+    hints->fabric_attr->prov_name = strdup(ofi_info->fabric_attr->prov_name);
+    free(hints->domain_attr->name);
+    hints->domain_attr->name = strdup(ofi_info->domain_attr->name);
+    hints->caps |= FI_SOURCE;
+    ret = fi_getinfo(FI_VERSION(1, 6), nullptr, nullptr, 0, hints, &all_infos);
+    LCI_Assert(ret == 0,
+               "Provider %s has %lu bytes of CQ data and no FI_SOURCE: %s\n",
+               ofi_info->fabric_attr->prov_name,
+               ofi_info->domain_attr->cq_data_size, fi_strerror(-ret));
+    fi_freeinfo(ofi_info);
+    ofi_info = fi_dupinfo(all_infos);
+    fi_freeinfo(all_infos);
+  }
+  use_op_ctx = (ofi_info->mode & (FI_CONTEXT | FI_CONTEXT2)) != 0;
   LCI_Log(LOG_STATUS, "ofi", "Domain name: %s\n",
           ofi_info->domain_attr && ofi_info->domain_attr->name
               ? ofi_info->domain_attr->name
@@ -151,6 +178,9 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
           fi_tostr(&(ofi_info->caps), FI_TYPE_CAPS));
   LCI_Log(LOG_INFO, "ofi", "Mode: %s\n",
           fi_tostr(&(ofi_info->mode), FI_TYPE_MODE));
+  LCI_Log(LOG_INFO, "ofi", "CQ data: %lu bytes; rank from %s\n",
+          ofi_info->domain_attr->cq_data_size,
+          rank_from_src ? "FI_SOURCE" : "CQ data");
   LCI_Log(LOG_DEBUG, "ofi", "Fi_info provided: %s\n",
           fi_tostr(ofi_info, FI_TYPE_INFO));
   LCI_Log(LOG_DEBUG, "ofi", "Fabric attributes: %s\n",
@@ -233,6 +263,8 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
   use_cxi_writedata =
       strcmp(p_ofi_context->ofi_info->fabric_attr->prov_name, "cxi") == 0 &&
       p_ofi_context->attr.support_putimm;
+  use_op_ctx = p_ofi_context->use_op_ctx;
+  rank_from_src = p_ofi_context->rank_from_src;
   // Create domain.
   FI_SAFECALL(fi_domain(p_ofi_context->ofi_fabric, p_ofi_context->ofi_info,
                         &ofi_domain, nullptr));
@@ -269,7 +301,9 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
 
   struct fi_av_attr av_attr;
   memset(&av_attr, 0, sizeof(av_attr));
-  av_attr.type = FI_AV_UNSPEC;
+  // A table AV makes the fi_addr of rank i equal to i, which is how
+  // rank_from_src maps a completion's source address back to a rank.
+  av_attr.type = rank_from_src ? FI_AV_TABLE : FI_AV_UNSPEC;
   FI_SAFECALL(fi_av_open(ofi_domain, &av_attr, &ofi_av, nullptr));
   FI_SAFECALL(fi_ep_bind(ofi_ep, (fid_t)ofi_av, 0));
   FI_SAFECALL(fi_enable(ofi_ep));
@@ -314,6 +348,9 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
     void* peer_addr = all_addrs.data() + i * max_addrlen;
     int ret = fi_av_insert(ofi_av, peer_addr, 1, &peer_addrs[i], 0, nullptr);
     LCI_Assert(ret == 1, "fi_av_insert failed! ret = %d\n", ret);
+    LCI_Assert(!rank_from_src || peer_addrs[i] == (fi_addr_t)i,
+               "FI_AV_TABLE gave rank %d fi_addr %lu\n", i,
+               (unsigned long)peer_addrs[i]);
   }
   // LCT_pmi_barrier();
 }
@@ -414,6 +451,7 @@ ofi_endpoint_impl_t::ofi_endpoint_impl_t(device_t device_, attr_t attr_)
       lock(p_ofi_device->lock)
 {
   my_rank = get_rank_me();
+  rank_cq_bits = p_ofi_device->rank_from_src ? 0 : (uint64_t)my_rank << 32;
 }
 
 ofi_endpoint_impl_t::~ofi_endpoint_impl_t() {}
