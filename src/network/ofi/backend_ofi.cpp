@@ -96,9 +96,12 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   // of filtering out providers that do not support it.
   hints->caps = FI_RMA | FI_MSG;
   // LCI can supply per-operation provider contexts (ofi_detail::op_ctx_t).
-  // Without this, providers that need them (native psm2) are hidden or only
-  // reachable through a utility layer.
-  hints->mode = FI_CONTEXT | FI_CONTEXT2;
+  // Without this, providers that need them (native psm2, psm3) are hidden or
+  // only reachable through a utility layer. Providers that don't need it
+  // clear the bit, and LCI then uses its plain contexts. FI_CONTEXT2 is not
+  // offered: no provider LCI can use requires it, and offering it lets EFA
+  // return its efa-direct path in place of the RDM one.
+  hints->mode = FI_CONTEXT;
   // LCI needs at least the 32-bit immediate in the CQ data. psm2 lists a
   // variant without CQ data (its 64-bit tag layout) first; skip it.
   hints->domain_attr->cq_data_size = sizeof(net_imm_data_t);
@@ -154,7 +157,7 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
     ofi_info = fi_dupinfo(all_infos);
     fi_freeinfo(all_infos);
   }
-  use_op_ctx = (ofi_info->mode & (FI_CONTEXT | FI_CONTEXT2)) != 0;
+  use_op_ctx = (ofi_info->mode & FI_CONTEXT) != 0;
   LCI_Log(LOG_STATUS, "ofi", "Domain name: %s\n",
           ofi_info->domain_attr && ofi_info->domain_attr->name
               ? ofi_info->domain_attr->name

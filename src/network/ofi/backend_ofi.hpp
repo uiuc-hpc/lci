@@ -12,7 +12,6 @@
 #include <rdma/fi_errno.h>
 #include <rdma/fi_rma.h>
 #include <mutex>
-#include <vector>
 
 #define FI_SAFECALL(x)                                                    \
   do {                                                                    \
@@ -45,48 +44,23 @@ namespace lci
 {
 namespace ofi_detail
 {
-// Providers that require FI_CONTEXT/FI_CONTEXT2 (e.g. native psm2) own the
-// memory an operation's context points at until it completes, so LCI's own
-// context is carried in a separate slot the provider may scribble over. The
-// slot also records the operation, because psm2's completion flags do not
-// say it (a receive completes with FI_REMOTE_CQ_DATA alone, no FI_RECV).
+// Providers that require FI_CONTEXT (native psm2 and psm3) own the memory an
+// operation's context points at until it completes, so LCI's own context is
+// carried in a separate slot the provider may scribble over. The slot also
+// records the operation, because psm2's completion flags do not say it (a
+// receive completes with FI_REMOTE_CQ_DATA alone, no FI_RECV).
 struct op_ctx_t {
-  struct fi_context2 fi_ctx;
+  struct fi_context fi_ctx;
   void* user_context;
   net_opcode_t opcode;
 };
 
-// Contexts are freed by whichever thread polls the completion, so the
-// per-thread cache is bounded and spills to the heap.
-inline std::vector<op_ctx_t*>& op_ctx_cache()
-{
-  thread_local std::vector<op_ctx_t*> cache;
-  return cache;
-}
-
 inline op_ctx_t* alloc_op_ctx(void* user_context, net_opcode_t opcode)
 {
-  auto& cache = op_ctx_cache();
-  op_ctx_t* ctx;
-  if (!cache.empty()) {
-    ctx = cache.back();
-    cache.pop_back();
-  } else {
-    ctx = new op_ctx_t;
-  }
-  ctx->user_context = user_context;
-  ctx->opcode = opcode;
-  return ctx;
+  return new op_ctx_t{{}, user_context, opcode};
 }
 
-inline void free_op_ctx(op_ctx_t* ctx)
-{
-  auto& cache = op_ctx_cache();
-  if (cache.size() < 4096)
-    cache.push_back(ctx);
-  else
-    delete ctx;
-}
+inline void free_op_ctx(op_ctx_t* ctx) { delete ctx; }
 }  // namespace ofi_detail
 
 class ofi_lock_guard_t
@@ -126,7 +100,7 @@ class ofi_net_context_impl_t : public lci::net_context_impl_t
 
   struct fi_info* ofi_info;
   struct fid_fabric* ofi_fabric;
-  // The provider requires FI_CONTEXT or FI_CONTEXT2 (see ofi_detail::op_ctx_t)
+  // The provider requires FI_CONTEXT (see ofi_detail::op_ctx_t)
   bool use_op_ctx;
   // CQ data is too small to carry the source rank next to the 32-bit
   // immediate, so the rank comes from FI_SOURCE (with an FI_AV_TABLE, the

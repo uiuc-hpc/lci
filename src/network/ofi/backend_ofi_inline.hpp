@@ -80,16 +80,12 @@ inline void ofi_device_impl_t::fill_status(net_status_t& status,
   memset(&status, 0, sizeof(status));
   if (use_op_ctx) {
     // The wrapper says which operation completed. No context means the
-    // target side of a write with immediate data; a receive that a remote
-    // write consumed reports FI_REMOTE_WRITE.
+    // target side of a write with immediate data.
     if (entry.op_context == nullptr) {
       status.opcode = net_opcode_t::REMOTE_WRITE;
     } else {
-      auto* op_ctx = static_cast<ofi_detail::op_ctx_t*>(entry.op_context);
-      status.opcode = op_ctx->opcode;
-      if (status.opcode == net_opcode_t::RECV &&
-          (entry.flags & FI_REMOTE_WRITE))
-        status.opcode = net_opcode_t::REMOTE_WRITE;
+      status.opcode =
+          static_cast<ofi_detail::op_ctx_t*>(entry.op_context)->opcode;
       status.user_context = unwrap_context(entry.op_context);
     }
   } else if (entry.flags & FI_RECV) {
