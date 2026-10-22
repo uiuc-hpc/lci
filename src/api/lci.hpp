@@ -269,7 +269,7 @@ enum class broadcast_algorithm_t {
 
 /**
  * @brief Get the string representation of a collective algorithm.
- * @param opcode The collective algorithm.
+ * @param algorithm The collective algorithm.
  * @return The string representation of the collective algorithm.
  */
 const char* get_broadcast_algorithm_str(broadcast_algorithm_t algorithm);
@@ -287,10 +287,11 @@ enum class reduce_scatter_algorithm_t {
 
 /**
  * @brief Get the string representation of a collective algorithm.
- * @param opcode The collective algorithm.
+ * @param algorithm The collective algorithm.
  * @return The string representation of the collective algorithm.
  */
-const char* get_reduce_scatter_algorithm_str(broadcast_algorithm_t algorithm);
+const char* get_reduce_scatter_algorithm_str(
+    reduce_scatter_algorithm_t algorithm);
 
 /**
  * @ingroup LCI_BASIC
@@ -305,10 +306,10 @@ enum class allreduce_algorithm_t {
 
 /**
  * @brief Get the string representation of a collective algorithm.
- * @param opcode The collective algorithm.
+ * @param algorithm The collective algorithm.
  * @return The string representation of the collective algorithm.
  */
-const char* get_allreduce_algorithm_str(broadcast_algorithm_t algorithm);
+const char* get_allreduce_algorithm_str(allreduce_algorithm_t algorithm);
 
 /**
  * @ingroup LCI_BASIC
