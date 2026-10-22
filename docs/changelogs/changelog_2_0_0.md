@@ -47,9 +47,6 @@ From this release on, LCI follows semantic versioning for the public API in
 - `LCT_pmi_initialize`/`LCT_pmi_finalize` are reference-counted.
 - Log lines include an elapsed-time field.
 
-### License
-- LCI is now distributed under the NCSA license (previously MIT).
-
 ## Major Changes
 - GPU Direct RDMA (new since beta.1)
   - Build with `LCI_USE_CUDA` or `LCI_USE_HIP` (mutually exclusive).
@@ -88,3 +85,4 @@ From this release on, LCI follows semantic versioning for the public API in
 - Fix the declarations of `get_reduce_scatter_algorithm_str` and `get_allreduce_algorithm_str`.
 - Fixes for packet loss with user-provided packets, a deadlock when allocating multiple devices, double completion signals, and C23 compatibility of the vendored UCS code used by the registration cache.
 - Add CodeQL and downstream CI (LCW, Reconverse).
+- Correct the `SPDX-License-Identifier` headers to `NCSA`, matching `LICENSE` (some headers incorrectly said `MIT`). Add AMD to the developers listed in `LICENSE`.
