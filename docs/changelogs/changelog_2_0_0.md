@@ -38,6 +38,7 @@ From this release on, LCI follows semantic versioning for the public API in
 - Network backend libraries are linked `PRIVATE`. Applications that used libibverbs/libfabric directly must link them themselves.
 - Replace `LCI_COMPILE_REG_CACHE`/`LCI_USE_REG_CACHE_DEFAULT` with `LCI_USE_REG_CACHE` (default OFF; not supported on macOS).
 - `-Werror` is only applied when LCI is the top-level project (`LCI_BUILD_WARN_AS_ERROR`).
+- `LCIConfig.cmake` is installed to `<prefix>/lib/cmake/LCI/` (previously `<prefix>/lib/cmake/`), so `find_package(LCI)` works with just the install prefix (`CMAKE_PREFIX_PATH`, `LCI_ROOT`). Builds that set `-DLCI_DIR=<prefix>/lib/cmake` must use `<prefix>/lib/cmake/LCI`; lookups using `PATH_SUFFIXES lib/cmake` (e.g. HPX, Reconverse) keep working.
 - `LCIConfigVersion.cmake` uses `SameMajorVersion` compatibility, so `find_package(LCI 2.0)` accepts later 2.x releases.
 - Fix the installed `liblci.pc`, which pkg-config previously rejected.
 
