@@ -97,23 +97,31 @@ inline void device_impl_t::destroy_reg_cache()
   }
 }
 
+inline size_t device_impl_t::get_max_recvs() const
+{
+  if (!packet_pool.p_impl) return attr.net_max_recvs;
+  return std::min<size_t>(attr.net_max_recvs,
+                          packet_pool.p_impl->get_recv_share());
+}
+
 inline bool device_impl_t::post_recv_packets()
 {
   mr_t mr;
   size_t size;
   error_t error;
-  if (nrecvs_posted >= attr.net_max_recvs) {
+  const size_t max_recvs = get_max_recvs();
+  if (nrecvs_posted >= max_recvs) {
     return false;
   }
   const size_t BATCH_SIZE = LCI_BACKEND_MAX_POLLS * 2;
 
   size_t my_position = nrecvs_posted.fetch_add(BATCH_SIZE);
 
-  if (my_position >= attr.net_max_recvs) {
+  if (my_position >= max_recvs) {
     nrecvs_posted -= BATCH_SIZE;
     return false;
   }
-  size_t nslots = std::min(attr.net_max_recvs - my_position, BATCH_SIZE);
+  size_t nslots = std::min(max_recvs - my_position, BATCH_SIZE);
   packet_t* packets[BATCH_SIZE];
 
   size_t n_popped = packet_pool.p_impl->get_n(nslots, packets, false);
@@ -146,7 +154,7 @@ inline bool device_impl_t::refill_recvs(bool is_blocking)
   bool ret = false;
   int nrecvs_posted = this->nrecvs_posted;
   int niters = 0;
-  while (nrecvs_posted < attr.net_max_recvs * refill_threshold) {
+  while (nrecvs_posted < get_max_recvs() * refill_threshold) {
     bool succeed = post_recv_packets();
     if (!succeed) {
       if (is_blocking) {
@@ -181,6 +189,7 @@ inline void device_impl_t::bind_packet_pool(packet_pool_t packet_pool_)
 {
   packet_pool = packet_pool_;
   packet_pool.p_impl->register_packets(device);
+  packet_pool.p_impl->add_bound_device();
   refill_recvs(true);
 }
 
@@ -189,6 +198,7 @@ inline void device_impl_t::unbind_packet_pool()
   // if we have been using packet pool, report lost packets
   if (packet_pool.p_impl) {
     packet_pool.p_impl->deregister_packets(device);
+    packet_pool.p_impl->remove_bound_device();
     packet_pool.p_impl->report_lost_packets(nrecvs_posted);
     packet_pool.p_impl = nullptr;
   }

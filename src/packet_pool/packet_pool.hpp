@@ -39,6 +39,16 @@ class packet_pool_impl_t
   int get_local_id() const { return pool.get_local_set_id(); }
   // Report lost packets
   void report_lost_packets(int npackets) { npacket_lost += npackets; }
+  // Devices that post receives from this pool share it: each may keep at
+  // most this many receives posted, so that every device gets some and an
+  // eighth of the pool stays free for sends.
+  size_t get_recv_share() const
+  {
+    size_t n = ndevices_bound.load(std::memory_order_relaxed);
+    return attr.npackets * 7 / 8 / (n ? n : 1);
+  }
+  void add_bound_device() { ++ndevices_bound; }
+  void remove_bound_device() { --ndevices_bound; }
 
   attr_t attr;
 
@@ -49,6 +59,7 @@ class packet_pool_impl_t
   size_t heap_size;
   mpmc_array_t<mr_impl_t*> mrs;
   std::atomic<size_t> npacket_lost;
+  std::atomic<size_t> ndevices_bound{0};
 };
 
 inline packet_t* packet_pool_impl_t::get(bool blocking)
