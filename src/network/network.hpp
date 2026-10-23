@@ -57,8 +57,6 @@ class device_impl_t
   inline bool post_recv_packets();
   inline bool refill_recvs(bool is_blocking = false);
   inline void consume_recvs(int n) { nrecvs_posted -= n; }
-  // net_max_recvs, capped at this device's share of the packet pool
-  inline size_t get_max_recvs() const;
   inline void mark_network_failed()
   {
     network_failed.store(true, std::memory_order_relaxed);
