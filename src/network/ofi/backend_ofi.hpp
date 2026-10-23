@@ -47,8 +47,9 @@ namespace ofi_detail
 // Providers that require FI_CONTEXT (native psm2 and psm3) own the memory an
 // operation's context points at until it completes, so LCI's own context is
 // carried in a separate slot the provider may scribble over. The slot also
-// records the operation, because psm2's completion flags do not say it (a
-// receive completes with FI_REMOTE_CQ_DATA alone, no FI_RECV).
+// records the operation, because psm2 reports an inject send's completion
+// with the caller's flags as-is (FI_INJECT | FI_COMPLETION |
+// FI_REMOTE_CQ_DATA), without FI_SEND.
 struct op_ctx_t {
   struct fi_context fi_ctx;
   void* user_context;

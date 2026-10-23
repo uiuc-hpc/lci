@@ -95,12 +95,7 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   // Injection is optional. Use the provider's advertised limit below instead
   // of filtering out providers that do not support it.
   hints->caps = FI_RMA | FI_MSG;
-  // LCI can supply per-operation provider contexts (ofi_detail::op_ctx_t).
-  // Without this, providers that need them (native psm2, psm3) are hidden or
-  // only reachable through a utility layer. Providers that don't need it
-  // clear the bit, and LCI then uses its plain contexts. FI_CONTEXT2 is not
-  // offered: no provider LCI can use requires it, and offering it lets EFA
-  // return its efa-direct path in place of the RDM one.
+  // Providers like native psm2 require FI_CONTEXT; see ofi_detail::op_ctx_t.
   hints->mode = FI_CONTEXT;
   // LCI needs at least the 32-bit immediate in the CQ data. psm2 lists a
   // variant without CQ data (its 64-bit tag layout) first; skip it.
@@ -150,7 +145,7 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
     hints->caps |= FI_SOURCE;
     ret = fi_getinfo(FI_VERSION(1, 6), nullptr, nullptr, 0, hints, &all_infos);
     LCI_Assert(ret == 0,
-               "Provider %s has %lu bytes of CQ data and no FI_SOURCE: %s\n",
+               "Provider %s has %zu bytes of CQ data and no FI_SOURCE: %s\n",
                ofi_info->fabric_attr->prov_name,
                ofi_info->domain_attr->cq_data_size, fi_strerror(-ret));
     fi_freeinfo(ofi_info);
@@ -181,7 +176,7 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
           fi_tostr(&(ofi_info->caps), FI_TYPE_CAPS));
   LCI_Log(LOG_INFO, "ofi", "Mode: %s\n",
           fi_tostr(&(ofi_info->mode), FI_TYPE_MODE));
-  LCI_Log(LOG_INFO, "ofi", "CQ data: %lu bytes; rank from %s\n",
+  LCI_Log(LOG_INFO, "ofi", "CQ data: %zu bytes; rank from %s\n",
           ofi_info->domain_attr->cq_data_size,
           rank_from_src ? "FI_SOURCE" : "CQ data");
   LCI_Log(LOG_DEBUG, "ofi", "Fi_info provided: %s\n",
@@ -193,7 +188,7 @@ ofi_net_context_impl_t::ofi_net_context_impl_t(runtime_t runtime_, attr_t attr_)
   LCI_Log(LOG_DEBUG, "ofi", "Endpoint attributes: %s\n",
           fi_tostr(ofi_info->ep_attr, FI_TYPE_EP_ATTR));
   LCI_Assert(ofi_info->domain_attr->cq_data_size >= 4,
-             "cq_data_size (%lu) is too small!\n",
+             "cq_data_size (%zu) is too small!\n",
              ofi_info->domain_attr->cq_data_size);
   LCI_Assert(ofi_info->domain_attr->mr_key_size <= 8,
              "mr_key_size (%lu) is too large!\n",
@@ -352,7 +347,7 @@ ofi_device_impl_t::ofi_device_impl_t(net_context_t context_,
     int ret = fi_av_insert(ofi_av, peer_addr, 1, &peer_addrs[i], 0, nullptr);
     LCI_Assert(ret == 1, "fi_av_insert failed! ret = %d\n", ret);
     LCI_Assert(!rank_from_src || peer_addrs[i] == (fi_addr_t)i,
-               "FI_AV_TABLE gave rank %d fi_addr %lu\n", i,
+               "FI_AV_TABLE: expected fi_addr == rank (%d), got %lu\n", i,
                (unsigned long)peer_addrs[i]);
   }
   // LCT_pmi_barrier();
