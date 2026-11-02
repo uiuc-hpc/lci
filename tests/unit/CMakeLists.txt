@@ -36,6 +36,7 @@ if(CMAKE_VERSION VERSION_LESS 2.8.11)
 endif()
 
 add_subdirectory(loopback)
+add_subdirectory(atomic)
 add_subdirectory(collective)
 add_subdirectory(cxx11)
 add_subdirectory(accelerator)
