@@ -35,12 +35,17 @@ const char* mtu_str(enum ibv_mtu mtu)
 
 bool ibv_net_context_impl_t::check_availability()
 {
-  int num_devices;
-  auto ret = ibv_get_device_list(&num_devices);
-  if (ret) {
-    ibv_free_device_list(ret);
-  }
-  return num_devices > 0;
+  int num_devices = 0;
+  struct ibv_device** dev_list = ibv_get_device_list(&num_devices);
+  if (!dev_list) return false;
+  // A device alone is not enough; it needs a usable port (e.g., a RoCE port
+  // with a valid GID).
+  struct ibv_device* dev;
+  uint8_t port;
+  bool ret = ibv_detail::select_best_device_port(
+      dev_list, num_devices, g_default_attr.device_name.c_str(), &dev, &port);
+  ibv_free_device_list(dev_list);
+  return ret;
 }
 
 ibv_net_context_impl_t::ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_)
@@ -120,6 +125,8 @@ ibv_net_context_impl_t::ibv_net_context_impl_t(runtime_t runtime_, attr_t attr_)
     // User did not explicitly specify the gid to use and we are using RoCE
     attr.ibv_gid_idx = ibv_detail::select_best_gid_for_roce(
         ib_dev, ib_context, ib_pd, ib_port_attr, ib_dev_port);
+    LCI_Assert(attr.ibv_gid_idx >= 0, "No valid GID on %s:%u\n",
+               ibv_get_device_name(ib_dev), ib_dev_port);
   }
   if (attr.ibv_gid_idx >= 0) {
     LCI_Log(LOG_INFO, "ibv", "Use GID index: %d\n", attr.ibv_gid_idx);
