@@ -113,6 +113,11 @@ inline void graph_t::mark_complete(graph_node_t node_, status_t status)
   node->signals_received = 0;  // reset the signal
   auto src_value = node->value;
   auto graph = node->graph;
+  // Once this thread's signal is published (fetch_add below), another thread
+  // may complete the graph and free it. Read everything needed afterwards
+  // before that point.
+  comp_t comp = graph->m_comp;
+  void* end_value = graph->m_end_value;
   LCI_DBG_Log(LOG_TRACE, "graph", "graph %p mark complete node %p, status %s\n",
               graph, node_, status.error.get_str());
   bool graph_completed = false;
@@ -123,7 +128,7 @@ inline void graph_t::mark_complete(graph_node_t node_, status_t status)
     void* dst_value;
     // process the edge
     if (next_node_ == GRAPH_END) {
-      dst_value = graph->m_end_value;
+      dst_value = end_value;
     } else {
       dst_value = next_node->value;
     }
@@ -133,39 +138,40 @@ inline void graph_t::mark_complete(graph_node_t node_, status_t status)
 
     // process the dst node
     if (next_node_ != GRAPH_END) {
+      int expected = next_node->signals_expected;
       int signals =
-          next_node->signals_received.fetch_add(1, std::memory_order_relaxed) +
+          next_node->signals_received.fetch_add(1, std::memory_order_acq_rel) +
           1;
-      if (signals == next_node->signals_expected) {
+      if (signals == expected) {
         trigger_node(next_node_);
       } else {
-        LCI_Assert(signals < next_node->signals_expected,
+        LCI_Assert(signals < expected,
                    "The number of signals (%d) should not exceed the expected "
                    "number (%d)",
-                   signals, next_node->signals_expected);
+                   signals, expected);
       }
     } else {
+      int expected = graph->m_end_signals_expected;
       int signals = graph->m_end_signals_received.fetch_add(
-                        1, std::memory_order_relaxed) +
+                        1, std::memory_order_acq_rel) +
                     1;
-      if (signals == graph->m_end_signals_expected) {
+      if (signals == expected) {
         graph_completed = true;
       } else {
-        LCI_Assert(signals < graph->m_end_signals_expected,
+        LCI_Assert(signals < expected,
                    "The number of signals (%d) should not exceed the expected "
                    "number (%d)",
-                   signals, graph->m_end_signals_expected);
+                   signals, expected);
       }
     }
   }
   if (graph_completed) {
     // the graph is completed
     LCI_DBG_Log(LOG_TRACE, "graph", "graph %p completed\n", graph);
-    comp_t comp = graph->m_comp;
     if (!comp.is_empty()) {
       status_t status;
       status.set_done();
-      status.user_context = graph->m_end_value;
+      status.user_context = end_value;
       delete graph;
       // we should not access any graph members after this point
       comp.get_impl()->signal(status);
@@ -220,7 +226,7 @@ inline void graph_t::signal(status_t status)
 inline status_t graph_t::test()
 {
   status_t status;
-  if (m_end_signals_received.load(std::memory_order_relaxed) ==
+  if (m_end_signals_received.load(std::memory_order_acquire) ==
       m_end_signals_expected) {
     status.set_done();
     status.user_context = m_end_value;

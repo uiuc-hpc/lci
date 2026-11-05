@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: NCSA
 
 #include <gtest/gtest.h>
+#include <atomic>
 #include <thread>
 #include <vector>
 #include <random>
@@ -182,6 +183,37 @@ TEST(COMM_COLL, alltoall)
 
   for (int i = 0; i < nranks; ++i) {
     ASSERT_EQ(nonblocking_recvbuf[i], (i + 1) * nranks + rank);
+  }
+
+  lci::g_runtime_fina();
+}
+
+// One thread runs the barrier while the others call progress, so the barrier
+// graph can be completed (and freed) by a thread other than the one that
+// started it.
+TEST(COMM_COLL, barrier_concurrent_progress)
+{
+  lci::g_runtime_init();
+
+  for (bool use_counter : {true, false}) {
+    std::atomic<bool> done(false);
+    util::spawn_threads(util::NTHREADS, [&](int thread_id) {
+      if (thread_id == 0) {
+        for (int i = 0; i < util::NITERS_SMALL; ++i) {
+          if (use_counter) {
+            lci::comp_t comp = lci::alloc_counter();
+            lci::barrier_x().comp(comp)();
+            while (lci::counter_get(comp) == 0) lci::progress();
+            lci::free_comp(&comp);
+          } else {
+            lci::barrier();
+          }
+        }
+        done = true;
+      } else {
+        while (!done) lci::progress();
+      }
+    });
   }
 
   lci::g_runtime_fina();
