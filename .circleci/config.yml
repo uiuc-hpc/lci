@@ -53,7 +53,7 @@ jobs:
           name: Running CTest
           command: |
             ulimit -c unlimited 
-            export LCI_ATTR_OFI_PROVIDER_NAME=sockets
+            export LCI_ATTR_OFI_PROVIDER_NAME=tcp
             ctest --extra-verbose --timeout 1200 \
                   --test-dir lci/build \
                   --output-junit ctest.out.xml
