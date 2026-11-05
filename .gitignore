@@ -50,3 +50,6 @@ vscode-build/
 code_doc/
 __pycache__
 .fuse*
+
+# Local agent state
+.codex/
