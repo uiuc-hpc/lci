@@ -195,11 +195,15 @@ TEST(COMM_COLL, barrier_concurrent_progress)
 {
   lci::g_runtime_init();
 
+  // Keep this small: every rank spins nthreads threads, and CI runs up to 8
+  // ranks on a few cores.
+  const int nthreads = 4;
+  const int niters = 100;
   for (bool use_counter : {true, false}) {
     std::atomic<bool> done(false);
-    util::spawn_threads(util::NTHREADS, [&](int thread_id) {
+    util::spawn_threads(nthreads, [&](int thread_id) {
       if (thread_id == 0) {
-        for (int i = 0; i < util::NITERS_SMALL; ++i) {
+        for (int i = 0; i < niters; ++i) {
           if (use_counter) {
             lci::comp_t comp = lci::alloc_counter();
             lci::barrier_x().comp(comp)();
