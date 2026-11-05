@@ -1,4 +1,4 @@
-// Copyright (c) 2025 The LCI Project Authors
+// Copyright (c) 2025-2026 The LCI Project Authors
 // SPDX-License-Identifier: NCSA
 
 #include "lci_internal.hpp"
@@ -50,6 +50,27 @@ static double translate_speed(uint8_t speed)
     default:
       return 0;
   }
+}
+
+// Whether the gid entry can be queried and is populated (not all zeros).
+static bool is_valid_gid(struct ibv_context* dev_ctx, uint8_t dev_port,
+                         int gid_index)
+{
+  union ibv_gid gid;
+  if (ibv_query_gid(dev_ctx, dev_port, gid_index, &gid) != 0) return false;
+  for (size_t i = 0; i < sizeof(gid.raw); ++i) {
+    if (gid.raw[i] != 0) return true;
+  }
+  return false;
+}
+
+static bool has_valid_gid(struct ibv_context* dev_ctx, uint8_t dev_port,
+                          const struct ibv_port_attr& port_attr)
+{
+  for (int i = 0; i < port_attr.gid_tbl_len; ++i) {
+    if (is_valid_gid(dev_ctx, dev_port, i)) return true;
+  }
+  return false;
 }
 
 bool select_best_device_port(struct ibv_device** dev_list, int num_devices,
@@ -108,6 +129,13 @@ bool select_best_device_port(struct ibv_device** dev_list, int num_devices,
       // Check whether we can get its lid
       if (port_attr.link_layer == IBV_LINK_LAYER_INFINIBAND && !port_attr.lid) {
         LCI_Log(LOG_INFO, "ibv", "Couldn't get local LID\n");
+        continue;
+      }
+      // RoCE needs a GID (e.g., RDMA-disabled Ethernet VFs have none)
+      if (port_attr.link_layer == IBV_LINK_LAYER_ETHERNET &&
+          !has_valid_gid(dev_ctx, port_num, port_attr)) {
+        LCI_Log(LOG_INFO, "ibv", "%s:%d has no valid GID.\n", device_name,
+                port_num);
         continue;
       }
       // Calculate its speed
@@ -208,7 +236,7 @@ bool test_roce_gid_index(struct ibv_context* dev_ctx, struct ibv_pd* dev_pd,
   struct ibv_ah* ah;
   union ibv_gid gid;
 
-  IBV_SAFECALL(ibv_query_gid(dev_ctx, dev_port, gid_index, &gid));
+  if (ibv_query_gid(dev_ctx, dev_port, gid_index, &gid) != 0) return false;
 
   memset(&ah_attr, 0, sizeof(ah_attr));
   ah_attr.port_num = dev_port;
@@ -262,11 +290,16 @@ int select_best_gid_for_roce(struct ibv_device* ib_dev,
     return best_gid_idx;
   }
 
-  const int default_gid = 0;
-  LCI_Log(LOG_INFO, "ibv",
-          "RoCE gid auto selection: fall back to the default gid %d\n",
-          default_gid);
-  return default_gid;  // default gid for roce
+  for (int i = 0; i < gid_tbl_len; ++i) {
+    if (is_valid_gid(dev_ctx, dev_port, i)) {
+      LCI_Log(LOG_INFO, "ibv",
+              "RoCE gid auto selection: fall back to the first valid gid %d\n",
+              i);
+      return i;
+    }
+  }
+  LCI_Log(LOG_INFO, "ibv", "RoCE gid auto selection: no valid gid\n");
+  return -1;
 }
 
 void gid_to_wire_gid(const union ibv_gid* gid, char wgid[])
