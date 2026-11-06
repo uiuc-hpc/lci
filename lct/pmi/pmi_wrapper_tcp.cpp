@@ -40,6 +40,12 @@
 // LOCAL_RANK/LOCAL_WORLD_SIZE are optional diagnostics. LCT_PMI_TCP_TIMEOUT_SEC
 // controls connect/join/barrier/finalize timeouts (default 60s).
 //
+// Rank 0 normally binds the endpoint port itself. A caller that already holds
+// a TCP socket bound to that port can set LCT_MASTER_FD=<fd> on rank 0 instead;
+// rank 0 then listens on that socket, so there is no window in which another
+// process can take the port. LCT never closes that fd; the caller closes it
+// once initialization returns.
+//
 // This backend intentionally follows the PMI put/fence/get shape without any
 // background progress threads:
 //   - publish() only records a local pending key/value.
@@ -497,22 +503,66 @@ int create_listener(int port)
   return fd;
 }
 
+// Prepares a caller-provided socket (LCT_MASTER_FD) as the rendezvous
+// listener. The caller keeps ownership: LCT never closes this fd.
+void use_caller_listener(int fd)
+{
+  const std::string name = "LCT_MASTER_FD=" + std::to_string(fd);
+  int type = 0;
+  socklen_t type_len = sizeof(type);
+  if (getsockopt(fd, SOL_SOCKET, SO_TYPE, &type, &type_len) < 0)
+    throw_errno(name + " is not a usable socket");
+  if (type != SOCK_STREAM)
+    throw std::runtime_error(name + " is not a stream socket");
+
+  struct sockaddr_storage addr;
+  socklen_t addr_len = sizeof(addr);
+  if (getsockname(fd, reinterpret_cast<struct sockaddr*>(&addr), &addr_len) < 0)
+    throw_errno("getsockname() on " + name + " failed");
+  int port = -1;
+  if (addr.ss_family == AF_INET)
+    port = ntohs(reinterpret_cast<struct sockaddr_in*>(&addr)->sin_port);
+  else if (addr.ss_family == AF_INET6)
+    port = ntohs(reinterpret_cast<struct sockaddr_in6*>(&addr)->sin6_port);
+  else
+    throw std::runtime_error(name + " is not an IPv4/IPv6 socket");
+  if (port != g_master_port)
+    throw std::runtime_error(name + " is bound to port " +
+                             std::to_string(port) +
+                             ", but the TCP rendezvous endpoint port is " +
+                             std::to_string(g_master_port));
+
+  // listen() also accepts a socket that is already listening; it only updates
+  // the backlog.
+  if (listen(fd, std::max(8, g_size)) < 0)
+    throw_errno("listen() on " + name + " failed");
+}
+
 int accept_with_timeout(int listen_fd, deadline_t deadline)
 {
-  std::string error;
-  if (!wait_fd(listen_fd, POLLIN, deadline, "waiting for TCP PMI ranks to join",
-               &error)) {
-    throw std::runtime_error(
-        "Timed out waiting for all " + std::to_string(g_size) +
-        " ranks to join TCP rendezvous at " + g_master_addr + ":" +
-        std::to_string(g_master_port) + " (" + error + ")");
+  while (true) {
+    std::string error;
+    if (!wait_fd(listen_fd, POLLIN, deadline,
+                 "waiting for TCP PMI ranks to join", &error)) {
+      throw std::runtime_error(
+          "Timed out waiting for all " + std::to_string(g_size) +
+          " ranks to join TCP rendezvous at " + g_master_addr + ":" +
+          std::to_string(g_master_port) + " (" + error + ")");
+    }
+    int fd = accept(listen_fd, nullptr, nullptr);
+    if (fd < 0) {
+      // A caller-provided listener may be nonblocking, so a connection that
+      // went away between poll() and accept() surfaces as EAGAIN.
+      if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK ||
+          errno == ECONNABORTED)
+        continue;
+      throw_errno("accept() on TCP rendezvous listener failed");
+    }
+    set_cloexec(fd);
+    int one = 1;
+    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
+    return fd;
   }
-  int fd = accept(listen_fd, nullptr, nullptr);
-  if (fd < 0) throw_errno("accept() on TCP rendezvous listener failed");
-  set_cloexec(fd);
-  int one = 1;
-  setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
-  return fd;
 }
 
 int connect_to_server(deadline_t deadline)
@@ -1002,14 +1052,22 @@ void initialize()
   deadline_t deadline = clock_t::now() + std::chrono::seconds(g_timeout_sec);
 
   if (g_rank == 0) {
-    int listen_fd = -1;
+    // LCT_MASTER_FD lets the caller hand over a socket it has already bound to
+    // the endpoint port, so no other process can take the port before rank 0
+    // listens on it. LCT only borrows that fd; it closes only its own listener.
+    const int caller_fd = parse_optional_int("LCT_MASTER_FD", -1, 0, INT32_MAX);
+    int owned_fd = -1;
     try {
-      listen_fd = create_listener(g_master_port);
+      int listen_fd = caller_fd;
+      if (caller_fd >= 0)
+        use_caller_listener(caller_fd);
+      else
+        listen_fd = owned_fd = create_listener(g_master_port);
       accept_rank_clients(listen_fd, deadline);
-      close_fd(&listen_fd);
+      close_fd(&owned_fd);
     } catch (const std::exception& e) {
       send_error_to_clients(e.what(), deadline);
-      close_fd(&listen_fd);
+      close_fd(&owned_fd);
       close_clients();
       fail("LCT TCP PMI failed during TCP rendezvous setup: " +
            std::string(e.what()));

@@ -5,11 +5,18 @@
 #include "lct.h"
 #include "bootstrap/bootstrap.hpp"
 
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
 #include <cassert>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 #include <vector>
 
 namespace
@@ -63,6 +70,60 @@ void run_pmi_exchange_test()
   LCT_pmi_finalize();
   assert(!LCT_pmi_initialized());
   LCT_fina();
+}
+
+// Mimics a caller (e.g. MPI rank 0) that binds the rendezvous socket to an
+// OS-chosen port and hands it to LCT through LCT_MASTER_FD. With
+// matching_port, the bound port is exported as LCT_MASTER_PORT and written to
+// LCT_TEST_PORT_FILE for the other ranks. Without it, LCT_MASTER_PORT is set
+// to a different port, so LCT must reject the socket.
+int open_caller_listener(bool matching_port)
+{
+  int fd = socket(AF_INET, SOCK_STREAM, 0);
+  assert(fd >= 0);
+  struct sockaddr_in addr;
+  std::memset(&addr, 0, sizeof(addr));
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  addr.sin_port = 0;
+  int ret = bind(fd, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
+  assert(ret == 0);
+  ret = listen(fd, 1);
+  assert(ret == 0);
+  socklen_t len = sizeof(addr);
+  ret = getsockname(fd, reinterpret_cast<struct sockaddr*>(&addr), &len);
+  assert(ret == 0);
+  (void)ret;
+  const int bound_port = ntohs(addr.sin_port);
+  const std::string port =
+      std::to_string(matching_port ? bound_port : bound_port % 65535 + 1);
+  setenv("LCT_MASTER_PORT", port.c_str(), 1);
+  setenv("LCT_MASTER_FD", std::to_string(fd).c_str(), 1);
+
+  if (matching_port) {
+    const char* port_file = std::getenv("LCT_TEST_PORT_FILE");
+    assert(port_file != nullptr);
+    const std::string tmp = std::string(port_file) + ".tmp";
+    FILE* f = std::fopen(tmp.c_str(), "w");
+    assert(f != nullptr);
+    std::fprintf(f, "%s\n", port.c_str());
+    std::fclose(f);
+    // Rename so that the other ranks never read a partially written file.
+    if (std::rename(tmp.c_str(), port_file) != 0) std::abort();
+  }
+  return fd;
+}
+
+void run_master_fd_test(bool matching_port)
+{
+  int fd = -1;
+  if (parse_env("RANK") == 0) fd = open_caller_listener(matching_port);
+  run_pmi_exchange_test();
+  if (fd >= 0) {
+    // LCT borrows the caller's socket and must not close it.
+    assert(fcntl(fd, F_GETFD) != -1);
+    close(fd);
+  }
 }
 
 void run_lci_runtime_test()
@@ -127,6 +188,10 @@ int main(int argc, char** argv)
     run_lci_runtime_test();
   } else if (std::strcmp(mode, "bootstrap") == 0) {
     run_bootstrap_allgather_test();
+  } else if (std::strcmp(mode, "master-fd") == 0) {
+    run_master_fd_test(true);
+  } else if (std::strcmp(mode, "master-fd-mismatch") == 0) {
+    run_master_fd_test(false);
   } else if (std::strcmp(mode, "fallback-local") == 0) {
     run_autodetect_fallback_test();
   } else {
