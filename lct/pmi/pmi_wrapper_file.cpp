@@ -37,8 +37,11 @@ int get_nranks_from_env()
     nranks = atoi(nranks_str);
     return nranks;
   }
-  // try SLURM_NTASKS
-  const char* ntasks_str = getenv("SLURM_NTASKS");
+  // try SLURM_STEP_NUM_TASKS: srun sets it for the tasks of the step it
+  // launches. Not SLURM_NTASKS: that is the job's task count, and a batch
+  // script or an interactive shell in the allocation has it too, so a single
+  // process started there without srun would wait forever for the rest.
+  const char* ntasks_str = getenv("SLURM_STEP_NUM_TASKS");
   if (ntasks_str) {
     nranks = atoi(ntasks_str);
     return nranks;
