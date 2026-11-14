@@ -616,9 +616,8 @@ static void ucs_async_signal_global_cleanup()
     pthread_mutex_destroy(&ucs_async_signal_global_context.timers_lock);
 }
 
-static int ucs_async_signal_is_from_async(const ucs_async_context_t *async)
+static int ucs_async_signal_is_from_async(void)
 {
-    (void)async;
     return 0;
 }
 

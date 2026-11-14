@@ -229,7 +229,7 @@ out_unlock:
     return status;
 }
 
-static int ucs_async_thread_is_from_async()
+static int ucs_async_thread_is_from_async(void)
 {
     return pthread_self() == ucs_async_thread_global_context.thread->thread_id;
 }
