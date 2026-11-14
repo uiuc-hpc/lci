@@ -53,7 +53,7 @@ typedef void (*ucs_async_init_t)();
 
 typedef void (*ucs_async_cleanup_t)();
 
-typedef int (*ucs_async_is_from_async_t)();
+typedef int (*ucs_async_is_from_async_t)(void);
 
 typedef void (*ucs_async_block_t)();
 

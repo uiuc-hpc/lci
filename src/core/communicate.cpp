@@ -335,8 +335,8 @@ error_t check_backlog(const post_comm_args_t& args, const post_comm_traits_t&,
   // 1. allow_retry is true
   // 2. the endpoint's backlog queue is not empty
   // 3. we are not doing a recv
-  if (!args.endpoint.get_impl()->is_backlog_queue_empty(args.rank) &&
-      args.allow_retry && state.protocol != protocol_t::recv) {
+  if (state.protocol != protocol_t::recv && args.allow_retry &&
+      !args.endpoint.get_impl()->is_backlog_queue_empty(args.rank)) {
     LCI_PCOUNTER_ADD(retry_due_to_backlog_queue, 1);
     return errorcode_t::retry_backlog;
   }

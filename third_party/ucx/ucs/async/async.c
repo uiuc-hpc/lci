@@ -69,9 +69,8 @@ static int ucs_async_poll_tryblock(ucs_async_context_t *async)
     return 1;
 }
 
-static int ucs_async_poll_is_from_async(const ucs_async_context_t *async)
+static int ucs_async_poll_is_from_async(void)
 {
-    (void)async;
     return 0;
 }
 
