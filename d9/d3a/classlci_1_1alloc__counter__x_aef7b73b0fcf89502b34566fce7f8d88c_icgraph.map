@@ -1,22 +1,22 @@
 <map id="lci::alloc_counter_x::alloc_counter_x" name="lci::alloc_counter_x::alloc_counter_x">
-<area shape="rect" id="Node000001" title=" " alt="" coords="725,69,872,109"/>
-<area shape="rect" id="Node000002" href="$d9/d3a/classlci_1_1alloc__counter__x.html#ae1c01a1311b9091f7c6fee1dd5b0ee42" title=" " alt="" coords="545,5,677,45"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="726,67,670,48,671,43,728,62"/>
-<area shape="rect" id="Node000007" href="$d9/d3a/classlci_1_1alloc__counter__x.html#a03d91b2306cdc25971f13957d5f0df2e" title=" " alt="" coords="545,69,677,109"/>
-<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="711,92,678,92,678,87,711,87"/>
-<area shape="rect" id="Node000008" href="$d9/d3a/classlci_1_1alloc__counter__x.html#a1dc52f4e744accd3532f255b0e8ad02d" title=" " alt="" coords="545,133,677,173"/>
-<area shape="poly" id="edge10_Node000001_Node000008" title=" " alt="" coords="728,116,671,136,670,131,726,111"/>
-<area shape="rect" id="Node000003" href="$d9/d3a/classlci_1_1alloc__counter__x.html#a90783d2801728881e056ee9d8d1451eb" title=" " alt="" coords="185,73,317,113"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="532,21,451,22,408,26,366,35,321,53,282,75,279,71,318,48,365,29,407,21,450,16,532,16"/>
-<area shape="rect" id="Node000006" href="$d9/d3a/classlci_1_1alloc__counter__x.html#a83db2c2926f4605946fe191a3ed00275" title=" " alt="" coords="365,44,497,84"/>
-<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="532,45,498,52,497,47,531,40"/>
-<area shape="rect" id="Node000004" href="$d5/dd3/namespacelci.html#a2d33c4845336db86b1b1da5d3dfdb4b7" title=" " alt="" coords="5,51,137,77"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="171,83,137,77,138,72,172,78"/>
-<area shape="rect" id="Node000005" href="$d9/d3a/classlci_1_1alloc__counter__x.html#a4cf5e62295fce0bbafe4d68edd579a56" title=" " alt="" coords="5,101,137,141"/>
-<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="172,108,138,114,137,108,171,103"/>
-<area shape="poly" id="edge6_Node000006_Node000003" title=" " alt="" coords="352,80,318,85,317,80,351,74"/>
-<area shape="poly" id="edge8_Node000007_Node000003" title=" " alt="" coords="532,97,497,99,318,98,318,93,497,93,532,92"/>
-<area shape="poly" id="edge9_Node000007_Node000006" title=" " alt="" coords="531,81,497,76,498,71,532,76"/>
-<area shape="poly" id="edge11_Node000008_Node000003" title=" " alt="" coords="532,143,317,107,318,102,532,138"/>
-<area shape="poly" id="edge12_Node000008_Node000006" title=" " alt="" coords="556,130,544,124,471,86,473,82,547,119,558,125"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="723,75,869,119"/>
+<area shape="rect" id="Node000002" href="$d9/d3a/classlci_1_1alloc__counter__x.html#ae1c01a1311b9091f7c6fee1dd5b0ee42" title=" " alt="" coords="543,5,675,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="717,69,671,53,671,48,722,69"/>
+<area shape="rect" id="Node000007" href="$d9/d3a/classlci_1_1alloc__counter__x.html#a03d91b2306cdc25971f13957d5f0df2e" title=" " alt="" coords="543,75,675,119"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="704,97,675,100,675,94,710,97"/>
+<area shape="rect" id="Node000008" href="$d9/d3a/classlci_1_1alloc__counter__x.html#a1dc52f4e744accd3532f255b0e8ad02d" title=" " alt="" coords="543,144,675,189"/>
+<area shape="poly" id="edge10_Node000001_Node000008" title=" " alt="" coords="722,125,672,146,670,141,717,126"/>
+<area shape="rect" id="Node000003" href="$d9/d3a/classlci_1_1alloc__counter__x.html#a90783d2801728881e056ee9d8d1451eb" title=" " alt="" coords="185,80,316,125"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="525,22,448,25,406,30,365,40,321,58,283,82,280,77,318,53,363,34,405,25,447,20,530,20"/>
+<area shape="rect" id="Node000006" href="$d9/d3a/classlci_1_1alloc__counter__x.html#a83db2c2926f4605946fe191a3ed00275" title=" " alt="" coords="364,49,495,94"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="526,48,496,58,495,53,531,47"/>
+<area shape="rect" id="Node000004" href="$d5/dd3/namespacelci.html#a2d33c4845336db86b1b1da5d3dfdb4b7" title=" " alt="" coords="5,58,137,86"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="167,89,137,86,137,80,172,88"/>
+<area shape="rect" id="Node000005" href="$d9/d3a/classlci_1_1alloc__counter__x.html#a4cf5e62295fce0bbafe4d68edd579a56" title=" " alt="" coords="5,109,137,154"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="167,117,138,123,136,118,172,115"/>
+<area shape="poly" id="edge6_Node000006_Node000003" title=" " alt="" coords="346,86,317,94,316,88,351,85"/>
+<area shape="poly" id="edge8_Node000007_Node000003" title=" " alt="" coords="525,105,495,109,401,110,317,108,316,103,402,105,495,104,530,104"/>
+<area shape="poly" id="edge9_Node000007_Node000006" title=" " alt="" coords="525,86,496,84,496,78,531,85"/>
+<area shape="poly" id="edge11_Node000008_Node000003" title=" " alt="" coords="525,153,316,117,316,111,530,151"/>
+<area shape="poly" id="edge12_Node000008_Node000006" title=" " alt="" coords="549,136,473,97,474,92,554,137"/>
 </map>

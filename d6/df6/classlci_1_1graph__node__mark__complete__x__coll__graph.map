@@ -1,13 +1,13 @@
 <map id="lci::graph_node_mark_complete_x" name="lci::graph_node_mark_complete_x">
-<area shape="rect" id="Node000001" title="The actual implementation for graph_node_mark_complete." alt="" coords="64,284,227,324"/>
-<area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="5,181,133,221"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="93,231,114,258,132,282,128,285,110,262,89,234"/>
-<area shape="rect" id="Node000003" href="$d9/d1e/structlci_1_1status__t.html" title="The type of the completion desciptor for a posted communication." alt="" coords="21,93,118,119"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="72,132,72,181,67,181,67,132"/>
-<area shape="rect" id="Node000004" href="$d2/d46/structlci_1_1error__t.html" title="Wrapper class for error code." alt="" coords="25,5,113,31"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="72,45,72,93,67,93,67,45"/>
-<area shape="rect" id="Node000005" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="157,181,285,221"/>
-<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="201,234,162,286,157,282,197,231"/>
-<area shape="rect" id="Node000006" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="167,93,275,119"/>
-<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="224,132,224,181,219,181,219,132"/>
+<area shape="rect" id="Node000001" title="The actual implementation for graph_node_mark_complete." alt="" coords="63,300,224,345"/>
+<area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="5,191,133,235"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="94,246,131,299,126,300,91,250"/>
+<area shape="rect" id="Node000003" href="$d9/d1e/structlci_1_1status__t.html" title="The type of the completion desciptor for a posted communication." alt="" coords="21,98,117,126"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="70,139,72,190,66,190,68,144"/>
+<area shape="rect" id="Node000004" href="$d2/d46/structlci_1_1error__t.html" title="Wrapper class for error code." alt="" coords="25,5,113,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="69,46,72,98,66,97,69,51"/>
+<area shape="rect" id="Node000005" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="157,191,285,235"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="200,246,179,278,161,302,158,298,175,275,195,249"/>
+<area shape="rect" id="Node000006" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="167,98,275,126"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="222,139,224,191,218,189,220,143"/>
 </map>

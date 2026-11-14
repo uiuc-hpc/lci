@@ -1,5 +1,5 @@
 <map id="lci::status_t" name="lci::status_t">
-<area shape="rect" id="Node000001" title="The type of the completion desciptor for a posted communication." alt="" coords="5,93,103,119"/>
-<area shape="rect" id="Node000002" href="$d2/d46/structlci_1_1error__t.html" title="Wrapper class for error code." alt="" coords="10,5,98,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="57,45,57,93,51,93,51,45"/>
+<area shape="rect" id="Node000001" title="The type of the completion desciptor for a posted communication." alt="" coords="5,98,102,126"/>
+<area shape="rect" id="Node000002" href="$d2/d46/structlci_1_1error__t.html" title="Wrapper class for error code." alt="" coords="10,5,97,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="56,47,56,98,51,97,51,50"/>
 </map>

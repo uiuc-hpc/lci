@@ -1,17 +1,17 @@
 <map id="lci::alloc_handler_x" name="lci::alloc_handler_x">
-<area shape="rect" id="Node000001" title="The actual implementation for alloc_handler." alt="" coords="556,122,703,147"/>
-<area shape="rect" id="Node000002" href="$d9/d1e/structlci_1_1status__t.html" title="The type of the completion desciptor for a posted communication." alt="" coords="257,7,355,33"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="369,27,448,44,533,72,577,96,613,120,610,124,574,100,531,77,447,49,368,32"/>
-<area shape="rect" id="Node000003" href="$d2/d46/structlci_1_1error__t.html" title="Wrapper class for error code." alt="" coords="15,7,103,33"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="117,17,257,17,257,23,117,23"/>
-<area shape="rect" id="Node000004" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="242,57,370,97"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="385,87,532,112,569,119,568,125,532,117,384,92"/>
-<area shape="rect" id="Node000005" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="5,65,113,90"/>
-<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="127,75,242,75,242,80,127,80"/>
-<area shape="rect" id="Node000006" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="228,122,384,147"/>
-<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="398,132,556,132,556,137,398,137"/>
-<area shape="rect" id="Node000007" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="232,172,380,212"/>
-<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="393,176,532,152,568,145,569,150,532,157,394,181"/>
-<area shape="rect" id="Node000008" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="223,237,389,262"/>
-<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="398,231,464,215,531,192,574,169,610,145,613,150,577,174,533,197,466,220,400,237"/>
+<area shape="rect" id="Node000001" title="The actual implementation for alloc_handler." alt="" coords="553,128,699,156"/>
+<area shape="rect" id="Node000002" href="$d9/d1e/structlci_1_1status__t.html" title="The type of the completion desciptor for a posted communication." alt="" coords="256,8,352,36"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="367,29,447,46,530,75,574,100,611,128,605,128,571,104,528,79,445,51,368,34"/>
+<area shape="rect" id="Node000003" href="$d2/d46/structlci_1_1error__t.html" title="Wrapper class for error code." alt="" coords="15,8,103,36"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="118,20,257,20,253,24,119,25"/>
+<area shape="rect" id="Node000004" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="240,60,368,105"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="383,91,530,117,569,128,564,128,528,122,383,97"/>
+<area shape="rect" id="Node000005" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="5,68,113,96"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="127,80,242,81,238,84,129,85"/>
+<area shape="rect" id="Node000006" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="226,128,382,156"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="397,140,555,142,550,143,397,145"/>
+<area shape="rect" id="Node000007" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="230,180,378,225"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="392,186,528,162,563,157,568,156,530,167,393,192"/>
+<area shape="rect" id="Node000008" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="221,248,387,276"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="401,244,465,228,528,205,571,180,605,158,610,156,574,185,530,210,466,233,402,249"/>
 </map>

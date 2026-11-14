@@ -1,5 +1,5 @@
 <map id="lci::post_comm_x::packet_pool" name="lci::post_comm_x::packet_pool">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,13,228,38"/>
-<area shape="rect" id="Node000002" href="$d8/d48/classlci_1_1post__comm__x.html#a80b57b5b1a98ae641edbaca6cd109883" title=" " alt="" coords="276,5,448,45"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="228,23,262,23,262,28,228,28"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,14,227,42"/>
+<area shape="rect" id="Node000002" href="$d8/d48/classlci_1_1post__comm__x.html#a80b57b5b1a98ae641edbaca6cd109883" title=" " alt="" coords="275,5,446,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="227,25,262,28,256,28,227,30"/>
 </map>

@@ -1,5 +1,5 @@
 <map id="lci::barrier_x::endpoint" name="lci::barrier_x::endpoint">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,173,31"/>
-<area shape="rect" id="Node000002" href="$dd/dea/classlci_1_1barrier__x.html#a8d67098f7543904050fa02d587f59e6d" title=" " alt="" coords="221,5,391,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="173,15,208,15,208,21,173,21"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,173,33"/>
+<area shape="rect" id="Node000002" href="$dd/dea/classlci_1_1barrier__x.html#a8d67098f7543904050fa02d587f59e6d" title=" " alt="" coords="221,5,389,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="173,17,208,19,202,19,173,22"/>
 </map>

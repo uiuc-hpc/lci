@@ -1,9 +1,9 @@
 <map id="Setup and Teardown" name="Setup and Teardown">
-<area shape="rect" id="Node000002" href="$d3/d0a/group__LCI__ALLOC__RUNTIME.html" title="Allocate a new runtime object." alt="" coords="225,5,336,31"/>
-<area shape="rect" id="Node000003" href="$d7/db0/group__LCI__FREE__RUNTIME.html" title="Free a new runtime object." alt="" coords="227,55,334,80"/>
-<area shape="rect" id="Node000006" href="$d2/d5e/group__LCI__GET__G__RUNTIME.html" title="Get the global default runtime object." alt="" coords="223,104,339,129"/>
-<area shape="rect" id="Node000005" href="$d9/d15/group__LCI__G__RUNTIME__FINA.html" title="Finalize the global default runtime object." alt="" coords="221,153,340,179"/>
-<area shape="rect" id="Node000004" href="$de/d1b/group__LCI__G__RUNTIME__INIT.html" title="Initialize the global default runtime object." alt="" coords="223,203,339,228"/>
-<area shape="rect" id="Node000007" href="$d1/d0e/group__LCI__RUNTIME.html" title="The runtime object." alt="" coords="207,252,355,277"/>
-<area shape="rect" id="Node000001" title="This section describes setup and teardown API." alt="" coords="5,129,159,155"/>
+<area shape="rect" id="Node000002" href="$d3/d0a/group__LCI__ALLOC__RUNTIME.html" title="Allocate a new runtime object." alt="" coords="224,5,334,33"/>
+<area shape="rect" id="Node000003" href="$d7/db0/group__LCI__FREE__RUNTIME.html" title="Free a new runtime object." alt="" coords="227,57,332,85"/>
+<area shape="rect" id="Node000006" href="$d2/d5e/group__LCI__GET__G__RUNTIME.html" title="Get the global default runtime object." alt="" coords="222,109,337,137"/>
+<area shape="rect" id="Node000005" href="$d9/d15/group__LCI__G__RUNTIME__FINA.html" title="Finalize the global default runtime object." alt="" coords="220,161,338,189"/>
+<area shape="rect" id="Node000004" href="$de/d1b/group__LCI__G__RUNTIME__INIT.html" title="Initialize the global default runtime object." alt="" coords="222,213,337,241"/>
+<area shape="rect" id="Node000007" href="$d1/d0e/group__LCI__RUNTIME.html" title="The runtime object." alt="" coords="206,265,353,293"/>
+<area shape="rect" id="Node000001" title="This section describes setup and teardown API." alt="" coords="5,136,158,164"/>
 </map>

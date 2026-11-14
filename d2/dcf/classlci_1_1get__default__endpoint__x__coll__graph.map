@@ -1,11 +1,11 @@
 <map id="lci::get_default_endpoint_x" name="lci::get_default_endpoint_x">
-<area shape="rect" id="Node000001" title="The actual implementation for get_default_endpoint." alt="" coords="46,196,245,221"/>
-<area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="5,93,133,133"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="88,144,106,170,132,194,128,198,102,174,83,147"/>
-<area shape="rect" id="Node000003" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="15,5,123,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="72,44,72,93,67,93,67,44"/>
-<area shape="rect" id="Node000004" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="157,93,285,133"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="203,147,182,174,159,198,155,194,178,170,198,144"/>
-<area shape="rect" id="Node000005" href="$d6/d66/classlci_1_1device__t.html" title="The actual implementation for RESOURCE device." alt="" coords="171,5,271,31"/>
-<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="224,44,224,93,219,93,219,44"/>
+<area shape="rect" id="Node000001" title="The actual implementation for get_default_endpoint." alt="" coords="45,208,242,235"/>
+<area shape="rect" id="Node000002" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="5,98,133,143"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="88,154,107,182,130,207,125,207,103,185,86,159"/>
+<area shape="rect" id="Node000003" href="$dc/d5c/classlci_1_1runtime__t.html" title="The actual implementation for RESOURCE runtime." alt="" coords="15,5,123,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="70,46,72,98,66,97,68,51"/>
+<area shape="rect" id="Node000004" href="$db/d20/structlci_1_1option__t.html" title=" " alt="" coords="157,98,285,143"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="203,154,182,185,159,209,156,205,178,182,198,157"/>
+<area shape="rect" id="Node000005" href="$d6/d66/classlci_1_1device__t.html" title="The actual implementation for RESOURCE device." alt="" coords="171,5,271,33"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="222,46,223,98,219,96,220,51"/>
 </map>
