@@ -100,7 +100,9 @@ class device_impl_t
   std::atomic<size_t> nrecvs_posted;
   std::atomic<bool> network_failed{false};
   LCIU_CACHE_PADDING(sizeof(std::atomic<size_t>) + sizeof(std::atomic<bool>));
+  // Written on every register_memory; keep it off the backends' hot fields.
   std::atomic<uint64_t> nmrs_registered{0};
+  LCIU_CACHE_PADDING(sizeof(std::atomic<uint64_t>));
 };
 
 class mr_impl_t
