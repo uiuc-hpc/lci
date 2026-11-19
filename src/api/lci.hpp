@@ -468,6 +468,28 @@ enum class comp_semantic_t {
 struct allocator_base_t {
   virtual void* allocate(size_t size) = 0;
   virtual void deallocate(void* ptr) = 0;
+  /**
+   * @brief Allocate a buffer that LCI will receive data into by RDMA
+   * (currently, a rendezvous active message), and optionally return a memory
+   * region for it.
+   * @details If the returned @p mr is not empty, it must cover
+   * [buffer, buffer + size) and be registered on @p device. LCI then uses it
+   * instead of registering the buffer itself. LCI never deregisters it: the
+   * allocator keeps ownership and must keep it registered until the buffer
+   * is delivered to the user. If @p mr is left empty, LCI registers the
+   * buffer on the fly. The default implementation calls allocate() and
+   * returns an empty mr.
+   * @param size The size of the buffer.
+   * @param device The device the data will arrive on.
+   * @param mr [out] The memory region of the buffer, or MR_HOST.
+   * @return The buffer.
+   */
+  virtual void* allocate_with_mr(size_t size, device_t device, mr_t* mr)
+  {
+    (void)device;
+    *mr = MR_HOST;
+    return allocate(size);
+  }
   virtual ~allocator_base_t() = default;
 };
 

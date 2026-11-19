@@ -378,6 +378,10 @@ void set_internal_ctx(const post_comm_args_t& args, const post_comm_traits_t&,
   // Note: mr for zero-copy send/recv will be handled in the rendezvous
   // protocol.
   state.mr = args.mr;
+  // The rendezvous protocol (send/am and the recv it matches) registers the
+  // buffer on the fly only if the context has no mr; give it the caller's.
+  // MR_HOST, MR_DEVICE, and MR_UNKNOWN are placeholders: is_empty() is true.
+  if (!args.mr.is_empty()) state.internal_ctx->mr = args.mr;
   if (state.protocol == protocol_t::eager_zcopy && state.mr.is_empty()) {
     state.mr = register_memory_x(args.local_buffer, args.size)
                    .runtime(args.runtime)
