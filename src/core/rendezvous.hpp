@@ -132,17 +132,14 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
     rdv_ctx->set_mr_on_the_fly(mr);
   }
 
-  // Prepare the RTR packet
-  // reuse the rts packet as rtr packet
-  uintptr_t send_ctx = rts->send_ctx;
-  rtr_msg_t* rtr = reinterpret_cast<rtr_msg_t*>(packet->get_payload_address());
-  packet->local_context.local_id = mpmc_set_t::LOCAL_SET_ID_NULL;
-  rtr->send_ctx = send_ctx;
-  rtr->recv_ctx_or_key = 0;
-  rtr->rmr = get_rmr(rdv_ctx->mr);
-  rtr->offset = reinterpret_cast<uintptr_t>(rdv_ctx->buffer) - rtr->rmr.base;
+  // Prepare the RTR message
+  rtr_msg_t rtr;
+  rtr.send_ctx = rts->send_ctx;
+  rtr.recv_ctx_or_key = 0;
+  rtr.rmr = get_rmr(rdv_ctx->mr);
+  rtr.offset = reinterpret_cast<uintptr_t>(rdv_ctx->buffer) - rtr.rmr.base;
 
-  LCI_DBG_Log(LOG_TRACE, "rdv", "send rtr: sctx %p\n", (void*)rtr->send_ctx);
+  LCI_DBG_Log(LOG_TRACE, "rdv", "send rtr: sctx %p\n", (void*)rtr.send_ctx);
 
   const bool use_writeimm =
       runtime.get_impl()->attr.rdv_protocol == attr_rdv_protocol_t::writeimm;
@@ -152,25 +149,41 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
   if (use_writeimm) {
     auto& archive = runtime.get_impl()->rdv_imm_archive;
     writeimm_tag = archive.insert(reinterpret_cast<uint64_t>(rdv_ctx));
-    rtr->recv_ctx_or_key = writeimm_tag;
+    rtr.recv_ctx_or_key = writeimm_tag;
     inserted_into_archive = true;
   } else {
-    rtr->recv_ctx_or_key = reinterpret_cast<uintptr_t>(rdv_ctx);
+    rtr.recv_ctx_or_key = reinterpret_cast<uintptr_t>(rdv_ctx);
   }
 
-  // send the rtr packet
-  internal_context_t* rtr_ctx = new internal_context_t;
-  rtr_ctx->packet_to_free = packet;
-
+  // send the rtr message
   net_imm_data_t imm_data = set_bits32(0, IMM_DATA_MSG_RTR, 2, 29);
-  error_t error = endpoint.get_impl()->post_send(
-      (int)rdv_ctx->rank, packet->get_payload_address(), sizeof(rtr_msg_t),
-      packet->get_mr(endpoint), imm_data, rtr_ctx, false /* allow_retry */);
-  if (!error.is_posted()) {
+  error_t error;
+  bool succeeded;
+  if (sizeof(rtr_msg_t) <=
+      device.get_impl()->net_context.get_attr_max_inject_size()) {
+    // post_sends copies the message (inline or into the backlog queue), so
+    // the rts packet can be returned right away.
+    packet->put_back();
+    error = endpoint.get_impl()->post_sends((int)rdv_ctx->rank, &rtr,
+                                            sizeof(rtr_msg_t), imm_data,
+                                            nullptr, false /* allow_retry */);
+    succeeded = error.is_done();
+  } else {
+    // reuse the rts packet as rtr packet
+    packet->local_context.local_id = mpmc_set_t::LOCAL_SET_ID_NULL;
+    memcpy(packet->get_payload_address(), &rtr, sizeof(rtr_msg_t));
+    internal_context_t* rtr_ctx = new internal_context_t;
+    rtr_ctx->packet_to_free = packet;
+    error = endpoint.get_impl()->post_send(
+        (int)rdv_ctx->rank, packet->get_payload_address(), sizeof(rtr_msg_t),
+        packet->get_mr(endpoint), imm_data, rtr_ctx, false /* allow_retry */);
+    succeeded = error.is_posted();
+  }
+  if (!succeeded) {
     if (inserted_into_archive) {
       (void)runtime.get_impl()->rdv_imm_archive.remove(writeimm_tag);
     }
-    LCI_Assert(error.is_posted(), "Unexpected error %s\n", error.get_str());
+    LCI_Assert(succeeded, "Unexpected error %s\n", error.get_str());
   }
 }
 

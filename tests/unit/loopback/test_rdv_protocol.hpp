@@ -71,8 +71,113 @@ void exercise_large_sendrecv()
   lci::free_comp(&send_cq);
 }
 
+// A rendezvous transfer whose RTS and RTR fit the inject size must not hold a
+// packet while it is in flight. Otherwise, a process that posts many
+// rendezvous sends drains the packet pool, the receives cannot be reposted,
+// and the RTRs never land.
+//
+// Post many rendezvous AMs and sends to ourselves without waiting for any of
+// them, through a device whose packet pool is only twice its posted receives,
+// and check that no post takes a packet.
+void exercise_many_inflight_rdv()
+{
+  constexpr lci::tag_t tag = 0xcafe;
+  constexpr size_t nrecvs = 64;
+  constexpr int nmsgs = 1000;  // per primitive
+  const int rank = lci::get_rank_me();
+
+  const size_t max_inject_size =
+      lci::get_default_net_context().get_attr_max_inject_size();
+  if (std::max(sizeof(lci::rts_msg_t), sizeof(lci::rtr_msg_t)) >
+      max_inject_size) {
+    GTEST_SKIP() << "The rendezvous messages do not fit the inject size "
+                 << max_inject_size;
+  }
+
+  lci::packet_pool_t packet_pool =
+      lci::alloc_packet_pool_x().npackets(2 * nrecvs)();
+  lci::device_t device =
+      lci::alloc_device_x().net_max_recvs(nrecvs).packet_pool(packet_pool)();
+  const size_t msg_size =
+      lci::get_max_bcopy_size_x().packet_pool(packet_pool)() + 1;
+  lci::comp_t lcq = lci::alloc_cq();
+  lci::comp_t rcq = lci::alloc_cq();
+  lci::rcomp_t rcomp = lci::register_rcomp(rcq);
+
+  void* send_buffer = malloc(msg_size);
+  char* recv_buffers = static_cast<char*>(malloc(nmsgs * msg_size));
+  util::write_buffer(send_buffer, msg_size, 's');
+  util::write_buffer(recv_buffers, nmsgs * msg_size, 'r');
+
+  // Pre-post the receives so the RTSs of the sends match on arrival.
+  for (int i = 0; i < nmsgs; i++) {
+    lci::status_t status;
+    KEEP_RETRY(status, lci::post_recv_x(rank, recv_buffers + i * msg_size,
+                                        msg_size, tag, rcq)
+                           .device(device)());
+    ASSERT_TRUE(status.is_posted());
+  }
+
+  const auto deadline =
+      std::chrono::steady_clock::now() + std::chrono::seconds(60);
+  int nposted = 0;
+  int nposted_with_packet = 0;
+  int nlocal_done = 0;
+  int nremote_done = 0;
+  while (nlocal_done < 2 * nmsgs || nremote_done < 2 * nmsgs) {
+    ASSERT_LT(std::chrono::steady_clock::now(), deadline)
+        << "rendezvous flood stuck: posted " << nposted << "/" << 2 * nmsgs
+        << ", local completions " << nlocal_done << ", remote completions "
+        << nremote_done;
+    if (nposted < 2 * nmsgs) {
+      const size_t npackets_before = packet_pool.get_impl()->get_size();
+      lci::status_t status;
+      if (nposted % 2 == 0) {
+        status = lci::post_am_x(rank, send_buffer, msg_size, lcq, rcomp)
+                     .device(device)();
+      } else {
+        status = lci::post_send_x(rank, send_buffer, msg_size, tag, lcq)
+                     .device(device)();
+      }
+      if (!status.is_retry()) {
+        ASSERT_TRUE(status.is_posted());
+        if (packet_pool.get_impl()->get_size() != npackets_before) {
+          nposted_with_packet++;
+        }
+        nposted++;
+      }
+    }
+    lci::progress_x().device(device)();
+    lci::status_t status = lci::cq_pop(lcq);
+    if (status.is_done()) {
+      nlocal_done++;
+    }
+    status = lci::cq_pop(rcq);
+    if (status.is_done()) {
+      ASSERT_EQ(status.size, msg_size);
+      util::check_buffer(status.buffer, msg_size, 's');
+      if (status.buffer < recv_buffers ||
+          status.buffer >= recv_buffers + nmsgs * msg_size) {
+        free(status.buffer);  // an AM buffer allocated by LCI
+      }
+      nremote_done++;
+    }
+  }
+
+  EXPECT_EQ(nposted_with_packet, 0) << "rendezvous sends took a packet";
+
+  free(recv_buffers);
+  free(send_buffer);
+  lci::deregister_rcomp(rcomp);
+  lci::free_comp(&rcq);
+  lci::free_comp(&lcq);
+  lci::free_device(&device);
+  lci::free_packet_pool(&packet_pool);
+}
+
 void run_protocol_case(lci::attr_rdv_protocol_t protocol,
-                       bool requires_putimm_support)
+                       bool requires_putimm_support,
+                       void (*exercise)() = exercise_large_sendrecv)
 {
   auto runtime = lci::g_runtime_init_x().rdv_protocol(protocol)();
   (void)runtime;
@@ -89,7 +194,7 @@ void run_protocol_case(lci::attr_rdv_protocol_t protocol,
     }
   }
 
-  exercise_large_sendrecv();
+  exercise();
 
   lci::g_runtime_fina();
 }
@@ -103,6 +208,18 @@ TEST(RDV_PROTOCOL, Write)
 TEST(RDV_PROTOCOL, WriteImm)
 {
   run_protocol_case(lci::attr_rdv_protocol_t::writeimm, true);
+}
+
+TEST(RDV_PROTOCOL, ManyInflightWrite)
+{
+  run_protocol_case(lci::attr_rdv_protocol_t::write, false,
+                    exercise_many_inflight_rdv);
+}
+
+TEST(RDV_PROTOCOL, ManyInflightWriteImm)
+{
+  run_protocol_case(lci::attr_rdv_protocol_t::writeimm, true,
+                    exercise_many_inflight_rdv);
 }
 
 }  // namespace test_rdv_protocol
