@@ -1,27 +1,61 @@
 // Copyright (c) 2026 The LCI Project Authors
 // SPDX-License-Identifier: NCSA
 
+#include <chrono>
+#include <cstdlib>
+
 // The rendezvous protocol must use the memory region the user supplied
 // instead of registering the buffer on the fly, and must never deregister it.
 namespace test_rdv_mr
 {
 namespace
 {
-uint64_t get_nmrs_registered()
+lci::device_t default_device()
 {
-  return lci::get_g_runtime()
-      .get_impl()
-      ->default_device.get_impl()
-      ->get_nmrs_registered();
+  return lci::get_g_runtime().get_impl()->default_device;
 }
 
-lci::status_t wait_cq(lci::comp_t cq)
+// The helpers below take an optional second device (`other`) to count
+// registrations on and make progress on, besides the default device.
+uint64_t get_nmrs_registered(lci::device_t other = lci::device_t())
+{
+  uint64_t n = default_device().get_impl()->get_nmrs_registered();
+  if (!other.is_empty()) n += other.get_impl()->get_nmrs_registered();
+  return n;
+}
+
+void progress(lci::device_t other)
+{
+  lci::progress();
+  if (!other.is_empty()) lci::progress_x().device(other)();
+}
+
+// Abort instead of hanging until the ctest timeout if a message is lost.
+template <typename Pred>
+void wait_until(Pred pred, lci::device_t other)
+{
+  auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+  while (!pred()) {
+    if (std::chrono::steady_clock::now() > deadline) {
+      ADD_FAILURE() << "Timed out waiting for a rendezvous to complete";
+      std::abort();
+    }
+    progress(other);
+  }
+}
+
+lci::status_t wait_cq(lci::comp_t cq, lci::device_t other)
 {
   lci::status_t status;
-  do {
-    lci::progress();
-    status = lci::cq_pop(cq);
-  } while (status.is_retry());
+  wait_until([&]() { return !(status = lci::cq_pop(cq)).is_retry(); }, other);
+  return status;
+}
+
+template <typename Post>
+lci::status_t post_until_not_retry(Post post, lci::device_t other)
+{
+  lci::status_t status;
+  wait_until([&]() { return !(status = post()).is_retry(); }, other);
   return status;
 }
 
@@ -33,10 +67,12 @@ struct registered_buffer_t {
   size_t size;
   lci::mr_t mr;
 
-  explicit registered_buffer_t(size_t size_) : size(size_)
+  explicit registered_buffer_t(size_t size_,
+                               lci::device_t device = default_device())
+      : size(size_)
   {
     region = static_cast<char*>(malloc(size + 2 * padding));
-    mr = lci::register_memory(region, size + 2 * padding);
+    mr = lci::register_memory_x(region, size + 2 * padding).device(device)();
   }
   ~registered_buffer_t()
   {
@@ -46,46 +82,75 @@ struct registered_buffer_t {
   void* buffer() const { return region + padding; }
 };
 
-// Send one rendezvous message from send_buffer to recv_buffer and check it.
-// If !recv_first, the RTS is likely to arrive before the receive is posted.
+// Counts sends queued without a match, so a test can wait until an RTS is
+// queued before it posts the receive.
+struct counting_engine_t : public lci::matching_engine_map_t {
+  int nsends_queued = 0;
+  counting_engine_t() : matching_engine_map_t(attr_t()) {}
+  val_t insert(key_t key, val_t value, insert_type_t type) override
+  {
+    val_t ret = matching_engine_map_t::insert(key, value, type);
+    if (type == insert_type_t::send && !ret) ++nsends_queued;
+    return ret;
+  }
+};
+
+// Send one rendezvous message from send_buffer (on send_device, default if
+// empty) to recv_buffer (on the default device) and check it. If !recv_first,
+// the receive is posted after the RTS is queued.
 void sendrecv(void* send_buffer, lci::mr_t send_mr, void* recv_buffer,
-              lci::mr_t recv_mr, size_t size, bool recv_first)
+              lci::mr_t recv_mr, size_t size, bool recv_first,
+              lci::device_t send_device = lci::device_t())
 {
   const int rank = lci::get_rank_me();
   constexpr lci::tag_t tag = 0x2a;
+  auto* engine = new counting_engine_t;
+  engine->register_rhandler(lci::get_g_runtime());
+  lci::matching_engine_t matching_engine(engine);
   lci::comp_t send_cq = lci::alloc_cq();
   lci::comp_t recv_cq = lci::alloc_cq();
   util::write_buffer(send_buffer, size, 's');
   util::write_buffer(recv_buffer, size, 'r');
 
-  lci::status_t status;
   auto post_recv = [&]() {
-    KEEP_RETRY(
-        status,
-        lci::post_recv_x(rank, recv_buffer, size, tag, recv_cq).mr(recv_mr)());
-    ASSERT_TRUE(status.is_posted());
+    lci::status_t status = post_until_not_retry(
+        [&]() {
+          return lci::post_recv_x(rank, recv_buffer, size, tag, recv_cq)
+              .matching_engine(matching_engine)
+              .mr(recv_mr)();
+        },
+        send_device);
+    EXPECT_TRUE(status.is_posted());
   };
   if (recv_first) post_recv();
-  KEEP_RETRY(
-      status,
-      lci::post_send_x(rank, send_buffer, size, tag, send_cq).mr(send_mr)());
-  ASSERT_TRUE(status.is_posted());
+  lci::status_t status = post_until_not_retry(
+      [&]() {
+        return lci::post_send_x(rank, send_buffer, size, tag, send_cq)
+            .device(send_device.is_empty() ? default_device() : send_device)
+            .matching_engine(matching_engine)
+            .mr(send_mr)();
+      },
+      send_device);
+  EXPECT_TRUE(status.is_posted());
   if (!recv_first) {
-    for (int i = 0; i < 100; ++i) lci::progress();
+    wait_until([&]() { return engine->nsends_queued == 1; }, send_device);
     post_recv();
   }
-  EXPECT_TRUE(wait_cq(send_cq).is_done());
-  status = wait_cq(recv_cq);
-  ASSERT_TRUE(status.is_done());
-  ASSERT_EQ(status.size, size);
-  util::check_buffer(recv_buffer, size, 's');
+  EXPECT_TRUE(wait_cq(send_cq, send_device).is_done());
+  status = wait_cq(recv_cq, send_device);
+  EXPECT_TRUE(status.is_done());
+  EXPECT_EQ(status.size, size);
+  if (status.is_done()) util::check_buffer(recv_buffer, size, 's');
 
   lci::free_comp(&recv_cq);
   lci::free_comp(&send_cq);
+  lci::free_matching_engine(&matching_engine);
 }
 
-// Send one rendezvous active message and return the received status.
-lci::status_t am(void* send_buffer, lci::mr_t send_mr, size_t size)
+// Send one rendezvous active message from send_device (default if empty) and
+// return the received status.
+lci::status_t am(void* send_buffer, lci::mr_t send_mr, size_t size,
+                 lci::device_t send_device = lci::device_t())
 {
   const int rank = lci::get_rank_me();
   lci::comp_t send_cq = lci::alloc_cq();
@@ -93,16 +158,20 @@ lci::status_t am(void* send_buffer, lci::mr_t send_mr, size_t size)
   lci::rcomp_t rcomp = lci::register_rcomp(recv_cq);
   util::write_buffer(send_buffer, size, 'a');
 
-  lci::status_t status;
-  KEEP_RETRY(
-      status,
-      lci::post_am_x(rank, send_buffer, size, send_cq, rcomp).mr(send_mr)());
+  lci::status_t status = post_until_not_retry(
+      [&]() {
+        return lci::post_am_x(rank, send_buffer, size, send_cq, rcomp)
+            .device(send_device.is_empty() ? default_device() : send_device)
+            .mr(send_mr)();
+      },
+      send_device);
   EXPECT_TRUE(status.is_posted());
-  EXPECT_TRUE(wait_cq(send_cq).is_done());
-  status = wait_cq(recv_cq);
+  EXPECT_TRUE(wait_cq(send_cq, send_device).is_done());
+  status = wait_cq(recv_cq, send_device);
   EXPECT_TRUE(status.is_done());
   EXPECT_EQ(status.size, size);
-  util::check_buffer(status.buffer, size, 'a');
+  if (status.is_done() && status.size == size)
+    util::check_buffer(status.buffer, size, 'a');
 
   lci::deregister_rcomp(rcomp);
   lci::free_comp(&recv_cq);
@@ -110,22 +179,24 @@ lci::status_t am(void* send_buffer, lci::mr_t send_mr, size_t size)
   return status;
 }
 
-// Hands out rendezvous buffers from one pre-registered region, with its mr.
+// Hands out rendezvous buffers from one region registered on one device, with
+// its mr when asked for that device.
 struct registered_allocator_t : public lci::allocator_base_t {
   registered_buffer_t pool;
+  lci::device_t device;
   size_t next = 0;
   int nallocs_with_mr = 0;
 
-  explicit registered_allocator_t(size_t size) : pool(size) {}
+  registered_allocator_t(size_t size, lci::device_t device_)
+      : pool(size, device_), device(device_)
+  {
+  }
   void* allocate(size_t size) override { return malloc(size); }
-  void* allocate_with_mr(size_t size, lci::device_t device,
+  void* allocate_with_mr(size_t size, lci::device_t device_,
                          lci::mr_t* mr) override
   {
-    EXPECT_EQ(device, lci::get_g_runtime().get_impl()->default_device);
-    if (next + size > pool.size) {
-      *mr = lci::MR_HOST;
-      return allocate(size);
-    }
+    *mr = lci::MR_HOST;
+    if (!(device_ == device) || next + size > pool.size) return allocate(size);
     void* ret = static_cast<char*>(pool.buffer()) + next;
     next += size;
     ++nallocs_with_mr;
@@ -179,6 +250,29 @@ TEST(RDV_MR, sendrecv_uses_user_mr)
   lci::g_runtime_fina();
 }
 
+// The matching engine is shared by all devices, so the receive's mr (default
+// device) and the send's mr (d2) can each end up on a rendezvous step handled
+// by the other device. That one side must register on the fly.
+TEST(RDV_MR, sendrecv_user_mr_other_device)
+{
+  lci::g_runtime_init();
+  const size_t size = lci::get_max_bcopy_size() + 1024;
+  {
+    lci::device_t d2 = lci::alloc_device();
+    {
+      registered_buffer_t send_buf(size, d2), recv_buf(size);
+      for (bool recv_first : {true, false}) {
+        uint64_t nmrs = get_nmrs_registered(d2);
+        sendrecv(send_buf.buffer(), send_buf.mr, recv_buf.buffer(), recv_buf.mr,
+                 size, recv_first, d2);
+        EXPECT_EQ(get_nmrs_registered(d2) - nmrs, 1u);
+      }
+    }
+    lci::free_device(&d2);
+  }
+  lci::g_runtime_fina();
+}
+
 TEST(RDV_MR, am_send_uses_user_mr)
 {
   lci::g_runtime_init();
@@ -201,20 +295,26 @@ TEST(RDV_MR, am_recv_uses_allocator_mr)
   lci::g_runtime_init();
   const size_t size = lci::get_max_bcopy_size() + 1024;
   {
-    registered_buffer_t send_buf(size);
-    // Room for two messages; the second starts inside the region.
-    registered_allocator_t allocator(2 * size + 64);
-    allocator.next = 64;
-    lci::set_allocator(&allocator);
-    for (int i = 0; i < 2; ++i) {
-      uint64_t nmrs = get_nmrs_registered();
-      lci::status_t status = am(send_buf.buffer(), send_buf.mr, size);
-      EXPECT_EQ(get_nmrs_registered() - nmrs, 0u);
-      EXPECT_TRUE(allocator.owns(status.buffer));
-      EXPECT_EQ(allocator.nallocs_with_mr, i + 1);
-      allocator.deallocate(status.buffer);
+    lci::device_t d2 = lci::alloc_device();
+    // The am arrives on the device it was sent from; the allocator is asked
+    // for an mr on that device.
+    for (lci::device_t device : {default_device(), d2}) {
+      registered_buffer_t send_buf(size, device);
+      // Room for two messages; the second starts inside the region.
+      registered_allocator_t allocator(2 * size + 64, device);
+      allocator.next = 64;
+      lci::set_allocator(&allocator);
+      for (int i = 0; i < 2; ++i) {
+        uint64_t nmrs = get_nmrs_registered(d2);
+        lci::status_t status = am(send_buf.buffer(), send_buf.mr, size, device);
+        EXPECT_EQ(get_nmrs_registered(d2) - nmrs, 0u);
+        EXPECT_TRUE(allocator.owns(status.buffer));
+        EXPECT_EQ(allocator.nallocs_with_mr, i + 1);
+        allocator.deallocate(status.buffer);
+      }
+      lci::set_allocator(&lci::g_allocator_default);
     }
-    lci::set_allocator(&lci::g_allocator_default);
+    lci::free_device(&d2);
   }
   lci::g_runtime_fina();
 }
