@@ -109,6 +109,50 @@ lci::status_t am(void* send_buffer, lci::mr_t send_mr, size_t size)
   lci::free_comp(&send_cq);
   return status;
 }
+
+// Hands out rendezvous buffers from one pre-registered region, with its mr.
+struct registered_allocator_t : public lci::allocator_base_t {
+  registered_buffer_t pool;
+  size_t next = 0;
+  int nallocs_with_mr = 0;
+
+  explicit registered_allocator_t(size_t size) : pool(size) {}
+  void* allocate(size_t size) override { return malloc(size); }
+  void* allocate_with_mr(size_t size, lci::device_t device,
+                         lci::mr_t* mr) override
+  {
+    EXPECT_EQ(device, lci::get_g_runtime().get_impl()->default_device);
+    if (next + size > pool.size) {
+      *mr = lci::MR_HOST;
+      return allocate(size);
+    }
+    void* ret = static_cast<char*>(pool.buffer()) + next;
+    next += size;
+    ++nallocs_with_mr;
+    *mr = pool.mr;
+    return ret;
+  }
+  void deallocate(void* ptr) override
+  {
+    if (!owns(ptr)) free(ptr);
+  }
+  bool owns(void* ptr) const
+  {
+    return ptr >= pool.buffer() &&
+           ptr < static_cast<char*>(pool.buffer()) + pool.size;
+  }
+};
+
+// Implements only the required methods.
+struct plain_allocator_t : public lci::allocator_base_t {
+  int nallocs = 0;
+  void* allocate(size_t size) override
+  {
+    ++nallocs;
+    return malloc(size);
+  }
+  void deallocate(void* ptr) override { free(ptr); }
+};
 }  // namespace
 
 TEST(RDV_MR, sendrecv_uses_user_mr)
@@ -148,6 +192,48 @@ TEST(RDV_MR, am_send_uses_user_mr)
       EXPECT_EQ(get_nmrs_registered() - nmrs, 1u);
       free(status.buffer);
     }
+  }
+  lci::g_runtime_fina();
+}
+
+TEST(RDV_MR, am_recv_uses_allocator_mr)
+{
+  lci::g_runtime_init();
+  const size_t size = lci::get_max_bcopy_size() + 1024;
+  {
+    registered_buffer_t send_buf(size);
+    // Room for two messages; the second starts inside the region.
+    registered_allocator_t allocator(2 * size + 64);
+    allocator.next = 64;
+    lci::set_allocator(&allocator);
+    for (int i = 0; i < 2; ++i) {
+      uint64_t nmrs = get_nmrs_registered();
+      lci::status_t status = am(send_buf.buffer(), send_buf.mr, size);
+      EXPECT_EQ(get_nmrs_registered() - nmrs, 0u);
+      EXPECT_TRUE(allocator.owns(status.buffer));
+      EXPECT_EQ(allocator.nallocs_with_mr, i + 1);
+      allocator.deallocate(status.buffer);
+    }
+    lci::set_allocator(&lci::g_allocator_default);
+  }
+  lci::g_runtime_fina();
+}
+
+TEST(RDV_MR, am_recv_plain_allocator)
+{
+  lci::g_runtime_init();
+  const size_t size = lci::get_max_bcopy_size() + 1024;
+  {
+    registered_buffer_t send_buf(size);
+    plain_allocator_t allocator;
+    lci::set_allocator(&allocator);
+    uint64_t nmrs = get_nmrs_registered();
+    lci::status_t status = am(send_buf.buffer(), send_buf.mr, size);
+    // The receive buffer is registered on the fly.
+    EXPECT_EQ(get_nmrs_registered() - nmrs, 1u);
+    EXPECT_EQ(allocator.nallocs, 1);
+    allocator.deallocate(status.buffer);
+    lci::set_allocator(&lci::g_allocator_default);
   }
   lci::g_runtime_fina();
 }

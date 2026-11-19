@@ -111,7 +111,8 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
     rdv_ctx->set_user_posted_op(endpoint);
     rdv_ctx->size = rts->size;
     if (rts->size > 0)
-      rdv_ctx->buffer = runtime.get_impl()->allocator->allocate(rts->size);
+      rdv_ctx->buffer = runtime.get_impl()->allocator->allocate_with_mr(
+          rts->size, device, &rdv_ctx->mr);
     rdv_ctx->user_context = NULL;
     auto entry = runtime.p_impl->default_rhandler_registry.get(rts->rcomp);
     LCI_DBG_Assert(entry.type == rhandler_registry_t::type_t::comp, "");
