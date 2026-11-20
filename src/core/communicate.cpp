@@ -262,6 +262,13 @@ void set_immediate_data(const post_comm_args_t& args, const post_comm_traits_t&,
   state.imm_data = imm_data;
 }
 
+// Whether a rendezvous send can send its RTS with post_sends. Otherwise, it
+// sends the RTS from a packet.
+bool rdv_rts_fits_inject(const post_comm_traits_t& traits)
+{
+  return sizeof(rts_msg_t) <= traits.max_inject_size;
+}
+
 // state in: protocol, rhandler, piggyback_tag_rcomp_in_msg
 // state.out: packet, user_provided_packet
 error_t set_packet_if_needed(const post_comm_args_t& args,
@@ -281,11 +288,10 @@ error_t set_packet_if_needed(const post_comm_args_t& args,
     }
     return errorcode_t::done;
   }
-  // A rendezvous send whose RTS fits the inject size sends it with post_sends
-  // and needs no packet (post_network_op). A packet taken here would be held
-  // by the send context until the whole rendezvous completes.
-  if (state.protocol == protocol_t::rdv_zcopy &&
-      sizeof(rts_msg_t) <= traits.max_inject_size) {
+  // A rendezvous send whose RTS fits the inject size needs no packet. A packet
+  // taken here would be held by the send context until the whole rendezvous
+  // completes.
+  if (state.protocol == protocol_t::rdv_zcopy && rdv_rts_fits_inject(traits)) {
     return errorcode_t::done;
   }
   // get a packet
@@ -515,12 +521,13 @@ error_t post_network_op(const post_comm_args_t& args,
       // rendezvous send
       // build the rts message
       rts_msg_t rts;
+      memset(&rts, 0, sizeof(rts));  // do not send uninitialized padding
       rts.send_ctx = (uintptr_t)state.internal_ctx;
       rts.tag = args.tag;
       rts.rcomp = state.rhandler;
       rts.size = args.size;
       // post send for the rts message
-      if (sizeof(rts_msg_t) <= traits.max_inject_size) {
+      if (rdv_rts_fits_inject(traits)) {
         // post_sends copies the message (inline or into the backlog queue)
         error = args.endpoint.p_impl->post_sends(
             args.rank, &rts, sizeof(rts_msg_t), state.imm_data, nullptr,

@@ -62,6 +62,11 @@ struct rtr_msg_t {
   size_t offset;
 };
 
+// Bit 0 of the RTR immediate data: the sender completes the message with
+// writeimm (recv_ctx_or_key is an archive key). Otherwise, it completes it
+// with write + FIN (recv_ctx_or_key is the recv ctx).
+const int RTR_IMM_DATA_WRITEIMM_BIT = 0;
+
 inline void handle_rdv_rts(runtime_t runtime, endpoint_t endpoint,
                            packet_t* packet)
 {
@@ -135,28 +140,29 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
   // Prepare the RTR message
   rtr_msg_t rtr;
   rtr.send_ctx = rts->send_ctx;
-  rtr.recv_ctx_or_key = 0;
   rtr.rmr = get_rmr(rdv_ctx->mr);
   rtr.offset = reinterpret_cast<uintptr_t>(rdv_ctx->buffer) - rtr.rmr.base;
 
   LCI_DBG_Log(LOG_TRACE, "rdv", "send rtr: sctx %p\n", (void*)rtr.send_ctx);
 
-  const bool use_writeimm =
+  bool use_writeimm =
       runtime.get_impl()->attr.rdv_protocol == attr_rdv_protocol_t::writeimm;
-
-  bool inserted_into_archive = false;
   imm_tag_archive_t::tag_t writeimm_tag = 0;
   if (use_writeimm) {
-    auto& archive = runtime.get_impl()->rdv_imm_archive;
-    writeimm_tag = archive.insert(reinterpret_cast<uint64_t>(rdv_ctx));
+    // If all immediate data tags are taken, ask the sender to complete this
+    // message with the write protocol instead.
+    use_writeimm = runtime.get_impl()->rdv_imm_archive.try_insert(
+        reinterpret_cast<uint64_t>(rdv_ctx), &writeimm_tag);
+  }
+  if (use_writeimm) {
     rtr.recv_ctx_or_key = writeimm_tag;
-    inserted_into_archive = true;
   } else {
     rtr.recv_ctx_or_key = reinterpret_cast<uintptr_t>(rdv_ctx);
   }
 
   // send the rtr message
   net_imm_data_t imm_data = set_bits32(0, IMM_DATA_MSG_RTR, 2, 29);
+  imm_data = set_bits32(imm_data, use_writeimm, 1, RTR_IMM_DATA_WRITEIMM_BIT);
   error_t error;
   bool succeeded;
   if (sizeof(rtr_msg_t) <=
@@ -180,7 +186,7 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
     succeeded = error.is_posted();
   }
   if (!succeeded) {
-    if (inserted_into_archive) {
+    if (use_writeimm) {
       (void)runtime.get_impl()->rdv_imm_archive.remove(writeimm_tag);
     }
     LCI_Assert(succeeded, "Unexpected error %s\n", error.get_str());
@@ -188,7 +194,7 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
 }
 
 inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
-                           packet_t* packet)
+                           packet_t* packet, net_imm_data_t imm_data)
 {
   // the sender side handles the rtr message
   device_t device = endpoint.get_impl()->device;
@@ -201,8 +207,8 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
   ectx->internal_ctx = rdv_ctx;
   ectx->signal_count =
       (rdv_ctx->size + max_single_msg_size - 1) / max_single_msg_size;
-  const bool use_writeimm =
-      runtime.get_impl()->attr.rdv_protocol == attr_rdv_protocol_t::writeimm;
+  // The receiver decides the protocol per message (handle_rdv_rts_common).
+  const bool use_writeimm = get_bits32(imm_data, 1, RTR_IMM_DATA_WRITEIMM_BIT);
   net_imm_data_t writeimm_data = 0;
   if (use_writeimm) {
     uint32_t tag_bits = runtime.get_impl()->rdv_imm_archive.tag_bits();

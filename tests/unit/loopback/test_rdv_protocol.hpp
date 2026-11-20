@@ -77,8 +77,9 @@ void exercise_large_sendrecv()
 // and the RTRs never land.
 //
 // Post many rendezvous AMs and sends to ourselves without waiting for any of
-// them, through a device whose packet pool is only twice its posted receives,
-// and check that no post takes a packet.
+// them, through a device whose packet pool is only twice its posted receives.
+// Check that no post takes a packet (sender) and that, whenever progress
+// returns, every packet is either free or posted as a receive (receiver).
 void exercise_many_inflight_rdv()
 {
   constexpr lci::tag_t tag = 0xcafe;
@@ -122,6 +123,7 @@ void exercise_many_inflight_rdv()
       std::chrono::steady_clock::now() + std::chrono::seconds(60);
   int nposted = 0;
   int nposted_with_packet = 0;
+  int nprogress_with_held_packet = 0;
   int nlocal_done = 0;
   int nremote_done = 0;
   while (nlocal_done < 2 * nmsgs || nremote_done < 2 * nmsgs) {
@@ -148,6 +150,11 @@ void exercise_many_inflight_rdv()
       }
     }
     lci::progress_x().device(device)();
+    if (packet_pool.get_impl()->get_size() +
+            device.get_impl()->get_nrecvs_posted() !=
+        2 * nrecvs) {
+      nprogress_with_held_packet++;
+    }
     lci::status_t status = lci::cq_pop(lcq);
     if (status.is_done()) {
       nlocal_done++;
@@ -156,15 +163,17 @@ void exercise_many_inflight_rdv()
     if (status.is_done()) {
       ASSERT_EQ(status.size, msg_size);
       util::check_buffer(status.buffer, msg_size, 's');
-      if (status.buffer < recv_buffers ||
-          status.buffer >= recv_buffers + nmsgs * msg_size) {
-        free(status.buffer);  // an AM buffer allocated by LCI
+      if (status.tag != tag) {
+        ASSERT_EQ(status.tag, 0);  // an AM, whose buffer LCI allocated
+        free(status.buffer);
       }
       nremote_done++;
     }
   }
 
   EXPECT_EQ(nposted_with_packet, 0) << "rendezvous sends took a packet";
+  EXPECT_EQ(nprogress_with_held_packet, 0)
+      << "the progress engine held packets for rendezvous messages";
 
   free(recv_buffers);
   free(send_buffer);
@@ -173,6 +182,29 @@ void exercise_many_inflight_rdv()
   lci::free_comp(&lcq);
   lci::free_device(&device);
   lci::free_packet_pool(&packet_pool);
+}
+
+// In writeimm mode, every accepted RTS takes an immediate data tag until its
+// data arrives. When all tags are taken, the receiver must complete the
+// message with the write protocol instead.
+void exercise_exhausted_imm_archive()
+{
+  auto& archive = lci::get_g_runtime().get_impl()->rdv_imm_archive;
+  std::vector<lci::imm_tag_archive_t::tag_t> tags;
+  lci::imm_tag_archive_t::tag_t imm_tag;
+  while (archive.try_insert(0, &imm_tag)) {
+    tags.push_back(imm_tag);
+  }
+  ASSERT_EQ(tags.size(), archive.capacity());
+
+  exercise_large_sendrecv();
+  // The message neither took nor leaked a tag.
+  ASSERT_FALSE(archive.try_insert(0, &imm_tag));
+
+  for (auto tag : tags) {
+    archive.remove(tag);
+  }
+  exercise_large_sendrecv();
 }
 
 void run_protocol_case(lci::attr_rdv_protocol_t protocol,
@@ -208,6 +240,12 @@ TEST(RDV_PROTOCOL, Write)
 TEST(RDV_PROTOCOL, WriteImm)
 {
   run_protocol_case(lci::attr_rdv_protocol_t::writeimm, true);
+}
+
+TEST(RDV_PROTOCOL, WriteImmArchiveExhausted)
+{
+  run_protocol_case(lci::attr_rdv_protocol_t::writeimm, true,
+                    exercise_exhausted_imm_archive);
 }
 
 TEST(RDV_PROTOCOL, ManyInflightWrite)
