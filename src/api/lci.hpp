@@ -473,8 +473,10 @@ struct allocator_base_t {
    * (currently, a rendezvous active message), and optionally return a memory
    * region for it.
    * @details As with allocate(), the buffer is handed to the user as
-   * status_t::buffer, and LCI never calls deallocate() on it. LCI calls this
-   * from whichever thread is making progress, so it must be thread-safe.
+   * status_t::buffer, and LCI never calls deallocate() on it; only completion
+   * objects that keep the status (not counters) let the user reclaim it. LCI
+   * calls this from whichever thread is making progress, so it must be
+   * thread-safe.
    *
    * If the returned @p mr is not empty, it must cover [buffer, buffer + size)
    * and be registered on @p device. LCI then uses it instead of registering

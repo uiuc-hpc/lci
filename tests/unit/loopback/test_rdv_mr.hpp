@@ -15,6 +15,14 @@ lci::device_t default_device()
   return lci::get_g_runtime().get_impl()->default_device;
 }
 
+// A second device shares the default packet pool and preposts receives from
+// it. It only receives a few control messages here, so keep its quota small;
+// a small LCI_ATTR_NPACKETS then still leaves packets for the rendezvous.
+lci::device_t alloc_second_device()
+{
+  return lci::alloc_device_x().net_max_recvs(8)();
+}
+
 // The helpers below take an optional second device (`other`) to count
 // registrations on and make progress on, besides the default device.
 uint64_t get_nmrs_registered(lci::device_t other = lci::device_t())
@@ -258,7 +266,7 @@ TEST(RDV_MR, sendrecv_user_mr_other_device)
   lci::g_runtime_init();
   const size_t size = lci::get_max_bcopy_size() + 1024;
   {
-    lci::device_t d2 = lci::alloc_device();
+    lci::device_t d2 = alloc_second_device();
     {
       registered_buffer_t send_buf(size, d2), recv_buf(size);
       for (bool recv_first : {true, false}) {
@@ -295,7 +303,7 @@ TEST(RDV_MR, am_recv_uses_allocator_mr)
   lci::g_runtime_init();
   const size_t size = lci::get_max_bcopy_size() + 1024;
   {
-    lci::device_t d2 = lci::alloc_device();
+    lci::device_t d2 = alloc_second_device();
     // The am arrives on the device it was sent from; the allocator is asked
     // for an mr on that device.
     for (lci::device_t device : {default_device(), d2}) {
