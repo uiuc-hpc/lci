@@ -207,6 +207,64 @@ void exercise_exhausted_imm_archive()
   exercise_large_sendrecv();
 }
 
+// A user may send a packet from get_upacket(); LCI returns it to the pool
+// when the operation completes. A packet is never larger than the bcopy
+// limit, but a nearly full one becomes a rendezvous send when the tag does
+// not fit the immediate data and has to be appended to the payload. Check
+// that the packet still goes back to the pool.
+void exercise_user_packet_rdv()
+{
+  const int rank = lci::get_rank_me();
+  if (sizeof(lci::rts_msg_t) >
+      lci::get_default_net_context().get_attr_max_inject_size()) {
+    GTEST_SKIP() << "The RTS does not fit the inject size";
+  }
+  const lci::tag_t tag = lci::get_g_runtime().get_attr_max_imm_tag() + 1;
+  const size_t msg_size = lci::get_max_bcopy_size();
+  lci::packet_pool_t pool = lci::get_default_packet_pool();
+  lci::device_t device = lci::get_g_runtime().get_impl()->default_device;
+  auto npackets_accounted = [&]() {
+    return pool.get_impl()->get_size() + device.get_impl()->get_nrecvs_posted();
+  };
+
+  lci::comp_t send_cq = lci::alloc_cq();
+  lci::comp_t recv_cq = lci::alloc_cq();
+  char* recv_buffer = static_cast<char*>(malloc(msg_size));
+  util::write_buffer(recv_buffer, msg_size, 'r');
+  lci::status_t status;
+  KEEP_RETRY(status,
+             lci::post_recv_x(rank, recv_buffer, msg_size, tag, recv_cq)());
+  ASSERT_TRUE(status.is_posted());
+
+  const size_t npackets_before = npackets_accounted();
+  void* packet = lci::get_upacket();
+  ASSERT_NE(packet, nullptr);
+  util::write_buffer(packet, msg_size, 's');
+  KEEP_RETRY(status, lci::post_send_x(rank, packet, msg_size, tag, send_cq)());
+  ASSERT_TRUE(status.is_posted());
+
+  bool send_done = false, recv_done = false;
+  while (!send_done || !recv_done) {
+    lci::progress();
+    if (!send_done && lci::cq_pop(send_cq).is_done()) send_done = true;
+    if (!recv_done) {
+      status = lci::cq_pop(recv_cq);
+      if (status.is_done()) {
+        ASSERT_EQ(status.size, msg_size);
+        util::check_buffer(recv_buffer, msg_size, 's');
+        recv_done = true;
+      }
+    }
+  }
+  for (int i = 0; i < 16; i++) lci::progress();
+  EXPECT_EQ(npackets_accounted(), npackets_before)
+      << "the user packet was not returned to the pool";
+
+  free(recv_buffer);
+  lci::free_comp(&recv_cq);
+  lci::free_comp(&send_cq);
+}
+
 void run_protocol_case(lci::attr_rdv_protocol_t protocol,
                        bool requires_putimm_support,
                        void (*exercise)() = exercise_large_sendrecv)
@@ -258,6 +316,12 @@ TEST(RDV_PROTOCOL, ManyInflightWriteImm)
 {
   run_protocol_case(lci::attr_rdv_protocol_t::writeimm, true,
                     exercise_many_inflight_rdv);
+}
+
+TEST(RDV_PROTOCOL, UserPacketWrite)
+{
+  run_protocol_case(lci::attr_rdv_protocol_t::write, false,
+                    exercise_user_packet_rdv);
 }
 
 }  // namespace test_rdv_protocol

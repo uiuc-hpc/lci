@@ -272,26 +272,24 @@ bool rdv_rts_fits_inject(const post_comm_traits_t& traits)
 // state in: protocol, rhandler, piggyback_tag_rcomp_in_msg
 // state.out: packet, user_provided_packet
 error_t set_packet_if_needed(const post_comm_args_t& args,
-                             [[maybe_unused]] const post_comm_traits_t& traits,
+                             const post_comm_traits_t& traits,
                              post_comm_state_t& state)
 {
-  // Only the bcopy protocol and the rendezvous protocol need a packet
-  if (state.protocol != protocol_t::eager_bcopy &&
-      state.protocol != protocol_t::rdv_zcopy) {
+  // Only the bcopy protocol, and a rendezvous send whose RTS does not fit the
+  // inject size, need a packet. Any other rendezvous send would hold its packet
+  // unused until the whole rendezvous completes.
+  const bool needs_packet =
+      state.protocol == protocol_t::eager_bcopy ||
+      (state.protocol == protocol_t::rdv_zcopy && !rdv_rts_fits_inject(traits));
+  if (!needs_packet) {
     if (args.packet_pool.p_impl->is_packet(args.local_buffer)) {
-      // Even though these two protocols do not need a packet, the user
+      // Even though these protocols do not need a packet, the user
       // might provide a packet as the local buffer. In this case, we
       // should mark that the user has provided a packet to make sure
       // that we will free
       state.user_provided_packet = true;
       state.packet = address2packet(args.local_buffer);
     }
-    return errorcode_t::done;
-  }
-  // A rendezvous send whose RTS fits the inject size needs no packet. A packet
-  // taken here would be held by the send context until the whole rendezvous
-  // completes.
-  if (state.protocol == protocol_t::rdv_zcopy && rdv_rts_fits_inject(traits)) {
     return errorcode_t::done;
   }
   // get a packet
