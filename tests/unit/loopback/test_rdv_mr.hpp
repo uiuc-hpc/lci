@@ -16,11 +16,14 @@ lci::device_t default_device()
 }
 
 // A second device shares the default packet pool and preposts receives from
-// it. It only receives a few control messages here, so keep its quota small;
-// a small LCI_ATTR_NPACKETS then still leaves packets for the rendezvous.
+// it. It only receives a few control messages here, so cap its quota (never
+// above the default device's); a small LCI_ATTR_NPACKETS then still leaves
+// packets for the rendezvous.
 lci::device_t alloc_second_device()
 {
-  return lci::alloc_device_x().net_max_recvs(8)();
+  size_t nrecvs =
+      std::min<size_t>(8, default_device().get_attr_net_max_recvs());
+  return lci::alloc_device_x().net_max_recvs(nrecvs)();
 }
 
 // The helpers below take an optional second device (`other`) to count
