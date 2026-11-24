@@ -6,9 +6,6 @@
 
 namespace lci
 {
-// Whether a rendezvous step handled on `device` can use the context's mr.
-// The matching engine is shared by all devices, so the mr the user posted
-// with may be registered on another device.
 inline bool rdv_mr_is_usable(mr_t mr, device_t device)
 {
   return !mr.is_empty() && mr.get_impl()->device == device;
