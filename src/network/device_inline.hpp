@@ -60,6 +60,7 @@ inline size_t device_impl_t::post_recvs(void* buffers[], size_t size,
 
 inline mr_t device_impl_t::register_memory(void* address, size_t size)
 {
+  LCI_PCOUNTER_ADD(net_mr_register, 1);
   mr_t mr;
   // reg cache does not like size 0
   if (attr.use_reg_cache && rcache_handle && rcache_handle->is_valid() &&

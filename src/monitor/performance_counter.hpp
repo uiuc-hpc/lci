@@ -36,6 +36,7 @@ extern LCT_pcounter_ctx_t pcounter_ctx;
     _macro(net_read_post_retry)             \
     _macro(net_read_comp)                   \
     _macro(net_remote_write_comp)           \
+    _macro(net_mr_register)                 \
     _macro(packet_get)                      \
     _macro(packet_get_retry)                \
     _macro(packet_put)                      \

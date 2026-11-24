@@ -6,6 +6,11 @@
 
 namespace lci
 {
+inline bool rdv_mr_is_usable(mr_t mr, device_t device)
+{
+  return !mr.is_empty() && mr.get_impl()->device == device;
+}
+
 inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
                                   packet_t* packet,
                                   internal_context_t* rdv_ctx);
@@ -111,7 +116,8 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
     rdv_ctx->set_user_posted_op(endpoint);
     rdv_ctx->size = rts->size;
     if (rts->size > 0)
-      rdv_ctx->buffer = runtime.get_impl()->allocator->allocate(rts->size);
+      rdv_ctx->buffer = runtime.get_impl()->allocator->allocate_with_mr(
+          rts->size, device, &rdv_ctx->mr);
     rdv_ctx->user_context = NULL;
     auto entry = runtime.p_impl->default_rhandler_registry.get(rts->rcomp);
     LCI_DBG_Assert(entry.type == rhandler_registry_t::type_t::comp, "");
@@ -131,7 +137,7 @@ inline void handle_rdv_rts_common(runtime_t runtime, endpoint_t endpoint,
   rdv_ctx->rank = packet->local_context.rank;
 
   // Register the data
-  if (rdv_ctx->size > 0 && rdv_ctx->mr.is_empty()) {
+  if (rdv_ctx->size > 0 && !rdv_mr_is_usable(rdv_ctx->mr, device)) {
     mr_t mr = register_memory_x(rdv_ctx->buffer, rdv_ctx->size)
                   .runtime(runtime)
                   .device(device)();
@@ -228,7 +234,7 @@ inline void handle_rdv_rtr(runtime_t runtime, endpoint_t endpoint,
   size_t size = rdv_ctx->size;
   mr_t* p_mr = &rdv_ctx->mr;
   // register the buffer if necessary
-  if (p_mr->is_empty()) {
+  if (!rdv_mr_is_usable(*p_mr, device)) {
     *p_mr = register_memory_x(buffer, size).runtime(runtime).device(device)();
     rdv_ctx->set_mr_on_the_fly(*p_mr);
   }

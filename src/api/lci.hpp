@@ -468,6 +468,18 @@ enum class comp_semantic_t {
 struct allocator_base_t {
   virtual void* allocate(size_t size) = 0;
   virtual void deallocate(void* ptr) = 0;
+  /**
+   * @brief Allocate a rendezvous AM receive buffer, optionally with an mr.
+   * @details A non-empty @p mr must cover the buffer and be registered on
+   * @p device; LCI uses it and never deregisters it. Otherwise, LCI registers
+   * the buffer itself. Must be thread-safe.
+   */
+  virtual void* allocate_with_mr(size_t size, device_t device, mr_t* mr)
+  {
+    (void)device;
+    *mr = mr_t();
+    return allocate(size);
+  }
   virtual ~allocator_base_t() = default;
 };
 
