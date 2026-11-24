@@ -262,17 +262,28 @@ void set_immediate_data(const post_comm_args_t& args, const post_comm_traits_t&,
   state.imm_data = imm_data;
 }
 
+// Whether a rendezvous send can send its RTS with post_sends. Otherwise, it
+// sends the RTS from a packet.
+bool rdv_rts_fits_inject(const post_comm_traits_t& traits)
+{
+  return sizeof(rts_msg_t) <= traits.max_inject_size;
+}
+
 // state in: protocol, rhandler, piggyback_tag_rcomp_in_msg
 // state.out: packet, user_provided_packet
 error_t set_packet_if_needed(const post_comm_args_t& args,
-                             [[maybe_unused]] const post_comm_traits_t& traits,
+                             const post_comm_traits_t& traits,
                              post_comm_state_t& state)
 {
-  // Only the bcopy protocol and the rendezvous protocol need a packet
-  if (state.protocol != protocol_t::eager_bcopy &&
-      state.protocol != protocol_t::rdv_zcopy) {
+  // Only the bcopy protocol, and a rendezvous send whose RTS does not fit the
+  // inject size, need a packet. Any other rendezvous send would hold its packet
+  // unused until the whole rendezvous completes.
+  const bool needs_packet =
+      state.protocol == protocol_t::eager_bcopy ||
+      (state.protocol == protocol_t::rdv_zcopy && !rdv_rts_fits_inject(traits));
+  if (!needs_packet) {
     if (args.packet_pool.p_impl->is_packet(args.local_buffer)) {
-      // Even though these two protocols do not need a packet, the user
+      // Even though these protocols do not need a packet, the user
       // might provide a packet as the local buffer. In this case, we
       // should mark that the user has provided a packet to make sure
       // that we will free
@@ -507,27 +518,25 @@ error_t post_network_op(const post_comm_args_t& args,
     } else /* protocol == protocol_t::rdv_zcopy */ {
       // rendezvous send
       // build the rts message
-      rts_msg_t* p_rts;
-      if (sizeof(rts_msg_t) <= traits.max_inject_size) {
-        p_rts = reinterpret_cast<rts_msg_t*>(malloc(sizeof(rts_msg_t)));
+      rts_msg_t rts;
+      memset(&rts, 0, sizeof(rts));  // do not send uninitialized padding
+      rts.send_ctx = (uintptr_t)state.internal_ctx;
+      rts.tag = args.tag;
+      rts.rcomp = state.rhandler;
+      rts.size = args.size;
+      // post send for the rts message
+      if (rdv_rts_fits_inject(traits)) {
+        // post_sends copies the message (inline or into the backlog queue)
+        error = args.endpoint.p_impl->post_sends(
+            args.rank, &rts, sizeof(rts_msg_t), state.imm_data, nullptr,
+            args.allow_retry);
       } else {
         LCI_Assert(sizeof(rts_msg_t) <= traits.max_bcopy_size,
                    "The rts message is too large\n");
-        p_rts = static_cast<rts_msg_t*>(state.packet->get_payload_address());
-      }
-      p_rts->send_ctx = (uintptr_t)state.internal_ctx;
-      p_rts->tag = args.tag;
-      p_rts->rcomp = state.rhandler;
-      p_rts->size = args.size;
-      // post send for the rts message
-      if (sizeof(rts_msg_t) <= traits.max_inject_size) {
-        error = args.endpoint.p_impl->post_sends(
-            args.rank, p_rts, sizeof(rts_msg_t), state.imm_data, nullptr,
-            args.allow_retry);
-        free(p_rts);
-      } else {
+        void* buffer = state.packet->get_payload_address();
+        memcpy(buffer, &rts, sizeof(rts_msg_t));
         error = args.endpoint.p_impl->post_send(
-            args.rank, p_rts, sizeof(rts_msg_t),
+            args.rank, buffer, sizeof(rts_msg_t),
             state.packet->get_mr(args.device), state.imm_data, nullptr,
             args.allow_retry);
       }

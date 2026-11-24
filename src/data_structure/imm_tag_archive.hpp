@@ -34,7 +34,8 @@ class imm_tag_archive_t
   imm_tag_archive_t(const imm_tag_archive_t&) = delete;
   imm_tag_archive_t& operator=(const imm_tag_archive_t&) = delete;
 
-  tag_t insert(uint64_t value)
+  // Return false if all tags are taken.
+  bool try_insert(uint64_t value, tag_t* tag)
   {
     LCI_Assert(value != empty_value(), "Invalid value");
     const uint32_t start =
@@ -46,11 +47,19 @@ class imm_tag_archive_t
       if (slots_[idx].value.compare_exchange_strong(
               expected, value, std::memory_order_relaxed,
               std::memory_order_relaxed)) {
-        return idx;
+        *tag = idx;
+        return true;
       }
     }
-    LCI_Assert(false, "Immediate data archive exhausted");
-    return 0;
+    return false;
+  }
+
+  tag_t insert(uint64_t value)
+  {
+    tag_t tag = 0;
+    bool succeeded = try_insert(value, &tag);
+    LCI_Assert(succeeded, "Immediate data archive exhausted");
+    return tag;
   }
 
   uint64_t remove(tag_t tag)

@@ -78,7 +78,7 @@ void progress_recv(runtime_t runtime, endpoint_t endpoint,
       handle_rdv_rts(runtime, endpoint, packet);
       break;
     case IMM_DATA_MSG_RTR:
-      handle_rdv_rtr(runtime, endpoint, packet);
+      handle_rdv_rtr(runtime, endpoint, packet, imm_data);
       break;
     case IMM_DATA_MSG_FIN:
       handle_rdv_fin(packet);
