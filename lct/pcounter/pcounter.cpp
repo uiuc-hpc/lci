@@ -384,6 +384,37 @@ struct ctx_t {
     lock.unlock();
   }
 
+  int64_t get(LCT_pcounter_handle_t handle)
+  {
+    int64_t total = 0;
+    lock.lock();
+    for (const auto& thread_ctx : thread_ctxs) {
+      if (thread_ctx == nullptr) continue;
+      switch (handle.type) {
+        case LCT_PCOUNTER_COUNTER: {
+          auto entries = thread_ctx->get_counters();
+          if (handle.idx < entries.size()) total += entries[handle.idx].total;
+          break;
+        }
+        case LCT_PCOUNTER_TREND: {
+          auto entries = thread_ctx->get_trends();
+          if (handle.idx < entries.size()) total += entries[handle.idx].total;
+          break;
+        }
+        case LCT_PCOUNTER_TIMER: {
+          auto timers = thread_ctx->get_timers();
+          if (handle.idx < timers.size())
+            total += timers[handle.idx].get().total;
+          break;
+        }
+        default:
+          break;
+      }
+    }
+    lock.unlock();
+    return total;
+  }
+
   void print_entry(FILE* out, const std::string& type_name,
                    LCT_time_t record_time, const std::string& entry_name,
                    const entry_t& entry) const
@@ -552,6 +583,13 @@ void LCT_pcounter_record(LCT_pcounter_ctx_t pcounter_ctx)
 {
   auto* ctx = static_cast<lct::pcounter::ctx_t*>(pcounter_ctx);
   ctx->record();
+}
+
+int64_t LCT_pcounter_get(LCT_pcounter_ctx_t pcounter_ctx,
+                         LCT_pcounter_handle_t handle)
+{
+  auto* ctx = static_cast<lct::pcounter::ctx_t*>(pcounter_ctx);
+  return ctx->get(handle);
 }
 
 void LCT_pcounter_dump(LCT_pcounter_ctx_t pcounter_ctx, FILE* out)

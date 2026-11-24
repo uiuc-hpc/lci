@@ -66,11 +66,6 @@ class device_impl_t
   {
     return network_failed.load(std::memory_order_relaxed);
   }
-  // Number of register_memory calls on this device so far.
-  inline uint64_t get_nmrs_registered() const
-  {
-    return nmrs_registered.load(std::memory_order_relaxed);
-  }
   static int reserve_device_ids(int n)
   {
     return g_ndevices.fetch_add(n, std::memory_order_relaxed);
@@ -100,9 +95,6 @@ class device_impl_t
   std::atomic<size_t> nrecvs_posted;
   std::atomic<bool> network_failed{false};
   LCIU_CACHE_PADDING(sizeof(std::atomic<size_t>) + sizeof(std::atomic<bool>));
-  // Written on every register_memory; keep it off the backends' hot fields.
-  std::atomic<uint64_t> nmrs_registered{0};
-  LCIU_CACHE_PADDING(sizeof(std::atomic<uint64_t>));
 };
 
 class mr_impl_t

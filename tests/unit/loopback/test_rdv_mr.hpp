@@ -26,14 +26,28 @@ lci::device_t alloc_second_device()
   return lci::alloc_device_x().net_max_recvs(nrecvs)();
 }
 
-// The helpers below take an optional second device (`other`) to count
-// registrations on and make progress on, besides the default device.
-uint64_t get_nmrs_registered(lci::device_t other = lci::device_t())
+// Memory registrations so far, from the net_mr_register performance counter,
+// or -1 if performance counters are disabled.
+int64_t get_nmrs_registered()
 {
-  uint64_t n = default_device().get_impl()->get_nmrs_registered();
-  if (!other.is_empty()) n += other.get_impl()->get_nmrs_registered();
-  return n;
+#ifdef LCI_USE_PERFORMANCE_COUNTER
+  return LCT_pcounter_get(lci::pcounter_ctx,
+                          lci::pcounter_handle_net_mr_register);
+#else
+  return -1;
+#endif
 }
+
+// Expect `n` registrations since `before` (from get_nmrs_registered()). Without
+// performance counters, there is nothing to check.
+void expect_nmrs_registered(int64_t before, int64_t n)
+{
+  if (before < 0) return;
+  EXPECT_EQ(get_nmrs_registered() - before, n);
+}
+
+// The helpers below take an optional second device (`other`) to make progress
+// on, besides the default device.
 
 void progress(lci::device_t other)
 {
@@ -246,16 +260,16 @@ TEST(RDV_MR, sendrecv_uses_user_mr)
     for (bool recv_first : {true, false}) {
       // Twice with the same mrs: they must survive the first message.
       for (int i = 0; i < 2; ++i) {
-        uint64_t nmrs = get_nmrs_registered();
+        int64_t nmrs = get_nmrs_registered();
         sendrecv(send_buf.buffer(), send_buf.mr, recv_buf.buffer(), recv_buf.mr,
                  size, recv_first);
-        EXPECT_EQ(get_nmrs_registered() - nmrs, 0u);
+        expect_nmrs_registered(nmrs, 0);
       }
       // Without an mr, both sides register on the fly.
-      uint64_t nmrs = get_nmrs_registered();
+      int64_t nmrs = get_nmrs_registered();
       sendrecv(send_buf.buffer(), lci::MR_HOST, recv_buf.buffer(), lci::MR_HOST,
                size, recv_first);
-      EXPECT_EQ(get_nmrs_registered() - nmrs, 2u);
+      expect_nmrs_registered(nmrs, 2);
     }
   }
   lci::g_runtime_fina();
@@ -273,10 +287,10 @@ TEST(RDV_MR, sendrecv_user_mr_other_device)
     {
       registered_buffer_t send_buf(size, d2), recv_buf(size);
       for (bool recv_first : {true, false}) {
-        uint64_t nmrs = get_nmrs_registered(d2);
+        int64_t nmrs = get_nmrs_registered();
         sendrecv(send_buf.buffer(), send_buf.mr, recv_buf.buffer(), recv_buf.mr,
                  size, recv_first, d2);
-        EXPECT_EQ(get_nmrs_registered(d2) - nmrs, 1u);
+        expect_nmrs_registered(nmrs, 1);
       }
     }
     lci::free_device(&d2);
@@ -291,10 +305,10 @@ TEST(RDV_MR, am_send_uses_user_mr)
   {
     registered_buffer_t send_buf(size);
     for (int i = 0; i < 2; ++i) {
-      uint64_t nmrs = get_nmrs_registered();
+      int64_t nmrs = get_nmrs_registered();
       lci::status_t status = am(send_buf.buffer(), send_buf.mr, size);
       // Only the receive buffer from the default allocator is registered.
-      EXPECT_EQ(get_nmrs_registered() - nmrs, 1u);
+      expect_nmrs_registered(nmrs, 1);
       free(status.buffer);
     }
   }
@@ -316,9 +330,9 @@ TEST(RDV_MR, am_recv_uses_allocator_mr)
       allocator.next = 64;
       lci::set_allocator(&allocator);
       for (int i = 0; i < 2; ++i) {
-        uint64_t nmrs = get_nmrs_registered(d2);
+        int64_t nmrs = get_nmrs_registered();
         lci::status_t status = am(send_buf.buffer(), send_buf.mr, size, device);
-        EXPECT_EQ(get_nmrs_registered(d2) - nmrs, 0u);
+        expect_nmrs_registered(nmrs, 0);
         EXPECT_TRUE(allocator.owns(status.buffer));
         EXPECT_EQ(allocator.nallocs_with_mr, i + 1);
         allocator.deallocate(status.buffer);
@@ -338,10 +352,10 @@ TEST(RDV_MR, am_recv_plain_allocator)
     registered_buffer_t send_buf(size);
     plain_allocator_t allocator;
     lci::set_allocator(&allocator);
-    uint64_t nmrs = get_nmrs_registered();
+    int64_t nmrs = get_nmrs_registered();
     lci::status_t status = am(send_buf.buffer(), send_buf.mr, size);
     // The receive buffer is registered on the fly.
-    EXPECT_EQ(get_nmrs_registered() - nmrs, 1u);
+    expect_nmrs_registered(nmrs, 1);
     EXPECT_EQ(allocator.nallocs, 1);
     allocator.deallocate(status.buffer);
     lci::set_allocator(&lci::g_allocator_default);

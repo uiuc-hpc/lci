@@ -154,6 +154,10 @@ LCT_API void LCT_pcounter_startt(LCT_pcounter_ctx_t pcounter_ctx,
 LCT_API void LCT_pcounter_endt(LCT_pcounter_ctx_t pcounter_ctx,
                                LCT_pcounter_handle_t handle, LCT_time_t time);
 LCT_API void LCT_pcounter_record(LCT_pcounter_ctx_t pcounter_ctx);
+// The total of all values added to a counter or trend so far, summed over all
+// threads (for a timer, its total time).
+LCT_API int64_t LCT_pcounter_get(LCT_pcounter_ctx_t pcounter_ctx,
+                                 LCT_pcounter_handle_t handle);
 LCT_API void LCT_pcounter_dump(LCT_pcounter_ctx_t pcounter_ctx, FILE* out);
 
 // Data Structures
