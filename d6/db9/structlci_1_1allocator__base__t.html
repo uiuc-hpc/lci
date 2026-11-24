@@ -137,6 +137,9 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:ab60f1be97701d09885e6c0b1c050ab1d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa4c610c25bc203486553d2aedb60584c" id="r_aa4c610c25bc203486553d2aedb60584c"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa4c610c25bc203486553d2aedb60584c">deallocate</a> (void *ptr)=0</td></tr>
 <tr class="separator:aa4c610c25bc203486553d2aedb60584c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7352477b2832a573be762ca0ff41718d" id="r_a7352477b2832a573be762ca0ff41718d"><td class="memItemLeft" align="right" valign="top">virtual void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7352477b2832a573be762ca0ff41718d">allocate_with_mr</a> (size_t size, <a class="el" href="../../d6/d66/classlci_1_1device__t.html">device_t</a> device, <a class="el" href="../../d7/d1a/classlci_1_1mr__t.html">mr_t</a> *mr)</td></tr>
+<tr class="memdesc:a7352477b2832a573be762ca0ff41718d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allocate a rendezvous AM receive buffer, optionally with an mr.  <br /></td></tr>
+<tr class="separator:a7352477b2832a573be762ca0ff41718d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a704ff0fc03e9fe875318f658db4a66a3" id="r_a704ff0fc03e9fe875318f658db4a66a3"><td class="memItemLeft" align="right" valign="top">virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a704ff0fc03e9fe875318f658db4a66a3">~allocator_base_t</a> ()=default</td></tr>
 <tr class="separator:a704ff0fc03e9fe875318f658db4a66a3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -193,6 +196,53 @@ Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Implemented in <a class="el" href="../../d8/d6c/structlci_1_1allocator__default__t.html#a445a5a962d0c575f5bad4fb1a9249455">lci::allocator_default_t</a>.</p>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><iframe scrolling="no" frameborder="0" src="../../d6/db9/structlci_1_1allocator__base__t_ab60f1be97701d09885e6c0b1c050ab1d_icgraph.svg" width="352" height="56"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
+</div>
+
+</div>
+</div>
+<a id="a7352477b2832a573be762ca0ff41718d" name="a7352477b2832a573be762ca0ff41718d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7352477b2832a573be762ca0ff41718d">&#9670;&#160;</a></span>allocate_with_mr()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual void * lci::allocator_base_t::allocate_with_mr </td>
+          <td>(</td>
+          <td class="paramtype">size_t</td>          <td class="paramname"><span class="paramname"><em>size</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="../../d6/d66/classlci_1_1device__t.html">device_t</a></td>          <td class="paramname"><span class="paramname"><em>device</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="../../d7/d1a/classlci_1_1mr__t.html">mr_t</a> *</td>          <td class="paramname"><span class="paramname"><em>mr</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel virtual">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Allocate a rendezvous AM receive buffer, optionally with an mr. </p>
+<p>A non-empty <code class="param">mr</code> must cover the buffer and be registered on <code class="param">device</code>; LCI uses it and never deregisters it. Otherwise, LCI registers the buffer itself. Must be thread-safe. </p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><iframe scrolling="no" frameborder="0" src="../../d6/db9/structlci_1_1allocator__base__t_a7352477b2832a573be762ca0ff41718d_cgraph.svg" width="352" height="56"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
+</div>
 
 </div>
 </div>

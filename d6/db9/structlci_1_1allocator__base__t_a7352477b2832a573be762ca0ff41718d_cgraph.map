@@ -1,0 +1,5 @@
+<map id="lci::allocator_base_t::allocate_with_mr" name="lci::allocator_base_t::allocate_with_mr">
+<area shape="rect" id="Node000001" title="Allocate a rendezvous AM receive buffer, optionally with an mr." alt="" coords="5,5,159,50"/>
+<area shape="rect" id="Node000002" href="$d6/db9/structlci_1_1allocator__base__t.html#ab60f1be97701d09885e6c0b1c050ab1d" title=" " alt="" coords="207,5,346,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="159,25,193,27,188,28,159,30"/>
+</map>

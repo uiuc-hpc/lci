@@ -31,6 +31,7 @@ var group__LCI__BASIC =
     [ "lci::allocator_base_t", "d6/db9/structlci_1_1allocator__base__t.html", [
       [ "~allocator_base_t", "d6/db9/structlci_1_1allocator__base__t.html#a704ff0fc03e9fe875318f658db4a66a3", null ],
       [ "allocate", "d6/db9/structlci_1_1allocator__base__t.html#ab60f1be97701d09885e6c0b1c050ab1d", null ],
+      [ "allocate_with_mr", "d6/db9/structlci_1_1allocator__base__t.html#a7352477b2832a573be762ca0ff41718d", null ],
       [ "deallocate", "d6/db9/structlci_1_1allocator__base__t.html#aa4c610c25bc203486553d2aedb60584c", null ]
     ] ],
     [ "lci::status_t", "d9/d1e/structlci_1_1status__t.html", [

@@ -1,5 +1,6 @@
 var NAVTREEINDEX4 =
 {
+"d9/d10/classlci_1_1alloc__device__x.html#a0364c3bcc9d35c8c2dadd4a683e13b2b":[6,2,18,0,1],
 "d9/d10/classlci_1_1alloc__device__x.html#a08d8ac461c7857938a104835fa2161f2":[6,2,18,0,20],
 "d9/d10/classlci_1_1alloc__device__x.html#a0c88297a87de5e3a0f81117467aef6c1":[6,2,18,0,41],
 "d9/d10/classlci_1_1alloc__device__x.html#a0ce0ef1000dad6c0728fc9f4cb64ad7a":[6,2,18,0,4],
@@ -248,6 +249,5 @@ var NAVTREEINDEX4 =
 "da/ded/classlci_1_1reduce__scatter__x.html#af7a9b516df424bfb7189723c7cdbbf73":[6,7,3,0,13],
 "db/d21/group__LCI__NET__POST__PUTIMMS.html":[6,4,6],
 "db/d2e/group__LCI__REGISTER__RCOMP.html":[6,6,3],
-"db/d3b/structlci_1_1net__status__t.html":[6,0,2],
-"db/d3b/structlci_1_1net__status__t.html#a19b98edf20b12f08e837846ce5fe4431":[6,0,2,0]
+"db/d3b/structlci_1_1net__status__t.html":[6,0,2]
 };

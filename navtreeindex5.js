@@ -1,5 +1,6 @@
 var NAVTREEINDEX5 =
 {
+"db/d3b/structlci_1_1net__status__t.html#a19b98edf20b12f08e837846ce5fe4431":[6,0,2,0],
 "db/d3b/structlci_1_1net__status__t.html#a40ca4da8afbdf16148173ba844487001":[6,0,2,3],
 "db/d3b/structlci_1_1net__status__t.html#a47fe9e4f532c41f17dfbd56df2daaaaf":[6,0,2,4],
 "db/d3b/structlci_1_1net__status__t.html#a702f68c9c10e71480577a1db85015adc":[6,0,2,2],
@@ -248,6 +249,5 @@ var NAVTREEINDEX5 =
 "dc/d7f/classlci_1_1net__poll__cq__x.html#a7aa04bc2f46d07acfb8d72710802785b":[6,4,0,0,4],
 "dc/d7f/classlci_1_1net__poll__cq__x.html#a98dc7550c5f62a367de52eb4d123cc5d":[6,4,0,0,2],
 "dc/d7f/classlci_1_1net__poll__cq__x.html#ab72e3523a1ec621b032817a112aff910":[6,4,0,0,9],
-"dc/d7f/classlci_1_1net__poll__cq__x.html#ac51d2e9d808b47d28a6677424f640fb1":[6,4,0,0,11],
-"dc/d80/group__LCI__NET__POST__SEND.html":[6,4,3]
+"dc/d7f/classlci_1_1net__poll__cq__x.html#ac51d2e9d808b47d28a6677424f640fb1":[6,4,0,0,11]
 };
