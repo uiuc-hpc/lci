@@ -206,7 +206,7 @@ struct registered_allocator_t : public lci::allocator_base_t {
   void* allocate_with_mr(size_t size, lci::device_t device_,
                          lci::mr_t* mr) override
   {
-    *mr = lci::MR_HOST;
+    *mr = lci::mr_t();
     if (!(device_ == device) || next + size > pool.size) return allocate(size);
     void* ret = static_cast<char*>(pool.buffer()) + next;
     next += size;

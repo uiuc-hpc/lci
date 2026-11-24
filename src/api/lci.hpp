@@ -483,17 +483,17 @@ struct allocator_base_t {
    * the buffer itself. LCI never deregisters it: the allocator keeps ownership
    * and must keep it registered until the buffer is delivered to the user. If
    * @p mr is empty (or registered on another device), LCI registers the buffer
-   * on the fly. The default implementation calls allocate() and returns an
-   * empty mr.
+   * on the fly, as host or device memory depending on where it resides. The
+   * default implementation calls allocate() and returns an empty mr.
    * @param size The size of the buffer.
    * @param device The device the data will arrive on.
-   * @param mr [out] The memory region of the buffer, or MR_HOST.
+   * @param mr [out] The memory region of the buffer, or an empty mr.
    * @return The buffer.
    */
   virtual void* allocate_with_mr(size_t size, device_t device, mr_t* mr)
   {
     (void)device;
-    *mr = MR_HOST;
+    *mr = mr_t();
     return allocate(size);
   }
   virtual ~allocator_base_t() = default;
