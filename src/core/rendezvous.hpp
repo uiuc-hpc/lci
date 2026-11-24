@@ -62,10 +62,11 @@ struct rtr_msg_t {
   size_t offset;
 };
 
-// Bit 0 of the RTR immediate data: the sender completes the message with
-// writeimm (recv_ctx_or_key is an archive key). Otherwise, it completes it
-// with write + FIN (recv_ctx_or_key is the recv ctx).
-const int RTR_IMM_DATA_WRITEIMM_BIT = 0;
+// Bit 28 of the RTR immediate data, the first one below the message type
+// (bits 29-30): the sender completes the message with writeimm
+// (recv_ctx_or_key is an archive key). Otherwise, it completes it with
+// write + FIN (recv_ctx_or_key is the recv ctx).
+const int RTR_IMM_DATA_WRITEIMM_BIT = 28;
 
 inline void handle_rdv_rts(runtime_t runtime, endpoint_t endpoint,
                            packet_t* packet)
