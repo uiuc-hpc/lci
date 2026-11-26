@@ -32,6 +32,7 @@ void test_putImm_worker_fn(int thread_id, int nmsgs, size_t msg_size)
     }
 
     KEEP_RETRY(status, lci::cq_pop(rcq));
+    ASSERT_EQ(status.buffer, nullptr);
     util::check_buffer(recv_buffer, msg_size, value);
   }
 

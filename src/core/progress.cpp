@@ -42,7 +42,11 @@ void progress_recv(runtime_t runtime, endpoint_t endpoint,
         status.set_done();
         status.rank = net_status.rank;
         status.tag = tag;
-        if (reinterpret_cast<comp_impl_t*>(entry.value)->attr.zero_copy_am) {
+        if (msg_size == 0) {
+          // no payload: deliver a null buffer, as a native put with signal does
+          packet->put_back();
+        } else if (reinterpret_cast<comp_impl_t*>(entry.value)
+                       ->attr.zero_copy_am) {
           status.buffer = packet->get_payload_address();
           status.size = msg_size;
         } else {

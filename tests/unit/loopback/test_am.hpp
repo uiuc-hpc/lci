@@ -41,6 +41,7 @@ void test_am_worker_fn(int thread_id, int nmsgs, size_t msg_size,
         status = lci::cq_pop(rcq);
         if (status.is_done()) {
           ASSERT_EQ(status.size, msg_size);
+          if (msg_size == 0) ASSERT_EQ(status.buffer, nullptr);
           util::check_buffer(status.buffer, msg_size, 'a');
           free(status.buffer);
           rcq_done = true;

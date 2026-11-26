@@ -61,6 +61,7 @@ operation(
     doc = {
         "in_group": "LCI_COMM",
         "brief": "Post an active message communication operation.",
+        "details": "A zero-length active message delivers a null buffer to the target.",
     }
 ),
 operation(
