@@ -14,12 +14,14 @@ void test_putImm_worker_fn(int thread_id, int nmsgs, size_t msg_size)
 
   void* send_buffer = malloc(msg_size);
   void* recv_buffer = malloc(msg_size);
-  util::write_buffer(send_buffer, msg_size, 'a');
 
   lci::mr_t mr = lci::register_memory(recv_buffer, msg_size);
   lci::rmr_t rmr = lci::get_rmr(mr);
 
   for (int i = 0; i < nmsgs; i++) {
+    // a fresh value per iteration catches a signal that overtakes its data
+    const char value = 'a' + i % 26;
+    util::write_buffer(send_buffer, msg_size, value);
     lci::status_t status;
     KEEP_RETRY(status, lci::post_put_x(rank, send_buffer, msg_size, scq, 0, rmr)
                            .tag(tag)
@@ -30,7 +32,7 @@ void test_putImm_worker_fn(int thread_id, int nmsgs, size_t msg_size)
     }
 
     KEEP_RETRY(status, lci::cq_pop(rcq));
-    util::check_buffer(recv_buffer, msg_size, 'a');
+    util::check_buffer(recv_buffer, msg_size, value);
   }
 
   lci::deregister_memory(&mr);
