@@ -162,7 +162,7 @@ void progress_write(endpoint_t endpoint, const net_status_t& net_status)
       LCI_Assert(error.is_done(), "Unexpected error %s\n", error.get_str());
     }  // else: this is a RDMA write buffers or rendezvous with writeimm
     delete ectx;
-    free_ctx_and_signal_comp(ctx);
+    if (ctx) free_ctx_and_signal_comp(ctx);
   } else {
     free_ctx_and_signal_comp(internal_ctx);
   }

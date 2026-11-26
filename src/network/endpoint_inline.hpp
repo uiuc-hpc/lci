@@ -156,21 +156,20 @@ inline error_t endpoint_impl_t::post_putImms_fallback(
     int rank, void* buffer, size_t size, uint64_t offset, rmr_t rmr,
     net_imm_data_t imm_data, void* user_context, bool high_priority)
 {
-  // fallback to post_put
-  LCI_DBG_Log(
-      LOG_TRACE, "network",
-      "fallback to post_puts imm_data %x user_context %p (ignored for sends)\n",
-      imm_data, user_context);
-  error_t error = post_puts_impl(rank, buffer, size, offset, rmr, user_context,
-                                 high_priority);
-  if (!error.is_retry()) {
-    LCI_Assert(error.is_done(), "Unexpected error %s\n", error.get_str());
-    // we do not allow retry for post_sends
-    // otherwise the above puts might be posted again
-    // XXX: but even if puts is posted again, it is not a error
-    error_t error = post_sends(rank, nullptr, 0, imm_data, nullptr,
-                               false /* allow_retry */);
-    LCI_Assert(error.is_done(), "Unexpected error %s\n", error.get_str());
+  // fallback to post_puts; the signal is sent from the put's completion
+  // (progress_write), as a send posted now could overtake the data.
+  LCI_DBG_Log(LOG_TRACE, "network",
+              "fallback to post_puts imm_data %x user_context %p\n", imm_data,
+              user_context);
+  internal_context_extended_t* ectx = new internal_context_extended_t;
+  ectx->imm_data_rank = rank;
+  ectx->imm_data = imm_data;
+  ectx->signal_count = 1;
+  ectx->internal_ctx = static_cast<internal_context_t*>(user_context);
+  error_t error =
+      post_puts_impl(rank, buffer, size, offset, rmr, ectx, high_priority);
+  if (error.is_retry()) {
+    delete ectx;
   }
   return error;
 }
