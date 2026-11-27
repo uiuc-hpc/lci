@@ -80,6 +80,21 @@ enum attr_net_lock_mode_t {
   LCI_NET_TRYLOCK_MAX = 1 << 4,
 };
 
+/**
+ * @brief The scope at which a network backend guarantees uint64 atomics.
+ * @ingroup LCI_BASIC
+ *
+ * This reports the scope advertised by the selected backend. In particular,
+ * @ref net_atomic_scope_t::HCA maps to @c IBV_ATOMIC_HCA and must not be
+ * treated as global atomicity. Callers request the scope their algorithm
+ * requires when posting a network atomic operation.
+ */
+enum class net_atomic_scope_t {
+  NONE = 0,   /**< uint64 network atomics are unavailable */
+  HCA = 1,    /**< atomic only within the scope reported by one HCA */
+  GLOBAL = 2, /**< backend reports global atomic scope */
+};
+
 // mimic std::optional as we don't want to force c++17 for now
 template <typename T>
 struct option_t {
@@ -241,13 +256,19 @@ struct error_t {
  * @ingroup LCI_BASIC
  */
 enum class net_opcode_t {
-  SEND,         /**< send */
-  RECV,         /**< receive */
-  WRITE,        /**< write */
-  REMOTE_WRITE, /**< remote write */
-  READ,         /**< read */
-  ERROR,        /**< asynchronous completion error */
+  SEND = 0,         /**< send */
+  RECV = 1,         /**< receive */
+  WRITE = 2,        /**< write */
+  REMOTE_WRITE = 3, /**< remote write */
+  READ = 4,         /**< read */
+  ERROR = 5,        /**< asynchronous completion error */
+  FETCH_ADD = 6,    /**< uint64 fetch-add or add */
 };
+
+static_assert(static_cast<int>(net_opcode_t::ERROR) == 5,
+              "net_opcode_t::ERROR is part of the public ABI");
+static_assert(static_cast<int>(net_opcode_t::FETCH_ADD) == 6,
+              "append new net_opcode_t values to preserve the public ABI");
 
 /**
  * @brief Get the string representation of a network operation code.
@@ -324,7 +345,8 @@ using net_imm_data_t = uint32_t;
  * communication operation. For @ref net_opcode_t::ERROR, @c rank is the
  * backend-reported peer rank when available and @c user_context is the
  * outgoing operation context when available. Receive errors report rank -1 and
- * a null user context.
+ * a null user context. Raw uint64 atomic failures also report a null user
+ * context because their contexts are not LCI internal contexts.
  */
 struct net_status_t {
   net_opcode_t opcode;

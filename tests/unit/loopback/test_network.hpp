@@ -152,6 +152,62 @@ TEST(NETWORK, completion_batch_unknown_rank_is_generic)
   lci::g_runtime_fina();
 }
 
+#ifdef LCI_BACKEND_ENABLE_IBV
+TEST(NETWORK, ibv_atomic_tracker_reuses_bounded_records)
+{
+  lci::ibv_atomic_tracker_t tracker;
+  tracker.initialize(2, 7);
+  uintptr_t complete_wr_id = 0;
+  size_t discard_slot = 0;
+  void* complete_context = reinterpret_cast<void*>(static_cast<uintptr_t>(1));
+  ASSERT_TRUE(
+      tracker.prepare(true, complete_context, &discard_slot, &complete_wr_id)
+          .is_done());
+  EXPECT_EQ(discard_slot, 8u);
+
+  void* completed_context = nullptr;
+  EXPECT_TRUE(tracker.complete(complete_wr_id, &completed_context));
+  EXPECT_EQ(completed_context, complete_context);
+  EXPECT_TRUE(tracker.empty());
+
+  uintptr_t cancel_wr_id = 0;
+  ASSERT_TRUE(
+      tracker.prepare(true, nullptr, &discard_slot, &cancel_wr_id).is_done());
+  EXPECT_TRUE(tracker.cancel(cancel_wr_id));
+  EXPECT_TRUE(tracker.empty());
+  EXPECT_NE(std::find(tracker.free_discard_slots.begin(),
+                      tracker.free_discard_slots.end(), discard_slot),
+            tracker.free_discard_slots.end());
+
+  uintptr_t first_wr_id = 0;
+  uintptr_t second_wr_id = 0;
+  size_t abort_discard_slot = 0;
+  ASSERT_TRUE(tracker.prepare(true, nullptr, &abort_discard_slot, &first_wr_id)
+                  .is_done());
+  ASSERT_TRUE(
+      tracker.prepare(false, nullptr, nullptr, &second_wr_id).is_done());
+  EXPECT_EQ(tracker.prepare(false, nullptr, nullptr, &complete_wr_id).errorcode,
+            lci::errorcode_t::retry_nomem);
+  EXPECT_EQ(tracker.abort(), 2u);
+  EXPECT_TRUE(tracker.empty());
+  EXPECT_NE(std::find(tracker.free_discard_slots.begin(),
+                      tracker.free_discard_slots.end(), abort_discard_slot),
+            tracker.free_discard_slots.end());
+  EXPECT_FALSE(tracker.complete(first_wr_id, nullptr));
+}
+#endif  // LCI_BACKEND_ENABLE_IBV
+
+TEST(NETWORK, uint64_atomic_remote_address_uses_effective_address)
+{
+  lci::rmr_t rmr;
+  rmr.base = 1;
+  EXPECT_TRUE(lci::is_valid_uint64_atomic_remote_address(7, rmr));
+  EXPECT_FALSE(lci::is_valid_uint64_atomic_remote_address(0, rmr));
+
+  rmr.base = std::numeric_limits<uintptr_t>::max() - 3;
+  EXPECT_FALSE(lci::is_valid_uint64_atomic_remote_address(8, rmr));
+}
+
 TEST(NETWORK, completion_failure_uses_abortive_teardown)
 {
   lci::g_runtime_init();
