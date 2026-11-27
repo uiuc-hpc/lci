@@ -135,11 +135,18 @@ class Lci(CMakePackage):
     depends_on("rdma-core", when="fabric=ibv")
     depends_on("ucx", when="fabric=ucx")
     depends_on("mpi", when="bootstrap=mpi")
+    # The deprecated variants are translated to `bootstrap` in cmake_args(),
+    # after concretization, so they need their own dependencies.
+    depends_on("mpi", when="enable-pm=mpi")
+    depends_on("mpi", when="default-pm=mpi")
     depends_on("papi", when="+papi")
     depends_on("doxygen", when="+docs")
     depends_on("cray-pmi", when="bootstrap=cray")
+    depends_on("cray-pmi", when="default-pm=cray")
     depends_on("gperftools", when="+tcmalloc")
     depends_on("python@3.8:", type="build", when="@2:")
+
+    conflicts("fabric=ucx", when="@2:", msg="LCI 2 does not implement a UCX backend")
 
     def cmake_args(self):
         if not self.spec.satisfies("default-pm=auto"):
@@ -197,23 +204,25 @@ class Lci(CMakePackage):
         if not self.spec.satisfies("packet-size=auto"):
             args.append(self.define_from_variant("LCI_PACKET_SIZE_DEFAULT", "packet-size"))
 
+        # LCI 2 renamed these CMake cache variables.
+        if self.spec.satisfies("@1"):
+            npackets_var = "LCI_SERVER_NUM_PKTS_DEFAULT"
+            fabric_var_prefix = "LCI_SERVER_MAX_"
+        else:
+            npackets_var = "LCI_PACKET_NUM_DEFAULT"
+            fabric_var_prefix = "LCI_BACKEND_MAX_"
+
         if not self.spec.satisfies("npackets=auto"):
-            args.append(self.define_from_variant("LCI_SERVER_NUM_PKTS_DEFAULT", "npackets"))
+            args.append(self.define_from_variant(npackets_var, "npackets"))
 
-        if not self.spec.satisfies("fabric-nsends-max=auto"):
-            args.append(
-                self.define_from_variant("LCI_SERVER_MAX_SENDS_DEFAULT", "fabric-nsends-max")
-            )
-
-        if not self.spec.satisfies("fabric-nrecvs-max=auto"):
-            args.append(
-                self.define_from_variant("LCI_SERVER_MAX_RECVS_DEFAULT", "fabric-nrecvs-max")
-            )
-
-        if not self.spec.satisfies("fabric-ncqes-max=auto"):
-            args.append(
-                self.define_from_variant("LCI_SERVER_MAX_CQES_DEFAULT", "fabric-ncqes-max")
-            )
+        for kind in ("sends", "recvs", "cqes"):
+            variant_name = f"fabric-n{kind}-max"
+            if not self.spec.satisfies(f"{variant_name}=auto"):
+                args.append(
+                    self.define_from_variant(
+                        f"{fabric_var_prefix}{kind.upper()}_DEFAULT", variant_name
+                    )
+                )
 
         if self.spec.satisfies("@1"):
             args += [
