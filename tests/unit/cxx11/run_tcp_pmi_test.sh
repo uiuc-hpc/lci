@@ -19,6 +19,7 @@ status=0
 expect_failure=0
 expected_failure_pattern=
 reject_torchrun_backend=0
+port_file=
 pids=()
 
 cleanup() {
@@ -84,6 +85,20 @@ case "$mode" in
     endpoint_prefix=MIXED
     expect_failure=1
     ;;
+  master-fd)
+    # Rank 0 binds an OS-chosen port itself, passes the socket through
+    # LCT_MASTER_FD, and reports the port; the other ranks start afterwards.
+    endpoint_prefix=LCT
+    port_file=$logdir/port
+    ;;
+  master-fd-mismatch)
+    # Rank 0 passes a socket that is bound to a port other than
+    # LCT_MASTER_PORT.
+    endpoint_prefix=LCT
+    nranks=1
+    expect_failure=1
+    expected_failure_pattern="LCT_MASTER_FD=[0-9]* is bound to port"
+    ;;
   reject-torchrun)
     mode=pmi
     endpoint_prefix=LCT
@@ -98,7 +113,24 @@ case "$mode" in
     ;;
 esac
 
+wait_for_port_file() {
+  for _ in $(seq 100); do
+    if [[ -s "$port_file" ]]; then
+      port=$(<"$port_file")
+      return
+    fi
+    kill -0 "${pids[0]}" 2>/dev/null || break
+    sleep 0.1
+  done
+  echo "Rank 0 did not report its TCP rendezvous port" >&2
+  status=1
+  exit 1
+}
+
 for rank in $(seq 0 $((nranks - 1))); do
+  if [[ -n "$port_file" && $rank -eq 1 ]]; then
+    wait_for_port_file
+  fi
   (
     unset LCT_PMI_BACKEND
     if [[ $reject_torchrun_backend -eq 1 ]]; then
@@ -113,6 +145,9 @@ for rank in $(seq 0 $((nranks - 1))); do
     export LCT_PMI_TCP_TIMEOUT_SEC=10
     export LCI_ENABLE_BOOTSTRAP_LCI=0
     set_endpoint_env
+    if [[ -n "$port_file" ]]; then
+      export LCT_TEST_PORT_FILE=$port_file
+    fi
     exec "$exe" "$mode"
   ) >"$logdir/rank-$rank.log" 2>&1 &
   pids+=("$!")

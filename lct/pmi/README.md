@@ -40,6 +40,27 @@ Optional environment variables:
 - `LOCAL_RANK` and `LOCAL_WORLD_SIZE` for local-rank validation/diagnostics.
 - `LCT_PMI_TCP_TIMEOUT_SEC` for connect, join, barrier, and finalize timeouts
   (default: 60 seconds).
+- `LCT_MASTER_FD` (rank 0 only) for a TCP socket that the caller has already
+  bound to the endpoint port. See below.
+
+### Passing a bound socket (`LCT_MASTER_FD`)
+
+Choosing a free port up front and then letting rank 0 bind it leaves a window
+in which another process can take the port. A caller that bootstraps LCI from
+another runtime (for example, MPI) can avoid this by binding the socket itself
+and handing it to rank 0:
+
+1. Rank 0 creates a TCP socket, binds it to port 0 (or any port), optionally
+   calls `listen()`, and reads the port with `getsockname()`. It keeps the
+   socket open.
+2. The caller sends rank 0's address and port to every rank (for example, with
+   `MPI_Bcast`) and sets `LCT_MASTER_ADDR`/`LCT_MASTER_PORT` on all ranks as
+   usual.
+3. Rank 0 also sets `LCT_MASTER_FD=<fd>` before initializing LCT/LCI.
+
+Rank 0 checks that the socket is bound to the endpoint port and then listens on
+it. LCT does not close the socket; the caller may close it once initialization
+returns. Other ranks ignore `LCT_MASTER_FD`.
 
 Endpoint variables are intentionally not mixed across prefixes. For example,
 `LCT_MASTER_ADDR` plus `MASTER_PORT` is rejected rather than treated as a valid
